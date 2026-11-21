@@ -110,11 +110,15 @@ internal static class PdfSecurityEditor {
         byte[] rewrittenPdf = PdfDocumentObjectGraphRewriter.Rewrite(sourcePdf, sourceDocument, sourceReadOptions, outputEncryption,
             maximumOutputBytes: maximumOutputBytes, cancellationToken: cancellationToken, preserveSourceEncryption: false);
         cancellationToken.ThrowIfCancellationRequested();
+        PdfLoadOptions? verificationReadOptions = outputEncryption?.PublicKey is null
+            ? sourceReadOptions
+            : PdfLoadOptions.WithPublicKeyDecryption(sourceReadOptions, PdfPublicKeyDecryptionOptions.ForWriterVerification(
+                PdfStandardSecurityWriter.CreatePublicKeyRecipientContent(outputEncryption.PublicKeySeed!, outputEncryption.Permissions)));
         PdfLoadOptions outputReadOptions = PdfLoadOptions.WithMinimumInputBytes(
             PdfLoadOptions.WithAesCryptographyProvider(
                 PdfLoadOptions.WithPassword(
-                    sourceReadOptions,
-                    outputEncryption?.OwnerPassword ?? outputEncryption?.UserPassword),
+                    verificationReadOptions,
+                    outputEncryption?.PublicKey is null ? outputEncryption?.OwnerPassword ?? outputEncryption?.UserPassword : null),
                 outputEncryption?.AesCryptographyProvider ?? sourceReadOptions?.AesCryptographyProvider),
             rewrittenPdf.LongLength);
 
@@ -125,9 +129,9 @@ internal static class PdfSecurityEditor {
             PreserveRevisionStructure = false,
             PreserveSecurityState = false
         };
-        PdfRewritePreservationReport preservation = PdfRewritePreservation.Assess(sourcePdf, rewrittenPdf, preservationOptions,
-            originalReadOptions: null, rewrittenReadOptions: null, cancellationToken);
-        preservation.ThrowIfFailed();
+        // The planner already authorized the change, so the proof must not demand extraction rights a recipient may lack.
+        PdfRewritePreservationReport preservation = PdfRewritePreservation.AssertPreservedForMutation(sourcePdf, rewrittenPdf,
+            preservationOptions, plan, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
 
         PdfDocumentSecurityInfo outputSecurity = PdfSyntax.ReadDocumentSecurityInfo(rewrittenPdf, outputReadOptions, cancellationToken: cancellationToken);

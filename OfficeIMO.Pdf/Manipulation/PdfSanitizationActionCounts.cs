@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>Typed counts of action findings in a PDF sanitization preview or result.</summary>
-public sealed class PdfSanitizationActionCounts {
+internal sealed class PdfSanitizationActionCounts {
     internal PdfSanitizationActionCounts(IReadOnlyList<PdfSanitizationFinding> findings) {
         for (int i = 0; i < findings.Count; i++) {
             PdfSanitizationActionKind? kind = findings[i].ActionKind;

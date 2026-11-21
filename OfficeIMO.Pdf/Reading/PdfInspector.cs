@@ -42,6 +42,17 @@ internal static class PdfInspector {
         return names;
     }
 
+    /// <summary>Every probe marker name, so deferred objects can record which of them they contain.</summary>
+    internal static string[] GetDeferredMarkerNames() {
+        var names = new List<string>();
+        foreach (string[] group in ProbeMarkerNames) {
+            foreach (string name in group) {
+                if (!names.Contains(name)) names.Add(name);
+            }
+        }
+        return names.ToArray();
+    }
+
     private static HashSet<string>[] CreateReachableProbeMarkerGroups() {
         var groups = new HashSet<string>[2];
         for (int index = (int)ProbeMarker.OptionalContent; index <= (int)ProbeMarker.ActiveContent; index++) {
@@ -315,10 +326,9 @@ internal static class PdfInspector {
 
         if (readDocument is not null && info is not null && info.PageCount > 0 && !probe.HasEncryption) {
             cancellationToken.ThrowIfCancellationRequested();
-            try {
-                ValidateRewriteObjectGraph(readDocument, cancellationToken);
-            } catch (Exception ex) when (ex is InvalidOperationException || ex is NotSupportedException || ex is ArgumentException) {
-                AddRewriteBlocker(PdfRewriteBlockerKind.InvalidObjectReferences, "PDF object graph is not safe for rewriting by OfficeIMO.Pdf yet: " + ex.Message);
+            string? graphFailure = readDocument.GetRewriteObjectGraphFailure(ValidateRewriteObjectGraph, cancellationToken);
+            if (graphFailure is not null) {
+                AddRewriteBlocker(PdfRewriteBlockerKind.InvalidObjectReferences, graphFailure);
             }
         }
 
@@ -392,7 +402,11 @@ internal static class PdfInspector {
             RedactionNavigationProof = new Lazy<bool>(() => readDocument is not null &&
                 PdfRedactionNavigation.CanPreserve(readDocument, CancellationToken.None), LazyThreadSafetyMode.PublicationOnly),
             RedactionObjectGraphProof = new Lazy<bool>(() => readDocument is not null &&
-                PdfSyntax.CanNormalizeRedactionObjectGraph(pdf, readDocument, CancellationToken.None), LazyThreadSafetyMode.PublicationOnly)
+                PdfSyntax.CanNormalizeRedactionObjectGraph(pdf, readDocument, CancellationToken.None), LazyThreadSafetyMode.PublicationOnly),
+            CatalogPreservingExtractionGraphFailure = new Lazy<string?>(() =>
+                readDocument is not null && PdfPageExtractor.UsesCatalogPreservingWriter(readDocument, rewriteBlockers)
+                    ? PdfPageExtractor.FindCatalogObjectGraphFailure(readDocument, CancellationToken.None)
+                    : null, LazyThreadSafetyMode.PublicationOnly)
         };
 
         void AddReadBlocker(PdfReadBlockerKind kind, string message) {
@@ -420,13 +434,23 @@ internal static class PdfInspector {
         }
     }
 
-    private static void ValidateRewriteObjectGraph(
+    private static string? ValidateRewriteObjectGraph(
+        PdfReadDocument document,
+        CancellationToken cancellationToken) {
+        try {
+            CollectRewriteObjectGraph(document, cancellationToken);
+            return null;
+        } catch (Exception ex) when (ex is InvalidOperationException || ex is NotSupportedException || ex is ArgumentException) {
+            return "PDF object graph is not safe for rewriting by OfficeIMO.Pdf yet: " + ex.Message;
+        }
+    }
+
+    private static void CollectRewriteObjectGraph(
         PdfReadDocument document,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         Dictionary<int, PdfIndirectObject> objects = document.Objects;
-        string trailerRaw = document.TrailerRaw;
-        var catalogState = PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw, cancellationToken);
+        var catalogState = document.GetCatalogRewriteState(cancellationToken);
         var collector = new PdfPageExtractor.ObjectCollector(objects, cancellationToken: cancellationToken);
 
         for (int i = 0; i < document.Pages.Count; i++) {
@@ -484,6 +508,8 @@ internal static class PdfInspector {
         CancellationToken cancellationToken) {
         foreach (PdfIndirectObject indirectObject in document.Objects.Values) {
             cancellationToken.ThrowIfCancellationRequested();
+            // Values that are not built yet are dictionaries or object-stream members, never streams.
+            if (indirectObject.TryGetUnbuiltSummary(out _)) continue;
             if (indirectObject.Value is PdfStream stream &&
                 Filters.StreamDecoder.HasDeclaredFilter(stream.Dictionary, "Crypt", document.Objects)) {
                 return true;

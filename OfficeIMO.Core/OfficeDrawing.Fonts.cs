@@ -13,6 +13,9 @@ public sealed partial class OfficeDrawing {
         private set => _fonts = value;
     }
 
+    /// <summary>Whether the drawing carries scoped faces, without creating a collection for one that has none.</summary>
+    internal bool HasScopedFonts => _fonts != null && _fonts.Faces.Count > 0;
+
     /// <summary>Copies the scoped faces without creating a collection for a drawing that has none.</summary>
     private OfficeFontFaceCollection? CloneFonts() => _fonts?.Clone();
 

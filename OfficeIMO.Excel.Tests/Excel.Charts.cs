@@ -177,6 +177,59 @@ namespace OfficeIMO.Tests
         }
 
         [Fact]
+        public void Test_ExcelCharts_ChartAddedToLoadedWorkbookAvoidsExistingAxisIds()
+        {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.LoadedAxisIds.xlsx");
+            using (var document = ExcelDocument.Create(filePath))
+            {
+                var sheet = document.AddSheet("Summary");
+                sheet.Cell(1, 1).SetValue("Quarter");
+                sheet.Cell(1, 2).SetValue("Sales");
+                sheet.Cell(2, 1).SetValue("Q1");
+                sheet.Cell(2, 2).SetValue(10);
+                sheet.Cell(3, 1).SetValue("Q2");
+                sheet.Cell(3, 2).SetValue(20);
+                sheet.AddChart(OfficeChartType.Line, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 6, Title = "First", HasHeaders = true });
+                document.Save();
+            }
+
+            // Move the saved chart's axes far above any id this process has handed out, so the new chart
+            // avoids them only through the load-time scan.
+            var existing = new HashSet<uint>();
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, true))
+            {
+                var chartSpace = GetWorksheetPartWithCharts(spreadsheet).DrawingsPart!.ChartParts.Single().ChartSpace!;
+                uint highest = Math.Max(chartSpace.Descendants<C.AxisId>().Max(axis => axis.Val!.Value), uint.MaxValue / 2);
+                var remapped = new Dictionary<uint, uint>();
+                foreach (OpenXmlLeafElement axisReference in chartSpace.Descendants<C.AxisId>().Cast<OpenXmlLeafElement>()
+                    .Concat(chartSpace.Descendants<C.CrossingAxis>()))
+                {
+                    var val = axisReference.GetAttribute("val", string.Empty);
+                    uint original = uint.Parse(val.Value!);
+                    if (!remapped.TryGetValue(original, out uint moved)) remapped[original] = moved = highest + 1 + (uint)remapped.Count;
+                    axisReference.SetAttribute(new OpenXmlAttribute("val", string.Empty, moved.ToString()));
+                    existing.Add(moved);
+                }
+                chartSpace.Save();
+            }
+
+            using (var document = ExcelDocument.Load(filePath))
+            {
+                document.Sheets[0].AddChart(OfficeChartType.Line, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 20, Column = 6, Title = "Second", HasHeaders = true });
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false))
+            {
+                var charts = GetWorksheetPartWithCharts(spreadsheet).DrawingsPart!.ChartParts
+                    .Select(part => part.ChartSpace!.Descendants<C.AxisId>().Select(axis => axis.Val!.Value).ToList()).ToList();
+                Assert.Equal(2, charts.Count);
+                List<uint> added = charts.Single(ids => !ids.All(existing.Contains));
+                Assert.All(added, id => Assert.DoesNotContain(id, existing));
+            }
+        }
+
+        [Fact]
         public void Test_ExcelCharts_FluentRangeBuilder_CreatesChart()
         {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.FluentRange.xlsx");

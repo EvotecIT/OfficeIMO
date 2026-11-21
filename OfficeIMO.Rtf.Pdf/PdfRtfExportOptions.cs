@@ -35,6 +35,9 @@ public sealed class PdfRtfExportOptions {
     /// <summary>Whether logical list items should be imported as RTF list paragraphs with fallback marker text.</summary>
     public bool ImportLists { get; set; } = true;
 
+    /// <summary>Whether visible PDF images should be embedded as RTF pictures. Clipped images carry only their visible pixels.</summary>
+    public bool ImportImages { get; set; } = true;
+
     /// <summary>Whether common Heading 1-3 stylesheet entries should be created for imported headings.</summary>
     public bool CreateHeadingStyles { get; set; } = true;
 
@@ -49,7 +52,8 @@ public sealed class PdfRtfExportOptions {
         IncludeEmptyPages = IncludeEmptyPages,
         ImportHeadings = ImportHeadings,
         ImportLists = ImportLists,
-        CreateHeadingStyles = CreateHeadingStyles
+        CreateHeadingStyles = CreateHeadingStyles,
+        ImportImages = ImportImages
     };
 
     internal PdfRtfExportOptions CloneForConversion() => Clone();

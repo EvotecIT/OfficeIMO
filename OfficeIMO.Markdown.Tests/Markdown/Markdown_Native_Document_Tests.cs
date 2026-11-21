@@ -50,7 +50,7 @@ Inside details
         }, native.Blocks.Select(block => block.Kind).ToArray());
 
         var frontMatter = Assert.IsType<MarkdownNativeFrontMatterBlock>(native.Blocks[0]);
-        Assert.Equal("Native projection", frontMatter.Values["title"]);
+        Assert.Equal("Native projection", frontMatter.Values["title"].AsString());
 
         var heading = Assert.IsType<MarkdownNativeHeadingBlock>(native.Blocks[1]);
         Assert.Equal(1, heading.Level);
@@ -727,7 +727,7 @@ draft: false
         Assert.Equal(new MarkdownSourceSpan(3, 1, 5, 8), entries[1].SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(6, 1, 6, 12), entries[2].SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 11), keys[1].SourceSpan);
-        Assert.Equal(new MarkdownSourceSpan(4, 3, 5, 8), values[1].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 14, 5, 8), values[1].SourceSpan);
 
         AssertEquivalentField(keys[0], native.FindBlockSourceFieldAtPosition(2, 3));
         AssertEquivalentField(entries[0], native.FindBlockSourceFieldAtPosition(2, 6));

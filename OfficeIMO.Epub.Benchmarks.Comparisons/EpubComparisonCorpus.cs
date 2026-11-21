@@ -36,6 +36,24 @@ internal static class EpubComparisonCorpus {
 
     internal static string ChapterPath(int chapter) => $"EPUB/chapter-{chapter + 1:D4}.xhtml";
 
+    /// <summary>
+    /// Returns the visible text of one chapter as written by <see cref="CreatePackage"/>: its heading and every
+    /// paragraph with entities decoded, whitespace collapsed to single spaces.
+    /// </summary>
+    internal static string ExpectedChapterText(EpubComparisonScale scale, int chapter) {
+        var text = new StringBuilder();
+        text.Append("Chapter ").Append(chapter + 1);
+        for (var paragraph = 0; paragraph < scale.ParagraphsPerChapter; paragraph++) {
+            text.Append(' ')
+                .Append(ChapterMarker(chapter, paragraph))
+                .Append(" carries deterministic benchmark prose for section ")
+                .Append((chapter * scale.ParagraphsPerChapter) + paragraph + 1)
+                .Append(" with entities & UTF-8 text: Zażółć gęślą jaźń.");
+        }
+
+        return text.ToString();
+    }
+
     internal static string ChapterMarker(int chapter, int paragraph) =>
         $"chapter-{chapter + 1:D4}-paragraph-{paragraph + 1:D4}";
 

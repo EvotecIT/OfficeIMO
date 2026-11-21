@@ -34,6 +34,7 @@ namespace OfficeIMO.Excel {
                     headersInFirstRow,
                     schemaSampleRows,
                     _opt,
+                    _dateSystem,
                     ct);
             }
 
@@ -158,7 +159,7 @@ namespace OfficeIMO.Excel {
             ValidateDataReaderBufferedRows(_opt, Math.Min(rows, chunkRows), cols);
 
             IEnumerable<RangeChunk> chunks = ReadRangeStreamForDataReader(a1Range, chunkRows, mode, ct, trackCellPresence);
-            return new ExcelRangeDataReader(chunks, r1, r2, cols, headersInFirstRow, schemaSampleRows, _opt, ct);
+            return new ExcelRangeDataReader(chunks, r1, r2, cols, headersInFirstRow, schemaSampleRows, _opt, _dateSystem, ct);
         }
 
         private IEnumerable<RangeChunk> ReadRangeStreamForDataReader(
@@ -450,8 +451,8 @@ namespace OfficeIMO.Excel {
             private ExcelDateSystem DateSystem { get; }
             private bool CalendarStyle { get; }
 
-            internal DateTime Materialize() =>
-                CalendarStyle ? ExcelDateSystemConverter.FromSerial(Serial, DateSystem) : DateTime.FromOADate(Serial);
+            /// <summary>Returns the date, or the serial when no date represents it.</summary>
+            internal object MaterializeValue() => ExcelDateSystemConverter.FromSerialOrNumber(Serial, DateSystem, CalendarStyle);
         }
 
         private sealed partial class ExcelRangeDataReader : DbDataReader {
@@ -467,6 +468,7 @@ namespace OfficeIMO.Excel {
             private readonly CancellationToken _ct;
             private CancellationToken _activeReadCancellationToken;
             private readonly CultureInfo _culture;
+            private readonly ExcelDateSystem _dateSystem;
             private readonly string[] _columnNames;
             private readonly Type[] _columnTypes;
             private readonly List<object?[]> _prefetchedRows;
@@ -488,7 +490,9 @@ namespace OfficeIMO.Excel {
                 bool headersInFirstRow,
                 int schemaSampleRows,
                 ExcelReaderOptions options,
+                ExcelDateSystem dateSystem,
                 CancellationToken ct) {
+                _dateSystem = dateSystem;
                 _chunks = chunks.GetEnumerator();
                 _nextRow = firstRow;
                 _lastRow = lastRow;
@@ -558,7 +562,7 @@ namespace OfficeIMO.Excel {
 
             /// <inheritdoc />
             public override long GetChars(int ordinal, long dataOffset, char[]? buffer, int bufferOffset, int length) {
-                string value = Convert.ToString(GetValue(ordinal), _culture) ?? string.Empty;
+                string value = ExcelCellValueText.Format(GetValue(ordinal), _culture);
                 if (buffer == null) {
                     return value.Length;
                 }
@@ -581,14 +585,12 @@ namespace OfficeIMO.Excel {
             public override string GetDataTypeName(int ordinal) => GetFieldType(ordinal).Name;
 
             /// <inheritdoc />
-            public override DateTime GetDateTime(int ordinal) {
-                object value = GetNonDbNullValue(ordinal);
-                return value is DateTime dateTime ? dateTime : Convert.ToDateTime(value, _culture);
-            }
+            public override DateTime GetDateTime(int ordinal) =>
+                DataReaderDateValue(GetNonDbNullValue(ordinal), _dateSystem, _culture);
 
             /// <inheritdoc />
             public override decimal GetDecimal(int ordinal) =>
-                Convert.ToDecimal(GetNonDbNullValue(ordinal, preserveDateSerial: true), _culture);
+                OfficeDecimalConversion.FromObject(GetNonDbNullValue(ordinal, preserveDateSerial: true), _culture);
 
             /// <inheritdoc />
             public override double GetDouble(int ordinal) {
@@ -641,7 +643,7 @@ namespace OfficeIMO.Excel {
             /// <inheritdoc />
             public override string GetString(int ordinal) {
                 object value = GetNonDbNullValue(ordinal);
-                return value is string text ? text : Convert.ToString(value, _culture) ?? string.Empty;
+                return value is string text ? text : ExcelCellValueText.Format(value, _culture);
             }
 
             /// <inheritdoc />
@@ -806,7 +808,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (value is ExcelDataReaderDateSerial dateSerial) {
-                    return preserveDateSerial ? dateSerial.Serial : dateSerial.Materialize();
+                    return preserveDateSerial ? dateSerial.Serial : dateSerial.MaterializeValue();
                 }
 
                 return value;
@@ -849,8 +851,9 @@ namespace OfficeIMO.Excel {
                 for (int c = 0; c < fieldCount; c++) {
                     Type? inferred = null;
                     for (int r = 0; r < rows.Count; r++) {
-                        object? value = rows[r][c] is ExcelDataReaderDateSerial
-                            ? DateTime.MinValue
+                        // A serial without a calendar date reads as its number and is sampled as one.
+                        object? value = rows[r][c] is ExcelDataReaderDateSerial dateSerial
+                            ? dateSerial.MaterializeValue() is DateTime ? DateTime.MinValue : dateSerial.Serial
                             : rows[r][c];
                         inferred = MergeDataTableColumnType(inferred, value);
                     }
@@ -862,7 +865,7 @@ namespace OfficeIMO.Excel {
             }
 
             private static object? MaterializeDataReaderValue(object? value) =>
-                value is ExcelDataReaderDateSerial dateSerial ? dateSerial.Materialize() : value;
+                value is ExcelDataReaderDateSerial dateSerial ? dateSerial.MaterializeValue() : value;
 
             private static object?[] NormalizeRow(object?[] source, int fieldCount) {
                 if (source.Length == fieldCount) {
@@ -875,9 +878,22 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        /// <summary>Reads a field as a date: a number is a serial in the workbook's date system.</summary>
+        internal static DateTime DataReaderDateValue(object value, ExcelDateSystem dateSystem, CultureInfo culture) => value switch {
+            DateTime dateTime => dateTime,
+            double serial => DataReaderSerialDate(serial, dateSystem),
+            decimal serial => DataReaderSerialDate((double)serial, dateSystem),
+            _ => Convert.ToDateTime(value, culture)
+        };
+
+        private static DateTime DataReaderSerialDate(double serial, ExcelDateSystem dateSystem) =>
+            ExcelDateSystemConverter.TryFromSerial(serial, dateSystem, calendarStyle: true, out DateTime value)
+                ? value
+                : throw new InvalidCastException($"The number {serial.ToString("R", CultureInfo.InvariantCulture)} has no DateTime representation.");
+
         private static object ToDataReaderValue(object? value)
             => value == null || ReferenceEquals(value, DBNull.Value) ? DBNull.Value
-                : value is ExcelDataReaderDateSerial dateSerial ? dateSerial.Materialize() : value;
+                : value is ExcelDataReaderDateSerial dateSerial ? dateSerial.MaterializeValue() : value;
 
         private static int CopyDataReaderValues(object?[] row, int fieldCount, object[] values) {
             int count = Math.Min(values.Length, fieldCount);

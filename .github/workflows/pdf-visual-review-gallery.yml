@@ -231,7 +231,7 @@ jobs:
         with:
           name: officeimo-pdf-visual-review-gallery
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 7
           path: |
             ${{ env.GALLERY_PATH }}/index.md
             ${{ env.GALLERY_PATH }}/pdf-conversion-support-matrix.md

@@ -160,7 +160,7 @@ Optional associated destination for a live document; required when a content blo
 ```yaml
 Type: String
 Parameter Sets: Live, Content
-Aliases: None
+Aliases: FilePath
 Possible values:
 
 Required: False

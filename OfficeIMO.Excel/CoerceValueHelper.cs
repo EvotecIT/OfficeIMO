@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.Globalization;
+using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Excel;
 
@@ -9,9 +10,11 @@ internal static class CoerceValueHelper {
     private static readonly CellValue EmptyStringTemplate = new(string.Empty);
     private static readonly CellValue TrueTemplate = new("1");
     private static readonly CellValue FalseTemplate = new("0");
-    // By default, treat DateTimeOffset values using LocalDateTime so that serial values
-    // follow the same semantics as Excel when writing local timestamps.
-    private static readonly Func<DateTimeOffset, DateTime> DefaultDateTimeOffsetStrategy = static dto => dto.LocalDateTime;
+    /// <summary>
+    /// Marker strategy meaning "write DateTimeOffset values as ISO 8601 text". Write paths compare by reference, so
+    /// the conversion itself only runs if a path has no text handling and then keeps the previous local-time serial.
+    /// </summary>
+    internal static readonly Func<DateTimeOffset, DateTime> DateTimeOffsetTextStrategy = static dto => dto.LocalDateTime;
     // Excel cannot represent serial dates earlier than 1900-01-01; 0 = 1899-12-30 and 2 = 1900-01-01.
     private const double ExcelMinimumSupportedSerial = 2d;
     private static readonly DateTime ExcelMinimumSupportedDate = DateTime.FromOADate(ExcelMinimumSupportedSerial);
@@ -23,14 +26,15 @@ internal static class CoerceValueHelper {
     /// <param name="sharedStringHandler">Delegate that materialises a <see cref="CellValue" /> entry for shared strings.</param>
     /// <param name="dateTimeOffsetStrategy">
     /// Optional delegate used to convert <see cref="DateTimeOffset"/> instances into <see cref="DateTime"/> values before
-    /// calculating the Excel serial number. When omitted, <see cref="DateTimeOffset.LocalDateTime"/> is used. The provided
-    /// strategy only influences the numeric serial value that is written; cell formatting must still be applied separately.
+    /// calculating the Excel serial number. When omitted or <see cref="DateTimeOffsetTextStrategy"/>, the value is written
+    /// as ISO 8601 text with its offset. The provided strategy only influences the numeric serial value that is written;
+    /// cell formatting must still be applied separately.
     /// </param>
     /// <param name="dateSystem">Workbook date system used when serializing <see cref="DateTime"/> and <see cref="DateTimeOffset"/> values.</param>
     /// <returns>The OpenXML representation of the supplied value.</returns>
     /// <remarks>
-    /// Integer values with an absolute magnitude above ±9,007,199,254,740,992 are written using their string form to prevent
-    /// double precision loss while keeping the cell typed as <see cref="CellValues.Number" />.
+    /// Decimal and 64-bit integer values with more than 15 significant digits are written as text, because Excel and
+    /// every reader hold numeric cells as doubles. Byte arrays are written as base64 text.
     /// </remarks>
     /// <exception cref="ArgumentException">Thrown when the resulting shared-string payload exceeds Excel's 32,767 character limit.</exception>
     internal static (CellValue cellValue, CellValues type) Coerce(
@@ -40,7 +44,7 @@ internal static class CoerceValueHelper {
         ExcelDateSystem dateSystem = ExcelDateSystem.NineteenHundred) {
         ArgumentNullException.ThrowIfNull(sharedStringHandler);
 
-        dateTimeOffsetStrategy ??= DefaultDateTimeOffsetStrategy;
+        dateTimeOffsetStrategy ??= DateTimeOffsetTextStrategy;
 
         return value switch {
             null => HandleEmptyString(),
@@ -48,19 +52,22 @@ internal static class CoerceValueHelper {
             string s => HandleSharedString(s, sharedStringHandler, nameof(value)),
             double d => HandleNumber(d),
             float f => HandleNumber((double)f),
-            decimal dec => HandleDecimal(dec),
+            decimal dec when ExcelExactNumber.FitsNumberCell(dec) => HandleDecimal(dec),
+            decimal dec => HandleSharedString(dec.ToString(CultureInfo.InvariantCulture), sharedStringHandler, nameof(value)),
             int i => HandleSignedInteger(i),
-            long l => HandleSignedInteger(l),
+            long l when ExcelExactNumber.FitsNumberCell(l) => HandleSignedInteger(l),
+            long l => HandleSharedString(InvariantNumberText.Get(l), sharedStringHandler, nameof(value)),
             DateTime dt => HandleNumber(ExcelDateSystemConverter.ToSerial(dt, dateSystem)),
             DateTimeOffset dto => HandleDateTimeOffset(dto, sharedStringHandler, dateTimeOffsetStrategy, dateSystem, nameof(value)),
 #if NET6_0_OR_GREATER
             DateOnly dateOnly => HandleNumber(ExcelDateSystemConverter.ToSerial(dateOnly.ToDateTime(TimeOnly.MinValue), dateSystem)),
-            TimeOnly timeOnly => HandleNumber(timeOnly.ToTimeSpan().TotalDays),
+            TimeOnly timeOnly => HandleNumber(ExcelDateSystemConverter.ToSerial(timeOnly.ToTimeSpan())),
 #endif
-            TimeSpan ts => HandleNumber(ts.TotalDays),
+            TimeSpan ts => HandleNumber(ExcelDateSystemConverter.ToSerial(ts)),
             bool b => HandleBoolean(b),
             uint ui => HandleUnsignedInteger(ui),
-            ulong ul => HandleUnsignedInteger(ul),
+            ulong ul when ExcelExactNumber.FitsNumberCell(ul) => HandleUnsignedInteger(ul),
+            ulong ul => HandleSharedString(InvariantNumberText.Get(ul), sharedStringHandler, nameof(value)),
             ushort us => HandleUnsignedInteger(us),
             byte by => HandleUnsignedInteger(by),
             sbyte sb => HandleSignedInteger(sb),
@@ -69,12 +76,16 @@ internal static class CoerceValueHelper {
             Enum e => HandleSharedString(e.ToString(), sharedStringHandler, nameof(value)),
             char ch => HandleSharedString(ch.ToString(), sharedStringHandler, nameof(value)),
             Uri uri => HandleSharedString(uri.ToString(), sharedStringHandler, nameof(value)),
+            byte[] bytes => HandleSharedString(System.Convert.ToBase64String(bytes), sharedStringHandler, nameof(value)),
             _ => HandleSharedString(value.ToString() ?? string.Empty, sharedStringHandler, nameof(value))
         };
     }
 
+    /// <summary>Excel has no NaN or infinite cell value; such numbers are stored as the #NUM! error Excel shows for them.</summary>
     internal static (CellValue, CellValues) HandleNumber(double number) =>
-        (CreateNumberCellValue(number), CellValues.Number);
+        double.IsNaN(number) || double.IsInfinity(number)
+            ? (CreateTextCellValue(ExcelSheet.NonFiniteNumberErrorText), CellValues.Error)
+            : (CreateNumberCellValue(number), CellValues.Number);
 
     internal static (CellValue, CellValues) HandleDecimal(decimal value) =>
         (CreateTextCellValue(value.ToString(CultureInfo.InvariantCulture)), CellValues.Number);
@@ -111,6 +122,12 @@ internal static class CoerceValueHelper {
         ExcelDateSystem dateSystem,
         out DateTime converted,
         out double serial) {
+        if (IsTextStrategy(dateTimeOffsetStrategy)) {
+            converted = default;
+            serial = 0D;
+            return false;
+        }
+
         try {
             converted = dateTimeOffsetStrategy(value);
         } catch (Exception ex) {
@@ -133,11 +150,35 @@ internal static class CoerceValueHelper {
         }
     }
 
+    internal static bool IsTextStrategy(Func<DateTimeOffset, DateTime> dateTimeOffsetStrategy) =>
+        ReferenceEquals(dateTimeOffsetStrategy, DateTimeOffsetTextStrategy);
+
+    /// <summary>The text written for a DateTimeOffset kept as text: ISO 8601 with every fractional digit and the offset.</summary>
+    internal static string FormatDateTimeOffsetText(DateTimeOffset value) => OfficeRoundTripText.FormatRoundTripPattern(value);
+
+    /// <summary>Returns the exact text for a decimal or 64-bit integer that has more than 15 significant digits.</summary>
+    internal static bool TryGetWideNumberText(object? value, out string text) {
+        switch (value) {
+            case decimal number when !ExcelExactNumber.FitsNumberCell(number):
+                text = number.ToString(CultureInfo.InvariantCulture);
+                return true;
+            case long number when !ExcelExactNumber.FitsNumberCell(number):
+                text = InvariantNumberText.Get(number);
+                return true;
+            case ulong number when !ExcelExactNumber.FitsNumberCell(number):
+                text = InvariantNumberText.Get(number);
+                return true;
+            default:
+                text = string.Empty;
+                return false;
+        }
+    }
+
     private static (CellValue, CellValues) HandleDateTimeOffsetFallback(
         DateTimeOffset value,
         Func<string, CellValue> sharedStringHandler,
         string? paramName) =>
-        HandleSharedString(value.ToString("o", CultureInfo.InvariantCulture), sharedStringHandler, paramName ?? nameof(value));
+        HandleSharedString(FormatDateTimeOffsetText(value), sharedStringHandler, paramName ?? nameof(value));
 
     internal static (CellValue, CellValues) HandleBoolean(bool value) =>
         (CloneCellValue(value ? TrueTemplate : FalseTemplate), CellValues.Boolean);

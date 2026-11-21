@@ -30,6 +30,15 @@ internal static partial class PdfWriter {
         list[id - 1] = PdfObjectBytes.WrapIndirectObject(id, body);
     }
 
+    private static void ReplaceObject(System.Collections.Generic.IList<byte[]> list, int id, System.Text.StringBuilder body) {
+        Guard.NotNull(list, nameof(list));
+        if (id < 1 || id > list.Count) {
+            throw new ArgumentOutOfRangeException(nameof(id), "PDF object id is outside the current object table.");
+        }
+
+        list[id - 1] = PdfObjectBytes.WrapIndirectObject(id, body);
+    }
+
     private static int AddStreamObject(System.Collections.Generic.IList<byte[]> list, byte[] content) {
         Guard.NotNull(content, nameof(content));
         return AddStreamObject(
@@ -125,6 +134,10 @@ internal static partial class PdfWriter {
         }
 
         public System.Collections.Generic.List<Page> Pages { get; } = new();
+        /// <summary>Content store that holds the pages' content and effect groups.</summary>
+        public PdfPageContentStore ContentStore => _contentStore;
+        /// <summary>SVG Forms shared by the document's pages.</summary>
+        public SvgFormRegistry SvgForms { get; set; } = new();
         public bool UsedBold { get; set; }
         public bool UsedItalic { get; set; }
         public bool UsedBoldItalic { get; set; }
@@ -147,6 +160,8 @@ internal static partial class PdfWriter {
             public System.Collections.Generic.List<PageGraphicsState> GraphicsStates { get; } = new();
             public System.Collections.Generic.List<PageShading> Shadings { get; } = new();
             public System.Collections.Generic.List<PageEffectGroup> EffectGroups { get; } = new();
+            /// <summary>Shared SVG Forms this page's content draws directly.</summary>
+            public System.Collections.Generic.List<SvgFormXObject> SvgForms { get; } = new();
             public System.Collections.Generic.List<PageBookmark> Bookmarks { get; } = new();
             public System.Collections.Generic.List<PageNamedDestination> NamedDestinations { get; } = new();
             public System.Collections.Generic.List<PageSection> Sections { get; } = new();
@@ -419,6 +434,11 @@ internal static partial class PdfWriter {
         public int? AnnotationStructParentIndex { get; set; }
         public System.Collections.Generic.List<int>? AdditionalAnnotationStructParentIndexes { get; set; }
         public bool SpansPages { get; set; }
+        // A canvas text Span carries no attributes of its own; as the only child of a text
+        // container its content can belong to that container directly.
+        public bool IsPlainCanvasTextSpan { get; set; }
+        // A paragraph the source adapter generated for loose text in a table cell, not an authored paragraph.
+        public bool IsAnonymousBlock { get; set; }
         public int ObjectId { get; set; }
         public IReadOnlyList<PdfEmbeddedFile> AssociatedFiles { get; set; } = Array.Empty<PdfEmbeddedFile>();
         public IReadOnlyList<int> AssociatedFileIds { get; set; } = Array.Empty<int>();
@@ -527,6 +547,12 @@ internal static partial class PdfWriter {
         public byte[] Data { get; set; } = System.Array.Empty<byte>();
         public OfficeImageInfo Info { get; set; } = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
         public PdfImageStream? PreparedStream { get; set; }
+        /// <summary>The parsed drawing of an SVG image that is drawn as vectors.</summary>
+        public OfficeDrawing? SvgDrawing { get; set; }
+        /// <summary>The shared Form XObject that draws this SVG image.</summary>
+        public SvgFormXObject? SvgForm { get; set; }
+        /// <summary>Vector content for an SVG image that cannot use a shared Form, in drawing units with a y-up origin.</summary>
+        public string? SvgContent { get; set; }
         public double X { get; set; }
         public double Y { get; set; }
         public double W { get; set; }
@@ -540,6 +566,8 @@ internal static partial class PdfWriter {
         public double ClipY { get; set; }
         public double ClipHeight { get; set; }
         public PdfImageSourceCrop? SourceCrop { get; set; }
+        /// <summary>When set, maps the image's unit square directly, such as a PNG glyph through its text matrix.</summary>
+        public OfficeTransform? UnitSquareTransform { get; set; }
         public bool IsBackgroundDecoration { get; set; }
         public bool IsInlineDecoration { get; set; }
         public bool IsDecorativeArtifact => IsBackgroundDecoration || IsInlineDecoration;

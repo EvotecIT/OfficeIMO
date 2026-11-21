@@ -237,6 +237,11 @@
           "file": "excel-generated/worksheet-geometry.xlsb",
           "sha256": "be9717e70ced6205a66298497f908534dca36ae5da9f0197b189b6da7ab49e92",
           "focus": ["row geometry", "column geometry", "merged cells", "sheet views"]
+        },
+        {
+          "file": "excel-generated/tables.xlsb",
+          "sha256": "bd4c0ef5406bcf6bb3bdbafc7660df12c0b18f690f33599a0a681350ec14dda8",
+          "focus": ["tables", "table totals row", "structured references"]
         }
       ]
     },

@@ -161,8 +161,38 @@ public partial class PdfPageImageRendererTests {
         Assert.Empty(drawing.Elements.OfType<OfficeDrawingShape>());
     }
 
+    // A large image's group matrix is normalized to its pixel size; SVG keeps those small coefficients exact.
     [Fact]
-    public void RenderPage_PreservesAxisAlignedFallbackForShearedOrdinaryImage() {
+    public void RenderPageAsSvg_KeepsTheMatrixOfALargeShearedImageExact() {
+        const int size = 3000;
+        byte[] content = Encoding.ASCII.GetBytes("q 40 0 20 40 10 10 cm /Im1 Do Q");
+        byte[] pixels = CompressWithDeflate(new byte[size * size]);
+        using var stream = new MemoryStream();
+        WriteAscii(stream, "%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+        WriteAscii(stream, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 200 200] >>\nendobj\n");
+        WriteAscii(stream, "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /XObject << /Im1 5 0 R >> >> /Contents 4 0 R >>\nendobj\n");
+        WriteAscii(stream, "4 0 obj\n<< /Length " + content.Length + " >>\nstream\n");
+        stream.Write(content, 0, content.Length);
+        WriteAscii(stream, "\nendstream\nendobj\n5 0 obj\n<< /Type /XObject /Subtype /Image /Width 3000 /Height 3000 /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /FlateDecode /Length " + pixels.Length + " >>\nstream\n");
+        stream.Write(pixels, 0, pixels.Length);
+        WriteAscii(stream, "\nendstream\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
+
+        string svg = Encoding.UTF8.GetString(PdfPageImageRenderer.RenderPageAsSvg(stream.ToArray()));
+
+        System.Text.RegularExpressions.Match matrix = System.Text.RegularExpressions.Regex.Match(svg,
+            @"matrix\(([^ ]+) ([^ ]+) ([^ ]+) ([^ ]+) [^ ]+ [^)]+\)");
+        Assert.True(matrix.Success, "The sheared image is exported with its matrix.");
+        double[] values = Enumerable.Range(1, 4).Select(group => double.Parse(matrix.Groups[group].Value, System.Globalization.CultureInfo.InvariantCulture) * size).ToArray();
+        // The PDF matrix 40 0 20 40 in the page's y-down drawing space.
+        Assert.Equal(40D, values[0], 6);
+        Assert.Equal(0D, values[1], 6);
+        Assert.Equal(-20D, values[2], 6);
+        Assert.Equal(40D, values[3], 6);
+    }
+
+    // A sheared image keeps its full matrix: it is painted as a group carrying the shear, not stretched to its bounds.
+    [Fact]
+    public void RenderPage_PaintsShearedOrdinaryImageThroughItsFullMatrix() {
         string image = BuildStreamObject(5, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8", "x");
         byte[] pdf = BuildSingleStreamPdf(
             "q 100 20 0 100 10 10 cm /Im1 Do Q",
@@ -171,7 +201,10 @@ public partial class PdfPageImageRendererTests {
 
         OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
 
-        Assert.Single(drawing.Images);
+        Assert.Empty(drawing.Images);
+        OfficeDrawingEffectGroup group = Assert.Single(drawing.Elements.OfType<OfficeDrawingEffectGroup>());
+        Assert.Single(group.InnerDrawing.Images);
+        Assert.Equal((100D, -20D, 0D, 100D), (group.Transform.M11, group.Transform.M12, group.Transform.M21, group.Transform.M22));
     }
 
     [Fact]
@@ -308,9 +341,6 @@ public partial class PdfPageImageRendererTests {
         byte[] png = PdfPageImageRenderer.RenderPageAsPng(pdf);
 
         AssertPngSignature(png);
-        Assert.DoesNotContain(
-            PdfPageImageRenderer.RenderPages(pdf).Single().CapabilityDiagnostics,
-            diagnostic => diagnostic.Code == "render.resource.image-codec-optional");
     }
 
     [Fact]
@@ -334,11 +364,10 @@ public partial class PdfPageImageRendererTests {
         Assert.True(result.Succeeded);
         Assert.False(codec.WasCalled);
         Assert.NotEmpty(result.Bytes!);
-        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == "render.resource.image-codec-optional");
     }
 
     [Fact]
-    public void RenderPages_ReportsOptionalCodecDiagnosticForJpeg2000ImageXObject() {
+    public void RenderPages_FailsForJpxImageXObjectWithoutJpeg2000Data() {
         byte[] pdf = BuildSingleStreamPdfWithBinaryImageXObject(
             CreateMinimalJpeg(1, 1),
             colorSpace: "/DeviceRGB",
@@ -348,7 +377,6 @@ public partial class PdfPageImageRendererTests {
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
 
         Assert.False(result.Succeeded);
-        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == "render.resource.image-codec-optional");
     }
 
     [Fact]
@@ -1080,21 +1108,17 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Fact]
-    public void RenderPages_Type3Jpeg2000RequiresCodecAndRetainsGlyphImage() {
+    public void RenderPages_Type3Jpeg2000DecodesWithoutCallerCodecAndRetainsGlyphImage() {
         string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /XObject << /Im1 7 0 R >> >> >>\nendobj";
         string glyphA = BuildStreamObject(6, "<<", "500 0 d0 q 500 0 0 700 0 0 cm /Im1 Do Q");
         byte[] payload = ReadScanJpx("rgb");
         string image = BuildStreamObject(7, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter [/ASCIIHexDecode /JPXDecode]", BitConverter.ToString(payload).Replace("-", "") + ">");
         byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA, image);
-        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
-
-        Assert.False(result.Succeeded);
-        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.OptionalImageCodecId && diagnostic.Subject == "Im1");
         var codec = new ScanJpxCodec(payload);
         PdfPageRenderResult decoded = Assert.Single(PdfPageImageRenderer.RenderPages(pdf,
             options: new PdfPageRenderOptions { ImageCodec = codec, ContinueOnError = false }));
         Assert.True(decoded.Succeeded);
-        Assert.True(codec.Calls > 0);
+        Assert.Equal(0, codec.Calls);
         Assert.DoesNotContain(decoded.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
     }
 
@@ -3198,8 +3222,8 @@ public partial class PdfPageImageRendererTests {
 
         var image = Assert.Single(drawing.Images);
         Assert.Equal("image/png", image.ContentType);
-        Assert.Equal(2, PdfPngTestImages.ReadPngColorType(image.Bytes));
-        Assert.Equal(new byte[] { 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 255, 0 }, PdfPngTestImages.DecodeStoredPngIdat(image.Bytes));
+        Assert.Equal(3, PdfPngTestImages.ReadPngColorType(image.Bytes));
+        Assert.Equal(new byte[] { 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 255, 0 }, PdfPngTestImages.DecodeRgb(image.Bytes));
     }
 
     [Fact]
@@ -3218,8 +3242,8 @@ public partial class PdfPageImageRendererTests {
 
         var image = Assert.Single(drawing.Images);
         Assert.Equal("image/png", image.ContentType);
-        Assert.Equal(2, PdfPngTestImages.ReadPngColorType(image.Bytes));
-        Assert.Equal(new byte[] { 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 255, 0 }, PdfPngTestImages.DecodeStoredPngIdat(image.Bytes));
+        Assert.Equal(3, PdfPngTestImages.ReadPngColorType(image.Bytes));
+        Assert.Equal(new byte[] { 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 255, 0 }, PdfPngTestImages.DecodeRgb(image.Bytes));
         Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == "render.resource.colorspace-unsupported");
     }
 
@@ -3384,7 +3408,7 @@ public partial class PdfPageImageRendererTests {
 
         var image = Assert.Single(drawing.Images);
         Assert.Equal("image/png", image.ContentType);
-        Assert.Equal(new byte[] { 0, 0, 0, 255, 0, 255, 0, 255, 0, 0 }, PdfPngTestImages.DecodeStoredPngIdat(image.Bytes));
+        Assert.Equal(new byte[] { 0, 0, 255, 0, 255, 0, 255, 0, 0 }, PdfPngTestImages.DecodeRgb(image.Bytes));
     }
 
     [Fact]
@@ -4930,20 +4954,25 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Fact]
-    public void IndexedPaletteLookupStopsAtTheExactPaletteByteBudget() {
+    public void IndexedPaletteLookupDropsTrailingBytesAndStopsAtItsBoundedAllowance() {
         var dictionary = new PdfDictionary();
         dictionary.Items["Filter"] = new PdfName("FlateDecode");
-        var lookupStream = new PdfStream(dictionary, CompressWithDeflate(new byte[4_096]));
+        // Producers commonly end a palette with a newline after the last entry.
+        var paddedLookup = new PdfStream(dictionary, CompressWithDeflate(new byte[] { 1, 2, 3, 10 }));
+        var oversizedLookup = new PdfStream(dictionary, CompressWithDeflate(new byte[16_384]));
 
+        Assert.True(PdfIndexedImageNormalizer.TryReadIndexedLookupBytes(
+            paddedLookup, new Dictionary<int, PdfIndirectObject>(), maxLookupBytes: 3, out byte[] palette));
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
             PdfIndexedImageNormalizer.TryReadIndexedLookupBytes(
-                lookupStream,
+                oversizedLookup,
                 new Dictionary<int, PdfIndirectObject>(),
                 maxLookupBytes: 3,
                 out _));
 
+        Assert.Equal(new byte[] { 1, 2, 3 }, palette);
         Assert.Equal(PdfReadLimitKind.DecodedStreamBytes, exception.Kind);
-        Assert.Equal(3, exception.Limit);
+        Assert.Equal(3 + 4_096, exception.Limit);
     }
 
     [Fact]

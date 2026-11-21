@@ -40,7 +40,7 @@ internal static class WorkflowBatchCommand {
         settings.AllowEmpty = parsed.AllowEmpty;
         OfficeWorkflow.RegisterConversions();
         IWorkWorkflow.RegisterConversions();
-        var progress = new WorkflowBatchOutput(output, error, parsed.Format);
+        var progress = new WorkflowBatchOutput(output, error, parsed.Format, parsed.Verbose);
         var result = await OfficeConverter.ConvertAsync(settings, progress, token).ConfigureAwait(false);
         progress.Complete(result, parsed.AllowEmpty);
         return ExitCode(result, parsed.AllowEmpty);
@@ -52,7 +52,7 @@ internal static class WorkflowBatchCommand {
         var settings = new OfficeBatchOptions { OutputDirectory = "", ConversionOptions = new OfficeConversionOptions { WordLoad = new OfficeIMO.Word.WordLoadOptions { FailOnLoss = true } } };
         var text = new PdfTextImportOptions();
         var seen = new HashSet<string>(StringComparer.Ordinal);
-        bool allowEmpty = false;
+        bool allowEmpty = false, verbose = false, targetSet = false;
         string? format = null, saveJob = null, sourcePasswordVariable = null, pdfPasswordVariable = null;
         for (int index = 0; index < args.Length; index++) {
             string option = args[index];
@@ -61,6 +61,9 @@ internal static class WorkflowBatchCommand {
             if (option == "--retry-failed") { settings.RetryFailed = true; continue; }
             if (option == "--no-recursive") { settings.Recursive = false; continue; }
             if (option == "--allow-empty") { allowEmpty = true; continue; }
+            if (option == "--verbose") { verbose = true; continue; }
+            if (option is "--source-password" or "--pdf-password")
+                throw new WorkflowUsageException("Passwords are not accepted on the command line. Use " + option + "-env <name> with an environment variable.");
             if (option == "--allow-legacy-loss") { settings.ConversionOptions.WordLoad!.FailOnLoss = false; continue; }
             if (option == "--require-no-loss") { settings.ConversionOptions.FailOnLoss = true; continue; }
             if (++index >= args.Length) throw new WorkflowUsageException("Missing value for " + option);
@@ -69,10 +72,8 @@ internal static class WorkflowBatchCommand {
                 case "--input-directory": settings.InputDirectory = value; break;
                 case "--output": settings.OutputDirectory = value; break;
                 case "--checkpoint": settings.ResumeFrom = Path.Combine(value, "plan.json"); break;
-                case "--target": settings.TargetExtension = value; break;
+                case "--target": settings.TargetExtension = value; targetSet = true; break;
                 case "--route": settings.ConversionRouteId = value; break;
-                case "--source-password": settings.ConversionOptions.SourcePassword = value; break;
-                case "--pdf-password": settings.ConversionOptions.PdfLoad = (settings.ConversionOptions.PdfLoad ?? new()).Snapshot(null, value); break;
                 case "--source-password-env": sourcePasswordVariable = value; break;
                 case "--pdf-password-env": pdfPasswordVariable = value; break;
                 case "--format": format = value switch { "json" or "ndjson" => value, _ => throw new WorkflowUsageException("Choose batch format: json or ndjson.") }; break;
@@ -100,11 +101,11 @@ internal static class WorkflowBatchCommand {
         settings.InputPaths = paths.Count == 0 ? null : paths.ToArray();
         settings.Extensions = extensions.Count == 0 ? null : extensions.ToArray();
         settings.ConversionOptions.PlainText = text;
-        if (sourcePasswordVariable != null && settings.ConversionOptions.SourcePassword != null)
-            throw new WorkflowUsageException("Choose --source-password-env or --source-password, not both.");
-        if (pdfPasswordVariable != null && settings.ConversionOptions.PdfLoad?.Password != null)
-            throw new WorkflowUsageException("Choose --pdf-password-env or --pdf-password, not both.");
-        return new(settings, allowEmpty, format, saveJob, sourcePasswordVariable, pdfPasswordVariable);
+        // A route names its own target, so --route json-yaml needs no --target yaml.
+        if (!targetSet && settings.ConversionRouteId is { } routeId
+            && OfficeConversionCapabilityCatalog.All.FirstOrDefault(route => string.Equals(route.Id, routeId, StringComparison.OrdinalIgnoreCase)) is { } named)
+            settings.TargetExtension = named.TargetExtension;
+        return new(settings, allowEmpty, format, saveJob, sourcePasswordVariable, pdfPasswordVariable, verbose);
     }
 
     internal static int ExitCode(OfficeBatchReport report, bool allowEmpty) {
@@ -132,4 +133,4 @@ internal static class WorkflowBatchCommand {
 }
 
 internal sealed record WorkflowBatchArguments(OfficeBatchOptions Settings, bool AllowEmpty, string? Format,
-    string? SaveJobPath, string? SourcePasswordVariable, string? PdfPasswordVariable);
+    string? SaveJobPath, string? SourcePasswordVariable, string? PdfPasswordVariable, bool Verbose);

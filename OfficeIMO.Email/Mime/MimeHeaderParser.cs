@@ -80,14 +80,13 @@ internal static class MimeHeaderParser {
         StringBuilder currentValue = new StringBuilder();
         int malformedIndex = 0;
 
-        Action flush = () => {
+        void Flush() {
             if (currentName == null) return;
             if (headers.Count >= options.MaxHeaderCount) {
                 throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxHeaderCount), headers.Count + 1, options.MaxHeaderCount);
             }
             string rawValue = currentValue.ToString().Trim();
-            if (SingletonContentHeaders.Any(name => string.Equals(name, currentName, StringComparison.OrdinalIgnoreCase))
-                && MimeTextCodec.ContainsEncodedWord(rawValue)) {
+            if (MimeTextCodec.ContainsEncodedWord(rawValue) && IsSingletonContentHeader(currentName)) {
                 diagnostics.Add(new EmailDiagnostic(
                     EncodedWordInStructuredHeaderDiagnosticCode,
                     string.Concat("Structured MIME header '", currentName,
@@ -98,7 +97,7 @@ internal static class MimeHeaderParser {
             headers.Add(new EmailHeader(currentName, MimeTextCodec.DecodeHeader(rawValue, diagnostics, location), rawValue));
             currentName = null;
             currentValue.Clear();
-        };
+        }
 
         foreach (string line in lines) {
             if (line.Length > 0 && (line[0] == ' ' || line[0] == '\t') && currentName != null) {
@@ -107,7 +106,7 @@ internal static class MimeHeaderParser {
                 continue;
             }
 
-            flush();
+            Flush();
             int colon = line.IndexOf(':');
             if (colon <= 0) {
                 if (line.Length > 0) {
@@ -130,9 +129,16 @@ internal static class MimeHeaderParser {
             currentName = rawName.Trim();
             currentValue.Append(line.Substring(colon + 1).Trim());
         }
-        flush();
+        Flush();
 
         return headerEnd + separatorLength;
+    }
+
+    private static bool IsSingletonContentHeader(string value) {
+        foreach (string name in SingletonContentHeaders) {
+            if (string.Equals(name, value, StringComparison.OrdinalIgnoreCase)) return true;
+        }
+        return false;
     }
 
     private static bool IsValidFieldName(string value) {
@@ -141,6 +147,14 @@ internal static class MimeHeaderParser {
             if (character < '!' || character > '~' || character == ':') return false;
         }
         return true;
+    }
+
+    internal static string? GetValue(IReadOnlyList<EmailHeader> headers, string name) {
+        for (int index = 0; index < headers.Count; index++) {
+            EmailHeader header = headers[index];
+            if (string.Equals(header.Name, name, StringComparison.OrdinalIgnoreCase)) return header.Value;
+        }
+        return null;
     }
 
     internal static string? GetValue(IEnumerable<EmailHeader> headers, string name) {
@@ -169,7 +183,10 @@ internal static class MimeHeaderParser {
         IList<EmailDiagnostic> diagnostics,
         string location) {
         foreach (string name in SingletonContentHeaders) {
-            int count = headers.Count(header => string.Equals(header.Name, name, StringComparison.OrdinalIgnoreCase));
+            int count = 0;
+            for (int index = 0; index < headers.Count; index++) {
+                if (string.Equals(headers[index].Name, name, StringComparison.OrdinalIgnoreCase)) count++;
+            }
             if (count <= 1) continue;
             diagnostics.Add(new EmailDiagnostic(
                 DuplicateSingletonHeaderDiagnosticCode,
@@ -193,6 +210,11 @@ internal static class MimeHeaderParser {
             return offset;
         }
         for (int i = Math.Max(offset, scanStart); i < end; i++) {
+#if NET8_0_OR_GREATER
+            int newline = data.AsSpan(i, end - i).IndexOfAny((byte)'\r', (byte)'\n');
+            if (newline < 0) break;
+            i += newline;
+#endif
             if (i + 3 < end && data[i] == '\r' && data[i + 1] == '\n' && data[i + 2] == '\r' && data[i + 3] == '\n') {
                 separatorLength = 4;
                 return i;

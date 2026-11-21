@@ -14,7 +14,7 @@ internal static class PdfLogicalContentProjection {
         for (int i = 0; i < pages.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
             PdfLogicalPage page = pages[i];
-            if (!page.IncludesImages || !page.IncludesFormWidgets || !page.HasVisualPrimitiveCounts) {
+            if (!page.IncludesImages || !page.IncludesFormWidgets || !page.GetHasVisualPrimitiveCounts(cancellationToken)) {
                 throw IncompleteProjection();
             }
         }

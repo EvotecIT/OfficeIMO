@@ -9,6 +9,35 @@ namespace OfficeIMO.Excel {
         private sealed partial class ExcelUtf8RangeRowSource {
             private static bool ContainsInvalidCanonicalXmlBytes(ReadOnlySpan<byte> document) {
                 int position = 0;
+                if (Vector256.IsHardwareAccelerated) {
+                    // Text with many entities stops here often; wider blocks halve the block count.
+                    ref byte start = ref MemoryMarshal.GetReference(document);
+                    var space = Vector256.Create((byte)0x20);
+                    var tab = Vector256.Create((byte)'\t');
+                    var cr = Vector256.Create((byte)'\r');
+                    var lf = Vector256.Create((byte)'\n');
+                    var amp = Vector256.Create((byte)'&');
+                    var bracket = Vector256.Create((byte)']');
+                    var noncharacter = Vector256.Create((byte)0xef);
+                    int skipThrough = -1;
+                    for (; position <= document.Length - Vector256<byte>.Count; position += Vector256<byte>.Count) {
+                        var values = Vector256.LoadUnsafe(ref start, (nuint)position);
+                        var controls = Vector256.LessThan(values, space)
+                            & ~(Vector256.Equals(values, tab) | Vector256.Equals(values, cr) | Vector256.Equals(values, lf));
+                        uint mask = (controls | Vector256.Equals(values, amp)
+                            | Vector256.Equals(values, bracket) | Vector256.Equals(values, noncharacter))
+                            .ExtractMostSignificantBits();
+                        while (mask != 0) {
+                            int index = position + BitOperations.TrailingZeroCount(mask);
+                            mask &= mask - 1;
+                            if (index <= skipThrough) continue;
+                            if (IsInvalidCanonicalXmlByte(document, index, out int consumed)) return true;
+                            skipThrough = index + consumed - 1;
+                        }
+                    }
+                    // An entity can extend beyond the final complete block.
+                    position = Math.Max(position, skipThrough + 1);
+                }
                 if (Vector128.IsHardwareAccelerated) {
                     ref byte start = ref MemoryMarshal.GetReference(document);
                     var space = Vector128.Create((byte)0x20);

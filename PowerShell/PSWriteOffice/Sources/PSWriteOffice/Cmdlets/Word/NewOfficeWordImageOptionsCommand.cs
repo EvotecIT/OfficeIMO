@@ -1,4 +1,5 @@
 using System.Management.Automation;
+using OfficeIMO;
 using OfficeIMO.Word;
 using PSWriteOffice.Cmdlets.Imaging;
 
@@ -16,10 +17,14 @@ public sealed class NewOfficeWordImageOptionsCommand : OfficeImageOptionsCommand
     [Parameter(ParameterSetName = "Default"), ValidateRange(1, int.MaxValue)]
     public override int? MaximumOutputWidth { get => base.MaximumOutputWidth; set => base.MaximumOutputWidth = value; }
 
+    /// <summary>Chart handling: Strict (default) skips charts with formatting that cannot be drawn exactly; BestEffort draws the closest approximation and reports chart-approximation warnings.</summary>
+    [Parameter] public OfficeChartFidelity? ChartFidelity { get; set; }
+
     /// <inheritdoc />
     protected override void ProcessRecord() {
         var options = new WordImageExportOptions();
         ApplyCommon(options);
+        if (ChartFidelity.HasValue) options.ChartRendering.Fidelity = ChartFidelity.Value;
         WriteObject(options);
     }
 }

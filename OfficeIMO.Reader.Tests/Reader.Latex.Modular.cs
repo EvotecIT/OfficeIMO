@@ -422,7 +422,7 @@ public sealed class ReaderLatexModularTests {
         "\\end{document}\n";
 
     [Fact]
-    public void ParsedDocument_EmitsSemanticChunksWithHierarchyAndMathDiagnostics() {
+    public void ParsedDocument_EmitsSemanticChunksWithHierarchyAndMathSource() {
         ReaderChunk[] chunks = LatexReaderAdapter.Read(
             LatexDocument.ParseResult(Source).Document,
             "guide.tex").ToArray();
@@ -432,7 +432,7 @@ public sealed class ReaderLatexModularTests {
         Assert.Contains(chunks, chunk => chunk.Location.SourceBlockKind == "heading" && chunk.Text == "Start");
         ReaderChunk paragraph = Assert.Single(chunks, chunk => chunk.Location.SourceBlockKind == "paragraph");
         Assert.Contains("bold", paragraph.Text, StringComparison.Ordinal);
-        Assert.Contains(paragraph.Warnings ?? Array.Empty<string>(), warning => warning.StartsWith("LATEXMD101:", StringComparison.Ordinal));
+        Assert.Contains("x^2", paragraph.Text, StringComparison.Ordinal);
         Assert.Contains(chunks, chunk => chunk.Location.SourceBlockKind == "list-unordered" && chunk.Text.Contains("One", StringComparison.Ordinal));
         Assert.Contains(chunks, chunk => chunk.Location.SourceBlockKind == "table" && chunk.Text.Contains("A\tB", StringComparison.Ordinal));
         Assert.Equal("Start", paragraph.Location.HeadingPath);

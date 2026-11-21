@@ -59,7 +59,7 @@ public sealed partial class ExportOfficeExcelCommand {
             ShowColumnStripes = ShowColumnStripes, ShowRowStripes = !NoRowStripes,
             ColumnFormat = _streamFormats, IgnoreMissingColumnFormat = IgnoreMissingColumnFormat || dataSet,
             DocumentProperties = properties, SaveOptions = SaveOptions,
-            DateSystem = DateSystem ?? ExcelDateSystem.NineteenHundred, NoClobber = NoClobber,
+            DateSystem = DateSystem ?? ExcelDateSystem.NineteenHundred, DateTimeOffsetWriteMode = DateTimeOffsetMode, NoClobber = NoClobber,
             UseSharedStrings = false, UseCellValueNumberFormats = true
         };
         _streamWriter = ExcelDocument.CreateWriter(_streamPath!, options, Theme?.Resolve(OfficeTheme.FromDocument));

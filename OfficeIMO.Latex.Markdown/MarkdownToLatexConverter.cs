@@ -365,7 +365,7 @@ internal static class MarkdownToLatexConverter {
         return "\\label{" + normalized + "}";
     }
 
-    private static string? GetFrontMatter(MarkdownDocument document, string key) => document.DocumentHeader?.FindEntry(key)?.Value?.ToString();
+    private static string? GetFrontMatter(MarkdownDocument document, string key) => FrontMatterBlock.FormatValue(document.DocumentHeader?.FindEntry(key)?.Value);
 
     private static bool IsTheorem(string kind) =>
         kind == "theorem" || kind == "lemma" || kind == "proposition" || kind == "corollary" ||

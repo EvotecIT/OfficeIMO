@@ -9,6 +9,16 @@ using Xunit;
 namespace OfficeIMO.Excel.Tests;
 
 public sealed partial class ExcelUtf8TextTests {
+    // Longer than the decoder's stack buffer, so the pooled-buffer path decodes it.
+    private const string EscapedBlock = "0123456789&lt;&amp;&gt;";
+    private const string DecodedBlock = "0123456789<&>";
+    private const string LongEscapedText = EscapedBlock + EscapedBlock + EscapedBlock + EscapedBlock
+        + EscapedBlock + EscapedBlock + EscapedBlock + EscapedBlock + EscapedBlock + EscapedBlock
+        + EscapedBlock + EscapedBlock + EscapedBlock + EscapedBlock + EscapedBlock + EscapedBlock;
+    private const string LongDecodedText = DecodedBlock + DecodedBlock + DecodedBlock + DecodedBlock
+        + DecodedBlock + DecodedBlock + DecodedBlock + DecodedBlock + DecodedBlock + DecodedBlock
+        + DecodedBlock + DecodedBlock + DecodedBlock + DecodedBlock + DecodedBlock + DecodedBlock;
+
     [Fact]
     public void Utf8Copy_UsesOrdinaryExcelStringConversionsAndCursorValidation() {
         string path = CreateWorkbook(
@@ -68,6 +78,12 @@ public sealed partial class ExcelUtf8TextTests {
 
     [Theory]
     [InlineData("<c r=\"A2\" t=\"str\"><v>A&amp;B</v></c>", "A&B")]
+    [InlineData("<c r=\"A2\" t=\"str\"><v>&lt;a&gt; &amp; &quot;b&quot; &apos;c&apos;</v></c>", "<a> & \"b\" 'c'")]
+    [InlineData("<c r=\"A2\" t=\"str\"><v>&amp;amp;</v></c>", "&amp;")]
+    [InlineData("<c r=\"A2\" t=\"str\"><v>A&#66;&amp;C</v></c>", "AB&C")]
+    [InlineData("<c r=\"A2\" t=\"str\"><v>Łódź &amp; 東京</v></c>", "Łódź & 東京")]
+    [InlineData("<c r=\"A2\" t=\"inlineStr\"><is><t>A\r\n&amp;B</t></is></c>", "A\n&B")]
+    [InlineData("<c r=\"A2\" t=\"str\"><v>" + LongEscapedText + "</v></c>", LongDecodedText)]
     [InlineData("<c r=\"A2\" t=\"inlineStr\"><is><t>A\r\nB</t></is></c>", "A\nB")]
     [InlineData("<c r=\"A2\" t=\"e\"><v>#DIV/0!</v></c>", "#DIV/0!")]
     [InlineData("<c r=\"A2\" t=\"str\"><f>\"cached\"</f><v>cached</v></c>", "cached")]

@@ -98,7 +98,8 @@ public static partial class HtmlPowerPointConverterExtensions {
                 if (run.Hyperlink != null) run.HyperlinkUsesTextColor = true;
             }
         }
-        ApplySemanticTableAlignment(targetCell, cell.Style?.GetValue("text-align"));
+        ApplySemanticTableAlignment(targetCell, cell.Style?.GetValue("text-align"),
+            string.Equals(cell.Style?.GetValue("direction")?.Trim(), "rtl", StringComparison.OrdinalIgnoreCase));
     }
 
     private static bool RequiresSemanticTableRunProjection(IReadOnlyList<HtmlSemanticRun> runs) =>
@@ -112,21 +113,33 @@ public static partial class HtmlPowerPointConverterExtensions {
             || !string.IsNullOrWhiteSpace(run.Style?.GetValue("font-size"))
             || run.DataAttributes.ContainsKey("data-officeimo-powerpoint-capitalization"));
 
-    private static void ApplySemanticTableAlignment(PptCore.PowerPointTableCell cell, string? alignment) {
+    // start and end follow the cell's direction.
+    private static void ApplySemanticTableAlignment(PptCore.PowerPointTableCell cell, string? alignment, bool rightToLeft) {
         switch ((alignment ?? string.Empty).Trim().ToLowerInvariant()) {
             case "center":
+            case "-webkit-center":
+            case "-moz-center":
                 cell.HorizontalAlignment = PptCore.PowerPointTextAlignment.Center;
                 break;
             case "right":
-            case "end":
+            case "-webkit-right":
+            case "-moz-right":
                 cell.HorizontalAlignment = PptCore.PowerPointTextAlignment.Right;
                 break;
             case "justify":
+            case "justify-all":
                 cell.HorizontalAlignment = PptCore.PowerPointTextAlignment.Justified;
                 break;
             case "left":
-            case "start":
+            case "-webkit-left":
+            case "-moz-left":
                 cell.HorizontalAlignment = PptCore.PowerPointTextAlignment.Left;
+                break;
+            case "start":
+                cell.HorizontalAlignment = rightToLeft ? PptCore.PowerPointTextAlignment.Right : PptCore.PowerPointTextAlignment.Left;
+                break;
+            case "end":
+                cell.HorizontalAlignment = rightToLeft ? PptCore.PowerPointTextAlignment.Left : PptCore.PowerPointTextAlignment.Right;
                 break;
         }
     }

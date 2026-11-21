@@ -16,8 +16,8 @@ namespace OfficeIMO.Tests {
                 .Where(collection => collection.Format is "xls" or "xlsb")
                 .ToArray();
             Assert.Equal(5, collections.Length);
-            Assert.Equal(29, collections.Sum(collection => collection.Artifacts.Count));
-            Assert.Contains(collections, collection => collection.Format == "xlsb" && collection.Artifacts.Count == 5);
+            Assert.Equal(30, collections.Sum(collection => collection.Artifacts.Count));
+            Assert.Contains(collections, collection => collection.Format == "xlsb" && collection.Artifacts.Count == 6);
             Assert.Contains(collections, collection => collection.Role == "diagnostic");
 
             foreach (OfficeInteroperabilityCorpusCollection collection in collections.Where(item => item.Role == "compatibility")) {

@@ -96,6 +96,19 @@ public sealed class ReaderDetectionResult {
     /// <summary>Number of prefix bytes inspected.</summary>
     public int InspectedBytes { get; set; }
 
+    /// <summary>
+    /// True when bounded content inspection found encryption that requires a password or key before the content can be
+    /// read: an encrypted Office package, an OpenDocument package whose manifest declares encrypted entries, a PDF with an
+    /// encryption dictionary, a ZIP archive with encrypted entries, or a legacy Word, Excel or PowerPoint file that marks
+    /// itself encrypted. The file is not opened or decrypted. False means
+    /// detection saw no encryption, not that the input is known to be unencrypted.
+    /// </summary>
+    /// <remarks>
+    /// An <c>encryption:</c> evidence token names the signal. An encrypted Office package keeps its format only in the
+    /// encrypted payload, so its kind comes from a matching Word, Excel or PowerPoint extension.
+    /// </remarks>
+    public bool IsEncrypted { get; set; }
+
     /// <summary>Stable evidence tokens explaining the result.</summary>
     public IReadOnlyList<string> Evidence { get; set; } = Array.Empty<string>();
 

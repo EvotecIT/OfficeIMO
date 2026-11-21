@@ -70,6 +70,8 @@
     <Compile Include="..\OfficeIMO.TestAssets\SparseAnnotationTestSource.cs" Link="Shared\SparseAnnotationTestSource.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\VisualBaselineTestSupport.cs" Link="Shared\VisualBaselineTestSupport.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.cs" Link="Shared\ManagedTextShapingTestAssets.cs" />
+    <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.Emoji.cs" Link="Shared\ManagedTextShapingTestAssets.Emoji.cs" />
+    <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.ColorEmoji.cs" Link="Shared\ManagedTextShapingTestAssets.ColorEmoji.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.HorizontalMetrics.cs" Link="Shared\ManagedTextShapingTestAssets.HorizontalMetrics.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.Tracking.cs" Link="Shared\ManagedTextShapingTestAssets.Tracking.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.Kerning.cs" Link="Shared\ManagedTextShapingTestAssets.Kerning.cs" />

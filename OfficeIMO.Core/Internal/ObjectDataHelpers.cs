@@ -166,9 +166,8 @@ internal static partial class ObjectDataHelpers
 #endif
     private static ObjectPropertyPlan CreatePropertyPlan(Type type)
     {
-        var properties = type
-            .GetProperties(BindingFlags.Public | BindingFlags.Instance)
-            .Where(static p => p.CanRead && p.GetIndexParameters().Length == 0 && !string.IsNullOrWhiteSpace(p.Name))
+        var properties = OfficeIMO.Data.PublicInstanceProperties.Get(type)
+            .Where(static p => p.CanRead && !string.IsNullOrWhiteSpace(p.Name))
             .OrderBy(OfficeIMO.Data.ObjectFlattener.GetMetadataOrder)
             .ToArray();
 
@@ -501,6 +500,11 @@ internal static partial class ObjectDataHelpers
             if (value is null)
             {
                 return null;
+            }
+
+            if (OfficeRoundTripText.TryFormat(value, culture, out string roundTripText))
+            {
+                return roundTripText;
             }
 
             if (value is IFormattable formattable)

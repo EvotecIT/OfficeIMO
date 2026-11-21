@@ -4,6 +4,18 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class DrawingArchiveSafetyTests {
+    [Theory]
+    [InlineData(0, 1, 100, true)]
+    [InlineData(-1, 1, 100, true)]
+    [InlineData(1, 0, 100, false)]
+    [InlineData(10, 1000, 100, false)]
+    [InlineData(9, 1000, 100, true)]
+    public void CompressionRatioFailsClosedForInvalidNonEmptyMetadata(
+        long compressedLength, long uncompressedLength, double maximumRatio, bool expected) {
+        Assert.Equal(expected, OfficeArchiveSafety.IsCompressionRatioExceeded(
+            compressedLength, uncompressedLength, maximumRatio));
+    }
+
     [Fact]
     public void EntryCopyStopsAtDeclaredExpansionBound() {
         using var source = new CountingReadStream(new byte[1024]);

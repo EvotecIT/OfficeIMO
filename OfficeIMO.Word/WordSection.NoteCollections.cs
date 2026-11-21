@@ -11,15 +11,16 @@ namespace OfficeIMO.Word {
         private IEnumerable<(Paragraph Paragraph, Run Run, TReference Reference)> EnumerateNoteReferences<TReference>()
             where TReference : OpenXmlElement {
             int targetSection = GetSectionOrdinal();
-            int finalSection = GetSectionCount() - 1;
             var body = _wordprocessingDocument?.MainDocumentPart?.Document?.Body;
             if (body == null) {
                 yield break;
             }
 
-            int currentSection = 0;
-            foreach (OpenXmlElement element in body.ChildElements) {
-                if (currentSection == targetSection) {
+            foreach (var (element, currentSection) in EnumerateBodyChildrenBySection(body, targetSection)) {
+                if (currentSection > targetSection) {
+                    yield break;
+                }
+                if (currentSection == targetSection && WordElementWalker.DescendantsContain(element, static node => node is TReference)) {
                     foreach (TReference reference in element.Descendants<TReference>()) {
                         if (reference.Parent is not Run run ||
                             run.Ancestors().Any(ancestor => ancestor is DeletedRun || ancestor is MoveFromRun)) {
@@ -30,13 +31,6 @@ namespace OfficeIMO.Word {
                         if (paragraph != null) {
                             yield return (paragraph, run, reference);
                         }
-                    }
-                }
-
-                if (element is Paragraph boundary && IsSectionBoundaryParagraph(boundary) && currentSection < finalSection) {
-                    currentSection++;
-                    if (currentSection > targetSection) {
-                        yield break;
                     }
                 }
             }

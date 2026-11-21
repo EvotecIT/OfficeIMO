@@ -44,6 +44,29 @@ Get-ChildItem ./reviews -Filter *.pdf |
 
 Each completed file emits its report. Existing output is replaced by default; use `-NoClobber` to preserve destinations or `-AutoRename` to select another filename. Pass native format options through `-Options`, use `-FailOnLoss` to reject reported reductions, and combine `-CheckpointPath` with `-Resume` for resumable directory jobs.
 
+## Data formats
+
+JSON, JSON Lines, YAML, TOML, XML, CSV, TSV, and Excel worksheets convert between each other through the same command. The routes are listed like any other:
+
+```powershell
+Get-OfficeDocumentCapability -Conversion -Executable -From json |
+    Select-Object Id, TargetExtension, Fidelity
+```
+
+```text
+Id         TargetExtension Fidelity
+--         --------------- --------
+json-jsonl .jsonl          Semantic
+json-xml   .xml            Semantic
+json-csv   .csv            Semantic
+json-xlsx  .xlsx           Semantic
+json-yaml  .yaml           Semantic
+json-toml  .toml           Semantic
+json-tsv   .tsv            Semantic
+```
+
+Semantic fidelity means the data survives but formatting such as comments or quoting does not. Anything the target cannot hold, such as a null in TOML or nesting in CSV, appears in the report's diagnostics. See [Configuration files and data conversion](/docs/pswriteoffice/config-data-formats/#convert-between-data-formats) for the options and the loss report.
+
 ## Check the result
 
 The catalog describes the installed engine's contracts. It does not probe optional providers, fonts, credentials, encryption passwords, or an individual input document. Test representative files and inspect the generated output before relying on a conversion workflow. Review conversion warnings when fidelity matters.

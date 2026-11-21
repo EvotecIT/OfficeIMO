@@ -1,3 +1,4 @@
+#pragma warning disable RS0026 // The shared chart options overloads take a required options argument, so existing calls keep binding to the Excel options forms.
 using System.Text;
 using OfficeIMO.Drawing;
 
@@ -10,18 +11,99 @@ namespace OfficeIMO.Excel {
         /// <param name="options">Shared Excel image-export settings.</param>
         /// <param name="cancellationToken">Token used to cancel rendering.</param>
         /// <returns>The encoded chart image and any fidelity diagnostics.</returns>
+        /// <exception cref="NotSupportedException">The chart cannot be drawn by the shared chart renderer.</exception>
         public OfficeImageExportResult ToImage(
             OfficeImageExportFormat format,
             ExcelImageExportOptions? options = null,
             CancellationToken cancellationToken = default) {
-            ExcelImageExportOptions resolved = options?.Clone() ?? new ExcelImageExportOptions();
-            resolved.ConditionalFormattingDate ??= DateTime.Today;
-            resolved.Validate();
-
+            ExcelImageExportOptions resolved = NormalizeImageConversionOptions(options);
             return OfficeImageExportExecutionScope.Run(
                 resolved,
                 cancellationToken,
                 token => ExportImageCore(format, resolved, token));
+        }
+
+        /// <summary>Renders this chart on its own, without the worksheet around it.</summary>
+        /// <remarks>Scheme colors and series without explicit colors resolve against the workbook theme.</remarks>
+        /// <param name="options">Image format, size and rendering settings; a null <see cref="OfficeChartImageExportOptions.Width"/> or <see cref="OfficeChartImageExportOptions.Height"/> uses the chart's anchor size.</param>
+        /// <param name="cancellationToken">Token used to cancel rendering.</param>
+        /// <returns>The encoded image, its size and the rendering diagnostics.</returns>
+        /// <exception cref="NotSupportedException">The shared chart renderer cannot draw this chart; the message gives the reason.</exception>
+        public OfficeImageExportResult ToImage(OfficeChartImageExportOptions options, CancellationToken cancellationToken = default) {
+            ArgumentNullException.ThrowIfNull(options);
+            return OfficeChartImageExporter.ToImage(CreateImageSource(), options, cancellationToken);
+        }
+
+        /// <summary>Renders this chart and writes the image to a file.</summary>
+        /// <param name="path">Destination file path.</param>
+        /// <param name="options">Image format, size and rendering settings.</param>
+        /// <param name="cancellationToken">Token used to cancel rendering.</param>
+        /// <returns>The conversion report with the rendering diagnostics.</returns>
+        /// <exception cref="NotSupportedException">The shared chart renderer cannot draw this chart; the message gives the reason.</exception>
+        public OfficeConversionReport SaveAsImage(string path, OfficeChartImageExportOptions options,
+            CancellationToken cancellationToken = default) {
+            ArgumentNullException.ThrowIfNull(options);
+            return OfficeChartImageExporter.SaveAsImage(CreateImageSource(), path, options, cancellationToken);
+        }
+
+        /// <summary>Renders this chart and writes the image to a caller-owned stream.</summary>
+        /// <param name="stream">Destination stream.</param>
+        /// <param name="options">Image format, size and rendering settings.</param>
+        /// <param name="cancellationToken">Token used to cancel rendering.</param>
+        /// <returns>The conversion report with the rendering diagnostics.</returns>
+        /// <exception cref="NotSupportedException">The shared chart renderer cannot draw this chart; the message gives the reason.</exception>
+        public OfficeConversionReport SaveAsImage(Stream stream, OfficeChartImageExportOptions options,
+            CancellationToken cancellationToken = default) {
+            ArgumentNullException.ThrowIfNull(options);
+            return OfficeChartImageExporter.SaveAsImage(CreateImageSource(), stream, options, cancellationToken);
+        }
+
+        /// <summary>Tries to expose this chart through the shared dependency-free chart contract at its anchor size.</summary>
+        /// <remarks>Reads the saved chart part and the workbook theme, so charts in loaded workbooks project the same way as charts built in this session.</remarks>
+        /// <param name="snapshot">The cached chart data and supported presentation metadata.</param>
+        /// <returns>True when the shared chart renderer can draw the chart.</returns>
+        public bool TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot) {
+            snapshot = null!;
+            if (!TryGetSnapshot(out ExcelChartInfo info)) return false;
+            if (!ExcelRangeImageRenderer.TryCreateOfficeChartSnapshot(info,
+                ExcelImageExportLimits.ExtentPixels(info.Width), ExcelImageExportLimits.ExtentPixels(info.Height),
+                null, _sheetName, out OfficeChartSnapshot? created) || created == null) return false;
+            snapshot = created;
+            return true;
+        }
+
+        private OfficeChartImageSource CreateImageSource() {
+            (int widthPixels, int heightPixels) = GetAnchorSizePixels();
+            string name = Name is { Length: > 0 } chartName ? chartName : "Chart";
+            string source = _sheetName + "!" + name;
+            return new OfficeChartImageSource("Excel", name, source, OfficeLength.Pixels(widthPixels), OfficeLength.Pixels(heightPixels),
+                (width, height, fidelity, diagnostics) => CreateRenderSnapshot(width, height, fidelity, diagnostics, out _));
+        }
+
+        private OfficeChartSnapshot CreateRenderSnapshot(double? width, double? height, OfficeChartFidelity fidelity,
+            List<OfficeImageExportDiagnostic> diagnostics, out ExcelChartInfo info) {
+            if (!TryGetSnapshot(fidelity, out info, out string? unsupportedReason)) {
+                if (unsupportedReason != null) {
+                    throw new NotSupportedException(OfficeChartImageExporter.UnsupportedChartMessage + unsupportedReason);
+                }
+                throw new InvalidOperationException(
+                    "The chart data could not be resolved into a renderable snapshot.");
+            }
+
+            diagnostics.AddRange(info.Diagnostics);
+            int firstNewDiagnostic = diagnostics.Count;
+            if (!ExcelRangeImageRenderer.TryCreateOfficeChartSnapshot(
+                info,
+                width ?? ExcelImageExportLimits.ExtentPixels(info.Width),
+                height ?? ExcelImageExportLimits.ExtentPixels(info.Height),
+                diagnostics,
+                _sheetName,
+                out OfficeChartSnapshot? officeSnapshot) || officeSnapshot == null) {
+                throw new NotSupportedException(diagnostics.Count > firstNewDiagnostic
+                    ? OfficeChartImageExporter.UnsupportedChartMessage + diagnostics[diagnostics.Count - 1].Message
+                    : "The chart type cannot be rendered by the shared Office chart renderer.");
+            }
+            return officeSnapshot;
         }
 
         private OfficeImageExportResult ExportImageCore(
@@ -29,100 +111,10 @@ namespace OfficeIMO.Excel {
             ExcelImageExportOptions options,
             CancellationToken cancellationToken) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (!TryGetSnapshot(out ExcelChartInfo snapshot)) {
-                throw new InvalidOperationException(
-                    "The chart data could not be resolved into a renderable snapshot.");
-            }
-
-            var diagnostics = new List<OfficeImageExportDiagnostic>(snapshot.Diagnostics);
-            if (!ExcelRangeImageRenderer.TryCreateOfficeChartSnapshot(
-                snapshot,
-                ExcelImageExportLimits.ExtentPixels(snapshot.Width),
-                ExcelImageExportLimits.ExtentPixels(snapshot.Height),
-                diagnostics,
-                _sheetName,
-                out OfficeChartSnapshot? officeSnapshot) || officeSnapshot == null) {
-                throw new NotSupportedException(
-                    "The chart type cannot be rendered by the shared Office chart renderer.");
-            }
-
-            OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(
-                officeSnapshot,
-                useMinimumCanvas: false, diagnostics);
-            drawing.Fonts.AddRange(options.Fonts);
-            string source = _sheetName + "!" + snapshot.Name;
-            drawing.AppendFontDiagnostics(diagnostics, source);
-
-            if (format == OfficeImageExportFormat.Svg) {
-                OfficeDrawing svgDrawing = new OfficeDrawing(drawing.Width, drawing.Height);
-                OfficeShape background = OfficeShape.Rectangle(drawing.Width, drawing.Height);
-                background.FillColor = options.BackgroundColor;
-                background.StrokeWidth = 0D;
-                svgDrawing.AddShape(background, 0D, 0D);
-                svgDrawing.AddDrawing(drawing, 0D, 0D);
-                double scale = options.GetEffectiveScale(svgDrawing.Width, svgDrawing.Height);
-                byte[] svgBytes = OfficeDrawingSvgExporter.ToSvgBytes(
-                    svgDrawing,
-                    scale,
-                    OfficeSvgSizeUnit.Pixel,
-                    imageCodec: null,
-                    resourceIdPrefix: null,
-                    maximumUtf8Bytes: options.MaximumTotalEncodedBytes,
-                    cancellationToken);
-                if (!OfficeImageReader.TryIdentifyByContent(svgBytes, ".svg", out OfficeImageInfo svgInfo)) {
-                    throw new InvalidDataException("The rendered chart SVG dimensions could not be identified.");
-                }
-                cancellationToken.ThrowIfCancellationRequested();
-                return options.EnsureAccepted(new OfficeImageExportResult(
-                    format,
-                    svgInfo.Width,
-                    svgInfo.Height,
-                    svgBytes,
-                    snapshot.Name,
-                    source,
-                    diagnostics.AsReadOnly()));
-            }
-
-            if (!format.IsRaster()) {
-                throw new ArgumentOutOfRangeException(nameof(format), "The selected image format is not supported.");
-            }
-
-            OfficeRasterExportPlan plan = OfficeRasterExportPlanner.Resolve(
-                drawing.Width,
-                drawing.Height,
-                format,
-                options,
-                source);
-            if (plan.Diagnostic != null) {
-                diagnostics.Add(plan.Diagnostic);
-            }
-
-            OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(
-                drawing,
-                new OfficeDrawingRasterRenderOptions {
-                    Scale = plan.Limit.Scale,
-                    Background = options.BackgroundColor,
-                    TextShapingProvider = options.TextShapingProvider,
-                    TextShapingLanguage = options.TextShapingLanguage,
-                    DiagnosticSink = diagnostics,
-                    DiagnosticSource = source,
-                    CancellationToken = cancellationToken
-                });
-            byte[] bytes = OfficeRasterImageEncoder.Encode(
-                image,
-                format,
-                plan.CreateEncodingOptions(),
-                options.MaximumTotalEncodedBytes,
-                cancellationToken);
-            cancellationToken.ThrowIfCancellationRequested();
-            return options.EnsureAccepted(new OfficeImageExportResult(
-                format,
-                image.Width,
-                image.Height,
-                bytes,
-                snapshot.Name,
-                source,
-                diagnostics.AsReadOnly()));
+            var diagnostics = new List<OfficeImageExportDiagnostic>();
+            OfficeChartSnapshot officeSnapshot = CreateRenderSnapshot(null, null, options.ChartRendering.Fidelity, diagnostics, out ExcelChartInfo info);
+            return OfficeChartImageExporter.Export(officeSnapshot, format, options, diagnostics, info.Name,
+                _sheetName + "!" + info.Name, cancellationToken);
         }
     }
 }

@@ -515,7 +515,7 @@ internal static class HtmlFormControlSemantics {
     }
 
     private static string FormatHtmlNumber(double value) =>
-        value == 0D ? "0" : value.ToString("R", CultureInfo.InvariantCulture);
+        value == 0D ? "0" : OfficeIMO.Core.Internal.OfficeRoundTripText.Format(value, CultureInfo.InvariantCulture);
 
     private static bool IsDescendantOf(IElement element, IElement ancestor) {
         for (IElement? current = element; current != null; current = current.ParentElement) {

@@ -290,13 +290,7 @@ public sealed partial class PdfReadPage {
                     !image.IsImageFile ||
                     !IsSupportedType3Image(placement, image, resources, pageContentBudget) ||
                     image.HasUnresolvedTransparencyMask ||
-                    !TryCreateImageProjection(
-                        placement,
-                        localPageHeight,
-                        localPageWidth,
-                        localPageHeight,
-                        out _,
-                        allowAxisAlignedFallback: false)) {
+                    !CanDrawImagePlacementExactly(placement, localPageHeight, localPageWidth, localPageHeight)) {
                     groupDrawing = null!;
                     return Type3TransparencyGroupDrawingResult.Unsupported;
                 }
@@ -304,6 +298,8 @@ public sealed partial class PdfReadPage {
                     groupDrawing = null!;
                     return Type3TransparencyGroupDrawingResult.Unsupported;
                 }
+                // Replay with the exact matrix that the check above accepted.
+                placement = placement.WithExactProjection();
                 if (requireNestedType3Uncolored && !image.IsImageMask) {
                     groupDrawing = null!;
                     return Type3TransparencyGroupDrawingResult.Unsupported;

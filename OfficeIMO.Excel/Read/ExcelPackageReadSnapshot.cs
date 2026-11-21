@@ -157,7 +157,21 @@ namespace OfficeIMO.Excel {
                     parked.Dispose();
                 }
             }
-            return SharedStringCache.BuildKeepingUnmarkedWhitespace(Document, options);
+            return SharedStringCache.BuildKeepingUnmarkedWhitespace(Document, options, OpenIndexedSharedStrings);
+
+            Stream? OpenIndexedSharedStrings(SharedStringTablePart part) {
+                string partName = part.Uri.OriginalString;
+                if (!PartBufferReader.TryGetLength(partName, out long length)
+                    || length < 0 || length > SharedStringCache.MaximumIndexedPartBytes) return null;
+                try {
+                    return PartBufferReader.OpenPart(partName, SharedStringCache.MaximumIndexedPartBytes, options.CancellationToken,
+                        maximumBufferedBytes: SharedStringCache.MaximumIndexedPartBytes,
+                        acceptBufferedPrefix: SharedStringCache.CanIndexSimpleAsciiPrefix);
+                } catch (Exception exception) when (exception is InvalidDataException or IOException) {
+                    // A damaged entry is reported by the XML route, as before.
+                    return null;
+                }
+            }
         }
 
         /// <summary>Keeps only a completed parse, so a canceled or failed load is never reused.</summary>

@@ -1,0 +1,9 @@
+<Project>
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <!-- The PDFsharp baseline restores different packages, so it keeps its own output folders. -->
+  <PropertyGroup Condition="'$(PdfSharpEngine)' == 'PDFsharp'">
+    <BaseIntermediateOutputPath>obj/pdfsharp/</BaseIntermediateOutputPath>
+    <BaseOutputPath>bin/pdfsharp/</BaseOutputPath>
+  </PropertyGroup>
+</Project>

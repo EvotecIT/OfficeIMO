@@ -220,6 +220,9 @@ internal static partial class DocumentReaderEngine {
         ReaderDetectionResult detection,
         bool pathInput,
         out ReaderHandlerDescriptor handler) {
+        if (TryResolveShebangHandler(detection, pathInput, out handler)) {
+            return true;
+        }
         if (TryResolveCustomHandlerByKind(detection.Kind, pathInput, out handler)) {
             return true;
         }
@@ -229,6 +232,21 @@ internal static partial class DocumentReaderEngine {
         }
 
         return TryResolveCustomHandlerByKind(ReaderInputKind.Zip, pathInput, out handler);
+    }
+
+    private const string ShebangEvidencePrefix = "text:shebang:";
+
+    /// <summary>Routes an extensionless script to the handler that owns its interpreter's file extension.</summary>
+    private static bool TryResolveShebangHandler(ReaderDetectionResult detection, bool pathInput,
+        out ReaderHandlerDescriptor handler) {
+        handler = null!;
+        if (detection.Kind != ReaderInputKind.Text) return false;
+        foreach (string evidence in detection.Evidence) {
+            if (!evidence.StartsWith(ShebangEvidencePrefix, StringComparison.Ordinal)) continue;
+            return TryResolveCustomHandlerByExtension(evidence.Substring(ShebangEvidencePrefix.Length), out handler) &&
+                   (pathInput ? handler.SupportsPathInput : handler.SupportsStreamInput);
+        }
+        return false;
     }
 
     private static void ReconcileValidatedExtension(ReaderDetectionResult detection,
@@ -321,6 +339,7 @@ internal static partial class DocumentReaderEngine {
         try {
             byte[] prefix = ReadDetectionPrefix(stream, options.MaxProbeBytes);
             DetectionCandidate candidate = DetectContent(prefix);
+            bool zipContainer = candidate.Kind == ReaderInputKind.Zip;
             bool containerInspected = false;
 
             if (candidate.Kind == ReaderInputKind.Zip && options.InspectContainers && restorePosition) {
@@ -345,6 +364,8 @@ internal static partial class DocumentReaderEngine {
                 containerInspected = true;
             }
 
+            candidate = ApplyContentEncryption(candidate, extensionResult, stream, originalPosition, restorePosition, prefix,
+                options, zipContainer, CancellationToken.None);
             return BuildCombinedDetection(
                 extensionResult,
                 candidate,
@@ -371,6 +392,7 @@ internal static partial class DocumentReaderEngine {
         try {
             byte[] prefix = await ReadDetectionPrefixAsync(stream, options.MaxProbeBytes, cancellationToken).ConfigureAwait(false);
             DetectionCandidate candidate = DetectContent(prefix);
+            bool zipContainer = candidate.Kind == ReaderInputKind.Zip;
             bool containerInspected = false;
             if (candidate.Kind == ReaderInputKind.Zip && options.InspectContainers && restorePosition) {
                 DetectionCandidate containerCandidate = await InspectZipContainerAsync(
@@ -397,6 +419,8 @@ internal static partial class DocumentReaderEngine {
                 containerInspected = true;
             }
 
+            candidate = ApplyContentEncryption(candidate, extensionResult, stream, originalPosition, restorePosition, prefix,
+                options, zipContainer, cancellationToken);
             return BuildCombinedDetection(extensionResult, candidate, prefix.Length, containerInspected, options.Mode);
         } finally {
             if (restorePosition) stream.Position = originalPosition;
@@ -405,10 +429,13 @@ internal static partial class DocumentReaderEngine {
 
     private static ReaderDetectionResult BuildExtensionDetection(string sourceName) {
         string extension = NormalizeExtension(TryGetExtension(sourceName));
-        ReaderInputKind extensionKind = extension.Length == 0 ? ReaderInputKind.Unknown : DetectKind(sourceName);
-        var evidence = extension.Length == 0
-            ? Array.Empty<string>()
-            : new[] { "extension:" + extension };
+        bool conventionalName = extension.Length == 0 && GetRoutingExtension(sourceName).Length > 0;
+        ReaderInputKind extensionKind = extension.Length == 0 && !conventionalName ? ReaderInputKind.Unknown : DetectKind(sourceName);
+        var evidence = extension.Length > 0
+            ? new[] { "extension:" + extension }
+            : conventionalName && extensionKind != ReaderInputKind.Unknown
+                ? new[] { "file-name:" + ReaderLogicalPath.GetFileName(sourceName) }
+                : Array.Empty<string>();
 
         return new ReaderDetectionResult {
             SourceName = sourceName,
@@ -474,6 +501,7 @@ internal static partial class DocumentReaderEngine {
             ContentInspected = true,
             ContainerInspected = containerInspected,
             InspectedBytes = inspectedBytes,
+            IsEncrypted = content.IsEncrypted,
             Evidence = evidence.ToArray()
         };
     }
@@ -601,6 +629,9 @@ internal static partial class DocumentReaderEngine {
         if (lower.StartsWith("<!doctype html", StringComparison.Ordinal) ||
             lower.StartsWith("<html", StringComparison.Ordinal)) {
             return DetectionCandidate.High(ReaderInputKind.Html, "text/html", "text:html-root");
+        }
+        if (ReaderSourceCodeLanguages.TryGetExtensionFromShebang(text, out string scriptExtension)) {
+            return DetectionCandidate.Low(ReaderInputKind.Text, "text/plain", ShebangEvidencePrefix + scriptExtension);
         }
         string xmlProbe = trimmed;
         if (TryGetXmlRoot(xmlProbe, out string qualifiedRootName, out string rootTag, out string xmlDocumentType)) {
@@ -961,6 +992,7 @@ internal static partial class DocumentReaderEngine {
             ReaderInputKind.Epub => "application/epub+zip",
             ReaderInputKind.Visio => "application/vnd.ms-visio.drawing.main+xml",
             ReaderInputKind.Yaml => "application/yaml",
+            ReaderInputKind.Toml => "application/toml",
             ReaderInputKind.Rtf => "application/rtf",
             _ => null
         };
@@ -1000,6 +1032,7 @@ internal static partial class DocumentReaderEngine {
             ".json" => "application/json",
             ".xml" => "application/xml",
             ".yml" or ".yaml" => "application/yaml",
+            ".toml" => "application/toml",
             ".odt" => "application/vnd.oasis.opendocument.text",
             ".ods" => "application/vnd.oasis.opendocument.spreadsheet",
             ".odp" => "application/vnd.oasis.opendocument.presentation",
@@ -1017,6 +1050,7 @@ internal static partial class DocumentReaderEngine {
             ReaderInputKind.Xml or
             ReaderInputKind.Html or
             ReaderInputKind.Yaml or
+            ReaderInputKind.Toml or
             ReaderInputKind.Rtf => ReaderInputKind.Text,
             ReaderInputKind.Word or
             ReaderInputKind.Excel or
@@ -1037,12 +1071,14 @@ internal static partial class DocumentReaderEngine {
             ReaderDetectionConfidence confidence,
             string? mediaType,
             IReadOnlyList<string> evidence,
-            bool mediaTypeIsDeclared = false) {
+            bool mediaTypeIsDeclared = false,
+            bool isEncrypted = false) {
             Kind = kind;
             Confidence = confidence;
             MediaType = mediaType;
             Evidence = evidence;
             MediaTypeIsDeclared = mediaTypeIsDeclared;
+            IsEncrypted = isEncrypted;
         }
 
         public ReaderInputKind Kind { get; }
@@ -1050,6 +1086,16 @@ internal static partial class DocumentReaderEngine {
         public string? MediaType { get; }
         public IReadOnlyList<string> Evidence { get; }
         public bool MediaTypeIsDeclared { get; }
+        public bool IsEncrypted { get; }
+
+        /// <summary>Returns this candidate with a different kind, keeping its evidence and encryption state.</summary>
+        public DetectionCandidate WithKind(ReaderInputKind kind, ReaderDetectionConfidence confidence, string? mediaType) =>
+            new DetectionCandidate(kind, confidence, mediaType, Evidence, mediaTypeIsDeclared: false, IsEncrypted);
+
+        /// <summary>Returns this candidate marked encrypted, with the evidence token that found the encryption.</summary>
+        public DetectionCandidate WithEncryption(string evidence) =>
+            new DetectionCandidate(Kind, Confidence, MediaType, Evidence.Concat(new[] { evidence }).ToArray(),
+                MediaTypeIsDeclared, isEncrypted: true);
 
         public static DetectionCandidate Unknown(string evidence) =>
             new DetectionCandidate(ReaderInputKind.Unknown, ReaderDetectionConfidence.None, null, new[] { evidence });

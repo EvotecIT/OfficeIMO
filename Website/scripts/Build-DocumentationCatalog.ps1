@@ -20,6 +20,23 @@ function Get-ProjectValue {
     return ''
 }
 
+function Get-TargetFrameworks {
+    param([xml] $Project)
+
+    # Union of every TargetFramework(s) value, so a Windows-only net472 added under a condition is listed too.
+    $frameworks = [System.Collections.Generic.List[string]]::new()
+    foreach ($name in 'TargetFrameworks', 'TargetFramework') {
+        foreach ($value in @($Project.Project.PropertyGroup.$name)) {
+            $text = if ($value -is [System.Xml.XmlElement]) { $value.InnerText } else { [string] $value }
+            foreach ($framework in $text.Split(';')) {
+                $framework = $framework.Trim()
+                if ($framework -and $framework -notlike '*$(*' -and -not $frameworks.Contains($framework)) { $frameworks.Add($framework) }
+            }
+        }
+    }
+    return @($frameworks)
+}
+
 function Get-ComponentCategory {
     param([string] $Name)
 
@@ -29,7 +46,7 @@ function Get-ComponentCategory {
         '^OfficeIMO\.(Word|Excel|PowerPoint)' { return 'Office documents' }
         '^OfficeIMO\.MarkdownRenderer' { return 'Rendering surfaces' }
         '^OfficeIMO\.(Pdf|Html|Markdown|Rtf|AsciiDoc|Latex|Invoicing)' { return 'Publishing and conversion' }
-        '^OfficeIMO\.(Email|OneNote|OpenDocument|Epub|CSV|Visio|IWork|Chm|DjVu|Publisher)' { return 'Formats and interoperability' }
+        '^OfficeIMO\.(Email|OneNote|OpenDocument|Epub|CSV|Yaml|Visio|IWork|Chm|DjVu|Publisher|Access|Project|Xps|Mhtml|Toml|Opml|DocBook|Bibliography)' { return 'Formats and interoperability' }
         '^OfficeIMO\.GoogleWorkspace|Google(Docs|Sheets|Slides)$' { return 'Google Workspace' }
         '^OfficeIMO\.(Archives|Drawing|Ocr|Provenance|Security|Zip|Markup|Adf|Confluence)' { return 'Foundations and integrations' }
         default { return 'Specialized components' }
@@ -41,6 +58,7 @@ function Get-DocumentationUrl {
 
     switch -Regex ($Name) {
         '^PSWriteOffice$' { return '/docs/pswriteoffice/' }
+        '^OfficeIMO\.Tool$' { return '/docs/cli/' }
         '^OfficeIMO\.(?:IWork|Reader\.IWork|Word\.IWork|Excel\.IWork|PowerPoint\.IWork)$' { return '/docs/iwork/' }
         '^OfficeIMO\.Word' { return '/docs/word/' }
         '^OfficeIMO\.Excel' { return '/docs/excel/' }
@@ -54,9 +72,20 @@ function Get-DocumentationUrl {
         '^OfficeIMO\.Markdown' { return '/docs/markdown/' }
         '^OfficeIMO\.Rtf' { return '/docs/rtf/' }
         '^OfficeIMO\.Epub' { return '/docs/epub/' }
+        '^OfficeIMO\.Data\.Conversions' { return '/docs/data-conversions/' }
         '^OfficeIMO\.CSV' { return '/docs/csv/' }
+        '^OfficeIMO\.Yaml' { return '/docs/yaml/' }
         '^OfficeIMO\.Visio' { return '/docs/visio/' }
         '^OfficeIMO\.Project' { return '/docs/project/' }
+        '^OfficeIMO\.Access' { return '/docs/access/' }
+        '^OfficeIMO\.Publisher' { return '/docs/publisher/' }
+        '^OfficeIMO\.Xps' { return '/docs/xps/' }
+        '^OfficeIMO\.Invoicing' { return '/docs/invoicing/' }
+        '^OfficeIMO\.Archives' { return '/docs/archives/' }
+        '^OfficeIMO\.Security' { return '/docs/security/' }
+        '^OfficeIMO\.Toml' { return '/docs/toml/' }
+        '^OfficeIMO\.(?:AsciiDoc|Latex|DocBook|Chm|Opml|DjVu|Confluence|Adf|Markup|Bibliography)' { return '/docs/text-formats/' }
+        '^OfficeIMO\.(?:ChartForgeX|Ocr|Provenance)' { return '/docs/foundations/' }
         '^OfficeIMO\.Reader' { return '/docs/reader/' }
         '^OfficeIMO\.GoogleWorkspace|Google(Docs|Sheets|Slides)$' { return '/docs/google-workspace/' }
         default { return '/docs/capabilities/packages/' }
@@ -123,6 +152,7 @@ $components = foreach ($projectFile in ($productionProjects | Sort-Object BaseNa
         docsUrl = Get-DocumentationUrl -Name $name
         apiUrl = if ($apiRoutes.ContainsKey((Get-ProjectValue -Project $project -Name 'AssemblyName'))) { $apiRoutes[(Get-ProjectValue -Project $project -Name 'AssemblyName')] } elseif ($apiRoutes.ContainsKey($name)) { $apiRoutes[$name] } else { $null }
         packageUrl = if ($isPackable) { "https://www.nuget.org/packages/$packageId" } else { $null }
+        targetFrameworks = @(Get-TargetFrameworks -Project $project)
     }
 }
 

@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Data.Common;
+using System.Runtime.CompilerServices;
 using BenchmarkDotNet.Attributes;
 using CsvHelper.Configuration;
 using ExcelReader.Core.Reader;
@@ -21,8 +22,6 @@ namespace OfficeIMO.CSV.Benchmarks;
 [MemoryDiagnoser]
 [RankColumn]
 public class MarkPflug65KCsvBenchmarks {
-    private const ulong ChecksumOffset = 14695981039346656037UL;
-    private const ulong ChecksumPrime = 1099511628211UL;
     private CsvReadObservation _expected;
 
     [GlobalSetup]
@@ -45,6 +44,7 @@ public class MarkPflug65KCsvBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public CsvReadObservation OfficeIMO() {
         using DbDataReader reader = CsvDocument.OpenReader(MarkPflug65KFixture.CsvPath,
             options: new CsvReaderOptions { DetectDelimiter = false });
@@ -52,12 +52,11 @@ public class MarkPflug65KCsvBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:ExcelReader.NET", "case:Default")]
     public CsvReadObservation ExcelReaderNet() {
         using ExcelReaderNetCsvReader reader = ExcelReaderApi.FromCsvFile(MarkPflug65KFixture.CsvPath);
+        var values = new CsvObservationAccumulator();
         int rows = 0;
-        int cells = 0;
-        long characters = 0;
-        ulong checksum = ChecksumOffset;
         bool header = true;
 #if NET10_0_OR_GREATER
         foreach (Row row in reader.FirstSheet) {
@@ -69,39 +68,31 @@ public class MarkPflug65KCsvBenchmarks {
                 continue;
             }
 
+            int count = row.ColumnCount;
+            for (int column = 0; column < count; column++) values.Add(row[column].GetString());
             rows++;
-            for (int column = 0; column < row.ColumnCount; column++) {
-                cells++;
-                string decoded = row[column].GetString();
-                characters += decoded.Length;
-                AddValue(ref checksum, decoded);
-            }
         }
 
-        return new CsvReadObservation(rows, cells, characters, checksum);
+        return values.ToObservation(rows);
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:Sep", "case:Default")]
     public CsvReadObservation Sep() {
         using var reader = SepLib.Reader().FromFile(MarkPflug65KFixture.CsvPath);
+        var values = new CsvObservationAccumulator();
         int rows = 0;
-        int cells = 0;
-        long characters = 0;
-        ulong checksum = ChecksumOffset;
         foreach (var row in reader) {
+            int count = row.ColCount;
+            for (int column = 0; column < count; column++) values.Add(row[column].ToString());
             rows++;
-            for (int column = 0; column < row.ColCount; column++) {
-                cells++;
-                string decoded = row[column].ToString();
-                characters += decoded.Length;
-                AddValue(ref checksum, decoded);
-            }
         }
 
-        return new CsvReadObservation(rows, cells, characters, checksum);
+        return values.ToObservation(rows);
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:Sylvan.Data.Csv", "case:Default")]
     public CsvReadObservation Sylvan() {
         using var text = new StreamReader(MarkPflug65KFixture.CsvPath);
         using SylvanCsvDataReader reader = SylvanCsvDataReader.Create(text);
@@ -109,6 +100,7 @@ public class MarkPflug65KCsvBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:CsvHelper", "case:Default")]
     public CsvReadObservation CsvHelper() {
         var configuration = new CsvConfiguration(CultureInfo.InvariantCulture) { HasHeaderRecord = true };
         using var text = new StreamReader(MarkPflug65KFixture.CsvPath);
@@ -116,25 +108,19 @@ public class MarkPflug65KCsvBenchmarks {
         reader.Read();
         reader.ReadHeader();
 
+        var values = new CsvObservationAccumulator();
         int rows = 0;
-        int cells = 0;
-        long characters = 0;
-        ulong checksum = ChecksumOffset;
         while (reader.Read()) {
-            rows++;
             int count = reader.Parser.Count;
-            for (int column = 0; column < count; column++) {
-                cells++;
-                string decoded = reader.GetField(column) ?? string.Empty;
-                characters += decoded.Length;
-                AddValue(ref checksum, decoded);
-            }
+            for (int column = 0; column < count; column++) values.Add(reader.GetField(column));
+            rows++;
         }
 
-        return new CsvReadObservation(rows, cells, characters, checksum);
+        return values.ToObservation(rows);
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:Dataplat.Dbatools.Csv", "case:Default")]
     public CsvReadObservation DataplatDbatools() {
         using var reader = new DataplatCsvDataReader(MarkPflug65KFixture.CsvPath);
         return Observe(
@@ -144,68 +130,64 @@ public class MarkPflug65KCsvBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:LumenWorks", "case:Default")]
     public CsvReadObservation LumenWorks() {
         using var text = new StreamReader(MarkPflug65KFixture.CsvPath);
         using var reader = new LumenWorksCsvReader(text, hasHeaders: true);
         return Observe(reader.FieldCount, read: reader.ReadNextRecord, value: ordinal => reader[ordinal]);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static CsvReadObservation Observe(
         int fieldCount,
         Func<bool> read,
         Func<int, string> value) {
+        var values = new CsvObservationAccumulator();
         int rows = 0;
-        int cells = 0;
-        long characters = 0;
-        ulong checksum = ChecksumOffset;
         while (read()) {
+            for (int column = 0; column < fieldCount; column++) values.Add(value(column));
             rows++;
-            for (int column = 0; column < fieldCount; column++) {
-                cells++;
-                string decoded = value(column);
-                characters += decoded.Length;
-                AddValue(ref checksum, decoded);
-            }
         }
 
-        return new CsvReadObservation(rows, cells, characters, checksum);
+        return values.ToObservation(rows);
     }
 
+    // Inlined into each benchmark so every reader gets its own monomorphic call sites. A shared body would let
+    // tiered PGO devirtualize GetString only for whichever reader the setup profiled first.
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static CsvReadObservation Observe(DbDataReader reader) {
-        int fieldCount = reader.FieldCount;
+        var values = new CsvObservationAccumulator();
         int rows = 0;
-        int cells = 0;
-        long characters = 0;
-        ulong checksum = ChecksumOffset;
         while (reader.Read()) {
+            int count = reader.FieldCount;
+            for (int column = 0; column < count; column++) values.Add(reader.GetString(column));
             rows++;
-            for (int column = 0; column < fieldCount; column++) {
-                cells++;
-                string decoded = reader.GetString(column);
-                characters += decoded.Length;
-                AddValue(ref checksum, decoded);
-            }
         }
 
-        return new CsvReadObservation(rows, cells, characters, checksum);
+        return values.ToObservation(rows);
     }
 
-    private static void AddValue(ref ulong checksum, string value) {
-        foreach (char character in value) {
-            checksum ^= character;
-            checksum *= ChecksumPrime;
-        }
-
-        checksum ^= (ulong)value.Length;
-        checksum *= ChecksumPrime;
-    }
-
-    private void Validate(string library, CsvReadObservation actual) {
+    private void Validate(string method, CsvReadObservation actual) {
+        string library = method switch {
+            nameof(OfficeIMO) => "OfficeIMO",
+            nameof(ExcelReaderNet) => "ExcelReader.NET",
+            nameof(Sep) => "Sep",
+            nameof(Sylvan) => "Sylvan.Data.Csv",
+            nameof(CsvHelper) => "CsvHelper",
+            nameof(DataplatDbatools) => "Dataplat.Dbatools.Csv",
+            nameof(LumenWorks) => "LumenWorks",
+            _ => throw new ArgumentOutOfRangeException(nameof(method), method, "Unknown read lane.")
+        };
+        // The observation hashes every decoded field in order, so equal observations mean equal values.
+        string detail = $"{method}: rows={actual.Rows}; cells={actual.Cells}; expected {_expected}";
         if (actual != _expected
             || actual.Rows != MarkPflug65KFixture.ExpectedRows
             || actual.Cells != MarkPflug65KFixture.ExpectedRows * MarkPflug65KFixture.ExpectedColumns) {
+            BenchmarkOutputValidationLog.Failed(library, detail, "Default");
             throw new InvalidDataException(
-                $"{library} did not perform the same CSV workload. Expected {_expected}; actual {actual}.");
+                $"{method} did not perform the same CSV workload. Expected {_expected}; actual {actual}.");
         }
+
+        BenchmarkOutputValidationLog.Passed(library, detail, "Default");
     }
 }

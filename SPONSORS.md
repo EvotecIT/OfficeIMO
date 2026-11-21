@@ -18,6 +18,7 @@ OfficeIMO is MIT-licensed and available without feature gates. These people and 
 ## Silver Sponsors
 
 <p>
+  <a href="https://github.com/complea" title="Complea"><img src="https://avatars.githubusercontent.com/u/144781871?v=4" width="72" height="72" alt="Complea" /></a>
   <a href="https://github.com/thomas-moeller" title="Thomas M&#248;ller"><img src="https://avatars.githubusercontent.com/u/37923349?u=e5b9b9d52dc33256937ace98623e3b7c6aead98a&amp;v=4" width="72" height="72" alt="Thomas M&#248;ller" /></a>
 </p>
 
@@ -25,13 +26,13 @@ OfficeIMO is MIT-licensed and available without feature gates. These people and 
 
 <p>
   <a href="https://github.com/jakehildreth" title="Jake Hildreth"><img src="https://avatars.githubusercontent.com/u/93942157?u=e1e8d3f460d775c44f5491711ad1c47a5005fb5c&amp;v=4" width="64" height="64" alt="Jake Hildreth" /></a>
+  <a href="https://github.com/syazdian" title="syazdian"><img src="https://avatars.githubusercontent.com/u/15229510?v=4" width="64" height="64" alt="syazdian" /></a>
 </p>
 
 ## Sponsors
 
 <p>
-  <a href="https://github.com/complea" title="Complea"><img src="https://avatars.githubusercontent.com/u/144781871?v=4" width="64" height="64" alt="Complea" /></a>
-  <a href="https://github.com/DarthPanda12" title="DarthPanda12"><img src="https://avatars.githubusercontent.com/u/294241377?v=4" width="64" height="64" alt="DarthPanda12" /></a>
+  <a href="https://coderabbit.link/evotecit" title="CodeRabbit"><img src="https://officeimo.com/assets/sponsors/coderabbit-mark.svg" width="64" height="64" alt="CodeRabbit" /></a>
 </p>
 
 ## Past Sponsors
@@ -41,6 +42,7 @@ We are grateful to everyone who has supported this work.
 <ul>
   <li><a href="https://github.com/bastienperez">Bastien Perez</a></li>
   <li><a href="https://github.com/ChimeraArmadillo">ChimeraArmadillo</a></li>
+  <li><a href="https://github.com/DarthPanda12">DarthPanda12</a></li>
   <li><a href="https://github.com/mavericksevmont">E3k</a></li>
   <li><a href="https://github.com/khofesh">Fahmi Ahmad</a></li>
   <li><a href="https://github.com/user8446">Glenn Fowler</a></li>

@@ -60,6 +60,14 @@ public sealed class PdfVisualComparisonOptions {
     public long MaxTotalPixels { get; set; } = 100_000_000L;
     /// <summary>Maximum aggregate PNG bytes retained in the comparison report.</summary>
     public long MaxTotalOutputBytes { get; set; } = 256L * 1024L * 1024L;
+    /// <summary>
+    /// When true, a pixel above <see cref="ChannelTolerance"/> does not count as changed if it looks like an edge that moved
+    /// by less than a pixel: each image's colour lies, within the tolerance, inside the colour range of the other image's 3x3
+    /// neighbourhood. Renderers that place the same glyph edges slightly differently then match, while ink added or removed
+    /// against plain background still counts. The highlighted diff marks ignored pixels in yellow. Pages with different
+    /// dimensions are compared without this rule.
+    /// </summary>
+    public bool IgnoreAntialiasing { get; set; }
 
     internal void Validate() {
         if (Scale <= 0D || double.IsNaN(Scale) || double.IsInfinity(Scale)) throw new ArgumentOutOfRangeException(nameof(Scale));

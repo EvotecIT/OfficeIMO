@@ -204,7 +204,7 @@ namespace OfficeIMO.Word {
             shapetype1.Append(path1);
             shapetype1.Append(lock1);
 
-            var style = "width:" + width.ToString("R", System.Globalization.CultureInfo.InvariantCulture) + "pt;height:" + height.ToString("R", System.Globalization.CultureInfo.InvariantCulture) + "pt";
+            var style = "width:" + OfficeIMO.Core.Internal.OfficeRoundTripText.Format(width, System.Globalization.CultureInfo.InvariantCulture) + "pt;height:" + OfficeIMO.Core.Internal.OfficeRoundTripText.Format(height, System.Globalization.CultureInfo.InvariantCulture) + "pt";
 
             V.Shape shape1 = new V.Shape() {
                 Id = "_x0000_i1029",

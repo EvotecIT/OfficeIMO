@@ -60,10 +60,11 @@ public sealed partial class PdfReadPage {
         var activeForms = new HashSet<PdfStream>();
         var pageContentBudget = new PageContentBudget(this, cancellationToken);
         var type3GlyphBudget = new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
-        var textClippingBudget = new PdfTextClippingBudget();
+        var textClippingBudget = new PdfTextClippingBudget(_limits);
         PdfDictionary? resources = ResolveDictionary(GetInheritedValue("Resources"));
+        string content = GetContentStreamContent(pageContentBudget);
         CollectRenderCapabilityDiagnostics(
-            GetContentStreamContent(pageContentBudget),
+            content,
             resources,
             diagnostics,
             seen,
@@ -73,7 +74,9 @@ public sealed partial class PdfReadPage {
             textClippingBudget,
             0,
             0,
-            GetVisualPageTransform());
+            GetVisualPageTransform(),
+            // The page's own content shares the cached root analysis with the render and text reads.
+            invokedResources: GetRootInvokedResourceNames(content, resources, cancellationToken.ThrowIfCancellationRequested));
         CollectAnnotationCapabilityDiagnostics(diagnostics, seen, activeForms, pageContentBudget, type3GlyphBudget, textClippingBudget);
         return diagnostics;
     }
@@ -96,9 +99,10 @@ public sealed partial class PdfReadPage {
         PdfPageColorSpace initialStrokeColorSpace = default,
         PdfPagePatternSelection? initialStrokePattern = null,
         PdfPageColorSpace? initialStrokePatternBaseColorSpace = null,
-        PdfPageClipPath? initialClipPath = null) {
+        PdfPageClipPath? initialClipPath = null,
+        PdfPageInvokedResourceNames? invokedResources = null) {
         EnsureContentNestingBudget(depth);
-        PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(
+        invokedResources ??= GetInvokedResourceNames(
             content, resources, pageContentBudget.CancellationToken.ThrowIfCancellationRequested);
         HashSet<string> unsupportedColorSpaces = GetUnsupportedColorSpaceResourceNames(resources, pageContentBudget, invokedResources.ColorSpaces);
         HashSet<string> approximatedIccColorSpaces = GetApproximatedIccColorSpaceResourceNames(resources, pageContentBudget, invokedResources.ColorSpaces);
@@ -146,6 +150,7 @@ public sealed partial class PdfReadPage {
             }
         },
         maxNestingDepth: _limits.MaxContentNestingDepth,
+        maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth,
         maxOperands: _limits.MaxContentOperands,
         inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array));
 
@@ -166,6 +171,7 @@ public sealed partial class PdfReadPage {
                 maxOperations: _limits.MaxContentOperations,
                 patternBaseColorSpaces: GetPatternBaseColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget),
                 maxNestingDepth: _limits.MaxContentNestingDepth,
+                maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth,
                 maxOperands: _limits.MaxContentOperands,
                 strokeDashProjectionConsumer: pageContentBudget.ChargeStrokeDashProjection,
                 primitiveVisitor: static _ => { },
@@ -198,7 +204,8 @@ public sealed partial class PdfReadPage {
             invokedXObjectStates,
             diagnostics,
             seen,
-            depth);
+            depth,
+            invokedResources);
         CollectFontCapabilityDiagnostics(resources, invokedFonts, failedType3Fonts, diagnostics, seen, pageContentBudget.CancellationToken);
         CollectShadingCapabilityDiagnostics(resources, invokedShadings, invokedPatterns, diagnostics, seen, pageContentBudget);
         CollectPatternCapabilityDiagnostics(resources, diagnostics, seen);
@@ -240,11 +247,10 @@ public sealed partial class PdfReadPage {
         List<PdfPageXObjectInvocation> invokedXObjectStates,
         List<PdfRenderCapabilityDiagnostic> diagnostics,
         HashSet<string> seen,
-        int contentNestingDepth) {
+        int contentNestingDepth,
+        PdfPageInvokedResourceNames invokedResources) {
         var failures = new HashSet<string>(StringComparer.Ordinal);
         var activeStreams = new HashSet<PdfStream>();
-        PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(
-            content, resources, pageContentBudget.CancellationToken.ThrowIfCancellationRequested);
         PdfFontResourceSet fontResources = _fontResourceCache.GetOrCreate(resources, _objects);
         Dictionary<string, PdfFontResource> fonts = fontResources.Fonts;
         Dictionary<string, Func<byte[], double>> widthProviders = fontResources.WidthProviders;
@@ -260,6 +266,7 @@ public sealed partial class PdfReadPage {
             GetOptionalContentVisibility(resources),
             maxOperations: _limits.MaxContentOperations,
             maxNestingDepth: _limits.MaxContentNestingDepth,
+            maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth,
             maxOperands: _limits.MaxContentOperands,
             initialClipPath: initialClipPath,
             initialFillColorSpace: initialFillColorSpace,
@@ -310,6 +317,7 @@ public sealed partial class PdfReadPage {
             GetOptionalContentVisibility(resources),
             maxOperations: _limits.MaxContentOperations,
             maxNestingDepth: _limits.MaxContentNestingDepth,
+            maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth,
             maxOperands: _limits.MaxContentOperands,
             initialClipPath: initialClipPath,
             initialFillColorSpace: initialFillColorSpace,
@@ -453,6 +461,7 @@ public sealed partial class PdfReadPage {
                 programState.Transform,
                 maxOperations: _limits.MaxContentOperations,
                 maxNestingDepth: _limits.MaxContentNestingDepth,
+                maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth,
                 maxOperands: _limits.MaxContentOperands,
                 inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name),
                 inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
@@ -473,6 +482,7 @@ public sealed partial class PdfReadPage {
                 GetOptionalContentVisibility(resources),
                 maxOperations: _limits.MaxContentOperations,
                 maxNestingDepth: _limits.MaxContentNestingDepth,
+                maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth,
                 maxOperands: _limits.MaxContentOperands,
                 initialClipPath: programState.ClipPath,
                 initialFillOpacity: programState.FillOpacity,
@@ -559,6 +569,7 @@ public sealed partial class PdfReadPage {
                 maxOperations: _limits.MaxContentOperations,
                 patternBaseColorSpaces: patternBaseColorSpaces,
                 maxNestingDepth: _limits.MaxContentNestingDepth,
+                maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth,
                 maxOperands: _limits.MaxContentOperands,
                 strokeDashProjectionConsumer: pageContentBudget.ChargeStrokeDashProjection,
                 initialClipPath: programState.ClipPath,
@@ -649,6 +660,7 @@ public sealed partial class PdfReadPage {
                          GetOptionalContentVisibility(resources),
                          maxOperations: _limits.MaxContentOperations,
                          maxNestingDepth: _limits.MaxContentNestingDepth,
+                         maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth,
                          maxOperands: _limits.MaxContentOperands,
                          initialClipPath: programState.ClipPath,
                          initialFillOpacity: programState.FillOpacity,
@@ -1055,13 +1067,7 @@ public sealed partial class PdfReadPage {
         if (imageDictionary.Items.TryGetValue("OC", out PdfObject? optionalContentObject) &&
             ResolveObject(optionalContentObject) is not null and not PdfNull) return false;
         if (requireInterpolation && !ResolveType3ImageInterpolation(imageDictionary)) return false;
-        if (!TryCreateImageProjection(
-                placement,
-                projectionPageHeight,
-                projectionPageWidth,
-                projectionPageHeight,
-                out _,
-                allowAxisAlignedFallback: false)) return false;
+        if (!CanDrawImagePlacementExactly(placement, projectionPageHeight, projectionPageWidth, projectionPageHeight)) return false;
 
         IReadOnlyList<PdfExtractedImage> images;
         try {
@@ -1072,10 +1078,6 @@ public sealed partial class PdfReadPage {
             return false;
         }
         PdfExtractedImage? image = FindImage(images, placement);
-        bool requiresOptionalCodec = RequiresOptionalImageCodec(imageDictionary.Items.TryGetValue("Filter", out PdfObject? filterObject) ? filterObject : null);
-        if (requiresOptionalCodec) {
-            AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.OptionalImageCodecId, invocation.Name);
-        }
         CollectImageColorSpaceCapabilityDiagnostic(
             imageDictionary,
             resources,
@@ -1324,6 +1326,9 @@ public sealed partial class PdfReadPage {
             PdfDictionary? resources = ResolveDictionary(stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourceObject) ? resourceObject : null) ?? parentResources;
             string content = PdfEncoding.Latin1GetString(pageContentBudget.Decode(stream));
             CollectRenderCapabilityDiagnostics(content, resources, diagnostics, seen, activeForms, pageContentBudget, type3GlyphBudget, textClippingBudget, contentNestingDepth, auxiliarySurfaceDepth + 1);
+        } catch (PdfReadLimitException exception) when (exception.IsCallStackExhaustion) {
+            // The page render skips content nested this deep; report it once instead of failing the scan.
+            AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.FormNestingStackId, "auxiliary surface");
         } finally {
             activeForms.Remove(stream);
         }
@@ -1394,7 +1399,6 @@ public sealed partial class PdfReadPage {
                     entry.Key,
                     pageContentBudget,
                     stream);
-                if (RequiresOptionalImageCodec(stream.Dictionary.Items.TryGetValue("Filter", out PdfObject? filterObject) ? filterObject : null)) AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.OptionalImageCodecId, entry.Key);
                 continue;
             }
             if (!string.Equals(subtype, "Form", StringComparison.Ordinal)) {
@@ -1412,42 +1416,10 @@ public sealed partial class PdfReadPage {
             if (states.Count == 0) {
                 states.Add(default);
             }
-            var distinctStates = new HashSet<(
-                string? FillName,
-                bool HasFillTint,
-                PdfPageColorSpace? FillBase,
-                PdfPageTilingPatternResource? FillResource,
-                PdfPageShadingPatternResource? FillShadingResource,
-                Matrix2D FillPaintTransform,
-                PdfPageColorSpace FillColorSpace,
-                string? StrokeName,
-                bool HasStrokeTint,
-                PdfPageColorSpace? StrokeBase,
-                PdfPageTilingPatternResource? StrokeResource,
-                PdfPageShadingPatternResource? StrokeShadingResource,
-                Matrix2D StrokePaintTransform,
-                PdfPageColorSpace StrokeColorSpace,
-                Matrix2D InvocationTransform,
-                PdfPageClipPath? InvocationClip)>();
+            var distinctStates = new HashSet<XObjectInvocationStateKey>();
             for (int stateIndex = 0; stateIndex < states.Count; stateIndex++) {
                 PdfPageXObjectInvocation invocation = states[stateIndex];
-                var stateKey = (
-                    invocation.FillPattern?.Name,
-                    invocation.FillPattern?.Tint.HasValue == true,
-                    invocation.FillPatternBaseColorSpace,
-                    invocation.FillPattern?.TilingPattern,
-                    invocation.FillPattern?.ShadingPattern,
-                    invocation.FillPattern?.PaintTransform ?? Matrix2D.Identity,
-                    invocation.FillColorSpace,
-                    invocation.StrokePattern?.Name,
-                    invocation.StrokePattern?.Tint.HasValue == true,
-                    invocation.StrokePatternBaseColorSpace,
-                    invocation.StrokePattern?.TilingPattern,
-                    invocation.StrokePattern?.ShadingPattern,
-                    invocation.StrokePattern?.PaintTransform ?? Matrix2D.Identity,
-                    invocation.StrokeColorSpace,
-                    invocation.Transform,
-                    invocation.ClipPath);
+                var stateKey = new XObjectInvocationStateKey(invocation);
                 if (!distinctStates.Add(stateKey) || !activeForms.Add(stream)) continue;
                 try {
                     PdfDictionary? formResources = ResolveDictionary(stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? formResourceObject) ? formResourceObject : null) ?? resources;
@@ -1479,6 +1451,9 @@ public sealed partial class PdfReadPage {
                         invocation.StrokePattern,
                         invocation.StrokePatternBaseColorSpace,
                         formClip);
+                } catch (PdfReadLimitException exception) when (exception.IsCallStackExhaustion) {
+                    // The page render skips this form for the same reason.
+                    AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.FormNestingStackId, entry.Key);
                 } finally {
                     activeForms.Remove(stream);
                 }
@@ -1566,14 +1541,6 @@ public sealed partial class PdfReadPage {
         AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.ColorSpaceId, subject);
     }
 
-    private bool RequiresOptionalImageCodec(PdfObject? value) {
-        PdfObject? resolved = ResolveObject(value);
-        if (resolved is PdfName name) return name.Name is "JPXDecode";
-        if (resolved is not PdfArray array) return false;
-        for (int i = 0; i < array.Items.Count; i++) if (RequiresOptionalImageCodec(array.Items[i])) return true;
-        return false;
-    }
-
     private PdfPageClipPath? CreateTransformedFormBoundingBoxClip(PdfDictionary dictionary, Matrix2D transform) {
         if (!TryReadBox(dictionary.Items.TryGetValue("BBox", out PdfObject? bboxObject) ? bboxObject : null, out (double X1, double Y1, double X2, double Y2) bbox) ||
             bbox.X2 <= bbox.X1 || bbox.Y2 <= bbox.Y1) return null;
@@ -1619,9 +1586,14 @@ public sealed partial class PdfReadPage {
             if (synthesized) {
                 AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.SynthesizedAnnotationAppearanceId, subtype + "[" + i.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]");
             }
-            if (!TryReadRectangle(annotation.Items.TryGetValue("Rect", out PdfObject? rectangleObject) ? rectangleObject : null, out (double X1, double Y1, double X2, double Y2) rectangle) ||
-                !TryCreateAnnotationAppearanceTransform(rectangle, appearance.Dictionary, out Matrix2D placementTransform) ||
-                !activeForms.Add(appearance)) continue;
+            if (!TryReadRectangle(annotation.Items.TryGetValue("Rect", out PdfObject? rectangleObject) ? rectangleObject : null, out (double X1, double Y1, double X2, double Y2) rectangle)) continue;
+            if (!TryCreateAnnotationAppearanceTransform(rectangle, appearance.Dictionary, out Matrix2D placementTransform, out bool malformedPlacement)) {
+                if (malformedPlacement) {
+                    AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.AnnotationAppearanceId, subtype + "[" + i.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]");
+                }
+                continue;
+            }
+            if (!activeForms.Add(appearance)) continue;
             try {
                 PdfDictionary appearanceResources = ResolveDictionary(appearance.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null)
                     ?? pageResources

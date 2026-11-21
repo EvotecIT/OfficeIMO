@@ -1,5 +1,26 @@
 namespace OfficeIMO.Drawing;
 
+/// <summary>Selects the logical GPOS features beyond default pair kerning.</summary>
+internal sealed class OfficeOpenTypePositioningOptions {
+    internal OfficeOpenTypePositioningOptions(bool kerning, bool cursive, IReadOnlyList<bool>? rightToLeft, bool distances = false,
+        IReadOnlyList<OfficeOpenTypeMarkAttachment>? attachments = null) {
+        Kerning = kerning; Cursive = cursive; RightToLeft = rightToLeft; Distances = distances; Attachments = attachments;
+    }
+    /// <summary>Whether GPOS <c>kern</c> and the legacy kern table apply.</summary>
+    internal bool Kerning { get; }
+    /// <summary>Whether GPOS <c>curs</c> cursive attachment applies.</summary>
+    internal bool Cursive { get; }
+    /// <summary>Per-token run direction for cursive attachment; null derives it from each token's script.</summary>
+    internal IReadOnlyList<bool>? RightToLeft { get; }
+    /// <summary>Whether the default-on GPOS <c>dist</c> feature applies, as emoji fonts use to space ZWJ sequence parts.</summary>
+    internal bool Distances { get; }
+    /// <summary>
+    /// Resolved mark attachments of the same run. With them, a placement-only adjustment to a mark composes
+    /// with its anchor in LookupList order instead of declining the run.
+    /// </summary>
+    internal IReadOnlyList<OfficeOpenTypeMarkAttachment>? Attachments { get; }
+}
+
 internal sealed partial class OfficeOpenTypeKerning {
     /// <summary>
     /// Applies default kern lookups before visual reordering. Context and ignored glyphs are
@@ -8,7 +29,7 @@ internal sealed partial class OfficeOpenTypeKerning {
     /// <remarks>Unsupported active positioning declines the run instead of dropping its adjustments.</remarks>
     internal bool TryPositionRun(IReadOnlyList<OfficeOpenTypeSubstitution.GlyphToken> logicalTokens,
         string? language, CancellationToken cancellationToken, out OfficeOpenTypeGlyphPositioning[] positions,
-        bool rejectMarkAdjustments = false) {
+        bool rejectMarkAdjustments = false, OfficeOpenTypePositioningOptions? options = null) {
         ArgumentNullException.ThrowIfNull(logicalTokens);
         cancellationToken.ThrowIfCancellationRequested();
         positions = new OfficeOpenTypeGlyphPositioning[logicalTokens.Count];
@@ -16,8 +37,10 @@ internal sealed partial class OfficeOpenTypeKerning {
             OfficeOpenTypeReader? reader = OfficeOpenTypeReader.TryCreate(_data);
             OfficeOpenTypeGlyphFilter? filter = OfficeOpenTypeGlyphFilter.TryCreate(_data);
             if (reader == null || filter == null) return false;
+            if (options?.RightToLeft != null && options.RightToLeft.Count != logicalTokens.Count)
+                throw new ArgumentException("Run directions must match the glyph run.", nameof(options));
             var run = new LogicalPositioningRun(this, reader, filter, logicalTokens, language,
-                cancellationToken, positions, rejectMarkAdjustments);
+                cancellationToken, positions, rejectMarkAdjustments, options);
             run.Apply();
             return true;
         } catch (Exception exception) when (exception is InvalidDataException or OverflowException
@@ -64,13 +87,27 @@ internal sealed partial class OfficeOpenTypeKerning {
         private readonly int _start, _end, _scriptList, _featureList, _lookupList;
         private readonly PositioningWorkBudget _budget;
         private readonly bool _rejectMarkAdjustments;
+        private readonly OfficeOpenTypeReader _reader;
+        private readonly bool _kerning, _cursive, _distances;
+        // Mark attachment runs as its own stage. A placement-only adjustment to a mark adds
+        // to its anchor when the attaching lookup precedes the adjusting lookup in LookupList
+        // order; an attachment that follows replaces the earlier placement.
+        private readonly IReadOnlyList<OfficeOpenTypeMarkAttachment>? _attachments;
+        private int _currentLookup = -1;
+        private readonly IReadOnlyList<bool>? _rightToLeft;
+        private int[]? _cursiveChain;
 
         internal LogicalPositioningRun(OfficeOpenTypeKerning owner, OfficeOpenTypeReader reader,
             OfficeOpenTypeGlyphFilter filter, IReadOnlyList<OfficeOpenTypeSubstitution.GlyphToken> tokens,
             string? language, CancellationToken cancellationToken, OfficeOpenTypeGlyphPositioning[] positions,
-            bool rejectMarkAdjustments) {
+            bool rejectMarkAdjustments, OfficeOpenTypePositioningOptions? options) {
             _owner = owner; _filter = filter; _tokens = tokens; _language = language; _positions = positions;
-            _rejectMarkAdjustments = rejectMarkAdjustments;
+            _rejectMarkAdjustments = rejectMarkAdjustments; _reader = reader;
+            _kerning = options?.Kerning ?? true; _cursive = options?.Cursive ?? false; _rightToLeft = options?.RightToLeft;
+            _distances = options?.Distances ?? false;
+            _attachments = options?.Attachments;
+            if (_attachments != null && _attachments.Count != tokens.Count)
+                throw new ArgumentException("Mark attachments must match the glyph run.", nameof(options));
             _scripts = ResolveScripts(tokens);
             if (!reader.TryGetTable("GPOS", out _start, out int length)) {
                 _start = _end = -1;
@@ -99,19 +136,25 @@ internal sealed partial class OfficeOpenTypeKerning {
             foreach (string script in new HashSet<string>(_scripts, StringComparer.Ordinal)) {
                 var selected = new HashSet<ushort>();
                 if (_start >= 0) {
-                    foreach (ushort lookup in _owner.GposFeatureLookupIndexes(_scriptList, _featureList,
-                        "kern", script, _budget, _language)) {
-                        if (lookup >= U16(_lookupList)) throw new InvalidDataException("Invalid GPOS lookup index.");
-                        selected.Add(lookup);
-                        if (!active.TryGetValue(lookup, out HashSet<string>? scripts)) {
-                            scripts = new HashSet<string>(StringComparer.Ordinal); active.Add(lookup, scripts);
+                    // Kerning, distances and cursive attachment share one GPOS stage, so
+                    // their lookups run in LookupList order.
+                    foreach (string feature in new[] { "kern", "dist", "curs" }) {
+                        if (feature == "kern" ? !_kerning : feature == "dist" ? !_distances : !_cursive) continue;
+                        foreach (ushort lookup in _owner.GposFeatureLookupIndexes(_scriptList, _featureList,
+                            feature, script, _budget, _language)) {
+                            if (lookup >= U16(_lookupList)) throw new InvalidDataException("Invalid GPOS lookup index.");
+                            if (feature == "kern") selected.Add(lookup);
+                            if (!active.TryGetValue(lookup, out HashSet<string>? scripts)) {
+                                scripts = new HashSet<string>(StringComparer.Ordinal); active.Add(lookup, scripts);
+                            }
+                            scripts.Add(script);
                         }
-                        scripts.Add(script);
                     }
                 }
                 byScript.Add(script, selected);
             }
             foreach (KeyValuePair<ushort, HashSet<string>> lookup in active) {
+                _currentLookup = lookup.Key;
                 for (int index = 0; index < _tokens.Count;) {
                     _budget.Charge();
                     if (!lookup.Value.Contains(_scripts[index])) { index++; continue; }
@@ -119,7 +162,8 @@ internal sealed partial class OfficeOpenTypeKerning {
                     index = matched ? Math.Max(index + 1, next) : index + 1;
                 }
             }
-            for (int index = 0; index + 1 < _tokens.Count; index++) {
+            PropagateCursiveOffsets();
+            for (int index = 0; _kerning && index + 1 < _tokens.Count; index++) {
                 _budget.Charge();
                 // A selected GPOS kern feature supersedes the legacy table even when a
                 // particular pair has no adjustment. Both tables must not kern it twice.
@@ -137,11 +181,15 @@ internal sealed partial class OfficeOpenTypeKerning {
         private void AddPosition(int index, int x, int advanceX, int y, int advanceY) {
             if (_rejectMarkAdjustments && (x != 0 || y != 0 || advanceX != 0 || advanceY != 0)) {
                 OfficeOpenTypeSubstitution.GlyphToken token = _tokens[index];
-                if (OfficeManagedTextShaper.IsNonPaintingControl(token.Scalar)
-                    || OfficeOpenTypeGlyphFilter.IsUnicodeMark(token.Scalar)
+                if (OfficeManagedTextShaper.IsNonPaintingControl(token.Scalar))
+                    throw new InvalidDataException("GPOS adjustment of a non-painting control is unsupported.");
+                if (OfficeOpenTypeGlyphFilter.IsUnicodeMark(token.Scalar)
                     || _filter.GetGlyphClass(token.GlyphId, token.Scalar,
-                        token.LigatureComponentTextIndexes?.Count > 1, _budget.Charge) == 3)
-                    throw new InvalidDataException("GPOS mark adjustment and attachment composition is unsupported.");
+                        token.LigatureComponentTextIndexes?.Count > 1, _budget.Charge) == 3) {
+                    if (advanceX != 0 || advanceY != 0 || _attachments == null)
+                        throw new InvalidDataException("GPOS mark adjustment and attachment composition is unsupported.");
+                    if (_attachments[index].AttachmentLookup > _currentLookup) return;
+                }
             }
             _positions[index] = _positions[index].Add(x, advanceX, y, advanceY);
         }

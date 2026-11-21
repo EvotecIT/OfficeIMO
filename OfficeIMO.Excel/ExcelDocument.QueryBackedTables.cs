@@ -417,12 +417,12 @@ namespace OfficeIMO.Excel {
                 case DateTimeOffset dateTimeOffset:
                     return CoerceValueHelper.TryConvertDateTimeOffset(
                         dateTimeOffset,
-                        DateTimeOffsetWriteStrategy,
+                        EffectiveDateTimeOffsetWriteStrategy,
                         DateSystem,
                         out DateTime converted,
                         out _)
                             ? converted
-                            : dateTimeOffset.ToString("o", CultureInfo.InvariantCulture);
+                            : CoerceValueHelper.FormatDateTimeOffsetText(dateTimeOffset);
 #if NET6_0_OR_GREATER
                 case DateOnly:
                 case TimeOnly:

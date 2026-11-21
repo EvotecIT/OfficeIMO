@@ -78,6 +78,7 @@ internal static partial class HtmlStyleDeclarationParser {
                 break;
             case "text-align":
                 declaration.TextAlignment = ParseTextAlign(value);
+                declaration.TextAlignmentIsLogical = value is "start" or "end";
                 break;
             case "width":
                 if (TryParseTableWidth(value, out int width, out RtfTableWidthUnit widthUnit)) {

@@ -163,11 +163,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private static bool IsAllowedLineBreak(HtmlRenderFlowBlock block, double start, double candidate, bool checkInteriorBreaks = false) {
+        // The margin depends only on the candidate. Resolve it once rather than for every
+        // preceding paragraph, which made each candidate cost paragraphs x break records.
+        bool? candidateStartsAfterMargin = null;
         foreach (HtmlRenderLineBreakGroup group in block.LineBreakGroups) {
             // A final-line cut before a trailing paragraph margin leaves no widows.
             // Other final-line cuts must retain authored fixed-height flow.
             if (group.FinalLineMarginBreak && candidate >= group.End - 0.0001D
-                && ResolvePageStartDiscardableMargin(block, candidate) > 0.0001D) continue;
+                && (candidateStartsAfterMargin ??= ResolvePageStartDiscardableMargin(block, candidate) > 0.0001D)) continue;
             IReadOnlyList<double> offsets = group.Offsets;
             int candidateIndex = UpperBound(offsets, candidate + 0.0001D) - 1;
             bool exactLineBreak = candidateIndex >= 0 && Math.Abs(offsets[candidateIndex] - candidate) <= 0.0001D;
@@ -205,17 +208,30 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double offset,
         out HtmlRenderForcedBreak? forcedBreak,
         ISet<object>? consumedBoundaries = null,
+        bool includeProjectedBoundaries = false) =>
+        TryGetNextForcedBreak(forcedBreaks, offset, out forcedBreak, out _, consumedBoundaries, includeProjectedBoundaries);
+
+    // Reports the break entries the cursor examined, which callers charge to the layout budget.
+    private static bool TryGetNextForcedBreak(
+        IReadOnlyList<HtmlRenderForcedBreak> forcedBreaks,
+        double offset,
+        out HtmlRenderForcedBreak? forcedBreak,
+        out int inspected,
+        ISet<object>? consumedBoundaries = null,
         bool includeProjectedBoundaries = false) {
         int low = 0;
         int high = forcedBreaks.Count;
+        inspected = 0;
         double target = offset + (consumedBoundaries == null ? 0.0001D : -0.0001D);
         while (low < high) {
+            inspected++;
             int middle = low + ((high - low) >> 1);
             if (forcedBreaks[middle].Offset <= target) low = middle + 1;
             else high = middle;
         }
 
         while (low < forcedBreaks.Count) {
+            inspected++;
             HtmlRenderForcedBreak item = forcedBreaks[low];
             if (IsForcedPageBreak(item.Target)
                 && (consumedBoundaries == null || (includeProjectedBoundaries || !item.Projected)
@@ -228,22 +244,33 @@ internal sealed partial class HtmlRenderLayoutEngine {
             // Adjacent after/before declarations and a named-page change share
             // one source boundary. A flex gap can separate their source offsets;
             // retain the first cut while combining page-side and name controls.
-            forcedBreak = FoldForcedPageBoundary(forcedBreaks, low, forcedBreaks.Count);
+            forcedBreak = FoldForcedPageBoundary(forcedBreaks, low, forcedBreaks.Count, out int folded);
+            inspected += folded;
         }
         return forcedBreak != null;
     }
 
     /// <summary>Combines one logical boundary without changing its physical cut or source ownership.</summary>
+    /// <remarks>
+    /// Reports the entries examined, including the boundary lookup's own scan or index build, so callers can
+    /// charge the layout operation budget for the work done.
+    /// </remarks>
     private static HtmlRenderForcedBreak FoldForcedPageBoundary(
-        IReadOnlyList<HtmlRenderForcedBreak> forcedBreaks, int firstIndex, int endIndex) {
+        IReadOnlyList<HtmlRenderForcedBreak> forcedBreaks, int firstIndex, int endIndex, out int inspected) {
         HtmlRenderForcedBreak first = forcedBreaks[firstIndex];
         HtmlRenderForcedBreak last = first;
         HtmlRenderForcedBreak? side = null;
         string? pageName = first.PageName;
         bool changesPageName = first.ChangesPageName;
-        for (int index = firstIndex; index < endIndex; index++) {
+        // Visit only this boundary's entries, in the ascending order a full scan would use.
+        // The lookup reports any scan or index build it performed, so the fold charges that work too.
+        IReadOnlyList<int> sameBoundary = HtmlRenderForcedBreakBoundaryIndex.Of(forcedBreaks, first.Boundary, out inspected);
+        for (int position = HtmlRenderForcedBreakBoundaryIndex.FirstAtOrAfter(sameBoundary, firstIndex); position < sameBoundary.Count; position++) {
+            int index = sameBoundary[position];
+            if (index >= endIndex) break;
+            inspected++;
             HtmlRenderForcedBreak candidate = forcedBreaks[index];
-            if (!ReferenceEquals(candidate.Boundary, first.Boundary) || !IsForcedPageBreak(candidate.Target)) continue;
+            if (!IsForcedPageBreak(candidate.Target)) continue;
             last = candidate;
             // A plain page force, including a named-page marker, cannot erase
             // a side requirement. The following child's side wins over an
@@ -319,28 +346,44 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private HtmlRenderForcedBreak? ResolveForcedBoundaryAt(IReadOnlyList<HtmlRenderForcedBreak> forcedBreaks, double offset) {
         if (forcedBreaks.Count == 0) return null;
         CheckCancellation();
-        ChargeLayoutOperations(3L * forcedBreaks.Count, "coincident forced page boundary resolution");
         int selected = -1;
         int rangeStart = -1;
         int rangeEnd = forcedBreaks.Count;
-        for (int index = 0; index < forcedBreaks.Count; index++) {
+        // The list is ordered by offset, so the entries before the coincident range need no visit.
+        int low = 0;
+        int high = forcedBreaks.Count;
+        long inspected = 0L;
+        while (low < high) {
+            inspected++;
+            int middle = low + ((high - low) >> 1);
+            if (forcedBreaks[middle].Offset < offset - 0.0001D) low = middle + 1;
+            else high = middle;
+        }
+        for (int index = low; index < forcedBreaks.Count; index++) {
+            inspected++;
             HtmlRenderForcedBreak forcedBreak = forcedBreaks[index];
-            if (forcedBreak.Offset < offset - 0.0001D) continue;
             if (forcedBreak.Offset > offset + 0.0001D) { rangeEnd = index; break; }
             if (rangeStart < 0) rangeStart = index;
             if (IsForcedPageBreak(forcedBreak.Target)) selected = index;
         }
-        if (selected < 0) return null;
+        if (selected < 0) {
+            ChargeLayoutOperations(inspected, "coincident forced page boundary resolution");
+            return null;
+        }
         // Distinct empty siblings at one offset remain separate boundaries.
         // Fold only the selected boundary, starting at its first occurrence.
         for (int index = rangeStart; index < selected; index++) {
+            inspected++;
             if (IsForcedPageBreak(forcedBreaks[index].Target)
                 && ReferenceEquals(forcedBreaks[index].Boundary, forcedBreaks[selected].Boundary)) {
                 selected = index;
                 break;
             }
         }
-        return FoldForcedPageBoundary(forcedBreaks, selected, rangeEnd);
+        HtmlRenderForcedBreak folded = FoldForcedPageBoundary(forcedBreaks, selected, rangeEnd, out int foldInspected);
+        // Charge the entries examined rather than the whole list: a long document resolves a boundary per page.
+        ChargeLayoutOperations(inspected + foldInspected, "coincident forced page boundary resolution");
+        return folded;
     }
 
     private static string? ResolvePageNameAt(IReadOnlyList<HtmlRenderForcedBreak> forcedBreaks, double offset,

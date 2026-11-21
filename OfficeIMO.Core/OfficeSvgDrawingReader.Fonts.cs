@@ -186,7 +186,7 @@ public static partial class OfficeSvgDrawingReader {
         long payloadLength = source.Length - comma - 1L;
         if ((payloadLength + 3L) / 4L * 3L - 2L > maximumBytes) return false;
         try {
-            data = Convert.FromBase64String(source.Substring(comma + 1));
+            data = OfficeIMO.Core.Internal.OfficeBase64.FromBase64String(source, comma + 1);
         } catch (FormatException) {
             return false;
         }

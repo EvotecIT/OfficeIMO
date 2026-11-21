@@ -1,8 +1,29 @@
 namespace OfficeIMO.Pdf;
 
-internal struct Matrix2D {
+internal struct Matrix2D : IEquatable<Matrix2D> {
     public double A, B, C, D, E, F;
     public Matrix2D(double a, double b, double c, double d, double e, double f) { A = a; B = b; C = c; D = d; E = e; F = f; }
+    // Matrices key the per-page caches of form and glyph analysis. The default struct hash uses only A, so placements
+    // that differ by translation shared one bucket; equality stays component-wise double equality.
+    public readonly bool Equals(Matrix2D other) =>
+        A.Equals(other.A) && B.Equals(other.B) && C.Equals(other.C) &&
+        D.Equals(other.D) && E.Equals(other.E) && F.Equals(other.F);
+
+    public override readonly bool Equals(object? obj) => obj is Matrix2D other && Equals(other);
+
+    public override readonly int GetHashCode() {
+        unchecked {
+            int hash = HashComponent(A);
+            hash = (hash * 31) + HashComponent(B);
+            hash = (hash * 31) + HashComponent(C);
+            hash = (hash * 31) + HashComponent(D);
+            hash = (hash * 31) + HashComponent(E);
+            return (hash * 31) + HashComponent(F);
+        }
+    }
+
+    // Zero of either sign, and every NaN, are equal doubles and must hash alike.
+    internal static int HashComponent(double value) => double.IsNaN(value) ? 1 : value == 0D ? 0 : value.GetHashCode();
     public static Matrix2D Identity => new Matrix2D(1, 0, 0, 1, 0, 0);
     public static Matrix2D Translation(double x, double y) => new Matrix2D(1, 0, 0, 1, x, y);
     public (double X, double Y) Transform(double x, double y) {

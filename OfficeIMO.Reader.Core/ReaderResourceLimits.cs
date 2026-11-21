@@ -37,12 +37,16 @@ public sealed class ReaderResourceLimits {
 public sealed class ReaderResourceLimitException : IOException {
     /// <summary>Creates a named resource-budget failure.</summary>
     public ReaderResourceLimitException(string limitName, long maximum)
-        : base($"Reader operation exceeds {limitName} ({maximum}).") { LimitName = limitName; Maximum = maximum; }
+        : base(Describe(limitName, maximum)) { LimitName = limitName; Maximum = maximum; }
     /// <summary>Creates a terminal resource failure retaining the owning engine's typed admission exception.</summary>
     public ReaderResourceLimitException(string limitName, long maximum, Exception innerException)
-        : base($"Reader operation exceeds {limitName} ({maximum}).", innerException) { LimitName = limitName; Maximum = maximum; }
+        : base(Describe(limitName, maximum), innerException) { LimitName = limitName; Maximum = maximum; }
     /// <summary>The exceeded limit property.</summary>
     public string LimitName { get; }
     /// <summary>The configured budget.</summary>
     public long Maximum { get; }
+
+    private static string Describe(string limitName, long maximum) =>
+        "The input exceeds the reader limit " + limitName + " (" + maximum.ToString("N0", System.Globalization.CultureInfo.InvariantCulture) + "). " +
+        "Raise " + limitName + " in the reader options to read larger inputs you trust.";
 }

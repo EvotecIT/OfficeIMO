@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using StyleDefinition = OfficeIMO.Word.WordStyleDefinitionsReader.StyleDefinition;
 
 namespace OfficeIMO.Word {
     public static partial class WordDocumentComparer {
@@ -9,11 +10,10 @@ namespace OfficeIMO.Word {
                 return string.Empty;
             }
 
-            MainDocumentPart? mainPart = GetMainDocumentPart(part);
-            Styles? styles = mainPart?.StyleDefinitionsPart?.Styles;
+            WordStyleCatalog styles = WordStyleCatalog.For(GetMainDocumentPart(part));
             var effectiveProperties = new ParagraphProperties();
 
-            MergePropertyChildren(effectiveProperties, styles?.DocDefaults?.ParagraphPropertiesDefault?.ParagraphPropertiesBaseStyle, IncludeEffectiveParagraphProperty);
+            MergePropertyChildren(effectiveProperties, styles.DocumentDefaults?.ParagraphPropertiesDefault?.ParagraphPropertiesBaseStyle, IncludeEffectiveParagraphProperty);
             MergeParagraphStyleProperties(effectiveProperties, styles, GetParagraphStyleId(paragraph), new HashSet<string>(StringComparer.Ordinal));
             MergePropertyChildren(effectiveProperties, paragraph.ParagraphProperties, IncludeEffectiveParagraphProperty);
 
@@ -21,11 +21,10 @@ namespace OfficeIMO.Word {
         }
 
         private static string GetEffectiveRunFormatSignature(Run run, Paragraph paragraph, OpenXmlPart? part, WordComparisonOptions options) {
-            MainDocumentPart? mainPart = GetMainDocumentPart(part);
-            Styles? styles = mainPart?.StyleDefinitionsPart?.Styles;
+            WordStyleCatalog styles = WordStyleCatalog.For(GetMainDocumentPart(part));
             var effectiveProperties = new RunProperties();
 
-            MergePropertyChildren(effectiveProperties, styles?.DocDefaults?.RunPropertiesDefault?.RunPropertiesBaseStyle, IncludeEffectiveRunProperty);
+            MergePropertyChildren(effectiveProperties, styles.DocumentDefaults?.RunPropertiesDefault?.RunPropertiesBaseStyle, IncludeEffectiveRunProperty);
             MergeParagraphStyleRunProperties(effectiveProperties, styles, GetParagraphStyleId(paragraph), new HashSet<string>(StringComparer.Ordinal));
 
             string runStyleId = run.RunProperties?.RunStyle?.Val?.Value ?? string.Empty;
@@ -35,7 +34,7 @@ namespace OfficeIMO.Word {
             return effectiveProperties.HasChildren ? effectiveProperties.OuterXml : string.Empty;
         }
 
-        private static void MergeParagraphStyleProperties(ParagraphProperties target, Styles? styles, string styleId, ISet<string> visitedStyleIds) {
+        private static void MergeParagraphStyleProperties(ParagraphProperties target, WordStyleCatalog styles, string styleId, ISet<string> visitedStyleIds) {
             Style? style = FindStyle(styles, StyleValues.Paragraph, styleId);
             if (style == null || !visitedStyleIds.Add(style.StyleId?.Value ?? string.Empty)) {
                 return;
@@ -49,7 +48,7 @@ namespace OfficeIMO.Word {
             MergePropertyChildren(target, style.StyleParagraphProperties, IncludeEffectiveParagraphProperty);
         }
 
-        private static void MergeParagraphStyleRunProperties(RunProperties target, Styles? styles, string styleId, ISet<string> visitedStyleIds) {
+        private static void MergeParagraphStyleRunProperties(RunProperties target, WordStyleCatalog styles, string styleId, ISet<string> visitedStyleIds) {
             Style? style = FindStyle(styles, StyleValues.Paragraph, styleId);
             if (style == null || !visitedStyleIds.Add(style.StyleId?.Value ?? string.Empty)) {
                 return;
@@ -63,7 +62,7 @@ namespace OfficeIMO.Word {
             MergePropertyChildren(target, style.StyleRunProperties, IncludeEffectiveRunProperty);
         }
 
-        private static void MergeCharacterStyleRunProperties(RunProperties target, Styles? styles, string styleId, ISet<string> visitedStyleIds) {
+        private static void MergeCharacterStyleRunProperties(RunProperties target, WordStyleCatalog styles, string styleId, ISet<string> visitedStyleIds) {
             Style? style = FindStyle(styles, StyleValues.Character, styleId);
             if (style == null || !visitedStyleIds.Add(style.StyleId?.Value ?? string.Empty)) {
                 return;
@@ -77,13 +76,24 @@ namespace OfficeIMO.Word {
             MergePropertyChildren(target, style.StyleRunProperties, IncludeEffectiveRunProperty);
         }
 
-        private static Style? FindStyle(Styles? styles, StyleValues type, string styleId) {
-            if (styles == null) {
+        // The first style of exactly this type with the identifier, otherwise the type's default style.
+        private static Style? FindStyle(WordStyleCatalog styles, StyleValues type, string styleId) {
+            if (styles.Streamed is { } streamed) {
+                string typeName = type == StyleValues.Character ? "character" : type == StyleValues.Table ? "table" : "paragraph";
+                StyleDefinition? explicitStyle = string.IsNullOrEmpty(styleId) ? null : streamed.Styles.FirstOrDefault(style =>
+                    string.Equals(style.Type, typeName, StringComparison.Ordinal) &&
+                    string.Equals(style.StyleId, styleId, StringComparison.Ordinal));
+                return (explicitStyle ?? streamed.Styles.FirstOrDefault(style =>
+                    string.Equals(style.Type, typeName, StringComparison.Ordinal) && style.IsDefault))?.Element;
+            }
+
+            Styles? loaded = styles.Loaded;
+            if (loaded == null) {
                 return null;
             }
 
             if (!string.IsNullOrEmpty(styleId)) {
-                Style? explicitStyle = styles.Elements<Style>()
+                Style? explicitStyle = loaded.Elements<Style>()
                     .FirstOrDefault(style =>
                         style.Type?.Value == type &&
                         string.Equals(style.StyleId?.Value, styleId, StringComparison.Ordinal));
@@ -92,7 +102,7 @@ namespace OfficeIMO.Word {
                 }
             }
 
-            return styles.Elements<Style>()
+            return loaded.Elements<Style>()
                 .FirstOrDefault(style =>
                     style.Type?.Value == type &&
                     style.Default?.Value == true);

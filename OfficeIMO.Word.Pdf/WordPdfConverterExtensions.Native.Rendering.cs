@@ -271,6 +271,8 @@ namespace OfficeIMO.Word.Pdf {
                 paragraphStyle.LeftIndent -= panelStyle.LeftInset;
                 paragraphStyle.RightIndent -= panelStyle.RightInset;
                 pdf.PanelParagraph(builder => {
+                    // Automatic text resolves against this painted fill only while its content is built here.
+                    using NativePaintedPanelScope paintedPanel = EnterNativePaintedPanel(paragraph, panelStyle.Background);
                     AddNativeParagraphContent(builder, paragraph, marker, runs, hasRenderableRuns || inlineImages.Count > 0, renderContent, paragraphFootnoteNumbers, footnoteNumbersById, options, nativeDefaults, nativeFontMap, needsAnchorLine,
                         inlineMarkerColumnWidth: markerColumnWidth, inlineImages: inlineImages);
                 }, panelStyle, align, defaultColor, paragraphStyle);
@@ -475,7 +477,7 @@ namespace OfficeIMO.Word.Pdf {
                         ReferenceEquals(image._Image.Ancestors<W.TextBoxContent>().FirstOrDefault(),
                             paragraphElement.Ancestors<W.TextBoxContent>().FirstOrDefault())) {
                         if (TryCreateNativeCellInlineImage(image, out PdfCore.PdfTextRun? inline, options,
-                                linkUri: GetNativeTableCellImageLink(image)))
+                                linkUri: GetNativeImageLink(image)))
                             inlineImages[image._Image] = inline!;
                         return;
                     }
@@ -621,7 +623,7 @@ namespace OfficeIMO.Word.Pdf {
                     "The picture was preserved in table-cell flow; its wrapping and anchor are outside the rectangular source profile.");
             double width = image.Width?.ToPoints() ?? 144D;
             double height = image.Height?.ToPoints() ?? 144D;
-            string? linkUri = GetNativeTableCellImageLink(image);
+            string? linkUri = GetNativeImageLink(image);
             string? linkContents = linkUri != null && !string.IsNullOrWhiteSpace(image.AltText) ? image.AltText : null;
             images.Add(new PdfCore.PdfTableCellImage(preparedBytes, global::OfficeIMO.OfficeLength.Points(width),
                 global::OfficeIMO.OfficeLength.Points(height), CreateNativeImageStyle(), linkUri, linkContents));
@@ -1030,7 +1032,55 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            pdf.Heading(level, normalizedText, build, align, color, style);
+            // The heading frame starts at the left indent; a positive first-line indent
+            // offsets only the opening line, as in the body paragraph route.
+            double firstLineIndent = paragraphStyle.FirstLineIndent.ToPoints();
+            Action<PdfCore.PdfParagraph> content = firstLineIndent > 0.001D
+                ? builder => {
+                    builder.AddRuns(new[] {
+                        PdfCore.PdfTextRun.Inline(new PdfCore.PdfInlineBox(global::OfficeIMO.OfficeLength.Points(firstLineIndent),
+                            global::OfficeIMO.OfficeLength.Points(0.01D), borderWidth: global::OfficeIMO.OfficeLength.Points(0D)) { IsTextSpacer = true })
+                    });
+                    build(builder);
+                }
+                : build;
+            if (ParseNativeColor(GetNativeEffectiveParagraphShadingFill(paragraph)) is not { } fill) {
+                pdf.Heading(level, normalizedText, content, align, color, style);
+                return;
+            }
+
+            // The shading fills the heading's text frame between its indents and excludes the spacing
+            // around it, so the panel owns that spacing and the keep. Border rules stay with the caller.
+            var panelStyle = new PdfCore.PdfPanelStyle {
+                Background = fill,
+                BorderWidth = global::OfficeIMO.OfficeLength.Points(0D),
+                PaddingX = global::OfficeIMO.OfficeLength.Points(0D),
+                PaddingY = global::OfficeIMO.OfficeLength.Points(0D),
+                PaddingTopOverride = 0D,
+                PaddingBottomOverride = 0D,
+                LeftInset = global::OfficeIMO.OfficeLength.Points(style.LeftIndent),
+                RightInset = global::OfficeIMO.OfficeLength.Points(style.RightIndent),
+                RepeatFragmentDecoration = true,
+                SpacingBefore = style.SpacingBefore,
+                ApplySpacingBeforeAtTop = style.ApplySpacingBeforeAtTop,
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(style.GetSpacingAfter(style.GetLeading(style.GetFontSize(level)))),
+                ClipSpacingAfterAtFrameEnd = true,
+                KeepWithNext = style.KeepWithNext
+            };
+            style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D);
+            style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D);
+            style.LeftIndent = 0D;
+            style.RightIndent = 0D;
+            // Automatic text resolves against the painted fill while the heading content is built here.
+            global::OfficeIMO.OfficeColor? headingColor = color;
+            if (ResolveNativeParagraphDefaultColor(paragraph) == null) {
+                using NativePaintedPanelScope scope = EnterNativePaintedPanel(paragraph, fill);
+                headingColor = ResolveNativeAutomaticTextColor(paragraph) ?? color;
+            }
+            pdf.Panel(panel => panel.Heading(level, normalizedText, builder => {
+                using NativePaintedPanelScope paintedPanel = EnterNativePaintedPanel(paragraph, fill);
+                content(builder);
+            }, align, headingColor, style), panelStyle);
         }
 
         private static string GetNativeHeadingText(string content, IReadOnlyList<WordParagraph> runs, WordParagraph paragraph, NativeFontMap nativeFontMap, bool hasEquationContent) {

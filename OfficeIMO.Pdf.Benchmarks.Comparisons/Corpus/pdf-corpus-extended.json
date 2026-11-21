@@ -1,0 +1,1192 @@
+{
+  "schemaVersion": 1,
+  "description": "Extended independent-producer PDF corpus pinned by URL and SHA-256, with each file's own license. Files up to 2 MB are committed under sourcePath and read by ordinary tests; larger files are downloaded only by the opt-in corpus runner. Page counts agree between Poppler and MuPDF; expectedText values occur in Poppler, MuPDF, and PdfPig or iText extraction.",
+  "entries": [
+    {
+      "id": "pdf20-simple",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/pdf-association/pdf20examples/c20f2c17bfcc4baab7cfe62e70fae64caf14d5fa/Simple%20PDF%202.0%20file.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/pdf20-simple.pdf",
+      "sha256": "296d2a0b2ce19b606f29265694f194a754fbc61783982b5b8d730e8637482236",
+      "producer": "PDF Association PDF 2.0 examples (hand-written)",
+      "license": "CC-BY-SA-4.0",
+      "licenseUrl": "https://github.com/pdf-association/pdf20examples/blob/c20f2c17bfcc4baab7cfe62e70fae64caf14d5fa/LICENSE.md",
+      "tier": "edge",
+      "expectedPages": 1,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "pdf-2.0",
+        "classic-xref"
+      ],
+      "expectedText": [
+        "Hello"
+      ]
+    },
+    {
+      "id": "pdf20-utf8-annotation",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/pdf-association/pdf20examples/c20f2c17bfcc4baab7cfe62e70fae64caf14d5fa/PDF%202.0%20UTF-8%20string%20and%20annotation.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/pdf20-utf8-annotation.pdf",
+      "sha256": "f3a018213564a420db81062a0e584fbcc5f705e353ed477da43bab6222f137b6",
+      "producer": "PDF Association PDF 2.0 examples (hand-written)",
+      "license": "CC-BY-SA-4.0",
+      "licenseUrl": "https://github.com/pdf-association/pdf20examples/blob/c20f2c17bfcc4baab7cfe62e70fae64caf14d5fa/LICENSE.md",
+      "tier": "edge",
+      "expectedPages": 1,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "pdf-2.0",
+        "utf8-strings",
+        "annotations",
+        "no-page-text"
+      ]
+    },
+    {
+      "id": "pdf20-image-bpc",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/pdf-association/pdf20examples/c20f2c17bfcc4baab7cfe62e70fae64caf14d5fa/PDF%202.0%20image%20with%20BPC.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/pdf20-image-bpc.pdf",
+      "sha256": "fc517dd0d4c72d1b11e3449acc3e816d2719dc14e69a7e14b84da02808103370",
+      "producer": "PDF Association PDF 2.0 examples (hand-written)",
+      "license": "CC-BY-SA-4.0",
+      "licenseUrl": "https://github.com/pdf-association/pdf20examples/blob/c20f2c17bfcc4baab7cfe62e70fae64caf14d5fa/LICENSE.md",
+      "tier": "edge",
+      "expectedPages": 1,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "pdf-2.0",
+        "dct-image",
+        "image-bpc"
+      ]
+    },
+    {
+      "id": "pdf20-incremental-save",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/pdf-association/pdf20examples/c20f2c17bfcc4baab7cfe62e70fae64caf14d5fa/PDF%202.0%20via%20incremental%20save.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/pdf20-incremental-save.pdf",
+      "sha256": "9b25d59d07034634a990e79db6ef82b9f86769d9b94d8d8635f20d06aaec9d18",
+      "producer": "PDF Association PDF 2.0 examples (hand-written)",
+      "license": "CC-BY-SA-4.0",
+      "licenseUrl": "https://github.com/pdf-association/pdf20examples/blob/c20f2c17bfcc4baab7cfe62e70fae64caf14d5fa/LICENSE.md",
+      "tier": "edge",
+      "expectedPages": 1,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "pdf-2.0",
+        "incremental-update"
+      ]
+    },
+    {
+      "id": "pdf20-offset-start",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/pdf-association/pdf20examples/c20f2c17bfcc4baab7cfe62e70fae64caf14d5fa/PDF%202.0%20with%20offset%20start.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/pdf20-offset-start.pdf",
+      "sha256": "a5b92313770f16ba1db649ccdc97d42f7744659c691897538734eebdc1bc9e9a",
+      "producer": "PDF Association PDF 2.0 examples (hand-written)",
+      "license": "CC-BY-SA-4.0",
+      "licenseUrl": "https://github.com/pdf-association/pdf20examples/blob/c20f2c17bfcc4baab7cfe62e70fae64caf14d5fa/LICENSE.md",
+      "tier": "edge",
+      "expectedPages": 1,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "pdf-2.0",
+        "header-offset",
+        "repairable"
+      ]
+    },
+    {
+      "id": "pdf20-page-output-intent",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/pdf-association/pdf20examples/c20f2c17bfcc4baab7cfe62e70fae64caf14d5fa/PDF%202.0%20with%20page%20level%20output%20intent.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/pdf20-page-output-intent.pdf",
+      "sha256": "7c13afe3078a4c202184edce3169f7bc842c8fd3db9da7140af6bc0b3b2fa44a",
+      "producer": "PDF Association PDF 2.0 examples (hand-written)",
+      "license": "CC-BY-SA-4.0",
+      "licenseUrl": "https://github.com/pdf-association/pdf20examples/blob/c20f2c17bfcc4baab7cfe62e70fae64caf14d5fa/LICENSE.md",
+      "tier": "edge",
+      "expectedPages": 2,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "pdf-2.0",
+        "page-output-intent"
+      ]
+    },
+    {
+      "id": "pdf20-utf8-test",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/pdf-association/pdf20examples/c20f2c17bfcc4baab7cfe62e70fae64caf14d5fa/pdf20-utf8-test.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/pdf20-utf8-test.pdf",
+      "sha256": "a7ca717ef062df0a65e58487d26358c81424b76084a2000ca1c74b9e5776b7a1",
+      "producer": "PDF Association PDF 2.0 examples (hand-written)",
+      "license": "CC-BY-SA-4.0",
+      "licenseUrl": "https://github.com/pdf-association/pdf20examples/blob/c20f2c17bfcc4baab7cfe62e70fae64caf14d5fa/LICENSE.md",
+      "tier": "edge",
+      "expectedPages": 1,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "pdf-2.0",
+        "tagged",
+        "utf8-strings",
+        "actual-text"
+      ]
+    },
+    {
+      "id": "pdfua-ref-magazine-danish",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/veraPDF/veraPDF-regression-tests/0fabb1c44f53911d0680c9d8743c5ec3c95dc52d/WCAG_2_2/1.7/PDFUA-Ref-2-01_Magazine-danish.pdf",
+      "sha256": "aef89af13c9c94fc4f4e1a8c5872450cc4c8fff7de544d8ada6a0912425aa434",
+      "producer": "Adobe InDesign CC 13.0, remediated by AbleDocs",
+      "license": "CC-BY-4.0",
+      "licenseUrl": "https://pdfa.org/resource/pdfua-reference-suite/",
+      "tier": "large",
+      "expectedPages": 32,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "indesign",
+        "tagged",
+        "pdf-ua",
+        "linearized",
+        "jbig2",
+        "cid-fonts",
+        "images",
+        "multi-column"
+      ],
+      "expectedText": [
+        "hjælp"
+      ]
+    },
+    {
+      "id": "pdfua-ref-academic-abstract",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/veraPDF/veraPDF-regression-tests/0fabb1c44f53911d0680c9d8743c5ec3c95dc52d/WCAG_2_2/1.7/PDFUA-Ref-2-03_AcademicAbstract.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/pdfua-ref-academic-abstract.pdf",
+      "sha256": "e61257d371261867926eb006f8895569a95fcfbcb93fca3be04b8b9187cb93a0",
+      "producer": "pdfTeX 1.40.18 (LaTeX acmart)",
+      "license": "CC-BY-4.0",
+      "licenseUrl": "https://pdfa.org/resource/pdfua-reference-suite/",
+      "tier": "edge",
+      "expectedPages": 2,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "pdftex",
+        "tagged",
+        "pdf-ua",
+        "linearized",
+        "object-streams",
+        "xref-streams",
+        "two-columns"
+      ]
+    },
+    {
+      "id": "pdfua-ref-presentation",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/veraPDF/veraPDF-regression-tests/0fabb1c44f53911d0680c9d8743c5ec3c95dc52d/WCAG_2_2/1.7/PDFUA-Ref-2-04_Presentation.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/pdfua-ref-presentation.pdf",
+      "sha256": "90acb829ca8bfa037796592539d15010e9099d1cd2622aac1fce7d9fd3ae7575",
+      "producer": "Adobe InDesign 15.0",
+      "license": "CC-BY-4.0",
+      "licenseUrl": "https://pdfa.org/resource/pdfua-reference-suite/",
+      "tier": "medium",
+      "expectedPages": 8,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "indesign",
+        "tagged",
+        "pdf-ua",
+        "slides",
+        "images"
+      ]
+    },
+    {
+      "id": "pdfua-ref-book-chapter-german",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/veraPDF/veraPDF-regression-tests/0fabb1c44f53911d0680c9d8743c5ec3c95dc52d/WCAG_2_2/1.7/PDFUA-Ref-2-05_BookChapter-german.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/pdfua-ref-book-chapter-german.pdf",
+      "sha256": "fc525b8899da31779b6143c16053779cd560d4417018a901472de33c71252352",
+      "producer": "Adobe InDesign CC 13.1",
+      "license": "CC-BY-4.0",
+      "licenseUrl": "https://pdfa.org/resource/pdfua-reference-suite/",
+      "tier": "medium",
+      "expectedPages": 21,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "indesign",
+        "tagged",
+        "pdf-ua",
+        "incremental-update",
+        "cid-fonts",
+        "german"
+      ],
+      "expectedText": [
+        "Ansätze"
+      ]
+    },
+    {
+      "id": "pdfua-ref-brochure",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/veraPDF/veraPDF-regression-tests/0fabb1c44f53911d0680c9d8743c5ec3c95dc52d/WCAG_2_2/1.7/PDFUA-Ref-2-06_Brochure.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/pdfua-ref-brochure.pdf",
+      "sha256": "aefd5ab48a908b9996ffadcb14d8ff31a2c653657cbe011a46f4cf61396a589e",
+      "producer": "Adobe InDesign CS6",
+      "license": "CC-BY-4.0",
+      "licenseUrl": "https://pdfa.org/resource/pdfua-reference-suite/",
+      "tier": "medium",
+      "expectedPages": 2,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "indesign",
+        "tagged",
+        "pdf-ua",
+        "jpx",
+        "object-streams",
+        "xref-streams",
+        "incremental-update",
+        "acroform"
+      ]
+    },
+    {
+      "id": "pdfua-ref-formal-document",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/veraPDF/veraPDF-regression-tests/0fabb1c44f53911d0680c9d8743c5ec3c95dc52d/WCAG_2_2/1.7/PDFUA-Ref-2-07_FormalDocument.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/pdfua-ref-formal-document.pdf",
+      "sha256": "14aecf649931454321ff3b13c6014422bb06c955d7274281a2f7a922458c281f",
+      "producer": "AbleDocs remediation",
+      "license": "CC-BY-4.0",
+      "licenseUrl": "https://pdfa.org/resource/pdfua-reference-suite/",
+      "tier": "medium",
+      "expectedPages": 22,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "tagged",
+        "pdf-ua",
+        "cid-fonts",
+        "acroform"
+      ]
+    },
+    {
+      "id": "pdfua-ref-book-chapter",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/veraPDF/veraPDF-regression-tests/0fabb1c44f53911d0680c9d8743c5ec3c95dc52d/WCAG_2_2/1.7/PDFUA-Ref-2-08_BookChapter.pdf",
+      "sha256": "2b958600daec79373736f413f2712fcd9c604de2c352cbc1ec9d67cc5d7932f1",
+      "producer": "AbleDocs remediation",
+      "license": "CC-BY-4.0",
+      "licenseUrl": "https://pdfa.org/resource/pdfua-reference-suite/",
+      "tier": "large",
+      "expectedPages": 32,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "tagged",
+        "pdf-ua",
+        "linearized",
+        "jpx",
+        "cid-fonts",
+        "acroform"
+      ]
+    },
+    {
+      "id": "pdfua-ref-form",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/veraPDF/veraPDF-regression-tests/0fabb1c44f53911d0680c9d8743c5ec3c95dc52d/WCAG_2_2/1.7/PDFUA-Ref-2-10_Form.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/pdfua-ref-form.pdf",
+      "sha256": "06d5cacd7c5ba9573a57c6d99d3f357ee14a24cff0c138036840fc44c6311806",
+      "producer": "Adobe InDesign 15.0",
+      "license": "CC-BY-4.0",
+      "licenseUrl": "https://pdfa.org/resource/pdfua-reference-suite/",
+      "tier": "edge",
+      "expectedPages": 1,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "indesign",
+        "tagged",
+        "pdf-ua",
+        "acroform",
+        "linearized",
+        "object-streams",
+        "xref-streams"
+      ]
+    },
+    {
+      "id": "verapdf-cidfont-type2",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/veraPDF/veraPDF-corpus/bb75f4f0073d9350dfd058c0162a367e6fadf25e/PDF_A-2b/6.2%20Graphics/6.2.11%20Fonts/6.2.11.3%20Composite%20fonts/6.2.11.3.2%20CIDFonts/veraPDF%20test%20suite%206-2-11-3-2-t01-pass-a.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/verapdf-cidfont-type2.pdf",
+      "sha256": "ba939c67c486838167f13a9ef386a49d2edf8091494accf15824eadfaf40972e",
+      "producer": "veraPDF test suite",
+      "license": "CC-BY-4.0",
+      "licenseUrl": "https://github.com/veraPDF/veraPDF-corpus/blob/bb75f4f0073d9350dfd058c0162a367e6fadf25e/README.md",
+      "tier": "edge",
+      "expectedPages": 1,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "cid-fonts",
+        "cidfonttype2",
+        "xref-streams",
+        "pdfa-2b"
+      ]
+    },
+    {
+      "id": "verapdf-cmap-embedded",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/veraPDF/veraPDF-corpus/bb75f4f0073d9350dfd058c0162a367e6fadf25e/PDF_A-2b/6.2%20Graphics/6.2.11%20Fonts/6.2.11.3%20Composite%20fonts/6.2.11.3.3%20CMaps/veraPDF%20test%20suite%206-2-11-3-3-t01-pass-a.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/verapdf-cmap-embedded.pdf",
+      "sha256": "b322e2cb00f923d393e3018799338180ac0de135a3b6463326de8482203b3a33",
+      "producer": "veraPDF test suite",
+      "license": "CC-BY-4.0",
+      "licenseUrl": "https://github.com/veraPDF/veraPDF-corpus/blob/bb75f4f0073d9350dfd058c0162a367e6fadf25e/README.md",
+      "tier": "edge",
+      "expectedPages": 1,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "cid-fonts",
+        "embedded-cmap",
+        "cff",
+        "pdfa-2b"
+      ],
+      "expectedText": [
+        "Hello",
+        "world"
+      ]
+    },
+    {
+      "id": "verapdf-composite-font",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/veraPDF/veraPDF-corpus/bb75f4f0073d9350dfd058c0162a367e6fadf25e/PDF_A-2b/6.2%20Graphics/6.2.11%20Fonts/6.2.11.3%20Composite%20fonts/6.2.11.3.1%20General/veraPDF%20test%20suite%206-2-11-3-1-t01-pass-d.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/verapdf-composite-font.pdf",
+      "sha256": "786d2056dbdee6f2c38334ed62738a414f550ae06558b79f6d9ea233901734fc",
+      "producer": "veraPDF test suite",
+      "license": "CC-BY-4.0",
+      "licenseUrl": "https://github.com/veraPDF/veraPDF-corpus/blob/bb75f4f0073d9350dfd058c0162a367e6fadf25e/README.md",
+      "tier": "edge",
+      "expectedPages": 1,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "cid-fonts",
+        "cff",
+        "pdfa-2b"
+      ]
+    },
+    {
+      "id": "verapdf-jpx-image",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/veraPDF/veraPDF-corpus/bb75f4f0073d9350dfd058c0162a367e6fadf25e/PDF_A-2b/6.2%20Graphics/6.2.8%20Images/6.2.8.3%20JPEG2000/veraPDF%20test%20suite%206-2-8-3-t01-pass-a.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/verapdf-jpx-image.pdf",
+      "sha256": "f515bbe126ec675ea0b41b905507e8e638b65c8d5e1d99a15264e3217bf15076",
+      "producer": "veraPDF Test Builder 1.0",
+      "license": "CC-BY-4.0",
+      "licenseUrl": "https://github.com/veraPDF/veraPDF-corpus/blob/bb75f4f0073d9350dfd058c0162a367e6fadf25e/README.md",
+      "tier": "edge",
+      "expectedPages": 1,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "jpx",
+        "image-only",
+        "pdfa-2b"
+      ]
+    },
+    {
+      "id": "verapdf-transparency-t05",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/veraPDF/veraPDF-corpus/bb75f4f0073d9350dfd058c0162a367e6fadf25e/PDF_A-2b/6.2%20Graphics/6.2.10%20Transparency/veraPDF%20test%20suite%206-2-10-t05-pass-a.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/verapdf-transparency-t05.pdf",
+      "sha256": "cb2859f9b779b07e0197ed4c3d33ba0ebfe65069631695b2563e3405d81bd40f",
+      "producer": "veraPDF test suite",
+      "license": "CC-BY-4.0",
+      "licenseUrl": "https://github.com/veraPDF/veraPDF-corpus/blob/bb75f4f0073d9350dfd058c0162a367e6fadf25e/README.md",
+      "tier": "edge",
+      "expectedPages": 1,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "transparency",
+        "blend-modes",
+        "acroform",
+        "pdfa-2b"
+      ]
+    },
+    {
+      "id": "verapdf-transparency-t07",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/veraPDF/veraPDF-corpus/bb75f4f0073d9350dfd058c0162a367e6fadf25e/PDF_A-2b/6.2%20Graphics/6.2.10%20Transparency/veraPDF%20test%20suite%206-2-10-t07-pass-a.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/verapdf-transparency-t07.pdf",
+      "sha256": "1e4036c679f3866a167ea7e0c99b1ed45bfa7a6a6cbe105046d8897ee378c841",
+      "producer": "veraPDF test suite",
+      "license": "CC-BY-4.0",
+      "licenseUrl": "https://github.com/veraPDF/veraPDF-corpus/blob/bb75f4f0073d9350dfd058c0162a367e6fadf25e/README.md",
+      "tier": "edge",
+      "expectedPages": 1,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "transparency",
+        "soft-mask",
+        "dct-image",
+        "pdfa-2b"
+      ]
+    },
+    {
+      "id": "verapdf-optional-content",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/veraPDF/veraPDF-corpus/bb75f4f0073d9350dfd058c0162a367e6fadf25e/PDF_A-2b/6.9%20Optional%20content/veraPDF%20test%20suite%206-9-t03-pass-a.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/verapdf-optional-content.pdf",
+      "sha256": "d186ec4942005768abc07e6d86669cf8ed10c0c979b1213824de2f6d0aa5fc9d",
+      "producer": "veraPDF test suite",
+      "license": "CC-BY-4.0",
+      "licenseUrl": "https://github.com/veraPDF/veraPDF-corpus/blob/bb75f4f0073d9350dfd058c0162a367e6fadf25e/README.md",
+      "tier": "edge",
+      "expectedPages": 1,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "optional-content",
+        "dct-image",
+        "pdfa-2b"
+      ]
+    },
+    {
+      "id": "qpdf-linearized-lzw",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/qpdf/qpdf/4eba95899886e851cc41d76886483b347612f2a8/qpdf/qtest/qpdf/lin5.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/qpdf-linearized-lzw.pdf",
+      "sha256": "4b716274089f173a1e2d826523e6e616182a1cafb267eff1e2bffa193440054b",
+      "producer": "qpdf test suite",
+      "license": "Apache-2.0",
+      "licenseUrl": "https://github.com/qpdf/qpdf/blob/4eba95899886e851cc41d76886483b347612f2a8/LICENSE.txt",
+      "tier": "medium",
+      "expectedPages": 30,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "linearized",
+        "lzw",
+        "old-pdf-1.4"
+      ]
+    },
+    {
+      "id": "qpdf-linearized",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/qpdf/qpdf/4eba95899886e851cc41d76886483b347612f2a8/qpdf/qtest/qpdf/lin1.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/qpdf-linearized.pdf",
+      "sha256": "5bddf40fd6be12cadf33aca857a7dad2c58b9c3e4d3da0dc1676f44d71515543",
+      "producer": "qpdf test suite",
+      "license": "Apache-2.0",
+      "licenseUrl": "https://github.com/qpdf/qpdf/blob/4eba95899886e851cc41d76886483b347612f2a8/LICENSE.txt",
+      "tier": "medium",
+      "expectedPages": 30,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "linearized",
+        "old-pdf-1.3"
+      ]
+    },
+    {
+      "id": "qpdf-hybrid-xref",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/qpdf/qpdf/4eba95899886e851cc41d76886483b347612f2a8/qpdf/qtest/qpdf/hybrid-xref.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/qpdf-hybrid-xref.pdf",
+      "sha256": "df1ae8b9cb2378aaeda6fdc11146dd37328737fd050941390d2c6bd188eea0e4",
+      "producer": "qpdf test suite",
+      "license": "Apache-2.0",
+      "licenseUrl": "https://github.com/qpdf/qpdf/blob/4eba95899886e851cc41d76886483b347612f2a8/LICENSE.txt",
+      "tier": "medium",
+      "expectedPages": 30,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "hybrid-xref",
+        "object-streams",
+        "xref-streams",
+        "incremental-update"
+      ]
+    },
+    {
+      "id": "qpdf-incremental",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/qpdf/qpdf/4eba95899886e851cc41d76886483b347612f2a8/qpdf/qtest/qpdf/incremental-1.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/qpdf-incremental.pdf",
+      "sha256": "5f9c43d3f201d8e9ea77aa162bf4eb527c563f9db3626a736455e003cf5baaf3",
+      "producer": "qpdf test suite",
+      "license": "Apache-2.0",
+      "licenseUrl": "https://github.com/qpdf/qpdf/blob/4eba95899886e851cc41d76886483b347612f2a8/LICENSE.txt",
+      "tier": "edge",
+      "expectedPages": 1,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "incremental-update",
+        "old-pdf-1.3"
+      ]
+    },
+    {
+      "id": "qpdf-enc-r3-rc4-user-view",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/qpdf/qpdf/4eba95899886e851cc41d76886483b347612f2a8/qpdf/qtest/qpdf/enc-R3%2CV2%2CU%3Dview%2CO%3Dmaster.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/qpdf-enc-r3-rc4-user-view.pdf",
+      "sha256": "5c0683d687e2e020fe172b1dcb7c29fe94f67bc40f038fee2391de610053fc16",
+      "producer": "qpdf test suite",
+      "license": "Apache-2.0",
+      "licenseUrl": "https://github.com/qpdf/qpdf/blob/4eba95899886e851cc41d76886483b347612f2a8/LICENSE.txt",
+      "tier": "medium",
+      "password": "view",
+      "expectedPages": 30,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "encrypted",
+        "rc4-128",
+        "user-password",
+        "linearized"
+      ]
+    },
+    {
+      "id": "qpdf-enc-r6-aes256-user-view",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/qpdf/qpdf/4eba95899886e851cc41d76886483b347612f2a8/qpdf/qtest/qpdf/enc-XI-R6%2CV5%2CU%3Dview%2CO%3Dmaster.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/qpdf-enc-r6-aes256-user-view.pdf",
+      "sha256": "96b9262bfacf1358c7a68ab46c11563677e858888950237fdac8f3a227210edf",
+      "producer": "qpdf test suite",
+      "license": "Apache-2.0",
+      "licenseUrl": "https://github.com/qpdf/qpdf/blob/4eba95899886e851cc41d76886483b347612f2a8/LICENSE.txt",
+      "tier": "medium",
+      "password": "view",
+      "expectedPages": 30,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "encrypted",
+        "aes-256",
+        "user-password",
+        "object-streams",
+        "xref-streams",
+        "linearized"
+      ]
+    },
+    {
+      "id": "qpdf-enc-r2-owner-only",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/qpdf/qpdf/4eba95899886e851cc41d76886483b347612f2a8/qpdf/qtest/qpdf/enc-R2%2CV1%2CO%3Dmaster.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/qpdf-enc-r2-owner-only.pdf",
+      "sha256": "4560d44658aca5b2b610f2c6631eb9db590fa43324c02890003dee6a8dec3b29",
+      "producer": "qpdf test suite",
+      "license": "Apache-2.0",
+      "licenseUrl": "https://github.com/qpdf/qpdf/blob/4eba95899886e851cc41d76886483b347612f2a8/LICENSE.txt",
+      "tier": "medium",
+      "expectedPages": 30,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "encrypted",
+        "rc4-40",
+        "owner-password-only",
+        "linearized"
+      ]
+    },
+    {
+      "id": "qpdf-enc-v4-aes",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/qpdf/qpdf/4eba95899886e851cc41d76886483b347612f2a8/qpdf/qtest/qpdf/V4-aes.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/qpdf-enc-v4-aes.pdf",
+      "sha256": "1d8a812844b8d8c7ba085a627eb3b7ab52aa651c6143ca07315084220a113240",
+      "producer": "qpdf test suite",
+      "license": "Apache-2.0",
+      "licenseUrl": "https://github.com/qpdf/qpdf/blob/4eba95899886e851cc41d76886483b347612f2a8/LICENSE.txt",
+      "tier": "medium",
+      "expectedPages": 30,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "encrypted",
+        "aes-128",
+        "owner-password-only"
+      ]
+    },
+    {
+      "id": "qpdf-encrypted-images",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/qpdf/qpdf/4eba95899886e851cc41d76886483b347612f2a8/qpdf/qtest/qpdf/encrypted-with-images.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/qpdf-encrypted-images.pdf",
+      "sha256": "9f6c9ad93a462ad8a9c3c28debd5cf6ab80c60e7a8fe3b12e802b8e53aa0b1d4",
+      "producer": "Apex PDFWriter (qpdf test suite)",
+      "license": "Apache-2.0",
+      "licenseUrl": "https://github.com/qpdf/qpdf/blob/4eba95899886e851cc41d76886483b347612f2a8/LICENSE.txt",
+      "tier": "edge",
+      "expectedPages": 2,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "encrypted",
+        "aes-128",
+        "dct-image",
+        "object-streams",
+        "xref-streams",
+        "image-only"
+      ]
+    },
+    {
+      "id": "qpdf-damaged-stream",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/qpdf/qpdf/4eba95899886e851cc41d76886483b347612f2a8/qpdf/qtest/qpdf/damaged-stream.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/qpdf-damaged-stream.pdf",
+      "sha256": "91e119f2db2e9f738f696ddacea90498d460b0afda0fcdf71bb6281fc5085819",
+      "producer": "qpdf test suite",
+      "license": "Apache-2.0",
+      "licenseUrl": "https://github.com/qpdf/qpdf/blob/4eba95899886e851cc41d76886483b347612f2a8/LICENSE.txt",
+      "tier": "edge",
+      "expectedPages": 1,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "broken",
+        "damaged-stream",
+        "lzw",
+        "old-pdf-1.3"
+      ]
+    },
+    {
+      "id": "qpdf-append-xref-loop",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/qpdf/qpdf/4eba95899886e851cc41d76886483b347612f2a8/qpdf/qtest/qpdf/append-xref-loop.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/qpdf-append-xref-loop.pdf",
+      "sha256": "7c67daccc433f574fbaf815d0d376cc79f40f95082ef1b231af436e9f7d27091",
+      "producer": "qpdf test suite",
+      "license": "Apache-2.0",
+      "licenseUrl": "https://github.com/qpdf/qpdf/blob/4eba95899886e851cc41d76886483b347612f2a8/LICENSE.txt",
+      "tier": "medium",
+      "expectedPages": 30,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "broken",
+        "xref-loop",
+        "incremental-update",
+        "old-pdf-1.3"
+      ]
+    },
+    {
+      "id": "qpdf-bad-xref-entry",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/qpdf/qpdf/4eba95899886e851cc41d76886483b347612f2a8/qpdf/qtest/qpdf/bad-xref-entry.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/qpdf-bad-xref-entry.pdf",
+      "sha256": "1d3b6ed9362c92c3f24f6ee7650e1768387204b1bbb66327a4eba226ce801bb4",
+      "producer": "qpdf test suite",
+      "license": "Apache-2.0",
+      "licenseUrl": "https://github.com/qpdf/qpdf/blob/4eba95899886e851cc41d76886483b347612f2a8/LICENSE.txt",
+      "tier": "edge",
+      "expectedPages": 1,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "broken",
+        "bad-xref",
+        "old-pdf-1.3"
+      ]
+    },
+    {
+      "id": "qpdf-recover-xref-stream",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/qpdf/qpdf/4eba95899886e851cc41d76886483b347612f2a8/qpdf/qtest/qpdf/recover-xref-stream.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/qpdf-recover-xref-stream.pdf",
+      "sha256": "9a78166f8d25c467ac45a39113728043c2a1595e74a39bb697d29565a0e5b2ac",
+      "producer": "qpdf test suite",
+      "license": "Apache-2.0",
+      "licenseUrl": "https://github.com/qpdf/qpdf/blob/4eba95899886e851cc41d76886483b347612f2a8/LICENSE.txt",
+      "tier": "edge",
+      "expectedPages": 1,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "broken",
+        "xref-streams",
+        "object-streams",
+        "repairable"
+      ]
+    },
+    {
+      "id": "qpdf-append-content-damaged",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/qpdf/qpdf/4eba95899886e851cc41d76886483b347612f2a8/qpdf/qtest/qpdf/append-page-content-damaged.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/qpdf-append-content-damaged.pdf",
+      "sha256": "53ee40fa62175f0f7bf721497832ebaadf39b2551559ec28abdace73196f4e28",
+      "producer": "qpdf test suite",
+      "license": "Apache-2.0",
+      "licenseUrl": "https://github.com/qpdf/qpdf/blob/4eba95899886e851cc41d76886483b347612f2a8/LICENSE.txt",
+      "tier": "medium",
+      "expectedPages": 30,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "broken",
+        "damaged-content",
+        "incremental-update",
+        "old-pdf-1.3"
+      ]
+    },
+    {
+      "id": "qpdf-deep-pages",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/qpdf/qpdf/4eba95899886e851cc41d76886483b347612f2a8/qpdf/qtest/qpdf/deep-pages.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/qpdf-deep-pages.pdf",
+      "sha256": "1ee732a4e68421d5ae49aae1579304d7d9722b7a94fd1290ec3c55b42bf50ec7",
+      "producer": "qpdf test suite",
+      "license": "Apache-2.0",
+      "licenseUrl": "https://github.com/qpdf/qpdf/blob/4eba95899886e851cc41d76886483b347612f2a8/LICENSE.txt",
+      "tier": "edge",
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "broken",
+        "deep-page-tree"
+      ]
+    },
+    {
+      "id": "qpdf-enc-20-pages-user-password",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/qpdf/qpdf/4eba95899886e851cc41d76886483b347612f2a8/qpdf/qtest/qpdf/20-pages.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/qpdf-enc-20-pages-user-password.pdf",
+      "sha256": "4ea66d0e98525a5df9a766313e058bc3bfa2d28fe30a740d4cd8fe76d3dca391",
+      "producer": "Apex PDFWriter (qpdf test suite)",
+      "license": "Apache-2.0",
+      "licenseUrl": "https://github.com/qpdf/qpdf/blob/4eba95899886e851cc41d76886483b347612f2a8/LICENSE.txt",
+      "tier": "medium",
+      "password": "user",
+      "expectedPages": 20,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "encrypted",
+        "rc4-128",
+        "user-password"
+      ]
+    },
+    {
+      "id": "qpdf-inline-images",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/qpdf/qpdf/4eba95899886e851cc41d76886483b347612f2a8/qpdf/qtest/qpdf/inline-images.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/qpdf-inline-images.pdf",
+      "sha256": "8ae2fc89f4edd5579c2b05a2b9678388b29515143252ac40f6ec97eb7d97e1df",
+      "producer": "GNU Ghostscript 5.50 (qpdf test suite)",
+      "license": "Apache-2.0",
+      "licenseUrl": "https://github.com/qpdf/qpdf/blob/4eba95899886e851cc41d76886483b347612f2a8/LICENSE.txt",
+      "tier": "edge",
+      "expectedPages": 2,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "ghostscript",
+        "inline-images",
+        "old-pdf-1.2",
+        "image-only"
+      ]
+    },
+    {
+      "id": "qpdf-form-from-odt",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/qpdf/qpdf/4eba95899886e851cc41d76886483b347612f2a8/qpdf/qtest/qpdf/form-empty-from-odt.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/qpdf-form-from-odt.pdf",
+      "sha256": "599304a4c47fa25155fc732cb9bffe2882ea39894e14f812905c4ec2f5826c14",
+      "producer": "LibreOffice 6.0 Writer",
+      "license": "Apache-2.0",
+      "licenseUrl": "https://github.com/qpdf/qpdf/blob/4eba95899886e851cc41d76886483b347612f2a8/LICENSE.txt",
+      "tier": "edge",
+      "expectedPages": 3,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "libreoffice",
+        "acroform"
+      ]
+    },
+    {
+      "id": "qpdf-form-filled-acrobat",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/qpdf/qpdf/4eba95899886e851cc41d76886483b347612f2a8/qpdf/qtest/qpdf/form-filled-by-acrobat.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/qpdf-form-filled-acrobat.pdf",
+      "sha256": "465e30fe69d3b53d883ea1f01ea56a225ff0498f231ecda6f6fc986b9c5676ff",
+      "producer": "LibreOffice 6.0 Writer, filled in Acrobat",
+      "license": "Apache-2.0",
+      "licenseUrl": "https://github.com/qpdf/qpdf/blob/4eba95899886e851cc41d76886483b347612f2a8/LICENSE.txt",
+      "tier": "edge",
+      "expectedPages": 3,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "libreoffice",
+        "acroform",
+        "filled-form",
+        "incremental-update"
+      ]
+    },
+    {
+      "id": "qpdf-form-utf8-appearances",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/qpdf/qpdf/4eba95899886e851cc41d76886483b347612f2a8/qpdf/qtest/qpdf/need-appearances-utf8.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/qpdf-form-utf8-appearances.pdf",
+      "sha256": "aa4de49125baf4256a1fcb24dd0bdead029e7ff0363b086aef6774e76aae8b9f",
+      "producer": "LibreOffice 6.1 Writer",
+      "license": "Apache-2.0",
+      "licenseUrl": "https://github.com/qpdf/qpdf/blob/4eba95899886e851cc41d76886483b347612f2a8/LICENSE.txt",
+      "tier": "edge",
+      "expectedPages": 1,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "libreoffice",
+        "acroform",
+        "pdf-2.0",
+        "tagged",
+        "need-appearances"
+      ]
+    },
+    {
+      "id": "qpdf-rotated-annotations",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/qpdf/qpdf/4eba95899886e851cc41d76886483b347612f2a8/qpdf/qtest/qpdf/rotated-shared-annotations-2.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/qpdf-rotated-annotations.pdf",
+      "sha256": "5fb0937663894589d4ed2dc5d3f2e64d971b836802f7f46f22a30be723b7f388",
+      "producer": "qpdf test suite",
+      "license": "Apache-2.0",
+      "licenseUrl": "https://github.com/qpdf/qpdf/blob/4eba95899886e851cc41d76886483b347612f2a8/LICENSE.txt",
+      "tier": "edge",
+      "expectedPages": 4,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "rotated-pages",
+        "annotations",
+        "acroform"
+      ]
+    },
+    {
+      "id": "qpdf-utf16le",
+      "sourceKind": "download",
+      "url": "https://raw.githubusercontent.com/qpdf/qpdf/4eba95899886e851cc41d76886483b347612f2a8/qpdf/qtest/qpdf/utf16le.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/qpdf-utf16le.pdf",
+      "sha256": "d7fa801d2bda9fe3b8c26003842ed8de4da21cbd3a768e8112002b4fe4fd0415",
+      "producer": "qpdf test suite",
+      "license": "Apache-2.0",
+      "licenseUrl": "https://github.com/qpdf/qpdf/blob/4eba95899886e851cc41d76886483b347612f2a8/LICENSE.txt",
+      "tier": "edge",
+      "expectedPages": 1,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "utf16-strings",
+        "old-pdf-1.3"
+      ]
+    },
+    {
+      "id": "nist-sp800-12-1995-scan",
+      "sourceKind": "download",
+      "url": "https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-12.pdf",
+      "sha256": "95e40613ce281a74e88e883fce52f89f74ca3bca1d86fee9a2cc310f14e4f825",
+      "producer": "Internet Archive scan (LuraDocument PDF 2.65)",
+      "license": "United States government work",
+      "licenseUrl": "https://www.usa.gov/government-copyright",
+      "tier": "very-large",
+      "expectedPages": 297,
+      "minimumTokenRecall": 0.75,
+      "features": [
+        "scanner",
+        "ocr-text-layer",
+        "jbig2",
+        "jpx",
+        "hundreds-of-pages",
+        "linearized",
+        "object-streams"
+      ]
+    },
+    {
+      "id": "nist-sp800-63-3",
+      "sourceKind": "download",
+      "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-63-3.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/nist-sp800-63-3.pdf",
+      "sha256": "915bb812cb705918461e642e84141c6ca2adc2ca0106e1d88f3884c61f07110a",
+      "producer": "Microsoft Word via Acrobat PDFMaker 17",
+      "license": "United States government work",
+      "licenseUrl": "https://www.usa.gov/government-copyright",
+      "tier": "large",
+      "expectedPages": 76,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "word",
+        "tagged",
+        "object-streams",
+        "xref-streams",
+        "incremental-update",
+        "tables",
+        "links"
+      ]
+    },
+    {
+      "id": "nist-cswp-29",
+      "sourceKind": "download",
+      "url": "https://nvlpubs.nist.gov/nistpubs/CSWP/NIST.CSWP.29.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/nist-cswp-29.pdf",
+      "sha256": "3c31f46fee98cac0c4323453e5109291a213b4de7fef8c058af9bf67f717433c",
+      "producer": "Microsoft Word via Acrobat PDFMaker 23",
+      "license": "United States government work",
+      "licenseUrl": "https://www.usa.gov/government-copyright",
+      "tier": "large",
+      "expectedPages": 32,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "word",
+        "tagged",
+        "linearized",
+        "object-streams",
+        "acroform",
+        "tables"
+      ]
+    },
+    {
+      "id": "rfc791-ghostscript",
+      "sourceKind": "download",
+      "url": "https://www.rfc-editor.org/rfc/pdfrfc/rfc791.txt.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/rfc791-ghostscript.pdf",
+      "sha256": "28f377bf7e65440818f4c8d8e1e65a48bb6c3e41f118911064098367aa039fc4",
+      "producer": "Aladdin Ghostscript 5.10",
+      "license": "IETF Trust Legal Provisions (unmodified redistribution)",
+      "licenseUrl": "https://trustee.ietf.org/assets/ietf-trust-legal-provisions-tlp/",
+      "tier": "medium",
+      "expectedPages": 51,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "ghostscript",
+        "old-pdf-1.2",
+        "monospace",
+        "standard-14-fonts"
+      ],
+      "expectedText": [
+        "INTERNET PROTOCOL"
+      ]
+    },
+    {
+      "id": "rfc9110-xml2rfc",
+      "sourceKind": "download",
+      "url": "https://www.rfc-editor.org/rfc/rfc9110.pdf",
+      "sha256": "60b30efa1048900833d1758440247fe8ac85a3134f2327388dcb24e07d814c89",
+      "producer": "cairo 1.16.0 (xml2rfc 3.12.10)",
+      "license": "IETF Trust Legal Provisions (unmodified redistribution)",
+      "licenseUrl": "https://trustee.ietf.org/assets/ietf-trust-legal-provisions-tlp/",
+      "tier": "very-large",
+      "expectedPages": 194,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "cairo",
+        "hundreds-of-pages",
+        "cid-fonts",
+        "links"
+      ]
+    },
+    {
+      "id": "naca-report-1135-scan",
+      "sourceKind": "download",
+      "url": "https://ntrs.nasa.gov/api/citations/19930091059/downloads/19930091059.pdf",
+      "sha256": "1971643025181d1216b0b0a359d2a5a3adf5d254d3e158e19ba880b368b86e53",
+      "producer": "Pdf.Capture 5.2 scan",
+      "license": "United States government work (NASA)",
+      "licenseUrl": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+      "tier": "large",
+      "expectedPages": 70,
+      "minimumTokenRecall": 0.75,
+      "features": [
+        "scanner",
+        "ccitt",
+        "image-only",
+        "linearized"
+      ]
+    },
+    {
+      "id": "nara-jfk-104-10003-10041",
+      "sourceKind": "download",
+      "url": "https://www.archives.gov/files/research/jfk/releases/2025/0318/104-10003-10041.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/nara-jfk-104-10003-10041.pdf",
+      "sha256": "c3c7e7b44e6f65e08d4e73950b74428f40d26e7ead49e945f003f6b8f0903e48",
+      "producer": "Aspose.PDF for .NET 23.2.0 scan",
+      "license": "United States government work",
+      "licenseUrl": "https://www.usa.gov/government-copyright",
+      "tier": "edge",
+      "expectedPages": 1,
+      "minimumTokenRecall": 0.75,
+      "features": [
+        "scanner",
+        "jbig2",
+        "image-only",
+        "xref-streams"
+      ]
+    },
+    {
+      "id": "irs-pub17-2023",
+      "sourceKind": "download",
+      "url": "https://www.irs.gov/pub/irs-prior/p17--2023.pdf",
+      "sha256": "01b4e7a90a5c7031bb8ef66036a13af75117658f4c94b0157fc360fb33cf425e",
+      "producer": "Antenna House XSL Formatter 6.6",
+      "license": "United States government work",
+      "licenseUrl": "https://www.irs.gov/privacy-disclosure/copyright-information",
+      "tier": "very-large",
+      "expectedPages": 142,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "xsl-fo",
+        "tagged",
+        "linearized",
+        "object-streams",
+        "ccitt",
+        "cid-fonts",
+        "tables",
+        "hundreds-of-pages"
+      ]
+    },
+    {
+      "id": "libreoffice-custom-shape-tutorial",
+      "sourceKind": "download",
+      "url": "https://documentation.libreoffice.org/assets/Uploads/Documentation/en/Tutorials/CustomShapes7/Custom-Shape-Tutorial.pdf",
+      "sha256": "40574ee6e7fbcf3cdb5fd46c2a6bb3c64ac791a195d1bd1cf8bdb4ae77759a68",
+      "producer": "LibreOffice 7.3 Writer",
+      "license": "CC-BY-4.0 or GPL-3.0-or-later (stated on the copyright page)",
+      "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+      "tier": "large",
+      "expectedPages": 132,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "libreoffice",
+        "vector-graphics",
+        "images",
+        "large-page-count"
+      ],
+      "expectedText": [
+        "Regina Henschel"
+      ]
+    },
+    {
+      "id": "jp-digital-agency-word-betten",
+      "sourceKind": "download",
+      "url": "https://www.digital.go.jp/assets/contents/node/basic_page/field_ref_resources/f7fde41d-ffca-4b2a-9b25-94b8a701a037/a0f187e6/20220706_resources_data_betten_01.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/jp-digital-agency-word-betten.pdf",
+      "sha256": "7aa72a369c0e684bf0f9253485ca27099d5032a64b97d3b954cbb0a31ba834c4",
+      "producer": "Microsoft Word (Japanese) via Acrobat PDFMaker 11",
+      "license": "Public Data License 1.0 (CC-BY-4.0 compatible)",
+      "licenseUrl": "https://www.digital.go.jp/en/copyright-policy",
+      "tier": "medium",
+      "expectedPages": 9,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "word",
+        "tagged",
+        "cjk",
+        "japanese",
+        "cid-fonts",
+        "object-streams",
+        "tables"
+      ],
+      "expectedText": [
+        "政府標準利用規約"
+      ]
+    },
+    {
+      "id": "jp-digital-agency-justpdf-outline",
+      "sourceKind": "download",
+      "url": "https://digital.go.jp/assets/contents/node/basic_page/field_ref_resources/f7fde41d-ffca-4b2a-9b25-94b8a701a037/b44a7e0c/20240705_resources_data_outline_07.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/jp-digital-agency-justpdf-outline.pdf",
+      "sha256": "7b6157cb8a0536b36bc44ede57741056cedbd2b1d70303aa5a1f06f6dbfb2a56",
+      "producer": "JUST PDF 4 (Ichitaro)",
+      "license": "Public Data License 1.0 (CC-BY-4.0 compatible)",
+      "licenseUrl": "https://www.digital.go.jp/en/copyright-policy",
+      "tier": "medium",
+      "expectedPages": 12,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "cjk",
+        "japanese",
+        "cid-fonts"
+      ],
+      "expectedText": [
+        "公共データ利用規約"
+      ]
+    },
+    {
+      "id": "jp-digital-agency-distiller-slides",
+      "sourceKind": "download",
+      "url": "https://www.digital.go.jp/assets/contents/node/basic_page/field_ref_resources/c58162cb-92e5-4a43-9ad5-095b7c45100c/f1e3d411/20240424_policies_local_governments_outline_02.pdf",
+      "sha256": "0bf264839f35ddab6db8197935281543ee6955010802cf27bba30deb1a46d23d",
+      "producer": "Acrobat Distiller 24 (PScript5)",
+      "license": "Public Data License 1.0 (CC-BY-4.0 compatible)",
+      "licenseUrl": "https://www.digital.go.jp/en/copyright-policy",
+      "tier": "large",
+      "expectedPages": 26,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "cjk",
+        "japanese",
+        "cid-fonts",
+        "slides",
+        "dct-image",
+        "object-streams"
+      ],
+      "expectedText": [
+        "デジタル庁は"
+      ]
+    },
+    {
+      "id": "acl-2021-mt5-multilingual",
+      "sourceKind": "download",
+      "url": "https://aclanthology.org/2021.naacl-main.41.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/acl-2021-mt5-multilingual.pdf",
+      "sha256": "3416c10fe2483b147fe47f2eb9c7a87188ceb3f633db527d0c714cc640218b99",
+      "producer": "pdfTeX (ACL NAACL 2021)",
+      "license": "CC-BY-4.0",
+      "licenseUrl": "https://aclanthology.org/faq/copyright/",
+      "tier": "medium",
+      "expectedPages": 16,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "pdftex",
+        "two-columns",
+        "mixed-script",
+        "arabic",
+        "cjk",
+        "devanagari",
+        "cyrillic",
+        "tables"
+      ],
+      "expectedText": [
+        "хлоропласт",
+        "新英格兰爱国者队",
+        "mT5-XXL"
+      ]
+    },
+    {
+      "id": "acl-2023-arabicnlp-arabic",
+      "sourceKind": "download",
+      "url": "https://aclanthology.org/2023.arabicnlp-1.1.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/acl-2023-arabicnlp-arabic.pdf",
+      "sha256": "d9415ee78237939ab928afa7d4fbcc7af52ce13038db9d80ad04ad611d1bfef5",
+      "producer": "pdfTeX 1.40.24 (ArabicNLP 2023)",
+      "license": "CC-BY-4.0",
+      "licenseUrl": "https://aclanthology.org/faq/copyright/",
+      "tier": "medium",
+      "expectedPages": 11,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "pdftex",
+        "two-columns",
+        "rtl",
+        "arabic",
+        "tables"
+      ]
+    },
+    {
+      "id": "acl-2021-wanlp-arabic",
+      "sourceKind": "download",
+      "url": "https://aclanthology.org/2021.wanlp-1.1.pdf",
+      "sourcePath": "OfficeIMO.TestAssets/Pdf/IndependentCorpus/acl-2021-wanlp-arabic.pdf",
+      "sha256": "84c01926bee185aca0e22aa05f09ecbccb823f17401124f2b485d2cca606b8cd",
+      "producer": "pdfTeX 1.40.20 (WANLP 2021)",
+      "license": "CC-BY-4.0",
+      "licenseUrl": "https://aclanthology.org/faq/copyright/",
+      "tier": "medium",
+      "expectedPages": 10,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "pdftex",
+        "two-columns",
+        "rtl",
+        "arabic",
+        "tables"
+      ]
+    },
+    {
+      "id": "acl-2023-findings-cjk",
+      "sourceKind": "download",
+      "url": "https://aclanthology.org/2023.findings-acl.1.pdf",
+      "sha256": "39f6dd91b151c1421f9e21940ee2be9fc3fccc6fb37a1bca263fc23e339b59da",
+      "producer": "pdfTeX (ACL Findings 2023)",
+      "license": "CC-BY-4.0",
+      "licenseUrl": "https://aclanthology.org/faq/copyright/",
+      "tier": "medium",
+      "expectedPages": 13,
+      "minimumTokenRecall": 0.9,
+      "features": [
+        "pdftex",
+        "two-columns",
+        "cjk",
+        "tables"
+      ]
+    }
+  ]
+}

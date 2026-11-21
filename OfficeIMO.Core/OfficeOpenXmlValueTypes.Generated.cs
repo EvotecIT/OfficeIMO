@@ -25,6 +25,7 @@ public enum OfficeChartDisplayUnit {
     /// <summary>Represents the Open XML value <c>trillions</c>.</summary>
     Trillions,
 }
+
 /// <summary>Defines OfficeIMO values corresponding to DocumentFormat.OpenXml.Drawing.Charts.CrossBetweenValues.</summary>
 public enum OfficeChartAxisCrossBetween {
     /// <summary>Represents the Open XML value <c>between</c>.</summary>
@@ -63,6 +64,32 @@ public enum OfficeChartDataLabelPosition {
     Right,
     /// <summary>Represents the Open XML value <c>t</c>.</summary>
     Top,
+}
+
+/// <summary>Defines OfficeIMO values corresponding to DocumentFormat.OpenXml.Drawing.Charts.DisplayBlanksAsValues.</summary>
+public enum OfficeChartBlankDisplay {
+    /// <summary>Represents the Open XML value <c>span</c>.</summary>
+    Span,
+    /// <summary>Represents the Open XML value <c>gap</c>.</summary>
+    Gap,
+    /// <summary>Represents the Open XML value <c>zero</c>.</summary>
+    Zero,
+}
+
+/// <summary>Defines OfficeIMO values corresponding to DocumentFormat.OpenXml.Drawing.Charts.LayoutModeValues.</summary>
+public enum OfficeChartLayoutMode {
+    /// <summary>Represents the Open XML value <c>edge</c>.</summary>
+    Edge,
+    /// <summary>Represents the Open XML value <c>factor</c>.</summary>
+    Factor,
+}
+
+/// <summary>Defines OfficeIMO values corresponding to DocumentFormat.OpenXml.Drawing.Charts.LayoutTargetValues.</summary>
+public enum OfficeChartLayoutTarget {
+    /// <summary>Represents the Open XML value <c>inner</c>.</summary>
+    Inner,
+    /// <summary>Represents the Open XML value <c>outer</c>.</summary>
+    Outer,
 }
 
 /// <summary>Defines OfficeIMO values corresponding to DocumentFormat.OpenXml.Drawing.Charts.LegendPositionValues.</summary>
@@ -528,3 +555,4 @@ public enum OfficePresetShapeType {
     /// <summary>Represents the Open XML value <c>chartPlus</c>.</summary>
     ChartPlus,
 }
+

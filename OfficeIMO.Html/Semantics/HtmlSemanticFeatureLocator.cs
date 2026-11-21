@@ -33,7 +33,7 @@ internal static class HtmlSemanticFeatureLocator {
     internal static IReadOnlyList<IElement> FindPagedLayout(IHtmlDocument document) {
         var result = new List<IElement>();
         foreach (IElement style in document.QuerySelectorAll("style")) {
-            if (ContainsCssToken(style.TextContent, "@page")) result.Add(style);
+            if (ContainsCssToken(HtmlStyleElementText.Read(style), "@page")) result.Add(style);
         }
         foreach (IElement element in document.QuerySelectorAll("[style]")) {
             string css = element.GetAttribute("style") ?? string.Empty;

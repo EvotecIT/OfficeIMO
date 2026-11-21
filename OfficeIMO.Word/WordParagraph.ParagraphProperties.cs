@@ -25,6 +25,17 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// The English identifier of the built-in style this paragraph uses, such as <c>Quote</c> for a French
+        /// template's <c>Citation</c>, or <see langword="null"/> for a custom style or no style.
+        /// </summary>
+        internal string? BuiltInStyleId {
+            get {
+                string? styleId = StyleId;
+                return _document != null ? _document.GetBuiltInStyleId(styleId) : WordBuiltInStyleNames.IsBuiltInId(styleId) ? styleId : null;
+            }
+        }
+
+        /// <summary>
         /// Alignment aka Paragraph Alignment. This element specifies the paragraph alignment which shall be applied to text in this paragraph.
         /// If this element is omitted on a given paragraph, its value is determined by the setting previously set at any level of the style hierarchy (i.e.that previous setting remains unchanged). If this setting is never specified in the style hierarchy, then no alignment is applied to the paragraph.
         /// Setting this property to <see langword="null"/> removes direct alignment and restores style inheritance.

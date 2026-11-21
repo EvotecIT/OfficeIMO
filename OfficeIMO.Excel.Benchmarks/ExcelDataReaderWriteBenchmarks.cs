@@ -11,7 +11,7 @@ namespace OfficeIMO.Excel.Benchmarks;
 /// DataReader contract. Setup verifies every header and cell before timing.
 /// </summary>
 [MemoryDiagnoser]
-public class ExcelDataReaderWriteBenchmarks {
+public partial class ExcelDataReaderWriteBenchmarks {
     private DataTable _table = null!;
 
     [Params(25000)]
@@ -24,6 +24,9 @@ public class ExcelDataReaderWriteBenchmarks {
         ValidateOutput(nameof(SpreadCheetah), ExcelLibraryComparisonRunner.SpreadCheetahWriteDataReaderPlainBytes(_table));
         ValidateOutput(nameof(Sylvan), ExcelLibraryComparisonRunner.SylvanWriteDataReaderPlainBytes(_table));
         ValidateOutput(nameof(LargeXlsx), ExcelLibraryComparisonRunner.LargeXlsxWriteDataReaderPlainBytes(_table, requireCellReferences: false));
+#if NET10_0_OR_GREATER
+        ValidateOutput(nameof(OneDocument), ExcelLibraryComparisonRunner.OneDocumentWriteDataReaderPlainBytes(_table));
+#endif
     }
 
     public void SetupOfficeIMOAndSpreadCheetah() {
@@ -67,22 +70,46 @@ public class ExcelDataReaderWriteBenchmarks {
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public int OfficeIMO()
         => ExcelLibraryComparisonRunner.OfficeImoWriteDataReaderCompactPackageBytes(_table).Length;
 
     [Benchmark]
+    [BenchmarkCategory("library:SpreadCheetah", "case:Default")]
     public int SpreadCheetah()
         => ExcelLibraryComparisonRunner.SpreadCheetahWriteDataReaderPlainBytes(_table).Length;
 
     [Benchmark]
+    [BenchmarkCategory("library:Sylvan.Data.Excel", "case:Default")]
     public int Sylvan()
         => ExcelLibraryComparisonRunner.SylvanWriteDataReaderPlainBytes(_table).Length;
 
     [Benchmark]
+    [BenchmarkCategory("library:LargeXlsx", "case:Default")]
     public int LargeXlsx()
         => ExcelLibraryComparisonRunner.LargeXlsxWriteDataReaderPlainBytes(_table, requireCellReferences: false).Length;
 
     private void ValidateOutput(string method, byte[] packageBytes) {
+        string library = method switch {
+            nameof(OfficeIMO) => "OfficeIMO",
+            nameof(SpreadCheetah) => "SpreadCheetah",
+            nameof(Sylvan) => "Sylvan.Data.Excel",
+            nameof(LargeXlsx) => "LargeXlsx",
+            "OneDocument" => "OneDocument.Spreadsheets",
+            _ => throw new ArgumentOutOfRangeException(nameof(method), method, "Unknown write lane.")
+        };
+        try {
+            ValidateOutputCells(method, packageBytes);
+        } catch (Exception exception) {
+            BenchmarkOutputValidationLog.Failed(library, $"RowCount={RowCount}; {method}: {exception.Message}");
+            throw;
+        }
+
+        BenchmarkOutputValidationLog.Passed(library,
+            $"RowCount={RowCount}; {method}: ExcelDataReader read the header and all {_table.Rows.Count} x {_table.Columns.Count} cells back unchanged.");
+    }
+
+    private void ValidateOutputCells(string method, byte[] packageBytes) {
         using var stream = new MemoryStream(packageBytes, writable: false);
         using var reader = ExcelReaderFactory.CreateReader(stream);
 

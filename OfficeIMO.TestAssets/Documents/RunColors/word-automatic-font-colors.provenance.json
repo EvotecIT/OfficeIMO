@@ -1,0 +1,9 @@
+{
+  "producer": "Microsoft Word 16.0",
+  "format": "Native DOC",
+  "compatibilityMode": 11,
+  "sourceSha256": "34958BCAEE328F3E2D13B6FB53599BB6E6912019FDD345F59835FB967D8985B6",
+  "pages": 1,
+  "recipe": "22 Arial 12pt paragraphs with exact 20pt line spacing on a 500 by 620pt page with 40pt margins. Nineteen automatic-color paragraphs have RGB background fills; three controls use explicit black or white text. Saved by Word as native DOC, reopened read-only and exported to PDF without changing source bytes.",
+  "qualification": "Automatic versus explicit run-color preservation. Background geometry and complete PDF fidelity are qualified separately."
+}

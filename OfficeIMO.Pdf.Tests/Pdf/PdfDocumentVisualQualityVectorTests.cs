@@ -492,7 +492,7 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
-    public void VectorShape_RendersBlurLayersAndCombinesShadowColorAlpha() {
+    public void VectorShape_PaintsBlurredShadowOnceAndCombinesShadowColorAlpha() {
         var shape = OfficeShape.RoundedRectangle(90, 24, 6);
         shape.FillColor = OfficeColor.White;
         shape.StrokeWidth = 0D;
@@ -513,10 +513,16 @@ public partial class PdfDocumentVisualQualityTests {
             .Cast<Match>()
             .Select(match => double.Parse(match.Groups["opacity"].Value, CultureInfo.InvariantCulture))
             .ToArray();
-        Assert.Contains(shadowOpacities, opacity => opacity > 0D && opacity < 0.02D);
-        Assert.Contains(shadowOpacities, opacity => opacity > 0.1D && opacity < 1D);
-        Assert.All(shadowOpacities, opacity => Assert.InRange(opacity, 0D, 0.999999D));
-        Assert.True(content.Split(new[] { "1 0 0 rg" }, StringSplitOptions.None).Length - 1 >= 6);
+        // Shadow opacity times the color alpha, applied once to the blurred silhouette.
+        Assert.InRange(Assert.Single(shadowOpacities), 0.245D, 0.255D);
+
+        var image = Assert.Single(PdfDocument.Load(bytes).Reader.Images());
+        Assert.True(OfficePngReader.TryDecode(image.Bytes, out OfficeRasterImage? shadow));
+        OfficeColor center = shadow!.GetPixel(shadow.Width / 2, shadow.Height / 2);
+        Assert.Equal((255, 0, 0), (center.R, center.G, center.B));
+        Assert.InRange((int)center.A, 250, 255);
+        Assert.InRange((int)shadow.GetPixel(0, shadow.Height / 2).A, 0, 2);
+        Assert.InRange((int)shadow.GetPixel(shadow.Width / 2, 0).A, 0, 2);
     }
 
     [Fact]

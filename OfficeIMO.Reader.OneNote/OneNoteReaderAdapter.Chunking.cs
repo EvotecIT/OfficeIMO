@@ -54,7 +54,7 @@ internal static partial class OneNoteReaderAdapter {
 
         if (element is OneNoteParagraph paragraph) {
             bool firstRun = true;
-            foreach (OneNoteTextRun run in paragraph.Runs) {
+            foreach (OneNoteTextRun run in OneNoteFieldCodes.ResolveRuns(paragraph.Runs)) {
                 AddRunUnits(run, firstRun ? paragraph.List : null, resolver, maxChars, units);
                 firstRun = false;
             }

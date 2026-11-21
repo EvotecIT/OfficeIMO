@@ -59,17 +59,21 @@ public static partial class OfficeChartDrawingRenderer {
             }
 
             if (currentSeries.ConnectLine && currentSeries.SeriesStyle?.ShowOutline != false) {
+                OfficePoint[] outlinePoints = points;
+                bool[] outlinePlotted = plotted;
+                if (layout.BlankDisplay == OfficeChartBlankDisplay.Span)
+                    CompactPlottedPoints(points, plotted, out outlinePoints, out outlinePlotted);
                 if (currentSeries.SeriesStyle?.OutlineJoin is OfficeStrokeLineJoin join) {
-                    AddJoinedSeriesOutline(geometry, points, currentSeries.SeriesStyle.OutlineColor ?? color,
-                        strokeWidth, dashStyle, join, plotted, plotBounds: clipPlot ? plotBounds : null,
-                        valueRange: clipPlot ? range : null);
+                    AddJoinedSeriesOutline(geometry, outlinePoints, currentSeries.SeriesStyle.OutlineColor ?? color,
+                        strokeWidth, dashStyle, join, outlinePlotted, plotBounds: clipPlot ? plotBounds : null,
+                        valueRange: clipPlot ? range : null, cap: currentSeries.SeriesStyle.OutlineCap);
                 } else {
-                    for (int i = 1; i < categories.Count; i++) {
-                        if (!plotted[i - 1] || !plotted[i]) {
+                    for (int i = 1; i < outlinePoints.Length; i++) {
+                        if (!outlinePlotted[i - 1] || !outlinePlotted[i]) {
                             continue;
                         }
 
-                        OfficePoint start = points[i - 1], end = points[i];
+                        OfficePoint start = outlinePoints[i - 1], end = outlinePoints[i];
                         if (clipPlot && !TryClipValueSegment(start, end, range, plotBounds, out start, out end)) continue;
                         double x1 = start.X;
                         double y1 = start.Y;
@@ -78,7 +82,9 @@ public static partial class OfficeChartDrawingRenderer {
                         if (x1 == x2 && y1 == y2) continue;
                         double minX = Math.Min(x1, x2);
                         double minY = Math.Min(y1, y2);
-                        AddShape(geometry, OfficeShape.Line(x1 - minX, y1 - minY, x2 - minX, y2 - minY), minX, minY, null, currentSeries.SeriesStyle?.OutlineColor ?? color, currentSeries.SeriesStyle?.OutlineWidth?.ToPoints() ?? strokeWidth, dashStyle);
+                        OfficeShape segment = OfficeShape.Line(x1 - minX, y1 - minY, x2 - minX, y2 - minY);
+                        segment.StrokeLineCap = currentSeries.SeriesStyle?.OutlineCap;
+                        AddShape(geometry, segment, minX, minY, null, currentSeries.SeriesStyle?.OutlineColor ?? color, currentSeries.SeriesStyle?.OutlineWidth?.ToPoints() ?? strokeWidth, dashStyle);
                     }
                 }
             }

@@ -66,6 +66,9 @@ Sheet and schema names escape backslashes and controls as \\, \t, \r, \n, or \uX
                 TabularCommandKind.Convert => await ConvertAsync(parsed, standardOutput, cancellationToken).ConfigureAwait(false),
                 _ => (int)OfficeImoToolExitCode.Usage
             };
+        } catch (TabularUsageException exception) {
+            await standardError.WriteLineAsync(exception.Message).ConfigureAwait(false);
+            return (int)OfficeImoToolExitCode.Usage;
         } catch (OperationCanceledException) {
             return (int)OfficeImoToolExitCode.Cancelled;
         } catch (NotSupportedException exception) {
@@ -110,10 +113,28 @@ Sheet and schema names escape backslashes and controls as \\, \t, \r, \n, or \uX
         for (int ordinal = 0; ordinal < reader.FieldCount; ordinal++) {
             cancellationToken.ThrowIfCancellationRequested();
             await output.WriteLineAsync(
-                ordinal + "\t" + EscapeOutputField(reader.GetName(ordinal)) + "\t" + reader.GetFieldType(ordinal).FullName)
+                ordinal + "\t" + EscapeOutputField(reader.GetName(ordinal)) + "\t" + FriendlyTypeName(reader.GetFieldType(ordinal)))
                 .ConfigureAwait(false);
         }
         return (int)OfficeImoToolExitCode.Success;
+    }
+
+    // Script-friendly names in the JSON Schema vocabulary where one exists, rather than .NET type names.
+    private static string FriendlyTypeName(Type type) {
+        Type actual = Nullable.GetUnderlyingType(type) ?? type;
+        return Type.GetTypeCode(actual) switch {
+            TypeCode.String or TypeCode.Char => "string",
+            TypeCode.Boolean => "boolean",
+            TypeCode.SByte or TypeCode.Byte or TypeCode.Int16 or TypeCode.UInt16 or TypeCode.Int32 or TypeCode.UInt32
+                or TypeCode.Int64 or TypeCode.UInt64 => "integer",
+            TypeCode.Single or TypeCode.Double or TypeCode.Decimal => "number",
+            TypeCode.DateTime => "datetime",
+            _ when actual == typeof(DateTimeOffset) => "datetime",
+            _ when actual == typeof(TimeSpan) => "duration",
+            _ when actual == typeof(Guid) => "guid",
+            _ when actual == typeof(byte[]) => "binary",
+            _ => actual == typeof(object) ? "any" : actual.Name.ToLowerInvariant()
+        };
     }
 
     private static async Task<int> ConvertAsync(
@@ -161,11 +182,11 @@ Sheet and schema names escape backslashes and controls as \\, \t, \r, \n, or \uX
                 inferSchema: inputIsCsv && !outputIsCsv,
                 cancellationToken);
             if (outputIsCsv) {
-                var saveOptions = new CsvSaveOptions {
-                    Delimiter = ResolveDelimiter(temporaryPath, options.OutputDelimiter),
-                    IncludeHeader = options.HasHeaderRow,
-                    NoClobber = true
-                };
+                CsvSaveOptions saveOptions = IsTsvPath(temporaryPath, options.OutputDelimiter)
+                    ? CsvProfiles.CreateSaveOptions(CsvProfile.Tsv)
+                    : new CsvSaveOptions { Delimiter = ResolveDelimiter(temporaryPath, options.OutputDelimiter) };
+                saveOptions.IncludeHeader = options.HasHeaderRow;
+                saveOptions.NoClobber = true;
                 CsvDocument.WriteDataReader(temporaryPath, reader, saveOptions, cancellationToken);
                 return;
             }
@@ -244,19 +265,22 @@ Sheet and schema names escape backslashes and controls as \\, \t, \r, \n, or \uX
         bool inferSchema,
         CancellationToken cancellationToken) {
         if (IsCsvPath(options.InputPath)) {
-            var loadOptions = new CsvReaderOptions {
-                InferSchema = inferSchema,
-                HasHeaderRow = options.HasHeaderRow,
-                DetectDelimiter = ShouldDetectDelimiter(options),
-                Delimiter = ResolveDelimiter(options.InputPath, options.InputDelimiter),
-                CancellationToken = cancellationToken
-            };
+            CsvReaderOptions loadOptions = IsTsvPath(options.InputPath, options.InputDelimiter)
+                ? CsvProfiles.CreateReaderOptions(CsvProfile.Tsv)
+                : new CsvReaderOptions {
+                    DetectDelimiter = ShouldDetectDelimiter(options),
+                    Delimiter = ResolveDelimiter(options.InputPath, options.InputDelimiter)
+                };
+            loadOptions.InferSchema = inferSchema;
+            loadOptions.HasHeaderRow = options.HasHeaderRow;
+            loadOptions.CancellationToken = cancellationToken;
             return CsvDocument.OpenReader(
                 options.InputPath,
                 loadOptions);
         }
 
         EnsureExcelPath(options.InputPath, "read");
+        EnsureSheetExists(options);
         return ExcelDocument.OpenReader(
             options.InputPath,
             new ExcelReaderOptions {
@@ -267,6 +291,22 @@ Sheet and schema names escape backslashes and controls as \\, \t, \r, \n, or \uX
                 CancellationToken = cancellationToken
             });
     }
+
+    // A missing sheet is a usage error that names the sheets, as in officeimo convert.
+    private static void EnsureSheetExists(TabularArguments options) {
+        if (options.SheetName is null && !options.SheetIndex.HasValue) return;
+        IReadOnlyList<string> names;
+        using (ExcelWorkbookDataReader probe = ExcelDocument.OpenReader(options.InputPath, new ExcelReaderOptions())) names = probe.SheetNames;
+        string? problem = options.SheetName is { } name
+            ? names.Contains(name, StringComparer.OrdinalIgnoreCase) ? null : "Sheet '" + name + "' was not found."
+            : options.SheetIndex!.Value < names.Count ? null : "Sheet index " + options.SheetIndex.Value + " is out of range.";
+        if (problem != null)
+            throw new TabularUsageException(problem + " The workbook has: " + string.Join(", ", names.Select(EscapeOutputField)) + ".");
+    }
+
+    // .tsv without an explicit delimiter is IANA TSV: no quoting, quotes are data.
+    private static bool IsTsvPath(string path, char? delimiter) =>
+        delimiter is null && string.Equals(Path.GetExtension(path), ".tsv", StringComparison.OrdinalIgnoreCase);
 
     private static char ResolveDelimiter(string path, char? delimiter) => delimiter ??
         (string.Equals(Path.GetExtension(path), ".tsv", StringComparison.OrdinalIgnoreCase) ? '\t' : ',');

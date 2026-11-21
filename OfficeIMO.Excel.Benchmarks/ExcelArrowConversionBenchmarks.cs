@@ -68,12 +68,16 @@ public class ExcelArrowConversionBenchmarks {
         MarkPflug65KFixture.EnsureAuthentic(MarkPflug65KFixture.XlsxFileName);
         _explicitExcelReaderSchema = CreateExplicitExcelReaderSchema();
 
-        _expectedExplicit = OfficeIMO_ExplicitSchema();
-        ValidateExpected(nameof(OfficeIMO_ExplicitSchema), _expectedExplicit);
-        ValidateEquivalent(
-            "explicit schema",
-            _expectedExplicit,
-            ExcelReaderNet_ExplicitSchema());
+        // The expected observation (rows, cells and a checksum of every value) comes from the fixture's CSV twin.
+        ExcelOutputValidation.Check("OfficeIMO", "ExplicitSchema", "65K rows; every value checked against the CSV fixture's observation", () => {
+            _expectedExplicit = OfficeIMO_ExplicitSchema();
+            ValidateExpected(nameof(OfficeIMO_ExplicitSchema), _expectedExplicit);
+        });
+        ExcelOutputValidation.Check("ExcelReader.NET", "ExplicitSchema", "65K rows; values and Arrow schema equal to the OfficeIMO batch validated against the CSV fixture",
+            () => ValidateEquivalent(
+                "explicit schema",
+                _expectedExplicit,
+                ExcelReaderNet_ExplicitSchema()));
 
         _expectedInferred = OfficeIMO_InferredSchema();
         ValidateExpected(nameof(OfficeIMO_InferredSchema), _expectedInferred);
@@ -84,25 +88,27 @@ public class ExcelArrowConversionBenchmarks {
             _expectedInferred,
             _excelReaderInferred);
 
-        ArrowConversionObservation bounded = OfficeIMO_BoundedStreaming();
-        ValidateExpected(nameof(OfficeIMO_BoundedStreaming), bounded);
-        if (bounded.Batches <= 1) {
-            throw new InvalidDataException(
-                $"The bounded Arrow lane produced {bounded.Batches} batch instead of exercising streaming.");
-        }
-        if (bounded with { Batches = 1 } != _expectedExplicit) {
-            throw new InvalidDataException(
-                $"The bounded Arrow lane produced {bounded}; the one-batch lane produced {_expectedExplicit}.");
-        }
+        ExcelOutputValidation.Check("OfficeIMO", "BoundedStreaming", "65K rows in several batches; every value checked against the CSV fixture's observation", () => {
+            ArrowConversionObservation bounded = OfficeIMO_BoundedStreaming();
+            ValidateExpected(nameof(OfficeIMO_BoundedStreaming), bounded);
+            if (bounded.Batches <= 1) {
+                throw new InvalidDataException(
+                    $"The bounded Arrow lane produced {bounded.Batches} batch instead of exercising streaming.");
+            }
+            if (bounded with { Batches = 1 } != _expectedExplicit) {
+                throw new InvalidDataException(
+                    $"The bounded Arrow lane produced {bounded}; the one-batch lane produced {_expectedExplicit}.");
+            }
+        });
     }
 
     [Benchmark]
-    [BenchmarkCategory("Arrow", "ExplicitSchema")]
+    [BenchmarkCategory("Arrow", "ExplicitSchema", "case:ExplicitSchema")]
     public ArrowConversionObservation OfficeIMO_ExplicitSchema() =>
         ConvertOfficeIMO(inferSchema: false, batchSize: MarkPflug65KFixture.ExpectedRows);
 
     [Benchmark]
-    [BenchmarkCategory("Arrow", "ExplicitSchema")]
+    [BenchmarkCategory("Arrow", "ExplicitSchema", "case:ExplicitSchema")]
     public ArrowConversionObservation ExcelReaderNet_ExplicitSchema() =>
         ConvertExcelReader(_explicitExcelReaderSchema);
 
@@ -131,7 +137,7 @@ public class ExcelArrowConversionBenchmarks {
     }
 
     [Benchmark]
-    [BenchmarkCategory("Arrow", "BoundedStreaming")]
+    [BenchmarkCategory("Arrow", "BoundedStreaming", "case:BoundedStreaming")]
     public ArrowConversionObservation OfficeIMO_BoundedStreaming() =>
         ConvertOfficeIMO(inferSchema: false, batchSize: StreamingBatchSize);
 

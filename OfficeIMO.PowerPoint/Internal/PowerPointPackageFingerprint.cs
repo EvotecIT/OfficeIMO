@@ -176,12 +176,59 @@ namespace OfficeIMO.PowerPoint {
             ExtendedFilePropertiesPart? propertiesPart = document.ExtendedFilePropertiesPart;
             if (propertiesPart == null) return false;
 
+            // An in-memory edit is newer than the stored part.
+            if (propertiesPart.IsRootElementLoaded) return propertiesPart.Properties?.DigitalSignature != null;
+
             using (Stream source = propertiesPart.GetStream(FileMode.Open, FileAccess.Read)) {
                 EnsureStreamWithinLimit(source, maximumXmlBytes);
             }
 
-            return propertiesPart.Properties?.DigitalSignature != null;
+            // Loading the typed root makes the Open XML SDK scan every part's relationships
+            // for strict namespaces. One flag needs only the root's direct children.
+            bool? streamed;
+            using (Stream stream = propertiesPart.GetStream(FileMode.Open, FileAccess.Read)) {
+                streamed = TryFindDigitalSignatureChild(stream, document.MaxCharactersInPart);
+            }
+            // An unexpected root keeps the typed loader's handling.
+            return streamed ?? propertiesPart.Properties?.DigitalSignature != null;
         }
+
+        private const string ExtendedPropertiesNamespace =
+            "http://schemas.openxmlformats.org/officeDocument/2006/extended-properties";
+        private const string StrictExtendedPropertiesNamespace =
+            "http://purl.oclc.org/ooxml/officeDocument/extendedProperties";
+
+        private static bool? TryFindDigitalSignatureChild(Stream stream, long maximumCharacters) {
+            // The package's configured part limit applies here exactly as it does to a typed root load.
+            var settings = new XmlReaderSettings {
+                MaxCharactersInDocument = maximumCharacters > 0 ? maximumCharacters : 0,
+                DtdProcessing = DtdProcessing.Prohibit,
+                XmlResolver = null,
+                IgnoreComments = true,
+                IgnoreProcessingInstructions = true,
+                IgnoreWhitespace = true
+            };
+            using XmlReader reader = XmlReader.Create(stream, settings);
+            if (reader.MoveToContent() != XmlNodeType.Element
+                || !IsExtendedPropertiesElement(reader, "Properties")) return null;
+            if (reader.IsEmptyElement) return false;
+            int rootDepth = reader.Depth;
+            reader.Read();
+            while (!reader.EOF && reader.Depth > rootDepth) {
+                if (reader.NodeType != XmlNodeType.Element) {
+                    reader.Read();
+                    continue;
+                }
+                if (IsExtendedPropertiesElement(reader, "DigSig")) return true;
+                reader.Skip();
+            }
+            return false;
+        }
+
+        private static bool IsExtendedPropertiesElement(XmlReader reader, string localName) =>
+            string.Equals(reader.LocalName, localName, StringComparison.Ordinal)
+            && (string.Equals(reader.NamespaceURI, ExtendedPropertiesNamespace, StringComparison.Ordinal)
+                || string.Equals(reader.NamespaceURI, StrictExtendedPropertiesNamespace, StringComparison.Ordinal));
 
         internal static bool HasSignatureAndEnsurePackageXmlWithinLimit(
             PresentationDocument document,

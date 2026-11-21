@@ -60,11 +60,11 @@ internal static class PdfPaintedGlyphRuns {
             if (characterLength == 1 && char.IsSurrogate((char)scalar)) return null;
             characterOffset += characterLength;
             byte[] code = span.GlyphBytes![glyphIndex];
-            if (code.Length is < 1 or > 2) {
+            if (code.Length is < 1 or > 4) {
                 completelyMapped = false;
                 continue;
             }
-            int painted = program.GlyphForCode(code.Length == 1 ? code[0] : (code[0] << 8) | code[1]);
+            int painted = program.GlyphForCodeBytes(code);
             if (painted == 0 && program.IsEmptyGlyph(0)) {
                 completelyMapped = false;
                 continue;

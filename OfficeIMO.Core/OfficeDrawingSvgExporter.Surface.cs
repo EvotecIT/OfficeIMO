@@ -51,7 +51,8 @@ public static partial class OfficeDrawingSvgExporter {
         IOfficeRasterImageCodec? imageCodec,
         string? resourceIdPrefix,
         CancellationToken cancellationToken,
-        int? maximumCharacters) {
+        int? maximumCharacters, long maximumRasterPixels = OfficeImageExportOptions.DefaultMaximumRasterPixels,
+        ICollection<OfficeImageExportDiagnostic>? diagnosticSink = null, string? diagnosticSource = null) {
         ArgumentNullException.ThrowIfNull(drawing);
         cancellationToken.ThrowIfCancellationRequested();
         if (double.IsNaN(scale) || double.IsInfinity(scale) || scale <= 0D) {
@@ -88,8 +89,12 @@ public static partial class OfficeDrawingSvgExporter {
         int gradientId = 0;
         int clipPathId = 0;
         var tilingExpansionBudget = new SvgTilingExpansionBudget();
+        var rasterOptions = new OfficeDrawingRasterRenderOptions {
+            Scale = scale, MaximumRasterPixels = maximumRasterPixels,
+            DiagnosticSink = diagnosticSink, DiagnosticSource = diagnosticSource
+        };
         OfficeRasterCanvas textMetrics = OfficeDrawingTextLayout.CreateMetrics(drawing, cancellationToken);
-        AppendElements(builder, drawing.Elements, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, textMetrics, drawing.SvgTextAsPaths, requiredFontFamilies);
+        AppendDrawingContent(builder, drawing, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, rasterOptions, OfficeTransform.Identity, textMetrics, drawing.SvgTextAsPaths, requiredFontFamilies);
         if (drawing.Fonts.Faces.Count > 0) {
             AppendEmbeddedFonts(builder, drawing.Fonts, cancellationToken, idPrefix,
                 requiredFontFamilies);
@@ -147,7 +152,9 @@ public static partial class OfficeDrawingSvgExporter {
         IOfficeRasterImageCodec? imageCodec,
         string? resourceIdPrefix,
         long maximumUtf8Bytes,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        long maximumRasterPixels = OfficeImageExportOptions.DefaultMaximumRasterPixels,
+        ICollection<OfficeImageExportDiagnostic>? diagnosticSink = null, string? diagnosticSource = null) {
         ArgumentOutOfRangeException.ThrowIfLessThan(maximumUtf8Bytes, 1L);
         ArgumentNullException.ThrowIfNull(drawing);
         if (double.IsNaN(scale) || double.IsInfinity(scale) || scale <= 0D) {
@@ -168,7 +175,7 @@ public static partial class OfficeDrawingSvgExporter {
                 imageCodec,
                 resourceIdPrefix,
                 cancellationToken,
-                maximumCharacters);
+                maximumCharacters, maximumRasterPixels, diagnosticSink, diagnosticSource);
         } catch (ArgumentOutOfRangeException) {
             throw new OfficeImageExportBatchLimitException(
                 nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes),

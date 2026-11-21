@@ -4,6 +4,9 @@ internal static class MarkdownBlockSyntaxBuilder {
     private static readonly MarkdownBlockSyntaxBuilderContext _context = new();
 
     internal static MarkdownSyntaxNode BuildBlock(IMarkdownBlock block, MarkdownSourceSpan? span = null, bool isGenerated = false) {
+        System.Runtime.CompilerServices.RuntimeHelpers.EnsureSufficientExecutionStack();
+        // Syntax built from a parsed object reads the source information its parse recorded.
+        (block as MarkdownObject)?.EnsureSourceInformation();
         var effectiveSpan = span ?? (block as MarkdownObject)?.SourceSpan;
         MarkdownSyntaxNode node;
 
@@ -66,6 +69,7 @@ internal static class MarkdownBlockSyntaxBuilder {
     }
 
     internal static IReadOnlyList<MarkdownSyntaxNode> BuildChildSyntaxNodes(ListItem item) {
+        item.EnsureSourceInformation();
         int blockCount = item.SyntaxBlockChildCount;
         if (blockCount == 0) {
             return Array.Empty<MarkdownSyntaxNode>();
@@ -183,6 +187,7 @@ internal static class MarkdownBlockSyntaxBuilder {
     }
 
     internal static IReadOnlyList<MarkdownSyntaxNode> GetOwnedSyntaxChildrenOrBuild(IChildMarkdownBlockContainer block) {
+        (block as MarkdownObject)?.EnsureSourceInformation();
         if (block is IOwnedSyntaxChildrenMarkdownBlock ownedSyntaxChildren) {
             return ownedSyntaxChildren.BuildOwnedSyntaxChildren();
         }

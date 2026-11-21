@@ -7,9 +7,13 @@ public sealed class ReaderOptions {
     /// <summary>Optional defaults for file and folder selection. Explicit folder options replace this policy.</summary>
     public ReaderFolderOptions? FolderOptions { get; set; }
 
-    /// <summary>Requested derived representations. Unsupported handlers reject TextAndMetadata before parsing.
+    /// <summary>Requested derived representations. Unsupported handlers reject TextAndMetadata and Text before parsing.
     /// The ordinary rich projection is the default.</summary>
     public ReaderProjection Projection { get; set; }
+
+    /// <summary>Set on normalized options when <see cref="ReaderProjection.Text"/> was requested. Handlers then receive
+    /// <see cref="ReaderProjection.TextAndMetadata"/>, and the read scope reduces the result to text chunks.</summary>
+    internal bool TextOnly { get; set; }
 
     /// <summary>Optional aggregate resource budgets for a read, including nested inputs.</summary>
     public ReaderResourceLimits? ResourceLimits { get; set; }
@@ -108,6 +112,19 @@ public sealed class ReaderOptions {
     /// When null, no total image payload limit is enforced.
     /// </summary>
     public long? MaxOpenXmlImageTotalAssetBytes { get; set; } = DefaultMaxOpenXmlImageTotalAssetBytes;
+
+    /// <summary>
+    /// Maximum time one read may spend laying out or rendering pages, such as Word page locations or DjVu page images.
+    /// Default: <see cref="System.Threading.Timeout.InfiniteTimeSpan"/>.
+    /// </summary>
+    /// <remarks>
+    /// The limit uses the shared image-export deadline, so exceeding it throws <c>OfficeImageExportTimeoutException</c>
+    /// (a <see cref="TimeoutException"/>) rather than <see cref="OperationCanceledException"/>. Cancelling the caller's
+    /// token still throws <see cref="OperationCanceledException"/>. Routes that do not lay out pages ignore the limit.
+    /// A format option with its own render timeout, such as <c>ReaderWordOptions.PageLocationOptions</c>, uses the
+    /// shorter of the two.
+    /// </remarks>
+    public TimeSpan LayoutTimeout { get; set; } = Timeout.InfiniteTimeSpan;
 
     /// <summary>
     /// Maximum characters per emitted chunk (best-effort).

@@ -10,12 +10,12 @@ using System.Xml;
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
 
-        private static void WriteWorksheetEntry(ZipArchive archive, FastWorksheetPackageModel model) {
-            var entry = archive.CreateEntry(model.WorksheetPath, CompressionLevel.Fastest);
+        private static void WriteWorksheetEntry(ExcelPackageArchive archive, FastWorksheetPackageModel model) {
+            string partEntryName = model.WorksheetPath;
             var worksheet = model.Worksheet;
             string dimension = worksheet.SheetDimension?.Reference?.Value ?? ExcelSheet.ComputeSheetDimensionReference(worksheet);
             var builder = new System.Text.StringBuilder(4096);
-            using var stream = entry.Open();
+            using var stream = archive.OpenEntry(partEntryName, CompressionLevel.Fastest);
             using var writer = new StreamWriter(stream, Utf8NoBom);
 
             builder.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
@@ -253,9 +253,9 @@ namespace OfficeIMO.Excel {
             builder.Append("</f>");
         }
 
-        private static void WriteTextEntry(ZipArchive archive, string path, string text) {
-            var entry = archive.CreateEntry(path, CompressionLevel.Fastest);
-            using var stream = entry.Open();
+        private static void WriteTextEntry(ExcelPackageArchive archive, string path, string text) {
+            string partEntryName = path;
+            using var stream = archive.OpenEntry(partEntryName, CompressionLevel.Fastest);
             using var writer = new StreamWriter(stream, Utf8NoBom);
             writer.Write(text);
         }

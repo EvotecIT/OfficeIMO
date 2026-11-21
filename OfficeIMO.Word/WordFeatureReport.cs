@@ -774,7 +774,7 @@ namespace OfficeIMO.Word {
             return parts
                 .Select(part => new {
                     Part = part,
-                    Count = CountDescendantsByLocalName(part.RootElement, localName)
+                    Count = CountDescendantsByLocalName(part, localName)
                 })
                 .Where(item => item.Count > 0)
                 .Select(item => $"{item.Part.Uri}: {item.Count} {localName} element(s)")
@@ -784,7 +784,7 @@ namespace OfficeIMO.Word {
         }
 
         private static int CountElementsByLocalName(IEnumerable<OpenXmlPart> parts, string localName) {
-            return parts.Sum(part => CountDescendantsByLocalName(part.RootElement, localName));
+            return parts.Sum(part => CountDescendantsByLocalName(part, localName));
         }
 
         private static List<string> DescribeBibliographyParts(IEnumerable<OpenXmlPart> parts) {
@@ -820,6 +820,8 @@ namespace OfficeIMO.Word {
 
         private static List<string> DescribeContentControlDataBindings(IEnumerable<OpenXmlPart> parts) {
             return parts
+                // A styles part streamed without any element of that name holds no data binding and is not loaded.
+                .Where(part => part is not StylesPart stylesPart || WordStyleDefinitionsReader.TryCountDescendantsByLocalName(stylesPart, "dataBinding") != 0)
                 .SelectMany(part => (part.RootElement?.Descendants<DataBinding>() ?? Enumerable.Empty<DataBinding>())
                     .Select(binding => DescribeContentControlDataBinding(part, binding)))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -859,6 +861,12 @@ namespace OfficeIMO.Word {
         private static string DescribePart(OpenXmlPart part) {
             return $"{part.Uri} ({part.ContentType})";
         }
+
+        // A styles part that was never loaded is searched from its stream rather than loaded for the search.
+        private static int CountDescendantsByLocalName(OpenXmlPart part, string localName) =>
+            part is StylesPart stylesPart && WordStyleDefinitionsReader.TryCountDescendantsByLocalName(stylesPart, localName) is long count
+                ? (int)count
+                : CountDescendantsByLocalName(part.RootElement, localName);
 
         private static int CountDescendantsByLocalName(DocumentFormat.OpenXml.OpenXmlElement? root, string localName) {
             if (root == null) return 0;

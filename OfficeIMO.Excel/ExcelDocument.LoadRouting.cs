@@ -13,7 +13,7 @@ namespace OfficeIMO.Excel {
             return DetectFormat(bytes, filePath) == ExcelFileFormat.Xlsb;
         }
 
-        internal static ExcelFileFormat DetectFormat(byte[] bytes, string? filePath) {
+        internal static ExcelFileFormat DetectFormat(byte[] bytes, string? filePath, int? maxPackageEntries = null) {
             ArgumentNullException.ThrowIfNull(bytes);
 
             if (OfficeCompoundDocumentDetector.HasCompoundSignature(bytes)) {
@@ -23,7 +23,10 @@ namespace OfficeIMO.Excel {
             }
 
             if (HasZipSignature(bytes)) {
-                return XlsbPackageDetector.TryFindWorkbookPart(bytes, out _)
+                int entryLimit = maxPackageEntries ?? OfficePackageSecurityOptions.SecureDefaults.MaxPartCount;
+                ValidateZipDirectory(OfficeArchiveSafety.ScanZipCentralDirectory(bytes, entryLimit), entryLimit);
+
+                return XlsbPackageDetector.TryFindWorkbookPart(bytes, entryLimit, out _)
                     ? ExcelFileFormat.Xlsb
                     : ExcelFileFormat.Xlsx;
             }
@@ -35,6 +38,52 @@ namespace OfficeIMO.Excel {
             return HasXlsbExtension(filePath)
                 ? ExcelFileFormat.Xlsb
                 : ExcelFileFormat.Xlsx;
+        }
+
+        /// <summary>
+        /// Applies the ZIP admission that format routing uses to readers that open a ZIP package directly.
+        /// Input that does not start with a ZIP signature is left to the reader's own diagnostics.
+        /// </summary>
+        internal static void ValidateZipPackage(byte[] bytes) {
+            if (!HasZipSignature(bytes)) return;
+            int entryLimit = OfficePackageSecurityOptions.SecureDefaults.MaxPartCount;
+            ValidateZipDirectory(OfficeArchiveSafety.ScanZipCentralDirectory(bytes, entryLimit), entryLimit);
+        }
+
+        /// <inheritdoc cref="ValidateZipPackage(byte[])"/>
+        internal static void ValidateZipPackage(Stream seekableStream, CancellationToken cancellationToken) {
+            long position = seekableStream.Position;
+            if (seekableStream.Length - position < ZipSignature.Length) return;
+            if (seekableStream.ReadByte() != ZipSignature[0] || seekableStream.ReadByte() != ZipSignature[1]) {
+                seekableStream.Position = position;
+                return;
+            }
+            seekableStream.Position = position;
+            int entryLimit = OfficePackageSecurityOptions.SecureDefaults.MaxPartCount;
+            ValidateZipDirectory(OfficeArchiveSafety.ScanZipCentralDirectory(
+                seekableStream, seekableStream.Length - position, entryLimit, cancellationToken), entryLimit);
+        }
+
+        private static void ValidateZipDirectory(OfficeArchiveSafety.ZipCentralDirectoryScanResult directory, int entryLimit) {
+            // An ambiguous or malformed directory may be read differently by the loader, for example with a ZIP64 entry
+            // count that the scan could not confirm, so it is rejected like the package security inspector does.
+            if (!directory.IsValid) {
+                throw new OfficePackageSecurityException(OfficePackageSecurityRule.MalformedPackage,
+                    directory.Error ?? "The ZIP central directory is malformed.");
+            }
+
+            // Reject an oversized directory here: either loader would otherwise open the archive
+            // and materialize every entry before its own checks run.
+            if (directory.LimitExceeded) {
+                throw new OfficePackageSecurityException(OfficePackageSecurityRule.PartCount,
+                    $"ZIP entry count exceeds the configured maximum of {entryLimit} before package parts are opened.",
+                    directory.EntryCount, entryLimit);
+            }
+
+            if (directory.HasEncryptedEntries) {
+                throw OfficeUnsupportedEncryption.Mark(new InvalidDataException(
+                    "The ZIP package contains encrypted entries and cannot be read as a workbook. Password-protected Excel workbooks are encrypted Office packages; open those with ExcelLoadOptions.Password or ExcelReaderOptions.Password."));
+            }
         }
 
         /// <summary>

@@ -81,9 +81,38 @@
     },
     {
       "task": "exec",
+      "id": "build-capability-overview",
+      "dependsOn": [
+        "build-capability-catalog",
+        "sync-pswriteoffice-content"
+      ],
+      "command": "pwsh",
+      "argsList": [
+        "-NoLogo",
+        "-NoProfile",
+        "-File",
+        "./scripts/Build-CapabilityOverview.ps1"
+      ],
+      "workingDirectory": "."
+    },
+    {
+      "task": "exec",
+      "id": "update-cli-catalog",
+      "timeoutSeconds": 1800,
+      "command": "pwsh",
+      "argsList": [
+        "-NoLogo",
+        "-NoProfile",
+        "-File",
+        "./scripts/Update-CliCatalog.ps1"
+      ],
+      "workingDirectory": "."
+    },
+    {
+      "task": "exec",
       "id": "build-aot-project-matrix",
       "dependsOn": [
-        "build-capability-catalog"
+        "build-capability-overview"
       ],
       "command": "pwsh",
       "argsList": [
@@ -349,6 +378,7 @@
         "../OfficeIMO.OneNote.Pdf/OfficeIMO.OneNote.Pdf.csproj",
         "../OfficeIMO.Project/OfficeIMO.Project.csproj",
         "../OfficeIMO.Opml/OfficeIMO.Opml.csproj",
+        "../OfficeIMO.Yaml/OfficeIMO.Yaml.csproj",
         "../OfficeIMO.Provenance.C2pa/OfficeIMO.Provenance.C2pa.csproj",
         "../OfficeIMO.Security/OfficeIMO.Security.csproj",
         "../OfficeIMO.PowerPoint.IWork/OfficeIMO.PowerPoint.IWork.csproj",
@@ -768,50 +798,14 @@
       "preserveOnWarnings": true
     },
     {
-      "task": "exec",
-      "id": "generate-excel-benchmark-data",
-      "dependsOn": [
-        "build-api-net8-0-optional"
-      ],
-      "command": "pwsh",
-      "argsList": [
-        "-NoLogo",
-        "-NoProfile",
-        "-File",
-        "./Build/Generate-ExcelBenchmarkWebsiteData.ps1",
-        "-PackageProfilePath",
-        ".\\Docs\\benchmarks\\officeimo.excel.package-profile-blog-2023-20-string-columns-10k-current.json;.\\Docs\\benchmarks\\officeimo.excel.package-profile-blog-2023-20-string-columns-300k-current.json",
-        "-RunMode",
-        "unrecorded",
-        "-Platform",
-        "unrecorded"
-      ],
-      "workingDirectory": ".."
-    },
-    {
-      "task": "exec",
-      "id": "generate-benchmark-overview",
-      "dependsOn": [
-        "generate-excel-benchmark-data"
-      ],
-      "command": "pwsh",
-      "argsList": [
-        "-NoLogo",
-        "-NoProfile",
-        "-File",
-        "./Build/Generate-BenchmarkWebsiteOverview.ps1"
-      ],
-      "workingDirectory": ".."
-    },
-    {
       "task": "build",
       "id": "build-site",
       "dependsOn": [
         "test-documentation-contracts",
+        "update-cli-catalog",
         "build-api-net8-0-optional",
         "build-release-hub",
-        "build-ecosystem-stats",
-        "generate-benchmark-overview"
+        "build-ecosystem-stats"
       ],
       "config": "./site.json",
       "out": "./_site",
@@ -830,7 +824,7 @@
     },
     {
       "task": "exec",
-      "id": "verify-excel-benchmark-page",
+      "id": "verify-benchmark-pages",
       "dependsOn": [
         "build-site"
       ],
@@ -1144,7 +1138,10 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/{revision}/{path}#L{line}",
       "includeNamespace": "OfficeIMO.Html",
       "injectCriticalCss": true,
-      "packageId": "OfficeIMO.Html.Rtf"
+      "packageId": "OfficeIMO.Html.Rtf",
+      "relatedContentManifests": [
+        "./data/apidocs/related/html-rtf.json"
+      ]
     },
     {
       "task": "apidocs",
@@ -1173,7 +1170,10 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/{revision}/{path}#L{line}",
       "includeNamespace": "OfficeIMO.Mhtml",
       "injectCriticalCss": true,
-      "packageId": "OfficeIMO.Mhtml"
+      "packageId": "OfficeIMO.Mhtml",
+      "relatedContentManifests": [
+        "./data/apidocs/related/mhtml.json"
+      ]
     },
     {
       "task": "apidocs",
@@ -1202,7 +1202,10 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/{revision}/{path}#L{line}",
       "includeNamespace": "OfficeIMO.Email",
       "injectCriticalCss": true,
-      "packageId": "OfficeIMO.Email.Image"
+      "packageId": "OfficeIMO.Email.Image",
+      "relatedContentManifests": [
+        "./data/apidocs/related/email-image.json"
+      ]
     },
     {
       "task": "apidocs",
@@ -1536,6 +1539,9 @@
       "out": "./_site/api/ocr-process",
       "title": "OfficeIMO.Ocr.Process API Reference",
       "baseUrl": "/api/ocr-process",
+      "relatedContentManifests": [
+        "./data/apidocs/related/ocr-process.json"
+      ],
       "docsHome": "/docs/capabilities/packages/",
       "format": "both",
       "legacyAliasMode": "omit",
@@ -1565,6 +1571,9 @@
       "out": "./_site/api/ocr-tesseract",
       "title": "OfficeIMO.Ocr.Tesseract API Reference",
       "baseUrl": "/api/ocr-tesseract",
+      "relatedContentManifests": [
+        "./data/apidocs/related/ocr-tesseract.json"
+      ],
       "docsHome": "/docs/capabilities/packages/",
       "format": "both",
       "legacyAliasMode": "omit",
@@ -1665,7 +1674,7 @@
       "templateDocsIndex": "./themes/officeimo/layouts/api-reference.html",
       "templateDocsType": "./themes/officeimo/layouts/api-reference.html",
       "bodyClass": "pf-api-docs pf-api-docs--powershell",
-      "docsHome": "/products/pswriteoffice/",
+      "docsHome": "/powershell/",
       "nav": "./site.json",
       "navContextPath": "/",
       "css": "/css/app.css,/css/docs.css,/css/api.css,/css/visual-system.css,/css/site-shell.css",
@@ -2246,6 +2255,17 @@
           "docsHome": "/docs/capabilities/packages/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Opml"
+        },
+        {
+          "id": "yaml",
+          "xml": "../OfficeIMO.Yaml/bin/Release/net8.0/OfficeIMO.Yaml.xml",
+          "assembly": "../OfficeIMO.Yaml/bin/Release/net8.0/OfficeIMO.Yaml.dll",
+          "out": "./_site/api/yaml",
+          "title": "OfficeIMO.Yaml API Reference",
+          "baseUrl": "/api/yaml",
+          "docsHome": "/docs/yaml/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Yaml"
         },
         {
           "id": "provenance-c2pa",
@@ -2938,6 +2958,7 @@
         "./_site/api/one-note-pdf/xrefmap.json",
         "./_site/api/project/xrefmap.json",
         "./_site/api/opml/xrefmap.json",
+        "./_site/api/yaml/xrefmap.json",
         "./_site/api/provenance-c2pa/xrefmap.json",
         "./_site/api/security/xrefmap.json",
         "./_site/api/power-point-iwork/xrefmap.json",
@@ -3056,7 +3077,7 @@
       "id": "verify-site",
       "dependsOn": [
         "deploy-theme-css",
-        "verify-excel-benchmark-page",
+        "verify-benchmark-pages",
         "verify-website-presentation"
       ],
       "skipModes": [
@@ -3185,6 +3206,7 @@
         "./_site/api/one-note-pdf/index.json",
         "./_site/api/project/index.json",
         "./_site/api/opml/index.json",
+        "./_site/api/yaml/index.json",
         "./_site/api/provenance-c2pa/index.json",
         "./_site/api/security/index.json",
         "./_site/api/power-point-iwork/index.json",

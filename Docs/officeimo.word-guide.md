@@ -43,10 +43,12 @@ opts into the full table catalogue and replaces matching table, note, header/foo
 `NoList` and registered custom definitions. Other authored styles, such as `Heading1`,
 remain unchanged.
 
-Native DOC output uses a 16-colour palette for borders and fills. Saving an RGB
-colour that needs approximation throws `OfficeConversionException` with a
-`word-doc-color-approximated` report. Accept it with `WordSaveOptions.AllowLoss`;
-DOCX retains the original RGB colours.
+Native DOC output uses a 16-colour palette for borders and table-cell fills.
+Saving an RGB colour that needs approximation throws `OfficeConversionException`
+with a `word-doc-color-approximated` report. Accept it with `WordSaveOptions.AllowLoss`;
+DOCX retains the original RGB colours. Paragraph fills keep their exact RGB value
+in DOC, as Word writes them, and an automatic fill or text colour still overrides
+an inherited one.
 
 Page size, margins, orientation and running content belong to a section's
 `PageSetup`; `document.PageSetup` is the first section's setup. `Header` and
@@ -238,7 +240,7 @@ paragraph.ContextualSpacing = true;
 paragraph.OutlineLevel = 9; // Body text; heading levels 1-9 use values 0-8.
 ```
 
-`WordParagraphStyleDefinition` exposes the same controls without the `Override` suffix. `ContextualSpacing`, `SuppressLineNumbers`, `SuppressAutoHyphens`, and `MirrorIndents` are nullable on both paragraphs and style definitions. These values survive DOCX and supported native DOC saves, including explicit false values. Existing Boolean pagination properties keep their previous behavior; use the nullable properties when style inheritance matters.
+`WordStyle`, from `document.Styles`, exposes the same controls without the `Override` suffix. `ContextualSpacing`, `SuppressLineNumbers`, `SuppressAutoHyphens`, and `MirrorIndents` are nullable on both paragraphs and styles. These values survive DOCX and supported native DOC saves, including explicit false values. Existing Boolean pagination properties keep their previous behavior; use the nullable properties when style inheritance matters.
 
 `OutlineLevel` returns directly authored formatting. Word fixes the effective outline level of paragraphs using built-in Heading1–Heading9 styles to the corresponding heading level, even if a different direct value is stored.
 
@@ -511,7 +513,7 @@ Console.WriteLine($"{report.OptimizedCount} images changed; {report.BytesSaved} 
 
 The inventory visits all package stories and XML media references, including body paragraphs, tables, headers, footers, notes, comments, DrawingML, and VML. Shared media uses the greatest pixel demand across its placements; crop edges increase that demand. Cropping remains editable and hidden crop pixels remain in the image. Tile fills, unresolved group transforms, relative sizing, and other unknown placements block downsampling for the shared part; explicit same-size recompression can still apply.
 
-Candidates are staged before mutation, with cooperative cancellation and rollback. Default limits are 32 MiB per encoded image, 128 MiB of staged originals/candidates, and 10,000 package parts. Metadata loss, including deliberate `Strip` or selective removal, blocks replacement unless `AllowMetadataLoss` is explicit. Signed packages block mutation unless `SignedDocumentPolicy` permits invalidation; saving that package also requires the corresponding save policy. `CompressionQuality` records Word's compression-state hint; use `OptimizeImages` to change the encoded bytes.
+Candidates are staged before mutation, with cooperative cancellation and rollback. Default limits are 32 MiB per encoded image, 128 MiB of staged originals/candidates, and 10,000 package parts. Metadata loss, including deliberate `Strip` or selective removal, blocks replacement unless `AllowMetadataLoss` is explicit. Signed packages block mutation unless `SignatureMutationPolicy` is set to `RemoveInvalidatedSignatures` or `PreserveSignatureMarkup`; saving that package also requires the same policy on `WordSaveOptions`. `CompressionQuality` records Word's compression-state hint; use `OptimizeImages` to change the encoded bytes.
 
 For supported legacy DOC inline pictures, optimization uses the same projected media API and native save preflight. The [legacy compatibility guide](../Docs/officeimo.word.legacy-doc-compatibility.md) describes the supported subset. The [workflow runner](../OfficeIMO.Workflows/README.md#optimize-embedded-word-images) provides source-preserving file and batch publication.
 
@@ -524,6 +526,8 @@ document.AddParagraph()
 document.AddParagraph()
     .AddHyperLink("Jump inside document", "target-section", addStyle: true);
 ```
+
+`AddBookmark` on a paragraph marks a position. To bookmark, comment on or link text that is already in the document, including part of a run or several paragraphs, use a [text range](../OfficeIMO.Word/README.md#text-ranges).
 
 ### Fields and table of contents
 
@@ -545,6 +549,8 @@ document.UpdateFields(new WordFieldUpdateOptions {
 
 Each table of contents becomes a complete TOC field with one hyperlinked entry per heading and a `PAGEREF` page number, and the document is no longer flagged to update fields on open. Reference `OfficeIMO.Word.Pdf` and add `using OfficeIMO.Word.Pdf;` for `WithPdfLayoutPagination()`. This explicit engine selection lays out a copy of the document, so it costs about as much as a PDF conversion; without it, `PAGEREF` and `NUMPAGES` use explicit page and section breaks. Headings are paragraphs with `Heading1`-`Heading9` styles, heading styles copied by a merge (such as `heading 1_0`), or outline levels from the paragraph or its style.
 
+`TablesOfContentsOnly` regenerates the tables of contents the same way but refreshes only the fields inside them, their `PAGEREF` page numbers, and leaves every other field result as it is.
+
 ### Append documents
 
 `AppendDocument` copies another document's body together with the styles, lists, images, hyperlinks, headers, footers, footnotes, endnotes and comments it uses. List, note, comment, bookmark, drawing and content-control ids are renumbered, and bookmarks whose names already exist are renamed along with the hyperlinks and fields that target them.
@@ -553,24 +559,44 @@ Each table of contents becomes a complete TOC field with one hyperlinked entry p
 using var pack = WordDocument.Load("cover.docx");
 foreach (string brief in briefs) {
     using var source = WordDocument.Load(brief);
-    pack.AppendDocument(source, new WordDocumentMergeOptions {
-        StyleMode = WordMergeStyleMode.KeepDifferentStyles
-    });
+    pack.AppendDocument(source);
 }
 
-pack.UpdateFields(new WordFieldUpdateOptions { UpdateTablesOfContents = true }.WithPdfLayoutPagination());
+pack.UpdateFields(new WordFieldUpdateOptions { TablesOfContentsOnly = true }.WithPdfLayoutPagination());
 pack.Save("pack.docx");
 ```
 
-`StyleMode` decides what happens when a source style matches a destination style by name (or id):
+Refresh only the tables of contents after appending. A full field update evaluates `DOCPROPERTY`, `TITLE`, `AUTHOR` and the other property fields in the appended content against the pack's own properties, so each brief would show the cover's values instead of its own.
 
-- `UseDestinationStyles` (default) uses the destination definition and copies only styles the destination lacks.
-- `KeepDifferentStyles` shares matching styles without list references and copies styles with differing definitions or list references under a new id and name, such as `Heading1_0` / `heading 1_0`, repointing the appended paragraphs, runs, tables and lists to it. When the document defaults differ, the source's root paragraph styles take a copy of the source defaults, and paragraphs without a style name the source default style explicitly.
+`StyleConflictMode` decides what happens when a source style matches a destination style by name (or id) but is defined differently. Matching styles with the same definition are shared, and styles the destination lacks are copied, in every mode:
+
+- `Rename` (default) keeps the appended content looking as it did: the source style is copied under a new id and name, such as `Heading1_0` / `heading 1_0`, and the appended paragraphs, runs, tables and lists point to it. Styles that number paragraphs with a list are always copied. When the document defaults differ, the source's root paragraph styles take a copy of the source defaults, and paragraphs without a style name the source default style explicitly.
+- `KeepTarget` formats the appended content with the destination's definition.
+- `Overwrite` replaces the destination's definition with the source one, so destination content using the style changes too.
 
 `SectionMode` decides how page setup is kept:
 
 - `KeepSourceSections` (default) closes the destination's last section with a section break, so each part keeps its page size, margins, orientation, headers and footers.
 - `UseDestinationSections` continues the appended content in the destination's last section and drops the source section breaks.
+
+Content after a source section break keeps its own page setup. A source section without its own header or footer would otherwise inherit the destination's last one, so it gets an empty one instead.
+
+### Split documents
+
+`SplitBySection()` returns one new document per section; `SplitByHeading(level)` starts a new document at every top-level paragraph whose heading level is `level` or higher, with any text before the first heading as its own piece. Headings are recognised by the outline level of the paragraph or its style chain, or by a `heading N` style name.
+
+```csharp
+using var handbook = WordDocument.Load("handbook.docx");
+IReadOnlyList<WordDocument> chapters = handbook.SplitByHeading(level: 1);
+for (int i = 0; i < chapters.Count; i++) {
+    using WordDocument chapter = chapters[i];
+    // A piece before the first heading may hold only a table or a picture.
+    string title = chapter.Paragraphs.FirstOrDefault(p => !string.IsNullOrWhiteSpace(p.Text))?.Text ?? $"Part {i + 1}";
+    chapter.Save(Path.Combine("chapters", $"{i + 1:D2} {title}.docx"));
+}
+```
+
+Each piece is a copy of the source package with the rest of the body removed, so settings, theme, fonts and document properties carry over. The section the piece ends in closes it, and headers and footers the first section inherited in the source are written into it. Styles, lists, images, hyperlinks, embedded objects, headers, footers, footnotes, endnotes and comments the piece no longer uses are removed. Bookmarks and comment ranges cut by a piece boundary are dropped, and a complex field cut by a boundary is closed or loses its trailing marks so every piece opens cleanly; tables of contents keep their entries until fields are updated. The source document is not changed.
 
 ### Plain DOCX templates
 
@@ -653,6 +679,20 @@ certificate trust. The cross-host `OfficeDocument.Inspect(path, options).Package
 PowerPoint, and Visio. The established `ValidateSignatures(...)` API additionally retains Word-specific timestamp and
 diagnostic evidence.
 
+Saving a signed document is blocked by default with `WordSignatureSavePolicyException`, because the rewritten
+package invalidates existing signatures. Set `WordSaveOptions.SignatureMutationPolicy` to
+`OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures` to drop the signature parts and the application
+signature flag, or to `PreserveSignatureMarkup` to keep the now-untrusted markup, for example before re-signing.
+Excel and PowerPoint use the same option on `ExcelSaveOptions` and `PowerPointSaveOptions`.
+
+```csharp
+using WordDocument document = WordDocument.Load("report.docx");
+document.AddParagraph("Edited after signing");
+document.Save(new WordSaveOptions {
+    SignatureMutationPolicy = OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures
+});
+```
+
 ### VBA macro-project signatures
 
 Signature parts in saved `.docm` and `.dotm` files can be inspected on every
@@ -666,7 +706,8 @@ WordMacroProjectSignatureInfo signatures =
 ```
 
 Managed VBA signing and content-binding validation work on every supported
-platform. The workflow blocks existing OPC package signatures by default,
+platform. The workflow blocks existing OPC package signatures by default
+(`WordMacroProjectSigningOptions.SignatureMutationPolicy`),
 clears existing VBA signatures, creates and verifies the legacy, agile, and V3
 profiles, proves that `vbaProject.bin` and the source package did not change
 concurrently, and atomically replaces the package only after final validation.
@@ -767,8 +808,18 @@ inheritance and font defaults, rich run formatting, paragraph spacing, indents,
 tabs and borders into an editable document. Tables retain their grid, widths,
 cell spans, row settings, shading and borders. Embedded raster pictures retain
 their bytes and VML geometry; hyperlinks use native package relationships.
-Headers and footers have their own parts and image relationships. Section page
-sizes, margins, columns and document grids retain their supported native values.
+Headers and footers have their own parts and image relationships. Inline footnotes
+and endnotes retain their body anchors, reference suppression, multiple paragraphs,
+blank paragraphs, rich text, tables, pictures and hyperlinks in native note parts.
+Use `FootNotes`, `EndNotes` and `Inspect()` to read the notes, and edit their live
+paragraph runs before saving DOCX. Literal custom marks stay in their source
+positions; import does not infer missing reference text. Custom-reference appearance
+is unqualified and reports `WORDML2003_NOTE_REFERENCE_APPROXIMATION`, which strict
+load rejects while permissive import retains the note content and suppression.
+Nested notes, notes in headers or footers, special separator types and unsupported
+note settings remain
+reported losses. Section page sizes, margins, columns and document grids retain
+their supported native values.
 
 Ordinary list definitions and instances become editable numbering through the
 same list model used by DOCX. The native Word reference qualifies decimal and
@@ -1009,12 +1060,15 @@ separator, number format, and position. Mixed body fonts, per-point or series-sp
 best-fit radial leader lines, unsupported radial label positions, unsupported effects, and unrepresented outlines return false
 without changing the native document. Native authoring remains available for these charts.
 Outside-end radial leader lines are supported when they can be placed without crossing another doughnut ring.
-Deleted axes suppress their lines, and primary tick-label placement and automatic/minimum/maximum
-axis crossing are preserved where the renderer supports them; automatic zero crossing through a negative
-value range and maximum crossing on horizontal bars are rejected. Nonstandard axis arrangements,
+Deleted axes suppress their lines. Primary tick-label placement (next to the axis, low, high or none),
+automatic, minimum, maximum and explicit axis crossings, and value-axis display units are preserved: a
+category axis crossing at zero runs along the zero line with its labels beside it, as in Office. Empty
+cells keep the chart's blank-cell setting (gaps, connected lines or zero), and a title without text
+shows the single series name, or Office's English "Chart Title" placeholder for an English chart with
+several series. Nonstandard axis arrangements,
 title shape fills or unsupported legend fills,
-manual title layouts, unsupported numeric formats, and nondefault bar spacing
-require a richer projection and return false. Analytical overlays, sparse, empty, unequal or nonnumeric value caches,
+manual axis-title layouts, unsupported numeric formats, and nondefault bar spacing
+require a richer projection and return false. Analytical overlays, empty, unequal or nonnumeric value caches,
 time-scaled date axes, inverted negative bars, unresolved native style presets, per-entry legend text,
 multiline, rotated or aligned text layouts, chart data tables, hierarchical categories, visible secondary category axes,
 category-label skipping, offsets or non-centered alignment, rounded chart frames, non-box bar shapes,
@@ -1038,6 +1092,9 @@ outlines, and per-point marker overrides reject static projection. Supported fil
 series outlines are inherited by points; explicit point outlines take precedence.
 Picture markers reject static projection. Visible inherited markers require an explicit supported series symbol.
 Small authored chart canvases retain explicit font, stroke and marker sizes; quality reports identify cramped or overflowing content.
+PDF and page-image export skip a chart they cannot draw exactly and report the reason. Set
+`ChartRendering.Fidelity` on `WordPdfExportOptions` or `WordImageExportOptions` to `OfficeChartFidelity.BestEffort`
+to draw the closest approximation instead; each approximation is reported as a `chart-approximation` warning.
 
 Category discovery checks all populated series before generating fallback labels.
 The longest available category cache supplies labels, and shorter series retain
@@ -1159,3 +1216,28 @@ static OfficeProvenanceReport InspectUploadedWord(byte[] packageBytes) =>
 ## Concealed-content inspection and cleanup
 
 `OfficeDocument.Inspect(path, new OfficeInspectOptions { ContentSafety = new OfficeContentSafetyOptions() }).ContentSafety` reports native/inherited hidden runs, deleted revisions, tiny or zero-geometry text, explicit low contrast, comments/notes, alternative text, and exact Unicode evidence. Pass reviewed finding IDs to `WordDocument.RemoveSelectedContent(...)`; the package is reopened after cleanup, and signed-document mutation fails closed by default. These findings describe ingestion risk, not AI authorship.
+
+## Hidden data and personal information
+
+`InspectHiddenData()` lists properties, comments, tracked changes, reviewer identities, hidden text, document variables, RSIDs, custom XML, image metadata, printer settings and template references. `RemoveHiddenData(options)` removes the selected categories and reports each item's outcome. The [hidden data support matrix](officeimo.hidden-data-support-matrix.md) lists what each category covers and what stays.
+
+## Accessibility checks
+
+`InspectAccessibility()` checks the document body and returns an `OfficeAccessibilityReport`, the same report type as the PowerPoint checker, so one list, `EnsureCompliant()` gate and `ToJson()` output cover both formats. Each finding's `Location` reads `Document`, `Paragraph 12` or `Table 2`; `LocationIndex` is the zero-based paragraph and `ObjectId` and `ObjectName` identify a drawing. `WordAccessibilityOptions.Profile` takes `OfficeAccessibilityPolicyProfile.Default` or `Strict`. The rules:
+
+| Code | Rule | Severity |
+| --- | --- | --- |
+| `accessibility-missing-document-title` | The package has no title | Error |
+| `accessibility-missing-language` | No default language in the document defaults or the Normal style | Error |
+| `accessibility-missing-alternative-text` | An image, shape, chart, SmartArt graphic or VML picture has no description or title and is not marked decorative. Text-box shapes with text are skipped | Error |
+| `accessibility-heading-level-skipped` | A heading is more than one level below the previous heading | Warning (Error in `Strict`) |
+| `accessibility-missing-headings` | 20 or more paragraphs of text and no headings | Warning (Error in `Strict`) |
+| `accessibility-missing-table-header` | A data table with more than one row does not mark its first row as a header row | Error |
+| `accessibility-layout-table` | A single-row table, a table holding a nested table, or a borderless table holding images. `IsHeuristic` is true and the severity stays Warning | Warning |
+| `accessibility-link-text-missing`, `accessibility-unclear-link-label` | A hyperlink has no text, or text such as "click here", "here", "more" or a bare URL | Error |
+| `accessibility-low-contrast` | Text with an explicit colour is below 4.5:1 (3:1 for 18 pt, or 14 pt bold) against its highlight, run, paragraph or cell shading, or the page colour. `MeasuredValue` and `RequiredValue` carry the ratios | Error |
+| `accessibility-floating-object` | A drawing is anchored instead of inline with text | Warning (Error in `Strict`) |
+| `accessibility-blank-paragraph-spacing` | Two or more consecutive empty body paragraphs | Warning (Error in `Strict`) |
+
+Text with automatic colour is not checked, because Word picks a readable colour for it. `FixAccessibility(new WordAccessibilityFixOptions { Title = ..., Language = ..., MarkTableHeaderRows = true })` applies only the safe fixes: a missing title, a missing default language, and a header row on data tables that do not look like layout tables. It returns a fresh report.
+

@@ -44,6 +44,9 @@ internal static partial class MarkdownReader {
             }
 
             if (k >= lines.Length) { index = k; return; }
+            // Every nested block below, and the attribute line that may precede one, is indented
+            // to the item's content. The next sibling item usually is not, so stop here.
+            if (CountLeadingIndentColumns(lines[k] ?? string.Empty) < continuationIndent) { index = k; return; }
             if (!sawBlankLine && k > 0 && string.IsNullOrWhiteSpace(lines[k - 1])) sawBlankLine = true;
 
             // Nested fenced code block
@@ -622,6 +625,8 @@ internal static partial class MarkdownReader {
     private static bool IsCalloutHeader(string line, out string kind, out string title) {
         kind = string.Empty; title = string.Empty;
         if (string.IsNullOrEmpty(line)) return false;
+        // As with a block quote, the ">" may be indented by at most three columns; more is indented code.
+        if (CountLeadingIndentColumns(line) > 3) return false;
         var t = line.TrimStart();
         if (!t.StartsWith(">", StringComparison.Ordinal)) return false;
         t = t.Substring(1).TrimStart();

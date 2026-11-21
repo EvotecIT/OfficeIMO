@@ -1010,6 +1010,20 @@ Unknown XML, vendor extensions, scripts, embedded content, and unsupported drawi
 
 `OdfCapabilityCatalog.Advanced` provides stable capability IDs and distinguishes editable subsets, preserved content, inspection, and detected-but-unsupported features.
 
+## Before sharing
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.OpenDocument;
+
+OdfDocument document = OdfDocument.Load("Report.odt");
+OfficeHiddenDataReport report = document.RemoveHiddenData();
+foreach (OfficeHiddenDataFinding finding in report.Findings) Console.WriteLine($"{finding.Outcome} {finding.Kind} at {finding.Location}");
+document.Save("Report-shared.odt");
+```
+
+`RemoveHiddenData()` works on ODT, ODS, ODP and ODG documents. It removes identity metadata, user-defined metadata, annotations, speaker notes, the thumbnail, printer settings and image metadata, anonymizes the authors of annotations and tracked changes you keep, and reports each item. Tracked text changes are accepted or rejected only through `TrackedChanges`. Hidden sections, text, sheets, slides, shapes and shapes on hidden drawing layers are removed only when `OfficeHiddenDataKind.HiddenContent` is selected. Provenance, such as an image's AI-generated declaration, is kept unless `OfficeHiddenDataKind.Provenance` is selected. See the [hidden data matrix](../Docs/officeimo.hidden-data-support-matrix.md).
+
 ## Content provenance
 
 `OdfDocument.InspectProvenance("input.odt")` reports C2PA and AI-specific IPTC metadata in ODF packages and supported embedded images. `OdfDocument.RemoveProvenance("input.odt", "clean.odt")` performs a bounded package rewrite while preserving the required uncompressed, first `mimetype` entry. Signed-package mutation is blocked unless removal of invalidated ODF signature entries is requested explicitly. Optional cryptographic C2PA verification remains in `OfficeIMO.Security`.

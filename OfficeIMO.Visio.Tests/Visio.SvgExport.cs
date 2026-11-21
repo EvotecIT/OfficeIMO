@@ -435,7 +435,8 @@ namespace OfficeIMO.Tests {
             XElement labelBackground = connectorGroup.Elements(ns + "rect")
                 .Single(rect => (string?)rect.Attribute("data-officeimo-connector-label-background") == "true");
             Assert.True(double.Parse(labelBackground.Attribute("width")!.Value, CultureInfo.InvariantCulture) > 0D);
-            Assert.Equal("0.902", labelBackground.Attribute("fill-opacity")!.Value);
+            // A new connector label states Visio's Connector style background: opaque white.
+            Assert.Null(labelBackground.Attribute("fill-opacity"));
 
             XElement labelText = connectorGroup.Elements(ns + "text").Single();
             Assert.True(labelText.Elements(ns + "tspan").Count() > 1);

@@ -339,14 +339,7 @@ namespace OfficeIMO.Excel {
                         _ = dateTime;
                         return EstimateAutoFitWidthFromLength(16);
                     case DateTimeOffset dateTimeOffset:
-                        try {
-                            _ = dateTimeOffsetWriteStrategy(dateTimeOffset);
-                            return EstimateAutoFitWidthFromLength(16);
-                        } catch (ArgumentException) {
-                            return EstimateAutoFitWidth(dateTimeOffset.ToString("o", CultureInfo.InvariantCulture));
-                        } catch (OverflowException) {
-                            return EstimateAutoFitWidth(dateTimeOffset.ToString("o", CultureInfo.InvariantCulture));
-                        }
+                        return EstimateDateTimeOffsetAutoFitWidth(dateTimeOffset, dateTimeOffsetWriteStrategy);
                     case TimeSpan timeSpan:
                         return EstimateAutoFitWidthFromLength(CountFormattedCharacters(timeSpan));
                     case double doubleValue:
@@ -466,6 +459,11 @@ namespace OfficeIMO.Excel {
             }
 
             private static double EstimateDateTimeOffsetAutoFitWidth(DateTimeOffset value, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy) {
+                if (CoerceValueHelper.IsTextStrategy(dateTimeOffsetWriteStrategy)) {
+                    // Round-trip text always has 33 characters: seven fractional digits and a +hh:mm offset.
+                    return EstimateAutoFitWidthFromLength(33);
+                }
+
                 try {
                     _ = dateTimeOffsetWriteStrategy(value);
                     return EstimateAutoFitWidthFromLength(16);

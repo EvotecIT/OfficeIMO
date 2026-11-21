@@ -1,4 +1,5 @@
 using BenchmarkDotNet.Attributes;
+using OfficeIMO.Benchmarks;
 
 namespace OfficeIMO.OpenDocument.Benchmarks.Comparisons;
 
@@ -15,14 +16,20 @@ public class OdsCreateComparisonBenchmarks {
     [GlobalSetup]
     public void Setup() {
         _scale = OdsComparisonCorpus.Get(Scale);
-        OdsComparisonValidation.Validate(Scale);
+        OdsComparisonReport report = OdsComparisonValidation.Validate(Scale);
+        foreach (OdsOutputEvidence output in new[] { report.OfficeIMO, report.OpenStandardLibrary }) {
+            BenchmarkOutputValidationLog.Passed(output.Implementation,
+                $"Scale={Scale}; cells={output.RecordCount}; characters={output.ContentLength}");
+        }
     }
 
     /// <summary>Creates the complete ODS package through OfficeIMO.</summary>
     [Benchmark(Baseline = true, Description = "OfficeIMO")]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public byte[] OfficeIMO() => OdsComparisonWorkflows.CreateOfficeIMO(_scale);
 
     /// <summary>Creates the same complete ODS package through OpenStandardLibrary.</summary>
     [Benchmark(Description = "OpenStandardLibrary")]
+    [BenchmarkCategory("library:OpenStandardLibrary", "case:Default")]
     public Task<byte[]> OpenStandardLibrary() => OdsComparisonWorkflows.CreateOpenStandardLibrary(_scale);
 }

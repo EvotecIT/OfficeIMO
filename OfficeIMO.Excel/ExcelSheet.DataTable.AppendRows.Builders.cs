@@ -315,17 +315,17 @@ namespace OfficeIMO.Excel {
                     if (value is float floatValue) return CoerceValueHelper.HandleNumber(floatValue);
                     break;
                 case TabularAppendColumnKind.Decimal:
-                    if (value is decimal decimalValue) return CoerceValueHelper.HandleDecimal(decimalValue);
+                    if (value is decimal decimalValue && ExcelExactNumber.FitsNumberCell(decimalValue)) return CoerceValueHelper.HandleDecimal(decimalValue);
                     break;
                 case TabularAppendColumnKind.SignedInteger:
                     if (value is int intValue) return CoerceValueHelper.HandleSignedInteger(intValue);
-                    if (value is long longValue) return CoerceValueHelper.HandleSignedInteger(longValue);
+                    if (value is long longValue && ExcelExactNumber.FitsNumberCell(longValue)) return CoerceValueHelper.HandleSignedInteger(longValue);
                     if (value is short shortValue) return CoerceValueHelper.HandleSignedInteger(shortValue);
                     if (value is sbyte sbyteValue) return CoerceValueHelper.HandleSignedInteger(sbyteValue);
                     break;
                 case TabularAppendColumnKind.UnsignedInteger:
                     if (value is uint uintValue) return CoerceValueHelper.HandleUnsignedInteger(uintValue);
-                    if (value is ulong ulongValue) return CoerceValueHelper.HandleUnsignedInteger(ulongValue);
+                    if (value is ulong ulongValue && ExcelExactNumber.FitsNumberCell(ulongValue)) return CoerceValueHelper.HandleUnsignedInteger(ulongValue);
                     if (value is ushort ushortValue) return CoerceValueHelper.HandleUnsignedInteger(ushortValue);
                     if (value is byte byteValue) return CoerceValueHelper.HandleUnsignedInteger(byteValue);
                     break;
@@ -342,11 +342,11 @@ namespace OfficeIMO.Excel {
                     if (value is DateOnly dateOnlyValue) return CoerceValueHelper.HandleNumber(ExcelDateSystemConverter.ToSerial(dateOnlyValue.ToDateTime(TimeOnly.MinValue), _excelDocument.DateSystem));
                     break;
                 case TabularAppendColumnKind.TimeOnly:
-                    if (value is TimeOnly timeOnlyValue) return CoerceValueHelper.HandleNumber(timeOnlyValue.ToTimeSpan().TotalDays);
+                    if (value is TimeOnly timeOnlyValue) return CoerceValueHelper.HandleNumber(ExcelDateSystemConverter.ToSerial(timeOnlyValue.ToTimeSpan()));
                     break;
 #endif
                 case TabularAppendColumnKind.TimeSpan:
-                    if (value is TimeSpan timeSpanValue) return CoerceValueHelper.HandleNumber(timeSpanValue.TotalDays);
+                    if (value is TimeSpan timeSpanValue) return CoerceValueHelper.HandleNumber(ExcelDateSystemConverter.ToSerial(timeSpanValue));
                     break;
             }
 
@@ -376,7 +376,7 @@ namespace OfficeIMO.Excel {
             var (cellValue, cellType) = CoerceValueHelper.Coerce(
                 value,
                 HandleString,
-                _excelDocument.DateTimeOffsetWriteStrategy,
+                _excelDocument.EffectiveDateTimeOffsetWriteStrategy,
                 _excelDocument.DateSystem);
             sharedStringIndexes = indexes;
 

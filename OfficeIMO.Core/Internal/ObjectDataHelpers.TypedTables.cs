@@ -65,9 +65,14 @@ internal static partial class ObjectDataHelpers {
 
     private static MemberInfo[] GetTypedTableMembers(
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] Type type) =>
-        type.GetProperties(BindingFlags.Instance | BindingFlags.Public)
-            .Where(property => property.GetMethod?.IsPublic == true && property.GetIndexParameters().Length == 0)
-            .Cast<MemberInfo>().Concat(type.GetFields(BindingFlags.Instance | BindingFlags.Public)).ToArray();
+        OfficeIMO.Data.PublicInstanceProperties.Get(type)
+            .Where(property => property.GetMethod?.IsPublic == true)
+            .Cast<MemberInfo>()
+            .Concat(type.GetFields(BindingFlags.Instance | BindingFlags.Public)
+                .GroupBy(field => field.Name, StringComparer.Ordinal)
+                .Select(group => group.Aggregate((kept, field) =>
+                    kept.DeclaringType!.IsAssignableFrom(field.DeclaringType) ? field : kept)))
+            .ToArray();
 
     internal sealed class TypedTableData(string[] headers, IReadOnlyList<object?[]> rows) {
         internal string[] Headers { get; } = headers;

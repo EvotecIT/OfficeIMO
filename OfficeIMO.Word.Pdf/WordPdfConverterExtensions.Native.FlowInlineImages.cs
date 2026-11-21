@@ -45,17 +45,19 @@ namespace OfficeIMO.Word.Pdf {
             try {
                 if (!allowFrameOverflow)
                     return TryCreateNativeCellInlineImage(image, out inline, options, cancellationToken: cancellationToken,
-                        reportPreparationWarnings: false, clipToParagraphFragment: clipToParagraphFragment);
+                        reportPreparationWarnings: false, clipToParagraphFragment: clipToParagraphFragment,
+                        linkUri: GetNativeImageLink(image));
                 inline = null;
                 // The ordinary paragraph renderer owns unavailable-image diagnostics.
                 // A successful probe still maps crop diagnostics through options.
                 if (!TryPrepareNativeBodyImage(image, null, "flow inline image", out byte[] prepared,
-                        cancellationToken: cancellationToken)) return false;
+                        cancellationToken: cancellationToken, svgFallbackReport: options)) return false;
                 double width = image.Width?.ToPoints() ?? 144D;
                 double height = image.Height?.ToPoints() ?? 144D;
                 PdfCore.PdfImageStyle style = CreateNativeImageStyle(image, options, "inline image");
                 style.ScaleDownToFit = false;
-                inline = PdfCore.PdfTextRun.Inline(new PdfCore.PdfInlineImage(prepared, global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height), style, global::OfficeIMO.OfficeLength.Points(0D)) {
+                inline = PdfCore.PdfTextRun.Inline(new PdfCore.PdfInlineImage(prepared, global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height), style, global::OfficeIMO.OfficeLength.Points(0D),
+                    linkUri: GetNativeImageLink(image)) {
                     AllowFrameOverflow = true
                 });
                 return true;

@@ -1,5 +1,7 @@
+using DocumentFormat.OpenXml;
+
 namespace OfficeIMO.Excel.Xlsb.Model {
-    /// <summary>Represents a worksheet AutoFilter and its common equality-list criteria.</summary>
+    /// <summary>Represents a worksheet AutoFilter and its common criteria.</summary>
     internal sealed class XlsbAutoFilter {
         private readonly List<XlsbAutoFilterColumn> _columns = new List<XlsbAutoFilterColumn>();
 
@@ -29,6 +31,18 @@ namespace OfficeIMO.Excel.Xlsb.Model {
         internal bool IncludeBlank { get; set; }
 
         internal IReadOnlyList<string> Values => _values;
+
+        /// <summary>True once the column has an equality-list (BrtBeginFilters) collection.</summary>
+        internal bool HasValueList { get; set; }
+
+        /// <summary>
+        /// The projected SpreadsheetML criterion other than an equality list (customFilters, top10, dynamicFilter or
+        /// iconFilter), or null.
+        /// </summary>
+        internal OpenXmlElement? Criterion { get; set; }
+
+        /// <summary>True between BrtBeginCustomFilters and BrtEndCustomFilters.</summary>
+        internal bool InCustomFilters { get; set; }
 
         internal bool HasUnsupportedContent { get; set; }
 

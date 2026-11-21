@@ -109,7 +109,9 @@ must report that failure without discarding completed output counts.
 
 ## Single conversions and file batches
 
-`OfficeWorkflowRunner` executes its configured `ConversionRoutes`. `OfficeConverter` runs directory and selected-file batches after `OfficeWorkflow.RegisterConversions()`, with shared profiles, diagnostics and publication policies. Route-owned renderer settings use `OfficeConversionOptions.RegisteredSettings`. PDF export covers DOC, DOCX, TXT, XLSX, PPTX, HTML, Markdown, RTF, ODG/FODG, Publisher PUB, XPS, OpenXPS, DjVu and CHM. CHM also exports linked Markdown and reflowable EPUB through its owning adapters. Other built-in targets include PDF-to-DOCX/XLSX/PPTX/HTML and reviewed book-project-to-EPUB export. Unsupported or filtered files produce skipped outcomes; their count is separate from selected conversions.
+`OfficeWorkflowRunner` executes its configured `ConversionRoutes`. `OfficeConverter` runs directory and selected-file batches after `OfficeWorkflow.RegisterConversions()`, with shared profiles, diagnostics and publication policies. Route-owned renderer settings use `OfficeConversionOptions.RegisteredSettings`. PDF export covers DOC, DOCX, TXT, XLSX, PPTX, HTML, Markdown, RTF, ODT/ODS/ODP, ODG/FODG, Visio, email (EML, MSG, OFT, TNEF), EPUB, Publisher PUB, XPS, OpenXPS, DjVu and CHM. CHM also exports linked Markdown and reflowable EPUB through its owning adapters. Other built-in targets include Markdown/HTML/RTF/ODT-to-DOCX, DOCX/XLSX/PPTX to ODT/ODS/ODP and back, PDF-to-DOCX/XLSX/PPTX/HTML and reviewed book-project-to-EPUB export. The executable set is the catalog's host route set (`OfficeConversionCapability.HostExecutable`), which the `officeimo convert` command and the `officeimo_convert` MCP tool also use.
+
+Email PDF renders the styled message through the HTML-to-PDF engine: a header block with subject, sender, recipients and date, the HTML, RTF or plain body under the shared sanitization and remote-resource policy, inline MIME images, and a list of file attachments. `OfficeConversionOptions.EmailPdf` adjusts the header, attachment list, inline-resource limits and page settings. `OutputProfile = OfficeConversionProfile.TextOnly` selects the Reader text projection for archival output. EPUB PDF uses the Reader projection of the chapters in spine order. Unsupported or filtered files produce skipped outcomes; their count is separate from selected conversions.
 
 ```csharp
 using OfficeIMO;
@@ -1637,7 +1639,7 @@ Per-document defaults are 64 MiB input and 256 MiB output; concurrency accepts 1
 
 `IProgress<OfficeBatchItemReport>` callbacks can arrive concurrently; consume or stream them without retaining a whole inventory. The result contains bounded counts. Checkpoints retain up to 32 non-information diagnostics, including source, loss kind and location, and report truncation. Changing the XML-part budget invalidates reuse for routes governed by that budget; existing artifacts remain protected. A host can supply `PublicationGuard` to protect output and checkpoint destinations. Conversion completion retains each adapter's fidelity limits and does not prove exact Microsoft Office pagination.
 
-Studio exposes **Convert → Batch PDF export**. The CLI uses `officeimo workflow batch`; PSWriteOffice uses `Export-OfficeDocumentPdf -InputDirectory ... -OutputDirectory ...` or selected file pipelines on PowerShell 7.4 or newer.
+Studio exposes **Convert → Batch PDF export**. The CLI uses `officeimo workflow batch`; PSWriteOffice uses `Convert-OfficeDocument -Path <folder> -To Pdf -OutputDirectory ...` (add `-Recurse` or `-Extension` to choose files) or selected file pipelines on PowerShell 7.4 or newer.
 
 ## Email evidence and conversation dossiers
 
@@ -2039,17 +2041,87 @@ separate HTML destination.
 
 Every workflow request runs with explicit input and output limits, cancellation, staged output validation, and a caller-selected collision policy. Single-artifact `OfficeWorkflowResult.OutputBytes` and `OutputSha256`, when available, describe the captured published bytes without reopening the final destination. Passwords remain request-only values and are not copied into diagnostics or results. PDF comparison accepts a separate `ComparisonPdfPassword` when the two inputs use different credentials.
 
-`PdfPrintRenderer.Prepare(document, request)` turns an authenticated `PdfDocument` snapshot and its `PdfPrintPlanRequest` into immutable PNG sheets. Display `prepared.Sheets[i].GetPng()` for review, then pass that same `PdfPreparedPrintDocument` to `IPdfPrinterService.SubmitAsync` with `PdfPrintDeliveryOptions`. Delivery does not reopen the source. `PdfPrinterService.GetPrintersAsync` lists installed queues; Windows uses GDI and macOS/Linux use the installed CUPS `lpstat`, `lpoptions`, and `lp` tools. Copies are collated, and duplex defaults to the printer's setting.
+Applications that keep documents open can set `PublicationGuard` on `OfficeWorkflowRequest`, `PdfAssemblyRequest`, and `PdfPageImageExportRequest`. Implement `IOfficePublicationGuard.CanPublishAsync` to check live ownership of the supplied absolute destination. For directory outputs, check whether publication would replace a directory containing an owned document. The runner calls the guard after validating the staged artifact and checks every numbered candidate: a denied destination fails `Fail` or `Replace`, while `Rename` tries the next name. Cancellation and guard errors stop publication. Provider directories publish each file once it passes its checks, so files published before the failure remain and are listed in the result. Calls can originate on worker threads, so UI hosts must dispatch ownership inspection to their UI thread. This is an application ownership check at publication time; it does not lock paths against concurrent external filesystem changes.
+
+## Print a document
+
+Print any document the conversion catalog can turn into PDF in one call. A PDF goes straight through; other formats are converted in memory first:
+
+```csharp
+using OfficeIMO.Workflows;
+
+var printers = new PdfPrinterService();
+OfficePrintResult result = await printers.PrintAsync(new OfficePrintRequest {
+    Layout = new PdfPrintPlanRequest { InputPath = "proposal.docx", PagesPerSheet = 2 },
+    UsePrinterPaper = true,
+    Delivery = new PdfPrintDeliveryOptions { PrinterName = "ipp://printer.local/ipp/print", Duplex = PdfPrintDuplex.LongEdge }
+});
+foreach (OfficeDiagnostic note in result.Conversion?.Diagnostics ?? []) Console.WriteLine(note.Message);
+
+PdfPrintJobStatus status = await printers.WaitForJobAsync(result.Submission.PrinterName, result.Submission.JobId, TimeSpan.FromMinutes(5));
+Console.WriteLine($"Job {status.JobId}: {status.State}");
+```
+
+`PrintAsync` converts through `OfficeConverter` with `OfficeConversionOptions` from `Conversion`, composes the job, and submits it. `Conversion` in the result holds the converter's fidelity report, or null for PDF input; `Diagnostics` and `ContentKind` describe the composed sheets. `Layout.PdfPassword` and `Layout.PermissionPolicy` apply to PDF input only. `UsePrinterPaper` lays the sheets out on the printer's default media when it reports one. A conversion failure throws `OfficeConversionException` before anything is submitted.
+
+### Compose, preview and submit a PDF job
+
+Lay out the pages on sheets, preview the job, and send that same job:
+
+```csharp
+using OfficeIMO.Pdf;
+using OfficeIMO.Workflows;
+
+var printers = new PdfPrinterService();
+foreach (PdfPrinterInfo queue in await printers.GetPrintersAsync()) {
+    Console.WriteLine(queue.IsDefault ? queue.Name + " (default)" : queue.Name);
+}
+PdfPrinterCapabilities capabilities = await printers.GetCapabilitiesAsync("Office printer");
+
+PdfDocument document = await PdfDocument.LoadAsync("report.pdf");
+PdfPrintJob job = PdfPrintJob.Create(document, new PdfPrintPlanRequest {
+    InputPath = "report.pdf",
+    Pages = "1-8",
+    PagesPerSheet = 2,
+    PaperSize = capabilities.DefaultMedia?.Size ?? PdfPageSizes.A4
+});
+File.WriteAllBytes("sheet-1.png", job.RenderSheet(1, dpi: 96).GetPng());
+
+PdfPrintSubmission receipt = await printers.SubmitAsync(job, new PdfPrintDeliveryOptions {
+    PrinterName = "Office printer",
+    Copies = 2,
+    Duplex = PdfPrintDuplex.LongEdge
+});
+Console.WriteLine($"Queued job {receipt.JobId}: {receipt.SheetCount} sheets");
+```
+
+`PdfPrintJob.Create(document, request)` composes one PDF page per sheet from an authenticated `PdfDocument` snapshot. Source pages are placed as vector content, so text and line art keep the printer's full resolution, and each page carries its sheet's own paper size and orientation. `OpenContent()` returns that PDF; `RenderSheet(sheetNumber, dpi)` renders one sheet on demand for preview. Delivery uses the same content and never reopens the source. Jobs don't retain rendered sheets: `PdfPrintJobOptions` bounds the sheet count (10,000 by default), the composed content (256 MiB) and the pixels in any one raster. When a transport repeats the sheets for copies, it keeps each sheet's encoded pixels for the job while they fit within the content limit, so a sheet is rasterized once rather than once per copy.
+
+`ContentKind` is `Raster` when the source can't be reproduced as vector content: it denies page import (for example, print-only permission), permits only low-quality printing, uses optional-content layers, or has printed annotations without a flattenable appearance. Printed form fields and annotations are flattened into the sheet first. Raster sheets are rendered at `RasterContentDpi` (300 by default, 150 for low-quality printing), and `Diagnostics` records the reason.
 
 `PdfPrintPlanRequest.PagesPerSheet` accepts 1, 2, 4, 6, or 9 pages in row-major order. Six-up uses two columns on portrait paper and three on landscape paper; nine-up uses three columns and rows. `PageSubset` filters odd or even original source-page numbers after `Pages` is resolved, retaining that selection's order. `Margin` sets the default edge margin in points; nullable `MarginLeft`, `MarginTop`, `MarginRight`, and `MarginBottom` override individual edges. Margins must leave a positive sheet area.
 
-`ScaleMode = PdfPrintScaleMode.Custom` uses `CustomScalePercent` (1–1000, default 100) of each source page's physical size. `Alignment` anchors the page in its slot; custom-size and fill overflow is clipped at that slot. `ColorMode = PdfPrintColorMode.Grayscale` converts prepared sheet pixels, so review and delivery use the same grayscale image without changing the source PDF or requiring a color-capable driver. Color mode retains source colors; actual device output depends on the printer.
+`ScaleMode = PdfPrintScaleMode.Custom` uses `CustomScalePercent` (1–1000, default 100) of each source page's physical size. `Alignment` anchors the page in its slot; custom-size and fill overflow is clipped at that slot. `ColorMode = PdfPrintColorMode.Grayscale` is applied whenever sheets are rasterized, so preview and raster delivery show the same grayscale pixels without changing the source PDF or requiring a color-capable driver. IPP printers and CUPS queues reached over IPP that list `application/pdf` and the `monochrome` print-color-mode, and can make the requested copies, instead receive the vector PDF with `print-color-mode=monochrome` and convert it themselves, which is much faster and keeps text sharp; their conversion can differ from the preview in light fills and in how colors map to gray. Set `PdfPrintDeliveryOptions.RasterizeGrayscale` to always send gray raster sheets. CUPS queues printed through the `lp` fallback always receive grayscale jobs as rasterized PDF. Color mode retains source colors; actual device output depends on the printer.
 
-`GetPaperSourcesAsync(printerName)` lists the queue's reported paper sources. Set `PdfPrintDeliveryOptions.PaperSourceId` to one of those identifiers, or leave it null to retain the printer default. Identifiers belong to the queried queue; delivery rechecks an explicit selection before submitting. Windows reads driver bins and checks that the driver accepts the selected bin. CUPS discovers `InputSlot` or `media-source` choices exposed by `lpoptions -l`. Queues that expose no choices retain their default source.
+### Printers and transports
 
-Print preparation enforces PDF printing permissions, page and raster limits, cancellation, and a retained-output byte budget. Rendering above 150 DPI also requires high-quality print permission when restrictions apply. The output reflects the managed renderer's diagnostics and printer margins. `PdfPrintSubmission` is a queue acceptance receipt, not confirmation of physical delivery; `PdfPrintDeliveryException` means submission began and retrying could duplicate pages. Windows file-printer paths must be new local paths and are checked before submission; the driver controls the eventual write.
+Every member that takes a printer name also takes an `ipp://` or `ipps://` printer URI. A URI reaches the printer directly over IPP, with no installed queue, driver or CUPS tools, on Windows, macOS, Linux and in containers. `ipp://` uses HTTP and `ipps://` uses HTTPS, on port 631 unless the URI names another.
 
-Applications that keep documents open can set `PublicationGuard` on `OfficeWorkflowRequest`, `PdfAssemblyRequest`, and `PdfPageImageExportRequest`. Implement `IOfficeWorkflowPublicationGuard.CanPublishAsync` to check live ownership of the supplied absolute destination. For directory outputs, check whether publication would replace a directory containing an owned document. The runner calls the guard after validating the staged artifact and checks every numbered candidate: a denied destination fails `Fail` or `Replace`, while `Rename` tries the next name. Cancellation and guard errors prevent publication. Calls can originate on worker threads, so UI hosts must dispatch ownership inspection to their UI thread. This is an application ownership check at publication time; it does not lock paths against concurrent external filesystem changes.
+`GetCapabilitiesAsync(printerName)` reports media with sizes, the default media, paper sources, duplex, color, maximum copies and resolutions. Values the printer doesn't report are null. IPP printers and CUPS queues answer Get-Printer-Attributes; Windows reads `DeviceCapabilities` and the driver's default settings. Set `PdfPrintDeliveryOptions.PaperSourceId` to one of `PaperSources`, or leave it null to retain the printer default. Identifiers belong to the queried printer; delivery rechecks an explicit selection before submitting. A `PdfPrinterService` reuses capabilities it read for the same printer in the last minute when it submits, and reads them again after a failed submission.
+
+- **IPP printers** receive the job's vector PDF when they list `application/pdf`, and grayscale jobs too when they also list the `monochrome` print-color-mode, can make the requested copies and `RasterizeGrayscale` is off. Other grayscale jobs, raster jobs, and printers without PDF receive PWG raster while the request streams, with the next few sheets rendering on other cores, at the highest raster resolution the printer lists up to `MaximumRasterDpi`. A printer that lists only higher resolutions, such as a 600 dpi-only laser or CUPS queue, gets sheets rendered at the largest whole fraction of its resolution within `MaximumRasterDpi`, with each pixel repeated. Landscape sheets are turned to the printer's feed direction, and back sides follow the printer's `pwg-raster-document-sheet-back` rule. A printer that accepts neither format, such as one that lists only URF, is refused before submission. Copies, sides, media (by keyword, or by dimensions where the printer describes media as collections), paper source, orientation, scaling and color mode become job attributes; multi-sheet raster copies are repeated in the document so they stay collated.
+- **CUPS queues** on macOS and Linux are reached over IPP at the local scheduler, through its domain socket on .NET 8 and later and its loopback port otherwise, and are delivered like IPP printers. When the scheduler can't be reached that way, `CUPS_SERVER` names another host, or the queue is a discovered destination that the scheduler hasn't created yet, the job PDF goes to `lp` instead, with one media keyword when every sheet uses the same paper size. `GetPrintersAsync` lists the scheduler's queues together with the destinations `lpstat` reports. Job identifiers keep the `queue-number` form either way.
+- **Windows queues** receive one sheet at a time through GDI as a 24-bit bitmap (8-bit for grayscale), rasterized at the device resolution up to `MaximumRasterDpi` (300 by default), while the next few sheets render on other cores. Printers that feed paper keep the first sheet's orientation for the whole job, as many drivers apply only that one, and a sheet on the same paper turned the other way is rotated onto it; file printers such as Microsoft Print to PDF keep each sheet's own orientation. When the driver reports collation and enough copies and the job uses one paper size, the driver makes the copies; otherwise the sheets are sent once per copy. The driver must accept the requested copies, duplex and paper source, or delivery stops before the job starts.
+
+`PdfPrintSubmission.IgnoredAttributes` lists requested attributes the printer ignored, substituted or doesn't support. Job composition enforces PDF printing permissions, cancellation and the limits above. Windows file-printer paths must be new local paths and are checked before submission; the driver controls the eventual write. A job that fails or is canceled removes the output file it created when nothing was written to it. Layout margins don't remove printer hardware margins. IPP requests refuse HTTP redirects, don't use a system proxy, send the operating-system user name, and don't authenticate; `ipps://` printers need a certificate the system trusts.
+
+### Follow and cancel jobs
+
+`PdfPrintSubmission` is a queue acceptance receipt, not confirmation of physical delivery. Pass its `PrinterName` and `JobId` to `GetJobAsync`, `CancelJobAsync` or the `WaitForJobAsync` extension, which polls until the job is terminal or throws `TimeoutException`. Every transport reports the same `PdfPrintJobState` values with the printer's reasons and message: IPP printers and CUPS queues answer Get-Job-Attributes and Cancel-Job, and Windows reads the spooler's `GetJob` status and deletes jobs through `SetJob`. `Removed` means the queue no longer reports the job: it finished and was purged, was deleted, or never existed. Cancelling a finished job returns its state instead of failing.
+
+`PdfPrintDeliveryException` means submission began and retrying could duplicate pages; its `JobId` is set when the queue acknowledged the job. Any other exception from `SubmitAsync` means nothing was submitted: `IppException` carries the printer's IPP `StatusCode` when it refused the request. A printer that answers `server-error-busy` (0x0507) gets the job again a few times over about three seconds before that status is reported.
+
+To check placement without a printer, call `PdfPrintPlanner.Create` and read `PdfPrintPlan.Sheets`. The [command line](../OfficeIMO.Tool/README.md#file-batches-and-printing) exposes the same steps as `officeimo workflow printers`, `print-plan`, `print` and `print-job`.
 
 ## Save protected or unencrypted PDF copies
 
@@ -2073,6 +2145,28 @@ Typed requests use `ProtectPdf` with `OutputEncryption`, or `RemovePdfProtection
 These operations create separate copies, preserve their sources, and use the PDF engine's authorization and rewrite-preservation policy. Existing signatures or other protected document structures may prevent a rewrite. AES-256 is the default; AES-128 and explicitly selected legacy RC4 follow the canonical encryption options. Output verification checks the document-open password, page count, encryption state, permissions, metadata protection, and preservation report before publication. A null PDF metadata-encryption flag means the standard default of encrypted metadata.
 
 Only the `Faithful` profile applies. Input snapshots, byte limits during generation, output conflicts, provider confirmation contracts, recovery, and final publication guards follow the same runner behavior as other single-output operations. Cancellation is forwarded through security preflight, graph rewriting, preservation inspection, and publication.
+
+## Convert a PDF to PDF/A
+
+```csharp
+OfficeWorkflowResult archive = await OfficeWorkflow.ConvertToPdfA("report.pdf",
+        new OfficeIMO.Pdf.PdfAConversionOptions {
+            Profile = OfficeIMO.Pdf.PdfComplianceProfile.PdfA3B,
+            Attachments = OfficeIMO.Pdf.PdfAAttachmentPolicy.Refuse
+        })
+    .To("report-archive.pdf")
+    .RunAsync(cancellationToken: cancellationToken);
+
+foreach (OfficeWorkflowDiagnostic item in archive.Diagnostics.Where(item => item.Code.StartsWith("PdfA.", StringComparison.Ordinal))) {
+    Console.WriteLine($"{item.Code} at {item.Details["location"]}: {item.Message}");
+}
+```
+
+The typed request uses `ConvertToPdfA` with optional `PdfAConversion` settings; without them the library defaults apply (PDF/A-2b, attachments removed, installed fonts as substitutes). For an encrypted source, pass its owner password with `WithPdfPassword`; the PDF/A copy is written without encryption. Settings are copied before execution.
+
+The runner calls `PdfDocument.ConvertToPdfA` and copies its report into the result. Every change becomes a `PdfA.<change kind>` diagnostic, with Warning severity when it removed or approximated content. When the source cannot be converted without changing its content, the workflow fails with `UnsupportedInput`, publishes nothing, and lists one `PdfA.<refusal reason>` Error per violation. Each diagnostic carries `location` and, for indirect objects, `objectNumber` details. `ConversionEvidence` holds the same report with the profile and change and violation counts as facts.
+
+Only the `Faithful` profile applies. The converted copy is reopened, must be unencrypted and keep the source page count, and is published through the same input snapshot, byte limits, conflict policy, provider confirmation and publication guards as other single-output operations. The output can never replace the source.
 
 ## Extract selected PDF pages
 

@@ -7,6 +7,8 @@ namespace OfficeIMO.Excel.Pdf {
             PdfCore.PdfCreateOptions pdfOptions = options.PdfOptions?.Clone() ?? PdfCore.PdfCreateOptions.CreateNeutralOptions();
             pdfOptions.UseContentStreamCompressionByDefault();
             pdfOptions.ReportDiagnosticsTo(options.Report, "OfficeIMO.Excel.Pdf");
+            pdfOptions.TableCellDiagnosticSummary = options.DiagnosticsDetail == ExcelPdfDiagnosticsDetail.Summary
+                ? new WorksheetCellClippingSummary() : null;
 
             pdfOptions.CreateOutlineFromHeadings = true;
             preserveConfiguredFontSlots = options.HasExplicitPdfFontConfiguration;

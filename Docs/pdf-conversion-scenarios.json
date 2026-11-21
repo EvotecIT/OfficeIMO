@@ -260,10 +260,10 @@
       "id": "email-document",
       "sourceFormats": [ "eml", "msg", "oft", "tnef" ],
       "status": "direct-loss-aware-adapter",
-      "stages": [ "OfficeIMO.Reader.Email", "OfficeIMO.Reader.Core", "OfficeIMO.Reader.Pdf" ],
+      "stages": [ "OfficeIMO.Email", "OfficeIMO.Email.Html", "OfficeIMO.Email.Image", "OfficeIMO.Html.Pdf" ],
       "implementationProject": "OfficeIMO/OfficeIMO.csproj",
-      "evidenceTest": "OfficeIMO.Tests/OfficeConverter.ReaderTests.cs#EmailConversion_ProducesSearchablePdfWithEmailPolicyEvidence",
-      "diagnosticContract": "The direct façade applies the Reader email body, inline-resource, and attachment policies, then preserves their evidence through the shared searchable PDF projection."
+      "evidenceTest": "OfficeIMO.Tests/OfficeConverter.ReaderTests.cs#EmailConversion_RendersStyledMessageAndKeepsReaderTextOnlyOnRequest",
+      "diagnosticContract": "The direct façade renders the message header, sanitized body, inline resources and attachment list through the HTML-to-PDF engine and reports body-projection findings with the rendering findings; the TextOnly profile keeps the Reader email policies and their evidence through the shared searchable PDF projection."
     },
     {
       "id": "epub-book",
@@ -985,15 +985,13 @@
         "section-hierarchy",
         "paragraphs-and-lists",
         "tables",
-        "stem-source-fallback",
+        "inline-math",
         "source-located-diagnostics"
       ],
       "expectedSimplifications": [
-        "AsciiDoc is projected through the typed Markdown model; constructs without an equivalent remain visible as configured source fallbacks with combined parser, projection, and PDF diagnostics"
+        "AsciiDoc is projected through the typed Markdown model; TeX STEM is laid out by the shared math engine, while AsciiMath and constructs without an equivalent remain visible as configured source fallbacks with combined parser, projection, and PDF diagnostics"
       ],
-      "expectedWarnings": [
-        "ADOCMD103"
-      ],
+      "expectedWarnings": [],
       "visualReviewFiles": [
         "asciidoc-direct-semantic-document.pdf"
       ],
@@ -1033,10 +1031,9 @@
         "source-located-diagnostics"
       ],
       "expectedSimplifications": [
-        "LaTeX is not executed; the bounded semantic profile is projected through Markdown, while citations, math transport, package behavior, and unsupported constructs remain explicit warnings or visible source fallbacks"
+        "LaTeX is not executed; the bounded semantic profile is projected through Markdown, with math laid out by the shared math engine, while citations, package behavior, and unsupported constructs remain explicit warnings or visible source fallbacks"
       ],
       "expectedWarnings": [
-        "LATEXMD101",
         "LATEXMD102"
       ],
       "visualReviewFiles": [

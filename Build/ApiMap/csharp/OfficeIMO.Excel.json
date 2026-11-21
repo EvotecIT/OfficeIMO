@@ -13470,6 +13470,50 @@
       "new": "OfficeIMO.Excel.ExcelSheet.ToImage(...) : OfficeImageExportResult",
       "reason": "Use ToImage for one encoded surface and ToImages for a batch. Read Bytes for the payload, inspect CreateReport() for diagnostics, and use SaveAsImage or SaveAsImages to persist results. ExportImage and ExportImages aliases are removed.",
       "category": "conversion"
+    },
+    {
+      "kind": "method",
+      "action": "move",
+      "reason": "Format packages do not carry conversions to other formats; structured-data routes live in OfficeIMO.Data.Conversions.Excel and stream instead of building a DataTable.",
+      "file": "OfficeIMO.Excel/ExcelSheet.DataExchange.cs",
+      "category": "conversion",
+      "applied": "applied",
+      "old": "OfficeIMO.Excel.ExcelSheet.ToJson(bool headersInFirstRow = true, ExcelReaderOptions options = null, ExcelExecutionMode? mode = null, JsonSerializerOptions jsonOptions = null, CancellationToken ct = default)",
+      "new": "OfficeIMO.Data.Conversions.ExcelDataConversions.ToJson(this ExcelSheet sheet, DataConversionOptions options = null)",
+      "note": "Returns a JsonNode; call ToJsonString() for text. SaveAsJson writes files and streams."
+    },
+    {
+      "kind": "method",
+      "action": "move",
+      "reason": "Format packages do not carry conversions to other formats; structured-data routes live in OfficeIMO.Data.Conversions.Excel and stream instead of building a DataTable.",
+      "file": "OfficeIMO.Excel/ExcelSheet.DataExchange.cs",
+      "category": "conversion",
+      "applied": "applied",
+      "old": "OfficeIMO.Excel.ExcelSheet.ToJson(string a1Range, bool headersInFirstRow = true, ExcelReaderOptions options = null, ExcelExecutionMode? mode = null, JsonSerializerOptions jsonOptions = null, CancellationToken ct = default)",
+      "new": "OfficeIMO.Data.Conversions.ExcelDataConversions.ToJson(this ExcelSheet sheet, DataConversionOptions options = null)",
+      "note": "Set DataConversionOptions.Range to the A1 range."
+    },
+    {
+      "kind": "method",
+      "action": "move",
+      "reason": "Format packages do not carry conversions to other formats; structured-data routes live in OfficeIMO.Data.Conversions.Excel and stream instead of building a DataTable.",
+      "file": "OfficeIMO.Excel/ExcelSheet.DataExchange.cs",
+      "category": "conversion",
+      "applied": "applied",
+      "old": "OfficeIMO.Excel.ExcelSheet.TableToJson(string tableName, bool? headersInFirstRow = null, ExcelReaderOptions options = null, ExcelExecutionMode? mode = null, JsonSerializerOptions jsonOptions = null, CancellationToken ct = default)",
+      "new": "OfficeIMO.Data.Conversions.ExcelDataConversions.ToJson(this ExcelSheet sheet, DataConversionOptions options = null)",
+      "note": "Set DataConversionOptions.Range to the table's range."
+    },
+    {
+      "kind": "method",
+      "action": "move",
+      "reason": "Format packages do not carry conversions to other formats; structured-data routes live in OfficeIMO.Data.Conversions.Excel and stream instead of building a DataTable.",
+      "file": "OfficeIMO.Excel/ExcelSheet.DataExchange.cs",
+      "category": "conversion",
+      "applied": "applied",
+      "old": "OfficeIMO.Excel.ExcelSheet.FromJson(string json, int startRow = 1, int startColumn = 1, bool includeHeaders = true, ExcelExecutionMode? mode = null, CancellationToken ct = default)",
+      "new": "OfficeIMO.Excel.ExcelSheet.InsertDataReader(IDataReader reader, int startRow = 1, int startColumn = 1, bool includeHeaders = true, ...)",
+      "note": "Open the JSON with OfficeIMO.Data.Conversions.StructuredDataReader.Open(stream, OfficeDocumentFormat.Json) and insert it with createTable: false; JsonNode.ToExcel creates a new workbook."
     }
   ],
   "packageMoves": [

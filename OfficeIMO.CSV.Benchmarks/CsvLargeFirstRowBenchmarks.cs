@@ -28,8 +28,10 @@ public class CsvLargeFirstRowBenchmarks
     public void Cleanup() => _workload.Cleanup();
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:OfficeIMO", "case:OfficeIMO_Snapshot")]
     public Task<CsvAsyncReadBenchmarks.ReadChecksum> OfficeIMO_Snapshot() => _workload.OfficeIMO_Snapshot();
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:OfficeIMO_Incremental")]
     public Task<CsvAsyncReadBenchmarks.ReadChecksum> OfficeIMO_Incremental() => _workload.OfficeIMO_Incremental();
 }

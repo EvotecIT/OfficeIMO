@@ -56,18 +56,11 @@ internal static partial class TextLayoutEngine {
             cancellationCheck?.Invoke();
             consumeWork?.Invoke(2L * spanCount * Math.Max(1,
                 (int)Math.Ceiling(Math.Log(Math.Max(2, spanCount), 2D))));
-            direction = PdfTextDirectionAnalysis.Resolve(PdfReadingDirection.Auto,
-                groups.SelectMany(static group => group.Spans)
-                    .OrderBy(span => {
-                        cancellationCheck?.Invoke();
-                        return span.ContentOrderKey;
-                    }).ThenBy(span => {
-                        cancellationCheck?.Invoke();
-                        return span.PaintOrder;
-                    }).Select(span => {
-                        cancellationCheck?.Invoke();
-                        return span.Text;
-                    }));
+            // The first strong span in source order decides, which a single pass finds without sorting.
+            var allSpans = new List<PdfTextSpan>(spanCount);
+            foreach (BaselineSpanGroup group in groups) allSpans.AddRange(group.Spans);
+            cancellationCheck?.Invoke();
+            direction = PdfTextDirectionAnalysis.ResolveInSourceOrder(PdfReadingDirection.Auto, allSpans);
         }
 
         var orderedSpans = new List<PdfTextSpan>[groups.Count];
@@ -76,10 +69,9 @@ internal static partial class TextLayoutEngine {
             cancellationCheck?.Invoke();
             int count = groups[index].Spans.Count;
             consumeWork?.Invoke((long)count * Math.Max(1, (int)Math.Ceiling(Math.Log(Math.Max(2, count), 2D))));
-            orderedSpans[index] = groups[index].Spans.OrderBy(span => {
-                cancellationCheck?.Invoke();
-                return coordinates.Along(span);
-            }).ToList();
+            cancellationCheck?.Invoke();
+            // Groups change below while these orders are still read, so each is its own list.
+            orderedSpans[index] = new List<PdfTextSpan>(OrderAlongBaseline(groups[index].Spans, coordinates));
             AddInlineScriptRuns(runs, index, orderedSpans[index], coordinates, direction, explicitDirection, consumeWork, cancellationCheck);
         }
 
@@ -213,11 +205,7 @@ internal static partial class TextLayoutEngine {
     // Positions and advances are already in page space; FontSize remains the authored Tf value.
     // Project the transformed em across the baseline so anisotropic scaling and shear stay consistent.
     private static bool TryGetInlineScriptEm(PdfTextSpan span, out double alongEm, out double normalEm) {
-        double alongScale = 1D, normalScale = 1D;
-        if (span.TextToPageTransform is Matrix2D matrix) {
-            alongScale = Math.Sqrt(matrix.A * matrix.A + matrix.B * matrix.B);
-            normalScale = Math.Abs(matrix.A * matrix.D - matrix.B * matrix.C) / alongScale;
-        }
+        span.GetTextToPageScales(out double alongScale, out double normalScale);
         alongEm = span.FontSize * alongScale;
         normalEm = span.FontSize * normalScale;
         return alongEm > 0D && normalEm > 0D &&

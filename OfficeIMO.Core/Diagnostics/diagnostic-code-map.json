@@ -2708,6 +2708,22 @@
       ]
     },
     {
+      "oldCode": "markdown-front-matter-invalid-yaml",
+      "catalogCode": "markdown-front-matter-invalid-yaml",
+      "member": "MarkdownFrontMatterInvalidYaml",
+      "origins": [
+        "OfficeIMO.Markdown/Reader/MarkdownReader.Blocks.FrontMatter.cs"
+      ]
+    },
+    {
+      "oldCode": "markdown-front-matter-invalid-toml",
+      "catalogCode": "markdown-front-matter-invalid-toml",
+      "member": "MarkdownFrontMatterInvalidToml",
+      "origins": [
+        "OfficeIMO.Markdown/Reader/MarkdownReader.Blocks.FrontMatter.cs"
+      ]
+    },
+    {
       "oldCode": "MarkdownToWordWarning",
       "catalogCode": "markdown-to-word-warning",
       "member": "MarkdownToWordWarning",
@@ -10997,6 +11013,366 @@
       "origins": [
         "OfficeIMO.Core/Raster/OfficeRasterImageCodecs.cs"
       ]
+    },
+    {
+      "oldCode": "yaml-alias-expanded",
+      "catalogCode": "yaml-alias-expanded",
+      "member": "YamlAliasExpanded",
+      "origins": [
+        "OfficeIMO.Data.Conversions/Yaml/YamlEventReader.cs"
+      ]
+    },
+    {
+      "oldCode": "yaml-tag-dropped",
+      "catalogCode": "yaml-tag-dropped",
+      "member": "YamlTagDropped",
+      "origins": [
+        "OfficeIMO.Data.Conversions/Yaml/YamlScalarClassifier.cs"
+      ]
+    },
+    {
+      "oldCode": "yaml-complex-key",
+      "catalogCode": "yaml-complex-key",
+      "member": "YamlComplexKey",
+      "origins": [
+        "OfficeIMO.Data.Conversions/Yaml/YamlEventReader.cs"
+      ]
+    },
+    {
+      "oldCode": "yaml-documents-combined",
+      "catalogCode": "yaml-documents-combined",
+      "member": "YamlDocumentsCombined",
+      "origins": [
+        "OfficeIMO.Data.Conversions/Json/JsonEventWriter.cs"
+      ]
+    },
+    {
+      "oldCode": "key-type-changed",
+      "catalogCode": "key-type-changed",
+      "member": "KeyTypeChanged",
+      "origins": [
+        "OfficeIMO.Data.Conversions/Yaml/YamlScalarClassifier.cs"
+      ]
+    },
+    {
+      "oldCode": "duplicate-key",
+      "catalogCode": "duplicate-key",
+      "member": "DuplicateKey",
+      "origins": [
+        "OfficeIMO.Data.Conversions/Yaml/YamlModelEventReader.cs"
+      ]
+    },
+    {
+      "oldCode": "non-finite-number",
+      "catalogCode": "non-finite-number",
+      "member": "NonFiniteNumber",
+      "origins": [
+        "OfficeIMO.Data.Conversions/Json/JsonEventWriter.cs"
+      ]
+    },
+    {
+      "oldCode": "datetime-as-string",
+      "catalogCode": "datetime-as-string",
+      "member": "DatetimeAsString",
+      "origins": [
+        "OfficeIMO.Data.Conversions/Json/JsonEventWriter.cs"
+      ]
+    },
+    {
+      "oldCode": "datetime-offset-dropped",
+      "catalogCode": "datetime-offset-dropped",
+      "member": "DatetimeOffsetDropped",
+      "origins": [
+        "OfficeIMO.Data.Conversions.Excel/ExcelTableWriter.cs"
+      ]
+    },
+    {
+      "oldCode": "datetime-precision",
+      "catalogCode": "datetime-precision",
+      "member": "DatetimePrecision",
+      "origins": [
+        "OfficeIMO.Data.Conversions.Excel/ExcelTableWriter.cs"
+      ]
+    },
+    {
+      "oldCode": "number-precision",
+      "catalogCode": "number-precision",
+      "member": "NumberPrecision",
+      "origins": [
+        "OfficeIMO.Data.Conversions.Excel/ExcelTableWriter.cs"
+      ]
+    },
+    {
+      "oldCode": "scalar-type-dropped",
+      "catalogCode": "scalar-type-dropped",
+      "member": "ScalarTypeDropped",
+      "origins": [
+        "OfficeIMO.Data.Conversions/Xml/XmlEventWriter.cs"
+      ]
+    },
+    {
+      "oldCode": "null-as-empty",
+      "catalogCode": "null-as-empty",
+      "member": "NullAsEmpty",
+      "origins": [
+        "OfficeIMO.Data.Conversions/Tables/TreeTableReader.cs"
+      ]
+    },
+    {
+      "oldCode": "array-joined",
+      "catalogCode": "array-joined",
+      "member": "ArrayJoined",
+      "origins": [
+        "OfficeIMO.Data.Conversions/Tables/TreeTableReader.cs"
+      ]
+    },
+    {
+      "oldCode": "header-path-ambiguous",
+      "catalogCode": "header-path-ambiguous",
+      "member": "HeaderPathAmbiguous",
+      "origins": [
+        "OfficeIMO.Data.Conversions/Tables/TreeTableReader.cs"
+      ]
+    },
+    {
+      "oldCode": "root-wrapped",
+      "catalogCode": "root-wrapped",
+      "member": "RootWrapped",
+      "origins": [
+        "OfficeIMO.Data.Conversions/Xml/XmlEventWriter.cs"
+      ]
+    },
+    {
+      "oldCode": "null-dropped",
+      "catalogCode": "null-dropped",
+      "member": "NullDropped",
+      "origins": [
+        "OfficeIMO.Data.Conversions/Toml/TomlEventWriter.cs"
+      ]
+    },
+    {
+      "oldCode": "number-out-of-range",
+      "catalogCode": "number-out-of-range",
+      "member": "NumberOutOfRange",
+      "origins": [
+        "OfficeIMO.Data.Conversions/Toml/TomlEventWriter.cs"
+      ]
+    },
+    {
+      "oldCode": "key-order-changed",
+      "catalogCode": "key-order-changed",
+      "member": "KeyOrderChanged",
+      "origins": [
+        "OfficeIMO.Data.Conversions/Toml/TomlEventWriter.cs"
+      ]
+    },
+    {
+      "oldCode": "xml-sibling-order-changed",
+      "catalogCode": "xml-sibling-order-changed",
+      "member": "XmlSiblingOrderChanged",
+      "origins": [
+        "OfficeIMO.Data.Conversions/Xml/XmlEventReader.cs"
+      ]
+    },
+    {
+      "oldCode": "xml-mixed-content",
+      "catalogCode": "xml-mixed-content",
+      "member": "XmlMixedContent",
+      "origins": [
+        "OfficeIMO.Data.Conversions/Xml/XmlEventReader.cs"
+      ]
+    },
+    {
+      "oldCode": "xml-processing-instruction-dropped",
+      "catalogCode": "xml-processing-instruction-dropped",
+      "member": "XmlProcessingInstructionDropped",
+      "origins": [
+        "OfficeIMO.Data.Conversions/Xml/XmlEventReader.cs"
+      ]
+    },
+    {
+      "oldCode": "xml-array-shape",
+      "catalogCode": "xml-array-shape",
+      "member": "XmlArrayShape",
+      "origins": [
+        "OfficeIMO.Data.Conversions/Xml/XmlEventWriter.cs"
+      ]
+    },
+    {
+      "oldCode": "empty-collection-dropped",
+      "catalogCode": "empty-collection-dropped",
+      "member": "EmptyCollectionDropped",
+      "origins": [
+        "OfficeIMO.Data.Conversions/Tables/TableColumns.cs"
+      ]
+    },
+    {
+      "oldCode": "xml-character-replaced",
+      "catalogCode": "xml-character-replaced",
+      "member": "XmlCharacterReplaced",
+      "origins": [
+        "OfficeIMO.Data.Conversions/Xml/XmlEventWriter.cs"
+      ]
+    },
+    {
+      "oldCode": "xml-name-changed",
+      "catalogCode": "xml-name-changed",
+      "member": "XmlNameChanged",
+      "origins": [
+        "OfficeIMO.Data.Conversions/Xml/XmlEventWriter.cs"
+      ]
+    },
+    {
+      "oldCode": "Yaml.Load.DuplicateKey",
+      "catalogCode": "yaml-duplicate-key",
+      "member": "YamlDuplicateKey",
+      "origins": [
+        "OfficeIMO.Yaml/Model/YamlTreeBuilder.cs"
+      ]
+    },
+    {
+      "oldCode": "yaml-aliased-node-edited",
+      "catalogCode": "yaml-aliased-node-edited",
+      "member": "YamlAliasedNodeEdited",
+      "origins": [
+        "OfficeIMO.Yaml/Model/YamlEdit.cs"
+      ]
+    },
+    {
+      "oldCode": "yaml-lenient-indentation",
+      "catalogCode": "yaml-lenient-indentation",
+      "member": "YamlLenientIndentation",
+      "origins": [
+        "OfficeIMO.Yaml/Scanning/YamlScanner.cs"
+      ]
+    },
+    {
+      "oldCode": "yaml-merge-key-without-directive",
+      "catalogCode": "yaml-merge-key-without-directive",
+      "member": "YamlMergeKeyWithoutDirective",
+      "origins": [
+        "OfficeIMO.Yaml/Model/YamlTreeBuilder.cs"
+      ]
+    },
+    {
+      "oldCode": "yaml-merge-alias-expanded",
+      "catalogCode": "yaml-merge-alias-expanded",
+      "member": "YamlMergeAliasExpanded",
+      "origins": [
+        "OfficeIMO.Yaml/Model/YamlMerge.cs"
+      ]
+    },
+    {
+      "oldCode": "yaml-merge-anchor-renamed",
+      "catalogCode": "yaml-merge-anchor-renamed",
+      "member": "YamlMergeAnchorRenamed",
+      "origins": [
+        "OfficeIMO.Yaml/Model/YamlMerge.cs"
+      ]
+    },
+    {
+      "oldCode": "yaml-merge-key-not-removed",
+      "catalogCode": "yaml-merge-key-not-removed",
+      "member": "YamlMergeKeyNotRemoved",
+      "origins": [
+        "OfficeIMO.Yaml/Model/YamlMerge.cs"
+      ]
+    },
+    {
+      "oldCode": "yaml-merge-kind-conflict",
+      "catalogCode": "yaml-merge-kind-conflict",
+      "member": "YamlMergeKindConflict",
+      "origins": [
+        "OfficeIMO.Yaml/Model/YamlMerge.cs"
+      ]
+    },
+    {
+      "oldCode": "toml-merge-kind-conflict",
+      "catalogCode": "toml-merge-kind-conflict",
+      "member": "TomlMergeKindConflict",
+      "origins": [
+        "OfficeIMO.Toml/Model/TomlMerge.cs"
+      ]
+    },
+    {
+      "oldCode": "Excel.Accessibility.ImageAltText",
+      "catalogCode": "accessibility-missing-alternative-text",
+      "member": "AccessibilityMissingAlternativeText",
+      "origins": [
+        "OfficeIMO.Excel/ExcelDocument.Accessibility.cs"
+      ]
+    },
+    {
+      "oldCode": "Excel.Accessibility.TableHeaders",
+      "catalogCode": "accessibility-missing-table-header",
+      "member": "AccessibilityMissingTableHeader",
+      "origins": [
+        "OfficeIMO.Excel/ExcelDocument.Accessibility.cs"
+      ]
+    },
+    {
+      "oldCode": "Excel.Accessibility.MergedCells",
+      "catalogCode": "accessibility-merged-cells",
+      "member": "AccessibilityMergedCells",
+      "origins": [
+        "OfficeIMO.Excel/ExcelDocument.Accessibility.cs"
+      ]
+    },
+    {
+      "oldCode": "Excel.Accessibility.HiddenData",
+      "catalogCode": "accessibility-hidden-sheet-content",
+      "member": "AccessibilityHiddenSheetContent",
+      "origins": [
+        "OfficeIMO.Excel/ExcelDocument.Accessibility.cs"
+      ]
+    },
+    {
+      "oldCode": "Excel.Accessibility.DefaultSheetName",
+      "catalogCode": "accessibility-default-sheet-name",
+      "member": "AccessibilityDefaultSheetName",
+      "origins": [
+        "OfficeIMO.Excel/ExcelDocument.Accessibility.cs"
+      ]
+    },
+    {
+      "oldCode": "Excel.Accessibility.BlankCellLayout",
+      "catalogCode": "accessibility-blank-cell-layout",
+      "member": "AccessibilityBlankCellLayout",
+      "origins": [
+        "OfficeIMO.Excel/ExcelDocument.Accessibility.cs"
+      ]
+    },
+    {
+      "oldCode": "Word.Accessibility.LayoutTable",
+      "catalogCode": "accessibility-layout-table",
+      "member": "AccessibilityLayoutTable",
+      "origins": [
+        "OfficeIMO.Word/WordDocument.Accessibility.cs"
+      ]
+    },
+    {
+      "oldCode": "Word.Accessibility.FloatingObject",
+      "catalogCode": "accessibility-floating-object",
+      "member": "AccessibilityFloatingObject",
+      "origins": [
+        "OfficeIMO.Word/WordDocument.Accessibility.cs"
+      ]
+    },
+    {
+      "oldCode": "Word.Accessibility.BlankParagraphSpacing",
+      "catalogCode": "accessibility-blank-paragraph-spacing",
+      "member": "AccessibilityBlankParagraphSpacing",
+      "origins": [
+        "OfficeIMO.Word/WordDocument.Accessibility.cs"
+      ]
+    },
+    {
+      "oldCode": "Word.Accessibility.MissingHeadings",
+      "catalogCode": "accessibility-missing-headings",
+      "member": "AccessibilityMissingHeadings",
+      "origins": [
+        "OfficeIMO.Word/WordDocument.Accessibility.cs"
+      ]
     }
   ],
   "dynamicPatterns": [
@@ -11025,6 +11401,18 @@
       "oldPattern": "RewriteBlocker.{kind}",
       "catalogPattern": "rewrite-blocker-{kind}",
       "source": "OfficeIMO.Pdf/Diagnostics/PdfDiagnostics.cs"
+    },
+    {
+      "oldPattern": "Yaml.{area}.{rule}",
+      "catalogPattern": "yaml-{area}-{rule}",
+      "source": "OfficeIMO.Yaml/YamlException.cs",
+      "notes": "YamlException.ToDiagnostic converts the stable YamlErrorCodes values, such as Yaml.Syntax.InvalidIndentation to yaml-syntax-invalid-indentation. Yaml.Load.DuplicateKey keeps its literal entry, yaml-duplicate-key."
+    },
+    {
+      "oldPattern": "Toml.{area}.{rule}",
+      "catalogPattern": "toml-{area}-{rule}",
+      "source": "OfficeIMO.Toml/TomlException.cs",
+      "notes": "TomlException.ToDiagnostic converts the stable TomlErrorCodes values, such as Toml.Load.DuplicateKey to toml-load-duplicate-key."
     }
   ],
   "dynamicForwardingSites": [

@@ -337,7 +337,8 @@ namespace OfficeIMO.Word.Pdf {
                     tabStops,
                     (paragraphFontSize.HasValue ? global::OfficeIMO.OfficeLength.Points(paragraphFontSize.Value) : (global::OfficeIMO.OfficeLength?)null),
                     lineSpacing, pagination.WidowControl, pagination.KeepTogether ?? false, pagination.KeepWithNext ?? false,
-                    justification.JustificationMode, justification.JustifyExplicitLineBreaks, justification.JustifyLastLine, justification.UseWordJustificationSpacing);
+                    justification.JustificationMode, justification.JustifyExplicitLineBreaks, justification.JustifyLastLine, justification.UseWordJustificationSpacing,
+                    fitText: cell.FitText);
                 paragraphs.Add(cellParagraph);
                 if (blocks != null && !IsNativeNestedTableCellEndCarrier(cellElements, i, lastIndex, paragraph, getMarker, pagination))
                     blocks.Add(cellParagraph.ToBlock());
@@ -820,17 +821,24 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static string GetNativeCellParagraphText(WordParagraph paragraph) {
+        /// <summary>
+        /// Tells whether a cell paragraph shows any non-white-space text. Capitalization can't
+        /// change that answer, so this skips the run style resolution the displayed text needs.
+        /// </summary>
+        private static bool HasNativeCellParagraphVisibleText(WordParagraph paragraph) =>
+            !string.IsNullOrWhiteSpace(GetNativeCellParagraphText(paragraph, applyTextTransform: false));
+
+        private static string GetNativeCellParagraphText(WordParagraph paragraph, bool applyTextTransform = true) {
             List<WordParagraph> runs = GetNativeRuns(paragraph);
             if (WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph).Count > 0) {
-                return ApplyNativeTextTransform(AppendNativeTextWithEquation(paragraph.Text, paragraph), paragraph);
+                return Transform(AppendNativeTextWithEquation(paragraph.Text, paragraph), paragraph);
             }
             if (paragraph.IsHyperLink && paragraph.Hyperlink != null && !IsNativeHiddenTextRun(paragraph) && !string.IsNullOrEmpty(paragraph.Hyperlink.Text)) {
-                return ApplyNativeTextTransform(paragraph.Hyperlink.Text, paragraph);
+                return Transform(paragraph.Hyperlink.Text, paragraph);
             }
 
             if (runs.Count == 0 && !IsNativeHiddenTextRun(paragraph) && !string.IsNullOrEmpty(paragraph.Text)) {
-                return ApplyNativeTextTransform(AppendNativeTextWithEquation(paragraph.Text, paragraph), paragraph);
+                return Transform(AppendNativeTextWithEquation(paragraph.Text, paragraph), paragraph);
             }
 
             var parts = new List<string>();
@@ -841,12 +849,16 @@ namespace OfficeIMO.Word.Pdf {
 
                 string runText = run.IsHyperLink && run.Hyperlink != null ? run.Hyperlink.Text : run.Text;
                 if (!string.IsNullOrEmpty(runText)) {
-                    parts.Add(ApplyNativeTextTransform(runText, run, paragraph));
+                    parts.Add(Transform(runText, run, paragraph));
                 }
             }
 
             string text = string.Concat(parts);
             return AppendNativeTextWithEquation(text, paragraph);
+
+            string Transform(string value, WordParagraph source, WordParagraph? fallback = null) => applyTextTransform
+                ? ApplyNativeTextTransform(value, source, fallback)
+                : value;
         }
 
     }

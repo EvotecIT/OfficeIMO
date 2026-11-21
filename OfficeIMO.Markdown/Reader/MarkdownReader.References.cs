@@ -28,7 +28,9 @@ internal static partial class MarkdownReader {
         bool inFence = false;
         char fenceChar = '\0';
         int fenceLen = 0;
-        bool openParagraph = false;
+        // Whether a paragraph is open is needed only in front of a definition, so the line that
+        // decides it is remembered and checked there instead of on every line.
+        var openParagraph = new LazyParagraphContinuation(lines, options);
         bool inQuotedFence = false;
         char quotedFenceChar = '\0';
         int quotedFenceLen = 0;
@@ -36,12 +38,12 @@ internal static partial class MarkdownReader {
         for (int idx = 0; idx < lines.Length; idx++) {
             var line = lines[idx];
             if (string.IsNullOrWhiteSpace(line)) {
-                openParagraph = false;
+                openParagraph.Clear();
                 continue;
             }
 
             if (TryUpdateQuotedFencePreScanState(line, ref inQuotedFence, ref quotedFenceChar, ref quotedFenceLen)) {
-                openParagraph = false;
+                openParagraph.Clear();
                 continue;
             }
 
@@ -49,7 +51,7 @@ internal static partial class MarkdownReader {
             if (!inFence) {
                 if (IsCodeFenceOpen(line, out _, out fenceChar, out fenceLen)) {
                     inFence = true;
-                    openParagraph = false;
+                    openParagraph.Clear();
                     continue;
                 }
             } else {
@@ -82,11 +84,11 @@ internal static partial class MarkdownReader {
                 out var openingMarkerSpan,
                 out var separatorMarkerSpan)) {
                 if (IsReferenceDefinitionAfterStandaloneGenericAttribute(lines, idx, options)) {
-                    openParagraph = true;
+                    openParagraph.Set();
                     continue;
                 }
 
-                if (openParagraph && !CanReferenceDefinitionResolveOpenShortcutParagraph(lines, idx)) {
+                if (openParagraph.IsOpen() && !CanReferenceDefinitionResolveOpenShortcutParagraph(lines, idx)) {
                     continue;
                 }
 
@@ -96,7 +98,7 @@ internal static partial class MarkdownReader {
                         state,
                         state.SourceLineOffset + idx + 1,
                         state.SourceLineOffset + idx + consumedLines);
-                    state.LinkRefs[label] = new MarkdownReferenceLinkDefinition(
+                    state.EditLinkRefs()[label] = new MarkdownReferenceLinkDefinition(
                         label,
                         resolved!,
                         title,
@@ -108,7 +110,7 @@ internal static partial class MarkdownReader {
                         separatorMarkerSpan);
                 }
                 idx += consumedLines - 1;
-                openParagraph = false;
+                openParagraph.Clear();
                 continue;
             }
 
@@ -120,15 +122,15 @@ internal static partial class MarkdownReader {
                 out var quotedDefinition,
                 out var quotedConsumedLines)) {
                 if (!state.LinkRefs.ContainsKey(quotedDefinition.Label)) {
-                    state.LinkRefs[quotedDefinition.Label] = quotedDefinition;
+                    state.EditLinkRefs()[quotedDefinition.Label] = quotedDefinition;
                 }
 
                 idx += quotedConsumedLines - 1;
-                openParagraph = false;
+                openParagraph.Clear();
                 continue;
             }
 
-            openParagraph = IsReferenceDefinitionParagraphContinuationLine(lines, idx, options);
+            openParagraph.DecideAt(idx);
         }
     }
 
@@ -586,6 +588,10 @@ internal static partial class MarkdownReader {
 
         int rb = FindReferenceLabelEnd(trimmed, 0);
         if (rb > 1 && rb + 1 < trimmed.Length && trimmed[rb + 1] == ':') {
+            if (rb - 1 > MaxReferenceLabelLength) {
+                return false;
+            }
+
             label = NormalizeReferenceLabel(trimmed.Substring(1, rb - 1));
             int absoluteLine = state?.SourceLineOffset + index + 1 ?? index + 1;
             labelSpan = CreateSpan(
@@ -633,6 +639,10 @@ internal static partial class MarkdownReader {
 
                 labelBuilder.Append('\n');
                 labelBuilder.Append(trimmedContinuation.Substring(0, closingBracket));
+                if (labelBuilder.Length > MaxReferenceLabelLength) {
+                    return false;
+                }
+
                 label = NormalizeReferenceLabel(labelBuilder.ToString());
                 int absoluteStartLine = state?.SourceLineOffset + index + 1 ?? index + 1;
                 int absoluteClosingLine = state?.SourceLineOffset + index + lineOffset + 1 ?? index + lineOffset + 1;
@@ -669,6 +679,9 @@ internal static partial class MarkdownReader {
 
             labelBuilder.Append('\n');
             labelBuilder.Append(trimmedContinuation);
+            if (labelBuilder.Length > MaxReferenceLabelLength) {
+                return false;
+            }
         }
 
         return false;

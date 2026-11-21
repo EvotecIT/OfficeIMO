@@ -1,0 +1,34 @@
+{{~ # Hero proof for a surface: the script beside the document it produced, from data/showcase.json. ~}}
+{{~ # The script is complete at rest; surface-explorer.js trims it to the page height and expands it in place, so nothing scrolls inside a box. ~}}
+{{~ preview = null ~}}
+{{~ for example in data.showcase.cards ~}}{{~ if example.id == app.proofShowcase ~}}{{~ preview = example ~}}{{~ end ~}}{{~ end ~}}
+{{~ excerpt = preview && data.showcase_excerpts ? data.showcase_excerpts[preview.id] : null ~}}
+{{~ if preview ~}}
+{{~ script_name = preview.source_url ? (preview.source_url | string.split "/" | array.last | string.replace ".txt" "") : "script.ps1" ~}}
+{{~ excerpt_lines = excerpt ? (excerpt | string.split "\n" | array.size) : 0 ~}}
+<figure class="imo-workbench__stage imo-surface-proof" data-surface-proof>
+  <div class="imo-surface-proof__window">
+    <div class="imo-surface-proof__bar">
+      <span class="imo-terminal__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span class="imo-surface-proof__file imo-surface-proof__file--code">{{ script_name }}</span>
+      <span class="imo-surface-proof__arrow" aria-hidden="true">→</span>
+      <span class="imo-surface-proof__file imo-surface-proof__file--doc">{{ preview.downloads | array.map "label" | array.join " · " }}</span>
+    </div>
+    <div class="imo-surface-proof__body">
+      {{~ if excerpt ~}}
+      <div class="imo-surface-proof__code" data-surface-proof-code>
+        <pre tabindex="0" aria-label="{{ script_name }}, {{ excerpt_lines }} lines"><code class="language-powershell">{{ excerpt | html.escape }}</code></pre>
+        <button type="button" class="imo-surface-proof__expand" data-surface-proof-toggle hidden aria-expanded="false" data-label-more="Show all {{ excerpt_lines }} lines" data-label-less="Show less">Show all {{ excerpt_lines }} lines</button>
+      </div>
+      {{~ end ~}}
+      <div class="imo-surface-proof__doc">
+        <a href="{{ preview.image }}" data-pf-media data-pf-media-caption="{{ preview.title | html.escape }}" aria-label="Open full-size preview: {{ preview.title }}"><img src="{{ preview.image }}" width="{{ preview.image_width }}" height="{{ preview.image_height }}" alt="{{ preview.image_alt }}" decoding="async" fetchpriority="high" /></a>
+        {{~ if preview.downloads ~}}
+        <p class="imo-surface-proof__downloads">{{ for download in preview.downloads }}<a href="{{ download.url }}" download>{{ download.label }}</a>{{ end }}</p>
+        {{~ end ~}}
+      </div>
+    </div>
+  </div>
+  <figcaption><strong>{{ preview.title }}.</strong> {{ preview.proof }} <a href="{{ preview.walkthrough_url ?? ("/showcase/#" + preview.id) }}">Read the walkthrough</a></figcaption>
+</figure>
+{{~ end ~}}

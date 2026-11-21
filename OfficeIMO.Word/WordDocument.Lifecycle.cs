@@ -48,19 +48,27 @@ namespace OfficeIMO.Word {
                     }
                 }
 
+                // Closing a package held in memory this document owns only rewrites (and recompresses) the archive
+                // into a buffer that is dropped next, so it is left to the garbage collector. A System.IO.Packaging
+                // package on .NET Framework can keep large parts in isolated-storage files, so it is still closed there.
+                bool packageReleased = _ownedPackageStream != null && _legacyValidationLivePackageStream == null
+                    && (!OfficeRuntime.IsNetFramework || _ownedZipPackage != null);
                 try {
                     RetainColorContextForInspection();
                 } catch (Exception ex) {
                     persistenceFailure ??= ex;
                 }
 
-                try {
-                    wordProcessingDocument.Dispose();
-                } catch (Exception ex) {
-                    persistenceFailure ??= ex;
+                if (!packageReleased) {
+                    try {
+                        wordProcessingDocument.Dispose();
+                    } catch (Exception ex) {
+                        persistenceFailure ??= ex;
+                    }
                 }
 
                 this._wordprocessingDocument = null!;
+                _ownedZipPackage = null;
             }
 
             var ownedPackageStream = _ownedPackageStream;
@@ -123,19 +131,27 @@ namespace OfficeIMO.Word {
                     }
                 }
 
+                // Closing a package held in memory this document owns only rewrites (and recompresses) the archive
+                // into a buffer that is dropped next, so it is left to the garbage collector. A System.IO.Packaging
+                // package on .NET Framework can keep large parts in isolated-storage files, so it is still closed there.
+                bool packageReleased = _ownedPackageStream != null && _legacyValidationLivePackageStream == null
+                    && (!OfficeRuntime.IsNetFramework || _ownedZipPackage != null);
                 try {
                     RetainColorContextForInspection();
                 } catch (Exception ex) {
                     persistenceFailure ??= ex;
                 }
 
-                try {
-                    wordProcessingDocument.Dispose();
-                } catch (Exception ex) {
-                    persistenceFailure ??= ex;
+                if (!packageReleased) {
+                    try {
+                        wordProcessingDocument.Dispose();
+                    } catch (Exception ex) {
+                        persistenceFailure ??= ex;
+                    }
                 }
 
                 this._wordprocessingDocument = null!;
+                _ownedZipPackage = null;
             }
 
             var ownedPackageStream = _ownedPackageStream;
@@ -214,29 +230,6 @@ namespace OfficeIMO.Word {
         internal WordSection _currentSection => this.Sections.Last();
 
 
-        private static void EnsureCustomStyleNames(WordprocessingDocument wordDocument) {
-            var stylePart = wordDocument.MainDocumentPart?.StyleDefinitionsPart;
-            var styles = stylePart?.Styles;
-            if (styles == null) return;
-            var map = WordParagraphStyle.CustomStyles
-                .Where(s => !string.IsNullOrEmpty(s.StyleId?.Value))
-                .GroupBy(s => s.StyleId!.Value!, StringComparer.Ordinal)
-                .ToDictionary(g => g.Key, g => g.Last(), StringComparer.Ordinal);
-            bool changed = false;
-            foreach (var s in styles.OfType<DocumentFormat.OpenXml.Wordprocessing.Style>()) {
-                var id = s.StyleId?.Value;
-                if (id != null && map.TryGetValue(id, out var def)) {
-                    var newName = def.StyleName?.Val ?? def.StyleId?.Value;
-                    if (!string.IsNullOrEmpty(newName)) {
-                        if (s.StyleName == null || !string.Equals(s.StyleName.Val, newName, StringComparison.Ordinal)) {
-                            s.StyleName = new DocumentFormat.OpenXml.Wordprocessing.StyleName { Val = newName };
-                            changed = true;
-                        }
-                    }
-                }
-            }
-            if (changed) styles.Save();
-        }
 
     }
 }

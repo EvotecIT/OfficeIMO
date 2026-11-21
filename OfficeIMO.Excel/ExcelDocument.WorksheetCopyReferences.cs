@@ -90,6 +90,13 @@ namespace OfficeIMO.Excel {
                 changed |= RewriteStructuredTableFormula(formula, tableNameMap);
             foreach (Formula2 formula in worksheet.Descendants<Formula2>())
                 changed |= RewriteStructuredTableFormula(formula, tableNameMap);
+            foreach (ConditionalFormatValueObject threshold in FormulaThresholds(worksheet)) {
+                string rewritten = RewriteStructuredTableReferences(threshold.Val!.Value!, tableNameMap);
+                if (!string.Equals(rewritten, threshold.Val.Value, StringComparison.Ordinal)) {
+                    threshold.Val = rewritten;
+                    changed = true;
+                }
+            }
             foreach (OfficeFormula formula in worksheet.Descendants<OfficeFormula>())
                 changed |= RewriteStructuredTableFormula(formula, tableNameMap);
             return changed;
@@ -124,7 +131,8 @@ namespace OfficeIMO.Excel {
             ExcelSheet targetSheet,
             IReadOnlyDictionary<string, string> sheetNameMap,
             IReadOnlyDictionary<string, string>? tableNameMap = null,
-            IReadOnlyDictionary<int, int>? externalReferenceMap = null) {
+            IReadOnlyDictionary<int, int>? externalReferenceMap = null,
+            bool layoutFormulasOnly = false) {
             ushort targetSheetPosition = GetSheetPositionIndex(targetSheet);
             var sourceSheetNamesByPosition = sourceDocument.GetSheetNamesByPosition();
             string? currentSourceSheetName = sheetNameMap
@@ -139,7 +147,8 @@ namespace OfficeIMO.Excel {
             IReadOnlyList<DefinedName> referencedSourceNames = ResolveReferencedDefinedNamesFromSource(
                 sourceDocument,
                 sourceSheet,
-                copiedSourceSheetNames);
+                copiedSourceSheetNames,
+                layoutFormulasOnly);
             var plannedCopies = new List<(DefinedName Clone, ushort DestinationSheetPosition, string Name)>();
             foreach (DefinedName sourceName in referencedSourceNames) {
                 string name = sourceName.Name!.Value!;
@@ -156,14 +165,7 @@ namespace OfficeIMO.Excel {
                 clone.LocalSheetId = destinationSheetPosition;
                 clone.Name = name;
                 if (!string.IsNullOrEmpty(clone.Text)) {
-                    clone.Text = ReplaceSheetNameReferences(clone.Text!, sheetNameMap);
-                    if (tableNameMap?.Count > 0) {
-                        clone.Text = RewriteStructuredTableReferences(clone.Text!, tableNameMap);
-                    }
-
-                    if (externalReferenceMap?.Count > 0) {
-                        clone.Text = RewriteExternalWorkbookReferenceIndexes(clone.Text!, externalReferenceMap);
-                    }
+                    clone.Text = RewriteCopiedFormula(clone.Text, sheetNameMap, tableNameMap, externalReferenceMap);
                 }
 
                 plannedCopies.Add((clone, destinationSheetPosition, name));
@@ -192,7 +194,8 @@ namespace OfficeIMO.Excel {
         private static void PreflightReferencedDefinedNamesFromSource(
             ExcelDocument sourceDocument,
             IReadOnlyList<ExcelSheet> sourceSheets,
-            DefinedNameCopyBudget budget) {
+            DefinedNameCopyBudget budget,
+            bool layoutFormulasOnly = false) {
             var copiedSourceSheetNames = new HashSet<string>(
                 sourceSheets.Select(sheet => sheet.Name),
                 StringComparer.OrdinalIgnoreCase);
@@ -200,9 +203,14 @@ namespace OfficeIMO.Excel {
                 IReadOnlyList<DefinedName> referencedNames = ResolveReferencedDefinedNamesFromSource(
                     sourceDocument,
                     sourceSheet,
-                    copiedSourceSheetNames);
+                    copiedSourceSheetNames,
+                    layoutFormulasOnly);
                 foreach (DefinedName sourceName in referencedNames) {
                     budget.Consume(sourceName.Text?.Length ?? 0);
+                }
+
+                foreach (DefinedName printName in GetSourcePrintDefinedNames(sourceDocument, sourceSheet.Name)) {
+                    budget.Consume(printName.Text?.Length ?? 0);
                 }
             }
         }
@@ -210,13 +218,18 @@ namespace OfficeIMO.Excel {
         private static IReadOnlyList<DefinedName> ResolveReferencedDefinedNamesFromSource(
             ExcelDocument sourceDocument,
             ExcelSheet sourceSheet,
-            ISet<string> copiedSourceSheetNames) {
+            ISet<string> copiedSourceSheetNames,
+            bool layoutFormulasOnly) {
             DefinedNames? sourceDefinedNames = sourceDocument.WorkbookRoot.DefinedNames;
             if (sourceDefinedNames == null) {
                 return Array.Empty<DefinedName>();
             }
 
-            List<string> formulaTexts = CollectFormulaTexts(sourceSheet.WorksheetPart).ToList();
+            List<string> formulaTexts = (layoutFormulasOnly
+                ? CollectLayoutFormulaTexts(sourceSheet.WorksheetPart)
+                : CollectFormulaTexts(sourceSheet.WorksheetPart)).ToList();
+            // Every route copies the print area and titles, so names they use (a dynamic print area) come along too.
+            formulaTexts.AddRange(GetSourcePrintDefinedNames(sourceDocument, sourceSheet.Name).Select(name => name.Text));
             if (formulaTexts.Count == 0) {
                 return Array.Empty<DefinedName>();
             }
@@ -301,71 +314,18 @@ namespace OfficeIMO.Excel {
             IReadOnlyDictionary<string, List<DefinedName>> sourceNamesByName,
             ISet<string> queuedNames,
             Queue<DefinedNameReference> pendingNames) {
-            int tokenStart = -1;
-            for (int index = 0; index <= formula.Length; index++) {
-                bool isTokenCharacter = index < formula.Length && IsDefinedNameCharacter(formula[index]);
-                if (isTokenCharacter) {
-                    if (tokenStart < 0) {
-                        tokenStart = index;
-                    }
-
+            // Tokens come from the formula tokenizer, so text inside string literals such as an inline list
+            // "Red,Green" never counts as a name reference.
+            foreach ((string name, string? sheetName) in ReadDefinedNameTokens(formula)) {
+                if (!sourceNamesByName.ContainsKey(name)) {
                     continue;
                 }
 
-                if (tokenStart < 0) {
-                    continue;
-                }
-
-                string token = formula.Substring(tokenStart, index - tokenStart);
-                tokenStart = -1;
-                if (!sourceNamesByName.ContainsKey(token)) {
-                    continue;
-                }
-
-                string? explicitSheetName = TryReadSheetQualifier(formula, index - token.Length);
-                var reference = new DefinedNameReference(token, contextSheetName, explicitSheetName);
+                var reference = new DefinedNameReference(name, contextSheetName, sheetName);
                 if (queuedNames.Add(reference.Key)) {
                     pendingNames.Enqueue(reference);
                 }
             }
-        }
-
-        private static string? TryReadSheetQualifier(string formula, int tokenStart) {
-            int bangIndex = tokenStart - 1;
-            if (bangIndex < 0 || formula[bangIndex] != '!') {
-                return null;
-            }
-
-            int qualifierEnd = bangIndex - 1;
-            if (qualifierEnd < 0) {
-                return null;
-            }
-
-            if (formula[qualifierEnd] == '\'') {
-                for (int index = qualifierEnd - 1; index >= 0; index--) {
-                    if (formula[index] != '\'') {
-                        continue;
-                    }
-
-                    if (index > 0 && formula[index - 1] == '\'') {
-                        index--;
-                        continue;
-                    }
-
-                    return formula.Substring(index + 1, qualifierEnd - index - 1).Replace("''", "'");
-                }
-
-                return null;
-            }
-
-            int qualifierStart = qualifierEnd;
-            while (qualifierStart >= 0 && IsDefinedNameCharacter(formula[qualifierStart])) {
-                qualifierStart--;
-            }
-
-            return qualifierStart == qualifierEnd
-                ? null
-                : formula.Substring(qualifierStart + 1, qualifierEnd - qualifierStart);
         }
 
         private readonly struct DefinedNameReference {
@@ -440,6 +400,98 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
+        /// <summary>
+        /// Collects the formulas a values copy keeps: conditional-format and data-validation rules. Cell and table
+        /// formulas are not copied in values mode, so the names they use are not needed.
+        /// </summary>
+        /// <remarks>A worksheet that is not loaded is streamed, so a values copy never loads the source cells.</remarks>
+        private static List<string> CollectLayoutFormulaTexts(WorksheetPart worksheetPart) {
+            var formulas = new List<string>();
+            if (worksheetPart.IsRootElementLoaded) {
+                Worksheet worksheet = worksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is missing.");
+                foreach (OpenXmlElement container in worksheet.Elements<ConditionalFormatting>().Cast<OpenXmlElement>().Concat(worksheet.Elements<DataValidations>())) {
+                    AddLayoutFormulaTexts(container, formulas);
+                }
+
+                return formulas;
+            }
+
+            using OpenXmlReader reader = OpenXmlReader.Create(worksheetPart);
+            bool hasCurrent = reader.Read();
+            while (hasCurrent) {
+                if (reader.IsStartElement && reader.Depth == 1
+                    && (reader.ElementType == typeof(ConditionalFormatting) || reader.ElementType == typeof(DataValidations))) {
+                    AddLayoutFormulaTexts(reader.LoadCurrentElement()!, formulas);
+                }
+
+                hasCurrent = reader.Read();
+            }
+
+            return formulas;
+        }
+
+        private static void AddLayoutFormulaTexts(OpenXmlElement container, List<string> formulas) {
+            foreach (OpenXmlLeafTextElement formula in container.Descendants<OpenXmlLeafTextElement>()) {
+                if ((formula is Formula || formula is Formula1 || formula is Formula2) && !string.IsNullOrEmpty(formula.Text)) {
+                    formulas.Add(formula.Text);
+                }
+            }
+
+            formulas.AddRange(FormulaThresholds(container).Select(threshold => threshold.Val!.Value!));
+        }
+
+        /// <summary>Color-scale, data-bar and icon-set thresholds whose value is a formula.</summary>
+        private static IEnumerable<ConditionalFormatValueObject> FormulaThresholds(OpenXmlElement root) =>
+            root.Descendants<ConditionalFormatValueObject>()
+                .Where(threshold => threshold.Type?.Value == ConditionalFormatValueObjectValues.Formula
+                    && !string.IsNullOrEmpty(threshold.Val?.Value));
+
+        /// <summary>
+        /// Reports whether the rules a values copy keeps, or the defined names they use, refer to another workbook.
+        /// </summary>
+        private static bool ValuesCopyRulesReferenceExternalWorkbooks(ExcelDocument sourceDocument, IReadOnlyList<ExcelSheet> sourceSheets) {
+            if (sourceDocument.WorkbookRoot.ExternalReferences?.Elements<ExternalReference>().Any() != true) {
+                return false;
+            }
+
+            var copiedSourceSheetNames = new HashSet<string>(sourceSheets.Select(sheet => sheet.Name), StringComparer.OrdinalIgnoreCase);
+            foreach (ExcelSheet sourceSheet in sourceSheets) {
+                if (CollectLayoutFormulaTexts(sourceSheet.WorksheetPart).Any(ContainsExternalWorkbookReference)
+                    || GetSourcePrintDefinedNames(sourceDocument, sourceSheet.Name).Any(name => ContainsExternalWorkbookReference(name.Text))) {
+                    return true;
+                }
+
+                foreach (DefinedName name in ResolveReferencedDefinedNamesFromSource(sourceDocument, sourceSheet, copiedSourceSheetNames, layoutFormulasOnly: true)) {
+                    if (ContainsExternalWorkbookReference(name.Text)) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Applies the package-mode rule for external workbook links to a values copy: rules that use them are refused
+        /// unless the caller opts in, and are then copied with their links and remapped indexes.
+        /// </summary>
+        /// <returns>The source-to-target external link index map, empty when nothing needs remapping.</returns>
+        private IReadOnlyDictionary<int, int> PrepareValuesCopyExternalWorkbookReferences(
+            ExcelDocument sourceDocument,
+            IReadOnlyList<ExcelSheet> sourceSheets,
+            bool copyExternalWorkbookReferences) {
+            if (ReferenceEquals(sourceDocument, this) || !ValuesCopyRulesReferenceExternalWorkbooks(sourceDocument, sourceSheets)) {
+                return new Dictionary<int, int>();
+            }
+
+            if (!copyExternalWorkbookReferences) {
+                throw new InvalidOperationException(
+                    "Values-mode worksheet copy refuses conditional formats, data validations and defined names that reference external workbooks unless CopyExternalWorkbookReferences is enabled explicitly.");
+            }
+
+            return Locking.ExecuteWrite(EnsureLock(), () => CopyExternalWorkbookReferencesFromSource(sourceDocument));
+        }
+
         private static IEnumerable<string> CollectFormulaTexts(WorksheetPart worksheetPart) {
             Worksheet worksheet = worksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is missing.");
             foreach (CellFormula formula in worksheet.Descendants<CellFormula>()) {
@@ -464,6 +516,10 @@ namespace OfficeIMO.Excel {
                 if (!string.IsNullOrEmpty(formula.Text)) {
                     yield return formula.Text!;
                 }
+            }
+
+            foreach (ConditionalFormatValueObject threshold in FormulaThresholds(worksheet)) {
+                yield return threshold.Val!.Value!;
             }
 
             foreach (OfficeFormula formula in worksheet.Descendants<OfficeFormula>()) {
@@ -501,24 +557,5 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static bool ContainsDefinedNameToken(string formula, string definedName) {
-            for (int index = 0; index <= formula.Length - definedName.Length; index++) {
-                if (!string.Equals(formula.Substring(index, definedName.Length), definedName, StringComparison.OrdinalIgnoreCase)) {
-                    continue;
-                }
-
-                int afterIndex = index + definedName.Length;
-                if ((index == 0 || !IsDefinedNameCharacter(formula[index - 1]))
-                    && (afterIndex == formula.Length || !IsDefinedNameCharacter(formula[afterIndex]))) {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private static bool IsDefinedNameCharacter(char value) {
-            return char.IsLetterOrDigit(value) || value == '_' || value == '.' || value == '\\';
-        }
     }
 }

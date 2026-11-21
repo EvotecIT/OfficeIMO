@@ -19,7 +19,7 @@ namespace OfficeIMO.Excel {
 
             RequireSdkWorksheetPart();
             ct.ThrowIfCancellationRequested();
-            Worksheet worksheet = _wsPart.Worksheet
+            Worksheet worksheet = SdkWorksheetPart.Worksheet
                 ?? throw new InvalidDataException($"Worksheet '{_sheetName}' has no worksheet root.");
             foreach (Cell cell in EnumerateOwnedSdkWorksheetCells(worksheet)) {
                 ct.ThrowIfCancellationRequested();
@@ -59,7 +59,7 @@ namespace OfficeIMO.Excel {
                 ct.ThrowIfCancellationRequested);
             // Table-backed dimensions can intentionally include empty cells.
             // Otherwise reuse this complete validation scan to discover actual bounds.
-            var bounds = _usedRangeA1 == null && (!_hasSdkWorksheetPart || !_wsPart.TableDefinitionParts.Any())
+            var bounds = _usedRangeA1 == null && (!_hasSdkWorksheetPart || !SdkWorksheetPart.TableDefinitionParts.Any())
                 ? new WorksheetRangeAccumulator() : null;
             var coordinates = bounds != null && Volatile.Read(ref _implicitXmlRowIndexes) == null
                 ? new ImplicitXmlRowIndexBuilder() : null;

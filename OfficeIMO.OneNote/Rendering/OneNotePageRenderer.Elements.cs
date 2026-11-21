@@ -188,7 +188,7 @@ public static partial class OneNotePageRenderer {
                     if (item.Expression != null && item.MathOptions != null) {
                         double inlineRight = Math.Min(_drawing.Width, x + width);
                         if (cursorY + item.Height <= _drawing.Height && cursorX + item.Width <= inlineRight) {
-                            OfficeMathRenderer.AddToDrawing(_drawing, item.Expression, cursorX, cursorY, item.MathOptions);
+                            AddMath(item.Expression, cursorX, cursorY, item.MathOptions);
                         } else {
                             AddDiagnostic("ONENOTE_RENDER_MATH_CLIPPED", "A mathematical expression exceeded the page canvas and was rendered as readable text.", item.Expression.ToPlainText());
                             double fallbackWidth = Math.Min(inlineRight - cursorX, _drawing.Width - cursorX);
@@ -201,7 +201,8 @@ public static partial class OneNotePageRenderer {
                         double drawableWidth = Math.Min(item.Width, _drawing.Width - cursorX);
                         double drawableHeight = Math.Min(item.Height, _drawing.Height - cursorY);
                         if (drawableWidth > 0D && drawableHeight > 0D) {
-                            if (item.RichText.Baseline == OfficeTextBaseline.Normal) {
+                            // A linked run keeps its PDF/SVG link through the rich text path.
+                            if (item.RichText.Baseline == OfficeTextBaseline.Normal && item.RichText.LinkUri == null) {
                                 _drawing.AddText(item.Text, cursorX, cursorY, drawableWidth, drawableHeight, CreateFont(item.Run),
                                     ResolveColor(item.Run.Style.ColorArgb), OfficeTextAlignment.Left, item.Height, wrapText: false);
                             } else {
@@ -229,7 +230,7 @@ public static partial class OneNotePageRenderer {
             OfficeTextParagraphIndent indent = CreateParagraphIndent(paragraph) ?? OfficeTextParagraphIndent.Empty;
             var items = new List<InlineMathItem>();
             if (prefix.Length > 0) AddInlineTextItems(items, paragraph.Runs[0], prefix, Math.Max(1D, width - indent.MaximumOffset));
-            foreach (OneNoteTextRun run in paragraph.Runs) {
+            foreach (OneNoteTextRun run in OneNoteFieldCodes.ResolveRuns(paragraph.Runs)) {
                 if (run.MathExpression != null && _options.IncludeMath) {
                     OfficeMathRenderOptions mathOptions = CreateMathOptions(run);
                     OfficeMathLayoutMetrics metrics = OfficeMathRenderer.Measure(run.MathExpression, mathOptions);
@@ -280,9 +281,10 @@ public static partial class OneNotePageRenderer {
                     ? Array.Empty<OfficeRichTextRun>()
                     : new[] { CreateRichTextRun(new OneNoteTextRun(), prefix) };
             }
-            var runs = new List<OfficeRichTextRun>(paragraph.Runs.Count);
-            for (int index = 0; index < paragraph.Runs.Count; index++) {
-                OneNoteTextRun run = paragraph.Runs[index];
+            IReadOnlyList<OneNoteTextRun> displayRuns = OneNoteFieldCodes.ResolveRuns(paragraph.Runs);
+            var runs = new List<OfficeRichTextRun>(displayRuns.Count);
+            for (int index = 0; index < displayRuns.Count; index++) {
+                OneNoteTextRun run = displayRuns[index];
                 runs.Add(CreateRichTextRun(run, (index == 0 ? prefix : string.Empty) + (run.Text ?? string.Empty)));
             }
             return runs;
@@ -455,7 +457,13 @@ public static partial class OneNotePageRenderer {
             if (renderWidth <= 0D || renderHeight <= 0D) return 0D;
             try {
                 var projection = new OfficeImageProjection(new OfficeImagePlacement(x, y, renderWidth, renderHeight));
-                _drawing.AddImage(bytes, image.MediaType ?? info?.MimeType, projection, image.AltText);
+                string? contentType = image.MediaType ?? info?.MimeType;
+                if (_options.ImageSubstitution != null &&
+                    _options.ImageSubstitution(bytes, contentType, out byte[] substitute, out string substituteContentType)) {
+                    bytes = substitute;
+                    contentType = substituteContentType;
+                }
+                _drawing.AddImage(bytes, contentType, projection, image.AltText);
             } catch (Exception exception) when (exception is ArgumentException || exception is NotSupportedException || exception is InvalidOperationException) {
                 AddDiagnostic("ONENOTE_RENDER_IMAGE_UNSUPPORTED", exception.Message, image.FileName);
                 return RenderImagePlaceholder(image, x, y, renderWidth);
@@ -554,7 +562,7 @@ public static partial class OneNotePageRenderer {
                 AddDiagnostic("ONENOTE_RENDER_MATH_CLIPPED", "A mathematical expression exceeded the page canvas and was rendered as readable text.", math.Text);
                 return RenderPlainMath(expression, x, y, availableWidth, availableHeight);
             }
-            OfficeMathRenderer.AddToDrawing(_drawing, expression, x, y, _options.Math);
+            AddMath(expression, x, y, _options.Math);
             return Math.Max(DefaultParagraphHeight, metrics.Height);
         }
 
@@ -570,7 +578,7 @@ public static partial class OneNotePageRenderer {
             double height = Math.Min(24D, Math.Max(1D, _drawing.Height - y));
             if (availableHeight > 0D) height = Math.Min(height, availableHeight);
             double width = Math.Max(1D, Math.Min(availableWidth, _drawing.Width - x));
-            _drawing.AddText(expression.ToPlainText(), x, y, width, height, font ?? _options.Math.Font, color ?? _options.Math.Color, wrapText: false);
+            _drawing.AddText(Paint(OneNoteTextNormalizer.Normalize(expression.ToPlainText()), font ?? _options.Math.Font), x, y, width, height, font ?? _options.Math.Font, color ?? _options.Math.Color, wrapText: false);
             return height;
         }
 
@@ -583,11 +591,52 @@ public static partial class OneNotePageRenderer {
             frame.StrokeColor = OfficeColor.FromRgb(150, 158, 170);
             frame.StrokeWidth = 0.8D;
             _drawing.AddShape(frame, x, y);
-            string label = binary is OneNoteMedia ? "▶ " : "📎 ";
-            _drawing.AddText(label + (binary.FileName ?? binary.Kind.ToString()), x + 8D, y + 6D, Math.Max(1D, frameWidth - 16D), Math.Max(1D, height - 12D),
-                _options.DefaultFont, OfficeColor.FromRgb(45, 55, 72), wrapText: false);
+            var ink = OfficeColor.FromRgb(45, 55, 72);
+            // The icon is vector geometry so every output shows it without depending on an emoji font.
+            double iconSize = Math.Min(10D, Math.Max(1D, height - 12D));
+            if (iconSize >= 4D && frameWidth > 16D + iconSize) {
+                _drawing.AddShape(binary is OneNoteMedia ? PlayIcon(iconSize, ink) : DocumentIcon(iconSize, ink), x + 8D, y + (height - iconSize) / 2D);
+            }
+            double textX = x + 8D + iconSize + 5D;
+            _drawing.AddText(Paint(OneNoteTextNormalizer.Normalize(binary.FileName ?? binary.Kind.ToString()), _options.DefaultFont),
+                textX, y + 6D, Math.Max(1D, x + frameWidth - 8D - textX), Math.Max(1D, height - 12D),
+                _options.DefaultFont, ink, wrapText: false);
             return height;
         }
+
+        private static OfficeShape PlayIcon(double size, OfficeColor color) {
+            OfficeShape icon = OfficeShape.Polygon(new OfficePoint(0D, 0D), new OfficePoint(size * 0.85D, size / 2D), new OfficePoint(0D, size));
+            icon.FillColor = color;
+            icon.StrokeWidth = 0D;
+            return icon;
+        }
+
+        private static OfficeShape DocumentIcon(double size, OfficeColor color) {
+            double width = size * 0.8D;
+            double fold = size * 0.3D;
+            OfficeShape icon = OfficeShape.Polygon(
+                new OfficePoint(0D, 0D), new OfficePoint(width - fold, 0D), new OfficePoint(width, fold),
+                new OfficePoint(width, size), new OfficePoint(0D, size));
+            icon.FillColor = OfficeColor.White;
+            icon.StrokeColor = color;
+            icon.StrokeWidth = 0.8D;
+            return icon;
+        }
+
+        private void AddMath(OfficeMathExpression expression, double x, double y, OfficeMathRenderOptions options) {
+            int first = _drawing.Elements.Count;
+            OfficeMathRenderer.AddToDrawing(_drawing, expression, x, y, options);
+            if (_options.TextSubstitution == null) return;
+            for (int index = first; index < _drawing.Elements.Count; index++) {
+                if (_drawing.Elements[index] is not OfficeDrawingText text || text.Text.Length == 0) continue;
+                string painted = Paint(text.Text, text.Font);
+                if (!string.Equals(painted, text.Text, StringComparison.Ordinal)) text.SetPaintedText(painted, painted);
+            }
+        }
+
+        // Lets an output adapter swap characters its writer cannot render for a renderable form.
+        private string Paint(string text, OfficeFontInfo font) =>
+            _options.TextSubstitution == null || text.Length == 0 ? text : _options.TextSubstitution(text, font);
 
         private double RenderImagePlaceholder(OneNoteImage image, double x, double y, double width) {
             if (!_options.IncludeAttachmentPlaceholders) return 0D;
@@ -598,7 +647,7 @@ public static partial class OneNotePageRenderer {
             frame.StrokeColor = OfficeColor.FromRgb(176, 176, 176);
             frame.StrokeDashStyle = OfficeStrokeDashStyle.Dash;
             _drawing.AddShape(frame, x, y);
-            _drawing.AddText(image.AltText ?? image.FileName ?? "Image", x + 6D, y + 6D, Math.Max(1D, renderWidth - 12D), Math.Max(1D, height - 12D),
+            _drawing.AddText(Paint(OneNoteTextNormalizer.Normalize(image.AltText ?? image.FileName ?? "Image"), _options.DefaultFont), x + 6D, y + 6D, Math.Max(1D, renderWidth - 12D), Math.Max(1D, height - 12D),
                 _options.DefaultFont, OfficeColor.DimGray, OfficeTextAlignment.Center, verticalAlignment: OfficeTextVerticalAlignment.Center, wrapText: true);
             return height;
         }
@@ -655,7 +704,7 @@ public static partial class OneNotePageRenderer {
         }
 
         private OfficeRichTextRun CreateRichTextRun(OneNoteTextRun run, string text) => new OfficeRichTextRun(
-            text,
+            Paint(OneNoteTextNormalizer.Normalize(text), CreateFont(run)),
             run.Style.FontSize ?? _options.DefaultFont.Size,
             ResolveColor(run.Style.ColorArgb),
             run.Style.Bold == true,
@@ -666,7 +715,15 @@ public static partial class OneNotePageRenderer {
             run.Style.HighlightColorArgb.HasValue ? ResolveColor(run.Style.HighlightColorArgb) : (OfficeColor?)null,
             baseline: run.Style.Superscript == true
                 ? OfficeTextBaseline.Superscript
-                : run.Style.Subscript == true ? OfficeTextBaseline.Subscript : OfficeTextBaseline.Normal);
+                : run.Style.Subscript == true ? OfficeTextBaseline.Subscript : OfficeTextBaseline.Normal) { LinkUri = CanvasLinkUri(run.Hyperlink) };
+
+        // PDF link annotations and SVG anchors carry only absolute web and mail targets.
+        private static string? CanvasLinkUri(string? hyperlink) =>
+            !string.IsNullOrWhiteSpace(hyperlink) &&
+            Uri.TryCreate(hyperlink!.Trim(), UriKind.Absolute, out Uri? uri) &&
+            (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeMailto)
+                ? uri.AbsoluteUri
+                : null;
 
         private OfficeFontInfo CreateFont(OneNoteTextRun run) {
             OfficeFontStyle style = OfficeFontStyle.Regular;

@@ -151,7 +151,7 @@ public static class OneNoteMarkdownProjection {
 
     private static void AppendText(StringBuilder builder, OneNoteElement element) {
         if (element is OneNoteParagraph paragraph) {
-            string text = OneNoteTextProjection.Normalize(string.Concat(paragraph.Runs.Select(run => run.Text)));
+            string text = OneNoteTextProjection.Normalize(string.Concat(OneNoteFieldCodes.ResolveRuns(paragraph.Runs).Select(run => run.Text)));
             if (!string.IsNullOrWhiteSpace(text)) {
                 if (paragraph.List != null) builder.Append(paragraph.List.Ordered ? "1. " : "- ");
                 builder.AppendLine(text);
@@ -179,7 +179,7 @@ public static class OneNoteMarkdownProjection {
         OneNoteElement element,
         Func<OneNoteBinaryElement, string?>? assetUriResolver) {
         if (element is OneNoteParagraph paragraph) {
-            string content = string.Concat(paragraph.Runs.Select(FormatRun));
+            string content = string.Concat(OneNoteFieldCodes.ResolveRuns(paragraph.Runs).Select(FormatRun));
             if (!string.IsNullOrWhiteSpace(content)) {
                 if (paragraph.List != null) {
                     int level = Math.Min(OneNoteListInfo.MaxLevel, Math.Max(0, paragraph.List.Level));
@@ -267,7 +267,7 @@ public static class OneNoteMarkdownProjection {
     private static string InlineMarkdown(OneNoteElement element, Func<OneNoteBinaryElement, string?>? resolver) {
         if (element is OneNoteParagraph paragraph) {
             var parts = new List<string>();
-            string text = string.Concat(paragraph.Runs.Select(FormatRun));
+            string text = string.Concat(OneNoteFieldCodes.ResolveRuns(paragraph.Runs).Select(FormatRun));
             if (!string.IsNullOrWhiteSpace(text)) parts.Add(text);
             foreach (OneNoteElement child in paragraph.Children) {
                 string nested = InlineMarkdown(child, resolver);

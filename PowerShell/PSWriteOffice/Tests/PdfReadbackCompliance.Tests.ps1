@@ -318,4 +318,28 @@ startxref
         $report.FindRequirement('pdfua-validation').Status | Should -Be 'Unsupported'
     }
 
+    It 'checks saved PDFs against the PDF/UA-1 Matterhorn conditions by path' {
+        $taggedPath = Join-Path $TestDrive 'accessibility-tagged.pdf'
+        $plainPath = Join-Path $TestDrive 'accessibility-plain.pdf'
+        New-OfficePdf -Path $taggedPath {
+            PdfCompliance -Profile PdfUa1 -Groundwork -Language 'en-US'
+            PdfMetadata -Title 'Tagged accessibility check' -Author 'PSWriteOffice'
+            PdfHeading 'Tagged accessibility check'
+            PdfParagraph 'Tagged content'
+        } | Out-Null
+        New-OfficePdf -Path $plainPath {
+            PdfParagraph 'Untagged content'
+        } | Out-Null
+
+        $reports = @(Get-ChildItem -LiteralPath $taggedPath, $plainPath | Test-OfficePdfAccessibility)
+
+        $reports.Count | Should -Be 2
+        ($reports[0].Conditions | Where-Object { $_.Condition.ConditionId -eq 'UA1:7.1-11' }).Status | Should -Be 'Passed'
+        ($reports[1].Conditions | Where-Object { $_.Condition.ConditionId -eq 'UA1:7.1-11' }).Status | Should -Be 'Failed'
+        $untagged = @($reports[1].Findings | Where-Object ConditionId -EQ '01-005')
+        $untagged.Count | Should -Be 1
+        $untagged[0].PageNumber | Should -Be 1
+        @($reports[0].ManualReviewConditions).Count | Should -BeGreaterThan 0
+    }
+
 }

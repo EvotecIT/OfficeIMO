@@ -38,6 +38,19 @@ if (!rejectedEmptyDictionary) {
 
 Console.WriteLine("PASS | Typed Markdown tables, shared options and generic dictionary rows");
 
+var frontMatterSource = MarkdownDocument.Create()
+    .FrontMatter(new PostHeader { Title = "NativeAOT", Enabled = "yes", Tags = new[] { "aot", "yaml" } })
+    .H1("Post")
+    .ToMarkdown(new MarkdownSaveOptions { OutputLineEnding = "\n" });
+FrontMatterBlock header = MarkdownDocument.Parse(frontMatterSource).DocumentHeader
+    ?? throw new InvalidOperationException("The front matter was not read back.");
+if (header.Select("Tags[1]")?.AsString() != "yaml" || header.FindEntry("Enabled")?.Value.AsString() != "yes"
+    || header.Yaml is null || !frontMatterSource.StartsWith(header.Render() + "\n", StringComparison.Ordinal)) {
+    throw new InvalidOperationException("Front matter lost a value or changed on the YAML round trip.");
+}
+
+Console.WriteLine("PASS | YAML front matter written, read and round-tripped");
+
 internal sealed class Stock {
     public string Product { get; set; } = "";
     public int Count;
@@ -54,4 +67,10 @@ internal sealed class StockDictionary : IReadOnlyDictionary<string, int> {
     public bool TryGetValue(string key, out int value) => _values.TryGetValue(key, out value);
     public IEnumerator<KeyValuePair<string, int>> GetEnumerator() => _values.GetEnumerator();
     System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+}
+
+internal sealed class PostHeader {
+    public string Title { get; set; } = "";
+    public string Enabled { get; set; } = "";
+    public string[] Tags { get; set; } = Array.Empty<string>();
 }

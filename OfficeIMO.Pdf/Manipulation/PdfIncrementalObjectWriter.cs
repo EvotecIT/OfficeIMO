@@ -320,14 +320,51 @@ internal static class PdfIncrementalObjectWriter {
 
         int depth = 0;
         for (int i = start; i < trailerRaw.Length; i++) {
-            if (trailerRaw[i] == '[') {
+            char current = trailerRaw[i];
+            if (current == '(') {
+                // Identifiers are often binary literal strings; brackets inside them are not array delimiters.
+                i = SkipLiteralString(trailerRaw, i);
+            } else if (current == '[') {
                 depth++;
-            } else if (trailerRaw[i] == ']' && --depth == 0) {
-                return " /ID " + trailerRaw.Substring(start, i - start + 1).Trim();
+            } else if (current == ']' && --depth == 0) {
+                return NormalizeIdEntry(" /ID " + trailerRaw.Substring(start, i - start + 1).Trim());
             }
         }
 
         return string.Empty;
+    }
+
+    // The trailer text holds one character per source byte, but output is written as ASCII. Re-emit the identifiers
+    // as hex strings so bytes above 0x7F in a literal /ID survive unchanged.
+    private static string NormalizeIdEntry(string entry) {
+        try {
+            if (PdfSyntax.ParseDictionaryEntries(entry).Get<PdfArray>("ID") is not PdfArray identifiers) return entry;
+            var parts = new List<string>(identifiers.Items.Count);
+            foreach (PdfObject identifier in identifiers.Items) {
+                if (identifier is not PdfStringObj value) return entry;
+                parts.Add(PdfSyntaxEscaper.HexString(value.RawBytes));
+            }
+
+            return " /ID [" + string.Join(" ", parts) + "]";
+        } catch (Exception exception) when (exception is not OutOfMemoryException) {
+            return entry;
+        }
+    }
+
+    private static int SkipLiteralString(string value, int start) {
+        int nesting = 0;
+        for (int i = start; i < value.Length; i++) {
+            char current = value[i];
+            if (current == '\\') {
+                i++;
+            } else if (current == '(') {
+                nesting++;
+            } else if (current == ')' && --nesting == 0) {
+                return i;
+            }
+        }
+
+        return value.Length - 1;
     }
 
     private static int IndexOfName(string value, string name) {

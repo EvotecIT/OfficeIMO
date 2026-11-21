@@ -14,7 +14,26 @@ public sealed class AgentPdfWorkflowResult {
     public int DiagnosticCount { get; set; }
     public IReadOnlyList<AgentPdfArtifact> Artifacts { get; set; } = Array.Empty<AgentPdfArtifact>();
     public IReadOnlyList<AgentPdfDiagnostic> Diagnostics { get; set; } = Array.Empty<AgentPdfDiagnostic>();
+    /// <summary>The PDF/A conversion report; present only for PDF/A conversion.</summary>
+    public AgentPdfAReport? PdfA { get; set; }
     public bool Truncated { get; set; }
+}
+
+/// <summary>Every change PDF/A conversion made, or every reason it refused the source. Counts are exact; samples may be trimmed.</summary>
+public sealed class AgentPdfAReport {
+    public string Profile { get; set; } = string.Empty;
+    public int ChangeCount { get; set; }
+    public int ViolationCount { get; set; }
+    public IReadOnlyList<AgentPdfAEntry> Changes { get; set; } = Array.Empty<AgentPdfAEntry>();
+    public IReadOnlyList<AgentPdfAEntry> Violations { get; set; } = Array.Empty<AgentPdfAEntry>();
+}
+
+/// <summary>One PDF/A change kind or refusal reason, with where it applies in the PDF structure.</summary>
+public sealed class AgentPdfAEntry {
+    public string Code { get; set; } = string.Empty;
+    public string? Location { get; set; }
+    public int? ObjectNumber { get; set; }
+    public string Message { get; set; } = string.Empty;
 }
 
 /// <summary>One generated artifact; a bounded response may omit additional artifacts from the same output folder.</summary>

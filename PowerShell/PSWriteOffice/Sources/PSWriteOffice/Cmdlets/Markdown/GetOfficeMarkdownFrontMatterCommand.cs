@@ -1,11 +1,12 @@
 using PSWriteOffice.Foundation;
 using System.Management.Automation;
 using OfficeIMO.Markdown;
+using OfficeIMO.Yaml;
 using PSWriteOffice.Services.Markdown;
 
 namespace PSWriteOffice.Cmdlets.Markdown;
 
-/// <summary>Gets YAML front matter entries from a Markdown document.</summary>
+/// <summary>Gets top-level YAML or TOML front matter entries from a Markdown document as Key, Value, Node and SourceSpan objects.</summary>
 /// <example>
 ///   <summary>Read selected front matter from a Markdown file.</summary>
 ///   <prefix>PS&gt; </prefix>
@@ -24,7 +25,7 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 ///   <para>Parses Markdown text directly when the document has not been saved yet.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Get, "OfficeMarkdownFrontMatter", DefaultParameterSetName = "Document")]
-[OutputType(typeof(FrontMatterBlock.Entry))]
+[OutputType(typeof(PSObject))]
 public sealed class GetOfficeMarkdownFrontMatterCommand : PSCmdlet {
     private const string ParameterSetDocument = "Document";
     private const string ParameterSetPath = "Path";
@@ -58,7 +59,8 @@ public sealed class GetOfficeMarkdownFrontMatterCommand : PSCmdlet {
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        var document = MarkdownDocumentResolver.Resolve(this, ParameterSetName, Document, Path, LiteralPath, Text, Options);
+        // Entries report their SourceSpan, which needs the syntax tree.
+        var document = MarkdownDocumentResolver.Resolve(this, ParameterSetName, Document, Path, LiteralPath, Text, Options, captureSyntax: true);
 
         var wildcardOptions = CaseSensitive
             ? WildcardOptions.None
@@ -72,7 +74,13 @@ public sealed class GetOfficeMarkdownFrontMatterCommand : PSCmdlet {
                 continue;
             }
 
-            WriteObject(entry);
+            var result = new PSObject();
+            result.Properties.Add(new PSNoteProperty("Key", entry.Key));
+            // Plain .NET values: strings, booleans, numbers, dictionaries for mappings and lists for sequences.
+            result.Properties.Add(new PSNoteProperty("Value", YamlSerializer.Deserialize<object>(entry.Value)));
+            result.Properties.Add(new PSNoteProperty("Node", entry.Value));
+            result.Properties.Add(new PSNoteProperty("SourceSpan", entry.SourceSpan));
+            WriteObject(result);
         }
     }
 }

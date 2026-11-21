@@ -187,7 +187,7 @@ internal static partial class MarkdownReader {
             return table;
         }
 
-        var inlineOptions = CloneOptionsWithoutFrontMatter(options);
+        var inlineOptions = GetSharedOptionsWithoutFrontMatter(options, state);
         var inlineState = CloneState(state);
         table.InlineRenderOptions = inlineOptions;
         table.InlineRenderState = inlineState;
@@ -372,9 +372,7 @@ internal static partial class MarkdownReader {
             };
         }
 
-        return new TableCell(new[] {
-            new ParagraphBlock(parsedCell)
-        }) {
+        return new TableCell(new ParagraphBlock(parsedCell)) {
             SourceSpan = state.CaptureSyntaxTree ? cell.SourceSpan : null
         };
     }
@@ -400,8 +398,11 @@ internal static partial class MarkdownReader {
             return null;
         }
 
-        var fragmentOptions = CloneOptionsWithoutFrontMatter(options);
-        fragmentOptions.Tables = false;
+        var fragmentOptions = GetSharedDerivedOptions(options, state, MarkdownReaderDerivedOptions.TableCellBlocks, static source => {
+            var clone = CloneOptionsWithoutFrontMatter(source);
+            clone.Tables = false;
+            return clone;
+        });
         var fragmentState = CloneState(state);
         fragmentState.SuppressBlockGenericAttributes = false;
         fragmentState.SuppressHeadingGenericAttributes = false;
@@ -572,9 +573,11 @@ internal static partial class MarkdownReader {
 
     private static MarkdownColumnAlignment ParseAlignmentCell(string cell) {
         var t = cell.Trim();
-        if (t.StartsWith(":")) { if (t.EndsWith(":")) return MarkdownColumnAlignment.Center; return MarkdownColumnAlignment.Left; }
-        if (t.EndsWith(":")) return MarkdownColumnAlignment.Right;
-        return MarkdownColumnAlignment.None;
+        if (t.Length == 0) return MarkdownColumnAlignment.None;
+        bool left = t[0] == ':';
+        bool right = t[t.Length - 1] == ':';
+        if (left) return right ? MarkdownColumnAlignment.Center : MarkdownColumnAlignment.Left;
+        return right ? MarkdownColumnAlignment.Right : MarkdownColumnAlignment.None;
     }
 
     private static List<string> SplitTableRow(string line) {
@@ -626,7 +629,7 @@ internal static partial class MarkdownReader {
                 }
 
                 if (codeFenceLen == 0) {
-                    if (HasClosingBacktickRun(line.Substring(contentStart, contentEndExclusive - contentStart), index - contentStart + run, run)) {
+                    if (HasClosingBacktickRun(line, index + run, contentEndExclusive, run)) {
                         codeFenceLen = run;
                     }
                 } else if (run == codeFenceLen) {
@@ -691,7 +694,7 @@ internal static partial class MarkdownReader {
                 }
 
                 if (codeFenceLen == 0) {
-                    if (HasClosingBacktickRun(line.Substring(trimStart, trimEndExclusive - trimStart), index - trimStart + run, run)) {
+                    if (HasClosingBacktickRun(line, index + run, trimEndExclusive, run)) {
                         codeFenceLen = run;
                     }
                 } else if (run == codeFenceLen) {
@@ -847,7 +850,8 @@ internal static partial class MarkdownReader {
         if (string.IsNullOrEmpty(value)) return value ?? string.Empty;
         if (value.IndexOf('\\') < 0) return value;
 
-        var sb = new StringBuilder(value.Length);
+        var sb = t_unescapeBuilder ?? new StringBuilder(value.Length);
+        t_unescapeBuilder = null;
         int i = 0;
         int codeFenceLen = 0;
 
@@ -884,18 +888,34 @@ internal static partial class MarkdownReader {
             i++;
         }
 
-        return sb.ToString();
+        // Only removed escapes shorten the text, so the same length means the same text.
+        string unescaped = sb.Length == value.Length ? value : sb.ToString();
+        if (sb.Capacity <= MaximumRetainedUnescapeBuilderCapacity) {
+            sb.Clear();
+            t_unescapeBuilder = sb;
+        }
+
+        return unescaped;
     }
 
-    private static bool HasClosingBacktickRun(string text, int start, int runLength) {
-        if (string.IsNullOrEmpty(text) || start >= text.Length) return false;
+    // Rows are unescaped cell by cell, so one builder per thread serves them all.
+    private const int MaximumRetainedUnescapeBuilderCapacity = 4096;
+    [ThreadStatic] private static StringBuilder? t_unescapeBuilder;
 
-        for (int i = start; i < text.Length; i++) {
+    private static bool HasClosingBacktickRun(string text, int start, int runLength) =>
+        !string.IsNullOrEmpty(text) && HasClosingBacktickRun(text, start, text.Length, runLength);
+
+    // Looks for the run in text[start..endExclusive) only, so a row's cell content is searched
+    // without copying it out of the line.
+    private static bool HasClosingBacktickRun(string text, int start, int endExclusive, int runLength) {
+        if (start >= endExclusive) return false;
+
+        for (int i = start; i < endExclusive; i++) {
             if (text[i] != '`') continue;
 
             int run = 1;
             int j = i + 1;
-            while (j < text.Length && text[j] == '`') {
+            while (j < endExclusive && text[j] == '`') {
                 run++;
                 j++;
             }

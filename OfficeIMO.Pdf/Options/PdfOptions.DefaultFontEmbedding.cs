@@ -9,6 +9,7 @@ public sealed partial class PdfCreateOptions {
     private bool _embedDefaultFonts = EmbedDefaultFontsInitially;
     private HashSet<PdfStandardFont>? _defaultFontEmbeddingAttempts;
     private HashSet<PdfStandardFont>? _defaultEmbeddedFontFamilies;
+    private Dictionary<PdfStandardFont, PendingDefaultFontFamily>? _pendingDefaultFontFamilies;
     private bool _defaultFontsUseStandardMetrics;
 
     // Test assemblies that pin standard-font metrics turn this off once at start-up; products never change it.
@@ -53,10 +54,49 @@ public sealed partial class PdfCreateOptions {
                 (slot != PdfStandardFontMapper.GetFontFamily(DefaultFont) ||
                  _embeddedFontFallbacks.FontSlots.Any(fallback => PdfStandardFontMapper.GetFontFamily(fallback) == slot))) continue;
             if (!(_defaultFontEmbeddingAttempts ??= new HashSet<PdfStandardFont>()).Add(slot)) continue;
-            if (!TryResolveDefaultFontFamily(slot, standardMetrics, EffectiveTheme, out PdfEmbeddedFontFamily? family) || family == null) continue;
-            RegisterFontFamily(slot, family);
-            (_defaultEmbeddedFontFamilies ??= new HashSet<PdfStandardFont>()).Add(slot);
+            (_pendingDefaultFontFamilies ??= new Dictionary<PdfStandardFont, PendingDefaultFontFamily>())[slot] =
+                new PendingDefaultFontFamily(standardMetrics, EffectiveTheme);
         }
+        // Finding an installed family reads and decodes whole font files. The body slot is resolved now;
+        // the others wait until something asks for them, which many documents never do. The stored font
+        // names that slot: the DefaultFont getter would ask whether any mapping exists and resolve them all.
+        ResolvePendingDefaultFontFamilies(PdfStandardFontMapper.GetFontFamily(_defaultFont));
+    }
+
+    /// <summary>
+    /// Resolves deferred default families up to and including <paramref name="through"/>, or all of them when it is null.
+    /// Every reader and writer of the embedded-font mappings calls this first, so each sees what eager resolution
+    /// would have registered. Earlier slots resolve first, keeping the mapping order eager resolution produced.
+    /// </summary>
+    private void ResolvePendingDefaultFontFamilies(PdfStandardFont? through = null) {
+        if (_pendingDefaultFontFamilies == null || _pendingDefaultFontFamilies.Count == 0) return;
+        PdfStandardFont? target = through.HasValue ? PdfStandardFontMapper.GetFontFamily(through.Value) : null;
+        if (target.HasValue && !_pendingDefaultFontFamilies.ContainsKey(target.Value)) return;
+        foreach (PdfStandardFont slot in DefaultFontFamilySlots) {
+            if (_pendingDefaultFontFamilies.TryGetValue(slot, out PendingDefaultFontFamily pending)) {
+                _pendingDefaultFontFamilies.Remove(slot);
+                if (TryResolveDefaultFontFamily(slot, pending.StandardMetrics, pending.Theme, out PdfEmbeddedFontFamily? family) && family != null) {
+                    RegisterFontFamily(slot, family);
+                    (_defaultEmbeddedFontFamilies ??= new HashSet<PdfStandardFont>()).Add(slot);
+                }
+            }
+            if (target.HasValue && slot == target.Value) break;
+        }
+    }
+
+    private Dictionary<PdfStandardFont, PendingDefaultFontFamily>? ClonePendingDefaultFontFamilies() =>
+        _pendingDefaultFontFamilies == null || _pendingDefaultFontFamilies.Count == 0
+            ? null
+            : new Dictionary<PdfStandardFont, PendingDefaultFontFamily>(_pendingDefaultFontFamilies);
+
+    private readonly struct PendingDefaultFontFamily {
+        internal PendingDefaultFontFamily(bool standardMetrics, OfficeTheme theme) {
+            StandardMetrics = standardMetrics;
+            Theme = theme;
+        }
+
+        internal bool StandardMetrics { get; }
+        internal OfficeTheme Theme { get; }
     }
 
     /// <summary>Reports standard fonts that the generated document uses without an embedded font file.</summary>
@@ -90,8 +130,16 @@ public sealed partial class PdfCreateOptions {
     // A library-selected default font was not requested by the source, so leaving its optional contextual
     // alternates unapplied simplifies nothing the author asked for; the source text is set in the font's default forms.
     private bool IsDefaultEmbeddedFontSubstitutionDiagnostic(PdfTextShapingDiagnostic diagnostic, string? fontName) {
-        if (_defaultEmbeddedFontFamilies == null || _embeddedFonts == null ||
-            !string.Equals(diagnostic.Code, "unsupported-font-ligature-substitution", StringComparison.Ordinal)) return false;
+        if (!string.Equals(diagnostic.Code, "unsupported-font-ligature-substitution", StringComparison.Ordinal)) return false;
+        if (MatchesDefaultEmbeddedFont(diagnostic, fontName)) return true;
+        // A deferred family could carry the same face name, so it is resolved before answering no.
+        if (_pendingDefaultFontFamilies == null || _pendingDefaultFontFamilies.Count == 0) return false;
+        ResolvePendingDefaultFontFamilies();
+        return MatchesDefaultEmbeddedFont(diagnostic, fontName);
+    }
+
+    private bool MatchesDefaultEmbeddedFont(PdfTextShapingDiagnostic diagnostic, string? fontName) {
+        if (_defaultEmbeddedFontFamilies == null || _embeddedFonts == null) return false;
         foreach (PdfStandardFont family in _defaultEmbeddedFontFamilies) {
             for (int style = 0; style < 4; style++) {
                 PdfStandardFont font = PdfStandardFontMapper.GetStyledFont(family, bold: (style & 1) != 0, italic: (style & 2) != 0);
@@ -103,8 +151,10 @@ public sealed partial class PdfCreateOptions {
         return false;
     }
 
-    internal bool IsDefaultEmbeddedFontFamily(PdfStandardFont slot) =>
-        _defaultEmbeddedFontFamilies?.Contains(PdfStandardFontMapper.GetFontFamily(slot)) == true;
+    internal bool IsDefaultEmbeddedFontFamily(PdfStandardFont slot) {
+        ResolvePendingDefaultFontFamilies(slot);
+        return _defaultEmbeddedFontFamilies?.Contains(PdfStandardFontMapper.GetFontFamily(slot)) == true;
+    }
 
     private bool HasAnyEmbeddedStyle(PdfStandardFont slot) {
         PdfStandardFont family = PdfStandardFontMapper.GetFontFamily(slot);

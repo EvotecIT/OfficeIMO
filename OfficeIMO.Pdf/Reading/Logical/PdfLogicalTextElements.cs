@@ -350,10 +350,27 @@ public sealed class PdfLogicalListItem {
     public int PageNumber { get; }
 
     /// <summary>Best-effort nesting level, where 1 is the outermost list level.</summary>
-    public int Level { get; }
+    public int Level { get; internal set; }
 
     /// <summary>List marker such as "1", "1.2", "-", "•", or "(a)".</summary>
     public string Marker { get; }
+
+    /// <summary>Numbering style shown by <see cref="Marker"/>; <see cref="PdfLogicalListNumberFormat.Bullet"/> for symbols and unmarked items.</summary>
+    public PdfLogicalListNumberFormat NumberFormat => MarkerInfo.Format;
+
+    /// <summary>True when the marker numbers the item (digits, letters or Roman numerals).</summary>
+    public bool IsOrdered => NumberFormat != PdfLogicalListNumberFormat.Bullet;
+
+    /// <summary>Position the marker gives the item in its list ("3." and "c)" are 3); null for bullets.</summary>
+    public int? Ordinal => MarkerInfo.Ordinal;
+
+    private PdfLogicalListMarker? _markerInfo;
+
+    /// <summary>The classified marker; contents entries are unordered. The page resolves single letters that its list context shows are Roman numerals, or the reverse.</summary>
+    internal PdfLogicalListMarker MarkerInfo {
+        get => _markerInfo ??= PdfLogicalListMarker.Parse(IsContentsEntry ? null : Marker);
+        set => _markerInfo = value;
+    }
 
     /// <summary>List item text without the marker.</summary>
     public string Text { get; }
@@ -371,6 +388,18 @@ public sealed class PdfLogicalListItem {
     public double Confidence { get; }
     /// <summary>Evidence supporting the list classification.</summary>
     public IReadOnlyList<PdfInferenceEvidence> Evidence { get; }
+
+    /// <summary>
+    /// True when the item is an entry of a table of contents, recognised from tagged TOC/TOCI structure or from
+    /// contents lines (title, dot leader or gap, page number). <see cref="Text"/> then holds the entry title.
+    /// </summary>
+    public bool IsContentsEntry { get; internal set; }
+
+    /// <summary>Printed page number of a contents entry, such as "12" or "iv", when the entry shows one.</summary>
+    public string? TargetPageLabel { get; internal set; }
+
+    /// <summary>Link annotation over a contents entry's title, when the entry links to its target.</summary>
+    public PdfLogicalLinkAnnotation? Link { get; internal set; }
 
     private static System.Collections.ObjectModel.ReadOnlyCollection<PdfLogicalTextRun> BuildRuns(
         IReadOnlyList<PdfLogicalTextBlock> lines,

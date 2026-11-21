@@ -213,9 +213,12 @@ public sealed class MarkdownPdfExportOptions {
 
     internal MarkdownPdfConverterExtensions.AnchorContext? Anchors { get; set; }
 
+    internal MarkdownPdfConverterExtensions.MathLayout? Math { get; set; }
+
     internal MarkdownPdfExportOptions CloneForConversion() {
         var clone = (MarkdownPdfExportOptions)MemberwiseClone();
         clone.Anchors = null;
+        clone.Math = null;
         clone._theme = _theme?.Clone();
         clone._style = _style?.Clone();
         clone.ResourcePolicy = ResourcePolicy.Clone();

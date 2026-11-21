@@ -1,6 +1,6 @@
 ---
 title: "PSWriteOffice Documentation"
-description: "Workflow guides for the manifest-derived PowerShell command surface across Office, PDF, Reader, Confluence Cloud, Visio, and open formats."
+description: "PowerShell guides for Office, PDF, Reader, Confluence, Visio, Project, Access, EPUB, configuration files and data conversion."
 layout: docs
 ---
 
@@ -41,9 +41,12 @@ PSWriteOffice is the PowerShell surface for OfficeIMO. Use these guides to choos
   - [Search a mixed document corpus](/docs/pswriteoffice/reader-search-corpus/)
   - [Extract chunks, tables, and assets](/docs/pswriteoffice/reader-chunks-tables/)
 - [Choose a conversion route](/docs/pswriteoffice/conversion-routes/)
+- [Clean files before sharing](/docs/pswriteoffice/before-sharing/): comments, authors, hidden content, image metadata and AI labels
 - [Confluence Cloud publishing](/docs/pswriteoffice/confluence/)
 - [Visio diagrams](/docs/pswriteoffice/visio/)
-- [Markdown, RTF, CSV, OpenDocument, email, AsciiDoc, and LaTeX](/docs/pswriteoffice/open-text-formats/)
+- [Configuration files and data conversion](/docs/pswriteoffice/config-data-formats/): YAML, TOML, CSV, JSON, XML, and Excel data
+- [Project schedules, Access databases, and EPUB](/docs/pswriteoffice/project-access-epub/)
+- [Markdown, RTF, OpenDocument, email, AsciiDoc, and LaTeX](/docs/pswriteoffice/open-text-formats/)
   - [Read and parse Markdown](/docs/pswriteoffice/markdown-read-parse/)
   - [Convert and publish Markdown](/docs/pswriteoffice/markdown-convert-publish/)
   - [Convert between Markdown and Word](/docs/pswriteoffice/markdown-word-roundtrip/)
@@ -57,5 +60,5 @@ PSWriteOffice is the PowerShell surface for OfficeIMO. Use these guides to choos
 ## Notes
 
 - The [command reference](/api/powershell/) is generated from the module manifest and external help.
-- The [scenario-driven example library](https://github.com/EvotecIT/OfficeIMO/blob/b5f365579aaa35c90c6ca30cd8bcb7427ea83eaf/PowerShell/PSWriteOffice/Examples/README.md) maps practical recipes and larger showcases to each format.
+- The [scenario-driven example library](https://github.com/EvotecIT/OfficeIMO/blob/a6eb645875c1863b0ae15c51832952ff4684b3e0/PowerShell/PSWriteOffice/Examples/README.md) maps practical recipes and larger showcases to each format.
 - The family totals shown on the site come from `PSWriteOffice.psd1`; documentation validation fails if an exported command is left uncategorized.

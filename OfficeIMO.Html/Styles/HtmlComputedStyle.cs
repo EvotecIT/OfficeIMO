@@ -287,6 +287,11 @@ internal readonly struct HtmlCssCascadePriority : IEquatable<HtmlCssCascadePrior
 
     internal bool OutranksOrEquals(HtmlCssCascadePriority existing) {
         if (existing.Inherited != Inherited) return !Inherited;
+        return OutranksOrEqualsAsDeclaration(existing);
+    }
+
+    // Compares two of an element's own declarations, an explicit inherit among them, by cascade order.
+    internal bool OutranksOrEqualsAsDeclaration(HtmlCssCascadePriority existing) {
         if (Important != existing.Important) return Important;
         if (Important && Inline != existing.Inline) return Inline;
         if ((LayerOrder != null) != (existing.LayerOrder != null)) {
@@ -311,15 +316,18 @@ internal sealed class HtmlCssPropertyNameComparer : IEqualityComparer<string> {
     }
 
     public bool Equals(string? x, string? y) {
-        bool xIsCustom = x?.StartsWith("--", StringComparison.Ordinal) == true;
-        bool yIsCustom = y?.StartsWith("--", StringComparison.Ordinal) == true;
-        return xIsCustom || yIsCustom
+        if (ReferenceEquals(x, y)) return true;
+        return IsCustomProperty(x) || IsCustomProperty(y)
             ? StringComparer.Ordinal.Equals(x, y)
             : StringComparer.OrdinalIgnoreCase.Equals(x, y);
     }
 
     public int GetHashCode(string value) =>
-        value.StartsWith("--", StringComparison.Ordinal)
+        IsCustomProperty(value)
             ? StringComparer.Ordinal.GetHashCode(value)
             : StringComparer.OrdinalIgnoreCase.GetHashCode(value);
+
+    // Every style lookup hashes its name; two character tests avoid a culture-free StartsWith call.
+    private static bool IsCustomProperty(string? value) =>
+        value != null && value.Length >= 2 && value[0] == '-' && value[1] == '-';
 }

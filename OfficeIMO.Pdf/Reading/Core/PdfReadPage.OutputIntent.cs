@@ -206,7 +206,7 @@ public sealed partial class PdfReadPage {
                         }
                         break;
                 }
-            }, maxNestingDepth: _limits.MaxContentNestingDepth, maxOperands: _limits.MaxContentOperands);
+            }, maxNestingDepth: _limits.MaxContentNestingDepth, maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth, maxOperands: _limits.MaxContentOperands);
 
             void ScanShownType3Glyphs(PdfDictionary font, PdfContentOperation operation,
                 PdfDictionary? inheritedResources, bool glyphFillRgb, bool glyphStrokeRgb,
@@ -259,26 +259,59 @@ public sealed partial class PdfReadPage {
         _outputIntentColorTransform != null && _hasOutputIntentCompositionInteraction.GetOrCreate(
             this, static (page, token) => page.ScanOutputIntentCompositionInteraction(token), cancellationToken);
 
+    // A text read that leaves out damaged page content streams leaves them out of the composition scan too. That
+    // result belongs to the one read and is never cached, so a strict read of the page still reports the damage. When
+    // the read already skipped a stream, the scan skips it too instead of decoding the page again to the same failure.
+    private PdfOutputIntentColorTransform? GetEffectiveOutputIntentColorTransform(PageContentBudget? budget) {
+        if (budget is null || !budget.SkipsUndecodableContentStreams || _outputIntentColorTransform == null) {
+            return EffectiveOutputIntentColorTransform;
+        }
+
+        if (!budget.HasRecoveredOutputIntentColorTransform) {
+            bool interacts;
+            if (budget.SkippedContentStreams > 0) {
+                interacts = ScanOutputIntentCompositionInteraction(budget.CancellationToken, skipUndecodableContentStreams: true);
+            } else {
+                try {
+                    interacts = GetOutputIntentCompositionInteraction(budget.CancellationToken);
+                } catch (InvalidDataException) {
+                    interacts = ScanOutputIntentCompositionInteraction(budget.CancellationToken, skipUndecodableContentStreams: true);
+                }
+            }
+
+            budget.RecoveredOutputIntentColorTransform = interacts ? null : _outputIntentColorTransform;
+
+            budget.HasRecoveredOutputIntentColorTransform = true;
+        }
+
+        return budget.RecoveredOutputIntentColorTransform;
+    }
+
     private void PrepareOutputIntentRendering(CancellationToken cancellationToken) {
         if (_outputIntentColorTransform == null) return;
         _outputIntentColorTransform.Prepare(cancellationToken);
         _ = GetOutputIntentCompositionInteraction(cancellationToken);
     }
 
-    private bool ScanOutputIntentCompositionInteraction(CancellationToken cancellationToken) {
+    private bool ScanOutputIntentCompositionInteraction(CancellationToken cancellationToken, bool skipUndecodableContentStreams = false) {
         cancellationToken.ThrowIfCancellationRequested();
         if (IsTransparencyGroup(_pageDict)) return true;
         PdfDictionary? resources = ResolveDictionary(GetInheritedValue("Resources"));
         var activeStreams = new HashSet<PdfStream>();
-        var budget = new PageContentBudget(this, cancellationToken);
+        var budget = new PageContentBudget(this, cancellationToken) {
+            SkipsUndecodableContentStreams = skipUndecodableContentStreams
+        };
         var type3GlyphBudget = new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
+        string content = GetContentStreamContent(budget);
         if (ContentUsesOutputIntentCompositionInteraction(
-                GetContentStreamContent(budget),
+                content,
                 resources,
                 activeStreams,
                 budget,
                 type3GlyphBudget,
-                0)) return true;
+                0,
+                // The page's own content shares the cached root analysis with text and visual reads.
+                () => GetRootInvokedResourceNames(content, resources, cancellationToken.ThrowIfCancellationRequested))) return true;
 
         PdfArray? annotations = ResolveArray(
             _pageDict.Items.TryGetValue("Annots", out PdfObject? annotationsObject) ? annotationsObject : null);
@@ -301,7 +334,8 @@ public sealed partial class PdfReadPage {
         HashSet<PdfStream> activeStreams,
         PageContentBudget budget,
         Type3GlyphBudget type3GlyphBudget,
-        int depth) {
+        int depth,
+        Func<PdfPageInvokedResourceNames>? invokedResourceNames = null) {
         EnsureContentNestingBudget(depth);
         if (Type3TextUsesOutputIntentCompositionInteraction(
                 content,
@@ -309,7 +343,8 @@ public sealed partial class PdfReadPage {
                 activeStreams,
                 budget,
                 type3GlyphBudget,
-                depth)) return true;
+                depth,
+                invokedResourceNames)) return true;
         bool found = false;
         PdfPageOptionalContentVisibility? optionalContentVisibility = GetOptionalContentVisibility(resources);
         var hiddenContentStack = new Stack<bool>();
@@ -369,6 +404,7 @@ public sealed partial class PdfReadPage {
         },
         inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name),
         maxNestingDepth: _limits.MaxContentNestingDepth,
+        maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth,
         maxOperands: _limits.MaxContentOperands,
         inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array));
         return found;
@@ -433,11 +469,14 @@ public sealed partial class PdfReadPage {
         HashSet<PdfStream> activeStreams,
         PageContentBudget budget,
         Type3GlyphBudget type3GlyphBudget,
-        int depth) {
-        Dictionary<string, PdfFontResource> fonts = resources == null
-            ? new Dictionary<string, PdfFontResource>(StringComparer.Ordinal)
-            : ResourceResolver.GetFontsForResources(resources, _objects);
-        PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(content, resources, budget.CancellationToken.ThrowIfCancellationRequested);
+        int depth,
+        Func<PdfPageInvokedResourceNames>? invokedResourceNames = null) {
+        // The document font cache already holds these fonts and their width providers.
+        PdfFontResourceSet? fontResources = resources == null ? null : _fontResourceCache.GetOrCreate(resources, _objects);
+        Dictionary<string, PdfFontResource> fonts = fontResources?.Fonts ??
+            new Dictionary<string, PdfFontResource>(StringComparer.Ordinal);
+        PdfPageInvokedResourceNames invokedResources = invokedResourceNames?.Invoke() ??
+            GetInvokedResourceNames(content, resources, budget.CancellationToken.ThrowIfCancellationRequested);
 
         bool found = false;
         PdfPageXObjectInvocationParser.Parse(
@@ -449,11 +488,11 @@ public sealed partial class PdfReadPage {
             GetOptionalContentVisibility(resources),
             maxOperations: _limits.MaxContentOperations,
             maxNestingDepth: _limits.MaxContentNestingDepth,
+            maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth,
             maxOperands: _limits.MaxContentOperands,
             fonts: fonts,
-            fontWidthProviders: resources == null
-                ? new Dictionary<string, Func<byte[], double>>(StringComparer.Ordinal)
-                : ResourceResolver.GetFontWidthProvidersForResources(resources, _objects),
+            fontWidthProviders: fontResources?.WidthProviders ??
+                new Dictionary<string, Func<byte[], double>>(StringComparer.Ordinal),
             type3TextVisitor: invocation => {
                 for (int index = 0; index < invocation.Glyphs.Count && !found; index++) {
                     PdfPageType3GlyphInvocation glyph = invocation.Glyphs[index];
@@ -490,7 +529,8 @@ public sealed partial class PdfReadPage {
                 if (HasExplicitTransparency(state, channels)) found = true;
             },
             inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
-            operationCheck: budget.CancellationToken.ThrowIfCancellationRequested);
+            operationCheck: budget.CancellationToken.ThrowIfCancellationRequested,
+            textClippingBudget: budget.AnalysisClippingBudget);
         return found;
     }
 

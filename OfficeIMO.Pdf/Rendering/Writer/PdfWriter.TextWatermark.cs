@@ -3,29 +3,27 @@ using System.Text;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
-    // Synthetic weight paints fill and stroke as one foreground before applying
-    // translucent watermark opacity, so overlapping edges retain the same alpha.
-    private static string? CreateTextWatermarkGroup(IList<byte[]> objects, PdfCreateOptions options,
-        PdfTextWatermark? watermark, string? fontAlias,
-        IReadOnlyDictionary<PdfStandardFont, string> pageFonts,
-        List<(string Name, int Id)> fonts, List<(string Name, int Id)> xObjects,
-        PdfPrintColorTransform? colorTransform, CancellationToken cancellationToken) {
-        if (watermark == null || watermark.Opacity <= 0D || watermark.Opacity >= 1D ||
-            string.IsNullOrEmpty(fontAlias)) return null;
+    // Synthetic weight paints fill and stroke as one foreground before applying translucent watermark
+    // opacity, so overlapping edges retain the same alpha: such a watermark is painted as a transparency group.
+    private static bool UsesTextWatermarkGroup(PdfCreateOptions options, PdfTextWatermark? watermark, string? fontAlias) {
+        if (watermark == null || watermark.Opacity <= 0D || watermark.Opacity >= 1D || string.IsNullOrEmpty(fontAlias)) return false;
         PdfStandardFont baseFont = ChooseNormal(watermark.Font);
-        if (!BuildTextWatermarkRuns(watermark, options).Any(run =>
-            options.NeedsSyntheticBold(ResolvePageTextRunFont(run, baseFont)))) return null;
-        var content = new StringBuilder();
-        AppendTextWatermark(content, options, watermark, fontAlias!, pageFonts, graphicsStateName: null);
-        string foreground = content.ToString();
+        return BuildTextWatermarkRuns(watermark, options).Any(run => options.NeedsSyntheticBold(ResolvePageTextRunFont(run, baseFont)));
+    }
+
+    private static string CreateTextWatermarkGroup(IList<byte[]> objects, PdfCreateOptions options, string content,
+        List<(string Name, int Id)> fonts, List<(string Name, int Id)> xObjects, List<(string Name, int Id)> graphicsStates,
+        PdfPrintColorTransform? colorTransform, CancellationToken cancellationToken) {
+        string foreground = content;
         if (colorTransform != null) {
             foreground = colorTransform.NormalizeGeneratedContent(foreground, cancellationToken);
         }
         byte[] bytes = PdfEncoding.Latin1GetBytes(foreground);
-        var empty = Array.Empty<(string Name, int Id)>();
+        // Color glyph images and translucent layers drawn inside the group use the page's resources.
         string dictionary = PdfTransparencyGroupDictionaryBuilder.BuildStreamDictionary(
             0D, 0D, options.PageWidth.ToPoints(), options.PageHeight.ToPoints(), bytes.Length,
-            FilterPdfResources(foreground, fonts), empty, empty, empty);
+            FilterPdfResources(foreground, fonts), FilterPdfResources(foreground, xObjects),
+            FilterPdfResources(foreground, graphicsStates), Array.Empty<(string Name, int Id)>());
         int objectId = AddStreamObject(objects, dictionary, bytes);
         const string resourceName = "/WmText";
         xObjects.Add((resourceName, objectId));

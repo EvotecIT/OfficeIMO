@@ -8,6 +8,7 @@ namespace OfficeIMO.Excel.Xlsb.Model {
         private readonly List<XlsbColumnInfo> _columns = new List<XlsbColumnInfo>();
         private readonly List<XlsbCellRange> _mergedRanges = new List<XlsbCellRange>();
         private readonly List<XlsbHyperlink> _hyperlinks = new List<XlsbHyperlink>();
+        private readonly List<DocumentFormat.OpenXml.OpenXmlElement> _featureElements = new List<DocumentFormat.OpenXml.OpenXmlElement>();
 
         internal XlsbSheet(string name, string relationshipId, uint tabId, uint state) {
             Name = name;
@@ -21,6 +22,15 @@ namespace OfficeIMO.Excel.Xlsb.Model {
         internal string? ChartCodeName { get; set; }
 
         internal string? DrawingRelationshipId { get; set; }
+
+        /// <summary>The relationship id BrtLegacyDrawing stores when it names the VML drawing of the worksheet's comments.</summary>
+        internal string? LegacyDrawingRelationshipId { get; set; }
+
+        /// <summary>The worksheet's legacy comments, or null when it has no Comments part.</summary>
+        internal XlsbComments? Comments { get; set; }
+
+        /// <summary>The package path of the drawing part a worksheet's BrtDrawing links, once its relationship is resolved.</summary>
+        internal string? DrawingPartName { get; set; }
 
         internal string Name { get; }
 
@@ -57,6 +67,12 @@ namespace OfficeIMO.Excel.Xlsb.Model {
 
         internal bool? ShowGridLines { get; set; }
 
+        /// <summary>The primary window's view settings and selections, when the sheet has a readable view.</summary>
+        internal XlsbSheetView? View { get; set; }
+
+        /// <summary>Whether the primary window's sheet view selects this tab (fSelected), when the sheet has a view.</summary>
+        internal bool? TabSelected { get; set; }
+
         internal XlsbWorksheetProtection? Protection { get; set; }
 
         internal XlsbAutoFilter? AutoFilter { get; set; }
@@ -78,5 +94,31 @@ namespace OfficeIMO.Excel.Xlsb.Model {
         internal void AddMergedRange(XlsbCellRange range) => _mergedRanges.Add(range);
 
         internal void AddHyperlink(XlsbHyperlink hyperlink) => _hyperlinks.Add(hyperlink);
+
+        /// <summary>
+        /// Worksheet children decoded from BIFF12 record blocks that project directly to SpreadsheetML, such as page
+        /// breaks or ignored-error ranges. The rewrite compares the document model against these to keep unchanged records.
+        /// </summary>
+        internal IReadOnlyList<DocumentFormat.OpenXml.OpenXmlElement> FeatureElements => _featureElements;
+
+        internal void AddFeatureElement(DocumentFormat.OpenXml.OpenXmlElement element) => _featureElements.Add(element);
+
+        /// <summary>
+        /// True when the source holds data validations that could not be decoded, so none were projected and the native
+        /// records may only be copied unchanged.
+        /// </summary>
+        internal bool HasUndecodedDataValidations { get; set; }
+
+        /// <summary>True when the worksheet keeps Office 2010 data validations (DVALS14) as native, unprojected records.</summary>
+        internal bool HasExtendedDataValidations { get; set; }
+
+        /// <summary>
+        /// True when the worksheet has conditional formatting that is kept as native records without a projection, such as
+        /// Office 2010 rule extensions; replacing the projected collections would then lose or orphan that content.
+        /// </summary>
+        internal bool HasUnprojectedConditionalFormatting { get; set; }
+
+        /// <summary>Tables decoded from the worksheet's Table parts, keyed by their worksheet relationship id.</summary>
+        internal Dictionary<string, XlsbTable> Tables { get; } = new Dictionary<string, XlsbTable>(StringComparer.Ordinal);
     }
 }

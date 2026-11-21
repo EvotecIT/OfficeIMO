@@ -3,7 +3,7 @@
 OfficeIMO contains the document engines and the PSWriteOffice PowerShell module.
 The module source, tests, examples, and command documentation live in
 [`PowerShell/PSWriteOffice`](../PowerShell/PSWriteOffice/README.MD).
-Builds use the SDK selected by `global.json` and PSPublishModule 3.0.170 or newer.
+Builds use the SDK selected by `global.json` and PSPublishModule 3.0.194 or newer.
 
 ## Local validation
 
@@ -45,8 +45,8 @@ and NuGet configuration.
 
 ## README examples
 
-The Word and Excel quick starts are generated from the executable programs under
-`Build/DocumentationExamples`. Edit those source files, then refresh the marked
+The Word, Excel and PDF README examples, and the PDF guide's opening examples, are
+generated from the executable programs under `Build/DocumentationExamples`. Edit those source files, then refresh the marked
 README blocks with PowerForge:
 
 The standalone CLI comes from the `PowerForge.Build` .NET tool, separately from
@@ -69,7 +69,7 @@ powerforge docs sync --config Build/docs-sync.json
 ```
 
 The check command returns a nonzero exit code when a block is stale. The
-documentation examples workflow runs the same check and executes both programs
+documentation examples workflow runs the same check and executes the programs
 against their pinned published NuGet packages. Update
 `OfficeIMODocumentationPackageVersion` in the example projects when qualifying a
 new public version. Source synchronization and published-package compatibility
@@ -77,8 +77,97 @@ are checked separately.
 
 To run an example locally from the repository root, use `dotnet run --project
 Build/DocumentationExamples/Word/Word.csproj -c Release -f net8.0` or the matching
-Excel project. The programs write `report.docx` and `report.xlsx` into the current
-directory. From a scratch working directory, pass an absolute project path.
+Excel or PDF project. The programs write their documents into the current
+directory; the PDF program reopens each saved PDF and checks its key text, page
+rotation, flattened form values and password, and that the rendered page is a PNG. From a scratch working directory, pass an absolute project path.
+
+## PDF validation
+
+The repository keeps the public contract, target frameworks, package dependency
+shape, performance budgets, compliance proof, and rendered output under
+separate gates:
+
+```powershell
+dotnet test OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj -c Release -f net8.0
+dotnet test OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj -c Release -f net10.0
+dotnet run --project OfficeIMO.Pdf.Benchmarks/OfficeIMO.Pdf.Benchmarks.csproj -c Release -f net8.0 -- --verify-budgets
+dotnet run --project OfficeIMO.Pdf.Benchmarks/OfficeIMO.Pdf.Benchmarks.csproj -c Release -f net10.0 -- --verify-budgets
+dotnet run --project OfficeIMO.Pdf.Benchmarks/OfficeIMO.Pdf.Benchmarks.csproj -c Release -f net10.0 -- --verify-timing-budgets
+Build/Test-PdfQualityCorpus.ps1 -Configuration Release -Framework net8.0
+Build/Test-RealWorldCorpusContract.ps1
+Build/Export-PdfComplianceProof.ps1 -Configuration Release -Framework net8.0 -RequireValidators -VeraPdfPath <path-to-verapdf> -PdfUaValidatorPath <path-to-pdfua-validator> -MustangPath <path-to-mustang> -PdfXValidatorPath <path-to-pdfx-validator>
+Build/Export-PdfVisualReviewGallery.ps1 -Configuration Release -Framework net8.0
+```
+
+The strict PDF quality scorecard runs every public inspection and semantic stage,
+the complete mutation portfolio, managed rendering, and declared
+compliance claim gating against hash-pinned Open Preservation Foundation and
+veraPDF fixtures. `Test-RealWorldCorpusContract.ps1` checks the corpus runner
+against local generated fixtures. The scheduled and manually dispatched Real-world
+corpus evidence workflow (`.github/workflows/real-world-corpus-evidence.yml`)
+applies the same deep PDF stages to a deterministic sample of a checksum-pinned
+public GovDocs archive in isolated processes. Without `-RequireValidators`, the
+compliance proof export can complete without external validators; pass `-RequireValidators` with `-VeraPdfPath`, and the PDF/UA,
+Mustang and PDF/X validator paths for those profiles, when the run must produce
+external compliance evidence. The opt-in PDF Performance Evidence workflow
+uses a deterministic 60-page mixed corpus and checks cold and cached analysis,
+SVG rendering, PNG rendering, output integrity, absolute allocation and heap
+budgets and generous elapsed-time ceilings, and reports cached allocation savings
+without gating them. Relative
+cached speedup is opt-in through `--verify-timing-budgets` for controlled
+benchmark hosts. Ordinary correctness CI runs the PDF tests without these
+host-dependent performance budgets. The budget runner stays outside the normal
+solution and can also be run directly with the commands above.
+
+Pixel baselines are strict when the installed Poppler major/minor version
+matches the recorded renderer. A different renderer version still runs semantic
+and page-count checks in ordinary local runs. Required-rasterizer and CI visual
+gates fail on a version mismatch; release investigations can deliberately opt
+into a cross-version comparison.
+
+## Third-party material and package licenses
+
+OfficeIMO is MIT-licensed and written as its own code. Code from other projects
+is not copied, ported or adapted into it, even under permissive licenses. The
+manifest below records the exceptions: code contributed by its own author, and
+the unmodified ISO Schematron stylesheets that OfficeIMO.Invoicing.Validation
+runs. Code that OfficeIMO's author wrote in another of their projects is
+recorded as first-party. Third-party *data*
+that a format needs, such as Unicode tables, Adobe font metrics, CMaps, ICC
+profiles, schemas or hyphenation patterns, may ship when its license allows
+redistribution and its notice ships with it.
+
+`Build/third-party-material.json` is the single record of third-party code and
+data in any NuGet package. Each entry names the package, the files it covers,
+the source and revision, the SPDX license and the license texts to pack. To add
+material:
+
+1. Keep the upstream notice in the file or beside it, and add the license text
+   under the package's `Licenses/` (or equivalent) folder.
+2. Add an entry to the manifest.
+3. Describe the material under a heading with the entry's title in the package's
+   `THIRD-PARTY-NOTICES.md`, and pack that file and the license texts.
+4. Run the check.
+
+A package's `PackageLicenseExpression` is `MIT`, joined with `AND` to the license
+of any third-party code it compiles. Data licenses go in the notices, not in the
+expression: nuget.org only accepts OSI- or FSF-approved identifiers, so terms
+such as `APAFML` or `CC-BY-SA-3.0` can't be expressed there, and a partial list
+would be misleading.
+
+```powershell
+python Build/validate_third_party_notices.py
+python Build/validate_third_party_notices.py package Artefacts/ProjectBuild
+```
+
+The first command checks the manifest against the sources, project files and
+license expressions; CI runs it on every pull request. It also flags source
+comments that say code was adapted, ported or vendored from elsewhere, or that
+carry a third-party copyright, when no entry covers the file. The second checks
+built packages: license expression, notices file and the content of every
+license text. `Build/Build-Project.ps1` runs it after a package build, and
+`Build/Build-Release.ps1 -RunMode Publish` runs the source check before it
+builds or publishes anything.
 
 ## Coordinated publication
 
@@ -208,7 +297,7 @@ unsigned module, exports help and command metadata, verifies the source revision
 and component fingerprints, and imports the command catalog, guides, and examples.
 No separate PSWriteOffice clone or repository release pin is required.
 
-Keep `/api/powershell/`, `/docs/pswriteoffice/`, and `/products/pswriteoffice/` as
+Keep `/api/powershell/`, `/docs/pswriteoffice/`, and `/powershell/` as
 the public routes. Update compiled cmdlet help and the module's maintained guide
 sources, then run the website pipeline; do not hand-edit generated command pages
 or API metadata.

@@ -126,6 +126,28 @@ accept `application/timestamp-reply`. Configure the HTTP client's timeout and
 enforce a response-size limit before buffering data. The timestamp client rechecks its response limit and validates
 the nonce, message imprint, TSA signature, certificate profile and trust policy.
 
+## Revocation data retrieval
+
+`CertificateRevocationFetcher` implements `ICertificateRevocationFetcher`. It reads a certificate's OCSP responder and
+CRL distribution point locations, asks the OCSP responder first and falls back to the CRL:
+
+```csharp
+using var fetcher = new CertificateRevocationFetcher(new CertificateRevocationFetcherOptions {
+    Timeout = TimeSpan.FromSeconds(10),
+    MaxResponseBytes = 16 * 1024 * 1024
+});
+CertificateRevocationEvidence evidence = await fetcher.FetchAsync(certificate, issuer, cancellationToken);
+```
+
+Only http and https locations are used. Responses are cached by the instance until their `nextUpdate` (five
+minutes when they have none; failures for one minute). Loopback, private, link-local and other non-public addresses
+are refused unless `AllowPrivateNetworkAddresses` is set for an internal PKI; while they are refused, connections go
+directly to the server without a proxy. On .NET 8 and later every resolved address is checked when the connection is
+made. Older frameworks check the resolved addresses before each request, send http requests to the checked address
+and rely on certificate validation to bind https connections to the host name. The returned responses are untrusted input: validators check
+their signatures, issuers and freshness. `OfficeIMO.Pdf` uses the fetcher for PAdES B-LT enrichment and for its
+online revocation policies.
+
 ## XML Digital Signatures
 
 `CreateXmlSignature(...)`, `VerifyXmlSignature(...)`, and `CanonicalizeXml(...)` expose a closed, bounded XML DSig
@@ -134,6 +156,20 @@ enveloped-signature transforms are intersected with immutable provider support; 
 but cannot register or enable another implementation. External references and unsupported transforms are rejected.
 Document packages remain responsible for package relationships, content types, signed-part selection, and mutation
 safety.
+
+## Raw public-key signatures
+
+`OfficeSecurityProvider` also implements `IOfficePublicKeySignatureVerifier`: RSASSA-PKCS1-v1_5 with SHA-256 or SHA-1
+over DER SubjectPublicKeyInfo or PKCS #1 RSA keys, and Ed25519 (RFC 8032) over raw 32-byte keys. `OfficeIMO.Email`
+uses it for DKIM and ARC. Malformed keys and signatures are reported as typed statuses rather than exceptions, and RSA
+keys above 16384 bits are refused.
+
+## OpenPGP
+
+`OfficeSecurityProvider` implements `IOfficeOpenPgpProvider` over BouncyCastle: detached and cleartext signature
+verification and message decryption with integrity checks, using only the keys in the caller's
+`OfficeOpenPgpKeySet`. It covers version 4 (RFC 4880) keys and signatures; RFC 9580 version 6 packets and AEAD
+encrypted data are reported as unsupported. `OfficeIMO.Email` uses it for PGP/MIME.
 
 ## NativeAOT and trimming
 

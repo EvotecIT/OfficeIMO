@@ -20,6 +20,8 @@ internal static class PdfMacRomanEncoding {
         '\uF8FF','\u00D2','\u00DA','\u00DB','\u00D9','\u0131','\u02C6','\u02DC','\u00AF','\u02D8','\u02D9','\u02DA','\u00B8','\u02DD','\u02DB','\u02C7'
     };
 
+    private static readonly string[] SingleCodeStrings = PdfEncoding.CreateSingleCharacterStrings(Map);
+
     private static Dictionary<char, byte>? _reverse;
 
     /// <summary>Finds the Mac Roman code for a character, preferring the lowest code.</summary>
@@ -44,8 +46,15 @@ internal static class PdfMacRomanEncoding {
         if (bytes.LongLength > maxOutputCharacters) {
             throw PdfReadLimitException.Create(PdfReadLimitKind.DecodedTextCharacters, maxOutputCharacters, bytes.LongLength);
         }
+        if (bytes.Length == 1) return SingleCodeStrings[bytes[0]];
+#if NET8_0_OR_GREATER
+        return string.Create(bytes.Length, bytes, static (destination, source) => {
+            for (int i = 0; i < source.Length; i++) destination[i] = Map[source[i]];
+        });
+#else
         var chars = new char[bytes.Length];
         for (int i = 0; i < bytes.Length; i++) chars[i] = Map[bytes[i]];
         return new string(chars);
+#endif
     }
 }

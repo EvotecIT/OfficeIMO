@@ -49,16 +49,34 @@ namespace OfficeIMO.Excel.Pdf {
 
             var images = new List<WorksheetImageExportData>();
             foreach (ExcelImage image in workbookSheet.Images.OrderBy(image => image.RowIndex).ThenBy(image => image.ColumnIndex)) {
-                if (!IsPdfSupportedImageContentType(image.ContentType)) {
+                string contentType = image.ContentType;
+                byte[] bytes = image.ToBytes();
+                byte[]? vectorBytes = null;
+                // An SVG picture is drawn as vectors; one the PDF writer cannot draw exports its raster fallback.
+                if (OfficeImageInfo.FromMimeType(contentType) == OfficeImageFormat.Svg) {
+                    string? svgReason = "the SVG part is empty.";
+                    if (bytes.Length > 0 && PdfCore.PdfDocument.TryPrepareImageKeepingSvg(bytes, default, out byte[] svg, out _, out svgReason)) {
+                        vectorBytes = svg;
+                    } else if (image.TryGetRasterFallback(out byte[] fallback, out string fallbackType)) {
+                        bytes = fallback;
+                        contentType = fallbackType;
+                        AddWarning(
+                            options,
+                            sheetName,
+                            OfficeDiagnosticCodes.SvgImageRasterFallback,
+                            $"Worksheet SVG image anchored at {ExcelA1.CellReference(image.RowIndex, image.ColumnIndex)} could not be drawn as vectors, so its stored raster fallback was exported. {svgReason}");
+                    }
+                }
+
+                if (vectorBytes == null && !IsPdfSupportedImageContentType(contentType)) {
                     AddWarning(
                         options,
                         sheetName,
                         "worksheet-image",
-                        $"Worksheet image anchored at {ExcelA1.CellReference(image.RowIndex, image.ColumnIndex)} was not exported because content type '{image.ContentType}' is not supported by the first-party PDF image writer.");
+                        $"Worksheet image anchored at {ExcelA1.CellReference(image.RowIndex, image.ColumnIndex)} was not exported because content type '{contentType}' is not supported by the first-party PDF image writer.");
                     continue;
                 }
 
-                byte[] bytes = image.ToBytes();
                 if (bytes.Length == 0 || image.Width <= OfficeLength.Zero || image.Height <= OfficeLength.Zero) {
                     AddWarning(
                         options,
@@ -68,7 +86,9 @@ namespace OfficeIMO.Excel.Pdf {
                     continue;
                 }
 
-                if (!TryPreparePdfImageBytes(bytes, image.ContentType, out byte[] preparedBytes, out string? unsupportedReason)) {
+                byte[] preparedBytes = vectorBytes ?? Array.Empty<byte>();
+                string? unsupportedReason = null;
+                if (vectorBytes == null && !TryPreparePdfImageBytes(bytes, contentType, out preparedBytes, out unsupportedReason)) {
                     AddWarning(
                         options,
                         sheetName,
@@ -92,10 +112,43 @@ namespace OfficeIMO.Excel.Pdf {
                     image.RotationDegrees,
                     image.FlipHorizontal,
                     image.FlipVertical,
-                    alternativeText));
+                    alternativeText,
+                    ReadWorksheetImageCrop(image, options, sheetName),
+                    ReadWorksheetImageLink(image, options, sheetName)));
             }
 
             return images;
+        }
+
+        // Like the Word and PowerPoint converters, pictures carry absolute link targets; a relative one is reported and omitted.
+        private static string? ReadWorksheetImageLink(ExcelImage image, ExcelPdfExportOptions options, string sheetName) {
+            Uri? link = image.HyperlinkUri;
+            if (link == null) return null;
+            if (link.IsAbsoluteUri) return link.AbsoluteUri;
+            AddWarning(
+                options,
+                sheetName,
+                "worksheet-image",
+                $"Worksheet image anchored at {ExcelA1.CellReference(image.RowIndex, image.ColumnIndex)} has a relative hyperlink target, so its PDF link was omitted.",
+                OfficeConversionLossKind.Omission);
+            return null;
+        }
+
+        // DrawingML crop ratios are fractions of the source; outsets or a collapsed rectangle fit the whole image instead.
+        private static PdfCore.PdfImageSourceCrop? ReadWorksheetImageCrop(ExcelImage image, ExcelPdfExportOptions options, string sheetName) {
+            double left = image.CropLeftRatio, top = image.CropTopRatio, right = image.CropRightRatio, bottom = image.CropBottomRatio;
+            if (left == 0D && top == 0D && right == 0D && bottom == 0D) return null;
+            if (left >= 0D && top >= 0D && right >= 0D && bottom >= 0D && left + right < 1D && top + bottom < 1D) {
+                return new PdfCore.PdfImageSourceCrop(left, top, right, bottom);
+            }
+
+            AddWarning(
+                options,
+                sheetName,
+                "worksheet-image",
+                $"Worksheet image anchored at {ExcelA1.CellReference(image.RowIndex, image.ColumnIndex)} uses crop outsets or a collapsed crop rectangle; the whole image is fitted to its frame.",
+                OfficeConversionLossKind.Approximation);
+            return null;
         }
 
         private static IReadOnlyList<WorksheetChartExportData> ReadWorksheetCharts(ExcelSheet? workbookSheet, ExcelPdfExportOptions options, string sheetName) {
@@ -106,7 +159,7 @@ namespace OfficeIMO.Excel.Pdf {
             AddWorksheetSmartArtWarnings(workbookSheet, options, sheetName);
             var charts = new List<WorksheetChartExportData>();
             foreach (ExcelChart chart in workbookSheet.Charts) {
-                if (!chart.TryGetSnapshot(out ExcelChartInfo snapshot)) {
+                if (!chart.TryGetSnapshot(options.ChartRendering.Fidelity, out ExcelChartInfo snapshot)) {
                     AddWarning(
                         options,
                         sheetName,
@@ -117,7 +170,8 @@ namespace OfficeIMO.Excel.Pdf {
 
                 foreach (var diagnostic in snapshot.Diagnostics.Where(diagnostic =>
                     diagnostic.Code == ExcelImageExportDiagnosticCodes.ChartBubbleNegativeSizesUnsupported ||
-                    diagnostic.Code == ExcelImageExportDiagnosticCodes.ChartBubbleSettingsApproximated)) {
+                    diagnostic.Code == ExcelImageExportDiagnosticCodes.ChartBubbleSettingsApproximated ||
+                    diagnostic.Code == OfficeDiagnosticCodes.ChartApproximation)) {
                     AddWarning(options, sheetName, diagnostic.Code, diagnostic.Message, diagnostic.LossKind);
                 }
 

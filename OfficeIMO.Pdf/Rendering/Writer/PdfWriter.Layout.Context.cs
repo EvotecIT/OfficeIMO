@@ -69,6 +69,8 @@ internal static partial class PdfWriter {
         private bool _suppressCanvasAccessibilityWrappers;
         private bool _suppressCanvasStructureRegistration;
         private bool _suppressCanvasActualTextChildren;
+        // Drawings in one pass measure with the same faces; share their parsed canvases.
+        private readonly DrawingTextMeasurementCanvases drawingTextCanvases = new DrawingTextMeasurementCanvases();
         private PageStructElement? _canvasStructureParentElement;
         private readonly System.Collections.Generic.List<FlowSemanticScope> flowSemanticScopes = new System.Collections.Generic.List<FlowSemanticScope>();
         private bool stopDocumentFlow;
@@ -88,8 +90,10 @@ internal static partial class PdfWriter {
             IReadOnlyList<PageNumberInfo>? previousRunningPages = null,
             int previousDocumentPages = 1,
             DrawingPatternAnnotationBudget? drawingPatternAnnotations = null,
-            PictureAnchorState? pictureAnchors = null, System.Threading.CancellationToken cancellationToken = default) {
+            PictureAnchorState? pictureAnchors = null, SvgFormRegistry? svgForms = null,
+            System.Threading.CancellationToken cancellationToken = default) {
             this.pictureAnchors = pictureAnchors ?? new PictureAnchorState();
+            this.svgForms = svgForms ?? new SvgFormRegistry();
             this.drawingPatternAnnotations = drawingPatternAnnotations ?? new DrawingPatternAnnotationBudget();
             currentOpts = options;
             currentPageBaseOptions = options;
@@ -110,6 +114,9 @@ internal static partial class PdfWriter {
         }
 
         public LayoutResult Layout(IEnumerable<IPdfBlock> blocks) {
+            // Every text path of this layout, running content included, writes to the current page,
+            // so color glyphs take their images and opacity states from that page. Restored even when layout fails.
+            IColorGlyphPage? previousColorGlyphPage = ContentStreamBuilder.ExchangeColorGlyphPage(new PageColorGlyphs(() => currentPage));
             try {
                 cancellationToken.ThrowIfCancellationRequested();
                 ProcessBlocks(blocks);
@@ -119,7 +126,7 @@ internal static partial class PdfWriter {
                 FlushPage(forceRunningPage || pageDirty || HasCurrentPageNonContentObjects());
                 FinishFootnoteContinuations();
 
-                var result = new LayoutResult(pageContents) { UsedBold = usedBold, UsedItalic = usedItalic, UsedBoldItalic = usedBoldItalic };
+                var result = new LayoutResult(pageContents) { UsedBold = usedBold, UsedItalic = usedItalic, UsedBoldItalic = usedBoldItalic, SvgForms = svgForms };
                 foreach (var p in pages) result.Pages.Add(p);
                 result.HasTableOfContents = encounteredTableOfContents;
                 result.SectionDefinitions.AddRange(encounteredSectionDefinitions);
@@ -128,6 +135,8 @@ internal static partial class PdfWriter {
             } catch {
                 if (ownsPageContents) pageContents.Dispose();
                 throw;
+            } finally {
+                ContentStreamBuilder.ExchangeColorGlyphPage(previousColorGlyphPage);
             }
         }
 
@@ -239,6 +248,7 @@ internal static partial class PdfWriter {
                 behindTextCanvases.Clear();
             }
             ReportFreeTextAnnotationDiagnostics();
+            BindSvgPageImages();
             foreach (PictureParagraphPlanKey key in pictureAnchors.Paragraphs.Keys.Where(key => key.Page == PicturePage).ToArray())
                 pictureAnchors.Paragraphs.Remove(key);
             currentPage.Content = pageContents.Store(sb);
@@ -284,6 +294,9 @@ internal static partial class PdfWriter {
         private double ResolveTopLevelSpacingBefore(double spacingBefore) {
             return y < GetCurrentFramePageStartY() - 0.001 ? spacingBefore : 0D;
         }
+
+        private double ResolveContainerSpacingBefore(PdfPanelStyle style) =>
+            style.ApplySpacingBeforeAtTop ? style.SpacingBefore.ToPoints() : ResolveTopLevelSpacingBefore(style.SpacingBefore.ToPoints());
 
         private static double ResolveColumnSpacingBefore(double spacingBefore, double consumed) {
             return consumed > 0.001 ? spacingBefore : 0D;

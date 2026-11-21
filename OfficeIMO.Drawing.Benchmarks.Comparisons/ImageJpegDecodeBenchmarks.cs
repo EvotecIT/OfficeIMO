@@ -10,18 +10,28 @@ public class ImageJpegDecodeBenchmarks {
     [GlobalSetup]
     public void Setup() {
         _encoded = ImageBenchmarkCorpus.Photo.ReadBytes();
-        ImageComparisonValidation.MeasureJpegDecodeError(_encoded, 2048, 1619);
+        ImageComparisonValidation.ValidateJpegDecode(_encoded, ImageBenchmarkCorpus.Photo.Width, ImageBenchmarkCorpus.Photo.Height);
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public byte[] OfficeIMO() => ImageComparisonAdapters.DecodeOfficeImoRgba(_encoded);
 
     [Benchmark]
+    [BenchmarkCategory("library:SkiaSharp", "case:Default")]
     public byte[] SkiaSharp() => ImageComparisonAdapters.DecodeSkiaRgba(_encoded);
 
     [Benchmark]
+    [BenchmarkCategory("library:Magick.NET", "case:Default")]
     public byte[] MagickNET() => ImageComparisonAdapters.DecodeMagickRgba(_encoded);
 
     [Benchmark]
+    [BenchmarkCategory("library:StbImageSharp", "case:Default")]
     public byte[] StbImageSharp() => ImageComparisonAdapters.DecodeStbRgba(_encoded);
+#if NET10_0_OR_GREATER
+
+    [Benchmark]
+    [BenchmarkCategory("library:OneImage", "case:Default")]
+    public byte[] OneImage() => OneImageComparisonAdapters.DecodeRgba(_encoded);
+#endif
 }

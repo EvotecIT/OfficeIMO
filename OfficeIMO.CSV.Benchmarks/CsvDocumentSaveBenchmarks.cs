@@ -114,6 +114,7 @@ public class CsvDocumentSaveBenchmarks {
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:OfficeIMO", "case:Save")]
     public long Save() {
         using var output = new MemoryStream();
         _document.Save(output, _options);
@@ -121,6 +122,7 @@ public class CsvDocumentSaveBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:SaveAsync")]
     public async Task<long> SaveAsync() {
         using var output = new MemoryStream();
         await _document.SaveAsync(output, _options).ConfigureAwait(false);
@@ -128,24 +130,29 @@ public class CsvDocumentSaveBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:ToBytes")]
     public long ToBytes() => _document.ToBytes(_options).LongLength;
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:ToText")]
     public long ToText() => _document.ToString(_options).Length;
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:SaveFile")]
     public long SaveFile() {
         _document.Save(_file, _options);
         return new FileInfo(_file).Length;
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:SaveFileAsync")]
     public async Task<long> SaveFileAsync() {
         await _document.SaveAsync(_asyncFile, _options).ConfigureAwait(false);
         return new FileInfo(_asyncFile).Length;
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:RowWriterFile")]
     public long RowWriterFile() {
         using (var writer = CsvRowWriter.CreateFile(_rowFile, _options, bufferSize: _rowWriterBufferSize)) {
             using var reader = new BenchmarkArrayDataReader(Headers, _rows, FieldTypes);
@@ -155,6 +162,7 @@ public class CsvDocumentSaveBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:WriteDataReader")]
     public long WriteDataReader() {
         using var output = new MemoryStream();
         WriteDataReaderCore(output, parallel: false);
@@ -162,6 +170,7 @@ public class CsvDocumentSaveBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:WriteDataReaderParallel")]
     public long WriteDataReaderParallel() {
         using var output = new MemoryStream();
         WriteDataReaderCore(output, parallel: true);

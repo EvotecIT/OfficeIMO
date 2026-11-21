@@ -1,11 +1,12 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using X14 = DocumentFormat.OpenXml.Office2010.Excel;
 using System.Globalization;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
-        private ExcelSheet CopyWorksheetFromValues(ExcelDocument sourceDocument, string sourceSheetName, string newSheetName, ExcelSheetNameValidationMode validationMode) {
+        private WorksheetPackageCopyResult CopyWorksheetFromValues(ExcelDocument sourceDocument, string sourceSheetName, string newSheetName, ExcelSheetNameValidationMode validationMode) {
             ExcelSheet sourceSheet = sourceDocument.GetSheet(sourceSheetName);
             string usedRange = sourceSheet.GetUsedRangeA1();
             var (startRow, startColumn, _, _) = ExcelA1.ParseRange(usedRange);
@@ -15,6 +16,12 @@ namespace OfficeIMO.Excel {
             }
 
             ExcelSheet targetSheet = AddSheet(newSheetName, validationMode);
+            if (IsHiddenSheet(sourceSheet.SheetElement)) {
+                Locking.ExecuteWrite(EnsureLock(), () => {
+                    CopyWorksheetVisibility(sourceSheet.SheetElement, targetSheet.SheetElement);
+                    WorkbookRoot.Save();
+                });
+            }
             for (int rowOffset = 0; rowOffset < values.GetLength(0); rowOffset++) {
                 for (int columnOffset = 0; columnOffset < values.GetLength(1); columnOffset++) {
                     object? value = values[rowOffset, columnOffset];
@@ -23,13 +30,15 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            CopyWorksheetTables(
+            WorksheetStyleCopyMap styleMap = CopyWorksheetLayoutForValuesCopy(sourceDocument, sourceSheet, targetSheet);
+            Dictionary<string, string> tableNameMap = CopyWorksheetTables(
                 sourceSheet.WorksheetPart,
                 targetSheet.WorksheetPart,
-                rewriteCopiedTableReferences: true,
-                preserveTableFormulas: false);
+                rewriteCopiedTableReferences: false,
+                preserveTableFormulas: false,
+                differentialFormatMap: styleMap.DifferentialFormats);
             targetSheet.WorksheetPart.Worksheet!.Save();
-            return targetSheet;
+            return new WorksheetPackageCopyResult(targetSheet, tableNameMap);
         }
 
         private ExcelSheet CopyWorksheetFromPackage(
@@ -49,7 +58,7 @@ namespace OfficeIMO.Excel {
                 options.MaxInCellImageBytes,
                 options.MaxTotalInCellImageBytes);
             sourceSheet.PreflightInCellImages(inCellImageContext);
-            return CopyWorksheetFromPackage(
+            WorksheetPackageCopyResult result = CopyWorksheetFromPackage(
                 sourceDocument,
                 sourceSheetName,
                 newSheetName,
@@ -57,7 +66,12 @@ namespace OfficeIMO.Excel {
                 rewriteCopiedReferences: true,
                 copyReferencedDefinedNames: true,
                 options.CopyExternalWorkbookReferences,
-                inCellImageContext).Sheet;
+                inCellImageContext);
+            ExcelSheet copiedSheet = result.Sheet;
+            CopyPrintDefinedNamesFromSource(sourceDocument, sourceSheet.Name, copiedSheet, new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
+                [sourceSheet.Name] = copiedSheet.Name
+            }, result.TableNameMap, result.ExternalReferenceMap);
+            return copiedSheet;
         }
 
         private WorksheetPackageCopyResult CopyWorksheetFromPackage(
@@ -92,9 +106,12 @@ namespace OfficeIMO.Excel {
 
                 WorksheetPart copiedPart = WorkbookPartRoot.AddNewPart<WorksheetPart>();
                 copiedPart.Worksheet = (Worksheet)sourcePart.Worksheet!.CloneNode(true);
+                CarryDefaultWidthColumns(sourceDocument, sourcePart.Worksheet, copiedPart.Worksheet);
+                BindCopiedSheetViewsToWorkbookViews(copiedPart.Worksheet);
                 RewriteSharedStringCellsToInlineStrings(copiedPart.Worksheet, sourceDocument.WorkbookPartRoot.SharedStringTablePart);
                 WorksheetStyleCopyMap styleMap = WorksheetStyleCopyMap.Empty;
                 if (!adoptedSourceIndexes) {
+                    BindCopiedWorksheetColors(sourceDocument.WorkbookPartRoot, WorkbookPartRoot, copiedPart.Worksheet);
                     styleMap = RemapCopiedWorksheetStyles(sourceDocument.WorkbookPartRoot, WorkbookPartRoot, copiedPart.Worksheet);
                     RemapCopiedWorksheetDifferentialFormats(copiedPart.Worksheet, styleMap.DifferentialFormats);
                     ConvertCopiedWorksheetDateSerials(copiedPart.Worksheet, sourceDocument.DateSystem, DateSystem);
@@ -114,6 +131,7 @@ namespace OfficeIMO.Excel {
                     .Any(formula => !string.IsNullOrWhiteSpace(formula.Text));
 
                 Sheet sheet = AppendWorksheetElement(copiedPart, validatedName);
+                CopyWorksheetVisibility(sourceSheet.SheetElement, sheet);
                 var targetSheet = new ExcelSheet(this, _spreadSheetDocument, sheet);
                 MarkSheetCacheDirty();
                 var sheetNameMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
@@ -311,9 +329,9 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            double offset = targetDateSystem == ExcelDateSystem.NineteenFour
-                ? -ExcelDateSystemConverter.Date1904OffsetDays
-                : ExcelDateSystemConverter.Date1904OffsetDays;
+            long offset = targetDateSystem == ExcelDateSystem.NineteenFour
+                ? -(long)ExcelDateSystemConverter.Date1904OffsetDays
+                : (long)ExcelDateSystemConverter.Date1904OffsetDays;
             Dictionary<int, uint> rowStyleIndexes = BuildRowStyleIndexMap(worksheet);
             (int Min, int Max, uint StyleIndex)[] columnStyleIndexes = BuildColumnStyleIndexRanges(worksheet);
 
@@ -327,7 +345,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                cell.CellValue = new CellValue(InvariantNumberText.Get(serial + offset));
+                cell.CellValue = new CellValue(InvariantNumberText.Get(ExcelDateSystemConverter.ShiftSerialDays(serial, offset)));
             }
         }
 
@@ -415,7 +433,8 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static WorksheetStyleCopyMap RemapCopiedWorksheetStyles(WorkbookPart sourceWorkbookPart, WorkbookPart targetWorkbookPart, Worksheet worksheet) {
+        /// <summary>Merges the source workbook's stylesheet into the target and returns the index maps.</summary>
+        private static WorksheetStyleCopyMap MergeSourceWorkbookStyles(WorkbookPart sourceWorkbookPart, WorkbookPart targetWorkbookPart) {
             Stylesheet? sourceStylesheet = sourceWorkbookPart.WorkbookStylesPart?.Stylesheet;
             if (sourceStylesheet?.CellFormats == null) {
                 return WorksheetStyleCopyMap.Empty;
@@ -424,8 +443,18 @@ namespace OfficeIMO.Excel {
             WorkbookStylesPart targetStylesPart = targetWorkbookPart.WorkbookStylesPart ?? targetWorkbookPart.AddNewPart<WorkbookStylesPart>();
             Stylesheet targetStylesheet = targetStylesPart.Stylesheet ??= CreateDefaultStylesheet();
             EnsureStylesheetPrimitives(targetStylesheet);
-
             WorksheetStyleCopyMap styleMap = new StylesheetMerger(sourceWorkbookPart, sourceStylesheet, targetWorkbookPart, targetStylesheet).Merge();
+            EnsureStylesheetPrimitives(targetStylesheet);
+            targetStylesheet.Save();
+            return styleMap;
+        }
+
+        private static WorksheetStyleCopyMap RemapCopiedWorksheetStyles(WorkbookPart sourceWorkbookPart, WorkbookPart targetWorkbookPart, Worksheet worksheet) {
+            WorksheetStyleCopyMap styleMap = MergeSourceWorkbookStyles(sourceWorkbookPart, targetWorkbookPart);
+            if (ReferenceEquals(styleMap, WorksheetStyleCopyMap.Empty)) {
+                return styleMap;
+            }
+
             IReadOnlyDictionary<uint, uint> cellFormatMap = styleMap.CellFormats;
             var inheritedStyleCells = BuildInheritedStyleCellSet(worksheet);
 
@@ -455,8 +484,6 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            EnsureStylesheetPrimitives(targetStylesheet);
-            targetStylesheet.Save();
             return styleMap;
         }
 
@@ -602,6 +629,41 @@ namespace OfficeIMO.Excel {
                 }
 
                 return copy;
+            }
+
+            /// <summary>
+            /// Fixes each theme or palette color under <paramref name="root"/> that <paramref name="target"/> would show
+            /// differently, so worksheet-level colors such as tab colors, color scales and data bars keep the source's
+            /// appearance. Colors that resolve alike keep their references, and automatic colors are left alone.
+            /// </summary>
+            internal void BindColorsTo(OpenXmlElement root, WorkbookStyleColorResolver target) {
+                foreach (ColorType color in EnumerateColorTypes(root)) {
+                    if (!ResolvesAlike(color, target)) {
+                        NormalizeColor(color);
+                    }
+                }
+
+                // Excel 2010 rule extensions (data bars, icon sets) use their own color element type.
+                foreach (X14.ColorType x14Color in root.Descendants<X14.ColorType>()) {
+                    if (x14Color.Rgb != null || (x14Color.Theme == null && x14Color.Indexed == null)) {
+                        continue;
+                    }
+
+                    var probe = new Color { Theme = x14Color.Theme?.Value, Indexed = x14Color.Indexed?.Value, Tint = x14Color.Tint?.Value };
+                    if (ResolvesAlike(probe, target)) {
+                        continue;
+                    }
+
+                    string? argb = Resolve(probe);
+                    if (argb == null) {
+                        continue;
+                    }
+
+                    x14Color.Rgb = argb;
+                    x14Color.Theme = null;
+                    x14Color.Indexed = null;
+                    x14Color.Tint = null;
+                }
             }
 
             private bool ResolvesAlike(ColorType color, WorkbookStyleColorResolver other) {

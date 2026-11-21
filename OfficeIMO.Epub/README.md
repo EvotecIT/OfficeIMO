@@ -1308,6 +1308,20 @@ before asynchronous destination I/O. Load and save APIs accept cancellation toke
 for existing Reader and image-conversion consumers. It applies the writer's default
 save policy first, including signature and output-limit checks.
 
+## Before sharing
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Epub;
+
+EpubPublication book = EpubPublication.Load("book.epub");
+OfficeHiddenDataReport report = book.RemoveHiddenData();
+foreach (OfficeHiddenDataFinding finding in report.Findings) Console.WriteLine($"{finding.Outcome} {finding.Kind} at {finding.Location}");
+book.Save("book-shared.epub");
+```
+
+`RemoveHiddenData()` removes creators, contributors, publishers, dates, named tool metadata and image metadata, and reports each item. Title, language and identifier stay because a valid publication needs them. Provenance, such as an image's AI-generated declaration, is kept unless `OfficeHiddenDataKind.Provenance` is selected. See the [hidden data matrix](../Docs/officeimo.hidden-data-support-matrix.md).
+
 ## Content provenance
 
 `EpubDocument.InspectProvenance("book.epub")` reports C2PA and AI-specific IPTC metadata in the EPUB package and supported embedded images. `EpubDocument.RemoveProvenance("book.epub", "clean.epub")` performs a targeted bounded rewrite while preserving the required uncompressed, first `mimetype` entry. Signed-package mutation is blocked unless removal of invalidated `META-INF/signatures.xml` is requested explicitly. Optional cryptographic C2PA verification remains in `OfficeIMO.Security`.

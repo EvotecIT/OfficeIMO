@@ -59,6 +59,7 @@ namespace OfficeIMO.Excel {
                         cell.DataType = null;
                     }
 
+                    _excelDocument.InvalidateTableLayouts();
                     table.Reference = ExcelA1.CellReference(firstRow, firstColumn) + ":" + ExcelA1.CellReference(lastRow - 1, lastColumn);
                     ClearCellTextSharedStringCache();
                     _hasWorksheetMutations = true;
@@ -181,6 +182,7 @@ namespace OfficeIMO.Excel {
                             $"Cannot add a totals row to table '{table.Name?.Value}': row {totalsRow.ToString(System.Globalization.CultureInfo.InvariantCulture)} below the table is not empty.");
                     }
 
+                    _excelDocument.InvalidateTableLayouts();
                     table.Reference = ExcelA1.CellReference(firstRow, firstColumn) + ":" + ExcelA1.CellReference(totalsRow, lastColumn);
                 }
 
@@ -510,7 +512,10 @@ namespace OfficeIMO.Excel {
                 return null;
             }
 
-            return _excelDocument.ExecuteReadAfterMaterializing(() => GetTableRangeWithoutMaterializing(tableName));
+            // A table part keeps its reference whether or not deferred rows have been written, so only a table that
+            // does not exist yet waits for them; reading the range then leaves the direct-save rows in place.
+            return _excelDocument.ExecuteReadWithoutMaterializing(() => GetTableRangeWithoutMaterializing(tableName))
+                ?? _excelDocument.ExecuteReadAfterMaterializing(() => GetTableRangeWithoutMaterializing(tableName));
         }
 
         private string? GetTableRangeWithoutMaterializing(string tableName) {
@@ -796,6 +801,7 @@ namespace OfficeIMO.Excel {
                     ShowColumnStripes = false
                 });
 
+                _excelDocument.InvalidateTableLayouts();
                 tableDefinitionPart.Table = table;
 
                 var tableParts = WorksheetRoot.GetFirstChild<TableParts>();

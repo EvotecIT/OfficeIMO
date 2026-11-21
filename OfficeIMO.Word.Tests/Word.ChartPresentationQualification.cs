@@ -17,12 +17,13 @@ public sealed class WordChartPresentationQualificationTests {
     }
 
     [Fact]
-    public void Snapshot_RejectsUnrepresentedLegendOutlineJoin() {
+    public void Snapshot_DrawsLegendOutlineWithALineJoin() {
         using var document = WordDocument.Create();
         var chart = Create(document, OfficeChartType.ColumnClustered);
         chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.Legend!.AddChild(
             new C.ChartShapeProperties(new A.Outline(new A.SolidFill(new A.RgbColorModelHex { Val = "445566" }), new A.Round())), true);
-        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        Assert.Equal(OfficeColor.Parse("#445566"), snapshot.Style!.LegendBorderColor);
     }
 
     [Fact]
@@ -155,11 +156,21 @@ public sealed class WordChartPresentationQualificationTests {
     [InlineData("[>=100]0;0")]
     [InlineData(@"0\%")]
     [InlineData("0\"%\"")]
-    public void Snapshot_RejectsUnrepresentedAxisFormats(string format) {
+    public void Snapshot_KeepsSpreadsheetAxisFormats(string format) {
         using var document = WordDocument.Create();
         var chart = Create(document, OfficeChartType.Line);
         chart.ChartPart!.ChartSpace!.Descendants<C.ValueAxis>().Single().GetFirstChild<C.NumberingFormat>()!.FormatCode = format;
-        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        Assert.Equal(format, snapshot.Layout.VerticalAxisNumberFormat);
+    }
+
+    [Fact]
+    public void Snapshot_DrawsInvalidAxisFormatAsGeneral() {
+        using var document = WordDocument.Create();
+        var chart = Create(document, OfficeChartType.Line);
+        chart.ChartPart!.ChartSpace!.Descendants<C.ValueAxis>().Single().GetFirstChild<C.NumberingFormat>()!.FormatCode = "0.0\"x";
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        Assert.Null(snapshot.Layout.VerticalAxisNumberFormat);
     }
 
     [Theory]
@@ -181,14 +192,11 @@ public sealed class WordChartPresentationQualificationTests {
     [InlineData("titleShape")]
     [InlineData("legendShape")]
     [InlineData("axisTitleLayout")]
-    [InlineData("vary")]
     public void Snapshot_RejectsUnrepresentedPresentation(string feature) {
         using var document = WordDocument.Create();
         var chart = Create(document, OfficeChartType.ColumnClustered);
         var native = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!;
-        var bars = native.PlotArea!.GetFirstChild<C.BarChart>()!;
-        if (feature == "vary") bars.GetFirstChild<C.VaryColors>()!.Val = true;
-        else if (feature == "axisTitleLayout") {
+        if (feature == "axisTitleLayout") {
             var title = new C.Title(new C.ChartText(new C.RichText(new A.BodyProperties(), new A.ListStyle(), new A.Paragraph(new A.Run(new A.Text("Axis"))))),
                 new C.Layout(new C.ManualLayout(new C.Left { Val = .3 })));
             native.PlotArea.GetFirstChild<C.ValueAxis>()!.AddChild(title, true);
@@ -202,17 +210,17 @@ public sealed class WordChartPresentationQualificationTests {
     }
 
     [Fact]
-    public void Snapshot_RejectsDateFormattingOnNumericCategoryLabels() {
+    public void Snapshot_KeepsDateFormattingOnNumericCategoryLabels() {
         using var document = WordDocument.Create();
         var chart = document.AddChart(OfficeChartType.Area,new OfficeChartData(
             new[] { "1", "2" }, new[] { new OfficeSeries("Values", new[] { 3d, 4d }) }));
         var categoryAxis = chart.ChartPart!.ChartSpace!.Descendants<C.CategoryAxis>().Single();
         categoryAxis.GetFirstChild<C.NumberingFormat>()!.FormatCode = "m/d/yyyy";
-        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        Assert.Equal("m/d/yyyy", snapshot.Layout.CategoryAxisNumberFormat);
     }
 
     [Theory]
-    [InlineData("point")]
     [InlineData("legendKey")]
     [InlineData("bubbleSize")]
     public void Snapshot_RejectsVisibleLabelsWithoutGlobalValueFlags(string label) {
@@ -223,7 +231,6 @@ public sealed class WordChartPresentationQualificationTests {
             : Create(document, OfficeChartType.Pie);
         var plot = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
         C.DataLabels labels = label switch {
-            "point" => new C.DataLabels(new C.DataLabel(new C.Index { Val = 0 }, new C.ShowValue { Val = true })),
             "legendKey" => new C.DataLabels(new C.ShowLegendKey { Val = true }),
             _ => new C.DataLabels(new C.ShowBubbleSize { Val = true })
         };
@@ -233,14 +240,15 @@ public sealed class WordChartPresentationQualificationTests {
     }
 
     [Fact]
-    public void Snapshot_RejectsSeriesLabelSuppressionBelowVisibleChartLabels() {
+    public void Snapshot_SeriesLabelSuppressionHidesTheGroupLabelsOfThatSeries() {
         using var document = WordDocument.Create();
         var chart = Create(document, OfficeChartType.ColumnClustered);
         var bars = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!.GetFirstChild<C.BarChart>()!;
         bars.AddChild(new C.DataLabels(new C.ShowValue { Val = true }), true);
         bars.GetFirstChild<C.BarChartSeries>()!.AddChild(
             new C.DataLabels(new C.ShowValue { Val = false }), true);
-        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        Assert.False(snapshot.Layout.ShowDataLabels);
     }
 
     [Theory]
@@ -367,11 +375,10 @@ public sealed class WordChartPresentationQualificationTests {
     }
 
     [Theory]
-    [InlineData("m/d/yyyy")]
     [InlineData("# ?/?")]
     [InlineData("0.00E+00")]
     [InlineData("[>=100]0;0")]
-    public void Snapshot_RejectsUnrepresentedNumericCategoryFormats(string format) {
+    public void Snapshot_KeepsSpreadsheetNumericCategoryFormats(string format) {
         using var document = WordDocument.Create();
         var chart = Create(document, OfficeChartType.Line);
         var native = chart.ChartPart!.ChartSpace!;
@@ -380,29 +387,8 @@ public sealed class WordChartPresentationQualificationTests {
         categories.Append(new C.NumberLiteral(new C.FormatCode("General"), new C.PointCount { Val = 2 },
             new C.NumericPoint(new C.NumericValue("1")) { Index = 0 }, new C.NumericPoint(new C.NumericValue("2")) { Index = 1 }));
         native.Descendants<C.CategoryAxis>().Single().GetFirstChild<C.NumberingFormat>()!.FormatCode = format;
-        Assert.False(chart.TryGetOfficeSnapshot(out _));
-    }
-
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void Snapshot_RejectsUnrepresentedMaximumCrossingForBars(bool valueAxis) {
-        using var document = WordDocument.Create();
-        var chart = Create(document, OfficeChartType.BarClustered);
-        var plot = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
-        OpenXmlCompositeElement axis = valueAxis ? plot.GetFirstChild<C.ValueAxis>()! : plot.GetFirstChild<C.CategoryAxis>()!;
-        axis.GetFirstChild<C.Crosses>()!.Val = C.CrossesValues.Maximum;
-        Assert.False(chart.TryGetOfficeSnapshot(out _));
-    }
-
-    [Fact]
-    public void Snapshot_RejectsBarAxisCrossingThroughNegativeValues() {
-        using var document = WordDocument.Create();
-        var chart = document.AddChart(OfficeChartType.BarClustered,            new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Values", new[] { -3d, 4d }) }));
-        var axis = chart.ChartPart!.ChartSpace!.Descendants<C.ValueAxis>().Single();
-        Assert.False(chart.TryGetOfficeSnapshot(out _));
-        axis.GetFirstChild<C.Crosses>()!.Val = C.CrossesValues.Minimum;
-        Assert.True(chart.TryGetOfficeSnapshot(out _));
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        Assert.Equal(format, snapshot.Layout.CategoryAxisNumberFormat);
     }
 
     [Theory]
@@ -434,7 +420,7 @@ public sealed class WordChartPresentationQualificationTests {
     [Theory]
     [InlineData(OfficeChartType.Line)]
     [InlineData(OfficeChartType.Bubble)]
-    public void Snapshot_RejectsUnresolvedSourceLinkedAxisFormats(OfficeChartType kind) {
+    public void Snapshot_SourceLinkedAxisFormatsUseTheValueCache(OfficeChartType kind) {
         using var document = WordDocument.Create();
         var data = new OfficeChartData(new[] { "A", "B" }, new[] {
             kind == OfficeChartType.Bubble
@@ -444,7 +430,8 @@ public sealed class WordChartPresentationQualificationTests {
         var axis = chart.ChartPart!.ChartSpace!.Descendants<C.ValueAxis>().Last();
         Assert.True(chart.TryGetOfficeSnapshot(out _));
         axis.NumberingFormat!.SourceLinked = true;
-        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        // A linked axis shows the format cached with the plotted values; bubble axes stay unqualified.
+        Assert.Equal(kind != OfficeChartType.Bubble, chart.TryGetOfficeSnapshot(out _));
     }
 
     [Fact]
@@ -467,7 +454,7 @@ public sealed class WordChartPresentationQualificationTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void Snapshot_MapsNativeCrossingToPerpendicularScreenAxis(bool valueAxis) {
+    public void Snapshot_MapsNativeCrossingToTheAxisThatDeclaresIt(bool valueAxis) {
         using var document = WordDocument.Create();
         var chart = Create(document, OfficeChartType.ColumnClustered);
         var plot = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
@@ -475,11 +462,65 @@ public sealed class WordChartPresentationQualificationTests {
         axis.GetFirstChild<C.Crosses>()!.Val = C.CrossesValues.Maximum;
         string native = chart.ChartPart.ChartSpace.OuterXml;
         Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
-        Assert.Equal(valueAxis ? OfficeChartAxisCrossingPosition.Maximum : OfficeChartAxisCrossingPosition.AutoZero,
-            snapshot.Layout!.HorizontalAxisCrossingPosition);
+        // crosses="max" on the value axis moves that (vertical) axis after the last category;
+        // on the category axis it moves the (horizontal) category axis to the top of the value range.
         Assert.Equal(valueAxis ? OfficeChartAxisCrossingPosition.AutoZero : OfficeChartAxisCrossingPosition.Maximum,
+            snapshot.Layout!.HorizontalAxisCrossingPosition);
+        Assert.Equal(valueAxis ? OfficeChartAxisCrossingPosition.Maximum : OfficeChartAxisCrossingPosition.AutoZero,
             snapshot.Layout.VerticalAxisCrossingPosition);
         Assert.Equal(native, chart.ChartPart.ChartSpace.OuterXml);
+    }
+
+    [Fact]
+    public void Snapshot_ProjectsEmptyCellsAndNegativeValues() {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartType.Line, new OfficeChartData(new[] { "A", "B", "C" },
+            new[] { new OfficeSeries("Values", new[] { 3d, 4d, -2d }) }));
+        var space = chart.ChartPart!.ChartSpace!;
+        space.Descendants<C.Values>().Single().Descendants<C.NumericPoint>().ElementAt(1).Remove();
+        space.GetFirstChild<C.Chart>()!.GetFirstChild<C.DisplayBlanksAs>()!.Val = C.DisplayBlanksAsValues.Span;
+
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        Assert.Equal(new[] { 3d, double.NaN, -2d }, snapshot.Data.Series.Single().Values);
+        Assert.Equal(OfficeChartBlankDisplay.Span, snapshot.Layout.BlankDisplay);
+    }
+
+    [Fact]
+    public void Snapshot_KeepsASeriesWhoseCellsAreAllEmpty() {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartType.Line, new OfficeChartData(new[] { "A", "B" }, new[] {
+            new OfficeSeries("Values", new[] { 3d, 4d }), new OfficeSeries("Pending", new[] { 1d, 2d }) }));
+        var pending = chart.ChartPart!.ChartSpace!.Descendants<C.LineChartSeries>().ElementAt(1);
+        foreach (var point in pending.GetFirstChild<C.Values>()!.Descendants<C.NumericPoint>().ToArray()) point.Remove();
+
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        Assert.Equal(new[] { double.NaN, double.NaN }, snapshot.Data.Series[1].Values);
+    }
+
+    [Fact]
+    public void Snapshot_ProjectsLogarithmicAxesAndManualPlotLayout() {
+        using var document = WordDocument.Create();
+        var chart = Create(document, OfficeChartType.ColumnClustered);
+        var native = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!;
+        native.PlotArea!.GetFirstChild<C.ValueAxis>()!.Scaling!.PrependChild(new C.LogBase { Val = 10 });
+        native.PlotArea.RemoveAllChildren<C.Layout>();
+        native.PlotArea.PrependChild(new C.Layout(new C.ManualLayout(new C.LeftMode { Val = C.LayoutModeValues.Edge },
+            new C.TopMode { Val = C.LayoutModeValues.Edge }, new C.Left { Val = 0.2 }, new C.Top { Val = 0.2 })));
+
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        Assert.Equal(10D, snapshot.Layout.VerticalAxisLogBase);
+        Assert.Equal(0.2D, snapshot.Layout.PlotAreaLayout!.X);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("Revenue")]
+    public void Charts_DeleteTheAutomaticTitleOnlyWhenWrittenWithoutATitle(string? title) {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(new[] { "A", "B" },
+            new[] { new OfficeSeries("Values", new[] { 3d, 4d }) }), new OfficeIMO.Word.WordChartOptions { Title = title });
+
+        Assert.Equal(title == null, chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.AutoTitleDeleted!.Val!.Value);
     }
 
     private static WordChart Create(WordDocument document, OfficeChartType kind) => document.AddChart(kind, new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Values", new[] { 3d, 4d }) }), new OfficeIMO.Word.WordChartOptions { Title = "Chart" });

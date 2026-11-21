@@ -2,10 +2,12 @@ namespace OfficeIMO.IWork.Internal;
 
 /// <summary>Resolves the native decimal marker profile qualified against Pages export.</summary>
 internal static class IWorkDecimalListLayout {
+    // Pages-to-DOCX opts into half-point sizes; other consumers retain the whole-point profile.
     internal static bool TryResolve(IWorkTextParagraph paragraph, out double markerFontSizePoints,
-        out double textOffsetPoints) {
+        out double textOffsetPoints, bool allowHalfPointSizes = false) {
         markerFontSizePoints = 0;
         textOffsetPoints = 0;
+        double sizeUnits = allowHalfPointSizes ? 2d : 1d;
         if (paragraph.ListLayout is not { } layout || !paragraph.ListNumber.HasValue
             || paragraph.ListMarkerKind != IWorkListMarkerKind.Number
             || !IWorkDecimalListProfile.TryGetMarkerStyle(paragraph.ListLabel, out _)
@@ -14,26 +16,26 @@ internal static class IWorkDecimalListLayout {
             || paragraph.Style.LeftIndentPoints.GetValueOrDefault() != 0
             || paragraph.Style.RightIndentPoints.GetValueOrDefault() != 0
             || paragraph.Style.TextStyle.FontSizePoints is not double size
-            || !IsFinite(size) || size <= 0 || size != Math.Round(size)) return false;
+            || !IsFinite(size) || size <= 0 || !IsExactSize(size, sizeUnits)) return false;
         double? firstRunSize = null;
-        bool uniformSize = true, wholePointSizes = true;
+        bool uniformSize = true, representableSizes = true;
         foreach (IWorkTextRun run in paragraph.Runs) {
             double runSize = run.Style.FontSizePoints ?? size;
             if (!IsFinite(runSize) || runSize <= 0) return false;
             uniformSize &= !firstRunSize.HasValue || firstRunSize.Value == runSize;
-            wholePointSizes &= runSize == Math.Round(runSize);
+            representableSizes &= IsExactSize(runSize, sizeUnits);
             firstRunSize ??= runSize;
         }
         double bodySize = firstRunSize ?? size;
         double scaledBody = layout.MarkerScale * bodySize;
-        double uniformMarkerSize = bodySize == size ? Math.Round(scaledBody) : size;
+        double uniformMarkerSize = bodySize == size ? Math.Round(scaledBody * sizeUnits) / sizeUnits : size;
         if (uniformSize && IsFinite(scaledBody)
             && uniformMarkerSize > 0
             && Math.Abs(scaledBody - uniformMarkerSize) <= Math.Max(1e-6d, uniformMarkerSize * 1e-7d)) {
             // Native uniform items use either a marker-size or body-size paragraph default.
-            // Resolve the relative scale to a whole-point marker without changing the em indent.
+            // Resolve the relative scale at the caller's precision without changing the em indent.
             markerFontSizePoints = uniformMarkerSize;
-        } else if (layout.MarkerScale == 1 && wholePointSizes) {
+        } else if (layout.MarkerScale == 1 && representableSizes) {
             // Native mixed-size items take their marker size from the first character.
             // Later larger runs do not change the marker or paragraph-default em indent.
             markerFontSizePoints = bodySize;
@@ -48,4 +50,7 @@ internal static class IWorkDecimalListLayout {
         paragraph.ListFontName ?? paragraph.Style.TextStyle.FontName;
 
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
+
+    private static bool IsExactSize(double value, double units) =>
+        IsFinite(value * units) && value * units == Math.Round(value * units);
 }

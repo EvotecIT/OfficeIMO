@@ -9,398 +9,111 @@ $resolvedSiteRoot = if ([System.IO.Path]::IsPathRooted($SiteRoot)) {
 } else {
     [System.IO.Path]::GetFullPath((Join-Path (Get-Location) $SiteRoot))
 }
-$dataPath = Join-Path $resolvedSiteRoot 'data\benchmarks-excel.json'
-$pagePath = Join-Path $resolvedSiteRoot 'benchmarks\index.html'
-$scriptPath = Join-Path $resolvedSiteRoot 'js\benchmarks.js'
-$comparisonCatalogPath = Join-Path $resolvedSiteRoot 'data\benchmarks\library-comparisons\index.json'
-$stylePath = Join-Path $PSScriptRoot '..\themes\officeimo\assets\app.css'
-$documentationCatalogPath = Join-Path $PSScriptRoot '..\data\documentation_catalog.json'
-$evidenceHelperPath = Join-Path $PSScriptRoot '..\..\Build\BenchmarkEvidence.ps1'
-$comparisonRunnerPath = Join-Path $PSScriptRoot '..\..\Build\Run-LibraryComparisonBenchmarks.ps1'
+$declarationPath = Join-Path $PSScriptRoot '..\..\Build\benchmark-declarations.json'
+$areaCatalogPath = Join-Path $PSScriptRoot '..\data\benchmark_areas.json'
+$catalogPath = Join-Path $resolvedSiteRoot 'data\benchmarks\evidence\index.json'
+$indexPath = Join-Path $resolvedSiteRoot 'data\benchmarks\index.json'
+$hubPath = Join-Path $resolvedSiteRoot 'benchmarks\index.html'
 
-. $evidenceHelperPath
-
-if (-not (Test-Path -LiteralPath $dataPath -PathType Leaf)) {
-    throw "Benchmark data JSON was not published to '$dataPath'."
-}
-
-if (-not (Test-Path -LiteralPath $pagePath -PathType Leaf)) {
-    throw "Benchmark page was not generated at '$pagePath'."
-}
-
-if (-not (Test-Path -LiteralPath $scriptPath -PathType Leaf)) {
-    throw "Benchmark sort/filter script was not published to '$scriptPath'."
-}
-
-if (-not (Test-Path -LiteralPath $comparisonCatalogPath -PathType Leaf)) {
-    throw "Library comparison evidence catalog was not published to '$comparisonCatalogPath'."
-}
-
-if (-not (Test-Path -LiteralPath $stylePath -PathType Leaf)) {
-    throw "Benchmark layout styles were not found at '$stylePath'."
-}
-
-$sourceSuiteCount = [int] ((Get-Content -LiteralPath $documentationCatalogPath -Raw -Encoding UTF8 | ConvertFrom-Json).repository.benchmarkProjectCount)
-
-if (-not (Test-Path -LiteralPath $comparisonRunnerPath -PathType Leaf)) {
-    throw "Library comparison runner was not found at '$comparisonRunnerPath'."
-}
-
-$contractEvidenceRoot = Join-Path ([System.IO.Path]::GetTempPath()) 'OfficeIMO-evidence-contract'
-$net8Evidence = Get-BenchmarkEvidenceLocation `
-    -ComparisonId 'markpflug-65k-csv-decoded-net8.0' `
-    -Platform windows `
-    -RunMode full `
-    -StaticRoot $contractEvidenceRoot
-$net10Evidence = Get-BenchmarkEvidenceLocation `
-    -ComparisonId 'markpflug-65k-csv-decoded-net10.0' `
-    -Platform windows `
-    -RunMode full `
-    -StaticRoot $contractEvidenceRoot
-if ($net8Evidence.FileName -eq $net10Evidence.FileName -or
-    $net8Evidence.ResultPath -eq $net10Evidence.ResultPath -or
-    $net8Evidence.FileName -notmatch 'net8\.0' -or
-    $net10Evidence.FileName -notmatch 'net10\.0') {
-    throw 'Library comparison payload paths do not keep framework identities separate.'
-}
-
-$data = Get-Content -LiteralPath $dataPath -Raw -Encoding UTF8 | ConvertFrom-Json
-$comparisonCatalog = Get-Content -LiteralPath $comparisonCatalogPath -Raw -Encoding UTF8 | ConvertFrom-Json
-$rowCount = @($data.rows).Count
-$summaryCount = @($data.summary).Count
-$matrixRowCount = @($data.matrix.rows).Count
-
-if ($data.schemaVersion -ne 2 -or
-    $data.platform -ne 'unrecorded' -or
-    $data.runMode -ne 'unrecorded' -or
-    $data.publish) {
-    throw 'Legacy Excel matrix data does not explicitly preserve its unrecorded OS and run mode.'
-}
-
-$comparisonRunnerText = Get-Content -LiteralPath $comparisonRunnerPath -Raw -Encoding UTF8
-if ($comparisonRunnerText -notmatch 'if \(\$catalogEligible -and \$gitDirty\)' -or
-    $comparisonRunnerText -notmatch 'Cataloged benchmark evidence requires a clean Git worktree') {
-    throw 'Catalog-eligible benchmark runs do not enforce source-commit provenance from a clean worktree.'
-}
-if ($comparisonRunnerText -notmatch 'GetUnresolvedProviderPathFromPSPath' -or
-    $comparisonRunnerText -notmatch '-ResultArtifactPath \$measurement\.EvidenceLocation\.Path' -or
-    $comparisonRunnerText -match '-Path \$measurement\.EvidenceLocation\.Path') {
-    throw 'The benchmark runner does not preserve caller-relative output roots and atomic evidence publication.'
-}
-
-$caseIdentity = Get-BenchmarkEvidenceCaseIdentity -Row ([pscustomobject]@{
-    Scenario = 'OfficeIMO_WriteDataReader'
-    Variables = [ordered]@{
-        RowCount = '25000&Shape=Mixed'
-        Namespace = 'OfficeIMO.CSV.Benchmarks'
-        Type = 'CsvDataReaderWriteBenchmarks'
-        FullName = 'ignored'
-        Affinity = '11111111111111111111111111111111'
+foreach ($path in @($catalogPath, $indexPath, $hubPath)) {
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+        throw "The benchmark site output is missing '$path'."
     }
-}) -VariableName @('rowcount', 'shape')
-$pdfCaseIdentity = Get-BenchmarkEvidenceCaseIdentity -Row ([pscustomobject]@{
-    Scenario = 'OfficeIMO'
-    Variables = [ordered]@{
-        Scale = 'Easy&Producer=OfficeIMO'
+}
+if (Test-Path -LiteralPath (Join-Path $resolvedSiteRoot 'benchmarks\archive\index.html') -PathType Leaf) {
+    throw 'The retired benchmark archive page is still generated.'
+}
+
+# The published catalog carries exactly the declared comparisons and the standard publish policy.
+$declarations = Get-Content -LiteralPath $declarationPath -Raw -Encoding UTF8 | ConvertFrom-Json
+$catalog = Get-Content -LiteralPath $catalogPath -Raw -Encoding UTF8 | ConvertFrom-Json
+if ($catalog.schemaVersion -ne 5) {
+    throw "The published benchmark catalog uses schema $($catalog.schemaVersion); only schema 5 is published."
+}
+$declaredIds = @($declarations.comparisons.comparisonId | Sort-Object)
+$catalogIds = @($catalog.comparisons.comparisonId | Sort-Object)
+if (($declaredIds -join ',') -cne ($catalogIds -join ',')) {
+    throw 'The published catalog does not declare the same comparisons as Build/benchmark-declarations.json; merge the catalog again.'
+}
+if ($catalog.policy.minimumWarmups -lt 3 -or $catalog.policy.minimumMeasuredSamples -lt 10 -or
+    $catalog.policy.confidenceLevel -lt 0.95 -or -not $catalog.policy.requireOutputValidation -or
+    @($catalog.policy.publishableRestrictions | Where-Object { $_ -ne 'open' }).Count -gt 0) {
+    throw 'The published catalog does not carry the standard publish policy.'
+}
+
+# Every recorded result is published beside the catalog with its recorded hash.
+foreach ($entry in @($catalog.entries)) {
+    $published = Join-Path (Split-Path -Parent $catalogPath) ([string] $entry.artifactRelativePath)
+    if (-not (Test-Path -LiteralPath $published -PathType Leaf)) {
+        throw "Benchmark result '$($entry.resultPath)' of lane '$($entry.laneKey)' was not published."
     }
-}) -VariableName @('producer', 'scale')
-if ($caseIdentity -ne 'OfficeIMO_WriteDataReader|RowCount=25000&Shape=Mixed' -or
-    $pdfCaseIdentity -ne 'OfficeIMO|Producer=OfficeIMO&Scale=Easy' -or
-    $comparisonRunnerText -notmatch "Filter = '\*CsvDataReaderWriteBenchmarks\*\(RowCount: 25000,\*'" -or
-    $comparisonRunnerText -notmatch "foreach \(\`$shape in @\('Mixed', 'Quoted', 'Multiline'\)\)" -or
-    $comparisonRunnerText -notmatch "'OfficeIMO_WriteDataReader'" -or
-    $comparisonRunnerText -notmatch "'OfficeIMO_WriteDataReaderParallel'" -or
-    $comparisonRunnerText -notmatch "'Sylvan_WriteDataReader'" -or
-    $comparisonRunnerText -notmatch 'Get-BenchmarkEvidenceCaseIdentity') {
-    throw 'Parameterized CSV write evidence does not require every 25K scenario and shape combination.'
-}
-
-if ($rowCount -lt 1) {
-    throw "Benchmark data JSON does not contain measurement rows."
-}
-
-if ($matrixRowCount -lt 1) {
-    throw "Benchmark data JSON does not contain matrix rows."
-}
-
-if ($summaryCount -lt 1) {
-    throw "Benchmark data JSON does not contain summary rows."
-}
-
-if ($comparisonCatalog.schemaVersion -ne 3 -or
-    @($comparisonCatalog.expectedPlatforms).Count -ne 3 -or
-    -not (@($comparisonCatalog.availability).Where({ $_.platform -eq 'macos' -and -not $_.available }))) {
-    throw 'Library comparison catalog does not expose the versioned three-platform model and explicit missing macOS lane.'
-}
-
-foreach ($entry in @($comparisonCatalog.entries)) {
-    if ([string]::IsNullOrWhiteSpace([string] $entry.resultPath) -or
-        [string]::IsNullOrWhiteSpace([string] $entry.resultSha256)) {
-        throw "Library comparison catalog entry '$($entry.comparisonId)' is missing result-path integrity metadata."
-    }
-
-    $relativeResultPath = ([string] $entry.resultPath).TrimStart('/').Replace(
-        '/',
-        [System.IO.Path]::DirectorySeparatorChar)
-    $publishedResultPath = Join-Path $resolvedSiteRoot $relativeResultPath
-    if (-not (Test-Path -LiteralPath $publishedResultPath -PathType Leaf)) {
-        throw "Library comparison result '$($entry.resultPath)' was not published."
-    }
-
-    $actualResultSha256 = (Get-FileHash -LiteralPath $publishedResultPath -Algorithm SHA256).Hash
-    if (-not [string]::Equals(
-            $actualResultSha256,
-            [string] $entry.resultSha256,
-            [System.StringComparison]::OrdinalIgnoreCase)) {
-        throw "Library comparison result '$($entry.resultPath)' does not match its catalog SHA-256."
-    }
-
-    $sourceCommit = [string] $entry.compatibility.'benchmark.workload.sourceCommit'
-    $gitSha = [string] $entry.compatibility.gitSha
-    if ([string]::IsNullOrWhiteSpace($sourceCommit) -or
-        [string]::IsNullOrWhiteSpace($gitSha) -or
-        -not [string]::Equals($sourceCommit, $gitSha, [System.StringComparison]::OrdinalIgnoreCase)) {
-        throw "Library comparison result '$($entry.resultPath)' does not bind sourceCommit and gitSha to the same measured commit."
+    $hash = (Get-FileHash -LiteralPath $published -Algorithm SHA256).Hash
+    if (-not [string]::Equals($hash, [string] $entry.resultSha256, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "Benchmark result '$($entry.resultPath)' does not match its catalog SHA-256."
     }
 }
 
-$readComparisonIds = @(
-    'markpflug-65k-csv-decoded-net10.0',
-    'markpflug-65k-xlsx-typed-net10.0',
-    'markpflug-65k-xlsb-typed-net10.0'
-)
-foreach ($comparisonId in $readComparisonIds) {
-    $windowsModes = @(
-        $comparisonCatalog.entries |
-            Where-Object {
-                $_.comparisonId -eq $comparisonId -and
-                $_.platform -eq 'windows'
-            } |
-            ForEach-Object runMode |
-            Sort-Object -Unique
-    )
-    if ('full' -notin $windowsModes -or 'quick' -notin $windowsModes) {
-        throw "Library comparison '$comparisonId' does not publish both full and quick Windows evidence."
+# The hub lists every area with its comparisons and links to the area's page and on-demand results.
+$areaTitles = @{}
+foreach ($area in (Get-Content -LiteralPath $areaCatalogPath -Raw -Encoding UTF8 | ConvertFrom-Json).areas) {
+    $areaTitles[$area.id] = $area.title
+}
+$index = Get-Content -LiteralPath $indexPath -Raw -Encoding UTF8 | ConvertFrom-Json
+$hubHtml = Get-Content -LiteralPath $hubPath -Raw -Encoding UTF8
+$fragmentRoot = @(Get-ChildItem -LiteralPath (Join-Path $resolvedSiteRoot '_powerforge\fragments\benchmarks') -Directory)
+if ($fragmentRoot.Count -ne 1) {
+    throw 'The benchmark area results were not written as page fragments.'
+}
+if ($hubHtml -notmatch 'assets/powerforge/benchmarks\.v1\.js' -or $hubHtml -notmatch 'assets/powerforge/benchmarks\.v1\.css') {
+    throw 'The benchmark hub does not load the benchmark component assets.'
+}
+$comparisonCount = 0
+foreach ($area in @($index.areas)) {
+    if (-not $areaTitles.ContainsKey([string] $area.id)) {
+        throw "Benchmark area '$($area.id)' has no title in data/benchmark_areas.json."
     }
-}
-
-
-$writeComparisonScenarios = [ordered]@{
-    'csv-25k-datareader-write-net10.0' = @('OfficeIMO_WriteDataReader', 'Sylvan_WriteDataReader')
-    'xlsx-25k-datareader-write-net10.0' = @('OfficeIMO', 'SpreadCheetah', 'Sylvan', 'LargeXlsx')
-}
-foreach ($writeComparison in $writeComparisonScenarios.GetEnumerator()) {
-    $writeEntries = @($comparisonCatalog.entries | Where-Object { $_.comparisonId -eq $writeComparison.Key })
-    $macQuickEntry = $writeEntries | Where-Object { $_.platform -eq 'macos' -and $_.runMode -eq 'quick' } | Select-Object -First 1
-    $macQuickAvailability = $comparisonCatalog.availability | Where-Object {
-        $_.comparisonId -eq $writeComparison.Key -and
-        $_.runMode -eq 'quick' -and
-        $_.platform -eq 'macos' -and
-        $_.available
-    } | Select-Object -First 1
-    if (-not $macQuickEntry -or -not $macQuickAvailability) {
-        throw "Validated write evidence '$($writeComparison.Key)' is missing from the platform-aware catalog."
+    if ($hubHtml -notmatch [regex]::Escape("id=""benchmarks-$($area.id)""") -or
+        $hubHtml -notmatch [regex]::Escape("href=""/benchmarks/$($area.id)/""")) {
+        throw "The benchmark hub does not list the '$($area.id)' area with a link to its page."
+    }
+    $areaFile = Join-Path $resolvedSiteRoot "data\benchmarks\$($area.file)"
+    $fragment = Join-Path $fragmentRoot[0].FullName ([System.IO.Path]::ChangeExtension([string] $area.file, '.html'))
+    $areaPage = Join-Path $resolvedSiteRoot "benchmarks\$($area.id)\index.html"
+    foreach ($path in @($areaFile, $fragment, $areaPage)) {
+        if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+            throw "Benchmark area '$($area.id)' is missing '$path'."
+        }
     }
 
-    $relativeWriteResultPath = ([string] $macQuickEntry.resultPath).TrimStart('/').Replace(
-        '/',
-        [System.IO.Path]::DirectorySeparatorChar)
-    $writeResult = Get-Content -LiteralPath (Join-Path $resolvedSiteRoot $relativeWriteResultPath) -Raw -Encoding UTF8 | ConvertFrom-Json
-    $actualScenarios = @($writeResult.summary | ForEach-Object scenario | Sort-Object -Unique)
-    $missingScenarios = @($writeComparison.Value | Where-Object { $_ -notin $actualScenarios })
-    if ($missingScenarios.Count -gt 0) {
-        throw "Write evidence '$($writeComparison.Key)' is missing scenarios: $($missingScenarios -join ', ')."
-    }
-}
-
-$pageHtml = Get-Content -LiteralPath $pagePath -Raw -Encoding UTF8
-if ($pageHtml -notmatch 'data-excel-benchmarks' -or $pageHtml -notmatch 'data-benchmark-matrix') {
-    throw "Benchmark page did not render the generated data dashboard."
-}
-
-if ($pageHtml -notmatch 'data-library-comparison-benchmarks' -or
-    $pageHtml -notmatch 'imo-benchmark-evidence-model' -or
-    $pageHtml -notmatch ([regex]::Escape("$sourceSuiteCount source suites")) -or
-    $pageHtml -notmatch 'data-published-full-count' -or
-    $pageHtml -notmatch 'data-library-comparison-coverage-rows' -or
-    $pageHtml -notmatch 'data-evidence-status="full"' -or
-    $pageHtml -notmatch 'data-evidence-status="diagnostic"' -or
-    $pageHtml -notmatch 'data-evidence-status="missing"' -or
-    $pageHtml -notmatch 'data-comparison-id="pdf-structured-generation-net10\.0"' -or
-    $pageHtml -notmatch 'data-library-comparison-workload="markpflug-65k-csv-decoded-net10\.0"' -or
-    $pageHtml -notmatch 'data-library-comparison-workload="csv-25k-datareader-write-net10\.0"' -or
-    $pageHtml -notmatch 'data-library-comparison-workload="markpflug-65k-xls-typed-net10\.0"' -or
-    $pageHtml -notmatch 'data-library-comparison-workload="xlsx-25k-datareader-write-net10\.0"' -or
-    $pageHtml -notmatch 'data-library-comparison-workload="markpflug-65k-xlsx-typed-net10\.0"' -or
-    $pageHtml -notmatch 'data-library-comparison-workload="markpflug-65k-xlsb-typed-net10\.0"' -or
-    $pageHtml -notmatch 'data-library-comparison-platform="windows"' -or
-    $pageHtml -notmatch 'data-library-comparison-platform="linux"' -or
-    $pageHtml -notmatch 'data-library-comparison-platform="macos"' -or
-    $pageHtml -notmatch 'data-library-comparison-mode="full"' -or
-    $pageHtml -notmatch 'data-library-comparison-mode="quick"') {
-    throw 'Benchmark page did not render the workload, platform, and evidence selectors.'
-}
-
-if ($pageHtml -notmatch 'data-benchmark-family="excel"' -or
-    $pageHtml -notmatch 'data-benchmark-family="csv"' -or
-    $pageHtml -notmatch 'id="excel-matrix"' -or
-    $pageHtml -notmatch 'id="historical-benchmark-evidence"' -or
-    $pageHtml -notmatch 'OS not recorded' -or
-    $pageHtml -notmatch 'Run mode not recorded' -or
-    $pageHtml -notmatch 'Coverage boundary' -or
-    $pageHtml -notmatch 'Word and PowerPoint' -or
-    $pageHtml -notmatch '/docs/capabilities/benchmarks/') {
-    throw "Benchmark page did not render the format-specific evidence hub, coverage boundary, and reproduction guide."
-}
-
-if ($pageHtml -match 'github\.com/EvotecIT/OfficeIMO/(?:blob|tree)/main') {
-    throw "Benchmark page contains a public evidence link to the nonexistent OfficeIMO 'main' branch."
-}
-
-if ($pageHtml -notmatch 'data-benchmark-sort="scenario"' -or
-    $pageHtml -notmatch 'data-benchmark-filter="search"' -or
-    $pageHtml -notmatch 'data-benchmark-filter="platform"' -or
-    $pageHtml -notmatch 'data-benchmark-filter="runMode"' -or
-    $pageHtml -notmatch 'data-platform="unrecorded"' -or
-    $pageHtml -notmatch 'data-run-mode="unrecorded"' -or
-    $pageHtml -notmatch 'data-benchmark-empty' -or
-    $pageHtml -notmatch 'data-benchmark-reset' -or
-    $pageHtml -notmatch 'data-benchmark-sort-mode' -or
-    $pageHtml -notmatch '/js/benchmarks.js') {
-    throw "Benchmark page did not render matrix sorting and filtering controls."
-}
-
-$scriptText = Get-Content -LiteralPath $scriptPath -Raw -Encoding UTF8
-if ($scriptText -notmatch 'OfficeImoBenchmarkMatrix' -or $scriptText -notmatch 'sortBy' -or $scriptText -notmatch 'setFilter' -or $scriptText -notmatch 'setSortMetric' -or $scriptText -notmatch 'data-ratio-to-fastest') {
-    throw "Benchmark sort/filter script does not expose the expected matrix behaviors."
-}
-
-if ($scriptText -notmatch 'benchmark-workload' -or
-    $scriptText -notmatch 'benchmark-os' -or
-    $scriptText -notmatch 'benchmark-mode' -or
-    $scriptText -notmatch "queryValue\('benchmark-os', 'windows'\)" -or
-    $scriptText -notmatch "queryValue\('benchmark-mode', 'full'\)" -or
-    $scriptText -notmatch "queryValue\('matrix-os'\)" -or
-    $scriptText -notmatch "queryValue\('matrix-mode'\)" -or
-    $scriptText -notmatch "filterValue\('platform'\)" -or
-    $scriptText -notmatch "filterValue\('runMode'\)" -or
-    $scriptText -notmatch "row\.getAttribute\('data-platform'\)" -or
-    $scriptText -notmatch "row\.getAttribute\('data-run-mode'\)" -or
-    $scriptText -notmatch 'baseComparisonId\(candidate\.comparisonId\) === comparisonId' -or
-    $scriptText -notmatch 'candidate\.publish === true' -or
-    $scriptText -notmatch 'activeRequestId' -or
-    $scriptText -notmatch 'requestId !== activeRequestId' -or
-    $scriptText -notmatch "compatibilityValue\(entry, 'gitSha'\)" -or
-    $scriptText -notmatch "sourceCommit\.substring\(0, 12\)" -or
-    $scriptText -notmatch 'function renderCoverage\(\)' -or
-    $scriptText -notmatch "entry\.runMode === 'full' && entry\.publish === true" -or
-    $scriptText -notmatch "status = 'diagnostic'" -or
-    $scriptText -notmatch "status = 'missing'" -or
-    $scriptText -notmatch 'https://github\.com/EvotecIT/OfficeIMO/tree/' -or
-    $scriptText -notmatch "artifactLink\.textContent = 'result artifact'" -or
-    $scriptText -notmatch 'compatibilityIssues' -or
-    $scriptText -notmatch 'Results below compare libraries within the selected lane only' -or
-    $scriptText -notmatch 'compatibilityIssueSummary' -or
-    $scriptText -notmatch "macos:\s*'macOS'" -or
-    $scriptText -notmatch 'workloadName\(comparisonId\)' -or
-    $scriptText -notmatch 'comparisonGroupName\(row\)' -or
-    $scriptText -notmatch "queryValue\('benchmark-cpu', '0xffff'\)" -or
-    $scriptText -notmatch 'comparisonAffinity\(candidate\.comparisonId\) === selectedAffinity' -or
-    $scriptText -notmatch 'function renderAffinityButtons\(available\)' -or
-    $scriptText -notmatch "button\.textContent = affinityLabel\(affinity\)" -or
-    $scriptText -notmatch "\['namespace', 'type', 'fullname'\]" -or
-    $scriptText -notmatch "split\('&'\)" -or
-    $scriptText -notmatch 'csv-25k-datareader-write-net10\.0' -or
-    $scriptText -notmatch 'xlsx-25k-datareader-write-net10\.0' -or
-    $scriptText -match "scenario === 'OfficeIMO'" -or
-    $pageHtml -notmatch 'Diagnostic results prove execution and validation only' -or
-    $pageHtml -notmatch 'data-library-comparison-affinities') {
-    throw 'Library comparison selector does not preserve shareable state, reject stale responses, and enforce evidence safety labels.'
-}
-
-$styleText = Get-Content -LiteralPath $stylePath -Raw -Encoding UTF8
-if ($styleText -notmatch '\.imo-benchmark-hub\{[^}]*grid-template-columns:minmax\(0,1fr\)') {
-    throw "Benchmark hub does not constrain wide children to a responsive grid track."
-}
-
-if ($styleText -notmatch '\.imo-benchmark-evidence-model__grid\{[^}]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)' -or
-    $styleText -notmatch '\.imo-library-comparison-coverage__row\{[^}]*grid-template-columns:minmax\(260px,1\.5fr\)' -or
-    $styleText -notmatch 'data-evidence-status="diagnostic"') {
-    throw 'Benchmark evidence layers and platform coverage do not have the expected responsive visual treatment.'
-}
-
-if ($styleText -notmatch '\.imo-benchmark-archive\{[^}]*justify-self:center[^}]*width:min\(1600px,calc\(100vw - 3rem\)\)') {
-    throw "Benchmark archive does not own the centered wide layout."
-}
-
-if ($styleText -notmatch '\.imo-benchmark-dashboard\{width:100%;margin:0 0 3rem\}' -or
-    $styleText -match '\.imo-benchmark-dashboard\{[^}]*100vw') {
-    throw "Benchmark dashboard can overflow and be clipped by its explorer."
-}
-
-if ($pageHtml -match 'Loading benchmark data') {
-    throw "Benchmark page still depends on client-side data loading."
-}
-
-$matrixPosition = $pageHtml.IndexOf('id="excel-matrix"', [System.StringComparison]::Ordinal)
-$snapshotPosition = $pageHtml.IndexOf('data-benchmark-family="excel"', [System.StringComparison]::Ordinal)
-if ($matrixPosition -lt 0 -or $snapshotPosition -lt 0 -or $matrixPosition -gt $snapshotPosition) {
-    throw 'The complete Excel matrix is not presented before the compact historical snapshots.'
-}
-
-$highlightCards = [regex]::Matches(
-    $pageHtml,
-    '<article class="imo-benchmark-highlight">.*?<tbody>(?<rows>.*?)</tbody>.*?</article>',
-    [System.Text.RegularExpressions.RegexOptions]::Singleline)
-foreach ($card in $highlightCards) {
-    $timings = @(
-        [regex]::Matches(
-            $card.Groups['rows'].Value,
-            '<th scope="row">(?<library>.*?)</th><td>(?<value>[0-9]+(?:\.[0-9]+)?) (?<unit>ms|s)</td>') |
-            ForEach-Object {
-                $milliseconds = [double]::Parse(
-                    $_.Groups['value'].Value,
-                    [System.Globalization.CultureInfo]::InvariantCulture)
-                if ($_.Groups['unit'].Value -eq 's') {
-                    $milliseconds *= 1000
-                }
-                [pscustomobject]@{
-                    Library = [System.Net.WebUtility]::HtmlDecode($_.Groups['library'].Value)
-                    Milliseconds = $milliseconds
-                }
+    # Each area page renders every comparison of the area; one without a published run says so.
+    $areaHtml = Get-Content -LiteralPath $areaPage -Raw -Encoding UTF8
+    $areaData = Get-Content -LiteralPath $areaFile -Raw -Encoding UTF8 | ConvertFrom-Json
+    foreach ($comparison in @($areaData.comparisons)) {
+        $comparisonCount++
+        $match = [regex]::Match($areaHtml, '<section class="pf-bench" id="benchmark-' + [regex]::Escape([string] $comparison.id) + '"(?s:.*?)</section>')
+        if (-not $match.Success) {
+            throw "Benchmark area page '/benchmarks/$($area.id)/' does not render comparison '$($comparison.id)'."
+        }
+        $publishedRuns = @($comparison.runs | Where-Object published)
+        if ($publishedRuns.Count -eq 0 -and $match.Value -notmatch 'No published run yet\.') {
+            throw "Comparison '$($comparison.id)' has no published run but its section does not say so."
+        }
+        foreach ($run in $publishedRuns) {
+            if ($match.Value -notmatch [regex]::Escape("data-pf-bench-run=""$($run.id)""")) {
+                throw "Comparison '$($comparison.id)' does not render its published run '$($run.id)'."
             }
-    )
-    for ($index = 1; $index -lt $timings.Count; $index++) {
-        if ($timings[$index].Milliseconds -lt $timings[$index - 1].Milliseconds) {
-            throw "Benchmark highlight rows are not fastest-first: '$($timings[$index].Library)' ($($timings[$index].Milliseconds) ms) follows '$($timings[$index - 1].Library)' ($($timings[$index - 1].Milliseconds) ms)."
+        }
+        foreach ($run in @($comparison.runs | Where-Object { -not $_.published })) {
+            if ($match.Value -match [regex]::Escape("data-pf-bench-run=""$($run.id)""")) {
+                throw "Comparison '$($comparison.id)' renders the unpublished run '$($run.id)'."
+            }
         }
     }
 }
-
-$renderedMatrixRows = ([regex]::Matches($pageHtml, '<tr[^>]*data-benchmark-row[^>]*>\s*<td class="imo-benchmark-scenario"[^>]*data-label="Scenario"')).Count
-if ($renderedMatrixRows -lt $matrixRowCount) {
-    throw "Benchmark page rendered $renderedMatrixRows matrix rows, expected at least $matrixRowCount."
-}
-
-$sortableCells = ([regex]::Matches($pageHtml, 'data-library="[^"]+"')).Count
-if ($sortableCells -lt $rowCount) {
-    throw "Benchmark page rendered $sortableCells sortable library cells, expected at least $rowCount."
-}
-
-$responsiveCells = ([regex]::Matches($pageHtml, 'data-label="[^"]+"')).Count
-if ($responsiveCells -lt $sortableCells) {
-    throw "Benchmark page did not render responsive data labels for matrix cells."
-}
-
-$ratioSortCells = ([regex]::Matches($pageHtml, 'data-ratio-to-fastest="[^"]+"')).Count
-if ($ratioSortCells -lt $rowCount) {
-    throw "Benchmark page did not render ratio sort metadata for measured cells."
-}
-
-if ($pageHtml -match 'Strongest OfficeIMO Wins' -or $pageHtml -match 'Optimization Targets') {
-    throw "Benchmark page still contains the old win/loss commentary panels."
+if ($comparisonCount -ne $declaredIds.Count) {
+    throw "The area pages render $comparisonCount comparisons; $($declaredIds.Count) are declared."
 }
 
 & (Join-Path $PSScriptRoot 'Test-BenchmarkPage.Browser.ps1') -SiteRoot $resolvedSiteRoot
 
-Write-Host "Benchmark page verified: $matrixRowCount matrix rows, $rowCount measurement rows, $summaryCount summary rows."
+Write-Host "Benchmark pages verified: $comparisonCount declared comparisons across $(@($index.areas).Count) areas, $(@($catalog.entries | Where-Object publish).Count) published lanes."

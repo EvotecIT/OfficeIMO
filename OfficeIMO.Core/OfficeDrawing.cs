@@ -671,6 +671,12 @@ public sealed partial class OfficeDrawing {
             throw new ArgumentOutOfRangeException(nameof(drawing), "Nested drawing content must fit inside the drawing bounds.");
         }
 
+        if (drawing.PostCompositionColorTransform != null) {
+            AddNestedGroupElement(drawing, x, y, OfficeClipPath.Rectangle(drawing.Width, drawing.Height),
+                0D, 0D, frameTransform, allowOverflow);
+            return this;
+        }
+
         if (!allowOverflow && frameTransform.HasValue && frameTransform.Value.HasTransform && ContainsImagePattern(drawing)) {
             AddNestedGroupElement(drawing, x, y, OfficeClipPath.Rectangle(drawing.Width, drawing.Height), 0D, 0D, frameTransform, allowOverflow);
             return this;
@@ -896,6 +902,11 @@ public sealed partial class OfficeDrawing {
 
         if ((!groupTransform.HasValue || !groupTransform.Value.HasTransform) && frameTransform.HasValue && frameTransform.Value.HasTransform) {
             groupTransform = frameTransform;
+        } else if (groupTransform.HasValue && groupTransform.Value.HasTransform) {
+            // An existing child's destination-space center moves with its translated frame.
+            OfficeImageFrameTransform original = groupTransform.Value;
+            groupTransform = new OfficeImageFrameTransform(original.RotationDegrees,
+                original.CenterX + offsetX, original.CenterY + offsetY, original.FlipHorizontal, original.FlipVertical);
         }
 
         if (groupTransform.HasValue) {
@@ -1040,6 +1051,7 @@ public sealed partial class OfficeDrawing {
     /// <summary>Creates a detached copy of this drawing and all positioned elements.</summary>
     public OfficeDrawing Clone() {
         var clone = new OfficeDrawing(Width, Height) { _fonts = CloneFonts(), TextShapingProvider = TextShapingProvider, TextShapingLanguage = TextShapingLanguage, SvgTextAsPaths = SvgTextAsPaths };
+        clone.PostCompositionColorTransform = PostCompositionColorTransform;
         for (int i = 0; i < _elements.Count; i++) {
             OfficeDrawingElement element = _elements[i].CloneElement();
             element.SourceElementIds = _elements[i].SourceElementIds;

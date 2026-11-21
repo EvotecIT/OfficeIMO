@@ -58,4 +58,24 @@ public sealed class OfficeChartTrendline {
 
     /// <summary>Optional fixed y-intercept.</summary>
     public double? Intercept { get; }
+
+    // The native dash pattern read from a chart; only the static renderer draws it.
+    internal OfficeStrokeDashStyle? DashStyle { get; private set; }
+
+    internal OfficeChartTrendline WithDashStyle(OfficeStrokeDashStyle? dashStyle) {
+        if (dashStyle.HasValue && !Enum.IsDefined(typeof(OfficeStrokeDashStyle), dashStyle.Value))
+            throw new ArgumentOutOfRangeException(nameof(dashStyle));
+        var copy = (OfficeChartTrendline)MemberwiseClone();
+        copy.DashStyle = dashStyle;
+        return copy;
+    }
+
+    // A native trendline whose line has no fill still shows its equation and R-squared labels.
+    internal bool HidesLine { get; private set; }
+
+    internal OfficeChartTrendline WithHiddenLine() {
+        var copy = (OfficeChartTrendline)MemberwiseClone();
+        copy.HidesLine = true;
+        return copy;
+    }
 }

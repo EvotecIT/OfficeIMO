@@ -59,7 +59,9 @@ namespace OfficeIMO.Excel {
                     if ((scalarFunction || conditionalFunction) && work.ArrayEvaluation) output = Array;
                     bytes[token.Offset] = (byte)(kind | output);
                     for (int index = 0; index < node.Children.Length; index++) {
-                        byte argument = ArgumentType(name, index);
+                        // User-defined and future functions (iftab 0x00FF) take their name and every argument as
+                        // ref / val operands; a range stays a reference instead of being intersected to one cell.
+                        byte argument = token.Function.Value == 0x00FF ? Reference : ArgumentType(name, index);
                         if (argument == 0) argument = output; // IF/CHOOSE result branches follow the requested result class.
                         else if (argument == Value && output == Array && (scalarFunction || conditionalFunction)) argument = Array;
                         pending.Push((node.Children[index], argument, arrayEvaluation));
@@ -69,6 +71,9 @@ namespace OfficeIMO.Excel {
                     foreach (Node child in node.Children) pending.Push((child, operand, work.ArrayEvaluation));
                 } else if (token.Code >= 0x20 && kind is 0x03 or 0x04 or 0x05 or 0x0a or 0x0b or 0x0c or 0x0d or 0x19 or 0x1a or 0x1b or 0x1c or 0x1d) {
                     bytes[token.Offset] = (byte)(kind | (required == Value && work.ArrayEvaluation ? Array : required));
+                } else if (binary12 && token.Code == 0x18 && bytes[token.Offset + 1] == 0x19) {
+                    // PtgList keeps its operand class in its flags rather than in the token byte.
+                    Xlsb.Write.XlsbStructuredReferences.ApplyOperandClass(bytes, token.Offset, required == Value && work.ArrayEvaluation ? Array : required);
                 }
             }
             return true;

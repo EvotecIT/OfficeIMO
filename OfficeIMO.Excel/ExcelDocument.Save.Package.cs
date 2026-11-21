@@ -22,6 +22,7 @@ namespace OfficeIMO.Excel {
                 MaterializeDeferredDataSetImport();
             }
             ReportSaveTiming(stageWatch, "Save.PrepareWorkbook.MaterializeDeferredDataSet");
+            CommitPendingStylesheet();
             using var preserveFastSaveState = _materializedDirectDataSetFastSaveModel != null
                 ? PreserveDirectDataSetFastSaveStateDuringDirtyMarks()
                 : null;
@@ -88,7 +89,7 @@ namespace OfficeIMO.Excel {
 
             WorkbookRoot.Save();
             ReportSaveTiming(stageWatch, "Save.PrepareWorkbook.SaveWorkbookRoot");
-            _spreadSheetDocument.PackageProperties.Modified = DateTime.UtcNow;
+            if (!_keepModifiedTimestampOnSave) _spreadSheetDocument.PackageProperties.Modified = DateTime.UtcNow;
             ReportSaveTiming(stageWatch, "Save.PrepareWorkbook.UpdatePackageProperties");
         }
 
@@ -375,6 +376,7 @@ namespace OfficeIMO.Excel {
                 ClosePackageForReload();
                 ReplaceTargetFile(temporaryPath, targetPath);
                 temporaryPath = string.Empty;
+                ReleaseWrittenDirectDataSetFastSaveModel();
                 ReloadFromBytes(packageBytes, simplePackageContentKnown: true);
 
                 FilePath = targetPath;
@@ -490,7 +492,6 @@ namespace OfficeIMO.Excel {
         private void ReinitializePackageBoundHelpers() {
             CustomProperties.SetChangeHandler(MarkCustomDocumentPropertiesChanged);
             LoadCustomDocumentProperties();
-            ExcelChartAxisIdGenerator.Initialize(_spreadSheetDocument);
         }
 
         private static byte[] NormalizePackageBytes(byte[] packageBytes, ExcelSaveOptions? options) {

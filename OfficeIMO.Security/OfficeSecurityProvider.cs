@@ -3,7 +3,8 @@ using System.Security.Cryptography.X509Certificates;
 namespace OfficeIMO.Security;
 
 /// <summary>Default OfficeIMO cryptographic provider backed by the dependencies carried by this package.</summary>
-public sealed class OfficeSecurityProvider : IOfficeSecurityProvider {
+public sealed class OfficeSecurityProvider : IOfficeSecurityProvider, IOfficePublicKeySignatureVerifier, IOfficeOpenPgpProvider,
+    IOfficeRevocationValidator {
     /// <summary>Gets a reusable stateless provider instance.</summary>
     public static OfficeSecurityProvider Default { get; } = new OfficeSecurityProvider();
 
@@ -118,6 +119,50 @@ public sealed class OfficeSecurityProvider : IOfficeSecurityProvider {
         bool allowTrailingZeroPadding,
         long maxEncodedBytes) =>
         SecurityEncoding.NormalizeSingleAsn1Object(encoded, allowTrailingZeroPadding, maxEncodedBytes);
+
+    /// <inheritdoc />
+    public bool Supports(OfficePublicKeySignatureAlgorithm algorithm) => PublicKeySignatureVerifier.Supports(algorithm);
+
+    /// <inheritdoc />
+    public OfficePublicKeySignatureCheck Verify(
+        OfficePublicKeySignatureAlgorithm algorithm,
+        byte[] publicKey,
+        byte[] data,
+        byte[] signature) =>
+        PublicKeySignatureVerifier.Verify(algorithm, publicKey, data, signature);
+
+    OfficeRevocationOutcome IOfficeRevocationValidator.ValidateRevocation(OfficeRevocationRequest request) =>
+        CertificateRevocationEvaluator.Validate(request);
+
+    Task<CertificateRevocationEvidence> IOfficeRevocationValidator.FetchRevocationEvidenceAsync(
+        byte[] encodedCms,
+        bool isTimestampToken,
+        ICertificateRevocationFetcher fetcher,
+        X509Certificate2Collection? extraCertificates,
+        CancellationToken cancellationToken) =>
+        CertificateRevocationEvaluator.FetchAsync(encodedCms, isTimestampToken, fetcher, extraCertificates, cancellationToken);
+
+    /// <inheritdoc />
+    public OfficeOpenPgpVerificationResult VerifyDetached(
+        byte[] signature,
+        byte[] signedContent,
+        OfficeOpenPgpKeySet keys,
+        OfficeOpenPgpOptions? options = null) =>
+        OpenPgpService.VerifyDetached(signature, signedContent, keys, options);
+
+    /// <inheritdoc />
+    public OfficeOpenPgpVerificationResult VerifyCleartext(
+        byte[] armoredMessage,
+        OfficeOpenPgpKeySet keys,
+        OfficeOpenPgpOptions? options = null) =>
+        OpenPgpService.VerifyCleartext(armoredMessage, keys, options);
+
+    /// <inheritdoc />
+    public OfficeOpenPgpMessageResult OpenMessage(
+        byte[] message,
+        OfficeOpenPgpKeySet keys,
+        OfficeOpenPgpOptions? options = null) =>
+        OpenPgpService.OpenMessage(message, keys, options);
 
     private sealed class CmsVerificationSession : ICmsVerificationSession {
         private readonly CmsVerificationOptions _options;

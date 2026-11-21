@@ -8,7 +8,7 @@ internal static partial class ExcelReaderAdapter {
         ReaderExcelOptions options, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         using ExcelDocument document = LoadForProjection(path, readerOptions, cancellationToken, out var sourceWarnings);
-        using ExcelDocumentReader reader = NativeReaderAdmission.Load(() => document.CreateReader(options.ReadOptions));
+        using ExcelDocumentReader reader = CreateProjectionReader(document, options);
         options = ResolveSheet(options, reader);
         foreach (var chunk in Extract(reader, path, readerOptions, options, Combine(sourceWarnings, BuildLegacyWarnings(document)), cancellationToken))
             yield return chunk;

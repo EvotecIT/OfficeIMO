@@ -9,7 +9,7 @@ public static partial class HtmlResourcePipeline {
         var definitions = new Dictionary<string, List<CssCustomPropertyDefinition>>(StringComparer.Ordinal);
         int sourceOrderBase = 0;
         foreach (IElement styleElement in document.QuerySelectorAll("style")) {
-            string css = styleElement.TextContent;
+            string css = HtmlStyleElementText.Read(styleElement);
             if (!IsCssStyleElement(styleElement) || !IsApplicableMedia(styleElement.GetAttribute("media") ?? string.Empty, options) || string.IsNullOrWhiteSpace(css)) {
                 sourceOrderBase += css.Length + 1;
                 continue;
@@ -26,7 +26,7 @@ public static partial class HtmlResourcePipeline {
     private static int GetDocumentCssSourceOrder(IHtmlDocument document) {
         int sourceOrder = 0;
         foreach (IElement styleElement in document.QuerySelectorAll("style")) {
-            sourceOrder += styleElement.TextContent.Length + 1;
+            sourceOrder += HtmlStyleElementText.Read(styleElement).Length + 1;
         }
 
         return sourceOrder;

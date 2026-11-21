@@ -17,9 +17,25 @@ internal static class OfficeOpenTypeLayoutFeatures {
         return tags;
     }
 
+    /// <summary>Whether the table's FeatureList names the feature for any script.</summary>
+    /// <remarks>Malformed metadata reports true so the caller keeps its validating route.</remarks>
+    internal static bool HasFeature(OfficeOpenTypeReader reader, string tableTag, string featureTag) {
+        if (!reader.TryGetTable(tableTag, out int table, out int length)) return false;
+        try {
+            if (length < 10) return true;
+            int features = checked(table + reader.ReadUInt16(table + 6));
+            int count = reader.ReadUInt16(features);
+            if (count > MaximumFeatures || features + 2 + count * 6 > table + length) return true;
+            for (int index = 0; index < count; index++)
+                if (Tag(reader, features + 2 + index * 6) == featureTag) return true;
+            return false;
+        } catch (Exception exception) when (exception is InvalidDataException or OverflowException
+            or ArgumentOutOfRangeException or IndexOutOfRangeException) { return true; }
+    }
+
     private static string Tag(OfficeOpenTypeReader reader, int offset) {
         int first = reader.ReadUInt16(offset), second = reader.ReadUInt16(offset + 2);
-        return new string(new[] { (char)(first >> 8), (char)(first & 255), (char)(second >> 8), (char)(second & 255) });
+        return OfficeOpenTypeTags.ToTag(((uint)first << 16) | (uint)second);
     }
 
     internal static int[]? GetLatinDefaultIndexes(OfficeOpenTypeReader reader, int table, int length, out int requiredFeature) {

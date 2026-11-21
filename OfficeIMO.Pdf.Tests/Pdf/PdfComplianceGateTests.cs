@@ -180,6 +180,17 @@ public class PdfComplianceGateTests {
     }
 
     [Fact]
+    public void PdfUa1Fixture_PassesEveryAutomaticAccessibilityCondition() {
+        byte[] fixture = CreatePdfUa1Fixture();
+
+        PdfAccessibilityReport report = PdfDocument.Load(new MemoryStream(fixture)).Proof.CheckAccessibility();
+
+        Assert.True(report.PassesAutomaticChecks, string.Join(Environment.NewLine, report.Findings
+            .Where(static finding => !finding.RequiresHumanReview)
+            .Select(static finding => finding.ConditionId + ": " + finding.Message)));
+    }
+
+    [Fact]
     public void PdfUaValidatorGate_AcceptsFormalPdfUa1Fixture() {
         byte[] fixture = CreatePdfUa1Fixture();
         WriteProofPdf("officeimo-pdfua1.pdf", fixture);

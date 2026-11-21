@@ -379,8 +379,15 @@ public partial class PdfTableStyle {
         }
     }
     /// <summary>
+    /// Word 2010 and earlier layout: keeps repeated header rows with whole body rows only, without the
+    /// first-fragment group. Set by document converters that reproduce those compatibility modes.
+    /// </summary>
+    internal bool KeepsRepeatedHeaderWithWholeRowsOnly { get; set; }
+    /// <summary>
     /// Minimum number of body rows kept with leading header rows when a table starts on a partially occupied page and the group fits on one page.
-    /// Set to zero to allow a header-only first segment. Defaults to two.
+    /// Repeated header rows always stay with at least the first fragment of the following body row, so a long row
+    /// splits instead of leaving the header alone at the bottom of a page. Set to zero to keep only that fragment
+    /// with the header. Defaults to two.
     /// </summary>
     public int MinimumBodyRowsOnFirstPage {
         get => _minimumBodyRowsOnFirstPage;
@@ -681,9 +688,16 @@ public partial class PdfTableStyle {
         set => _rowAllowBreakAcrossPages = value == null ? null : new System.Collections.Generic.List<bool?>(value);
     }
 
+    /// <summary>
+    /// Names the source cell of a table cell, by row and column index, for summarized clipping diagnostics.
+    /// Null, or a null result, keeps the cell's findings as individual diagnostics.
+    /// </summary>
+    internal System.Func<int, int, PdfTableCellDiagnosticAddress?>? DiagnosticCellAddress { get; set; }
+
     /// <summary>Creates a deep copy of this style.</summary>
     public PdfTableStyle Clone() {
         var clone = new PdfTableStyle {
+            DiagnosticCellAddress = DiagnosticCellAddress,
             BorderColor = BorderColor,
             ConsumesVerticalFlow = ConsumesVerticalFlow,
             ClipTextToCellBounds = ClipTextToCellBounds,
@@ -709,6 +723,7 @@ public partial class PdfTableStyle {
             HeaderBold = HeaderBold,
             HeaderRowCount = HeaderRowCount,
             RepeatHeaderRowCount = RepeatHeaderRowCount,
+            KeepsRepeatedHeaderWithWholeRowsOnly = KeepsRepeatedHeaderWithWholeRowsOnly,
             MinimumBodyRowsOnFirstPage = MinimumBodyRowsOnFirstPage,
             FooterRowCount = FooterRowCount,
             MinimumBodyRowsOnLastPage = MinimumBodyRowsOnLastPage,
@@ -801,6 +816,8 @@ public partial class PdfTableStyle {
         if (ImportedColumnWidthFractions != null) clone.ImportedColumnWidthFractions = new System.Collections.Generic.List<double?>(ImportedColumnWidthFractions);
         if (ColumnMaxWidths != null) clone.ColumnMaxWidths = new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?>(ColumnMaxWidths);
         if (ColumnWidthWeights != null) clone.ColumnWidthWeights = new System.Collections.Generic.List<double>(ColumnWidthWeights);
+        clone.RepeatFooterRows = RepeatFooterRows;
+        clone.PageSummary = PageSummary?.Clone();
         return clone;
     }
 

@@ -2,6 +2,8 @@
 
 This opt-in project measures complete, validated PDF workflows. It is deliberately outside `OfficeIMO.slnx`: QuestPDF, PeachPDF, PdfPecker, PDFsharp/MigraDoc, PdfPig, iText, pdfHTML, HtmlTinkerX, and Chromium are benchmark tools, not OfficeIMO runtime dependencies. Public QuestPDF evidence is pinned to **QuestPDF 2026.5.0**, the last release with the embedded Community MIT License; that exact version is recorded in every result and displayed beside QuestPDF on the benchmark page.
 
+This project references GPL/AGPL packages (iText, KillerPdf.Engine) for measurement only; it is never packaged or distributed.
+
 ## Workload matrix
 
 | Scale | Real-world shape | Pages | Rows per page | Narrative paragraphs per page |
@@ -19,23 +21,26 @@ The benchmark families intentionally answer different questions:
 - `PdfCatalogPageOperationScalingBenchmarks`: OfficeIMO splits every page and extracts a reversed, non-contiguous selection from 5-, 6-, 50-, and 500-page documents with no catalog features, one page-label range, a distinct range for every page, or a bookmark on every page. Setup reopens the outputs and checks page order, content markers, and applicable page labels or named destinations. This OfficeIMO-only lane exposes page-count and catalog-feature costs that the standard/dense comparison matrix does not exercise.
 - `PdfMergeApiScalingBenchmarks`: OfficeIMO merges the same two validated sources through `MergeBytes`, `MergeWith(byte[])`, and `MergeWith(PdfDocument)` at 5, 6, 50, and 500 pages per source. Setup checks every output page and marker. This lane compares OfficeIMO API paths with each other; the three-engine `PdfMergeBenchmarks` remains the library comparison.
 - `PdfPageImportScalingBenchmarks` and `PdfPageImportSourceScalingBenchmarks`: public page import inserts a one-page source at the start, middle, or end of 5-, 6-, 50-, and 500-page targets, then appends all pages from 5-, 6-, 50-, and 500-page sources to a two-page target. Setup validates every output page and its order. These lanes compare OfficeIMO revisions and expose target-size and source-size scaling separately.
-- `PdfGenerationBenchmarks`: OfficeIMO, QuestPDF 2026.5.0, MigraDoc/PDFsharp, and iText generate the same structured report from the same logical model. The measured operation includes document construction, layout, font embedding, compression, and in-memory serialization.
-- `PdfInvoiceGenerationBenchmarks`: OfficeIMO.Pdf, QuestPDF 2026.5.0, and iText directly compose the same two-page branded invoice from one prepared model, with the same logo, fonts, and visible content. Setup reopens every PDF and requires the page count, parties, seller VAT identifier, dates, every line description/quantity/unit price/VAT/net amount, intermediate totals, purchase order, payment data, note, terms, payable amount, and approval names before timing begins. This is a PDF composition-engine comparison; it deliberately does not use OfficeIMO's typed invoice renderer.
+- `PdfGenerationBenchmarks`: OfficeIMO, QuestPDF 2026.5.0, MigraDoc/PDFsharp, and iText generate the same structured report from the same logical model. The measured operation includes document construction, layout, font embedding, compression, and in-memory serialization. On `net10.0` an `OnePdfLayout` lane lays out the same report with OnePDF.Layout 1.23.0, registering the same Carlito faces per document. OnePDF.Layout tags its output by default, so that lane also builds a structure tree that the QuestPDF and MigraDoc lanes do not write.
+- `PdfInvoiceGenerationBenchmarks`: OfficeIMO.Pdf, QuestPDF 2026.5.0, and iText directly compose the same two-page branded invoice from one prepared model, with the same logo, fonts, and visible content. Setup reopens every PDF and requires the page count, parties, seller VAT identifier, dates, every line description/quantity/unit price/VAT/net amount, intermediate totals, purchase order, payment data, note, terms, payable amount, and approval names before timing begins. On `net10.0` an `OnePdfLayout` lane composes the same invoice with OnePDF.Layout 1.23.0, which tags its output by default. This is a PDF composition-engine comparison; it deliberately does not use OfficeIMO's typed invoice renderer.
 - `PdfTypedInvoiceWorkflowBenchmarks`: OfficeIMO alone captures the typed invoice, calculates and serializes its EN 16931 CII representation, renders the branded visible document, and embeds the exact electronic invoice bytes. Setup validates both visible content and the attachment. It is an absolute workflow-cost measurement, not a competitive ranking against general-purpose PDF libraries.
 - `PdfHtmlBenchmarks`: OfficeIMO.Html.Pdf, PeachPDF, PdfPecker, iText pdfHTML, and Chromium through HtmlTinkerX parse and render the exact same HTML string. Every engine emits tagged PDF bytes and must preserve the exact page count, authored text and semantic-owner order before its measurements are accepted. The HTML admission contract below is stricter than the general numeric-cell comparison. The managed engines include HTML/CSS parsing, paged layout, and in-memory serialization. Chromium reuses one HtmlTinkerX-owned browser session per benchmark case; each measured operation still replaces and reparses the complete page before printing, so warmed browser throughput is not mislabeled as process startup.
-- `PdfHtmlPayloadBenchmarks`: OfficeIMO.Html.Pdf, PeachPDF, and PdfPecker render exact 21 KiB plain-text, table-heavy, and multilingual HTML payloads as tagged PDFs. Every payload uses the same bundled Carlito regular and bold bytes as its primary CSS family in all three engines. Admission requires both faces to be embedded and used for every decoded text sample; the multilingual case additionally checks every measured Latin, Greek, and Cyrillic sample. It therefore runs portably without host-font dependencies or role mismatches. The quick runner uses BenchmarkDotNet's process-isolated `Dry` job for cold-start evidence; full runs measure warmed throughput. Cleanup reopens each result, checks page count, first/last content, the unique terminal marker, all multilingual samples and shared font usage, and reports HTML bytes, PDF bytes, pages, and extracted-text length.
+- `PdfHtmlPayloadBenchmarks`: OfficeIMO.Html.Pdf, PeachPDF, and PdfPecker render exact 21 KiB plain-text, table-heavy, and multilingual HTML payloads as tagged PDFs. Every payload uses the same bundled Carlito regular and bold bytes as its primary CSS family in all three engines. Admission requires both faces to be embedded and used for every decoded text sample; the multilingual case additionally checks every measured Latin, Greek, and Cyrillic sample. It therefore runs portably without host-font dependencies or role mismatches. The quick runner uses BenchmarkDotNet's process-isolated `Dry` job for cold-start evidence; full runs measure warmed throughput. Cleanup reopens each result, checks page count, first/last content, the unique terminal marker, all multilingual samples and shared font usage, and reports HTML bytes, PDF bytes, pages, and extracted-text length. The engines do not do identical work beyond that contract: OfficeIMO also tags table row groups and `/Headers` associations for every data cell, and returns a conversion report with paint, clipping and font-coverage diagnostics on every run. PeachPDF and PdfPecker return no conversion report. On net10.0 OneRender (with OneRender.Pdf) renders the same payloads through `HtmlPdf.ToPdf` with the shared Carlito faces registered on a font provider created once per case; it passes the same admission. OneRender is not in `PdfHtmlBenchmarks`: OneRender 1.4.0 opens structure elements in paint order, so the report's `Figure` precedes its `H1` in the structure tree and fails the semantic-owner order check.
 - `PdfFormatConversionBenchmarks` and `PdfExtendedFormatConversionBenchmarks`: all fourteen advertised OfficeIMO source routes parse deterministic source bytes and produce a PDF in one measured operation. DOCX, XLSX, PPTX, HTML, Markdown, RTF, AsciiDoc, LaTeX, MHTML, OneNote, ODT, ODS, ODP, and Visio outputs are reopened independently; every lane requires all four semantic fields for each of 120 records and reports source bytes, PDF bytes, pages, and extracted-text length. This is an OfficeIMO route-health benchmark, not a third-party comparison: adapters with materially different format contracts are not forced into artificial parity. The shared runner can execute this local health lane, but never writes it to the library-comparison evidence catalog, including when `all` or `-Publish` selects it.
 - `PdfTableLayoutScalingBenchmarks`: OfficeIMO.Pdf composes a worksheet-shaped seven-column table with shrink-to-fit enabled at 5, 6, 30, and 120 data rows. Separate plain-cell and explicit-rich-font cases cover both the lightweight and repeated-probe sizing paths. Each measured operation includes document construction, layout, pagination, and serialization. Cleanup reopens the artifact and checks every row marker, so the suite exposes both the 5-to-6 boundary and sustained allocation growth without accepting missing middle rows.
 - `PdfWordStructureScalingBenchmarks`: OfficeIMO.Word loads DOCX bytes and converts multi-level lists, multi-paragraph tables, nested tables, and a single cell containing 5, 6, 30, or 120 paragraphs. Each operation includes package loading, structural projection, PDF layout, pagination, and serialization. Cleanup reopens the artifact, checks every generated paragraph marker, and requires each list item to remain a distinct rendered marker line across three indentation levels.
+- `PdfOfficeDocumentScalingBenchmarks`: OfficeIMO.Word and OfficeIMO.PowerPoint load DOCX and PPTX bytes and convert them to PDF at 25 and 50 pages or slides. Word pages carry a header and footer, mixed run formatting, an eight-row table, numbered and bulleted lists, and periodic images and charts; slides carry text boxes, shapes, an image, and alternating charts and tables. The larger input is exactly twice the smaller one, so a time or allocation ratio well above two points at work that grows faster than the document. Cleanup reopens each PDF and requires at least the requested page count and every page or slide marker; it does not reject extra pages.
 - `PdfStructuredFormatScalingBenchmarks`: OfficeIMO.Markdown, OfficeIMO.Excel, OfficeIMO.Word, and OfficeIMO.Html parse deterministic structured inputs containing headings, lists, worksheet-style tables, and nested-table content at 5, 6, 30, and 120 records, then render them to PDF. Each format is a separate logical benchmark group because its source uses native format structures; ranks compare record-count scaling only within that format and are not cross-format rankings. Each operation includes source parsing, document projection, PDF layout, pagination, and serialization. Cleanup reopens every PDF and validates all four semantic fields for every generated record so scaling evidence cannot pass after silently dropping content.
-- `PdfReadBenchmarks`: OfficeIMO.Pdf, PdfPig, and iText open identical bytes, enumerate every page, and extract the complete text payload. The corpus is repeated for OfficeIMO-, QuestPDF 2026.5.0-, PeachPDF-, MigraDoc-, and iText-produced PDFs to avoid a single-producer result.
+- `PdfReadBenchmarks`: OfficeIMO.Pdf, PdfPig, and iText open identical bytes, enumerate every page, and extract the complete text payload. The corpus is repeated for OfficeIMO-, QuestPDF 2026.5.0-, PeachPDF-, MigraDoc-, and iText-produced PDFs to avoid a single-producer result. On `net10.0` OnePDF 1.23.0 adds two lanes: `OnePdf` extracts every page in reading order on one thread, like the other readers, and `OnePdfParallel` uses OnePDF's default whole-document extraction, which reads up to four pages at once. Both build words, lines and blocks and detect repeated headers and footers, which the other readers do not.
 - `PdfStructuredReadFastBenchmarks` and `PdfStructuredReadCompleteBenchmarks`: separate OfficeIMO-only route-health suites for the one canonical `PdfDocument.Load(...).Read(...)` contract. Both routes include source snapshotting, parsing, glyph recovery, word/line grouping, recursive XY-cut reading order, semantic classification, logical projection, and table extraction; `Structured` additionally applies document-wide evidence. Keeping the profiles in separate BenchmarkDotNet classes prevents shared ranks or baselines between unequal work. The runner excludes both suites from comparison publication, both gate their page/table invariants, and `Structured` additionally gates the labelled document-wide semantic contract it promises. Its labelled Easy fixture uses two pages, rather than the general one-page Easy scenario, because running-header/footer recovery requires repeated document evidence. The deterministic benchmark and scorecard raise only their document-wide work ceiling as a function of fixture page count so the 100-page case measures the complete route; production read defaults remain unchanged.
-- `PdfSplitBenchmarks`: OfficeIMO, iText, and PDFsharp split the same OfficeIMO- and iText-produced documents into single pages and fixed-size bundles, then reopen every output with the producing engine and verify its page count inside the timed operation.
-- `PdfMergeBenchmarks`: all three engines merge the same ordered source set, reopen the serialized output with the producing engine inside the timed operation, and preserve the exact page-marker sequence.
-- `PdfPageSelectionBenchmarks`: all three engines extract the same reversed, non-contiguous page selection, reopen the serialized output with the producing engine inside the timed operation, and preserve that order.
+- `PdfSplitBenchmarks`: OfficeIMO, iText, and PDFsharp split the same OfficeIMO- and iText-produced documents into single pages and fixed-size bundles, then reopen every output with the producing engine and verify its page count inside the timed operation. On `net10.0` an `OnePdf` lane splits with OnePDF 1.23.0's `PdfDocument.Split`.
+- `PdfMergeBenchmarks`: all three engines merge the same ordered source set, reopen the serialized output with the producing engine inside the timed operation, and preserve the exact page-marker sequence. On `net10.0` an `OnePdf` lane merges with OnePDF 1.23.0's `PdfDocument.Merge`.
+- `PdfPageSelectionBenchmarks`: all three engines extract the same reversed, non-contiguous page selection, reopen the serialized output with the producing engine inside the timed operation, and preserve that order. On `net10.0` an `OnePdf` lane imports the selection into an empty document with one OnePDF 1.23.0 `ImportPages` call. OnePDF's page import carries bookmarks, form fields and the tagged structure of the imported pages by default (`PdfImportOptions`), and the three OnePDF page-operation lanes keep those defaults.
 
 - `PdfReverseConversionBenchmarks`: five isolated PDF producers feed the same DOCX, HTML, XLSX-table, editable-PPTX, ODT, ODS, editable-ODP, and PNG reconstruction routes. Each case validates the complete generated source and checks its target before timing. Target checks cover page scope, editable structures, narrative or table-row retention, and raster output as applicable. The timed methods include PDF parsing, projection, and target serialization. Run this lane through `Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfreverse`.
-- `PdfCorpusReadBenchmarks`: OfficeIMO, PdfPig, and iText extract four prepared large documents: a 500-page OfficeIMO PDF, the 492-page NIST SP 800-53 Rev. 5, an 85-page Type3-font fixture, and a 258-page 12.9 MB PDF/A fixture.
+- `page-render` (`dotnet run -c Release -f net10.0 -- page-render [--pages 4] [--samples 5] [--input file.pdf] [--output report.md]`): OfficeIMO and PDFium (Docnet.Core 2.6.0) render the first pages of every producer's Medium report, plus any `--input` files, to PNG at 1x and 2x. PDFium pixels are composited on white and encoded with the same OfficeIMO PNG encoder, so both lanes produce complete PNG bytes; PDFium's render-only time is listed beside it. Every page must have matching dimensions (within the one-pixel rounding difference) and visible ink in both engines. The two renderers antialias text differently, so the report gives the mean luma difference and the share of pixels within 32 luma levels as similarity, not as a pass/fail equality check. Docnet fits a page with a fractional size into whole pixels, which shifts PDFium's content by up to a pixel and lowers the similarity of such pages without an OfficeIMO difference.
+- `KillerPdfReadBenchmarks`, `KillerPdfMergeBenchmarks`, `KillerPdfSplitBenchmarks`, `KillerPdfPageSelectionBenchmarks` and `KillerPdfRenderBenchmarks` (`net10.0` only, because KillerPdf.Engine 1.9.2 ships only `net10.0` assets): OfficeIMO and KillerPDF read every page's text from the Easy, Medium and High reports; merge 10 or 25 four-page documents (KillerPDF imports the pages into the first document as one incremental revision, its documented merge route); split into single pages or bundles; extract the reversed, non-contiguous page selection; and render the first four Medium pages to PNG at 1x and 2x. Inputs come from OfficeIMO and MigraDoc. KillerPDF's BGRA pixels are composited on white and encoded with the same OfficeIMO PNG encoder at the pixel size OfficeIMO chose. Setup validates every output before timing with PdfPig and the shared page-operation checks, each engine re-reads its own output to check the page count, and the render lanes must match pixel sizes and show ink on every page.
+- `PdfCorpusReadBenchmarks`: OfficeIMO, PdfPig, and iText extract four prepared large documents: a 500-page OfficeIMO PDF, the 492-page NIST SP 800-53 Rev. 5, an 85-page Type3-font fixture, and a 258-page 12.9 MB PDF/A fixture. On `net10.0` OnePDF 1.23.0 adds `OnePdf` (one thread) and `OnePdfParallel` (its default page parallelism) lanes, held to the same page count and token-recall threshold.
 
 The split, merge, and page-selection suites use 5-, 20-, 100-, and 500-page source scales. Each scale runs both a standard page (one narrative paragraph and four table rows) and a dense page (three paragraphs and twelve rows). At 500 pages, selection extracts 125 pages in reverse order, merge combines 50 ten-page documents, and split emits either 500 single-page files or 25-page bundles. Every scale and density keeps the same source and output validation for each engine.
 
@@ -52,6 +57,8 @@ Every timed producer/read combination must first pass page-count and complete de
 - a W3C standards document;
 - CC0 veraPDF Type0/ToUnicode, Type3-font, and large PDF/A fixtures;
 - a two-column ACL paper with Chinese examples, a tagged PDF Association invoice, and CC0 filled-form and image-only scan fixtures.
+
+`Corpus/pdf-corpus-extended.json` adds 60 independently produced files: qpdf, veraPDF, PDF 2.0 and PDF/UA reference fixtures, multilingual ACL papers, Japanese government documents, LibreOffice, Word, InDesign, Ghostscript, cairo and scanner output. It covers xref and object streams, linearized, incremental, encrypted, damaged, tagged and PDF 2.0 files, CID and Type3 fonts, and JBIG2, JPX and CCITT images. Pass it with `--additional-manifest`. Entries with a `sourcePath` are committed under `OfficeIMO.TestAssets/Pdf/IndependentCorpus` and are read from there; the URL and SHA-256 stay authoritative, and files above 2 MB are still downloaded. The 2026-11-10 run records the observed failures by root cause.
 
 The read oracle is PdfPig, with iText fallback when PdfPig cannot read a file. OfficeIMO's canonical structured read is compared by duplicate-aware, per-page token recall. Labelled `expectedText` values independently gate OfficeIMO text instead of inheriting an oracle defect. A `pageExpectations` entry can require exact table, image, image-region, and figure counts plus a minimum vector-primitive count. Each declared table has its own exact row and column shape and exact required cells, so text from unrelated tables cannot satisfy the contract and extra false-positive tables fail validation. Feature labels remain reporting dimensions rather than implicit correctness claims. Corpus reading opts into `PdfLoadOptions.IncludeArtifactText` so headers, footers, and chart decorations are included in the same visual-text contract as the comparison readers. The schema-3 corpus report records the observed semantic counts and also aggregates read failures, elapsed time, and managed allocations by tier and feature. These single-pass corpus observations diagnose document classes; BenchmarkDotNet remains the statistical performance source.
 
@@ -118,7 +125,7 @@ After a reviewed Windows or Linux High-scale run, validate every referenced PDF 
 pwsh Build/Export-HtmlPdfArtifactEvidence.ps1 `
     -EvidencePath $output `
     -Platform windows `
-    -OutputPath Docs/benchmarks/html-pdf-artifact-evidence/html-pdf-artifact-evidence-net10.0-windows-high.json
+    -OutputPath Build/HtmlPdfArtifactEvidence/html-pdf-artifact-evidence-net10.0-windows-high.json
 
 pwsh Build/Test-HtmlPdfArtifactEvidence.ps1
 ```
@@ -128,18 +135,18 @@ The release gate requires matching Windows and Linux summaries from the same cle
 Run one quick correctness/performance smoke through the shared PowerForge evidence path:
 
 ```powershell
-pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfgenerate -RunMode quick -Framework net10.0
-pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfinvoice -RunMode quick -Framework net10.0
-pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfinvoiceworkflow -RunMode quick -Framework net10.0
-pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfhtml -RunMode quick -Framework net10.0
-pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfhtmlpayload -RunMode quick -Framework net10.0
-pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfformats -RunMode quick -Framework net10.0
-pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfread -RunMode quick -Framework net10.0
-pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfstructuredread -RunMode quick -Framework net10.0
-pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfnative -RunMode full -Framework net8.0
-pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfsplit -RunMode quick -Framework net10.0
-pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfmerge -RunMode quick -Framework net10.0
-pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfselect -RunMode quick -Framework net10.0
+pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfgenerate -Profile diagnostic -Framework net10.0
+pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfinvoice -Profile diagnostic -Framework net10.0
+pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfinvoiceworkflow -Profile diagnostic -Framework net10.0
+pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfhtml -Profile diagnostic -Framework net10.0
+pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfhtmlpayload -Profile diagnostic -Framework net10.0
+pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfformats -Profile diagnostic -Framework net10.0
+pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfread -Profile diagnostic -Framework net10.0
+pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfstructuredread -Profile diagnostic -Framework net10.0
+pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfnative -Profile full -Framework net8.0
+pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfsplit -Profile diagnostic -Framework net10.0
+pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfmerge -Profile diagnostic -Framework net10.0
+pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfselect -Profile diagnostic -Framework net10.0
 ```
 
 For a reader run whose generated PDFs must have the same byte hashes in every
@@ -154,7 +161,7 @@ dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmar
 $env:OFFICEIMO_PDF_READ_INPUT_ROOT = (Resolve-Path Ignore/Benchmarks/PdfComparisons/read-inputs).Path
 $env:OFFICEIMO_PDF_READ_INPUT_MANIFEST_SHA256 = (Get-FileHash "$env:OFFICEIMO_PDF_READ_INPUT_ROOT/pdf-read-inputs.json" -Algorithm SHA256).Hash
 try {
-    pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfread -RunMode full -Framework net10.0
+    pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfread -Profile full -Framework net10.0
 } finally {
     Remove-Item Env:OFFICEIMO_PDF_READ_INPUT_ROOT
     Remove-Item Env:OFFICEIMO_PDF_READ_INPUT_MANIFEST_SHA256
@@ -168,22 +175,13 @@ BenchmarkDotNet output. Compare this explicit prepared-input cohort separately
 from historical runs that generated PDFs independently in each worker and did
 not retain their byte hashes.
 
-The [paired reader record](../Website/static/data/benchmarks/library-comparisons/support/reader-pair-7a-e835.json)
-accompanies the full Windows reader results in the
-[benchmark catalog](../Website/static/data/benchmarks/library-comparisons/index.json).
-It compares reader sources `7a6e8831` and `e835d297` across 19 inputs and 57 engine
-cases; the generated input bytes come from producer source `63fb9e81`.
-
-The record preserves BenchmarkDotNet's original statistics, original values,
-outlier arrays and raw measurements from both runs, including OfficeIMO losses
-and movement in the unchanged PdfPig and iText implementations. Ratios are
-candidate/baseline: values below one describe lower elapsed time or allocation
-for that metric. Peer movement and load snapshots help interpret variation
-without establishing its cause.
-
-This is one Windows BenchmarkDotNet 0.15.8 `DefaultJob` pair with fixed CPU
-affinity. Other catalog lanes retain their own source and input identities;
-HTML results and the opt-in `WarmedV1` profile are separate cohorts.
+A paired Windows reader record compared reader sources `7a6e8831` and `e835d297`
+across 19 inputs and 57 engine cases with BenchmarkDotNet's raw measurements from both
+runs. It belonged to the earlier benchmark catalog, which was retired without importing
+its results; the record stays in Git history at
+`5e5a2dda74:Website/static/data/benchmarks/library-comparisons/support/reader-pair-7a-e835.json`.
+Current reader results come only from fresh runs recorded in the
+[benchmark evidence catalog](../Website/static/data/benchmarks/evidence/index.json).
 
 Pass `-KeepBenchmarkFiles` when worker binaries and child build binlogs are
 needed for identity verification and diagnostics. It forwards BenchmarkDotNet's
@@ -191,7 +189,7 @@ needed for identity verification and diagnostics. It forwards BenchmarkDotNet's
 For example, keep build and result files in owned paths:
 
 ```powershell
-pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfread -RunMode full -Framework net10.0 -BuildArtifactsPath Ignore/Benchmarks/PdfComparisons/retained-build -OutputRoot Ignore/Benchmarks/PdfComparisons/retained-run -KeepBenchmarkFiles
+pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfread -Profile full -Framework net10.0 -BuildArtifactsPath Ignore/Benchmarks/PdfComparisons/retained-build -OutputRoot Ignore/Benchmarks/PdfComparisons/retained-run -KeepBenchmarkFiles
 ```
 
 Capture the generated worker, dependency/runtime configuration, product binaries,
@@ -206,12 +204,12 @@ To validate a specific HtmlTinkerX source checkout, pass either its repository r
 $repoRoot = if ($env:EVOTEC_GITHUB_ROOT) { $env:EVOTEC_GITHUB_ROOT } else { 'C:\Support\GitHub' }
 pwsh Build/Run-LibraryComparisonBenchmarks.ps1 `
     -Workload pdfhtml `
-    -RunMode quick `
+    -Profile diagnostic `
     -Framework net10.0 `
     -HtmlTinkerXRoot (Join-Path $repoRoot 'HtmlTinkerX')
 ```
 
-Use `-RunMode full` for publication-quality BenchmarkDotNet statistics. `-Publish` is valid only with a full run and updates the shared benchmark evidence catalog. Raw BenchmarkDotNet artifacts stay under the ignored output root.
+Use `-Profile standard` or `-Profile full` for results that can be published. `-Publish` is rejected for a diagnostic run and updates the shared benchmark evidence catalog. Raw BenchmarkDotNet artifacts stay under the ignored output root.
 
 The real-world invoice lane is deliberately local-only and is not written to the
 shared evidence catalog. Its normal build uses QuestPDF 2026.5.0 under that release's
@@ -221,19 +219,21 @@ described as a current-version QuestPDF result. iText remains AGPL/commercial. R
 the controlling license before publishing comparative artifacts or distributing
 benchmark binaries. These restrictions do not apply to the OfficeIMO-only showcase.
 
-Maintainers who have independently confirmed that they are authorized to exercise a
-different QuestPDF release can use the isolated internal runner. The explicit switch
-is a safeguard and provenance record, not a license grant. Internal runs reject
-website publication, never update the shared catalog, and delete their temporary
-artifacts unless `-KeepArtifacts` is supplied:
+A different QuestPDF release is the `questpdf-latest` library in
+[`Build/benchmark-libraries.json`](../Build/benchmark-libraries.json). It runs only
+after you review its licence, accept it with `-AcceptLibraryLicense questpdf-latest`,
+and set your own licence type in `OFFICEIMO_QUESTPDF_LICENSE_TYPE`. Acceptance is a
+record of your decision, not a licence grant. These runs reject website
+publication, never update the shared catalog, and delete their temporary artifacts
+unless `-KeepArtifacts` is supplied:
 
 ```powershell
+$env:OFFICEIMO_QUESTPDF_LICENSE_TYPE = '<your licence type>'
 pwsh Build/Run-InternalQuestPdfBenchmarks.ps1 `
     -QuestPdfPackageVersion 2026.9.0 `
     -Workload pdfgenerate `
-    -RunMode quick `
-    -QuestPdfLicenseType Community `
-    -ConfirmQuestPdfAuthorization
+    -Profile diagnostic `
+    -AcceptLibraryLicense questpdf-latest
 ```
 
 Validate the nine exact 21 KiB payload cases without measuring speed:
@@ -244,7 +244,7 @@ dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmar
 
 The command uses the benchmark's own rendering and artifact checks, saves each input and PDF, and records any rejection in `html-payload-evidence.json`.
 
-For a longer warmup and calibration of the same nine cases, run `pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfhtmlpayload -RunMode full -Framework net10.0 -MeasurementProfile WarmedV1`. This opt-in profile uses a one-second pilot target, 64–128 warmup iterations and 30–60 measured iterations, retains outliers, and records its exact job arguments under a separate comparison identity. Inspect the chronological raw measurements for continuing drift before describing the results as stable warm throughput.
+For a longer warmup and calibration of the same nine cases, run `pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfhtmlpayload -Profile full -Framework net10.0 -MeasurementProfile WarmedV1`. This opt-in profile uses a one-second pilot target, 64–128 warmup iterations and 30–60 measured iterations, retains outliers, and records its exact job arguments under a separate comparison identity. Inspect the chronological raw measurements for continuing drift before describing the results as stable warm throughput.
 
 ### HTML head-to-head corpus
 
@@ -252,7 +252,7 @@ For a longer warmup and calibration of the same nine cases, run `pwsh Build/Run-
 
 Every engine runs with its default fonts and options, A4 and tagged output, in its own worker process. A timed first document includes browser start-up where there is one; cold runs report that first document and its peak RSS. Warm and parallel runs first warm up for 30 documents or 20 seconds, whichever comes first, so the just-in-time compiler has optimised a slow engine as fully as a fast one (`--warmup` and `--warmup-seconds` change this). Every timed render must return a complete PDF. The worker records wall and CPU time, allocation, peak RSS and parallel throughput. `html-head-to-head-stages` splits OfficeIMO's warm cost into parsing, layout alone and the full conversion; `ToPdf` writes the PDF while converting, so writing is part of that last stage. Fidelity is judged afterwards by one independent rasteriser: `pdftoppm` at 96 DPI against the Chromium page. The ink score is the mismatch on lightly blurred pages divided by the ink present on either page, so antialiasing does not dominate and blank margins do not flatter a result. Read the scores with the contact sheet: Chromium does not implement every CSS feature in the corpus, and a score only measures distance from Chromium.
 
-Requires Pillow plus `pdftoppm`, `pdftotext`, `pdfinfo`, `pdffonts` and `qpdf` on `PATH`, and the Playwright Chromium revision matching `Microsoft.Playwright`.
+Requires Pillow plus `pdftoppm`, `pdftotext`, `pdfinfo`, `pdffonts` and `qpdf` on `PATH`. When Chromium is selected, HtmlTinkerX installs the matching revision before timing starts.
 
 ```sh
 python3 OfficeIMO.Pdf.Benchmarks.Comparisons/HeadToHead/h2h.py corpus --out "$OUT/corpus" --peers "$PEER_CLONES"
@@ -280,12 +280,27 @@ dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmar
 dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj -c Release -f net10.0 -- --filter "*PdfTableLayoutScalingBenchmarks*" --job Short
 dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj -c Release -f net10.0 -- --filter "*PdfWordStructureScalingBenchmarks*" --job Short
 dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj -c Release -f net10.0 -- --filter "*PdfStructuredFormatScalingBenchmarks*" --job Short
+dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj -c Release -f net10.0 -- --filter "*PdfOfficeDocumentScalingBenchmarks*" --job Short
 dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj -c Release -f net10.0 -- --filter "*PdfReadBenchmarks*" --job Short
 dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj -c Release -f net10.0 -- --filter "*PdfStructuredRead*Benchmarks*" --job Short
 dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj -c Release -f net10.0 -- --filter "*PdfAnalysisScalingBenchmarks*" --job Short
 dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj -c Release -f net10.0 -- --filter "*PdfCatalogPageOperationScalingBenchmarks*" --job Short
 dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj -c Release -f net10.0 -- --filter "*PdfMergeApiScalingBenchmarks*" --job Short
 dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj -c Release -f net10.0 -- --filter "*PdfPageImport*ScalingBenchmarks*" --job Short
+```
+
+Score page text from every reader against the exact logical text of the generated report (title, narrative, then table rows in column order). Every producer writes the same model, so the truth needs no labelling. Content error counts missing and extra words regardless of order; order error is the word edit distance against the logical sequence:
+
+```powershell
+dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj -c Release -f net10.0 -- text-quality --output Ignore/Benchmarks/PdfComparisons/text-quality.md
+```
+
+These single-column generated pages measure word recovery and table-row order, not multi-column or real-world reading order; that needs independently transcribed pages.
+
+On Windows the project also builds for `net472`, the runtime of Windows PowerShell 5.1. That build contains the generation and read comparisons only; PeachPDF needs .NET 8, so the read lane there covers the OfficeIMO, QuestPDF, MigraDoc and iText producers and always generates its inputs in process:
+
+```powershell
+dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj -c Release -f net472 -- --filter "*PdfGenerationBenchmarks*" "*PdfReadBenchmarks*" --job Short
 ```
 
 Generate the deterministic semantic accuracy report separately from timings:
@@ -308,7 +323,7 @@ separately:
 ```powershell
 pwsh Build/Run-LibraryComparisonBenchmarks.ps1 `
     -Workload pdfstructuredread `
-    -RunMode full `
+    -Profile full `
     -Framework net10.0
 
 dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj `
@@ -334,12 +349,12 @@ dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmar
 
 pwsh Build/Run-LibraryComparisonBenchmarks.ps1 `
     -Workload pdfcorpusread `
-    -RunMode quick `
+    -Profile diagnostic `
     -Framework net10.0 `
     -PdfCorpusRoot Ignore/Benchmarks/PdfComparisons/corpus/files
 ```
 
-The corpus workload is excluded from `-Workload all` because it requires opt-in downloads. Use `--only id-1,id-2` with the corpus command to rerun selected entries. `--additional-manifest path.json` appends one schema-1 manifest of generated or machine-local entries. Both the base and additional manifests are strict: unknown fields, invalid source combinations, missing local or downloaded SHA-256 hashes, out-of-range recall thresholds, and malformed semantic expectations fail before any document is read.
+The corpus workload is excluded from `-Workload all` because it requires opt-in downloads. Use `--only id-1,id-2` with the corpus command to rerun selected entries. `--additional-manifest path.json` appends one schema-1 manifest of generated or machine-local entries. An entry may set `password` for an encrypted source; such entries are read and compared but skip the manipulation step. The header may follow leading bytes, as ISO 32000 allows. Both the base and additional manifests are strict: unknown fields, invalid source combinations, missing local or downloaded SHA-256 hashes, out-of-range recall thresholds, and malformed semantic expectations fail before any document is read.
 
 On Windows with Microsoft Word, Excel, and PowerPoint installed, this command regenerates all three Office-produced PDFs and validates OfficeIMO readback. COM remains an opt-in fixture producer and is not an OfficeIMO runtime dependency:
 
@@ -349,6 +364,17 @@ pwsh Build/Run-PdfOfficeComCorpus.ps1 -Framework net10.0
 
 ## Benchmark-only libraries
 
-Versions are pinned in the benchmark project so evidence is reproducible. Public QuestPDF measurements use QuestPDF 2026.5.0 under its embedded Community MIT License and display that version in the evidence. Newer QuestPDF versions are not silently substituted. PDFsharp/MigraDoc and HtmlTinkerX are MIT, PeachPDF is BSD-3-Clause, PdfPecker is MIT with the bundled-component notices from its exact package, and PdfPig is Apache-2.0. iText Core and pdfHTML are AGPL/commercial and remain isolated here for benchmark use; none of these libraries is linked by or distributed with an OfficeIMO runtime package.
+Versions are pinned in the benchmark project so evidence is reproducible. Public QuestPDF measurements use QuestPDF 2026.5.0 under its embedded Community MIT License and display that version in the evidence. Newer QuestPDF versions are not silently substituted. PDFsharp/MigraDoc and HtmlTinkerX are MIT, PeachPDF is BSD-3-Clause, PdfPecker is MIT with the bundled-component notices from its exact package, PdfPig is Apache-2.0, and OnePDF and OnePDF.Layout are `MIT OR Apache-2.0`. iText Core and pdfHTML are AGPL/commercial and KillerPdf.Engine is GPL-3.0-only; they remain isolated here for benchmark use; none of these libraries is linked by or distributed with an OfficeIMO runtime package.
 
 The benchmark uses the maintained cross-platform PDFsharp 6.x package. PdfSharpCore 1.3.67 is not included: restoring it currently reports NuGet vulnerability advisories through its ImageSharp 1.0.4 dependency, while PDFsharp 6.x already covers the equivalent cross-platform split, merge, selection, and MigraDoc generation workflows.
+
+## FreePDF runner
+
+FreePDF (`io7.FreePDF` and `io7.FreePDF.Layout` 7.10.2, MIT) keeps the `PdfSharp` and `MigraDoc` assembly names, so it conflicts with PDFsharp-MigraDoc in this project and has its own opt-in runner, `OfficeIMO.Pdf.Benchmarks.FreePdf`, outside the solution. It compiles this project's scenario, generator and validation sources unchanged, including `MigraDocPdfGenerator.cs` and `PdfManipulationEngines.PdfSharp.cs`, so its report generation, merge, split and page-selection lanes do the same validated work as the lanes above, on `net10.0` and on `net472` (x64). Building with `-p:PdfSharpEngine=PDFsharp` compiles the same lanes against PDFsharp-MigraDoc 6.2.4 into `bin/pdfsharp`, so both engines can be compared on the same runtime. FreePDF has no text extraction, so it has no read lane.
+
+```powershell
+dotnet build OfficeIMO.Pdf.Benchmarks.FreePdf -c Release
+dotnet build OfficeIMO.Pdf.Benchmarks.FreePdf -c Release -p:PdfSharpEngine=PDFsharp
+dotnet OfficeIMO.Pdf.Benchmarks.FreePdf/bin/Release/net10.0/OfficeIMO.Pdf.Benchmarks.FreePdf.dll --filter "*" --inProcess
+OfficeIMO.Pdf.Benchmarks.FreePdf/bin/Release/net472/OfficeIMO.Pdf.Benchmarks.FreePdf.exe --filter "*" --inProcess
+```

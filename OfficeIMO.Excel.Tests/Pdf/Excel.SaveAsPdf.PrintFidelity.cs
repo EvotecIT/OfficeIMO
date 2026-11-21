@@ -65,7 +65,7 @@ public partial class Excel {
         double nameX = FindWordStartX(page, "Name");
         double valueX = FindWordStartX(page, "Value");
         // A stroked vertical segment between the first two columns would be an inner vertical border.
-        bool hasVerticalInnerLine = page.ExperimentalAccess.Paths
+        bool hasVerticalInnerLine = page.Paths
             .Select(path => path.GetBoundingRectangle())
             .Where(box => box.HasValue)
             .Select(box => box!.Value)

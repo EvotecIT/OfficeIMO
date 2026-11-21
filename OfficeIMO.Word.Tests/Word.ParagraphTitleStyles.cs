@@ -10,7 +10,7 @@ public partial class Word {
     public void BuiltInTitleStylesCanBeSelectedAndReadBackThroughTheTypedApi(WordParagraphStyles style, string styleId) {
         using var document = WordDocument.Create();
         document.AddParagraph("Quarterly results").Style = style;
-        Assert.Equal(styleId, WordParagraphStyle.GetStyleDefinition(style)?.StyleId);
+        Assert.Equal(styleId, document.Styles.GetOrAdd(style).StyleId);
         using var saved = WordDocument.Load(new System.IO.MemoryStream(document.ToBytes()));
         var paragraph = Assert.Single(saved.Paragraphs);
         Assert.Equal(style, paragraph.Style);

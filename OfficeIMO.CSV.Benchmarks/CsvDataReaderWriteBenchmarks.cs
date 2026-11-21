@@ -114,6 +114,7 @@ public class CsvDataReaderWriteBenchmarks
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:OfficeIMO", "case:WriteDataReader")]
     public int OfficeIMO_WriteDataReader()
     {
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
@@ -123,6 +124,7 @@ public class CsvDataReaderWriteBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:WriteDataReaderParallel")]
     public int OfficeIMO_WriteDataReaderParallel()
     {
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
@@ -140,6 +142,7 @@ public class CsvDataReaderWriteBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:Sylvan.Data.Csv", "case:WriteDataReader")]
     public int Sylvan_WriteDataReader()
     {
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
@@ -179,13 +182,32 @@ public class CsvDataReaderWriteBenchmarks
                 throw new InvalidOperationException($"{method} reported {reportedLength} characters but produced {output.Length}.");
             }
 
-            CsvBenchmarkOutputValidator.Validate(
-                method,
-                output,
-                Headers,
-                RowCount,
-                expectedTextRows: null,
-                expectedObjectRows: _rows);
+            (string library, string caseName) = method switch
+            {
+                nameof(OfficeIMO_WriteDataReader) => ("OfficeIMO", "WriteDataReader"),
+                nameof(OfficeIMO_WriteDataReaderParallel) => ("OfficeIMO", "WriteDataReaderParallel"),
+                nameof(Sylvan_WriteDataReader) => ("Sylvan.Data.Csv", "WriteDataReader"),
+                _ => throw new ArgumentOutOfRangeException(nameof(method), method, "Unknown write lane.")
+            };
+            string detail = $"RowCount={RowCount}; Shape={Shape}; {method}";
+            try
+            {
+                CsvBenchmarkOutputValidator.Validate(
+                    method,
+                    output,
+                    Headers,
+                    RowCount,
+                    expectedTextRows: null,
+                    expectedObjectRows: _rows);
+            }
+            catch (Exception exception)
+            {
+                BenchmarkOutputValidationLog.Failed(library, detail + ": " + exception.Message, caseName);
+                throw;
+            }
+
+            BenchmarkOutputValidationLog.Passed(library,
+                detail + $": OfficeIMO.CSV and Sylvan.Data.Csv read back all {RowCount} rows x {Headers.Length} typed values.", caseName);
             return output;
         }
         finally

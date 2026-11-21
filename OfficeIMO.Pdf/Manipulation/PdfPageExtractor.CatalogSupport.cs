@@ -108,131 +108,69 @@ internal static partial class PdfPageExtractor {
         }
     }
     
-    private static bool IsSupportedOutlineGraph(
-        Dictionary<int, PdfIndirectObject> sourceObjects,
-        PdfObject value,
-        HashSet<int> visitedReferences,
-        CancellationToken cancellationToken = default) {
-        cancellationToken.ThrowIfCancellationRequested();
-        switch (value) {
-            case PdfNumber:
-            case PdfBoolean:
-            case PdfName:
-            case PdfStringObj:
-            case PdfNull:
-                return true;
-            case PdfReference reference:
-                if (!visitedReferences.Add(reference.ObjectNumber)) {
-                    return true;
-                }
-    
-                if (!PdfObjectLookup.TryGet(sourceObjects, reference, out var indirect)) {
-                    return false;
-                }
-    
-                return IsPageDictionary(indirect.Value) ||
-                    IsSupportedOutlineGraph(sourceObjects, indirect.Value, visitedReferences, cancellationToken);
-            case PdfArray array:
-                foreach (var item in array.Items) {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    if (!IsSupportedOutlineGraph(sourceObjects, item, visitedReferences, cancellationToken)) {
-                        return false;
-                    }
-                }
-    
-                return true;
-            case PdfDictionary dictionary:
-                if (IsPageDictionary(dictionary)) {
-                    return true;
-                }
-    
-                if (dictionary.Items.ContainsKey("AA")) {
-                    return false;
-                }
-    
-                if (dictionary.Items.TryGetValue("A", out var action) &&
-                    !IsSupportedOutlineAction(sourceObjects, action, cancellationToken)) {
-                    return false;
-                }
-    
-                foreach (var item in dictionary.Items.Values) {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    if (!IsSupportedOutlineGraph(sourceObjects, item, visitedReferences, cancellationToken)) {
-                        return false;
-                    }
-                }
-    
-                return true;
-            default:
-                return false;
-        }
-    }
-    
-    private static bool IsSupportedOutlineAction(Dictionary<int, PdfIndirectObject> sourceObjects, PdfObject action,
-        CancellationToken cancellationToken) {
-        cancellationToken.ThrowIfCancellationRequested();
-        return ResolveDictionary(sourceObjects, action) is PdfDictionary dictionary &&
-            dictionary.Items.Count == 2 &&
-            dictionary.Get<PdfName>("S")?.Name == "GoTo" &&
-            dictionary.Items.TryGetValue("D", out var destination) &&
-            IsDestinationForKnownPage(sourceObjects, destination, cancellationToken);
-    }
-    
     private static bool OutlineDestinationsReferenceOnlyCopiedPages(
         Dictionary<int, PdfIndirectObject> sourceObjects,
         PdfObject value,
         HashSet<int> copiedPageObjectIds,
         HashSet<int> visitedReferences,
         CancellationToken cancellationToken = default) {
-        cancellationToken.ThrowIfCancellationRequested();
-        switch (value) {
-            case PdfNumber:
-            case PdfBoolean:
-            case PdfName:
-            case PdfStringObj:
-            case PdfNull:
-                return true;
-            case PdfReference reference:
-                if (!PdfObjectLookup.TryGet(sourceObjects, reference, out var indirect)) {
-                    return false;
-                }
-    
-                if (IsPageDictionary(indirect.Value)) {
-                    return copiedPageObjectIds.Contains(reference.ObjectNumber);
-                }
-    
-                if (!visitedReferences.Add(reference.ObjectNumber)) {
-                    return true;
-                }
-    
-                return OutlineDestinationsReferenceOnlyCopiedPages(sourceObjects, indirect.Value, copiedPageObjectIds, visitedReferences, cancellationToken);
-            case PdfArray array:
-                foreach (var item in array.Items) {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    if (!OutlineDestinationsReferenceOnlyCopiedPages(sourceObjects, item, copiedPageObjectIds, visitedReferences, cancellationToken)) {
+        // Outline chains nest far deeper than the call stack allows, so the graph is walked with an explicit stack.
+        var pending = new Stack<PdfObject>();
+        pending.Push(value);
+        while (pending.Count > 0) {
+            cancellationToken.ThrowIfCancellationRequested();
+            switch (pending.Pop()) {
+                case PdfNumber:
+                case PdfBoolean:
+                case PdfName:
+                case PdfStringObj:
+                case PdfNull:
+                    break;
+                case PdfReference reference:
+                    if (!PdfObjectLookup.TryGet(sourceObjects, reference, out var indirect)) {
                         return false;
                     }
-                }
-    
-                return true;
-            case PdfDictionary dictionary:
-                if (IsPageDictionary(dictionary)) {
-                    return false;
-                }
-    
-                foreach (var item in dictionary.Items.Values) {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    if (!OutlineDestinationsReferenceOnlyCopiedPages(sourceObjects, item, copiedPageObjectIds, visitedReferences, cancellationToken)) {
+
+                    if (IsPageDictionary(indirect.Value)) {
+                        if (!copiedPageObjectIds.Contains(reference.ObjectNumber)) return false;
+                        break;
+                    }
+
+                    if (visitedReferences.Add(reference.ObjectNumber)) {
+                        pending.Push(indirect.Value);
+                    }
+
+                    break;
+                case PdfArray array:
+                    for (int index = array.Items.Count - 1; index >= 0; index--) {
+                        pending.Push(array.Items[index]);
+                    }
+
+                    break;
+                case PdfDictionary dictionary:
+                    if (IsPageDictionary(dictionary)) {
                         return false;
                     }
-                }
-    
-                return true;
-            default:
-                return false;
+
+                    foreach (var item in dictionary.Items) {
+                        // Structure elements are rewritten with the tagged structure tree, not as outline destinations.
+                        if (item.Key == "SE" && dictionary.Items.ContainsKey("Title") &&
+                            PdfSyntax.IsStructureElementReference(sourceObjects, item.Value)) {
+                            continue;
+                        }
+
+                        pending.Push(item.Value);
+                    }
+
+                    break;
+                default:
+                    return false;
+            }
         }
+
+        return true;
     }
-    
+
     private static bool IsPageDictionary(PdfObject value) {
         return value is PdfDictionary dictionary &&
             dictionary.Get<PdfName>("Type")?.Name == "Page";

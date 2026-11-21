@@ -203,6 +203,13 @@ public static partial class HtmlComputedStyleEngine {
         return containerName.Length > 0 && containerType.Length > 0;
     }
 
+    private static bool TryGetWrapAliasValue(string name, IReadOnlyDictionary<string, string> parentProperties, out string? value) {
+        value = null;
+        string? alias = string.Equals(name, "word-wrap", StringComparison.OrdinalIgnoreCase) ? "overflow-wrap"
+            : string.Equals(name, "overflow-wrap", StringComparison.OrdinalIgnoreCase) ? "word-wrap" : null;
+        return alias != null && parentProperties.TryGetValue(alias, out value) && !string.IsNullOrWhiteSpace(value);
+    }
+
     private static CssKeywordResolution ResolveCssWideKeyword(
         string name,
         string value,
@@ -220,15 +227,22 @@ public static partial class HtmlComputedStyleEngine {
             || ((string.Equals(trimmed, "unset", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(trimmed, "revert", StringComparison.OrdinalIgnoreCase)) && IsInheritedProperty(name, customPropertyRegistrations))) {
             string? inheritedValue;
-            return parentProperties != null && parentProperties.TryGetValue(name, out inheritedValue) && !string.IsNullOrWhiteSpace(inheritedValue)
-                ? CssKeywordResolution.ForInheritedValue(inheritedValue)
+            return parentProperties != null && (parentProperties.TryGetValue(name, out inheritedValue) && !string.IsNullOrWhiteSpace(inheritedValue)
+                    // word-wrap and overflow-wrap are one property under two names.
+                    || TryGetWrapAliasValue(name, parentProperties, out inheritedValue))
+                ? CssKeywordResolution.ForInheritedValue(inheritedValue!)
                 // SVG/font defaults and MathML token defaults establish effective context later.
                 // Keep explicit inheritance distinct from an initial-value reset even without a CSS parent value.
                 : string.Equals(name, "font-family", StringComparison.OrdinalIgnoreCase)
                     && !string.Equals(trimmed, "revert", StringComparison.OrdinalIgnoreCase)
                 ? CssKeywordResolution.ForInheritedValue(string.Empty)
+                // justify-all sets the parent's last-line alignment without a text-align-last value.
+                // white-space and text-wrap inherit the parent's resolved longhands, which a later
+                // inherit must still override this element's own longhands with.
                 : (string.Equals(name, "font-size", StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(name, "text-transform", StringComparison.OrdinalIgnoreCase))
+                    || string.Equals(name, "text-transform", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(name, "text-align-last", StringComparison.OrdinalIgnoreCase)
+                    || IsWhiteSpaceOrTextWrapProperty(name))
                 ? CssKeywordResolution.ForInheritedValue("inherit")
                 : CssKeywordResolution.Clear;
         }
@@ -252,6 +266,13 @@ public static partial class HtmlComputedStyleEngine {
 
         return CssKeywordResolution.ForValue(value);
     }
+
+    private static bool IsWhiteSpaceOrTextWrapProperty(string name) =>
+        name.Equals("white-space", StringComparison.OrdinalIgnoreCase)
+        || name.Equals("white-space-collapse", StringComparison.OrdinalIgnoreCase)
+        || name.Equals("text-wrap", StringComparison.OrdinalIgnoreCase)
+        || name.Equals("text-wrap-mode", StringComparison.OrdinalIgnoreCase)
+        || name.Equals("text-wrap-style", StringComparison.OrdinalIgnoreCase);
 
     private static bool ShouldReplace(CascadedProperty existing, bool isImportant, Specificity specificity, int order, CascadeLayerOrder? layerOrder, int declarationOrder = 0) {
         // Inheritance happens after the cascade. A value copied from the parent is therefore

@@ -91,7 +91,7 @@ public sealed class PdfInlineImage : PdfInlineElement {
         Guard.NotNull(style, nameof(style));
         PdfImageStyle imageStyle = style!;
         PdfDocument.ValidateImageStyleForBox(imageStyle, width.ToPoints(), height.ToPoints(), nameof(style));
-        PdfDocument.PreparedImage prepared = PdfDocument.PrepareImageBytes(imageBytes);
+        PdfDocument.PreparedImage prepared = PdfDocument.PrepareImageKeepingSvg(imageBytes);
         PdfDocument.ValidateImageFitDimensions(prepared.Info, imageStyle.Fit, nameof(style));
         Block = new ImageBlock(
             prepared.Data,
@@ -102,7 +102,8 @@ public sealed class PdfInlineImage : PdfInlineElement {
             linkUri: linkUri,
             linkContents: linkUri == null ? null : AltText,
             useDataSnapshot: true,
-            preparedStream: prepared.PreparedStream);
+            preparedStream: prepared.PreparedStream,
+            svgDrawing: prepared.SvgDrawing);
         Fit = imageStyle.Fit;
     }
 }

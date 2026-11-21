@@ -55,7 +55,7 @@ public partial class MarkdownDocument : MarkdownObject {
     internal void ReplaceBlocks(IEnumerable<IMarkdownBlock>? blocks) {
         _blocks.Clear();
         _lastBlock = null;
-        _parseResult = null;
+        ClearParseOwnedState();
         if (blocks == null) {
             MarkdownObjectTreeBinder.BindDocument(this);
             return;
@@ -75,6 +75,26 @@ public partial class MarkdownDocument : MarkdownObject {
 
     internal void AttachParseResult(MarkdownParseInfo parseResult) {
         _parseResult = parseResult ?? throw new ArgumentNullException(nameof(parseResult));
+    }
+
+    // A parse without a syntax tree attaches no parse result, but still owns its abbreviation
+    // definitions, which Markdown writing preserves.
+    private IReadOnlyList<MarkdownAbbreviationDefinition>? _semanticAbbreviationDefinitions;
+
+    internal void AttachSemanticAbbreviationDefinitions(IReadOnlyList<MarkdownAbbreviationDefinition> definitions) {
+        _semanticAbbreviationDefinitions = definitions.Count == 0 ? null : definitions;
+    }
+
+    internal IReadOnlyList<MarkdownAbbreviationDefinition>? ParseOwnedAbbreviationDefinitions =>
+        _parseResult?.AbbreviationDefinitions ?? _semanticAbbreviationDefinitions;
+
+    internal void ClearSemanticAbbreviationDefinitions() => _semanticAbbreviationDefinitions = null;
+
+    private void ClearParseOwnedState() {
+        // Objects leaving the document keep the source information their parse gave them.
+        EnsureSourceInformation();
+        _parseResult = null;
+        _semanticAbbreviationDefinitions = null;
     }
 
     /// <summary>Enumerates all document blocks depth-first, including front matter when present.</summary>
@@ -272,7 +292,11 @@ public partial class MarkdownDocument : MarkdownObject {
     public bool HasFrontMatterEntry(string key, StringComparison comparison = StringComparison.OrdinalIgnoreCase) =>
         DocumentHeader?.HasEntry(key, comparison) == true;
 
-    /// <summary>Gets a typed front matter value by key when the document header is present.</summary>
+    /// <summary>
+    /// Reads a top-level front matter scalar as <typeparamref name="T"/> through the YAML schema; see
+    /// <see cref="FrontMatterBlock.TryGetValue{T}(string, out T)"/> for the supported types.
+    /// </summary>
+    /// <exception cref="NotSupportedException"><typeparamref name="T"/> is not a supported type.</exception>
     public bool TryGetFrontMatterValue<T>(string key, out T? value) {
         if (DocumentHeader != null && DocumentHeader.TryGetValue<T>(key, out value)) {
             return true;
@@ -345,7 +369,10 @@ public partial class MarkdownDocument : MarkdownObject {
         }
     }
 
-    /// <summary>Sets YAML front matter from an anonymous object or dictionary.</summary>
+    /// <summary>
+    /// Sets YAML front matter from an anonymous object, a dictionary or another object's public properties; nested
+    /// values become YAML mappings and sequences. See <see cref="FrontMatterBlock.FromObject(object)"/>.
+    /// </summary>
     [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode("Uses reflection over an arbitrary runtime type. For NativeAOT, call FrontMatter<T> or pass a dictionary.")]
     public MarkdownDocument FrontMatter(object data) {
         _frontMatter = FrontMatterBlock.FromObject(data);
@@ -353,7 +380,7 @@ public partial class MarkdownDocument : MarkdownObject {
         return this;
     }
 
-    /// <summary>Sets YAML front matter from a type known at publish time.</summary>
+    /// <summary>Sets YAML front matter from a type known at publish time. See <see cref="FrontMatterBlock.FromObject{T}(T)"/>.</summary>
     public MarkdownDocument FrontMatter<
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)] T>(T data) {
         _frontMatter = FrontMatterBlock.FromObject(data);
@@ -599,13 +626,20 @@ public partial class MarkdownDocument : MarkdownObject {
         }
 
         return options.FrontMatterRendering switch {
-            MarkdownFrontMatterRenderingMode.Preserve => frontMatter.RenderFrontMatter(),
+            // The block's text uses LF; match the platform line ending the rest of the document uses when none is set.
+            MarkdownFrontMatterRenderingMode.Preserve => options.OutputLineEnding == null && Environment.NewLine != "\n"
+                ? frontMatter.RenderFrontMatter().Replace("\n", Environment.NewLine)
+                : frontMatter.RenderFrontMatter(),
             MarkdownFrontMatterRenderingMode.Omit => null,
             _ => throw new ArgumentOutOfRangeException(nameof(options.FrontMatterRendering), options.FrontMatterRendering, "Unknown front matter rendering mode.")
         };
     }
 
-    private static bool AppendParseOwnedAbbreviationDefinitions(StringBuilder sb, MarkdownParseInfo? parseResult, MarkdownSaveOptions options) {
+    private static bool AppendParseOwnedAbbreviationDefinitions(
+        StringBuilder sb,
+        MarkdownParseInfo? parseResult,
+        IReadOnlyList<MarkdownAbbreviationDefinition>? definitions,
+        MarkdownSaveOptions options) {
         if (options.AbbreviationDefinitionRendering == MarkdownAbbreviationDefinitionRenderingMode.Omit) {
             return false;
         }
@@ -614,13 +648,13 @@ public partial class MarkdownDocument : MarkdownObject {
             throw new ArgumentOutOfRangeException(nameof(options.AbbreviationDefinitionRendering), options.AbbreviationDefinitionRendering, "Unknown abbreviation definition rendering mode.");
         }
 
-        if (parseResult == null || parseResult.AbbreviationDefinitions.Count == 0) {
+        if (definitions == null || definitions.Count == 0) {
             return false;
         }
 
         var wroteDefinition = false;
-        for (int i = 0; i < parseResult.AbbreviationDefinitions.Count; i++) {
-            var definition = parseResult.AbbreviationDefinitions[i];
+        for (int i = 0; i < definitions.Count; i++) {
+            var definition = definitions[i];
             if (definition == null
                 || string.IsNullOrWhiteSpace(definition.Label)
                 || definition.IsListItemDefinition) {
@@ -634,10 +668,16 @@ public partial class MarkdownDocument : MarkdownObject {
         return wroteDefinition;
     }
 
-    private static string RenderAbbreviationDefinition(MarkdownParseInfo parseResult, MarkdownAbbreviationDefinition definition) {
-        if (definition.SourceSpan.HasValue
+    private static string RenderAbbreviationDefinition(MarkdownParseInfo? parseResult, MarkdownAbbreviationDefinition definition) {
+        if (parseResult != null
+            && definition.SourceSpan.HasValue
             && parseResult.TryCreateSourceSlice(definition.SourceSpan.Value, out var slice)) {
             var sourceLine = slice.Text.TrimEnd('\r', '\n');
+            if (!string.IsNullOrWhiteSpace(sourceLine)) {
+                return sourceLine;
+            }
+        } else if (parseResult == null && definition.SourceLineText != null) {
+            var sourceLine = definition.SourceLineText.TrimEnd('\r', '\n');
             if (!string.IsNullOrWhiteSpace(sourceLine)) {
                 return sourceLine;
             }

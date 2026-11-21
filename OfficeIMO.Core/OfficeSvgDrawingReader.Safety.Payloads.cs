@@ -50,7 +50,7 @@ public static partial class OfficeSvgDrawingReader {
 
         byte[] imageBytes;
         try {
-            imageBytes = Convert.FromBase64String(href.Substring(comma + 1));
+            imageBytes = OfficeIMO.Core.Internal.OfficeBase64.FromBase64String(href, comma + 1);
         } catch (FormatException) {
             return false;
         }

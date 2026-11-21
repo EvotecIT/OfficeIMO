@@ -49,13 +49,19 @@ public sealed class HtmlDataUri {
         return true;
     }
 
+    // Size estimation and decoding read the same normalized payload; a font payload is large.
+    private string? _normalizedBase64;
+
+    private string NormalizedBase64Payload =>
+        _normalizedBase64 ??= NormalizeBase64Payload(Uri.UnescapeDataString(Data));
+
     /// <summary>Decodes the payload as bytes.</summary>
     public byte[] DecodeBytes() {
         if (!IsBase64) {
             return DecodePercentEncodedBytes(Data);
         }
 
-        return Convert.FromBase64String(NormalizeBase64Payload(Uri.UnescapeDataString(Data)));
+        return Convert.FromBase64String(NormalizedBase64Payload);
     }
 
     /// <summary>Attempts to decode the payload as bytes.</summary>
@@ -92,7 +98,7 @@ public sealed class HtmlDataUri {
             return CountPercentDecodedBytes(Data);
         }
 
-        string payload = NormalizeBase64Payload(Uri.UnescapeDataString(Data));
+        string payload = NormalizedBase64Payload;
         if (payload.Length == 0 || payload.Length % 4 != 0) {
             throw new FormatException("Invalid base64 data URI payload length.");
         }
@@ -216,6 +222,7 @@ public sealed class HtmlDataUri {
     }
 
     private static string NormalizeBase64Payload(string payload) {
+        if ((payload.Length & 3) == 0 && !ContainsAsciiWhitespace(payload)) return payload;
         var builder = new StringBuilder(payload.Length);
         foreach (char character in payload) {
             if (!IsAsciiWhitespace(character)) {
@@ -227,6 +234,13 @@ public sealed class HtmlDataUri {
         if (remainder == 2) builder.Append("==");
         else if (remainder == 3) builder.Append('=');
         return builder.ToString();
+    }
+
+    private static bool ContainsAsciiWhitespace(string value) {
+        foreach (char character in value) {
+            if (IsAsciiWhitespace(character)) return true;
+        }
+        return false;
     }
 
     private static bool IsAsciiWhitespace(char value) => value is '\t' or '\n' or '\f' or '\r' or ' ';

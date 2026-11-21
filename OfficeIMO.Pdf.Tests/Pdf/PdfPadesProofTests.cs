@@ -50,6 +50,40 @@ public sealed class PdfPadesProofTests {
         File.WriteAllText(Path.Combine(output, "tsa-root.pem"), tsaRoot.ExportCertificatePem());
     }
 
+    [Fact]
+    public async Task GenerateLongTermAndCertificationSignaturesForIndependentValidation() {
+        DateTime now = DateTime.UtcNow;
+        using var pki = new PdfTestPki(now);
+        using X509Certificate2 signer = pki.IssueSigner("OfficeIMO proof long-term signer", now.AddDays(-1), now.AddDays(30));
+        PdfCmsSignatureCryptographyProvider provider = pki.Provider();
+        using var fetcher = new CertificateRevocationFetcher(new CertificateRevocationFetcherOptions { AllowPrivateNetworkAddresses = true });
+        byte[] signed = pki.Sign(signer, timestampTime: now.AddMinutes(-10));
+        pki.ResponderTime = now.AddMinutes(-5);
+        int signature = Assert.Single(PdfDocument.Load(signed).Security.ValidateSignatures(provider).Signatures).Signature.ObjectNumber;
+        byte[] longTerm = (await PdfLongTermValidationEnricher.FetchAndEnrichAsync(signed, signature, provider, fetcher)).Pdf;
+        byte[] archived = pki.AddDocumentTimestamp(longTerm, now.AddMinutes(-1));
+        byte[] certified = pki.Sign(signer, timestampTime: now.AddMinutes(-10), PdfSignatureProfile.Certification,
+            PdfCertificationPermissionLevel.FormFillingAndSignatures);
+
+        Assert.Equal(PdfPadesLevel.BaselineLT, Level(longTerm));
+        Assert.Equal(PdfPadesLevel.BaselineLTA, Level(archived));
+        Assert.Equal(PdfPadesLevel.BaselineT, Level(certified));
+        Assert.Equal(2, PdfDocument.Load(certified).Security.ValidateSignatures(provider).Security.DocMDPPermissionLevel);
+
+        string? output = Environment.GetEnvironmentVariable("OFFICEIMO_PDF_COMPLIANCE_PROOF_OUTPUT");
+        if (string.IsNullOrWhiteSpace(output)) return;
+        output = Path.Combine(output, "standards");
+        Directory.CreateDirectory(output);
+        File.WriteAllBytes(Path.Combine(output, "pades-blt.pdf"), longTerm);
+        File.WriteAllBytes(Path.Combine(output, "pades-blta.pdf"), archived);
+        File.WriteAllBytes(Path.Combine(output, "certification.pdf"), certified);
+        File.WriteAllText(Path.Combine(output, "ltv-root.pem"), pki.Root.ExportCertificatePem());
+
+        PdfPadesLevel Level(byte[] pdf) => Assert.Single(
+            PdfDocument.Load(pdf).Security.ValidateSignatures(provider).Signatures,
+            item => !item.Signature.IsDocumentTimestamp).PadesLevel;
+    }
+
     private static byte[] Sign(X509Certificate2 certificate, X509Certificate2 root, CmsSigningOptions options) {
         using var signer = new PdfCmsExternalSigner(OfficeSecurityProvider.Default, certificate,
             signingOptions: options, certificateChain: new[] { root });

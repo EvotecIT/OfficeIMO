@@ -7,7 +7,7 @@ internal static class IWorkDecimal128Writer {
     internal static byte[] Encode(double value) {
         if (double.IsNaN(value) || double.IsInfinity(value)) throw new ArgumentOutOfRangeException(nameof(value));
         bool negative = BitConverter.DoubleToInt64Bits(value) < 0;
-        string text = Math.Abs(value).ToString("R", CultureInfo.InvariantCulture);
+        string text = OfficeIMO.Core.Internal.OfficeRoundTripText.Format(Math.Abs(value), CultureInfo.InvariantCulture);
         int exponent = 0;
         int marker = text.IndexOf('E');
         if (marker < 0) marker = text.IndexOf('e');

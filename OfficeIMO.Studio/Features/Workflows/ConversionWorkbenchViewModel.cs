@@ -199,6 +199,11 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
         return true;
     }
 
+    private static ConversionRouteChoice? PreferredRoute(IReadOnlyList<ConversionRouteChoice> matches, string fileName, string targetExtension) {
+        var preferred = OfficeWorkflowCatalog.Find(Path.GetExtension(fileName), targetExtension, executableOnly: true);
+        return matches.FirstOrDefault(choice => choice.Route.Id == preferred?.Id);
+    }
+
     private bool Accepts(ConversionRouteChoice route, string path) {
         string extension = Path.GetExtension(_storage?.Describe(path).Name ?? Path.GetFileName(path));
         return route.Route.SourceExtensions.Any(item => string.Equals(NormalizeExtension(item), extension, StringComparison.OrdinalIgnoreCase));
@@ -225,12 +230,17 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
                 ConversionRouteChoice[] matches = Routes.Where(choice => Accepts(choice, path)).ToArray();
                 if (matches.Length == 1) route = matches[0];
                 else if (matches.Length > 1 && matches.All(choice => choice.Route.TargetExtension == matches[0].Route.TargetExtension)) {
-                    var preferred = OfficeWorkflowCatalog.Find(Path.GetExtension(fileName), matches[0].Route.TargetExtension, executableOnly: true);
-                    route = matches.FirstOrDefault(choice => choice.Route.Id == preferred?.Id);
+                    route = PreferredRoute(matches, fileName, matches[0].Route.TargetExtension);
                 } else {
                     // Keep the established editable iWork intake default when a PDF route is also available.
                     // An explicitly selected matching PDF route was already chosen above.
                     route = matches.SingleOrDefault(choice => ConversionJobViewModel.IsEditableIWorkRoute(choice.Route.Id));
+                    // Other formats that convert to several targets default to PDF; other targets are chosen
+                    // from the route list. Formats without a PDF route, such as PDF itself, wait for a choice.
+                    if (route is null) {
+                        ConversionRouteChoice[] pdf = matches.Where(choice => choice.Route.TargetExtension == ".pdf").ToArray();
+                        route = pdf.Length == 1 ? pdf[0] : pdf.Length > 1 ? PreferredRoute(pdf, fileName, ".pdf") : null;
+                    }
                 }
             }
             if (route is null) {

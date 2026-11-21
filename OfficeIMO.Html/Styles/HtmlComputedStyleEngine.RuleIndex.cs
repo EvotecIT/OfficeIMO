@@ -22,8 +22,10 @@ public static partial class HtmlComputedStyleEngine {
                 ?? new Dictionary<string, CustomPropertyRegistration>(HtmlCssPropertyNameComparer.Instance);
             _quirksMode = quirksMode;
             _elements = new SelectorRuleBucket(quirksMode);
+            bool positionIndependent = true;
             foreach (StyleRule rule in rules) {
                 if (!rule.PseudoElementKind.HasValue) {
+                    positionIndependent &= StyleSharingCache.IsPositionIndependent(rule.Selector);
                     _elements.Add(rule);
                     continue;
                 }
@@ -35,12 +37,14 @@ public static partial class HtmlComputedStyleEngine {
                 }
                 bucket.Add(rule);
             }
+            StyleSharing = new StyleSharingCache(positionIndependent);
         }
 
         internal IReadOnlyDictionary<string, CustomPropertyRegistration> CustomPropertyRegistrations { get; }
         internal ComputedStyleReuseCache ComputedReuse { get; } = new();
         internal ContainerGeometryReuseCache ContainerGeometryReuse { get; } = new();
         internal DeclarationSyntaxReuseCache DeclarationSyntaxReuse { get; } = new();
+        internal StyleSharingCache StyleSharing { get; }
 
         internal IReadOnlyList<StyleRule> GetCandidates(IElement element) => _elements.GetCandidates(element);
 

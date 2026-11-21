@@ -12,12 +12,21 @@ namespace OfficeIMO.Core.Internal {
         private const uint EndOfChain = 0xfffffffe;
         private const uint FatSect = 0xfffffffd;
         private const uint DifSect = 0xfffffffc;
+        // This writer emits only version 3 files (512-byte sectors), including rewrites of version 4 sources. Version 3
+        // caps each stream, including the mini stream, at 0x80000000 bytes; only version 4 (4096-byte sectors) allows
+        // larger streams, so every stream written here is held to the version 3 limit.
+        internal const long MaximumVersion3StreamLength = 0x80000000L;
 
         internal static byte[] Write(IReadOnlyList<OfficeCompoundStream> streams, Guid? rootClassId = null) {
             ArgumentNullException.ThrowIfNull(streams);
             if (streams.Count == 0) throw new ArgumentException("At least one compound stream is required.", nameof(streams));
 
-            OfficeCompoundWriterLayout layout = OfficeCompoundWriterLayout.Create(streams);
+            return Write(OfficeCompoundWriterLayout.Create(streams), rootClassId);
+        }
+
+        /// <summary>Writes a prepared layout into one byte array.</summary>
+        internal static byte[] Write(OfficeCompoundWriterLayout layout, Guid? rootClassId = null) {
+            ArgumentNullException.ThrowIfNull(layout);
             using (var output = CreateExactOutput(layout)) {
                 Write(output, layout, rootClassId);
                 return GetExactOutputBuffer(output);
@@ -213,10 +222,7 @@ namespace OfficeIMO.Core.Internal {
             int miniSectorCount = 0;
             foreach (OfficeCompoundWriterEntry stream in layout.Streams) {
                 long length = stream.Stream?.Length ?? 0;
-                if (length > uint.MaxValue) {
-                    throw new NotSupportedException(
-                        "A version 3 compound stream cannot exceed 4 GiB.");
-                }
+                if (length > MaximumVersion3StreamLength) ThrowStreamTooLarge();
                 if (length == 0) continue;
                 if (length < MiniStreamCutoffSize) {
                     miniSectorCount = checked(miniSectorCount + (int)((length + MiniSectorSize - 1) / MiniSectorSize));
@@ -449,13 +455,14 @@ namespace OfficeIMO.Core.Internal {
             WriteUInt32(fat, checked(sector * 4), value);
         }
 
+        private static void ThrowStreamTooLarge() =>
+            throw new NotSupportedException("A version 3 compound stream cannot exceed 2 GiB.");
+
         private static PaddedStream PadStream(OfficeCompoundWriterEntry entry) {
             OfficeCompoundStream payload = entry.Stream ?? throw new InvalidDataException("A compound stream has no payload.");
             long length = payload.Length;
             if (length < 0) throw new InvalidDataException("A compound stream has a negative length.");
-            if (length > uint.MaxValue) {
-                throw new NotSupportedException("A version 3 compound stream cannot exceed 4 GiB.");
-            }
+            if (length > MaximumVersion3StreamLength) ThrowStreamTooLarge();
             bool isMiniStream = length < MiniStreamCutoffSize;
             int unit = isMiniStream ? MiniSectorSize : SectorSize;
             int sectorCount = checked((int)((length + unit - 1) / unit));
@@ -468,6 +475,11 @@ namespace OfficeIMO.Core.Internal {
                 while (count > 0) {
                     cancellationToken.ThrowIfCancellationRequested();
                     int chunk = Math.Min(count, 81920); output.Write(bytes!, offset, chunk); offset += chunk; count -= chunk;
+                }
+            } else if (stream.Payload.Segments is IReadOnlyList<ArraySegment<byte>> segments) {
+                foreach (ArraySegment<byte> segment in segments) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    output.Write(segment.Array!, segment.Offset, segment.Count);
                 }
             } else {
                 using Stream input = stream.Payload.OpenRead();
@@ -626,6 +638,7 @@ namespace OfficeIMO.Core.Internal {
             _byteOffset = 0;
             _byteCount = bytes.Length;
             _openRead = null;
+            Segments = null;
             Length = bytes.LongLength;
         }
 
@@ -636,6 +649,7 @@ namespace OfficeIMO.Core.Internal {
             _byteOffset = 0;
             _byteCount = count;
             _openRead = null;
+            Segments = null;
             Length = count;
         }
 
@@ -646,8 +660,27 @@ namespace OfficeIMO.Core.Internal {
             _byteOffset = 0;
             _byteCount = 0;
             _openRead = openRead ?? throw new ArgumentNullException(nameof(openRead));
+            Segments = null;
             Length = length;
         }
+
+        /// <summary>Publishes owned buffers in order, without first assembling them into one array.</summary>
+        internal OfficeCompoundStream(string name, IReadOnlyList<ArraySegment<byte>> segments) {
+            Name = name ?? throw new ArgumentNullException(nameof(name));
+            Segments = segments ?? throw new ArgumentNullException(nameof(segments));
+            long length = 0;
+            foreach (ArraySegment<byte> segment in segments) {
+                if (segment.Array == null) throw new ArgumentException("A compound stream segment has no buffer.", nameof(segments));
+                length = checked(length + segment.Count);
+            }
+            _bytes = null;
+            _byteOffset = 0;
+            _byteCount = 0;
+            _openRead = null;
+            Length = length;
+        }
+
+        internal IReadOnlyList<ArraySegment<byte>>? Segments { get; }
 
         internal string Name { get; }
 
@@ -672,6 +705,13 @@ namespace OfficeIMO.Core.Internal {
 
         internal Stream OpenRead() {
             if (_bytes != null) return new MemoryStream(_bytes, _byteOffset, _byteCount, writable: false);
+            if (Segments != null) {
+                // Only mini streams below the 4 KiB cutoff are read back this way.
+                var joined = new MemoryStream(checked((int)Length));
+                foreach (ArraySegment<byte> segment in Segments) joined.Write(segment.Array!, segment.Offset, segment.Count);
+                joined.Position = 0;
+                return joined;
+            }
             Stream stream = _openRead!();
             if (stream == null || !stream.CanRead) {
                 stream?.Dispose();

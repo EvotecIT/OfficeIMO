@@ -109,10 +109,10 @@ internal sealed partial class ExcelObjectTableProjection {
         private static RowsFromSimpleTypePlan GetRowsFromSimpleTypePlan(Type type)
             => RowsFromSimpleTypePlans.GetOrAdd(type, CreateRowsFromSimpleTypePlan);
 
-        [UnconditionalSuppressMessage("Trimming", "IL2070", Justification = "RowsFrom<T> preserves public properties on T; this cache only discovers those public row properties.")]
+        [UnconditionalSuppressMessage("Trimming", "IL2067", Justification = "RowsFrom<T> preserves public properties on T; this cache only discovers those public row properties.")]
         private static RowsFromSimpleTypePlan CreateRowsFromSimpleTypePlan(Type type) {
-            var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                .Where(property => property.GetIndexParameters().Length == 0 && property.GetMethod != null)
+            var properties = PublicInstanceProperties.Get(type)
+                .Where(property => property.GetMethod != null)
                 .OrderBy(ObjectFlattener.GetMetadataOrder)
                 .ThenBy(property => property.Name, StringComparer.Ordinal)
                 .ToArray();

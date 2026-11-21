@@ -15,13 +15,18 @@ public sealed class VisioPdfApiConsistencyTests {
         string? destination = diagram.FilePath;
         OfficeDocumentReadResult normalized = diagram.ToOfficeDocumentReadResult();
         PdfDocument conversion = diagram.ToPdf(null, out OfficeConversionReport conversionReport);
-        string text = PdfDocument.Load(new System.IO.MemoryStream(conversion.ToBytes())).ExtractText();
+        PdfDocument drawn = PdfDocument.Load(new System.IO.MemoryStream(conversion.ToBytes()));
+        PdfDocument semantic = diagram.ToPdf(new VisioPdfExportOptions { Mode = VisioPdfProjectionMode.SemanticReport }, out OfficeConversionReport semanticReport);
 
         Assert.Equal(destination, diagram.FilePath);
         Assert.Equal("document.vsdx", normalized.Source.Path);
         Assert.False(string.IsNullOrWhiteSpace(normalized.Source.SourceId));
-        Assert.Contains("Gateway service", text, StringComparison.Ordinal);
-        Assert.Contains(conversionReport.Diagnostics, static warning => warning.Code == "pdf-projection-visio-semantic-fallback");
+        // The default draws the physical page; the semantic report stays available on request.
+        Assert.Equal((576D, 360D), Assert.Single(drawn.Pages).GetPageSize());
+        Assert.Contains("Gateway service", drawn.ExtractText(), StringComparison.Ordinal);
+        Assert.DoesNotContain(conversionReport.Diagnostics, static warning => warning.Code == "pdf-projection-visio-semantic-fallback");
+        Assert.Contains(semanticReport.Diagnostics, static warning => warning.Code == "pdf-projection-visio-semantic-fallback");
+        Assert.Contains("Gateway service", PdfDocument.Load(new System.IO.MemoryStream(semantic.ToBytes())).ExtractText(), StringComparison.Ordinal);
         Assert.Single(normalized.Pages);
     }
 
@@ -113,7 +118,7 @@ public sealed class VisioPdfApiConsistencyTests {
     private static VisioDocument CreateDiagram() {
         VisioDocument diagram = VisioDocument.Create();
         VisioPage page = diagram.AddPage("Topology", OfficeLength.Inches(8), OfficeLength.Inches(5));
-        page.Shapes.Add(new VisioShape("gateway") { Text = "Gateway service" });
+        page.AddRectangle(OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(1), "Gateway service");
         return diagram;
     }
 

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 using OfficeIMO.Word;
@@ -31,8 +32,8 @@ public partial class Html {
 
         var options = new HtmlWordExportOptions {
             AllowDocumentStylesheetLinks = true,
-            ImageProcessing = WordHtmlImageProcessingMode.Embed,
-            ResourceTimeout = TimeSpan.FromSeconds(8)
+            AllowPrivateNetworkAddresses = true,
+            ImageProcessing = WordHtmlImageProcessingMode.Embed
         };
         if (useUrlTransform) {
             options.ResourceUrlPolicy.ResolvedUrlTransform = url => {
@@ -75,6 +76,46 @@ public partial class Html {
     }
 
     [Theory]
+    [InlineData(false, "127.0.0.1")]
+    [InlineData(false, "localhost")]
+    [InlineData(true, "127.0.0.1")]
+    [InlineData(true, "localhost")]
+    public async Task HtmlToWord_BuiltInHttpClientRefusesLoopbackResourcesUnlessAllowed(bool stylesheet, string host) {
+        byte[] payload = stylesheet
+            ? Encoding.UTF8.GetBytes("p { color:#123456; }")
+            : Convert.FromBase64String(RedirectTestPngBase64);
+        using var server = new RedirectTestServer();
+        string source = $"http://{host}:{server.Port}/resource.{(stylesheet ? "css" : "png")}";
+        string html = stylesheet
+            ? $"<link rel='stylesheet' href='{source}'><p>Body text</p>"
+            : $"<p><img src='{source}' alt='Image fallback'></p>";
+        HtmlWordExportOptions CreateOptions(bool allowPrivate) => new() {
+            AllowDocumentStylesheetLinks = true,
+            AllowPrivateNetworkAddresses = allowPrivate,
+            ImageProcessing = WordHtmlImageProcessingMode.Embed
+        };
+
+        HtmlToWordResult refused = await OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToWordWithEvidenceAsync(CreateOptions(false));
+        using (WordDocument document = refused.Value) {
+            Assert.False(server.WasRequested);
+            string code = stylesheet ? "stylesheet-resource-rejected-by-policy" : "image-resource-rejected-by-policy";
+            Assert.Contains(refused.Report.NativeDiagnostics, diagnostic => diagnostic.Code == code);
+        }
+
+        Task response = server.SendAsync($"200 OK\r\nContent-Type: {(stylesheet ? "text/css" : "image/png")}", payload);
+        HtmlToWordResult allowed = await OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToWordWithEvidenceAsync(CreateOptions(true));
+        using WordDocument trusted = allowed.Value;
+        server.Dispose();
+        await response;
+        Assert.True(server.WasRequested);
+        if (stylesheet) {
+            Assert.True(trusted.Paragraphs.First().GetRuns().First().Color == OfficeColor.Parse("123456"));
+        } else {
+            Assert.Single(trusted.Images);
+        }
+    }
+
+    [Theory]
     [InlineData(false)]
 #if NETFRAMEWORK
     [InlineData(true)]
@@ -100,8 +141,8 @@ public partial class Html {
 
         var options = new HtmlWordExportOptions {
             AllowDocumentStylesheetLinks = true,
-            ImageProcessing = WordHtmlImageProcessingMode.Embed,
-            ResourceTimeout = TimeSpan.FromSeconds(8)
+            AllowPrivateNetworkAddresses = true,
+            ImageProcessing = WordHtmlImageProcessingMode.Embed
         };
         options.AllowedImageHosts.Add(host);
         options.AllowedStylesheetHosts.Add(host);
@@ -126,50 +167,123 @@ public partial class Html {
         Assert.Null(image.RequestCookie);
     }
 
+    /// <summary>
+    /// Answers one queued response per accepted connection on dedicated threads, so a response does not wait
+    /// for thread-pool threads that other tests on a busy runner are holding.
+    /// </summary>
     private sealed class RedirectTestServer : IDisposable {
-        private readonly TcpListener _listener = new(IPAddress.Loopback, 0);
-        private volatile bool _disposed;
+        // Clients resolve "localhost" to ::1 before 127.0.0.1. Listening on both loopbacks keeps
+        // a refused IPv6 attempt (about two seconds on Windows) out of each request.
+        private readonly TcpListener _listener;
+        private readonly TcpListener? _ipv6Listener;
+        private readonly BlockingCollection<TcpClient> _accepted = new();
+        private readonly CancellationTokenSource _stopped = new();
+        private volatile bool _wasRequested;
+        private volatile string? _requestHost;
+        private volatile string? _requestCookie;
 
         internal RedirectTestServer() {
-            _listener.Start();
-            Port = ((IPEndPoint)_listener.LocalEndpoint).Port;
+            for (int attempt = 0; ; attempt++) {
+                _listener = new TcpListener(IPAddress.Loopback, 0);
+                _listener.Start();
+                Port = ((IPEndPoint)_listener.LocalEndpoint).Port;
+                if (!Socket.OSSupportsIPv6) break;
+                try {
+                    _ipv6Listener = new TcpListener(IPAddress.IPv6Loopback, Port);
+                    _ipv6Listener.Start();
+                    break;
+                } catch (SocketException) when (attempt < 20) {
+                    _ipv6Listener = null;
+                    _listener.Stop();
+                }
+            }
+            StartThread(() => AcceptLoop(_listener));
+            if (_ipv6Listener != null) StartThread(() => AcceptLoop(_ipv6Listener));
         }
 
         internal int Port { get; }
-        internal bool WasRequested { get; private set; }
-        internal string? RequestHost { get; private set; }
-        internal string? RequestCookie { get; private set; }
+        internal bool WasRequested => _wasRequested;
+        internal string? RequestHost => _requestHost;
+        internal string? RequestCookie => _requestCookie;
 
-        internal async Task SendAsync(string statusAndHeaders, byte[]? payload = null) {
+        /// <summary>
+        /// Answers the next connection. The task completes once the response is written, or without a request
+        /// once the server is disposed.
+        /// </summary>
+        internal Task SendAsync(string statusAndHeaders, byte[]? payload = null) {
+            var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            StartThread(() => {
+                try {
+                    Respond(statusAndHeaders, payload);
+                    completion.SetResult(true);
+                } catch (Exception exception) {
+                    completion.SetException(exception);
+                }
+            });
+            return completion.Task;
+        }
+
+        private void Respond(string statusAndHeaders, byte[]? payload) {
+            // Disposal cancels the wait and completes the queue; either one ends the wait without a request.
+            TcpClient? client;
             try {
-                using TcpClient client = await _listener.AcceptTcpClientAsync();
-                WasRequested = true;
-                RequestCookie = null;
+                if (!_accepted.TryTake(out client, Timeout.Infinite, _stopped.Token)) return;
+            } catch (OperationCanceledException) {
+                return;
+            }
+
+            using (client) {
+                _requestCookie = null;
                 using NetworkStream stream = client.GetStream();
                 using var reader = new StreamReader(stream, Encoding.ASCII, false, 1024, leaveOpen: true);
                 string? line;
-                while (!string.IsNullOrEmpty(line = await reader.ReadLineAsync())) {
-                    if (line.StartsWith("Host:", StringComparison.OrdinalIgnoreCase)) {
-                        RequestHost = line.Substring(5).Trim();
+                while (!string.IsNullOrEmpty(line = reader.ReadLine())) {
+                    if (line!.StartsWith("Host:", StringComparison.OrdinalIgnoreCase)) {
+                        _requestHost = line.Substring(5).Trim();
                     } else if (line.StartsWith("Cookie:", StringComparison.OrdinalIgnoreCase)) {
-                        RequestCookie = line.Substring(7).Trim();
+                        _requestCookie = line.Substring(7).Trim();
                     }
                 }
 
                 byte[] header = Encoding.ASCII.GetBytes(
                     $"HTTP/1.1 {statusAndHeaders}\r\nContent-Length: {payload?.Length ?? 0}\r\nConnection: close\r\n\r\n");
-                await stream.WriteAsync(header, 0, header.Length);
+                stream.Write(header, 0, header.Length);
                 if (payload != null) {
-                    await stream.WriteAsync(payload, 0, payload.Length);
+                    stream.Write(payload, 0, payload.Length);
                 }
-            } catch (SocketException) when (_disposed) {
-            } catch (ObjectDisposedException) when (_disposed) {
             }
         }
 
+        private void AcceptLoop(TcpListener listener) {
+            while (true) {
+                TcpClient client;
+                try {
+                    client = listener.AcceptTcpClient();
+                } catch (SocketException) {
+                    return;
+                } catch (ObjectDisposedException) {
+                    return;
+                } catch (InvalidOperationException) {
+                    return;
+                }
+                _wasRequested = true;
+                try {
+                    _accepted.Add(client);
+                } catch (InvalidOperationException) {
+                    client.Dispose();
+                    return;
+                }
+            }
+        }
+
+        private static void StartThread(ThreadStart work) => new Thread(work) { IsBackground = true }.Start();
+
         public void Dispose() {
-            _disposed = true;
+            _stopped.Cancel();
             _listener.Stop();
+            _ipv6Listener?.Stop();
+            _accepted.CompleteAdding();
+            while (_accepted.TryTake(out TcpClient? unanswered)) unanswered.Dispose();
         }
     }
 }

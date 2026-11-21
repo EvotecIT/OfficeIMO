@@ -30,7 +30,8 @@ namespace OfficeIMO.PowerPoint {
                     axisGroup: item.AxisGroup);
             }).Select((series, index) =>
                 series.WithSeriesStyle(snapshot.Data.Series[index].SharedAppearance?.SeriesStyle).WithPointStyles(snapshot.Data.Series[index].PointStyles)
-                    .WithPointExplosions(snapshot.Data.Series[index].SharedAppearance?.PointExplosions)).ToList();
+                    .WithPointExplosions(snapshot.Data.Series[index].SharedAppearance?.PointExplosions)
+                    .WithTrendline(snapshot.Data.Series[index].SharedAppearance?.Trendline)).ToList();
             return new OfficeChartSnapshot(snapshot.Name, snapshot.Title, MapKind(snapshot.ChartKind),
                 new OfficeChartData(snapshot.Data.Categories, series), global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height),
                 style ?? snapshot.Style, layout ?? snapshot.Layout,

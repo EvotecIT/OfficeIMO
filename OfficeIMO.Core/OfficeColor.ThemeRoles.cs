@@ -89,11 +89,17 @@ public readonly partial struct OfficeColor {
     }
     private byte LiteralComponent(byte value) => IsThemeRole
         ? throw new InvalidOperationException("Resolve the color against an OfficeTheme before reading RGBA components or formatting a literal.") : value;
+    // Parsing runs once per styled cell, so the role names are listed once instead of per call.
+    private static readonly KeyValuePair<OfficeColorRole, string>[] RoleNames = OfficeIMO.Internal.EnumCompat.GetValues<OfficeColorRole>()
+        .Where(role => role != OfficeColorRole.None)
+        .Select(role => new KeyValuePair<OfficeColorRole, string>(role, role.ToString()))
+        .ToArray();
+
     private static bool TryParseRole(string value, out OfficeColor color) {
         // Enum.TryParse accepts numbers; role parsing deliberately accepts names only.
-        foreach (OfficeColorRole role in OfficeIMO.Internal.EnumCompat.GetValues<OfficeColorRole>()) {
-            if (role != OfficeColorRole.None && string.Equals(value, role.ToString(), StringComparison.OrdinalIgnoreCase)) {
-                color = new OfficeColor(role);
+        foreach (KeyValuePair<OfficeColorRole, string> role in RoleNames) {
+            if (string.Equals(value, role.Value, StringComparison.OrdinalIgnoreCase)) {
+                color = new OfficeColor(role.Key);
                 return true;
             }
         }

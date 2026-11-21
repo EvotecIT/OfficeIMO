@@ -47,6 +47,20 @@ namespace OfficeIMO.Excel {
             }
 
             if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
+                if (headerRow <= 1 && _excelDocument.TryGetDirectTabularSaveCandidateHeaders(this, out string[] headers, out int lastRow)) {
+                    for (int index = 0; index < headers.Length; index++) {
+                        if (!HeadersMatch(headers[index], headerName, normalizeHeader)) {
+                            continue;
+                        }
+
+                        int firstRow = includeHeader ? 1 : 2;
+                        range = BuildSingleColumnRange(firstRow, index + 1, Math.Max(firstRow, lastRow));
+                        return true;
+                    }
+
+                    return false;
+                }
+
                 _excelDocument.MaterializeDeferredDataSetImport();
             }
 

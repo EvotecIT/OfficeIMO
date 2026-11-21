@@ -1403,7 +1403,8 @@ public partial class DrawingTests {
         Assert.Contains("<polygon points=\"0,20 30,0 60,20\"", svg, StringComparison.Ordinal);
         Assert.Contains("fill=\"#112233\" fill-opacity=\"0.502\"", svg, StringComparison.Ordinal);
         Assert.Contains("stroke=\"#FF0000\" stroke-width=\"2\"", svg, StringComparison.Ordinal);
-        Assert.Contains("transform=\"matrix(0.707 0.707 -0.707 0.707", svg, StringComparison.Ordinal);
+        // Matrix coefficients round-trip exactly.
+        Assert.Matches(@"transform=""matrix\(0\.7071067811865\d* 0\.7071067811865\d* -0\.7071067811865\d* 0\.7071067811865\d* ", svg);
     }
 
     [Fact]
@@ -1458,7 +1459,8 @@ public partial class DrawingTests {
         Assert.Contains("stroke-opacity=\"0.502\"", svg, StringComparison.Ordinal);
         Assert.Contains("stroke-dasharray=\"8 4\"", svg, StringComparison.Ordinal);
         Assert.Contains("stroke-linecap=\"round\"", svg, StringComparison.Ordinal);
-        Assert.Contains("transform=\"matrix(0.707 0.707 -0.707 0.707", svg, StringComparison.Ordinal);
+        // Matrix coefficients round-trip exactly.
+        Assert.Matches(@"transform=""matrix\(0\.7071067811865\d* 0\.7071067811865\d* -0\.7071067811865\d* 0\.7071067811865\d* ", svg);
     }
 
     [Fact]
@@ -1626,7 +1628,8 @@ public partial class DrawingTests {
         Assert.Contains("<path d=\"M0 0Q30 0 60 20L0 20Z\"", svg, StringComparison.Ordinal);
         Assert.Contains("fill=\"#112233\" fill-opacity=\"0.502\"", svg, StringComparison.Ordinal);
         Assert.Contains("stroke=\"#FF0000\" stroke-width=\"2\"", svg, StringComparison.Ordinal);
-        Assert.Contains("transform=\"matrix(0.707 0.707 -0.707 0.707", svg, StringComparison.Ordinal);
+        // Matrix coefficients round-trip exactly.
+        Assert.Matches(@"transform=""matrix\(0\.7071067811865\d* 0\.7071067811865\d* -0\.7071067811865\d* 0\.7071067811865\d* ", svg);
     }
 
     [Fact]
@@ -1989,6 +1992,9 @@ public partial class DrawingTests {
         var matrixBuilder = new StringBuilder("<g");
         matrixBuilder.AppendMatrixTransformAttribute(matrixTransform, 40D, 50D).Append(">");
         Assert.Equal("<g transform=\"matrix(0 1 -1 0 55 55)\">", matrixBuilder.ToString());
+        // Coefficients keep their shortest round-trip text on every framework; this one needs 16 digits.
+        Assert.Equal("matrix(0.4694715627858908 1 -0.4694715627858908 1 0 4.000000000000014)", OfficeSvgFormatting.FormatMatrixTransform(
+            new OfficeTransform(0.4694715627858908D, 1D, -0.4694715627858908D, 1D, 0D, 4.000000000000014D)));
         Assert.Equal("rotate(45 50 40)", OfficeSvgFormatting.FormatImageFrameTransform(new OfficeImageFrameTransform(45D, 50D, 40D)));
         Assert.Equal("translate(50 40) rotate(45) scale(-1 1) translate(-50 -40)", OfficeSvgFormatting.FormatImageFrameTransform(new OfficeImageFrameTransform(45D, 50D, 40D, flipHorizontal: true)));
         Assert.Null(OfficeSvgFormatting.FormatImageFrameTransform(new OfficeImageFrameTransform(0D, 50D, 40D)));
@@ -3266,6 +3272,22 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeTextMeasurerMeasuresAsciiTextLikeTheTextElementPath() {
+        var measurer = OfficeTextMeasurer.Create(OfficeFontInfo.Default);
+        var texts = new List<string> { "Tab\there", "Line\r\nbreak\rand\nmore", "\u0001\u007f controls", "John Doe <john.doe@example.com>", "12345.67" };
+        for (char character = ' '; character < '\u007f'; character++) texts.Add(new string(character, 3));
+        foreach (OfficeFontInfo font in new[] {
+            OfficeFontInfo.Default, new OfficeFontInfo("Courier New", 10, OfficeFontStyle.Bold),
+            new OfficeFontInfo("Times New Roman", 14, OfficeFontStyle.Italic), new OfficeFontInfo("Unknown Sans", 9) }) {
+            OfficeTextMeasurementStyle style = measurer.CreateStyle(font, 120);
+            foreach (string text in texts) {
+                // A zero-width space measures nothing and sends the text through the general text-element path.
+                Assert.Equal(measurer.MeasureWidth(text + "​", style), measurer.MeasureWidth(text, style));
+            }
+        }
+    }
+
+    [Fact]
     public void OfficeTextMeasurerTreatsMalformedSurrogatesAsSingleReplacementScalars() {
         var measurer = OfficeTextMeasurer.Create(OfficeFontInfo.Default);
         OfficeTextMeasurementStyle style = measurer.CreateStyle(new OfficeFontInfo("Arial", 12));
@@ -3689,7 +3711,7 @@ public partial class DrawingTests {
         return data;
     }
 
-    private static byte[] CreateMinimalTrueTypeFont(byte[] cmap, byte[]? glyfData = null,
+    internal static byte[] CreateMinimalTrueTypeFont(byte[] cmap, byte[]? glyfData = null,
         byte[]? locaData = null, ushort glyphCount = 2) {
         var maxp = new byte[] { 0x00, 0x01, 0x00, 0x00, 0x00, 0x00 };
         WriteUInt16(maxp, 4, glyphCount);
@@ -3747,7 +3769,7 @@ public partial class DrawingTests {
         }
     }
 
-    private static void WriteUInt16(byte[] data, int offset, int value) {
+    internal static void WriteUInt16(byte[] data, int offset, int value) {
         data[offset] = (byte)((value >> 8) & 0xFF);
         data[offset + 1] = (byte)(value & 0xFF);
     }

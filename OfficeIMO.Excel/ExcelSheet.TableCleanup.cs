@@ -57,6 +57,7 @@ namespace OfficeIMO.Excel {
             if (headerRowCount > 1U) {
                 headerRowCount = 1U;
             }
+            _excelDocument.InvalidateTableLayouts();
             table.HeaderRowCount = headerRowCount;
 
             NormalizeTableColumns(table, startRow, startColumn, endColumn, headerRowCount > 0U);
@@ -239,6 +240,7 @@ namespace OfficeIMO.Excel {
                 _excelDocument.RemoveReservedTableName(tableName!);
             }
 
+            _excelDocument.InvalidateTableLayouts();
             _worksheetPart.DeletePart(tableDefinitionPart);
         }
 

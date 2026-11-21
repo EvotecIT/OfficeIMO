@@ -120,7 +120,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             PowerPointDeckRhythmReport rhythm = result.Plan.InspectRhythm(result.Design);
             PowerPointDeckPreflightReport report = result.Preflight;
             report.SaveJson(reportPath);
-            PowerPointAccessibilityReport accessibility = presentation.InspectAccessibility();
+            OfficeAccessibilityReport accessibility = presentation.InspectAccessibility();
             accessibility.SaveJson(accessibilityPath);
             accessibility.EnsureCompliant();
             presentation.Save();

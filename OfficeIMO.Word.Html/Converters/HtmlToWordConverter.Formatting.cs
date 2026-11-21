@@ -293,7 +293,32 @@ namespace OfficeIMO.Word.Html {
             }
 
             var align = GetInlinePropertyValue(declaration, styleAttribute, "text-align")?.Trim();
-            if (TryMapTextAlign(align, GetBidiFromDir(element), out var mappedAlignment)) {
+            // A value a container copied into this element's style is inherited, so the element's
+            // own align attribute still outranks it.
+            if (!string.IsNullOrWhiteSpace(align) && IsInjectedInheritedProperty(element, "text-align")
+                && IsLegacyAlignedBlock(element) && !string.IsNullOrWhiteSpace(element.GetAttribute("align"))) {
+                align = null;
+            }
+            // inherit and unset take the container's or cell's alignment, so they do not own one.
+            if (!string.IsNullOrWhiteSpace(align) && !IsInjectedInheritedProperty(element, "text-align") && !InheritsTextAlign(align)) {
+                _ownAlignmentParagraphs.Add(paragraph._paragraph);
+            }
+            JustificationValues mappedAlignment;
+            if (!string.IsNullOrWhiteSpace(align) && IsInjectedInheritedProperty(element, "text-align")
+                && TryResolveInheritedTextAlign(element, out mappedAlignment)) {
+                // A copied value comes from an outer container; a nearer div align between the two wins.
+                alignment = mappedAlignment;
+            } else if (TryMapTextAlign(align, GetBidiFromDir(element), out mappedAlignment)) {
+                alignment = mappedAlignment;
+            } else if (string.IsNullOrWhiteSpace(align) && IsLegacyAlignedBlock(element)
+                && TryMapTextAlign(element.GetAttribute("align"), GetBidiFromDir(element), out mappedAlignment)) {
+                // The align attribute is a presentational hint below authored CSS, including
+                // resets such as initial or unset, so it applies only without a text-align declaration.
+                alignment = mappedAlignment;
+            } else if ((string.IsNullOrWhiteSpace(align) || InheritsTextAlign(align))
+                && TryResolveInheritedTextAlign(element, out mappedAlignment)) {
+                // text-align is inherited: body, list and other container alignment reaches
+                // descendants that are converted to their own paragraphs.
                 alignment = mappedAlignment;
             }
 
@@ -399,6 +424,74 @@ namespace OfficeIMO.Word.Html {
             return parsed;
         }
 
+        // A container's text-align, or its legacy align attribute, reaches the paragraphs it produced,
+        // including its own bare text; paragraphs that set their own alignment keep it.
+        private void ApplyContainerAlignment(IElement element, IReadOnlyList<WordParagraph> paragraphs) {
+            if (paragraphs.Count == 0) return;
+            string? styleAttribute = element.GetAttribute("style");
+            string? align = string.IsNullOrWhiteSpace(styleAttribute) ? null
+                : GetInlinePropertyValue(ParseInlineDeclaration(styleAttribute), styleAttribute, "text-align")?.Trim();
+            // A value copied from an outer container is inherited, so this element's align attribute outranks it.
+            if (!string.IsNullOrWhiteSpace(align) && IsInjectedInheritedProperty(element, "text-align")
+                && IsLegacyAlignedBlock(element) && !string.IsNullOrWhiteSpace(element.GetAttribute("align"))) {
+                align = null;
+            }
+            bool? bidi = GetBidiFromDir(element);
+            if (!TryMapTextAlign(align, bidi, out JustificationValues alignment)
+                && !(string.IsNullOrWhiteSpace(align) && IsLegacyAlignedBlock(element)
+                    && TryMapTextAlign(element.GetAttribute("align"), bidi, out alignment))) {
+                // A reset such as initial keeps outer containers from aligning this element's text.
+                if (!string.IsNullOrWhiteSpace(align) && !InheritsTextAlign(align) && !IsInjectedInheritedProperty(element, "text-align")) {
+                    foreach (WordParagraph paragraph in paragraphs) _ownAlignmentParagraphs.Add(paragraph._paragraph);
+                }
+                return;
+            }
+            foreach (WordParagraph paragraph in paragraphs) {
+                if (!_ownAlignmentParagraphs.Contains(paragraph._paragraph)) paragraph.ParagraphAlignment ??= alignment.ToOfficeEnum();
+            }
+        }
+
+        // Paragraphs whose element declared text-align, including a reset such as initial; a
+        // container or table cell alignment does not replace it.
+        private readonly HashSet<DocumentFormat.OpenXml.Wordprocessing.Paragraph> _ownAlignmentParagraphs = new();
+
+        private static bool InheritsTextAlign(string? value) =>
+            string.Equals(value, "inherit", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value, "unset", StringComparison.OrdinalIgnoreCase);
+
+        private bool IsInjectedInheritedProperty(IElement element, string property) =>
+            _injectedInheritedCssProperties.TryGetValue(element, out HashSet<string>? injected) && injected.Contains(property);
+
+        // The nearest ancestor's text-align declaration, or its legacy align attribute. start and
+        // end resolve against this element's own direction, as an inherited keyword does in CSS.
+        // inherit and unset defer to the next ancestor. Values copied down from a container are
+        // skipped, so an align attribute between the copy and its source still applies; a copy that
+        // differs from the declaration found above it came from a nearer stylesheet rule and wins.
+        private bool TryResolveInheritedTextAlign(IElement element, out JustificationValues alignment) {
+            alignment = JustificationValues.Left;
+            bool? bidi = GetBidiFromDir(element);
+            string? copied = null;
+            for (IElement? ancestor = element.ParentElement; ancestor != null; ancestor = ancestor.ParentElement) {
+                string? styleAttribute = ancestor.GetAttribute("style");
+                string? value = string.IsNullOrWhiteSpace(styleAttribute) ? null
+                    : GetInlinePropertyValue(ParseInlineDeclaration(styleAttribute), styleAttribute, "text-align")?.Trim();
+                bool injected = !string.IsNullOrWhiteSpace(value) && IsInjectedInheritedProperty(ancestor, "text-align");
+                if ((string.IsNullOrWhiteSpace(value) || injected) && IsLegacyAlignedBlock(ancestor)
+                    && TryMapTextAlign(ancestor.GetAttribute("align"), bidi, out alignment)) return true;
+                if (injected) {
+                    copied ??= value;
+                } else if (!string.IsNullOrWhiteSpace(value) && !InheritsTextAlign(value)) {
+                    return TryMapTextAlign(copied != null && !string.Equals(copied, value, StringComparison.OrdinalIgnoreCase)
+                        ? copied : value, bidi, out alignment);
+                }
+                if (ancestor.LocalName is "td" or "th" or "table") break;
+            }
+            return TryMapTextAlign(copied, bidi, out alignment);
+        }
+
+        private static bool IsLegacyAlignedBlock(IElement element) =>
+            element.LocalName is "p" or "div" or "h1" or "h2" or "h3" or "h4" or "h5" or "h6";
+
         private static bool TryMapTextAlign(string? value, bool? bidi, out JustificationValues alignment) {
             alignment = JustificationValues.Left;
             if (string.IsNullOrWhiteSpace(value)) {
@@ -407,15 +500,23 @@ namespace OfficeIMO.Word.Html {
 
             switch (value!.Trim().ToLowerInvariant()) {
                 case "center":
+                case "-webkit-center":
+                case "-moz-center":
                     alignment = JustificationValues.Center;
                     return true;
                 case "right":
+                case "-webkit-right":
+                case "-moz-right":
                     alignment = JustificationValues.Right;
                     return true;
                 case "justify":
+                // Word justifies every line except the last; the last-line part of justify-all is reported.
+                case "justify-all":
                     alignment = JustificationValues.Both;
                     return true;
                 case "left":
+                case "-webkit-left":
+                case "-moz-left":
                     alignment = JustificationValues.Left;
                     return true;
                 case "start":
@@ -565,8 +666,8 @@ namespace OfficeIMO.Word.Html {
                 if (!string.IsNullOrEmpty(font)) {
                     run.SetFontFamily(font!);
                 }
-            } else if (!string.IsNullOrEmpty(options.FontFamily)) {
-                var font = ResolveFontFamily(options.FontFamily);
+            } else if (GetRunFontFamilyOption(options) is { } optionFont) {
+                var font = ResolveFontFamily(optionFont);
                 if (!string.IsNullOrEmpty(font)) {
                     run.SetFontFamily(font!);
                 }

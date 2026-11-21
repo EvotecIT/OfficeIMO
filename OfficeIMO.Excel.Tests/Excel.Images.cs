@@ -419,8 +419,9 @@ namespace OfficeIMO.Tests {
             }
 
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false);
-            var imagePart = spreadsheet.WorkbookPart!.WorksheetParts.First().DrawingsPart!.ImageParts.Single();
-            Assert.Equal(expectedContentType, imagePart.ContentType);
+            // An SVG picture also carries its PNG fallback part.
+            var imageParts = spreadsheet.WorkbookPart!.WorksheetParts.First().DrawingsPart!.ImageParts;
+            Assert.Contains(imageParts, part => part.ContentType == expectedContentType);
         }
 
         private static byte[] CreateCompleteImageTestEmf(int width, int height) {

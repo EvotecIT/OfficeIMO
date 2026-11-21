@@ -88,8 +88,9 @@ Get-Help Convert-OfficeDocument -Examples
 ## Runtimes
 
 PSWriteOffice runs on PowerShell 7.4 and later, and on Windows PowerShell
-5.1. Export-OfficeProjectReport, Get-OfficePrinter and Send-OfficePdfPrinter
-require PowerShell 7.4 or later.
+5.1. Export-OfficeProjectReport and the printing commands (Get-OfficePrinter,
+Get-OfficePrinterCapability, Send-OfficePrinter, Get-OfficePrintJob and
+Stop-OfficePrintJob) require PowerShell 7.4 or later.
 
 OfficeIMO processes documents without Microsoft Office installed.
 

@@ -60,11 +60,15 @@ namespace OfficeIMO.Tests {
                 WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
                 var cells = wsPart.Worksheet.Descendants<Cell>().ToList();
 
+                string CellText(Cell cell) => cell.DataType?.Value == CellValues.SharedString
+                    ? spreadsheet.WorkbookPart!.SharedStringTablePart!.SharedStringTable!.Elements<SharedStringItem>().ElementAt(int.Parse(cell.CellValue!.Text, CultureInfo.InvariantCulture)).InnerText
+                    : cell.CellValue!.Text;
+
                 Cell cellDto = cells.First(c => c.CellReference == "A1");
-                AssertRoundTripNumericText(dateOffset.LocalDateTime.ToOADate(), cellDto.CellValue!.Text);
+                Assert.Equal("2024-01-02T03:04:05.0000000+00:00", CellText(cellDto));
 
                 Cell cellTs = cells.First(c => c.CellReference == "A2");
-                AssertRoundTripNumericText(time.TotalDays, cellTs.CellValue!.Text);
+                AssertRoundTripNumericText(MillisecondSerial(time), cellTs.CellValue!.Text);
 
                 Cell cellUint = cells.First(c => c.CellReference == "A3");
                 Assert.Equal(ui.ToString(CultureInfo.InvariantCulture), cellUint.CellValue!.Text);
@@ -86,16 +90,16 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(string.Empty, cellNullableNull.CellValue!.Text);
 
                 Cell cellNullableDto = cells.First(c => c.CellReference == "A9");
-                AssertRoundTripNumericText(nullableDto.Value.LocalDateTime.ToOADate(), cellNullableDto.CellValue!.Text);
+                Assert.Equal("2024-01-02T03:04:05.0000000+00:00", CellText(cellNullableDto));
 
                 Cell cellNullableTs = cells.First(c => c.CellReference == "A10");
-                AssertRoundTripNumericText(nullableTs.Value.TotalDays, cellNullableTs.CellValue!.Text);
+                AssertRoundTripNumericText(MillisecondSerial(nullableTs.Value), cellNullableTs.CellValue!.Text);
 #if NET6_0_OR_GREATER
                 Cell cellDateOnly = cells.First(c => c.CellReference == "A11");
                 AssertRoundTripNumericText(dateOnly.ToDateTime(TimeOnly.MinValue).ToOADate(), cellDateOnly.CellValue!.Text);
 
                 Cell cellTimeOnly = cells.First(c => c.CellReference == "A12");
-                AssertRoundTripNumericText(timeOnly.ToTimeSpan().TotalDays, cellTimeOnly.CellValue!.Text);
+                AssertRoundTripNumericText(MillisecondSerial(timeOnly.ToTimeSpan()), cellTimeOnly.CellValue!.Text);
 #endif
 
                 var styles = spreadsheet.WorkbookPart!.WorkbookStylesPart!.Stylesheet!;
@@ -162,13 +166,18 @@ namespace OfficeIMO.Tests {
                 WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
                 var cells = wsPart.Worksheet.Descendants<Cell>().ToList();
 
+                // Excel holds numbers as doubles, so integers wider than 15 digits are kept as exact text.
+                string CellText(Cell cell) => cell.DataType?.Value == CellValues.SharedString
+                    ? spreadsheet.WorkbookPart!.SharedStringTablePart!.SharedStringTable!.Elements<SharedStringItem>().ElementAt(int.Parse(cell.CellValue!.Text, CultureInfo.InvariantCulture)).InnerText
+                    : cell.CellValue!.Text;
+
                 Cell cellLargeUnsigned = cells.First(c => c.CellReference == "A1");
-                Assert.Equal(CellValues.Number, cellLargeUnsigned.DataType!.Value);
-                Assert.Equal(largeUnsigned.ToString(CultureInfo.InvariantCulture), cellLargeUnsigned.CellValue!.Text);
+                Assert.NotEqual(CellValues.Number, cellLargeUnsigned.DataType!.Value);
+                Assert.Equal(largeUnsigned.ToString(CultureInfo.InvariantCulture), CellText(cellLargeUnsigned));
 
                 Cell cellLargeSigned = cells.First(c => c.CellReference == "A2");
-                Assert.Equal(CellValues.Number, cellLargeSigned.DataType!.Value);
-                Assert.Equal(largeSigned.ToString(CultureInfo.InvariantCulture), cellLargeSigned.CellValue!.Text);
+                Assert.NotEqual(CellValues.Number, cellLargeSigned.DataType!.Value);
+                Assert.Equal(largeSigned.ToString(CultureInfo.InvariantCulture), CellText(cellLargeSigned));
             }
         }
 
@@ -181,6 +190,7 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath))
             {
+                document.DateTimeOffsetWriteMode = ExcelDateTimeOffsetWriteMode.Serial;
                 var sheet = document.AddSheet("Data");
                 sheet.Cell(1, 1).SetValue(positive);
                 sheet.Cell(2, 1).SetValue(negative);
@@ -304,7 +314,7 @@ namespace OfficeIMO.Tests {
 
                 Cell cellDuration = cells.First(c => c.CellReference == "A1");
                 Assert.Equal(CellValues.Number, cellDuration.DataType!.Value);
-                AssertRoundTripNumericText(duration.TotalDays, cellDuration.CellValue!.Text);
+                AssertRoundTripNumericText(MillisecondSerial(duration), cellDuration.CellValue!.Text);
                 Assert.NotNull(cellDuration.StyleIndex);
 
                 var styles = workbookPart.WorkbookStylesPart!.Stylesheet!;
@@ -316,7 +326,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(cellFormat.ApplyNumberFormat?.Value ?? false);
 
                 Cell cellNullable = cells.First(c => c.CellReference == "A2");
-                AssertRoundTripNumericText(duration.TotalDays, cellNullable.CellValue!.Text);
+                AssertRoundTripNumericText(MillisecondSerial(duration), cellNullable.CellValue!.Text);
                 Assert.NotNull(cellNullable.StyleIndex);
                 Assert.Equal(cellDuration.StyleIndex!.Value, cellNullable.StyleIndex!.Value);
             }

@@ -27,7 +27,7 @@ namespace OfficeIMO.Excel.Xlsb.Package {
             byte[]? buffer = Interlocked.Exchange(ref _buffer, null);
             if (buffer != null) {
                 Array.Clear(buffer, 0, _length);
-                ArrayPool<byte>.Shared.Return(buffer);
+                ExcelArrayPool.Return(buffer);
             }
             Interlocked.Exchange(ref _secondaryOwner, null)?.Dispose();
         }

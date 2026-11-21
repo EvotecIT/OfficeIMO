@@ -240,7 +240,7 @@ public static partial class HtmlContentSafety {
         string? preferredSet = titledStylesheetSets.FirstOrDefault();
         foreach (IElement style in document.QuerySelectorAll("style")) {
             if (!HtmlRenderStylesheetApplier.IsApplicableStyleElement(style, renderOptions, preferredSet)) continue;
-            cssBudget.ReserveOrThrow(style.TextContent ?? string.Empty);
+            cssBudget.ReserveOrThrow(HtmlStyleElementText.Read(style) ?? string.Empty);
         }
         var resourceOptions = new HtmlResourcePipelineOptions {
             BaseUri = renderOptions.BaseUri,
@@ -281,7 +281,7 @@ public static partial class HtmlContentSafety {
         var existingStyles = new HashSet<IElement>(document.QuerySelectorAll("style"));
         var originalInlineStyles = existingStyles.ToDictionary(
             style => style,
-            style => style.TextContent ?? string.Empty);
+            style => HtmlStyleElementText.Read(style) ?? string.Empty);
         if (stylesheets.Resources.Count > 0) resourceBudget.Apply(renderOptions);
         HtmlResourceSession resources = await HtmlRenderResourceLoader.LoadAsync(
             stylesheets,
@@ -367,7 +367,7 @@ public static partial class HtmlContentSafety {
         string? preferredSet = HtmlRenderStylesheetApplier.FindPreferredStylesheetSet(document, renderOptions);
         foreach (IElement style in document.QuerySelectorAll("style")) {
             if (!HtmlRenderStylesheetApplier.IsApplicableStyleElement(style, renderOptions, preferredSet)) continue;
-            string css = style.TextContent ?? string.Empty;
+            string css = HtmlStyleElementText.Read(style) ?? string.Empty;
             ThrowForUnsafeStylesheetConditions(css, documentBaseUri, resourceOptions);
             hasEnvironmentDependentComputedStyles |= HtmlResourcePipeline.HasEnvironmentDependentComputedStyle(css);
         }

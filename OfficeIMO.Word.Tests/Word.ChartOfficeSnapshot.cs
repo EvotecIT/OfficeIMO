@@ -84,6 +84,22 @@ public sealed class WordChartOfficeSnapshotTests {
     }
 
     [Fact]
+    public void OfficeSnapshot_ProjectsLogarithmicReversedSecondaryAxis() {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(new[] { "A", "B", "C" }, new[] {
+            new OfficeSeries("Count", new[] { 1d, 2d, 3d }),
+            new OfficeSeries("Ratio", new[] { 2d, 30d, 400d }, null, null, null, true,
+                renderKind: OfficeChartType.Line, axisGroup: OfficeChartAxisGroup.Secondary)
+        }));
+        chart.SetSecondaryValueAxis(new OfficeChartValueAxisLayout().WithLogarithmicScale(10D).WithReversedScale(true));
+
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        OfficeChartValueAxisLayout secondary = snapshot.Layout.SecondaryValueAxis!;
+        Assert.Equal((10D, true), (secondary.LogBase, secondary.IsReversed));
+        Assert.Equal((false, (double?)null), (snapshot.Layout.ReverseVerticalValueAxis, snapshot.Layout.VerticalAxisLogBase));
+    }
+
+    [Fact]
     public void SecondaryAxisScaleUpdatePreservesTitleUntilExplicitlyCleared() {
         using var document = WordDocument.Create();
         var chart = document.AddChart(OfficeChartType.ColumnClustered,new OfficeChartData(new[] { "A" }, new[] {
@@ -263,7 +279,8 @@ public sealed class WordChartOfficeSnapshotTests {
         Assert.Equal(" / ", snapshot.Layout.DataLabelSeparator);
         var drawing = OfficeChartDrawingRenderer.Render(snapshot);
         Assert.Contains(drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text.Contains("A / 75%"));
-        labels.AddChild(new C.DataLabel(new C.Index { Val = 0 }), true);
+        labels.AddChild(new C.DataLabel(new C.Index { Val = 0 }, new C.ChartText(new C.RichText(new A.BodyProperties(), new A.ListStyle(),
+            new A.Paragraph(new A.Run(new A.Text("Custom")))))), true);
         Assert.False(chart.TryGetOfficeSnapshot(out _));
     }
     [Theory]

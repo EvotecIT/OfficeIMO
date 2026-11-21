@@ -75,4 +75,7 @@ public sealed class PdfExtractedAttachment {
 
     /// <summary>Decoded payload size without allocating the defensive public copy.</summary>
     internal int ByteLength => _bytes.Length;
+
+    /// <summary>The owned decoded payload for read-only internal consumers that must not allocate a second copy.</summary>
+    internal byte[] PayloadWithoutCopy => _bytes;
 }

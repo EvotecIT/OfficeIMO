@@ -7,6 +7,7 @@ public sealed partial class OfficeWorkflowRunner {
     private static (byte[] Bytes, OfficeWorkflowConversionEvidence Evidence) ConvertTier1(ValidatedRequest request,
         byte[] input, CancellationToken token, bool emitHtmlTaggedStructure,
         IReadOnlyDictionary<string, byte[]>? htmlResourceSnapshots) {
+        OfficeWorkflow.RegisterConversions();
         OfficeConversionOptions options = request.UnifiedConversionOptions?.Clone() ?? new();
         options.RouteId = request.Route!.Id;
         options.SourceName = Path.GetFileName(request.InputPath);

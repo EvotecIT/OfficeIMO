@@ -1,0 +1,82 @@
+{
+  "description": "Base and overlay pairs for the OfficeIMO YAML merge. Bases keep upstream bytes; overlays are authored in the style of real per-environment files. Paths are relative to this folder; '../Corpus/' bases are verified by the corpus manifest.",
+  "retrieved": "2026-11-10",
+  "files": [
+    {
+      "path": "Helm/prometheus-node-exporter-values.yaml",
+      "repository": "https://github.com/prometheus-community/helm-charts",
+      "commit": "3c4df2496592de5baf64ce231809406c2e4f0e61",
+      "sourcePath": "charts/prometheus-node-exporter/values.yaml",
+      "sourceUrl": "https://github.com/prometheus-community/helm-charts/blob/3c4df2496592de5baf64ce231809406c2e4f0e61/charts/prometheus-node-exporter/values.yaml",
+      "license": "Apache-2.0",
+      "licenseFiles": [
+        "Licenses/prometheus-community-helm-charts.LICENSE.txt"
+      ],
+      "bytes": 22773,
+      "sha256": "e34082aae73d04eb9b9bf6d36ef171964d6d058cfd31375f1388a9f0d8f28b95"
+    },
+    {
+      "path": "Helm/prometheus-node-exporter-values.prod.yaml",
+      "authored": true,
+      "license": "MIT",
+      "why": "Production overlay in the shape of real values.prod.yaml files: image registry and tag, a ServiceMonitor, resources over 'resources: {}' followed by indented comment lines, a null that removes podAnnotations, and replaced lists.",
+      "bytes": 794,
+      "sha256": "d6f269eafaae2291ceef4b4065cf9107651fbfdba8942609f9eb25baeacd9abf"
+    },
+    {
+      "path": "Helm/bitnami-nginx-values.staging.yaml",
+      "authored": true,
+      "license": "MIT",
+      "why": "Staging overlay: equal values restated with other quoting, new labels into '{}', an anchored probe merged through an alias, ingress hosts and environment variables replacing empty lists.",
+      "bytes": 682,
+      "sha256": "ccbc8224349d9a34c74a0921ab597d29204b1869be727e27adde936c9f0ad828"
+    },
+    {
+      "path": "Config/prometheus-kubernetes.yml",
+      "repository": "https://github.com/prometheus/prometheus",
+      "commit": "997549d4479dbc52382c83679dd998cd1c8eff27",
+      "sourcePath": "documentation/examples/prometheus-kubernetes.yml",
+      "sourceUrl": "https://github.com/prometheus/prometheus/blob/997549d4479dbc52382c83679dd998cd1c8eff27/documentation/examples/prometheus-kubernetes.yml",
+      "license": "Apache-2.0",
+      "licenseFiles": [
+        "Licenses/prometheus-prometheus.LICENSE.txt"
+      ],
+      "bytes": 12265,
+      "sha256": "70eecc5e152f2e2c9de0819cbb71cc118d673bd0a992443fc6cc8c6f701b18a0"
+    },
+    {
+      "path": "Config/prometheus-kubernetes.prod.yml",
+      "authored": true,
+      "license": "MIT",
+      "why": "Per-environment Prometheus configuration: scrape jobs matched by job_name, a new commented job appended, and global settings added.",
+      "bytes": 567,
+      "sha256": "67055b755b04d3b31cf68c994707f8f8f856b77f875fdbe4aaee001437da5bea"
+    }
+  ],
+  "pairs": [
+    {
+      "id": "helm-node-exporter-prod",
+      "base": "Helm/prometheus-node-exporter-values.yaml",
+      "overlay": "Helm/prometheus-node-exporter-values.prod.yaml",
+      "sequences": "replace",
+      "nullRemovesKey": true,
+      "why": "Helm's default: sequences replace and a null deletes a chart default."
+    },
+    {
+      "id": "helm-nginx-staging",
+      "base": "../Corpus/Helm/bitnami-nginx-values.yaml",
+      "overlay": "Helm/bitnami-nginx-values.staging.yaml",
+      "sequences": "replace",
+      "nullRemovesKey": false,
+      "why": "Comment-dense Bitnami values from the committed corpus with an overlay that restates equal values and uses an anchor and alias."
+    },
+    {
+      "id": "config-prometheus-prod",
+      "base": "Config/prometheus-kubernetes.yml",
+      "overlay": "Config/prometheus-kubernetes.prod.yml",
+      "sequences": "mergeByKey:job_name",
+      "nullRemovesKey": false,
+      "why": "Configuration overlay where list items are identified by a key, as tools such as Kustomize patches and per-environment configs do."
+    }
+  ]
+}

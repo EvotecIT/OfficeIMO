@@ -212,7 +212,7 @@ namespace OfficeIMO.Excel {
             document.ApplicationProperties = new ExcelApplicationProperties(document);
             document.CustomProperties.SetChangeHandler(document.MarkCustomDocumentPropertiesChanged);
             document.LoadCustomDocumentProperties();
-            ExcelChartAxisIdGenerator.Initialize(document._spreadSheetDocument);
+            ExcelChartAxisIdGenerator.ReadChartRelationships(document._spreadSheetDocument);
             return document;
         }
 
@@ -257,7 +257,8 @@ namespace OfficeIMO.Excel {
                 originalStream,
                 options.AccessMode);
 
-            ExcelFileFormat detectedFormat = ExcelDocumentLoadRouting.DetectFormat(bytes, filePath);
+            ExcelFileFormat detectedFormat = ExcelDocumentLoadRouting.DetectFormat(bytes, filePath,
+                options.PackageSecurity?.MaxPartCount);
             if (!options.AllowBinaryProjection && detectedFormat is ExcelFileFormat.Xls or ExcelFileFormat.Xlsb) {
                 throw new NotSupportedException("This load profile accepts XML workbook packages only; XLS and XLSB projection is disabled.");
             }
@@ -270,7 +271,8 @@ namespace OfficeIMO.Excel {
             }
 
             if (detectedFormat == ExcelFileFormat.Xlsb) {
-                ExcelDocument document = LoadXlsbFromNormalFlow(bytes, readOnly, saveOnDispose, filePath, options.XlsbImportOptions);
+                ExcelDocument document = LoadXlsbFromNormalFlow(bytes, readOnly, saveOnDispose, filePath, options.XlsbImportOptions,
+                    callerValidatedPackage: options.PackageSecurity != null);
                 return captureSourcePackageSecurity ? WithSourcePackageInspection(document, bytes, options) : document;
             }
 
@@ -303,7 +305,9 @@ namespace OfficeIMO.Excel {
                     unchangedPackageBytes = normalizedContentTypes ? packageStream.ToArray() : bytes;
                 }
 
-                var memDoc = SpreadsheetDocument.Open(normalizedStream, !readOnly, effectiveOpenSettings);
+                var memDoc = readOnly
+                    ? OfficeIMO.OpenXml.Internal.OfficeOpenXmlReadOnlyPackage.OpenSpreadsheet(normalizedStream, effectiveOpenSettings)
+                    : SpreadsheetDocument.Open(normalizedStream, true, effectiveOpenSettings);
                 ExcelDocument document = CreateDocument(
                     memDoc,
                     filePath,
@@ -443,15 +447,26 @@ namespace OfficeIMO.Excel {
             bool readOnly,
             bool saveOnDispose,
             string? filePath,
-            XlsbImportOptions? importOptions) {
+            XlsbImportOptions? importOptions,
+            bool callerValidatedPackage) {
             if (!readOnly && saveOnDispose) {
                 throw new NotSupportedException("SaveOnDispose is not supported for imported XLSB workbooks. Use an explicit Save operation.");
+            }
+
+            if (!callerValidatedPackage) {
+                OfficePackageSecurityInspector.Validate(bytes, OfficePackageSecurityOptions.SecureDefaults);
             }
 
             XlsbImportOptions effectiveOptions = importOptions ?? new XlsbImportOptions();
             XlsbWorkbook workbook = XlsbWorkbookReader.Load(bytes, effectiveOptions);
             ExcelDocument document = XlsbWorkbookProjector.ToExcelDocument(workbook,
                 effectiveOptions.CancellationToken, effectiveOptions.MaxCells);
+            try {
+                XlsbDocumentPropertiesProjector.Apply(document, workbook);
+            } catch {
+                document.Dispose();
+                throw;
+            }
             if (readOnly) {
                 document = ReopenProjectedWorkbookReadOnly(document);
             }

@@ -1,7 +1,8 @@
 # OfficeIMO.Visio.Pdf
 
-`OfficeIMO.Visio.Pdf` converts Visio documents to searchable PDFs. Choose a
-semantic report or physical diagram pages. `OfficeIMO.Visio` owns source
+`OfficeIMO.Visio.Pdf` converts Visio documents to searchable PDFs. By default
+each Visio page becomes a physical PDF page drawn as vector artwork; a semantic
+text and topology report is available instead. `OfficeIMO.Visio` owns source
 projection, and `OfficeIMO.Pdf` owns PDF composition. Reader packages are not
 part of this conversion boundary.
 
@@ -22,13 +23,9 @@ out report)` returns the model with its report, and `ToPdfAsync` returns both
 as `OfficeConversionResult<PdfDocument>`. The async forms run the CPU-bound
 conversion on the thread pool and write the output asynchronously.
 
-The default `SemanticReport` mode produces searchable diagram text and topology
-through the shared `OfficeDocumentModel`. Its report identifies semantic
-fallback rather than claiming native Visio page appearance.
-
 ## Diagram pages
 
-`DiagramPages` mode projects the cached artwork into shared Drawing scenes and
+The default `DiagramPages` mode projects the cached artwork into shared Drawing scenes and
 creates one PDF page for each source page, in source order. Page dimensions
 include the drawing scale; PDF margins are zero. Blank and background pages
 remain separate pages. Each page also paints its associated background chain,
@@ -49,7 +46,6 @@ var drawingOptions = new VisioDrawingOptions {
 // Supply licensed font bytes under the source family name when needed.
 drawingOptions.Fonts.Add("Arial", File.ReadAllBytes("fonts/Arial.ttf"));
 OfficeConversionReport report = diagram.SaveAsPdf("architecture.pdf", new VisioPdfExportOptions {
-    Mode = VisioPdfProjectionMode.DiagramPages,
     DrawingOptions = drawingOptions
 });
 foreach (var diagnostic in report.Diagnostics)
@@ -57,16 +53,19 @@ foreach (var diagnostic in report.Diagnostics)
 ```
 
 The [cached page projection](../OfficeIMO.Visio/README.md#diagram-page-scenes)
-retains supported outlines, physical strokes, text runs and paragraphs,
-connector routes and bitmap placements. The selected layer policy filters both
+retains supported outlines with exact arc, ellipse and Bezier curves, cached
+linear and radial gradient fills, physical strokes, distinct arrowhead kinds,
+text runs and paragraphs, connector routes and bitmap placements. Shape and
+connector hyperlinks become PDF link annotations; a link to another page jumps
+to that page. The selected layer policy filters both
 painted and searchable page content, including associated backgrounds.
 Missing or cyclic background references remain preserved in the source and
 report omissions. Native rendering acceptance for background chains with
 different page sizes or scales remains open. ShapeSheet recalculation, themes, data
 graphics, connector fill artwork, native text fitting and exact
 arrow appearance remain outside the qualified profile. Cached shape reflections
-follow the [native placement contract](../OfficeIMO.Visio/README.md#cached-shape-text-frame-placement); native reflected-text appearance acceptance remains open. Shared text fitting and curve
-flattening report approximations; content that still cannot fit a frame and
+follow the [native placement contract](../OfficeIMO.Visio/README.md#cached-shape-text-frame-placement); native reflected-text appearance acceptance remains open. Shared text fitting, spline and NURBS
+flattening and arrow proportions report approximations; content that still cannot fit a frame and
 unprojected content report omissions.
 
 `DrawingOptions` supplies the same font faces and shaping provider to the scenes
@@ -89,14 +88,18 @@ These checks also reject the declared text-layout approximations. Stencil
 masters need explicit instantiation on a page before diagram conversion. This
 contract does not establish Microsoft Visio open/edit/save acceptance.
 
-## Page previews and legacy XML
+## Semantic report
 
-Loaded VDX, VSX and VTX documents use the same conversion path. To include a
-raster diagram preview alongside searchable semantic content:
+`SemanticReport` mode produces searchable diagram text and topology through the
+shared `OfficeDocumentModel` instead of the drawing. Its report identifies
+semantic fallback rather than claiming native Visio page appearance. Select it
+explicitly; loaded VDX, VSX and VTX documents use the same conversion path. To
+include a raster diagram preview alongside the searchable semantic content:
 
 ```csharp
 VisioDocument diagram = VisioDocument.LoadLegacyXml("architecture.vdx").Value;
 OfficeConversionReport report = diagram.SaveAsPdf("architecture.pdf", new VisioPdfExportOptions {
+    Mode = VisioPdfProjectionMode.SemanticReport,
     SourceName = "architecture.vdx",
     VisioOptions = new VisioDocumentProjectionOptions {
         IncludePngPreviewAssets = true,
@@ -145,7 +148,7 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 
 | Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Convert | 0 | 2 | 0 | 0 | 0 | 0 |
+| Convert | 1 | 1 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Visio.Pdf` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
 <!-- officeimo-operation-catalog:end -->

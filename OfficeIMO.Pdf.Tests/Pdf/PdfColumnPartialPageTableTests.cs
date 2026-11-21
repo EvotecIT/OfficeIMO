@@ -118,7 +118,7 @@ public sealed class PdfColumnPartialPageTableTests {
         Assert.DoesNotContain(pdf.GetPage(1).GetWords(), word => word.Text == "FittingCell");
         Assert.Single(pdf.GetPage(2).GetWords(), word => word.Text == "FittingCell");
         Assert.InRange(X(pdf, 2, "FittingCell"), 39.9, 40.1);
-        Assert.All(pdf.GetPage(2).Letters, letter => Assert.True(letter.GlyphRectangle.Bottom >= 40));
+        Assert.All(pdf.GetPage(2).Letters, letter => Assert.True(letter.BoundingBox.Bottom >= 40));
     }
 
     private static byte[] Render(int lines, bool keepTogether, PdfTableStyle style) {

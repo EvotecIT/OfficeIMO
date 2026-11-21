@@ -25,7 +25,7 @@ internal static partial class PdfPageContentVisualParser {
     }
 
     public static IReadOnlyList<PdfPageVisualPrimitive> Parse(
-        string content,
+        PdfContentSource content,
         double pageWidth,
         double pageHeight,
         IReadOnlyDictionary<string, PdfPageGraphicsStateResource>? graphicsStates,
@@ -71,12 +71,13 @@ internal static partial class PdfPageContentVisualParser {
         PdfStrokeDashPattern? initialStrokeDashPattern = null,
         Action? operationCheck = null,
         double? initialMiterLimit = null,
-        Action<int>? strokeDashProjectionConsumer = null) {
-        if (string.IsNullOrEmpty(content)) {
+        Action<int>? strokeDashProjectionConsumer = null,
+        int maxGraphicsStateDepth = PdfReadLimits.DefaultMaxGraphicsStateDepth) {
+        if (content.IsNullOrEmpty) {
             return Array.Empty<PdfPageVisualPrimitive>();
         }
 
-        var parser = new Parser(content, pageWidth, pageHeight, graphicsStates, colorSpaces, shadings, shadingPatterns, tilingPatterns, optionalContentVisibility, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialFillColor, initialFillColorSpace, initialFillOpacity, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, patternBaseColorSpaces, maxNestingDepth, maxOperands, primitiveVisitor, retainPrimitiveData, scaleStrokeWidthWithTransform, unsupportedShadingTransformVisitor, requireExactType3ShadingProjection, authoredShadingInvocationVisitor, unrenderedShadingVisitor, unsupportedOperatorVisitor, initialFillPattern, initialStrokePattern, textClippingBudget, initialRenderingIntent, initialFillColorSelection, initialStrokeColorSelection, outputIntentColorTransform, inlineImageArrayComponentCount, initialStrokeDashPattern, operationCheck, initialMiterLimit);
+        var parser = new Parser(content, pageWidth, pageHeight, graphicsStates, colorSpaces, shadings, shadingPatterns, tilingPatterns, optionalContentVisibility, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialFillColor, initialFillColorSpace, initialFillOpacity, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, patternBaseColorSpaces, maxNestingDepth, maxOperands, primitiveVisitor, retainPrimitiveData, scaleStrokeWidthWithTransform, unsupportedShadingTransformVisitor, requireExactType3ShadingProjection, authoredShadingInvocationVisitor, unrenderedShadingVisitor, unsupportedOperatorVisitor, initialFillPattern, initialStrokePattern, textClippingBudget, initialRenderingIntent, initialFillColorSelection, initialStrokeColorSelection, outputIntentColorTransform, inlineImageArrayComponentCount, initialStrokeDashPattern, operationCheck, initialMiterLimit, maxGraphicsStateDepth);
         parser.SetStrokeDashProjectionConsumer(strokeDashProjectionConsumer);
         return parser.Parse();
     }
@@ -215,7 +216,7 @@ internal static partial class PdfPageContentVisualParser {
     }
 
     private sealed partial class Parser {
-        private readonly string _content;
+        private readonly PdfContentSource _content;
         private readonly double _pageWidth;
         private readonly double _pageHeight;
         private readonly IReadOnlyDictionary<string, PdfPageGraphicsStateResource>? _graphicsStates;
@@ -238,7 +239,7 @@ internal static partial class PdfPageContentVisualParser {
         private readonly Action<string>? _unrenderedShadingVisitor;
         private readonly Action<string>? _unsupportedOperatorVisitor;
         private readonly PdfTextClippingBudget _textClippingBudget;
-        private readonly List<object> _args = new List<object>(8);
+        private readonly PdfContentOperands _args = new PdfContentOperands();
         private readonly Stack<GraphicsState> _stack = new Stack<GraphicsState>();
         private readonly Stack<(OfficeIccRenderingIntent Intent, PdfPaintColorSelection? Fill, PdfPaintColorSelection? Stroke)> _colorStateStack = new Stack<(OfficeIccRenderingIntent, PdfPaintColorSelection?, PdfPaintColorSelection?)>();
         private readonly Stack<bool> _inexactDashStack = new Stack<bool>();
@@ -269,6 +270,7 @@ internal static partial class PdfPageContentVisualParser {
         private bool _currentSubpathHasDraw;
         private readonly int _maxOperations;
         private readonly int _maxNestingDepth;
+        private readonly int _maxGraphicsStateDepth;
         private readonly int _maxOperands;
         private int _compatibilityDepth;
         private bool _hasInexactDash;
@@ -283,7 +285,7 @@ internal static partial class PdfPageContentVisualParser {
         private PdfPaintColorSelection? _strokeColorSelection;
 
         public Parser(
-            string content,
+            PdfContentSource content,
             double pageWidth,
             double pageHeight,
             IReadOnlyDictionary<string, PdfPageGraphicsStateResource>? graphicsStates,
@@ -328,7 +330,8 @@ internal static partial class PdfPageContentVisualParser {
             Func<PdfArray, int>? inlineImageArrayComponentCount,
             PdfStrokeDashPattern? initialStrokeDashPattern,
             Action? operationCheck,
-            double? initialMiterLimit = null) {
+            double? initialMiterLimit,
+            int maxGraphicsStateDepth) {
             _content = content;
             _pageWidth = pageWidth;
             _pageHeight = pageHeight;
@@ -344,6 +347,7 @@ internal static partial class PdfPageContentVisualParser {
             _paintOrderOffset = paintOrderOffset;
             _maxOperations = maxOperations;
             _maxNestingDepth = maxNestingDepth;
+            _maxGraphicsStateDepth = maxGraphicsStateDepth;
             _maxOperands = maxOperands;
             _primitiveVisitor = primitiveVisitor;
             _retainPrimitiveData = primitiveVisitor == null || retainPrimitiveData;
@@ -462,7 +466,8 @@ internal static partial class PdfPageContentVisualParser {
                 maxOperands: _maxOperands,
                 dispatchInvalidOperations: _unsupportedOperatorVisitor != null,
                 inlineImageArrayComponentCount: _inlineImageArrayComponentCount,
-                operandBuffer: _args);
+                operandBuffer: _args,
+                maxGraphicsStateDepth: _maxGraphicsStateDepth);
 
             return _primitives == null || _primitives.Count == 0
                 ? Array.Empty<PdfPageVisualPrimitive>()
@@ -577,7 +582,7 @@ internal static partial class PdfPageContentVisualParser {
 
                     break;
                 case "d":
-                    if (_args.Count == 2 && _args[0] is double[] dashArray && _args[1] is double dashPhase) {
+                    if (_args.Count == 2 && _args[0] is double[] dashArray && _args.TryGetNumber(1, out double dashPhase)) {
                         var dashPattern = new PdfStrokeDashPattern(dashArray, dashPhase);
                         if (TryReadExactDashStyle(dashArray, dashPhase, out OfficeStrokeDashStyle exactStyle)) {
                             _state = _state.WithStrokeDash(exactStyle, dashPattern);
@@ -1216,7 +1221,7 @@ internal static partial class PdfPageContentVisualParser {
                     return HasExactFiniteNumbers(1);
                 case "Tf":
                     return _args.Count == 2 && _args[0] is string &&
-                           _args[1] is double fontSize && !double.IsNaN(fontSize) && !double.IsInfinity(fontSize);
+                           _args.TryGetNumber(1, out double fontSize) && !double.IsNaN(fontSize) && !double.IsInfinity(fontSize);
                 case "Tr":
                     return HasExactFiniteNumbers(1) && NumberAt(0) >= 0D && NumberAt(0) <= 7D &&
                            NumberAt(0) == Math.Truncate(NumberAt(0));
@@ -1227,13 +1232,13 @@ internal static partial class PdfPageContentVisualParser {
                 case "Tj": case "'":
                     return _args.Count == 1 && _args[0] is byte[];
                 case "TJ":
-                    return _args.Count == 1 && _args[0] is List<object> items &&
+                    return _args.Count == 1 && _args[0] is IReadOnlyList<object> items &&
                            items.All(static item => item is byte[] ||
                                item is double number && !double.IsNaN(number) && !double.IsInfinity(number));
                 case "\"":
                     return _args.Count == 3 &&
-                           _args[0] is double wordSpacing && !double.IsNaN(wordSpacing) && !double.IsInfinity(wordSpacing) &&
-                           _args[1] is double characterSpacing && !double.IsNaN(characterSpacing) && !double.IsInfinity(characterSpacing) &&
+                           _args.TryGetNumber(0, out double wordSpacing) && !double.IsNaN(wordSpacing) && !double.IsInfinity(wordSpacing) &&
+                           _args.TryGetNumber(1, out double characterSpacing) && !double.IsNaN(characterSpacing) && !double.IsInfinity(characterSpacing) &&
                            _args[2] is byte[];
                 case "T*":
                     return _args.Count == 0;
@@ -1835,7 +1840,7 @@ internal static partial class PdfPageContentVisualParser {
 
             int componentCount = colorSpace.ComponentCount;
             int endIndex = _args.Count;
-            while (endIndex > 0 && !(_args[endIndex - 1] is double)) {
+            while (endIndex > 0 && !_args.TryGetNumber(endIndex - 1, out _)) {
                 endIndex--;
             }
 
@@ -1961,12 +1966,12 @@ internal static partial class PdfPageContentVisualParser {
             return OfficeStrokeDashStyle.Solid;
         }
 
-        private double NumberAt(int index) => _args[index] is double value ? value : 0D;
+        private double NumberAt(int index) => _args.TryGetNumber(index, out double value) ? value : 0D;
 
         private bool HasTrailingFiniteNumbers(int count) {
             if (_args.Count < count) return false;
             for (int index = _args.Count - count; index < _args.Count; index++) {
-                if (_args[index] is not double value || double.IsNaN(value) || double.IsInfinity(value)) return false;
+                if (!_args.TryGetNumber(index, out double value) || double.IsNaN(value) || double.IsInfinity(value)) return false;
             }
             return true;
         }

@@ -31,13 +31,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             var visited = new HashSet<string>(StringComparer.Ordinal);
-            IEnumerable<Style> styles = mainPart.StyleDefinitionsPart?.Styles?.Elements<Style>() ?? Enumerable.Empty<Style>();
+            IReadOnlyList<WordStyleDefinitionsReader.StyleDefinition> styles = WordStyleCatalog.For(mainPart).Definitions;
             while (!string.IsNullOrWhiteSpace(styleId) && visited.Add(styleId!)) {
-                Style? style = styles.FirstOrDefault(candidate => candidate.Type?.Value == StyleValues.Paragraph &&
-                    string.Equals(candidate.StyleId?.Value, styleId, StringComparison.Ordinal));
+                WordStyleDefinitionsReader.StyleDefinition? style = styles.FirstOrDefault(candidate => candidate.IsParagraphStyle &&
+                    string.Equals(candidate.StyleId, styleId, StringComparison.Ordinal));
                 if (style == null) break;
-                yield return style;
-                styleId = style.BasedOn?.Val?.Value;
+                yield return style.Element;
+                styleId = style.BasedOn;
             }
         }
     }

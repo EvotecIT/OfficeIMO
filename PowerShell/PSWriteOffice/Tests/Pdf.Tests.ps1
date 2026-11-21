@@ -241,6 +241,42 @@ Describe 'PDF cmdlets' {
         $text | Should -Match 'Beta'
     }
 
+    It 'carries table amounts across pages with a page summary' {
+        $path = Join-Path $TestDrive 'page-summary-table.pdf'
+        $summary = [OfficeIMO.Pdf.PdfTablePageSummary]::new()
+        $amount = $summary.Sum('amount', 2, 'N2', $null)
+        $null = $summary.AddContinuationHeaderRow([string[]] @('Brought forward', '', $amount.BroughtForwardToken))
+        $null = $summary.AddPageFooterRow([string[]] @('Carried forward', '', $amount.RunningToken))
+        $lines = @(1..120 | ForEach-Object { [pscustomobject]@{ Item = $_; Description = 'Consulting hour'; Amount = '125.00' } })
+        $lines += [pscustomobject]@{ Item = 'Total'; Description = ''; Amount = $amount.RunningToken }
+
+        New-OfficePdf -Path $path {
+            PdfTable -InputObject $lines -FooterRowCount 1 -PageSummary $summary
+        } | Out-Null
+
+        $text = Read-OfficeDocument -As Text -Path $path
+        $pages = ([OfficeIMO.Pdf.PdfDocument]::Load($path).Read()).Pages.Count
+        $pages | Should -BeGreaterThan 1
+        ([regex]::Matches($text, 'Carried forward')).Count | Should -Be ($pages - 1)
+        ([regex]::Matches($text, 'Brought forward')).Count | Should -Be ($pages - 1)
+        $text | Should -Match '15,000\.00'
+    }
+
+    It 'repeats table footer rows on every page' {
+        $path = Join-Path $TestDrive 'repeat-footer-table.pdf'
+        $rows = @(1..120 | ForEach-Object { , @("Row $_", 'x') })
+        $rows += , @('Continued footer', 'end')
+
+        New-OfficePdf -Path $path {
+            PdfTable -Header Name, Value -InputObject $rows -FooterRowCount 1 -RepeatFooterRows
+        } | Out-Null
+
+        $text = Read-OfficeDocument -As Text -Path $path
+        $pages = ([OfficeIMO.Pdf.PdfDocument]::Load($path).Read()).Pages.Count
+        $pages | Should -BeGreaterThan 1
+        ([regex]::Matches($text, 'Continued footer')).Count | Should -Be $pages
+    }
+
     It 'renders explicit headers for array row tables' {
         $path = Join-Path $TestDrive 'array-row-table-header.pdf'
 
@@ -1561,5 +1597,23 @@ Describe 'PDF native physical and pipeline contracts' {
         }
         Test-Path -LiteralPath $destination | Should -BeFalse
         [Convert]::ToBase64String([IO.File]::ReadAllBytes($source)) | Should -Be $before
+    }
+}
+
+Describe 'PDF printer submission' -Skip:($PSVersionTable.PSVersion -lt [version]'7.4') {
+    It 'rejects a password for non-PDF input before submitting any document' {
+        $pdf = Join-Path $TestDrive 'first.pdf'
+        New-OfficePdf -Path $pdf { PdfParagraph 'First' } | Out-Null
+        $docx = Join-Path $TestDrive 'second.docx'
+        Set-Content -LiteralPath $docx -Value 'not opened'
+        # The PDF comes first; validation must fail before any document is considered for submission.
+        { Send-OfficePrinter -Path $pdf, $docx -PrinterName 'officeimo-unused-queue' -Password (ConvertTo-SecureString 'secret' -AsPlainText -Force) -WhatIf } |
+            Should -Throw '*Password applies only to PDF documents*'
+    }
+
+    It 'binds the 3.5 parameter names of Send-OfficePdfPrinter' {
+        $pdf = Join-Path $TestDrive 'aliases.pdf'
+        New-OfficePdf -Path $pdf { PdfParagraph 'Aliases' } | Out-Null
+        { Send-OfficePdfPrinter -Path $pdf -PrinterName 'officeimo-unused-queue' -Pages '1' -OutputFilePath (Join-Path $TestDrive 'out.prn') -WhatIf } | Should -Not -Throw
     }
 }

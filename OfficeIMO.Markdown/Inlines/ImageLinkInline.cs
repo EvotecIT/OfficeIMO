@@ -19,15 +19,15 @@ public sealed class ImageLinkInline : MarkdownInline, IRenderableMarkdownInline,
     /// <summary>Optional hyperlink title.</summary>
     public string? LinkTitle { get; }
     /// <summary>Source span for the image alternate-text token when parsed from markdown.</summary>
-    public MarkdownSourceSpan? AltSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? AltSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
     /// <summary>Source span for the embedded image URL token when parsed from markdown.</summary>
-    public MarkdownSourceSpan? ImageUrlSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? ImageUrlSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
     /// <summary>Source span for the optional embedded image title token when parsed from markdown.</summary>
-    public MarkdownSourceSpan? TitleSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? TitleSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
     /// <summary>Source span for the wrapping link URL token when parsed from markdown.</summary>
-    public MarkdownSourceSpan? LinkUrlSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? LinkUrlSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
     /// <summary>Source span for the optional wrapping link title token when parsed from markdown.</summary>
-    public MarkdownSourceSpan? LinkTitleSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? LinkTitleSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
     /// <summary>Creates a linked image inline.</summary>
     public ImageLinkInline(string alt, string imageUrl, string linkUrl, string? title = null, string? linkTitle = null, string? plainAlt = null) {
         Alt = alt ?? string.Empty;
@@ -83,4 +83,13 @@ public sealed class ImageLinkInline : MarkdownInline, IRenderableMarkdownInline,
     string IRenderableMarkdownInline.RenderMarkdown() => RenderMarkdown();
     string IRenderableMarkdownInline.RenderHtml() => RenderHtml();
     void IPlainTextMarkdownInline.AppendPlainText(System.Text.StringBuilder sb) => sb.Append(PlainAlt);
+
+    internal override void AdoptCapturedSourceInformation(MarkdownObject captured, MarkdownCapturedObjectMap map) {
+        var source = (ImageLinkInline)captured;
+        AltSourceSpan = source.AltSourceSpan;
+        ImageUrlSourceSpan = source.ImageUrlSourceSpan;
+        TitleSourceSpan = source.TitleSourceSpan;
+        LinkUrlSourceSpan = source.LinkUrlSourceSpan;
+        LinkTitleSourceSpan = source.LinkTitleSourceSpan;
+    }
 }

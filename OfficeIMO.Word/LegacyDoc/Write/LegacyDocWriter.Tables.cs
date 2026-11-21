@@ -7,7 +7,7 @@ using System.Text;
 
 namespace OfficeIMO.Word.LegacyDoc.Write {
     internal static partial class LegacyDocWriter {
-        private static void ThrowIfUnsupportedTableShape(Table table, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
+        private static void ThrowIfUnsupportedTableShape(Table table, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
             foreach (OpenXmlElement child in table.ChildElements) {
                 switch (child) {
                     case TableProperties tableProperties:
@@ -82,7 +82,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static void ThrowIfUnsupportedTableProperties(TableProperties tableProperties, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
+        private static void ThrowIfUnsupportedTableProperties(TableProperties tableProperties, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
             ThrowIfUnsupportedTableGapShading(tableProperties, tableStyleDefinitions);
             foreach (OpenXmlElement property in tableProperties.ChildElements) {
                 switch (property) {

@@ -7,8 +7,9 @@ public sealed partial class PdfDocumentPages {
     public PdfDocument Extract(params int[] pageNumbers) {
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
         byte[] input = _document.GetBytesForOperation();
-        byte[] output = PdfPageExtractor.ExtractPages(input, pageNumbers, _document.ReadOptions, _document.GetOpenedReadDocumentFactory());
-        return AdoptExtractedOutput(input, output, pageNumbers.Length, _document.ReadOptions);
+        var report = new List<string>();
+        byte[] output = PdfPageExtractor.ExtractPages(input, pageNumbers, _document.ReadOptions, _document.GetOpenedReadDocumentFactory(), report);
+        return AdoptExtractedOutput(input, output, pageNumbers.Length, _document.ReadOptions, report);
     }
 
     /// <summary>Creates a new PDF containing selected pages in caller order with cooperative cancellation.</summary>
@@ -16,15 +17,17 @@ public sealed partial class PdfDocumentPages {
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
         cancellationToken.ThrowIfCancellationRequested();
         byte[] input = _document.GetBytesForOperation(cancellationToken);
+        var report = new List<string>();
         byte[] output = PdfPageExtractor.ExtractPages(
             input,
             pageNumbers,
             _document.ReadOptions,
             _document.GetOpenedReadDocumentFactory(cancellationToken),
+            report,
             cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         PdfDocument extracted = AdoptExtractedOutput(input, output, pageNumbers.Length, _document.ReadOptions,
-            cancellationToken);
+            report, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         return extracted;
     }
@@ -33,8 +36,9 @@ public sealed partial class PdfDocumentPages {
     internal PdfDocument Extract(int[] pageNumbers, long maximumOutputBytes) {
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
         byte[] input = _document.GetBytesForOperation();
-        byte[] output = PdfPageExtractor.ExtractPages(input, pageNumbers, _document.ReadOptions, maximumOutputBytes, _document.GetOpenedReadDocumentFactory());
-        return AdoptExtractedOutput(input, output, pageNumbers.Length, _document.ReadOptions);
+        var report = new List<string>();
+        byte[] output = PdfPageExtractor.ExtractPages(input, pageNumbers, _document.ReadOptions, maximumOutputBytes, _document.GetOpenedReadDocumentFactory(), report: report);
+        return AdoptExtractedOutput(input, output, pageNumbers.Length, _document.ReadOptions, report: report);
     }
 
     /// <summary>
@@ -56,8 +60,9 @@ public sealed partial class PdfDocumentPages {
         cancellationToken.ThrowIfCancellationRequested();
         Guard.NotNull(selection, nameof(selection));
         byte[] input = _document.GetBytesForOperation(cancellationToken);
-        byte[] output = PdfPageExtractor.ExtractPageRanges(input, selection.ToRanges(), options, _document.GetOpenedReadDocumentFactory(options, cancellationToken), cancellationToken);
-        return AdoptExtractedOutput(input, output, selection.PageCount, options, cancellationToken);
+        var report = new List<string>();
+        byte[] output = PdfPageExtractor.ExtractPageRanges(input, selection.ToRanges(), options, _document.GetOpenedReadDocumentFactory(options, cancellationToken), report, cancellationToken);
+        return AdoptExtractedOutput(input, output, selection.PageCount, options, report, cancellationToken);
     }
 
     /// <summary>
@@ -92,8 +97,9 @@ public sealed partial class PdfDocumentPages {
     private PdfDocument[] Split(PdfLoadOptions? options, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         byte[] input = _document.GetBytesForOperation(cancellationToken);
-        IReadOnlyList<byte[]> outputs = PdfPageExtractor.SplitPages(input, options, _document.GetOpenedReadDocumentFactory(options, cancellationToken), cancellationToken);
-        return AdoptSplitOutputs(input, outputs, Enumerable.Repeat(1, outputs.Count).ToArray(), options, cancellationToken);
+        var reports = new List<IReadOnlyList<string>>();
+        IReadOnlyList<byte[]> outputs = PdfPageExtractor.SplitPages(input, options, _document.GetOpenedReadDocumentFactory(options, cancellationToken), reports, cancellationToken);
+        return AdoptSplitOutputs(input, outputs, Enumerable.Repeat(1, outputs.Count).ToArray(), options, reports, cancellationToken);
     }
 
     /// <summary>
@@ -149,15 +155,18 @@ public sealed partial class PdfDocumentPages {
         byte[] input = _document.GetBytesForOperation(cancellationToken);
         var outputs = new byte[selections.Length][];
         var outputPageCounts = new int[selections.Length];
+        var reports = new IReadOnlyList<string>[selections.Length];
         var source = new PdfPageExtractor.ExtractionSession(input, options, _document.GetOpenedReadDocumentFactory(options, cancellationToken), cancellationToken);
         for (int i = 0; i < selections.Length; i++) {
             cancellationToken.ThrowIfCancellationRequested();
             Guard.NotNull(selections[i], nameof(selections));
-            outputs[i] = source.Extract(selections[i].ToRanges());
+            var report = new List<string>();
+            outputs[i] = source.Extract(selections[i].ToRanges(), report);
+            reports[i] = report;
             outputPageCounts[i] = selections[i].PageCount;
         }
 
-        return AdoptSplitOutputs(input, outputs, outputPageCounts, options, cancellationToken);
+        return AdoptSplitOutputs(input, outputs, outputPageCounts, options, reports, cancellationToken);
     }
 
     /// <summary>
@@ -182,18 +191,20 @@ public sealed partial class PdfDocumentPages {
         }
 
         byte[] input = _document.GetBytesForOperation(cancellationToken);
+        var reports = new List<IReadOnlyList<string>>();
         return AdoptSplitOutputs(
             input,
-            PdfPageExtractor.SplitPageRanges(input, ranges, options, _document.GetOpenedReadDocumentFactory(options, cancellationToken), cancellationToken),
+            PdfPageExtractor.SplitPageRanges(input, ranges, options, _document.GetOpenedReadDocumentFactory(options, cancellationToken), reports, cancellationToken),
             ranges.Select(static range => range.PageCount).ToArray(),
-            options, cancellationToken);
+            options, reports, cancellationToken);
     }
 
     /// <summary>Creates one split part within the remaining output budget, retaining split preservation semantics.</summary>
     internal PdfDocument Split(PdfPageRange pageRange, long maximumOutputBytes) {
         byte[] input = _document.GetBytesForOperation();
-        byte[] output = PdfPageExtractor.ExtractPages(input, pageRange.ToPageNumbers(), _document.ReadOptions, maximumOutputBytes, _document.GetOpenedReadDocumentFactory());
-        return AdoptSplitOutputs(input, new[] { output }, new[] { pageRange.PageCount }, _document.ReadOptions)[0];
+        var report = new List<string>();
+        byte[] output = PdfPageExtractor.ExtractPages(input, pageRange.ToPageNumbers(), _document.ReadOptions, maximumOutputBytes, _document.GetOpenedReadDocumentFactory(), report: report);
+        return AdoptSplitOutputs(input, new[] { output }, new[] { pageRange.PageCount }, _document.ReadOptions, reports: new IReadOnlyList<string>[] { report })[0];
     }
 
     private PdfDocument[] AdoptSplitOutputs(
@@ -201,6 +212,7 @@ public sealed partial class PdfDocumentPages {
         IReadOnlyList<byte[]> outputs,
         int[] outputPageCounts,
         PdfLoadOptions? options,
+        IReadOnlyList<IReadOnlyList<string>>? reports = null,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         if (outputs.Count != outputPageCounts.Length) {
@@ -208,7 +220,7 @@ public sealed partial class PdfDocumentPages {
         }
 
         PdfArtifactInfo inputArtifact = _document.Pipeline.Output ??
-            PdfArtifactInfo.Capture(input, _document.ReadOptions, cancellationToken);
+            PdfArtifactInfo.CaptureOwned(input, _document.ReadOptions, out _, cancellationToken);
         var documents = new PdfDocument[outputs.Count];
         for (int i = 0; i < outputs.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -219,6 +231,7 @@ public sealed partial class PdfDocumentPages {
                 outputPageCounts[i],
                 options,
                 "Split",
+                reports is not null && i < reports.Count ? reports[i] : null,
                 cancellationToken);
         }
 
@@ -230,10 +243,11 @@ public sealed partial class PdfDocumentPages {
         byte[] output,
         int outputPageCount,
         PdfLoadOptions? options,
+        IReadOnlyList<string>? report = null,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         PdfArtifactInfo inputArtifact = _document.Pipeline.Output ??
-            PdfArtifactInfo.Capture(input, _document.ReadOptions, cancellationToken);
+            PdfArtifactInfo.CaptureOwned(input, _document.ReadOptions, out _, cancellationToken);
         return _document.WithCanonicalBytesKnownPageCount(
             input,
             inputArtifact,
@@ -241,6 +255,7 @@ public sealed partial class PdfDocumentPages {
             outputPageCount,
             options,
             "Extract",
+            report,
             cancellationToken);
     }
 

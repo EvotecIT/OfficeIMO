@@ -16,16 +16,17 @@ public sealed record PrintScaleChoice(PdfPrintScaleMode Value, string Label, str
 public sealed record PrintPagesPerSheetChoice(int Value, string Label);
 
 public sealed class PrintPreviewSheetViewModel : IDisposable {
-    public PrintPreviewSheetViewModel(PdfRenderedPrintSheet sheet, string label) {
-        const double maximumPreviewWidth = 350D;
-        double scale = maximumPreviewWidth / sheet.Plan.PaperSize.Width.ToPoints();
-        SheetNumber = sheet.Plan.SheetNumber;
+    internal const double MaximumPreviewWidth = 350D;
+
+    public PrintPreviewSheetViewModel(PdfPrintSheet sheet, PdfPrintSheetImage image, string label) {
+        double scale = MaximumPreviewWidth / sheet.PaperSize.Width.ToPoints();
+        SheetNumber = sheet.SheetNumber;
         Label = label;
-        Width = maximumPreviewWidth;
-        Height = sheet.Plan.PaperSize.Height.ToPoints() * scale;
-        Placements = sheet.Plan.Placements;
-        using var stream = new MemoryStream(sheet.GetPng(), writable: false);
-        Image = Bitmap.DecodeToWidth(stream, (int)maximumPreviewWidth);
+        Width = MaximumPreviewWidth;
+        Height = sheet.PaperSize.Height.ToPoints() * scale;
+        Placements = sheet.Placements;
+        using var stream = new MemoryStream(image.GetPng(), writable: false);
+        Image = Bitmap.DecodeToWidth(stream, (int)MaximumPreviewWidth);
     }
 
     public int SheetNumber { get; }
@@ -49,7 +50,7 @@ public sealed partial class PrintPreviewViewModel : ObservableObject, IDisposabl
     private readonly Func<CancellationToken, Task<string?>> _pickPrintFile;
     private readonly IPdfPrinterService _printers;
     private readonly StudioJobHistory? _jobHistory;
-    private PdfPreparedPrintDocument? _preparedPrint;
+    private PdfPrintJob? _preparedPrint;
     private bool _disposed;
     private bool _delivering;
     private CancellationTokenSource? _cancellation;
@@ -193,21 +194,26 @@ public sealed partial class PrintPreviewViewModel : ObservableObject, IDisposabl
             PdfDocument document = await _readSnapshot(request.InputPath, operation.Token).ConfigureAwait(true);
             ProgressFraction = 0.2D;
             Status = T("Status.Rendering");
-            // A3 at 300 DPI needs about 17.4 million pixels in either orientation.
-            var options = new PdfPrintRenderOptions { MaximumPages = MaximumPreviewPages, Dpi = PrintDpi, MaximumPixelsPerImage = 20_000_000 };
             using IDisposable? permit = _jobHistory is null ? null : await _jobHistory.EnterAsync(operation.Token).ConfigureAwait(true);
-            PdfPreparedPrintDocument prepared = await Task.Run(() => PdfPrintRenderer.Prepare(document, request, options, operation.Token), operation.Token).ConfigureAwait(true);
+            // Sources that cannot print as vector content are rasterized at the selected print resolution.
+            var jobOptions = new PdfPrintJobOptions { MaximumSheets = MaximumPreviewPages, RasterContentDpi = PrintDpi };
+            PdfPrintJob job = await Task.Run(() => PdfPrintJob.Create(document, request, jobOptions, operation.Token), operation.Token).ConfigureAwait(true);
+            // Thumbnails render the job content that delivery sends, at roughly twice the display width.
+            var rendered = await Task.Run(() => job.Plan.Sheets.Select(sheet => {
+                double dpi = Math.Clamp(PrintPreviewSheetViewModel.MaximumPreviewWidth * 2 * 72 / sheet.PaperSize.Width.ToPoints(), 36D, 300D);
+                return (Sheet: sheet, Image: job.RenderSheet(sheet.SheetNumber, dpi, operation.Token));
+            }).ToArray(), operation.Token).ConfigureAwait(true);
             operation.Token.ThrowIfCancellationRequested();
             if (_disposed) return;
-            PdfPrintPlan plan = prepared.Plan;
-            foreach (PdfRenderedPrintSheet sheet in prepared.Sheets) {
-                Sheets.Add(new PrintPreviewSheetViewModel(sheet,
-                    _localizer.Format("PrintPreview.Sheet.Label", sheet.Plan.SheetNumber)));
+            PdfPrintPlan plan = job.Plan;
+            foreach ((PdfPrintSheet sheet, PdfPrintSheetImage image) in rendered) {
+                Sheets.Add(new PrintPreviewSheetViewModel(sheet, image,
+                    _localizer.Format("PrintPreview.Sheet.Label", sheet.SheetNumber)));
             }
-            _preparedPrint = prepared;
+            _preparedPrint = job;
             OnPropertyChanged(nameof(HasPreview));
             Summary = _localizer.Format("PrintPreview.Summary", plan.SelectedPages.Count, plan.Sheets.Count);
-            SetRenderingNotices(prepared.Diagnostics);
+            SetRenderingNotices(job.Diagnostics.Concat(rendered.SelectMany(item => item.Image.Diagnostics)).Distinct().ToArray());
             Status = T("Status.Completed");
             ProgressFraction = 1D;
         } catch (OperationCanceledException) when (operation.IsCancellationRequested) {

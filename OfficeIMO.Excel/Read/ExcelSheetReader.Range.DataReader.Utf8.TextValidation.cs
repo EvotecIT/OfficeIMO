@@ -31,6 +31,11 @@ namespace OfficeIMO.Excel {
             /// Non-ASCII and special bytes retain complete UTF-8/XML-character proof;
             /// entities or richer content still require the ordinary XmlReader proof.
             /// </summary>
+            /// <summary>The same character proof over a complete document, for callers outside a row source.</summary>
+            internal static bool IsCanonicalDocumentTextValid(ReadOnlySpan<byte> text) =>
+                text.IndexOfAny(NonCanonicalAsciiBytes) < 0
+                || Utf8.IsValid(text) && !ContainsInvalidCanonicalXmlBytes(text);
+
             private bool IsCanonicalTextValid(int length, CancellationToken ct) {
                 ct.ThrowIfCancellationRequested();
                 if (_canonicalTextNeedsXmlReader) return false;

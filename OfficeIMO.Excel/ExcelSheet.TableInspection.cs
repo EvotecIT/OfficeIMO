@@ -1,3 +1,5 @@
+using DocumentFormat.OpenXml.Packaging;
+
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         /// <summary>
@@ -7,6 +9,11 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <remarks>Saving the workbook retains live worksheet handles, including when saving rebuilds the package.</remarks>
         /// <exception cref="System.InvalidOperationException">The worksheet was removed or no longer belongs to the current workbook package.</exception>
-        public IReadOnlyList<ExcelTableInfo> GetTables() => _excelDocument.GetTables(_worksheetPart);
+        public IReadOnlyList<ExcelTableInfo> GetTables() {
+            WorksheetPart worksheetPart = _worksheetPart;
+            return _excelDocument.TryGetDirectTabularSaveCandidateTable(this, worksheetPart, out ExcelTableInfo? pending)
+                ? new[] { pending! }
+                : _excelDocument.GetTables(worksheetPart);
+        }
     }
 }

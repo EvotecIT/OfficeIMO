@@ -33,7 +33,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         // the authored word separately for extraction. Shape that same paint;
         // resolved bidi slices already carry their logical directional source.
         string providerPaintText = !segment.BidiResolved && ordinaryDirection ? segment.Text : segment.LogicalText;
-        if (!segment.Run.PreserveContextualFallback && (segment.BidiResolved || ordinaryDirection)
+        // Justification that spreads characters places each one, so a single retained glyph run cannot carry it.
+        bool spreadCharacters = segment.ClusterJustification is { Length: > 1 } && segment.JustificationAdvance > 0D;
+        if (!spreadCharacters && !segment.Run.PreserveContextualFallback && (segment.BidiResolved || ordinaryDirection)
             && (_options.TextShapingProvider != null || !segment.Run.Style.TextFeatureSettings.IsDefault
                 || RequiresConfiguredTextShaping(providerPaintText, segment.Run.Style.TextFeatureSettings))
             && TryPrepareDirectionalProviderText(providerPaintText, segment.Run.Style,
@@ -55,7 +57,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (segment.BidiResolved ||
             !OfficeTextElements.ContainsRightToLeft(segment.Text) && !OfficeTextElements.ContainsBidiControl(segment.Text)
                 && segment.ResolvedDirection != OfficeTextDirection.RightToLeft) {
-            ReportUnretainedProviderPaint(segment.Run, providerPaintText);
+            ReportUnretainedProviderPaint(segment.Run, providerPaintText,
+                spreadCharacters ? "justified-provider-glyph-context-not-retained" : "directional-glyph-context-not-retained");
             return new[] { new InlinePaintSegment(segment.Text, x, Math.Max(0.01D, segment.Width), segment.Width, 0) };
         }
 
@@ -105,6 +108,42 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return result.OrderBy(static item => item.LogicalOrder).ToArray();
     }
 
+    // Selected OpenType features, such as font small caps, change glyph advances. The line measured
+    // the shaped run, so each spaced piece is placed with the same shaped width.
+    private double MeasureSpacedPaintText(string text, HtmlRenderBoxStyle style, OfficeFontInfo font) =>
+        !style.TextFeatureSettings.IsDefault && TryMeasureWithConfiguredProvider(text, style, out double shaped)
+            ? shaped
+            : MeasureText(text, font, style.FontDescriptor);
+
+    // Advances of text elements in their context: each element's own width plus the pair adjustment with
+    // the next one, such as kerning, so characters sit where line layout measured them. One measurement of
+    // the whole text settles the last advance, so they sum to its width. The work is linear in the text.
+    private double[] MeasureContextualAdvances(IReadOnlyList<string> elements, HtmlRenderBoxStyle style, OfficeFontInfo font) {
+        var advances = new double[elements.Count];
+        if (elements.Count == 0) return advances;
+        var widths = new Dictionary<string, double>(StringComparer.Ordinal);
+        var pairs = new Dictionary<string, double>(StringComparer.Ordinal);
+        double Width(string element) {
+            if (!widths.TryGetValue(element, out double width)) widths[element] = width = MeasureSpacedPaintText(element, style, font);
+            return width;
+        }
+        double sum = 0D;
+        for (int index = 0; index < elements.Count; index++) {
+            double advance = Width(elements[index]);
+            if (index + 1 < elements.Count) {
+                string pair = elements[index] + elements[index + 1];
+                if (!pairs.TryGetValue(pair, out double adjustment)) {
+                    pairs[pair] = adjustment = MeasureSpacedPaintText(pair, style, font) - advance - Width(elements[index + 1]);
+                }
+                advance += adjustment;
+            }
+            advances[index] = advance;
+            sum += advance;
+        }
+        if (elements.Count > 1) advances[elements.Count - 1] += MeasureSpacedPaintText(string.Concat(elements), style, font) - sum;
+        return advances;
+    }
+
     private IReadOnlyList<InlinePaintSegment> ResolveSpacedPaintSegments(InlineSegment segment, double x,
         int? logicalOrder = null, bool bidiResolved = false) {
         var result = new List<InlinePaintSegment>();
@@ -114,9 +153,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IReadOnlyList<string> elements = OfficeTextElements.Split(segment.Text);
         OfficeFontInfo effectiveFont = GetEffectiveTextFont(segment.Run.Style);
         if (Math.Abs(segment.Run.Style.LetterSpacing) > 0.0001D) {
+            double[] contextual = MeasureContextualAdvances(elements, segment.Run.Style, effectiveFont);
             for (int index = 0; index < elements.Count; index++) {
                 string element = elements[index];
-                double glyphWidth = MeasureText(element, effectiveFont, segment.Run.Style.FontDescriptor);
+                double glyphWidth = contextual[index];
                 double advance = glyphWidth
                     + segment.Run.Style.LetterSpacing
                     + (IsWordSpacingSeparator(element) ? segment.Run.Style.WordSpacing : 0D);
@@ -133,7 +173,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             int end = start + 1;
             while (end < elements.Count && IsWordSpacingSeparator(elements[end]) == whitespace) end++;
             string text = string.Concat(elements.Skip(start).Take(end - start));
-            double glyphWidth = MeasureText(text, effectiveFont, segment.Run.Style.FontDescriptor);
+            double glyphWidth = MeasureSpacedPaintText(text, segment.Run.Style, effectiveFont);
             double advance = glyphWidth + (whitespace ? segment.Run.Style.WordSpacing * (end - start) : 0D);
             result.Add(new InlinePaintSegment(text, cursor, Math.Max(0.01D, glyphWidth), advance,
                 logicalOrder ?? start, bidiResolved));
@@ -264,6 +304,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var result = new List<InlineSegment>();
         var firstGroups = new InlineSegment?[sources.Count];
         var lastGroups = new InlineSegment?[sources.Count];
+        var groupElements = new List<(InlineSegment Group, InlineBidiElement[] Elements)>();
         int start = 0;
         while (start < ordered.Count) {
             int sourceIndex = ordered[start].SourceSegmentIndex;
@@ -310,6 +351,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 preparedShaping: retainedSlice,
                 prepareFromRun: false);
             result.Add(group);
+            groupElements.Add((group, ordered.Skip(start).Take(end - start).ToArray()));
             firstGroups[sourceIndex] ??= group;
             lastGroups[sourceIndex] = group;
             start = end;
@@ -320,8 +362,38 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (firstGroups[sourceIndex] is not InlineSegment first || lastGroups[sourceIndex] is not InlineSegment last) continue;
             first.LeadingAdvance += sources[sourceIndex].LeadingAdvance;
             last.TrailingAdvance += sources[sourceIndex].TrailingAdvance;
+            if (TransferClusterJustification(sources[sourceIndex], sourceIndex, groupElements)) continue;
+            last.JustificationAdvance += sources[sourceIndex].JustificationAdvance;
+            // Reordered text keeps the added space at the end of its last visual group.
+            if (last.JustificationAdvance > 0D) last.ClusterJustification = new[] { last.JustificationAdvance };
         }
         return result.AsReadOnly();
+    }
+
+    // Groups whose characters keep their source order take the space justification gave each of
+    // them; reordered groups cannot, and fall back to adding it at the end.
+    private static bool TransferClusterJustification(InlineSegment source, int sourceIndex,
+        List<(InlineSegment Group, InlineBidiElement[] Elements)> groupElements) {
+        double[]? spacing = source.ClusterJustification;
+        if (spacing == null || spacing.Length < 2) return false;
+        var groups = groupElements.Where(item => item.Elements[0].SourceSegmentIndex == sourceIndex).ToList();
+        foreach ((InlineSegment _, InlineBidiElement[] elements) in groups) {
+            for (int index = 0; index < elements.Length; index++) {
+                if (elements[index].SourceElementIndex >= spacing.Length
+                    || index > 0 && elements[index].SourceElementIndex <= elements[index - 1].SourceElementIndex) return false;
+            }
+        }
+        // Bidi controls are not carried by any group; space after one would be lost, so the caller adds it at the end.
+        var carried = new HashSet<int>(groups.SelectMany(item => item.Elements).Select(element => element.SourceElementIndex));
+        for (int index = 0; index < spacing.Length; index++) {
+            if (spacing[index] > 0D && !carried.Contains(index)) return false;
+        }
+        foreach ((InlineSegment group, InlineBidiElement[] elements) in groups) {
+            double[] groupSpacing = elements.Select(element => spacing[element.SourceElementIndex]).ToArray();
+            group.ClusterJustification = groupSpacing;
+            group.JustificationAdvance += groupSpacing.Sum();
+        }
+        return true;
     }
 
     private bool CanOwnRootInlineLineLogicalText(

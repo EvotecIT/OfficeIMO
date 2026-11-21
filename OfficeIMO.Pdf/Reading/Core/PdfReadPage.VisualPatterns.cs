@@ -432,8 +432,8 @@ public sealed partial class PdfReadPage {
         out bool consumesInheritedLineState,
         out bool hasMalformedStrictInvocation) {
         using IDisposable projectionScope = pageContentBudget.BeginTransparencyGroupProjectionScope();
-        invocationTextClippingBudget ??= new PdfTextClippingBudget();
-        patternTextClippingBudget ??= new PdfTextClippingBudget();
+        invocationTextClippingBudget ??= new PdfTextClippingBudget(_limits);
+        patternTextClippingBudget ??= new PdfTextClippingBudget(_limits);
         var drawing = new OfficeDrawing(width, height);
         consumesInheritedLineState = false;
         hasMalformedStrictInvocation = false;
@@ -497,16 +497,12 @@ public sealed partial class PdfReadPage {
                 ? null
                 : _ => type3GlyphBudget.RecordFailure(),
             type3ImageVisitor: (placement, image, effect) => {
-                if (requireSupportedType3Content &&
-                    !TryCreateImageProjection(
-                        placement,
-                        height,
-                        width,
-                        height,
-                        out _,
-                        allowAxisAlignedFallback: false)) {
-                    type3GlyphBudget.RecordFailure();
-                    return;
+                if (requireSupportedType3Content) {
+                    if (!CanDrawImagePlacementExactly(placement, height, width, height)) {
+                        type3GlyphBudget.RecordFailure();
+                        return;
+                    }
+                    placement = placement.WithExactProjection();
                 }
                 elements.Add(PdfPageDrawingElement.FromImage(placement, image, elements.Count).WithEffect(effect));
             },
@@ -601,11 +597,13 @@ public sealed partial class PdfReadPage {
                 PdfExtractedImage? image = GetImageForPlacement(resources, placements[i], colorizeImageMasks: true, pageContentBudget);
                 if (requireSupportedType3Content &&
                     (rejectImageContent || image == null || !IsSupportedType3Image(placements[i], image!, resources, pageContentBudget) || image!.HasUnresolvedTransparencyMask ||
-                     !TryCreateImageProjection(placements[i], height, width, height, out _, allowAxisAlignedFallback: false))) {
+                     !CanDrawImagePlacementExactly(placements[i], height, width, height))) {
                     type3GlyphBudget.RecordFailure();
                     continue;
                 }
-                if (image != null) elements.Add(PdfPageDrawingElement.FromImage(placements[i], image, elements.Count));
+                // Type 3 content replays with the exact matrix that the check above accepted.
+                PdfImagePlacement placement = requireSupportedType3Content ? placements[i].WithExactProjection() : placements[i];
+                if (image != null) elements.Add(PdfPageDrawingElement.FromImage(placement, image, elements.Count));
             }
         }
         var enclosingEffects = new List<PdfPageDrawingEffectTransition>();
@@ -717,6 +715,7 @@ public sealed partial class PdfReadPage {
                 }
             },
             maxNestingDepth: _limits.MaxContentNestingDepth,
+            maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth,
             maxOperands: _limits.MaxContentOperands);
         return consumesInheritedState;
     }

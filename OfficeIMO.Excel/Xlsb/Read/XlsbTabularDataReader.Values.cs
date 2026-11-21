@@ -41,7 +41,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 XlsbTabularValueKind.Text or XlsbTabularValueKind.Error => GetCanonicalText(ordinal),
                 XlsbTabularValueKind.Number => GetNumericValue(_numbers[ordinal]),
                 XlsbTabularValueKind.Boolean => _booleans[ordinal],
-                XlsbTabularValueKind.Date or XlsbTabularValueKind.Time => ConvertDate(_numbers[ordinal], _kinds[ordinal] == XlsbTabularValueKind.Date),
+                XlsbTabularValueKind.Date or XlsbTabularValueKind.Time => ConvertDateOrSerial(_numbers[ordinal], _kinds[ordinal] == XlsbTabularValueKind.Date),
                 XlsbTabularValueKind.Custom => _customValues[ordinal] ?? DBNull.Value,
                 _ => DBNull.Value
             };
@@ -69,9 +69,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             ValidateReadableOrdinal(ordinal);
             return _kinds[ordinal] switch {
                 XlsbTabularValueKind.Text or XlsbTabularValueKind.Error => GetCanonicalText(ordinal),
-                XlsbTabularValueKind.Number => _numbers[ordinal].ToString("R", _options.Culture),
+                XlsbTabularValueKind.Number => OfficeIMO.Core.Internal.OfficeRoundTripText.Format(_numbers[ordinal], _options.Culture),
                 XlsbTabularValueKind.Boolean => _booleans[ordinal].ToString(),
-                XlsbTabularValueKind.Date or XlsbTabularValueKind.Time => ConvertDate(_numbers[ordinal], _kinds[ordinal] == XlsbTabularValueKind.Date).ToString(_options.Culture),
+                XlsbTabularValueKind.Date or XlsbTabularValueKind.Time => FormatDateOrSerial(_numbers[ordinal], _kinds[ordinal] == XlsbTabularValueKind.Date),
                 XlsbTabularValueKind.Custom when !IsMissingCustomValue(_customValues[ordinal]) =>
                     Convert.ToString(_customValues[ordinal], _options.Culture)
                     ?? string.Empty,
@@ -133,8 +133,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         public override decimal GetDecimal(int ordinal) {
             ValidateReadableOrdinal(ordinal);
             if (IsNumericValueKind(_kinds[ordinal])) {
+                if (ExcelDecimalConversion.TryConvertHundredths(_numbers[ordinal], out decimal hundredths)) return hundredths;
                 try {
-                    return (decimal)_numbers[ordinal];
+                    return OfficeDecimalConversion.FromDouble(_numbers[ordinal]);
                 } catch (OverflowException exception) {
                     throw new InvalidCastException(
                         $"The XLSB numeric value '{_numbers[ordinal]}' cannot be represented as decimal.",
@@ -142,14 +143,17 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 }
             }
 
-            return Convert.ToDecimal(GetValue(ordinal), _options.Culture);
+            return OfficeDecimalConversion.FromObject(GetValue(ordinal), _options.Culture);
         }
 
         public override DateTime GetDateTime(int ordinal) {
             ValidateReadableOrdinal(ordinal);
-            return _kinds[ordinal] is XlsbTabularValueKind.Date or XlsbTabularValueKind.Time
-                ? ConvertDate(_numbers[ordinal], _kinds[ordinal] == XlsbTabularValueKind.Date)
-                : Convert.ToDateTime(GetValue(ordinal), _options.Culture);
+            return _kinds[ordinal] switch {
+                XlsbTabularValueKind.Date or XlsbTabularValueKind.Time => ConvertDate(_numbers[ordinal], _kinds[ordinal] == XlsbTabularValueKind.Date),
+                // A plain number read as a date is a serial in the workbook's date system.
+                XlsbTabularValueKind.Number => ConvertDate(_numbers[ordinal], true),
+                _ => Convert.ToDateTime(GetValue(ordinal), _options.Culture)
+            };
         }
 
         public override Guid GetGuid(int ordinal) {

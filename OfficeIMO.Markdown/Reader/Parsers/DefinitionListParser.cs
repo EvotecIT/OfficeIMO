@@ -150,9 +150,11 @@ internal static partial class MarkdownReader {
             return false;
         }
 
-        if (!TryCollectMarkdigDefinitionTerms(lines, i, options, state, out var markerIndex, out var terms)) {
+        if (!TryFindMarkdigDefinitionMarker(lines, i, options, state, out var markerIndex)) {
             return false;
         }
+
+        List<ParsedDefinitionTermLine> terms;
 
         var dl = new DefinitionListBlock();
         dl.SetParsingContext(options, state);
@@ -204,7 +206,7 @@ internal static partial class MarkdownReader {
                 terms[termIndex].Bind(options, state);
             }
 
-            var group = new DefinitionListGroup();
+            var group = new DefinitionListGroup { ParsedFromMarkerLines = true };
             for (int termIndex = 0; termIndex < terms.Count; termIndex++) {
                 group.AddTerm(terms[termIndex].TermObject);
             }
@@ -243,7 +245,7 @@ internal static partial class MarkdownReader {
             }
 
             if (nextGroup < lines.Length &&
-                TryCollectMarkdigDefinitionTerms(lines, nextGroup, options, state, out _, out _)) {
+                TryFindMarkdigDefinitionMarker(lines, nextGroup, options, state, out _)) {
                 cursor = nextGroup;
                 continue;
             }
@@ -263,21 +265,40 @@ internal static partial class MarkdownReader {
         MarkdownReaderState state,
         out int markerIndex,
         out List<ParsedDefinitionTermLine> terms) {
+        // Most paragraphs are not definition terms, so find the marker before building any term.
+        if (!TryFindMarkdigDefinitionMarker(lines, startIndex, options, state, out markerIndex)) {
+            terms = EmptyDefinitionTerms;
+            return false;
+        }
+
+        terms = new List<ParsedDefinitionTermLine>(markerIndex - startIndex);
+        for (int cursor = startIndex; cursor < markerIndex; cursor++) {
+            terms.Add(CreateMarkdigDefinitionTerm(lines[cursor] ?? string.Empty, cursor, options, state));
+        }
+
+        return true;
+    }
+
+    private static readonly List<ParsedDefinitionTermLine> EmptyDefinitionTerms = new List<ParsedDefinitionTermLine>(0);
+
+    private static bool TryFindMarkdigDefinitionMarker(
+        string[] lines,
+        int startIndex,
+        MarkdownLoadOptions options,
+        MarkdownReaderState state,
+        out int markerIndex) {
         markerIndex = -1;
-        terms = new List<ParsedDefinitionTermLine>();
         int cursor = startIndex;
         while (cursor < lines.Length) {
-            var line = lines[cursor] ?? string.Empty;
-            if (TryGetMarkdigDefinitionMarker(line, out _, out _)) {
+            if (TryGetMarkdigDefinitionMarker(lines[cursor] ?? string.Empty, out _, out _)) {
                 markerIndex = cursor;
-                return terms.Count > 0;
+                return cursor > startIndex;
             }
 
             if (!IsMarkdigDefinitionTermCandidate(lines, cursor, options, state)) {
                 return false;
             }
 
-            terms.Add(CreateMarkdigDefinitionTerm(line, cursor, options, state));
             cursor++;
         }
 
@@ -822,6 +843,11 @@ internal static partial class MarkdownReader {
 
         var definitionBodyState = CloneState(state);
         definitionBodyState.IsMarkdigDefinitionListBody = true;
+        // Lazy continuations in a multi-line definition body are repaired from the body's syntax
+        // nodes, so such a body keeps them even when the document does not capture a syntax tree.
+        if (definitionSourceLines.Count > 1) {
+            definitionBodyState.CaptureSyntaxTree = true;
+        }
         RemoveLazyDefinitionContinuationReferenceDefinitions(definitionBodyState, definitionSourceLines);
         var suppressedParagraphAttributeStartLines = GetContinuationParagraphGenericAttributeSuppressionLines(definitionSourceLines);
         var (blocks, syntaxChildren) = ParseNestedMarkdownBlocks(
@@ -871,7 +897,7 @@ internal static partial class MarkdownReader {
             var definition = pair.Value;
             int? startLine = definition.LabelSourceSpan?.StartLine ?? definition.SourceSpan?.StartLine;
             if (startLine.HasValue && lazyReferenceLines.Contains(startLine.Value)) {
-                state.LinkRefs.Remove(pair.Key);
+                state.EditLinkRefs().Remove(pair.Key);
             }
         }
     }

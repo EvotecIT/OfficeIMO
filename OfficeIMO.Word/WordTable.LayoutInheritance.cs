@@ -6,15 +6,13 @@ namespace OfficeIMO.Word {
 
         /// <summary>Reads the named or default table style without materializing inherited properties in the source.</summary>
         private TableLayoutValues? GetInheritedTableLayoutType() {
-            Styles? styles = _document._wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart?.Styles;
-            if (styles == null) return null;
-            var definitions = new Dictionary<string, Style>(StringComparer.Ordinal);
+            var definitions = new Dictionary<string, WordStyleDefinitionsReader.StyleDefinition>(StringComparer.Ordinal);
             string? defaultStyleId = null;
-            foreach (Style style in styles.Elements<Style>()) {
-                if (style.Type?.Value != StyleValues.Table || string.IsNullOrWhiteSpace(style.StyleId?.Value)) continue;
-                string id = style.StyleId!.Value!;
+            foreach (WordStyleDefinitionsReader.StyleDefinition style in WordStyleCatalog.For(_document).Definitions) {
+                if (!string.Equals(style.Type, "table", StringComparison.Ordinal) || string.IsNullOrWhiteSpace(style.StyleId)) continue;
+                string id = style.StyleId!;
                 if (!definitions.ContainsKey(id)) definitions.Add(id, style);
-                if (defaultStyleId == null && style.Default?.Value == true) defaultStyleId = id;
+                if (defaultStyleId == null && style.IsDefault) defaultStyleId = id;
             }
             string? styleId = _tableProperties?.TableStyle?.Val?.Value;
             if (string.IsNullOrWhiteSpace(styleId)) styleId = defaultStyleId;
@@ -24,10 +22,10 @@ namespace OfficeIMO.Word {
                 // Word ignores child properties on the built-in Normal Table style.
                 if (string.Equals(styleId, "TableNormal", StringComparison.Ordinal) ||
                     string.Equals(styleId, "NormalTable", StringComparison.Ordinal)) return null;
-                if (!definitions.TryGetValue(styleId!, out Style? style)) return null;
-                TableLayoutValues? layout = style.GetFirstChild<StyleTableProperties>()?.GetFirstChild<TableLayout>()?.Type?.Value;
+                if (!definitions.TryGetValue(styleId!, out WordStyleDefinitionsReader.StyleDefinition? style)) return null;
+                TableLayoutValues? layout = style.Element.GetFirstChild<StyleTableProperties>()?.GetFirstChild<TableLayout>()?.Type?.Value;
                 if (layout.HasValue) return layout;
-                styleId = style.BasedOn?.Val?.Value;
+                styleId = style.BasedOn;
             }
             return null;
         }

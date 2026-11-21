@@ -11,6 +11,9 @@
 Website/static/downloads/integrations/** -text -whitespace
 Website/static/downloads/integrations/**/*.pdf -diff
 
+# Email authentication vectors are signed over exact CRLF bytes.
+OfficeIMO.Email.Tests/Fixtures/Authentication/*.eml -text
+
 # Imported PowerShell API components are bound to release fingerprints.
 Website/data/apidocs/powershell/PSWriteOffice.psd1 -text -diff
 Website/data/apidocs/powershell/PSWriteOffice-Help.xml -text -diff
@@ -70,6 +73,8 @@ OfficeIMO.TestAssets/TableGeometry/manifest.json text eol=lf
 OfficeIMO.TestAssets/TableGeometry/ruling-controls-manifest.json text eol=lf
 OfficeIMO.TestAssets/*Layout/manifest.json text eol=lf
 OfficeIMO.TestAssets/ScanQuality/sources.json text eol=lf
+# Independent corpus PDFs are byte-identical upstream copies pinned by SHA-256.
+OfficeIMO.TestAssets/Pdf/IndependentCorpus/*.pdf -text -diff
 
 # Independent redaction fixtures include ASCII containers and embedded fonts.
 # Preserve source fingerprints and PDF stream/xref byte offsets on every OS.
@@ -109,8 +114,7 @@ Website/scripts/ShowcaseEvidence.Provenance.ps1 text eol=lf
 
 # Published benchmark payloads are integrity-checked byte-for-byte against the
 # catalog. Keep their committed line endings unchanged on every platform.
-Website/static/data/benchmarks/library-comparisons/*.json text eol=lf -diff
-Website/static/data/benchmarks/library-comparisons/support/*.json -text -diff
+Website/static/data/benchmarks/evidence/*.json text eol=lf -diff
 
 # Corpus publication hashes identify the original runner report bytes. Preserve
 # them exactly, including the measured producer's line endings, on every OS.
@@ -201,6 +205,9 @@ OfficeIMO.TestAssets/Documents/SpreadsheetXmlCorpus/*.xml -text -whitespace
 
 # Native Word XML producer hashes identify exact bytes on every checkout platform.
 OfficeIMO.TestAssets/Documents/WordXmlMigration/*.xml -text -whitespace
+# WordML note producer exports and authored ODF sources have provenance-bound bytes.
+OfficeIMO.TestAssets/Documents/WordMl2003Notes/*.xml -text -whitespace
+OfficeIMO.TestAssets/Documents/WordMl2003Notes/*.fodt -text
 
 # Legacy Visio producer inputs are hash-bound evidence, including line endings.
 OfficeIMO.Visio.Tests/Fixtures/LegacyXml/*.vdx -text -diff
@@ -218,11 +225,6 @@ OfficeIMO.Visio.Tests/Fixtures/LegacyBinary/*.vtx -text -diff
 OfficeIMO.OpenDocument.Tests/Fixtures/Drawing/*.fodg -text
 OfficeIMO.OpenDocument.Tests/Fixtures/Drawing/*.fodp -text
 
-# Captured benchmark packets retain exact member bytes inside verified archives.
-Docs/benchmarks/excel-csv-broad-throughput-2026-10-04/raw-packets.zip -text -diff
-Docs/benchmarks/excel-csv-throughput-2026-10-04/raw-packets.zip -text -diff
-Docs/benchmarks/excel-large-typed-read-2026-10-04/raw-packets.zip -text -diff
-
 # Preserve the independent composite-font refusal fixture across checkout platforms.
 OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/CompositeTextDecoding/*.pdf -text -diff
 
@@ -230,8 +232,4 @@ OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/CompositeTextDecoding/*.pdf -t
 OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/PredefinedCjk/*.pdf -text -diff
 OfficeIMO.Pdf/Resources/AdobeCMaps/** -text -whitespace
 
-# The dated tabular publication manifest pins raw and derived member bytes,
-# including captured CRLF and native report whitespace.
-Docs/benchmarks/officeimo.excel-tabular-2026-10-08.md -text -whitespace
-Docs/benchmarks/officeimo.excel-tabular-2026-10-08/** -text -whitespace
-Docs/benchmarks/officeimo.excel-tabular-2026-10-08/raw-packets.zip -diff
+OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/StandardEncryption/*.pdf -text -diff

@@ -1,0 +1,35 @@
+{
+  "format": "officeimo.pdf.snapshot/1",
+  "pageCount": 2,
+  "pages": [
+    {
+      "page": 1,
+      "size": "612 x 792 pt",
+      "rotation": 0,
+      "renderDiagnostics": [],
+      "text": [
+        "Quarterly report",
+        "",
+        "| Item | Amount |",
+        "| --- | ---: |",
+        "| Licences | 900.00 |",
+        "| Total | 1,250.00 |"
+      ]
+    },
+    {
+      "page": 2,
+      "size": "612 x 792 pt",
+      "rotation": 0,
+      "renderDiagnostics": [],
+      "text": [
+        "Appendix 2"
+      ]
+    }
+  ],
+  "fonts": [
+    "OfficeIMOBaselineSans-Bold",
+    "OfficeIMOBaselineSans-Regular"
+  ],
+  "outline": [],
+  "formFields": []
+}

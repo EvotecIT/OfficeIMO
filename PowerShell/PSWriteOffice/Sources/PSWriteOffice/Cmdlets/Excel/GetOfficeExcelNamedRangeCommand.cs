@@ -27,6 +27,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 public sealed class GetOfficeExcelNamedRangeCommand : AsyncPSCmdlet {
     /// <summary>Workbook paths resolved with filesystem wildcard support.</summary>
     [Parameter(ParameterSetName = "Path", Mandatory = true, Position = 0, ValueFromPipeline = true)]
+    [Alias("FilePath")]
     public string[] Path { get; set; } = Array.Empty<string>();
 
     /// <summary>Optional named range to retrieve.</summary>
@@ -36,6 +37,7 @@ public sealed class GetOfficeExcelNamedRangeCommand : AsyncPSCmdlet {
     /// <summary>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</summary>
     [Parameter()]
     [OfficeSheetTransformation]
+    [Alias("WorksheetName")]
     public OfficeSheetSelector? Sheet { get; set; }
 
     /// <summary>Literal workbook paths, including FileInfo.FullName and provider PSPath.</summary>
@@ -55,10 +57,14 @@ public sealed class GetOfficeExcelNamedRangeCommand : AsyncPSCmdlet {
     [Parameter(ParameterSetName = "Uri")]
     public SwitchParameter AllowHttp { get; set; }
 
+    /// <summary>Allow a workbook on a loopback, private, link-local or other non-public network address. Use only for trusted internal sources.</summary>
+    [Parameter(ParameterSetName = "Uri")]
+    public SwitchParameter AllowPrivateNetworkAddresses { get; set; }
+
     /// <inheritdoc />
     protected override async Task ProcessRecordAsync() {
         if (ParameterSetName == "Uri") {
-            using var document = await ExcelDocumentService.LoadDocumentAsync(Uri!, readOnly: true, allowHttp: AllowHttp, cancellationToken: CancelToken).ConfigureAwait(false);
+            using var document = await ExcelDocumentService.LoadDocumentAsync(Uri!, readOnly: true, allowHttp: AllowHttp, allowPrivateNetworkAddresses: AllowPrivateNetworkAddresses, cancellationToken: CancelToken).ConfigureAwait(false);
             Query(document);
         } else foreach (var scope in ExcelCommandTargets.Workbooks(this, ParameterSetName, Path, LiteralPath, Document, readOnly: true)) Query(scope.Document);
     }

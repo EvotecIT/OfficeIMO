@@ -104,7 +104,7 @@ internal static partial class PdfRedactionApplier {
                     !xObjects.Items.TryGetValue(name, out PdfObject? entry) || PdfObjectLookup.Resolve(objects, entry) is not PdfStream form ||
                     !string.Equals(form.Dictionary.Get<PdfName>("Subtype")?.Name, "Form", StringComparison.Ordinal)) return;
                 foreach (KeyValuePair<string, int> inner in CountForm(form, (entry as PdfReference)?.ObjectNumber ?? 0, resources!)) Add(total, inner.Key, inner.Value);
-            }, maxNestingDepth: limits.MaxContentNestingDepth, maxOperands: limits.MaxContentOperands);
+            }, maxNestingDepth: limits.MaxContentNestingDepth, maxGraphicsStateDepth: limits.MaxGraphicsStateDepth, maxOperands: limits.MaxContentOperands);
             return total;
         }
 

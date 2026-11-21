@@ -124,8 +124,11 @@ namespace OfficeIMO.Pdf.Word {
         /// </summary>
         public bool PreserveImagePlacementPosition { get; set; }
 
-        /// <summary>Whether image resources should be represented by editable placeholder paragraphs when native image embedding is unavailable or disabled.</summary>
-        public bool IncludeImagePlaceholders { get; set; } = true;
+        /// <summary>
+        /// Whether image resources should be represented by editable placeholder paragraphs when native image embedding is unavailable or disabled.
+        /// False by default: an image that cannot be carried over is reported in the conversion report and never adds text to the document body.
+        /// </summary>
+        public bool IncludeImagePlaceholders { get; set; }
 
         /// <summary>Whether AcroForm widgets should be represented by editable placeholder paragraphs.</summary>
         public bool IncludeFormFieldPlaceholders { get; set; } = true;

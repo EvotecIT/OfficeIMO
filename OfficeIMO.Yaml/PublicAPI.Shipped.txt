@@ -1,0 +1,312 @@
+#nullable enable
+OfficeIMO.Yaml.YamlAlias
+OfficeIMO.Yaml.YamlAlias.Name.get -> string!
+OfficeIMO.Yaml.YamlAlias.Target.get -> OfficeIMO.Yaml.YamlNode!
+OfficeIMO.Yaml.YamlAlias.YamlAlias(OfficeIMO.Yaml.YamlNode! anchored) -> void
+OfficeIMO.Yaml.YamlDocument
+OfficeIMO.Yaml.YamlDocument.Add(string! path, OfficeIMO.Yaml.YamlNode? value) -> OfficeIMO.Yaml.YamlNode!
+OfficeIMO.Yaml.YamlDocument.AddDocument(OfficeIMO.Yaml.YamlNode! root) -> OfficeIMO.Yaml.YamlDocumentPart!
+OfficeIMO.Yaml.YamlDocument.Diagnostics.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeDiagnostic!>!
+OfficeIMO.Yaml.YamlDocument.Dispose() -> void
+OfficeIMO.Yaml.YamlDocument.Documents.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Yaml.YamlDocumentPart!>!
+OfficeIMO.Yaml.YamlDocument.Remove(string! path) -> bool
+OfficeIMO.Yaml.YamlDocument.Root.get -> OfficeIMO.Yaml.YamlNode?
+OfficeIMO.Yaml.YamlDocument.Root.set -> void
+OfficeIMO.Yaml.YamlDocument.Save() -> void
+OfficeIMO.Yaml.YamlDocument.Save(System.IO.Stream! stream, OfficeIMO.Yaml.YamlSaveOptions? options = null) -> void
+OfficeIMO.Yaml.YamlDocument.Save(string! path, OfficeIMO.Yaml.YamlSaveOptions? options = null) -> void
+OfficeIMO.Yaml.YamlDocument.SaveAsync(System.IO.Stream! stream, OfficeIMO.Yaml.YamlSaveOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+OfficeIMO.Yaml.YamlDocument.SaveAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+OfficeIMO.Yaml.YamlDocument.SaveAsync(string! path, OfficeIMO.Yaml.YamlSaveOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+OfficeIMO.Yaml.YamlDocument.Select(string! path) -> OfficeIMO.Yaml.YamlNode?
+OfficeIMO.Yaml.YamlDocument.Set(string! path, OfficeIMO.Yaml.YamlNode? value) -> OfficeIMO.Yaml.YamlNode!
+OfficeIMO.Yaml.YamlDocument.ToString(OfficeIMO.Yaml.YamlSaveOptions? options) -> string!
+OfficeIMO.Yaml.YamlDocumentPart
+OfficeIMO.Yaml.YamlDocumentPart.CommentAfter.get -> string?
+OfficeIMO.Yaml.YamlDocumentPart.CommentBefore.get -> string?
+OfficeIMO.Yaml.YamlDocumentPart.HasEndMarker.get -> bool
+OfficeIMO.Yaml.YamlDocumentPart.HasStartMarker.get -> bool
+OfficeIMO.Yaml.YamlDocumentPart.Root.get -> OfficeIMO.Yaml.YamlNode!
+OfficeIMO.Yaml.YamlDocumentPart.Root.set -> void
+OfficeIMO.Yaml.YamlDocumentPart.Schema.get -> OfficeIMO.Yaml.YamlSchema
+OfficeIMO.Yaml.YamlDocumentPart.SetCommentAfter(string? text) -> OfficeIMO.Yaml.YamlDocumentPart!
+OfficeIMO.Yaml.YamlDocumentPart.SetCommentBefore(string? text) -> OfficeIMO.Yaml.YamlDocumentPart!
+OfficeIMO.Yaml.YamlDocumentPart.TagDirectives.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Yaml.YamlTagDirective>!
+OfficeIMO.Yaml.YamlDocumentPart.Version.get -> string?
+OfficeIMO.Yaml.YamlDuplicateKeyPolicy
+OfficeIMO.Yaml.YamlDuplicateKeyPolicy.Error = 0 -> OfficeIMO.Yaml.YamlDuplicateKeyPolicy
+OfficeIMO.Yaml.YamlDuplicateKeyPolicy.FirstWins = 1 -> OfficeIMO.Yaml.YamlDuplicateKeyPolicy
+OfficeIMO.Yaml.YamlDuplicateKeyPolicy.LastWins = 2 -> OfficeIMO.Yaml.YamlDuplicateKeyPolicy
+OfficeIMO.Yaml.YamlErrorCodes
+OfficeIMO.Yaml.YamlException
+OfficeIMO.Yaml.YamlException.Code.get -> string!
+OfficeIMO.Yaml.YamlException.Column.get -> int
+OfficeIMO.Yaml.YamlException.Line.get -> int
+OfficeIMO.Yaml.YamlException.Position.get -> OfficeIMO.Yaml.YamlPosition
+OfficeIMO.Yaml.YamlLimitExceededException
+OfficeIMO.Yaml.YamlLimitExceededException.Limit.get -> long
+OfficeIMO.Yaml.YamlLimitExceededException.LimitName.get -> string!
+OfficeIMO.Yaml.YamlLoadOptions
+OfficeIMO.Yaml.YamlLoadOptions.DuplicateKeys.get -> OfficeIMO.Yaml.YamlDuplicateKeyPolicy
+OfficeIMO.Yaml.YamlLoadOptions.DuplicateKeys.set -> void
+OfficeIMO.Yaml.YamlLoadOptions.MaxAliasExpansion.get -> int
+OfficeIMO.Yaml.YamlLoadOptions.MaxAliasExpansion.set -> void
+OfficeIMO.Yaml.YamlLoadOptions.MaxDepth.get -> int
+OfficeIMO.Yaml.YamlLoadOptions.MaxDepth.set -> void
+OfficeIMO.Yaml.YamlLoadOptions.MaxInputBytes.get -> long?
+OfficeIMO.Yaml.YamlLoadOptions.MaxInputBytes.set -> void
+OfficeIMO.Yaml.YamlLoadOptions.MaxNodes.get -> int
+OfficeIMO.Yaml.YamlLoadOptions.MaxNodes.set -> void
+OfficeIMO.Yaml.YamlLoadOptions.MaxScalarLength.get -> int
+OfficeIMO.Yaml.YamlLoadOptions.MaxScalarLength.set -> void
+OfficeIMO.Yaml.YamlLoadOptions.Schema.get -> OfficeIMO.Yaml.YamlSchema?
+OfficeIMO.Yaml.YamlLoadOptions.Schema.set -> void
+OfficeIMO.Yaml.YamlLoadOptions.YamlLoadOptions() -> void
+OfficeIMO.Yaml.YamlMapping
+OfficeIMO.Yaml.YamlMapping.Add(OfficeIMO.Yaml.YamlNode! key, OfficeIMO.Yaml.YamlNode? value) -> OfficeIMO.Yaml.YamlNode!
+OfficeIMO.Yaml.YamlMapping.Add(string! key, OfficeIMO.Yaml.YamlNode? value) -> OfficeIMO.Yaml.YamlNode!
+OfficeIMO.Yaml.YamlMapping.ContainsKey(string! key) -> bool
+OfficeIMO.Yaml.YamlMapping.Count.get -> int
+OfficeIMO.Yaml.YamlMapping.Enumerator
+OfficeIMO.Yaml.YamlMapping.Enumerator.Current.get -> OfficeIMO.Yaml.YamlMappingEntry
+OfficeIMO.Yaml.YamlMapping.Enumerator.Dispose() -> void
+OfficeIMO.Yaml.YamlMapping.Enumerator.Enumerator() -> void
+OfficeIMO.Yaml.YamlMapping.Enumerator.MoveNext() -> bool
+OfficeIMO.Yaml.YamlMapping.Enumerator.Reset() -> void
+OfficeIMO.Yaml.YamlMapping.GetEnumerator() -> OfficeIMO.Yaml.YamlMapping.Enumerator
+OfficeIMO.Yaml.YamlMapping.IndexOf(string! key) -> int
+OfficeIMO.Yaml.YamlMapping.Insert(int index, OfficeIMO.Yaml.YamlNode! key, OfficeIMO.Yaml.YamlNode? value) -> OfficeIMO.Yaml.YamlNode!
+OfficeIMO.Yaml.YamlMapping.Insert(int index, string! key, OfficeIMO.Yaml.YamlNode? value) -> OfficeIMO.Yaml.YamlNode!
+OfficeIMO.Yaml.YamlMapping.Remove(string! key) -> bool
+OfficeIMO.Yaml.YamlMapping.RemoveAt(int index) -> void
+OfficeIMO.Yaml.YamlMapping.RenameKey(string! key, string! newKey) -> OfficeIMO.Yaml.YamlScalar!
+OfficeIMO.Yaml.YamlMapping.Set(string! key, OfficeIMO.Yaml.YamlNode? value) -> OfficeIMO.Yaml.YamlNode!
+OfficeIMO.Yaml.YamlMapping.TryGetValue(string! key, out OfficeIMO.Yaml.YamlNode? value) -> bool
+OfficeIMO.Yaml.YamlMapping.YamlMapping() -> void
+OfficeIMO.Yaml.YamlMapping.YamlMapping(OfficeIMO.Yaml.YamlStyle style) -> void
+OfficeIMO.Yaml.YamlMapping.this[int index].get -> OfficeIMO.Yaml.YamlMappingEntry
+OfficeIMO.Yaml.YamlMapping.this[string! key].get -> OfficeIMO.Yaml.YamlNode!
+OfficeIMO.Yaml.YamlMapping.this[string! key].set -> void
+OfficeIMO.Yaml.YamlMappingEntry
+OfficeIMO.Yaml.YamlMappingEntry.Key.get -> OfficeIMO.Yaml.YamlNode!
+OfficeIMO.Yaml.YamlMappingEntry.Value.get -> OfficeIMO.Yaml.YamlNode!
+OfficeIMO.Yaml.YamlMappingEntry.YamlMappingEntry() -> void
+OfficeIMO.Yaml.YamlNode
+OfficeIMO.Yaml.YamlNode.Anchor.get -> string?
+OfficeIMO.Yaml.YamlNode.AsMapping() -> OfficeIMO.Yaml.YamlMapping!
+OfficeIMO.Yaml.YamlNode.AsScalar() -> OfficeIMO.Yaml.YamlScalar!
+OfficeIMO.Yaml.YamlNode.AsSequence() -> OfficeIMO.Yaml.YamlSequence!
+OfficeIMO.Yaml.YamlNode.AsString() -> string!
+OfficeIMO.Yaml.YamlNode.Comment.get -> string?
+OfficeIMO.Yaml.YamlNode.CommentBefore.get -> string?
+OfficeIMO.Yaml.YamlNode.Descendants() -> OfficeIMO.Yaml.YamlNodeWalk
+OfficeIMO.Yaml.YamlNode.End.get -> OfficeIMO.Yaml.YamlPosition
+OfficeIMO.Yaml.YamlNode.GetPath() -> string!
+OfficeIMO.Yaml.YamlNode.GetValue<T>() -> T
+OfficeIMO.Yaml.YamlNode.IsNull.get -> bool
+OfficeIMO.Yaml.YamlNode.Parent.get -> OfficeIMO.Yaml.YamlNode?
+OfficeIMO.Yaml.YamlNode.Select(string! path) -> OfficeIMO.Yaml.YamlNode?
+OfficeIMO.Yaml.YamlNode.SetAnchor(string? name) -> OfficeIMO.Yaml.YamlNode!
+OfficeIMO.Yaml.YamlNode.SetComment(string? text) -> OfficeIMO.Yaml.YamlNode!
+OfficeIMO.Yaml.YamlNode.SetCommentBefore(string? text) -> OfficeIMO.Yaml.YamlNode!
+OfficeIMO.Yaml.YamlNode.SetSpaceBefore(bool value) -> OfficeIMO.Yaml.YamlNode!
+OfficeIMO.Yaml.YamlNode.SetTag(string? tag) -> OfficeIMO.Yaml.YamlNode!
+OfficeIMO.Yaml.YamlNode.SpaceBefore.get -> bool
+OfficeIMO.Yaml.YamlNode.Start.get -> OfficeIMO.Yaml.YamlPosition
+OfficeIMO.Yaml.YamlNode.Style.get -> OfficeIMO.Yaml.YamlStyle
+OfficeIMO.Yaml.YamlNode.Tag.get -> string?
+OfficeIMO.Yaml.YamlNode.TryGetValue<T>(out T value) -> bool
+OfficeIMO.Yaml.YamlNodeWalk
+OfficeIMO.Yaml.YamlNodeWalk.Enumerator
+OfficeIMO.Yaml.YamlNodeWalk.Enumerator.Current.get -> OfficeIMO.Yaml.YamlNode!
+OfficeIMO.Yaml.YamlNodeWalk.Enumerator.Dispose() -> void
+OfficeIMO.Yaml.YamlNodeWalk.Enumerator.Enumerator() -> void
+OfficeIMO.Yaml.YamlNodeWalk.Enumerator.MoveNext() -> bool
+OfficeIMO.Yaml.YamlNodeWalk.Enumerator.Reset() -> void
+OfficeIMO.Yaml.YamlNodeWalk.GetEnumerator() -> OfficeIMO.Yaml.YamlNodeWalk.Enumerator
+OfficeIMO.Yaml.YamlNodeWalk.YamlNodeWalk() -> void
+OfficeIMO.Yaml.YamlPosition
+OfficeIMO.Yaml.YamlPosition.Column.get -> int
+OfficeIMO.Yaml.YamlPosition.Equals(OfficeIMO.Yaml.YamlPosition other) -> bool
+OfficeIMO.Yaml.YamlPosition.Line.get -> int
+OfficeIMO.Yaml.YamlPosition.Offset.get -> long
+OfficeIMO.Yaml.YamlPosition.YamlPosition() -> void
+OfficeIMO.Yaml.YamlPosition.YamlPosition(long offset, int line, int column) -> void
+OfficeIMO.Yaml.YamlReader
+OfficeIMO.Yaml.YamlReader.Anchor.get -> string?
+OfficeIMO.Yaml.YamlReader.Dispose() -> void
+OfficeIMO.Yaml.YamlReader.End.get -> OfficeIMO.Yaml.YamlPosition
+OfficeIMO.Yaml.YamlReader.GetString() -> string!
+OfficeIMO.Yaml.YamlReader.IsImplicit.get -> bool
+OfficeIMO.Yaml.YamlReader.IsNull() -> bool
+OfficeIMO.Yaml.YamlReader.Read() -> bool
+OfficeIMO.Yaml.YamlReader.Start.get -> OfficeIMO.Yaml.YamlPosition
+OfficeIMO.Yaml.YamlReader.Style.get -> OfficeIMO.Yaml.YamlStyle
+OfficeIMO.Yaml.YamlReader.Tag.get -> string?
+OfficeIMO.Yaml.YamlReader.TokenType.get -> OfficeIMO.Yaml.YamlTokenType
+OfficeIMO.Yaml.YamlReader.TryGetBoolean(out bool value) -> bool
+OfficeIMO.Yaml.YamlReader.TryGetDecimal(out decimal value) -> bool
+OfficeIMO.Yaml.YamlReader.TryGetDouble(out double value) -> bool
+OfficeIMO.Yaml.YamlReader.TryGetInt64(out long value) -> bool
+OfficeIMO.Yaml.YamlReader.ValueSpan.get -> System.ReadOnlySpan<char>
+OfficeIMO.Yaml.YamlReader.YamlReader(System.IO.Stream! stream, OfficeIMO.Yaml.YamlReaderOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> void
+OfficeIMO.Yaml.YamlReader.YamlReader(System.IO.TextReader! reader, OfficeIMO.Yaml.YamlReaderOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> void
+OfficeIMO.Yaml.YamlReader.YamlReader(System.ReadOnlyMemory<char> yaml, OfficeIMO.Yaml.YamlReaderOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> void
+OfficeIMO.Yaml.YamlReader.YamlReader(string! yaml, OfficeIMO.Yaml.YamlReaderOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> void
+OfficeIMO.Yaml.YamlReaderOptions
+OfficeIMO.Yaml.YamlReaderOptions.IncludeComments.get -> bool
+OfficeIMO.Yaml.YamlReaderOptions.IncludeComments.set -> void
+OfficeIMO.Yaml.YamlReaderOptions.MaxAliasExpansion.get -> int
+OfficeIMO.Yaml.YamlReaderOptions.MaxAliasExpansion.set -> void
+OfficeIMO.Yaml.YamlReaderOptions.MaxDepth.get -> int
+OfficeIMO.Yaml.YamlReaderOptions.MaxDepth.set -> void
+OfficeIMO.Yaml.YamlReaderOptions.MaxInputBytes.get -> long?
+OfficeIMO.Yaml.YamlReaderOptions.MaxInputBytes.set -> void
+OfficeIMO.Yaml.YamlReaderOptions.MaxNodes.get -> int
+OfficeIMO.Yaml.YamlReaderOptions.MaxNodes.set -> void
+OfficeIMO.Yaml.YamlReaderOptions.MaxScalarLength.get -> int
+OfficeIMO.Yaml.YamlReaderOptions.MaxScalarLength.set -> void
+OfficeIMO.Yaml.YamlReaderOptions.Schema.get -> OfficeIMO.Yaml.YamlSchema?
+OfficeIMO.Yaml.YamlReaderOptions.Schema.set -> void
+OfficeIMO.Yaml.YamlReaderOptions.YamlReaderOptions() -> void
+OfficeIMO.Yaml.YamlSaveOptions
+OfficeIMO.Yaml.YamlSaveOptions.Reformat.get -> bool
+OfficeIMO.Yaml.YamlSaveOptions.Reformat.set -> void
+OfficeIMO.Yaml.YamlSaveOptions.WriterOptions.get -> OfficeIMO.Yaml.YamlWriterOptions?
+OfficeIMO.Yaml.YamlSaveOptions.WriterOptions.set -> void
+OfficeIMO.Yaml.YamlSaveOptions.YamlSaveOptions() -> void
+OfficeIMO.Yaml.YamlScalar
+OfficeIMO.Yaml.YamlScalar.Kind.get -> OfficeIMO.Yaml.YamlScalarKind
+OfficeIMO.Yaml.YamlScalar.RawText.get -> string!
+OfficeIMO.Yaml.YamlScalar.SetValue(bool value) -> OfficeIMO.Yaml.YamlScalar!
+OfficeIMO.Yaml.YamlScalar.SetValue(double value) -> OfficeIMO.Yaml.YamlScalar!
+OfficeIMO.Yaml.YamlScalar.SetValue(long value) -> OfficeIMO.Yaml.YamlScalar!
+OfficeIMO.Yaml.YamlScalar.SetValue(string? value, OfficeIMO.Yaml.YamlStyle style = OfficeIMO.Yaml.YamlStyle.None) -> OfficeIMO.Yaml.YamlScalar!
+OfficeIMO.Yaml.YamlScalar.YamlScalar(bool value) -> void
+OfficeIMO.Yaml.YamlScalar.YamlScalar(double value) -> void
+OfficeIMO.Yaml.YamlScalar.YamlScalar(long value) -> void
+OfficeIMO.Yaml.YamlScalar.YamlScalar(string! value, OfficeIMO.Yaml.YamlStyle style) -> void
+OfficeIMO.Yaml.YamlScalar.YamlScalar(string? value) -> void
+OfficeIMO.Yaml.YamlScalarKind
+OfficeIMO.Yaml.YamlScalarKind.Boolean = 2 -> OfficeIMO.Yaml.YamlScalarKind
+OfficeIMO.Yaml.YamlScalarKind.Custom = 8 -> OfficeIMO.Yaml.YamlScalarKind
+OfficeIMO.Yaml.YamlScalarKind.Float = 4 -> OfficeIMO.Yaml.YamlScalarKind
+OfficeIMO.Yaml.YamlScalarKind.Integer = 3 -> OfficeIMO.Yaml.YamlScalarKind
+OfficeIMO.Yaml.YamlScalarKind.Merge = 6 -> OfficeIMO.Yaml.YamlScalarKind
+OfficeIMO.Yaml.YamlScalarKind.Null = 1 -> OfficeIMO.Yaml.YamlScalarKind
+OfficeIMO.Yaml.YamlScalarKind.String = 0 -> OfficeIMO.Yaml.YamlScalarKind
+OfficeIMO.Yaml.YamlScalarKind.Timestamp = 5 -> OfficeIMO.Yaml.YamlScalarKind
+OfficeIMO.Yaml.YamlScalarKind.Value = 7 -> OfficeIMO.Yaml.YamlScalarKind
+OfficeIMO.Yaml.YamlSchema
+OfficeIMO.Yaml.YamlSchema.Core = 2 -> OfficeIMO.Yaml.YamlSchema
+OfficeIMO.Yaml.YamlSchema.Failsafe = 0 -> OfficeIMO.Yaml.YamlSchema
+OfficeIMO.Yaml.YamlSchema.Json = 1 -> OfficeIMO.Yaml.YamlSchema
+OfficeIMO.Yaml.YamlSchema.Yaml11 = 3 -> OfficeIMO.Yaml.YamlSchema
+OfficeIMO.Yaml.YamlSequence
+OfficeIMO.Yaml.YamlSequence.Add(OfficeIMO.Yaml.YamlNode? item) -> OfficeIMO.Yaml.YamlNode!
+OfficeIMO.Yaml.YamlSequence.Count.get -> int
+OfficeIMO.Yaml.YamlSequence.Enumerator
+OfficeIMO.Yaml.YamlSequence.Enumerator.Current.get -> OfficeIMO.Yaml.YamlNode!
+OfficeIMO.Yaml.YamlSequence.Enumerator.Dispose() -> void
+OfficeIMO.Yaml.YamlSequence.Enumerator.Enumerator() -> void
+OfficeIMO.Yaml.YamlSequence.Enumerator.MoveNext() -> bool
+OfficeIMO.Yaml.YamlSequence.Enumerator.Reset() -> void
+OfficeIMO.Yaml.YamlSequence.GetEnumerator() -> OfficeIMO.Yaml.YamlSequence.Enumerator
+OfficeIMO.Yaml.YamlSequence.Insert(int index, OfficeIMO.Yaml.YamlNode? item) -> OfficeIMO.Yaml.YamlNode!
+OfficeIMO.Yaml.YamlSequence.RemoveAt(int index) -> void
+OfficeIMO.Yaml.YamlSequence.YamlSequence() -> void
+OfficeIMO.Yaml.YamlSequence.YamlSequence(OfficeIMO.Yaml.YamlStyle style) -> void
+OfficeIMO.Yaml.YamlSequence.this[int index].get -> OfficeIMO.Yaml.YamlNode!
+OfficeIMO.Yaml.YamlSequence.this[int index].set -> void
+OfficeIMO.Yaml.YamlStyle
+OfficeIMO.Yaml.YamlStyle.Block = 6 -> OfficeIMO.Yaml.YamlStyle
+OfficeIMO.Yaml.YamlStyle.DoubleQuoted = 3 -> OfficeIMO.Yaml.YamlStyle
+OfficeIMO.Yaml.YamlStyle.Flow = 7 -> OfficeIMO.Yaml.YamlStyle
+OfficeIMO.Yaml.YamlStyle.Folded = 5 -> OfficeIMO.Yaml.YamlStyle
+OfficeIMO.Yaml.YamlStyle.Literal = 4 -> OfficeIMO.Yaml.YamlStyle
+OfficeIMO.Yaml.YamlStyle.None = 0 -> OfficeIMO.Yaml.YamlStyle
+OfficeIMO.Yaml.YamlStyle.Plain = 1 -> OfficeIMO.Yaml.YamlStyle
+OfficeIMO.Yaml.YamlStyle.SingleQuoted = 2 -> OfficeIMO.Yaml.YamlStyle
+OfficeIMO.Yaml.YamlTagDirective
+OfficeIMO.Yaml.YamlTagDirective.Handle.get -> string!
+OfficeIMO.Yaml.YamlTagDirective.Prefix.get -> string!
+OfficeIMO.Yaml.YamlTagDirective.YamlTagDirective() -> void
+OfficeIMO.Yaml.YamlTokenType
+OfficeIMO.Yaml.YamlTokenType.Alias = 10 -> OfficeIMO.Yaml.YamlTokenType
+OfficeIMO.Yaml.YamlTokenType.Comment = 11 -> OfficeIMO.Yaml.YamlTokenType
+OfficeIMO.Yaml.YamlTokenType.DocumentEnd = 4 -> OfficeIMO.Yaml.YamlTokenType
+OfficeIMO.Yaml.YamlTokenType.DocumentStart = 3 -> OfficeIMO.Yaml.YamlTokenType
+OfficeIMO.Yaml.YamlTokenType.MappingEnd = 8 -> OfficeIMO.Yaml.YamlTokenType
+OfficeIMO.Yaml.YamlTokenType.MappingStart = 7 -> OfficeIMO.Yaml.YamlTokenType
+OfficeIMO.Yaml.YamlTokenType.None = 0 -> OfficeIMO.Yaml.YamlTokenType
+OfficeIMO.Yaml.YamlTokenType.Scalar = 9 -> OfficeIMO.Yaml.YamlTokenType
+OfficeIMO.Yaml.YamlTokenType.SequenceEnd = 6 -> OfficeIMO.Yaml.YamlTokenType
+OfficeIMO.Yaml.YamlTokenType.SequenceStart = 5 -> OfficeIMO.Yaml.YamlTokenType
+OfficeIMO.Yaml.YamlTokenType.StreamEnd = 2 -> OfficeIMO.Yaml.YamlTokenType
+OfficeIMO.Yaml.YamlTokenType.StreamStart = 1 -> OfficeIMO.Yaml.YamlTokenType
+OfficeIMO.Yaml.YamlWriter
+OfficeIMO.Yaml.YamlWriter.Dispose() -> void
+OfficeIMO.Yaml.YamlWriter.Flush() -> void
+OfficeIMO.Yaml.YamlWriter.WriteAlias(string! anchor) -> void
+OfficeIMO.Yaml.YamlWriter.WriteAnchor(string! name) -> void
+OfficeIMO.Yaml.YamlWriter.WriteComment(string! text) -> void
+OfficeIMO.Yaml.YamlWriter.WriteDocumentEnd() -> void
+OfficeIMO.Yaml.YamlWriter.WriteDocumentStart() -> void
+OfficeIMO.Yaml.YamlWriter.WriteEndMapping() -> void
+OfficeIMO.Yaml.YamlWriter.WriteEndSequence() -> void
+OfficeIMO.Yaml.YamlWriter.WriteKey(string! key) -> void
+OfficeIMO.Yaml.YamlWriter.WriteScalar(bool value) -> void
+OfficeIMO.Yaml.YamlWriter.WriteScalar(double value) -> void
+OfficeIMO.Yaml.YamlWriter.WriteScalar(long value) -> void
+OfficeIMO.Yaml.YamlWriter.WriteScalar(string? value, OfficeIMO.Yaml.YamlStyle style = OfficeIMO.Yaml.YamlStyle.None) -> void
+OfficeIMO.Yaml.YamlWriter.WriteStartMapping(OfficeIMO.Yaml.YamlStyle style = OfficeIMO.Yaml.YamlStyle.Block) -> void
+OfficeIMO.Yaml.YamlWriter.WriteStartSequence(OfficeIMO.Yaml.YamlStyle style = OfficeIMO.Yaml.YamlStyle.Block) -> void
+OfficeIMO.Yaml.YamlWriter.WriteTag(string! tag) -> void
+OfficeIMO.Yaml.YamlWriter.YamlWriter(System.IO.Stream! utf8Stream, OfficeIMO.Yaml.YamlWriterOptions? options = null) -> void
+OfficeIMO.Yaml.YamlWriter.YamlWriter(System.IO.TextWriter! writer, OfficeIMO.Yaml.YamlWriterOptions? options = null) -> void
+OfficeIMO.Yaml.YamlWriterOptions
+OfficeIMO.Yaml.YamlWriterOptions.MappingIndent.get -> int
+OfficeIMO.Yaml.YamlWriterOptions.MappingIndent.set -> void
+OfficeIMO.Yaml.YamlWriterOptions.NewLine.get -> string!
+OfficeIMO.Yaml.YamlWriterOptions.NewLine.set -> void
+OfficeIMO.Yaml.YamlWriterOptions.SequenceDashOffset.get -> int
+OfficeIMO.Yaml.YamlWriterOptions.SequenceDashOffset.set -> void
+OfficeIMO.Yaml.YamlWriterOptions.SequenceIndent.get -> int
+OfficeIMO.Yaml.YamlWriterOptions.SequenceIndent.set -> void
+OfficeIMO.Yaml.YamlWriterOptions.YamlWriterOptions() -> void
+const OfficeIMO.Yaml.YamlErrorCodes.DuplicateKey = "Yaml.Load.DuplicateKey" -> string!
+const OfficeIMO.Yaml.YamlErrorCodes.InvalidAnchor = "Yaml.Syntax.InvalidAnchor" -> string!
+const OfficeIMO.Yaml.YamlErrorCodes.InvalidBlockScalar = "Yaml.Syntax.InvalidBlockScalar" -> string!
+const OfficeIMO.Yaml.YamlErrorCodes.InvalidCharacter = "Yaml.Syntax.InvalidCharacter" -> string!
+const OfficeIMO.Yaml.YamlErrorCodes.InvalidDirective = "Yaml.Syntax.InvalidDirective" -> string!
+const OfficeIMO.Yaml.YamlErrorCodes.InvalidDocument = "Yaml.Syntax.InvalidDocument" -> string!
+const OfficeIMO.Yaml.YamlErrorCodes.InvalidEncoding = "Yaml.Encoding.Invalid" -> string!
+const OfficeIMO.Yaml.YamlErrorCodes.InvalidEscape = "Yaml.Syntax.InvalidEscape" -> string!
+const OfficeIMO.Yaml.YamlErrorCodes.InvalidIndentation = "Yaml.Syntax.InvalidIndentation" -> string!
+const OfficeIMO.Yaml.YamlErrorCodes.InvalidKey = "Yaml.Syntax.InvalidKey" -> string!
+const OfficeIMO.Yaml.YamlErrorCodes.InvalidTag = "Yaml.Syntax.InvalidTag" -> string!
+const OfficeIMO.Yaml.YamlErrorCodes.InvalidValue = "Yaml.Syntax.InvalidValue" -> string!
+const OfficeIMO.Yaml.YamlErrorCodes.LimitExceeded = "Yaml.Limit.Exceeded" -> string!
+const OfficeIMO.Yaml.YamlErrorCodes.RecursiveAlias = "Yaml.Load.RecursiveAlias" -> string!
+const OfficeIMO.Yaml.YamlErrorCodes.UndefinedAlias = "Yaml.Load.UndefinedAlias" -> string!
+const OfficeIMO.Yaml.YamlErrorCodes.UnexpectedToken = "Yaml.Syntax.UnexpectedToken" -> string!
+const OfficeIMO.Yaml.YamlErrorCodes.UnterminatedScalar = "Yaml.Syntax.UnterminatedScalar" -> string!
+override OfficeIMO.Yaml.YamlDocument.ToString() -> string!
+override OfficeIMO.Yaml.YamlException.Message.get -> string!
+override OfficeIMO.Yaml.YamlNode.ToString() -> string!
+override OfficeIMO.Yaml.YamlPosition.Equals(object? obj) -> bool
+override OfficeIMO.Yaml.YamlPosition.GetHashCode() -> int
+override OfficeIMO.Yaml.YamlPosition.ToString() -> string!
+static OfficeIMO.Yaml.YamlDocument.Create() -> OfficeIMO.Yaml.YamlDocument!
+static OfficeIMO.Yaml.YamlDocument.Load(System.IO.Stream! stream, OfficeIMO.Yaml.YamlLoadOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Yaml.YamlDocument!
+static OfficeIMO.Yaml.YamlDocument.Load(string! path, OfficeIMO.Yaml.YamlLoadOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Yaml.YamlDocument!
+static OfficeIMO.Yaml.YamlDocument.LoadAsync(System.IO.Stream! stream, OfficeIMO.Yaml.YamlLoadOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Yaml.YamlDocument!>!
+static OfficeIMO.Yaml.YamlDocument.LoadAsync(string! path, OfficeIMO.Yaml.YamlLoadOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Yaml.YamlDocument!>!
+static OfficeIMO.Yaml.YamlDocument.Parse(string! yaml, OfficeIMO.Yaml.YamlLoadOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Yaml.YamlDocument!
+static OfficeIMO.Yaml.YamlLoadOptions.UntrustedDefaults.get -> OfficeIMO.Yaml.YamlLoadOptions!
+static OfficeIMO.Yaml.YamlNode.implicit operator OfficeIMO.Yaml.YamlNode!(bool value) -> OfficeIMO.Yaml.YamlNode!
+static OfficeIMO.Yaml.YamlNode.implicit operator OfficeIMO.Yaml.YamlNode!(double value) -> OfficeIMO.Yaml.YamlNode!
+static OfficeIMO.Yaml.YamlNode.implicit operator OfficeIMO.Yaml.YamlNode!(long value) -> OfficeIMO.Yaml.YamlNode!
+static OfficeIMO.Yaml.YamlNode.implicit operator OfficeIMO.Yaml.YamlNode!(string? value) -> OfficeIMO.Yaml.YamlNode!
+static OfficeIMO.Yaml.YamlPosition.operator !=(OfficeIMO.Yaml.YamlPosition left, OfficeIMO.Yaml.YamlPosition right) -> bool
+static OfficeIMO.Yaml.YamlPosition.operator ==(OfficeIMO.Yaml.YamlPosition left, OfficeIMO.Yaml.YamlPosition right) -> bool

@@ -24,6 +24,17 @@ public sealed class PdfPageExtractionSessionTests {
     }
 
     [Fact]
+    public void HeaderAfterLeadingBytesStillAllowsPageOperations() {
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.AddText("OffsetHeader")).ToBytes();
+        byte[] shifted = System.Text.Encoding.ASCII.GetBytes("# PDF processors must accept data before the header\r\n")
+            .Concat(pdf).ToArray();
+        PdfDocument source = PdfDocument.Load(shifted);
+
+        Assert.Equal(PdfSyntax.GetHeaderVersion(pdf), source.Preflight().Probe.HeaderVersion);
+        Assert.Contains("OffsetHeader", source.Pages.Extract(1).Reader.Text());
+    }
+
+    [Fact]
     public void CompoundSelectionsPreserveRepeatedPagesOrderAndSource() {
         byte[] bytes = PdfDocument.Create().Paragraph(p => p.AddText("FirstPage"))
             .PageBreak().Paragraph(p => p.AddText("SecondPage"))

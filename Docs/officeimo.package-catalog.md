@@ -8,7 +8,7 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 
 | Package family | Direct external runtime dependency | What OfficeIMO owns |
 | --- | --- | --- |
-| Drawing, OneNote, Markdown, RTF, OpenDocument, AsciiDoc, LaTeX, OPML, DocBook, CSV, EPUB, ZIP | No third-party document engine | Parsing, object models, writing, rendering primitives, safety limits, and diagnostics |
+| Drawing, OneNote, Markdown, RTF, OpenDocument, AsciiDoc, LaTeX, OPML, DocBook, CSV, YAML, EPUB, ZIP | No third-party document engine | Parsing, object models, writing, rendering primitives, safety limits, and diagnostics |
 | CAB and passive MSI extraction | None | Managed Cabinet decoding, embedded MSI payload mapping, bounded extraction, and path validation |
 | JavaScript and browser assets | None | Strict TypeScript document layers, streaming XLSX/CSV and embedded portable scripts |
 | Apple iWork source reading | No third-party document engine | Bounded package, Snappy/IWA, protobuf-envelope, record-preservation, and Pages/Numbers/Keynote projection layers |
@@ -21,7 +21,6 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 | Optional Security provider | [Bouncy Castle](https://www.bouncycastle.org/csharp/) and `System.Security.Cryptography.Xml` | CMS/S/MIME/RFC 3161/X.509/XML DSig orchestration behind one typed provider explicitly supplied to Word, PDF, or Email |
 | Optional ChartForgeX bridge | [ChartForgeX](https://github.com/EvotecIT/ChartForgeX) | Vector-first visual artifact conversion, OfficeDrawing fidelity reports, and Word, Excel, PowerPoint, and PDF placement |
 | Visio | `System.IO.Packaging` | VSDX/VSTX/VSSX and macro-enabled package model, bounded legacy binary import, diagram builders, editing, validation, topology, and PNG/JPEG/TIFF/SVG/WebP export |
-| Reader.Yaml | [YamlDotNet](https://github.com/aaubry/YamlDotNet) | Reader projection, chunking, limits, locations, and diagnostics |
 | MarkdownRenderer.Wpf | Microsoft WebView2 | Rendering shell, presets, plug-in model, and WPF host contract |
 | Optional document AI | [OfficeIMO.AI](../OfficeIMO.AI/README.md) and [IntelligenceX adapter](../OfficeIMO.AI.IntelligenceX/README.md) | Read-only questions, summaries, field extraction and proposed structure with bounded source evidence; .NET 10 and caller-selected model execution |
 | Optional Apple raster codec | Installed Apple ImageIO, CoreGraphics and CoreFoundation frameworks | Bounded HEIC/HEIF composition, transforms, alpha and color policy in Core, with explicit .NET registration |
@@ -73,6 +72,8 @@ _Dependency footprint:_ zero third-party runtime dependencies.
 - [x] Managed single-cabinet extraction with Store, MSZIP, and LZX compression
 - [x] Passive MSI extraction maps embedded CAB members through authored Directory, Component, File, and Media tables
 - [x] Selective output, path and collision validation, finite resource limits, cancellation, and atomic destination publication
+- [x] TAR (ustar, pax, GNU, v7) and gzip reading and extraction; links and device records are listed but never created
+- [x] Reproducible ZIP, TAR, .tar.gz and gzip creation with a managed Deflate encoder that gives identical bytes on every platform
 
 _Dependency footprint:_ only `OfficeIMO.Core`; extraction does not execute installers or custom actions. Cabinet sets, external MSI payloads, and action-dependent installation layouts are unsupported; see the [support matrix](../OfficeIMO.Archives/SUPPORT.md).
 
@@ -96,6 +97,20 @@ _Dependency footprint:_ only `OfficeIMO.Core`; the package and IWA readers are f
 - [x] Shared adapter for OfficeIMO Excel, CSV, and ordinary ADO.NET providers without adding Arrow to their runtime graphs
 
 _Dependency footprint:_ `OfficeIMO.Core` and Apache.Arrow; Excel and CSV remain independently usable.
+
+#### [OfficeIMO.Data.Conversions](../OfficeIMO.Data.Conversions/README.md)
+
+- [x] Streaming conversions between JSON, JSON Lines, YAML, XML and CSV, with exact numbers and per-code loss reports
+- [x] Rows of JSON, YAML and XML as a public `DbDataReader` (`StructuredDataReader`) for bulk copy, Arrow and other ADO.NET consumers
+- [x] One documented XML convention and canonical-only CSV type inference
+
+_Dependency footprint:_ `OfficeIMO.Core`, `OfficeIMO.Yaml` and `OfficeIMO.CSV`; `System.Text.Json` on netstandard2.0 and net472 only.
+
+#### [OfficeIMO.Data.Conversions.Excel](../OfficeIMO.Data.Conversions.Excel/README.md)
+
+- [x] Worksheets and workbooks to JSON, JSON Lines and XML; JSON, YAML and XML rows to workbooks through the streaming writer
+
+_Dependency footprint:_ `OfficeIMO.Data.Conversions` and `OfficeIMO.Excel`.
 
 #### [OfficeIMO.Data.Generators](../OfficeIMO.Data.Generators/README.md)
 
@@ -125,8 +140,19 @@ _Dependency footprint:_ `OfficeIMO.Core`, HarfBuzzSharp, and its platform-native
 - [x] Optional typed bridge from CodeGlyphX QR, matrix, and linear barcode symbols to reusable `OfficeDrawing` scenes
 - [x] Neutral SVG handoff without making either core package depend on the other
 - [x] Searchable barcode label text and explicit unsupported-import counts
+- [x] Shared `OfficeBarcodeOptions` and physical-size rendering for the Word, Excel, PowerPoint and PDF code adapters
 
-_Dependency footprint:_ only `OfficeIMO.Core` and CodeGlyphX; both core packages remain independently usable.
+_Dependency footprint:_ only `OfficeIMO.Core` and CodeGlyphX 3.1 or later; both core packages remain independently usable.
+
+#### QR code and barcode adapters
+
+- [x] [`OfficeIMO.Word.CodeGlyphX`](../OfficeIMO.Word.CodeGlyphX/README.md): `AddQrCode` and `AddBarcode` on documents and paragraphs
+- [x] [`OfficeIMO.Excel.CodeGlyphX`](../OfficeIMO.Excel.CodeGlyphX/README.md): codes anchored at a worksheet cell
+- [x] [`OfficeIMO.PowerPoint.CodeGlyphX`](../OfficeIMO.PowerPoint.CodeGlyphX/README.md): codes at a slide position or fitted to a layout box
+- [x] [`OfficeIMO.Pdf.CodeGlyphX`](../OfficeIMO.Pdf.CodeGlyphX/README.md): vector codes in the content flow or at page coordinates
+- [x] Every CodeGlyphX symbology through one `SymbolFormat` argument, with alternative text from the payload by default
+
+_Dependency footprint:_ each adapter adds only its format engine, `OfficeIMO.Drawing.CodeGlyphX` and CodeGlyphX.
 
 #### [OfficeIMO.ChartForgeX](../OfficeIMO.ChartForgeX/README.md)
 
@@ -290,6 +316,16 @@ _Dependency footprint:_ `OfficeIMO.Invoicing` and `OfficeIMO.Pdf`. Install this 
 
 _Dependency footprint:_ only `OfficeIMO.Ocr` and `OfficeIMO.Pdf`; providers and native runtimes remain explicit application choices.
 
+#### [OfficeIMO.Pdf.Testing](../OfficeIMO.Pdf.Testing/README.md)
+
+- [x] Snapshot tests for PDFs in xUnit, NUnit, MSTest or any framework that reports exceptions
+- [x] Approved page images from the managed renderer plus an exact structure file with logical text, page sizes, outline, form fields and render diagnostics
+- [x] Optional approved PDF with a byte-identical fast path or an exact SHA-256 check
+- [x] Pixel tolerances and ignored regions, a line diff of the structure file and an HTML review gallery on mismatch
+- [x] Approval through `OFFICEIMO_PDF_SNAPSHOT_ACCEPT=1` or `PdfSnapshot.Accept`, and a clear failure for fonts that are not embedded
+
+_Dependency footprint:_ only `OfficeIMO.Pdf`; no test framework or image-comparison dependency.
+
 #### [OfficeIMO.Security](../OfficeIMO.Security/README.md)
 
 - [x] Detached and encapsulated CMS signing and verification with bounded parsing and structured findings
@@ -376,11 +412,12 @@ _Dependency footprint:_ `System.Text.Encoding.CodePages` plus `OfficeIMO.Core`; 
 #### [OfficeIMO.Markdown](../OfficeIMO.Markdown/README.md)
 
 - [x] Typed Markdown AST and fluent builder for headings, paragraphs, lists, tasks, tables, code, callouts, details, definitions, front matter, footnotes, TOCs, and semantic fenced blocks
+- [x] YAML front matter on the YAML engine: nested values, typed reads, lossless save of unedited front matter, and invalid-YAML diagnostics
 - [x] Native parsing with source spans, anchors, stable block identities, transforms, and diagnostics
 - [x] HTML fragment/document rendering with CSS profiles and optional Prism, Mermaid, chart, and math shell assets
 - [x] AOT-friendly typed selectors and DTO-style AST projection for editor, chat, transcript, and document hosts
 
-_Dependency footprint:_ only `OfficeIMO.Core`; Markdown parsing and writing are first-party.
+_Dependency footprint:_ `OfficeIMO.Core` and `OfficeIMO.Yaml`, which reads and writes front matter; Markdown parsing and writing are first-party.
 
 #### [OfficeIMO.Adf](../OfficeIMO.Adf/README.md)
 
@@ -522,6 +559,45 @@ _Dependency footprint:_ only `OfficeIMO.Core`; external schemas are identified b
 - [x] Cross-library BenchmarkDotNet coverage with row-count and payload checks so lanes cannot win by under-reading
 
 _Dependency footprint:_ BCL compatibility packages only; no third-party CSV parser.
+
+#### [OfficeIMO.Yaml](../OfficeIMO.Yaml/README.md)
+
+- [x] YAML 1.2.2 reading checked against the yaml-test-suite, with Failsafe, JSON, Core and YAML 1.1 schemas, anchors, aliases, merge keys, tags and multi-document streams
+- [x] Lossless `YamlDocument`: unchanged files save byte for byte, and edits rewrite only the edited text while comments, quoting, indentation and spellings survive elsewhere
+- [x] Path-based reads and edits, comment and anchor editing, and new nodes that follow their neighbors' style
+- [x] Overlay merging with replace, append and merge-by-key sequence rules, Helm-style null removal and a `YamlMergeReport`
+- [x] Allocation-free `YamlReader` pull events and a deterministic `YamlWriter` with YAML 1.1-safe quoting
+- [x] `YamlSerializer` with a packaged source generator for trimming and NativeAOT, plus reflection metadata
+- [x] De-facto YAML by default with positioned warnings, `Strict` for the specification's exact rules, duplicate-key policy, resource limits, cancellation and stable error codes
+
+_Dependency footprint:_ only `OfficeIMO.Core`, plus `System.Buffers`/`System.Memory` on .NET Standard 2.0 and .NET Framework; no third-party YAML parser.
+
+#### [OfficeIMO.Yaml.Configuration](../OfficeIMO.Yaml.Configuration/README.md)
+
+- [x] `AddYamlFile` and `AddYamlStream` for `Microsoft.Extensions.Configuration`, with the JSON provider's overloads, optional files and reload on change
+- [x] Keys flattened with `:` and sequence indexes; scalars keep their decoded text, nulls become empty strings, aliases and merge keys resolve
+- [x] Duplicate keys (case-insensitive), multi-document streams and malformed YAML rejected with their line
+
+_Dependency footprint:_ `OfficeIMO.Yaml` plus `Microsoft.Extensions.Configuration.FileExtensions`.
+
+#### [OfficeIMO.Toml](../OfficeIMO.Toml/README.md)
+
+- [x] TOML 1.1 pull reader with full syntax checking, positioned errors and no per-token allocation
+- [x] Lossless document model: unchanged files save byte for byte, including comments, alignment, spelling and a UTF-8 BOM
+- [x] Minimal-diff editing of values, keys, tables, arrays of tables, arrays and inline tables in the file's own layout, plus comments and path `Select`/`Set`/`Remove`
+- [x] Forward-only writer whose output TOML 1.0 and 1.1 readers both accept
+- [x] Depth, node, string-length and input-size limits with `UntrustedDefaults`, and cancellation
+- [x] All toml-test 1.1.0 valid and invalid cases, and byte-exact round trips of a real-world corpus
+
+_Dependency footprint:_ only `OfficeIMO.Core`; no third-party TOML parser.
+
+#### [OfficeIMO.Toml.Configuration](../OfficeIMO.Toml.Configuration/README.md)
+
+- [x] `AddTomlFile` and `AddTomlStream` for `Microsoft.Extensions.Configuration`, with the JSON provider's overloads, optional files and reload on change
+- [x] Tables, dotted keys, inline tables and arrays of tables flattened with `:` and indexes; date-times as ISO 8601 and integers as decimals so they bind
+- [x] Keys that differ only in case, duplicate keys and malformed TOML rejected with their line
+
+_Dependency footprint:_ `OfficeIMO.Toml` plus `Microsoft.Extensions.Configuration.FileExtensions`.
 
 #### [OfficeIMO.JavaScript.Assets](../OfficeIMO.JavaScript.Assets/README.md)
 
@@ -942,6 +1018,7 @@ _Dependency footprint:_ only OfficeIMO Latex.Markdown and Markdown.Pdf; no addit
 - [x] Normalized Markdown/text chunks, tables, visuals, assets, locations, hashes, metadata, diagnostics, and rich results
 - [x] Explicit handler registration with stable capability manifests and `OfficeIMO`/`Custom` origins
 - [x] Plain-text and unknown-payload fallbacks without a format-engine dependency
+- [x] Source-code files with fenced, language-tagged Markdown, language metadata and shebang detection
 
 _Dependency footprint:_ no OfficeIMO format-engine dependency; only `System.Text.Json` on compatibility targets.
 
@@ -1170,6 +1247,14 @@ _Dependency footprint:_ only `OfficeIMO.Reader.Core` and the first-party OfficeI
 
 _Dependency footprint:_ only `OfficeIMO.Reader.Core` and platform APIs; no audio codec, downloader, or model.
 
+#### [OfficeIMO.Reader.Toml](../OfficeIMO.Reader.Toml/README.md)
+
+- [x] TOML table traversal into path/type/value rows whose paths `TomlDocument.Select` accepts
+- [x] Chunked structured output and optional Markdown tables
+- [x] Path/stream dispatch and malformed-input warnings with error codes and positions
+
+_Dependency footprint:_ `OfficeIMO.Toml` plus `OfficeIMO.Reader.Core`.
+
 #### [OfficeIMO.Reader.Visio](../OfficeIMO.Reader.Visio/README.md)
 
 - [x] Page-aware `.vsdx`, `.vstx`, `.vssx`, `.vsdm`, `.vstm`, and `.vssm` extraction, with valid page-less stencil handling
@@ -1196,11 +1281,11 @@ _Dependency footprint:_ `OfficeIMO.Reader.Core` plus platform XML APIs.
 
 #### [OfficeIMO.Reader.Yaml](../OfficeIMO.Reader.Yaml/README.md)
 
-- [x] YAML representation traversal into path/type/value rows
-- [x] Multi-document streams, chunked output, and optional Markdown tables
+- [x] YAML document traversal into path/type/value rows whose paths select their node in `YamlDocument`
+- [x] Multi-document streams, chunked output with source lines, and optional Markdown tables
 - [x] Path/stream dispatch and malformed-input warnings
 
-_Dependency footprint:_ YamlDotNet plus `OfficeIMO.Reader.Core`.
+_Dependency footprint:_ `OfficeIMO.Yaml` plus `OfficeIMO.Reader.Core`.
 
 #### [OfficeIMO.Reader.Zip](../OfficeIMO.Reader.Zip/README.md)
 

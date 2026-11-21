@@ -36,9 +36,9 @@ public static partial class BookManuscriptImporter {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(options);
         options = options.Clone();
-        options.Title ??= document.FindFrontMatterEntry("title")?.Value as string;
-        options.Language ??= document.FindFrontMatterEntry("language")?.Value as string ?? document.FindFrontMatterEntry("lang")?.Value as string;
-        options.Creator ??= document.FindFrontMatterEntry("author")?.Value as string;
+        options.Title ??= MarkdownFrontMatterText.Get(document, "title");
+        options.Language ??= MarkdownFrontMatterText.Get(document, "language") ?? MarkdownFrontMatterText.Get(document, "lang");
+        options.Creator ??= MarkdownFrontMatterText.Get(document, "author");
         cancellationToken.ThrowIfCancellationRequested();
         var markdownOptions = new MarkdownHtmlExportOptions {
             Kind = MarkdownHtmlKind.Document,

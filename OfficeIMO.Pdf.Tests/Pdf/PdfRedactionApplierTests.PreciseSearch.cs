@@ -172,7 +172,7 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Contains(plan.Matches, match => match.Kind == PdfRedactionMatchKind.ImagePlacement);
 
             PdfRedactionSharingResult result = source.Redactions.ApplyForSharing(plan,
-                new PdfSanitizationOptions { ContentKindsToRemove = PdfSanitizationContentKind.UserMetadata });
+                new OfficeHiddenDataOptions { Kinds = OfficeHiddenDataKind.DocumentProperties });
 
             Assert.True(result.Redaction.IsVerified, result.Redaction.Summary);
             Assert.Empty(result.Redaction.ResidualMatches);
@@ -180,7 +180,7 @@ namespace OfficeIMO.Tests.Pdf {
             string raw = PdfEncoding.Latin1GetString(result.ToBytes());
             Assert.Contains("60 680 350 65 re f", raw, StringComparison.Ordinal);
             Assert.Contains("/Subtype /Image", raw, StringComparison.Ordinal);
-            string text = result.Sanitization.ToDocument().Read().Text;
+            string text = PdfDocument.Load(result.ToBytes()).Read().Text;
             Assert.DoesNotContain("secret", text, StringComparison.Ordinal);
             if (selection == PdfRedactionTextSelection.MatchedGlyphs) {
                 Assert.Contains("Alpha", text, StringComparison.Ordinal);

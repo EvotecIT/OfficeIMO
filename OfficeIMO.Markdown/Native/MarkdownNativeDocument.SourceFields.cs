@@ -563,7 +563,7 @@ public sealed partial class MarkdownNativeDocument {
 
     private static IEnumerable<MarkdownNativeBlockSourceField> EnumerateFrontMatterFields(MarkdownNativeFrontMatterBlock frontMatter) {
         if (frontMatter.OpeningFenceSourceSpan.HasValue) {
-            yield return new MarkdownNativeBlockSourceField("openingFence", "---", frontMatter.OpeningFenceSourceSpan.Value, frontMatter);
+            yield return new MarkdownNativeBlockSourceField("openingFence", frontMatter.FrontMatter.FenceText, frontMatter.OpeningFenceSourceSpan.Value, frontMatter);
         }
 
         for (var i = 0; i < frontMatter.Entries.Count; i++) {
@@ -577,16 +577,16 @@ public sealed partial class MarkdownNativeDocument {
             }
 
             if (entry.ValueSourceSpan.HasValue) {
-                yield return new MarkdownNativeBlockSourceField("frontMatterValue", FrontMatterBlock.FormatSyntaxValue(entry.Value), entry.ValueSourceSpan.Value, frontMatter, i);
+                yield return new MarkdownNativeBlockSourceField("frontMatterValue", FrontMatterBlock.FormatValue(entry.Value), entry.ValueSourceSpan.Value, frontMatter, i);
             }
         }
 
         if (frontMatter.BodySourceSpan.HasValue) {
-            yield return new MarkdownNativeBlockSourceField("frontMatterBody", frontMatter.RawYaml, frontMatter.BodySourceSpan.Value, frontMatter);
+            yield return new MarkdownNativeBlockSourceField("frontMatterBody", frontMatter.RawText, frontMatter.BodySourceSpan.Value, frontMatter);
         }
 
         if (frontMatter.ClosingFenceSourceSpan.HasValue) {
-            yield return new MarkdownNativeBlockSourceField("closingFence", "---", frontMatter.ClosingFenceSourceSpan.Value, frontMatter);
+            yield return new MarkdownNativeBlockSourceField("closingFence", frontMatter.FrontMatter.FenceText, frontMatter.ClosingFenceSourceSpan.Value, frontMatter);
         }
     }
 

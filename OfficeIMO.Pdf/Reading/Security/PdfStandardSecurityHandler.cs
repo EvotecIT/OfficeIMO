@@ -20,6 +20,7 @@ internal sealed partial class PdfStandardSecurityHandler {
     private readonly bool _encryptMetadata;
     private readonly PdfPasswordAuthenticationRole _authenticationRole;
     private readonly IOfficeAesCryptographyProvider? _aesCryptographyProvider;
+    private readonly int? _recipientPermissions;
 
     private PdfStandardSecurityHandler(
         byte[] fileKey,
@@ -29,8 +30,10 @@ internal sealed partial class PdfStandardSecurityHandler {
         PdfCryptMethod stringMethod,
         bool encryptMetadata,
         PdfPasswordAuthenticationRole authenticationRole,
-        IOfficeAesCryptographyProvider? aesCryptographyProvider) {
+        IOfficeAesCryptographyProvider? aesCryptographyProvider,
+        int? recipientPermissions = null) {
         _fileKey = fileKey;
+        _recipientPermissions = recipientPermissions;
         _revision = revision;
         _keyLengthBytes = keyLengthBytes;
         _streamMethod = streamMethod;
@@ -42,64 +45,87 @@ internal sealed partial class PdfStandardSecurityHandler {
 
     internal PdfPasswordAuthenticationRole AuthenticationRole => _authenticationRole;
 
+    /// <summary>Permission flags granted to the matched public-key recipient; null for password-based handlers.</summary>
+    internal int? RecipientPermissions => _recipientPermissions;
+
     public static PdfStandardSecurityHandler Create(
         PdfDictionary encryptionDictionary,
         byte[] fileId,
         string? password,
         bool passwordWasSupplied,
         IOfficeAesCryptographyProvider? aesCryptographyProvider,
+        PdfPublicKeyDecryptionOptions? publicKeyDecryption = null,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         string filter = encryptionDictionary.Get<PdfName>("Filter")?.Name ?? string.Empty;
+        if (string.Equals(filter, PublicKeyFilterName, StringComparison.Ordinal)) {
+            return CreatePublicKey(encryptionDictionary, publicKeyDecryption, aesCryptographyProvider, cancellationToken);
+        }
+
         if (!string.Equals(filter, "Standard", StringComparison.Ordinal)) {
-            throw new PdfUnsupportedEncryptionException("Only PDF Standard password encryption is supported.");
+            throw new PdfUnsupportedEncryptionException("Only the PDF Standard password and Adobe.PubSec public-key security handlers are supported.");
         }
 
         int version = GetRequiredInt(encryptionDictionary, "V");
         int revision = GetRequiredInt(encryptionDictionary, "R");
-        if ((revision == 5 || revision == 6) && version == 5) {
-            return CreateModern(encryptionDictionary, password, passwordWasSupplied, revision, aesCryptographyProvider, cancellationToken);
+        if (((revision == 5 || revision == 6) && version == 5) || (revision == 7 && version == 6)) {
+            // ISO/TS 32003 revision 7 keeps the revision 6 password algorithms and adds AES-GCM crypt filters.
+            return CreateModern(encryptionDictionary, password, passwordWasSupplied, revision, version, aesCryptographyProvider, cancellationToken);
         }
 
         if (revision < 2 || revision > 4 || version < 1 || version > 4) {
-            throw new PdfUnsupportedEncryptionException("Only PDF Standard security handler revisions 2 through 6 are supported.");
+            throw new PdfUnsupportedEncryptionException("Only PDF Standard security handler revisions 2 through 7 are supported.");
         }
 
         byte[] ownerEntry = GetRequiredBytes(encryptionDictionary, "O");
         byte[] userEntry = GetRequiredBytes(encryptionDictionary, "U");
+        if (ownerEntry.Length < 32 || userEntry.Length < (revision == 2 ? 32 : 16)) {
+            // No password can authenticate against these entries; report the damage once a password was tried.
+            if (!passwordWasSupplied) throw new PdfPasswordRequiredException("Encrypted PDF requires a password.");
+            throw new PdfUnsupportedEncryptionException("PDF Standard security /O and /U entries are too short for revision " +
+                revision.ToString(System.Globalization.CultureInfo.InvariantCulture) + "; the encryption dictionary is damaged.");
+        }
+
         int permissions = GetRequiredPermissions(encryptionDictionary);
-        int keyLengthBits = revision == 2 ? 40 : (GetOptionalInt(encryptionDictionary, "Length") ?? 128);
-        int keyLengthBytes = Math.Max(5, Math.Min(16, keyLengthBits / 8));
         bool encryptMetadata = encryptionDictionary.Get<PdfBoolean>("EncryptMetadata")?.Value ?? true;
         PdfCryptMethod streamMethod = ResolveCryptMethod(encryptionDictionary, "StmF", version);
         PdfCryptMethod stringMethod = ResolveCryptMethod(encryptionDictionary, "StrF", version);
 
         string passwordCandidate = passwordWasSupplied ? password ?? string.Empty : string.Empty;
-        if (TryAuthenticateOwnerPassword(passwordCandidate, revision, keyLengthBytes, ownerEntry, userEntry, permissions, fileId, encryptMetadata, out byte[] fileKey, cancellationToken)) {
-            return new PdfStandardSecurityHandler(
-                fileKey,
-                revision,
-                keyLengthBytes,
-                streamMethod,
-                stringMethod,
-                encryptMetadata,
-                PdfPasswordAuthenticationRole.Owner,
-                aesCryptographyProvider);
-        }
+        int keyLengthBytes = 5;
+        foreach (int candidateKeyLength in ResolveLegacyKeyLengthCandidates(encryptionDictionary, version, revision)) {
+            keyLengthBytes = candidateKeyLength;
+            if (TryAuthenticateOwnerPassword(passwordCandidate, revision, keyLengthBytes, ownerEntry, userEntry, permissions, fileId, encryptMetadata, out byte[] fileKey, cancellationToken)) {
+                return new PdfStandardSecurityHandler(
+                    fileKey,
+                    revision,
+                    keyLengthBytes,
+                    streamMethod,
+                    stringMethod,
+                    encryptMetadata,
+                    PdfPasswordAuthenticationRole.Owner,
+                    aesCryptographyProvider).WithCryptFilters(encryptionDictionary, version);
+            }
 
-        if (TryAuthenticateUserPassword(passwordCandidate, revision, keyLengthBytes, ownerEntry, userEntry, permissions, fileId, encryptMetadata, out fileKey, cancellationToken)) {
-            return new PdfStandardSecurityHandler(
-                fileKey,
-                revision,
-                keyLengthBytes,
-                streamMethod,
-                stringMethod,
-                encryptMetadata,
-                PdfPasswordAuthenticationRole.User,
-                aesCryptographyProvider);
+            if (TryAuthenticateUserPassword(passwordCandidate, revision, keyLengthBytes, ownerEntry, userEntry, permissions, fileId, encryptMetadata, out fileKey, cancellationToken)) {
+                return new PdfStandardSecurityHandler(
+                    fileKey,
+                    revision,
+                    keyLengthBytes,
+                    streamMethod,
+                    stringMethod,
+                    encryptMetadata,
+                    PdfPasswordAuthenticationRole.User,
+                    aesCryptographyProvider).WithCryptFilters(encryptionDictionary, version);
+            }
         }
 
         cancellationToken.ThrowIfCancellationRequested();
+        if (CanOpenWithoutFileKey(encryptionDictionary, version, streamMethod, stringMethod)) {
+            return new PdfStandardSecurityHandler(Array.Empty<byte>(), revision, keyLengthBytes, streamMethod, stringMethod, encryptMetadata,
+                PdfPasswordAuthenticationRole.None, aesCryptographyProvider).WithCryptFilters(encryptionDictionary, version).WithoutFileKey();
+        }
+
         if (!passwordWasSupplied) {
             throw new PdfPasswordRequiredException("Encrypted PDF requires a password.");
         }
@@ -129,20 +155,14 @@ internal sealed partial class PdfStandardSecurityHandler {
         if (value is PdfStream stream) {
             PdfDictionary streamDictionary = (PdfDictionary)DecryptDictionary(objectNumber, generation, stream.Dictionary, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
-            byte[] sourceData = stream.GetData(cancellationToken);
-            byte[] data = ShouldSkipStreamData(streamDictionary)
-                ? sourceData
-                : DecryptData(objectNumber, generation, sourceData, _streamMethod, cancellationToken);
-            return new PdfStream(streamDictionary, data, stream.DecodingFailed, stream.DecodingError) {
-                HasIncompleteSyntax = stream.HasIncompleteSyntax
-            };
+            return DecryptStream(objectNumber, generation, stream, streamDictionary, cancellationToken);
         }
 
         return value;
     }
 
     private PdfStringObj DecryptString(int objectNumber, int generation, PdfStringObj text, CancellationToken cancellationToken) {
-        if (_stringMethod == PdfCryptMethod.Identity) return text;
+        if (_stringMethod == PdfCryptMethod.Identity || IsUnencryptedAesString(text.RawBytes)) return text;
         byte[] decrypted = DecryptData(objectNumber, generation, text.RawBytes, _stringMethod, cancellationToken);
         PdfStringObj result = PdfStringObj.FromParsedBytes(
             decrypted,
@@ -184,7 +204,16 @@ internal sealed partial class PdfStandardSecurityHandler {
 
     private byte[] DecryptData(int objectNumber, int generation, byte[] data, PdfCryptMethod method, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (method == PdfCryptMethod.Identity || data.Length == 0) {
+        if (method == PdfCryptMethod.Identity) {
+            return data;
+        }
+
+        // AES-GCM authenticates even empty content: an empty value cannot carry its nonce and tag.
+        if (method == PdfCryptMethod.AesV4) {
+            return PdfAesGcm.Decrypt(_fileKey, data, _aesCryptographyProvider, cancellationToken);
+        }
+
+        if (data.Length == 0) {
             return data;
         }
 
@@ -329,9 +358,10 @@ internal sealed partial class PdfStandardSecurityHandler {
     private static byte[] ComputeOwnerPasswordKey(string password, int revision, int keyLengthBytes, CancellationToken cancellationToken) {
         byte[] digest = Md5(PadPassword(password, cancellationToken));
         if (revision >= 3) {
+            // ISO 32000-2 algorithm 3 rehashes the whole previous digest; only the final key is truncated.
             for (int i = 0; i < 50; i++) {
                 cancellationToken.ThrowIfCancellationRequested();
-                digest = Md5(Take(digest, keyLengthBytes, cancellationToken));
+                digest = Md5(digest);
             }
         }
 
@@ -360,25 +390,19 @@ internal sealed partial class PdfStandardSecurityHandler {
 
         PdfDictionary? cryptFilters = encryptionDictionary.Get<PdfDictionary>("CF");
         PdfDictionary? filter = cryptFilters?.Get<PdfDictionary>(filterName);
-        string cfm = filter?.Get<PdfName>("CFM")?.Name ?? "V2";
-        switch (cfm) {
-            case "None":
-            case "Identity":
-                return PdfCryptMethod.Identity;
-            case "V2":
-                return PdfCryptMethod.Rc4;
-            case "AESV2":
-                return PdfCryptMethod.AesV2;
-            case "AESV3":
-                return PdfCryptMethod.AesV3;
-            default:
-                throw new PdfUnsupportedEncryptionException("Unsupported PDF crypt filter method /" + cfm + ".");
-        }
+        return ResolveCryptFilterMethod(filter);
     }
 
+    // Some producers leave Info strings in plain text in AES-encrypted files. A string that is not a whole number of
+    // AES blocks cannot be ciphertext, so it is read as stored.
+    private bool IsUnencryptedAesString(byte[] value) =>
+        _stringMethod is PdfCryptMethod.AesV2 or PdfCryptMethod.AesV3 && (value.Length % 16) != 0;
+
     private byte[] DecryptAesV2(byte[] key, byte[] data, CancellationToken cancellationToken) {
+        data = TrimStreamEndOfLine(data);
         if (data.Length < 16 || (data.Length % 16) != 0) {
-            throw new PdfUnsupportedEncryptionException("Invalid AESV2 encrypted stream length.");
+            throw new PdfUnsupportedEncryptionException("Invalid AES encrypted stream length: " +
+                data.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " bytes is not an initialization vector followed by whole AES blocks.");
         }
 
         byte[] iv = new byte[16];
@@ -390,6 +414,19 @@ internal sealed partial class PdfStandardSecurityHandler {
         }
         byte[] decrypted = PdfAesCryptography.DecryptNoPadding(key, iv, ciphertext, _aesCryptographyProvider, cancellationToken);
         return RemovePkcs7Padding(decrypted, cancellationToken);
+    }
+
+    // A stream /Length that also counts the end-of-line marker before "endstream" leaves one or two extra bytes.
+    private static byte[] TrimStreamEndOfLine(byte[] data) {
+        int remainder = data.Length % 16;
+        if (remainder == 0 || remainder > 2 || data.Length < 16 + remainder) return data;
+        for (int index = data.Length - remainder; index < data.Length; index++) {
+            if (data[index] != (byte)'\r' && data[index] != (byte)'\n') return data;
+        }
+
+        var trimmed = new byte[data.Length - remainder];
+        Buffer.BlockCopy(data, 0, trimmed, 0, trimmed.Length);
+        return trimmed;
     }
 
     private static byte[] RemovePkcs7Padding(byte[] data, CancellationToken cancellationToken) {
@@ -480,6 +517,18 @@ internal sealed partial class PdfStandardSecurityHandler {
         return (int)value;
     }
 
+    // ISO 32000-2 table 20: /Length defaults to 40 bits and applies to /V 2 and 3; /V 1 and revision 2 always use
+    // 40 bits. /V 4 crypt filters use 128-bit keys unless the document states otherwise. Without /Length, /V 2 and 3
+    // files from producers that wrote 128-bit keys are tried at 128 bits after the default; the password check decides.
+    private static int[] ResolveLegacyKeyLengthCandidates(PdfDictionary encryptionDictionary, int version, int revision) {
+        if (version == 1 || revision == 2) return new[] { 5 };
+        int? length = GetOptionalInt(encryptionDictionary, "Length");
+        if (length is null) return version == 4 ? new[] { 16 } : new[] { 5, 16 };
+        // Some producers write the length in bytes rather than bits.
+        int bytes = length.Value <= 16 ? length.Value : length.Value / 8;
+        return new[] { Math.Max(5, Math.Min(16, bytes)) };
+    }
+
     private static int? GetOptionalInt(PdfDictionary dictionary, string key) {
         return dictionary.Get<PdfNumber>(key) is PdfNumber number ? (int)number.Value : null;
     }
@@ -557,7 +606,8 @@ internal sealed partial class PdfStandardSecurityHandler {
         Identity,
         Rc4,
         AesV2,
-        AesV3
+        AesV3,
+        AesV4
     }
 
     private static class Rc4 {

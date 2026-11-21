@@ -86,6 +86,8 @@ public sealed partial class OfficeConversionOptions {
     public ReaderVisioOptions? ReaderVisio { get; set; }
     /// <summary>Reader-to-PDF pagination, resource and attachment policy.</summary>
     public PdfProjectionOptions? ReaderPdf { get; set; }
+    /// <summary>Styled email-to-PDF header, body, attachment-list and page settings. The TextOnly output profile uses the Reader projection instead.</summary>
+    public OfficeIMO.Email.EmailPdfExportOptions? EmailPdf { get; set; }
     /// <summary>HTML-to-PDF rendering and resource settings.</summary>
     public HtmlPdfExportOptions? Html { get; set; }
     /// <summary>PDF-to-HTML semantic or positioned review settings.</summary>
@@ -100,6 +102,8 @@ public sealed partial class OfficeConversionOptions {
     public PdfExcelExportOptions? PdfExcel { get; set; }
     /// <summary>CSV formatting for a recognized table. OCR export writes every source row as data; omitted settings escape spreadsheet formulas.</summary>
     public OfficeIMO.CSV.CsvSaveOptions? CsvSave { get; set; }
+    /// <summary>Structured-data settings for JSON, JSON Lines, YAML, XML, CSV and worksheet data routes, such as Select and RootName.</summary>
+    public OfficeIMO.Data.Conversions.DataConversionOptions? Data { get; set; }
     /// <summary>PDF-to-PowerPoint reconstruction settings.</summary>
     public PdfPowerPointExportOptions? PdfPowerPoint { get; set; }
     /// <summary>Word source access, native decoding and package-security settings.</summary>
@@ -164,10 +168,12 @@ public sealed partial class OfficeConversionOptions {
         copy.ReaderVisio = ReaderVisioOptionsCloner.CloneNullable(ReaderVisio);
         copy.ReaderPipeline = ReaderPipeline;
         copy.ReaderPdf = ReaderPdf?.Snapshot();
+        copy.EmailPdf = EmailPdf?.Clone();
         copy.Html = Html?.ClonePdf(); copy.PdfHtml = PdfHtml?.CloneForConversion(); copy.PlainText = PlainText?.Clone();
         copy.Markdown = Markdown?.Clone(); copy.PdfLoad = PdfLoad?.Clone();
         copy.PdfWord = PdfWord?.Clone(); copy.PdfExcel = PdfExcel?.Clone(); copy.PdfPowerPoint = PdfPowerPoint?.Snapshot();
         copy.CsvSave = CsvSave?.Clone();
+        copy.Data = Data?.Clone();
         if (copy.PdfExcel != null) copy.PdfExcel.ReadOptions = PdfExcel?.ReadOptions?.Clone();
         copy.WordLoad = WordLoad?.Snapshot(); copy.ExcelLoad = ExcelLoad?.Snapshot(); copy.PowerPointLoad = PowerPointLoad?.Snapshot();
         copy.WordSave = WordSave?.Clone(); copy.ExcelSave = ExcelSave?.Clone(); copy.PowerPointSave = PowerPointSave?.Clone();

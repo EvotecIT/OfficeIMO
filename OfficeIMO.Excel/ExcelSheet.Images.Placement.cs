@@ -16,8 +16,7 @@ namespace OfficeIMO.Excel {
             ExcelImage? image = null;
             WriteLock(() => {
                 DrawingsPart drawingPart = GetOrCreateDrawingsPart();
-                ImagePart imagePart = GetImagePart(drawingPart, imageBytes, contentType, deduplicate);
-                string imageRelationshipId = drawingPart.GetIdOfPart(imagePart);
+                A.Blip blip = CreatePictureBlip(drawingPart, imageBytes, contentType, deduplicate);
 
                 var drawingId = NextDrawingId(drawingPart);
                 string resolvedName = string.IsNullOrWhiteSpace(name) ? $"Picture {drawingId}" : name!.Trim();
@@ -43,7 +42,7 @@ namespace OfficeIMO.Excel {
                         new Xdr.RowId(endRow.ToString(System.Globalization.CultureInfo.InvariantCulture)),
                         new Xdr.RowOffset(endOffsetY.ToEmus().ToString(System.Globalization.CultureInfo.InvariantCulture))
                     ),
-                    CreatePicture(drawingId, resolvedName, imageRelationshipId, altText, title, lockAspectRatio,
+                    CreatePicture(drawingId, resolvedName, blip, altText, title, lockAspectRatio,
                         width.ToEmus(), height.ToEmus(), rotationDegrees),
                     new Xdr.ClientData()) {
                     EditAs = ToEditAsValue(placement)
@@ -72,8 +71,7 @@ namespace OfficeIMO.Excel {
             ExcelImage? image = null;
             WriteLock(() => {
                 DrawingsPart drawingPart = GetOrCreateDrawingsPart();
-                ImagePart imagePart = GetImagePart(drawingPart, imageBytes, contentType, deduplicate);
-                string imageRelationshipId = drawingPart.GetIdOfPart(imagePart);
+                A.Blip blip = CreatePictureBlip(drawingPart, imageBytes, contentType, deduplicate);
 
                 UInt32Value drawingId = NextDrawingId(drawingPart);
                 string resolvedName = string.IsNullOrWhiteSpace(name) ? $"Picture {drawingId}" : name!.Trim();
@@ -85,7 +83,7 @@ namespace OfficeIMO.Excel {
                         Y = y.ToEmus()
                     },
                     new Xdr.Extent { Cx = widthEmu, Cy = heightEmu },
-                    CreatePicture(drawingId, resolvedName, imageRelationshipId, altText, title, lockAspectRatio, widthEmu, heightEmu, rotationDegrees),
+                    CreatePicture(drawingId, resolvedName, blip, altText, title, lockAspectRatio, widthEmu, heightEmu, rotationDegrees),
                     new Xdr.ClientData());
 
                 Xdr.WorksheetDrawing worksheetDrawing = drawingPart.WorksheetDrawing!;
@@ -114,7 +112,7 @@ namespace OfficeIMO.Excel {
             return existing;
         }
 
-        private static Xdr.Picture CreatePicture(UInt32Value drawingId, string name, string imageRelationshipId, string? altText,
+        private static Xdr.Picture CreatePicture(UInt32Value drawingId, string name, A.Blip blip, string? altText,
             string? title, bool lockAspectRatio, long widthEmu, long heightEmu, double rotationDegrees) {
             var drawingProperties = new Xdr.NonVisualDrawingProperties {
                 Id = drawingId,
@@ -138,7 +136,7 @@ namespace OfficeIMO.Excel {
                     new Xdr.NonVisualPictureDrawingProperties(new A.PictureLocks { NoChangeAspect = lockAspectRatio })
                 ),
                 new Xdr.BlipFill(
-                    new A.Blip { Embed = imageRelationshipId },
+                    blip,
                     new A.Stretch(new A.FillRectangle())
                 ),
                 new Xdr.ShapeProperties(

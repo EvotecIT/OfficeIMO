@@ -18,9 +18,9 @@ optional process-memory sampling and JSON/CSV/Markdown reports.
 The note profiles require an explicit `-BenchmarkProfile` selection. The default
 matrix retains the five original profiles.
 
-The [2026-11-07 two-domain comparison](../Docs/benchmarks/officeimo.migration-runtime-2026-11-07.md) records all 1,848 validated samples, exact source/binary identities, allocation gains, slower observations and launch variation.
+The 2026-11-07 two-domain comparison records all 1,848 validated samples, exact source/binary identities, allocation gains, slower observations and launch variation.
 
-The [2026-11-08 Word notes comparison](../Docs/benchmarks/word69-notes-2026-11-08.md)
+The 2026-11-08 Word notes comparison
 records 2,160 validated samples for the unchanged Word69 control and both note
 profiles. Allocation and median budgets pass; three P95
 checks fail. The report retains the complete matrix, raw numerical

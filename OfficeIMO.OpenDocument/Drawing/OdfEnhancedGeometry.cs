@@ -110,6 +110,6 @@ internal static class OdfEnhancedGeometry {
         internal Token(char command, double number) { Command = command; Number = number; }
         internal char Command { get; }
         internal double Number { get; }
-        public override string ToString() => Command == '\0' ? Number.ToString("R", CultureInfo.InvariantCulture) : Command.ToString();
+        public override string ToString() => Command == '\0' ? OfficeIMO.Core.Internal.OfficeRoundTripText.Format(Number, CultureInfo.InvariantCulture) : Command.ToString();
     }
 }

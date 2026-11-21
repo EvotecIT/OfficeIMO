@@ -29,7 +29,8 @@ namespace OfficeIMO.Excel {
                             candidate?.Dispose();
                             candidate = new ExcelUtf8RangeRowSource(owner, bytes, total) {
                                 _ownsBuffer = false,
-                                _inflation = progress
+                                _inflation = progress,
+                                _expectedLength = total
                             };
                             candidate._length = progress.WaitForMore(0, ct);
                             candidate.ValidateProducedCanonicalText(ct);
@@ -100,6 +101,8 @@ namespace OfficeIMO.Excel {
                 _indexedUseCachedFormulaResult = _options.UseCachedFormulaResult;
                 int cells = checked(_cellWindowRowCapacity * _fieldCount);
                 bool hadFormulas = _formulaStarts != null;
+                // Decoded slots follow whole-sheet cell offsets; window replay parses tokens again.
+                ReturnDecodedValues();
                 ReturnRowArray(ref _valueStarts);
                 ReturnRowArray(ref _valueLengths);
                 ReturnRowArray(ref _formulaStarts);
@@ -107,11 +110,11 @@ namespace OfficeIMO.Excel {
                 if (_cellKinds != null) {
                     byte[] previous = _cellKinds;
                     _cellKinds = null;
-                    ArrayPool<byte>.Shared.Return(previous);
+                    ExcelArrayPool.Return(previous);
                 }
-                _valueStarts = ArrayPool<int>.Shared.Rent(cells);
-                _valueLengths = ArrayPool<int>.Shared.Rent(cells);
-                _cellKinds = ArrayPool<byte>.Shared.Rent(cells);
+                _valueStarts = ExcelArrayPool.RentInts(cells);
+                _valueLengths = ExcelArrayPool.RentInts(cells);
+                _cellKinds = ExcelArrayPool.RentBytes(cells);
                 // Qualification must retain formula-array presence, even if all
                 // formula cells occurred before promotion. Window replay relies on
                 // those arrays already existing before it initializes earlier cells.

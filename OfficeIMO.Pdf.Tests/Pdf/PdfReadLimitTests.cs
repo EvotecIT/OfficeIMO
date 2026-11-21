@@ -1374,10 +1374,10 @@ public class PdfReadLimitTests {
 
         PdfReadLimitException countException = Assert.Throws<PdfReadLimitException>(() => PdfReadDocument.Open(
             twoFields,
-            new PdfLoadOptions { Limits = new PdfReadLimits { MaxFormFields = 1 } }));
+            new PdfLoadOptions { Limits = new PdfReadLimits { MaxFormFields = 1 } }).FormFields);
         PdfReadLimitException depthException = Assert.Throws<PdfReadLimitException>(() => PdfReadDocument.Open(
             nestedFields,
-            new PdfLoadOptions { Limits = new PdfReadLimits { MaxFormFieldDepth = 1 } }));
+            new PdfLoadOptions { Limits = new PdfReadLimits { MaxFormFieldDepth = 1 } }).FormFields);
 
         Assert.Equal(PdfReadLimitKind.FormFields, countException.Kind);
         Assert.Equal(PdfReadLimitKind.FormFieldDepth, depthException.Kind);
@@ -1387,7 +1387,7 @@ public class PdfReadLimitTests {
     public void WidgetAppearanceStateBudgetStopsDictionaryExpansion() {
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => PdfReadDocument.Open(
             BuildWidgetAppearanceStatesPdf(),
-            new PdfLoadOptions { Limits = new PdfReadLimits { MaxFormFieldAppearanceStates = 1 } }));
+            new PdfLoadOptions { Limits = new PdfReadLimits { MaxFormFieldAppearanceStates = 1 } }).FormFields);
 
         Assert.Equal(PdfReadLimitKind.FormAppearanceStates, exception.Kind);
         Assert.Equal(1, exception.Limit);
@@ -1447,6 +1447,32 @@ public class PdfReadLimitTests {
         Assert.Equal(PdfReadLimitKind.ContentNestingDepth, exception.Kind);
         Assert.Equal(1, exception.Limit);
         Assert.Equal(2, exception.Actual);
+    }
+
+    [Theory]
+    [InlineData("q q q q 0 0 10 10 re f", "0 0 10 10 re f")]
+    [InlineData("/Fm1 Do", "q q q q 0 0 10 10 re f")]
+    public void GraphicsStateDepthBudgetStopsUnrestoredSavesInPagesAndForms(string pageContent, string formContent) {
+        byte[] pdf = BuildPdfObjects(
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << /XObject << /Fm1 5 0 R >> >> /Contents 4 0 R >>",
+            $"<< /Length {pageContent.Length} >>\nstream\n{pageContent}\nendstream",
+            $"<< /Type /XObject /Subtype /Form /BBox [0 0 100 100] /Length {formContent.Length} >>\nstream\n{formContent}\nendstream");
+        PdfReadDocument limited = PdfReadDocument.Open(pdf, new PdfLoadOptions { Limits = new PdfReadLimits { MaxGraphicsStateDepth = 3 } });
+        // Four authored saves plus the saves drawing adds to position and clip the content.
+        PdfReadDocument sufficient = PdfReadDocument.Open(pdf, new PdfLoadOptions { Limits = new PdfReadLimits { MaxGraphicsStateDepth = 6 } });
+
+        PdfReadLimitException textException = Assert.Throws<PdfReadLimitException>(() => limited.Pages[0].ExtractText());
+        PdfReadLimitException drawingException = Assert.Throws<PdfReadLimitException>(() => limited.Pages[0].ToDrawing());
+
+        foreach (PdfReadLimitException exception in new[] { textException, drawingException }) {
+            Assert.Equal(PdfReadLimitKind.GraphicsStateDepth, exception.Kind);
+            Assert.Equal(3, exception.Limit);
+            Assert.Equal(4, exception.Actual);
+        }
+        _ = sufficient.Pages[0].ExtractText();
+        Assert.NotNull(sufficient.Pages[0].ToDrawing());
     }
 
     [Fact]

@@ -121,6 +121,14 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void StoreValidatedInlineTextCell(byte[] bytes, int position) {
+            int ordinal = Unsafe.ReadUnaligned<int>(ref bytes[position]) - _firstColumn;
+            TrackUtf8TextCell(ordinal, BrtCellSt);
+            _kinds[ordinal] = XlsbTabularValueKind.Text;
+            StoreInlineText(ordinal, bytes, position + sizeof(int) + sizeof(uint));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void StorePlannedRkCell(byte[] bytes, int position, int ordinal, ExcelSerialDateStyle dateStyle) {
             ref byte payload = ref bytes[position];
             double number = BiffRkNumberReader.ReadRkNumber(

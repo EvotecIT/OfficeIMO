@@ -20,12 +20,13 @@ internal static partial class DocumentReaderEngine {
     private static DetectionCandidate InspectOfficeCompoundBytes(byte[] boundedPayload) {
         DetectionCandidate office = MapOfficeCompoundKind(
             OfficeCompoundDocumentDetector.Detect(boundedPayload, out _, preserveResourceLimits: true));
+        using var stream = new MemoryStream(boundedPayload, writable: false);
         if (office.Kind != ReaderInputKind.Unknown ||
             office.Evidence.Contains(EncryptedOpenXmlEvidence, StringComparer.Ordinal)) {
-            return office;
+            return ApplyLegacyBinaryEncryption(office, stream, 0,
+                ReaderOptions.DefaultDetectionMaxContainerEntries, CancellationToken.None);
         }
 
-        using var stream = new MemoryStream(boundedPayload, writable: false);
         return InspectMsgCompound(stream, 0, boundedPayload.LongLength,
             ReaderOptions.DefaultDetectionMaxContainerEntries, CancellationToken.None);
     }
@@ -60,7 +61,7 @@ internal static partial class DocumentReaderEngine {
                 maxContainerEntries, cancellationToken, out _, preserveResourceLimits: true));
         if (office.Kind != ReaderInputKind.Unknown ||
             office.Evidence.Contains(EncryptedOpenXmlEvidence, StringComparer.Ordinal)) {
-            return office;
+            return ApplyLegacyBinaryEncryption(office, stream, position, maxContainerEntries, cancellationToken);
         }
 
         return InspectMsgCompound(stream, position, remainingBytes,
@@ -81,12 +82,88 @@ internal static partial class DocumentReaderEngine {
             OfficeCompoundDocumentDetector.DocumentKind.VisioDrawing =>
                 DetectionCandidate.High(ReaderInputKind.Visio, "application/vnd.visio", "container:ole-visio-document"),
             OfficeCompoundDocumentDetector.DocumentKind.EncryptedOpenXmlPackage =>
-                DetectionCandidate.Unknown(EncryptedOpenXmlEvidence),
+                DetectionCandidate.Unknown(EncryptedOpenXmlEvidence).WithEncryption("encryption:office-encrypted-package"),
             OfficeCompoundDocumentDetector.DocumentKind.PublisherPublication =>
                 DetectionCandidate.High(ReaderInputKind.Publisher, "application/x-mspublisher",
                     "container:ole-publisher-quill"),
             _ => DetectionCandidate.Unknown("container:ole-compound-unrecognized")
         };
+
+    private const ushort WordFibEncryptedFlag = 0x0100;
+    private const ushort ExcelBofRecord = 0x0809;
+    private const ushort ExcelFilePassRecord = 0x002F;
+    private const uint PowerPointEncryptedCurrentUserToken = 0xF3D1C4DF;
+    private const int LegacyEncryptionProbeBytes = 4096;
+
+    /// <summary>
+    /// Marks a legacy Word, Excel or PowerPoint file encrypted when its own header says so: the Word FIB fEncrypted bit,
+    /// an Excel FILEPASS record after the workbook BOF, or the encrypted PowerPoint Current User token. Only a bounded
+    /// prefix of one compound stream is read; a stream that cannot be inspected leaves the candidate unchanged.
+    /// </summary>
+    private static DetectionCandidate ApplyLegacyBinaryEncryption(DetectionCandidate office, Stream stream, long position,
+        int maxContainerEntries, CancellationToken cancellationToken) {
+        if (office.IsEncrypted) return office;
+        string[] names;
+        string evidence;
+        switch (office.Kind) {
+            case ReaderInputKind.Word:
+                names = new[] { "WordDocument" };
+                evidence = "encryption:legacy-word-fib";
+                break;
+            case ReaderInputKind.Excel:
+                names = new[] { "Workbook", "Book" };
+                evidence = "encryption:legacy-excel-filepass";
+                break;
+            case ReaderInputKind.PowerPoint:
+                names = new[] { "Current User" };
+                evidence = "encryption:legacy-powerpoint-current-user";
+                break;
+            default:
+                return office;
+        }
+
+        long originalPosition = stream.Position;
+        try {
+            stream.Position = position;
+            var options = new OfficeCompoundReadOptions(maxDirectoryEntries: Math.Max(1, maxContainerEntries));
+            if (!OfficeCompoundFileReader.TryOpenStream(stream, options,
+                    (path, _) => names.Contains(path, StringComparer.OrdinalIgnoreCase), leaveOpen: true,
+                    cancellationToken, out Stream? selected, out _, maxViewBytes: LegacyEncryptionProbeBytes) || selected == null) {
+                return office;
+            }
+
+            byte[] prefix;
+            using (selected) {
+                prefix = ReadDetectionPrefix(selected, LegacyEncryptionProbeBytes);
+            }
+            bool encrypted = office.Kind switch {
+                ReaderInputKind.Word => prefix.Length >= 12 && (ReadUInt16(prefix, 10) & WordFibEncryptedFlag) != 0,
+                ReaderInputKind.Excel => HasExcelFilePassRecord(prefix),
+                _ => prefix.Length >= 16 && ReadUInt32(prefix, 12) == PowerPointEncryptedCurrentUserToken
+            };
+            return encrypted ? office.WithEncryption(evidence) : office;
+        } catch (InvalidDataException) {
+            return office;
+        } catch (EndOfStreamException) {
+            return office;
+        } catch (OfficeCompoundStreamLimitExceededException) {
+            return office;
+        } finally {
+            stream.Position = originalPosition;
+        }
+    }
+
+    private static bool HasExcelFilePassRecord(byte[] workbook) {
+        // FILEPASS belongs to the workbook globals and follows its BOF ahead of the sheet records.
+        if (workbook.Length < 4 || ReadUInt16(workbook, 0) != ExcelBofRecord) return false;
+        int offset = 0;
+        for (int record = 0; record < 16 && offset + 4 <= workbook.Length; record++) {
+            ushort type = ReadUInt16(workbook, offset);
+            if (type == ExcelFilePassRecord) return true;
+            offset += 4 + ReadUInt16(workbook, offset + 2);
+        }
+        return false;
+    }
 
     private static DetectionCandidate InspectMsgCompound(
         Stream stream,

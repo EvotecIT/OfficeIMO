@@ -23,7 +23,18 @@ public sealed class HtmlRenderShape : HtmlRenderVisual {
     internal static HtmlRenderShape CreateCollapsedBorderStroke(
         bool horizontal, double x, double y, double length, OfficeColor color, double width,
         OfficeStrokeDashStyle dashStyle, OfficeStrokeLineCap lineCap, int paintOrder,
-        string source, double? horizontalBoundaryY = null) {
+        string source, double? horizontalBoundaryY = null, CollapsedBorderStrokeShapes? shapes = null) {
+        OfficeShape shape = shapes?.Get(horizontal, length, color, width, dashStyle, lineCap)
+            ?? CreateCollapsedBorderLine(horizontal, length, color, width, dashStyle, lineCap);
+        // Retain the horizontal stroke's extent when pagination slices between rows.
+        double layoutHeight = horizontal ? Math.Max(0.01D, width) : shape.Height;
+        double layoutY = horizontal ? y - layoutHeight / 2D : y;
+        return new HtmlRenderShape(shape, x, y, paintOrder, source, layoutY, layoutHeight,
+            horizontal ? horizontalBoundaryY ?? y : null);
+    }
+
+    private static OfficeShape CreateCollapsedBorderLine(bool horizontal, double length, OfficeColor color, double width,
+        OfficeStrokeDashStyle dashStyle, OfficeStrokeLineCap lineCap) {
         OfficeShape shape = horizontal
             ? OfficeShape.Line(0D, 0D, length, 0.0001D)
             : OfficeShape.Line(0D, 0D, 0.0001D, length);
@@ -32,14 +43,28 @@ public sealed class HtmlRenderShape : HtmlRenderVisual {
         shape.StrokeDashStyle = dashStyle;
         shape.StrokeLineCap = lineCap;
         shape.FillColor = null;
-        // Retain the horizontal stroke's extent when pagination slices between rows.
-        double layoutHeight = horizontal ? Math.Max(0.01D, width) : shape.Height;
-        double layoutY = horizontal ? y - layoutHeight / 2D : y;
-        return new HtmlRenderShape(shape, x, y, paintOrder, source, layoutY, layoutHeight,
-            horizontal ? horizontalBoundaryY ?? y : null);
+        return shape;
     }
 
-    // Only the collapsed-border factory supplies this private, unaliased line.
+    /// <summary>
+    /// One table's distinct collapsed-border lines. Most grid segments repeat a column width or row height,
+    /// so equal strokes share one immutable line, as position-only copies already do.
+    /// </summary>
+    internal sealed class CollapsedBorderStrokeShapes {
+        private readonly Dictionary<(bool Horizontal, double Length, OfficeColor Color, double Width, OfficeStrokeDashStyle Dash, OfficeStrokeLineCap Cap), OfficeShape> _shapes = new();
+
+        internal OfficeShape Get(bool horizontal, double length, OfficeColor color, double width,
+            OfficeStrokeDashStyle dashStyle, OfficeStrokeLineCap lineCap) {
+            var key = (horizontal, length, color, width, dashStyle, lineCap);
+            if (!_shapes.TryGetValue(key, out OfficeShape? shape)) {
+                shape = CreateCollapsedBorderLine(horizontal, length, color, width, dashStyle, lineCap);
+                _shapes.Add(key, shape);
+            }
+            return shape;
+        }
+    }
+
+    // Only the collapsed-border factory supplies this private line; equal strokes of one table may share it.
     private HtmlRenderShape(OfficeShape collapsedBorder, double x, double y, int paintOrder,
         string source, double layoutY, double layoutHeight, double? collapsedBorderBoundaryY)
         : base(HtmlRenderVisualKind.Shape, x, y, collapsedBorder.Width, collapsedBorder.Height,

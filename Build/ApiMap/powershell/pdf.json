@@ -1779,6 +1779,18 @@
               "type": "int",
               "mandatory": false,
               "pipeline": "none"
+            },
+            {
+              "name": "RepeatFooterRows",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "PageSummary",
+              "type": "PdfTablePageSummary",
+              "mandatory": false,
+              "pipeline": "none"
             }
           ]
         },
@@ -2058,6 +2070,18 @@
             {
               "name": "FooterRowCount",
               "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "RepeatFooterRows",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "PageSummary",
+              "type": "PdfTablePageSummary",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -2345,6 +2369,18 @@
             {
               "name": "FooterRowCount",
               "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "RepeatFooterRows",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "PageSummary",
+              "type": "PdfTablePageSummary",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -12261,7 +12297,7 @@
       "alias": null,
       "status": "new",
       "synopsis": "Writes a smaller or sanitized copy of a PDF.",
-      "outputType": "PdfOptimizationActionResult, PdfSanitizationResult",
+      "outputType": "PdfOptimizationActionResult, OfficeHiddenDataResult",
       "parameterSets": [
         {
           "name": "Path",
@@ -12452,10 +12488,14 @@
               "pipeline": "none"
             },
             {
-              "name": "SanitizationOptions",
-              "type": "PdfSanitizationOptions",
+              "name": "HiddenDataOptions",
+              "type": "OfficeHiddenDataOptions",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "aliases": [
+                "SanitizationOptions"
+              ],
+              "notes": "Hidden-data categories that -Sanitize removes, from New-OfficeHiddenDataOptions. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media."
             },
             {
               "name": "Password",
@@ -12516,10 +12556,14 @@
               "pipeline": "none"
             },
             {
-              "name": "SanitizationOptions",
-              "type": "PdfSanitizationOptions",
+              "name": "HiddenDataOptions",
+              "type": "OfficeHiddenDataOptions",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "aliases": [
+                "SanitizationOptions"
+              ],
+              "notes": "Hidden-data categories that -Sanitize removes, from New-OfficeHiddenDataOptions. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media."
             },
             {
               "name": "Password",
@@ -12753,10 +12797,14 @@
               "pipeline": "none"
             },
             {
-              "name": "SanitizationOptions",
-              "type": "PdfSanitizationOptions",
+              "name": "HiddenDataOptions",
+              "type": "OfficeHiddenDataOptions",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "aliases": [
+                "SanitizationOptions"
+              ],
+              "notes": "Hidden-data categories that -Sanitize removes, from New-OfficeHiddenDataOptions. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media."
             },
             {
               "name": "Password",
@@ -12820,10 +12868,14 @@
               "pipeline": "none"
             },
             {
-              "name": "SanitizationOptions",
-              "type": "PdfSanitizationOptions",
+              "name": "HiddenDataOptions",
+              "type": "OfficeHiddenDataOptions",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "aliases": [
+                "SanitizationOptions"
+              ],
+              "notes": "Hidden-data categories that -Sanitize removes, from New-OfficeHiddenDataOptions. Defaults to attachments and active content: scripts, unsafe actions and links, and rich media."
             },
             {
               "name": "Password",
@@ -12861,7 +12913,7 @@
         }
       ],
       "shouldProcess": true,
-      "notes": "Replaces ConvertTo-OfficePdfOptimized (lossless size) and ConvertTo-OfficePdfSanitized (active content removal with proof). -PassThru returns the action/sanitization result (replaces -PassThruReport; Sanitized always returned it). Read-only analysis is Get-OfficePdfDiagnostic -Type Optimization. -OutputPath writes one file and takes a single input; -OutputDirectory writes one file per input, named after it (G15).",
+      "notes": "Replaces ConvertTo-OfficePdfOptimized (lossless size) and ConvertTo-OfficePdfSanitized (active content removal with proof). -PassThru returns the optimization result or, with -Sanitize, the OfficeHiddenDataResult (replaces -PassThruReport; Sanitized always returned it). -Sanitize uses the shared hidden-data contract; -HiddenDataOptions (alias -SanitizationOptions) selects the categories. Read-only analysis is Get-OfficePdfDiagnostic -Type Optimization. -OutputPath writes one file and takes a single input; -OutputDirectory writes one file per input, named after it (G15).",
       "examples": [
         {
           "title": "Make a PDF smaller",
@@ -16631,6 +16683,96 @@
       "notes": "-Options takes New-OfficePdfInteractionOptions. Inspection requires a file source or explicit live Document; a PDF creation block has no completed inspection document."
     },
     {
+      "name": "Test-OfficePdfAccessibility",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Checks a PDF against PDF/UA-1 using the Matterhorn Protocol failure conditions.",
+      "outputType": "PdfAccessibilityReport",
+      "parameterSets": [
+        {
+          "name": "Path",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string[]",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "none",
+              "wildcards": true
+            },
+            {
+              "name": "LoadOptions",
+              "type": "PdfLoadOptions",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Password",
+              "type": "SecureString",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "IgnorePermissionRestrictions",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "LiteralPath",
+          "default": false,
+          "parameters": [
+            {
+              "name": "LiteralPath",
+              "type": "string[]",
+              "mandatory": true,
+              "pipeline": "propertyName"
+            },
+            {
+              "name": "LoadOptions",
+              "type": "PdfLoadOptions",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Password",
+              "type": "SecureString",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "IgnorePermissionRestrictions",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "Document",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "PdfDocument",
+              "mandatory": true,
+              "pipeline": "value"
+            }
+          ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "List failed accessibility conditions",
+          "description": "Checks any PDF, including files OfficeIMO did not produce, and lists the conditions it fails.",
+          "code": "(Test-OfficePdfAccessibility -Path .\\Report.pdf).FailedConditions"
+        }
+      ]
+    },
+    {
       "name": "Test-OfficePdfRewrite",
       "alias": null,
       "status": "existing",
@@ -17063,220 +17205,6 @@
           "title": "Debug table extraction",
           "description": "Renders reading-order diagnostics for a statement page at double scale as PNG to see why columns are read out of order.",
           "code": "Export-OfficePdfLayoutOverlay -Path .\\Statements\\Statement-2026-09.pdf -OutputPath .\\Debug\\Statement-Page2.png -Page 2 -Format Png -Scale 2 -PassThru"
-        }
-      ]
-    },
-    {
-      "name": "Send-OfficePdfPrinter",
-      "alias": null,
-      "status": "existing",
-      "synopsis": "Prepares PDF sheets and submits them to a named printer queue.",
-      "outputType": "PdfPrintSubmission",
-      "parameterSets": [
-        {
-          "name": "Path",
-          "default": true,
-          "parameters": [
-            {
-              "name": "Path",
-              "type": "string[]",
-              "mandatory": true,
-              "position": 0,
-              "pipeline": "none",
-              "wildcards": true
-            },
-            {
-              "name": "PrinterName",
-              "type": "string",
-              "mandatory": true,
-              "pipeline": "none"
-            },
-            {
-              "name": "Page",
-              "type": "OfficePageSelector",
-              "mandatory": false,
-              "pipeline": "none",
-              "notes": "Replaces -Pages.",
-              "note": "Preserves the native print selection grammar, including last, odd, even and exclusions."
-            },
-            {
-              "name": "PagesPerSheet",
-              "type": "int",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Copies",
-              "type": "int",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Duplex",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "PaperSourceId",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "OutputPath",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none",
-              "notes": "Print-to-file target; replaces -OutputFilePath."
-            },
-            {
-              "name": "Dpi",
-              "type": "double",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Margin",
-              "type": "OfficeLength",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Orientation",
-              "type": "OfficePageOrientation",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "ScaleMode",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "PaperSize",
-              "type": "OfficePageSize",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Password",
-              "type": "SecureString",
-              "mandatory": false,
-              "pipeline": "none"
-            }
-          ]
-        },
-        {
-          "name": "LiteralPath",
-          "default": false,
-          "parameters": [
-            {
-              "name": "LiteralPath",
-              "type": "string[]",
-              "mandatory": true,
-              "pipeline": "propertyName",
-              "wildcards": false,
-              "aliases": [
-                "PSPath",
-                "FullName"
-              ]
-            },
-            {
-              "name": "PrinterName",
-              "type": "string",
-              "mandatory": true,
-              "pipeline": "none"
-            },
-            {
-              "name": "Page",
-              "type": "OfficePageSelector",
-              "mandatory": false,
-              "pipeline": "none",
-              "note": "Preserves the native print selection grammar, including last, odd, even and exclusions."
-            },
-            {
-              "name": "PagesPerSheet",
-              "type": "int",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Copies",
-              "type": "int",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Duplex",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "PaperSourceId",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "OutputPath",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Dpi",
-              "type": "double",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Margin",
-              "type": "OfficeLength",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Orientation",
-              "type": "OfficePageOrientation",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "ScaleMode",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "PaperSize",
-              "type": "OfficePageSize",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Password",
-              "type": "SecureString",
-              "mandatory": false,
-              "pipeline": "none"
-            }
-          ]
-        }
-      ],
-      "shouldProcess": true,
-      "notes": "Requires PowerShell 7.4+. Get-OfficePrinter (queue discovery) is in the cross-format slice. -PaperSize takes the shared OfficePageSize: a name (A3, A4, A5, Letter, Legal, Executive, Tabloid) or a size such as 210mm x 297mm.",
-      "examples": [
-        {
-          "title": "Print a PDF",
-          "description": "Sends a PDF to a named printer queue.",
-          "code": "Send-OfficePdfPrinter -Path .\\Report.pdf -PrinterName 'Finance-HP-4th-Floor'"
-        },
-        {
-          "title": "Print handouts double-sided",
-          "description": "Prints the first ten pages two to a sheet, double-sided, in three copies on the default printer.",
-          "code": "$printer = Get-OfficePrinter | Where-Object IsDefault | Select-Object -First 1\nSend-OfficePdfPrinter -Path .\\Training\\Security-Awareness.pdf -PrinterName $printer.Name -Page '1-10' -PagesPerSheet 2 -Duplex LongEdge -Copies 3"
         }
       ]
     },
@@ -18535,6 +18463,199 @@
           "code": "$options = New-OfficePdfLayoutOverlayOptions -RegionColor '#FF00FF' -LineColor Black\nExport-OfficePdfLayoutOverlay -Path .\\Reports\\Brochure.pdf -OutputPath .\\Debug\\Brochure.png -Options $options"
         }
       ]
+    },
+    {
+      "name": "Add-OfficePdfBarcode",
+      "alias": "PdfBarcode",
+      "status": "new",
+      "synopsis": "Adds a QR code or any CodeGlyphX barcode to PDF content as a vector drawing.",
+      "outputType": "PdfDocument (with -Document -PassThru)",
+      "parameterSets": [
+        {
+          "name": "Content",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Text",
+              "type": "string",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "none",
+              "notes": "Text, URL or other data to encode."
+            },
+            {
+              "name": "Type",
+              "type": "SymbolFormat",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "CodeGlyphX symbology; QrCode by default. Code128, Gs1Code128, Ean, UpcA, DataMatrix, Pdf417 and every other SymbolFormat value."
+            },
+            {
+              "name": "Width",
+              "type": "OfficeLength",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Width of the whole symbol including its quiet zone; a bare number means points."
+            },
+            {
+              "name": "Height",
+              "type": "OfficeLength",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Height including human-readable text; linear barcodes adjust their bar height, other symbols keep proportions."
+            },
+            {
+              "name": "QuietZone",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Color",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Literal, opaque color of the bars or dark modules."
+            },
+            {
+              "name": "BackgroundColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Literal, opaque background color."
+            },
+            {
+              "name": "ErrorCorrection",
+              "type": "QrErrorCorrectionLevel",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "QR codes only."
+            },
+            {
+              "name": "NoHumanReadableText",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Linear barcodes print their text under the bars unless this is set."
+            },
+            {
+              "name": "AlternativeText",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Defaults to the symbology and the encoded text."
+            },
+            {
+              "name": "Alignment",
+              "type": "OfficeAlignment",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "Document",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Text",
+              "type": "string",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "none",
+              "notes": "Text, URL or other data to encode."
+            },
+            {
+              "name": "Type",
+              "type": "SymbolFormat",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "CodeGlyphX symbology; QrCode by default. Code128, Gs1Code128, Ean, UpcA, DataMatrix, Pdf417 and every other SymbolFormat value."
+            },
+            {
+              "name": "Width",
+              "type": "OfficeLength",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Width of the whole symbol including its quiet zone; a bare number means points."
+            },
+            {
+              "name": "Height",
+              "type": "OfficeLength",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Height including human-readable text; linear barcodes adjust their bar height, other symbols keep proportions."
+            },
+            {
+              "name": "QuietZone",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Color",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Literal, opaque color of the bars or dark modules."
+            },
+            {
+              "name": "BackgroundColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Literal, opaque background color."
+            },
+            {
+              "name": "ErrorCorrection",
+              "type": "QrErrorCorrectionLevel",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "QR codes only."
+            },
+            {
+              "name": "NoHumanReadableText",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Linear barcodes print their text under the bars unless this is set."
+            },
+            {
+              "name": "AlternativeText",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Defaults to the symbology and the encoded text."
+            },
+            {
+              "name": "Alignment",
+              "type": "OfficeAlignment",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Document",
+              "type": "PdfDocument",
+              "mandatory": true,
+              "pipeline": "none"
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ],
+      "notes": "Requires the bundled OfficeIMO.Pdf.CodeGlyphX adapter. The code renders through CodeGlyphX at its physical size; the PDF receives vector paths and tagged alternative text.",
+      "examples": [
+        {
+          "title": "Add a payment QR code",
+          "description": "Adds a right-aligned QR code under an invoice note.",
+          "code": "New-OfficePdf -Path .\\Invoice.pdf {\n    PdfParagraph 'Pay online:'\n    PdfBarcode 'https://pay.example.com/inv/2026-0042' -Alignment Right\n}"
+        }
+      ]
     }
   ],
   "map": [
@@ -19186,7 +19307,7 @@
       "new": "Optimize-OfficePdf",
       "parameterSet": "PathSanitize",
       "parameters": {
-        "Options": "SanitizationOptions",
+        "Options": "HiddenDataOptions",
         "ReadOptions": "LoadOptions"
       },
       "hint": "Optimize-OfficePdf -Path .\\In.pdf -OutputPath .\\Clean.pdf -Sanitize -PassThru",
@@ -19814,13 +19935,14 @@
     {
       "old": "Send-OfficePdfPrinter",
       "kind": "cmdlet",
-      "action": "keep",
-      "new": "Send-OfficePdfPrinter",
+      "action": "rename",
+      "new": "Send-OfficePrinter",
       "parameters": {
         "Pages": "Page",
         "OutputFilePath": "OutputPath"
       },
-      "reason": "Shared parameter names; Margin becomes OfficeLength."
+      "reason": "Send-OfficePrinter prints any document OfficeIMO converts to PDF; Send-OfficePdfPrinter remains an alias with the same behavior for PDF files. Shared parameter names; Margin becomes OfficeLength.",
+      "hint": "Send-OfficePrinter -Path .\\Report.pdf -PrinterName 'Office printer'"
     },
     {
       "old": "Set-OfficePdfAnnotation",

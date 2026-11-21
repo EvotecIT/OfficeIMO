@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>Sanitized PDF bytes plus before/after proof and optional quarantined attachments.</summary>
-public sealed class PdfSanitizationResult {
+internal sealed class PdfSanitizationResult {
     private readonly byte[] _pdfBytes;
     private readonly PdfLoadOptions _readOptions;
 
@@ -64,6 +64,12 @@ public sealed class PdfSanitizationResult {
 
     /// <summary>Returns a defensive copy of the sanitized PDF bytes.</summary>
     public byte[] ToBytes() => (byte[])_pdfBytes.Clone();
+
+    /// <summary>The sanitized bytes, without a copy, for callers that hand them on as a new owner.</summary>
+    internal byte[] Bytes => _pdfBytes;
+
+    /// <summary>Read options that admit the sanitized artifact.</summary>
+    internal PdfLoadOptions ReadOptions => _readOptions;
 
     /// <summary>Opens the sanitized artifact as a fluent PDF document.</summary>
     public PdfDocument ToDocument() => PdfDocument.Load(_pdfBytes, _readOptions);

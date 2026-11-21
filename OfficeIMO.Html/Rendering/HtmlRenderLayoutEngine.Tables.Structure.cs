@@ -20,7 +20,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             CheckCancellation();
             if (node is IElement element) {
                 if (ShouldSkipElement(element)) continue;
-                HtmlRenderBoxStyle childStyle = _styleResolver.Resolve(element, width, parentStyle);
+                HtmlRenderBoxStyle childStyle = _styleResolver.Resolve(element, width, parentStyle,
+                    out HtmlRenderStyleResolver.WidthIndependentResolution? widthIndependent);
+                _flowEntryStyle = widthIndependent == null ? null
+                    : new FlowEntryStyle(element, width, parentStyle, childStyle, widthIndependent);
                 if (childStyle.Display == "none") continue;
                 if (IsInternalTableDisplay(childStyle.Display) && childStyle.FloatSide == "none"
                     && !ShouldExtractOutOfFlow(childStyle)) {
@@ -39,6 +42,36 @@ internal sealed partial class HtmlRenderLayoutEngine {
             yield return new TableFlowEntry(node);
         }
         if (pending.Count > 0) yield return new TableFlowEntry(pending.ToArray());
+    }
+
+    // Block flow resolves each child once to group table-internal boxes and again to lay it out.
+    // The second resolve has the same inputs, so a resolution that reported nothing and no
+    // containing width can change is handed to it with the length context it would leave.
+    private FlowEntryStyle? _flowEntryStyle;
+
+    private sealed class FlowEntryStyle {
+        internal FlowEntryStyle(IElement element, double width, HtmlRenderBoxStyle parent, HtmlRenderBoxStyle style,
+            HtmlRenderStyleResolver.WidthIndependentResolution resolution) {
+            Element = element;
+            Width = width;
+            Parent = parent;
+            Style = style;
+            Resolution = resolution;
+        }
+
+        internal IElement Element { get; }
+        internal double Width { get; }
+        internal HtmlRenderBoxStyle Parent { get; }
+        internal HtmlRenderBoxStyle Style { get; }
+        internal HtmlRenderStyleResolver.WidthIndependentResolution Resolution { get; }
+    }
+
+    private HtmlRenderBoxStyle ResolveFlowChildStyle(IElement element, double width, HtmlRenderBoxStyle parentStyle) {
+        FlowEntryStyle? entry = _flowEntryStyle;
+        _flowEntryStyle = null;
+        if (entry != null && ReferenceEquals(entry.Element, element) && ReferenceEquals(entry.Parent, parentStyle)
+            && entry.Width.Equals(width) && _styleResolver.TryRestoreResolution(entry.Resolution)) return entry.Style;
+        return _styleResolver.Resolve(element, width, parentStyle);
     }
 
     /// <summary>Builds the CSS table, row-group, row, and cell boxes over original source nodes; anonymous boxes inherit only formatting properties.</summary>
@@ -86,7 +119,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     continue;
                 }
                 if (node is not IElement child || ShouldSkipElement(child)) continue;
-                HtmlRenderBoxStyle childStyle = _styleResolver.Resolve(child, width, parentStyle);
+                HtmlRenderBoxStyle childStyle = _styleResolver.Resolve(child, width, parentStyle,
+                    out HtmlRenderStyleResolver.WidthIndependentResolution? widthIndependent);
                 if (childStyle.Display == "none") continue;
                 if (childStyle.Display is "table-row-group" or "table-header-group" or "table-footer-group") {
                     FlushRow();
@@ -101,7 +135,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         BuildCells(child, childStyle, currentDepth + 1), anonymous: false));
                 } else if (childStyle.Display == "table-cell") {
                     FlushContent();
-                    cells.Add(new TableFormattingCell(child, parentStyle).RememberStyle(width, childStyle));
+                    cells.Add(new TableFormattingCell(child, parentStyle).RememberStyle(width, childStyle, widthIndependent));
                 } else if (childStyle.Display == "table-caption" && anonymousNodes == null && ReferenceEquals(owner, table)) {
                     FlushRow();
                     if (caption == null) caption = child;
@@ -140,11 +174,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (node is IText text && string.IsNullOrWhiteSpace(text.Data)) continue;
                 if (node is IElement child) {
                     if (ShouldSkipElement(child)) continue;
-                    HtmlRenderBoxStyle childStyle = _styleResolver.Resolve(child, width, rowStyle);
+                    HtmlRenderBoxStyle childStyle = _styleResolver.Resolve(child, width, rowStyle,
+                        out HtmlRenderStyleResolver.WidthIndependentResolution? widthIndependent);
                     if (childStyle.Display == "none") continue;
                     if (childStyle.Display == "table-cell") {
                         FlushContent();
-                        cells.Add(new TableFormattingCell(child, rowStyle).RememberStyle(width, childStyle));
+                        cells.Add(new TableFormattingCell(child, rowStyle).RememberStyle(width, childStyle, widthIndependent));
                         continue;
                     }
                 } else if (node is not IText) continue;
@@ -156,14 +191,36 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
-    // Column sizing, collapsed borders and fixed layout each resolve every cell at the table's
-    // content width. Callers adjust the style they get, so each receives its own copy.
+    // Column sizing, collapsed borders, fixed layout and cell layout each resolve every cell, at the
+    // table's content width or the cell's own. Callers adjust the style they get, so each receives its
+    // own copy. A style that no containing width can change is resolved once for all of them.
     private HtmlRenderBoxStyle ResolveFormattingCellStyle(TableFormattingCell cell, double width) {
         if (cell.Nodes != null) return CreateAnonymousBoxStyle(cell.ParentStyle, "table-cell", "anonymous-table-cell");
-        if (cell.TryGetRememberedStyle(width, out HtmlRenderBoxStyle? remembered)) return remembered!;
-        HtmlRenderBoxStyle style = _styleResolver.Resolve(cell.Element, width, cell.ParentStyle);
-        if (!cell.HasRememberedStyle) cell.RememberStyle(width, style.Clone());
+        if (TryReadRememberedCellStyle(cell, width, out HtmlRenderBoxStyle? remembered)) return remembered!.Clone();
+        HtmlRenderBoxStyle style = _styleResolver.Resolve(cell.Element, width, cell.ParentStyle,
+            out HtmlRenderStyleResolver.WidthIndependentResolution? widthIndependent);
+        if (!cell.HasRememberedStyle) cell.RememberStyle(width, style.Clone(), widthIndependent);
         return style;
+    }
+
+    /// <summary>Returns the cell's style for a caller that only reads it; the result is shared and must not change.</summary>
+    private HtmlRenderBoxStyle ReadFormattingCellStyle(TableFormattingCell cell, double width) {
+        if (cell.Nodes != null) return CreateAnonymousBoxStyle(cell.ParentStyle, "table-cell", "anonymous-table-cell");
+        if (TryReadRememberedCellStyle(cell, width, out HtmlRenderBoxStyle? remembered)) return remembered!;
+        HtmlRenderBoxStyle style = _styleResolver.Resolve(cell.Element, width, cell.ParentStyle,
+            out HtmlRenderStyleResolver.WidthIndependentResolution? widthIndependent);
+        if (!cell.HasRememberedStyle) cell.RememberStyle(width, style, widthIndependent);
+        return style;
+    }
+
+    private bool TryReadRememberedCellStyle(TableFormattingCell cell, double width, out HtmlRenderBoxStyle? style) {
+        style = cell.RememberedStyle;
+        if (style == null) return false;
+        if (cell.RememberedWidth.Equals(width)) return true;
+        // A resolve at another width would also leave its length context behind for later reads.
+        if (cell.WidthIndependent is { } resolution && _styleResolver.TryRestoreResolution(resolution)) return true;
+        style = null;
+        return false;
     }
 
     /// <summary>Identifies an anonymous formatting box by its original owner and first source-node position, stable across reflow.</summary>
@@ -306,22 +363,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal string? RowSpan => Nodes == null && IsTableCell(Element) ? Element.GetAttribute("rowspan") : null;
         internal IElement? ContinuationElement => Nodes == null ? Element : Nodes.OfType<IElement>().FirstOrDefault();
 
-        private double _rememberedWidth = double.NaN;
-        private HtmlRenderBoxStyle? _rememberedStyle;
-
-        /// <summary>Keeps the style resolved at <paramref name="width"/>; the caller must not use or share it afterwards.</summary>
-        internal TableFormattingCell RememberStyle(double width, HtmlRenderBoxStyle style) {
-            _rememberedWidth = width;
-            _rememberedStyle = style;
+        /// <summary>
+        /// Keeps the style resolved at <paramref name="width"/>, and whether every other width resolves the same style;
+        /// the caller must not change or share it afterwards.
+        /// </summary>
+        internal TableFormattingCell RememberStyle(double width, HtmlRenderBoxStyle style,
+            HtmlRenderStyleResolver.WidthIndependentResolution? widthIndependent) {
+            RememberedWidth = width;
+            RememberedStyle = style;
+            WidthIndependent = widthIndependent;
             return this;
         }
 
-        internal bool HasRememberedStyle => _rememberedStyle != null;
-
-        internal bool TryGetRememberedStyle(double width, out HtmlRenderBoxStyle? style) {
-            style = _rememberedStyle != null && _rememberedWidth.Equals(width) ? _rememberedStyle.Clone() : null;
-            return style != null;
-        }
+        internal bool HasRememberedStyle => RememberedStyle != null;
+        internal double RememberedWidth { get; private set; } = double.NaN;
+        internal HtmlRenderBoxStyle? RememberedStyle { get; private set; }
+        internal HtmlRenderStyleResolver.WidthIndependentResolution? WidthIndependent { get; private set; }
     }
 
     private sealed class TableFlowEntry {

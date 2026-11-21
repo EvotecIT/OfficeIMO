@@ -18,11 +18,13 @@ internal sealed class WorkflowArguments {
     internal string? OutputPath { get; private set; }
     internal string? Pages { get; private set; }
     internal OfficeImageExportFormat ImageFormat { get; private set; } = OfficeImageExportFormat.Png;
+    internal bool Json { get; private set; } = true;
     internal double TargetDpi { get; private set; } = 144D;
     internal int? MaximumDimension { get; private set; }
     internal bool Force { get; private set; }
     internal bool IncludeSubdirectories { get; private set; } = true;
     internal PdfPageSize PaperSize { get; private set; } = PdfPageSizes.A4;
+    internal bool PaperSpecified { get; private set; }
     internal PdfPrintOrientation Orientation { get; private set; } = PdfPrintOrientation.Automatic;
     internal int PagesPerSheet { get; private set; } = 1;
     internal PdfPrintScaleMode ScaleMode { get; private set; } = PdfPrintScaleMode.Fit;
@@ -35,13 +37,24 @@ internal sealed class WorkflowArguments {
     internal PdfPrintAlignment Alignment { get; private set; } = PdfPrintAlignment.Center;
     internal PdfPrintPageSubset PageSubset { get; private set; }
     internal PdfPrintColorMode ColorMode { get; private set; }
+    internal string? PasswordEnvironmentVariable { get; private set; }
 
     internal PdfPrintPlanRequest CreatePrintRequest() => new() {
         InputPath = Path.GetFullPath(Inputs[0]), Pages = Pages, PaperSize = PaperSize,
         Orientation = Orientation, PagesPerSheet = PagesPerSheet, ScaleMode = ScaleMode, Margin = Margin,
         MarginLeft = MarginLeft, MarginTop = MarginTop, MarginRight = MarginRight, MarginBottom = MarginBottom,
-        CustomScalePercent = CustomScalePercent, Alignment = Alignment, PageSubset = PageSubset, ColorMode = ColorMode
+        CustomScalePercent = CustomScalePercent, Alignment = Alignment, PageSubset = PageSubset, ColorMode = ColorMode,
+        PdfPassword = ReadPassword()
     };
+
+    /// <summary>Reads the source password through the shared environment-variable binding; passwords never appear on the command line.</summary>
+    private string? ReadPassword() {
+        try {
+            return new OfficeIMO.Tool.Agent.PdfWorkflowSettings { PasswordEnvironmentVariable = PasswordEnvironmentVariable }.Password();
+        } catch (OfficeIMO.Tool.Agent.AgentUsageException error) {
+            throw new WorkflowUsageException("--password-env: " + error.Message);
+        }
+    }
 
     internal static WorkflowArguments Parse(string[] args) {
         if (args.Length == 0 || IsHelp(args[0])) return new WorkflowArguments { Command = WorkflowCommandKind.Help };
@@ -68,6 +81,10 @@ internal sealed class WorkflowArguments {
                     parsed.Pages = ReadValue(args, ref index, token);
                     break;
                 case "--format":
+                    parsed.Json = WorkflowOutput.ParseJson(ReadValue(args, ref index, token),
+                        parsed.Command == WorkflowCommandKind.ExportPages ? "--image-format" : null);
+                    break;
+                case "--image-format":
                     EnsureCommand(parsed.Command, token, WorkflowCommandKind.ExportPages);
                     parsed.ImageFormat = ParseImageFormat(ReadValue(args, ref index, token));
                     break;
@@ -87,9 +104,14 @@ internal sealed class WorkflowArguments {
                     EnsureCommand(parsed.Command, token, WorkflowCommandKind.Assemble);
                     parsed.IncludeSubdirectories = false;
                     break;
+                case "--password-env":
+                    EnsureCommand(parsed.Command, token, WorkflowCommandKind.PrintPlan);
+                    parsed.PasswordEnvironmentVariable = ReadValue(args, ref index, token);
+                    break;
                 case "--paper":
                     EnsureCommand(parsed.Command, token, WorkflowCommandKind.PrintPlan);
                     parsed.PaperSize = ParsePaper(ReadValue(args, ref index, token));
+                    parsed.PaperSpecified = true;
                     break;
                 case "--orientation":
                     EnsureCommand(parsed.Command, token, WorkflowCommandKind.PrintPlan);

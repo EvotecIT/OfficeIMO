@@ -26,6 +26,7 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Load(new MemoryStream(original))) {
                 document.Properties.Title = "New title";
                 document.Properties.Category = "New category";
+                document.Properties.Revision = "7";
                 document.Save(output);
                 Assert.Equal("New title", document.Properties.Title);
             }
@@ -35,6 +36,7 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(new OpenXmlValidator().Validate(package));
                 Assert.Equal("New title", package.PackageProperties.Title);
                 Assert.Equal("New category", package.PackageProperties.Category);
+                Assert.Equal("7", package.PackageProperties.Revision);
                 Assert.Equal("Kept", package.PackageProperties.Subject);
                 Assert.Equal("Draft", package.PackageProperties.ContentStatus);
             }
@@ -140,6 +142,32 @@ namespace OfficeIMO.Tests {
             Assert.True(reopened.Sheets[0].TryGetCellText(1, 1, out string text));
             Assert.Equal("After", text);
             File.Delete(path);
+        }
+
+        [Fact]
+        public void Saving_an_edited_workbook_keeps_an_entry_nothing_references() {
+            using var authored = new MemoryStream();
+            using (var document = ExcelDocument.Create(authored)) {
+                document.AddSheet("Edited").Cell(1, 1).SetValue("Before");
+                document.Save(authored);
+            }
+            byte[] orphan = System.Text.Encoding.UTF8.GetBytes("<a:theme xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" name=\"Left behind\"/>");
+            using (var archive = new ZipArchive(authored, ZipArchiveMode.Update, leaveOpen: true)) {
+                using Stream entry = archive.CreateEntry("xl/theme/theme.xml").Open();
+                entry.Write(orphan, 0, orphan.Length);
+            }
+
+            using var target = new MemoryStream();
+            using (var document = ExcelDocument.Load(new MemoryStream(authored.ToArray(), writable: false))) {
+                document.Sheets[0].Cell(1, 1).SetValue("After");
+                document.Save(target);
+            }
+
+            byte[] saved = target.ToArray();
+            Assert.Equal(orphan, ReadEntry(saved, "xl/theme/theme.xml"));
+            using var reopened = ExcelDocument.Load(new MemoryStream(saved));
+            Assert.True(reopened.Sheets[0].TryGetCellText(1, 1, out string text));
+            Assert.Equal("After", text);
         }
 
         private static byte[] ReadEntry(byte[] package, string name) {

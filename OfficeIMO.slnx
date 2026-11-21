@@ -149,6 +149,9 @@
   <Project Path="OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj" />
   <Project Path="OfficeIMO.CSV/OfficeIMO.CSV.csproj" />
   <Project Path="OfficeIMO.Data.Arrow/OfficeIMO.Data.Arrow.csproj" />
+  <Project Path="OfficeIMO.Data.Conversions/OfficeIMO.Data.Conversions.csproj" />
+  <Project Path="OfficeIMO.Data.Conversions.Excel/OfficeIMO.Data.Conversions.Excel.csproj" />
+  <Project Path="OfficeIMO.Data.Conversions.Tests/OfficeIMO.Data.Conversions.Tests.csproj" />
   <Project Path="OfficeIMO.Data.Generators/OfficeIMO.Data.Generators.csproj" />
   <Project Path="OfficeIMO.DjVu.Pdf/OfficeIMO.DjVu.Pdf.csproj" />
   <Project Path="OfficeIMO.DjVu.Tests/OfficeIMO.DjVu.Tests.csproj" />
@@ -159,6 +162,10 @@
   <Project Path="OfficeIMO.Drawing.CodeGlyphX.Benchmarks/OfficeIMO.Drawing.CodeGlyphX.Benchmarks.csproj" />
   <Project Path="OfficeIMO.Drawing.CodeGlyphX.Tests/OfficeIMO.Drawing.CodeGlyphX.Tests.csproj" />
   <Project Path="OfficeIMO.Drawing.CodeGlyphX/OfficeIMO.Drawing.CodeGlyphX.csproj" />
+  <Project Path="OfficeIMO.Excel.CodeGlyphX/OfficeIMO.Excel.CodeGlyphX.csproj" />
+  <Project Path="OfficeIMO.Pdf.CodeGlyphX/OfficeIMO.Pdf.CodeGlyphX.csproj" />
+  <Project Path="OfficeIMO.PowerPoint.CodeGlyphX/OfficeIMO.PowerPoint.CodeGlyphX.csproj" />
+  <Project Path="OfficeIMO.Word.CodeGlyphX/OfficeIMO.Word.CodeGlyphX.csproj" />
   <Project Path="OfficeIMO.Drawing.HarfBuzz.Tests/OfficeIMO.Drawing.HarfBuzz.Tests.csproj" />
   <Project Path="OfficeIMO.Drawing.HarfBuzz/OfficeIMO.Drawing.HarfBuzz.csproj" />
   <Project Path="OfficeIMO.Drawing.ImageIO.Tests/OfficeIMO.Drawing.ImageIO.Tests.csproj" />
@@ -250,6 +257,8 @@
   <Project Path="OfficeIMO.Pdf.Excel/OfficeIMO.Pdf.Excel.csproj" />
   <Project Path="OfficeIMO.Pdf.Ocr/OfficeIMO.Pdf.Ocr.csproj" />
   <Project Path="OfficeIMO.Pdf.PowerPoint/OfficeIMO.Pdf.PowerPoint.csproj" />
+  <Project Path="OfficeIMO.Pdf.Testing.Tests/OfficeIMO.Pdf.Testing.Tests.csproj" />
+  <Project Path="OfficeIMO.Pdf.Testing/OfficeIMO.Pdf.Testing.csproj" />
   <Project Path="OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj" />
   <Project Path="OfficeIMO.Pdf.Word/OfficeIMO.Pdf.Word.csproj" />
   <Project Path="OfficeIMO.Pdf/OfficeIMO.Pdf.csproj" />
@@ -298,6 +307,7 @@
   <Project Path="OfficeIMO.Reader.Rtf/OfficeIMO.Reader.Rtf.csproj" />
   <Project Path="OfficeIMO.Reader.Subtitles/OfficeIMO.Reader.Subtitles.csproj" />
   <Project Path="OfficeIMO.Reader.Tests/OfficeIMO.Reader.Tests.csproj" />
+  <Project Path="OfficeIMO.Reader.Toml/OfficeIMO.Reader.Toml.csproj" />
   <Project Path="OfficeIMO.Reader.Visio/OfficeIMO.Reader.Visio.csproj" />
   <Project Path="OfficeIMO.Reader.Web/OfficeIMO.Reader.Web.csproj" />
   <Project Path="OfficeIMO.Reader.Word/OfficeIMO.Reader.Word.csproj" />
@@ -319,6 +329,11 @@
   <Project Path="OfficeIMO.Studio.Tests/OfficeIMO.Studio.Tests.csproj" />
   <Project Path="OfficeIMO.Studio/OfficeIMO.Studio.csproj" />
   <Project Path="OfficeIMO.Tests/OfficeIMO.Tests.csproj" />
+  <Project Path="OfficeIMO.Toml.Configuration.Tests/OfficeIMO.Toml.Configuration.Tests.csproj" />
+  <Project Path="OfficeIMO.Toml.Configuration/OfficeIMO.Toml.Configuration.csproj" />
+  <Project Path="OfficeIMO.Toml.Tests/OfficeIMO.Toml.Tests.csproj" />
+  <Project Path="OfficeIMO.Toml.SourceGeneration/OfficeIMO.Toml.SourceGeneration.csproj" />
+  <Project Path="OfficeIMO.Toml/OfficeIMO.Toml.csproj" />
   <Project Path="OfficeIMO.Tool.Tests/OfficeIMO.Tool.Tests.csproj" />
   <Project Path="OfficeIMO.Tool/OfficeIMO.Tool.csproj" />
   <Project Path="OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj" />
@@ -341,5 +356,11 @@
   <Project Path="OfficeIMO.Xps.Pdf/OfficeIMO.Xps.Pdf.csproj" />
   <Project Path="OfficeIMO.Xps.Tests/OfficeIMO.Xps.Tests.csproj" />
   <Project Path="OfficeIMO.Xps/OfficeIMO.Xps.csproj" />
+  <Project Path="OfficeIMO.Yaml.Benchmarks/OfficeIMO.Yaml.Benchmarks.csproj" />
+  <Project Path="OfficeIMO.Yaml.Configuration.Tests/OfficeIMO.Yaml.Configuration.Tests.csproj" />
+  <Project Path="OfficeIMO.Yaml.Configuration/OfficeIMO.Yaml.Configuration.csproj" />
+  <Project Path="OfficeIMO.Yaml.SourceGeneration/OfficeIMO.Yaml.SourceGeneration.csproj" />
+  <Project Path="OfficeIMO.Yaml.Tests/OfficeIMO.Yaml.Tests.csproj" />
+  <Project Path="OfficeIMO.Yaml/OfficeIMO.Yaml.csproj" />
   <Project Path="OfficeIMO/OfficeIMO.csproj" />
 </Solution>

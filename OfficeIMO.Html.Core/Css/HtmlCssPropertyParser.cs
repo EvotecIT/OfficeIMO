@@ -129,7 +129,7 @@ public static class HtmlCssPropertyParser {
             numeric.IsCalculated ? HtmlCssPropertyValueKind.Calculation
                 : percentage ? HtmlCssPropertyValueKind.Percentage : HtmlCssPropertyValueKind.Number,
             text,
-            number.ToString("R", CultureInfo.InvariantCulture) + (percentage ? "%" : string.Empty),
+            OfficeIMO.OfficeRoundTripNumberText.Format(number, CultureInfo.InvariantCulture) + (percentage ? "%" : string.Empty),
             number,
             numericValue: numeric);
     }

@@ -12,8 +12,45 @@ compares the current `OfficeIMO.Word` source with:
 - [Open XML SDK 3.5.1](https://github.com/dotnet/Open-XML-SDK), Microsoft's MIT-
   licensed low-level API for the document format.
 
+- [RecursiveAI.OneDocument.Documents 1.0.0](https://www.nuget.org/packages/RecursiveAI.OneDocument.Documents/1.0.0),
+  a managed Word library licensed `MIT OR Apache-2.0`. It targets `net10.0`
+  only, so its lanes exist only when the runner is built for `net10.0`.
+
 These dependencies remain inside the benchmark project. They are not runtime
 dependencies of `OfficeIMO.Word`.
+
+### OneDocument lanes
+
+On `net10.0` every comparison workload gains a `OneDocument` lane, and read
+gains `OneDocumentExtractText`. Each lane carries the `library:onedocument`
+category:
+
+| Lane | Measured operation | Correctness proof |
+| --- | --- | --- |
+| Read paragraphs, `OneDocument` | `Document.Open` and the text of every `Document.Paragraphs` entry | Same paragraph count, character count and checksum as every other reader |
+| Read paragraphs, `OfficeIMOReaderText` (all targets) | `OfficeIMO.Reader` with `ReaderProjection.TextAndMetadata`, then `GetText()`, split into lines | Same observation; this is OfficeIMO's plain-text route, so it pairs with OneDocument's extractor |
+| Read paragraphs, `OfficeIMOReaderStreamedText` (all targets) | The same Reader read with `ReaderProjection.Text`, which streams simple bodies without building the Word model | Same observation |
+| Read paragraphs, `OneDocumentExtractText` | `Document.Open` and `ExtractText()`, OneDocument's streaming extractor, split into lines | Same observation; it skips the document model, so it is the cheaper of the two OneDocument routes |
+| Create paragraphs | `Document.Create`, the first item in the new document's empty paragraph, then `Body.AddParagraph` for the rest | Exact paragraph count and text, and Open XML SDK validation |
+| Replace and save | `Document.Open`, case-sensitive `Document.Replace` for `{{Status}}`, `SaveAs` to a DOCX stream | Every output paragraph and Open XML SDK validation |
+| Create structured report | `Document.Create`, header and footer stories, bold 18 pt title, summary, and a two-column table built from a cell array | The same structure, formatting, header/footer and Open XML SDK checks as the other lanes |
+| Create with images | `Document.Create`, one caption paragraph and one `Body.AddPicture` paragraph per image at the same 96 dpi size as the other lanes | Every caption, every picture's exact bytes, and Open XML SDK validation |
+| Fill a template | `Document.Open`, one case-sensitive `Document.Replace` per field, `SaveAs` to a DOCX stream | Every filled paragraph and Open XML SDK validation |
+| Read tables | `Document.Open` and the `Text` of every cell of every `Document.Tables` entry | Same cell count, character count and checksum as every other reader |
+
+`Document.Replace` matches case-insensitively by default; the lanes pass
+`MatchCase = true` so they do the same search as the OfficeIMO lane.
+
+OneDocument has no paragraph-level API on header and footer stories, so the
+report lane writes their text through the story's typed `w:hdr`/`w:ftr` view.
+Its table uses OneDocument's default 4680-twip grid columns rather than the
+2400-twip widths the Open XML SDK lane writes; the shared validator checks
+content and formatting, not column widths.
+
+```powershell
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Word.Benchmarks -- validate
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Word.Benchmarks -- --filter '*Word*ComparisonBenchmarks*' --job Short
+```
 
 ## Comparison workloads
 
@@ -41,6 +78,16 @@ result is a DOCX payload. Read includes package load because that is the common
 one-shot application workflow. The Open XML SDK lanes are format-native
 baselines, not claims that low-level code has the same maintenance cost or
 feature surface as a document library.
+
+The creation comparisons have two Open XML SDK lanes. `OpenXmlSdkMinimal`
+writes only the main document (and, for the report, its header and footer).
+`OpenXmlSdkEquivalent` also writes the parts an OfficeIMO document carries:
+styles, settings, web settings, font table, theme, footnote and endnote
+separators, and core and extended properties when present. Setup takes those
+parts from OfficeIMO's output for the same workload and fails when the two
+packages contain different parts; the timed lane feeds them to the SDK as
+serialized XML. Compare OfficeIMO with the equivalent lane for the same
+output, and with the minimal lane for the smallest valid package.
 
 Every OfficeIMO, NPOI, and Open XML SDK output passes Open XML SDK validation.
 The DocX 5.2.0 output is checked independently at ZIP/XML level for the
@@ -72,6 +119,28 @@ drawing conclusions:
 dotnet run -c Release -f net8.0 --project .\OfficeIMO.Word.Benchmarks -- --filter '*Word*ComparisonBenchmarks*'
 ```
 
+On Windows the project also builds for `net472`, the runtime of Windows
+PowerShell 5.1. That build contains the paragraph and report creation, read and
+replace comparisons:
+
+```powershell
+dotnet run -c Release -f net472 --project .\OfficeIMO.Word.Benchmarks -- --filter '*WordCreate*' '*WordRead*' '*WordReplace*'
+```
+
+### Shared custom-data snapshots
+
+The opt-in PowerForge suite measures load, public legacy-write assessment and disposal with one
+64 KiB payload shared by the package root, main document and 0, 32 or 128
+additional parents. Setup and validation stay outside timing. Each measured sample
+checks the assessment result; setup checks the payload bytes and shared relationships. Allocation
+is recorded without a timing or memory threshold in correctness CI.
+
+```powershell
+dotnet build OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj -c Release -f net8.0
+Import-Module PSPublishModule
+Invoke-BenchmarkSuite -Path ./Build/Benchmarks/word-shared-clone.benchmark.ps1 -OutputRoot ./.benchmark-artifacts/word-shared-clone
+```
+
 ### Publishable Open XML SDK evidence
 
 The public evidence classes isolate OfficeIMO.Word and the MIT-licensed Open
@@ -87,11 +156,10 @@ dotnet run -c Release -f net10.0 --project .\OfficeIMO.Word.Benchmarks -- eviden
 
 The isolated runner records source commit and dirty-tree state together with
 elapsed time, allocation, retained heap, sampled managed peak, absolute process
-peak, input bytes, and output bytes. The current Windows result is documented
-in [`Docs/benchmarks/officeimo.word-openxml-2026-08-24.md`](../Docs/benchmarks/officeimo.word-openxml-2026-08-24.md).
-The [2026-09-22 structured-report cell-writing run](../Docs/benchmarks/officeimo.word-table-report-2026-09-22.md)
+peak, input bytes, and output bytes.
+The 2026-09-22 structured-report cell-writing run
 records a three-platform allocation reduction and its remaining timing limits.
-The [100-item format-depth budgets](../Docs/benchmarks/officeimo.word-format-depth-budgets-2026-09-22.md)
+The 100-item format-depth budgets
 set absolute elapsed, allocation, managed-peak, process-peak, and DOCX-size
 limits for paragraph creation, structured reports, and rich replacement. Run
 `evidence --repeat 3 --budget .\OfficeIMO.Word.Benchmarks\word-format-depth-budgets.json`
@@ -99,21 +167,22 @@ after `validate-openxml` to check them. The process-peak reading is unavailable
 on the current macOS host.
 
 The shared repository runner adds provenance capture and PowerForge-normalized
-JSON/CSV/Markdown evidence. Word workloads are excluded from the default `all`
-selection so ordinary comparison runs do not restore NPOI or require its license
-acknowledgement. `word` expands to the four comparison workloads:
+JSON/CSV/Markdown evidence. `word` expands to the four comparison workloads:
 
 ```powershell
-.\Build\Run-LibraryComparisonBenchmarks.ps1 -Workload word -RunMode full -Framework net8.0 -AcceptNPOIOSMFLicense
+.\Build\Run-LibraryComparisonBenchmarks.ps1 -Workload word -Profile full -Framework net8.0
 ```
 
-Use `-RunMode quick` only for a clean-source smoke run. The isolated benchmark
-project records `AcceptNPOIOSMFLicense=true`, as required by the NPOI package;
-it is nonpackable and outside the normal solution. The interoperability CI job
+Use `-Profile diagnostic` only for a clean-source smoke run. The isolated benchmark
+project is nonpackable and outside the normal solution. The interoperability CI job
 restores and builds this project to run the deterministic `validate-workflows`
-checks; comparison measurements remain opt-in. The shared runner also requires
-`-AcceptNPOIOSMFLicense` before starting a Word comparison. Review the EULA and
-decide whether its maintenance-fee conditions apply to your use.
+checks; comparison measurements remain opt-in. NPOI is Apache-2.0 and open in
+[`Build/benchmark-libraries.json`](../Build/benchmark-libraries.json); its package
+shows a build warning about the OSMF EULA on its binaries, which the project does
+not accept for you. DocX is acceptance-required: Xceed's Community License is
+limited to non-commercial use and does not allow publishing DocX benchmark results
+without Xceed's permission. Published Word comparisons leave DocX out, and its cases
+run locally only after you accept its licence with `-AcceptLibraryLicense docx`.
 The benchmark project pins `System.Security.Cryptography.Xml` 10.0.13 because
 NPOI's transitive 10.0.10 minimum is affected by a
 [published high-severity advisory](https://github.com/advisories/GHSA-7hqp-7c5m-4vq6).
@@ -147,3 +216,53 @@ dotnet run -c Release -f net8.0 --project .\OfficeIMO.Word.Benchmarks -- --filte
 
 Those workflows have no directly equivalent public API in every comparison
 library, so they stay outside the cross-library rankings.
+
+`WordMarkdownConversionBenchmarks` converts generated Markdown (headings,
+paragraphs, nested lists and tables) to Word and back, whole and as
+`ExtractMarkdownChunks` chunks, at 100 and 400 sections. Setup checks that every
+heading, list and table survives each direction. Compare the two sizes: each
+lane should grow about four times, not sixteen.
+
+```powershell
+dotnet run -c Release -f net8.0 --project .\OfficeIMO.Word.Benchmarks -- --filter '*WordMarkdownConversionBenchmarks*'
+```
+
+`WordHtmlImportBenchmarks` converts generated HTML to Word in three shapes:
+nested containers (divs, articles and blockquotes), small tables inside divs,
+and nested lists inside divs, each at 100 and 400 blocks. Setup checks that
+every block, table and list item reaches the document. As above, the larger
+size should take about four times as long.
+
+```powershell
+dotnet run -c Release -f net8.0 --project .\OfficeIMO.Word.Benchmarks -- --filter '*WordHtmlImportBenchmarks*'
+```
+
+`WordLoadBenchmarks` loads a DOCX of 50 or 500 distinct images (about 1 MB and
+10 MB) from memory, read-only and editable. Setup prints the input size and
+checks the image count; allocation divided by the input size shows how many
+copies of the package a load makes.
+
+```powershell
+dotnet run -c Release -f net8.0 --project .\OfficeIMO.Word.Benchmarks -- --filter '*WordLoadBenchmarks*'
+```
+
+`WordRunEnumerationBenchmarks` loads a document of 1,000 or 4,000 two-run
+paragraphs, with a field in every hundredth, and enumerates `GetRuns()` for every
+entry of `Paragraphs`. Setup checks the run count. Four times the paragraphs
+should cost about four times as much.
+
+```powershell
+dotnet run -c Release -f net8.0 --project .\OfficeIMO.Word.Benchmarks -- --filter '*WordRunEnumerationBenchmarks*'
+```
+
+`WordSectionCollectionBenchmarks` reads the document-wide lists (`Paragraphs`,
+`Tables`, `ParagraphsHyperLinks`, `Elements`, `Fields`, `HyperLinks`,
+`Bookmarks`, `CheckBoxes`, `StructuredDocumentTags`, `FootNotes` and
+`TablesIncludingNestedTables`) of a loaded document with 25 and 100 sections.
+Each section has 20 paragraphs, two tables, a hyperlink, a field, a bookmark, a
+check box and a footnote. Setup checks the lists against the sections. Four times the sections should cost about four times
+as much.
+
+```powershell
+dotnet run -c Release -f net8.0 --project .\OfficeIMO.Word.Benchmarks -- --filter '*WordSectionCollectionBenchmarks*'
+```

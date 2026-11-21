@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Excel.Xlsb.Biff12;
 using OfficeIMO.Excel.Xlsb.Model;
 using OfficeIMO.Excel.Xlsb.Package;
 using OfficeIMO.Excel.Xlsb.Projection;
@@ -30,6 +31,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             var formulas = new XlsbFormulaWriteContext(document, sourceWorkbook, structure);
             var replacements = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
             var deletions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var generatedTables = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             using (var packageStream = new MemoryStream(sourcePackageBytes, writable: false))
             using (var archive = new ZipArchive(packageStream, ZipArchiveMode.Read, leaveOpen: false)) {
                 byte[]? sourceStylesPart = null;
@@ -52,15 +54,22 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 structure.PreparePackage(document, workbookPart, archive.Entries.Select(entry => entry.FullName).ToArray(),
                     ReadPart(workbookPart), ReadPart(XlsbSheetStructure.RelationshipPartName(workbookPart)), ReadPart("[Content_Types].xml"), replacements, deletions, maximumBytes);
                 CopyRenamedRelatedParts(document, sourceWorkbook, replacements);
+                XlsbDocumentPropertyParts.ApplyToRewrite(document, document.XlsbDocumentPropertiesSnapshot, ReadPart,
+                    archive.Entries.Select(entry => entry.FullName).ToArray(), replacements, deletions);
+                var textRuns = new XlsbCellTextRuns(document.WorkbookPartRoot.SharedStringTablePart?.SharedStringTable, sourceWorkbook.Stylesheet);
                 foreach (var sheet in sheets) {
                     var binding = structure.Bindings.Single(item => ReferenceEquals(item.Part, sheet.WorksheetPart));
                     if (binding.Original == null) {
-                        var newCells = XlsbWorksheetCellExtractor.ExtractNew(document, sheet, formulas);
+                        var newCells = XlsbWorksheetCellExtractor.ExtractNew(document, sheet, formulas, textRuns: textRuns);
                         var hyperlinks = XlsbWorksheetHyperlinkPlan.Create(sheet, pruneOrphanedRelationships: true);
                         if (hyperlinks.Relationships.Count > 0) replacements[XlsbSheetStructure.RelationshipPartName(structure.PartNames[binding.Part.Uri.OriginalString])] = hyperlinks.CreateRelationshipPart();
                         structure.NewCodeNames.TryGetValue(binding.Name, out string? codeName);
+                        // Relationship-backed content (comments, tables, drawings) cannot yet add parts to a rewritten package.
+                        XlsbWorksheetFeatureRecords newFeatures = XlsbWorksheetFeatureRecords.Create(
+                            new XlsbWorksheetFeatureContext(document, sheet, formulas, parts: null));
                         byte[] createdPart = XlsbWorksheetPartWriter.Create(sheet, newCells,
-                            stylesheetPlan.CellFormatCount, hyperlinks.Records, maximumBytes: maximumBytes, codeName: codeName);
+                            stylesheetPlan.CellFormatCount, hyperlinks.Records, maximumBytes: maximumBytes, codeName: codeName,
+                            features: newFeatures);
                         replacements.Add(structure.PartNames[binding.Part.Uri.OriginalString], ApplyFormulaCachePolicy(createdPart, calculation, maximumBytes));
                         continue;
                     }
@@ -71,11 +80,12 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                         ?? throw new InvalidDataException($"The source XLSB worksheet part '{partName}' is missing.");
                     byte[] originalPart = ReadEntry(sourceEntry, (int)Math.Min(maximumBytes, MaxWorksheetPartBytes));
                     byte[] reboundPart = XlsbFormulaRecordRebinder.RebindPart(originalPart, structure.NameIndexes, maximumBytes);
+                    XlsbWorksheetDrawingWriter.ValidateUnchanged(sheet, sourceSheet, sourceWorkbook);
                     IReadOnlyList<XlsbWriteCell> cells = XlsbWorksheetCellExtractor.Extract(
                         document,
                         sheet,
                         sourceSheet,
-                        stylesheetPlan.CellFormatCount, formulas);
+                        stylesheetPlan.CellFormatCount, formulas, textRuns);
                     XlsbWorksheetAutoFilterPlan autoFilterPlan =
                         XlsbWorksheetAutoFilterPlan.Create(sheet, sourceSheet);
                     bool rewriteHyperlinks = !XlsbWorksheetHyperlinkProjector.Matches(sheet, sourceSheet);
@@ -96,10 +106,15 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                         autoFilterPlan.Rewrite,
                         hyperlinkPlan?.Records ?? Array.Empty<XlsbGeneratedRecord>(),
                         rewriteHyperlinks, maximumBytes);
+                    var featureContext = new XlsbWorksheetFeatureContext(document, sheet, formulas, parts: null);
+                    rewrittenPart = XlsbRecordBlockEdit.Apply(rewrittenPart, XlsbWorksheetFeatureRewritePlan.Create(featureContext, sourceSheet), maximumBytes);
+                    XlsbWorksheetTableWriter.Rewrite(featureContext, sourceSheet, replacements, generatedTables);
                     rewrittenPart = ApplyFormulaCachePolicy(rewrittenPart, calculation, maximumBytes);
+                    rewrittenPart = ApplyTabSelection(rewrittenPart, TabSelectionFor(sheet), maximumBytes);
                     if (!originalPart.SequenceEqual(rewrittenPart)) {
                         replacements.Add(partName, rewrittenPart);
                     }
+                    XlsbWorksheetCommentRewrite.Apply(document, sheet, sourceSheet, sourceWorkbook, replacements);
                     if (hyperlinkPlan != null && !hyperlinkPlan.RelationshipsMatch(sourceSheet)) {
                         string relationshipPartName = GetRelationshipPartName(partName);
                         int preservedRelationshipCount = sourceSheet.Relationships.Values.Count(relationship =>
@@ -114,7 +129,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 byte[] currentWorkbook = replacements.TryGetValue(workbookPart, out byte[]? replacementWorkbook) ? replacementWorkbook : ReadPart(workbookPart);
                 byte[] completedWorkbook = RewriteCalculationProperties(document, sourceWorkbook, formulas.CompleteWorkbook(currentWorkbook, maximumBytes), maximumBytes);
                 if (!ReferenceEquals(currentWorkbook, completedWorkbook)) replacements[workbookPart] = completedWorkbook;
-                RebindTableFormulas(archive, structure, replacements, deletions, sourceWorkbook.MaxPartBytes, maximumBytes);
+                RebindTableFormulas(archive, structure, replacements, deletions, generatedTables, sourceWorkbook.MaxPartBytes, maximumBytes);
             }
 
             if (replacements.Count == 0 && deletions.Count == 0) return sourcePackageBytes;
@@ -133,16 +148,51 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             return rewritten;
         }
 
+        /// <summary>
+        /// The tab selection the document model holds for the primary window: the imported value, or what activation,
+        /// hiding or the caller set since. Null when the sheet has no primary view, which leaves the record unchanged.
+        /// </summary>
+        private static bool? TabSelectionFor(ExcelSheet sheet) {
+            SheetView? view = sheet.WorksheetPart.Worksheet?.GetFirstChild<SheetViews>()?.Elements<SheetView>()
+                .FirstOrDefault(candidate => (candidate.WorkbookViewId?.Value ?? 0U) == 0U);
+            return view == null ? null : view.TabSelected?.Value == true;
+        }
+
+        /// <summary>Sets or clears fSelected (0x40 in the first flags byte) on the primary window's BrtBeginWsView.</summary>
+        private static byte[] ApplyTabSelection(byte[] part, bool? selected, long maximumBytes) {
+            if (!selected.HasValue) return part;
+            const int BrtBeginWsView = 137;
+            using var input = new MemoryStream(part, writable: false);
+            IReadOnlyList<XlsbRecord> records = XlsbRecordReader.ReadAll(input);
+            bool changed = false;
+            using var output = new OfficeIMO.Core.Internal.OfficeBoundedMemoryStream(maximumBytes);
+            foreach (XlsbRecord record in records) {
+                byte[] payload = record.Data;
+                // iWbkView, the owning workbook window, follows 22 bytes of view settings.
+                if (record.Type == BrtBeginWsView && payload.Length >= 26 && BitConverter.ToUInt32(payload, 22) == 0U
+                    && ((payload[0] & 0x40) != 0) != selected.Value) {
+                    payload = (byte[])payload.Clone();
+                    payload[0] = (byte)(selected.Value ? payload[0] | 0x40 : payload[0] & ~0x40);
+                    changed = true;
+                }
+                XlsbRecordWriter.Write(output, record.Type, payload);
+            }
+
+            return changed ? output.ToArray() : part;
+        }
+
+        /// <summary>A single workbook view that sets only the active and first tab, which the rewrite carries over.</summary>
+        private static bool HasOnlyActiveTabChanges(BookViews views) => views.GetAttributes().Count == 0
+            && views.ChildElements.Count == 1 && views.FirstChild is WorkbookView view && !view.HasChildren
+            && view.GetAttributes().All(attribute => attribute.LocalName is "activeTab" or "firstSheet");
+
         private static void ThrowIfUnsupportedWorkbookMutation(
             ExcelDocument document,
             XlsbWorkbook sourceWorkbook,
             byte[] sourcePackageBytes, XlsbSheetStructure structure) {
-            if (document.HasPackagePropertiesDirty) {
-                throw new NotSupportedException("Native XLSB rewriting currently accepts cell-value edits only. Document-property changes must be saved as .xlsx.");
-            }
-
             OpenXmlElement? unsupportedWorkbookChild = document.WorkbookRoot.ChildElements
-                .FirstOrDefault(element => !(element is BookViews views && ExcelDocument.IsNeutralWorkbookViews(views))
+                .FirstOrDefault(element => !(element is BookViews views
+                        && (ExcelDocument.IsNeutralWorkbookViews(views) || HasOnlyActiveTabChanges(views)))
                     && element is not Sheets
                     && element is not WorkbookProperties
                     && element is not WorkbookProtection
@@ -318,7 +368,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             return directory + "_rels/" + fileName + ".rels";
         }
 
-        private static string NormalizePartName(string partName) {
+        internal static string NormalizePartName(string partName) {
             ArgumentException.ThrowIfNullOrWhiteSpace(partName);
             string normalized = partName.Replace('\\', '/').TrimStart('/');
             if (normalized.EndsWith("/", StringComparison.Ordinal)

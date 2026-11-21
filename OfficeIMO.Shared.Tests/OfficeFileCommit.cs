@@ -97,6 +97,18 @@ namespace OfficeIMO.Shared.Tests {
 #endif
         }
 
+        // Hosts without a long-path-aware manifest, such as pwsh.exe, get MAX_PATH from raw Win32
+        // calls; the test host is long-path aware, so the conversion itself is what can be checked.
+        [Theory]
+        [InlineData(@"C:\work\out.xlsx", @"\\?\C:\work\out.xlsx")]
+        [InlineData(@"C:\work\..\out.xlsx", @"\\?\C:\out.xlsx")]
+        [InlineData(@"\\server\share\out.xlsx", @"\\?\UNC\server\share\out.xlsx")]
+        [InlineData(@"\\?\C:\work\out.xlsx", @"\\?\C:\work\out.xlsx")]
+        public void WindowsStagingPathsUseTheExtendedLengthForm(string path, string expected) {
+            if (Path.DirectorySeparatorChar != '\\') return;
+            Assert.Equal(expected, OfficeTemporaryFile.ToExtendedPath(path));
+        }
+
         [Fact]
         public void StagedBytesCanRetryAfterDestinationCollisionWithoutBeingRewritten() {
             string root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
@@ -404,6 +416,74 @@ namespace OfficeIMO.Shared.Tests {
                 OfficeFileCommit.CommitTemporaryFile(temporary, destination);
 
                 Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite, File.GetUnixFileMode(destination));
+            } finally {
+                if (Directory.Exists(root)) Directory.Delete(root, true);
+            }
+        }
+
+        [Fact]
+        public void WindowsReplacementByMove_KeepsTheReplacedFilesRestrictedPermissions() {
+            if (!OperatingSystem.IsWindows()) return;
+
+            string root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+            string destination = Path.Combine(root, "private.xlsx");
+            string staging = Path.Combine(root, "private.staged.xlsx");
+            var networkService = new System.Security.Principal.SecurityIdentifier("S-1-5-20");
+            Directory.CreateDirectory(root);
+            File.WriteAllBytes(destination, new byte[] { 1 });
+
+            try {
+                var restricted = new System.Security.AccessControl.FileSecurity();
+                restricted.SetAccessRuleProtection(isProtected: true, preserveInheritance: false);
+                restricted.AddAccessRule(new System.Security.AccessControl.FileSystemAccessRule(
+                    System.Security.Principal.WindowsIdentity.GetCurrent().User!,
+                    System.Security.AccessControl.FileSystemRights.FullControl,
+                    System.Security.AccessControl.AccessControlType.Allow));
+                restricted.AddAccessRule(new System.Security.AccessControl.FileSystemAccessRule(
+                    networkService,
+                    System.Security.AccessControl.FileSystemRights.Read,
+                    System.Security.AccessControl.AccessControlType.Allow));
+                new FileInfo(destination).SetAccessControl(restricted);
+                using (FileStream stream = OfficeTemporaryFile.CreateAtPath(staging, 4096, FileOptions.None)) {
+                    stream.WriteByte(2);
+                }
+
+                OfficeTemporaryFile.CopyWindowsPermissions(destination, staging);
+
+                var copied = new FileInfo(staging).GetAccessControl();
+                Assert.True(copied.AreAccessRulesProtected);
+                bool keptNetworkServiceRule = false;
+                foreach (System.Security.AccessControl.FileSystemAccessRule rule in
+                    copied.GetAccessRules(true, true, typeof(System.Security.Principal.SecurityIdentifier))) {
+                    keptNetworkServiceRule |= networkService.Equals(rule.IdentityReference);
+                }
+                Assert.True(keptNetworkServiceRule);
+            } finally {
+                if (Directory.Exists(root)) Directory.Delete(root, true);
+            }
+        }
+
+        [Fact]
+        public void WindowsCommitOfAnInheritingStagingFile_DoesNotNeedPermissionToChangeItsAcl() {
+            if (!OperatingSystem.IsWindows()) return;
+
+            string root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+            string staging = Path.Combine(root, "attachment.staged.pdf");
+            string destination = Path.Combine(root, "attachment.pdf");
+            Directory.CreateDirectory(root);
+            File.WriteAllBytes(staging, new byte[] { 1 });
+
+            try {
+                // Shares can let a user create files without letting them change ACLs (WRITE_DAC).
+                var security = new FileInfo(staging).GetAccessControl();
+                security.AddAccessRule(new System.Security.AccessControl.FileSystemAccessRule(
+                    new System.Security.Principal.SecurityIdentifier("S-1-3-4"),
+                    System.Security.AccessControl.FileSystemRights.ChangePermissions,
+                    System.Security.AccessControl.AccessControlType.Deny));
+                new FileInfo(staging).SetAccessControl(security);
+
+                Assert.True(OfficeFileCommit.TryCommitTemporaryFileIfAbsent(staging, destination));
+                Assert.Equal(new byte[] { 1 }, File.ReadAllBytes(destination));
             } finally {
                 if (Directory.Exists(root)) Directory.Delete(root, true);
             }

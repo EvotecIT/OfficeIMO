@@ -44,7 +44,8 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     private readonly ushort _numHMetrics;
     private readonly short _indexToLocFormat;
     private readonly int? _collectionIndex;
-    private readonly string _fingerprint;
+    // Hashing the whole program is deferred until a caller asks for the identity; many loads only validate a face.
+    private string? _fingerprint;
     // Portable scalar-text projections require the original static face, including default-axis rejection.
     internal bool IsVariableFont => _variationModel.IsVariable;
     /// <summary>Static font math design metrics, when the selected face supplies a valid MATH table.</summary>
@@ -59,8 +60,6 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         int? collectionIndex,
         OfficeFontVariationModel? variationModel = null) {
         _data = data;
-        _fingerprint = ComputeFingerprint(data, collectionIndex)
-            + (variationModel != null && variationModel.IsVariable ? ":axes=" + variationModel.Identity : string.Empty);
         _collectionIndex = collectionIndex;
         _variationModel = variationModel ?? OfficeFontVariationModel.None;
         _cmap = tables["cmap"];
@@ -124,6 +123,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         _mathGlyphData = !_variationModel.IsVariable && tables.TryGetValue("MATH", out int glyphMathOffset)
             ? OfficeOpenTypeMathGlyphs.TryRead(data, glyphMathOffset, tableLengths["MATH"], _numGlyphs) : null;
         _colorGlyphs = reader == null ? null : OfficeOpenTypeColorGlyphs.TryParse(reader);
+        _bitmapGlyphs = reader == null ? null : OfficeOpenTypeBitmapGlyphs.TryCreate(reader, _unitsPerEm, GetOutlineOrigin);
         _hasUnreadColorTable = tables.ContainsKey("sbix") || tables.ContainsKey("CBDT") || tables.ContainsKey("SVG ")
             || tables.ContainsKey("COLR") && _colorGlyphs == null;
         _variations = variationModel != null && variationModel.IsVariable
@@ -132,10 +132,13 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     }
 
     /// <inheritdoc />
-    public string Fingerprint => _trackingEvaluationScale == 1D ? _fingerprint
-        : _fingerprint + ":tracking-scale=" + _trackingEvaluationScale.ToString("R", System.Globalization.CultureInfo.InvariantCulture);
+    public string Fingerprint => _trackingEvaluationScale == 1D ? BaseFingerprint
+        : BaseFingerprint + ":tracking-scale=" + OfficeIMO.Core.Internal.OfficeRoundTripText.Format(_trackingEvaluationScale, System.Globalization.CultureInfo.InvariantCulture);
     IReadOnlyDictionary<string, float> IOfficeVariableFontProgram.VariationCoordinatesForShaping =>
         _variationModel?.DesignCoordinates ?? OfficeFontVariationModel.None.DesignCoordinates;
+
+    private string BaseFingerprint => _fingerprint ??= ComputeFingerprint(_data, _collectionIndex)
+        + (_variationModel.IsVariable ? ":axes=" + _variationModel.Identity : string.Empty);
 
     private static string ComputeFingerprint(byte[] data, int? collectionIndex) {
         using HashAlgorithm hash = SHA256.Create();
@@ -905,11 +908,21 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
 
         if (contourCount <= 0) return contours;
 
-        var endPts = new ushort[contourCount];
-        for (var i = 0; i < contourCount; i++) endPts[i] = ReadUInt16(_data, offset + 10 + i * 2);
+        SimpleGlyphOutline? cached = _variations == null ? GetCachedSimpleGlyph(glyph) : null;
+        ushort[] endPts;
+        if (cached != null) endPts = cached.EndPoints;
+        else {
+            endPts = new ushort[contourCount];
+            for (var i = 0; i < contourCount; i++) endPts[i] = ReadUInt16(_data, offset + 10 + i * 2);
+        }
         var rawPointCount = endPts[contourCount - 1] + 1;
         if (rawPointCount > maximumPointCount - expandedPointCount) {
             throw new InvalidOperationException("Font outline expansion exceeded the configured point budget.");
+        }
+        if (cached != null) {
+            AddSimpleGlyphContours(cached.EndPoints, cached.OnCurve, cached.Xs, cached.Ys, transform, contours,
+                ref expandedPointCount, maximumPointCount, attachmentPoints);
+            return contours;
         }
         var instructionLengthOffset = offset + 10 + contourCount * 2;
         var instructionLength = ReadUInt16(_data, instructionLengthOffset);
@@ -952,26 +965,77 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
             }
         }
 
+        var onCurve = new bool[rawPointCount];
+        for (int index = 0; index < rawPointCount; index++) onCurve[index] = (flags[index] & 1) != 0;
+        if (_variations == null) CacheSimpleGlyph(glyph, new SimpleGlyphOutline(endPts, onCurve, variedXs, variedYs));
+        AddSimpleGlyphContours(endPts, onCurve, variedXs, variedYs, transform, contours,
+            ref expandedPointCount, maximumPointCount, attachmentPoints);
+        return contours;
+    }
+
+    private static void AddSimpleGlyphContours(ushort[] endPts, bool[] onCurve, double[] xs, double[] ys, FontTransform transform,
+        List<List<OfficePoint>> contours, ref int expandedPointCount, int maximumPointCount, List<OfficePoint>? attachmentPoints) {
+        int rawPointCount = endPts[endPts.Length - 1] + 1;
         if (attachmentPoints != null) {
             for (var index = 0; index < rawPointCount; index++) {
-                attachmentPoints.Add(transform.Apply(variedXs[index], variedYs[index]));
+                attachmentPoints.Add(transform.Apply(xs[index], ys[index]));
             }
         }
 
+        // One scratch list per thread holds the placed points of the contour being flattened.
+        List<GlyphPoint> points = t_contourPoints ??= new List<GlyphPoint>();
         var start = 0;
-        for (var c = 0; c < contourCount; c++) {
+        for (var c = 0; c < endPts.Length; c++) {
             var end = endPts[c];
-            var points = new List<GlyphPoint>();
+            points.Clear();
             for (var i = start; i <= end; i++) {
-                var point = transform.Apply(variedXs[i], variedYs[i]);
-                points.Add(new GlyphPoint(point.X, point.Y, (flags[i] & 1) != 0));
+                var point = transform.Apply(xs[i], ys[i]);
+                points.Add(new GlyphPoint(point.X, point.Y, onCurve[i]));
             }
 
             AddFlattenedContour(points, contours, ref expandedPointCount, maximumPointCount);
             start = end + 1;
         }
+        if (points.Capacity > MaximumRetainedContourPoints) t_contourPoints = null;
+    }
 
-        return contours;
+    private const int MaximumRetainedContourPoints = 4096;
+    private const int MaximumCachedSimpleGlyphs = 4096;
+    // About 17 MB of decoded coordinates per font; outlines beyond it are decoded on each use.
+    private const int MaximumCachedSimpleGlyphPoints = 1 << 20;
+    [ThreadStatic] private static List<GlyphPoint>? t_contourPoints;
+    private readonly object _simpleGlyphSync = new();
+    private Dictionary<ushort, SimpleGlyphOutline>? _simpleGlyphs;
+    private int _cachedSimpleGlyphPoints;
+
+    // Decoded outlines depend only on the font program, so repeated glyphs skip the glyf
+    // decoding. Variable fonts apply instance deltas and are decoded every time.
+    private SimpleGlyphOutline? GetCachedSimpleGlyph(ushort glyph) {
+        lock (_simpleGlyphSync) {
+            return _simpleGlyphs != null && _simpleGlyphs.TryGetValue(glyph, out SimpleGlyphOutline? outline) ? outline : null;
+        }
+    }
+
+    private void CacheSimpleGlyph(ushort glyph, SimpleGlyphOutline outline) {
+        lock (_simpleGlyphSync) {
+            _simpleGlyphs ??= new Dictionary<ushort, SimpleGlyphOutline>();
+            int points = outline.Xs.Length;
+            if (_simpleGlyphs.Count >= MaximumCachedSimpleGlyphs ||
+                points > MaximumCachedSimpleGlyphPoints - _cachedSimpleGlyphPoints ||
+                _simpleGlyphs.ContainsKey(glyph)) return;
+            _simpleGlyphs.Add(glyph, outline);
+            _cachedSimpleGlyphPoints += points;
+        }
+    }
+
+    private sealed class SimpleGlyphOutline {
+        internal SimpleGlyphOutline(ushort[] endPoints, bool[] onCurve, double[] xs, double[] ys) {
+            EndPoints = endPoints; OnCurve = onCurve; Xs = xs; Ys = ys;
+        }
+        internal ushort[] EndPoints { get; }
+        internal bool[] OnCurve { get; }
+        internal double[] Xs { get; }
+        internal double[] Ys { get; }
     }
 
     private void ReadCompositeGlyphContours(
@@ -1180,7 +1244,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         ref int expandedPointCount,
         int maximumPointCount) {
         if (source.Count == 0) return;
-        var result = new List<OfficePoint>();
+        var result = new List<OfficePoint>(source.Count + 1);
         var last = source[source.Count - 1];
         var first = source[0];
         var current = first.OnCurve ? first : last.OnCurve ? last : Mid(last, first);

@@ -138,6 +138,15 @@ internal sealed class PdfTextShowCommand {
 
     internal double GetJustificationAdvance(int glyphIndex) => _justificationAdvances?[glyphIndex] ?? 0D;
 
+    /// <summary>Per-glyph artwork, aligned with the shown glyphs, when the run contains color glyphs.</summary>
+    internal IReadOnlyList<PdfColorGlyphArt?>? ColorArt { get; private set; }
+
+    internal PdfTextShowCommand WithColorArt(IReadOnlyList<PdfColorGlyphArt?> art) {
+        var copy = (PdfTextShowCommand)MemberwiseClone();
+        copy.ColorArt = art;
+        return copy;
+    }
+
     /// <summary>
     /// Right-to-left glyphs in visual order, mapped through ToUnicode only. They get their own show operator so
     /// readers see a pure right-to-left run they can reorder, rather than a mixed-direction TJ array.
@@ -290,6 +299,22 @@ internal readonly struct PdfTextShapingOptions {
 
     public static PdfTextShapingOptions ForDiagnostics(string source, string fontName, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IOfficeTextShapingProvider? shapingProvider = null) =>
         new PdfTextShapingOptions(recordGlyphUsage: false, throwOnMissingGlyph: false, skipLayoutControls: true, reportControlCharacters: true, source: source, fontName: fontName, shapingMode: shapingMode, shapingProvider: shapingProvider);
+
+    /// <summary>
+    /// Built-in Latin ligatures cannot write an emoji sequence: its ZWJ, keycap, modifier, flag and
+    /// presentation components only combine through the font's default GSUB and GPOS. Such text uses
+    /// the font's OpenType shaping, as <see cref="PdfTextShapingMode.OpenTypeLigatures"/> does.
+    /// </summary>
+    internal static PdfTextShapingMode EffectiveShapingMode(PdfTextShapingMode shapingMode, string? text) =>
+        shapingMode == PdfTextShapingMode.LatinLigatures && OfficeTextElements.ContainsJoinerOrEmojiSequence(text)
+            ? PdfTextShapingMode.OpenTypeLigatures : shapingMode;
+
+    internal PdfTextShapingOptions ForText(string text) {
+        PdfTextShapingMode mode = EffectiveShapingMode(ShapingMode, text);
+        return mode == ShapingMode ? this : new PdfTextShapingOptions(RecordGlyphUsage, ThrowOnMissingGlyph, SkipLayoutControls,
+            ReportControlCharacters, Source, FontName, mode, ShapingProvider, ProviderShapedTextRecorder, Language,
+            FeatureSettings, Direction, PreservesPaintedGlyphs);
+    }
 }
 
 internal interface IPdfTextShaper {
@@ -423,6 +448,16 @@ internal sealed class PdfUnicodeScalarTextShaper : IPdfTextShaper {
         Guard.NotNull(text, nameof(text));
         Guard.NotNull(font, nameof(font));
 
+        // A run records its usage under one acquisition of the font's usage lock. An observer
+        // keeps the per-glyph route, so caller code never runs inside that lock.
+        if (options.RecordGlyphUsage && observeUsage == null) {
+            lock (font.GlyphUsageLock) return MeasureAdvanceWidth1000Core(text, font, options, null, usageLockHeld: true);
+        }
+        return MeasureAdvanceWidth1000Core(text, font, options, observeUsage, usageLockHeld: false);
+    }
+
+    private static int MeasureAdvanceWidth1000Core(string text, PdfTrueTypeFontProgram font, PdfTextShapingOptions options,
+        Action<int, string>? observeUsage, bool usageLockHeld) {
         int totalWidth = 0;
         for (int index = 0; index < text.Length;) {
             int scalarStart = index;
@@ -431,7 +466,8 @@ internal sealed class PdfUnicodeScalarTextShaper : IPdfTextShaper {
                 font.TryGetGlyphId(ligatureScalar, out int ligatureGlyphId) &&
                 ligatureGlyphId > 0) {
                 if (options.RecordGlyphUsage) {
-                    font.RecordGlyphUsage(ligatureGlyphId, text.Substring(scalarStart, ligatureLength));
+                    if (usageLockHeld) font.RecordGlyphUsageHoldingLock(ligatureGlyphId, text.Substring(scalarStart, ligatureLength));
+                    else font.RecordGlyphUsage(ligatureGlyphId, text.Substring(scalarStart, ligatureLength));
                 }
 
                 totalWidth = checked(totalWidth + font.GetGlyphWidth1000(ligatureGlyphId));
@@ -454,7 +490,8 @@ internal sealed class PdfUnicodeScalarTextShaper : IPdfTextShaper {
             }
 
             if (options.RecordGlyphUsage) {
-                font.RecordGlyphUsage(glyphId, scalar);
+                if (usageLockHeld) font.RecordGlyphUsageHoldingLock(glyphId, scalar);
+                else font.RecordGlyphUsage(glyphId, scalar);
             }
 
             totalWidth = checked(totalWidth + font.GetGlyphWidth1000(glyphId));
@@ -473,6 +510,14 @@ internal sealed class PdfUnicodeScalarTextShaper : IPdfTextShaper {
         Guard.NotNull(text, nameof(text));
         Guard.NotNull(font, nameof(font));
 
+        // The whole run records its glyph usage under one acquisition of the font's usage lock.
+        if (options.RecordGlyphUsage) {
+            lock (font.GlyphUsageLock) return EncodeGlyphHexCore(text, font, options, out actualText, out advanceWidth1000);
+        }
+        return EncodeGlyphHexCore(text, font, options, out actualText, out advanceWidth1000);
+    }
+
+    private static string EncodeGlyphHexCore(string text, PdfTrueTypeFontProgram font, PdfTextShapingOptions options, out string? actualText, out int advanceWidth1000) {
         var sb = PdfGlyphRun.RentHexBuilder(text.Length * 4);
         advanceWidth1000 = 0;
         for (int index = 0; index < text.Length;) {
@@ -482,7 +527,7 @@ internal sealed class PdfUnicodeScalarTextShaper : IPdfTextShaper {
                 font.TryGetGlyphId(ligatureScalar, out int ligatureGlyphId) &&
                 ligatureGlyphId > 0) {
                 if (options.RecordGlyphUsage) {
-                    font.RecordGlyphUsage(ligatureGlyphId, text.Substring(scalarStart, ligatureLength));
+                    font.RecordGlyphUsageHoldingLock(ligatureGlyphId, text.Substring(scalarStart, ligatureLength));
                 }
 
                 PdfGlyphRun.AppendGlyphHex(sb, ligatureGlyphId);
@@ -505,7 +550,7 @@ internal sealed class PdfUnicodeScalarTextShaper : IPdfTextShaper {
             }
 
             if (options.RecordGlyphUsage) {
-                font.RecordGlyphUsage(glyphId, scalar);
+                font.RecordGlyphUsageHoldingLock(glyphId, scalar);
             }
 
             PdfGlyphRun.AppendGlyphHex(sb, glyphId);

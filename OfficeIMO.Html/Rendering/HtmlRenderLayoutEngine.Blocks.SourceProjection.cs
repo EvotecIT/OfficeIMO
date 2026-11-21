@@ -224,10 +224,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 return source;
             }
             double remaining = projected.PagedPaintExtent - cursor;
-            ChargeLayoutOperations(projected.ForcedBreaks.Count, "constrained authored-boundary cursor");
-            bool hasForcedBoundary = TryGetNextForcedBreak(projected.ForcedBreaks, cursor, out HtmlRenderForcedBreak? forcedBreak, consumedBoundaries)
+            bool hasForcedBoundary = TryGetNextForcedBreak(projected.ForcedBreaks, cursor, out HtmlRenderForcedBreak? forcedBreak,
+                    out int inspectedBreaks, consumedBoundaries)
                 && (forcedBreak!.Offset < projected.PagedPaintExtent - 0.0001D
                     || forcedBreak!.IsAfter && !forcedBreak.Projected);
+            ChargeLayoutOperations(inspectedBreaks, "constrained authored-boundary cursor");
             if (remaining <= available + 0.0001D && !hasForcedBoundary) break;
             HtmlRenderFlowBlock paged = projected.ForPagination();
             bool movesOwnKeep = cursor <= 0.0001D && source.AvoidBreakInside

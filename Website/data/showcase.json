@@ -8013,7 +8013,7 @@
       "sourceRoot": "documents",
       "source": "PowerShell/PatchComplianceReport.docx",
       "destination": "pswriteoffice/patch-compliance-report.docx",
-      "generator": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/PatchComplianceReport.ps1 -OutputDirectory ./out",
+      "generator": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/PatchComplianceReport.ps1 -OutputDirectory ./out -ModuleVersion {moduleVersion}",
       "evidence": "DOCX created from PowerShell objects by PSWriteOffice."
     },
     {

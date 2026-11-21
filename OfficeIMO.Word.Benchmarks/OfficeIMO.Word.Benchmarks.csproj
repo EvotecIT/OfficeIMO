@@ -2,10 +2,21 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <!-- Windows PowerShell 5.1 hosts PSWriteOffice on .NET Framework; the comparisons listed below for net472
+         measure that runtime. -->
+    <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
 
     <LangVersion>Latest</LangVersion>
     <IsPackable>false</IsPackable>
-    <AcceptNPOIOSMFLicense>true</AcceptNPOIOSMFLicense>
+    <!-- NPOI's build target warns, without a warning code, unless AcceptNPOIOSMFLicense is true. The property only
+         silences that warning; the project does not accept NPOI's OSMF binary terms for anyone. NPOI itself is
+         Apache-2.0 and open in Build/benchmark-libraries.json. The warning does not fail the build. -->
+  </PropertyGroup>
+
+  <!-- Windows PowerShell 5.1 is a 64-bit process; an SDK-style .NET Framework exe would otherwise run as x86. -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net472'">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
@@ -14,12 +25,38 @@
     <PackageReference Include="NPOI" Version="2.8.1" />
     <PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.13" />
   </ItemGroup>
+  <!-- OneDocument ships net10.0 only, so its comparison lanes compile only for that target. -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <PackageReference Include="RecursiveAI.OneDocument.Documents" Version="1.0.0" />
+  </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Reader.Word\OfficeIMO.Reader.Word.csproj" />
     <ProjectReference Include="..\OfficeIMO.Word\OfficeIMO.Word.csproj" />
     <ProjectReference Include="..\OfficeIMO.Word.Html\OfficeIMO.Word.Html.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Word.Markdown\OfficeIMO.Word.Markdown.csproj" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Compile Remove="**/*.cs" />
+    <Compile Include="WordBenchmarkCorpus.cs" />
+    <Compile Include="WordCreateComparisonBenchmarks.cs" />
+    <Compile Include="WordEquivalentPackageParts.cs" />
+    <Compile Include="WordReadComparisonBenchmarks.cs" />
+    <Compile Include="WordReaderTextWorkload.cs" />
+    <Compile Include="WordReplaceComparisonBenchmarks.cs" />
+    <Compile Include="NetFramework/*.cs" />
+    <Reference Include="System.IO.Compression" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' != 'net472'">
+    <Compile Include="..\Build\Benchmarks\OfficeEvidenceBudget.cs" Link="OfficeEvidenceBudget.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\Build\Benchmarks\OfficeEvidenceBudget.cs" Link="OfficeEvidenceBudget.cs" />
-    <None Include="..\OfficeIMO.TestAssets\Images\EvotecLogo.png" Link="benchmark-logo.png" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Include="..\Benchmarks\BenchmarkLibrarySelection.cs" Link="Shared\BenchmarkLibrarySelection.cs" />
+    <Compile Include="..\Benchmarks\BenchmarkLibraryFilter.cs" Link="Shared\BenchmarkLibraryFilter.cs" />
+    <Compile Include="..\Benchmarks\BenchmarkOutputValidationLog.cs" Link="Shared\BenchmarkOutputValidationLog.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\OfficeIMO.TestAssets\Images\EvotecLogo.png" Link="benchmark-logo.png" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.Pdf.Tests\Pdf\ReferenceBaselines\native-word-report.docx" Link="native-word-report.docx" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <Import Project="..\Benchmarks\BenchmarkLibraryFilter.props" />
 </Project>

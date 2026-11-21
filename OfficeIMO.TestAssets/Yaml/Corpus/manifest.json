@@ -1,0 +1,379 @@
+{
+  "description": "Real-world YAML corpus for the OfficeIMO YAML engine. Files keep upstream bytes; derived files record their transformation.",
+  "retrieved": "2026-11-10",
+  "files": [
+    {
+      "path": "GitHubActions/actions-checkout-test.yml",
+      "category": "GitHubActions",
+      "repository": "https://github.com/actions/checkout",
+      "commit": "f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a",
+      "sourcePath": ".github/workflows/test.yml",
+      "sourceUrl": "https://github.com/actions/checkout/blob/f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a/.github/workflows/test.yml",
+      "license": "MIT",
+      "licenseFiles": [
+        "Licenses/actions-checkout.LICENSE.txt"
+      ],
+      "bytes": 9656,
+      "sha256": "cc1cbdd36bae909c4f30f529505c860365156c3a9606b179729549631fc7d593",
+      "features": [
+        "github-actions",
+        "on-key",
+        "expressions",
+        "matrix",
+        "comments"
+      ],
+      "why": "Real multi-job workflow. The top-level 'on:' key is a YAML 1.1 boolean in some loaders and must stay a string key."
+    },
+    {
+      "path": "Kubernetes/guestbook-all-in-one.yaml",
+      "category": "Kubernetes",
+      "repository": "https://github.com/kubernetes/examples",
+      "commit": "22934a040acbb0c0aa103023ccbd871507bf17f6",
+      "sourcePath": "web/guestbook/all-in-one/guestbook-all-in-one.yaml",
+      "sourceUrl": "https://github.com/kubernetes/examples/blob/22934a040acbb0c0aa103023ccbd871507bf17f6/web/guestbook/all-in-one/guestbook-all-in-one.yaml",
+      "license": "Apache-2.0",
+      "licenseFiles": [
+        "Licenses/kubernetes-examples.LICENSE.txt"
+      ],
+      "bytes": 3471,
+      "sha256": "97a02451c8f741b42b5786e22aee5f0d22024f2e1dfd7fbab036007d764ae4e8",
+      "features": [
+        "multi-document",
+        "kubernetes"
+      ],
+      "why": "Multi-document Kubernetes stream separated by '---'."
+    },
+    {
+      "path": "Helm/bitnami-nginx-values.yaml",
+      "category": "Helm",
+      "repository": "https://github.com/bitnami/charts",
+      "commit": "893617002038e004458bab28a14b126de43bc3e7",
+      "sourcePath": "bitnami/nginx/values.yaml",
+      "sourceUrl": "https://github.com/bitnami/charts/blob/893617002038e004458bab28a14b126de43bc3e7/bitnami/nginx/values.yaml",
+      "license": "Apache-2.0",
+      "licenseFiles": [
+        "Licenses/bitnami-charts.LICENSE.txt"
+      ],
+      "bytes": 50079,
+      "sha256": "6367d73a67ecfcd49bc0503c60907ca674a71ab0443f158e23cf31d28bd316f9",
+      "features": [
+        "helm",
+        "comments",
+        "empty-collections",
+        "long-lines"
+      ],
+      "why": "Comment-dense Helm values file; comment preservation and empty {} / [] values."
+    },
+    {
+      "path": "Compose/airflow-docker-compose.yaml",
+      "category": "Compose",
+      "repository": "https://github.com/apache/airflow",
+      "commit": "15adc8a492a6919f608995194474ac2d91284875",
+      "sourcePath": "airflow-core/docs/howto/docker-compose/docker-compose.yaml",
+      "sourceUrl": "https://github.com/apache/airflow/blob/15adc8a492a6919f608995194474ac2d91284875/airflow-core/docs/howto/docker-compose/docker-compose.yaml",
+      "license": "Apache-2.0",
+      "licenseFiles": [
+        "Licenses/apache-airflow.LICENSE.txt",
+        "Licenses/apache-airflow.NOTICE.txt"
+      ],
+      "bytes": 13073,
+      "sha256": "649dc6f2d89e0c7b1f62ed465f2346b47b23825f9250454cfe5c5e73d91ec91d",
+      "features": [
+        "docker-compose",
+        "anchors",
+        "aliases",
+        "merge-keys",
+        "block-scalars",
+        "mixed-quoting",
+        "comments"
+      ],
+      "why": "Compose file built on x- extension anchors, '<<' merge keys and aliases."
+    },
+    {
+      "path": "OpenApi/twilio-api-v2010.yaml",
+      "category": "OpenApi",
+      "repository": "https://github.com/twilio/twilio-oai",
+      "commit": "6891362428239e2b29339718ffb7bd9fb86ff9cb",
+      "sourcePath": "spec/yaml/twilio_api_v2010.yaml",
+      "sourceUrl": "https://github.com/twilio/twilio-oai/blob/6891362428239e2b29339718ffb7bd9fb86ff9cb/spec/yaml/twilio_api_v2010.yaml",
+      "license": "MIT",
+      "licenseFiles": [
+        "Licenses/twilio-twilio-oai.LICENSE.txt"
+      ],
+      "bytes": 1505623,
+      "sha256": "e74d26964a0de6dbf9c75f2b26dcfc76362faf65c99b132e463d994ac07c05be",
+      "features": [
+        "openapi",
+        "large",
+        "deep-nesting"
+      ],
+      "why": "Large real OpenAPI 3 document (about 1.5 MB) for parser throughput and tree size."
+    },
+    {
+      "path": "Ansible/security-main.yml",
+      "category": "Ansible",
+      "repository": "https://github.com/geerlingguy/ansible-for-devops",
+      "commit": "86e1bf80098239cd995d54217585e8d61117d2e7",
+      "sourcePath": "security/main.yml",
+      "sourceUrl": "https://github.com/geerlingguy/ansible-for-devops/blob/86e1bf80098239cd995d54217585e8d61117d2e7/security/main.yml",
+      "license": "MIT",
+      "licenseFiles": [
+        "Licenses/geerlingguy-ansible-for-devops.LICENSE.txt"
+      ],
+      "bytes": 4139,
+      "sha256": "1c886a6263312668a417c1354f77bf3faf19ab286ae0f59dc1d453c28e409535",
+      "features": [
+        "ansible",
+        "yaml-1.1-booleans",
+        "jinja"
+      ],
+      "why": "Playbook using YAML 1.1 'yes' booleans and Jinja '{{ }}' strings."
+    },
+    {
+      "path": "Ansible/drupal-playbook.yml",
+      "category": "Ansible",
+      "repository": "https://github.com/geerlingguy/ansible-for-devops",
+      "commit": "86e1bf80098239cd995d54217585e8d61117d2e7",
+      "sourcePath": "drupal/provisioning/playbook.yml",
+      "sourceUrl": "https://github.com/geerlingguy/ansible-for-devops/blob/86e1bf80098239cd995d54217585e8d61117d2e7/drupal/provisioning/playbook.yml",
+      "license": "MIT",
+      "licenseFiles": [
+        "Licenses/geerlingguy-ansible-for-devops.LICENSE.txt"
+      ],
+      "bytes": 4544,
+      "sha256": "d8d88ed59f31add30ff282bc2eab1955471ef6fdea47e655132cc9bd716aad86",
+      "features": [
+        "ansible",
+        "yaml-1.1-booleans",
+        "jinja"
+      ],
+      "why": "Second playbook with 'become: yes', handlers and quoted Jinja expressions."
+    },
+    {
+      "path": "CloudFormation/webapp.yaml",
+      "category": "CloudFormation",
+      "repository": "https://github.com/aws-cloudformation/aws-cloudformation-templates",
+      "commit": "a0f43bc6d20813052892546f445037cf84c75b54",
+      "sourcePath": "Solutions/WebApp/webapp.yaml",
+      "sourceUrl": "https://github.com/aws-cloudformation/aws-cloudformation-templates/blob/a0f43bc6d20813052892546f445037cf84c75b54/Solutions/WebApp/webapp.yaml",
+      "license": "Apache-2.0",
+      "licenseFiles": [
+        "Licenses/aws-cloudformation-aws-cloudformation-templates.LICENSE.txt",
+        "Licenses/aws-cloudformation-aws-cloudformation-templates.NOTICE.txt"
+      ],
+      "bytes": 27816,
+      "sha256": "a480e00c85455aa7ff822bd7a432c1ddaeca5d3689ee41823d148a3093cee4fd",
+      "features": [
+        "cloudformation",
+        "custom-tags",
+        "long-lines"
+      ],
+      "why": "CloudFormation template using local tags such as !Ref, !Sub, !GetAtt and !If."
+    },
+    {
+      "path": "AzurePipelines/aspnetcore-ci.yml",
+      "category": "AzurePipelines",
+      "repository": "https://github.com/dotnet/aspnetcore",
+      "commit": "51ed718de7780d67b949b431801a5faa1ee9a70f",
+      "sourcePath": ".azure/pipelines/ci.yml",
+      "sourceUrl": "https://github.com/dotnet/aspnetcore/blob/51ed718de7780d67b949b431801a5faa1ee9a70f/.azure/pipelines/ci.yml",
+      "license": "MIT",
+      "licenseFiles": [
+        "Licenses/dotnet-aspnetcore.LICENSE.txt"
+      ],
+      "bytes": 31520,
+      "sha256": "6a1861cce1247e2571c75569e47aef70100bd866d48855970c1cd47f65440a5b",
+      "features": [
+        "azure-pipelines",
+        "template-expressions",
+        "comments"
+      ],
+      "why": "Azure Pipelines definition with ${{ }} template expressions used as mapping keys."
+    },
+    {
+      "path": "FrontMatter/jekyll-front-matter.md",
+      "category": "FrontMatter",
+      "repository": "https://github.com/jekyll/jekyll",
+      "commit": "97c3bdc822df9d5bea4c269b29a28de5a5e29d70",
+      "sourcePath": "docs/_docs/front-matter.md",
+      "sourceUrl": "https://github.com/jekyll/jekyll/blob/97c3bdc822df9d5bea4c269b29a28de5a5e29d70/docs/_docs/front-matter.md",
+      "license": "MIT",
+      "licenseFiles": [
+        "Licenses/jekyll-jekyll.LICENSE.txt"
+      ],
+      "bytes": 6193,
+      "sha256": "acd7d8a890b5ae08ceda1e364c94d2938dcacde8083eadfc6dcc597fc5b1c05a",
+      "features": [
+        "markdown-front-matter",
+        "utf-8"
+      ],
+      "why": "Markdown page whose YAML front matter is the block between the leading '---' lines; the body is not YAML."
+    },
+    {
+      "path": "Edge/pyyaml-spec-05-01-utf8.yaml",
+      "category": "Edge",
+      "repository": "https://github.com/yaml/pyyaml",
+      "commit": "f5e4504a92f169f65350a1047dccb23bc97028be",
+      "sourcePath": "tests/legacy_tests/data/spec-05-01-utf8.data",
+      "sourceUrl": "https://github.com/yaml/pyyaml/blob/f5e4504a92f169f65350a1047dccb23bc97028be/tests/legacy_tests/data/spec-05-01-utf8.data",
+      "license": "MIT",
+      "licenseFiles": [
+        "Licenses/yaml-pyyaml.LICENSE.txt"
+      ],
+      "bytes": 19,
+      "sha256": "a436da30c675af63ccc5c76efa2d1fa704681de56d9ea743ec817626b4827ddd",
+      "features": [
+        "bom",
+        "utf-8",
+        "comment-only"
+      ],
+      "why": "UTF-8 byte order mark followed by a comment-only stream."
+    },
+    {
+      "path": "Edge/pyyaml-spec-05-01-utf16le.yaml",
+      "category": "Edge",
+      "repository": "https://github.com/yaml/pyyaml",
+      "commit": "f5e4504a92f169f65350a1047dccb23bc97028be",
+      "sourcePath": "tests/legacy_tests/data/spec-05-01-utf16le.data",
+      "sourceUrl": "https://github.com/yaml/pyyaml/blob/f5e4504a92f169f65350a1047dccb23bc97028be/tests/legacy_tests/data/spec-05-01-utf16le.data",
+      "license": "MIT",
+      "licenseFiles": [
+        "Licenses/yaml-pyyaml.LICENSE.txt"
+      ],
+      "bytes": 34,
+      "sha256": "c3db292812375bfc9f67e49675147448fe042ba6e12a7d93bc31a69a57302a64",
+      "features": [
+        "bom",
+        "utf-16le",
+        "comment-only"
+      ],
+      "why": "UTF-16LE stream with byte order mark; YAML processors must detect it."
+    },
+    {
+      "path": "Edge/pyyaml-construct-bool.yaml",
+      "category": "Edge",
+      "repository": "https://github.com/yaml/pyyaml",
+      "commit": "f5e4504a92f169f65350a1047dccb23bc97028be",
+      "sourcePath": "tests/legacy_tests/data/construct-bool.data",
+      "sourceUrl": "https://github.com/yaml/pyyaml/blob/f5e4504a92f169f65350a1047dccb23bc97028be/tests/legacy_tests/data/construct-bool.data",
+      "license": "MIT",
+      "licenseFiles": [
+        "Licenses/yaml-pyyaml.LICENSE.txt"
+      ],
+      "bytes": 96,
+      "sha256": "09f42e9d46130d4b3bc97dab35b97457acdfe296e1d4b7810ad94c0c8b7db443",
+      "features": [
+        "yaml-1.1-booleans",
+        "casing-variants"
+      ],
+      "why": "yes / NO / True / on and single-letter y / n keys under YAML 1.1 and 1.2 rules."
+    },
+    {
+      "path": "Edge/pyyaml-construct-null.yaml",
+      "category": "Edge",
+      "repository": "https://github.com/yaml/pyyaml",
+      "commit": "f5e4504a92f169f65350a1047dccb23bc97028be",
+      "sourcePath": "tests/legacy_tests/data/construct-null.data",
+      "sourceUrl": "https://github.com/yaml/pyyaml/blob/f5e4504a92f169f65350a1047dccb23bc97028be/tests/legacy_tests/data/construct-null.data",
+      "license": "MIT",
+      "licenseFiles": [
+        "Licenses/yaml-pyyaml.LICENSE.txt"
+      ],
+      "bytes": 241,
+      "sha256": "bfd5c46b39e279a804e6e0c2269fa103dc8b78f1b3769bc9f80a89ddf8d543bf",
+      "features": [
+        "multi-document",
+        "null-forms",
+        "casing-variants",
+        "comments"
+      ],
+      "why": "Null forms ~, null, Null and empty values, including a null key and empty documents."
+    },
+    {
+      "path": "Edge/schema-core.yaml",
+      "category": "Edge",
+      "repository": "https://github.com/perlpunk/yaml-test-schema",
+      "commit": "0276b888c6cdaf8e634a5ee79ffd17737d41df2b",
+      "sourcePath": "data/schema-core.yaml",
+      "sourceUrl": "https://github.com/perlpunk/yaml-test-schema/blob/0276b888c6cdaf8e634a5ee79ffd17737d41df2b/data/schema-core.yaml",
+      "license": "MIT",
+      "licenseFiles": [
+        "Licenses/perlpunk-yaml-test-schema.LICENSE.txt"
+      ],
+      "bytes": 9929,
+      "sha256": "7e121a93c43baa32738fd43713e6f9f09c45d3cb7dbdc3363c912fa3e79515d0",
+      "features": [
+        "casing-variants",
+        "mixed-quoting",
+        "core-schema"
+      ],
+      "why": "YAML 1.2 core schema resolution table: TRUE/True/true and invalid casings, quoted in both styles."
+    },
+    {
+      "path": "Edge/schema-yaml11.yaml",
+      "category": "Edge",
+      "repository": "https://github.com/perlpunk/yaml-test-schema",
+      "commit": "0276b888c6cdaf8e634a5ee79ffd17737d41df2b",
+      "sourcePath": "data/schema-yaml11.yaml",
+      "sourceUrl": "https://github.com/perlpunk/yaml-test-schema/blob/0276b888c6cdaf8e634a5ee79ffd17737d41df2b/data/schema-yaml11.yaml",
+      "license": "MIT",
+      "licenseFiles": [
+        "Licenses/perlpunk-yaml-test-schema.LICENSE.txt"
+      ],
+      "bytes": 10591,
+      "sha256": "80de2d726804076b5482888830077f5d6787fedc714615f55ba6d0f0de2ad866",
+      "features": [
+        "casing-variants",
+        "mixed-quoting",
+        "yaml-1.1-booleans"
+      ],
+      "why": "YAML 1.1 resolution table: yes/No/ON/Off, sexagesimal and other 1.1-only forms."
+    },
+    {
+      "path": "Edge/actions-checkout-test.crlf.yml",
+      "category": "Edge",
+      "derivedFrom": "GitHubActions/actions-checkout-test.yml",
+      "transformation": "Replace every LF with CRLF.",
+      "repository": "https://github.com/actions/checkout",
+      "commit": "f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a",
+      "sourcePath": ".github/workflows/test.yml",
+      "sourceUrl": "https://github.com/actions/checkout/blob/f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a/.github/workflows/test.yml",
+      "license": "MIT",
+      "licenseFiles": [
+        "Licenses/actions-checkout.LICENSE.txt"
+      ],
+      "bytes": 10013,
+      "sha256": "61ac558bf6a220b3bd5df7997a568e46e1d1bb2c7513b0852af5a1b1c216f0c7",
+      "features": [
+        "crlf",
+        "github-actions",
+        "on-key"
+      ],
+      "why": "CRLF line endings on a real workflow; lossless engines must keep them byte for byte."
+    },
+    {
+      "path": "Edge/airflow-docker-compose.bom-crlf.yaml",
+      "category": "Edge",
+      "derivedFrom": "Compose/airflow-docker-compose.yaml",
+      "transformation": "Prefix a UTF-8 byte order mark and replace every LF with CRLF.",
+      "repository": "https://github.com/apache/airflow",
+      "commit": "15adc8a492a6919f608995194474ac2d91284875",
+      "sourcePath": "airflow-core/docs/howto/docker-compose/docker-compose.yaml",
+      "sourceUrl": "https://github.com/apache/airflow/blob/15adc8a492a6919f608995194474ac2d91284875/airflow-core/docs/howto/docker-compose/docker-compose.yaml",
+      "license": "Apache-2.0",
+      "licenseFiles": [
+        "Licenses/apache-airflow.LICENSE.txt",
+        "Licenses/apache-airflow.NOTICE.txt"
+      ],
+      "bytes": 13413,
+      "sha256": "81f5bacbbd101c76f5261440c9c2d506a6a26f1eb8c42496f5133109eccb3cfb",
+      "features": [
+        "bom",
+        "crlf",
+        "anchors",
+        "merge-keys"
+      ],
+      "why": "UTF-8 BOM and CRLF together on an anchor-heavy compose file."
+    }
+  ]
+}

@@ -333,7 +333,7 @@ public partial class PdfImageExtractorTests {
     }
 
     [Fact]
-    public void ExtractImages_NormalizesPackedIndexedRgbImageStreamsToRgbPngFiles() {
+    public void ExtractImages_NormalizesPackedIndexedRgbImageStreamsToPalettePngFiles() {
         byte[] source = BuildUnfilteredIndexedRgbImagePdf();
 
         var images = PdfImageExtractor.ExtractImages(source);
@@ -348,15 +348,11 @@ public partial class PdfImageExtractorTests {
         Assert.Equal("png", image.FileExtension);
         Assert.Equal("image/png", image.MimeType);
         Assert.True(image.IsImageFile);
-        AssertPngSignature(image.Bytes);
-        Assert.Equal(2, ReadPngColorType(image.Bytes));
-        Assert.Equal(new byte[] { 0, 255, 0, 0, 0, 255, 0 }, DecodeStoredPngIdat(image.Bytes));
-        Assert.True(OfficeImageReader.TryIdentify(image.Bytes, null, out var info));
-        Assert.Equal(OfficeImageFormat.Png, info.Format);
+        AssertPalettePngPixels(image.Bytes, OfficeColor.FromRgb(255, 0, 0), OfficeColor.FromRgb(0, 255, 0));
     }
 
     [Fact]
-    public void ExtractImages_NormalizesSupportedFilterChainIndexedRgbImageStreamsToRgbPngFiles() {
+    public void ExtractImages_NormalizesSupportedFilterChainIndexedRgbImageStreamsToPalettePngFiles() {
         byte[] source = BuildAsciiHexFlateIndexedRgbImagePdf();
 
         var images = PdfImageExtractor.ExtractImages(source);
@@ -367,11 +363,7 @@ public partial class PdfImageExtractorTests {
         Assert.Equal("png", image.FileExtension);
         Assert.Equal("image/png", image.MimeType);
         Assert.True(image.IsImageFile);
-        AssertPngSignature(image.Bytes);
-        Assert.Equal(2, ReadPngColorType(image.Bytes));
-        Assert.Equal(new byte[] { 0, 255, 0, 0, 0, 255, 0 }, DecodeStoredPngIdat(image.Bytes));
-        Assert.True(OfficeImageReader.TryIdentify(image.Bytes, null, out var info));
-        Assert.Equal(OfficeImageFormat.Png, info.Format);
+        AssertPalettePngPixels(image.Bytes, OfficeColor.FromRgb(255, 0, 0), OfficeColor.FromRgb(0, 255, 0));
     }
 
     [Fact]
@@ -449,7 +441,7 @@ public partial class PdfImageExtractorTests {
     }
 
     [Fact]
-    public void ExtractImages_AppliesImageDecodeArrayWhenNormalizingIndexedStreamsToRgbPngFiles() {
+    public void ExtractImages_AppliesImageDecodeArrayWhenNormalizingIndexedStreamsToPalettePngFiles() {
         byte[] source = BuildUnfilteredIndexedRgbInvertedDecodeImagePdf();
 
         var images = PdfImageExtractor.ExtractImages(source);
@@ -460,11 +452,7 @@ public partial class PdfImageExtractorTests {
         Assert.Equal("png", image.FileExtension);
         Assert.Equal("image/png", image.MimeType);
         Assert.True(image.IsImageFile);
-        AssertPngSignature(image.Bytes);
-        Assert.Equal(2, ReadPngColorType(image.Bytes));
-        Assert.Equal(new byte[] { 0, 0, 255, 0, 255, 0, 0 }, DecodeStoredPngIdat(image.Bytes));
-        Assert.True(OfficeImageReader.TryIdentify(image.Bytes, null, out var info));
-        Assert.Equal(OfficeImageFormat.Png, info.Format);
+        AssertPalettePngPixels(image.Bytes, OfficeColor.FromRgb(0, 255, 0), OfficeColor.FromRgb(255, 0, 0));
     }
 
     [Fact]
@@ -837,6 +825,16 @@ public partial class PdfImageExtractorTests {
         Assert.Equal(80, bytes[1]);
         Assert.Equal(78, bytes[2]);
         Assert.Equal(71, bytes[3]);
+    }
+
+    // Indexed sources stay palette PNGs at their source depth, so a bilevel scan is not expanded to 24-bit RGB.
+    private static void AssertPalettePngPixels(byte[] png, params OfficeColor[] expectedRow) {
+        AssertPngSignature(png);
+        Assert.Equal(3, ReadPngColorType(png));
+        Assert.Equal(1, png[24]);
+        Assert.True(OfficePngReader.TryDecode(png, out OfficeRasterImage? decoded));
+        Assert.NotNull(decoded);
+        for (int x = 0; x < expectedRow.Length; x++) Assert.Equal(expectedRow[x], decoded!.GetPixel(x, 0));
     }
 
     private static int ReadPngColorType(byte[] bytes) {

@@ -27,6 +27,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 public sealed class GetOfficeExcelDocumentPropertyCommand : PSCmdlet {
     /// <summary>Workbook paths resolved with filesystem wildcard support.</summary>
     [Parameter(ParameterSetName = "Path", Mandatory = true, Position = 0, ValueFromPipeline = true)]
+    [Alias("FilePath")]
     public string[] Path { get; set; } = Array.Empty<string>();
 
     /// <summary>Property name filter (wildcards supported).</summary>

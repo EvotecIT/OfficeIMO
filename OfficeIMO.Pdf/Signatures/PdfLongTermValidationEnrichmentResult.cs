@@ -52,6 +52,13 @@ public sealed class PdfLongTermValidationEnrichmentResult {
     /// <summary>New DSS CRL stream object numbers.</summary>
     public IReadOnlyList<int> CrlObjectNumbers { get; }
 
+    /// <summary>
+    /// Problems reported while fetching revocation data, such as an unreachable responder or a refused address.
+    /// Empty when the evidence was supplied by the caller.
+    /// </summary>
+    public IReadOnlyList<OfficeIMO.Security.SecurityFinding> FetchFindings { get; internal set; } =
+        Array.Empty<OfficeIMO.Security.SecurityFinding>();
+
     /// <summary>True when the appended artifact passed every required structural preservation proof.</summary>
     public bool IsVerifiedAppendOnlyEnrichment =>
         MutationReport.IsPreservedAppendOnlyMutation &&

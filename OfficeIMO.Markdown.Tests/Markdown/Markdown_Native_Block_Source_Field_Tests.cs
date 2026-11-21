@@ -1545,7 +1545,7 @@ summary: |
         Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 3), frontMatter.OpeningFenceSourceSpan);
         Assert.Equal(new MarkdownSourceSpan(2, 1, 7, 13), frontMatter.BodySourceSpan);
         Assert.Equal(new MarkdownSourceSpan(8, 1, 8, 3), frontMatter.ClosingFenceSourceSpan);
-        Assert.Contains("summary: |", frontMatter.RawYaml!, StringComparison.Ordinal);
+        Assert.Contains("summary: |", frontMatter.RawText!, StringComparison.Ordinal);
 
         Assert.Collection(frontMatter.Entries,
             entry => {
@@ -1566,7 +1566,7 @@ summary: |
             entry => {
                 Assert.Equal("summary", entry.Key);
                 Assert.Equal(new MarkdownSourceSpan(5, 1, 5, 7), entry.KeySourceSpan);
-                Assert.Equal(new MarkdownSourceSpan(6, 3, 7, 13), entry.ValueSourceSpan);
+                Assert.Equal(new MarkdownSourceSpan(5, 10, 7, 13), entry.ValueSourceSpan);
             });
 
         var keys = native.EnumerateBlockSourceFields("frontMatterKey").ToArray();
@@ -1580,7 +1580,7 @@ summary: |
         Assert.Equal("true", values[1].Value);
         Assert.Equal("a, b", values[2].Value);
         Assert.Equal("First line\nSecond line", values[3].Value!.Replace("\r\n", "\n"));
-        Assert.Equal(new MarkdownSourceSpan(6, 3, 7, 13), values[3].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(5, 10, 7, 13), values[3].SourceSpan);
 
         var body = Assert.Single(native.EnumerateBlockSourceFields("frontMatterBody"));
         Assert.Contains("tags: [a, b]", body.Value!, StringComparison.Ordinal);
@@ -1610,7 +1610,7 @@ summary: |
         Assert.Equal("closingFence", closingFound.Name);
 
         var snapshot = native.ToSnapshot().Blocks[0];
-        Assert.Equal(frontMatter.RawYaml, snapshot.Fields["rawYaml"]);
+        Assert.Equal(frontMatter.RawText, snapshot.Fields["rawText"]);
         Assert.Equal(1, snapshot.FieldSourceSpans["openingFence"]!.StartLine);
         Assert.Equal(2, snapshot.FieldSourceSpans["frontMatterBody"]!.StartLine);
         Assert.Equal(8, snapshot.FieldSourceSpans["closingFence"]!.StartLine);
@@ -1624,8 +1624,8 @@ summary: |
             field.Name == "frontMatterValue"
             && field.Value!.Replace("\r\n", "\n") == "First line\nSecond line"
             && field.Index == 3
-            && field.SourceSpan.StartLine == 6
-            && field.SourceSpan.StartColumn == 3);
+            && field.SourceSpan.StartLine == 5
+            && field.SourceSpan.StartColumn == 10);
         Assert.Contains(snapshot.SourceFields, field =>
             field.Name == "openingFence"
             && field.Value == "---"

@@ -1,0 +1,3 @@
+[
+  {"title":"Convert RTF to Word, PDF, Markdown and HTML","url":"/docs/rtf/convert/","summary":"Convert RTF files to DOCX, PDF, Markdown or HTML, and convert Word, Markdown or PDF back to RTF, with a report of anything that was flattened or omitted.","kind":"guide","targets":["OfficeIMO.Html.RtfHtmlExportOptions"]}
+]

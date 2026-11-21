@@ -100,7 +100,7 @@ public partial class PdfType3UncoloredPatternTests {
             pageColorSpaceResources: string.Empty,
             patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>",
             patternContent: "1 0 0 rg 0 0 5 5 re f",
-            glyphContent: "500 0 d0 0 0 500 700 re W n 0 0 m 0 700 500 700 500 0 c 500 0 l 0 0 l h W n 0 0 500 700 re f");
+            glyphContent: "500 0 d0 0 0 400 700 re W n 0 0 m 0 700 500 700 500 0 c 500 0 l 0 0 l h W n 0 0 500 700 re f");
 
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
 

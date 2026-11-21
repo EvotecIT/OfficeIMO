@@ -32,7 +32,7 @@ public sealed class PdfThemePageAndListDefaultsTests {
             var letters = independent.GetPage(1).Letters;
             var marker = Assert.Single(letters, letter => letter.Value == "•");
             var text = Assert.Single(letters, letter => letter.Value == "R");
-            return text.GlyphRectangle.Left - marker.GlyphRectangle.Right;
+            return text.BoundingBox.Left - marker.BoundingBox.Right;
         }
         double themed = Gap(null), explicitGap = Gap(new PdfListStyle { MarkerGap = OfficeLength.Points(1) });
         Assert.True(themed >= OfficeTheme.Default.TypeScale.Body.ToPoints() * .45D, "Bullet gap was " + themed + " points.");

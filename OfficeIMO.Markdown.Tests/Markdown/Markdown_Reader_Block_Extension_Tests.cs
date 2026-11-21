@@ -28,6 +28,33 @@ Paragraph line
         Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 14), nestedParagraph.SourceSpan);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Block_Parser_Extension_That_Rewrites_A_Line_And_Declines_Hands_The_New_Line_To_Later_Parsers(bool captureSyntaxTree) {
+        var options = new MarkdownLoadOptions { CaptureSyntaxTree = captureSyntaxTree };
+        options.BlockParserExtensions.Add(new MarkdownBlockParserExtension(
+            "rewrite-heading-shorthand",
+            MarkdownBlockParserPlacement.AfterFrontMatter,
+            new HeadingShorthandRewriter()));
+
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse("@@ Title\n\nBody", options);
+
+        var heading = Assert.IsType<HeadingBlock>(document.Blocks[0]);
+        Assert.Equal(1, heading.Level);
+        Assert.IsType<ParagraphBlock>(document.Blocks[1]);
+    }
+
+    private sealed class HeadingShorthandRewriter : IMarkdownBlockParser {
+        public bool TryParse(string[] lines, ref int i, MarkdownLoadOptions options, OfficeIMO.Markdown.MarkdownDocument doc, MarkdownReaderState state) {
+            if (lines[i].StartsWith("@@ ", StringComparison.Ordinal)) {
+                lines[i] = "# " + lines[i].Substring(3);
+            }
+
+            return false;
+        }
+    }
+
     [Fact]
     public void ParseWithSyntaxTree_Captures_Custom_Block_Parser_Ast_And_SourceSpans() {
         var markdown = """

@@ -13,7 +13,7 @@ public sealed class OneNoteVisualPdfLifecycleTests {
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
         using var stream = new MemoryStream();
-        var options = new OneNoteVisualPdfExportOptions { RasterScale = 0D };
+        var options = new OneNoteVisualPdfExportOptions { PageRendering = new OneNotePageRenderingOptions { MaxImageBytes = 0 } };
 
         foreach (MethodInfo method in typeof(OneNoteVisualPdfExtensions).GetMethods(BindingFlags.Public | BindingFlags.Static)
             .Where(method => method.GetParameters()[0].ParameterType == source.GetType())) {
@@ -42,7 +42,7 @@ public sealed class OneNoteVisualPdfLifecycleTests {
     public async Task VisualSavesRejectInvalidRenderingSettingsAndRetainDestination(bool notebookSource) {
         var section = OneNoteSection.Create();
         var notebook = new OneNoteNotebook();
-        var options = new OneNoteVisualPdfExportOptions { RasterScale = 0D };
+        var options = new OneNoteVisualPdfExportOptions { PageRendering = new OneNotePageRenderingOptions { MaxImageBytes = 0 } };
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pdf");
         using var stream = new MemoryStream();
         Assert.Throws<ArgumentOutOfRangeException>(() => notebookSource
@@ -67,7 +67,7 @@ public sealed class OneNoteVisualPdfLifecycleTests {
         section.Pages.Add(new OneNotePage { Title = "A", PageSize = OneNotePageSize.IndexCard });
         var notebook = new OneNoteNotebook();
         notebook.Sections.Add(section);
-        var options = new OneNoteVisualPdfExportOptions { RasterScale = 0.1D };
+        var options = new OneNoteVisualPdfExportOptions();
         using PdfDocument converted = notebookSource ? notebook.ToVisualPdf(options) : section.ToVisualPdf(options);
         byte[] bytes = converted.ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 

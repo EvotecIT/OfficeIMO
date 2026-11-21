@@ -38,17 +38,35 @@ public class PdfSplitBenchmarks {
         Validate(nameof(OfficeIMO), OfficeIMO());
         Validate(nameof(IText), IText());
         Validate(nameof(PdfSharp), PdfSharp());
+#if NET10_0_OR_GREATER
+        Validate(nameof(OnePdf), OnePdf());
+#endif
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public byte[][] OfficeIMO() => PdfManipulationEngines.SplitWithOfficeImo(_source, _pagesPerDocument);
 
     [Benchmark]
+    [BenchmarkCategory("library:iText", "case:Default")]
     public byte[][] IText() => PdfManipulationEngines.SplitWithIText(_source, _pagesPerDocument);
 
     [Benchmark]
+    [BenchmarkCategory("library:PDFsharp", "case:Default")]
     public byte[][] PdfSharp() => PdfManipulationEngines.SplitWithPdfSharp(_source, _pagesPerDocument);
 
+#if NET10_0_OR_GREATER
+    [Benchmark]
+    [BenchmarkCategory("library:OnePDF", "case:Default")]
+    public byte[][] OnePdf() => PdfManipulationEngines.SplitWithOnePdf(_source, _pagesPerDocument);
+#endif
+
+    // Reopens every part with PdfPig: part count, page count per part, and each page's title, narrative and table
+    // rows in source order.
     private void Validate(string engine, byte[][] outputs) =>
-        PdfManipulationValidation.Validate(outputs, _expectedPages, engine + " splitting " + Producer);
+        PdfBenchmarkValidation.Record(
+            PdfBenchmarkValidation.LibraryId(engine),
+            "Default",
+            $"Density={Density}; Producer={Producer}; Scale={Scale}; Workflow={Workflow}; {outputs.Length} parts reopened with PdfPig, page counts and page content in order",
+            () => PdfManipulationValidation.Validate(outputs, _expectedPages, engine + " splitting " + Producer));
 }

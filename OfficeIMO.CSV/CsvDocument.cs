@@ -19,6 +19,8 @@ public sealed partial class CsvDocument : IDisposable
     private CsvStreamingSource? _streamingSource;
     private char _delimiter;
     private string? _delimiterText;
+    // Set when the document was read with quotes as data, so default saves keep that dialect.
+    private CsvEscapeMode? _unquotedEscapeMode;
     private CultureInfo _culture;
     private Encoding _encoding;
     private CsvColumnCountMismatchPolicy _columnCountMismatchPolicy;
@@ -223,7 +225,7 @@ public sealed partial class CsvDocument : IDisposable
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentNullException.ThrowIfNull(reader);
 
-        options ??= new CsvSaveOptions();
+        options ??= CsvProfiles.CreateDefaultSaveOptions(path);
         cancellationToken.ThrowIfCancellationRequested();
         WritePath(path, options, writer => WriteDataReaderCore(writer, reader, options, cancellationToken));
     }
@@ -289,7 +291,7 @@ public sealed partial class CsvDocument : IDisposable
 
         ArgumentNullException.ThrowIfNull(items);
 
-        options ??= new CsvSaveOptions();
+        options ??= CsvProfiles.CreateDefaultSaveOptions(path);
         WritePath(path, options, writer => WriteObjects(writer, items, options));
     }
 
@@ -373,6 +375,7 @@ public sealed partial class CsvDocument : IDisposable
     {
         _delimiter = delimiter;
         _delimiterText = null;
+        _unquotedEscapeMode = null;
         return this;
     }
 
@@ -382,6 +385,7 @@ public sealed partial class CsvDocument : IDisposable
         ArgumentException.ThrowIfNullOrEmpty(delimiter);
         _delimiter = delimiter[0];
         _delimiterText = delimiter;
+        _unquotedEscapeMode = null;
         return this;
     }
 

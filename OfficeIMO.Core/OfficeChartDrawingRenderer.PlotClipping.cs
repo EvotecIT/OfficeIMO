@@ -95,21 +95,22 @@ public static partial class OfficeChartDrawingRenderer {
 
     private static void AddScatterPlotLine(OfficeDrawing drawing, System.Collections.Generic.IReadOnlyList<OfficePoint> points,
         OfficeColor color, double strokeWidth, OfficeStrokeDashStyle dashStyle, bool clipPlot,
-        ValueRange xRange, ValueRange yRange, ChartPlotBounds bounds, OfficeStrokeLineJoin? join = null) {
+        ValueRange xRange, ValueRange yRange, ChartPlotBounds bounds, OfficeStrokeLineJoin? join = null,
+        OfficeStrokeLineCap? cap = null) {
         if (join.HasValue) {
             AddJoinedSeriesOutline(drawing, points, color, strokeWidth, dashStyle, join.Value,
                 plotBounds: clipPlot ? bounds : null, valueRange: clipPlot ? yRange : null,
-                xRange: clipPlot ? xRange : null);
+                xRange: clipPlot ? xRange : null, cap: cap);
             return;
         }
         if (!clipPlot) {
-            AddPointLine(drawing, points, color, strokeWidth, dashStyle);
+            AddPointLine(drawing, points, color, strokeWidth, dashStyle, cap);
             return;
         }
         for (int index = 1; index < points.Count; index++) {
             if (!TryClipScatterSegment(points[index - 1], points[index], xRange, yRange, bounds,
                     out OfficePoint start, out OfficePoint end)) continue;
-            AddPointLine(drawing, new[] { start, end }, color, strokeWidth, dashStyle);
+            AddPointLine(drawing, new[] { start, end }, color, strokeWidth, dashStyle, cap);
         }
     }
 

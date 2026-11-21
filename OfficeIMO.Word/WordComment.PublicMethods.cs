@@ -43,6 +43,18 @@ namespace OfficeIMO.Word {
             return new WordComment(document, cmt, cmtEx);
         }
 
+        internal static WordComment Create(WordDocument document, string author, string initials, Action<WordParagraph> content) {
+            WordComment comment = Create(document, author, initials, new[] { new Paragraph() });
+            Paragraph body = comment._comment.Elements<Paragraph>().First();
+            try {
+                content(new WordParagraph(document, body));
+            } catch {
+                comment.Remove();
+                throw;
+            }
+            return new WordComment(document, comment._comment, comment._commentEx);
+        }
+
         internal static WordComment Create(WordDocument document, string author, string initials, IReadOnlyList<Paragraph> paragraphs, WordComment? parent = null) {
             ArgumentNullException.ThrowIfNull(paragraphs);
 

@@ -88,6 +88,9 @@ namespace OfficeIMO.Excel {
                         $"Workbook input contains {snapshot.Length} bytes, exceeding the configured limit of {effectiveOptions.MaxInputBytes} bytes.");
                 }
 
+                using (Stream directory = snapshot.CreateView(bufferSize: 1)) {
+                    ExcelDocumentLoadRouting.ValidateZipPackage(directory, effectiveOptions.CancellationToken);
+                }
                 partBufferReader = OpenXmlPackagePartBufferReader.TryOpen(snapshot.CreateView(bufferSize: 1));
                 ValidatePackageBootstrapMetadata(partBufferReader, effectiveOptions);
                 documentStream = snapshot.CreateView();
@@ -309,6 +312,15 @@ namespace OfficeIMO.Excel {
             }
 
             return CreateSheetReader(sheet.Name!, wsPart!);
+        }
+
+        /// <summary>
+        /// Gets a reader for a worksheet part the caller already resolved from the workbook, without looking the
+        /// sheet up by name in the workbook part again.
+        /// </summary>
+        internal ExcelSheetReader GetSheet(string name, WorksheetPart worksheetPart) {
+            ArgumentNullException.ThrowIfNull(worksheetPart);
+            return CreateSheetReader(name, worksheetPart);
         }
 
         private bool TryGetWorksheetPart(Sheet sheet, out WorksheetPart? worksheetPart) {
@@ -680,6 +692,7 @@ namespace OfficeIMO.Excel {
                 throw ExcelReadLimitFailure.Create(nameof(ExcelReaderOptions.MaxInputBytes), effectiveOptions.MaxInputBytes, $"Workbook input contains {bytes.LongLength} bytes, exceeding the configured limit of {effectiveOptions.MaxInputBytes} bytes.");
             }
 
+            ExcelDocumentLoadRouting.ValidateZipPackage(bytes);
             MemoryStream? packageStream = null;
             Package? package = null;
             SpreadsheetDocument? document = null;

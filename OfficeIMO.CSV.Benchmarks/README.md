@@ -38,6 +38,28 @@ keeps this work consistent with the other CSV comparisons.
 dotnet run -c Release -f net10.0 --project ./OfficeIMO.CSV.Benchmarks -- --filter "*CsvQuotedFieldPositionBenchmarks*" --inProcess --warmupCount 12 --iterationCount 12 --invocationCount 16 --unrollFactor 1 --outliers DontRemove
 ```
 
+## PackageAssets shapes
+
+`PackageAssetsCsvBenchmarks` reads the 50,000-line NCsvPerf PackageAssets input
+that Sep publishes results for. The source file is pinned by commit and SHA-256
+and expanded in memory exactly like Sep's line cache: no header, 25 columns,
+CRLF line endings. The `Plain` shape is the original rows; `Quotes` wraps every
+column except 0, 1 and 4 in quotes. OfficeIMO, Sep, Sylvan and CsvHelper 33.1.0
+read the same UTF-8 bytes from a memory stream and return an owned, unescaped
+string for every field. Setup and every timed call compare row and cell counts,
+decoded characters and an ordered checksum with values computed from the
+source rows.
+
+`PackageAssetsSpacesQuotesCsvBenchmarks` adds one space outside and inside each
+quote and reads with whitespace outside quotes trimmed, so quoted values keep
+their inner spaces. Sylvan has no trimming option and is not part of that lane.
+The CsvHelper 34 versions of these lanes are in the
+[current comparisons](../OfficeIMO.CSV.Benchmarks.Modern/README.md#packageassets-shapes).
+
+```sh
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.CSV.Benchmarks -- --filter "*PackageAssets*" --inProcess --warmupCount 6 --iterationCount 12 --invocationCount 8 --unrollFactor 1 --outliers DontRemove
+```
+
 ## Typed CSV comparisons
 
 `CsvTypedSequentialBenchmarks` compares complete typed objects from OfficeIMO,
@@ -65,7 +87,7 @@ cache after setup, so this lane does not measure cold-disk throughput.
 Run the local evidence lane with:
 
 ```powershell
-./Build/Run-LibraryComparisonBenchmarks.ps1 -Workload csvasyncread -RunMode quick -Framework net10.0 -OutputRoot ./Ignore/Benchmarks/AsyncCsv
+./Build/Run-LibraryComparisonBenchmarks.ps1 -Workload csvasyncread -Profile diagnostic -Framework net10.0 -OutputRoot ./Ignore/Benchmarks/AsyncCsv
 ```
 
 Use `-PlanOnly` to inspect the 16-case matrix without executing it. The lane
@@ -73,7 +95,7 @@ does not update the website evidence catalog or generated comparison tables.
 Raw reports stay in the captured artifact folder. The derived normalized JSON
 is written beside that folder so re-importing the raw reports can still verify
 the complete captured file set and hashes.
-`-RunMode full` uses six warmup and twelve measured iterations per case and
+`-Profile full` uses six warmup and twelve measured iterations per case and
 retains outliers. Setup checks the worker's affinity against the runner's
 declaration and records its actual affinity and priority in the log. Repeat
 the complete matrix on each discovered processor domain before interpreting
@@ -176,8 +198,12 @@ dotnet run -c Release -f net10.0 --project ./OfficeIMO.CSV.Benchmarks -- --filte
 
 On Windows, add `--affinityMasks` with masks derived from the current machine's
 cache topology. Keep each domain separate and retain outliers when background
-work can interrupt a run. The [2026-09-07 measurement](../Docs/benchmarks/officeimo.excel-csv-text-2026-09-07.md)
+work can interrupt a run. The 2026-09-07 measurement
 records the long-note improvement and the limits of short-row timing on a busy PC.
+
+## Write sources, shapes and sinks
+
+`CsvWriteComparisonBenchmarks` writes the same data from typed objects, a `DataTable` and an `IDataReader`, to a UTF-8 stream and to a `TextWriter`, for quoting-heavy text, numbers, dates and a 31-column shape. It compares OfficeIMO with CsvHelper 33, Sep, Sylvan's `CsvDataWriter` and, for streams, ExcelReader.NET. Each library is driven as its users drive it: object mapping where it has one, typed field writes otherwise, the DataTable through its data reader. All lanes use the same newline (`Environment.NewLine`, which Sep always writes), the same explicit date format and invariant numbers; setup fails unless every lane writes output byte-identical to OfficeIMO's data-reader lane, which is also checked value by value against the source. CsvHelper 33 gets a `ShouldQuote` that keeps its default quoting of any CR or LF, which it drops once `NewLine` is set. Sep's object lanes need .NET 9 or later and ExcelReader.NET's lanes need .NET 10. The CsvHelper 34 lanes are in `OfficeIMO.CSV.Benchmarks.Modern`. Run them with `./Build/Benchmarks/Run-ExcelCsvComparison.ps1 -Lane CsvWrite,CsvWriteModern`.
 
 ## Document saves and compression
 
@@ -233,29 +259,56 @@ dotnet run -c Release -f net10.0 --project ./OfficeIMO.CSV.Benchmarks -- --filte
 To run only the larger mixed-field file workload, use
 `--filter "*CsvFileWriteBenchmarks.*MixedJson25K*"` with the same command.
 
-The [2026-09-08 measurement](../Docs/benchmarks/officeimo.excel-csv-buffering-2026-09-08.md)
+The 2026-09-08 measurement
 records the file workloads, repeated comparisons, and reader allocation analysis.
 
-## Local workstation benchmark snapshot
+## Published comparison results
 
-This single-workstation table records a focused local run. It is not the current
-cross-platform product ranking.
-Lower is faster within a row only; the rows use different contracts and cannot
-be combined into one library ranking. Treat differences below 5% as ties. The
-run's settings and source revision are recorded in the dated benchmark evidence;
-each method validates its input or output contract before timing.
-
-Use the hash-pinned library-comparison suite and website matrix below for
-current evidence. They keep CSV, XLSX, and XLSB workloads separate and expose
-Windows, Linux, and macOS results independently.
+This block shows the published runs of the CSV library comparisons for the
+platform and framework named in each entry, from the
+[benchmark evidence catalog](../Website/static/data/benchmarks/evidence/index.json).
+The [CSV benchmark page](https://officeimo.com/benchmarks/csv/) shows every
+platform and framework. A comparison without a published run says so instead of
+showing numbers.
 
 <!-- officeimo-csv-benchmark-table:start -->
-| Scenario | Variables | Host | Operation | Metric | OfficeIMO.CSV | CsvHelper | Dataplat.Dbatools.Csv | Sep | Sylvan.Data.Csv | Result |
-| --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
-| Wide DataReader CSV write | Contract=IDataReader, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-09-28 | .NET 8.0.31 | Format and write rows | MeanMs | 1.00x (46ms) | n/a | 1.21x (56ms) | n/a | 0.78x (36ms) | Fastest: Sylvan.Data.Csv |
-| Wide field-span CSV read | Contract=field spans, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-09-28 | .NET 8.0.31 | Read every field | MeanMs | 1.00x (2ms) | n/a | n/a | 1.22x (3ms) | 1.56x (4ms) | Fastest: OfficeIMO.CSV |
-| Wide projected-array CSV write | Contract=projected object arrays, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-09-28 | .NET 8.0.31 | Format and write rows | MeanMs | 1.00x (44ms) | 2.71x (119ms) | 1.12x (49ms) | n/a | n/a | Fastest: OfficeIMO.CSV |
-| Wide validated text-row CSV write | Contract=preformatted text with escaping, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-09-28 | .NET 8.0.31 | Validate and write rows | MeanMs | 1.00x (13ms) | 2.84x (36ms) | 1.84x (23ms) | 2.42x (30ms) | 1.29x (16ms) | Fastest: OfficeIMO.CSV |
+#### CSV data-reader writing
+
+Windows · net10.0 · Standard run · 2026-11-19 · AMD Ryzen 9 9950X3D2 (32 threads) · Windows 11 (10.0.26300.9974) · .NET 10.0.15
+
+Workload: RowCount=25000
+
+| Case | OfficeIMO | Sylvan.Data.Csv |
+| --- | ---: | ---: |
+| Shape Mixed · Case WriteDataReader | **5.80 ms** | 6.36 ms (1.10×) |
+| Shape Multiline · Case WriteDataReader | **7.05 ms** | 7.40 ms (1.05×) |
+| Shape Quoted · Case WriteDataReader | 8.12 ms (1.06×) | **7.67 ms** |
+| Shape Mixed · Case WriteDataReaderParallel | **6.61 ms** | — |
+| Shape Multiline · Case WriteDataReaderParallel | **7.47 ms** | — |
+| Shape Quoted · Case WriteDataReaderParallel | **9.22 ms** | — |
+
+- **OfficeIMO and Sylvan.Data.Csv are about as fast** (similar allocations · geometric mean of 3 cases)
+- Times are medians; results whose confidence intervals overlap are reported as even.
+- Runner: BenchmarkDotNet · median · 5 warmups · 15 iterations · 1 launch · sequential
+
+#### CSV 65K typed reading
+
+Windows · net10.0 · Standard run · 2026-11-19 · AMD Ryzen 9 9950X3D2 (32 threads) · Windows 11 (10.0.26300.9974) · .NET 10.0.15
+
+Workload: Case=Default
+
+| Case | OfficeIMO | Sep | ExcelReader.NET | Sylvan.Data.Csv | Dataplat.Dbatools.Csv | LumenWorks | CsvHelper |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| CSV 65K typed reading | **15.6 ms** | 22.0 ms (1.41×) | 24.6 ms (1.58×) | 27.6 ms (1.76×) | 35.2 ms (2.3×) | 41.6 ms (2.7×) | 53.0 ms (3.4×) |
+
+- **OfficeIMO is 1.41× faster than Sep** (similar allocations · 1 case)
+- **OfficeIMO is 1.58× faster than ExcelReader.NET** (OfficeIMO allocates 1.04× less · 1 case)
+- **OfficeIMO is 1.76× faster than Sylvan.Data.Csv** (OfficeIMO allocates 1.04× less · 1 case)
+- **OfficeIMO is 2.3× faster than Dataplat.Dbatools.Csv** (OfficeIMO allocates 1.05× less · 1 case)
+- **OfficeIMO is 2.7× faster than LumenWorks** (OfficeIMO allocates 1.05× less · 1 case)
+- **OfficeIMO is 3.4× faster than CsvHelper** (OfficeIMO allocates 1.04× less · 1 case)
+- Times are medians; results whose confidence intervals overlap are reported as even.
+- Runner: BenchmarkDotNet · median · 5 warmups · 15 iterations · 1 launch · sequential
 <!-- officeimo-csv-benchmark-table:end -->
 
 ## Dated four-reader CSV snapshot (2026-08-31)
@@ -299,15 +352,13 @@ for `OfficeIMO.CSV.dll`.
 dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net8.0 -- --filter *Csv*Benchmarks*
 ```
 
-Refresh the compact benchmark comparison with one command:
+Measure the cataloged comparisons with `Build/Run-LibraryComparisonBenchmarks.ps1`
+(see [library comparison evidence](../Build/LibraryComparisonBenchmarks.md)), then
+refresh the published-results block from the catalog:
 
 ```powershell
-.\Build\Benchmarks\Update-BenchmarkReadmes.ps1 -Run Csv
+.\Build\Benchmarks\Update-BenchmarkReadmes.ps1
 ```
-
-The script runs only the focused equivalent lanes, calls PSPublishModule's
-`Import-BenchmarkResult` and `Update-BenchmarkDocument`, and replaces the
-marker-delimited table. Benchmark execution is local and is not scheduled in CI.
 
 For a write-focused competitor pass:
 
@@ -345,6 +396,44 @@ Stable Apple M4 snapshot from the command above on 2026-07-14:
 
 These results use explicit field types, including nullable object-typed text
 columns, rather than inferring a convenient schema from the first row.
+
+### SQL Server export at one million rows, .NET Framework and .NET
+
+`CsvDbatoolsExportBenchmarks` writes one million `int`, `nvarchar`,
+`decimal(18,2)` and `datetime2` rows from a forward-only `DbDataReader` with
+typed getters, with no header and the `yyyy-MM-dd HH:mm:ss.fffffff` date
+format, then imports the same shape back through a typed reader. It compares
+OfficeIMO.CSV with the Dataplat.Dbatools.Csv writer behind `Export-DbaCsv`,
+Sylvan, CsvHelper and, on .NET 9 or later, Sep. A pass-through lane hands
+OfficeIMO the reader through a plain `IDataReader`, as `Export-OfficeCsv` does.
+Setup checks every written row the way the DbaClientX export benchmark does and
+checksums every imported value.
+
+The project also builds for `net472` on Windows, where Windows PowerShell 5.1
+runs; that build contains only this lane.
+
+```powershell
+dotnet build .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release
+.\OfficeIMO.CSV.Benchmarks\bin\Release\net472\OfficeIMO.CSV.Benchmarks.exe --filter *CsvDbatoolsExport* --inProcess
+dotnet .\OfficeIMO.CSV.Benchmarks\bin\Release\net10.0\OfficeIMO.CSV.Benchmarks.dll --filter *CsvDbatoolsExport* --inProcess
+```
+
+#### Dated export snapshot (2026-11-14)
+
+Mean of 8 iterations after 2 warmups, two rounds (shown as round 1 / round 2),
+64-bit in-process runs pinned to one CCD of a shared AMD Ryzen 9 9950X3D2
+workstation while other builds ran, so read ratios rather than absolutes.
+
+| Writer | .NET Framework 4.8 | Allocated | .NET 10 | Allocated |
+| --- | ---: | ---: | ---: | ---: |
+| OfficeIMO.CSV | 528 / 488 ms | 84 MB | 151 / 155 ms | 82 MB |
+| Dataplat.Dbatools.Csv 1.1.15 | 904 / 815 ms | 459 MB | 268 / 337 ms | 312 MB |
+| Sylvan.Data.Csv 1.4.4 | 830 / 704 ms | 383 MB | 205 / 256 ms | 83 MB |
+| CsvHelper 33.1 | 2,213 / 1,860 ms | 651 MB | 496 / 506 ms | 381 MB |
+| Sep 0.17.1 | n/a | n/a | 431 / 424 ms | 82 MB |
+
+About 84 MB of OfficeIMO's allocation on both runtimes is the reader's own
+`nvarchar` strings.
 
 ### Dated SQL-shaped DataReader write snapshot (2026-08-09)
 

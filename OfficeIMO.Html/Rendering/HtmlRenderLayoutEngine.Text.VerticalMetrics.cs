@@ -118,29 +118,110 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return true;
     }
 
+    // Line metrics, paint placement and decoration geometry ask for the same word's face metrics
+    // several times per line. Registered-face answers depend only on the text, the font request
+    // and the registered faces, so they are kept until the face collection changes. Fallback
+    // answers come from the host and keep its own reuse rules.
+    private const int MaximumRememberedTextFaceMetrics = 16384;
+    private Dictionary<TextFaceMetricsKey, HtmlTextFaceMetrics>? _textFaceMetrics;
+    private object? _textFaceMetricsGeneration;
+
     private HtmlTextFaceMetrics? ResolveTextFaceMetrics(string text, HtmlRenderBoxStyle style) {
-        if (text.Length == 0) {
-            IOfficeFontProgram? strut = ResolveTextFaceProgram(text, style);
-            if (strut is IOfficeFontBaselineMetrics baseline) return Metrics(strut, baseline, style.Font.Size);
-        } else {
-            IReadOnlyList<OfficeFontFallbackRun> runs = _fonts.PlanFallbackRuns(text, style.Font.FamilyName, style.FontDescriptor);
-            HtmlTextFaceMetrics[]? metrics = null;
-            for (int index = 0; index < runs.Count; index++) {
-                OfficeFontFallbackRun run = runs[index];
-                if (!_fonts.TryResolveFaceForText(run.Text, run.FamilyName, style.FontDescriptor, style.Font.Size, out OfficeFontFace? face)
-                    || face?.Program is not IOfficeFontBaselineMetrics baseline) {
-                    return _options.FallbackTextFaceMetrics?.Invoke(text, style.Font, style.FontDescriptor);
-                }
-                metrics ??= new HtmlTextFaceMetrics[runs.Count];
-                metrics[index] = Metrics(face.Program, baseline, style.Font.Size);
-            }
-            HtmlTextFaceMetrics? combined = HtmlTextFaceMetrics.Combine(metrics ?? Array.Empty<HtmlTextFaceMetrics>());
-            if (combined.HasValue) return combined;
+        object generation = _fonts.SelectionGeneration;
+        if (!ReferenceEquals(generation, _textFaceMetricsGeneration)) {
+            _textFaceMetrics?.Clear();
+            _textFaceMetricsGeneration = generation;
+            _selectableFacesFamily = null;
+        }
+        if (text.Length > 0 && IsUsableFontSize(style.Font.Size)
+            && !HasSelectableFaces(style.Font.FamilyName, style.FontDescriptor)) {
+            return _options.FallbackTextFaceMetrics?.Invoke(text, style.Font, style.FontDescriptor);
+        }
+        var key = new TextFaceMetricsKey(text, style.Font.FamilyName, style.FontDescriptor, style.Font.Size);
+        if (_textFaceMetrics != null && _textFaceMetrics.TryGetValue(key, out HtmlTextFaceMetrics remembered)) return remembered;
+        if (TryResolveRegisteredTextFaceMetrics(text, style, out HtmlTextFaceMetrics resolved)) {
+            _textFaceMetrics ??= new Dictionary<TextFaceMetricsKey, HtmlTextFaceMetrics>();
+            if (_textFaceMetrics.Count < MaximumRememberedTextFaceMetrics) _textFaceMetrics[key] = resolved;
+            return resolved;
         }
         return _options.FallbackTextFaceMetrics?.Invoke(text, style.Font, style.FontDescriptor);
+    }
+
+    // A family list without any registered candidate face resolves every text to the host
+    // fallback. Runs of one style share the family string, so the last answer is kept.
+    private string? _selectableFacesFamily;
+    private OfficeFontFaceDescriptor _selectableFacesDescriptor;
+    private bool _selectableFaces;
+
+    private bool HasSelectableFaces(string? familyNames, OfficeFontFaceDescriptor descriptor) {
+        if (_selectableFacesFamily == null || !ReferenceEquals(_selectableFacesFamily, familyNames)
+            || !_selectableFacesDescriptor.Equals(descriptor)) {
+            _selectableFaces = _fonts.HasSelectableFaces(familyNames, descriptor);
+            _selectableFacesFamily = familyNames;
+            _selectableFacesDescriptor = descriptor;
+        }
+        return _selectableFaces;
+    }
+
+    private static bool IsUsableFontSize(double size) => size > 0D && !double.IsNaN(size) && !double.IsInfinity(size);
+
+    private bool TryResolveRegisteredTextFaceMetrics(string text, HtmlRenderBoxStyle style, out HtmlTextFaceMetrics resolved) {
+        resolved = default;
+        if (text.Length == 0) {
+            IOfficeFontProgram? strut = ResolveTextFaceProgram(text, style);
+            if (strut is not IOfficeFontBaselineMetrics strutBaseline) return false;
+            resolved = Metrics(strut, strutBaseline, style.Font.Size);
+            return true;
+        }
+        IReadOnlyList<OfficeFontFallbackRun> runs = _fonts.PlanFallbackRuns(text, style.Font.FamilyName, style.FontDescriptor);
+        HtmlTextFaceMetrics[]? metrics = null;
+        for (int index = 0; index < runs.Count; index++) {
+            OfficeFontFallbackRun run = runs[index];
+            if (!_fonts.TryResolveFaceForText(run.Text, run.FamilyName, style.FontDescriptor, style.Font.Size, out OfficeFontFace? face)
+                || face?.Program is not IOfficeFontBaselineMetrics baseline) {
+                return false;
+            }
+            metrics ??= new HtmlTextFaceMetrics[runs.Count];
+            metrics[index] = Metrics(face.Program, baseline, style.Font.Size);
+        }
+        HtmlTextFaceMetrics? combined = HtmlTextFaceMetrics.Combine(metrics ?? Array.Empty<HtmlTextFaceMetrics>());
+        if (!combined.HasValue) return false;
+        resolved = combined.Value;
+        return true;
 
         static HtmlTextFaceMetrics Metrics(IOfficeFontProgram program, IOfficeFontBaselineMetrics baseline, double size) =>
             new(program.LineHeight(size), baseline.BaselineOffset(size), program.LineSpacingRatio * size);
+    }
+
+    private readonly struct TextFaceMetricsKey : IEquatable<TextFaceMetricsKey> {
+        private readonly string _text;
+        private readonly string? _family;
+        private readonly OfficeFontFaceDescriptor _descriptor;
+        private readonly long _sizeBits;
+
+        internal TextFaceMetricsKey(string text, string? family, OfficeFontFaceDescriptor descriptor, double size) {
+            _text = text;
+            _family = family;
+            _descriptor = descriptor;
+            _sizeBits = BitConverter.DoubleToInt64Bits(size);
+        }
+
+        public bool Equals(TextFaceMetricsKey other) =>
+            _sizeBits == other._sizeBits
+            && _descriptor.Equals(other._descriptor)
+            && string.Equals(_text, other._text, StringComparison.Ordinal)
+            && string.Equals(_family, other._family, StringComparison.Ordinal);
+
+        public override bool Equals(object? obj) => obj is TextFaceMetricsKey other && Equals(other);
+
+        public override int GetHashCode() {
+            unchecked {
+                int hash = StringComparer.Ordinal.GetHashCode(_text);
+                hash = (hash * 397) ^ (_family == null ? 0 : StringComparer.Ordinal.GetHashCode(_family));
+                hash = (hash * 397) ^ _descriptor.GetHashCode();
+                return (hash * 397) ^ _sizeBits.GetHashCode();
+            }
+        }
     }
 
     private IOfficeFontProgram? ResolveTextFaceProgram(string text, HtmlRenderBoxStyle style) =>

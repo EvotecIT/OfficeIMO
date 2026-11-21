@@ -113,7 +113,7 @@ public partial class WordDocument {
 
     private static WordSaveOptions CreateLegacyWriterProbeOptions(WordSaveOptions? source) => new() {
         LossPolicy = OfficeConversionLossPolicy.Allow,
-        SignedDocumentPolicy = source?.SignedDocumentPolicy ?? WordSignedDocumentSavePolicy.Block
+        SignatureMutationPolicy = source?.SignatureMutationPolicy ?? OfficeSignatureMutationPolicy.BlockSave
     };
 
     private static OfficeCompatibilityImpact GetLegacyWriterFailureImpact(WordDocument document) {

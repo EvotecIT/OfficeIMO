@@ -475,9 +475,9 @@ public sealed partial class MainWindowViewModel {
             return;
         }
         PdfVerifiedRedactionResult? proof = null;
-        PdfSanitizationOptions? sanitization = SanitizeAfterRedaction ? new PdfSanitizationOptions {
-            ContentKindsToRemove = PdfSanitizationContentKind.UserMetadata | PdfSanitizationContentKind.EmbeddedFiles |
-                PdfSanitizationContentKind.Actions | PdfSanitizationContentKind.CommentsAndMarkup
+        OfficeHiddenDataOptions? sanitization = SanitizeAfterRedaction ? new OfficeHiddenDataOptions {
+            Kinds = OfficeHiddenDataKind.DocumentProperties | OfficeHiddenDataKind.Attachments |
+                OfficeHiddenDataKind.ActiveContent | OfficeHiddenDataKind.Comments
         } : null;
         bool succeeded = await RunMutationAsync(async token => {
             proof = await workspace.ApplyVerifiedRedactionAsync(

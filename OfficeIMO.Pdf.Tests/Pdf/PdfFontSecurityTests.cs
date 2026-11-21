@@ -25,6 +25,19 @@ public class PdfFontSecurityTests {
         Assert.Equal(PdfCreateOptions.MaximumNamedFontFamilies, options.NamedFontFamilies.Count);
     }
 
+    [Theory]
+    [InlineData("BEGINBFCHAR <01> <0041> EndBfChar", "01=A")]
+    [InlineData("1 beginbfrange <01> <02> [<0041> <0042>] <03> <04> <0061> endbfrange", "01=A,02=B,03=a,04=b")]
+    [InlineData("beginbfchar <0 1> <00\n41> <0\u00002> <0042> endbfchar", "01=A,02=B")]
+    [InlineData("beginbfrange <05> <06> [<0041> endbfrange beginbfchar <07> <0043> endbfchar", "07=C")]
+    [InlineData("beginbfchar <01> <0041>", "")]
+    [InlineData("beginbfchar <01> <0041> endbfchar <02> <0042> endbfchar", "01=A")]
+    public void ToUnicodeCMap_ReadsSectionAndEntrySyntax(string cmapText, string expected) {
+        Assert.True(ToUnicodeCMap.TryParse(Encoding.GetEncoding("ISO-8859-1").GetBytes(cmapText), out ToUnicodeCMap? cmap));
+
+        Assert.Equal(expected, string.Join(",", cmap!.Mappings.Select(mapping => mapping.Key + "=" + mapping.Value)));
+    }
+
     [Fact]
     public void ToUnicodeCMap_SkipsOversizedSequentialRanges() {
         byte[] cmapBytes = Encoding.ASCII.GetBytes("""

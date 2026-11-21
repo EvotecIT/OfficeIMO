@@ -12,7 +12,7 @@ public sealed partial class CsvRowWriter
     /// <param name="values">UTF-8 field text. Null uses NullValue; empty memory is an empty text field.</param>
     /// <remarks>
     /// All fields are validated before writing the row or its initial header. Invalid UTF-8 throws
-    /// DecoderFallbackException. Borrowed memory is consumed synchronously and is not retained.
+    /// DecoderFallbackException, and a field that unquoted output cannot represent throws before any of the row is written. Borrowed memory is consumed synchronously and is not retained.
     /// CSV quoting and formula escaping still apply. UTF-8 stream and file destinations without a
     /// BOM copy field bytes directly; other encodings and supplied TextWriters decode the fields.
     /// </remarks>
@@ -30,6 +30,7 @@ public sealed partial class CsvRowWriter
         if (_writer is PooledUtf8TextWriter utf8Writer)
         {
             _utf8Delimiter ??= utf8Writer.Encoding.GetBytes(_delimiterText);
+            CsvWriter.ThrowIfUnrepresentableUtf8(values, _utf8Delimiter, _options, utf8Writer.Encoding);
             EnsureColumns(columns);
             CsvWriter.WriteUtf8Record(utf8Writer, values, _utf8Delimiter, _options, _quoteFields, _columns!);
         }

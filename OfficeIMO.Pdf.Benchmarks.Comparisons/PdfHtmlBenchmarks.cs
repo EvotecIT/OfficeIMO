@@ -5,10 +5,13 @@ namespace OfficeIMO.Pdf.Benchmarks.Comparisons;
 
 /// <summary>
 /// Compares complete in-memory HTML parsing, paged layout, and PDF serialization
-/// from one identical HTML document.
+/// from one identical HTML document. Chromium opens a fresh browser session before every iteration, which makes
+/// BenchmarkDotNet time one invocation per iteration; every library runs with that same job so the results compare
+/// as one configuration.
 /// </summary>
 [MemoryDiagnoser]
 [RankColumn]
+[InvocationCount(1)]
 public class PdfHtmlBenchmarks {
     private PdfBenchmarkScenario _scenario = null!;
     private string _html = null!;
@@ -51,22 +54,27 @@ public class PdfHtmlBenchmarks {
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public byte[] OfficeIMO() =>
         _officeImoResult = HtmlPdfComparisonRenderers.RenderManaged(HtmlPdfComparisonEngine.OfficeIMO, _html);
 
     [Benchmark]
+    [BenchmarkCategory("library:PeachPDF", "case:Default")]
     public byte[] PeachPDF() =>
         _peachPdfResult = HtmlPdfComparisonRenderers.RenderManaged(HtmlPdfComparisonEngine.PeachPDF, _html);
 
     [Benchmark]
+    [BenchmarkCategory("library:PdfPecker", "case:Default")]
     public byte[] PdfPecker() =>
         _pdfPeckerResult = HtmlPdfComparisonRenderers.RenderManaged(HtmlPdfComparisonEngine.PdfPecker, _html);
 
     [Benchmark]
+    [BenchmarkCategory("library:iText pdfHTML", "case:Default")]
     public byte[] ITextPdfHtml() =>
         _iTextPdfHtmlResult = HtmlPdfComparisonRenderers.RenderManaged(HtmlPdfComparisonEngine.ITextPdfHtml, _html);
 
     [Benchmark]
+    [BenchmarkCategory("library:Chromium", "case:Default")]
     public async Task<byte[]> Chromium() {
         HtmlBrowserSession session = _browserSession
             ?? throw new InvalidOperationException("The HtmlTinkerX Chromium session was not initialized.");
@@ -104,12 +112,20 @@ public class PdfHtmlBenchmarks {
         _browserSession = null;
     }
 
+    // Cleanup validates the PDF the last measured invocation produced, outside timing, and records the outcome.
     private void Validate(string engine, byte[]? bytes) {
-        if (bytes == null) {
-            throw new InvalidDataException($"{engine} did not return a PDF for {_scenario.Scale}.");
-        }
+        PdfReadObservation observation = default;
+        PdfBenchmarkValidation.Record(
+            PdfBenchmarkValidation.LibraryId(engine),
+            "Default",
+            $"Scale={Scale}; measured PDF reopened with PdfPig: A4 pages with the exact visible report text in reading order, tag tree, embedded Carlito",
+            () => {
+                if (bytes == null) {
+                    throw new InvalidDataException($"{engine} did not return a PDF for {_scenario.Scale}.");
+                }
 
-        PdfReadObservation observation = PdfBenchmarkValidation.ValidateHtmlGenerated(bytes, _scenario, engine);
+                observation = PdfBenchmarkValidation.ValidateHtmlGenerated(bytes, _scenario, engine);
+            });
         Console.WriteLine(
             $"HTML_PDF_EVIDENCE engine={engine} scale={_scenario.Scale} htmlBytes={System.Text.Encoding.UTF8.GetByteCount(_html)} " +
             $"pdfBytes={bytes.Length} pages={observation.PageCount} textLength={observation.TextLength}");

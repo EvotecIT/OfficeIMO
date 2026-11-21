@@ -9,9 +9,15 @@ public sealed class JavaScriptAsset {
     private static readonly UTF8Encoding Encoding = new UTF8Encoding(false);
     private readonly Lazy<string> _content;
     private readonly Lazy<string> _hash;
+    private readonly Lazy<JavaScriptAsset> _minified;
 
-    internal JavaScriptAsset(string fileName) {
+    internal JavaScriptAsset(string fileName) : this(fileName, minified: false) { }
+
+    private JavaScriptAsset(string fileName, bool minified) {
         FileName = fileName;
+        _minified = minified
+            ? new Lazy<JavaScriptAsset>(() => this)
+            : new Lazy<JavaScriptAsset>(() => new JavaScriptAsset(Path.GetFileNameWithoutExtension(fileName) + ".min" + Path.GetExtension(fileName), minified: true));
         _content = new Lazy<string>(() => {
             using Stream stream = typeof(JavaScriptAsset).Assembly.GetManifestResourceStream("OfficeIMO.JavaScript.Assets." + fileName)
                 ?? throw new InvalidOperationException("Missing embedded JavaScript asset: " + fileName);
@@ -35,6 +41,10 @@ public sealed class JavaScriptAsset {
 
     /// <summary>The first 16 lowercase hex digits of the SHA-256 of the UTF-8 bytes, without BOM.</summary>
     public string ContentHash => _hash.Value;
+
+    /// <summary>The minified variant of this asset, for example officeimo.min.js.</summary>
+    /// <remarks>It exposes the same API. A minified classic script shares module identity with the readable classic scripts of the same build; ES modules are separate graphs, so use one variant throughout. A minified asset returns itself.</remarks>
+    public JavaScriptAsset Minified => _minified.Value;
 
     /// <summary>A file name bound to these exact bytes, such as officeimo-xlsx.0123456789abcdef.js.</summary>
     public string HashedFileName => Path.GetFileNameWithoutExtension(FileName) + "." + ContentHash + Path.GetExtension(FileName);

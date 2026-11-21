@@ -90,8 +90,8 @@ internal static partial class LegacyXlsWriter {
                     throw new NotSupportedException($"Native XLS saving requires a cached result for formula cell {address}. Enable formula evaluation before saving or save as .xlsx.");
                 }
 
-                if (TryParseOpenXmlDate(rawValue, out DateTime date)) {
-                    return LegacyXlsCell.FormulaNumber(row, column, styleIndex, ExcelDateSystemConverter.ToSerial(date, dateSystem), tokens, formulaExtraData, arrayFormulaPayload, sharedFormulaPayload);
+                if (TryParseOpenXmlDateSerial(rawValue, dateSystem, out double serial)) {
+                    return LegacyXlsCell.FormulaNumber(row, column, styleIndex, serial, tokens, formulaExtraData, arrayFormulaPayload, sharedFormulaPayload);
                 }
 
                 throw new NotSupportedException($"Native XLS saving does not support cached date result '{rawValue}' for formula cell {address}.");

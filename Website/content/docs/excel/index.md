@@ -2,6 +2,7 @@
 title: Excel Workbooks
 description: Overview of the OfficeIMO.Excel package for creating and manipulating Excel spreadsheets. Includes examples and API links.
 order: 20
+verified: 2026-11-14
 ---
 
 The `OfficeIMO.Excel` package provides a higher-level API for creating, reading, and modifying Excel workbooks (`.xlsx`) without requiring Microsoft Office. It uses the Open XML SDK, an editable object model, a report builder, and a streaming writer for large exports.
@@ -36,13 +37,17 @@ workbook.Save();
 Create with a named worksheet in one call:
 
 ```csharp
-using var workbook = ExcelDocument.Create("report.xlsx", "Sales");
+using OfficeIMO.Excel;
+
+using var workbook = ExcelDocument.Create("report.xlsx", new ExcelCreateOptions { FirstSheetName = "Sales" });
 var sheet = workbook.Sheets[0]; // "Sales" sheet
 ```
 
 ## Creating a Workbook in Memory
 
 ```csharp
+using OfficeIMO.Excel;
+
 using var stream = new MemoryStream();
 using var workbook = ExcelDocument.Create(stream);
 var sheet = workbook.AddSheet("Data");
@@ -53,6 +58,8 @@ workbook.Save();
 ## Loading an Existing Workbook
 
 ```csharp
+using OfficeIMO.Excel;
+
 using var workbook = ExcelDocument.Load("existing.xlsx");
 
 foreach (var sheet in workbook.Sheets) {
@@ -81,6 +88,8 @@ workbook.Save();
 ## Document Properties
 
 ```csharp
+using OfficeIMO.Excel;
+
 using var workbook = ExcelDocument.Create("props.xlsx");
 
 workbook.Properties.Title = "Financial Report";
@@ -95,6 +104,8 @@ workbook.Save();
 Control parallel vs sequential operations for large workbooks:
 
 ```csharp
+using OfficeIMO.Excel;
+
 var workbook = ExcelDocument.Create("large.xlsx");
 workbook.Execution.Mode = ExcelExecutionMode.Parallel;
 workbook.Execution.MaxDegreeOfParallelism = 4;
@@ -105,7 +116,13 @@ workbook.Execution.MaxDegreeOfParallelism = 4;
 For very large workbooks, you can disable sheet wrapper caching to reduce memory:
 
 ```csharp
+using OfficeIMO.Excel;
+
+using var workbook = ExcelDocument.Create("Example.xlsx");
+
 workbook.SheetCachingEnabled = false;
+
+workbook.Save();
 ```
 
 ## CSV interoperability
@@ -136,3 +153,10 @@ Use `OfficeIMO.Reader.Excel` instead when the job is normalized extraction of wo
 
 - [Worksheets](/docs/excel/worksheets) — Cell values, formatting, formulas, and named ranges.
 - [Tables and Ranges](/docs/excel/tables-ranges) — AutoFilter tables, validation, and conditional formatting.
+- [Quick Start](/docs/excel/quick-start/) — Create a workbook with a table and a chart, and read it back.
+- [Styles and Number Formats](/docs/excel/styles-number-formats/) — Fonts, fills, borders, number formats, and conditional formatting.
+- [Formulas and Named Ranges](/docs/excel/formulas/) — Write and calculate formulas, define names, and inventory formulas.
+- [Charts](/docs/excel/charts/) — Native charts from objects, ranges, and tables.
+- [Import and Export Data](/docs/excel/import-export-data/) — Objects, DataTable, IDataReader, and CSV.
+- [Large Files and Streaming](/docs/excel/large-files/) — Bounded-memory writers and forward-only readers.
+- [Protect Sheets and Workbooks](/docs/excel/protection/) — Sheet and structure protection, and encryption.

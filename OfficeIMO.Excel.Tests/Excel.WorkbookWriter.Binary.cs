@@ -8,6 +8,7 @@ public partial class Excel {
     /// <summary>Checks saved shared strings across sequential, overlapping and aborted writer lifetimes.</summary>
     [Fact]
     public void WorkbookWriter_XlsKeepsSharedStringsIsolatedAcrossWorkbookLifetimes() {
+        var sharedStrings = new ExcelWriterOptions { UseSharedStrings = true };
         string[] warm = { "warm one", "warm two", "warm three", "warm four" };
         AssertStrings(WriteStrings(warm), warm);
 
@@ -15,9 +16,9 @@ public partial class Excel {
         string[] second = { "second one", "second two" };
         using var firstOutput = new MemoryStream();
         using var secondOutput = new MemoryStream();
-        using (var firstWriter = ExcelDocument.CreateWriter(ExcelFileFormat.Xls, firstOutput, leaveOpen: true)) {
+        using (var firstWriter = ExcelDocument.CreateWriter(ExcelFileFormat.Xls, firstOutput, sharedStrings, leaveOpen: true)) {
             firstWriter.WriteTable("Data", first, new[] { "Name" }, static (row, value) => row.Write(value));
-            using (var secondWriter = ExcelDocument.CreateWriter(ExcelFileFormat.Xls, secondOutput, leaveOpen: true)) {
+            using (var secondWriter = ExcelDocument.CreateWriter(ExcelFileFormat.Xls, secondOutput, sharedStrings, leaveOpen: true)) {
                 secondWriter.WriteTable("Data", second, new[] { "Name" }, static (row, value) => row.Write(value));
             }
         }
@@ -25,7 +26,7 @@ public partial class Excel {
         AssertStrings(secondOutput.ToArray(), second);
 
         using (var failedOutput = new MemoryStream())
-        using (var failedWriter = ExcelDocument.CreateWriter(ExcelFileFormat.Xls, failedOutput, leaveOpen: true)) {
+        using (var failedWriter = ExcelDocument.CreateWriter(ExcelFileFormat.Xls, failedOutput, sharedStrings, leaveOpen: true)) {
             var failure = new InvalidOperationException("Synthetic row callback failure.");
             Assert.Same(failure, Assert.Throws<InvalidOperationException>(() => failedWriter.WriteTable(
                 "Data", new[] { "aborted private text" }, new[] { "Name" }, (row, value) => {
@@ -39,7 +40,7 @@ public partial class Excel {
 
         static byte[] WriteStrings(string[] values) {
             using var output = new MemoryStream();
-            using (var writer = ExcelDocument.CreateWriter(ExcelFileFormat.Xls, output, leaveOpen: true)) {
+            using (var writer = ExcelDocument.CreateWriter(ExcelFileFormat.Xls, output, new ExcelWriterOptions { UseSharedStrings = true }, leaveOpen: true)) {
                 writer.WriteTable("Data", values, new[] { "Name" }, static (row, value) => row.Write(value));
             }
             return output.ToArray();
@@ -67,6 +68,36 @@ public partial class Excel {
                 Assert.False(reader.NextResult());
             }
 
+        }
+    }
+
+    /// <summary>Checks the inline LABEL and shared-string choice at the BIFF8 255-character limit.</summary>
+    [Fact]
+    public void WorkbookWriter_XlsWritesInlineLabelsUnlessTextNeedsTheSharedStringTable() {
+        string[] values = { new string('é', 255), new string('x', 256), "Zażółć 日本" };
+        using var output = new MemoryStream();
+        using (var writer = ExcelDocument.CreateWriter(ExcelFileFormat.Xls, output, leaveOpen: true)) {
+            writer.WriteTable("Data", values, new[] { "Name" }, static (row, value) => row.Write(value));
+        }
+        byte[] package = output.ToArray();
+        byte[] workbook = ReadCompoundStream(package, "Workbook");
+        int labels = 0, sharedLabels = 0;
+        uint uniqueStrings = 0;
+        for (int offset = 0; offset + 4 <= workbook.Length; offset += 4 + ReadUInt16(workbook, offset + 2)) {
+            ushort type = ReadUInt16(workbook, offset);
+            if (type == 0x0204) labels++;
+            else if (type == 0x00fd) sharedLabels++;
+            else if (type == 0x00fc) uniqueStrings = ReadUInt32(workbook, offset + 8);
+        }
+        Assert.Equal((3, 1, 1U), (labels, sharedLabels, uniqueStrings));
+
+        using (var reader = ExcelDocument.OpenReader(package)) {
+            Assert.Equal("Name", reader.GetName(0));
+            foreach (string value in values) {
+                Assert.True(reader.Read());
+                Assert.Equal(value, reader.GetString(0));
+            }
+            Assert.False(reader.Read());
         }
     }
 

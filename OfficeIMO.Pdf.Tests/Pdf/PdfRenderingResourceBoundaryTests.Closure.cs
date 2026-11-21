@@ -69,12 +69,12 @@ public sealed partial class PdfRenderingResourceBoundaryTests {
         var dictionary = new PdfDictionary();
         dictionary.Items["Filter"] = new PdfArray { Items = { new PdfName(brokenPrefix ? "FlateDecode" : "ASCIIHexDecode"), new PdfName("JBIG2Decode") } };
         var parameters = new PdfDictionary();
-        // Unsupported halftone header belongs to JBIG2's second DecodeParms entry.
-        parameters.Items["JBIG2Globals"] = new PdfStream(new PdfDictionary(), new byte[] { 0, 0, 0, 1, 22, 0, 1, 0, 0, 0, 0 });
+        // The reserved segment type 41 header belongs to JBIG2's second DecodeParms entry.
+        parameters.Items["JBIG2Globals"] = new PdfStream(new PdfDictionary(), new byte[] { 0, 0, 0, 1, 41, 0, 1, 0, 0, 0, 0 });
         dictionary.Items["DecodeParms"] = new PdfArray { Items = { PdfNull.Instance, parameters } };
         var stream = new PdfStream(dictionary, brokenPrefix ? new byte[] { 0x78, 0x9c, 7, 0, 0, 0, 0 } : Encoding.ASCII.GetBytes(">"));
         Assert.Empty(StreamDecoder.GetUnsupportedFilters(dictionary));
-        Assert.Equal(brokenPrefix ? "malformed" : "halftone", StreamDecoder.FindUnsupportedJbig2Feature(stream, null, 1024));
+        Assert.Equal(brokenPrefix ? "malformed" : "segment-41", StreamDecoder.FindUnsupportedJbig2Feature(stream, null, 1024));
     }
 
     [Fact]

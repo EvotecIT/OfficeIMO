@@ -107,6 +107,45 @@ namespace OfficeIMO.Tests {
             Assert.ThrowsAny<XmlException>(() => VisioAssets.ListMasters(filePath));
         }
 
+        public static IEnumerable<object[]> AssetReaderArchiveDefects() {
+            foreach (string reader in new[] { nameof(VisioAssets.ListMasters), nameof(VisioAssets.LoadMasterContents), nameof(VisioAssets.LoadVisualContext) }) {
+                yield return new object[] { reader, OfficePackageSecurityRule.PartCount };
+                yield return new object[] { reader, OfficePackageSecurityRule.UnsafePartName };
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(AssetReaderArchiveDefects))]
+        public void AssetReadersApplyPackageArchiveLimits(string reader, OfficePackageSecurityRule defect) {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vssx");
+            try {
+                using (ZipArchive archive = ZipFile.Open(filePath, ZipArchiveMode.Create)) {
+                    using (StreamWriter writer = new(archive.CreateEntry("visio/masters/masters.xml").Open(), new UTF8Encoding(false))) {
+                        writer.Write("<Masters xmlns=\"http://schemas.microsoft.com/office/visio/2012/main\"><Master ID=\"1\" NameU=\"Box\" /></Masters>");
+                    }
+                    if (defect == OfficePackageSecurityRule.PartCount) {
+                        int entries = new OfficePackageSecurityOptions().MaxPartCount;
+                        for (int index = 0; index < entries; index++) {
+                            archive.CreateEntry("padding/" + index, CompressionLevel.NoCompression);
+                        }
+                    } else {
+                        archive.CreateEntry("../outside.xml");
+                    }
+                }
+
+                OfficePackageSecurityException exception = Assert.Throws<OfficePackageSecurityException>(() => {
+                    switch (reader) {
+                        case nameof(VisioAssets.ListMasters): VisioAssets.ListMasters(filePath); break;
+                        case nameof(VisioAssets.LoadMasterContents): VisioAssets.LoadMasterContents(filePath); break;
+                        default: VisioAssets.LoadVisualContext(filePath); break;
+                    }
+                });
+                Assert.Equal(defect, exception.Rule);
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+        }
+
         [Fact]
         public void StencilCatalogManifestRejectsDtd() {
             using MemoryStream stream = new();

@@ -11,11 +11,12 @@ public sealed partial class PdfExtractedImage {
         cancellationToken.ThrowIfCancellationRequested();
         byte[]? cached = Volatile.Read(ref _drawingBytes);
         if (cached != null) return cached;
-        byte[] presentation = _bytes;
-        if (IsImageFile && _bytes.Length >= 2 && _bytes[0] == 0xFF && _bytes[1] == 0xD8 &&
-            OfficeImageOrientationNormalizer.TryRead(_bytes, cancellationToken, out OfficeImageOrientation orientation) &&
+        byte[] bytes = GetPayloadBytes(cancellationToken);
+        byte[] presentation = bytes;
+        if (IsImageFile && bytes.Length >= 2 && bytes[0] == 0xFF && bytes[1] == 0xD8 &&
+            OfficeImageOrientationNormalizer.TryRead(bytes, cancellationToken, out OfficeImageOrientation orientation) &&
             orientation != OfficeImageOrientation.Normal &&
-            !OfficeImageOrientationNormalizer.TryCreateOrientationNeutralCopy(_bytes, cancellationToken, out presentation))
+            !OfficeImageOrientationNormalizer.TryCreateOrientationNeutralCopy(bytes, cancellationToken, out presentation))
             throw new NotSupportedException("The PDF JPEG's EXIF orientation cannot be neutralized safely for drawing projection.");
         return Interlocked.CompareExchange(ref _drawingBytes, presentation, null) ?? presentation;
     }

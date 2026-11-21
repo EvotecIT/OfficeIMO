@@ -530,3 +530,62 @@ OfficeIMO.Excel.ExcelDocument.ToImages(OfficeIMO.Excel.ExcelImageExportOptions? 
 OfficeIMO.Excel.ExcelDocument.ToImagesAsync(OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportResult!>!>!
 OfficeIMO.Excel.ExcelSheet.ToImages(OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportResult!>!
 OfficeIMO.Excel.ExcelSheet.ToImagesAsync(OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportResult!>!>!
+*REMOVED*OfficeIMO.Excel.ExcelSheet.FromJson(string! json, int startRow = 1, int startColumn = 1, bool includeHeaders = true, OfficeIMO.Excel.ExcelExecutionMode? mode = null, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> string!
+*REMOVED*OfficeIMO.Excel.ExcelSheet.TableToJson(string! tableName, bool? headersInFirstRow = null, OfficeIMO.Excel.ExcelReaderOptions? options = null, OfficeIMO.Excel.ExcelExecutionMode? mode = null, System.Text.Json.JsonSerializerOptions? jsonOptions = null, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> string!
+*REMOVED*OfficeIMO.Excel.ExcelSheet.ToJson(bool headersInFirstRow = true, OfficeIMO.Excel.ExcelReaderOptions? options = null, OfficeIMO.Excel.ExcelExecutionMode? mode = null, System.Text.Json.JsonSerializerOptions? jsonOptions = null, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> string!
+*REMOVED*OfficeIMO.Excel.ExcelSheet.ToJson(string! a1Range, bool headersInFirstRow = true, OfficeIMO.Excel.ExcelReaderOptions? options = null, OfficeIMO.Excel.ExcelExecutionMode? mode = null, System.Text.Json.JsonSerializerOptions? jsonOptions = null, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> string!
+OfficeIMO.Excel.ExcelDocument.InspectHiddenData() -> OfficeIMO.OfficeHiddenDataReport!
+OfficeIMO.Excel.ExcelDocument.RemoveHiddenData(OfficeIMO.OfficeHiddenDataOptions? options = null) -> OfficeIMO.OfficeHiddenDataReport!
+OfficeIMO.Excel.ExcelReaderOptions.EnableSinglePassReading.get -> bool
+OfficeIMO.Excel.ExcelReaderOptions.EnableSinglePassReading.set -> void
+OfficeIMO.Excel.ExcelSheet.AddChartFromRanges(OfficeIMO.OfficeChartType type, System.Collections.Generic.IEnumerable<OfficeIMO.Excel.ExcelChartSeriesRange!>! series, OfficeIMO.OfficeChartOptions? options = null) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelSheet.GetCellValueSnapshots(int column, int firstRow, int lastRow) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Excel.ExcelNativeCellValueInfo?>!
+OfficeIMO.Excel.ExcelDateTimeOffsetWriteMode
+OfficeIMO.Excel.ExcelDateTimeOffsetWriteMode.Serial = 1 -> OfficeIMO.Excel.ExcelDateTimeOffsetWriteMode
+OfficeIMO.Excel.ExcelDateTimeOffsetWriteMode.Text = 0 -> OfficeIMO.Excel.ExcelDateTimeOffsetWriteMode
+OfficeIMO.Excel.ExcelDocument.DateTimeOffsetWriteMode.get -> OfficeIMO.Excel.ExcelDateTimeOffsetWriteMode
+OfficeIMO.Excel.ExcelDocument.DateTimeOffsetWriteMode.set -> void
+OfficeIMO.Excel.ExcelWriterOptions.DateTimeOffsetWriteMode.get -> OfficeIMO.Excel.ExcelDateTimeOffsetWriteMode
+OfficeIMO.Excel.ExcelWriterOptions.DateTimeOffsetWriteMode.set -> void
+OfficeIMO.Excel.ExcelAccessibilityOptions
+OfficeIMO.Excel.ExcelAccessibilityOptions.CheckBlankCellLayout.get -> bool
+OfficeIMO.Excel.ExcelAccessibilityOptions.CheckBlankCellLayout.set -> void
+OfficeIMO.Excel.ExcelAccessibilityOptions.CheckContrast.get -> bool
+OfficeIMO.Excel.ExcelAccessibilityOptions.CheckContrast.set -> void
+OfficeIMO.Excel.ExcelAccessibilityOptions.CheckDefaultSheetNames.get -> bool
+OfficeIMO.Excel.ExcelAccessibilityOptions.CheckDefaultSheetNames.set -> void
+OfficeIMO.Excel.ExcelAccessibilityOptions.CheckHiddenSheets.get -> bool
+OfficeIMO.Excel.ExcelAccessibilityOptions.CheckHiddenSheets.set -> void
+OfficeIMO.Excel.ExcelAccessibilityOptions.CheckMeaningfulLinks.get -> bool
+OfficeIMO.Excel.ExcelAccessibilityOptions.CheckMeaningfulLinks.set -> void
+OfficeIMO.Excel.ExcelAccessibilityOptions.CheckMergedCells.get -> bool
+OfficeIMO.Excel.ExcelAccessibilityOptions.CheckMergedCells.set -> void
+OfficeIMO.Excel.ExcelAccessibilityOptions.ExcelAccessibilityOptions() -> void
+OfficeIMO.Excel.ExcelAccessibilityOptions.MaximumCellCount.get -> int
+OfficeIMO.Excel.ExcelAccessibilityOptions.MaximumCellCount.set -> void
+OfficeIMO.Excel.ExcelAccessibilityOptions.MinimumLargeTextContrastRatio.get -> double
+OfficeIMO.Excel.ExcelAccessibilityOptions.MinimumLargeTextContrastRatio.set -> void
+OfficeIMO.Excel.ExcelAccessibilityOptions.MinimumTextContrastRatio.get -> double
+OfficeIMO.Excel.ExcelAccessibilityOptions.MinimumTextContrastRatio.set -> void
+OfficeIMO.Excel.ExcelAccessibilityOptions.Profile.get -> OfficeIMO.OfficeAccessibilityPolicyProfile
+OfficeIMO.Excel.ExcelAccessibilityOptions.Profile.set -> void
+OfficeIMO.Excel.ExcelAccessibilityOptions.RequireAlternativeText.get -> bool
+OfficeIMO.Excel.ExcelAccessibilityOptions.RequireAlternativeText.set -> void
+OfficeIMO.Excel.ExcelAccessibilityOptions.RequireDocumentTitle.get -> bool
+OfficeIMO.Excel.ExcelAccessibilityOptions.RequireDocumentTitle.set -> void
+OfficeIMO.Excel.ExcelAccessibilityOptions.RequireTableHeaders.get -> bool
+OfficeIMO.Excel.ExcelAccessibilityOptions.RequireTableHeaders.set -> void
+OfficeIMO.Excel.ExcelDocument.InspectAccessibility(OfficeIMO.Excel.ExcelAccessibilityOptions? options = null) -> OfficeIMO.OfficeAccessibilityReport!
+static OfficeIMO.Excel.ExcelAccessibilityOptions.ForProfile(OfficeIMO.OfficeAccessibilityPolicyProfile profile) -> OfficeIMO.Excel.ExcelAccessibilityOptions!
+OfficeIMO.Excel.ExcelChart.AltText.get -> string!
+OfficeIMO.Excel.ExcelChart.AltTextTitle.get -> string!
+OfficeIMO.Excel.ExcelChart.Decorative() -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.IsDecorative.get -> bool
+OfficeIMO.Excel.ExcelChart.SetAltText(string! description, string? title = null) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelImage.IsDecorative.get -> bool
+OfficeIMO.Excel.ExcelLoadOptions.AllowPrivateNetworkAddresses.get -> bool
+OfficeIMO.Excel.ExcelLoadOptions.AllowPrivateNetworkAddresses.set -> void
+OfficeIMO.Excel.ExcelChart.SaveAsImage(System.IO.Stream! stream, OfficeIMO.Drawing.OfficeChartImageExportOptions! options, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.OfficeConversionReport!
+OfficeIMO.Excel.ExcelChart.SaveAsImage(string! path, OfficeIMO.Drawing.OfficeChartImageExportOptions! options, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.OfficeConversionReport!
+OfficeIMO.Excel.ExcelChart.ToImage(OfficeIMO.Drawing.OfficeChartImageExportOptions! options, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Drawing.OfficeImageExportResult!
+OfficeIMO.Excel.ExcelChart.TryGetOfficeSnapshot(out OfficeIMO.Drawing.OfficeChartSnapshot! snapshot) -> bool

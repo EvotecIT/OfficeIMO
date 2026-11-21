@@ -505,7 +505,7 @@ public static partial class HtmlProvenance {
         }
         if (localName == "style") {
             if (!HtmlResourcePipeline.IsProvenanceStyleElement(element)) yield break;
-            foreach (HtmlCssImageReference reference in HtmlResourcePipeline.EnumerateProvenanceCssImageReferences(element.TextContent)) {
+            foreach (HtmlCssImageReference reference in HtmlResourcePipeline.EnumerateProvenanceCssImageReferences(HtmlStyleElementText.Read(element))) {
                 yield return new EmbeddedImageReference("css", reference.Value, reference.Start, reference.Length);
             }
             yield break;

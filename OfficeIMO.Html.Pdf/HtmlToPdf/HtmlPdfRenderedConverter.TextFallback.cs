@@ -59,14 +59,13 @@ internal static partial class HtmlPdfRenderedConverter {
         CancellationToken cancellationToken) {
         if (webFonts.FidelityPolicy != HtmlRenderFidelityPolicy.AllowDiagnosedLoss
             || !RequiresUnicodeFont(text)
-            || !ContainsEmojiJoinerSequence(text) && IsPaintable(text, visual, webFonts, createRuns)) return text;
+            || IsPaintable(text, visual, webFonts, createRuns)) return text;
         var retained = new StringBuilder(text.Length);
         foreach (string element in OfficeTextElements.Enumerate(text)) {
             cancellationToken.ThrowIfCancellationRequested();
-            // The PDF text route can't join a ZWJ sequence, and native saving rejects the attempt.
-            // Color fonts that do join them take the outline route and never reach this point.
-            if (!RequiresUnicodeFont(element)
-                || !ContainsEmojiJoinerSequence(element) && IsPaintable(element, visual, webFonts, createRuns)) {
+            // The PDF text route joins an emoji sequence through the font's own ligature; an element
+            // it cannot encode, such as a sequence in a font without its components, is replaced.
+            if (!RequiresUnicodeFont(element) || IsPaintable(element, visual, webFonts, createRuns)) {
                 retained.Append(element);
                 continue;
             }
@@ -91,17 +90,6 @@ internal static partial class HtmlPdfRenderedConverter {
         return retained.ToString();
     }
 
-    private static bool ContainsEmojiJoinerSequence(string text) {
-        int joiner = text.IndexOf('\u200D');
-        while (joiner > 0) {
-            int start = char.IsLowSurrogate(text[joiner - 1]) && joiner > 1 ? joiner - 2 : joiner - 1;
-            if (text[joiner - 1] == '\uFE0F' && start > 0) start = char.IsLowSurrogate(text[start - 1]) && start > 1 ? start - 2 : start - 1;
-            if (CharUnicodeInfo.GetUnicodeCategory(text, start) is UnicodeCategory.OtherSymbol or UnicodeCategory.ModifierSymbol) return true;
-            joiner = text.IndexOf('\u200D', joiner + 1);
-        }
-        return false;
-    }
-
     private static readonly string[] UnpaintableTextReplacements = { "\u25A1", "\uFFFD", "?" };
 
     private static bool IsPaintable(
@@ -111,7 +99,9 @@ internal static partial class HtmlPdfRenderedConverter {
         Func<string, PdfCore.PdfTextRun[]> createRuns) {
         OfficeFontStyle style = (visual.Font.IsBold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
             | (visual.Font.IsItalic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
-        foreach (OfficeFontFallbackRun run in webFonts.Faces.PlanFallbackRuns(text, visual.Font.FamilyName, style)) {
+        IReadOnlyList<OfficeFontFallbackRun> runs = webFonts.Faces.PlanFallbackRuns(text, visual.Font.FamilyName, style);
+        for (int index = 0; index < runs.Count; index++) {
+            OfficeFontFallbackRun run = runs[index];
             if (webFonts.Faces.TryResolveFaceForText(run.Text, run.FamilyRequest, style, out OfficeFontFace? face)
                 && face?.Program is OfficeTrueTypeFont program
                 && program.ContainsUnpaintableColorGlyph(run.Text)) return false;
@@ -168,6 +158,14 @@ internal static partial class HtmlPdfRenderedConverter {
         return retained?.ToString() ?? logicalText;
     }
 
+    private static bool ContainsPdfRenderableChild(IReadOnlyList<HtmlRenderVisual> children, RegisteredWebFonts webFonts,
+        double surfaceWidth, double surfaceHeight, ClipBounds? activeClip, CancellationToken cancellationToken) {
+        for (int index = 0; index < children.Count; index++) {
+            if (ContainsPdfRenderableVisual(children[index], webFonts, surfaceWidth, surfaceHeight, activeClip, cancellationToken)) return true;
+        }
+        return false;
+    }
+
     private static bool ContainsPdfRenderableVisual(
         HtmlRenderVisual visual,
         RegisteredWebFonts webFonts,
@@ -195,8 +193,12 @@ internal static partial class HtmlPdfRenderedConverter {
             : visual is HtmlRenderPathClipGroup pathClip ? pathClip.Visuals
             : visual is HtmlRenderEffectGroup effect ? effect.Visuals
             : null;
-        return children == null || children.Any(child => ContainsPdfRenderableVisual(
-            child, webFonts, surfaceWidth, surfaceHeight, activeClip, cancellationToken));
+        if (children == null) return true;
+        // A loop rather than Any: a lambda here would allocate its closure on every call, text visuals included.
+        foreach (HtmlRenderVisual child in children) {
+            if (ContainsPdfRenderableVisual(child, webFonts, surfaceWidth, surfaceHeight, activeClip, cancellationToken)) return true;
+        }
+        return false;
     }
 
     private static bool CanPaintPrivateUseGlyph(

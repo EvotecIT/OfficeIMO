@@ -425,7 +425,8 @@ namespace OfficeIMO.Word.Html {
             int horizontalEnd = (box.MarginRight ?? 0) + (box.PaddingRight ?? 0);
             foreach (WordParagraph paragraph in paragraphs) {
                 if (horizontalStart != 0) {
-                    paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points(((checked((int?)(paragraph.IndentationBefore?.ToTwips())) ?? 0) + horizontalStart) / 20D);
+                    // Container margins add to the paragraph's own indent, including one its style gives.
+                    paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points((paragraph._document.GetEffectiveIndentationBeforeTwips(paragraph) + horizontalStart) / 20D);
                 }
                 if (horizontalEnd != 0) {
                     paragraph.IndentationAfter = global::OfficeIMO.OfficeLength.Points(((checked((int?)(paragraph.IndentationAfter?.ToTwips())) ?? 0) + horizontalEnd) / 20D);

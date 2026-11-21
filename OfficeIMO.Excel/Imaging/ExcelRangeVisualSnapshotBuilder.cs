@@ -765,7 +765,7 @@ namespace OfficeIMO.Excel {
             }
 
             foreach (ExcelChart chart in worksheetCharts) {
-                if (!chart.TryGetSnapshot(geometry, out ExcelChartInfo chartSnapshot)) {
+                if (!chart.TryGetSnapshot(geometry, options.ChartRendering.Fidelity, out ExcelChartInfo chartSnapshot)) {
                     diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(OfficeImageExportDiagnosticSeverity.Warning, ExcelImageExportDiagnosticCodes.ChartSnapshotUnavailable, "Worksheet chart data could not be converted to a renderable snapshot.", sheet.Name + "!" + chart.Name));
                     continue;
                 }

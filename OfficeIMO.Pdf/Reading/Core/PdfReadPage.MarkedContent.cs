@@ -13,7 +13,7 @@ public sealed partial class PdfReadPage {
         var duplicates = new HashSet<int>();
         var textless = new Dictionary<int, int?>();
         long textVersion = 0;
-        PdfContentStreamInterpreter.Interpret(sequence.Content, _limits.MaxContentOperations, operation => {
+        PdfContentStreamInterpreter.Interpret(sequence.Source, _limits.MaxContentOperations, operation => {
             consumeWork();
             if (operation.HasInvalidOperands ||
                 operation.Name is "Tj" or "TJ" or "'" or "\"" or "Do" or "BI" ||
@@ -57,9 +57,10 @@ public sealed partial class PdfReadPage {
         },
             inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name),
             maxNestingDepth: _limits.MaxContentNestingDepth,
+            maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth,
             maxOperands: _limits.MaxContentOperands,
             dispatchInvalidOperations: true,
-            operandBuffer: new List<object>(8));
+            operandBuffer: new PdfContentOperands());
         foreach (int duplicate in duplicates) textless.Remove(duplicate);
         return textless;
     }

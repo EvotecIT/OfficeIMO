@@ -598,7 +598,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private static string? MapIndexedColor(byte value) {
             switch (value) {
                 case 0:
-                    return null;
+                    // ico 0 is an explicit automatic color.
+                    return "auto";
                 case 1:
                     return "000000";
                 case 2:
@@ -637,6 +638,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         }
 
         private static string ReadColorRef(byte[] bytes, int offset) {
+            // COLORREF fAuto (0xFF) selects automatic color; the RGB bytes are then ignored.
+            if (bytes[offset + 3] == 0xFF) {
+                return "auto";
+            }
+
             var chars = new char[6];
             WriteHexByte(chars, 0, bytes[offset]);
             WriteHexByte(chars, 2, bytes[offset + 1]);

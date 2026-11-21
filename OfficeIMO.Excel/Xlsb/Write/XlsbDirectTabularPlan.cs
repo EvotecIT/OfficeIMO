@@ -71,10 +71,13 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                     && values.Length == checked(rows.RowCount * rows.ColumnCount)
                         ? values
                         : null;
+                ExcelTabularCellValues? typedCells = flatValues == null ? ExcelDocument.GetTypedTabularCells(rows) : null;
+                if (typedCells != null && (typedCells.ColumnCount != rows.ColumnCount || typedCells.RowCount != rows.RowCount)) typedCells = null;
                 uint? dateStyle = null;
                 for (int row = 0; row < rows.RowCount; row++) {
                     if ((row & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
                     object?[]? bufferedRow = flatValues == null
+                        && typedCells == null
                         && rows.TryGetBufferedRow(row, out object?[]? valuesRow)
                         && valuesRow?.Length == rows.ColumnCount
                             ? valuesRow
@@ -82,16 +85,28 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                     int rowStart = checked((row + rowOffset) * rows.ColumnCount);
                     for (int column = 0; column < rows.ColumnCount; column++) {
                         int slot = rowStart + column;
-                        object? rawValue = flatValues != null ? flatValues[row * rows.ColumnCount + column]
-                            : bufferedRow != null ? bufferedRow[column] : rows.GetValue(row, column);
-                        if (rawValue is DateTime date) {
+                        int sourceIndex = row * rows.ColumnCount + column;
+                        bool isDate;
+                        DateTime date = default;
+                        ExcelDirectTabularValue value = default;
+                        if (typedCells != null) {
+                            isDate = typedCells.GetKind(sourceIndex) == ExcelBufferedCellKind.DateTime;
+                            if (isDate) date = typedCells.GetDateTime(sourceIndex);
+                            else value = typedCells.Normalize(sourceIndex, source.PreserveMissingValues);
+                        } else {
+                            object? rawValue = flatValues != null ? flatValues[sourceIndex]
+                                : bufferedRow != null ? bufferedRow[column] : rows.GetValue(row, column);
+                            isDate = rawValue is DateTime;
+                            if (isDate) date = (DateTime)rawValue!;
+                            else value = ExcelDirectTabularValue.Normalize(rawValue, source.PreserveMissingValues);
+                        }
+                        if (isDate) {
                             double serial = ExcelDateSystemConverter.ToSerial(date, dateSystem);
                             dateStyle ??= sheet.GetOrCreateDirectTabularDateStyle(source.UseCellValueNumberFormats);
                             candidate._kinds[slot] = DateKind;
                             candidate._payloads[slot] = unchecked((ulong)BitConverter.DoubleToInt64Bits(serial));
                             continue;
                         }
-                        ExcelDirectTabularValue value = ExcelDirectTabularValue.Normalize(rawValue, source.PreserveMissingValues);
                         if (value.Kind == ExcelDirectTabularValueKind.Unsupported) {
                             plan = null!;
                             return false;

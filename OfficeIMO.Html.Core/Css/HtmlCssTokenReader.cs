@@ -101,7 +101,19 @@ internal sealed class HtmlCssTokenReader {
 
     private HtmlCssToken ReadUrl(int start) {
         while (Whitespace(Peek())) Advance();
-        var value = new StringBuilder();
+        // Inline data URLs can be megabytes long. Take a run of characters that need neither
+        // escaping nor input normalization straight from the source, as the loop below would.
+        _cancellation.ThrowIfCancellationRequested();
+        int plainEnd = _position;
+        while (plainEnd < _source.Length && PlainUrl(_source[plainEnd])) plainEnd++;
+        if (plainEnd < _source.Length && _source[plainEnd] == ')') {
+            string plain = _source.Substring(_position, plainEnd - _position);
+            _position = plainEnd + 1;
+            return Token(HtmlCssTokenKind.Url, start, plain);
+        }
+        var value = new StringBuilder(plainEnd - _position + 16);
+        value.Append(_source, _position, plainEnd - _position);
+        _position = plainEnd;
         while (!AtEnd) {
             char current = Peek();
             if (current == ')') { Advance(); return Token(HtmlCssTokenKind.Url, start, value.ToString()); }
@@ -223,5 +235,10 @@ internal sealed class HtmlCssTokenReader {
     private static bool Hex(char value) => Digit(value) || value >= 'a' && value <= 'f' || value >= 'A' && value <= 'F';
     private static bool NameStart(char value) => value >= 'a' && value <= 'z' || value >= 'A' && value <= 'Z' || value == '_' || value >= 0x80;
     private static bool Name(char value) => NameStart(value) || Digit(value) || value == '-';
+    // A URL character the general loop appends unchanged: printable, not a delimiter, escape,
+    // whitespace or quote, and never rewritten by input preprocessing (CR, FF, NUL, surrogates).
+    private static bool PlainUrl(char value) =>
+        value > ' ' && value != ')' && value != '(' && value != '"' && value != '\'' && value != '\\'
+        && value != '\u007f' && !char.IsSurrogate(value);
     private static bool NonPrintable(char value) => value >= '\u0001' && value <= '\u0008' || value == '\u000b' || value >= '\u000e' && value <= '\u001f' || value == '\u007f';
 }

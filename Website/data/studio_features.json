@@ -302,8 +302,8 @@
           "detail": "Word, Excel, PowerPoint, RTF, text, HTML, Markdown, XPS, Visio and Publisher",
           "support": { "windows": "available", "linux": "available", "mac": "available", "ipad": "available", "iphone": "available" },
           "notes": {
-            "windows": "Also DjVu, CHM and OpenDocument Draw, with conversion diagnostics.",
-            "linux": "Also DjVu, CHM and OpenDocument Draw, with conversion diagnostics."
+            "windows": "Also DjVu, CHM, OpenDocument text, spreadsheets, presentations and Draw, email and EPUB, with conversion diagnostics. The conversion workbench also writes Word from Markdown, HTML, RTF and ODT, and converts between Office and OpenDocument.",
+            "linux": "Also DjVu, CHM, OpenDocument text, spreadsheets, presentations and Draw, email and EPUB, with conversion diagnostics. The conversion workbench also writes Word from Markdown, HTML, RTF and ODT, and converts between Office and OpenDocument."
           }
         },
         {
@@ -370,13 +370,6 @@
           "detail": "Check existing signatures, PDF/A, PDF/UA and PDF/X",
           "support": { "windows": "available", "linux": "available", "mac": "available", "ipad": "available", "iphone": "available" },
           "roadmap": "phase-7-native-apple-apps"
-        },
-        {
-          "id": "document-health",
-          "title": "Repair, optimize and sanitize",
-          "detail": "Inspect and clean a document into a copy",
-          "support": { "windows": "available", "linux": "available", "mac": "available", "ipad": "available", "iphone": "available" },
-          "roadmap": "phase-7-native-apple-apps"
         }
       ]
     },
@@ -427,6 +420,149 @@
             "linux": "ChatGPT, OpenAI-compatible services, GitHub Copilot, or a local model."
           },
           "roadmap": "document-assistant"
+        }
+      ]
+    },
+    {
+      "id": "workbenches",
+      "title": "Workbenches for larger jobs",
+      "features": [
+        {
+          "id": "document-health",
+          "title": "Document health",
+          "detail": "Inspect, compare, optimize, repair and sanitize, always into a copy",
+          "support": { "windows": "available", "linux": "available", "mac": "partial", "ipad": "partial", "iphone": "partial" },
+          "notes": {
+            "mac": "Inspect, optimize, repair and sanitize the open document; no comparison.",
+            "ipad": "Inspect, optimize, repair and sanitize the open document; no comparison.",
+            "iphone": "Inspect, optimize, repair and sanitize the open document; no comparison."
+          }
+        },
+        {
+          "id": "conversion-workbench",
+          "title": "Conversion workbench",
+          "detail": "Queue many files, review what each conversion approximates and preview the result",
+          "support": { "windows": "available", "linux": "available", "mac": "partial", "ipad": "partial", "iphone": "partial" },
+          "notes": {
+            "windows": "Office, OpenDocument, iWork, web, markup, email, e-book and image formats; failed files can be retried together.",
+            "linux": "Office, OpenDocument, iWork, web, markup, email, e-book and image formats; failed files can be retried together.",
+            "mac": "One file at a time, to or from PDF, without a queue. Shortcuts can repeat it.",
+            "ipad": "One file at a time, to or from PDF, without a queue. Shortcuts can repeat it.",
+            "iphone": "One file at a time, to or from PDF, without a queue. Shortcuts can repeat it."
+          }
+        },
+        {
+          "id": "pdf-assembly",
+          "title": "Assemble a PDF",
+          "detail": "PDFs, images, Office files, whole folders and ZIP archives in a chosen order",
+          "support": { "windows": "available", "linux": "available", "mac": "partial", "ipad": "partial", "iphone": "partial" },
+          "notes": {
+            "mac": "PDFs, images and Office files in a chosen order; no folders or ZIP archives.",
+            "ipad": "PDFs, images and Office files in a chosen order; no folders or ZIP archives.",
+            "iphone": "PDFs, images and Office files in a chosen order; no folders or ZIP archives."
+          }
+        },
+        {
+          "id": "batch-export",
+          "title": "Batch and page-image export",
+          "detail": "Whole folders to PDF, and pages to image files",
+          "support": { "windows": "available", "linux": "available", "mac": "partial", "ipad": "partial", "iphone": "partial" },
+          "notes": {
+            "windows": "Folders of Word and text files to PDF with checkpoints and retry; pages as PNG, JPEG, WebP, TIFF or SVG at a chosen resolution.",
+            "linux": "Folders of Word and text files to PDF with checkpoints and retry; pages as PNG, JPEG, WebP, TIFF or SVG at a chosen resolution.",
+            "mac": "Pages of the open document as PNG at 144 pixels per inch; no folder export.",
+            "ipad": "Pages of the open document as PNG at 144 pixels per inch; no folder export.",
+            "iphone": "Pages of the open document as PNG at 144 pixels per inch; no folder export."
+          }
+        },
+        {
+          "id": "output-workbench",
+          "title": "Print, export and assemble in one place",
+          "detail": "One workspace for print preview, page export and assembly, starting from the open document",
+          "support": { "windows": "available", "linux": "available", "mac": "partial", "ipad": "partial", "iphone": "partial" },
+          "notes": {
+            "mac": "The same tasks as separate commands: the system print panel, page-image export and Combine.",
+            "ipad": "The same tasks as separate commands: the system print sheet, page-image export and Combine.",
+            "iphone": "The same tasks as separate commands: the system print sheet, page-image export and Combine."
+          }
+        },
+        {
+          "id": "ocr-review",
+          "title": "Review recognized text",
+          "detail": "Check each word's position, confidence and language, and leave out words or pages before saving",
+          "support": { "windows": "available", "linux": "available", "mac": "not-applicable", "ipad": "not-applicable", "iphone": "not-applicable" },
+          "notes": {
+            "windows": "For one PDF, or a queue of PDFs and images that become searchable PDFs and text files.",
+            "linux": "For one PDF, or a queue of PDFs and images that become searchable PDFs and text files.",
+            "mac": "Text is recognized without a review step.",
+            "ipad": "Text is recognized without a review step.",
+            "iphone": "Text is recognized without a review step."
+          }
+        },
+        {
+          "id": "ocr-readiness",
+          "title": "OCR setup check",
+          "detail": "Finds the recognition engine and downloads verified language data",
+          "support": { "windows": "available", "linux": "available", "mac": "not-applicable", "ipad": "not-applicable", "iphone": "not-applicable" },
+          "notes": {
+            "windows": "Checks for an installed Tesseract; 28 recognition languages.",
+            "linux": "Checks for an installed Tesseract; 28 recognition languages.",
+            "mac": "The built-in Vision framework needs no setup.",
+            "ipad": "The built-in Vision framework needs no setup.",
+            "iphone": "The built-in Vision framework needs no setup."
+          }
+        },
+        {
+          "id": "scan-preparation",
+          "title": "Prepare scans",
+          "detail": "Crop, straighten, correct perspective and clean up a page before recognition",
+          "support": { "windows": "available", "linux": "available", "mac": "partial", "ipad": "partial", "iphone": "partial" },
+          "notes": {
+            "windows": "Previews the prepared page, and can save it as a pixel-only copy.",
+            "linux": "Previews the prepared page, and can save it as a pixel-only copy.",
+            "mac": "Page cropping only, without cleanup.",
+            "ipad": "The document camera crops and straightens pages as it captures them.",
+            "iphone": "The document camera crops and straightens pages as it captures them."
+          }
+        },
+        {
+          "id": "saved-jobs",
+          "title": "Saved jobs and run history",
+          "detail": "Save a folder conversion, plan it, run it again and review earlier runs",
+          "support": { "windows": "available", "linux": "available", "mac": "not-applicable", "ipad": "not-applicable", "iphone": "not-applicable" },
+          "notes": {
+            "windows": "Jobs use the shared job format, so the CLI and PowerShell run the same definitions. The latest 50 runs return after a restart.",
+            "linux": "Jobs use the shared job format, so the CLI and PowerShell run the same definitions. The latest 50 runs return after a restart.",
+            "mac": "Shortcuts actions cover repeated work.",
+            "ipad": "Shortcuts actions cover repeated work.",
+            "iphone": "Shortcuts actions cover repeated work."
+          }
+        },
+        {
+          "id": "book-workbench",
+          "title": "Publish books",
+          "detail": "Build a reflowable EPUB from Word, Markdown or HTML, or edit an existing EPUB, saved as a book project",
+          "support": { "windows": "available", "linux": "available", "mac": "not-applicable", "ipad": "not-applicable", "iphone": "not-applicable" }
+        },
+        {
+          "id": "invoice-workbench",
+          "title": "Electronic invoices",
+          "detail": "Inspect, validate and convert CII and UBL invoices, edit their headers, and create readable or hybrid PDFs",
+          "support": { "windows": "available", "linux": "available", "mac": "not-applicable", "ipad": "not-applicable", "iphone": "not-applicable" },
+          "notes": {
+            "windows": "Standards checks use pinned rules and need Java with Saxon.",
+            "linux": "Standards checks use pinned rules and need Java with Saxon."
+          }
+        },
+        {
+          "id": "provenance-workbench",
+          "title": "File origin and Content Credentials",
+          "detail": "Show Content Credentials and hidden Unicode characters, and remove origin records into a copy",
+          "support": { "windows": "available", "linux": "available", "mac": "not-applicable", "ipad": "not-applicable", "iphone": "not-applicable" },
+          "notes": {
+            "windows": "Signer names are shown as unverified; the panel does not establish identity or trust.",
+            "linux": "Signer names are shown as unverified; the panel does not establish identity or trust."
+          }
         }
       ]
     },

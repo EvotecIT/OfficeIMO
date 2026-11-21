@@ -137,7 +137,7 @@ namespace OfficeIMO.Tests {
             var main = document._wordprocessingDocument.MainDocumentPart!;
             var styles = main.StyleDefinitionsPart!.Styles!;
             OfficeTheme theme = OfficeTheme.Default;
-            var fonts = main.ThemePart!.Theme.ThemeElements!.FontScheme!;
+            var fonts = main.ThemePart!.Theme!.ThemeElements!.FontScheme!;
             Assert.Equal(theme.Fonts.Heading.Family, fonts.MinorFont!.LatinFont!.Typeface!.Value);
             double previous = double.MaxValue;
             foreach ((string id, OfficeLength size) in new[] {
@@ -168,7 +168,7 @@ namespace OfficeIMO.Tests {
             Style normal = styles.Elements<Style>().Single(item => item.StyleId == "Normal");
             Assert.Equal(ThemeFontValues.MinorAscii, normal.StyleRunProperties!.RunFonts!.AsciiTheme!.Value);
             Assert.Equal(OfficeTheme.Default.Fonts.Body.Family,
-                main.ThemePart!.Theme.ThemeElements!.FontScheme!.MinorFont!.LatinFont!.Typeface!.Value);
+                main.ThemePart!.Theme!.ThemeElements!.FontScheme!.MinorFont!.LatinFont!.Typeface!.Value);
             Assert.Equal((OfficeTheme.Default.TypeScale.Body.ToPoints() * 2D).ToString(System.Globalization.CultureInfo.InvariantCulture),
                 normal.StyleRunProperties.FontSize!.Val!.Value);
 

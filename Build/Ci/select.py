@@ -6,10 +6,29 @@ references are included so a platform-specific consumer cannot be silently lost.
 import argparse
 import fnmatch
 import json
+import math
 import os
 from pathlib import Path
 import subprocess
 import xml.etree.ElementTree as ET
+
+
+def windows_shards(rows, seconds):
+    """Balance selected contracts; the original rows remain the coverage inventory."""
+    if not rows:
+        return [{"name": "none", "projects": []}]
+    if len({r["name"] for r in rows}) != len(rows) or len({r["project"] for r in rows}) != len(rows):
+        raise ValueError("Windows contracts must have unique names and projects")
+    weights = {r["name"]: seconds.get(r["name"], 180) for r in rows}
+    if any(not isinstance(w, (int, float)) or not math.isfinite(w) or w <= 0 for w in weights.values()):
+        raise ValueError("Windows shard estimates must be positive finite seconds")
+    shards = [{"name": f"Shard-{i + 1:02}", "projects": [], "estimated_seconds": 0}
+              for i in range(min(11, len(rows)))]
+    for row in sorted(rows, key=lambda r: (-weights[r["name"]], r["name"])):
+        shard = min(shards, key=lambda s: (s["estimated_seconds"], s["name"]))
+        shard["projects"].append(row)
+        shard["estimated_seconds"] += weights[row["name"]]
+    return shards
 
 
 def tracked(root):
@@ -54,6 +73,7 @@ def select(root, changed, full=False):
     directly_changed = set()
     wide = full
     wide_paths = []
+    documentation_only = set(config.get("documentation_only", []))
     for path in changed:
         linked_consumers = {project for pattern, consumers in linked_inputs.items()
                             if fnmatch.fnmatchcase(path, pattern) for project in consumers}
@@ -66,7 +86,7 @@ def select(root, changed, full=False):
         # Exclude known prose only after accounting for linked build inputs.
         prose = path.endswith(".md") and (path.startswith("Docs/") or Path(path).name.lower() in
                   ("readme.md", "support.md", "migration.md", "agents.md", "license.md"))
-        if prose or path == ".gitignore":
+        if prose or path in documentation_only or path == ".gitignore":
             continue
         if path.startswith(("Website/", "OfficeIMO.JavaScript/")):
             continue
@@ -131,6 +151,7 @@ def select(root, changed, full=False):
         "ubuntu": {"include": ubuntu or [{"framework": "net10.0", "partition": "none"}]},
         "ubuntu_enabled": bool(ubuntu),
         "windows": {"include": windows or [{"name": "none", "project": "none"}]},
+        "windows_shards": {"include": windows_shards(windows, config.get("windows_shard_seconds", {}))},
         "windows_enabled": bool(windows),
         "managed": bool(affected),
         "projects": sorted(affected),

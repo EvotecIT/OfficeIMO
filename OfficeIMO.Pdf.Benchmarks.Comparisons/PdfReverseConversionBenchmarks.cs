@@ -36,39 +36,44 @@ public class PdfReverseConversionBenchmarks {
     public PdfBenchmarkScale Scale { get; set; }
 
     [GlobalSetup(Target = nameof(PdfToDocx))]
-    public void SetupDocx() => PrepareSourceAndValidate(ValidateDocx);
+    public void SetupDocx() => PrepareSourceAndValidate(nameof(PdfToDocx), ValidateDocx);
 
     [GlobalSetup(Target = nameof(PdfToHtml))]
-    public void SetupHtml() => PrepareSourceAndValidate(ValidateHtml);
+    public void SetupHtml() => PrepareSourceAndValidate(nameof(PdfToHtml), ValidateHtml);
 
     [GlobalSetup(Target = nameof(PdfToXlsx))]
-    public void SetupXlsx() => PrepareSourceAndValidate(ValidateXlsx);
+    public void SetupXlsx() => PrepareSourceAndValidate(nameof(PdfToXlsx), ValidateXlsx);
 
     [GlobalSetup(Target = nameof(PdfToPptx))]
-    public void SetupPptx() => PrepareSourceAndValidate(ValidatePptx);
+    public void SetupPptx() => PrepareSourceAndValidate(nameof(PdfToPptx), ValidatePptx);
 
     [GlobalSetup(Target = nameof(PdfToOdt))]
-    public void SetupOdt() => PrepareSourceAndValidate(ValidateOdt);
+    public void SetupOdt() => PrepareSourceAndValidate(nameof(PdfToOdt), ValidateOdt);
 
     [GlobalSetup(Target = nameof(PdfToOds))]
-    public void SetupOds() => PrepareSourceAndValidate(ValidateOds);
+    public void SetupOds() => PrepareSourceAndValidate(nameof(PdfToOds), ValidateOds);
 
     [GlobalSetup(Target = nameof(PdfToOdp))]
-    public void SetupOdp() => PrepareSourceAndValidate(ValidateOdp);
+    public void SetupOdp() => PrepareSourceAndValidate(nameof(PdfToOdp), ValidateOdp);
 
     [GlobalSetup(Target = nameof(PdfToPng))]
-    public void SetupPng() => PrepareSourceAndValidate(ValidatePng);
+    public void SetupPng() => PrepareSourceAndValidate(nameof(PdfToPng), ValidatePng);
 
-    private void PrepareSourceAndValidate(Action<PdfCore.PdfDocument> validate) {
+    private void PrepareSourceAndValidate(string route, Action<PdfCore.PdfDocument> validate) {
         _scenario = PdfBenchmarkScenario.Get(Scale);
         _source = PdfDocumentGenerators.Generate(Producer, _scenario);
         PdfBenchmarkValidation.ValidateGenerated(_source, _scenario, Producer + " reverse-conversion source");
         using var input = new MemoryStream(_source, writable: false);
         using PdfCore.PdfDocument source = PdfCore.PdfDocument.Load(input);
-        validate(source);
+        PdfBenchmarkValidation.Record(
+            "OfficeIMO",
+            route,
+            $"Producer={Producer}; Scale={Scale}; output reopened and checked for the source pages, text and tables",
+            () => validate(source));
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:PdfToDocx")]
     public int PdfToDocx() {
         using var input = new MemoryStream(_source, writable: false);
         using PdfCore.PdfDocument source = PdfCore.PdfDocument.Load(input);
@@ -77,6 +82,7 @@ public class PdfReverseConversionBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:PdfToHtml")]
     public int PdfToHtml() {
         using var input = new MemoryStream(_source, writable: false);
         using PdfCore.PdfDocument source = PdfCore.PdfDocument.Load(input);
@@ -84,6 +90,7 @@ public class PdfReverseConversionBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:PdfToXlsx")]
     public int PdfToXlsx() {
         using var input = new MemoryStream(_source, writable: false);
         using PdfCore.PdfDocument source = PdfCore.PdfDocument.Load(input);
@@ -93,6 +100,7 @@ public class PdfReverseConversionBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:PdfToPptx")]
     public int PdfToPptx() {
         using var pptInput = new MemoryStream(_source, writable: false);
         using PdfCore.PdfDocument pptSource = PdfCore.PdfDocument.Load(pptInput);
@@ -104,6 +112,7 @@ public class PdfReverseConversionBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:PdfToOdt")]
     public int PdfToOdt() {
         using var input = new MemoryStream(_source, writable: false);
         using PdfCore.PdfDocument source = PdfCore.PdfDocument.Load(input);
@@ -112,6 +121,7 @@ public class PdfReverseConversionBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:PdfToOds")]
     public int PdfToOds() {
         using var input = new MemoryStream(_source, writable: false);
         using PdfCore.PdfDocument source = PdfCore.PdfDocument.Load(input);
@@ -120,6 +130,7 @@ public class PdfReverseConversionBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:PdfToOdp")]
     public int PdfToOdp() {
         using var input = new MemoryStream(_source, writable: false);
         using PdfCore.PdfDocument source = PdfCore.PdfDocument.Load(input);
@@ -128,6 +139,7 @@ public class PdfReverseConversionBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:PdfToPng")]
     public int PdfToPng() {
         using var input = new MemoryStream(_source, writable: false);
         using PdfCore.PdfDocument source = PdfCore.PdfDocument.Load(input);
@@ -207,6 +219,30 @@ public class PdfReverseConversionBenchmarks {
             options: new PdfCore.PdfPageRenderOptions { Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png, Dpi = 72D });
         if (pngPages.Count != _scenario.PageCount || pngPages.Any(static page => !page.Succeeded || page.Bytes is null || page.Bytes.Length <= 24)) {
             throw new InvalidOperationException("PNG reverse conversion did not produce one valid visual artifact per source page.");
+        }
+
+        // Decode every page: at 72 DPI the image is the page size in points (read independently with PdfPig), and the
+        // rendered text leaves dark pixels.
+        using UglyToad.PdfPig.PdfDocument geometry = UglyToad.PdfPig.PdfDocument.Open(_source);
+        for (int index = 0; index < pngPages.Count; index++) {
+            PdfCore.PdfPageRenderResult page = pngPages[index];
+            global::OfficeIMO.Drawing.OfficeRasterImage image = global::OfficeIMO.Drawing.OfficeRasterImageDecoder.Decode(page.Bytes!);
+            UglyToad.PdfPig.Content.Page sourcePage = geometry.GetPage(index + 1);
+            int expectedWidth = (int)Math.Round(sourcePage.Width);
+            int expectedHeight = (int)Math.Round(sourcePage.Height);
+            if (image.Width != page.Width || image.Height != page.Height ||
+                Math.Abs(image.Width - expectedWidth) > 1 || Math.Abs(image.Height - expectedHeight) > 1) {
+                throw new InvalidOperationException(
+                    $"PNG page {index + 1} decoded as {image.Width}x{image.Height}; expected {expectedWidth}x{expectedHeight} at 72 DPI.");
+            }
+            byte[] pixels = image.GetPixels();
+            int darkPixels = 0;
+            for (int offset = 0; offset + 3 < pixels.Length; offset += 4) {
+                if (pixels[offset + 3] > 0 && pixels[offset] + pixels[offset + 1] + pixels[offset + 2] < 384) darkPixels++;
+            }
+            if (darkPixels < 100) {
+                throw new InvalidOperationException($"PNG page {index + 1} has {darkPixels} dark pixels; the page text was not drawn.");
+            }
         }
     }
 

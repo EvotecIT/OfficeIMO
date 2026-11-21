@@ -127,7 +127,7 @@ public static partial class HtmlResourcePipeline {
         IReadOnlyDictionary<IElement, HtmlComputedStyle>? computedStyles = null) {
         CssCustomPropertyDefinition[] candidates = sources.ToArray();
         bool hasLayeredSource = candidates.Any(source =>
-            source.SourceOwner?.TextContent.IndexOf("@layer", StringComparison.OrdinalIgnoreCase) >= 0);
+            (source.SourceOwner == null ? -1 : HtmlStyleElementText.Read(source.SourceOwner).IndexOf("@layer", StringComparison.OrdinalIgnoreCase)) >= 0);
         if (hasLayeredSource && useElement != null && computedStyles != null && computedStyles.TryGetValue(useElement, out HtmlComputedStyle? style)) {
             string effectiveValue = style.GetValue(propertyName).Trim();
             CssCustomPropertyDefinition[] effectiveMatches = candidates

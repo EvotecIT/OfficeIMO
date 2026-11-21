@@ -162,6 +162,109 @@ public sealed class PdfAutomationCommandTests {
         Assert.DoesNotContain("private-provider-message", string.Join(" ", result.Content.OfType<TextContentBlock>().Select(item => item.Text)));
     }
 
+    [Fact]
+    public async Task PdfAConversionListsChangesAndARefusalExitsAsUnsupportedWithoutWriting() {
+        using var scope = new DirectoryScope();
+        string source = scope.File("source.pdf"), destination = scope.File("archive.pdf"), refused = scope.File("refused.pdf");
+        await File.WriteAllBytesAsync(source, PdfWithAttachment());
+
+        var converted = await Run(["convert-to-pdfa", source, "--output", destination, "--profile", "2b", "--attachments", "remove"]);
+        var refusal = await Run(["convert-to-pdfa", source, "--output", refused, "--attachments", "refuse"]);
+
+        Assert.Equal(0, converted.Exit);
+        Assert.Equal(2, PdfReadDocument.Open(await File.ReadAllBytesAsync(destination)).XmpMetadata?.PdfAPart);
+        using (var json = JsonDocument.Parse(converted.Output)) {
+            JsonElement report = json.RootElement.GetProperty("pdfA");
+            Assert.Equal("PDF/A-2b", report.GetProperty("profile").GetString());
+            Assert.Contains(report.GetProperty("changes").EnumerateArray(), change => change.GetProperty("code").GetString() == "EmbeddedFileRemoved" &&
+                change.GetProperty("objectNumber").GetInt32() == 5);
+        }
+        Assert.Contains("change EmbeddedFileRemoved", converted.Error, StringComparison.Ordinal);
+        Assert.Equal((int)OfficeImoToolExitCode.UnsupportedInput, refusal.Exit);
+        Assert.Contains("violation EmbeddedFileNotAllowed", refusal.Error, StringComparison.Ordinal);
+        Assert.False(File.Exists(refused));
+    }
+
+    [Fact]
+    public async Task PdfAConversionEitherFitsItsBudgetOrIsRefusedBeforeWritingAndKeepsTheCompleteReport() {
+        using var scope = new DirectoryScope();
+        string source = scope.File("source.pdf"); await File.WriteAllBytesAsync(source, PdfWithAttachment());
+        var service = new OfficeImoAgentService(new AgentPathPolicy([scope.Root]));
+        // The smallest budget a short destination needs, plus half the path growth the loop adds.
+        int budget = 512;
+        while (true) {
+            try { await service.ConvertToPdfAAsync(source, scope.File("b" + budget + ".pdf"), new PdfAWorkflowSettings(), new(), budget); break; }
+            catch (AgentUsageException) { budget += 8; }
+        }
+        budget += 240;
+        int converted = 0;
+        // Destinations of growing length cross the point where only the PDF/A report no longer fits.
+        int refused = 0;
+        for (int length = 1; length <= 480; length += 3) {
+            string folder = Directory.CreateDirectory(scope.File(length + new string('d', Math.Max(0, length - 240)))).FullName;
+            string destination = Path.Combine(folder, new string('a', Math.Min(length, 240)) + ".pdf");
+            AgentPdfAReport? complete = null;
+            AgentPdfWorkflowResult result;
+            try {
+                result = await service.ConvertToPdfAAsync(source, destination, new PdfAWorkflowSettings(), new(), budget, report => complete = report);
+            } catch (AgentUsageException) {
+                Assert.False(File.Exists(destination));
+                refused++;
+                continue;
+            }
+            converted++;
+            Assert.True(result.Succeeded);
+            Assert.True(AgentJson.Serialize(result).Length <= budget);
+            Assert.NotNull(complete);
+            Assert.Equal(complete!.ChangeCount, complete.Changes.Count);
+            Assert.Equal(complete.ChangeCount, result.PdfA!.ChangeCount);
+        }
+        Assert.True(converted > 0 && refused > 0, $"converted={converted} refused={refused} budget={budget}");
+    }
+
+    [Fact]
+    public async Task PdfAConversionThroughMcpReadsFontsOnlyWithinAllowedRoots() {
+        using var scope = new DirectoryScope();
+        string allowed = Directory.CreateDirectory(scope.File("allowed")).FullName;
+        string source = Path.Combine(allowed, "source.pdf"), destination = Path.Combine(allowed, "archive.pdf"), outsideFont = scope.File("font.ttf");
+        await File.WriteAllBytesAsync(source, PdfWithAttachment());
+        await File.WriteAllBytesAsync(outsideFont, [0, 1, 0, 0]);
+        var tools = new OfficeImoMcpTools(new OfficeImoAgentService(new AgentPathPolicy([allowed])));
+
+        var outside = await tools.ConvertToPdfAAsync(source, destination, fonts: ["Archive Sans=" + outsideFont]);
+        var converted = await tools.ConvertToPdfAAsync(source, destination, profile: "3b");
+
+        Assert.True(outside.IsError);
+        Assert.False(converted.IsError);
+        JsonElement report = converted.StructuredContent!.Value.GetProperty("pdfA");
+        Assert.Equal("PDF/A-3b", report.GetProperty("profile").GetString());
+        Assert.Equal(0, report.GetProperty("violationCount").GetInt32());
+        Assert.Single(PdfDocument.Load(destination).Attachments.Extract());
+    }
+
+    // A vector-only page with one embedded file, so conversion does not depend on installed fonts.
+    internal static byte[] PdfWithAttachment() {
+        string[] objects = [
+            "<< /Type /Catalog /Pages 2 0 R /Names << /EmbeddedFiles << /Names [(data.xml) 5 0 R] >> >> >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << >> /Contents 4 0 R >>",
+            "<< /Length 21 >>\nstream\n0 g 20 20 50 50 re f\n\nendstream",
+            "<< /Type /Filespec /F (data.xml) /EF << /F 6 0 R >> >>",
+            "<< /Type /EmbeddedFile /Length 7 >>\nstream\n<data/>\nendstream"
+        ];
+        var pdf = new System.Text.StringBuilder("%PDF-1.4\n");
+        var offsets = new List<int>();
+        for (int index = 0; index < objects.Length; index++) {
+            offsets.Add(pdf.Length);
+            pdf.Append(index + 1).Append(" 0 obj\n").Append(objects[index]).Append("\nendobj\n");
+        }
+        int xref = pdf.Length;
+        pdf.Append("xref\n0 ").Append(objects.Length + 1).Append("\n0000000000 65535 f \n");
+        foreach (int offset in offsets) pdf.Append(offset.ToString("0000000000", System.Globalization.CultureInfo.InvariantCulture)).Append(" 00000 n \n");
+        pdf.Append("trailer\n<< /Size ").Append(objects.Length + 1).Append(" /Root 1 0 R >>\nstartxref\n").Append(xref).Append("\n%%EOF\n");
+        return System.Text.Encoding.ASCII.GetBytes(pdf.ToString());
+    }
+
     private static async Task<(int Exit, string Output, string Error)> Run(string[] args, OcrEngineCatalog? catalog = null) {
         using var output = new StringWriter(); using var error = new StringWriter();
         int exit = await PdfCommand.RunAsync(args, output, error, ocrCatalog: catalog);

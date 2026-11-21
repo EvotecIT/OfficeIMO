@@ -23,7 +23,6 @@ internal sealed partial class OfficeVp8Encoder {
     private readonly byte[] _predictionModesPredictedU = new byte[64];
     private readonly byte[] _predictionModesPredictedV = new byte[64];
     private readonly byte[] _predictionPredicted = new byte[256];
-    private readonly int[] _transformTemporaryInt = new int[16];
     private readonly double[] _transformTemporaryDouble = new double[16];
     private readonly int[] _macroblockModes = new int[MacroblockSubBlockCount];
 }

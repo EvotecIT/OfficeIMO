@@ -33,7 +33,7 @@ validates all 256 outputs outside timing. Select it with
 `--filter '*FormulaLookupScaleBenchmarks*'`. Binary mode requires sorted input;
 these measurements do not apply to unsorted data.
 
-The [8 October 2026 report](../../Docs/benchmarks/officeimo.excel-tabular-2026-10-08.md)
+The 8 October 2026 report
 records the captured Windows .NET 10 matrix, artifact and input identities,
 measurement samples, warnings, and first-row versus full-scan boundaries.
 

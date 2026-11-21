@@ -6,23 +6,47 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Left of the shape.</summary>
         public OfficeLength Left {
             get => OfficeLength.Emus(PeekOffset()?.X?.Value ?? 0L);
-            set => GetOffset().X = value.ToEmus();
+            set {
+                GetOffset().X = value.ToEmus();
+                OnGeometryChanged();
+            }
         }
         /// <summary>Top of the shape.</summary>
         public OfficeLength Top {
             get => OfficeLength.Emus(PeekOffset()?.Y?.Value ?? 0L);
-            set => GetOffset().Y = value.ToEmus();
+            set {
+                GetOffset().Y = value.ToEmus();
+                OnGeometryChanged();
+            }
         }
         /// <summary>Width of the shape.</summary>
         public OfficeLength Width {
             get => OfficeLength.Emus(PeekExtents()?.Cx?.Value ?? 0L);
-            set => GetExtents().Cx = value.ToEmus();
+            set {
+                GetExtents().Cx = value.ToEmus();
+                OnGeometryChanged();
+            }
         }
         /// <summary>Height of the shape.</summary>
         public OfficeLength Height {
             get => OfficeLength.Emus(PeekExtents()?.Cy?.Value ?? 0L);
-            set => GetExtents().Cy = value.ToEmus();
+            set {
+                GetExtents().Cy = value.ToEmus();
+                OnGeometryChanged();
+            }
         }
+
+        /// <summary>
+        ///     Connection sites where connectors can be glued, in slide coordinates. Empty when the geometry
+        ///     declares no sites this library can resolve.
+        /// </summary>
+        public IReadOnlyList<PowerPointConnectionSite> ConnectionSites =>
+            PowerPointConnectorGeometry.TryGetSites(this, out List<PowerPointConnectionSite> sites)
+                ? sites
+                : Array.Empty<PowerPointConnectionSite>();
+
+        // Glued connectors follow geometry edits made through this API.
+        internal void OnGeometryChanged() => OwnerSlide?.RerouteConnectorsAttachedTo(this);
 
         internal bool TryGetExportBoundsPoints(out double left, out double top, out double width, out double height) {
             bool found = TryGetBoundsPoints(out left, out top, out width, out height);

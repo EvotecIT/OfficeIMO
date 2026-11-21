@@ -53,6 +53,15 @@ namespace OfficeIMO.Excel.Utilities {
         internal static bool TryNormalizeContentTypes(byte[] package, long maxCharactersInPart, out byte[] normalized, out bool changed) {
             normalized = package;
             changed = false;
+            switch (TryNormalizePlainContentTypes(package, maxCharactersInPart, out byte[]? plain)) {
+                case PlainOutcome.Unchanged:
+                    return true;
+                case PlainOutcome.Normalized:
+                    normalized = plain!;
+                    changed = true;
+                    return true;
+            }
+
             using var input = new MemoryStream(package, writable: false);
             if (!NeedsContentTypeNormalization(input, maxCharactersInPart)) return true;
 

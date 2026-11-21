@@ -39,23 +39,24 @@ public sealed partial class OfficeRasterCanvas {
     internal void StrokeContours(IReadOnlyList<OfficeFlattenedPathContour> contours, double width,
         OfficeStrokeLineCap cap, OfficeStrokeLineJoin join, double miterLimit,
         IReadOnlyList<double>? dashPattern, double dashOffset, Func<double, double, OfficeColor> paint,
-        bool resetDashPatternForEachSegment = false, bool hairline = false) {
+        bool resetDashPatternForEachSegment = false, bool hairline = false, bool fillDisjointGroups = false) {
         if (!IsFinite(width) || width <= 0D) return;
-        if (hairline && TryStrokeDeviceHairline(contours, cap, join, miterLimit, dashPattern, dashOffset, OfficeTransform.Identity, paint)) return;
+        if (hairline && TryStrokeDeviceHairline(contours, cap, join, miterLimit, dashPattern, dashOffset, OfficeTransform.Identity, paint, fillDisjointGroups)) return;
         width = AdjustStrokeWidth(width, DevicePixelsPerLogicalUnit, hairline);
         if (TryStrokeAdjustedContours(contours, width, cap, join, miterLimit, dashPattern, OfficeTransform.Identity, paint)) return;
         var outlines = OfficeStrokeGeometry.Create(contours, width, cap, join, miterLimit, dashPattern, dashOffset, 1D,
             0D, 0D, Width / CoordinateScaleX, Height / CoordinateScaleY, _cancellationToken, resetDashPatternForEachSegment);
         var fillContours = new List<IReadOnlyList<OfficePoint>>(outlines.Count);
         foreach (List<OfficePoint> outline in outlines) fillContours.Add(outline);
-        FillContourPaint(fillContours, OfficeFillRule.NonZero, paint);
+        if (fillDisjointGroups) FillDisjointContourGroups(fillContours, OfficeFillRule.NonZero, paint);
+        else FillContourPaint(fillContours, OfficeFillRule.NonZero, paint);
     }
 
     private void StrokePolyline(IReadOnlyList<OfficePoint> points, OfficeColor color, double width,
         bool closed = false, IReadOnlyList<double>? pattern = null, double offset = 0D, bool reset = false) {
         if (color.A == 0 || points == null || points.Count == 0) return;
         StrokeContours(new[] { new OfficeFlattenedPathContour(points, closed) }, width,
-            OfficeStrokeLineCap.Round, OfficeStrokeLineJoin.Round, 4D, pattern, offset, (_, _) => color, reset);
+            OfficeStrokeLineCap.Round, OfficeStrokeLineJoin.Round, 4D, pattern, offset, SolidPaint(color), reset);
     }
 
 }

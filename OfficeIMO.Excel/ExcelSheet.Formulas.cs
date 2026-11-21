@@ -47,10 +47,21 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public void InvalidateFormulas() {
             WriteLock(() => {
-                foreach (var formula in WorksheetRoot.Descendants<CellFormula>()) {
+                foreach (var formula in ExcelWorksheetScan.CellFormulas(WorksheetRoot)) {
                     formula.CalculateCell = true;
                 }
             });
+        }
+
+        /// <summary>
+        /// Applies deferred defined-name formula marks. It runs from package access, which may already hold the
+        /// document lock, so it marks the cells without taking it.
+        /// </summary>
+        internal void MarkFormulasForRecalculation() {
+            foreach (var formula in ExcelWorksheetScan.CellFormulas(WorksheetRoot)) {
+                formula.CalculateCell = true;
+            }
+            MarkRequiresSavePreparation();
         }
 
         /// <summary>
@@ -133,7 +144,10 @@ namespace OfficeIMO.Excel {
 
                 try {
                     if (_excelDocument.WorkbookPartRoot.CellMetadataPart != null) PlanDynamicArrayOwners();
-                    foreach (var cell in ExcelWorksheetScan.FormulaCells(WorksheetRoot).ToList()) {
+                    List<Cell> formulaCells = ExcelWorksheetScan.FormulaCells(WorksheetRoot).ToList();
+                    context.ReserveFormulaCells(Name, formulaCells.Count);
+                    recalculatedCells.Capacity = formulaCells.Count;
+                    foreach (var cell in formulaCells) {
                         _formulaEvaluationGuardState.DependencyGuardBlocked = false;
                         if (!TryEvaluateFormulaCellValue(cell, out FormulaArgumentValue result)) {
                             allFormulasEvaluated = false;

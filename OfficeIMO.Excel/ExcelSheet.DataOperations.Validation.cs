@@ -120,8 +120,8 @@ namespace OfficeIMO.Excel {
         /// Applies a time validation to the specified A1 range.
         /// </summary>
         internal void CreateDataValidationTime(string a1Range, ExcelDataValidationOperator @operator, TimeSpan formula1, TimeSpan? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
-            string f1 = InvariantNumberText.Get(formula1.TotalDays);
-            string? f2 = formula2.HasValue ? InvariantNumberText.Get(formula2.Value.TotalDays) : null;
+            string f1 = InvariantNumberText.Get(ExcelDateSystemConverter.ToSerial(formula1));
+            string? f2 = formula2.HasValue ? InvariantNumberText.Get(ExcelDateSystemConverter.ToSerial(formula2.Value)) : null;
             ValidationAdd(a1Range, DataValidationValues.Time, @operator.ToOpenXml(), f1, f2, allowBlank, errorTitle, errorMessage);
         }
 

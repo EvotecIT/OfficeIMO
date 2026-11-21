@@ -23,6 +23,8 @@ internal static class PdfWinAnsiEncoding {
         'ð','ñ','ò','ó','ô','õ','ö','÷','ø','ù','ú','û','ü','ý','þ','ÿ'
     };
 
+    private static readonly string[] SingleCodeStrings = PdfEncoding.CreateSingleCharacterStrings(Map);
+
     private static readonly System.Collections.Generic.Dictionary<char, byte> ReverseMap = BuildReverse();
 
     public static string Decode(byte[] bytes) {
@@ -35,6 +37,15 @@ internal static class PdfWinAnsiEncoding {
         if (bytes.LongLength > maxOutputCharacters) {
             throw PdfReadLimitException.Create(PdfReadLimitKind.DecodedTextCharacters, maxOutputCharacters, bytes.LongLength);
         }
+        // Text runs decode one glyph code at a time; those results share one string per code.
+        if (bytes.Length == 1) return SingleCodeStrings[bytes[0]];
+#if NET8_0_OR_GREATER
+        if (!cancellationToken.CanBeCanceled) {
+            return string.Create(bytes.Length, bytes, static (destination, source) => {
+                for (int i = 0; i < source.Length; i++) destination[i] = Map[source[i]];
+            });
+        }
+#endif
         var chars = new char[bytes.Length];
         for (int i = 0; i < bytes.Length; i++) {
             if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();

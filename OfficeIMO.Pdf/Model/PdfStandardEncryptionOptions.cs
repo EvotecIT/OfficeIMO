@@ -85,8 +85,40 @@ public sealed class PdfStandardEncryptionOptions {
         set => _permissions = ToRawPermissions(value);
     }
 
+    /// <summary>Set when these options carry public-key (certificate) encryption through the shared writer.</summary>
+    internal PdfPublicKeyEncryptionOptions? PublicKey { get; private set; }
+
+    /// <summary>The 20-byte seed every recipient receives with the permissions; the file key derives from it.</summary>
+    internal byte[]? PublicKeySeed { get; private set; }
+
+    internal static PdfStandardEncryptionOptions ForPublicKey(PdfPublicKeyEncryptionOptions encryption) {
+        Guard.NotNull(encryption, nameof(encryption));
+        var seed = new byte[20];
+        using (System.Security.Cryptography.RandomNumberGenerator random = System.Security.Cryptography.RandomNumberGenerator.Create()) {
+            random.GetBytes(seed);
+        }
+
+        return new PdfStandardEncryptionOptions {
+            PublicKey = encryption,
+            PublicKeySeed = seed,
+            Permissions = encryption.Permissions,
+            EncryptMetadata = encryption.EncryptMetadata,
+            AesCryptographyProvider = encryption.AesCryptographyProvider
+        };
+    }
+
     /// <summary>Creates a deep copy of the encryption options.</summary>
     public PdfStandardEncryptionOptions Clone() {
+        if (PublicKey is not null) {
+            return new PdfStandardEncryptionOptions {
+                PublicKey = PublicKey,
+                PublicKeySeed = PublicKeySeed,
+                Permissions = Permissions,
+                EncryptMetadata = EncryptMetadata,
+                AesCryptographyProvider = AesCryptographyProvider
+            };
+        }
+
         var copy = UserPassword.Length == 0
             ? ForPermissions(OwnerPassword!, AllowedPermissions)
             : new PdfStandardEncryptionOptions(UserPassword);

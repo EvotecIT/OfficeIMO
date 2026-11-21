@@ -1,0 +1,110 @@
+{
+  "surfaces": [
+    { "id": "dotnet", "label": ".NET packages", "url": "/libraries/" },
+    { "id": "powershell", "label": "PowerShell", "url": "/powershell/" },
+    { "id": "agents", "label": "CLI, MCP and AI agents", "url": "/agents/" },
+    { "id": "studio", "label": "Studio", "url": "/studio/#features" }
+  ],
+  "jobs": [
+    {
+      "id": "create",
+      "title": "Create",
+      "summary": "Build Word, Excel, PowerPoint, PDF, Markdown and e-book files from code, templates or data.",
+      "dotnet": { "packages": ["OfficeIMO.Word", "OfficeIMO.Excel", "OfficeIMO.PowerPoint", "OfficeIMO.Pdf", "OfficeIMO.Markdown", "OfficeIMO.Epub"] },
+      "powershell": { "guide": "/docs/pswriteoffice/word/", "commands": ["New-OfficeWord", "New-OfficeExcel", "New-OfficePowerPoint", "New-OfficePdf", "New-OfficeEpub", "Invoke-OfficeWordMailMerge"] },
+      "agents": { "guide": "/agents/", "cli": ["workflow"], "tools": ["officeimo_convert", "officeimo_pdf_assemble"] },
+      "studio": { "features": ["book-workbench", "pdf-assembly", "scan-paper"] }
+    },
+    {
+      "id": "read",
+      "title": "Read and extract",
+      "summary": "Pull text, tables, images and structure out of documents and mail, including scanned pages.",
+      "dotnet": { "packages": ["OfficeIMO.Reader.All", "OfficeIMO.Reader.Pdf", "OfficeIMO.Reader.Ocr", "OfficeIMO.Reader.Email"] },
+      "powershell": { "guide": "/docs/pswriteoffice/reader/", "commands": ["Read-OfficeDocument", "New-OfficeDocumentReader", "Export-OfficeDocumentAsset", "Open-OfficeEmailMailbox"] },
+      "agents": { "guide": "/agents/", "cli": ["read", "inspect", "reader", "query"], "tools": ["officeimo_inspect", "officeimo_search", "officeimo_fetch", "officeimo_search_email", "officeimo_pdf_ocr"] },
+      "studio": { "features": ["search", "select-text", "make-searchable", "ocr-review"] }
+    },
+    {
+      "id": "convert",
+      "title": "Convert",
+      "summary": "Move content between Office, OpenDocument, PDF, web, markup, mail and e-book formats.",
+      "routes": true,
+      "dotnet": { "guide": "/compatibility/", "packages": ["OfficeIMO.Workflows", "OfficeIMO.Word.Pdf", "OfficeIMO.Excel.Pdf", "OfficeIMO.Html.Pdf"] },
+      "powershell": { "guide": "/docs/pswriteoffice/automation-patterns/", "commands": ["Convert-OfficeDocument", "ConvertTo-OfficeMarkdown", "ConvertTo-OfficeDocumentImage"] },
+      "agents": { "guide": "/cli/", "cli": ["convert", "html", "tabular", "markup"], "tools": ["officeimo_convert", "officeimo_pdf_convert_to_pdfa", "officeimo_pdf_export_pages"] },
+      "studio": { "features": ["to-pdf", "from-pdf", "conversion-workbench", "batch-export"] }
+    },
+    {
+      "id": "edit",
+      "title": "Edit and organize",
+      "summary": "Change text and images, and split, combine, reorder and stamp pages.",
+      "dotnet": { "packages": ["OfficeIMO.Pdf", "OfficeIMO.Word", "OfficeIMO.Excel", "OfficeIMO.PowerPoint"] },
+      "powershell": { "guide": "/docs/pswriteoffice/pdf/", "commands": ["Merge-OfficeDocument", "Split-OfficeDocument", "Move-OfficePdfPage", "Remove-OfficePdfPage", "Add-OfficePdfWatermark", "Update-OfficeWordText"] },
+      "agents": { "guide": "/agents/", "cli": ["pdf", "workflow"], "tools": ["officeimo_pdf_split", "officeimo_pdf_assemble", "officeimo_pdf"] },
+      "studio": { "features": ["edit-text", "images", "page-edits", "combine", "split", "page-stamps", "pdf-assembly"] }
+    },
+    {
+      "id": "review",
+      "title": "Review and annotate",
+      "summary": "Mark up, comment, track changes and compare versions.",
+      "dotnet": { "packages": ["OfficeIMO.Pdf", "OfficeIMO.Word", "OfficeIMO.Excel"] },
+      "powershell": { "guide": "/docs/pswriteoffice/pdf/", "commands": ["Get-OfficePdfAnnotation", "Set-OfficePdfAnnotation", "Get-OfficeWordReview", "Compare-OfficeDocument", "Add-OfficeExcelComment"] },
+      "agents": { "guide": "/agents/", "cli": ["workflow", "pdf"], "tools": ["officeimo_pdf_compare", "officeimo_pdf_redline"] },
+      "studio": { "features": ["text-markup", "drawing", "notes", "shapes", "comments", "compare"] }
+    },
+    {
+      "id": "forms",
+      "title": "Forms",
+      "summary": "Fill, create, import, export and flatten form fields.",
+      "dotnet": { "packages": ["OfficeIMO.Pdf"] },
+      "powershell": { "guide": "/docs/pswriteoffice/pdf/", "commands": ["Get-OfficePdfFormField", "Set-OfficePdfFormField", "Add-OfficePdfFormField", "Import-OfficePdfXfdf", "Export-OfficePdfXfdf"] },
+      "agents": { "guide": "/agents/", "cli": ["pdf"], "tools": ["officeimo_pdf"] },
+      "studio": { "features": ["fill-forms", "create-fields", "flatten"] }
+    },
+    {
+      "id": "protect",
+      "title": "Protect",
+      "summary": "Encrypt, redact and remove hidden data or origin records before sharing.",
+      "dotnet": { "packages": ["OfficeIMO.Security", "OfficeIMO.Pdf", "OfficeIMO.Provenance.C2pa"] },
+      "powershell": { "guide": "/docs/pswriteoffice/before-sharing/", "commands": ["Protect-OfficeDocument", "Unprotect-OfficeDocument", "Remove-OfficePdfContent", "Get-OfficeHiddenData", "Remove-OfficeHiddenData"] },
+      "agents": { "guide": "/agents/", "cli": ["pdf", "hidden-data", "provenance"], "tools": ["officeimo_inspect_hidden_data", "officeimo_remove_hidden_data", "officeimo_pdf"] },
+      "studio": { "features": ["protect", "redact", "provenance-workbench", "document-health"] }
+    },
+    {
+      "id": "sign",
+      "title": "Sign and validate",
+      "summary": "Sign with certificates, check existing signatures, and validate invoices and file origin.",
+      "dotnet": { "packages": ["OfficeIMO.Pdf", "OfficeIMO.Security", "OfficeIMO.Invoicing.Validation", "OfficeIMO.Provenance.C2pa"] },
+      "powershell": { "guide": "/docs/pswriteoffice/pdf/", "commands": ["New-OfficePdfSignature", "Set-OfficePdfSignature", "Get-OfficePdfSignature", "Test-OfficeDocument", "Get-OfficeDocumentProvenance"] },
+      "agents": { "guide": "/agents/", "cli": ["invoice", "provenance"], "tools": [] },
+      "studio": { "features": ["handwritten-signature", "certificate-signature", "validate", "invoice-workbench"] }
+    },
+    {
+      "id": "standards",
+      "title": "Accessibility and standards",
+      "summary": "Check PDFs against PDF/UA-1 with the Matterhorn Protocol, check Office files for accessibility, and produce PDF/A.",
+      "dotnet": { "packages": ["OfficeIMO.Pdf", "OfficeIMO.Core"] },
+      "powershell": { "guide": "/docs/pswriteoffice/pdf/", "commands": ["Test-OfficePdfAccessibility", "Test-OfficeAccessibility", "Get-OfficePdfCompliance", "Set-OfficePdfCompliance"] },
+      "agents": { "guide": "/agents/", "cli": ["accessibility", "pdf"], "tools": ["officeimo_check_accessibility", "officeimo_pdf_convert_to_pdfa"] },
+      "studio": { "features": ["validate"] }
+    },
+    {
+      "id": "print",
+      "title": "Print",
+      "summary": "Plan sheets, preview them and send documents to a printer.",
+      "dotnet": { "packages": ["OfficeIMO.Workflows"] },
+      "powershell": { "guide": "/docs/pswriteoffice/pdf/", "commands": ["Send-OfficePrinter", "Get-OfficePrinter", "Get-OfficePrinterCapability", "Get-OfficePrintJob", "Stop-OfficePrintJob"] },
+      "agents": { "guide": "/agents/", "cli": ["workflow"], "tools": ["officeimo_pdf_print_plan"] },
+      "studio": { "features": ["print", "output-workbench"] }
+    },
+    {
+      "id": "automate",
+      "title": "Automate",
+      "summary": "Repeat document work in scripts, CI jobs, saved jobs and agent conversations.",
+      "dotnet": { "packages": ["OfficeIMO", "OfficeIMO.Workflows"] },
+      "powershell": { "guide": "/docs/pswriteoffice/automation-patterns/", "commands": ["Convert-OfficeDocument", "Import-OfficeConversionReport", "Get-OfficeDocumentCapability"] },
+      "agents": { "guide": "/agents/", "cli": ["workflow", "agent", "mcp"], "tools": ["officeimo_capabilities", "officeimo_convert"], "skills": true },
+      "studio": { "features": ["automation", "saved-jobs"] }
+    }
+  ]
+}

@@ -32,15 +32,23 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     && HtmlRenderSourceIdentity.TryGet(textNode.ParentElement, out string interactionSource)
                     ? interactionSource
                     : inheritedStyle.SemanticRole;
-                runs.Add(new HtmlInlineRun(
-                    textNode.Data,
+                int? semanticSourceOrder = GetSemanticSourceOrder(textNode);
+                void AddText(string text) => runs.Add(new HtmlInlineRun(
+                    text,
                     inheritedStyle,
                     inheritedLink,
                     source,
                     inheritedPaintOffsetX,
                     inheritedPaintOffsetY,
                     textNode.ParentElement,
-                    textTransformPending: true) { IsTextTransformContextOnly = contextOnly, SemanticSourceOrder = GetSemanticSourceOrder(textNode) });
+                    textTransformPending: true) { IsTextTransformContextOnly = contextOnly, SemanticSourceOrder = semanticSourceOrder });
+                if (inheritedStyle.PreserveLineBreaks && !inheritedStyle.PreserveWhitespace && !contextOnly
+                    && textNode.Data.IndexOfAny(SegmentBreakCharacters) >= 0) {
+                    AddPreservedLineBreakRuns(textNode.Data, AddText, () => runs.Add(new HtmlInlineRun("\u2028", inheritedStyle,
+                        inheritedLink, source, inheritedPaintOffsetX, inheritedPaintOffsetY, textNode.ParentElement)));
+                } else {
+                    AddText(inheritedStyle.CollapseSegmentBreaks ? ReplaceSegmentBreaks(textNode.Data) : textNode.Data);
+                }
             }
 
             return;

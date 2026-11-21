@@ -55,6 +55,7 @@ internal sealed partial class CsvLineReader
                 CsvSimdMasks.ReadText32Arm(ref text, pos, (byte)delimiter,
                     out delimiterMask, out quoteMask, out newlineMask);
             }
+            quoteMask &= _quoteMask;
             var terminalMask = quoteMask | newlineMask;
 
             if (terminalMask != 0)
@@ -150,6 +151,7 @@ internal sealed partial class CsvLineReader
                 CsvSimdMasks.ReadText32Arm(ref text, pos, (byte)delimiter,
                     out delimiterMask, out quoteMask, out newlineMask);
             }
+            quoteMask &= _quoteMask;
             var terminalMask = quoteMask | newlineMask;
 
             if (terminalMask != 0)

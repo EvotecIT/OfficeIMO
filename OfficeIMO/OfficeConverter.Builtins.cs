@@ -24,7 +24,8 @@ public static partial class OfficeConverter {
     private static readonly HashSet<string> BuiltinRouteIds = new HashSet<string>(new[] {
         "email-pdf", "epub-pdf", "reader-visio-pdf", "doc-pdf", "docx-pdf", "xls-pdf", "xlsb-pdf", "xlsx-pdf", "ppt-pdf", "pptx-pdf", "markdown-pdf", "html-pdf", "txt-pdf",
         "word-xml-docx", "spreadsheet-xml-xlsx", "pdf-docx", "pdf-xlsx", "pdf-pptx", "pdf-html", "docx-html", "pptx-html", "docx-markdown", "html-docx", "html-markdown", "markdown-docx", "markdown-html"
-    }.Concat(OfficeConversionCapabilityCatalog.All.Where(route => route.Id.StartsWith("native-", StringComparison.Ordinal)).Select(route => route.Id)), StringComparer.OrdinalIgnoreCase);
+    }.Concat(OfficeConversionCapabilityCatalog.All.Where(route => route.Id.StartsWith("native-", StringComparison.Ordinal)).Select(route => route.Id))
+        .Concat(DataRouteIds), StringComparer.OrdinalIgnoreCase);
 
     private static async Task<OfficeConversionReport> ConvertCapturedCoreAsync(Stream input, Stream output,
         OfficeConversionOptions settings, CancellationToken token) {
@@ -37,7 +38,8 @@ public static partial class OfficeConverter {
         ValidateDestinationSaveFormats(settings);
         string id = SelectRoute(settings).Id;
         ValidateThemeRoute(settings, id);
-        if (settings.OutputProfile != OfficeConversionProfile.Faithful && id is not ("doc-pdf" or "docx-pdf" or "xls-pdf" or "xlsb-pdf" or "xlsx-pdf" or "ppt-pdf" or "pptx-pdf"))
+        if (settings.OutputProfile != OfficeConversionProfile.Faithful && id is not ("doc-pdf" or "docx-pdf" or "xls-pdf" or "xlsb-pdf" or "xlsx-pdf" or "ppt-pdf" or "pptx-pdf")
+            && !(id == "email-pdf" && settings.OutputProfile == OfficeConversionProfile.TextOnly))
             throw new ArgumentException("The selected route supports only the Faithful output profile.", nameof(settings));
         if (Registrations.TryGetValue(id, out IOfficeConversionRoute? registration)) {
             OfficeConversionReport registeredReport = await registration.ConvertAsync(input, output, settings, token).ConfigureAwait(false);
@@ -52,6 +54,9 @@ public static partial class OfficeConverter {
         OfficeConversionReport? sourceReport = null;
         try {
         switch (id) {
+            case "email-pdf" when settings.OutputProfile != OfficeConversionProfile.TextOnly:
+                result = await ConvertEmailPdfAsync(input, output, settings, token).ConfigureAwait(false);
+                break;
             case "email-pdf":
             case "epub-pdf":
             case "reader-visio-pdf":
@@ -113,7 +118,12 @@ public static partial class OfficeConverter {
             case "ppt-pdf":
             case "pptx-pdf":
             case "pptx-html": {
-                using PowerPointDocument document = await PowerPointDocument.LoadAsync(input, PowerPointInputOptions(settings), token).ConfigureAwait(false);
+                PowerPointLoadOptions loadOptions = PowerPointInputOptions(settings);
+                // A PPTX to PDF route only reads the presentation. Opening it read-only keeps
+                // disposal from rewriting every package entry the conversion read. Caller-supplied
+                // load options keep the access they asked for.
+                if (id == "pptx-pdf" && settings.PowerPointLoad == null) loadOptions.AccessMode = DocumentAccessMode.ReadOnly;
+                using PowerPointDocument document = await PowerPointDocument.LoadAsync(input, loadOptions, token).ConfigureAwait(false);
                 sourceReport = document.CreateLoadReport(settings.SourceName!, timer.Elapsed);
                 if (settings.FailOnLoss) sourceReport.ThrowIfLoss();
                 if (id == "pptx-html") result = await ConvertPowerPointHtmlAsync(document, output, settings, token).ConfigureAwait(false);
@@ -150,9 +160,16 @@ public static partial class OfficeConverter {
             case "markdown-pdf":
             case "markdown-docx":
             case "markdown-html": {
-                MarkdownLoadOptions load = id == "markdown-html" ? settings.MarkdownHtml?.ReaderOptions?.Clone() ?? new()
+                MarkdownLoadOptions? callerLoad = id == "markdown-html" ? settings.MarkdownHtml?.ReaderOptions
+                    : id == "markdown-docx" ? settings.MarkdownWord?.ReaderOptions : null;
+                MarkdownLoadOptions load = id == "markdown-html" ? callerLoad?.Clone() ?? new()
                     : id == "markdown-docx" ? (settings.MarkdownWord ?? new()).CreateReaderOptions() : new();
                 load.MaxInputBytes = Math.Min(load.MaxInputBytes ?? settings.MaximumInputBytes, settings.MaximumInputBytes);
+                // The document is converted once and disposed, so only caller code can read its source
+                // information: HTML renderers and extensions receive parsed blocks with their source spans.
+                // Reader options the caller passed keep their own setting.
+                load.CaptureSyntaxTree = callerLoad?.CaptureSyntaxTree
+                    ?? (id == "markdown-html" && settings.MarkdownHtml?.HasCallerRenderHooks == true);
                 using MarkdownDocument document = await MarkdownDocument.LoadAsync(input, load, token).ConfigureAwait(false);
                 if (id == "markdown-pdf") {
                     MarkdownPdfExportOptions options = settings.Markdown ?? new(); options.FailOnLoss |= settings.FailOnLoss;
@@ -212,7 +229,10 @@ public static partial class OfficeConverter {
                     itemsWritten: saved.Pipeline.Output?.PageCount ?? 0);
                 break;
             }
-            default: throw new NotSupportedException("Register the owning adapter before executing this route.");
+            default:
+                if (!IsDataRoute(id)) throw new NotSupportedException("Register the owning adapter before executing this route.");
+                result = ConvertData(id, input, output, settings, token);
+                break;
         }
         } catch (OfficeConversionException error) when (sourceReport != null) {
             var report = new OfficeConversionReport(settings.SourceName!, settings.TargetName!,

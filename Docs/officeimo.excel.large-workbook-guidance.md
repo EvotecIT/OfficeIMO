@@ -92,7 +92,7 @@ The transaction revalidates ownership conflicts, retains a bounded rollback snap
 Use the benchmark harness for repeatable local evidence:
 
 ```powershell
-dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- comparison-suite --out-dir .\Docs\benchmarks\comparison-current --row-set 2500,25000 --skip-legacy-epplus --warmup 20 --iterations 9
+dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- comparison-suite --out-dir .\artifacts\benchmarks\comparison-current --row-set 2500,25000 --warmup 20 --iterations 9
 dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- write-profile --rows 25000
 dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- read-profile --rows 25000
 ```
@@ -125,6 +125,5 @@ substitute one platform when another platform is missing.
 
 ## Related Evidence
 
-- Benchmark artifact guide: `Docs/benchmarks/README.md`
 - Benchmark notes: `Docs/officeimo.excel.benchmark-notes.md`
 - Current capability matrix: `OfficeIMO.Excel/COMPATIBILITY.md`

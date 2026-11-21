@@ -391,7 +391,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(officeSnapshot, useMinimumCanvas: true, diagnostics);
+            if (!TryRenderChart(officeSnapshot, diagnostics, snapshot.SheetName + "!" + chart.Snapshot.Name, out OfficeDrawing drawing)) return;
             drawing.Fonts.AddRange(options.Fonts);
             drawing.AppendFontDiagnostics(
                 diagnostics ?? new List<OfficeImageExportDiagnostic>(),
@@ -431,7 +431,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(officeSnapshot, useMinimumCanvas: true, diagnostics);
+            if (!TryRenderChart(officeSnapshot, diagnostics, snapshot.SheetName + "!" + chart.Snapshot.Name, out OfficeDrawing drawing)) return;
             drawing.Fonts.AddRange(options.Fonts);
             drawing.AppendFontDiagnostics(
                 diagnostics ?? new List<OfficeImageExportDiagnostic>(),
@@ -451,6 +451,23 @@ namespace OfficeIMO.Excel {
                 drawing.Width,
                 drawing.Height,
                 OfficeSvgFormatting.ExtractSvgInner(chartSvg));
+        }
+
+        // The renderer rejects charts it cannot draw as Office does; the range keeps its other content.
+        private static bool TryRenderChart(OfficeChartSnapshot officeSnapshot, List<OfficeImageExportDiagnostic>? diagnostics, string source,
+            out OfficeDrawing drawing) {
+            try {
+                drawing = OfficeChartDrawingRenderer.Render(officeSnapshot, useMinimumCanvas: true, diagnostics);
+                return true;
+            } catch (NotSupportedException error) {
+                diagnostics?.Add(ExcelImageExportDiagnosticClassifier.Create(
+                    OfficeImageExportDiagnosticSeverity.Warning,
+                    ExcelImageExportDiagnosticCodes.ChartKindUnsupported,
+                    "Worksheet chart cannot be drawn by the shared image renderer: " + error.Message,
+                    source));
+                drawing = null!;
+                return false;
+            }
         }
 
         internal static bool TryCreateOfficeChartSnapshot(ExcelChartInfo snapshot, double width, double height, List<OfficeImageExportDiagnostic>? diagnostics, string sheetName, out OfficeChartSnapshot? officeSnapshot) {

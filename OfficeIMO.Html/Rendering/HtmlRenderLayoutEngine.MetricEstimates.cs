@@ -45,14 +45,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
-    /// <summary>Freezes font coverage while this text is constructed, before a later iframe imports faces.</summary>
+    /// <summary>
+    /// Freezes font coverage while this text is constructed, before a later iframe imports faces.
+    /// Callers pass a visual they have just created and not shared, which records it in place.
+    /// </summary>
     private HtmlRenderText CaptureTextMetricProvenance(HtmlRenderText text) {
         if (text.EstimatedFontMetrics.HasValue) return text;
         bool estimated = _options.FallbackTextMeasurement == null && text.PreparedShaping == null
             && (_estimatedMetricRequests.Contains((text.Font.FamilyName, text.FontDescriptor))
                 || _estimatedMetricRequestsSaturated)
             && !HasCoveringMetricFont(text, _fonts);
-        return text.WithEstimatedFontMetrics(estimated);
+        return text.FreezeEstimatedFontMetrics(estimated);
     }
 
     private void AddTextMetricVisual(ICollection<HtmlRenderVisual> visuals, HtmlRenderText text) =>

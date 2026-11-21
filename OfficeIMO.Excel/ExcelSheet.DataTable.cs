@@ -78,10 +78,12 @@ namespace OfficeIMO.Excel {
             if (table.Columns.Count > 0 && table.Rows.Count + (includeHeaders ? 1L : 0L) > 0) {
                 long lastRow = (long)startRow + table.Rows.Count + (includeHeaders ? 1L : 0L) - 1;
                 long lastColumn = (long)startColumn + table.Columns.Count - 1;
-                EnsureDynamicArrayRangeWritable(startRow, startColumn,
-                    (int)Math.Min(lastRow, int.MaxValue), (int)Math.Min(lastColumn, int.MaxValue));
-                writesTableHeader = RangeContainsTableHeader(startRow, startColumn,
-                    (int)Math.Min(lastRow, int.MaxValue), (int)Math.Min(lastColumn, int.MaxValue));
+                int bottom = (int)Math.Min(lastRow, int.MaxValue), right = (int)Math.Min(lastColumn, int.MaxValue);
+                // The write index and table parts are shared with concurrent writers, which apply under this lock.
+                writesTableHeader = Locking.ExecuteWrite(_excelDocument.EnsureLock(), () => {
+                    EnsureDynamicArrayRangeWritable(startRow, startColumn, bottom, right);
+                    return RangeContainsTableHeader(startRow, startColumn, bottom, right);
+                });
             }
 
             bool canRegisterDirectSave = !writesTableHeader && registerDirectSaveCandidate

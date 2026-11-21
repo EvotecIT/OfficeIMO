@@ -187,6 +187,7 @@ namespace OfficeIMO.Word {
                 // Once the mutable package escapes, Open XML edits cannot be observed reliably.
                 // Resolve against current parts instead of reusing a derived numbering catalog.
                 _openXmlDocumentAccessed = true;
+                WordStyleDefinitionsReader.StopStreaming(_wordprocessingDocument);
                 return _wordprocessingDocument;
             }
         }

@@ -159,7 +159,7 @@ public static partial class HtmlNormalizer {
         builder.Append('>');
         if (!VoidElements.Contains(name)) {
             if (name == "style" && options.PreserveStyleElements) {
-                string styleText = NormalizeCssUrls(element.TextContent, options.BaseUri, GetResourceUrlPolicy(options), options.Limits, cancellationToken);
+                string styleText = NormalizeCssUrls(HtmlStyleElementText.Read(element), options.BaseUri, GetResourceUrlPolicy(options), options.Limits, cancellationToken);
                 if (styleText.Length > 0) {
                     builder.Append(EscapeRawTextElementContent(styleText, "style"));
                 }

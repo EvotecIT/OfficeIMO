@@ -52,6 +52,10 @@ public static partial class OfficeDrawingRasterRenderer {
     // visible unwrapped paragraph ink measured with the layer's effective text profile.
     private static EffectTextLayerPlan CreateEffectTextLayer(OfficeDrawing drawing, OfficeRasterCanvas canvas,
         double scaleX, double scaleY, bool interpolate) {
+        // A proofed page retains its own bounds rather than expanding to descendant text overhangs.
+        if (drawing.PostCompositionColorTransform != null)
+            return new EffectTextLayerPlan(drawing, 0D, scaleX, scaleY, interpolate,
+                Array.Empty<(double Left, double Top, double Right, double Bottom)>());
         double scale = Math.Max(scaleX, scaleY);
         using var metricScope = canvas.PushFontMetricScale(scale);
         var paragraphInk = new List<(double Left, double Top, double Right, double Bottom)>(

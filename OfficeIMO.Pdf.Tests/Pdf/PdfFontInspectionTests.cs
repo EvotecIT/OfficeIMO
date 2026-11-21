@@ -51,6 +51,17 @@ public sealed class PdfFontInspectionTests {
         Assert.True(descriptor.IsItalic);
     }
 
+    [Theory]
+    [InlineData("ABCDEF+Carlito-Bold-Identity-H", true, false)]
+    [InlineData("Carlito-BoldItalic-Identity-V", true, true)]
+    [InlineData("ABCDEF+Carlito-Identity-H", false, false)]
+    [InlineData("ABCDEF+Carlito-Bold", true, false)]
+    [InlineData("Carlito", false, false)]
+    public void FontStyle_ReadsStyleBeforeIdentityCMapSuffixOfType0FontNames(string baseFont, bool bold, bool italic) {
+        Assert.Equal(bold, PdfFontStyleEvidence.IsBold(baseFont, fontWeight: null));
+        Assert.Equal(italic, PdfFontStyleEvidence.IsItalic(baseFont, fontDescriptorFlags: null));
+    }
+
     [Fact]
     public void FontInspectionDiagnosticCodes_PreserveStableLegacyValues() {
         Assert.Equal(0, (int)PdfFontInspectionDiagnosticCode.MissingBaseFont);

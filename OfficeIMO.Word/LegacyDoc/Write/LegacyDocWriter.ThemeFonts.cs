@@ -5,13 +5,17 @@ using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.Word.LegacyDoc.Write {
     internal static partial class LegacyDocWriter {
+        // The document being written. Style definitions read from the style catalog are detached from the package,
+        // so fonts inside them find the theme through it.
+        [ThreadStatic] private static MainDocumentPart? t_writingMainPart;
+
         private static RunFonts ResolveNativeThemeRunFonts(RunFonts fonts, A.FontScheme? scheme = null) {
             if (fonts.AsciiTheme == null && fonts.HighAnsiTheme == null &&
                 fonts.EastAsiaTheme == null && fonts.ComplexScriptTheme == null) return fonts;
 
             if (scheme == null) {
                 OpenXmlPartRootElement? root = fonts.Ancestors<OpenXmlPartRootElement>().LastOrDefault();
-                MainDocumentPart? main = (root?.OpenXmlPart?.OpenXmlPackage as WordprocessingDocument)?.MainDocumentPart;
+                MainDocumentPart? main = root == null ? t_writingMainPart : (root.OpenXmlPart?.OpenXmlPackage as WordprocessingDocument)?.MainDocumentPart;
                 scheme = main?.ThemePart?.Theme?.ThemeElements?.FontScheme;
             }
 

@@ -9,6 +9,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Validation;
 using LargeXlsx;
+using OfficeIMO.Benchmarks;
 using MiniExcelApi = MiniExcelLibs.MiniExcel;
 using MiniExcelConfiguration = MiniExcelLibs.OpenXml.OpenXmlConfiguration;
 using MiniExcelTableStyles = MiniExcelLibs.OpenXml.TableStyles;
@@ -45,6 +46,16 @@ internal static partial class ExcelLibraryComparisonRunner {
     };
     private static readonly XlsxStyle LargeXlsxDateTimeStyle = XlsxStyle.Default.With(new XlsxNumberFormat("yyyy-mm-dd hh:mm"));
     private static IReadOnlySet<string>? _libraryFilter;
+
+    // Case library names that belong to restricted libraries in Build/benchmark-libraries.json, by library id.
+    private static readonly IReadOnlyDictionary<string, string> RestrictedLibraries =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["EPPlus"] = "epplus" };
+
+    // Scenarios that matched the filters but whose selected libraries are all restricted and not enabled.
+    private static readonly List<string> RestrictedOnlyScenarios = new();
+
+    private static bool IsLibraryAllowed(string library) =>
+        !RestrictedLibraries.TryGetValue(library, out string? libraryId) || BenchmarkLibrarySelection.IsEnabled(libraryId);
 #if DEBUG
     private const string BuildConfiguration = "Debug";
 #else
@@ -77,6 +88,10 @@ internal static partial class ExcelLibraryComparisonRunner {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(measuredIterations);
 
         _libraryFilter = BuildLibraryFilter(libraryFilters);
+        RestrictedOnlyScenarios.Clear();
+        foreach (var restricted in RestrictedLibraries.Where(static restricted => !BenchmarkLibrarySelection.IsEnabled(restricted.Value))) {
+            Console.WriteLine(BenchmarkLibrarySelection.SkippedMessage(restricted.Value));
+        }
         var scenarioFilter = BuildScenarioFilter(scenarioFilters);
         if (ContainsOnlyHelloWorldScenarios(scenarioFilter)) {
             var helloWorldScenarios = new List<ExcelLibraryComparisonScenario>();
@@ -225,21 +240,30 @@ internal static partial class ExcelLibraryComparisonRunner {
             new LibraryComparisonCase("MiniExcel", "Stream the same DataTable-backed IDataReader as plain worksheet rows and save.", () => MiniExcelWriteDataReaderPlain(salesDataTable)),
             new LibraryComparisonCase("SpreadCheetah", "Stream the same DataTable-backed IDataReader as typed worksheet rows and save.", () => SpreadCheetahWriteDataReaderPlain(salesDataTable)),
             new LibraryComparisonCase("Sylvan.Data.Excel", "Stream the same DataTable-backed DbDataReader through ExcelDataWriter and save.", () => SylvanWriteDataReaderPlain(salesDataTable)),
-            new LibraryComparisonCase("LargeXlsx", "Stream the same DataTable-backed IDataReader as plain worksheet rows and save.", () => LargeXlsxWriteDataReaderPlain(salesDataTable))
+            new LibraryComparisonCase("LargeXlsx", "Stream the same DataTable-backed IDataReader as plain worksheet rows and save.", () => LargeXlsxWriteDataReaderPlain(salesDataTable)),
+#if NET10_0_OR_GREATER
+            new LibraryComparisonCase("OneDocument", "Stream the same DataTable-backed IDataReader through its forward-only XLSX writer and save.", () => OneDocumentWriteDataReaderPlain(salesDataTable))
+#endif
         ]);
 
         AddScenarioGroup(scenarios, scenarioFilter, "write-datareader-direct-package", warmupIterations, measuredIterations, [
             new LibraryComparisonCase("OfficeIMO.Excel", "Write the prepared DataTable-backed IDataReader through the package-native OfficeIMO API.", () => OfficeImoWriteDataReaderDirectPackage(salesDataTable)),
             new LibraryComparisonCase("SpreadCheetah", "Stream the same prepared DataTable-backed reader as typed worksheet rows.", () => SpreadCheetahWriteDataReaderPlain(salesDataTable)),
             new LibraryComparisonCase("Sylvan.Data.Excel", "Stream the same prepared DataTable-backed reader through ExcelDataWriter.", () => SylvanWriteDataReaderPlain(salesDataTable)),
-            new LibraryComparisonCase("LargeXlsx", "Stream the same prepared DataTable-backed IDataReader as plain worksheet rows.", () => LargeXlsxWriteDataReaderPlain(salesDataTable))
+            new LibraryComparisonCase("LargeXlsx", "Stream the same prepared DataTable-backed IDataReader as plain worksheet rows.", () => LargeXlsxWriteDataReaderPlain(salesDataTable)),
+#if NET10_0_OR_GREATER
+            new LibraryComparisonCase("OneDocument", "Stream the same prepared DataTable-backed reader through its forward-only XLSX writer.", () => OneDocumentWriteDataReaderPlain(salesDataTable))
+#endif
         ]);
 
         AddScenarioGroup(scenarios, scenarioFilter, "write-datareader-compact-package", warmupIterations, measuredIterations, [
             new LibraryComparisonCase("OfficeIMO.Excel", "Write a compact contiguous package through the package-native OfficeIMO DataReader API.", () => OfficeImoWriteDataReaderCompactPackage(salesDataTable)),
             new LibraryComparisonCase("SpreadCheetah", "Stream the same reader as compact forward-only typed worksheet rows.", () => SpreadCheetahWriteDataReaderPlain(salesDataTable)),
             new LibraryComparisonCase("Sylvan.Data.Excel", "Stream the same reader using implicit contiguous cell positions.", () => SylvanWriteDataReaderPlain(salesDataTable)),
-            new LibraryComparisonCase("LargeXlsx", "Stream the same reader with cell references disabled.", () => LargeXlsxWriteDataReaderPlainCompact(salesDataTable))
+            new LibraryComparisonCase("LargeXlsx", "Stream the same reader with cell references disabled.", () => LargeXlsxWriteDataReaderPlainCompact(salesDataTable)),
+#if NET10_0_OR_GREATER
+            new LibraryComparisonCase("OneDocument", "Stream the same reader through its forward-only XLSX writer.", () => OneDocumentWriteDataReaderPlain(salesDataTable))
+#endif
         ]);
 
         AddScenarioGroup(scenarios, scenarioFilter, "write-cellvalues-rectangle-direct", warmupIterations, measuredIterations, [
@@ -675,6 +699,10 @@ internal static partial class ExcelLibraryComparisonRunner {
         AddHelloWorldScenarioGroups(scenarios, scenarioFilter, rowCount, warmupIterations, measuredIterations);
 
         if (scenarios.Count == 0) {
+            if (RestrictedOnlyScenarios.Count > 0) {
+                throw new ArgumentException(
+                    $"The requested libraries in {string.Join(", ", RestrictedOnlyScenarios)} are restricted and not enabled; see Build/benchmark-libraries.json.");
+            }
             throw new ArgumentException("No comparison scenarios matched the requested --scenario filter.");
         }
 
@@ -801,21 +829,30 @@ internal static partial class ExcelLibraryComparisonRunner {
             new PackageProfileCase("MiniExcel", "Stream the same DataTable-backed IDataReader as plain worksheet rows and save.", () => MiniExcelWriteDataReaderPlainBytes(salesDataTable)),
             new PackageProfileCase("SpreadCheetah", "Stream the same DataTable-backed IDataReader as typed worksheet rows and save.", () => SpreadCheetahWriteDataReaderPlainBytes(salesDataTable)),
             new PackageProfileCase("Sylvan.Data.Excel", "Stream the same DataTable-backed DbDataReader through ExcelDataWriter and save.", () => SylvanWriteDataReaderPlainBytes(salesDataTable)),
-            new PackageProfileCase("LargeXlsx", "Stream the same DataTable-backed IDataReader as plain worksheet rows and save.", () => LargeXlsxWriteDataReaderPlainBytes(salesDataTable))
+            new PackageProfileCase("LargeXlsx", "Stream the same DataTable-backed IDataReader as plain worksheet rows and save.", () => LargeXlsxWriteDataReaderPlainBytes(salesDataTable)),
+#if NET10_0_OR_GREATER
+            new PackageProfileCase("OneDocument", "Stream the same DataTable-backed IDataReader through its forward-only XLSX writer and save.", () => OneDocumentWriteDataReaderPlainBytes(salesDataTable))
+#endif
         ]);
 
         AddPackageProfileGroup(scenarios, scenarioFilter, "write-datareader-direct-package", warmupIterations, measuredIterations, [
             new PackageProfileCase("OfficeIMO.Excel", "Write the prepared DataTable-backed IDataReader through the package-native OfficeIMO API.", () => OfficeImoWriteDataReaderDirectPackageBytes(salesDataTable)),
             new PackageProfileCase("SpreadCheetah", "Stream the same prepared DataTable-backed reader as typed worksheet rows.", () => SpreadCheetahWriteDataReaderPlainBytes(salesDataTable)),
             new PackageProfileCase("Sylvan.Data.Excel", "Stream the same prepared DataTable-backed reader through ExcelDataWriter.", () => SylvanWriteDataReaderPlainBytes(salesDataTable)),
-            new PackageProfileCase("LargeXlsx", "Stream the same prepared DataTable-backed IDataReader as plain worksheet rows.", () => LargeXlsxWriteDataReaderPlainBytes(salesDataTable))
+            new PackageProfileCase("LargeXlsx", "Stream the same prepared DataTable-backed IDataReader as plain worksheet rows.", () => LargeXlsxWriteDataReaderPlainBytes(salesDataTable)),
+#if NET10_0_OR_GREATER
+            new PackageProfileCase("OneDocument", "Stream the same prepared DataTable-backed reader through its forward-only XLSX writer.", () => OneDocumentWriteDataReaderPlainBytes(salesDataTable))
+#endif
         ]);
 
         AddPackageProfileGroup(scenarios, scenarioFilter, "write-datareader-compact-package", warmupIterations, measuredIterations, [
             new PackageProfileCase("OfficeIMO.Excel", "Write a compact contiguous package through the package-native OfficeIMO DataReader API.", () => OfficeImoWriteDataReaderCompactPackageBytes(salesDataTable)),
             new PackageProfileCase("SpreadCheetah", "Stream the same reader as compact forward-only typed worksheet rows.", () => SpreadCheetahWriteDataReaderPlainBytes(salesDataTable)),
             new PackageProfileCase("Sylvan.Data.Excel", "Stream the same reader using implicit contiguous cell positions.", () => SylvanWriteDataReaderPlainBytes(salesDataTable)),
-            new PackageProfileCase("LargeXlsx", "Stream the same reader with cell references disabled.", () => LargeXlsxWriteDataReaderPlainBytes(salesDataTable, requireCellReferences: false))
+            new PackageProfileCase("LargeXlsx", "Stream the same reader with cell references disabled.", () => LargeXlsxWriteDataReaderPlainBytes(salesDataTable, requireCellReferences: false)),
+#if NET10_0_OR_GREATER
+            new PackageProfileCase("OneDocument", "Stream the same reader through its forward-only XLSX writer.", () => OneDocumentWriteDataReaderPlainBytes(salesDataTable))
+#endif
         ]);
 
         AddPackageProfileGroup(scenarios, scenarioFilter, "write-cellvalues-rectangle-direct", warmupIterations, measuredIterations, [
@@ -1158,10 +1195,15 @@ internal static partial class ExcelLibraryComparisonRunner {
             return;
         }
 
-        IReadOnlyList<LibraryComparisonCase> selectedCases = _libraryFilter == null
-            ? cases
-            : cases.Where(comparisonCase => _libraryFilter.Contains(comparisonCase.Library)).ToArray();
+        IReadOnlyList<LibraryComparisonCase> selectedCases = cases
+            .Where(comparisonCase => (_libraryFilter == null || _libraryFilter.Contains(comparisonCase.Library))
+                && IsLibraryAllowed(comparisonCase.Library))
+            .ToArray();
         if (selectedCases.Count == 0) {
+            if (cases.Any(comparisonCase => (_libraryFilter == null || _libraryFilter.Contains(comparisonCase.Library))
+                && !IsLibraryAllowed(comparisonCase.Library))) {
+                RestrictedOnlyScenarios.Add(scenario);
+            }
             return;
         }
 
@@ -1208,6 +1250,7 @@ internal static partial class ExcelLibraryComparisonRunner {
             return;
         }
 
+        cases = cases.Where(packageCase => IsLibraryAllowed(packageCase.Library)).ToArray();
         Console.WriteLine($"Running {scenario} package profile group...");
         var semanticSnapshots = new List<WorkbookSemanticSnapshot>(cases.Count);
         foreach (var packageCase in cases) {
@@ -2491,7 +2534,7 @@ internal static partial class ExcelLibraryComparisonRunner {
         IReadOnlyList<(string Library, Func<byte[]> CreatePackage)> cases) {
         int expectedMetric = ReadSalesDataReaderMetric(sourceWorkbookBytes, "Data", dataRange);
         foreach (var copyCase in cases) {
-            if (_libraryFilter != null && !_libraryFilter.Contains(copyCase.Library)) {
+            if ((_libraryFilter != null && !_libraryFilter.Contains(copyCase.Library)) || !IsLibraryAllowed(copyCase.Library)) {
                 continue;
             }
 

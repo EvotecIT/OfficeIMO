@@ -28,6 +28,7 @@ namespace OfficeIMO.PowerPoint {
             if (normalized != null) return AddImage(normalized, OfficeIMO.Drawing.OfficeImageFormat.Png, left, top, width, height);
 
             OfficeIMO.Drawing.OfficeImageFormat imageType = GetImagePartType(imagePath);
+            if (imageType == OfficeIMO.Drawing.OfficeImageFormat.Svg) return AddImage(source, imageType, left, top, width, height);
             PartTypeInfo partTypeInfo = imageType.ToPartTypeInfo();
             string imageExtension = PowerPointPartFactory.GetImageExtension(imageType, imagePath);
             string imagePartUri = PowerPointPartFactory.GetIndexedPartUri(
@@ -97,24 +98,34 @@ namespace OfficeIMO.PowerPoint {
             using MemoryStream? normalized = PowerPointImageNormalization.NormalizeHeicForEmbedding(image, imageType);
             if (normalized != null) return AddImage(normalized, OfficeIMO.Drawing.OfficeImageFormat.Png, left, top, width, height);
 
-            PartTypeInfo partTypeInfo = imageType.ToPartTypeInfo();
-            string imageExtension = PowerPointPartFactory.GetImageExtension(imageType);
-            string imagePartUri = PowerPointPartFactory.GetIndexedPartUri(
-                _slidePart.OpenXmlPackage,
-                "ppt/media",
-                "image",
-                imageExtension,
-                allowBaseWithoutIndex: false);
-            uint shapeId = AllocateShapeId();
-            ImagePart imagePart = PowerPointPartFactory.CreatePart<ImagePart>(
-                _slidePart,
-                partTypeInfo.ContentType,
-                imagePartUri);
             if (image.CanSeek) {
                 image.Position = 0;
             }
-            imagePart.FeedData(image);
-            string relationshipId = _slidePart.GetIdOfPart(imagePart);
+            // An SVG picture stores its PNG fallback in the ordinary blip and the SVG in the Office 2016 blip extension.
+            byte[]? svgBytes = null;
+            byte[]? fallbackPng = null;
+            if (imageType == OfficeIMO.Drawing.OfficeImageFormat.Svg) {
+                byte[] svg = OfficeIMO.Core.Internal.OfficeStreamReader.ReadAllBytes(image);
+                if (OfficeIMO.Core.Internal.OfficeSvgPictureFallback.TryCreate(svg, out byte[] png, out _, out _)) {
+                    svgBytes = svg;
+                    fallbackPng = png;
+                } else {
+                    image = new MemoryStream(svg, writable: false);
+                }
+            }
+
+            uint shapeId = AllocateShapeId();
+            string relationshipId = fallbackPng != null
+                ? AddSlideImagePart(new MemoryStream(fallbackPng, writable: false), OfficeIMO.Drawing.OfficeImageFormat.Png)
+                : AddSlideImagePart(image, imageType);
+            var blip = new A.Blip { Embed = relationshipId };
+            if (svgBytes != null) {
+                string svgRelationshipId = AddSlideImagePart(new MemoryStream(svgBytes, writable: false), OfficeIMO.Drawing.OfficeImageFormat.Svg);
+                blip.Append(new A.BlipExtensionList(new A.BlipExtension(
+                    new DocumentFormat.OpenXml.Office2019.Drawing.SVG.SVGBlip { Embed = svgRelationshipId }) {
+                    Uri = OfficeIMO.Core.Internal.OfficeSvgPictureFallback.BlipExtensionUri
+                }));
+            }
 
             string name = GenerateUniqueName("Picture");
             DocumentFormat.OpenXml.Presentation.Picture picture = new(
@@ -124,7 +135,7 @@ namespace OfficeIMO.PowerPoint {
                     new ApplicationNonVisualDrawingProperties()
                 ),
                 new BlipFill(
-                    new A.Blip { Embed = relationshipId },
+                    blip,
                     new A.Stretch(new A.FillRectangle())
                 ),
                 new ShapeProperties(
@@ -154,6 +165,22 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointImage AddImage(Stream image, OfficeIMO.Drawing.OfficeImageFormat imageType, PowerPointLayoutBox layout) {
             return AddImage(image, imageType, layout.Left, layout.Top, layout.Width, layout.Height);
+        }
+
+        private string AddSlideImagePart(Stream data, OfficeIMO.Drawing.OfficeImageFormat imageType) {
+            PartTypeInfo partTypeInfo = imageType.ToPartTypeInfo();
+            string imagePartUri = PowerPointPartFactory.GetIndexedPartUri(
+                _slidePart.OpenXmlPackage,
+                "ppt/media",
+                "image",
+                PowerPointPartFactory.GetImageExtension(imageType),
+                allowBaseWithoutIndex: false);
+            ImagePart imagePart = PowerPointPartFactory.CreatePart<ImagePart>(
+                _slidePart,
+                partTypeInfo.ContentType,
+                imagePartUri);
+            imagePart.FeedData(data);
+            return _slidePart.GetIdOfPart(imagePart);
         }
 
         private static OfficeIMO.Drawing.OfficeImageFormat GetImagePartType(string imagePath) {

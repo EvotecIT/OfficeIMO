@@ -16,6 +16,11 @@ namespace OfficeIMO.Excel {
         /// <param name="newSheetName">Requested name for the copied worksheet.</param>
         /// <param name="validationMode">How to validate or sanitize <paramref name="newSheetName"/>.</param>
         /// <returns>The copied worksheet.</returns>
+        /// <remarks>
+        /// The copy keeps the source worksheet's hidden or very hidden state. A workbook needs a visible sheet, so a copy
+        /// that would leave none is shown, and when the active worksheet is hidden after the copy, the first visible
+        /// worksheet becomes active.
+        /// </remarks>
         public ExcelSheet CopyWorksheet(string sourceSheetName, string newSheetName, ExcelSheetNameValidationMode validationMode = ExcelSheetNameValidationMode.Sanitize) {
             return CopyWorksheet(GetSheet(sourceSheetName), newSheetName, validationMode);
         }
@@ -28,6 +33,11 @@ namespace OfficeIMO.Excel {
         /// <param name="newSheetName">Requested name for the copied worksheet.</param>
         /// <param name="validationMode">How to validate or sanitize <paramref name="newSheetName"/>.</param>
         /// <returns>The copied worksheet.</returns>
+        /// <remarks>
+        /// The copy keeps the source worksheet's hidden or very hidden state. A workbook needs a visible sheet, so a copy
+        /// that would leave none is shown, and when the active worksheet is hidden after the copy, the first visible
+        /// worksheet becomes active.
+        /// </remarks>
         public ExcelSheet CopyWorksheet(ExcelSheet sourceSheet, string newSheetName, ExcelSheetNameValidationMode validationMode = ExcelSheetNameValidationMode.Sanitize) {
             ArgumentNullException.ThrowIfNull(sourceSheet);
             if (!ReferenceEquals(sourceSheet.Document, this)) {
@@ -44,6 +54,8 @@ namespace OfficeIMO.Excel {
             WorksheetPackageCopyResult result = CopyWorksheetWithinWorkbook(sourceSheet, newSheetName, validationMode);
             var sheetMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { [sourceSheet.Name] = result.Sheet.Name };
             CopyReferencedDefinedNamesFromSource(this, result.Sheet, sheetMap, result.TableNameMap);
+            CopyPrintDefinedNamesFromSource(this, sourceSheet.Name, result.Sheet, sheetMap, result.TableNameMap);
+            EnsureVisibleActiveWorksheetAfterCopy(result.Sheet);
             return result.Sheet;
         }
 
@@ -59,6 +71,7 @@ namespace OfficeIMO.Excel {
                 WorksheetPart sourcePart = sourceSheet.WorksheetPart;
                 WorksheetPart copiedPart = WorkbookPartRoot.AddNewPart<WorksheetPart>();
                 copiedPart.Worksheet = (Worksheet)sourcePart.Worksheet!.CloneNode(true);
+                CarryDefaultWidthColumns(this, sourcePart.Worksheet, copiedPart.Worksheet);
                 CopyRelationshipBackedWorksheetFeatures(this, sourceSheet, copiedPart);
                 RemoveUnsupportedRelationshipBackedWorksheetFeatures(copiedPart.Worksheet);
                 Dictionary<string, string> tableNameMap = CopyWorksheetTables(sourcePart, copiedPart);
@@ -68,6 +81,7 @@ namespace OfficeIMO.Excel {
                 copiedPart.Worksheet.Save();
 
                 Sheet sheet = AppendWorksheetElement(copiedPart, validatedName);
+                CopyWorksheetVisibility(sourceSheet.SheetElement, sheet);
                 MarkSheetCacheDirty();
                 WorkbookRoot.Save();
                 return new WorksheetPackageCopyResult(new ExcelSheet(this, _spreadSheetDocument, sheet), tableNameMap);
@@ -82,6 +96,11 @@ namespace OfficeIMO.Excel {
         /// <param name="newSheetName">Requested name for the copied worksheet.</param>
         /// <param name="validationMode">How to validate or sanitize <paramref name="newSheetName"/>.</param>
         /// <returns>The copied worksheet.</returns>
+        /// <remarks>
+        /// The copy keeps the source worksheet's hidden or very hidden state. A workbook needs a visible sheet, so a copy
+        /// that would leave none is shown, and when the active worksheet is hidden after the copy, the first visible
+        /// worksheet becomes active.
+        /// </remarks>
         public ExcelSheet CopyWorksheetFrom(ExcelDocument sourceDocument, string sourceSheetName, string newSheetName, ExcelSheetNameValidationMode validationMode = ExcelSheetNameValidationMode.Sanitize) {
             return CopyWorksheetFrom(sourceDocument, sourceSheetName, newSheetName, validationMode, options: null);
         }
@@ -95,6 +114,11 @@ namespace OfficeIMO.Excel {
         /// <param name="validationMode">How to validate or sanitize <paramref name="newSheetName"/>.</param>
         /// <param name="options">Copy strategy options.</param>
         /// <returns>The copied worksheet.</returns>
+        /// <remarks>
+        /// The copy keeps the source worksheet's hidden or very hidden state. A workbook needs a visible sheet, so a copy
+        /// that would leave none is shown, and when the active worksheet is hidden after the copy, the first visible
+        /// worksheet becomes active.
+        /// </remarks>
         public ExcelSheet CopyWorksheetFrom(ExcelDocument sourceDocument, string sourceSheetName, string newSheetName, ExcelSheetNameValidationMode validationMode, ExcelWorksheetCopyOptions? options) {
             ArgumentNullException.ThrowIfNull(sourceDocument);
             if (string.IsNullOrWhiteSpace(sourceSheetName)) throw new ArgumentNullException(nameof(sourceSheetName));
@@ -116,18 +140,42 @@ namespace OfficeIMO.Excel {
                 WorksheetPackageCopyResult result = CopyWorksheetWithinWorkbook(sourceSheet, newSheetName, validationMode);
                 var sheetMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { [sourceSheet.Name] = result.Sheet.Name };
                 CopyReferencedDefinedNamesFromSource(this, result.Sheet, sheetMap, result.TableNameMap);
+            CopyPrintDefinedNamesFromSource(this, sourceSheet.Name, result.Sheet, sheetMap, result.TableNameMap);
+                EnsureVisibleActiveWorksheetAfterCopy(result.Sheet);
                 return result.Sheet;
             }
 
-            return options.CopyMode == ExcelWorksheetCopyMode.Values
-                ? CopyWorksheetFromValues(sourceDocument, sourceSheetName, newSheetName, validationMode)
-                : CopyWorksheetFromPackage(
+            ExcelSheet copiedSheet;
+            if (options.CopyMode == ExcelWorksheetCopyMode.Values) {
+                ExcelSheet sourceSheet = sourceDocument.GetSheet(sourceSheetName);
+                PreflightReferencedDefinedNamesFromSource(sourceDocument, new[] { sourceSheet },
+                    new DefinedNameCopyBudget(options.MaxDefinedNames, options.MaxDefinedNameCharacters), layoutFormulasOnly: true);
+                IReadOnlyDictionary<int, int> externalReferenceMap = PrepareValuesCopyExternalWorkbookReferences(
+                    sourceDocument, new[] { sourceSheet }, options.CopyExternalWorkbookReferences);
+                WorksheetPackageCopyResult result = CopyWorksheetFromValues(sourceDocument, sourceSheetName, newSheetName, validationMode);
+                copiedSheet = result.Sheet;
+                var sheetMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { [sourceSheet.Name] = copiedSheet.Name };
+                // Conditional formats and validations can name their own sheet, its tables, defined names and external links.
+                RewriteCopiedWorksheetReferences(copiedSheet.WorksheetPart, sheetMap, result.TableNameMap);
+                if (externalReferenceMap.Count > 0) {
+                    RewriteCopiedWorksheetExternalReferences(copiedSheet.WorksheetPart, externalReferenceMap);
+                    copiedSheet.WorksheetPart.Worksheet!.Save();
+                }
+
+                CopyReferencedDefinedNamesFromSource(sourceDocument, copiedSheet, sheetMap, result.TableNameMap, externalReferenceMap, layoutFormulasOnly: true);
+                CopyPrintDefinedNamesFromSource(sourceDocument, sourceSheet.Name, copiedSheet, sheetMap, result.TableNameMap, externalReferenceMap);
+            } else {
+                copiedSheet = CopyWorksheetFromPackage(
                     sourceDocument,
                     sourceSheetName,
                     newSheetName,
                     validationMode,
                     options,
                     new DefinedNameCopyBudget(options.MaxDefinedNames, options.MaxDefinedNameCharacters));
+            }
+
+            EnsureVisibleActiveWorksheetAfterCopy(copiedSheet);
+            return copiedSheet;
         }
 
         /// <summary>
@@ -167,7 +215,14 @@ namespace OfficeIMO.Excel {
                     sheets.InsertBefore(target, orderedSheets[targetIndex]);
                 }
 
-                ReindexLocalNamesAfterSheetReorder(originalOrder, sheets.Elements<Sheet>().ToArray());
+                Sheet[] newOrder = sheets.Elements<Sheet>().ToArray();
+                ReindexLocalNamesAfterSheetReorder(originalOrder, newOrder);
+                // Workbook views name tabs by position: keep them on the same sheets.
+                uint Reindex(uint tab) => tab < originalOrder.Length ? (uint)Array.IndexOf(newOrder, originalOrder[tab]) : tab;
+                foreach (WorkbookView view in WorkbookRoot.GetFirstChild<BookViews>()?.Elements<WorkbookView>() ?? Enumerable.Empty<WorkbookView>()) {
+                    if (view.ActiveTab?.Value is uint active) view.ActiveTab = Reindex(active);
+                    if (view.FirstSheet?.Value is uint first) view.FirstSheet = Reindex(first);
+                }
                 MarkSheetCacheDirty();
                 WorkbookRoot.Save();
             });
@@ -431,6 +486,7 @@ namespace OfficeIMO.Excel {
                 copiedTable.Name = tableName;
                 copiedTable.DisplayName = tableName;
 
+                InvalidateTableLayouts();
                 copiedTablePart.Table = copiedTable;
                 ReserveTableName(tableName);
                 copiedTables.Add(copiedTable);
@@ -560,6 +616,10 @@ namespace OfficeIMO.Excel {
                 formula.Text = RewriteExternalWorkbookReferenceIndexes(formula.Text, externalReferenceMap);
             }
 
+            foreach (ConditionalFormatValueObject threshold in FormulaThresholds(worksheetPart.Worksheet!)) {
+                threshold.Val = RewriteExternalWorkbookReferenceIndexes(threshold.Val!.Value, externalReferenceMap);
+            }
+
             foreach (OfficeFormula formula in worksheetPart.Worksheet!.Descendants<OfficeFormula>()) {
                 formula.Text = RewriteExternalWorkbookReferenceIndexes(formula.Text, externalReferenceMap);
             }
@@ -597,7 +657,11 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static string RewriteExternalWorkbookReferenceIndexes(string? formula, IReadOnlyDictionary<int, int> externalReferenceMap) {
+        private static string RewriteExternalWorkbookReferenceIndexes(string? formula, IReadOnlyDictionary<int, int> externalReferenceMap) =>
+            RewriteCopiedFormula(formula, sheetNameMap: null, externalReferenceMap: externalReferenceMap);
+
+        /// <summary>Renumbers <c>[n]</c> workbook qualifiers in formula text that holds no string literal.</summary>
+        private static string RewriteExternalWorkbookIndexesInText(string? formula, IReadOnlyDictionary<int, int> externalReferenceMap) {
             if (string.IsNullOrEmpty(formula) || externalReferenceMap.Count == 0) {
                 return formula ?? string.Empty;
             }
@@ -644,8 +708,9 @@ namespace OfficeIMO.Excel {
             }
 
             int nextIndex = closeIndex + 1;
+            // [1]Sheet1!A1, '[1]Sheet 1'!A1 or a name defined in the linked workbook, [1]!Name.
             return nextIndex < formula.Length
-                && (formula[nextIndex] == '\'' || char.IsLetterOrDigit(formula[nextIndex]) || formula[nextIndex] == '_');
+                && (formula[nextIndex] == '\'' || formula[nextIndex] == '!' || char.IsLetterOrDigit(formula[nextIndex]) || formula[nextIndex] == '_');
         }
 
         private static bool TryReadExternalWorkbookIndex(string formula, int bracketIndex, out int sourceIndex, out int closeIndex) {
@@ -674,13 +739,8 @@ namespace OfficeIMO.Excel {
             return sourceIndex > 0;
         }
 
-        private static string RewriteStructuredTableReferences(string? formula, IReadOnlyDictionary<string, string> tableNameMap) {
-            if (string.IsNullOrEmpty(formula) || tableNameMap.Count == 0) {
-                return formula ?? string.Empty;
-            }
-            return ExcelFormulaSyntaxTree.Parse(formula!).RewriteTableNames(name =>
-                tableNameMap.TryGetValue(name, out string? replacement) ? replacement : name);
-        }
+        private static string RewriteStructuredTableReferences(string? formula, IReadOnlyDictionary<string, string> tableNameMap) =>
+            RewriteCopiedFormula(formula, sheetNameMap: null, tableNameMap: tableNameMap);
 
         private static string MakeUnusedRelationshipId(WorksheetPart worksheetPart) {
             var existing = new HashSet<string>(

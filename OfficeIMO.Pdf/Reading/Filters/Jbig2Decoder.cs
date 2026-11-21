@@ -4,9 +4,9 @@ namespace OfficeIMO.Pdf.Filters;
 
 /// <summary>
 /// Bounded JBIG2 decoder for embedded PDF streams (ITU-T T.88, ISO 32000-1 7.4.7): page information, generic regions
-/// (MQ arithmetic with templates 0 to 3, typical prediction and adaptive pixels, or MMR), refinement regions, and
-/// arithmetic-coded symbol dictionaries and text regions. Huffman-coded dictionaries and regions and halftone regions
-/// are rejected with <see cref="NotSupportedException"/>.
+/// (MQ arithmetic with templates 0 to 3, typical prediction and adaptive pixels, or MMR), refinement regions, symbol
+/// dictionaries and text regions (arithmetic or Huffman with standard and custom tables), and pattern dictionaries with
+/// halftone regions.
 /// </summary>
 internal static partial class Jbig2Decoder {
     private const int MaximumSegments = 100_000;
@@ -36,7 +36,7 @@ internal static partial class Jbig2Decoder {
 
     /// <summary>
     /// Scans segment headers without decoding and names the first feature <see cref="Decode"/> rejects:
-    /// "halftone", "huffman", "malformed" or "segment-N"; null when every segment is supported.
+    /// "malformed" or "segment-N"; null when every segment is supported.
     /// </summary>
     internal static string? FindUnsupportedFeature(byte[] data, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
@@ -48,13 +48,7 @@ internal static partial class Jbig2Decoder {
                 Segment segment = DecodingContext.ReadSegmentHeader(data, ref position, cancellationToken: cancellationToken);
                 switch (segment.Type) {
                     case 51: return null;
-                    case 16: case 20: case 22: case 23: return "halftone";
-                    case 0:
-                        if (HasHuffmanFlag(segment, 0)) return "huffman";
-                        break;
-                    case 4: case 6: case 7:
-                        if (HasHuffmanFlag(segment, 17)) return "huffman";
-                        break;
+                    case 0: case 4: case 6: case 7: case 16: case 20: case 22: case 23:
                     case 36: case 38: case 39: case 40: case 42: case 43: case 48: case 49: case 50: case 52: case 53: case 62: break;
                     default: return "segment-" + segment.Type.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 }
@@ -64,10 +58,6 @@ internal static partial class Jbig2Decoder {
             return "malformed";
         }
     }
-
-    // SDHUFF and SBHUFF are bit 0 of the big-endian two-byte flags that follow the optional region information.
-    private static bool HasHuffmanFlag(Segment segment, int flagsOffset) =>
-        segment.DataEnd - segment.DataStart >= flagsOffset + 2 && (segment.Data[segment.DataStart + flagsOffset + 1] & 1) != 0;
 
     private sealed class Segment {
         internal int Number;
@@ -204,9 +194,10 @@ internal static partial class Jbig2Decoder {
                 case 4: case 6: case 7: ProcessTextRegion(segment); break;
                 case 36: case 38: case 39: ProcessGenericRegion(segment); break;
                 case 40: case 42: case 43: ProcessRefinementRegion(segment); break;
-                case 16: case 20: case 22: case 23: throw new NotSupportedException("JBIG2 pattern and halftone regions are not supported.");
+                case 16: ProcessPatternDictionary(segment); break;
+                case 20: case 22: case 23: ProcessHalftoneRegion(segment); break;
                 case 49: case 50: case 52: case 62: break; // end of page, end of stripe, profiles, extensions
-                case 53: break; // custom Huffman tables are only used by unsupported Huffman coding
+                case 53: ProcessTable(segment); break;
                 default: throw new NotSupportedException("Unsupported JBIG2 segment type " + segment.Type + ".");
             }
         }
@@ -248,7 +239,7 @@ internal static partial class Jbig2Decoder {
         }
 
         private void Place(Segment segment, Bitmap region, (int Width, int Height, int X, int Y, int Operator) info) {
-            if (segment.Type is 4 or 36 or 40) {
+            if (segment.Type is 4 or 20 or 36 or 40) {
                 _regions[segment.Number] = region;
                 return;
             }
@@ -318,6 +309,14 @@ internal static partial class Jbig2Decoder {
         // Generic region decoding procedure (6.2.5). The context lists template and adaptive pixels sorted by row,
         // then column, most significant first.
         private Bitmap DecodeGeneric(ArithmeticDecoder decoder, byte[] contexts, int width, int height, int template, bool typicalPrediction, sbyte[] at) {
+            var adaptive = new int[at.Length];
+            for (int index = 0; index < at.Length; index++) adaptive[index] = at[index];
+            return DecodeGeneric(decoder, contexts, width, height, template, typicalPrediction, adaptive);
+        }
+
+        // With a skip bitmap (USESKIP, 6.2.5.7) skipped pixels stay zero and consume no decisions.
+        private Bitmap DecodeGeneric(ArithmeticDecoder decoder, byte[] contexts, int width, int height, int template, bool typicalPrediction,
+            int[] at, Bitmap? skip = null) {
             var region = CreateBitmap(width, height);
             // Adaptive pixels keep the context bit positions of their nominal locations (6.2.5.3).
             var pixels = new List<(int X, int Y, int At)>();
@@ -343,6 +342,7 @@ internal static partial class Jbig2Decoder {
                 }
                 for (int x = 0; x < width; x++) {
                     if ((x & 1023) == 0) _cancellationToken.ThrowIfCancellationRequested();
+                    if (skip != null && skip.Get(x, y) != 0) continue;
                     int context = 0;
                     for (int index = 0; index < offsets.Length; index++) context = (context << 1) | region.Get(x + offsets[index].X, y + offsets[index].Y);
                     if (decoder.Decode(contexts, context) != 0) region.Set(x, y, 1);
@@ -446,182 +446,6 @@ internal static partial class Jbig2Decoder {
             int length = 0;
             while ((1L << length) < count) length++;
             return length;
-        }
-
-        // Symbol dictionary segment (7.4.2) and decoding procedure (6.5.5), arithmetic coding only.
-        private void ProcessSymbolDictionary(Segment segment) {
-            int position = segment.DataStart;
-            int flags = (ReadByte(segment.Data, ref position, segment.DataEnd) << 8) | ReadByte(segment.Data, ref position, segment.DataEnd);
-            bool huffman = (flags & 1) != 0;
-            bool refinementAggregate = (flags & 2) != 0;
-            int template = (flags >> 10) & 3;
-            int refinementTemplate = (flags >> 12) & 1;
-            if (huffman) throw new NotSupportedException("Huffman-coded JBIG2 symbol dictionaries are not supported.");
-            sbyte[] at = ReadAt(segment.Data, ref position, template == 0 ? 4 : 1, segment.DataEnd);
-            sbyte[] refinementAt = refinementAggregate && refinementTemplate == 0 ? ReadAt(segment.Data, ref position, 2, segment.DataEnd) : Array.Empty<sbyte>();
-            int exportedCount = (int)ReadUInt32(segment.Data, ref position, segment.DataEnd);
-            int newCount = (int)ReadUInt32(segment.Data, ref position, segment.DataEnd);
-            List<Bitmap> input = ReferredSymbols(segment);
-            if (newCount < 0 || exportedCount < 0 || (long)newCount + input.Count > MaximumSymbols) throw new InvalidDataException("JBIG2 symbol dictionary is too large.");
-
-            var decoder = new ArithmeticDecoder(segment.Data, position, segment.DataEnd, Charge);
-            var integers = new IntegerContexts(CreateContexts);
-            SymbolBitmapContexts bitmapContexts = CreateSymbolBitmapContexts(segment, flags, at, refinementAt);
-            byte[] genericContexts = bitmapContexts.Generic;
-            byte[] refinementContexts = bitmapContexts.Refinement;
-            int codeLength = CodeLength(input.Count + newCount);
-            var idContexts = CreateContexts(1 << (codeLength + 1));
-            var symbols = CreateSymbolList(input.Count + newCount);
-            symbols.AddRange(input);
-            int heightClass = 0;
-            int decoded = 0;
-            while (decoded < newCount) {
-                _cancellationToken.ThrowIfCancellationRequested();
-                int deltaHeight = decoder.DecodeInteger(integers["IADH"]) ?? throw new InvalidDataException("JBIG2 height class delta is out of band.");
-                heightClass += deltaHeight;
-                if (heightClass < 0) throw new InvalidDataException("JBIG2 symbol height is negative.");
-                int symbolWidth = 0;
-                while (true) {
-                    int? deltaWidth = decoder.DecodeInteger(integers["IADW"]);
-                    if (deltaWidth == null) break;
-                    symbolWidth += deltaWidth.Value;
-                    if (symbolWidth < 0 || decoded >= newCount) throw new InvalidDataException("JBIG2 symbol width is invalid.");
-                    Bitmap symbol;
-                    if (!refinementAggregate) {
-                        Charge((long)symbolWidth * heightClass);
-                        symbol = DecodeGeneric(decoder, genericContexts, symbolWidth, heightClass, template, false, at);
-                    } else {
-                        int instances = decoder.DecodeInteger(integers["IAAI"]) ?? throw new InvalidDataException("JBIG2 aggregate count is out of band.");
-                        if (instances == 1) {
-                            int id = decoder.DecodeId(idContexts, codeLength);
-                            int dx = decoder.DecodeInteger(integers["IARDX"]) ?? 0;
-                            int dy = decoder.DecodeInteger(integers["IARDY"]) ?? 0;
-                            if ((uint)id >= (uint)symbols.Count) throw new InvalidDataException("JBIG2 refinement refers to an unknown symbol.");
-                            symbol = DecodeRefinement(decoder, refinementContexts, symbolWidth, heightClass, refinementTemplate, symbols[id], dx, dy, false, refinementAt);
-                        } else if (instances > 1) {
-                            symbol = DecodeTextRegion(decoder, integers, idContexts, refinementContexts, symbolWidth, heightClass, instances,
-                                symbols, codeLength, stripLog: 0, referenceCorner: 1, transposed: false, combination: 0, defaultPixel: 0,
-                                dsOffset: 0, refine: true, refinementTemplate, refinementAt);
-                        } else {
-                            throw new InvalidDataException("JBIG2 aggregate count is invalid.");
-                        }
-                    }
-                    symbols.Add(symbol);
-                    decoded++;
-                }
-            }
-            // Export flags (6.5.10) select from input then new symbols.
-            if (exportedCount > symbols.Count) throw new InvalidDataException("JBIG2 exported symbol count is invalid.");
-            var exported = CreateSymbolList(exportedCount);
-            bool exporting = false;
-            int index = 0;
-            while (index < symbols.Count) {
-                int run = decoder.DecodeInteger(integers["IAEX"]) ?? throw new InvalidDataException("JBIG2 export run is out of band.");
-                if (run < 0 || run > symbols.Count - index) throw new InvalidDataException("JBIG2 export run is invalid.");
-                if (exporting) {
-                    if (run > exportedCount - exported.Count) throw new InvalidDataException("JBIG2 export runs exceed the declared count.");
-                    for (int exportedIndex = index; exportedIndex < index + run; exportedIndex++) {
-                        Charge(1L);
-                        exported.Add(symbols[exportedIndex]);
-                    }
-                }
-                index += run;
-                exporting = !exporting;
-            }
-            if (exported.Count != exportedCount) throw new InvalidDataException("JBIG2 export runs do not match the declared count.");
-            _symbols[segment.Number] = exported;
-            if ((flags & 0x200) != 0) _retainedSymbolContexts[segment.Number] = bitmapContexts;
-        }
-
-        // Text region segment (7.4.3), arithmetic coding only.
-        private void ProcessTextRegion(Segment segment) {
-            int position = segment.DataStart;
-            var info = ReadRegionInfo(segment, ref position);
-            int flags = (ReadByte(segment.Data, ref position, segment.DataEnd) << 8) | ReadByte(segment.Data, ref position, segment.DataEnd);
-            bool huffman = (flags & 1) != 0;
-            bool refine = (flags & 2) != 0;
-            int stripLog = (flags >> 2) & 3;
-            int referenceCorner = (flags >> 4) & 3;
-            bool transposed = (flags & 0x40) != 0;
-            int combination = (flags >> 7) & 3;
-            int defaultPixel = (flags >> 9) & 1;
-            int dsOffset = (flags >> 10) & 0x1F;
-            if ((dsOffset & 0x10) != 0) dsOffset -= 32;
-            int refinementTemplate = (flags >> 15) & 1;
-            if (huffman) throw new NotSupportedException("Huffman-coded JBIG2 text regions are not supported.");
-            sbyte[] refinementAt = refine && refinementTemplate == 0 ? ReadAt(segment.Data, ref position, 2, segment.DataEnd) : Array.Empty<sbyte>();
-            int instances = (int)ReadUInt32(segment.Data, ref position, segment.DataEnd);
-            if (instances < 0 || instances > MaximumSymbols * 4) throw new InvalidDataException("JBIG2 text region has too many instances.");
-            List<Bitmap> symbols = ReferredSymbols(segment);
-            int codeLength = CodeLength(symbols.Count);
-            var decoder = new ArithmeticDecoder(segment.Data, position, segment.DataEnd, Charge);
-            Charge((long)info.Width * info.Height);
-            Bitmap region = DecodeTextRegion(decoder, new IntegerContexts(CreateContexts), CreateContexts(1 << (codeLength + 1)), CreateContexts(1 << 14),
-                info.Width, info.Height, instances, symbols, codeLength, stripLog, referenceCorner, transposed, combination, defaultPixel,
-                dsOffset, refine, refinementTemplate, refinementAt);
-            Place(segment, region, info);
-        }
-
-        // Text region decoding procedure (6.4.5). Reference corners: 0 bottom-left, 1 top-left, 2 bottom-right, 3 top-right.
-        private Bitmap DecodeTextRegion(ArithmeticDecoder decoder, IntegerContexts integers, byte[] idContexts, byte[] refinementContexts,
-            int width, int height, int instances, List<Bitmap> symbols, int codeLength, int stripLog, int referenceCorner, bool transposed,
-            int combination, int defaultPixel, int dsOffset, bool refine, int refinementTemplate, sbyte[] refinementAt) {
-            var region = CreateBitmap(width, height);
-            if (defaultPixel != 0) region.Fill(1);
-            int strips = 1 << stripLog;
-            int stripT = -(decoder.DecodeInteger(integers["IADT"]) ?? 0) * strips;
-            int firstS = 0;
-            int count = 0;
-            while (count < instances) {
-                _cancellationToken.ThrowIfCancellationRequested();
-                stripT += (decoder.DecodeInteger(integers["IADT"]) ?? throw new InvalidDataException("JBIG2 strip delta is out of band.")) * strips;
-                bool first = true;
-                int currentS = 0;
-                while (count < instances) {
-                    if (first) {
-                        firstS += decoder.DecodeInteger(integers["IAFS"]) ?? throw new InvalidDataException("JBIG2 first S is out of band.");
-                        currentS = firstS;
-                        first = false;
-                    } else {
-                        int? deltaS = decoder.DecodeInteger(integers["IADS"]);
-                        if (deltaS == null) break;
-                        currentS += deltaS.Value + dsOffset;
-                    }
-                    int currentT = strips == 1 ? 0 : decoder.DecodeInteger(integers["IAIT"]) ?? 0;
-                    int t = stripT + currentT;
-                    int id = decoder.DecodeId(idContexts, codeLength);
-                    if ((uint)id >= (uint)symbols.Count) throw new InvalidDataException("JBIG2 text region refers to an unknown symbol.");
-                    Bitmap symbol = symbols[id];
-                    int refinement = refine ? decoder.DecodeInteger(integers["IARI"]) ?? 0 : 0;
-                    if (refinement != 0) {
-                        int deltaWidth = decoder.DecodeInteger(integers["IARDW"]) ?? 0;
-                        int deltaHeight = decoder.DecodeInteger(integers["IARDH"]) ?? 0;
-                        int dx = decoder.DecodeInteger(integers["IARDX"]) ?? 0;
-                        int dy = decoder.DecodeInteger(integers["IARDY"]) ?? 0;
-                        int refinedWidth = symbol.Width + deltaWidth, refinedHeight = symbol.Height + deltaHeight;
-                        if (refinedWidth < 0 || refinedHeight < 0) throw new InvalidDataException("JBIG2 refined symbol size is negative.");
-                        symbol = DecodeRefinement(decoder, refinementContexts, refinedWidth, refinedHeight, refinementTemplate, symbol,
-                            (deltaWidth >> 1) + dx, (deltaHeight >> 1) + dy, false, refinementAt);
-                    }
-                    int symbolWidth = symbol.Width, symbolHeight = symbol.Height;
-                    if (!transposed && referenceCorner >= 2) currentS += symbolWidth - 1;
-                    else if (transposed && (referenceCorner & 1) == 0) currentS += symbolHeight - 1;
-                    int s = currentS;
-                    int x, y;
-                    if (!transposed) {
-                        x = referenceCorner >= 2 ? s - symbolWidth + 1 : s;
-                        y = (referenceCorner & 1) == 1 ? t : t - symbolHeight + 1;
-                    } else {
-                        x = referenceCorner >= 2 ? t - symbolWidth + 1 : t;
-                        y = (referenceCorner & 1) == 1 ? s : s - symbolHeight + 1;
-                    }
-                    region.Compose(symbol, x, y, combination);
-                    if (!transposed && referenceCorner < 2) currentS += symbolWidth - 1;
-                    else if (transposed && (referenceCorner & 1) == 1) currentS += symbolHeight - 1;
-                    count++;
-                }
-            }
-            return region;
         }
 
         private static int ReadByte(byte[] data, ref int position, int end = -1) {

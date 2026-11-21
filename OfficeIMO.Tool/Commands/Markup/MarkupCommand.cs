@@ -2,11 +2,13 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
+using OfficeIMO.Markdown;
 using OfficeIMO.Markup;
 using OfficeIMO.Markup.Excel;
 using OfficeIMO.Markup.PowerPoint;
 using OfficeIMO.Markup.Word;
 using OfficeIMO.Excel;
+using OfficeIMO.Yaml;
 
 namespace OfficeIMO.Tool.Commands.Markup;
 
@@ -116,13 +118,28 @@ internal static class MarkupCommand {
         };
 
         if (!string.IsNullOrWhiteSpace(options.OutputPath)) {
-            var outputPath = NormalizeWritableFilePath(options.OutputPath!);
-            await File.WriteAllTextAsync(outputPath, text, cancellationToken).ConfigureAwait(false);
+            var outputPath = NormalizeWritableFilePath(options.OutputPath!, options.Force);
+            await WriteEmittedTextAsync(outputPath, text, options.Force, cancellationToken).ConfigureAwait(false);
         } else {
             await standardOutput.WriteLineAsync(text).ConfigureAwait(false);
         }
 
         return (int)OfficeImoToolExitCode.Success;
+    }
+
+    internal static async Task WriteEmittedTextAsync(
+        string outputPath,
+        string text,
+        bool force,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        // The earlier existence check is advisory; reserve the path atomically here.
+        await using var output = new FileStream(
+            outputPath, force ? FileMode.Create : FileMode.CreateNew,
+            FileAccess.Write, FileShare.Read, bufferSize: 8192, FileOptions.Asynchronous);
+        await using var writer = new StreamWriter(output);
+        await writer.WriteAsync(text.AsMemory(), cancellationToken).ConfigureAwait(false);
+        await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private static async Task<int> ExportAsync(
@@ -151,7 +168,7 @@ internal static class MarkupCommand {
                     throw new InvalidOperationException("Export target 'pptx' requires --output <file.pptx>.");
                 }
 
-                outputPath = NormalizeWritableFilePath(outputPath);
+                outputPath = NormalizeWritableFilePath(outputPath, options.Force);
 
                 result.Document.SaveAsPowerPoint(outputPath!, new MarkupPowerPointExportOptions {
                     BaseDirectory = inputPath == null
@@ -173,7 +190,7 @@ internal static class MarkupCommand {
                     throw new InvalidOperationException("Export target 'xlsx' requires --output <file.xlsx>.");
                 }
 
-                workbookOutputPath = NormalizeWritableFilePath(workbookOutputPath);
+                workbookOutputPath = NormalizeWritableFilePath(workbookOutputPath, options.Force);
 
                 result.Document.SaveAsExcel(workbookOutputPath!, saveOptions: new ExcelSaveOptions {
                     SafePreflight = options.WorkbookSafePreflight,
@@ -194,7 +211,7 @@ internal static class MarkupCommand {
                     throw new InvalidOperationException("Export target 'docx' requires --output <file.docx>.");
                 }
 
-                documentOutputPath = NormalizeWritableFilePath(documentOutputPath);
+                documentOutputPath = NormalizeWritableFilePath(documentOutputPath, options.Force);
 
                 result.Document.SaveAsWord(documentOutputPath!, new MarkupWordExportOptions {
                     BaseDirectory = documentInputPath == null
@@ -279,8 +296,12 @@ internal static class MarkupCommand {
         return fullPath;
     }
 
-    private static string NormalizeWritableFilePath(string path) {
+    private static string NormalizeWritableFilePath(string path, bool force) {
         var fullPath = Path.GetFullPath(path);
+        if (!force && File.Exists(fullPath)) {
+            throw new IOException("Output already exists. Use --force to replace it: " + fullPath);
+        }
+
         var directory = Path.GetDirectoryName(fullPath);
         if (string.IsNullOrWhiteSpace(directory)) {
             throw new InvalidOperationException($"Unable to resolve an output directory for path '{path}'.");
@@ -332,9 +353,20 @@ internal static class MarkupCommand {
         var styleResolver = OfficeMarkupStyleResolver.Create(document);
         return new OfficeMarkupDocumentDto {
             Profile = document.Profile.ToString(),
-            Metadata = new Dictionary<string, string>(document.Metadata, StringComparer.OrdinalIgnoreCase),
+            Metadata = ToMetadataDto(document.FrontMatter),
             Blocks = document.Blocks.Select(block => ToBlockDto(block, styleResolver)).ToList()
         };
+    }
+
+    /// <summary>Top-level front matter scalars as text, which the editor preview reads for its theme; when keys repeat the last wins.</summary>
+    private static Dictionary<string, string> ToMetadataDto(FrontMatterBlock? frontMatter) {
+        var metadata = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (frontMatter == null) return metadata;
+        foreach (FrontMatterBlock.Entry entry in frontMatter.Entries) {
+            if (entry.Value is YamlScalar scalar && !scalar.IsNull) metadata[entry.Key] = scalar.AsString();
+        }
+
+        return metadata;
     }
 
     private static OfficeMarkupBlockDto ToBlockDto(OfficeMarkupBlock block, OfficeMarkupStyleResolver styleResolver) {
@@ -522,17 +554,17 @@ internal static class MarkupCommand {
                 TextAlign = style.TextAlign
             };
 
-    private const string Usage = """
+    internal const string Usage = """
 OfficeIMO.Tool - Markup
 
 Usage:
   officeimo markup parse <file|-> [--profile presentation|document|workbook|common]
   officeimo markup validate <file|-> [--profile presentation|document|workbook|common]
   officeimo markup preview <file|-> [--profile presentation|document|workbook|common]
-  officeimo markup emit <file|-> --target csharp|powershell [--output <file>]
-  officeimo markup export <file|-> --target pptx --output <file.pptx>
-  officeimo markup export <file|-> --target xlsx --output <file.xlsx>
-  officeimo markup export <file|-> --target docx --output <file.docx>
+  officeimo markup emit <file|-> --target csharp|powershell [--output <file>] [--force]
+  officeimo markup export <file|-> --target pptx --output <file.pptx> [--force]
+  officeimo markup export <file|-> --target xlsx --output <file.xlsx> [--force]
+  officeimo markup export <file|-> --target docx --output <file.docx> [--force]
 
 Options:
   --stdin                       Read markup from standard input.
@@ -542,6 +574,9 @@ Options:
   --no-openxml-validation       Disable Excel Open XML validation.
   --mermaid-renderer <mmdc>     Configure the Mermaid renderer for PowerPoint.
   --no-mermaid                  Disable Mermaid rendering.
+  --force                       Replace an existing output file.
+
+Existing output is refused unless --force is supplied.
 """;
 
     private static Task WriteHelpAsync(TextWriter writer) => writer.WriteLineAsync(Usage);

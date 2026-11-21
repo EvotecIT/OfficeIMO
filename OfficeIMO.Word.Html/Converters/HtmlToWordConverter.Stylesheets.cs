@@ -36,7 +36,7 @@ namespace OfficeIMO.Word.Html {
             } catch (OperationCanceledException) {
                 throw;
             } catch (HtmlResourcePolicyException ex) {
-                AddDiagnostic(_options, "stylesheet-resource-rejected-by-policy", "Stylesheet resource was skipped because its redirect destination is not allowed by the current stylesheet policy.", url.Href, ex);
+                AddDiagnostic(_options, "stylesheet-resource-rejected-by-policy", "Stylesheet resource was skipped because its address or redirect destination is not allowed by the current stylesheet policy.", url.Href, ex);
             } catch (HttpRequestException ex) {
                 AddDiagnostic(_options, "stylesheet-transport-failed", "Stylesheet resource could not be fetched and was skipped.", url.Href, ex);
             } catch (HtmlConversionLimitException) {
@@ -201,28 +201,45 @@ namespace OfficeIMO.Word.Html {
             return _options.AllowedStylesheetContentTypes.Contains(contentType!.Trim());
         }
 
-        private void ApplyClassStyle(IElement element, WordParagraph paragraph, HtmlWordExportOptions options) {
+        /// <summary>Applies the paragraph style mapped to the element's first mapped CSS class.</summary>
+        /// <returns><see langword="true"/> when a class selected a paragraph style.</returns>
+        private bool ApplyClassStyle(IElement element, WordParagraph paragraph, HtmlWordExportOptions options) {
             string? classAttr = element.GetAttribute("class");
             if (string.IsNullOrWhiteSpace(classAttr)) {
-                return;
+                return false;
             }
 
-            foreach (var cls in (classAttr ?? string.Empty).Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
-                if (options.ClassStyles.TryGetValue(cls, out var style) || _cssClassStyles.TryGetValue(cls, out style)) {
+            // HTML separates class names with any ASCII whitespace.
+            foreach (var cls in (classAttr ?? string.Empty).Split(new[] { ' ', '\t', '\n', '\r', '\f' }, StringSplitOptions.RemoveEmptyEntries)) {
+                if (options.ClassStyles.TryGetValue(cls, out var style)) {
                     paragraph.Style = style;
-                    break;
+                    return true;
+                }
+
+                if (options.PreferDocumentStyles && paragraph._document is { } document &&
+                    FindDocumentParagraphStyle(document, cls) is { } documentStyleId) {
+                    paragraph.SetStyleId(documentStyleId);
+                    return true;
+                }
+
+                // Stylesheet mappings are inferred from CSS formatting: a document style outranks them, and
+                // IgnoreCssFormatting leaves them out.
+                if (!options.IgnoreCssFormatting && _cssClassStyles.TryGetValue(cls, out style)) {
+                    paragraph.Style = style;
+                    return true;
                 }
 
                 var args = WordHtmlConverterExtensions.OnStyleMissing(options, paragraph, cls);
                 if (args.Style.HasValue) {
                     paragraph.Style = args.Style.Value;
-                    break;
+                    return true;
                 }
                 if (!string.IsNullOrEmpty(args.StyleId)) {
                     paragraph.SetStyleId(args.StyleId!);
-                    break;
+                    return true;
                 }
             }
+            return false;
         }
 
         private void ParseCss(string css, string? key = null, string? media = null) =>
@@ -319,6 +336,9 @@ namespace OfficeIMO.Word.Html {
         };
 
         private void ApplyCssToElement(IElement element) {
+            if (_options.IgnoreCssFormatting) {
+                RemoveCssFormatting(element);
+            }
             if (_cssRules.Count == 0) {
                 ResolveComputedFontSizePixels(element);
                 ReportUnsupportedInlineCssDiagnostics(element);
@@ -348,6 +368,9 @@ namespace OfficeIMO.Word.Html {
             }
 
             var own = CollectCssDeclarations(element, inheritedOnly: false);
+            if (_options.IgnoreCssFormatting) {
+                RemoveCssFormatting(own);
+            }
             if (!_computedFontSizePixels.ContainsKey(element)) {
                 CacheComputedFontSizePixels(element, own);
             }
@@ -364,6 +387,9 @@ namespace OfficeIMO.Word.Html {
                 }
             }
 
+            if (_options.IgnoreCssFormatting) {
+                RemoveCssFormatting(accumulated);
+            }
             if (accumulated.Count > 0) {
                 IReadOnlyDictionary<string, string> diagnosticDeclarations = own
                     .ToDictionary(pair => pair.Key, pair => pair.Value.Value, StringComparer.OrdinalIgnoreCase);

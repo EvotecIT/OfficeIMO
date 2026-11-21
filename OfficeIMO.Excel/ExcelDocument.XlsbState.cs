@@ -6,6 +6,17 @@ using OfficeIMO.Excel.Xlsb.Write;
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         private XlsbProjectionPreservationGuard? _xlsbPreservationGuard;
+        private XlsbDocumentPropertyParts.Snapshot? _xlsbDocumentPropertiesSnapshot;
+        private bool _keepModifiedTimestampOnSave;
+
+        internal XlsbDocumentPropertyParts.Snapshot XlsbDocumentPropertiesSnapshot => _xlsbDocumentPropertiesSnapshot
+            ?? throw new InvalidOperationException("The XLSB document-property state is unavailable.");
+
+        /// <summary>Records the property state that matches the current native source package.</summary>
+        internal void CaptureXlsbDocumentPropertiesState() {
+            _customDocumentPropertiesDirty = false;
+            _xlsbDocumentPropertiesSnapshot = XlsbDocumentPropertyParts.Snapshot.Take(this);
+        }
 
         internal XlsbProjectionPreservationGuard NativeXlsbPreservation => _xlsbPreservationGuard
             ?? throw new InvalidOperationException("The XLSB source bindings are unavailable.");
@@ -55,6 +66,7 @@ namespace OfficeIMO.Excel {
                 && !_packageDirty
                 && _xlsbPreservationGuard?.HasWorksheetChanges(this) != true
                 && _xlsbOriginalPackageBytes != null
+                && _xlsbDocumentPropertiesSnapshot?.Matches(this) == true
                 && !HasXlsbTransformSaveWork(options)
                 && !HasCalculationSaveWork(options);
         }
@@ -275,6 +287,7 @@ namespace OfficeIMO.Excel {
             }
             if (_xlsbAdvancedWorkbook != null)
                 foreach (var mapping in _xlsbAdvancedWorkbook.ProjectionPartUris) workbook.ProjectionPartUris[mapping.Key] = mapping.Value;
+            XlsbRelatedPartProjector.MapWorksheetDrawings(this, workbook);
             foreach (var sheet in Sheets) {
                 var native = workbook.Worksheets.FirstOrDefault(item => item.Name == sheet.Name);
                 if (native == null) continue;
@@ -310,6 +323,7 @@ namespace OfficeIMO.Excel {
             _xlsbPreservedRecords = workbook.PreservedRecords.ToArray();
             _packageDirty = false;
             _packagePropertiesDirty = false;
+            CaptureXlsbDocumentPropertiesState();
             _requiresSavePreflight = false;
             _unchangedPackageBytes = null;
             _packageContentTypesKnownNormalized = false;

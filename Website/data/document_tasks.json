@@ -2,6 +2,10 @@
   "title": "Start with the document job",
   "eyebrow": "Document jobs",
   "lede": "Pick what you need to get done. Each job lists the ways to do it in OfficeIMO, from a tool in your browser to code you ship.",
+  "overview": {
+    "label": "See every job on every surface",
+    "url": "/capabilities/"
+  },
   "tasks": [
     {
       "id": "create-report",
@@ -44,7 +48,7 @@
         },
         {
           "label": "CLI conversion",
-          "url": "/tool/",
+          "url": "/cli/",
           "surface": "cli"
         },
         {
@@ -96,7 +100,7 @@
         },
         {
           "label": "CLI and MCP",
-          "url": "/tool/",
+          "url": "/cli/",
           "surface": "cli"
         },
         {
@@ -117,7 +121,7 @@
       "paths": [
         {
           "label": "Install PSWriteOffice",
-          "url": "/products/pswriteoffice/",
+          "url": "/powershell/",
           "surface": "powershell"
         },
         {

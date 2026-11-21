@@ -19,9 +19,8 @@ internal static class CsvReaderAdapter {
         var source = BuildSourceMetadataFromPath(path, effectiveReaderOptions.ComputeHashes);
         var options = Normalize(csvOptions);
         var extension = GetNormalizedExtension(path);
-        var delimiter = extension == ".tsv" ? '\t' : ',';
 
-        var records = CsvDocument.ReadRecords(path, CreateCsvReaderOptions(delimiter, cancellationToken));
+        var records = CsvDocument.ReadRecords(path, CreateCsvReaderOptions(extension == ".tsv", cancellationToken));
 
         foreach (var chunk in ReadCsvRecords(records, source, options, effectiveReaderOptions.ComputeHashes, cancellationToken)) {
             yield return chunk;
@@ -46,11 +45,11 @@ internal static class CsvReaderAdapter {
             out var ownsParseStream);
 
         try {
-            var delimiter = extension == ".tsv" ? '\t' : ',';
-            var sourcePath = BuildLogicalSourcePath(sourceName, extension == ".tsv" ? "document.tsv" : "document.csv");
+            var isTsv = extension == ".tsv";
+            var sourcePath = BuildLogicalSourcePath(sourceName, isTsv ? "document.tsv" : "document.csv");
             var source = BuildSourceMetadataFromStream(parseStream, sourcePath, effectiveReaderOptions.ComputeHashes);
             using var textReader = new StreamReader(parseStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 1024, leaveOpen: true);
-            var records = CsvDocument.ReadRecords(textReader, CreateCsvReaderOptions(delimiter, cancellationToken));
+            var records = CsvDocument.ReadRecords(textReader, CreateCsvReaderOptions(isTsv, cancellationToken));
 
             foreach (var chunk in ReadCsvRecords(records, source, options, effectiveReaderOptions.ComputeHashes, cancellationToken)) {
                 yield return chunk;
@@ -62,16 +61,18 @@ internal static class CsvReaderAdapter {
         }
     }
 
-    private static CsvReaderOptions CreateCsvReaderOptions(char delimiter, CancellationToken cancellationToken) =>
-        new CsvReaderOptions {
-            CancellationToken = cancellationToken,
-            Delimiter = delimiter,
-            HasHeaderRow = false,
-            SkipCommentRowsBeforeHeader = false,
-            SkipCommentRows = false,
-            RecognizeW3CFieldsHeader = false,
-            GenerateMissingHeaderNames = false
-        };
+    // TSV follows the IANA rule (quotes are data, one record per line); ragged rows stay readable.
+    private static CsvReaderOptions CreateCsvReaderOptions(bool tsv, CancellationToken cancellationToken) {
+        CsvReaderOptions options = tsv ? CsvProfiles.CreateReaderOptions(CsvProfile.Tsv) : new CsvReaderOptions();
+        options.CancellationToken = cancellationToken;
+        options.HasHeaderRow = false;
+        options.SkipCommentRowsBeforeHeader = false;
+        options.SkipCommentRows = false;
+        options.RecognizeW3CFieldsHeader = false;
+        options.GenerateMissingHeaderNames = false;
+        options.ColumnCountMismatchPolicy = CsvColumnCountMismatchPolicy.PadMissingFieldsAndIgnoreExtraFields;
+        return options;
+    }
 
     private static IEnumerable<ReaderChunk> ReadCsvRecords(IEnumerable<IReadOnlyList<string>> records, SourceMetadata source, CsvReadOptions options, bool computeHashes, CancellationToken cancellationToken) {
         var sourcePath = source.Path;

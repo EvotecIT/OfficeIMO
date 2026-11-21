@@ -55,7 +55,8 @@ public sealed partial class PdfReadPage {
         }
 
         if (canInspectFormInvocations && content is { Length: > 0 }) {
-            CollectUnsupportedFormFilters(content.ToString(), pageResources, unsupported, new HashSet<PdfStream>(), pageContentBudget);
+            CollectUnsupportedFormFilters(content.ToString(), pageResources, unsupported, new HashSet<PdfStream>(), pageContentBudget,
+                new PdfTextClippingBudget(_limits));
         }
         return unsupported;
     }

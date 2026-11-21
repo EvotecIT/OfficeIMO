@@ -169,6 +169,21 @@ namespace OfficeIMO.Core.Internal {
                     a += sum;
                 }
             }
+            if (Vector128.IsHardwareAccelerated && end - offset >= 16) {
+                // Sixteen bytes per step: a gains their sum and b gains 16a plus the bytes weighted 16 down to 1,
+                // the same exact integer totals as the byte loop.
+                Vector128<ushort> weightsLow = Vector128.Create((ushort)16, 15, 14, 13, 12, 11, 10, 9);
+                Vector128<ushort> weightsHigh = Vector128.Create((ushort)8, 7, 6, 5, 4, 3, 2, 1);
+                ref byte first = ref MemoryMarshal.GetArrayDataReference(data);
+                for (; offset <= end - 16; offset += 16) {
+                    Vector128<byte> bytes = Vector128.LoadUnsafe(ref first, (nuint)offset);
+                    (Vector128<ushort> low, Vector128<ushort> high) = Vector128.Widen(bytes);
+                    (Vector128<uint> sumLow, Vector128<uint> sumHigh) = Vector128.Widen(low + high);
+                    (Vector128<uint> weightedLow, Vector128<uint> weightedHigh) = Vector128.Widen(low * weightsLow + high * weightsHigh);
+                    b += 16U * a + Vector128.Sum(weightedLow + weightedHigh);
+                    a += Vector128.Sum(sumLow + sumHigh);
+                }
+            }
 #endif
             while (offset < end) {
                 a += data[offset++];

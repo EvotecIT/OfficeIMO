@@ -8,22 +8,33 @@ namespace OfficeIMO.Tests;
 
 public sealed class OfficeConverterReaderTests {
     [Fact]
-    public void EmailConversion_ProducesSearchablePdfWithEmailPolicyEvidence() {
+    public void EmailConversion_RendersStyledMessageAndKeepsReaderTextOnlyOnRequest() {
         byte[] source = Encoding.UTF8.GetBytes(
-            "From: sender@example.test\r\n" +
+            "From: Sender <sender@example.test>\r\n" +
             "To: recipient@example.test\r\n" +
+            "Cc: reviewer@example.test\r\n" +
+            "Date: Tue, 10 Nov 2026 09:30:00 +0000\r\n" +
             "Subject: Delivery update\r\n" +
             "MIME-Version: 1.0\r\n" +
-            "Content-Type: text/plain; charset=utf-8\r\n\r\n" +
-            "The delivery is ready for review.\r\n");
-        using var stream = new MemoryStream(source);
+            "Content-Type: multipart/mixed; boundary=\"part\"\r\n\r\n" +
+            "--part\r\nContent-Type: text/html; charset=utf-8\r\n\r\n" +
+            "<p>The delivery is <b>ready</b> for review.</p>\r\n" +
+            "--part\r\nContent-Type: text/csv; name=\"manifest.csv\"\r\n" +
+            "Content-Disposition: attachment; filename=\"manifest.csv\"\r\n\r\n" +
+            "item,count\r\nboxes,4\r\n--part--\r\n");
 
-        using var output = new MemoryStream();
-        OfficeConversionReport conversion = OfficeConverter.Convert(stream, OfficeDocumentFormat.Email, output, OfficeDocumentFormat.Pdf);
-        byte[] pdf = output.ToArray();
+        using var styled = new MemoryStream();
+        OfficeConverter.Convert(new MemoryStream(source), OfficeDocumentFormat.Email, styled, OfficeDocumentFormat.Pdf);
+        string text = PdfDocument.Load(new MemoryStream(styled.ToArray())).ExtractText();
+        foreach (string expected in new[] { "Delivery update", "From", "sender@example.test", "To", "recipient@example.test",
+                     "Cc", "reviewer@example.test", "Date", "2026-11-10", "delivery is", "ready", "Attachments (1)", "manifest.csv" })
+            Assert.Contains(expected, text, StringComparison.Ordinal);
 
-        Assert.Contains("delivery is ready", PdfDocument.Load(new MemoryStream(pdf)).ExtractText(), StringComparison.OrdinalIgnoreCase);
-        Assert.Contains(conversion.Diagnostics, static warning => warning.Code == "pdf-projection-email-policy");
+        using var textOnly = new MemoryStream();
+        OfficeConversionReport archival = OfficeConverter.Convert(new MemoryStream(source), OfficeDocumentFormat.Email, textOnly,
+            OfficeDocumentFormat.Pdf, new OfficeConversionOptions { OutputProfile = OfficeConversionProfile.TextOnly });
+        Assert.Contains("delivery is", PdfDocument.Load(new MemoryStream(textOnly.ToArray())).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains(archival.Diagnostics, static warning => warning.Code == "pdf-projection-email-policy");
     }
 
     [Fact]

@@ -256,7 +256,7 @@ internal static class AsciiDocToMarkdownConverter {
             return;
         }
         if (source.IsStem) {
-            var math = new SemanticFencedBlock(MarkdownSemanticKinds.Math, "latex", content);
+            var math = new SemanticFencedBlock(MarkdownSemanticKinds.Math, IsTexStem(source.Style ?? "stem", attributes) ? "latex" : "asciimath", content);
             ApplyMetadata(math, source);
             target.Add(math);
             return;
@@ -465,5 +465,15 @@ internal static class AsciiDocToMarkdownConverter {
         string first = comma < 0 ? value : value.Substring(0, comma);
         first = first.Trim();
         return first.Length == 0 ? null : first;
+    }
+
+    // latexmath is TeX and asciimath is AsciiMath. stem follows the document's :stem: attribute: an explicit
+    // latexmath (or tex) selects TeX, any other value selects AsciiMath, and an unset attribute keeps TeX.
+    internal static bool IsTexStem(string name, AsciiDocDocumentAttributes attributes) {
+        if (string.Equals(name, "latexmath", StringComparison.OrdinalIgnoreCase)) return true;
+        if (!string.Equals(name, "stem", StringComparison.OrdinalIgnoreCase)) return false;
+        if (!attributes.TryGetValue("stem", out string notation)) return true;
+        return string.Equals(notation, "latexmath", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(notation, "tex", StringComparison.OrdinalIgnoreCase);
     }
 }

@@ -62,12 +62,16 @@ public sealed class PdfSignatureValidationReport {
     public bool CryptographicValidationPerformed =>
         Signatures.Count > 0 && Signatures.All(static signature => signature.CryptographicResult is not null);
 
-    /// <summary>True when every readable signature passed signature math, digest, and certificate-chain validation.</summary>
+    /// <summary>
+    /// True when every readable signature passed signature math, digest, and certificate-chain validation and no
+    /// certificate was found revoked. Unknown revocation status does not clear it; see <see cref="RevocationChecked"/>.
+    /// </summary>
     public bool CryptographicTrustVerified =>
         CryptographicValidationPerformed &&
         Signatures.All(static signature =>
             signature.CryptographicResult!.IsMathematicallyValid &&
-            signature.CryptographicResult.CertificateChainStatus == PdfCryptographicValidationStatus.Valid);
+            signature.CryptographicResult.CertificateChainStatus == PdfCryptographicValidationStatus.Valid &&
+            signature.CryptographicResult.RevocationStatus != PdfCryptographicValidationStatus.Invalid);
 
     /// <summary>True when every provider verified its signature's signed-content digest.</summary>
     public bool DigestVerified =>

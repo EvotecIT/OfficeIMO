@@ -27,6 +27,10 @@ namespace OfficeIMO.Word.Markdown {
             Dictionary<string, string>? previousAnchors = _headingAnchorSlugs;
             _headingAnchorSlugs = BuildHeadingAnchorSlugs(document);
             try {
+                // Table cells, running content and notes resolve list info per paragraph, and
+                // each appended block would otherwise rebind the whole Markdown object tree.
+                using (WordDocumentTraversal.UseListNumberingCatalog(document))
+                using (markdown.DeferObjectTreeBinding())
                 using (WordComplexFieldRunVisibility.BeginConversionScope())
                     BuildMarkdownDocument(document, markdown, options, cancellationToken);
             } finally {
@@ -46,7 +50,9 @@ namespace OfficeIMO.Word.Markdown {
             if (body == null) return map;
             foreach (var paragraph in body.Descendants<DocumentFormat.OpenXml.Wordprocessing.Paragraph>()) {
                 string? styleId = paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value;
-                if (styleId == null || !styleId.StartsWith("Heading", StringComparison.Ordinal)) continue;
+                if (document.GetHeadingLevel(styleId) == 0) continue;
+                // Headings inside table cells are not Markdown headings, so they take no slug.
+                if (paragraph.Ancestors<DocumentFormat.OpenXml.Wordprocessing.TableCell>().Any()) continue;
                 string text = string.Concat(paragraph.Descendants<DocumentFormat.OpenXml.Wordprocessing.Text>().Select(item => item.Text)).Trim();
                 if (text.Length == 0) continue;
                 string slug = MarkdownSlug.Generate(text, MarkdownHeadingIdentifierStyle.OfficeIMO, registry);

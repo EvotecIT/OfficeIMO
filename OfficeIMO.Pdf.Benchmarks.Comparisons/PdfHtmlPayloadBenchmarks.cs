@@ -1,6 +1,9 @@
 using BenchmarkDotNet.Attributes;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
+#if NET10_0_OR_GREATER
+using OneRender.Text;
+#endif
 using System.Globalization;
 using System.Text;
 
@@ -18,6 +21,9 @@ public class PdfHtmlPayloadBenchmarks {
     private byte[]? _officeImoResult;
     private byte[]? _peachPdfResult;
     private byte[]? _pdfPeckerResult;
+#if NET10_0_OR_GREATER
+    private byte[]? _oneRenderResult;
+#endif
 
     [Params(PdfHtmlPayloadKind.PlainText, PdfHtmlPayloadKind.Table, PdfHtmlPayloadKind.Multilingual)]
     public PdfHtmlPayloadKind Payload { get; set; }
@@ -32,25 +38,47 @@ public class PdfHtmlPayloadBenchmarks {
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public byte[] OfficeIMO() =>
         _officeImoResult = OfficeImoPdfGenerator.GenerateHtml(_scenario.Html, _sharedFont);
 
     [Benchmark]
+    [BenchmarkCategory("library:PeachPDF", "case:Default")]
     public byte[] PeachPDF() =>
         _peachPdfResult = PeachPdfGenerator.Generate(_scenario.Html, _sharedFont);
 
     [Benchmark]
+    [BenchmarkCategory("library:PdfPecker", "case:Default")]
     public byte[] PdfPecker() =>
         _pdfPeckerResult = PdfPeckerGenerator.Generate(_scenario.Html, _sharedFont);
 
+    // Validation stays in cleanup so the Dry job's first invocation remains a cold start; it checks the PDF the last
+    // measured invocation produced and records the outcome.
+#if NET10_0_OR_GREATER
+    [Benchmark]
+    [BenchmarkCategory("library:OneRender", "case:Default")]
+    public byte[] OneRender() =>
+        _oneRenderResult = OneRenderHtmlGenerator.Generate(_scenario.Html, OneRenderHtmlGenerator.CreateFontProvider(_sharedFont));
+
+    [GlobalCleanup(Target = nameof(OneRender))]
+    public void ValidateOneRender() => ValidateAndRecord(nameof(OneRender), _oneRenderResult);
+#endif
+
     [GlobalCleanup(Target = nameof(PdfPecker))]
-    public void ValidatePdfPecker() => Validate(nameof(PdfPecker), _pdfPeckerResult);
+    public void ValidatePdfPecker() => ValidateAndRecord(nameof(PdfPecker), _pdfPeckerResult);
 
     [GlobalCleanup(Target = nameof(OfficeIMO))]
-    public void ValidateOfficeIMO() => Validate(nameof(OfficeIMO), _officeImoResult);
+    public void ValidateOfficeIMO() => ValidateAndRecord(nameof(OfficeIMO), _officeImoResult);
 
     [GlobalCleanup(Target = nameof(PeachPDF))]
-    public void ValidatePeachPDF() => Validate(nameof(PeachPDF), _peachPdfResult);
+    public void ValidatePeachPDF() => ValidateAndRecord(nameof(PeachPDF), _peachPdfResult);
+
+    private void ValidateAndRecord(string engine, byte[]? bytes) =>
+        PdfBenchmarkValidation.Record(
+            engine,
+            "Default",
+            $"Payload={Payload}; measured PDF reopened with PdfPig: 2-20 pages, every required text fragment, tag tree, embedded Carlito regular and bold",
+            () => Validate(engine, bytes));
 
     /// <summary>Validates the same artifact contract for timings and the correctness-only evidence runner.</summary>
     internal PdfReadObservation Validate(string engine, byte[]? bytes) {

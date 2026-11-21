@@ -36,7 +36,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
             if (source.HasUnsupportedContent || source.Columns.Any(column => column.HasUnsupportedContent)) {
                 throw new NotSupportedException(
-                    $"Native XLSB rewriting preserves but cannot modify the worksheet AutoFilter on worksheet '{sheet.Name}' because it contains criteria outside the supported equality-list subset.");
+                    $"Native XLSB rewriting preserves but cannot modify the worksheet AutoFilter on worksheet '{sheet.Name}' because it contains criteria outside the supported equality-list, custom, top 10, dynamic and icon subset.");
             }
 
             Worksheet worksheet = sheet.WorksheetPart.Worksheet

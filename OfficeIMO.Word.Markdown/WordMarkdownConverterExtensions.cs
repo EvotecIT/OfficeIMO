@@ -197,6 +197,8 @@ namespace OfficeIMO.Word.Markdown {
                 ApplyDefaultTheme = source.ApplyDefaultTheme,
                 FailOnLoss = source.FailOnLoss,
                 FontFamily = source.FontFamily,
+                DefaultParagraphStyleId = source.DefaultParagraphStyleId,
+                PreferDocumentStyles = source.PreferDocumentStyles,
                 BaseUri = source.BaseUri,
                 OnWarning = source.OnWarning,
                 MaxNestingDepth = source.MaxNestingDepth,

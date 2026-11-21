@@ -28,4 +28,14 @@ public static partial class OfficeConverter {
         return PdfConversionEvidence.CreateReport(options.SourceName!, saved.ConversionReports,
             elapsed: timer.Elapsed, itemsWritten: saved.Pipeline.Output?.PageCount ?? 0);
     }
+
+    // Renders the styled message (header block, body, attachment list, inline images) through the HTML-to-PDF engine.
+    private static async Task<OfficeConversionReport> ConvertEmailPdfAsync(Stream source, Stream destination,
+        OfficeConversionOptions options, CancellationToken token) {
+        OfficeIMO.Email.EmailDocument message = OfficeIMO.Email.EmailDocument.Load(source,
+            new OfficeIMO.Email.EmailReaderOptions(maxInputBytes: options.MaximumInputBytes), token);
+        OfficeIMO.Email.EmailPdfExportOptions rendering = options.EmailPdf?.Clone() ?? new();
+        rendering.Pdf.FailOnLoss |= options.FailOnLoss;
+        return await OfficeIMO.Email.EmailImageExportExtensions.SaveAsPdfAsync(message, destination, rendering, token).ConfigureAwait(false);
+    }
 }

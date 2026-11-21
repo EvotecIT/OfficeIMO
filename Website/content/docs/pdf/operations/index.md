@@ -1,40 +1,120 @@
 ---
 title: "PDF Inspection, Extraction, and Operations"
-description: "Preflight, repair, extract, merge, split, stamp, optimize, redact, and inspect PDFs with structured reports. Includes examples and API links."
+description: "Preflight, repair, extract, merge, split, stamp, optimize, convert to PDF/A, redact, and inspect PDFs with structured reports. Includes examples and API links."
 layout: docs
+verified: 2026-11-14
 ---
 
 `OfficeIMO.Pdf` can operate on existing PDFs as well as author new ones. The read path exposes preflight and diagnostic reports so an application can distinguish a readable file from one that required recovery or cannot be safely rewritten.
 
-## Start with preflight
+## Start with a check
 
 ```csharp
 using OfficeIMO.Pdf;
 
-PdfDocumentPreflight preflight = PdfDocument.Preflight("incoming.pdf");
-if (!preflight.CanRead) {
+PdfDocument pdf = PdfDocument.Load("incoming.pdf");
+PdfAnalysisReport analysis = pdf.Analyze();
+if (!analysis.CanRead) {
     throw new InvalidDataException("The PDF cannot be read safely.");
 }
 ```
 
-Use `Diagnostics` when you need fonts, streams, structure, repair, security, and optimization evidence. Treat `CanRead` and `CanRewrite` separately: extraction may be possible even when a safe mutation is not.
+`Analyze()` combines health, diagnostics, repair, optimization and signature evidence. Treat `CanRead` and `CanRewrite` separately: extraction may be possible even when a safe mutation is not. `AssessMutations()` lists which page, form, metadata and signing operations are allowed for this file.
 
 ## Extract content and assets
 
-- `PdfTextExtractor` returns text by document, page, or page range and can project logical Markdown.
-- `PdfImageExtractor` returns image bytes and placement metadata.
-- `PdfAttachmentExtractor` enumerates and extracts embedded files.
-- Reader adapters normalize PDF content with other document families for ingestion pipelines.
+```csharp
+using OfficeIMO.Pdf;
+
+PdfDocumentReadResult result = PdfDocument.Load("Service-review.pdf").Read();
+foreach (PdfLogicalPage page in result.Pages) {
+    Console.WriteLine($"Page {page.PageNumber}: {page.Paragraphs.Count} paragraphs, {page.Tables.Count} tables");
+}
+Console.WriteLine(result.ExtractMarkdown());
+```
+
+`Read()` returns paragraphs, headings, lists, tables, links, form fields and attachment metadata per page. `pdf.Images.Extract()` and `pdf.Attachments.Extract()` return image and embedded-file bytes, and Reader adapters normalize PDF content with other document families for ingestion pipelines.
 
 ## Compose existing documents
 
-`PdfDocument.Merge` combines PDFs directly, while `PdfDocument.MergeResult` returns readback evidence under an explicit structure policy. Page extraction and production splitting live on the opened document: `pdf.Pages.Split(...)` returns documents, `pdf.Pages.SplitForProduction(...)` returns generated parts, and `pdf.Pages.SplitForProductionResult(...)` adds bounded-probe evidence.
+```csharp
+using OfficeIMO.Pdf;
 
-Stamp and watermark operations support text and images. Annotation editors, page operations, metadata changes, and optimization produce mutation evidence where signatures or structural constraints matter.
+PdfDocument.Load("Service-review.pdf")
+    .MergeWith("Appendix.pdf")
+    .Pages.Rotate(90, "2")
+    .Save("Review-pack.pdf");
+
+IReadOnlyList<PdfDocument> parts = PdfDocument.Load("Review-pack.pdf").Pages.Split();
+for (int i = 0; i < parts.Count; i++) parts[i].Save($"Review-pack-{i + 1}.pdf");
+```
+
+Page operations return a new document and do not overwrite the source; save the result to a different path to keep the original. `PdfDocument.Merge(documents, options, out PdfMergeReport report)` combines several loaded documents under an explicit structure policy, and `pdf.Pages.SplitForProduction(...)` splits by page count, boundary text or target size.
+
+Stamp and watermark operations support text, images and imported pages. Annotation editors, page operations, metadata changes, and optimization produce mutation evidence where signatures or structural constraints matter.
+
+## Convert an existing PDF to PDF/A
+
+```csharp
+using OfficeIMO.Pdf;
+
+PdfAConversionResult archive = PdfDocument.Load("Service-review.pdf").ConvertToPdfA(new PdfAConversionOptions {
+    Profile = PdfComplianceProfile.PdfA3B,
+    Attachments = PdfAAttachmentPolicy.Refuse
+});
+if (!archive.Succeeded) {
+    foreach (PdfAConversionViolation violation in archive.Report.Violations) {
+        Console.WriteLine($"{violation.Reason} at {violation.Location}: {violation.Message}");
+    }
+} else {
+    archive.Save("Service-review-archive.pdf");
+}
+```
+
+Conversion targets PDF/A-2b, 2u, 3b, 3u, 4 or 4f. It fixes what it can without moving anything on the page and lists every change in `Report.Changes`. When something cannot be made compliant without changing the content, nothing is produced and `Report.Violations` lists every reason by location and object number. `SaveAsPdfA(path)` does the same in one call and throws `PdfAConversionException` on refusal.
+
+The same conversion is available as `OfficeWorkflow.ConvertToPdfA` in `OfficeIMO.Workflows`, as `officeimo pdf convert-to-pdfa` in the command-line tool, and as the `officeimo_pdf_convert_to_pdfa` MCP tool.
+
+## Print to an installed printer
+
+`OfficeIMO.Workflows` prints PDF files and every format OfficeIMO converts to PDF. It reaches Windows printers through GDI, CUPS queues on macOS and Linux, and network printers directly by `ipp://` or `ipps://` URI. Pages are composed onto sheets as vector content, so text and line art keep the printer's full resolution, and a preview renders the same job the printer receives.
+
+```csharp
+using OfficeIMO.Pdf;
+using OfficeIMO.Workflows;
+
+var printers = new PdfPrinterService();
+PdfPrinterCapabilities capabilities = await printers.GetCapabilitiesAsync("Office printer");
+
+PdfDocument document = await PdfDocument.LoadAsync("report.pdf");
+PdfPrintJob job = PdfPrintJob.Create(document, new PdfPrintPlanRequest {
+    InputPath = "report.pdf",
+    Pages = "1-8",
+    PagesPerSheet = 2,
+    PaperSize = capabilities.DefaultMedia?.Size ?? PdfPageSizes.A4
+});
+File.WriteAllBytes("sheet-1.png", job.RenderSheet(1, dpi: 96).GetPng());
+
+PdfPrintSubmission receipt = await printers.SubmitAsync(job, new PdfPrintDeliveryOptions {
+    PrinterName = "Office printer",
+    Copies = 2,
+    Duplex = PdfPrintDuplex.LongEdge
+});
+PdfPrintJobStatus status = await printers.WaitForJobAsync(receipt.PrinterName, receipt.JobId, TimeSpan.FromMinutes(5));
+```
+
+To print a Word, Excel, PowerPoint or other document, call `printers.PrintAsync(new OfficePrintRequest { ... })`: it converts in memory, composes the job and submits it in one step.
+
+- **Layout:** 1, 2, 4, 6 or 9 pages per sheet, odd or even pages, fit, actual size, fill or a custom percentage, per-edge margins, alignment, and grayscale.
+- **Printer:** list queues with `GetPrintersAsync`, read media, trays, duplex, color and resolutions with `GetCapabilitiesAsync`, then choose copies, duplex and paper source.
+- **Permissions and limits:** PDF print restrictions are enforced, and sheet, content and pixel budgets bound the work. Pages that can't be placed as vector content, such as print-only documents, are rasterized and the job reports why.
+- **Receipt:** the job identifier confirms that the queue accepted the job, not that paper came out. Follow it with `GetJobAsync`, `WaitForJobAsync` or `CancelJobAsync`. A `PdfPrintDeliveryException` means submission began, so check the queue before retrying.
+
+From the command line, use `officeimo workflow printers`, `officeimo workflow print report.pdf --printer "Office printer"` and `officeimo workflow print-job status --printer "Office printer" --job <id>`. In PowerShell, use `Send-OfficePrinter`, `Get-OfficePrinterCapability`, `Get-OfficePrintJob` and `Stop-OfficePrintJob`.
 
 ## Redaction is removal, not decoration
 
-Use the redaction planner and applier to remove targeted content, then run `PdfRedactionVerification` against the resulting bytes. Drawing a black rectangle over text is not redaction; the original content may remain extractable.
+Use `pdf.Redactions.Search(...)` to build a reviewable plan, then `ApplyWithEvidence(plan)` to remove the content and verify the saved bytes. Call `ThrowIfUnverified()` on the result before saving or sharing it: evidence can report residual or inconclusive matches. Drawing a black rectangle over text is not redaction; the original content may remain extractable.
 
 ## Operational policy
 

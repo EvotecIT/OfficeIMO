@@ -564,10 +564,8 @@ namespace OfficeIMO.Word.Markdown {
             }
 
             void AppendStandaloneBlock(IMarkdownBlock block) {
-                if (allowQuoteHeuristic &&
-                    paragraph.IndentationBefore.HasValue &&
-                    checked((int)(paragraph.IndentationBefore.Value.ToTwips())) > 0) {
-                    int depth = GetBoundedBlockquoteDepth(checked((int)(paragraph.IndentationBefore.Value.ToTwips())));
+                if (allowQuoteHeuristic) {
+                    int depth = GetBlockquoteDepth(paragraph);
                     if (depth > 0) {
                         block = WrapQuotedBlock(block, depth);
                     }
@@ -939,8 +937,8 @@ namespace OfficeIMO.Word.Markdown {
                 ? new HeadingBlock(headingLevel, inlines)
                 : new ParagraphBlock(inlines);
 
-            if (allowQuoteHeuristic && paragraph.IndentationBefore.HasValue && checked((int)(paragraph.IndentationBefore.Value.ToTwips())) > 0) {
-                int depth = GetBoundedBlockquoteDepth(checked((int)(paragraph.IndentationBefore.Value.ToTwips())));
+            if (allowQuoteHeuristic) {
+                int depth = GetBlockquoteDepth(paragraph);
                 if (depth > 0) {
                     block = WrapQuotedBlock(block, depth);
                 }
@@ -1726,16 +1724,11 @@ namespace OfficeIMO.Word.Markdown {
         private static bool HasAuthoredTableBorders(WordTable table) {
             if (table._tableProperties?.TableBorders?.ChildElements.Count > 0) return true;
 
-            Styles? styles = table.Document._wordprocessingDocument.MainDocumentPart?
-                .StyleDefinitionsPart?.Styles;
-            if (styles == null) return false;
-            string? styleId = table._tableProperties?.TableStyle?.Val?.Value
-                ?? styles.Elements<Style>().FirstOrDefault(style =>
-                    style.Type?.Value == StyleValues.Table && style.Default?.Value == true)?.StyleId?.Value;
+            WordStyleCatalog styles = WordStyleCatalog.For(table.Document);
+            string? styleId = table._tableProperties?.TableStyle?.Val?.Value ?? styles.DefaultStyleId(StyleValues.Table);
             var visited = new HashSet<string>(StringComparer.Ordinal);
             while (!string.IsNullOrWhiteSpace(styleId) && visited.Add(styleId!)) {
-                Style? style = styles.Elements<Style>().FirstOrDefault(candidate =>
-                    string.Equals(candidate.StyleId?.Value, styleId, StringComparison.Ordinal));
+                Style? style = styles.FindById(styleId);
                 if (style == null) break;
                 if (style.GetFirstChild<StyleTableProperties>()?.GetFirstChild<TableBorders>()?.ChildElements.Count > 0)
                     return true;

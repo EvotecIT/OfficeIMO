@@ -12,7 +12,8 @@ public static partial class OfficeConverter {
             throw new ArgumentException("PDF compression requires a PDF destination.", nameof(settings));
         var timer = Stopwatch.StartNew();
         PdfCreateOptions? creation = settings.Word?.PdfOptions ?? settings.Excel?.PdfOptions ?? settings.PowerPoint?.PdfOptions
-            ?? settings.Markdown?.PdfOptions ?? settings.Html?.PdfOptions ?? settings.PlainText?.PdfOptions ?? settings.ReaderPdf?.PdfOptions;
+            ?? settings.Markdown?.PdfOptions ?? settings.Html?.PdfOptions ?? settings.PlainText?.PdfOptions ?? settings.ReaderPdf?.PdfOptions
+            ?? settings.EmailPdf?.Pdf.PdfOptions;
         if (Registrations.TryGetValue(SelectRoute(settings).Id, out IOfficeConversionRoute? route) && route is IOfficeConversionOutputValidation owner)
             creation = owner.GetOutputCreationOptions(settings) ?? creation;
         PdfStandardEncryptionOptions? encryption = creation?.Encryption?.Clone();

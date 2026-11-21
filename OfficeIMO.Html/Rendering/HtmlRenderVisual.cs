@@ -80,6 +80,15 @@ public abstract partial class HtmlRenderVisual {
 
     internal HtmlRenderStackingContext? StackingContext { get; private set; }
 
+    // Boxed so a reader on another thread sees either nothing or the complete value.
+    private object? _cachedChildScrollBottom;
+
+    /// <summary>Scroll extent of this container's immutable children, once measured.</summary>
+    internal double? CachedChildScrollBottom {
+        get => Volatile.Read(ref _cachedChildScrollBottom) is double value ? value : null;
+        set => Volatile.Write(ref _cachedChildScrollBottom, value);
+    }
+
     // Split paint envelopes still describe the same layout box. Identity, rather
     // than equal coordinates, keeps distinct overlapping source elements apart.
     internal object? PaintProjectionIdentity { get; private set; }

@@ -86,41 +86,8 @@ namespace OfficeIMO.Word {
         /// Gets or sets the text shown when the document has no entries for the table of contents.
         /// </summary>
         public string TextNoContent {
-            get {
-                var contentBlock = _sdtBlock?.SdtContentBlock;
-                if (contentBlock != null) {
-                    foreach (var paragraph in contentBlock.ChildElements.OfType<Paragraph>()) {
-                        var text = paragraph
-                            .OfType<SimpleField>()
-                            .FirstOrDefault()?
-                            .OfType<Run>()
-                            .FirstOrDefault()?
-                            .OfType<Text>()
-                            .FirstOrDefault()?.Text;
-                        if (text != null) {
-                            return text;
-                        }
-                    }
-                }
-                return string.Empty;
-            }
-            set {
-                var contentBlock = _sdtBlock?.SdtContentBlock;
-                if (contentBlock != null) {
-                    foreach (var paragraph in contentBlock.ChildElements.OfType<Paragraph>()) {
-                        var text = paragraph
-                            .OfType<SimpleField>()
-                            .FirstOrDefault()?
-                            .OfType<Run>()
-                            .FirstOrDefault()?
-                            .OfType<Text>()
-                            .FirstOrDefault();
-                        if (text != null) {
-                            text.Text = value;
-                        }
-                    }
-                }
-            }
+            get => GetPlaceholderText();
+            set => SetPlaceholderText(value);
         }
 
         private Text? GetTitleTextElement() {
@@ -187,6 +154,7 @@ namespace OfficeIMO.Word {
             this._document = wordDocument ?? throw new ArgumentNullException(nameof(wordDocument));
             this._sdtBlock = sdtBlock ?? throw new ArgumentNullException(nameof(sdtBlock));
             this.Style = style;
+            GetPlaceholderPart();
 
             if (appendToBody) {
                 this._document.AppendBlockToBody(_sdtBlock);
@@ -194,7 +162,9 @@ namespace OfficeIMO.Word {
                 // its visible entries; both must exist for viewers that never update fields.
                 this._document.EnsureStyleDefinitionsInitialized();
                 WordTableOfContentStyles.EnsureDefined(this._document._wordprocessingDocument.MainDocumentPart?.StyleDefinitionsPart);
-                this._document.EnsureStyleDefinition("TOCHeading");
+                this._document.InvalidateBuiltInStyleIndex();
+                this._document.UseBuiltInStyle("TOCHeading");
+                this._document.LocalizeBuiltInStyleReferences(_sdtBlock);
                 this._document._generatedTableOfContent = this;
             }
 
@@ -288,7 +258,7 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
-                if (instruction!.IndexOf("TOC", StringComparison.OrdinalIgnoreCase) < 0) {
+                if (!IsTocInstruction(instruction)) {
                     continue;
                 }
 
@@ -313,7 +283,7 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
-                if (instructionText.IndexOf("TOC", StringComparison.OrdinalIgnoreCase) < 0) {
+                if (!IsTocInstruction(instructionText)) {
                     continue;
                 }
 

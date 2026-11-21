@@ -38,7 +38,6 @@ internal static partial class CsvWriter
         buffer.Append(newLine);
     }
 
-#if NET6_0_OR_GREATER
     internal enum DataReaderFieldKind : byte
     {
         Object,
@@ -70,9 +69,11 @@ internal static partial class CsvWriter
         {
             for (var i = 0; i < fieldKinds.Length; i++)
             {
+                // A reader that reports no type keeps its values on the boxed path.
                 var reportedType = reader.GetFieldType(i);
-                var fieldType = Nullable.GetUnderlyingType(reportedType) ?? reportedType;
-                fieldKinds[i] = GetDataReaderFieldKind(fieldType);
+                fieldKinds[i] = reportedType is null
+                    ? DataReaderFieldKind.Object
+                    : GetDataReaderFieldKind(Nullable.GetUnderlyingType(reportedType) ?? reportedType);
             }
         }
         catch (NotSupportedException)
@@ -87,36 +88,133 @@ internal static partial class CsvWriter
         return fieldKinds;
     }
 
-    internal static void AppendDataReaderRecordBufferedDefault(
+    private static DataReaderFieldKind GetDataReaderFieldKind(Type fieldType)
+    {
+        if (fieldType == typeof(string)) return DataReaderFieldKind.String;
+        if (fieldType == typeof(bool)) return DataReaderFieldKind.Boolean;
+        if (fieldType == typeof(decimal)) return DataReaderFieldKind.Decimal;
+        if (fieldType == typeof(int)) return DataReaderFieldKind.Int32;
+        if (fieldType == typeof(DateTime)) return DataReaderFieldKind.DateTime;
+        if (fieldType == typeof(double)) return DataReaderFieldKind.Double;
+        if (fieldType == typeof(long)) return DataReaderFieldKind.Int64;
+        if (fieldType == typeof(DateTimeOffset)) return DataReaderFieldKind.DateTimeOffset;
+        if (fieldType == typeof(Guid)) return DataReaderFieldKind.Guid;
+        if (fieldType == typeof(TimeSpan)) return DataReaderFieldKind.TimeSpan;
+        if (fieldType == typeof(float)) return DataReaderFieldKind.Single;
+        if (fieldType == typeof(byte)) return DataReaderFieldKind.Byte;
+        if (fieldType == typeof(sbyte)) return DataReaderFieldKind.SByte;
+        if (fieldType == typeof(short)) return DataReaderFieldKind.Int16;
+        if (fieldType == typeof(ushort)) return DataReaderFieldKind.UInt16;
+        if (fieldType == typeof(uint)) return DataReaderFieldKind.UInt32;
+        if (fieldType == typeof(ulong)) return DataReaderFieldKind.UInt64;
+#if NET6_0_OR_GREATER
+        if (fieldType == typeof(DateOnly)) return DataReaderFieldKind.DateOnly;
+        if (fieldType == typeof(TimeOnly)) return DataReaderFieldKind.TimeOnly;
+#endif
+        return DataReaderFieldKind.Object;
+    }
+
+#if NET6_0_OR_GREATER
+    private static bool TryAppendFormattedTypedDataReaderValue(
         StringBuilder buffer,
         IDataRecord reader,
-        DataReaderFieldKind[] fieldKinds,
+        int ordinal,
+        DataReaderFieldKind fieldKind,
         char delimiter,
-        string newLine,
-        CultureInfo culture)
+        CultureInfo culture,
+        string? format,
+        bool useUtc,
+        string? nullValue)
     {
-        for (var i = 0; i < fieldKinds.Length; i++)
+        try
         {
-            if (i > 0)
+            if (reader.IsDBNull(ordinal))
             {
-                buffer.Append(delimiter);
+                AppendNullMarkerDefault(buffer, nullValue, delimiter);
+                return true;
             }
 
-            var fieldKind = fieldKinds[i];
-            if (fieldKind == DataReaderFieldKind.Object || !TryAppendTypedDataReaderValue(
-                    buffer,
-                    reader,
-                    i,
-                    fieldKind,
-                    delimiter,
-                    culture))
+            if (fieldKind == DataReaderFieldKind.DateTime)
             {
-                fieldKinds[i] = DataReaderFieldKind.Object;
-                AppendDataReaderObjectValue(buffer, reader.GetValue(i), delimiter, culture);
+                AppendFormattedDateDefault(buffer, reader.GetDateTime(ordinal), format, useUtc, delimiter, culture);
+                return true;
             }
         }
+        catch (InvalidCastException)
+        {
+            return false;
+        }
+        catch (NotSupportedException)
+        {
+            return false;
+        }
+        catch (NotImplementedException)
+        {
+            return false;
+        }
 
-        buffer.Append(newLine);
+        // Other kinds ignore the date and null options once the value is known not to be null.
+        return fieldKind != DataReaderFieldKind.DateTimeOffset
+            && TryAppendTypedDataReaderValue(buffer, reader, ordinal, fieldKind, delimiter, culture);
+    }
+
+    private static void AppendFormattedDataReaderObjectValue(
+        StringBuilder buffer,
+        object? value,
+        char delimiter,
+        CultureInfo culture,
+        string? dateTimeFormat,
+        bool useUtc,
+        string? nullValue)
+    {
+        if (value is null || ReferenceEquals(value, DBNull.Value))
+        {
+            AppendNullMarkerDefault(buffer, nullValue, delimiter);
+        }
+        else if (value is DateTime dateTime)
+        {
+            AppendFormattedDateDefault(buffer, dateTime, string.IsNullOrEmpty(dateTimeFormat) ? null : dateTimeFormat, useUtc, delimiter, culture);
+        }
+        else if (value is DateTimeOffset)
+        {
+            WriteEscapedDefault(buffer, FormatValue(value, culture, dateTimeFormat, useUtc, nullValue), delimiter);
+        }
+        else
+        {
+            AppendEscapedValueDefault(buffer, value, delimiter, culture);
+        }
+    }
+
+    private static void AppendNullMarkerDefault(StringBuilder buffer, string? nullValue, char delimiter)
+    {
+        if (nullValue is not null)
+        {
+            WriteEscapedDefault(buffer, nullValue, delimiter);
+        }
+    }
+
+    private static void AppendFormattedDateDefault(
+        StringBuilder buffer,
+        DateTime value,
+        string? format,
+        bool useUtc,
+        char delimiter,
+        CultureInfo culture)
+    {
+        if (useUtc)
+        {
+            value = value.ToUniversalTime();
+        }
+
+        Span<char> destination = stackalloc char[64];
+        if (TryFormatDate(value, destination, out var charsWritten, format, culture))
+        {
+            AppendEscapedSpanDefault(buffer, destination[..charsWritten], delimiter);
+        }
+        else
+        {
+            WriteEscapedDefault(buffer, FormatDateText(value, format, culture), delimiter);
+        }
     }
 
     private static bool TryAppendTypedDataReaderValue(
@@ -221,45 +319,34 @@ internal static partial class CsvWriter
         buffer.Clear();
     }
 
-    private static DataReaderFieldKind GetDataReaderFieldKind(Type fieldType)
-    {
-        if (fieldType == typeof(string)) return DataReaderFieldKind.String;
-        if (fieldType == typeof(bool)) return DataReaderFieldKind.Boolean;
-        if (fieldType == typeof(decimal)) return DataReaderFieldKind.Decimal;
-        if (fieldType == typeof(int)) return DataReaderFieldKind.Int32;
-        if (fieldType == typeof(DateTime)) return DataReaderFieldKind.DateTime;
-        if (fieldType == typeof(double)) return DataReaderFieldKind.Double;
-        if (fieldType == typeof(long)) return DataReaderFieldKind.Int64;
-        if (fieldType == typeof(DateTimeOffset)) return DataReaderFieldKind.DateTimeOffset;
-        if (fieldType == typeof(Guid)) return DataReaderFieldKind.Guid;
-        if (fieldType == typeof(TimeSpan)) return DataReaderFieldKind.TimeSpan;
-        if (fieldType == typeof(float)) return DataReaderFieldKind.Single;
-        if (fieldType == typeof(byte)) return DataReaderFieldKind.Byte;
-        if (fieldType == typeof(sbyte)) return DataReaderFieldKind.SByte;
-        if (fieldType == typeof(short)) return DataReaderFieldKind.Int16;
-        if (fieldType == typeof(ushort)) return DataReaderFieldKind.UInt16;
-        if (fieldType == typeof(uint)) return DataReaderFieldKind.UInt32;
-        if (fieldType == typeof(ulong)) return DataReaderFieldKind.UInt64;
-        if (fieldType == typeof(DateOnly)) return DataReaderFieldKind.DateOnly;
-        if (fieldType == typeof(TimeOnly)) return DataReaderFieldKind.TimeOnly;
-        return DataReaderFieldKind.Object;
-    }
-
     internal static void AppendKnownValueDefault<T>(
         StringBuilder buffer,
         T value,
         char delimiter,
         CultureInfo culture)
-        where T : ISpanFormattable
+        where T : ISpanFormattable, IUtf8SpanFormattable
     {
-        if (delimiter == ',' && ReferenceEquals(culture, CultureInfo.InvariantCulture))
+        Span<char> destination = stackalloc char[128];
+        if (ReferenceEquals(culture, CultureInfo.InvariantCulture))
         {
-            buffer.Append(CultureInfo.InvariantCulture, $"{value}");
+            if (!TryFormatInvariant(value, destination, out var invariantWritten))
+            {
+                WriteEscapedDefault(buffer, FormatValue(value, culture), delimiter);
+            }
+            else if (delimiter == ',')
+            {
+                // Invariant scalars contain no comma, quote or line break.
+                buffer.Append(destination[..invariantWritten]);
+            }
+            else
+            {
+                AppendEscapedSpanDefault(buffer, destination[..invariantWritten], delimiter);
+            }
+
             return;
         }
 
-        Span<char> destination = stackalloc char[128];
-        if (!value.TryFormat(destination, out var charsWritten, default, culture))
+        if (!TryFormatDefault(value, destination, out var charsWritten, culture))
         {
             WriteEscapedDefault(buffer, FormatValue(value, culture), delimiter);
             return;

@@ -1,10 +1,20 @@
 ---
-title: Live-test setup
-description: "Run disposable Google Docs, Sheets, Slides, Drive, shared-drive, and change-feed tests safely. Includes examples and package links."
+title: "Run the Google Workspace Live Tests"
+description: "Run the opt-in Google Docs, Sheets, Slides, Drive, shared-drive and change-feed tests for OfficeIMO against a disposable Drive folder."
 order: 75
+packages:
+  - OfficeIMO.GoogleWorkspace
+search_terms:
+  - google workspace integration tests
+  - live tests
+  - GoogleWorkspaceLive
 ---
 
-Live tests are opt-in and create disposable resources in one dedicated folder. Set:
+Live tests are for contributors working on the OfficeIMO Google Workspace packages. They are opt-in and create disposable resources in one dedicated folder.
+
+## Configure the test account
+
+Set these environment variables:
 
 ```powershell
 $env:OFFICEIMO_RUN_GOOGLE_WORKSPACE_LIVE = "1"
@@ -12,6 +22,8 @@ $env:GOOGLE_WORKSPACE_ACCESS_TOKEN = "<short-lived-token>"
 $env:GOOGLE_WORKSPACE_FOLDER_ID = "<disposable-test-folder-id>"
 $env:GOOGLE_WORKSPACE_DRIVE_ID = "<optional-shared-drive-id>"
 ```
+
+## Run the tests
 
 Run the format partitions:
 

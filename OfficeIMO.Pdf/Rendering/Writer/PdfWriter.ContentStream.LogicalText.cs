@@ -137,7 +137,7 @@ internal sealed partial class ContentStreamBuilder {
         if (Math.Abs(adjustment) < (precise ? 0.000005D : 0.0005D)) return;
         if (T._showElements > 0) _sb.Append(' ');
         T._lastNumberStart = T._showElements > 0 ? _sb.Length - 1 : _sb.Length;
-        if (precise) _sb.Append(adjustment.ToString("0.#####", System.Globalization.CultureInfo.InvariantCulture));
+        if (precise) _sb.Append(PdfNumberFormatter.FixedDecimals(adjustment, 5));
         else _sb.Append(F(adjustment));
         T._lastNumber = adjustment;
         T._lastNumberPrecise = precise;
@@ -166,14 +166,24 @@ internal sealed partial class ContentStreamBuilder {
     // Replaces the open show's first skip characters with prefix. The show is the stream tail, so it is
     // copied out and re-appended: StringBuilder.Insert/Remove would move the rest of the (up to 8,000
     // character) last chunk of the page stream on every show.
+    // The copy lives only for this call, so one scratch buffer per thread serves every builder; most builders
+    // write a single show and would otherwise each grow their own.
     private void RewriteShowStart(string prefix, int skip) {
         int start = T._showStart + skip;
         int count = _sb.Length - start;
-        if (T._showTail.Length < count) T._showTail = new char[Math.Max(count, T._showTail.Length * 2)];
-        _sb.CopyTo(start, T._showTail, 0, count);
+        char[] tail = t_showTail ??= new char[256];
+        if (tail.Length < count) {
+            tail = new char[Math.Max(count, tail.Length * 2)];
+            // An unusually long show uses its own buffer, so it cannot stay pinned on the thread.
+            if (tail.Length <= MaximumRetainedShowTail) t_showTail = tail;
+        }
+        _sb.CopyTo(start, tail, 0, count);
         _sb.Length = T._showStart;
-        _sb.Append(prefix).Append(T._showTail, 0, count);
+        _sb.Append(prefix).Append(tail, 0, count);
     }
+
+    [ThreadStatic] private static char[]? t_showTail;
+    private const int MaximumRetainedShowTail = 4096;
 
     private const double MaximumFoldedMove1000 = 1000D;
 

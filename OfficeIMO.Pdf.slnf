@@ -45,6 +45,8 @@
       "OfficeIMO.Pdf.Excel\\OfficeIMO.Pdf.Excel.csproj",
       "OfficeIMO.Pdf.Ocr\\OfficeIMO.Pdf.Ocr.csproj",
       "OfficeIMO.Pdf.PowerPoint\\OfficeIMO.Pdf.PowerPoint.csproj",
+      "OfficeIMO.Pdf.Testing.Tests\\OfficeIMO.Pdf.Testing.Tests.csproj",
+      "OfficeIMO.Pdf.Testing\\OfficeIMO.Pdf.Testing.csproj",
       "OfficeIMO.Pdf.Tests\\OfficeIMO.Pdf.Tests.csproj",
       "OfficeIMO.Pdf.Word\\OfficeIMO.Pdf.Word.csproj",
       "OfficeIMO.Pdf\\OfficeIMO.Pdf.csproj",

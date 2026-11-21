@@ -11,41 +11,62 @@ public sealed partial class OfficeManagedTextShapingProvider {
         fontDirected = false;
         request.CancellationToken.ThrowIfCancellationRequested();
         if (request.Direction == OfficeTextDirection.TopToBottom || request.Text.Length == 0 || request.Text.Length > MaximumNormalizationInput ||
-            OfficeTextElements.ContainsVariationSelector(request.Text) ||
             OfficeTextElements.ContainsShapingRequiredScript(request.Text) ||
-            !OfficeArabicTextShaper.CanShapeAllJoiningCharacters(request.Text) ||
-            request.VariationCoordinatesForShaping.Count != 0) return null;
+            !OfficeArabicTextShaper.CanShapeAllJoiningCharacters(request.Text)) return null;
         try {
             object key = request.FontProgramCacheKeyForShaping ?? request.FontDataForShaping;
             TypographyFont cached = TypographyFonts.GetValue(key, _ => new TypographyFont(request));
             fontDirected = cached.Substitution != null && OfficeTextElements.ContainsJoiningScript(request.Text);
             IOfficeFontProgram? font = cached.Font;
             OfficeOpenTypeReader? reader = cached.Reader;
-            // Variable anchors, face extraction and variation substitution have their own
-            // provider contract; static success must not silently discard those inputs.
-            if (font == null || reader == null || reader.TryGetTable("fvar", out _, out _)) return null;
+            if (font == null || reader == null) return null;
+            // A variable font shapes here only when its layout does not vary: GSUB without
+            // feature variations and no GPOS, whose anchors and adjustments can carry deltas.
+            // Advances stay nominal, so the consuming instance owns HVAR and phantom points.
+            bool variable = reader.TryGetTable("fvar", out _, out _);
+            if (!variable && request.VariationCoordinatesForShaping.Count != 0) return null;
+            if (variable && !cached.HasInvariantLayout) return null;
             int[] scalars = OfficeUnicodeBidi.ToScalars(request.Text, out int[] starts);
             byte[] levels = ResolveTypographyLevels(request, scalars, out int paragraphLevel);
             if (!TryMapTypographyTokens(request, font, reader, scalars, starts, levels,
                 out List<OfficeOpenTypeSubstitution.GlyphToken> tokens)) return null;
             if (tokens.Count == 0 || cached.Substitution != null && HasReversedLatinTypography(tokens, starts, levels, request)) return null;
             if (!ApplyTypographySubstitutions(cached.Substitution, font, tokens, request, starts, levels)) return null;
-            if (!FinalTypographyControlsAreBlank(request, font, reader, tokens)) return null;
+            MergeLigatureClusters(tokens, request.CancellationToken);
+            if (!HideTypographyControls(request, font, reader, tokens)) return null;
             if (!OfficeOpenTypeMarkPositioning.TryGetAttachments(request.FontDataForShaping, tokens,
                 request.Language, request.FeatureSettings, request.CancellationToken, out OfficeOpenTypeMarkAttachment[] attachments)) return null;
             List<int> visual = ResolveTypographyVisualOrder(request, tokens, attachments, starts, levels, out int[] logicalClusters);
+            if (variable) return CompleteNominalTypography(request, font, tokens, attachments, logicalClusters, visual,
+                (paragraphLevel & 1) == 1 ? OfficeTextDirection.RightToLeft : OfficeTextDirection.LeftToRight);
             OfficeOpenTypeGlyphPositioning[] positions;
-            if (request.FeatureSettings.TryGetValue("kern", out int kern) && kern == 0)
-                positions = new OfficeOpenTypeGlyphPositioning[tokens.Count];
-            else if (cached.Substitution == null && !attachments.Any(item => item.IsMark)) {
+            bool kerning = !request.FeatureSettings.TryGetValue("kern", out int kern) || kern != 0;
+            bool cursive = !request.FeatureSettings.TryGetValue("curs", out int curs) || curs != 0;
+            bool distances = !request.FeatureSettings.TryGetValue("dist", out int dist) || dist != 0;
+            var rightToLeft = new bool[tokens.Count];
+            for (int index = 0; index < tokens.Count; index++)
+                rightToLeft[index] = (TypographyLevel(tokens[index].TextIndex, starts, levels) & 1) == 1;
+            var options = new OfficeOpenTypePositioningOptions(kerning, cursive, rightToLeft, distances, attachments);
+            if (cached.Substitution == null && !attachments.Any(item => item.IsMark) && kerning) {
                 // Preserve the established simple-font visual positioning route;
                 // source controls now remain explicit zero-advance glyphs.
                 if (!TryPositionVisualTypography(font, tokens, visual, request, out positions)) return null;
-            } else if (!TryPositionTypography(font, tokens, request, out positions)) return null;
+                // That route reads pair kerning only. A font with cursive attachment or
+                // distances takes the logical GPOS route, which owns curs and dist alongside kern.
+                if ((cursive && cached.HasCursiveFeature || distances && cached.HasDistancesFeature)
+                    && !TryPositionTypography(font, tokens, request, out positions, options)) return null;
+            } else if (!TryPositionTypography(font, tokens, request, out positions, options)) return null;
             return CompleteTypography(request, reader, tokens, attachments, positions, logicalClusters, visual,
                 (paragraphLevel & 1) == 1 ? OfficeTextDirection.RightToLeft : OfficeTextDirection.LeftToRight);
         } catch (Exception exception) when (exception is InvalidDataException or OverflowException or
             ArgumentOutOfRangeException or IndexOutOfRangeException) { return null; }
+    }
+
+    private static bool RequiresCursiveAttachment(OfficeTextShapingRequest request) {
+        if (request.FeatureSettings.TryGetValue("curs", out int curs) && curs == 0) return false;
+        object key = request.FontProgramCacheKeyForShaping ?? request.FontDataForShaping;
+        TypographyFont cached = TypographyFonts.GetValue(key, _ => new TypographyFont(request));
+        return cached.HasCursiveFeature;
     }
 
     private static bool ApplyTypographySubstitutions(OfficeOpenTypeSubstitution? substitution,
@@ -93,13 +114,30 @@ public sealed partial class OfficeManagedTextShapingProvider {
         return true;
     }
 
+    // A ligature that consumed a later grapheme's base owns that grapheme's cluster, so
+    // the grapheme's remaining marks join the ligature's cluster, as reference shaping
+    // merges clusters over a ligature's source span.
+    private static void MergeLigatureClusters(List<OfficeOpenTypeSubstitution.GlyphToken> tokens,
+        CancellationToken cancellationToken) {
+        int ownerCluster = -1, ownerEnd = -1;
+        for (int index = 0; index < tokens.Count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            OfficeOpenTypeSubstitution.GlyphToken token = tokens[index];
+            if (ownerCluster >= 0 && token.ClusterStart > ownerCluster && token.ClusterStart < ownerEnd)
+                tokens[index] = token = token.WithClusterStart(ownerCluster);
+            int end = token.TextIndex + token.UnicodeText.Length;
+            if (token.ClusterStart != ownerCluster) { ownerCluster = token.ClusterStart; ownerEnd = end; }
+            else ownerEnd = Math.Max(ownerEnd, end);
+        }
+    }
+
     private static bool TryPositionTypography(IOfficeFontProgram font,
         IReadOnlyList<OfficeOpenTypeSubstitution.GlyphToken> tokens, OfficeTextShapingRequest request,
-        out OfficeOpenTypeGlyphPositioning[] positions) {
+        out OfficeOpenTypeGlyphPositioning[] positions, OfficeOpenTypePositioningOptions? options = null) {
         if (font is OfficeTrueTypeFont trueType)
-            return trueType.TryPositionGlyphRun(tokens, request.Language, request.CancellationToken, out positions, rejectMarkAdjustments: true);
+            return trueType.TryPositionGlyphRun(tokens, request.Language, request.CancellationToken, out positions, rejectMarkAdjustments: true, options);
         if (font is OfficeOpenTypeCffFont cff)
-            return cff.TryPositionGlyphRun(tokens, request.Language, request.CancellationToken, out positions, rejectMarkAdjustments: true);
+            return cff.TryPositionGlyphRun(tokens, request.Language, request.CancellationToken, out positions, rejectMarkAdjustments: true, options);
         positions = Array.Empty<OfficeOpenTypeGlyphPositioning>();
         return false;
     }
@@ -114,8 +152,10 @@ public sealed partial class OfficeManagedTextShapingProvider {
         int cursor = 0, cursorY = 0;
         foreach (int index in visual) {
             request.CancellationToken.ThrowIfCancellationRequested();
-            if ((attachments[index].IsMark || OfficeManagedTextShaper.IsNonPaintingControl(tokens[index].Scalar))
-                && (positions[index].XPlacement != 0 || positions[index].YPlacement != 0
+            // Positioning admits only placement on marks, from lookups after attachment.
+            bool control = OfficeManagedTextShaper.IsNonPaintingControl(tokens[index].Scalar);
+            if ((attachments[index].IsMark || control)
+                && (control && (positions[index].XPlacement != 0 || positions[index].YPlacement != 0)
                     || positions[index].XAdvance != 0 || positions[index].YAdvance != 0))
                 throw new InvalidDataException("A zero-advance mark cannot discard font positioning.");
             pen[index] = cursor; penY[index] = cursorY;
@@ -132,9 +172,9 @@ public sealed partial class OfficeManagedTextShapingProvider {
             int parent = attachment.ParentGlyphIndex;
             if (parent >= index) throw new InvalidDataException("A mark attachment must refer to an earlier logical glyph.");
             originX[index] = parent < 0 ? checked(pen[index] + positions[index].XPlacement)
-                : checked(originX[parent] + attachment.DeltaX);
+                : checked(originX[parent] + attachment.DeltaX + positions[index].XPlacement);
             originY[index] = parent < 0 ? checked(penY[index] + positions[index].YPlacement)
-                : checked(originY[parent] + attachment.DeltaY);
+                : checked(originY[parent] + attachment.DeltaY + positions[index].YPlacement);
         }
         var glyphs = new List<OfficeShapedGlyph>(tokens.Count); var clusters = new int[tokens.Count];
         foreach (int index in visual) {
@@ -153,13 +193,70 @@ public sealed partial class OfficeManagedTextShapingProvider {
         return new OfficeTextShapingResult(glyphs, advanceAdjustments: null, direction, clusters);
     }
 
+    // Variable-font results keep each painted glyph's nominal advance for the selected instance;
+    // retained controls and unattached marks have zero advance, as on the static route. Without GPOS,
+    // enabled kerning is the legacy kern table's pair adjustments, which do not vary.
+    private static OfficeTextShapingResult CompleteNominalTypography(OfficeTextShapingRequest request, IOfficeFontProgram font,
+        List<OfficeOpenTypeSubstitution.GlyphToken> tokens, OfficeOpenTypeMarkAttachment[] attachments,
+        int[] logicalClusters, List<int> visual, OfficeTextDirection direction) {
+        var glyphs = new List<OfficeShapedGlyph>(tokens.Count);
+        var clusters = new int[tokens.Count];
+        var adjustments = new int[tokens.Count];
+        bool kerning = !request.FeatureSettings.TryGetValue("kern", out int kern) || kern != 0;
+        if (kerning) {
+            var glyphIds = new int[visual.Count];
+            var scalars = new int[visual.Count];
+            for (int index = 0; index < visual.Count; index++) {
+                glyphIds[index] = tokens[visual[index]].GlyphId;
+                scalars[index] = tokens[visual[index]].Scalar;
+            }
+            OfficeOpenTypeGlyphPositioning[] positions = PositionGlyphRun(font, glyphIds, scalars, request.CancellationToken);
+            for (int index = 0; index < visual.Count && index < positions.Length; index++) {
+                OfficeOpenTypeSubstitution.GlyphToken token = tokens[visual[index]];
+                if (!attachments[visual[index]].IsMark && !OfficeManagedTextShaper.IsNonPaintingControl(token.Scalar))
+                    adjustments[index] = positions[index].XAdvance;
+            }
+        }
+        foreach (int index in visual) {
+            request.CancellationToken.ThrowIfCancellationRequested();
+            OfficeOpenTypeSubstitution.GlyphToken token = tokens[index];
+            clusters[glyphs.Count] = logicalClusters[index];
+            if (attachments[index].IsMark || OfficeManagedTextShaper.IsNonPaintingControl(token.Scalar)) {
+                glyphs.Add(token.IsUnicodeContinuation
+                    ? OfficeShapedGlyph.CreatePositionedUnicodeContinuation(token.GlyphId, token.TextIndex, 0, 0, 0, 0)
+                    : new OfficeShapedGlyph(token.GlyphId, token.UnicodeText, token.TextIndex, 0, 0, 0, 0));
+            } else {
+                glyphs.Add(token.IsUnicodeContinuation
+                    ? OfficeShapedGlyph.CreateUnicodeContinuation(token.GlyphId, token.TextIndex, 0, 0)
+                    : OfficeShapedGlyph.CreatePositionedUsingNominalAdvance(token.GlyphId, token.UnicodeText, token.TextIndex, 0, 0));
+            }
+        }
+        return new OfficeTextShapingResult(glyphs, adjustments, direction, clusters);
+    }
+
     private sealed class TypographyFont {
         internal TypographyFont(OfficeTextShapingRequest request) {
             Reader = OfficeOpenTypeReader.TryCreate(request.FontDataForShaping);
             Font = LoadShapingFont(request);
             Substitution = OfficeOpenTypeSubstitution.TryCreate(request.FontDataForShaping);
+            HasCursiveFeature = Reader != null && OfficeOpenTypeLayoutFeatures.HasFeature(Reader, "GPOS", "curs");
+            HasDistancesFeature = Reader != null && OfficeOpenTypeLayoutFeatures.HasFeature(Reader, "GPOS", "dist");
+            HasInvariantLayout = Reader != null && !Reader.TryGetTable("GPOS", out _, out _) && !HasFeatureVariations(Reader, "GSUB");
         }
+
+        // A GSUB or GPOS header version 1.1 adds a FeatureVariations offset at byte 10.
+        private static bool HasFeatureVariations(OfficeOpenTypeReader reader, string tag) {
+            if (!reader.TryGetTable(tag, out int table, out int length)) return false;
+            if (length < 10) return true;
+            if (reader.ReadUInt16(table + 2) == 0) return false;
+            return length < 14 || reader.ReadUInt32(table + 10) != 0;
+        }
+
+        /// <summary>Whether glyph selection and placement are the same at every variation instance.</summary>
+        internal bool HasInvariantLayout { get; }
         internal OfficeOpenTypeReader? Reader { get; }
+        internal bool HasCursiveFeature { get; }
+        internal bool HasDistancesFeature { get; }
         internal IOfficeFontProgram? Font { get; }
         internal OfficeOpenTypeSubstitution? Substitution { get; }
     }

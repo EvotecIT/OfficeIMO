@@ -210,6 +210,18 @@ test("a data sheet named About retains its detail progress while actual metadata
   assert.ok(metadata.filter(value => value.sheetName === "Data").some(value => value.sheetRows === 1));
 });
 
+test("Canopy About records every captured scope, including a tree's visible rows", async () => {
+  for (const scope of ["filtered", "visible", "selected", "all"]) {
+    const input = capture([column("name", "text")], [record("one", { name: "one" })], { scope });
+    const parts = await readZip(await exportCanopy(input, "xlsx", { about: true, xlsx: { compression: "store" } }));
+    const about = parts.get("xl/worksheets/sheet2.xml").content;
+    assert.match(about, /<t[^>]*>scope<\/t>/, scope);
+    assert.match(about, new RegExp("<t[^>]*>" + scope + "<\\/t>"), scope);
+  }
+  const unknown = capture([column("name", "text")], [record("one", { name: "one" })], { scope: "expanded" });
+  await assert.rejects(exportCanopy(unknown, "xlsx", { about: true }), /Invalid Canopy export scope/);
+});
+
 test("Canopy About rejects invalid XLSX cells before source enumeration or sink writes", async () => {
   async function rejectUpfront(request, ids, xlsx, expected, label) {
     const original = capture([column("name", "text")], ids.map(id => record(id, { name: id })), request);

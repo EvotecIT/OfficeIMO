@@ -67,6 +67,50 @@ internal static class OfficeProvenanceXmp {
         return true;
     }
 
+    /// <summary>Builds a minimal XMP packet that keeps only the digital source type declarations in <paramref name="packet"/>, or null when it declares none.</summary>
+    internal static byte[]? CreateDigitalSourceTypePacket(byte[] packet, OfficeProvenanceOptions options) {
+        if (!TryLoad(packet, options, out XDocument? document) || document == null) return null;
+        string[] values = FindValues(document).Where(value => value.IsStructurallyValid && value.Value.Length > 0)
+            .Select(value => value.Value).Distinct(StringComparer.Ordinal).ToArray();
+        if (values.Length == 0) return null;
+        XNamespace meta = "adobe:ns:meta/";
+        XNamespace iptc = IptcNamespace;
+        var root = new XElement(meta + "xmpmeta",
+            new XAttribute(XNamespace.Xmlns + "x", meta.NamespaceName),
+            new XElement(RdfNamespace + "RDF",
+                new XAttribute(XNamespace.Xmlns + "rdf", RdfNamespace.NamespaceName),
+                new XAttribute(XNamespace.Xmlns + "Iptc4xmpExt", IptcNamespace),
+                values.Select(value => new XElement(RdfNamespace + "Description",
+                    new XAttribute(RdfNamespace + "about", string.Empty),
+                    new XElement(iptc + "DigitalSourceType", new XAttribute(RdfNamespace + "resource", value))))));
+        string text = "<?xpacket begin=\"\uFEFF\" id=\"W5M0MpCehiHzreSzNTczkc9d\"?>" +
+            root.ToString(SaveOptions.DisableFormatting) + "<?xpacket end=\"w\"?>";
+        return new UTF8Encoding(false).GetBytes(text);
+    }
+
+    /// <summary>Whether a packet carries nothing but digital source type declarations, including a packet emptied by provenance removal.</summary>
+    internal static bool HasOnlyDigitalSourceTypes(byte[] packet, OfficeProvenanceOptions options) {
+        if (!TryLoad(packet, options, out XDocument? document) || document == null) return false;
+        XElement[] graphs = document.Descendants(RdfNamespace + "RDF").ToArray();
+        if (graphs.Length == 0) return false;
+        foreach (XElement graph in graphs) {
+            foreach (XElement description in graph.Elements()) {
+                if (description.Name != RdfNamespace + "Description") return false;
+                foreach (XAttribute attribute in description.Attributes()) {
+                    if (attribute.IsNamespaceDeclaration || attribute.Name == RdfNamespace + "about") continue;
+                    if (!IsDigitalSourceType(attribute.Name)) return false;
+                }
+                foreach (XElement property in description.Elements()) {
+                    if (!IsDigitalSourceType(property.Name) || property.HasElements) return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private static bool IsDigitalSourceType(XName name) =>
+        name.NamespaceName == IptcNamespace && name.LocalName == "DigitalSourceType";
+
     internal static OfficeProvenanceDigitalSourceKind Classify(string value) {
         if (value == null) return OfficeProvenanceDigitalSourceKind.Unknown;
         string normalized = value.Trim();

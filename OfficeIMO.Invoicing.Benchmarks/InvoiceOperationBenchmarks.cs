@@ -11,11 +11,13 @@ public class InvoiceXmlWriteBenchmarks {
     [GlobalSetup]
     public void Setup() {
         _corpus = InvoiceBenchmarkCorpus.Create();
-        InvoiceBenchmarkCorrectness.Write(WriteXml(), _corpus);
+        byte[] xml = WriteXml();
+        InvoiceBenchmarkCorrectness.Record(nameof(WriteXml), "written XML is byte-identical to the canonical corpus and parses back completely", () => InvoiceBenchmarkCorrectness.Write(xml, _corpus));
     }
 
     [Benchmark]
     [BenchmarkCategory("xml-write")]
+    [BenchmarkCategory("library:OfficeIMO", "case:WriteXml")]
     public byte[] WriteXml() => InvoiceSerializer.Write(_corpus.Invoice, InvoiceBenchmarkCorpus.Contract);
 }
 
@@ -26,11 +28,13 @@ public class InvoiceXmlReadBenchmarks {
     [GlobalSetup]
     public void Setup() {
         _corpus = InvoiceBenchmarkCorpus.Create();
-        InvoiceBenchmarkCorrectness.Read(ReadXml(), _corpus);
+        InvoiceReadResult result = ReadXml();
+        InvoiceBenchmarkCorrectness.Record(nameof(ReadXml), "complete mapping; the parsed invoice writes back byte-identical to the corpus", () => InvoiceBenchmarkCorrectness.Read(result, _corpus));
     }
 
     [Benchmark]
     [BenchmarkCategory("xml-read")]
+    [BenchmarkCategory("library:OfficeIMO", "case:ReadXml")]
     public InvoiceReadResult ReadXml() => InvoiceParser.Read(_corpus.Xml);
 }
 
@@ -43,11 +47,13 @@ public class InvoiceRulesValidationBenchmarks {
     public async Task Setup() {
         _corpus = InvoiceBenchmarkCorpus.Create();
         _validator = InvoiceBenchmarkAuthority.CreateValidator();
-        InvoiceBenchmarkCorrectness.Rules(await ValidateRules().ConfigureAwait(false));
+        InvoiceValidationReport report = await ValidateRules().ConfigureAwait(false);
+        InvoiceBenchmarkCorrectness.Record(nameof(ValidateRules), "pinned Factur-X schema and business rules pass", () => InvoiceBenchmarkCorrectness.Rules(report));
     }
 
     [Benchmark]
     [BenchmarkCategory("rules-validation")]
+    [BenchmarkCategory("library:OfficeIMO", "case:ValidateRules")]
     public Task<InvoiceValidationReport> ValidateRules() => _validator.ValidateAsync(
         _corpus.Xml,
         InvoiceSpecificationRelease.FacturX_1_09_2_Zugferd_2_5_2);
@@ -62,10 +68,12 @@ public class InvoicePdfGenerationBenchmarks {
     public void Setup() {
         _corpus = InvoiceBenchmarkCorpus.Create();
         _snapshot = _corpus.CapturePdf();
-        InvoiceBenchmarkCorrectness.Pdf(GeneratePdf(), _corpus.Xml);
+        byte[] pdf = GeneratePdf();
+        InvoiceBenchmarkCorrectness.Record(nameof(GeneratePdf), "PDF reopened: the single attachment is the exact corpus XML and the visible text keeps the marker, Japanese and Arabic samples", () => InvoiceBenchmarkCorrectness.Pdf(pdf, _corpus.Xml));
     }
 
     [Benchmark]
     [BenchmarkCategory("pdf-generation")]
+    [BenchmarkCategory("library:OfficeIMO", "case:GeneratePdf")]
     public byte[] GeneratePdf() => _snapshot.ToPdfBytes(_corpus.PdfOptions);
 }

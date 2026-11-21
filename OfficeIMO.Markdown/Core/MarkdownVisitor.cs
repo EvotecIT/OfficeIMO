@@ -11,6 +11,9 @@ public abstract class MarkdownVisitor {
             return;
         }
 
+        // A hand-built tree can be deeper than the stack; fail with a catchable exception instead.
+        System.Runtime.CompilerServices.RuntimeHelpers.EnsureSufficientExecutionStack();
+
         switch (node) {
             case MarkdownDocument document:
                 VisitDocument(document);

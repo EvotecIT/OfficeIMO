@@ -12,7 +12,6 @@ internal sealed partial class OfficeOpenTypeMarkPositioning {
         Ensure(lookup + 6, checked(subtableCount * 2));
         int markSet = -1;
         if ((flags & 0x0010) != 0) markSet = U16(lookup + 6 + subtableCount * 2);
-        if (!_filter.SupportsFlags(flags, markSet)) throw new InvalidDataException("Unsupported GPOS mark filtering.");
         var subtables = new List<(int Type, int Offset)>();
         for (int index = 0; index < subtableCount; index++) {
             Charge(); int subtable = Relative(lookup, U16(lookup + 6 + index * 2), 2), effectiveType = type;
@@ -32,7 +31,11 @@ internal sealed partial class OfficeOpenTypeMarkPositioning {
             if (!result[index].IsMark || !activeScripts.Contains(scripts[index])
                 || _filter.IsIgnored(tokens[index], flags, markSet, Charge)) continue;
             foreach ((int effectiveType, int subtable) in subtables) {
-                if (TryAttach(tokens, result, interpretedMarks, index, effectiveType, subtable, flags, markSet)) break;
+                if (!TryAttach(tokens, result, interpretedMarks, index, effectiveType, subtable, flags, markSet)) continue;
+                OfficeOpenTypeMarkAttachment attached = result[index];
+                result[index] = new OfficeOpenTypeMarkAttachment(attached.ParentGlyphIndex, attached.DeltaX, attached.DeltaY,
+                    attached.IsMark, attached.IsFontDirectedNoOp, lookupIndex);
+                break;
             }
         }
     }

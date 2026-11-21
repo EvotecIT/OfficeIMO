@@ -20,6 +20,9 @@ internal sealed partial class AutomaticRowMappingPlan<
     private readonly MappingBinding[] _assignmentBindings;
     private readonly ConstructorBinding? _constructor;
     private readonly Func<DbDataReader, T>? _fastReaderMap;
+    // Per-row qualification reads these flat arrays instead of each binding's property metadata.
+    private readonly int[] _qualificationOrdinals;
+    private readonly Type[] _qualificationTypes;
     private static CacheEntry? _cachedPlan;
 
     private AutomaticRowMappingPlan(
@@ -31,6 +34,12 @@ internal sealed partial class AutomaticRowMappingPlan<
         _assignmentBindings = constructor is null ? bindings
             : bindings.Where(binding => !constructor.Contains(binding.Property)).ToArray();
         _fastReaderMap = fastReaderMap;
+        _qualificationOrdinals = new int[bindings.Length];
+        _qualificationTypes = new Type[bindings.Length];
+        for (int index = 0; index < bindings.Length; index++) {
+            _qualificationOrdinals[index] = bindings[index].ColumnIndex;
+            _qualificationTypes[index] = bindings[index].Property.ValueType;
+        }
     }
 
     internal static AutomaticRowMappingPlan<T> Create(
@@ -75,8 +84,7 @@ internal sealed partial class AutomaticRowMappingPlan<
                 && (constructor is null || !constructor.Contains(binding.Property)))) {
             throw new DataMappingException($"A read-only mapped property on {typeof(T).Name} has no constructor parameter.");
         }
-        var plan = new AutomaticRowMappingPlan<T>(bindings, constructor,
-            constructor is null ? CreateFastReaderMap(bindings) : null);
+        var plan = new AutomaticRowMappingPlan<T>(bindings, constructor, CreateFastReaderMap(bindings, constructor));
         if (IsHeaderShapeCacheable(headers)) {
             System.Threading.Volatile.Write(
                 ref _cachedPlan,
@@ -146,17 +154,25 @@ internal sealed partial class AutomaticRowMappingPlan<
         }
     }
 
-    private bool HasIncompatibleReaderValue(DbDataReader reader) {
+    private bool HasIncompatibleReaderValue(in RowReaderQualification qualification) {
+        if (qualification.RowQualification is not null) {
+            return !qualification.RowQualification.CanUseNonNullTypedGetters(qualification.RowQualificationState!);
+        }
+        return HasIncompatibleReaderValue(qualification.Reader, qualification.Compatibility);
+    }
+
+    private bool HasIncompatibleReaderValue(DbDataReader reader, IDataReaderTypedMappingCompatibility? compatibility) {
         // MapReaderRow already requires the fast-value contract. Native readers can
         // prove conversion and presence together without a second virtual null probe.
-        if (reader is IDataReaderTypedMappingCompatibility compatibility) {
-            foreach (MappingBinding binding in _bindings) {
-                if (!compatibility.CanUseNonNullTypedGetter(
-                        binding.ColumnIndex, binding.Property.ValueType)) return true;
+        int[] ordinals = _qualificationOrdinals;
+        if (compatibility is not null) {
+            Type[] types = _qualificationTypes;
+            for (int index = 0; index < ordinals.Length; index++) {
+                if (!compatibility.CanUseNonNullTypedGetter(ordinals[index], types[index])) return true;
             }
         } else {
-            foreach (MappingBinding binding in _bindings) {
-                if (reader.IsDBNull(binding.ColumnIndex)) return true;
+            for (int index = 0; index < ordinals.Length; index++) {
+                if (reader.IsDBNull(ordinals[index])) return true;
             }
         }
         return false;
@@ -168,21 +184,63 @@ internal sealed partial class AutomaticRowMappingPlan<
         IReadOnlyList<string>? dateTimeFormats,
         Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter = null,
         DataMappingErrorValuePolicy errorValuePolicy = DataMappingErrorValuePolicy.Include,
-        DbDataReader? rowReader = null) {
-        // The row reader is the one that owns the current row; qualification and typed
-        // getters run on it directly, while the conversion fallback keeps the outer reader.
-        DbDataReader fastReader = rowReader ?? reader;
-        if (typeConverter is null &&
-            _fastReaderMap is not null &&
-            fastReader is IDataReaderFastMappingValues &&
-            !HasIncompatibleReaderValue(fastReader)) {
+        DbDataReader? rowReader = null) =>
+        MapReaderRow(reader, Qualify(rowReader ?? reader, typeConverter),
+            culture, dateTimeFormats, typeConverter, errorValuePolicy);
+
+    /// <summary>
+    /// Resolves once what a row reader supports for typed mapping. The result depends only on the
+    /// reader's type and the converter, so enumeration reuses it until the row reader changes.
+    /// </summary>
+    internal RowReaderQualification Qualify(
+        DbDataReader rowReader,
+        Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter) {
+        bool usesFastMap = typeConverter is null && _fastReaderMap is not null && rowReader is IDataReaderFastMappingValues;
+        var compatibility = rowReader as IDataReaderTypedMappingCompatibility;
+        if (usesFastMap && compatibility is IDataReaderTypedRowQualification rowQualification) {
+            object? state = rowQualification.PrepareNonNullTypedRowQualification(_qualificationOrdinals, _qualificationTypes);
+            if (state is not null) return new(rowReader, usesFastMap, compatibility, rowQualification, state);
+        }
+        return new(rowReader, usesFastMap, compatibility, null, null);
+    }
+
+    /// <summary>
+    /// Maps the current row. Qualification and typed getters run on the row reader that owns the
+    /// current row, while the conversion fallback keeps the outer reader.
+    /// </summary>
+    internal T MapReaderRow(
+        DbDataReader reader,
+        in RowReaderQualification qualification,
+        CultureInfo culture,
+        IReadOnlyList<string>? dateTimeFormats,
+        Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter,
+        DataMappingErrorValuePolicy errorValuePolicy) {
+        if (qualification.UsesFastMap && !HasIncompatibleReaderValue(qualification)) {
             try {
-                return _fastReaderMap(fastReader);
+                return _fastReaderMap!(qualification.Reader);
             } catch (TypedReaderValueException) {
             }
         }
 
         return MapReaderRowSlow(reader, culture, dateTimeFormats, typeConverter, errorValuePolicy);
+    }
+
+    internal readonly struct RowReaderQualification {
+        internal RowReaderQualification(DbDataReader reader, bool usesFastMap,
+            IDataReaderTypedMappingCompatibility? compatibility,
+            IDataReaderTypedRowQualification? rowQualification, object? rowQualificationState) {
+            Reader = reader;
+            UsesFastMap = usesFastMap;
+            Compatibility = compatibility;
+            RowQualification = rowQualification;
+            RowQualificationState = rowQualificationState;
+        }
+
+        internal DbDataReader Reader { get; }
+        internal bool UsesFastMap { get; }
+        internal IDataReaderTypedMappingCompatibility? Compatibility { get; }
+        internal IDataReaderTypedRowQualification? RowQualification { get; }
+        internal object? RowQualificationState { get; }
     }
 
     internal Func<DbDataReader, T>? GetFastReaderMap(
@@ -383,10 +441,8 @@ internal sealed partial class AutomaticRowMappingPlan<
         internal static readonly Dictionary<string, AutomaticPropertySetter[]> CanonicalAliases;
 
         static AutomaticMappingCache() {
-            AutomaticPropertySetter[] properties = typeof(T)
-                .GetProperties(BindingFlags.Instance | BindingFlags.Public)
-                .Where(static property => property.GetIndexParameters().Length == 0
-                    && (property.SetMethod?.IsPublic == true || CanBindConstructorProperty(property)))
+            AutomaticPropertySetter[] properties = PublicInstanceProperties.Get(typeof(T))
+                .Where(static property => property.SetMethod?.IsPublic == true || CanBindConstructorProperty(property))
                 .Select(static property => new AutomaticPropertySetter(
                     property,
                     CreateAssignment(property),
@@ -532,7 +588,7 @@ internal sealed partial class AutomaticRowMappingPlan<
         }
     }
 
-    private static Func<DbDataReader, T>? CreateFastReaderMap(MappingBinding[] bindings) {
+    private static Func<DbDataReader, T>? CreateFastReaderMap(MappingBinding[] bindings, ConstructorBinding? constructor) {
 #if NET8_0_OR_GREATER
         if (!RuntimeFeature.IsDynamicCodeSupported) return null;
 #endif
@@ -547,31 +603,41 @@ internal sealed partial class AutomaticRowMappingPlan<
             ParameterExpression reader = Expression.Parameter(typeof(DbDataReader), "reader");
             ParameterExpression instance = Expression.Variable(typeof(T), "instance");
             var values = new ParameterExpression[bindings.Length];
-            var body = new List<Expression>((bindings.Length * 2) + 2);
+            var body = new List<Expression>(bindings.Length + 3);
+            var reads = new Expression[bindings.Length + 1];
 
             for (int index = 0; index < bindings.Length; index++) {
                 MappingBinding binding = bindings[index];
                 ParameterExpression value = Expression.Variable(binding.Property.ValueType, $"value{index}");
                 values[index] = value;
-                BinaryExpression readValue = Expression.Assign(
+                reads[index] = Expression.Assign(
                     value,
                     Expression.Call(reader, getters[index], Expression.Constant(binding.ColumnIndex)));
-                NewExpression fallbackException = Expression.New(typeof(TypedReaderValueException));
+            }
+            // One protected region reads every column; any conversion failure takes the reflection path.
+            reads[bindings.Length] = Expression.Empty();
+            NewExpression fallbackException = Expression.New(typeof(TypedReaderValueException));
+            body.Add(Expression.TryCatch(
+                Expression.Block(reads),
+                Expression.Catch(typeof(InvalidCastException), Expression.Throw(fallbackException)),
+                Expression.Catch(typeof(FormatException), Expression.Throw(fallbackException)),
+                Expression.Catch(typeof(OverflowException), Expression.Throw(fallbackException))));
+
+            if (constructor is null) {
+                body.Add(Expression.Assign(instance, Expression.New(typeof(T))));
+            } else {
+                Expression? construction = CreateConstructorCall(bindings, values, constructor);
+                if (construction is null) return null;
+                // A constructor that rejects the row takes the reflection path, which reports it.
                 body.Add(Expression.TryCatch(
-                    readValue,
+                    Expression.Assign(instance, construction),
                     Expression.Catch(
-                        typeof(InvalidCastException),
-                        Expression.Throw(fallbackException, binding.Property.ValueType)),
-                    Expression.Catch(
-                        typeof(FormatException),
-                        Expression.Throw(fallbackException, binding.Property.ValueType)),
-                    Expression.Catch(
-                        typeof(OverflowException),
-                        Expression.Throw(fallbackException, binding.Property.ValueType))));
+                        typeof(Exception),
+                        Expression.Throw(Expression.New(typeof(TypedReaderValueException)), typeof(T)))));
             }
 
-            body.Add(Expression.Assign(instance, Expression.New(typeof(T))));
             for (int index = 0; index < bindings.Length; index++) {
+                if (constructor is not null && constructor.Contains(bindings[index].Property)) continue;
                 body.Add(Expression.Assign(
                     Expression.Property(instance, bindings[index].Property.Property),
                     values[index]));
@@ -587,6 +653,35 @@ internal sealed partial class AutomaticRowMappingPlan<
         } catch {
             return null;
         }
+    }
+
+    /// <summary>
+    /// Passes the typed column values straight to the bound constructor. Returns null when a
+    /// parameter needs a conversion or a default the reflection path supplies.
+    /// </summary>
+    private static Expression? CreateConstructorCall(
+        MappingBinding[] bindings,
+        ParameterExpression[] values,
+        ConstructorBinding constructor) {
+        ParameterInfo[] parameters = constructor.Parameters;
+        var arguments = new Expression[parameters.Length];
+        for (int index = 0; index < parameters.Length; index++) {
+            ParameterInfo parameter = parameters[index];
+            if (constructor.Arguments[index] is not MappingBinding argument) {
+                if (!parameter.HasDefaultValue) return null;
+                arguments[index] = parameter.DefaultValue is null
+                    ? Expression.Default(parameter.ParameterType)
+                    : Expression.Constant(parameter.DefaultValue, parameter.ParameterType);
+                continue;
+            }
+
+            int source = Array.FindIndex(bindings, binding =>
+                binding.ColumnIndex == argument.ColumnIndex && ReferenceEquals(binding.Property, argument.Property));
+            if (source < 0 || values[source].Type != parameter.ParameterType) return null;
+            arguments[index] = values[source];
+        }
+
+        return Expression.New(constructor.Constructor, arguments);
     }
 
     internal sealed class TypedReaderValueException : Exception {

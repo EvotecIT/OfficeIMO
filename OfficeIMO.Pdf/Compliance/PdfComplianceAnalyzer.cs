@@ -155,8 +155,7 @@ internal static partial class PdfComplianceAnalyzer {
                 return false;
             }
 
-            IReadOnlyDictionary<PdfStandardFont, PdfEmbeddedFont> embeddedFonts = usage.Options.EmbeddedFonts;
-            if (!embeddedFonts.TryGetValue(usage.StandardFont.Value, out PdfEmbeddedFont? embeddedFont)) {
+            if (!usage.Options.TryGetEmbeddedStandardFont(usage.StandardFont.Value, out PdfEmbeddedFont? embeddedFont) || embeddedFont == null) {
                 return false;
             }
 

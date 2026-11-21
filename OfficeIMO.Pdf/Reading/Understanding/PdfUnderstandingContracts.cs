@@ -77,10 +77,20 @@ public sealed class PdfUnderstandingPageContext {
         Width = frame.Width;
         Height = frame.Height;
     }
-    internal (double Width, double Height) GetVisualSize() => ReadingFrame is null ? Page.GetVisualPageSize() : (Width, Height);
-    internal PdfVisualBounds ToVisualBounds(double left, double bottom, double right, double top) => ReadingFrame is null
-        ? Page.TransformBoundsToVisual(left, bottom, right, top)
-        : new PdfVisualBounds(left, Height - top, right, Height - bottom);
+    internal (double Width, double Height) GetVisualSize() {
+        if (ReadingFrame is not null) return (Width, Height);
+        (PdfPageBox box, int rotation, double userUnit) = GetVisualMapping();
+        return PdfVisualCoordinateMapper.GetVisualSize(box, rotation, userUnit);
+    }
+    internal PdfVisualBounds ToVisualBounds(double left, double bottom, double right, double top) {
+        if (ReadingFrame is not null) return new PdfVisualBounds(left, Height - top, right, Height - bottom);
+        (PdfPageBox box, int rotation, double userUnit) = GetVisualMapping();
+        return PdfVisualCoordinateMapper.TransformBounds(box, rotation, left, bottom, right, top, userUnit);
+    }
+    // Stages map thousands of region bounds; read the page geometry once per page analysis.
+    private (PdfPageBox Box, int RotationDegrees, double UserUnit)? _visualMapping;
+    private (PdfPageBox Box, int RotationDegrees, double UserUnit) GetVisualMapping() =>
+        _visualMapping ??= Page.GetVisualMapping();
     internal bool TryGetImageBounds(PdfImagePlacement placement, out PdfVisualBounds bounds) {
         if (!PdfPageInteractionMap.TryGetVisibleImageBounds(Page, placement, out bounds)) return false;
         if (ReadingFrame is not null) bounds = ReadingFrame.ImageBounds(bounds);
@@ -342,7 +352,8 @@ public sealed class PdfUnderstandingPageResult {
         IReadOnlyList<PdfUnderstandingImageRegion>? imageRegions = null,
         long maxWorkUnitsPerPage = 10_000_000,
         IReadOnlyList<PdfTaggedListItemSource>? taggedListItems = null,
-        IReadOnlyList<PdfFontInspectionDiagnostic>? textDecodingDiagnostics = null) {
+        IReadOnlyList<PdfFontInspectionDiagnostic>? textDecodingDiagnostics = null,
+        IReadOnlyList<PdfContentsEntrySource>? contentsEntries = null) {
         PageNumber = pageNumber;
         DecodedRuns = runs;
         Words = words;
@@ -357,6 +368,7 @@ public sealed class PdfUnderstandingPageResult {
         ImageRegions = imageRegions ?? Array.Empty<PdfUnderstandingImageRegion>();
         MaxWorkUnitsPerPage = maxWorkUnitsPerPage;
         TaggedListItems = taggedListItems ?? Array.Empty<PdfTaggedListItemSource>();
+        ContentsEntries = contentsEntries ?? Array.Empty<PdfContentsEntrySource>();
         TextDecodingDiagnostics = textDecodingDiagnostics ?? Array.Empty<PdfFontInspectionDiagnostic>();
         LogicalProjectionLines = logicalProjectionLines ?? CollectLogicalProjectionLines(readingOrder);
         RestrictLogicalProjectionToReadingOrder = restrictLogicalProjectionToReadingOrder;
@@ -394,6 +406,8 @@ public sealed class PdfUnderstandingPageResult {
     internal long MaxWorkUnitsPerPage { get; }
     /// <summary>Tagged list membership over canonical source runs, independent of paragraph and heading classification.</summary>
     internal IReadOnlyList<PdfTaggedListItemSource> TaggedListItems { get; }
+    /// <summary>Contents entries recognised from TOC/TOCI structure or from the contents-line pattern.</summary>
+    internal IReadOnlyList<PdfContentsEntrySource> ContentsEntries { get; }
     /// <summary>Pre-enrichment line sequence retained by caller-supplied structural stages for logical projection.</summary>
     internal IReadOnlyList<PdfUnderstandingLine> LogicalProjectionLines { get; }
     /// <summary>Whether caller-supplied structural stages make the retained sequence an extraction boundary.</summary>
@@ -422,7 +436,7 @@ public sealed class PdfUnderstandingPageResult {
             ImagePlacements,
             ImageRegions,
             MaxWorkUnitsPerPage,
-            TaggedListItems, TextDecodingDiagnostics);
+            TaggedListItems, TextDecodingDiagnostics, ContentsEntries);
     }
 
     private static IReadOnlyList<PdfUnderstandingLine> CollectLogicalProjectionLines(

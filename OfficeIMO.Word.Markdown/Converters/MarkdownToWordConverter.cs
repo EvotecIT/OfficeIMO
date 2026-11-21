@@ -31,6 +31,7 @@ namespace OfficeIMO.Word.Markdown {
                     headingBold: true, lineSpacing: WordThemeDefaults.NativeBodyLineSpacing));
             var document = WordDocument.Create(new WordCreateOptions { Theme = theme });
             try {
+                options.ResolveDocumentStyles(document);
                 if (sourceTheme != null) {
                     document.PageSetup.Margins.Top = sourceTheme.Page.MarginTop;
                     document.PageSetup.Margins.Right = sourceTheme.Page.MarginRight;
@@ -39,7 +40,13 @@ namespace OfficeIMO.Word.Markdown {
                 }
                 options.ApplyDefaults(document);
                 var pageContentWidthPixels = EstimatePageContentWidthPixels(document);
-                RenderDocument(markdown, document, options, pageContentWidthPixels, cancellationToken);
+                // Styling each heading would otherwise rescan the whole body for a table of contents,
+                // and each new list would scan every numbering definition for free ids.
+                document.RunWithDeferredHeadingModified(() => {
+                    using (document.UseNumberingIdCache()) {
+                        RenderDocument(markdown, document, options, pageContentWidthPixels, cancellationToken);
+                    }
+                });
                 return document;
             } catch {
                 document.Dispose();
@@ -109,7 +116,7 @@ namespace OfficeIMO.Word.Markdown {
 
                 var properties = paragraph.ParagraphProperties;
                 string? styleId = properties?.ParagraphStyleId?.Val?.Value;
-                if (styleId != null && styleId.StartsWith("Heading", StringComparison.Ordinal)) {
+                if (document.GetHeadingLevel(styleId) > 0) {
                     continue;
                 }
                 if (properties?.SpacingBetweenLines?.BeforeLines != null ||

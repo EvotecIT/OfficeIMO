@@ -34,6 +34,19 @@ internal sealed class PdfOutputIntentColorTransform {
     internal void Prepare(CancellationToken cancellationToken) =>
         _ = GetProfile(cancellationToken);
 
+    /// <summary>Detaches the prepared profile so a retained drawing does not retain the PDF object graph.</summary>
+    internal IOfficePostCompositionColorTransform? CreatePostCompositionTransform() =>
+        TryGetProfile(out OfficeIccColorProfile? profile) && profile != null ? new CompositedProof(profile) : null;
+
+    private sealed class CompositedProof : IOfficePostCompositionColorTransform {
+        private readonly OfficeIccColorProfile _profile;
+
+        internal CompositedProof(OfficeIccColorProfile profile) => _profile = profile;
+
+        public bool TryTransform(OfficeColor source, out OfficeColor transformed) =>
+            _profile.TrySoftProof(source, OfficeIccRenderingIntent.RelativeColorimetric, out transformed);
+    }
+
     internal OfficeColor Apply(OfficeColor color, OfficeIccRenderingIntent renderingIntent) =>
         TryGetProfile(out OfficeIccColorProfile? profile) &&
         profile != null &&

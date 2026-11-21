@@ -485,7 +485,12 @@ public static partial class MarkdownPdfConverterExtensions {
             return;
         }
 
-        if (!IsChartSemanticFence(semantic)) {
+        bool isMath = IsMathSemanticFence(semantic);
+        if (isMath && TryRenderDisplayMath(pdf, semantic.Content, semantic.Caption, options, visualTheme)) {
+            return;
+        }
+
+        if (!IsChartSemanticFence(semantic) && !isMath) {
             AddWarning(options, "unsupported-semantic-fence", semantic.SemanticKind, "The Markdown semantic fenced block is rendered as a styled code panel because no PDF visual renderer is registered for its semantic kind.");
         }
 
@@ -494,6 +499,10 @@ public static partial class MarkdownPdfConverterExtensions {
             label += " / " + semantic.Language;
         }
 
+        RenderSemanticSourcePanel(pdf, label, semantic.Content, semantic.Caption, options, visualTheme);
+    }
+
+    private static void RenderSemanticSourcePanel(PdfCore.PdfDocument pdf, string label, string? content, string? caption, MarkdownPdfExportOptions options, MarkdownPdfStyle visualTheme) {
         pdf.PanelParagraph(builder => {
             builder.RunDefaults.FontSize = visualTheme.SemanticBlockLabelFontSizeSnapshot;
             builder.AddText(label).SetBold().SetColor(visualTheme.SemanticBlockLabelColorSnapshot);
@@ -502,11 +511,11 @@ public static partial class MarkdownPdfConverterExtensions {
             builder.RunDefaults.FontFamily = null;
             builder.RunDefaults.FontSize = visualTheme.SemanticBlockFontSizeSnapshot;
             builder.RunDefaults.Color = visualTheme.SemanticBlockTextColorSnapshot;
-            AppendTextWithLineBreaks(builder, semantic.Content ?? string.Empty);
+            AppendTextWithLineBreaks(builder, content ?? string.Empty);
         }, FitPanelStyle(visualTheme.SemanticBlockPanelStyleSnapshot, options, out _));
 
-        if (!string.IsNullOrWhiteSpace(semantic.Caption)) {
-            pdf.Paragraph(builder => builder.AddText(semantic.Caption!).SetItalic(), style: new PdfCore.PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(8) });
+        if (!string.IsNullOrWhiteSpace(caption)) {
+            pdf.Paragraph(builder => builder.AddText(caption!).SetItalic(), style: new PdfCore.PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(8) });
         }
     }
 

@@ -85,6 +85,37 @@ slide.AddImage("logo.png", left: OfficeLength.Centimeters(2), top: OfficeLength.
 deck.Save();
 ```
 
+## Masters, layouts and connectors
+
+Shapes and placeholders on a slide master or layout show on every slide that uses them. Connectors stay glued to
+their shapes when the shapes move.
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Drawing;
+using OfficeIMO.PowerPoint;
+
+using var deck = PowerPointDocument.Create("Flow.pptx");
+PowerPointSlideMaster master = deck.SlideMasters[0];
+master.AddImage("logo.png", OfficeLength.Centimeters(29), OfficeLength.Centimeters(17.5),
+    OfficeLength.Centimeters(4), OfficeLength.Centimeters(1.2));
+
+PowerPointSlideLayout layout = master.AddLayout("Process");
+layout.AddPlaceholder(PowerPointPlaceholderType.Title, new PowerPointLayoutBox(
+    OfficeLength.Centimeters(1.5), OfficeLength.Centimeters(1), OfficeLength.Centimeters(31), OfficeLength.Centimeters(2)));
+
+PowerPointSlide slide = deck.AddSlide(layout);
+slide.AddTextBox("Approval flow").BindToPlaceholder(PowerPointPlaceholderType.Title);
+PowerPointAutoShape draft = slide.AddRectangle(OfficeLength.Centimeters(2), OfficeLength.Centimeters(6),
+    OfficeLength.Centimeters(5), OfficeLength.Centimeters(2));
+PowerPointAutoShape done = slide.AddShape(OfficePresetShapeType.Ellipse, OfficeLength.Centimeters(14),
+    OfficeLength.Centimeters(10), OfficeLength.Centimeters(5), OfficeLength.Centimeters(2.5));
+slide.AddConnector(draft, done, PowerPointConnectorKind.Elbow).SetLineEnds(null, OfficeLineMarkerKind.Triangle);
+deck.Save();
+```
+
+Pictures, tables and charts go into layout placeholders with `BindToPlaceholder` too. The [PowerPoint guide](../Docs/officeimo.powerpoint-guide.md#slide-masters-and-layouts) covers duplicating and removing layouts, adding masters and choosing connection sites.
+
 ## Edit an existing deck
 
 ```csharp
@@ -102,6 +133,32 @@ deck.Save("Review-annual.pptx");
 
 For files from outside your organization, load with `PowerPointLoadOptions.UntrustedDefaults`, which rejects macros, embedded objects, ActiveX and external relationships before parsing.
 
+## Read large decks slide by slide
+
+`PowerPointSlideReader` reads one slide at a time without loading the presentation model, so memory stays near the size of one slide and the first slide is ready before the rest of the deck is read. Each slide comes with its title, shapes in drawing order with their paragraphs, tables, image references and speaker notes.
+
+```csharp
+using OfficeIMO.PowerPoint;
+
+using var reader = PowerPointSlideReader.Open("Review.pptx");
+foreach (PowerPointSlideContent slide in reader.ReadSlides()) {
+    Console.WriteLine($"{slide.Number}: {slide.Title}");
+    foreach (PowerPointTableContent table in slide.Tables) {
+        Console.WriteLine($"  Table with {table.Rows.Count} rows");
+    }
+    foreach (PowerPointImageReference image in slide.Images) {
+        Console.WriteLine($"  Image {image.PartUri} ({image.ContentType})");
+    }
+    if (slide.Notes != null) Console.WriteLine($"  Notes: {slide.Notes}");
+}
+
+foreach (PowerPointExtractChunk chunk in reader.ExtractMarkdownChunks(sourcePath: "Review.pptx")) {
+    Console.WriteLine(chunk.Markdown);
+}
+```
+
+`ExtractMarkdownChunks` on the reader returns the same chunks as on a loaded `PowerPointDocument`. Text is read as written on each slide: empty placeholders don't take prompt text from their layout, list markers come from the paragraph itself, and text inside SmartArt and charts isn't read. Pass `PowerPointLoadOptions` to `Open` to apply the same input size, package security and part size limits as a load. Encrypted presentations and binary `.ppt` files need `PowerPointDocument.Load`.
+
 ## Save as PDF or images
 
 ```csharp
@@ -114,7 +171,15 @@ OfficeConversionReport pdf = deck.SaveAsPdf("Regions.pdf");
 Console.WriteLine($"{pdf.ItemsWritten} slides, loss: {pdf.HasLoss}");
 
 File.WriteAllBytes("Regions-1.png", deck.Slides[0].ToImage().Bytes);
+
+int number = 0;
+foreach (PowerPointChart chart in deck.Slides.SelectMany(slide => slide.Charts)) {
+    chart.SaveAsImage($"Regions-chart-{++number}.svg", new OfficeIMO.Drawing.OfficeChartImageExportOptions {
+        Format = OfficeIMO.Drawing.OfficeImageExportFormat.Svg });
+}
 ```
+
+`chart.ToImage(options)` and `SaveAsImage` render one chart without the rest of the slide, with the same `OfficeChartImageExportOptions` used for Word and Excel charts. The chart keeps its frame size unless `Width` and `Height` are set, colours resolve against the theme of the chart's slide, and the result carries the rendering diagnostics. A chart the shared renderer cannot draw throws `NotSupportedException` with the reason.
 
 ## Validate package signatures from a stream
 
@@ -134,6 +199,20 @@ The stream stays open on success and failure. Seekable streams are read from the
 beginning and their original position is restored; non-seekable streams are read
 from the current position. The existing validation options control certificate
 policy and package limits, including the maximum bytes buffered from the stream.
+
+## Before sharing
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.PowerPoint;
+
+using var presentation = PowerPointDocument.Load("Pitch.pptx");
+OfficeHiddenDataReport report = presentation.RemoveHiddenData();
+foreach (OfficeHiddenDataFinding finding in report.Findings) Console.WriteLine($"{finding.Outcome} {finding.Kind} at {finding.Location}");
+presentation.Save("Pitch-shared.pptx");
+```
+
+`RemoveHiddenData()` removes properties, comments, speaker notes, custom XML, image metadata and the thumbnail, and reports each item. Hidden slides, hidden shapes and off-slide shapes are removed only when `OfficeHiddenDataKind.HiddenContent` is selected. Comments you keep can have their authors anonymized. Provenance, such as Content Credentials and an image's AI-generated declaration, is reported and kept unless `OfficeHiddenDataKind.Provenance` is selected; `PowerPointDocument.RemoveProvenance(inputPath, outputPath)` removes only provenance from a file. See the [hidden data matrix](../Docs/officeimo.hidden-data-support-matrix.md).
 
 ## More
 

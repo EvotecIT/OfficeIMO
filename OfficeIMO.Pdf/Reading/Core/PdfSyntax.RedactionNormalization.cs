@@ -68,7 +68,8 @@ internal static partial class PdfSyntax {
     internal static bool IsClassicRedactionOutput(byte[] pdf, PdfReadDocument document, CancellationToken cancellationToken) {
         if (HasCompressedRedactionStructures(document) || document.RepairReport.HasIncompleteObjectCoverage ||
             document.Objects.Values.Any(static item => item.Value is PdfDictionary dictionary && dictionary.Items.ContainsKey("Linearized"))) return false;
-        string text = PdfEncoding.Latin1GetStringCancellable(pdf, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        var text = new PdfByteContentText(pdf);
         return TryGetLatestStartXrefOffset(text, out int offset, cancellationToken) &&
             TryParseClassicXrefTable(text, offset, out _, out int? previous, out _, out int? hybrid, requireComplete: true, cancellationToken) &&
             !previous.HasValue && !hybrid.HasValue;
@@ -80,8 +81,7 @@ internal static partial class PdfSyntax {
         byte[] data = budget.Decode(stream, objects, limits.MaxDecodedStreamBytes, cancellationToken);
         if (!TryReadObjectStreamLayout(stream.Dictionary, data.Length, limits, out int count, out int first))
             throw new InvalidDataException("The object stream layout cannot be verified.");
-        var pairs = ParsePairs(PdfEncoding.Latin1GetStringCancellable(CopyBytes(data, 0, first, cancellationToken), cancellationToken),
-            count, out bool complete, cancellationToken);
+        var pairs = ParsePairs(data, first, count, out bool complete, cancellationToken);
         if (!complete) throw new InvalidDataException("The object stream header cannot be verified.");
         for (int index = 0; index < count; index++) {
             int start = first + pairs[index].Off;

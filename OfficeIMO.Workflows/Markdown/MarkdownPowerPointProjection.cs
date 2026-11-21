@@ -13,12 +13,14 @@ internal static partial class MarkdownPowerPointProjection {
         bool HasContent() => current.Title != null || current.Blocks.Count > 0 || !string.IsNullOrEmpty(current.Notes);
         void Finish() { if (HasContent()) target.Blocks.Add(current); current = new OfficeMarkupSlideBlock(); }
         if (options.RenderFrontMatter) {
-            string? title = source.FindFrontMatterEntry("title")?.Value as string;
-            string? subtitle = source.FindFrontMatterEntry("subtitle")?.Value as string;
-            string? author = source.FindFrontMatterEntry("author")?.Value as string;
-            if (title is { Length: > 0 }) { current.Title = title; target.Metadata["title"] = title; }
+            string? title = MarkdownFrontMatterText.Get(source, "title");
+            string? subtitle = MarkdownFrontMatterText.Get(source, "subtitle");
+            string? author = MarkdownFrontMatterText.Get(source, "author");
+            var designValues = new Dictionary<string, object?>(StringComparer.Ordinal);
+            if (title is { Length: > 0 }) { current.Title = title; designValues["title"] = title; }
             if (subtitle is { Length: > 0 }) current.Blocks.Add(new OfficeMarkupParagraphBlock(subtitle));
-            if (author is { Length: > 0 }) { current.Blocks.Add(new OfficeMarkupParagraphBlock(author)); target.Metadata["author"] = author; }
+            if (author is { Length: > 0 }) { current.Blocks.Add(new OfficeMarkupParagraphBlock(author)); designValues["author"] = author; }
+            if (designValues.Count > 0) target.FrontMatter = FrontMatterBlock.FromObject(designValues);
         }
         foreach (IMarkdownBlock block in source.Blocks) {
             token.ThrowIfCancellationRequested();

@@ -163,7 +163,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             byte[] packageBytes = projected.CreatePackageBytesForSave(
-                preserveVbaProject: true);
+                options: null, preserveVbaProject: true);
             cancellationToken.ThrowIfCancellationRequested();
             if (legacy.VbaProject != null) {
                 packageBytes = ConvertProjectedVbaPackageToMacroEnabled(

@@ -1545,7 +1545,7 @@ public partial class HtmlOfficeAdapters {
         Assert.Contains("data-officeimo-rotation=\"23.5\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-flip-horizontal=\"true\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-flip-vertical=\"true\"", html, StringComparison.Ordinal);
-        Assert.Contains("data-officeimo-crop-left=\"0.10000000000000001\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-crop-left=\"0.1\"", html, StringComparison.Ordinal);
         HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToPowerPointWithEvidence();
         using PowerPointDocument imported = result.Value;
 

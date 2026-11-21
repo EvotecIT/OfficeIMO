@@ -1,4 +1,13 @@
 {
+  "documentation_only": [
+    "Build/LibraryComparisonBenchmarks.md",
+    "Build/Project/Evidence/2026-09-16/html-h4-visual-acceptance/linux/html-corpus-acceptance.md",
+    "Build/Project/Evidence/2026-09-16/html-h4-visual-acceptance/macos/html-corpus-acceptance.md",
+    "Build/Project/Evidence/2026-09-16/html-h4-visual-acceptance/windows/html-corpus-acceptance.md",
+    "Docs/ROADMAP.md",
+    "Docs/building-and-releasing.md",
+    "Docs/officeimo.html-engine-design.md"
+  ],
   "website_inputs": [
     "Website/**",
     "OfficeIMO.JavaScript/**",
@@ -28,8 +37,7 @@
     "Build/WebsiteBrowserContract/**",
     "Build/BenchmarkEvidence.ps1",
     "Build/Run-LibraryComparisonBenchmarks.ps1",
-    "Build/Generate-ExcelBenchmarkWebsiteData.ps1",
-    "Build/Generate-BenchmarkWebsiteOverview.ps1",
+    "Build/benchmark-declarations.json",
     "Build/Benchmarks/**",
     "Build/CompatibilityCatalog/**",
     "Assets/**",
@@ -155,6 +163,15 @@
       "OfficeIMO.Html",
       "OfficeIMO.Pdf",
       "OfficeIMO.Word.Pdf"
+    ],
+    "pdf-testing-package-consumers": [
+      "OfficeIMO.Core",
+      "OfficeIMO.Pdf",
+      "OfficeIMO.Pdf.Testing",
+      "OfficeIMO.Pdf.Testing.PackageSmoke.MSTest",
+      "OfficeIMO.Pdf.Testing.PackageSmoke.NUnit",
+      "OfficeIMO.Pdf.Testing.PackageSmoke.Xunit",
+      "OfficeIMO.Pdf.Testing.Tests"
     ],
     "email-package-consumers": [
       "OfficeIMO.Core",
@@ -292,6 +309,7 @@
       "OfficeIMO.ChartForgeX.Markdown.Tests",
       "OfficeIMO.ChartForgeX.Tests",
       "OfficeIMO.Confluence.Tests",
+      "OfficeIMO.Data.Conversions.Tests",
       "OfficeIMO.DjVu.Tests",
       "OfficeIMO.DocBook.Tests",
       "OfficeIMO.Drawing.CodeGlyphX.Tests",
@@ -313,10 +331,14 @@
       "OfficeIMO.Reader.Tests",
       "OfficeIMO.Shared.Tests",
       "OfficeIMO.Tests",
+      "OfficeIMO.Toml.Configuration.Tests",
+      "OfficeIMO.Toml.Tests",
       "OfficeIMO.Tool.Tests",
       "OfficeIMO.VerifyTests",
       "OfficeIMO.Visio.Tests",
-      "OfficeIMO.Xps.Tests"
+      "OfficeIMO.Xps.Tests",
+      "OfficeIMO.Yaml.Configuration.Tests",
+      "OfficeIMO.Yaml.Tests"
     ]
   },
   "windows": [
@@ -371,6 +393,10 @@
     {
       "name": "Confluence",
       "project": "OfficeIMO.Confluence.Tests/OfficeIMO.Confluence.Tests.csproj"
+    },
+    {
+      "name": "Data-Conversions",
+      "project": "OfficeIMO.Data.Conversions.Tests/OfficeIMO.Data.Conversions.Tests.csproj"
     },
     {
       "name": "Drawing",
@@ -457,12 +483,71 @@
       "project": "OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj"
     },
     {
+      "name": "Toml",
+      "project": "OfficeIMO.Toml.Tests/OfficeIMO.Toml.Tests.csproj"
+    },
+    {
+      "name": "Toml-Configuration",
+      "project": "OfficeIMO.Toml.Configuration.Tests/OfficeIMO.Toml.Configuration.Tests.csproj"
+    },
+    {
       "name": "Visio",
       "project": "OfficeIMO.Visio.Tests/OfficeIMO.Visio.Tests.csproj"
     },
     {
       "name": "Word",
       "project": "OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj"
+    },
+    {
+      "name": "Yaml",
+      "project": "OfficeIMO.Yaml.Tests/OfficeIMO.Yaml.Tests.csproj"
+    },
+    {
+      "name": "Yaml-Configuration",
+      "project": "OfficeIMO.Yaml.Configuration.Tests/OfficeIMO.Yaml.Configuration.Tests.csproj"
     }
-  ]
+  ],
+  "windows_shard_seconds": {
+    "Access": 42,
+    "Adf": 55,
+    "AsciiDoc": 29,
+    "AsciiDoc-Markdown": 132,
+    "Bibliography": 55,
+    "ChartForgeX": 154,
+    "ChartForgeX-Markdown": 126,
+    "Chm": 114,
+    "Confluence": 56,
+    "CSV": 48,
+    "Data-Conversions": 237,
+    "DjVu": 84,
+    "DocBook": 34,
+    "Drawing": 337,
+    "Drawing-CodeGlyphX": 504,
+    "Email": 125,
+    "Excel": 445,
+    "GoogleWorkspace": 125,
+    "Html": 406,
+    "Html-Pdf-Browser": 93,
+    "Latex": 30,
+    "Latex-Markdown": 104,
+    "Markdown": 199,
+    "Markup": 108,
+    "OneNote": 128,
+    "OpenDocument": 148,
+    "OpenDocument-Converters": 175,
+    "Pdf": 413,
+    "PowerPoint": 207,
+    "Project": 55,
+    "Publisher": 217,
+    "Reader": 310,
+    "Rtf": 134,
+    "Shared": 252,
+    "Toml": 39,
+    "Toml-Configuration": 46,
+    "Visio": 189,
+    "Word": 434,
+    "Xps": 307,
+    "Yaml": 79,
+    "Yaml-Configuration": 46
+  }
 }

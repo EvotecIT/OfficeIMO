@@ -31,7 +31,7 @@ namespace OfficeIMO.Word.Pdf {
         private static NativeDocumentDefaults GetNativeDocumentDefaults(
             WordDocument? document,
             NativeFontMap? nativeFontMap = null) {
-            W.DocDefaults? defaults = document?._wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart?.Styles?.DocDefaults;
+            W.DocDefaults? defaults = document == null ? null : WordStyleCatalog.For(document).DocumentDefaults;
             double? defaultTabStopWidth = GetNativeDefaultTabStopWidth(document);
             if (defaults == null) {
                 return new NativeDocumentDefaults(

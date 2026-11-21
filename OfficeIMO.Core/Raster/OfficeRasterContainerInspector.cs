@@ -77,6 +77,8 @@ public static class OfficeRasterContainerInspector {
                 container = CreateStatic(imageInfo);
                 return true;
             case OfficeImageFormat.Heic:
+            case OfficeImageFormat.Jpeg2000:
+            case OfficeImageFormat.Jpeg2000Codestream:
                 container = CreateStatic(imageInfo);
                 return true;
             case OfficeImageFormat.Avif:

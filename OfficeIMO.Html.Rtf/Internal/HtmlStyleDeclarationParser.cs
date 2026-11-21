@@ -376,13 +376,21 @@ internal static partial class HtmlStyleDeclarationParser {
         switch (value) {
             case "left":
             case "start":
+            case "-webkit-left":
+            case "-moz-left":
                 return RtfTextAlignment.Left;
             case "center":
+            case "-webkit-center":
+            case "-moz-center":
                 return RtfTextAlignment.Center;
             case "right":
             case "end":
+            case "-webkit-right":
+            case "-moz-right":
                 return RtfTextAlignment.Right;
             case "justify":
+            // RTF justifies every line except the last.
+            case "justify-all":
                 return RtfTextAlignment.Justify;
             default:
                 return null;

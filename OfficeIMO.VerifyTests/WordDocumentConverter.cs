@@ -90,8 +90,32 @@ public static class WordDocumentConverter {
     }
 
     private static void NormalizeWord(WordprocessingDocument document) {
+        NormalizeGeneratedPlaceholderNames(document);
         NormalizePart(document.MainDocumentPart);
         NormalizeCustomFilePropertiesPart(document.CustomFilePropertiesPart);
+    }
+
+    private static void NormalizeGeneratedPlaceholderNames(WordprocessingDocument document) {
+        var names = document.MainDocumentPart?.GlossaryDocumentPart?.GlossaryDocument?
+            .Descendants<DocPartName>() ?? Enumerable.Empty<DocPartName>();
+        var replacements = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var name in names) {
+            string? value = name.Val?.Value;
+            const string prefix = "OfficeIMO_TocPlaceholder_";
+            if (value == null || !value.StartsWith(prefix, StringComparison.Ordinal)
+                || !Guid.TryParseExact(value.Substring(prefix.Length), "N", out _)) continue;
+            if (!replacements.TryGetValue(value, out string? replacement)) {
+                replacement = prefix + (replacements.Count + 1).ToString(CultureInfo.InvariantCulture);
+                replacements.Add(value, replacement);
+            }
+            name.Val = replacement;
+        }
+        foreach (var reference in document.MainDocumentPart?.Document.Descendants<DocPartReference>()
+                     ?? Enumerable.Empty<DocPartReference>()) {
+            if (reference.Val?.Value is string value && replacements.TryGetValue(value, out string? replacement)) {
+                reference.Val = replacement;
+            }
+        }
     }
 
     private static string FormatXml(string value) {

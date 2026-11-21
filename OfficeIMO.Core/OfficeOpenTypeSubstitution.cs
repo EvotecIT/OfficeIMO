@@ -209,11 +209,18 @@ internal sealed partial class OfficeOpenTypeSubstitution {
             clusterStart = Math.Min(clusterStart, token.ClusterStart);
             if (source.UnicodeText.Length == 0 && token.UnicodeText.Length > 0) source = token;
         }
+        // A ligature that starts at a control, such as ZWJ joined to the next emoji of a
+        // family sequence, paints that emoji: it takes the first visible component's scalar.
+        int scalar = source.Scalar;
+        for (int component = 0; component < bestComponentCount && OfficeManagedTextShaper.IsNonPaintingControl(scalar); component++) {
+            int candidate = glyphs[index + component].Scalar;
+            if (!OfficeManagedTextShaper.IsNonPaintingControl(candidate)) scalar = candidate;
+        }
         // Ordinary Latin ligatures keep their allocation profile. Explicit association
         // is needed only for script/mark-aware multi-base constructions.
         object? association = componentStarts == null ? first.LigatureIdentity
             : ClassifyLigatureInputs(glyphs, index, bestComponentCount, componentStarts, ref operations);
-        glyphs[index] = new GlyphToken(bestLigature, unicodeBuilder.ToString(), source.TextIndex, source.Scalar,
+        glyphs[index] = new GlyphToken(bestLigature, unicodeBuilder.ToString(), source.TextIndex, scalar,
             isUnicodeContinuation: unicodeLength == 0, clusterStart: clusterStart,
             ligatureComponentTextIndexes: componentStarts?.ToArray(), ligatureIdentity: association,
             ligatureComponent: association != null && !ReferenceEquals(association, first.LigatureIdentity) ? 0 : first.LigatureComponent,
@@ -274,13 +281,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
 
     private string ReadTag(int offset) {
         Ensure(offset, 4);
-        uint tag = _reader.ReadUInt32(offset);
-        return new string(new[] {
-            (char)((tag >> 24) & 0xFF),
-            (char)((tag >> 16) & 0xFF),
-            (char)((tag >> 8) & 0xFF),
-            (char)(tag & 0xFF)
-        });
+        return OfficeOpenTypeTags.ToTag(_reader.ReadUInt32(offset));
     }
 
     internal readonly struct GlyphToken {
@@ -326,6 +327,8 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         internal object? LookupIdentity => (_componentData as GlyphAssociationData)?.LookupIdentity;
         internal GlyphToken WithGlyph(int glyphId) => new GlyphToken(glyphId, UnicodeText, TextIndex, Scalar, IsUnicodeContinuation, ClusterStart,
             _componentData);
+        internal GlyphToken WithClusterStart(int clusterStart) => new GlyphToken(GlyphId, UnicodeText, TextIndex, Scalar,
+            IsUnicodeContinuation, clusterStart, _componentData);
         internal GlyphToken WithLookupOrder(int order, object identity) => new GlyphToken(GlyphId, UnicodeText, TextIndex,
             Scalar, IsUnicodeContinuation, ClusterStart, LigatureComponentTextIndexes, LigatureIdentity, LigatureComponent,
             order, identity);

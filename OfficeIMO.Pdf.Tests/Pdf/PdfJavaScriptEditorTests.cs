@@ -65,9 +65,12 @@ public class PdfJavaScriptEditorTests {
         Assert.False(strictPreservation.IsPreserved);
         Assert.Contains(strictPreservation.Issues, static issue => issue.Feature == "CatalogActions.Count");
 
-        PdfSanitizationResult sanitized = authored.ToDocument().Sanitize();
-        Assert.Empty(sanitized.ToDocument().JavaScript.List());
-        Assert.False(sanitized.ToDocument().Inspect().HasActiveContent);
+        OfficeHiddenDataResult cleaned = authored.ToDocument().RemoveHiddenData();
+        Assert.NotEmpty(cleaned.Report.GetFindings(OfficeHiddenDataKind.ActiveContent));
+        Assert.All(cleaned.Report.GetFindings(OfficeHiddenDataKind.ActiveContent),
+            static finding => Assert.Equal(OfficeHiddenDataOutcome.Removed, finding.Outcome));
+        Assert.Empty(PdfDocument.Load(cleaned.ToArray()).JavaScript.List());
+        Assert.False(PdfDocument.Load(cleaned.ToArray()).Inspect().HasActiveContent);
     }
 
     [Fact]

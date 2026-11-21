@@ -98,7 +98,10 @@ public sealed class PackageDependencyGuardrailTests {
     private static readonly Dictionary<string, HashSet<string>> ApprovedExternalCompatibilitySourceTerms =
         new(StringComparer.OrdinalIgnoreCase) {
             ["OfficeIMO.PowerPoint/PowerPointCompatibilityReport.cs"] =
-                new HashSet<string>(["LibreOffice", "soffice"], StringComparer.OrdinalIgnoreCase)
+                new HashSet<string>(["LibreOffice", "soffice"], StringComparer.OrdinalIgnoreCase),
+            // Support ratings name the independent producers whose files back them.
+            ["OfficeIMO.Core/Compatibility/OfficeConversionSupportAssessments.cs"] =
+                new HashSet<string>(["LibreOffice"], StringComparer.OrdinalIgnoreCase)
         };
 
     [Fact]
@@ -509,13 +512,25 @@ public sealed class PackageDependencyGuardrailTests {
                 "OfficeIMO.SharedSource/IO/OfficeFileCommitClaim.cs",
                 "OfficeIMO.SharedSource/IO/PooledUtf8TextWriter.Bytes.cs",
                 "OfficeIMO.SharedSource/IO/PooledUtf8TextWriter.cs",
+                "OfficeIMO.SharedSource/Numerics/OfficeDecimalConversion.cs",
+                "OfficeIMO.SharedSource/Numerics/OfficeRounding.cs",
+                "OfficeIMO.SharedSource/Numerics/OfficeRoundTripNumberText.cs",
                 "OfficeIMO.SharedSource/OpenXml/OfficeOpenXmlContractMappings.cs",
+                "OfficeIMO.SharedSource/OpenXml/OfficeOpenXmlHiddenData.cs",
                 "OfficeIMO.SharedSource/OpenXml/OfficeOpenXmlPackagePayload.cs",
                 "OfficeIMO.SharedSource/OpenXml/OfficeOpenXmlPackagePayload.Inspection.cs",
+                "OfficeIMO.SharedSource/OpenXml/OfficeOpenXmlReadOnlyPackage.cs",
                 "OfficeIMO.SharedSource/OpenXml/OfficeOpenXmlThemeColorResolver.cs",
                 "OfficeIMO.SharedSource/OpenXml/OfficeVbaProjectPartEditor.cs",
+                "OfficeIMO.SharedSource/Patching/JsonPointer.cs",
                 "OfficeIMO.SharedSource/Processes/OfficeWindowsSuspendedProcess.cs",
-                "OfficeIMO.SharedSource/Reader/OfficeDocumentModelReaderMapping.cs"
+                "OfficeIMO.SharedSource/Query/StructuredQuery.cs",
+                "OfficeIMO.SharedSource/Reader/OfficeDocumentModelReaderMapping.cs",
+                "OfficeIMO.SharedSource/Serialization/SerializerTypeShapes.cs",
+                "OfficeIMO.SharedSource/SerializerGeneration/SerializerContextEmitter.cs",
+                "OfficeIMO.SharedSource/SerializerGeneration/SerializerContextParser.cs",
+                "OfficeIMO.SharedSource/SerializerGeneration/SerializerFormat.cs",
+                "OfficeIMO.SharedSource/SerializerGeneration/SerializerGenerationResult.cs"
             },
             files);
     }

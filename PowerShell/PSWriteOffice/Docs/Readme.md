@@ -2,7 +2,7 @@
 Module Name: PSWriteOffice
 Module Guid: d75a279d-30c2-4c2d-ae0d-12f1f3bf4d39
 Download Help Link: https://github.com/EvotecIT/OfficeIMO
-Help Version: 3.6.0
+Help Version: 3.6.2
 Locale: en-US
 ---
 # PSWriteOffice Module
@@ -24,6 +24,9 @@ Adds chapter content, reading order and a navigation entry.
 
 ### [Add-OfficeEpubResource](Add-OfficeEpubResource.md)
 Adds an image, font, stylesheet or media payload without executing it.
+
+### [Add-OfficeExcelBarcode](Add-OfficeExcelBarcode.md)
+Adds a QR code or barcode anchored at a worksheet cell.
 
 ### [Add-OfficeExcelChart](Add-OfficeExcelChart.md)
 Adds a native Excel chart from a range, named table or input rows.
@@ -172,6 +175,9 @@ Adds an embedded file attachment to a generated PDF document.
 ### [Add-OfficePdfBackgroundShape](Add-OfficePdfBackgroundShape.md)
 Adds a decorative generated PDF page background shape or band.
 
+### [Add-OfficePdfBarcode](Add-OfficePdfBarcode.md)
+Adds a QR code or barcode to PDF content as a vector drawing.
+
 ### [Add-OfficePdfBookmark](Add-OfficePdfBookmark.md)
 Adds a named bookmark at the current generated PDF flow position.
 
@@ -231,6 +237,9 @@ Adds one styled run inside a PDF paragraph or running header/footer, or a standa
 
 ### [Add-OfficePdfWatermark](Add-OfficePdfWatermark.md)
 Adds a generated-document text watermark.
+
+### [Add-OfficePowerPointBarcode](Add-OfficePowerPointBarcode.md)
+Adds a QR code or barcode to a slide.
 
 ### [Add-OfficePowerPointCard](Add-OfficePowerPointCard.md)
 Adds a narrative card or logo tile to the current designed slide.
@@ -330,6 +339,9 @@ Adds a stencil shape to the current Visio page.
 
 ### [Add-OfficeVisioTextBox](Add-OfficeVisioTextBox.md)
 Adds a text box to the current Visio page.
+
+### [Add-OfficeWordBarcode](Add-OfficeWordBarcode.md)
+Adds a QR code or barcode to a Word paragraph.
 
 ### [Add-OfficeWordBookmark](Add-OfficeWordBookmark.md)
 Adds a bookmark to the current paragraph.
@@ -466,11 +478,17 @@ Closes a project without implicitly saving it.
 ### [Close-OfficeRtf](Close-OfficeRtf.md)
 Releases an RtfDocument without saving.
 
+### [Close-OfficeToml](Close-OfficeToml.md)
+Completes a live TOML document's lifetime without saving.
+
 ### [Close-OfficeVisio](Close-OfficeVisio.md)
 Releases a live Visio document without saving.
 
 ### [Close-OfficeWord](Close-OfficeWord.md)
 Closes one or more tracked Word documents, optionally saving them.
+
+### [Close-OfficeYaml](Close-OfficeYaml.md)
+Completes a live YAML document's lifetime without saving.
 
 ### [Compare-OfficeDocument](Compare-OfficeDocument.md)
 Compares native document content or rendered pages and optionally publishes a review artifact.
@@ -480,6 +498,15 @@ Compares two worksheets or ranges cell by cell.
 
 ### [Convert-OfficeDocument](Convert-OfficeDocument.md)
 Converts files through OfficeIMO's native routes and portable batch engine.
+
+### [ConvertFrom-OfficeCsv](ConvertFrom-OfficeCsv.md)
+Converts CSV text into PSCustomObjects, dictionaries, a DataTable, a data reader or a CsvDocument.
+
+### [ConvertFrom-OfficeToml](ConvertFrom-OfficeToml.md)
+Converts TOML text to PowerShell objects, as ConvertFrom-Json does for JSON.
+
+### [ConvertFrom-OfficeYaml](ConvertFrom-OfficeYaml.md)
+Converts YAML text to PowerShell objects, as ConvertFrom-Json does for JSON.
 
 ### [ConvertTo-OfficeCsv](ConvertTo-OfficeCsv.md)
 Converts objects or a CSV document into CSV text.
@@ -493,11 +520,17 @@ Converts objects into a Markdown table.
 ### [ConvertTo-OfficeProjectTable](ConvertTo-OfficeProjectTable.md)
 Maps PowerShell rows to a bounded project entity table.
 
+### [ConvertTo-OfficeToml](ConvertTo-OfficeToml.md)
+Converts PowerShell objects to TOML text, as ConvertTo-Json does for JSON.
+
 ### [ConvertTo-OfficeVisioVisual](ConvertTo-OfficeVisioVisual.md)
 Converts CFX semantic visual-artifact input into a native editable OfficeIMO.Visio document.
 
 ### [ConvertTo-OfficeVisual](ConvertTo-OfficeVisual.md)
 Converts a ChartForgeX visual artifact into a reusable OfficeIMO representation.
+
+### [ConvertTo-OfficeYaml](ConvertTo-OfficeYaml.md)
+Converts PowerShell objects to YAML text, as ConvertTo-Json does for JSON.
 
 ### [Copy-OfficeExcelSheet](Copy-OfficeExcelSheet.md)
 Copies selected worksheets within a workbook or from another workbook.
@@ -538,6 +571,9 @@ Exports objects as a designed presentation with editable tables and optional cha
 ### [Export-OfficeProjectReport](Export-OfficeProjectReport.md)
 Exports a captured Project report through the shared PDF, HTML, Word, Excel or PowerPoint adapters.
 
+### [Export-OfficeToml](Export-OfficeToml.md)
+Writes PowerShell objects to a TOML file; the file form of ConvertTo-OfficeToml.
+
 ### [Export-OfficeVisioStencilPreviewGallery](Export-OfficeVisioStencilPreviewGallery.md)
 Exports preview artwork from a Visio stencil package into a browsable HTML gallery.
 
@@ -549,6 +585,9 @@ Exports PowerShell objects to a Word document containing an editable table.
 
 ### [Export-OfficeWordGoogleDocument](Export-OfficeWordGoogleDocument.md)
 Plans, compiles or exports Word documents to Google Docs.
+
+### [Export-OfficeYaml](Export-OfficeYaml.md)
+Writes PowerShell objects to a YAML file; the file form of ConvertTo-OfficeYaml.
 
 ### [Find-OfficeExcel](Find-OfficeExcel.md)
 Finds cells whose values match a pattern in a workbook, sheet or range.
@@ -625,8 +664,11 @@ Lists template markers and, with -Value, which are bound.
 ### [Get-OfficeExcelValidation](Get-OfficeExcelValidation.md)
 Gets native data validation snapshots, with worksheet and source-path metadata.
 
+### [Get-OfficeHiddenData](Get-OfficeHiddenData.md)
+Reports the metadata and hidden data that would leave with a file. The file is never changed.
+
 ### [Get-OfficeMarkdownFrontMatter](Get-OfficeMarkdownFrontMatter.md)
-Gets YAML front matter entries from a Markdown document.
+Gets top-level YAML or TOML front matter entries from a Markdown document as Key, Value, Node and SourceSpan objects.
 
 ### [Get-OfficeMarkdownHeading](Get-OfficeMarkdownHeading.md)
 Gets heading metadata from a Markdown document.
@@ -694,6 +736,12 @@ Reads the selected slide master's theme, colors and fonts.
 ### [Get-OfficePrinter](Get-OfficePrinter.md)
 Lists system printer queues, or the paper sources of a named queue. Requires PowerShell 7.4 or newer.
 
+### [Get-OfficePrinterCapability](Get-OfficePrinterCapability.md)
+Reports the media, paper sources, duplex, color, resolution and copy capabilities of a printer queue or IPP printer. Requires PowerShell 7.4 or newer.
+
+### [Get-OfficePrintJob](Get-OfficePrintJob.md)
+Reports the state of a print job submitted with Send-OfficePrinter, optionally waiting until it finishes. Requires PowerShell 7.4 or newer.
+
 ### [Get-OfficeProjectAssignment](Get-OfficeProjectAssignment.md)
 Returns project assignments.
 
@@ -711,6 +759,9 @@ Returns project tasks as pipeline objects.
 
 ### [Get-OfficeProjectView](Get-OfficeProjectView.md)
 Captures a portable report from a current calculated schedule.
+
+### [Get-OfficeTomlNode](Get-OfficeTomlNode.md)
+Gets nodes of a live TOML document by path, as Path, Value, Node, Line and Column objects.
 
 ### [Get-OfficeWordBookmark](Get-OfficeWordBookmark.md)
 Gets bookmarks, optionally by name (wildcards).
@@ -763,6 +814,9 @@ Gets the table of contents of a document.
 ### [Get-OfficeWordText](Get-OfficeWordText.md)
 Gets the text runs of paragraphs, sections or documents.
 
+### [Get-OfficeYamlNode](Get-OfficeYamlNode.md)
+Gets nodes of a live YAML document by path, as Path, Value, Node, Line and Column objects.
+
 ### [Import-OfficeConversionReport](Import-OfficeConversionReport.md)
 Reads saved conversion run reports without executing jobs or changing outputs.
 
@@ -781,8 +835,14 @@ Imports selected slides from a file or live document, preserving native relation
 ### [Import-OfficeProjectTable](Import-OfficeProjectTable.md)
 Imports explicitly mapped tables into a new project without changing existing documents.
 
+### [Import-OfficeToml](Import-OfficeToml.md)
+Reads TOML files as PowerShell objects; the file form of ConvertFrom-OfficeToml.
+
 ### [Import-OfficeVisioStencilCatalog](Import-OfficeVisioStencilCatalog.md)
 Loads a stencil catalog (built-in, from .vssx/.vsdx packages or installed Visio); inside a diagram block it also registers it.
+
+### [Import-OfficeYaml](Import-OfficeYaml.md)
+Reads YAML files as PowerShell objects; the file form of ConvertFrom-OfficeYaml.
 
 ### [Invoke-OfficeExcelAutoFit](Invoke-OfficeExcelAutoFit.md)
 Fits column widths and row heights to their content.
@@ -889,6 +949,9 @@ Creates Excel checks for Test-OfficeDocument: capability preflight and package v
 ### [New-OfficeGoogleWorkspaceSession](New-OfficeGoogleWorkspaceSession.md)
 Creates a native Google Workspace session from a service-account key.
 
+### [New-OfficeHiddenDataOptions](New-OfficeHiddenDataOptions.md)
+Chooses which hidden data Remove-OfficeHiddenData and Optimize-OfficePdf -Sanitize remove.
+
 ### [New-OfficeHtmlConversionOptions](New-OfficeHtmlConversionOptions.md)
 Creates discoverable parsing, trust, and document settings for HTML conversion.
 
@@ -965,7 +1028,7 @@ Creates native XFDF field/value limits and appearance behavior for Import-Office
 Creates native semantic or positioned PDF-to-HTML export settings.
 
 ### [New-OfficePdfImageOptions](New-OfficePdfImageOptions.md)
-Creates discoverable thumbnail and rendering settings for Export-OfficePdfImage.
+Creates discoverable thumbnail and rendering settings for Export-OfficeDocumentImage.
 
 ### [New-OfficePdfInteractionOptions](New-OfficePdfInteractionOptions.md)
 Creates native region limits and invisible-text policy for Get-OfficePdfInteractionMap.
@@ -1007,7 +1070,7 @@ Creates a themed presentation, returning a live document or saving a completed c
 Creates native PowerPoint-to-HTML settings for Convert-OfficeDocument.
 
 ### [New-OfficePowerPointImageOptions](New-OfficePowerPointImageOptions.md)
-Creates discoverable slide selection and rendering settings for Export-OfficePowerPointImage.
+Creates discoverable slide selection and rendering settings for Export-OfficeDocumentImage.
 
 ### [New-OfficePowerPointInspectionOptions](New-OfficePowerPointInspectionOptions.md)
 Chooses native presentation inspection reports without changing a document.
@@ -1034,10 +1097,13 @@ Creates native WordHtmlExportOptions settings for document operations.
 Creates native RtfMarkdownExportOptions settings for document operations.
 
 ### [New-OfficeRtfPdfOptions](New-OfficeRtfPdfOptions.md)
-Creates discoverable RTF-to-PDF conversion options for Export-OfficeDocumentPdf.
+Creates discoverable RTF-to-PDF conversion options for Convert-OfficeDocument -To Pdf.
 
 ### [New-OfficeTextPdfOptions](New-OfficeTextPdfOptions.md)
-Creates literal text decoding and PDF layout settings for Export-OfficeDocumentPdf.
+Creates literal text decoding and PDF layout settings for Convert-OfficeDocument -To Pdf.
+
+### [New-OfficeToml](New-OfficeToml.md)
+Creates a live TOML document, or atomically publishes a completed content block.
 
 ### [New-OfficeVisio](New-OfficeVisio.md)
 Creates a Visio document with an initial page, returning it live or saving a completed content block.
@@ -1077,6 +1143,9 @@ Creates a discoverable Word revision filter for Resolve-OfficeWordRevision.
 
 ### [New-OfficeWordTableCell](New-OfficeWordTableCell.md)
 Creates a plain or recorded rich Word cell for explicit table rows.
+
+### [New-OfficeYaml](New-OfficeYaml.md)
+Creates a live YAML document, or atomically publishes a completed content block.
 
 ### [Open-OfficeAccess](Open-OfficeAccess.md)
 Reads a native database without running queries, macros, or linked connections.
@@ -1123,11 +1192,17 @@ Loads a project without calculating or executing its content.
 ### [Open-OfficeRtf](Open-OfficeRtf.md)
 Reads an RTF file or RTF text into a read result with the document, embedded payloads and diagnostics.
 
+### [Open-OfficeToml](Open-OfficeToml.md)
+Opens a TOML file, stream or text as a lossless live document; a file content block saves atomically.
+
 ### [Open-OfficeVisio](Open-OfficeVisio.md)
 Loads an existing .vsdx file as an OfficeIMO.Visio document.
 
 ### [Open-OfficeWord](Open-OfficeWord.md)
 Opens a Word document for explicit editing, or saves and closes a completed content block.
+
+### [Open-OfficeYaml](Open-OfficeYaml.md)
+Opens a YAML file, stream or text as a lossless live document; a file content block saves atomically.
 
 ### [Optimize-OfficePdf](Optimize-OfficePdf.md)
 Writes a smaller or sanitized copy of a PDF.
@@ -1156,6 +1231,9 @@ Removes a defined name.
 ### [Remove-OfficeExcelPageBreak](Remove-OfficeExcelPageBreak.md)
 Removes manual print page breaks from selected open worksheets.
 
+### [Remove-OfficeHiddenData](Remove-OfficeHiddenData.md)
+Writes a copy of a file without its metadata and hidden data, and reports what happened to each item.
+
 ### [Remove-OfficePdfAnnotation](Remove-OfficePdfAnnotation.md)
 Removes native annotations selected by identity, page and subtype.
 
@@ -1168,8 +1246,14 @@ Removes selected pages from a live PDF or writes edited file copies.
 ### [Remove-OfficePowerPointSlide](Remove-OfficePowerPointSlide.md)
 Removes selected native slides or one-based slide positions.
 
+### [Remove-OfficeTomlNode](Remove-OfficeTomlNode.md)
+Removes keys, tables or array items from a live TOML document by path.
+
 ### [Remove-OfficeWordTableOfContents](Remove-OfficeWordTableOfContents.md)
 Removes the table of contents from a Word document.
+
+### [Remove-OfficeYamlNode](Remove-OfficeYamlNode.md)
+Removes mapping entries or sequence items from a live YAML document by path.
 
 ### [Rename-OfficeExcelNamedRange](Rename-OfficeExcelNamedRange.md)
 Renames a defined name.
@@ -1222,11 +1306,17 @@ Saves a project through the qualified native codec with loss protection.
 ### [Save-OfficeRtf](Save-OfficeRtf.md)
 Saves an RtfDocument to its original path or to a new path.
 
+### [Save-OfficeToml](Save-OfficeToml.md)
+Saves a live TOML document and keeps it available.
+
 ### [Save-OfficeVisio](Save-OfficeVisio.md)
 Saves an OfficeIMO.Visio document.
 
 ### [Save-OfficeWord](Save-OfficeWord.md)
 Saves a live Word document without closing it.
+
+### [Save-OfficeYaml](Save-OfficeYaml.md)
+Saves a live YAML document and keeps it available.
 
 ### [Search-OfficeDocument](Search-OfficeDocument.md)
 Finds regular-expression or literal matches across supported files and folders.
@@ -1234,8 +1324,8 @@ Finds regular-expression or literal matches across supported files and folders.
 ### [Send-OfficeConfluenceAttachment](Send-OfficeConfluenceAttachment.md)
 Uploads or versions a Confluence page attachment.
 
-### [Send-OfficePdfPrinter](Send-OfficePdfPrinter.md)
-Prepares PDF sheets and submits them to an explicitly named printer. Requires PowerShell 7.4 or newer.
+### [Send-OfficePrinter](Send-OfficePrinter.md)
+Prints a document of any format OfficeIMO converts to PDF on an explicitly named printer queue or IPP printer. Requires PowerShell 7.4 or newer.
 
 ### [Set-OfficeConfluenceManagedSection](Set-OfficeConfluenceManagedSection.md)
 Safely replaces one marker-delimited section in a Confluence storage body.
@@ -1381,6 +1471,9 @@ Restyles a deck or changes the selected masters' colors, fonts and theme name.
 ### [Set-OfficeProjectTask](Set-OfficeProjectTask.md)
 Updates selected task fields without implicitly recalculating its schedule.
 
+### [Set-OfficeTomlNode](Set-OfficeTomlNode.md)
+Sets the value at a path in a live TOML document, adding missing tables on the way.
+
 ### [Set-OfficeVisioShapeLayout](Set-OfficeVisioShapeLayout.md)
 Applies OfficeIMO Visio selection layout and layer operations to shapes.
 
@@ -1411,8 +1504,17 @@ Sets properties on a table of contents in a Word document.
 ### [Set-OfficeWordText](Set-OfficeWordText.md)
 Updates styling on Word text.
 
+### [Set-OfficeYamlNode](Set-OfficeYamlNode.md)
+Sets the value at a path in a live YAML document, creating missing mappings on the way.
+
 ### [Split-OfficeDocument](Split-OfficeDocument.md)
 Splits PDF files into consecutive groups, selected ranges or top-level bookmarked chapters.
+
+### [Stop-OfficePrintJob](Stop-OfficePrintJob.md)
+Cancels a print job submitted with Send-OfficePrinter and returns its state afterwards. Requires PowerShell 7.4 or newer.
+
+### [Test-OfficeAccessibility](Test-OfficeAccessibility.md)
+Checks Word, Excel and PowerPoint files for accessibility issues. The input is never changed.
 
 ### [Test-OfficeDocument](Test-OfficeDocument.md)
 Validates native document structure, schema, security, accessibility or compliance without changing the input.
@@ -1420,11 +1522,20 @@ Validates native document structure, schema, security, accessibility or complian
 ### [Test-OfficeExcelTemplate](Test-OfficeExcelTemplate.md)
 Tests whether supplied values bind every template marker.
 
+### [Test-OfficePdfAccessibility](Test-OfficePdfAccessibility.md)
+Checks a PDF against PDF/UA-1 using the Matterhorn Protocol failure conditions.
+
 ### [Test-OfficePdfRewrite](Test-OfficePdfRewrite.md)
 Creates a proof report for user-visible signals preserved by a PDF rewrite.
 
 ### [Test-OfficePowerPoint](Test-OfficePowerPoint.md)
 Inspects a live or saved presentation without changing or reopening a supplied document.
+
+### [Test-OfficeToml](Test-OfficeToml.md)
+Tests whether TOML files or text load, without changing them.
+
+### [Test-OfficeYaml](Test-OfficeYaml.md)
+Tests whether YAML files or text load, without changing them.
 
 ### [Unprotect-OfficeDocument](Unprotect-OfficeDocument.md)
 Removes native package encryption or selected editing restrictions.
@@ -1447,6 +1558,9 @@ Replaces text in the selected slide or document, including tables by default.
 ### [Update-OfficeRtfText](Update-OfficeRtfText.md)
 Applies lossless text and metadata edits to an RTF document.
 
+### [Update-OfficeToml](Update-OfficeToml.md)
+Applies a JSON Patch (RFC 6902) or JSON Merge Patch (RFC 7386) to a live TOML document.
+
 ### [Update-OfficeWordField](Update-OfficeWordField.md)
 Updates fields in a Word document.
 
@@ -1455,6 +1569,9 @@ Updates the table of contents in a Word document.
 
 ### [Update-OfficeWordText](Update-OfficeWordText.md)
 Replaces text in a Word document.
+
+### [Update-OfficeYaml](Update-OfficeYaml.md)
+Applies a JSON Patch (RFC 6902) or JSON Merge Patch (RFC 7386) to a live YAML document.
 
 ## About Topics
 

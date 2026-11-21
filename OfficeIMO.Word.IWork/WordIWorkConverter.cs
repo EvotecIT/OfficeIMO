@@ -397,7 +397,7 @@ public static partial class WordIWorkConverter {
                     sourceParagraph.ListMarkerKind, startsNewList, sourceParagraph.ListNumber,
                     qualifiedLayout ? checked((int?)(paragraph.IndentationBefore?.ToTwips())) : null,
                     qualifiedLayout ? checked((int?)(paragraph.IndentationHanging?.ToTwips())) : null,
-                    qualifiedLayout ? checked((int)markerSize) : null);
+                    qualifiedLayout ? markerSize : null);
                 previousListIdentifier = sourceParagraph.ListIdentifier;
                 hasPreviousListParagraph = true;
             } else {

@@ -112,7 +112,7 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private sealed class WorksheetImageExportData {
-            public WorksheetImageExportData(byte[] bytes, double widthPoints, double heightPoints, string cellReference, int rowIndex, int columnIndex, double offsetXPoints, double offsetYPoints, double rotationDegrees, bool horizontalFlip, bool verticalFlip, string? alternativeText) {
+            public WorksheetImageExportData(byte[] bytes, double widthPoints, double heightPoints, string cellReference, int rowIndex, int columnIndex, double offsetXPoints, double offsetYPoints, double rotationDegrees, bool horizontalFlip, bool verticalFlip, string? alternativeText, PdfCore.PdfImageSourceCrop? sourceCrop, string? linkUri) {
                 Bytes = bytes;
                 WidthPoints = widthPoints;
                 HeightPoints = heightPoints;
@@ -125,6 +125,8 @@ namespace OfficeIMO.Excel.Pdf {
                 HorizontalFlip = horizontalFlip;
                 VerticalFlip = verticalFlip;
                 AlternativeText = alternativeText;
+                SourceCrop = sourceCrop;
+                LinkUri = linkUri;
             }
 
             public byte[] Bytes { get; }
@@ -139,6 +141,8 @@ namespace OfficeIMO.Excel.Pdf {
             public bool HorizontalFlip { get; }
             public bool VerticalFlip { get; }
             public string? AlternativeText { get; }
+            public PdfCore.PdfImageSourceCrop? SourceCrop { get; }
+            public string? LinkUri { get; }
         }
 
         private sealed class WorksheetGeometryData {

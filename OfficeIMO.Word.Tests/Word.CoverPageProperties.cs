@@ -34,17 +34,23 @@ namespace OfficeIMO.Tests {
                         "http://schemas.microsoft.com/office/2006/coverPageProps",
                         System.StringComparison.OrdinalIgnoreCase));
 
-                using var stream = part.GetStream(FileMode.Open, FileAccess.Read);
-                var xml = XDocument.Load(stream);
-                var ns = XNamespace.Get("http://schemas.microsoft.com/office/2006/coverPageProps");
+                using (var stream = part.GetStream(FileMode.Open, FileAccess.Read)) {
+                    var xml = XDocument.Load(stream);
+                    var ns = XNamespace.Get("http://schemas.microsoft.com/office/2006/coverPageProps");
 
-                Assert.Equal("2026-01-27", xml.Root?.Element(ns + "PublishDate")?.Value);
-                Assert.Equal("Executive summary", xml.Root?.Element(ns + "Abstract")?.Value);
-                Assert.Equal("1 Main St", xml.Root?.Element(ns + "CompanyAddress")?.Value);
-                Assert.Equal("info@example.com", xml.Root?.Element(ns + "CompanyEmail")?.Value);
+                    Assert.Equal("2026-01-27", xml.Root?.Element(ns + "PublishDate")?.Value);
+                    Assert.Equal("Executive summary", xml.Root?.Element(ns + "Abstract")?.Value);
+                    Assert.Equal("1 Main St", xml.Root?.Element(ns + "CompanyAddress")?.Value);
+                    Assert.Equal("info@example.com", xml.Root?.Element(ns + "CompanyEmail")?.Value);
+                }
 
                 document.Save();
             }
+            using WordDocument reopened = WordDocument.Load(filePath);
+            Assert.Equal("2026-01-27", reopened.CoverPageProperties.PublishDate);
+            Assert.Equal("Executive summary", reopened.CoverPageProperties.Abstract);
+            Assert.Equal("1 Main St", reopened.CoverPageProperties.CompanyAddress);
+            Assert.Equal("info@example.com", reopened.CoverPageProperties.CompanyEmail);
         }
     }
 }

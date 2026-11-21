@@ -182,11 +182,12 @@ test("XLSX cancels mid-stream and never finalizes a partial workbook", async () 
 });
 
 test("classic scripts compose in either order without a module loader", async () => {
-  for (const order of [["canopyx", "datatables", "xlsx", "csv", "pdf"], ["pdf", "csv", "xlsx", "datatables", "canopyx"]]) {
+  for (const [order, suffix] of [[["canopyx", "datatables", "xlsx", "csv", "pdf"], ""], [["pdf", "csv", "xlsx", "datatables", "canopyx"], ""],
+    [["canopyx", "datatables", "xlsx", "csv", "pdf"], ".min"]]) {
     const context = vm.createContext({ TextEncoder, Blob, Date, performance, setTimeout, DOMException, AbortController });
     let core;
     for (const kind of order) {
-      vm.runInContext(await readFile(new URL("../bundles/officeimo-" + kind + ".js", import.meta.url), "utf8"), context);
+      vm.runInContext(await readFile(new URL("../bundles/officeimo-" + kind + suffix + ".js", import.meta.url), "utf8"), context);
       if (core) assert.equal(context.OfficeIMO.core, core);
       core = context.OfficeIMO.core;
     }
@@ -199,7 +200,7 @@ test("classic scripts compose in either order without a module loader", async ()
     assert.equal(typeof context.OfficeIMO.writeCanopyTo, "function");
     assert.throws(() => new context.OfficeIMO.Workbook().addWorksheet("Pending").addChart({ type: "unsupported" }), error =>
       error instanceof context.OfficeIMO.core.NotSupportedError && error instanceof context.OfficeIMO.core.OfficeIMOError);
-    vm.runInContext(await readFile(new URL("../bundles/officeimo.js", import.meta.url), "utf8"), context);
+    vm.runInContext(await readFile(new URL("../bundles/officeimo" + suffix + ".js", import.meta.url), "utf8"), context);
     assert.equal(context.OfficeIMO.core, core);
     assert.equal(context.OfficeIMO.Cell, context.OfficeIMO.xlsx.Cell);
     assert.equal(context.OfficeIMO.FormulaCell, context.OfficeIMO.xlsx.FormulaCell);
@@ -207,7 +208,7 @@ test("classic scripts compose in either order without a module loader", async ()
 });
 
 test("standalone ES module assets execute the same writer contracts", async () => {
-  for (const name of ["officeimo", "officeimo-xlsx", "officeimo-csv", "officeimo-pdf"]) {
+  for (const name of ["officeimo", "officeimo-xlsx", "officeimo-csv", "officeimo-pdf"].flatMap(name => [name, name + ".min"])) {
     const module = await import("../bundles/" + name + ".mjs");
     if (module.Workbook) {
       const book = new module.Workbook({ compression: "store" });
@@ -215,6 +216,31 @@ test("standalone ES module assets execute the same writer contracts", async () =
       assert.match((await readZip(await book.toBlob())).get("xl/worksheets/sheet1.xml").content, /Łódź 🧪/);
     }
     if (module.writeCsv) assert.equal(await (await module.writeCsv([["=literal"]], { columns: [{ header: "V" }] })).text(), "V\r\n'=literal\r\n");
+  }
+});
+
+test("integration adapters take their writers from the shared core", async () => {
+  const script = name => readFile(new URL("../bundles/" + name + ".js", import.meta.url), "utf8");
+  for (const [shared, suffix] of [["officeimo", ""], ["officeimo.min", ".min"], ["officeimo", ".min"]]) {
+    const context = vm.createContext({ TextEncoder, Blob, Date, performance, setTimeout, DOMException, AbortController });
+    const adapterOnly = await script("officeimo-canopyx-adapter" + suffix);
+    assert.throws(() => vm.runInContext(adapterOnly, context), /needs officeimo\.js or officeimo\.min\.js/);
+    vm.runInContext(await script(shared), context);
+    const { core, PdfFont, ExportCell } = context.OfficeIMO;
+    for (const adapter of ["datatables", "canopyx"]) vm.runInContext(await script("officeimo-" + adapter + "-adapter" + suffix), context);
+    assert.equal(context.OfficeIMO.core, core); assert.equal(context.OfficeIMO.PdfFont, PdfFont); assert.equal(context.OfficeIMO.ExportCell, ExportCell);
+    assert.equal(typeof context.OfficeIMO.registerDataTablesButtons, "function");
+    const columns = [{ id: "V", title: "V", kind: "text", width: { unit: "css-px", preferred: 160, minimum: 40 }, wrap: false, alignment: "left" }];
+    const blob = await context.OfficeIMO.exportCanopy({ request: { columns, recordCount: 1, presentation: "semantic", values: "raw", timeZone: "utc", revision: "adapter" },
+      async *rows() { yield { id: "1", cells: { V: { value: "Łódź", text: "Łódź" } } }; } }, "csv");
+    assert.equal(await blob.text(), "V\r\nŁódź\r\n");
+  }
+  for (const suffix of ["", ".min"]) {
+    const shared = await import("../bundles/officeimo" + suffix + ".mjs");
+    for (const adapter of ["datatables", "canopyx"]) {
+      const module = await import("../bundles/officeimo-" + adapter + "-adapter" + suffix + ".mjs");
+      assert.equal(module.PdfFont, shared.PdfFont); assert.equal(module.ExportCell, shared.ExportCell);
+    }
   }
 });
 

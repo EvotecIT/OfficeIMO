@@ -51,7 +51,8 @@ namespace OfficeIMO.Word {
                 return owners.All(section => GetSectionTextWidth(section) == width) ? owners[0] : null;
             }
             Body? body = main?.Document?.Body;
-            if (body == null) return sections[0];
+            // Every body path below returns the only section; skip the per-table body scan.
+            if (body == null || sections.Count == 1) return sections[0];
             OpenXmlElement owner = _table;
             while (owner.Parent != null && !ReferenceEquals(owner.Parent, body)) owner = owner.Parent;
             int index = 0;

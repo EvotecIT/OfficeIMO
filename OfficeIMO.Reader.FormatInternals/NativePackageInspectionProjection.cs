@@ -25,13 +25,14 @@ internal static class NativePackageInspectionProjection {
                 ("digitalSignaturePartCount", report.DigitalSignaturePartCount.ToString(CultureInfo.InvariantCulture)),
                 ("totalUncompressedBytes", report.TotalUncompressedBytes.ToString(CultureInfo.InvariantCulture)),
                 ("largestPartBytes", report.LargestPartBytes.ToString(CultureInfo.InvariantCulture)),
-                ("highestCompressionRatio", report.HighestCompressionRatio.ToString("R", CultureInfo.InvariantCulture)),
+                ("highestCompressionRatio", OfficeIMO.OfficeRoundTripNumberText.Format(report.HighestCompressionRatio, CultureInfo.InvariantCulture)),
                 ("validWithinPolicy", report.IsValid ? "true" : "false"),
                 ("completeWithinStructuralProfile", complete ? "true" : "false"), ("executed", "false")));
         foreach (OfficePackageSecurityFinding finding in report.Findings) {
             builder.Add(OfficeDocumentInspectionCategories.PackageSecurity, finding.Rule.ToString(), finding.Message, "finding", location, finding.PartName,
                 ReaderInspectionMetadataBuilder.Attributes(("severity", finding.Severity.ToString()), ("partName", finding.PartName),
-                    ("observedValue", finding.ObservedValue?.ToString("R", CultureInfo.InvariantCulture)), ("limit", finding.Limit?.ToString("R", CultureInfo.InvariantCulture))));
+                    ("observedValue", finding.ObservedValue is double observed ? OfficeIMO.OfficeRoundTripNumberText.Format(observed, CultureInfo.InvariantCulture) : null),
+                    ("limit", finding.Limit is double limit ? OfficeIMO.OfficeRoundTripNumberText.Format(limit, CultureInfo.InvariantCulture) : null)));
         }
         builder.Coverage("package-security", complete ? "bounded-structural" : "partial-structural", "Shared source-package directory/content-type/relationship profile. Native bound and malformed-part findings identify possible omissions; presence of macro/signature parts does not establish execution or signature validity.", location);
     }

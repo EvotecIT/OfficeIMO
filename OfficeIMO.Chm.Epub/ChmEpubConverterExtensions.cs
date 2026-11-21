@@ -15,14 +15,14 @@ public static class ChmEpubConverterExtensions {
         out OfficeConversionReport report, CancellationToken cancellationToken = default) {
         EpubManuscriptResult result = Task.Run(() => document.ConvertToEpubWithEvidenceAsync(options, cancellationToken),
             cancellationToken).GetAwaiter().GetResult();
-        return OfficeConversionOutput.Complete(result.RequireValue(), result.Report, options?.FailOnLoss == true, out report);
+        return OfficeConversionOutput.Complete(RequireImportedPublication(result), result.Report, options?.FailOnLoss == true, out report);
     }
 
     /// <summary>Asynchronously imports a linked topic book. Resource resolution never contacts the network or opens external files.</summary>
     public static async Task<OfficeConversionResult<EpubPublication>> ToEpubAsync(this ChmDocument document,
         ChmEpubExportOptions? options = null, CancellationToken cancellationToken = default) {
         EpubManuscriptResult result = await document.ConvertToEpubWithEvidenceAsync(options, cancellationToken).ConfigureAwait(false);
-        EpubPublication value = OfficeConversionOutput.Complete(result.RequireValue(), result.Report, options?.FailOnLoss == true, out OfficeConversionReport report);
+        EpubPublication value = OfficeConversionOutput.Complete(RequireImportedPublication(result), result.Report, options?.FailOnLoss == true, out OfficeConversionReport report);
         return new OfficeConversionResult<EpubPublication>(value, report);
     }
 
@@ -100,12 +100,24 @@ public static class ChmEpubConverterExtensions {
             MaxExpandedBytes = requested.MaxExpandedBytes, MaxEntries = requested.MaxEntries,
             RemoveInvalidatedSignatures = requested.RemoveInvalidatedSignatures, ModifiedAt = requested.ModifiedAt
         };
-        var written = imported.RequireValue().Write(writing, cancellationToken);
-        ChmDocument.EnforceOutput(written.Value.LongLength, configured);
+        EpubPublication publication = RequireImportedPublication(imported);
+        EpubWriteResult written;
+        try {
+            written = publication.Write(writing, cancellationToken);
+            ChmDocument.EnforceOutput(written.Value.LongLength, configured);
+        } catch (Exception error) when (error is not OperationCanceledException and not OutOfMemoryException and not StackOverflowException) {
+            throw OfficeConversionFailures.Output(imported.Report, error);
+        }
         var report = new ChmConversionReport(document.SelectTopics(configured).Select(topic => topic.Path),
             imported.Report.Diagnostics.Concat(written.Report.Diagnostics));
         if (options?.FailOnLoss == true) report.ThrowIfLoss();
         return (written.Value, report);
+    }
+
+    private static EpubPublication RequireImportedPublication(EpubManuscriptResult imported) {
+        if (!imported.Succeeded)
+            throw new OfficeConversionException("The CHM manuscript import failed. Inspect its report before publishing.", imported.Report);
+        return imported.RequireValue();
     }
 
     private static IReadOnlyList<OfficeDiagnostic> RestoreNavigation(ChmDocument source, HtmlConversionDocument projection, EpubPublication publication, CancellationToken token) {

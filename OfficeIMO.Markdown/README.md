@@ -190,6 +190,64 @@ var document = MarkdownDocument.Create()
 string markdown = document.ToMarkdown();
 ```
 
+### Read and edit front matter as YAML
+
+Front matter is read and written by [`OfficeIMO.Yaml`](../OfficeIMO.Yaml/README.md), so nested mappings, lists, comments and quoting behave as they do in Jekyll, Hugo and other YAML tools.
+
+```csharp
+var document = MarkdownDocument.Load("post.md");
+FrontMatterBlock header = document.DocumentHeader!;
+
+string? title = header.FindEntry("title")?.Value.AsString();
+string? author = header.Select("author.name")?.AsString();
+bool draft = header.TryGetValue("draft", out bool isDraft) && isDraft;
+
+header.Yaml!.Set("title", "Final title");   // only the title text changes
+document.Save();
+```
+
+- `Yaml` is the lossless `YamlDocument`. Unedited front matter is written back byte for byte, including comments, blank lines and quoting. Edits through `Yaml` rewrite only the text they change.
+- `Entries` lists the top-level keys with their Markdown source spans. Each `Value` is a `YamlNode`: read scalars with `AsString()` or `GetValue<T>()`, and nested values with `AsMapping()`, `AsSequence()` or `Select(path)`.
+- Front matter built with `FrontMatter(...)` is written by the YAML writer. Nested dictionaries, objects and collections become mappings and sequences. Strings that a YAML reader could take as another type, such as `yes` or `1.0`, are quoted.
+- Front matter that is not valid YAML stays in the document as text. `Yaml` is `null`, and `Diagnostics` holds a `markdown-front-matter-invalid-yaml` error with its Markdown line and column. The rest of the document is still parsed.
+- Front matter is read with `YamlLoadOptions.UntrustedDefaults` limits. Repeated keys are reported in `Diagnostics`, and the last one wins.
+
+### TOML front matter
+
+Front matter between `+++` lines, as Hugo and Zola write it, is read and written by [`OfficeIMO.Toml`](../OfficeIMO.Toml/README.md) on the same `FrontMatterBlock`:
+
+```csharp
+var document = MarkdownDocument.Load("content/post.md");   // starts with +++
+FrontMatterBlock header = document.DocumentHeader!;
+
+string? title = header.FindEntry("title")?.Value.AsString();
+string? author = header.Select("author.name")?.AsString();
+
+header.Toml!.Set("title", "Final title");   // only the title text changes
+document.Save();
+```
+
+- `Format` is `MarkdownFrontMatterFormat.Toml`, and `Toml` is the lossless `TomlDocument`. Unedited front matter is written back byte for byte; edits through `Toml` rewrite only the text they change.
+- `Entries`, `Mapping`, `Select` and `TryGetValue` read TOML values through the same YAML node types as YAML front matter: tables are mappings, arrays and arrays of tables are sequences, and dates keep their TOML spelling. They follow edits made through `Toml`; make edits there.
+- `FrontMatterBlock.FromToml(tomlDocument)` adds TOML front matter built in code: `document.Add(FrontMatterBlock.FromToml(toml))`.
+- Front matter that is not valid TOML stays in the document as text. `Toml` is `null`, and `Diagnostics` holds a `markdown-front-matter-invalid-toml` error with its Markdown line and column. It is read with `TomlLoadOptions.UntrustedDefaults` limits.
+
+### TeX math
+
+Math is an opt-in reader profile, so dollar signs in ordinary prose keep their meaning by default:
+
+```csharp
+var document = MarkdownDocument.Parse("""
+Energy is $E = mc^2$.
+
+$$
+\frac{a + b}{\sqrt{c^2 + d^2}}
+$$
+""", new MarkdownLoadOptions { Math = true });
+```
+
+`$...$` and `$$...$$` inside a paragraph become `MathInline`, a block delimited by `$$` lines becomes `MathBlock`, and a ```` ```math ```` fence becomes a `SemanticFencedBlock` whose `SemanticKind` is `math`. An opening `$` must precede a non-space character and a closing `$` must follow one and not precede a digit, so `$5 and $10` stay text; write `\$` for a literal dollar sign. Each node keeps the TeX source and its source span, and `ToMarkdown()` writes it back with the same delimiters. HTML output keeps `\(...\)` and `\[...\]` for client-side renderers, while the PDF and Word converters lay the math out themselves.
+
 ### HTML fragments, full documents, and parts
 
 ```csharp
@@ -269,7 +327,7 @@ File.WriteAllText("README.normalized.md", parsed.ToMarkdown());
 ## Dependency footprint
 
 - **External:** None; parsing, syntax, semantic models, and writing are first-party.
-- **OfficeIMO:** `OfficeIMO.Core`. The AST, parser, builder, transformations, and HTML renderer are first-party.
+- **OfficeIMO:** `OfficeIMO.Core`, plus `OfficeIMO.Yaml` and `OfficeIMO.Toml`, which read and write YAML and TOML front matter. The AST, parser, builder, transformations, and HTML renderer are first-party.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
 

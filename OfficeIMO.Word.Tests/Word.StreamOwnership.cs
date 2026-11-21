@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task LoadAsync_DisposeOwnsTheActualOpenXmlPackageStream() {
+        public async Task LoadAsync_SaveCopyPreservesCallerStreamAndDisposesOwnedPackageStream() {
             byte[] sourceBytes;
             using (WordDocument created = WordDocument.Create()) {
                 created.AddParagraph("Before");
@@ -58,14 +58,17 @@ namespace OfficeIMO.Tests {
             using var output = new MemoryStream();
             await loaded.SaveAsync(output);
 
+            output.Position = 0;
             using (WordDocument packageCopy = WordDocument.Load(
-                       new MemoryStream(ownedPackageStream.ToArray(), writable: false),
+                       output,
                        new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 Assert.Equal("After", Assert.Single(packageCopy.Paragraphs).Text);
             }
 
             loaded.Dispose();
             Assert.Throws<ObjectDisposedException>(() => ownedPackageStream.ReadByte());
+            Assert.True(source.CanRead);
+            Assert.Equal(sourceBytes, source.ToArray());
         }
 
         [Fact]

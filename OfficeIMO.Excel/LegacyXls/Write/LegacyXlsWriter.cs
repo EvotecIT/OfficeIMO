@@ -18,8 +18,19 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         internal static byte[] WriteWorkbook(ExcelDocument document) {
             ArgumentNullException.ThrowIfNull(document);
 
-            byte[] workbookStream = BuildWorkbookStream(document);
-            return BuildCompoundFile(document, workbookStream);
+            return WithinWorkbookSizeLimit(int.MaxValue, () => BuildCompoundFile(document, BuildWorkbookStream(document)));
+        }
+
+        /// <summary>
+        /// Runs a complete XLS write. Without a smaller output limit set by the caller, the only limit a sub-writer can reach
+        /// is the in-memory one, so its output-limit error is reported as the BIFF8 size limit; a configured limit keeps its own error.
+        /// </summary>
+        internal static T WithinWorkbookSizeLimit<T>(long maximumBytes, Func<T> write) {
+            try {
+                return write();
+            } catch (InvalidDataException exception) when (maximumBytes >= int.MaxValue && OfficeOutputLimit.Is(exception)) {
+                throw CreateWorkbookTooLargeException(exception);
+            }
         }
 
         internal static bool TryWriteDirectTabularWorkbook(
@@ -44,11 +55,12 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             using (directPlan) {
                 ReportDirectWriteTiming(document, stageWatch, "Save.Xls.Direct.ExtractCells");
 
-                using (DirectTabularWorkbookStream workbookStream =
-                       BuildDirectTabularWorkbookStream(document, sheet, source.UseCellValueNumberFormats, directPlan)) {
+                // The workbook stream is built in memory with no caller limit, so a limit reached here is the BIFF8 one.
+                using (DirectTabularWorkbookStream workbookStream = WithinWorkbookSizeLimit(int.MaxValue,
+                           () => BuildDirectTabularWorkbookStream(document, sheet, source.UseCellValueNumberFormats, directPlan))) {
                     ReportDirectWriteTiming(document, stageWatch, "Save.Xls.Direct.BuildWorkbookStream");
                     if (destination == null) {
-                        workbookBytes = BuildCompoundFile(document, workbookStream);
+                        workbookBytes = WithinWorkbookSizeLimit(int.MaxValue, () => BuildCompoundFile(document, workbookStream));
                     } else {
                         WriteDirectCompoundFile(document, workbookStream, destination);
                         workbookBytes = Array.Empty<byte>();
@@ -70,6 +82,28 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             TimeSpan elapsed = stopwatch.Elapsed;
             stopwatch.Restart();
             document.Execution.ReportTiming(operation, elapsed);
+        }
+
+        /// <summary>
+        /// The workbook is too large for BIFF8: sheet positions are 32-bit and the version 3 compound stream that holds
+        /// them is limited to 2 GiB. A workbook built in memory is also limited to the largest byte array.
+        /// </summary>
+        internal static NotSupportedException CreateWorkbookTooLargeException(Exception? innerException = null) =>
+            new("The native XLS workbook stream exceeds the 2 GiB BIFF8 limit.", innerException);
+
+        /// <summary>Writes a new compound file into one byte array, rejecting a workbook too large for it before writing.</summary>
+        internal static byte[] WriteInMemoryCompoundFile(IReadOnlyList<OfficeCompoundStream> streams) {
+            OfficeCompoundWriterLayout layout = OfficeCompoundWriterLayout.Create(streams);
+            if (OfficeCompoundFileWriter.GetSerializedLength(layout) > int.MaxValue) throw CreateWorkbookTooLargeException();
+            return OfficeCompoundFileWriter.Write(layout);
+        }
+
+        /// <summary>Buffers a workbook stream; reaching the in-memory size limit is reported as the BIFF8 limit.</summary>
+        internal sealed class WorkbookStreamBuffer : OfficeBoundedMemoryStream {
+            internal WorkbookStreamBuffer(long maximumBytes) : base(maximumBytes) { }
+
+            protected override Exception CreateLimitException(long maximumBytes) =>
+                maximumBytes >= int.MaxValue ? CreateWorkbookTooLargeException() : base.CreateLimitException(maximumBytes);
         }
 
         private static byte[] BuildCompoundFile(ExcelDocument document, byte[] workbookStream, long maximumBytes = int.MaxValue, Func<byte[], byte[]>? encryptAuxiliary = null) {
@@ -107,7 +141,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             streams.AddRange(propertyStreams);
             OfficeCompoundFile? sourceCompoundFile = document.LegacyXlsSourceCompoundFile;
             if (sourceCompoundFile == null) {
-                if (maximumBytes == int.MaxValue) return OfficeCompoundFileWriter.Write(streams);
+                if (maximumBytes >= int.MaxValue) return WriteInMemoryCompoundFile(streams);
                 using var bounded = new OfficeBoundedMemoryStream(maximumBytes);
                 OfficeCompoundFileWriter.Write(bounded, streams);
                 return bounded.ToArray();
@@ -146,7 +180,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
             LegacyXlsSharedStringTable sharedStrings = LegacyXlsSharedStringTable.Create(worksheetCells);
 
-            using var stream = new OfficeBoundedMemoryStream(maximumBytes);
+            using var stream = new WorkbookStreamBuffer(maximumBytes);
             WriteRecord(stream, 0x0809, WorkbookGlobalsBof);
             if (filePass != null) WriteRecord(stream, 0x002f, filePass);
             WriteRecord(stream, 0x00e1, BuildUInt16Payload(1200));
@@ -869,8 +903,8 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             }
 
             if (dataType == DocumentFormat.OpenXml.Spreadsheet.CellValues.Date) {
-                if (TryParseOpenXmlDate(rawValue, out DateTime date)) {
-                    return LegacyXlsCell.Number(row, column, styleIndex, ExcelDateSystemConverter.ToSerial(date, dateSystem));
+                if (TryParseOpenXmlDateSerial(rawValue, dateSystem, out double serial)) {
+                    return LegacyXlsCell.Number(row, column, styleIndex, serial);
                 }
 
                 throw new NotSupportedException($"Native XLS saving does not support date value '{rawValue}' at {ToA1Address(row, column)}.");
@@ -1012,13 +1046,8 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             }
         }
 
-        private static bool TryParseOpenXmlDate(string text, out DateTime value) {
-            return DateTime.TryParse(
-                text,
-                CultureInfo.InvariantCulture,
-                DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.RoundtripKind,
-                out value);
-        }
+        private static bool TryParseOpenXmlDateSerial(string text, ExcelDateSystem dateSystem, out double serial) =>
+            ExcelIsoDateText.TryGetSerial(text, dateSystem, DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.RoundtripKind, out serial);
 
         private static string ToA1Address(ushort zeroBasedRow, ushort zeroBasedColumn) {
             int column = zeroBasedColumn + 1;
@@ -1117,8 +1146,11 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             }
         }
 
-        private static byte[] BuildBoundSheetPayload(int streamOffset, ExcelSheet sheet) {
-            string sheetName = string.IsNullOrEmpty(sheet.Name) ? "Sheet1" : sheet.Name;
+        private static byte[] BuildBoundSheetPayload(int streamOffset, ExcelSheet sheet) =>
+            BuildBoundSheetPayload(streamOffset, sheet.Name, sheet.VeryHidden ? (byte)2 : sheet.Hidden ? (byte)1 : (byte)0);
+
+        private static byte[] BuildBoundSheetPayload(int streamOffset, string? name, byte visibility) {
+            string sheetName = string.IsNullOrEmpty(name) ? "Sheet1" : name!;
             if (sheetName.Length > 31) {
                 throw new NotSupportedException("Native XLS saving supports worksheet names up to 31 characters.");
             }
@@ -1126,7 +1158,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             byte[] nameBytes = EncodeShortUnicodeString(sheetName, out byte flags);
             byte[] payload = new byte[checked(8 + nameBytes.Length)];
             WriteUInt32(payload, 0, unchecked((uint)streamOffset));
-            payload[4] = sheet.VeryHidden ? (byte)2 : sheet.Hidden ? (byte)1 : (byte)0;
+            payload[4] = visibility;
             payload[5] = 0;
             payload[6] = checked((byte)sheetName.Length);
             payload[7] = flags;
@@ -2025,6 +2057,11 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         }
 
         private static void WriteNumberCellRecord(Stream stream, byte[] buffer, ushort row, ushort column, double value, ushort styleIndex) {
+            if (double.IsNaN(value) || double.IsInfinity(value)) {
+                // BIFF8 has no NaN or infinite number; Excel shows #NUM! (error 0x24) for such a result.
+                WriteBoolErrorCellRecord(stream, buffer, row, column, 0x24, isError: true, styleIndex);
+                return;
+            }
             // A number with an exact RK form uses the shorter RK record, as Excel does.
             if (BiffRkNumberReader.TryEncodeRkNumber(value, out uint rk)) {
                 WriteFixedCellRecordHeader(buffer, 0x027e, payloadLength: 10, row, column, styleIndex);

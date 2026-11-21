@@ -11,21 +11,23 @@ internal sealed partial class PdfTrueTypeFontProgram {
     private readonly int[] _advanceWidths1000;
     private readonly Dictionary<int, int> _cmap;
     private readonly Dictionary<string, TableRecord> _tables;
-    private readonly SubsetFontFingerprint _subsetFontFingerprint;
+    private readonly LazySubsetFontFingerprint _subsetFontFingerprint;
     private readonly OfficeOpenTypeTracking? _tracking;
     private readonly SortedSet<int> _usedGlyphIds = new();
     private readonly Dictionary<int, string> _usedGlyphToUnicode = new();
     private readonly PdfCanonicalGlyphText _canonicalGlyphText;
     private readonly PdfGlyphTextPins _textPins;
     private readonly object _usageLock = new();
-    private readonly PdfShortTextCache<PdfGlyphRun> _shortGlyphRuns = new();
+    private readonly PdfShortTextCache<PdfGlyphRun> _shortGlyphRuns;
     private readonly PdfShortTextCache<PdfMeasuredText> _shortMeasurements;
     private readonly ScalarCoverageProofs _scalarCoverageProofs;
 
     private PdfTrueTypeFontProgram(byte[] data, Dictionary<string, TableRecord> tables, string fontName, int unitsPerEm, int xMin, int yMin, int xMax, int yMax, int ascent, int descent, int capHeight, double italicAngle, int flags, int stemV, int[] advanceWidths1000, Dictionary<int, int> cmap) {
         _data = data.ToArray();
         _shortMeasurements = new();
+        _shortGlyphRuns = new();
         _scalarCoverageProofs = new();
+        _shapedRuns = new();
         _fontUnitLayoutMetrics = new PdfFontUnitLayoutMetrics(_data);
         LineMetrics = OfficeOpenTypeLineMetrics.TryRead(_data);
         DecorationMetrics = OfficeOpenTypeDecorationMetrics.TryRead(_data);
@@ -45,8 +47,9 @@ internal sealed partial class PdfTrueTypeFontProgram {
         _cmap = cmap;
         _canonicalGlyphText = new PdfCanonicalGlyphText(cmap);
         _textPins = new PdfGlyphTextPins(_canonicalGlyphText, _advanceWidths1000.Length, allowAliases: true);
-        _subsetFontFingerprint = SubsetFontFingerprint.Create(_data);
+        _subsetFontFingerprint = new LazySubsetFontFingerprint(_data);
         SharedIdentity = new object();
+        _colorGlyphSource = CreateColorGlyphSource(_data, _cmap);
     }
 
     private PdfTrueTypeFontProgram(PdfTrueTypeFontProgram source) {
@@ -72,9 +75,13 @@ internal sealed partial class PdfTrueTypeFontProgram {
         _tracking = source._tracking;
         // Nominal advances and glyph identities depend only on immutable font
         // data. Every hit still replays usage into this document's own subset.
+        _shortGlyphRuns = source._shortGlyphRuns;
         _shortMeasurements = source._shortMeasurements;
         _scalarCoverageProofs = source._scalarCoverageProofs;
+        _shapedRuns = source._shapedRuns;
         SharedIdentity = source.SharedIdentity;
+        _colorGlyphSource = source._colorGlyphSource;
+        SubsettingForbidden = source.SubsettingForbidden;
     }
 
     internal PdfTrueTypeFontProgram ForkForDocument() => new(this);
@@ -90,6 +97,9 @@ internal sealed partial class PdfTrueTypeFontProgram {
     public double ItalicAngle { get; }
     public int Flags { get; }
     public int StemV { get; }
+
+    /// <summary>True when the font's fsType forbids subsetting, so every embedding writes the whole program.</summary>
+    internal bool SubsettingForbidden { get; private init; }
 
     public double MeasureWinAnsiTextWidth(string? text, double fontSize) {
         if (string.IsNullOrEmpty(text)) {
@@ -111,6 +121,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
             return 0D;
         }
 
+        shapingMode = PdfTextShapingOptions.EffectiveShapingMode(shapingMode, text);
         PdfTextShapingOptions options = PdfTextShapingOptions.ForRendering(FontName, shapingMode, shapingProvider, language: language, featureSettings: featureSettings);
         if (useFontUnitAdvances) return MeasureShapedTextWidth(text!, ShapeText(text!, options), fontSize,
             useFontUnitAdvances: true);
@@ -189,15 +200,28 @@ internal sealed partial class PdfTrueTypeFontProgram {
 
     internal PdfGlyphRun ShapeText(string text, PdfTextShapingOptions options) {
         Guard.NotNull(text, nameof(text));
+        options = options.ForText(text);
         bool cacheable = PdfShortTextCache<PdfGlyphRun>.IsEligible(text, options);
         if (cacheable && _shortGlyphRuns.TryGet(text, options, out PdfGlyphRun cached)) {
-            foreach (PdfGlyphInfo glyph in cached.Glyphs) RecordGlyphUsage(glyph.GlyphId, glyph.UnicodeText);
+            ReplayGlyphRunUsage(cached);
             if (cached.SourceShapingResult != null || cached.IsAutomaticallyShaped) options.ProviderShapedTextRecorder?.Invoke(text, FontName, false, true);
             return cached;
         }
-        PdfGlyphRun result = ShapeUncachedText(text, options);
+        PdfGlyphRun result = ShapeAndRecordUsage(text, options, allowMemo: !cacheable);
         if (cacheable && !result.HasMissingGlyphs) _shortGlyphRuns.Add(text, options, result, result.Glyphs.Count);
         return result;
+    }
+
+    private void ReplayGlyphRunUsage(PdfGlyphRun run) {
+        IReadOnlyList<PdfGlyphInfo> glyphs = run.Glyphs;
+        // Same records as RecordGlyphUsage per glyph, under one acquisition of the usage lock.
+        lock (_usageLock) {
+            for (int index = 0; index < glyphs.Count; index++) {
+                PdfGlyphInfo glyph = glyphs[index];
+                if (glyph.GlyphId < 0) continue;
+                RecordNormalizedGlyphUsage(glyph.GlyphId, OfficeArabicTextShaper.ToLogicalText(glyph.UnicodeText));
+            }
+        }
     }
 
     private PdfGlyphRun ShapeUncachedText(string text, PdfTextShapingOptions options) {
@@ -273,28 +297,51 @@ internal sealed partial class PdfTrueTypeFontProgram {
             return;
         }
 
+        if (TryCaptureGlyphUsage(glyphId, unicodeScalar, text: null)) return;
+
         lock (_usageLock) {
-            bool hasMapping = _usedGlyphToUnicode.TryGetValue(glyphId, out string? existing);
-            // A stored mapping already owns this glyph in the usage set; reset clears both.
-            if (!hasMapping) _usedGlyphIds.Add(glyphId);
-            if (glyphId <= 0) {
-                return;
-            }
-
-            // This is called per glyph occurrence (measurement and drawing). The glyph -> unicode map only
-            // needs the string once per unique glyph, so when the glyph already maps to this exact scalar
-            // the ConvertFromUtf32 allocation is skipped. Any different/longer scalar still materializes and
-            // runs the normal replacement check, so the stored map is unchanged.
-            if (hasMapping && ScalarEqualsText(existing!, unicodeScalar)) {
-                return;
-            }
-
-            string unicodeText = OfficeArabicTextShaper.ToLogicalText(char.ConvertFromUtf32(unicodeScalar));
-            if (!string.IsNullOrEmpty(unicodeText) &&
-                (!hasMapping || ShouldReplaceGlyphUnicodeText(unicodeText, existing!))) {
-                _usedGlyphToUnicode[glyphId] = unicodeText;
-            }
+            RecordGlyphUsageHoldingLock(glyphId, unicodeScalar);
         }
+    }
+
+    /// <summary>Lets a caller that records a whole run enter the usage lock once instead of once per glyph.</summary>
+    internal object GlyphUsageLock => _usageLock;
+
+    /// <summary>Records one glyph occurrence; the caller holds <see cref="GlyphUsageLock"/>.</summary>
+    internal void RecordGlyphUsageHoldingLock(int glyphId, int unicodeScalar) {
+        if (glyphId < 0) {
+            return;
+        }
+
+        bool hasMapping = _usedGlyphToUnicode.TryGetValue(glyphId, out string? existing);
+        // A stored mapping already owns this glyph in the usage set; reset clears both.
+        if (!hasMapping) _usedGlyphIds.Add(glyphId);
+        if (glyphId <= 0) {
+            return;
+        }
+
+        // This is called per glyph occurrence (measurement and drawing). The glyph -> unicode map only
+        // needs the string once per unique glyph, so when the glyph already maps to this exact scalar
+        // the ConvertFromUtf32 allocation is skipped. Any different/longer scalar still materializes and
+        // runs the normal replacement check, so the stored map is unchanged.
+        if (hasMapping && ScalarEqualsText(existing!, unicodeScalar)) {
+            return;
+        }
+
+        string unicodeText = OfficeArabicTextShaper.ToLogicalText(char.ConvertFromUtf32(unicodeScalar));
+        if (!string.IsNullOrEmpty(unicodeText) &&
+            (!hasMapping || ShouldReplaceGlyphUnicodeText(unicodeText, existing!))) {
+            _usedGlyphToUnicode[glyphId] = unicodeText;
+        }
+    }
+
+    /// <summary>Records one ligature or cluster occurrence; the caller holds <see cref="GlyphUsageLock"/>.</summary>
+    internal void RecordGlyphUsageHoldingLock(int glyphId, string unicodeText) {
+        if (glyphId < 0) {
+            return;
+        }
+
+        RecordNormalizedGlyphUsage(glyphId, OfficeArabicTextShaper.ToLogicalText(unicodeText));
     }
 
     private static bool ScalarEqualsText(string text, int unicodeScalar) {
@@ -316,6 +363,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
         }
 
         unicodeText = OfficeArabicTextShaper.ToLogicalText(unicodeText);
+        if (TryCaptureGlyphUsage(glyphId, scalar: 0, unicodeText)) return;
 
         lock (_usageLock) {
             RecordNormalizedGlyphUsage(glyphId, unicodeText);
@@ -386,12 +434,14 @@ internal sealed partial class PdfTrueTypeFontProgram {
 
         int capHeight = ascent;
         int weightClass = 400;
-        if (os2.HasValue) {
-            ushort fsType = ReadUInt16(data, os2.Value.Offset + 8);
-            if ((fsType & 0x0002) != 0) {
-                throw new NotSupportedException("TrueType font embedding is restricted by the font fsType license flags.");
-            }
+        OfficeFontEmbeddingPermissions permissions = os2.HasValue
+            ? OfficeFontEmbeddingPermissions.FromOs2Table(data, os2.Value.Offset, os2.Value.Length)
+            : OfficeFontEmbeddingPermissions.Undeclared;
+        if (permissions.OutlineEmbeddingRefusal is string refusal) {
+            throw new NotSupportedException("TrueType font cannot be embedded: " + refusal + ".");
+        }
 
+        if (os2.HasValue) {
             weightClass = ReadUInt16(data, os2.Value.Offset + 4);
             if (os2.Value.Length >= 90 && ReadUInt16(data, os2.Value.Offset) >= 2) {
                 capHeight = ReadInt16(data, os2.Value.Offset + 88);
@@ -413,7 +463,9 @@ internal sealed partial class PdfTrueTypeFontProgram {
         if ((macStyle & 0x02) != 0 || Math.Abs(italicAngle) > 0.01D) flags |= 64;
         int stemV = Math.Max(50, Math.Min(220, 80 + ((weightClass - 400) / 10)));
 
-        return new PdfTrueTypeFontProgram(data, tables, fontName, unitsPerEm, xMin, yMin, xMax, yMax, ascent, descent, capHeight, italicAngle, flags, stemV, widths, charMap);
+        return new PdfTrueTypeFontProgram(data, tables, fontName, unitsPerEm, xMin, yMin, xMax, yMax, ascent, descent, capHeight, italicAngle, flags, stemV, widths, charMap) {
+            SubsettingForbidden = permissions.NoSubsetting
+        };
     }
 
     public int[] BuildWinAnsiWidths() {

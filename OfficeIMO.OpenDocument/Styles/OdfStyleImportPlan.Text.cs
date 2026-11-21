@@ -98,7 +98,7 @@ internal sealed partial class OdfStyleImportPlan {
             if (absoluteBase != null && absoluteBase.Element.Name != OdfNamespaces.Style + "default-style") continue;
             XElement? properties = snapshot.Element(OdfNamespaces.Style + "text-properties");
             if (properties == null) { properties = new XElement(OdfNamespaces.Style + "text-properties"); snapshot.Add(properties); }
-            properties.SetAttributeValue(attribute, OdfTextStyleResolver.ResolveFontSize(chain, sizeAttribute: attribute).ToString("R", CultureInfo.InvariantCulture) + "pt");
+            properties.SetAttributeValue(attribute, OfficeIMO.Core.Internal.OfficeRoundTripText.Format(OdfTextStyleResolver.ResolveFontSize(chain, sizeAttribute: attribute), CultureInfo.InvariantCulture) + "pt");
         }
     }
 }

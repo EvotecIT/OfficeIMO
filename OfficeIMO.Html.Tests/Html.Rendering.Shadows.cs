@@ -192,7 +192,9 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(128D / 255D, carrier.Shape.Shadow.Opacity, 3);
         Assert.True(raster.GetPixel(38, 12).R > raster.GetPixel(38, 12).B);
         Assert.True(raster.GetPixel(38, 12).A > 0);
-        Assert.Contains("fill=\"#FF0000\"", svg, StringComparison.Ordinal);
+        // The PDF scene paints the blurred shadow once, as an image with a soft mask, and the SVG reuses it.
+        Assert.Contains("<image", svg, StringComparison.Ordinal);
+        Assert.Contains("/SMask", rawPdf, StringComparison.Ordinal);
         Assert.Contains("/Type /ExtGState", rawPdf, StringComparison.Ordinal);
         Assert.Contains("ShadowPdf", pdfText, StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BoxShadowValueUnsupported);

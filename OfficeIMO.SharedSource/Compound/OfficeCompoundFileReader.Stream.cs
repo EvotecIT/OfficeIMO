@@ -1,8 +1,13 @@
+#if OFFICEIMO_READER_CORE
+namespace OfficeIMO.Reader.Internal.Compound {
+#else
 namespace OfficeIMO.Core.Internal {
+#endif
     internal static partial class OfficeCompoundFileReader {
         /// <summary>
         /// Opens one compound payload as a bounded seekable view without materializing its bytes.
         /// The returned stream owns <paramref name="source"/> unless <paramref name="leaveOpen"/> is true.
+        /// <paramref name="maxViewBytes"/> limits the view to a prefix, so only the sectors it covers are resolved.
         /// </summary>
         internal static bool TryOpenStream(
             Stream source,
@@ -11,7 +16,8 @@ namespace OfficeIMO.Core.Internal {
             bool leaveOpen,
             CancellationToken cancellationToken,
             out Stream? selectedStream,
-            out string? error) {
+            out string? error,
+            long maxViewBytes = long.MaxValue) {
             selectedStream = null;
             error = null;
             ArgumentNullException.ThrowIfNull(source);
@@ -126,6 +132,7 @@ namespace OfficeIMO.Core.Internal {
                     return false;
                 }
 
+                long viewSize = Math.Min(selected.Size, Math.Max(0, maxViewBytes));
                 List<uint>? regularChain = null;
                 List<uint>? miniChain = null;
                 List<uint>? rootChain = null;
@@ -134,12 +141,12 @@ namespace OfficeIMO.Core.Internal {
                         source,
                         basePosition,
                         selected.StartSector,
-                        selected.Size,
+                        viewSize,
                         sectorSize,
                         physicalSectorCount,
                         fatSectorIds,
                         cancellationToken);
-                } else if (selected.Size > 0) {
+                } else if (viewSize > 0) {
                     var fatCache = new Dictionary<uint, byte[]>();
                     uint[] miniFat = miniFatStart == EndOfChain || miniFatSectorCount == 0
                         ? Array.Empty<uint>()
@@ -164,14 +171,14 @@ namespace OfficeIMO.Core.Internal {
                             physicalSectorCount,
                             fatSectorIds,
                             cancellationToken);
-                    miniChain = GetMiniSectorChain(selected.StartSector, selected.Size, miniFat);
+                    miniChain = GetMiniSectorChain(selected.StartSector, viewSize, miniFat);
                 }
 
                 selectedStream = new CompoundEntryStream(
                     source,
                     basePosition,
                     sectorSize,
-                    selected.Size,
+                    viewSize,
                     regularChain,
                     miniChain,
                     rootChain,
@@ -221,8 +228,11 @@ namespace OfficeIMO.Core.Internal {
             int required = checked((int)((size + sectorSize - 1) / sectorSize));
             var chain = new List<uint>(required);
             var visited = new uint[checked((physicalSectorCount + 31) / 32)];
-            byte[] fatSector = new byte[sectorSize];
-            int loadedFatIndex = -1;
+            // FAT sectors are usually stored in runs; one read loads a run of up to 64 KiB instead of one sector.
+            int maximumWindowSectors = Math.Max(1, FatReadWindowBytes / sectorSize);
+            byte[] fatWindow = Array.Empty<byte>();
+            int windowFirstFatIndex = -1;
+            int windowFatSectorCount = 0;
             int entriesPerSector = sectorSize / 4;
             uint sector = startSector;
             while (chain.Count < required) {
@@ -241,26 +251,40 @@ namespace OfficeIMO.Core.Internal {
                 if (fatIndex >= fatSectorIds.Count) {
                     throw new InvalidDataException("The FAT does not contain the requested sector entry.");
                 }
-                if (fatIndex != loadedFatIndex) {
-                    long physical = checked(basePosition + ((long)fatSectorIds[fatIndex] + 1) * sectorSize);
-                    ReadExact(source, physical, fatSector, cancellationToken);
-                    loadedFatIndex = fatIndex;
+                if (fatIndex < windowFirstFatIndex || fatIndex >= windowFirstFatIndex + windowFatSectorCount) {
+                    uint firstFatSector = fatSectorIds[fatIndex];
+                    int runLength = 1;
+                    while (runLength < maximumWindowSectors
+                           && fatIndex + runLength < fatSectorIds.Count
+                           && fatSectorIds[fatIndex + runLength] == firstFatSector + (uint)runLength) {
+                        runLength++;
+                    }
+                    int windowBytes = checked(runLength * sectorSize);
+                    if (fatWindow.Length < windowBytes) fatWindow = new byte[windowBytes];
+                    long physical = checked(basePosition + ((long)firstFatSector + 1) * sectorSize);
+                    ReadExact(source, physical, fatWindow, windowBytes, cancellationToken);
+                    windowFirstFatIndex = fatIndex;
+                    windowFatSectorCount = runLength;
                 }
-                sector = ReadUInt32(fatSector, checked((int)(sector % entriesPerSector)) * 4);
+                int entryIndex = checked((fatIndex - windowFirstFatIndex) * entriesPerSector + (int)(sector % entriesPerSector));
+                sector = ReadUInt32(fatWindow, entryIndex * 4);
             }
             return chain;
         }
+
+        private const int FatReadWindowBytes = 64 * 1024;
 
         private static void ReadExact(
             Stream source,
             long offset,
             byte[] buffer,
+            int count,
             CancellationToken cancellationToken) {
             source.Position = offset;
             int total = 0;
-            while (total < buffer.Length) {
+            while (total < count) {
                 cancellationToken.ThrowIfCancellationRequested();
-                int read = source.Read(buffer, total, buffer.Length - total);
+                int read = source.Read(buffer, total, count - total);
                 if (read <= 0) throw new EndOfStreamException("The compound file ended inside a FAT sector.");
                 total += read;
             }

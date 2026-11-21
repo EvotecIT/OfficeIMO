@@ -21,7 +21,7 @@ public partial class WordTable {
         TableCell? cell = WordTableContent.Cells(rows[rowIndex]).ElementAtOrDefault(columnIndex);
         if (cell == null) throw new ArgumentOutOfRangeException(nameof(columnIndex));
 
-        Paragraph paragraph = cell.GetFirstChild<Paragraph>() ?? cell.AppendChild(new Paragraph());
+        Paragraph paragraph = WordElementWalk.FirstChild<Paragraph>(cell) ?? cell.AppendChild(new Paragraph());
         // Generated cells already contain an empty run. Fill it directly before taking the
         // general replacement path, which must still clear existing rich cell content.
         if (paragraph.FirstChild is ParagraphProperties properties &&
@@ -29,7 +29,7 @@ public partial class WordTable {
             emptyRun.FirstChild == null &&
             emptyRun.NextSibling() == null) {
             if (bold) emptyRun.RunProperties = new RunProperties(new Bold());
-            emptyRun.Append(new Text(text ?? string.Empty) { Space = SpaceProcessingModeValues.Preserve });
+            emptyRun.AppendChild(new Text(text ?? string.Empty) { Space = SpaceProcessingModeValues.Preserve });
             return this;
         }
 

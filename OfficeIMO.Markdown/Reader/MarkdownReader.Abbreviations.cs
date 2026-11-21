@@ -21,14 +21,17 @@ internal static partial class MarkdownReader {
             }
 
             var sourceSpan = CreateLineSpan(state, state.SourceLineOffset + i + 1, state.SourceLineOffset + i + 1);
-            state.Abbreviations[label] = new MarkdownAbbreviationDefinition(
+            state.EditAbbreviations()[label] = new MarkdownAbbreviationDefinition(
                 label,
                 title,
                 sourceSpan,
                 labelSpan,
                 titleSpan,
                 openingMarkerSpan,
-                separatorMarkerSpan);
+                separatorMarkerSpan) {
+                SourceLineIndex = state.SourceLineOffset + i,
+                SourceLineText = lines[i]
+            };
             i++;
             return true;
         }
@@ -40,7 +43,8 @@ internal static partial class MarkdownReader {
         }
 
         return state.Abbreviations.Values
-            .OrderBy(definition => definition.LabelSourceSpan?.StartLine ?? int.MaxValue)
+            .OrderBy(definition => definition.LabelSourceSpan?.StartLine
+                ?? (definition.SourceLineIndex >= 0 ? definition.SourceLineIndex + 1 : int.MaxValue))
             .ThenBy(definition => definition.LabelSourceSpan?.StartColumn ?? int.MaxValue)
             .ThenBy(definition => definition.Label, StringComparer.Ordinal)
             .ToArray();
@@ -108,7 +112,7 @@ internal static partial class MarkdownReader {
             }
 
             var sourceSpan = CreateLineSpan(state, state.SourceLineOffset + idx + 1, state.SourceLineOffset + idx + 1);
-            state.Abbreviations[label] = new MarkdownAbbreviationDefinition(
+            state.EditAbbreviations()[label] = new MarkdownAbbreviationDefinition(
                 label,
                 title,
                 sourceSpan,
@@ -116,27 +120,15 @@ internal static partial class MarkdownReader {
                 titleSpan,
                 openingMarkerSpan,
                 separatorMarkerSpan,
-                isListItemDefinition);
+                isListItemDefinition) {
+                SourceLineIndex = state.SourceLineOffset + idx,
+                SourceLineText = line
+            };
         }
     }
 
-    private static int GetAbbreviationPreScanStartIndex(string[] lines, MarkdownLoadOptions options) {
-        if (options?.FrontMatter != true || lines == null || lines.Length == 0) {
-            return 0;
-        }
-
-        if (!string.Equals(lines[0]?.Trim(), "---", StringComparison.Ordinal)) {
-            return 0;
-        }
-
-        for (int idx = 1; idx < lines.Length; idx++) {
-            if (string.Equals(lines[idx]?.Trim(), "---", StringComparison.Ordinal)) {
-                return idx + 1;
-            }
-        }
-
-        return 0;
-    }
+    private static int GetAbbreviationPreScanStartIndex(string[] lines, MarkdownLoadOptions options) =>
+        options?.FrontMatter == true && lines != null && TryLocateFrontMatter(lines, out int closingIndex) ? closingIndex + 1 : 0;
 
     private static bool TryParseAbbreviationDefinition(
         string line,

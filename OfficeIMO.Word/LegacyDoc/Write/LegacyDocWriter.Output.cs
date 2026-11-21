@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Word.LegacyDoc.Model;
 
@@ -29,6 +30,16 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             ThrowIfUnsupportedLegacyDocImportState(document, options);
 
+            MainDocumentPart? previousMainPart = t_writingMainPart;
+            t_writingMainPart = document._wordprocessingDocument?.MainDocumentPart;
+            try {
+                return WriteDocumentBody(document, options, isTemplate);
+            } finally {
+                t_writingMainPart = previousMainPart;
+            }
+        }
+
+        private static byte[] WriteDocumentBody(WordDocument document, WordSaveOptions? options, bool isTemplate) {
             LegacyDocWritableBody body = BuildBody(document);
             byte[] wordDocumentStream = PadToRegularOleStream(CreateWordDocumentStream(body, isTemplate));
             byte[] tableStream = PadToRegularOleStream(CreateTableStream(body));
@@ -51,8 +62,18 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             return OfficeCompoundFileWriter.Rewrite(
                 sourceCompoundFile,
-                streams.ToDictionary(stream => stream.Name, stream => stream.Bytes, StringComparer.OrdinalIgnoreCase));
+                streams.ToDictionary(stream => stream.Name, stream => stream.Bytes, StringComparer.OrdinalIgnoreCase),
+                options?.SignatureMutationPolicy == OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures
+                    ? GetSignatureEntryPaths(sourceCompoundFile)
+                    : null);
         }
+
+        private static string[] GetSignatureEntryPaths(OfficeCompoundFile sourceCompoundFile) =>
+            sourceCompoundFile.Entries
+                .Where(entry => entry.Name.Equals("_signatures", StringComparison.OrdinalIgnoreCase)
+                    || entry.Name.Equals("_xmlsignatures", StringComparison.OrdinalIgnoreCase))
+                .Select(entry => entry.Path)
+                .ToArray();
 
     }
 }

@@ -614,6 +614,49 @@ Describe 'Excel DSL surface' {
         $chartXml.OuterXml | Should -Match 'dLbls'
     }
 
+    It 'charts non-adjacent table columns in place, with or without cached values' -ForEach @(
+        @{ NoCachedData = $false }
+        @{ NoCachedData = $true }
+    ) {
+        $path = Join-Path $TestDrive "DslExcelChartNonAdjacent-$NoCachedData.xlsx"
+        $rows = @(
+            [PSCustomObject]@{ Region = 'EU'; Owner = 'Ava'; Revenue = 100 }
+            [PSCustomObject]@{ Region = 'US'; Owner = 'Noah'; Revenue = 120 }
+        )
+
+        New-OfficeExcel -Path $path {
+            Add-OfficeExcelSheet -Name 'Data' -Content {
+                Add-OfficeExcelTable -InputObject $rows -Name 'Sales'
+                Add-OfficeExcelChart -Table Sales -Category Region -Value Revenue -Address E1 -Title 'Revenue' -NoCachedData:$NoCachedData
+            }
+        } | Out-Null
+
+        $workbookXml = Get-ZipXmlDocumentLocal -Path $path -Entry 'xl/workbook.xml'
+        @($workbookXml.GetElementsByTagName('sheet', 'http://schemas.openxmlformats.org/spreadsheetml/2006/main')).Count | Should -Be 1
+        $chartText = (Get-ZipXmlDocumentLocal -Path $path -Entry 'xl/drawings/charts/chart1.xml').OuterXml
+        $chartText | Should -Match "<c:cat><c:strRef><c:f>'Data'!\`$A\`$2:\`$A\`$3</c:f>"
+        $chartText | Should -Match "<c:val><c:numRef><c:f>'Data'!\`$C\`$2:\`$C\`$3</c:f>"
+        ($chartText -match '<c:numCache>') | Should -Be (-not $NoCachedData)
+    }
+
+    It 'rejects a table value column whose numbers are formatted as dates' {
+        $path = Join-Path $TestDrive 'DslExcelChartDateFormattedValue.xlsx'
+        $rows = @(
+            [PSCustomObject]@{ Region = 'EU'; Opened = 45000 }
+            [PSCustomObject]@{ Region = 'US'; Opened = 45001 }
+        )
+
+        {
+            New-OfficeExcel -Path $path {
+                Add-OfficeExcelSheet -Name 'Data' -Content {
+                    Add-OfficeExcelTable -InputObject $rows -Name 'Sales'
+                    Set-OfficeExcelColumn -Header Opened -NumberFormat 'yyyy-mm-dd'
+                    Add-OfficeExcelChart -Table Sales -Category Region -Value Opened -Address E1
+                }
+            }
+        } | Should -Throw "*Column 'Opened' contains a blank, nonnumeric or nonfinite value at B2*"
+    }
+
     It 'builds dashboard tables and charts through a thin command' {
         $path = Join-Path $TestDrive 'DslExcelDashboardBuilder.xlsx'
         $rows = @(
@@ -2083,26 +2126,26 @@ Describe 'Excel DSL surface' {
         try {
             $uri = [uri] $server.Url
 
-            $remoteRows = @(Import-OfficeExcel -Uri $uri -AllowHttp -Sheet 'Data' -Range 'A1:B3')
+            $remoteRows = @(Import-OfficeExcel -Uri $uri -AllowHttp -AllowPrivateNetworkAddresses -Sheet 'Data' -Range 'A1:B3')
             $remoteRows.Count | Should -Be 2
             $remoteRows[1].Name | Should -Be 'Beta'
 
-            $remoteRange = @(Import-OfficeExcel -Uri $uri -AllowHttp -Sheet 'Data' -Range 'A1:B3')
+            $remoteRange = @(Import-OfficeExcel -Uri $uri -AllowHttp -AllowPrivateNetworkAddresses -Sheet 'Data' -Range 'A1:B3')
             $remoteRange.Count | Should -Be 2
             $remoteRange[0].Value | Should -Be 10
 
-            $remoteUsedRange = Import-OfficeExcel -Uri $uri -AllowHttp -Sheet 'Data' -As DataTable
+            $remoteUsedRange = Import-OfficeExcel -Uri $uri -AllowHttp -AllowPrivateNetworkAddresses -Sheet 'Data' -As DataTable
             $remoteUsedRange.Rows.Count | Should -Be 6
 
-            $remoteTables = Get-OfficeExcelTable -Uri $uri -AllowHttp | Where-Object Name -eq 'Sales'
-            $remoteTableRows = @(Import-OfficeExcel -Uri $remoteTables.Uri -AllowHttp -Table $remoteTables.Name)
+            $remoteTables = Get-OfficeExcelTable -Uri $uri -AllowHttp -AllowPrivateNetworkAddresses | Where-Object Name -eq 'Sales'
+            $remoteTableRows = @(Import-OfficeExcel -Uri $remoteTables.Uri -AllowHttp -AllowPrivateNetworkAddresses -Table $remoteTables.Name)
             $remoteTableRows.Count | Should -Be 2
 
-            $remoteNamed = Get-OfficeExcelNamedRange -Uri $uri -AllowHttp -Sheet 'Data' | Where-Object Name -eq 'ManualRange'
-            $remoteNamedRows = @(Import-OfficeExcel -Uri $remoteNamed.Uri -AllowHttp -Sheet $remoteNamed.Sheet -Range $remoteNamed.Range)
+            $remoteNamed = Get-OfficeExcelNamedRange -Uri $uri -AllowHttp -AllowPrivateNetworkAddresses -Sheet 'Data' | Where-Object Name -eq 'ManualRange'
+            $remoteNamedRows = @(Import-OfficeExcel -Uri $remoteNamed.Uri -AllowHttp -AllowPrivateNetworkAddresses -Sheet $remoteNamed.Sheet -Range $remoteNamed.Range)
             $remoteNamedRows.Count | Should -Be 2
 
-            $remoteDoc = Open-OfficeExcel -Uri $uri -AllowHttp -ReadOnly
+            $remoteDoc = Open-OfficeExcel -Uri $uri -AllowHttp -AllowPrivateNetworkAddresses -ReadOnly
             try {
                 $remoteDocRows = @($remoteDoc | Import-OfficeExcel -Sheet 'Data' -Range 'A1:B3')
                 $remoteDocRows.Count | Should -Be 2

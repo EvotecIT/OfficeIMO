@@ -10,11 +10,20 @@
 
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
-    <PackageReference Include="MimeKit" Version="4.17.0" />
+    <PackageReference Include="MimeKit" Version="5.0.0" />
+  </ItemGroup>
+
+  <!-- OneMail ships net10.0 only, so its comparison lanes compile only for that target. -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <PackageReference Include="RecursiveAI.OneMail" Version="1.0.1" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Email\OfficeIMO.Email.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Benchmarks\BenchmarkOutputValidationLog.cs" Link="Shared\BenchmarkOutputValidationLog.cs" />
   </ItemGroup>
 
 </Project>

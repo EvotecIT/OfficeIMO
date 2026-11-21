@@ -19,7 +19,7 @@ public partial class DrawingRasterTests {
         OfficePoint[] points = Enumerable.Range(0, 20_000)
             .Select(index => new OfficePoint(index % 2 == 0 ? 1 : 9, 2D + index / 20_000D)).ToArray();
         var canvas = new OfficeRasterCanvas(new OfficeRasterImage(10, 4, OfficeColor.Transparent));
-        Assert.Throws<InvalidOperationException>(() => canvas.FillPolygon(points, OfficeColor.Black));
+        Assert.Throws<OfficeRasterWorkLimitException>(() => canvas.FillPolygon(points, OfficeColor.Black));
     }
 
     [Theory]
@@ -43,7 +43,7 @@ public partial class DrawingRasterTests {
             // fill must not reuse scratch state left by that rejected operation.
             var excessive = Enumerable.Range(0, 6000).Select(i =>
                 new OfficePoint(i % 2 == 0 ? 0.1D : 0.9D, 4.1D + 0.8D * i / 6000D)).ToArray();
-            Assert.Throws<InvalidOperationException>(() => Fill(new[] { excessive }));
+            Assert.Throws<OfficeRasterWorkLimitException>(() => Fill(new[] { excessive }));
         }
         // Rejected geometry must not leave partial contour state in the next fill.
         Fill(new[] { new[] { new OfficePoint(0, 4), new OfficePoint(5, 4), new OfficePoint(double.NaN, 6) } });

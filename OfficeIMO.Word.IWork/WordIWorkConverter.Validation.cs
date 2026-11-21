@@ -179,7 +179,7 @@ public static partial class WordIWorkConverter {
         CanApplyQualifiedListLayout(paragraph, out _);
 
     private static bool CanApplyQualifiedListLayout(IWorkTextParagraph paragraph, out double markerSize) {
-        return IWorkDecimalListLayout.TryResolve(paragraph, out markerSize, out double textOffset)
+        return IWorkDecimalListLayout.TryResolve(paragraph, out markerSize, out double textOffset, allowHalfPointSizes: true)
             && markerSize <= int.MaxValue / 2d
             && FitsSignedTwips(textOffset, allowRounding: true)
             && FitsSignedTwips(paragraph.ListLayout!.MarkerIndentPoints + textOffset, allowRounding: true);

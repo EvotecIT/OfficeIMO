@@ -12,6 +12,12 @@ internal static partial class PowerPointSlideImageRenderer {
             return;
         }
 
+        // A bent or curved connector between aligned sites has no extent on one axis and is drawn as a straight line.
+        if ((IsBentConnectorPreset(presetName) || IsCurvedConnectorPreset(presetName))
+            && TryAddZeroThicknessLine(drawing, shape, diagnostics, mapping, "line", colorScheme)) {
+            return;
+        }
+
         if (IsBentConnectorPreset(presetName) && TryAddBentConnector(drawing, shape, diagnostics, mapping, colorScheme)) {
             return;
         }

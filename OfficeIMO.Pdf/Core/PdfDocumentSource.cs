@@ -10,8 +10,13 @@ namespace OfficeIMO.Pdf;
 internal sealed class PdfDocumentSource {
     private readonly byte[] _bytes;
     private readonly PdfReadCache<PdfReadDocument> _readCache = new();
+    // Reads that ask for artifact text parse the source once more with it included. That one parse is kept
+    // beside the canonical one, so repeated reads reuse it; it is never cached on failure or cancellation.
+    private readonly PdfReadCache<PdfReadDocument> _artifactTextReadCache = new();
+    private PdfLoadOptions? _artifactTextOptions;
     private readonly bool _canonicalRewrittenOutput;
     private ExceptionDispatchInfo? _readFailure;
+    private StructuralMarkerSnapshot? _structuralMarkers;
 
     private PdfDocumentSource(byte[] bytes, PdfLoadOptions options, bool canonicalRewrittenOutput = false) {
         _bytes = bytes;
@@ -28,8 +33,38 @@ internal sealed class PdfDocumentSource {
     /// <summary>Immutable read settings captured when the source is opened.</summary>
     internal PdfLoadOptions Options { get; }
 
+    /// <summary>
+    /// The source settings with artifact text included. The same instance is returned every time, so
+    /// <see cref="Read"/> recognizes it and reuses its parse; it is <see cref="Options"/> itself when those already
+    /// include artifact text.
+    /// </summary>
+    internal PdfLoadOptions ArtifactTextOptions {
+        get {
+            PdfLoadOptions? options = Volatile.Read(ref _artifactTextOptions);
+            if (options is not null) return options;
+            options = PdfLoadOptions.WithArtifactText(Options);
+            return Interlocked.CompareExchange(ref _artifactTextOptions, options, null) ?? options;
+        }
+    }
+
     /// <summary>Returns the owned source bytes for in-assembly operations without another allocation.</summary>
     internal byte[] Bytes => _bytes;
+
+    /// <summary>
+    /// Returns the header and startxref counts of the immutable source bytes, reusing the last scan made under the same
+    /// limits. Every output derived from this source sizes its read limits from these counts.
+    /// </summary>
+    internal PdfStructuralMarkerCounts GetStructuralMarkers(PdfReadLimits limits) {
+        Guard.NotNull(limits, nameof(limits));
+        StructuralMarkerSnapshot? snapshot = Volatile.Read(ref _structuralMarkers);
+        if (snapshot is not null && ReferenceEquals(snapshot.Limits, limits)) {
+            return snapshot.Counts;
+        }
+
+        PdfStructuralMarkerCounts counts = PdfSyntax.CountSourceStructuralMarkers(_bytes, limits);
+        Volatile.Write(ref _structuralMarkers, new StructuralMarkerSnapshot(limits, counts));
+        return counts;
+    }
 
     /// <summary>Copies the source bytes for a caller-owned result.</summary>
     internal byte[] CopyBytes() => (byte[])_bytes.Clone();
@@ -165,6 +200,11 @@ internal sealed class PdfDocumentSource {
         PdfLoadOptions? options = null,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
+        if (options is not null && !ReferenceEquals(options, Options) && ReferenceEquals(options, _artifactTextOptions)) {
+            return _artifactTextReadCache.GetOrCreate(this, static (source, token) => source.Parse(source._artifactTextOptions!, token),
+                cancellationToken);
+        }
+
         if (options is not null && !ReferenceEquals(options, Options)) {
             return _canonicalRewrittenOutput
                 ? PdfReadDocument.OpenRewrittenOutput(_bytes, options, cancellationToken)
@@ -173,6 +213,11 @@ internal sealed class PdfDocumentSource {
 
         return _readCache.GetOrCreate(this, static (source, token) => source.ParseCanonical(token), cancellationToken);
     }
+
+    private PdfReadDocument Parse(PdfLoadOptions options, CancellationToken cancellationToken) =>
+        _canonicalRewrittenOutput
+            ? PdfReadDocument.OpenRewrittenOutput(_bytes, options, cancellationToken)
+            : PdfReadDocument.OpenOwned(_bytes, options, cancellationToken);
 
     private PdfReadDocument ParseCanonical(CancellationToken cancellationToken) {
         _readFailure?.Throw();
@@ -191,7 +236,7 @@ internal sealed class PdfDocumentSource {
 
     /// <summary>
     /// Captures the opened artifact while priming and reusing the source's canonical parse.
-    /// Invalid input still produces hash and size evidence and caches the parse failure.
+    /// Invalid input still produces size and on-demand hash evidence and caches the parse failure.
     /// </summary>
     internal PdfArtifactInfo CaptureArtifact(CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
@@ -204,7 +249,7 @@ internal sealed class PdfDocumentSource {
             // Artifact identity remains useful even when the canonical parse fails.
         }
 
-        return PdfArtifactInfo.CaptureKnownPageCount(_bytes, pageCount, cancellationToken);
+        return PdfArtifactInfo.CaptureOwnedKnownPageCount(_bytes, pageCount);
     }
 
     private static PdfDocumentSource FromBoundedStream(Stream stream, PdfLoadOptions options) =>
@@ -261,5 +306,16 @@ internal sealed class PdfDocumentSource {
         }
 
         return PdfReadLimitException.Create(PdfReadLimitKind.InputBytes, limit, actual);
+    }
+
+    private sealed class StructuralMarkerSnapshot {
+        internal StructuralMarkerSnapshot(PdfReadLimits limits, PdfStructuralMarkerCounts counts) {
+            Limits = limits;
+            Counts = counts;
+        }
+
+        internal PdfReadLimits Limits { get; }
+
+        internal PdfStructuralMarkerCounts Counts { get; }
     }
 }

@@ -1419,6 +1419,7 @@ namespace OfficeIMO.Tests {
         public void ImportStencilMastersRejectsOversizedEmbeddedMasterRelationship() {
             string packagePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vssx");
             byte[] oversizedMedia = new byte[checked((int)VisioAssets.MaxMasterRelationshipBytes + 1)];
+            new Random(1).NextBytes(oversizedMedia); // incompressible, so the relationship cap is what rejects it
             CreatePackageWithRawGroupMaster(packagePath, "FancyCloud", "Fancy Cloud", "png", oversizedMedia);
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
 

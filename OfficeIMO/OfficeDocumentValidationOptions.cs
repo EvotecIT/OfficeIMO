@@ -1,6 +1,7 @@
 using OfficeIMO.Excel;
 using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
+using OfficeIMO.Word;
 
 namespace OfficeIMO;
 
@@ -20,6 +21,10 @@ public sealed class OfficeDocumentValidationOptions {
     public OfficePdfValidationOptions? Pdf { get; set; }
     /// <summary>Presentation accessibility policy.</summary>
     public PowerPointAccessibilityOptions? PowerPointAccessibility { get; set; }
+    /// <summary>Document accessibility policy for Word.</summary>
+    public WordAccessibilityOptions? WordAccessibility { get; set; }
+    /// <summary>Workbook accessibility policy.</summary>
+    public ExcelAccessibilityOptions? ExcelAccessibility { get; set; }
 }
 
 /// <summary>Read-only workbook checks, retaining native feature and repair-hint evidence.</summary>

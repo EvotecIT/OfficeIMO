@@ -217,6 +217,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void ReadXmlRowIntoRange(XmlReader rowReader, object?[,] result, int rowIndex, int r1, int c1, int c2, int width, object?[]? rowBuffer8, CancellationToken ct) {
+            CaptureDisplayRowStyle(rowReader);
             if (rowReader.IsEmptyElement) {
                 return;
             }

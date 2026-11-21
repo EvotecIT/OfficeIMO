@@ -204,7 +204,7 @@ public sealed class CsvDataReaderExplicitHeaderUtf8Tests {
     }
 
     [Fact]
-    public void ExplicitHeadersKeepNullMarkersAndTrimmedTextOutOfBorrowedBytes() {
+    public void ExplicitHeadersKeepNullMarkersOutOfBorrowedBytesAndBorrowTrimmedText() {
         using var nullStream = new MemoryStream(Encoding.UTF8.GetBytes("NULL,,text\nnext\n"));
         using var nullReader = CsvDocument.OpenReader(nullStream,
             options: new CsvReaderOptions { Header = new[] { "A", "B", "C" }, NullValue = "NULL" });
@@ -222,7 +222,8 @@ public sealed class CsvDataReaderExplicitHeaderUtf8Tests {
             options: new CsvReaderOptions { Header = new[] { "Name" }, TrimWhitespace = true });
         Assert.True(trimmed.Read());
         Assert.Equal("Ada", trimmed.GetString(0));
-        Assert.False(trimmed.TryGetUtf8Text(0, out _));
+        Assert.True(trimmed.TryGetUtf8Text(0, out var trimmedText));
+        Assert.Equal("Ada"u8.ToArray(), trimmedText.ToArray());
     }
 
     [Fact]

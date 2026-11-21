@@ -1,0 +1,3 @@
+[
+  {"title":"Charts, Barcodes, OCR and Provenance","url":"/docs/foundations/","summary":"Add ChartForgeX charts, Mermaid diagrams and CodeGlyphX barcodes to documents, recognize text with OCR engines, and verify C2PA Content Credentials.","kind":"guide","targets":["OfficeIMO.Ocr.Process.ProcessOcrEngine","OfficeIMO.Ocr.Process.ProcessOcrEngineOptions"]}
+]

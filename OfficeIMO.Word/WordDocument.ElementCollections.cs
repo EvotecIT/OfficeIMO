@@ -12,8 +12,10 @@ namespace OfficeIMO.Word {
         public List<WordElement> Elements {
             get {
                 List<WordElement> list = new List<WordElement>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.Elements);
+                using (UseBodySectionSnapshot()) {
+                    foreach (var section in this.Sections) {
+                        list.AddRange(section.Elements);
+                    }
                 }
                 return list;
             }
@@ -25,8 +27,10 @@ namespace OfficeIMO.Word {
         public List<WordElement> ElementsByType {
             get {
                 List<WordElement> list = new List<WordElement>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.ElementsByType);
+                using (UseBodySectionSnapshot()) {
+                    foreach (var section in this.Sections) {
+                        list.AddRange(section.ElementsByType);
+                    }
                 }
                 return list;
             }
@@ -38,8 +42,10 @@ namespace OfficeIMO.Word {
         public List<WordBreak> PageBreaks {
             get {
                 List<WordBreak> list = new List<WordBreak>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.PageBreaks);
+                using (UseBodySectionSnapshot()) {
+                    foreach (var section in this.Sections) {
+                        list.AddRange(section.PageBreaks);
+                    }
                 }
 
                 return list;
@@ -53,8 +59,10 @@ namespace OfficeIMO.Word {
         public List<WordBreak> Breaks {
             get {
                 List<WordBreak> list = new List<WordBreak>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.Breaks);
+                using (UseBodySectionSnapshot()) {
+                    foreach (var section in this.Sections) {
+                        list.AddRange(section.Breaks);
+                    }
                 }
 
                 return list;
@@ -68,8 +76,10 @@ namespace OfficeIMO.Word {
         public List<WordEndNote> EndNotes {
             get {
                 List<WordEndNote> list = new List<WordEndNote>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.EndNotes);
+                using (UseBodySectionSnapshot()) {
+                    foreach (var section in this.Sections) {
+                        list.AddRange(section.EndNotes);
+                    }
                 }
                 return list;
             }
@@ -82,8 +92,10 @@ namespace OfficeIMO.Word {
         public List<WordFootNote> FootNotes {
             get {
                 List<WordFootNote> list = new List<WordFootNote>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.FootNotes);
+                using (UseBodySectionSnapshot()) {
+                    foreach (var section in this.Sections) {
+                        list.AddRange(section.FootNotes);
+                    }
                 }
                 if (list.Count == 0 &&
                     _wordprocessingDocument.MainDocumentPart?.Document?.Body?.Descendants<FootnoteReference>().Any() != true) {
@@ -121,8 +133,10 @@ namespace OfficeIMO.Word {
         public List<WordBookmark> Bookmarks {
             get {
                 List<WordBookmark> list = new List<WordBookmark>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.Bookmarks);
+                using (UseBodySectionSnapshot()) {
+                    foreach (var section in this.Sections) {
+                        list.AddRange(section.Bookmarks);
+                    }
                 }
 
                 return list;
@@ -134,12 +148,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public List<WordTable> Tables {
             get {
-                List<WordTable> list = new List<WordTable>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.Tables);
-                }
-
-                return list;
+                return WordSection.GetTablesOfAllSections(this);
             }
         }
 
@@ -150,8 +159,10 @@ namespace OfficeIMO.Word {
         public List<WordWatermark> Watermarks {
             get {
                 List<WordWatermark> list = new List<WordWatermark>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.Watermarks);
+                using (UseBodySectionSnapshot()) {
+                    foreach (var section in this.Sections) {
+                        list.AddRange(section.Watermarks);
+                    }
                 }
 
                 return list;
@@ -164,8 +175,10 @@ namespace OfficeIMO.Word {
         public List<WordEmbeddedDocument> EmbeddedDocuments {
             get {
                 List<WordEmbeddedDocument> list = new List<WordEmbeddedDocument>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.EmbeddedDocuments);
+                using (UseBodySectionSnapshot()) {
+                    foreach (var section in this.Sections) {
+                        list.AddRange(section.EmbeddedDocuments);
+                    }
                 }
                 return list;
             }
@@ -177,8 +190,10 @@ namespace OfficeIMO.Word {
         public List<WordTable> TablesIncludingNestedTables {
             get {
                 List<WordTable> list = new List<WordTable>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.TablesIncludingNestedTables);
+                using (UseBodySectionSnapshot()) {
+                    foreach (var section in this.Sections) {
+                        list.AddRange(section.TablesIncludingNestedTables);
+                    }
                 }
                 return list;
             }
@@ -212,8 +227,10 @@ namespace OfficeIMO.Word {
         public List<WordEmbeddedObject> EmbeddedObjects {
             get {
                 List<WordEmbeddedObject> list = new List<WordEmbeddedObject>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.EmbeddedObjects);
+                using (UseBodySectionSnapshot()) {
+                    foreach (var section in this.Sections) {
+                        list.AddRange(section.EmbeddedObjects);
+                    }
                 }
                 return list;
             }
@@ -225,8 +242,10 @@ namespace OfficeIMO.Word {
         public List<WordField> Fields {
             get {
                 List<WordField> list = new List<WordField>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.Fields);
+                using (UseBodySectionSnapshot()) {
+                    foreach (var section in this.Sections) {
+                        list.AddRange(section.Fields);
+                    }
                 }
 
                 return list;
@@ -253,8 +272,10 @@ namespace OfficeIMO.Word {
         public List<WordHyperLink> HyperLinks {
             get {
                 List<WordHyperLink> list = new List<WordHyperLink>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.HyperLinks);
+                using (UseBodySectionSnapshot()) {
+                    foreach (var section in this.Sections) {
+                        list.AddRange(section.HyperLinks);
+                    }
                 }
 
                 return list;
@@ -267,8 +288,10 @@ namespace OfficeIMO.Word {
         public List<WordTextBox> TextBoxes {
             get {
                 List<WordTextBox> list = new List<WordTextBox>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.TextBoxes);
+                using (UseBodySectionSnapshot()) {
+                    foreach (var section in this.Sections) {
+                        list.AddRange(section.TextBoxes);
+                    }
                 }
                 return list;
             }
@@ -281,8 +304,10 @@ namespace OfficeIMO.Word {
         public List<WordShape> Shapes {
             get {
                 List<WordShape> list = new List<WordShape>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.Shapes);
+                using (UseBodySectionSnapshot()) {
+                    foreach (var section in this.Sections) {
+                        list.AddRange(section.Shapes);
+                    }
                 }
                 return list;
             }
@@ -295,8 +320,10 @@ namespace OfficeIMO.Word {
         public List<WordSmartArt> SmartArts {
             get {
                 List<WordSmartArt> list = new List<WordSmartArt>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.SmartArts);
+                using (UseBodySectionSnapshot()) {
+                    foreach (var section in this.Sections) {
+                        list.AddRange(section.SmartArts);
+                    }
                 }
                 return list;
             }
@@ -309,8 +336,10 @@ namespace OfficeIMO.Word {
         public List<WordTabChar> TabChars {
             get {
                 List<WordTabChar> list = new List<WordTabChar>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.Tabs);
+                using (UseBodySectionSnapshot()) {
+                    foreach (var section in this.Sections) {
+                        list.AddRange(section.Tabs);
+                    }
                 }
 
                 return list;
@@ -323,8 +352,10 @@ namespace OfficeIMO.Word {
         public List<WordStructuredDocumentTag> StructuredDocumentTags {
             get {
                 List<WordStructuredDocumentTag> list = new List<WordStructuredDocumentTag>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.StructuredDocumentTags);
+                using (UseBodySectionSnapshot()) {
+                    foreach (var section in this.Sections) {
+                        list.AddRange(section.StructuredDocumentTags);
+                    }
                 }
 
                 return list;
@@ -337,8 +368,10 @@ namespace OfficeIMO.Word {
         public List<WordCheckBox> CheckBoxes {
             get {
                 List<WordCheckBox> list = new List<WordCheckBox>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.CheckBoxes);
+                using (UseBodySectionSnapshot()) {
+                    foreach (var section in this.Sections) {
+                        list.AddRange(section.CheckBoxes);
+                    }
                 }
 
                 return list;
@@ -351,8 +384,10 @@ namespace OfficeIMO.Word {
         public List<WordDatePicker> DatePickers {
             get {
                 List<WordDatePicker> list = new List<WordDatePicker>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.DatePickers);
+                using (UseBodySectionSnapshot()) {
+                    foreach (var section in this.Sections) {
+                        list.AddRange(section.DatePickers);
+                    }
                 }
                 return list;
             }
@@ -364,8 +399,10 @@ namespace OfficeIMO.Word {
         public List<WordDropDownList> DropDownLists {
             get {
                 List<WordDropDownList> list = new List<WordDropDownList>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.DropDownLists);
+                using (UseBodySectionSnapshot()) {
+                    foreach (var section in this.Sections) {
+                        list.AddRange(section.DropDownLists);
+                    }
                 }
                 return list;
             }
@@ -377,8 +414,10 @@ namespace OfficeIMO.Word {
         public List<WordComboBox> ComboBoxes {
             get {
                 List<WordComboBox> list = new List<WordComboBox>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.ComboBoxes);
+                using (UseBodySectionSnapshot()) {
+                    foreach (var section in this.Sections) {
+                        list.AddRange(section.ComboBoxes);
+                    }
                 }
                 return list;
             }
@@ -390,8 +429,10 @@ namespace OfficeIMO.Word {
         public List<WordPictureControl> PictureControls {
             get {
                 List<WordPictureControl> list = new List<WordPictureControl>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.PictureControls);
+                using (UseBodySectionSnapshot()) {
+                    foreach (var section in this.Sections) {
+                        list.AddRange(section.PictureControls);
+                    }
                 }
                 return list;
             }
@@ -403,8 +444,10 @@ namespace OfficeIMO.Word {
         public List<WordRepeatingSection> RepeatingSections {
             get {
                 List<WordRepeatingSection> list = new List<WordRepeatingSection>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.RepeatingSections);
+                using (UseBodySectionSnapshot()) {
+                    foreach (var section in this.Sections) {
+                        list.AddRange(section.RepeatingSections);
+                    }
                 }
                 return list;
             }
@@ -415,8 +458,10 @@ namespace OfficeIMO.Word {
         public List<WordEquation> Equations {
             get {
                 List<WordEquation> list = new List<WordEquation>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.Equations);
+                using (UseBodySectionSnapshot()) {
+                    foreach (var section in this.Sections) {
+                        list.AddRange(section.Equations);
+                    }
                 }
 
                 return list;

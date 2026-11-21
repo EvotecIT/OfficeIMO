@@ -176,6 +176,12 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
+            // The decision uses the stored text: with display text on, a valid date arrives here as formatted text.
+            if (objectValue is string && source.GetStoredDateText(columnOffset) is { } storedDateText
+                && ApplyRejectedDateCell(ClassifyDateCell(storedDateText, binding), storedDateText, binding, target)) {
+                return;
+            }
+
             if (objectValue is string text && TrySetStringTextBinding(text, binding, target)) {
                 return;
             }
@@ -213,7 +219,9 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            object? converted = binding.ConvertValue(objectValue, _opt.Culture);
+            object? converted = ExcelTemporalValueConversion.Handles(binding.DestinationType)
+                ? ConvertTemporal(objectValue, binding, _opt.Culture)
+                : binding.ConvertValue(objectValue, _opt.Culture);
             if (converted != null || binding.IsNullable) {
                 binding.SetValue(target, converted);
             }

@@ -7,14 +7,84 @@ internal static partial class PdfWriter {
     private sealed class DrawingTextMetricsState {
         private readonly PdfCreateOptions options;
         private readonly System.Threading.CancellationToken cancellationToken;
+        private readonly DrawingTextMeasurementCanvases? canvases;
         private OfficeDrawingTextMetrics? value;
 
-        internal DrawingTextMetricsState(PdfCreateOptions options, System.Threading.CancellationToken cancellationToken) {
+        internal DrawingTextMetricsState(PdfCreateOptions options, System.Threading.CancellationToken cancellationToken,
+            DrawingTextMeasurementCanvases? canvases = null) {
             this.options = options;
             this.cancellationToken = cancellationToken;
+            this.canvases = canvases;
         }
 
-        internal OfficeDrawingTextMetrics Value => value ??= CreateDrawingTextMetrics(options, cancellationToken);
+        internal OfficeDrawingTextMetrics Value => value ??= CreateDrawingTextMetrics(options, canvases, cancellationToken);
+    }
+
+    /// <summary>
+    /// Measurement canvases for one layout pass. Parsing a font face is far more expensive than
+    /// measuring with it, so every drawing in the pass reuses the canvas for the same face bytes,
+    /// family, style and shaping configuration instead of rebuilding it per drawing. CFF execution
+    /// budgets are not shared: each drawing's metrics charge their own allowance per face.
+    /// </summary>
+    private sealed class DrawingTextMeasurementCanvases {
+        private const int MaximumCanvases = 256;
+        private readonly Dictionary<(byte[] Data, string Family, OfficeFontStyle Style, IOfficeTextShapingProvider? Shaping, string? Language), OfficeRasterCanvas?> canvases =
+            new Dictionary<(byte[], string, OfficeFontStyle, IOfficeTextShapingProvider?, string?), OfficeRasterCanvas?>();
+        private readonly object gate = new object();
+        private int generation;
+
+        /// <summary>Changes whenever the cache drops its canvases, so a remembered canvas is only reused while it is still cached.</summary>
+        internal int Generation => Volatile.Read(ref generation);
+
+        internal OfficeRasterCanvas? GetOrCreate(byte[] data, string family, OfficeFontStyle style, PdfCreateOptions options,
+            Dictionary<OfficeRasterCanvas, OfficeCffOperationBudget> budgets, System.Threading.CancellationToken cancellationToken) {
+            var key = (data, family, style, options.TextShapingProvider, options.EffectiveTextShapingLanguage);
+            lock (gate) {
+                if (!canvases.TryGetValue(key, out OfficeRasterCanvas? canvas)) {
+                    var fonts = new OfficeFontFaceCollection();
+                    if (fonts.TryAdd(family, data, style)) {
+                        canvas = new OfficeRasterCanvas(new OfficeRasterImage(1, 1), null, fonts,
+                            options.TextShapingProvider, options.EffectiveTextShapingLanguage, cancellationToken: cancellationToken);
+                    }
+                    if (canvases.Count >= MaximumCanvases) {
+                        canvases.Clear();
+                        Interlocked.Increment(ref generation);
+                    }
+                    canvases[key] = canvas;
+                }
+                if (canvas != null) {
+                    if (!budgets.TryGetValue(canvas, out OfficeCffOperationBudget? budget)) {
+                        budget = new OfficeCffOperationBudget();
+                        budgets.Add(canvas, budget);
+                    }
+                    canvas.UseCffOperationBudget(budget);
+                }
+                return canvas;
+            }
+        }
+    }
+
+    /// <summary>The face a metrics instance selected last, with the canvas and budget that selection installed.</summary>
+    private sealed class DrawingTextCanvasSelection {
+        private readonly byte[] data;
+        private readonly string family;
+        private readonly OfficeFontStyle style;
+        private readonly IOfficeTextShapingProvider? shaping;
+        private readonly string? language;
+
+        internal DrawingTextCanvasSelection(byte[] data, string family, OfficeFontStyle style, IOfficeTextShapingProvider? shaping,
+            string? language, OfficeRasterCanvas canvas, OfficeCffOperationBudget budget, int generation) {
+            this.data = data; this.family = family; this.style = style; this.shaping = shaping; this.language = language;
+            Canvas = canvas; Budget = budget; Generation = generation;
+        }
+
+        internal OfficeRasterCanvas Canvas { get; }
+        internal OfficeCffOperationBudget Budget { get; }
+        internal int Generation { get; }
+
+        internal bool Matches(byte[] data, string family, OfficeFontStyle style, IOfficeTextShapingProvider? shaping, string? language) =>
+            ReferenceEquals(data, this.data) && style == this.style && ReferenceEquals(shaping, this.shaping)
+            && string.Equals(family, this.family, StringComparison.Ordinal) && string.Equals(language, this.language, StringComparison.Ordinal);
     }
 
     // Font selection stays in PDF options; native geometry is measured by the shared font engine.
@@ -22,8 +92,18 @@ internal static partial class PdfWriter {
         return CreateDrawingTextMetrics(options).MeasureText;
     }
 
-    internal static OfficeDrawingTextMetrics CreateDrawingTextMetrics(PdfCreateOptions options, System.Threading.CancellationToken cancellationToken = default) {
-        var metrics = new Dictionary<(byte[] Data, string Family, OfficeFontStyle Style), OfficeRasterCanvas?>();
+    internal static OfficeDrawingTextMetrics CreateDrawingTextMetrics(PdfCreateOptions options, System.Threading.CancellationToken cancellationToken = default) =>
+        CreateDrawingTextMetrics(options, null, cancellationToken);
+
+    private static OfficeDrawingTextMetrics CreateDrawingTextMetrics(PdfCreateOptions options,
+        DrawingTextMeasurementCanvases? canvases, System.Threading.CancellationToken cancellationToken) {
+        canvases ??= new DrawingTextMeasurementCanvases();
+        // One allowance per face for this metrics instance, matching a canvas built for it alone.
+        var budgets = new Dictionary<OfficeRasterCanvas, OfficeCffOperationBudget>();
+        // Consecutive measurements nearly always select the same face. Reuse its canvas and this
+        // instance's budget without the shared cache's lock and lookup; the face's identity is the
+        // same byte array, family, style and shaping configuration GetOrCreate keys on.
+        DrawingTextCanvasSelection? lastSelection = null;
         return new OfficeDrawingTextMetrics(Measure, MeasurePaint, MeasureHorizontalPaint, MeasurePositioned, MeasureSegmentPaint, MeasurePublisherFont, MeasureFeatures,
             MeasureSegmentHorizontalPaint, Prepare);
 
@@ -51,21 +131,23 @@ internal static partial class PdfWriter {
                 } else if (options.TryGetEmbeddedStandardFont(selectedFont, out PdfEmbeddedFont? embedded)) {
                     data = embedded!.DataSnapshot;
                 }
-                OfficeRasterCanvas? canvas = null;
-                if (data != null) {
-                    var key = (data, measuredFamily, style);
-                    if (!metrics.TryGetValue(key, out canvas)) {
-                        var fonts = new OfficeFontFaceCollection();
-                        if (fonts.TryAdd(measuredFamily, data, style)) {
-                            canvas = new OfficeRasterCanvas(new OfficeRasterImage(1, 1), null, fonts,
-                                options.TextShapingProvider, options.EffectiveTextShapingLanguage, cancellationToken: cancellationToken);
-                        }
-                        if (metrics.Count >= 256) metrics.Clear();
-                        metrics[key] = canvas;
-                    }
-                }
+                OfficeRasterCanvas? canvas = data != null ? GetCanvas(data, measuredFamily, style) : null;
                 yield return (part, canvas, measuredFamily, selectedFont, syntheticOblique, syntheticBold);
             }
+        }
+
+        OfficeRasterCanvas? GetCanvas(byte[] data, string family, OfficeFontStyle style) {
+            IOfficeTextShapingProvider? shaping = options.TextShapingProvider;
+            string? language = options.EffectiveTextShapingLanguage;
+            DrawingTextCanvasSelection? last = lastSelection;
+            if (last != null && last.Generation == canvases.Generation && last.Matches(data, family, style, shaping, language)) {
+                last.Canvas.UseCffOperationBudget(last.Budget);
+                return last.Canvas;
+            }
+            int generation = canvases.Generation;
+            OfficeRasterCanvas? canvas = canvases.GetOrCreate(data, family, style, options, budgets, cancellationToken);
+            if (canvas != null) lastSelection = new DrawingTextCanvasSelection(data, family, style, shaping, language, canvas, budgets[canvas], generation);
+            return canvas;
         }
 
         OfficePreparedTextShaping? Prepare(string text, double size, string family, OfficeFontStyle style, OfficeTextFeatureSettings? features) {

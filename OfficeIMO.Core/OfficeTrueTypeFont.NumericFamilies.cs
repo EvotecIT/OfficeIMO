@@ -68,9 +68,14 @@ public sealed partial class OfficeTrueTypeFont {
             foreach (string file in new[] { "segoeuil.ttf", "seguili.ttf", "seguisl.ttf", "seguisli.ttf", "seguisb.ttf", "seguisbi.ttf", "seguibl.ttf", "seguibli.ttf" })
                 paths.Add(Path.Combine(windows, "Fonts", file));
         }
-        foreach (string path in paths) foreach (OfficeTrueTypeFont font in LoadFaces(path)) {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (font.HasFamilyKey(key)) result.Add(new FontFamilyResolution(font, path));
+        foreach (string path in paths) {
+            // Directory matching is by file name, so "Arial" also finds Arial Black and the 23 MB
+            // Arial Unicode. Their name tables already show they belong to another family.
+            if (!MayHaveFamilyKey(path, key)) continue;
+            foreach (OfficeTrueTypeFont font in LoadFaces(path)) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (font.HasFamilyKey(key)) result.Add(new FontFamilyResolution(font, path));
+            }
         }
         cancellationToken.ThrowIfCancellationRequested();
         lock (FontCacheLock) {

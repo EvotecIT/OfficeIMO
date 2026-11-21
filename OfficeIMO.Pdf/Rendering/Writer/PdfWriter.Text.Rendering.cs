@@ -350,7 +350,11 @@ internal static partial class PdfWriter {
                 var color = s.Color ?? block.DefaultColor ?? opts.DefaultTextColor;
                 content.FillColor(color ?? global::OfficeIMO.OfficeColor.Black);
                 bool hasLinkTarget = !string.IsNullOrEmpty(s.Uri) || !string.IsNullOrEmpty(s.DestinationName);
-                if (paintsPageText && (!hasLinkTarget || s.LeadingSpace)) {
+                // A tab leader only draws the eye to the next column, so tagged output marks it as a
+                // layout artifact and resumes the paragraph's content after it.
+                bool artifactLeader = s.LeadingSpace && s.LeadingTabLeader != PdfTabLeaderStyle.None &&
+                    s.InlineElement == null && markedContentId.HasValue && structurePage != null;
+                if (paintsPageText && (!hasLinkTarget || s.LeadingSpace) && !artifactLeader) {
                     EnsureTextMarkedContentOpen(
                         sb,
                         ref content,
@@ -397,11 +401,30 @@ internal static partial class PdfWriter {
                         // Tab stops stay explicit text positions so readers keep the columns.
                         content.BreakTextRun();
                         if (leader.Length > 0) {
+                            if (artifactLeader) {
+                                content.EndText();
+                                if (textMarkedContentOpen) {
+                                    AppendMarkedContentEnd(sb, markedContentId);
+                                    textMarkedContentOpen = false;
+                                }
+
+                                AppendArtifactBegin(sb, enabled: true);
+                                content = BeginRichTextObject(sb, defaultLeading, pdfWordSpacing, fontRes, runFontSize,
+                                    syntheticOblique, syntheticBold, color, textRise);
+                            }
+
                             ApplyRichTextSpacing(content, s.HorizontalTextScaling, s.CharacterSpacing, pdfWordSpacing);
                             content
                                 .TextMatrix(lineXOrigin + xCursor, lineY)
                                 .ShowText(EncodeTextShowCommand(leader, s.Font, s.NamedFont, opts, s.FeatureSettings, s.TextDirection, s.FontMetricScale), runFontSize, textRise, suppressActualText);
                             ResetRichTextSpacing(content, s.HorizontalTextScaling, s.CharacterSpacing, pdfWordSpacing);
+                            if (artifactLeader) {
+                                content.EndText();
+                                AppendArtifactEnd(sb, enabled: true);
+                                content = BeginRichTextObject(sb, defaultLeading, pdfWordSpacing, fontRes, runFontSize,
+                                    syntheticOblique, syntheticBold, color, textRise);
+                                currentTextRise = textRise;
+                            }
                         }
                         xCursor += gap;
                         content.BreakTextRun().TextMatrix(lineXOrigin + xCursor, lineY);
@@ -424,6 +447,11 @@ internal static partial class PdfWriter {
                         if (Math.Abs(wordSpacing) > 0.0001 || Math.Abs(gap - paintedGap) > 0.0001)
                             content.TextMatrix(lineXOrigin + xCursor, lineY);
                     }
+                }
+                if (artifactLeader && paintsPageText && !hasLinkTarget) {
+                    EnsureTextMarkedContentOpen(sb, ref content, ref textMarkedContentOpen, structurePage, textStructElementIndex,
+                        structureType, defaultLeading, lineXOrigin + xCursor, lineY, pdfWordSpacing, fontRes, syntheticOblique,
+                        syntheticBold, runFontSize, textRise, color ?? global::OfficeIMO.OfficeColor.Black, isLinkLeadingWhitespace: false);
                 }
                 if (s.InlineElement != null) {
                     content.EndText();
@@ -743,6 +771,18 @@ internal static partial class PdfWriter {
         }
 
         textMarkedContentOpen = true;
+    }
+
+    private static ContentStreamBuilder BeginRichTextObject(StringBuilder sb, double leading, double wordSpacing, string fontRes,
+        double fontSize, bool syntheticOblique, bool syntheticBold, global::OfficeIMO.OfficeColor? color, double textRise) {
+        ContentStreamBuilder content = new ContentStreamBuilder(sb)
+            .BeginText()
+            .TextLeading(leading)
+            .WordSpacing(wordSpacing)
+            .Font(fontRes, fontSize, syntheticOblique, syntheticBold: syntheticBold)
+            .FillColor(color ?? global::OfficeIMO.OfficeColor.Black);
+        if (Math.Abs(textRise) > 0.0001) content.TextRise(textRise);
+        return content;
     }
 
     private static void AppendMarkedContentBegin(StringBuilder sb, string? structureType, int? markedContentId) {

@@ -217,7 +217,7 @@ internal sealed partial class ProjectNativeWriter {
     private static int Exact(decimal value) { if (decimal.Truncate(value) != value) throw new ArgumentException("Native integer precision would truncate this value."); return checked((int)value); }
     private static byte[] Number(decimal value) {
         double encoded = (double)value;
-        if ((decimal)encoded != value) throw new ArgumentException("Native floating-point precision would change this value.");
+        if (OfficeDecimalConversion.FromDouble(encoded) != value) throw new ArgumentException("Native floating-point precision would change this value.");
         return BitConverter.GetBytes(encoded);
     }
     private decimal Minutes(ProjectDuration duration) => ProjectTimeUnits.Minutes(duration, _document.Settings);

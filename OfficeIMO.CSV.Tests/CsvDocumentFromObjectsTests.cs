@@ -160,7 +160,7 @@ public class CsvDocumentFromObjectsTests
                 new object?[] { 1, 12.5m, true, created, "A\"B", null });
         }
 
-        var expectedCreated = created.ToString(CultureInfo.InvariantCulture);
+        var expectedCreated = "2026-01-02T03:04:05Z";
         var expected =
             "\"Id\",\"Amount\",\"Enabled\",\"Created\",\"Name\",\"Missing\"\n" +
             $"\"1\",\"12.5\",\"True\",\"{expectedCreated}\",\"A\"\"B\",\"\"\n";
@@ -440,7 +440,7 @@ public class CsvDocumentFromObjectsTests
         CsvDocument.WriteDataReader(writer, reader, new CsvSaveOptions { NewLine = "\n" });
 
         Assert.Equal(
-            "Name,Count,Amount,Created,Enabled,Missing\nAlpha,42,12.5,08/09/2026 10:11:12,True,\n",
+            "Name,Count,Amount,Created,Enabled,Missing\nAlpha,42,12.5,2026-08-09T10:11:12Z,True,\n",
             writer.ToString());
         Assert.Equal(0, reader.GetValueCallCount);
     }
@@ -492,7 +492,8 @@ public class CsvDocumentFromObjectsTests
         CsvDocument.WriteDataReader(writer, reader, new CsvSaveOptions { NewLine = "\n" });
 
         var expectedHeader = string.Join(",", table.Columns.Cast<DataColumn>().Select(column => column.ColumnName));
-        var expectedRow = string.Join(",", values.Select(value => Convert.ToString(value, CultureInfo.InvariantCulture)));
+        // Dates are written as ISO 8601 round-trip text (the table reports the UTC date as unspecified); other scalars as their invariant text.
+        const string expectedRow = "42,4294967296,12.5,3.25,1.5,2026-07-14T12:34:56,2026-07-14T12:34:56+02:00,b6e2be52-3367-4bcd-84dc-c092a152ff73,01:02:03,True";
         Assert.Equal(expectedHeader + "\n" + expectedRow + "\n", writer.ToString());
     }
 

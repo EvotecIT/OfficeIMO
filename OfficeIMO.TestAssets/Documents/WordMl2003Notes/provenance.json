@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "producer": {
+    "name": "LibreOffice Writer",
+    "version": "26.8.1.1",
+    "build": "bf6ef2662401c7d6dce671ab4deb26ee0af3a7c1",
+    "platform": "macOS ARM64",
+    "filter": "MS Word 2003 XML"
+  },
+  "rights": "Original neutral fixture text and authored ODF source are provided under the repository MIT license. No OfficeIMO code produced either input.",
+  "recipe": "soffice -env:UserInstallation=file:///absolute/task/profile --headless --convert-to \"xml:MS Word 2003 XML\" --outdir /absolute/task/output notes.fodt",
+  "files": {
+    "notes.fodt": {
+      "sha256": "5ea5fd36d0632156aeb84fea4862c1bb5dec321cdf0705685495227ed3e354dc",
+      "bytes": 2346
+    },
+    "libreoffice-26.8.1-notes.xml": {
+      "sha256": "138a66a4e54e1315cd78c1c9992d9db81c31b6c77112ae34b336064d5e733235",
+      "bytes": 13465
+    }
+  },
+  "producerLimits": [
+    "The actual XML export uses footnoteRef inside both note kinds.",
+    "The exporter adds a leading tab in the note text, omits the authored internal tab, and does not export the authored note starting numbers. Assertions use the actual XML input, not idealized ODF text.",
+    "Suppressed references have literal marks in the note body but no literal marks beside the body anchor in this XML export. Import retains suppression and does not invent missing body text.",
+    "LibreOffice rereading its own XML omits endnotes and converts the custom footnote to automatic numbering; that readback is not used as an oracle for those semantics.",
+    "Native Word input readback was held by its file-access dialog; no native Word qualification is asserted."
+  ],
+  "qualification": "Independent-producer XML input and editable DOCX save/reopen with exact anchors, content and supported formatting. Ordinary note references are qualified by markup and independent DOCX readback. Custom-reference appearance remains an explicit approximation. Not Word6/95 binary qualification or source-to-XML losslessness.",
+  "xmlInputContract": [
+    {
+      "kind": "footnote",
+      "suppressReference": false,
+      "paragraphs": [
+        "\tF1 first bold text.",
+        "",
+        "F1 secondtab italic."
+      ]
+    },
+    {
+      "kind": "endnote",
+      "suppressReference": false,
+      "paragraphs": [
+        "\tE1 first paragraph.",
+        "E1 second paragraph."
+      ]
+    },
+    {
+      "kind": "footnote",
+      "suppressReference": false,
+      "paragraphs": [
+        "\tF2 independent text."
+      ]
+    },
+    {
+      "kind": "endnote",
+      "suppressReference": false,
+      "paragraphs": [
+        "\tE2 independent text."
+      ]
+    },
+    {
+      "kind": "footnote",
+      "suppressReference": true,
+      "paragraphs": [
+        "*\tCustom footnote text."
+      ]
+    },
+    {
+      "kind": "endnote",
+      "suppressReference": true,
+      "paragraphs": [
+        "!\tCustom endnote text."
+      ]
+    }
+  ],
+  "independentDocxReadback": {
+    "engine": "LibreOffice Writer 26.8.1.1",
+    "operation": "Open the OfficeIMO-edited DOCX through the native office filter, export to Flat ODF and inspect all six notes in body order.",
+    "footnotes": 3,
+    "endnotes": 3,
+    "editsRetained": [
+      "F1 first edited bold text.",
+      "Edited E2 text."
+    ],
+    "emptyParagraphRetained": true,
+    "referenceAppearanceLimit": "The reader displays automatic numbers for the suppressed custom references. Import reports WORDML2003_NOTE_REFERENCE_APPROXIMATION and FailOnLoss rejects that unqualified profile."
+  }
+}

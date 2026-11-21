@@ -68,6 +68,9 @@ public sealed class ReliableBatchCommandTests {
         Assert.Equal(1, summary.GetProperty("skipped").GetInt64());
         Assert.Contains("Reliable batch result marker", PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(Path.Combine(files.Output, "good.pdf")))).ExtractText());
         Assert.False(File.Exists(Path.Combine(files.Output, "broken.pdf")));
+        Assert.Contains("Skipped 1 file:", result.Error, StringComparison.Ordinal);
+        Assert.DoesNotContain("unsupported.bin", result.Error, StringComparison.Ordinal);
+        Assert.Contains("broken.docx", result.Error, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -133,20 +136,35 @@ public sealed class ReliableBatchCommandTests {
         Assert.Equal(42d, Assert.Single(workbook.Sheets).Cell(1, 1).GetValue<double>());
     }
 
-    [Fact]
-    public async Task Password_environment_binding_rejects_missing_or_conflicting_values_before_output() {
+    [Theory]
+    [InlineData("--source-password")]
+    [InlineData("--pdf-password")]
+    public async Task Passwords_come_only_from_environment_variables(string literalOption) {
         using var files = new Files();
         string variable = "OFFICEIMO_TEST_MISSING_" + Guid.NewGuid().ToString("N");
-        string[] arguments = ["--input-directory", files.Input, "--output", files.Output, "--source-password-env", variable];
+        string[] arguments = ["--input-directory", files.Input, "--output", files.Output];
 
-        var missing = await RunBatch(arguments);
-        var conflict = await RunBatch([.. arguments, "--source-password", "never-print-this-secret"]);
+        var missing = await RunBatch([.. arguments, literalOption + "-env", variable]);
+        var literal = await RunBatch([.. arguments, literalOption, "never-print-this-secret"]);
 
         Assert.Equal((int)OfficeImoToolExitCode.Usage, missing.Code);
         Assert.Contains("missing or empty", missing.Error);
-        Assert.Equal((int)OfficeImoToolExitCode.Usage, conflict.Code);
-        Assert.DoesNotContain("never-print-this-secret", conflict.Error + conflict.Output);
+        Assert.Equal((int)OfficeImoToolExitCode.Usage, literal.Code);
+        Assert.Contains(literalOption + "-env", literal.Error, StringComparison.Ordinal);
+        Assert.DoesNotContain("never-print-this-secret", literal.Error + literal.Output);
         Assert.False(Directory.Exists(files.Output));
+    }
+
+    [Fact]
+    public async Task Named_route_supplies_its_own_target() {
+        using var files = new Files();
+        string source = Path.Combine(files.Input, "settings.json");
+        File.WriteAllText(source, "{\"name\":\"route target marker\"}");
+
+        var result = await RunBatch([source, "--output", files.Output, "--route", "json-yaml"]);
+
+        Assert.Equal((int)OfficeImoToolExitCode.Success, result.Code);
+        Assert.Equal("name: route target marker", File.ReadAllText(Path.Combine(files.Output, "settings.yaml")).Trim());
     }
 
     private static Task<(int Code, string Output, string Error)> RunBatch(string[] args) => RunTool(["workflow", "batch", .. args]);

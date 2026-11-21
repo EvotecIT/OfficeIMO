@@ -99,40 +99,33 @@ internal static partial class HtmlPdfRenderedConverter {
             | (visual.Font.IsItalic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
         string logicalPdfText = OmitUnavailablePrivateUseGlyphs(visual, webFonts, conversionReport, requestedStyle, cancellationToken);
         if (logicalPdfText.Length == 0) return;
-        PdfCore.PdfTextRun[] CreatePdfRuns(string runText) => webFonts.Faces.PlanFallbackRuns(runText, visual.Font.FamilyName, requestedStyle)
-            .SelectMany(fallbackRun => {
-                bool allowInstalledFace = webFonts.AllowInstalledFontFaces
-                    && !webFonts.Slots.ContainsKey(fallbackRun.FamilyName);
-                string family = ResolvePdfFontFamilyForText(
-                    fallbackRun.FamilyRequest,
-                    fallbackRun.Text,
-                    visual.Font.IsBold,
-                    visual.Font.IsItalic,
-                    visual.FontDescriptor,
-                    allowInstalledFace,
-                    webFonts.Options);
-                IReadOnlyList<NamedFaceStyleRun> faceRuns = PlanNamedFaceStyleRuns(
-                    fallbackRun.Text, family, visual.Font.IsBold, visual.Font.IsItalic, webFonts.Options);
-                return faceRuns.Select(faceRun => new PdfCore.PdfTextRun(
-                    faceRun.Text,
-                    bold: faceRun.Bold,
+        PdfCore.PdfTextRun[] CreatePdfRuns(string runText) {
+            RunPlanPart[] parts = PlanPdfRuns(runText, visual, requestedStyle, webFonts);
+            var runs = new PdfCore.PdfTextRun[parts.Length];
+            for (int index = 0; index < parts.Length; index++) {
+                RunPlanPart part = parts[index];
+                runs[index] = new PdfCore.PdfTextRun(
+                    part.Text,
+                    bold: part.Bold,
                     underline: visual.Font.IsUnderline,
                     color: (visual.Color.A == 0 ? (global::OfficeIMO.OfficeColor?)null : visual.Color),
-                    italic: faceRun.Italic,
+                    italic: part.Italic,
                     strike: visual.Font.IsStrikethrough,
                     fontSize: global::OfficeIMO.OfficeLength.Points(visual.Font.Size * PointsPerCssPixel),
-                    standardFont: MapFont(family, faceRun.Text, requestedStyle, webFonts),
+                    standardFont: part.StandardFont,
                     linkUri: link,
                     linkContents: link == null ? null : runText,
                     linkDestinationName: linkDestination,
-                    fontFamily: family,
+                    fontFamily: part.Family,
                     baseline: MapTextBaseline(visual.Baseline),
                     underlineStyle: visual.UnderlineStyle,
                     strikeStyle: visual.StrikethroughStyle,
                     decorationColor: (visual.DecorationColor.A == 0 ? (global::OfficeIMO.OfficeColor?)null : visual.DecorationColor))
                     .WithFeatureSettings(visual.FeatureSettings)
-                    .WithPaintedGlyphPreservation(visual.PreservesPaintedGlyphs));
-            }).ToArray();
+                    .WithPaintedGlyphPreservation(visual.PreservesPaintedGlyphs);
+            }
+            return runs;
+        }
         string pdfText = ReplaceUnpaintableTextElements(logicalPdfText, visual, webFonts, CreatePdfRuns, cancellationToken);
         PdfCore.PdfTextRun[] runs = CreatePdfRuns(pdfText);
         void Paint(PdfCore.PdfPageCanvas target) => target.PositionedText(
@@ -172,4 +165,90 @@ internal static partial class HtmlPdfRenderedConverter {
         } else Paint(canvas);
     }
 
+
+    private const int MaximumRunPlanTextLength = 256;
+    private const int MaximumRunPlans = 8192;
+
+    /// <summary>
+    /// Plans the font fallback and face style of a painted run. The plan depends only on the run
+    /// text, requested family and face, and the operation's registered fonts, so a table or report
+    /// that repeats a cell value plans it once per conversion.
+    /// </summary>
+    private static RunPlanPart[] PlanPdfRuns(string runText, HtmlRenderText visual, OfficeFontStyle requestedStyle,
+        RegisteredWebFonts webFonts) {
+        var key = new RunPlanKey(runText, visual.Font.FamilyName, requestedStyle, visual.FontDescriptor,
+            webFonts.AllowInstalledFontFaces);
+        if (webFonts.RunPlans.TryGetValue(key, out RunPlanPart[]? known)) return known;
+        var parts = new List<RunPlanPart>();
+        foreach (OfficeFontFallbackRun fallbackRun in webFonts.Faces.PlanFallbackRuns(runText, visual.Font.FamilyName, requestedStyle)) {
+            bool allowInstalledFace = webFonts.AllowInstalledFontFaces
+                && !webFonts.Slots.ContainsKey(fallbackRun.FamilyName);
+            string family = ResolvePdfFontFamilyForText(
+                fallbackRun.FamilyRequest,
+                fallbackRun.Text,
+                visual.Font.IsBold,
+                visual.Font.IsItalic,
+                visual.FontDescriptor,
+                allowInstalledFace,
+                webFonts.Options);
+            foreach (NamedFaceStyleRun faceRun in PlanNamedFaceStyleRuns(
+                         fallbackRun.Text, family, visual.Font.IsBold, visual.Font.IsItalic, webFonts.Options)) {
+                parts.Add(new RunPlanPart(faceRun.Text, faceRun.Bold, faceRun.Italic, family,
+                    MapFont(family, faceRun.Text, requestedStyle, webFonts)));
+            }
+        }
+        RunPlanPart[] plan = parts.ToArray();
+        if (runText.Length <= MaximumRunPlanTextLength && webFonts.RunPlans.Count < MaximumRunPlans) webFonts.RunPlans.Add(key, plan);
+        return plan;
+    }
+
+    private readonly struct RunPlanPart {
+        internal RunPlanPart(string text, bool bold, bool italic, string family, PdfCore.PdfStandardFont standardFont) {
+            Text = text;
+            Bold = bold;
+            Italic = italic;
+            Family = family;
+            StandardFont = standardFont;
+        }
+
+        internal string Text { get; }
+        internal bool Bold { get; }
+        internal bool Italic { get; }
+        internal string Family { get; }
+        internal PdfCore.PdfStandardFont StandardFont { get; }
+    }
+
+    private readonly struct RunPlanKey : IEquatable<RunPlanKey> {
+        private readonly string _text;
+        private readonly string? _family;
+        private readonly OfficeFontStyle _style;
+        private readonly OfficeFontFaceDescriptor _descriptor;
+        private readonly bool _allowInstalledFaces;
+
+        internal RunPlanKey(string text, string? family, OfficeFontStyle style, OfficeFontFaceDescriptor descriptor, bool allowInstalledFaces) {
+            _text = text;
+            _family = family;
+            _style = style;
+            _descriptor = descriptor;
+            _allowInstalledFaces = allowInstalledFaces;
+        }
+
+        public bool Equals(RunPlanKey other) =>
+            _style == other._style && _allowInstalledFaces == other._allowInstalledFaces
+            && _descriptor.Equals(other._descriptor)
+            && string.Equals(_text, other._text, StringComparison.Ordinal)
+            && string.Equals(_family, other._family, StringComparison.Ordinal);
+
+        public override bool Equals(object? obj) => obj is RunPlanKey other && Equals(other);
+
+        public override int GetHashCode() {
+            unchecked {
+                int hash = StringComparer.Ordinal.GetHashCode(_text);
+                hash = (hash * 397) ^ (_family == null ? 0 : StringComparer.Ordinal.GetHashCode(_family));
+                hash = (hash * 397) ^ (int)_style;
+                hash = (hash * 397) ^ _descriptor.GetHashCode();
+                return (hash * 397) ^ (_allowInstalledFaces ? 1 : 0);
+            }
+        }
+    }
 }

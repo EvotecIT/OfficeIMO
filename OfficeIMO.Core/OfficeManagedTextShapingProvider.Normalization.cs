@@ -25,15 +25,27 @@ public sealed partial class OfficeManagedTextShapingProvider {
             List<int>? normalized = NormalizeTypographyCluster(original, font, request);
             if (normalized == null || normalized.Count == 0 || normalized.Count > MaximumNormalizedClusterScalars) return false;
             bool first = true;
-            foreach (int scalar in normalized) {
+            for (int position = 0; position < normalized.Count; position++) {
                 request.CancellationToken.ThrowIfCancellationRequested();
+                int scalar = normalized[position];
                 int glyphId;
                 if (OfficeManagedTextShaper.IsNonPaintingControl(scalar)) {
-                    if (!TryMapBlankControl(font, scalar, request, blankGlyphs, out glyphId)) return false;
+                    // GSUB sees the font's own glyph, so ligatures that list ZWJ or tag
+                    // characters as components can match. HideTypographyControls replaces
+                    // any control glyph that survives substitution with a verified blank.
+                    glyphId = reader.MapGlyph(scalar);
+                    if (glyphId <= 0 && !TryMapBlankControl(font, scalar, request, blankGlyphs, out glyphId)) return false;
                 } else {
                     int mapped = (levels[sourceScalar] & 1) == 1 && scalar <= char.MaxValue
                         ? OfficeBidiMirroring.Mirror((char)scalar) : scalar;
                     if (!font.TryGetGlyphMetrics(mapped, out glyphId, out _)) return false;
+                    // A variation sequence the font lists in cmap format 14 selects its glyph;
+                    // an unlisted or default sequence keeps the base glyph (Unicode 23.4).
+                    if (mapped == scalar && position + 1 < normalized.Count
+                        && OfficeTextElements.IsVariationSelector(normalized[position + 1])) {
+                        int variant = reader.MapVariationSequenceGlyph(scalar, normalized[position + 1]);
+                        if (variant > 0 && variant < reader.GlyphCount) glyphId = variant;
+                    }
                 }
                 tokens.Add(new OfficeOpenTypeSubstitution.GlyphToken(glyphId, first ? original : string.Empty,
                     sourceStart, scalar, isUnicodeContinuation: !first, clusterStart: sourceStart));
@@ -61,13 +73,17 @@ public sealed partial class OfficeManagedTextShapingProvider {
         }
         if (arabic) {
             ReorderArabicMarks(sequence, request);
-            ComposeArabicGlyphSequence(sequence, font, request);
+            ComposeGlyphSequence(sequence, ArabicRenderClasses(sequence, request), font, request);
         } else {
             string composed;
             try { composed = original.Normalize(NormalizationForm.FormC); }
             catch (ArgumentException) { return null; }
             var nfc = new List<int>(OfficeUnicodeBidi.ToScalars(composed, out _));
             if (CanMapNormalizedScalars(nfc, font, request)) return nfc;
+            // When the complete composition is missing from the font, compose each mark
+            // onto its starter only where the font covers the canonical composite. The
+            // reference shaper keeps Å + acute for a font without Ǻ, so its anchors match.
+            ComposeGlyphSequence(sequence, CanonicalClasses(sequence, request), font, request);
         }
         return CanMapNormalizedScalars(sequence, font, request) ? sequence : null;
     }
@@ -119,14 +135,15 @@ public sealed partial class OfficeManagedTextShapingProvider {
         }
     }
 
-    // Font-directed composition follows the reference shaper's Arabic render classes:
-    // a lower-class intervening mark does not block a covered canonical composite.
-    // This deliberately differs from UAX #53's adjacent-only recomposition guidance;
-    // it is native-compatible Arabic normalization, not complete AMTRA conformance.
+    // Font-directed composition follows the reference shaper's recomposition: a mark
+    // composes with its starter when no intervening mark of the same or higher class
+    // blocks it and the font covers the canonical composite. Arabic uses render classes,
+    // so a lower-class intervening mark does not block a covered composite. This
+    // deliberately differs from UAX #53's adjacent-only recomposition guidance;
+    // it is native-compatible normalization, not complete AMTRA conformance.
     // https://github.com/harfbuzz/harfbuzz/blob/14.2.1/src/hb-ot-shape-normalize.cc
-    private static void ComposeArabicGlyphSequence(List<int> sequence, IOfficeFontProgram font,
+    private static void ComposeGlyphSequence(List<int> sequence, List<byte> renderClasses, IOfficeFontProgram font,
         OfficeTextShapingRequest request) {
-        List<byte> renderClasses = ArabicRenderClasses(sequence, request);
         int starter = -1;
         for (int index = 0; index < sequence.Count;) {
             request.CancellationToken.ThrowIfCancellationRequested();
@@ -149,6 +166,15 @@ public sealed partial class OfficeManagedTextShapingProvider {
             sequence.RemoveAt(index);
             renderClasses.RemoveAt(index);
         }
+    }
+
+    private static List<byte> CanonicalClasses(List<int> sequence, OfficeTextShapingRequest request) {
+        var classes = new List<byte>(sequence.Count);
+        foreach (int scalar in sequence) {
+            request.CancellationToken.ThrowIfCancellationRequested();
+            classes.Add(OfficeUnicodeTextData.GetCanonicalCombiningClass(scalar));
+        }
+        return classes;
     }
 
     // These are rendering-only classes. The generated canonical Unicode data remains
@@ -185,17 +211,25 @@ public sealed partial class OfficeManagedTextShapingProvider {
         return sequence.Count <= MaximumNormalizedClusterScalars;
     }
 
-    // Initial cmap admission cannot vouch for glyphs subsequently selected by
-    // GSUB. Multiple substitutions retain their original scalar, including on
-    // empty Unicode continuations, so prove every final control glyph again.
-    private static bool FinalTypographyControlsAreBlank(OfficeTextShapingRequest request, IOfficeFontProgram font,
-        OfficeOpenTypeReader reader, IReadOnlyList<OfficeOpenTypeSubstitution.GlyphToken> tokens) {
+    // A control that GSUB left on its own cmap glyph is hidden behind the verified
+    // blank used for unmapped controls, so a visible ZWJ or variation-selector glyph
+    // is never painted. Initial cmap admission cannot vouch for glyphs GSUB selected
+    // instead; multiple substitutions retain their original scalar, including on
+    // empty Unicode continuations, so every other final control glyph is proven blank.
+    private static bool HideTypographyControls(OfficeTextShapingRequest request, IOfficeFontProgram font,
+        OfficeOpenTypeReader reader, List<OfficeOpenTypeSubstitution.GlyphToken> tokens) {
         Dictionary<int, bool>? blankGlyphs = null;
-        foreach (OfficeOpenTypeSubstitution.GlyphToken token in tokens) {
+        for (int index = 0; index < tokens.Count; index++) {
             request.CancellationToken.ThrowIfCancellationRequested();
+            OfficeOpenTypeSubstitution.GlyphToken token = tokens[index];
             if (!OfficeManagedTextShaper.IsNonPaintingControl(token.Scalar)) continue;
             if (token.GlyphId <= 0 || token.GlyphId >= reader.GlyphCount) return false;
             blankGlyphs ??= new Dictionary<int, bool>();
+            if (token.GlyphId == reader.MapGlyph(token.Scalar)) {
+                if (!TryMapBlankControl(font, token.Scalar, request, blankGlyphs, out int blank)) return false;
+                if (blank != token.GlyphId) tokens[index] = token.WithGlyph(blank);
+                continue;
+            }
             if (!IsBlankGlyph(font, token.GlyphId, request, blankGlyphs)) return false;
         }
         return true;

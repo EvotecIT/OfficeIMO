@@ -885,14 +885,39 @@ public sealed partial class PdfDocument {
             options: options);
     }
 
-    /// <summary>Removes or quarantines active content and embedded payloads through a proven full rewrite.</summary>
-    public PdfSanitizationResult Sanitize(PdfSanitizationOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+    /// <summary>
+    /// Reports what would leave with this PDF: document information and XMP metadata, comments, optional-content layers, attachments,
+    /// bookmarks, scripts and other active content, and Content Credentials. Nothing is changed.
+    /// </summary>
+    /// <param name="cancellationToken">Cancels the inspection.</param>
+    public OfficeHiddenDataReport InspectHiddenData(System.Threading.CancellationToken cancellationToken = default) =>
+        PdfHiddenData.Inspect(GetBytesForOperation(cancellationToken), ReadOptions, cancellationToken);
+
+    /// <summary>
+    /// Removes the selected hidden data through one verified full rewrite and returns the cleaned bytes with a report of every finding.
+    /// This document is not changed; load <see cref="OfficeHiddenDataResult.ToArray"/> to keep working with the cleaned copy.
+    /// </summary>
+    /// <remarks>
+    /// The rewritten PDF is inspected again before it is returned, and the call throws when a selected item remains or when anything
+    /// outside the selection changed. Content Credentials sign the whole file, so they are always removed and the finding says so.
+    /// Signed PDFs are refused, because the rewrite would invalidate their signatures.
+    /// </remarks>
+    /// <param name="options">Categories to remove; defaults to <see cref="OfficeHiddenDataKind.Default"/>.</param>
+    /// <param name="cancellationToken">Cancels the removal.</param>
+    public OfficeHiddenDataResult RemoveHiddenData(OfficeHiddenDataOptions? options = null, System.Threading.CancellationToken cancellationToken = default) =>
+        RemoveHiddenDataCore(options, maximumOutputBytes: null, cancellationToken).Result;
+
+    internal PdfHiddenDataRemoval RemoveHiddenDataCore(OfficeHiddenDataOptions? options, long? maximumOutputBytes, System.Threading.CancellationToken cancellationToken) =>
+        PdfHiddenData.Remove(GetBytesForOperation(cancellationToken), options, ReadOptions, maximumOutputBytes, cancellationToken);
+
+    /// <summary>Runs the sanitization engine with an explicit engine policy.</summary>
+    internal PdfSanitizationResult Sanitize(PdfSanitizationOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         return PdfSanitizer.Sanitize(GetBytesForOperation(options?.CancellationToken ?? default), options, ReadOptions);
     }
 
-    /// <summary>Inspects what the supplied sanitization policy would remove without modifying the PDF.</summary>
-    public PdfSanitizationReport InspectSanitization(PdfSanitizationOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+    /// <summary>Inspects what an explicit engine policy would remove without modifying the PDF.</summary>
+    internal PdfSanitizationReport InspectSanitization(PdfSanitizationOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         return PdfSanitizer.Inspect(GetBytesForOperation(options?.CancellationToken ?? default), options, ReadOptions);
     }

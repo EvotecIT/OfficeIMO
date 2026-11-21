@@ -69,12 +69,14 @@ public sealed partial class PdfDocument {
             OfficeImageInfo info,
             OfficeImageFormat sourceFormat,
             bool wasTranscoded,
-            PdfWriter.PdfImageStream? preparedStream = null) {
+            PdfWriter.PdfImageStream? preparedStream = null,
+            OfficeDrawing? svgDrawing = null) {
             Data = data;
             Info = info;
             SourceFormat = sourceFormat;
             WasTranscoded = wasTranscoded;
             PreparedStream = preparedStream;
+            SvgDrawing = svgDrawing;
         }
 
         internal byte[] Data { get; }
@@ -82,6 +84,8 @@ public sealed partial class PdfDocument {
         internal OfficeImageFormat SourceFormat { get; }
         internal bool WasTranscoded { get; }
         internal PdfWriter.PdfImageStream? PreparedStream { get; }
+        /// <summary>The parsed drawing of an SVG image kept as vectors; <c>null</c> for raster images.</summary>
+        internal OfficeDrawing? SvgDrawing { get; }
     }
 
     /// <summary>
@@ -134,6 +138,65 @@ public sealed partial class PdfDocument {
     }
 
     internal static OfficeImageInfo ValidateImageBytes(byte[] data) => PrepareImageBytes(data).Info;
+
+    /// <summary>
+    /// Prepares image bytes for a placement that draws SVG as vectors. SVG is validated by parsing it once
+    /// and is kept as SVG with its parsed drawing; every other format is prepared as by <see cref="PrepareImageBytes(byte[], CancellationToken)"/>.
+    /// </summary>
+    internal static PreparedImage PrepareImageKeepingSvg(byte[] data, CancellationToken cancellationToken = default) {
+        Guard.NotNullOrEmpty(data, nameof(data));
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!IsSvgImage(data, out OfficeImageInfo svgInfo)) return PrepareImageBytes(data, cancellationToken);
+
+        // A caller that passes back a snapshot returned here (validation, then admission) reuses its parse.
+        OfficeDrawing drawing = PdfSvgImageReader.Read(data, cancellationToken: cancellationToken);
+        byte[] snapshot = CloneWithCancellation(data, cancellationToken);
+        PdfSvgImageReader.Remember(snapshot, drawing);
+        if (svgInfo.Width <= 0 || svgInfo.Height <= 0) {
+            svgInfo = new OfficeImageInfo(OfficeImageFormat.Svg,
+                Math.Max(1, (int)Math.Ceiling(drawing.Width)), Math.Max(1, (int)Math.Ceiling(drawing.Height)));
+        }
+        return new PreparedImage(snapshot, svgInfo, OfficeImageFormat.Svg, wasTranscoded: false, svgDrawing: drawing);
+    }
+
+    /// <summary>
+    /// Prepares image bytes for a placement that draws SVG as vectors, returning <c>false</c> with the reason
+    /// for content the PDF writer cannot place. SVG bytes come back unchanged rather than rasterized.
+    /// </summary>
+    internal static bool TryPrepareImageKeepingSvg(
+        byte[] data,
+        CancellationToken cancellationToken,
+        out byte[] preparedBytes,
+        out OfficeImageInfo? imageInfo,
+        out string? unsupportedReason) {
+        preparedBytes = System.Array.Empty<byte>();
+        imageInfo = null;
+        unsupportedReason = null;
+        try {
+            PreparedImage prepared = PrepareImageKeepingSvg(data, cancellationToken);
+            // SVG snapshots are owned by the caller already; raster results are shared with the prepared-image cache.
+            preparedBytes = prepared.SvgDrawing != null ? prepared.Data : CloneWithCancellation(prepared.Data, cancellationToken);
+            imageInfo = prepared.Info;
+            return true;
+        } catch (NotSupportedException ex) {
+            unsupportedReason = ex.Message;
+            return false;
+        } catch (ArgumentException ex) {
+            unsupportedReason = ex.Message;
+            return false;
+        } catch (OfficeImageExportLimitException ex) {
+            unsupportedReason = ex.Message;
+            return false;
+        }
+    }
+
+    /// <summary>Identifies SVG by content without parsing or rendering it.</summary>
+    internal static bool IsSvgImage(byte[] data, out OfficeImageInfo info) {
+        if (OfficeImageReader.TryIdentifyByContent(data, null, out info) && info.Format == OfficeImageFormat.Svg) return true;
+        info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
+        return false;
+    }
+
 
     internal static PreparedImage PrepareImageBytes(byte[] data) =>
         PrepareImageBytes(data, CancellationToken.None);
@@ -324,7 +387,7 @@ public sealed partial class PdfDocument {
 
         byte[] normalizedPng;
         if (sourceInfo.Format == OfficeImageFormat.Svg) {
-            OfficeDrawing vector = PdfSvgImageReader.Read(data, cancellationToken);
+            OfficeDrawing vector = PdfSvgImageReader.Read(data, cancellationToken: cancellationToken);
             normalizedPng = OfficeDrawingRasterRenderer.ToPng(vector, new OfficeDrawingRasterRenderOptions {
                 Background = OfficeColor.Transparent,
                 MaximumRasterPixels = OfficeImagePdfCompatibility.DefaultMaximumTranscodePixels,

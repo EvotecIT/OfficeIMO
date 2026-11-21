@@ -133,6 +133,8 @@ Install a format package for that format alone. Conversion adapters are named `O
 | OpenDocument `.odt`, `.ods`, `.odp` | [OfficeIMO.OpenDocument](OfficeIMO.OpenDocument/README.md) | | `.OpenDocument.Odt.Pdf`, `.Ods.Pdf`, `.Odp.Pdf` |
 | EPUB | [OfficeIMO.Epub](OfficeIMO.Epub/README.md) | `EpubDocument` | `.Epub.Image` |
 | CSV | [OfficeIMO.CSV](OfficeIMO.CSV/README.md) | | `.Excel.Csv` |
+| YAML | [OfficeIMO.Yaml](OfficeIMO.Yaml/README.md) | `YamlDocument` | `.Yaml.Configuration` |
+| TOML | [OfficeIMO.Toml](OfficeIMO.Toml/README.md) | `TomlDocument` | `.Toml.Configuration` |
 | Apple Pages, Numbers, Keynote | [OfficeIMO.IWork](OfficeIMO.IWork/README.md) | | `.Word.IWork`, `.Excel.IWork`, `.PowerPoint.IWork` |
 | AsciiDoc, LaTeX | [OfficeIMO.AsciiDoc](OfficeIMO.AsciiDoc/README.md), [OfficeIMO.Latex](OfficeIMO.Latex/README.md) | | `.Markdown`, `.Pdf` |
 | Publisher, XPS, DjVu, CHM, DocBook, OPML | [OfficeIMO.Publisher](OfficeIMO.Publisher/README.md), [OfficeIMO.Xps](OfficeIMO.Xps/README.md), [OfficeIMO.DjVu](OfficeIMO.DjVu/README.md), [OfficeIMO.Chm](OfficeIMO.Chm/README.md), [OfficeIMO.DocBook](OfficeIMO.DocBook/README.md), [OfficeIMO.Opml](OfficeIMO.Opml/README.md) | | `.Pdf` where listed |
@@ -146,7 +148,9 @@ Shared and cross-format packages:
 | Read, search and chunk any format for indexing and AI ingestion | [OfficeIMO.Reader.All](OfficeIMO.Reader.All/README.md), or one `OfficeIMO.Reader.{Format}` |
 | OCR for scanned pages and images | [OfficeIMO.Ocr](OfficeIMO.Ocr/README.md), [OfficeIMO.Ocr.Tesseract](OfficeIMO.Ocr.Tesseract/README.md), [OfficeIMO.Pdf.Ocr](OfficeIMO.Pdf.Ocr/README.md) |
 | Certificate signatures for Word, PDF and email | [OfficeIMO.Security](OfficeIMO.Security/README.md) |
-| ZIP, CAB and MSI extraction | [OfficeIMO.Archives](OfficeIMO.Archives/README.md) |
+| Print any convertible document to installed queues or IPP printers on Windows, macOS and Linux, with sheet preview and job tracking | [OfficeIMO.Workflows](OfficeIMO.Workflows/README.md#print-a-document) |
+| Snapshot tests for generated PDFs | [OfficeIMO.Pdf.Testing](OfficeIMO.Pdf.Testing/README.md) |
+| ZIP, CAB, MSI, TAR and gzip extraction; reproducible ZIP, TAR and gzip creation | [OfficeIMO.Archives](OfficeIMO.Archives/README.md) |
 | Google Docs, Sheets, Slides and Drive | [OfficeIMO.GoogleWorkspace](OfficeIMO.GoogleWorkspace/README.md) |
 | Confluence pages | [OfficeIMO.Confluence](OfficeIMO.Confluence/README.md) |
 | Electronic invoices | [OfficeIMO.Invoicing](OfficeIMO.Invoicing/README.md) |
@@ -185,10 +189,11 @@ If OfficeIMO saves you time, please consider supporting the work through [GitHub
 <p>
   <a href="https://github.com/KelvinTegelaar" title="KelvinTegelaar"><img src="https://avatars.githubusercontent.com/u/49186168?u=49610dcd84d6c868d9e47c1a64ac137f3da24808&amp;v=4" width="48" height="48" alt="KelvinTegelaar" /></a>
   <a href="https://github.com/apbirch67" title="Andrew Birch"><img src="https://avatars.githubusercontent.com/u/12010032?u=79082c6c1f026e3ab39dae7a4aff8e8fadeeeeea&amp;v=4" width="48" height="48" alt="Andrew Birch" /></a>
+  <a href="https://github.com/complea" title="Complea"><img src="https://avatars.githubusercontent.com/u/144781871?v=4" width="48" height="48" alt="Complea" /></a>
   <a href="https://github.com/thomas-moeller" title="Thomas M&#248;ller"><img src="https://avatars.githubusercontent.com/u/37923349?u=e5b9b9d52dc33256937ace98623e3b7c6aead98a&amp;v=4" width="48" height="48" alt="Thomas M&#248;ller" /></a>
   <a href="https://github.com/jakehildreth" title="Jake Hildreth"><img src="https://avatars.githubusercontent.com/u/93942157?u=e1e8d3f460d775c44f5491711ad1c47a5005fb5c&amp;v=4" width="48" height="48" alt="Jake Hildreth" /></a>
-  <a href="https://github.com/complea" title="Complea"><img src="https://avatars.githubusercontent.com/u/144781871?v=4" width="48" height="48" alt="Complea" /></a>
-  <a href="https://github.com/DarthPanda12" title="DarthPanda12"><img src="https://avatars.githubusercontent.com/u/294241377?v=4" width="48" height="48" alt="DarthPanda12" /></a>
+  <a href="https://github.com/syazdian" title="syazdian"><img src="https://avatars.githubusercontent.com/u/15229510?v=4" width="48" height="48" alt="syazdian" /></a>
+  <a href="https://coderabbit.link/evotecit" title="CodeRabbit"><img src="https://officeimo.com/assets/sponsors/coderabbit-mark.svg" width="48" height="48" alt="CodeRabbit" /></a>
 </p>
 
 [See all sponsors](SPONSORS.md)

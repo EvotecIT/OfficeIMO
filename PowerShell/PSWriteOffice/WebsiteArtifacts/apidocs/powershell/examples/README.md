@@ -23,6 +23,7 @@ Saved DSL constructors are quiet by default. Add `-PassThru` only when the next 
 | When you need to | Use | Start here |
 | --- | --- | --- |
 | Save a conversion job and repeat it through Studio, CLI or PowerShell | Shared saved job | [Plan, run and resume](Workflows/Recipe-SavedConversionJob.ps1) |
+| Remove comments, authors and other hidden data before sharing | Pipeline | [Clean before sharing](Workflows/Recipe-CleanBeforeSharing.ps1) |
 | Export rows or query results | Pipeline | [Excel quick export](Excel/Recipe-Excel-QuickExport.ps1) |
 | Add content from loops and conditions | Document objects | [Word](Word/Recipe-Word-ObjectComposition.ps1), [Excel](Excel/Recipe-Excel-ObjectComposition.ps1), [PowerPoint](PowerPoint/Recipe-PowerPoint-ObjectComposition.ps1), [Markdown](Markdown/Recipe-Markdown-ObjectComposition.ps1) |
 | Author the complete artifact in one block | DSL | [Project status report](Word/Recipe-Word-ProjectStatus.ps1), [service invoice](Pdf/Recipe-Pdf-ServiceInvoice.ps1) |
@@ -60,6 +61,8 @@ The [workflow guide](https://officeimo.com/docs/pswriteoffice/object-workflows/)
 - [Visio service flow](Visio/Recipe-Visio-ServiceFlow.ps1), [architecture map](Visio/Example-Visio-ArchitectureMap.ps1), and [network topology](Visio/Example-Visio-NetworkTopology.ps1)
 - [Mixed-document search](Reader/Example-MixedDocumentSearch.ps1), [bounded chunks](Reader/Recipe-Reader-BoundedChunks.ps1), and [table export](Reader/Recipe-Reader-ExportTables.ps1)
 - [Update and convert RTF](Rtf/Recipe-Rtf-UpdateAndConvert.ps1) and [RTF/Markdown round trip](Rtf/Example-RtfMarkdownRoundTrip.ps1)
+- [Edit, merge and read YAML configuration](Yaml/Example-YamlEditMergeConvert.ps1)
+- [Edit a TOML project file in place](Toml/Example-TomlEditInPlace.ps1)
 - [Safe CSV export](Csv/Recipe-Csv-SafeExport.ps1), [CSV basics](Csv/Example-CsvBasic.ps1), [advanced CSV options](Csv/Example-CsvAdvanced.ps1), and [DbaClientX round trip](Csv/Example-CsvDbaClientXRoundTrip.ps1)
 - [Excel and DbaClientX round trip](Excel/Example-ExcelDbaClientXRoundTrip.ps1)
 - [Review supplier offers from HTML](Integrations/Recipe-HtmlSupplierReview.ps1)

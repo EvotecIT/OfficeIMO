@@ -189,9 +189,6 @@ internal static partial class LatexToMarkdownConverter {
                 break;
             case LatexMath math:
                 target.Add(new SemanticFencedBlock(MarkdownSemanticKinds.Math, "latex", ExtractVisibleSource(context, math.ContentSpan, diagnostics)));
-                diagnostics.Add(new LatexMarkdownConversionDiagnostic(
-                    "LATEXMD201", LatexMarkdownConversionOutcome.Simplified, "display-math",
-                    "Display math source was transported without TeX layout evaluation.", math.Syntax.Span));
                 break;
             case LatexEnvironment environment:
                 AddEnvironmentFallback(context, target, environment, options, diagnostics);

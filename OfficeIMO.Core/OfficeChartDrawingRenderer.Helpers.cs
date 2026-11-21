@@ -98,20 +98,38 @@ public static partial class OfficeChartDrawingRenderer {
         return total;
     }
 
+    // Percentage labels divide source values, so the total adds source values even when the series are
+    // plotted on a logarithmic or reversed axis.
     private static double GetDataLabelCategoryTotal(IReadOnlyList<OfficeSeries> series, int categoryIndex) {
-        double total = GetPositiveCategoryTotal(series, categoryIndex);
+        double total = 0D;
+        for (int s = 0; s < series.Count; s++) {
+            if (TryGetSourceSeriesValue(series[s], categoryIndex, out double value) && value > 0D) total += value;
+        }
+
         if (total > 0D) {
             return total;
         }
 
         for (int s = 0; s < series.Count; s++) {
-            if (TryGetSeriesValue(series[s], categoryIndex, out double value)) {
+            if (TryGetSourceSeriesValue(series[s], categoryIndex, out double value)) {
                 total += Math.Abs(value);
             }
         }
 
         return total;
     }
+
+    // A point's source value: the value itself, or what a logarithmic or reversed axis plotted it from.
+    private static bool TryGetSourceSeriesValue(OfficeSeries series, int index, out double value) {
+        if (!TryGetSeriesValue(series, index, out value)) return false;
+        value = GetSourceSeriesValue(series, index, value);
+        return IsFiniteChartValue(value);
+    }
+
+    private static double GetSourceSeriesValue(OfficeSeries series, int index, double plotted) =>
+        series.SourcePointValues != null && index >= 0 && index < series.SourcePointValues.Count
+            ? series.SourcePointValues[index]
+            : series.SourceValue != null ? series.SourceValue(plotted) : plotted;
 
     private readonly struct PercentStackedTotals {
         internal PercentStackedTotals(double[] positive, double[] negative) {
@@ -153,14 +171,16 @@ public static partial class OfficeChartDrawingRenderer {
     }
 
     private static ValueRange GetPercentStackedSeriesRange(IReadOnlyList<OfficeSeries> series, int categoryCount) {
+        // A stack spans only the side its values lie on, so an all-negative stack (including a positive
+        // stack plotted on a reversed axis) fills -100% to 0.
         PercentStackedTotals totals = BuildPercentStackedTotals(series, categoryCount);
+        bool positive = false, negative = false;
         for (int category = 0; category < categoryCount; category++) {
-            if (totals.Negative[category] > 0D) {
-                return new ValueRange(-1D, 1D).AsFixed();
-            }
+            positive |= totals.Positive[category] > 0D;
+            negative |= totals.Negative[category] > 0D;
         }
 
-        return new ValueRange(0D, 1D).AsFixed();
+        return (negative ? new ValueRange(-1D, positive ? 1D : 0D) : new ValueRange(0D, 1D)).AsFixed();
     }
 
     private static ValueRange GetStackedSeriesRange(IReadOnlyList<OfficeSeries> series, int categoryCount) {
@@ -536,6 +556,8 @@ public static partial class OfficeChartDrawingRenderer {
             return automaticTicks.Count >= 2 ? automaticTicks : new[] { range.Min, range.Max };
         }
 
+        // A unit longer than the axis, as on a logarithmic axis whose bounds lie within one power, leaves the bounds.
+        if (majorUnit.Value > span) return new[] { range.Min, range.Max };
         if (ExceedsAxisUnitBudget(range, majorUnit, 32))
             throw new NotSupportedException("The chart major-axis unit exceeds the renderer tick budget.");
 
@@ -634,11 +656,10 @@ public static partial class OfficeChartDrawingRenderer {
         return GetCategoryPointX(plotLeft, step, categoryIndex, categoryCount, layout);
     }
 
-    // A column plot uses category slots, so its line and area companions pass
-    // through the same slot centers, including on a reversed axis.
+    // OOXML midCat puts every category, bars included, on a tick mark; between centres them in slots.
+    // A single category has no tick-mark span, so it is centred, with its label, either way.
     private static bool UsesTickMarkCategoryPoints(OfficeChartSnapshot snapshot, OfficeChartLayout layout) =>
-        layout.CategoryPointsOnTickMarks &&
-        !snapshot.Data.Series.Any(series => IsColumnChart(GetEffectiveSeriesKind(snapshot, series)));
+        layout.CategoryPointsOnTickMarks && snapshot.Data.Categories.Count > 1;
 
     private static ValueRange GetFiniteRange(IReadOnlyList<double> values) {
         bool any = false;

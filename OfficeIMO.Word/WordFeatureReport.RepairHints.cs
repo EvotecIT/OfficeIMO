@@ -20,7 +20,7 @@ namespace OfficeIMO.Word {
                 case "Digital signatures":
                     hints.Add(new WordPreflightRepairHint(capability, finding.Name,
                         "Use a read-only workflow, work on an unsigned copy, or explicitly accept signature invalidation.",
-                        "WordSaveOptions.SignedDocumentPolicy",
+                        "WordSaveOptions.SignatureMutationPolicy",
                         "A package mutation cannot preserve the validity of an existing digital signature."));
                     break;
                 case "Alternative format imports":

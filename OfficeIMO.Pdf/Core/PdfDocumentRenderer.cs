@@ -19,8 +19,13 @@ public sealed class PdfDocumentRenderer {
     public PdfPageRenderResult DisplayPage(int pageNumber, PdfPageDisplayOptions? options = null, CancellationToken cancellationToken = default) =>
         PdfPageImageRenderer.RenderDisplayPage(token => _document.GetReadDocument(_document.ReadOptions, token), pageNumber, options, cancellationToken);
 
+    /// <summary>Renders a page as <see cref="DisplayPage"/> does, returning the pixels without encoding them to PNG.</summary>
+    internal (OfficeRasterImage Raster, PdfPageRenderResult Result) DisplayRaster(int pageNumber, PdfPageDisplayOptions? options,
+        CancellationToken cancellationToken) =>
+        PdfPageImageRenderer.RenderDisplayRaster(token => _document.GetReadDocument(_document.ReadOptions, token), pageNumber, options, cancellationToken);
+
     /// <summary>Renders the managed page appearance to PNG after checking printing permissions.</summary>
-    /// <remarks>Does not expose editable source content. User-password documents without high-quality print
+    /// <remarks>Only annotations with the Print flag are painted. Does not expose editable source content. User-password documents without high-quality print
     /// permission are limited to 150 DPI. Review renderer diagnostics before sending the pixels to a printer.</remarks>
     public PdfPageRenderResult PrintPage(int pageNumber, PdfPagePrintOptions? options = null, CancellationToken cancellationToken = default) =>
         PdfPageImageRenderer.RenderPrintPage(_document.GetBytesForOperation, pageNumber, options, _document.ReadOptions, cancellationToken);

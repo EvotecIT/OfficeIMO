@@ -34,7 +34,15 @@ public partial class ExcelReaderGeneratedBenchmarks {
     [Params(false, true)]
     public bool EscapedNames { get; set; }
 
+    private bool _recordValidation;
+
+    /// <summary>The benchmark's own setup records each lane's validation; workloads that reuse <see cref="Setup"/> do not.</summary>
     [GlobalSetup]
+    public void BenchmarkSetup() {
+        _recordValidation = true;
+        Setup();
+    }
+
     public void Setup() {
         OfficeIMO.Benchmarks.BenchmarkProcessPriority.ApplyConfiguredPriority();
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
@@ -51,33 +59,43 @@ public partial class ExcelReaderGeneratedBenchmarks {
         for (int index = 0; index < RowCount; index++) _expected = Add(_expected, CreateRecord(index, EscapedNames));
         _validate = true;
         try {
-            OfficeIMO_Read();
-            ExcelReaderNet_Read();
+            // Each lane checks every row's name, id, date and amount against the generated records, then the count and checksum.
+            RecordLane("OfficeIMO", "Read", () => OfficeIMO_Read());
+            RecordLane("ExcelReader.NET", "Read", () => ExcelReaderNet_Read());
             if (Format is ExcelFileFormat.Xlsx or ExcelFileFormat.Xlsb) ReadExcelReader(PrefetchReaderOptions);
-            Sylvan_Read();
-            ExcelDataReader_Read();
-            OfficeIMO_Parse();
-            ExcelReaderNet_Parse();
+            RecordLane("Sylvan.Data.Excel", "Read", () => Sylvan_Read());
+            RecordLane("ExcelDataReader", "Read", () => ExcelDataReader_Read());
+            RecordLane("OfficeIMO", "Parse", () => OfficeIMO_Parse());
+            RecordLane("ExcelReader.NET", "Parse", () => ExcelReaderNet_Parse());
         } catch { Cleanup(); throw; }
         finally { _validate = false; }
+    }
+
+    private void RecordLane(string library, string caseName, Action lane) {
+        if (!_recordValidation) {
+            lane();
+            return;
+        }
+        ExcelOutputValidation.Check(library, caseName,
+            $"Format={Format}; RowCount={RowCount}; EscapedNames={EscapedNames}; every row's name, id, date and amount checked", lane);
     }
 
     [GlobalCleanup]
     public void Cleanup() { if (_ownsInput && _path.Length > 0) File.Delete(_path); }
 
-    [Benchmark(Baseline = true), BenchmarkCategory("Read")]
+    [Benchmark(Baseline = true), BenchmarkCategory("Read", "case:Read")]
     public long OfficeIMO_Read() {
         using var reader = ExcelDocument.OpenReader(_path);
         return ReadLane<OfficeIMOReadLane>(reader);
     }
 
-    [Benchmark, BenchmarkCategory("Read")]
+    [Benchmark, BenchmarkCategory("Read", "case:Read")]
     public long Sylvan_Read() {
         using var reader = global::Sylvan.Data.Excel.ExcelDataReader.Create(_path);
         return ReadLane<SylvanReadLane>(reader);
     }
 
-    [Benchmark, BenchmarkCategory("Read")]
+    [Benchmark, BenchmarkCategory("Read", "case:Read")]
     public long ExcelDataReader_Read() {
         using var stream = File.OpenRead(_path);
         using var reader = global::ExcelDataReader.ExcelReaderFactory.CreateReader(stream);
@@ -113,13 +131,13 @@ public partial class ExcelReaderGeneratedBenchmarks {
         return Check(checksum, count);
     }
 
-    [Benchmark(Baseline = true), BenchmarkCategory("Parse")]
+    [Benchmark(Baseline = true), BenchmarkCategory("Parse", "case:Parse")]
     public long OfficeIMO_Parse() {
         using var reader = ExcelDocument.OpenReader(_path);
         return ObserveLane<OfficeIMOParseLane>(reader.RowsAs<GeneratedRecord>());
     }
 
-    [Benchmark, BenchmarkCategory("Parse")]
+    [Benchmark, BenchmarkCategory("Parse", "case:Parse")]
     public long ExcelReaderNet_Parse() {
         switch (Format) {
             case ExcelFileFormat.Xlsx:

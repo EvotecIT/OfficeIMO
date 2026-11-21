@@ -15,7 +15,7 @@ public partial class PdfSanitizerTests {
 
         PdfSanitizationReport preview = PdfDocument.Load(source).InspectSanitization(policy);
 
-        Assert.Equal(6, preview.CategoryCounts.UserMetadata);
+        Assert.Equal(5, preview.CategoryCounts.UserMetadata);
         Assert.Equal(1, preview.CategoryCounts.EmbeddedFiles);
         Assert.Equal(2, preview.CategoryCounts.Actions);
         Assert.Equal(1, preview.CategoryCounts.CommentsAndMarkup);
@@ -28,13 +28,13 @@ public partial class PdfSanitizerTests {
         string raw = PdfEncoding.Latin1GetString(result.ToBytes());
 
         Assert.True(result.IsSanitized);
-        Assert.Equal(12, result.RemovedCategoryCounts.Total);
+        Assert.Equal(11, result.RemovedCategoryCounts.Total);
         Assert.Equal(0, result.RemainingCategoryCounts.Total);
-        Assert.Null(info.Metadata.Title);
+        Assert.Equal("KEPT-TITLE", info.Metadata.Title);
         Assert.Null(info.Metadata.Author);
         Assert.Null(info.Metadata.Subject);
         Assert.Null(info.Metadata.Keywords);
-        Assert.False(info.HasXmpMetadata);
+        Assert.Equal("KEPT-XMP-TITLE", info.XmpMetadata?.Title);
         Assert.Empty(info.Attachments);
         Assert.Empty(info.Outlines);
         Assert.False(info.HasOptionalContent);
@@ -61,7 +61,7 @@ public partial class PdfSanitizerTests {
         PdfDocumentInfo info = result.ToDocument().Inspect();
 
         Assert.True(result.IsSanitized);
-        Assert.Equal(6, result.RemovedCategoryCounts.UserMetadata);
+        Assert.Equal(5, result.RemovedCategoryCounts.UserMetadata);
         Assert.Equal(0, result.RemovedCategoryCounts.Actions);
         Assert.Single(info.Attachments);
         Assert.Single(info.Outlines);
@@ -166,11 +166,12 @@ public partial class PdfSanitizerTests {
         PdfSanitizationResult result = PdfDocument.Load(source).Sanitize(policy);
         string raw = PdfEncoding.Latin1GetString(result.ToBytes());
 
-        Assert.Equal(3, preview.CategoryCounts.UserMetadata);
+        Assert.Equal(2, preview.CategoryCounts.UserMetadata);
         Assert.DoesNotContain("PRIVATE-COMPANY", raw, StringComparison.Ordinal);
         Assert.DoesNotContain("PRIVATE-CUSTOM", raw, StringComparison.Ordinal);
         Assert.Null(ReadInfoString(result.ToBytes(), "Company"));
         Assert.Null(ReadInfoString(result.ToBytes(), "CustomField"));
+        Assert.Equal("KEPT-TITLE", ReadInfoString(result.ToBytes(), "Title"));
         Assert.Equal("OfficeIMO-Test", ReadInfoString(result.ToBytes(), "Producer"));
         Assert.Contains("/CreationDate", raw, StringComparison.Ordinal);
         Assert.Contains("/ModDate", raw, StringComparison.Ordinal);
@@ -271,9 +272,10 @@ public partial class PdfSanitizerTests {
     }
 
     [Theory]
-    [InlineData(PdfSanitizationContentKind.EmbeddedFiles, "UseAttachments")]
-    [InlineData(PdfSanitizationContentKind.OptionalContent, "UseOC")]
-    public void SanitizationResetsPageModesWhosePanelsWereRemoved(PdfSanitizationContentKind kind, string pageMode) {
+    [InlineData((int)PdfSanitizationContentKind.EmbeddedFiles, "UseAttachments")]
+    [InlineData((int)PdfSanitizationContentKind.OptionalContent, "UseOC")]
+    public void SanitizationResetsPageModesWhosePanelsWereRemoved(int kindValue, string pageMode) {
+        var kind = (PdfSanitizationContentKind)kindValue;
         byte[] source = BuildCategoryPageModePdf(kind, pageMode);
         var policy = new PdfSanitizationOptions { ContentKindsToRemove = kind };
 
@@ -283,10 +285,11 @@ public partial class PdfSanitizerTests {
     }
 
     [Theory]
-    [InlineData(PdfSanitizationContentKind.EmbeddedFiles, "UseAttachments")]
-    [InlineData(PdfSanitizationContentKind.OptionalContent, "UseOC")]
-    [InlineData(PdfSanitizationContentKind.Bookmarks, "UseOutlines")]
-    public void SanitizationResetsIndirectPageModesWhosePanelsWereRemoved(PdfSanitizationContentKind kind, string pageMode) {
+    [InlineData((int)PdfSanitizationContentKind.EmbeddedFiles, "UseAttachments")]
+    [InlineData((int)PdfSanitizationContentKind.OptionalContent, "UseOC")]
+    [InlineData((int)PdfSanitizationContentKind.Bookmarks, "UseOutlines")]
+    public void SanitizationResetsIndirectPageModesWhosePanelsWereRemoved(int kindValue, string pageMode) {
+        var kind = (PdfSanitizationContentKind)kindValue;
         byte[] source = BuildIndirectCategoryPageModePdf(kind, pageMode);
         var policy = new PdfSanitizationOptions { ContentKindsToRemove = kind };
 
@@ -338,13 +341,14 @@ public partial class PdfSanitizerTests {
     }
 
     [Theory]
-    [InlineData(PdfSanitizationContentKind.UserMetadata)]
-    [InlineData(PdfSanitizationContentKind.EmbeddedFiles)]
-    [InlineData(PdfSanitizationContentKind.Actions)]
-    [InlineData(PdfSanitizationContentKind.CommentsAndMarkup)]
-    [InlineData(PdfSanitizationContentKind.Bookmarks)]
-    [InlineData(PdfSanitizationContentKind.OptionalContent)]
-    public void SanitizeBeforeSharingUsesAnExactContentCategorySelection(PdfSanitizationContentKind selected) {
+    [InlineData((int)PdfSanitizationContentKind.UserMetadata)]
+    [InlineData((int)PdfSanitizationContentKind.EmbeddedFiles)]
+    [InlineData((int)PdfSanitizationContentKind.Actions)]
+    [InlineData((int)PdfSanitizationContentKind.CommentsAndMarkup)]
+    [InlineData((int)PdfSanitizationContentKind.Bookmarks)]
+    [InlineData((int)PdfSanitizationContentKind.OptionalContent)]
+    public void SanitizeBeforeSharingUsesAnExactContentCategorySelection(int selectedValue) {
+        var selected = (PdfSanitizationContentKind)selectedValue;
         byte[] source = BuildBeforeSharingPdf();
         var allCategories = new PdfSanitizationOptions {
             ContentKindsToRemove = PdfSanitizationContentKind.All,
@@ -397,13 +401,14 @@ public partial class PdfSanitizerTests {
     }
 
     [Theory]
-    [InlineData(PdfSanitizationActionKind.JavaScript, 2)]
-    [InlineData(PdfSanitizationActionKind.Launch, 1)]
-    [InlineData(PdfSanitizationActionKind.SubmitForm, 1)]
-    [InlineData(PdfSanitizationActionKind.GoToR, 1)]
-    [InlineData(PdfSanitizationActionKind.GoToE, 1)]
-    [InlineData(PdfSanitizationActionKind.ImportData, 1)]
-    public void InspectSanitization_UsesAnExactActionKindSelection(PdfSanitizationActionKind selected, int expectedCount) {
+    [InlineData((int)PdfSanitizationActionKind.JavaScript, 2)]
+    [InlineData((int)PdfSanitizationActionKind.Launch, 1)]
+    [InlineData((int)PdfSanitizationActionKind.SubmitForm, 1)]
+    [InlineData((int)PdfSanitizationActionKind.GoToR, 1)]
+    [InlineData((int)PdfSanitizationActionKind.GoToE, 1)]
+    [InlineData((int)PdfSanitizationActionKind.ImportData, 1)]
+    public void InspectSanitization_UsesAnExactActionKindSelection(int selectedValue, int expectedCount) {
+        var selected = (PdfSanitizationActionKind)selectedValue;
         var policy = new PdfSanitizationOptions { ActionKindsToRemove = selected };
 
         PdfSanitizationReport report = PdfDocument.Load(BuildActiveContentPdf()).InspectSanitization(policy);
@@ -1020,7 +1025,7 @@ public partial class PdfSanitizerTests {
             "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
             "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>", "endobj",
             StreamObject(4, string.Empty, string.Empty),
-            "5 0 obj", "<< /Title (PRIVATE-TITLE) /Company (PRIVATE-COMPANY) /CustomField (PRIVATE-CUSTOM) /Producer (OfficeIMO-Test) /CreationDate (D:20260102030405Z) /ModDate (D:20260203040506Z) /Trapped /False >>", "endobj",
+            "5 0 obj", "<< /Title (KEPT-TITLE) /Company (PRIVATE-COMPANY) /CustomField (PRIVATE-CUSTOM) /Producer (OfficeIMO-Test) /CreationDate (D:20260102030405Z) /ModDate (D:20260203040506Z) /Trapped /False >>", "endobj",
             "trailer", "<< /Root 1 0 R /Info 5 0 R /Size 6 >>", "%%EOF"
         }));
     }
@@ -1177,7 +1182,7 @@ public partial class PdfSanitizerTests {
 
     private static byte[] BuildBeforeSharingPdf() {
         const string pageContent = "BT /F1 12 Tf 20 150 Td (VISIBLE-PAGE-CONTENT) Tj ET\n/OC /Layer BDC BT /F1 12 Tf 20 120 Td (VISIBLE-AFTER-LAYER-FLATTEN) Tj ET EMC";
-        const string xmp = "<?xpacket begin=''?><x:xmpmeta xmlns:x='adobe:ns:meta/'><rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'><rdf:Description rdf:about='' xmlns:dc='http://purl.org/dc/elements/1.1/'><dc:title><rdf:Alt><rdf:li xml:lang='x-default'>PRIVATE-XMP-TITLE</rdf:li></rdf:Alt></dc:title></rdf:Description></rdf:RDF></x:xmpmeta><?xpacket end='w'?>";
+        const string xmp = "<?xpacket begin=''?><x:xmpmeta xmlns:x='adobe:ns:meta/'><rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'><rdf:Description rdf:about='' xmlns:dc='http://purl.org/dc/elements/1.1/'><dc:title><rdf:Alt><rdf:li xml:lang='x-default'>KEPT-XMP-TITLE</rdf:li></rdf:Alt></dc:title><dc:creator><rdf:Seq><rdf:li>PRIVATE-XMP-CREATOR</rdf:li></rdf:Seq></dc:creator></rdf:Description></rdf:RDF></x:xmpmeta><?xpacket end='w'?>";
         const string payload = "PRIVATE-ATTACHMENT-PAYLOAD";
         string pdf = string.Join("\n", new[] {
             "%PDF-1.7",
@@ -1202,7 +1207,7 @@ public partial class PdfSanitizerTests {
             "16 0 obj", "<< /Type /OCG /Name (PRIVATE-LAYER) >>", "endobj",
             "17 0 obj", "<< /S /JavaScript /JS (app.alert('PRIVATE-SCRIPT')) >>", "endobj",
             "20 0 obj",
-            "<< /Title (PRIVATE-TITLE) /Author (PRIVATE-AUTHOR) /Subject (PRIVATE-SUBJECT) /Keywords (PRIVATE-KEYWORDS) /Creator (PRIVATE-CREATOR) /Producer (OfficeIMO-Test) /CreationDate (D:20260102030405Z) /ModDate (D:20260203040506Z) /Trapped /False >>",
+            "<< /Title (KEPT-TITLE) /Author (PRIVATE-AUTHOR) /Subject (PRIVATE-SUBJECT) /Keywords (PRIVATE-KEYWORDS) /Creator (PRIVATE-CREATOR) /Producer (OfficeIMO-Test) /CreationDate (D:20260102030405Z) /ModDate (D:20260203040506Z) /Trapped /False >>",
             "endobj",
             "trailer", "<< /Root 1 0 R /Info 20 0 R /Size 21 >>", "%%EOF"
         }) + "\n";

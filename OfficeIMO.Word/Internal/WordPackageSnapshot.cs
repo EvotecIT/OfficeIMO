@@ -2,7 +2,7 @@ using System.Security.Cryptography;
 
 namespace OfficeIMO.Word {
     /// <summary>Creates and fingerprints bounded Word package snapshots.</summary>
-    internal static class WordPackageSnapshot {
+    internal static partial class WordPackageSnapshot {
         internal static void CopyBounded(string sourcePath, string snapshotPath, long maximumBytes) {
             using var source = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read);
             if (source.Length > maximumBytes) {

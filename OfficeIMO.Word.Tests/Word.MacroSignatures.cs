@@ -460,12 +460,26 @@ namespace OfficeIMO.Tests {
             Assert.Contains(blocked.Findings,
                 finding => finding.Code == "existing-package-signature-invalidation-blocked");
 
-            options.ExistingPackageSignaturePolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation;
+            string removalPath = Path.Combine(_directoryWithFiles, "MacroSignatureOpcRemoval.docm");
+            File.Copy(filePath, removalPath, overwrite: true);
+
+            options.SignatureMutationPolicy = OfficeSignatureMutationPolicy.PreserveSignatureMarkup;
             WordMacroProjectSigningResult allowed = WordMacroProjectSignatureService.TrySign(filePath, SecurityProvider, certificate.Thumbprint!, options, dependencies);
 
             Assert.True(allowed.Succeeded);
             Assert.Contains(allowed.Findings,
                 finding => finding.Code == "existing-package-signatures-will-be-invalidated");
+
+            options.SignatureMutationPolicy = OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures;
+            var removalDependencies = new WordMacroProjectSigningDependencies(
+                new SimulatedOfficeSipsRunner(certificate), new TestMacroSigningPlatform(isWindows: true));
+            WordMacroProjectSigningResult removed = WordMacroProjectSignatureService.TrySign(removalPath, SecurityProvider, certificate.Thumbprint!, options, removalDependencies);
+
+            Assert.True(removed.Succeeded);
+            Assert.Contains(removed.Findings,
+                finding => finding.Code == "existing-package-signatures-removed");
+            using WordprocessingDocument package = WordprocessingDocument.Open(removalPath, false);
+            Assert.Null(package.DigitalSignatureOriginPart);
         }
 
         [Fact]

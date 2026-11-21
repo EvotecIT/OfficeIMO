@@ -182,6 +182,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private IReadOnlyList<IntrinsicTextRun> NormalizeIntrinsicTextRuns(IReadOnlyList<IntrinsicTextRun> rawRuns) {
         rawRuns = PrepareIntrinsicFirstLetterRuns(rawRuns);
+        rawRuns = ExpandIntrinsicPreservedLineBreaks(rawRuns);
         var normalized = new List<IntrinsicTextRun>();
         HtmlRenderBoxStyle? pendingWhitespaceStyle = null;
         bool hasLineContent = false;
@@ -457,6 +458,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         foreach (HtmlInlineRun run in inlineRuns) {
             if (run.AtomicBlock != null) {
                 generated.Add(IntrinsicTextRun.Replaced(run.AtomicBlock.Width, run.Style));
+            } else if (run.Text == "\u2028") {
+                // A pre-line break in generated content breaks the line, as it does in line layout.
+                generated.Add(IntrinsicTextRun.ForcedBreak(run.Style));
             } else if (run.Text.Length > 0) {
                 generated.Add(new IntrinsicTextRun(run.Text, run.Style, textTransformPending: run.TextTransformPending));
             }
@@ -474,6 +478,30 @@ internal sealed partial class HtmlRenderLayoutEngine {
             result.Add(IntrinsicTextRun.Replaced(minimum, Math.Max(minimum, maximum), style));
             result.Add(IntrinsicTextRun.ForcedBreak(style));
         }
+    }
+
+    // pre-line text measures its lines separately, as line layout breaks it. Zero-size text only
+    // gives context to line layout, so its line feeds do not break there.
+    private static IReadOnlyList<IntrinsicTextRun> ExpandIntrinsicPreservedLineBreaks(IReadOnlyList<IntrinsicTextRun> runs) {
+        if (!runs.Any(run => run.Style.PreserveLineBreaks && !run.Style.PreserveWhitespace && run.Text.IndexOfAny(SegmentBreakCharacters) >= 0
+                || run.Style.CollapseSegmentBreaks && run.Text.IndexOfAny(PreserveSpacesConvertedCharacters) >= 0)) return runs;
+        var expanded = new List<IntrinsicTextRun>(runs.Count + 4);
+        foreach (IntrinsicTextRun run in runs) {
+            // preserve-spaces measures segment breaks and tabs as the spaces it paints.
+            if (run.Style.CollapseSegmentBreaks && !run.IsForcedBreak && !run.IsReplaced && !run.IsParagraphStart
+                && run.Text.IndexOfAny(PreserveSpacesConvertedCharacters) >= 0) {
+                expanded.Add(new IntrinsicTextRun(ReplaceSegmentBreaks(run.Text), run.Style));
+                continue;
+            }
+            if (!run.Style.PreserveLineBreaks || run.Style.PreserveWhitespace || run.Style.Font.Size <= 0D || run.IsForcedBreak || run.IsReplaced
+                || run.IsParagraphStart || run.Text.IndexOfAny(SegmentBreakCharacters) < 0) {
+                expanded.Add(run);
+                continue;
+            }
+            AddPreservedLineBreakRuns(run.Text, text => expanded.Add(new IntrinsicTextRun(text, run.Style)),
+                () => expanded.Add(IntrinsicTextRun.ForcedBreak(run.Style)));
+        }
+        return expanded;
     }
 
     private sealed class IntrinsicTextRun {

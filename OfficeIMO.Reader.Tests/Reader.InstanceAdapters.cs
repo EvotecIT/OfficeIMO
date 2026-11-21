@@ -8,6 +8,7 @@ using OfficeIMO.Reader.Pdf;
 using OfficeIMO.Reader.Rtf;
 using OfficeIMO.Reader.Visio;
 using OfficeIMO.Reader.Xml;
+using OfficeIMO.Reader.Toml;
 using OfficeIMO.Reader.Yaml;
 using OfficeIMO.Reader.Zip;
 using Xunit;
@@ -38,6 +39,9 @@ public sealed class ReaderInstanceAdapterTests {
         AssertHandler(
             new OfficeDocumentReaderBuilder().AddRtfHandler().Build(),
             OfficeDocumentReaderBuilderRtfExtensions.HandlerId);
+        AssertHandler(
+            new OfficeDocumentReaderBuilder().AddTomlHandler().Build(),
+            OfficeDocumentReaderBuilderTomlExtensions.HandlerId);
         AssertHandler(
             new OfficeDocumentReaderBuilder().AddVisioHandler().Build(),
             OfficeDocumentReaderBuilderVisioExtensions.HandlerId);

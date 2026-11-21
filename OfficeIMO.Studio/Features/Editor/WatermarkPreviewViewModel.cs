@@ -61,9 +61,13 @@ public sealed partial class WatermarkPreviewViewModel : ObservableObject, IDispo
         Text = options.Text; UseImage = _image is not null;
         var color = options.Color;
         Color = $"#{color.R:X2}{color.G:X2}{color.B:X2}";
-        X = (decimal?)options.X?.ToPoints(); Y = (decimal?)options.Y?.ToPoints();
-        Width = (decimal)options.Width.ToPoints(); Height = (decimal)options.Height.ToPoints(); FontSize = (decimal)options.FontSize.ToPoints();
-        Rotation = (decimal)options.RotationDegrees; Opacity = (decimal)(options.Opacity * 100);
+        X = options.X is { } x ? OfficeDecimalConversion.FromDouble(x.ToPoints()) : null;
+        Y = options.Y is { } y ? OfficeDecimalConversion.FromDouble(y.ToPoints()) : null;
+        Width = OfficeDecimalConversion.FromDouble(options.Width.ToPoints());
+        Height = OfficeDecimalConversion.FromDouble(options.Height.ToPoints());
+        FontSize = OfficeDecimalConversion.FromDouble(options.FontSize.ToPoints());
+        Rotation = OfficeDecimalConversion.FromDouble(options.RotationDegrees);
+        Opacity = OfficeDecimalConversion.FromDouble(options.Opacity * 100);
         BehindContent = options.BehindContent;
         PageRange = options.TargetPages is null ? "" : string.Join(",", options.TargetPages.Resolve(PageCount));
         if (options.TargetPages is not null) {

@@ -22,9 +22,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             string resolvedStyleId = styleId!;
-            PresentationPart? presentationPart = (table.OwnerSlide?.SlidePart ?? table.RelationshipOwnerPart)?.GetParentParts()
-                .OfType<PresentationPart>()
-                .FirstOrDefault();
+            PresentationPart? presentationPart = (table.OwnerSlide?.SlidePart ?? table.RelationshipOwnerPart)?.GetParentPresentationPart();
             if (presentationPart != null) {
                 A.TableStyleEntry? packageStyle = FindTableStyle(presentationPart.TableStylesPart?.TableStyleList, resolvedStyleId);
                 if (packageStyle != null) {

@@ -1,0 +1,352 @@
+#nullable enable
+const OfficeIMO.Yaml.YamlLintRules.Comments = "comments" -> string!
+const OfficeIMO.Yaml.YamlLintRules.DocumentStart = "document-start" -> string!
+const OfficeIMO.Yaml.YamlLintRules.EmptyLines = "empty-lines" -> string!
+const OfficeIMO.Yaml.YamlLintRules.EmptyValues = "empty-values" -> string!
+const OfficeIMO.Yaml.YamlLintRules.Indentation = "indentation" -> string!
+const OfficeIMO.Yaml.YamlLintRules.KeyDuplicates = "key-duplicates" -> string!
+const OfficeIMO.Yaml.YamlLintRules.KeyOrdering = "key-ordering" -> string!
+const OfficeIMO.Yaml.YamlLintRules.LineLength = "line-length" -> string!
+const OfficeIMO.Yaml.YamlLintRules.NewLineAtEndOfFile = "new-line-at-end-of-file" -> string!
+const OfficeIMO.Yaml.YamlLintRules.OctalValues = "octal-values" -> string!
+const OfficeIMO.Yaml.YamlLintRules.QuotedStrings = "quoted-strings" -> string!
+const OfficeIMO.Yaml.YamlLintRules.Syntax = "syntax" -> string!
+const OfficeIMO.Yaml.YamlLintRules.Tabs = "tabs" -> string!
+const OfficeIMO.Yaml.YamlLintRules.TrailingSpaces = "trailing-spaces" -> string!
+const OfficeIMO.Yaml.YamlLintRules.Truthy = "truthy" -> string!
+OfficeIMO.Yaml.YamlFormatOptions
+OfficeIMO.Yaml.YamlFormatOptions.FinalNewline.get -> bool
+OfficeIMO.Yaml.YamlFormatOptions.FinalNewline.set -> void
+OfficeIMO.Yaml.YamlFormatOptions.IndentWidth.get -> int?
+OfficeIMO.Yaml.YamlFormatOptions.IndentWidth.set -> void
+OfficeIMO.Yaml.YamlFormatOptions.LineEnding.get -> OfficeIMO.Yaml.YamlLineEnding
+OfficeIMO.Yaml.YamlFormatOptions.LineEnding.set -> void
+OfficeIMO.Yaml.YamlFormatOptions.Quotes.get -> OfficeIMO.Yaml.YamlQuoteStyle
+OfficeIMO.Yaml.YamlFormatOptions.Quotes.set -> void
+OfficeIMO.Yaml.YamlFormatOptions.SequenceIndentation.get -> OfficeIMO.Yaml.YamlSequenceIndentation
+OfficeIMO.Yaml.YamlFormatOptions.SequenceIndentation.set -> void
+OfficeIMO.Yaml.YamlFormatOptions.YamlFormatOptions() -> void
+OfficeIMO.Yaml.YamlFormatter
+OfficeIMO.Yaml.YamlLineEnding
+OfficeIMO.Yaml.YamlLineEnding.CrLf = 2 -> OfficeIMO.Yaml.YamlLineEnding
+OfficeIMO.Yaml.YamlLineEnding.Lf = 1 -> OfficeIMO.Yaml.YamlLineEnding
+OfficeIMO.Yaml.YamlLineEnding.Preserve = 0 -> OfficeIMO.Yaml.YamlLineEnding
+OfficeIMO.Yaml.YamlLintCommentsOptions
+OfficeIMO.Yaml.YamlLintCommentsOptions.IgnoreShebangs.get -> bool
+OfficeIMO.Yaml.YamlLintCommentsOptions.IgnoreShebangs.set -> void
+OfficeIMO.Yaml.YamlLintCommentsOptions.MinSpacesFromContent.get -> int
+OfficeIMO.Yaml.YamlLintCommentsOptions.MinSpacesFromContent.set -> void
+OfficeIMO.Yaml.YamlLintCommentsOptions.RequireStartingSpace.get -> bool
+OfficeIMO.Yaml.YamlLintCommentsOptions.RequireStartingSpace.set -> void
+OfficeIMO.Yaml.YamlLintDocumentStartOptions
+OfficeIMO.Yaml.YamlLintDocumentStartOptions.Present.get -> bool
+OfficeIMO.Yaml.YamlLintDocumentStartOptions.Present.set -> void
+OfficeIMO.Yaml.YamlLintEmptyLinesOptions
+OfficeIMO.Yaml.YamlLintEmptyLinesOptions.Max.get -> int
+OfficeIMO.Yaml.YamlLintEmptyLinesOptions.Max.set -> void
+OfficeIMO.Yaml.YamlLintEmptyLinesOptions.MaxEnd.get -> int
+OfficeIMO.Yaml.YamlLintEmptyLinesOptions.MaxEnd.set -> void
+OfficeIMO.Yaml.YamlLintEmptyLinesOptions.MaxStart.get -> int
+OfficeIMO.Yaml.YamlLintEmptyLinesOptions.MaxStart.set -> void
+OfficeIMO.Yaml.YamlLintEmptyValuesOptions
+OfficeIMO.Yaml.YamlLintEmptyValuesOptions.ForbidInBlockMappings.get -> bool
+OfficeIMO.Yaml.YamlLintEmptyValuesOptions.ForbidInBlockMappings.set -> void
+OfficeIMO.Yaml.YamlLintEmptyValuesOptions.ForbidInBlockSequences.get -> bool
+OfficeIMO.Yaml.YamlLintEmptyValuesOptions.ForbidInBlockSequences.set -> void
+OfficeIMO.Yaml.YamlLintEmptyValuesOptions.ForbidInFlowMappings.get -> bool
+OfficeIMO.Yaml.YamlLintEmptyValuesOptions.ForbidInFlowMappings.set -> void
+OfficeIMO.Yaml.YamlLinter
+OfficeIMO.Yaml.YamlLintFinding
+OfficeIMO.Yaml.YamlLintFinding.Column.get -> int
+OfficeIMO.Yaml.YamlLintFinding.Fix.get -> OfficeIMO.Yaml.YamlLintFix?
+OfficeIMO.Yaml.YamlLintFinding.Line.get -> int
+OfficeIMO.Yaml.YamlLintFinding.Message.get -> string!
+OfficeIMO.Yaml.YamlLintFinding.Position.get -> OfficeIMO.Yaml.YamlPosition
+OfficeIMO.Yaml.YamlLintFinding.RuleId.get -> string!
+OfficeIMO.Yaml.YamlLintFinding.Severity.get -> OfficeIMO.OfficeDiagnosticSeverity
+OfficeIMO.Yaml.YamlLintFix
+OfficeIMO.Yaml.YamlLintFix.Length.get -> int
+OfficeIMO.Yaml.YamlLintFix.Offset.get -> int
+OfficeIMO.Yaml.YamlLintFix.Replacement.get -> string!
+OfficeIMO.Yaml.YamlLintFixResult
+OfficeIMO.Yaml.YamlLintFixResult.Applied.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Yaml.YamlLintFinding!>!
+OfficeIMO.Yaml.YamlLintFixResult.Changed.get -> bool
+OfficeIMO.Yaml.YamlLintFixResult.Remaining.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Yaml.YamlLintFinding!>!
+OfficeIMO.Yaml.YamlLintFixResult.Text.get -> string!
+OfficeIMO.Yaml.YamlLintIndentationOptions
+OfficeIMO.Yaml.YamlLintIndentationOptions.Sequences.get -> OfficeIMO.Yaml.YamlLintSequenceIndentation
+OfficeIMO.Yaml.YamlLintIndentationOptions.Sequences.set -> void
+OfficeIMO.Yaml.YamlLintIndentationOptions.Spaces.get -> int?
+OfficeIMO.Yaml.YamlLintIndentationOptions.Spaces.set -> void
+OfficeIMO.Yaml.YamlLintLineLengthOptions
+OfficeIMO.Yaml.YamlLintLineLengthOptions.AllowNonBreakableInlineMappings.get -> bool
+OfficeIMO.Yaml.YamlLintLineLengthOptions.AllowNonBreakableInlineMappings.set -> void
+OfficeIMO.Yaml.YamlLintLineLengthOptions.AllowNonBreakableWords.get -> bool
+OfficeIMO.Yaml.YamlLintLineLengthOptions.AllowNonBreakableWords.set -> void
+OfficeIMO.Yaml.YamlLintLineLengthOptions.Max.get -> int
+OfficeIMO.Yaml.YamlLintLineLengthOptions.Max.set -> void
+OfficeIMO.Yaml.YamlLintOctalValuesOptions
+OfficeIMO.Yaml.YamlLintOctalValuesOptions.ForbidExplicitOctal.get -> bool
+OfficeIMO.Yaml.YamlLintOctalValuesOptions.ForbidExplicitOctal.set -> void
+OfficeIMO.Yaml.YamlLintOctalValuesOptions.ForbidImplicitOctal.get -> bool
+OfficeIMO.Yaml.YamlLintOctalValuesOptions.ForbidImplicitOctal.set -> void
+OfficeIMO.Yaml.YamlLintOptions
+OfficeIMO.Yaml.YamlLintOptions.Comments.get -> OfficeIMO.Yaml.YamlLintCommentsOptions!
+OfficeIMO.Yaml.YamlLintOptions.DocumentStart.get -> OfficeIMO.Yaml.YamlLintDocumentStartOptions!
+OfficeIMO.Yaml.YamlLintOptions.EmptyLines.get -> OfficeIMO.Yaml.YamlLintEmptyLinesOptions!
+OfficeIMO.Yaml.YamlLintOptions.EmptyValues.get -> OfficeIMO.Yaml.YamlLintEmptyValuesOptions!
+OfficeIMO.Yaml.YamlLintOptions.GetRule(string! ruleId) -> OfficeIMO.Yaml.YamlLintRuleOptions?
+OfficeIMO.Yaml.YamlLintOptions.Indentation.get -> OfficeIMO.Yaml.YamlLintIndentationOptions!
+OfficeIMO.Yaml.YamlLintOptions.KeyDuplicates.get -> OfficeIMO.Yaml.YamlLintRuleOptions!
+OfficeIMO.Yaml.YamlLintOptions.KeyOrdering.get -> OfficeIMO.Yaml.YamlLintRuleOptions!
+OfficeIMO.Yaml.YamlLintOptions.LineLength.get -> OfficeIMO.Yaml.YamlLintLineLengthOptions!
+OfficeIMO.Yaml.YamlLintOptions.LoadOptions.get -> OfficeIMO.Yaml.YamlLoadOptions?
+OfficeIMO.Yaml.YamlLintOptions.LoadOptions.set -> void
+OfficeIMO.Yaml.YamlLintOptions.NewLineAtEndOfFile.get -> OfficeIMO.Yaml.YamlLintRuleOptions!
+OfficeIMO.Yaml.YamlLintOptions.OctalValues.get -> OfficeIMO.Yaml.YamlLintOctalValuesOptions!
+OfficeIMO.Yaml.YamlLintOptions.QuotedStrings.get -> OfficeIMO.Yaml.YamlLintQuotedStringsOptions!
+OfficeIMO.Yaml.YamlLintOptions.Rules.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Yaml.YamlLintRuleOptions!>!
+OfficeIMO.Yaml.YamlLintOptions.Tabs.get -> OfficeIMO.Yaml.YamlLintRuleOptions!
+OfficeIMO.Yaml.YamlLintOptions.TrailingSpaces.get -> OfficeIMO.Yaml.YamlLintRuleOptions!
+OfficeIMO.Yaml.YamlLintOptions.Truthy.get -> OfficeIMO.Yaml.YamlLintTruthyOptions!
+OfficeIMO.Yaml.YamlLintOptions.YamlLintOptions() -> void
+OfficeIMO.Yaml.YamlLintQuotedStringsOptions
+OfficeIMO.Yaml.YamlLintQuotedStringsOptions.CheckKeys.get -> bool
+OfficeIMO.Yaml.YamlLintQuotedStringsOptions.CheckKeys.set -> void
+OfficeIMO.Yaml.YamlLintQuotedStringsOptions.QuoteType.get -> OfficeIMO.Yaml.YamlLintQuoteType
+OfficeIMO.Yaml.YamlLintQuotedStringsOptions.QuoteType.set -> void
+OfficeIMO.Yaml.YamlLintQuotedStringsOptions.Required.get -> OfficeIMO.Yaml.YamlLintQuoteRequirement
+OfficeIMO.Yaml.YamlLintQuotedStringsOptions.Required.set -> void
+OfficeIMO.Yaml.YamlLintQuoteRequirement
+OfficeIMO.Yaml.YamlLintQuoteRequirement.Always = 0 -> OfficeIMO.Yaml.YamlLintQuoteRequirement
+OfficeIMO.Yaml.YamlLintQuoteRequirement.OnlyWhenNeeded = 2 -> OfficeIMO.Yaml.YamlLintQuoteRequirement
+OfficeIMO.Yaml.YamlLintQuoteRequirement.Optional = 1 -> OfficeIMO.Yaml.YamlLintQuoteRequirement
+OfficeIMO.Yaml.YamlLintQuoteType
+OfficeIMO.Yaml.YamlLintQuoteType.Any = 0 -> OfficeIMO.Yaml.YamlLintQuoteType
+OfficeIMO.Yaml.YamlLintQuoteType.Double = 2 -> OfficeIMO.Yaml.YamlLintQuoteType
+OfficeIMO.Yaml.YamlLintQuoteType.Single = 1 -> OfficeIMO.Yaml.YamlLintQuoteType
+OfficeIMO.Yaml.YamlLintRuleOptions
+OfficeIMO.Yaml.YamlLintRuleOptions.Enabled.get -> bool
+OfficeIMO.Yaml.YamlLintRuleOptions.Enabled.set -> void
+OfficeIMO.Yaml.YamlLintRuleOptions.Id.get -> string!
+OfficeIMO.Yaml.YamlLintRuleOptions.Severity.get -> OfficeIMO.OfficeDiagnosticSeverity
+OfficeIMO.Yaml.YamlLintRuleOptions.Severity.set -> void
+OfficeIMO.Yaml.YamlLintRules
+OfficeIMO.Yaml.YamlLintSequenceIndentation
+OfficeIMO.Yaml.YamlLintSequenceIndentation.Any = 3 -> OfficeIMO.Yaml.YamlLintSequenceIndentation
+OfficeIMO.Yaml.YamlLintSequenceIndentation.Consistent = 0 -> OfficeIMO.Yaml.YamlLintSequenceIndentation
+OfficeIMO.Yaml.YamlLintSequenceIndentation.Indented = 1 -> OfficeIMO.Yaml.YamlLintSequenceIndentation
+OfficeIMO.Yaml.YamlLintSequenceIndentation.NotIndented = 2 -> OfficeIMO.Yaml.YamlLintSequenceIndentation
+OfficeIMO.Yaml.YamlLintTruthyOptions
+OfficeIMO.Yaml.YamlLintTruthyOptions.AllowedValues.get -> System.Collections.Generic.ISet<string!>!
+OfficeIMO.Yaml.YamlLintTruthyOptions.CheckKeys.get -> bool
+OfficeIMO.Yaml.YamlLintTruthyOptions.CheckKeys.set -> void
+OfficeIMO.Yaml.YamlLoadOptions.Strict.get -> bool
+OfficeIMO.Yaml.YamlLoadOptions.Strict.set -> void
+OfficeIMO.Yaml.YamlQuoteStyle
+OfficeIMO.Yaml.YamlQuoteStyle.Double = 2 -> OfficeIMO.Yaml.YamlQuoteStyle
+OfficeIMO.Yaml.YamlQuoteStyle.Preserve = 0 -> OfficeIMO.Yaml.YamlQuoteStyle
+OfficeIMO.Yaml.YamlQuoteStyle.Single = 1 -> OfficeIMO.Yaml.YamlQuoteStyle
+OfficeIMO.Yaml.YamlReader.Diagnostics.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeDiagnostic!>!
+OfficeIMO.Yaml.YamlReaderOptions.Strict.get -> bool
+OfficeIMO.Yaml.YamlReaderOptions.Strict.set -> void
+OfficeIMO.Yaml.YamlReader.Schema.get -> OfficeIMO.Yaml.YamlSchema
+OfficeIMO.Yaml.YamlDocument.Merge(OfficeIMO.Yaml.YamlDocument! overlay, OfficeIMO.Yaml.YamlMergeOptions? options = null) -> OfficeIMO.Yaml.YamlMergeReport!
+OfficeIMO.Yaml.YamlMapping.Merge(OfficeIMO.Yaml.YamlMapping! overlay, OfficeIMO.Yaml.YamlMergeOptions? options = null) -> OfficeIMO.Yaml.YamlMergeReport!
+OfficeIMO.Yaml.YamlMergeOptions
+OfficeIMO.Yaml.YamlMergeOptions.NullRemovesKey.get -> bool
+OfficeIMO.Yaml.YamlMergeOptions.NullRemovesKey.set -> void
+OfficeIMO.Yaml.YamlMergeOptions.Sequences.get -> OfficeIMO.Yaml.YamlSequenceMerge!
+OfficeIMO.Yaml.YamlMergeOptions.Sequences.set -> void
+OfficeIMO.Yaml.YamlMergeOptions.YamlMergeOptions() -> void
+OfficeIMO.Yaml.YamlMergeReport
+OfficeIMO.Yaml.YamlMergeReport.Added.get -> System.Collections.Generic.IReadOnlyList<string!>!
+OfficeIMO.Yaml.YamlMergeReport.Diagnostics.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeDiagnostic!>!
+OfficeIMO.Yaml.YamlMergeReport.Removed.get -> System.Collections.Generic.IReadOnlyList<string!>!
+OfficeIMO.Yaml.YamlMergeReport.Replaced.get -> System.Collections.Generic.IReadOnlyList<string!>!
+OfficeIMO.Yaml.YamlSequenceIndentation
+OfficeIMO.Yaml.YamlSequenceIndentation.Compact = 1 -> OfficeIMO.Yaml.YamlSequenceIndentation
+OfficeIMO.Yaml.YamlSequenceIndentation.Indented = 2 -> OfficeIMO.Yaml.YamlSequenceIndentation
+OfficeIMO.Yaml.YamlSequenceIndentation.Preserve = 0 -> OfficeIMO.Yaml.YamlSequenceIndentation
+OfficeIMO.Yaml.YamlSequenceMerge
+override OfficeIMO.Yaml.YamlLintFinding.ToString() -> string!
+static OfficeIMO.Yaml.YamlFormatter.Format(OfficeIMO.Yaml.YamlDocument! document, OfficeIMO.Yaml.YamlFormatOptions? options) -> string!
+static OfficeIMO.Yaml.YamlFormatter.Format(string! yaml, OfficeIMO.Yaml.YamlFormatOptions? options = null, OfficeIMO.Yaml.YamlLoadOptions? loadOptions = null) -> string!
+static OfficeIMO.Yaml.YamlLinter.Fix(string! yaml, OfficeIMO.Yaml.YamlLintOptions? options = null) -> OfficeIMO.Yaml.YamlLintFixResult!
+static OfficeIMO.Yaml.YamlLinter.Lint(string! yaml, OfficeIMO.Yaml.YamlLintOptions? options = null) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Yaml.YamlLintFinding!>!
+static OfficeIMO.Yaml.YamlSequenceMerge.Append.get -> OfficeIMO.Yaml.YamlSequenceMerge!
+static OfficeIMO.Yaml.YamlSequenceMerge.MergeByKey(string! keyName) -> OfficeIMO.Yaml.YamlSequenceMerge!
+static OfficeIMO.Yaml.YamlSequenceMerge.Replace.get -> OfficeIMO.Yaml.YamlSequenceMerge!
+OfficeIMO.Yaml.IYamlTypeInfoResolver
+OfficeIMO.Yaml.IYamlTypeInfoResolver.GetTypeInfo(System.Type! type, OfficeIMO.Yaml.YamlSerializerOptions! options) -> OfficeIMO.Yaml.YamlTypeInfo?
+OfficeIMO.Yaml.YamlMetadataServices
+OfficeIMO.Yaml.YamlObjectInfoValues<T>
+OfficeIMO.Yaml.YamlObjectInfoValues<T>.ConstructorParameterMetadataInitializer.get -> System.Func<OfficeIMO.Yaml.YamlParameterInfoValues![]!>?
+OfficeIMO.Yaml.YamlObjectInfoValues<T>.ConstructorParameterMetadataInitializer.set -> void
+OfficeIMO.Yaml.YamlObjectInfoValues<T>.DerivedTypes.get -> OfficeIMO.OfficeDerivedTypeAttribute![]?
+OfficeIMO.Yaml.YamlObjectInfoValues<T>.DerivedTypes.set -> void
+OfficeIMO.Yaml.YamlObjectInfoValues<T>.DiscriminatorPropertyName.get -> string?
+OfficeIMO.Yaml.YamlObjectInfoValues<T>.DiscriminatorPropertyName.set -> void
+OfficeIMO.Yaml.YamlObjectInfoValues<T>.ObjectCreator.get -> System.Func<T>?
+OfficeIMO.Yaml.YamlObjectInfoValues<T>.ObjectCreator.set -> void
+OfficeIMO.Yaml.YamlObjectInfoValues<T>.ObjectWithParameterizedConstructorCreator.get -> System.Func<object?[]!, T>?
+OfficeIMO.Yaml.YamlObjectInfoValues<T>.ObjectWithParameterizedConstructorCreator.set -> void
+OfficeIMO.Yaml.YamlObjectInfoValues<T>.PropertyMetadataInitializer.get -> System.Func<OfficeIMO.Yaml.YamlSerializerOptions!, OfficeIMO.Yaml.YamlPropertyInfo![]!>?
+OfficeIMO.Yaml.YamlObjectInfoValues<T>.PropertyMetadataInitializer.set -> void
+OfficeIMO.Yaml.YamlObjectInfoValues<T>.YamlObjectInfoValues() -> void
+OfficeIMO.Yaml.YamlParameterInfoValues
+OfficeIMO.Yaml.YamlParameterInfoValues.DefaultValue.get -> object?
+OfficeIMO.Yaml.YamlParameterInfoValues.DefaultValue.set -> void
+OfficeIMO.Yaml.YamlParameterInfoValues.Name.get -> string!
+OfficeIMO.Yaml.YamlParameterInfoValues.Name.set -> void
+OfficeIMO.Yaml.YamlParameterInfoValues.ParameterType.get -> System.Type!
+OfficeIMO.Yaml.YamlParameterInfoValues.ParameterType.set -> void
+OfficeIMO.Yaml.YamlParameterInfoValues.Position.get -> int
+OfficeIMO.Yaml.YamlParameterInfoValues.Position.set -> void
+OfficeIMO.Yaml.YamlParameterInfoValues.YamlParameterInfoValues() -> void
+OfficeIMO.Yaml.YamlPropertyInfo
+OfficeIMO.Yaml.YamlPropertyInfoValues<T>
+OfficeIMO.Yaml.YamlPropertyInfoValues<T>.Getter.get -> System.Func<object!, T>?
+OfficeIMO.Yaml.YamlPropertyInfoValues<T>.Getter.set -> void
+OfficeIMO.Yaml.YamlPropertyInfoValues<T>.IgnoreCondition.get -> OfficeIMO.OfficeIgnoreCondition?
+OfficeIMO.Yaml.YamlPropertyInfoValues<T>.IgnoreCondition.set -> void
+OfficeIMO.Yaml.YamlPropertyInfoValues<T>.IsRequired.get -> bool
+OfficeIMO.Yaml.YamlPropertyInfoValues<T>.IsRequired.set -> void
+OfficeIMO.Yaml.YamlPropertyInfoValues<T>.Name.get -> string!
+OfficeIMO.Yaml.YamlPropertyInfoValues<T>.Name.set -> void
+OfficeIMO.Yaml.YamlPropertyInfoValues<T>.Setter.get -> System.Action<object!, T>?
+OfficeIMO.Yaml.YamlPropertyInfoValues<T>.Setter.set -> void
+OfficeIMO.Yaml.YamlPropertyInfoValues<T>.YamlName.get -> string?
+OfficeIMO.Yaml.YamlPropertyInfoValues<T>.YamlName.set -> void
+OfficeIMO.Yaml.YamlPropertyInfoValues<T>.YamlPropertyInfoValues() -> void
+OfficeIMO.Yaml.YamlReferenceHandling
+OfficeIMO.Yaml.YamlReferenceHandling.None = 0 -> OfficeIMO.Yaml.YamlReferenceHandling
+OfficeIMO.Yaml.YamlReferenceHandling.Preserve = 1 -> OfficeIMO.Yaml.YamlReferenceHandling
+OfficeIMO.Yaml.YamlSerializableAttribute
+OfficeIMO.Yaml.YamlSerializableAttribute.Type.get -> System.Type!
+OfficeIMO.Yaml.YamlSerializableAttribute.YamlSerializableAttribute(System.Type! type) -> void
+OfficeIMO.Yaml.YamlSerializer
+OfficeIMO.Yaml.YamlSerializerContext
+OfficeIMO.Yaml.YamlSerializerContext.GetTypeInfo(System.Type! type) -> OfficeIMO.Yaml.YamlTypeInfo?
+OfficeIMO.Yaml.YamlSerializerContext.Options.get -> OfficeIMO.Yaml.YamlSerializerOptions!
+OfficeIMO.Yaml.YamlSerializerContext.YamlSerializerContext(OfficeIMO.Yaml.YamlSerializerOptions? options) -> void
+OfficeIMO.Yaml.YamlSerializerOptions
+OfficeIMO.Yaml.YamlSerializerOptions.CopyAliases.get -> bool
+OfficeIMO.Yaml.YamlSerializerOptions.CopyAliases.set -> void
+OfficeIMO.Yaml.YamlSerializerOptions.DefaultIgnoreCondition.get -> OfficeIMO.OfficeIgnoreCondition
+OfficeIMO.Yaml.YamlSerializerOptions.DefaultIgnoreCondition.set -> void
+OfficeIMO.Yaml.YamlSerializerOptions.GetTypeInfo(System.Type! type) -> OfficeIMO.Yaml.YamlTypeInfo!
+OfficeIMO.Yaml.YamlSerializerOptions.IsReadOnly.get -> bool
+OfficeIMO.Yaml.YamlSerializerOptions.PropertyNamingPolicy.get -> OfficeIMO.OfficeNamingPolicy?
+OfficeIMO.Yaml.YamlSerializerOptions.PropertyNamingPolicy.set -> void
+OfficeIMO.Yaml.YamlSerializerOptions.ReaderOptions.get -> OfficeIMO.Yaml.YamlReaderOptions?
+OfficeIMO.Yaml.YamlSerializerOptions.ReaderOptions.set -> void
+OfficeIMO.Yaml.YamlSerializerOptions.ReferenceHandling.get -> OfficeIMO.Yaml.YamlReferenceHandling
+OfficeIMO.Yaml.YamlSerializerOptions.ReferenceHandling.set -> void
+OfficeIMO.Yaml.YamlSerializerOptions.TypeInfoResolver.get -> OfficeIMO.Yaml.IYamlTypeInfoResolver?
+OfficeIMO.Yaml.YamlSerializerOptions.TypeInfoResolver.set -> void
+OfficeIMO.Yaml.YamlSerializerOptions.WriterOptions.get -> OfficeIMO.Yaml.YamlWriterOptions?
+OfficeIMO.Yaml.YamlSerializerOptions.WriterOptions.set -> void
+OfficeIMO.Yaml.YamlSerializerOptions.YamlSerializerOptions() -> void
+OfficeIMO.Yaml.YamlSerializerOptions.YamlSerializerOptions(OfficeIMO.Yaml.YamlSerializerOptions! options) -> void
+OfficeIMO.Yaml.YamlTypeInfo
+OfficeIMO.Yaml.YamlTypeInfo.Options.get -> OfficeIMO.Yaml.YamlSerializerOptions!
+OfficeIMO.Yaml.YamlTypeInfo.Type.get -> System.Type!
+OfficeIMO.Yaml.YamlTypeInfo<T>
+abstract OfficeIMO.Yaml.YamlSerializerContext.CreateTypeInfo(System.Type! type, OfficeIMO.Yaml.YamlSerializerOptions! options) -> OfficeIMO.Yaml.YamlTypeInfo?
+const OfficeIMO.Yaml.YamlErrorCodes.MissingRequiredMember = "Yaml.Serialization.MissingRequiredMember" -> string!
+const OfficeIMO.Yaml.YamlErrorCodes.ReferenceCycle = "Yaml.Serialization.ReferenceCycle" -> string!
+const OfficeIMO.Yaml.YamlErrorCodes.TypeMismatch = "Yaml.Serialization.TypeMismatch" -> string!
+const OfficeIMO.Yaml.YamlErrorCodes.UnknownDiscriminator = "Yaml.Serialization.UnknownDiscriminator" -> string!
+static OfficeIMO.Yaml.YamlMetadataServices.CreateCollectionInfo<TCollection, TElement>(OfficeIMO.Yaml.YamlSerializerOptions! options, System.Func<System.Collections.Generic.List<TElement>!, TCollection>! finish) -> OfficeIMO.Yaml.YamlTypeInfo<TCollection>!
+static OfficeIMO.Yaml.YamlMetadataServices.CreateDictionaryInfo<TDictionary, TKey, TValue>(OfficeIMO.Yaml.YamlSerializerOptions! options, System.Func<System.Collections.Generic.Dictionary<TKey, TValue>!, TDictionary>! finish) -> OfficeIMO.Yaml.YamlTypeInfo<TDictionary>!
+static OfficeIMO.Yaml.YamlMetadataServices.CreateEnumInfo<T>(OfficeIMO.Yaml.YamlSerializerOptions! options) -> OfficeIMO.Yaml.YamlTypeInfo<T>!
+static OfficeIMO.Yaml.YamlMetadataServices.CreateNullableInfo<T>(OfficeIMO.Yaml.YamlSerializerOptions! options) -> OfficeIMO.Yaml.YamlTypeInfo<T?>!
+static OfficeIMO.Yaml.YamlMetadataServices.CreateObjectInfo<T>(OfficeIMO.Yaml.YamlSerializerOptions! options, OfficeIMO.Yaml.YamlObjectInfoValues<T>! values) -> OfficeIMO.Yaml.YamlTypeInfo<T>!
+static OfficeIMO.Yaml.YamlMetadataServices.CreatePropertyInfo<T>(OfficeIMO.Yaml.YamlSerializerOptions! options, OfficeIMO.Yaml.YamlPropertyInfoValues<T>! values) -> OfficeIMO.Yaml.YamlPropertyInfo!
+static OfficeIMO.Yaml.YamlReaderOptions.UntrustedDefaults.get -> OfficeIMO.Yaml.YamlReaderOptions!
+static OfficeIMO.Yaml.YamlSerializer.Deserialize(OfficeIMO.Yaml.YamlNode! node, System.Type! returnType, OfficeIMO.Yaml.YamlSerializerContext! context) -> object?
+static OfficeIMO.Yaml.YamlSerializer.Deserialize(OfficeIMO.Yaml.YamlNode! node, System.Type! returnType, OfficeIMO.Yaml.YamlSerializerOptions? options = null) -> object?
+static OfficeIMO.Yaml.YamlSerializer.Deserialize(OfficeIMO.Yaml.YamlReader! reader, System.Type! returnType, OfficeIMO.Yaml.YamlSerializerContext! context) -> object?
+static OfficeIMO.Yaml.YamlSerializer.Deserialize(OfficeIMO.Yaml.YamlReader! reader, System.Type! returnType, OfficeIMO.Yaml.YamlSerializerOptions? options = null) -> object?
+static OfficeIMO.Yaml.YamlSerializer.Deserialize(System.IO.Stream! utf8Yaml, System.Type! returnType, OfficeIMO.Yaml.YamlSerializerContext! context) -> object?
+static OfficeIMO.Yaml.YamlSerializer.Deserialize(System.IO.Stream! utf8Yaml, System.Type! returnType, OfficeIMO.Yaml.YamlSerializerOptions? options = null) -> object?
+static OfficeIMO.Yaml.YamlSerializer.Deserialize(System.IO.TextReader! reader, System.Type! returnType, OfficeIMO.Yaml.YamlSerializerContext! context) -> object?
+static OfficeIMO.Yaml.YamlSerializer.Deserialize(System.IO.TextReader! reader, System.Type! returnType, OfficeIMO.Yaml.YamlSerializerOptions? options = null) -> object?
+static OfficeIMO.Yaml.YamlSerializer.Deserialize(string! yaml, System.Type! returnType, OfficeIMO.Yaml.YamlSerializerContext! context) -> object?
+static OfficeIMO.Yaml.YamlSerializer.Deserialize(string! yaml, System.Type! returnType, OfficeIMO.Yaml.YamlSerializerOptions? options = null) -> object?
+static OfficeIMO.Yaml.YamlSerializer.Deserialize<T>(OfficeIMO.Yaml.YamlNode! node, OfficeIMO.Yaml.YamlSerializerOptions? options = null) -> T?
+static OfficeIMO.Yaml.YamlSerializer.Deserialize<T>(OfficeIMO.Yaml.YamlNode! node, OfficeIMO.Yaml.YamlTypeInfo<T>! typeInfo) -> T?
+static OfficeIMO.Yaml.YamlSerializer.Deserialize<T>(OfficeIMO.Yaml.YamlReader! reader, OfficeIMO.Yaml.YamlSerializerOptions? options = null) -> T?
+static OfficeIMO.Yaml.YamlSerializer.Deserialize<T>(OfficeIMO.Yaml.YamlReader! reader, OfficeIMO.Yaml.YamlTypeInfo<T>! typeInfo) -> T?
+static OfficeIMO.Yaml.YamlSerializer.Deserialize<T>(System.IO.Stream! utf8Yaml, OfficeIMO.Yaml.YamlSerializerOptions? options = null) -> T?
+static OfficeIMO.Yaml.YamlSerializer.Deserialize<T>(System.IO.Stream! utf8Yaml, OfficeIMO.Yaml.YamlTypeInfo<T>! typeInfo) -> T?
+static OfficeIMO.Yaml.YamlSerializer.Deserialize<T>(System.IO.TextReader! reader, OfficeIMO.Yaml.YamlSerializerOptions? options = null) -> T?
+static OfficeIMO.Yaml.YamlSerializer.Deserialize<T>(System.IO.TextReader! reader, OfficeIMO.Yaml.YamlTypeInfo<T>! typeInfo) -> T?
+static OfficeIMO.Yaml.YamlSerializer.Deserialize<T>(string! yaml, OfficeIMO.Yaml.YamlSerializerOptions? options = null) -> T?
+static OfficeIMO.Yaml.YamlSerializer.Deserialize<T>(string! yaml, OfficeIMO.Yaml.YamlTypeInfo<T>! typeInfo) -> T?
+static OfficeIMO.Yaml.YamlSerializer.Serialize(OfficeIMO.Yaml.YamlWriter! writer, object? value, System.Type! inputType, OfficeIMO.Yaml.YamlSerializerContext! context) -> void
+static OfficeIMO.Yaml.YamlSerializer.Serialize(OfficeIMO.Yaml.YamlWriter! writer, object? value, System.Type! inputType, OfficeIMO.Yaml.YamlSerializerOptions? options = null) -> void
+static OfficeIMO.Yaml.YamlSerializer.Serialize(System.IO.Stream! utf8Yaml, object? value, System.Type! inputType, OfficeIMO.Yaml.YamlSerializerContext! context) -> void
+static OfficeIMO.Yaml.YamlSerializer.Serialize(System.IO.Stream! utf8Yaml, object? value, System.Type! inputType, OfficeIMO.Yaml.YamlSerializerOptions? options = null) -> void
+static OfficeIMO.Yaml.YamlSerializer.Serialize(System.IO.TextWriter! writer, object? value, System.Type! inputType, OfficeIMO.Yaml.YamlSerializerContext! context) -> void
+static OfficeIMO.Yaml.YamlSerializer.Serialize(System.IO.TextWriter! writer, object? value, System.Type! inputType, OfficeIMO.Yaml.YamlSerializerOptions? options = null) -> void
+static OfficeIMO.Yaml.YamlSerializer.Serialize(object? value, System.Type! inputType, OfficeIMO.Yaml.YamlSerializerContext! context) -> string!
+static OfficeIMO.Yaml.YamlSerializer.Serialize(object? value, System.Type! inputType, OfficeIMO.Yaml.YamlSerializerOptions? options = null) -> string!
+static OfficeIMO.Yaml.YamlSerializer.Serialize<T>(OfficeIMO.Yaml.YamlWriter! writer, T value, OfficeIMO.Yaml.YamlSerializerOptions? options = null) -> void
+static OfficeIMO.Yaml.YamlSerializer.Serialize<T>(OfficeIMO.Yaml.YamlWriter! writer, T value, OfficeIMO.Yaml.YamlTypeInfo<T>! typeInfo) -> void
+static OfficeIMO.Yaml.YamlSerializer.Serialize<T>(System.IO.Stream! utf8Yaml, T value, OfficeIMO.Yaml.YamlSerializerOptions? options = null) -> void
+static OfficeIMO.Yaml.YamlSerializer.Serialize<T>(System.IO.Stream! utf8Yaml, T value, OfficeIMO.Yaml.YamlTypeInfo<T>! typeInfo) -> void
+static OfficeIMO.Yaml.YamlSerializer.Serialize<T>(System.IO.TextWriter! writer, T value, OfficeIMO.Yaml.YamlSerializerOptions? options = null) -> void
+static OfficeIMO.Yaml.YamlSerializer.Serialize<T>(System.IO.TextWriter! writer, T value, OfficeIMO.Yaml.YamlTypeInfo<T>! typeInfo) -> void
+static OfficeIMO.Yaml.YamlSerializer.Serialize<T>(T value, OfficeIMO.Yaml.YamlSerializerOptions? options = null) -> string!
+static OfficeIMO.Yaml.YamlSerializer.Serialize<T>(T value, OfficeIMO.Yaml.YamlTypeInfo<T>! typeInfo) -> string!
+static OfficeIMO.Yaml.YamlSerializer.SerializeToNode(object? value, System.Type! inputType, OfficeIMO.Yaml.YamlSerializerContext! context) -> OfficeIMO.Yaml.YamlNode!
+static OfficeIMO.Yaml.YamlSerializer.SerializeToNode(object? value, System.Type! inputType, OfficeIMO.Yaml.YamlSerializerOptions? options = null) -> OfficeIMO.Yaml.YamlNode!
+static OfficeIMO.Yaml.YamlSerializer.SerializeToNode<T>(T value, OfficeIMO.Yaml.YamlSerializerOptions? options = null) -> OfficeIMO.Yaml.YamlNode!
+static OfficeIMO.Yaml.YamlSerializer.SerializeToNode<T>(T value, OfficeIMO.Yaml.YamlTypeInfo<T>! typeInfo) -> OfficeIMO.Yaml.YamlNode!
+static OfficeIMO.Yaml.YamlSerializer.SerializeToUtf8Bytes(object? value, System.Type! inputType, OfficeIMO.Yaml.YamlSerializerContext! context) -> byte[]!
+static OfficeIMO.Yaml.YamlSerializer.SerializeToUtf8Bytes(object? value, System.Type! inputType, OfficeIMO.Yaml.YamlSerializerOptions? options = null) -> byte[]!
+static OfficeIMO.Yaml.YamlSerializer.SerializeToUtf8Bytes<T>(T value, OfficeIMO.Yaml.YamlSerializerOptions? options = null) -> byte[]!
+static OfficeIMO.Yaml.YamlSerializer.SerializeToUtf8Bytes<T>(T value, OfficeIMO.Yaml.YamlTypeInfo<T>! typeInfo) -> byte[]!
+static OfficeIMO.Yaml.YamlSerializerOptions.Default.get -> OfficeIMO.Yaml.YamlSerializerOptions!
+*REMOVED*OfficeIMO.Yaml.YamlLoadOptions.DuplicateKeys.get -> OfficeIMO.Yaml.YamlDuplicateKeyPolicy
+OfficeIMO.Yaml.YamlLoadOptions.DuplicateKeys.get -> OfficeIMO.Yaml.YamlDuplicateKeyPolicy?
+OfficeIMO.Yaml.YamlException.ToDiagnostic() -> OfficeIMO.OfficeDiagnostic!
+OfficeIMO.Yaml.YamlNode.IsModified.get -> bool
+OfficeIMO.Yaml.YamlDocumentPart.Comment.get -> string?
+OfficeIMO.Yaml.YamlDocumentPart.SetComment(string? text) -> OfficeIMO.Yaml.YamlDocumentPart!
+OfficeIMO.Yaml.YamlDocument.FilePath.get -> string?
+static OfficeIMO.Yaml.YamlDocument.Create(string! path) -> OfficeIMO.Yaml.YamlDocument!
+OfficeIMO.Yaml.YamlDialect
+OfficeIMO.Yaml.YamlDialect.Standard = 0 -> OfficeIMO.Yaml.YamlDialect
+OfficeIMO.Yaml.YamlDialect.Unity = 1 -> OfficeIMO.Yaml.YamlDialect
+OfficeIMO.Yaml.YamlDocumentPart.IsStripped.get -> bool
+OfficeIMO.Yaml.YamlLoadOptions.Dialect.get -> OfficeIMO.Yaml.YamlDialect
+OfficeIMO.Yaml.YamlLoadOptions.Dialect.set -> void
+OfficeIMO.Yaml.YamlReader.IsStripped.get -> bool
+OfficeIMO.Yaml.YamlReaderOptions.Dialect.get -> OfficeIMO.Yaml.YamlDialect
+OfficeIMO.Yaml.YamlReaderOptions.Dialect.set -> void
+OfficeIMO.Yaml.YamlDocument.Query(string! query) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Yaml.YamlQueryMatch!>!
+OfficeIMO.Yaml.YamlNode.Query(string! query) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Yaml.YamlQueryMatch!>!
+OfficeIMO.Yaml.YamlQueryMatch
+OfficeIMO.Yaml.YamlQueryMatch.Node.get -> OfficeIMO.Yaml.YamlNode!
+OfficeIMO.Yaml.YamlQueryMatch.Path.get -> string!
+override OfficeIMO.Yaml.YamlQueryMatch.ToString() -> string!
+OfficeIMO.Yaml.YamlDocument.ApplyJsonPatch(OfficeIMO.Yaml.YamlDocument! patch) -> OfficeIMO.Yaml.YamlPatchReport!
+OfficeIMO.Yaml.YamlDocument.ApplyJsonPatch(string! patch) -> OfficeIMO.Yaml.YamlPatchReport!
+OfficeIMO.Yaml.YamlDocument.ApplyMergePatch(OfficeIMO.Yaml.YamlDocument! patch) -> OfficeIMO.Yaml.YamlPatchReport!
+OfficeIMO.Yaml.YamlDocument.ApplyMergePatch(string! patch) -> OfficeIMO.Yaml.YamlPatchReport!
+OfficeIMO.Yaml.YamlPatchException
+OfficeIMO.Yaml.YamlPatchException.OperationIndex.get -> int
+OfficeIMO.Yaml.YamlPatchException.Path.get -> string?
+OfficeIMO.Yaml.YamlPatchReport
+OfficeIMO.Yaml.YamlPatchReport.Added.get -> System.Collections.Generic.IReadOnlyList<string!>!
+OfficeIMO.Yaml.YamlPatchReport.Diagnostics.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeDiagnostic!>!
+OfficeIMO.Yaml.YamlPatchReport.Removed.get -> System.Collections.Generic.IReadOnlyList<string!>!
+OfficeIMO.Yaml.YamlPatchReport.Replaced.get -> System.Collections.Generic.IReadOnlyList<string!>!
+OfficeIMO.Yaml.YamlDocument.ToJsonData() -> OfficeIMO.Json.JsonData!
+OfficeIMO.Yaml.YamlDocument.Validate(OfficeIMO.Json.JsonSchema! schema) -> OfficeIMO.Json.JsonSchemaValidationResult!
+OfficeIMO.Yaml.YamlDocumentPart.ToJsonData() -> OfficeIMO.Json.JsonData!
+OfficeIMO.Yaml.YamlDocumentPart.Validate(OfficeIMO.Json.JsonSchema! schema) -> OfficeIMO.Json.JsonSchemaValidationResult!
+OfficeIMO.Yaml.YamlNode.ToJsonData() -> OfficeIMO.Json.JsonData!

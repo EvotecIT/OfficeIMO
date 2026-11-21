@@ -101,7 +101,7 @@ Worksheet name, one-based position or native worksheet object. Multi-sheet comma
 ```yaml
 Type: OfficeSheetSelector
 Parameter Sets: Default
-Aliases: None
+Aliases: WorksheetName
 Possible values:
 
 Required: False

@@ -220,7 +220,7 @@ namespace OfficeIMO.Excel.Tests {
         }
 
         private static void AssertXmlNumericCultureValue(object value, double expected, bool numericAsDecimal) {
-            if (numericAsDecimal) Assert.Equal((decimal)expected, Assert.IsType<decimal>(value));
+            if (numericAsDecimal) Assert.Equal(OfficeDecimalConversion.FromDouble(expected), Assert.IsType<decimal>(value));
             else Assert.Equal(expected, Assert.IsType<double>(value));
         }
 

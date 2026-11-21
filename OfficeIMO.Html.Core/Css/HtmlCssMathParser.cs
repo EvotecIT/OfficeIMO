@@ -83,7 +83,7 @@ public static class HtmlCssMathParser {
         expression = null;
         if (text.Length == 0 || !TryNumericPrefix(text, out double number, out int numberLength)) return false;
         string suffix = text.Substring(numberLength);
-        string canonicalNumber = number.ToString("R", CultureInfo.InvariantCulture);
+        string canonicalNumber = OfficeIMO.OfficeRoundTripNumberText.Format(number, CultureInfo.InvariantCulture);
         if (suffix.Length == 0) {
             status = HtmlCssMathParseStatus.Parsed;
             expression = new HtmlCssMathExpression(HtmlCssMathExpressionKind.Literal,
@@ -212,7 +212,7 @@ public static class HtmlCssMathParser {
             HtmlCssToken token = Current;
             _position++;
             if (!TryTokenNumber(_source, token, out double number)) { result = null; return false; }
-            string canonicalNumber = number.ToString("R", CultureInfo.InvariantCulture);
+            string canonicalNumber = OfficeIMO.OfficeRoundTripNumberText.Format(number, CultureInfo.InvariantCulture);
             if (token.Kind == HtmlCssTokenKind.Number) {
                 result = new HtmlCssMathExpression(HtmlCssMathExpressionKind.Literal,
                     HtmlCssNumericType.Number, canonicalNumber, number);

@@ -20,13 +20,18 @@ public sealed class PdfSelectedComparisonCommandTests {
             int code = await OfficeImoToolApp.RunAsync(["workflow", "compare", first, second, "--output", cli,
                 "--expected-pages", "4,2", "--actual-pages", "3,2,1"], Stream.Null, stdout, stderr);
             Assert.Equal(0, code); Assert.Contains("Expected 4 / actual 3", File.ReadAllText(cli));
-            var transport = new StdioClientTransport(new() {
+            using (var cliResult = System.Text.Json.JsonDocument.Parse(stdout.ToArray())) {
+                Assert.Equal("officeimo.workflow.compare.v1", cliResult.RootElement.GetProperty("schema").GetString());
+                Assert.Equal(cli, cliResult.RootElement.GetProperty("outputPath").GetString());
+            }
+            var serverOptions = new StdioClientTransportOptions {
                 Name = "officeimo-compare-test", Command = "dotnet", Arguments = [typeof(OfficeImoToolApp).Assembly.Location, "mcp", "serve", "--stdio"],
                 WorkingDirectory = root,
                 EnvironmentVariables = new Dictionary<string, string?> { [AgentPathPolicy.AllowedRootsEnvironmentVariable] = root }
-            });
+            };
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(60));
-            await using var client = await McpClient.CreateAsync(transport, cancellationToken: timeout.Token);
+            await using McpTestServer server = await McpTestServer.StartAsync(serverOptions, timeout.Token);
+            McpClient client = server.Client;
             var inspectedExpected = await client.CallToolAsync("officeimo_inspect", new Dictionary<string, object?> { ["path"] = first }, cancellationToken: timeout.Token);
             var inspectedActual = await client.CallToolAsync("officeimo_inspect", new Dictionary<string, object?> { ["path"] = second }, cancellationToken: timeout.Token);
             string expectedId = inspectedExpected.StructuredContent!.Value.GetProperty("sourceId").GetString()!;

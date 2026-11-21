@@ -482,6 +482,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (UsesNormalImageLineMetrics(line, line.ParagraphStyle)) ResolveInlineSharedBaseline(line, line.ParagraphStyle, ref height);
                 else TryResolveTextOnlyLineMetrics(line, line.ParagraphStyle, ref height, out _, out _);
             }
+            // Vertically shifted inline boxes size the line as paint will; the next line starts below it.
+            if (line.ParagraphStyle != null && ResolveAlignedInlineLine(line, line.ParagraphStyle) is AlignedInlineLine aligned) {
+                line.AlignedMetrics = aligned;
+                height = aligned.Height;
+            }
             y = line.Y + height;
             if (line.HasFlowContent || includeEmpty) context.FirstLineIndent = 0D;
         }

@@ -106,16 +106,25 @@ public sealed class ReaderBatchDetailedTests {
     [Fact]
     public async Task AsCompletedBatchReportsOutcomesWithoutReturningAMaterializedCollection() {
         const string extension = ".readerbatchstream";
+        const int requiredConcurrentReads = 5;
         string root = Path.Combine(Path.GetTempPath(), "officeimo-reader-stream-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         string[] paths = Enumerable.Range(1, 8)
             .Select(index => Path.Combine(root, index.ToString("00") + extension))
             .ToArray();
+        string lastPath = paths[paths.Length - 1];
         foreach (string path in paths) File.WriteAllText(path, "input");
 
         try {
-            int activeReads = 0;
-            int peakReads = 0;
+            Assert.Equal(
+                typeof(Task),
+                typeof(OfficeDocumentReader).GetMethod(nameof(OfficeDocumentReader.ReadDocumentsAsCompletedAsync))!.ReturnType);
+
+            int startedReads = 0;
+            int lastReadFinished = 0;
+            int outcomesBeforeLastReadFinished = 0;
+            var concurrentReadsReached = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var firstOutcomeReported = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
                 .WithMaxConcurrentReads(6)
                 .AddHandler(new ReaderHandlerRegistration {
@@ -123,14 +132,20 @@ public sealed class ReaderBatchDetailedTests {
                     Kind = ReaderInputKind.Text,
                     Extensions = new[] { extension },
                     ReadDocumentPathAsync = async (path, options, cancellationToken) => {
-                        int active = Interlocked.Increment(ref activeReads);
-                        UpdateMaximum(ref peakReads, active);
-                        try {
-                            await Task.Delay(50, cancellationToken).ConfigureAwait(false);
-                            return CreateResult(path);
-                        } finally {
-                            Interlocked.Decrement(ref activeReads);
+                        if (Interlocked.Increment(ref startedReads) == requiredConcurrentReads) {
+                            concurrentReadsReached.TrySetResult(true);
                         }
+
+                        // The batch can only get past this point by running several reads at once.
+                        await WaitForSignalAsync(concurrentReadsReached.Task, $"{requiredConcurrentReads} reads never ran at the same time.").ConfigureAwait(false);
+
+                        if (string.Equals(path, lastPath, StringComparison.Ordinal)) {
+                            // The last read finishes only after a completed outcome has been reported.
+                            await WaitForSignalAsync(firstOutcomeReported.Task, "No outcome was reported while the batch was still reading.").ConfigureAwait(false);
+                            Volatile.Write(ref lastReadFinished, 1);
+                        }
+
+                        return CreateResult(path);
                     }
                 })
                 .Build();
@@ -138,7 +153,14 @@ public sealed class ReaderBatchDetailedTests {
 
             await reader.ReadDocumentsAsCompletedAsync(
                 paths,
-                completed.Add,
+                outcome => {
+                    if (Volatile.Read(ref lastReadFinished) == 0) {
+                        Interlocked.Increment(ref outcomesBeforeLastReadFinished);
+                    }
+
+                    completed.Add(outcome);
+                    firstOutcomeReported.TrySetResult(true);
+                },
                 batchOptions: new ReaderBatchOptions {
                     MaxDocuments = paths.Length,
                     MaxDegreeOfParallelism = 6
@@ -147,18 +169,18 @@ public sealed class ReaderBatchDetailedTests {
             Assert.Equal(paths.Length, completed.Count);
             Assert.All(completed, outcome => Assert.True(outcome.Succeeded));
             Assert.Equal(paths, completed.OrderBy(outcome => outcome.Index).Select(outcome => outcome.Path).ToArray());
-            Assert.True(peakReads >= 5, $"Expected at least five concurrent reads but observed {peakReads}.");
+            Assert.True(outcomesBeforeLastReadFinished > 0);
         } finally {
             Directory.Delete(root, recursive: true);
         }
     }
 
-    private static void UpdateMaximum(ref int target, int value) {
-        int current;
-        do {
-            current = Volatile.Read(ref target);
-            if (value <= current) return;
-        } while (Interlocked.CompareExchange(ref target, value, current) != current);
+    private static async Task WaitForSignalAsync(Task signal, string failureMessage) {
+        // Guards against a hang only; reaching the signal is what the test checks, not how fast.
+        Task finished = await Task.WhenAny(signal, Task.Delay(TimeSpan.FromMinutes(1))).ConfigureAwait(false);
+        if (!ReferenceEquals(finished, signal)) {
+            throw new TimeoutException(failureMessage);
+        }
     }
 
     private static OfficeDocumentReadResult CreateResult(string path) => new OfficeDocumentReadResult {

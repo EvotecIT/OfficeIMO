@@ -41,10 +41,10 @@ public class PdfPageExtractionCancellationTests {
             Limits = new PdfReadLimits { MaxObjectParsingTime = TimeSpan.FromSeconds(20) }
         };
         using var cancellation = new CancellationTokenSource();
-        Assert.Empty(PdfSyntax.ParseObjects(pdf, options, out _, out _, source, cancellation.Token).Map);
+        Assert.Empty(PdfSyntax.ParseObjects(pdf, options, out _, out _, cancellation.Token).Map);
         cancellation.Cancel();
         Assert.ThrowsAny<OperationCanceledException>(() =>
-            PdfSyntax.ParseObjects(pdf, options, out _, out _, source, cancellation.Token));
+            PdfSyntax.ParseObjects(pdf, options, out _, out _, cancellation.Token));
     }
 
     [Fact]

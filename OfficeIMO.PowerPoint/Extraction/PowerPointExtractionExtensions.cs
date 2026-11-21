@@ -1,8 +1,5 @@
 using System.Globalization;
 using System.Text;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Presentation;
-using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint;
 
@@ -43,122 +40,168 @@ public static class PowerPointExtractionExtensions {
         string? sourcePath = null,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(presentation);
-        var snapshot = new PowerPointExtractOptions {
-            IncludeNotes = extract?.IncludeNotes ?? true,
-            IncludeTables = extract?.IncludeTables ?? true,
-            IncludeHiddenShapes = extract?.IncludeHiddenShapes ?? true,
-            IncludeMarkdown = extract?.IncludeMarkdown ?? true
-        };
-        return ExtractChunksCore(presentation, snapshot, Math.Max(256, chunking?.MaxChars ?? 8000), sourcePath, cancellationToken);
+        PowerPointExtractOptions snapshot = Snapshot(extract);
+        return ExtractChunksCore(EnumerateModelSlides(presentation, snapshot, cancellationToken), snapshot,
+            ResolveMaxChars(chunking), sourcePath, cancellationToken);
     }
 
-    private static IEnumerable<PowerPointExtractChunk> ExtractChunksCore(PowerPointDocument presentation,
-        PowerPointExtractOptions extract, int maxChars, string? sourcePath, CancellationToken cancellationToken) {
+    internal static IEnumerable<PowerPointExtractChunk> ExtractMarkdownChunks(PowerPointSlideReader reader,
+        PowerPointExtractOptions? extract, PowerPointExtractChunkingOptions? chunking, string? sourcePath,
+        CancellationToken cancellationToken) {
+        PowerPointExtractOptions snapshot = Snapshot(extract);
+        return ExtractChunksCore(EnumerateStreamedSlides(reader, snapshot, cancellationToken), snapshot,
+            ResolveMaxChars(chunking), sourcePath, cancellationToken);
+    }
 
+    /// <summary>Extracts the chunks of one streamed slide; <paramref name="extract"/> must already be snapshotted.</summary>
+    internal static IEnumerable<PowerPointExtractChunk> ExtractSlideChunks(PowerPointSlideContent slide,
+        PowerPointExtractOptions extract, int maxChars, string? sourcePath, CancellationToken cancellationToken) =>
+        ExtractSlideChunks(ToExtractedSlide(slide, extract), extract, maxChars, sourcePath, cancellationToken);
+
+    internal static int ResolveMaxChars(PowerPointExtractChunkingOptions? chunking) => Math.Max(256, chunking?.MaxChars ?? 8000);
+
+    internal static PowerPointExtractOptions Snapshot(PowerPointExtractOptions? extract) => new PowerPointExtractOptions {
+        IncludeNotes = extract?.IncludeNotes ?? true,
+        IncludeTables = extract?.IncludeTables ?? true,
+        IncludeHiddenShapes = extract?.IncludeHiddenShapes ?? true,
+        IncludeMarkdown = extract?.IncludeMarkdown ?? true
+    };
+
+    private static IEnumerable<ExtractedSlide> EnumerateModelSlides(PowerPointDocument presentation,
+        PowerPointExtractOptions extract, CancellationToken cancellationToken) {
         for (int i = 0; i < presentation.Slides.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
-
-            var slide = presentation.Slides[i];
-            int slideNumber = i + 1;
-            List<string>? warnings = null;
-
-            if (!extract.IncludeMarkdown) {
-                string plain = BuildSlidePlainText(slide, extract, cancellationToken);
-                for (int offset = 0, fragment = 0; offset < plain.Length; fragment++) {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    int length = Math.Min(maxChars, plain.Length - offset);
-                    if (offset + length < plain.Length && char.IsHighSurrogate(plain[offset + length - 1]) && char.IsLowSurrogate(plain[offset + length])) length--;
-                    yield return new PowerPointExtractChunk {
-                        Id = BuildStableId("ppt-text", sourcePath, slideNumber) + ":" + fragment.ToString(CultureInfo.InvariantCulture),
-                        Location = new PowerPointExtractLocation { Path = sourcePath, Slide = slideNumber, BlockIndex = i },
-                        Text = plain.Substring(offset, length), Markdown = null
-                    };
-                    offset += length;
-                }
-                continue;
-            }
-
-            var md = new StringBuilder();
-            md.Append("## Slide ").AppendLine(slideNumber.ToString(System.Globalization.CultureInfo.InvariantCulture));
-            md.AppendLine();
-
-            int tableIndex = 0;
-            foreach (PowerPointShape shape in slide.EnumerateShapesDeep(
-                         slide.Shapes, extract.IncludeHiddenShapes)) {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                if (shape is PowerPointTextBox textBox) {
-                    AppendTextBoxMarkdown(md, textBox);
-                } else if (extract.IncludeTables && shape is PowerPointTable table) {
-                    AppendTableMarkdown(md, table, ref tableIndex);
-                }
-            }
-
-            if (extract.IncludeNotes) {
-                if (slide.Notes.TryGetExistingText(out string notes)) {
-                    md.AppendLine("### Notes");
-                    md.AppendLine();
-                    md.AppendLine(notes);
-                    md.AppendLine();
-                }
-            }
-
-            var markdown = NormalizeLineEndings(md.ToString()).TrimEnd();
-            if (markdown.Length > maxChars) {
-                int truncationLength = maxChars;
-                if (truncationLength > 0
-                    && char.IsHighSurrogate(markdown[truncationLength - 1])
-                    && char.IsLowSurrogate(markdown[truncationLength])) {
-                    truncationLength--;
-                }
-                markdown = markdown.Substring(0, truncationLength)
-                    + "\n\n<!-- truncated -->";
-                warnings = new List<string> { "Markdown truncated to MaxChars." };
-            }
-
-            var id = BuildStableId("ppt-md", sourcePath, slideNumber);
-            yield return new PowerPointExtractChunk {
-                Id = id,
-                Location = new PowerPointExtractLocation {
-                    Path = sourcePath,
-                    Slide = slideNumber,
-                    BlockIndex = i
-                },
-                Text = markdown,
-                Markdown = markdown,
-                Warnings = warnings
-            };
+            PowerPointSlide slide = presentation.Slides[i];
+            IEnumerable<PowerPointShapeContent> shapes =
+                PowerPointSlideContentProjection.ProjectShapes(slide, extract.IncludeHiddenShapes);
+            string? notes = extract.IncludeNotes && slide.Notes.TryGetExistingText(out string text) ? text : null;
+            yield return new ExtractedSlide(i + 1, shapes, notes);
         }
+    }
+
+    private static IEnumerable<ExtractedSlide> EnumerateStreamedSlides(PowerPointSlideReader reader,
+        PowerPointExtractOptions extract, CancellationToken cancellationToken) {
+        foreach (PowerPointSlideContent slide in reader.ReadSlides(extract.IncludeNotes, cancellationToken)) {
+            yield return ToExtractedSlide(slide, extract);
+        }
+    }
+
+    private static ExtractedSlide ToExtractedSlide(PowerPointSlideContent slide, PowerPointExtractOptions extract) {
+        IEnumerable<PowerPointShapeContent> shapes = extract.IncludeHiddenShapes
+            ? slide.Shapes
+            : slide.Shapes.Where(static shape => shape.IsVisible);
+        return new ExtractedSlide(slide.Number, shapes, extract.IncludeNotes ? slide.Notes : null);
+    }
+
+    private static IEnumerable<PowerPointExtractChunk> ExtractChunksCore(IEnumerable<ExtractedSlide> slides,
+        PowerPointExtractOptions extract, int maxChars, string? sourcePath, CancellationToken cancellationToken) {
+        foreach (ExtractedSlide slide in slides) {
+            foreach (PowerPointExtractChunk chunk in ExtractSlideChunks(slide, extract, maxChars, sourcePath, cancellationToken)) {
+                yield return chunk;
+            }
+        }
+    }
+
+    private static IEnumerable<PowerPointExtractChunk> ExtractSlideChunks(ExtractedSlide slide,
+        PowerPointExtractOptions extract, int maxChars, string? sourcePath, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        int slideNumber = slide.Number;
+        int i = slideNumber - 1;
+        List<string>? warnings = null;
+
+        if (!extract.IncludeMarkdown) {
+            string plain = BuildSlidePlainText(slide, extract, cancellationToken);
+            for (int offset = 0, fragment = 0; offset < plain.Length; fragment++) {
+                cancellationToken.ThrowIfCancellationRequested();
+                int length = Math.Min(maxChars, plain.Length - offset);
+                if (offset + length < plain.Length && char.IsHighSurrogate(plain[offset + length - 1]) && char.IsLowSurrogate(plain[offset + length])) length--;
+                yield return new PowerPointExtractChunk {
+                    Id = BuildStableId("ppt-text", sourcePath, slideNumber) + ":" + fragment.ToString(CultureInfo.InvariantCulture),
+                    Location = new PowerPointExtractLocation { Path = sourcePath, Slide = slideNumber, BlockIndex = i },
+                    Text = plain.Substring(offset, length), Markdown = null
+                };
+                offset += length;
+            }
+            yield break;
+        }
+
+        var md = new StringBuilder();
+        md.Append("## Slide ").AppendLine(slideNumber.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        md.AppendLine();
+
+        int tableIndex = 0;
+        foreach (PowerPointShapeContent shape in slide.Shapes) {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (shape.Kind == PowerPointShapeContentType.TextBox) {
+                AppendTextBoxMarkdown(md, shape);
+            } else if (extract.IncludeTables && shape.Table != null) {
+                AppendTableMarkdown(md, shape.Table, ref tableIndex);
+            }
+        }
+
+        if (slide.Notes != null) {
+            md.AppendLine("### Notes");
+            md.AppendLine();
+            md.AppendLine(slide.Notes);
+            md.AppendLine();
+        }
+
+        var markdown = NormalizeLineEndings(md.ToString()).TrimEnd();
+        if (markdown.Length > maxChars) {
+            int truncationLength = maxChars;
+            if (truncationLength > 0
+                && char.IsHighSurrogate(markdown[truncationLength - 1])
+                && char.IsLowSurrogate(markdown[truncationLength])) {
+                truncationLength--;
+            }
+            markdown = markdown.Substring(0, truncationLength)
+                + "\n\n<!-- truncated -->";
+            warnings = new List<string> { "Markdown truncated to MaxChars." };
+        }
+
+        var id = BuildStableId("ppt-md", sourcePath, slideNumber);
+        yield return new PowerPointExtractChunk {
+            Id = id,
+            Location = new PowerPointExtractLocation {
+                Path = sourcePath,
+                Slide = slideNumber,
+                BlockIndex = i
+            },
+            Text = markdown,
+            Markdown = markdown,
+            Warnings = warnings
+        };
     }
 
     private static string NormalizeLineEndings(string value) =>
         value.Replace("\r\n", "\n").Replace('\r', '\n');
 
-    private static string BuildSlidePlainText(PowerPointSlide slide, PowerPointExtractOptions options, CancellationToken token) {
+    private static string BuildSlidePlainText(ExtractedSlide slide, PowerPointExtractOptions options, CancellationToken token) {
         var text = new StringBuilder();
-        foreach (PowerPointShape shape in slide.EnumerateShapesDeep(slide.Shapes, options.IncludeHiddenShapes)) {
+        foreach (PowerPointShapeContent shape in slide.Shapes) {
             token.ThrowIfCancellationRequested();
-            if (shape is PowerPointTextBox box) {
-                foreach (PowerPointParagraph paragraph in box.Paragraphs) text.AppendLine(RenderParagraphText(paragraph, renderMarkdown: false));
-            } else if (options.IncludeTables && shape is PowerPointTable table) {
-                foreach (PowerPointTableRow row in table.Rows) {
+            if (shape.Kind == PowerPointShapeContentType.TextBox) {
+                foreach (PowerPointParagraphContent paragraph in shape.Paragraphs) text.AppendLine(RenderParagraphText(paragraph, renderMarkdown: false));
+            } else if (options.IncludeTables && shape.Table != null) {
+                foreach (PowerPointTableRowContent row in shape.Table.Rows) {
                     token.ThrowIfCancellationRequested();
                     text.AppendLine(string.Join("\t", row.Cells.Select(cell => string.Join(" ", cell.Paragraphs.Select(paragraph => RenderParagraphText(paragraph, renderMarkdown: false))))));
                 }
             }
         }
-        if (options.IncludeNotes && slide.Notes.TryGetExistingText(out string notes)) text.AppendLine(notes);
+        if (slide.Notes != null) text.AppendLine(slide.Notes);
         return NormalizeLineEndings(text.ToString()).TrimEnd();
     }
 
-    private static void AppendTextBoxMarkdown(StringBuilder markdown, PowerPointTextBox textBox) {
-        bool isTitle = textBox.ShapePlaceholderType == PowerPointPlaceholderType.Title
-            || textBox.ShapePlaceholderType == PowerPointPlaceholderType.CenteredTitle;
+    private static void AppendTextBoxMarkdown(StringBuilder markdown, PowerPointShapeContent textBox) {
+        bool isTitle = textBox.IsTitle;
         var numberingState = new Dictionary<int, int>();
         var listContentIndents = new Dictionary<int, int>();
         bool appended = false;
         ParagraphMarkdownKind? previousKind = null;
-        foreach (PowerPointParagraph paragraph in textBox.Paragraphs) {
+        foreach (PowerPointParagraphContent paragraph in textBox.Paragraphs) {
             string text = RenderParagraphText(paragraph).Trim();
             if (text.Length == 0) {
                 numberingState.Clear();
@@ -244,7 +287,7 @@ public static class PowerPointExtractionExtensions {
         }
     }
 
-    private static int ResolveNumberingValue(PowerPointParagraph paragraph, int level,
+    private static int ResolveNumberingValue(PowerPointParagraphContent paragraph, int level,
         IDictionary<int, int> numberingState) {
         int number = paragraph.NumberingStartAt
             ?? (numberingState.TryGetValue(level, out int previous) ? previous + 1 : 1);
@@ -264,25 +307,25 @@ public static class PowerPointExtractionExtensions {
     private static bool IsListKind(ParagraphMarkdownKind kind) =>
         kind == ParagraphMarkdownKind.BulletList || kind == ParagraphMarkdownKind.NumberedList;
 
-    private static string RenderParagraphText(PowerPointParagraph paragraph, bool renderMarkdown = true) {
-        IReadOnlyList<PowerPointTextRun> runs = paragraph.Runs;
-        int runIndex = 0;
+    private static string RenderParagraphText(PowerPointParagraphContent paragraph, bool renderMarkdown = true) {
         var text = new StringBuilder();
-        foreach (OpenXmlElement child in paragraph.Paragraph.ChildElements) {
-            if (child is A.Run) {
-                PowerPointTextRun? run = runIndex < runs.Count ? runs[runIndex] : null;
-                runIndex++;
-                string runText = run?.Text ?? child.InnerText ?? string.Empty;
-                if (renderMarkdown && run?.Hyperlink != null && runText.Length > 0) {
-                    text.Append('[').Append(EscapeMarkdownLinkLabel(runText)).Append("](<")
-                        .Append(EscapeMarkdownLinkDestination(run.Hyperlink.ToString())).Append(">)");
-                } else {
-                    text.Append(runText);
-                }
-            } else if (child is A.Break) {
-                text.Append(renderMarkdown ? "<br />" : "\n");
-            } else if (child is A.Field field) {
-                text.Append(field.Text?.Text ?? field.InnerText ?? string.Empty);
+        foreach (PowerPointInlineContent inline in paragraph.Inlines) {
+            switch (inline.Kind) {
+                case PowerPointParagraphInlineKind.Run:
+                    if (renderMarkdown && inline.Hyperlink != null && inline.Text.Length > 0) {
+                        text.Append('[').Append(EscapeMarkdownLinkLabel(inline.Text)).Append("](<")
+                            .Append(EscapeMarkdownLinkDestination(inline.Hyperlink.ToString())).Append(">)");
+                    } else {
+                        text.Append(inline.Text);
+                    }
+                    break;
+                case PowerPointParagraphInlineKind.LineBreak:
+                    text.Append(renderMarkdown ? "<br />" : "\n");
+                    break;
+                case PowerPointParagraphInlineKind.Field:
+                    // A field without its own text element renders the text of its other children.
+                    text.Append(inline.FieldFallbackText ?? inline.Text);
+                    break;
             }
         }
 
@@ -333,7 +376,7 @@ public static class PowerPointExtractionExtensions {
         return escaped.ToString();
     }
 
-    private static void AppendTableMarkdown(StringBuilder markdown, PowerPointTable table, ref int tableIndex) {
+    private static void AppendTableMarkdown(StringBuilder markdown, PowerPointTableContent table, ref int tableIndex) {
         List<IReadOnlyList<string>> rows = table.Rows
             .Select(row => (IReadOnlyList<string>)row.Cells.Select(RenderTableCellText).ToList())
             .ToList();
@@ -354,7 +397,7 @@ public static class PowerPointExtractionExtensions {
         markdown.AppendLine();
     }
 
-    private static string RenderTableCellText(PowerPointTableCell cell) {
+    private static string RenderTableCellText(PowerPointTableCellContent cell) {
         string[] paragraphs = cell.Paragraphs
             .Select(paragraph => RenderParagraphText(paragraph).Trim())
             .Where(text => text.Length > 0)
@@ -411,6 +454,18 @@ public static class PowerPointExtractionExtensions {
     private static string BuildStableId(string kind, string? path, int slideNumber) {
         var safe = string.IsNullOrWhiteSpace(path) ? "memory" : System.IO.Path.GetFileName(path!.Trim());
         return $"{kind}:{safe}:s{slideNumber}";
+    }
+
+    private readonly struct ExtractedSlide {
+        internal ExtractedSlide(int number, IEnumerable<PowerPointShapeContent> shapes, string? notes) {
+            Number = number;
+            Shapes = shapes;
+            Notes = notes;
+        }
+
+        internal int Number { get; }
+        internal IEnumerable<PowerPointShapeContent> Shapes { get; }
+        internal string? Notes { get; }
     }
 
     private enum ParagraphMarkdownKind {

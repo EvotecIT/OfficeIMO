@@ -8,7 +8,7 @@
   <ul class="imo-api-used__list">
     {{~ for link in api_page_links ~}}
     {{~ if link.k != "member" ~}}
-    <li><a class="imo-api-used__link" href="{{ link.h }}"><code>{{ link.n }}</code></a></li>
+    <li><a class="imo-api-used__link" href="{{ link.h }}"{{ if link.k == "command" }} aria-label="{{ link.n }} (PowerShell command)"{{ end }}><code>{{ link.n }}</code></a></li>
     {{~ end ~}}
     {{~ end ~}}
   </ul>

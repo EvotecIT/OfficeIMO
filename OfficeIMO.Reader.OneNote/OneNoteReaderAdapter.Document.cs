@@ -175,7 +175,7 @@ internal static partial class OneNoteReaderAdapter {
                     linkIndex++;
                 }
                 if (!(element is OneNoteParagraph paragraph)) continue;
-                foreach (OneNoteTextRun run in paragraph.Runs) {
+                foreach (OneNoteTextRun run in OneNoteFieldCodes.ResolveRuns(paragraph.Runs)) {
                     if (string.IsNullOrWhiteSpace(run.Hyperlink)) continue;
                     string id = "onenote-page-" + (pageIndex + 1).ToString("D4", CultureInfo.InvariantCulture) + "-link-" + (linkIndex + 1).ToString("D4", CultureInfo.InvariantCulture);
                     yield return new OfficeDocumentLink {

@@ -1,161 +1,145 @@
 ---
-title: Images
-description: "Adding images to Word documents from files, streams, base64, and URLs with OfficeIMO.Word. Includes examples and API links."
+title: Add Images to Word Documents
+description: "Insert pictures into DOCX files from files, streams or bytes, size them, wrap text around them, add alt text, and crop existing images with OfficeIMO.Word."
 order: 13
+packages:
+  - OfficeIMO.Word
+cmdlets:
+  - Add-OfficeWordImage
+  - Get-OfficeWordImage
+  - Set-OfficeWordImage
+search_terms:
+  - word image
+  - docx picture
+  - insert image
+  - text wrapping
+  - alt text
+verified: 2026-11-14
 ---
 
-OfficeIMO provides multiple ways to insert images into Word documents. Images can be added from local files, streams, base64-encoded strings, URLs, and embedded resources. You can control sizing, wrapping mode, cropping, rotation, and positioning.
+Images belong to a paragraph. `paragraph.AddImage` embeds the picture in that paragraph, inline with the text by default. Width and height are `OfficeLength` values, so the unit is stated (`Pixels`, `Points`, `Centimeters`, `Inches`); leave them out to use the image's own size. `WordImageOptions` sets wrapping, alt text, alignment, and a maximum width.
 
-## Adding an Image from a File
+## Add an image from a file
 
-The simplest way to add an image is from a local file path:
+### C#
 
 ```csharp
 using OfficeIMO;
 using OfficeIMO.Word;
 
-using var document = WordDocument.Create("images.docx");
+using WordDocument document = WordDocument.Create("images.docx");
 
-var paragraph = document.AddParagraph();
-paragraph.AddImage("photo.jpg", width: OfficeLength.Pixels(300), height: OfficeLength.Pixels(200));
+WordParagraph paragraph = document.AddParagraph();
+paragraph.AddImage("photo.jpg", OfficeLength.Pixels(300), OfficeLength.Pixels(200),
+    new WordImageOptions { AltText = "Team photo at the 2026 kickoff" });
 
 document.Save();
 ```
 
-The `width` and `height` parameters take `OfficeLength`, so each value states its unit. If omitted, OfficeIMO uses the image's native dimensions.
+### PowerShell
 
-## Adding an Image from a Stream
-
-```csharp
-using var imageStream = File.OpenRead("logo.png");
-
-var paragraph = document.AddParagraph();
-paragraph.AddImage(imageStream, "logo.png", width: OfficeLength.Pixels(150), height: OfficeLength.Pixels(50));
-```
-
-## Adding an Image from Base64
-
-```csharp
-string base64 = Convert.ToBase64String(File.ReadAllBytes("icon.png"));
-
-var paragraph = document.AddParagraph();
-using var decoded = new MemoryStream(Convert.FromBase64String(base64));
-paragraph.AddImage(decoded, "icon.png", width: OfficeLength.Pixels(64), height: OfficeLength.Pixels(64));
-```
-
-## Adding an Image from a URL
-
-Download and embed an image directly from a URL:
-
-```csharp
-var image = await document.AddImageAsync(
-    new Uri("https://example.com/banner.jpg"),
-    width: OfficeLength.Pixels(600),
-    height: OfficeLength.Pixels(200)
-);
-```
-
-## Adding an Image from an Embedded Resource
-
-```csharp
-var paragraph = document.AddParagraph();
-using var resource = typeof(MyClass).Assembly.GetManifestResourceStream("MyNamespace.Resources.logo.png")
-    ?? throw new InvalidOperationException("The embedded logo was not found.");
-paragraph.AddImage(resource, "logo.png", OfficeLength.Pixels(200), OfficeLength.Pixels(60));
-```
-
-## Wrapping Modes
-
-Control how text wraps around the image using the `WordImageTextWrapping` enum:
-
-```csharp
-var paragraph = document.AddParagraph();
-paragraph.AddImage("photo.jpg", OfficeLength.Pixels(300), OfficeLength.Pixels(200),
-    new WordImageOptions { Wrapping = WordImageTextWrapping.InLineWithText });
-```
-
-Available wrapping modes:
-
-| Mode | Description |
-|------|-------------|
-| `WordImageTextWrapping.InLineWithText` | Image sits inline with text (default) |
-| `WordImageTextWrapping.Square` | Text wraps around a square boundary |
-| `WordImageTextWrapping.Tight` | Text wraps tightly around the image shape |
-| `WordImageTextWrapping.BehindText` | Image appears behind text |
-| `WordImageTextWrapping.InFrontOfText` | Image appears in front of text |
-| `WordImageTextWrapping.TopAndBottom` | Text appears above and below only |
-
-## Image Positioning (Anchored Images)
-
-When using a wrapping mode other than `InLineWithText`, the image is anchored and you can control its position:
-
-```csharp
-var paragraph = document.AddParagraph();
-paragraph.AddImage("chart.png", OfficeLength.Pixels(400), OfficeLength.Pixels(300),
-    new WordImageOptions { Wrapping = WordImageTextWrapping.Square });
-
-// Access the image through the paragraph
-var image = document.Images.Last();
-image.HorizontalPositionOffset = OfficeLength.Inches(1);
-```
-
-## VML Images
-
-For legacy compatibility, OfficeIMO supports VML (Vector Markup Language) images:
-
-```csharp
-// Add VML image to the document body
-document.AddImage("watermark.png", width: OfficeLength.Pixels(200), height: OfficeLength.Pixels(100),
-    options: new WordImageOptions { Vml = true });
-
-// Add VML image to a header
-document.PageSetup.Header.AddParagraph().AddImage("header-logo.png", OfficeLength.Points(150), OfficeLength.Points(40),
-    options: new WordImageOptions { Vml = true });
-```
-
-## Image Properties
-
-The `WordImage` class exposes properties for advanced image control:
-
-```csharp
-var image = document.Images[0];
-
-// Select fractions of the source image while keeping the displayed frame.
-image.CropTopRatio = 0.1;
-image.CropBottomRatio = 0.05;
-
-// Effects
-image.GrayScale = true;
-image.LuminanceBrightness = 20;       // increase brightness by 20%
-image.LuminanceContrast = 10;         // increase contrast by 10%
-
-// Lock aspect ratio
-image.NoChangeAspect = true;
-
-// Prevent operations
-image.NoCrop = true;
-image.NoResize = true;
-image.NoRotation = true;
-```
-
-## Image Description (Alt Text)
-
-Set alt text for accessibility:
-
-```csharp
-var paragraph = document.AddParagraph();
-paragraph.AddImage("chart.png", OfficeLength.Pixels(400), OfficeLength.Pixels(300),
-    new WordImageOptions { AltText = "Q4 revenue chart showing 15% growth" });
-```
-
-## Listing All Images
-
-Access all images in the document:
-
-```csharp
-using var document = WordDocument.Load("report.docx");
-
-foreach (var image in document.Images) {
-    Console.WriteLine($"Image: {image.Width}x{image.Height}");
+```powershell
+New-OfficeWord -Path .\images.docx {
+    Add-OfficeWordParagraph {
+        Add-OfficeWordImage -Path .\photo.jpg -Width 8cm -Description 'Team photo at the 2026 kickoff'
+    }
 }
+```
+
+## Add an image from a stream or bytes
+
+Pass a file name with a stream so the image part gets the right extension and content type.
+
+### C#
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Word;
+
+byte[] logoBytes = File.ReadAllBytes("logo.png");
+
+using WordDocument document = WordDocument.Create("logo.docx");
+using var stream = new MemoryStream(logoBytes);
+document.AddParagraph().AddImage(stream, "logo.png", OfficeLength.Pixels(150), OfficeLength.Pixels(50));
+document.Save();
+```
+
+## Wrap text around an image
+
+Any wrapping other than `InLineWithText` anchors the image so text flows around it. Available modes are `InLineWithText`, `Square`, `Tight`, `Through`, `TopAndBottom`, `BehindText`, and `InFrontOfText`.
+
+### C#
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Word;
+
+using WordDocument document = WordDocument.Create("wrapped.docx");
+
+WordParagraph paragraph = document.AddParagraph();
+WordImage chart = paragraph.AddImage("chart.png", OfficeLength.Centimeters(8), OfficeLength.Centimeters(6),
+    new WordImageOptions { Wrapping = WordImageTextWrapping.Square, AltText = "Revenue by quarter" });
+paragraph.AddText("Revenue grew in every quarter. The chart shows the trend by region, " +
+    "and the table on the next page lists the figures.");
+
+document.Save();
+```
+
+### PowerShell
+
+```powershell
+New-OfficeWord -Path .\wrapped.docx {
+    Add-OfficeWordParagraph {
+        Add-OfficeWordImage -Path .\chart.png -Width 8cm -Height 6cm -Wrap Square -Description 'Revenue by quarter'
+        Add-OfficeWordText 'Revenue grew in every quarter.'
+    }
+}
+```
+
+## Center an image and limit its width
+
+`MaximumWidth` caps the displayed width when the source image is wider than the page area you have, which helps when the source size is unknown.
+
+### C#
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Word;
+
+using WordDocument document = WordDocument.Create("banner.docx");
+document.AddParagraph().AddImage("banner.png", options: new WordImageOptions {
+    Alignment = WordParagraphAlignment.Center,
+    MaximumWidth = OfficeLength.Centimeters(16),
+    AltText = "Product banner"
+});
+document.Save();
+```
+
+## Crop and adjust an existing image
+
+`document.Images` lists every image in the body. Crop ratios select a fraction of the source picture while the frame size stays the same.
+
+### C#
+
+```csharp
+using OfficeIMO.Word;
+
+using WordDocument document = WordDocument.Load("images.docx");
+
+foreach (WordImage image in document.Images) {
+    Console.WriteLine($"{image.FileName}: {image.Width} x {image.Height}");
+}
+
+WordImage first = document.Images[0];
+first.CropTopRatio = 0.1;
+first.CropBottomRatio = 0.05;
+first.GrayScale = true;
+
+document.Save();
+```
+
+### PowerShell
+
+```powershell
+Get-OfficeWordImage -Path .\images.docx
 ```

@@ -303,6 +303,7 @@ namespace OfficeIMO.Excel {
 
             string updatedRange = ExcelA1.CellReference(startRow, startColumn) + ":" + ExcelA1.CellReference(appendEndRow, endColumn);
             WriteLock(() => {
+                _excelDocument.InvalidateTableLayouts();
                 table.Reference = updatedRange;
                 table.InsertRow = null;
                 var autoFilter = table.GetFirstChild<AutoFilter>();

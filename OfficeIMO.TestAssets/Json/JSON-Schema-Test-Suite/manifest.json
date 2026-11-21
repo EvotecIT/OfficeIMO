@@ -1,0 +1,8 @@
+{
+  "source": "https://github.com/json-schema-org/JSON-Schema-Test-Suite",
+  "commit": "38dea932b02986f496345bf007108277777630bf",
+  "commitDate": "2026-11-11T12:28:05-08:00",
+  "license": "MIT",
+  "path": "validation/tests",
+  "files": 82
+}

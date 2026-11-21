@@ -104,6 +104,17 @@ test("pivot PDF preserves signs before and after declared numeric prefixes", asy
   }
 });
 
+test("pivot PDF reads a captured Unicode minus sign as the sign, not as a prefix", async () => {
+  for (const [value, text, format, expected] of [[-12.3, "\u221212,30", "0.00", "-12,30"], [-1234, "\u22121.234", "0", "-1234"],
+    [-12.5, "\u2212$12,50", '"$"0.00', "-$12,50"], [-12.5, "$\u221212,50", '"$"0.00', "$-12,50"]]) {
+    const snapshot = structuredClone(fixture.percent);
+    snapshot.rows[0].cells.v0_0 = { value, text, mode: "value", numberFormat: format };
+    snapshot.rows[0].cells.v0_1 = { value: .186, text: "18,6%", mode: "percentGrandTotal", numberFormat: "0.00%" };
+    const pdf = await inspectPdf(await exportCanopy(capture(snapshot), "pdf"));
+    assert.ok(pdf.pages.flatMap(page => page.lines).includes(expected), text + " -> " + expected);
+  }
+});
+
 test("pivot PDF zero percentage samples supply decimal culture rather than a thousands mark", async () => {
   for (const decimal of [",", "."]) for (const value of [0, .0000001]) {
     const snapshot = structuredClone(fixture.percent);

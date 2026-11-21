@@ -135,6 +135,8 @@ internal sealed partial class WordMl2003Projection {
                     MainDocumentPart main => main.AddImagePart(image.ContentType),
                     HeaderPart header => header.AddImagePart(image.ContentType),
                     FooterPart footer => footer.AddImagePart(image.ContentType),
+                    FootnotesPart footnotes => footnotes.AddImagePart(image.ContentType),
+                    EndnotesPart endnotes => endnotes.AddImagePart(image.ContentType),
                     _ => throw new InvalidDataException("WordML image story has no supported package owner.")
                 };
                 using var input = new MemoryStream(image.Bytes, writable: false);

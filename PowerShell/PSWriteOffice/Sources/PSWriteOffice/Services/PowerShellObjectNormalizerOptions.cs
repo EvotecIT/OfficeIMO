@@ -35,6 +35,12 @@ internal sealed class PowerShellObjectNormalizerOptions
 
     public bool FormatScalarValuesAsText { get; set; }
 
+    /// <summary>
+    /// Formats dates, times and floating-point numbers as text that reads back unchanged (ISO 8601 and round-trip
+    /// numbers) when <see cref="FormatScalarValuesAsText"/> is set, as data formats such as CSV require.
+    /// </summary>
+    public bool RoundTripScalarText { get; set; }
+
     public static PowerShellObjectNormalizerOptions ForTable(
         string collectionSeparator,
         string dictionaryEntrySeparator,

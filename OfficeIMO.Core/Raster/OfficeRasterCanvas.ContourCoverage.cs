@@ -1,5 +1,6 @@
 #if NET8_0_OR_GREATER
 using System.Buffers;
+using System.Numerics;
 #endif
 
 namespace OfficeIMO.Drawing;
@@ -9,11 +10,19 @@ public sealed partial class OfficeRasterCanvas {
     private const long MaximumContourCrossingWork = 512_000_000L;
     private const long MaximumContourRowCrossingWork = 16_000_000L;
     private const int MaximumRetainedContourCrossings = 1_000_000;
-    private const int MaximumPooledContourRowEdges = 4096;
 
     private void FillContours(IReadOnlyList<IReadOnlyList<OfficePoint>> contours, OfficeColor color, OfficeFillRule fillRule) {
         if (color.A == 0) return;
-        FillContourPaint(contours, fillRule, (_, _) => color);
+        FillContourPaint(contours, fillRule, SolidPaint(color));
+    }
+
+    /// <summary>Returns a paint callback that the contour filler recognizes as one solid color.</summary>
+    internal static Func<double, double, OfficeColor> SolidPaint(OfficeColor color) => new SolidContourPaint(color).Paint;
+
+    private sealed class SolidContourPaint {
+        internal SolidContourPaint(OfficeColor color) { Color = color; }
+        internal OfficeColor Color { get; }
+        internal OfficeColor Paint(double x, double y) => Color;
     }
 
     /// <summary>
@@ -23,223 +32,429 @@ public sealed partial class OfficeRasterCanvas {
     internal void FillContourPaint(IReadOnlyList<IReadOnlyList<OfficePoint>> contours, OfficeFillRule fillRule, Func<double, double, OfficeColor> paint,
         IReadOnlyList<IReadOnlyList<OfficePoint>>? unionContours = null) {
         if (contours == null || contours.Count == 0) return;
-        if (HasCoordinateScale) {
-            contours = ScaleCoordinates(contours);
-            if (unionContours != null) unionContours = ScaleCoordinates(unionContours);
-            Func<double, double, OfficeColor> localPaint = paint;
-            double scaleX = CoordinateScaleX, scaleY = CoordinateScaleY;
-            paint = (x, y) => localPaint(x / scaleX, y / scaleY);
+        double scaleX = 1D, scaleY = 1D;
+        bool scaled = HasCoordinateScale;
+        if (scaled) {
+            scaleX = CoordinateScaleX;
+            scaleY = CoordinateScaleY;
+            if (paint.Target is not SolidContourPaint) {
+                Func<double, double, OfficeColor> localPaint = paint;
+                paint = (x, y) => localPaint(x / scaleX, y / scaleY);
+            }
         }
         ContourCoverageWorkspace workspace = TakeContourCoverageWorkspace();
         try {
-            FillContourPaint(contours, fillRule, paint, unionContours, workspace);
+            FillContourPaint(contours, fillRule, paint, unionContours, workspace, null, scaled, scaleX, scaleY);
         } finally {
             ReturnContourCoverageWorkspace(workspace);
         }
     }
 
+    // Edges are swept in the order of their lower end, so each sub-scanline visits only the
+    // edges it crosses. Crossings keep the original arithmetic and are sorted by position,
+    // so the accumulated coverage matches a scan over every edge of the pixel row.
     private void FillContourPaint(
         IReadOnlyList<IReadOnlyList<OfficePoint>> contours, OfficeFillRule fillRule, Func<double, double, OfficeColor> paint,
-        IReadOnlyList<IReadOnlyList<OfficePoint>>? unionContours, ContourCoverageWorkspace workspace, IReadOnlyList<ClipContourSource>? intersectionClips = null) {
-        List<double> boundaries = workspace.Boundaries;
+        IReadOnlyList<IReadOnlyList<OfficePoint>>? unionContours, ContourCoverageWorkspace workspace, IReadOnlyList<ClipContourSource>? intersectionClips = null,
+        bool scaled = false, double scaleX = 1D, double scaleY = 1D) {
         double minX = double.PositiveInfinity, maxX = double.NegativeInfinity;
         long contourEdges = 0L;
-        if (!CollectContourBounds(contours, boundaries, ref minX, ref maxX, ref contourEdges)) return;
-        if (unionContours != null && !CollectContourBounds(unionContours, boundaries, ref minX, ref maxX, ref contourEdges)) return;
+        workspace.BoundaryCount = workspace.EdgeCount = 0;
+        if (!CollectContourEdges(contours, 0, workspace, scaled, scaleX, scaleY, ref minX, ref maxX, ref contourEdges)) return;
+        if (unionContours != null && !CollectContourEdges(unionContours, 1, workspace, scaled, scaleX, scaleY, ref minX, ref maxX, ref contourEdges)) return;
         if (intersectionClips != null) for (int clip = 1; clip < intersectionClips.Count; clip++) {
-            if (!CollectContourBounds(intersectionClips[clip].Contours, boundaries, ref minX, ref maxX, ref contourEdges)) return;
+            if (!CollectContourEdges(intersectionClips[clip].Contours, clip, workspace, scaled, scaleX, scaleY, ref minX, ref maxX, ref contourEdges)) return;
         }
-        if (boundaries.Count == 0 || maxX <= 0D || minX >= Width) return;
-        SortDistinctContourBoundaries(boundaries);
-        double minY = boundaries[0], maxY = boundaries[boundaries.Count - 1];
+        if (workspace.BoundaryCount == 0 || maxX <= 0D || minX >= Width) return;
+        double[] boundaries = workspace.Boundaries;
+        int boundaryCount = SortDistinctContourBoundaries(boundaries, workspace.BoundaryCount);
+        double minY = boundaries[0], maxY = boundaries[boundaryCount - 1];
         if (maxY <= 0D || minY >= Height) return;
         int left = (int)Math.Max(0D, Math.Floor(minX));
         int right = (int)Math.Min(Width - 1D, Math.Ceiling(maxX) - 1D);
         int top = (int)Math.Max(0D, Math.Floor(minY));
         int bottom = (int)Math.Min(Height - 1D, Math.Ceiling(maxY) - 1D);
         if (right < left || bottom < top) return;
+        // Each pixel row costs at least every edge times its sub-scanlines, so a shape whose lower bound already exceeds
+        // the work limit is rejected before any row is painted rather than after most of the work is spent.
+        if (contourEdges > MaximumContourCrossingWork / (ContourSubScanlines * (bottom - top + 1L))) {
+            throw new OfficeRasterWorkLimitException("Contour coverage work exceeds the rasterization limit.");
+        }
         _transformedTextBudget.ChargePaintPixels((long)(right - left + 1) * (bottom - top + 1));
         int tileLength = Math.Min(right - left + 1, MaximumContourCoverageTileWidth);
         bool singleTile = right - left + 1 == tileLength;
+        OfficeColor? solid = paint.Target is SolidContourPaint solidPaint ? solidPaint.Color : null;
 #if NET8_0_OR_GREATER
         double[] coverage = ArrayPool<double>.Shared.Rent(tileLength);
 #else
         double[] coverage = new double[tileLength];
 #endif
-        ContourRowEdge[]? rowEdges = null;
         try {
-            List<double> rowBoundaries = workspace.RowBoundaries;
-            List<ContourCrossing> crossings = workspace.Crossings;
-            // Retain one bounded row buffer rather than copying every sub-scanline into
-            // a new list. The ranges stay in scanline order, preserving coverage sums.
-            List<ContourCrossing> rowCrossings = workspace.RowCrossings;
-            List<(double Weight, int Start, int Count)> scanlines = workspace.Scanlines;
-            int boundaryIndex = 0;
+            int edgeCount = workspace.EdgeCount;
+            ContourEdge[] edges = workspace.Edges;
+            double[] edgeLows = workspace.EdgeLows;
+            // Sort indices rather than the edges themselves; the permutation is the same, without moving each edge.
+            int[] edgeOrder = workspace.EdgeOrder(edgeCount);
+            Array.Sort(edgeLows, edgeOrder, 0, edgeCount);
+            int[]? clipWindings = intersectionClips != null ? workspace.RentClipWindings(intersectionClips.Count) : null;
+            int nextEdge = 0, activeCount = 0, boundaryIndex = 0;
+            int scanlineCount = 0, rowCrossingCount = 0;
             long crossingWork = 0L;
             for (int y = top; y <= bottom; y++) {
                 _cancellationToken.ThrowIfCancellationRequested();
-                rowBoundaries.Clear();
-                for (int sample = 0; sample <= ContourSubScanlines; sample++) rowBoundaries.Add(y + sample / (double)ContourSubScanlines);
-                while (boundaryIndex < boundaries.Count && boundaries[boundaryIndex] <= y) boundaryIndex++;
-                while (boundaryIndex < boundaries.Count && boundaries[boundaryIndex] < y + 1D) rowBoundaries.Add(boundaries[boundaryIndex++]);
-                SortDistinctContourBoundaries(rowBoundaries);
-                long rowWork = contourEdges * (rowBoundaries.Count - 1L);
+                while (boundaryIndex < boundaryCount && boundaries[boundaryIndex] <= y) boundaryIndex++;
+                int vertexStart = boundaryIndex;
+                while (boundaryIndex < boundaryCount && boundaries[boundaryIndex] < y + 1D) boundaryIndex++;
+                double[] rowBoundaries = workspace.RowBoundaries(ContourSubScanlines + 1 + boundaryIndex - vertexStart);
+                int rowBoundaryCount = MergeRowBoundaries(y, boundaries, vertexStart, boundaryIndex, rowBoundaries);
+                long rowWork = contourEdges * (rowBoundaryCount - 1L);
                 if (rowWork > MaximumContourRowCrossingWork ||
                     rowWork > MaximumContourCrossingWork - crossingWork) {
-                    throw new InvalidOperationException("Contour coverage work exceeds the rasterization limit.");
+                    throw new OfficeRasterWorkLimitException("Contour coverage work exceeds the rasterization limit.");
                 }
                 crossingWork += rowWork;
                 _transformedTextBudget.ChargePaintCrossings(rowWork);
-                // Select edges once per pixel row. Sub-scanlines retain their original
-                // half-open crossing test and arithmetic, without revisiting every
-                // interface-backed contour for each sample and vertex split.
-                int rowEdgeCount = 0;
-                AddContourRowEdges(contours, y, ref rowEdges, ref rowEdgeCount);
-                if (unionContours != null) AddContourRowEdges(unionContours, y, ref rowEdges, ref rowEdgeCount, 1);
-                if (intersectionClips != null) for (int clip = 1; clip < intersectionClips.Count; clip++)
-                    AddContourRowEdges(intersectionClips[clip].Contours, y, ref rowEdges, ref rowEdgeCount, clip);
-                scanlines.Clear();
-                rowCrossings.Clear();
+                scanlineCount = rowCrossingCount = 0;
                 if (singleTile) Array.Clear(coverage, 0, tileLength);
+                bool uniformRow = singleTile && intersectionClips == null;
                 int retainedCrossings = 0;
-                for (int index = 1; index < rowBoundaries.Count; index++) {
+                for (int index = 1; index < rowBoundaryCount; index++) {
                     double low = rowBoundaries[index - 1], high = rowBoundaries[index];
                     if (high <= low) continue;
-                    crossings.Clear();
-                    if (rowEdges != null) AddContourRowCrossings(rowEdges, rowEdgeCount, (low + high) / 2D, crossings);
-#if NET8_0_OR_GREATER
-                    crossings.Sort(ContourCrossingComparer.Comparison);
-#else
-                    crossings.Sort(ContourCrossingComparer.Instance);
-#endif
-                    if (crossings.Count >= 2) {
-                        if (crossings.Count > MaximumRetainedContourCrossings - retainedCrossings) {
-                            throw new InvalidOperationException("Contour coverage intersections exceed the rasterization limit.");
+                    double sample = (low + high) / 2D;
+                    int firstNew = activeCount;
+                    while (nextEdge < edgeCount && edgeLows[nextEdge] <= sample) {
+                        ContourCrossing[] grown = workspace.ActiveCrossings(activeCount + 1);
+                        grown[activeCount++] = new ContourCrossing(0D, edgeOrder[nextEdge++]);
+                    }
+                    activeCount = UpdateActiveCrossings(edges, workspace.Active, activeCount, firstNew, sample,
+                        workspace.AddedCrossings(activeCount - firstNew));
+                    ContourCrossing[] crossings = workspace.Active;
+                    if (activeCount >= 2) {
+                        if (activeCount > MaximumRetainedContourCrossings - retainedCrossings) {
+                            throw new OfficeRasterWorkLimitException("Contour coverage intersections exceed the rasterization limit.");
                         }
-                        retainedCrossings += crossings.Count;
+                        retainedCrossings += activeCount;
                         // Ordinary glyphs fit one tile. Accumulate in the same
                         // scanline order without retaining every sample's crossings;
                         // wide shapes still need those samples for subsequent tiles.
+                        if (singleTile && uniformRow) {
+                            // Rows whose samples all cross the same edges at the same positions, such as
+                            // rectangles, are summed once per pixel after the row.
+                            if (scanlineCount == 0 || SameContourCrossings(workspace.RowCrossingBuffer, rowCrossingCount, crossings, activeCount, edges)) {
+                                if (scanlineCount == 0) {
+                                    Array.Copy(crossings, 0, workspace.RowCrossings(activeCount), 0, activeCount);
+                                    rowCrossingCount = activeCount;
+                                }
+                                workspace.AddScanline(ref scanlineCount, high - low, 0, rowCrossingCount);
+                                continue;
+                            }
+                            uniformRow = false;
+                            for (int scanline = 0; scanline < scanlineCount; scanline++) {
+                                AccumulateContourIntervals(workspace.RowCrossingBuffer, 0, rowCrossingCount, edges, fillRule,
+                                    left, right, workspace.Scanlines[scanline].Weight, coverage, null, null);
+                            }
+                            scanlineCount = 0;
+                        }
                         if (singleTile) {
-                            AccumulateContourIntervals(crossings, 0, crossings.Count, fillRule,
-                                left, right, high - low, coverage, intersectionClips);
+                            AccumulateContourIntervals(crossings, 0, activeCount, edges, fillRule,
+                                left, right, high - low, coverage, intersectionClips, clipWindings);
                         } else {
-                            scanlines.Add((high - low, rowCrossings.Count, crossings.Count));
-                            rowCrossings.AddRange(crossings);
+                            workspace.AddScanline(ref scanlineCount, high - low, rowCrossingCount, activeCount);
+                            ContourCrossing[] rowCrossings = workspace.RowCrossings(rowCrossingCount + activeCount);
+                            Array.Copy(crossings, 0, rowCrossings, rowCrossingCount, activeCount);
+                            rowCrossingCount += activeCount;
                         }
                     }
+                }
+                if (uniformRow && scanlineCount > 0) {
+                    AccumulateUniformContourIntervals(workspace, rowCrossingCount, scanlineCount, edges, fillRule, left, right, coverage);
                 }
                 for (int tileLeft = left; tileLeft <= right; tileLeft += tileLength) {
                     int tileRight = Math.Min(right, tileLeft + tileLength - 1);
                     int count = tileRight - tileLeft + 1;
                     if (!singleTile) {
                         Array.Clear(coverage, 0, count);
-                        foreach ((double weight, int start, int length) in scanlines) {
-                            AccumulateContourIntervals(rowCrossings, start, length, fillRule, tileLeft, tileRight, weight, coverage, intersectionClips);
+                        for (int scanline = 0; scanline < scanlineCount; scanline++) {
+                            (double weight, int start, int length) = workspace.Scanlines[scanline];
+                            AccumulateContourIntervals(workspace.RowCrossingBuffer, start, length, edges, fillRule, tileLeft, tileRight, weight, coverage,
+                                intersectionClips, clipWindings);
                         }
                     }
-                    for (int x = tileLeft; x <= tileRight; x++) {
-                        double value = coverage[x - tileLeft];
-                        if (value > 0D) BlendPixel(x, y, ApplyCoverage(paint(x + 0.5D, y + 0.5D), Math.Min(1D, value)));
+                    if (solid.HasValue) {
+                        BlendSolidCoverage(y, tileLeft, tileRight, coverage, solid.Value);
+                    } else {
+                        for (int x = tileLeft; x <= tileRight; x++) {
+                            double value = coverage[x - tileLeft];
+                            if (value > 0D) BlendPixel(x, y, ApplyCoverage(paint(x + 0.5D, y + 0.5D), Math.Min(1D, value)));
+                        }
                     }
                 }
             }
         } finally {
-            ReturnContourRowEdges(rowEdges);
 #if NET8_0_OR_GREATER
             ArrayPool<double>.Shared.Return(coverage);
 #endif
         }
     }
 
-    private static void SortDistinctContourBoundaries(List<double> boundaries) {
-        boundaries.Sort();
+    /// <summary>Blends one row of solid-color coverage, checking cancellation once for the row.</summary>
+    private void BlendSolidCoverage(int y, int tileLeft, int tileRight, double[] coverage, OfficeColor color) {
+        _cancellationToken.ThrowIfCancellationRequested();
+        OfficeRasterImage? image = _image;
+        bool unclipped = _clipRegion == null;
+        if (unclipped && image != null && color.A == 255 && (uint)y < (uint)image.Height && tileRight < image.Width) {
+            BlendOpaqueCoverage(image, y, tileLeft, tileRight, coverage, color, _opaqueBlendCache ??= new OpaqueBlendCache());
+            return;
+        }
+        for (int x = tileLeft; x <= tileRight; x++) {
+            double value = coverage[x - tileLeft];
+            if (!(value > 0D)) continue;
+            OfficeColor source = ApplyCoverage(color, Math.Min(1D, value));
+            if (unclipped && image != null) {
+                image.BlendPixel(x, y, source);
+                continue;
+            }
+            double clip = GetClipCoverage(x, y);
+            if (clip <= 0D) continue;
+            if (clip < 1D) source = ApplyCoverage(source, clip);
+            if (image != null) image.BlendPixel(x, y, source);
+            else _target!.BlendPixel(x, y, source);
+        }
+    }
+
+    private OpaqueBlendCache? _opaqueBlendCache;
+
+    // Full coverage of an opaque color replaces the pixel, as BlendPixel does, so runs of it are
+    // stored directly; partial coverage still blends.
+    private static void BlendOpaqueCoverage(OfficeRasterImage image, int y, int tileLeft, int tileRight, double[] coverage, OfficeColor color,
+        OpaqueBlendCache cache) {
+        byte[] pixels = image.PixelBuffer;
+        int rowOffset = y * image.Width * 4;
+        cache.Use(color);
+        for (int x = tileLeft; x <= tileRight; x++) {
+            double value = coverage[x - tileLeft];
+            if (!(value > 0D)) continue;
+            if (value < 0.999D) {
+                OfficeColor source = ApplyCoverage(color, value);
+                if (source.A == 0) continue;
+                int offset = rowOffset + x * 4;
+                uint target = ReadPixel(pixels, offset);
+                if (cache.TryGet(source.A, target, out uint blended)) {
+                    WritePixel(pixels, offset, blended);
+                } else {
+                    image.BlendPixel(x, y, source);
+                    cache.Add(source.A, target, ReadPixel(pixels, offset));
+                }
+                continue;
+            }
+            int end = x + 1;
+            while (end <= tileRight && coverage[end - tileLeft] >= 0.999D) end++;
+            FillOpaqueRun(pixels, rowOffset + x * 4, end - x, color);
+            x = end - 1;
+        }
+    }
+
+    private static uint ReadPixel(byte[] pixels, int offset) =>
+        (uint)pixels[offset] | (uint)pixels[offset + 1] << 8 | (uint)pixels[offset + 2] << 16 | (uint)pixels[offset + 3] << 24;
+
+    private static void WritePixel(byte[] pixels, int offset, uint value) {
+        pixels[offset] = (byte)value; pixels[offset + 1] = (byte)(value >> 8);
+        pixels[offset + 2] = (byte)(value >> 16); pixels[offset + 3] = (byte)(value >> 24);
+    }
+
+    /// <summary>
+    /// Remembers, for one opaque paint color, the pixel each partial-coverage alpha produced over a given
+    /// background pixel. A blend depends only on those three values, so text antialiasing over a uniform
+    /// background reuses the result instead of repeating the floating-point blend for every edge pixel.
+    /// </summary>
+    private sealed class OpaqueBlendCache {
+        private readonly uint[] _targets = new uint[256];
+        private readonly uint[] _results = new uint[256];
+        private readonly bool[] _filled = new bool[256];
+        private OfficeColor _color;
+        private bool _hasColor;
+
+        internal void Use(OfficeColor color) {
+            if (_hasColor && _color.Equals(color)) return;
+            Array.Clear(_filled, 0, _filled.Length);
+            _color = color;
+            _hasColor = true;
+        }
+
+        internal bool TryGet(byte alpha, uint target, out uint result) {
+            result = _results[alpha];
+            return _filled[alpha] && _targets[alpha] == target;
+        }
+
+        internal void Add(byte alpha, uint target, uint result) {
+            _targets[alpha] = target;
+            _results[alpha] = result;
+            _filled[alpha] = true;
+        }
+    }
+
+    private static void FillOpaqueRun(byte[] pixels, int offset, int count, OfficeColor color) {
+#if NET8_0_OR_GREATER
+        Span<byte> first = pixels.AsSpan(offset, 4);
+        first[0] = color.R; first[1] = color.G; first[2] = color.B; first[3] = color.A;
+        uint packed = System.Runtime.InteropServices.MemoryMarshal.Read<uint>(first);
+        System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(pixels.AsSpan(offset, count * 4)).Fill(packed);
+#else
+        for (int end = offset + count * 4; offset < end; offset += 4) {
+            pixels[offset] = color.R; pixels[offset + 1] = color.G; pixels[offset + 2] = color.B; pixels[offset + 3] = color.A;
+        }
+#endif
+    }
+
+    // Retire edges that end at or below the sample, compute the remaining crossings, and keep them
+    // ordered by position. Consecutive samples change the order only slightly, so a pass that finds
+    // the existing crossings still in order skips sorting them. Edges activated for this sample (from
+    // firstNew on) are sorted among themselves and merged in, instead of each walking the whole list.
+    // Crossings at equal positions may end up in a different order; coverage only depends on positions.
+    private static int UpdateActiveCrossings(ContourEdge[] edges, ContourCrossing[] active, int activeCount, int firstNew,
+        double sample, ContourCrossing[] added) {
+        int count = ComputeCrossings(edges, active, 0, firstNew, active, sample);
+        if (firstNew == activeCount) return count;
+        int addedCount = ComputeCrossings(edges, active, firstNew, activeCount, added, sample);
+        // Merge from the back so each existing crossing moves at most once.
+        int existing = count - 1, next = addedCount - 1, target = count + addedCount - 1;
+        while (next >= 0) {
+            if (existing >= 0 && active[existing].X > added[next].X) active[target--] = active[existing--];
+            else active[target--] = added[next--];
+        }
+        return count + addedCount;
+    }
+
+    // Writes the crossings of the still-active edges among source[start, end) to the front of target, sorted.
+    private static int ComputeCrossings(ContourEdge[] edges, ContourCrossing[] source, int start, int end,
+        ContourCrossing[] target, double sample) {
         int count = 0;
-        for (int index = 0; index < boundaries.Count; index++) {
+        bool ordered = true;
+        double previous = double.NegativeInfinity;
+        for (int index = start; index < end; index++) {
+            int edgeIndex = source[index].Edge;
+            ref readonly ContourEdge edge = ref edges[edgeIndex];
+            if (edge.High <= sample) continue;
+            double x = edge.StartX + (sample - edge.StartY) * edge.DeltaX / edge.DeltaY;
+            target[count++] = new ContourCrossing(x, edgeIndex);
+            if (x < previous) ordered = false;
+            previous = x;
+        }
+        // Positions never contain NaN: every term is finite and the edge height is non-zero.
+        if (!ordered) InsertionSortCrossings(target, count);
+        return count;
+    }
+
+    private static void InsertionSortCrossings(ContourCrossing[] crossings, int count) {
+        int moves = 0, moveBudget = 8 * count + 64;
+        for (int index = 1; index < count; index++) {
+            ContourCrossing item = crossings[index];
+            int target = index - 1;
+            if (crossings[target].X <= item.X) continue;
+            while (target >= 0 && crossings[target].X > item.X) {
+                crossings[target + 1] = crossings[target];
+                target--;
+                moves++;
+            }
+            crossings[target + 1] = item;
+            if (moves > moveBudget) {
+                SortCrossings(crossings, count);
+                break;
+            }
+        }
+    }
+
+    private static void SortCrossings(ContourCrossing[] crossings, int count) {
+#if NET8_0_OR_GREATER
+        crossings.AsSpan(0, count).Sort(ContourCrossingComparer.Comparison);
+#else
+        Array.Sort(crossings, 0, count, ContourCrossingComparer.Instance);
+#endif
+    }
+
+    private static int SortDistinctContourBoundaries(double[] boundaries, int length) {
+        Array.Sort(boundaries, 0, length);
+        int count = 0;
+        for (int index = 0; index < length; index++) {
             double value = boundaries[index];
             if (count == 0 || value != boundaries[count - 1]) boundaries[count++] = value;
         }
-        if (count < boundaries.Count) boundaries.RemoveRange(count, boundaries.Count - count);
+        return count;
     }
 
-    private bool CollectContourBounds(IReadOnlyList<IReadOnlyList<OfficePoint>> contours, List<double> boundaries, ref double minX, ref double maxX, ref long contourEdges) {
-        // Keep the two shapes in source order without copying their contour lists
+    // The regular samples and the vertex heights inside the row are each ordered, so a merge
+    // yields the same distinct sorted boundaries as sorting their concatenation.
+    private static int MergeRowBoundaries(int y, double[] vertices, int vertexStart, int vertexEnd, double[] row) {
+        int count = 0, sample = 0, vertex = vertexStart;
+        double regular = y;
+        while (sample <= ContourSubScanlines || vertex < vertexEnd) {
+            double value;
+            if (vertex >= vertexEnd || (sample <= ContourSubScanlines && regular <= vertices[vertex])) {
+                value = regular;
+                sample++;
+                regular = y + sample / (double)ContourSubScanlines;
+            } else {
+                value = vertices[vertex++];
+            }
+            if (count == 0 || value != row[count - 1]) row[count++] = value;
+        }
+        return count;
+    }
+
+    private bool CollectContourEdges(IReadOnlyList<IReadOnlyList<OfficePoint>> contours, int group, ContourCoverageWorkspace workspace,
+        bool scaled, double scaleX, double scaleY, ref double minX, ref double maxX, ref long contourEdges) {
+        // Keep the shapes in source order without copying their contour lists
         // or boxing interface-backed point enumerators for every painted glyph.
         for (int contourIndex = 0; contourIndex < contours.Count; contourIndex++) {
             _cancellationToken.ThrowIfCancellationRequested();
             IReadOnlyList<OfficePoint> contour = contours[contourIndex];
-            if (contour.Count < 3) continue;
-            contourEdges += contour.Count;
-            for (int pointIndex = 0; pointIndex < contour.Count; pointIndex++) {
+            int pointCount = contour.Count;
+            if (pointCount < 3) continue;
+            contourEdges += pointCount;
+            double[] boundaries = workspace.ReserveBoundaries(pointCount);
+            int boundaryCount = workspace.BoundaryCount;
+            OfficePoint first = default, start = default;
+            for (int pointIndex = 0; pointIndex < pointCount; pointIndex++) {
                 OfficePoint point = contour[pointIndex];
+                if (scaled) point = new OfficePoint(point.X * scaleX, point.Y * scaleY);
                 if (!IsFinite(point.X) || !IsFinite(point.Y)) return false;
                 minX = Math.Min(minX, point.X);
                 maxX = Math.Max(maxX, point.X);
-                boundaries.Add(point.Y);
+                boundaries[boundaryCount++] = point.Y;
+                if (pointIndex == 0) first = point;
+                else workspace.AddEdge(start, point, group);
+                start = point;
             }
+            workspace.BoundaryCount = boundaryCount;
+            workspace.AddEdge(start, first, group);
         }
         return true;
     }
 
-    private static void AddContourRowEdges(IReadOnlyList<IReadOnlyList<OfficePoint>> contours, int row, ref ContourRowEdge[]? edges, ref int count, int group = 0) {
-        for (int contourIndex = 0; contourIndex < contours.Count; contourIndex++) {
-            IReadOnlyList<OfficePoint> contour = contours[contourIndex];
-            if (contour.Count < 3) continue;
-            OfficePoint start = contour[contour.Count - 1];
-            for (int pointIndex = 0; pointIndex < contour.Count; pointIndex++) {
-                OfficePoint end = contour[pointIndex];
-                // Include endpoints conservatively: a midpoint in an extremely thin
-                // vertex interval can round onto a pixel-row boundary.
-                if (start.Y != end.Y && ((start.Y <= row + 1D && end.Y >= row) || (end.Y <= row + 1D && start.Y >= row))) {
-                    if (edges == null || count == edges.Length) GrowContourRowEdges(ref edges, count);
-                    edges![count++] = new ContourRowEdge(start, end, group);
-                }
-                start = end;
-            }
+    private struct ContourEdge {
+        internal ContourEdge(OfficePoint start, OfficePoint end, int group) {
+            StartX = start.X;
+            StartY = start.Y;
+            DeltaX = end.X - start.X;
+            DeltaY = end.Y - start.Y;
+            High = Math.Max(start.Y, end.Y);
+            WindingDelta = start.Y < end.Y ? 1 : -1;
+            Group = group;
         }
+        internal double StartX;
+        internal double StartY;
+        internal double DeltaX;
+        internal double DeltaY;
+        internal double High;
+        internal int WindingDelta;
+        internal int Group;
     }
 
-    private static void AddContourRowCrossings(ContourRowEdge[] edges, int count, double y, List<ContourCrossing> crossings) {
-        for (int index = 0; index < count; index++) {
-            ContourRowEdge edge = edges[index];
-            OfficePoint start = edge.Start, end = edge.End;
-            bool upward = start.Y <= y && end.Y > y;
-            bool downward = start.Y > y && end.Y <= y;
-            if (upward || downward) crossings.Add(new ContourCrossing(start.X + (y - start.Y) * (end.X - start.X) / (end.Y - start.Y), upward ? 1 : -1, edge.Group));
-        }
-    }
-
-    private static void GrowContourRowEdges(ref ContourRowEdge[]? edges, int count) {
-        // Row work is checked before caching edges. Large valid rows may use a
-        // transient buffer, but must not leave it retained in the shared pool.
-        int capacity = edges == null ? 16 : checked(edges.Length * 2);
-#if NET8_0_OR_GREATER
-        ContourRowEdge[] replacement = capacity <= MaximumPooledContourRowEdges
-            ? ArrayPool<ContourRowEdge>.Shared.Rent(capacity) : new ContourRowEdge[capacity];
-#else
-        ContourRowEdge[] replacement = new ContourRowEdge[capacity];
-#endif
-        if (edges != null) Array.Copy(edges, replacement, count);
-        ReturnContourRowEdges(edges);
-        edges = replacement;
-    }
-
-    private static void ReturnContourRowEdges(ContourRowEdge[]? edges) {
-#if NET8_0_OR_GREATER
-        if (edges != null && edges.Length <= MaximumPooledContourRowEdges) ArrayPool<ContourRowEdge>.Shared.Return(edges);
-#endif
-    }
-
-    private readonly struct ContourRowEdge {
-        internal ContourRowEdge(OfficePoint start, OfficePoint end, int group) { Start = start; End = end; Group = group; }
-        internal OfficePoint Start { get; }
-        internal OfficePoint End { get; }
-        internal int Group { get; }
-    }
-
-    private static void AccumulateContourIntervals(List<ContourCrossing> crossings, int startIndex, int count, OfficeFillRule rule, int left, int right, double weight, double[] coverage, IReadOnlyList<ClipContourSource>? intersectionClips = null) {
+    private static void AccumulateContourIntervals(ContourCrossing[] crossings, int startIndex, int count, ContourEdge[] edges, OfficeFillRule rule,
+        int left, int right, double weight, double[] coverage, IReadOnlyList<ClipContourSource>? intersectionClips, int[]? clipWindings) {
         if (intersectionClips != null) {
-            AccumulateClipIntersection(crossings, startIndex, count, intersectionClips, left, right, weight, coverage);
+            AccumulateClipIntersection(crossings, startIndex, count, edges, intersectionClips, clipWindings!, left, right, weight, coverage);
             return;
         }
         int winding = 0, secondWinding = 0, index = startIndex;
@@ -248,18 +463,11 @@ public sealed partial class OfficeRasterCanvas {
         while (index < endIndex) {
             double x = crossings[index].X;
             bool inside = rule == OfficeFillRule.NonZero ? winding != 0 || secondWinding != 0 : (winding & 1) != 0 || (secondWinding & 1) != 0;
-            if (inside && x > previous) {
-                double start = Math.Max(left, previous), end = Math.Min(right + 1D, x);
-                if (end > start) {
-                    int first = (int)Math.Floor(start), last = (int)Math.Ceiling(end) - 1;
-                    for (int pixel = first; pixel <= last; pixel++) {
-                        coverage[pixel - left] += (Math.Min(end, pixel + 1D) - Math.Max(start, pixel)) * weight;
-                    }
-                }
-            }
+            if (inside && x > previous) AccumulateInterval(Math.Max(left, previous), Math.Min(right + 1D, x), left, weight, coverage);
             do {
-                int delta = rule == OfficeFillRule.NonZero ? crossings[index].WindingDelta : 1;
-                if (crossings[index].Group == 1) secondWinding += delta;
+                ref readonly ContourEdge edge = ref edges[crossings[index].Edge];
+                int delta = rule == OfficeFillRule.NonZero ? edge.WindingDelta : 1;
+                if (edge.Group == 1) secondWinding += delta;
                 else winding += delta;
                 index++;
             } while (index < endIndex && Math.Abs(crossings[index].X - x) <= ContourCrossingTolerance);
@@ -267,11 +475,123 @@ public sealed partial class OfficeRasterCanvas {
         }
     }
 
+    private static bool SameContourCrossings(ContourCrossing[] first, int firstCount, ContourCrossing[] crossings, int count, ContourEdge[] edges) {
+        if (firstCount != count) return false;
+        for (int index = 0; index < count; index++) {
+            if (first[index].X != crossings[index].X) return false;
+            ref readonly ContourEdge a = ref edges[first[index].Edge];
+            ref readonly ContourEdge b = ref edges[crossings[index].Edge];
+            if (a.WindingDelta != b.WindingDelta || a.Group != b.Group) return false;
+        }
+        return true;
+    }
+
+    // Every buffered sample has the same intervals. A pixel inside an interval receives each sample's
+    // weight in order, so all of them get the same running sum; boundary pixels replay their pieces
+    // sample by sample, exactly as AccumulateContourIntervals would.
+    private static void AccumulateUniformContourIntervals(ContourCoverageWorkspace workspace, int crossingCount, int scanlineCount,
+        ContourEdge[] edges, OfficeFillRule rule, int left, int right, double[] coverage) {
+        (double Weight, int Start, int Count)[] scanlines = workspace.Scanlines;
+        if (scanlineCount == 1) {
+            AccumulateContourIntervals(workspace.RowCrossingBuffer, 0, crossingCount, edges, rule, left, right, scanlines[0].Weight, coverage, null, null);
+            return;
+        }
+        int intervalCount = CollectContourIntervals(workspace, crossingCount, edges, rule, left, right);
+        double[] intervals = workspace.Intervals;
+        for (int scanline = 0; scanline < scanlineCount; scanline++) {
+            double weight = scanlines[scanline].Weight;
+            for (int interval = 0; interval < intervalCount; interval++) {
+                double start = intervals[interval * 2], end = intervals[interval * 2 + 1];
+                int pixel = (int)Math.Floor(start), last = (int)Math.Ceiling(end) - 1;
+                int innerFirst = (int)Math.Ceiling(start), innerLast = (int)Math.Floor(end) - 1;
+                for (; pixel <= last; pixel++) {
+                    if (pixel >= innerFirst && pixel <= innerLast) {
+                        pixel = innerLast;
+                        continue;
+                    }
+                    coverage[pixel - left] += (Math.Min(end, pixel + 1D) - Math.Max(start, pixel)) * weight;
+                }
+            }
+        }
+        double sum = 0D;
+        for (int scanline = 0; scanline < scanlineCount; scanline++) sum += scanlines[scanline].Weight;
+        for (int interval = 0; interval < intervalCount; interval++) {
+            double start = intervals[interval * 2], end = intervals[interval * 2 + 1];
+            int innerFirst = (int)Math.Ceiling(start), innerLast = (int)Math.Floor(end) - 1;
+            for (int pixel = innerFirst; pixel <= innerLast; pixel++) coverage[pixel - left] = sum;
+        }
+    }
+
+    // The intervals AccumulateContourIntervals paints for one sample, clipped to the fill bounds.
+    private static int CollectContourIntervals(ContourCoverageWorkspace workspace, int count, ContourEdge[] edges, OfficeFillRule rule, int left, int right) {
+        ContourCrossing[] crossings = workspace.RowCrossingBuffer;
+        int winding = 0, secondWinding = 0, index = 0, intervals = 0;
+        double previous = crossings[0].X;
+        while (index < count) {
+            double x = crossings[index].X;
+            bool inside = rule == OfficeFillRule.NonZero ? winding != 0 || secondWinding != 0 : (winding & 1) != 0 || (secondWinding & 1) != 0;
+            if (inside && x > previous) {
+                double start = Math.Max(left, previous), end = Math.Min(right + 1D, x);
+                if (end > start) {
+                    double[] buffer = workspace.ReserveIntervals(intervals + 1);
+                    buffer[intervals * 2] = start;
+                    buffer[intervals * 2 + 1] = end;
+                    intervals++;
+                }
+            }
+            do {
+                ref readonly ContourEdge edge = ref edges[crossings[index].Edge];
+                int delta = rule == OfficeFillRule.NonZero ? edge.WindingDelta : 1;
+                if (edge.Group == 1) secondWinding += delta;
+                else winding += delta;
+                index++;
+            } while (index < count && Math.Abs(crossings[index].X - x) <= ContourCrossingTolerance);
+            previous = x;
+        }
+        return intervals;
+    }
+
+    /// <summary>Adds the area of one horizontal interval, weighted by its sub-scanline height, to the covered pixels.</summary>
+    private static void AccumulateInterval(double start, double end, int left, double weight, double[] coverage) {
+        if (!(end > start)) return;
+        int pixel = (int)Math.Floor(start), last = (int)Math.Ceiling(end) - 1;
+        // Pixels wholly inside the interval add exactly (pixel + 1 - pixel) * weight, which is the weight itself.
+        int innerFirst = (int)Math.Ceiling(start), innerLast = (int)Math.Floor(end) - 1;
+        for (; pixel <= last && pixel < innerFirst; pixel++) {
+            coverage[pixel - left] += (Math.Min(end, pixel + 1D) - Math.Max(start, pixel)) * weight;
+        }
+        int innerEnd = Math.Min(last, innerLast);
+        if (pixel <= innerEnd) {
+            AddWeight(coverage, pixel - left, innerEnd - pixel + 1, weight);
+            pixel = innerEnd + 1;
+        }
+        for (; pixel <= last; pixel++) {
+            coverage[pixel - left] += (Math.Min(end, pixel + 1D) - Math.Max(start, pixel)) * weight;
+        }
+    }
+
+    private static void AddWeight(double[] coverage, int start, int length, double weight) {
+        int index = start, end = start + length;
+#if NET8_0_OR_GREATER
+        if (Vector.IsHardwareAccelerated && length >= Vector<double>.Count) {
+            var increment = new Vector<double>(weight);
+            Span<double> span = coverage.AsSpan(start, length);
+            int vectorEnd = length - Vector<double>.Count;
+            int offset = 0;
+            for (; offset <= vectorEnd; offset += Vector<double>.Count) {
+                Span<double> slice = span.Slice(offset, Vector<double>.Count);
+                (new Vector<double>(slice) + increment).CopyTo(slice);
+            }
+            index = start + offset;
+        }
+#endif
+        for (; index < end; index++) coverage[index] += weight;
+    }
+
     private readonly struct ContourCrossing {
-        internal ContourCrossing(double x, int windingDelta, int group) { X = x; WindingDelta = windingDelta; Group = group; }
+        internal ContourCrossing(double x, int edge) { X = x; Edge = edge; }
         internal double X { get; }
-        internal int WindingDelta { get; }
-        internal int Group { get; }
+        internal int Edge { get; }
     }
 
     private sealed class ContourCrossingComparer : IComparer<ContourCrossing> {

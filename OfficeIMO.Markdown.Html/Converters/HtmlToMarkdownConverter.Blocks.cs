@@ -188,8 +188,10 @@ internal sealed partial class HtmlToMarkdownConverter {
 
             if (!current.Expanded) {
                 pending.Push((current.Element, true));
-                foreach (var child in current.Element.Children) {
-                    if (!context.BlockDescendantCache.ContainsKey(child)) {
+                // Child nodes are read by index; Children builds a collection on every read.
+                var expandedNodes = current.Element.ChildNodes;
+                for (int i = 0; i < expandedNodes.Length; i++) {
+                    if (expandedNodes[i] is IElement child && !context.BlockDescendantCache.ContainsKey(child)) {
                         pending.Push((child, false));
                     }
                 }
@@ -197,7 +199,12 @@ internal sealed partial class HtmlToMarkdownConverter {
             }
 
             bool containsBlock = false;
-            foreach (var child in current.Element.Children) {
+            var childNodes = current.Element.ChildNodes;
+            for (int i = 0; i < childNodes.Length; i++) {
+                if (childNodes[i] is not IElement child) {
+                    continue;
+                }
+
                 if (ShouldTreatAsIntrinsicBlockElement(child, context)
                     || (context.BlockDescendantCache.TryGetValue(child, out bool childContainsBlock) && childContainsBlock)
                     || ShouldTreatAsNonIntrinsicBlockElement(child, context)) {

@@ -9,8 +9,8 @@ public sealed partial class OfficeWorkflowRunner {
         }, token);
 
     private static (byte[] Bytes, OfficeWorkflowConversionEvidence Evidence) SerializeReportedConversion(OfficeConversionReport report,
-        Func<byte[]> serialize, CancellationToken token) {
-        var evidence = new OfficeWorkflowConversionEvidence(report);
+        Func<byte[]> serialize, CancellationToken token, IReadOnlyDictionary<string, string>? facts = null) {
+        var evidence = new OfficeWorkflowConversionEvidence(report, facts);
         try {
             byte[] bytes = serialize();
             token.ThrowIfCancellationRequested();

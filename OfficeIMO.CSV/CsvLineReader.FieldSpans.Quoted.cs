@@ -50,6 +50,7 @@ internal sealed partial class CsvLineReader
         isEmptyRecord = fieldCount == 1 && firstFieldLength == 0;
         _position = recordEnd;
         PhysicalLineSeparatorsConsumed += embeddedLineSeparatorCount;
+        LastQuotedRecordLineSeparators = embeddedLineSeparatorCount;
         ConsumeLineSeparator(_buffer[recordEnd], out separator, deferLineFeedRead: true);
         readResult = CsvLineReadResult.UnquotedRecord;
         return true;
@@ -134,10 +135,17 @@ internal sealed partial class CsvLineReader
         isEmptyRecord = fieldCount == 1 && firstFieldLength == 0;
         _position = recordEnd;
         PhysicalLineSeparatorsConsumed += embeddedLineSeparatorCount;
+        LastQuotedRecordLineSeparators = embeddedLineSeparatorCount;
         ConsumeLineSeparator(_buffer[recordEnd], out separator, deferLineFeedRead: true);
         readResult = CsvLineReadResult.UnquotedRecord;
         return true;
     }
+
+    /// <summary>
+    /// Line separators inside the quoted record that the last field-span read returned, or -1 when
+    /// that record contained no quote.
+    /// </summary>
+    internal int LastQuotedRecordLineSeparators { get; private set; } = -1;
 
     private bool TryParseStandardQuotedFieldSpans(
         int start,

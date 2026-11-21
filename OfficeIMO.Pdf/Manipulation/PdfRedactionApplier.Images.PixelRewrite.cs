@@ -81,7 +81,7 @@ internal static partial class PdfRedactionApplier {
         bool changed = false;
         string rewrittenContent = content;
         var changedInvocations = new HashSet<string>(StringComparer.Ordinal);
-        ImageResourceInvocation[] invocations = ExtractImageResourceInvocations(content, graphicsState);
+        ImageResourceInvocation[] invocations = ExtractImageResourceInvocations(content, graphicsState, limits.MaxGraphicsStateDepth);
         for (int invocationIndex = invocations.Length - 1; invocationIndex >= 0; invocationIndex--) {
             ImageResourceInvocation invocation = invocations[invocationIndex];
             Matrix2D invocationTransform = invocation.Transform;
@@ -247,28 +247,22 @@ internal static partial class PdfRedactionApplier {
         return false;
     }
 
-    private static ImageResourceInvocation[] ExtractImageResourceInvocations(string content) =>
-        ExtractImageResourceInvocations(content, new ImageContentGraphicsState(Matrix2D.Identity), PdfTextStateSnapshot.Default);
-
-    private static ImageResourceInvocation[] ExtractImageResourceInvocations(
-        string content,
-        PdfTextStateSnapshot initialTextState) =>
-        ExtractImageResourceInvocations(content, new ImageContentGraphicsState(Matrix2D.Identity), initialTextState, null);
-
     private static ImageResourceInvocation[] ExtractImageResourceInvocations(
         string content,
         PdfTextStateSnapshot initialTextState,
-        IReadOnlyDictionary<string, PdfExtGStateFontSelection>? extGStateFonts) =>
-        ExtractImageResourceInvocations(content, new ImageContentGraphicsState(Matrix2D.Identity), initialTextState, extGStateFonts);
+        IReadOnlyDictionary<string, PdfExtGStateFontSelection>? extGStateFonts,
+        int maxGraphicsStateDepth) =>
+        ExtractImageResourceInvocations(content, new ImageContentGraphicsState(Matrix2D.Identity), initialTextState, extGStateFonts, maxGraphicsStateDepth);
 
-    private static ImageResourceInvocation[] ExtractImageResourceInvocations(string content, ImageContentGraphicsState graphicsState) =>
-        ExtractImageResourceInvocations(content, graphicsState, PdfTextStateSnapshot.Default, null);
+    private static ImageResourceInvocation[] ExtractImageResourceInvocations(string content, ImageContentGraphicsState graphicsState, int maxGraphicsStateDepth) =>
+        ExtractImageResourceInvocations(content, graphicsState, PdfTextStateSnapshot.Default, null, maxGraphicsStateDepth);
 
     private static ImageResourceInvocation[] ExtractImageResourceInvocations(
         string content,
         ImageContentGraphicsState graphicsState,
         PdfTextStateSnapshot initialTextState,
-        IReadOnlyDictionary<string, PdfExtGStateFontSelection>? extGStateFonts = null) {
+        IReadOnlyDictionary<string, PdfExtGStateFontSelection>? extGStateFonts,
+        int maxGraphicsStateDepth) {
         var invocations = new List<ImageResourceInvocation>();
         var args = new List<ImageContentOperand>(8);
         var textStateStack = new Stack<PdfTextStateSnapshot>();
@@ -341,13 +335,14 @@ internal static partial class PdfRedactionApplier {
                     args.Clear();
                     break;
                 case "q":
-                    graphicsState.Stack.Push(graphicsState.Transform);
+                    graphicsState.Save(maxGraphicsStateDepth);
                     textStateStack.Push(textState);
                     args.Clear();
                     break;
                 case "Q":
-                    graphicsState.Transform = graphicsState.Stack.Count > 0 ? graphicsState.Stack.Pop() : graphicsState.BaseTransform;
-                    textState = textStateStack.Count > 0 ? textStateStack.Pop() : initialTextState;
+                    // A Q with nothing saved is a no-op, as viewers draw it; it must not undo an earlier transformation.
+                    if (graphicsState.Stack.Count > 0) graphicsState.Transform = graphicsState.Stack.Pop();
+                    if (textStateStack.Count > 0) textState = textStateStack.Pop();
                     args.Clear();
                     break;
                 case "cm":

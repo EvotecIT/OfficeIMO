@@ -34,13 +34,14 @@ internal sealed class HtmlPdfAnchorLinkMap {
 
     internal bool Covers(HtmlRenderVisual visual) => _coveredVisuals.Contains(visual);
 
-    private static void Collect(IEnumerable<HtmlRenderVisual> visuals,
+    private static void Collect(IReadOnlyList<HtmlRenderVisual> visuals,
         object space,
         RectangularClip clipBounds,
         IDictionary<(object Space, string Uri), List<HtmlRenderRectangle>> grouped,
         IDictionary<HtmlRenderVisual, (object Space, string Uri, HtmlRenderRectangle Bounds)> linkedVisuals,
         ISet<HtmlRenderAnchorFragment> activeFragments) {
-        foreach (HtmlRenderVisual visual in visuals) {
+        for (int index = 0; index < visuals.Count; index++) {
+            HtmlRenderVisual visual = visuals[index];
             if (visual is HtmlRenderAnchorFragment fragment) {
                 activeFragments.Add(fragment);
                 HtmlRenderRectangle? bounds = clipBounds.Intersect(new HtmlRenderRectangle(fragment.X, fragment.Y, fragment.Width, fragment.Height));

@@ -731,9 +731,9 @@ namespace OfficeIMO.Tests {
                         Assert.Throws<PowerPointSignedDocumentMutationException>(() => presentation.Save());
                     Assert.Equal(PowerPointSignatureMutationAction.Blocked, blocked.Report.Action);
 
-                    presentation.SignatureMutationPolicy =
-                        OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures;
-                    presentation.Save();
+                    presentation.Save(new PowerPointSaveOptions {
+                        SignatureMutationPolicy = OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures
+                    });
                     Assert.Equal(PowerPointSignatureMutationAction.Removed,
                         presentation.LastSignatureReport!.Action);
                 }

@@ -117,7 +117,9 @@ public enum ReaderInputKind {
     /// <summary>DBF/xBase table.</summary>
     Dbf = 29,
     /// <summary>Microsoft Publisher publication.</summary>
-    Publisher = 30
+    Publisher = 30,
+    /// <summary>TOML configuration file, such as pyproject.toml or Cargo.toml.</summary>
+    Toml = 31
 }
 
 /// <summary>

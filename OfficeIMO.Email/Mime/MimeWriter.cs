@@ -11,6 +11,9 @@ internal static partial class MimeWriter {
         internal bool HasAlternative { get; set; }
         internal bool HasRelatedResources { get; set; }
         internal bool HasUnrelatedAttachments { get; set; }
+        internal ulong? BoundaryContentHash { get; set; }
+        internal byte[]? TextUtf8 { get; set; }
+        internal byte[]? HtmlUtf8 { get; set; }
     }
 
     private static readonly HashSet<string> ManagedHeaders = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
@@ -217,11 +220,11 @@ internal static partial class MimeWriter {
             WriteLine(output, string.Empty);
             if (includeTextBody) {
                 WriteLine(output, string.Concat("--", boundary));
-                WriteTextPart(output, "text/plain", document.Body.Text!, state.Options.Base64LineLength);
+                WriteTextPart(output, "text/plain", document.Body.Text!, state.Options.Base64LineLength, plan);
             }
             if (document.Body.Html != null) {
                 WriteLine(output, string.Concat("--", boundary));
-                WriteTextPart(output, "text/html", document.Body.Html, state.Options.Base64LineLength,
+                WriteTextPart(output, "text/html", document.Body.Html, state.Options.Base64LineLength, plan,
                     document.Body.HtmlContentId, document.Body.HtmlContentLocation,
                     document.Body.PreserveHtmlMimeHeadersOnWrite ? document.Body.HtmlCharset : null,
                     document.Body.PreserveHtmlMimeHeadersOnWrite ? document.Body.HtmlTransferEncoding : null,
@@ -243,7 +246,7 @@ internal static partial class MimeWriter {
         } else if (contactBodyPart != null) {
             WriteAttachment(output, contactBodyPart, state, depth + 1, 0);
         } else if (document.Body.Html != null) {
-            WriteTextPart(output, "text/html", document.Body.Html, state.Options.Base64LineLength,
+            WriteTextPart(output, "text/html", document.Body.Html, state.Options.Base64LineLength, plan,
                 document.Body.HtmlContentId, document.Body.HtmlContentLocation,
                 document.Body.PreserveHtmlMimeHeadersOnWrite ? document.Body.HtmlCharset : null,
                 document.Body.PreserveHtmlMimeHeadersOnWrite ? document.Body.HtmlTransferEncoding : null,
@@ -253,7 +256,7 @@ internal static partial class MimeWriter {
         } else if (document.Body.Rtf != null) {
             WriteRtfPart(output, document.Body.Rtf, state, "body/rtf");
         } else {
-            WriteTextPart(output, "text/plain", document.Body.Text ?? string.Empty, state.Options.Base64LineLength);
+            WriteTextPart(output, "text/plain", document.Body.Text ?? string.Empty, state.Options.Base64LineLength, plan);
         }
     }
 
@@ -315,7 +318,7 @@ internal static partial class MimeWriter {
     }
 
     private static void WriteTextPart(Stream output, string mediaType, string text, int base64LineLength,
-        string? contentId = null, string? contentLocation = null, string? charset = null,
+        MimeContentPlan plan, string? contentId = null, string? contentLocation = null, string? charset = null,
         string? transferEncoding = null, ICollection<EmailHeader>? preservedHeaders = null,
         Encoding? encodingOverride = null, byte[]? encodingPreamble = null) {
         if (preservedHeaders != null && preservedHeaders.Count > 0) {
@@ -350,7 +353,8 @@ internal static partial class MimeWriter {
             WriteLine(output, string.Concat("Content-Location: ", EncodeHeaderText(contentLocation!)));
         }
         WriteLine(output, string.Empty);
-        WriteBase64(output, Encoding.UTF8.GetBytes(text), base64LineLength);
+        byte[]? preparedUtf8 = mediaType == "text/plain" ? plan.TextUtf8 : plan.HtmlUtf8;
+        WriteBase64(output, preparedUtf8 ?? Encoding.UTF8.GetBytes(text), base64LineLength);
     }
 
     private static void WriteRtfPart(Stream output, string rtf, MimeWriterState state, string location) {
@@ -523,132 +527,23 @@ internal static partial class MimeWriter {
         }
     }
 
-    private static void WriteQuotedPrintable(Stream output, byte[] data) {
-        int lineLength = 0;
-        bool endedWithCrlf = false;
-        for (int index = 0; index < data.Length; index++) {
-            byte value = data[index];
-            if (value == '\r' && index + 1 < data.Length && data[index + 1] == '\n') {
-                WriteLine(output, string.Empty);
-                lineLength = 0;
-                endedWithCrlf = true;
-                index++;
-                continue;
-            }
-            endedWithCrlf = false;
-            string token = value >= 33 && value <= 126 && value != '='
-                ? ((char)value).ToString()
-                : string.Concat("=", value.ToString("X2", CultureInfo.InvariantCulture));
-            if (lineLength + token.Length > 73) {
-                WriteLine(output, "=");
-                lineLength = 0;
-            }
-            byte[] tokenBytes = Encoding.ASCII.GetBytes(token);
-            output.Write(tokenBytes, 0, tokenBytes.Length);
-            lineLength += tokenBytes.Length;
-        }
-        if (!endedWithCrlf) WriteLine(output, string.Empty);
-    }
-
-    private static byte[] ReadBoundedBytes(Stream input, long maximumInputBytes) {
-        using (var buffer = new MemoryStream()) {
-            var chunk = new byte[81920];
-            long total = 0;
-            while (true) {
-                int read = input.Read(chunk, 0, chunk.Length);
-                if (read == 0) break;
-                total = checked(total + read);
-                if (total > maximumInputBytes) {
-                    throw new EmailLimitExceededException(nameof(EmailWriterOptions.MaxOutputBytes), total, maximumInputBytes);
-                }
-                buffer.Write(chunk, 0, read);
-            }
-            return buffer.ToArray();
-        }
-    }
-
-    private static void WriteBase64(Stream output, byte[] data, int lineLength) {
-        if (data.Length == 0) {
-            WriteLine(output, string.Empty);
-            return;
-        }
-        const int maximumBufferedInputBytes = 1024 * 1024;
-        if (data.Length <= maximumBufferedInputBytes) {
-            int bytesPerLine = checked(lineLength / 4 * 3);
-            int encodedCharacters = checked((data.Length + 2) / 3 * 4);
-            int lineCount = checked((data.Length + bytesPerLine - 1) / bytesPerLine);
-            var encoded = new byte[checked(encodedCharacters + lineCount * 2)];
-            int sourceOffset = 0;
-            int outputOffset = 0;
-            while (sourceOffset < data.Length) {
-                int sourceLength = Math.Min(bytesPerLine, data.Length - sourceOffset);
-                System.Buffers.OperationStatus status = System.Buffers.Text.Base64.EncodeToUtf8(
-                    data.AsSpan(sourceOffset, sourceLength),
-                    encoded.AsSpan(outputOffset),
-                    out int consumed,
-                    out int written,
-                    isFinalBlock: true);
-                if (status != System.Buffers.OperationStatus.Done || consumed != sourceLength) {
-                    throw new InvalidOperationException("The MIME base64 payload could not be encoded.");
-                }
-                sourceOffset += consumed;
-                outputOffset += written;
-                encoded[outputOffset++] = (byte)'\r';
-                encoded[outputOffset++] = (byte)'\n';
-            }
-            output.Write(encoded, 0, outputOffset);
-            return;
-        }
-        using (var input = new MemoryStream(data, writable: false)) {
-            WriteBase64(output, input, lineLength, data.LongLength);
-        }
-    }
-
-    internal static void WriteBase64(Stream output, Stream input, int lineLength, long maximumInputBytes,
-        CancellationToken cancellationToken = default) {
-        int bytesPerLine = checked(lineLength / 4 * 3);
-        var buffer = new byte[bytesPerLine];
-        var encodedCharacters = new char[lineLength];
-        var encodedLine = new byte[checked(lineLength + 2)];
-        long total = 0;
-        bool wrote = false;
-        while (true) {
-            cancellationToken.ThrowIfCancellationRequested();
-            int count = 0;
-            while (count < buffer.Length) {
-                int read = input.Read(buffer, count, buffer.Length - count);
-                if (read == 0) break;
-                count += read;
-                total = checked(total + read);
-                if (total > maximumInputBytes) {
-                    throw new EmailLimitExceededException(nameof(EmailWriterOptions.MaxOutputBytes),
-                        total, maximumInputBytes);
-                }
-            }
-            if (count == 0) break;
-            int characterCount = Convert.ToBase64CharArray(buffer, 0, count, encodedCharacters, 0);
-            for (int index = 0; index < characterCount; index++) {
-                encodedLine[index] = checked((byte)encodedCharacters[index]);
-            }
-            encodedLine[characterCount] = (byte)'\r';
-            encodedLine[characterCount + 1] = (byte)'\n';
-            output.Write(encodedLine, 0, characterCount + 2);
-            wrote = true;
-            if (count < buffer.Length) break;
-        }
-        if (!wrote) {
-            WriteLine(output, string.Empty);
-        }
-    }
-
     private static string CreateBoundary(EmailDocument document, MimeContentPlan plan, MimeWriterState state, int depth, string kind) {
-        ulong hash = 14695981039346656037UL;
-        Hash(ref hash, document.Subject);
-        Hash(ref hash, document.MessageId);
-        Hash(ref hash, document.Body.Text);
-        Hash(ref hash, document.Body.Html);
-        Hash(ref hash, document.Body.Rtf);
-        Hash(ref hash, plan.RegularAttachments.Length.ToString(CultureInfo.InvariantCulture));
+        ulong hash;
+        if (plan.BoundaryContentHash.HasValue) {
+            hash = plan.BoundaryContentHash.Value;
+        } else {
+            hash = 14695981039346656037UL;
+            Hash(ref hash, document.Subject);
+            Hash(ref hash, document.MessageId);
+            // The same UTF-8 bytes seed the boundary and the default transfer-encoded bodies.
+            plan.TextUtf8 = document.Body.Text == null ? null : Encoding.UTF8.GetBytes(document.Body.Text);
+            plan.HtmlUtf8 = document.Body.Html == null ? null : Encoding.UTF8.GetBytes(document.Body.Html);
+            HashBytes(ref hash, plan.TextUtf8);
+            HashBytes(ref hash, plan.HtmlUtf8);
+            Hash(ref hash, document.Body.Rtf);
+            Hash(ref hash, plan.RegularAttachments.Length.ToString(CultureInfo.InvariantCulture));
+            plan.BoundaryContentHash = hash;
+        }
         Hash(ref hash, depth.ToString(CultureInfo.InvariantCulture));
         Hash(ref hash, kind);
         string prefix = string.Concat("=_OfficeIMO_", kind, "_", hash.ToString("x16", CultureInfo.InvariantCulture));
@@ -824,7 +719,11 @@ internal static partial class MimeWriter {
 
     private static void Hash(ref ulong hash, string? value) {
         if (value == null) return;
-        byte[] bytes = Encoding.UTF8.GetBytes(value);
+        HashBytes(ref hash, Encoding.UTF8.GetBytes(value));
+    }
+
+    private static void HashBytes(ref ulong hash, byte[]? bytes) {
+        if (bytes == null) return;
         for (int i = 0; i < bytes.Length; i++) {
             hash ^= bytes[i];
             hash *= 1099511628211UL;

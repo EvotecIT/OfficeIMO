@@ -224,6 +224,17 @@ public partial class RtfHtmlConverterTests {
         Assert.Equal("<table><tbody><tr><td style=\"padding-top:6pt;padding-left:12pt;padding-bottom:3pt;padding-right:9pt;border-top:1pt solid #0C2238;border-left:1pt solid #0C2238;border-bottom:2pt dashed #FF0000;border-right:1pt double #0C2238;\"><p>Value</p></td></tr></tbody></table>", RtfHtmlTableTestMarkup.WithoutRowMetadata(html));
     }
 
+    [Theory]
+    [InlineData("<td style=\"text-align:start\">Cell</td>", RtfTextAlignment.Left)]
+    [InlineData("<td dir=\"rtl\" style=\"text-align:start\">Cell</td>", RtfTextAlignment.Right)]
+    [InlineData("<td dir=\"rtl\" style=\"text-align:end\">Cell</td>", RtfTextAlignment.Left)]
+    public void Html_ToRtfDocument_Resolves_Logical_Cell_Alignment(string cellHtml, RtfTextAlignment expected) {
+        RtfDocument document = HtmlConversionDocument.Parse("<table><tr>" + cellHtml + "</tr></table>").ToRtf();
+
+        RtfTable table = Assert.IsType<RtfTable>(Assert.Single(document.Blocks));
+        Assert.Equal(expected, table.Rows[0].Cells[0].Paragraphs[0].Alignment);
+    }
+
     [Fact]
     public void Html_ToRtfDocument_Parses_Legacy_Table_Cell_Attributes() {
         const string html = "<table><tr><td align=\"right\" valign=\"middle\" bgcolor=\"#fff2cc\" width=\"30%\" nowrap>Result</td></tr></table>";

@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing;
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.DjVu;
 
@@ -113,6 +114,22 @@ public sealed class ReaderAdapterTests {
         Assert.Throws<ReaderResourceLimitException>(() => document.ToReadResult(readerOptions: readerOptions));
         Assert.Throws<ReaderResourceLimitException>(() => document.ToReadResult(new ReaderDjVuOptions { ImageMode = ReaderDjVuImageMode.AllPages, MaxPageImages = 1 }));
         Assert.Throws<OperationCanceledException>(() => document.ToReadResult(cancellationToken: new CancellationToken(true)));
+    }
+
+    [Fact]
+    public void PageImageRenderingHonorsTheReadLayoutTimeoutAndTheNativeRenderTimeout() {
+        var document = DjVuDocument.Load(Fixture("reader-book.djvu"));
+        var limited = new ReaderOptions { LayoutTimeout = TimeSpan.FromTicks(1) };
+        var timeout = Assert.Throws<OfficeImageExportTimeoutException>(() =>
+            document.ToReadResult(new ReaderDjVuOptions { ImageMode = ReaderDjVuImageMode.AllPages }, readerOptions: limited));
+        Assert.Equal(TimeSpan.FromTicks(1), timeout.Timeout);
+        // Text-only ingestion lays out no pages, so the limit does not apply.
+        Assert.NotEmpty(document.ToReadResult(readerOptions: limited).Chunks);
+        Assert.Throws<OfficeImageExportTimeoutException>(() =>
+            document.Pages[0].Render(new DjVuRenderOptions { RenderTimeout = TimeSpan.FromTicks(1) }));
+        Assert.Throws<OperationCanceledException>(() =>
+            document.Pages[0].Render(new DjVuRenderOptions { RenderTimeout = TimeSpan.FromMinutes(5) }, new CancellationToken(true)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.Pages[0].Render(new DjVuRenderOptions { RenderTimeout = TimeSpan.Zero }));
     }
 
     [Fact]

@@ -40,6 +40,7 @@ namespace OfficeIMO.Excel {
             ArgumentException.ThrowIfNullOrWhiteSpace(range);
 #endif
 
+            using DefinedNameEditScope edit = BeginDefinedNameEdit();
             name = NormalizeDefinedName(name, validationMode);
             string reference = scope == null ? NormalizeRange(range, validationMode)
                 : NormalizeLocalNamedRange(scope, range, validationMode);
@@ -205,6 +206,7 @@ namespace OfficeIMO.Excel {
 #else
             ArgumentException.ThrowIfNullOrWhiteSpace(name);
 #endif
+            using DefinedNameEditScope edit = BeginDefinedNameEdit();
             var definedNames = WorkbookRoot.DefinedNames;
             if (definedNames == null) return false;
 
@@ -230,7 +232,12 @@ namespace OfficeIMO.Excel {
             MarkFormulaInputMutation();
             // Persist freshness on the cells as well as in the in-memory version.
             // Do not set the user's explicit full-calculation-on-open policy.
-            foreach (var sheet in Sheets) sheet.InvalidateFormulas();
+            // Deferred imports materialize through Sheets first, so they keep the immediate path.
+            if (RequiresDeferredMaterialization) {
+                foreach (var sheet in Sheets) sheet.InvalidateFormulas();
+                return;
+            }
+            QueueDefinedNameEdit(PendingDefinedNameFormulaMarks);
         }
 
         private uint GetSheetIndex(ExcelSheet sheet) {
@@ -329,7 +336,8 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            WorkbookRoot.Save();
+            // The part is written before anything else reads the package; see DefinedNameEditScope.
+            QueueDefinedNameEdit(PendingWorkbookRootSave);
         }
 
         /// <summary>
@@ -397,6 +405,12 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool DefinedNameReferencesExpectedSheet(string text, string expectedSheetName) {
+            // A dynamic print area or title is a formula such as OFFSET(Data!$A$1,0,0,Rows,5) or an alias for another
+            // defined name, both of which Excel accepts. Only plain reference lists can be checked against the sheet.
+            if (IsDefinedNameFormula(text)) {
+                return true;
+            }
+
             foreach (string part in SplitDefinedNameReferenceList(text)) {
                 if (!SheetNameLookup.TryParseSheetQualifiedReference(part, out string actualSheetName, out _, allowExternalWorkbookReferences: false)) {
                     return false;
@@ -408,6 +422,19 @@ namespace OfficeIMO.Excel {
             }
 
             return true;
+        }
+
+        private static bool IsDefinedNameFormula(string text) {
+            bool inQuote = false;
+            foreach (char ch in text) {
+                if (ch == '\'') {
+                    inQuote = !inQuote;
+                } else if (ch == '(' && !inQuote) {
+                    return true;
+                }
+            }
+
+            return ExcelFormulaSyntaxTree.Parse(text).Nodes.Any(node => node is ExcelFormulaNameSyntax name && name.Name.IndexOf('!') < 0);
         }
 
         private static IReadOnlyList<string> SplitDefinedNameReferenceList(string text) {

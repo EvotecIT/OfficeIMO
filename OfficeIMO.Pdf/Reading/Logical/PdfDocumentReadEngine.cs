@@ -27,8 +27,15 @@ internal static partial class PdfDocumentReadEngine {
         Guard.NotNull(options, nameof(options));
         cancellationToken.ThrowIfCancellationRequested();
 
-        return Read(source.GetReadDocument(source.ReadOptions, cancellationToken), options, cancellationToken);
+        return Read(source.GetReadDocument(GetSourceReadOptions(source, options), cancellationToken), options, cancellationToken);
     }
+
+    /// <summary>
+    /// Pages are parsed with the settings the document was opened with. Artifact text changes which content a page
+    /// yields, so a read that asks for it uses the source parsed once with artifact text included.
+    /// </summary>
+    internal static PdfLoadOptions GetSourceReadOptions(PdfDocument source, PdfLoadOptions? options) =>
+        options?.IncludeArtifactText == true ? source.ArtifactTextReadOptions : source.ReadOptions;
 
     internal static PdfDocumentReadResult Read(
         PdfReadDocument document,

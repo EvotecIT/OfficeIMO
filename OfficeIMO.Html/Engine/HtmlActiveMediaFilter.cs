@@ -142,7 +142,7 @@ public static class HtmlActiveMediaFilter {
                 continue;
             }
 
-            string expanded = ExpandActiveMediaStyleRules(styleElement.TextContent, mediaContext, diagnostics, out bool stylesheetChanged, cancellationToken);
+            string expanded = ExpandActiveMediaStyleRules(HtmlStyleElementText.Read(styleElement), mediaContext, diagnostics, out bool stylesheetChanged, cancellationToken);
             if (stylesheetChanged) {
                 styleElement.TextContent = expanded;
                 changed = true;
@@ -205,7 +205,7 @@ public static class HtmlActiveMediaFilter {
         }
 
         try {
-            var parser = new CssParser();
+            CssParser parser = HtmlCssProviderParsers.Declarations;
             var stylesheet = parser.ParseStyleSheet(css);
             cancellationToken.ThrowIfCancellationRequested();
             var builder = new StringBuilder();

@@ -19,6 +19,8 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("OfficeIMO.IWork")]
 [assembly: InternalsVisibleTo("OfficeIMO.Latex")]
 [assembly: InternalsVisibleTo("OfficeIMO.Markdown")]
+[assembly: InternalsVisibleTo("OfficeIMO.Yaml")]
+[assembly: InternalsVisibleTo("OfficeIMO.Toml")]
 [assembly: InternalsVisibleTo("OfficeIMO.Mhtml")]
 [assembly: InternalsVisibleTo("OfficeIMO.Markup.PowerPoint")]
 [assembly: InternalsVisibleTo("OfficeIMO.OpenDocument")]

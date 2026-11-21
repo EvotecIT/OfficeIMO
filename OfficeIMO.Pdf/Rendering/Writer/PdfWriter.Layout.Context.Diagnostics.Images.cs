@@ -25,7 +25,8 @@ internal static partial class PdfWriter {
                 placed.RotationCenterY = bottom + image.Height.ToPoints() / 2D;
             }
             PdfImageStream stream;
-            if (block.PreparedStream != null) stream = block.PreparedStream;
+            if (block.SvgDrawing != null) stream = DiagnosticSvgAlphaStream(block.SvgDrawing);
+            else if (block.PreparedStream != null) stream = block.PreparedStream;
             else if (!TryBuildImageStream(block.Data, block.Info, block.Width, block.Height, cancellationToken, out stream, out _))
                 throw new NotSupportedException("The inline image stream could not be inspected.");
             OfficeTransform placement = new OfficeImageProjection(new OfficeImagePlacement(placed.X, placed.Y, placed.W, placed.H),
@@ -80,6 +81,27 @@ internal static partial class PdfWriter {
                 foreach (var ring in contours) for (int index = 0; index < ring.Count; index++) ring[index] = sampleToLocal.TransformPoint(ring[index]);
                 return contours;
             }
+        }
+
+        private readonly Dictionary<OfficeDrawing, PdfImageStream> _diagnosticSvgAlpha = new();
+
+        /// <summary>
+        /// Paint coverage of an SVG drawn as vectors, sampled from the same 1x raster that SVG images were
+        /// embedded as before, so transparent margins are not mistaken for clipped content.
+        /// </summary>
+        private PdfImageStream DiagnosticSvgAlphaStream(OfficeDrawing drawing) {
+            if (_diagnosticSvgAlpha.TryGetValue(drawing, out PdfImageStream? cached)) return cached;
+            byte[] png = OfficeDrawingRasterRenderer.ToPng(drawing, new OfficeDrawingRasterRenderOptions {
+                Background = OfficeColor.Transparent,
+                MaximumRasterPixels = OfficeImagePdfCompatibility.DefaultMaximumTranscodePixels,
+                ThrowOnImageDecodeFailure = true,
+                LimitRasterPaintWork = true,
+                CancellationToken = cancellationToken
+            });
+            PdfImageStream stream = PdfDocument.PrepareImageBytes(png, cancellationToken).PreparedStream
+                ?? throw new NotSupportedException("The inline SVG paint could not be inspected.");
+            _diagnosticSvgAlpha[drawing] = stream;
+            return stream;
         }
 
         /// <summary>Checks nonempty raster paint in line slots discarded before the ordinary row renderer is entered.</summary>

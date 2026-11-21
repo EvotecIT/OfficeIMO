@@ -21,13 +21,14 @@ public sealed class McpPdfProtocolTests {
             foreach (bool configured in new[] { false, true }) {
                 var arguments = new List<string> { typeof(OfficeImoToolApp).Assembly.Location, "mcp", "serve", "--stdio" };
                 if (configured) arguments.AddRange(["--pdf-password-env", admitted]);
-                var transport = new StdioClientTransport(new() {
+                var serverOptions = new StdioClientTransportOptions {
                     Name = "officeimo-password-test", Command = "dotnet", Arguments = arguments, WorkingDirectory = root,
                     EnvironmentVariables = new Dictionary<string, string?> {
                         [AgentPathPolicy.AllowedRootsEnvironmentVariable] = root, [admitted] = syntheticPassword, [unrelated] = syntheticPassword
                     }
-                });
-                await using McpClient client = await McpClient.CreateAsync(transport, cancellationToken: timeout.Token);
+                };
+                await using McpTestServer server = await McpTestServer.StartAsync(serverOptions, timeout.Token);
+                McpClient client = server.Client;
                 string output = Path.Combine(root, configured ? "admitted.pdf" : "default-refused.pdf");
                 var result = await client.CallToolAsync("officeimo_pdf", new Dictionary<string, object?> {
                     ["path"] = source, ["outputPath"] = output, ["operation"] = "decrypt", ["passwordEnvironmentVariable"] = admitted
@@ -51,13 +52,14 @@ public sealed class McpPdfProtocolTests {
         string allowed = Path.Combine(root, "allowed"); Directory.CreateDirectory(allowed);
         string source = Path.Combine(allowed, "source.pdf"); PdfAutomationCommandTests.CreatePdf(source, 3);
         string assembly = typeof(OfficeImoToolApp).Assembly.Location;
-        var transport = new StdioClientTransport(new() {
+        var serverOptions = new StdioClientTransportOptions {
             Name = "officeimo-pdf-test", Command = "dotnet", Arguments = [assembly, "mcp", "serve", "--stdio"], WorkingDirectory = allowed,
             EnvironmentVariables = new Dictionary<string, string?> { [AgentPathPolicy.AllowedRootsEnvironmentVariable] = allowed }
-        });
+        };
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(45));
         try {
-            await using McpClient client = await McpClient.CreateAsync(transport, cancellationToken: timeout.Token);
+            await using McpTestServer server = await McpTestServer.StartAsync(serverOptions, timeout.Token);
+            McpClient client = server.Client;
             string extracted = Path.Combine(allowed, "extracted.pdf");
             var copy = await client.CallToolAsync("officeimo_pdf", new Dictionary<string, object?> {
                 ["path"] = source, ["outputPath"] = extracted, ["operation"] = "extract", ["pages"] = "last,1", ["maxOutputCharacters"] = 512

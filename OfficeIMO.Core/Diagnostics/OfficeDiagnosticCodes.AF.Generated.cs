@@ -4,22 +4,38 @@ namespace OfficeIMO;
 
 /// <summary>Stable diagnostic codes shared by document formats and converters.</summary>
 public static partial class OfficeDiagnosticCodes {
+    /// <summary>Stable code: <c>accessibility-blank-cell-layout</c>.</summary>
+    public const string AccessibilityBlankCellLayout = "accessibility-blank-cell-layout";
+    /// <summary>Stable code: <c>accessibility-blank-paragraph-spacing</c>.</summary>
+    public const string AccessibilityBlankParagraphSpacing = "accessibility-blank-paragraph-spacing";
     /// <summary>Stable code: <c>accessibility-chart-color-only-meaning</c>.</summary>
     public const string AccessibilityChartColorOnlyMeaning = "accessibility-chart-color-only-meaning";
+    /// <summary>Stable code: <c>accessibility-default-sheet-name</c>.</summary>
+    public const string AccessibilityDefaultSheetName = "accessibility-default-sheet-name";
+    /// <summary>Stable code: <c>accessibility-floating-object</c>.</summary>
+    public const string AccessibilityFloatingObject = "accessibility-floating-object";
     /// <summary>Stable code: <c>accessibility-heading-level-skipped</c>.</summary>
     public const string AccessibilityHeadingLevelSkipped = "accessibility-heading-level-skipped";
+    /// <summary>Stable code: <c>accessibility-hidden-sheet-content</c>.</summary>
+    public const string AccessibilityHiddenSheetContent = "accessibility-hidden-sheet-content";
     /// <summary>Stable code: <c>accessibility-image-missing-alt</c>.</summary>
     public const string AccessibilityImageMissingAlt = "accessibility-image-missing-alt";
+    /// <summary>Stable code: <c>accessibility-layout-table</c>.</summary>
+    public const string AccessibilityLayoutTable = "accessibility-layout-table";
     /// <summary>Stable code: <c>accessibility-link-text-missing</c>.</summary>
     public const string AccessibilityLinkTextMissing = "accessibility-link-text-missing";
     /// <summary>Stable code: <c>accessibility-link-text-weak</c>.</summary>
     public const string AccessibilityLinkTextWeak = "accessibility-link-text-weak";
     /// <summary>Stable code: <c>accessibility-low-contrast</c>.</summary>
     public const string AccessibilityLowContrast = "accessibility-low-contrast";
+    /// <summary>Stable code: <c>accessibility-merged-cells</c>.</summary>
+    public const string AccessibilityMergedCells = "accessibility-merged-cells";
     /// <summary>Stable code: <c>accessibility-missing-alternative-text</c>.</summary>
     public const string AccessibilityMissingAlternativeText = "accessibility-missing-alternative-text";
     /// <summary>Stable code: <c>accessibility-missing-document-title</c>.</summary>
     public const string AccessibilityMissingDocumentTitle = "accessibility-missing-document-title";
+    /// <summary>Stable code: <c>accessibility-missing-headings</c>.</summary>
+    public const string AccessibilityMissingHeadings = "accessibility-missing-headings";
     /// <summary>Stable code: <c>accessibility-missing-language</c>.</summary>
     public const string AccessibilityMissingLanguage = "accessibility-missing-language";
     /// <summary>Stable code: <c>accessibility-missing-link-tooltip</c>.</summary>
@@ -68,6 +84,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string AmiproStyleMissing = "amipro-style-missing";
     /// <summary>Stable code: <c>anchored-image-page-bounds-clipped</c>.</summary>
     public const string AnchoredImagePageBoundsClipped = "anchored-image-page-bounds-clipped";
+    /// <summary>Stable code: <c>array-joined</c>.</summary>
+    public const string ArrayJoined = "array-joined";
     /// <summary>Stable code: <c>artifact-creation-failed</c>.</summary>
     public const string ArtifactCreationFailed = "artifact-creation-failed";
     /// <summary>Stable code: <c>asset-broken-image-relationship</c>.</summary>
@@ -166,6 +184,12 @@ public static partial class OfficeDiagnosticCodes {
     public const string CssSizeLimitExceeded = "css-size-limit-exceeded";
     /// <summary>Stable code: <c>css-total-size-limit-exceeded</c>.</summary>
     public const string CssTotalSizeLimitExceeded = "css-total-size-limit-exceeded";
+    /// <summary>Stable code: <c>datetime-as-string</c>.</summary>
+    public const string DatetimeAsString = "datetime-as-string";
+    /// <summary>Stable code: <c>datetime-offset-dropped</c>.</summary>
+    public const string DatetimeOffsetDropped = "datetime-offset-dropped";
+    /// <summary>Stable code: <c>datetime-precision</c>.</summary>
+    public const string DatetimePrecision = "datetime-precision";
     /// <summary>Stable code: <c>diagnostics-truncated</c>.</summary>
     public const string DiagnosticsTruncated = "diagnostics-truncated";
     /// <summary>Stable code: <c>doc-activex-controls-present</c>.</summary>
@@ -262,6 +286,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string DocWorddocumentTooLarge = "doc-worddocument-too-large";
     /// <summary>Stable code: <c>document-head-metadata-omitted-for-fragment</c>.</summary>
     public const string DocumentHeadMetadataOmittedForFragment = "document-head-metadata-omitted-for-fragment";
+    /// <summary>Stable code: <c>duplicate-key</c>.</summary>
+    public const string DuplicateKey = "duplicate-key";
     /// <summary>Stable code: <c>duplicate-macro-signature-profile</c>.</summary>
     public const string DuplicateMacroSignatureProfile = "duplicate-macro-signature-profile";
     /// <summary>Stable code: <c>duplicate-object-identifier</c>.</summary>
@@ -276,6 +302,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string EffectiveFormattingThemeResolution = "effective-formatting-theme-resolution";
     /// <summary>Stable code: <c>embedded-image-limit</c>.</summary>
     public const string EmbeddedImageLimit = "embedded-image-limit";
+    /// <summary>Stable code: <c>empty-collection-dropped</c>.</summary>
+    public const string EmptyCollectionDropped = "empty-collection-dropped";
     /// <summary>Stable code: <c>empty-table</c>.</summary>
     public const string EmptyTable = "empty-table";
     /// <summary>Stable code: <c>encryption-detected</c>.</summary>

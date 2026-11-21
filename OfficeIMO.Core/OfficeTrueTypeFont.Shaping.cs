@@ -43,8 +43,9 @@ public sealed partial class OfficeTrueTypeFont {
     /// <summary>Positions logical substituted tokens before bidi reordering, declining unsupported active GPOS.</summary>
     internal bool TryPositionGlyphRun(IReadOnlyList<OfficeOpenTypeSubstitution.GlyphToken> logicalTokens,
         string? language, System.Threading.CancellationToken cancellationToken,
-        out OfficeOpenTypeGlyphPositioning[] positions, bool rejectMarkAdjustments = false) =>
-        _kerning.TryPositionRun(logicalTokens, language, cancellationToken, out positions, rejectMarkAdjustments);
+        out OfficeOpenTypeGlyphPositioning[] positions, bool rejectMarkAdjustments = false,
+        OfficeOpenTypePositioningOptions? options = null) =>
+        _kerning.TryPositionRun(logicalTokens, language, cancellationToken, out positions, rejectMarkAdjustments, options);
 
     /// <summary>Positions an already validated BMP scalar run using the same pair adjustment and tracking owner as native paint.</summary>
     internal IReadOnlyList<double> PositionPortableScalars(string text, double fontSize) {

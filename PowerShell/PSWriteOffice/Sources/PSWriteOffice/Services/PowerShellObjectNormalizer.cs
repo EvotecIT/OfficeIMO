@@ -210,14 +210,10 @@ internal static partial class PowerShellObjectNormalizer
             return false;
         }
 
-        if (TryProjectAlignedPSObject(ps, columns, values, options))
-        {
-            return true;
-        }
-
+        var instanceMembers = PowerShellPropertyLookup.GetInstanceMembers(ps);
         for (var i = 0; i < columns.Length; i++)
         {
-            var property = ps.Properties[columns[i]];
+            var property = PowerShellPropertyLookup.GetProperty(ps, instanceMembers, columns[i]);
             if (property == null || !ShouldExportProperty(property))
             {
                 values[i] = null;
@@ -283,9 +279,10 @@ internal static partial class PowerShellObjectNormalizer
             return false;
         }
 
+        var instanceMembers = PowerShellPropertyLookup.GetInstanceMembers(ps);
         for (var i = 0; i < columns.Length; i++)
         {
-            var property = ps.Properties[columns[i]];
+            var property = PowerShellPropertyLookup.GetProperty(ps, instanceMembers, columns[i]);
             if (property == null || !ShouldExportProperty(property))
             {
                 values[i] = null;
@@ -315,74 +312,15 @@ internal static partial class PowerShellObjectNormalizer
         return true;
     }
 
-    private static bool TryProjectAlignedPSObject(PSObject ps, string[] columns, object?[] values, PowerShellObjectNormalizerOptions options)
-    {
-        var index = 0;
-        foreach (var property in ps.Properties)
-        {
-            if (!ShouldExportProperty(property))
-            {
-                continue;
-            }
-
-            if (!IsAlignedColumn(property.Name, columns, index))
-            {
-                return false;
-            }
-
-            if (property.MemberType == PSMemberTypes.NoteProperty &&
-                TryGetFastCellValue(property.Value, options, out values[index]))
-            {
-                index++;
-                continue;
-            }
-
-            try
-            {
-                values[index] = NormalizeCellValue(property.Value, options);
-            }
-            catch (Exception exception) when (
-                exception is not PipelineStoppedException &&
-                exception is not PowerShellNormalizationLimitException)
-            {
-                if (options.PropertyErrorAction == ActionPreference.Stop)
-                {
-                    throw new InvalidOperationException($"Unable to read PowerShell property '{property.Name}'.", exception);
-                }
-
-                options.PropertyErrorCallback?.Invoke(property.Name, exception);
-                values[index] = options.IncludeUnexportableProperties
-                    ? options.UnexportablePropertyValueFactory?.Invoke(property.Name, exception) ?? string.Empty
-                    : null;
-            }
-
-            index++;
-        }
-
-        return index == columns.Length;
-    }
-
-    private static bool IsAlignedColumn(string propertyName, string[] columns, int index)
-    {
-        return index < columns.Length &&
-            (string.Equals(propertyName, columns[index], StringComparison.Ordinal) ||
-             string.Equals(propertyName, columns[index], StringComparison.OrdinalIgnoreCase));
-    }
-
     private static bool TryProjectScalar(object item, string[]? columns, out string[] projectedColumns, out object?[] values, PowerShellObjectNormalizerOptions options)
     {
-        if (item is PSObject psObject && HasExportableExtendedProperties(psObject))
-        {
-            projectedColumns = columns ?? Array.Empty<string>();
-            values = Array.Empty<object?>();
-            return false;
-        }
-
         var value = item is PSObject { BaseObject: { } baseObject } && IsScalarClrType(baseObject.GetType())
             ? baseObject
             : item;
 
-        if (!IsScalarClrType(value.GetType()))
+        // Check extended properties only for scalar rows; enumerating every property of every object row is costly.
+        if (!IsScalarClrType(value.GetType()) ||
+            (item is PSObject psObject && HasExportableExtendedProperties(psObject)))
         {
             projectedColumns = columns ?? Array.Empty<string>();
             values = Array.Empty<object?>();
@@ -407,16 +345,12 @@ internal static partial class PowerShellObjectNormalizer
 
     private static bool TryProjectScalarInto(object item, string[] columns, object?[] values, PowerShellObjectNormalizerOptions options)
     {
-        if (item is PSObject psObject && HasExportableExtendedProperties(psObject))
-        {
-            return false;
-        }
-
         var value = item is PSObject { BaseObject: { } baseObject } && IsScalarClrType(baseObject.GetType())
             ? baseObject
             : item;
 
-        if (!IsScalarClrType(value.GetType()))
+        if (!IsScalarClrType(value.GetType()) ||
+            (item is PSObject psObject && HasExportableExtendedProperties(psObject)))
         {
             return false;
         }
@@ -569,9 +503,10 @@ internal static partial class PowerShellObjectNormalizer
 
         projectedColumns = columns;
         values = new object?[columns.Length];
+        var instanceMembers = PowerShellPropertyLookup.GetInstanceMembers(ps);
         for (var i = 0; i < columns.Length; i++)
         {
-            var property = ps.Properties[columns[i]];
+            var property = PowerShellPropertyLookup.GetProperty(ps, instanceMembers, columns[i]);
             if (property == null || !ShouldExportProperty(property))
             {
                 values[i] = null;
@@ -610,9 +545,10 @@ internal static partial class PowerShellObjectNormalizer
             return;
         }
 
+        var instanceMembers = PowerShellPropertyLookup.GetInstanceMembers(ps);
         for (var i = 0; i < columns.Length; i++)
         {
-            var property = ps.Properties[columns[i]];
+            var property = PowerShellPropertyLookup.GetProperty(ps, instanceMembers, columns[i]);
             if (property == null || !ShouldExportProperty(property))
             {
                 values[i] = null;
@@ -847,6 +783,11 @@ internal static partial class PowerShellObjectNormalizer
 
     private static string? NormalizeCellValueToText(object? value, PowerShellObjectNormalizerOptions options)
     {
+        while (value is PSObject wrapped && !ReferenceEquals(value, wrapped.BaseObject))
+        {
+            value = wrapped.BaseObject;
+        }
+
         if (value == null)
         {
             return null;
@@ -860,6 +801,11 @@ internal static partial class PowerShellObjectNormalizer
         if (value is bool boolValue)
         {
             return boolValue ? "True" : "False";
+        }
+
+        if (options.RoundTripScalarText && OfficeIMO.Core.Internal.OfficeRoundTripText.TryFormat(value, options.Culture, out string roundTripText))
+        {
+            return roundTripText;
         }
 
         if (value is decimal or int or DateTime or double or long or DateTimeOffset or Guid or TimeSpan or float or byte or sbyte or short or ushort or uint or ulong)
@@ -907,7 +853,9 @@ internal static partial class PowerShellObjectNormalizer
         {
             if (options.FormatScalarValuesAsText)
             {
-                normalized = value is IFormattable formattable
+                normalized = options.RoundTripScalarText && OfficeIMO.Core.Internal.OfficeRoundTripText.TryFormat(value, options.Culture, out string roundTripText)
+                    ? roundTripText
+                    : value is IFormattable formattable
                     ? formattable.ToString(null, options.Culture)
                     : value.ToString();
             }

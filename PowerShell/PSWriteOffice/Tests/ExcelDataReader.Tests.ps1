@@ -83,4 +83,57 @@ Describe 'Excel IDataReader import' {
         { Import-OfficeExcel -Path $xlsx -Sheet Data -Range A1:B2 -Table Data -ErrorAction Stop } |
             Should -Throw
     }
+
+    It 'reports a header that names a reserved PowerShell member set instead of emitting the row' {
+        $xlsx = Join-Path $TestDrive 'excel-reader-reserved-header.xlsx'
+        [ordered]@{ Name = 'Alpha'; PSObject = 1 } | Export-OfficeExcel -Path $xlsx -Sheet Data -NoAutoFit
+
+        { Import-OfficeExcel -Path $xlsx -Sheet Data -ErrorAction Stop } | Should -Throw '*PSObject*reserved*'
+    }
+}
+
+Describe 'Excel export of database values' {
+    BeforeAll {
+        $script:NewDatabaseTable = {
+            $table = [System.Data.DataTable]::new('Data')
+            [void] $table.Columns.Add('Stamp', [DateTimeOffset])
+            [void] $table.Columns.Add('Amount', [decimal])
+            [void] $table.Columns.Add('Big', [long])
+            [void] $table.Columns.Add('Hash', [byte[]])
+            $stamp = [DateTimeOffset]::new([DateTime]::new(2026, 3, 14, 9, 26, 53).AddTicks(5897932), [TimeSpan]::new(5, 45, 0))
+            $amount = [decimal]::Parse('1234567890123456.7890123456', [cultureinfo]::InvariantCulture)
+            [void] $table.Rows.Add($stamp, $amount, [long]::MaxValue, [byte[]] @(0, 1, 2, 250, 255))
+            , $table
+        }
+    }
+
+    It 'reads back exact values from <Source> input' -ForEach @(
+        @{ Source = 'DataTable' }
+        @{ Source = 'DataReader' }
+    ) {
+        $xlsx = Join-Path $TestDrive "database-$Source.xlsx"
+        $table = & $script:NewDatabaseTable
+        $data = $table
+        # Assign the reader directly; returning it from a script block would enumerate its rows.
+        if ($Source -eq 'DataReader') { $data = $table.CreateDataReader() }
+
+        Export-OfficeExcel -Path $xlsx -InputObject $data -Sheet Data
+
+        $row = @(Import-OfficeExcel -Path $xlsx -Sheet Data)[0]
+        $row.Stamp | Should -Be '2026-03-14T09:26:53.5897932+05:45'
+        $row.Amount | Should -Be '1234567890123456.7890123456'
+        $row.Big | Should -Be '9223372036854775807'
+        $row.Hash | Should -Be 'AAEC+v8='
+    }
+
+    It 'writes Excel dates with -DateTimeOffsetMode Serial' {
+        $xlsx = Join-Path $TestDrive 'database-serial.xlsx'
+        $table = & $script:NewDatabaseTable
+
+        Export-OfficeExcel -Path $xlsx -InputObject $table -Sheet Data -DateTimeOffsetMode Serial
+
+        $row = @(Import-OfficeExcel -Path $xlsx -Sheet Data)[0]
+        $row.Stamp | Should -BeOfType [DateTime]
+        [Math]::Abs(($row.Stamp - $table.Rows[0].Stamp.LocalDateTime).TotalMilliseconds) | Should -BeLessThan 1
+    }
 }

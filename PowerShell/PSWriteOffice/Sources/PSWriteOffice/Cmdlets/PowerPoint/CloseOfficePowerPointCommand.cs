@@ -22,7 +22,10 @@ public sealed class CloseOfficePowerPointCommand : OfficeCmdlet {
     /// <inheritdoc />
     protected override void ProcessRecord() {
         PowerPointDocument document = Document;
-        try { PowerPointDocumentService.CloseDocument(document, save: false, show: false); }
+        try {
+            PowerPointDocumentService.CloseDocument(document, save: false, show: false);
+            OfficeUnsavedNewDocuments.WarnIfUnsaved(this, document, "presentation", "PowerPoint");
+        }
         catch (PipelineStoppedException) { throw; }
         catch (System.Exception error) { ItemError(error, "document-close-failed", document); }
     }

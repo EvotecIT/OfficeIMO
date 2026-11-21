@@ -105,7 +105,7 @@ public class PdfTableStreamExportContracts {
 
         using OfficeIMO.Word.WordDocument word = (logical.ConvertToWordWithEvidence()).Value;
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(word.ToBytes()), false);
-        DocumentFormat.OpenXml.Wordprocessing.PageSize[] pageSizes = package.MainDocumentPart!.Document.Body!
+        DocumentFormat.OpenXml.Wordprocessing.PageSize[] pageSizes = package.MainDocumentPart!.Document!.Body!
             .Descendants<DocumentFormat.OpenXml.Wordprocessing.SectionProperties>()
             .Select(static section => section.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.PageSize>()!)
             .ToArray();
@@ -224,7 +224,7 @@ public class PdfTableStreamExportContracts {
         using (word.Value) {
             using WordprocessingDocument wordPackage = WordprocessingDocument.Open(new MemoryStream(word.Value.ToBytes()), false);
             DocumentFormat.OpenXml.Wordprocessing.Table importedTable = Assert.Single(
-                wordPackage.MainDocumentPart!.Document.Body!.Descendants<DocumentFormat.OpenXml.Wordprocessing.Table>(),
+                wordPackage.MainDocumentPart!.Document!.Body!.Descendants<DocumentFormat.OpenXml.Wordprocessing.Table>(),
                 static candidate => candidate.Descendants<DocumentFormat.OpenXml.Wordprocessing.TableGrid>()
                     .Any(grid => grid.ChildElements.Count == 5));
             Assert.All(importedTable.Descendants<DocumentFormat.OpenXml.Wordprocessing.Paragraph>(), static paragraph => {
@@ -276,10 +276,10 @@ public class PdfTableStreamExportContracts {
                     .Elements<S.NumberingFormat>(),
                 static format => format.FormatCode?.Value?.Contains("\"PLN\"", StringComparison.Ordinal) == true);
             S.Sheet importedSheet = Assert.Single(
-                workbookPart.Workbook.Sheets!.Elements<S.Sheet>(),
+                workbookPart.Workbook!.Sheets!.Elements<S.Sheet>(),
                 sheet => string.Equals(sheet.Name?.Value, excelEntry.SheetName, StringComparison.Ordinal));
             WorksheetPart worksheetPart = (WorksheetPart)workbookPart.GetPartById(importedSheet.Id!.Value!);
-            S.Cell[] currencyCells = worksheetPart.Worksheet.Descendants<S.Cell>()
+            S.Cell[] currencyCells = worksheetPart.Worksheet!.Descendants<S.Cell>()
                 .Where(static cell =>
                     cell.CellReference?.Value is string reference &&
                     reference.Length >= 2 &&
@@ -309,7 +309,7 @@ public class PdfTableStreamExportContracts {
                 false);
             A.Table importedTable = Assert.Single(
                 presentationPackage.PresentationPart!.SlideParts
-                    .SelectMany(static slidePart => slidePart.Slide.Descendants<A.Table>()));
+                    .SelectMany(static slidePart => slidePart.Slide!.Descendants<A.Table>()));
             Assert.All(
                 importedTable.Descendants<A.RunProperties>(),
                 static run => Assert.InRange(run.FontSize?.Value ?? 0, 100, 400000));
@@ -380,9 +380,9 @@ public class PdfTableStreamExportContracts {
             Assert.Contains("#,##0.000 \"KWD\"", numberFormats);
 
             WorkbookPart workbookPart = package.WorkbookPart!;
-            S.Sheet importedSheet = Assert.Single(workbookPart.Workbook.Sheets!.Elements<S.Sheet>());
+            S.Sheet importedSheet = Assert.Single(workbookPart.Workbook!.Sheets!.Elements<S.Sheet>());
             WorksheetPart worksheetPart = (WorksheetPart)workbookPart.GetPartById(importedSheet.Id!.Value!);
-            Dictionary<string, S.Cell> cells = worksheetPart.Worksheet.Descendants<S.Cell>()
+            Dictionary<string, S.Cell> cells = worksheetPart.Worksheet!.Descendants<S.Cell>()
                 .ToDictionary(static cell => cell.CellReference!.Value!);
             Assert.Equal(
                 -4567M,
@@ -484,9 +484,9 @@ public class PdfTableStreamExportContracts {
                 new MemoryStream(result.Value.ToBytes()),
                 false);
             WorkbookPart workbookPart = package.WorkbookPart!;
-            S.Sheet sheet = Assert.Single(workbookPart.Workbook.Sheets!.Elements<S.Sheet>());
+            S.Sheet sheet = Assert.Single(workbookPart.Workbook!.Sheets!.Elements<S.Sheet>());
             WorksheetPart worksheetPart = (WorksheetPart)workbookPart.GetPartById(sheet.Id!.Value!);
-            Dictionary<string, S.Cell> cells = worksheetPart.Worksheet.Descendants<S.Cell>()
+            Dictionary<string, S.Cell> cells = worksheetPart.Worksheet!.Descendants<S.Cell>()
                 .ToDictionary(static cell => cell.CellReference!.Value!);
 
             Assert.Equal("$5%", ReadText(cells["A2"]));

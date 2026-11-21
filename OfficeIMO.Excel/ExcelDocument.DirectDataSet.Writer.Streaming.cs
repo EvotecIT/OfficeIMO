@@ -8,7 +8,7 @@ namespace OfficeIMO.Excel;
 public partial class ExcelDocument {
     private static partial class DirectDataSetWorkbookWriter {
         /// <summary>Streams one worksheet, then emits its table with the final observed row count.</summary>
-        internal static async Task<int> WriteStreamingWorksheet<T>(ZipArchive archive, DirectDataSetWorkbookModel model,
+        internal static async Task<int> WriteStreamingWorksheet<T>(ExcelPackageArchive archive, DirectDataSetWorkbookModel model,
             IAsyncEnumerable<T> rows, Action<ExcelTabularRowWriter, T> writeRow, bool autoFit, OfficeTheme theme, CancellationToken cancellationToken) {
             var stylePlan = DirectStylePlan.Create(model);
             var columns = CreateColumnWritePlans(model, stylePlan, cancellationToken);
@@ -26,13 +26,13 @@ public partial class ExcelDocument {
             return count;
         }
 
-        internal static DocumentFormat.OpenXml.Spreadsheet.Stylesheet CreateNativeStreamingStyles(DirectDataSetWorkbookModel model, OfficeTheme theme) =>
-            new(CreateStylesXml(DirectStylePlan.Create(model), theme));
+        internal static string CreateNativeStreamingStylesXml(DirectDataSetWorkbookModel model, OfficeTheme theme) =>
+            CreateStylesXml(DirectStylePlan.Create(model), theme);
 
         internal static string CreateNativeStreamingTheme(OfficeTheme theme) => CreateWorkbookThemeXml(theme);
 
         /// <summary>Writes bounded workbook metadata only after all worksheet streams have completed.</summary>
-        internal static void CompleteStreamingWorkbook(ZipArchive archive, DirectDataSetWorkbookModel model, OfficeTheme theme) {
+        internal static void CompleteStreamingWorkbook(ExcelPackageArchive archive, DirectDataSetWorkbookModel model, OfficeTheme theme) {
             WritePackagePreamble(archive, model, DirectStylePlan.Create(model), false,
                 themeXml: CreateWorkbookThemeXml(theme), theme: theme);
         }

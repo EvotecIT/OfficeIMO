@@ -58,9 +58,9 @@
 | `$...$` and `\(...\)` | Semantic | Typed inline math retaining original delimiter and content. |
 | `$$...$$`, `\[...\]`, and common math environments | Semantic | Typed display math retaining source and environment/delimiter metadata. |
 | Labels around equations | Semantic where recognized | Reference metadata is retained; no TeX counter/equation-number calculation. |
-| Markdown transport | Converted with diagnostics | Math uses Markdown's semantic fenced/code carrier so source remains visible and transportable. |
-| Word/PDF transport | Simplified through Markdown | OfficeIMO semantic output; no claim of TeX math layout or full LaTeX-to-OMML conversion. |
-| TeX math typesetting | Unsupported | The engine does not select fonts, shape glyphs, break formulas, or reproduce TeX layout. |
+| Markdown transport | Converted | Inline math becomes Markdown `MathInline` and display math a `math` semantic fence; the TeX source is retained unchanged. |
+| Word/PDF output | Converted for the shared math subset | Word receives native, editable Office Math (OMML). PDF lays display math out as vector drawings and inline math as baseline-aligned high-resolution images, through the shared OfficeIMO math engine and an installed math font (STIX Two Math, Cambria Math, Latin Modern Math or DejaVu Math TeX Gyre). TeX outside the engine's subset, or a missing math font, falls back to visible source with a warning. |
+| TeX math typesetting | Approximate | Fractions, roots, scripts, large operators, `matrix`/`pmatrix`/`bmatrix`/`Bmatrix`/`vmatrix`/`Vmatrix`, `cases`, `aligned`, `\left`/`\right` and TeX spacing commands are laid out from OpenType math metrics. Formula line breaking, equation numbering and TeX-identical spacing are not reproduced. |
 
 ## Safe simple macros
 
@@ -107,8 +107,8 @@ Native .NET 8 and .NET 10 builds and focused LaTeX, conversion and Reader suites
 qualified on Windows, Linux/WSL x64 and macOS Arm64; Windows also runs .NET Framework
 4.7.2. Public Reader file, stream and byte-array routes are compared on the pinned
 official inputs. Linux uses an NTFS-mounted WSL checkout, so native ext4 checkout
-behavior and other Reader formats are outside this qualification. The [model memory
-evidence](benchmarks/officeimo.latex-model-memory-2026-10-03.md) separates parsing from
+behavior and other Reader formats are outside this qualification. The model memory
+evidence separates parsing from
 complete public-token inspection and records timing and process-memory limits.
 
 ## Deliberate limits

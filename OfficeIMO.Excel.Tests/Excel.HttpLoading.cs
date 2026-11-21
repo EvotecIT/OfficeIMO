@@ -19,6 +19,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task ExcelHttpLoadRejectsEmbeddedCredentialsBeforeSending() {
+            int requestCount = 0;
+            using var handler = new FakeWorkbookHttpMessageHandler((_, _) => {
+                requestCount++;
+                return Task.FromResult(CreateWorkbookResponse(CreateRemoteWorkbookBytes()));
+            });
+
+            NotSupportedException exception = await Assert.ThrowsAsync<NotSupportedException>(() =>
+                ExcelDocument.LoadAsync(
+                    new Uri("https://user:secret@example.test/workbook.xlsx"),
+                    new ExcelLoadOptions { HttpMessageHandler = handler }));
+
+            Assert.Contains("credentials", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(0, requestCount);
+        }
+
+        [Fact]
         public async Task ExcelHttpReaderAllowsHttpWhenOptedInAndSendsHeaders() {
             byte[] workbookBytes = CreateRemoteWorkbookBytes();
             HttpRequestMessage? capturedRequest = null;

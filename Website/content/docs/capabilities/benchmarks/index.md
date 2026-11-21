@@ -11,33 +11,25 @@ Those categories answer different questions. A regression result is not presente
 
 ## Published comparisons
 
-The [public benchmark page](/benchmarks/) separates three evidence layers:
+The [benchmark page](/benchmarks/) shows every declared comparison by area, such as Excel, CSV, PDF or Word, and opens each area's results on its own page. A comparison measures OfficeIMO and other .NET libraries doing the same work on the same input. A result is published only when each library's output was validated before it was timed; a few suites measure OfficeIMO alone and are shown without being published.
 
-- **Source suites** show which workloads the current repository can run. A project in the tree is coverage, not a performance result.
-- **Cataloged artifacts** show measured results with a source commit, runtime, hardware, operating system, run mode, and validation output. Only full artifacts marked for publication support public comparisons; diagnostic artifacts only prove that a lane executes and validates.
-- **Historical engineering evidence** preserves the larger Excel and CSV matrix. It remains useful for scenario and library coverage, but rows without complete environment provenance are not mixed into current platform rankings.
+A run is published only when it meets the publishing rules: at least 3 warmups and 10 measured samples per case, a 95% confidence interval for the median, passed output validation, a clean source commit, the recorded operating system, CPU, runtime and SDK, and the exact version and hash of every compared package. Libraries whose licence does not allow publishing results run only locally and are shown as not published. Windows, Linux and macOS, and each target framework, are separate runs; they are never averaged together. When two confidence intervals overlap, the libraries are shown as even.
 
-The page keeps missing workload and platform lanes visible. That makes the evidence boundary inspectable instead of quietly reducing the comparison to the few cells that happen to be available.
+A comparison that has not been measured yet, or whose runs do not meet the rules, says so on the page instead of showing numbers.
 
-### Excel reports and data pipelines
+### Run a comparison
 
-The Excel suite covers 25,000-row creation, `IDataReader` writes, typed reads, styling, formulas, tables, and charts. Result artifacts are validated before a measurement is accepted.
+`Build/Run-LibraryComparisonBenchmarks.ps1` runs the declared comparisons, records the results and checks them against the declarations. Use the `diagnostic` profile to check that a comparison runs, and `standard` or `full` for results that can be published:
 
 ```shell
-dotnet run -c Release --project OfficeIMO.Excel.Benchmarks -- --help
+pwsh ./Build/Run-LibraryComparisonBenchmarks.ps1 -Workload csv -Profile diagnostic
+pwsh ./Build/Run-LibraryComparisonBenchmarks.ps1 -Workload xlsx -Profile diagnostic
+pwsh ./Build/Run-LibraryComparisonBenchmarks.ps1 -Workload all -Profile standard -Publish -EvidenceRoot ./artifacts/benchmark-bundles/windows
 ```
 
-Use the selector on the [benchmark page](/benchmarks/#library-comparison-evidence) to inspect the measured source revision, runtime, hardware, operating system, run mode, workload, and result rows. Use the historical matrix on the same page when you need the broader scenario and library inventory.
+Inside PowerShell, `-Workload csv,xlsx` selects both in one run.
 
-### CSV reads and writes
-
-The CSV suite traverses every field for read scenarios and validates the semantic output of write scenarios. This prevents a fast partial read or incomplete file from being counted as equivalent work.
-
-```shell
-dotnet run -c Release --project OfficeIMO.CSV.Benchmarks -- --filter *CsvWideBenchmarks*
-```
-
-The committed comparison is available on the [benchmark page](/benchmarks/#library-comparison-evidence). Full and diagnostic artifacts are labeled separately and are never combined into one ranking.
+`-Workload all -Profile full -PlanOnly` lists every workload with its libraries, frameworks and anything that blocks it. The [library comparison guide](https://github.com/EvotecIT/OfficeIMO/blob/master/Build/LibraryComparisonBenchmarks.md) covers licences, merging results from several machines, and how the declarations are generated.
 
 ## Reader regression baseline
 
@@ -46,8 +38,6 @@ The committed comparison is available on the [benchmark page](/benchmarks/#libra
 ```shell
 dotnet run -c Release --project OfficeIMO.Reader.Benchmarks -- evidence --help
 ```
-
-[Inspect the committed Reader evidence](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/benchmarks/officeimo.reader.foundation-2026-07-10.md) before comparing it with a local run.
 
 ## Performance guardrails
 

@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -25,18 +26,59 @@ namespace OfficeIMO.Excel {
         private static uint GetOrAddConditionalDifferentialFormat(WorkbookStylesPart stylesPart, Stylesheet stylesheet,
             DifferentialFormat candidate) {
             DifferentialFormats formats = stylesheet.DifferentialFormats ??= new DifferentialFormats();
-            int existingIndex = formats.Elements<DifferentialFormat>()
-                .Select((format, index) => new { format, index })
-                .Where(item => string.Equals(item.format.OuterXml, candidate.OuterXml, StringComparison.Ordinal))
-                .Select(item => item.index)
-                .DefaultIfEmpty(-1)
-                .First();
-            if (existingIndex >= 0) return (uint)existingIndex;
+            return GetOrAppendDifferentialFormat(stylesPart, formats, candidate);
+        }
+
+        // Each rule looked up its differential format by serializing the candidate once per existing format, which
+        // made adding thousands of rules spend most of its time in XML writers. Formats are only appended by the
+        // library, so their serialized forms are kept per formats element while its children keep their count and
+        // last element; a package handed out for direct editing is always searched.
+        private static readonly ConditionalWeakTable<DifferentialFormats, DifferentialFormatIndex> DifferentialFormatIndexes = new();
+
+        private sealed class DifferentialFormatIndex {
+            internal readonly Dictionary<string, uint> Indexes = new(StringComparer.Ordinal);
+            internal int Count;
+            internal OpenXmlElement? LastChild;
+        }
+
+        /// <summary>Returns the index of a format equal to <paramref name="candidate"/>, appending it when there is none.</summary>
+        private static uint GetOrAppendDifferentialFormat(WorkbookStylesPart stylesPart, DifferentialFormats formats, DifferentialFormat candidate) {
+            string key = candidate.OuterXml;
+            DifferentialFormatIndex? index = null;
+            if (!IsPackageExposed(stylesPart.OpenXmlPackage)) {
+                index = DifferentialFormatIndexes.GetValue(formats, static _ => new DifferentialFormatIndex());
+                int count = 0;
+                for (OpenXmlElement? child = formats.FirstChild; child != null; child = child.NextSibling()) count++;
+                if (index.Count != count || !ReferenceEquals(index.LastChild, formats.LastChild)) {
+                    index.Indexes.Clear();
+                    uint position = 0;
+                    foreach (DifferentialFormat format in formats.Elements<DifferentialFormat>()) {
+                        string existing = format.OuterXml;
+                        if (!index.Indexes.ContainsKey(existing)) index.Indexes.Add(existing, position);
+                        position++;
+                    }
+                    index.Count = count;
+                    index.LastChild = formats.LastChild;
+                }
+                if (index.Indexes.TryGetValue(key, out uint found)) return found;
+            } else {
+                uint position = 0;
+                foreach (DifferentialFormat format in formats.Elements<DifferentialFormat>()) {
+                    if (string.Equals(format.OuterXml, key, StringComparison.Ordinal)) return position;
+                    position++;
+                }
+            }
 
             formats.Append(candidate);
             formats.Count = (uint)formats.Elements<DifferentialFormat>().Count();
+            uint appended = formats.Count!.Value - 1U;
+            if (index != null) {
+                if (!index.Indexes.ContainsKey(key)) index.Indexes.Add(key, appended);
+                index.Count++;
+                index.LastChild = candidate;
+            }
             SaveStylesheet(stylesPart);
-            return formats.Count!.Value - 1U;
+            return appended;
         }
 
         private static void ApplyOffice2010ConditionalDifferentialFormat(

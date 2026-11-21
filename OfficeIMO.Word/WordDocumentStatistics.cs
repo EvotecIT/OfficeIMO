@@ -8,7 +8,14 @@ namespace OfficeIMO.Word {
         private readonly WordDocument _document;
         private readonly IReadOnlyList<WordParagraph>? _paragraphSnapshot;
 
+        private string[]? _snapshotParagraphTexts;
+
         private IReadOnlyList<WordParagraph> ParagraphsForCounting => _paragraphSnapshot ?? _document.Paragraphs;
+
+        // A snapshot counts words and both character totals from the same paragraph texts, so it reads them once.
+        private IEnumerable<string> ParagraphTextsForCounting => _paragraphSnapshot == null
+            ? ParagraphsForCounting.Select(paragraph => paragraph.Text)
+            : _snapshotParagraphTexts ??= _paragraphSnapshot.Select(paragraph => paragraph.Text).ToArray();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="WordDocumentStatistics"/> class.
@@ -55,8 +62,7 @@ namespace OfficeIMO.Word {
                 if (wordsProp.HasValue) return wordsProp.Value;
 
                 int count = 0;
-                foreach (var paragraph in ParagraphsForCounting) {
-                    var text = paragraph.Text;
+                foreach (var text in ParagraphTextsForCounting) {
                     if (!string.IsNullOrWhiteSpace(text)) {
                         count += text.Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).Length;
                     }
@@ -106,7 +112,7 @@ namespace OfficeIMO.Word {
                     return chars;
                 }
 
-                return ParagraphsForCounting.Sum(p => p.Text.Replace(" ", "").Length);
+                return ParagraphTextsForCounting.Sum(text => text.Replace(" ", "").Length);
             }
         }
 
@@ -120,7 +126,7 @@ namespace OfficeIMO.Word {
                     return chars;
                 }
 
-                return ParagraphsForCounting.Sum(p => p.Text.Length);
+                return ParagraphTextsForCounting.Sum(text => text.Length);
             }
         }
     }

@@ -65,6 +65,14 @@ internal sealed partial class OfficeOpenTypeSubstitution {
     }
 
     internal static int FindLatinDefaultInputIndex(string text) {
+        // Printable ASCII is either wholly eligible (it contains a Latin letter) or wholly not,
+        // matching GetLatinDefaultEligibility without building scalar lists for every run.
+        bool printableAscii = true, hasLatin = false;
+        foreach (char character in text) {
+            if ((uint)(character - 32) > 94U) { printableAscii = false; break; }
+            hasLatin |= character >= 'A' && character <= 'Z' || character >= 'a' && character <= 'z';
+        }
+        if (printableAscii) return hasLatin ? 0 : -1;
         var scalars = new List<int>();
         var indexes = new List<int>();
         for (int index = 0; index < text.Length; index++) {

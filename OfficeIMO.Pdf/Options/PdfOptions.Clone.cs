@@ -96,11 +96,13 @@ public sealed partial class PdfCreateOptions {
             TextShapingLanguageOverride = TextShapingLanguageOverride,
             _diagnosticsReport = _diagnosticsReport,
             _diagnosticsConverter = _diagnosticsConverter,
+            TableCellDiagnosticSummary = TableCellDiagnosticSummary,
             _embeddedFonts = CloneEmbeddedFonts(_embeddedFonts),
             _embedDefaultFonts = _embedDefaultFonts,
             _defaultFontsUseStandardMetrics = _defaultFontsUseStandardMetrics,
             _defaultFontEmbeddingAttempts = _defaultFontEmbeddingAttempts == null ? null : new HashSet<PdfStandardFont>(_defaultFontEmbeddingAttempts),
             _defaultEmbeddedFontFamilies = _defaultEmbeddedFontFamilies == null ? null : new HashSet<PdfStandardFont>(_defaultEmbeddedFontFamilies),
+            _pendingDefaultFontFamilies = ClonePendingDefaultFontFamilies(),
             _fallbackOwnedFontFamilies = _fallbackOwnedFontFamilies == null
                 ? null : new HashSet<PdfStandardFont>(_fallbackOwnedFontFamilies),
             _automaticFallbackOwnedNamedFamilyKeys = _automaticFallbackOwnedNamedFamilyKeys == null
@@ -248,12 +250,12 @@ public sealed partial class PdfCreateOptions {
         return clone;
     }
 
-    private static System.Collections.Generic.Dictionary<PdfStandardFont, PdfEmbeddedFont>? CloneEmbeddedFonts(System.Collections.Generic.Dictionary<PdfStandardFont, PdfEmbeddedFont>? fonts) {
+    private static PdfFontMembershipMap<PdfStandardFont, PdfEmbeddedFont>? CloneEmbeddedFonts(PdfFontMembershipMap<PdfStandardFont, PdfEmbeddedFont>? fonts) {
         if (fonts == null) {
             return null;
         }
 
-        var clone = new System.Collections.Generic.Dictionary<PdfStandardFont, PdfEmbeddedFont>();
+        var clone = new PdfFontMembershipMap<PdfStandardFont, PdfEmbeddedFont>();
         foreach (var font in fonts) {
             clone[font.Key] = font.Value.Clone();
         }
@@ -261,12 +263,12 @@ public sealed partial class PdfCreateOptions {
         return clone;
     }
 
-    private static System.Collections.Generic.Dictionary<string, PdfEmbeddedFontFamily>? CloneNamedFontFamilies(System.Collections.Generic.Dictionary<string, PdfEmbeddedFontFamily>? fonts) {
+    private static PdfFontMembershipMap<string, PdfEmbeddedFontFamily>? CloneNamedFontFamilies(PdfFontMembershipMap<string, PdfEmbeddedFontFamily>? fonts) {
         if (fonts == null) {
             return null;
         }
 
-        var clone = new System.Collections.Generic.Dictionary<string, PdfEmbeddedFontFamily>(System.StringComparer.Ordinal);
+        var clone = new PdfFontMembershipMap<string, PdfEmbeddedFontFamily>(System.StringComparer.Ordinal);
         foreach (var font in fonts) {
             clone[font.Key] = font.Value.Clone();
         }

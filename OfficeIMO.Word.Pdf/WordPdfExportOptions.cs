@@ -9,6 +9,14 @@ namespace OfficeIMO.Word.Pdf {
         /// <summary>Blocks output when conversion reports fidelity loss.</summary>
         public bool FailOnLoss { get; set; }
 
+        private global::OfficeIMO.OfficeChartRenderOptions _chartRendering = new global::OfficeIMO.OfficeChartRenderOptions();
+
+        /// <summary>How native charts are drawn, including what happens to formatting the chart renderer cannot reproduce exactly.</summary>
+        public global::OfficeIMO.OfficeChartRenderOptions ChartRendering {
+            get => _chartRendering;
+            set => _chartRendering = value ?? throw new ArgumentNullException(nameof(value));
+        }
+
         internal CancellationToken CancellationToken { get; set; }
 
         /// <summary>Maximum images collected from one Word paragraph during PDF export.</summary>
@@ -132,6 +140,7 @@ namespace OfficeIMO.Word.Pdf {
         internal HashSet<DocumentFormat.OpenXml.OpenXmlElement> DiagnosedBarTabElements { get; } = new();
         internal HashSet<DocumentFormat.OpenXml.Wordprocessing.Drawing> DiagnosedImageWrapElements { get; } = new();
         internal HashSet<DocumentFormat.OpenXml.Wordprocessing.Drawing> DiagnosedWrappedImageClippingElements { get; } = new();
+        internal HashSet<DocumentFormat.OpenXml.OpenXmlElement> DiagnosedSvgFallbackImages { get; } = new();
 
         /// <summary>
         /// Determines whether generated page numbers are rendered when the Word source has no page-number field. Defaults to false.
@@ -275,7 +284,8 @@ namespace OfficeIMO.Word.Pdf {
                 IncludePageNumbers = IncludePageNumbers,
                 PageNumberFormat = PageNumberFormat,
                 DefaultTableBorders = DefaultTableBorders,
-                TrackedChanges = TrackedChanges
+                TrackedChanges = TrackedChanges,
+                ChartRendering = ChartRendering.Clone()
             };
             clone._pdfOptionsCreatedByRenderingProfile =
                 _pdfOptionsCreatedByRenderingProfile;

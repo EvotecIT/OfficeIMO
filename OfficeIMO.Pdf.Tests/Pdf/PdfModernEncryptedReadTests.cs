@@ -34,4 +34,18 @@ public class PdfModernEncryptedReadTests {
         Assert.Equal(title, ownerInfo.Metadata.Title);
         Assert.Throws<PdfInvalidPasswordException>(() => PdfInspector.Inspect(pdf, new PdfLoadOptions { Password = "wrong" }));
     }
+
+    [Fact]
+    public void Revision6EntriesPaddedBeyond48BytesOpenWithUserAndOwnerPasswords() {
+        // Acrobat X/XI pad /O and /U to 127 bytes; only the first 48 carry the hash and salts.
+        string text = System.Text.Encoding.ASCII.GetString(Convert.FromBase64String(Revision6Fixture));
+        string padding = new string('0', 2 * (127 - 48));
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"/([OU]) <([0-9a-f]{96})>", match => "/" + match.Groups[1].Value + " <" + match.Groups[2].Value + padding + ">");
+        int xref = text.IndexOf("\nxref\n", StringComparison.Ordinal) + 1;
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"startxref\n\d+", "startxref\n" + xref);
+        byte[] pdf = System.Text.Encoding.ASCII.GetBytes(text);
+
+        Assert.Equal("External R6 Fixture", PdfInspector.Inspect(pdf, new PdfLoadOptions { Password = "open" }).Metadata.Title);
+        Assert.Equal("External R6 Fixture", PdfInspector.Inspect(pdf, new PdfLoadOptions { Password = "owner" }).Metadata.Title);
+    }
 }

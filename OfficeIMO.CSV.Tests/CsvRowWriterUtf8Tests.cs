@@ -12,7 +12,7 @@ public class CsvRowWriterUtf8Tests
     {
         new object[] { new CsvSaveOptions { NewLine = "\n" } },
         new object[] { new CsvSaveOptions { NewLine = "\r\n", QuoteMode = CsvQuoteMode.Always } },
-        new object[] { new CsvSaveOptions { QuoteMode = CsvQuoteMode.Never, QuoteFields = new[] { "Missing", "Empty" } } },
+        new object[] { new CsvSaveOptions { Delimiter = '\t', QuoteMode = CsvQuoteMode.Never, EscapeMode = CsvEscapeMode.Backslash, QuoteFields = new[] { "Missing", "Empty" } } },
         new object[] { new CsvSaveOptions { QuoteFields = new[] { "Missing", "Empty", "Text" } } },
         new object[] { new CsvSaveOptions { DelimiterText = "|λ|", NewLine = "\n", IncludeHeader = false } },
         new object[] { new CsvSaveOptions { Delimiter = ';', NullValue = "=NULL;", FormulaInjectionPolicy = CsvFormulaInjectionPolicy.Escape } },
@@ -63,6 +63,25 @@ public class CsvRowWriterUtf8Tests
             writer.WriteUtf8Row(Encode(new[] { "second", "row" }));
         }
         Assert.Equal("A,B\nfirst,row\nsecond,row\n", Encoding.UTF8.GetString(output.ToArray()));
+    }
+
+    // Unquoted output rejects a field with the delimiter or a line break; as with text rows, nothing of that row is written.
+    [Theory]
+    [InlineData(CsvEscapeMode.None, "tab\there")]
+    [InlineData(CsvEscapeMode.Backslash, "pipe|here")]
+    public void Utf8Rows_UnrepresentableFieldDoesNotWritePartialRow(CsvEscapeMode escape, string field)
+    {
+        var options = new CsvSaveOptions { DelimiterText = escape == CsvEscapeMode.None ? "\t" : "|", QuoteMode = CsvQuoteMode.Never, EscapeMode = escape, NewLine = "\n" };
+        string[] columns = { "A", "B" };
+        using var output = new MemoryStream();
+        using (var writer = CsvRowWriter.CreateStream(output, options, leaveOpen: true))
+        {
+            writer.WriteUtf8Row(columns, Encode(new[] { "first", "row" }));
+            Assert.Throws<CsvException>(() => writer.WriteUtf8Row(Encode(new[] { "partial", field })));
+            writer.WriteUtf8Row(Encode(new[] { "second", "row" }));
+        }
+
+        Assert.Equal(WriteText(columns, new[] { new string?[] { "first", "row" }, new string?[] { "second", "row" } }, options), output.ToArray());
     }
 
     [Fact]

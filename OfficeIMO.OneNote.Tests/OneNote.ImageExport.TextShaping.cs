@@ -30,7 +30,7 @@ public sealed class OneNoteImageExportTextShapingTests {
     }
 
     [Fact]
-    public void OneNoteVisualPdfRasterStage_ReachesTheSharedTextShapingProvider() {
+    public void OneNoteVisualPdf_ReachesTheSharedTextShapingProvider() {
         var section = new OneNoteSection { Name = "Shaping" };
         section.Pages.Add(new OneNotePage {
             Title = "A",
@@ -38,7 +38,6 @@ public sealed class OneNoteImageExportTextShapingTests {
         });
         var provider = new ManagedTextShapingTestAssets.RecordingProvider();
         var options = new OneNoteVisualPdfExportOptions {
-            RasterScale = 0.25D,
             PageRendering = new OneNotePageRenderingOptions {
                 DefaultFont = new OfficeFontInfo(ManagedTextShapingTestAssets.FamilyName, 12D),
                 TextShapingProvider = provider,
@@ -66,7 +65,6 @@ public sealed class OneNoteImageExportTextShapingTests {
         });
         var provider = new ManagedTextShapingTestAssets.RecordingProvider();
         var options = new OneNoteVisualPdfExportOptions {
-            RasterScale = 0.25D,
             PageRendering = new OneNotePageRenderingOptions {
                 DefaultFont = new OfficeFontInfo(ManagedTextShapingTestAssets.FamilyName, 12D),
                 TextShapingProvider = provider

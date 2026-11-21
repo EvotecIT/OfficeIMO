@@ -11,7 +11,7 @@ Creates native HTML-to-Word options for Convert-OfficeDocument.
 ## SYNTAX
 ### Default (Default)
 ```powershell
-New-OfficeHtmlWordOptions [-Font <string>] [-BasePath <string>] [-StylesheetPath <string[]>] [-StylesheetContent <string[]>] [-IncludeListStyles] [-ContinueNumbering] [-SupportsHeadingNumbering] [-RenderPreAsTable] [-TableCaptionPosition <WordHtmlTableCaptionPosition>] [-SectionTagHandling <WordHtmlSectionTagHandling>] [<CommonParameters>]
+New-OfficeHtmlWordOptions [-Font <string>] [-BasePath <string>] [-StylesheetPath <string[]>] [-StylesheetContent <string[]>] [-IncludeListStyles] [-ContinueNumbering] [-SupportsHeadingNumbering] [-RenderPreAsTable] [-TableCaptionPosition <WordHtmlTableCaptionPosition>] [-SectionTagHandling <WordHtmlSectionTagHandling>] [-DefaultParagraphStyle <string>] [-PreferDocumentStyles] [-IgnoreCssFormatting] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -60,6 +60,22 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -DefaultParagraphStyle
+Paragraph style, by identifier or name, for generated body paragraphs without another style.
+
+```yaml
+Type: String
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -Font
 Font family for imported text.
 
@@ -76,8 +92,40 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -IgnoreCssFormatting
+Ignore CSS and -Font formatting so the document's styles decide how text looks.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -IncludeListStyles
 Import list style information.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -PreferDocumentStyles
+Map CSS classes to the document's paragraph styles and keep paragraph styles inside block quotes.
 
 ```yaml
 Type: SwitchParameter

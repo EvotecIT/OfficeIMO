@@ -273,7 +273,7 @@ namespace OfficeIMO.PowerPoint {
 
                 context.Deck.Report(PowerPointLayoutDiagnosticCodes.TextSplitParagraph, OfficeDiagnosticSeverity.Information,
                     "A paragraph longer than the slide was split between sentences.", slide.Title);
-                var pieces = Regex.Split(paragraph, @"(?<=[.!?])\s+").Where(s => s.Length > 0).ToList();
+                var pieces = SentenceBreak.Split(paragraph).Where(s => s.Length > 0).ToList();
                 units.AddRange(pieces);
                 if (native != null) nativeUnits.AddRange(PowerPointLayoutNativeText.SplitParagraph(native, pieces));
             }
@@ -314,6 +314,8 @@ namespace OfficeIMO.PowerPoint {
             internal double[] Widths { get; set; } = Array.Empty<double>();
             internal bool[] Numeric { get; set; } = Array.Empty<bool>();
         }
+
+        private static readonly Regex SentenceBreak = new(@"(?<=[.!?])\s+");
 
         private static readonly Regex NumberPattern = new(@"^\s*[\-−+]?[$€£]?\s?[\d.,]+\s?(%|[kKmM]|pt|h|ms)?\s*$", RegexOptions.CultureInvariant);
 
@@ -461,11 +463,11 @@ namespace OfficeIMO.PowerPoint {
                 }
             }
             List<List<int>> chunks;
-            while (true) {
+            for (; ; pages++) {
                 chunks = Balance(Enumerable.Range(0, table.Rows.Count).ToList(), pages);
-                // A row taller than the limit takes a slide of its own, so this ends at one row per slide.
-                if (table.MaximumRows.HasValue || chunks.All(c => c.Sum(i => Math.Min(units[i], limit)) <= limit)) break;
-                pages++;
+                // A row taller than the limit takes a slide of its own, so this ends at one row per slide at the latest.
+                if (table.MaximumRows.HasValue || pages >= table.Rows.Count
+                    || chunks.All(c => c.Sum(i => Math.Min(units[i], limit)) <= limit)) break;
             }
 
             if (!table.MaximumRows.HasValue && units.Any(unit => RowHeight(metrics, unit) > limit * metrics.RowHeight)) {

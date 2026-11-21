@@ -1,0 +1,127 @@
+name: Verify .NET Framework shard parity and timings
+
+on:
+  # Opt in on a PR; reapply the label to verify a later revision.
+  pull_request:
+    types: [opened, labeled]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  MSBUILDDISABLENODEREUSE: '1'
+  DOTNET_CLI_USE_MSBUILD_SERVER: '0'
+  BUILD_CONFIGURATION: Release
+  TEST_VERBOSITY: minimal
+
+jobs:
+  plan:
+    if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'net472-shard-evidence' || (github.event.action == 'opened' && contains(github.event.pull_request.labels.*.name, 'net472-shard-evidence'))
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - id: plan
+        run: |
+          python3 Build/Ci/select.py --full --output selection.json > /dev/null
+          python3 - <<'PY'
+          import json, os
+          selection = json.load(open('selection.json'))
+          baseline = [{'name': row['name'], 'projects': [row]} for row in selection['windows']['include']]
+          rows = [dict(row, layout=layout, sample=sample)
+                  for sample in (1, 2, 3)
+                  for layout, entries in [('baseline', baseline), ('sharded', selection['windows_shards']['include'])]
+                  for row in entries]
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write('matrix=' + json.dumps({'include': rows}, separators=(',', ':')) + '\n')
+          PY
+
+  execute:
+    needs: plan
+    name: 'net472 evidence / ${{ matrix.sample }} / ${{ matrix.layout }} / ${{ matrix.name }}'
+    runs-on: windows-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    env:
+      OFFICEIMO_VISUAL_BASELINE_ARTIFACTS_DIRECTORY: ${{ github.workspace }}/TestResults/visual-baselines
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 8.0.x
+          global-json-file: global.json
+      - uses: ./.github/actions/nuget-cache
+      - name: Record measurement environment
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $source = git rev-parse HEAD
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot identify measured source.' }
+          $sdk = dotnet --version
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot identify measured SDK.' }
+          New-Item -ItemType Directory -Force TestResults/net472-evidence | Out-Null
+          @{ source = $source.Trim(); sdk = $sdk.Trim(); image = $env:ImageVersion; arch = $env:RUNNER_ARCH } |
+            ConvertTo-Json | Set-Content TestResults/net472-evidence/environment.json
+      - name: Run net472 contracts
+        shell: pwsh
+        env:
+          SHARD_PROJECTS: ${{ toJSON(matrix.projects) }}
+        run: |
+          ./Build/Ci/Invoke-NetFrameworkShard.ps1 -ProjectsJson $env:SHARD_PROJECTS `
+            -EvidenceDirectory 'TestResults/net472-evidence' `
+            -DiagnosticsDirectory '${{ runner.temp }}/net472-binlogs'
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: net472-evidence-${{ matrix.sample }}-${{ matrix.layout }}-${{ matrix.name }}
+          path: |
+            **/*.trx
+            TestResults/net472-evidence/**
+          if-no-files-found: error
+          retention-days: 7
+
+  compare:
+    needs: [plan, execute]
+    if: always() && needs.plan.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: net472-evidence-*
+          path: evidence
+      - name: Compare test identities, outcomes and hosted timings
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 Build/Ci/compare_netframework_shards.py evidence --output comparison.json \
+            --repo "$GITHUB_REPOSITORY" --run-id "$GITHUB_RUN_ID"
+          python3 - <<'PY'
+          import json, os
+          report = json.load(open('comparison.json'))
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as output:
+              output.write(report['parity'] + '\n\n')
+              output.write('| Sample | Layout | Jobs | Test results | Runner minutes | Job span minutes |\n|---|---|---:|---:|---:|---:|\n')
+              for row in report['samples']:
+                  output.write(f"| {row['sample']} | {row['layout']} | {row['jobs']} | {row['test_results']} | {row['runner_seconds']/60:.2f} | {row['span_seconds']/60:.2f} |\n")
+              output.write(f"\nMedian runner minutes saved: {report['median_runner_seconds_saved']/60:.2f}. Job span includes scheduling; runner duration is elapsed time, not billing.\n")
+          PY
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: net472-shard-comparison
+          path: comparison.json
+          if-no-files-found: error
+          retention-days: 7

@@ -107,7 +107,7 @@ internal static partial class PdfReaderAdapter {
         PdfDocumentPreflight preflight = WithNativeLimits(() => pdf.Preflight(null, cancellationToken));
         PdfInspectionReadResult? inspection = LoadInspection(pdf, source, effectiveReaderOptions, effectivePdfOptions, cancellationToken);
         PdfDocumentReadResult document = inspection?.Document ?? LoadDocument(pdf, effectiveReaderOptions, effectivePdfOptions, cancellationToken);
-        return BuildDocumentResult(document, source, effectiveReaderOptions, effectivePdfOptions, preflight, applyPageRanges: false, cancellationToken, inspection);
+        return BuildDocumentResult(document, source, effectiveReaderOptions, effectivePdfOptions, preflight, applyPageRanges: false, cancellationToken, inspection, pdf);
     }
 
     /// <summary>
@@ -131,7 +131,7 @@ internal static partial class PdfReaderAdapter {
         PdfDocumentPreflight preflight = WithNativeLimits(() => pdf.Preflight(null, cancellationToken));
         PdfInspectionReadResult? inspection = LoadInspection(pdf, source, effectiveReaderOptions, effectivePdfOptions, cancellationToken);
         PdfDocumentReadResult document = inspection?.Document ?? LoadDocument(pdf, effectiveReaderOptions, effectivePdfOptions, cancellationToken);
-        return BuildDocumentResult(document, source, effectiveReaderOptions, effectivePdfOptions, preflight, applyPageRanges: false, cancellationToken, inspection);
+        return BuildDocumentResult(document, source, effectiveReaderOptions, effectivePdfOptions, preflight, applyPageRanges: false, cancellationToken, inspection, pdf);
     }
 
     /// <summary>
@@ -164,19 +164,21 @@ internal static partial class PdfReaderAdapter {
 
     private static OfficeDocumentReadResult BuildDocumentResult(PdfDocumentReadResult document, SourceMetadata source,
         ReaderOptions readerOptions, ReaderPdfOptions pdfOptions, PdfDocumentPreflight? preflight, bool applyPageRanges,
-        CancellationToken cancellationToken, PdfInspectionReadResult? inspection = null) =>
-        WithNativeLimits(() => BuildDocumentResultCore(document, source, readerOptions, pdfOptions, preflight, applyPageRanges, cancellationToken, inspection));
+        CancellationToken cancellationToken, PdfInspectionReadResult? inspection = null, PdfDocument? pdf = null) =>
+        WithNativeLimits(() => BuildDocumentResultCore(document, source, readerOptions, pdfOptions, preflight, applyPageRanges, cancellationToken, inspection, pdf));
 
-    private static OfficeDocumentReadResult BuildDocumentResultCore(PdfDocumentReadResult document, SourceMetadata source, ReaderOptions readerOptions, ReaderPdfOptions pdfOptions, PdfDocumentPreflight? preflight, bool applyPageRanges, CancellationToken cancellationToken, PdfInspectionReadResult? inspection = null) {
+    private static OfficeDocumentReadResult BuildDocumentResultCore(PdfDocumentReadResult document, SourceMetadata source, ReaderOptions readerOptions, ReaderPdfOptions pdfOptions, PdfDocumentPreflight? preflight, bool applyPageRanges, CancellationToken cancellationToken, PdfInspectionReadResult? inspection = null, PdfDocument? pdf = null) {
         if (readerOptions.Projection == ReaderProjection.TextAndMetadata)
-            return BuildTextAndMetadataResult(document, source, readerOptions, pdfOptions, preflight, applyPageRanges, cancellationToken, inspection);
+            return BuildTextAndMetadataResult(document, source, readerOptions, pdfOptions, preflight, applyPageRanges, cancellationToken, inspection, pdf);
         var markdownOptions = ReaderPdfOptions.CloneMarkdownOptions(pdfOptions.MarkdownOptions) ?? ReaderPdfOptions.CreateOfficeIMOProfile().MarkdownOptions!;
         markdownOptions.IncludePageSeparators = false;
         IReadOnlyList<PdfLogicalPage> pages = applyPageRanges ? GetReaderPages(document, pdfOptions) : document.Pages;
         string markdown = BuildMarkdown(pages, markdownOptions);
-        ReaderChunk[] chunks = Read(document, source, readerOptions, pdfOptions, applyPageRanges, cancellationToken)
+        ReaderChunk[] chunks = Read(document, source, readerOptions, pdfOptions, applyPageRanges, cancellationToken, pdf)
             .Concat(BuildInspectionWarningChunks(inspection, source)).ToArray();
-        ReaderTable[] tables = DocumentReaderEngine.ExtractTables(chunks, cancellationToken).ToArray();
+        // Attachment tables and visuals belong to their nested documents, not to this PDF's pages.
+        ReaderChunk[] ownChunks = chunks.Where(chunk => !IsAttachmentChunk(chunk, source)).ToArray();
+        ReaderTable[] tables = DocumentReaderEngine.ExtractTables(ownChunks, cancellationToken).ToArray();
         OfficeDocumentBlock[] blocks = BuildDocumentBlocks(pages, source).ToArray();
         OfficeDocumentAsset[] assets = BuildDocumentAssets(pages, source).ToArray();
         OfficeDocumentLink[] links = BuildDocumentLinks(pages, source).ToArray();
@@ -207,7 +209,7 @@ internal static partial class PdfReaderAdapter {
             Links = links,
             Forms = forms,
             OcrCandidates = ocrCandidates,
-            Visuals = chunks
+            Visuals = ownChunks
                 .Where(chunk => chunk.Visuals != null)
                 .SelectMany(chunk => chunk.Visuals!)
                 .ToArray(),
@@ -287,7 +289,7 @@ internal static partial class PdfReaderAdapter {
                     yield return new OfficeDocumentBlock {
                         Id = "pdf-page-" + page.PageNumber.ToString("D4", CultureInfo.InvariantCulture) + "-selection-" + selectionIndex.ToString("D4", CultureInfo.InvariantCulture) + "-block-" + elementIndex.ToString("D4", CultureInfo.InvariantCulture),
                         Kind = kind,
-                        Text = heading?.Text ?? listItem?.Text ?? textBlock.Text,
+                        Text = heading?.Text ?? (listItem is null ? null : FormatListItemText(listItem)) ?? textBlock.Text,
                         Level = heading?.Level ?? listItem?.Level,
                         Marker = listItem?.Marker,
                         Location = BuildLocation(source, page.PageNumber, selectionIndex, kind, "page-" + page.PageNumber.ToString(CultureInfo.InvariantCulture) + "-selection-" + selectionIndex.ToString("D4", CultureInfo.InvariantCulture) + "-block-" + elementIndex.ToString("D4", CultureInfo.InvariantCulture)),
@@ -681,7 +683,7 @@ internal static partial class PdfReaderAdapter {
     private static void AddAttribute(Dictionary<string, string> attributes, string name, double? value) {
         double? normalized = NormalizeFiniteCoordinate(value);
         if (normalized.HasValue) {
-            attributes[name] = normalized.Value.ToString("R", CultureInfo.InvariantCulture);
+            attributes[name] = OfficeIMO.OfficeRoundTripNumberText.Format(normalized.Value, CultureInfo.InvariantCulture);
         }
     }
 
@@ -786,6 +788,10 @@ internal static partial class PdfReaderAdapter {
 
         return null;
     }
+
+    // A contents entry's title is its list text; its printed page number stays with it.
+    private static string FormatListItemText(PdfLogicalListItem item) =>
+        item.IsContentsEntry && !string.IsNullOrEmpty(item.TargetPageLabel) ? item.Text + " \u2014 " + item.TargetPageLabel : item.Text;
 
     private static PdfLogicalListItem? FindListItem(IReadOnlyList<PdfLogicalListItem> projectedLists, PdfLogicalTextBlock textBlock) {
         for (int i = 0; i < projectedLists.Count; i++) {

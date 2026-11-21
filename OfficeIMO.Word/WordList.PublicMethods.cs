@@ -42,8 +42,7 @@ namespace OfficeIMO.Word {
             }
 
             var paragraphProperties = new ParagraphProperties();
-            _document.EnsureStyleDefinition("ListParagraph");
-            paragraphProperties.Append(new ParagraphStyleId { Val = "ListParagraph" });
+            paragraphProperties.Append(new ParagraphStyleId { Val = _document.UseBuiltInStyle("ListParagraph") });
             paragraphProperties.Append(
                 new NumberingProperties(
                     new NumberingLevelReference { Val = levelIndex },

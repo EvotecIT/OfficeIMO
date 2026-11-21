@@ -81,7 +81,18 @@ namespace OfficeIMO.Word.Markdown {
 
         private static void ApplyBlockParagraphFormatting(WordParagraph paragraph, int quoteDepth, Omd.MarkdownColumnAlignment alignment, MarkdownWordExportOptions options) {
             if (quoteDepth > 0) {
-                paragraph.IndentationBefore = OfficeLength.Points(IndentTwipsPerLevel * quoteDepth / 20D);
+                // The document's quote style owns the first level's indent. Deeper levels step in from it: a direct
+                // indent replaces the style's, so it adds the nesting to the style's own indent.
+                // Any quote style counts, including one chosen as the default paragraph style, so Word-to-Markdown
+                // reads the same depth back.
+                // Every level is written on top of the paragraph style's own indent, because a direct indent
+                // replaces it; Word-to-Markdown measures depth from the same base.
+                bool quoteStyled = paragraph.BuiltInStyleId is "Quote" or "IntenseQuote";
+                int levels = quoteStyled ? quoteDepth - 1 : quoteDepth;
+                if (levels > 0) {
+                    int styleIndent = paragraph._document?.GetStyleIndentationBeforeTwips(paragraph.StyleId) ?? 0;
+                    paragraph.IndentationBefore = OfficeLength.Points((styleIndent + IndentTwipsPerLevel * levels) / 20D);
+                }
                 if (ResolveTheme(options) is { } theme) {
                     paragraph.Borders.LeftStyle = WordBorderStyle.Single;
                     paragraph.Borders.LeftColorValue = theme.PaletteSnapshot.Border.ToRgbHex();
@@ -91,6 +102,27 @@ namespace OfficeIMO.Word.Markdown {
             }
 
             ApplyAlignment(alignment, paragraph);
+        }
+
+        /// <summary>
+        /// Gives a block paragraph its final style: the heading style for a heading, otherwise the quote or default
+        /// paragraph style for body text. It runs before any indent or quote formatting, which start from that style.
+        /// </summary>
+        private static void ResolveBlockParagraphStyle(WordParagraph paragraph, int? headingLevel, int listLevel, int quoteLevels, MarkdownWordExportOptions options) {
+            if (headingLevel is int level) {
+                paragraph.Style = WordHeadingStyleMapper.GetHeadingStyleForLevel(level);
+                return;
+            }
+            ApplyBodyParagraphStyle(paragraph, listLevel, quoteLevels, options);
+        }
+
+        /// <summary>Gives a body paragraph outside lists the document's quote style or the default paragraph style.</summary>
+        private static void ApplyBodyParagraphStyle(WordParagraph paragraph, int listLevel, int quoteLevels, MarkdownWordExportOptions options) {
+            if (listLevel > 0 || paragraph.StyleId != null) return;
+            string? styleId = quoteLevels > 0 && options.ResolvedQuoteStyleId != null
+                ? options.ResolvedQuoteStyleId
+                : options.ResolvedDefaultParagraphStyleId;
+            if (styleId != null) paragraph.SetStyleId(styleId);
         }
 
         private static Omd.MarkdownVisualTheme? ResolveTheme(MarkdownWordExportOptions options) {

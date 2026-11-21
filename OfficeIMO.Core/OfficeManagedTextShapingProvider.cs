@@ -46,13 +46,19 @@ public sealed partial class OfficeManagedTextShapingProvider : IOfficeTextShapin
             OfficeTextShapingResult? variable = ShapeNominalVariableControls(request);
             if (variable != null) return variable;
         }
+        // Cursive attachment moves base glyphs, so only the typography route can shape a run
+        // in a font that selects it; the token route below would silently drop it.
+        bool cursive = !allowDiagnosedFallback && RequiresCursiveAttachment(request);
+        // Emoji modifier and flag sequences are combined by the font's ccmp/liga lookups,
+        // which only the complete typography route applies to non-Latin scalars.
+        bool emojiSequence = !allowDiagnosedFallback && OfficeTextElements.ContainsEmojiModifierOrRegionalIndicator(request.Text);
         if (!allowDiagnosedFallback &&
-            (forcedDirection || controls || OfficeTextElements.ContainsJoiningScript(request.Text) || OfficeTextElements.ContainsCombiningMark(request.Text))) {
+            (forcedDirection || controls || cursive || emojiSequence || OfficeTextElements.ContainsJoiningScript(request.Text) || OfficeTextElements.ContainsCombiningMark(request.Text))) {
             OfficeTextShapingResult? typography = ShapeTypography(request, out bool fontDirected);
             if (typography != null) return typography;
             // A partial font-directed run cannot turn into an undiagnosed approximation.
             // The old length-preserving joining route remains useful for simple fonts.
-            if (forcedDirection || controls || fontDirected || OfficeTextElements.ContainsCombiningMark(request.Text) ||
+            if (forcedDirection || controls || cursive || fontDirected || OfficeTextElements.ContainsCombiningMark(request.Text) ||
                 OfficeArabicTextShaper.RequiresLamAlefLigatureShaping(request.Text, request.FeatureSettings)) return null;
         }
         // Legacy visual tokens omit default ignorables. Their useful diagnosed
@@ -73,12 +79,13 @@ public sealed partial class OfficeManagedTextShapingProvider : IOfficeTextShapin
             : new OfficeOpenTypeGlyphPositioning[tokens.Count];
         if (!allowDiagnosedFallback && kerningValue > 0 &&
             !CanRepresentExplicitKerning(font, tokens, request, positioning)) return null;
-        var glyphs = new List<OfficeShapedGlyph>(tokens.Count);
-        var advanceAdjustments = new List<int>(tokens.Count);
+        if (tokens.Count == 0) return null;
+        var glyphs = new OfficeShapedGlyph[tokens.Count];
+        var advanceAdjustments = new int[tokens.Count];
         for (int index = 0; index < tokens.Count; index++) {
             OfficeOpenTypeSubstitution.GlyphToken token = tokens[index];
             request.CancellationToken.ThrowIfCancellationRequested();
-            glyphs.Add(token.IsUnicodeContinuation
+            glyphs[index] = token.IsUnicodeContinuation
                 ? OfficeShapedGlyph.CreateUnicodeContinuation(
                     token.GlyphId,
                     token.TextIndex,
@@ -89,13 +96,13 @@ public sealed partial class OfficeManagedTextShapingProvider : IOfficeTextShapin
                     token.UnicodeText,
                     token.TextIndex,
                     positioning[index].XPlacement,
-                    offsetY: 0));
-            advanceAdjustments.Add(positioning[index].XAdvance);
+                    offsetY: 0);
+            advanceAdjustments[index] = positioning[index].XAdvance;
         }
 
         int[]? clusterStarts = tokens.Any(token => token.ClusterStart != token.TextIndex)
             ? tokens.Select(token => token.ClusterStart).ToArray() : null;
-        return glyphs.Count == 0 ? null : new OfficeTextShapingResult(glyphs, advanceAdjustments, resolvedDirection, clusterStarts);
+        return OfficeTextShapingResult.FromOwnedBuffers(glyphs, advanceAdjustments, resolvedDirection, clusterStarts);
     }
 
     private static IReadOnlyList<VisualTextElement> MapVisualElements(

@@ -240,6 +240,28 @@ public sealed partial class ImportOfficeCsvCommand : PSCmdlet
     [Parameter(ParameterSetName = ParameterSetTextDetect)]
     public string? NullValue { get; set; }
 
+    /// <summary>Character that encloses quoted fields. Defaults to the double quote.</summary>
+    [Parameter(ParameterSetName = ParameterSetPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetPathDetect)]
+    [Parameter(ParameterSetName = ParameterSetLiteralPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetTextDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetLiteralPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetTextCulture)]
+    [Parameter(ParameterSetName = ParameterSetLiteralPathDetect)]
+    [Parameter(ParameterSetName = ParameterSetTextDetect)]    public char QuoteCharacter { get; set; } = '"';
+
+    /// <summary>Character that escapes the quote character, or itself, inside quoted fields, such as a backslash. Leave unset to read a doubled quote character as one.</summary>
+    [Parameter(ParameterSetName = ParameterSetPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetPathDetect)]
+    [Parameter(ParameterSetName = ParameterSetLiteralPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetTextDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetLiteralPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetTextCulture)]
+    [Parameter(ParameterSetName = ParameterSetLiteralPathDetect)]
+    [Parameter(ParameterSetName = ParameterSetTextDetect)]    public char? EscapeCharacter { get; set; }
+
     /// <summary>Additional date/time formats used by typed conversions and validation.</summary>
     [Parameter(ParameterSetName = ParameterSetPathDelimiter)]
     [Parameter(ParameterSetName = ParameterSetPathCulture)]
@@ -294,6 +316,19 @@ public sealed partial class ImportOfficeCsvCommand : PSCmdlet
     [Parameter(ParameterSetName = ParameterSetLiteralPathDetect)]
     [ValidateRange(0, long.MaxValue)]
     public long? MaxDecompressedBytes { get; set; }
+
+    /// <summary>
+    /// Maximum input bytes to read. Streamed imports read files of any size unless this is set; imports that load the
+    /// whole file into memory default to 256 MiB.
+    /// </summary>
+    [Parameter(ParameterSetName = ParameterSetPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetPathDetect)]
+    [Parameter(ParameterSetName = ParameterSetLiteralPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetLiteralPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetLiteralPathDetect)]
+    [ValidateRange(1, long.MaxValue)]
+    public long? MaxInputBytes { get; set; }
 
     /// <summary>Load mode controlling materialization.</summary>
     [Parameter(ParameterSetName = ParameterSetPathDelimiter)]
@@ -704,6 +739,13 @@ public sealed partial class ImportOfficeCsvCommand : PSCmdlet
             StaticColumns,
             CompressionType,
             MaxDecompressedBytes);
+        options.QuoteCharacter = QuoteCharacter;
+        options.EscapeCharacter = EscapeCharacter;
+
+        if (MaxInputBytes.HasValue)
+        {
+            options.MaxInputBytes = MaxInputBytes.Value;
+        }
 
         if (Culture != null)
         {
@@ -758,6 +800,13 @@ public sealed partial class ImportOfficeCsvCommand : PSCmdlet
             StaticColumns,
             CompressionType,
             MaxDecompressedBytes);
+        options.QuoteCharacter = QuoteCharacter;
+        options.EscapeCharacter = EscapeCharacter;
+
+        if (MaxInputBytes.HasValue)
+        {
+            options.MaxInputBytes = MaxInputBytes.Value;
+        }
 
         if (Culture != null)
         {

@@ -57,7 +57,9 @@ public enum OfficeDocumentFormat {
     /// <summary>Native XPS or OpenXPS fixed-page content.</summary>
     Xps,
     /// <summary>Microsoft Publisher publication content.</summary>
-    Publisher = 29
+    Publisher = 29,
+    /// <summary>TOML content.</summary>
+    Toml = 30
 }
 
 /// <summary>

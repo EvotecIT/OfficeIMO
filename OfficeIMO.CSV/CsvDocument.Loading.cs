@@ -8,8 +8,9 @@ public sealed partial class CsvDocument
     /// <summary>
     /// Loads a CSV document from disk.
     /// </summary>
+    /// <remarks>Without options, a <c>.tsv</c> or <c>.tab</c> path (optionally compressed) uses <see cref="CsvProfile.Tsv"/>.</remarks>
     public static CsvDocument Load(string path, CsvLoadOptions? options = null) =>
-        LoadFromPath(path, options?.Parsing.Clone() ?? new CsvParsingSettings());
+        LoadFromPath(path, options?.Parsing.Clone() ?? CsvProfiles.CreateDefaultParsingSettings(path));
 
     private static CsvDocument LoadFromPath(string path, CsvParsingSettings fileOptions)
     {
@@ -275,7 +276,7 @@ public sealed partial class CsvDocument
     public static async Task<CsvDocument> LoadAsync(string path, CsvLoadOptions? options = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        CsvParsingSettings resolved = options?.Parsing.Clone() ?? new CsvParsingSettings();
+        CsvParsingSettings resolved = options?.Parsing.Clone() ?? CsvProfiles.CreateDefaultParsingSettings(path);
         using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
             cancellationToken,
             resolved.CancellationToken);
@@ -360,6 +361,7 @@ public sealed partial class CsvDocument
             options.DateTimeFormats,
             options.MappingErrorValuePolicy);
             document._delimiterText = CsvParser.GetDelimiterText(options);
+            document._unquotedEscapeMode = options.QuotesAreData ? options.EscapeMode : null;
 
         var explicitHeader = NormalizeExplicitHeader(options);
         if (explicitHeader is not null)

@@ -59,9 +59,12 @@ internal static class AsciiDocInlineToMarkdownConverter {
                 }
                 else { AddText(target, footnote.OriginalText); Report(diagnostics, owner, "ADOCMD104", "footnote", "Unresolved footnote retained as visible source text."); }
                 break;
+            case AsciiDocStemInline stem when AsciiDocToMarkdownConverter.IsTexStem(stem.Name, attributes):
+                target.AddRaw(new MathInline(stem.Expression));
+                break;
             case AsciiDocStemInline stem:
                 target.AddRaw(new CodeSpanInline(stem.Expression));
-                Report(diagnostics, owner, "ADOCMD103", "inline-stem", "Inline STEM converted to a code span because Markdown has no portable math inline contract.");
+                Report(diagnostics, owner, "ADOCMD103", "inline-stem", "AsciiMath STEM was kept as a code span because Markdown math carries TeX notation.");
                 break;
             case AsciiDocMacroInline macro:
                 AddMacro(target, macro, attributes, options, diagnostics, owner, depth);

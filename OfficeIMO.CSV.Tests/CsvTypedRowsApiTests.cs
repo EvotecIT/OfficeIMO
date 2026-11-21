@@ -84,16 +84,6 @@ public sealed class CsvTypedRowsApiTests {
     }
 
     [Fact]
-    public void RowsAs_RejectsUsedHiddenPropertyAmbiguity() {
-        CsvDocument document = CsvDocument.Parse("Hidden\n42\n");
-
-        DataMappingException exception = Assert.Throws<DataMappingException>(() =>
-            document.RowsAs<HiddenDerivedRow>().ToArray());
-
-        Assert.Contains("with that exact name", exception.Message);
-    }
-
-    [Fact]
     public void ReaderRowsAs_MapsForwardOnlyRowsWithoutMaterializingADocument() {
         using var reader = CsvDocument.OpenReader(new System.IO.StringReader("Order Id,Sales Channel,Amount\n42,Online,165258.24\n84,Partner,12.50\n"));
 
@@ -301,6 +291,23 @@ public sealed class CsvTypedRowsApiTests {
                 throw new FormatException("Property setter failure.");
             }
         }
+    }
+
+    [Fact]
+    public void ReaderRowsAs_ConstructsPositionalRecordsAndReportsRejectedRows() {
+        byte[] csv = System.Text.Encoding.UTF8.GetBytes("Order Id,Amount,Channel\n42,165258.24,Online\n7,-1,Store\n");
+        using var reader = CsvDocument.OpenReader(new System.IO.MemoryStream(csv),
+            new CsvReaderOptions { Culture = CultureInfo.InvariantCulture });
+        using var rows = reader.RowsAs<CheckedSale>().GetEnumerator();
+
+        Assert.True(rows.MoveNext());
+        Assert.Equal(new CheckedSale(42, 165258.24m, "Online"), rows.Current);
+        DataMappingException error = Assert.Throws<DataMappingException>(() => rows.MoveNext());
+        Assert.Contains("rejected the mapped row", error.Message);
+    }
+
+    private sealed record CheckedSale(int OrderId, decimal Amount, string Channel) {
+        public decimal Amount { get; } = Amount >= 0 ? Amount : throw new ArgumentOutOfRangeException(nameof(Amount));
     }
 
     private sealed class DateTimeRow {

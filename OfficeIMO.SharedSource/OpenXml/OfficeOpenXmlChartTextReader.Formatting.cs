@@ -102,7 +102,7 @@ internal sealed partial class OfficeOpenXmlChartTextReader {
         if (!allowMultiline && text is C.RichText && (text.Elements<A.Paragraph>().Skip(1).Any() || text.Descendants<A.Break>().Any()))
             throw new NotSupportedException("Multiline native chart text cannot be projected.");
         var body = text.GetFirstChild<A.BodyProperties>();
-        if (body != null && (body.GetAttributes().Any(attribute => !IsNeutralTextBodyAttribute(attribute)) ||
+        if (body != null && (body.GetAttributes().Any(attribute => !IsNeutralTextBodyAttribute(attribute, text)) ||
                 body.ChildElements.Any(child => child is not A.NoAutoFit and not A.ShapeAutoFit)))
             throw new NotSupportedException("The native chart text body layout cannot be projected.");
         foreach (var paragraphProperties in text.Descendants().Where(element => element is A.ParagraphProperties ||
@@ -114,9 +114,11 @@ internal sealed partial class OfficeOpenXmlChartTextReader {
     }
 
     // Office writes these body settings on every chart title and label. For single-line,
-    // centred, unrotated text they leave the shared layout unchanged.
-    private static bool IsNeutralTextBodyAttribute(OpenXmlAttribute attribute) => attribute.LocalName switch {
-        "rot" => attribute.Value == "0",
+    // centred, unrotated text they leave the shared layout unchanged. Office writes the
+    // -60000000 sentinel for automatic axis-label rotation and a quarter turn on the title of a
+    // vertical axis, which is how the shared renderer draws both.
+    private static bool IsNeutralTextBodyAttribute(OpenXmlAttribute attribute, OpenXmlElement text) => attribute.LocalName switch {
+        "rot" => attribute.Value is "0" or "-60000000" || attribute.Value == "-5400000" && IsVerticalAxisTitle(text),
         "vert" => attribute.Value == "horz",
         "wrap" => attribute.Value == "square" || attribute.Value == "none",
         "anchor" => attribute.Value == "ctr",
@@ -125,6 +127,13 @@ internal sealed partial class OfficeOpenXmlChartTextReader {
             System.Globalization.CultureInfo.InvariantCulture, out int inset) && inset >= 0 && inset <= 91440,
         _ => false
     };
+
+    private static bool IsVerticalAxisTitle(OpenXmlElement text) {
+        OpenXmlElement? axis = text.Ancestors<C.Title>().FirstOrDefault()?.Parent;
+        C.AxisPositionValues? position = axis?.GetFirstChild<C.AxisPosition>()?.Val?.Value;
+        return axis is C.ValueAxis or C.CategoryAxis or C.DateAxis &&
+            (position == C.AxisPositionValues.Left || position == C.AxisPositionValues.Right);
+    }
 
     private static NativeText ApplyNativeText(NativeText inherited, OpenXmlElement? properties, A.ColorScheme? scheme, OpenXmlElement? colorMap) {
         if (properties == null) return inherited;

@@ -84,9 +84,7 @@ namespace OfficeIMO.PowerPoint {
 
         private string? ResolveStyleId(string styleName, bool ignoreCase) {
             PresentationPart? presentationPart = _slidePart?
-                .GetParentParts()
-                .OfType<PresentationPart>()
-                .FirstOrDefault();
+                .GetParentPresentationPart();
 
             if (presentationPart != null && presentationPart.TableStylesPart?.TableStyleList == null) {
                 PowerPointUtils.CreateTableStylesPart(presentationPart);

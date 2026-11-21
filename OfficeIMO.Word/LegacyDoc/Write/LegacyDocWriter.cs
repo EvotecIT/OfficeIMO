@@ -103,11 +103,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             bool hasLegacyDigitalSignature = document.LegacyDocCompoundFeatures.Any(feature =>
                 feature.Kind == LegacyDocCompoundFeatureKind.DigitalSignature);
             if (hasLegacyDigitalSignature
-                && options?.SignedDocumentPolicy != WordSignedDocumentSavePolicy.AllowSignatureInvalidation) {
+                && (options?.SignatureMutationPolicy ?? OfficeSignatureMutationPolicy.BlockSave) == OfficeSignatureMutationPolicy.BlockSave) {
                 throw new NotSupportedException(
                     "Native DOC saving is blocked because the imported legacy DOC contains digital-signature metadata. "
-                    + "Rewriting the document invalidates that signature. Set WordSaveOptions.SignedDocumentPolicy to "
-                    + "WordSignedDocumentSavePolicy.AllowSignatureInvalidation and explicitly allow conversion loss to continue.");
+                    + "Rewriting the document invalidates that signature. Set WordSaveOptions.SignatureMutationPolicy to "
+                    + "RemoveInvalidatedSignatures or PreserveSignatureMarkup and explicitly allow conversion loss to continue.");
             }
 
             if (document.SourceFormat != WordFileFormat.Doc
@@ -169,7 +169,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             LegacyDocWritableFootnotes footnotes = ReadSupportedFootnotes(mainPart!, pictures, styleSheet.StyleIndexes);
             LegacyDocWritableEndnotes endnotes = ReadSupportedEndnotes(mainPart!, pictures, styleSheet.StyleIndexes);
             LegacyDocWritableComments comments = ReadSupportedComments(mainPart!, pictures, styleSheet.StyleIndexes);
-            IReadOnlyDictionary<string, Style> tableStyleDefinitions = ReadTableStyleDefinitions(mainPart!);
+            LegacyDocTableStyleDefinitions tableStyleDefinitions = ReadTableStyleDefinitions(mainPart!);
             LegacyDocSectionFormat finalSectionFormat = LegacyDocSectionFormat.Default;
             var sections = new List<LegacyDocWritableSection>();
             int bodyContentCount = 0;
@@ -430,7 +430,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             MainDocumentPart mainPart,
             LegacyDocWritablePictures pictures,
             IReadOnlyDictionary<string, ushort> styleIndexes,
-            IReadOnlyDictionary<string, Style> tableStyleDefinitions,
+            LegacyDocTableStyleDefinitions tableStyleDefinitions,
             LegacyDocWritableFootnotes footnotes,
             LegacyDocWritableEndnotes endnotes,
             List<LegacyDocWritableSection> sections,
@@ -508,7 +508,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             MainDocumentPart mainPart,
             LegacyDocWritablePictures pictures,
             IReadOnlyDictionary<string, ushort> styleIndexes,
-            IReadOnlyDictionary<string, Style> tableStyleDefinitions,
+            LegacyDocTableStyleDefinitions tableStyleDefinitions,
             LegacyDocWritableFootnotes footnotes,
             LegacyDocWritableEndnotes endnotes,
             List<LegacyDocWritableSection> sections,

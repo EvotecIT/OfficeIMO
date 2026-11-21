@@ -26,7 +26,9 @@ public sealed class PdfDrawingGlowTests {
         Assert.Equal(255, inner.R);
         Assert.Equal(255, inner.B);
         int expectedGreen = 255 - alpha;
-        Assert.InRange((int)inner.G, System.Math.Max(0, expectedGreen - 3), expectedGreen + 3);
+        // The SVG reader approximates feGaussianBlur with a few offset copies, so its contour is less exact.
+        int tolerance = renderer == "svg" ? 20 : 3;
+        Assert.InRange((int)inner.G, System.Math.Max(0, expectedGreen - tolerance), expectedGreen + tolerance);
         Assert.InRange((int)outer.G, inner.G + 20, 254);
         Assert.Equal(OfficeColor.White, raster.GetPixel(24, 38));
         Assert.Equal(OfficeColor.Blue, raster.GetPixel(48, 38));
@@ -83,7 +85,7 @@ public sealed class PdfDrawingGlowTests {
     [Theory]
     [InlineData((byte)255)]
     [InlineData((byte)128)]
-    public void DrawingGlowRetainsVectorHaloAlphaAndPaintOrder(byte alpha) {
+    public void DrawingGlowPaintsOneBlurredHaloWithAlphaAndPaintOrder(byte alpha) {
         OfficeShape shape = OfficeShape.Rectangle(48D, 28D);
         shape.FillColor = OfficeColor.Blue;
         shape.StrokeWidth = 0D;
@@ -99,7 +101,8 @@ public sealed class PdfDrawingGlowTests {
 
         byte[] bytes = Write(drawing);
         Assert.Equal("%PDF", System.Text.Encoding.ASCII.GetString(bytes, 0, 4));
-        Assert.Empty(PdfDocument.Load(bytes).Reader.Images());
+        // The halo is one blurred image; the hard shadow and the shapes stay vector.
+        Assert.Single(PdfDocument.Load(bytes).Reader.Images());
         OfficeRasterImage raster = ReadRaster(bytes);
         OfficeColor halo = raster.GetPixel(31, 38);
         Assert.Equal(255, halo.R);
@@ -183,6 +186,60 @@ public sealed class PdfDrawingGlowTests {
         Assert.Equal(OfficeColor.White, raster.GetPixel(29, 35));
         Assert.Equal(disabled == "clip" ? OfficeColor.White : OfficeColor.Blue, raster.GetPixel(50, 35));
     }
+
+    [Fact]
+    public void BlurredGlowInsideACanvasClipKeepsItsHalo() {
+        OfficeShape shape = OfficeShape.Rectangle(40D, 40D);
+        shape.FillColor = OfficeColor.Blue;
+        shape.StrokeWidth = 0D;
+        shape.Glow = new OfficeGlow(OfficeColor.FromRgb(255, 0, 255), 1D, 6D);
+        byte[] bytes = PdfDocument.Create(PageOptions(200D, 200D)).Canvas(canvas => canvas.Clip(
+            global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(60D),
+            global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(80D),
+            clipped => clipped.Shape(shape, global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(80D)))).ToBytes();
+
+        OfficeColor halo = ReadRaster(bytes).GetPixel(78, 100);
+        Assert.True(halo.R > 200 && halo.B > 200 && halo.G < 200, $"Expected the glow inside the clip, found {halo}.");
+    }
+
+    [Fact]
+    public void BlurredShadowAndGlowConvertToThePdfXPrintCondition() {
+        OfficeShape shape = OfficeShape.RoundedRectangle(60D, 30D, 6D);
+        shape.FillColor = OfficeColor.Blue;
+        shape.StrokeWidth = 0D;
+        shape.Shadow = new OfficeShadow(OfficeColor.Black, 0.5D, 3D, 3D, 6D);
+        shape.Glow = new OfficeGlow(OfficeColor.FromRgb(255, 192, 0), 0.6D, 6D);
+        PdfCreateOptions options = PageOptions(120D, 90D).ConfigurePdfXGroundwork(PdfComplianceProfile.PdfX4,
+            IccMabTestProfiles.CreateCmykLab8Bidirectional(), "Managed test CMYK", PdfTrappingStatus.False);
+
+        byte[] bytes = PdfDocument.Create(options).Drawing(new OfficeDrawing(120D, 90D).AddShape(shape, 30D, 30D)).ToBytes();
+
+        Assert.Contains("/DeviceCMYK", System.Text.Encoding.ASCII.GetString(bytes));
+        Assert.Equal(2, PdfDocument.Load(bytes).Reader.Images().Count);
+    }
+
+    [Fact]
+    public void BlurredShadowMitersSharpCornersLikeTheVectorShape() {
+        // A 20 degree tip with a 10 pt stroke miters 29 pt past its vertex under PDF's implicit limit of ten,
+        // while the model's default limit of four would bevel it.
+        OfficeShape triangle = OfficeShape.Polygon(new OfficePoint(0D, 0D), new OfficePoint(100D, 17.63D), new OfficePoint(0D, 35.26D));
+        triangle.FillColor = OfficeColor.White;
+        triangle.StrokeColor = OfficeColor.Black;
+        triangle.StrokeWidth = 10D;
+        triangle.Shadow = new OfficeShadow(OfficeColor.Black, 1D, 0D, 80D, 1D);
+        byte[] bytes = PdfDocument.Create(PageOptions(200D, 160D))
+            .Drawing(new OfficeDrawing(200D, 160D).AddShape(triangle, 20D, 20D)).ToBytes();
+
+        OfficeColor tip = ReadRaster(bytes).GetPixel(135, 117);
+        Assert.True(tip.R < 64, $"Expected the shadow's mitered tip, found {tip}.");
+    }
+
+    private static PdfCreateOptions PageOptions(double width, double height) => new() {
+        PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(0D), Top = global::OfficeIMO.OfficeLength.Points(0D), Right = global::OfficeIMO.OfficeLength.Points(0D), Bottom = global::OfficeIMO.OfficeLength.Points(0D) }
+        }
+    };
 
     private static OfficeRasterImage ReadRaster(byte[] bytes) =>
         OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(bytes), background: OfficeColor.White);

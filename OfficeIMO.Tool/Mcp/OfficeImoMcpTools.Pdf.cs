@@ -58,6 +58,30 @@ internal sealed partial class OfficeImoMcpTools {
             Settings(pages, passwordEnvironmentVariable, overwrite, maximumPages, dpi, maximumInputBytes, maximumOutputBytes, acknowledgeRasterOutput),
             maxOutputCharacters, cancellationToken));
 
+    [McpServerTool(Name = "officeimo_pdf_convert_to_pdfa", Title = "Create a PDF/A copy", ReadOnly = false,
+        Destructive = true, Idempotent = true, OpenWorld = false, UseStructuredContent = true, OutputSchemaType = typeof(AgentPdfWorkflowResult))]
+    [Description("Convert a PDF to PDF/A in a separate explicit destination. Conversion fixes what it can without moving page content and reports its changes; when the source cannot be made compliant it writes nothing and reports the violations by location and object number. Counts are exact; entries are trimmed to maxOutputCharacters and truncated is true when any are left out. Fonts and ICC profiles must be files within allowed roots.")]
+    public Task<CallToolResult> ConvertToPdfAAsync(
+        [Description("Local source PDF within allowed roots.")] string path,
+        [Description("Separate destination .pdf within allowed roots.")] string outputPath,
+        [Description("2b, 2u, 3b, 3u, 4, or 4f.")] string profile = "2b",
+        [Description("remove or refuse: what happens to embedded files that PDF/A-2 and PDF/A-4 cannot carry.")] string attachments = "remove",
+        [Description("Font faces for fonts the source does not embed, as family=path or family:bold|italic|bold-italic=path. Each family needs a regular face.")] string[]? fonts = null,
+        [Description("installed-fonts or none: whether fonts installed on the server may also be embedded.")] string fontSubstitution = "installed-fonts",
+        [Description("Optional ICC profile file for the output intent, for example a CMYK profile for device CMYK content.")] string? outputIntent = null,
+        [Description("Output condition identifier for outputIntent, for example FOGRA39.")] string? outputConditionIdentifier = null,
+        [Description("Host-admitted environment-variable name containing the owner password of an encrypted source.")] string? passwordEnvironmentVariable = null,
+        [Description("Explicit permission to replace an existing output copy.")] bool overwrite = false,
+        [Description("Maximum input bytes, 1-268435456.")] long maximumInputBytes = 268435456,
+        [Description("Maximum output bytes, 1-536870912.")] long maximumOutputBytes = 536870912,
+        [Description("Maximum serialized result characters, 512-64000.")] int maxOutputCharacters = 4000,
+        CancellationToken cancellationToken = default) => ExecutePdfAsync(() => _service.ConvertToPdfAAsync(path, outputPath,
+            new PdfAWorkflowSettings {
+                Profile = profile, Attachments = attachments, Fonts = fonts ?? [], FontSubstitution = fontSubstitution,
+                OutputIntent = outputIntent, OutputConditionIdentifier = outputConditionIdentifier
+            },
+            Settings(null, passwordEnvironmentVariable, overwrite, 100, 150, maximumInputBytes, maximumOutputBytes), maxOutputCharacters, cancellationToken: cancellationToken));
+
     [McpServerTool(Name = "officeimo_pdf_split", Title = "Split a PDF into separate parts", ReadOnly = false,
         Destructive = true, Idempotent = true, OpenWorld = false, UseStructuredContent = true, OutputSchemaType = typeof(AgentPdfWorkflowResult))]
     [Description("Split consecutive pages into a separate explicit output folder, reopen every part, and publish the folder as a unit. A destination containing the source is rejected. A bounded artifact sample may omit files; artifactCount describes the complete output.")]

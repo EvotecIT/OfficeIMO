@@ -1,135 +1,221 @@
 using System.Globalization;
-using System.Text;
+using OfficeIMO.Toml;
+using OfficeIMO.Yaml;
 
 namespace OfficeIMO.Markdown;
 
 internal static partial class MarkdownReader {
-    private static Dictionary<string, object?> ParseFrontMatter(string[] lines, int start, int end) {
-        var dict = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-        foreach (var entry in ParseFrontMatterEntries(lines, start, end, null)) {
-            dict[entry.Key] = entry.Value;
+    /// <summary>
+    /// Finds front matter at the top of the document: a <c>---</c> line and the next <c>---</c> line (YAML), or a
+    /// <c>+++</c> line and the next <c>+++</c> line (TOML, as Hugo reads it). Nothing between them is empty front matter,
+    /// as Jekyll reads it.
+    /// </summary>
+    internal static bool TryLocateFrontMatter(string[] lines, out int closingIndex) {
+        closingIndex = -1;
+        if (lines.Length == 0) return false;
+        string? fence = FrontMatterFence(lines[0]);
+        if (fence == null) return false;
+        for (int j = 1; j < lines.Length; j++) {
+            if (string.Equals(FrontMatterFence(lines[j]), fence, StringComparison.Ordinal)) {
+                closingIndex = j;
+                return true;
+            }
         }
 
-        return dict;
+        return false;
     }
 
-    private static FrontMatterBlock ParseFrontMatterBlock(string[] lines, int start, int end, MarkdownReaderState state) =>
-        FrontMatterBlock.FromEntries(
-            ParseFrontMatterEntries(lines, start, end, state),
-            CreateFrontMatterRawYaml(lines, start, end),
-            CreateFrontMatterBodySpan(lines, start, end, state));
+    // Fences start at column 0, as in Jekyll and Hugo; an indented "---" is indented code or a thematic break.
+    private static string? FrontMatterFence(string? line) {
+        string? trimmed = line?.TrimEnd();
+        if (string.Equals(trimmed, FrontMatterBlock.YamlFence, StringComparison.Ordinal)) return FrontMatterBlock.YamlFence;
+        if (string.Equals(trimmed, FrontMatterBlock.TomlFence, StringComparison.Ordinal)) return FrontMatterBlock.TomlFence;
+        return null;
+    }
 
-    private static IReadOnlyList<FrontMatterBlock.Entry> ParseFrontMatterEntries(string[] lines, int start, int end, MarkdownReaderState? state) {
-        var entries = new Dictionary<string, FrontMatterBlock.Entry>(StringComparer.OrdinalIgnoreCase);
-        for (int i = start; i <= end; i++) {
-            var line = lines[i]; if (string.IsNullOrWhiteSpace(line)) continue;
-            int idx = line.IndexOf(':'); if (idx <= 0) continue;
-            string key = line.Substring(0, idx).Trim(); string val = line.Substring(idx + 1).TrimStart();
-            if (key.Length == 0) continue;
+    // Front matter comes from documents of unknown origin. Repeated YAML keys are common in hand-edited files; the
+    // engine's default lets the last one win, as Jekyll and Hugo do, and reports each repeat instead of failing.
+    private static YamlLoadOptions CreateFrontMatterLoadOptions() => YamlLoadOptions.UntrustedDefaults;
 
-            var keySpan = CreateFrontMatterKeySpan(lines, i, idx, state);
-            var valueSpan = CreateFrontMatterValueSpan(line, i, idx, val, state);
-            if (val == "|") {
-                var sb = new StringBuilder(); int j = i + 1;
-                while (j <= end) { var raw = lines[j]; if (raw.StartsWith("  ")) { sb.AppendLine(raw.Substring(2)); j++; } else break; }
-                valueSpan = CreateFrontMatterLiteralValueSpan(lines, i + 1, j - 1, state);
-                entries[key] = new FrontMatterBlock.Entry(
-                    key,
-                    sb.ToString().TrimEnd(),
-                    keySpan,
-                    valueSpan,
-                    CreateFrontMatterEntrySpan(lines, i, j - 1, state));
-                i = j - 1;
+    /// <summary>
+    /// Parses the front matter of a Markdown source whose line endings are already <c>\n</c>, without parsing the rest of
+    /// the document. Returns <see langword="null"/> when the source does not start with front matter.
+    /// </summary>
+    /// <param name="markdown">The Markdown source.</param>
+    /// <param name="closingIndex">The 0-based line of the closing fence, or -1.</param>
+    internal static FrontMatterBlock? ParseFrontMatter(string markdown, out int closingIndex) {
+        string[] lines = markdown.Split('\n');
+        if (!TryLocateFrontMatter(lines, out closingIndex)) return null;
+        return ParseFrontMatterBlock(lines, closingIndex, new MarkdownReaderState());
+    }
+
+    /// <summary>
+    /// Parses the lines between the fences with the YAML or TOML engine; invalid input is kept as text with a positioned
+    /// error.
+    /// </summary>
+    private static FrontMatterBlock ParseFrontMatterBlock(string[] lines, int closingIndex, MarkdownReaderState state) {
+        const int start = 1;
+        int end = closingIndex - 1;
+        string rawText = string.Join("\n", lines, start, end - start + 1);
+        MarkdownSourceSpan? bodySpan = end < start ? null : CreateSpan(state, state.SourceLineOffset + start + 1, 1,
+            state.SourceLineOffset + end + 1, Math.Max(1, lines[end].Length));
+        int bodyLine = state.SourceLineOffset + start + 1;
+        string openingFence = lines[0];
+        string closingFence = lines[closingIndex];
+
+        if (FrontMatterFence(openingFence) == FrontMatterBlock.TomlFence) {
+            TomlDocument toml;
+            try {
+                toml = TomlDocument.Parse(rawText, TomlLoadOptions.UntrustedDefaults);
+            } catch (TomlException exception) {
+                OfficeDiagnostic tomlDiagnostic = exception.ToDiagnostic();
+                var diagnostic = CreateFrontMatterDiagnostic(OfficeDiagnosticCodes.MarkdownFrontMatterInvalidToml, "TOML",
+                    tomlDiagnostic.Code, tomlDiagnostic.Message, exception.Line, exception.Column, bodyLine);
+                return FrontMatterBlock.FromInvalid(MarkdownFrontMatterFormat.Toml, rawText, bodySpan, diagnostic, openingFence, closingFence);
+            }
+
+            Dictionary<string, FrontMatterBlock.EntrySpans>? keySpans = state.CaptureSyntaxTree
+                ? CreateTomlEntrySpans(toml, rawText, bodyLine, state)
+                : null;
+            return FrontMatterBlock.FromParsed(toml, rawText, bodySpan, keySpans, openingFence, closingFence);
+        }
+
+        YamlDocument yaml;
+        try {
+            yaml = YamlDocument.Parse(rawText, CreateFrontMatterLoadOptions());
+        } catch (YamlException exception) {
+            OfficeDiagnostic yamlDiagnostic = exception.ToDiagnostic();
+            var diagnostic = CreateFrontMatterDiagnostic(OfficeDiagnosticCodes.MarkdownFrontMatterInvalidYaml, "YAML",
+                yamlDiagnostic.Code, yamlDiagnostic.Message, exception.Line, exception.Column, bodyLine);
+            return FrontMatterBlock.FromInvalid(MarkdownFrontMatterFormat.Yaml, rawText, bodySpan, diagnostic, openingFence, closingFence);
+        }
+
+        Dictionary<YamlNode, FrontMatterBlock.EntrySpans>? spans = state.CaptureSyntaxTree
+            ? CreateFrontMatterEntrySpans(yaml, rawText, bodyLine, state)
+            : null;
+        return FrontMatterBlock.FromParsed(yaml, rawText, bodySpan, spans, openingFence, closingFence);
+    }
+
+    private static OfficeDiagnostic CreateFrontMatterDiagnostic(string code, string language, string engineCode, string message,
+        int engineLine, int engineColumn, int bodyLine) {
+        // The engine diagnostic's message leaves out its position; the location is given in Markdown lines.
+        int line = bodyLine + Math.Max(1, engineLine) - 1;
+        int column = Math.Max(1, engineColumn);
+        string location = "line " + line.ToString(CultureInfo.InvariantCulture) + ", column " + column.ToString(CultureInfo.InvariantCulture);
+        return new OfficeDiagnostic(code, OfficeDiagnosticSeverity.Error,
+            "The front matter is not valid " + language + " and is kept as text (" + engineCode + "): " + message,
+            location, "Markdown");
+    }
+
+    private static Dictionary<YamlNode, FrontMatterBlock.EntrySpans>? CreateFrontMatterEntrySpans(YamlDocument yaml, string rawText, int bodyLine, MarkdownReaderState state) {
+        if (yaml.Root is not YamlMapping mapping || mapping.Count == 0) return null;
+
+        int[] lineStarts = GetLineStarts(rawText);
+        var spans = new Dictionary<YamlNode, FrontMatterBlock.EntrySpans>(mapping.Count);
+        for (int i = 0; i < mapping.Count; i++) {
+            YamlMappingEntry entry = mapping[i];
+            MarkdownSourceSpan? key = CreateYamlNodeSpan(entry.Key, rawText, lineStarts, bodyLine, state, out long keyStart, out _);
+            MarkdownSourceSpan? value = CreateYamlNodeSpan(entry.Value, rawText, lineStarts, bodyLine, state, out _, out long valueEnd);
+            MarkdownSourceSpan? whole = key.HasValue
+                ? CreateBodyRangeSpan(keyStart, value.HasValue ? valueEnd : EndOf(entry.Key, rawText), rawText, lineStarts, bodyLine, state)
+                : null;
+            spans[entry.Key] = new FrontMatterBlock.EntrySpans(whole, key, value);
+        }
+
+        return spans;
+    }
+
+    /// <summary>
+    /// Locates the top-level entries of TOML front matter from the model's key positions. A plain key/value pair spans its
+    /// key and value; a table spans its header, and a table made by dotted keys or deeper headers spans the pair or header
+    /// that first names it, without a value span.
+    /// </summary>
+    private static Dictionary<string, FrontMatterBlock.EntrySpans>? CreateTomlEntrySpans(TomlDocument toml, string rawText, int bodyLine, MarkdownReaderState state) {
+        if (toml.Root.Count == 0) return null;
+
+        int[] lineStarts = GetLineStarts(rawText);
+        var spans = new Dictionary<string, FrontMatterBlock.EntrySpans>(toml.Root.Count, StringComparer.Ordinal);
+        foreach (KeyValuePair<string, TomlNode> entry in toml.Root) {
+            TomlNode node = entry.Value;
+            TomlPosition keyStart = node.KeyStart;
+            if (keyStart.Line <= 0) continue;
+            MarkdownSourceSpan? key = CreateBodyRangeSpan(keyStart.Offset, node.KeyEnd.Offset - 1, rawText, lineStarts, bodyLine, state);
+            TomlNode defining = FirstWithSource(node);
+            if (defining.Start.Line <= 0) {
+                spans[entry.Key] = new FrontMatterBlock.EntrySpans(key, key, value: null);
                 continue;
             }
-            var entrySpan = CreateFrontMatterEntrySpan(lines, i, i, state);
-            if (val.StartsWith("[") && val.EndsWith("]")) {
-                var inner = val.Substring(1, val.Length - 2).Trim(); var items = new List<string>(); var token = new StringBuilder(); bool inQuotes = false;
-                for (int k = 0; k < inner.Length; k++) { char ch = inner[k]; if (ch == '\"') { inQuotes = !inQuotes; continue; } if (ch == ',' && !inQuotes) { items.Add(token.ToString().Trim()); token.Clear(); continue; } token.Append(ch); }
-                if (token.Length > 0) items.Add(token.ToString().Trim());
-                entries[key] = new FrontMatterBlock.Entry(key, items, keySpan, valueSpan, entrySpan);
-            } else if (string.Equals(val, "true", StringComparison.OrdinalIgnoreCase)) { entries[key] = new FrontMatterBlock.Entry(key, true, keySpan, valueSpan, entrySpan); } else if (string.Equals(val, "false", StringComparison.OrdinalIgnoreCase)) { entries[key] = new FrontMatterBlock.Entry(key, false, keySpan, valueSpan, entrySpan); } else if (double.TryParse(val, NumberStyles.Any, CultureInfo.InvariantCulture, out var num)) { entries[key] = new FrontMatterBlock.Entry(key, num, keySpan, valueSpan, entrySpan); } else if (val.StartsWith("\"") && val.EndsWith("\"")) { entries[key] = new FrontMatterBlock.Entry(key, val.Length >= 2 ? val.Substring(1, val.Length - 2) : string.Empty, keySpan, valueSpan, entrySpan); } else { entries[key] = new FrontMatterBlock.Entry(key, val, keySpan, valueSpan, entrySpan); }
+
+            long end = InclusiveEnd(defining.Start.Offset, defining.End.Offset, rawText);
+            bool header = defining is TomlTable { TableKind: TomlTableKind.Header or TomlTableKind.ArrayItem };
+            MarkdownSourceSpan? whole = CreateBodyRangeSpan(header ? defining.Start.Offset : keyStart.Offset, end, rawText, lineStarts, bodyLine, state);
+            MarkdownSourceSpan? value = ReferenceEquals(defining, node) && !header
+                ? CreateBodyRangeSpan(node.Start.Offset, end, rawText, lineStarts, bodyLine, state)
+                : null;
+            spans[entry.Key] = new FrontMatterBlock.EntrySpans(whole, key, value);
         }
 
-        return entries.Values.ToArray();
+        return spans;
     }
 
-    private static MarkdownSourceSpan? CreateFrontMatterEntrySpan(string[] lines, int startLineIndex, int endLineIndex, MarkdownReaderState? state) {
-        if (endLineIndex < startLineIndex) {
-            return null;
+    /// <summary>The node, or for a table made by dotted keys or deeper headers its first entry with source text.</summary>
+    private static TomlNode FirstWithSource(TomlNode node) {
+        while (node.Start.Line <= 0) {
+            TomlNode? next = node switch {
+                TomlTable table => FirstEntry(table),
+                TomlTableArray tables when tables.Count > 0 => tables[0],
+                _ => null
+            };
+            if (next == null) break;
+            node = next;
         }
 
-        int absoluteStartLine = (state?.SourceLineOffset ?? 0) + startLineIndex + 1;
-        int absoluteEndLine = (state?.SourceLineOffset ?? 0) + endLineIndex + 1;
-        int endColumn = Math.Max(1, lines[endLineIndex].Length);
-        return CreateSpan(state, absoluteStartLine, 1, absoluteEndLine, endColumn);
+        return node;
     }
 
-    private static MarkdownSourceSpan? CreateFrontMatterKeySpan(string[] lines, int lineIndex, int colonIndex, MarkdownReaderState? state) {
-        var line = lines[lineIndex];
-        int keyStart = 0;
-        while (keyStart < colonIndex && char.IsWhiteSpace(line[keyStart])) keyStart++;
-        int keyEnd = colonIndex - 1;
-        while (keyEnd >= keyStart && char.IsWhiteSpace(line[keyEnd])) keyEnd--;
-        if (keyEnd < keyStart) {
-            return null;
-        }
-
-        int absoluteLine = (state?.SourceLineOffset ?? 0) + lineIndex + 1;
-        return CreateSpan(state, absoluteLine, keyStart + 1, absoluteLine, keyEnd + 1);
+    private static TomlNode? FirstEntry(TomlTable table) {
+        foreach (KeyValuePair<string, TomlNode> entry in table) return entry.Value;
+        return null;
     }
 
-    private static MarkdownSourceSpan? CreateFrontMatterValueSpan(string line, int lineIndex, int colonIndex, string value, MarkdownReaderState? state) {
-        if (string.IsNullOrEmpty(value)) {
-            return null;
-        }
+    private static long EndOf(YamlNode node, string rawText) => InclusiveEnd(node.Start.Offset, node.End.Offset, rawText);
 
-        int valueStart = colonIndex + 1;
-        while (valueStart < line.Length && char.IsWhiteSpace(line[valueStart])) valueStart++;
-        if (valueStart >= line.Length) {
-            return null;
-        }
-
-        int absoluteLine = (state?.SourceLineOffset ?? 0) + lineIndex + 1;
-        return CreateSpan(state, absoluteLine, valueStart + 1, absoluteLine, valueStart + value.Length);
+    private static MarkdownSourceSpan? CreateYamlNodeSpan(YamlNode node, string rawText, int[] lineStarts, int bodyLine, MarkdownReaderState state,
+        out long start, out long inclusiveEnd) {
+        start = node.Start.Offset;
+        inclusiveEnd = -1;
+        if (node.Start.Line <= 0 || node.End.Offset <= start) return null;
+        inclusiveEnd = InclusiveEnd(start, node.End.Offset, rawText);
+        return inclusiveEnd < start ? null : CreateBodyRangeSpan(start, inclusiveEnd, rawText, lineStarts, bodyLine, state);
     }
 
-    private static MarkdownSourceSpan? CreateFrontMatterLiteralValueSpan(string[] lines, int startLineIndex, int endLineIndex, MarkdownReaderState? state) {
-        if (endLineIndex < startLineIndex) {
-            return null;
-        }
-
-        int absoluteStartLine = (state?.SourceLineOffset ?? 0) + startLineIndex + 1;
-        int absoluteEndLine = (state?.SourceLineOffset ?? 0) + endLineIndex + 1;
-        int endColumn = Math.Max(3, lines[endLineIndex].Length);
-        return CreateSpan(state, absoluteStartLine, 3, absoluteEndLine, endColumn);
+    /// <summary>The last character of a node, before any line breaks its source extent ends with.</summary>
+    private static long InclusiveEnd(long start, long exclusiveEnd, string rawText) {
+        long end = Math.Min(exclusiveEnd, rawText.Length) - 1;
+        while (end > start && (rawText[(int)end] == '\n' || rawText[(int)end] == '\r')) end--;
+        return end;
     }
 
-    private static string? CreateFrontMatterRawYaml(string[] lines, int startLineIndex, int endLineIndex) {
-        if (endLineIndex < startLineIndex) {
-            return null;
-        }
-
-        var sb = new StringBuilder();
-        for (int i = startLineIndex; i <= endLineIndex; i++) {
-            if (i > startLineIndex) {
-                sb.Append('\n');
-            }
-
-            sb.Append(lines[i]);
-        }
-
-        return sb.ToString();
+    private static MarkdownSourceSpan? CreateBodyRangeSpan(long start, long inclusiveEnd, string rawText, int[] lineStarts, int bodyLine, MarkdownReaderState state) {
+        if (start < 0 || inclusiveEnd < start || inclusiveEnd >= rawText.Length) return null;
+        int startLine = FindLine(lineStarts, (int)start);
+        int endLine = FindLine(lineStarts, (int)inclusiveEnd);
+        return CreateSpan(state,
+            bodyLine + startLine, (int)start - lineStarts[startLine] + 1,
+            bodyLine + endLine, (int)inclusiveEnd - lineStarts[endLine] + 1);
     }
 
-    private static MarkdownSourceSpan? CreateFrontMatterBodySpan(string[] lines, int startLineIndex, int endLineIndex, MarkdownReaderState? state) {
-        if (endLineIndex < startLineIndex) {
-            return null;
+    private static int[] GetLineStarts(string text) {
+        var starts = new List<int> { 0 };
+        for (int i = 0; i < text.Length; i++) {
+            if (text[i] == '\n') starts.Add(i + 1);
         }
 
-        int absoluteStartLine = (state?.SourceLineOffset ?? 0) + startLineIndex + 1;
-        int absoluteEndLine = (state?.SourceLineOffset ?? 0) + endLineIndex + 1;
-        int endColumn = Math.Max(1, lines[endLineIndex].Length);
-        return CreateSpan(state, absoluteStartLine, 1, absoluteEndLine, endColumn);
+        return starts.ToArray();
+    }
+
+    private static int FindLine(int[] lineStarts, int offset) {
+        int index = Array.BinarySearch(lineStarts, offset);
+        return index >= 0 ? index : ~index - 1;
     }
 }

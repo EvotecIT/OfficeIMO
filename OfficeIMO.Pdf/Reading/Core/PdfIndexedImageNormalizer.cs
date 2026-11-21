@@ -180,6 +180,16 @@ internal static class PdfIndexedImageNormalizer {
             return false;
         }
 
+        // A PNG packed earlier in this read from the same image and mask streams, under the same limit and palette,
+        // passed every decode and check below; those depend only on the streams, so it is the result here too.
+        if (decodedPixels is null && indexedSoftMaskMemo is not null &&
+            stream.Dictionary.Items.TryGetValue("SMask", out PdfObject? memoSoftMaskObject) &&
+            ResolveStream(memoSoftMaskObject, objects) is PdfStream memoSoftMask &&
+            indexedSoftMaskMemo.Find(stream, memoSoftMask, width, height, bitsPerComponent, maxDecodedStreamBytes, indexedPalette) is { } shared) {
+            pngBytes = shared;
+            return true;
+        }
+
         byte[] indexedPixels;
         if (decodedPixels is null) {
             if (!TryReadDecodedStreamBytes(stream, objects, maxDecodedStreamBytes, out indexedPixels, cancellationToken)) {
@@ -309,21 +319,33 @@ internal static class PdfIndexedImageNormalizer {
                 colorSpaceArray.Items[3],
                 objects,
                 Math.Min(expectedLookupLength, maxDecodedStreamBytes),
-                out lookupBytes) &&
+                out lookupBytes,
+                maxDecodedStreamBytes) &&
             lookupBytes.Length >= expectedLookupLength;
     }
 
+    // Producers often end a lookup table with a newline or padding. Viewers use the leading entries, so a few trailing
+    // bytes beyond the palette are read and dropped instead of rejecting the colour space.
+    private const int IndexedLookupTrailingBytes = 4096;
+
+    /// <summary>
+    /// Reads at most <paramref name="maxLookupBytes"/> leading lookup bytes, ignoring bounded trailing data. Decoding never
+    /// exceeds <paramref name="maxDecodedBytes"/>.
+    /// </summary>
     internal static bool TryReadIndexedLookupBytes(
         PdfObject? lookupObject,
         Dictionary<int, PdfIndirectObject> objects,
         int maxLookupBytes,
-        out byte[] lookupBytes) {
+        out byte[] lookupBytes,
+        int maxDecodedBytes = int.MaxValue) {
         lookupBytes = Array.Empty<byte>();
         if (maxLookupBytes <= 0) return false;
+        int maxReadBytes = Math.Min(maxDecodedBytes,
+            maxLookupBytes > int.MaxValue - IndexedLookupTrailingBytes ? int.MaxValue : maxLookupBytes + IndexedLookupTrailingBytes);
         PdfObject? resolvedLookup = ResolveObject(lookupObject, objects);
         if (resolvedLookup is PdfStringObj lookupString) {
-            if (lookupString.RawBytes.Length > maxLookupBytes) return false;
-            lookupBytes = lookupString.RawBytes;
+            if (lookupString.RawBytes.Length > maxReadBytes) return false;
+            lookupBytes = Truncate(lookupString.RawBytes, maxLookupBytes);
             return true;
         }
 
@@ -333,10 +355,7 @@ internal static class PdfIndexedImageNormalizer {
             }
 
             try {
-                lookupBytes = Filters.StreamDecoder.DecodeRequired(
-                    lookupStream,
-                    objects,
-                    maxLookupBytes);
+                lookupBytes = Truncate(Filters.StreamDecoder.DecodeRequired(lookupStream, objects, maxReadBytes), maxLookupBytes);
                 return lookupBytes.Length > 0;
             } catch (PdfReadLimitException) {
                 throw;
@@ -346,6 +365,13 @@ internal static class PdfIndexedImageNormalizer {
         }
 
         return false;
+    }
+
+    private static byte[] Truncate(byte[] bytes, int length) {
+        if (bytes.Length <= length) return bytes;
+        var leading = new byte[length];
+        Buffer.BlockCopy(bytes, 0, leading, 0, length);
+        return leading;
     }
 
     private static bool TryReadDecodedStreamBytes(
@@ -377,57 +403,72 @@ internal static class PdfIndexedImageNormalizer {
                 3,
                 maxDecodedStreamBytes,
                 out _,
-                out int scanlineBytes)) {
+                out _)) {
             return false;
         }
 
         long sourceRowLengthLong = ((long)width * bitsPerComponent + 7) / 8;
         long expectedLengthLong = sourceRowLengthLong * height;
-        long outputRowLengthLong = (long)width * 3;
-        if (sourceRowLengthLong > int.MaxValue ||
-            expectedLengthLong > int.MaxValue ||
-            outputRowLengthLong > int.MaxValue) {
+        if (sourceRowLengthLong > int.MaxValue || expectedLengthLong > int.MaxValue) {
             return false;
         }
 
         int sourceRowLength = (int)sourceRowLengthLong;
         int expectedLength = (int)expectedLengthLong;
-        int outputRowLength = (int)outputRowLengthLong;
         if (indexedPixels.Length < expectedLength) {
             return false;
         }
 
-        byte[] scanlines = new byte[scanlineBytes];
+        // Keep the source palette instead of expanding every sample to RGB: a page-sized 1-bit scan
+        // stays a 1-bit indexed PNG rather than a 24-bit image. Decoded colors are identical.
         int paletteEntryCount = rgbPalette.Length / 3;
-        for (int row = 0; row < height; row++) {
-            cancellationToken.ThrowIfCancellationRequested();
-            int outputRow = row * (1 + outputRowLength);
-            int sourceRow = row * sourceRowLength;
-            scanlines[outputRow] = 0;
-
-            for (int pixel = 0; pixel < width; pixel++) {
-                if ((pixel & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
-                int paletteIndex = ReadIndexedPixel(indexedPixels, sourceRow, pixel, bitsPerComponent);
-                if (decodeTransform is not null) {
-                    paletteIndex = decodeTransform.TransformIndexedSample(paletteIndex, bitsPerComponent, paletteEntryCount - 1);
-                }
-                paletteIndex = ClampPaletteIndex(paletteIndex, paletteEntryCount);
-
-                int paletteOffset = paletteIndex * 3;
-                int outputPixel = outputRow + 1 + pixel * 3;
-                scanlines[outputPixel] = rgbPalette[paletteOffset];
-                scanlines[outputPixel + 1] = rgbPalette[paletteOffset + 1];
-                scanlines[outputPixel + 2] = rgbPalette[paletteOffset + 2];
-            }
+        int sampleCount = 1 << bitsPerComponent;
+        var indexMap = new byte[sampleCount];
+        bool identity = true;
+        int highestIndex = 0;
+        for (int sample = 0; sample < sampleCount; sample++) {
+            int paletteIndex = decodeTransform is null
+                ? sample
+                : decodeTransform.TransformIndexedSample(sample, bitsPerComponent, paletteEntryCount - 1);
+            paletteIndex = ClampPaletteIndex(paletteIndex, paletteEntryCount);
+            indexMap[sample] = (byte)paletteIndex;
+            identity &= paletteIndex == sample;
+            if (paletteIndex > highestIndex) highestIndex = paletteIndex;
         }
 
-        pngBytes = OfficePngWriter.EncodeScanlines(
-            width,
-            height,
-            8,
-            2,
-            scanlines,
-            OfficePngCompression.Stored);
+        int outputBitDepth = highestIndex < sampleCount ? bitsPerComponent : 8;
+        int outputPaletteEntries = Math.Min(paletteEntryCount, 1 << outputBitDepth);
+        byte[] outputPalette = rgbPalette;
+        if (outputPaletteEntries != paletteEntryCount) {
+            outputPalette = new byte[outputPaletteEntries * 3];
+            Buffer.BlockCopy(rgbPalette, 0, outputPalette, 0, outputPalette.Length);
+        }
+
+        int outputRowLength = (int)(((long)width * outputBitDepth + 7) / 8);
+        bool copyRows = identity && outputBitDepth == bitsPerComponent;
+        // Rows go straight into the PNG's stored blocks; the output starts zeroed like a fresh scanline buffer.
+        pngBytes = OfficePngWriter.EncodeStoredScanlines(width, height, outputBitDepth, 3, outputPalette, (scanlines, start) => {
+            for (int row = 0; row < height; row++) {
+                cancellationToken.ThrowIfCancellationRequested();
+                int outputRow = start + row * (1 + outputRowLength) + 1;
+                int sourceRow = row * sourceRowLength;
+                if (copyRows) {
+                    Buffer.BlockCopy(indexedPixels, sourceRow, scanlines, outputRow, sourceRowLength);
+                    continue;
+                }
+
+                for (int pixel = 0; pixel < width; pixel++) {
+                    if ((pixel & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
+                    int paletteIndex = indexMap[ReadIndexedPixel(indexedPixels, sourceRow, pixel, bitsPerComponent)];
+                    if (outputBitDepth == 8) {
+                        scanlines[outputRow + pixel] = (byte)paletteIndex;
+                    } else {
+                        int bitOffset = pixel * outputBitDepth;
+                        scanlines[outputRow + bitOffset / 8] |= (byte)(paletteIndex << (8 - outputBitDepth - bitOffset % 8));
+                    }
+                }
+            }
+        });
         return true;
     }
 
@@ -583,13 +624,7 @@ internal static class PdfIndexedImageNormalizer {
         if (!PdfImageDecodeTransform.TryCreateColor(softMask.Dictionary, 1, objects, out PdfImageDecodeTransform? alphaDecodeTransform)) {
             return false;
         }
-        // Keep both stream decodes and their limit checks on every extraction.
-        // Only the deterministic packing of the admitted samples is shared.
         cancellationToken.ThrowIfCancellationRequested();
-        if (indexedSoftMaskMemo?.Find(stream, softMask, maxDecodedStreamBytes, rgbPalette) is { } cached) {
-            pngBytes = cached;
-            return true;
-        }
 
         byte[] scanlines = new byte[scanlineBytes];
         int paletteEntryCount = rgbPalette.Length / 3;
@@ -624,7 +659,7 @@ internal static class PdfIndexedImageNormalizer {
             6,
             scanlines,
             OfficePngCompression.Stored);
-        indexedSoftMaskMemo?.Remember(stream, softMask, maxDecodedStreamBytes, rgbPalette, pngBytes);
+        indexedSoftMaskMemo?.Remember(stream, softMask, width, height, bitsPerComponent, maxDecodedStreamBytes, rgbPalette, pngBytes);
         return true;
     }
 

@@ -13,6 +13,66 @@ namespace OfficeIMO.Excel {
 
         private const double MaxExcelColumnWidth = 255.0;
 
+        /// <summary>
+        /// Returns the stored width, padding included, of a column that keeps the worksheet's default width.
+        /// </summary>
+        /// <remarks>
+        /// Excel reads a <c>col</c> element without <c>width</c> as a zero-width, hidden column, and the XLSB and XLS
+        /// writers carry that width into their column records. A column created only to carry a style, an outline
+        /// level or visibility therefore states the default width explicitly, without <c>customWidth</c>.
+        /// </remarks>
+        internal double GetDefaultStoredColumnWidth() {
+            SheetFormatProperties? format = WorksheetRoot.GetFirstChild<SheetFormatProperties>();
+            if (format?.DefaultColumnWidth?.Value is double configured && configured > 0D) {
+                return configured;
+            }
+
+            double digit = OfficeIMO.Excel.Utilities.ExcelColumnGeometry.GetMaximumDigitWidth(WorksheetPart);
+            int pixels = OfficeIMO.Excel.Utilities.ExcelColumnGeometry.GetWidthPixels(null, format, digit);
+            // XLSB and XLS store at most 255 characters; a large base width must not produce a width they cannot write.
+            return Math.Min(OfficeIMO.Excel.Utilities.ExcelColumnGeometry.ToStoredWidth(pixels, digit), MaxExcelColumnWidth);
+        }
+
+        /// <summary>
+        /// Applies a change to the worksheet default width and moves the columns this library created with the
+        /// previous default, such as those created for visibility or outline levels, to the new default. A column
+        /// whose width was changed since the library set it, or that is custom or best fit, keeps its width.
+        /// </summary>
+        private void ChangeDefaultColumnWidth(Action change) {
+            change();
+            Columns? columns = WorksheetRoot.GetFirstChild<Columns>();
+            if (columns == null) return;
+
+            double current = GetDefaultStoredColumnWidth();
+            foreach (Column column in columns.Elements<Column>()) {
+                if (TryGetAssignedDefaultWidth(column, out ExcelDocument.AssignedColumnWidth? assigned) && assigned!.Width != current) {
+                    column.Width = current;
+                    assigned.Width = current;
+                }
+            }
+        }
+
+        /// <summary>Creates a single-column definition that keeps the worksheet's default width.</summary>
+        private Column CreateDefaultWidthColumn(uint columnIndex) {
+            double width = GetDefaultStoredColumnWidth();
+            var column = new Column { Min = columnIndex, Max = columnIndex, Width = width };
+            _excelDocument.DefaultWidthColumns.Add(column, new ExcelDocument.AssignedColumnWidth(width));
+            return column;
+        }
+
+        /// <summary>
+        /// Finds the width the library last gave a column it created, when the column still has that width and is not
+        /// custom or best fit, so later changes by the caller are left alone.
+        /// </summary>
+        private bool TryGetAssignedDefaultWidth(Column column, out ExcelDocument.AssignedColumnWidth? assigned) =>
+            _excelDocument.DefaultWidthColumns.TryGetValue(column, out assigned)
+            && column.CustomWidth?.Value != true && column.BestFit == null && column.Width?.Value == assigned.Width;
+
+        /// <summary>Whether a column carries no width of its own: none at all, or only the default the library gave it.</summary>
+        private bool HasOnlyDefaultWidth(Column column) =>
+            column.CustomWidth == null && column.BestFit == null
+            && (column.Width == null || TryGetAssignedDefaultWidth(column, out _));
+
         private static double NormalizeColumnWidth(double width) {
             if (double.IsNaN(width) || double.IsInfinity(width)) {
                 return 0;
@@ -242,7 +302,7 @@ namespace OfficeIMO.Excel {
                 var column = columns.Elements<Column>()
                     .FirstOrDefault(c => c.Min != null && c.Max != null && c.Min.Value <= (uint)columnIndex && c.Max.Value >= (uint)columnIndex);
                 if (column == null) {
-                    column = new Column { Min = (uint)columnIndex, Max = (uint)columnIndex };
+                    column = CreateDefaultWidthColumn((uint)columnIndex);
                     columns.Append(column);
                 }
                 column.Hidden = hidden ? true : (bool?)null;

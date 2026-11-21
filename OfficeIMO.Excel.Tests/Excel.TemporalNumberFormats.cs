@@ -55,8 +55,8 @@ public class ExcelTemporalNumberFormatTests {
     [Theory]
     [InlineData(ExcelDateSystem.NineteenHundred, -0.25, "1899-12-30 18:00:00.0000")]
     [InlineData(ExcelDateSystem.NineteenFour, -1.25, "1903-12-30 18:00:00.0000")]
-    [InlineData(ExcelDateSystem.NineteenFour, -1462.25, "1899-12-30 06:00:00.0000")]
-    public void Fractional_display_preserves_the_existing_negative_calendar_epoch_contract(ExcelDateSystem system, double serial, string expected) {
+    [InlineData(ExcelDateSystem.NineteenFour, -1462.25, "1899-12-29 18:00:00.0000")]
+    public void Fractional_display_extends_both_calendar_epochs_backwards(ExcelDateSystem system, double serial, string expected) {
         AssertSavedDisplay(serial, "yyyy-mm-dd hh:mm:ss.0000", expected, system);
     }
 

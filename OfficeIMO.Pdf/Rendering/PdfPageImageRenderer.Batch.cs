@@ -20,8 +20,11 @@ internal static partial class PdfPageImageRenderer {
         Func<int, int[]> resolvePages,
         PdfPageRenderOptions? options,
         CancellationToken cancellationToken) {
-        PdfPageRenderOptions effectiveOptions = options ?? new PdfPageRenderOptions();
+        // One detached snapshot decides extraction permission and produces the output, so changes the caller makes to
+        // its options during the render cannot select SVG, a codec, a shaping provider, or another font afterwards.
+        PdfPageRenderOptions effectiveOptions = (options ?? new PdfPageRenderOptions()).CreateEffectiveImageExportOptions<PdfPageRenderOptions>();
         effectiveOptions.Validate();
+        bool pixelsOnly = ProducesPixelsOnly(effectiveOptions);
         using OfficeImageExportExecutionScope execution = OfficeImageExportExecutionScope.Start(
             effectiveOptions.RenderTimeout,
             cancellationToken);
@@ -40,7 +43,7 @@ internal static partial class PdfPageImageRenderer {
             long totalOutputBytes = 0;
             for (int i = 0; i < pages.Length; i++) {
                 execution.Token.ThrowIfCancellationRequested();
-                PdfPageRenderResult result = RenderPage(document, pages[i], effectiveOptions, execution.Token);
+                PdfPageRenderResult result = RenderPage(document, pages[i], effectiveOptions, execution.Token, pixelsOnly);
                 totalOutputBytes = checked(totalOutputBytes + result.OutputByteLength);
                 if (totalOutputBytes > effectiveOptions.MaxTotalOutputBytes) {
                     throw PdfReadLimitException.Create(PdfReadLimitKind.RenderBytes, effectiveOptions.MaxTotalOutputBytes, totalOutputBytes);
@@ -118,11 +121,25 @@ internal static partial class PdfPageImageRenderer {
             cancellationToken);
     }
 
-    internal static PdfPageRenderResult RenderPage(PdfReadDocument document, int pageNumber, PdfPageRenderOptions options, CancellationToken cancellationToken, bool forDisplay = false) {
+    // Raster output exposes only pixels, which viewing permits without content-copy permission. SVG carries text and source
+    // images, and caller codecs, shaping providers, and provider-loaded font programs receive source content, so those
+    // still require extraction permission.
+    private static bool ProducesPixelsOnly(PdfPageRenderOptions options) =>
+        options.Format == global::OfficeIMO.Drawing.OfficeImageExportFormat.Png &&
+        options.ImageCodec is null &&
+        options.TextShapingProvider is null &&
+        options.Fonts.Faces.All(face => face.HasBuiltInProgram);
+
+    // printing paints only annotations with the Print flag, as a printed page shows them. A raster sink receives the PNG
+    // render's pixels instead of encoding them, and the result then carries no bytes.
+    internal static PdfPageRenderResult RenderPage(PdfReadDocument document, int pageNumber, PdfPageRenderOptions options, CancellationToken cancellationToken, bool forDisplay = false,
+        bool printing = false, Action<global::OfficeIMO.Drawing.OfficeRasterImage>? rasterSink = null) {
         var timer = Stopwatch.StartNew();
         IReadOnlyList<PdfRenderCapabilityDiagnostic> capabilityDiagnostics = Array.Empty<PdfRenderCapabilityDiagnostic>();
         try {
             cancellationToken.ThrowIfCancellationRequested();
+            // The capability scan and the drawing read the same page content; decode it once for both.
+            using PdfReadPage.DecodedContentReuseScope contentReuse = document.Pages[pageNumber - 1].ReuseDecodedContent();
             capabilityDiagnostics = document.Pages[pageNumber - 1].GetRenderCapabilityDiagnostics(
                 options.MaxDiagnosticsPerPage, options.MaxDiagnosticCharactersPerPage, cancellationToken);
             void ConfigureDrawing(OfficeDrawing scene) {
@@ -132,8 +149,12 @@ internal static partial class PdfPageImageRenderer {
             }
             var pageSize = document.Pages[pageNumber - 1].GetVisualPageSize();
             double functionScale = options.GetScale(pageSize.Width, pageSize.Height);
-            OfficeDrawing drawing = forDisplay ? document.Pages[pageNumber - 1].ToDisplayDrawing(cancellationToken, ConfigureDrawing, functionScale, options.MaxPixelsPerPage)
-                : document.Pages[pageNumber - 1].ToDrawing(cancellationToken, ConfigureDrawing, functionScale, options.MaxPixelsPerPage);
+            IReadOnlyList<PdfRenderCapabilityDiagnostic> renderDegradations = Array.Empty<PdfRenderCapabilityDiagnostic>();
+            void ReportRenderDegradations(IReadOnlyList<PdfRenderCapabilityDiagnostic> skipped) => renderDegradations = skipped;
+            OfficeDrawing drawing = forDisplay ? document.Pages[pageNumber - 1].ToDisplayDrawing(cancellationToken, ConfigureDrawing, functionScale, options.MaxPixelsPerPage, printing: printing,
+                    reportRenderDegradations: ReportRenderDegradations)
+                : document.Pages[pageNumber - 1].ToDrawing(cancellationToken, ConfigureDrawing, functionScale, options.MaxPixelsPerPage, ReportRenderDegradations);
+            var rasterOmissions = new RasterOmissionSink();
             double scale = options.GetScale(drawing);
             int width = checked((int)Math.Ceiling(drawing.Width * scale));
             int height = checked((int)Math.Ceiling(drawing.Height * scale));
@@ -144,7 +165,18 @@ internal static partial class PdfPageImageRenderer {
 
             cancellationToken.ThrowIfCancellationRequested();
             byte[] bytes;
-            if (options.Format == global::OfficeIMO.Drawing.OfficeImageExportFormat.Png) {
+            if (options.Format == global::OfficeIMO.Drawing.OfficeImageExportFormat.Png && rasterSink != null) {
+                rasterSink(OfficeDrawingRasterRenderer.Render(drawing, RasterOptions(
+                    scale,
+                    options.Background,
+                    options.ImageCodec,
+                    options.MaxPixelsPerPage,
+                    options.TextShapingProvider,
+                    options.TextShapingLanguage,
+                    rasterOmissions,
+                    cancellationToken)));
+                bytes = Array.Empty<byte>();
+            } else if (options.Format == global::OfficeIMO.Drawing.OfficeImageExportFormat.Png) {
                 bytes = RenderDrawingAsPng(
                     drawing,
                     scale,
@@ -153,17 +185,21 @@ internal static partial class PdfPageImageRenderer {
                     options.MaxPixelsPerPage,
                     options.TextShapingProvider,
                     options.TextShapingLanguage,
+                    rasterOmissions,
+                    options.RasterEncoding?.Png,
                     cancellationToken);
             } else {
+                if (drawing.PostCompositionColorTransform != null)
+                    drawing = PdfImageExportEngine.AddBackground(drawing, options.Background);
                 try {
                     bytes = OfficeDrawingSvgExporter.ToSvgBytes(
                         drawing,
                         scale,
                         OfficeSvgSizeUnit.Point,
-                        imageCodec: null,
+                        imageCodec: options.ImageCodec,
                         resourceIdPrefix: null,
                         maximumUtf8Bytes: options.MaxOutputBytesPerPage,
-                        cancellationToken: cancellationToken);
+                        cancellationToken: cancellationToken, maximumRasterPixels: options.MaxPixelsPerPage);
                 } catch (OfficeImageExportBatchLimitException exception) {
                     throw PdfReadLimitException.Create(
                         PdfReadLimitKind.RenderBytes,
@@ -175,6 +211,8 @@ internal static partial class PdfPageImageRenderer {
                 throw PdfReadLimitException.Create(PdfReadLimitKind.RenderBytes, options.MaxOutputBytesPerPage, bytes.LongLength);
             }
             timer.Stop();
+            capabilityDiagnostics = AppendRenderDegradations(capabilityDiagnostics, renderDegradations,
+                rasterOmissions.ElementOmitted, options.MaxDiagnosticsPerPage);
             return new PdfPageRenderResult(pageNumber, options.Format, bytes, width, height, timer.Elapsed,
                 capabilityDiagnostics, options.MaxDiagnosticCharactersPerPage);
         } catch (OperationCanceledException) {

@@ -134,8 +134,8 @@ internal static class EmailSemanticValueDigest {
         if (value is uint uint32) { writer.WriteByte(7); writer.WriteInt64(uint32); return; }
         if (value is long int64) { writer.WriteByte(8); writer.WriteInt64(int64); return; }
         if (value is ulong uint64) { writer.WriteByte(9); writer.WriteString(uint64.ToString(CultureInfo.InvariantCulture)); return; }
-        if (value is float single) { writer.WriteByte(10); writer.WriteString(single.ToString("R", CultureInfo.InvariantCulture)); return; }
-        if (value is double number) { writer.WriteByte(11); writer.WriteString(number.ToString("R", CultureInfo.InvariantCulture)); return; }
+        if (value is float single) { writer.WriteByte(10); writer.WriteString(OfficeIMO.Core.Internal.OfficeRoundTripText.Format(single, CultureInfo.InvariantCulture)); return; }
+        if (value is double number) { writer.WriteByte(11); writer.WriteString(OfficeIMO.Core.Internal.OfficeRoundTripText.Format(number, CultureInfo.InvariantCulture)); return; }
         if (value is decimal decimalNumber) { writer.WriteByte(12); writer.WriteString(decimalNumber.ToString(CultureInfo.InvariantCulture)); return; }
         if (value is DateTimeOffset offset) {
             writer.WriteByte(13); writer.WriteInt64(offset.UtcDateTime.Ticks); writer.WriteInt64(offset.Offset.Ticks); return;

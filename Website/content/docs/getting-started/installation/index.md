@@ -31,7 +31,7 @@ The SDK also resolves the local tool through this shorthand:
 dotnet officeimo help
 ```
 
-The [OfficeIMO.Tool guide](https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.Tool) covers conversion, extraction, inspection, and MCP workflows.
+The [CLI documentation](/docs/cli/) covers pinning the tool in CI, conversion, extraction, PDF workflows and the MCP server.
 
 ## .NET Packages
 

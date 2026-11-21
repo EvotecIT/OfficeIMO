@@ -177,6 +177,7 @@ document.Save("spreadsheet.csv", output);
 | Strict | Strict quotes and field counts; duplicate headers fail; comments remain records | Fixed UTF-8, optional matching BOM, invalid bytes fail | UTF-8 without BOM, CRLF, values preserved |
 | Compatibility | Existing lenient quotes, padded missing fields, ignored extras, generated and renamed headers | Existing UTF-8 fallback with BOM detection | Existing newline and encoding defaults, values preserved |
 | Spreadsheet | Strict quotes and field counts; delimiter detection; generated and renamed headers; comments remain records | UTF-8 fallback with BOM detection | UTF-8 with BOM, CRLF, formula-like text prefixed with an apostrophe |
+| Tsv | Tab delimiter; quotes are data; one record per line; strict field counts; generated and renamed headers; comments remain records | UTF-8 fallback with BOM detection | UTF-8 without BOM, LF, no quoting; tabs and line breaks in a field fail |
 
 Strict and Spreadsheet redact source values and custom-converter details in
 mapping failures. Parse failures throw by default; use `CollectParseErrors`,
@@ -194,6 +195,41 @@ authoritative. Its own preamble is accepted; a different BOM does not switch the
 decoder. Text inputs are already decoded, and TextWriter output has no byte
 encoding. Profiles do not impose a culture-specific spreadsheet dialect; select
 the delimiter and culture explicitly when needed.
+
+## Tab-separated values
+
+`CsvProfile.Tsv` reads and writes IANA `text/tab-separated-values`. There is no
+quoting: a `"` is ordinary data and every line is one record, so a stray quote
+never merges lines. Writing a field that contains a tab or line break throws
+`CsvException` rather than producing a file that reads back differently. Without
+quote handling, TSV parsing takes the quote-free fast paths.
+
+```csharp
+CsvDocument document = CsvDocument.Load("genes.tsv"); // .tsv and .tab paths default to the Tsv profile
+string symbol = document.AsEnumerable().First().AsString("Symbol");
+
+CsvSaveOptions output = CsvProfiles.CreateSaveOptions(CsvProfile.Tsv);
+document.Save("copy.tsv", output);
+```
+
+PostgreSQL `COPY` text format, linear TSV and many bioinformatics tools encode
+tabs and line breaks as backslash escapes. Select them on the same profile:
+
+```csharp
+CsvLoadOptions input = CsvProfiles.CreateLoadOptions(CsvProfile.Tsv);
+input.EscapeMode = CsvEscapeMode.Backslash; // \t \n \r \\ decode; other sequences stay literal
+CsvDocument rows = CsvDocument.Load("export.txt", input);
+
+CsvSaveOptions copy = CsvProfiles.CreateSaveOptions(CsvProfile.Tsv);
+copy.EscapeMode = CsvEscapeMode.Backslash;
+rows.Save("import.txt", copy);
+```
+
+PostgreSQL's `\N` null marker reads as the text `\N`, the same as an escaped `\\N`.
+`QuoteParsingMode = CsvQuoteParsingMode.None` and `QuoteMode = CsvQuoteMode.Never`
+apply the same no-quoting rule to other delimiters. Path defaults apply only when
+no options are passed; content-based delimiter detection for `.csv` files is unchanged.
+A document read without quoting saves without quoting by default.
 
 ## Typed mapping
 
@@ -723,6 +759,18 @@ var document = CsvDocument.Load("input.csv", new CsvLoadOptions {
 });
 ```
 
+`QuoteCharacter` and `EscapeCharacter` read and write other dialects, such as single quotes
+or MySQL-style backslash escapes inside quoted fields. Without `EscapeCharacter`, a doubled
+quote character is one quote, as in RFC 4180. Use the same settings on both sides;
+`OpenReaderAsync` supports only the double quote.
+
+```csharp
+var dialect = new CsvSaveOptions { QuoteCharacter = '\'', EscapeCharacter = '\\' };
+document.Save("names.csv", dialect); // 'O\'Brien'
+
+var names = CsvDocument.Load("names.csv", new CsvLoadOptions { QuoteCharacter = '\'', EscapeCharacter = '\\' });
+```
+
 Use `DelimiterText` for multi-character delimiters such as `||` or `::`. Quoted fields can still contain the delimiter text:
 
 ```csharp
@@ -757,6 +805,22 @@ Console.WriteLine($"Imported {rowsRead} rows");
 ```
 
 ## Export options
+
+By default every value reads back unchanged, whatever the culture:
+
+| Value | Default text |
+| --- | --- |
+| `DateTime` | ISO 8601 with only the non-zero fraction digits: `2026-03-14T09:26:53.5897932`, `Z` for UTC and the offset for local values |
+| `DateTimeOffset` | ISO 8601 with its offset: `2026-03-14T09:26:53.5897932+05:45` |
+| `DateOnly`, `TimeOnly` | `2026-03-14`, `09:26:53.5897932` |
+| `double`, `float` | the shortest text that parses back to the same number, on .NET Framework too: `0.30000000000000004` |
+| `byte[]` | base64 |
+| null | an empty field, or `NullValue` |
+
+Set `DateTimeFormat` (for example `"G"`) when people read the file and fractional seconds
+do not matter. An empty field reads back as null for typed columns and as empty text for
+string columns, as `Import-Csv` does. To keep null and empty text apart, write and read
+with the same `NullValue`, such as `\N`; text equal to the marker reads back as null.
 
 CSV output supports null tokens, date/time formatting, UTC conversion, append, no-clobber checks, compression, quoting, encoding, and formula escaping. Formula escaping applies to text and configured text tokens; typed negative numeric values remain numeric:
 
@@ -823,6 +887,18 @@ using var reader = command.ExecuteReader();
 CsvDocument.WriteDataReader("summary.csv.gz", reader, new CsvSaveOptions {
     CompressionType = CsvCompressionType.Auto
 });
+```
+
+A `DataTable` can be written directly too. The output matches writing its
+`CreateDataReader()`: deleted rows are skipped and each value comes from the
+row's current version, but the values are read without the data reader's
+per-value overhead:
+
+```csharp
+using OfficeIMO.CSV;
+
+using var output = File.Create("orders.csv");
+CsvDocument.WriteDataTable(output, ordersTable);
 ```
 
 For large database exports with CPU-heavy quoting or value formatting, opt in
@@ -945,7 +1021,7 @@ string normalized = document.ToString(new CsvSaveOptions {
 
 ## Dependency footprint
 
-- **External:** No third-party CSV engine. `System.Buffers` and .NET Framework reference assemblies support compatibility targets.
+- **External:** No third-party CSV engine. On `netstandard2.0` and `net472`, `System.Memory` (the version `DocumentFormat.OpenXml` also uses) lets the UTF-8 stream reader run on those targets; .NET Framework reference assemblies support the `net472` build.
 - **OfficeIMO:** `OfficeIMO.Core`. Parsing, streaming, schemas, transforms, compression, and object mapping are first-party.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

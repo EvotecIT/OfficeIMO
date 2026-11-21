@@ -16,7 +16,13 @@ public enum MarkdownCalloutTitleMode {
 /// syntax such as OfficeIMO callouts, TOC placeholders, footnotes, or custom inline tokens.
 /// </summary>
 public sealed class MarkdownLoadOptions {
-    /// <summary>Retains syntax and source bindings. False selects semantic-only parsing for large reads.</summary>
+    /// <summary>
+    /// Retains the syntax tree, source spans and <see cref="MarkdownDocument.ParseInfo"/>. Default: true.
+    /// The parse builds the semantic document and captures source information from the same text the
+    /// first time something reads it, so rendering and writing a document whose source information is
+    /// never read costs no more than a semantic parse. Set it to false when nothing reads source
+    /// information: the document then neither keeps the text it was parsed from nor any source information.
+    /// </summary>
     public bool CaptureSyntaxTree { get; set; } = true;
 
     /// <summary>Creates bounded parser settings for documents from outside.</summary>
@@ -101,6 +107,7 @@ public sealed class MarkdownLoadOptions {
             Abbreviations = Abbreviations,
             GenericAttributes = GenericAttributes,
             CustomContainers = CustomContainers,
+            Math = Math,
             SingleTildeStrikethrough = SingleTildeStrikethrough,
             Highlight = Highlight,
             Inserted = Inserted,
@@ -346,6 +353,17 @@ public sealed class MarkdownLoadOptions {
     /// Default: <c>false</c>; opt in when mirroring Markdig's <c>UseCustomContainers</c> extension.
     /// </summary>
     public bool CustomContainers { get; set; } = false;
+    /// <summary>
+    /// Enable TeX math: inline <c>$...$</c>, inline display <c>$$...$$</c>, display blocks whose
+    /// <c>$$</c> delimiters sit on their own lines, and <c>```math</c> fences.
+    /// Inline math yields <see cref="MathInline"/>, <c>$$</c> blocks yield <see cref="MathBlock"/> and <c>math</c> fences
+    /// yield a <see cref="SemanticFencedBlock"/> whose <see cref="SemanticFencedBlock.SemanticKind"/> is <c>math</c>.
+    /// An opening <c>$</c> must be followed by a non-space character, and a closing <c>$</c> must follow a non-space
+    /// character and must not be followed by a digit, so prices such as <c>$5 and $10</c> stay text. Escape a literal
+    /// dollar sign as <c>\$</c>.
+    /// Default: <c>false</c>; opt in for documents authored with TeX math.
+    /// </summary>
+    public bool Math { get; set; } = false;
     /// <summary>
     /// When <c>true</c>, GitHub Flavored Markdown-style single-tilde strikethrough (<c>~text~</c>) is enabled.
     /// Default: <c>false</c>.
@@ -664,7 +682,9 @@ public sealed class MarkdownLoadOptions {
 
     /// <summary>
     /// Maximum recursive block-container depth accepted while parsing nested lists, quotes,
-    /// details, callouts, footnotes, and similar constructs. Default: 64.
+    /// details, callouts, footnotes, and similar constructs, and the maximum depth of nested
+    /// inline containers such as emphasis, links and inline HTML wrappers within one block.
+    /// Deeper input fails with an <see cref="System.IO.InvalidDataException"/>. Default: 64.
     /// </summary>
     public int MaxNestingDepth { get; set; } = 64;
 

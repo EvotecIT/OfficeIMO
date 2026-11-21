@@ -40,6 +40,11 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                         if (declaredUniqueCount > limits.MaxSharedStrings) {
                             throw new InvalidDataException($"The XLSB shared-string table declares {declaredUniqueCount} unique items, exceeding the configured limit of {limits.MaxSharedStrings} items.");
                         }
+                        // Size the index for the declared items, but never past what the part could hold:
+                        // an item record takes at least seven bytes.
+                        int capacity = (int)Math.Min(declaredUniqueCount, (uint)(part.DataLength / 7));
+                        if (entries != null) entries.Capacity = capacity;
+                        else values!.Capacity = capacity;
                         began = true;
                     } else if (record.Type == BrtEndSst) {
                         if (!began || ended || record.Size != 0) {

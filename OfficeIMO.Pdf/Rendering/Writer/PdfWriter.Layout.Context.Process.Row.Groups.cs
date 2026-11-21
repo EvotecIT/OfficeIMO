@@ -44,7 +44,7 @@ internal static partial class PdfWriter {
                     break;
                 case SemanticBlock semantic:
                     blocks = semantic.Blocks;
-                    group.Semantic = new FlowSemanticScope(semantic.Role, semantic.AlternativeText);
+                    group.Semantic = new FlowSemanticScope(semantic.StructureType ?? MapSemanticStructureType(semantic.Role), semantic.AlternativeText);
                     break;
                 case FlowBlock flow when PdfFlowNestingRules.IsColumnFlowSupported(flow):
                     blocks = flow.StaticBlocks!;

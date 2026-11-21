@@ -81,6 +81,15 @@ internal static partial class PdfPageExtractor {
             }
     
             _objectIds.Add(objectNumber);
+            if (!isPageObject && indirect.TryGetUnbuiltSummary(out PdfDeferredObjectSummary summary)) {
+                // The load scan recorded every reference of this unbuilt value in document order, which is the order
+                // the traversal below reaches them in, so the value is not built just to find its references.
+                long[] references = summary.References;
+                for (int index = references.Length - 1; index >= 0; index--) {
+                    pending.Push(new TraversalItem(references[index]));
+                }
+                return;
+            }
             _pageOverrides.TryGetValue(objectNumber, out var pageOverrides);
             pending.Push(new TraversalItem(indirect.Value, isPageObject, pageOverrides));
         }
@@ -95,18 +104,16 @@ internal static partial class PdfPageExtractor {
                 while (pending.Count != 0) {
                     _cancellationToken.ThrowIfCancellationRequested();
                     TraversalItem current = pending.Pop();
-                    PdfObject value = current.Value;
+                    PdfObject? value = current.Value;
+                    if (value is null) {
+                        QueueReference(current.ReferenceObjectNumber, current.ReferenceGeneration, ref pending);
+                        continue;
+                    }
                     bool isPageObject = current.IsPageObject;
                     Dictionary<string, PdfObject>? pageOverrides = current.PageOverrides;
                     switch (value) {
                     case PdfReference reference:
-                        if (reference.ObjectNumber >= 0 &&
-                            _sourceObjects.TryGetValue(reference.ObjectNumber, out var referenced) &&
-                            referenced.Generation != reference.Generation) {
-                            throw BuildGenerationMismatchException(reference, referenced.Generation);
-                        }
-
-                        QueueObject(reference.ObjectNumber, isPageObject: false, ref pending);
+                        QueueReference(reference.ObjectNumber, reference.Generation, ref pending);
                         break;
                     case PdfArray array:
                         for (int index = array.Items.Count - 1; index >= 0; index--) {
@@ -132,6 +139,16 @@ internal static partial class PdfPageExtractor {
             } finally {
                 pending.Release();
             }
+        }
+
+        private void QueueReference(int objectNumber, int generation, ref TraversalStack pending) {
+            if (objectNumber >= 0 &&
+                _sourceObjects.TryGetValue(objectNumber, out var referenced) &&
+                referenced.Generation != generation) {
+                throw BuildGenerationMismatchException(new PdfReference(objectNumber, generation), referenced.Generation);
+            }
+
+            QueueObject(objectNumber, isPageObject: false, ref pending);
         }
 
         private void QueueEntriesInReverse(
@@ -259,9 +276,22 @@ internal static partial class PdfPageExtractor {
                 Value = value;
                 IsPageObject = isPageObject;
                 PageOverrides = pageOverrides;
+                PackedReference = 0;
             }
 
-            internal PdfObject Value { get; }
+            /// <summary>A reference recorded by a deferred object's load scan: object number high, generation low.</summary>
+            internal TraversalItem(long packedReference) {
+                Value = null;
+                IsPageObject = false;
+                PageOverrides = null;
+                PackedReference = packedReference;
+            }
+
+            /// <summary>The value to traverse, or null for a recorded reference.</summary>
+            internal PdfObject? Value { get; }
+            private long PackedReference { get; }
+            internal int ReferenceObjectNumber => (int)(PackedReference >> 32);
+            internal int ReferenceGeneration => (int)PackedReference;
             internal bool IsPageObject { get; }
             internal Dictionary<string, PdfObject>? PageOverrides { get; }
         }

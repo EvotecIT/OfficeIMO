@@ -16,29 +16,48 @@ public class ExcelReaderGeneratedWriteBenchmarks {
     [GlobalSetup(Target = nameof(OfficeIMO))]
     public void SetupOfficeIMO() {
         ApplyPriorityOverride();
-        Validate(OfficeIMO());
+        Record("OfficeIMO", "Default", () => Validate(OfficeIMO()));
     }
 
     [GlobalSetup(Target = nameof(ExcelReaderNet))]
     public void SetupExcelReader() {
         ApplyPriorityOverride();
-        Validate(ExcelReaderNet());
+        Record("ExcelReader.NET", "Default", () => Validate(ExcelReaderNet()));
     }
 
     [GlobalSetup(Target = nameof(OfficeIMO_WriteData))]
     public void SetupOfficeIMOBuffered() {
         ApplyPriorityOverride();
-        Validate(OfficeIMO_WriteData());
+        Record("OfficeIMO", "WriteData", () => Validate(OfficeIMO_WriteData()));
+    }
+
+    [GlobalSetup(Target = nameof(OfficeIMO_MatchingWriteData))]
+    public void SetupOfficeIMOMatching() {
+        ApplyPriorityOverride();
+        Record("OfficeIMO", "MatchingWriteData", () => Validate(OfficeIMO_MatchingWriteData()));
     }
 
     [Benchmark]
+    [BenchmarkCategory("case:WriteData")]
     public byte[] OfficeIMO_WriteData() => ExcelReaderGeneratedBenchmarks.WriteOfficeIMOBuffered(Format, RowCount);
 
+    /// <summary>The typed writer producing the same cells, references and string storage as <see cref="OfficeIMO_WriteData"/>.</summary>
+    [Benchmark]
+    [BenchmarkCategory("case:MatchingWriteData")]
+    public byte[] OfficeIMO_MatchingWriteData() => ExcelReaderGeneratedBenchmarks.WriteOfficeIMOMatchingBuffered(Format, RowCount);
+
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("case:Default")]
     public byte[] OfficeIMO() => ExcelReaderGeneratedBenchmarks.WriteOfficeIMO(Format, RowCount);
 
     [Benchmark]
+    [BenchmarkCategory("case:Default")]
     public byte[] ExcelReaderNet() => ExcelReaderGeneratedBenchmarks.WriteExcelReader(Format, RowCount);
+
+    /// <summary>Validates one lane's output and records the result; ExcelDataReader rereads every row of the package.</summary>
+    internal void Record(string library, string caseName, Action validate) =>
+        ExcelOutputValidation.Check(library, caseName,
+            $"Format={Format}; RowCount={RowCount}; ExcelDataReader reread every row's name, id, date and amount", validate);
 
     // In-process execution may raise priority after the command-line override.
     private static void ApplyPriorityOverride() {

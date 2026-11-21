@@ -25,6 +25,12 @@ internal static class ExcelExtractionExtensions {
         /// When true, emit a Markdown preview table in <see cref="ExcelExtractChunk.Markdown"/>. Default: true.
         /// </summary>
         public bool EmitMarkdownTable { get; set; } = true;
+
+        /// <summary>
+        /// When set, values the reader left typed are written as Excel displays them under the General format:
+        /// numbers with up to 15 significant digits in this culture and booleans as TRUE or FALSE.
+        /// </summary>
+        public IFormatProvider? DisplayProvider { get; set; }
     }
 
     /// <summary>
@@ -81,7 +87,7 @@ internal static class ExcelExtractionExtensions {
                 if (extract.HeadersInFirstRow && chunk.Rows.Length > 0) {
                     headers.Clear();
                     var hdrRow = chunk.Rows[0];
-                    for (int c = 0; c < chunk.ColCount; c++) headers.Add(ToCellString(hdrRow[c], fallback: $"Column{c + 1}"));
+                    for (int c = 0; c < chunk.ColCount; c++) headers.Add(ToCellString(hdrRow[c], $"Column{c + 1}", extract.DisplayProvider));
                 } else {
                     headers.Clear();
                     for (int c = 0; c < chunk.ColCount; c++) headers.Add($"Column{c + 1}");
@@ -94,7 +100,7 @@ internal static class ExcelExtractionExtensions {
             for (int r = startRowOffset; r < chunk.RowCount; r++) {
                 var row = chunk.Rows[r];
                 var cells = new string[chunk.ColCount];
-                for (int c = 0; c < chunk.ColCount; c++) cells[c] = ToCellString(row[c], fallback: string.Empty);
+                for (int c = 0; c < chunk.ColCount; c++) cells[c] = ToCellString(row[c], string.Empty, extract.DisplayProvider);
                 rowList.Add(cells);
             }
 
@@ -106,43 +112,122 @@ internal static class ExcelExtractionExtensions {
                 truncated = true;
             }
 
-            var table = new ExcelExtractTable {
-                Title = $"{sheetName} {range}",
-                Columns = headers.ToArray(),
-                Rows = rowList,
-                TotalRowCount = totalRows,
-                Truncated = truncated
-            };
-
-            string? md = null;
-            if (extract.EmitMarkdownTable) {
-                md = RenderMarkdownTable(table);
-                if (md.Length > chunking.MaxChars) {
-                    md = md.Substring(0, chunking.MaxChars) + "\n\n<!-- truncated -->";
-                }
+            string title = $"{sheetName} {range}";
+            string[] columns = headers.ToArray();
+            string? truncationWarning = truncated ? "Table rows truncated to MaxTableRows." : null;
+            if (!extract.EmitMarkdownTable) {
+                var table = new ExcelExtractTable {
+                    Title = title,
+                    Columns = columns,
+                    Rows = rowList,
+                    TotalRowCount = totalRows,
+                    Truncated = truncated
+                };
+                yield return CreateChunk(sourcePath, sheetName, range, chunkIndex++, chunk.StartRow, RenderPlainTable(table), null, table,
+                    truncationWarning == null ? null : new[] { truncationWarning });
+                continue;
             }
 
-            var id = BuildStableId("excel", sourcePath, sheetName, chunkIndex, chunk.StartRow);
-            yield return new ExcelExtractChunk {
-                Id = id,
-                Location = new ExcelExtractLocation {
-                    Path = sourcePath,
-                    Sheet = sheetName,
-                    A1Range = range,
-                    BlockIndex = chunkIndex
-                },
-                Text = md ?? RenderPlainTable(table),
-                Markdown = md,
-                Tables = new[] { table },
-                Warnings = truncated ? new[] { "Table rows truncated to MaxTableRows." } : null
-            };
-
-            chunkIndex++;
+            // Markdown is split between rows so every row stays in some chunk; the header repeats in each part.
+            // A single row longer than MaxChars is kept whole in its own chunk.
+            int firstSourceRow = chunk.StartRow + startRowOffset;
+            int partStart = 0;
+            bool firstPart = true;
+            while (firstPart || partStart < rowList.Count) {
+                int partEnd = MeasureMarkdownPart(title, columns, rowList, partStart, chunking.MaxChars,
+                    truncated ? Environment.NewLine.Length + TruncationNote.Length : 0, out bool oversizedRow, out bool oversizedHeader);
+                bool lastPart = partEnd >= rowList.Count;
+                List<IReadOnlyList<string>> partRows = partStart == 0 && lastPart
+                    ? rowList
+                    : rowList.GetRange(partStart, partEnd - partStart);
+                var table = new ExcelExtractTable {
+                    Title = title,
+                    Columns = columns,
+                    Rows = partRows,
+                    // The last part also accounts for rows MaxTableRows dropped from the block.
+                    TotalRowCount = lastPart ? partRows.Count + (totalRows - rowList.Count) : partRows.Count,
+                    Truncated = truncated && lastPart
+                };
+                string md = RenderMarkdownTable(table);
+                var warnings = new List<string>(2);
+                if (truncationWarning != null && lastPart) warnings.Add(truncationWarning);
+                if (oversizedHeader) warnings.Add("The table title and header exceed MaxChars; they were kept whole.");
+                else if (oversizedRow) warnings.Add("A table row with its header exceeds MaxChars; the row was kept whole in its own chunk.");
+                yield return CreateChunk(sourcePath, sheetName, range, chunkIndex++, firstPart ? chunk.StartRow : firstSourceRow + partStart,
+                    md, md, table, warnings.Count == 0 ? null : warnings.ToArray());
+                firstPart = false;
+                partStart = partEnd;
+            }
         }
     }
 
-    private static string ToCellString(object? value, string fallback) {
+    private static ExcelExtractChunk CreateChunk(string? sourcePath, string sheetName, string range, int chunkIndex, int startRow,
+        string text, string? markdown, ExcelExtractTable table, string[]? warnings) =>
+        new ExcelExtractChunk {
+            Id = BuildStableId("excel", sourcePath, sheetName, chunkIndex, startRow),
+            Location = new ExcelExtractLocation {
+                Path = sourcePath,
+                Sheet = sheetName,
+                A1Range = range,
+                BlockIndex = chunkIndex
+            },
+            Text = text,
+            Markdown = markdown,
+            Tables = new[] { table },
+            Warnings = warnings
+        };
+
+    /// <summary>
+    /// Returns the end (exclusive) of the longest run of rows from <paramref name="start"/> whose Markdown table,
+    /// including the title and header, fits in <paramref name="maxChars"/>; at least one row is always taken.
+    /// A part that ends the block also reserves <paramref name="finalPartSuffix"/> for the truncation note.
+    /// </summary>
+    private static int MeasureMarkdownPart(string title, IReadOnlyList<string> columns, IReadOnlyList<IReadOnlyList<string>> rows,
+        int start, int maxChars, int finalPartSuffix, out bool oversizedRow, out bool oversizedHeader) {
+        oversizedRow = false;
+        int newLine = Environment.NewLine.Length;
+        int length = "### ".Length + title.Length + newLine * 2;
+        length += 1 + newLine;
+        foreach (string header in columns) length += EscapedLength(header) + 3;
+        length += 1 + newLine + columns.Count * " --- |".Length;
+        // Rendered Markdown drops the final line break; a header-only part also carries the note when truncated.
+        oversizedHeader = length - newLine + (rows.Count == 0 ? finalPartSuffix : 0) > maxChars;
+        int index = start;
+        while (index < rows.Count) {
+            IReadOnlyList<string> row = rows[index];
+            int rowLength = 1 + newLine;
+            for (int column = 0; column < columns.Count; column++) {
+                rowLength += EscapedLength(column < row.Count ? row[column] : string.Empty) + 3;
+            }
+            int needed = length + rowLength + (index == rows.Count - 1 ? finalPartSuffix : 0);
+            if (index > start && needed > maxChars) break;
+            if (index == start && needed > maxChars) oversizedRow = true;
+            length += rowLength;
+            index++;
+        }
+        return index;
+    }
+
+    private const string TruncationNote = "<!-- truncated -->";
+
+    private static int EscapedLength(string? value) {
+        if (string.IsNullOrEmpty(value)) return 0;
+        int length = value!.Length;
+        for (int index = 0; index < value.Length; index++) {
+            if (value[index] == '|') length++;
+            else if (value[index] == (char)13 && index + 1 < value.Length && value[index + 1] == (char)10) { length--; index++; }
+        }
+        return length;
+    }
+
+    private static string ToCellString(object? value, string fallback, IFormatProvider? display) {
         if (value == null) return fallback;
+        if (display != null) {
+            if (value is double number) return OfficeIMO.Spreadsheet.SpreadsheetNumberFormatDisplay.FormatGeneralValue(number, display);
+            // NumericAsDecimal reads numbers as decimal; they display the same way.
+            if (value is decimal amount) return OfficeIMO.Spreadsheet.SpreadsheetNumberFormatDisplay.FormatGeneralValue((double)amount, display);
+            if (value is bool flag) return flag ? "TRUE" : "FALSE";
+        }
         if (value is DateTime dt) return dt.ToString("o", CultureInfo.InvariantCulture);
         if (value is DateTimeOffset dto) return dto.ToString("o", CultureInfo.InvariantCulture);
         if (value is IFormattable f) return f.ToString(null, CultureInfo.InvariantCulture) ?? fallback;
@@ -187,7 +272,7 @@ internal static class ExcelExtractionExtensions {
 
         if (table.Truncated) {
             sb.AppendLine();
-            sb.AppendLine("<!-- truncated -->");
+            sb.AppendLine(TruncationNote);
         }
 
         return sb.ToString().TrimEnd();

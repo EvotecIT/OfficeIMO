@@ -16,14 +16,24 @@ internal readonly struct PdfStructuralMarkerCounts {
 
 internal static partial class PdfSyntax {
     internal static int CountIndirectObjectHeaders(byte[] pdf, PdfReadLimits limits) =>
-        InspectStructuralMarkers(pdf, limits).IndirectObjectHeaders;
+        InspectStructuralMarkers(pdf, limits, measureObjects: false).IndirectObjectHeaders;
 
-    internal static PdfStructuralMarkerCounts InspectStructuralMarkers(byte[] pdf, PdfReadLimits limits) {
+    internal static PdfStructuralMarkerCounts InspectStructuralMarkers(byte[] pdf, PdfReadLimits limits) =>
+        InspectStructuralMarkers(pdf, limits, measureObjects: true);
+
+    /// <summary>
+    /// Counts only the indirect-object headers and startxref markers. A source document's counts are compared with its
+    /// generated outputs; their object and stream sizes are not, so the object walk is skipped and they read zero.
+    /// </summary>
+    internal static PdfStructuralMarkerCounts CountSourceStructuralMarkers(byte[] pdf, PdfReadLimits limits) =>
+        InspectStructuralMarkers(pdf, limits, measureObjects: false);
+
+    private static PdfStructuralMarkerCounts InspectStructuralMarkers(byte[] pdf, PdfReadLimits limits, bool measureObjects) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(limits, nameof(limits));
         limits.Validate();
         var parseTimer = System.Diagnostics.Stopwatch.StartNew();
-        string text = PdfEncoding.Latin1GetString(pdf);
+        var text = new PdfByteContentText(pdf);
         int count = 0;
         int maximumObjectCharacters = 0;
         int maximumRawStreamBytes = 0;
@@ -39,7 +49,7 @@ internal static partial class PdfSyntax {
             cursor = header.Index + header.Length;
         }
 
-        int objectCursor = 0;
+        int objectCursor = measureObjects ? 0 : text.Length;
         while (TryFindIndirectObjectHeader(
             text,
             objectCursor,
@@ -55,7 +65,7 @@ internal static partial class PdfSyntax {
             }
 
             int bodyEnd = objectEnd >= 6 &&
-                string.Equals(text.Substring(objectEnd - 6, 6), "endobj", StringComparison.Ordinal)
+                MatchesAt(text, objectEnd - 6, "endobj")
                     ? objectEnd - 6
                     : objectEnd;
             maximumObjectCharacters = Math.Max(maximumObjectCharacters, Math.Max(0, bodyEnd - bodyStart));
@@ -65,7 +75,7 @@ internal static partial class PdfSyntax {
 
         int startXrefMarkers = 0;
         int startXrefCursor = 0;
-        while (TryReadNextStartXrefOffset(text, ref startXrefCursor, out _)) {
+        while (TryReadNextStartXrefOffset(pdf, ref startXrefCursor, out _)) {
             startXrefMarkers = checked(startXrefMarkers + 1);
         }
 

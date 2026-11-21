@@ -44,9 +44,10 @@ internal static class PdfSignatureValidator {
 
         bool objectGraphParsed = true;
         string? objectGraphError = null;
+        PdfReadDocument? document = null;
         if (security == null) {
             try {
-                PdfReadDocument document = PdfReadDocument.Open(pdf, options, cancellationToken);
+                document = PdfReadDocument.Open(pdf, options, cancellationToken);
                 security = PdfInspector.Inspect(pdf, document, cancellationToken).Security;
             } catch (Exception ex) when (ex is not OperationCanceledException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
                 objectGraphParsed = false;
@@ -75,6 +76,11 @@ internal static class PdfSignatureValidator {
                 "PDF signature markers were detected, but no complete signature dictionary could be validated."));
         }
 
+        var context = new CryptographicContext();
+        if (cryptographyProvider is not null) {
+            context = CreateCryptographicContext(pdf, security, document, cryptographyProvider, options, findings, cancellationToken);
+        }
+
         var signatureResults = new List<PdfSignatureValidationResult>(security.Signatures.Count);
         foreach (PdfSignatureInfo signature in security.Signatures) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -83,6 +89,7 @@ internal static class PdfSignatureValidator {
                 pdf,
                 security,
                 cryptographyProvider,
+                context,
                 findings,
                 cancellationToken));
         }
@@ -138,6 +145,7 @@ internal static class PdfSignatureValidator {
         byte[] pdf,
         PdfDocumentSecurityInfo security,
         IPdfSignatureCryptographyProvider? cryptographyProvider,
+        CryptographicContext context,
         List<PdfSignatureValidationFinding> aggregateFindings,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
@@ -226,16 +234,26 @@ internal static class PdfSignatureValidator {
         }
 
         PdfSignatureCryptographicResult? cryptographicResult = null;
+        PdfPadesLevel padesLevel = PdfPadesLevel.None;
         if (cryptographyProvider is not null) {
-            cryptographicResult = ValidateCryptographically(
-                pdf,
-                security,
-                signature,
-                completeShape,
-                ordered,
-                findings,
-                cryptographyProvider,
-                cancellationToken);
+            if (context.DocumentTimestamps.TryGetValue(signature, out PrecomputedCryptography? precomputed)) {
+                cryptographicResult = precomputed.Result;
+                findings.AddRange(precomputed.Findings);
+            } else {
+                cryptographicResult = ValidateCryptographically(
+                    pdf,
+                    security,
+                    signature,
+                    completeShape,
+                    ordered,
+                    findings,
+                    cryptographyProvider,
+                    context.ValidationData,
+                    cancellationToken);
+            }
+            if (cryptographicResult is not null && !signature.IsDocumentTimestamp) {
+                padesLevel = DeterminePadesLevel(signature, cryptographicResult, context, findings);
+            }
         }
 
         cancellationToken.ThrowIfCancellationRequested();
@@ -251,7 +269,197 @@ internal static class PdfSignatureValidator {
             unsignedByteCount,
             byteRangeCoverageRatio,
             cryptographicResult,
+            padesLevel,
             findings.AsReadOnly());
+    }
+
+    /// <summary>
+    /// Validates document time-stamps first, so the DSS values present in each time-stamped revision gain a
+    /// proof-of-existence time before the signatures that rely on them are validated.
+    /// </summary>
+    private static CryptographicContext CreateCryptographicContext(
+        byte[] pdf,
+        PdfDocumentSecurityInfo security,
+        PdfReadDocument? document,
+        IPdfSignatureCryptographyProvider provider,
+        PdfLoadOptions? options,
+        List<PdfSignatureValidationFinding> findings,
+        CancellationToken cancellationToken) {
+        var context = new CryptographicContext();
+        int maxDecodedBytes = (options?.Limits ?? new PdfReadLimits()).MaxDecodedStreamBytes;
+        if (document is not null && security.DocumentSecurityStore.HasValidationEvidence) {
+            try {
+                context.ValidationData = PdfDocumentValidationData.Read(
+                    document.Objects, security.DocumentSecurityStore, maxDecodedBytes, cancellationToken);
+            } catch (Exception ex) when (ex is not OperationCanceledException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
+                findings.Add(new PdfSignatureValidationFinding(
+                    PdfDiagnosticSeverity.Warning,
+                    "dss-validation-data-unreadable",
+                    "Document Security Store values could not be decoded and were not used for validation: " + ex.Message,
+                    isCryptographic: true));
+            }
+        }
+
+        // Proof from a later time-stamp can make an earlier time-stamp valid, which can add proof in turn,
+        // so repeat until the proof set stops changing. Proof only grows, so this ends.
+        var revisionHashes = new Dictionary<long, string[]>();
+        var proof = new Dictionary<string, DateTimeOffset>(StringComparer.Ordinal);
+        int timestampCount = security.Signatures.Count(static signature => signature.IsDocumentTimestamp);
+        for (int pass = 0; pass <= timestampCount; pass++) {
+            ValidateDocumentTimestamps(pdf, security, provider, context, cancellationToken);
+            if (context.ValidationData.Revocation.Count == 0) break;
+            var next = new Dictionary<string, DateTimeOffset>(StringComparer.Ordinal);
+            foreach (TimestampCoverage coverage in context.ValidTimestampCoverage.OrderBy(static item => item.Time)) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!revisionHashes.TryGetValue(coverage.RevisionEnd, out string[]? hashes)) {
+                    hashes = ReadRevisionValidationHashes(pdf, coverage.RevisionEnd, options, maxDecodedBytes, cancellationToken);
+                    revisionHashes[coverage.RevisionEnd] = hashes;
+                }
+                foreach (string hash in hashes) {
+                    if (!next.ContainsKey(hash)) next[hash] = coverage.Time;
+                }
+            }
+            if (next.Count == proof.Count && next.All(item => proof.TryGetValue(item.Key, out DateTimeOffset time) && time == item.Value)) break;
+            proof = next;
+            context.ValidationData = context.ValidationData.WithProofOfExistence(proof);
+        }
+        return context;
+    }
+
+    private static void ValidateDocumentTimestamps(
+        byte[] pdf,
+        PdfDocumentSecurityInfo security,
+        IPdfSignatureCryptographyProvider provider,
+        CryptographicContext context,
+        CancellationToken cancellationToken) {
+        context.DocumentTimestamps.Clear();
+        context.ValidTimestampCoverage.Clear();
+        foreach (PdfSignatureInfo signature in security.Signatures) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!signature.IsDocumentTimestamp) continue;
+            bool usable = TryGetRevisionEnd(signature, pdf.LongLength, out long revisionEnd);
+            var timestampFindings = new List<PdfSignatureValidationFinding>();
+            PdfSignatureCryptographicResult? result = ValidateCryptographically(
+                pdf,
+                security,
+                signature,
+                usable,
+                usable,
+                timestampFindings,
+                provider,
+                context.ValidationData,
+                cancellationToken);
+            context.DocumentTimestamps[signature] = new PrecomputedCryptography(result, timestampFindings);
+            // Coverage counts only when the time-stamp excludes exactly its own /Contents, so every other byte
+            // of the revision is authenticated by it.
+            if (usable && IsContentsGapBound(signature) &&
+                result is { IsMathematicallyValid: true, TimestampStatus: PdfCryptographicValidationStatus.Valid, TimestampTime: DateTimeOffset time }) {
+                context.ValidTimestampCoverage.Add(new TimestampCoverage(revisionEnd, time));
+            }
+        }
+    }
+
+    private static bool IsContentsGapBound(PdfSignatureInfo signature) {
+        IReadOnlyList<long> values = signature.ByteRangeValues;
+        return values.Count == 4 && signature.ContentsEncodedSizeBytes.HasValue &&
+            values[2] - (values[0] + values[1]) == signature.ContentsEncodedSizeBytes.Value;
+    }
+
+    /// <summary>Reads the DSS revocation values present in the revision a document time-stamp covers.</summary>
+    private static string[] ReadRevisionValidationHashes(
+        byte[] pdf,
+        long revisionEnd,
+        PdfLoadOptions? options,
+        int maxDecodedBytes,
+        CancellationToken cancellationToken) {
+        try {
+            byte[] revision = new byte[revisionEnd];
+            Buffer.BlockCopy(pdf, 0, revision, 0, revision.Length);
+            PdfReadDocument document = PdfReadDocument.OpenOwned(revision, options, cancellationToken);
+            PdfDocumentSecurityInfo security = PdfInspector.Inspect(revision, document, cancellationToken).Security;
+            return PdfDocumentValidationData.Read(document.Objects, security.DocumentSecurityStore, maxDecodedBytes, cancellationToken)
+                .RevocationHashes.ToArray();
+        } catch (Exception ex) when (ex is not OperationCanceledException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
+            return Array.Empty<string>();
+        }
+    }
+
+    /// <summary>Determines the PAdES baseline level (ETSI EN 319 142-1 section 6) and records why the next level is missing.</summary>
+    private static PdfPadesLevel DeterminePadesLevel(
+        PdfSignatureInfo signature,
+        PdfSignatureCryptographicResult result,
+        CryptographicContext context,
+        List<PdfSignatureValidationFinding> findings) {
+        if (!signature.UsesCadesSubFilter) {
+            AddLevelFinding(findings, signature, "pades-baseline-b-not-reached",
+                "PAdES baseline signatures use the ETSI.CAdES.detached subfilter; this signature uses /" + signature.SubFilter + ".");
+            return PdfPadesLevel.None;
+        }
+        if (!result.IsMathematicallyValid) {
+            AddLevelFinding(findings, signature, "pades-baseline-b-not-reached",
+                "PAdES B-B needs valid signature math and a matching signed-content digest.");
+            return PdfPadesLevel.None;
+        }
+        if (!result.ReportsPadesEvidence) {
+            AddLevelFinding(findings, signature, "pades-baseline-b-not-reached",
+                result.ProviderName + " does not report the CMS attributes and revocation sources needed to establish a PAdES level.");
+            return PdfPadesLevel.None;
+        }
+        if (!result.HasSigningCertificateAttribute) {
+            AddLevelFinding(findings, signature, "pades-baseline-b-not-reached",
+                "PAdES B-B needs the ESS signing-certificate-v2 signed attribute, which this signature does not carry.");
+            return PdfPadesLevel.None;
+        }
+
+        bool coveredByDocumentTimestamp = TryGetRevisionEnd(signature, long.MaxValue, out long signatureEnd) &&
+            context.ValidTimestampCoverage.Any(coverage => coverage.RevisionEnd >= signatureEnd);
+        if (result.TimestampStatus != PdfCryptographicValidationStatus.Valid && !coveredByDocumentTimestamp) {
+            AddLevelFinding(findings, signature, "pades-baseline-t-not-reached",
+                result.TimestampStatus == PdfCryptographicValidationStatus.NotPerformed
+                    ? "PAdES B-T needs a signature time-stamp or a later document time-stamp; neither is present and valid."
+                    : "The signature time-stamp is " + result.TimestampStatus + " and no valid document time-stamp covers the signature.");
+            return PdfPadesLevel.BaselineB;
+        }
+
+        if (result.RevocationStatus != PdfCryptographicValidationStatus.Valid) {
+            AddLevelFinding(findings, signature, "pades-baseline-lt-not-reached",
+                "PAdES B-LT needs valid revocation status for the signer and time-stamp authority paths; it is " +
+                result.RevocationStatus + ". See the revocation findings for each certificate.");
+            return PdfPadesLevel.BaselineT;
+        }
+        if (!result.RevocationSettledByDocument) {
+            AddLevelFinding(findings, signature, "pades-baseline-lt-not-reached",
+                "PAdES B-LT needs the revocation data in the Document Security Store; at least one certificate was settled only by data inside the signature or fetched online.");
+            return PdfPadesLevel.BaselineT;
+        }
+
+        // The archive time-stamp must protect this signature itself, not only DSS data reused from an earlier revision.
+        if (!coveredByDocumentTimestamp || !result.RevocationEvidenceHasProofOfExistence) {
+            AddLevelFinding(findings, signature, "pades-baseline-lta-not-reached",
+                "PAdES B-LTA needs a valid document time-stamp covering both this signature and the Document Security Store data used to validate it.");
+            return PdfPadesLevel.BaselineLT;
+        }
+        return PdfPadesLevel.BaselineLTA;
+    }
+
+    private static void AddLevelFinding(
+        List<PdfSignatureValidationFinding> findings,
+        PdfSignatureInfo signature,
+        string code,
+        string message) =>
+        AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Info, code, message, isCryptographic: true);
+
+    /// <summary>A usable four-value /ByteRange ends where the signed revision ends.</summary>
+    private static bool TryGetRevisionEnd(PdfSignatureInfo signature, long fileLength, out long revisionEnd) {
+        revisionEnd = 0;
+        IReadOnlyList<long> values = signature.ByteRangeValues;
+        if (!signature.HasByteRange || values.Count != 4) return false;
+        long firstEnd = values[0] + values[1];
+        long secondEnd = values[2] + values[3];
+        bool usable = values[0] == 0 && values[1] >= 0 && values[2] >= firstEnd && values[3] >= 0 &&
+            secondEnd >= values[2] && secondEnd <= fileLength;
+        if (usable) revisionEnd = secondEnd;
+        return usable;
     }
 
     private static PdfSignatureCryptographicResult? ValidateCryptographically(
@@ -262,6 +470,7 @@ internal static class PdfSignatureValidator {
         bool ordered,
         List<PdfSignatureValidationFinding> findings,
         IPdfSignatureCryptographyProvider provider,
+        PdfDocumentValidationData validationData,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         if (!completeShape || !ordered || signature.ContentsBytes is null || signature.ContentsBytes.Length == 0) {
@@ -282,7 +491,8 @@ internal static class PdfSignatureValidator {
                 signedContent,
                 (byte[])signature.ContentsBytes.Clone(),
                 pdf.LongLength,
-                security.DocumentSecurityStore);
+                security.DocumentSecurityStore,
+                validationData);
             PdfSignatureCryptographicResult result = provider.Verify(input) ??
                 throw new InvalidOperationException("Signature cryptography provider returned no result.");
             for (int i = 0; i < result.Findings.Count; i++) {
@@ -404,5 +614,33 @@ internal static class PdfSignatureValidator {
             signature.ObjectNumber,
             signature.FieldObjectNumber,
             isCryptographic));
+    }
+
+    private sealed class CryptographicContext {
+        internal PdfDocumentValidationData ValidationData { get; set; } = PdfDocumentValidationData.Empty;
+
+        internal Dictionary<PdfSignatureInfo, PrecomputedCryptography> DocumentTimestamps { get; } = new();
+
+        internal List<TimestampCoverage> ValidTimestampCoverage { get; } = new();
+    }
+
+    private sealed class PrecomputedCryptography {
+        internal PrecomputedCryptography(PdfSignatureCryptographicResult? result, List<PdfSignatureValidationFinding> findings) {
+            Result = result;
+            Findings = findings;
+        }
+
+        internal PdfSignatureCryptographicResult? Result { get; }
+        internal List<PdfSignatureValidationFinding> Findings { get; }
+    }
+
+    private readonly struct TimestampCoverage {
+        internal TimestampCoverage(long revisionEnd, DateTimeOffset time) {
+            RevisionEnd = revisionEnd;
+            Time = time;
+        }
+
+        internal long RevisionEnd { get; }
+        internal DateTimeOffset Time { get; }
     }
 }

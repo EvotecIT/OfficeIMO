@@ -48,6 +48,15 @@ public static partial class OfficePngWriter {
             compression, null, null, cancellationToken);
     }
 
+    /// <summary>Encodes without physical-resolution metadata, using the compression and effort of the supplied options.</summary>
+    internal static byte[] EncodeWithoutResolution(OfficeRasterImage image, OfficePngEncodeOptions? options,
+        System.Threading.CancellationToken cancellationToken) {
+        ArgumentNullException.ThrowIfNull(image);
+        return EncodeRgbaMaterialized(image.Width, image.Height, image.PixelBuffer,
+            options?.Compression ?? OfficePngCompression.Optimal, null, null, cancellationToken,
+            effort: options?.Effort ?? OfficeImageEncodingEffort.Balanced);
+    }
+
     /// <summary>Encodes an RGBA image with explicit compression and physical-resolution metadata.</summary>
     public static byte[] Encode(OfficeRasterImage image, OfficePngEncodeOptions options) {
         ArgumentNullException.ThrowIfNull(image);
@@ -103,14 +112,205 @@ public static partial class OfficePngWriter {
         ArgumentNullException.ThrowIfNull(scanlines);
 
         ValidateScanlineBufferLength(width, height, bitDepth, colorType, scanlines);
+        return AssembleScanlines(width, height, bitDepth, colorType, palette: null, scanlines, compression);
+    }
 
-        byte[] compressed = compression switch {
-            OfficePngCompression.Optimal => DeflateZlib(scanlines),
-            OfficePngCompression.Fastest => DeflateZlib(scanlines, CompressionLevel.Fastest),
-            OfficePngCompression.Stored => DeflateZlibStored(scanlines),
-            _ => throw new ArgumentOutOfRangeException(nameof(compression))
-        };
-        return CreateFromCompressedScanlines(width, height, bitDepth, colorType, compressed);
+    /// <summary>
+    /// Encodes already-filtered indexed-color scanlines with an RGB palette (PNG color type 3).
+    /// </summary>
+    /// <param name="width">Image width in pixels.</param>
+    /// <param name="height">Image height in pixels.</param>
+    /// <param name="bitDepth">Index bit depth: 1, 2, 4, or 8.</param>
+    /// <param name="rgbPalette">RGB triplets, at most 2^bitDepth entries; every index in the scanlines must address one.</param>
+    /// <param name="scanlines">Packed indices, each row preceded by its PNG filter byte.</param>
+    /// <param name="compression">zlib strategy for the IDAT payload.</param>
+    internal static byte[] EncodeIndexedScanlines(
+        int width,
+        int height,
+        int bitDepth,
+        byte[] rgbPalette,
+        byte[] scanlines,
+        OfficePngCompression compression) {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
+        if (bitDepth is not (1 or 2 or 4 or 8)) {
+            throw new ArgumentOutOfRangeException(nameof(bitDepth), "Indexed-color PNG bit depth must be 1, 2, 4, or 8.");
+        }
+        ArgumentNullException.ThrowIfNull(rgbPalette);
+        ArgumentNullException.ThrowIfNull(scanlines);
+        if (rgbPalette.Length == 0 || rgbPalette.Length % 3 != 0 || rgbPalette.Length / 3 > 1 << bitDepth) {
+            throw new ArgumentException("The palette must hold between 1 and 2^bitDepth RGB entries.", nameof(rgbPalette));
+        }
+        long rowPayloadBytes = ((long)width * bitDepth + 7L) / 8L;
+        if (scanlines.LongLength != (rowPayloadBytes + 1L) * height) {
+            throw new ArgumentException(
+                "PNG scanline buffer length must match the IHDR width, height, and bit depth including one filter byte per row.",
+                nameof(scanlines));
+        }
+        return AssembleScanlines(width, height, bitDepth, 3, rgbPalette, scanlines, compression);
+    }
+
+    /// <summary>
+    /// Encodes a stored (uncompressed) PNG whose filtered scanlines the caller writes straight into the
+    /// output, so no separate scanline buffer is needed. The bytes match the scanline-array overloads with
+    /// <see cref="OfficePngCompression.Stored"/>.
+    /// </summary>
+    /// <param name="width">Image width in pixels.</param>
+    /// <param name="height">Image height in pixels.</param>
+    /// <param name="bitDepth">Sample bit depth.</param>
+    /// <param name="colorType">PNG color type; 3 requires <paramref name="rgbPalette"/>.</param>
+    /// <param name="rgbPalette">RGB palette for indexed color, otherwise null.</param>
+    /// <param name="writeScanlines">
+    /// Writes every row, each preceded by its filter byte, into the zero-filled buffer starting at the given offset.
+    /// </param>
+    internal static byte[] EncodeStoredScanlines(
+        int width,
+        int height,
+        int bitDepth,
+        int colorType,
+        byte[]? rgbPalette,
+        Action<byte[], int> writeScanlines) {
+        long rowPayloadBytes;
+        if (colorType == 3) {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
+            if (bitDepth is not (1 or 2 or 4 or 8)) {
+                throw new ArgumentOutOfRangeException(nameof(bitDepth), "Indexed-color PNG bit depth must be 1, 2, 4, or 8.");
+            }
+            ArgumentNullException.ThrowIfNull(rgbPalette);
+            if (rgbPalette.Length == 0 || rgbPalette.Length % 3 != 0 || rgbPalette.Length / 3 > 1 << bitDepth) {
+                throw new ArgumentException("The palette must hold between 1 and 2^bitDepth RGB entries.", nameof(rgbPalette));
+            }
+            rowPayloadBytes = ((long)width * bitDepth + 7L) / 8L;
+        } else {
+            ValidatePngHeader(width, height, bitDepth, colorType);
+            if (rgbPalette is not null) throw new ArgumentException("Only indexed-color PNGs carry a palette.", nameof(rgbPalette));
+            rowPayloadBytes = ((long)width * GetBitsPerPixel(colorType, bitDepth) + 7L) / 8L;
+        }
+        ArgumentNullException.ThrowIfNull(writeScanlines);
+        int scanlineLength = checked((int)((rowPayloadBytes + 1L) * height));
+        return AssemblePng(width, height, bitDepth, colorType, rgbPalette, compressed: null, storedScanlines: null,
+            scanlineLength, writeScanlines);
+    }
+
+    private static byte[] AssembleScanlines(
+        int width,
+        int height,
+        int bitDepth,
+        int colorType,
+        byte[]? palette,
+        byte[] scanlines,
+        OfficePngCompression compression) {
+        if (compression is not (OfficePngCompression.Optimal or OfficePngCompression.Fastest or OfficePngCompression.Stored)) {
+            throw new ArgumentOutOfRangeException(nameof(compression));
+        }
+        return compression == OfficePngCompression.Stored
+            ? AssemblePng(width, height, bitDepth, colorType, palette, compressed: null, storedScanlines: scanlines)
+            : AssemblePng(width, height, bitDepth, colorType, palette,
+                DeflateZlib(scanlines, compression == OfficePngCompression.Fastest ? CompressionLevel.Fastest : CompressionLevel.Optimal),
+                storedScanlines: null);
+    }
+
+    // Writes the whole PNG into one exactly sized array. Stored zlib blocks are produced in place,
+    // so a large uncompressed image costs one output allocation instead of a chain of growing copies.
+    private static byte[] AssemblePng(
+        int width,
+        int height,
+        int bitDepth,
+        int colorType,
+        byte[]? palette,
+        byte[]? compressed,
+        byte[]? storedScanlines,
+        int writtenScanlineLength = 0,
+        Action<byte[], int>? writeScanlines = null) {
+        byte[] scanlines = storedScanlines ?? Array.Empty<byte>();
+        int scanlineLength = writeScanlines is null ? scanlines.Length : writtenScanlineLength;
+        int storedBlocks = Math.Max(1, (scanlineLength + 65534) / 65535);
+        int idatLength = compressed?.Length ?? checked(2 + storedBlocks * 5 + scanlineLength + 4);
+        int paletteChunk = palette is null ? 0 : checked(12 + palette.Length);
+        byte[] png = new byte[checked(PngSignature.Length + 25 + paletteChunk + 12 + idatLength + 12)];
+        Buffer.BlockCopy(PngSignature, 0, png, 0, PngSignature.Length);
+        int position = PngSignature.Length;
+        int data = BeginChunk(png, ref position, "IHDR", 13);
+        WriteBigEndianInt32(png, data, width);
+        WriteBigEndianInt32(png, data + 4, height);
+        png[data + 8] = (byte)bitDepth;
+        png[data + 9] = (byte)colorType;
+        position = data + 13;
+        CompleteChunk(png, ref position, data, 13);
+        if (palette is not null) {
+            data = BeginChunk(png, ref position, "PLTE", palette.Length);
+            Buffer.BlockCopy(palette, 0, png, data, palette.Length);
+            position = data + palette.Length;
+            CompleteChunk(png, ref position, data, palette.Length);
+        }
+        data = BeginChunk(png, ref position, "IDAT", idatLength);
+        if (compressed is not null) {
+            Buffer.BlockCopy(compressed, 0, png, data, compressed.Length);
+            position = data + compressed.Length;
+        } else if (writeScanlines is not null) {
+            position = data;
+            png[position++] = 0x78;
+            png[position++] = 0x01;
+            // The caller writes the scanlines contiguously after room for every block header; each block then
+            // moves left into place. A block never overwrites a later block's source bytes before it moves.
+            int contiguous = position + storedBlocks * 5;
+            writeScanlines(png, contiguous);
+            uint a = 1;
+            uint b = 0;
+            UpdateAdler32(png, contiguous, scanlineLength, ref a, ref b);
+            int offset = 0;
+            do {
+                int blockLength = Math.Min(65535, scanlineLength - offset);
+                png[position++] = offset + blockLength >= scanlineLength ? (byte)1 : (byte)0;
+                png[position++] = (byte)(blockLength & 0xFF);
+                png[position++] = (byte)((blockLength >> 8) & 0xFF);
+                ushort nlen = (ushort)~blockLength;
+                png[position++] = (byte)(nlen & 0xFF);
+                png[position++] = (byte)((nlen >> 8) & 0xFF);
+                if (position != contiguous + offset) Buffer.BlockCopy(png, contiguous + offset, png, position, blockLength);
+                position += blockLength;
+                offset += blockLength;
+            } while (offset < scanlineLength);
+            WriteBigEndianInt32(png, position, unchecked((int)((b << 16) | a)));
+            position += 4;
+        } else {
+            position = data;
+            png[position++] = 0x78;
+            png[position++] = 0x01;
+            int offset = 0;
+            do {
+                int blockLength = Math.Min(65535, scanlines.Length - offset);
+                png[position++] = offset + blockLength >= scanlines.Length ? (byte)1 : (byte)0;
+                png[position++] = (byte)(blockLength & 0xFF);
+                png[position++] = (byte)((blockLength >> 8) & 0xFF);
+                ushort nlen = (ushort)~blockLength;
+                png[position++] = (byte)(nlen & 0xFF);
+                png[position++] = (byte)((nlen >> 8) & 0xFF);
+                Buffer.BlockCopy(scanlines, offset, png, position, blockLength);
+                position += blockLength;
+                offset += blockLength;
+            } while (offset < scanlines.Length);
+            WriteBigEndianInt32(png, position, unchecked((int)Adler32(scanlines)));
+            position += 4;
+        }
+        CompleteChunk(png, ref position, data, idatLength);
+        data = BeginChunk(png, ref position, "IEND", 0);
+        CompleteChunk(png, ref position, data, 0);
+        return png;
+    }
+
+    private static int BeginChunk(byte[] png, ref int position, string type, int length) {
+        WriteBigEndianInt32(png, position, length);
+        for (int i = 0; i < 4; i++) png[position + 4 + i] = (byte)type[i];
+        position += 8;
+        return position;
+    }
+
+    private static void CompleteChunk(byte[] png, ref int position, int dataOffset, int length) {
+        uint crc = OfficePngCrc32.Compute(png, dataOffset - 4, length + 4);
+        WriteBigEndianInt32(png, position, unchecked((int)crc));
+        position += 4;
     }
 
     /// <summary>
@@ -128,13 +328,7 @@ public static partial class OfficePngWriter {
         byte[] compressedScanlines) {
         ValidatePngHeader(width, height, bitDepth, colorType);
         ArgumentNullException.ThrowIfNull(compressedScanlines);
-
-        using MemoryStream stream = new MemoryStream();
-        stream.Write(PngSignature, 0, PngSignature.Length);
-        WriteChunk(stream, "IHDR", BuildIhdr(width, height, bitDepth, colorType));
-        WriteChunk(stream, "IDAT", compressedScanlines);
-        WriteChunk(stream, "IEND", Array.Empty<byte>());
-        return stream.ToArray();
+        return AssemblePng(width, height, bitDepth, colorType, palette: null, compressedScanlines, storedScanlines: null);
     }
 
     private static void ValidateRgba(int width, int height, byte[] rgba) {
@@ -237,33 +431,6 @@ public static partial class OfficePngWriter {
         using (DeflateStream deflate = new DeflateStream(stream, level, leaveOpen: true)) {
             deflate.Write(data, 0, data.Length);
         }
-
-        uint adler = Adler32(data);
-        stream.WriteByte((byte)((adler >> 24) & 0xFF));
-        stream.WriteByte((byte)((adler >> 16) & 0xFF));
-        stream.WriteByte((byte)((adler >> 8) & 0xFF));
-        stream.WriteByte((byte)(adler & 0xFF));
-        return stream.ToArray();
-    }
-
-    private static byte[] DeflateZlibStored(byte[] data) {
-        using MemoryStream stream = new MemoryStream();
-        stream.WriteByte(0x78);
-        stream.WriteByte(0x01);
-
-        int offset = 0;
-        do {
-            int blockLength = Math.Min(65535, data.Length - offset);
-            bool final = offset + blockLength >= data.Length;
-            stream.WriteByte(final ? (byte)1 : (byte)0);
-            stream.WriteByte((byte)(blockLength & 0xFF));
-            stream.WriteByte((byte)((blockLength >> 8) & 0xFF));
-            ushort nlen = (ushort)~blockLength;
-            stream.WriteByte((byte)(nlen & 0xFF));
-            stream.WriteByte((byte)((nlen >> 8) & 0xFF));
-            stream.Write(data, offset, blockLength);
-            offset += blockLength;
-        } while (offset < data.Length);
 
         uint adler = Adler32(data);
         stream.WriteByte((byte)((adler >> 24) & 0xFF));

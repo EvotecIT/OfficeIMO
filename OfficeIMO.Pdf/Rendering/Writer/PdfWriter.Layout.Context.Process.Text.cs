@@ -406,7 +406,7 @@ internal static partial class PdfWriter {
                     RenderPictureParagraphCanvas(paragraphCanvas, y, firstLineTop);
                 pageDirty = true;
                 var paragraphFont = ChooseNormal(currentOpts.DefaultFont);
-                int? markedContentId = RegisterTextStructureElement("P");
+                int? markedContentId = RegisterTextStructureElement(rpb.StructureType);
                 MarkRichFonts(rpb.Runs);
                 ReportRichPaintDiagnostics(PaintDiagnosticCodes.Paragraph, "PdfParagraph", rpb, sliceLines, sliceHeights,
                     FirstTextBaselineFromTop(paragraphFont, size, y), size, leading, textFrame.X, textFrame.Width,
@@ -416,7 +416,7 @@ internal static partial class PdfWriter {
                     firstLineWidth: sliceStartsAtFirstLine ? textFrame.FirstLineWidth : null,
                     topGaps: floatingLineGaps?.GetRange(lineIndex, take),
                     hasFollowingParagraphLines: lineIndex + take < lines.Count);
-                WriteRichParagraph(sb, rpb, sliceLines, sliceHeights, currentOpts, FirstTextBaselineFromTop(paragraphFont, size, y), size, leading, currentPage!.Annotations, textFrame.X, textFrame.Width, sliceStartsAtFirstLine ? textFrame.FirstLineX : null, sliceStartsAtFirstLine ? textFrame.FirstLineWidth : null, "P", markedContentId, currentPage,
+                WriteRichParagraph(sb, rpb, sliceLines, sliceHeights, currentOpts, FirstTextBaselineFromTop(paragraphFont, size, y), size, leading, currentPage!.Annotations, textFrame.X, textFrame.Width, sliceStartsAtFirstLine ? textFrame.FirstLineX : null, sliceStartsAtFirstLine ? textFrame.FirstLineWidth : null, rpb.StructureType, markedContentId, currentPage,
                     lineXOffsets: floatingLineOffsets?.GetRange(lineIndex, take), lineWidths: floatingLineWidths?.GetRange(lineIndex, take), lineTopGaps: floatingLineGaps?.GetRange(lineIndex, take),
                     hasFollowingParagraphLines: lineIndex + take < lines.Count,
                     paragraphSpacingAfter: lineIndex + take == lines.Count ? spacingAfter : 0D,

@@ -57,8 +57,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 // Add the image part
-                var imagePart = GetImagePart(drawingPart, imageBytes, contentType, deduplicate);
-                string imgRelId = drawingPart.GetIdOfPart(imagePart);
+                A.Blip blip = CreatePictureBlip(drawingPart, imageBytes, contentType, deduplicate);
 
                 // Build a OneCellAnchor: FromMarker + Extent + Picture + ClientData
                 long cx = resolvedWidth.ToEmus();
@@ -82,7 +81,7 @@ namespace OfficeIMO.Excel {
                             new Xdr.NonVisualPictureDrawingProperties(new A.PictureLocks { NoChangeAspect = lockAspectRatio })
                         ),
                         new Xdr.BlipFill(
-                            new A.Blip { Embed = imgRelId },
+                            blip,
                             new A.Stretch(new A.FillRectangle())
                         ),
                         new Xdr.ShapeProperties(

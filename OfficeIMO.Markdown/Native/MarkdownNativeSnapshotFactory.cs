@@ -256,12 +256,12 @@ internal static class MarkdownNativeSnapshotFactory {
 
     private static IReadOnlyDictionary<string, string?> FromFrontMatter(MarkdownNativeFrontMatterBlock frontMatter) {
         var fields = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
-        if (frontMatter.RawYaml != null) {
-            fields["rawYaml"] = frontMatter.RawYaml;
+        if (frontMatter.RawText != null) {
+            fields["rawText"] = frontMatter.RawText;
         }
 
         for (var i = 0; i < frontMatter.Entries.Count; i++) {
-            fields[frontMatter.Entries[i].Key] = frontMatter.Entries[i].Value?.ToString();
+            fields[frontMatter.Entries[i].Key] = FrontMatterBlock.FormatValue(frontMatter.Entries[i].Value);
         }
 
         return fields;

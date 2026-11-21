@@ -8,7 +8,8 @@ namespace OfficeIMO.OpenXml.Internal {
     internal static partial class OfficeOpenXmlChartSeriesReader {
         internal static Result? ReadBubbles(IEnumerable<C.BubbleChartSeries> elements,
             ColorScheme? colorScheme, int maximumPoints, bool forDataUpdate = false,
-            bool validatePlot = true, ProjectionBudget? projectionBudget = null, int maximumPointOverrides = 1_000_000) {
+            bool validatePlot = true, ProjectionBudget? projectionBudget = null, int maximumPointOverrides = 1_000_000,
+            SourceVisibility? visibility = null) {
             var source = OfficeOpenXmlChartCacheReader.GetBoundedCachedPoints(elements, maximumPoints);
             if (source.Count == 0) return null;
             if (validatePlot) ValidatePlotBudget(source[0], maximumPoints);
@@ -25,14 +26,22 @@ namespace OfficeIMO.OpenXml.Internal {
             IReadOnlyList<string>? categories = null;
             for (int index = 0; index < source.Count; index++) {
                 var element = source[index];
-                if (!forDataUpdate && (element.Elements<C.Trendline>().Any() || element.Elements<C.ErrorBars>().Any() ||
+                if (!forDataUpdate && element.Elements<C.ErrorBars>().Any())
+                    OfficeOpenXmlChartFidelityScope.Approximate("Error bars cannot be projected.", "Error bars are left out.");
+                if (!forDataUpdate && element.Elements<C.Trendline>().Any())
+                    OfficeOpenXmlChartFidelityScope.Approximate("Trendlines on bubble charts cannot be projected.",
+                        "Trendlines on bubble charts are left out.");
+                if (!forDataUpdate && (
                     HasUnsupportedSeriesStyle(element.ChartShapeProperties) || HasUnresolvedSeriesColor(element.ChartShapeProperties, colorScheme) ||
                     OfficeOpenXmlChartPointStyles.GetBoundedPoints(element, maximumPointOverrides).Any(point =>
                         HasUnsupportedPointStyle(point.ChartShapeProperties) || HasUnresolvedPointColor(point.ChartShapeProperties, colorScheme)))) return null;
                 if (!TryReadStrictCachedNumbers(element.GetFirstChild<C.XValues>(), true, maximumPoints, out var x) ||
                     !TryReadStrictCachedNumbers(element.GetFirstChild<C.YValues>(), true, maximumPoints, out var y) ||
-                    !TryReadStrictCachedNumbers(element.GetFirstChild<C.BubbleSize>(), false, maximumPoints, out var sizes) ||
-                    x.Count != y.Count || x.Count != sizes.Count) return null;
+                    !TryReadStrictCachedNumbers(element.GetFirstChild<C.BubbleSize>(), false, maximumPoints, out var sizes)) return null;
+                x = SourceVisibility.Select(visibility, element.GetFirstChild<C.XValues>(), x);
+                y = SourceVisibility.Select(visibility, element.GetFirstChild<C.YValues>(), y);
+                sizes = SourceVisibility.Select(visibility, element.GetFirstChild<C.BubbleSize>(), sizes);
+                if (x.Count != y.Count || x.Count != sizes.Count) return null;
                 if (!forDataUpdate && y.Any(value => value < 0) && element.GetFirstChild<C.InvertIfNegative>() is C.InvertIfNegative invert && invert.Val?.Value != false) return null;
                 if (x.Count == 0) continue;
                 projectionBudget.Reserve(x.Count);
@@ -92,8 +101,6 @@ namespace OfficeIMO.OpenXml.Internal {
         private static bool HasUnsupportedOutlineFill(Outline? outline) =>
             outline != null &&
             (outline.Width?.Value == 0 && outline.GetFirstChild<NoFill>() == null ||
-             outline.CapType?.Value is LineCapValues cap &&
-             cap != LineCapValues.Flat ||
              outline.Alignment?.Value is PenAlignmentValues alignment &&
              alignment != PenAlignmentValues.Center ||
              outline.CompoundLineType?.Value is CompoundLineValues compoundLine &&

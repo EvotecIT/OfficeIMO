@@ -16,7 +16,7 @@ namespace OfficeIMO.Word {
         };
 
         private readonly Dictionary<string, string> _styleMap = new(StringComparer.Ordinal);
-        private readonly List<(Style Source, string Id, string? Name)> _styleCopies = new();
+        private readonly List<(Style Source, string Id, string? Name, Style? Replaces)> _styleCopies = new();
         private Styles? _sourceStyles;
         private Styles? _destinationStyles;
         private bool _foldSourceDefaults;
@@ -46,8 +46,9 @@ namespace OfficeIMO.Word {
                 _destinationStyles.Elements<Style>().Select(_ => _.StyleName?.Val?.Value).OfType<string>(),
                 StringComparer.OrdinalIgnoreCase);
 
-            bool keepDifferent = _options.StyleMode == WordMergeStyleMode.KeepDifferentStyles;
-            _foldSourceDefaults = keepDifferent &&
+            WordStyleConflictMode mode = _options.StyleConflictMode;
+            bool keepSourceLook = mode != WordStyleConflictMode.KeepTarget;
+            _foldSourceDefaults = keepSourceLook &&
                 !string.Equals(Canonicalize(_sourceStyles.DocDefaults), Canonicalize(_destinationStyles.DocDefaults), StringComparison.Ordinal);
             HashSet<string> usedSourceStyles = CollectUsedSourceStyles(sourceById);
 
@@ -65,6 +66,7 @@ namespace OfficeIMO.Word {
                 return null;
             }
 
+            var overwritten = new HashSet<Style>();
             var equivalence = new Dictionary<string, bool>(StringComparer.Ordinal);
             var comparing = new HashSet<string>(StringComparer.Ordinal);
 
@@ -127,24 +129,50 @@ namespace OfficeIMO.Word {
                 string sourceId = id!;
                 Style? match = FindMatch(style);
                 if (match != null) {
-                    if (!keepDifferent || AreEquivalent(style, match)) {
+                    if (!keepSourceLook || AreEquivalent(style, match)) {
                         _styleMap[sourceId] = match.StyleId!.Value!;
                         continue;
                     }
-                } else if (usedIds.Add(sourceId)) {
+
+                    // Two source styles can match one destination style (one by name, one by id). The first replaces it and the
+                    // others are copied under a new name: collapsing them would lose a definition, and a style based on
+                    // the other would end up based on itself.
+                    if (mode == WordStyleConflictMode.Overwrite && overwritten.Add(match)) {
+                        _styleMap[sourceId] = match.StyleId!.Value!;
+                        _styleCopies.Add((style, match.StyleId!.Value!, null, match));
+                        continue;
+                    }
+                } else if (!IsNameTaken(style, usedNames) && usedIds.Add(sourceId)) {
                     string? name = style.StyleName?.Val?.Value;
                     if (name != null) {
                         usedNames.Add(name);
                     }
 
                     _styleMap[sourceId] = sourceId;
-                    _styleCopies.Add((style, sourceId, null));
+                    _styleCopies.Add((style, sourceId, null, null));
                     continue;
                 }
 
                 (string newId, string newName) = CreateUniqueStyleIdentity(style, usedIds, usedNames);
                 _styleMap[sourceId] = newId;
-                _styleCopies.Add((style, newId, newName));
+                _styleCopies.Add((style, newId, newName, null));
+            }
+
+            // A style an overwriting style is based on may itself map onto the overwritten style (it matched and was
+            // shared). Keeping that mapping would base the new definition on itself, so such an ancestor is copied.
+            foreach ((Style overwriting, string target, _, Style? replaces) in _styleCopies.Where(copy => copy.Replaces != null).ToList()) {
+                var visited = new HashSet<string>(StringComparer.Ordinal);
+                string? ancestorId = overwriting.BasedOn?.Val?.Value;
+                while (ancestorId != null && visited.Add(ancestorId) && sourceById.TryGetValue(ancestorId, out Style? ancestor)) {
+                    if (!ReferenceEquals(ancestor, overwriting) && _styleMap.TryGetValue(ancestorId, out string? mapped) &&
+                        string.Equals(mapped, target, StringComparison.Ordinal)) {
+                        (string copyId, string copyName) = CreateUniqueStyleIdentity(ancestor, usedIds, usedNames);
+                        _styleMap[ancestorId] = copyId;
+                        _styleCopies.Add((ancestor, copyId, copyName, null));
+                    }
+
+                    ancestorId = ancestor.BasedOn?.Val?.Value;
+                }
             }
         }
 
@@ -162,7 +190,7 @@ namespace OfficeIMO.Word {
                     .Where(_ => _.Default?.Value == true && _.Type?.Value != null)
                     .Select(_ => _.Type!.Value));
 
-            foreach ((Style source, string id, string? name) in _styleCopies) {
+            foreach ((Style source, string id, string? name, Style? replaces) in _styleCopies) {
                 var clone = (Style)source.CloneNode(true);
                 clone.StyleId = id;
                 if (name != null) {
@@ -171,7 +199,11 @@ namespace OfficeIMO.Word {
                 }
 
                 StyleValues? type = clone.Type?.Value;
-                if (clone.Default?.Value == true && (type == null || !defaultTypes.Add(type.Value))) {
+                if (replaces != null) {
+                    // The destination keeps its identity: its default choice and its name, which another style may share with the source.
+                    clone.Default = replaces.Default?.Value;
+                    clone.StyleName = (StyleName?)replaces.StyleName?.CloneNode(true);
+                } else if (clone.Default?.Value == true && (type == null || !defaultTypes.Add(type.Value))) {
                     clone.Default = null;
                 }
 
@@ -192,11 +224,38 @@ namespace OfficeIMO.Word {
                 }
 
                 RemapNumberingReferences(clone);
-                _destinationStyles.Append(clone);
+                if (replaces != null) {
+                    ReplaceDefinition(replaces, clone);
+                } else {
+                    _destinationStyles.Append(clone);
+                }
             }
 
             // OfficeIMO reads the saved style part when it checks the style catalog, so flush the changes.
             _destinationStyles.Save();
+        }
+
+        /// <summary>
+        /// Moves the overwriting definition into the destination's own style element, so <see cref="WordStyle"/>
+        /// objects obtained before the merge keep working and read the new definition.
+        /// </summary>
+        private static void ReplaceDefinition(Style target, Style definition) {
+            foreach (KeyValuePair<string, string> declaration in definition.NamespaceDeclarations) {
+                if (target.LookupNamespace(declaration.Key) == null) {
+                    target.AddNamespaceDeclaration(declaration.Key, declaration.Value);
+                }
+            }
+
+            target.ClearAllAttributes();
+            target.RemoveAllChildren();
+            foreach (OpenXmlAttribute attribute in definition.GetAttributes()) {
+                target.SetAttribute(attribute);
+            }
+
+            foreach (OpenXmlElement child in definition.ChildElements.ToList()) {
+                child.Remove();
+                target.AppendChild(child);
+            }
         }
 
         private string MapStyleId(string sourceId) {
@@ -378,6 +437,15 @@ namespace OfficeIMO.Word {
             return used;
         }
 
+        /// <summary>
+        /// Style names are unique across style types, so a source style whose name a destination style of another
+        /// type already uses is copied under a new name.
+        /// </summary>
+        private static bool IsNameTaken(Style style, HashSet<string> usedNames) {
+            string? name = style.StyleName?.Val?.Value;
+            return name != null && usedNames.Contains(name);
+        }
+
         private static (string Id, string Name) CreateUniqueStyleIdentity(Style style, HashSet<string> usedIds, HashSet<string> usedNames) {
             string baseId = style.StyleId!.Value!;
             string baseName = style.StyleName?.Val?.Value ?? baseId;
@@ -416,12 +484,13 @@ namespace OfficeIMO.Word {
                 return null;
             }
 
-            return (style.Type?.Value.ToString() ?? string.Empty) + "|" + name!.Trim();
+            // StyleValues is a struct whose ToString() does not name the type, so key on the attribute text.
+            return (style.Type?.InnerText ?? string.Empty) + "|" + name!.Trim();
         }
 
         private static string CanonicalizeStyle(Style style) {
             var builder = new StringBuilder();
-            builder.Append(style.Type?.Value.ToString());
+            builder.Append(style.Type?.InnerText);
             foreach (OpenXmlElement child in style.ChildElements) {
                 if (!PresentationStyleChildren.Contains(child.LocalName)) {
                     AppendCanonical(builder, child, ignoreNumberingIds: true);

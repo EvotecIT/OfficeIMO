@@ -212,17 +212,14 @@ namespace OfficeIMO.Excel {
             return columns;
         }
 
-        private static Column GetOrCreateSingleColumn(Columns columns, int columnIndex) {
+        private Column GetOrCreateSingleColumn(Columns columns, int columnIndex) {
             Column? column = columns.Elements<Column>()
                 .FirstOrDefault(candidate => candidate.Min?.Value <= (uint)columnIndex && candidate.Max?.Value >= (uint)columnIndex);
             if (column != null) {
                 return SplitColumn(columns, column, (uint)columnIndex);
             }
 
-            column = new Column {
-                Min = (uint)columnIndex,
-                Max = (uint)columnIndex
-            };
+            column = CreateDefaultWidthColumn((uint)columnIndex);
             columns.Append(column);
             return column;
         }
@@ -258,10 +255,9 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void RemoveColumnWhenEmpty(Column column) {
-            if (column.Width == null
-                && column.CustomWidth == null
-                && column.BestFit == null
+        private void RemoveColumnWhenEmpty(Column column) {
+            if (HasOnlyDefaultWidth(column)
+                && column.Phonetic == null
                 && column.Hidden == null
                 && column.OutlineLevel == null
                 && column.Collapsed == null

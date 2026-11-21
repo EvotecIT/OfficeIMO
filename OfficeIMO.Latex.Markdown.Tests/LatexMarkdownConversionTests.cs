@@ -24,7 +24,7 @@ public sealed class LatexMarkdownConversionTests {
         ParagraphBlock paragraph = Assert.Single(result.Blocks.OfType<ParagraphBlock>(), block =>
             block.Inlines.Nodes.OfType<BoldSequenceInline>().Any());
         Assert.Contains(paragraph.Inlines.Nodes, node => node is LinkInline);
-        Assert.Contains(paragraph.Inlines.Nodes, node => node is CodeSpanInline);
+        Assert.Equal("x^2", Assert.Single(paragraph.Inlines.Nodes.OfType<MathInline>()).Source);
         Assert.Single(result.Blocks.OfType<UnorderedListBlock>());
         ImageBlock image = Assert.Single(result.Blocks.OfType<ImageBlock>());
         Assert.Equal("plot.png", image.Path);
@@ -32,7 +32,6 @@ public sealed class LatexMarkdownConversionTests {
         Assert.Single(result.Blocks.OfType<TableBlock>());
         Assert.Single(result.Blocks.OfType<CalloutBlock>());
         Assert.Single(result.Blocks.OfType<SemanticFencedBlock>());
-        Assert.Contains(resultReport.Diagnostics, diagnostic => diagnostic.Code == "LATEXMD101");
         Assert.Contains(resultReport.Diagnostics, diagnostic => diagnostic.Code == "LATEXMD102");
         Assert.Equal(Source, LatexDocument.ParseResult(Source).Document.ToLatex());
     }
@@ -59,10 +58,8 @@ public sealed class LatexMarkdownConversionTests {
 
         Assert.True(bytes.Length > 100);
         Assert.Equal("%PDF-", Encoding.ASCII.GetString(bytes, 0, 5));
-        Assert.Contains(projection.Diagnostics, diagnostic => diagnostic.Code == "LATEXMD101");
         Assert.Contains(projection.Diagnostics, diagnostic => diagnostic.Code == "LATEXMD102");
-        Assert.DoesNotContain(result.Warnings, warning =>
-            warning.Code == "LATEXMD101" || warning.Code == "LATEXMD102");
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "LATEXMD102");
         Assert.True(result.HasLoss);
     }
 

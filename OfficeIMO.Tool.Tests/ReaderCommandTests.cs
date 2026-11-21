@@ -23,6 +23,30 @@ public sealed class ReaderCommandTests {
         Assert.Equal(string.Empty, error.ToString());
     }
 
+    [Theory]
+    [InlineData("read")]
+    [InlineData("folder")]
+    public async Task ExistingOutputIsReplacedOnlyWithForce(string command) {
+        using var temporary = new ReaderToolTemporaryDirectory();
+        string source = Path.Combine(temporary.Path, "source");
+        Directory.CreateDirectory(source);
+        string input = Path.Combine(source, "notes.md");
+        File.WriteAllText(input, "# Fresh output");
+        string destination = command == "read" ? Path.Combine(temporary.Path, "notes.out.md") : Path.Combine(temporary.Path, "out");
+        string existing = command == "read" ? destination : Path.Combine(destination, "notes.md.md");
+        Directory.CreateDirectory(Path.GetDirectoryName(existing)!);
+        File.WriteAllText(existing, "keep");
+        string[] args = ["reader", command, command == "read" ? input : source, "--output", destination];
+
+        int refused = await OfficeImoToolApp.RunAsync(args, Stream.Null, Stream.Null, TextWriter.Null);
+        Assert.Equal((int)OfficeImoToolExitCode.OutputFailed, refused);
+        Assert.Equal("keep", File.ReadAllText(existing));
+
+        int replaced = await OfficeImoToolApp.RunAsync([.. args, "--force"], Stream.Null, Stream.Null, TextWriter.Null);
+        Assert.Equal((int)OfficeImoToolExitCode.Success, replaced);
+        Assert.Contains("# Fresh output", File.ReadAllText(existing), StringComparison.Ordinal);
+    }
+
     [Fact]
     public async Task StandardInputUsesABoundedDefaultAndSupportsAnExplicitLimit() {
         ReaderToolArguments defaults = ReaderToolArguments.Parse(new[] { "read", "-" });
@@ -567,6 +591,7 @@ public sealed class ReaderCommandTests {
                 new[] { firstInput, secondInput },
                 documents,
                 ReaderToolOutputFormat.Markdown,
+                overwrite: false,
                 CancellationToken.None));
 
         Assert.Contains("conflicting file paths", exception.Message, StringComparison.Ordinal);

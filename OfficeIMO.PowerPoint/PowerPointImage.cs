@@ -43,13 +43,19 @@ namespace OfficeIMO.PowerPoint {
                 Picture.NonVisualPictureProperties?.NonVisualDrawingProperties?.GetFirstChild<A.HyperlinkOnClick>());
         }
 
-        private ImagePart? GetImagePart() {
-            Picture picture = (Picture)Element;
-            string? relationshipId = picture.BlipFill?.Blip?.Embed?.Value;
-            return relationshipId != null && _ownerPart.TryGetPartById(relationshipId, out OpenXmlPart? part)
+        // A picture with an SVG extension is that SVG; its ordinary blip is only the raster fallback.
+        private ImagePart? GetImagePart() => ResolveImagePart(GetSvgRelationshipId()) ?? GetFallbackImagePart();
+
+        private ImagePart? GetFallbackImagePart() => ResolveImagePart(((Picture)Element).BlipFill?.Blip?.Embed?.Value);
+
+        private string? GetSvgRelationshipId() =>
+            ((Picture)Element).BlipFill?.Blip?.Descendants<SVGBlip>()
+                .Select(vector => vector.Embed?.Value).FirstOrDefault(id => !string.IsNullOrEmpty(id));
+
+        private ImagePart? ResolveImagePart(string? relationshipId) =>
+            relationshipId != null && _ownerPart.TryGetPartById(relationshipId, out OpenXmlPart? part)
                 ? part as ImagePart
                 : null;
-        }
 
         /// <summary>
         ///     Replaces the picture's underlying image with the provided stream.

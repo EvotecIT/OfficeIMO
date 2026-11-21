@@ -126,7 +126,7 @@ Worksheet name, one-based position or native worksheet; omission uses the curren
 ```yaml
 Type: OfficeSheetSelector
 Parameter Sets: Default
-Aliases: None
+Aliases: WorksheetName
 Possible values:
 
 Required: False
