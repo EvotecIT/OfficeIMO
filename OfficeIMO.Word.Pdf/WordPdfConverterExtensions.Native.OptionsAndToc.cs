@@ -18,6 +18,10 @@ namespace OfficeIMO.Word.Pdf {
             WordSection? firstSection = document.Sections.FirstOrDefault();
             PdfCore.PdfCreateOptions pdfOptions = options?.PdfOptions?.Clone() ?? PdfCore.PdfCreateOptions.CreateNeutralOptions();
             pdfOptions.UseFontUnitTextLayout = true;
+            if (options?.IncludeLayoutPageLabels == true) {
+                pdfOptions.IncludePageLabels = true;
+                pdfOptions.IncludeLayoutPageNumberLabels = true;
+            }
             // Flat running content follows the same source defaults as styled runs.
             // Retain the configured shaper so explicit ligatures use its Latin feature path.
             pdfOptions.DefaultTextFeatureSettings = default(NativeTextSpacing).ResolveFeatureSettings(pdfOptions.DefaultFontSize.ToPoints());

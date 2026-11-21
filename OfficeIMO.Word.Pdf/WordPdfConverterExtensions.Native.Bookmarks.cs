@@ -120,6 +120,9 @@ public static partial class WordPdfConverterExtensions {
                     }
                 } else if (element is WordHyperLink link) {
                     standaloneLinks.Add(link);
+                } else if (element is WordTableOfContent stored && stored.ShowsStoredEntries) {
+                    EnsureNativeStructuredDocumentTagDepth(structuredDepth);
+                    Collect(GetNativeStructuredBlockElements(document, stored.SdtBlock), admitBookmarks, structuredDepth + 1, tableDepth, textBoxDepth);
                 } else if (element is WordTableOfContent toc && toc.TitleParagraph is { } title) {
                     Collect(new[] { title }, admitBookmarks, structuredDepth, tableDepth, textBoxDepth);
                 } else if (element is WordTable table) {

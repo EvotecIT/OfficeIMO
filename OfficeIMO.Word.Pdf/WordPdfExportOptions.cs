@@ -19,6 +19,9 @@ namespace OfficeIMO.Word.Pdf {
 
         internal CancellationToken CancellationToken { get; set; }
 
+        /// <summary>Writes page labels, including layout page-number labels, so field pagination can read displayed page numbers. Labels do not change the layout.</summary>
+        internal bool IncludeLayoutPageLabels { get; set; }
+
         /// <summary>Maximum images collected from one Word paragraph during PDF export.</summary>
         public int MaxImagesPerParagraph { get; set; } = 1_000;
 
@@ -266,6 +269,7 @@ namespace OfficeIMO.Word.Pdf {
         internal WordPdfExportOptions CloneForConversion() {
             var clone = new WordPdfExportOptions {
                 CancellationToken = CancellationToken,
+                IncludeLayoutPageLabels = IncludeLayoutPageLabels,
                 MaxImagesPerParagraph = MaxImagesPerParagraph,
                 PdfOptions = PdfOptions?.CreateDocumentSnapshot(useThemeDefaults: false),
                 FontFamily = FontFamily,

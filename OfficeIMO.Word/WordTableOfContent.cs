@@ -31,6 +31,32 @@ namespace OfficeIMO.Word {
         /// </summary>
         internal SdtBlock SdtBlock => _sdtBlock;
 
+        internal WordDocument Document => _document;
+
+        /// <summary>
+        /// True when Word shows the stored entries of this table: their page numbers are <c>PAGEREF</c> fields, as Word
+        /// and <see cref="WordFieldUpdateOptions.UpdateTablesOfContents"/> write them, and nothing asks Word to rebuild the
+        /// table when the document opens (<see cref="WordSettings.UpdateFieldsOnOpen"/> or a dirty field). Renderers draw
+        /// such a table as stored and generate any other one from the headings, as Word shows it after the rebuild.
+        /// </summary>
+        internal bool ShowsStoredEntries {
+            get {
+                SdtContentBlock? content = _sdtBlock.SdtContentBlock;
+                if (content == null || _document.Settings.UpdateFieldsOnOpen) return false;
+                bool pageReferences = false;
+                foreach (OpenXmlElement element in content.Descendants()) {
+                    if (element is FieldChar { Dirty.Value: true } || element is SimpleField { Dirty.Value: true }) return false;
+                    string? instruction = element switch {
+                        FieldCode code => code.Text,
+                        SimpleField simple => simple.Instruction?.Value,
+                        _ => null
+                    };
+                    if (instruction != null && WordFieldInventory.ParseInstruction(instruction).FieldType == WordFieldType.PageRef) pageReferences = true;
+                }
+                return pageReferences;
+            }
+        }
+
         /// <summary>
         /// Gets the template style used to create this table of contents.
         /// </summary>
