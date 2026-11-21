@@ -205,7 +205,7 @@ internal static partial class PdfWriter {
                 string fontResource = ResolvePageTextFontResource(fontResources, namedFontResources, runFont, namedFont);
                 double requestedFontSize = (run.FontSize?.ToPoints()) ?? fontSize;
                 double runFontSize = EffectiveRichFontSize(requestedFontSize, run.Baseline);
-                double textRise = TextRiseForBaseline(requestedFontSize, run.Baseline);
+                double textRise = TextRiseForBaseline(requestedFontSize, run.Baseline) + run.BaselineShift;
                 content.Font(fontResource, runFontSize, opts.NeedsSyntheticOblique(runFont, namedFont), syntheticBold: opts.NeedsSyntheticBold(runFont, namedFont));
                 if (Math.Abs(textRise - currentTextRise) > 0.0001D) {
                     content.TextRise(textRise);

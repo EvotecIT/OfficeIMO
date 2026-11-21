@@ -271,17 +271,26 @@ public partial class Word {
     // first line. The marker paints as a Unicode bullet in the text font, but its line
     // keeps the numbering level's font metrics, without embedding that font.
     [Theory]
-    [InlineData(false, false, 18.7D, 18.7D)]
-    [InlineData(true, false, 16.5D, 18.7D)]
-    [InlineData(false, true, 18.7D, 18.7D)]
-    public void SaveAsPdf_NormalizedBulletLineUsesTheNumberingLevelFontAscent(bool wrapped, bool markerInFontSlot,
+    [InlineData(false, false, false, 18.7D, 18.7D)]
+    [InlineData(true, false, false, 16.5D, 18.7D)]
+    [InlineData(false, true, false, 18.7D, 18.7D)]
+    [InlineData(false, false, true, 18.7D, 18.7D)]
+    public void SaveAsPdf_NormalizedBulletLineUsesTheNumberingLevelFontAscent(bool wrapped, bool markerInFontSlot, bool header,
         double lineGap, double itemGap) {
         using WordDocument source = WordDocument.Create();
-        WordList list = source.AddCustomList();
+        WordList list;
+        if (header) {
+            source.AddParagraph("xyz").FontFamily = "Body Face";
+            list = source.PageSetup.Header.AddList(WordListStyle.Bulleted);
+        } else list = source.AddCustomList();
         var level = new WordListLevel(WordListLevelKind.Bullet) { LevelText = "", LevelSuffix = WordListLevelSuffix.Tab };
         level.OpenXmlElement.NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
             new RunFonts { Ascii = "Marker Face", HighAnsi = "Marker Face" });
-        list.Numbering.AddLevel(level);
+        if (header) {
+            list.Numbering.Levels[0].OpenXmlElement.LevelText = (LevelText)level.OpenXmlElement.LevelText!.CloneNode(true);
+            list.Numbering.Levels[0].OpenXmlElement.NumberingSymbolRunProperties =
+                (NumberingSymbolRunProperties)level.OpenXmlElement.NumberingSymbolRunProperties.CloneNode(true);
+        } else list.Numbering.AddLevel(level);
         foreach (string text in wrapped ? new[] { "A\nB", "C" } : new[] { "A", "B", "C" }) {
             WordParagraph paragraph = list.AddItem(text);
             paragraph.FontFamily = "Body Face"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(11);

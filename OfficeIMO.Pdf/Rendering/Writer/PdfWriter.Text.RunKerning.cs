@@ -42,6 +42,42 @@ internal static partial class PdfWriter {
 
         public void Apply(IReadOnlyList<RichSeg> line) => PositionSpans(line, apply: true);
 
+        /// <summary>
+        /// Measures the pair adjustments a single space forms with the glyph before it and the glyph
+        /// after it, in points, when both words share the kerned font. Zero when the pairs do not apply.
+        /// </summary>
+        public double MeasureSpaceKerning(RichSeg left, RichSeg right) {
+            if (_options == null || left.InlineElement != null || right.InlineElement != null || left.IsLineBoxStrut ||
+                left.PreservesPaintedGlyphs || right.PreservesPaintedGlyphs || left.EndsWithHardBreak || left.EndsWithTextSeparator ||
+                left.Text.Length == 0 || right.Text.Length == 0 ||
+                char.IsWhiteSpace(left.Text, left.Text.Length - 1) || char.IsWhiteSpace(right.Text, 0) ||
+                left.Font != right.Font || left.NamedFont != right.NamedFont || left.FontSize != right.FontSize ||
+                left.Baseline != right.Baseline || left.HorizontalTextScaling != right.HorizontalTextScaling ||
+                left.CharacterSpacing != right.CharacterSpacing || left.FontMetricScale != 1D || right.FontMetricScale != 1D ||
+                !left.FeatureSettings.Equals(right.FeatureSettings) || !HasKerningFeature(left) ||
+                left.TextDirection is not (OfficeTextDirection.Auto or OfficeTextDirection.LeftToRight) ||
+                right.TextDirection is not (OfficeTextDirection.Auto or OfficeTextDirection.LeftToRight) ||
+                _options.TextShapingProviderSnapshot != null && !ReferenceEquals(_options.TextShapingProviderSnapshot, OfficeManagedTextShapingProvider.Instance))
+                return 0D;
+            SpendWork((long)left.Text.Length + right.Text.Length);
+            if (OfficeManagedTextShaper.RequiresComplexLayout(left.Text) || OfficeManagedTextShaper.RequiresComplexLayout(right.Text)) return 0D;
+            RunKerningFont? font = GetFont(left);
+            if (font == null) return 0D;
+            // The pairs read the glyphs either side of the space; a word-edge character maps to its
+            // nominal glyph, so the boundary needs no reshaping of the neighbouring words.
+            char lastCharacter = left.Text[left.Text.Length - 1], firstCharacter = right.Text[0];
+            if (char.IsSurrogate(lastCharacter) || char.IsSurrogate(firstCharacter)) return 0D;
+            int GlyphFor(char character) => font.Glyph(character, () => {
+                IReadOnlyList<PdfGlyphInfo>? glyphs = EncodeTextShowCommand(character.ToString(), left.Font, left.NamedFont, _options,
+                    OfficeTextFeatureSettings.Default.With("kern", 0), left.TextDirection, left.FontMetricScale, 100D, false).VisualGlyphs;
+                return glyphs?.Count == 1 ? glyphs[0].GlyphId : RunKerningFont.MissingGlyph;
+            });
+            int last = GlyphFor(lastCharacter), space = GlyphFor(' '), first = GlyphFor(firstCharacter);
+            if (last == RunKerningFont.MissingGlyph || space == RunKerningFont.MissingGlyph || first == RunKerningFont.MissingGlyph) return 0D;
+            int adjustment = font.SpacePairAdjustment(last, lastCharacter, space, first, firstCharacter);
+            return adjustment * left.HorizontalTextScaling / 100D * EffectiveRichFontSize(left.FontSize, left.Baseline) / 1000D;
+        }
+
         public double MeasureWordAdjustment(RichSeg first, IReadOnlyList<RichSeg>? remaining) {
             if (remaining == null || remaining.Count == 0) return 0D;
             if (!HasKerningFeature(first) && !remaining.Any(HasKerningFeature)) return 0D;
@@ -193,20 +229,55 @@ internal static partial class PdfWriter {
                 if (_options!.TryGetEmbeddedStandardFontProgram(segment.Font, out PdfTrueTypeFontProgram? font)) data = font!.FontDataForInspection;
                 else if (_options.TryGetEmbeddedStandardOpenTypeCffFontProgram(segment.Font, out PdfOpenTypeCffFontProgram? cff)) data = cff!.FontDataForInspection;
             }
-            OfficeOpenTypeReader? reader = data == null ? null : OfficeOpenTypeReader.TryCreate(data);
-            state = reader == null ? null : new RunKerningFont(reader);
+            state = data == null ? null : RunKerningFont.Get(data);
             _fonts.Add(key, state);
             return state;
         }
     }
 
+    /// <summary>The formatting of the run a word space came from. Word kerns a space only within one formatting.</summary>
+    private readonly record struct SpaceSeparatorFormat(PdfStandardFont Font, PdfNamedFontFace? NamedFont, double FontSize,
+        PdfTextBaseline Baseline, OfficeTextFeatureSettings FeatureSettings, double HorizontalTextScaling, double CharacterSpacing,
+        double BaselineShift) {
+        internal bool Matches(RichSeg segment) => segment.Font == Font && segment.NamedFont == NamedFont &&
+            segment.FontSize == FontSize && segment.Baseline == Baseline && segment.FeatureSettings.Equals(FeatureSettings) &&
+            segment.HorizontalTextScaling == HorizontalTextScaling && segment.CharacterSpacing == CharacterSpacing &&
+            segment.BaselineShift == BaselineShift;
+    }
+
     private sealed class RunKerningFont {
+        internal const int MissingGlyph = -1;
+        // Parsed kerning tables are immutable per font program, so every paragraph shares them.
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<byte[], RunKerningFont?[]> Shared = new();
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<long, int> _spacePairs = new();
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<char, int> _glyphs = new();
+
         public RunKerningFont(OfficeOpenTypeReader reader) {
             Reader = reader;
             Kerning = OfficeOpenTypeKerning.FromReader(reader);
         }
         public OfficeOpenTypeReader Reader { get; }
         public OfficeOpenTypeKerning Kerning { get; }
+        internal int Glyph(char character, Func<int> resolve) => _glyphs.GetOrAdd(character, _ => resolve());
+
+        internal static RunKerningFont? Get(byte[] data) => Shared.GetValue(data, static bytes => {
+            OfficeOpenTypeReader? reader = OfficeOpenTypeReader.TryCreate(bytes);
+            return new[] { reader == null ? null : new RunKerningFont(reader) };
+        })[0];
+
+        /// <summary>
+        /// Design-unit advance change from the pairs a space forms with its neighbours, scaled to 1000 units.
+        /// The following word is shaped on its own, so a pair value on its first glyph is carried by the gap:
+        /// the words keep their width and every glyph after that first one keeps its Word position.
+        /// </summary>
+        internal int SpacePairAdjustment(int last, char lastCharacter, int space, int first, char firstCharacter) {
+            long key = (long)(uint)last << 32 | (uint)first;
+            return _spacePairs.GetOrAdd(key, _ => {
+                OfficeOpenTypeGlyphPositioning[] positions = Kerning.PositionRun(
+                    new[] { last, space, first }, new int[] { lastCharacter, ' ', firstCharacter });
+                return checked(Scale(positions[0].XAdvance) + Scale(positions[1].XAdvance) + Scale(positions[2].XAdvance));
+            });
+        }
         public int Scale(int value) => checked((int)Math.Round(value * 1000D / Reader.UnitsPerEm, MidpointRounding.AwayFromZero));
     }
 

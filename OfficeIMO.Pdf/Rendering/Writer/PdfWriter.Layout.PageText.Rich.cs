@@ -40,7 +40,7 @@ internal static partial class PdfWriter {
                     : null;
                 double requestedFontSize = (run.FontSize?.ToPoints()) ?? defaultFontSize;
                 double effectiveFontSize = EffectiveRichFontSize(requestedFontSize, run.Baseline);
-                double textRise = TextRiseForBaseline(requestedFontSize, run.Baseline);
+                double textRise = TextRiseForBaseline(requestedFontSize, run.Baseline) + run.BaselineShift;
                 double runBaseline = baselines[lineIndex] + textRise;
                 double ascender = GetAscenderForOptions(runFont, namedFont, effectiveFontSize, options);
                 double descender = GetDescenderForOptions(runFont, namedFont, effectiveFontSize, options);
@@ -148,7 +148,7 @@ internal static partial class PdfWriter {
                     : null;
                 double requestedFontSize = (run.FontSize?.ToPoints()) ?? defaultFontSize;
                 double effectiveFontSize = EffectiveRichFontSize(requestedFontSize, run.Baseline);
-                double textRise = TextRiseForBaseline(requestedFontSize, run.Baseline);
+                double textRise = TextRiseForBaseline(requestedFontSize, run.Baseline) + run.BaselineShift;
                 double width = GetRichSegmentWidth(segments[runIndex]);
                 global::OfficeIMO.OfficeColor runColor = ResolvePageTextColor(run.Color ?? defaultColor, options);
                 global::OfficeIMO.OfficeColor decorationColor = ResolvePageTextColor(run.DecorationColor ?? run.Color ?? defaultColor, options);

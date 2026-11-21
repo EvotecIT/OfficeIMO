@@ -52,13 +52,17 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("run superscript", allText);
                 Assert.Contains("run subscript", allText);
                 Assert.Contains("After native baseline formatting", allText);
+                // The 20 pt run-level script text is drawn at its font's smaller script size.
+                var scriptWords = pdf.GetPage(1).GetWords().Where(word => word.Text == "run").ToArray();
+                Assert.Equal(2, scriptWords.Length);
+                Assert.All(scriptWords, word => Assert.InRange(word.Letters[0].PointSize, 8D, 16D));
             }
 
             string content = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
-            Assert.Contains("7 Ts", content);
-            Assert.Contains("-3.6 Ts", content);
+            // Size and offset come from the font's script metrics; both directions must be present.
+            Assert.Matches(@"(?<![-\d.])[1-9][\d.]*\s+Ts", content);
+            Assert.Matches(@"-(?:0\.\d*[1-9]|[1-9][\d.]*)\s+Ts", content);
             Assert.Contains("0 Ts", content);
-            Assert.Contains("/F1 13 Tf", content);
         }
 
         [Fact]

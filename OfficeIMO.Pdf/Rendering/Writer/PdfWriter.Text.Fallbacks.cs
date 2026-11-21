@@ -23,6 +23,7 @@ internal static partial class PdfWriter {
             runs as System.Collections.Generic.IReadOnlyList<PdfTextRun>
             ?? new System.Collections.Generic.List<PdfTextRun>(runs);
         source = ApplyInheritedRunFontStyle(source, baseFont);
+        source = ApplyImportedScriptGeometry(source, baseFont, options);
         int layoutControls = 0;
         for (int runIndex = 0; runIndex < source.Count; runIndex++) {
             PdfTextRun run = source[runIndex];
@@ -63,6 +64,72 @@ internal static partial class PdfWriter {
         }
 
         return normalized ?? source;
+    }
+
+    // Imported Word documents size and place superscript and subscript text from the font's OS/2
+    // metrics: the script size is the font's script size rounded to half a point, and the offset
+    // is the font's script offset, limited to 35% (superscript) or 8% (subscript) of the run size and
+    // rounded to half a point. The result is ordinary baseline text with an explicit size and shift.
+    private static System.Collections.Generic.IReadOnlyList<PdfTextRun> ApplyImportedScriptGeometry(
+        System.Collections.Generic.IReadOnlyList<PdfTextRun> source, PdfStandardFont baseFont, PdfCreateOptions? options) {
+        if (options?.UseFontUnitTextLayout != true) return source;
+        System.Collections.Generic.List<PdfTextRun>? result = null;
+        for (int index = 0; index < source.Count; index++) {
+            PdfTextRun run = source[index];
+            PdfTextRun mapped = run.Baseline != PdfTextBaseline.Normal && run.InlineElement == null && run.FontSize.HasValue
+                ? MapImportedScriptRun(run, baseFont, options) : run;
+            if (result == null && !ReferenceEquals(mapped, run)) {
+                result = new System.Collections.Generic.List<PdfTextRun>(source.Count);
+                for (int prior = 0; prior < index; prior++) result.Add(source[prior]);
+            }
+            result?.Add(mapped);
+        }
+        return result ?? source;
+    }
+
+    // Layout normalizes the same runs many times. Resolving the font's script metrics is the costly
+    // part, so each source run keeps its resolved geometry with the inputs it was computed from. The
+    // copy itself is made on every call, so later changes to the source run always reach it.
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<PdfTextRun, ImportedScriptRunCache> ImportedScriptRuns = new();
+
+    private sealed class ImportedScriptRunCache {
+        internal volatile ImportedScriptGeometry? Value;
+    }
+
+    private sealed record ImportedScriptGeometry(PdfCreateOptions Options, PdfStandardFont BaseFont, double SourceSize,
+        PdfTextBaseline Baseline, string? FontFamily, PdfStandardFont? StandardFont, bool Bold, bool Italic,
+        double? ScriptSize, double Offset);
+
+    private static PdfTextRun MapImportedScriptRun(PdfTextRun run, PdfStandardFont baseFont, PdfCreateOptions options) {
+        ImportedScriptRunCache cache = ImportedScriptRuns.GetValue(run, static _ => new ImportedScriptRunCache());
+        double size = run.FontSize!.Value.ToPoints();
+        ImportedScriptGeometry? geometry = cache.Value;
+        if (geometry == null || !ReferenceEquals(geometry.Options, options) || geometry.BaseFont != baseFont ||
+            geometry.SourceSize != size || geometry.Baseline != run.Baseline || geometry.FontFamily != run.FontFamily ||
+            geometry.StandardFont != run.StandardFont || geometry.Bold != run.Bold || geometry.Italic != run.Italic) {
+            double? scriptSize = null;
+            double offset = 0D;
+            if (ResolveImportedScriptMetric(run, baseFont, options) is { } metric) {
+                bool superscript = run.Baseline == PdfTextBaseline.Superscript;
+                scriptSize = Math.Max(0.5D, RoundToHalfPoint(size * metric.SizeRatio));
+                double magnitude = RoundToHalfPoint(Math.Min(size * metric.OffsetRatio, size * (superscript ? 0.35D : 0.08D)));
+                offset = superscript ? magnitude : -magnitude;
+            }
+            geometry = new ImportedScriptGeometry(options, baseFont, size, run.Baseline, run.FontFamily, run.StandardFont,
+                run.Bold, run.Italic, scriptSize, offset);
+            cache.Value = geometry;
+        }
+        return geometry.ScriptSize is { } resolvedSize ? run.WithScriptGeometry(resolvedSize, geometry.Offset) : run;
+    }
+
+    private static double RoundToHalfPoint(double value) => Math.Round(value * 2D, MidpointRounding.AwayFromZero) / 2D;
+
+    private static OfficeIMO.Drawing.OfficeOpenTypeDecorationMetrics.ScriptMetric? ResolveImportedScriptMetric(PdfTextRun run,
+        PdfStandardFont baseFont, PdfCreateOptions options) {
+        PdfNamedFontFace? named = options.TryResolveNamedFontFace(run.FontFamily, run.Bold, run.Italic, out PdfNamedFontFace face)
+            ? face : null;
+        OfficeIMO.Drawing.OfficeOpenTypeDecorationMetrics? metrics = ResolveFontDecorationMetrics(ResolveFontForRun(run, baseFont), named, options);
+        return run.Baseline == PdfTextBaseline.Superscript ? metrics?.Superscript : metrics?.Subscript;
     }
 
     private static System.Collections.Generic.IReadOnlyList<PdfTextRun> ApplyInheritedRunFontStyle(

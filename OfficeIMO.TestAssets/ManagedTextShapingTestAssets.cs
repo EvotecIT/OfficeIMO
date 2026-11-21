@@ -30,6 +30,20 @@ internal static partial class ManagedTextShapingTestAssets {
     internal static byte[] CreateFontWithEmptyGlyphs(int glyphCount, params int[] scalars) =>
         CreateFontFromCmap(CreateFormat12Cmap(scalars), glyphCount: glyphCount, emptyGlyphs: true);
 
+    /// <summary>Writes OS/2 subscript and superscript sizes and offsets, in font units, into a generated font.</summary>
+    internal static byte[] WithScriptMetrics(byte[] font, short subscriptSize, short subscriptOffset, short superscriptSize, short superscriptOffset) {
+        int tables = font[4] << 8 | font[5];
+        for (int index = 0; index < tables; index++) {
+            int record = 12 + index * 16;
+            if (System.Text.Encoding.ASCII.GetString(font, record, 4) != "OS/2") continue;
+            int os2 = font[record + 8] << 24 | font[record + 9] << 16 | font[record + 10] << 8 | font[record + 11];
+            void Write(int offset, short value) { font[os2 + offset] = (byte)(value >> 8); font[os2 + offset + 1] = (byte)value; }
+            Write(12, subscriptSize); Write(16, subscriptOffset); Write(20, superscriptSize); Write(24, superscriptOffset);
+            return font;
+        }
+        throw new InvalidOperationException("The test font has no OS/2 table.");
+    }
+
     internal static byte[] CreateFontWithLineBoxMetrics(short ascender, short descender, short lineGap,
         ushort windowsDescent, params int[] scalars) {
         int[] ordered = new SortedSet<int>(scalars).ToArray();
