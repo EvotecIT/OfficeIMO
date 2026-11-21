@@ -108,18 +108,32 @@ namespace OfficeIMO.Word {
             }
         }
 
-        /// <summary>Page fields, and fields whose instruction contains one, take their result from the layout.</summary>
+        /// <summary>Page fields, fields whose instruction contains one, and the sequences they belong to take their result after the layout.</summary>
         private static HashSet<int> GetPageDependentFields(IReadOnlyList<MutableFieldCandidate> candidates) {
             var bySequence = candidates.ToDictionary(candidate => candidate.Sequence);
             var dependent = new HashSet<int>();
             foreach (MutableFieldCandidate candidate in candidates) {
                 if (WordFieldInventory.ParseInstruction(candidate.InstructionText).FieldType is not
                     (WordFieldType.Page or WordFieldType.NumPages or WordFieldType.PageRef or WordFieldType.SectionPages)) continue;
+                AddWithOwners(candidate);
+            }
+
+            // SEQ and LISTNUM fields number from the fields before them. When one of them waits for the layout (a reset
+            // value taken from a PAGE field), every field of that kind waits too, so they still run in document order.
+            foreach (WordFieldType stateful in new[] { WordFieldType.Seq, WordFieldType.ListNum }) {
+                List<MutableFieldCandidate> group = candidates
+                    .Where(candidate => WordFieldInventory.ParseInstruction(candidate.InstructionText).FieldType == stateful).ToList();
+                if (group.Any(candidate => dependent.Contains(candidate.Sequence))) {
+                    foreach (MutableFieldCandidate candidate in group) AddWithOwners(candidate);
+                }
+            }
+            return dependent;
+
+            void AddWithOwners(MutableFieldCandidate candidate) {
                 for (MutableFieldCandidate? current = candidate; current != null && dependent.Add(current.Sequence);
                      current = current.InstructionParentSequence is int parent && bySequence.TryGetValue(parent, out MutableFieldCandidate? owner) ? owner : null) {
                 }
             }
-            return dependent;
         }
 
         internal static void UpdatePageCounters(WordDocument document) {
