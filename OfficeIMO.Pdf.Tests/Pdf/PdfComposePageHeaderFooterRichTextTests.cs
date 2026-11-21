@@ -154,6 +154,33 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Equal(6D, shifted.PointSize, 2);
         }
 
+        // A paragraph that continues into a column of another width is wrapped again from its laid-out
+        // segments; an imported script run keeps its font offset through that rebuild.
+        [Fact]
+        public void ImportedScriptRunKeepsItsOffsetWhenItsParagraphContinuesIntoAnotherColumn() {
+            byte[] font = ManagedTextShapingTestAssets.WithScriptMetrics(
+                ManagedTextShapingTestAssets.CreateFontWithLineBoxMetrics(800, -500, 0, 500, Enumerable.Range(32, 95).ToArray()),
+                subscriptSize: 600, subscriptOffset: 50, superscriptSize: 600, superscriptOffset: 300);
+            var options = new PdfCreateOptions { UseFontUnitTextLayout = true, MaxGeneratedPages = 3 }
+                .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(ManagedTextShapingTestAssets.FamilyName, font));
+            var columns = new PdfMultiColumnOptions { BalanceLastPage = false, ColumnDefinitions = new[] {
+                new PdfFlowColumn(PdfColumnWidth.Fixed(global::OfficeIMO.OfficeLength.Points(100)), global::OfficeIMO.OfficeLength.Points(36)),
+                new PdfFlowColumn(PdfColumnWidth.Fixed(global::OfficeIMO.OfficeLength.Points(332)), global::OfficeIMO.OfficeLength.Points(0))
+            } };
+            PdfTextRun Run(string text, bool script = false) => (script
+                ? PdfTextRun.Superscript(text, fontSize: global::OfficeIMO.OfficeLength.Points(10), fontFamily: ManagedTextShapingTestAssets.FamilyName)
+                : new PdfTextRun(text).SetFontSize(global::OfficeIMO.OfficeLength.Points(10)).SetFontFamily(ManagedTextShapingTestAssets.FamilyName));
+            byte[] bytes = PdfDocument.Create(options).Columns(content => content.AddParagraph(paragraph => paragraph.AddRuns(new[] {
+                Run(string.Join(" ", Enumerable.Repeat("aaaa", 400)) + " x"), Run("2", script: true), Run(" end")
+            })), columns).ToBytes();
+
+            using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+            var letters = pdf.GetPages().SelectMany(page => page.Letters).ToArray();
+            var shifted = letters.Single(letter => letter.Value == "2");
+            Assert.True(shifted.StartBaseLine.X > 72D + 136D, "The script run continues into the wider column.");
+            Assert.Equal(3D, shifted.StartBaseLine.Y - letters.Single(letter => letter.Value == "x").StartBaseLine.Y, 2);
+        }
+
         // A script run's geometry follows the run as it is now, even after an earlier render.
         [Fact]
         public void ImportedScriptRunFollowsAChangedFontSize() {

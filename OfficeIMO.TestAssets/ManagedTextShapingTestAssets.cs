@@ -117,12 +117,20 @@ internal static partial class ManagedTextShapingTestAssets {
             glyphCount: baseGlyphCount + 1, colr: colr, cpal: CreateCpalV1());
     }
 
-    internal static byte[] CreateFontWithPairPositioning(int firstScalar, int secondScalar, bool includeSpace = false) {
+    /// <param name="withOs2">Adds an OS/2 table, so script metrics can be written with <see cref="WithScriptMetrics"/>.</param>
+    internal static byte[] CreateFontWithPairPositioning(int firstScalar, int secondScalar, bool includeSpace = false, bool withOs2 = false) {
         if (firstScalar == secondScalar) throw new ArgumentException("Positioning test scalars must be distinct.", nameof(secondScalar));
+        byte[]? os2 = null;
+        if (withOs2) {
+            os2 = new byte[78];
+            WriteUInt16(os2, 4, 400);
+            WriteUInt16(os2, 74, 800);
+            WriteUInt16(os2, 76, 200);
+        }
         return CreateFontFromCmap(
             CreateFormat12Cmap(firstScalar, 1, secondScalar, 2, includeSpace ? 32 : null, 3),
             glyphCount: includeSpace ? 4 : 3,
-            gpos: CreatePairPositioningGpos());
+            gpos: CreatePairPositioningGpos(), os2: os2);
     }
 
     internal static byte[] CreateFontWithMultipleSubstitution(int scalar, string? scriptTag = null, string featureTag = "ccmp") =>

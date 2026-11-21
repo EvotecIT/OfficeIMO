@@ -200,6 +200,28 @@ public sealed class WordPdfKerningTests {
         Assert.Equal(kerning, Gap(0D) - Gap(1D), 3);
     }
 
+    // A word space inside a superscript run kerns with its neighbours like any other space in one run.
+    [Fact]
+    public void PairKerningAppliesAcrossASpaceInsideASuperscriptRun() {
+        byte[] font = ManagedTextShapingTestAssets.WithScriptMetrics(ManagedTextShapingTestAssets.CreateFontWithPairPositioning('A', ' ', withOs2: true),
+            subscriptSize: 600, subscriptOffset: 50, superscriptSize: 600, superscriptOffset: 300);
+        double Gap(double threshold) {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph run = document.AddParagraph().AddText("A A");
+            run.FontFamily = ManagedTextShapingTestAssets.FamilyName;
+            run.FontSize = global::OfficeIMO.OfficeLength.Points(10);
+            run.KerningMinimumFontSize = global::OfficeIMO.OfficeLength.Points(threshold);
+            run.SetSuperscript();
+            using var pdf = PdfPigDocument.Open(document.ToPdf(ConversionOptions(FontOptions(font)))
+                .ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+            Letter[] letters = pdf.GetPage(1).Letters.Where(letter => letter.Value == "A").ToArray();
+            return letters[1].StartBaseLine.X - letters[0].StartBaseLine.X;
+        }
+
+        // The 6pt script text takes the 20 and 40 unit pair as 0.36pt.
+        Assert.Equal(0.36D, Gap(0D) - Gap(1D), 3);
+    }
+
     // The following word is shaped on its own, so a pair value on its first glyph reaches the
     // line through the gap: here the space loses 20 units and the 'A' after it 40, at 10 pt.
     [Fact]
