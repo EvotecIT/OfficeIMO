@@ -82,7 +82,14 @@ internal static class PrintJobPolling {
                 if (remaining <= TimeSpan.Zero) throw Expired(jobId, timeout, lastState);
                 using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                 deadline.CancelAfter(remaining);
-                Task<T> pending = query(deadline.Token);
+                Task<T> pending;
+                try {
+                    pending = query(deadline.Token);
+                } catch (Exception error) {
+                    // A query may check its token before going asynchronous; a deadline shorter than the timer resolution
+                    // is already canceled here, and that must still surface as the timeout below.
+                    pending = Task.FromException<T>(error);
+                }
                 if (!pending.IsCompleted) {
                     using var stopTimer = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                     Task timer = Task.Delay(remaining, stopTimer.Token);
