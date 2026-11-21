@@ -114,7 +114,7 @@ internal sealed partial class VisioRichTextProjection {
         TryParagraphNumber(row, name, out double value) ? value * scale : 0D;
 
     private static bool TryParagraphNumber(XElement row, string name, out double value) =>
-        double.TryParse(Cell(row, name), NumberStyles.Float, CultureInfo.InvariantCulture, out value)
+        OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(Cell(row, name), NumberStyles.Float, CultureInfo.InvariantCulture, out value)
         && !double.IsNaN(value) && !double.IsInfinity(value);
 
     private static bool Finite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);

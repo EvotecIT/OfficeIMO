@@ -21,7 +21,7 @@ namespace OfficeIMO.Excel {
 
         private bool TryResolveNumericOperand(string token, out double value) {
             token = token.Trim();
-            if (double.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out value)) {
+            if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out value)) {
                 return true;
             }
 
@@ -851,7 +851,7 @@ namespace OfficeIMO.Excel {
                 return new FormulaArgumentValue(d, value.CachedText, sourceCellKind: sourceKind, isUnevaluatedFormulaCache: unevaluatedFormulaCache);
             }
 
-            if (double.TryParse(value.CachedText, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)) {
+            if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value.CachedText, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)) {
                 return new FormulaArgumentValue(parsed, value.CachedText, sourceCellKind: sourceKind, isUnevaluatedFormulaCache: unevaluatedFormulaCache);
             }
 
@@ -867,7 +867,7 @@ namespace OfficeIMO.Excel {
             if (cell == null) return false;
             string? text = ExcelWorksheetScan.FindValue(cell)?.Text;
             if (cell.DataType == null || cell.DataType.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.Number) {
-                if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) return false;
+                if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) return false;
                 value = new FormulaArgumentValue(number, text, sourceCellKind: ExcelCellDataKind.Number);
                 return true;
             }

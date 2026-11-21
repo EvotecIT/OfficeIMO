@@ -21,7 +21,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         else if (value is DateTime dateTime) target.SetDate(dateTime);
         else if (value is DateTimeOffset dateTimeOffset) target.SetDateTime(dateTimeOffset);
         else if (value is TimeSpan timeSpan) target.SetDuration(timeSpan);
-        else if (IsNumeric(value)) target.SetNumber(Convert.ToDouble(value, CultureInfo.InvariantCulture));
+        else if (IsNumeric(value)) target.SetNumber(OfficeIMO.Core.Internal.OfficeRoundTripText.ToDouble(value, CultureInfo.InvariantCulture));
         else { target.SetString(Convert.ToString(value, CultureInfo.InvariantCulture)); return false; }
         return true;
     }

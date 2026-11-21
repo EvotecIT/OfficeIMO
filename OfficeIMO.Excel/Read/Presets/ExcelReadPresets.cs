@@ -105,9 +105,9 @@ namespace OfficeIMO.Excel {
                     var sLocal = s!;
                     if (sLocal.EndsWith("%", StringComparison.Ordinal)) {
                         var val = sLocal.Substring(0, sLocal.Length - 1);
-                        if (double.TryParse(val, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var pInv))
+                        if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(val, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out double pInv))
                             return new ExcelCellValue(OfficeDecimalConversion.FromDouble(pInv / 100.0));
-                        if (double.TryParse(val, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.CurrentCulture, out var pCur))
+                        if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(val, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.CurrentCulture, out double pCur))
                             return new ExcelCellValue(OfficeDecimalConversion.FromDouble(pCur / 100.0));
                     }
 
@@ -125,7 +125,7 @@ namespace OfficeIMO.Excel {
                     foreach (var ci in new[] { CultureInfo.CurrentCulture, CultureInfo.InvariantCulture, CultureInfo.GetCultureInfo("en-US"), CultureInfo.GetCultureInfo("pl-PL"), CultureInfo.GetCultureInfo("de-DE") }) {
                         if (target == typeof(decimal) && decimal.TryParse(s, NumberStyles.Any, ci, out var dec))
                             return (true, dec);
-                        if (target == typeof(double) && double.TryParse(s, NumberStyles.Any, ci, out var dbl))
+                        if (target == typeof(double) && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(s, NumberStyles.Any, ci, out double dbl))
                             return (true, dbl);
                     }
                 }

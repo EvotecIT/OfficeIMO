@@ -26,7 +26,7 @@ public static partial class OfficeDrawingSvgExporter {
                 .FirstOrDefault(value => value != null) ?? text.Font.FamilyName ?? "Arial";
             string? sizeValue = node.Parent.AncestorsAndSelf().Select(e => e.Attribute("font-size")?.Value)
                 .FirstOrDefault(value => value != null);
-            double size = double.TryParse(sizeValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double renderedSize)
+            double size = OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(sizeValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double renderedSize)
                 && renderedSize > 0D ? renderedSize : text.Font.Size;
             var spans = fonts.PlanFallbackRuns(node.Value, family, text.Font.Face).Select(run => {
                 fonts.TryResolveFaceForText(run.Text, run.FamilyRequest, text.Font.Face,

@@ -18,7 +18,7 @@ namespace OfficeIMO.Excel {
                         out string reference, out string identity)
                         || active.Count >= MaxFormulaDefinedNameExpansionDepth || !active.Add(identity)) return false;
                     entered.Add(identity);
-                    if (double.TryParse(reference, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
+                    if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(reference, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
                         value = new FormulaArgumentValue(number, reference);
                         return true;
                     }

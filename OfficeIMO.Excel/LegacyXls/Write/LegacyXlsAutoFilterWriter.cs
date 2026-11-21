@@ -651,7 +651,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         }
 
         private static bool TryParseInvariantDouble(string value, out double number) {
-            return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out number);
+            return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out number);
         }
 
         private static bool IsProjectedNonBlankCondition(CustomFilter condition) {

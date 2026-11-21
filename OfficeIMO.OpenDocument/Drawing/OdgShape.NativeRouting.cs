@@ -98,7 +98,7 @@ public sealed partial class OdgShape {
             if (coordinate != null && coordinate.Value.EndsWith("%", StringComparison.Ordinal)) {
                 // LibreOffice imports relative glue coordinates as lengths over a 10,000-unit canvas,
                 // and drops percentage tokens. Normalize the new directional copy, preserving its source.
-                double percentage = double.Parse(coordinate.Value.Substring(0, coordinate.Value.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture);
+                double percentage = OfficeIMO.Core.Internal.OfficeRoundTripText.ParseDouble(coordinate.Value.Substring(0, coordinate.Value.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture);
                 coordinate.Value = OdfLength.Centimeters(percentage / 10).ToString();
             }
         }

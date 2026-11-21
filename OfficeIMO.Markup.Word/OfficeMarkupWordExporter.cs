@@ -357,7 +357,7 @@ internal sealed class OfficeMarkupWordExporter {
         for (var column = 1; column < header.Count; column++) {
             var values = new List<double>();
             foreach (var row in chart.Data.Skip(1)) {
-                values.Add(row.Count > column && double.TryParse(row[column], NumberStyles.Any, CultureInfo.InvariantCulture, out var value) ? value : 0d);
+                values.Add(row.Count > column && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(row[column], NumberStyles.Any, CultureInfo.InvariantCulture, out double value) ? value : 0d);
             }
 
             series.Add(new ChartSeries(header[column], values));

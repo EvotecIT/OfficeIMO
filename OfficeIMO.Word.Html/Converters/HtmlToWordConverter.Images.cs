@@ -346,7 +346,7 @@ namespace OfficeIMO.Word.Html {
             if (trimmed.EndsWith("px", StringComparison.Ordinal)) {
                 trimmed = trimmed.Substring(0, trimmed.Length - 2);
             }
-            if (double.TryParse(trimmed, NumberStyles.Float, CultureInfo.InvariantCulture, out var result)) {
+            if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(trimmed, NumberStyles.Float, CultureInfo.InvariantCulture, out double result)) {
                 return result > 0 ? result : null;
             }
             return null;
@@ -369,7 +369,7 @@ namespace OfficeIMO.Word.Html {
                 return null;
             }
 
-            if (!double.TryParse(trimmed.Substring(0, trimmed.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out var percent) || percent <= 0) {
+            if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(trimmed.Substring(0, trimmed.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out double percent) || percent <= 0) {
                 return null;
             }
 
@@ -1466,8 +1466,8 @@ namespace OfficeIMO.Word.Html {
         private bool ProcessSvgElement(AngleSharp.Dom.IElement svg, WordDocument doc, WordSection section, HtmlWordExportOptions options, WordParagraph? currentParagraph, WordHeaderFooter? headerFooter) {
             double? width = null;
             double? height = null;
-            if (double.TryParse(svg.GetAttribute("width")?.Replace("px", string.Empty), NumberStyles.Float, CultureInfo.InvariantCulture, out var w)) width = w;
-            if (double.TryParse(svg.GetAttribute("height")?.Replace("px", string.Empty), NumberStyles.Float, CultureInfo.InvariantCulture, out var h)) height = h;
+            if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(svg.GetAttribute("width")?.Replace("px", string.Empty), NumberStyles.Float, CultureInfo.InvariantCulture, out double w)) width = w;
+            if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(svg.GetAttribute("height")?.Replace("px", string.Empty), NumberStyles.Float, CultureInfo.InvariantCulture, out double h)) height = h;
 
             var paragraph = currentParagraph ?? (headerFooter != null ? headerFooter.AddParagraph() : section.AddParagraph());
             long reservedBytes = 0;

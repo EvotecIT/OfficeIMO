@@ -25,7 +25,7 @@ internal static partial class TextContentParser {
         if (IsSolidTextDash(identity)) return true;
         int separator = identity.IndexOf(':');
         if (separator <= 0) return false;
-        if (!double.TryParse(
+        if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(
 #if NET8_0_OR_GREATER
                 identity.AsSpan(separator + 1),
 #else
@@ -37,7 +37,7 @@ internal static partial class TextContentParser {
         var dashes = new double[values.Length];
         bool positive = false;
         for (int index = 0; index < dashes.Length; index++) {
-            if (!double.TryParse(values[index], NumberStyles.Float, CultureInfo.InvariantCulture, out double value) ||
+            if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(values[index], NumberStyles.Float, CultureInfo.InvariantCulture, out double value) ||
                 value < 0D || double.IsNaN(value) || double.IsInfinity(value)) return false;
             dashes[index] = value * scale;
             if (double.IsInfinity(dashes[index])) return false;

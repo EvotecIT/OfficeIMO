@@ -42,7 +42,7 @@ public static partial class WordPdfConverterExtensions {
     private static bool TryGetNativeRunningRelativeExtent(string? percentage, string? reference,
         double pageLength, double leadingMargin, double trailingMargin, ref double extent) {
         if (percentage == null) return true;
-        if (!double.TryParse(percentage, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) ||
+        if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(percentage, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) ||
             double.IsNaN(value) || double.IsInfinity(value) || value < 0D) return false;
         if (value == 0D) return true;
         if (reference != "page" && reference != "margin") return false;

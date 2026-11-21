@@ -440,7 +440,7 @@ namespace OfficeIMO.Visio.Stencils {
                     string.Equals((string?)child.Attribute("N"), name, StringComparison.OrdinalIgnoreCase));
             string? rawValue = (string?)cell?.Attribute("V");
             if (string.IsNullOrWhiteSpace(rawValue) ||
-                !double.TryParse(rawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out value) ||
+                !OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(rawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out value) ||
                 double.IsNaN(value) ||
                 double.IsInfinity(value)) {
                 value = 0;

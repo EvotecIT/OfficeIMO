@@ -233,8 +233,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     ? _options.DefaultFontSize
                     : hasSpecifiedFontSize && computed.IsInheritedValue("font-size")
                     ? inheritedFontSize
-                    : !hasSpecifiedFontSize && double.TryParse(presentationFontSize,
-                        System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double presentationSize)
+                    : !hasSpecifiedFontSize && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(presentationFontSize, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double presentationSize)
                         && !double.IsNaN(presentationSize) && !double.IsInfinity(presentationSize) && presentationSize >= 0D
                     ? presentationSize
                     : _styleResolver.ResolveFontSize(hasSpecifiedFontSize ? fontSizeValue : presentationFontSize ?? string.Empty,

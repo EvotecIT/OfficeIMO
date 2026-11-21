@@ -59,7 +59,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 point => point.Index?.Value,
                 point => {
                 string? text = point.NumericValue?.Text;
-                if (double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) &&
+                if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) &&
                     !double.IsNaN(value) &&
                     !double.IsInfinity(value)) {
                     return value;

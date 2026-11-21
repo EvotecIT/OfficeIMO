@@ -150,7 +150,7 @@ internal static class PdfFreeTextStyleParser {
             int numberLength = index - numberStart;
             if (numberLength <= 4096) {
                 string number = PdfEncoding.StringSliceCancellable(source, numberStart, numberLength, cancellationToken);
-                if (double.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed) &&
+                if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed) &&
                     parsed > 0D && !double.IsNaN(parsed) && !double.IsInfinity(parsed)) {
                     fontSize = parsed;
                     return true;
@@ -248,7 +248,7 @@ internal static class PdfFreeTextStyleParser {
             }
 
             string number = value.Substring(start, i - start);
-            if (double.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed) &&
+            if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed) &&
                 parsed > 0D &&
                 !double.IsNaN(parsed) &&
                 !double.IsInfinity(parsed)) {
@@ -717,7 +717,7 @@ internal static class PdfFreeTextStyleParser {
         value = value.Trim();
         bool isPercent = value.Length > 0 && value[value.Length - 1] == '%';
         string number = isPercent ? value.Substring(0, value.Length - 1) : value;
-        if (!double.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed) ||
+        if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed) ||
             double.IsNaN(parsed) ||
             double.IsInfinity(parsed)) {
             component = 0D;

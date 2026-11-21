@@ -28,7 +28,7 @@ internal static class TomlValueConverter {
                 return true;
             case double or float or decimal:
                 kind = TomlNodeKind.Float;
-                normalized = Convert.ToDouble(value, CultureInfo.InvariantCulture);
+                normalized = OfficeIMO.Core.Internal.OfficeRoundTripText.ToDouble(value, CultureInfo.InvariantCulture);
                 return true;
             case TomlDateTime dateTime:
                 kind = TomlNodeKind.DateTime;

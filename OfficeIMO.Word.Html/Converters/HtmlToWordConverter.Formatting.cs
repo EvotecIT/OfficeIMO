@@ -147,11 +147,11 @@ namespace OfficeIMO.Word.Html {
                 return false;
             }
             text = (text ?? string.Empty).Trim().ToLowerInvariant();
-            if (text.EndsWith("pt") && double.TryParse(text.Substring(0, text.Length - 2), NumberStyles.Float, CultureInfo.InvariantCulture, out double pt)) {
+            if (text.EndsWith("pt") && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text.Substring(0, text.Length - 2), NumberStyles.Float, CultureInfo.InvariantCulture, out double pt)) {
                 size = RoundToHalfPoint(pt);
                 return size > 0;
             }
-            if (text.EndsWith("px") && double.TryParse(text.Substring(0, text.Length - 2), NumberStyles.Float, CultureInfo.InvariantCulture, out double px)) {
+            if (text.EndsWith("px") && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text.Substring(0, text.Length - 2), NumberStyles.Float, CultureInfo.InvariantCulture, out double px)) {
                 size = RoundToHalfPoint(px * 0.75d);
                 return size > 0;
             }
@@ -159,7 +159,7 @@ namespace OfficeIMO.Word.Html {
                 size = RoundToHalfPoint(named * 0.75d);
                 return true;
             }
-            if (text.EndsWith("%") && double.TryParse(text.Substring(0, text.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out double percent)) {
+            if (text.EndsWith("%") && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text.Substring(0, text.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out double percent)) {
                 size = RoundToHalfPoint(_renderDevice.FontSize * 0.75d * (percent / 100d));
                 return size > 0;
             }
@@ -994,7 +994,7 @@ namespace OfficeIMO.Word.Html {
             if (parts.Length < 3) {
                 return false;
             }
-            if (!double.TryParse(parts[0].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var h)) {
+            if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(parts[0].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double h)) {
                 return false;
             }
             if (!TryParsePercent(parts[1], out var s) || !TryParsePercent(parts[2], out var l)) {
@@ -1009,7 +1009,7 @@ namespace OfficeIMO.Word.Html {
             if (t.EndsWith("%", StringComparison.Ordinal)) {
                 t = t.Substring(0, t.Length - 1);
             }
-            if (!double.TryParse(t, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed)) {
+            if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(t, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)) {
                 return false;
             }
             value = parsed / 100d;

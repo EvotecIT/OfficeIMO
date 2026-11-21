@@ -450,7 +450,7 @@ public static class HtmlCssMathParser {
             if (index == exponentDigits) index = exponent;
         }
         length = index;
-        return double.TryParse(text.Substring(0, index), NumberStyles.Float, CultureInfo.InvariantCulture, out value)
+        return OfficeIMO.OfficeRoundTripNumberText.TryParse(text.Substring(0, index), NumberStyles.Float, CultureInfo.InvariantCulture, out value)
             && !double.IsNaN(value) && !double.IsInfinity(value);
     }
 

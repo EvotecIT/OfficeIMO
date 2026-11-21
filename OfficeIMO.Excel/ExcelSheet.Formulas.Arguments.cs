@@ -126,7 +126,7 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            if (double.TryParse(trimmed, NumberStyles.Float, CultureInfo.InvariantCulture, out double numeric)) {
+            if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(trimmed, NumberStyles.Float, CultureInfo.InvariantCulture, out double numeric)) {
                 value = new FormulaArgumentValue(numeric, trimmed);
                 return true;
             }
@@ -171,7 +171,7 @@ namespace OfficeIMO.Excel {
                 // not be resolved again through the scalar fallback.
                 if (isReference) { values.Clear(); return false; }
 
-                if (double.TryParse(trimmed, NumberStyles.Float, CultureInfo.InvariantCulture, out double numeric)) {
+                if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(trimmed, NumberStyles.Float, CultureInfo.InvariantCulture, out double numeric)) {
                     values.Add(new FormulaArgumentValue(numeric, trimmed));
                     continue;
                 }

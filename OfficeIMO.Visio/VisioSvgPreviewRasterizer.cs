@@ -576,7 +576,7 @@ namespace OfficeIMO.Visio {
                 value = value.Substring(0, value.Length - 1);
             }
 
-            if (!double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)) {
+            if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)) {
                 return false;
             }
 

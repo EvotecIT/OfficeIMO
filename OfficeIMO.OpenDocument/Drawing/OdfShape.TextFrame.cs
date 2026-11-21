@@ -82,7 +82,7 @@ public abstract partial class OdfShape {
         string lexical = length.ToString();
         // ODF's nonNegativeLength grammar includes px even though OdfLength cannot convert pixels to points.
         if (!Regex.IsMatch(lexical, @"\A(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:cm|mm|in|pt|pc|px)\z", RegexOptions.CultureInvariant) ||
-            !double.TryParse(lexical.Substring(0, lexical.Length - 2), NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out double magnitude) ||
+            !OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(lexical.Substring(0, lexical.Length - 2), NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out double magnitude) ||
             double.IsNaN(magnitude) || double.IsInfinity(magnitude) ||
             !lexical.EndsWith("px", StringComparison.Ordinal) && !length.TryToPoints(out _))
             throw new ArgumentException("Text padding must use finite nonnegative absolute ODF lengths.", "value");

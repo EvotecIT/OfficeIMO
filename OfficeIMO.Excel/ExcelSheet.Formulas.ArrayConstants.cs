@@ -28,7 +28,7 @@ namespace OfficeIMO.Excel {
                 if (quoted || ch != ',' && ch != ';' && index != token.Length - 1) continue;
                 string literal = token.Substring(start, index - start).Trim();
                 FormulaArgumentValue value;
-                if (double.TryParse(literal, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
+                if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(literal, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
                     if (!IsFinite(number)) return false;
                     value = new(number, literal);
                 }

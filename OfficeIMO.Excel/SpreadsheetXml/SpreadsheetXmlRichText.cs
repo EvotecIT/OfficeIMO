@@ -37,7 +37,7 @@ internal static class SpreadsheetXmlRichText {
                         switch (attribute.Name.LocalName) {
                             case "Face": run.FontFamily = attribute.Value; break;
                             case "Size":
-                                if (!double.TryParse(attribute.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double size) || double.IsNaN(size) || double.IsInfinity(size) || size <= 0 || size > 409) throw new InvalidDataException("Invalid rich-text font size.");
+                                if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(attribute.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double size) || double.IsNaN(size) || double.IsInfinity(size) || size <= 0 || size > 409) throw new InvalidDataException("Invalid rich-text font size.");
                                 run.FontSize = OfficeLength.Points(size); break;
                             case "Color":
                                 string color = attribute.Value;

@@ -61,7 +61,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         internal double StrokeWeightPoints {
             get {
-                if (double.TryParse(_line.StrokeWeight?.Value?.Replace("pt", ""), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double value)) {
+                if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(_line.StrokeWeight?.Value?.Replace("pt", ""), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double value)) {
                     return value;
                 }
                 return 0;

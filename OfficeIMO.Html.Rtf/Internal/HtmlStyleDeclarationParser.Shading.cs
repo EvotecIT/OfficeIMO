@@ -11,7 +11,7 @@ internal static partial class HtmlStyleDeclarationParser {
 
     private static int? ParseRtfShadingPercent(string value) {
         if (value.EndsWith("%", StringComparison.Ordinal) &&
-            double.TryParse(value.Substring(0, value.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out double percent) &&
+            OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value.Substring(0, value.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out double percent) &&
             percent >= 0d) {
             return (int)Math.Round(Math.Min(percent, 100d) * 100d, MidpointRounding.AwayFromZero);
         }

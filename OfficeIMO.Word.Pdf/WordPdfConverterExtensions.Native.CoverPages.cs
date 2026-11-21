@@ -389,8 +389,8 @@ namespace OfficeIMO.Word.Pdf {
 
             var points = new List<OfficePoint>();
             for (int i = 0; i + 1 < matches.Count; i += 2) {
-                if (!double.TryParse(matches[i].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double x) ||
-                    !double.TryParse(matches[i + 1].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double y)) {
+                if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(matches[i].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double x) ||
+                    !OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(matches[i + 1].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double y)) {
                     return false;
                 }
 

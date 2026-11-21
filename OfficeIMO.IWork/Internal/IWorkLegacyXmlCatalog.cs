@@ -188,6 +188,5 @@ internal sealed partial class IWorkLegacyXmlCatalog {
     }
 
     internal static double? AttributeNumber(XElement? element, XName name) =>
-        double.TryParse((string?)element?.Attribute(name), NumberStyles.Float, CultureInfo.InvariantCulture,
-            out double value) && !double.IsNaN(value) && !double.IsInfinity(value) ? value : null;
+        OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse((string?)element?.Attribute(name), NumberStyles.Float, CultureInfo.InvariantCulture, out double value) && !double.IsNaN(value) && !double.IsInfinity(value) ? value : null;
 }

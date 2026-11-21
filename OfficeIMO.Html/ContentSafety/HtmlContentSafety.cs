@@ -660,7 +660,7 @@ public static partial class HtmlContentSafety {
         if (normalized.EndsWith("pt", StringComparison.Ordinal)) { multiplier = 1D; suffix = 2; }
         else if (normalized.EndsWith("px", StringComparison.Ordinal)) { multiplier = 0.75D; suffix = 2; }
         else { points = 0; return false; }
-        if (!double.TryParse(normalized.Substring(0, normalized.Length - suffix), NumberStyles.Float, CultureInfo.InvariantCulture, out double valueNumber)) {
+        if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(normalized.Substring(0, normalized.Length - suffix), NumberStyles.Float, CultureInfo.InvariantCulture, out double valueNumber)) {
             points = 0;
             return false;
         }
@@ -669,7 +669,7 @@ public static partial class HtmlContentSafety {
     }
 
     private static bool TryParseScalar(string value, out double result) =>
-        double.TryParse(value?.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out result);
+        OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value?.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out result);
 
     private static bool TryGetCssFilterOpacity(string value, out double opacity) {
         opacity = 1D;
@@ -689,7 +689,7 @@ public static partial class HtmlContentSafety {
                 string lexical = source.Substring(cursor + 1, close - cursor - 1).Trim();
                 bool percent = lexical.EndsWith("%", StringComparison.Ordinal);
                 if (percent) lexical = lexical.Substring(0, lexical.Length - 1).Trim();
-                if (!double.TryParse(lexical, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed) || double.IsNaN(parsed) || double.IsInfinity(parsed)) return false;
+                if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(lexical, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed) || double.IsNaN(parsed) || double.IsInfinity(parsed)) return false;
                 double component = percent ? parsed / 100D : parsed;
                 if (component < 0D) return false;
                 opacity *= Math.Min(1D, component);

@@ -38,9 +38,8 @@ public sealed class OdfTabLineLeader {
         double? points = null;
         if (fraction == 0) {
             if (Width != null && Width.EndsWith("%", StringComparison.Ordinal) &&
-                double.TryParse(Width.Substring(0, Width.Length - 1), NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint,
-                    CultureInfo.InvariantCulture, out double percentage)) fraction = percentage * .0005D;
-            else if (double.TryParse(Width, NumberStyles.Integer, CultureInfo.InvariantCulture, out double multiple)) fraction = multiple * .05D;
+                OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(Width.Substring(0, Width.Length - 1), NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out double percentage)) fraction = percentage * .0005D;
+            else if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(Width, NumberStyles.Integer, CultureInfo.InvariantCulture, out double multiple)) fraction = multiple * .05D;
             else if (Width != null && OdfLength.Parse(Width).TryToPoints(out double length)) { points = length; fraction = .05D; }
             else throw new ArgumentException("Unknown ODF leader width.", nameof(Width));
         }

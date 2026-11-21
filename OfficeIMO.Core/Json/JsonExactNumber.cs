@@ -129,7 +129,7 @@ internal readonly struct JsonExactNumber {
     }
 
     public double ToDouble() {
-        double.TryParse(ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out double value);
+        OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out double value);
         return value;
     }
 

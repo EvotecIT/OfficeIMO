@@ -522,7 +522,7 @@ namespace OfficeIMO.Word {
                 if (_line != null) v ??= _line.StrokeWeight?.Value;
                 if (_shape != null) v ??= _shape.StrokeWeight?.Value;
                 if (v is { Length: > 0 } s) {
-                    return double.Parse(s.Replace("pt", string.Empty), CultureInfo.InvariantCulture);
+                    return OfficeIMO.Core.Internal.OfficeRoundTripText.ParseDouble(s.Replace("pt", string.Empty), System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, CultureInfo.InvariantCulture);
                 }
 
                 if (_wpsShape != null) {
@@ -545,7 +545,7 @@ namespace OfficeIMO.Word {
                 var arc = _roundRectangle?.ArcSize;
                 if (arc == null) return null;
                 var val = arc.Value?.TrimEnd('f');
-                if (val == null || !double.TryParse(val, NumberStyles.Integer, CultureInfo.InvariantCulture, out var num)) return null;
+                if (val == null || !OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(val, NumberStyles.Integer, CultureInfo.InvariantCulture, out double num)) return null;
                 return num / 65536d;
             }
             set {
@@ -655,7 +655,7 @@ namespace OfficeIMO.Word {
         internal double WidthPoints {
             get {
                 var v = GetStyleValue("width");
-                if (v is { Length: > 0 } s) return double.Parse(s.Replace("pt", string.Empty), CultureInfo.InvariantCulture);
+                if (v is { Length: > 0 } s) return OfficeIMO.Core.Internal.OfficeRoundTripText.ParseDouble(s.Replace("pt", string.Empty), System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, CultureInfo.InvariantCulture);
                 return 0;
             }
             set => SetStyleValue("width", $"{value.ToString(CultureInfo.InvariantCulture)}pt");
@@ -667,7 +667,7 @@ namespace OfficeIMO.Word {
         internal double HeightPoints {
             get {
                 var v = GetStyleValue("height");
-                if (v is { Length: > 0 } s) return double.Parse(s.Replace("pt", string.Empty), CultureInfo.InvariantCulture);
+                if (v is { Length: > 0 } s) return OfficeIMO.Core.Internal.OfficeRoundTripText.ParseDouble(s.Replace("pt", string.Empty), System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, CultureInfo.InvariantCulture);
                 return 0;
             }
             set => SetStyleValue("height", $"{value.ToString(CultureInfo.InvariantCulture)}pt");
@@ -680,7 +680,7 @@ namespace OfficeIMO.Word {
             get {
                 var v = GetStyleValue("margin-left");
                 if (v is not { Length: > 0 } s) return null;
-                return double.Parse(s.Replace("pt", string.Empty), CultureInfo.InvariantCulture);
+                return OfficeIMO.Core.Internal.OfficeRoundTripText.ParseDouble(s.Replace("pt", string.Empty), System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, CultureInfo.InvariantCulture);
             }
             set {
                 if (value == null) {
@@ -699,7 +699,7 @@ namespace OfficeIMO.Word {
             get {
                 var v = GetStyleValue("margin-top");
                 if (v is not { Length: > 0 } s) return null;
-                return double.Parse(s.Replace("pt", string.Empty), CultureInfo.InvariantCulture);
+                return OfficeIMO.Core.Internal.OfficeRoundTripText.ParseDouble(s.Replace("pt", string.Empty), System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, CultureInfo.InvariantCulture);
             }
             set {
                 if (value == null) {
@@ -718,7 +718,7 @@ namespace OfficeIMO.Word {
             get {
                 var v = GetStyleValue("rotation");
                 if (string.IsNullOrEmpty(v)) return null;
-                return double.Parse(v, CultureInfo.InvariantCulture);
+                return OfficeIMO.Core.Internal.OfficeRoundTripText.ParseDouble(v, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, CultureInfo.InvariantCulture);
             }
             set {
                 if (value == null) {

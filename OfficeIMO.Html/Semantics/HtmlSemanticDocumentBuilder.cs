@@ -467,7 +467,7 @@ internal static class HtmlSemanticDocumentBuilder {
     private static double? ReadPixels(string? value) {
         string text = (value ?? string.Empty).Trim();
         if (text.EndsWith("px", StringComparison.OrdinalIgnoreCase)) text = text.Substring(0, text.Length - 2).Trim();
-        return double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double pixels) && pixels > 0D
+        return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double pixels) && pixels > 0D
             ? pixels
             : null;
     }

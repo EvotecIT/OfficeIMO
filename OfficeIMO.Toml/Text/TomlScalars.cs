@@ -205,7 +205,7 @@ internal static class TomlScalars {
         }
 #if NETSTANDARD2_0 || NET472
         try {
-            double value = double.Parse(buffer.Slice(0, length).ToString(), NumberStyles.Float, CultureInfo.InvariantCulture);
+            double value = OfficeIMO.Core.Internal.OfficeRoundTripText.ParseDouble(buffer.Slice(0, length).ToString(), NumberStyles.Float, CultureInfo.InvariantCulture);
             // .NET Framework parses "-0.0" as positive zero.
             return value == 0 && negative ? -0.0 : value;
         } catch (OverflowException) {
@@ -213,7 +213,7 @@ internal static class TomlScalars {
             return negative ? double.NegativeInfinity : double.PositiveInfinity;
         }
 #else
-        return double.Parse(buffer.Slice(0, length), NumberStyles.Float, CultureInfo.InvariantCulture);
+        return OfficeIMO.Core.Internal.OfficeRoundTripText.ParseDouble(buffer.Slice(0, length), NumberStyles.Float, CultureInfo.InvariantCulture);
 #endif
     }
 

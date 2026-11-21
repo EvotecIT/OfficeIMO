@@ -204,7 +204,7 @@ namespace OfficeIMO.Excel {
             }
 
             value = value.Trim();
-            double? number = double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double numeric)
+            double? number = OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double numeric)
                 ? numeric
                 : (double?)null;
 
@@ -313,8 +313,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static double NormalizeFormulaComparisonNumber(double value) =>
-            double.TryParse(value.ToString("G15", CultureInfo.InvariantCulture), NumberStyles.Float,
-                CultureInfo.InvariantCulture, out double normalized) && !double.IsInfinity(normalized) ? normalized : value;
+            OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value.ToString("G15", CultureInfo.InvariantCulture), NumberStyles.Float, CultureInfo.InvariantCulture, out double normalized) && !double.IsInfinity(normalized) ? normalized : value;
 
         private static bool TryGetWholeNumber(double value, out int number) {
             number = (int)Math.Round(value, MidpointRounding.AwayFromZero);

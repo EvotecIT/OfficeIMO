@@ -368,7 +368,7 @@ internal sealed partial class OfficeMarkupExcelExporter {
         for (var column = 1; column < header.Count; column++) {
             var values = new List<double>();
             foreach (var row in chart.Data.Skip(1)) {
-                values.Add(row.Count > column && double.TryParse(row[column], NumberStyles.Any, CultureInfo.InvariantCulture, out var number) ? number : 0d);
+                values.Add(row.Count > column && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(row[column], NumberStyles.Any, CultureInfo.InvariantCulture, out double number) ? number : 0d);
             }
 
             series.Add(new ExcelChartSeries(header[column], values));
@@ -387,7 +387,7 @@ internal sealed partial class OfficeMarkupExcelExporter {
     }
 
     private static object ConvertValue(string value) {
-        if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var number)) {
+        if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
             return number;
         }
 

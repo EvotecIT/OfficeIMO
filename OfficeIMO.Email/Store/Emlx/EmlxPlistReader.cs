@@ -80,7 +80,7 @@ internal static class EmlxPlistReader {
             return integer;
         }
         if (string.Equals(name, "real", StringComparison.OrdinalIgnoreCase)) {
-            if (!double.TryParse(element.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double real)) {
+            if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(element.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double real)) {
                 throw new FormatException("An EMLX property-list real value is invalid.");
             }
             return real;

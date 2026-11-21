@@ -85,9 +85,9 @@ internal sealed class PdfPrintColorTransform {
                 ref hexadecimalString,
                 ref comment);
             if (!isOperator) return match.Value;
-            double red = double.Parse(match.Groups["red"].Value, NumberStyles.Float, CultureInfo.InvariantCulture);
-            double green = double.Parse(match.Groups["green"].Value, NumberStyles.Float, CultureInfo.InvariantCulture);
-            double blue = double.Parse(match.Groups["blue"].Value, NumberStyles.Float, CultureInfo.InvariantCulture);
+            double red = OfficeIMO.Core.Internal.OfficeRoundTripText.ParseDouble(match.Groups["red"].Value, NumberStyles.Float, CultureInfo.InvariantCulture);
+            double green = OfficeIMO.Core.Internal.OfficeRoundTripText.ParseDouble(match.Groups["green"].Value, NumberStyles.Float, CultureInfo.InvariantCulture);
+            double blue = OfficeIMO.Core.Internal.OfficeRoundTripText.ParseDouble(match.Groups["blue"].Value, NumberStyles.Float, CultureInfo.InvariantCulture);
             Convert(global::OfficeIMO.OfficeColor.FromNormalizedRgb(red, green, blue), out double cyan, out double magenta, out double yellow, out double black);
             return Format(cyan) + " " + Format(magenta) + " " + Format(yellow) + " " + Format(black) +
                 (match.Groups["operator"].Value == "rg" ? " k" : " K");

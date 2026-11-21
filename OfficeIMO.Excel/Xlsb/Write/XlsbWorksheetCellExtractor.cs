@@ -174,7 +174,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
 
             if ((dataType == CellValues.Number || dataType == null)
-                && double.TryParse(rawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
+                && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(rawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
                 return new XlsbWriteCell(row, column, styleIndex, XlsbWriteCellKind.Number, number);
             }
 
@@ -251,7 +251,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 return new XlsbWriteCell(row, column, styleIndex, XlsbWriteCellKind.FormulaNumber, serial, formulaPayload);
             }
 
-            if (double.TryParse(rawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
+            if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(rawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
                 return new XlsbWriteCell(row, column, styleIndex, XlsbWriteCellKind.FormulaNumber, number, formulaPayload);
             }
 
@@ -292,7 +292,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                     return string.IsNullOrEmpty(rawValue)
                         && cell.InlineString == null;
                 case XlsbCellValueKind.Number:
-                    return double.TryParse(rawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
+                    return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(rawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
                         && sourceCell.Value is double sourceNumber
                         && number.Equals(sourceNumber);
                 case XlsbCellValueKind.Text:

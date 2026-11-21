@@ -55,8 +55,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         string lexical = lineHeight.Value.ToString();
         if (string.Equals(lexical, "normal", StringComparison.OrdinalIgnoreCase)) return 0;
         if (lexical.EndsWith("%", StringComparison.Ordinal)
-            && double.TryParse(lexical.Substring(0, lexical.Length - 1), NumberStyles.Float,
-                CultureInfo.InvariantCulture, out double percentage)
+            && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(lexical.Substring(0, lexical.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out double percentage)
             && percentage > 0D && percentage <= int.MaxValue * 100D / 240D) {
             target.LineSpacing = WordLineSpacing.Multiple(percentage / 100D);
             return 0;

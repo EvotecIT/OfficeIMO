@@ -367,7 +367,7 @@ public sealed class JsonData {
 
     internal static bool TryParseNumber(string text, out double value, out JsonExactNumber exact, out bool hasExact) {
         hasExact = JsonExactNumber.TryParse(text, out exact);
-        bool parsed = double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+        bool parsed = OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
         if (hasExact) {
             // .NET Framework reports overflow instead of returning infinity.
             if (!parsed) value = exact.Mantissa.Sign < 0 ? double.NegativeInfinity : double.PositiveInfinity;

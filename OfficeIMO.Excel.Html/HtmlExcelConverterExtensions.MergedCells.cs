@@ -374,7 +374,7 @@ public static partial class HtmlExcelConverterExtensions {
         if (normalized.EndsWith("px", StringComparison.OrdinalIgnoreCase)) multiplier = 0.75D;
         else if (!normalized.EndsWith("pt", StringComparison.OrdinalIgnoreCase)) return false;
         normalized = normalized.Substring(0, normalized.Length - 2);
-        return double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
+        return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
             && parsed > 0D && (points = parsed * multiplier) > 0D;
     }
 

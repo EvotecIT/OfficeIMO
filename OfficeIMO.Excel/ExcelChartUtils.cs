@@ -393,7 +393,7 @@ namespace OfficeIMO.Excel {
         private static IReadOnlyList<double> ParseNumericCategories(IReadOnlyList<string> categories) {
             var values = new double[categories.Count];
             for (int i = 0; i < categories.Count; i++) {
-                if (!double.TryParse(categories[i], NumberStyles.Any, CultureInfo.InvariantCulture, out var val)) {
+                if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(categories[i], NumberStyles.Any, CultureInfo.InvariantCulture, out double val)) {
                     val = 0d;
                 }
                 values[i] = val;

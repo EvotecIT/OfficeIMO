@@ -109,9 +109,7 @@ namespace OfficeIMO.PowerPoint {
                     .Descendants<Dgm.Parameter>().FirstOrDefault(parameter =>
                         parameter.Type?.Value
                             == Dgm.ParameterIdValues.AspectRatio);
-                if (double.TryParse(storedAspectRatio?.Val?.Value,
-                        NumberStyles.Float, CultureInfo.InvariantCulture,
-                        out double storedRatio)
+                if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(storedAspectRatio?.Val?.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double storedRatio)
                     && storedRatio > 0D && !double.IsInfinity(storedRatio)) {
                     aspectRatio = storedRatio;
                 }

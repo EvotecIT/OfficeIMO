@@ -27,7 +27,7 @@ internal static class OfficeCssNumber {
             if (index == exponentStart) return false;
         }
         return index == value.Length
-            && double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out number)
+            && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out number)
             && !double.IsNaN(number)
             && !double.IsInfinity(number);
     }

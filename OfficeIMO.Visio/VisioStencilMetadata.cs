@@ -404,7 +404,7 @@ namespace OfficeIMO.Visio {
 
         private static double? GetDouble(IReadOnlyDictionary<string, string?> values, string key) {
             string? value = Get(values, key);
-            return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
+            return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
                 ? parsed
                 : null;
         }

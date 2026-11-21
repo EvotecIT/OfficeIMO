@@ -96,7 +96,7 @@ namespace OfficeIMO.Excel {
             text = string.Empty;
             if (raw == null || !IsFormatted(styleIndex)) return false;
             if (isoDateCell) return TryFormatIsoDate(raw, styleIndex, out text);
-            if (!numericCell || !double.TryParse(raw, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out double number)) {
+            if (!numericCell || !OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(raw, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out double number)) {
                 return false;
             }
             text = FormatNumber(number, styleIndex!.Value);

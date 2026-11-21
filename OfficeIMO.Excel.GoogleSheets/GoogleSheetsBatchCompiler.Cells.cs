@@ -38,7 +38,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
             if (typedValue is byte || typedValue is sbyte || typedValue is short || typedValue is ushort
                 || typedValue is int || typedValue is uint || typedValue is long || typedValue is ulong
                 || typedValue is float || typedValue is double || typedValue is decimal) {
-                return GoogleSheetsCellValue.Number(Convert.ToDouble(typedValue, System.Globalization.CultureInfo.InvariantCulture));
+                return GoogleSheetsCellValue.Number(OfficeIMO.OfficeRoundTripNumberText.ToDouble(typedValue, System.Globalization.CultureInfo.InvariantCulture));
             }
 
             return GoogleSheetsCellValue.String(Convert.ToString(typedValue, System.Globalization.CultureInfo.InvariantCulture));

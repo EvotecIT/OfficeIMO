@@ -169,6 +169,7 @@ Every library targets `netstandard2.0`, `net8.0` and `net10.0`; Windows builds a
 
 The same input gives the same document content on every framework. A few things come from the runtime and can differ:
 
+- Reading numbers on .NET Framework. OfficeIMO writes every number as its shortest round-trip text, the same on every framework, and reads numbers with its own correctly rounded parser on .NET Framework. Other .NET Framework code that reads that text with `double.Parse` gets a neighbouring double for about 0.15% of values; that is a limitation of the .NET Framework parser, and .NET 8, .NET 10 and Excel read the text exactly.
 - Package bytes. ZIP-based files (DOCX, XLSX, PPTX, OpenDocument, EPUB) use the runtime's ZIP and Deflate code, and PDF streams its Deflate, so .NET Framework, .NET 8 and .NET 10 write different bytes for the same content. Compare package contents, not file hashes. OfficeIMO.Archives writes ZIP and GZip with its own encoder, so its bytes match everywhere.
 - Culture data. Formatting or sorting with a named or the current culture uses NLS on .NET Framework and ICU on .NET 8 and 10, which differ in month abbreviations, currency patterns and collation. File content uses invariant formatting and ordinal ordering, which do not change.
 - Unicode tables. Character categories, case mapping and regular expression classes follow each runtime's Unicode version, and malformed UTF-8 decodes to a different number of replacement characters.

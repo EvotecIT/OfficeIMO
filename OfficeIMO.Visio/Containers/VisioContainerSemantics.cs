@@ -100,7 +100,7 @@ namespace OfficeIMO.Visio {
 
         private static bool TryGetStoredInches(VisioShape container, string cellName, out double value) {
             string? raw = container.GetUserCellValue(cellName);
-            return double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out value) && IsFiniteNonNegative(value);
+            return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out value) && IsFiniteNonNegative(value);
         }
 
         private static int ParsePositiveInt(string? value, int fallback) {

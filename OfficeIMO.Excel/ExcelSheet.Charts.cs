@@ -139,7 +139,7 @@ namespace OfficeIMO.Excel {
                 return categoryText;
             }
 
-            if (!double.TryParse(categoryText, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var numeric)) {
+            if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(categoryText, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double numeric)) {
                 throw new ArgumentException($"Category '{categoryText}' is not numeric. Scatter charts require numeric X values. Use AddScatterChartFromRanges for non-numeric categories.");
             }
 

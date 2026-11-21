@@ -476,7 +476,7 @@ public abstract partial class OdfDocument {
     private static bool TryParseOdfPercent(string? value, out double ratio) {
         ratio = 0D;
         string lexical = value?.Trim() ?? string.Empty;
-        if (!lexical.EndsWith("%", StringComparison.Ordinal) || !double.TryParse(lexical.Substring(0, lexical.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out double percent)) return false;
+        if (!lexical.EndsWith("%", StringComparison.Ordinal) || !OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(lexical.Substring(0, lexical.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out double percent)) return false;
         ratio = Math.Max(0D, Math.Min(1D, percent / 100D));
         return true;
     }

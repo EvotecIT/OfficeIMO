@@ -27,7 +27,7 @@ internal static class PstPropertyValueWriter {
                 return unchecked((uint)Convert.ToInt32(value ?? 0, CultureInfo.InvariantCulture));
             case MapiPropertyType.Floating32:
                 return BitConverter.ToUInt32(BitConverter.GetBytes(
-                    Convert.ToSingle(value ?? 0F, CultureInfo.InvariantCulture)), 0);
+                    OfficeIMO.Core.Internal.OfficeRoundTripText.ToSingle(value ?? 0F, CultureInfo.InvariantCulture)), 0);
             case MapiPropertyType.Boolean:
                 return Convert.ToBoolean(value ?? false, CultureInfo.InvariantCulture) ? 1U : 0U;
             default:
@@ -59,7 +59,7 @@ internal static class PstPropertyValueWriter {
         switch (property.PropertyType) {
             case MapiPropertyType.Floating64:
             case MapiPropertyType.FloatingTime:
-                return BitConverter.GetBytes(Convert.ToDouble(value ?? 0D, CultureInfo.InvariantCulture));
+                return BitConverter.GetBytes(OfficeIMO.Core.Internal.OfficeRoundTripText.ToDouble(value ?? 0D, CultureInfo.InvariantCulture));
             case MapiPropertyType.Currency:
                 return BitConverter.GetBytes(ToCurrency(value));
             case MapiPropertyType.Integer64:
@@ -81,10 +81,10 @@ internal static class PstPropertyValueWriter {
             case MapiPropertyType.MultipleInteger32:
                 return EncodeFixedValues(value, 4, item => BitConverter.GetBytes(Convert.ToInt32(item, CultureInfo.InvariantCulture)));
             case MapiPropertyType.MultipleFloating32:
-                return EncodeFixedValues(value, 4, item => BitConverter.GetBytes(Convert.ToSingle(item, CultureInfo.InvariantCulture)));
+                return EncodeFixedValues(value, 4, item => BitConverter.GetBytes(OfficeIMO.Core.Internal.OfficeRoundTripText.ToSingle(item, CultureInfo.InvariantCulture)));
             case MapiPropertyType.MultipleFloating64:
             case MapiPropertyType.MultipleFloatingTime:
-                return EncodeFixedValues(value, 8, item => BitConverter.GetBytes(Convert.ToDouble(item, CultureInfo.InvariantCulture)));
+                return EncodeFixedValues(value, 8, item => BitConverter.GetBytes(OfficeIMO.Core.Internal.OfficeRoundTripText.ToDouble(item, CultureInfo.InvariantCulture)));
             case MapiPropertyType.MultipleCurrency:
                 return EncodeFixedValues(value, 8, item => BitConverter.GetBytes(ToCurrency(item)));
             case MapiPropertyType.MultipleInteger64:

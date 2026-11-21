@@ -87,7 +87,7 @@ namespace OfficeIMO.Excel {
                 return TryGetPrimitiveDouble(ordinal, out double value)
                     ? value
                     : TryGetCachedDecimal(ordinal, out decimal decimalValue) ? (double)decimalValue
-                    : Convert.ToDouble(GetNonDbNullValue(ordinal), _culture);
+                    : OfficeIMO.Core.Internal.OfficeRoundTripText.ToDouble(GetNonDbNullValue(ordinal), _culture);
             }
 
             /// <inheritdoc />
@@ -99,7 +99,7 @@ namespace OfficeIMO.Excel {
             public override float GetFloat(int ordinal) => TryGetPrimitiveDouble(ordinal, out double value)
                 ? (float)value
                 : TryGetCachedDecimal(ordinal, out decimal decimalValue) ? (float)decimalValue
-                : Convert.ToSingle(GetNonDbNullValue(ordinal), _culture);
+                : OfficeIMO.Core.Internal.OfficeRoundTripText.ToSingle(GetNonDbNullValue(ordinal), _culture);
 
             /// <inheritdoc />
             public override Guid GetGuid(int ordinal) {

@@ -259,8 +259,7 @@ namespace OfficeIMO.Excel {
             if (value.Number.HasValue)
                 return (cell.DataType == null
                         || cell.DataType.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.Number)
-                    && double.TryParse(ExcelWorksheetScan.FindValue(cell)?.Text, System.Globalization.NumberStyles.Float,
-                        System.Globalization.CultureInfo.InvariantCulture, out double numeric)
+                    && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(ExcelWorksheetScan.FindValue(cell)?.Text, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double numeric)
                     && numeric == value.Number.Value;
             return value.Text != null && string.Equals(GetCellText(cell), value.Text, StringComparison.Ordinal);
         }

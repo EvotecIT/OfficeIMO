@@ -58,7 +58,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static NativeLineSpacing ReadNativeLineSpacing(W.SpacingBetweenLines? spacing, W.TextAlignment? alignment = null) {
-            double? value = double.TryParse(spacing?.Line?.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double line) &&
+            double? value = OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(spacing?.Line?.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double line) &&
                 line >= 0D && !double.IsNaN(line) && !double.IsInfinity(line) ? line : null;
             return new NativeLineSpacing(value, spacing?.LineRule?.Value ?? (value.HasValue ? W.LineSpacingRuleValues.Auto : null)) {
                 FontAlignment = alignment?.Val?.Value

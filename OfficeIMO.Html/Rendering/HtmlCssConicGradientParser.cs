@@ -81,7 +81,7 @@ internal static class HtmlCssConicGradientParser {
         else if (normalized.EndsWith("rad", StringComparison.Ordinal)) { multiplier = 180D / Math.PI; suffix = 3; }
         else if (normalized.EndsWith("turn", StringComparison.Ordinal)) { multiplier = 360D; suffix = 4; }
         else return false;
-        if (!double.TryParse(normalized.Substring(0, normalized.Length - suffix), NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
+        if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(normalized.Substring(0, normalized.Length - suffix), NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
             || double.IsNaN(number)
             || double.IsInfinity(number)) return false;
         degrees = number * multiplier;

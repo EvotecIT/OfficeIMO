@@ -42,7 +42,7 @@ public readonly struct OdsFormulaValue {
         if (Kind == OdsFormulaValueKind.Number) return _number;
         if (Kind == OdsFormulaValueKind.Boolean) return _boolean ? 1D : 0D;
         if (Kind == OdsFormulaValueKind.Empty) return 0D;
-        if (Kind == OdsFormulaValueKind.Text && double.TryParse(_text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)) return value;
+        if (Kind == OdsFormulaValueKind.Text && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(_text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)) return value;
         throw new InvalidOperationException("Formula value is not numeric.");
     }
     /// <summary>Boolean value.</summary>

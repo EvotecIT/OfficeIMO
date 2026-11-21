@@ -217,7 +217,7 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentException($"Pivot filter '{filter.Type}' requires a value.", nameof(filter));
             }
 
-            if (!double.TryParse(filter.Value1, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)) {
+            if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(filter.Value1, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)) {
                 throw new ArgumentException($"Pivot filter '{filter.Type}' value '{filter.Value1}' is not numeric.", nameof(filter));
             }
 
@@ -228,7 +228,7 @@ namespace OfficeIMO.Excel {
             };
 
             if (!string.IsNullOrWhiteSpace(filter.FilterValue)) {
-                if (!double.TryParse(filter.FilterValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double filterValue)) {
+                if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(filter.FilterValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double filterValue)) {
                     throw new ArgumentException($"Pivot filter '{filter.Type}' filter value '{filter.FilterValue}' is not numeric.", nameof(filter));
                 }
 

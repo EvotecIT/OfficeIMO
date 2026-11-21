@@ -142,8 +142,7 @@ public static partial class OfficeSvgDrawingReader {
                         string? octaveText = ReadRasterProjectedAttribute(primitive, "numOctaves");
                         if (string.IsNullOrWhiteSpace(octaveText)) {
                             multiplier = 1D;
-                        } else if (!double.TryParse(octaveText, System.Globalization.NumberStyles.Float,
-                                       System.Globalization.CultureInfo.InvariantCulture, out double octaves)
+                        } else if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(octaveText, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double octaves)
                                    || octaves != Math.Truncate(octaves)
                                    || octaves < 1D) {
                             return false;
@@ -505,8 +504,7 @@ public static partial class OfficeSvgDrawingReader {
             value = inherited;
             return true;
         }
-        return double.TryParse(text, System.Globalization.NumberStyles.Float,
-                   System.Globalization.CultureInfo.InvariantCulture, out value)
+        return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out value)
             && !double.IsNaN(value)
             && !double.IsInfinity(value)
             && value >= minimum;

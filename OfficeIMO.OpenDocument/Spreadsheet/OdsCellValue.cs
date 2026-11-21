@@ -38,7 +38,7 @@ public readonly struct OdsCellValue {
     /// <summary>Parses the value as a decimal.</summary>
     public decimal AsDecimal() => decimal.Parse(LexicalValue, NumberStyles.Float, CultureInfo.InvariantCulture);
     /// <summary>Parses the value as a double.</summary>
-    public double AsDouble() => double.Parse(LexicalValue, NumberStyles.Float, CultureInfo.InvariantCulture);
+    public double AsDouble() => OfficeIMO.Core.Internal.OfficeRoundTripText.ParseDouble(LexicalValue, NumberStyles.Float, CultureInfo.InvariantCulture);
     /// <summary>Parses the value as a boolean.</summary>
     public bool AsBoolean() => OdfBoolean.TryParseCompatible(LexicalValue, out bool value)
         ? value

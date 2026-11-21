@@ -726,7 +726,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             : fallback;
 
     private static double ParseFiniteDouble(string? value, double fallback) =>
-        double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
+        OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
         && !double.IsNaN(parsed)
         && !double.IsInfinity(parsed)
             ? parsed

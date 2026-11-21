@@ -176,7 +176,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (value is float or double or decimal) {
-                return new ExcelCustomProperty(System.Convert.ToDouble(value, System.Globalization.CultureInfo.InvariantCulture));
+                return new ExcelCustomProperty(OfficeIMO.Core.Internal.OfficeRoundTripText.ToDouble(value, System.Globalization.CultureInfo.InvariantCulture));
             }
 
             return new ExcelCustomProperty(System.Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty);

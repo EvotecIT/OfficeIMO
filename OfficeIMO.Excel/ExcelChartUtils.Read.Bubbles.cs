@@ -56,7 +56,7 @@ namespace OfficeIMO.Excel {
             foreach (NumericPoint point in points) {
                 uint? index = point.Index?.Value;
                 if (!index.HasValue || index.Value >= count || seen[index.Value] ||
-                    !double.TryParse(point.NumericValue?.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) ||
+                    !OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(point.NumericValue?.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) ||
                     double.IsNaN(value) || double.IsInfinity(value)) return false;
                 seen[index.Value] = true;
                 parsed[index.Value] = value;

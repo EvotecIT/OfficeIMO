@@ -271,7 +271,7 @@ public static partial class HtmlOneNoteConverterExtensions {
         } else {
             return false;
         }
-        return double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
+        return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
             && parsed > 0D
             && (points = parsed * multiplier) > 0D;
     }

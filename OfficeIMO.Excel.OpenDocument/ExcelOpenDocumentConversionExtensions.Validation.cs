@@ -75,7 +75,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         if (valueKind == OdsValidationValueKind.WholeNumber || valueKind == OdsValidationValueKind.TextLength) {
             return int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out _);
         }
-        return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
+        return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
             && !double.IsNaN(number) && !double.IsInfinity(number);
     }
 
@@ -132,7 +132,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 sheet.CreateDataValidationWholeNumber(references, comparison, wholeFirst, wholeSecond, validation.AllowEmptyCell);
                 return true;
             case OdsValidationValueKind.DecimalNumber:
-                if (!double.TryParse(condition.FirstOperand, NumberStyles.Float, CultureInfo.InvariantCulture, out double decimalFirst)
+                if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(condition.FirstOperand, NumberStyles.Float, CultureInfo.InvariantCulture, out double decimalFirst)
                     || !TryParseOptionalDouble(condition.SecondOperand, out double? decimalSecond)
                     || double.IsNaN(decimalFirst) || double.IsInfinity(decimalFirst)) return false;
                 sheet.CreateDataValidationDecimal(references, comparison, decimalFirst, decimalSecond, validation.AllowEmptyCell);
@@ -204,7 +204,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
     private static bool TryParseOptionalDouble(string? text, out double? value) {
         value = null;
         if (text == null) return true;
-        if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
+        if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
             || double.IsNaN(parsed) || double.IsInfinity(parsed)) return false;
         value = parsed;
         return true;

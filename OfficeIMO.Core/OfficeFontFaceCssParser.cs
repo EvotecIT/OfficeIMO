@@ -15,7 +15,7 @@ internal static class OfficeFontFaceCssParser {
             case "lighter": weight = inherited < 550 ? Math.Min(100, inherited) : inherited < 750 ? 400 : 700; return true;
         }
         // CSS weights are numbers from 1 to 1000; faces are matched on whole weights.
-        if (!double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
+        if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
             || !(number >= 1D && number <= 1000D)) return false; // also rejects NaN
         weight = (int)Math.Round(number, MidpointRounding.AwayFromZero);
         return true;
@@ -41,8 +41,7 @@ internal static class OfficeFontFaceCssParser {
             for (int i = widths.Length - 1; i >= 0; i--) if (widths[i] < inherited - .0001D) { stretch = widths[i]; return true; }
             stretch = 50D; return true;
         }
-        return normalized.EndsWith("%", StringComparison.Ordinal) && double.TryParse(normalized.Substring(0, normalized.Length - 1),
-            NumberStyles.Float, CultureInfo.InvariantCulture, out stretch) && stretch >= 50D && stretch <= 200D;
+        return normalized.EndsWith("%", StringComparison.Ordinal) && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(normalized.Substring(0, normalized.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out stretch) && stretch >= 50D && stretch <= 200D;
     }
 
     internal static bool TrySlant(string value, OfficeFontFaceDescriptor inherited, out OfficeFontSlant slant, out double angle) {
@@ -65,8 +64,7 @@ internal static class OfficeFontFaceCssParser {
         (string Unit, double Scale)[] units = { ("deg", 1D), ("grad", 0.9D), ("rad", 180D / Math.PI), ("turn", 360D) };
         foreach ((string unit, double scale) in units) {
             if (!value.EndsWith(unit, StringComparison.Ordinal)) continue;
-            if (!double.TryParse(value.Substring(0, value.Length - unit.Length), NumberStyles.Float, CultureInfo.InvariantCulture,
-                    out double number)) return false;
+            if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value.Substring(0, value.Length - unit.Length), NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) return false;
             degrees = number * scale;
             return true;
         }

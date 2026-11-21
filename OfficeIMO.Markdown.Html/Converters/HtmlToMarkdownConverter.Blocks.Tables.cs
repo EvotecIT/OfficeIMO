@@ -518,7 +518,7 @@ internal sealed partial class HtmlToMarkdownConverter {
         string trimmed = value.Trim();
         if (trimmed.EndsWith("%", StringComparison.Ordinal)) {
             string percentText = trimmed.Substring(0, trimmed.Length - 1).Trim();
-            if (!double.TryParse(percentText, NumberStyles.Float, CultureInfo.InvariantCulture, out double percent)) {
+            if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(percentText, NumberStyles.Float, CultureInfo.InvariantCulture, out double percent)) {
                 return false;
             }
 
@@ -526,7 +526,7 @@ internal sealed partial class HtmlToMarkdownConverter {
             return true;
         }
 
-        if (!double.TryParse(trimmed, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
+        if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(trimmed, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
             return false;
         }
 
@@ -537,7 +537,7 @@ internal sealed partial class HtmlToMarkdownConverter {
     private static bool TryParseCssAlpha(string value, out double result) {
         string trimmed = value.Trim();
         if (trimmed.EndsWith("%", StringComparison.Ordinal)) {
-            if (!double.TryParse(trimmed.Substring(0, trimmed.Length - 1).Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out result)) {
+            if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(trimmed.Substring(0, trimmed.Length - 1).Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out result)) {
                 return false;
             }
 
@@ -545,7 +545,7 @@ internal sealed partial class HtmlToMarkdownConverter {
             return true;
         }
 
-        return double.TryParse(trimmed, NumberStyles.Float, CultureInfo.InvariantCulture, out result);
+        return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(trimmed, NumberStyles.Float, CultureInfo.InvariantCulture, out result);
     }
 
     private static byte ClampCssByte(double value) {
@@ -613,7 +613,7 @@ internal sealed partial class HtmlToMarkdownConverter {
     }
 
     private static bool TryParsePositiveFiniteDouble(string value, out double result) {
-        if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out result)
+        if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out result)
             && result > 0D
             && !double.IsNaN(result)
             && !double.IsInfinity(result)) {

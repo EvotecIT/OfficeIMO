@@ -228,7 +228,7 @@ public sealed partial class CsvDocument
             {
                 if (!matchedNumeric)
                 {
-                    _canDouble = double.TryParse(value, NumberStyles.Any, culture, out _);
+                    _canDouble = OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, NumberStyles.Any, culture, out double _);
                 }
             }
 
@@ -284,7 +284,7 @@ public sealed partial class CsvDocument
             {
                 if (!matchedNumeric)
                 {
-                    _canDouble = double.TryParse(text, NumberStyles.Any, culture, out _);
+                    _canDouble = OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, NumberStyles.Any, culture, out double _);
                 }
             }
 

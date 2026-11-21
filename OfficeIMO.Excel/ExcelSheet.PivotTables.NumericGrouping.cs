@@ -31,7 +31,7 @@ namespace OfficeIMO.Excel {
                 if (criterion is not IConvertible || criterion is string || criterion is bool || criterion is DateTime)
                     return false;
                 double number;
-                try { number = Convert.ToDouble(criterion, CultureInfo.InvariantCulture); }
+                try { number = OfficeIMO.Core.Internal.OfficeRoundTripText.ToDouble(criterion, CultureInfo.InvariantCulture); }
                 catch (Exception exception) when (exception is FormatException || exception is InvalidCastException || exception is OverflowException) {
                     return false;
                 }

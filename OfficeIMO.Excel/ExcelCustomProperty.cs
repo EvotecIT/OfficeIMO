@@ -161,10 +161,10 @@ namespace OfficeIMO.Excel {
                 _value = DateTime.Parse(property.VTDate.Text, CultureInfo.InvariantCulture).ToUniversalTime();
                 _propertyType = ExcelCustomPropertyType.DateTime;
             } else if (property.VTFloat != null) {
-                _value = double.Parse(property.VTFloat.Text, CultureInfo.InvariantCulture);
+                _value = OfficeIMO.Core.Internal.OfficeRoundTripText.ParseDouble(property.VTFloat.Text, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, CultureInfo.InvariantCulture);
                 _propertyType = ExcelCustomPropertyType.NumberDouble;
             } else if (property.VTDouble != null) {
-                _value = double.Parse(property.VTDouble.Text, CultureInfo.InvariantCulture);
+                _value = OfficeIMO.Core.Internal.OfficeRoundTripText.ParseDouble(property.VTDouble.Text, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, CultureInfo.InvariantCulture);
                 _propertyType = ExcelCustomPropertyType.NumberDouble;
             } else if (property.VTDecimal != null) {
                 _value = decimal.Parse(property.VTDecimal.Text, NumberStyles.Float, CultureInfo.InvariantCulture);
@@ -247,7 +247,7 @@ namespace OfficeIMO.Excel {
                     if (Value is decimal decimalValue) {
                         property.VTDecimal = new VTDecimal(decimalValue.ToString(CultureInfo.InvariantCulture));
                     } else {
-                        property.VTDouble = new VTDouble(InvariantNumberText.Get(Convert.ToDouble(Value, CultureInfo.InvariantCulture)));
+                        property.VTDouble = new VTDouble(InvariantNumberText.Get(OfficeIMO.Core.Internal.OfficeRoundTripText.ToDouble(Value, CultureInfo.InvariantCulture)));
                     }
                     break;
                 case ExcelCustomPropertyType.YesNo:

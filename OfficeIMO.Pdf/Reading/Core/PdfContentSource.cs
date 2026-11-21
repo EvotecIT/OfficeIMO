@@ -94,7 +94,7 @@ internal readonly struct PdfStringContentText : IPdfContentText {
 
     public bool TryParseDouble(int start, int length, NumberStyles styles, out double value) {
 #pragma warning disable CA1846 // Keep netstandard2.0-safe parsing.
-        return double.TryParse(
+        return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(
 #if NET8_0_OR_GREATER
             _text.AsSpan(start, length),
 #else
@@ -204,10 +204,10 @@ internal readonly struct PdfByteContentText : IPdfContentText {
         if (length <= 128) {
             Span<char> characters = stackalloc char[length];
             for (int index = 0; index < length; index++) characters[index] = (char)_bytes[start + index];
-            return double.TryParse(characters, styles, CultureInfo.InvariantCulture, out value);
+            return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(characters, styles, CultureInfo.InvariantCulture, out value);
         }
 #endif
-        return double.TryParse(Substring(start, length), styles, CultureInfo.InvariantCulture, out value);
+        return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(Substring(start, length), styles, CultureInfo.InvariantCulture, out value);
     }
 
     public bool TryParseInt32(int start, int length, out int value) {

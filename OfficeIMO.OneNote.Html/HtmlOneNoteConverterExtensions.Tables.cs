@@ -157,7 +157,7 @@ public static partial class HtmlOneNoteConverterExtensions {
         string? authoredWidth = source.Style?.GetValue("width");
         if (source.Style?.IsSpecifiedValue("width") != true && !IsAuthoredWidth(authoredWidth)) {
             authoredWidth = source.SourceElement.GetAttribute("width");
-            if (double.TryParse(authoredWidth, NumberStyles.Float, CultureInfo.InvariantCulture, out double pixels)
+            if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(authoredWidth, NumberStyles.Float, CultureInfo.InvariantCulture, out double pixels)
                 && pixels > 0D && !double.IsInfinity(pixels)) authoredWidth += "px";
         }
         bool hasAuthoredTableWidth = TryParseTableWidth(authoredWidth, defaultWidthHalfInches, out double requestedWidth);
@@ -248,8 +248,7 @@ public static partial class HtmlOneNoteConverterExtensions {
         } else {
             string text = (value ?? string.Empty).Trim();
             if (!text.EndsWith("%", StringComparison.Ordinal)
-                || !double.TryParse(text.Substring(0, text.Length - 1), NumberStyles.Float,
-                    CultureInfo.InvariantCulture, out double percent)) return false;
+                || !OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text.Substring(0, text.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out double percent)) return false;
             widthHalfInches = referenceHalfInches * percent / 100D;
         }
         return widthHalfInches > 0D && !double.IsInfinity(widthHalfInches) && !double.IsNaN(widthHalfInches);

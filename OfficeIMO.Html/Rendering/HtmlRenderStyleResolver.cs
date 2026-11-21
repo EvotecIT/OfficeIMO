@@ -641,7 +641,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             isLength = inheritedIsLength;
             return;
         }
-        if (double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
+        if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
             && parsed >= 0D && !double.IsNaN(parsed) && !double.IsInfinity(parsed)
             ) {
             size = parsed;
@@ -1332,7 +1332,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         string normalized = value.Trim().ToLowerInvariant();
         bool percentage = normalized.EndsWith("%", StringComparison.Ordinal);
         string numberText = percentage ? normalized.Substring(0, normalized.Length - 1) : normalized;
-        if (!double.TryParse(numberText, NumberStyles.Float, CultureInfo.InvariantCulture, out double opacity)
+        if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(numberText, NumberStyles.Float, CultureInfo.InvariantCulture, out double opacity)
             || double.IsNaN(opacity) || double.IsInfinity(opacity)) {
             style.UnsupportedOpacity = normalized;
             return;
@@ -1866,7 +1866,7 @@ internal sealed partial class HtmlRenderStyleResolver {
     }
 
     private static bool TryNonNegativeNumber(string value, out double result) =>
-        double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out result)
+        OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out result)
         && !double.IsNaN(result)
         && !double.IsInfinity(result)
         && result >= 0D;
@@ -1917,7 +1917,7 @@ internal sealed partial class HtmlRenderStyleResolver {
     private static string NormalizeHtmlDimensionAttribute(string? value) {
         string normalized = (value ?? string.Empty).Trim();
         if (normalized.Length == 0 || normalized.EndsWith("%", StringComparison.Ordinal)) return normalized;
-        return double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
+        return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
             && !double.IsNaN(number) && !double.IsInfinity(number)
             ? normalized + "px"
             : normalized;

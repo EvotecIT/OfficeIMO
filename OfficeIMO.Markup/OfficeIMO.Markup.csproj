@@ -56,4 +56,11 @@
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
         <Reference Include="System.Net.Http" />
     </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\OfficeIMO.SharedSource\Numerics\OfficeRoundTripNumberText*.cs" Link="SharedSource\Numerics\%(Filename)%(Extension)" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Reference Include="System.Numerics" />
+  </ItemGroup>
 </Project>

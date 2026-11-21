@@ -1009,7 +1009,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 return true;
             }
 
-            if (double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
+            if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
                 tokens = BuildNumberToken(number);
                 return true;
             }

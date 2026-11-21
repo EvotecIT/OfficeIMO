@@ -1104,7 +1104,7 @@ namespace OfficeIMO.Excel {
                 // Entity-encoded number text is decoded before parsing, as the typed value path does.
                 double number;
                 if (value.IndexOf((byte)'&') >= 0) {
-                    if (!double.TryParse(DecodeString(start, length).Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out number)) return false;
+                    if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(DecodeString(start, length).Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out number)) return false;
                 } else if (!TryParseDouble(TrimAsciiWhitespace(value), out number)) {
                     return false;
                 }

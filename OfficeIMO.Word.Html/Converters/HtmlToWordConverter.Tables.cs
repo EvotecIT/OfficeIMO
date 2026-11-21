@@ -311,7 +311,7 @@ namespace OfficeIMO.Word.Html {
                 return false;
             }
             var num = trimmed.TrimEnd('%');
-            if (!double.TryParse(num, NumberStyles.Float, CultureInfo.InvariantCulture, out var pct)) {
+            if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(num, NumberStyles.Float, CultureInfo.InvariantCulture, out double pct)) {
                 return false;
             }
             if (double.IsNaN(pct) || double.IsInfinity(pct) || pct < 0 || pct > int.MaxValue / 50d) return false;
@@ -513,7 +513,7 @@ namespace OfficeIMO.Word.Html {
                 return false;
             }
 
-            if (htmlAttribute && double.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out var pixels)) {
+            if (htmlAttribute && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out double pixels)) {
                 if (pixels < 0) {
                     return false;
                 }
@@ -554,7 +554,7 @@ namespace OfficeIMO.Word.Html {
                 }
 
                 var numberText = value.Substring(0, value.Length - unit.Length);
-                if (!double.TryParse(numberText, NumberStyles.Float, CultureInfo.InvariantCulture, out var number) || number < 0) {
+                if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(numberText, NumberStyles.Float, CultureInfo.InvariantCulture, out double number) || number < 0) {
                     return false;
                 }
 
@@ -959,20 +959,12 @@ namespace OfficeIMO.Word.Html {
             size = 0;
             var raw = token.Trim().ToLowerInvariant();
             if (raw.EndsWith("px") &&
-                double.TryParse(
-                    raw.Substring(0, raw.Length - 2),
-                    NumberStyles.Float,
-                    CultureInfo.InvariantCulture,
-                    out double px)) {
+                OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(raw.Substring(0, raw.Length - 2), NumberStyles.Float, CultureInfo.InvariantCulture, out double px)) {
                 size = (uint)Math.Max(1, Math.Round(px * 6));
                 return true;
             }
             if (raw.EndsWith("pt") &&
-                double.TryParse(
-                    raw.Substring(0, raw.Length - 2),
-                    NumberStyles.Float,
-                    CultureInfo.InvariantCulture,
-                    out double pt)) {
+                OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(raw.Substring(0, raw.Length - 2), NumberStyles.Float, CultureInfo.InvariantCulture, out double pt)) {
                 size = (uint)Math.Max(1, Math.Round(pt * 8));
                 return true;
             }

@@ -31,7 +31,7 @@ internal sealed class VisioPageSheetLengthCells {
             .Select(cell => new XElement(cell)));
 
     private static bool HasValidCache(XElement cell) {
-        if (!double.TryParse((string?)cell.Attribute("V"), NumberStyles.Float, CultureInfo.InvariantCulture, out double value) ||
+        if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse((string?)cell.Attribute("V"), NumberStyles.Float, CultureInfo.InvariantCulture, out double value) ||
             double.IsNaN(value) || double.IsInfinity(value)) return false;
         string name = (string)cell.Attribute("N")!;
         return name == "PageWidth" || name == "PageHeight" || name == "PageScale" || name == "DrawingScale"

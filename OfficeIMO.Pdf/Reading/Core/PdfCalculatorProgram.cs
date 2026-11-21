@@ -302,11 +302,7 @@ internal sealed partial class PdfCalculatorProgram {
                 _numericConstants.Add(integer);
                 return true;
             }
-            if (double.TryParse(
-                    token,
-                    NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint,
-                    CultureInfo.InvariantCulture,
-                    out double real) && IsFinite(real)) {
+            if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(token, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out double real) && IsFinite(real)) {
                 instruction = Instruction.Real(real);
                 _numericConstants.Add(real);
                 return true;

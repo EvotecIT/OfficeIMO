@@ -375,7 +375,7 @@ namespace OfficeIMO.Visio.Stencils {
 
         private static double ReadPositiveDouble(XElement element, string attributeName) {
             string value = Required(element, attributeName);
-            double parsed = double.Parse(value, CultureInfo.InvariantCulture);
+            double parsed = OfficeIMO.Core.Internal.OfficeRoundTripText.ParseDouble(value, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, CultureInfo.InvariantCulture);
             if (parsed <= 0) {
                 throw new InvalidDataException($"Stencil manifest attribute '{attributeName}' must be positive.");
             }
@@ -421,7 +421,7 @@ namespace OfficeIMO.Visio.Stencils {
 
         private static double ReadDouble(XElement element, string attributeName) {
             string value = Required(element, attributeName);
-            double parsed = XmlConvert.ToDouble(value);
+            double parsed = OfficeIMO.Core.Internal.OfficeRoundTripText.ParseXmlDouble(value);
             if (double.IsNaN(parsed) || double.IsInfinity(parsed)) {
                 throw new InvalidDataException($"Stencil manifest attribute '{attributeName}' must be finite.");
             }
@@ -435,7 +435,7 @@ namespace OfficeIMO.Visio.Stencils {
                 return null;
             }
 
-            double parsed = XmlConvert.ToDouble(value);
+            double parsed = OfficeIMO.Core.Internal.OfficeRoundTripText.ParseXmlDouble(value);
             if (double.IsNaN(parsed) || double.IsInfinity(parsed) || parsed <= 0) {
                 throw new InvalidDataException($"Stencil manifest attribute '{attributeName}' must be positive and finite.");
             }
