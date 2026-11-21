@@ -13,7 +13,41 @@ namespace OfficeIMO.Word {
         }
 
         internal Body BodyRoot =>
-            DocumentRoot.Body ?? throw new InvalidOperationException("Document body is missing.");
+            TryGetBodyRoot() ?? DocumentRoot.Body ?? throw new InvalidOperationException("Document body is missing.");
+
+        // Finding the main part and its body takes several lookups, which paragraph-by-paragraph authoring repeats.
+        // The cached body is used only while it is still the body of the main part's loaded root.
+        private WordprocessingDocument? _bodyCachePackage;
+        private MainDocumentPart? _bodyCachePart;
+        private Document? _bodyCacheDocument;
+        private Body? _bodyCache;
+
+        /// <summary>The main document body, or <see langword="null"/> when the package has none.</summary>
+        internal Body? TryGetBodyRoot() {
+            Body? body = _bodyCache;
+            if (body != null
+                && ReferenceEquals(_bodyCachePackage, _wordprocessingDocument)
+                && _bodyCachePart is { IsRootElementLoaded: true } cachedPart
+                && ReferenceEquals(cachedPart.RootElement, _bodyCacheDocument)
+                && ReferenceEquals(body.Parent, _bodyCacheDocument)) {
+                return body;
+            }
+
+            WordprocessingDocument? package = _wordprocessingDocument;
+            MainDocumentPart? part = package?.MainDocumentPart;
+            Document? document = part?.Document;
+            body = document?.Body;
+            if (body == null) {
+                _bodyCache = null;
+                return null;
+            }
+
+            _bodyCachePackage = package;
+            _bodyCachePart = part;
+            _bodyCacheDocument = document;
+            _bodyCache = body;
+            return body;
+        }
     }
 
     public partial class WordChart {

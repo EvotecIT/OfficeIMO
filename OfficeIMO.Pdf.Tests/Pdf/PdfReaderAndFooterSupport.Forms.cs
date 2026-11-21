@@ -197,6 +197,49 @@ public partial class PdfReaderAndFooterRegressionTests {
         return Encoding.ASCII.GetBytes(pdf);
     }
 
+    private static byte[] BuildPdfWithFormTextColorSpaces() {
+        const string pageContent = "q\n1 0 0 1 100 0 cm\n/Fx Do\nQ\n";
+        const string formContent =
+            "BT\n/F1 12 Tf\n/CsShown cs\n1 0 0 scn\n10 20 Td\n(Shown) Tj\nET\n" +
+            "BT\n/F1 12 Tf\n3 Tr\n/CsInvisible cs\n0 0 1 scn\n10 40 Td\n(Invisible) Tj\nET\n";
+        const string calRgb = "[/CalRGB << /WhitePoint [0.9505 1 1.089] >>]";
+        int pageStreamLength = Encoding.ASCII.GetByteCount(pageContent);
+        int formStreamLength = Encoding.ASCII.GetByteCount(formContent);
+
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /Contents 6 0 R /Resources << /XObject << /Fx 5 0 R >> >> >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+            "endobj",
+            "5 0 obj",
+            $"<< /Type /XObject /Subtype /Form /BBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> /ColorSpace << /CsShown {calRgb} /CsInvisible {calRgb} >> >> /Length {formStreamLength} >>",
+            "stream",
+            formContent.TrimEnd('\n'),
+            "endstream",
+            "endobj",
+            "6 0 obj",
+            $"<< /Length {pageStreamLength} >>",
+            "stream",
+            pageContent.TrimEnd('\n'),
+            "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
     private static byte[] BuildPdfWithNestedFormInvocations() {
         const string pageContent = "q\n1 0 0 1 100 200 cm\n/FxOuter Do\nQ\n";
         const string outerFormContent = "q\n1 0 0 1 15 25 cm\n/FxInner Do\nQ\n";

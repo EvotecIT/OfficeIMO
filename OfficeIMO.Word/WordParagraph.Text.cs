@@ -23,7 +23,7 @@ using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 namespace OfficeIMO.Word {
     public partial class WordParagraph {
         private const string NormalizedLineFeed = "\n";
-        private static readonly char[] SimpleRunUnsupportedCharacters = ['\r', '\n', '\t', NonTextBreakPlaceholder];
+        internal static readonly char[] SimpleRunUnsupportedCharacters = ['\r', '\n', '\t', NonTextBreakPlaceholder];
 
         // Non text-wrapping breaks (for example, page or column breaks) are surfaced as the Unicode line
         // separator so that they remain discoverable during text operations and can be restored exactly.
@@ -461,6 +461,8 @@ namespace OfficeIMO.Word {
         }
 
         private static bool IsHiddenCommentReferenceRun(Run run) {
+            // Most runs hold no comment reference; answer for them without resolving run properties.
+            if (!WordElementWalker.HasDirectCommentReference(run)) return false;
             Vanish? vanish = run.RunProperties?.GetFirstChild<Vanish>();
             return vanish != null &&
                    (vanish.Val == null || vanish.Val.Value) &&

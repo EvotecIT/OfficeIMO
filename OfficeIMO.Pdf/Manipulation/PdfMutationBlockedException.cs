@@ -18,6 +18,13 @@ public sealed class PdfMutationBlockedException : NotSupportedException {
         new[] { "FullRewrite.ProofFailed." + proof }, plan.Warnings,
         new[] { diagnostic ?? "The required PDF " + proof + " proof could not be established." }));
 
+    /// <summary>Reports a document-structure merge policy that cannot be honored for these sources, before any output is written.</summary>
+    internal static PdfMutationBlockedException PolicyConflict(PdfMutationPlan plan, string blockerCode, string diagnostic) => new(new PdfMutationPlan(
+        plan.Operation, plan.ExecutionPreference, PdfMutationExecutionMode.Blocked,
+        plan.Preflight, plan.AppendOnlyReport, fullRewriteAvailable: false, appendOnlyAvailable: false,
+        plan.AffectedStructures, plan.CapabilityRecords, plan.PermissionChecks, plan.RequiredProofs,
+        new[] { blockerCode }, plan.Warnings, new[] { diagnostic }));
+
     private static string BuildMessage(PdfMutationPlan plan) {
         if (plan.Operation == PdfMutationOperation.Optimize && plan.Preflight.Probe.Security.HasSignatures) {
             return "Optimization of signed PDF files is refused because a full rewrite would invalidate their signatures. Optimize before signing. " + plan.Summary;

@@ -135,7 +135,7 @@ internal static partial class VisioGeometryScaling {
                 throw new NotSupportedException("Resizing " + function + " requires evaluable numeric arguments.");
             double transformed = value * factor;
             if (!Finite(transformed)) throw new NotSupportedException("Resizing " + function + " requires finite transformed control coordinates.");
-            args[index] = transformed.ToString("R", CultureInfo.InvariantCulture);
+            args[index] = OfficeIMO.Core.Internal.OfficeRoundTripText.Format(transformed, CultureInfo.InvariantCulture);
             return transformed;
         }
     }
@@ -144,7 +144,7 @@ internal static partial class VisioGeometryScaling {
     internal static void MaterializeCell(XElement cell, double value, VisioShape shape, bool replaceMeaning = false) {
         if (double.IsNaN(value) || double.IsInfinity(value))
             throw new NotSupportedException("Resizing geometry requires finite cached coordinates.");
-        string cached = value.ToString("R", CultureInfo.InvariantCulture);
+        string cached = OfficeIMO.Core.Internal.OfficeRoundTripText.Format(value, CultureInfo.InvariantCulture);
         bool changed = (string?)cell.Attribute("V") != cached;
         cell.SetAttributeValue("V", cached);
         // Expressions that already produce the requested coordinate remain live.

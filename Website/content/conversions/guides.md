@@ -48,11 +48,11 @@ officeimo convert deck.pptx --output deck.pdf --force
 officeimo convert brochure.pub brochure.pdf
 ```
 
-The extension selects the same first-party Word, Excel, PowerPoint, or Publisher PDF adapter used by .NET applications. The source is opened read-only, diagnostics go to standard error, and an existing destination is not replaced unless `--force` is explicit. The command is intentionally a thin package dispatcher; format-specific fidelity and warning contracts remain in the owning adapters linked above.
+The extension selects the same first-party Word, Excel, PowerPoint, or Publisher PDF adapter used by .NET applications. The source is opened read-only, diagnostics go to standard error, and an existing destination is not replaced unless `--force` is explicit. The command is intentionally a thin package dispatcher; format-specific fidelity and warning contracts remain in the owning adapters linked above. [Convert documents with the CLI](/docs/cli/convert/) lists every command-line route and its options, and [batch conversion](/docs/cli/batch-and-jobs/) covers folders, checkpoints and saved jobs.
 
 ## PowerShell routes are documented separately
 
-PSWriteOffice includes dedicated DOC/DOCX and XLS/XLSX conversion cmdlets and supports [Publisher to PDF](/convert/publisher-to-pdf/#convert-a-publisher-archive-with-powershell) through `Convert-OfficeDocument`. Start with the [PSWriteOffice product page](/products/pswriteoffice/), then verify the exact command and parameters in the [PowerShell API reference](/api/powershell/).
+PSWriteOffice includes dedicated DOC/DOCX and XLS/XLSX conversion cmdlets and supports [Publisher to PDF](/convert/publisher-to-pdf/#convert-a-publisher-archive-with-powershell) through `Convert-OfficeDocument`. Start with the [PSWriteOffice product page](/powershell/), then verify the exact command and parameters in the [PowerShell API reference](/api/powershell/).
 
 ## Conversion is a policy decision
 

@@ -26,7 +26,7 @@ Get-OfficeExcelTable -LiteralPath <string[]> [-Name <string>] [-Sheet <OfficeShe
 
 ### Uri
 ```powershell
-Get-OfficeExcelTable [-Uri] <uri> [-Name <string>] [-Sheet <OfficeSheetSelector>] [-AllowHttp] [<CommonParameters>]
+Get-OfficeExcelTable [-Uri] <uri> [-Name <string>] [-Sheet <OfficeSheetSelector>] [-AllowHttp] [-AllowPrivateNetworkAddresses] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -54,6 +54,22 @@ Lists the tables of every workbook in the Reports folder with where they live, t
 
 ### -AllowHttp
 Allow HTTP workbook downloads in addition to HTTPS.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Uri
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -AllowPrivateNetworkAddresses
+Allow a workbook on a loopback, private, link-local or other non-public network address. Use only for trusted internal sources.
 
 ```yaml
 Type: SwitchParameter
@@ -122,7 +138,7 @@ Workbook paths resolved with filesystem wildcard support.
 ```yaml
 Type: String[]
 Parameter Sets: Path
-Aliases: None
+Aliases: FilePath
 Possible values:
 
 Required: True
@@ -138,7 +154,7 @@ Worksheet name, one-based position or native worksheet object. Multi-sheet comma
 ```yaml
 Type: OfficeSheetSelector
 Parameter Sets: Document, Path, LiteralPath, Uri
-Aliases: None
+Aliases: WorksheetName
 Possible values:
 
 Required: False

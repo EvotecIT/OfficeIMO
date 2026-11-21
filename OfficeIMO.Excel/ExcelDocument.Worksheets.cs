@@ -114,6 +114,7 @@ namespace OfficeIMO.Excel {
                 if (character is ':' or '\\' or '/' or '?' or '*' or '[' or ']')
                     throw new ArgumentException("Worksheet name contains invalid characters (: \\ / ? * [ ]).", nameof(name));
             }
+            ExcelTextValidation.ThrowIfUnpairedSurrogate(prepared, nameof(name), "Worksheet name");
             if (existing.Contains(prepared)) throw new ArgumentException($"Worksheet name '{prepared}' already exists.", nameof(name));
             return prepared;
         }
@@ -141,16 +142,22 @@ namespace OfficeIMO.Excel {
             // Sanitize
             string baseName = (name ?? string.Empty).Trim().Trim('\'', ' ');
             var sb = new System.Text.StringBuilder(baseName.Length > 0 ? baseName.Length : 5);
-            foreach (char c in baseName) {
-                if (c == ':' || c == '\\' || c == '/' || c == '?' || c == '*' || c == '[' || c == ']') sb.Append('_');
-                else sb.Append(c);
+            // Invalid characters and unpaired surrogates become underscores, and runs of underscores collapse to one for nicer names.
+            for (int index = 0; index < baseName.Length; index++) {
+                char c = baseName[index];
+                bool pairedSurrogate = char.IsHighSurrogate(c) && index + 1 < baseName.Length && char.IsLowSurrogate(baseName[index + 1]);
+                if (pairedSurrogate) {
+                    sb.Append(c).Append(baseName[++index]);
+                    continue;
+                }
+                char next = c == ':' || c == '\\' || c == '/' || c == '?' || c == '*' || c == '[' || c == ']' || char.IsSurrogate(c) ? '_' : c;
+                if (next == '_' && sb.Length > 0 && sb[sb.Length - 1] == '_') continue;
+                sb.Append(next);
             }
-            string cleaned = sb.ToString().Trim();
-            // Collapse multiple underscores and trim leading/trailing underscores for nicer names
-            cleaned = _multipleUnderscoresRegex.Replace(cleaned, "_");
-            cleaned = cleaned.Trim('_');
+            // Replacements and truncation can expose an edge apostrophe, which Excel rejects in a worksheet name.
+            string cleaned = TrimSanitizedSheetNameEdges(sb.ToString());
+            if (cleaned.Length > 31) cleaned = TrimSanitizedSheetNameEdges(ExcelSheetNameText.Truncate(cleaned, 31));
             if (cleaned.Length == 0) cleaned = GenerateDefaultSheetName(existing);
-            if (cleaned.Length > 31) cleaned = ExcelSheetNameText.Truncate(cleaned, 31);
 
             // Ensure uniqueness by appending (2), (3), ...
             string candidate = cleaned;
@@ -163,6 +170,14 @@ namespace OfficeIMO.Excel {
                 n++;
             }
             return candidate;
+        }
+
+        private static string TrimSanitizedSheetNameEdges(string name) {
+            static bool IsEdge(char character) => char.IsWhiteSpace(character) || character == '_' || character == '\'';
+            int start = 0, end = name.Length;
+            while (start < end && IsEdge(name[start])) start++;
+            while (end > start && IsEdge(name[end - 1])) end--;
+            return name.Substring(start, end - start);
         }
 
         private static string GenerateDefaultSheetName(System.Collections.Generic.ISet<string> existing) {

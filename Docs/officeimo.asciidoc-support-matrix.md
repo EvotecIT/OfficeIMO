@@ -62,7 +62,7 @@ This matrix describes the implemented contract. It is not a claim of complete As
 | Attribute references | Semantic | Typed source nodes; evaluated values are available through bounded substitution APIs. |
 | Cross-references and anchors | Semantic | Typed and editable; explicit and generated section targets supply reference text and diagnose duplicate/dangling targets. Generated IDs honor source-order `sectids`/`idprefix`/`idseparator`, common visible title semantics, and duplicate suffixes; unsupported title substitutions and empty IDs are diagnosed. IDs reach Markdown headings and HTML links. |
 | Links, images, and general inline macros | Semantic | Common link/image forms convert; unknown macro names retain source and produce a fallback diagnostic. |
-| Inline STEM | Semantic | Retains AsciiDoc math source and converts through Markdown's semantic math carrier with diagnostics where layout is unavailable. |
+| Inline STEM | Semantic | `latexmath:[]`, and `stem:[]` unless `:stem:` selects AsciiMath, become Markdown math and render as Office Math in Word and laid-out math in PDF. AsciiMath stays a code span with an `ADOCMD103` diagnostic. Display STEM blocks follow the same notation rule. |
 | Inline passthrough | Semantic | Exact source is retained; conversion is explicit and may fall back. |
 | Footnotes and bibliography anchors | Semantic | Named/anonymous footnotes and triple-bracket bibliography anchors are typed. Markdown emits used definitions and visible bibliography labels. |
 | Superscript, subscript, mark, UI macros | Source-preserved | No dedicated semantic types in the current profile. |

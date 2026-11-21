@@ -4,6 +4,9 @@ using OfficeIMO.Security;
 using OfficeIMO.Word;
 using OfficeIMO.Excel;
 using OfficeIMO.PowerPoint;
+using OfficeIMO.Visio;
+using OfficeIMO.OpenDocument;
+using OfficeIMO.Epub;
 using OfficeIMO.Pdf;
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.All;
@@ -49,9 +52,17 @@ public static partial class OfficeDocument {
                 ".docx" or ".docm" or ".dotx" or ".dotm" => WordDocument.InspectProvenance(source, provenance),
                 ".xlsx" or ".xlsm" or ".xltx" or ".xltm" or ".xlsb" or ".xlam" => ExcelDocument.InspectProvenance(source, provenance),
                 ".pptx" or ".pptm" or ".potx" or ".potm" or ".ppsx" or ".ppsm" => PowerPointDocument.InspectProvenance(source, provenance),
+                ".vsdx" or ".vsdm" or ".vstx" or ".vstm" or ".vssx" or ".vssm" => VisioDocument.InspectProvenance(source, provenance),
+                ".odt" or ".ods" or ".odp" or ".odg" or ".ott" or ".ots" or ".otp" or ".otg" => OdfDocument.InspectProvenance(source, provenance),
+                ".epub" => EpubDocument.InspectProvenance(source, provenance),
                 ".pdf" => PdfProvenance.InspectFile(source, provenance, settings.Formats.Pdf?.ReadOptions),
                 _ => throw new NotSupportedException("Provenance inspection is not supported for this source format.")
             };
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        if (settings.IncludeHiddenData) {
+            using var input = File.OpenRead(source);
+            result.HiddenData = InspectHiddenData(OfficeIMO.Core.Internal.OfficeStreamReader.ReadAllBytes(input, cancellationToken, settings.MaximumInputBytes), source);
         }
         cancellationToken.ThrowIfCancellationRequested();
         if (settings.PackageSignatures != null) result.PackageSignatures = OfficePackageSignatureService.Inspect(source, settings.PackageSignatures);

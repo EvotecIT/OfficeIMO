@@ -12,6 +12,7 @@ namespace OfficeIMO.Excel {
             result = null;
             WorksheetPart sourcePart = sourceSheet.WorksheetPart;
             if (!CanAdoptSourceWorkbookIndexParts(sourceDocument)
+                || CountWorkbookViews(sourceDocument) > CountWorkbookViews(this)
                 || !CanCopyWorksheetPartGraphDirectly(sourceDocument, sourcePart)) {
                 return false;
             }
@@ -20,6 +21,7 @@ namespace OfficeIMO.Excel {
             WorksheetPart copiedPart = WorkbookPartRoot.AddPart(sourcePart);
             IReadOnlyDictionary<string, string> tableNameMap = BuildIdentityTableNameMap(copiedPart);
             Sheet sheet = AppendWorksheetElement(copiedPart, validatedName);
+            CopyWorksheetVisibility(sourceSheet.SheetElement, sheet);
             var targetSheet = new ExcelSheet(this, _spreadSheetDocument, sheet);
             _tableNameCache = null;
             _nextTableId = null;
@@ -30,6 +32,10 @@ namespace OfficeIMO.Excel {
             result = new WorksheetPackageCopyResult(targetSheet, tableNameMap);
             return true;
         }
+
+        // The part is copied unread, so its sheet views must already match workbook views the target has.
+        private static int CountWorkbookViews(ExcelDocument document) =>
+            Math.Max(1, document.WorkbookRoot.GetFirstChild<BookViews>()?.Elements<WorkbookView>().Count() ?? 0);
 
         private bool CanAdoptSourceWorkbookIndexParts(ExcelDocument sourceDocument) {
             WorkbookPart sourceWorkbookPart = sourceDocument.WorkbookPartRoot;

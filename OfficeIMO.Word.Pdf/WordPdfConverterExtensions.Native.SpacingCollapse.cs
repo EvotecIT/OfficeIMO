@@ -152,8 +152,8 @@ namespace OfficeIMO.Word.Pdf {
                 ResetSpacingCollapse();
             }
 
-            public void Image(byte[] bytes, double width, double height, global::OfficeIMO.OfficeAlignment? align = null, PdfCore.PdfImageStyle? style = null) {
-                _inner.Image(bytes, width, height, align, style);
+            public void Image(byte[] bytes, double width, double height, global::OfficeIMO.OfficeAlignment? align = null, PdfCore.PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null) {
+                _inner.Image(bytes, width, height, align, style, linkUri, linkContents);
                 ResetSpacingCollapse();
             }
 

@@ -33,7 +33,6 @@ Use this index to find package guides, cross-package contracts, generated eviden
 - [Excel and CSV tabular performance](performance/excel-tabular-data.md) — matched materialized reads, object parsing, native writes, and allocation profiles.
 - [Excel formula calculation performance](performance/excel-formula-calculation.md) — validated lookup reports, calculation-pass shared-string reuse, and before/after measurements.
 - [PDF browser-print reading performance](performance/pdf-reading.md) — complete-output checks, column preservation and before/after read measurements.
-- [Windows .NET 10 tabular measurements](benchmarks/officeimo.excel-tabular-2026-10-08.md) — validated workbook and CSV reads/writes, shared-string first-row latency, mapping, Arrow, and ADO.NET workloads with captured artifact and input identities.
 - [Image engine benchmarks](../OfficeIMO.Drawing.Benchmarks/README.md) — validated identification, decode, encode, resize, and placement-optimization workloads, with isolated opt-in library comparisons.
 
 ## Current product contracts
@@ -42,6 +41,7 @@ The package README is the primary usage guide for its public API. These reposito
 
 - [Provenance support matrix](officeimo.provenance-support-matrix.md) — exact carrier, package-owner, removal, verification, and resource-limit contracts.
 - [Content safety support matrix](officeimo.content-safety-support-matrix.md) — concealed-content, Unicode, cleanup, and format-specific ingestion-security boundaries.
+- [Hidden data and personal information](officeimo.hidden-data-support-matrix.md) — Document Inspector-style metadata, comment, identity and hidden-content removal for Word, Excel and PowerPoint.
 - [Text formatting support matrix](officeimo.text-formatting-support-matrix.md) — native font, decoration, script, casing, rendering, and compatibility contracts across formats.
 
 ### Office formats and interoperability
@@ -67,6 +67,7 @@ The package README is the primary usage guide for its public API. These reposito
 
 ### Document and conversion formats
 
+- [YAML document, merge and serializer API](../OfficeIMO.Yaml/README.md), [Reader adapter](../OfficeIMO.Reader.Yaml/README.md), [benchmarks and corpus runs](../OfficeIMO.Yaml.Benchmarks/README.md)
 - [CHM archive API](../OfficeIMO.Chm/README.md), [support and qualification](../OfficeIMO.Chm/SUPPORT.md), and [Reader adapter](../OfficeIMO.Reader.Chm/README.md)
 - [Electronic invoice model and CII/UBL conversion](../OfficeIMO.Invoicing/README.md)
 - [Typed invoice PDF generation](../OfficeIMO.Invoicing.Pdf/README.md)
@@ -101,6 +102,9 @@ The package README is the primary usage guide for its public API. These reposito
 - [Access document design](officeimo.access-design.md) — proposed typed API, native codec ownership, database-provider boundary, preservation, security, and qualification. Open milestones live in the [Access roadmap](ROADMAP.md#microsoft-access-document-library).
 - [Owned HTML documents and providers](../OfficeIMO.Html/README.md#inspect-and-edit-owned-html) — current snapshot, edit, parsing and charset contracts; lightweight packages and retained runtime dependencies.
 - [Independent HTML engine design](officeimo.html-engine-design.md) — proposed shared DOM, CSS, layout, conversion and optional web-runtime boundaries, with staged dependency retirement. Open milestones live in the [roadmap](ROADMAP.md#independent-html-engine).
+- [YAML engine design](officeimo.yaml-engine-design.md) — owned lossless YAML 1.2 engine: layers, editing and merge rules, schemas, serializer, limits, performance and qualification. Open work lives in the [roadmap](ROADMAP.md#yaml-engine).
+- [Structured-data conversions design](officeimo.data-conversions-design.md) — streaming JSON, YAML, TOML, XML, CSV/TSV and Excel conversions: event pipeline, packages, table and XML mappings, loss codes and proof. Open work lives in the [roadmap](ROADMAP.md#yaml-engine).
+- [TOML engine design](officeimo.toml-engine-design.md) — owned lossless TOML 1.1 engine: reader, editable model, minimal-diff saving, limits and qualification. Open work lives in the [roadmap](ROADMAP.md#toml-engine).
 - [Native Apple apps design](officeimo.studio-apple-native-design.md) — Swift apps for macOS, iPadOS and iOS over the shared C# engine: layer ownership, C interface rules, storage boundary and engine builds. Open work lives in the [Studio roadmap](ROADMAP.md#phase-7-native-apple-apps).
 - [Document assistant design](officeimo.document-assistant-design.md) — headless AI operations, Studio integration, evidence contracts and support limits. [Evidence measurements](../Build/Benchmarks/README.md) cover local preparation and snapshot reuse. Open work lives in the [roadmap](ROADMAP.md#document-assistant).
 
@@ -113,5 +117,4 @@ These reports are generated from repository catalogs, manifests, and test suites
 - [HTML support](officeimo.html-support-matrix.md) is generated from the HTML capability and diagnostic catalogs.
 - [PDF conversion support](officeimo.pdf-conversion-support-matrix.md) is generated from `pdf-conversion-scenarios.json`.
 - [CommonMark inventory](officeimo.markdown.commonmark-inventory.md) and [GFM inventory](officeimo.markdown.gfm-inventory.md) are generated by the Markdown test suites.
-- [Benchmark evidence](benchmarks/README.md) records reproducible performance runs and their provenance.
 - [Opt-in tabular comparisons](../Benchmarks/ExcelReaderTyped/README.md) explain the generated and real-data workloads, field validation, source and package selection, and equivalent-work boundaries.

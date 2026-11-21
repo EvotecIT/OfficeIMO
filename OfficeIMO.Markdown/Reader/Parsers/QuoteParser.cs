@@ -20,22 +20,31 @@ internal static partial class MarkdownReader {
                 : null;
             int j = i;
             bool sawQuotedLine = false;
+            var literalBlock = new QuotedLiteralBlockState(state);
             while (j < lines.Length) {
                 var ln = lines[j];
                 var ltrim = ln.TrimStart();
                 if (ltrim.StartsWith(">", StringComparison.Ordinal)) {
                     if (CountLeadingIndentColumns(ln) > 3) break;
 
-                    if (sawQuotedLine
-                        && options.Callouts
-                        && inner.Count > 0
-                        && IsCalloutHeader(ltrim, options, out _, out _)) {
-                        break;
-                    }
-
                     // Strip one level
                     var expanded = ExpandWhitespaceAfterContainerMarker(ln, ln.IndexOf('>') + 1);
                     var stripped = StripSingleQuoteMarker(expanded);
+
+                    // Callout-like text inside quoted fenced code or an HTML block is literal; it does not split the quote.
+                    if (!literalBlock.Continue(stripped)) {
+                        if (sawQuotedLine
+                            && options.Callouts
+                            && inner.Count > 0
+                            && IsCalloutHeader(ltrim, options, out _, out _)) {
+                            break;
+                        }
+
+                        if (!literalBlock.TryOpenFence(stripped, options)) {
+                            literalBlock.TryOpenTopLevelHtmlBlock(stripped, lines, j, options);
+                        }
+                    }
+
                     int contentStartColumn = GetQuoteContentStartColumn(expanded);
                     if (inner.Count == 0) {
                         int leadingColumns = CountLeadingIndentColumns(stripped);
@@ -71,7 +80,8 @@ internal static partial class MarkdownReader {
                 // Lazy continuation: allow a non-quoted line to continue a blockquote paragraph
                 // until a blank line followed by a non-quoted line ends the blockquote.
                 if (sawQuotedLine) {
-                    if (string.IsNullOrWhiteSpace(ln)) {
+                    // Only paragraphs continue lazily; an open quoted fence or HTML block ends at an unquoted line.
+                    if (string.IsNullOrWhiteSpace(ln) || literalBlock.IsOpen) {
                         break;
                     }
 
@@ -169,12 +179,41 @@ internal static partial class MarkdownReader {
                     || IsOrderedListLine(line, options, out _, out _)
                     || HtmlBlockParser.IsParagraphInterruptingHtmlBlockStart(line, options)
                     || TryGetSetextHeadingUnderlineLevel(line, out _)
-                    || LooksLikeReferenceDefinition(line)) {
+                    || LooksLikeReferenceDefinition(line)
+                    || MayStartExtensionBlock(line, options)
+                    || (options.DefinitionLists && ShouldTreatAsDefinitionLine(lines, lineIndex, options))) {
                     return false;
                 }
             }
 
             return true;
+        }
+
+        // Callouts, TOC markers, footnotes, block images, containers, math blocks, abbreviation
+        // definitions and definition markers each have their own block parser when enabled.
+        private static bool MayStartExtensionBlock(string line, MarkdownLoadOptions options) {
+            int index = 0;
+            while (index < line.Length && (line[index] == ' ' || line[index] == '\t')) {
+                index++;
+            }
+
+            if (index >= line.Length) {
+                return false;
+            }
+
+            char first = line[index];
+            char next = index + 1 < line.Length ? line[index + 1] : '\0';
+            return first switch {
+                '[' => (next == '!' && options.Callouts)
+                    || (next == '^' && options.Footnotes)
+                    || (options.TocPlaceholders && (next == '[' || next is 'T' or 't')),
+                '{' => options.TocPlaceholders && next == ':',
+                '!' => next == '[' && options.Images,
+                ':' => options.CustomContainers || options.DefinitionLists,
+                '$' => options.Math,
+                '*' => next == '[' && options.Abbreviations,
+                _ => false
+            };
         }
 
         private static bool LooksLikeReferenceDefinition(string line) {
@@ -361,6 +400,11 @@ internal static partial class MarkdownReader {
         normalized = currentLine ?? string.Empty;
         if (string.IsNullOrWhiteSpace(previousLine) || string.IsNullOrWhiteSpace(currentLine)) return false;
 
+        // The indent check is the cheapest and rejects most lines, so it runs before the checks
+        // on the previous line.
+        int currentIndent = CountLeadingIndentColumns(currentLine!);
+        if (currentIndent <= 0 || currentIndent > 4) return false;
+
         var previous = previousLine!;
         if (IsUnorderedListLine(previous) ||
             IsOrderedListLine(previous, options, out _, out _, out _, out _)) {
@@ -368,9 +412,6 @@ internal static partial class MarkdownReader {
         }
 
         if (!LooksLikeParagraphLine(new[] { previous }, 0, options)) return false;
-
-        int currentIndent = CountLeadingIndentColumns(currentLine!);
-        if (currentIndent <= 0 || currentIndent > 4) return false;
 
         var trimmed = currentLine!.TrimStart();
         if (trimmed.Length == 0) return false;

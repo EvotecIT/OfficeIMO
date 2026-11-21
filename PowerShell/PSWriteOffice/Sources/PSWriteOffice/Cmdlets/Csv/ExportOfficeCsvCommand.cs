@@ -30,10 +30,6 @@ public sealed partial class ExportOfficeCsvCommand : PSCmdlet
     private const string ParameterSetInputObjectPathCulture = "InputObjectPathCulture";
     private const string ParameterSetInputObjectLiteralPathDelimiter = "InputObjectLiteralPath";
     private const string ParameterSetInputObjectLiteralPathCulture = "InputObjectLiteralPathCulture";
-    private const string ParameterSetDocumentPathDelimiter = "DocumentPath";
-    private const string ParameterSetDocumentPathCulture = "DocumentPathCulture";
-    private const string ParameterSetDocumentLiteralPathDelimiter = "DocumentLiteralPath";
-    private const string ParameterSetDocumentLiteralPathCulture = "DocumentLiteralPathCulture";
     private CsvRowWriter? _streamingWriter;
     private readonly CsvPowerShellObjectProjector _objectProjector = new();
     private string? _resolvedPath;
@@ -43,49 +39,35 @@ public sealed partial class ExportOfficeCsvCommand : PSCmdlet
     private bool _skipOutput;
     private bool _wroteOutput;
 
-    /// <summary>Objects to export into CSV rows.</summary>
+    /// <summary>Objects to export into CSV rows, or a CsvDocument to export (alias Document).</summary>
     [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetInputObjectPathDelimiter)]
     [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetInputObjectPathCulture)]
     [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetInputObjectLiteralPathDelimiter)]
     [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetInputObjectLiteralPathCulture)]
+    [Alias("Document")]
     [AllowNull, AllowEmptyString, AllowEmptyCollection]
     public object? InputObject { get; set; }
-
-    /// <summary>CSV document to export.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocumentPathDelimiter)]
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocumentPathCulture)]
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocumentLiteralPathDelimiter)]
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocumentLiteralPathCulture)]
-    public CsvDocument Document { get; set; } = null!;
 
     /// <summary>Destination CSV path.</summary>
     [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetInputObjectPathDelimiter)]
     [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetInputObjectPathCulture)]
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetDocumentPathDelimiter)]
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetDocumentPathCulture)]
     [Alias("FilePath", "OutputPath", "OutPath")]
     public string? Path { get; set; }
 
     /// <summary>Literal destination CSV path. Wildcards are not expanded.</summary>
     [Parameter(Mandatory = true, ParameterSetName = ParameterSetInputObjectLiteralPathDelimiter)]
     [Parameter(Mandatory = true, ParameterSetName = ParameterSetInputObjectLiteralPathCulture)]
-    [Parameter(Mandatory = true, ParameterSetName = ParameterSetDocumentLiteralPathDelimiter)]
-    [Parameter(Mandatory = true, ParameterSetName = ParameterSetDocumentLiteralPathCulture)]
     [Alias("PSPath", "LP")]
     public string? LiteralPath { get; set; }
 
     /// <summary>Field delimiter text, including multi-character separators.</summary>
     [Parameter(ParameterSetName = ParameterSetInputObjectPathDelimiter)]
     [Parameter(ParameterSetName = ParameterSetInputObjectLiteralPathDelimiter)]
-    [Parameter(ParameterSetName = ParameterSetDocumentPathDelimiter)]
-    [Parameter(ParameterSetName = ParameterSetDocumentLiteralPathDelimiter)]
     public string Delimiter { get; set; } = ",";
 
     /// <summary>Use the list separator from the selected or current culture as the delimiter.</summary>
     [Parameter(Mandatory = true, ParameterSetName = ParameterSetInputObjectPathCulture)]
     [Parameter(Mandatory = true, ParameterSetName = ParameterSetInputObjectLiteralPathCulture)]
-    [Parameter(Mandatory = true, ParameterSetName = ParameterSetDocumentPathCulture)]
-    [Parameter(Mandatory = true, ParameterSetName = ParameterSetDocumentLiteralPathCulture)]
     public SwitchParameter UseCulture { get; set; }
 
     /// <summary>Omit the header row from the output.</summary>
@@ -127,6 +109,14 @@ public sealed partial class ExportOfficeCsvCommand : PSCmdlet
     /// <summary>Token written for null values.</summary>
     [Parameter]
     public string? NullValue { get; set; }
+
+    /// <summary>Character that encloses quoted fields. Defaults to the double quote; fields that contain it are quoted.</summary>
+    [Parameter]
+    public char QuoteCharacter { get; set; } = '"';
+
+    /// <summary>Character written before the quote character, and before itself, inside quoted fields, such as a backslash. Leave unset to double the quote character.</summary>
+    [Parameter]
+    public char? EscapeCharacter { get; set; }
 
     /// <summary>Date/time format used for DateTime and DateTimeOffset values.</summary>
     [Parameter]
@@ -187,11 +177,6 @@ public sealed partial class ExportOfficeCsvCommand : PSCmdlet
     /// <inheritdoc />
     protected override void ProcessRecord()
     {
-        if (IsDocumentParameterSet())
-        {
-            ExportDocument(Document);
-            return;
-        }
 
         if (TryGetCsvDocument(InputObject, out var csvDocument))
         {
@@ -502,7 +487,11 @@ public sealed partial class ExportOfficeCsvCommand : PSCmdlet
             CompressionLevel = CompressionLevel,
             FormulaInjectionPolicy = FormulaInjectionPolicy,
             QuoteMode = UseQuotes,
-            QuoteFields = QuoteFields
+            // PowerShell's -UseQuotes Never writes fields unchanged; the engine rejects ambiguous fields by default.
+            WriteUnquotedFieldsLiterally = UseQuotes == CsvQuoteMode.Never,
+            QuoteFields = QuoteFields,
+            QuoteCharacter = QuoteCharacter,
+            EscapeCharacter = EscapeCharacter
         };
 
         CsvPowerShellOptionBuilder.ApplySaveOptions(
@@ -521,17 +510,10 @@ public sealed partial class ExportOfficeCsvCommand : PSCmdlet
         return options;
     }
 
-    private bool IsDocumentParameterSet() =>
-        string.Equals(ParameterSetName, ParameterSetDocumentPathDelimiter, StringComparison.OrdinalIgnoreCase) ||
-        string.Equals(ParameterSetName, ParameterSetDocumentPathCulture, StringComparison.OrdinalIgnoreCase) ||
-        string.Equals(ParameterSetName, ParameterSetDocumentLiteralPathDelimiter, StringComparison.OrdinalIgnoreCase) ||
-        string.Equals(ParameterSetName, ParameterSetDocumentLiteralPathCulture, StringComparison.OrdinalIgnoreCase);
 
     private bool IsLiteralPathParameterSet() =>
         string.Equals(ParameterSetName, ParameterSetInputObjectLiteralPathDelimiter, StringComparison.OrdinalIgnoreCase) ||
-        string.Equals(ParameterSetName, ParameterSetInputObjectLiteralPathCulture, StringComparison.OrdinalIgnoreCase) ||
-        string.Equals(ParameterSetName, ParameterSetDocumentLiteralPathDelimiter, StringComparison.OrdinalIgnoreCase) ||
-        string.Equals(ParameterSetName, ParameterSetDocumentLiteralPathCulture, StringComparison.OrdinalIgnoreCase);
+        string.Equals(ParameterSetName, ParameterSetInputObjectLiteralPathCulture, StringComparison.OrdinalIgnoreCase);
 
     private string ResolveOutputPath()
     {
@@ -733,7 +715,8 @@ public sealed partial class ExportOfficeCsvCommand : PSCmdlet
 
     private string[] ReadAppendHeader(string path)
     {
-        var options = new CsvLoadOptions
+        // Only the header is needed, so a streamed reader keeps large files out of memory.
+        var options = new CsvReaderOptions
         {
             Delimiter = Delimiter.Length == 1 ? Delimiter[0] : ',',
             DelimiterText = Delimiter,
@@ -742,7 +725,14 @@ public sealed partial class ExportOfficeCsvCommand : PSCmdlet
             CompressionType = CompressionType
         };
 
-        return CsvDocument.Load(path, options).Header.ToArray();
+        using var reader = CsvDocument.OpenReader(path, options);
+        var header = new string[reader.FieldCount];
+        for (var index = 0; index < header.Length; index++)
+        {
+            header[index] = reader.GetName(index);
+        }
+
+        return header;
     }
 
     private static Encoding? TryDetectEncodingFromBom(string path)

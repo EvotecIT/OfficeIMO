@@ -9,7 +9,7 @@ public enum PdfTextShapingMode {
     /// <summary>Write one font glyph for each Unicode scalar, with no built-in substitutions.</summary>
     UnicodeScalar = 0,
 
-    /// <summary>Apply built-in substitutions for the standard Latin presentation ligatures ff, fi, fl, ffi, and ffl when the embedded font covers them.</summary>
+    /// <summary>Apply built-in substitutions for the standard Latin presentation ligatures ff, fi, fl, ffi, and ffl when the embedded font covers them. Text with ZWJ, ZWNJ or emoji sequence characters uses the font's OpenType shaping instead, because only the font can join it.</summary>
     LatinLigatures = 1,
 
     /// <summary>Apply the embedded font's default Latin GSUB ligatures, preserving source text for extraction. Unsupported lookups retain scalar output and diagnostics.</summary>
@@ -126,6 +126,9 @@ public sealed partial class PdfCreateOptions {
     internal Func<string, IReadOnlyList<int>>? TextLineBreakCallbackSnapshot => _textLineBreakCallback;
     internal PdfTextHyphenationCallback? TextHyphenationCallbackSnapshot => _textHyphenationCallback;
     internal PdfTextShapingMode TextShapingModeSnapshot => _textShapingMode;
+
+    /// <summary>The configured mode, or OpenType shaping for text that only the font can join, such as an emoji sequence.</summary>
+    internal PdfTextShapingMode TextShapingModeFor(string? text) => PdfTextShapingOptions.EffectiveShapingMode(_textShapingMode, text);
     internal IOfficeTextShapingProvider? TextShapingProviderSnapshot => _textShapingProvider;
 
     internal bool HasDiagnosticsReport => DiagnosticsReport != null;
@@ -161,7 +164,7 @@ public sealed partial class PdfCreateOptions {
 
         foreach (PdfTextShapingDiagnostic diagnostic in diagnostics) {
             if (deferProviderCoverable && IsProviderCoveredDiagnostic(diagnostic) &&
-                (_textShapingProvider != null || _textShapingMode == PdfTextShapingMode.OpenTypeLigatures)) {
+                (_textShapingProvider != null || TextShapingModeFor(text) == PdfTextShapingMode.OpenTypeLigatures)) {
                 continue;
             }
 
@@ -244,7 +247,8 @@ public sealed partial class PdfCreateOptions {
         _recordProviderShapedTextRunDelegate ??= RecordProviderShapedTextRun;
 
     internal void RecordProviderShapedTextRun(string text, string fontName, bool isOpenTypeCff, bool automaticLatin) {
-        if ((_textShapingProvider == null && _textShapingMode != PdfTextShapingMode.OpenTypeLigatures) || string.IsNullOrEmpty(text)) {
+        if ((_textShapingProvider == null && PdfTextShapingOptions.EffectiveShapingMode(_textShapingMode, text) != PdfTextShapingMode.OpenTypeLigatures)
+            || string.IsNullOrEmpty(text)) {
             return;
         }
 

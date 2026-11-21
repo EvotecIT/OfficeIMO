@@ -6853,25 +6853,6 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksUnacceptedApproximateParagraphShadingColorBeforeCreatingFile() {
-            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
-
-            try {
-                using WordDocument document = WordDocument.Create();
-                WordParagraph paragraph = document.AddParagraph("Custom");
-                paragraph.ShadingFillColor = OfficeColor.Parse("336699");
-
-                OfficeConversionException exception = Assert.Throws<OfficeConversionException>(() => document.Save(docPath));
-
-                Assert.Contains(exception.Report.Diagnostics, finding =>
-                    finding.Code == "word-doc-color-approximated" && finding.LossKind == OfficeConversionLossKind.Approximation);
-                Assert.False(File.Exists(docPath));
-            } finally {
-                DeleteIfExists(docPath);
-            }
-        }
-
-        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocParagraphBordersAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -12225,11 +12206,11 @@ namespace OfficeIMO.Tests {
                 document.Save(blockedOutput,new OfficeIMO.Word.WordSaveOptions{                    LossPolicy = OfficeConversionLossPolicy.Allow
 ,Format=WordFileFormat.Doc}));
 
-            Assert.Contains(nameof(WordSaveOptions.SignedDocumentPolicy), exception.Message);
+            Assert.Contains(nameof(WordSaveOptions.SignatureMutationPolicy), exception.Message);
             Assert.Equal(new byte[] { 9, 8, 7 }, blockedOutput.ToArray());
 
             using var allowedOutput = new MemoryStream();
-            document.Save(allowedOutput,new OfficeIMO.Word.WordSaveOptions{                LossPolicy = OfficeConversionLossPolicy.Allow,                SignedDocumentPolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation
+            document.Save(allowedOutput,new OfficeIMO.Word.WordSaveOptions{                LossPolicy = OfficeConversionLossPolicy.Allow,                SignatureMutationPolicy = OfficeSignatureMutationPolicy.PreserveSignatureMarkup
 ,Format=WordFileFormat.Doc});
             Assert.Equal(signaturePayload, ReadCompoundStream(allowedOutput.ToArray(), "_signatures"));
         }

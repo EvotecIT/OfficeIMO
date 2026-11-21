@@ -10,9 +10,9 @@ public sealed class TableCell : MarkdownObject, IChildMarkdownBlockContainer, IS
     private int _rowSpan = 1;
 
     /// <summary>Structured child blocks owned by this table cell.</summary>
-    public List<IMarkdownBlock> ChildBlocks { get; } = new List<IMarkdownBlock>();
+    public List<IMarkdownBlock> ChildBlocks { get; }
     /// <summary>Owned syntax nodes for the structured cell body.</summary>
-    internal IReadOnlyList<MarkdownSyntaxNode>? SyntaxChildren { get; set; }
+    internal IReadOnlyList<MarkdownSyntaxNode>? SyntaxChildren { get => ReadSourceInformation(ref field); set => WriteSourceInformation(ref field, value); }
     /// <summary>Whether this cell belongs to the header row.</summary>
     public bool IsHeader { get; internal set; }
     /// <summary>Zero-based data-row index for body cells; <c>-1</c> for header cells.</summary>
@@ -57,6 +57,7 @@ public sealed class TableCell : MarkdownObject, IChildMarkdownBlockContainer, IS
     }
     /// <summary>Creates a typed table cell.</summary>
     public TableCell(IEnumerable<IMarkdownBlock>? blocks = null) {
+        ChildBlocks = new List<IMarkdownBlock>();
         if (blocks == null) {
             return;
         }
@@ -66,6 +67,12 @@ public sealed class TableCell : MarkdownObject, IChildMarkdownBlockContainer, IS
                 ChildBlocks.Add(block);
             }
         }
+    }
+
+    // A parsed cell is usually one paragraph. The list starts with the capacity adding one block
+    // to an empty list gives it.
+    internal TableCell(IMarkdownBlock block) {
+        ChildBlocks = new List<IMarkdownBlock>(4) { block };
     }
 
     /// <summary>Markdown representation of the full cell body.</summary>
@@ -115,10 +122,29 @@ public sealed class TableCell : MarkdownObject, IChildMarkdownBlockContainer, IS
         return sb.ToString();
     }
 
+    /// <summary>Appends what <see cref="RenderHtml"/> returns.</summary>
+    internal void AppendHtml(StringBuilder sb) {
+        if (ChildBlocks.Count == 1 && ChildBlocks[0] is ParagraphBlock paragraph) {
+            int start = sb.Length;
+            paragraph.Inlines.AppendHtml(sb);
+            sb.Replace("\n", "<br/>", start, sb.Length - start);
+            return;
+        }
+
+        for (int i = 0; i < ChildBlocks.Count; i++) {
+            sb.Append(MarkdownBlockRenderDispatcher.RenderHtml(ChildBlocks[i]));
+        }
+    }
+
     IReadOnlyList<IMarkdownBlock> IChildMarkdownBlockContainer.ChildBlocks => ChildBlocks;
     IReadOnlyList<MarkdownSyntaxNode>? ISyntaxChildrenMarkdownBlock.ProvidedSyntaxChildren => SyntaxChildren;
 
     IReadOnlyList<MarkdownSyntaxNode> IOwnedSyntaxChildrenMarkdownBlock.BuildOwnedSyntaxChildren() {
         return MarkdownBlockSyntaxBuilder.BuildCanonicalChildSyntaxNodes(SyntaxChildren, ChildBlocks);
+    }
+
+    internal override void AdoptCapturedSourceInformation(MarkdownObject captured, MarkdownCapturedObjectMap map) {
+        var source = (TableCell)captured;
+        SyntaxChildren = map.Retarget(source.SyntaxChildren);
     }
 }

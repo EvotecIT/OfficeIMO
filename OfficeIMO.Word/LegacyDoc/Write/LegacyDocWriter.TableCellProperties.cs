@@ -417,7 +417,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 ReadSupportedTableCellBorder(borders.RightBorder));
         }
 
-        private static LegacyDocTableBorders ReadSupportedTableBorders(TableProperties? tableProperties, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
+        private static LegacyDocTableBorders ReadSupportedTableBorders(TableProperties? tableProperties, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
             TableBorders? borders = tableProperties?.GetFirstChild<TableBorders>();
             if (borders != null) {
                 return ReadSupportedTableBorders(borders);
@@ -426,7 +426,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return ReadSupportedTableStyleBorders(tableProperties?.GetFirstChild<TableStyle>(), tableStyleDefinitions);
         }
 
-        private static LegacyDocTableCellShading ReadSupportedTableShading(TableProperties? tableProperties, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
+        private static LegacyDocTableCellShading ReadSupportedTableShading(TableProperties? tableProperties, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
             // Direct tblPr shading paints table-spacing gaps, not cell defaults.
             // Its validation remains separate from ordinary style tcPr shading.
             return ReadSupportedTableStyleShading(tableProperties?.GetFirstChild<TableStyle>(), tableStyleDefinitions);

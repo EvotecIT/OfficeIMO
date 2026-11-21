@@ -313,7 +313,7 @@ namespace OfficeIMO.PowerPoint {
             Add(features, "Structure", "Slides", OfficeFeatureSupportLevel.Editable, Slides.Count, null,
                 "Slides can be authored, duplicated, imported, hidden, reordered, and removed.");
             Add(features, "Structure", "PowerPoint package scaffolding", OfficeFeatureSupportLevel.Editable, packageFoundationDetails.Count, null,
-                "Presentation, layout, master, theme, view, table-style, notes-master, and thumbnail parts are created or preserved as package foundation.",
+                "Presentation, layout, master, theme, view, table-style, notes-master, and thumbnail parts are created or preserved as package foundation. Slide masters and layouts can be added, duplicated, renamed, designed, and removed.",
                 packageFoundationDetails);
             Add(features, "Structure", "Sections", OfficeFeatureSupportLevel.Editable, GetSections().Count, null,
                 "Sections can be authored, inspected, renamed, moved, and synchronized with slides.");
@@ -490,7 +490,7 @@ namespace OfficeIMO.PowerPoint {
                 "Office add-in and task-pane package metadata is detected as preserve-only advanced content.",
                 webExtensionDetails);
             Add(features, "Compatibility", "Digital signatures", OfficeFeatureSupportLevel.Unsupported, signatureDetails.Count, null,
-                "Package signing and signature validation are not implemented; editing signed presentations may invalidate signatures.",
+                "Packages are signed with SignPackage and checked with ValidateSignatures. Editing a signed presentation invalidates its existing signatures, so sign again after saving.",
                 signatureDetails);
 
             return new PowerPointFeatureReport(features);

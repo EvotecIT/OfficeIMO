@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http;
+using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Excel {
     internal static class ExcelHttpWorkbookLoader {
@@ -23,7 +24,11 @@ namespace OfficeIMO.Excel {
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeoutCts.CancelAfter(snapshot.Timeout);
 
-            using var client = CreateOwnedHttpClient(snapshot.Timeout, snapshot.HttpMessageHandler);
+            // A test handler stands in for the network; production loads share the address-checked transport.
+            using HttpClient? ownedClient = snapshot.HttpMessageHandler == null
+                ? null
+                : new HttpClient(snapshot.HttpMessageHandler, disposeHandler: false) { Timeout = System.Threading.Timeout.InfiniteTimeSpan };
+            HttpClient client = ownedClient ?? OfficeNetworkAddressPolicy.GetClient(snapshot.AllowPrivateNetworkAddresses);
             using var response = await SendWithRedirectsAsync(client, uri, snapshot, timeoutCts.Token).ConfigureAwait(false);
 
             response.EnsureSuccessStatusCode();
@@ -49,16 +54,16 @@ namespace OfficeIMO.Excel {
             return bytes;
         }
 
-        private static HttpClient CreateOwnedHttpClient(TimeSpan timeout, HttpMessageHandler? messageHandler) {
-            bool disposeHandler = messageHandler == null;
-            messageHandler ??= new HttpClientHandler {
-                AllowAutoRedirect = false,
-                AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
-            };
+        private static Task<HttpRequestMessage> CreateRequestAsync(Uri uri, ExcelLoadOptionsSnapshot options, CancellationToken cancellationToken) {
+            if (options.HttpMessageHandler == null) {
+                return OfficeNetworkAddressPolicy.CreateRequestAsync(HttpMethod.Get, uri, options.AllowPrivateNetworkAddresses, cancellationToken);
+            }
 
-            return new HttpClient(messageHandler, disposeHandler) {
-                Timeout = timeout
-            };
+            // A substituted handler does its own name resolution; only the URI itself can be screened.
+            if (!options.AllowPrivateNetworkAddresses) {
+                OfficeNetworkAddressPolicy.ThrowIfNonPublicHostName(uri);
+            }
+            return Task.FromResult(new HttpRequestMessage(HttpMethod.Get, uri));
         }
 
         private static async Task<HttpResponseMessage> SendWithRedirectsAsync(
@@ -68,27 +73,30 @@ namespace OfficeIMO.Excel {
             CancellationToken cancellationToken) {
             Uri currentUri = initialUri;
             bool includeCustomHeaders = true;
+            var cookies = new OfficeHttpCookieScope();
 
             for (int redirectCount = 0; redirectCount <= MaxRedirects; redirectCount++) {
-                var request = new HttpRequestMessage(HttpMethod.Get, currentUri);
-                ApplyHeaders(request, options, includeCustomHeaders);
-
                 HttpResponseMessage response;
                 try {
-                    response = await client.SendAsync(
-                        request,
-                        HttpCompletionOption.ResponseHeadersRead,
-                        cancellationToken).ConfigureAwait(false);
-                } finally {
-                    request.Dispose();
+                    using HttpRequestMessage request = await CreateRequestAsync(currentUri, options, cancellationToken).ConfigureAwait(false);
+                    ApplyHeaders(request, options, includeCustomHeaders);
+                    response = await cookies.SendAsync(client, request, currentUri, cancellationToken).ConfigureAwait(false);
+                } catch (Exception exception) when (OfficeNetworkAddressPolicy.TryGetRejection(exception, out OfficeNetworkAddressException rejection)) {
+                    throw new NotSupportedException(
+                        $"Remote Excel load host '{currentUri.Host}' is a loopback, private, link-local or other non-public network address. Set ExcelLoadOptions.AllowPrivateNetworkAddresses only for trusted internal sources.",
+                        rejection);
                 }
 
                 if (!IsRedirect(response.StatusCode)) {
                     return response;
                 }
 
-                Uri nextUri = ResolveRedirectUri(currentUri, response.Headers.Location);
-                response.Dispose();
+                Uri nextUri;
+                try {
+                    nextUri = ResolveRedirectUri(currentUri, response.Headers.Location);
+                } finally {
+                    response.Dispose();
+                }
 
                 if (redirectCount == MaxRedirects) {
                     throw new HttpRequestException($"Remote workbook request exceeded the maximum of {MaxRedirects} redirects.");
@@ -179,6 +187,10 @@ namespace OfficeIMO.Excel {
         }
 
         private static void ValidateHost(Uri uri, ExcelLoadOptionsSnapshot options) {
+            if (!string.IsNullOrEmpty(uri.UserInfo)) {
+                throw new NotSupportedException("Remote Excel load URIs cannot contain embedded credentials.");
+            }
+
             if (options.AllowedHosts.Count == 0) {
                 return;
             }
@@ -320,6 +332,7 @@ namespace OfficeIMO.Excel {
                 string? userAgent,
                 Dictionary<string, string> headers,
                 HashSet<string> allowedHosts,
+                bool allowPrivateNetworkAddresses,
                 bool validateZipHeader,
                 bool validateContentTypeWhenPresent,
                 HashSet<string> allowedContentTypes,
@@ -333,6 +346,7 @@ namespace OfficeIMO.Excel {
                 UserAgent = userAgent;
                 Headers = headers;
                 AllowedHosts = allowedHosts;
+                AllowPrivateNetworkAddresses = allowPrivateNetworkAddresses;
                 ValidateZipHeader = validateZipHeader;
                 ValidateContentTypeWhenPresent = validateContentTypeWhenPresent;
                 AllowedContentTypes = allowedContentTypes;
@@ -348,6 +362,7 @@ namespace OfficeIMO.Excel {
             internal string? UserAgent { get; }
             internal Dictionary<string, string> Headers { get; }
             internal HashSet<string> AllowedHosts { get; }
+            internal bool AllowPrivateNetworkAddresses { get; }
             internal bool ValidateZipHeader { get; }
             internal bool ValidateContentTypeWhenPresent { get; }
             internal HashSet<string> AllowedContentTypes { get; }
@@ -374,6 +389,7 @@ namespace OfficeIMO.Excel {
                     options.UserAgent,
                     new Dictionary<string, string>(options.Headers, StringComparer.OrdinalIgnoreCase),
                     NormalizeAllowedHosts(options.AllowedHosts),
+                    options.AllowPrivateNetworkAddresses,
                     options.ValidateZipHeader,
                     options.ValidateContentTypeWhenPresent,
                     new HashSet<string>(options.AllowedContentTypes, StringComparer.OrdinalIgnoreCase),

@@ -17,7 +17,7 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
     private readonly PdfCanonicalGlyphText _canonicalGlyphText;
     private readonly PdfGlyphTextPins _textPins;
     private readonly object _usageLock = new();
-    private readonly PdfShortTextCache<PdfGlyphRun> _shortGlyphRuns = new();
+    private readonly PdfShortTextCache<PdfGlyphRun> _shortGlyphRuns;
     private readonly PdfShortTextCache<PdfMeasuredText> _shortMeasurements;
 
     private PdfOpenTypeCffFontProgram(
@@ -40,6 +40,7 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
         int cffTableLength) {
         _data = data.ToArray();
         _shortMeasurements = new();
+        _shortGlyphRuns = new();
         _fontUnitLayoutMetrics = new PdfFontUnitLayoutMetrics(_data);
         LineMetrics = OfficeOpenTypeLineMetrics.TryRead(_data);
         DecorationMetrics = OfficeOpenTypeDecorationMetrics.TryRead(_data);
@@ -81,8 +82,10 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
         _canonicalGlyphText = source._canonicalGlyphText;
         _textPins = new PdfGlyphTextPins(_canonicalGlyphText, _advanceWidths1000.Length, allowAliases: false);
         CffTableLength = source.CffTableLength;
+        _shortGlyphRuns = source._shortGlyphRuns;
         _shortMeasurements = source._shortMeasurements;
         SharedIdentity = source.SharedIdentity;
+        SubsettingForbidden = source.SubsettingForbidden;
     }
 
     internal PdfOpenTypeCffFontProgram ForkForDocument() => new(this);
@@ -98,6 +101,9 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
     public double ItalicAngle { get; }
     public int Flags { get; }
     public int StemV { get; }
+
+    /// <summary>True when the font's fsType forbids subsetting, so every embedding writes the whole program.</summary>
+    internal bool SubsettingForbidden { get; private init; }
     public int GlyphCount => _advanceWidths1000.Length;
     public int CffTableLength { get; }
     public int FontDataLength => _data.Length;
@@ -150,12 +156,14 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
 
         int capHeight = ascent;
         int weightClass = 400;
-        if (os2.HasValue) {
-            ushort fsType = ReadUInt16(data, os2.Value.Offset + 8);
-            if ((fsType & 0x0002) != 0) {
-                throw new NotSupportedException("OpenType/CFF font embedding is restricted by the font fsType license flags.");
-            }
+        OfficeFontEmbeddingPermissions permissions = os2.HasValue
+            ? OfficeFontEmbeddingPermissions.FromOs2Table(data, os2.Value.Offset, os2.Value.Length)
+            : OfficeFontEmbeddingPermissions.Undeclared;
+        if (permissions.OutlineEmbeddingRefusal is string refusal) {
+            throw new NotSupportedException("OpenType/CFF font cannot be embedded: " + refusal + ".");
+        }
 
+        if (os2.HasValue) {
             weightClass = ReadUInt16(data, os2.Value.Offset + 4);
             if (os2.Value.Length >= 90 && ReadUInt16(data, os2.Value.Offset) >= 2) {
                 capHeight = ReadInt16(data, os2.Value.Offset + 88);
@@ -192,7 +200,9 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
             widths,
             CopyUnicodeCMap(info.UnicodeCMap),
             tables,
-            cff.Length);
+            cff.Length) {
+            SubsettingForbidden = permissions.NoSubsetting
+        };
     }
 
     public bool TryGetGlyphId(int unicodeScalar, out int glyphId) =>
@@ -214,6 +224,7 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
             return 0D;
         }
 
+        shapingMode = PdfTextShapingOptions.EffectiveShapingMode(shapingMode, text);
         PdfTextShapingOptions options = PdfTextShapingOptions.ForRendering(FontName, shapingMode, shapingProvider, language: language, featureSettings: featureSettings);
         if (useFontUnitAdvances) return MeasureFontUnitAdvanceWidth1000(ShapeText(text!, options)) * fontSize / 1000D;
         int advance = shapingProvider == null && options.FeatureSettings.IsDefault && shapingMode == PdfTextShapingMode.OpenTypeLigatures &&
@@ -236,9 +247,11 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
 
     internal PdfGlyphRun ShapeText(string text, PdfTextShapingOptions options) {
         Guard.NotNull(text, nameof(text));
+        options = options.ForText(text);
         bool cacheable = PdfShortTextCache<PdfGlyphRun>.IsEligible(text, options);
         if (cacheable && _shortGlyphRuns.TryGet(text, options, out PdfGlyphRun cached)) {
-            foreach (PdfGlyphInfo glyph in cached.Glyphs) RecordGlyphUsage(glyph.GlyphId, glyph.UnicodeText);
+            IReadOnlyList<PdfGlyphInfo> cachedGlyphs = cached.Glyphs;
+            for (int index = 0; index < cachedGlyphs.Count; index++) RecordGlyphUsage(cachedGlyphs[index].GlyphId, cachedGlyphs[index].UnicodeText);
             if (cached.SourceShapingResult != null || cached.IsAutomaticallyShaped) options.ProviderShapedTextRecorder?.Invoke(text, FontName, true, true);
             return cached;
         }

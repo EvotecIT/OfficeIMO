@@ -13,9 +13,19 @@ public sealed class DefinitionListDefinition : MarkdownObject {
     /// <summary>Structured child blocks that belong to this definition body.</summary>
     public List<IMarkdownBlock> ChildBlocks => _blocks;
     /// <summary>Source spans for blank separator lines that belong to this definition body.</summary>
-    public IReadOnlyList<MarkdownSourceSpan> BlankLineSourceSpans => _blankLineSourceSpans;
+    public IReadOnlyList<MarkdownSourceSpan> BlankLineSourceSpans {
+        get {
+            EnsureSourceInformation();
+            return _blankLineSourceSpans;
+        }
+    }
     /// <summary>Source spans for indentation stripped from definition continuation lines.</summary>
-    public IReadOnlyList<MarkdownSourceSpan> ContinuationIndentSourceSpans => _continuationIndentSourceSpans;
+    public IReadOnlyList<MarkdownSourceSpan> ContinuationIndentSourceSpans {
+        get {
+            EnsureSourceInformation();
+            return _continuationIndentSourceSpans;
+        }
+    }
     internal bool ForceParagraphHtml { get; set; }
     internal bool HasLeadingBlankLineBeforeBody { get; set; }
 
@@ -79,6 +89,7 @@ public sealed class DefinitionListDefinition : MarkdownObject {
     }
 
     internal void ReplaceBlankLineSourceSpans(IEnumerable<MarkdownSourceSpan>? spans) {
+        EnsureSourceInformation();
         _blankLineSourceSpans.Clear();
         if (spans == null) {
             return;
@@ -88,6 +99,7 @@ public sealed class DefinitionListDefinition : MarkdownObject {
     }
 
     internal void ReplaceContinuationIndentSourceSpans(IEnumerable<MarkdownSourceSpan>? spans) {
+        EnsureSourceInformation();
         _continuationIndentSourceSpans.Clear();
         if (spans == null) {
             return;
@@ -108,5 +120,13 @@ public sealed class DefinitionListDefinition : MarkdownObject {
         }
 
         return HtmlTextEncoder.Encode(paragraph.GenericAttributeConsumedWhitespace, HtmlRenderContext.Options);
+    }
+
+    internal override void AdoptCapturedSourceInformation(MarkdownObject captured, MarkdownCapturedObjectMap map) {
+        var source = (DefinitionListDefinition)captured;
+        _blankLineSourceSpans.Clear();
+        _blankLineSourceSpans.AddRange(source._blankLineSourceSpans);
+        _continuationIndentSourceSpans.Clear();
+        _continuationIndentSourceSpans.AddRange(source._continuationIndentSourceSpans);
     }
 }

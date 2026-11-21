@@ -19,7 +19,21 @@ namespace OfficeIMO.Word {
         private readonly List<WordParagraph> _footnoteParagraphs = new();
         private readonly List<WordParagraph> _endnoteParagraphs = new();
 
-        internal WordSearchResult() { }
+        private readonly Func<IReadOnlyList<WordRange>> _rangeFactory;
+        private IReadOnlyList<WordRange>? _ranges;
+
+        internal WordSearchResult(Func<IReadOnlyList<WordRange>> rangeFactory) {
+            _rangeFactory = rangeFactory;
+        }
+
+        /// <summary>
+        /// Every match as an editable <see cref="WordRange"/>, in document order. The ranges are located when this property is first read.
+        /// </summary>
+        /// <remarks>
+        /// Use a range to read, replace, format, bookmark, comment or link the matched text. Replacing a range moves the
+        /// ranges after it, so the list can be processed in order.
+        /// </remarks>
+        public IReadOnlyList<WordRange> Ranges => _ranges ??= _rangeFactory();
 
         private IReadOnlyList<WordParagraph>? _paragraphs;
 

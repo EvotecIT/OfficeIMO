@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <Description>Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.</Description>
-    <VersionPrefix>3.6.0</VersionPrefix>
+    <VersionPrefix>3.6.2</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
@@ -10,7 +10,7 @@
     <Authors>Przemyslaw Klys</Authors>
     <PackageTags>documents;drawing;color;image;raster;png;jpeg;tiff;webp;font;metadata;lifecycle;officeimo;net472;netstandard2.0;net8.0;net10.0</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
-    <PackageLicenseExpression>MIT AND Apache-2.0 AND BSD-3-Clause AND Unicode-3.0</PackageLicenseExpression>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <IsPublishable>True</IsPublishable>
     <Copyright>(c) 2011 - 2024 Przemyslaw Klys @ Evotec. All rights reserved.</Copyright>
     <PackageIcon>OfficeIMO.png</PackageIcon>
@@ -27,10 +27,14 @@
     <InternalsVisibleTo Include="PSWriteOffice.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Archives" />
     <InternalsVisibleTo Include="OfficeIMO.Archives.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Drawing.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Drawing.HarfBuzz.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Email" />
     <InternalsVisibleTo Include="OfficeIMO.Html" />
     <InternalsVisibleTo Include="OfficeIMO" />
     <InternalsVisibleTo Include="OfficeIMO.Word.Html" />
     <InternalsVisibleTo Include="OfficeIMO.Markdown.Html" />
+    <InternalsVisibleTo Include="OfficeIMO.Markdown.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.OneNote" />
     <InternalsVisibleTo Include="OfficeIMO.Chm" />
     <InternalsVisibleTo Include="OfficeIMO.Xps" />
@@ -55,6 +59,7 @@
     <InternalsVisibleTo Include="OfficeIMO.Word" />
     <InternalsVisibleTo Include="OfficeIMO.Word.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.Visio" />
+    <InternalsVisibleTo Include="OfficeIMO.Epub" />
     <InternalsVisibleTo Include="OfficeIMO.Security" />
     <InternalsVisibleTo Include="OfficeIMO.Security.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Provenance.C2pa" />
@@ -84,8 +89,10 @@
     <InternalsVisibleTo Include="OfficeIMO.Project.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.DocBook" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Opml" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Web" />
     <Compile Include="..\OfficeIMO.SharedSource\IO\OfficeFileCommitClaim.cs" Link="Internal\IO\OfficeFileCommitClaim.cs" />
     <Compile Include="..\OfficeIMO.SharedSource\Compound\*.cs" Link="Internal\Compound\%(Filename)%(Extension)" />
+    <Compile Include="..\OfficeIMO.SharedSource\Numerics\*.cs" Link="Internal\Numerics\%(Filename)%(Extension)" />
     <None Include="..\Assets\OfficeIMO.png">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>

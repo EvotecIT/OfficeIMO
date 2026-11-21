@@ -50,6 +50,10 @@ internal static partial class PdfCorpusRunner {
                 throw new InvalidDataException(
                     $"PDF corpus {label} collection properties cannot be null in {path}.");
             }
+            if (entry.Password is { Length: 0 }) {
+                throw new InvalidDataException(
+                    $"PDF corpus {label} password must be omitted or non-empty in {path}.");
+            }
             ValidateNonBlankValues(entry.Features, label, "features", path);
             ValidateNonBlankValues(entry.RequiredText, label, "requiredText", path);
             ValidateNonBlankValues(entry.ExpectedText, label, "expectedText", path);
@@ -70,7 +74,12 @@ internal static partial class PdfCorpusRunner {
                         throw new InvalidDataException(
                             $"PDF corpus {label} url must be an absolute HTTP or HTTPS URL in {path}.");
                     }
-                    RejectSourceField(entry.SourcePath, label, "sourcePath", sourceKind, path);
+                    // An optional sourcePath names a committed copy; the URL and SHA-256 stay authoritative.
+                    if (entry.SourcePath is not null &&
+                        (string.IsNullOrWhiteSpace(entry.SourcePath) || Path.IsPathRooted(entry.SourcePath))) {
+                        throw new InvalidDataException(
+                            $"PDF corpus {label} sourcePath must be repository-relative in {path}.");
+                    }
                     RejectSourceField(entry.Generator, label, "generator", sourceKind, path);
                     ValidateSha256(entry.Sha256, label, path);
                     break;

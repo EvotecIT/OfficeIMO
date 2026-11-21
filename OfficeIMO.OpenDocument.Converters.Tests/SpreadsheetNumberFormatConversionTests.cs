@@ -17,7 +17,8 @@ public sealed class SpreadsheetNumberFormatConversionTests {
             authored.AddSheet("Data").Range("A1").Validation().WholeNumber(ExcelDataValidationOperator.GreaterThan, 1, allowBlank: true);
             package = authored.ToBytes();
         }
-        using (var stream = new MemoryStream(package)) {
+        using (var stream = new MemoryStream()) {
+            stream.Write(package, 0, package.Length);
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(stream, true)) {
                 WorkbookPart workbookPart = spreadsheet.WorkbookPart
                     ?? throw new InvalidDataException("The regression workbook has no workbook part.");

@@ -42,17 +42,36 @@ internal static partial class TextLayoutEngine {
         internal double BaselineNormal { get; }
         internal double BaselineStart { get; }
         internal double BaselineEnd { get; }
+        // Table detection derives positioned cells from a line under several strategies; the line and its
+        // spans do not change, so each derivation is kept with the line (a boxed null when it has none).
+        internal object? PositionedCells;
+        internal object? CompactPositionedCells;
         public TextLine(double y, double xs, double xe, string text, List<PdfTextSpan> spans, PdfReadingDirection readingDirection = PdfReadingDirection.Auto,
             double? baselineNormal = null) {
             Y = y; XStart = xs; XEnd = xe; Text = text; Spans = spans;
-            LogicalLineBreaksBefore = spans.Count == 0 ? 0 : spans.Max(span => span.LogicalLineBreaksBefore);
             ReadingDirection = readingDirection;
             if (spans.Count > 0) {
+                int lineBreaks = spans[0].LogicalLineBreaksBefore;
+                for (int index = 1; index < spans.Count; index++) lineBreaks = Math.Max(lineBreaks, spans[index].LogicalLineBreaksBefore);
+                LogicalLineBreaksBefore = lineBreaks;
                 // Compatible directions use one common basis for duplicate comparison.
                 var coordinates = new PdfTextBaselineCoordinates(RotationKey(spans[0]), useLogicalLayoutBaseline: true);
-                BaselineNormal = baselineNormal ?? spans.Average(coordinates.Normal);
-                BaselineStart = spans.Min(coordinates.Along);
-                BaselineEnd = spans.Max(span => coordinates.Along(span) + Math.Max(0D, span.LogicalLayoutAdvance));
+                if (baselineNormal.HasValue) {
+                    BaselineNormal = baselineNormal.Value;
+                } else {
+                    double normalSum = coordinates.Normal(spans[0]);
+                    for (int index = 1; index < spans.Count; index++) normalSum += coordinates.Normal(spans[index]);
+                    BaselineNormal = normalSum / spans.Count;
+                }
+                double baselineStart = double.PositiveInfinity;
+                double baselineEnd = double.NaN;
+                for (int index = 0; index < spans.Count; index++) {
+                    double along = coordinates.Along(spans[index]);
+                    baselineStart = MinimumKeepingNaN(baselineStart, along);
+                    baselineEnd = MaximumSkippingNaN(baselineEnd, along + Math.Max(0D, spans[index].LogicalLayoutAdvance));
+                }
+                BaselineStart = baselineStart;
+                BaselineEnd = baselineEnd;
             }
         }
     }
@@ -119,11 +138,7 @@ internal static partial class TextLayoutEngine {
         var lines = BuildBaselineLines(spans, options, consumeWork, cancellationCheck);
         // Drop obvious duplicate lines drawn twice at the same Y (e.g., shadow/overprint)
         lines = DeduplicateLines(lines, consumeWork, cancellationCheck);
-        PdfReadingDirection direction = PdfTextDirectionAnalysis.Resolve(
-            options.ReadingDirection,
-            spans.OrderBy(static span => span.ContentOrderKey)
-                .ThenBy(static span => span.PaintOrder)
-                .Select(static span => span.Text));
+        PdfReadingDirection direction = PdfTextDirectionAnalysis.ResolveInSourceOrder(options.ReadingDirection, spans);
         lines.Sort((left, right) => {
             int baseline = right.Y.CompareTo(left.Y);
             return baseline != 0
@@ -227,9 +242,10 @@ internal static partial class TextLayoutEngine {
     /// </summary>
     public static string EmitText(List<TextLine> lines, ColumnLayout columns, PdfTextLayoutOptions? options = null) {
         var sb = new StringBuilder();
+        List<TextLine> topToBottom = OrderTopToBottom(lines);
         PdfReadingDirection direction = PdfTextDirectionAnalysis.Resolve(
             options?.ReadingDirection ?? PdfReadingDirection.Auto,
-            lines.OrderByDescending(static line => line.Y).Select(static line => line.Text));
+            topToBottom.Select(static line => line.Text));
         if (columns.IsTwoColumns) {
             var left = lines.Where(l => l.XStart >= columns.Left.From && l.XStart <= columns.Left.To).OrderByDescending(l => l.Y);
             var right = lines.Where(l => l.XStart >= columns.Right.From && l.XStart <= columns.Right.To).OrderByDescending(l => l.Y);
@@ -242,7 +258,7 @@ internal static partial class TextLayoutEngine {
             }
         } else {
             bool first = true;
-            foreach (var ln in lines.OrderByDescending(l => l.Y)) {
+            foreach (TextLine ln in topToBottom) {
                 AppendLine(sb, ln, ref first);
             }
         }
@@ -251,6 +267,16 @@ internal static partial class TextLayoutEngine {
             text = JoinHyphenation(text);
         }
         return text;
+    }
+
+    // Equivalent to a stable descending sort by Y. Lines from BuildLines are already in that order.
+    private static List<TextLine> OrderTopToBottom(List<TextLine> lines) {
+        for (int index = 1; index < lines.Count; index++) {
+            if (lines[index - 1].Y.CompareTo(lines[index].Y) < 0) {
+                return lines.OrderByDescending(static line => line.Y).ToList();
+            }
+        }
+        return lines;
     }
 
     private static void AppendLine(StringBuilder builder, TextLine line, ref bool first) {
@@ -266,7 +292,7 @@ internal static partial class TextLayoutEngine {
     private static string JoinHyphenation(string text) {
         // A soft hyphen is an explicit discretionary-break signal. A visible hyphen is authored
         // content and cannot be removed safely from PDF geometry or letter case alone.
-        return System.Text.RegularExpressions.Regex.Replace(text, "\u00AD\n", string.Empty);
+        return text.Replace("\u00AD\n", string.Empty);
     }
 
     private static void AddBuiltLines(List<TextLine> lines, List<PdfTextSpan> spans, Options options,
@@ -316,32 +342,31 @@ internal static partial class TextLayoutEngine {
 
     internal static TextLine BuildLine(List<PdfTextSpan> spans, Options? options,
         IReadOnlyList<PdfTextSpan>? baselineSpans = null) {
-        List<PdfTextSpan> sourceOrder = spans
-            .OrderBy(static span => span.ContentOrderKey)
-            .ThenBy(static span => span.PaintOrder)
-            .ToList();
-        PdfReadingDirection direction = PdfTextDirectionAnalysis.Resolve(
-            options?.ReadingDirection ?? PdfReadingDirection.Auto,
-            sourceOrder.Select(static span => span.Text));
+        PdfReadingDirection direction = PdfTextDirectionAnalysis.ResolveInSourceOrder(
+            options?.ReadingDirection ?? PdfReadingDirection.Auto, spans);
         // Keep stored geometry left-to-right for table/cell detection while emitting line text
         // in the resolved writing direction.
         var coordinates = new PdfTextBaselineCoordinates(spans[0].RotationDegrees, useLogicalLayoutBaseline: true);
-        double? baseY = baselineSpans is { Count: > 0 }
-            ? baselineSpans.OrderBy(static span => span.LogicalLayoutX).First().LogicalLayoutY : null;
+        double? baseY = baselineSpans is { Count: > 0 } ? GetLeftmostLogicalLayoutY(baselineSpans) : null;
         double? baseNormal = baselineSpans is { Count: > 0 }
             ? baselineSpans.Average(new PdfTextBaselineCoordinates(RotationKey(baselineSpans[0]), useLogicalLayoutBaseline: true).Normal) : null;
         spans.Sort(static (left, right) => left.X.CompareTo(right.X));
-        var visualOrder = spans.OrderBy(coordinates.Along).ToList();
-        IReadOnlyList<PdfTextSpan> textSpans = options?.ReadingDirection == PdfReadingDirection.LeftToRight
+        List<PdfTextSpan> visualOrder = OrderAlongBaseline(spans, coordinates);
+        // Left-to-right text without right-to-left fragments keeps its visual order, so it is read in place.
+        IReadOnlyList<PdfTextSpan> textSpans = options?.ReadingDirection == PdfReadingDirection.LeftToRight ||
+            direction != PdfReadingDirection.RightToLeft &&
+            !PdfTextDirectionAnalysis.HasRightToLeftFragment(visualOrder, static span => span.Text, default)
             ? visualOrder
             : PdfTextDirectionAnalysis.RestoreLogicalFragmentOrder(visualOrder, static span => span.Text, direction);
-        bool hasExplicitWhitespace = spans.Any(span =>
-            ContainsWhitespace(span.Text) ||
-            span.LogicalLeadingSpace ||
-            span.LogicalTrailingSpace);
-        double xs = spans.Min(static span => span.X);
-        double xe = spans.Max(static span => span.X + Math.Max(0D, span.LogicalLayoutAdvance));
-        var text = new StringBuilder();
+        double xs = double.PositiveInfinity;
+        double xe = double.NaN;
+        for (int index = 0; index < spans.Count; index++) {
+            double start = spans[index].X;
+            xs = MinimumKeepingNaN(xs, start);
+            xe = MaximumSkippingNaN(xe, start + Math.Max(0D, spans[index].LogicalLayoutAdvance));
+        }
+        StringBuilder text = t_lineText ?? new StringBuilder();
+        t_lineText = null;
         for (int i = 0; i < textSpans.Count; i++) {
             var s = textSpans[i];
             string logicalText = PdfTextDirectionAnalysis.RestoreLogicalOrderFromGlyphPaintSequence(
@@ -408,23 +433,96 @@ internal static partial class TextLayoutEngine {
             }
         }
         string outText = text.ToString();
+        text.Clear();
+        if (text.Capacity <= MaximumCachedLineTextCapacity) t_lineText = text;
         if (!IsLeaderRun(outText)) {
-            outText = hasExplicitWhitespace
-                ? System.Text.RegularExpressions.Regex.Replace(outText, "\\s+", " ").Trim()
-                : NormalizeLineText(outText);
+            // Text content cannot prove that whitespace between separately painted glyph runs is an
+            // intra-word fracture. Keep word boundaries here; geometric grouping owns gap decisions.
+            outText = CollapseWhitespace(outText);
         }
         return new TextLine(baseY ?? spans[0].LogicalLayoutY, xs, xe, outText, new List<PdfTextSpan>(spans),
             options?.ReadingDirection ?? PdfReadingDirection.Auto, baseNormal);
     }
 
-    private static bool ContainsWhitespace(string value) {
-        for (int index = 0; index < value.Length; index++) {
-            if (char.IsWhiteSpace(value[index])) {
-                return true;
+    // One line builder per thread; a nested build takes a fresh one while it is in use.
+    [ThreadStatic]
+    private static StringBuilder? t_lineText;
+    private const int MaximumCachedLineTextCapacity = 4096;
+
+    // First span by LogicalLayoutX, keeping the earliest of equal positions.
+    private static double GetLeftmostLogicalLayoutY(IReadOnlyList<PdfTextSpan> spans) {
+        PdfTextSpan leftmost = spans[0];
+        for (int index = 1; index < spans.Count; index++) {
+            if (spans[index].LogicalLayoutX.CompareTo(leftmost.LogicalLayoutX) < 0) leftmost = spans[index];
+        }
+        return leftmost.LogicalLayoutY;
+    }
+
+    // Running Enumerable.Min semantics for doubles: any NaN yields NaN. Start from positive infinity.
+    private static double MinimumKeepingNaN(double minimum, double value) =>
+        double.IsNaN(minimum) || double.IsNaN(value) ? double.NaN : value < minimum ? value : minimum;
+
+    // Running Enumerable.Max semantics for doubles: NaN only when every value is NaN. Start from NaN.
+    private static double MaximumSkippingNaN(double maximum, double value) =>
+        double.IsNaN(maximum) || value > maximum ? value : maximum;
+
+    // Stable ascending order along the baseline; equal positions keep their list order. A list that is
+    // already in that order is returned itself, so callers that change either list copy it first.
+    private static List<PdfTextSpan> OrderAlongBaseline(List<PdfTextSpan> spans, PdfTextBaselineCoordinates coordinates) {
+        int count = spans.Count;
+        if (count <= 1) return spans;
+        var keys = new double[count];
+        bool alreadyOrdered = true;
+        for (int index = 0; index < count; index++) {
+            keys[index] = coordinates.Along(spans[index]);
+            if (index > 0 && keys[index - 1].CompareTo(keys[index]) > 0) alreadyOrdered = false;
+        }
+        // Spans usually arrive sorted along the baseline; the stable key sort would keep them as they are.
+        if (alreadyOrdered) return spans;
+        var order = new int[count];
+        for (int index = 0; index < count; index++) order[index] = index;
+        Array.Sort(order, (left, right) => {
+            int comparison = keys[left].CompareTo(keys[right]);
+            return comparison != 0 ? comparison : left.CompareTo(right);
+        });
+        var ordered = new List<PdfTextSpan>(count);
+        for (int index = 0; index < count; index++) ordered.Add(spans[order[index]]);
+        return ordered;
+    }
+
+    /// <summary>Collapses whitespace runs to one space and trims the ends.</summary>
+    internal static string CollapseWhitespace(string value) {
+        if (string.IsNullOrEmpty(value)) return value;
+        int start = 0;
+        int end = value.Length;
+        while (start < end && char.IsWhiteSpace(value[start])) start++;
+        if (start == end) return string.Empty;
+        while (char.IsWhiteSpace(value[end - 1])) end--;
+        int firstChange = -1;
+        for (int index = start; index < end; index++) {
+            char character = value[index];
+            if (char.IsWhiteSpace(character) && (character != ' ' || char.IsWhiteSpace(value[index + 1]))) {
+                firstChange = index;
+                break;
             }
         }
-
-        return false;
+        if (firstChange < 0) {
+            return start == 0 && end == value.Length ? value : value.Substring(start, end - start);
+        }
+        var builder = new StringBuilder(end - start);
+        builder.Append(value, start, firstChange - start);
+        bool inWhitespace = false;
+        for (int index = firstChange; index < end; index++) {
+            char character = value[index];
+            if (char.IsWhiteSpace(character)) {
+                if (!inWhitespace) builder.Append(' ');
+                inWhitespace = true;
+            } else {
+                builder.Append(character);
+                inWhitespace = false;
+            }
+        }
+        return builder.ToString();
     }
 
     private static int Clamp(int v, int min, int max) => v < min ? min : (v > max ? max : v);
@@ -471,7 +569,7 @@ internal static partial class TextLayoutEngine {
     private static bool IsWordJoin(string left, string right) {
         if (string.IsNullOrEmpty(left) || string.IsNullOrEmpty(right)) return false;
         int a = GetLastScalar(left);
-        int b = char.ConvertToUtf32(right, 0);
+        int b = PdfUnicodeScalarAnalysis.ScalarAt(right, 0);
         bool aWord = PdfUnicodeScalarAnalysis.IsLastLetterOrDigit(left) || a is 0x29 or 0x22 or 0x27 or 0x2019;
         bool bWord = PdfUnicodeScalarAnalysis.IsFirstLetterOrDigit(right) || b is 0x28 or 0x22 or 0x27 or 0x2018;
         return aWord && bWord;
@@ -503,7 +601,7 @@ internal static partial class TextLayoutEngine {
     private static bool ShouldRespectVisibleGap(string left, string right) {
         if (string.IsNullOrEmpty(left) || string.IsNullOrEmpty(right)) return false;
         int a = GetLastScalar(left);
-        int b = char.ConvertToUtf32(right, 0);
+        int b = PdfUnicodeScalarAnalysis.ScalarAt(right, 0);
         bool leftBoundary = PdfUnicodeScalarAnalysis.IsLastLetterOrDigit(left) || a is 0x3A or 0x3B or 0x2C or 0x2E or 0x29 or 0x22 or 0x27 or 0x2019;
         bool rightBoundary = PdfUnicodeScalarAnalysis.IsFirstLetterOrDigit(right) || b is 0x28 or 0x22 or 0x27 or 0x2018;
         return leftBoundary && rightBoundary;
@@ -511,13 +609,7 @@ internal static partial class TextLayoutEngine {
     private static int GetLastScalar(string value) {
         int index = value.Length - 1;
         if (index > 0 && char.IsLowSurrogate(value[index]) && char.IsHighSurrogate(value[index - 1])) index--;
-        return char.ConvertToUtf32(value, index);
-    }
-    private static string NormalizeLineText(string s) {
-        if (string.IsNullOrEmpty(s)) return s;
-        // Text content cannot prove that whitespace between separately painted glyph runs is an
-        // intra-word fracture. Keep word boundaries here; geometric grouping owns gap decisions.
-        return System.Text.RegularExpressions.Regex.Replace(s, "\\s+", " ").Trim();
+        return PdfUnicodeScalarAnalysis.ScalarAt(value, index);
     }
     private static double SafeAvgAdvance(PdfTextSpan span) {
         if (span.LogicalLayoutAdvance <= 0) return span.FontSize * 0.5;

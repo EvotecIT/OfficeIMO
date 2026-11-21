@@ -10,7 +10,7 @@ namespace OfficeIMO.Excel {
             int schemaSampleRows = options.InferSchema ? options.SchemaSampleRows : 0;
             if (sheet.Cells.Count == 0) {
                 return new ExcelRangeDataReader(Array.Empty<RangeChunk>(), 1, 0, 0,
-                    options.HasHeaderRow, schemaSampleRows, options, cancellationToken);
+                    options.HasHeaderRow, schemaSampleRows, options, dateSystem, cancellationToken);
             }
             int firstRow = sheet.Cells[0].Row;
             int lastRow = sheet.Cells[sheet.Cells.Count - 1].Row;
@@ -26,7 +26,7 @@ namespace OfficeIMO.Excel {
             ValidateDataReaderRangeShape(options, lastRow - firstRow + 1, columns, options.HasHeaderRow, schemaSampleRows);
             ValidateDataReaderBufferedRows(options, 1, columns);
             return new ExcelRangeDataReader(ReadEarlyBiffChunks(sheet, firstColumn, columns, dateSystem, options, cancellationToken),
-                firstRow, lastRow, columns, options.HasHeaderRow, schemaSampleRows, options, cancellationToken);
+                firstRow, lastRow, columns, options.HasHeaderRow, schemaSampleRows, options, dateSystem, cancellationToken);
         }
 
         private static IEnumerable<RangeChunk> ReadEarlyBiffChunks(LegacySpreadsheetSheet sheet, int firstColumn,

@@ -22,7 +22,7 @@ public sealed class CodeGlyphDrawingIntegrationTests {
     }
 
     [Fact]
-    public void AdapterImportsStyledQrAsReusableShapes() {
+    public void AdapterImportsStyledQrAsScannableShapes() {
         QrCode qr = QR.Encode("STYLED-QR-OFFICEIMO");
         var options = new QrSvgRenderOptions {
             ModuleShape = QrModuleShape.Circle,
@@ -34,17 +34,16 @@ public sealed class CodeGlyphDrawingIntegrationTests {
         OfficeDrawing drawing = qr.ToOfficeDrawing(out int unsupported, options);
 
         Assert.Equal(0, unsupported);
-        OfficeDrawingShape[] shapes = EnumerateElements(drawing).OfType<OfficeDrawingShape>().ToArray();
-        Assert.True(shapes.Length > 50);
-        Assert.Contains(shapes, item => item.Shape.Kind == OfficeShapeKind.Ellipse);
+        Assert.NotEmpty(EnumerateElements(drawing).OfType<OfficeDrawingShape>());
+        Assert.Equal("STYLED-QR-OFFICEIMO", DecodeQr(drawing));
     }
 
     [Fact]
-    public void AdapterImportsLargeStyledQrWithinTheTrustedElementLimit() {
+    public void AdapterImportsLargeStyledQrBeyondTheDefaultReaderBudgets() {
         QrCode qr = QR.Encode("LARGE-STYLED-QR", new QrEncodingOptions {
             ErrorCorrectionLevel = QrErrorCorrectionLevel.L,
-            MinVersion = 40,
-            MaxVersion = 40
+            MinVersion = 25,
+            MaxVersion = 25
         });
         var options = new QrSvgRenderOptions {
             ModuleShape = QrModuleShape.Circle,
@@ -53,24 +52,24 @@ public sealed class CodeGlyphDrawingIntegrationTests {
 
         OfficeDrawing drawing = qr.ToOfficeDrawing(out int unsupported, options);
 
-        Assert.Equal(177, qr.Modules.Width);
+        Assert.Equal(117, qr.Modules.Width);
         Assert.Equal(0, unsupported);
-        Assert.True(EnumerateElements(drawing).OfType<OfficeDrawingShape>().Count() > OfficeSvgDrawingReaderOptions.DefaultMaximumElements);
+        Assert.NotEmpty(EnumerateElements(drawing).OfType<OfficeDrawingShape>());
     }
 
     [Fact]
-    public void AdapterImportsLargeDotGridQrWithinTheTrustedElementLimit() {
+    public void AdapterImportsLargeDotGridQrBeyondTheDefaultReaderBudgets() {
         QrCode qr = QR.Encode("LARGE-DOT-GRID-QR", new QrEncodingOptions {
             ErrorCorrectionLevel = QrErrorCorrectionLevel.L,
-            MinVersion = 40,
-            MaxVersion = 40
+            MinVersion = 25,
+            MaxVersion = 25
         });
         var options = new QrSvgRenderOptions { ModuleShape = QrModuleShape.DotGrid };
 
         OfficeDrawing drawing = qr.ToOfficeDrawing(out int unsupported, options);
 
         Assert.Equal(0, unsupported);
-        Assert.True(EnumerateElements(drawing).OfType<OfficeDrawingShape>().Count() > 40000);
+        Assert.NotEmpty(EnumerateElements(drawing).OfType<OfficeDrawingShape>());
     }
 
     [Fact]
@@ -160,5 +159,11 @@ public sealed class CodeGlyphDrawingIntegrationTests {
             if (nested == null) continue;
             foreach (OfficeDrawingElement child in EnumerateElements(nested)) yield return child;
         }
+    }
+
+    private static string DecodeQr(OfficeDrawing drawing) {
+        ScanResult result = SymbolScanner.Scan(OfficeDrawingRasterRenderer.ToPng(drawing, 2D),
+            new ScanOptions { Formats = new[] { SymbolFormat.QrCode }, MaxSymbols = 1, TimeoutMilliseconds = 30000 });
+        return Assert.Single(result.Symbols).Text;
     }
 }

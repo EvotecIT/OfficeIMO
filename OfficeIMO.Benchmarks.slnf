@@ -58,7 +58,8 @@
       "OfficeIMO.Visio\\OfficeIMO.Visio.csproj",
       "OfficeIMO.Word.Pdf\\OfficeIMO.Word.Pdf.csproj",
       "OfficeIMO.Word.Rtf\\OfficeIMO.Word.Rtf.csproj",
-      "OfficeIMO.Word\\OfficeIMO.Word.csproj"
+      "OfficeIMO.Word\\OfficeIMO.Word.csproj",
+      "OfficeIMO.Yaml.Benchmarks\\OfficeIMO.Yaml.Benchmarks.csproj"
     ]
   }
 }

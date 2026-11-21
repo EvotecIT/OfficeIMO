@@ -31,8 +31,11 @@ namespace OfficeIMO.Word.Html {
                 return null;
             }
 
-            Styles? styles = table.Document?._wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart?.Styles;
-            var conditionals = WordRunFormatting.EnumerateStyleChain(styles, styleId, StyleValues.Table)
+            if (table.Document == null) {
+                return null;
+            }
+
+            var conditionals = WordStyleCatalog.For(table.Document).EnumerateChain(styleId, StyleValues.Table)
                 .SelectMany(style => style.Elements<TableStyleProperties>())
                 .Where(properties => properties.Type?.Value == TableStyleOverrideValues.FirstRow)
                 .ToList();

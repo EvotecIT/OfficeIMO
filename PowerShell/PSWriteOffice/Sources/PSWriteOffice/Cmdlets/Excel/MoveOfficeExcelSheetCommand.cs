@@ -32,6 +32,7 @@ public sealed class MoveOfficeExcelSheetCommand : OfficeDocumentCmdlet<ExcelDocu
     /// <summary>Gets or sets a worksheet name, one-based position or native worksheet.</summary>
     [Parameter(ParameterSetName = "Default")]
     [OfficeSheetTransformation, ValidateNotNull]
+    [Alias("WorksheetName")]
     public OfficeSheetSelector? Sheet { get; set; }
     /// <summary>Gets or sets the one-based destination position.</summary>
     [Parameter(ParameterSetName = "Default", Mandatory = true, Position = 0)]

@@ -23,6 +23,9 @@ namespace OfficeIMO.Excel.Xlsb.Model {
 
         internal IReadOnlyList<XlsbSheet> Sheets => _worksheets;
 
+        /// <summary>Formatting runs of rich shared strings, keyed by shared-string index.</summary>
+        internal Dictionary<int, XlsbTextRun[]> SharedStringRuns { get; } = new();
+
         internal IReadOnlyList<XlsbSheet> Worksheets => _worksheets.Where(sheet => !sheet.IsChartSheet).ToArray();
 
         internal string? CodeName { get; set; }
@@ -34,6 +37,13 @@ namespace OfficeIMO.Excel.Xlsb.Model {
         internal string? VbaProjectPartName { get; set; }
 
         internal string? ThemePartName { get; set; }
+
+        /// <summary>Package-level core, extended and custom property XML, kept as read for projection.</summary>
+        internal byte[]? CorePropertiesXml { get; set; }
+
+        internal byte[]? ExtendedPropertiesXml { get; set; }
+
+        internal byte[]? CustomPropertiesXml { get; set; }
 
         internal IReadOnlyList<XlsbDefinedName> DefinedNames => _definedNames;
 
@@ -49,6 +59,12 @@ namespace OfficeIMO.Excel.Xlsb.Model {
 
         internal bool Uses1904DateSystem { get; set; }
 
+        /// <summary>The first workbook view's active tab (itabCur), when the source has a workbook view.</summary>
+        internal uint? ActiveTab { get; set; }
+
+        /// <summary>The first workbook view's first visible tab (itabFirst), when the source has a workbook view.</summary>
+        internal uint? FirstSheet { get; set; }
+
         internal XlsbCalculationProperties? CalculationProperties { get; set; }
 
         internal XlsbWorkbookProtection? WorkbookProtection { get; set; }
@@ -56,6 +72,9 @@ namespace OfficeIMO.Excel.Xlsb.Model {
         internal XlsbStylesheet? Stylesheet { get; set; }
 
         internal string? StylesheetPartName { get; set; }
+
+        /// <summary>Every decoded table in the workbook, keyed by its idList.</summary>
+        internal Dictionary<uint, XlsbTable> Tables { get; } = new Dictionary<uint, XlsbTable>();
 
         internal void AddSheet(XlsbSheet worksheet) => _worksheets.Add(worksheet);
 

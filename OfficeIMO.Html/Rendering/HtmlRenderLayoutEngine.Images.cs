@@ -80,7 +80,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     viewportHeight: useSvgViewport ? placement.FullHeight : null,
                     requireAuthoredRasterSafety: IsInlineSvgElement(element)) && svgDrawing != null) {
                     AddSvgImageVisual(objectVisuals, svgDrawing, bytes, imageX, imageY, placement, alternativeText,
-                        link, sourceDescription, GetSemanticSourceOrder(element));
+                        link, sourceDescription, GetSemanticSourceOrder(element), blendsWithBackdrop: IsInlineSvgElement(element));
                     addedObject = true;
                 }
             } else {
@@ -205,6 +205,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
             var fontSizes = new Dictionary<IElement, double>();
             for (int index = 0; index < count; index++) {
                 IElement current = htmlElements[index];
+                if (current.LocalName.Equals("a", StringComparison.OrdinalIgnoreCase)) {
+                    foreach (XAttribute href in svgElements[index].Attributes().Where(attribute => attribute.Name.LocalName == "href").ToArray()) {
+                        if (href.Value.TrimStart().StartsWith("#", StringComparison.Ordinal)) continue;
+                        string? link = ResolveSafeLink(href.Value, current);
+                        if (link == null) href.Remove();
+                        else href.Value = link;
+                    }
+                }
                 double inheritedFontSize = current.ParentElement != null && fontSizes.TryGetValue(current.ParentElement, out double parentSize)
                     ? parentSize : resolvedRootFontSize;
                 if (!_computedStyles.Elements.TryGetValue(current, out HtmlComputedStyle? computed)) {
@@ -258,7 +266,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         if (fontSize.HasValue) {
             if (style.Length > 0) style.Append(';');
-            style.Append("font-size:").Append(fontSize.Value.ToString("R", System.Globalization.CultureInfo.InvariantCulture)).Append("px");
+            style.Append("font-size:").Append(OfficeIMO.Core.Internal.OfficeRoundTripText.Format(fontSize.Value, System.Globalization.CultureInfo.InvariantCulture)).Append("px");
         }
         return style.ToString();
     }
@@ -447,7 +455,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string? alternativeText,
         string? link,
         string sourceDescription,
-        int? semanticSourceOrder) {
+        int? semanticSourceOrder,
+        bool blendsWithBackdrop) {
         double visibleX = imageX + placement.X;
         double visibleY = imageY + placement.Y;
         if (!placement.SourceCrop.HasCrop) {
@@ -463,7 +472,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 sourceDescription,
                 imageBytes: imageBytes,
                 imageContentType: "image/svg+xml",
-                sourceCrop: placement.SourceCrop) { SemanticSourceOrder = semanticSourceOrder });
+                sourceCrop: placement.SourceCrop) { SemanticSourceOrder = semanticSourceOrder, BlendsWithBackdrop = blendsWithBackdrop });
             return;
         }
 
@@ -485,7 +494,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             imageX: visibleX,
             imageY: visibleY,
             imageWidth: placement.Width,
-            imageHeight: placement.Height) { SemanticSourceOrder = semanticSourceOrder };
+            imageHeight: placement.Height) { SemanticSourceOrder = semanticSourceOrder, BlendsWithBackdrop = blendsWithBackdrop };
         visuals.Add(new HtmlRenderClipGroup(
             visibleX,
             visibleY,

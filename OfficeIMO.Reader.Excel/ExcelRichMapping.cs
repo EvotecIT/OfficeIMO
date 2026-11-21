@@ -8,7 +8,8 @@ internal static class ExcelRichMapping {
         ExcelWorkbookInfo snapshot,
         ReaderOptions readerOptions,
         ReaderExcelOptions options,
-        OfficeDocumentReadResult result) {
+        OfficeDocumentReadResult result,
+        ExcelCellDisplayText? display = null) {
         result.Source.Title = snapshot.Title;
         result.Source.Author = snapshot.Author;
         result.Source.Subject = snapshot.Subject;
@@ -28,8 +29,9 @@ internal static class ExcelRichMapping {
             .ToArray();
         ExcelRangeSelection? selectedRange = ParseExcelRangeSelection(options.A1Range);
         OfficeDocumentLink[] links = BuildExcelLinks(worksheets, result.Source.Path, selectedRange).ToArray();
-        ReaderTable[] ownerTables = BuildExcelOwnerTables(worksheets, result.Source.Path, readerOptions.MaxTableRows, selectedRange).ToArray();
+        ReaderTable[] ownerTables = BuildExcelOwnerTables(worksheets, result.Source.Path, readerOptions.MaxTableRows, selectedRange, display).ToArray();
         IReadOnlyList<ReaderTable> tables = MergeExcelTables(ownerTables, result.Tables);
+        AttachOwnerTablesToSheetText(result.Chunks, ownerTables);
         IReadOnlyList<OfficeDocumentPage> pages = BuildExcelPages(result.Pages, result.Blocks, tables, result.Assets, links);
 
         int formulaCount = worksheets.Sum(sheet => sheet.Cells.Count(cell => IsCellSelected(cell, selectedRange) && !string.IsNullOrWhiteSpace(cell.Formula)));
@@ -67,6 +69,38 @@ internal static class ExcelRichMapping {
         return ownerTables
             .Concat(genericTables.Where(generic => !ownerTables.Any(owner => ExcelTableRangesOverlap(owner, generic))))
             .ToArray();
+    }
+
+    private static bool Contains(ExcelRangeSelection range, int row, int column) =>
+        row >= range.StartRow && row <= range.EndRow && column >= range.StartColumn && column <= range.EndColumn;
+
+    /// <summary>
+    /// A workbook table inside a complete sheet grid already appears in that grid's chunk text. Listing it among
+    /// the chunk's tables records that, so plain text does not repeat the table after the grid.
+    /// </summary>
+    private static void AttachOwnerTablesToSheetText(IReadOnlyList<ReaderChunk>? chunks, IReadOnlyList<ReaderTable> ownerTables) {
+        if (chunks == null || ownerTables.Count == 0) return;
+        foreach (ReaderTable owner in ownerTables) {
+            ExcelRangeSelection? ownerRange = ParseExcelRangeSelection(owner.Location?.A1Range);
+            if (!ownerRange.HasValue) continue;
+            ReaderChunk? first = null;
+            bool complete = true;
+            foreach (ReaderChunk chunk in chunks) {
+                if (chunk.Tables == null) continue;
+                foreach (ReaderTable grid in chunk.Tables) {
+                    if (!string.Equals(grid.Location?.Sheet, owner.Location?.Sheet, StringComparison.Ordinal)) continue;
+                    ExcelRangeSelection? gridRange = ParseExcelRangeSelection(grid.Location?.A1Range);
+                    if (!gridRange.HasValue
+                        || !Contains(gridRange.Value, ownerRange.Value.StartRow, ownerRange.Value.StartColumn)
+                        || !Contains(gridRange.Value, ownerRange.Value.EndRow, ownerRange.Value.EndColumn)) continue;
+                    // A grid cut short by the row limit does not carry every row of the table in its text.
+                    if (grid.Truncated || string.IsNullOrEmpty(chunk.Text)) complete = false;
+                    first ??= chunk;
+                }
+            }
+            if (first == null || !complete) continue;
+            first.Tables = first.Tables!.Concat(new[] { owner }).ToArray();
+        }
     }
 
     private static bool ExcelTableRangesOverlap(ReaderTable first, ReaderTable second) {
@@ -120,7 +154,8 @@ internal static class ExcelRichMapping {
         IReadOnlyList<ExcelWorksheetInfo> worksheets,
         string? sourcePath,
         int maxRows,
-        ExcelRangeSelection? selectedRange) {
+        ExcelRangeSelection? selectedRange,
+        ExcelCellDisplayText? display) {
         int tableIndex = 0;
         foreach (ExcelWorksheetInfo sheet in worksheets) {
             Dictionary<(int Row, int Column), ExcelCellInfo> cells = sheet.Cells.ToDictionary(static cell => (cell.Row, cell.Column));
@@ -139,7 +174,7 @@ internal static class ExcelRichMapping {
                             && tableColumnIndex < table.Columns.Count
                             && !string.IsNullOrWhiteSpace(table.Columns[tableColumnIndex].Name)
                                 ? table.Columns[tableColumnIndex].Name
-                                : GetExcelCellText(cells, table.StartRow, startColumn + index, "Column " + (index + 1).ToString(CultureInfo.InvariantCulture));
+                                : GetExcelCellText(cells, table.StartRow, startColumn + index, "Column " + (index + 1).ToString(CultureInfo.InvariantCulture), display);
                     })
                     .ToArray();
                 int firstDataRow = Math.Max(projectedRange.Value.StartRow, table.StartRow + (table.HasHeaderRow ? 1 : 0));
@@ -149,7 +184,7 @@ internal static class ExcelRichMapping {
                 var rows = new List<IReadOnlyList<string>>(emittedRows);
                 for (int row = firstDataRow; row < firstDataRow + emittedRows; row++) {
                     rows.Add(Enumerable.Range(0, columnCount)
-                        .Select(index => GetExcelCellText(cells, row, startColumn + index, string.Empty))
+                        .Select(index => GetExcelCellText(cells, row, startColumn + index, string.Empty, display))
                         .ToArray());
                 }
 
@@ -244,9 +279,13 @@ internal static class ExcelRichMapping {
         IReadOnlyDictionary<(int Row, int Column), ExcelCellInfo> cells,
         int row,
         int column,
-        string fallback) {
+        string fallback,
+        ExcelCellDisplayText? display) {
         if (!cells.TryGetValue((row, column), out ExcelCellInfo? cell) || cell.Value == null) return fallback;
-        string? value = Convert.ToString(cell.Value, CultureInfo.InvariantCulture);
+        string? value = display == null ? Convert.ToString(cell.Value, CultureInfo.InvariantCulture)
+            : display.TryFormatRaw(cell.StoredValueType == "n", cell.StoredValueType == "d", cell.StoredValue, cell.StyleIndex, out string formatted)
+                ? formatted
+                : display.FormatUnstyled(cell.Value) ?? Convert.ToString(cell.Value, CultureInfo.InvariantCulture);
         return string.IsNullOrWhiteSpace(value) ? fallback : value!;
     }
 

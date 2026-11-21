@@ -61,7 +61,7 @@ internal static partial class PowerPointObjectExport {
                 : null;
             var labels = table.Rows.Cast<DataRow>().Select((row, index) => x == null
                 ? PowerShellObjectNormalizer.NormalizeCellText(row[categoryColumn], normalization)
-                : x[index].ToString("R", CultureInfo.InvariantCulture)).ToArray();
+                : OfficeIMO.Core.Internal.OfficeRoundTripText.Format(x[index], CultureInfo.InvariantCulture)).ToArray();
             var series = seriesColumns.Select(column => new OfficeSeries(column.ColumnName,
                 table.Rows.Cast<DataRow>().Select(row => ChartNumber(row[column], column.ColumnName, culture)), x)).ToArray();
             string heading = chartTitle ?? categoryColumn.ColumnName;

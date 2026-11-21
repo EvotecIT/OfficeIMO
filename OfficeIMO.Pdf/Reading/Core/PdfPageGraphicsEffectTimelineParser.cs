@@ -2,7 +2,7 @@ namespace OfficeIMO.Pdf;
 
 internal static class PdfPageGraphicsEffectTimelineParser {
     public static IReadOnlyList<PdfPageDrawingEffectTransition> Parse(
-        string content,
+        PdfContentSource content,
         IReadOnlyDictionary<string, PdfPageGraphicsStateResource>? graphicsStates,
         PdfPageDrawingEffect initialEffect,
         Matrix2D initialTransform,
@@ -15,9 +15,10 @@ internal static class PdfPageGraphicsEffectTimelineParser {
         int maxOperands = PdfReadLimits.DefaultMaxContentOperands,
         Func<string, int>? inlineImageComponentCount = null,
         Func<PdfArray, int>? inlineImageArrayComponentCount = null,
+        int maxGraphicsStateDepth = PdfReadLimits.DefaultMaxGraphicsStateDepth,
         System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (string.IsNullOrEmpty(content)) {
+        if (content.IsNullOrEmpty) {
             return Array.Empty<PdfPageDrawingEffectTransition>();
         }
 
@@ -81,7 +82,8 @@ internal static class PdfPageGraphicsEffectTimelineParser {
             inlineImageComponentCount: inlineImageComponentCount,
             maxNestingDepth: maxNestingDepth,
             maxOperands: maxOperands,
-            inlineImageArrayComponentCount: inlineImageArrayComponentCount);
+            inlineImageArrayComponentCount: inlineImageArrayComponentCount,
+            maxGraphicsStateDepth: maxGraphicsStateDepth);
         return transitions.Count == 0
             ? Array.Empty<PdfPageDrawingEffectTransition>()
             : transitions.AsReadOnly();

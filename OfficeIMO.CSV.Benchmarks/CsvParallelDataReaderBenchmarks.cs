@@ -111,6 +111,7 @@ public class CsvParallelDataReaderBenchmarks
     }
 
     [Benchmark(Description = "OfficeIMO-Sequential")]
+    [BenchmarkCategory("library:OfficeIMO", "case:Sequential")]
     public CsvReaderChecksum OfficeIMOSequential()
     {
         using var reader = CsvDocument.OpenReader(_path,
@@ -119,6 +120,7 @@ public class CsvParallelDataReaderBenchmarks
     }
 
     [Benchmark(Description = "OfficeIMO-Parallel")]
+    [BenchmarkCategory("library:OfficeIMO", "case:Parallel")]
     public CsvReaderChecksum OfficeIMOParallel()
     {
         using var reader = CsvDocument.OpenReader(_path,
@@ -135,6 +137,7 @@ public class CsvParallelDataReaderBenchmarks
     }
 
     [Benchmark(Description = "Dataplat-Sequential")]
+    [BenchmarkCategory("library:Dataplat.Dbatools.Csv", "case:Sequential")]
     public CsvReaderChecksum DataplatSequential()
     {
         using var reader = new DataplatCsvDataReader(_path, CreateDataplatOptions(enableParallel: false));
@@ -142,6 +145,7 @@ public class CsvParallelDataReaderBenchmarks
     }
 
     [Benchmark(Baseline = true, Description = "Dataplat-Parallel")]
+    [BenchmarkCategory("library:Dataplat.Dbatools.Csv", "case:Parallel")]
     public CsvReaderChecksum DataplatParallel()
     {
         using var reader = new DataplatCsvDataReader(_path, CreateDataplatOptions(enableParallel: true));

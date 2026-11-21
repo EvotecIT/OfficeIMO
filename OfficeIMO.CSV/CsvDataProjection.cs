@@ -306,8 +306,19 @@ internal static partial class CsvDataProjectionConverter
             return true;
         }
 
+        // ISO 8601 text, the writers' default, is Gregorian whatever the culture's calendar.
+        if (IsIsoDate(text) && DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out dateTime))
+        {
+            return true;
+        }
+
         return DateTime.TryParse(text, culture, DateTimeStyles.RoundtripKind, out dateTime);
     }
+
+    /// <summary>Whether the text starts with an ISO 8601 date, yyyy-MM-dd.</summary>
+    internal static bool IsIsoDate(ReadOnlySpan<char> text) =>
+        text.Length >= 10 && text[4] == '-' && text[7] == '-' &&
+        (uint)(text[0] - '0') <= 9 && (uint)(text[3] - '0') <= 9 && (uint)(text[5] - '0') <= 9 && (uint)(text[9] - '0') <= 9;
 
     internal static bool TryParseDefaultInvariantDateTime(string text, out DateTime dateTime)
     {

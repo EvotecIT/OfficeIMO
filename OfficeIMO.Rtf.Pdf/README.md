@@ -75,7 +75,7 @@ foreach (var warning in ((PdfRtfConversionReport)report).Warnings) {
 
 `ToRtfAsync` returns `OfficeConversionResult<RtfDocument>`. `SaveAsRtf` and `SaveAsRtfAsync` return `OfficeConversionReport` directly. Set `PdfRtfExportOptions.FailOnLoss` to reject lossy reconstruction before writing; the exception carries the completed report.
 
-The semantic importer preserves detected run color, font size, bold, and italic through shared logical PDF runs. Tables, images, links, and form widgets currently produce structured loss diagnostics instead of disappearing silently.
+The semantic importer preserves detected run color, font size, bold, and italic through shared logical PDF runs. Visible images are embedded as PNG or JPEG pictures in reading position; a rectangular clip that cuts into an image crops it to its visible pixels. Images that cannot be carried over safely, tables, links, and form widgets produce structured loss diagnostics instead of disappearing silently. Set `PdfRtfExportOptions.ImportImages = false` to leave images out.
 
 ## Export with diagnostics
 

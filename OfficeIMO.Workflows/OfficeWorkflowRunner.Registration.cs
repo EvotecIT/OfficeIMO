@@ -2,9 +2,31 @@ namespace OfficeIMO.Workflows;
 
 public sealed partial class OfficeWorkflowRunner {
     private readonly IReadOnlyDictionary<string, OfficeWorkflowConversionRegistration> _conversions;
+    private readonly Func<ValidatedRequest, List<OfficeWorkflowDiagnostic>, CancellationToken, OperationArtifact> _execute;
+    private readonly bool _registeredConversionsOnly;
+
+    /// <summary>Creates a runner whose requests run only the supplied conversions.</summary>
+    /// <remarks>
+    /// Requests for built-in routes and non-conversion operations fail validation. Source capture, limits,
+    /// output reopening and atomic publication match the full runner. NativeAOT applications that use this
+    /// runner compile only these converters, not every built-in format.
+    /// </remarks>
+    public static OfficeWorkflowRunner ForRegisteredConversions(IEnumerable<OfficeWorkflowConversionRegistration> conversions) {
+        ArgumentNullException.ThrowIfNull(conversions);
+        return new OfficeWorkflowRunner(null, null, conversions, ExecuteRegisteredConversion, includeBuiltInOperations: false);
+    }
+
+    private static OperationArtifact ExecuteRegisteredConversion(
+        ValidatedRequest request,
+        List<OfficeWorkflowDiagnostic> diagnostics,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        byte[] input = OfficeWorkflowInputReader.ReadAllBytes(request.InputPath, request.Limits.MaximumInputBytes, cancellationToken);
+        return ConvertRegistered(request, input, diagnostics, cancellationToken);
+    }
 
     private static (IReadOnlyDictionary<string, OfficeWorkflowConversionRegistration>, IReadOnlyList<OfficeWorkflowRoute>)
-        SnapshotRegistrations(IEnumerable<OfficeWorkflowConversionRegistration> conversions) {
+        SnapshotRegistrations(IEnumerable<OfficeWorkflowConversionRegistration> conversions, bool includeBuiltInRoutes) {
         ArgumentNullException.ThrowIfNull(conversions);
         var registrations = new Dictionary<string, OfficeWorkflowConversionRegistration>(StringComparer.OrdinalIgnoreCase);
         foreach (OfficeWorkflowConversionRegistration conversion in conversions) {
@@ -13,7 +35,8 @@ public sealed partial class OfficeWorkflowRunner {
                 throw new ArgumentException("A conversion route was registered more than once: " + conversion.RouteId, nameof(conversions));
         }
         IReadOnlyList<OfficeWorkflowRoute> routes = Array.AsReadOnly(OfficeConversionCapabilityCatalog.All
-            .Where(capability => OfficeWorkflowCatalog.FindExecutable(capability.Id) is not null || registrations.ContainsKey(capability.Id))
+            .Where(capability => registrations.ContainsKey(capability.Id)
+                || (includeBuiltInRoutes && OfficeWorkflowCatalog.FindExecutable(capability.Id) is not null))
             .Select(capability => new OfficeWorkflowRoute(capability, canExecute: true))
             .OrderBy(route => route.Source, StringComparer.Ordinal).ThenBy(route => route.Target, StringComparer.Ordinal).ToArray());
         return (registrations, routes);

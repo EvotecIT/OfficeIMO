@@ -9,13 +9,17 @@ namespace OfficeIMO.Word {
             MainDocumentPart mainPart = document._wordprocessingDocument.MainDocumentPart
                 ?? throw new InvalidOperationException("MainDocumentPart is missing.");
 
+            if (options.DateTimeFieldsOnly && options.TablesOfContentsOnly) {
+                throw new InvalidOperationException("DateTimeFieldsOnly and TablesOfContentsOnly each select the only fields to refresh. Set one of them.");
+            }
+
             if (!options.DateTimeFieldsOnly && options.UseLayoutPagination && options.LayoutPaginationProvider == null) {
                 throw new InvalidOperationException("Layout pagination requires OfficeIMO.Word.Pdf. Select its engine with WithPdfLayoutPagination() on the field update options.");
             }
 
             var state = new FieldEvaluationState();
             state.LockedTocFields.AddRange(EnumerateFields(mainPart).Where(IsLockedToc));
-            if (!options.DateTimeFieldsOnly && options.UpdateTablesOfContents) {
+            if (!options.DateTimeFieldsOnly && (options.UpdateTablesOfContents || options.TablesOfContentsOnly)) {
                 RegenerateTablesOfContents(document, state);
             }
 
@@ -68,6 +72,15 @@ namespace OfficeIMO.Word {
                 if (IsInsideLockedToc(candidate, state.LockedTocFields)) {
                     WordFieldType? lockedType = WordFieldInventory.ParseInstruction(candidate.InstructionText).FieldType;
                     results.Add(candidate.ToResult(lockedType, WordFieldUpdateStatus.Skipped, null, "Field is inside a locked table of contents and was left unchanged."));
+                    continue;
+                }
+
+                if (options.TablesOfContentsOnly && !IsInsideRegeneratedTableOfContents(candidate, state)) {
+                    results.Add(candidate.ToResult(
+                        WordFieldInventory.ParseInstruction(candidate.InstructionText).FieldType,
+                        WordFieldUpdateStatus.Skipped,
+                        null,
+                        "Field was left unchanged because only tables of contents were selected."));
                     continue;
                 }
 

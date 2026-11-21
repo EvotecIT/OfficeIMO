@@ -62,21 +62,20 @@ internal static partial class PdfPageEditor {
             transforms[readPage.ObjectNumber] = transform;
             int prefixObjectNumber = AllocateResizePseudoObjectNumber(ref nextPseudoObjectNumber);
             int suffixObjectNumber = AllocateResizePseudoObjectNumber(ref nextPseudoObjectNumber);
+            PdfPageContentIsolation.Wrapping wrapping = PdfPageContentIsolation.Prepare(objects, page,
+                page.Items.TryGetValue("Contents", out PdfObject? contents) ? contents : null,
+                stream => AddResizeContentStream(additionalObjects, stream, ref nextPseudoObjectNumber), cancellationToken);
             additionalObjects.Add(new PdfPageExtractor.AdditionalObject(
                 prefixObjectNumber,
                 BuildResizeContentStream(transform, left, bottom, width, height)));
             additionalObjects.Add(new PdfPageExtractor.AdditionalObject(
                 suffixObjectNumber,
-                new PdfStream(new PdfDictionary(), PdfEncoding.Latin1GetBytes("\nQ\n"))));
+                new PdfStream(new PdfDictionary(), PdfEncoding.Latin1GetBytes(wrapping.RestoreOperators))));
 
             var pageOverrides = new Dictionary<string, PdfObject>(StringComparer.Ordinal) {
                 ["MediaBox"] = CreatePageBoxArray(0D, 0D, width, height),
                 ["CropBox"] = CreatePageBoxArray(0D, 0D, width, height),
-                ["Contents"] = BuildResizedContentsArray(
-                    objects,
-                    page.Items.TryGetValue("Contents", out PdfObject? contents) ? contents : null,
-                    prefixObjectNumber,
-                    suffixObjectNumber)
+                ["Contents"] = BuildResizedContentsArray(wrapping, prefixObjectNumber, suffixObjectNumber)
             };
             AddNormalizedProductionBoxes(pageOverrides, readPage.GetGeometry(), new PdfPageSize(OfficeIMO.OfficeLength.Points(width),OfficeIMO.OfficeLength.Points(height)));
             overrides[readPage.ObjectNumber] = pageOverrides;

@@ -41,6 +41,8 @@ public static partial class HtmlComputedStyleEngine {
         "image-orientation",
         "image-resolution",
         "line-height",
+        "overflow-wrap",
+        "word-wrap",
         "letter-spacing",
         "list-style",
         "list-style-image",
@@ -52,6 +54,8 @@ public static partial class HtmlComputedStyleEngine {
         "pointer-events",
         "quotes",
         "text-align",
+        "text-align-last",
+        "text-justify",
         "text-indent",
         "text-shadow",
         "text-underline-offset",
@@ -61,6 +65,10 @@ public static partial class HtmlComputedStyleEngine {
         "visibility",
         "widows",
         "white-space",
+        "white-space-collapse",
+        "text-wrap",
+        "text-wrap-mode",
+        "text-wrap-style",
         "word-spacing",
         "writing-mode",
         "text-orientation",
@@ -262,6 +270,7 @@ public static partial class HtmlComputedStyleEngine {
         "overflow-x",
         "overflow-y",
         "overflow-wrap",
+        "word-wrap",
         "page",
         "page-break-after",
         "page-break-before",
@@ -288,6 +297,8 @@ public static partial class HtmlComputedStyleEngine {
         "string-set",
         "tab-size",
         "text-align",
+        "text-align-last",
+        "text-justify",
         "text-indent",
         "text-decoration",
         "text-decoration-line",
@@ -359,6 +370,10 @@ public static partial class HtmlComputedStyleEngine {
         "vertical-align",
         "visibility",
         "white-space",
+        "white-space-collapse",
+        "text-wrap",
+        "text-wrap-mode",
+        "text-wrap-style",
         "width",
         "widows",
         "word-break",
@@ -538,6 +553,44 @@ public static partial class HtmlComputedStyleEngine {
                 includeCascadeTraces, budget, environment, containingWidth, containingHeight, containerContexts);
             return;
         }
+        SharedStyleKey? sharedKey = rules.StyleSharing.CreateKey(element, parent, includeCascadeTraces,
+            containerContexts, containingWidth, containingHeight);
+        HtmlComputedStyle style;
+        if (sharedKey != null && rules.StyleSharing.TryGet(sharedKey, out HtmlComputedStyle shared)) {
+            // Matching still runs so the selector budget counts exactly what an unshared element counts.
+            foreach (StyleRule _ in MatchElementRules(element, rules, budget, environment, containerContexts)) { }
+            style = shared.CreateElementSnapshot();
+        } else {
+            style = CascadeElement(element, parent, rules, includeCascadeTraces, budget, environment, containerContexts);
+            if (sharedKey != null) rules.StyleSharing.Add(sharedKey, style.CreateElementSnapshot());
+        }
+        computed[element] = style;
+        ApplyElementSizing(element, style, rules, computed, pseudoElements, includePseudoElements, includeCascadeTraces,
+            budget, environment, containingWidth, containingHeight, containerContexts);
+    }
+
+    /// <summary>Yields the element rules that match, in cascade order, charging the selector budget as it goes.</summary>
+    private static IEnumerable<StyleRule> MatchElementRules(IElement element, StyleRuleIndex rules,
+        HtmlCssProcessingBudget budget, MediaEnvironment environment, IReadOnlyList<ContainerQueryContext> containerContexts) {
+        foreach (StyleRule rule in rules.GetCandidates(element)) {
+            if (!AreContainerConditionsApplicable(rule.ContainerConditions, containerContexts, environment,
+                    budget.HasDeclarationLimit)) continue;
+            if (TryParsePseudoElementSelector(rule.Selector, out _, out _)) continue;
+            // Owned matching accounts for each compound and DOM traversal itself. Retained
+            // provider matching has no such callback, so count its candidate once here.
+            if (rule.OwnedSelector == null) budget.RecordSelectorEvaluation();
+            if (MatchesSelector(element, rule, budget)) yield return rule;
+        }
+    }
+
+    private static HtmlComputedStyle CascadeElement(
+        IElement element,
+        HtmlComputedStyle? parent,
+        StyleRuleIndex rules,
+        bool includeCascadeTraces,
+        HtmlCssProcessingBudget budget,
+        MediaEnvironment environment,
+        IReadOnlyList<ContainerQueryContext> containerContexts) {
         var properties = new Dictionary<string, CascadedProperty>(HtmlCssPropertyNameComparer.Instance);
         IReadOnlyDictionary<string, string>? parentProperties =
             GetParentPropertiesWithEffectiveDisplay(parent, element.ParentElement);
@@ -573,35 +626,39 @@ public static partial class HtmlComputedStyleEngine {
 
         ApplySvgTextAndPaintPresentationAttributes(element, parent?.Properties, properties, budget);
 
-        IReadOnlyList<StyleRule> candidateRules = rules.GetCandidates(element);
-        foreach (StyleRule rule in candidateRules) {
-            if (AreContainerConditionsApplicable(rule.ContainerConditions, containerContexts, environment,
-                    budget.HasDeclarationLimit)) {
-                if (TryParsePseudoElementSelector(rule.Selector, out _, out _)) continue;
-                // Owned matching accounts for each compound and DOM traversal itself. Retained
-                // provider matching has no such callback, so count its candidate once here.
-                if (rule.OwnedSelector == null) budget.RecordSelectorEvaluation();
-                if (!MatchesSelector(element, rule, budget)) continue;
-                foreach (var declaration in rule.Declarations) {
-                    if (declaration.Value.IsSupported) {
-                        ApplyDeclaration(properties, parentProperties, declaration.Key, declaration.Value.Value,
-                            declaration.Value.IsImportant, rule.Specificity, rule.Order, rule.LayerOrder,
-                            valueAlreadyValidated: true, declarationOrder: declaration.Value.DeclarationOrder,
-                            customPropertyRegistrations: rules.CustomPropertyRegistrations,
-                            source: OfficeIMO.Html.Css.HtmlCssCascadeSourceKind.StyleRule,
-                            selector: rule.Selector, layerName: rule.LayerName,
-                            enforceResolutionLimits: budget.HasDeclarationLimit,
-                            syntaxReuse: rules.DeclarationSyntaxReuse);
-                    }
+        foreach (StyleRule rule in MatchElementRules(element, rules, budget, environment, containerContexts)) {
+            foreach (var declaration in rule.Declarations) {
+                if (declaration.Value.IsSupported) {
+                    ApplyDeclaration(properties, parentProperties, declaration.Key, declaration.Value.Value,
+                        declaration.Value.IsImportant, rule.Specificity, rule.Order, rule.LayerOrder,
+                        valueAlreadyValidated: true, declarationOrder: declaration.Value.DeclarationOrder,
+                        customPropertyRegistrations: rules.CustomPropertyRegistrations,
+                        source: OfficeIMO.Html.Css.HtmlCssCascadeSourceKind.StyleRule,
+                        selector: rule.Selector, layerName: rule.LayerName,
+                        enforceResolutionLimits: budget.HasDeclarationLimit,
+                        syntaxReuse: rules.DeclarationSyntaxReuse);
                 }
             }
         }
 
         ApplyInlineDeclarations(properties, parentProperties, element.GetAttribute("style"), rules.CustomPropertyRegistrations, budget, rules.DeclarationSyntaxReuse);
-        HtmlComputedStyle style = ResolveElementComputedStyle(element, properties, parentProperties, rules,
+        return ResolveElementComputedStyle(element, properties, parentProperties, rules,
             environment, includeCascadeTraces, budget.HasDeclarationLimit);
-        computed[element] = style;
+    }
 
+    private static void ApplyElementSizing(
+        IElement element,
+        HtmlComputedStyle style,
+        StyleRuleIndex rules,
+        IDictionary<IElement, HtmlComputedStyle> computed,
+        IDictionary<IElement, HtmlPseudoElementStylePair> pseudoElements,
+        bool includePseudoElements,
+        bool includeCascadeTraces,
+        HtmlCssProcessingBudget budget,
+        MediaEnvironment environment,
+        double containingWidth,
+        double? containingHeight,
+        IReadOnlyList<ContainerQueryContext> containerContexts) {
         double initialFontSize = environment.FontDefaults?.Initial.Pixels ?? 16D;
         double inheritedFontSize = containerContexts.Count == 0 ? initialFontSize : containerContexts[containerContexts.Count - 1].FontSize;
         double rootFontSize = containerContexts.Count == 0 ? initialFontSize : containerContexts[0].RootFontSize;

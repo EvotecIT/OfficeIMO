@@ -20,6 +20,8 @@ The opt-in `DrawingLayout_AnchoredGroupMatchesDesktopWordGeometryWhenRequested` 
 
 Report redlines include the shape evidence. In-place redlines use a tracked textual fallback and record `Redline.Shape.InPlaceTextFallback`; they do not claim a native drawing replacement or move revision. Effective formatting remains distinct from direct formatting, and detected relocation remains distinct from a native Word move revision until those contracts can be implemented without guessing.
 
+In-place redlines copy the live Word OPC package, including unsaved XML edits. An inert custom-data part shared by the package root and main document retains one physical URI and payload with both relationship IDs, regardless of their insertion order. Snapshots preserve internal and external relationships, opaque part bytes, and authored versus derived table grids without loading unrelated XML roots. This applies to the decrypted Word package in memory; it does not make arbitrary custom data representable in native DOC output. Legacy-write assessment uses the same snapshot correction and retains the caller's XML character limit and compatibility policy while leaving its loaded XML and lazy-root state unchanged.
+
 ## Field evaluation profiles
 
 The managed updater implements native `LISTNUM` evaluation for Word's built-in `NumberDefault`, `OutlineDefault`, and `LegalDefault` profiles, levels 1 through 9, paragraph-level fallback, resets, and start overrides. Counters remain scoped by story part. Unknown custom list templates, nested instructions that cannot be evaluated safely, and overflow are reported rather than converted to a plausible-looking number.

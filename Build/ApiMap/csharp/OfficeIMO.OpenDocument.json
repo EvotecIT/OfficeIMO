@@ -188,6 +188,16 @@
       "reason": "Text append and text-case mutations return the same native receiver.",
       "replacement": "The operation does not create a new run. Derived text receivers retain their type through typed chaining methods.",
       "applied": true
+    },
+    {
+      "old": "OdfDocument.InspectProvenance(string filePath, OfficeProvenanceOptions options = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.OfficeDocument.Inspect(path, new OfficeInspectOptions { Provenance = new OfficeProvenanceOptions() })",
+      "category": "lifecycle",
+      "replacement": "Use OfficeDocument.Inspect with OfficeInspectOptions.Provenance for provenance evidence, or IncludeHiddenData for everything that leaves with the file. RemoveProvenance stays static.",
+      "reason": "Static inspection helpers move onto OfficeDocument.Inspect(path) for every format, as Word, Excel and PowerPoint already do.",
+      "applied": true
     }
   ]
 }

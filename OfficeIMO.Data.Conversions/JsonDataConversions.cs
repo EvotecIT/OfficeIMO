@@ -1,0 +1,81 @@
+using System.Text.Json.Nodes;
+using System.Xml.Linq;
+using OfficeIMO.CSV;
+using OfficeIMO.Toml;
+using OfficeIMO.Yaml;
+
+namespace OfficeIMO.Data.Conversions;
+
+/// <summary>Converts a <see cref="JsonNode"/> to JSON Lines, CSV or TSV, XML, YAML and TOML.</summary>
+public static class JsonDataConversions {
+    /// <summary>Writes the value as JSON Lines: one line per item of a root array, otherwise one line.</summary>
+    public static OfficeConversionReport SaveAsJsonLines(this JsonNode? node, string path, DataConversionOptions? options = null) =>
+        DataConversionPublishing.SaveAs(Open(node), 1, DataFormat.Json, DataFormat.JsonLines, path, options);
+
+    /// <summary>Writes the value as JSON Lines to a stream, which stays open.</summary>
+    public static OfficeConversionReport SaveAsJsonLines(this JsonNode? node, Stream stream, DataConversionOptions? options = null) =>
+        DataConversionPublishing.SaveAs(Open(node), 1, DataFormat.Json, DataFormat.JsonLines, stream, options);
+
+    /// <summary>Returns the rows of the value as CSV: see <see cref="StructuredDataReader"/> for how rows and columns are found.</summary>
+    public static CsvDocument ToCsv(this JsonNode? node, DataConversionOptions? options = null) => ToCsv(node, options, out _);
+
+    /// <summary>Returns the rows of the value as CSV, with the conversion report.</summary>
+    public static CsvDocument ToCsv(this JsonNode? node, DataConversionOptions? options, out OfficeConversionReport report) =>
+        DataConversionPublishing.ToCsv(Open(node), 1, DataFormat.Json, options, out report);
+
+    /// <summary>Writes the rows of the value as CSV, or as TSV when the path ends in <c>.tsv</c> or <c>.tab</c>.</summary>
+    public static OfficeConversionReport SaveAsCsv(this JsonNode? node, string path, DataConversionOptions? options = null) =>
+        DataConversionPublishing.SaveAs(Open(node), 1, DataFormat.Json, DataFormat.Csv, path, options);
+
+    /// <summary>Writes the rows of the value as CSV to a stream, which stays open.</summary>
+    public static OfficeConversionReport SaveAsCsv(this JsonNode? node, Stream stream, DataConversionOptions? options = null) =>
+        DataConversionPublishing.SaveAs(Open(node), 1, DataFormat.Json, DataFormat.Csv, stream, options);
+
+    /// <summary>Returns the value as XML.</summary>
+    public static XDocument ToXml(this JsonNode? node, DataConversionOptions? options = null) => ToXml(node, options, out _);
+
+    /// <summary>Returns the value as XML, with the conversion report.</summary>
+    public static XDocument ToXml(this JsonNode? node, DataConversionOptions? options, out OfficeConversionReport report) =>
+        DataConversionPublishing.ToXml(Open(node), 1, DataFormat.Json, options, out report);
+
+    /// <summary>Writes the value as XML.</summary>
+    public static OfficeConversionReport SaveAsXml(this JsonNode? node, string path, DataConversionOptions? options = null) =>
+        DataConversionPublishing.SaveAs(Open(node), 1, DataFormat.Json, DataFormat.Xml, path, options);
+
+    /// <summary>Writes the value as UTF-8 XML to a stream, which stays open.</summary>
+    public static OfficeConversionReport SaveAsXml(this JsonNode? node, Stream stream, DataConversionOptions? options = null) =>
+        DataConversionPublishing.SaveAs(Open(node), 1, DataFormat.Json, DataFormat.Xml, stream, options);
+
+    /// <summary>Returns the value as a YAML document. Strings that a YAML 1.1 reader could take for another type are quoted.</summary>
+    public static YamlDocument ToYaml(this JsonNode? node, DataConversionOptions? options = null) => ToYaml(node, options, out _);
+
+    /// <summary>Returns the value as a YAML document, with the conversion report.</summary>
+    public static YamlDocument ToYaml(this JsonNode? node, DataConversionOptions? options, out OfficeConversionReport report) =>
+        DataConversionPublishing.ToYaml(Open(node), 1, DataFormat.Json, options, out report);
+
+    /// <summary>Writes the value as YAML.</summary>
+    public static OfficeConversionReport SaveAsYaml(this JsonNode? node, string path, DataConversionOptions? options = null) =>
+        DataConversionPublishing.SaveAs(Open(node), 1, DataFormat.Json, DataFormat.Yaml, path, options);
+
+    /// <summary>Writes the value as UTF-8 YAML to a stream, which stays open.</summary>
+    public static OfficeConversionReport SaveAsYaml(this JsonNode? node, Stream stream, DataConversionOptions? options = null) =>
+        DataConversionPublishing.SaveAs(Open(node), 1, DataFormat.Json, DataFormat.Yaml, stream, options);
+
+    /// <summary>Returns the value as a TOML document. Nulls are omitted and a root that is not an object is wrapped in <see cref="DataConversionOptions.RootName"/>; both are reported.</summary>
+    public static TomlDocument ToToml(this JsonNode? node, DataConversionOptions? options = null) => ToToml(node, options, out _);
+
+    /// <summary>Returns the value as a TOML document, with the conversion report.</summary>
+    public static TomlDocument ToToml(this JsonNode? node, DataConversionOptions? options, out OfficeConversionReport report) =>
+        DataConversionPublishing.ToToml(Open(node), 1, DataFormat.Json, options, out report);
+
+    /// <summary>Writes the value as TOML.</summary>
+    public static OfficeConversionReport SaveAsToml(this JsonNode? node, string path, DataConversionOptions? options = null) =>
+        DataConversionPublishing.SaveAs(Open(node), 1, DataFormat.Json, DataFormat.Toml, path, options);
+
+    /// <summary>Writes the value as UTF-8 TOML to a stream, which stays open.</summary>
+    public static OfficeConversionReport SaveAsToml(this JsonNode? node, Stream stream, DataConversionOptions? options = null) =>
+        DataConversionPublishing.SaveAs(Open(node), 1, DataFormat.Json, DataFormat.Toml, stream, options);
+
+    internal static DataConversionPublishing.ReaderFactory Open(JsonNode? node) =>
+        context => new JsonEventReader(DataConversionPublishing.Serialize(node), jsonLines: false, context, leaveOpen: false);
+}

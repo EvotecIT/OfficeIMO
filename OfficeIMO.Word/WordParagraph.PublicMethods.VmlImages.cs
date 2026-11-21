@@ -13,8 +13,8 @@ public partial class WordParagraph {
         WordImageLocation location = WordImage.AddImageToLocation(_document, this, imageStream, fileName,
             widthPoints * 96D / 72D, heightPoints * 96D / 72D);
         string style = "mso-wrap-style:square";
-        if (widthPoints.HasValue) style = "width:" + widthPoints.Value.ToString("R", CultureInfo.InvariantCulture) + "pt;" + style;
-        if (heightPoints.HasValue) style = "height:" + heightPoints.Value.ToString("R", CultureInfo.InvariantCulture) + "pt;" + style;
+        if (widthPoints.HasValue) style = "width:" + OfficeIMO.Core.Internal.OfficeRoundTripText.Format(widthPoints.Value, CultureInfo.InvariantCulture) + "pt;" + style;
+        if (heightPoints.HasValue) style = "height:" + OfficeIMO.Core.Internal.OfficeRoundTripText.Format(heightPoints.Value, CultureInfo.InvariantCulture) + "pt;" + style;
         var shape = new V.Shape(new V.ImageData {
             RelationshipId = location.RelationshipId,
             Title = Path.GetFileName(fileName)

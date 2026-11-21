@@ -37,6 +37,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.Core\Diagnostics\diagnostic-code-map.json" Link="TestAssets\diagnostic-code-map.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\Build\Visual\themes.json" Link="TestAssets\themes.json" CopyToOutputDirectory="PreserveNewest" />
     <EmbeddedResource Include="TestAssets\FontParserLimits\*.gz" />
@@ -48,6 +49,8 @@
     <EmbeddedResource Include="TestAssets\WebpVp8\*.rgba" />
     <None Include="..\OfficeIMO.TestAssets\ScanQuality\**\*" Link="ScanQuality\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.cs" Link="ManagedTextShapingTestAssets.cs" />
+    <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.Emoji.cs" Link="ManagedTextShapingTestAssets.Emoji.cs" />
+    <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.ColorEmoji.cs" Link="ManagedTextShapingTestAssets.ColorEmoji.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.MarkPositioning.cs" Link="ManagedTextShapingTestAssets.MarkPositioning.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.PositioningComposition.cs" Link="ManagedTextShapingTestAssets.PositioningComposition.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.ControlAdmission.cs" Link="ManagedTextShapingTestAssets.ControlAdmission.cs" />

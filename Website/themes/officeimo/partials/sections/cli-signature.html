@@ -1,0 +1,10 @@
+{{~ # One usage line from data/cli/commands.json: the command and its operands, then its optional flags as chips. Set `signature` from cli_signature() before including. ~}}
+<div class="imo-cli-sig"{{ if signature.count > 8 }} data-cli-sig-long{{ end }}>
+  <code class="imo-cli-sig__head"><span class="imo-t-prompt" aria-hidden="true">❯ </span>{{ signature.head }}</code>
+  {{~ if signature.count > 0 ~}}
+  <ul class="imo-cli-sig__options" aria-label="Optional flags">{{ signature.options }}</ul>
+  {{~ if signature.count > 8 ~}}
+  <button type="button" class="imo-cli-sig__more" hidden aria-expanded="false" data-label-more="Show {{ signature.count - 8 }} more options" data-label-less="Show fewer options">Show {{ signature.count - 8 }} more options</button>
+  {{~ end ~}}
+  {{~ end ~}}
+</div>

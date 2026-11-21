@@ -12,17 +12,23 @@ internal static partial class PdfWriter {
         int documentStructElementId = ReserveObject(objects);
         var documentChildren = new List<PageStructElement>();
         var parentTreeEntries = new List<PdfStructTreeRootDictionaryBuilder.ParentTreeEntry>();
+        StructureLeafMerges? merges = StructureLeafMerges.Plan(pages);
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
             LayoutResult.Page page = pages[pageIndex];
             for (int elementIndex = 0; elementIndex < page.StructElements.Count; elementIndex++) {
-                page.StructElements[elementIndex].ObjectId = ReserveObject(objects);
+                PageStructElement element = page.StructElements[elementIndex];
+                if (merges?.IsMerged(element) != true) element.ObjectId = ReserveObject(objects);
             }
         }
+        // A merged leaf keeps its identity for parent-tree, destination and outline lookups
+        // through the object of the element that now owns its content.
+        merges?.AliasMergedObjectIds();
 
         int? namespaceId = pdf20 ? AddObject(objects, "<< /Type /Namespace /NS (http://iso.org/pdf2/ssn) >>\n") : null;
         var structureParents = BuildStructureParents(pages);
         var tableHeaders = BuildTableHeaderAssociations(pages, structureParents);
         var structureChildren = new StructureChildIndex(pages);
+        var elementText = new StringBuilder(256);
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
             LayoutResult.Page page = pages[pageIndex];
             if (page.StructElements.Count == 0) {
@@ -31,10 +37,15 @@ internal static partial class PdfWriter {
 
             for (int elementIndex = 0; elementIndex < page.StructElements.Count; elementIndex++) {
                 PageStructElement element = page.StructElements[elementIndex];
-                int? contentStreamObjectId = element.MarkedContentId.HasValue
-                    ? FindMarkedContentStreamObjectId(page, element.MarkedContentId.Value)
+                if (merges?.IsMerged(element) == true) continue;
+                // An element that absorbed its only leaf owns that leaf's marked content.
+                PageStructElement content = merges?.ContentOwner(element) ?? element;
+                int? markedContentId = content.MarkedContentId;
+                List<int>? additionalMarkedContentIds = content.AdditionalMarkedContentIds;
+                int? contentStreamObjectId = markedContentId.HasValue
+                    ? FindMarkedContentStreamObjectId(page, markedContentId.Value)
                     : null;
-                List<int?>? additionalContentStreamObjectIds = element.AdditionalMarkedContentIds?
+                List<int?>? additionalContentStreamObjectIds = additionalMarkedContentIds?
                     .Select(id => FindMarkedContentStreamObjectId(page, id))
                     .ToList();
                 int parentObjectId = element.ParentElement != null
@@ -45,9 +56,11 @@ internal static partial class PdfWriter {
                         ? page.StructElements[element.ParentElementIndex.Value].ObjectId
                         : documentStructElementId;
                 tableHeaders.TryGetValue(element, out var headers);
-                string structElement;
+                // Each element is written into one reused builder and encoded once into its object bytes.
+                elementText.Clear();
                 if (element.AnnotationObjectId.HasValue) {
-                    structElement = PdfStructTreeRootDictionaryBuilder.BuildAnnotationStructElement(
+                    PdfStructTreeRootDictionaryBuilder.AppendAnnotationStructElementBody(
+                        elementText,
                         parentObjectId,
                         pageIds[pageIndex],
                         element.AnnotationObjectId.Value,
@@ -59,27 +72,32 @@ internal static partial class PdfWriter {
                         contentStreamObjectId,
                         additionalContentStreamObjectIds,
                         childElementIds: structureChildren.GetChildren(page, element, elementIndex));
-                } else if (element.MarkedContentId.HasValue) {
-                    structElement = string.Equals(element.StructureType, "Figure", StringComparison.Ordinal)
-                        ? PdfStructTreeRootDictionaryBuilder.BuildFigureStructElement(
+                } else if (markedContentId.HasValue) {
+                    if (string.Equals(element.StructureType, "Figure", StringComparison.Ordinal)) {
+                        PdfStructTreeRootDictionaryBuilder.AppendFigureStructElementBody(
+                            elementText,
                             parentObjectId,
                             pageIds[pageIndex],
-                            element.MarkedContentId.Value,
+                            markedContentId.Value,
                             element.AlternativeText,
-                            contentStreamObjectId)
-                        : PdfStructTreeRootDictionaryBuilder.BuildTextStructElement(
+                            contentStreamObjectId);
+                    } else {
+                        PdfStructTreeRootDictionaryBuilder.AppendTextStructElementBody(
+                            elementText,
                             parentObjectId,
                             pageIds[pageIndex],
                             element.StructureType,
-                            element.MarkedContentId.Value,
+                            markedContentId.Value,
                             element.TableHeaderScope,
                             element.TableColumnSpan,
                             element.TableRowSpan,
-                            element.AdditionalMarkedContentIds,
+                            additionalMarkedContentIds,
                             contentStreamObjectId,
                             additionalContentStreamObjectIds, tableHeaders: headers);
+                    }
                 } else {
-                    structElement = PdfStructTreeRootDictionaryBuilder.BuildContainerStructElement(
+                    PdfStructTreeRootDictionaryBuilder.AppendContainerStructElementBody(
+                        elementText,
                         parentObjectId,
                         pageIds[pageIndex],
                         element.StructureType,
@@ -95,15 +113,15 @@ internal static partial class PdfWriter {
 
                 string? language = element.Language;
                 if (string.Equals(language, InheritedStructureLanguage(element, structureParents, documentLanguage), StringComparison.OrdinalIgnoreCase)) language = null;
-                structElement = PdfStructTreeRootDictionaryBuilder.WithStructureMetadata(structElement, namespaceId, language, StructureId(element));
+                string? listAttributes = null;
                 if (element.StructureType == "L" && element.ListNumbering.HasValue) {
                     PdfListNumbering numbering = element.ListNumbering.Value;
                     if (!pdf20 && numbering >= PdfListNumbering.Ordered)
                         throw new NotSupportedException("The selected list numbering attribute requires PDF 2.0.");
-                    structElement = structElement.Insert(structElement.LastIndexOf(">>", StringComparison.Ordinal),
-                        " /A << /O /List /ListNumbering /" + (numbering == PdfListNumbering.DecimalNumbers ? "Decimal" : numbering.ToString()) + " >> ");
+                    listAttributes = " /A << /O /List /ListNumbering /" + (numbering == PdfListNumbering.DecimalNumbers ? "Decimal" : numbering.ToString()) + " >> ";
                 }
-                ReplaceObject(objects, element.ObjectId, structElement);
+                PdfStructTreeRootDictionaryBuilder.CloseStructElement(elementText, namespaceId, language, StructureId(element), listAttributes);
+                ReplaceObject(objects, element.ObjectId, elementText);
             }
 
             var pageMarkedContentElements = new List<(int MarkedContentId, int ObjectId)>();

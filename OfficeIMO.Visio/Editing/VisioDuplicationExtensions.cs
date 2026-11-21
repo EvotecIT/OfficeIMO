@@ -380,6 +380,8 @@ namespace OfficeIMO.Visio {
                 ShapeDataSectionName = source.ShapeDataSectionName,
                 NativeStyleReferences = source.NativeStyleReferences,
                 PreserveDynamicConnectorMaster = source.PreserveDynamicConnectorMaster,
+                StyleSheetTextBackground = source.StyleSheetTextBackground,
+                DefaultsLabelBackground = source.DefaultsLabelBackground,
                 NativeCellMetadata = source.NativeCellMetadata?.Clone()
             };
 

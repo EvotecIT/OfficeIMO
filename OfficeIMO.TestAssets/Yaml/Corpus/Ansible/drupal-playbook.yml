@@ -1,0 +1,162 @@
+---
+- hosts: all
+  become: yes
+
+  vars_files:
+    - vars.yml
+
+  pre_tasks:
+    - name: Update apt cache if needed.
+      apt: update_cache=yes cache_valid_time=3600
+
+  handlers:
+    - name: restart apache
+      service: name=apache2 state=restarted
+
+  tasks:
+    - name: Get software for apt repository management.
+      apt:
+        state: present
+        name:
+          - python3-apt
+          - python3-pycurl
+
+    - name: Add ondrej repository for later versions of PHP.
+      apt_repository: repo='ppa:ondrej/php' update_cache=yes
+
+    - name: "Install Apache, MySQL, PHP, and other dependencies."
+      apt:
+        state: present
+        name:
+          - acl
+          - git
+          - curl
+          - unzip
+          - sendmail
+          - apache2
+          - php8.2-common
+          - php8.2-cli
+          - php8.2-dev
+          - php8.2-gd
+          - php8.2-curl
+          - php8.2-opcache
+          - php8.2-xml
+          - php8.2-mbstring
+          - php8.2-pdo
+          - php8.2-mysql
+          - php8.2-apcu
+          - libpcre3-dev
+          - libapache2-mod-php8.2
+          - python3-mysqldb
+          - mysql-server
+
+    - name: Disable the firewall (since this is for local dev only).
+      service: name=ufw state=stopped
+
+    - name: "Start Apache, MySQL, and PHP."
+      service: "name={{ item }} state=started enabled=yes"
+      with_items:
+        - apache2
+        - mysql
+
+    - name: Enable Apache rewrite module (required for Drupal).
+      apache2_module: name=rewrite state=present
+      notify: restart apache
+
+    - name: Add Apache virtualhost for Drupal.
+      template:
+        src: "templates/drupal.test.conf.j2"
+        dest: "/etc/apache2/sites-available/{{ domain }}.test.conf"
+        owner: root
+        group: root
+        mode: 0644
+      notify: restart apache
+
+    - name: Enable the Drupal site.
+      command: >
+        a2ensite {{ domain }}.test
+        creates=/etc/apache2/sites-enabled/{{ domain }}.test.conf
+      notify: restart apache
+
+    - name: Disable the default site.
+      command: >
+        a2dissite 000-default
+        removes=/etc/apache2/sites-enabled/000-default.conf
+      notify: restart apache
+
+    - name: Adjust OpCache memory setting.
+      lineinfile:
+        dest: "/etc/php/8.2/apache2/conf.d/10-opcache.ini"
+        regexp: "^opcache.memory_consumption"
+        line: "opcache.memory_consumption = 96"
+        state: present
+      notify: restart apache
+
+    - name: Create a MySQL database for Drupal.
+      mysql_db: "db={{ domain }} state=present"
+
+    - name: Create a MySQL user for Drupal.
+      mysql_user:
+        name: "{{ domain }}"
+        password: "1234"
+        priv: "{{ domain }}.*:ALL"
+        host: localhost
+        state: present
+
+    - name: Download Composer installer.
+      get_url:
+        url: https://getcomposer.org/installer
+        dest: /tmp/composer-installer.php
+        mode: 0755
+
+    - name: Run Composer installer.
+      command: >
+        php composer-installer.php
+        chdir=/tmp
+        creates=/usr/local/bin/composer
+
+    - name: Move Composer into globally-accessible location.
+      command: >
+        mv /tmp/composer.phar /usr/local/bin/composer
+        creates=/usr/local/bin/composer
+
+    - name: Ensure Drupal directory exists.
+      file:
+        path: "{{ drupal_core_path }}"
+        state: directory
+        owner: www-data
+        group: www-data
+
+    - name: Check if Drupal project already exists.
+      stat:
+        path: "{{ drupal_core_path }}/composer.json"
+      register: drupal_composer_json
+
+    - name: Create Drupal project.
+      composer:
+        command: create-project
+        arguments: drupal/recommended-project "{{ drupal_core_path }}"
+        working_dir: "{{ drupal_core_path }}"
+        no_dev: true
+      become_user: www-data
+      when: not drupal_composer_json.stat.exists
+
+    - name: Add drush to the Drupal site with Composer.
+      composer:
+        command: require
+        arguments: drush/drush:11.*
+        working_dir: "{{ drupal_core_path }}"
+      become_user: www-data
+      when: not drupal_composer_json.stat.exists
+
+    - name: Install Drupal.
+      command: >
+        vendor/bin/drush si -y --site-name="{{ drupal_site_name }}"
+        --account-name=admin
+        --account-pass=admin
+        --db-url=mysql://{{ domain }}:1234@localhost/{{ domain }}
+        --root={{ drupal_core_path }}/web
+        chdir={{ drupal_core_path }}
+        creates={{ drupal_core_path }}/web/sites/default/settings.php
+      notify: restart apache
+      become_user: www-data

@@ -44,7 +44,8 @@ namespace OfficeIMO.Excel.Xlsb.Model {
 
         internal bool BuiltIn => (Flags & 0x00000020U) != 0;
 
-        internal bool IsSimpleName => (Flags & 0x0003FFDEU) == 0 && ShortcutKey == 0 && FormulaExtraBytes.Length == 0;
+        /// <summary>No macro, published, parameter or future-function flags; formula extra data (array constants) is allowed.</summary>
+        internal bool IsSimpleName => (Flags & 0x0003FFDEU) == 0 && ShortcutKey == 0;
 
         internal string? FormulaText { get; set; }
     }

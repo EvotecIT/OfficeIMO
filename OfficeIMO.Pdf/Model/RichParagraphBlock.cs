@@ -7,6 +7,8 @@ internal sealed class RichParagraphBlock : IPdfBlock {
     public PdfParagraphStyle? Style { get; }
     /// <summary>The live authoring paragraph whose runs this block renders, when it came from one.</summary>
     internal PdfParagraph? Source { get; }
+    /// <summary>Tagged structure type of the paragraph's text; generated contents entries use Reference.</summary>
+    internal string StructureType { get; private set; } = "P";
 
     public RichParagraphBlock(System.Collections.Generic.IEnumerable<PdfTextRun> runs, OfficeAlignment align, global::OfficeIMO.OfficeColor? defaultColor, PdfParagraphStyle? style = null) {
         Guard.NotNull(runs, nameof(runs));
@@ -43,6 +45,12 @@ internal sealed class RichParagraphBlock : IPdfBlock {
     private RichParagraphBlock(RichParagraphBlock source, PdfParagraphStyle? style) {
         Source = source.Source;
         Align = source.Align; DefaultColor = source.DefaultColor; Style = style; Runs = source.Runs;
+        StructureType = source.StructureType;
+    }
+
+    internal RichParagraphBlock AsStructure(string structureType) {
+        StructureType = structureType;
+        return this;
     }
 
     /// <summary>Same runs (still live when authored through a paragraph) with another layout style.</summary>

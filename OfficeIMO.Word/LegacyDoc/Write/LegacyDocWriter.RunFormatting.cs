@@ -407,14 +407,19 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         private static string? ReadSupportedColorHex(Color color) {
             string? value = color.Val?.Value;
-            if (string.IsNullOrWhiteSpace(value) || string.Equals(value, "auto", StringComparison.OrdinalIgnoreCase)) {
+            if (string.IsNullOrWhiteSpace(value)) {
                 return null;
+            }
+
+            // Automatic color is retained: it overrides an inherited RGB color.
+            if (string.Equals(value, "auto", StringComparison.OrdinalIgnoreCase)) {
+                return "auto";
             }
 
             string colorValue = value!;
             string hex = colorValue.Trim().TrimStart('#').ToUpperInvariant();
             if (hex.Length != 6 || hex.Any(character => !Uri.IsHexDigit(character))) {
-                throw new NotSupportedException("Native DOC saving supports text color only when it is stored as a 6-digit RGB hex value.");
+                throw new NotSupportedException("Native DOC saving supports text color only as a 6-digit RGB hex value or automatic color.");
             }
 
             return hex;
@@ -753,6 +758,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static void AddColorRefSprm(List<byte> grpprl, string colorHex) {
             grpprl.Add((byte)(SprmCCv & 0xFF));
             grpprl.Add((byte)(SprmCCv >> 8));
+            if (string.Equals(colorHex, "auto", StringComparison.OrdinalIgnoreCase)) {
+                // COLORREF with fAuto set (0xFF000000) is Word's automatic color.
+                grpprl.AddRange(new byte[] { 0, 0, 0, 0xFF });
+                return;
+            }
+
             grpprl.Add(Convert.ToByte(colorHex.Substring(0, 2), 16));
             grpprl.Add(Convert.ToByte(colorHex.Substring(2, 2), 16));
             grpprl.Add(Convert.ToByte(colorHex.Substring(4, 2), 16));

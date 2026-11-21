@@ -5,12 +5,12 @@ using A = DocumentFormat.OpenXml.Drawing;
 namespace OfficeIMO.Word.LegacyDoc.Write {
     internal static partial class LegacyDocWriter {
         private static Style CreateDefaultParagraphStyle(MainDocumentPart mainPart,
-            IReadOnlyDictionary<string, Style> paragraphStyles, Styles? styles) {
+            IReadOnlyDictionary<string, Style> paragraphStyles, DocDefaults? documentDefaults) {
             Style normal = paragraphStyles.TryGetValue("Normal", out Style? existing)
                 ? (Style)existing.CloneNode(true)
                 : new Style { Type = StyleValues.Paragraph, StyleId = "Normal", Default = true };
             normal.StyleRunProperties ??= new StyleRunProperties();
-            var defaults = styles?.DocDefaults?.RunPropertiesDefault?.RunPropertiesBaseStyle;
+            var defaults = documentDefaults?.RunPropertiesDefault?.RunPropertiesBaseStyle;
             if (defaults != null) {
                 foreach (var property in defaults.ChildElements) {
                     // Font selectors are inherited individually below.
@@ -42,8 +42,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 ? ResolveDefaultThemeFont(scheme, selector) ?? name
                 : ResolveDefaultThemeFont(scheme, inheritedSelector) ?? inheritedName;
 
-        private static void MaterializeDocumentDefaultSpacing(Dictionary<string, Style> paragraphStyles, Styles? styles) {
-            ParagraphPropertiesBaseStyle? paragraphDefaults = styles?.DocDefaults?.ParagraphPropertiesDefault?.ParagraphPropertiesBaseStyle;
+        private static void MaterializeDocumentDefaultSpacing(Dictionary<string, Style> paragraphStyles, DocDefaults? documentDefaults) {
+            ParagraphPropertiesBaseStyle? paragraphDefaults = documentDefaults?.ParagraphPropertiesDefault?.ParagraphPropertiesBaseStyle;
             SpacingBetweenLines? defaults = paragraphDefaults?.SpacingBetweenLines;
             TextAlignment? alignment = paragraphDefaults?.GetFirstChild<TextAlignment>();
             if (defaults == null && alignment == null) return;

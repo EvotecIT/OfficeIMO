@@ -32,7 +32,7 @@ namespace OfficeIMO.Excel {
 
             /// <inheritdoc />
             public override long GetChars(int ordinal, long dataOffset, char[]? buffer, int bufferOffset, int length) {
-                string value = Convert.ToString(GetValue(ordinal), _culture) ?? string.Empty;
+                string value = ExcelCellValueText.Format(GetValue(ordinal), _culture);
                 if (buffer == null) {
                     return value.Length;
                 }
@@ -65,17 +65,16 @@ namespace OfficeIMO.Excel {
                     return MaterializeDateSerial(ordinal);
                 }
 
-                object value = GetNonDbNullValue(ordinal);
-                return value is DateTime dateTime ? dateTime : Convert.ToDateTime(value, _culture);
+                return DataReaderDateValue(GetNonDbNullValue(ordinal), _owner._dateSystem, _culture);
             }
 
             /// <inheritdoc />
             public override decimal GetDecimal(int ordinal) {
                 if (TryGetUnloadedDecimal(ordinal, out decimal indexedValue)) return indexedValue;
                 return TryGetPrimitiveDouble(ordinal, out double value)
-                    ? Convert.ToDecimal(value)
+                    ? OfficeDecimalConversion.FromDouble(value)
                     : TryGetCachedDecimal(ordinal, out decimal decimalValue) ? decimalValue
-                    : Convert.ToDecimal(GetNonDbNullValue(ordinal), _culture);
+                    : OfficeDecimalConversion.FromObject(GetNonDbNullValue(ordinal), _culture);
             }
 
             /// <inheritdoc />
@@ -146,7 +145,7 @@ namespace OfficeIMO.Excel {
             public override string GetString(int ordinal) {
                 if (TryGetUnloadedString(ordinal, out string indexedText)) return indexedText;
                 object value = GetNonDbNullValue(ordinal);
-                return value is string text ? text : Convert.ToString(value, _culture) ?? string.Empty;
+                return value is string text ? text : ExcelCellValueText.Format(value, _culture);
             }
 
             /// <inheritdoc />
@@ -199,7 +198,7 @@ namespace OfficeIMO.Excel {
                     throw new InvalidCastException($"Column '{GetName(ordinal)}' contains DBNull.");
                 }
 
-                return value is ExcelDataReaderDateSerial dateSerial ? dateSerial.Materialize() : value;
+                return value is ExcelDataReaderDateSerial dateSerial ? dateSerial.MaterializeValue() : value;
             }
 
             private bool TryGetPrimitiveDouble(int ordinal, out double value) {
@@ -238,7 +237,7 @@ namespace OfficeIMO.Excel {
                 && (_currentPrimitiveKinds[ordinal] == XmlDataReaderPrimitiveKind.CalendarDateSerial
                     || _currentPrimitiveKinds[ordinal] == XmlDataReaderPrimitiveKind.ElapsedDateSerial);
 
-            private DateTime MaterializeDateSerial(int ordinal) => _owner.FromExcelSerialDate(
+            private DateTime MaterializeDateSerial(int ordinal) => _owner.DateOrInvalidCast(
                 _currentDoubleValues[ordinal], _currentPrimitiveKinds[ordinal] == XmlDataReaderPrimitiveKind.CalendarDateSerial);
 
             private object? MaterializeCurrentValue(int ordinal) {
@@ -249,7 +248,8 @@ namespace OfficeIMO.Excel {
                 object value = _currentValues[ordinal] ?? (_currentPrimitiveKinds[ordinal] switch {
                     XmlDataReaderPrimitiveKind.Double => _currentDoubleValues[ordinal],
                     XmlDataReaderPrimitiveKind.Decimal => _currentDecimalValues[ordinal],
-                    XmlDataReaderPrimitiveKind.CalendarDateSerial or XmlDataReaderPrimitiveKind.ElapsedDateSerial => MaterializeDateSerial(ordinal),
+                    XmlDataReaderPrimitiveKind.CalendarDateSerial or XmlDataReaderPrimitiveKind.ElapsedDateSerial => _owner.DateOrSerial(
+                        _currentDoubleValues[ordinal], _currentPrimitiveKinds[ordinal] == XmlDataReaderPrimitiveKind.CalendarDateSerial),
                     XmlDataReaderPrimitiveKind.DateTime => _currentDateTimeValues[ordinal],
                     XmlDataReaderPrimitiveKind.Boolean => BoxBoolean(_currentBooleanValues[ordinal]),
                     _ => _currentRow![ordinal]!

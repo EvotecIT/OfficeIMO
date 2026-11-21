@@ -36,6 +36,7 @@ public sealed class CopyOfficeExcelSheetCommand : OfficeCmdlet {
     /// <summary>Gets or sets target workbook paths with filesystem wildcard expansion.</summary>
     [Parameter(ParameterSetName = "Path", Mandatory = true, Position = 0, ValueFromPipeline = true)]
     [SupportsWildcards, ValidateNotNullOrEmpty]
+    [Alias("FilePath")]
     public string[] Path { get; set; } = Array.Empty<string>();
     /// <summary>Gets or sets literal target paths, including FileInfo.FullName and provider PSPath.</summary>
     [Parameter(ParameterSetName = "LiteralPath", Mandatory = true, ValueFromPipelineByPropertyName = true)]
@@ -49,6 +50,7 @@ public sealed class CopyOfficeExcelSheetCommand : OfficeCmdlet {
     /// <summary>Gets or sets source worksheet names or patterns, one-based positions or native worksheets.</summary>
     [Parameter(Position = 1)]
     [OfficeSheetTransformation, SupportsWildcards, ValidateNotNullOrEmpty]
+    [Alias("WorksheetName")]
     public OfficeSheetSelector[]? Sheet { get; set; }
     /// <summary>Gets or sets a new name when copying exactly one worksheet.</summary>
     [Parameter(Position = 2)]

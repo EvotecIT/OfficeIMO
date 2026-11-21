@@ -8,8 +8,6 @@ public sealed partial class PdfEmbeddedFontFamily {
     private readonly byte[]? _bold;
     private readonly byte[]? _italic;
     private readonly byte[]? _boldItalic;
-    private readonly bool _regularHasPhysicalSlant;
-    private readonly bool _regularHasPhysicalWeight;
 
     /// <summary>Creates a reusable TrueType font family from font file bytes.</summary>
     /// <param name="familyName">Family name used for generated PDF font resource names.</param>
@@ -49,6 +47,25 @@ public sealed partial class PdfEmbeddedFontFamily {
         _boldItalic = boldItalic == null ? null : SnapshotFace(boldItalic, familyName);
     }
 
+    // Faces read from disk by the library are private to it, so they need no defensive snapshot copy.
+    private PdfEmbeddedFontFamily(string familyName, byte[] regular, byte[]? bold, byte[]? italic, byte[]? boldItalic, bool facesOwned) {
+        Guard.NotNullOrWhiteSpace(familyName, nameof(familyName));
+        Guard.NotNullOrEmpty(regular, nameof(regular));
+        PdfFontInput.EnsureWithinLimit(regular.LongLength);
+        if (bold != null) PdfFontInput.EnsureWithinLimit(bold.LongLength);
+        if (italic != null) PdfFontInput.EnsureWithinLimit(italic.LongLength);
+        if (boldItalic != null) PdfFontInput.EnsureWithinLimit(boldItalic.LongLength);
+        FamilyName = familyName.Trim();
+        _regular = regular;
+        _bold = bold;
+        _italic = italic;
+        _boldItalic = boldItalic;
+    }
+
+    /// <summary>Creates a family from face bytes that no caller can reach or change.</summary>
+    internal static PdfEmbeddedFontFamily FromOwnedFaces(string familyName, byte[] regular, byte[]? bold, byte[]? italic, byte[]? boldItalic) =>
+        new PdfEmbeddedFontFamily(familyName, regular, bold, italic, boldItalic, facesOwned: true);
+
     /// <summary>Family name used for generated PDF font resource names.</summary>
     public string FamilyName { get; }
 
@@ -65,8 +82,6 @@ public sealed partial class PdfEmbeddedFontFamily {
         _bold = source._bold;
         _italic = source._italic;
         _boldItalic = source._boldItalic;
-        _regularHasPhysicalSlant = source._regularHasPhysicalSlant;
-        _regularHasPhysicalWeight = source._regularHasPhysicalWeight;
         UsesProgramFontNames = true;
     }
 
@@ -92,17 +107,62 @@ public sealed partial class PdfEmbeddedFontFamily {
 
     internal PdfEmbeddedFontFamily Clone() => this;
 
-    internal PdfEmbeddedFontFamily CreateCoverageStableFallbackSnapshot(string? familyName = null) {
-        var snapshot = new PdfEmbeddedFontFamily(familyName ?? FamilyName, _regular, _regularHasPhysicalSlant, _regularHasPhysicalWeight);
+    // Fallback text is planned against the regular face. Styled runs use the family's own faces
+    // where those faces have the glyphs; a face whose licence forbids embedding, or that cannot be
+    // parsed, is left out so that style is synthesized from the regular face.
+    internal PdfEmbeddedFontFamily CreateFallbackSnapshot() {
+        var snapshot = new PdfEmbeddedFontFamily(FamilyName, _regular,
+            EmbeddableFace(_bold), EmbeddableFace(_italic), EmbeddableFace(_boldItalic), facesOwned: true);
         return UsesProgramFontNames ? snapshot.WithProgramFontNames() : snapshot;
+    }
+
+    /// <summary>Copies a fallback snapshot under another resource name.</summary>
+    internal PdfEmbeddedFontFamily WithFallbackFamilyName(string familyName) {
+        var snapshot = new PdfEmbeddedFontFamily(familyName, _regular, _bold, _italic, _boldItalic, facesOwned: true);
+        return UsesProgramFontNames ? snapshot.WithProgramFontNames() : snapshot;
+    }
+
+    private byte[]? EmbeddableFace(byte[]? face) =>
+        face != null && (ReferenceEquals(face, _regular) || HasUsableProgram(face)) ? face : null;
+
+    /// <summary>
+    /// Returns a test that tells which face can paint a text: the styled face when it maps every scalar, the
+    /// regular face otherwise, or the regular face as a whole shaped unit when the regular face covers a scalar
+    /// only through shaping, such as a letter of a ligature it maps as one glyph. Null when the styled face is
+    /// the regular face itself.
+    /// </summary>
+    internal static Func<string, StyledFaceCoverage>? CreateStyledFaceCoverageTest(byte[] styledFace, byte[] regularFace) {
+        if (ReferenceEquals(styledFace, regularFace)) return null;
+        Func<int, bool> styled = CreateGlyphLookup(styledFace);
+        Func<int, bool> regular = CreateGlyphLookup(regularFace);
+        return text => {
+            StyledFaceCoverage coverage = StyledFaceCoverage.StyledFace;
+            for (int index = 0; index < text.Length; index++) {
+                int scalar = text[index];
+                if (char.IsHighSurrogate(text[index]) && index + 1 < text.Length && char.IsLowSurrogate(text[index + 1])) {
+                    scalar = char.ConvertToUtf32(text[index], text[index + 1]);
+                    index++;
+                }
+                if (!regular(scalar)) return StyledFaceCoverage.ShapedRegularFace;
+                if (!styled(scalar)) coverage = StyledFaceCoverage.RegularFace;
+            }
+            return coverage;
+        };
+    }
+
+    private static Func<int, bool> CreateGlyphLookup(byte[] face) {
+        if (IsOpenTypeCffData(face)) {
+            PdfOpenTypeCffFontProgram cff = PdfFontProgramCache.GetOpenTypeCff(face, fontNameOverride: null);
+            return scalar => cff.TryGetGlyphId(scalar, out int glyphId) && glyphId > 0;
+        }
+        PdfTrueTypeFontProgram trueType = PdfFontProgramCache.GetTrueType(face, fontNameOverride: null);
+        return scalar => trueType.TryGetGlyphId(scalar, out int glyphId) && glyphId > 0;
     }
 
     private PdfEmbeddedFontFamily(string familyName, byte[] regular, bool hasPhysicalSlant, bool hasPhysicalWeight = false) {
         FamilyName = familyName;
         _regular = regular;
-        _regularHasPhysicalWeight = hasPhysicalWeight;
         _bold = hasPhysicalWeight ? regular : null;
-        _regularHasPhysicalSlant = hasPhysicalSlant;
         _italic = hasPhysicalSlant ? regular : null;
         _boldItalic = hasPhysicalSlant && hasPhysicalWeight ? regular : null;
     }
@@ -125,4 +185,11 @@ public sealed partial class PdfEmbeddedFontFamily {
 
     private static byte[]? CloneOptional(byte[]? data) =>
         data == null ? null : (byte[])data.Clone();
+}
+
+/// <summary>Which face of a fallback family can paint a piece of styled text.</summary>
+internal enum StyledFaceCoverage {
+    StyledFace,
+    RegularFace,
+    ShapedRegularFace
 }

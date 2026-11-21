@@ -86,6 +86,26 @@ selector in a typed chart call. `WordChartOptions` adds rounded corners,
 `PowerPointChartOptions` adds slide placement and accessibility. Omitting options
 keeps each format's native drawing defaults.
 
+## Serializer mapping attributes
+
+`YamlSerializer` (`OfficeIMO.Yaml`) and `TomlSerializer` (`OfficeIMO.Toml`) read one set of mapping attributes, so a model type maps to both formats the same way: `[OfficePropertyName]`, `[OfficeIgnore]` with `OfficeIgnoreCondition`, `[OfficeRequired]`, `[OfficeConstructor]`, `[OfficeDerivedType]` and `[OfficePolymorphic]`. `OfficeNamingPolicy` (`CamelCase`, `SnakeCaseLower`, `KebabCaseLower`) converts property names for both serializers' options.
+
+## JSON data and JSON Schema
+
+`OfficeIMO.Json` holds a format-neutral JSON data model and a JSON Schema validator (draft 2020-12 and draft 7) with no dependencies. `JsonData` values carry the line, column and source node they came from; `JsonData.Parse` reads JSON text, and `OfficeIMO.Yaml` and `OfficeIMO.Toml` convert their documents with `ToJsonData()`. Numbers keep their exact decimal value at any precision.
+
+```csharp
+using OfficeIMO.Json;
+
+JsonSchema schema = JsonSchema.Parse("""{ "type": "object", "required": ["name"], "properties": { "port": { "type": "integer", "maximum": 65535 } } }""");
+JsonSchemaValidationResult result = schema.Validate(JsonData.Parse("""{ "port": 70000 }"""));
+foreach (JsonSchemaFinding finding in result.Findings) Console.WriteLine(finding);
+// 1:1 (root): Required property 'name' is missing.
+// 1:11 /port: Value must be at most 65535.
+```
+
+References outside the schema resolve only through `JsonSchemaOptions.ReferenceResolver`. `MaxErrors`, `MaxDepth`, `MaxEvaluationSteps` and `RegexTimeout` bound the work an untrusted schema can cause. [JSON Schema validation](../Docs/officeimo.json-schema-design.md) lists the keywords, formats and limits.
+
 ## Conversion diagnostics
 
 `OfficeConversionReport` records a completed conversion's `Source`, `Target`,
@@ -112,6 +132,25 @@ loss: a warning may require review without losing content, and an informational
 finding may describe content that was not preserved. `OfficeDiagnosticCodes` is
 the shared code catalog. For example, `OfficeDiagnosticCodes.ChartFlattened` is
 `chart-flattened` across formats.
+
+## Compare sequences and text
+
+`OfficeDiff` (namespace `OfficeIMO.Diff`) computes edit scripts between any two sequences with an equality comparer, or between texts split into lines, words or user-perceived characters. The default Myers algorithm runs in linear space and returns a minimal script; `Patience` and `Histogram` align on unique or rare items first, which often reads better for moved blocks. `MaxWorkUnits` and `Timeout` bound the work: when a limit is reached the rest is reported as deleted and inserted, `LimitReached` is set, and the script still turns the old sequence into the new one.
+
+```csharp
+OfficeDiffResult<OfficeTextToken> words = OfficeDiff.CompareWords(
+    "The quick brown fox", "The slow red fox",
+    new OfficeDiffOptions { SemanticCleanup = true });
+IReadOnlyList<OfficeTextToken> rebuilt = words.Apply(words.Old); // the new tokens
+
+string patch = OfficeUnifiedDiff.Create(oldText, newText, "a/notes.txt", "b/notes.txt");
+OfficeChangeSet changes = OfficeChangeSet.FromTextDiff(words);
+string json = changes.ToJson();
+string html = OfficeDiffHtmlReport.SideBySide(oldText, newText,
+    new OfficeDiffHtmlOptions { Title = "Notes", Changes = changes });
+```
+
+`SemanticCleanup` folds short unchanged fragments between changes into one replacement. Text diffs also move each pure insertion or deletion to the equivalent position that starts and ends at whitespace, so whole words and sentences are reported. `OfficeChangeSet` is the format-neutral change list (inserted, deleted, replaced and moved changes with token, page and region anchors) that document comparers such as `PdfTextRedline` return.
 
 ## Bounded embedded payload reads
 
@@ -181,7 +220,7 @@ if (!OfficeDrawingPortableExporter.TryExportJson(drawing, options, out string? j
 File.WriteAllText("chart.json", json!);
 ```
 
-The exporter rejects unsupported elements before returning a payload. Gradients, transparency, images, nonrectangular clips, rotated or wrapped text, variable/color fonts and complex text shaping are outside this profile. Solid strokes retain caps and joins; miter joins require a miter limit of ten. Pair positioning uses the existing Core font metrics; adjusted Latin runs become individually positioned characters. Fonts are supplied separately. Resource options bound elements, commands, nesting, text and JSON size. Drawing dimensions cannot exceed 14,400 points; coordinates must be finite and within one million points.
+The exporter rejects unsupported elements before returning a payload. Gradients, transparency, post-composition color transforms, images, nonrectangular clips, rotated or wrapped text, variable/color fonts and complex text shaping are outside this profile. Solid strokes retain caps and joins; miter joins require a miter limit of ten. Pair positioning uses the existing Core font metrics; adjusted Latin runs become individually positioned characters. Fonts are supplied separately. Resource options bound elements, commands, nesting, text and JSON size. Drawing dimensions cannot exceed 14,400 points; coordinates must be finite and within one million points.
 
 ## Native VBA projects
 
@@ -1166,13 +1205,13 @@ Format image operations share the same export options. Set `MaximumOutputWidth` 
 
 For raster complex text, set `TextShapingProvider` and optionally `TextShapingLanguage` on the shared image-export options. `OfficeManagedTextShapingProvider.Instance` uses the font programs in Core without another runtime dependency. Its horizontal static TrueType and OpenType/CFF profile covers font-selected Arabic joining forms, required lam-alef ligatures, contextual substitutions and mark attachment, together with Hebrew and Latin combining marks. The font's script and language features select the actual glyphs; family names alone do not establish shaping support.
 
-The shared owner applies GDEF filtering, mark-to-base, mark-to-ligature and mark-to-mark positioning, and supported pair adjustments. Joining controls affect Arabic context; CGJ retains its mark-ordering boundary. Retained nonpainting controls have zero advance and use a verified blank glyph. Font-directed canonical composition and Arabic mark ordering preserve the complete original Unicode source. Composition follows the native shaping profile and can cross a lower-class intervening mark, so this is not a claim of complete UAX #53 conformance.
+The shared owner applies every GSUB and GPOS lookup flag, including GDEF mark-attachment classes and mark filtering sets, and reads contextual and chained-contextual rules in all three formats. It positions mark-to-base, mark-to-ligature (per ligature component) and mark-to-mark attachments, cursive attachment with its right-to-left flag, and supported pair adjustments. Joining controls affect Arabic context; CGJ retains its mark-ordering boundary. Retained nonpainting controls have zero advance and use a verified blank glyph. Font-directed canonical composition and Arabic mark ordering preserve the complete original Unicode source. A base and its marks compose only as far as the font covers the composite, so a font without `Ǻ` shapes `A` + ring + acute as `Å` with an attached acute. Composition follows the native shaping profile and can cross a lower-class intervening mark, so this is not a claim of complete UAX #53 conformance.
 
 A supported font lookup can legitimately have no applicable parent anchor. The managed profile then retains that mark's zero advance and nominal font position instead of inventing an attachment. This interpreted font-directed no-op is distinct from an unavailable or unsupported lookup.
 
 Drawing passes the selected font bytes, collection face, variation coordinates, direction, language, cancellation token and source mapping to providers. Measurement and painting share the admitted glyph run. Retained text can be divided only at complete logical source clusters, keeping each source position owned once even when normalization, ligatures or continuation glyphs change the glyph count.
 
-The multilingual mark profile is bounded to static fonts and supported GSUB/GPOS lookups, with cancellation and request-wide work limits. Compositions that combine mark attachment with separate adjustments to a mark are declined when their ordered result cannot be retained. Font-directed Latin under a bidi override that reverses its natural glyph order is declined until that lookup order is qualified. Cursive attachment, device-dependent or variation anchors, feature variations, Indic and Southeast Asian syllable processing, variation selectors and true vertical shaping require another qualified provider. Existing nominal simple-Latin variable-font behavior retains its separate selected-instance contract, including complete nonpainting control source. A declined complex run keeps diagnosed fallback rather than being recorded as complete shaping; `IMAGE_TEXT_SHAPING_FALLBACK` is an approximation and `Policy.FailOnLoss = true` rejects it. The optional `OfficeIMO.Drawing.HarfBuzz` provider remains available for broader OpenType shaping.
+Variation sequences listed in a static font's cmap format 14 select their glyph, and variation selectors are skipped when matching ligatures, so fully-qualified and unqualified emoji sequences reach the same ligature. The multilingual mark profile is bounded to static fonts and supported GSUB/GPOS lookups, with cancellation and request-wide work limits. A placement-only adjustment to a mark composes with its anchor in LookupList order, as emoji fonts use to place ZWJ family members; other compositions that combine mark attachment with separate adjustments to a mark are declined when their ordered result cannot be retained. Font-directed Latin under a bidi override that reverses its natural glyph order is declined until that lookup order is qualified. A nested contextual lookup whose flags differ from its parent's and that matches further glyphs (a ligature or another context) is declined; nested single, multiple and alternate substitutions apply with any flags. Runs without marks that use the default Latin ligature path still decline lookups carrying flags. Device-dependent or variation anchors, feature variations, Indic and Southeast Asian syllable processing and true vertical shaping require another qualified provider. Existing nominal simple-Latin variable-font behavior retains its separate selected-instance contract, including complete nonpainting control source. A variable font whose layout cannot vary, with GSUB and no GPOS or feature variations, takes the same substitution route with nominal advances, so its emoji sequences reach their ligatures while the selected instance keeps its own metrics. A declined complex run keeps diagnosed fallback rather than being recorded as complete shaping; `IMAGE_TEXT_SHAPING_FALLBACK` is an approximation and `Policy.FailOnLoss = true` rejects it. The optional `OfficeIMO.Drawing.HarfBuzz` provider remains available for broader OpenType shaping.
 
 ### Deterministic text measurement
 
@@ -1631,7 +1670,7 @@ High-quality image minification shares the operation's `MaximumRasterPixels` bud
 ## Targets and license
 
 - Targets: `netstandard2.0`, `net8.0`, `net10.0`.
-- License: OfficeIMO code is MIT. The incorporated CodeGlyphX VP8 encoder remains Apache-2.0, and its forward transform retains the WebM BSD-3-Clause notice. See [third-party notices](THIRD-PARTY-NOTICES.md), the [CodeGlyphX license](Licenses/CodeGlyphX-LICENSE.txt), and the [WebM license](Licenses/libvpx-LICENSE.txt) and [patent grant](Licenses/libvpx-PATENTS.txt).
+- License: MIT. The package also embeds reference data, such as Unicode tables, font metrics and codec tables, under their own notices; see [third-party notices](THIRD-PARTY-NOTICES.md) and the `Licenses` folder.
 - Repository: [EvotecIT/OfficeIMO](https://github.com/EvotecIT/OfficeIMO)
 
 ## Dependency footprint

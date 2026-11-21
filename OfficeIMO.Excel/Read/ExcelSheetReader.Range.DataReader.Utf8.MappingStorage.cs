@@ -33,7 +33,7 @@ internal sealed partial class ExcelSheetReader {
 #endif
             };
             try {
-                target._rowIndexes = ArrayPool<int>.Shared.Rent(count);
+                target._rowIndexes = ExcelArrayPool.RentInts(count);
                 for (int row = 0; row < count; row++) {
                     ct.ThrowIfCancellationRequested();
                     target._rowIndexes[row] = row + 1;
@@ -86,9 +86,9 @@ internal sealed partial class ExcelSheetReader {
                 if (Interlocked.Decrement(ref _references) != 0) return;
                 if (_sharedBufferPool) ArrayPool<byte>.Shared.Return(_buffer, clearArray: true);
                 else OpenXmlPartBufferPool.Return(_buffer);
-                ArrayPool<int>.Shared.Return(_starts);
-                ArrayPool<int>.Shared.Return(_lengths);
-                ArrayPool<byte>.Shared.Return(_kinds);
+                ExcelArrayPool.Return(_starts);
+                ExcelArrayPool.Return(_lengths);
+                ExcelArrayPool.Return(_kinds);
             }
         }
     }

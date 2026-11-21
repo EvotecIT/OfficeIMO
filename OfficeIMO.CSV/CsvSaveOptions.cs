@@ -88,6 +88,45 @@ public sealed class CsvSaveOptions
     public CsvQuoteMode QuoteMode { get; set; } = CsvQuoteMode.AsNeeded;
 
     /// <summary>
+    /// Gets or sets escape encoding for fields. Default is <see cref="CsvEscapeMode.None"/>.
+    /// <see cref="CsvEscapeMode.Backslash"/> requires <see cref="QuoteMode"/> to be <see cref="CsvQuoteMode.Never"/>.
+    /// </summary>
+    public CsvEscapeMode EscapeMode { get; set; }
+
+    /// <summary>
+    /// PowerShell <c>ConvertTo-Csv -UseQuotes Never</c> parity for PSWriteOffice: unquoted fields are
+    /// written unchanged even when they contain the delimiter or a line break.
+    /// </summary>
+    internal bool WriteUnquotedFieldsLiterally { get; set; }
+
+    // Writers carry one quote-mode value; literal and backslash-escaped output are internal unquoted variants.
+    internal CsvQuoteMode ResolvedQuoteMode => EscapeMode switch
+    {
+        CsvEscapeMode.None when QuoteMode == CsvQuoteMode.Never && WriteUnquotedFieldsLiterally => CsvWriter.LiteralUnquotedQuoteMode,
+        CsvEscapeMode.None => QuoteMode,
+        CsvEscapeMode.Backslash when QuoteMode == CsvQuoteMode.Never => CsvWriter.BackslashEscapedQuoteMode,
+        CsvEscapeMode.Backslash => throw new ArgumentException(
+            "Backslash escapes require QuoteMode.Never; quoted fields already protect delimiters and line breaks."),
+        _ => throw new ArgumentOutOfRangeException(nameof(EscapeMode))
+    };
+
+    /// <summary>
+    /// Gets or sets the character that encloses quoted fields. Default is <c>"</c>. Fields that contain it are quoted.
+    /// </summary>
+    public char QuoteCharacter { get; set; } = '"';
+
+    /// <summary>
+    /// Gets or sets the character written before the quote character, and before itself, inside quoted fields, such
+    /// as <c>\</c>. Leave unset to double the quote character as RFC 4180 does.
+    /// </summary>
+    public char? EscapeCharacter { get; set; }
+
+    /// <summary>Gets whether fields use a quote or escape character other than the RFC 4180 double quote.</summary>
+    internal bool UsesCustomQuoting =>
+        (QuoteCharacter != '"' || (EscapeCharacter is not null && EscapeCharacter != '"'))
+        && ResolvedQuoteMode is CsvQuoteMode.AsNeeded or CsvQuoteMode.Always;
+
+    /// <summary>
     /// Gets or sets field names that should always be quoted when <see cref="QuoteMode"/> is <see cref="CsvQuoteMode.AsNeeded"/>.
     /// </summary>
     public string[]? QuoteFields { get; set; }

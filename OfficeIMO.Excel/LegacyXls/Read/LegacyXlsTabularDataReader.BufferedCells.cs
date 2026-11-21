@@ -102,7 +102,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int ReadBufferedCellColumn(
+        private int ReadBufferedCellColumn(
             byte[] bytes, int expectedRow, ushort type, int recordOffset, int payloadOffset, int length) {
             if (length < 6) {
                 throw TruncatedCell(new RecordSlice(type, recordOffset, payloadOffset, length));

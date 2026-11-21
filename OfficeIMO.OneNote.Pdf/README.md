@@ -43,12 +43,10 @@ Invalid Unicode noncharacters and native control codes are normalized by `Office
 
 ## Visual page PDF
 
-The visual path uses the same positioned `OfficeDrawing` canvas as PNG/JPEG/TIFF/SVG/WebP and visual HTML export. Each page is rasterized once and placed edge-to-edge at the canvas's page geometry, retaining freeform placement, images and printouts, ink, structured math, and attachment placeholders.
+The visual path uses the same positioned `OfficeDrawing` canvas as PNG/JPEG/TIFF/SVG/WebP and visual HTML export. Each page is written edge-to-edge at the canvas's page geometry as vector content: text stays real PDF text that can be searched, selected, and extracted, with the installed fonts it names embedded as subsets and Unicode fallbacks added when the text needs them. Freeform placement, tables, ink, structured math, and attachment placeholders are drawn as vectors, and embedded pictures keep their own bytes and alternative text.
 
 ```csharp
 var visualOptions = new OneNoteVisualPdfExportOptions {
-    RasterScale = 2, // 144 DPI
-    MaximumRasterPixels = 50_000_000,
     PageRendering = new OneNotePageRenderingOptions {
         // Optional: decoder for additional embedded source image formats.
         ImageCodec = applicationImageCodec
@@ -62,7 +60,7 @@ foreach (var warning in visual.Diagnostics) {
 }
 ```
 
-`RasterScale` defaults to 2. If a page would exceed `MaximumRasterPixels`, the Drawing-owned limiter reduces its scale and reports `ONENOTE_PDF_RASTER_SCALE_LIMITED`. Embedded pictures that neither Drawing nor `PageRendering.ImageCodec` can decode are replaced visibly and reported as `DRAWING_RASTER_IMAGE_UNSUPPORTED`. Visual PDF is image-backed and does not provide selectable page text; use semantic PDF when search, selection, or reflow is more important than the original canvas layout.
+JPEG and PNG pictures are embedded as they are, and other formats the PDF writer decodes itself are normalized by it. A picture in any other format is decoded by `PageRendering.ImageCodec` and embedded as PNG for that picture only, reported as `ONENOTE_PDF_IMAGE_RASTERIZED`; when nothing can decode it, a visible placeholder is drawn and `image-source-decode-fallback` is reported. The rest of the page stays vector.
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary

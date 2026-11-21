@@ -24,7 +24,7 @@ namespace OfficeIMO.Word {
             if (FileOpenAccess == FileAccess.Read) {
                 throw new InvalidOperationException("Document is read only, and cannot be saved.");
             }
-            EnsureSignedDocumentSaveAllowed(options, "Save");
+            ApplySignatureMutationPolicy(options?.SignatureMutationPolicy, "Save");
             PreSaving();
 
             if (this._wordprocessingDocument == null) {
@@ -135,7 +135,7 @@ namespace OfficeIMO.Word {
             }
             ArgumentException.ThrowIfNullOrEmpty(filePath);
 
-            EnsureSignedDocumentSaveAllowed(options, "SaveCopy");
+            ApplySignatureMutationPolicy(options?.SignatureMutationPolicy, "SaveCopy");
             PreSaving();
 
             if (_wordprocessingDocument == null) {
@@ -174,7 +174,7 @@ namespace OfficeIMO.Word {
                 throw new InvalidOperationException("Document is read only, and cannot be saved.");
             }
 
-            EnsureSignedDocumentSaveAllowed(options, "SaveCopyAsync");
+            ApplySignatureMutationPolicy(options?.SignatureMutationPolicy, "SaveCopyAsync");
             PreSaving();
             if (_wordprocessingDocument == null) {
                 throw new InvalidOperationException("Document couldn't be saved as WordDocument wasn't provided.");
@@ -204,7 +204,7 @@ namespace OfficeIMO.Word {
                 throw new InvalidOperationException("Document is read only, and cannot be saved.");
             }
 
-            EnsureSignedDocumentSaveAllowed(options, "ToBytes");
+            ApplySignatureMutationPolicy(options?.SignatureMutationPolicy, "ToBytes");
             PreSaving();
 
             if (_wordprocessingDocument == null) {
@@ -236,7 +236,7 @@ namespace OfficeIMO.Word {
                 return;
             }
 
-            EnsureSignedDocumentSaveAllowed(options, "SaveAsync");
+            ApplySignatureMutationPolicy(options?.SignatureMutationPolicy, "SaveAsync");
             PreSaving();
 
             if (this._wordprocessingDocument == null) {
@@ -338,7 +338,7 @@ namespace OfficeIMO.Word {
                 SaveEncrypted(outputStream, password, options);
                 return;
             }
-            EnsureSignedDocumentSaveAllowed(options, "Save");
+            ApplySignatureMutationPolicy(options?.SignatureMutationPolicy, "Save");
             PreSaving();
 
             if (TrySaveNativeLegacyDocToStream(outputStream, format, options)) {
@@ -381,7 +381,7 @@ namespace OfficeIMO.Word {
             if (!outputStream.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(outputStream));
             if (FileOpenAccess == FileAccess.Read) throw new InvalidOperationException("Document is read only, and cannot be saved.");
 
-            EnsureSignedDocumentSaveAllowed(options, "SaveAsync");
+            ApplySignatureMutationPolicy(options?.SignatureMutationPolicy, "SaveAsync");
             PreSaving();
             cancellationToken.ThrowIfCancellationRequested();
             byte[] bytes;
@@ -424,7 +424,7 @@ namespace OfficeIMO.Word {
             EnsureDestinationFileWritable(filePath);
 
             EnsureLegacyDocSaveDoesNotDropImportedContent(options);
-            if (_legacyValidationLivePackageStream != null) {
+            if (_legacyValidationLivePackageStream != null || _ownedZipPackage != null) {
                 OfficeFileCommit.WriteAllBytes(filePath, CreateOpenXmlBytesAfterSave(filePath));
                 if (updateFilePath) {
                     FilePath = filePath;
@@ -432,9 +432,8 @@ namespace OfficeIMO.Word {
                 return;
             }
             OfficeFileCommit.Write(filePath, stream => {
-                using (var clone = _wordprocessingDocument.Clone(stream)) {
+                using (var clone = WordPackageSnapshot.Clone(_wordprocessingDocument, stream)) {
                     AlignDocumentTypeWithFilePath(clone, filePath);
-                    OfficeOpenXmlPackagePayload.CopyCoreProperties(_wordprocessingDocument, clone);
                 }
 
                 stream.Seek(0, SeekOrigin.Begin);
@@ -451,7 +450,8 @@ namespace OfficeIMO.Word {
                 return CreateLegacyRuntimeOpenXmlBytesAfterSave(filePath);
             }
             if (_ownedPackageStream != null) {
-                return OfficeRuntime.IsNetFramework
+                // System.IO.Packaging on .NET Framework cannot be flushed reliably in place, so its packages are copied.
+                return OfficeRuntime.IsNetFramework && _ownedZipPackage == null
                     ? CreateClonedPackageSnapshot(filePath)
                     : CreateOwnedPackageSnapshot(filePath);
             }
@@ -460,11 +460,20 @@ namespace OfficeIMO.Word {
 
         private byte[] CreateClonedPackageSnapshot(string? filePath) {
             using var memoryStream = new MemoryStream();
-            using (var clone = _wordprocessingDocument.Clone(memoryStream, true)) {
+            // Without a document type to align, the copy is final once written; reopening it through the SDK only
+            // to copy core properties and dispose it rewrote the whole package again.
+            if (string.IsNullOrEmpty(filePath) &&
+                WordPackageSnapshot.TryWriteFinalCopy(_wordprocessingDocument, memoryStream, out bool needsNormalization)) {
+                if (needsNormalization) {
+                    memoryStream.Seek(0, SeekOrigin.Begin);
+                    WordPackageCompatibility.NormalizeOpenOfficeRelationships(memoryStream);
+                }
+                return memoryStream.ToArray();
+            }
+            using (var clone = WordPackageSnapshot.Clone(_wordprocessingDocument, memoryStream)) {
                 if (!string.IsNullOrEmpty(filePath)) {
                     AlignDocumentTypeWithFilePath(clone, filePath!);
                 }
-                OfficeOpenXmlPackagePayload.CopyCoreProperties(_wordprocessingDocument, clone);
             }
 
             memoryStream.Seek(0, SeekOrigin.Begin);
@@ -475,19 +484,28 @@ namespace OfficeIMO.Word {
 #pragma warning disable OOXML0001
         private byte[] CreateOwnedPackageSnapshot(string? filePath) {
             _wordprocessingDocument.Save();
+            // Writes the parts that changed into the owned stream; nothing is written when the save already did.
+            _ownedZipPackage?.Flush();
             _ownedPackageStream!.Flush();
             byte[] packageBytes = _ownedPackageStream.ToArray();
-            if (!_normalizeOpenOfficeRelationshipsOnSave && string.IsNullOrEmpty(filePath)) {
+            // Aligning and normalizing reopen and rewrite the package, so each runs only when it changes something.
+            // Changing the document type rewrites the main relationship, so normalization follows it. Saves to a path,
+            // and saves on .NET Framework, where the SDK writes absolute targets, always normalized, so they still do.
+            bool align = !string.IsNullOrEmpty(filePath) && NeedsDocumentTypeAlignment(filePath!);
+            bool normalize = align ||
+                (_normalizeOpenOfficeRelationshipsOnSave || OfficeRuntime.IsNetFramework || !string.IsNullOrEmpty(filePath)) &&
+                WordPackageSnapshot.NeedsOpenOfficeNormalization(_wordprocessingDocument);
+            if (!normalize && !align) {
                 return packageBytes;
             }
             using var output = new MemoryStream(packageBytes.Length + 4096);
             output.Write(packageBytes, 0, packageBytes.Length);
             output.Position = 0;
-            if (!string.IsNullOrEmpty(filePath)) {
+            if (align) {
                 using WordprocessingDocument savedDocument = WordprocessingDocument.Open(output, true);
                 AlignDocumentTypeWithFilePath(savedDocument, filePath!);
             }
-            if (_normalizeOpenOfficeRelationshipsOnSave) {
+            if (normalize) {
                 output.Position = 0;
                 WordPackageCompatibility.NormalizeOpenOfficeRelationships(output);
             }
@@ -560,27 +578,51 @@ namespace OfficeIMO.Word {
             return CreateOpenXmlBytesAfterSave(filePath);
         }
 
-        private void EnsureSignedDocumentSaveAllowed(WordSaveOptions? options, string operation) {
+        private void ApplySignatureMutationPolicy(OfficeSignatureMutationPolicy? requestedPolicy, string operation) {
+            if (EnsureSignatureMutationAllowed(requestedPolicy, operation)
+                == OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures) {
+                RemovePackageSignatures();
+            }
+        }
+
+        /// <summary>Blocks a signed-package mutation under <see cref="OfficeSignatureMutationPolicy.BlockSave"/> and returns the effective policy.</summary>
+        private OfficeSignatureMutationPolicy? EnsureSignatureMutationAllowed(OfficeSignatureMutationPolicy? requestedPolicy, string operation) {
             bool hasLiveSignatureSignal = _wordprocessingDocument.DigitalSignatureOriginPart != null ||
                 _wordprocessingDocument.ExtendedFilePropertiesPart?.Properties?.DigitalSignature != null;
             bool hasPackageSignatureContentType = false;
             if (!hasLiveSignatureSignal) {
                 hasPackageSignatureContentType = PackageContentTypesAdvertiseXmlSignatures();
                 if (!hasPackageSignatureContentType) {
-                    return;
+                    return null;
                 }
             }
 
             WordSignatureInfo signatureInfo = InspectSignatures();
             if (!signatureInfo.HasSignatures && !hasPackageSignatureContentType) {
-                return;
+                return null;
             }
 
-            if (options?.SignedDocumentPolicy == WordSignedDocumentSavePolicy.AllowSignatureInvalidation) {
-                return;
+            OfficeSignatureMutationPolicy policy = requestedPolicy ?? OfficeSignatureMutationPolicy.BlockSave;
+            if (policy == OfficeSignatureMutationPolicy.BlockSave) {
+                throw new WordSignatureSavePolicyException(operation, signatureInfo);
             }
 
-            throw new WordSignatureSavePolicyException(operation, signatureInfo);
+            return policy;
+        }
+
+        private void RemovePackageSignatures() {
+            DigitalSignatureOriginPart? originPart = _wordprocessingDocument.DigitalSignatureOriginPart;
+            if (originPart != null) {
+                _wordprocessingDocument.DeletePart(originPart);
+            }
+
+            if (_wordprocessingDocument.ExtendedFilePropertiesPart?.Properties?.DigitalSignature != null) {
+                _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.DigitalSignature = null;
+                _wordprocessingDocument.ExtendedFilePropertiesPart.Properties.Save();
+            }
+
+            // The rewritten package no longer carries signature parts, so its content types stop advertising them.
+            _packageContentTypesAdvertiseXmlSignatures = false;
         }
 
         private bool PackageContentTypesAdvertiseXmlSignatures() {

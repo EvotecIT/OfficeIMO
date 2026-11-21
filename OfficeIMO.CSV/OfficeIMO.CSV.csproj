@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Description>A fluent, strongly-typed CSV document model for OfficeIMO.</Description>
 
-    <VersionPrefix>3.6.0</VersionPrefix>
+    <VersionPrefix>3.6.2</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0;net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
     <Company>Evotec</Company>
@@ -44,7 +44,8 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472' Or '$(TargetFramework)' == 'netstandard2.0'">
-    <PackageReference Include="System.Buffers" Version="4.5.1" />
+    <!-- The version DocumentFormat.OpenXml brings on these targets, so bundles carry one copy. -->
+    <PackageReference Include="System.Memory" Version="4.6.3" />
   </ItemGroup>
 
   <ItemGroup>
@@ -56,8 +57,11 @@
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.CSV.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.CSV.Benchmarks" />
+    <InternalsVisibleTo Include="OfficeIMO.CSV.Benchmarks.Modern" />
     <InternalsVisibleTo Include="OfficeIMO.Excel.Benchmarks" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Csv" />
+    <InternalsVisibleTo Include="OfficeIMO.Excel.Csv" />
+    <InternalsVisibleTo Include="PSWriteOffice" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">

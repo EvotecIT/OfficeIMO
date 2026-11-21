@@ -1,48 +1,56 @@
+using System.Globalization;
 using OfficeIMO.Markdown;
 
 namespace OfficeIMO.Markup;
 
 public static partial class OfficeMarkupParser {
-    private static Dictionary<string, string> ExtractFrontMatter(ref string markup) {
-        var metadata = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        int firstContent = 0;
-        while (firstContent < markup.Length && markup[firstContent] is ' ' or '\t') {
-            firstContent++;
+    /// <summary>
+    /// Reads the front matter through the Markdown reader and blanks its lines, so the rest of the markup keeps its line
+    /// numbers. Findings become diagnostics located in markup lines.
+    /// </summary>
+    private static FrontMatterBlock? ExtractFrontMatter(ref string markup, List<OfficeMarkupDiagnostic> diagnostics) {
+        var frontMatter = MarkdownReader.ParseFrontMatter(markup, out int closingIndex);
+        if (frontMatter == null) {
+            return null;
         }
-        if (firstContent + 3 > markup.Length
-            || markup[firstContent] != '-'
-            || markup[firstContent + 1] != '-'
-            || markup[firstContent + 2] != '-') {
-            return metadata;
+
+        foreach (var finding in frontMatter.Diagnostics) {
+            diagnostics.Add(new OfficeMarkupDiagnostic(ToMarkupSeverity(finding.Severity),
+                "Front matter: " + finding.Message + FormatFrontMatterLocation(finding.Location)));
         }
+
         var lines = markup.Split('\n');
-        if (lines.Length < 3 || !string.Equals(lines[0].Trim(), "---", StringComparison.Ordinal)) {
-            return metadata;
-        }
-
-        var end = -1;
-        for (int i = 1; i < lines.Length; i++) {
-            if (string.Equals(lines[i].Trim(), "---", StringComparison.Ordinal)) {
-                end = i;
-                break;
-            }
-        }
-
-        if (end < 0) {
-            return metadata;
-        }
-
-        for (int i = 1; i < end; i++) {
-            TryParseAttributeLine(lines[i], metadata);
-        }
-
-        // Keep original line positions after extracting metadata.
-        markup = new string('\n', end + 1) + string.Join("\n", lines.Skip(end + 1));
-        return metadata;
+        markup = new string('\n', closingIndex + 1) + string.Join("\n", lines, closingIndex + 1, lines.Length - closingIndex - 1);
+        return frontMatter;
     }
 
-    private static OfficeMarkupProfile ResolveProfile(OfficeMarkupProfile defaultProfile, IDictionary<string, string> metadata) {
-        if (metadata.TryGetValue("profile", out var profile) && Enum.TryParse<OfficeMarkupProfile>(profile, true, out var parsed)) {
+    private static OfficeMarkupDiagnosticSeverity ToMarkupSeverity(OfficeDiagnosticSeverity severity) => severity switch {
+        OfficeDiagnosticSeverity.Error => OfficeMarkupDiagnosticSeverity.Error,
+        OfficeDiagnosticSeverity.Warning => OfficeMarkupDiagnosticSeverity.Warning,
+        _ => OfficeMarkupDiagnosticSeverity.Info
+    };
+
+    /// <summary>
+    /// Formats a front matter finding's location in markup lines. Invalid front matter is already located as
+    /// <c>line L, column C</c>; findings inside valid YAML are <c>L:C</c> within the front matter text, which starts on
+    /// the second line.
+    /// </summary>
+    private static string FormatFrontMatterLocation(string? location) {
+        if (string.IsNullOrEmpty(location)) return string.Empty;
+        int colon = location!.IndexOf(':');
+        if (colon > 0
+            && int.TryParse(location.Substring(0, colon), NumberStyles.None, CultureInfo.InvariantCulture, out int line)
+            && int.TryParse(location.Substring(colon + 1), NumberStyles.None, CultureInfo.InvariantCulture, out int column)) {
+            location = "line " + (line + 1).ToString(CultureInfo.InvariantCulture) + ", column " + column.ToString(CultureInfo.InvariantCulture);
+        }
+
+        return " (" + location + ")";
+    }
+
+    private static OfficeMarkupProfile ResolveProfile(OfficeMarkupProfile defaultProfile, FrontMatterBlock? frontMatter) {
+        if (frontMatter != null
+            && frontMatter.TryGetValue("profile", out string? profile)
+            && Enum.TryParse<OfficeMarkupProfile>(profile, true, out var parsed)) {
             return parsed;
         }
 

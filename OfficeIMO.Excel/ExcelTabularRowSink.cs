@@ -13,9 +13,4 @@ internal abstract class ExcelTabularRowSink : IDisposable {
     internal abstract void WriteBlank();
     internal abstract void Complete();
     public abstract void Dispose();
-
-    protected static void ValidateNumber(double value) {
-        if (double.IsNaN(value) || double.IsInfinity(value))
-            throw new ArgumentException("Binary Excel cells require a finite number.", nameof(value));
-    }
 }

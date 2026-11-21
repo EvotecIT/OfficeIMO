@@ -703,7 +703,8 @@ namespace OfficeIMO.Word.Html {
                     if (options.IncludeRunColorStyles || options.IncludeRunHighlightStyles) {
                         var inlineStyles = new List<string>();
                         if (options.IncludeRunColorStyles) {
-                            var colorHex = run.RunColorValue;
+                            // A theme colour follows the document theme; the stored RGB is only its cached fallback.
+                            var colorHex = WordRunFormatting.ResolveColorHex(run.ScopedRunProperties?.Color, run._document);
                             if (!string.IsNullOrEmpty(colorHex) &&
                                 !string.Equals(colorHex, "auto", StringComparison.OrdinalIgnoreCase)) {
                                 string? normalized = NormalizeSixDigitHexColor(colorHex);
@@ -1087,7 +1088,7 @@ namespace OfficeIMO.Word.Html {
             }
 
             bool IsCaptionParagraph(WordParagraph para) =>
-                string.Equals(para.StyleId, "Caption", StringComparison.Ordinal);
+                string.Equals(para.BuiltInStyleId, "Caption", StringComparison.Ordinal);
 
             bool HasFigureCaptionMarker(WordParagraph para, bool before) {
                 return para._paragraph.Descendants<BookmarkStart>()
@@ -1635,7 +1636,7 @@ namespace OfficeIMO.Word.Html {
                                     sectionParent.AppendChild(activeDefinitionList);
                                 }
                                 AppendDefinitionListItem(activeDefinitionList, paragraph);
-                            } else if (paragraph.IsImage && nextDistinctIndex < elements.Count && elements[nextDistinctIndex] is WordParagraph captionPara && string.Equals(captionPara.StyleId, "Caption", StringComparison.Ordinal)) {
+                            } else if (paragraph.IsImage && nextDistinctIndex < elements.Count && elements[nextDistinctIndex] is WordParagraph captionPara && string.Equals(captionPara.BuiltInStyleId, "Caption", StringComparison.Ordinal)) {
                                 activeDefinitionList = null;
                                 var figure = CreateOutputElement(htmlDoc, "figure");
                                 ApplyBookmarkId(figure, paragraph);

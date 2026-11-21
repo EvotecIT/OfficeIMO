@@ -96,6 +96,27 @@ namespace OfficeIMO.Excel {
                 preserveMissingValues: true);
         }
 
+        private bool TryInsertCellValuesAsDeferredDirectSave(
+            string tableNameForModel,
+            IReadOnlyList<string> columnNames,
+            IReadOnlyList<Type> columnTypes,
+            ExcelTabularCellValues values,
+            int startRow,
+            bool includeHeaders,
+            string range) {
+            ArgumentNullException.ThrowIfNull(columnNames);
+            ArgumentNullException.ThrowIfNull(columnTypes);
+            ArgumentNullException.ThrowIfNull(values);
+            if (string.IsNullOrEmpty(range)
+                || !CanRegisterDirectTabularSaveCandidate(startRow, 1, columnNames.Count)
+                || HasDuplicateObjectExportHeaders(columnNames)) {
+                return false;
+            }
+
+            return _excelDocument.RegisterDeferredDirectCellValuesSaveCandidate(
+                this, tableNameForModel, columnNames, columnTypes, values, includeHeaders, range);
+        }
+
         private static bool HasDuplicateObjectExportHeaders(IEnumerable<string> columnNames) {
             return HasDuplicateObjectExportHeaders(columnNames, StringComparer.OrdinalIgnoreCase);
         }

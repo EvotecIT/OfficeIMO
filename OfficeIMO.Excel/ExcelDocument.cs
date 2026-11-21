@@ -21,9 +21,6 @@ namespace OfficeIMO.Excel {
 
         /// <summary>The grid loader applies neither a part size limit nor markup-compatibility processing, as the streaming readers do not.</summary>
         internal bool AllowsWorksheetGridLoader => _readSnapshotAllowed && FileOpenAccess != FileAccess.Read;
-        private static readonly System.Text.RegularExpressions.Regex _multipleUnderscoresRegex =
-            new System.Text.RegularExpressions.Regex("_+", System.Text.RegularExpressions.RegexOptions.Compiled);
-
         private static readonly Lazy<byte[]> DefaultThemeBytes = new(CreateDefaultThemeBytes);
         // Allocated only when an operation actually needs a serialized apply stage.
         // Publication must be atomic because the first operation may itself be concurrent.
@@ -40,6 +37,7 @@ namespace OfficeIMO.Excel {
         private System.Collections.Generic.IEqualityComparer<string> _tableNameComparer = System.StringComparer.OrdinalIgnoreCase;
         private List<ExcelSheet>? _cachedSheets;
         private bool _sheetCacheDirty = true;
+        private readonly object _sheetCacheRebuildGate = new();
         private bool _customDocumentPropertiesDirty;
         private DocumentPersistenceMode _persistenceMode = DocumentPersistenceMode.Explicit;
 
@@ -75,13 +73,31 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelExecutionPolicy Execution { get; } = new();
 
-        // Default strategy mirrors CoerceValueHelper's behaviour and uses LocalDateTime so that
-        // serial values are aligned with Excel's local time interpretation.
+        // Serial mode uses LocalDateTime unless a caller supplies a strategy, so serial values follow
+        // Excel's local time interpretation.
         private Func<DateTimeOffset, DateTime> _dateTimeOffsetWriteStrategy = static dto => dto.LocalDateTime;
+        private ExcelDateTimeOffsetWriteMode _dateTimeOffsetWriteMode = ExcelDateTimeOffsetWriteMode.Text;
+
+        /// <summary>
+        /// Controls how <see cref="DateTimeOffset"/> values are written to worksheet cells. Defaults to
+        /// <see cref="ExcelDateTimeOffsetWriteMode.Text"/>, which writes ISO 8601 text and keeps the offset.
+        /// <see cref="ExcelDateTimeOffsetWriteMode.Serial"/> writes date serials converted by <see cref="DateTimeOffsetWriteStrategy"/>.
+        /// </summary>
+        public ExcelDateTimeOffsetWriteMode DateTimeOffsetWriteMode {
+            get => _dateTimeOffsetWriteMode;
+            set {
+                if (value != ExcelDateTimeOffsetWriteMode.Text && value != ExcelDateTimeOffsetWriteMode.Serial) {
+                    throw new ArgumentOutOfRangeException(nameof(value));
+                }
+
+                _dateTimeOffsetWriteMode = value;
+            }
+        }
 
         /// <summary>
         /// Controls how <see cref="DateTimeOffset"/> values are converted to <see cref="DateTime"/>
-        /// before being written to worksheet cells. Defaults to <see cref="DateTimeOffset.LocalDateTime"/>.
+        /// when <see cref="DateTimeOffsetWriteMode"/> is <see cref="ExcelDateTimeOffsetWriteMode.Serial"/>.
+        /// Defaults to <see cref="DateTimeOffset.LocalDateTime"/>. Assigning a strategy selects serial mode.
         /// </summary>
         /// <remarks>
         /// The delegate influences the numeric serial value stored in the cell but does not automatically
@@ -89,8 +105,17 @@ namespace OfficeIMO.Excel {
         /// </remarks>
         public Func<DateTimeOffset, DateTime> DateTimeOffsetWriteStrategy {
             get => _dateTimeOffsetWriteStrategy;
-            set => _dateTimeOffsetWriteStrategy = value ?? throw new ArgumentNullException(nameof(value));
+            set {
+                _dateTimeOffsetWriteStrategy = value ?? throw new ArgumentNullException(nameof(value));
+                _dateTimeOffsetWriteMode = ExcelDateTimeOffsetWriteMode.Serial;
+            }
         }
+
+        /// <summary>The conversion every write path uses; text mode is the shared marker strategy.</summary>
+        internal Func<DateTimeOffset, DateTime> EffectiveDateTimeOffsetWriteStrategy =>
+            _dateTimeOffsetWriteMode == ExcelDateTimeOffsetWriteMode.Text
+                ? CoerceValueHelper.DateTimeOffsetTextStrategy
+                : _dateTimeOffsetWriteStrategy;
 
         internal ReaderWriterLockSlim EnsureLock() {
             ReaderWriterLockSlim? existing = Volatile.Read(ref _lock);
@@ -237,10 +262,14 @@ namespace OfficeIMO.Excel {
 
         private void RebuildSheetCacheLocked()
         {
-            var elements = ReadSheetElements();
-            UpdateSheetIdCache(elements);
-            _cachedSheets = SheetCachingEnabled ? MaterializeSheets(elements) : null;
-            _sheetCacheDirty = false;
+            // Readers in a no-lock scope (GetPivotTables, for one) rebuild the cache while holding only the shared
+            // workbook read lock, so several can arrive together; the rebuild writes shared state, so they take turns.
+            lock (_sheetCacheRebuildGate) {
+                var elements = ReadSheetElements();
+                UpdateSheetIdCache(elements);
+                _cachedSheets = SheetCachingEnabled ? MaterializeSheets(elements) : null;
+                _sheetCacheDirty = false;
+            }
         }
 
         private void EnsureSheetCacheInitialized(ReaderWriterLockSlim? lck)
@@ -362,7 +391,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         internal SpreadsheetDocument _spreadSheetDocument {
             get {
-                if (_pendingRowDeletes != null) FlushPendingRowDeletes();
+                FlushPendingPackageEditsIfAny();
                 return _spreadSheetDocumentValue;
             }
             set => _spreadSheetDocumentValue = value;
@@ -374,14 +403,25 @@ namespace OfficeIMO.Excel {
         public SpreadsheetDocument OpenXmlDocument {
             get {
                 _openXmlDocumentExposed = true;
-                return _spreadSheetDocument;
+                if (_materializedDirectDataSetFastSaveModel != null) {
+                    // Rows kept for the direct writer would replace edits made through the package, so the worksheet
+                    // holds them from here on and the save writes it.
+                    MaterializeDirectDataSetFastSaveModelIfNeeded();
+                    _materializedDirectDataSetFastSaveModel = null;
+                    _materializedDirectDataSetFastSaveModelHasMaterializedWorksheet = false;
+                }
+
+                SpreadsheetDocument document = _spreadSheetDocument;
+                CommitPendingStylesheet();
+                ExcelSheet.MarkPackageExposed(document);
+                return document;
             }
         }
         private bool _openXmlDocumentExposed;
         internal bool IsOpenXmlDocumentExposed => _openXmlDocumentExposed;
         private WorkbookPart _workBookPart {
             get {
-                if (_pendingRowDeletes != null) FlushPendingRowDeletes();
+                FlushPendingPackageEditsIfAny();
                 return _workBookPartValue;
             }
             set => _workBookPartValue = value;
@@ -513,6 +553,9 @@ namespace OfficeIMO.Excel {
         internal bool HasDirectDataSetFastSaveState
             => _materializedDirectDataSetFastSaveModel != null
                || _directDataSetSaveCandidate?.IsValid == true;
+
+        /// <summary>Rows written to the worksheet are also kept in a direct-save model that a later edit must drop.</summary>
+        internal bool HasMaterializedDirectDataSetFastSaveModel => _materializedDirectDataSetFastSaveModel != null;
 
         internal void PreserveDirectDataSetSaveCandidateForNextDirtyMark() {
             _preserveDirectDataSetSaveCandidateForNextDirtyMark = true;

@@ -8,20 +8,20 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             ParagraphProperties? properties = paragraph.ParagraphProperties;
             if (!string.IsNullOrWhiteSpace(properties?.SpacingBetweenLines?.Line?.Value)) return properties;
             OpenXmlPartRootElement? root = paragraph.Ancestors<OpenXmlPartRootElement>().LastOrDefault();
-            Styles? styles = (root?.OpenXmlPart?.OpenXmlPackage as WordprocessingDocument)?.MainDocumentPart?.StyleDefinitionsPart?.Styles;
-            if (styles == null) return properties;
+            MainDocumentPart? mainPart = (root?.OpenXmlPart?.OpenXmlPackage as WordprocessingDocument)?.MainDocumentPart;
+            if (mainPart?.StyleDefinitionsPart == null) return properties;
+            WordStyleCatalog definitions = WordStyleCatalog.For(mainPart);
             string? styleId = properties?.ParagraphStyleId?.Val?.Value ?? (noteKind == "footnote" ? "FootnoteText" : "EndnoteText");
             var visited = new HashSet<string>(StringComparer.Ordinal);
-            Dictionary<string, Style> definitions = IndexStyles(styles);
             SpacingBetweenLines? inherited = null;
             while (!string.IsNullOrWhiteSpace(styleId) && visited.Add(styleId!)) {
                 if (visited.Count > MaxInheritedStyleDepth) throw new NotSupportedException("Native DOC saving does not support note paragraph style chains beyond 256 levels.");
-                definitions.TryGetValue(styleId!, out Style? style);
+                Style? style = definitions.FindById(styleId);
                 inherited = style?.StyleParagraphProperties?.SpacingBetweenLines;
                 if (!string.IsNullOrWhiteSpace(inherited?.Line?.Value)) break;
                 styleId = style?.BasedOn?.Val?.Value;
             }
-            if (string.IsNullOrWhiteSpace(inherited?.Line?.Value)) inherited = styles.DocDefaults?.ParagraphPropertiesDefault?.ParagraphPropertiesBaseStyle?.SpacingBetweenLines;
+            if (string.IsNullOrWhiteSpace(inherited?.Line?.Value)) inherited = definitions.DocumentDefaults?.ParagraphPropertiesDefault?.ParagraphPropertiesBaseStyle?.SpacingBetweenLines;
             if (string.IsNullOrWhiteSpace(inherited?.Line?.Value)) return properties;
             // DOC uses fixed built-in note style slots. Keep the source's effective
             // spacing on the note paragraph when that style cannot carry it.

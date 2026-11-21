@@ -12,6 +12,7 @@ public sealed partial class PdfCreateOptions {
                 ? family.BoldItalicSnapshot == null && family.BoldSnapshot == null
                 : family.BoldSnapshot == null;
         }
+        ResolvePendingDefaultFontFamilies(font);
         return _embeddedFonts != null && _embeddedFonts.TryGetValue(font, out PdfEmbeddedFont? embedded) &&
             embedded.SyntheticBold;
     }

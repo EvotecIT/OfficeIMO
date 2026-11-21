@@ -27,7 +27,7 @@ public class PdfDefaultFontEmbeddingTests {
         Assert.DoesNotContain("/BaseFont /Helvetica", pdf);
         Assert.Contains("/FontFile2", pdf);
         using var document = PdfPigDocument.Open(bytes);
-        var fonts = document.GetPages().SelectMany(page => page.Letters).Select(letter => letter.FontName).Distinct().ToArray();
+        var fonts = document.GetPages().SelectMany(page => page.Letters).Select(letter => letter.FontName!).Distinct().ToArray();
         Assert.Contains(fonts, name => name.Contains("Bold", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(fonts, name => name.Contains("Italic", StringComparison.OrdinalIgnoreCase) || name.Contains("Oblique", StringComparison.OrdinalIgnoreCase));
         Assert.All(fonts, name => Assert.Matches("^[A-Z]{6}\\+", name));
@@ -46,9 +46,9 @@ public class PdfDefaultFontEmbeddingTests {
             content.Title("Executive").H1("Quarterly review").AddParagraph(p => p.AddText("Regular, body text."))));
         using var pdf = PdfPigDocument.Open(document.ToBytes());
         var words = pdf.GetPage(1).GetWords().ToArray();
-        string headingFont = Assert.Single(words, word => word.Text == "Quarterly").Letters[0].FontName;
-        string bodyFont = Assert.Single(words, word => word.Text == "Regular,").Letters[0].FontName;
-        string titleFont = Assert.Single(words, word => word.Text == "Executive").Letters[0].FontName;
+        string headingFont = Assert.Single(words, word => word.Text == "Quarterly").Letters[0].FontName!;
+        string bodyFont = Assert.Single(words, word => word.Text == "Regular,").Letters[0].FontName!;
+        string titleFont = Assert.Single(words, word => word.Text == "Executive").Letters[0].FontName!;
 
         Assert.NotEqual(headingFont.Split('+').Last(), bodyFont.Split('+').Last());
         Assert.Contains(options.NamedFontFamilies.Values, family => headingFont.Contains(

@@ -35,13 +35,13 @@ internal static class PdfPageGeometrySupport {
         return Encoding.ASCII.GetBytes(pdf);
     }
 
-    internal static byte[] BuildBoundaryIntersectionPdf(string mediaBox, string cropBox) {
+    internal static byte[] BuildBoundaryIntersectionPdf(string mediaBox, string cropBox, string content = "") {
         string pdf = string.Join("\n", new[] {
             "%PDF-1.7",
             "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
             "2 0 obj", $"<< /Type /Pages /Count 1 /MediaBox {mediaBox} /Kids [3 0 R] >>", "endobj",
-            "3 0 obj", $"<< /Type /Page /Parent 2 0 R /CropBox {cropBox} /Contents 4 0 R >>", "endobj",
-            "4 0 obj", "<< /Length 0 >>", "stream", "", "endstream", "endobj",
+            "3 0 obj", $"<< /Type /Page /Parent 2 0 R /CropBox {cropBox} /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", $"<< /Length {content.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)} >>", "stream", content, "endstream", "endobj",
             "trailer", "<< /Root 1 0 R /Size 5 >>", "%%EOF"
         });
         return Encoding.ASCII.GetBytes(pdf);

@@ -356,10 +356,9 @@ namespace OfficeIMO.PowerPoint {
             }
             OpenXmlPart ownerPart = _ownerPart as OpenXmlPart ?? _slidePart;
 
-            PresentationPart? sourcePresentation = _slidePart.GetParentParts()
-                .OfType<PresentationPart>().FirstOrDefault();
+            PresentationPart? sourcePresentation = _slidePart.GetParentPresentationPart();
             PresentationPart? targetPresentation = targetSlidePart
-                .GetParentParts().OfType<PresentationPart>().FirstOrDefault();
+                .GetParentPresentationPart();
             if (sourcePresentation == null
                 || !ReferenceEquals(sourcePresentation, targetPresentation)) {
                 throw new ArgumentException(

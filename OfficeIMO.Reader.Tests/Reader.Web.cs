@@ -316,7 +316,7 @@ public sealed class ReaderWebTests {
             httpClient,
             new ReaderWebOptions {
                 AllowedHosts = new[] { "localhost" },
-                AllowLocalhostAndNonPublicIpLiterals = true
+                AllowPrivateNetworkAddresses = true
             });
 
         OfficeDocumentReadResult result = await webReader.ReadDocumentAsync(
@@ -556,6 +556,7 @@ public sealed class ReaderWebTests {
         using var httpClient = new HttpClient(handler);
         using ReaderWebDownload download = await ReaderWebTransport.DownloadAsync(
             httpClient,
+            ownedTransport: false,
             new Uri("https://example.test/prepared.txt"),
             sourceName: null,
             resolveMaxResponseBytes: _ => 1024,

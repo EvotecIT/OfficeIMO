@@ -98,12 +98,21 @@ internal static partial class MarkdownReader {
             return extendedBlock;
         }
 
+        if (options?.Math == true && isFenced && IsMathFenceLanguage(infoString)) {
+            var math = new SemanticFencedBlock(MarkdownSemanticKinds.Math, infoString, content, caption);
+            math.SetFenceSourceInfo(fenceIndentColumns, fenceLength, infoPaddingColumns, infoPaddingCharacters, fenceChar, hasClosingFence, closingFenceIndentColumns, closingFenceLength, fencedContentLineCount);
+            return math;
+        }
+
         var codeBlock = new CodeBlock(infoString, content, isFenced) {
             Caption = caption
         };
         codeBlock.SetFenceSourceInfo(fenceIndentColumns, fenceLength, infoPaddingColumns, infoPaddingCharacters, fenceChar, hasClosingFence, closingFenceIndentColumns, closingFenceLength, fencedContentLineCount);
         return codeBlock;
     }
+
+    private static bool IsMathFenceLanguage(string infoString) =>
+        string.Equals(MarkdownCodeFenceInfo.Parse(infoString).Language, "math", StringComparison.OrdinalIgnoreCase);
 
     private static void ApplyFenceSourceInfo(
         IMarkdownBlock block,

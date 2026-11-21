@@ -6,12 +6,13 @@ public sealed partial class PdfCreateOptions {
     // a default-font selection; converters retain them for matching source runs.
     internal bool HasDocumentFontConfiguration =>
         _hasExplicitDefaultFont
-        || (_embeddedFonts?.Count ?? 0) > 0
+        || HasEmbeddedFontMappings()
         || (_fontFamilySubstitutions?.Count ?? 0) > 0
         || _embeddedFontFallbacks != null;
 
     internal long FontConfigurationState {
         get {
+            ResolvePendingDefaultFontFamilies();
             const ulong offset = 14695981039346656037UL;
             const ulong prime = 1099511628211UL;
             ulong hash = offset;
@@ -121,5 +122,11 @@ public sealed partial class PdfCreateOptions {
 
             return unchecked((long)hash);
         }
+    }
+
+    private bool HasEmbeddedFontMappings() {
+        if ((_embeddedFonts?.Count ?? 0) > 0) return true;
+        ResolvePendingDefaultFontFamilies();
+        return (_embeddedFonts?.Count ?? 0) > 0;
     }
 }

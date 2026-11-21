@@ -1,3 +1,5 @@
+using OfficeIMO.Core.Internal;
+
 namespace OfficeIMO.Email;
 
 /// <summary>
@@ -301,31 +303,15 @@ internal sealed class MimeStreamingParser {
     private Base64Analysis AnalyzeBase64(long start, long end) {
         _input.Position = start;
         var buffer = new byte[64 * 1024];
-        long compact = 0;
-        int padding = 0;
-        bool sawPadding = false;
-        bool valid = true;
+        var analysis = new OfficeBase64.MimeAnalysis();
         while (_input.Position < end) {
             _cancellationToken.ThrowIfCancellationRequested();
             int read = _input.Read(buffer, 0, (int)Math.Min(buffer.Length, end - _input.Position));
             if (read == 0) throw new EndOfStreamException("The MIME attachment ended unexpectedly.");
-            for (int index = 0; index < read; index++) {
-                byte value = buffer[index];
-                if (IsWhiteSpace(value)) continue;
-                compact++;
-                if (value == '=') {
-                    sawPadding = true;
-                    padding++;
-                } else if (sawPadding || DecodeBase64Value(value) < 0) {
-                    valid = false;
-                    break;
-                }
-            }
-            if (!valid) break;
+            analysis.Append(buffer, 0, read);
+            if (analysis.HasInvalidData) break;
         }
-        int remainder = (int)(compact % 4);
-        if (padding > 2 || padding > 0 && remainder != 0 || padding == 0 && remainder == 1) valid = false;
-        return new Base64Analysis(valid, valid && padding == 0 && (remainder == 2 || remainder == 3));
+        return new Base64Analysis(analysis.IsValid, analysis.RecoveredPadding);
     }
 
     private long DecodeBase64(long start, long end, Stream output) {
@@ -339,10 +325,13 @@ internal sealed class MimeStreamingParser {
             _cancellationToken.ThrowIfCancellationRequested();
             int read = _input.Read(input, 0, (int)Math.Min(input.Length, end - _input.Position));
             if (read == 0) throw new EndOfStreamException("The MIME attachment ended unexpectedly.");
-            for (int index = 0; index < read; index++) {
-                byte value = input[index];
-                if (IsWhiteSpace(value)) continue;
-                compact[count++] = value;
+            int available = OfficeBase64.CompactMime(input, 0, read, input, 0);
+            int offset = 0;
+            while (offset < available) {
+                int take = Math.Min(available - offset, compact.Length - count);
+                Buffer.BlockCopy(input, offset, compact, count, take);
+                count += take;
+                offset += take;
                 if (count == compact.Length) {
                     WriteBase64Block(compact, count, decoded, output, ref written);
                     count = 0;
@@ -357,7 +346,7 @@ internal sealed class MimeStreamingParser {
     }
 
     private void WriteBase64Block(byte[] compact, int count, byte[] decoded, Stream output, ref long written) {
-        if (!MimeTextCodec.TryDecodeBase64Block(compact, count, decoded, out int bytes))
+        if (!OfficeBase64.TryDecodeBlock(compact, count, decoded, out int bytes))
             throw new InvalidDataException("The validated MIME Base64 attachment could not be decoded.");
         written = checked(written + bytes);
         EnsureCurrentAttachmentLimit(written);
@@ -368,8 +357,21 @@ internal sealed class MimeStreamingParser {
         _input.Position = start;
         long written = 0;
         bool invalid = false;
+        var literal = new byte[64 * 1024];
         while (_input.Position < end) {
-            if ((_input.Position - start & 0xFFFF) == 0) _cancellationToken.ThrowIfCancellationRequested();
+            _cancellationToken.ThrowIfCancellationRequested();
+            int count = _input.ReadBeforeEquals(end, literal);
+            if (count != 0) {
+                if (count > _options.MaxAttachmentBytes - written ||
+                    count > _options.MaxTotalAttachmentBytes - _totalAttachmentBytes - written) {
+                    // Retain the byte-exact failure position and observed limit value on the exceptional path.
+                    for (int index = 0; index < count; index++) WriteDecoded(output, literal[index], ref written);
+                } else {
+                    written = checked(written + count);
+                    output.Write(literal, 0, count);
+                }
+                continue;
+            }
             int current = _input.ReadByte();
             if (current < 0) break;
             if (current != '=') {
@@ -563,18 +565,6 @@ internal sealed class MimeStreamingParser {
         while (position < line.Length && (captured[position] == ' ' || captured[position] == '\t')) position++;
         return position == line.Length;
     }
-
-    private static int DecodeBase64Value(byte value) {
-        if (value >= 'A' && value <= 'Z') return value - 'A';
-        if (value >= 'a' && value <= 'z') return value - 'a' + 26;
-        if (value >= '0' && value <= '9') return value - '0' + 52;
-        if (value == '+') return 62;
-        if (value == '/') return 63;
-        return -1;
-    }
-
-    private static bool IsWhiteSpace(byte value) =>
-        value == ' ' || value == '\t' || value == '\r' || value == '\n' || value == '\f' || value == '\v';
 
     private static bool TryHex(byte value, out int decoded) {
         if (value >= '0' && value <= '9') { decoded = value - '0'; return true; }

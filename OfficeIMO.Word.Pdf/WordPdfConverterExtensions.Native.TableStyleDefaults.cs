@@ -37,6 +37,8 @@ namespace OfficeIMO.Word.Pdf {
             public NativeComplexScriptDefaults ComplexScript { get; init; }
             public NativeTextSpacing TextSpacing { get; init; }
             public NativeParagraphPaginationDefaults ParagraphPagination { get; init; }
+            /// <summary>True when the condition declares a text color; a declared automatic color leaves <see cref="TextColor"/> null.</summary>
+            public bool TextColorDeclared { get; init; }
             public static NativeTableConditionalStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
         }
 
@@ -311,7 +313,8 @@ namespace OfficeIMO.Word.Pdf {
                 W.RunPropertiesBaseStyle? runProperties = properties.GetFirstChild<W.RunPropertiesBaseStyle>();
                 NativeLatinFontFamilies fontFamilies = GetNativeRunFontFamilies(document, runProperties?.GetFirstChild<W.RunFonts>()).Inherit(result.FontFamilies);
                 string? fontFamily = fontFamilies.Primary;
-                global::OfficeIMO.OfficeColor? textColor = ParseNativeColor(WordRunFormatting.ResolveColorHex(runProperties?.GetFirstChild<W.Color>(), document));
+                W.Color? textColorDeclaration = runProperties?.GetFirstChild<W.Color>();
+                global::OfficeIMO.OfficeColor? textColor = ParseNativeColor(WordRunFormatting.ResolveColorHex(textColorDeclaration, document));
                 double? fontSize = GetNativeRunPropertiesBaseStyleFontSize(runProperties);
                 bool? bold = ReadNativeOnOff(runProperties?.GetFirstChild<W.Bold>());
                 bool? italic = ReadNativeOnOff(runProperties?.GetFirstChild<W.Italic>());
@@ -368,7 +371,7 @@ namespace OfficeIMO.Word.Pdf {
                     cellBorders ?? result.CellBorders,
                     MergeNativeCellPadding(result.CellPadding, cellPadding),
                     cellVerticalAlignment ?? result.CellVerticalAlignment,
-                    textColor ?? result.TextColor,
+                    textColorDeclaration != null ? textColor : result.TextColor,
                     fontSize ?? result.FontSize,
                     fontFamily ?? result.FontFamily,
                     bold ?? result.Bold,
@@ -393,7 +396,8 @@ namespace OfficeIMO.Word.Pdf {
                     TextSpacing = result.TextSpacing.Merge(runProperties),
                     LineSpacing = ReadNativeLineSpacing(spacing, paragraphProperties?.GetFirstChild<W.TextAlignment>()).Inherit(result.LineSpacing),
                     ParagraphSpacing = result.ParagraphSpacing.Merge(paragraphProperties),
-                    ParagraphPagination = result.ParagraphPagination.Merge(paragraphProperties)
+                    ParagraphPagination = result.ParagraphPagination.Merge(paragraphProperties),
+                    TextColorDeclared = textColorDeclaration != null || result.TextColorDeclared
                 };
             }
 

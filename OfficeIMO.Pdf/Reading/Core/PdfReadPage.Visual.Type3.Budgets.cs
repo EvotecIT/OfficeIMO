@@ -32,8 +32,8 @@ public sealed partial class PdfReadPage {
                 this,
                 owner.CreateTextOutputBudget(),
                 pageContentBudget,
-                invocationTextClippingBudget ?? new PdfTextClippingBudget(),
-                patternTextClippingBudget ?? new PdfTextClippingBudget());
+                invocationTextClippingBudget ?? new PdfTextClippingBudget(owner._limits),
+                patternTextClippingBudget ?? new PdfTextClippingBudget(owner._limits));
 
         internal void AttachSoftMaskValidationContext(Type3SoftMaskValidationContext context) =>
             _softMaskValidationContext = context;

@@ -17,6 +17,7 @@ internal static class OfficeDocumentValidationOptionBinding {
         string extension = input is string path ? System.IO.Path.GetExtension(path).ToLowerInvariant() : string.Empty;
         bool excel = input is ExcelDocument || new[] { ".xlsx", ".xlsm", ".xltx", ".xltm", ".xls", ".xlt", ".xlsb" }.Contains(extension);
         bool pdf = input is PdfDocument || extension == ".pdf";
+        bool word = input is WordDocument || new[] { ".docx", ".docm", ".dotx", ".dotm", ".doc", ".dot" }.Contains(extension);
         bool presentation = input is PowerPointDocument || new[] { ".pptx", ".pptm", ".potx", ".potm", ".ppsx", ".ppsm", ".ppt", ".pot", ".pps" }.Contains(extension);
         var result = new OfficeDocumentValidationOptions();
         foreach (object item in values ?? Array.Empty<object>()) {
@@ -33,7 +34,8 @@ internal static class OfficeDocumentValidationOptionBinding {
             // A fresh holder ensures a hashtable never modifies an earlier caller-owned typed options object.
             var holder = new Slots();
             var names = new HashSet<string> { nameof(Slots.Security) };
-            if (excel) { names.Add(nameof(Slots.Excel)); names.Add(nameof(Slots.Doctor)); }
+            if (excel) { names.Add(nameof(Slots.Excel)); names.Add(nameof(Slots.Doctor)); names.Add(nameof(Slots.ExcelAccessibility)); }
+            if (word) names.Add(nameof(Slots.WordAccessibility));
             if (pdf) { names.Add(nameof(Slots.Pdf)); names.Add(nameof(Slots.PdfRead)); names.Add(nameof(Slots.Rewrite)); }
             if (presentation) names.Add(nameof(Slots.PowerPointAccessibility));
             if (pdf && value is IDictionary table && table.Keys.Cast<object>().Any(key =>
@@ -59,6 +61,8 @@ internal static class OfficeDocumentValidationOptionBinding {
                 result.Pdf.Rewrite = holder.Rewrite;
             }
             if (holder.PowerPointAccessibility != null) result.PowerPointAccessibility = holder.PowerPointAccessibility;
+            if (holder.WordAccessibility != null) result.WordAccessibility = holder.WordAccessibility;
+            if (holder.ExcelAccessibility != null) result.ExcelAccessibility = holder.ExcelAccessibility;
         }
         return result;
     }
@@ -79,5 +83,7 @@ internal static class OfficeDocumentValidationOptionBinding {
         public OfficePdfValidationOptions? Pdf { get; set; }
         public PdfRewritePreservationOptions? Rewrite { get; set; }
         public PowerPointAccessibilityOptions? PowerPointAccessibility { get; set; }
+        public WordAccessibilityOptions? WordAccessibility { get; set; }
+        public ExcelAccessibilityOptions? ExcelAccessibility { get; set; }
     }
 }

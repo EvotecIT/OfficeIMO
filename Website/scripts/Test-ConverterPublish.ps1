@@ -25,7 +25,7 @@ $managedAesNoticePath = Join-Path $licenseRoot 'OfficeIMO.Core-THIRD-PARTY-NOTIC
 $japaneseFontLicensePath = Join-Path $licenseRoot 'OFL-NotoCJK.txt'
 $convertPagePath = Join-Path $SiteRoot 'convert/index.html'
 $conversionGuidesPath = Join-Path $SiteRoot 'convert/guides/index.html'
-$provenanceGuidePath = Join-Path $SiteRoot 'provenance/index.html'
+$sharingGuidePath = Join-Path $SiteRoot 'docs/before-sharing/index.html'
 $redirectManifestPath = Join-Path $SiteRoot '_powerforge/redirects.json'
 
 foreach ($path in @(
@@ -39,7 +39,7 @@ foreach ($path in @(
         $japaneseFontLicensePath,
         $convertPagePath,
         $conversionGuidesPath,
-        $provenanceGuidePath,
+        $sharingGuidePath,
         $redirectManifestPath
     )) {
     if ([string]::IsNullOrWhiteSpace($path) -or -not (Test-Path -LiteralPath $path -PathType Leaf)) {
@@ -85,20 +85,14 @@ if ($conversionGuides -notmatch '<h1>Document Conversion Guides for \.NET</h1>')
     throw "The /convert/guides/ route does not contain the conversion guide."
 }
 
-$provenanceGuide = Get-Content -LiteralPath $provenanceGuidePath -Raw
-if ($provenanceGuide -notmatch '<h1(?:\s[^>]*)?>Check and remove file provenance</h1>' -or
-    $provenanceGuide -notmatch '<body class="imo-body imo-body--docs imo-body--conversion">' -or
-    $provenanceGuide -notmatch '<link[^>]+href=["'']?/css/product(?:\.[a-f0-9]+)?\.css["'']?(?:\s|/?>)' -or
-    $provenanceGuide -notmatch '<link[^>]+href=["'']?/css/docs(?:\.[a-f0-9]+)?\.css["'']?(?:\s|/?>)' -or
-    $provenanceGuide -notmatch '<h2>Inspection summary</h2>' -or
-    $provenanceGuide -notmatch 'OfficeIMO\.Workflows \+ format packages' -or
-    $provenanceGuide -notmatch 'href=["'']?https://www\.nuget\.org/packages/OfficeIMO\.Workflows["'']?(?:\s|/?>)' -or
-    $provenanceGuide -notmatch 'Content Credentials' -or
-    $provenanceGuide -notmatch 'does not remove visible or invisible watermarks' -or
-    $provenanceGuide -notmatch 'href=["'']?/browser/file-origin/["'']?(?:\s|/?>)' -or
-    $provenanceGuide -notmatch 'href=["'']?/browser/hidden-characters/["'']?(?:\s|/?>)' -or
-    $provenanceGuide -notmatch 'href=["'']?https://github\.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo\.provenance-support-matrix\.md["'']?(?:\s|/?>)') {
-    throw 'The /provenance/ route does not explain the supported file-origin workflow and its limits.'
+$sharingGuide = Get-Content -LiteralPath $sharingGuidePath -Raw
+if ($sharingGuide -notmatch '<h1(?:\s[^>]*)?>Prepare a document for sharing</h1>' -or
+    $sharingGuide -notmatch 'Content Credentials' -or
+    $sharingGuide -notmatch 'href=["'']?/browser/clean-before-sharing/["'']?(?:\s|/?>)' -or
+    $sharingGuide -notmatch 'href=["'']?/browser/hidden-characters/["'']?(?:\s|/?>)' -or
+    $sharingGuide -notmatch 'href=["'']?https://github\.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo\.hidden-data-support-matrix\.md["'']?(?:\s|/?>)' -or
+    $sharingGuide -notmatch 'href=["'']?https://github\.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo\.provenance-support-matrix\.md["'']?(?:\s|/?>)') {
+    throw 'The /docs/before-sharing/ guide does not explain the clean-before-sharing workflow and link its tools and support matrices.'
 }
 
 $redirectManifest = Get-Content -LiteralPath $redirectManifestPath -Raw | ConvertFrom-Json
@@ -108,6 +102,13 @@ $playgroundRedirect = @($redirectManifest.redirects | Where-Object {
 })
 if ($playgroundRedirect.Count -ne 1) {
     throw 'The compatibility /playground/ route must redirect to /convert/ and preserve workflow query parameters.'
+}
+foreach ($retired in @(
+    @{ From = '/browser/file-origin/'; To = '/browser/clean-before-sharing/' },
+    @{ From = '/provenance/'; To = '/docs/before-sharing/provenance/' })) {
+    if (@($redirectManifest.redirects | Where-Object { $_.from -eq $retired.From -and $_.to -eq $retired.To -and $_.status -eq 301 }).Count -ne 1) {
+        throw "The retired $($retired.From) route must redirect to $($retired.To)."
+    }
 }
 
 # Older links (/convert/?route=docx-pdf) resolve through the directory's legacy keys.

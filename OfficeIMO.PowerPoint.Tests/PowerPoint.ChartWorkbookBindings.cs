@@ -2,10 +2,35 @@ using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 using Xunit;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
+using S = DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Tests;
 
 public sealed class PowerPointChartWorkbookBindingsTests {
+    [Fact]
+    public void Snapshot_LeavesOutHiddenWorkbookRowsAndSeries() {
+        using var document = PowerPointDocument.Create();
+        var chart = document.AddSlide().AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(new[] { "A", "B", "C" }, new[] {
+            new OfficeSeries("First", new[] { 1d, 2d, 3d }), new OfficeSeries("Second", new[] { 4d, 5d, 6d }) }));
+        var embedded = document.Slides.Single().SlidePart.ChartParts.Single()
+            .GetPartsOfType<DocumentFormat.OpenXml.Packaging.EmbeddedPackagePart>().Single();
+        using (var stream = embedded.GetStream(FileMode.Open, FileAccess.ReadWrite))
+        using (var workbook = DocumentFormat.OpenXml.Packaging.SpreadsheetDocument.Open(stream, true)) {
+            var worksheet = workbook.WorkbookPart!.WorksheetParts.Single().Worksheet!;
+            worksheet.Descendants<S.Row>().Single(row => row.RowIndex?.Value == 3U).Hidden = true;
+            var columns = worksheet.GetFirstChild<S.Columns>() ?? worksheet.InsertBefore(new S.Columns(), worksheet.GetFirstChild<S.SheetData>());
+            columns.Append(new S.Column { Min = 2U, Max = 2U, Hidden = true });
+            worksheet.Save();
+        }
+
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+
+        Assert.Equal(new[] { "A", "C" }, snapshot.Data.Categories);
+        var series = Assert.Single(snapshot.Data.Series);
+        Assert.Equal("Second", series.Name);
+        Assert.Equal(new[] { 4d, 6d }, series.Values);
+    }
+
     [Theory]
     [InlineData(OfficeChartType.ColumnClustered)]
     [InlineData(OfficeChartType.Line)]

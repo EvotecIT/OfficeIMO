@@ -52,9 +52,9 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            double offset = target == ExcelDateSystem.NineteenFour
-                ? -ExcelDateSystemConverter.Date1904OffsetDays
-                : ExcelDateSystemConverter.Date1904OffsetDays;
+            long offset = target == ExcelDateSystem.NineteenFour
+                ? -(long)ExcelDateSystemConverter.Date1904OffsetDays
+                : (long)ExcelDateSystemConverter.Date1904OffsetDays;
 
             foreach (WorksheetPart worksheetPart in WorkbookPartRoot.WorksheetParts) {
                 Worksheet? worksheet = worksheetPart.Worksheet;
@@ -73,7 +73,7 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    cell.CellValue = new CellValue(InvariantNumberText.Get(serial + offset));
+                    cell.CellValue = new CellValue(InvariantNumberText.Get(ExcelDateSystemConverter.ShiftSerialDays(serial, offset)));
                     changed = true;
                 }
 

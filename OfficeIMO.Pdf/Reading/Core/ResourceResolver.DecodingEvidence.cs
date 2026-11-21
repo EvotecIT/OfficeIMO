@@ -7,9 +7,17 @@ internal static partial class ResourceResolver {
         cancellationCheck?.Invoke();
         PdfTextDecodingSource source;
         int unmapped = 0;
-        if (preferToUnicode && font.HasToUnicode && font.CMap is not null) {
+        if (HasCompositeTextSources(font)) {
+            source = GetCompositeTextSource(font, bytes, preferToUnicode, cancellationCheck, out unmapped);
+        } else if (preferToUnicode && font.HasToUnicode && font.CMap is not null) {
             source = PdfTextDecodingSource.ToUnicode;
             unmapped = font.CMap.CountUnmappedCodeBytes(bytes, cancellationCheck);
+            if (unmapped > 0 && font.CMap.MaxCodeBytes == 1 && font.FontSubtype != "Type0") {
+                unmapped = 0;
+                foreach (byte code in bytes) {
+                    if (!font.CMap.TryMapCode(new[] { code }, 0, 1, out _) && GetSimpleEncodingText(font, code) == null) unmapped++;
+                }
+            }
         } else if (UsesNamedCompositeEncoding(font) && (!preferToUnicode || !font.HasToUnicode) && font.PredefinedCMap is not null) {
             source = PdfTextDecodingSource.PredefinedCMap;
         } else if (UsesNamedCompositeEncoding(font)) {
@@ -47,7 +55,22 @@ internal static partial class ResourceResolver {
         PdfFontInspectionDiagnosticCode? failureCode = source == PdfTextDecodingSource.WinAnsiFallback &&
             font.FontSubtype == "Type0" && font.Encoding is "Identity-H" or "Identity-V"
                 ? PdfFontInspectionDiagnosticCode.UnmappableText : null;
-        return new PdfTextDecodingEvidence(source, font.Encoding, font.HasToUnicode,
-            (source is PdfTextDecodingSource.FontEncoding or PdfTextDecodingSource.WinAnsiFallback) && font.Differences is { Count: > 0 }, unmapped, failureCode: failureCode);
+        // Without unmapped bytes the evidence depends only on the font and the source, so text runs
+        // of one font share an immutable instance instead of allocating one per span.
+        if (unmapped == 0) {
+            PdfTextDecodingEvidence?[] cache = font.DecodingEvidenceBySource ??= new PdfTextDecodingEvidence?[DecodingEvidenceSourceSlots];
+            int slot = (int)source;
+            if (slot >= 0 && slot < cache.Length) {
+                return cache[slot] ??= CreateDecodingEvidence(font, source, unmapped, failureCode);
+            }
+        }
+        return CreateDecodingEvidence(font, source, unmapped, failureCode);
     }
+
+    private const int DecodingEvidenceSourceSlots = 16;
+
+    private static PdfTextDecodingEvidence CreateDecodingEvidence(PdfFontResource font, PdfTextDecodingSource source,
+        int unmapped, PdfFontInspectionDiagnosticCode? failureCode) =>
+        new PdfTextDecodingEvidence(source, font.Encoding, font.HasToUnicode,
+            (source is PdfTextDecodingSource.FontEncoding or PdfTextDecodingSource.WinAnsiFallback) && font.Differences is { Count: > 0 }, unmapped, failureCode: failureCode);
 }

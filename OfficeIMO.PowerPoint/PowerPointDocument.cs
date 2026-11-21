@@ -61,8 +61,10 @@ namespace OfficeIMO.PowerPoint {
             }
 
             document.Features.Set<PowerPointDocument>(this);
-            PowerPointChartAxisIdGenerator.Initialize(_presentationPart);
         }
+
+        /// <summary>Whether the shared chart axis seed already covers this package's charts.</summary>
+        internal bool ChartAxisSeedApplied { get; set; }
 
         private static byte[] ReadAllBytes(Stream stream) {
             return OfficeStreamReader.ReadAllBytes(stream);

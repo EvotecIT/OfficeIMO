@@ -2,7 +2,7 @@ Describe 'Packaged AssemblyLoadContext conflict isolation' {
     It 'loads after a default-context Open XML assembly without sharing the default ALC' {
         $packagedModuleRoot = Join-Path $PSScriptRoot '..\Artefacts\Unpacked\Modules'
         $packagedModule = Join-Path $packagedModuleRoot 'PSWriteOffice'
-        $packagedLoader = Join-Path $packagedModule 'Lib\Core\PSWriteOffice.ModuleLoadContext.dll'
+        $packagedLoader = Join-Path $packagedModule 'Loader\Core\PowerForge.ModuleLoader.V2.dll'
         $conflictOpenXmlPath = $env:PSWRITEOFFICE_CONFLICT_OPENXML_PATH
         $requirePackagedSmoke = $env:PSWRITEOFFICE_REQUIRE_ALC_SMOKE -eq 'true'
 

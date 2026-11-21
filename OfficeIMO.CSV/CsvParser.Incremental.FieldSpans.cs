@@ -11,7 +11,7 @@ internal static partial class CsvParser
         private const int MaximumBorrowedTailLength = 1024;
 
         private bool CanBorrowFields => _delimiter.Length == 1 && !_options.InternStrings &&
-            !_options.NormalizeQuotes && _options.MaxFieldLength is null;
+            !_options.NormalizeQuotes && _options.MaxFieldLength is null && !_options.DecodesBackslashEscapes;
 
         // Complete unquoted records borrow the transport buffer until the next advance.
         // Short incomplete tails may append once; comments, quotes and transformations remain canonical.

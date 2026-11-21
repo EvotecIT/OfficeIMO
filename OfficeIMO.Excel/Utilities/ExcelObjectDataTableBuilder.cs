@@ -125,8 +125,8 @@ namespace OfficeIMO.Excel {
             private static ObjectValueGetter[]? CreateGetters(Type firstType, IReadOnlyList<string> columns) {
                 var getters = new ObjectValueGetter[columns.Count];
                 for (int i = 0; i < columns.Count; i++) {
-                    var property = firstType.GetProperty(columns[i], BindingFlags.Public | BindingFlags.Instance);
-                    if (property == null || !property.CanRead || property.GetIndexParameters().Length != 0) {
+                    var property = PublicInstanceProperties.Find(firstType, columns[i]);
+                    if (property == null || !property.CanRead) {
                         return null;
                     }
 

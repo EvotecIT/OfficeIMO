@@ -1,5 +1,5 @@
 {
-  "pluginVersion": "3.6.0",
+  "pluginVersion": "3.6.2",
   "roadmapBase": "https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/ROADMAP.md",
   "pluginUrl": "https://github.com/EvotecIT/OfficeIMO/tree/master/.agents/plugins/officeimo-document-tools",
   "mcpConfig": "{\"name\":\"officeimo\",\"type\":\"stdio\",\"command\":\"dotnet\",\"args\":[\"dnx\",\"OfficeIMO.Tool@{version}\",\"mcp\",\"serve\",\"--stdio\",\"--yes\"],\"env\":{\"OFFICEIMO_MCP_ALLOWED_ROOTS\":\"${workspaceFolder}\"}}",
@@ -127,19 +127,24 @@
   "tools": [
     { "name": "officeimo_inspect", "writes": false, "detail": "Metadata and a structural summary of a document or mail store" },
     { "name": "officeimo_inspect_email", "writes": false, "detail": "Mail metadata, charset and attachment diagnostics, and HTML safety findings" },
-    { "name": "officeimo_search", "writes": false, "detail": "Search a document or mailbox and return hits to fetch selectively" },
+    { "name": "officeimo_search", "writes": false, "detail": "Ranked search of a document, with phrases, prefixes and OR, or of a mailbox, returning hits to fetch selectively" },
     { "name": "officeimo_search_email", "writes": false, "detail": "Bounded search of mail bodies, recipients and attachment names" },
     { "name": "officeimo_fetch", "writes": false, "detail": "Fetch one chosen result, a page at a time" },
     { "name": "officeimo_capabilities", "writes": false, "detail": "Which formats and operations are supported" },
-    { "name": "officeimo_convert", "writes": true, "detail": "Write a document as Markdown or Reader JSON" },
+    { "name": "officeimo_inspect_hidden_data", "writes": false, "detail": "What would leave with an Office, Visio, OpenDocument, EPUB, PDF or image file: properties, comments, hidden content, scripts, attachments, photo metadata and provenance" },
+    { "name": "officeimo_check_accessibility", "writes": false, "detail": "Check a Word, Excel or PowerPoint file for missing alternative text, table headers, unclear links, low contrast and other accessibility issues, optionally as SARIF" },
+    { "name": "officeimo_remove_hidden_data", "writes": true, "detail": "Write a cleaned copy without the chosen categories; provenance is kept unless chosen, and keepProvenance keeps some kinds of record" },
+    { "name": "officeimo_convert", "writes": true, "detail": "Write a document as Markdown or Reader JSON, or convert it through a catalog route such as DOCX, ODT, email, EPUB or Visio to PDF" },
     { "name": "officeimo_pdf", "writes": true, "detail": "Extract pages, decrypt with the owner's password, flatten, optimize or sanitize into a new PDF" },
+    { "name": "officeimo_pdf_convert_to_pdfa", "writes": true, "detail": "Convert a PDF to PDF/A, reporting its changes or the reasons it can't be converted" },
     { "name": "officeimo_pdf_split", "writes": true, "detail": "Split a PDF into parts in a new folder" },
     { "name": "officeimo_pdf_assemble", "writes": true, "detail": "Combine PDFs and images, in order, into one PDF" },
     { "name": "officeimo_pdf_export_pages", "writes": true, "detail": "Save chosen pages as images" },
     { "name": "officeimo_pdf_ocr_providers", "writes": false, "detail": "Text-recognition providers the host registered" },
     { "name": "officeimo_pdf_ocr", "writes": true, "detail": "Make a searchable copy of a scanned PDF" },
     { "name": "officeimo_pdf_print_plan", "writes": false, "detail": "Plan printed sheets without contacting a printer" },
-    { "name": "officeimo_pdf_compare", "writes": true, "detail": "Compare pages of two PDFs and save an HTML report" }
+    { "name": "officeimo_pdf_compare", "writes": true, "detail": "Compare pages of two PDFs and save an HTML report" },
+    { "name": "officeimo_pdf_redline", "writes": true, "detail": "Mark text changes between two PDFs with review annotations and optionally save a change list" }
   ],
   "site": [
     { "name": "llms.txt", "url": "/llms.txt", "detail": "A map of the documentation for language models, with llms-full.txt for the full text" },

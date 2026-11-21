@@ -38,6 +38,7 @@ OfficeIMO.PowerPoint creates and edits `.pptx` presentations and supports docume
 - **Semantic story families** — compose executive summaries, chart narratives, comparisons, annotated screenshots, appendix tables, architecture views, and closings
 - **Deck rhythm checks** — flag repetitive layouts, dense streaks, long sections, and missing closing actions before rendering
 - **Speaker notes** — attach presenter notes to any slide
+- **Before sharing** — find and remove author names, comments, speaker notes, hidden slides and photo locations, and check accessibility. [Prepare a document for sharing](/docs/before-sharing/)
 - **Slide copying & importing** — copy slides within a presentation or import from another `.pptx` file
 - **PowerPoint 97-2003 compatibility** — import supported content into the editable model, author the documented native binary subset, preserve unrelated records during supported edits, and preflight PPTX-to-binary conversion loss
 - **Password and signature policy** — open and save protected binary presentations, inspect legacy signatures, and block signature-invalidating saves by default
@@ -138,4 +139,4 @@ OfficeIMO.PowerPoint runs on Windows, Linux, and macOS. It generates standard `.
 | [Capability matrix](/docs/powerpoint/capabilities/) | See what is authored, edited, preserved, rendered, or intentionally reported. |
 | [PPT and PPTX compatibility](/compatibility/#powerpoint) | Check formats, conversion directions, tracked behaviors, and fidelity states. |
 | [Getting Started](/docs/getting-started/) | Set up the package family and choose the right companion libraries for reporting pipelines. |
-| [PSWriteOffice](/products/pswriteoffice/) | Use PowerShell to automate the same presentation scenarios from scripts. |
+| [PSWriteOffice](/powershell/) | Use PowerShell to automate the same presentation scenarios from scripts. |

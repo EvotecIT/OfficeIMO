@@ -6,6 +6,7 @@ public partial class CsvBenchmarks
 {
     /// <summary>Reads the prepared UTF-8 input through the incremental stream reader.</summary>
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:ReadStreamGetStrings")]
     public int OfficeIMO_ReadStreamGetStrings()
     {
         using var stream = new MemoryStream(_csvUtf8, writable: false);

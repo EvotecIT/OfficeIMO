@@ -33,6 +33,8 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             return _kinds[ordinal] switch {
                 ValueKind.Text or ValueKind.Error => _strings[ordinal]!,
                 ValueKind.Number => GetNumericValue(_numbers[ordinal]),
+                // A date-formatted serial with no DateTime reads as a double, as in the other formats.
+                ValueKind.DatelessSerial => _numbers[ordinal],
                 ValueKind.Boolean => _booleans[ordinal],
                 ValueKind.Date => _dates[ordinal],
                 _ => DBNull.Value
@@ -55,7 +57,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             ValidateReadableOrdinal(ordinal);
             return _kinds[ordinal] switch {
                 ValueKind.Text or ValueKind.Error => _strings[ordinal]!,
-                ValueKind.Number => _numbers[ordinal].ToString("R", _options.Culture),
+                ValueKind.Number or ValueKind.DatelessSerial => OfficeIMO.Core.Internal.OfficeRoundTripText.Format(_numbers[ordinal], _options.Culture),
                 ValueKind.Boolean => _booleans[ordinal].ToString(),
                 ValueKind.Date => _dates[ordinal].ToString(_options.Culture),
                 _ => throw new InvalidCastException("The XLS cell is blank.")
@@ -71,63 +73,69 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
 
         public override byte GetByte(int ordinal) {
             ValidateReadableOrdinal(ordinal);
-            return _kinds[ordinal] is ValueKind.Number or ValueKind.Date
+            return _kinds[ordinal] is ValueKind.Number or ValueKind.Date or ValueKind.DatelessSerial
                 ? Convert.ToByte(_numbers[ordinal])
                 : Convert.ToByte(GetValue(ordinal), _options.Culture);
         }
 
         public override short GetInt16(int ordinal) {
             ValidateReadableOrdinal(ordinal);
-            return _kinds[ordinal] is ValueKind.Number or ValueKind.Date
+            return _kinds[ordinal] is ValueKind.Number or ValueKind.Date or ValueKind.DatelessSerial
                 ? Convert.ToInt16(_numbers[ordinal])
                 : Convert.ToInt16(GetValue(ordinal), _options.Culture);
         }
 
         public override int GetInt32(int ordinal) {
             ValidateReadableOrdinal(ordinal);
-            return _kinds[ordinal] is ValueKind.Number or ValueKind.Date
+            return _kinds[ordinal] is ValueKind.Number or ValueKind.Date or ValueKind.DatelessSerial
                 ? Convert.ToInt32(_numbers[ordinal])
                 : Convert.ToInt32(GetValue(ordinal), _options.Culture);
         }
 
         public override long GetInt64(int ordinal) {
             ValidateReadableOrdinal(ordinal);
-            return _kinds[ordinal] is ValueKind.Number or ValueKind.Date
+            return _kinds[ordinal] is ValueKind.Number or ValueKind.Date or ValueKind.DatelessSerial
                 ? Convert.ToInt64(_numbers[ordinal])
                 : Convert.ToInt64(GetValue(ordinal), _options.Culture);
         }
 
         public override float GetFloat(int ordinal) {
             ValidateReadableOrdinal(ordinal);
-            return _kinds[ordinal] is ValueKind.Number or ValueKind.Date
+            return _kinds[ordinal] is ValueKind.Number or ValueKind.Date or ValueKind.DatelessSerial
                 ? (float)_numbers[ordinal]
                 : Convert.ToSingle(GetValue(ordinal), _options.Culture);
         }
 
         public override double GetDouble(int ordinal) {
             ValidateReadableOrdinal(ordinal);
-            return _kinds[ordinal] is ValueKind.Number or ValueKind.Date
+            return _kinds[ordinal] is ValueKind.Number or ValueKind.Date or ValueKind.DatelessSerial
                 ? _numbers[ordinal]
                 : Convert.ToDouble(GetValue(ordinal), _options.Culture);
         }
 
         public override decimal GetDecimal(int ordinal) {
             ValidateReadableOrdinal(ordinal);
-            if (_kinds[ordinal] is ValueKind.Number or ValueKind.Date) {
+            if (_kinds[ordinal] is ValueKind.Number or ValueKind.Date or ValueKind.DatelessSerial) {
                 try {
-                    return (decimal)_numbers[ordinal];
+                    return OfficeDecimalConversion.FromDouble(_numbers[ordinal]);
                 } catch (OverflowException) {
                     throw new InvalidCastException($"The XLS numeric value '{_numbers[ordinal]}' cannot be represented as decimal.");
                 }
             }
-            return Convert.ToDecimal(GetValue(ordinal), _options.Culture);
+            return OfficeDecimalConversion.FromObject(GetValue(ordinal), _options.Culture);
         }
 
         public override DateTime GetDateTime(int ordinal) {
             ValidateReadableOrdinal(ordinal);
-            return _kinds[ordinal] == ValueKind.Date
-                ? _dates[ordinal]
-                : Convert.ToDateTime(GetValue(ordinal), _options.Culture);
+            if (_kinds[ordinal] == ValueKind.Date) return _dates[ordinal];
+            // A plain number read as a date is a serial in the workbook's date system.
+            if (_kinds[ordinal] == ValueKind.Number) {
+                return LegacyXlsDateSerialConverter.TryConvert(_numbers[ordinal], _uses1904DateSystem, out DateTime date)
+                    ? date
+                    : throw new InvalidCastException($"The XLS number '{_numbers[ordinal].ToString("R", System.Globalization.CultureInfo.InvariantCulture)}' is not a valid Excel date.");
+            }
+
+            return Convert.ToDateTime(GetValue(ordinal), _options.Culture);
         }
 
         public override Guid GetGuid(int ordinal) {
@@ -162,7 +170,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         private object GetNumericValue(double value) {
             if (_options.NumericAsDecimal && !double.IsNaN(value) && !double.IsInfinity(value)) {
                 try {
-                    return (decimal)value;
+                    return OfficeDecimalConversion.FromDouble(value);
                 } catch (OverflowException) {
                     // Preserve a finite value that decimal cannot represent as double.
                 }

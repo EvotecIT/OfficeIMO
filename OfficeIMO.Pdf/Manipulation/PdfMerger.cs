@@ -69,6 +69,15 @@ internal static partial class PdfMerger {
         return MergeCore(pdfs, primarySourceIndex: 0, options, readOptions, cancellationToken: cancellationToken);
     }
 
+    /// <summary>Merges sources whose canonical parses, when supplied, were opened from exactly these bytes and read options.</summary>
+    internal static PdfMergeResult MergeResult(PdfMergeOptions options, IReadOnlyList<byte[]> pdfs, IReadOnlyList<PdfLoadOptions> readOptions,
+        IReadOnlyList<Func<PdfReadDocument>?> readDocumentFactories, CancellationToken cancellationToken = default) {
+        Guard.NotNull(options, nameof(options));
+        Guard.NotNull(readOptions, nameof(readOptions));
+        Guard.NotNull(readDocumentFactories, nameof(readDocumentFactories));
+        return MergeCore(pdfs, primarySourceIndex: 0, options, readOptions, readDocumentFactories, cancellationToken);
+    }
+
     /// <summary>
     /// Merges all pages from the supplied PDFs into one new PDF, applying optional source preparation first.
     /// </summary>
@@ -220,6 +229,7 @@ internal static partial class PdfMerger {
             throw new ArgumentException("Read-document factories must contain one entry for every PDF input.", nameof(readDocumentFactories));
         }
         var importedSources = new List<ImportedSource>(sources.Length);
+        PdfMutationPlan? primaryPlan = null;
         int mergedPageOffset = 0;
         for (int i = 0; i < sources.Length; i++) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -241,6 +251,7 @@ internal static partial class PdfMerger {
                     readDocumentFactory,
                     sourceReadOptions,
                     cancellationToken: cancellationToken);
+            if (i == primarySourceIndex) primaryPlan = sourceMergePlan;
             PdfDocumentSecurityInfo sourceSecurity = sourceMergePlan.Preflight.Probe.Security;
             PdfPermissionPolicy sourcePermissionPolicy = sourceMergePlan.Preflight.PermissionPolicy;
             ValidateXfaSourceBeforePreparation(
@@ -264,7 +275,7 @@ internal static partial class PdfMerger {
             mergedPageOffset += importedSources[importedSources.Count - 1].PageObjectNumbers.Length;
         }
 
-        ValidateTaggedMergePolicy(importedSources, primarySourceIndex, options?.Policy ?? new PdfMergePolicy());
+        ValidateMergePolicy(importedSources, primarySourceIndex, options?.Policy ?? new PdfMergePolicy(), primaryPlan!);
         byte[] merged = WriteMerged(importedSources, primarySourceIndex, outputOrder: null, out int mergedObjectCount, cancellationToken);
         PdfLoadOptions outputReadOptions = PdfLoadOptions.ForComposedOutput(
             importedSources[primarySourceIndex].Document.ReadOptions,
@@ -648,8 +659,7 @@ internal static partial class PdfMerger {
 
                 int newId = plan.NumberMap[sourceId];
                 PdfSerializedObject serializedObject = sourceObject.Value is PdfDictionary dictionary && source.Collector.PageObjectIds.Contains(sourceId)
-                    ? PdfSerializedObject.FromBytes(PdfObjectBytes.WrapIndirectObjectCancellable(
-                        newId, PdfPageExtractor.SerializePageDictionary(dictionary, sourceId, context), cancellationToken))
+                    ? PdfPageExtractor.SerializeIndirectPageDictionary(newId, dictionary, sourceId, context)
                     : PdfPageExtractor.SerializeIndirectObjectForAssembly(newId, sourceObject.Value, context);
 
                 objects.Add(serializedObject);

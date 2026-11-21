@@ -32,7 +32,9 @@ public sealed class OfficeDrawingRasterRenderOptions {
     public System.Threading.CancellationToken CancellationToken { get; set; }
     /// <summary>
     /// Applies the raster conventions PDF viewers share: stroke adjustment, whole-pixel text baselines and
-    /// PDF image sampling (box-filtered downscaling, filtered upscaling below 400% and pixel-snapped edges).
+    /// PDF image sampling (box-filtered downscaling, filtered upscaling below 400% and pixel-snapped edges). As viewers do,
+    /// an element whose coverage work exceeds the raster limit is omitted (recorded in <see cref="DiagnosticSink"/>) instead
+    /// of failing the render.
     /// </summary>
     internal bool PdfRasterConventions { get; set; }
     internal OfficeRasterTransformedTextBudget? TransformedTextBudget { get; set; }
@@ -40,4 +42,6 @@ public sealed class OfficeDrawingRasterRenderOptions {
     internal bool LimitRasterPaintWork { get; set; }
     /// <summary>Decoded and prefiltered images kept between renders of the same drawing.</summary>
     internal OfficeRasterImageCache? ImageCache { get; set; }
+    /// <summary>Font scope inherited by a retained drawing rendered as a standalone surface.</summary>
+    internal OfficeFontFaceCollection? InheritedFonts { get; set; }
 }

@@ -1,50 +1,69 @@
 ---
-title: "Create and edit Visio diagrams in .NET"
-description: "Create, edit, inspect, validate, and export VSDX diagrams with builders, pages, shapes, connectors, stencils, and graph layouts."
+title: "Create, Edit, and Export Visio Diagrams"
+description: "OfficeIMO.Visio creates, edits, validates and exports VSDX diagrams in .NET without Microsoft Visio, with builders for common diagram types."
 meta.seo_title: "Create, edit, and export VSDX Visio diagrams in .NET"
 order: 52
+packages:
+  - OfficeIMO.Visio
+cmdlets:
+  - New-OfficeVisio
+  - Add-OfficeVisioRectangle
+  - Add-OfficeVisioConnector
+commands:
+  - officeimo convert
+search_terms:
+  - vsdx
+  - visio diagram
+  - create visio file
+  - visio without visio
+verified: 2026-11-14
 ---
 
-`OfficeIMO.Visio` creates, edits, inspects, validates, and exports `.vsdx` diagrams without COM automation and without Microsoft Visio installed. Use a diagram builder for common topology and process models, or work directly with pages, shapes, connectors, layers, Shape Data, containers, comments, and metadata.
+`OfficeIMO.Visio` creates, edits, validates, and exports `.vsdx` diagrams without COM automation or Microsoft Visio. Use a diagram builder when your data already describes a topology or process, or work directly with pages, shapes, connectors, layers, Shape Data, and containers.
 
-## Choose your workflow
-
-| You need to | Start here |
+| You want to | Page |
 |---|---|
-| Generate flowcharts, architectures, networks, org charts, sequences, timelines, or generic graphs | [Diagram builders](/docs/visio/diagram-builders/) |
-| Load a VSDX, select and update shapes, maintain metadata, or validate output | [Editing and validation](/docs/visio/editing-and-validation/) |
-| Use built-in, installed, or external VSSX/VSTX shapes | [Stencils and catalogs](/docs/visio/stencils-and-catalogs/) |
-| Produce SVG, PNG, JPEG, TIFF, or WebP previews without Visio | [Image export](/docs/visio/image-export/) |
+| Generate flowcharts, architecture, network, org chart, sequence, timeline, or graph diagrams | [Generate Visio Diagrams with Builders](/docs/visio/diagram-builders/) |
+| Load a VSDX, update shapes, edit Shape Data and layers, or validate output | [Edit and Validate Visio Diagrams](/docs/visio/editing-and-validation/) |
+| Place shapes from built-in catalogs or VSSX/VSTX stencil packs | [Use Visio Stencils and Shape Catalogs](/docs/visio/stencils-and-catalogs/) |
+| Export SVG, PNG, JPEG, TIFF, WebP, or PDF | [Export Visio Diagrams to Images and PDF](/docs/visio/image-export/) |
 
-## What the package handles
+## Create a diagram
 
-- VSDX document and page creation, loading, editing, saving, and validation
-- shapes, text, styles, connection points, connectors, routing hints, labels, hyperlinks, and Shape Data
-- layers, containers, comments, metadata, and topology queries
-- fluent builders for common business and technical diagram types
-- generated catalogs, installed Visio stencils, external VSSX/VSTX packs, and stencil migration planning
-- headless SVG, PNG, JPEG, TIFF, and lossless WebP export
-
-## Quick start
+### C#
 
 ```csharp
 using OfficeIMO;
 using OfficeIMO.Visio;
-using OfficeIMO.Visio.Diagrams;
 
-VisioDocument.Create("topology.vsdx")
-    .ArchitectureDiagram("System Overview", diagram => diagram
-        .AddTitle()
-        .Legend()
-        .Theme(VisioStyleTheme.Technical())
-        .Actor("users", "Users", 0, 1)
-        .Gateway("gateway", "Gateway", 1, 1)
-        .Service("api", "API", 2, 1)
-        .Database("database", "Database", 3, 1)
-        .DataFlow("users", "gateway", "HTTPS")
-        .ControlFlow("gateway", "api", "route")
-        .DataFlow("api", "database", "SQL"))
-    .Save();
+using VisioDocument document = VisioDocument.Create("service-map.vsdx");
+VisioPage page = document.AddPage("Services", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
+
+VisioShape web = page.AddRectangle(OfficeLength.Inches(2), OfficeLength.Inches(4), OfficeLength.Inches(1.6), OfficeLength.Inches(0.8), "Web");
+VisioShape api = page.AddRectangle(OfficeLength.Inches(5), OfficeLength.Inches(4), OfficeLength.Inches(1.6), OfficeLength.Inches(0.8), "API");
+
+VisioConnector call = page.AddConnector(web, api, ConnectorKind.RightAngle, VisioSide.Right, VisioSide.Left);
+call.EndArrow = EndArrow.Triangle;
+call.Label = "calls";
+
+document.Save();
 ```
 
-Run the [architecture example](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Examples/Visio/ArchitectureDiagramBuilder.cs) to inspect a generated VSDX and validation result. The [Visio API reference](/api/visio/) contains the complete lower-level model.
+### PowerShell
+
+```powershell
+New-OfficeVisio -Path .\service-map.vsdx -Title 'Service map' {
+    Add-OfficeVisioRectangle -Key web -Text 'Web' -X 2in -Y 4in
+    Add-OfficeVisioRectangle -Key api -Text 'API' -X 5in -Y 4in
+    Add-OfficeVisioConnector -From web -To api -Kind RightAngle -EndArrow Triangle -Label 'calls'
+}
+```
+
+### CLI
+
+Render the diagram to SVG or PDF:
+
+```sh
+officeimo convert service-map.vsdx service-map.svg
+officeimo convert service-map.vsdx service-map.pdf
+```

@@ -93,7 +93,8 @@ internal static partial class PdfPageXObjectInvocationParser {
                     if (op == "s" || op == "b" || op == "b*") {
                         ClosePath();
                     }
-                    if (!HasHiddenContent() && !IsCurrentPaintSuppressedBySoftMask() && _pathCommands.Count > 0) {
+                    if (!HasHiddenContent() && !IsCurrentPaintSuppressedBySoftMask() && _pathCommands.Count > 0 &&
+                        PathPaintHasObserver(OperatorFillsPath(op), OperatorStrokesPath(op))) {
                         PdfType3PaintChannels channels = ResolveVisiblePathPaintChannels(
                             OperatorFillsPath(op),
                             OperatorStrokesPath(op),

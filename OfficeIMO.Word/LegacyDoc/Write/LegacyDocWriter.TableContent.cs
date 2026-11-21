@@ -7,7 +7,7 @@ using System.Text;
 
 namespace OfficeIMO.Word.LegacyDoc.Write {
     internal static partial class LegacyDocWriter {
-        private static void AppendTable(StringBuilder text, List<LegacyDocWritableRun> runs, List<LegacyDocWritableParagraph> paragraphFormats, LegacyDocWritableBookmarksBuilder bookmarks, Table table, MainDocumentPart mainPart, LegacyDocWritablePictures pictures, IReadOnlyDictionary<string, ushort> styleIndexes, IReadOnlyDictionary<string, Style> tableStyleDefinitions, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes, int tableDepth = 1, OpenXmlPart? relationshipOwner = null) {
+        private static void AppendTable(StringBuilder text, List<LegacyDocWritableRun> runs, List<LegacyDocWritableParagraph> paragraphFormats, LegacyDocWritableBookmarksBuilder bookmarks, Table table, MainDocumentPart mainPart, LegacyDocWritablePictures pictures, IReadOnlyDictionary<string, ushort> styleIndexes, LegacyDocTableStyleDefinitions tableStyleDefinitions, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes, int tableDepth = 1, OpenXmlPart? relationshipOwner = null) {
             relationshipOwner ??= mainPart;
             if (tableDepth <= 0 || tableDepth > 2) {
                 throw new NotSupportedException("Native DOC saving supports nested tables only to depth 2.");
@@ -137,7 +137,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             OpenXmlPart relationshipOwner,
             LegacyDocWritablePictures pictures,
             IReadOnlyDictionary<string, ushort> styleIndexes,
-            IReadOnlyDictionary<string, Style> tableStyleDefinitions,
+            LegacyDocTableStyleDefinitions tableStyleDefinitions,
             LegacyDocWritableParagraphFormatting tableStyleParagraphFormatting,
             LegacyDocWritableFormatting tableStyleRunFormatting,
             LegacyDocWritableFootnotes footnotes,

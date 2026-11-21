@@ -15,13 +15,20 @@ public class PdfTypedInvoiceWorkflowBenchmarks {
         _scenario = InvoiceComparisonScenario.Create();
         PdfInvoiceDocument snapshot = _scenario.CreateTypedSnapshot();
         byte[] pdf = snapshot.ToPdfBytes(_scenario.PdfOptions);
-        PdfInvoiceComparisonValidation.Validate(pdf, _scenario, nameof(TypedElectronicInvoicePdf));
-        PdfExtractedAttachment attachment = AssertSingleAttachment(pdf);
-        if (!attachment.Bytes.SequenceEqual(snapshot.ToXmlBytes()))
-            throw new InvalidDataException("The typed workflow PDF did not preserve the generated CII attachment bytes.");
+        PdfBenchmarkValidation.Record(
+            "OfficeIMO",
+            nameof(TypedElectronicInvoicePdf),
+            "reopened with PdfPig: 2 pages, every required invoice text, 5:1 logo; the single CII attachment matches the generated XML bytes",
+            () => {
+                PdfInvoiceComparisonValidation.Validate(pdf, _scenario, nameof(TypedElectronicInvoicePdf));
+                PdfExtractedAttachment attachment = AssertSingleAttachment(pdf);
+                if (!attachment.Bytes.SequenceEqual(snapshot.ToXmlBytes()))
+                    throw new InvalidDataException("The typed workflow PDF did not preserve the generated CII attachment bytes.");
+            });
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:TypedElectronicInvoicePdf")]
     public byte[] TypedElectronicInvoicePdf() => Generate();
 
     private byte[] Generate() => _scenario.CreateTypedSnapshot().ToPdfBytes(_scenario.PdfOptions);

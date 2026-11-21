@@ -62,10 +62,10 @@ public static partial class OfficeVisioVisualConversionExtensions {
             VisualArtifactInterchangePort port = ports[index];
             string number = (index + 1).ToString(CultureInfo.InvariantCulture);
             string prefix = "Port." + number + ".";
-            AddValue(target, "Port." + number, port.Id + "|" + port.Side + "|" + port.Offset.ToString("R", CultureInfo.InvariantCulture));
+            AddValue(target, "Port." + number, port.Id + "|" + port.Side + "|" + OfficeIMO.Core.Internal.OfficeRoundTripText.Format(port.Offset, CultureInfo.InvariantCulture));
             AddValue(target, prefix + "Id", port.Id);
             AddValue(target, prefix + "Side", port.Side.ToString());
-            AddValue(target, prefix + "Offset", port.Offset.ToString("R", CultureInfo.InvariantCulture));
+            AddValue(target, prefix + "Offset", OfficeIMO.Core.Internal.OfficeRoundTripText.Format(port.Offset, CultureInfo.InvariantCulture));
             AddValue(target, prefix + "Label", port.Label);
             AddExtensionData(target, prefix + "Extension.", port.Extensions, report, context + " port " + number);
         }

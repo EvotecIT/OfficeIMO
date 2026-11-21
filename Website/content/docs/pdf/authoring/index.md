@@ -2,6 +2,7 @@
 title: "PDF Authoring and Layout"
 description: "Compose reports with typography, tables, images, drawings, headers, footers, forms, annotations, bookmarks, and page-level layout."
 layout: docs
+verified: 2026-11-14
 ---
 
 `OfficeIMO.Pdf` is a first-party managed authoring engine. Its fluent surface covers document metadata, headings and rich text, lists, tables, images, drawings, links, bookmarks, outlines, forms, annotations, headers, footers, page numbering, and text or image watermarks.

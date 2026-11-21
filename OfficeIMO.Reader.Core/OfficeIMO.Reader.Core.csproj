@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Description>Dependency-light contracts, routing, processing, and normalized document models for modular OfficeIMO readers.</Description>
-    <VersionPrefix>3.6.0</VersionPrefix>
+    <VersionPrefix>3.6.2</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
@@ -20,10 +20,12 @@
   </PropertyGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'net472'">
-    <PackageReference Include="System.Text.Json" Version="[10.0.7,11.0.0)" />
+    <PackageReference Include="System.Text.Json" Version="[10.0.9,11.0.0)" />
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="Schemas\officeimo.document.read-result.v15.schema.json" Pack="true" PackagePath="schemas\officeimo.document.read-result.v15.schema.json" />
+    <EmbeddedResource Include="Schemas\officeimo.document.read-result.v15.schema.json" LogicalName="OfficeIMO.Reader.Schemas.officeimo.document.read-result.v15.schema.json" />
     <None Include="Schemas\officeimo.document.read-result.v14.schema.json" Pack="true" PackagePath="schemas\officeimo.document.read-result.v14.schema.json" />
     <EmbeddedResource Include="Schemas\officeimo.document.read-result.v14.schema.json" LogicalName="OfficeIMO.Reader.Schemas.officeimo.document.read-result.v14.schema.json" />
     <None Include="Schemas\officeimo.document.read-result.v13.schema.json" Pack="true" PackagePath="schemas\officeimo.document.read-result.v13.schema.json" />
@@ -52,6 +54,9 @@
     <Compile Include="..\OfficeIMO.SharedSource\Compound\OfficeCompoundFileEntry.cs" Link="Internal\Compound\OfficeCompoundFileEntry.cs" />
     <Compile Include="..\OfficeIMO.SharedSource\Compound\OfficeCompoundFileReader.cs" Link="Internal\Compound\OfficeCompoundFileReader.cs" />
     <Compile Include="..\OfficeIMO.SharedSource\Compound\OfficeCompoundFileReader.Inspection.cs" Link="Internal\Compound\OfficeCompoundFileReader.Inspection.cs" />
+    <Compile Include="..\OfficeIMO.SharedSource\Compound\OfficeCompoundFileReader.Selective.cs" Link="Internal\Compound\OfficeCompoundFileReader.Selective.cs" />
+    <Compile Include="..\OfficeIMO.SharedSource\Compound\OfficeCompoundFileReader.Stream.cs" Link="Internal\Compound\OfficeCompoundFileReader.Stream.cs" />
+    <Compile Include="..\OfficeIMO.Core\TextAnalysis\*.cs" Link="Internal\TextAnalysis\%(Filename)%(Extension)" />
     <None Include="README.md">
       <Pack>True</Pack>
       <PackagePath>README.md</PackagePath>
@@ -126,6 +131,7 @@
     <InternalsVisibleTo Include="OfficeIMO.Reader.DjVu" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Web" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Xml" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Toml" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Yaml" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Zip" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Opml" />
@@ -133,4 +139,7 @@
     <InternalsVisibleTo Include="OfficeIMO.Reader.IWork" />
   </ItemGroup>
   <ItemGroup><InternalsVisibleTo Include="OfficeIMO" /></ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\OfficeIMO.SharedSource\Numerics\OfficeRoundTripNumberText.cs" Link="SharedSource\Numerics\OfficeRoundTripNumberText.cs" />
+  </ItemGroup>
 </Project>

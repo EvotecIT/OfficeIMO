@@ -18,17 +18,76 @@ namespace OfficeIMO.Excel {
         public void SetValues(IEnumerable<(int Row, int Column, object Value)> cells, ExcelExecutionMode? mode = null, CancellationToken ct = default) =>
             CellValuesCore(cells, mode, ct, preserveMissingValues: false);
 
+        /// <summary>
+        /// Writes a row-major batch on an empty sheet into the pending cell buffer, the same route single
+        /// <see cref="CellValue(int, int, object)"/> calls take, so a sheet that cannot own the workbook's direct
+        /// tabular model (any sheet after the first) still skips the cell DOM. Missing values stay blank.
+        /// </summary>
+        private bool TryBufferFreshSheetCellValues(IReadOnlyList<(int Row, int Column, object Value)> list, bool preserveMissingValues, CancellationToken ct) {
+            if (_pendingCellValueDirectSaveBuffer != null || !CanAcceptPendingDirectCell()) return false;
+
+            int previousRow = 0, previousColumn = 0;
+            for (int i = 0; i < list.Count; i++) {
+                var (row, column, value) = list[i];
+                if (row <= 0 || column <= 0 || column > ExcelA1.MaxColumns
+                    || row < previousRow || (row == previousRow && column <= previousColumn)) return false;
+                previousRow = row;
+                previousColumn = column;
+                if (value is null || value is DBNull) {
+                    if (!preserveMissingValues) return false;
+                    continue;
+                }
+                if (value is DateTimeOffset) continue;
+                if (!CanBufferDirectCell(ExcelBufferedCell.FromValue(value))) return false;
+            }
+
+            for (int i = 0; i < list.Count; i++) {
+                ct.ThrowIfCancellationRequested();
+                var (row, column, value) = list[i];
+                if (value is null || value is DBNull) continue;
+                if (!TrySetPendingDirectCell(row, column, ExcelBufferedCell.FromValue(value))) {
+                    // Cells already written are rewritten with the same values by the DOM route.
+                    MaterializePendingDirectCellValues(ct);
+                    return false;
+                }
+            }
+
+            ClearHeaderCache();
+            return true;
+        }
+
+        /// <summary>
+        /// Rejects writes into dynamic arrays before a batch is applied. The write index scans the worksheet and
+        /// workbook parts, so it is built and read under the document write lock that concurrent batch writers apply under.
+        /// </summary>
+        /// <returns><see langword="true"/> when the sheet has dynamic array ranges.</returns>
+        private bool EnsureCellValuesOutsideDynamicArrays(IReadOnlyList<(int Row, int Column, object Value)> list) =>
+            Locking.ExecuteWrite(_excelDocument.EnsureLock(), () => {
+                EnsureDynamicArrayWriteIndex();
+                if (SpillOwnership.WriteRanges.Count == 0) return false;
+                for (int i = 0; i < list.Count; i++) EnsureDynamicArrayCellWritable(list[i].Row, list[i].Column);
+                return true;
+            });
+
         private void CellValuesCore(IEnumerable<(int Row, int Column, object Value)> cells, ExcelExecutionMode? mode, CancellationToken ct, bool preserveMissingValues) {
             ArgumentNullException.ThrowIfNull(cells);
             var list = cells as IReadOnlyList<(int Row, int Column, object Value)> ?? cells.ToList();
             if (list.Count == 0) return;
-            EnsureDynamicArrayWriteIndex();
-            if (SpillOwnership.WriteRanges.Count > 0)
-                foreach (var item in list) EnsureDynamicArrayCellWritable(item.Row, item.Column);
+            bool hasDynamicArrays = EnsureCellValuesOutsideDynamicArrays(list);
             DirectCellValuesSaveCandidate? appendSaveCandidate = null;
 
             if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
-                _excelDocument.MaterializeDeferredDataSetImport();
+                // Other sheets' pending cell buffers stay pending, as they do for single cell writes;
+                // only this sheet's cells and the workbook's direct tabular model must reach the DOM first.
+                if (_excelDocument.HasUnmaterializedDirectDataSetRows) {
+                    _excelDocument.MaterializeDeferredDataSetImport();
+                } else if (_pendingCellValueDirectSaveBuffer != null) {
+                    if (HasCellValueWriteAccess) {
+                        MaterializePendingDirectCellValues(ct);
+                    } else {
+                        Locking.ExecuteWrite(_excelDocument.EnsureLock(), () => MaterializePendingDirectCellValues(ct));
+                    }
+                }
             }
 
             list = PrepareTableHeaderValueWrites(list, ct);
@@ -54,6 +113,12 @@ namespace OfficeIMO.Excel {
             if (appendSaveCandidate != null
                 && _excelDocument.CanDeferDirectCellValuesAppendCandidate
                 && RegisterDeferredDirectCellValuesSaveCandidateIfPossible(appendSaveCandidate, preserveMissingValues)) {
+                return;
+            }
+
+            if (list.Count >= PendingDirectCellValueMinimumCellCount
+                && !hasDynamicArrays
+                && TryBufferFreshSheetCellValues(list, preserveMissingValues, ct)) {
                 return;
             }
 
@@ -137,7 +202,7 @@ namespace OfficeIMO.Excel {
         /// Uses <see cref="SharedStringPlanner"/> for string values.
         /// </summary>
         private (CellValue cellValue, EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues> dataType) CoerceForCellNoDom(object? value, SharedStringPlanner planner) {
-            var dateTimeOffsetStrategy = _excelDocument.DateTimeOffsetWriteStrategy;
+            var dateTimeOffsetStrategy = _excelDocument.EffectiveDateTimeOffsetWriteStrategy;
             var (cellValue, cellType) = CoerceValueHelper.Coerce(
                 value,
                 s => {

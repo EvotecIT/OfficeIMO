@@ -41,6 +41,8 @@ public static partial class OfficeDrawingPortableExporter {
 
         internal List<Element> Project(OfficeDrawing drawing, OfficeTransform transform, OfficeFontFaceCollection? inheritedFonts,
             int depth, string location) {
+            if (drawing.PostCompositionColorTransform != null)
+                Fail("DRAWING_COLOR_TRANSFORM_UNSUPPORTED", "The portable profile does not preserve post-composition color transforms.", location);
             if (depth > Options.MaximumDepth) Fail("DRAWING_DEPTH_LIMIT", "Drawing nesting exceeds the configured limit.", location);
             if (drawing.TextShapingProvider != null || drawing.TextShapingLanguage != null)
                 Fail("DRAWING_TEXT_SHAPING_UNSUPPORTED", "The portable profile does not preserve an external shaping provider or language override.", location);
@@ -101,7 +103,8 @@ public static partial class OfficeDrawingPortableExporter {
         Coordinate(transform.M11, location); Coordinate(transform.OffsetX, location); Coordinate(transform.OffsetY, location);
     }
     private static Rect Clip(OfficeClipPath clip, double x, double y, OfficeTransform transform, string location) {
-        if (clip.Kind != OfficeClipPathKind.Rectangle) Fail("DRAWING_CLIP_UNSUPPORTED", "Only rectangular clip paths are supported.", location);
+        // A rectangle intersected with further paths is not rectangular.
+        if (clip.Kind != OfficeClipPathKind.Rectangle || clip.Intersections.Count > 0) Fail("DRAWING_CLIP_UNSUPPORTED", "Only rectangular clip paths are supported.", location);
         Length(clip.Width, location); Length(clip.Height, location);
         OfficePoint start = Point(new OfficePoint(x, y), transform, location);
         return new Rect(start.X, start.Y, Length(clip.Width * transform.M11, location), Length(clip.Height * transform.M11, location));

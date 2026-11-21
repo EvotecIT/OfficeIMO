@@ -1,13 +1,10 @@
 using System.Text;
-using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel;
 
 internal static class SheetNameLookup
 {
-    private static readonly Regex MultipleUnderscoresRegex = new("_+", RegexOptions.Compiled | RegexOptions.CultureInvariant);
-
     internal static ExcelSheet? FindByRequestedName(IEnumerable<ExcelSheet> sheets, string requestedName)
     {
         return sheets.FirstOrDefault(sheet => Matches(sheet.Name, requestedName));
@@ -121,20 +118,19 @@ internal static class SheetNameLookup
         }
 
         var sb = new StringBuilder(baseName.Length);
+        // Invalid characters become underscores, and runs of underscores collapse to one.
         foreach (char c in baseName)
         {
-            if (c == ':' || c == '\\' || c == '/' || c == '?' || c == '*' || c == '[' || c == ']')
+            char next = c == ':' || c == '\\' || c == '/' || c == '?' || c == '*' || c == '[' || c == ']' ? '_' : c;
+            if (next == '_' && sb.Length > 0 && sb[sb.Length - 1] == '_')
             {
-                sb.Append('_');
+                continue;
             }
-            else
-            {
-                sb.Append(c);
-            }
+
+            sb.Append(next);
         }
 
         string cleaned = sb.ToString().Trim();
-        cleaned = MultipleUnderscoresRegex.Replace(cleaned, "_");
         cleaned = cleaned.Trim('_');
         if (cleaned.Length == 0)
         {

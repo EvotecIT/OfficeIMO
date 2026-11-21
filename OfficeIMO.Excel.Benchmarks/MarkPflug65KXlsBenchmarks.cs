@@ -15,7 +15,7 @@ namespace OfficeIMO.Excel.Benchmarks;
 /// </summary>
 [MemoryDiagnoser]
 [RankColumn]
-public class MarkPflug65KXlsBenchmarks {
+public partial class MarkPflug65KXlsBenchmarks {
     private ExcelReadObservation _expected;
 
     [GlobalSetup]
@@ -26,6 +26,7 @@ public class MarkPflug65KXlsBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public ExcelReadObservation OfficeIMO() {
         using DbDataReader reader = ExcelDocument.OpenReader(
             MarkPflug65KFixture.XlsPath,
@@ -34,12 +35,14 @@ public class MarkPflug65KXlsBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:ExcelReader.NET", "case:Default")]
     public ExcelReadObservation ExcelReaderNet() {
         using XlsReader reader = ExcelReaderApi.FromXlsFile(MarkPflug65KFixture.XlsPath);
         return Validate(nameof(ExcelReaderNet), MarkPflug65KXlsxBenchmarks.ObserveExcelReader(reader));
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:Sylvan.Data.Excel", "case:Default")]
     public ExcelReadObservation Sylvan() {
         using var stream = File.OpenRead(MarkPflug65KFixture.XlsPath);
         using SylvanExcelDataReader reader = SylvanExcelDataReader.Create(
@@ -50,6 +53,7 @@ public class MarkPflug65KXlsBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:ExcelDataReader", "case:Default")]
     public ExcelReadObservation ExcelDataReader() {
         using var stream = File.OpenRead(MarkPflug65KFixture.XlsPath);
         using global::ExcelDataReader.IExcelDataReader reader =

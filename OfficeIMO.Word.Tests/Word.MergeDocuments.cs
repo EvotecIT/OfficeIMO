@@ -1,4 +1,3 @@
-using System.Reflection;
 using DocumentFormat.OpenXml.Vml.Office;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
@@ -223,19 +222,14 @@ namespace OfficeIMO.Tests {
             var destinationPath = Path.Combine(_directoryWithFiles, "MergeDocCustomStyleBase.docx");
             var sourcePath = Path.Combine(_directoryWithFiles, "MergeDocCustomStyleSource.docx");
 
-            var style = new WordParagraphStyleDefinition("MergedStyle") {
-                Name = "Merged Style",
-                BasedOnStyleId = "Normal"
-            };
-            WordParagraphStyle.RegisterCustomStyle("MergedStyle", style);
-
-            try {
+            {
                 using (var doc = WordDocument.Create(destinationPath)) {
                     doc.AddParagraph("Base document");
                     doc.Save();
                 }
 
                 using (var doc = WordDocument.Create(sourcePath)) {
+                    doc.Styles.AddParagraphStyle("MergedStyle", "Merged Style");
                     doc.AddParagraph("Styled text").SetStyleId("MergedStyle");
                     doc.Save();
                 }
@@ -254,15 +248,7 @@ namespace OfficeIMO.Tests {
                     Assert.Equal("Merged Style", mergedStyle!.StyleName?.Val?.Value);
                     Assert.Contains(merged.Paragraphs, p => p.Text == "Styled text" && p.StyleId == "MergedStyle");
                 }
-            } finally {
-                ClearCustomParagraphStyles();
             }
-        }
-
-        private static void ClearCustomParagraphStyles() {
-            var field = typeof(WordParagraphStyle).GetField("_customStyles", BindingFlags.NonPublic | BindingFlags.Static);
-            var dict = (IDictionary<string, Style>)field!.GetValue(null)!;
-            dict.Clear();
         }
     }
 }

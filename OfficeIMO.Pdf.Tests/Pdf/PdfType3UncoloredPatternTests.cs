@@ -6,6 +6,9 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfType3UncoloredPatternTests {
+    // Two intersecting concave glyph clips leave an inexact clip, so the patterned image mask cannot be projected.
+    private const string UnprojectablePatternMaskGlyph = "500 0 d0 0 0 m 500 0 l 500 700 l 250 350 l 0 700 l h W n 0 0 m 500 0 l 500 700 l 250 400 l 0 700 l h W n q 500 0 0 700 0 0 cm /Im1 Do Q";
+
     [Fact]
     public void RenderPage_UsesOuterColoredTilingPatternForUncoloredType3Glyph() {
         byte[] pdf = BuildUncoloredType3PatternPdf(
@@ -1208,25 +1211,6 @@ public partial class PdfType3UncoloredPatternTests {
     }
 
     [Fact]
-    public void RenderPage_FailsClosedForShearedImageInsideStrictType3PatternTile() {
-        byte[] pdf = BuildUncoloredType3PatternPdf(
-            pageContent: "1 0 0 rg BT /FType3 18 Tf 20 100 Td (A) Tj ET",
-            pageColorSpaceResources: string.Empty,
-            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << /XObject << /Im 8 0 R >> >>",
-            patternContent: "q 5 1 0 5 0 0 cm /Im Do Q",
-            glyphContent: "500 0 d0 /Pattern cs /P1 scn 0 0 500 700 re f",
-            glyphResources: "<< /Pattern << /P1 7 0 R >> >>",
-            type3PaintType: 1,
-            extraObjects: new[] {
-                StreamObject(8, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8", "abc")
-            });
-
-        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
-
-        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
-    }
-
-    [Fact]
     public void RenderPage_AlignsLocalizedPatternMaskSoftMaskInPageCoordinates() {
         byte[] pdf = BuildUncoloredType3PatternPdf(
             pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
@@ -1293,7 +1277,7 @@ public partial class PdfType3UncoloredPatternTests {
             patternDictionary: "<< /Type /Pattern /PatternType 2 /Shading << /ShadingType 2 /ColorSpace /DeviceRGB /Coords [20 100 30 100] /Function << /FunctionType 2 /Domain [0 1] /C0 [1 0 0] /C1 [0 0 1] /N 1 >> /Extend [true true] >>",
             patternContent: string.Empty,
             patternIsStream: false,
-            glyphContent: "500 0 d0 q 500 100 0 700 0 0 cm /Im1 Do Q",
+            glyphContent: UnprojectablePatternMaskGlyph,
             glyphResources: "<< /XObject << /Im1 8 0 R >> >>",
             extraObjects: new[] {
                 StreamObject(8, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ImageMask true /BitsPerComponent 1 /Decode [1 0]", "x")
@@ -1325,26 +1309,6 @@ public partial class PdfType3UncoloredPatternTests {
 
         Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.UnsupportedShadingId);
         Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
-    }
-
-    [Fact]
-    public void RenderPage_DiagnosesUnsupportedPatternedImageMaskProjection() {
-        byte[] pdf = BuildUncoloredType3PatternPdf(
-            pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
-            pageColorSpaceResources: string.Empty,
-            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>",
-            patternContent: "1 0 0 rg 0 0 5 5 re f",
-            glyphContent: "500 0 d0 q 500 100 0 700 0 0 cm /Im1 Do Q",
-            glyphResources: "<< /XObject << /Im1 8 0 R >> >>",
-            extraObjects: new[] {
-                StreamObject(8, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ImageMask true /BitsPerComponent 1 /Decode [1 0]", "x")
-            });
-
-        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
-        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
-
-        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
-        Assert.DoesNotContain(drawing.Elements, element => element is OfficeDrawingEffectGroup);
     }
 
     [Fact]
@@ -1394,7 +1358,7 @@ public partial class PdfType3UncoloredPatternTests {
             pageColorSpaceResources: string.Empty,
             patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>",
             patternContent: "1 0 0 rg 0 0 5 5 re f",
-            glyphContent: "500 0 d0 q 500 100 0 700 0 0 cm /Im1 Do Q",
+            glyphContent: UnprojectablePatternMaskGlyph,
             glyphResources: "<< /XObject << /Im1 8 0 R >> >>",
             pageDictionaryEntries: "/Annots [9 0 R]",
             extraObjects: new[] {
@@ -1416,7 +1380,7 @@ public partial class PdfType3UncoloredPatternTests {
             patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>",
             patternContent: "1 0 0 rg 0 0 5 5 re f",
             invokeThroughForm: true,
-            glyphContent: "500 0 d0 q 500 100 0 700 0 0 cm /Im1 Do Q",
+            glyphContent: UnprojectablePatternMaskGlyph,
             glyphResources: "<< /XObject << /Im1 9 0 R >> >>",
             formContent: "BT /FType3 18 Tf 20 100 Td (A) Tj ET",
             formBoundingBox: "[0 0 10 10]",
@@ -1437,7 +1401,7 @@ public partial class PdfType3UncoloredPatternTests {
             patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>",
             patternContent: "1 0 0 rg 0 0 5 5 re f",
             invokeThroughForm: true,
-            glyphContent: "500 0 d0 q 500 100 0 700 0 0 cm /Im1 Do Q",
+            glyphContent: UnprojectablePatternMaskGlyph,
             glyphResources: "<< /XObject << /Im1 9 0 R >> >>",
             formContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
             formResourceEntries: "/Font << /FType3 5 0 R >> /Pattern << /P1 7 0 R >>",
@@ -1457,7 +1421,7 @@ public partial class PdfType3UncoloredPatternTests {
             pageColorSpaceResources: string.Empty,
             patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>",
             patternContent: "1 0 0 rg 0 0 5 5 re f",
-            glyphContent: "500 0 d0 q 500 100 0 700 0 0 cm /Im1 Do Q",
+            glyphContent: UnprojectablePatternMaskGlyph,
             glyphResources: "<< /XObject << /Im1 8 0 R >> >>",
             pageWidth: 440D,
             pageHeight: 300D,
@@ -1642,24 +1606,6 @@ public partial class PdfType3UncoloredPatternTests {
             glyphContent: "500 0 d0 BT /FBase 8 Tf 7 Tr 1 0 0 1 2 12 Tm (X) Tj ET 0 0 500 700 re f",
             glyphResources: "<< /Font << /FBase 9 0 R >> >>",
             extraObjects: new[] { "9 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj" });
-
-        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
-
-        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
-    }
-
-    [Fact]
-    public void RenderPage_FailsClosedForNearlyAxisAlignedStrictPatternImage() {
-        byte[] pdf = BuildUncoloredType3PatternPdf(
-            pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
-            pageColorSpaceResources: string.Empty,
-            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>",
-            patternContent: "1 0 0 rg 0 0 5 5 re f",
-            glyphContent: "500 0 d0 q 500 0.0000000005 0 700 0 0 cm /Im1 Do Q",
-            glyphResources: "<< /XObject << /Im1 8 0 R >> >>",
-            extraObjects: new[] {
-                StreamObject(8, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ImageMask true /BitsPerComponent 1 /Decode [1 0]", "x")
-            });
 
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
 

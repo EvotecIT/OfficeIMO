@@ -38,8 +38,8 @@ public partial class VisioDocument {
             throw new NotSupportedException("The reserved OfficeIMOConnectorLabelPlacement Shape Data name is already in use.");
         string value = placement.AnchorKind == VisioConnectorLabelAnchorKind.Native ? "v1;native;page-angle" :
             placement.AnchorKind == VisioConnectorLabelAnchorKind.Page ? "v1;page" :
-            "v1;path;" + placement.Position.ToString("R", CultureInfo.InvariantCulture) + ";" +
-            placement.OffsetX.ToString("R", CultureInfo.InvariantCulture) + ";" + placement.OffsetY.ToString("R", CultureInfo.InvariantCulture);
+            "v1;path;" + OfficeIMO.Core.Internal.OfficeRoundTripText.Format(placement.Position, CultureInfo.InvariantCulture) + ";" +
+            OfficeIMO.Core.Internal.OfficeRoundTripText.Format(placement.OffsetX, CultureInfo.InvariantCulture) + ";" + OfficeIMO.Core.Internal.OfficeRoundTripText.Format(placement.OffsetY, CultureInfo.InvariantCulture);
         return new Dictionary<string, string>(connector.Data) { [ConnectorLabelPlacementPropName] = value };
     }
 

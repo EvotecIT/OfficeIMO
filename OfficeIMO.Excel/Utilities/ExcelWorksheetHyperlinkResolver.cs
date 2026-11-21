@@ -54,7 +54,7 @@ namespace OfficeIMO.Excel.Utilities {
 
             string? relationshipId = hyperlink.Id?.Value;
             if (!string.IsNullOrWhiteSpace(relationshipId) && externalRelationships.TryGetValue(relationshipId!, out HyperlinkRelationship? relationship)) {
-                target = relationship.Uri?.OriginalString;
+                target = ExternalTargetText(relationship.Uri);
                 isExternal = true;
                 if (!string.IsNullOrEmpty(target) && !string.IsNullOrEmpty(hyperlink.Location?.Value)) {
                     int fragment = target!.IndexOf('#');
@@ -75,6 +75,13 @@ namespace OfficeIMO.Excel.Utilities {
                 Tooltip = string.IsNullOrWhiteSpace(hyperlink.Tooltip?.Value) ? null : hyperlink.Tooltip!.Value,
             };
         }
+
+        /// <summary>
+        /// Returns the target text as the package stores it. A target that is not a valid URI reaches us as the Open XML
+        /// SDK's placeholder URI subclass, whose text form is the stored target.
+        /// </summary>
+        private static string? ExternalTargetText(Uri? uri) =>
+            uri == null ? null : uri.GetType() == typeof(Uri) ? uri.OriginalString : uri.ToString();
 
         private static void AddReference(
             Dictionary<string, ExcelHyperlinkInfo> map,

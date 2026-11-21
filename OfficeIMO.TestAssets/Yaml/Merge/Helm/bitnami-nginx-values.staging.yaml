@@ -1,0 +1,40 @@
+# Staging: two replicas behind an internal load balancer.
+image:
+  registry: docker.io
+  repository: bitnami/nginx
+  tag: 1.29.2-debian-12-r1
+
+replicaCount: 2
+
+podLabels:
+  team: web
+  environment: staging
+
+x-probe: &probe
+  initialDelaySeconds: 10
+  periodSeconds: 5
+
+livenessProbe: *probe
+readinessProbe:
+  path: /healthz
+
+resourcesPreset: "small"
+
+service:
+  type: ClusterIP
+  annotations:
+    networking.gke.io/load-balancer-type: Internal
+
+ingress:
+  enabled: true
+  hostname: staging.example.com
+  tls: true
+  extraHosts:
+    - name: www.staging.example.com
+      path: /
+
+extraEnvVars:
+  - name: NGINX_HTTP_PORT_NUMBER
+    value: "8080"
+  - name: TZ
+    value: Europe/Warsaw

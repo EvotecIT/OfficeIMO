@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// MarkdownParagraph block containing a sequence of inline nodes.
 /// </summary>
-public sealed class ParagraphBlock : MarkdownBlock, IMarkdownBlock, IParagraphMarkdownBlock, IInlineSyntaxMarkdownBlock, ISyntaxMarkdownBlock {
+public sealed class ParagraphBlock : MarkdownBlock, IMarkdownBlock, IParagraphMarkdownBlock, IInlineSyntaxMarkdownBlock, ISyntaxMarkdownBlock, IHtmlAppendableMarkdownBlock {
     /// <summary>Inline content within this paragraph.</summary>
     public InlineSequence Inlines { get; }
     internal string GenericAttributeConsumedWhitespace { get; set; } = string.Empty;
@@ -24,7 +24,19 @@ public sealed class ParagraphBlock : MarkdownBlock, IMarkdownBlock, IParagraphMa
         return Inlines.RenderMarkdown() + separator + MarkdownAttributeBlockRenderer.RenderInlineTrailing(Attributes);
     }
     /// <inheritdoc />
-    string IMarkdownBlock.RenderHtml() => $"<p{MarkdownHtmlAttributes.Render(Attributes, null)}>{Inlines.RenderHtml()}{RenderGenericAttributeConsumedWhitespace()}</p>";
+    string IMarkdownBlock.RenderHtml() {
+        var sb = new StringBuilder();
+        AppendHtml(sb);
+        return sb.ToString();
+    }
+
+    void IHtmlAppendableMarkdownBlock.AppendHtml(StringBuilder builder) => AppendHtml(builder);
+
+    private void AppendHtml(StringBuilder sb) {
+        sb.Append("<p").Append(MarkdownHtmlAttributes.Render(Attributes, null)).Append('>');
+        Inlines.AppendHtml(sb);
+        sb.Append(RenderGenericAttributeConsumedWhitespace()).Append("</p>");
+    }
     InlineSequence IParagraphMarkdownBlock.ParagraphInlines => Inlines;
     string ITightListItemHtmlMarkdownBlock.RenderTightListItemHtml() => Inlines.RenderHtml();
     InlineSequence IInlineSyntaxMarkdownBlock.SyntaxInlines => Inlines;

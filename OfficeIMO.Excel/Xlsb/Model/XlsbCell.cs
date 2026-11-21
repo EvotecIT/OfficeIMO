@@ -20,6 +20,9 @@ namespace OfficeIMO.Excel.Xlsb.Model {
 
         internal string? FormulaText { get; set; }
 
+        /// <summary>Formatting runs of rich cell text, or null for plain text.</summary>
+        internal XlsbTextRun[]? TextRuns { get; set; }
+
         internal byte[]? FormulaBytes { get; set; }
 
         /// <summary>Gets the complete formula payload following the cached result, including flags and extra data.</summary>

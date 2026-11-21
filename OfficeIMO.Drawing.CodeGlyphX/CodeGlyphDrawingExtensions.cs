@@ -62,17 +62,23 @@ public static class CodeGlyphDrawingExtensions {
         return ResolveMaximumElements((long)modules.Width * modules.Height * elementsPerCell);
     }
 
-    private static int ResolveMaximumElements(long symbolElements) {
+    // OfficeSvgDrawingReader accepts at most one million geometry commands.
+    private const int MaximumGeometryCommands = 1_000_000;
+
+    internal static int ResolveMaximumElements(long symbolElements) {
         long requested = symbolElements + 1024L;
         return (int)Math.Min(
             OfficeSvgDrawingReaderOptions.MaximumAllowedElements,
             Math.Max(OfficeSvgDrawingReaderOptions.DefaultMaximumElements, requested));
     }
 
-    private static OfficeDrawing ReadSvg(string svg, int maximumElements, out int unsupportedFeatureCount) {
+    internal static OfficeDrawing ReadSvg(string svg, int maximumElements, out int unsupportedFeatureCount) {
         byte[] bytes = Encoding.UTF8.GetBytes(svg);
+        // CodeGlyphX draws module runs and styled module contours as path commands; this trusted output may use the
+        // reader's full command budget, while its input size and viewport limits still apply.
         var readerOptions = new OfficeSvgDrawingReaderOptions {
             MaximumElements = maximumElements,
+            MaximumGeometryCommands = MaximumGeometryCommands,
             MaximumViewportDimension = OfficeSvgDrawingReaderOptions.MaximumAllowedViewportDimension
         };
         if (!OfficeSvgDrawingReader.TryRead(bytes, readerOptions, out OfficeDrawing? drawing, out unsupportedFeatureCount) || drawing is null) {

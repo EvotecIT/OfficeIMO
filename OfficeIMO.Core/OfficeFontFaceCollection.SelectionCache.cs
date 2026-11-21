@@ -33,6 +33,21 @@ public sealed partial class OfficeFontFaceCollection {
         }
     }
 
+    /// <summary>
+    /// Identifies the registered faces and fallback families that selection answers depend on.
+    /// A different instance is returned after any change, so consumers can key their own memos on it.
+    /// </summary>
+    internal object SelectionGeneration => Selections;
+
+    /// <summary>
+    /// Reports whether any registered face can serve the family list and descriptor. Without one,
+    /// <see cref="PlanFallbackRuns(string?, string?, OfficeFontFaceDescriptor)"/> keeps the requested
+    /// families and <see cref="TryResolveFaceForText(string?, string?, OfficeFontFaceDescriptor, out OfficeFontFace?)"/>
+    /// resolves no text.
+    /// </summary>
+    internal bool HasSelectableFaces(string? familyNames, OfficeFontFaceDescriptor descriptor) =>
+        _faces.Count > 0 && GetFallbackSelection(familyNames?.Trim() ?? string.Empty, descriptor).Candidates.Count > 0;
+
     /// <summary>Shares bounded family parsing with internal rendering consumers that only read the result.</summary>
     internal IReadOnlyList<string> GetParsedFamilyNames(string? familyNames) =>
         string.IsNullOrEmpty(familyNames) ? Array.Empty<string>() : ParseFamilies(familyNames!);

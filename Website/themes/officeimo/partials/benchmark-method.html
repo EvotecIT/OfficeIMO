@@ -1,0 +1,13 @@
+<section class="imo-bench-method" aria-labelledby="benchmark-method-title">
+  <h2 id="benchmark-method-title">What a published result means</h2>
+  <ul class="imo-bench-rules">
+    <li><strong>Same work, checked output.</strong> Every library processes the same input, and its output is validated before it is timed.</li>
+    <li><strong>Enough samples.</strong> At least 3 warmups and 10 measured samples per case, with a 95% confidence interval for the median.</li>
+    <li><strong>Even when it is close.</strong> Only the library with the lowest time in a case is marked fastest. A library whose confidence interval overlaps the fastest one's is shown as even rather than slower.</li>
+    <li><strong>Every case stays.</strong> Cases another library wins, failed cases and partial runs are kept with their reason.</li>
+    <li><strong>Traceable runs.</strong> Each run records a clean source commit, the operating system, CPU, runtime and SDK, and the exact version and hash of every compared package.</li>
+    <li><strong>Licences respected.</strong> Libraries whose licence does not allow publishing results are run only locally and shown as not published.</li>
+  </ul>
+  <p>Platforms are measured separately and never averaged together. Measure on hardware close to yours before deciding.</p>
+  <p><a href="/docs/capabilities/benchmarks/">Run the benchmarks yourself <span aria-hidden="true">→</span></a></p>
+</section>

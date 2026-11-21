@@ -91,7 +91,8 @@ public sealed class StudioConversionRunStoreTests {
             ReportPath = reportPath, PublicationGuard = guard, RetainReport = () => history.ConversionRuns.CanRetainReport
         });
         try {
-            await guard.Started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            // Allow the cold PDF conversion to reach the controlled publication boundary.
+            await guard.Started.Task.WaitAsync(TimeSpan.FromSeconds(30));
             Assert.Equal(OfficeBatchRunState.Running, Assert.Single(history.ConversionRuns.ReadLatest().Entries).Report.State);
             Assert.True(history.ConversionRuns.ClearFinished());
             Assert.True(File.Exists(reportPath));

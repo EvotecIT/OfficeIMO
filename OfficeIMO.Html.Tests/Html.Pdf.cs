@@ -115,6 +115,21 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void HtmlToPdf_InlineSvgImageUsesXlinkHrefRatherThanQuotedAttributeText() {
+        string real = Convert.ToBase64String(OfficePngWriter.Encode(new OfficeRasterImage(2, 1, OfficeColor.Red)));
+        string decoy = Convert.ToBase64String(OfficePngWriter.Encode(new OfficeRasterImage(3, 1, OfficeColor.Blue)));
+        string html = "<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink'"
+            + " viewBox='0 0 40 20' style='width:80px;height:40px'>"
+            + "<image x='5' y='4' width='20' height='10' data-note=\" href='data:image/png;base64," + decoy + "' \""
+            + " xlink:href='data:image/png;base64," + real + "'/></svg>";
+
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
+
+        PdfCore.PdfExtractedImage image = Assert.Single(PdfCore.PdfReadDocument.Open(pdf).Pages[0].GetImages());
+        Assert.Equal(2, image.Width);
+    }
+
+    [Fact]
     public void HtmlToPdf_EmptyLegacyAndPercentEncodedFragmentTargetsRemainNavigable() {
         const string html = "<p><a href='#empty%20target'>Empty target</a> <a href='#legacy'>Legacy target</a></p>"
             + "<div id='empty target'></div><a name='legacy'>Legacy body</a><p>Body</p>";
@@ -140,6 +155,18 @@ public sealed class HtmlPdfTests {
         Assert.Contains("html-fragment:top", info.LinkDestinationNames);
         Assert.DoesNotContain("html-fragment:missing", info.LinkDestinationNames);
         Assert.Contains(result.Report.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.HyperlinkTargetUnavailable);
+    }
+
+    [Fact]
+    public void HtmlToPdf_TextAddedAfterConversionIsPreflightedBeforeSerialization() {
+        var options = new HtmlPdfExportOptions();
+        options.ResourcePolicy.AllowSystemFontEmbedding = false;
+        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse("<p>Converted</p>").ConvertToPdfWithEvidence(options);
+
+        result.Value.Paragraph(paragraph => paragraph.AddText("Added \u2603"));
+
+        PdfCore.PdfTextEncodingPreflightException failure = Assert.Throws<PdfCore.PdfTextEncodingPreflightException>(() => result.ToBytes());
+        Assert.Contains(failure.TextEncodingDiagnostics, diagnostic => diagnostic.CodePoint == "U+2603");
     }
 
     [Fact]
@@ -457,27 +484,6 @@ public sealed class HtmlPdfTests {
         PdfCore.PdfFormDataField field = Assert.Single(exported.Fields);
         Assert.Equal("named", field.Name);
         Assert.Equal(new[] { "included" }, field.Values);
-    }
-
-    [Theory]
-    [InlineData("linear-gradient(90deg,transparent,blue)")]
-    [InlineData("radial-gradient(circle,transparent,blue)")]
-    public void HtmlToPdf_TranslucentGradientsUseFaithfulManagedRasterFallback(string gradient) {
-        string html = "<div style='width:40px;height:20px;background:" + gradient + "'></div>";
-
-        HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
-        var options = new HtmlPdfExportOptions { MaximumRasterPixels = 800L };
-        PdfCore.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(options);
-        byte[] pdf = result.ToBytes();
-
-        Assert.Contains(result.Report.Warnings, warning => warning.Code == "HtmlPdfTranslucentGradientRasterized");
-        Assert.Contains("/SMask", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
-
-        options.MaximumRasterPixels = 799L;
-        OfficeImageExportLimitException failure = Assert.Throws<OfficeImageExportLimitException>(() =>
-            document.ConvertToPdfWithEvidence(options));
-        Assert.Equal(800L, failure.RequestedPixels);
-        Assert.Equal(799L, failure.MaximumPixels);
     }
 
     [Fact]
@@ -1342,7 +1348,7 @@ public sealed class HtmlPdfTests {
         Assert.Contains("body.officeimo-pdf-semantic .pdf-page", html, StringComparison.Ordinal);
         Assert.Contains("<h1>Logical Heading</h1>", html, StringComparison.Ordinal);
         Assert.Contains("<p>Logical readback marker.</p>", html, StringComparison.Ordinal);
-        Assert.Contains("<ul data-pdf-list-level=\"1\"><li>Detected logical bullet</li></ul>", html, StringComparison.Ordinal);
+        Assert.Contains("<ul><li>Detected logical bullet</li></ul>", html, StringComparison.Ordinal);
         Assert.Contains("<table>", html, StringComparison.Ordinal);
         Assert.Contains("<th>Code</th>", html, StringComparison.Ordinal);
         Assert.Contains("<th class=\"pdf-numeric\" style=\"text-align:right\">Qty</th>", html, StringComparison.Ordinal);
@@ -1788,7 +1794,7 @@ public sealed class HtmlPdfTests {
 
         Assert.Contains("<figure class=\"pdf-image-placeholder\"", html, StringComparison.Ordinal);
         Assert.Contains("<img src=\"data:image/png;base64,", html, StringComparison.Ordinal);
-        Assert.Contains("<figcaption>Image:", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<figcaption", html, StringComparison.Ordinal);
     }
 
     [Fact]

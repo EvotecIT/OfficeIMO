@@ -51,4 +51,4 @@ try {
     $server.Dispose()
 }
 
-Write-Host 'Benchmark browser behavior verified for the rendered dependency version and both CPU-domain selections.'
+Write-Host 'Benchmark browser behavior verified for the hub, its on-demand area results and every area page.'

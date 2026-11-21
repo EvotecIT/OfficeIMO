@@ -366,7 +366,7 @@ public partial class PdfReadStreamTests {
     }
 
     [Fact]
-    public void RewriteApis_RejectComplexNamedDestinationNameTreesWithClearUnsupportedDiagnostic() {
+    public void PageExtractionKeepsButOtherRewriteApisRejectComplexNamedDestinationNameTreesWithClearUnsupportedDiagnostic() {
         byte[] namedDestinationPdf = BuildComplexNamedDestinationNameTreePdf();
 
         static void AssertNamedDestinations(Action action) {
@@ -374,8 +374,7 @@ public partial class PdfReadStreamTests {
             Assert.Contains("PDF named destinations are not supported for rewriting by OfficeIMO.Pdf yet.", exception.Message, StringComparison.Ordinal);
         }
 
-        AssertNamedDestinations(() => PdfPageExtractor.ExtractPages(namedDestinationPdf, 1));
-        AssertNamedDestinations(() => PdfPageExtractor.SplitPages(namedDestinationPdf));
+        AssertExtractionKeepsCatalogStructure(namedDestinationPdf);
         AssertNamedDestinations(() => PdfMetadataEditor.UpdateMetadata(namedDestinationPdf, title: "Updated"));
         AssertNamedDestinations(() => PdfMerger.Merge(namedDestinationPdf));
         AssertNamedDestinations(() => PdfStamper.StampText(namedDestinationPdf, "STAMP"));

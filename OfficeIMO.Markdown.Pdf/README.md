@@ -193,6 +193,8 @@ report.ThrowIfLoss();
 - Headings with bookmark anchors and PDF outlines.
 - PDF metadata from options, YAML front matter, or the first heading.
 - Paragraphs, rich inline formatting, links, lists, task lists, tables, code blocks, semantic fenced blocks, callouts, details, definition lists, block quotes, footnotes, and generated table-of-contents blocks.
+- TeX math from `MathInline`, `MathBlock` and `math` fences (see `MarkdownLoadOptions.Math`), laid out by the shared OfficeIMO math engine with an installed math font such as STIX Two Math or Cambria Math. Display math is drawn as vector content and inline math as baseline-aligned high-resolution images, with the TeX source as alternative text. When the resource policy forbids installed fonts, no math font is found, or the TeX is outside the engine's subset, the source is shown and a `math-font-unavailable` or `math-unsupported` warning is reported.
+- SVG images, from files or `data:image/svg+xml` URIs, are drawn as vector content scaled to the content width. Mermaid diagrams rendered by `OfficeIMO.ChartForgeX.Markdown` with `MermaidMarkdownImageFormat.Svg` use this path.
 - Visual themes for readable document rhythm, page treatment, links, code blocks, panels, tables, and checklist rows.
 - Profile presets through `MarkdownPdfExportOptions.UseProfile(...)`, plus shared `TextFallbacks` and `ResourcePolicy` controls. Profiles may disable images for lightweight/text-only output but never grant local, remote, or host-font access.
 - `IncludeImages` controls whether images participate at all. `PdfResourcePolicy` is the only trust gate for local files, data URIs, remote resolvers, and installed host fonts. Local-image containment resolves symlinks and junctions before reading.

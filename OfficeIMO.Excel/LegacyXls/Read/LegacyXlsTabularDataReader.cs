@@ -34,10 +34,13 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         private readonly int _firstDataRow;
         private readonly int _lastDataRow;
         private readonly int _worksheetStartOffset;
+        // Workbook stream offset of position 0 in the source, for a worksheet read from its own slice.
+        private readonly int _streamOffsetBase;
         private readonly int _worksheetLimitOffset;
         private int[]? _bufferedRowOffsets;
-        private readonly int _bufferedWorksheetEndOffset;
-        private readonly bool _usedIndexedDiscovery;
+        private int _bufferedWorksheetEndOffset;
+        private bool _usedIndexedDiscovery;
+        private readonly bool _hasHeaderRow;
         private int _position;
         private int _nextRow;
         private int _schemaRowIndex;
@@ -54,9 +57,11 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             bool uses1904DateSystem,
             bool hasHeaderRow,
             ExcelReaderOptions options,
-            CancellationToken cancellationToken) {
+            CancellationToken cancellationToken,
+            int streamOffsetBase = 0) {
             _bytes = bytes ?? throw new ArgumentNullException(nameof(bytes));
             _bufferedBytes = bytes.ContiguousBuffer;
+            _streamOffsetBase = streamOffsetBase;
             _sharedStrings = sharedStrings ?? throw new ArgumentNullException(nameof(sharedStrings));
             _dateStyles = dateStyles ?? throw new ArgumentNullException(nameof(dateStyles));
             _uses1904DateSystem = uses1904DateSystem;
@@ -94,6 +99,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                     indexed = false;
                 }
                 if (!indexed) {
+                    _indexedValidatedRowEnd = int.MaxValue;
                     Discover(
                         sheetOffset,
                         bufferedRowOffsets,
@@ -105,6 +111,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                         out headerValues);
                 }
                 _usedIndexedDiscovery = indexed;
+                _hasHeaderRow = hasHeaderRow;
                 _bufferedRowOffsets = bufferedRowOffsets;
                 _bufferedWorksheetEndOffset = bufferedWorksheetEndOffset;
                 _firstColumn = firstColumn;
@@ -120,14 +127,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                     throw new InvalidDataException(
                         $"XLS table column count {fieldCount} exceeds the configured limit of {options.MaxDataReaderColumns}.");
                 }
-                _headers = ExcelHeaderNameHelper.BuildUniqueHeaders(
-                    fieldCount,
-                    ordinal => hasHeaderRow
-                        && headerValues != null
-                        && headerValues.TryGetValue(ordinal + firstColumn, out string? value)
-                            ? value
-                            : null,
-                    options.NormalizeHeaders);
+                _headers = BuildHeaders(fieldCount, firstColumn, hasHeaderRow, headerValues, options);
                 _ordinals = new Dictionary<string, int>(_headers.Length, StringComparer.OrdinalIgnoreCase);
                 for (int index = 0; index < _headers.Length; index++) {
                     _ordinals[_headers[index]] = index;
@@ -149,6 +149,21 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                 throw;
             }
         }
+
+        private static string[] BuildHeaders(
+            int fieldCount,
+            int firstColumn,
+            bool hasHeaderRow,
+            Dictionary<int, string?>? headerValues,
+            ExcelReaderOptions options) =>
+            ExcelHeaderNameHelper.BuildUniqueHeaders(
+                fieldCount,
+                ordinal => hasHeaderRow
+                    && headerValues != null
+                    && headerValues.TryGetValue(ordinal + firstColumn, out string? value)
+                        ? value
+                        : null,
+                options.NormalizeHeaders);
 
         public override object this[int ordinal] => GetValue(ordinal);
         public override object this[string name] => GetValue(GetOrdinal(name));
@@ -216,6 +231,8 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             ushort pendingFormulaStyle = 0;
 
             if (_bufferedBytes != null) {
+                // Indexed blocks are validated one row ahead of the reader, which needs the next row's start.
+                if (currentRow >= _indexedValidatedRowEnd - 1) EnsureIndexedRowsValidated(currentRow + 1);
                 int[] rowOffsets = _bufferedRowOffsets!;
                 int rowStartMarker = rowOffsets[currentRow];
                 if (rowStartMarker == 0) {
@@ -523,7 +540,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             int payloadOffset = offset + 4;
             if (length > sourceLength - payloadOffset) {
                 throw new InvalidDataException(
-                    $"BIFF record 0x{type:X4} at offset {recordOffset} declares {length} payload bytes, but the stream ends early.");
+                    $"BIFF record 0x{type:X4} at offset {recordOffset + _streamOffsetBase} declares {length} payload bytes, but the stream ends early.");
             }
 
             offset = payloadOffset + length;
@@ -764,11 +781,12 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void StoreNumber(int ordinal, double number, ushort style) {
             DateTime date = default;
-            bool isDate = _options.TreatDatesUsingNumberFormat
+            bool dateStyle = _options.TreatDatesUsingNumberFormat
                 && style < _dateStyles.Length
-                && _dateStyles[style] != ExcelSerialDateStyle.None
+                && _dateStyles[style] != ExcelSerialDateStyle.None;
+            bool isDate = dateStyle
                 && LegacyXlsDateSerialConverter.TryConvert(number, _uses1904DateSystem, out date, _dateStyles[style] == ExcelSerialDateStyle.Calendar);
-            _kinds[ordinal] = isDate ? ValueKind.Date : ValueKind.Number;
+            _kinds[ordinal] = isDate ? ValueKind.Date : dateStyle ? ValueKind.DatelessSerial : ValueKind.Number;
             _numbers[ordinal] = number;
             if (isDate) {
                 _dates[ordinal] = date;
@@ -802,7 +820,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                 && LegacyXlsDateSerialConverter.TryConvert(value, _uses1904DateSystem, out DateTime date, _dateStyles[style] == ExcelSerialDateStyle.Calendar)) {
                 return date.ToString(_options.Culture);
             }
-            return value.ToString("R", _options.Culture);
+            return OfficeIMO.Core.Internal.OfficeRoundTripText.Format(value, _options.Culture);
         }
 
         private void CheckCancellation() {
@@ -822,8 +840,8 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             }
         }
 
-        private static InvalidDataException TruncatedCell(RecordSlice record) =>
-            new($"BIFF cell record 0x{record.Type:X4} at offset {record.Offset} is truncated.");
+        private InvalidDataException TruncatedCell(RecordSlice record) =>
+            new($"BIFF cell record 0x{record.Type:X4} at offset {record.Offset + _streamOffsetBase} is truncated.");
 
         private static InvalidDataException MissingFormulaString() =>
             new("An XLS string formula is not followed by its required String record.");
@@ -850,7 +868,9 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             Number,
             Boolean,
             Date,
-            Error
+            Error,
+            /// <summary>A date-formatted serial with no DateTime (Excel shows ####).</summary>
+            DatelessSerial
         }
     }
 }

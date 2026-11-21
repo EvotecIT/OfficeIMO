@@ -85,6 +85,15 @@ public sealed class DrawingNumericFontQualityTests {
         Assert.Equal(expected, TextElements(drawing!).Single().Font.Face.Weight);
     }
 
+    [Theory]
+    [InlineData("nan")]
+    [InlineData("NaN")]
+    public void NotANumberSvgWeightsKeepTheInheritedWeight(string weight) {
+        string svg = $"<svg xmlns='http://www.w3.org/2000/svg' width='200' height='90'><g font-weight='300'><text x='10' y='50' font-size='20' font-weight='{weight}'>A</text></g></svg>";
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out var drawing, out _));
+        Assert.Equal(300, TextElements(drawing!).Single().Font.Face.Weight);
+    }
+
     private static byte[] FontWithAdvance(int advance) {
         byte[] font = ManagedTextShapingTestAssets.CreateFont('A');
         int count = font[4] * 256 + font[5];

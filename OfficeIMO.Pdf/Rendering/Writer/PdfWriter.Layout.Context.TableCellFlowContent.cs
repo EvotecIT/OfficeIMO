@@ -10,6 +10,26 @@ internal static partial class PdfWriter {
             bool wholeRowSegment, bool suppressCellObjects, global::OfficeIMO.OfficeColor? textColor,
             int? rowStructureElementIndex, PageStructElement? rowStructureElement = null,
             int? fragmentRowSpan = null, bool includeNamedDestination = true, double? verticalOffsetOverride = null) {
+            // Findings of a cell that names its source cell go to the summary, as for canvas tables.
+            PdfTableCellDiagnosticAddress? previousCellAddress = _diagnosticCellAddress;
+            _diagnosticCellAddress = currentOpts.TableCellDiagnosticSummary != null ? style.DiagnosticCellAddress?.Invoke(rowIndex, cell.Column) : null;
+            try {
+                return RenderFlowTableCellContentCore(table, style, cell, lines, rowIndex, sourceStartLine, requestedLineCount,
+                    cellX, cellTop, cellWidth, cellHeight, rowSize, rowLeading, runFontSizeScale, rowUsesBold, renderAsHeader,
+                    wholeRowSegment, suppressCellObjects, textColor, rowStructureElementIndex, rowStructureElement,
+                    fragmentRowSpan, includeNamedDestination, verticalOffsetOverride);
+            } finally {
+                _diagnosticCellAddress = previousCellAddress;
+            }
+        }
+
+        private int RenderFlowTableCellContentCore(TableBlock table, PdfTableStyle style, TableCellLayout cell,
+            TableCellTextLayout lines, int rowIndex, int sourceStartLine, int requestedLineCount,
+            double cellX, double cellTop, double cellWidth, double cellHeight, double rowSize,
+            double rowLeading, double runFontSizeScale, bool rowUsesBold, bool renderAsHeader,
+            bool wholeRowSegment, bool suppressCellObjects, global::OfficeIMO.OfficeColor? textColor,
+            int? rowStructureElementIndex, PageStructElement? rowStructureElement,
+            int? fragmentRowSpan, bool includeNamedDestination, double? verticalOffsetOverride) {
             int c = cell.Column;
             string headerScope = GetTableCellHeaderScope(style, rowIndex, c, renderAsHeader);
             renderAsHeader = headerScope.Length != 0;

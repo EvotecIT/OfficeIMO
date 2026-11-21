@@ -22,6 +22,13 @@ internal static class PowerShellCellValueFormatter
             return false;
         }
 
+        // Binary values keep every byte as base64, matching the OfficeIMO writers, instead of a truncated number list.
+        if (value is byte[] bytes)
+        {
+            text = Convert.ToBase64String(bytes);
+            return true;
+        }
+
         if (!PowerShellDictionaryAdapter.IsDictionaryLike(value) && value is not IEnumerable)
         {
             text = string.Empty;

@@ -646,7 +646,7 @@ public partial class Word {
         Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
         Assert.Empty(package.MainDocumentPart!.ImageParts);
         Assert.Empty(GetPdfSemanticBody(package).Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>());
-        Assert.Contains(GetPdfSemanticBody(package).Descendants<Text>(), text => text.Text.Contains("[PDF image: page 1", StringComparison.Ordinal));
+        Assert.DoesNotContain(GetPdfSemanticBody(package).Descendants<Text>(), text => text.Text.Contains("[PDF image:", StringComparison.Ordinal));
     }
 
     [Fact]

@@ -12,7 +12,7 @@ internal static class PdfFileAssembler {
         string? trailerIdEntry = null,
         CancellationToken cancellationToken = default) {
         using var stream = CreateOutputMemoryStream(objects, catalogId, infoId, fileVersion, trailerIdEntry, cancellationToken);
-        Assemble(stream, objects, catalogId, infoId, fileVersion, trailerIdEntry, cancellationToken);
+        AssembleCore(stream, objects, catalogId, infoId, fileVersion, trailerIdEntry, hashAssembledBuffer: true, cancellationToken);
         return GetOutputBytes(stream, cancellationToken);
     }
 
@@ -23,7 +23,18 @@ internal static class PdfFileAssembler {
         int infoId,
         PdfFileVersion fileVersion = PdfFileVersion.Pdf14,
         string? trailerIdEntry = null,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default) =>
+        AssembleCore(destination, objects, catalogId, infoId, fileVersion, trailerIdEntry, hashAssembledBuffer: false, cancellationToken);
+
+    private static long AssembleCore(
+        Stream destination,
+        IReadOnlyList<PdfSerializedObject> objects,
+        int catalogId,
+        int infoId,
+        PdfFileVersion fileVersion,
+        string? trailerIdEntry,
+        bool hashAssembledBuffer,
+        CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         Guard.FileVersion(fileVersion, nameof(fileVersion));
         Guard.NotNull(destination, nameof(destination));
@@ -31,8 +42,10 @@ internal static class PdfFileAssembler {
         if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
 
         byte[] header = PdfEncoding.Latin1GetBytes("%PDF-" + GetHeaderVersion(fileVersion) + "\n%\u00e2\u00e3\u00cf\u00d3\n");
-        using HashAlgorithm fileIdHash = SHA256.Create();
-        fileIdHash.TransformBlock(header, 0, header.Length, header, 0);
+        // An owned, empty memory stream holds exactly the hashed bytes once the objects are written, so it is
+        // hashed in one call instead of once per object segment. Caller streams are hashed while they are written.
+        using HashAlgorithm? fileIdHash = hashAssembledBuffer ? null : SHA256.Create();
+        fileIdHash?.TransformBlock(header, 0, header.Length, header, 0);
         destination.Write(header, 0, header.Length);
         long written = header.LongLength;
 
@@ -45,7 +58,9 @@ internal static class PdfFileAssembler {
             written = checked(written + serializedObject.Length);
         }
 
-        byte[] fileId = FinalizeFileId(fileIdHash);
+        byte[] fileId = fileIdHash is null
+            ? HashAssembledBuffer((MemoryStream)destination, written, cancellationToken)
+            : FinalizeFileId(fileIdHash);
         long xrefPos = written;
         byte[] trailerBytes = BuildTrailerBytes(offsets, catalogId, infoId, xrefPos, encryptionAssembly: null, fileId, trailerIdEntry, permanentFileId: null, cancellationToken);
         WriteBytesCancellable(destination, trailerBytes, cancellationToken);
@@ -268,21 +283,17 @@ internal static class PdfFileAssembler {
         byte[]? permanentFileId,
         CancellationToken cancellationToken) {
         int objectCount = offsets.Count - 1;
-        var trailer = new StringBuilder();
+        var trailer = new StringBuilder(checked(XrefSectionHeaderLength(objectCount) + objectCount * XrefEntryLength + 256));
         trailer.Append("xref\n");
         trailer.Append("0 ").Append((objectCount + 1).ToString(CultureInfo.InvariantCulture)).Append('\n');
         trailer.Append("0000000000 65535 f \n");
         for (int i = 1; i <= objectCount; i++) {
             cancellationToken.ThrowIfCancellationRequested();
-            trailer.Append(offsets[i].ToString("0000000000", CultureInfo.InvariantCulture)).Append(" 00000 n \n");
+            AppendXrefOffset(trailer, offsets[i]);
+            trailer.Append(" 00000 n \n");
         }
 
-        trailer.Append("trailer\n");
-        trailer.Append("<< /Size ").Append((objectCount + 1).ToString(CultureInfo.InvariantCulture))
-            .Append(" /Root ").Append(PdfSyntaxEscaper.IndirectReference(catalogId))
-            .Append(infoId > 0 ? " /Info " + PdfSyntaxEscaper.IndirectReference(infoId) : string.Empty)
-            .Append(BuildTrailerEntries(encryptionAssembly, fileId, trailerIdEntry, permanentFileId)).Append(" >>\n");
-        trailer.Append("startxref\n").Append(xrefPos.ToString(CultureInfo.InvariantCulture)).Append("\n%%EOF\n");
+        trailer.Append(BuildTrailerDictionary(objectCount, catalogId, infoId, xrefPos, encryptionAssembly, fileId, trailerIdEntry, permanentFileId));
         byte[] bytes = new byte[trailer.Length];
         char[] characters = new char[Math.Min(64 * 1024, trailer.Length)];
         for (int offset = 0; offset < trailer.Length; offset += characters.Length) {
@@ -405,7 +416,7 @@ internal static class PdfFileAssembler {
         }
 
         byte[] placeholderId = new byte[16];
-        long trailerLength = BuildTrailerBytes(offsets, catalogId, infoId, written, encryptionAssembly: null, placeholderId, trailerIdEntry, permanentFileId, cancellationToken).LongLength;
+        long trailerLength = MeasureTrailerLength(offsets, catalogId, infoId, written, placeholderId, trailerIdEntry, permanentFileId, cancellationToken);
         if (written > long.MaxValue - trailerLength) {
             throw new InvalidDataException("The assembled PDF exceeds the supported output size.");
         }
@@ -468,6 +479,67 @@ internal static class PdfFileAssembler {
     private static long AddWithoutOverflow(long left, long right) =>
         left > long.MaxValue - right ? long.MaxValue : left + right;
 
+    // Each in-use cross-reference entry is a ten-digit offset followed by " 00000 n \n".
+    private const int XrefEntryLength = 20;
+
+    private static int XrefSectionHeaderLength(int objectCount) =>
+        "xref\n".Length + "0 ".Length + (objectCount + 1).ToString(CultureInfo.InvariantCulture).Length + 1 + XrefEntryLength;
+
+    private static string BuildTrailerDictionary(
+        int objectCount,
+        int catalogId,
+        int infoId,
+        long xrefPos,
+        PdfEncryptionAssembly? encryptionAssembly,
+        byte[] fileId,
+        string? trailerIdEntry,
+        byte[]? permanentFileId) =>
+        "trailer\n"
+        + "<< /Size " + (objectCount + 1).ToString(CultureInfo.InvariantCulture)
+        + " /Root " + PdfSyntaxEscaper.IndirectReference(catalogId)
+        + (infoId > 0 ? " /Info " + PdfSyntaxEscaper.IndirectReference(infoId) : string.Empty)
+        + BuildTrailerEntries(encryptionAssembly, fileId, trailerIdEntry, permanentFileId) + " >>\n"
+        + "startxref\n" + xrefPos.ToString(CultureInfo.InvariantCulture) + "\n%%EOF\n";
+
+    // Matches offset.ToString("0000000000") without a string per object.
+    private static void AppendXrefOffset(StringBuilder builder, long offset) {
+        if (offset < 0L || offset > 9999999999L) {
+            builder.Append(offset.ToString("0000000000", CultureInfo.InvariantCulture));
+            return;
+        }
+
+        long divisor = 1000000000L;
+        for (int digit = 0; digit < 10; digit++) {
+            builder.Append((char)('0' + (int)(offset / divisor % 10L)));
+            divisor /= 10L;
+        }
+    }
+
+    /// <summary>The byte length <see cref="BuildTrailerBytes"/> produces, without building the cross-reference text.</summary>
+    private static long MeasureTrailerLength(
+        List<long> offsets,
+        int catalogId,
+        int infoId,
+        long xrefPos,
+        byte[] fileId,
+        string? trailerIdEntry,
+        byte[]? permanentFileId,
+        CancellationToken cancellationToken) {
+        int objectCount = offsets.Count - 1;
+        long length = XrefSectionHeaderLength(objectCount);
+        for (int i = 1; i <= objectCount; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            long offset = offsets[i];
+            length += offset < 0L || offset > 9999999999L
+                ? offset.ToString("0000000000", CultureInfo.InvariantCulture).Length + XrefEntryLength - 10
+                : XrefEntryLength;
+        }
+
+        string dictionary = BuildTrailerDictionary(objectCount, catalogId, infoId, xrefPos, encryptionAssembly: null, fileId, trailerIdEntry, permanentFileId);
+        cancellationToken.ThrowIfCancellationRequested();
+        return length + dictionary.Length;
+    }
+
     private static string BuildTrailerEntries(
         PdfEncryptionAssembly? encryptionAssembly,
         byte[] fileId,
@@ -483,6 +555,35 @@ internal static class PdfFileAssembler {
             : " /Encrypt " + PdfSyntaxEscaper.IndirectReference(encryptionAssembly.EncryptionObjectNumber);
         string permanentId = permanentFileId == null ? id : PdfSyntaxEscaper.HexString(permanentFileId);
         return encryptionEntry + " /ID [" + permanentId + " " + id + "]";
+    }
+
+    private static byte[] HashAssembledBuffer(MemoryStream stream, long length, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        byte[] buffer = stream.GetBuffer();
+        int count = checked((int)length);
+        const int CancellableChunk = 1024 * 1024;
+        if (cancellationToken.CanBeCanceled && count > CancellableChunk) {
+            using HashAlgorithm chunked = SHA256.Create();
+            for (int offset = 0; offset < count;) {
+                cancellationToken.ThrowIfCancellationRequested();
+                int chunk = Math.Min(CancellableChunk, count - offset);
+                chunked.TransformBlock(buffer, offset, chunk, buffer, offset);
+                offset += chunk;
+            }
+            return FinalizeFileId(chunked);
+        }
+
+        var fileId = new byte[16];
+#if NET8_0_OR_GREATER
+        Span<byte> fullHash = stackalloc byte[32];
+        SHA256.HashData(buffer.AsSpan(0, count), fullHash);
+        fullHash.Slice(0, fileId.Length).CopyTo(fileId);
+#else
+        using HashAlgorithm hash = SHA256.Create();
+        byte[] fullHash = hash.ComputeHash(buffer, 0, count);
+        Buffer.BlockCopy(fullHash, 0, fileId, 0, fileId.Length);
+#endif
+        return fileId;
     }
 
     private static byte[] FinalizeFileId(HashAlgorithm hash) {

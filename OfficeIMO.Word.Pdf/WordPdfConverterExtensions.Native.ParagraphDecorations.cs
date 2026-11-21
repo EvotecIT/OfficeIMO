@@ -233,8 +233,11 @@ namespace OfficeIMO.Word.Pdf {
                 ? null
                 : color;
 
+        // A direct shading declaration, including an automatic fill, replaces the style fill.
         private static string? GetNativeEffectiveParagraphShadingFill(WordParagraph paragraph) =>
-            NormalizeNativeShadingFill(paragraph.ShadingFillValue) ?? GetNativeParagraphStyleDefaults(paragraph).ShadingFillColorHex;
+            paragraph._paragraphProperties?.Shading is { } shading
+                ? NormalizeNativeShadingFill(shading.Fill?.Value)
+                : GetNativeParagraphStyleDefaults(paragraph).ShadingFillColorHex;
 
         private static NativeParagraphBorders GetNativeEffectiveParagraphBorders(WordParagraph paragraph) =>
             MergeNativeParagraphBorders(GetNativeParagraphStyleDefaults(paragraph).Borders, GetNativeDirectParagraphBorders(paragraph));

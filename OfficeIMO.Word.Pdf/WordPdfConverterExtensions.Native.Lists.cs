@@ -108,6 +108,8 @@ namespace OfficeIMO.Word.Pdf {
             // Space and nothing suffixes follow each item's actual marker advance.
             // The paragraph path retains that per-item position instead of a shared column.
             if (info.Value.LevelSuffix is WordListLevelSuffix.Space or WordListLevelSuffix.Nothing) return false;
+            // List blocks have no paragraph fill; shaded items use the panel-backed paragraph path.
+            if (ParseNativeColor(GetNativeEffectiveParagraphShadingFill(paragraph)).HasValue) return false;
 
             // Numbering tabs may place the first line before or after the
             // continuation indent. Paragraphs preserve both positions;
@@ -172,7 +174,7 @@ namespace OfficeIMO.Word.Pdf {
             };
             align = ResolveNativeParagraphAlign(paragraph, allowJustify: false);
             NativeResolvedTextStyle textStyle = ResolveNativeTextRunStyle(paragraph, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
-            color = textStyle.Color;
+            color = textStyle.MarkerColor;
             style = CreateNativeListStyle(paragraph, info.Value, displayMarker, nativeDefaults, textStyle, nativeFontMap);
             PdfCore.PdfTextRun measuredMarker = CreateNativeListMarkerTextRun(displayMarker, paragraph,
                 textStyle, nativeFontMap, includeSuffix: false);
@@ -235,7 +237,7 @@ namespace OfficeIMO.Word.Pdf {
                 MarkerFontSize = global::OfficeIMO.OfficeLength.Points(info.MarkerFontSize ?? ResolveNativeParagraphFontSize(paragraph, nativeDefaults, styleDefaults)),
                 // A Word marker inherits the source text colour when its numbering level leaves it unset.
                 // Make that resolved colour explicit so PDF authoring-theme defaults do not replace it.
-                MarkerColor = ParseNativeColor(info.MarkerColorHex) ?? markerTextStyle.Color ?? global::OfficeIMO.OfficeColor.Black,
+                MarkerColor = ParseNativeColor(info.MarkerColorHex) ?? markerTextStyle.MarkerColor ?? global::OfficeIMO.OfficeColor.Black,
                 MarkerAlign = MapNativeListMarkerAlign(info.LevelJustification) ?? global::OfficeIMO.OfficeAlignment.Left,
                 MarkerBold = info.MarkerBold ?? markerTextStyle.Bold,
                 MarkerItalic = info.MarkerItalic ?? markerTextStyle.Italic
@@ -317,7 +319,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static bool ShouldApplyNativeListParagraphStyleIndent(WordParagraph paragraph) =>
             !string.IsNullOrWhiteSpace(paragraph.StyleId) &&
-            !string.Equals(paragraph.StyleId, "ListParagraph", StringComparison.Ordinal);
+            !string.Equals(paragraph.BuiltInStyleId, "ListParagraph", StringComparison.Ordinal);
 
         private static void ApplyNativeMarkerlessListIndent(WordParagraph paragraph, PdfCore.PdfParagraphStyle style) {
             WordDocumentTraversal.ListInfo? info = WordDocumentTraversal.GetListInfo(paragraph);
@@ -379,7 +381,7 @@ namespace OfficeIMO.Word.Pdf {
             bool includeSuffix = true) {
             WordDocumentTraversal.ListInfo? info = WordDocumentTraversal.GetListInfo(paragraph);
             if (info == null) {
-                return textStyle.ApplyTo(new PdfCore.PdfTextRun(marker + (includeSuffix ? " " : string.Empty), bold: textStyle.Bold, color: textStyle.Color,
+                return textStyle.ApplyTo(new PdfCore.PdfTextRun(marker + (includeSuffix ? " " : string.Empty), bold: textStyle.Bold, color: textStyle.MarkerColor,
                     italic: textStyle.Italic, fontSize: ((double?)(textStyle.FontSize) is double physicalLength1 ? global::OfficeIMO.OfficeLength.Points(physicalLength1) : (global::OfficeIMO.OfficeLength?)null), standardFont: textStyle.Font,
                     fontFamily: textStyle.FontFamily));
             }
@@ -387,7 +389,7 @@ namespace OfficeIMO.Word.Pdf {
             return ResolveNativeListMarkerTextSpacing(info.Value, textStyle.ListMarkerTextSpacing).ApplyTo(new PdfCore.PdfTextRun(
                 marker + (includeSuffix ? ResolveNativeInlineListMarkerSuffix(info.Value.LevelSuffix) : string.Empty),
                 bold: info.Value.MarkerBold ?? textStyle.Bold,
-                color: ParseNativeColor(info.Value.MarkerColorHex) ?? textStyle.Color,
+                color: ParseNativeColor(info.Value.MarkerColorHex) ?? textStyle.MarkerColor,
                 italic: info.Value.MarkerItalic ?? textStyle.Italic,
                 strike: textStyle.Strike,
                 fontSize: ((double?)(info.Value.MarkerFontSize ?? textStyle.FontSize) is double physicalLength2 ? global::OfficeIMO.OfficeLength.Points(physicalLength2) : (global::OfficeIMO.OfficeLength?)null),

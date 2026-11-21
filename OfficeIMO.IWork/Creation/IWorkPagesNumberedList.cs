@@ -3,7 +3,7 @@ using OfficeIMO.IWork.Internal;
 namespace OfficeIMO.IWork;
 
 /// <summary>Owns a decimal list whose items occupy separate paragraphs in one newly created Pages document.</summary>
-/// <remarks>Items use nine non-tiered levels and whole-point font sizes. Markers remain plain black in the list's font family;
+/// <remarks>Items use nine non-tiered levels and half-point font sizes. Markers remain plain black in the list's font family;
 /// their size follows the first character run. Rich runs can vary their size, font family, opaque color and character decorations.
 /// Plain paragraphs and attachments preserve counters. Returning to this list after another list resumes its counters.
 /// Advancing or restarting a parent resets all its descendant counters. Instances are not thread safe.</remarks>
@@ -16,8 +16,8 @@ public sealed class IWorkPagesNumberedList {
         IWorkDecimalListMarkerStyle markerStyle) {
         // Reuse character validation before exposing a list or mutating its document.
         var font = new IWorkTextRunData(string.Empty, fontName, fontSizePoints);
-        if (fontSizePoints != Math.Round(fontSizePoints))
-            throw new ArgumentOutOfRangeException(nameof(fontSizePoints), "Decimal lists require a whole-point font size.");
+        if (fontSizePoints * 2d != Math.Round(fontSizePoints * 2d))
+            throw new ArgumentOutOfRangeException(nameof(fontSizePoints), "Decimal lists require a half-point font size.");
         if ((uint)markerStyle > (uint)IWorkDecimalListMarkerStyle.ClosingParenthesis)
             throw new ArgumentOutOfRangeException(nameof(markerStyle));
         _document = document; FontName = font.FontName; FontSizePoints = font.FontSizePoints;
@@ -27,7 +27,7 @@ public sealed class IWorkPagesNumberedList {
 
     /// <summary>Gets the marker font and default body font.</summary>
     public string FontName { get; }
-    /// <summary>Gets the default whole-point body size, also used for paragraph-relative indentation.</summary>
+    /// <summary>Gets the default body size in half-point increments, also used for paragraph-relative indentation.</summary>
     public float FontSizePoints { get; }
     /// <summary>Gets the decimal marker punctuation shared by every level of this list.</summary>
     public IWorkDecimalListMarkerStyle MarkerStyle { get; }
@@ -47,7 +47,7 @@ public sealed class IWorkPagesNumberedList {
     }
 
     /// <summary>Adds a snapshot of rich character runs as one numbered body paragraph.</summary>
-    /// <param name="runs">Runs with whole-point sizes. Sizes, font families, opaque colors and character decorations may vary.</param>
+    /// <param name="runs">Runs with half-point sizes. Sizes, font families, opaque colors and character decorations may vary.</param>
     /// <param name="level">Zero-based native level from zero through eight. A nested item requires an earlier parent at the preceding level in this list.</param>
     /// <param name="restartAt">Optional positive counter value. The first parent starts at one by default.</param>
     /// <param name="layout">Optional immutable paragraph spacing and tab stops.</param>
@@ -65,8 +65,8 @@ public sealed class IWorkPagesNumberedList {
         int number = restartAt ?? _counter.Next(level)
             ?? throw new InvalidOperationException("The decimal counter requires an explicit restart after Int32.MaxValue.");
         var paragraph = new IWorkPagesParagraphData(runs, layout, this, level, number, restartAt);
-        if (paragraph.Runs.Any(run => run.FontSizePoints != Math.Round(run.FontSizePoints)))
-            throw new ArgumentException("Rich numbered item runs require whole-point font sizes.", nameof(runs));
+        if (paragraph.Runs.Any(run => run.FontSizePoints * 2d != Math.Round(run.FontSizePoints * 2d)))
+            throw new ArgumentException("Rich numbered item runs require half-point font sizes.", nameof(runs));
         _document.AddNumberedParagraph(paragraph); _items.Add(paragraph); _counter.Accept(level, number);
         return paragraph;
     }

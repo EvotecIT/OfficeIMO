@@ -154,9 +154,12 @@ namespace OfficeIMO.Excel {
             return ~low;
         }
 
-        /// <summary>Stores a new cell at the position <see cref="Find"/> reported. The column must not be a DOM cell.</summary>
-        internal void Insert(int index, in ExcelStoredCell cell) {
-            ExcelStoredCell[] cells = _cells ?? new ExcelStoredCell[4];
+        /// <summary>
+        /// Stores a new cell at the position <see cref="Find"/> reported. The column must not be a DOM cell. A row
+        /// without stored cells starts with room for <paramref name="initialCapacity"/> of them.
+        /// </summary>
+        internal void Insert(int index, in ExcelStoredCell cell, int initialCapacity = 4) {
+            ExcelStoredCell[] cells = _cells ?? new ExcelStoredCell[Math.Max(4, initialCapacity)];
             if (_cells == null) _count = 0;
             if (_count == cells.Length) Array.Resize(ref cells, cells.Length * 2);
             if (index < _count) Array.Copy(cells, index, cells, index + 1, _count - index);
@@ -215,6 +218,12 @@ namespace OfficeIMO.Excel {
             if (type != ExcelStoredCellType.Absent) cell.DataType = new EnumValue<CellValues> { InnerText = TypeName(type) };
             if (stored.HasValue) cell.AppendChild(new CellValue(stored.Value ?? string.Empty));
             return cell;
+        }
+
+        /// <summary>Builds the DOM form of one stored cell without moving it, for reads that do not keep the element.</summary>
+        internal Cell CreateDetachedCell(int index) {
+            ExcelStoredCell stored = _cells![index];
+            return CreateCell(ColumnLetters(stored.Column) + InvariantNumberText.Get(checked((int)RowIndex!.Value)), stored);
         }
 
         /// <summary>Moves one stored cell into the DOM at its column position and returns it.</summary>

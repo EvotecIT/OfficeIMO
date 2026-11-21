@@ -36,6 +36,41 @@ internal sealed class XlsbRelatedPartProjector {
         });
     }
 
+    /// <summary>Projects a worksheet's drawing graph under the same relationship id the native BrtDrawing uses.</summary>
+    internal void ProjectWorksheetDrawing(ExcelSheet target, XlsbSheet source) {
+        if (source.DrawingPartName == null || source.DrawingRelationshipId == null) return;
+        var relationship = source.Relationships[source.DrawingRelationshipId];
+        Copy(target.WorksheetPart, source.DrawingPartName, relationship.Type, source.DrawingRelationshipId);
+        var worksheet = target.WorksheetPart.Worksheet ?? throw new InvalidDataException($"Worksheet '{target.Name}' has no worksheet root.");
+        worksheet.Append(new DocumentFormat.OpenXml.Spreadsheet.Drawing { Id = source.DrawingRelationshipId });
+    }
+
+    /// <summary>
+    /// Records which document parts hold the native worksheet drawing graphs of <paramref name="workbook"/>, matching
+    /// the graphs by relationship id. A newly written package copies the document's drawing relationships verbatim.
+    /// </summary>
+    internal static void MapWorksheetDrawings(ExcelDocument document, XlsbWorkbook workbook) {
+        foreach (XlsbSheet source in workbook.Worksheets) {
+            if (source.DrawingPartName == null) continue;
+            ExcelSheet? sheet = document.Sheets.FirstOrDefault(item => item.Name == source.Name);
+            var drawing = sheet?.WorksheetPart.Worksheet?.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Drawing>();
+            if (drawing?.Id?.Value is not string id || sheet!.WorksheetPart.GetPartById(id) is not DrawingsPart part) continue;
+            MapGraph(workbook, source.DrawingPartName, part, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+        }
+    }
+
+    private static void MapGraph(XlsbWorkbook workbook, string sourceName, OpenXmlPart part, HashSet<string> visited) {
+        if (!visited.Add(sourceName) || !workbook.RelatedParts.TryGetValue(sourceName, out var source)) return;
+        workbook.ProjectionPartUris[sourceName] = part.Uri.OriginalString;
+        foreach (var relationship in source.Relationships.Values) {
+            if (relationship.IsExternal) continue;
+            foreach (var child in part.Parts) {
+                if (child.RelationshipId != relationship.Id) continue;
+                MapGraph(workbook, XlsbPackagePartReader.ResolveTarget(sourceName, relationship.Target), child.OpenXmlPart, visited);
+            }
+        }
+    }
+
     internal void ProjectTheme() {
         if (_workbook.ThemePartName == null) return;
         string sourceName = _workbook.ThemePartName;
@@ -62,6 +97,10 @@ internal sealed class XlsbRelatedPartProjector {
         _workbook.ProjectionPartUris[sourceName] = part.Uri.OriginalString;
         CopyRelationships(part, sourceName);
     }
+
+    /// <summary>Copies a worksheet-related native part and its own part graph under <paramref name="id"/>.</summary>
+    internal OpenXmlPart ProjectWorksheetPart(WorksheetPart owner, string sourceName, string relationshipType, string id) =>
+        Copy(owner, sourceName, relationshipType, id);
 
     private OpenXmlPart Copy(OpenXmlPartContainer owner, string sourceName, string relationshipType, string id) {
         _cancellationToken.ThrowIfCancellationRequested();
@@ -93,6 +132,10 @@ internal sealed class XlsbRelatedPartProjector {
         if (type == OfficeRelationships + "drawing" && contentType == "application/vnd.openxmlformats-officedocument.drawing+xml") return owner.AddNewPart<DrawingsPart>(id);
         if (type == OfficeRelationships + "chart" && contentType == "application/vnd.openxmlformats-officedocument.drawingml.chart+xml") return owner.AddNewPart<ChartPart>(id);
         if (type == OfficeRelationships + "chartUserShapes" && contentType == "application/vnd.openxmlformats-officedocument.drawingml.chartshapes+xml") return owner.AddNewPart<ChartDrawingPart>(id);
+        if (type == OfficeRelationships + "vmlDrawing" && contentType == "application/vnd.openxmlformats-officedocument.vmlDrawing") return owner.AddNewPart<VmlDrawingPart>(id);
+        if (type == "http://schemas.microsoft.com/office/2011/relationships/chartStyle" && contentType == "application/vnd.ms-office.chartstyle+xml") return owner.AddNewPart<ChartStylePart>(id);
+        if (type == "http://schemas.microsoft.com/office/2011/relationships/chartColorStyle" && contentType == "application/vnd.ms-office.chartcolorstyle+xml") return owner.AddNewPart<ChartColorStylePart>(id);
+        if (type == OfficeRelationships + "themeOverride" && contentType == "application/vnd.openxmlformats-officedocument.themeOverride+xml") return owner.AddNewPart<ThemeOverridePart>(id);
         if (type == OfficeRelationships + "image") return owner.AddNewPart<ImagePart>(contentType, id);
         if (type == OfficeRelationships + "package") return owner.AddNewPart<EmbeddedPackagePart>(contentType, id);
         return owner.AddExtendedPart(type, contentType, string.IsNullOrEmpty(extension) ? ".bin" : extension, id);

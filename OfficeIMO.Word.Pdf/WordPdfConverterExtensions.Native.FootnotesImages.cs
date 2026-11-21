@@ -266,18 +266,34 @@ namespace OfficeIMO.Word.Pdf {
                 !options.DiagnosedImageWrapElements.Contains(image._Image))
                 AddNativeExportWarning(options, "native-anchored-image-flowed", source,
                     "The image's wrap, anchor or transform is outside the fixed-placement contract; it was placed in document flow.");
+            string? linkUri = GetNativeImageLink(image);
             RenderNativeFlowObject(pdf, paragraphSpacing, flow => flow.Image(preparedBytes, width, height, align,
-                CreateNativeImageStyle(image, options, source)));
+                CreateNativeImageStyle(image, options, source), linkUri,
+                linkUri != null && !string.IsNullOrWhiteSpace(image.AltText) ? image.AltText : null));
             return true;
         }
 
+        // Probes that leave unavailable-image warnings to the ordinary renderer still report an SVG fallback through svgFallbackReport.
         private static bool TryPrepareNativeBodyImage(WordImage image, WordPdfExportOptions? options, string source, out byte[] bytes,
-            string unsupportedCode = "NativeBodyImageUnsupported", System.Threading.CancellationToken cancellationToken = default) {
+            string unsupportedCode = "NativeBodyImageUnsupported", System.Threading.CancellationToken cancellationToken = default,
+            WordPdfExportOptions? svgFallbackReport = null) {
             try {
                 cancellationToken = options?.CancellationToken ?? cancellationToken;
+                svgFallbackReport ??= options;
                 string? unsupportedReason = null;
+                // Candidates list the picture's SVG parts before its raster blip.
+                bool svgFailed = false;
                 foreach (byte[] candidate in image.GetRenderingImageCandidates(cancellationToken)) {
-                    if (TryPrepareNativePdfImageBytes(candidate, out bytes, out unsupportedReason, cancellationToken)) return true;
+                    string? svgReason = unsupportedReason;
+                    if (TryPrepareNativePdfImageBytes(candidate, out bytes, out unsupportedReason, cancellationToken)) {
+                        // A later SVG part that draws keeps the picture vector; only a raster result is a fallback.
+                        if (svgFailed && svgFallbackReport != null && !PdfCore.PdfDocument.IsSvgImage(bytes, out _) &&
+                            svgFallbackReport.DiagnosedSvgFallbackImages.Add(image.OccurrenceElement))
+                            AddNativeExportWarning(svgFallbackReport, OfficeDiagnosticCodes.SvgImageRasterFallback, source,
+                                "Word SVG image could not be drawn as vectors, so its stored raster fallback was exported. " + svgReason);
+                        return true;
+                    }
+                    svgFailed = true;
                 }
                 bytes = System.Array.Empty<byte>();
                 if (options != null) AddNativeExportWarning(options, unsupportedCode, source,
@@ -302,11 +318,11 @@ namespace OfficeIMO.Word.Pdf {
             out byte[] preparedBytes,
             out string? unsupportedReason,
             System.Threading.CancellationToken cancellationToken = default) =>
-            PdfCore.PdfDocument.TryPrepareImageBytes(
+            // SVG stays SVG so every PDF placement draws it as vectors; raster formats are normalized as before.
+            PdfCore.PdfDocument.TryPrepareImageKeepingSvg(
                 bytes,
                 cancellationToken,
                 out preparedBytes,
-                out _,
                 out _,
                 out unsupportedReason);
 

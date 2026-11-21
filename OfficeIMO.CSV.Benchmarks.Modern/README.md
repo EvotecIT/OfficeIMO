@@ -10,10 +10,12 @@ FourLambda's MPL-2.0 dependency is confined to this opt-in executable.
 The 65K comparison opens the same hash-pinned sales CSV and returns owned strings
 for every field. Each operation checks the fixed row/cell counts, decoded
 character count and ordered checksum. Setup also validates every participant.
-Four lanes use default string ownership. The fifth, `OfficeIMO_InternStrings`,
-sets `InternStrings=true` and measures per-read string reuse while returning the
-same complete observation. It is a separate option comparison; it is not the
-default reader. None of these lanes measures borrowed spans. File data is warmed by setup, so this is not cold-disk I/O.
+All four use default string ownership and read the column count once per row.
+`MarkPflug65KInternedCsvBenchmarks.OfficeIMO_InternStrings` sets `InternStrings=true`
+and measures per-read string reuse while returning the same complete observation.
+It is a separate option measurement, not the default reader, and runs in its own
+process so the comparison never executes it before the default reader is measured.
+None of these lanes measures borrowed spans. File data is warmed by setup, so this is not cold-disk I/O.
 `--validate` checks the sales readers, generated owned-string readers, typed reads
 and complete typed writes once, without collecting timings.
 
@@ -74,3 +76,22 @@ Sep and BenchmarkDotNet are MIT. FourLambda is MPL-2.0 and uses its software
 fallback on hosts without AVX2; I record that platform distinction with the results.
 All comparison dependencies remain local to
 this nonpackable executable.
+
+## Write sources, shapes and sinks
+
+`CsvWriteModernBenchmarks` runs the write comparison of `OfficeIMO.CSV.Benchmarks` against CsvHelper 34: the same records, `DataTable`, data reader, UTF-8 stream and `TextWriter` sinks, and the same byte-identity and value checks. CsvHelper 34 writes the records through its source-generated record writers, the dates through `[CsvFormat]`, and the readers through typed `WriteField` calls.
+
+## PackageAssets shapes
+
+`PackageAssetsModernCsvBenchmarks` compares OfficeIMO, CsvHelper 34 and Sep on
+the pinned 50,000-line NCsvPerf PackageAssets input in its `Plain`, `Quotes` and
+`SpacesQuotes` shapes, described with the
+[CsvHelper 33.1.0 lanes](../OfficeIMO.CSV.Benchmarks/README.md#packageassets-shapes).
+Every reader returns an owned, unescaped string for each field of the same
+in-memory UTF-8 bytes; `SpacesQuotes` trims whitespace outside quotes in all
+three readers. Setup and every timed call check the counts, decoded characters
+and ordered checksum against values computed from the source rows.
+
+```sh
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.CSV.Benchmarks.Modern -- --filter "*PackageAssetsModernCsvBenchmarks*" --inProcess --warmupCount 6 --iterationCount 12 --invocationCount 8 --unrollFactor 1 --outliers DontRemove
+```

@@ -27,6 +27,12 @@ internal static class PdfProvenanceGraphEditor {
             RemoveFromEmbeddedFilesNameTree(objects, security, fileSpecificationObjectNumbers, cancellationToken);
             HashSet<PdfDictionary> removedDirectAnnotations = CollectFileAttachmentAnnotations(
                 objects, security, fileSpecificationObjectNumbers, out HashSet<int> removedAnnotationObjectNumbers, cancellationToken);
+            if (removedAnnotationObjectNumbers.Count > 0 &&
+                security.RootObjectNumber is int rootNumber &&
+                objects.TryGetValue(rootNumber, out PdfIndirectObject? root) && root.Value is PdfDictionary catalog &&
+                catalog.Items.ContainsKey("StructTreeRoot")) {
+                PdfTaggedPageOrganizer.PruneStructure(objects, catalog, new HashSet<int>(), removedAnnotationObjectNumbers, cancellationToken);
+            }
             var removedObjectNumbers = new HashSet<int>(fileSpecificationObjectNumbers);
             if (embeddedFileObjectNumbers != null) removedObjectNumbers.UnionWith(embeddedFileObjectNumbers);
             removedObjectNumbers.UnionWith(removedAnnotationObjectNumbers);

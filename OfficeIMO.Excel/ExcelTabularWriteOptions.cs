@@ -77,18 +77,28 @@ namespace OfficeIMO.Excel {
         /// <summary>Uses the workbook's CellValue date and time number formats.</summary>
         public bool UseCellValueNumberFormats { get; set; }
 
-        /// <summary>Writes explicit row and cell references. Disable for a smaller contiguous worksheet package.</summary>
+        /// <summary>
+        /// Writes explicit row and cell references, as Excel does. Turning it off roughly halves the package and
+        /// speeds up writing; Excel still opens the file, but some other readers and tools require cell references.
+        /// </summary>
         public bool IncludeCellReferences { get; set; } = true;
 
         /// <summary>
         /// Requests shared-string storage. XLSX and XLSB row writers reject this setting; use an editable
-        /// workbook for shared-string planning. Defaults to false (inline text). XLS always uses its
-        /// format-required shared-string table.
+        /// workbook for shared-string planning. Defaults to false (inline text). XLS then writes text up to
+        /// 255 characters as inline labels and longer text to the shared-string table, which holds all
+        /// text when this is true.
         /// </summary>
         public bool UseSharedStrings { get; set; }
 
         /// <summary>Excel date system used for temporal values.</summary>
         public ExcelDateSystem DateSystem { get; set; } = ExcelDateSystem.NineteenHundred;
+
+        /// <summary>
+        /// How <see cref="DateTimeOffset"/> values are written. Defaults to <see cref="ExcelDateTimeOffsetWriteMode.Text"/>,
+        /// which keeps the offset; <see cref="ExcelDateTimeOffsetWriteMode.Serial"/> writes local-time date serials.
+        /// </summary>
+        public ExcelDateTimeOffsetWriteMode DateTimeOffsetWriteMode { get; set; }
 
         /// <summary>
         /// Named complete styles, copied and compiled before reading source rows or preparing the

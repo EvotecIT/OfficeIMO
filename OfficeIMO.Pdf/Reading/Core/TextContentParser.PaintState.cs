@@ -4,12 +4,12 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal static partial class TextContentParser {
-    private static string BuildStrokeDashIdentity(List<object> operands) {
+    private static string BuildStrokeDashIdentity(PdfContentOperands operands) {
         if (operands.Count < 2) return "invalid";
         string values;
         if (operands[operands.Count - 2] is double[] numericValues) {
             values = string.Join(",", numericValues.Select(static number => number.ToString("R", CultureInfo.InvariantCulture)));
-        } else if (operands[operands.Count - 2] is List<object> dashValues) {
+        } else if (operands[operands.Count - 2] is IReadOnlyList<object> dashValues) {
             values = string.Join(",", dashValues.Select(static value => value is double number ? number.ToString("R", CultureInfo.InvariantCulture) : "invalid"));
         } else {
             return "invalid";

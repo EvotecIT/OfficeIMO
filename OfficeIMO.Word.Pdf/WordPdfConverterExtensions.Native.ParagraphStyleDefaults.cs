@@ -186,7 +186,10 @@ namespace OfficeIMO.Word.Pdf {
                     keepWithNext = ReadNativeOnOff(paragraphProperties.GetFirstChild<W.KeepNext>()) ?? keepWithNext;
                     widowControl = ReadNativeOnOff(paragraphProperties.GetFirstChild<W.WidowControl>()) ?? widowControl;
                     contextualSpacing = ReadNativeOnOff(paragraphProperties.GetFirstChild<W.ContextualSpacing>()) ?? contextualSpacing;
-                    shadingFillColorHex = NormalizeNativeShadingFill(paragraphProperties.GetFirstChild<W.Shading>()?.Fill?.Value) ?? shadingFillColorHex;
+                    if (paragraphProperties.GetFirstChild<W.Shading>() is { } shading) {
+                        // A derived style's automatic fill clears the inherited fill.
+                        shadingFillColorHex = NormalizeNativeShadingFill(shading.Fill?.Value);
+                    }
                     borders = MergeNativeParagraphBorders(borders, paragraphProperties.GetFirstChild<W.ParagraphBorders>());
                 }
             }
@@ -366,8 +369,10 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             if (!hasDirectNumbering) AddTabs(numberingTabs);
-            AddTabs(paragraph._document?._wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart?
-                .Styles?.DocDefaults?.ParagraphPropertiesDefault?.ParagraphPropertiesBaseStyle?.GetFirstChild<W.Tabs>());
+            if (paragraph._document != null) {
+                AddTabs(WordStyleCatalog.For(paragraph._document).DocumentDefaults?
+                    .ParagraphPropertiesDefault?.ParagraphPropertiesBaseStyle?.GetFirstChild<W.Tabs>());
+            }
             return tabStops.Values.OrderBy(tabStop => tabStop.Position).ToArray();
 
             void AddTabs(W.Tabs? tabs) {
@@ -391,28 +396,6 @@ namespace OfficeIMO.Word.Pdf {
                     }
                 }
             }
-        }
-
-        private static bool IsNativeParagraphStyle(W.Style style) {
-            if (style.Type == null) {
-                return false;
-            }
-
-            string? type = string.IsNullOrWhiteSpace(style.Type.InnerText)
-                ? style.Type.Value.ToString()
-                : style.Type.InnerText;
-            return string.Equals(type, "paragraph", StringComparison.OrdinalIgnoreCase);
-        }
-
-        private static bool IsNativeCharacterStyle(W.Style style) {
-            if (style.Type == null) {
-                return false;
-            }
-
-            string? type = string.IsNullOrWhiteSpace(style.Type.InnerText)
-                ? style.Type.Value.ToString()
-                : style.Type.InnerText;
-            return string.Equals(type, "character", StringComparison.OrdinalIgnoreCase);
         }
 
         private static NativeParagraphBorders MergeNativeParagraphBorders(NativeParagraphBorders current, W.ParagraphBorders? borders) {

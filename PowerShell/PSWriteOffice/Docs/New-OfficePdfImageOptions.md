@@ -6,7 +6,7 @@ schema: 2.0.0
 ---
 # New-OfficePdfImageOptions
 ## SYNOPSIS
-Creates discoverable thumbnail and rendering settings for Export-OfficePdfImage.
+Creates discoverable thumbnail and rendering settings for Export-OfficeDocumentImage.
 
 ## SYNTAX
 ### Default (Default)
@@ -15,14 +15,14 @@ New-OfficePdfImageOptions [-ThumbnailMaxDimension <Int32>] [-MaximumOutputWidth 
 ```
 
 ## DESCRIPTION
-Creates discoverable thumbnail and rendering settings for Export-OfficePdfImage.
+Pass the result to Export-OfficeDocumentImage or ConvertTo-OfficeDocumentImage -Options when rendering PDF pages.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
 PS> $options = New-OfficePdfImageOptions -ThumbnailMaxDimension 320 -MaximumOutputWidth 640
-Export-OfficePdfImage -Path .\Report.pdf -OutputPath .\Thumbnails -Options $options
+Export-OfficeDocumentImage -Path .\Report.pdf -OutputDirectory .\Thumbnails -Options $options
 ```
 
 

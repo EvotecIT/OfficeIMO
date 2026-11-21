@@ -10,9 +10,9 @@ using W15 = DocumentFormat.OpenXml.Office2013.Word;
 namespace OfficeIMO.Tests {
     public partial class Word {
         [Theory]
-        [InlineData(WordMergeStyleMode.UseDestinationStyles)]
-        [InlineData(WordMergeStyleMode.KeepDifferentStyles)]
-        public void MergeImportsUsedStylesAndDependenciesWithoutUnusedSourceStyles(WordMergeStyleMode mode) {
+        [InlineData(WordStyleConflictMode.KeepTarget)]
+        [InlineData(WordStyleConflictMode.Rename)]
+        public void MergeImportsUsedStylesAndDependenciesWithoutUnusedSourceStyles(WordStyleConflictMode mode) {
             using WordDocument destination = WordDocument.Create();
             destination.AddParagraph("Destination paragraph");
             destination._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles = new Styles(
@@ -60,7 +60,7 @@ namespace OfficeIMO.Tests {
             source._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles = sourceStyles;
             string sourceStylesBefore = sourceStyles.OuterXml;
 
-            destination.AppendDocument(source, new WordDocumentMergeOptions { StyleMode = mode });
+            destination.AppendDocument(source, new WordDocumentMergeOptions { StyleConflictMode = mode });
 
             Assert.Equal(sourceStylesBefore, sourceStyles.OuterXml);
             using var savedStream = new MemoryStream(destination.ToBytes(), writable: false);
@@ -87,11 +87,11 @@ namespace OfficeIMO.Tests {
         }
 
         [Theory]
-        [InlineData(false, WordMergeStyleMode.UseDestinationStyles)]
-        [InlineData(true, WordMergeStyleMode.UseDestinationStyles)]
-        [InlineData(false, WordMergeStyleMode.KeepDifferentStyles)]
-        [InlineData(true, WordMergeStyleMode.KeepDifferentStyles)]
-        public void Merge_LiveHeaderFooterTableEditsPreserveGeometryWithoutChangingSource(bool footer, WordMergeStyleMode mode) {
+        [InlineData(false, WordStyleConflictMode.KeepTarget)]
+        [InlineData(true, WordStyleConflictMode.KeepTarget)]
+        [InlineData(false, WordStyleConflictMode.Rename)]
+        [InlineData(true, WordStyleConflictMode.Rename)]
+        public void Merge_LiveHeaderFooterTableEditsPreserveGeometryWithoutChangingSource(bool footer, WordStyleConflictMode mode) {
             using var sourceStream = new MemoryStream();
             using WordDocument source = WordDocument.Create(sourceStream);
             source.AddParagraph("SOURCE");
@@ -123,7 +123,7 @@ namespace OfficeIMO.Tests {
             Assert.False(unrelated.IsRootElementLoaded);
 
             using WordDocument destination = WordDocument.Create();
-            destination.AppendDocument(source, new WordDocumentMergeOptions { StyleMode = mode });
+            destination.AppendDocument(source, new WordDocumentMergeOptions { StyleConflictMode = mode });
             using var bytes = new MemoryStream(destination.ToBytes());
             using WordprocessingDocument saved = WordprocessingDocument.Open(bytes, false);
             OpenXmlPart outputPart = footer ? saved.MainDocumentPart!.FooterParts.Single() : saved.MainDocumentPart!.HeaderParts.Single();
@@ -205,7 +205,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_MergeKeepDifferentStylesPreservesStyleBasedNumbering() {
+        public void Test_MergeRenamePreservesStyleBasedNumbering() {
             string destinationPath = Path.Combine(_directoryWithFiles, "MergeNumberStyleBase.docx");
             string sourcePath = Path.Combine(_directoryWithFiles, "MergeNumberStyleSource.docx");
             CreateHeadingDocument(destinationPath, "Destination heading", "FF0000");
@@ -214,7 +214,7 @@ namespace OfficeIMO.Tests {
             SetHeadingNumbering(sourcePath, NumberFormatValues.Bullet);
             using (var destination = WordDocument.Load(destinationPath))
             using (var source = WordDocument.Load(sourcePath)) {
-                destination.AppendDocument(source, new WordDocumentMergeOptions { StyleMode = WordMergeStyleMode.KeepDifferentStyles });
+                destination.AppendDocument(source, new WordDocumentMergeOptions { StyleConflictMode = WordStyleConflictMode.Rename });
                 Assert.NotEqual(destination.Paragraphs.Single(x => x.Text == "Destination heading").StyleId,
                     destination.Paragraphs.Single(x => x.Text == "Source heading").StyleId);
             }
@@ -302,7 +302,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_MergeKeepDifferentStylesCopiesClashingHeadingUnderNewId() {
+        public void Test_MergeByDefaultCopiesClashingHeadingUnderNewId() {
             var destinationPath = Path.Combine(_directoryWithFiles, "MergeKeepDifferentBase.docx");
             var sourcePath = Path.Combine(_directoryWithFiles, "MergeKeepDifferentSource.docx");
             CreateHeadingDocument(destinationPath, "Destination heading", "FF0000");
@@ -310,7 +310,7 @@ namespace OfficeIMO.Tests {
 
             using (var destination = WordDocument.Load(destinationPath))
             using (var source = WordDocument.Load(sourcePath)) {
-                destination.AppendDocument(source, new WordDocumentMergeOptions { StyleMode = WordMergeStyleMode.KeepDifferentStyles });
+                destination.AppendDocument(source);
                 destination.Save();
             }
 
@@ -332,7 +332,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_MergeKeepDifferentStylesSharesIdenticalStyles() {
+        public void Test_MergeRenameSharesIdenticalStyles() {
             var destinationPath = Path.Combine(_directoryWithFiles, "MergeKeepDifferentSameBase.docx");
             var sourcePath = Path.Combine(_directoryWithFiles, "MergeKeepDifferentSameSource.docx");
             CreateHeadingDocument(destinationPath, "Destination heading", "FF0000");
@@ -340,7 +340,7 @@ namespace OfficeIMO.Tests {
 
             using (var destination = WordDocument.Load(destinationPath))
             using (var source = WordDocument.Load(sourcePath)) {
-                destination.AppendDocument(source, new WordDocumentMergeOptions { StyleMode = WordMergeStyleMode.KeepDifferentStyles });
+                destination.AppendDocument(source, new WordDocumentMergeOptions { StyleConflictMode = WordStyleConflictMode.Rename });
                 destination.Save();
             }
 
@@ -351,24 +351,32 @@ namespace OfficeIMO.Tests {
             }
         }
 
-        [Fact]
-        public void Test_MergeUseDestinationStylesKeepsDestinationDefinition() {
-            var destinationPath = Path.Combine(_directoryWithFiles, "MergeUseDestinationBase.docx");
-            var sourcePath = Path.Combine(_directoryWithFiles, "MergeUseDestinationSource.docx");
+        [Theory]
+        [InlineData(WordStyleConflictMode.KeepTarget, "FF0000", "FF0000", "Heading1")]
+        [InlineData(WordStyleConflictMode.Overwrite, "0000FF", "0000FF", "Heading1")]
+        public void Test_MergeResolvesClashingStyleByConflictMode(WordStyleConflictMode mode, string destinationColor, string sourceColor, string sourceStyleId) {
+            var destinationPath = Path.Combine(_directoryWithFiles, "MergeConflictBase" + mode + ".docx");
+            var sourcePath = Path.Combine(_directoryWithFiles, "MergeConflictSource" + mode + ".docx");
             CreateHeadingDocument(destinationPath, "Destination heading", "FF0000");
             CreateHeadingDocument(sourcePath, "Source heading", "0000FF");
 
             using (var destination = WordDocument.Load(destinationPath))
             using (var source = WordDocument.Load(sourcePath)) {
-                destination.AppendDocument(source);
+                destination.AppendDocument(source, new WordDocumentMergeOptions { StyleConflictMode = mode });
                 destination.Save();
             }
 
             using (var merged = WordDocument.Load(destinationPath)) {
                 var styles = merged._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Elements<Style>().ToList();
-                Assert.Equal("FF0000", styles.Single(_ => _.StyleId == "Heading1").StyleRunProperties!.Color!.Val!.Value);
-                Assert.DoesNotContain(styles, _ => _.StyleId == "Heading1_0");
-                Assert.Equal("Heading1", merged.Paragraphs.Single(_ => _.Text == "Source heading").StyleId);
+                string ColorOf(string text) => styles.Single(_ => _.StyleId == merged.Paragraphs.Single(p => p.Text == text).StyleId)
+                    .StyleRunProperties!.Color!.Val!.Value!;
+
+                Assert.Equal("Heading1", merged.Paragraphs.Single(_ => _.Text == "Destination heading").StyleId);
+                Assert.Equal(sourceStyleId, merged.Paragraphs.Single(_ => _.Text == "Source heading").StyleId);
+                Assert.Equal(destinationColor, ColorOf("Destination heading"));
+                Assert.Equal(sourceColor, ColorOf("Source heading"));
+                Assert.Single(styles, _ => _.StyleId == "Heading1");
+                AssertMergedDocumentIsValid(merged);
             }
         }
 

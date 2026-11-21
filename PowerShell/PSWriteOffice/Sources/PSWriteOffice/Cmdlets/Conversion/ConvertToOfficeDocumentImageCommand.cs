@@ -80,7 +80,7 @@ public sealed class ConvertToOfficeDocumentImageCommand : OfficeDocumentImageCmd
     [Parameter(Mandatory = true, ParameterSetName = "DocumentRange")]
     public override string? Range { get; set; }
 
-    /// <summary>A chart name in the selected Excel sheets; excludes Range and Page.</summary>
+    /// <summary>A chart name in the selected Excel sheets, a Word document or PowerPoint slides; excludes Range and Page.</summary>
     [Parameter(Mandatory = true, ParameterSetName = "PathChart")]
     [Parameter(Mandatory = true, ParameterSetName = "LiteralPathChart")]
     [Parameter(Mandatory = true, ParameterSetName = "DocumentChart")]

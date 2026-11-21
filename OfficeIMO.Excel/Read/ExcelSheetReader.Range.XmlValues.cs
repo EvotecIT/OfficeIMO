@@ -58,6 +58,21 @@ namespace OfficeIMO.Excel {
             if (cellReader.IsEmptyElement) {
                 return null;
             }
+            if (_opt.DisplayText is { } display && !preserveDateSerial && _opt.CellValueConverter == null) {
+                XmlCellKind displayKind = ParseXmlCellKind(cellType);
+                if (CellKindCanUseDateStyle(displayKind) || displayKind == XmlCellKind.Date) {
+                    XmlStyleAttribute displayStyle = ReadXmlStyleAttribute(cellReader);
+                    if (displayStyle.Valid && display.IsFormatted(displayStyle.Index)) {
+                        return ConvertRaw(ReadXmlCellRaw(cellReader, 0, 0, displayKind, readStyleIndex: true)).TypedValue;
+                    }
+                    if (!displayStyle.Present && (_displayRowStyle.HasValue || HasFormattedColumnStyles)
+                        && ResolveInheritedDisplayStyle(_displayRowStyle, GetReferenceColumn(cellReader.GetAttribute("r"))) is uint inherited) {
+                        CellRaw raw = ReadXmlCellRaw(cellReader, 0, 0, displayKind, readStyleIndex: true);
+                        raw.StyleIndex = inherited;
+                        return ConvertRaw(raw).TypedValue;
+                    }
+                }
+            }
             if (preserveDateSerial && _opt.TreatDatesUsingNumberFormat
                 && CellKindCanUseDateStyle(ParseXmlCellKind(cellType))
                 && IsDateStyleAttribute(ReadXmlStyleAttribute(cellReader))) {
@@ -172,7 +187,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (cellKind == XmlCellKind.Date && rawText != null) {
-                return DateTime.TryParse(rawText, culture, DateTimeStyles.AssumeLocal, out var date)
+                return ExcelIsoDateText.TryParse(rawText, culture, DateTimeStyles.AssumeLocal, out var date)
                     ? date
                     : rawText;
             }
@@ -188,7 +203,7 @@ namespace OfficeIMO.Excel {
             if (useDateStyle
                 && (TryParseInvariantDouble(rawText, out double oa)
                     || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))) {
-                return FromExcelSerialDate(oa, calendarStyle);
+                return DateOrSerial(oa, calendarStyle);
             }
 
             if (numericAsDecimal
@@ -224,7 +239,7 @@ namespace OfficeIMO.Excel {
                     if (cellReader.LocalName == "v") {
                         if (useCachedFormulaResult) {
                             if (TryReadXmlSimpleDoubleAndSkipCell(cellReader, depth, out double simpleNumber, out rawText)) {
-                                if (useDateStyle) return FromExcelSerialDate(simpleNumber, calendarStyle);
+                                if (useDateStyle) return DateOrSerial(simpleNumber, calendarStyle);
                                 if (numericAsDecimal && TryConvertExcelNumberToDecimal(simpleNumber, out decimal simpleDecimal)) {
                                     return simpleDecimal;
                                 }
@@ -245,7 +260,7 @@ namespace OfficeIMO.Excel {
                             if (useDateStyle
                                 && (TryParseInvariantDouble(rawText, out double oa)
                                     || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))) {
-                                return FromExcelSerialDate(oa, calendarStyle);
+                                return DateOrSerial(oa, calendarStyle);
                             }
 
                             if (rawText == null) {
@@ -303,7 +318,7 @@ namespace OfficeIMO.Excel {
             if (useDateStyle
                 && (TryParseInvariantDouble(rawText, out double oaValue)
                     || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oaValue))) {
-                return FromExcelSerialDate(oaValue, calendarStyle);
+                return DateOrSerial(oaValue, calendarStyle);
             }
 
             if (numericAsDecimal
@@ -350,7 +365,7 @@ namespace OfficeIMO.Excel {
                     value = BoxBoolean(rawText == "1");
                     return true;
                 case XmlCellKind.Date:
-                    value = DateTime.TryParse(rawText, culture, DateTimeStyles.AssumeLocal, out var date)
+                    value = ExcelIsoDateText.TryParse(rawText, culture, DateTimeStyles.AssumeLocal, out var date)
                         ? date
                         : rawText;
                     return true;
@@ -364,7 +379,7 @@ namespace OfficeIMO.Excel {
             if (useDateStyle
                 && (TryParseInvariantDouble(rawText, out double oa)
                     || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))) {
-                value = FromExcelSerialDate(oa, calendarStyle);
+                value = DateOrSerial(oa, calendarStyle);
                 return true;
             }
 

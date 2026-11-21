@@ -35,6 +35,18 @@ internal static partial class Jbig2Decoder {
             Buffer.BlockCopy(_pixels, from * Width, _pixels, to * Width, Width);
         }
 
+        /// <summary>Fills this bitmap from the same-sized area of <paramref name="source"/> at the given origin.</summary>
+        internal void CopyFrom(Bitmap source, int left, int top) {
+            _charge((long)Width * Height);
+            for (int y = 0; y < Height; y++) {
+                _token.ThrowIfCancellationRequested();
+                int sourceY = top + y;
+                if ((uint)sourceY >= (uint)source.Height) continue;
+                int start = Math.Max(0, -left), end = Math.Min(Width, source.Width - left);
+                if (end > start) Buffer.BlockCopy(source._pixels, sourceY * source.Width + left + start, _pixels, y * Width + start, end - start);
+            }
+        }
+
         // Combination operators (7.4.3.1.1): 0 OR, 1 AND, 2 XOR, 3 XNOR, 4 REPLACE.
         internal void Compose(Bitmap source, int left, int top, int operation) {
             _charge((long)source.Width * source.Height);

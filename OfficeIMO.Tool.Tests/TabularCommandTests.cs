@@ -187,8 +187,8 @@ public sealed class TabularCommandTests {
                 "tabular", "schema", workbookPath, "--sheet", "Data");
             Assert.Equal((int)OfficeImoToolExitCode.Success, schemaExit);
             Assert.Contains("ordinal\tname\ttype", schemaOutput, StringComparison.Ordinal);
-            Assert.Contains("0\tId\tSystem.Double", schemaOutput, StringComparison.Ordinal);
-            Assert.Contains("2\tActive\tSystem.Boolean", schemaOutput, StringComparison.Ordinal);
+            Assert.Contains("0\tId\tnumber", schemaOutput, StringComparison.Ordinal);
+            Assert.Contains("2\tActive\tboolean", schemaOutput, StringComparison.Ordinal);
             Assert.Equal(string.Empty, schemaError);
 
             (int roundtripExit, _, string roundtripError) = await RunAsync(
@@ -380,7 +380,7 @@ public sealed class TabularCommandTests {
 
             Assert.Equal((int)OfficeImoToolExitCode.Success, exitCode);
             Assert.Equal(string.Empty, error);
-            Assert.Contains("0\tPerson,Display\tSystem.String", output, StringComparison.Ordinal);
+            Assert.Contains("0\tPerson,Display\tstring", output, StringComparison.Ordinal);
             Assert.Contains("1\tAge\t", output, StringComparison.Ordinal);
         } finally {
             Directory.Delete(directory, recursive: true);
@@ -401,9 +401,9 @@ public sealed class TabularCommandTests {
 
             Assert.Equal((int)OfficeImoToolExitCode.Success, exitCode);
             Assert.Equal(string.Empty, error);
-            Assert.Contains("0\tName\\tPart\tSystem.String", output, StringComparison.Ordinal);
-            Assert.Contains("1\tLine\\r\\nBreak\tSystem.String", output, StringComparison.Ordinal);
-            Assert.Contains("2\tSlash\\\\Path\tSystem.String", output, StringComparison.Ordinal);
+            Assert.Contains("0\tName\\tPart\tstring", output, StringComparison.Ordinal);
+            Assert.Contains("1\tLine\\r\\nBreak\tstring", output, StringComparison.Ordinal);
+            Assert.Contains("2\tSlash\\\\Path\tstring", output, StringComparison.Ordinal);
             Assert.Equal(4, output.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
         } finally {
             Directory.Delete(directory, recursive: true);
@@ -483,6 +483,28 @@ public sealed class TabularCommandTests {
                 "tabular", "schema", csvPath, "--sheet", "Data");
             Assert.Equal((int)OfficeImoToolExitCode.UnsupportedInput, sheetExit);
             Assert.Contains("workbook input", sheetError, StringComparison.Ordinal);
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task TabularCliReportsAMissingSheetAsAUsageErrorListingTheWorkbookSheets() {
+        string directory = CreateTestDirectory();
+        string inputPath = Path.Combine(directory, "input.xlsx");
+        string outputPath = Path.Combine(directory, "output.csv");
+        using (ExcelDocument document = ExcelDocument.Create()) {
+            document.AddSheet("Data");
+            document.AddSheet("Totals");
+            document.Save(inputPath);
+        }
+
+        try {
+            (int exitCode, _, string error) = await RunAsync("tabular", "convert", inputPath, outputPath, "--sheet", "Missing");
+
+            Assert.Equal((int)OfficeImoToolExitCode.Usage, exitCode);
+            Assert.Contains("Sheet 'Missing' was not found. The workbook has: Data, Totals.", error, StringComparison.Ordinal);
+            Assert.False(File.Exists(outputPath));
         } finally {
             Directory.Delete(directory, recursive: true);
         }

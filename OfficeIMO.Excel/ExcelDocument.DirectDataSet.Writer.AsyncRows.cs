@@ -5,7 +5,7 @@ namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         private static partial class DirectDataSetWorkbookWriter {
             private static async Task<int> WriteAsyncWorksheetRows<T>(
-                ZipArchive archive,
+                ExcelPackageArchive archive,
                 DirectDataSetSheetModel sheet,
                 Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy,
                 ExcelDateSystem dateSystem,
@@ -22,17 +22,15 @@ namespace OfficeIMO.Excel {
                     return await WriteAutoFitWorksheetRows(archive, sheet, dateTimeOffsetWriteStrategy, dateSystem,
                         columnWritePlan, rows, writeRow, maximumRows, sharedStrings, declaredStyles, autoFitStyles, ct).ConfigureAwait(false);
                 }
-                var entry = archive.CreateEntry(
-                    "xl/worksheets/sheet" + InvariantNumberText.Get(sheet.Index) + ".xml",
-                    CompressionLevel.Fastest);
+                string entryName = "xl/worksheets/sheet" + InvariantNumberText.Get(sheet.Index) + ".xml";
                 Stream? stream = null;
                 PooledUtf8TextWriter? writer = null;
                 StreamingWorksheetCompression? compression = null;
                 bool completed = false;
                 try {
-                    stream = entry.Open();
+                    stream = archive.OpenEntry(entryName, CompressionLevel.Fastest);
                     if (ExcelExecutionPolicy.SupportsBackgroundProcessing)
-                        compression = new StreamingWorksheetCompression(stream);
+                        compression = new StreamingWorksheetCompression(stream, archive);
                     writer = new PooledUtf8TextWriter(compression ?? stream, Utf8NoBom, XmlWriterBufferSize, leaveOpen: true);
 
                     writer.Write("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
@@ -45,7 +43,7 @@ namespace OfficeIMO.Excel {
                         columnWritePlan, rows, writeRow, maximumRows, sharedStrings, declaredStyles, ct).ConfigureAwait(false);
                     writer.Write("</sheetData>");
                     WriteAsyncWorksheetEnd(writer, sheet);
-                    await writer.FlushAsync().ConfigureAwait(false);
+                    writer.Flush();
                     writer.Dispose();
                     writer = null;
                     compression?.Complete();

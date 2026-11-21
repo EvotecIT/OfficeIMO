@@ -3,7 +3,7 @@ namespace OfficeIMO.Drawing;
 public sealed partial class OfficeRasterCanvas {
     internal Func<double, double, OfficeColor> CreateContourPaint(IReadOnlyList<IReadOnlyList<OfficePoint>> contours,
         OfficeColor color, OfficeLinearGradient? linear, OfficeRadialGradient? radial) {
-        if (linear == null && radial == null) return (_, _) => color;
+        if (linear == null && radial == null) return SolidPaint(color);
         var points = new List<OfficePoint>();
         foreach (IReadOnlyList<OfficePoint> contour in contours) points.AddRange(contour);
         GetPolygonBounds(points, out double x, out double y, out double width, out double height);

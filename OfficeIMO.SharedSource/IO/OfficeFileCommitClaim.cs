@@ -40,7 +40,9 @@ namespace OfficeIMO.Core.Internal.IO {
                         byte[] token = Guid.NewGuid().ToByteArray();
                         Buffer.BlockCopy(token, 0, marker, ClaimPrefix.Length, token.Length);
                         stream.Write(marker, 0, marker.Length);
-                        stream.Flush(true);
+                        // Only this owner reads the marker back, on this machine, before deleting its claim; the
+                        // file cache already serves that read, so a disk flush would only add a sync per publish.
+                        stream.Flush();
                         return new OfficeFileCommitClaim(stream, claimPath, marker);
                     } catch {
                         stream.Dispose();

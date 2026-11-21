@@ -12,7 +12,7 @@ internal static class OfficeTextElements {
             yield break;
         }
 
-        if (HasOnlySingleCodeUnitElements(value!)) {
+        if (HasOnlyIndependentCodeUnits(value!)) {
             for (int index = 0; index < value!.Length; index++) yield return SingleCodeUnitElement(value[index]);
             yield break;
         }
@@ -51,7 +51,9 @@ internal static class OfficeTextElements {
 
     // Nothing below the combining marks joins its neighbour except CR LF.
     private const char FirstCombiningMark = '\u0300';
-    private static readonly string?[] SingleCodeUnitElements = new string?[FirstCombiningMark];
+    // Independent code units end with the Cyrillic Supplement block.
+    private const char LastIndependentCodeUnit = '\u052F';
+    private static readonly string?[] SingleCodeUnitElements = new string?[LastIndependentCodeUnit + 1];
 
     /// <summary>Recognizes the shared subset that needs no Unicode grapheme segmentation.</summary>
     internal static bool HasOnlySingleCodeUnitElements(string value, System.Threading.CancellationToken cancellationToken = default) {
@@ -64,7 +66,44 @@ internal static class OfficeTextElements {
     }
 
     private static string SingleCodeUnitElement(char value) =>
-        SingleCodeUnitElements[value] ??= value.ToString();
+        value <= LastIndependentCodeUnit ? SingleCodeUnitElements[value] ??= value.ToString() : value.ToString();
+
+    /// <summary>
+    /// Recognizes text in which every code unit is its own grapheme cluster: the single-code-unit subset
+    /// plus Greek and Cyrillic letters. Those blocks hold no combining, prepended or joining characters
+    /// apart from the Cyrillic combining marks U+0483-U+0489, so no rule can join their neighbours.
+    /// </summary>
+    internal static bool HasOnlyIndependentCodeUnits(string value) {
+        for (int index = 0; index < value.Length; index++) {
+            if (!IsIndependentCodeUnit(value[index])) return false;
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Returns the text element starting at <paramref name="index"/>, as <see cref="StringInfo.GetNextTextElement(string, int)"/>
+    /// does, without segmenting when that code unit and the next one are independent.
+    /// </summary>
+    internal static string NextTextElement(string text, int index) {
+        if ((uint)index < (uint)text.Length && IsIndependentCodeUnit(text[index])
+            && (index + 1 == text.Length || IsIndependentCodeUnit(text[index + 1]))) {
+            return SingleCodeUnitElement(text[index]);
+        }
+        return StringInfo.GetNextTextElement(text, index);
+    }
+
+    private static bool IsIndependentCodeUnit(char value) => value < FirstCombiningMark
+        ? value != '\r'
+        : value >= 'Ͱ' && value <= LastIndependentCodeUnit && (value < '҃' || value > '҉');
+
+    /// <summary>Counts Unicode grapheme clusters as <see cref="Enumerate"/> yields them, without materializing them for single-code-unit text.</summary>
+    internal static int Count(string? value) {
+        if (string.IsNullOrEmpty(value)) return 0;
+        if (HasOnlyIndependentCodeUnits(value!)) return value!.Length;
+        int count = 0;
+        foreach (string _ in Enumerate(value)) count++;
+        return count;
+    }
 
     /// <summary>Splits text into Unicode grapheme clusters.</summary>
     public static IReadOnlyList<string> Split(string? value, bool includeEmptyElement = false) {
@@ -165,8 +204,41 @@ internal static class OfficeTextElements {
         if (string.IsNullOrEmpty(value)) return false;
         for (int index = 0; index < value!.Length;) {
             int scalar = ReadScalar(value, ref index);
-            if (scalar >= 0xFE00 && scalar <= 0xFE0F ||
-                scalar >= 0xE0100 && scalar <= 0xE01EF) return true;
+            if (IsVariationSelector(scalar)) return true;
+        }
+        return false;
+    }
+
+    /// <summary>Determines whether a scalar is a Unicode variation selector (VS1 to VS256).</summary>
+    internal static bool IsVariationSelector(int scalar) =>
+        scalar >= 0xFE00 && scalar <= 0xFE0F || scalar >= 0xE0100 && scalar <= 0xE01EF;
+
+    /// <summary>
+    /// Detects UTS #51 sequence components that fonts combine through GSUB without any
+    /// control character: emoji modifiers (skin tones) and regional indicators (flags).
+    /// </summary>
+    internal static bool ContainsEmojiModifierOrRegionalIndicator(string? value) {
+        if (string.IsNullOrEmpty(value)) return false;
+        for (int index = 0; index < value!.Length;) {
+            int scalar = ReadScalar(value, ref index);
+            if (scalar >= 0x1F3FB && scalar <= 0x1F3FF || scalar >= 0x1F1E6 && scalar <= 0x1F1FF) return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Detects the joiners ZWJ and ZWNJ and every other UTS #51 sequence component: variation
+    /// selectors, the combining enclosing keycap, emoji modifiers, regional indicators and tags.
+    /// Only the font's own substitutions can render these; scalar glyph output cannot.
+    /// </summary>
+    internal static bool ContainsJoinerOrEmojiSequence(string? value) {
+        if (string.IsNullOrEmpty(value)) return false;
+        for (int index = 0; index < value!.Length;) {
+            if (value[index] < 0x200C) { index++; continue; }
+            int scalar = ReadScalar(value, ref index);
+            if (scalar is 0x200C or 0x200D or 0x20E3 || IsVariationSelector(scalar)
+                || scalar >= 0x1F3FB && scalar <= 0x1F3FF || scalar >= 0x1F1E6 && scalar <= 0x1F1FF
+                || scalar >= 0xE0020 && scalar <= 0xE007F) return true;
         }
         return false;
     }
@@ -188,6 +260,11 @@ internal static class OfficeTextElements {
     internal static bool ContainsCombiningMark(string? value) {
         if (string.IsNullOrEmpty(value)) return false;
         for (int index = 0; index < value!.Length;) {
+            // No character below the combining marks is one; skip the category lookup.
+            if (value[index] < FirstCombiningMark) {
+                index++;
+                continue;
+            }
             int scalarIndex = index;
             ReadScalar(value, ref index);
             UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(value, scalarIndex);
@@ -266,7 +343,9 @@ internal static class OfficeTextElements {
     }
 
     /// <summary>Determines whether a Unicode scalar belongs to a right-to-left script range.</summary>
+    // Latin, Greek and Cyrillic text fails every range below; test the lowest bound first.
     public static bool IsRightToLeftScalar(int scalar) =>
+        scalar >= 0x0590 && (
         IsInRange(scalar, 0x0590, 0x05FF) ||
         IsInRange(scalar, 0x0600, 0x06FF) ||
         IsInRange(scalar, 0x0700, 0x074F) ||
@@ -282,7 +361,7 @@ internal static class OfficeTextElements {
         IsInRange(scalar, 0x10800, 0x10FFF) ||
         IsInRange(scalar, 0x1E800, 0x1E8DF) ||
         IsInRange(scalar, 0x1E900, 0x1E95F) ||
-        IsInRange(scalar, 0x1EE00, 0x1EEFF);
+        IsInRange(scalar, 0x1EE00, 0x1EEFF));
 
     internal static bool IsJoiningScriptScalar(int scalar) =>
         IsInRange(scalar, 0x0600, 0x08FF)
@@ -291,6 +370,7 @@ internal static class OfficeTextElements {
         || IsInRange(scalar, 0x1EE00, 0x1EEFF);
 
     private static bool IsShapingRequiredScriptScalar(int scalar) =>
+        scalar >= 0x0900 && (
         IsInRange(scalar, 0x0900, 0x0DFF) // Indic scripts
         || IsInRange(scalar, 0x0E00, 0x0FFF) // Thai, Lao, Tibetan
         || IsInRange(scalar, 0x1000, 0x109F) // Myanmar
@@ -307,7 +387,7 @@ internal static class OfficeTextElements {
         || IsInRange(scalar, 0xA980, 0xAA7F) // Javanese, Myanmar extensions, Cham
         || IsInRange(scalar, 0xAA80, 0xAADF) // Tai Viet
         || IsInRange(scalar, 0xABC0, 0xABFF) // Meetei Mayek
-        || IsInRange(scalar, 0x11000, 0x11FFF); // Supplementary Brahmic scripts
+        || IsInRange(scalar, 0x11000, 0x11FFF)); // Supplementary Brahmic scripts
 
     private static bool IsStrongLeftToRightCategory(UnicodeCategory category) =>
         IsLetterCategory(category);

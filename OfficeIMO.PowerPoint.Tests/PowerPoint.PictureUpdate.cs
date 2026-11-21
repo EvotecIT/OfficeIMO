@@ -34,6 +34,30 @@ namespace OfficeIMO.Tests {
             Assert.Equal("image/jpeg", Assert.Single(part.ImageParts).ContentType);
         }
 
+        [Fact]
+        public void SvgPictureStoresPngFallbackBlipAndSvgExtensionLikePowerPoint() {
+            byte[] svg = System.Text.Encoding.UTF8.GetBytes(
+                "<svg xmlns='http://www.w3.org/2000/svg' width='40' height='20'><rect width='40' height='20' fill='#1F3864'/></svg>");
+            using PowerPointDocument presentation = PowerPointDocument.Create();
+            PowerPointImage picture = presentation.AddSlide().AddImage(new MemoryStream(svg), OfficeImageFormat.Svg,
+                OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(40));
+            Assert.Equal("image/svg+xml", picture.ContentType);
+
+            using var reopened = PresentationDocument.Open(new MemoryStream(presentation.ToBytes()), false);
+            var part = reopened.PresentationPart!.SlideParts.Single();
+            var blip = part.Slide!.Descendants<DocumentFormat.OpenXml.Drawing.Blip>().Single();
+            var extension = blip.Descendants<DocumentFormat.OpenXml.Drawing.BlipExtension>().Single();
+            Assert.Equal("{96DAC541-7B7A-43D3-8B79-37D633B846F1}", extension.Uri!.Value);
+            string vectorId = extension.GetFirstChild<DocumentFormat.OpenXml.Office2019.Drawing.SVG.SVGBlip>()!.Embed!.Value!;
+            var fallback = part.GetPartById(blip.Embed!.Value!);
+            Assert.Equal("image/png", fallback.ContentType);
+            Assert.Equal("image/svg+xml", part.GetPartById(vectorId).ContentType);
+            using var png = new MemoryStream();
+            using (Stream source = fallback.GetStream()) source.CopyTo(png);
+            OfficeImageInfo info = OfficeImageReader.Identify(png.ToArray());
+            Assert.Equal((80, 40), (info.Width, info.Height));
+        }
+
         [Theory]
         [MemberData(nameof(ImageData))]
         public void CanAddPictureFromPathWithSharedImageExtensionMapping(string image, OfficeImageFormat expectedType, string expectedContentType) {

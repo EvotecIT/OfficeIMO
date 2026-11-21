@@ -201,7 +201,10 @@ public static partial class PdfHtmlConverterExtensions {
 
         options.EmittedImagePlaceholderCount++;
         PositionedPageGeometry geometry = PositionedPageGeometry.From(page);
-        PositionedBox box = geometry.TransformBox(placement.X, placement.Y, placement.Width, placement.Height);
+        (double visibleX, double visibleY, double visibleWidth, double visibleHeight) = assessment.CanImport
+            ? assessment.GetVisibleBounds(placement)
+            : (placement.X, placement.Y, placement.Width, placement.Height);
+        PositionedBox box = geometry.TransformBox(visibleX, visibleY, visibleWidth, visibleHeight);
         builder.Append("<figure class=\"pdf-image-placeholder\" data-resource=\"");
         builder.Append(HtmlAttribute(image.ResourceName));
         builder.Append("\" data-page-number=\"");
@@ -220,12 +223,12 @@ public static partial class PdfHtmlConverterExtensions {
         builder.Append(Points(Math.Max(1D, box.Height)));
         builder.Append(";\">");
         if (assessment.CanImport && !pageRotationUnsupported &&
-            TryBuildEmbeddedImageDataUri(image, options, builder.MaxCapacity - builder.Length, out string? source)) {
+            TryBuildEmbeddedImageDataUri(image, assessment, options, builder.MaxCapacity - builder.Length, out string? source)) {
             ReportHtmlImagePlacementAssessment(image, assessment, options, imageEmbedded: true);
             builder.Append("<img src=\"");
             builder.Append(HtmlAttribute(source!));
             builder.Append("\" alt=\"");
-            builder.Append(HtmlAttribute("Image: " + image.ResourceName));
+            builder.Append(HtmlAttribute(PdfCore.PdfImagePlacementImportPolicy.GetAlternativeText(image, placement)));
             builder.Append("\" style=\"width:100%;height:100%;object-fit:contain;display:block;");
             AppendHtmlImageReflectionStyle(builder, placement);
             if (assessment.HasNonDefaultOpacity) {
@@ -239,7 +242,8 @@ public static partial class PdfHtmlConverterExtensions {
                 builder.Append(';');
             }
             builder.Append("\">");
-        } else {
+        } else if (options.ImageExportMode == PdfHtmlImageExportMode.PlaceholderOnly) {
+            // Without explicit placeholder output the frame stays empty; the report records the omitted image.
             builder.Append("<figcaption>Image: ");
             AppendHtmlText(builder, image.ResourceName);
             builder.Append(" (");

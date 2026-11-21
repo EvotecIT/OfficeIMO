@@ -26,7 +26,7 @@ internal static class ExcelCommandTargets {
         }
         if (value is not (byte or sbyte or short or ushort or int or uint or long or ulong or float or double or decimal))
             throw new PSArgumentException("Column accepts an integer position or Excel column letters.");
-        decimal number = Convert.ToDecimal(value, System.Globalization.CultureInfo.InvariantCulture);
+        decimal number = OfficeDecimalConversion.FromObject(value, System.Globalization.CultureInfo.InvariantCulture);
         if (number != decimal.Truncate(number)) throw new PSArgumentException("Column positions must be whole numbers.");
         return ValidateColumn(Convert.ToInt32(number));
     }

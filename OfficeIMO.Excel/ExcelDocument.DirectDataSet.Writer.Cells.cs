@@ -138,7 +138,7 @@ namespace OfficeIMO.Excel {
                         break;
                     case DirectCellValueKind.TimeSpan:
                         if (value is TimeSpan timeSpan) {
-                            WriteRawValueCell(writer, timeSpan.TotalDays);
+                            WriteRawValueCell(writer, ExcelDateSystemConverter.ToSerial(timeSpan));
                             return;
                         }
 
@@ -230,7 +230,7 @@ namespace OfficeIMO.Excel {
                         break;
                     case DirectCellValueKind.TimeOnly:
                         if (value is TimeOnly timeOnly) {
-                            WriteRawValueCell(writer, timeOnly.ToTimeSpan().TotalDays);
+                            WriteRawValueCell(writer, ExcelDateSystemConverter.ToSerial(timeOnly.ToTimeSpan()));
                             return;
                         }
 
@@ -269,7 +269,7 @@ namespace OfficeIMO.Excel {
                         WriteDateTimeOffsetCellValue(writer, dateTimeOffset, dateTimeOffsetWriteStrategy, dateSystem);
                         return;
                     case TimeSpan timeSpan:
-                        WriteRawValueCell(writer, timeSpan.TotalDays);
+                        WriteRawValueCell(writer, ExcelDateSystemConverter.ToSerial(timeSpan));
                         return;
                     case double doubleValue:
                         WriteRawValueCell(writer, doubleValue);
@@ -309,7 +309,7 @@ namespace OfficeIMO.Excel {
                         WriteDateTimeSerialCell(writer, dateOnly.ToDateTime(TimeOnly.MinValue), dateSystem);
                         return;
                     case TimeOnly timeOnly:
-                        WriteRawValueCell(writer, timeOnly.ToTimeSpan().TotalDays);
+                        WriteRawValueCell(writer, ExcelDateSystemConverter.ToSerial(timeOnly.ToTimeSpan()));
                         return;
 #endif
                     default:
@@ -368,14 +368,19 @@ namespace OfficeIMO.Excel {
 
             internal static void WriteDateTimeOffsetCellValue(TextWriter writer, DateTimeOffset value, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy, ExcelDateSystem dateSystem) {
                 if (!TryGetDateTimeOffsetValue(value, dateTimeOffsetWriteStrategy, out DateTime dateTimeValue)) {
-                    WriteStringCell(writer, value.ToString("o", CultureInfo.InvariantCulture), validateLength: true);
+                    WriteStringCell(writer, CoerceValueHelper.FormatDateTimeOffsetText(value), validateLength: true);
                     return;
                 }
 
                 WriteDateTimeSerialCell(writer, dateTimeValue, dateSystem);
             }
 
-            private static bool TryGetDateTimeOffsetValue(DateTimeOffset value, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy, out DateTime convertedValue) {
+            internal static bool TryGetDateTimeOffsetValue(DateTimeOffset value, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy, out DateTime convertedValue) {
+                if (CoerceValueHelper.IsTextStrategy(dateTimeOffsetWriteStrategy)) {
+                    convertedValue = default;
+                    return false;
+                }
+
                 try {
                     if (value.UtcDateTime < ExcelMinimumSupportedDateTimeOffset) {
                         convertedValue = default;
@@ -393,6 +398,22 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
             }
+
+            /// <summary>
+            /// Returns whether <see cref="WriteCellValue(TextWriter, object?, Func{DateTimeOffset, DateTime}, ExcelDateSystem, DirectSharedStringTable?)"/>
+            /// writes the value as its <see cref="object.ToString"/> text.
+            /// </summary>
+            internal static bool WritesTextFallback(object value) => value switch {
+                DBNull or DirectFormulaCellValue or DirectTypedCellValue or string or byte[] or bool or DateTime or DateTimeOffset
+                    or TimeSpan or double or float or decimal or sbyte or byte or short or ushort or int or uint or long or ulong => false,
+#if NET6_0_OR_GREATER
+                DateOnly or TimeOnly => false,
+#endif
+                _ => true
+            };
+
+            /// <summary>Writes text whose length the caller has already validated as an inline string cell.</summary>
+            internal static void WriteInlineStringCell(TextWriter writer, string text) => WriteStringCell(writer, text, validateLength: false);
 
             private static void WriteStringCell(TextWriter writer, string text, bool validateLength) {
                 if (validateLength) {
@@ -436,10 +457,18 @@ namespace OfficeIMO.Excel {
                     return;
                 }
 
+                if (double.IsNaN(value) || double.IsInfinity(value)) {
+                    writer.Write(NonFiniteNumberErrorCell);
+                    return;
+                }
+
                 writer.Write("><v>");
                 WriteInvariant(writer, value);
                 writer.Write("</v></c>");
             }
+
+            // SpreadsheetML has no NaN or infinite number; Excel shows #NUM! for such a result.
+            private const string NonFiniteNumberErrorCell = " t=\"e\"><v>" + ExcelSheet.NonFiniteNumberErrorText + "</v></c>";
 
             internal static void WriteDateTimeSerialCell(TextWriter writer, DateTime value, ExcelDateSystem dateSystem) {
 #if NET7_0_OR_GREATER
@@ -589,12 +618,22 @@ namespace OfficeIMO.Excel {
             }
 
             internal static void WriteRawValueCell(TextWriter writer, float value) {
+                if (float.IsNaN(value) || float.IsInfinity(value)) {
+                    writer.Write(NonFiniteNumberErrorCell);
+                    return;
+                }
+
                 writer.Write("><v>");
                 WriteInvariant(writer, value);
                 writer.Write("</v></c>");
             }
 
             internal static void WriteRawValueCell(TextWriter writer, decimal value) {
+                if (!ExcelExactNumber.FitsNumberCell(value)) {
+                    WriteStringCell(writer, value.ToString(CultureInfo.InvariantCulture), validateLength: false);
+                    return;
+                }
+
                 writer.Write("><v>");
                 WriteInvariant(writer, value);
                 writer.Write("</v></c>");
@@ -615,6 +654,11 @@ namespace OfficeIMO.Excel {
                     return;
                 }
 
+                if (!ExcelExactNumber.FitsNumberCell(value)) {
+                    WriteStringCell(writer, InvariantNumberText.Get(value), validateLength: false);
+                    return;
+                }
+
                 writer.Write("><v>");
                 WriteInvariant(writer, value);
                 writer.Write("</v></c>");
@@ -622,6 +666,11 @@ namespace OfficeIMO.Excel {
 
             internal static void WriteRawValueCell(TextWriter writer, ulong value) {
                 if (TryWriteCachedRawNonNegativeIntegerCell(writer, value)) {
+                    return;
+                }
+
+                if (!ExcelExactNumber.FitsNumberCell(value)) {
+                    WriteStringCell(writer, InvariantNumberText.Get(value), validateLength: false);
                     return;
                 }
 
@@ -636,7 +685,7 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
-                writer.Write(cache[value]);
+                writer.Write(cache[value] ?? CacheRawNonNegativeIntegerCell(cache, value));
                 return true;
             }
 
@@ -646,7 +695,7 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
-                writer.Write(cache[(int)value]);
+                writer.Write(cache[(int)value] ?? CacheRawNonNegativeIntegerCell(cache, (int)value));
                 return true;
             }
 
@@ -656,18 +705,14 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
-                writer.Write(cache[(int)value]);
+                writer.Write(cache[(int)value] ?? CacheRawNonNegativeIntegerCell(cache, (int)value));
                 return true;
             }
 
-            private static string[] CreateRawNonNegativeIntegerCellCache() {
-                var cache = new string[CachedRawIntegerCellLimit];
-                for (int i = 0; i < cache.Length; i++) {
-                    cache[i] = "><v>" + InvariantNumberText.Get(i) + "</v></c>";
-                }
-
-                return cache;
-            }
+            // Entries are built on first use: filling all 65,536 up front cost a first small write several milliseconds.
+            // Concurrent writers may build the same entry twice; both strings are identical.
+            private static string CacheRawNonNegativeIntegerCell(string?[] cache, int value) =>
+                cache[value] = "><v>" + InvariantNumberText.Get(value) + "</v></c>";
 
             private static void WriteInvariant(TextWriter writer, double value) {
 #if NET6_0_OR_GREATER
@@ -761,9 +806,8 @@ namespace OfficeIMO.Excel {
                 writer.Write(value.ToString(CultureInfo.InvariantCulture));
             }
 
-            private static void WriteTextEntry(ZipArchive archive, string path, string text) {
-                var entry = archive.CreateEntry(path, CompressionLevel.Fastest);
-                using var stream = entry.Open();
+            private static void WriteTextEntry(ExcelPackageArchive archive, string path, string text) {
+                using var stream = archive.OpenEntry(path, CompressionLevel.Fastest);
 #if NET6_0_OR_GREATER
                 int byteCount = Utf8NoBom.GetByteCount(text);
                 if (byteCount <= StackallocTextEntryByteLimit) {

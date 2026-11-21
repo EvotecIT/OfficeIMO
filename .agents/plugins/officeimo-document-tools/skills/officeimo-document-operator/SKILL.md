@@ -16,6 +16,9 @@ Use the plugin's declared `officeimo_*` MCP tools. They return compact structure
 3. Call `officeimo_fetch` only for selected result ids. Follow `nextCursor` only when more of that result is needed.
 4. Call `officeimo_convert` only when the user wants a file written. Choose a new output path unless overwrite was explicitly requested.
 5. Call `officeimo_capabilities` only when format support is uncertain; filter by extension.
+6. Before a document is shared, call `officeimo_inspect_hidden_data`, then `officeimo_remove_hidden_data` to a new output path. Keep the default kinds unless the user chooses otherwise; add `provenance` only when the user wants Content Credentials and AI-generated declarations removed, and `hidden-content` or `tracked-changes` only when they accept changes to visible content.
+
+`officeimo_convert` writes Markdown or Reader JSON, or runs a catalog conversion route chosen by the source extension and `format`, such as `pdf` from DOCX, ODT, Markdown, HTML, EML, MSG, EPUB or Visio, `docx` from Markdown, HTML, RTF or ODT, and `odt`, `ods` or `odp` from Office files. Email PDF renders the message with its header, body, inline images and attachment list. If a pair is rejected, call `officeimo_capabilities` with `operation: "convert"` for the source extension instead of guessing another format.
 
 For iWork ZIP files and directory packages, `officeimo_convert` also accepts the matching `docx`, `xlsx`, or `pptx` destination and `pdf`. Keep default strict acceptance unless the user explicitly accepts partial Office reconstruction. PDF always requires complete editable content; embedded previews and partial output are rejected. Retain `sourceSha256`, the workflow publication status, and per-stage fidelity diagnostics. Directory packages use the same allowed-root checks and captured source identity as file inputs.
 
@@ -28,6 +31,14 @@ decrypts with host-provided owner credentials, flattens rendered appearances,
 optimizes, or sanitizes. Flattening omits native text, forms, links, signatures and
 attachments; explain that result and use `acknowledgeRasterOutput=true` only when
 the user's requested raster copy covers that loss.
+
+Use `officeimo_pdf_convert_to_pdfa` for an archival PDF/A copy. Keep the default
+`profile` unless the user chose otherwise. Pass `attachments=refuse` unless the user
+agreed to lose embedded files; if the source is refused for its attachments, ask
+whether to remove them or keep them with profile `3b` or `3u`. When a conversion
+removes attachments, tell the user which ones. When the result is refused, report the `pdfA`
+violations with their locations instead of trying another tool. Supply `fonts` or an
+`outputIntent` only from files the user provided.
 
 Use `officeimo_pdf_split`, `officeimo_pdf_assemble`, and `officeimo_pdf_export_pages`
 for consecutive parts, ordered PDF/image assembly, and page images. Start with
@@ -50,6 +61,14 @@ select ordered ranges; pages pair by selection position. The standalone report
 shows rendered appearance differences and unmatched pages. It does not infer
 semantic edits or detect moved pages. A stale source identity requires another
 inspection before retrying.
+
+When the user wants to know what text changed between two PDF versions, call
+`officeimo_pdf_redline` with both `sourceId`s and a separate `.pdf` `outputPath`;
+add `changesPath` (`.json`) and `reportPath` (`.html`) when they want the change
+list or a side-by-side report. The annotated copy highlights inserted, replaced
+and moved text and puts a caret where text was deleted. PDFs without a text layer
+are refused; offer OCR first. The response has change counts only, so read the
+JSON change list when the user asks what changed.
 
 Start with the default output limits. Lower them for simple questions; raise them incrementally instead of requesting a whole document.
 

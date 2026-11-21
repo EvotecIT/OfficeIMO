@@ -87,12 +87,12 @@ namespace OfficeIMO.Excel.Xlsb.Package {
             }
 
             int length = checked((int)entry.Length);
-            byte[] output = ArrayPool<byte>.Shared.Rent(Math.Max(1, length));
+            byte[] output = ExcelArrayPool.RentBytes(Math.Max(1, length));
             try {
                 ReadSeekablePartContents(entry, normalized, output, length, cancellationToken);
                 return new XlsbPooledPartStream(output, length);
             } catch {
-                ArrayPool<byte>.Shared.Return(output, clearArray: true);
+                ExcelArrayPool.Return(output, clearArray: true);
                 throw;
             }
         }
@@ -101,7 +101,8 @@ namespace OfficeIMO.Excel.Xlsb.Package {
             int length, CancellationToken cancellationToken, Action<int>? publish = null) {
             using Stream input = entry.Open();
             int offset = 0;
-            int readBufferSize = publish == null ? PartReadBufferSize : 256 * 1024;
+            // Published prefixes stay small so validation finishes soon after the last bytes arrive.
+            int readBufferSize = publish == null ? PartReadBufferSize : 64 * 1024;
             while (offset < length) {
                 cancellationToken.ThrowIfCancellationRequested();
                 int read = input.Read(
@@ -231,7 +232,8 @@ namespace OfficeIMO.Excel.Xlsb.Package {
             if (normalizedTarget.StartsWith("/", StringComparison.Ordinal)) {
                 combined = normalizedTarget.TrimStart('/');
             } else {
-                string source = NormalizePartName(sourcePartName);
+                // An empty source names the package root, whose relationships live in _rels/.rels.
+                string source = sourcePartName.Length == 0 ? string.Empty : NormalizePartName(sourcePartName);
                 int separator = source.LastIndexOf('/');
                 string directory = separator < 0 ? string.Empty : source.Substring(0, separator + 1);
                 combined = directory + normalizedTarget;
@@ -294,7 +296,7 @@ namespace OfficeIMO.Excel.Xlsb.Package {
         }
 
         private static string GetRelationshipPartName(string sourcePartName) {
-            string source = NormalizePartName(sourcePartName);
+            string source = sourcePartName.Length == 0 ? string.Empty : NormalizePartName(sourcePartName);
             int separator = source.LastIndexOf('/');
             string directory = separator < 0 ? string.Empty : source.Substring(0, separator + 1);
             string fileName = separator < 0 ? source : source.Substring(separator + 1);

@@ -26,6 +26,8 @@ namespace OfficeIMO.Excel {
             internal bool OwnsTablePrintDefaults;
             /// <summary>The grid was loaded into stored rows, so rows this sheet adds keep their plain cells stored too.</summary>
             internal bool UsesCellStore;
+            internal MergeReferenceIndex? MergeReferences;
+            internal TableHeaderIndex? TableHeaders;
         }
 
         /// <summary>
@@ -50,6 +52,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Flushes deferred payloads before a transaction captures the package streams for rollback.</summary>
         private void FlushPendingPartsBeforeMutationSnapshot() {
+            _excelDocument.CommitPendingStylesheet();
             foreach (ExcelSheet sheet in _excelDocument.GetSheetsForLockedOperation()) sheet.CommitPendingPartChanges();
         }
 
@@ -58,13 +61,19 @@ namespace OfficeIMO.Excel {
                 if (!WorksheetPersistenceStates.TryGetValue(part, out WorksheetPersistenceState? state)) continue;
                 state.PartSaves.Clear();
                 state.CommentVmlDocuments.Clear();
+                state.MergeReferences = null;
+                state.TableHeaders = null;
             }
         }
 
         internal bool RequiresSavePreparation => _requiresSavePreparation;
 
+        // A direct-save model kept beside materialized rows must see every edit, or the save writes it instead.
+        private bool CanSkipSavePreparationMark
+            => _requiresSavePreparation && _excelDocument.IsPackageDirty && !_excelDocument.HasMaterializedDirectDataSetFastSaveModel;
+
         internal void MarkRequiresSavePreparation() {
-            if (_requiresSavePreparation && _excelDocument.IsPackageDirty) {
+            if (CanSkipSavePreparationMark) {
                 return;
             }
 
@@ -73,7 +82,7 @@ namespace OfficeIMO.Excel {
         }
 
         internal void MarkRequiresWorksheetPreparation() {
-            if (_requiresSavePreparation && _excelDocument.IsPackageDirty) {
+            if (CanSkipSavePreparationMark) {
                 return;
             }
 

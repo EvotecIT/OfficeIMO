@@ -7000,6 +7000,18 @@
               "pipeline": "none"
             },
             {
+              "name": "QuoteCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "EscapeCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
               "name": "DateTimeFormats",
               "type": "string[]",
               "mandatory": false,
@@ -7115,6 +7127,12 @@
               "pipeline": "none"
             },
             {
+              "name": "MaxInputBytes",
+              "type": "long",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
               "name": "Encoding",
               "type": "Encoding",
               "mandatory": false,
@@ -7209,6 +7227,18 @@
             {
               "name": "NullValue",
               "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "QuoteCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "EscapeCharacter",
+              "type": "char",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -7323,6 +7353,12 @@
             },
             {
               "name": "MaxDecompressedBytes",
+              "type": "long",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaxInputBytes",
               "type": "long",
               "mandatory": false,
               "pipeline": "none"
@@ -7432,6 +7468,18 @@
               "pipeline": "none"
             },
             {
+              "name": "QuoteCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "EscapeCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
               "name": "DateTimeFormats",
               "type": "string[]",
               "mandatory": false,
@@ -7542,6 +7590,12 @@
             },
             {
               "name": "MaxDecompressedBytes",
+              "type": "long",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaxInputBytes",
               "type": "long",
               "mandatory": false,
               "pipeline": "none"
@@ -7649,6 +7703,18 @@
               "pipeline": "none"
             },
             {
+              "name": "QuoteCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "EscapeCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
               "name": "DateTimeFormats",
               "type": "string[]",
               "mandatory": false,
@@ -7764,6 +7830,12 @@
               "pipeline": "none"
             },
             {
+              "name": "MaxInputBytes",
+              "type": "long",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
               "name": "Encoding",
               "type": "Encoding",
               "mandatory": false,
@@ -7861,6 +7933,18 @@
             {
               "name": "NullValue",
               "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "QuoteCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "EscapeCharacter",
+              "type": "char",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -7975,6 +8059,12 @@
             },
             {
               "name": "MaxDecompressedBytes",
+              "type": "long",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaxInputBytes",
               "type": "long",
               "mandatory": false,
               "pipeline": "none"
@@ -8087,6 +8177,18 @@
               "pipeline": "none"
             },
             {
+              "name": "QuoteCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "EscapeCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
               "name": "DateTimeFormats",
               "type": "string[]",
               "mandatory": false,
@@ -8202,6 +8304,12 @@
               "pipeline": "none"
             },
             {
+              "name": "MaxInputBytes",
+              "type": "long",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
               "name": "Encoding",
               "type": "Encoding",
               "mandatory": false,
@@ -8295,6 +8403,18 @@
             {
               "name": "NullValue",
               "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "QuoteCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "EscapeCharacter",
+              "type": "char",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -8488,6 +8608,18 @@
             {
               "name": "NullValue",
               "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "QuoteCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "EscapeCharacter",
+              "type": "char",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -8687,6 +8819,18 @@
             {
               "name": "NullValue",
               "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "QuoteCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "EscapeCharacter",
+              "type": "char",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -8909,6 +9053,18 @@
               "pipeline": "none"
             },
             {
+              "name": "QuoteCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "EscapeCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
               "name": "DateTimeFormat",
               "type": "string",
               "mandatory": false,
@@ -9040,6 +9196,18 @@
             {
               "name": "NullValue",
               "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "QuoteCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "EscapeCharacter",
+              "type": "char",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -9182,6 +9350,18 @@
               "pipeline": "none"
             },
             {
+              "name": "QuoteCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "EscapeCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
               "name": "DateTimeFormat",
               "type": "string",
               "mandatory": false,
@@ -9319,6 +9499,18 @@
               "pipeline": "none"
             },
             {
+              "name": "QuoteCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "EscapeCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
               "name": "DateTimeFormat",
               "type": "string",
               "mandatory": false,
@@ -9339,504 +9531,6 @@
             {
               "name": "MaxNestingDepth",
               "type": "int",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Encoding",
-              "type": "Encoding",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "CompressionType",
-              "type": "CsvCompressionType",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "CompressionLevel",
-              "type": "CompressionLevel",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Append",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "NoClobber",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Force",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none",
-              "notes": "As in Export-Csv: overwrite read-only files and append rows that lack existing columns."
-            },
-            {
-              "name": "PassThru",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            }
-          ]
-        },
-        {
-          "name": "DocumentPath",
-          "default": false,
-          "parameters": [
-            {
-              "name": "Document",
-              "type": "CsvDocument",
-              "mandatory": true,
-              "pipeline": "byValue"
-            },
-            {
-              "name": "Path",
-              "type": "string",
-              "mandatory": true,
-              "position": 0,
-              "pipeline": "none",
-              "wildcards": false
-            },
-            {
-              "name": "Delimiter",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none",
-              "notes": "One or more characters; replaces -Delimiter [char] and -DelimiterText."
-            },
-            {
-              "name": "NoHeader",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "NewLine",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Culture",
-              "type": "CultureInfo",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "FormulaInjectionPolicy",
-              "type": "CsvFormulaInjectionPolicy",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "UseQuotes",
-              "type": "CsvQuoteMode",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "QuoteFields",
-              "type": "string[]",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "NullValue",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "DateTimeFormat",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "UseUtc",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Encoding",
-              "type": "Encoding",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "CompressionType",
-              "type": "CsvCompressionType",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "CompressionLevel",
-              "type": "CompressionLevel",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Append",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "NoClobber",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Force",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none",
-              "notes": "As in Export-Csv: overwrite read-only files and append rows that lack existing columns."
-            },
-            {
-              "name": "PassThru",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            }
-          ]
-        },
-        {
-          "name": "DocumentPathCulture",
-          "default": false,
-          "parameters": [
-            {
-              "name": "Document",
-              "type": "CsvDocument",
-              "mandatory": true,
-              "pipeline": "byValue"
-            },
-            {
-              "name": "Path",
-              "type": "string",
-              "mandatory": true,
-              "position": 0,
-              "pipeline": "none",
-              "wildcards": false
-            },
-            {
-              "name": "UseCulture",
-              "type": "switch",
-              "mandatory": true,
-              "pipeline": "none"
-            },
-            {
-              "name": "NoHeader",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "NewLine",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Culture",
-              "type": "CultureInfo",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "FormulaInjectionPolicy",
-              "type": "CsvFormulaInjectionPolicy",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "UseQuotes",
-              "type": "CsvQuoteMode",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "QuoteFields",
-              "type": "string[]",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "NullValue",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "DateTimeFormat",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "UseUtc",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Encoding",
-              "type": "Encoding",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "CompressionType",
-              "type": "CsvCompressionType",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "CompressionLevel",
-              "type": "CompressionLevel",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Append",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "NoClobber",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Force",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none",
-              "notes": "As in Export-Csv: overwrite read-only files and append rows that lack existing columns."
-            },
-            {
-              "name": "PassThru",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            }
-          ]
-        },
-        {
-          "name": "DocumentLiteralPath",
-          "default": false,
-          "parameters": [
-            {
-              "name": "Document",
-              "type": "CsvDocument",
-              "mandatory": true,
-              "pipeline": "byValue"
-            },
-            {
-              "name": "LiteralPath",
-              "type": "string",
-              "mandatory": true,
-              "pipeline": "none",
-              "wildcards": false,
-              "aliases": [
-                "PSPath"
-              ]
-            },
-            {
-              "name": "Delimiter",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none",
-              "notes": "One or more characters; replaces -Delimiter [char] and -DelimiterText."
-            },
-            {
-              "name": "NoHeader",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "NewLine",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Culture",
-              "type": "CultureInfo",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "FormulaInjectionPolicy",
-              "type": "CsvFormulaInjectionPolicy",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "UseQuotes",
-              "type": "CsvQuoteMode",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "QuoteFields",
-              "type": "string[]",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "NullValue",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "DateTimeFormat",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "UseUtc",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Encoding",
-              "type": "Encoding",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "CompressionType",
-              "type": "CsvCompressionType",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "CompressionLevel",
-              "type": "CompressionLevel",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Append",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "NoClobber",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Force",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none",
-              "notes": "As in Export-Csv: overwrite read-only files and append rows that lack existing columns."
-            },
-            {
-              "name": "PassThru",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            }
-          ]
-        },
-        {
-          "name": "DocumentLiteralPathCulture",
-          "default": false,
-          "parameters": [
-            {
-              "name": "Document",
-              "type": "CsvDocument",
-              "mandatory": true,
-              "pipeline": "byValue"
-            },
-            {
-              "name": "LiteralPath",
-              "type": "string",
-              "mandatory": true,
-              "pipeline": "none",
-              "wildcards": false,
-              "aliases": [
-                "PSPath"
-              ]
-            },
-            {
-              "name": "UseCulture",
-              "type": "switch",
-              "mandatory": true,
-              "pipeline": "none"
-            },
-            {
-              "name": "NoHeader",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "NewLine",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Culture",
-              "type": "CultureInfo",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "FormulaInjectionPolicy",
-              "type": "CsvFormulaInjectionPolicy",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "UseQuotes",
-              "type": "CsvQuoteMode",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "QuoteFields",
-              "type": "string[]",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "NullValue",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "DateTimeFormat",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "UseUtc",
-              "type": "switch",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -9973,6 +9667,18 @@
               "pipeline": "none"
             },
             {
+              "name": "QuoteCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "EscapeCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
               "name": "DateTimeFormat",
               "type": "string",
               "mandatory": false,
@@ -10011,7 +9717,7 @@
             {
               "name": "UseCulture",
               "type": "switch",
-              "mandatory": true,
+              "mandatory": false,
               "pipeline": "none"
             },
             {
@@ -10053,6 +9759,18 @@
             {
               "name": "NullValue",
               "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "QuoteCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "EscapeCharacter",
+              "type": "char",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -10081,151 +9799,6 @@
               "pipeline": "none"
             }
           ]
-        },
-        {
-          "name": "Document",
-          "default": false,
-          "parameters": [
-            {
-              "name": "Document",
-              "type": "CsvDocument",
-              "mandatory": true,
-              "pipeline": "byValue"
-            },
-            {
-              "name": "Delimiter",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none",
-              "notes": "One or more characters; replaces -Delimiter [char] and -DelimiterText."
-            },
-            {
-              "name": "NoHeader",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "NewLine",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Culture",
-              "type": "CultureInfo",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "FormulaInjectionPolicy",
-              "type": "CsvFormulaInjectionPolicy",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "UseQuotes",
-              "type": "CsvQuoteMode",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "QuoteFields",
-              "type": "string[]",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "NullValue",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "DateTimeFormat",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "UseUtc",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            }
-          ]
-        },
-        {
-          "name": "DocumentCulture",
-          "default": false,
-          "parameters": [
-            {
-              "name": "Document",
-              "type": "CsvDocument",
-              "mandatory": true,
-              "pipeline": "byValue"
-            },
-            {
-              "name": "UseCulture",
-              "type": "switch",
-              "mandatory": true,
-              "pipeline": "none"
-            },
-            {
-              "name": "NoHeader",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "NewLine",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Culture",
-              "type": "CultureInfo",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "FormulaInjectionPolicy",
-              "type": "CsvFormulaInjectionPolicy",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "UseQuotes",
-              "type": "CsvQuoteMode",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "QuoteFields",
-              "type": "string[]",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "NullValue",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "DateTimeFormat",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "UseUtc",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            }
-          ]
         }
       ],
       "notes": "Object-to-text conversion; stays a ConvertTo- command. Same formula-injection, quoting and culture options as Export-OfficeCsv.",
@@ -10239,6 +9812,2626 @@
           "title": "Upload CSV to a web service",
           "description": "Builds a semicolon-separated body with formula escaping and posts it.",
           "code": "$body = Import-OfficeCsv -Path .\\Data\\Assets.csv |\n    Select-Object AssetTag, Owner, Location |\n    ConvertTo-OfficeCsv -Delimiter ';' -FormulaInjectionPolicy Escape -UseQuotes Always\nInvoke-RestMethod -Uri 'https://cmdb.example.com/api/import' -Method Post -ContentType 'text/csv' -Body ($body -join [Environment]::NewLine)"
+        }
+      ]
+    },
+    {
+      "name": "ConvertFrom-OfficeCsv",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Converts CSV text into objects, hashtables, a DataTable, a data reader or a CsvDocument.",
+      "outputType": "PSCustomObject, Hashtable, System.Data.DataTable, System.Data.IDataReader, OfficeIMO.CSV.CsvDocument",
+      "shouldProcess": false,
+      "parameterSets": [
+        {
+          "name": "InputObject",
+          "default": true,
+          "parameters": [
+            {
+              "name": "InputObject",
+              "type": "string[]",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "NoHeader",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Header",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "SkipRows",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Delimiter",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "TrimWhitespace",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "AllowEmptyLines",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "NoSkipCommentRowsBeforeHeader",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "SkipCommentRows",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "CommentCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "NoW3CFieldsHeader",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ColumnCountMismatchPolicy",
+              "type": "CsvColumnCountMismatchPolicy",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "DuplicateHeaderBehavior",
+              "type": "CsvDuplicateHeaderBehavior",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "NullValue",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "QuoteCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "EscapeCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "DateTimeFormats",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "QuoteParsingMode",
+              "type": "CsvQuoteParsingMode",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "StaticColumns",
+              "type": "IDictionary",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Culture",
+              "type": "CultureInfo",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ParseErrorAction",
+              "type": "CsvParseErrorAction",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "CollectParseErrors",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaxParseErrors",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaxFieldLength",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaxQuotedFieldLength",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "NormalizeQuotes",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "InternStrings",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "InferSchema",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "SchemaSampleRows",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ColumnType",
+              "type": "IDictionary",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "As",
+              "type": "OfficeCsvOutput",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "InputObjectDetect",
+          "default": false,
+          "parameters": [
+            {
+              "name": "InputObject",
+              "type": "string[]",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "NoHeader",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Header",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "SkipRows",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "DetectDelimiter",
+              "type": "switch",
+              "mandatory": true,
+              "pipeline": "none"
+            },
+            {
+              "name": "DelimiterCandidates",
+              "type": "char[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "TrimWhitespace",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "AllowEmptyLines",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "NoSkipCommentRowsBeforeHeader",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "SkipCommentRows",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "CommentCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "NoW3CFieldsHeader",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ColumnCountMismatchPolicy",
+              "type": "CsvColumnCountMismatchPolicy",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "DuplicateHeaderBehavior",
+              "type": "CsvDuplicateHeaderBehavior",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "NullValue",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "QuoteCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "EscapeCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "DateTimeFormats",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "QuoteParsingMode",
+              "type": "CsvQuoteParsingMode",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "StaticColumns",
+              "type": "IDictionary",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Culture",
+              "type": "CultureInfo",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ParseErrorAction",
+              "type": "CsvParseErrorAction",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "CollectParseErrors",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaxParseErrors",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaxFieldLength",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaxQuotedFieldLength",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "NormalizeQuotes",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "InternStrings",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "InferSchema",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "SchemaSampleRows",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ColumnType",
+              "type": "IDictionary",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "As",
+              "type": "OfficeCsvOutput",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "InputObjectCulture",
+          "default": false,
+          "parameters": [
+            {
+              "name": "InputObject",
+              "type": "string[]",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "NoHeader",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Header",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "SkipRows",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "UseCulture",
+              "type": "switch",
+              "mandatory": true,
+              "pipeline": "none"
+            },
+            {
+              "name": "TrimWhitespace",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "AllowEmptyLines",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "NoSkipCommentRowsBeforeHeader",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "SkipCommentRows",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "CommentCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "NoW3CFieldsHeader",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ColumnCountMismatchPolicy",
+              "type": "CsvColumnCountMismatchPolicy",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "DuplicateHeaderBehavior",
+              "type": "CsvDuplicateHeaderBehavior",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "NullValue",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "QuoteCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "EscapeCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "DateTimeFormats",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "QuoteParsingMode",
+              "type": "CsvQuoteParsingMode",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "StaticColumns",
+              "type": "IDictionary",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Culture",
+              "type": "CultureInfo",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ParseErrorAction",
+              "type": "CsvParseErrorAction",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "CollectParseErrors",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaxParseErrors",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaxFieldLength",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "MaxQuotedFieldLength",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "NormalizeQuotes",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "InternStrings",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "InferSchema",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "SchemaSampleRows",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ColumnType",
+              "type": "IDictionary",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "As",
+              "type": "OfficeCsvOutput",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ],
+      "notes": "The reverse of ConvertTo-OfficeCsv and the text form of Import-OfficeCsv: piped strings are joined as lines of one CSV text and parsed with Import-OfficeCsv's options and -As output shapes. File-only options (encoding, compression, progress) stay on Import-OfficeCsv.",
+      "examples": [
+        {
+          "title": "Read CSV text as objects",
+          "description": "Emits one object per row with property names from the header.",
+          "code": "\"Name,Total`nAlpha,10`nBeta,7\" | ConvertFrom-OfficeCsv"
+        },
+        {
+          "title": "Read exported lines as a typed table",
+          "description": "Joins the lines Get-Content emits and infers column types.",
+          "code": "Get-Content -Path .\\export.txt | ConvertFrom-OfficeCsv -Delimiter ';' -As DataTable -InferSchema"
+        }
+      ]
+    },
+    {
+      "name": "New-OfficeYaml",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Creates a YAML file, optionally from a content block of YAML node commands.",
+      "outputType": "System.IO.FileInfo, OfficeIMO.Yaml.YamlDocument",
+      "shouldProcess": true,
+      "parameterSets": [
+        {
+          "name": "Live",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Force",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Path",
+              "type": "string",
+              "mandatory": false,
+              "position": 0,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "Content",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Force",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "WriteOptions",
+              "type": "YamlSaveOptions",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Path",
+              "type": "string",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "none"
+            },
+            {
+              "name": "Content",
+              "type": "scriptblock",
+              "mandatory": true,
+              "position": 1,
+              "pipeline": "none"
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "AllowLoss",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Show",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ],
+      "notes": "Without a content block it returns a live YamlDocument; -Path is then optional and Save-OfficeYaml -Path names the file later. With a block, the file is written atomically when the block ends.",
+      "examples": [
+        {
+          "title": "Write a configuration file in one block",
+          "description": "Creates a service definition and saves it when the block ends.",
+          "code": "New-OfficeYaml -Path .\\Config\\service.yaml {\n    Set-OfficeYamlNode -Select 'name' -Value 'web'\n    Set-OfficeYamlNode -Select 'spec.replicas' -Value 3\n}"
+        },
+        {
+          "title": "Build a document and name the file later",
+          "description": "Creates a document in memory, sets the image and saves it to the values file.",
+          "code": "$doc = New-OfficeYaml\nSet-OfficeYamlNode -Document $doc -Select 'image' -Value 'nginx:1.27'\nSave-OfficeYaml -Document $doc -Path .\\Charts\\web\\values.yaml\nClose-OfficeYaml -Document $doc"
+        }
+      ]
+    },
+    {
+      "name": "Open-OfficeYaml",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Opens a YAML file, stream or text as a lossless document; a content block saves the edits.",
+      "outputType": "OfficeIMO.Yaml.YamlDocument, System.IO.FileInfo",
+      "shouldProcess": true,
+      "parameterSets": [
+        {
+          "name": "Path",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Content",
+              "type": "scriptblock",
+              "mandatory": false,
+              "position": 1,
+              "pipeline": "none"
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Show",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Path",
+              "type": "string",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "Options",
+              "type": "YamlLoadOptions",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Untrusted",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Strict",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Schema",
+              "type": "YamlSchema",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "WriteOptions",
+              "type": "YamlSaveOptions",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "LiteralPath",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Content",
+              "type": "scriptblock",
+              "mandatory": false,
+              "position": 1,
+              "pipeline": "none"
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Show",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "LiteralPath",
+              "type": "string",
+              "mandatory": true,
+              "pipeline": "byPropertyName",
+              "aliases": [
+                "FullName",
+                "PSPath"
+              ]
+            },
+            {
+              "name": "Options",
+              "type": "YamlLoadOptions",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Untrusted",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Strict",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Schema",
+              "type": "YamlSchema",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "WriteOptions",
+              "type": "YamlSaveOptions",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "Text",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Text",
+              "type": "string",
+              "mandatory": true,
+              "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "YamlLoadOptions",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Untrusted",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Strict",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Schema",
+              "type": "YamlSchema",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "Stream",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Stream",
+              "type": "Stream",
+              "mandatory": true,
+              "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "YamlLoadOptions",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Untrusted",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Strict",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Schema",
+              "type": "YamlSchema",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ],
+      "notes": "Saving writes only what changed: comments, blank lines, quoting, indentation and the file encoding stay byte for byte outside the edited nodes. -Untrusted caps the engine limits for files from outside; -Strict applies the YAML specification exactly; -Schema forces Failsafe, Json, Core or Yaml11. Malformed input fails with the engine code (Yaml.Syntax.*) as the error ID.",
+      "examples": [
+        {
+          "title": "Change one value in place",
+          "description": "Sets the replica count; the rest of the file keeps its comments and layout.",
+          "code": "Open-OfficeYaml -Path .\\Deploy\\deployment.yaml {\n    Set-OfficeYamlNode -Select 'spec.replicas' -Value 3\n}"
+        },
+        {
+          "title": "Read an uploaded file with untrusted limits",
+          "description": "Opens a values file from outside with the strict specification rules and reads the image tag.",
+          "code": "$doc = Open-OfficeYaml -LiteralPath .\\Uploads\\values.yaml -Untrusted -Strict\n(Get-OfficeYamlNode -Document $doc -Select 'image.tag').Value\nClose-OfficeYaml -Document $doc"
+        }
+      ]
+    },
+    {
+      "name": "Save-OfficeYaml",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Saves a YamlDocument to its own file or to a new path, changing only edited text.",
+      "outputType": "System.IO.FileInfo",
+      "shouldProcess": true,
+      "parameterSets": [
+        {
+          "name": "Document",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "YamlDocument",
+              "mandatory": true,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "Path",
+              "type": "string",
+              "mandatory": false,
+              "position": 0,
+              "pipeline": "none"
+            },
+            {
+              "name": "WriteOptions",
+              "type": "YamlSaveOptions",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ],
+      "notes": "-Path is optional; without it the document is saved to the file it was opened or created with. -WriteOptions takes YamlSaveOptions or a hashtable; Reformat rewrites the whole document. -PassThru returns the FileInfo.",
+      "examples": [
+        {
+          "title": "Save a document to its own file",
+          "description": "Writes the edits back to the file the document was opened from.",
+          "code": "Save-OfficeYaml -Document $doc"
+        },
+        {
+          "title": "Write a reformatted copy",
+          "description": "Opens the values file and saves a copy rewritten with four-space mappings.",
+          "code": "$doc = Open-OfficeYaml -Path .\\Charts\\web\\values.yaml\nSave-OfficeYaml -Document $doc -Path .\\Publish\\values.yaml -WriteOptions @{ Reformat = $true; WriterOptions = [OfficeIMO.Yaml.YamlWriterOptions]@{ MappingIndent = 4 } } -PassThru"
+        }
+      ]
+    },
+    {
+      "name": "Close-OfficeYaml",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Releases a YamlDocument opened without a content block, without saving.",
+      "outputType": "None",
+      "shouldProcess": false,
+      "parameterSets": [
+        {
+          "name": "Document",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "YamlDocument",
+              "mandatory": true,
+              "pipeline": "byValue"
+            }
+          ]
+        }
+      ],
+      "notes": "Lifecycle parity with every authoring format. YamlDocument holds no file handle, so this only ends the document's lifetime.",
+      "examples": [
+        {
+          "title": "Release a document without saving",
+          "description": "Ends the document; nothing is written.",
+          "code": "Close-OfficeYaml -Document $doc"
+        },
+        {
+          "title": "Read a value and discard the document",
+          "description": "Opens a values file, reads the image tag and closes it without writing.",
+          "code": "$doc = Open-OfficeYaml -Path .\\Charts\\web\\values.yaml\n(Get-OfficeYamlNode -Document $doc -Select 'image.tag').Value\nClose-OfficeYaml -Document $doc"
+        }
+      ]
+    },
+    {
+      "name": "Get-OfficeYamlNode",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Gets nodes of a YamlDocument by path, with their values and 1-based positions.",
+      "outputType": "PSCustomObject",
+      "shouldProcess": false,
+      "parameterSets": [
+        {
+          "name": "Document",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Select",
+              "type": "string[]",
+              "mandatory": false,
+              "position": 0,
+              "pipeline": "none"
+            },
+            {
+              "name": "AsHashtable",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Document",
+              "type": "YamlDocument",
+              "mandatory": false,
+              "pipeline": "byValue"
+            }
+          ]
+        }
+      ],
+      "notes": "-Select uses the engine path grammar: dotted keys, [n] for 0-based sequence items, [\"key\"] for keys that are not plain names and a leading $[n] for a document of a multi-document stream. Each result has Path, Value (plain PowerShell data), Node (the live node), Line and Column. Without -Select each document root is returned. A path with nothing at it writes a non-terminating yaml-node-not-found error.",
+      "examples": [
+        {
+          "title": "Read one value",
+          "description": "Returns the image of the first container.",
+          "code": "(Get-OfficeYamlNode -Document $doc -Select 'spec.template.spec.containers[0].image').Value"
+        },
+        {
+          "title": "Find where settings live",
+          "description": "Lists the replica count and the app label with their lines and columns.",
+          "code": "Get-OfficeYamlNode -Document $doc -Select 'spec.replicas', 'metadata.labels[\"app.kubernetes.io/name\"]' |\n    Select-Object -Property Path, Value, Line, Column"
+        }
+      ]
+    },
+    {
+      "name": "Set-OfficeYamlNode",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Sets the value at a path in a YamlDocument, creating missing mappings on the way.",
+      "outputType": "PSCustomObject",
+      "shouldProcess": false,
+      "parameterSets": [
+        {
+          "name": "Document",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Select",
+              "type": "string",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "none"
+            },
+            {
+              "name": "Value",
+              "type": "object",
+              "mandatory": true,
+              "position": 1,
+              "pipeline": "none"
+            },
+            {
+              "name": "Style",
+              "type": "YamlStyle",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Document",
+              "type": "YamlDocument",
+              "mandatory": false,
+              "pipeline": "byValue"
+            }
+          ]
+        }
+      ],
+      "notes": "A scalar set over a scalar keeps its comments, anchor and tag, and an equal value keeps its spelling. Hashtables, arrays and objects become mappings and sequences in the layout of their neighbors. An index equal to the sequence length appends. -Style applies to string values. -PassThru returns the node now at the path.",
+      "examples": [
+        {
+          "title": "Bump an image tag in place",
+          "description": "Changes the tag inside an editing block; the rest of the file is untouched.",
+          "code": "Open-OfficeYaml -Path .\\Charts\\web\\values.yaml {\n    Set-OfficeYamlNode -Select 'image.tag' -Value '1.27.2'\n}"
+        },
+        {
+          "title": "Add resource limits and a port",
+          "description": "Adds a nested mapping and appends a third port to a live document.",
+          "code": "Set-OfficeYamlNode -Document $doc -Select 'resources.limits' -Value ([ordered]@{ cpu = '500m'; memory = '256Mi' })\nSet-OfficeYamlNode -Document $doc -Select 'ports[2]' -Value 8443"
+        }
+      ]
+    },
+    {
+      "name": "Remove-OfficeYamlNode",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Removes mapping entries or sequence items from a YamlDocument by path.",
+      "outputType": "None",
+      "shouldProcess": false,
+      "parameterSets": [
+        {
+          "name": "Document",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Select",
+              "type": "string[]",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "none"
+            },
+            {
+              "name": "Document",
+              "type": "YamlDocument",
+              "mandatory": false,
+              "pipeline": "byValue"
+            }
+          ]
+        }
+      ],
+      "notes": "An entry goes with its own comment lines and line; neighbors and section comments stay. A path with nothing at it writes a non-terminating yaml-node-not-found error.",
+      "examples": [
+        {
+          "title": "Drop an annotation in place",
+          "description": "Removes one annotation inside an editing block.",
+          "code": "Open-OfficeYaml -Path .\\Deploy\\ingress.yaml {\n    Remove-OfficeYamlNode -Select 'metadata.annotations[\"nginx.ingress.kubernetes.io/rewrite-target\"]'\n}"
+        },
+        {
+          "title": "Remove an item when it is there",
+          "description": "Removes the second port and ignores a document that has only one.",
+          "code": "Remove-OfficeYamlNode -Document $doc -Select 'spec.ports[1]' -ErrorAction SilentlyContinue"
+        }
+      ]
+    },
+    {
+      "name": "Update-OfficeYaml",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Applies a JSON Patch (RFC 6902) or JSON Merge Patch (RFC 7386) to a YamlDocument.",
+      "outputType": "OfficeIMO.Yaml.YamlPatchReport",
+      "shouldProcess": false,
+      "parameterSets": [
+        {
+          "name": "JsonPatch",
+          "default": true,
+          "parameters": [
+            {
+              "name": "JsonPatch",
+              "type": "object",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "none"
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Document",
+              "type": "YamlDocument",
+              "mandatory": false,
+              "pipeline": "byValue"
+            }
+          ]
+        },
+        {
+          "name": "MergePatch",
+          "default": false,
+          "parameters": [
+            {
+              "name": "MergePatch",
+              "type": "object",
+              "mandatory": true,
+              "pipeline": "none"
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Document",
+              "type": "YamlDocument",
+              "mandatory": false,
+              "pipeline": "byValue"
+            }
+          ]
+        }
+      ],
+      "notes": "Takes JSON or YAML text, a YamlDocument, or hashtables and objects. Only the patched lines change. A patch is all or nothing: a failed test, a missing path or a refused edit writes a non-terminating yaml-patch-failed error and leaves the document unchanged.",
+      "examples": [
+        {
+          "title": "Scale only when the count is as expected",
+          "description": "Tests the replica count before replacing it inside an editing block.",
+          "code": "Open-OfficeYaml -Path .\\Deploy\\deployment.yaml {\n    Update-OfficeYaml -JsonPatch @(\n        @{ op = 'test'; path = '/spec/replicas'; value = 2 }\n        @{ op = 'replace'; path = '/spec/replicas'; value = 3 }\n    )\n}"
+        },
+        {
+          "title": "Override values with a merge patch",
+          "description": "Changes the image tag and removes the annotations; $null removes a key.",
+          "code": "Update-OfficeYaml -Document $doc -MergePatch @{ image = @{ tag = '1.27.2' }; podAnnotations = $null } -PassThru"
+        }
+      ]
+    },
+    {
+      "name": "ConvertFrom-OfficeYaml",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Converts YAML text to PowerShell objects, as ConvertFrom-Json does for JSON.",
+      "outputType": "PSCustomObject, System.Collections.Specialized.OrderedDictionary, System.Object[]",
+      "shouldProcess": false,
+      "parameterSets": [
+        {
+          "name": "InputObject",
+          "default": true,
+          "parameters": [
+            {
+              "name": "InputObject",
+              "type": "string",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "AsHashtable",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Depth",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "NoEnumerate",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "AllDocuments",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Schema",
+              "type": "YamlSchema",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Strict",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Untrusted",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ],
+      "notes": "Mappings become PSCustomObjects in file order (ordered hashtables with -AsHashtable), sequences arrays, and scalars resolve through the Core schema to Int64, BigInteger, Double, Boolean, $null or String; -Schema Failsafe keeps every scalar a string. Piped lines are joined before parsing. A root sequence is enumerated unless -NoEnumerate. More than one document needs -AllDocuments. -Depth sets the reader MaxDepth.",
+      "examples": [
+        {
+          "title": "Read settings from a file",
+          "description": "Reads the settings file and returns the database port.",
+          "code": "$config = Get-Content -Path .\\Config\\settings.yaml -Raw | ConvertFrom-OfficeYaml\n$config.database.port"
+        },
+        {
+          "title": "List every manifest in a stream",
+          "description": "Reads all documents of a manifest stream as hashtables and prints kind and name.",
+          "code": "Get-Content -Path .\\Deploy\\manifests.yaml | ConvertFrom-OfficeYaml -AllDocuments -AsHashtable |\n    ForEach-Object { '{0}/{1}' -f $_.kind, $_.metadata.name }"
+        }
+      ]
+    },
+    {
+      "name": "ConvertTo-OfficeYaml",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Converts PowerShell objects to YAML text, as ConvertTo-Json does for JSON.",
+      "outputType": "System.String",
+      "shouldProcess": false,
+      "parameterSets": [
+        {
+          "name": "InputObject",
+          "default": true,
+          "parameters": [
+            {
+              "name": "InputObject",
+              "type": "object",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "Depth",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "WriteOptions",
+              "type": "YamlWriterOptions",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ],
+      "notes": "Hashtables and object properties become mappings, collections sequences and enums their names. One piped object is written as itself and several as a sequence. Values deeper than -Depth (default 2) become their string form with the ConvertTo-Json warning. Strings that YAML 1.1 readers would retype (yes, on, 012) are quoted. -WriteOptions takes YamlWriterOptions or a hashtable.",
+      "examples": [
+        {
+          "title": "Turn a hashtable into YAML",
+          "description": "Writes a small service definition.",
+          "code": "[ordered]@{ name = 'web'; replicas = 3; ports = 80, 443 } | ConvertTo-OfficeYaml"
+        },
+        {
+          "title": "Write nested data with indented sequences",
+          "description": "Writes three services with their dependencies, indenting sequences under their keys.",
+          "code": "Get-Service | Select-Object -First 3 -Property Name, Status, DependentServices |\n    ConvertTo-OfficeYaml -Depth 3 -WriteOptions @{ SequenceIndent = 4; SequenceDashOffset = 2 }"
+        }
+      ]
+    },
+    {
+      "name": "Import-OfficeYaml",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Reads YAML files as PowerShell objects.",
+      "outputType": "PSCustomObject, System.Collections.Specialized.OrderedDictionary, System.Object[]",
+      "shouldProcess": false,
+      "parameterSets": [
+        {
+          "name": "Path",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string[]",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "AsHashtable",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Depth",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "NoEnumerate",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "AllDocuments",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Schema",
+              "type": "YamlSchema",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Strict",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Untrusted",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "LiteralPath",
+          "default": false,
+          "parameters": [
+            {
+              "name": "LiteralPath",
+              "type": "string[]",
+              "mandatory": true,
+              "pipeline": "byPropertyName",
+              "aliases": [
+                "FullName",
+                "PSPath"
+              ]
+            },
+            {
+              "name": "AsHashtable",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Depth",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "NoEnumerate",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "AllDocuments",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Schema",
+              "type": "YamlSchema",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Strict",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Untrusted",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ],
+      "notes": "The file form of ConvertFrom-OfficeYaml, with the same output parameters. The encoding is detected from the file. A file that fails to parse writes a non-terminating error with the engine code, line and column, and the next file is read.",
+      "examples": [
+        {
+          "title": "Read a settings file",
+          "description": "Reads the settings and returns the logging level.",
+          "code": "$settings = Import-OfficeYaml -Path .\\Config\\settings.yaml\n$settings.logging.level"
+        },
+        {
+          "title": "Count manifests by kind",
+          "description": "Reads every document of every manifest under the deploy folder and groups them by kind.",
+          "code": "Get-ChildItem -Path .\\Deploy -Filter *.yaml | Import-OfficeYaml -AllDocuments | Group-Object -Property kind"
+        }
+      ]
+    },
+    {
+      "name": "Export-OfficeYaml",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Writes PowerShell objects to a YAML file.",
+      "outputType": "System.IO.FileInfo",
+      "shouldProcess": true,
+      "parameterSets": [
+        {
+          "name": "InputObject",
+          "default": true,
+          "parameters": [
+            {
+              "name": "InputObject",
+              "type": "object",
+              "mandatory": true,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "Path",
+              "type": "string",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "none"
+            },
+            {
+              "name": "Depth",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "WriteOptions",
+              "type": "YamlWriterOptions",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "NoClobber",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ],
+      "notes": "The file form of ConvertTo-OfficeYaml. Writes UTF-8 without a byte-order mark, atomically; replaces an existing file unless -NoClobber. To change values in an existing file and keep its comments, use Open-OfficeYaml with Set-OfficeYamlNode.",
+      "examples": [
+        {
+          "title": "Save settings to a file",
+          "description": "Writes the logging level and retry count to a settings file.",
+          "code": "[ordered]@{ logging = [ordered]@{ level = 'Information' }; retries = 3 } | Export-OfficeYaml -Path .\\Config\\settings.yaml"
+        },
+        {
+          "title": "Export an inventory without replacing a file",
+          "description": "Turns the server list into YAML and refuses to overwrite an existing inventory.",
+          "code": "Import-OfficeCsv -Path .\\Data\\Servers.csv | Export-OfficeYaml -Path .\\Inventory\\servers.yaml -NoClobber -PassThru"
+        }
+      ]
+    },
+    {
+      "name": "Test-OfficeYaml",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Tests whether YAML files or text load, returning a Boolean or the error position.",
+      "outputType": "System.Boolean, PSWriteOffice.Models.Yaml.OfficeYamlTestResult",
+      "shouldProcess": false,
+      "parameterSets": [
+        {
+          "name": "Path",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string[]",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "Options",
+              "type": "YamlLoadOptions",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Untrusted",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Strict",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Schema",
+              "type": "YamlSchema",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Detailed",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "LiteralPath",
+          "default": false,
+          "parameters": [
+            {
+              "name": "LiteralPath",
+              "type": "string[]",
+              "mandatory": true,
+              "pipeline": "byPropertyName",
+              "aliases": [
+                "FullName",
+                "PSPath"
+              ]
+            },
+            {
+              "name": "Options",
+              "type": "YamlLoadOptions",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Untrusted",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Strict",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Schema",
+              "type": "YamlSchema",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Detailed",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "Text",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Text",
+              "type": "string",
+              "mandatory": true,
+              "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "YamlLoadOptions",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Untrusted",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Strict",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Schema",
+              "type": "YamlSchema",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Detailed",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ],
+      "notes": "Returns $true or $false for each input, as Test-Json does. -Detailed returns the engine error code, message, 1-based line and column, and the warnings recorded while loading. -Strict applies the specification exactly; -Untrusted the untrusted limits.",
+      "examples": [
+        {
+          "title": "Gate a pipeline on a valid file",
+          "description": "Stops the script when the values file does not load under the strict rules.",
+          "code": "if (-not (Test-OfficeYaml -Path .\\Charts\\web\\values.yaml -Strict)) { throw 'values.yaml is not valid YAML.' }"
+        },
+        {
+          "title": "Report where broken files fail",
+          "description": "Tests every YAML file under the deploy folder and lists the position of each failure.",
+          "code": "Get-ChildItem -Path .\\Deploy -Recurse -Filter *.yaml | Test-OfficeYaml -Detailed |\n    Where-Object { -not $_.IsValid } |\n    Select-Object -Property Path, Line, Column, Code, Message"
+        }
+      ]
+    },
+    {
+      "name": "New-OfficeToml",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Creates a TOML file, optionally from a content block of TOML node commands.",
+      "outputType": "System.IO.FileInfo, OfficeIMO.Toml.TomlDocument",
+      "shouldProcess": true,
+      "parameterSets": [
+        {
+          "name": "Live",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Force",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Path",
+              "type": "string",
+              "mandatory": false,
+              "position": 0,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "Content",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Force",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Path",
+              "type": "string",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "none"
+            },
+            {
+              "name": "Content",
+              "type": "scriptblock",
+              "mandatory": true,
+              "position": 1,
+              "pipeline": "none"
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "AllowLoss",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Show",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ],
+      "notes": "Without a content block it returns a live TomlDocument; -Path is then optional and Save-OfficeToml -Path names the file later. With a block, the file is written atomically when the block ends. Setting a key below a missing table adds its [header] section.",
+      "examples": [
+        {
+          "title": "Write a project file in one block",
+          "description": "Creates a pyproject file with a name and a ruff setting and saves it when the block ends.",
+          "code": "New-OfficeToml -Path .\\Project\\pyproject.toml {\n    Set-OfficeTomlNode -Select 'project.name' -Value 'reporting'\n    Set-OfficeTomlNode -Select 'tool.ruff.line-length' -Value 100\n}"
+        },
+        {
+          "title": "Build a document and name the file later",
+          "description": "Creates a document in memory, sets the title and saves it to the configuration file.",
+          "code": "$doc = New-OfficeToml\nSet-OfficeTomlNode -Document $doc -Select 'title' -Value 'Release notes'\nSave-OfficeToml -Document $doc -Path .\\Site\\config.toml\nClose-OfficeToml -Document $doc"
+        }
+      ]
+    },
+    {
+      "name": "Open-OfficeToml",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Opens a TOML file, stream or text as a lossless document; a content block saves the edits.",
+      "outputType": "OfficeIMO.Toml.TomlDocument, System.IO.FileInfo",
+      "shouldProcess": true,
+      "parameterSets": [
+        {
+          "name": "Path",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Content",
+              "type": "scriptblock",
+              "mandatory": false,
+              "position": 1,
+              "pipeline": "none"
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Show",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Path",
+              "type": "string",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "Options",
+              "type": "TomlLoadOptions",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Untrusted",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "LiteralPath",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Content",
+              "type": "scriptblock",
+              "mandatory": false,
+              "position": 1,
+              "pipeline": "none"
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Show",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "LiteralPath",
+              "type": "string",
+              "mandatory": true,
+              "pipeline": "byPropertyName",
+              "aliases": [
+                "FullName",
+                "PSPath"
+              ]
+            },
+            {
+              "name": "Options",
+              "type": "TomlLoadOptions",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Untrusted",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "Text",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Text",
+              "type": "string",
+              "mandatory": true,
+              "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "TomlLoadOptions",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Untrusted",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "Stream",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Stream",
+              "type": "Stream",
+              "mandatory": true,
+              "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "TomlLoadOptions",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Untrusted",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ],
+      "notes": "Saving writes only what changed: comments, blank lines, quoting, key order, alignment, line endings and the spelling of every other value stay byte for byte. -Options takes TomlLoadOptions or a hashtable of MaxDepth, MaxNodes, MaxStringLength and MaxInputBytes; -Untrusted caps the engine limits for files from outside. Malformed input fails with an error ID built from the engine code (toml-Toml.Syntax.*, toml-Toml.Load.*).",
+      "examples": [
+        {
+          "title": "Change one value in place",
+          "description": "Sets the project version; the rest of the file keeps its comments and layout.",
+          "code": "Open-OfficeToml -Path .\\Project\\pyproject.toml {\n    Set-OfficeTomlNode -Select 'project.version' -Value '1.2.0'\n}"
+        },
+        {
+          "title": "Read an uploaded file with untrusted limits",
+          "description": "Opens a crate manifest from outside and reads the package name.",
+          "code": "$doc = Open-OfficeToml -LiteralPath .\\Uploads\\Cargo.toml -Untrusted\n(Get-OfficeTomlNode -Document $doc -Select 'package.name').Value\nClose-OfficeToml -Document $doc"
+        }
+      ]
+    },
+    {
+      "name": "Save-OfficeToml",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Saves a TomlDocument to its own file or to a new path, changing only edited text.",
+      "outputType": "System.IO.FileInfo",
+      "shouldProcess": true,
+      "parameterSets": [
+        {
+          "name": "Document",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "TomlDocument",
+              "mandatory": true,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "Path",
+              "type": "string",
+              "mandatory": false,
+              "position": 0,
+              "pipeline": "none"
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ],
+      "notes": "-Path is optional; without it the document is saved to the file it was opened or created with. Untouched text is copied from the source with its line endings and byte-order mark. -PassThru returns the FileInfo.",
+      "examples": [
+        {
+          "title": "Save a document to its own file",
+          "description": "Writes the edits back to the file the document was opened from.",
+          "code": "Save-OfficeToml -Document $doc"
+        },
+        {
+          "title": "Write an edited copy",
+          "description": "Opens a manifest, bumps the version and saves the result to another folder.",
+          "code": "$doc = Open-OfficeToml -Path .\\Crates\\core\\Cargo.toml\nSet-OfficeTomlNode -Document $doc -Select 'package.version' -Value '0.4.0'\nSave-OfficeToml -Document $doc -Path .\\Publish\\Cargo.toml -PassThru"
+        }
+      ]
+    },
+    {
+      "name": "Close-OfficeToml",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Releases a TomlDocument opened without a content block, without saving.",
+      "outputType": "None",
+      "shouldProcess": false,
+      "parameterSets": [
+        {
+          "name": "Document",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "TomlDocument",
+              "mandatory": true,
+              "pipeline": "byValue"
+            }
+          ]
+        }
+      ],
+      "notes": "Lifecycle parity with every authoring format. TomlDocument holds no file handle, so this only ends the document's lifetime.",
+      "examples": [
+        {
+          "title": "Release a document without saving",
+          "description": "Ends the document; nothing is written.",
+          "code": "Close-OfficeToml -Document $doc"
+        },
+        {
+          "title": "Read a value and discard the document",
+          "description": "Opens a crate manifest, reads the version and closes it without writing.",
+          "code": "$doc = Open-OfficeToml -Path .\\Crates\\core\\Cargo.toml\n(Get-OfficeTomlNode -Document $doc -Select 'package.version').Value\nClose-OfficeToml -Document $doc"
+        }
+      ]
+    },
+    {
+      "name": "Get-OfficeTomlNode",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Gets nodes of a TomlDocument by path, with their values and 1-based positions.",
+      "outputType": "PSCustomObject",
+      "shouldProcess": false,
+      "parameterSets": [
+        {
+          "name": "Document",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Select",
+              "type": "string[]",
+              "mandatory": false,
+              "position": 0,
+              "pipeline": "none"
+            },
+            {
+              "name": "AsHashtable",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Document",
+              "type": "TomlDocument",
+              "mandatory": false,
+              "pipeline": "byValue"
+            }
+          ]
+        }
+      ],
+      "notes": "-Select uses the engine path grammar, shared with YAML: dotted keys, [n] for 0-based array items and tables of an array of tables, and [\"key\"] for keys that are not plain names. Each result has Path, Value (plain PowerShell data as ConvertFrom-OfficeToml returns it), Node (the live node), Line and Column. Without -Select the root table is returned. A path with nothing at it writes a non-terminating toml-node-not-found error.",
+      "examples": [
+        {
+          "title": "Read one value",
+          "description": "Returns the ruff line length of a Python project.",
+          "code": "(Get-OfficeTomlNode -Document $doc -Select 'tool.ruff.line-length').Value"
+        },
+        {
+          "title": "Find where settings live",
+          "description": "Lists the project version and a dotted source key with their lines and columns.",
+          "code": "Get-OfficeTomlNode -Document $doc -Select 'project.version', 'tool.uv.sources[\"my.pkg\"]' |\n    Select-Object -Property Path, Value, Line, Column"
+        }
+      ]
+    },
+    {
+      "name": "Set-OfficeTomlNode",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Sets the value at a path in a TomlDocument, adding missing tables on the way.",
+      "outputType": "PSCustomObject",
+      "shouldProcess": false,
+      "parameterSets": [
+        {
+          "name": "Document",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Select",
+              "type": "string",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "none"
+            },
+            {
+              "name": "Value",
+              "type": "object",
+              "mandatory": true,
+              "position": 1,
+              "pipeline": "none"
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Document",
+              "type": "TomlDocument",
+              "mandatory": false,
+              "pipeline": "byValue"
+            }
+          ]
+        }
+      ],
+      "notes": "Setting a value over a value changes only its text, and an equal value keeps its spelling. A new key follows its table's last key in the neighbors' layout; a missing table gets a [header] section. Hashtables and objects become inline tables and arrays become arrays. TOML has no null: $null is an error and nested nulls are omitted with a warning. An array index must already exist. -PassThru returns the node now at the path.",
+      "examples": [
+        {
+          "title": "Bump a version in place",
+          "description": "Sets the package version inside an editing block.",
+          "code": "Open-OfficeToml -Path .\\Crates\\core\\Cargo.toml {\n    Set-OfficeTomlNode -Select 'package.version' -Value '0.4.0'\n}"
+        },
+        {
+          "title": "Add an inline table and replace an array item",
+          "description": "Adds a dependency with features and replaces the first project dependency.",
+          "code": "Set-OfficeTomlNode -Document $doc -Select 'dependencies.serde' -Value ([ordered]@{ version = '1'; features = @('derive') })\nSet-OfficeTomlNode -Document $doc -Select 'project.dependencies[0]' -Value 'httpx>=0.27'"
+        }
+      ]
+    },
+    {
+      "name": "Remove-OfficeTomlNode",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Removes keys, tables or array items from a TomlDocument by path.",
+      "outputType": "None",
+      "shouldProcess": false,
+      "parameterSets": [
+        {
+          "name": "Document",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Select",
+              "type": "string[]",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "none"
+            },
+            {
+              "name": "Document",
+              "type": "TomlDocument",
+              "mandatory": false,
+              "pipeline": "byValue"
+            }
+          ]
+        }
+      ],
+      "notes": "A key goes with its line and the comment lines directly above it; a table goes with all of its sections. Neighbors and their comments stay. A path with nothing at it writes a non-terminating toml-node-not-found error.",
+      "examples": [
+        {
+          "title": "Drop a setting in place",
+          "description": "Removes the ruff ignore list inside an editing block.",
+          "code": "Open-OfficeToml -Path .\\Project\\pyproject.toml {\n    Remove-OfficeTomlNode -Select 'tool.ruff.lint.ignore'\n}"
+        },
+        {
+          "title": "Remove a table when it is there",
+          "description": "Removes the second [[bin]] table and ignores a manifest that has only one.",
+          "code": "Remove-OfficeTomlNode -Document $doc -Select 'bin[1]' -ErrorAction SilentlyContinue"
+        }
+      ]
+    },
+    {
+      "name": "Update-OfficeToml",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Applies a JSON Patch (RFC 6902) or JSON Merge Patch (RFC 7386) to a TomlDocument.",
+      "outputType": "OfficeIMO.Toml.TomlPatchReport",
+      "shouldProcess": false,
+      "parameterSets": [
+        {
+          "name": "JsonPatch",
+          "default": true,
+          "parameters": [
+            {
+              "name": "JsonPatch",
+              "type": "object",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "none"
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Document",
+              "type": "TomlDocument",
+              "mandatory": false,
+              "pipeline": "byValue"
+            }
+          ]
+        },
+        {
+          "name": "MergePatch",
+          "default": false,
+          "parameters": [
+            {
+              "name": "MergePatch",
+              "type": "object",
+              "mandatory": true,
+              "pipeline": "none"
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Document",
+              "type": "TomlDocument",
+              "mandatory": false,
+              "pipeline": "byValue"
+            }
+          ]
+        }
+      ],
+      "notes": "Takes JSON text, or hashtables and objects. Only the patched lines change; objects become [header] tables. TOML has no null, so a null value in a JSON Patch fails, while a merge patch null removes the key. A failure writes a non-terminating toml-patch-failed error and leaves the document unchanged.",
+      "examples": [
+        {
+          "title": "Bump a version only when it is the expected one",
+          "description": "Tests and replaces the version and appends a dependency inside an editing block.",
+          "code": "Open-OfficeToml -Path .\\pyproject.toml {\n    Update-OfficeToml -JsonPatch @(\n        @{ op = 'test'; path = '/project/version'; value = '1.4.0' }\n        @{ op = 'replace'; path = '/project/version'; value = '1.5.0' }\n        @{ op = 'add'; path = '/project/dependencies/-'; value = 'click' }\n    )\n}"
+        },
+        {
+          "title": "Change and remove settings with a merge patch",
+          "description": "Sets the line length and removes the exclude list.",
+          "code": "Update-OfficeToml -Document $doc -MergePatch @{ tool = @{ ruff = @{ 'line-length' = 100; exclude = $null } } }"
+        }
+      ]
+    },
+    {
+      "name": "ConvertFrom-OfficeToml",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Converts TOML text to PowerShell objects, as ConvertFrom-Json does for JSON.",
+      "outputType": "PSCustomObject, System.Collections.Specialized.OrderedDictionary",
+      "shouldProcess": false,
+      "parameterSets": [
+        {
+          "name": "InputObject",
+          "default": true,
+          "parameters": [
+            {
+              "name": "InputObject",
+              "type": "string",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "AsHashtable",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Depth",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Untrusted",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ],
+      "notes": "Tables become PSCustomObjects in file order (ordered hashtables with -AsHashtable), arrays and arrays of tables arrays, integers Int64, floats Double, and date-times DateTimeOffset, DateTime or TimeSpan by kind. Piped lines are joined before parsing. -Depth sets the deepest nesting accepted.",
+      "examples": [
+        {
+          "title": "Read project dependencies",
+          "description": "Reads pyproject.toml and returns its dependency list.",
+          "code": "$project = Get-Content -Path ./pyproject.toml -Raw | ConvertFrom-OfficeToml\n$project.project.dependencies"
+        },
+        {
+          "title": "List locked packages",
+          "description": "Reads Cargo.lock as hashtables and prints each package with its version.",
+          "code": "(Get-Content ./Cargo.lock | ConvertFrom-OfficeToml -AsHashtable).package | ForEach-Object { '{0} {1}' -f $_.name, $_.version }"
+        }
+      ]
+    },
+    {
+      "name": "ConvertTo-OfficeToml",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Converts PowerShell objects to TOML text, as ConvertTo-Json does for JSON.",
+      "outputType": "System.String",
+      "shouldProcess": false,
+      "parameterSets": [
+        {
+          "name": "InputObject",
+          "default": true,
+          "parameters": [
+            {
+              "name": "InputObject",
+              "type": "object",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "Depth",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "RootName",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ],
+      "notes": "Hashtables and object properties become tables: nested objects are written as [table] sections and lists of objects as [[array]] sections. TOML has no null, so nulls are omitted with a warning. Input that is not an object, such as several piped objects, is written under -RootName. Values deeper than -Depth (default 2) become their string form with a warning.",
+      "examples": [
+        {
+          "title": "Turn a hashtable into TOML",
+          "description": "Writes a small service definition with a nested table.",
+          "code": "[ordered]@{ name = 'web'; port = 8080; tls = [ordered]@{ enabled = $true } } | ConvertTo-OfficeToml"
+        },
+        {
+          "title": "Write piped objects as an array of tables",
+          "description": "Writes three processes as [[process]] sections.",
+          "code": "Get-Process | Select-Object -First 3 Name, Id | ConvertTo-OfficeToml -RootName process"
+        }
+      ]
+    },
+    {
+      "name": "Import-OfficeToml",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Reads TOML files as PowerShell objects.",
+      "outputType": "PSCustomObject, System.Collections.Specialized.OrderedDictionary",
+      "shouldProcess": false,
+      "parameterSets": [
+        {
+          "name": "Path",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string[]",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "AsHashtable",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Depth",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Untrusted",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "LiteralPath",
+          "default": false,
+          "parameters": [
+            {
+              "name": "LiteralPath",
+              "type": "string[]",
+              "mandatory": true,
+              "pipeline": "byPropertyName",
+              "aliases": [
+                "FullName",
+                "PSPath"
+              ]
+            },
+            {
+              "name": "AsHashtable",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Depth",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Untrusted",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ],
+      "notes": "The file form of ConvertFrom-OfficeToml, with the same output parameters. A file that fails to parse writes a non-terminating error with the engine code, line and column, and the next file is read.",
+      "examples": [
+        {
+          "title": "Read a tool setting",
+          "description": "Reads the ruff settings from pyproject.toml.",
+          "code": "$ruff = (Import-OfficeToml -Path ./pyproject.toml).tool.ruff\n$ruff.'line-length'"
+        },
+        {
+          "title": "List crate names",
+          "description": "Reads every Cargo.toml under the crates folder and returns the package names.",
+          "code": "Get-ChildItem ./crates -Filter Cargo.toml -Recurse | Import-OfficeToml | ForEach-Object { $_.package.name }"
+        }
+      ]
+    },
+    {
+      "name": "Export-OfficeToml",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Writes PowerShell objects to a TOML file.",
+      "outputType": "System.IO.FileInfo",
+      "shouldProcess": true,
+      "parameterSets": [
+        {
+          "name": "InputObject",
+          "default": true,
+          "parameters": [
+            {
+              "name": "InputObject",
+              "type": "object",
+              "mandatory": true,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "Path",
+              "type": "string",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "none"
+            },
+            {
+              "name": "Depth",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "RootName",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "NoClobber",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ],
+      "notes": "The file form of ConvertTo-OfficeToml. Writes UTF-8 without a byte-order mark, atomically; replaces an existing file unless -NoClobber.",
+      "examples": [
+        {
+          "title": "Save settings to a file",
+          "description": "Writes a title and an owner table to a settings file.",
+          "code": "[ordered]@{ title = 'Report'; owner = [ordered]@{ name = 'Ops'; updated = Get-Date } } | Export-OfficeToml -Path ./settings.toml"
+        },
+        {
+          "title": "Export an inventory without replacing a file",
+          "description": "Writes the server list as [[server]] sections and refuses to overwrite an existing file.",
+          "code": "Import-OfficeCsv -Path ./servers.csv | Export-OfficeToml -Path ./inventory.toml -RootName server -NoClobber -PassThru"
+        }
+      ]
+    },
+    {
+      "name": "Test-OfficeToml",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Tests whether TOML files or text load, returning a Boolean or the error position.",
+      "outputType": "System.Boolean, PSWriteOffice.Models.Toml.OfficeTomlTestResult",
+      "shouldProcess": false,
+      "parameterSets": [
+        {
+          "name": "Path",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string[]",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "Untrusted",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Detailed",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "LiteralPath",
+          "default": false,
+          "parameters": [
+            {
+              "name": "LiteralPath",
+              "type": "string[]",
+              "mandatory": true,
+              "pipeline": "byPropertyName",
+              "aliases": [
+                "FullName",
+                "PSPath"
+              ]
+            },
+            {
+              "name": "Untrusted",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Detailed",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "Text",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Text",
+              "type": "string",
+              "mandatory": true,
+              "pipeline": "none"
+            },
+            {
+              "name": "Untrusted",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Detailed",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ],
+      "notes": "Returns $true or $false for each input, as Test-Json does. -Detailed returns the engine error code, message, and 1-based line and column. Loading checks all of TOML 1.1; -Untrusted applies the untrusted limits.",
+      "examples": [
+        {
+          "title": "Gate a pipeline on a valid file",
+          "description": "Stops the script when the project file does not load.",
+          "code": "if (-not (Test-OfficeToml -Path .\\pyproject.toml)) { throw 'pyproject.toml is not valid TOML.' }"
+        },
+        {
+          "title": "Report where broken files fail",
+          "description": "Tests every TOML file under the crates folder and lists the position of each failure.",
+          "code": "Get-ChildItem -Path .\\Crates -Recurse -Filter *.toml | Test-OfficeToml -Detailed |\n    Where-Object { -not $_.IsValid } |\n    Select-Object -Property Path, Line, Column, Code, Message"
         }
       ]
     },

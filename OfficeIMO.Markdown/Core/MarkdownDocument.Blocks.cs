@@ -12,7 +12,12 @@ public partial class MarkdownDocument {
     /// <summary>Whether the document has front matter.</summary>
     public bool HasDocumentHeader => DocumentHeader != null;
 
-    internal MarkdownParseInfo? AttachedParseResult => _parseResult;
+    internal MarkdownParseInfo? AttachedParseResult {
+        get {
+            EnsureSourceInformation();
+            return _parseResult;
+        }
+    }
 
     /// <summary>Adds a block instance and returns that same typed block.</summary>
     /// <typeparam name="T">The block type.</typeparam>
@@ -38,7 +43,7 @@ public partial class MarkdownDocument {
                 _lastBlock = block;
             }
         }
-        _parseResult = null;
+        ClearParseOwnedState();
         MarkdownObjectTreeBinder.BindDocument(this);
         return Array.AsReadOnly(added);
     }
@@ -51,7 +56,7 @@ public partial class MarkdownDocument {
             _blocks.Add(block);
             _lastBlock = block;
         }
-        _parseResult = null;
+        ClearParseOwnedState();
         RequestObjectTreeBinding();
         return this;
     }

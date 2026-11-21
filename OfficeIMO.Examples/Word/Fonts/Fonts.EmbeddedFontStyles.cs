@@ -11,13 +11,9 @@ namespace OfficeIMO.Examples.Word {
                 return;
             }
 
-            var style = new WordParagraphStyleDefinition("EmbeddedStyle") {
-                FontFamily = "DejaVu Sans"
-            };
-            WordParagraphStyle.RegisterCustomStyle("EmbeddedStyle", style);
-
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.EmbedFont(fontPath);
+                document.Styles.AddParagraphStyle("EmbeddedStyle").FontFamily = "DejaVu Sans";
 
                 document.AddParagraph("Paragraph using custom embedded style").SetStyleId("EmbeddedStyle");
                 document.AddParagraph("Paragraph using builtin Times New Roman").SetFontFamily("Times New Roman");

@@ -379,6 +379,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 // shaping scope for neighbouring independently measured words.
                 && !HasProviderMeasurementContext(segment)
                 && !HasProviderMeasurementContext(merged[merged.Count - 1])
+                // A justified separator keeps its own paint position.
+                && segment.JustificationAdvance == 0D
+                && merged[merged.Count - 1].JustificationAdvance == 0D
                 && ReferenceEquals(merged[merged.Count - 1].Run, segment.Run)) {
                 InlineSegment previous = merged[merged.Count - 1];
                 merged[merged.Count - 1] = new InlineSegment(
@@ -405,7 +408,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (run.AtomicBlock != null || run.PreparedShaping != null || !run.Style.TextFeatureSettings.IsDefault) return null;
         bool extendedBmp = false;
         foreach (InlineSegment segment in segments) {
-            if (!ReferenceEquals(segment.Run, run) || segment.PreparedShaping != null || segment.Text.Length == 0) return null;
+            if (!ReferenceEquals(segment.Run, run) || segment.PreparedShaping != null || segment.Text.Length == 0
+                || segment.JustificationAdvance != 0D) return null;
             // Keep surrogate boundaries on the existing prefix-sensitive path.
             foreach (char value in segment.Text) {
                 if (value > '\u00FF') {
@@ -420,26 +424,43 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
             }
         }
-        var text = new StringBuilder(first.Text);
-        var logical = new StringBuilder(first.LogicalText);
         double width = first.Width;
         double leading = first.LeadingAdvance;
         double trailing = first.TrailingAdvance;
+        int textLength = first.Text.Length, logicalLength = first.LogicalText.Length;
+        bool logicalIsText = string.Equals(first.Text, first.LogicalText, StringComparison.Ordinal);
         for (int index = 1; index < segments.Count; index++) {
             InlineSegment segment = segments[index];
-            text.Append(segment.Text);
-            logical.Append(segment.LogicalText);
+            textLength += segment.Text.Length;
+            logicalLength += segment.LogicalText.Length;
+            logicalIsText &= string.Equals(segment.Text, segment.LogicalText, StringComparison.Ordinal);
             width += segment.Width;
             leading += segment.LeadingAdvance;
             trailing += segment.TrailingAdvance;
         }
-        string logicalText = logical.ToString();
+        string text = ConcatSegmentText(segments, textLength, logical: false);
+        string logicalText = logicalIsText ? text : ConcatSegmentText(segments, logicalLength, logical: true);
         if (extendedBmp && OfficeManagedTextShaper.RequiresComplexLayout(logicalText)) return null;
-        return new InlineSegment(text.ToString(), width, run, logicalText,
+        return new InlineSegment(text, width, run, logicalText,
             logicalEndProgress: segments[segments.Count - 1].LogicalEndProgress) {
             LeadingAdvance = leading,
             TrailingAdvance = trailing
         };
+    }
+
+    private static string ConcatSegmentText(IReadOnlyList<InlineSegment> segments, int length, bool logical) {
+        char[] buffer = System.Buffers.ArrayPool<char>.Shared.Rent(length);
+        try {
+            int position = 0;
+            for (int index = 0; index < segments.Count; index++) {
+                string value = logical ? segments[index].LogicalText : segments[index].Text;
+                value.CopyTo(0, buffer, position, value.Length);
+                position += value.Length;
+            }
+            return new string(buffer, 0, length);
+        } finally {
+            System.Buffers.ArrayPool<char>.Shared.Return(buffer);
+        }
     }
 
     private bool HasProviderMeasurementContext(InlineSegment segment) => segment.PreparedShaping != null
@@ -512,7 +533,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private static string SliceLogicalToken(HtmlInlineRun run, string token, ref int offset) {
         if (offset >= 0 && token.Length <= run.LogicalText.Length - offset) {
-            string value = run.LogicalText.Substring(offset, token.Length);
+            // Without shaping the logical text is the paint text, so the token itself is the slice.
+            string value = string.CompareOrdinal(run.LogicalText, offset, token, 0, token.Length) == 0
+                ? token
+                : run.LogicalText.Substring(offset, token.Length);
             offset += token.Length;
             return value;
         }

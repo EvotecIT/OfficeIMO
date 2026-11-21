@@ -94,7 +94,7 @@ Run `Test-ApiMap.ps1` after every change. It checks coverage, targets, parameter
 
 ## Shipped public API baselines
 
-Core, Word, Excel, PowerPoint, Pdf, Markdown and the `OfficeIMO` front door use
+Core, Word, Excel, PowerPoint, Pdf, Markdown, Yaml and the `OfficeIMO` front door use
 `Microsoft.CodeAnalysis.PublicApiAnalyzers` as a private build dependency. The
 compiler checks public declarations and their nullable annotations against each
 package's `PublicAPI.Shipped.txt` and `PublicAPI.Unshipped.txt`. Normal builds keep

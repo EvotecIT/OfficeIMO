@@ -259,5 +259,45 @@
         </TableColumnItems></TableRowEntry></TableRowEntries>
       </TableControl>
     </View>
+    <View>
+      <Name>PSWriteOffice.Models.OfficeHiddenDataFileReport</Name>
+      <ViewSelectedBy><TypeName>PSWriteOffice.Models.OfficeHiddenDataFileReport</TypeName></ViewSelectedBy>
+      <TableControl>
+        <TableHeaders>
+          <TableColumnHeader><Label>Name</Label></TableColumnHeader>
+          <TableColumnHeader><Label>Format</Label></TableColumnHeader>
+          <TableColumnHeader><Label>Findings</Label></TableColumnHeader>
+          <TableColumnHeader><Label>Changed</Label></TableColumnHeader>
+          <TableColumnHeader><Label>Output</Label></TableColumnHeader>
+        </TableHeaders>
+        <TableRowEntries><TableRowEntry><TableColumnItems>
+          <TableColumnItem><ScriptBlock>[IO.Path]::GetFileName($_.Path)</ScriptBlock></TableColumnItem>
+          <TableColumnItem><PropertyName>Format</PropertyName></TableColumnItem>
+          <TableColumnItem><ScriptBlock>$_.Findings.Count</ScriptBlock></TableColumnItem>
+          <TableColumnItem><PropertyName>Changed</PropertyName></TableColumnItem>
+          <TableColumnItem><ScriptBlock>if ($_.OutputPath) { [IO.Path]::GetFileName($_.OutputPath) }</ScriptBlock></TableColumnItem>
+        </TableColumnItems></TableRowEntry></TableRowEntries>
+      </TableControl>
+    </View>
+    <View>
+      <Name>OfficeIMO.OfficeHiddenDataFinding</Name>
+      <ViewSelectedBy><TypeName>OfficeIMO.OfficeHiddenDataFinding</TypeName></ViewSelectedBy>
+      <TableControl>
+        <TableHeaders>
+          <TableColumnHeader><Label>Outcome</Label></TableColumnHeader>
+          <TableColumnHeader><Label>Kind</Label></TableColumnHeader>
+          <TableColumnHeader><Label>Description</Label></TableColumnHeader>
+          <TableColumnHeader><Label>Value</Label></TableColumnHeader>
+          <TableColumnHeader><Label>Location</Label></TableColumnHeader>
+        </TableHeaders>
+        <TableRowEntries><TableRowEntry><TableColumnItems>
+          <TableColumnItem><PropertyName>Outcome</PropertyName></TableColumnItem>
+          <TableColumnItem><PropertyName>Kind</PropertyName></TableColumnItem>
+          <TableColumnItem><PropertyName>Description</PropertyName></TableColumnItem>
+          <TableColumnItem><PropertyName>Value</PropertyName></TableColumnItem>
+          <TableColumnItem><PropertyName>Location</PropertyName></TableColumnItem>
+        </TableColumnItems></TableRowEntry></TableRowEntries>
+      </TableControl>
+    </View>
   </ViewDefinitions>
 </Configuration>

@@ -1,5 +1,5 @@
 param(
-    [string] $EvidenceRoot = (Join-Path $PSScriptRoot '../Docs/benchmarks/html-pdf-artifact-evidence')
+    [string] $EvidenceRoot = (Join-Path $PSScriptRoot 'HtmlPdfArtifactEvidence')
 )
 
 $ErrorActionPreference = 'Stop'

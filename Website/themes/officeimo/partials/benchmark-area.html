@@ -1,0 +1,32 @@
+{{~ # One benchmark area page. Set benchmark_area_id before including. Every declared comparison of the area is ~}}
+{{~ # rendered by the PowerForge comparison component from data.benchmarks (site.json BenchmarkEvidence). ~}}
+{{~ area = null ~}}
+{{~ for candidate in data.benchmark_areas.areas; if candidate.id == benchmark_area_id; area = candidate; end; end ~}}
+{{~ if area ~}}
+{{~ comparisons = [] ~}}
+{{~ for c in data.benchmarks.comparisons; if c.area == area.id; comparisons = comparisons | array.add c; end; end ~}}
+{{~ published = 0 ~}}
+{{~ measured = 0 ~}}
+{{~ for c in comparisons ~}}
+{{~ shown = false ~}}
+{{~ for r in c.runs; if r.published; shown = true; end; end ~}}
+{{~ if shown; published = published + 1; end ~}}
+{{~ if c.measured; measured = measured + 1; end ~}}
+{{~ end ~}}
+<div class="imo-bench-area-page" data-benchmark-area="{{ area.id }}">
+  <nav class="imo-bench-crumbs" aria-label="Breadcrumb"><a href="/benchmarks/">Benchmarks</a> <span aria-hidden="true">/</span> <span>{{ area.title }}</span></nav>
+  <p class="imo-bench-lead">A comparison runs OfficeIMO and other .NET libraries on the same validated work, one machine and one operating system at a time; a suite that measures OfficeIMO alone is listed without being published. Lower is better.</p>
+  <p class="imo-bench-status" data-benchmark-area-status>{{ published }} of {{ comparisons.size }} {{ if comparisons.size == 1 }}comparison has{{ else }}comparisons have{{ end }} a published run{{ if measured > published }}; {{ measured - published }} measured without a published run{{ end }}.</p>
+  {{~ if comparisons.size > 1 ~}}
+  <nav class="imo-bench-toc" aria-label="Comparisons on this page">
+    {{~ for c in comparisons ~}}<a href="#benchmark-{{ c.id }}">{{ c.title }}</a>{{~ end ~}}
+  </nav>
+  {{~ end ~}}
+  <div class="imo-bench-comparisons">
+    {{~ for c in comparisons ~}}
+    {{ include "powerforge/benchmarks/comparison" c }}
+    {{~ end ~}}
+  </div>
+  {{ include "benchmark-method" }}
+</div>
+{{~ end ~}}

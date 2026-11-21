@@ -23,6 +23,8 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using (var document = ExcelDocument.Create(stream)) {
                 document.SheetCachingEnabled = false;
+                // Automatic date formats apply to DateTimeOffset values written as date serials.
+                if (kind == "offset") document.DateTimeOffsetWriteMode = ExcelDateTimeOffsetWriteMode.Serial;
                 ExcelSheet sheet = document.AddSheet("Values");
                 ExcelSheet source = document.AddSheet("Styles");
                 source.Cell(1, 1).SetBold();

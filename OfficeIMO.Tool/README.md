@@ -47,6 +47,7 @@ officeimo pdf decrypt protected.pdf --password-env PDF_OWNER_PASSWORD --output c
 officeimo pdf flatten report.pdf --output raster.pdf --acknowledge-raster-output --dpi 150
 officeimo pdf optimize report.pdf --output optimized.pdf
 officeimo pdf sanitize report.pdf --output sanitized.pdf
+officeimo pdf convert-to-pdfa report.pdf --output report-archive.pdf --profile 3b --attachments refuse
 officeimo pdf providers --ocr-provider-assembly ./providers/OfficeIMO.Ocr.Tesseract.dll
 officeimo pdf ocr scan.pdf --output searchable.pdf --ocr-provider tesseract-cli --ocr-provider-assembly ./providers/OfficeIMO.Ocr.Tesseract.dll --ocr-language eng
 ```
@@ -57,6 +58,23 @@ input. Existing files or folders require `--force`; a source or folder containin
 it cannot be the destination. Decryption requires the owner password in the named
 environment variable. Other protected-document operations retain the PDF engine's
 permission and signature policy.
+
+`convert-to-pdfa` writes a PDF/A-2b copy by default; `--profile` selects `2b`,
+`2u`, `3b`, `3u`, `4` or `4f`. `--attachments remove|refuse` decides what happens
+to embedded files that PDF/A-2 and PDF/A-4 cannot carry. The default is `remove`;
+pass `--attachments refuse` when losing embedded files is not acceptable. Fonts the source does
+not embed are substituted from installed fonts; repeat
+`--font <family>=<file.ttf>` (with `:bold`, `:italic` or `:bold-italic` after the
+family for other faces) to try your own faces first; each family you supply needs
+a regular face. Add
+`--font-substitution none` to use only those. A face is embedded only when its
+glyph widths match the page and its licence allows embedding. For device CMYK
+content, supply `--output-intent <profile.icc> --output-condition-identifier <id>`.
+An encrypted source needs its owner password through `--password-env`. Standard
+error lists every change, or every violation when the source cannot be converted,
+one per line with its location and object number. The JSON result's `pdfA` report
+keeps exact change and violation counts; its entries are trimmed to the output
+budget, and `truncated` is `true` when any were left out. A refused conversion writes nothing and exits with `4`.
 
 Flattening copies rendered appearances. Native text, forms, links, signatures,
 and attachments are omitted, so `--acknowledge-raster-output` is required.
@@ -139,7 +157,7 @@ to 16 MiB. For the pinned authority downloads and runtime requirements, see the
 
 DOC conversion blocks known legacy import loss by default; `--allow-legacy-loss` explicitly accepts the reported reductions. TXT conversion treats HTML and Markdown as literal text, detects Unicode BOMs and otherwise uses strict UTF-8. Use `--text-encoding` and `--tab-size` for explicit text settings. The adapter's diagnostics remain on standard error.
 
-Batch conversion uses the existing executable workflow catalog. PDF routes include DOC, DOCX, TXT, XLSX, PPTX, HTML, Markdown, RTF, Draw, DjVu and Publisher. Files without an eligible route are counted as skipped. Checkpoints are optional. Resolve relative paths from the directory where the command runs:
+Batch conversion uses the existing executable workflow catalog and the structured-data routes. PDF routes include DOC, DOCX, TXT, XLSX, PPTX, HTML, Markdown, RTF, Draw, DjVu and Publisher; data targets are `json`, `jsonl`, `yaml`, `toml`, `xml`, `csv`, `tsv` and `xlsx`. `--route <id>` selects one route and, without `--target`, its target. Files without an eligible route are skipped and counted on standard error; `--verbose` lists them, and the report always does. Checkpoints are optional. Resolve relative paths from the directory where the command runs:
 
 ```powershell
 officeimo workflow batch --input-directory ./Documents --output ./PDF
@@ -148,11 +166,14 @@ officeimo workflow batch --input-directory ./Documents --output ./PDF --checkpoi
 officeimo workflow batch --input-directory ./Documents --output ./PDF --checkpoint ./PDF-State --retry-failed
 # Explicit files and other existing conversion targets use the same command.
 officeimo workflow batch report.pdf appendix.pdf --output ./HTML --target html
+officeimo workflow batch --input-directory ./config --output ./json --route toml-json
 
 officeimo workflow printers
-officeimo workflow printers --paper-sources "Office printer"
+officeimo workflow printers --capabilities "Office printer"
 officeimo workflow print report.pdf --printer "Office printer" --pages 1-3 `
   --pages-per-sheet 2 --copies 1 --duplex long
+officeimo workflow print proposal.docx --printer ipp://printer.local/ipp/print
+officeimo workflow print-job wait --printer "Office printer" --job Office_printer-42 --timeout 300
 officeimo workflow print-plan report.pdf --pages-per-sheet 6 --page-subset odd `
   --scale custom --custom-scale 40 --alignment bottom-right --margin 18 `
   --margin-left 24 --margin-right 24 --color grayscale
@@ -160,9 +181,13 @@ officeimo workflow print-plan report.pdf --pages-per-sheet 6 --page-subset odd `
 
 Ordinary batches accept `--conflict fail|rename|replace`. Checkpoint jobs require `fail` and separate source, output and state trees. Changed completed inputs/settings/resources, altered or missing outputs and existing outputs without a verified receipt require inspection. Concurrency and execution budgets can change without discarding verified artifacts. Item failures produce a nonzero exit code. See [the batch contract](../OfficeIMO.Workflows/README.md#optional-checkpoints) for resource limits, diagnostics and recorded-artifact reuse across compatible engine updates.
 
-Printer submission uses prepared raster sheets. The returned job identifier proves queue acceptance; physical delivery is unconfirmed. After an interrupted submission, check the queue before retrying. Windows file printers require `--output-file` naming a new local file. macOS/Linux delivery uses the existing CUPS service boundary and requires its command-line tools.
+`print` accepts PDF and every format the conversion catalog turns into PDF; other formats are converted in memory and conversion warnings are written to standard error. `--printer` takes an installed queue name or an `ipp://` or `ipps://` printer URI. IPP printers and CUPS queues receive vector PDF where they accept it and PWG raster otherwise; CUPS queues are reached over IPP at the local scheduler, with `lp` as the fallback. Windows drivers receive one rasterized sheet at a time. Grayscale jobs (`--color grayscale`) go as vector PDF with `print-color-mode=monochrome` to IPP printers and IPP-reached CUPS queues that list it, and as gray raster otherwise; `--raster-grayscale` always sends gray raster, so the printout matches the preview exactly. Raster delivery uses up to `--dpi` (300 by default). Without `--paper`, sheets use the printer's default media. Attributes the printer ignored are written to standard error. `printers --capabilities <printer>` lists media, trays, duplex, color, collation, copies and resolutions; `printers --paper-sources <printer>` lists only the trays. Windows file printers require `--output-file` naming a new local file.
 
-Both `print-plan` and `print` accept 1/2/4/6/9 pages per sheet, `--page-subset all|odd|even`, nine-position `--alignment`, and per-edge point margins (`--margin-left`, `--margin-top`, `--margin-right`, `--margin-bottom`). Odd/even refers to original document page numbers within `--pages`. `--scale custom --custom-scale <percent>` uses 1–1000 percent of source physical size and clips overflow. `--color grayscale` changes the prepared pixels; `--color color` retains source colors, subject to the device's capabilities. Layout margins do not remove printer hardware margins.
+The returned job identifier proves queue acceptance; physical delivery is unconfirmed. `print-job status|wait|cancel --printer <printer> --job <id>` reads the job's state (Pending, Held, Processing, Stopped, Canceled, Aborted, Completed or Removed), waits up to `--timeout` seconds (300 by default) for it to finish, or cancels it. After an interrupted submission, check the queue before retrying.
+
+`print-plan` and `print` read the password of an encrypted PDF from the environment variable named by `--password-env`, never from the command line. Printing permissions stay enforced: a document that denies printing, or a wrong password, fails before anything is submitted.
+
+Both `print-plan` and `print` accept 1/2/4/6/9 pages per sheet, `--page-subset all|odd|even`, nine-position `--alignment`, and per-edge point margins (`--margin-left`, `--margin-top`, `--margin-right`, `--margin-bottom`). Odd/even refers to original document page numbers within `--pages`. `--scale custom --custom-scale <percent>` uses 1–1000 percent of source physical size and clips overflow. `--color grayscale` previews the sheets in grayscale and prints them in grayscale; `--color color` retains source colors, subject to the device's capabilities. Layout margins do not remove printer hardware margins.
 
 ## Saved conversion jobs
 
@@ -245,6 +270,24 @@ officeimo convert diagram.odg diagram.pdf
 officeimo convert diagram.fodg diagram.pdf --diagram-layers screen
 officeimo convert diagram.odg diagram.pdf --require-no-loss
 
+# OpenDocument, email, EPUB and Visio to PDF
+officeimo convert report.odt report.pdf
+officeimo convert budget.ods budget.pdf
+officeimo convert slides.odp slides.pdf
+officeimo convert message.eml message.pdf
+officeimo convert message.msg archive.pdf --text-only
+officeimo convert book.epub book.pdf
+officeimo convert diagram.vsdx diagram.pdf
+
+# Markdown, HTML, RTF and ODT to Word, and Office to OpenDocument and back
+officeimo convert notes.md notes.docx
+officeimo convert page.html page.docx
+officeimo convert letter.rtf letter.docx
+officeimo convert report.docx report.odt
+officeimo convert report.odt report.docx
+officeimo convert workbook.xlsx workbook.ods
+officeimo convert deck.pptx deck.odp
+
 # DjVu scans to searchable PDF, using existing text layers
 officeimo convert book.djvu book.pdf
 officeimo convert scan.djv scan.pdf --require-no-loss
@@ -255,9 +298,21 @@ officeimo convert budget.numbers budget.xlsx
 officeimo convert presentation.key presentation.pptx
 officeimo convert document.pages document.pdf
 
+# Structured data between JSON, JSON Lines, YAML, TOML, XML, CSV, TSV and XLSX
+officeimo convert settings.yaml settings.json
+officeimo convert settings.json settings.toml --require-no-loss
+officeimo convert response.json items.csv --select data.items --columns id,name,address.city
+officeimo convert people.json people.xml --root-name people
+officeimo convert budget.xlsx budget.json --sheet Summary --range A1:D20
+
+# CSV or TSV to a typed workbook, and the first worksheet back to CSV
+officeimo convert people.csv people.xlsx
+officeimo convert budget.xlsx budget.csv
+
 # Supported documents to Markdown or JSON through OfficeIMO.Reader
 officeimo convert workbook.xlsx workbook.md
 officeimo convert report.docx report.json
+officeimo read settings.yaml --format json --output settings.reader.json
 
 # Extract to standard output or a file
 officeimo read report.docx --format markdown
@@ -268,10 +323,15 @@ officeimo inspect deck.pptx
 
 # Inspect and convert tabular data without loading an editable workbook
 officeimo tabular sheets workbook.xlsx
+# schema prints each column's type as string, integer, number, boolean or datetime
 officeimo tabular schema workbook.xlsx --sheet Data
 officeimo tabular convert input.csv output.xlsx
 officeimo tabular convert workbook.xlsb output.tsv --sheet Data
 officeimo tabular convert pipe-delimited.csv output.csv --delimiter '|' --output-delimiter ','
+
+# Query YAML, JSON and TOML with one path grammar
+officeimo query deployment.yaml 'spec.template.spec.containers[*].image'
+officeimo query Cargo.lock "package[?(@.name == 'serde')].version" --input-format toml --format json
 
 # Analyze embedded Word images without writing a file
 officeimo workflow optimize-images input.docx --analyze
@@ -280,16 +340,19 @@ officeimo workflow optimize-images input.docx --analyze
 officeimo workflow optimize-images input.docx --output optimized.docx --mode both --dpi 144 --quality 85
 
 # Process an explicit batch; each output is independently staged and reopened
-officeimo workflow optimize-images first.docx second.docx --output-directory optimized --format pdf --mode both
+officeimo workflow optimize-images first.docx second.docx --output-directory optimized --output-format pdf --mode both
 
 # Export selected PDF pages to validated images
-officeimo workflow export-pages report.pdf --output .\report-pages --pages 1-3,last --format png
+officeimo workflow export-pages report.pdf --output .\report-pages --pages 1-3,last --image-format png
 
 # Assemble an ordered PDF from files, folders, images, and ZIP archives
 officeimo workflow assemble cover.png report.docx appendices .\attachments.zip --output complete.pdf
 
 # Inspect print-sheet placement without requiring a platform printer driver
 officeimo workflow print-plan complete.pdf --paper A4 --pages-per-sheet 2 --scale fit
+
+# Workflow commands other than batch write versioned JSON; --format text prints a summary
+officeimo workflow print-plan complete.pdf --format text
 
 # Inspect or assess provenance with versioned JSON output
 officeimo provenance inspect report.docx
@@ -309,38 +372,77 @@ officeimo pdf redact batch --request redaction.batch.json
 
 The positional destination is optional for supported Office and Draw inputs to PDF conversion. When omitted, the tool writes a sibling `.pdf` file. `--output <path>` remains available for scripts that prefer named options.
 
-Markdown and JSON destinations are semantic Reader projections rather than fixed-layout renderings. They use the same handlers as `officeimo reader read` and support every input format reported by `officeimo reader capabilities`.
+When both files are data formats, `convert` runs the structured-data route and reports each loss on standard error; `--require-no-loss` refuses to publish lossy output. `--select`, `--columns`, `--root-name`, `--sheet` and `--range` set the row path, the table columns and their order, the XML root name, and the XLSX worksheet and range.
+
+Markdown destinations, and JSON destinations for sources without a data route, are semantic Reader projections rather than fixed-layout renderings. They use the same handlers as `officeimo reader read` and support every input format reported by `officeimo reader capabilities`. For the Reader JSON of a data file, use `officeimo read <file> --format json`.
 
 `officeimo reader read` accepts iWork directory bundles with `.pages`, `.numbers`, or `.key` extensions as individual documents. Folder discovery also keeps each bundle intact. Export files and asset directories must be outside the source bundle; reported size and content hashes describe the bounded captured package. These Reader outputs are semantic extraction, with the same rendering limits as other Reader routes.
 
 Apple-to-OOXML and Apple-to-PDF conversion accept ZIP files and local directory packages and returns JSON with typed fidelity diagnostics, producer/projection facts, source snapshot SHA-256, coverage, and publication status. Defaults reject partial editable reconstruction and previews without known complete coverage. Use `--iwork-mode auto|editable|visual`, `--allow-partial`, `--allow-incomplete-preview`, and `--normalize-worksheet-names` only when those acceptance choices fit the task. `--max-input-bytes` and `--max-output-bytes` bound conversion. Directory-package checksums describe a private transport ZIP, identified by `snapshotKind = DirectoryPackage`. Root replacement and changes to file membership or content prevent publication. The destination must be outside the source package and separate from its members. Native permission-scoped directory intake remains outside this local-filesystem contract. PDF requires complete editable reconstruction and retains both source and PDF-stage evidence; partial output, previews, content exclusion and PDF-stage omissions or failures are rejected.
 
-All `convert` destinations are protected from accidental replacement. Pass `--force` explicitly when an existing output file should be replaced.
+All `convert`, `read`, `extract`, `reader` and `agent convert` destinations are protected from accidental replacement. Pass `--force` explicitly when an existing output file should be replaced.
 
 ## Command areas
 
 - `officeimo invoice` inspects, validates, converts and renders CII/UBL invoices through the shared invoice workflows, individually or in bounded batches.
 
-- `officeimo convert` routes Apple-to-OOXML and Apple-to-PDF destinations through `OfficeIMO.Workflows.IWork`, Office PDF destinations to their first-party adapters, Draw PDF destinations through `OfficeIMO.Workflows`, and Markdown/JSON destinations to OfficeIMO.Reader.
+- `officeimo convert` selects a route from the shared conversion catalog by input and output extension and runs it through the same registration as `OfficeIMO.Workflows` and the `officeimo_convert` MCP tool. `officeimo convert --help` lists the routes; the [conversion route catalog](../Docs/Compatibility/generated/conversion-routes.md) marks them in its Hosts column. Apple-to-OOXML and Apple-to-PDF destinations use `OfficeIMO.Workflows.IWork`, and Markdown/JSON destinations use OfficeIMO.Reader. Email PDF renders the styled message (subject, sender, recipients, date, HTML or plain body, inline images and the attachment list) through the HTML-to-PDF engine; `--text-only` writes the Reader text projection instead.
 - `officeimo read` and `officeimo extract` are convenient aliases for `officeimo reader read`.
 - `officeimo inspect` is a convenient alias for `officeimo agent inspect`.
 - `officeimo tabular` lists workbook sheets, reports reader schemas, and converts CSV, TSV, XLSX, XLSB, or XLS tabular data.
+- `officeimo query` selects values from YAML, JSON, or TOML files with wildcards, recursive descent, and filters, and prints each match's path and line and column as text or JSON.
 - `officeimo workflow` exports PDF pages, assembles mixed document sources, and creates deterministic print-sheet plans.
 - `officeimo pdf redact` plans, applies, verifies, and batch-runs source-bound PDF redaction recipes with privacy-safe JSON evidence. `batch --request` accepts the strict `officeimo.pdf.redaction.batch-request.v1` file-set contract, preserves deterministic relative-path ordering, and supports atomic-all or continue-per-item publication. Framework-dependent tool builds load optional provider assemblies only from explicit `--ocr-provider-assembly` paths and select one with `--ocr-provider`; NativeAOT hosts must register a statically linked provider through `OcrEngineCatalog`. The default tool still includes no OCR runtime or model. Use `--ocr-language`, `--ocr-min-confidence`, and repeated `--ocr-option key=value` values for non-secret configuration. Passwords are accepted only through named environment variables, and provider credentials should remain behind environment or secret-store references. Output, evidence, and manifests can never replace the PDF, recipe, decisions, or batch-request input, even with `--force`; zero-area verification of re-encrypted output accepts `--expected-output-sha256` from prior apply evidence. Signing a derivative remains an API-host responsibility because the CLI does not construct external signers.
 - `officeimo provenance` discovers format owners and runs bounded inspect, assess, selective-remove, and batch workflows with versioned JSON or readable text output.
+- `officeimo hidden-data` inspects and removes metadata, comments, hidden content and provenance from Word, Excel and PowerPoint files before sharing.
+- `officeimo accessibility` checks Word, Excel and PowerPoint files for accessibility issues and writes JSON, SARIF 2.1.0 or text.
 - `officeimo html` converts HTML or MHTML to PDF and reports renderer capabilities.
 - `officeimo reader` extracts individual documents or folders as Markdown or JSON and reports supported formats.
 - `officeimo markup` parses, validates, emits, previews, and exports OfficeIMO Markup.
+- `officeimo yaml lint` checks YAML files and folders against yamllint-style rules (text or `officeimo.yaml.lint.v1` JSON, exit code 1 on errors), and `--fix` applies the safe fixes, changing only the repaired lines. `officeimo yaml format` rewrites files in one layout (`--indent`, `--sequences`, `--quotes`, `--line-ending`), with `--write` to replace them and `--check` for CI. Files keep their encoding and byte-order mark.
 - `officeimo agent` returns bounded JSON for inspection, search, selected fetch, conversion, and capability discovery.
 - `officeimo mcp serve --stdio` exposes the compact agent operations to MCP clients.
 
-Run `officeimo help` or append `<area> --help` for the complete command contract.
+Run `officeimo help` or append `<area> --help` for the complete command contract. `officeimo help --format json` prints the same commands, usage lines, options, formats and exit codes as one JSON document (schema `officeimo.tool.commands.v1`) for scripts and documentation generators.
 
 Workflow output is protected from accidental replacement. Pass `--force` to replace an
 existing image folder or assembled PDF. Assembly preserves caller source order, expands
 folders and ZIP entries in deterministic path order, and applies bounded archive entry,
 size, and compression checks before publication. Supported explicit inputs are PDF, DOCX,
 XLSX, PPTX, HTML, common raster image formats, folders, and ZIP archives.
+
+## Hidden data before sharing
+
+```powershell
+# Report properties, comments, hidden content, image metadata and provenance without changing the file
+officeimo hidden-data inspect .\proposal.docx
+
+# Write proposal.cleaned.docx with the default categories; provenance is reported and kept
+officeimo hidden-data remove .\proposal.docx
+
+# Also remove Content Credentials and AI-source declarations, and accept tracked changes
+officeimo hidden-data remove .\proposal.docx --output .\shared.docx --force --kinds default,provenance --tracked-changes accept
+
+# Drop only the AI-generated declaration and keep the Content Credentials
+officeimo hidden-data remove .\poster.docx --kinds default,provenance --keep-provenance c2pa
+```
+
+Output uses the `officeimo.hidden-data.result.v1` schema from `OfficeHiddenDataReportSerializer`, with one finding per item, its outcome and its scope. Inputs are Office, Visio, OpenDocument, EPUB and image files. `--kinds` takes `default`, `all` or category names such as `provenance`, `hidden-content` and `image-metadata`. Removal never changes the input and refuses to invalidate a signature unless `--remove-invalidated-signatures` is given. The `officeimo_inspect_hidden_data` and `officeimo_remove_hidden_data` MCP tools take the same choices. The [hidden data matrix](../Docs/officeimo.hidden-data-support-matrix.md) lists every category.
+
+## Accessibility checks
+
+```powershell
+# Report findings as JSON; exit code 1 when there are errors
+officeimo accessibility .\Budget.xlsx
+
+# Strict profile, SARIF for code-scanning tools, and fail on warnings too
+officeimo accessibility .\Deck.pptx --strict --fail-on-warnings --format sarif --output .\Deck.sarif
+
+# One line per finding
+officeimo accessibility .\Proposal.docx --format text
+```
+
+Word, Excel and PowerPoint return the same `OfficeAccessibilityReport`: stable finding codes such as `accessibility-missing-alternative-text`, severities and locations such as `Paragraph 12`, `Slide 3` or `Data!B3`. `--strict` turns structural warnings into errors and requires a document title; heuristic findings stay warnings. SARIF output keeps a relative input path relative, so it can be uploaded from a repository checkout. The `officeimo_check_accessibility` MCP tool returns the same findings, bounded by `maxFindings`, and the SARIF log when `includeSarif` is set.
 
 ## Provenance workflows
 
@@ -515,9 +617,10 @@ The server exposes:
 - `officeimo_search`
 - `officeimo_search_email`
 - `officeimo_fetch`
-- `officeimo_convert`
+- `officeimo_convert` — Markdown or Reader JSON, iWork packages, and every catalog route the CLI runs, selected by the source extension and `format`
 - `officeimo_capabilities`
 - `officeimo_pdf` — extract, decrypt, raster flatten, optimize, or sanitize into a separate PDF
+- `officeimo_pdf_convert_to_pdfa` — PDF/A copy with its changes, or the violations when the source cannot be converted; exact counts with entries bounded by the output budget
 - `officeimo_pdf_split` — validated consecutive parts in an explicit destination folder
 - `officeimo_pdf_assemble` — ordered explicit PDF and raster-image files
 - `officeimo_pdf_export_pages` — selected page images in an explicit destination folder
@@ -525,12 +628,14 @@ The server exposes:
 - `officeimo_pdf_ocr` — searchable copy through a registered provider
 - `officeimo_pdf_print_plan` — bounded sheet geometry without printer submission
 - `officeimo_pdf_compare` — selected-page rendered comparison saved as a standalone HTML report
+- `officeimo_pdf_redline` — word-level text changes marked on a copy of the newer PDF, with an optional JSON change list and HTML report
 
 Tool results contain a short text summary plus compact structured content. The server does not publish duplicate resources containing full documents or mailbox contents.
 
 PDF tools require explicit output paths within the same allowed-roots policy.
 Overwriting requires `overwrite=true`; flattening additionally requires
-`acknowledgeRasterOutput=true`. Reports honor `maxOutputCharacters`, sample at
+`acknowledgeRasterOutput=true`. PDF/A font and ICC profile files must also be
+within the allowed roots. Reports honor `maxOutputCharacters`, sample at
 most 25 artifacts, and retain the total `artifactCount` when the sample is truncated.
 MCP assembly accepts PDF and raster image files; the CLI's `workflow assemble`
 owns heterogeneous Office, folder, and archive intake. Printer queue delivery
@@ -613,6 +718,24 @@ It reports rendered appearance, without semantic or moved-page detection.
 Existing reports require `--force`. `--password-env` and
 `--comparison-password-env` read independently selected password environment
 variables; credentials stay out of the report.
+
+### PDF text redlines
+
+```sh
+officeimo pdf redline contract-v1.pdf contract-v2.pdf --output contract-v2.redline.pdf \
+  --changes contract-changes.json --report contract-changes.html
+```
+
+The text of both PDFs is read in reading order and compared word by word, so
+reflowed lines and moved page breaks are not reported. The output is a copy of the
+newer PDF with review annotations: highlights on inserted, replaced and moved
+text, and a caret where text was deleted. Notes on replacements, deletions and
+moves carry the old text. `--changes` writes every change as JSON with page
+numbers and page rectangles on both sides; `--report` writes a side-by-side HTML
+comparison. `--algorithm patience|histogram` changes the word alignment and
+`--ignore-case` ignores letter case. PDFs without a text layer are refused; run
+`officeimo pdf ocr` first. The MCP tool `officeimo_pdf_redline` takes the
+`sourceId` values from inspection and the same outputs.
 
 For MCP, inspect both PDFs first and pass their returned `sourceId` values to
 `officeimo_pdf_compare` as `sourceId` and `comparisonSourceId`, with an explicit

@@ -146,6 +146,40 @@ public static class PdfLongTermValidationEnricher {
         return Enrich(pdf, evidence, cryptographyProvider, readOptions);
     }
 
+    /// <summary>
+    /// Fetches OCSP responses or CRLs for the signer and signature time-stamp authority paths of one signature
+    /// and appends them, with the certificates of those paths, as a DSS/VRI revision for PAdES B-LT. Pass a
+    /// document time-stamp's object number to gather data for its authority before adding the next time-stamp.
+    /// Validating the result reports the level actually reached; fetch problems are in
+    /// <see cref="PdfLongTermValidationEnrichmentResult.FetchFindings"/>.
+    /// </summary>
+    public static async System.Threading.Tasks.Task<PdfLongTermValidationEnrichmentResult> FetchAndEnrichAsync(
+        byte[] pdf,
+        int signatureObjectNumber,
+        PdfCmsSignatureCryptographyProvider cryptographyProvider,
+        OfficeIMO.Security.ICertificateRevocationFetcher fetcher,
+        PdfLoadOptions? readOptions = null,
+        System.Threading.CancellationToken cancellationToken = default) {
+        Guard.NotNull(pdf, nameof(pdf));
+        Guard.NotNull(cryptographyProvider, nameof(cryptographyProvider));
+        Guard.NotNull(fetcher, nameof(fetcher));
+        cancellationToken.ThrowIfCancellationRequested();
+        pdf = PdfDocumentSource.FromCallerBytes(pdf, readOptions).Bytes;
+        PdfSignatureValidationResult target = FindVerifiedTarget(
+            PdfSignatureValidator.Validate(pdf, cryptographyProvider, readOptions), signatureObjectNumber);
+        OfficeIMO.Security.CertificateRevocationEvidence fetched = await cryptographyProvider
+            .FetchRevocationEvidenceAsync(target, fetcher, cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
+        var evidence = new PdfLongTermValidationEvidence(
+            signatureObjectNumber,
+            fetched.Certificates,
+            fetched.OcspResponses,
+            fetched.CertificateRevocationLists);
+        PdfLongTermValidationEnrichmentResult result = Enrich(pdf, evidence, cryptographyProvider, readOptions);
+        result.FetchFindings = fetched.Findings;
+        return result;
+    }
+
     /// <summary>Enriches a readable PDF stream.</summary>
     public static PdfLongTermValidationEnrichmentResult Enrich(
         Stream input,

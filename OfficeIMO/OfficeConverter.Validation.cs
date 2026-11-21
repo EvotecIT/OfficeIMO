@@ -14,7 +14,8 @@ public static partial class OfficeConverter {
         switch (FormatForExtension(extension)) {
             case OfficeDocumentFormat.Pdf: {
                 PdfCreateOptions? creation = settings.Word?.PdfOptions ?? settings.Excel?.PdfOptions ?? settings.PowerPoint?.PdfOptions
-                    ?? settings.Markdown?.PdfOptions ?? settings.Html?.PdfOptions ?? settings.PlainText?.PdfOptions ?? settings.ReaderPdf?.PdfOptions;
+                    ?? settings.Markdown?.PdfOptions ?? settings.Html?.PdfOptions ?? settings.PlainText?.PdfOptions ?? settings.ReaderPdf?.PdfOptions
+            ?? settings.EmailPdf?.Pdf.PdfOptions;
                 var options = new PdfLoadOptions { Password = creation?.Encryption?.OwnerPassword ?? creation?.Encryption?.UserPassword ?? settings.SourcePassword };
                 if (creation?.Encryption?.AesCryptographyProvider is { } cryptography)
                     options = PdfLoadOptions.WithAesCryptographyProvider(options, cryptography);
@@ -56,7 +57,9 @@ public static partial class OfficeConverter {
                 break;
             case OfficeDocumentFormat.Markdown: {
                 using var reader = new StreamReader(output, new System.Text.UTF8Encoding(false, true), true, 8192, leaveOpen: true);
-                using var document = Markdown.MarkdownDocument.Parse(await reader.ReadToEndAsync(token).ConfigureAwait(false));
+                // Only parseability is checked, so the syntax tree is not captured.
+                using var document = Markdown.MarkdownDocument.Parse(await reader.ReadToEndAsync(token).ConfigureAwait(false),
+                    new Markdown.MarkdownLoadOptions { CaptureSyntaxTree = false });
                 break;
             }
             case OfficeDocumentFormat.Epub: {

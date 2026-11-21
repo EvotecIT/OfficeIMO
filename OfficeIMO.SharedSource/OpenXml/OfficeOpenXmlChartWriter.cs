@@ -38,7 +38,8 @@ namespace OfficeIMO.OpenXml.Internal {
             chartSpace.Append(new C.EditingLanguage { Val = "en-US" });
             chartSpace.Append(new C.RoundedCorners { Val = false });
 
-            C.Chart chart = new(new C.AutoTitleDeleted { Val = false });
+            // Written without a title: autoTitleDeleted stops Office drawing an automatic one. Setting a title clears it.
+            C.Chart chart = new(new C.AutoTitleDeleted { Val = true });
             C.PlotArea plotArea = new(new C.Layout());
             AppendSharedChartContent(plotArea, data, defaultKind);
             chart.Append(plotArea);

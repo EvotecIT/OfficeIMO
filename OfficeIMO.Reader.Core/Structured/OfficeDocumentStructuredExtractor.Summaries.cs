@@ -206,7 +206,7 @@ public static partial class OfficeDocumentStructuredExtractor {
                code.IndexOf("quality", StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
-    private static string Format(double value) => value.ToString("R", CultureInfo.InvariantCulture);
+    private static string Format(double value) => OfficeIMO.OfficeRoundTripNumberText.Format(value, CultureInfo.InvariantCulture);
 
     private static void AddNullableNumber(IDictionary<string, string> attributes, string name, double? value) {
         if (value.HasValue) attributes[name] = Format(value.Value);

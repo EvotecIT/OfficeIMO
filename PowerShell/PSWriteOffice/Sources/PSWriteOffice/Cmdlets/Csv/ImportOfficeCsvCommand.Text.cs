@@ -4,6 +4,21 @@ using OfficeIMO.CSV;
 namespace PSWriteOffice.Cmdlets.Csv;
 
 public sealed partial class ImportOfficeCsvCommand {
+    /// <summary>
+    /// Parses text as the Text parameter sets do, writing through another command's runtime, so ConvertFrom-OfficeCsv
+    /// shares this command's options, validation and output shapes.
+    /// </summary>
+    internal void ImportText(ICommandRuntime runtime, string text) {
+        CommandRuntime = runtime;
+        Text = text;
+        BeginProcessing();
+        ApplyCultureDelimiter();
+        WriteText();
+    }
+
+    /// <summary>Stops a running <see cref="ImportText"/>.</summary>
+    internal void Cancel() => _cancellation.Cancel();
+
     private void WriteText() {
         _rowWriter.Reset();
         _parseErrors.Clear();

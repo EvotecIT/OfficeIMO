@@ -70,7 +70,8 @@ public partial class WordDocument {
         if (owned) direct!.Remove();
         bool heading = role >= ThemeTextRole.Heading1 && role <= ThemeTextRole.Heading9 || role == ThemeTextRole.Title;
         Style[] authoredCharacters = characterStyles.Where(style => !heading || !IsThemeHeadingCharacter(style.StyleId?.Value)).ToArray();
-        IEnumerable<Style> authoredParagraphs = paragraphStyles.Where(style => !heading || style.StyleId?.Value != "Title" && !WordThemeDefaults.TryHeadingLevel(style.StyleId?.Value, out _));
+        IEnumerable<Style> authoredParagraphs = paragraphStyles.Where(style => !heading || WordBuiltInStyleNames.GetBuiltInId(style) is not { } builtIn ||
+            builtIn != "Title" && !WordThemeDefaults.TryHeadingLevel(builtIn, out _));
         bool tableRole = role == ThemeTextRole.Table || role == ThemeTextRole.TableHeader;
         bool hasAuthoredReset = authoredParagraphs.Any(style => Read(style.StyleRunProperties).HasValue) ||
             tableSources.Any(source => (!tableRole || source.Ancestors<Style>().FirstOrDefault()?.StyleId?.Value != WordThemeDefaults.TableStyleId) && Read(source).HasValue);

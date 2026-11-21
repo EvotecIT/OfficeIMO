@@ -102,7 +102,7 @@ Gets or sets a worksheet name, one-based position or native worksheet.
 ```yaml
 Type: OfficeSheetSelector
 Parameter Sets: Default
-Aliases: None
+Aliases: WorksheetName
 Possible values:
 
 Required: False

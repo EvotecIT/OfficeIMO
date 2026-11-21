@@ -38,6 +38,18 @@ public partial class PdfExternalDocumentCompatibilityTests {
     }
 
     [Fact]
+    public void ExtractTextByPage_AdvancesMultiCharacterBfRangeDestinationsByTheirLastUnit() {
+        // Destinations wider than 32 bits, such as Adobe's bracketed numbers <005b00310035005d> ("[15]"),
+        // previously discarded the whole CMap.
+        byte[] pdf = BuildExternalToUnicodePdf("<0102030405>",
+            "<01> <02> <0041>\n<03> <03> <005b00310035005d>\n<04> <05> <0066006900780079>");
+
+        string pageText = Assert.Single(PdfTextExtractor.ExtractTextByPage(pdf));
+
+        Assert.Contains("AB[15]fixyfixz", Normalize(pageText), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ExtractTextByPage_UsesCompactType0ToUnicodeBfRangeCMap() {
         byte[] pdf = BuildExternalCompactType0ToUnicodePdf();
 
@@ -154,6 +166,17 @@ public partial class PdfExternalDocumentCompatibilityTests {
         string pageText = Assert.Single(PdfTextExtractor.ExtractTextByPage(pdf));
 
         Assert.Contains("\u0152\u0153\u0160\u0161\u017D\u017E\u0178\u0192\u2030\u201A\u201E\u2039\u203A\u2020\u02C6", Normalize(pageText), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ExtractTextByPage_UsesSimpleFontEncodingDifferencesWithDigitAndAccentGlyphNames() {
+        byte[] pdf = BuildExternalSinglePagePdf(
+            "BT\n/F13 12 Tf\n72 720 Td\n<4142434445464748494A4B4C4D4E4F505152> Tj\nET\n",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding << /BaseEncoding /WinAnsiEncoding /Differences [ 65 /zero /one /two /three /four /five /six /seven /eight /nine /dotlessi /caron /breve /dotaccent /ring /ogonek /hungarumlaut /trademark ] >> >>");
+
+        string pageText = Assert.Single(PdfTextExtractor.ExtractTextByPage(pdf));
+
+        Assert.Contains("0123456789\u0131\u02C7\u02D8\u02D9\u02DA\u02DB\u02DD\u2122", Normalize(pageText), StringComparison.Ordinal);
     }
 
     [Fact]

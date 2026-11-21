@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>Typed counts for a PDF sanitization preview or verified result.</summary>
-public sealed class PdfSanitizationCategoryCounts {
+internal sealed class PdfSanitizationCategoryCounts {
     internal PdfSanitizationCategoryCounts(
         int userMetadata,
         int embeddedFiles,

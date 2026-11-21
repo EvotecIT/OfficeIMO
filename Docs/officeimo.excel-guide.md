@@ -92,6 +92,12 @@ a failed or cancelled source discards the staged file. No table calls leave a
 file destination unchanged. Stream destinations support non-seekable output;
 use `leaveOpen: true` to retain the stream after completion.
 
+The writer gives every row and cell an explicit `r` reference, as Excel does. Set
+`IncludeCellReferences = false` in `ExcelWriterOptions` to leave them out: the
+package is roughly half the size, writing is faster, and Excel still opens the
+file. Some other readers and tools require cell references, so they stay on by
+default.
+
 ## Loading, cell borders and report sheets
 
 When a workbook comes from an untrusted source, pass the bounded load profile before parsing it:
@@ -649,7 +655,7 @@ and item/count/character limits, including later unused items. This occurs befor
 the caller's first `Read` or value getter, even with `HasHeaderRow = false`.
 First-row latency includes this opening work; the reader exposes no option to
 replace it with XML count attributes or a partial shared-string table load.
-See the [tabular lifecycle measurements](../Docs/benchmarks/officeimo.excel-tabular-2026-10-08.md)
+See the tabular lifecycle measurements
 for the first-row and full-scan evidence boundaries.
 
 The XML streaming fallback completes a row before returning a cell value, so
@@ -738,6 +744,23 @@ These controls apply to sequential, asynchronous and parallel projections.
 decompression with workbook metadata parsing on a spare worker. It is disabled by default,
 retains the existing package-part limits, and can be slower for small or simple workbooks.
 Enable it only after measuring a representative workbook on the target CPU.
+
+By default an XLSX or XLSB data reader validates the whole worksheet before returning its first
+row, so a malformed workbook fails before any data is consumed.
+`ExcelReaderOptions.EnableSinglePassReading` instead returns rows while the rest of a large
+worksheet is still being decompressed and checked. Every returned row is fully parsed and
+validated. A malformed cell later in the sheet raises the same exception as the default
+reader, but only when `Read` reaches it, after the rows before it have been returned; issues
+found by the final check of the worksheet are raised by the last `Read`. Use it when the caller
+can handle a failure part-way through, such as a stream into a staging table that is discarded
+on error. It applies on .NET 8 and later to worksheets of 1 MB or more, when no diagnostics or
+diagnostic callbacks are requested, parallelism is not capped at one and the execution policy
+allows background work, with `A1Range` and `CellValueConverter` unset: XLSX worksheets that
+declare their dimension, up to 256 MB, and XLSB worksheets read with a header row, up to 64 MB;
+larger worksheets use the default mode. An XLSB reader takes its columns from the header row, so a later cell outside them
+raises `NotSupportedException` at that row, because the default reader would return a wider
+table. On .NET Framework and .NET Standard, with a sequential execution policy, for other
+worksheets and in the XLS reader, the reader always validates before the first row.
 
 ### Choose automatic or ordered parallel reads
 
@@ -1862,16 +1885,20 @@ OfficePackageSignatureValidationReport validation =
 
 ### DataTable and JSON exchange
 
+JSON, JSON Lines, YAML and XML conversions live in [`OfficeIMO.Data.Conversions.Excel`](../OfficeIMO.Data.Conversions.Excel/README.md).
+
 ```csharp
 using System.Data;
+using OfficeIMO.Data.Conversions;
 
 using var document = ExcelDocument.Load("data.xlsx");
 var sheet = document["Data"];
 
 DataTable table = sheet.ToDataTable("A1:C100");
-string json = sheet.ToJson("A1:C100");
+JsonNode? json = sheet.ToJson(new DataConversionOptions { Range = "A1:C100" });
 
-sheet.FromJson("[{\"Name\":\"Gamma\",\"Amount\":30}]", startRow: 8, startColumn: 1);
+using var rows = StructuredDataReader.Open(new MemoryStream("[{\"Name\":\"Gamma\",\"Amount\":30}]"u8.ToArray()), OfficeDocumentFormat.Json);
+sheet.InsertDataReader(rows, startRow: 8, startColumn: 1, createTable: false);
 ```
 
 ### Template markers
@@ -2210,6 +2237,8 @@ chart.SaveAsImage("revenue-chart.svg", new ExcelImageExportOptions {
     Format = OfficeImageExportFormat.Svg
 });
 ```
+
+`ChartRendering.Fidelity = OfficeChartFidelity.BestEffort` on `ExcelImageExportOptions` or `ExcelPdfExportOptions` also draws chart formatting that strict export rejects, such as differing pie label layouts or slice explosions it cannot reproduce, and reports each approximation as a `chart-approximation` warning.
 
 `ToImage(options)` returns encoded bytes. `ToImage(options, out report)` also supplies fidelity diagnostics; `ToImageAsync(options)` returns bytes and report together. Single-image and batch saves return `OfficeConversionReport`, preserve caller-owned streams and support cancellation. `FailOnLoss` rejects diagnosed loss before writing, and `FileConflictPolicy` controls existing files. One `ExcelImageExportOptions` type holds range, sheet, print-area, content, font and encoding settings. Fallback image-layout dimensions use `DefaultColumnWidth` and `DefaultRowHeight` as `OfficeLength` values.
 

@@ -47,6 +47,20 @@ Additional Microsoft compatibility helpers may appear on older target frameworks
 | [System.Buffers](https://www.nuget.org/packages/System.Buffers/4.5.1) | MIT | CSV legacy targets | Provides buffer primitives for older target frameworks. |
 | [BouncyCastle.Cryptography](https://www.nuget.org/packages/BouncyCastle.Cryptography/2.6.2) | MIT | Security; transitively Email and PDF security workflows | Implements the neutral CMS/X.509 primitives behind the OfficeIMO-owned security contracts without exposing vendor types. |
 
+## Data Included In Packages
+
+Some formats need published reference data, and a few packages embed it under its original license. Each of these packages ships a `THIRD-PARTY-NOTICES.md` (or `ThirdPartyNotices.txt`) and the license texts.
+
+| Package | Embedded data | License |
+|---|---|---|
+| `OfficeIMO.Core` | Unicode Character Database tables and the Windows-1257 mapping; Adobe Core 14 font metrics; English and German hyphenation patterns; AV1 and VP8 reference tables | Unicode-3.0; Adobe AFM notice; FSFAP-style notice and MIT; BSD-2-Clause and BSD-3-Clause with patent grants |
+| `OfficeIMO.Pdf` | Adobe CMap and CID-to-Unicode resources; the ICC sRGB profile; Adobe Core 14 font metrics | BSD-3-Clause; ICC notice; Adobe AFM notice |
+| `OfficeIMO.Adf` | Atlassian ADF JSON schema | Apache-2.0 |
+| `OfficeIMO.Bibliography` | CSL locales and title-case stop words | CC-BY-SA-3.0; MIT |
+| `OfficeIMO.Invoicing.KSeF` | KSeF authentication and UPO schemas | MIT |
+
+A package's license expression on NuGet lists MIT and the license of any third-party code it compiles. Data licenses are in the notices file rather than the expression, because nuget.org accepts only OSI- or FSF-approved identifiers there.
+
 ## What We Recommend Teams Check
 
 1. Review the exact `PackageReference` list for the OfficeIMO packages you ship, not just the repo root license.

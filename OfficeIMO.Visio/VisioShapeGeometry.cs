@@ -4,8 +4,11 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Visio {
     internal sealed class VisioShapeGeometryPath {
-        internal VisioShapeGeometryPath(List<(double X, double Y)> points, bool noFill, bool noLine, bool isClosed, int fillGroup) {
+        internal VisioShapeGeometryPath(List<(double X, double Y)> points, bool noFill, bool noLine, bool isClosed, int fillGroup,
+            IReadOnlyList<VisioGeometrySegment>? segments = null, bool hasFlattenedCurves = false) {
             Points = points;
+            Segments = segments;
+            HasFlattenedCurves = hasFlattenedCurves;
             NoFill = noFill;
             NoLine = noLine;
             IsClosed = isClosed;
@@ -13,6 +16,12 @@ namespace OfficeIMO.Visio {
         }
 
         internal List<(double X, double Y)> Points { get; }
+
+        /// <summary>Exact line and cubic segments, starting with the move point, when the outline contains curves; otherwise null.</summary>
+        internal IReadOnlyList<VisioGeometrySegment>? Segments { get; }
+
+        /// <summary>Whether spline or NURBS rows are represented only by flattened points.</summary>
+        internal bool HasFlattenedCurves { get; }
 
         internal bool NoFill { get; }
 
@@ -116,7 +125,9 @@ namespace OfficeIMO.Visio {
 
                 int minimumPoints = sourcePath.IsClosed ? 3 : 2;
                 if (scaledPath.Count >= minimumPoints) {
-                    scaledPaths.Add(new VisioShapeGeometryPath(scaledPath, sourcePath.NoFill, sourcePath.NoLine, sourcePath.IsClosed, sourcePath.FillGroup));
+                    List<VisioGeometrySegment>? scaledSegments = sourcePath.Segments?.Select(segment => segment.Map(point => (point.X * scaleX, point.Y * scaleY))).ToList();
+                    scaledPaths.Add(new VisioShapeGeometryPath(scaledPath, sourcePath.NoFill, sourcePath.NoLine, sourcePath.IsClosed, sourcePath.FillGroup,
+                        scaledSegments, sourcePath.HasFlattenedCurves));
                 }
             }
 

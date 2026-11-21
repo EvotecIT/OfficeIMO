@@ -14,6 +14,8 @@ Run benchmarks from the repository root with the repo's normal .NET SDK:
 dotnet run --project OfficeIMO.Markdown.Benchmarks/OfficeIMO.Markdown.Benchmarks.csproj -c Release -f net8.0
 ```
 
+On Windows the project also targets `net472`, the runtime Windows PowerShell 5.1 hosts the engines in, and builds it as a 64-bit process. Run it with `-f net472` and `--inProcess`. The `--parse-evidence` runner is available on .NET only.
+
 Run a narrower benchmark by class when you only need one lane:
 
 ```powershell
@@ -50,7 +52,7 @@ Benchmark classes currently cover:
 - comparable HTML-to-Markdown default conversion cost for OfficeIMO and the current ReverseMarkdown benchmark-only baseline
 - OfficeIMO-specific HTML-to-Markdown profile costs in a separate, non-competitive benchmark class
 
-The competitive CommonMark parse lane measures `MarkdownDocument.Parse` with `CaptureSyntaxTree = false`, which builds OfficeIMO's typed semantic document without source spans, trivia, or a syntax tree. Markdig builds its normal document tree. This is an equivalent rendered-output comparison, not a claim that the two libraries retain identical source metadata. The same class reports OfficeIMO's source-backed `Parse` and its attached `ParseInfo` syntax snapshot as separate lanes so their additional cost remains visible.
+The competitive CommonMark parse lane measures `MarkdownDocument.Parse` with `CaptureSyntaxTree = false`, which builds OfficeIMO's typed semantic document without source spans, trivia, or a syntax tree. Markdig builds its normal document tree. This is an equivalent rendered-output comparison, not a claim that the two libraries retain identical source metadata. The same class reports OfficeIMO's `Parse` with source information kept (the source-backed and default lanes) and the cost of reading its `ParseInfo` syntax snapshot (the syntax-tree lanes) separately. For documents without front matter, generic attributes or abbreviation definitions, and options without document transforms or external parser extensions, `Parse` captures source information from the text the first time something reads it, so the syntax-tree lanes include both the parse and that capture; other documents capture it while parsing. The HTML class labels each OfficeIMO lane with the parse it includes: the baseline, default and portable lanes use `MarkdownDocument.Parse` with its default, which keeps source information available, and the semantic lane sets `CaptureSyntaxTree = false`, as the built-in conversion routes do when nothing can read source information.
 
 The CommonMark parse and HTML comparison classes run an untimed setup preflight for every corpus. Both compared paths render without automatic heading identifiers or an outer body wrapper, matching CommonMark's heading and fragment output rather than hiding different work during validation. The preflight parses with both OfficeIMO and Markdig, renders both results, normalizes line endings, equivalent break-tag spelling, and HTML-collapsible whitespace while preserving preformatted blocks, and rejects the benchmark case unless the remaining HTML is identical.
 
@@ -90,9 +92,9 @@ Run the equivalent comparison lanes through the repository's shared evidence
 runner when provenance and normalized JSON/CSV/Markdown output are needed:
 
 ```powershell
-.\Build\Run-LibraryComparisonBenchmarks.ps1 -Workload markdownparse -RunMode full -Framework net8.0
-.\Build\Run-LibraryComparisonBenchmarks.ps1 -Workload markdownhtml -RunMode full -Framework net8.0
-.\Build\Run-LibraryComparisonBenchmarks.ps1 -Workload htmltomarkdown -RunMode full -Framework net8.0
+.\Build\Run-LibraryComparisonBenchmarks.ps1 -Workload markdownparse -Profile full -Framework net8.0
+.\Build\Run-LibraryComparisonBenchmarks.ps1 -Workload markdownhtml -Profile full -Framework net8.0
+.\Build\Run-LibraryComparisonBenchmarks.ps1 -Workload htmltomarkdown -Profile full -Framework net8.0
 ```
 
 ## Interpretation

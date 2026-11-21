@@ -31,7 +31,7 @@ public static class ExcelSheetCsvExtensions {
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(sheet);
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        ExcelCsvImportOptions resolved = ExcelDocumentCsvExtensions.ResolveOptions(options);
+        ExcelCsvImportOptions resolved = ExcelDocumentCsvExtensions.ResolveOptions(options, path);
         using var linkedCancellation = ExcelDocumentCsvExtensions.CreateLinkedLoadOptions(resolved, cancellationToken, out CsvReaderOptions loadOptions);
         using DbDataReader reader = CsvDocument.OpenReader(path, loadOptions);
         return ImportCsvCore(sheet, reader, resolved, cancellationToken);
@@ -98,7 +98,7 @@ public static class ExcelSheetCsvExtensions {
         if (resolved.FailOnLoss) report.ThrowIfLoss();
         using ExcelWorkbookDataReader reader = CreateSheetReader(sheet, resolved.Range, resolved.HeadersInFirstRow, resolved.ReadOptions, cancellationToken);
         OfficeConversionFailures.Run(report, () => CsvDocument.WriteDataReader(path, reader,
-            ResolveSaveOptions(resolved.SaveOptions, resolved.HeadersInFirstRow), cancellationToken));
+            ResolveSaveOptions(resolved.SaveOptions ?? CsvProfiles.CreateDefaultSaveOptions(path), resolved.HeadersInFirstRow), cancellationToken));
         return OfficeConversionOutput.WithPath(report, Path.GetFullPath(path));
     }
 

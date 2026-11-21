@@ -34,7 +34,7 @@ public sealed partial class PrintPreviewViewModel {
         IsDiscoveringPaperSources = printer is not null && !_disposed;
         try {
             if (printer is null || _disposed) return;
-            var sources = await _printers.GetPaperSourcesAsync(printer.Name, operation.Token).ConfigureAwait(true);
+            var sources = (await _printers.GetCapabilitiesAsync(printer.Name, operation.Token).ConfigureAwait(true)).PaperSources;
             operation.Token.ThrowIfCancellationRequested();
             if (_disposed || !ReferenceEquals(_paperSourceCancellation, operation)) return;
             PaperSourceChoices = [defaultChoice, .. sources.Select(source => new PrintPaperSourceChoice(source.Id, source.Name))];

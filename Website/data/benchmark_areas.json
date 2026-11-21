@@ -1,0 +1,89 @@
+{
+  "areas": [
+    {
+      "id": "pdf",
+      "title": "PDF",
+      "summary": "Structured and HTML-to-PDF generation, text extraction, merge, split, page selection and PDF conversion to other formats."
+    },
+    {
+      "id": "excel",
+      "title": "Excel",
+      "summary": "Typed, shared-string, multi-sheet and parallel reads of XLSX, XLSB and XLS files; workbook writes from data readers, objects and text; round trips, CSV conversion and report workbooks."
+    },
+    {
+      "id": "csv",
+      "title": "CSV",
+      "summary": "Decoded and typed reads, wide and dialect files, asynchronous and parallel reads, and writes from data readers, records and text."
+    },
+    {
+      "id": "word",
+      "title": "Word",
+      "summary": "DOCX creation, reports, images, template filling, reading paragraphs and tables, find-and-replace, HTML and Markdown import."
+    },
+    {
+      "id": "powerpoint",
+      "title": "PowerPoint",
+      "summary": "PPTX creation, reading, editing and slide copying."
+    },
+    {
+      "id": "markdown",
+      "title": "Markdown",
+      "summary": "CommonMark parsing and HTML rendering."
+    },
+    {
+      "id": "html",
+      "title": "HTML",
+      "summary": "HTML to Markdown conversion."
+    },
+    {
+      "id": "rtf",
+      "title": "RTF",
+      "summary": "RTF to HTML conversion."
+    },
+    {
+      "id": "image",
+      "title": "Images",
+      "summary": "PNG and JPEG decoding, PNG encoding, resizing, TIFF LZW and lossless WebP."
+    },
+    {
+      "id": "email",
+      "title": "Email",
+      "summary": "MIME message reading and writing."
+    },
+    {
+      "id": "mhtml",
+      "title": "MHTML",
+      "summary": "MHTML web archive reading and writing."
+    },
+    {
+      "id": "epub",
+      "title": "EPUB",
+      "summary": "EPUB opening and reading."
+    },
+    {
+      "id": "opendocument",
+      "title": "OpenDocument",
+      "summary": "ODS spreadsheet creation and reading."
+    },
+    {
+      "id": "zip",
+      "title": "ZIP",
+      "summary": "Archive traversal with path and size safety checks."
+    },
+    {
+      "id": "yaml",
+      "title": "YAML",
+      "summary": "Parsing, loading, lossless saving and editing, emitting and object serialization."
+    },
+    {
+      "id": "toml",
+      "title": "TOML",
+      "summary": "Parsing, loading, lossless saving and object serialization."
+    },
+    {
+      "id": "invoicing",
+      "title": "Invoicing",
+      "summary": "Electronic invoice XML writing and reading, and invoice PDF generation."
+    }
+  ]
+}

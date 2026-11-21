@@ -67,8 +67,8 @@ public sealed class BrowserToolCatalogTests {
     }
 
     [Fact]
-    public void FileOriginToolAcceptsExactlyTheQualifiedFormats() {
-        JsonElement tool = Tools.Single(static tool => Engine(tool).GetProperty("kind").GetString() == "origin");
+    public void CleanBeforeSharingToolAcceptsExactlyTheQualifiedFormats() {
+        JsonElement tool = Tools.Single(static tool => Engine(tool).GetProperty("kind").GetString() == "share");
         Assert.Equal(OfficeProvenanceWorkflowCatalog.BrowserExtensions.Order(StringComparer.Ordinal), Accept(tool).Order(StringComparer.Ordinal));
     }
 

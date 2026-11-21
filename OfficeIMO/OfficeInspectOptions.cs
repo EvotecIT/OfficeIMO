@@ -40,6 +40,11 @@ public sealed class OfficeInspectOptions {
     public OfficeContentSafetyOptions? ContentSafety { get; set; }
     /// <summary>Inspects source provenance without rewriting the document when supplied.</summary>
     public OfficeProvenanceOptions? Provenance { get; set; }
+    /// <summary>
+    /// Reports metadata, comments, hidden content, image metadata and provenance that would leave with the file, as
+    /// <c>InspectHiddenData()</c> does for Word, Excel, PowerPoint, Visio, OpenDocument, EPUB and PDF documents. The document is loaded to do this.
+    /// </summary>
+    public bool IncludeHiddenData { get; set; }
     /// <summary>Inspects OPC package signatures when supplied.</summary>
     public OfficePackageSignatureInspectionOptions? PackageSignatures { get; set; }
     /// <summary>Inspects VBA signature metadata when supplied.</summary>

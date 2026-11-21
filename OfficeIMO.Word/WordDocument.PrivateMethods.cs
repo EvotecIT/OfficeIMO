@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
+using System.Text;
 using System.Xml.Linq;
 
 namespace OfficeIMO.Word;
@@ -61,30 +62,50 @@ public partial class WordDocument {
     /// </summary>
     /// <param name="paragraph"></param>
     private static int CombineIdenticalRuns(Paragraph paragraph) {
-        List<Run> runsToRemove = new List<Run>();
         List<Run> runs = paragraph.Elements<Run>().ToList();
-        for (int i = runs.Count - 2; i >= 0; i--) {
-            if (TryGetMergeableRunText(runs[i], out Text? text1) &&
-                TryGetMergeableRunText(runs[i + 1], out Text? text2)) {
-                if (AreRunPropertiesEqual(runs[i].RunProperties, runs[i + 1].RunProperties)) {
-                    text1!.Text += text2!.Text;
+        var texts = new Text?[runs.Count];
+        for (int i = 0; i < runs.Count; i++) {
+            TryGetMergeableRunText(runs[i], out texts[i]);
+        }
 
-                    // if the text doesn't have space preservation, during merge potential double spaces
-                    // or start/ending spaces could be removed which will mean the view won't be so pretty
-                    if (text1.Space == null) {
-                        text1.Space = SpaceProcessingModeValues.Preserve;
-                    }
-                    runsToRemove.Add(runs[i + 1]);
+        // Each run that can join its predecessor extends a chain; the first run of the chain
+        // receives the joined text once, instead of growing the text pair by pair.
+        var canonicalProperties = new XElement?[runs.Count];
+        var runsToRemove = new List<Run>();
+        var mergedText = new StringBuilder();
+        int index = 0;
+        while (index < runs.Count) {
+            int chainEnd = index;
+            while (chainEnd + 1 < runs.Count &&
+                   texts[chainEnd] != null &&
+                   texts[chainEnd + 1] != null &&
+                   AreRunPropertiesEqual(runs, canonicalProperties, chainEnd, chainEnd + 1)) {
+                chainEnd++;
+            }
+
+            if (chainEnd > index) {
+                Text first = texts[index]!;
+                mergedText.Clear().Append(first.Text);
+                for (int next = index + 1; next <= chainEnd; next++) {
+                    mergedText.Append(texts[next]!.Text);
+                    runsToRemove.Add(runs[next]);
+                }
+                first.Text = mergedText.ToString();
+
+                // if the text doesn't have space preservation, during merge potential double spaces
+                // or start/ending spaces could be removed which will mean the view won't be so pretty
+                if (first.Space == null) {
+                    first.Space = SpaceProcessingModeValues.Preserve;
                 }
             }
+
+            index = chainEnd + 1;
         }
 
-        var count = 0;
         foreach (Run run in runsToRemove) {
             run.Remove();
-            count++;
         }
-        return count;
+        return runsToRemove.Count;
     }
 
     private static bool TryGetMergeableRunText(Run run, out Text? text) {
@@ -133,7 +154,9 @@ public partial class WordDocument {
         return !paragraph.Elements<Run>().Any() && paragraph.ChildElements.All(e => e is ParagraphProperties);
     }
 
-    private static bool AreRunPropertiesEqual(RunProperties? rPr1, RunProperties? rPr2) {
+    private static bool AreRunPropertiesEqual(List<Run> runs, XElement?[] canonicalProperties, int left, int right) {
+        RunProperties? rPr1 = runs[left].RunProperties;
+        RunProperties? rPr2 = runs[right].RunProperties;
         if (rPr1 == null && rPr2 == null) {
             return true;
         }
@@ -142,8 +165,15 @@ public partial class WordDocument {
             return false;
         }
 
-        var x1 = Canonicalize(XElement.Parse(rPr1.OuterXml));
-        var x2 = Canonicalize(XElement.Parse(rPr2.OuterXml));
+        string xml1 = rPr1.OuterXml;
+        string xml2 = rPr2.OuterXml;
+        if (string.Equals(xml1, xml2, StringComparison.Ordinal)) {
+            return true;
+        }
+
+        // Each run is compared with both neighbours, so canonicalize it only once.
+        XElement x1 = canonicalProperties[left] ??= Canonicalize(XElement.Parse(xml1));
+        XElement x2 = canonicalProperties[right] ??= Canonicalize(XElement.Parse(xml2));
         return XNode.DeepEquals(x1, x2);
     }
 

@@ -40,6 +40,37 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             _borrowableText.AsSpan().Clear();
             _utf8TextCacheKeys.AsSpan().Clear();
             _inlineTextSlices.AsSpan().Clear();
+            ResetUtf8FieldBuffers();
+        }
+
+        /// <summary>
+        /// Clears the previous row's values and text state in one pass. For narrow tables this
+        /// replaces five span clears per row; wider tables keep the vectorized clears.
+        /// </summary>
+        private void ResetRowState() {
+            XlsbTabularValueKind[] kinds = _kinds;
+            if (kinds.Length > 16 || _borrowableText.Length != kinds.Length) {
+                ResetUtf8TextState();
+                kinds.AsSpan().Clear();
+                _strings.AsSpan().Clear();
+                return;
+            }
+
+            string?[] strings = _strings;
+            bool[] borrowable = _borrowableText;
+            int[] keys = _utf8TextCacheKeys;
+            InlineTextSlice[] slices = _inlineTextSlices;
+            for (int ordinal = 0; ordinal < kinds.Length; ordinal++) {
+                kinds[ordinal] = XlsbTabularValueKind.Empty;
+                strings[ordinal] = null;
+                borrowable[ordinal] = false;
+                keys[ordinal] = 0;
+                slices[ordinal] = default;
+            }
+            ResetUtf8FieldBuffers();
+        }
+
+        private void ResetUtf8FieldBuffers() {
             if (_utf8FieldBuffers != null) {
                 for (int ordinal = 0; ordinal < _utf8FieldBuffers.Length; ordinal++) {
                     ref Utf8FieldBuffer buffer = ref _utf8FieldBuffers[ordinal];
@@ -143,9 +174,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 // may be returned even when other ordinals already have live spans.
                 ReturnUtf8FieldBuffer(ref buffer);
                 if (length > MaximumUtf8TextBytes - _activeUtf8FieldBytes) return false;
-                bytes = ArrayPool<byte>.Shared.Rent(length);
+                bytes = ExcelArrayPool.RentBytes(length);
                 if (bytes.Length > MaximumUtf8TextBytes - _activeUtf8FieldBytes) {
-                    ArrayPool<byte>.Shared.Return(bytes, clearArray: true);
+                    ExcelArrayPool.Return(bytes, clearArray: true);
                     return false;
                 }
                 buffer.Bytes = bytes;
@@ -172,7 +203,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 }
                 buffer = default;
                 // Clear the whole rental, including a longer value left by an earlier row.
-                ArrayPool<byte>.Shared.Return(bytes, clearArray: true);
+                ExcelArrayPool.Return(bytes, clearArray: true);
             } else {
                 buffer = default;
             }

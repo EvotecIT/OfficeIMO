@@ -3,7 +3,7 @@
     <PropertyGroup>
         <Description>Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Excel XLS, XLSX, XLSB, XLSM, and XLTX workbooks without Microsoft Office; legacy XLT templates are supported for classification and import.</Description>
 
-        <VersionPrefix>3.6.0</VersionPrefix>
+        <VersionPrefix>3.6.2</VersionPrefix>
         <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
             $(TargetFrameworks);net472</TargetFrameworks>
@@ -39,12 +39,18 @@
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartThemeWriter.cs" Link="SharedSource\OpenXml\OfficeOpenXmlChartThemeWriter.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartTextReader*.cs" Link="SharedSource\OpenXml\%(Filename)%(Extension)" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartCategoryGeometry.cs" Link="SharedSource\OpenXml\OfficeOpenXmlChartCategoryGeometry.cs" />
+        <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartPlotSemantics.cs" Link="SharedSource\OpenXml\OfficeOpenXmlChartPlotSemantics.cs" />
+        <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartSourceVisibility.cs" Link="SharedSource\OpenXml\OfficeOpenXmlChartSourceVisibility.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartPointStyles.cs" Link="SharedSource\OpenXml\OfficeOpenXmlChartPointStyles.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartExplosions.cs" Link="SharedSource\OpenXml\OfficeOpenXmlChartExplosions.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartRadialLayout.cs" Link="SharedSource\OpenXml\OfficeOpenXmlChartRadialLayout.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartAxisGroups.cs" Link="SharedSource\OpenXml\OfficeOpenXmlChartAxisGroups.cs" />
+        <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartFidelityScope.cs" Link="SharedSource\OpenXml\OfficeOpenXmlChartFidelityScope.cs" />
+        <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartTrendlines.cs" Link="SharedSource\OpenXml\OfficeOpenXmlChartTrendlines.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartSecondaryAxis.cs" Link="SharedSource\OpenXml\OfficeOpenXmlChartSecondaryAxis.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlPackagePayload*.cs" Link="SharedSource\OpenXml\%(Filename)%(Extension)" />
+        <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlHiddenData.cs" Link="SharedSource\OpenXml\OfficeOpenXmlHiddenData.cs" />
+        <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlReadOnlyPackage.cs" Link="SharedSource\OpenXml\OfficeOpenXmlReadOnlyPackage.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlContractMappings.cs" Link="SharedSource\OpenXml\OfficeOpenXmlContractMappings.cs" />
     </ItemGroup>
 
@@ -56,7 +62,7 @@
     <ItemGroup
         Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'net472'">
         <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.9" />
-        <PackageReference Include="System.Text.Json" Version="[10.0.7,11.0.0)" />
+        <PackageReference Include="System.Text.Json" Version="[10.0.9,11.0.0)" />
     </ItemGroup>
 
     <ItemGroup>

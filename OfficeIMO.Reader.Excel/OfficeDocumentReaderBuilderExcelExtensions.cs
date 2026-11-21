@@ -25,9 +25,9 @@ public static class OfficeDocumentReaderBuilderExcelExtensions {
             FormatQualifications = global::OfficeIMO.Excel.ExcelFormatCatalog.All
                 .Select(format => new ReaderFormatQualification(format.Extension, format.Id, ReaderFormatSupport.ReadConvert,
                     profile: format.Encoding.ToString(),
-                    preservation: new[] { "Readable text and supported structured content" },
+                    preservation: new[] { "Readable text and supported structured content", "Cell text as number formats display it, or stored values on request" },
                     limitations: new[] { "Semantic extraction; source package, layout, macros and signatures are not reproduced", "Configured projection limits and owner compatibility boundaries apply" },
-                    evidence: new[] { "OfficeIMO.Reader.Excel/README.md", "OfficeIMO.Reader.Tests/Reader.DocumentReadResult.cs" })).ToArray(),
+                    evidence: new[] { "OfficeIMO.Reader.Excel/README.md", "OfficeIMO.Reader.Tests/Reader.DocumentReadResult.cs", "OfficeIMO.Reader.Tests/Reader.ExcelCellText.cs" })).ToArray(),
             Extensions = global::OfficeIMO.Excel.ExcelFormatCatalog.All.Select(format => format.Extension).ToArray(),
             SupportsIncrementalPath = true,
             ReadPath = (path, readerOptions, token) => ExcelReaderAdapter.ReadIncremental(path, readerOptions, configured, token),
@@ -35,7 +35,8 @@ public static class OfficeDocumentReaderBuilderExcelExtensions {
             ReadDocumentStream = (stream, sourceName, readerOptions, token) => ExcelReaderAdapter.ReadDocument(stream, sourceName, readerOptions, configured, token),
             ProbeStream = (stream, sourceName, readerOptions, token) => ExcelReaderAdapter.ProbeEncryptedOpenXml(stream, sourceName, readerOptions, token),
             WarningBehavior = ReaderWarningBehavior.Mixed,
-            DeterministicOutput = true
+            DeterministicOutput = true,
+            ClassifyReadError = OfficeIMO.Reader.FormatInternals.OpenXmlReaderAdmission.ClassifyReadError
         }, replaceExisting);
     }
 
@@ -83,6 +84,7 @@ public static class OfficeDocumentReaderBuilderExcelExtensions {
             ExtensionValidationProbeStream = (stream, sourceName, readerOptions, token) => LegacySpreadsheetReaderAdapter.Probe(stream, sourceName, readerOptions, configuredImport, token),
             WarningBehavior = ReaderWarningBehavior.Mixed,
             DeterministicOutput = true,
+            ClassifyReadError = OfficeIMO.Reader.FormatInternals.OpenXmlReaderAdmission.ClassifyReadError,
             DefaultMaxInputBytes = legacyMaxInputBytes,
             MaxInputBytesCeiling = legacyMaxInputBytes
         }, replaceExisting);

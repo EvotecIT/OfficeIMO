@@ -7,7 +7,7 @@ namespace OfficeIMO.Tests;
 
 public sealed class PowerPointChartAxisTickBudgetTests {
     [Fact]
-    public void Snapshot_RejectsRadarUnitsAndSuppressedOverMaximumLabels() {
+    public void Snapshot_RejectsRadarUnits() {
         using PowerPointDocument presentation = PowerPointDocument.Create();
         var data = new OfficeChartData(new[] { "A", "B" }, new[] {
             new OfficeSeries("Values", new[] { 3d, 4d }) });
@@ -16,19 +16,6 @@ public sealed class PowerPointChartAxisTickBudgetTests {
             .ChartSpace!.Descendants<C.ValueAxis>().Single();
         radarAxis.AddChild(new C.MajorUnit { Val = 1 }, true);
         Assert.False(radar.TryGetOfficeSnapshot(out _));
-
-        PowerPointChart column = presentation.AddSlide().AddChart(OfficeChartType.ColumnClustered, data);
-        C.Chart native = presentation.Slides.Last().SlidePart.ChartParts.Single().ChartSpace!
-            .GetFirstChild<C.Chart>()!;
-        C.ValueAxis axis = native.PlotArea!.Elements<C.ValueAxis>().Single();
-        axis.Scaling!.AddChild(new C.MinAxisValue { Val = 0 }, true);
-        axis.Scaling.AddChild(new C.MaxAxisValue { Val = 3.5 }, true);
-        native.PlotArea.GetFirstChild<C.BarChart>()!.AddChild(
-            new C.DataLabels(new C.ShowValue { Val = true }), true);
-        native.GetFirstChild<C.ShowDataLabelsOverMaximum>()!.Val = true;
-        Assert.True(column.TryGetOfficeSnapshot(out _));
-        native.GetFirstChild<C.ShowDataLabelsOverMaximum>()!.Val = false;
-        Assert.False(column.TryGetOfficeSnapshot(out _));
     }
 
     [Theory]

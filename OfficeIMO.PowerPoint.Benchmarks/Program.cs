@@ -5,6 +5,11 @@ if (args.Length == 2 && string.Equals(args[0], "--visual-corpus",
     return PowerPointRoadmapVisualCorpus.Create(args[1]);
 }
 
+if (args.Length > 0 && string.Equals(args[0], "--native-text-layout",
+        StringComparison.OrdinalIgnoreCase)) {
+    return PowerPointNativeTextLayoutBenchmark.Run(args.Skip(1).ToArray());
+}
+
 if (args.Length > 0 && string.Equals(args[0], "--probe",
         StringComparison.OrdinalIgnoreCase)) {
     return PowerPointBaselineRunner.RunProbe(args.Skip(1).ToArray());

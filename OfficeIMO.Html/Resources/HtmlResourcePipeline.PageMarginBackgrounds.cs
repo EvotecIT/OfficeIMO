@@ -29,7 +29,7 @@ public static partial class HtmlResourcePipeline {
         Uri? baseUri, HtmlResourcePipelineOptions options) {
         if (!document.QuerySelectorAll("style").Any(style => IsCssStyleElement(style)
             && IsApplicableMedia(style.GetAttribute("media") ?? string.Empty, options)
-            && TryFindNextAtRule(StripCssCommentsOutsideStrings(style.TextContent), 0, "page", out _, out _))) return;
+            && TryFindNextAtRule(StripCssCommentsOutsideStrings(HtmlStyleElementText.Read(style)), 0, "page", out _, out _))) return;
         var renderOptions = new HtmlRenderOptions {
             BaseUri = baseUri,
             DefaultFontSize = options.DefaultFontSize,

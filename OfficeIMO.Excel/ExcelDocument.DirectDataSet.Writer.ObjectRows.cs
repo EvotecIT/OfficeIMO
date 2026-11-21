@@ -80,9 +80,9 @@ namespace OfficeIMO.Excel {
             }
 
             internal static ExcelTabularRowWriter Create(ExcelTabularRowSink sink, int columnCount, bool includeHeaders,
-                bool useCellValueNumberFormats, ExcelDateSystem dateSystem) =>
+                bool useCellValueNumberFormats, ExcelDateSystem dateSystem, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy) =>
                 new(TextWriter.Null, includeHeaders ? 2 : 1, false, new string[columnCount], null, null,
-                    useCellValueNumberFormats, DefaultDateTimeOffsetWriteStrategy, dateSystem, null, null, sink);
+                    useCellValueNumberFormats, dateTimeOffsetWriteStrategy, dateSystem, null, null, sink);
 
             internal void BeginRow() {
                 _columnIndex = 0;
@@ -109,7 +109,10 @@ namespace OfficeIMO.Excel {
             }
 
             /// <summary>Writes a text cell.</summary>
+            /// <exception cref="ArgumentException">The text exceeds Excel's limit; the row keeps its position and any selected cell style.</exception>
             public ExcelTabularRowWriter Write(string? value) {
+                // Reject before the cell starts so a caller that handles the error can continue the row.
+                if (value != null) CoerceValueHelper.ValidateSharedStringLength(value, nameof(value));
                 BeginCell();
                 if (_native != null) _native.WriteText(value ?? string.Empty);
                 else if (value == null) _writer.Write(" t=\"str\"><v/></c>");
@@ -136,19 +139,21 @@ namespace OfficeIMO.Excel {
             /// <summary>Writes a date, time, and offset cell.</summary>
             public ExcelTabularRowWriter Write(DateTimeOffset value) {
                 BeginCell(DirectDataSetWorkbookWriter.GetDateStyleAttribute(_useCellValueNumberFormats));
-                if (_native != null) _native.WriteNumber(ExcelDateSystemConverter.ToSerial(_dateTimeOffsetWriteStrategy(value), _dateSystem));
-                else DirectDataSetWorkbookWriter.WriteDateTimeOffsetCellValue(_writer, value, _dateTimeOffsetWriteStrategy, _dateSystem);
+                if (_native == null) DirectDataSetWorkbookWriter.WriteDateTimeOffsetCellValue(_writer, value, _dateTimeOffsetWriteStrategy, _dateSystem);
+                else if (DirectDataSetWorkbookWriter.TryGetDateTimeOffsetValue(value, _dateTimeOffsetWriteStrategy, out DateTime converted))
+                    _native.WriteNumber(ExcelDateSystemConverter.ToSerial(converted, _dateSystem));
+                else _native.WriteText(CoerceValueHelper.FormatDateTimeOffsetText(value));
                 return this;
             }
 
             /// <summary>Writes a duration cell.</summary>
-            public ExcelTabularRowWriter Write(TimeSpan value) { BeginCell(DirectDataSetWorkbookWriter.GetTimeStyleAttribute(_useCellValueNumberFormats)); if (_native != null) _native.WriteNumber((double)(value.TotalDays)); else DirectDataSetWorkbookWriter.WriteRawValueCell(_writer, value.TotalDays); return this; }
+            public ExcelTabularRowWriter Write(TimeSpan value) { BeginCell(DirectDataSetWorkbookWriter.GetTimeStyleAttribute(_useCellValueNumberFormats)); if (_native != null) _native.WriteNumber(ExcelDateSystemConverter.ToSerial(value)); else DirectDataSetWorkbookWriter.WriteRawValueCell(_writer, ExcelDateSystemConverter.ToSerial(value)); return this; }
             /// <summary>Writes a double-precision numeric cell.</summary>
             public ExcelTabularRowWriter Write(double value) { BeginCell(); if (_native != null) _native.WriteNumber((double)(value)); else DirectDataSetWorkbookWriter.WriteRawValueCell(_writer, value); return this; }
             /// <summary>Writes a single-precision numeric cell.</summary>
             public ExcelTabularRowWriter Write(float value) { BeginCell(); if (_native != null) _native.WriteNumber((double)(value)); else DirectDataSetWorkbookWriter.WriteRawValueCell(_writer, value); return this; }
             /// <summary>Writes a decimal cell.</summary>
-            public ExcelTabularRowWriter Write(decimal value) { BeginCell(); if (_native != null) _native.WriteNumber((double)(value)); else DirectDataSetWorkbookWriter.WriteRawValueCell(_writer, value); return this; }
+            public ExcelTabularRowWriter Write(decimal value) { BeginCell(); if (_native != null) WriteNativeNumber(value); else DirectDataSetWorkbookWriter.WriteRawValueCell(_writer, value); return this; }
             /// <summary>Writes a signed 8-bit integer cell.</summary>
             public ExcelTabularRowWriter Write(sbyte value) { BeginCell(); if (_native != null) _native.WriteNumber((double)((int)value)); else DirectDataSetWorkbookWriter.WriteRawValueCell(_writer, (int)value); return this; }
             /// <summary>Writes an unsigned 8-bit integer cell.</summary>
@@ -162,13 +167,24 @@ namespace OfficeIMO.Excel {
             /// <summary>Writes an unsigned 32-bit integer cell.</summary>
             public ExcelTabularRowWriter Write(uint value) { BeginCell(); if (_native != null) _native.WriteNumber((double)((long)value)); else DirectDataSetWorkbookWriter.WriteRawValueCell(_writer, (long)value); return this; }
             /// <summary>Writes a signed 64-bit integer cell.</summary>
-            public ExcelTabularRowWriter Write(long value) { BeginCell(); if (_native != null) _native.WriteNumber((double)(value)); else DirectDataSetWorkbookWriter.WriteRawValueCell(_writer, value); return this; }
+            public ExcelTabularRowWriter Write(long value) { BeginCell(); if (_native != null) WriteNativeNumber(value); else DirectDataSetWorkbookWriter.WriteRawValueCell(_writer, value); return this; }
             /// <summary>Writes an unsigned 64-bit integer cell.</summary>
-            public ExcelTabularRowWriter Write(ulong value) { BeginCell(); if (_native != null) _native.WriteNumber((double)(value)); else DirectDataSetWorkbookWriter.WriteRawValueCell(_writer, value); return this; }
+            public ExcelTabularRowWriter Write(ulong value) { BeginCell(); if (_native != null) WriteNativeNumber(value); else DirectDataSetWorkbookWriter.WriteRawValueCell(_writer, value); return this; }
 
             /// <summary>Writes a cell using the runtime value type.</summary>
             public ExcelTabularRowWriter Write(object? value) {
                 if (_native != null) return WriteNativeValue(value);
+                if (value is string text) return Write(text);
+                if (value is byte[] bytes) return Write(System.Convert.ToBase64String(bytes));
+                if (value != null && value != DBNull.Value && DirectDataSetWorkbookWriter.WritesTextFallback(value)) {
+                    // Other types are written as their text; check its length before the cell starts.
+                    string fallback = value.ToString() ?? string.Empty;
+                    CoerceValueHelper.ValidateSharedStringLength(fallback, nameof(value));
+                    BeginCell();
+                    DirectDataSetWorkbookWriter.WriteInlineStringCell(_writer, fallback);
+                    return this;
+                }
+
                 BeginCell(value, useRuntimeStyle: true);
                 DirectDataSetWorkbookWriter.WriteCellValue(_writer, value, _dateTimeOffsetWriteStrategy, _dateSystem, _sharedStrings);
                 return this;

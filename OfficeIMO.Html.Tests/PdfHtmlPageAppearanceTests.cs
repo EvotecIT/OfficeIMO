@@ -61,6 +61,8 @@ public sealed class PdfHtmlPageAppearanceTests {
     public void UnsupportedPageAppearanceImageFallsBackToLogicalImage(bool interpolate) {
         byte[] jpeg2000 = File.ReadAllBytes(Path.Combine(
             AppContext.BaseDirectory, "Pdf", "Fixtures", "Interoperability", "Scans", "red-rgb.jp2"));
+        int coding = Enumerable.Range(0, jpeg2000.Length - 1).First(index => jpeg2000[index] == 0xFF && jpeg2000[index + 1] == 0x52);
+        jpeg2000[coding + 12] |= 0xC0; // Reserved code-block style bits make the pixels undecodable.
         var pdf = PdfDocument.Load(BuildImagePdf(jpeg2000, "/JPXDecode", interpolate));
 
         var result = pdf.ToHtmlResult(PdfHtmlExportOptions.CreatePositionedReviewProfile());

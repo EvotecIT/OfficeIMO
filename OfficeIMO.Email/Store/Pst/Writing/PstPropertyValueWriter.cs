@@ -155,7 +155,7 @@ internal static class PstPropertyValueWriter {
     }
 
     private static long ToCurrency(object? value) => decimal.ToInt64(
-        Convert.ToDecimal(value ?? 0m, CultureInfo.InvariantCulture) * 10000m);
+        OfficeDecimalConversion.FromObject(value ?? 0m, CultureInfo.InvariantCulture) * 10000m);
 
     private static Encoding GetEncoding(int codePage) {
         try { return Encoding.GetEncoding(codePage > 0 ? codePage : 1252); }

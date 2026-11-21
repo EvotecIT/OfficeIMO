@@ -94,6 +94,53 @@ internal sealed class CsvParsingSettings
     /// </summary>
     public CsvQuoteParsingMode QuoteParsingMode { get; set; } = CsvQuoteParsingMode.Lenient;
 
+    /// <summary>Gets or sets escape decoding for unquoted fields.</summary>
+    public CsvEscapeMode EscapeMode { get; set; }
+
+    /// <summary>Gets or sets the character that encloses quoted fields. Default is <c>"</c>.</summary>
+    public char QuoteCharacter { get; set; } = '"';
+
+    /// <summary>
+    /// Gets or sets the character that escapes the quote character, or itself, inside quoted fields. Leave unset to
+    /// double the quote character as RFC 4180 does; a doubled quote character is also accepted when it is set.
+    /// </summary>
+    public char? EscapeCharacter { get; set; }
+
+    /// <summary>Gets whether fields use a quote or escape character other than the RFC 4180 double quote.</summary>
+    internal bool UsesCustomQuoting
+    {
+        get
+        {
+            if (QuoteCharacter == '"' && (EscapeCharacter is null || EscapeCharacter == '"'))
+            {
+                return false;
+            }
+
+            if (QuoteCharacter is '\r' or '\n' || EscapeCharacter is '\r' or '\n')
+            {
+                throw new ArgumentException("Quote and escape characters cannot be line breaks.");
+            }
+
+            return true;
+        }
+    }
+
+    /// <summary>Gets the effective escape character: the quote character itself unless another one is set.</summary>
+    internal char EffectiveEscapeCharacter => EscapeCharacter ?? QuoteCharacter;
+
+    /// <summary>Gets whether quote characters are ordinary data, so every physical line is one record.</summary>
+    internal bool QuotesAreData => QuoteParsingMode == CsvQuoteParsingMode.None;
+
+    /// <summary>Gets whether fields need backslash escape decoding after splitting.</summary>
+    internal bool DecodesBackslashEscapes => EscapeMode switch
+    {
+        CsvEscapeMode.None => false,
+        CsvEscapeMode.Backslash when QuotesAreData => true,
+        CsvEscapeMode.Backslash => throw new ArgumentException(
+            "Backslash escapes require QuoteParsingMode.None; quoted fields already protect delimiters and line breaks."),
+        _ => throw new ArgumentOutOfRangeException(nameof(EscapeMode))
+    };
+
     /// <summary>
     /// Gets or sets columns appended to every loaded row, useful for source file names, import timestamps, or batch metadata.
     /// </summary>
@@ -170,10 +217,23 @@ internal sealed class CsvParsingSettings
     public long? MaxDecompressedBytes { get; set; } = DefaultMaxInputBytes;
 
     /// <summary>
-    /// Gets or sets the maximum number of bytes accepted by stream-based and uncompressed path-based load APIs.
-    /// Defaults to 256 MiB so untrusted inputs cannot be buffered without bound.
+    /// Gets or sets the maximum number of input bytes. APIs that hold the whole input in memory (loading a document,
+    /// buffering a stream) default to 256 MiB so untrusted inputs cannot be buffered without bound. Streamed reads
+    /// (readers, data readers and row enumeration) apply a limit only when one is set here.
     /// </summary>
-    public long MaxInputBytes { get; set; } = DefaultMaxInputBytes;
+    public long MaxInputBytes { get => _maxInputBytes ?? DefaultMaxInputBytes; set => _maxInputBytes = value; }
+
+    private long? _maxInputBytes;
+
+    /// <summary>Set by reader options, whose reads stream their input.</summary>
+    internal bool StreamsInput { get; set; }
+
+    /// <summary>
+    /// The limit a read through an input stream applies: an explicit <see cref="MaxInputBytes"/>, otherwise none for
+    /// streamed reads and the in-memory default for document loads.
+    /// </summary>
+    internal long EffectiveInputLimit => _maxInputBytes
+        ?? (StreamsInput || Mode == CsvLoadMode.Stream ? long.MaxValue : DefaultMaxInputBytes);
 
     /// <summary>
     /// Gets or sets an optional cancellation token checked while reading records.

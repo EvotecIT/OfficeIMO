@@ -47,11 +47,22 @@ public sealed partial class OfficeRasterCanvas {
                     if (!OfficeTextInkClip.TryCreatePath(group.ClipPath, clipPlacement, _cancellationToken, out OfficeTextInkClip clip)) {
                         if (MayContainText(group.InnerDrawing, depth + 1)) Unmeasured("Unsupported, non-finite or over-budget drawing text clips are not inspected."); continue;
                     }
+                    int clipStart = clips.Count;
                     clips.Add(clip);
+                    // Every listed clip applies, so each intersection is one more entry.
+                    bool intersectionsSupported = true;
+                    for (int i = 0; i < group.ClipPath.Intersections.Count && intersectionsSupported; i++) {
+                        intersectionsSupported = OfficeTextInkClip.TryCreatePath(group.ClipPath.Intersections[i], clipPlacement, _cancellationToken, out OfficeTextInkClip intersection);
+                        if (intersectionsSupported) clips.Add(intersection);
+                    }
                     try {
-                        Visit(group.InnerDrawing, canvas.WithDrawingTextProfile(group.InnerDrawing),
-                            OfficeTransform.Translate(group.X + group.ContentOffsetX, group.Y + group.ContentOffsetY).Then(frame).Then(placement), depth + 1);
-                    } finally { clips.RemoveAt(clips.Count - 1); }
+                        if (!intersectionsSupported) {
+                            if (MayContainText(group.InnerDrawing, depth + 1)) Unmeasured("Unsupported, non-finite or over-budget drawing text clips are not inspected.");
+                        } else {
+                            Visit(group.InnerDrawing, canvas.WithDrawingTextProfile(group.InnerDrawing),
+                                OfficeTransform.Translate(group.X + group.ContentOffsetX, group.Y + group.ContentOffsetY).Then(frame).Then(placement), depth + 1);
+                        }
+                    } finally { clips.RemoveRange(clipStart, clips.Count - clipStart); }
                 } else if (element is OfficeDrawingRichText rich) {
                     ChargeLayout(rich.PlainText.Length);
                     foreach (var run in rich.Runs) Charge();

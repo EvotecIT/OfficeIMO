@@ -48,15 +48,18 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\OfficeIMO.TestAssets\ChartImageThemeFixture.cs" Link="Shared\ChartImageThemeFixture.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\TestStreams\**\*.cs" Link="TestStreams\%(RecursiveDir)%(Filename)%(Extension)" />
     <Compile Include="..\OfficeIMO.Pdf.Tests\Pdf\PdfPngTestImages.cs" Link="Pdf\PdfPngTestImages.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\OfficeInteroperabilityCorpusManifest.cs" Link="OfficeInteroperabilityCorpusManifest.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\WordEvidenceCorpusManifest.cs" Link="WordEvidenceCorpusManifest.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\RasterColorTestSupport.cs" Link="RasterColorTestSupport.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.cs" Link="ManagedTextShapingTestAssets.cs" />
+    <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.ColorEmoji.cs" Link="ManagedTextShapingTestAssets.ColorEmoji.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.HorizontalMetrics.cs" Link="ManagedTextShapingTestAssets.HorizontalMetrics.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.Measurement.cs" Link="ManagedTextShapingTestAssets.Measurement.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\Pdf\PdfOperatorSearchText.cs" Link="Pdf\PdfOperatorSearchText.cs" />
+    <Compile Include="..\OfficeIMO.TestAssets\Pdf\OfficeSvgPartDamage.cs" Link="Pdf\OfficeSvgPartDamage.cs" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
@@ -80,6 +83,7 @@
     <None Include="..\OfficeIMO.TestAssets\Documents\**" Link="Documents\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="Always" />
     <None Include="..\OfficeIMO.TestAssets\Images\**" Link="Images\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="Always" />
     <None Include="..\OfficeIMO.Pdf.Tests\Pdf\ReferenceBaselines\*.docx" Link="WordLayoutFixtures\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.Drawing.Tests\TestAssets\NotoSansSC-BaselineSubset.ttf" Link="Fonts\NotoSansSC-BaselineSubset.ttf" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\Assets\PowerPointTemplates\PowerPointAdvancedRoadmap.pptx" Link="Documents\Charts\SeriesPaint\advanced-ribbon.pptx" CopyToOutputDirectory="PreserveNewest" />
     <EmbeddedResource Include="..\OfficeIMO.TestAssets\Images\Kulek.jpg" Link="Images\Kulek.jpg" LogicalName="OfficeIMO.Tests.Images.Kulek.jpg" />
   </ItemGroup>

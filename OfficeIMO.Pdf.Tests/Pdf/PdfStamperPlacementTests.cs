@@ -26,7 +26,10 @@ public partial class PdfStamperTests {
         PdfTextSpan span = page.GetTextSpans().First(item => item.Text.Contains("Page"));
         double userUnit = page.GetGeometry().UserUnit ?? 1D;
         Assert.Equal(2D, userUnit);
-        Assert.InRange((span.X + span.Advance) * userUnit, 299.8D, 300.2D);
+        // The page is turned a quarter, so upright right-aligned text runs up the user-space page and ends at Y.
+        Assert.Equal(90D, span.RotationDegrees, 3);
+        Assert.InRange(span.X * userUnit, 299.8D, 300.2D);
+        Assert.InRange((span.Y + span.Advance) * userUnit, 99.8D, 100.2D);
         Assert.InRange(span.FontSize * userUnit, 23.99D, 24.01D);
     }
 
@@ -59,7 +62,8 @@ public partial class PdfStamperTests {
         string physicalContent = physicalStreams[physicalStreams.Count - 1];
         Assert.Contains("1 0 0 rg", physicalContent);
         Assert.Contains("/OIMOStampF1 9 Tf", physicalContent);
-        Assert.Contains("0.866 0.5 -0.5 0.866 50 310 Tm", physicalContent);
+        // Rotation is relative to the displayed page, which /Rotate 90 turns a quarter clockwise.
+        Assert.Contains("-0.5 0.866 -0.866 -0.5 50 310 Tm", physicalContent);
         Assert.Contains("<56495355414C> Tj", physicalContent);
         Assert.DoesNotContain("<56495355414C> Tj", string.Join("\n", GetPageContentStreams(physical, 2)));
         PdfReadPage physicalPage = PdfReadDocument.Open(physical).Pages[0];
@@ -70,7 +74,7 @@ public partial class PdfStamperTests {
         byte[] defaults = PdfStamper.StampText(BuildUserUnitStampPdf(), "DEFAULT");
         string defaultContent = FindContentStreamContaining(defaults, "<44454641554C54> Tj");
         Assert.Contains("/OIMOStampF1 12 Tf", defaultContent);
-        Assert.Matches(@"1 0 -?0 1 18 18 Tm", defaultContent);
+        Assert.Matches(@"0 1 -1 0 402 48 Tm", defaultContent);
 
         byte[] centered = PdfStamper.WatermarkText(BuildUserUnitStampPdf(), "WWWW", new PdfTextStampOptions {
             Font = PdfStandardFont.Courier,
@@ -78,12 +82,12 @@ public partial class PdfStamperTests {
         });
         string centeredContent = FindContentStreamContaining(centered, "<57575757> Tj");
         Assert.Contains("/OIMOStampF1 18 Tf", centeredContent);
-        Assert.Matches(@"1 0 -?0 1 198\.4 330 Tm", centeredContent);
+        Assert.Matches(@"0 1 -1 0 220 308\.4 Tm", centeredContent);
 
         byte[] defaultWatermark = PdfStamper.WatermarkText(BuildUserUnitStampPdf(), "DRAFT");
         string watermarkContent = FindContentStreamContaining(defaultWatermark, "<4452414654> Tj");
         Assert.Contains("/OIMOStampF1 32 Tf", watermarkContent);
-        Assert.Matches(@"0\.707 -0\.707 0\.707 0\.707 [0-9.]+ 330 Tm", watermarkContent);
+        Assert.Matches(@"0\.707 0\.707 -0\.707 0\.707 220 [0-9.]+ Tm", watermarkContent);
     }
 
     [Fact]
@@ -111,7 +115,7 @@ public partial class PdfStamperTests {
         });
         IReadOnlyList<string> physicalStreams = GetPageContentStreams(physical, 1);
         string physicalContent = physicalStreams[physicalStreams.Count - 1];
-        AssertStampImageMatrix(physicalContent, 0D, 12D, -8D, 0D, 36D, 325D);
+        AssertStampImageMatrix(physicalContent, -12D, 0D, 0D, -8D, 36D, 325D);
         Assert.Contains("/OIMOStampIm1 Do", physicalContent);
         Assert.DoesNotContain("/OIMOStampIm1 Do", string.Join("\n", GetPageContentStreams(physical, 2)));
         PdfReadPage physicalPage = PdfReadDocument.Open(physical).Pages[0];
@@ -121,7 +125,7 @@ public partial class PdfStamperTests {
 
         byte[] intrinsic = PdfStamper.StampImage(BuildUserUnitStampPdf(), CreateMinimalRgbPng());
         string intrinsicContent = FindContentStreamContaining(intrinsic, "/OIMOStampIm1 Do");
-        Assert.Contains("0.5 0 0 0.5 18 18 cm", intrinsicContent);
+        Assert.Contains("0 0.5 -0.5 0 402 48 cm", intrinsicContent);
     }
 
     [Fact]
@@ -151,12 +155,12 @@ public partial class PdfStamperTests {
         });
         IReadOnlyList<string> physicalStreams = GetPageContentStreams(physicalWatermark, 1);
         Assert.True(physicalStreams.Count >= 2);
-        Assert.Contains("16 0 0 16 212 322 cm", physicalStreams[0]);
+        Assert.Contains("0 16 -16 0 228 322 cm", physicalStreams[0]);
         Assert.Contains("/OIMOStampIm1 Do", physicalStreams[0]);
 
         byte[] intrinsicWatermark = PdfStamper.WatermarkImage(BuildUserUnitStampPdf(), CreateMinimalRgbPng());
         IReadOnlyList<string> intrinsicStreams = GetPageContentStreams(intrinsicWatermark, 1);
-        Assert.Contains("0.5 0 0 0.5 219.75 329.75 cm", intrinsicStreams[0]);
+        Assert.Contains("0 0.5 -0.5 0 220.25 329.75 cm", intrinsicStreams[0]);
         Assert.Contains("/OIMOStampIm1 Do", intrinsicStreams[0]);
     }
 
@@ -189,8 +193,9 @@ public partial class PdfStamperTests {
         Assert.InRange(Math.Abs(Physical(5) + 36.125), 0D, 1D / 12700D);
         Assert.InRange(Math.Abs(Physical(6) - 72.375), 0D, 1D / 12700D);
         if (image) {
-            Assert.InRange(Math.Abs(Physical(1) - 24.125), 0D, 1D / 12700D);
-            Assert.InRange(Math.Abs(Physical(4) - 16.25), 0D, 1D / 12700D);
+            // The quarter-turned page turns the image with it: width runs along user-space y.
+            Assert.InRange(Math.Abs(Physical(2) - 24.125), 0D, 1D / 12700D);
+            Assert.InRange(Math.Abs(Physical(3) + 16.25), 0D, 1D / 12700D);
         } else {
             Match font = Regex.Match(content, @"/OIMOStampF1 ([-0-9.]+) Tf");
             Assert.True(font.Success, content);

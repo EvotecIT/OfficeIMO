@@ -10,7 +10,7 @@ public sealed class DetailsBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdown
     /// <summary>Nested blocks rendered inside the details body.</summary>
     public System.Collections.Generic.List<IMarkdownBlock> ChildBlocks { get; } = new System.Collections.Generic.List<IMarkdownBlock>();
     /// <summary>Nested syntax nodes captured during parsing, when available.</summary>
-    internal IReadOnlyList<MarkdownSyntaxNode>? SyntaxChildren { get; set; }
+    internal IReadOnlyList<MarkdownSyntaxNode>? SyntaxChildren { get => ReadSourceInformation(ref field); set => WriteSourceInformation(ref field, value); }
 
     /// <summary>Whether to emit a blank line between the summary and the first child block.</summary>
     public bool InsertBlankLineAfterSummary { get; set; } = true;
@@ -28,10 +28,10 @@ public sealed class DetailsBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdown
     public string? ClosingTag { get; internal set; }
 
     /// <summary>Source span for the parsed details opening tag, when available.</summary>
-    public MarkdownSourceSpan? OpeningTagSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? OpeningTagSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
 
     /// <summary>Source span for the parsed details closing tag, when available.</summary>
-    public MarkdownSourceSpan? ClosingTagSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? ClosingTagSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
 
     /// <summary>Creates an empty details block.</summary>
     public DetailsBlock() {
@@ -123,6 +123,13 @@ public sealed class DetailsBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdown
 
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
         new MarkdownSyntaxNode(MarkdownSyntaxKind.Details, span, Open ? "open" : null, ((IOwnedSyntaxChildrenMarkdownBlock)this).BuildOwnedSyntaxChildren(), this);
+
+    internal override void AdoptCapturedSourceInformation(MarkdownObject captured, MarkdownCapturedObjectMap map) {
+        var source = (DetailsBlock)captured;
+        OpeningTagSourceSpan = source.OpeningTagSourceSpan;
+        ClosingTagSourceSpan = source.ClosingTagSourceSpan;
+        SyntaxChildren = map.Retarget(source.SyntaxChildren);
+    }
 }
 
 /// <summary>
@@ -131,7 +138,7 @@ public sealed class DetailsBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdown
 public sealed class SummaryBlock : MarkdownBlock, IMarkdownBlock, IInlineSyntaxMarkdownBlock, ISyntaxMarkdownBlock {
     /// <summary>Inline content inside the &lt;summary&gt; element.</summary>
     public InlineSequence Inlines { get; }
-    internal MarkdownSourceSpan? SyntaxSpan { get; set; }
+    internal MarkdownSourceSpan? SyntaxSpan { get => ReadSourceInformation(ref field); set => WriteSourceInformation(ref field, value); }
     /// <summary>Exact source opening tag for a parsed summary element, when available.</summary>
     public string? OpeningTag { get; internal set; }
     /// <summary>Exact source closing tag for a parsed summary element, when available.</summary>
@@ -139,11 +146,11 @@ public sealed class SummaryBlock : MarkdownBlock, IMarkdownBlock, IInlineSyntaxM
     /// <summary>Exact source text between the parsed summary tags, when available.</summary>
     public string? SourceText { get; internal set; }
     /// <summary>Source span for the parsed summary opening tag, when available.</summary>
-    public MarkdownSourceSpan? OpeningTagSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? OpeningTagSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
     /// <summary>Source span for the parsed summary text, when available.</summary>
-    public MarkdownSourceSpan? TextSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? TextSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
     /// <summary>Source span for the parsed summary closing tag, when available.</summary>
-    public MarkdownSourceSpan? ClosingTagSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? ClosingTagSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
 
     /// <summary>Create a summary block from an inline sequence.</summary>
     public SummaryBlock(InlineSequence inlines) {
@@ -190,5 +197,13 @@ public sealed class SummaryBlock : MarkdownBlock, IMarkdownBlock, IInlineSyntaxM
             Inlines.RenderMarkdown(),
             children,
             this);
+    }
+
+    internal override void AdoptCapturedSourceInformation(MarkdownObject captured, MarkdownCapturedObjectMap map) {
+        var source = (SummaryBlock)captured;
+        SyntaxSpan = source.SyntaxSpan;
+        OpeningTagSourceSpan = source.OpeningTagSourceSpan;
+        TextSourceSpan = source.TextSourceSpan;
+        ClosingTagSourceSpan = source.ClosingTagSourceSpan;
     }
 }

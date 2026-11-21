@@ -438,16 +438,6 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Fact]
-    public void RenderPage_FailsClosedForShearedImageInsideType3Glyph() {
-        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /XObject << /Im1 7 0 R >> >> >>\nendobj";
-        string glyph = BuildStreamObject(6, "<<", "500 0 d0 q 500 100 0 700 0 0 cm /Im1 Do Q");
-        string image = BuildStreamObject(7, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8", "rgb");
-        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyph, image);
-
-        AssertType3FallsBackWithoutNativeShapes(pdf);
-    }
-
-    [Fact]
     public void RenderPage_FailsClosedForOptionalContentImageInsideType3Glyph() {
         string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /XObject << /Im1 7 0 R >> >> >>\nendobj";
         string glyph = BuildStreamObject(6, "<<", "500 0 d0 q 500 0 0 700 0 0 cm /Im1 Do Q");
@@ -499,14 +489,14 @@ public partial class PdfPageImageRendererTests {
 
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
         OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
-        byte[][] scanlines = EnumerateImages(drawing)
-            .Select(static item => PdfPngTestImages.DecodeStoredPngIdat(item.Bytes))
+        byte[][] pixels = EnumerateImages(drawing)
+            .Select(static item => PdfPngTestImages.DecodeRgb(item.Bytes))
             .ToArray();
 
         Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
-        Assert.Equal(2, scanlines.Length);
-        Assert.Contains(scanlines, bytes => bytes.SequenceEqual(new byte[] { 0, 255, 0, 0 }));
-        Assert.Contains(scanlines, bytes => bytes.SequenceEqual(new byte[] { 0, 0, 255, 0 }));
+        Assert.Equal(2, pixels.Length);
+        Assert.Contains(pixels, bytes => bytes.SequenceEqual(new byte[] { 255, 0, 0 }));
+        Assert.Contains(pixels, bytes => bytes.SequenceEqual(new byte[] { 0, 255, 0 }));
     }
 
     [Fact]
@@ -520,13 +510,13 @@ public partial class PdfPageImageRendererTests {
         byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyph, pattern, firstForm, secondForm, image);
 
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
-        byte[][] scanlines = EnumerateImages(PdfPageImageRenderer.RenderPage(pdf))
-            .Select(static item => PdfPngTestImages.DecodeStoredPngIdat(item.Bytes))
+        byte[][] pixels = EnumerateImages(PdfPageImageRenderer.RenderPage(pdf))
+            .Select(static item => PdfPngTestImages.DecodeRgb(item.Bytes))
             .ToArray();
 
         Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
-        Assert.Contains(scanlines, bytes => bytes.SequenceEqual(new byte[] { 0, 255, 0, 0 }));
-        Assert.Contains(scanlines, bytes => bytes.SequenceEqual(new byte[] { 0, 0, 255, 0 }));
+        Assert.Contains(pixels, bytes => bytes.SequenceEqual(new byte[] { 255, 0, 0 }));
+        Assert.Contains(pixels, bytes => bytes.SequenceEqual(new byte[] { 0, 255, 0 }));
     }
 
     [Fact]
@@ -805,8 +795,9 @@ public partial class PdfPageImageRendererTests {
         AssertType3FallsBackWithoutNativeShapes(pdf);
     }
 
+    // A sheared glyph image is drawn through its exact matrix, however thin, rather than an approximation.
     [Fact]
-    public void RenderPage_FailsClosedForUnrepresentableType3ImageTransform() {
+    public void RenderPage_DrawsThinShearedType3ImageThroughItsExactMatrix() {
         string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [1 0 0 1 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /XObject << /Im1 7 0 R >> >> >>\nendobj";
         string glyph = BuildStreamObject(6, "<<", "500 0 d0 q 0.001 0 0.5 100 0 0 cm /Im1 Do Q");
         string image = BuildStreamObject(7, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8", "rgb");
@@ -815,9 +806,11 @@ public partial class PdfPageImageRendererTests {
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
         OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
 
-        Assert.Contains(result.CapabilityDiagnostics, diagnostic =>
-            diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId && diagnostic.Subject == "FType3");
-        Assert.DoesNotContain(drawing.Elements, element => element is OfficeDrawingShape);
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+        Assert.Empty(drawing.Elements.OfType<OfficeDrawingText>());
+        OfficeDrawingEffectGroup group = Assert.Single(drawing.Elements.OfType<OfficeDrawingEffectGroup>());
+        Assert.Single(group.InnerDrawing.Images);
+        Assert.Equal((0.001D, 0D, -0.5D, 100D), (group.Transform.M11, group.Transform.M12, group.Transform.M21, group.Transform.M22));
     }
 
     [Fact]

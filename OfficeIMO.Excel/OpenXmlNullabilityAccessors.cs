@@ -74,6 +74,6 @@ namespace OfficeIMO.Excel {
 
     internal sealed partial class ExcelSheetReader {
         private Worksheet WorksheetRoot =>
-            _wsPart.Worksheet ?? throw new InvalidOperationException("Worksheet is null.");
+            SdkWorksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is null.");
     }
 }

@@ -22,17 +22,29 @@ public static partial class OfficeChartDrawingRenderer {
     public static OfficeDrawing Render(OfficeChartSnapshot snapshot, bool useMinimumCanvas,
         ICollection<OfficeImageExportDiagnostic>? diagnostics) {
         List<ChartLabelBounds>? previousLabels = _renderPassLabels;
+        HashSet<(int Series, int Point)>? previousHiddenLabels = _renderPassHiddenLabels;
         _renderPassLabels = new List<ChartLabelBounds>();
+        _renderPassHiddenLabels = null;
         try {
             return RenderCore(snapshot, useMinimumCanvas, diagnostics);
         } finally {
             _renderPassLabels = previousLabels;
+            _renderPassHiddenLabels = previousHiddenLabels;
         }
     }
 
     private static OfficeDrawing RenderCore(OfficeChartSnapshot snapshot, bool useMinimumCanvas,
         ICollection<OfficeImageExportDiagnostic>? diagnostics) {
         ArgumentNullException.ThrowIfNull(snapshot);
+        HashSet<(int Series, int Point)>? missingAreaPoints = GetMissingAreaPoints(snapshot);
+        snapshot = ApplyBlankDisplay(snapshot);
+        _renderPassHiddenLabels = GetLabelsOverMaximum(snapshot);
+        if (missingAreaPoints != null) {
+            _renderPassHiddenLabels ??= new HashSet<(int Series, int Point)>();
+            _renderPassHiddenLabels.UnionWith(missingAreaPoints);
+        }
+        snapshot = ApplyVaryColorsByPoint(snapshot);
+        snapshot = ApplyValueAxisScales(snapshot);
         if (!IsPieChart(snapshot.ChartKind) && !IsDoughnutChart(snapshot.ChartKind) &&
             snapshot.Data.Series.Any(series => series.PointExplosions != null))
             throw new NotSupportedException("Point explosions require a pie or doughnut chart.");
@@ -67,6 +79,15 @@ public static partial class OfficeChartDrawingRenderer {
             Action drawTitle = () => AddChartText(drawing, snapshot.Title!, 8D, titleTop, Math.Max(1D, width - 16D),
                 Math.Max(1D, titleHeight - 4D), titleFontSize, style.TitleColor,
                 OfficeTextAlignment.Center, style, titleFontFamily, titleFontStyle);
+            if (layout.TitleLayout is OfficeChartManualLayout titleLayout) {
+                // A placed title keeps its automatic size; its box starts where the manual layout puts it.
+                double textWidth = Math.Min(width - 4D, MeasureChartTextWidth(snapshot.Title!, titleFontFamily, titleFontSize, titleFontStyle) + 8D);
+                (double titleLeft, _) = titleLayout.Resolve(horizontal: true, width, (width - textWidth) / 2D, textWidth);
+                (double placedTop, _) = titleLayout.Resolve(horizontal: false, height, titleTop, titleHeight);
+                drawTitle = () => AddChartText(drawing, snapshot.Title!, titleLeft, placedTop, textWidth,
+                    Math.Max(1D, titleHeight - 4D), titleFontSize, style.TitleColor,
+                    OfficeTextAlignment.Center, style, titleFontFamily, titleFontStyle);
+            }
             if (layout.OverlayTitle) {
                 drawOverlayTitle = drawTitle;
             } else {
@@ -81,19 +102,19 @@ public static partial class OfficeChartDrawingRenderer {
             return drawing;
         }
 
-        IReadOnlyList<OfficeSeries> legendSeries = GetRenderableLegendSeries(snapshot);
+        IReadOnlyList<OfficeSeries> legendSeries = GetPointColoredLegendSeries(snapshot) ?? GetRenderableLegendSeries(snapshot);
         double topLegendHeight = layout.LegendPosition == OfficeChartLegendPosition.Top
             ? GetSeriesLegendBandHeight(legendSeries, width - 16D, layout)
             : 0D;
         double bottomLegendHeight = layout.LegendPosition == OfficeChartLegendPosition.Bottom
             ? GetSeriesLegendBandHeight(legendSeries, width - 16D, layout)
             : 0D;
-        if (topLegendHeight > 0D) {
+        if (topLegendHeight > 0D && layout.LegendLayout == null) {
             AddSeriesLegendBand(drawing, legendSeries, 8D, contentTop + 2D, Math.Max(1D, width - 16D), style, layout, snapshot.ChartKind);
         }
 
         if (IsRadarChart(snapshot.ChartKind)) {
-            AddRadarSeries(drawing, snapshot, width, height, contentTop + topLegendHeight, bottomLegendHeight, style, layout);
+            AddRadarSeries(drawing, snapshot, width, height, contentTop + topLegendHeight, topLegendHeight, bottomLegendHeight, style, layout, legendSeries);
             drawOverlayTitle?.Invoke();
             return drawing;
         }
@@ -103,23 +124,30 @@ public static partial class OfficeChartDrawingRenderer {
         bool showVerticalAxis = barChart ? layout.ShowCategoryAxisLine : layout.ShowValueAxisLine;
         bool showHorizontalAxisLabels = barChart ? layout.ShowValueAxisLabels : layout.ShowCategoryAxisLabels;
         bool showVerticalAxisLabels = barChart ? layout.ShowCategoryAxisLabels : layout.ShowValueAxisLabels;
-        bool horizontalAxisCrossesAtMaximum = !barChart && layout.HorizontalAxisCrossingPosition == OfficeChartAxisCrossingPosition.Maximum;
-        bool verticalAxisCrossesAtMaximum = !barChart && layout.VerticalAxisCrossingPosition == OfficeChartAxisCrossingPosition.Maximum;
-        bool horizontalAxisLabelsHigh = layout.HorizontalAxisTickLabelPosition == OfficeChartAxisTickLabelPosition.High ||
-            (layout.HorizontalAxisTickLabelPosition == OfficeChartAxisTickLabelPosition.NextTo && horizontalAxisCrossesAtMaximum);
-        bool verticalAxisLabelsHigh = layout.VerticalAxisTickLabelPosition == OfficeChartAxisTickLabelPosition.High ||
-            (layout.VerticalAxisTickLabelPosition == OfficeChartAxisTickLabelPosition.NextTo && verticalAxisCrossesAtMaximum);
         SecondaryAxisRenderContext secondaryAxis = CreateSecondaryAxisRenderContext(
             snapshot, layout, barChart, barChart ? showHorizontalAxisLabels : showVerticalAxisLabels);
         bool hasSecondaryAxis = secondaryAxis.HasSeries;
         bool hasSecondaryAxisTitle = hasSecondaryAxis && layout.ShowValueAxis &&
             !string.IsNullOrWhiteSpace(layout.SecondaryValueAxis?.Title);
         ValueRange axisRange = GetPrimaryValueAxisRange(snapshot, layout, barChart, hasSecondaryAxis);
+        // Each axis sits where it crosses the perpendicular axis: 0 is the bottom or left plot edge, 1 the top or right.
+        AxisCrossings crossings = GetAxisCrossings(snapshot, layout, barChart, axisRange);
+        bool horizontalAxisCrossesAtMaximum = crossings.Horizontal >= 1D;
+        bool verticalAxisCrossesAtMaximum = crossings.Vertical >= 1D;
+        bool horizontalAxisLabelsHigh = layout.HorizontalAxisTickLabelPosition == OfficeChartAxisTickLabelPosition.High ||
+            (layout.HorizontalAxisTickLabelPosition == OfficeChartAxisTickLabelPosition.NextTo && horizontalAxisCrossesAtMaximum);
+        bool verticalAxisLabelsHigh = layout.VerticalAxisTickLabelPosition == OfficeChartAxisTickLabelPosition.High ||
+            (layout.VerticalAxisTickLabelPosition == OfficeChartAxisTickLabelPosition.NextTo && verticalAxisCrossesAtMaximum);
+        // "Next to axis" labels follow an axis that crosses inside the plot, as Office draws them beside a zero line.
+        bool horizontalAxisLabelsAtAxis = layout.HorizontalAxisTickLabelPosition == OfficeChartAxisTickLabelPosition.NextTo &&
+            crossings.Horizontal > 0D && crossings.Horizontal < 1D;
+        bool verticalAxisLabelsAtAxis = layout.VerticalAxisTickLabelPosition == OfficeChartAxisTickLabelPosition.NextTo &&
+            crossings.Vertical > 0D && crossings.Vertical < 1D;
         ValueRange secondaryAxisRange = secondaryAxis.Range;
         double? valueAxisMajorUnit = GetValueAxisMajorUnit(layout, horizontal: barChart);
         IReadOnlyList<double> valueAxisMajorTicks = GetValueAxisMajorTicks(axisRange, valueAxisMajorUnit);
         double? valueAxisMinorUnit = GetValueAxisMinorUnit(layout, horizontal: barChart);
-        IReadOnlyList<double> valueAxisMinorTicks = GetValueAxisMinorTicks(axisRange, valueAxisMinorUnit, valueAxisMajorTicks,
+        IReadOnlyList<double> valueAxisMinorTicks = GetLogarithmicMinorTicks(layout, barChart, axisRange) ?? GetValueAxisMinorTicks(axisRange, valueAxisMinorUnit, valueAxisMajorTicks,
             barChart ? layout.HorizontalAxisMinorTickMark != OfficeChartAxisTickMark.None :
                 layout.VerticalAxisMinorTickMark != OfficeChartAxisTickMark.None);
         bool valueAxisUsesPercentDefaults =
@@ -148,11 +176,14 @@ public static partial class OfficeChartDrawingRenderer {
             secondaryHorizontalTitleHeight + horizontalAxisTopLabelHeight;
         double legendWidth = GetSeriesLegendWidth(legendSeries, width, layout);
         bool leftLegend = layout.LegendPosition == OfficeChartLegendPosition.Left;
-        double plotLeft = 8D + verticalAxisTitleBand + verticalAxisLabelBandWidth + (leftLegend ? legendWidth : 0D);
+        // Labels drawn beside an axis inside the plot need no band outside it.
+        double verticalAxisLabelBandReserve = showVerticalAxisLabels && verticalAxisLabelsAtAxis ? 0D : verticalAxisLabelBandWidth;
+        double plotLeft = 8D + verticalAxisTitleBand + verticalAxisLabelBandReserve + (leftLegend ? legendWidth : 0D);
         double plotRight = 12D + secondaryVerticalTitleBand + verticalAxisRightLabelWidth + (leftLegend ? 0D : legendWidth);
         double horizontalAxisTitleHeight = HasHorizontalAxisTitle(snapshot.ChartKind, layout) ? GetAxisTitleBandHeight(layout) : 0D;
         // Category labels need about 20 pt below the plot; a bottom legend follows them directly.
-        double plotBottom = (bottomLegendHeight > 0D ? 28D : 40D) + horizontalAxisTitleHeight + bottomLegendHeight;
+        double plotBottom = (bottomLegendHeight > 0D ? 28D : 40D) -
+            (showHorizontalAxisLabels && horizontalAxisLabelsAtAxis ? 20D : 0D) + horizontalAxisTitleHeight + bottomLegendHeight;
         double minimumPlotWidth = Math.Min(20D, width);
         double minimumPlotHeight = Math.Min(20D, height);
         if (plotLeft + plotRight > width - minimumPlotWidth) {
@@ -165,6 +196,24 @@ public static partial class OfficeChartDrawingRenderer {
         }
         double plotWidth = Math.Max(minimumPlotWidth, width - plotLeft - plotRight);
         double plotHeight = Math.Max(minimumPlotHeight, height - plotTop - plotBottom);
+        if (layout.PlotAreaLayout is OfficeChartManualLayout plotAreaLayout) {
+            // An outer rectangle includes the axis labels and titles beside the plot; an inner one is the plot itself.
+            double insetLeft = verticalAxisTitleBand + verticalAxisLabelBandReserve;
+            double insetRight = verticalAxisRightLabelWidth + secondaryVerticalTitleBand;
+            double insetTop = horizontalAxisTopLabelHeight + secondaryHorizontalTitleHeight;
+            double insetBottom = horizontalAxisTitleHeight +
+                (showHorizontalAxisLabels && !horizontalAxisLabelsHigh && !horizontalAxisLabelsAtAxis ? 20D : 0D);
+            bool outer = plotAreaLayout.Target == OfficeChartLayoutTarget.Outer;
+            if (!outer) insetLeft = insetRight = insetTop = insetBottom = 0D;
+            (double placedLeft, double placedWidth) = plotAreaLayout.Resolve(horizontal: true, width,
+                plotLeft - insetLeft, plotWidth + insetLeft + insetRight);
+            (double placedTop, double placedHeight) = plotAreaLayout.Resolve(horizontal: false, height,
+                plotTop - insetTop, plotHeight + insetTop + insetBottom);
+            plotLeft = placedLeft + insetLeft;
+            plotTop = placedTop + insetTop;
+            plotWidth = Math.Max(minimumPlotWidth, placedWidth - insetLeft - insetRight);
+            plotHeight = Math.Max(minimumPlotHeight, placedHeight - insetTop - insetBottom);
+        }
         double maximumBubbleDiameter = IsScatterChart(snapshot.ChartKind)
             ? GetBubbleMaximumDiameter(snapshot, plotWidth, plotHeight)
             : 0D;
@@ -178,14 +227,27 @@ public static partial class OfficeChartDrawingRenderer {
         double numericPlotHeight = Math.Max(
             1D, plotHeight - verticalBubblePadding * 2D);
         double plotBottomY = plotTop + plotHeight;
-        double horizontalAxisY = horizontalAxisCrossesAtMaximum ? plotTop : plotBottomY;
+        double horizontalAxisY = crossings.Horizontal <= 0D ? plotBottomY : crossings.Horizontal >= 1D ? plotTop :
+            numericPlotTop + numericPlotHeight * (1D - crossings.Horizontal);
+        double axisLabelWidth = Math.Max(12D, verticalAxisLabelBandWidth);
         double axisLabelLeft = (leftLegend ? legendWidth + 2D : 2D) + verticalAxisTitleBand;
         double verticalAxisTitleLeft = (leftLegend ? legendWidth : 0D) + 4D;
-        double axisLabelWidth = Math.Max(12D, verticalAxisLabelBandWidth);
+        if (layout.PlotAreaLayout != null) {
+            // A placed plot carries its left labels and axis title with it.
+            axisLabelLeft = plotLeft - 6D - axisLabelWidth;
+            verticalAxisTitleLeft = axisLabelLeft - verticalAxisTitleBand + 2D;
+        }
         double axisLabelRight = plotLeft + plotWidth + 4D;
         double axisLabelRightWidth = Math.Max(12D,
             hasSecondaryAxis ? secondaryAxisLabelBandWidth : verticalAxisLabelBandWidth);
-        double verticalAxisX = verticalAxisCrossesAtMaximum ? plotLeft + plotWidth : plotLeft;
+        double verticalAxisX = crossings.Vertical <= 0D ? plotLeft : crossings.Vertical >= 1D ? plotLeft + plotWidth :
+            numericPlotLeft + numericPlotWidth * crossings.Vertical;
+        if (verticalAxisLabelsAtAxis) {
+            axisLabelWidth = Math.Max(1D, Math.Min(axisLabelWidth, verticalAxisX - 8D));
+            axisLabelLeft = verticalAxisX - 6D - axisLabelWidth;
+        }
+        // Labels beside an axis inside the plot sit just past the axis line instead of past the plot edge.
+        double horizontalAxisLabelBaseY = horizontalAxisLabelsAtAxis ? horizontalAxisY : plotBottomY;
 
         if (style.PlotAreaBackgroundColor.HasValue || style.PlotAreaBorderColor.HasValue) {
             AddShape(
@@ -255,6 +317,22 @@ public static partial class OfficeChartDrawingRenderer {
                     plotWidth,
                     axisRange,
                     valueAxisMinorTicks,
+                    layout.HorizontalAxisMinorTickMark,
+                    horizontalAxisColor,
+                    horizontalAxisLineWidth,
+                    positiveOutside: !horizontalAxisCrossesAtMaximum);
+            } else if (IsScatterChart(snapshot.ChartKind) && layout.HorizontalAxisLogBase.HasValue) {
+                // A logarithmic X axis has its minor marks at 2 to 9 times each power, as Office draws them.
+                ValueRange scatterTickRange = ApplyValueAxisScale(GetScatterPointRanges(
+                    GetRenderableScatterSeries(snapshot).Select(item => item.Series).ToList(),
+                    GetScatterXValues(snapshot.Data.Categories)).XRange, layout, horizontal: true);
+                AddHorizontalValueAxisMinorTickMarks(
+                    drawing,
+                    numericPlotLeft,
+                    horizontalAxisY,
+                    numericPlotWidth,
+                    scatterTickRange,
+                    GetLogarithmicMinorTicks(layout, horizontal: true, scatterTickRange)!,
                     layout.HorizontalAxisMinorTickMark,
                     horizontalAxisColor,
                     horizontalAxisLineWidth,
@@ -472,7 +550,7 @@ public static partial class OfficeChartDrawingRenderer {
                     drawing,
                     axisRange,
                     plotLeft,
-                    horizontalAxisLabelsHigh ? plotTop - 13D : plotBottomY + 4D,
+                    horizontalAxisLabelsHigh ? plotTop - 13D : horizontalAxisLabelBaseY + 4D,
                     plotWidth,
                     horizontalValueAxisLabelWidth,
                     horizontalAxisLabelsHigh,
@@ -514,7 +592,7 @@ public static partial class OfficeChartDrawingRenderer {
                         drawing,
                         scatterXRange,
                         numericPlotLeft,
-                        horizontalAxisLabelsHigh ? plotTop - 13D : plotBottomY + 4D,
+                        horizontalAxisLabelsHigh ? plotTop - 13D : horizontalAxisLabelBaseY + 4D,
                         numericPlotWidth,
                         horizontalValueAxisLabelWidth,
                         horizontalAxisLabelsHigh,
@@ -526,7 +604,7 @@ public static partial class OfficeChartDrawingRenderer {
                         drawing,
                         snapshot.Data.Categories,
                         plotLeft,
-                        horizontalAxisLabelsHigh ? plotTop - 13D : plotBottomY + 7D,
+                        horizontalAxisLabelsHigh ? plotTop - 13D : horizontalAxisLabelBaseY + 7D,
                         plotWidth,
                         style,
                         layout,
@@ -542,7 +620,10 @@ public static partial class OfficeChartDrawingRenderer {
                 plotHeight, plotLeft + plotWidth + 4D + (secondaryAxisLabelBandWidth > 0D ? secondaryAxisLabelBandWidth + 8D : 0D),
                 barChart, style, layout);
 
-        if (layout.OverlayLegend) {
+        if (layout.LegendLayout is OfficeChartManualLayout legendLayout) {
+            AddPlacedSeriesLegend(drawing, legendSeries, legendLayout, width, height, contentTop, topLegendHeight, bottomLegendHeight,
+                legendWidth, plotTop, plotHeight, style, layout, snapshot.ChartKind);
+        } else if (layout.OverlayLegend) {
             AddOverlaySeriesLegend(drawing, legendSeries, plotLeft, plotTop, plotWidth, plotHeight, style, layout, snapshot.ChartKind);
         } else {
             AddSeriesLegend(
@@ -557,7 +638,7 @@ public static partial class OfficeChartDrawingRenderer {
                 snapshot.ChartKind);
         }
 
-        if (!layout.OverlayLegend && bottomLegendHeight > 0D) {
+        if (!layout.OverlayLegend && bottomLegendHeight > 0D && layout.LegendLayout == null) {
             AddSeriesLegendBand(drawing, legendSeries, 8D, height - bottomLegendHeight + 2D, Math.Max(1D, width - 16D), style, layout, snapshot.ChartKind);
         }
 
@@ -1058,7 +1139,14 @@ public static partial class OfficeChartDrawingRenderer {
         }
 
         int barSeriesCount = Math.Max(1, slotCount);
-        double slot = plotWidth / categories.Count;
+        // With OOXML midCat the category axis puts each category on a tick mark: the first and
+        // last categories sit on the plot edges and their bars are cut there, as in Office.
+        bool onTickMarks = UsesTickMarkCategoryPoints(snapshot, layout);
+        int slotIntervals = onTickMarks ? categories.Count - 1 : categories.Count;
+        OfficeDrawing barGeometry = onTickMarks ? new OfficeDrawing(drawing.Width, drawing.Height) : drawing;
+        // Labels go above the clipped bars, which are added last.
+        OfficeDrawing barLabels = onTickMarks ? new OfficeDrawing(drawing.Width, drawing.Height) : drawing;
+        double slot = plotWidth / slotIntervals;
         // OOXML gapWidth is the gap between clusters in bar widths and overlap the share of a
         // bar that neighbours cover. A cluster of n bars spans n - (n - 1) * overlap bars.
         double gapRatio = layout.BarGapWidthPercent / 100D;
@@ -1092,7 +1180,9 @@ public static partial class OfficeChartDrawingRenderer {
                     continue;
                 }
 
-                if (value == 0D && !ShouldShowDataLabel(layout, sourceSeriesIndex, category)) {
+                // A zero is judged by the source value: a 1 on a logarithmic axis plots at 0 but is not empty.
+                double sourceValue = GetSourceSeriesValue(currentSeries, category, value);
+                if (sourceValue == 0D && !ShouldShowDataLabel(layout, sourceSeriesIndex, category)) {
                     continue;
                 }
 
@@ -1122,29 +1212,33 @@ public static partial class OfficeChartDrawingRenderer {
                 ValueRange range = horizontal ? horizontalRange : verticalRange;
                 double min = range.Min;
                 double max = range.Max;
+                // Clustered bars grow from where the category axis crosses the value axis, as in Office.
+                if (!seriesStacked) baseline = GetClusteredBarBaseline(layout, horizontal, range);
+                // Stacks grow from their running total by the value's sign; clustered bars grow away from the crossing.
+                bool growsForward = seriesStacked ? plottedValue >= 0D : plottedValue >= baseline;
                 int layoutSlot = seriesStacked
                     ? stackedSlots[seriesKind]
                     : clusteredSlots[sourceSeriesIndex];
 
                 if (horizontal) {
-                    double categoryHeight = plotHeight / categories.Count;
+                    double categoryHeight = plotHeight / slotIntervals;
                     double rowHeight = Math.Max(2D, categoryHeight / (clusterBars + gapRatio));
                     int categorySlot = GetHorizontalBarCategorySlotIndex(category, categories.Count, layout);
                     int seriesSlot = barSeriesCount - 1 - layoutSlot;
                     double y = plotTop + categoryHeight * categorySlot +
-                        (categoryHeight - rowHeight * clusterBars) / 2D + rowHeight * barStepRatio * seriesSlot;
+                        ((onTickMarks ? 0D : categoryHeight) - rowHeight * clusterBars) / 2D + rowHeight * barStepRatio * seriesSlot;
                     double visibleBaseline = ClampValueToRange(baseline, min, max);
                     double visibleValue = ClampValueToRange(seriesStacked ? baseline + plottedValue : plottedValue, min, max);
                     double x1 = ToPlotX(visibleBaseline, min, max, plotLeft, plotWidth);
                     double x2 = ToPlotX(visibleValue, min, max, plotLeft, plotWidth);
                     double x = Math.Min(x1, x2);
                     double w = Math.Max(1D, Math.Abs(x2 - x1));
-                    if (value != 0D) {
-                        AddStyledPointShape(drawing, OfficeShape.Rectangle(w, rowHeight), x, y, color, GetPointStyle(currentSeries, category), null, 0.75D);
+                    if (sourceValue != 0D && (value != 0D || x1 != x2)) {
+                        AddStyledPointShape(barGeometry, OfficeShape.Rectangle(w, rowHeight), x, y, color, GetPointStyle(currentSeries, category), null, 0.75D);
                     }
 
                     AddHorizontalDataLabel(
-                        drawing,
+                        barLabels,
                         layout,
                         style,
                         categories[category],
@@ -1156,22 +1250,23 @@ public static partial class OfficeChartDrawingRenderer {
                         y,
                         y + rowHeight,
                         sourceSeriesIndex,
-                        category);
+                        category,
+                        growsForward);
                 } else {
                     int categorySlotIndex = GetCategorySlotIndex(category, categories.Count, layout);
-                    double x = plotLeft + slot * categorySlotIndex + (slot - groupWidth) / 2D + barWidth * barStepRatio * layoutSlot;
+                    double x = plotLeft + slot * categorySlotIndex + ((onTickMarks ? 0D : slot) - groupWidth) / 2D + barWidth * barStepRatio * layoutSlot;
                     double visibleBaseline = ClampValueToRange(baseline, min, max);
                     double visibleValue = ClampValueToRange(seriesStacked ? baseline + plottedValue : plottedValue, min, max);
                     double y1 = ToPlotY(visibleBaseline, min, max, plotTop, plotHeight);
                     double y2 = ToPlotY(visibleValue, min, max, plotTop, plotHeight);
                     double y = Math.Min(y1, y2);
                     double h = Math.Max(1D, Math.Abs(y2 - y1));
-                    if (value != 0D) {
-                        AddStyledPointShape(drawing, OfficeShape.Rectangle(barWidth, h), x, y, color, GetPointStyle(currentSeries, category), null, 0.75D);
+                    if (sourceValue != 0D && (value != 0D || y1 != y2)) {
+                        AddStyledPointShape(barGeometry, OfficeShape.Rectangle(barWidth, h), x, y, color, GetPointStyle(currentSeries, category), null, 0.75D);
                     }
 
                     AddVerticalDataLabel(
-                        drawing,
+                        barLabels,
                         layout,
                         style,
                         categories[category],
@@ -1182,10 +1277,12 @@ public static partial class OfficeChartDrawingRenderer {
                         y,
                         y + h,
                         sourceSeriesIndex,
-                        category);
+                        category,
+                        growsForward);
                 }
             }
         }
+        if (onTickMarks) AddClippedPlotGeometry(drawing, barGeometry, barLabels, new ChartPlotBounds(plotLeft, plotTop, plotWidth, plotHeight));
     }
 
     private static ValueRange GetBarSeriesRenderRange(OfficeChartSnapshot snapshot, IReadOnlyList<(OfficeSeries Series, int SourceIndex)> barSeries, int categoryCount) {
@@ -1572,9 +1669,11 @@ public static partial class OfficeChartDrawingRenderer {
             var lineSegment = new List<OfficePoint>(pointCount);
             for (int i = 0; i < pointCount; i++) {
                 if (!TryGetSeriesValue(currentSeries, i, out double yValue)) {
+                    if (layout.BlankDisplay == OfficeChartBlankDisplay.Span) continue;
                     if (layout.ConnectScatterPoints && currentSeries.ConnectLine && currentSeries.SeriesStyle?.ShowOutline != false) {
                         AddScatterPlotLine(lineGeometry, lineSegment, currentSeries.SeriesStyle?.OutlineColor ?? color, strokeWidth, dashStyle,
-                            clipPlot, xRange, yRange, centerBounds, currentSeries.SeriesStyle?.OutlineJoin);
+                            clipPlot, xRange, yRange, centerBounds, currentSeries.SeriesStyle?.OutlineJoin,
+                            currentSeries.SeriesStyle?.OutlineCap);
                     }
 
                     lineSegment.Clear();
@@ -1585,7 +1684,8 @@ public static partial class OfficeChartDrawingRenderer {
                 if (!IsFiniteChartValue(xValue)) {
                     if (layout.ConnectScatterPoints && currentSeries.ConnectLine && currentSeries.SeriesStyle?.ShowOutline != false) {
                         AddScatterPlotLine(lineGeometry, lineSegment, currentSeries.SeriesStyle?.OutlineColor ?? color, strokeWidth, dashStyle,
-                            clipPlot, xRange, yRange, centerBounds, currentSeries.SeriesStyle?.OutlineJoin);
+                            clipPlot, xRange, yRange, centerBounds, currentSeries.SeriesStyle?.OutlineJoin,
+                            currentSeries.SeriesStyle?.OutlineCap);
                     }
 
                     lineSegment.Clear();
@@ -1610,7 +1710,8 @@ public static partial class OfficeChartDrawingRenderer {
 
             if (layout.ConnectScatterPoints && currentSeries.ConnectLine && currentSeries.SeriesStyle?.ShowOutline != false) {
                 AddScatterPlotLine(lineGeometry, lineSegment, currentSeries.SeriesStyle?.OutlineColor ?? color, strokeWidth, dashStyle,
-                    clipPlot, xRange, yRange, centerBounds, currentSeries.SeriesStyle?.OutlineJoin);
+                    clipPlot, xRange, yRange, centerBounds, currentSeries.SeriesStyle?.OutlineJoin,
+                            currentSeries.SeriesStyle?.OutlineCap);
             }
             for (int i = 0; i < points.Count; i++) {
                 OfficePoint point = points[i].Point;
@@ -1627,7 +1728,7 @@ public static partial class OfficeChartDrawingRenderer {
 
                 int pointIndex = points[i].SourceIndex;
                 string labelCategory = currentSeries.XValues != null && pointIndex < xValues.Count
-                    ? xValues[pointIndex].ToString("0.####", CultureInfo.InvariantCulture)
+                    ? (currentSeries.SourceXValue?.Invoke(xValues[pointIndex]) ?? xValues[pointIndex]).ToString("0.####", CultureInfo.InvariantCulture)
                     : pointIndex < categories.Count ? categories[pointIndex] : string.Empty;
                 AddPointDataLabel(
                     labels,
@@ -1649,18 +1750,37 @@ public static partial class OfficeChartDrawingRenderer {
         }
     }
 
-    private static void AddRadarSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, double width, double height, double contentTop, double bottomLegendHeight, OfficeChartStyle style, OfficeChartLayout layout) {
+    // Radar value labels start this far right of the web's centre, in boxes this wide.
+    private const double RadarValueLabelInset = 4D;
+    private const double RadarValueLabelWidth = 42D;
+    private const double RadarDisplayUnitLabelWidth = 80D;
+
+    private static void AddRadarSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, double width, double height, double contentTop, double topLegendHeight, double bottomLegendHeight, OfficeChartStyle style, OfficeChartLayout layout,
+        IReadOnlyList<OfficeSeries> legendSeries) {
         IReadOnlyList<string> categories = snapshot.Data.Categories;
         IReadOnlyList<OfficeSeries> series = snapshot.Data.Series;
         if (categories.Count < 3 || series.Count == 0) {
             return;
         }
 
-        double legendWidth = GetSeriesLegendWidth(series, width, layout);
+        double legendWidth = GetSeriesLegendWidth(legendSeries, width, layout);
         bool leftLegend = layout.LegendPosition == OfficeChartLegendPosition.Left;
         GetRadialPlotGeometry(width, height, contentTop, bottomLegendHeight, legendWidth,
             leftLegend, 52D, 42D, out double centerX, out double centerY, out double radius,
             out double visualWidth, out double contentHeight);
+        // An outer plot area also holds the axis labels. Each category label sits RadarCategoryLabelOffset outside the
+        // web in a box RadarCategoryLabelWidth wide and one label high. The outermost value label is centred on the top
+        // of the web, with any display-unit label above it. Value labels start just right of the centre whatever the
+        // radius, so they fit only when the area is at least twice as wide as they reach.
+        double labelBoxHeight = GetAxisLabelBoxHeight(layout);
+        bool displayUnitLabel = !string.IsNullOrWhiteSpace(layout.VerticalAxisDisplayUnitLabel);
+        double valueLabelReserve = !layout.ShowValueAxisLabels ? 0D : displayUnitLabel ? 3D * labelBoxHeight + 4D : labelBoxHeight;
+        double valueLabelReach = !layout.ShowValueAxisLabels ? 0D
+            : RadarValueLabelInset + (displayUnitLabel ? RadarDisplayUnitLabelWidth : RadarValueLabelWidth);
+        PlaceRadialPlotArea(layout, width, height,
+            layout.ShowCategoryAxisLabels ? 2D * RadarCategoryLabelOffset + layout.RadarCategoryLabelWidth : 0D,
+            Math.Max(layout.ShowCategoryAxisLabels ? 2D * RadarCategoryLabelOffset + labelBoxHeight : 0D, valueLabelReserve),
+            ref centerX, ref centerY, ref radius, valueLabelReach);
         ValueRange range = GetRadarValueRange(series);
 
         if (GetShowValueGridLines(style)) {
@@ -1675,11 +1795,14 @@ public static partial class OfficeChartDrawingRenderer {
             for (int ring = 1; ring <= 4; ring++) {
                 double tick = range.Min + (range.Max - range.Min) * ring / 4D;
                 double y = centerY - radius * ring / 4D - labelHeight / 2D;
-                AddChartText(drawing, FormatAxisValue(tick, layout, false, layout.VerticalAxisNumberFormat),
-                    centerX + 4D, y, 42D, labelHeight, layout.AxisLabelFontSize,
+                AddChartText(drawing, FormatAxisValue(tick, layout, false, layout.VerticalAxisNumberFormat, layout.VerticalAxisDisplayUnitDivisor),
+                    centerX + RadarValueLabelInset, y, RadarValueLabelWidth, labelHeight, layout.AxisLabelFontSize,
                     style.MutedTextColor, OfficeTextAlignment.Left, style,
                     layout.AxisTextFontFamily, layout.AxisTextFontStyle);
             }
+            // The display-unit label ("Thousands") sits above the outermost ring label.
+            AddAxisDisplayUnitLabel(drawing, layout.VerticalAxisDisplayUnitLabel, centerX + RadarValueLabelInset,
+                centerY - radius - labelHeight * 1.5D - 2D, RadarDisplayUnitLabelWidth, style, layout, OfficeTextAlignment.Left);
         }
 
         if (GetShowCategoryGridLines(style)) {
@@ -1717,10 +1840,22 @@ public static partial class OfficeChartDrawingRenderer {
                 plotted[i] = true;
             }
 
-            if (allPointsPlotted && series[s].ConnectLine) {
+            OfficePoint[] outlinePoints = points;
+            bool spanned = false;
+            if (!allPointsPlotted && layout.BlankDisplay == OfficeChartBlankDisplay.Span) {
+                CompactPlottedPoints(points, plotted, out outlinePoints, out _);
+                allPointsPlotted = outlinePoints.Length >= 3;
+                spanned = !allPointsPlotted;
+            }
+
+            if (spanned) {
+                // Two remaining points span the gap with one unfilled line; one point has no outline.
+                if (outlinePoints.Length == 2 && series[s].ConnectLine && series[s].SeriesStyle?.ShowOutline != false)
+                    AddPointLine(drawing, outlinePoints, series[s].SeriesStyle?.OutlineColor ?? color, strokeWidth, dashStyle);
+            } else if (allPointsPlotted && series[s].ConnectLine) {
                 AddPolygonShape(
                     drawing,
-                    points,
+                    outlinePoints,
                     layout.FillRadarSeries && series[s].SeriesStyle?.NoFill != true ? series[s].SeriesStyle?.FillColor ?? color : null,
                     series[s].SeriesStyle?.ShowOutline == false ? null : series[s].SeriesStyle?.OutlineColor ?? color,
                     strokeWidth,
@@ -1774,12 +1909,15 @@ public static partial class OfficeChartDrawingRenderer {
         }
 
         if (layout.ShowCategoryAxisLabels) AddRadarCategoryLabels(drawing, categories, centerX, centerY, radius, style, layout);
-        if (layout.OverlayLegend) {
-            AddOverlaySeriesLegend(drawing, series, leftLegend ? legendWidth : 0D, contentTop + 4D, visualWidth, Math.Max(20D, contentHeight - 8D), style, layout, snapshot.ChartKind);
+        if (layout.LegendLayout is OfficeChartManualLayout legendLayout) {
+            AddPlacedSeriesLegend(drawing, legendSeries, legendLayout, width, height, contentTop - topLegendHeight, topLegendHeight,
+                bottomLegendHeight, legendWidth, contentTop + 12D, Math.Max(20D, contentHeight - 24D), style, layout, snapshot.ChartKind);
+        } else if (layout.OverlayLegend) {
+            AddOverlaySeriesLegend(drawing, legendSeries, leftLegend ? legendWidth : 0D, contentTop + 4D, visualWidth, Math.Max(20D, contentHeight - 8D), style, layout, snapshot.ChartKind);
         } else {
             AddSeriesLegend(
                 drawing,
-                series,
+                legendSeries,
                 leftLegend ? 6D : width - legendWidth + 6D,
                 contentTop + 12D,
                 Math.Max(0D, legendWidth - 12D),
@@ -1789,8 +1927,8 @@ public static partial class OfficeChartDrawingRenderer {
                 snapshot.ChartKind);
         }
 
-        if (!layout.OverlayLegend && bottomLegendHeight > 0D) {
-            AddSeriesLegendBand(drawing, series, 8D, height - bottomLegendHeight + 2D, Math.Max(1D, width - 16D), style, layout, snapshot.ChartKind);
+        if (!layout.OverlayLegend && bottomLegendHeight > 0D && layout.LegendLayout == null) {
+            AddSeriesLegendBand(drawing, legendSeries, 8D, height - bottomLegendHeight + 2D, Math.Max(1D, width - 16D), style, layout, snapshot.ChartKind);
         }
     }
 
@@ -1847,7 +1985,8 @@ public static partial class OfficeChartDrawingRenderer {
         AddShape(drawing, shape, minX, minY, fill, stroke, strokeWidth, dashStyle);
     }
 
-    private static void AddPointLine(OfficeDrawing drawing, IReadOnlyList<OfficePoint> points, OfficeColor color, double strokeWidth, OfficeStrokeDashStyle dashStyle = OfficeStrokeDashStyle.Solid) {
+    private static void AddPointLine(OfficeDrawing drawing, IReadOnlyList<OfficePoint> points, OfficeColor color, double strokeWidth, OfficeStrokeDashStyle dashStyle = OfficeStrokeDashStyle.Solid,
+        OfficeStrokeLineCap? cap = null) {
         for (int i = 1; i < points.Count; i++) {
             OfficePoint previous = points[i - 1];
             OfficePoint current = points[i];
@@ -1857,9 +1996,11 @@ public static partial class OfficeChartDrawingRenderer {
 
             double minX = Math.Min(previous.X, current.X);
             double minY = Math.Min(previous.Y, current.Y);
+            OfficeShape segment = OfficeShape.Line(previous.X - minX, previous.Y - minY, current.X - minX, current.Y - minY);
+            segment.StrokeLineCap = cap;
             AddShape(
                 drawing,
-                OfficeShape.Line(previous.X - minX, previous.Y - minY, current.X - minX, current.Y - minY),
+                segment,
                 minX,
                 minY,
                 null,

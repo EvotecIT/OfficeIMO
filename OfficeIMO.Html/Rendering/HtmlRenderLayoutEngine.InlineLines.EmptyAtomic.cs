@@ -9,10 +9,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private bool TryResolveEmptyInlineBlockLineMetrics(InlineLine line, HtmlRenderBoxStyle paragraphStyle,
         ref double lineHeight, out double baseline) {
         baseline = 0D;
-        if (!line.HasFlowContent || IsVerticalWritingMode(paragraphStyle.WritingMode)
-            || !line.Segments.Any(segment => segment.Run.HasEmptyInlineBlockBaseline
-                && segment.Run.Style.TableVerticalAlignment == "baseline")) return false;
+        if (!line.HasFlowContent || IsVerticalWritingMode(paragraphStyle.WritingMode)) return false;
+        IReadOnlyList<InlineSegment> segments = line.Segments;
+        for (int index = 0; index < segments.Count; index++) {
+            HtmlInlineRun candidate = segments[index].Run;
+            if (candidate.HasEmptyInlineBlockBaseline && candidate.Style.TableVerticalAlignment == "baseline")
+                return ResolveEmptyInlineBlockLineMetrics(line, paragraphStyle, ref lineHeight, out baseline);
+        }
+        return false;
+    }
 
+    // Kept apart from the check above: most lines have no empty inline-block, and this method's closures
+    // would otherwise be allocated for each of them.
+    private bool ResolveEmptyInlineBlockLineMetrics(InlineLine line, HtmlRenderBoxStyle paragraphStyle,
+        ref double lineHeight, out double baseline) {
+        baseline = 0D;
         foreach (InlineSegment segment in line.Segments) {
             HtmlInlineRun run = segment.Run;
             if (run.IsFlowMarker || run.PositionedMarkerElement != null) continue;

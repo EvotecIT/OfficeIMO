@@ -101,9 +101,9 @@ namespace OfficeIMO.Word {
 
         private static void CreateInPlaceTargetRedlineDocument(WordDocument sourceDocument, WordDocument targetDocument, string outputPath, WordComparisonResult result, WordComparisonRedlineOptions options) {
             using var snapshot = new MemoryStream();
-            using (targetDocument._wordprocessingDocument.Clone(snapshot, true)) { }
+            using (WordPackageSnapshot.Clone(targetDocument._wordprocessingDocument, snapshot)) { }
             snapshot.Position = 0;
-            using WordDocument document = WordDocument.Load(snapshot, new WordLoadOptions { PersistenceMode = DocumentPersistenceMode.Explicit });
+            using WordDocument document = WordDocument.LoadPackageSnapshot(snapshot, targetDocument._wordprocessingDocument);
             WordTable.CopyGridNormalizationState(targetDocument._wordprocessingDocument, document._wordprocessingDocument);
             HashSet<int> rewrittenParagraphs = ApplyParagraphFindings(
                 sourceDocument._wordprocessingDocument,
@@ -122,7 +122,7 @@ namespace OfficeIMO.Word {
             AppendInPlaceFeatureAndReviewFindings(document, result, options);
 
             document.Save(outputPath,
-                new WordSaveOptions { SignedDocumentPolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation });
+                new WordSaveOptions { SignatureMutationPolicy = OfficeSignatureMutationPolicy.PreserveSignatureMarkup });
         }
 
         private static bool HasTrackedText(WordComparisonFinding finding) {

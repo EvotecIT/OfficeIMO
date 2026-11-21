@@ -8,8 +8,7 @@ internal static partial class WordRunFormatting {
     internal static Shading? ResolveTableShading(WordTable table) {
         TableProperties? properties = table._table.GetFirstChild<TableProperties>();
         if (properties?.GetFirstChild<Shading>() is { } direct) return direct;
-        Styles? styles = table.Document.MainDocumentPartRoot.StyleDefinitionsPart?.Styles;
-        foreach (Style style in EnumerateStyleChain(styles, properties?.TableStyle?.Val?.Value, StyleValues.Table)
+        foreach (Style style in WordStyleCatalog.For(table.Document).EnumerateChain(properties?.TableStyle?.Val?.Value, StyleValues.Table)
                      .TakeWhile(style => !IsBuiltInNormalTableStyle(style.StyleId?.Value))) {
             if (style.StyleTableProperties?.GetFirstChild<Shading>() is { } shading) return shading;
         }
@@ -17,15 +16,24 @@ internal static partial class WordRunFormatting {
     }
 
     /// <summary>Resolves cell shading in source override order, retaining explicit nil and clear declarations.</summary>
-    internal static Shading? ResolveTableCellShading(WordTableCell cell) {
-        if (cell._tableCell.TableCellProperties?.GetFirstChild<Shading>() is { } direct) return direct;
-        Table? table = cell._tableCell.Ancestors<Table>().FirstOrDefault();
+    internal static Shading? ResolveTableCellShading(WordTableCell cell) =>
+        ResolveTableCellShading(cell._tableCell, WordStyleCatalog.For(cell.Document));
+
+    /// <summary>Resolves the shading of the nearest table cell containing a paragraph, or <see langword="null"/> outside tables.</summary>
+    internal static Shading? ResolveContainingTableCellShading(WordParagraph paragraph) {
+        TableCell? cell = paragraph._paragraph?.Ancestors<TableCell>().FirstOrDefault();
+        return cell == null ? null
+            : ResolveTableCellShading(cell, paragraph._document == null ? WordStyleCatalog.ForLoaded(null) : WordStyleCatalog.For(paragraph._document));
+    }
+
+    private static Shading? ResolveTableCellShading(TableCell tableCell, WordStyleCatalog styles) {
+        if (tableCell.TableCellProperties?.GetFirstChild<Shading>() is { } direct) return direct;
+        Table? table = tableCell.Ancestors<Table>().FirstOrDefault();
         if (table == null) return null;
         if (table.GetFirstChild<TableProperties>()?.GetFirstChild<Shading>() is { } tableShading) return tableShading;
-        Styles? styles = cell.Document.MainDocumentPartRoot.StyleDefinitionsPart?.Styles;
         TableRunPaintState state = GetTableRunPaintState(table, styles);
         if (state.HasConditionalFormatting) {
-            foreach (TableStyleOverrideValues condition in EnumerateTableRunConditions(state, cell._tableCell)) {
+            foreach (TableStyleOverrideValues condition in EnumerateTableRunConditions(state, tableCell)) {
                 foreach (Style style in state.Chain) {
                     foreach (TableStyleProperties conditional in style.Elements<TableStyleProperties>()
                                  .Where(properties => properties.Type?.Value == condition).Reverse()) {
@@ -50,8 +58,8 @@ internal static partial class WordRunFormatting {
     /// Reads the nearest table's XML without constructing normalization-capable table wrappers.
     /// </summary>
     internal static IEnumerable<OpenXmlCompositeElement> EnumerateTableRunPropertySources(WordParagraph paragraph) {
-        Styles? styles = paragraph._document?._wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart?.Styles;
-        var context = GetTableRunPropertyContext(paragraph._paragraph, styles);
+        var context = GetTableRunPropertyContext(paragraph._paragraph,
+            paragraph._document == null ? WordStyleCatalog.ForLoaded(null) : WordStyleCatalog.For(paragraph._document));
         if (context == null) return Enumerable.Empty<OpenXmlCompositeElement>();
         return EnumerateTableRunPropertySources(context.Value.State.Chain, EnumerateTableRunConditions(context.Value.State, context.Value.Cell))
             .Where(properties => properties.GetFirstChild<Shading>() != null || ReadRunHighlight(properties).HasValue);
@@ -59,12 +67,12 @@ internal static partial class WordRunFormatting {
 
     /// <summary>Reads the complete semantic run cascade, including authored normal-table styles, without constructing wrappers.</summary>
     internal static IEnumerable<OpenXmlCompositeElement> EnumerateTableRunPropertySources(Paragraph paragraph, Styles? styles) {
-        var context = GetTableRunPropertyContext(paragraph, styles);
+        var context = GetTableRunPropertyContext(paragraph, WordStyleCatalog.ForLoaded(styles));
         return context == null ? Enumerable.Empty<OpenXmlCompositeElement>() :
             EnumerateTableSemanticRunPropertySources(context.Value.State, context.Value.Cell);
     }
 
-    private static (TableCell Cell, TableRunPaintState State)? GetTableRunPropertyContext(Paragraph paragraph, Styles? styles) {
+    private static (TableCell Cell, TableRunPaintState State)? GetTableRunPropertyContext(Paragraph paragraph, WordStyleCatalog styles) {
         TableCell? cell = paragraph.Ancestors<TableCell>().FirstOrDefault();
         Table? table = cell?.Ancestors<Table>().FirstOrDefault();
         return cell == null || table == null ? null : (cell, GetTableRunPaintState(table, styles));

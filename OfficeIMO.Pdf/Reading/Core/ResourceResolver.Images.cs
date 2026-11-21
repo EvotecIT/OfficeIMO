@@ -354,6 +354,9 @@ internal static partial class ResourceResolver {
             return false;
         }
         byte[] scanlines = new byte[scanlineBytes];
+        // A one-bit sample is 0 or 1, so the Decode mapping is resolved for both once instead of for every pixel.
+        byte clearAlpha = DecodeImageMaskAlpha(stream.Dictionary, 0, objects);
+        byte setAlpha = DecodeImageMaskAlpha(stream.Dictionary, 1, objects);
         for (int sampleIndex = 0; sampleIndex < pixelCount; sampleIndex++) {
             if ((sampleIndex & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (!TryReadIndexedSample(maskPixels, width, sampleIndex, 1, out int sample)) {
@@ -367,7 +370,7 @@ internal static partial class ResourceResolver {
             scanlines[outputPixel] = imageMaskColor.R;
             scanlines[outputPixel + 1] = imageMaskColor.G;
             scanlines[outputPixel + 2] = imageMaskColor.B;
-            scanlines[outputPixel + 3] = DecodeImageMaskAlpha(stream.Dictionary, sample, objects);
+            scanlines[outputPixel + 3] = sample == 0 ? clearAlpha : setAlpha;
         }
 
         pngBytes = OfficePngWriter.EncodeScanlines(

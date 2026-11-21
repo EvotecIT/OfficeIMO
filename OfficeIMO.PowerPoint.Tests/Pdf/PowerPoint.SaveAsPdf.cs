@@ -2084,7 +2084,7 @@ public partial class PowerPointSaveAsPdfTests {
 
         Assert.Equal(new[] { "Jan", string.Empty, "Mar" }, snapshot.Data.Categories);
         PowerPointChartSeries actual = Assert.Single(snapshot.Data.Series);
-        Assert.Equal(new[] { 10D, 0D, 30D }, actual.Values);
+        Assert.Equal(new[] { 10D, double.NaN, 30D }, actual.Values);
     }
 
     [Fact]

@@ -641,40 +641,40 @@ public sealed partial class OfficeChartLayout {
     public string? CategoryAxisNumberFormat { get; }
 
     /// <summary>Optional divisor applied to horizontal value-axis labels.</summary>
-    public double? HorizontalAxisDisplayUnitDivisor { get; }
+    public double? HorizontalAxisDisplayUnitDivisor { get; private set; }
 
     /// <summary>Optional display-unit label shown for horizontal value axes.</summary>
-    public string? HorizontalAxisDisplayUnitLabel { get; }
+    public string? HorizontalAxisDisplayUnitLabel { get; private set; }
 
     /// <summary>Optional divisor applied to vertical value-axis labels.</summary>
-    public double? VerticalAxisDisplayUnitDivisor { get; }
+    public double? VerticalAxisDisplayUnitDivisor { get; private set; }
 
     /// <summary>Optional display-unit label shown for vertical value axes.</summary>
-    public string? VerticalAxisDisplayUnitLabel { get; }
+    public string? VerticalAxisDisplayUnitLabel { get; private set; }
 
     /// <summary>Optional minimum for horizontal value axes.</summary>
-    public double? HorizontalAxisMinimum { get; }
+    public double? HorizontalAxisMinimum { get; private set; }
 
     /// <summary>Optional maximum for horizontal value axes.</summary>
-    public double? HorizontalAxisMaximum { get; }
+    public double? HorizontalAxisMaximum { get; private set; }
 
     /// <summary>Optional major tick/grid unit for horizontal value axes.</summary>
-    public double? HorizontalAxisMajorUnit { get; }
+    public double? HorizontalAxisMajorUnit { get; private set; }
 
     /// <summary>Optional minor tick/grid unit for horizontal value axes.</summary>
-    public double? HorizontalAxisMinorUnit { get; }
+    public double? HorizontalAxisMinorUnit { get; private set; }
 
     /// <summary>Optional minimum for vertical value axes.</summary>
-    public double? VerticalAxisMinimum { get; }
+    public double? VerticalAxisMinimum { get; private set; }
 
     /// <summary>Optional maximum for vertical value axes.</summary>
-    public double? VerticalAxisMaximum { get; }
+    public double? VerticalAxisMaximum { get; private set; }
 
     /// <summary>Optional major tick/grid unit for vertical value axes.</summary>
-    public double? VerticalAxisMajorUnit { get; }
+    public double? VerticalAxisMajorUnit { get; private set; }
 
     /// <summary>Optional minor tick/grid unit for vertical value axes.</summary>
-    public double? VerticalAxisMinorUnit { get; }
+    public double? VerticalAxisMinorUnit { get; private set; }
 
     /// <summary>Major tick mark placement for the horizontal axis.</summary>
     public OfficeChartAxisTickMark HorizontalAxisMajorTickMark { get; }
@@ -725,10 +725,10 @@ public sealed partial class OfficeChartLayout {
     public OfficeChartAxisTickLabelPosition VerticalAxisTickLabelPosition { get; }
 
     /// <summary>Physical crossing side for the horizontal axis.</summary>
-    public OfficeChartAxisCrossingPosition HorizontalAxisCrossingPosition { get; }
+    public OfficeChartAxisCrossingPosition HorizontalAxisCrossingPosition { get; private set; }
 
     /// <summary>Physical crossing side for the vertical axis.</summary>
-    public OfficeChartAxisCrossingPosition VerticalAxisCrossingPosition { get; }
+    public OfficeChartAxisCrossingPosition VerticalAxisCrossingPosition { get; private set; }
 
     /// <summary>Whether category-axis slots should be rendered in reverse order.</summary>
     public bool ReverseCategoryAxis { get; }

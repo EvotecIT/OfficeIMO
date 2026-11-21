@@ -982,7 +982,7 @@ namespace OfficeIMO.Tests
         }
 
         [Fact]
-        public void PerformanceReview_InsertDataTable_DirectPackagePreservesLargeIntegerNumberCells() {
+        public void PerformanceReview_InsertDataTable_DirectPackageKeepsLargeIntegersAsExactText() {
             using var memory = new MemoryStream();
             var table = new DataTable("Numbers");
             table.Columns.Add("Value", typeof(long));
@@ -1002,8 +1002,8 @@ namespace OfficeIMO.Tests
             var worksheet = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet!;
             var cells = worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
             Cell valueCell = cells["A2"];
-            Assert.True(valueCell.DataType == null || valueCell.DataType.Value == CellValues.Number);
-            Assert.Equal(long.MaxValue.ToString(CultureInfo.InvariantCulture), valueCell.CellValue!.Text);
+            Assert.Equal(CellValues.InlineString, valueCell.DataType!.Value);
+            Assert.Equal(long.MaxValue.ToString(CultureInfo.InvariantCulture), valueCell.InlineString!.InnerText);
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }
 
@@ -2886,6 +2886,7 @@ namespace OfficeIMO.Tests
             using var memory = new MemoryStream();
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
+                document.DateTimeOffsetWriteMode = ExcelDateTimeOffsetWriteMode.Serial;
                 var sheet = document.AddSheet("Data");
                 var start = new DateTime(2026, 1, 1, 8, 30, 0, DateTimeKind.Unspecified);
                 for (int row = 1; row <= 100; row++) {

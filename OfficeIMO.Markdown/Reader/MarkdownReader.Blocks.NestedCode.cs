@@ -37,6 +37,7 @@ internal static partial class MarkdownReader {
         string line = lines[index] ?? string.Empty;
         int indent = CountLeadingIndentColumns(line);
         if (indent < continuationIndent) return false;
+        if (FirstCharacterAfterIndent(line) is not ('`' or '~')) return false;
 
         string first = StripLeadingIndentColumns(line, continuationIndent);
         int openingFenceIndent = CountLeadingIndentColumns(first);
@@ -97,6 +98,9 @@ internal static partial class MarkdownReader {
         if (!attributeSet.IsEmpty && block is MarkdownObject markdownObject && markdownObject.Attributes.IsEmpty) {
             markdownObject.SetAttributes(attributeSet);
             MarkdownGenericAttributeSourceSpans.Set(markdownObject, attributeSourceText, attributeSourceSpan);
+            if (!state.CaptureSyntaxTree && !attributeSourceSpan.HasValue && !string.IsNullOrEmpty(attributeSourceText)) {
+                MarkdownGenericAttributeSourceSpans.MarkStandaloneWithoutSpan(markdownObject);
+            }
         }
 
         index = j;

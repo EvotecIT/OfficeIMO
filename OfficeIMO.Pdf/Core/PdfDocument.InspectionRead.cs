@@ -14,7 +14,7 @@ public sealed partial class PdfDocument {
     public PdfInspectionReadResult ReadForInspection(PdfLoadOptions? options = null,
         CancellationToken cancellationToken = default) {
         PdfLoadOptions effective = PdfLoadOptions.Resolve(options).Clone();
-        var snapshot = GetReadSnapshot(cancellationToken: cancellationToken);
+        var snapshot = GetReadSnapshot(PdfDocumentReadEngine.GetSourceReadOptions(this, options), cancellationToken);
         snapshot.Document.DemandContentExtraction("logical object");
         PdfDocumentInfo sourceInfo = PdfInspector.Inspect(snapshot.Bytes, snapshot.Document, cancellationToken);
         bool recoverDecodableText = options is null

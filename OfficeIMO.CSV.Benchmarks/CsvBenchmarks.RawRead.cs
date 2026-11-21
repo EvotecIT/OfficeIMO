@@ -27,6 +27,7 @@ public partial class CsvBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:CsvHelper", "case:ReadFields")]
     public int CsvHelper_ReadFields()
     {
         using var reader = new StringReader(_csvText);
@@ -63,6 +64,7 @@ public partial class CsvBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:Sylvan.Data.Csv", "case:ReadFields")]
     public int Sylvan_ReadFields()
     {
         using var reader = new StringReader(_csvText);
@@ -93,6 +95,7 @@ public partial class CsvBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:Dataplat.Dbatools.Csv", "case:ReadFields")]
     public int Dataplat_ReadFields()
     {
         using var reader = new StringReader(_csvText);
@@ -123,6 +126,7 @@ public partial class CsvBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:Sep", "case:ReadFields")]
     public int Sep_ReadFields()
     {
         var options = SepReadOptions;

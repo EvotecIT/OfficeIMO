@@ -24,7 +24,7 @@ internal static partial class PdfSyntax {
         while (TryReadNextTrailerDictionary(trailerRaw!, ref searchIndex, effectiveLimits, out PdfDictionary dictionary, cancellationToken)) {
             if (dictionary.Items.TryGetValue(key, out PdfObject? value)) {
                 if (value is PdfReference found) {
-                    reference = found;
+                    reference = CopyReference(found);
                     return true;
                 }
                 // A later trailer entry overrides the same key in every earlier revision.
@@ -33,6 +33,22 @@ internal static partial class PdfSyntax {
         }
         return false;
     }
+
+    /// <summary>Whether any parsed trailer dictionary in the chain has <paramref name="key"/>, whatever its value.</summary>
+    internal static bool TrailerDeclaresKey(string? trailerRaw, string key, PdfReadLimits? limits, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (string.IsNullOrEmpty(trailerRaw)) return false;
+        int searchIndex = 0;
+        PdfReadLimits effectiveLimits = limits ?? new PdfReadLimits();
+        while (TryReadNextTrailerDictionary(trailerRaw!, ref searchIndex, effectiveLimits, out PdfDictionary dictionary, cancellationToken)) {
+            if (dictionary.Items.ContainsKey(key)) return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>Parses the entries of a dictionary written without its enclosing angle brackets.</summary>
+    internal static PdfDictionary ParseDictionaryEntries(string entries, PdfReadLimits? limits = null) => ParseDictionary(entries, limits);
 
     /// <summary>Reads up to three trailer references in one chain scan, retaining explicit non-reference overrides.</summary>
     internal static (PdfReference? First, PdfReference? Second, PdfReference? Third) ReadTrailerReferences(
@@ -67,8 +83,42 @@ internal static partial class PdfSyntax {
             }
             if (foundFirst && foundSecond && foundThird) break;
         }
-        return (first, second, third);
+        return (first is null ? null : CopyReference(first),
+            second is null ? null : CopyReference(second),
+            third is null ? null : CopyReference(third));
     }
+
+    /// <summary>
+    /// Parsed trailer dictionaries of one trailer chain string. Loading and preflight look up Root, Info and
+    /// Encrypt in the same chain many times; each lookup reuses the dictionaries parsed under the same limits.
+    /// The dictionaries stay private to this file, and callers receive copies of the references they find.
+    /// </summary>
+    private sealed class TrailerChainCache {
+        // A chain has a handful of trailers and callers use one or two limit sets, so this stays small.
+        private const int MaximumEntries = 256;
+        private readonly Dictionary<(int SearchIndex, int ObjectCharacters, int Tokens, int NestingDepth), (int Next, PdfDictionary? Dictionary)> _entries = new();
+
+        internal bool TryGet(int searchIndex, PdfReadLimits limits, out (int Next, PdfDictionary? Dictionary) entry) {
+            lock (_entries) {
+                return _entries.TryGetValue(Key(searchIndex, limits), out entry);
+            }
+        }
+
+        internal void Add(int searchIndex, PdfReadLimits limits, int next, PdfDictionary? dictionary) {
+            lock (_entries) {
+                if (_entries.Count >= MaximumEntries) return;
+                _entries[Key(searchIndex, limits)] = (next, dictionary);
+            }
+        }
+
+        private static (int, int, int, int) Key(int searchIndex, PdfReadLimits limits) =>
+            (searchIndex, limits.MaxObjectCharacters, limits.MaxTokensPerObject, limits.MaxObjectNestingDepth);
+    }
+
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<string, TrailerChainCache> TrailerChains = new();
+
+    private static PdfReference CopyReference(PdfReference reference) =>
+        new PdfReference(reference.ObjectNumber, reference.Generation);
 
     private static bool TryReadNextTrailerDictionary(
         string raw,
@@ -79,6 +129,27 @@ internal static partial class PdfSyntax {
         dictionary = null!;
         cancellationToken.ThrowIfCancellationRequested();
         if (searchIndex >= raw.Length) return false;
+        TrailerChainCache cache = TrailerChains.GetValue(raw, static _ => new TrailerChainCache());
+        if (cache.TryGet(searchIndex, limits, out (int Next, PdfDictionary? Dictionary) cached)) {
+            if (cached.Dictionary is null) return false;
+            dictionary = cached.Dictionary;
+            searchIndex = cached.Next;
+            return true;
+        }
+
+        int start = searchIndex;
+        bool found = TryParseNextTrailerDictionary(raw, ref searchIndex, limits, out dictionary, cancellationToken);
+        cache.Add(start, limits, searchIndex, found ? dictionary : null);
+        return found;
+    }
+
+    private static bool TryParseNextTrailerDictionary(
+        string raw,
+        ref int searchIndex,
+        PdfReadLimits limits,
+        out PdfDictionary dictionary,
+        CancellationToken cancellationToken) {
+        dictionary = null!;
         int trailerIndex = IndexOfTrailerMarker(raw, searchIndex, cancellationToken);
         if (trailerIndex < 0) return false;
         int dictionaryStart = SkipWhitespaceAndComments(raw, trailerIndex + 7, raw.Length, cancellationToken);
@@ -113,13 +184,13 @@ internal static partial class PdfSyntax {
         return -1;
     }
 
-    private static int LastIndexOfTrailerMarker(string raw, string marker, StringComparison comparison,
-        CancellationToken cancellationToken) {
+    private static int LastIndexOfTrailerMarker<TText>(TText raw, string marker, bool ignoreCase,
+        CancellationToken cancellationToken) where TText : struct, IPdfContentText {
         const int window = 65536;
         for (int end = raw.Length; end > 0; end -= window) {
             cancellationToken.ThrowIfCancellationRequested();
             int start = Math.Max(0, end - window - marker.Length + 1);
-            int found = raw.LastIndexOf(marker, end - 1, end - start, comparison);
+            int found = raw.LastIndexOf(marker, start, end - start, ignoreCase);
             if (found >= 0) return found;
         }
         return -1;
@@ -141,7 +212,7 @@ internal static partial class PdfSyntax {
     }
 
     private static string GetActiveTrailerRaw(
-        string text,
+        PdfByteContentText text,
         Dictionary<int, PdfIndirectObject> map,
         Dictionary<int, int> parsedOffsets,
         int maximumTrailerCharacters,
@@ -157,7 +228,7 @@ internal static partial class PdfSyntax {
             }
         }
 
-        int trailerIdx = LastIndexOfTrailerMarker(text, "trailer", StringComparison.OrdinalIgnoreCase, cancellationToken);
+        int trailerIdx = LastIndexOfTrailerMarker(text, "trailer", ignoreCase: true, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         return trailerIdx >= 0
             ? SafeSliceCancellable(text, trailerIdx, text.Length - trailerIdx, maximumTrailerCharacters, cancellationToken)
@@ -165,7 +236,7 @@ internal static partial class PdfSyntax {
     }
 
     private static bool TryGetXrefStreamTrailerChainRaw(
-        string text,
+        PdfByteContentText text,
         Dictionary<int, PdfIndirectObject> map,
         Dictionary<int, int> parsedOffsets,
         int activeXrefOffset,
@@ -175,7 +246,7 @@ internal static partial class PdfSyntax {
         var byOffset = new Dictionary<int, PdfDictionary>();
         foreach (var entry in map.Values) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (!parsedOffsets.TryGetValue(entry.ObjectNumber, out int offset)) {
+            if (!parsedOffsets.TryGetValue(entry.ObjectNumber, out int offset) || IsUnbuiltWithOtherType(entry, "XRef")) {
                 continue;
             }
 
@@ -282,7 +353,7 @@ internal static partial class PdfSyntax {
     }
 
     private static bool TryGetClassicTrailerChainRaw(
-        string text,
+        PdfByteContentText text,
         Dictionary<int, PdfIndirectObject> map,
         Dictionary<int, int> parsedOffsets,
         int activeXrefOffset,
@@ -333,6 +404,7 @@ internal static partial class PdfSyntax {
             cancellationToken.ThrowIfCancellationRequested();
             if (!parsedOffsets.TryGetValue(entry.ObjectNumber, out int offset) ||
                 offset != xrefStreamOffset ||
+                IsUnbuiltWithOtherType(entry, "XRef") ||
                 entry.Value is not PdfStream stream ||
                 stream.Dictionary.Get<PdfName>("Type")?.Name != "XRef") {
                 continue;

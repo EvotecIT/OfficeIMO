@@ -323,11 +323,11 @@ namespace OfficeIMO.Tests {
                 presentation.ToEncryptedBytes("signed-pass",
                     PowerPointFileFormat.Ppt));
 
-            presentation.SignatureMutationPolicy =
-                OfficeSignatureMutationPolicy
-                    .RemoveInvalidatedSignatures;
             byte[] encrypted = presentation.ToEncryptedBytes("signed-pass",
-                PowerPointFileFormat.Ppt);
+                PowerPointFileFormat.Ppt,
+                new PowerPointSaveOptions {
+                    SignatureMutationPolicy = OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures
+                });
             LegacyPptDocument reopened =
                 LegacyPptDocument.Load(encrypted,
                     new LegacyPptImportOptions {

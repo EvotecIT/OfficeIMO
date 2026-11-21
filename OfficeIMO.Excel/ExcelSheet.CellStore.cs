@@ -115,10 +115,18 @@ namespace OfficeIMO.Excel {
             return scratch.StyleIndex?.Value ?? 0U;
         }
 
+        // Rows written one after another usually have the same width; a new row starts with room for it.
+        private int _storedRowWidthHint = 4;
+
         private void SetStoredValue(ExcelStoredRow storedRow, int index, int column, uint style, bool hasStyle, ExcelStoredCellType type, string value) {
             var cell = new ExcelStoredCell(column, style, hasStyle, type, value);
-            if (index >= 0) storedRow.CellAt(index) = cell;
-            else storedRow.Insert(~index, cell);
+            if (index >= 0) {
+                storedRow.CellAt(index) = cell;
+                return;
+            }
+            storedRow.Insert(~index, cell, _storedRowWidthHint);
+            int count = storedRow.StoredCount;
+            if (count > _storedRowWidthHint && count <= 64) _storedRowWidthHint = count;
         }
 
         /// <summary>Writes a number given as invariant text, as the DOM route's numeric writers do.</summary>

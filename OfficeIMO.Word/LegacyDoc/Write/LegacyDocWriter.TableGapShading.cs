@@ -4,7 +4,7 @@ using OfficeIMO.Word.LegacyDoc.Model;
 namespace OfficeIMO.Word.LegacyDoc.Write {
     internal static partial class LegacyDocWriter {
         private static void ThrowIfUnsupportedTableGapShading(TableProperties properties,
-            IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
+            LegacyDocTableStyleDefinitions tableStyleDefinitions) {
             TableStyle? tableStyle = properties.GetFirstChild<TableStyle>();
             int spacing = ReadSupportedTableDefaultCellSpacing(properties)
                 ?? ReadSupportedTableStyleDefaultCellSpacing(tableStyle, tableStyleDefinitions) ?? 0;
@@ -20,7 +20,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static LegacyDocTableCellShading ReadSupportedTableStyleGapShading(TableStyle? tableStyle,
-            IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
+            LegacyDocTableStyleDefinitions tableStyleDefinitions) {
             Style? style = ResolveSupportedTableStyle(tableStyle, tableStyleDefinitions);
             if (style == null) return default;
             return ReadSupportedTableStyleOwnGapShading(style)

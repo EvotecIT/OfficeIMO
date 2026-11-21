@@ -19,11 +19,11 @@ internal static class NativePagesMixedFontListSmoke {
         Verify(edited, edited: true);
         var list = document.NumberedLists[0];
         try {
-            list.AddRichItem(new[] { new IWorkTextRunData("Fractional size", "Courier New", 14.5f) }, restartAt: 100);
-            throw new InvalidOperationException("Mixed-family input bypassed the whole-point size restriction.");
+            list.AddRichItem(new[] { new IWorkTextRunData("Quarter-point size", "Courier New", 14.25f) }, restartAt: 100);
+            throw new InvalidOperationException("Mixed-family input bypassed the half-point size restriction.");
         } catch (ArgumentException) { }
         Require(bytes.SequenceEqual(document.ToBytes()) && list.AddItem("Next child", level: 1).ListNumber == 3,
-            "Rejected fractional-size input changed the package or list counters.");
+            "Rejected quarter-point input changed the package or list counters.");
         using var output = new MemoryStream(); output.WriteByte(9);
         try {
             document.Save(output, new() { MaxTextRuns = 1 });

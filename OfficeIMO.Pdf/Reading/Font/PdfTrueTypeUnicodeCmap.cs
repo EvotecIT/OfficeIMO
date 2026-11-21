@@ -60,7 +60,7 @@ internal static partial class PdfTrueTypeUnicodeCmap {
         if (mappings == null || mappings.Count == 0) return null;
         byte[]? rebuilt = Rebuild(program, mappings);
         return rebuilt == null ? null : new PdfDrawingFontProgram(rebuilt, mappings, glyphForCode, isEmptyGlyph,
-            cidToGlyphMap, originalProgramByteCount: program.LongLength);
+            cidToGlyphMap, originalProgramByteCount: program.LongLength, codeMap: GetCodeMap(font, cidToGlyphMap));
     }
 
     /// <summary>Returns the program with additional Unicode-to-glyph mappings, keeping existing entries.</summary>
@@ -83,21 +83,21 @@ internal static partial class PdfTrueTypeUnicodeCmap {
     private static byte[]? Rebuild(byte[] program, SortedDictionary<int, int> mappings) {
         if (mappings.Count > OfficeOpenTypeCmap.MaximumFormat12Groups) return null;
         if (!TryReadTables(program, out List<(string Tag, int Offset, int Length)> tables)) return null;
-        var bodies = new List<(string Tag, byte[] Body)>(tables.Count + 1);
+        var bodies = new List<(string Tag, byte[] Source, int Offset, int Length)>(tables.Count + 1);
         foreach (var table in tables) {
             if (string.Equals(table.Tag, "cmap", StringComparison.Ordinal) ||
                 string.Equals(table.Tag, PaintedNotdefTable, StringComparison.Ordinal)) continue;
-            var body = new byte[table.Length];
-            Buffer.BlockCopy(program, table.Offset, body, 0, table.Length);
-            bodies.Add((table.Tag, body));
+            bodies.Add((table.Tag, program, table.Offset, table.Length));
         }
-        bodies.Add(("cmap", BuildUnicodeCmap(mappings)));
+        byte[] cmap = BuildUnicodeCmap(mappings);
+        bodies.Add(("cmap", cmap, 0, cmap.Length));
         int[] paintedNotdefScalars = mappings.Where(static pair => pair.Value == 0).Select(static pair => pair.Key).ToArray();
         if (paintedNotdefScalars.Length > 0) {
             using var provenance = new MemoryStream();
             WriteUInt32(provenance, (uint)paintedNotdefScalars.Length);
             foreach (int scalar in paintedNotdefScalars) WriteUInt32(provenance, (uint)scalar);
-            bodies.Add((PaintedNotdefTable, provenance.ToArray()));
+            byte[] provenanceBytes = provenance.ToArray();
+            bodies.Add((PaintedNotdefTable, provenanceBytes, 0, provenanceBytes.Length));
         }
         bodies.Sort(static (left, right) => string.CompareOrdinal(left.Tag, right.Tag));
         bool cff = ReadUInt32(program, 0) == OpenTypeCffFlavor;
@@ -132,22 +132,55 @@ internal static partial class PdfTrueTypeUnicodeCmap {
         return mappings;
     }
 
-    // A CIDFontType2 font selects glyphs by CID through CIDToGIDMap. With an Identity encoding the
-    // two-byte code is the CID, and ToUnicode gives the text that CID paints.
+    private static byte[] ParseHexCode(string hex) {
+        var code = new byte[hex.Length / 2];
+        for (int index = 0; index < code.Length; index++) {
+            code[index] = (byte)((HexValue(hex[2 * index]) << 4) | HexValue(hex[2 * index + 1]));
+        }
+        return code;
+
+        // ToUnicode keys are formatted hexadecimal digits.
+        static int HexValue(char digit) => digit <= '9' ? digit - '0' : (digit | 0x20) - 'a' + 10;
+    }
+
+    // The code-to-CID map of a composite font whose predefined CMap is not Identity; null otherwise.
+    private static PdfPredefinedCMap? GetCodeMap(PdfFontResource font, byte[]? cidToGlyphMap) =>
+        cidToGlyphMap != null && font.PredefinedCMap is Lazy<PdfPredefinedCMap> predefined &&
+        !ReferenceEquals(predefined.Value, PdfPredefinedCMap.Empty) ? predefined.Value : null;
+
+    // A CID font selects glyphs by CID through CIDToGIDMap. With an Identity encoding the two-byte code
+    // is the CID; a predefined CMap selects the CID from the code. ToUnicode gives the text a code paints,
+    // or, without it, the Adobe collection's Unicode map gives the text of each CID.
     private static SortedDictionary<int, int>? CreateCidMappings(PdfFontResource font, byte[] cidToGlyphMap, int glyphCount,
         Func<int, bool> isEmptyGlyph) {
-        if (font.CMap == null ||
-            !string.Equals(font.Encoding, "Identity-H", StringComparison.Ordinal) &&
-            !string.Equals(font.Encoding, "Identity-V", StringComparison.Ordinal)) return null;
+        PdfPredefinedCMap? codeMap = GetCodeMap(font, cidToGlyphMap);
+        bool identity = string.Equals(font.Encoding, "Identity-H", StringComparison.Ordinal) ||
+            string.Equals(font.Encoding, "Identity-V", StringComparison.Ordinal);
+        if (codeMap == null && (font.CMap == null || !identity)) return null;
         var entries = new List<(int Cid, int Scalar)>();
         int fallbackGlyph = -1;
-        foreach (KeyValuePair<string, string> mapping in font.CMap.Mappings) {
-            if (mapping.Key.Length != 4 ||
-                !int.TryParse(mapping.Key, System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out int cid)) continue;
-            int paintedGlyph = GlyphForCid(cidToGlyphMap, cid, glyphCount);
-            if (fallbackGlyph < 0 && !isEmptyGlyph(paintedGlyph)) fallbackGlyph = paintedGlyph;
-            if (!TryGetSingleScalar(mapping.Value, out int scalar)) continue;
-            entries.Add((cid, scalar));
+        if (codeMap != null && (!font.HasToUnicode || font.CMap == null)) {
+            foreach ((int Cid, int Scalar) entry in codeMap.EnumerateCollectionScalars()) {
+                int paintedGlyph = GlyphForCid(cidToGlyphMap, entry.Cid, glyphCount);
+                if (paintedGlyph == 0) continue;
+                if (fallbackGlyph < 0 && !isEmptyGlyph(paintedGlyph)) fallbackGlyph = paintedGlyph;
+                if (entry.Scalar > 0) entries.Add(entry);
+            }
+        } else {
+            foreach (KeyValuePair<string, string> mapping in font.CMap!.Mappings) {
+                int cid;
+                if (codeMap != null) {
+                    if (mapping.Key.Length is < 2 or > 8 || (mapping.Key.Length & 1) != 0 ||
+                        !codeMap.TryGetPaintedCid(ParseHexCode(mapping.Key), 0, mapping.Key.Length / 2, out cid)) continue;
+                } else if (mapping.Key.Length != 4 ||
+                    !int.TryParse(mapping.Key, System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out cid)) {
+                    continue;
+                }
+                int paintedGlyph = GlyphForCid(cidToGlyphMap, cid, glyphCount);
+                if (fallbackGlyph < 0 && !isEmptyGlyph(paintedGlyph)) fallbackGlyph = paintedGlyph;
+                if (!TryGetSingleScalar(mapping.Value, out int scalar)) continue;
+                entries.Add((cid, scalar));
+            }
         }
         entries.Sort(static (left, right) => left.Cid.CompareTo(right.Cid));
 
@@ -370,6 +403,102 @@ internal static partial class PdfTrueTypeUnicodeCmap {
         return 0;
     }
 
+    /// <summary>
+    /// Returns the glyph a symbolic simple TrueType font draws for a one-byte code, the way PDF viewers select it: the (3,0)
+    /// cmap at the code or its 0xF000, 0xF100 or 0xF200 alias, then the (1,0) cmap. Returns 0 when the code maps to no glyph.
+    /// </summary>
+    internal static int ResolveSymbolicCodeGlyph(byte[] program, int code) {
+        if (code is < 0 or > 255 || !TryReadTables(program, out List<(string Tag, int Offset, int Length)> tables)) return 0;
+        int cmapIndex = tables.FindIndex(static table => string.Equals(table.Tag, "cmap", StringComparison.Ordinal));
+        if (cmapIndex < 0 ||
+            !TryReadCodeSubtables(program, tables[cmapIndex].Offset, tables[cmapIndex].Length, out int? symbolic, out int? macintosh, out int? unicode)) return 0;
+        return ResolveGlyph(program, (byte)code, symbolic, macintosh, unicode, isSymbolic: true, static _ => string.Empty);
+    }
+
+    /// <summary>
+    /// Returns the program with a (3,1) cmap record, and a (3,10) record for a format-12 subtable, pointing at its existing Unicode-platform (0,x) subtable, for
+    /// programs whose only Unicode cmap uses the Unicode platform. Glyph selection is unchanged; returns null when the
+    /// program already has a (3,1) or (1,0) subtable or has no usable Unicode subtable.
+    /// </summary>
+    internal static byte[]? TryAddWindowsUnicodeRecord(byte[] program) {
+        if (!TryReadTables(program, out List<(string Tag, int Offset, int Length)> tables)) return null;
+        int cmapIndex = tables.FindIndex(static table => string.Equals(table.Tag, "cmap", StringComparison.Ordinal));
+        if (cmapIndex < 0) return null;
+        (_, int cmap, int length) = tables[cmapIndex];
+        if (length < 4) return null;
+        int count = ReadUInt16(program, cmap + 2);
+        if (count == 0 || count + 2 > OfficeOpenTypeCmap.MaximumSubtables || 4 + count * 8 > length) return null;
+        uint? unicodeOffset = null;
+        int unicodeFormat = 0;
+        for (int index = 0; index < count; index++) {
+            int record = cmap + 4 + index * 8;
+            int platform = ReadUInt16(program, record);
+            int encoding = ReadUInt16(program, record + 2);
+            if (platform == 3 && encoding == 1 || platform == 1 && encoding == 0) return null;
+            uint offset = ReadUInt32(program, record + 4);
+            if (platform != 0 || offset > (uint)(length - 4)) continue;
+            int format = ReadUInt16(program, cmap + (int)offset);
+            // Prefer the BMP format-4 subtable, the one a (3,1) record conventionally lists.
+            if ((format == 4 || format == 12) && (unicodeOffset is null || format == 4 && unicodeFormat != 4)) {
+                unicodeOffset = offset;
+                unicodeFormat = format;
+            }
+        }
+        if (unicodeOffset is null) return null;
+        var records = new List<(int Platform, int Encoding, uint Offset)>();
+        for (int index = 0; index < count; index++) {
+            int record = cmap + 4 + index * 8;
+            records.Add((ReadUInt16(program, record), ReadUInt16(program, record + 2), ReadUInt32(program, record + 4)));
+        }
+        // PDF/A-4 requires a (3,1) record. A font with only a format-12 subtable gets (3,1) and (3,10) records for it, so
+        // the result is recognised on the next pass instead of being patched again.
+        records.Add((3, 1, unicodeOffset.Value));
+        if (unicodeFormat == 12 && !records.Any(static record => record.Platform == 3 && record.Encoding == 10)) records.Add((3, 10, unicodeOffset.Value));
+        // Every added 8-byte record moves the subtable data that follows the directory.
+        uint shift = (uint)((records.Count - count) * 8);
+        for (int index = 0; index < records.Count; index++) records[index] = (records[index].Platform, records[index].Encoding, records[index].Offset + shift);
+        records.Sort(static (left, right) => left.Platform != right.Platform ? left.Platform.CompareTo(right.Platform) : left.Encoding.CompareTo(right.Encoding));
+        using var body = new MemoryStream();
+        WriteUInt16(body, 0);
+        WriteUInt16(body, (ushort)records.Count);
+        foreach ((int platform, int encoding, uint offset) in records) {
+            WriteUInt16(body, (ushort)platform);
+            WriteUInt16(body, (ushort)encoding);
+            WriteUInt32(body, offset);
+        }
+        int subtables = 4 + count * 8;
+        body.Write(program, cmap + subtables, length - subtables);
+        var bodies = new List<(string Tag, byte[] Body)>(tables.Count);
+        foreach (var table in tables) {
+            if (string.Equals(table.Tag, "cmap", StringComparison.Ordinal)) {
+                bodies.Add((table.Tag, body.ToArray()));
+                continue;
+            }
+            var copy = new byte[table.Length];
+            Buffer.BlockCopy(program, table.Offset, copy, 0, table.Length);
+            bodies.Add((table.Tag, copy));
+        }
+        bodies.Sort(static (left, right) => string.CompareOrdinal(left.Tag, right.Tag));
+        bool cff = ReadUInt32(program, 0) == OpenTypeCffFlavor;
+        return Assemble(bodies, cff ? OpenTypeCffFlavor : 0x00010000U);
+    }
+
+    /// <summary>Builds a cmap with a single (3,0) symbol subtable mapping each code at its 0xF000 alias to a glyph.</summary>
+    internal static byte[] BuildSymbolCmap(IReadOnlyDictionary<int, int> codeGlyphs) {
+        var mappings = codeGlyphs.Where(static pair => pair.Key is >= 0 and <= 255 && pair.Value > 0)
+            .Select(static pair => new KeyValuePair<int, int>(0xF000 | pair.Key, pair.Value))
+            .OrderBy(static pair => pair.Key).ToList();
+        byte[] format4 = BuildFormat4(mappings);
+        using var output = new MemoryStream();
+        WriteUInt16(output, 0);
+        WriteUInt16(output, 1);
+        WriteUInt16(output, 3);
+        WriteUInt16(output, 0);
+        WriteUInt32(output, 12U);
+        output.Write(format4, 0, format4.Length);
+        return output.ToArray();
+    }
+
     internal static byte[] BuildUnicodeCmap(SortedDictionary<int, int> mappings) {
         var basic = mappings.Where(static mapping => mapping.Key < 0xFFFF).ToList();
         // Reserve U+FFFF for format 4's sentinel; format 12 carries an explicit mapping.
@@ -455,6 +584,13 @@ internal static partial class PdfTrueTypeUnicodeCmap {
     }
 
     private static byte[] Assemble(List<(string Tag, byte[] Body)> tables, uint flavor = 0x00010000U) {
+        var segments = new List<(string Tag, byte[] Source, int Offset, int Length)>(tables.Count);
+        foreach ((string tag, byte[] body) in tables) segments.Add((tag, body, 0, body.Length));
+        return Assemble(segments, flavor);
+    }
+
+    /// <summary>Writes an sfnt from table bodies given as ranges of their source buffers, which are not modified.</summary>
+    private static byte[] Assemble(List<(string Tag, byte[] Source, int Offset, int Length)> tables, uint flavor) {
         int count = tables.Count;
         int power = 1;
         int entrySelector = 0;
@@ -462,45 +598,52 @@ internal static partial class PdfTrueTypeUnicodeCmap {
             power *= 2;
             entrySelector++;
         }
-        using var output = new MemoryStream();
-        WriteUInt32(output, flavor);
-        WriteUInt16(output, (ushort)count);
-        WriteUInt16(output, (ushort)(power * 16));
-        WriteUInt16(output, (ushort)entrySelector);
-        WriteUInt16(output, (ushort)(count * 16 - power * 16));
-        output.Write(new byte[count * 16], 0, count * 16);
+        // Lay the font out once: the directory, then each table on a four-byte boundary.
         var offsets = new int[count];
+        long position = 12L + count * 16L;
+        for (int index = 0; index < count; index++) {
+            offsets[index] = checked((int)position);
+            position = (position + tables[index].Length + 3) & ~3L;
+        }
+        var result = new byte[checked((int)position)];
+        WriteUInt32(result, 0, flavor);
+        WriteUInt16(result, 4, (ushort)count);
+        WriteUInt16(result, 6, (ushort)(power * 16));
+        WriteUInt16(result, 8, (ushort)entrySelector);
+        WriteUInt16(result, 10, (ushort)(count * 16 - power * 16));
         int headOffset = -1;
         for (int index = 0; index < count; index++) {
-            while (output.Length % 4 != 0) output.WriteByte(0);
-            offsets[index] = (int)output.Length;
-            byte[] body = tables[index].Body;
-            if (string.Equals(tables[index].Tag, "head", StringComparison.Ordinal) && body.Length >= 12) {
+            (string tag, byte[] source, int sourceOffset, int length) = tables[index];
+            Buffer.BlockCopy(source, sourceOffset, result, offsets[index], length);
+            if (string.Equals(tag, "head", StringComparison.Ordinal) && length >= 12) {
+                // The head checksum adjustment is summed as zero, then set from the whole-font sum below.
                 headOffset = offsets[index];
-                WriteUInt32(body, 8, 0);
+                WriteUInt32(result, headOffset + 8, 0);
             }
-            output.Write(body, 0, body.Length);
         }
-        while (output.Length % 4 != 0) output.WriteByte(0);
-        byte[] result = output.ToArray();
         for (int index = 0; index < count; index++) {
             int record = 12 + index * 16;
             Encoding.ASCII.GetBytes(tables[index].Tag, 0, 4, result, record);
-            WriteUInt32(result, record + 4, Checksum(tables[index].Body));
+            // Table padding is zero, so the padded range sums like the zero-extended table body.
+            WriteUInt32(result, record + 4, Checksum(result, offsets[index], tables[index].Length));
             WriteUInt32(result, record + 8, (uint)offsets[index]);
-            WriteUInt32(result, record + 12, (uint)tables[index].Body.Length);
+            WriteUInt32(result, record + 12, (uint)tables[index].Length);
         }
-        if (headOffset >= 0) WriteUInt32(result, headOffset + 8, unchecked(ChecksumMagic - Checksum(result)));
+        if (headOffset >= 0) WriteUInt32(result, headOffset + 8, unchecked(ChecksumMagic - Checksum(result, 0, result.Length)));
         return result;
     }
 
-    private static uint Checksum(byte[] data) {
+    /// <summary>Sums big-endian 32-bit words, treating a partial last word as zero-padded.</summary>
+    private static uint Checksum(byte[] data, int offset, int length) {
         uint sum = 0;
-        for (int offset = 0; offset < data.Length; offset += 4) {
+        int end = offset + length;
+        int index = offset;
+        for (; index <= end - 4; index += 4) {
+            sum = unchecked(sum + (((uint)data[index] << 24) | ((uint)data[index + 1] << 16) | ((uint)data[index + 2] << 8) | data[index + 3]));
+        }
+        if (index < end) {
             uint value = 0;
-            for (int index = 0; index < 4; index++) {
-                value = (value << 8) | (offset + index < data.Length ? data[offset + index] : 0u);
-            }
+            for (int shift = 24; index < end; index++, shift -= 8) value |= (uint)data[index] << shift;
             sum = unchecked(sum + value);
         }
         return sum;
@@ -534,8 +677,9 @@ internal static partial class PdfTrueTypeUnicodeCmap {
 /// <summary>A drawing-ready TrueType program with its synthesized Unicode mappings.</summary>
 internal sealed class PdfDrawingFontProgram {
     internal PdfDrawingFontProgram(byte[] program, SortedDictionary<int, int> unicodeGlyphs, Func<int, int> glyphForCode,
-        Func<int, bool> isEmptyGlyph, byte[]? cidToGlyphMap = null, long originalProgramByteCount = 0) {
+        Func<int, bool> isEmptyGlyph, byte[]? cidToGlyphMap = null, long originalProgramByteCount = 0, PdfPredefinedCMap? codeMap = null) {
         Program = program;
+        CodeMap = codeMap;
         UnicodeGlyphs = unicodeGlyphs;
         GlyphForCode = glyphForCode;
         IsEmptyGlyph = isEmptyGlyph;
@@ -553,6 +697,20 @@ internal sealed class PdfDrawingFontProgram {
 
     /// <summary>Resolves the glyph a PDF character code or CID paints, or 0.</summary>
     internal Func<int, int> GlyphForCode { get; }
+
+    /// <summary>The predefined CMap that selects CIDs from codes, or null when the code is the CID or a simple-font code.</summary>
+    internal PdfPredefinedCMap? CodeMap { get; }
+
+    /// <summary>Resolves the glyph that one complete PDF code paints, or 0.</summary>
+    internal int GlyphForCodeBytes(byte[] code) {
+        // Codes select CIDs through the CMap; the family identity includes it, so one family has one code map.
+        if (CodeMap != null) return CodeMap.TryGetPaintedCid(code, 0, code.Length, out int cid) ? GlyphForCode(cid) : 0;
+        return code.Length switch {
+            1 => GlyphForCode(code[0]),
+            2 => GlyphForCode((code[0] << 8) | code[1]),
+            _ => 0
+        };
+    }
 
     /// <summary>True when a glyph has no outline data.</summary>
     internal Func<int, bool> IsEmptyGlyph { get; }

@@ -126,6 +126,23 @@ public sealed class PdfImageExportContractTests {
     }
 
     [Fact]
+    public void PageRenderEncodesPngWithTheConfiguredRasterEncoding() {
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Page one")).ToBytes();
+        PdfPageRenderResult compressed = PdfDocument.Load(new MemoryStream(pdf)).Render.Pages("1",
+            new PdfPageRenderOptions { Format = OfficeImageExportFormat.Png })[0];
+        PdfPageRenderResult stored = PdfDocument.Load(new MemoryStream(pdf)).Render.Pages("1",
+            new PdfPageRenderOptions {
+                Format = OfficeImageExportFormat.Png,
+                RasterEncoding = new OfficeRasterEncodingOptions { Png = new OfficePngEncodeOptions { Compression = OfficePngCompression.Stored } }
+            })[0];
+
+        // Stored zlib blocks hold every RGBA sample, so the configured compression must reach the encoder.
+        Assert.True(stored.Bytes!.Length > stored.Width * stored.Height * 4);
+        Assert.True(compressed.Bytes!.Length < stored.Bytes.Length / 4);
+        Assert.Equal(OfficeRasterImageDecoder.Decode(compressed.Bytes).GetPixels(), OfficeRasterImageDecoder.Decode(stored.Bytes).GetPixels());
+    }
+
+    [Fact]
     public void PdfRasterFitPreservesDensityRelativeToThePreFitScale() {
         PdfReadPage page = LoadTwoPageDocument().Pages[0];
         OfficeImageExportResult baseline = page.ToImage(OfficeImageExportFormat.Png);
@@ -366,6 +383,51 @@ public sealed class PdfImageExportContractTests {
         }
     }
 
+    [Theory]
+    [InlineData(OfficeRasterOverflowBehavior.ReduceScale, true)]
+    [InlineData(OfficeRasterOverflowBehavior.ReduceScale, false)]
+    [InlineData(OfficeRasterOverflowBehavior.Throw, false)]
+    public void ImagePageLargerThanThePixelBudgetAtScaleOneFollowsTheOverflowBehavior(
+        OfficeRasterOverflowBehavior overflow, bool boundedOutput) {
+        // The 1400x2000 pt page needs 2.8 MP at scale 1 and 6.1 MP at 150 DPI. Its 700x1000
+        // photo fits the 1 MP budget, but not together with full-height sampling scratch.
+        PdfReadPage page = PdfReadDocument.Open(BuildFullPageImagePdf(1400, 2000, 700, 1000)).Pages[0];
+        const long budget = 1_000_000L;
+        var options = new PdfImageExportOptions {
+            TargetDpi = 150D,
+            MaximumRasterPixels = budget,
+            RasterOverflowBehavior = overflow,
+            MaximumOutputWidth = boundedOutput ? 350 : null,
+            MaximumOutputHeight = boundedOutput ? 500 : null
+        };
+
+        if (overflow == OfficeRasterOverflowBehavior.Throw) {
+            OfficeImageExportLimitException exception = Assert.Throws<OfficeImageExportLimitException>(() =>
+                page.ToImage(OfficeImageExportFormat.Png, options));
+            Assert.Equal(150D / 72D, exception.RequestedScale, 6);
+            Assert.Equal(budget, exception.MaximumPixels);
+            return;
+        }
+
+        OfficeImageExportResult result = page.ToImage(OfficeImageExportFormat.Png, options);
+
+        Assert.True((long)result.Width * result.Height <= budget);
+        Assert.InRange(result.Width / (double)result.Height, 0.698D, 0.702D);
+        if (boundedOutput) {
+            Assert.Equal(350, result.Width);
+            Assert.Equal(500, result.Height);
+            // The minified checkerboard photo averages to mid grey rather than being dropped or aliased.
+            Assert.True(OfficeRasterImageDecoder.TryDecode(result.Bytes, out OfficeRasterImage? decoded));
+            Assert.InRange((int)decoded!.GetPixel(175, 250).R, 100, 155);
+        } else {
+            Assert.Contains(result.Diagnostics, diagnostic =>
+                diagnostic.Code == OfficeImageExportDiagnosticCodes.RasterScaleReduced);
+        }
+        // The PNG density reports the effective scale, so the physical page width is unchanged.
+        OfficeImageInfo info = OfficeImageReader.Identify(result.Bytes);
+        Assert.InRange(result.Width / info.DpiX, 1400D / 72D - 0.05D, 1400D / 72D + 0.05D);
+    }
+
     private static PdfReadDocument LoadTwoPageDocument() =>
         PdfReadDocument.Open(PdfDocument.Create()
             .Paragraph(paragraph => paragraph.AddText("Page one"))
@@ -385,6 +447,40 @@ public sealed class PdfImageExportContractTests {
                 onMaterializedAfterCancellation();
                 return item => item.AddParagraph(paragraph => paragraph.AddText("Must not materialize"));
             });
+
+    private static byte[] BuildFullPageImagePdf(int pageWidth, int pageHeight, int imageWidth, int imageHeight) {
+        string content = "q " + pageWidth + " 0 0 " + pageHeight + " 0 0 cm /Im0 Do Q";
+        var pixels = new byte[imageWidth * imageHeight];
+        for (int y = 0; y < imageHeight; y++) {
+            for (int x = 0; x < imageWidth; x++) pixels[y * imageWidth + x] = (x + y) % 2 == 0 ? (byte)0 : (byte)255;
+        }
+        using var stream = new MemoryStream();
+        var offsets = new List<long>();
+        void Write(string text) {
+            byte[] bytes = Encoding.ASCII.GetBytes(text);
+            stream.Write(bytes, 0, bytes.Length);
+        }
+        void BeginObject() => offsets.Add(stream.Position);
+        Write("%PDF-1.4\n");
+        BeginObject(); Write("1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n");
+        BeginObject(); Write("2 0 obj << /Type /Pages /Count 1 /Kids [3 0 R] >> endobj\n");
+        BeginObject();
+        Write("3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 " + pageWidth + " " + pageHeight +
+            "] /Resources << /XObject << /Im0 5 0 R >> >> /Contents 4 0 R >> endobj\n");
+        BeginObject(); Write("4 0 obj << /Length " + content.Length + " >> stream\n" + content + "\nendstream endobj\n");
+        BeginObject();
+        Write("5 0 obj << /Type /XObject /Subtype /Image /Width " + imageWidth + " /Height " + imageHeight +
+            " /ColorSpace /DeviceGray /BitsPerComponent 8 /Length " + pixels.Length + " >> stream\n");
+        stream.Write(pixels, 0, pixels.Length);
+        Write("\nendstream endobj\n");
+        long xref = stream.Position;
+        Write("xref\n0 6\n0000000000 65535 f \n");
+        foreach (long offset in offsets) {
+            Write(offset.ToString("D10", System.Globalization.CultureInfo.InvariantCulture) + " 00000 n \n");
+        }
+        Write("trailer << /Root 1 0 R /Size 6 >>\nstartxref\n" + xref + "\n%%EOF");
+        return stream.ToArray();
+    }
 
     private static byte[] BuildSinglePagePdf(string content) {
         int length = Encoding.ASCII.GetByteCount(content);

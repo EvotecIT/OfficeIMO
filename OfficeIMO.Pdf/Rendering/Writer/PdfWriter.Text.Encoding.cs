@@ -43,13 +43,13 @@ internal static partial class PdfWriter {
             }
             PdfTextShapingOptions renderOptions = PdfTextShapingOptions.ForRendering(
                 fontProgram.FontName,
-                options.TextShapingModeSnapshot,
+                options.TextShapingModeFor(text),
                 options.TextShapingProviderSnapshot,
                 options.RecordProviderShapedTextRunDelegate,
                 options.EffectiveTextShapingLanguage,
                 featureSettings,
                 textDirection, preservesPaintedGlyphs);
-            if (!requireGlyphClusters && !options.UseFontUnitTextLayout && !fontProgram.HasTracking && renderOptions.ShapingProvider == null && renderOptions.FeatureSettings.IsDefault && renderOptions.Direction == OfficeTextDirection.Auto && renderOptions.ShapingMode != PdfTextShapingMode.OpenTypeLigatures && !OfficeUnicodeBidi.ContainsRightToLeft(text)) {
+            if (!requireGlyphClusters && !options.UseFontUnitTextLayout && !fontProgram.HasTracking && !fontProgram.HasPaintedColorArt && renderOptions.ShapingProvider == null && renderOptions.FeatureSettings.IsDefault && renderOptions.Direction == OfficeTextDirection.Auto && renderOptions.ShapingMode != PdfTextShapingMode.OpenTypeLigatures && !OfficeUnicodeBidi.ContainsRightToLeft(text)) {
                 // The external shaper will not engage, and scalar shaping never positions glyphs, so emit
                 // the hex show-string directly without materializing a per-run PdfGlyphRun.
                 string glyphHex = PdfUnicodeScalarTextShaper.EncodeGlyphHex(text, fontProgram, renderOptions, out string? actualText, out int advanceWidth1000);
@@ -77,7 +77,7 @@ internal static partial class PdfWriter {
             }
             PdfGlyphRun glyphRun = cffFontProgram.ShapeText(text, PdfTextShapingOptions.ForRendering(
                 cffFontProgram.FontName,
-                options.TextShapingModeSnapshot,
+                options.TextShapingModeFor(text),
                 options.TextShapingProviderSnapshot,
                 options.RecordProviderShapedTextRunDelegate,
                 options.EffectiveTextShapingLanguage,
@@ -171,13 +171,13 @@ internal static partial class PdfWriter {
                 : Array.Empty<PdfTextShapingDiagnostic>();
             PdfTextShapingOptions renderOptions = PdfTextShapingOptions.ForRendering(
                 fontProgram.FontName,
-                options.TextShapingModeSnapshot,
+                options.TextShapingModeFor(text),
                 options.TextShapingProviderSnapshot,
                 options.RecordProviderShapedTextRunDelegate,
                 options.EffectiveTextShapingLanguage,
                 featureSettings,
                 textDirection, preservesPaintedGlyphs);
-            if (!requireGlyphClusters && !options.UseFontUnitTextLayout && !fontProgram.HasTracking && renderOptions.ShapingProvider == null && renderOptions.FeatureSettings.IsDefault && renderOptions.Direction == OfficeTextDirection.Auto && renderOptions.ShapingMode != PdfTextShapingMode.OpenTypeLigatures && !OfficeUnicodeBidi.ContainsRightToLeft(text)) {
+            if (!requireGlyphClusters && !options.UseFontUnitTextLayout && !fontProgram.HasTracking && !fontProgram.HasPaintedColorArt && renderOptions.ShapingProvider == null && renderOptions.FeatureSettings.IsDefault && renderOptions.Direction == OfficeTextDirection.Auto && renderOptions.ShapingMode != PdfTextShapingMode.OpenTypeLigatures && !OfficeUnicodeBidi.ContainsRightToLeft(text)) {
                 // The external shaper will not engage, and scalar shaping never positions glyphs, so emit
                 // the hex show-string directly without materializing a per-run PdfGlyphRun.
                 string glyphHex = PdfUnicodeScalarTextShaper.EncodeGlyphHex(text, fontProgram, renderOptions, out string? actualText, out int advanceWidth1000);
@@ -209,7 +209,7 @@ internal static partial class PdfWriter {
                 : Array.Empty<PdfTextShapingDiagnostic>();
             PdfGlyphRun glyphRun = cffFontProgram.ShapeText(text, PdfTextShapingOptions.ForRendering(
                 cffFontProgram.FontName,
-                options.TextShapingModeSnapshot,
+                options.TextShapingModeFor(text),
                 options.TextShapingProviderSnapshot,
                 options.RecordProviderShapedTextRunDelegate,
                 options.EffectiveTextShapingLanguage,
@@ -225,9 +225,13 @@ internal static partial class PdfWriter {
             preservesPaintedGlyphs, requireGlyphClusters);
     }
 
+    // The usual run has no diagnostics; the remapping (and its closure) is made only when one needs it.
     internal static IReadOnlyList<PdfTextEncodingDiagnostic> RestoreOptionalBreakDiagnosticIndices(string source, IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics) =>
         diagnostics.Count == 0 || source.IndexOf('\u200B') < 0 ? diagnostics
-            : diagnostics.Select(diagnostic => RestoreOptionalBreakDiagnosticIndex(source, diagnostic)!).ToArray();
+            : RestoreEachOptionalBreakDiagnosticIndex(source, diagnostics);
+
+    private static PdfTextEncodingDiagnostic[] RestoreEachOptionalBreakDiagnosticIndex(string source, IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics) =>
+        diagnostics.Select(diagnostic => RestoreOptionalBreakDiagnosticIndex(source, diagnostic)!).ToArray();
 
     // Glyph indices use normalized text; diagnostics describe the caller's original UTF-16 text.
     private static PdfTextEncodingDiagnostic? RestoreOptionalBreakDiagnosticIndex(string source, PdfTextEncodingDiagnostic? diagnostic) {

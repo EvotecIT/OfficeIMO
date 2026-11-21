@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
                 document.AddEmbeddedFragment("<html><body><p>Imported</p></body></html>", WordAlternativeFormatImportPartType.Html);
                 document.AddMacro(System.Text.Encoding.ASCII.GetBytes("OfficeIMO macro placeholder"));
                 document.ApplicationProperties.HasDigitalSignatureMetadata = true;
-                document.Save(new WordSaveOptions { SignedDocumentPolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation });
+                document.Save(new WordSaveOptions { SignatureMutationPolicy = OfficeSignatureMutationPolicy.PreserveSignatureMarkup });
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {

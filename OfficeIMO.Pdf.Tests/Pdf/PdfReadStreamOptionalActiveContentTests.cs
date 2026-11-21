@@ -26,7 +26,7 @@ public partial class PdfReadStreamTests {
     }
 
     [Fact]
-    public void RewriteApis_RejectComplexOptionalContentPdfsWithClearUnsupportedDiagnostic() {
+    public void PageExtractionKeepsButOtherRewriteApisRejectComplexOptionalContentPdfsWithClearUnsupportedDiagnostic() {
         byte[] optionalContentPdf = BuildComplexOptionalContentPdf();
 
         static void AssertOptionalContent(Action action) {
@@ -34,19 +34,17 @@ public partial class PdfReadStreamTests {
             Assert.Contains("PDF optional content layers are not supported for rewriting by OfficeIMO.Pdf yet.", exception.Message, StringComparison.Ordinal);
         }
 
-        AssertOptionalContent(() => PdfPageExtractor.ExtractPages(optionalContentPdf, 1));
-        AssertOptionalContent(() => PdfPageExtractor.SplitPages(optionalContentPdf));
+        AssertExtractionKeepsCatalogStructure(optionalContentPdf);
         AssertOptionalContent(() => PdfMetadataEditor.UpdateMetadata(optionalContentPdf, title: "Updated"));
         AssertOptionalContent(() => PdfMerger.Merge(optionalContentPdf));
         AssertOptionalContent(() => PdfStamper.StampText(optionalContentPdf, "STAMP"));
     }
 
     [Fact]
-    public void RewriteApis_RejectActiveContentPdfsWithClearUnsupportedDiagnostic() {
+    public void PageExtractionKeepsButOtherRewriteApisRejectActiveContentPdfsWithClearUnsupportedDiagnostic() {
         byte[] activeContentPdf = BuildActiveContentPdf();
 
-        AssertActiveContent(() => PdfPageExtractor.ExtractPages(activeContentPdf, 1));
-        AssertActiveContent(() => PdfPageExtractor.SplitPages(activeContentPdf));
+        AssertExtractionKeepsCatalogStructure(activeContentPdf);
         AssertActiveContent(() => PdfMetadataEditor.UpdateMetadata(activeContentPdf, title: "Updated"));
         AssertActiveContent(() => PdfMerger.Merge(activeContentPdf));
         AssertActiveContent(() => PdfStamper.StampText(activeContentPdf, "STAMP"));

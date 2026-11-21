@@ -232,6 +232,16 @@
       "new": "OfficeIMO.Visio.VisioPage.ToImage(...) : OfficeImageExportResult",
       "reason": "Use ToImage for one encoded surface and ToImages for a batch. Read Bytes for the payload, inspect CreateReport() for diagnostics, and use SaveAsImage or SaveAsImages to persist results. ExportImage and ExportImages aliases are removed.",
       "category": "conversion"
+    },
+    {
+      "old": "VisioDocument.InspectProvenance(string filePath, OfficeProvenanceOptions options = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.OfficeDocument.Inspect(path, new OfficeInspectOptions { Provenance = new OfficeProvenanceOptions() })",
+      "category": "lifecycle",
+      "replacement": "Use OfficeDocument.Inspect with OfficeInspectOptions.Provenance for provenance evidence, or IncludeHiddenData for everything that leaves with the file. RemoveProvenance stays static.",
+      "reason": "Static inspection helpers move onto OfficeDocument.Inspect(path) for every format, as Word, Excel and PowerPoint already do.",
+      "applied": true
     }
   ],
   "extraChanges": [

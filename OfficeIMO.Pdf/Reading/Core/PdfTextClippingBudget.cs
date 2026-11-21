@@ -3,9 +3,19 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal sealed class PdfTextClippingBudget {
+    private readonly long _maximumIntersectionWork;
     private int _pathCount;
     private long _intersectionWork;
     private PdfReadLimitKind _intersectionLimitKind = PdfReadLimitKind.TextClippingIntersectionWork;
+
+    /// <summary>Creates a budget with the strict untrusted-input work limit, for callers without read limits.</summary>
+    internal PdfTextClippingBudget() : this(PdfPageClipPath.MaximumClippingIntersectionWork) { }
+
+    internal PdfTextClippingBudget(PdfReadLimits limits) : this(limits.MaxClippingIntersectionWorkPerPage) { }
+
+    private PdfTextClippingBudget(long maximumIntersectionWork) {
+        _maximumIntersectionWork = maximumIntersectionWork;
+    }
 
     internal void ChargePath() {
         PdfPageClipPath.ThrowIfTextClippingPathBudgetExceeded(_pathCount);
@@ -45,10 +55,10 @@ internal sealed class PdfTextClippingBudget {
 
     private void ChargeIntersectionWork(long addedWork) {
         long nextWork = SaturatingAdd(_intersectionWork, Math.Max(0L, addedWork));
-        if (nextWork > PdfPageClipPath.MaximumClippingIntersectionWork) {
+        if (nextWork > _maximumIntersectionWork) {
             throw PdfReadLimitException.Create(
                 _intersectionLimitKind,
-                PdfPageClipPath.MaximumClippingIntersectionWork,
+                _maximumIntersectionWork,
                 nextWork);
         }
         _intersectionWork = nextWork;

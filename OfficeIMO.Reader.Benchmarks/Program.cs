@@ -5,6 +5,10 @@ if (args.Length > 0 && string.Equals(args[0], "evidence", StringComparison.Ordin
     return await ReaderComparisonCommand.RunAsync(args.Skip(1).ToArray()).ConfigureAwait(false);
 }
 
+if (args.Length > 0 && string.Equals(args[0], "powerpoint-streaming-memory", StringComparison.OrdinalIgnoreCase)) {
+    return OfficeIMO.Reader.Benchmarks.PowerPointStreamingMemoryCommand.Run(args.Skip(1).ToArray());
+}
+
 if (args.Length > 0 && string.Equals(args[0], "office-evidence-probe", StringComparison.OrdinalIgnoreCase)) {
     return ReaderComparisonCommand.RunOfficeProbe(args.Skip(1).ToArray());
 }

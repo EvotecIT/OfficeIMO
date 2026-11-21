@@ -29,6 +29,57 @@ namespace OfficeIMO.Word {
             public void Dispose() => ActiveListInfoSnapshot.Value = _previous;
         }
 
+        private static readonly AsyncLocal<ListNumberingCatalogScope?> ActiveListNumberingCatalog = new();
+
+        private sealed class ListNumberingCatalogScope : IDisposable {
+            private readonly ListNumberingCatalogScope? _previous;
+            internal ListNumberingCatalogScope(WordDocument document, WordListNumberingResolver.StyleCatalog catalog,
+                ListNumberingCatalogScope? previous) {
+                Document = document;
+                Catalog = catalog;
+                _previous = previous;
+            }
+            internal WordDocument Document { get; }
+            internal WordListNumberingResolver.StyleCatalog Catalog { get; }
+            public void Dispose() => ActiveListNumberingCatalog.Value = _previous;
+        }
+
+        /// <summary>
+        /// Reuses one style and numbering catalog for list resolution while a caller reads the
+        /// document without changing its styles or numbering. Without this scope, every
+        /// unsnapshotted <see cref="GetListInfo(WordParagraph)"/> call rebuilds both.
+        /// </summary>
+        internal static IDisposable UseListNumberingCatalog(WordDocument document) {
+            ArgumentNullException.ThrowIfNull(document);
+            ListNumberingCatalogScope? previous = ActiveListNumberingCatalog.Value;
+            if (previous != null && ReferenceEquals(previous.Document, document))
+                return new ListNumberingCatalogScope(document, previous.Catalog, previous);
+            return UseListNumberingCatalog(document, CreateListNumberingCatalog(document));
+        }
+
+        /// <summary>
+        /// Builds the catalog that <see cref="UseListNumberingCatalog(WordDocument, WordListNumberingResolver.StyleCatalog)"/>
+        /// makes current, for callers such as iterators that can't keep a scope open between calls.
+        /// </summary>
+        internal static WordListNumberingResolver.StyleCatalog CreateListNumberingCatalog(WordDocument document) {
+            ArgumentNullException.ThrowIfNull(document);
+            return WordListNumberingResolver.CreateStyleCatalog(document);
+        }
+
+        /// <summary>Makes a catalog built earlier for <paramref name="document"/> current until the scope is disposed.</summary>
+        internal static IDisposable UseListNumberingCatalog(WordDocument document, WordListNumberingResolver.StyleCatalog catalog) {
+            ArgumentNullException.ThrowIfNull(document);
+            ArgumentNullException.ThrowIfNull(catalog);
+            var scope = new ListNumberingCatalogScope(document, catalog, ActiveListNumberingCatalog.Value);
+            ActiveListNumberingCatalog.Value = scope;
+            return scope;
+        }
+
+        private static WordListNumberingResolver.StyleCatalog? GetActiveListNumberingCatalog(WordDocument document) {
+            ListNumberingCatalogScope? scope = ActiveListNumberingCatalog.Value;
+            return scope != null && ReferenceEquals(scope.Document, document) ? scope.Catalog : null;
+        }
+
         internal static IDisposable UseResolvedListMarkers(WordDocument document,
             IReadOnlyDictionary<WordParagraph, ResolvedListMarker> markers,
             IReadOnlyDictionary<WordParagraph, (int Level, string Marker)>? renderMarkers = null) {
@@ -169,6 +220,8 @@ namespace OfficeIMO.Word {
             ListInfoSnapshot? snapshot = ActiveListInfoSnapshot.Value;
             if (snapshot != null && ReferenceEquals(snapshot.Document, paragraph._document))
                 return snapshot.Markers.TryGetValue(paragraph, out ResolvedListMarker marker) ? marker.Info : null;
+            WordListNumberingResolver.StyleCatalog? activeCatalog = GetActiveListNumberingCatalog(paragraph._document);
+            if (activeCatalog != null) return GetListInfo(paragraph, activeCatalog.ListDefinitions, activeCatalog);
             NumberingProperties? direct = paragraph._paragraph?.ParagraphProperties?.NumberingProperties;
             WordListNumberingResolver.StyleCatalog? styleCatalog = direct?.NumberingId?.Val?.Value > 0 &&
                 direct.NumberingLevelReference?.Val?.Value != null

@@ -36,25 +36,15 @@ public sealed partial class PdfProvenanceTests {
     }
 
     [Fact]
-    public void CatalogXmpSharesTheProvenanceExpandedByteBudget() {
-        byte[] pdf = BuildDecodedStreamBudgetPdf(catalogScripts: 1, includeXmp: true, includeWidget: false);
-
-        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => PdfProvenance.Inspect(
-            pdf,
-            new OfficeProvenanceOptions { MaxExpandedContainerBytes = 100 }));
-
-        Assert.Equal(PdfReadLimitKind.TotalDecodedStreamBytes, exception.Kind);
-    }
-
-    [Fact]
-    public void WidgetJavaScriptSharesTheProvenanceExpandedByteBudget() {
+    public void CatalogXmpAndWidgetJavaScriptAreNotExpandedByProvenanceInspection() {
         byte[] pdf = BuildDecodedStreamBudgetPdf(catalogScripts: 0, includeXmp: true, includeWidget: true);
 
-        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => PdfProvenance.Inspect(
+        // XMP and form scripts are decoded only when read, so inspection does not spend its budget on them.
+        OfficeProvenanceReport report = PdfProvenance.Inspect(
             pdf,
-            new OfficeProvenanceOptions { MaxExpandedContainerBytes = 100 }));
+            new OfficeProvenanceOptions { MaxExpandedContainerBytes = 100 });
 
-        Assert.Equal(PdfReadLimitKind.TotalDecodedStreamBytes, exception.Kind);
+        Assert.Empty(report.Evidence);
     }
 
     [Fact]

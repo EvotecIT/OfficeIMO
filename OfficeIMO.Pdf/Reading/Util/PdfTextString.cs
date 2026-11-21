@@ -120,7 +120,11 @@ internal static class PdfTextString {
     internal static byte[] DecodeHexBytes(string raw) => DecodeHexBytes(raw, 0, raw.Length);
 
     internal static byte[] DecodeHexBytes(string source, int start, int length,
-        System.Threading.CancellationToken cancellationToken = default) {
+        System.Threading.CancellationToken cancellationToken = default) =>
+        DecodeHexBytes(new PdfStringContentText(source), start, length, cancellationToken);
+
+    internal static byte[] DecodeHexBytes<TText>(TText source, int start, int length,
+        System.Threading.CancellationToken cancellationToken) where TText : struct, IPdfContentText {
         cancellationToken.ThrowIfCancellationRequested();
         if (start < 0 || length < 0 || start > source.Length - length) throw new ArgumentOutOfRangeException(nameof(start));
         int end = start + length;

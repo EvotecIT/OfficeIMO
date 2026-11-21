@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>A bounded, reviewable item discovered by the PDF sanitization engine.</summary>
-public sealed class PdfSanitizationFinding {
+internal sealed class PdfSanitizationFinding {
     internal PdfSanitizationFinding(PdfSanitizationFindingKind kind, int objectNumber, string path, string detail, PdfSanitizationActionKind? actionKind = null) {
         Kind = kind;
         ObjectNumber = objectNumber;

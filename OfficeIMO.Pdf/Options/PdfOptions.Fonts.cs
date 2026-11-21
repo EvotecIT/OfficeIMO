@@ -82,6 +82,7 @@ public sealed partial class PdfCreateOptions {
     /// <returns>True when the normalized font family slot has embedded font data.</returns>
     public bool HasEmbeddedStandardFontFamily(PdfStandardFont font) {
         Guard.StandardFont(font, nameof(font), "PDF embedded font lookup must target one of the supported standard PDF fonts.");
+        ResolvePendingDefaultFontFamilies(font);
         return _embeddedFonts != null && _embeddedFonts.ContainsKey(PdfStandardFontMapper.GetFontFamily(font));
     }
 
@@ -138,6 +139,7 @@ public sealed partial class PdfCreateOptions {
 
     /// <summary>Finds an embedded family in its actual logical slot, independent of its usual standard alias.</summary>
     internal bool TryResolveEmbeddedFontFamilySlot(string familyName, out PdfStandardFont fontFamily) {
+        ResolvePendingDefaultFontFamilies();
         if (_embeddedFonts != null) {
             foreach (PdfStandardFont slot in _embeddedFonts.Keys) {
                 if (!EmbeddedFontFamilySlotMatches(slot, familyName)) continue;
@@ -151,6 +153,7 @@ public sealed partial class PdfCreateOptions {
 
     internal string? GetEmbeddedFontFamilyName(PdfStandardFont slot) {
         PdfStandardFont normalizedSlot = PdfStandardFontMapper.GetFontFamily(slot);
+        ResolvePendingDefaultFontFamilies(normalizedSlot);
         if (_embeddedFonts == null ||
             !_embeddedFonts.TryGetValue(normalizedSlot, out PdfEmbeddedFont? embedded) ||
             string.IsNullOrWhiteSpace(embedded.FontName)) {
@@ -304,6 +307,7 @@ public sealed partial class PdfCreateOptions {
     }
 
     private string CaptureEmbeddedFontState() {
+        ResolvePendingDefaultFontFamilies();
         if (_embeddedFonts == null || _embeddedFonts.Count == 0) {
             return string.Empty;
         }
@@ -356,16 +360,19 @@ public sealed partial class PdfCreateOptions {
 
     internal PdfCreateOptions RegisterFallbackFontFamily(
         PdfStandardFont baseFontFamily,
-        string familyName,
-        byte[] regular) {
+        PdfEmbeddedFontFallbackCandidate candidate) {
         PdfStandardFont normalizedFamily = PdfStandardFontMapper.GetFontFamily(baseFontFamily);
-        EmbedStandardFontSnapshot(normalizedFamily, regular, BuildFontFamilyFaceName(familyName, "Regular"));
-        EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: true, italic: false), regular, BuildFontFamilyFaceName(familyName, "Bold"), syntheticBold: true);
-        EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: false, italic: true), regular, BuildFontFamilyFaceName(familyName, "Italic"), syntheticOblique: true);
-        EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: true, italic: true), regular, BuildFontFamilyFaceName(familyName, "BoldItalic"), syntheticOblique: true, syntheticBold: true);
+        for (int style = 0; style < 4; style++) {
+            bool bold = (style & 1) != 0, italic = (style & 2) != 0;
+            (byte[] data, bool syntheticBold, bool syntheticOblique) = candidate.GetSlotFace(bold, italic);
+            EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold, italic), data,
+                BuildFontFamilyFaceName(candidate.FontName, FallbackFaceNames[style]), syntheticOblique, syntheticBold);
+        }
         (_fallbackOwnedFontFamilies ??= new HashSet<PdfStandardFont>()).Add(normalizedFamily);
         return this;
     }
+
+    private static readonly string[] FallbackFaceNames = { "Regular", "Bold", "Italic", "BoldItalic" };
 
     // Only mappings still carrying the previous fallback's bytes, generated face
     // names and synthesis choices may be replaced. A later caller owns the whole family.
@@ -373,15 +380,15 @@ public sealed partial class PdfCreateOptions {
         if (_fallbackOwnedFontFamilies?.Contains(PdfStandardFontMapper.GetFontFamily(family)) != true) return false;
         bool found = false;
         for (int style = 0; style < 4; style++) {
-            PdfStandardFont font = PdfStandardFontMapper.GetStyledFont(family,
-                bold: (style & 1) != 0, italic: (style & 2) != 0);
+            bool bold = (style & 1) != 0, italic = (style & 2) != 0;
+            PdfStandardFont font = PdfStandardFontMapper.GetStyledFont(family, bold, italic);
             if (!TryGetEmbeddedStandardFont(font, out PdfEmbeddedFont? embedded) || embedded == null) continue;
-            string face = style == 0 ? "Regular" : style == 1 ? "Bold" : style == 2 ? "Italic" : "BoldItalic";
-            if (embedded.FontName != BuildFontFamilyFaceName(candidate.FontName, face)
-                || embedded.SyntheticOblique != ((style & 2) != 0)
-                || embedded.SyntheticBold != ((style & 1) != 0)
-                || (!ReferenceEquals(embedded.DataSnapshot, candidate.DataSnapshot)
-                    && !embedded.DataSnapshot.SequenceEqual(candidate.DataSnapshot))) return false;
+            (byte[] data, bool syntheticBold, bool syntheticOblique) = candidate.GetSlotFace(bold, italic);
+            if (embedded.FontName != BuildFontFamilyFaceName(candidate.FontName, FallbackFaceNames[style])
+                || embedded.SyntheticOblique != syntheticOblique
+                || embedded.SyntheticBold != syntheticBold
+                || (!ReferenceEquals(embedded.DataSnapshot, data)
+                    && !embedded.DataSnapshot.SequenceEqual(data))) return false;
             found = true;
         }
         return found;

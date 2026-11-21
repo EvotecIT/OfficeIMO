@@ -42,7 +42,7 @@ public sealed class DrawingFontOpticalSizeTests {
         Assert.NotSame(selected, adjacent);
         Assert.NotEqual(original.Program.Fingerprint, selected.Program.Fingerprint);
         Assert.NotEqual(selected.Program.Fingerprint, adjacent.Program.Fingerprint);
-        Assert.Contains("opsz=" + (defaultSize + step).ToString("R", CultureInfo.InvariantCulture), selected.Program.Fingerprint);
+        Assert.Contains("opsz=" + OfficeIMO.Core.Internal.OfficeRoundTripText.Format(defaultSize + step, CultureInfo.InvariantCulture), selected.Program.Fingerprint);
         Assert.Same(selected, ResolveProbe(defaultSize + 1.49D * step));
         Assert.Same(adjacent, ResolveProbe(defaultSize + 1.51D * step));
         Assert.Equal(0.03125D, selected.Program.GetTextContours("A", 0D, 0D, selected.Program.UnitsPerEm)

@@ -175,7 +175,7 @@ Accept wildcard characters: False
 ```
 
 ### -Chart
-A chart name in the selected Excel sheets; excludes Range and Page.
+A chart name in the selected Excel sheets, a Word document or PowerPoint slides; excludes Range and Page.
 
 ```yaml
 Type: String

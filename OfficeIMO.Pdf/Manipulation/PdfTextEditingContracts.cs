@@ -89,7 +89,7 @@ public sealed class PdfTextEditOptions {
     /// <summary>Text color. Null preserves the detected color or uses black for new text.</summary>
     public global::OfficeIMO.OfficeColor? Color { get; set; }
 
-    /// <summary>Baseline rotation in degrees. Null preserves the detected rotation or uses zero for new text.</summary>
+    /// <summary>Baseline rotation in user-space degrees. Null preserves the detected rotation, or makes new text read upright on the displayed page.</summary>
     public double? RotationDegrees {
         get => _rotationDegrees;
         set {

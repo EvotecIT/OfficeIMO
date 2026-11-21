@@ -5,6 +5,19 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 internal static class PdfPngTestImages {
+    /// <summary>Decoded RGB samples in row order, independent of the PNG color type and bit depth.</summary>
+    internal static byte[] DecodeRgb(byte[] png) {
+        Assert.True(global::OfficeIMO.Drawing.OfficePngReader.TryDecode(png, out global::OfficeIMO.Drawing.OfficeRasterImage? image));
+        byte[] rgba = image!.GetPixels();
+        var rgb = new byte[rgba.Length / 4 * 3];
+        for (int pixel = 0; pixel < rgba.Length / 4; pixel++) {
+            rgb[pixel * 3] = rgba[pixel * 4];
+            rgb[pixel * 3 + 1] = rgba[pixel * 4 + 1];
+            rgb[pixel * 3 + 2] = rgba[pixel * 4 + 2];
+        }
+        return rgb;
+    }
+
     internal static byte[] CreateTwoFrameApng() {
         using var ms = CreatePng();
         WritePngChunk(ms, "IHDR", new byte[] {

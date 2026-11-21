@@ -34,6 +34,7 @@ namespace OfficeIMO.Excel {
                     : null;
                 ExcelDocument.FormulaMutationState formulaMutationState = _excelDocument.CaptureFormulaMutationState();
                 var drawingHandles = _excelDocument.CaptureDrawingHandlesForReload();
+                var defaultWidthColumns = _excelDocument.CaptureDefaultWidthColumns();
                 try {
                     int affectedCells = operation(cancellationToken);
                     cancellationToken.ThrowIfCancellationRequested();
@@ -50,9 +51,11 @@ namespace OfficeIMO.Excel {
                         else snapshot!.Restore();
                     } finally {
                         _excelDocument.RestoreFormulaMutationState(formulaMutationState);
+                        _excelDocument.InvalidateTableLayouts();
                         ResetPendingPartsAfterMutationRollback();
                         ResetMutationCaches(drawingHandles);
                         RestoreDynamicSpillMutationState(_excelDocument.WorkbookPartRoot, dynamicSpillState);
+                        _excelDocument.RestoreDefaultWidthColumns(defaultWidthColumns);
                     }
                     throw;
                 }

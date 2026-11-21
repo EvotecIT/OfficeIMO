@@ -4,7 +4,8 @@ namespace OfficeIMO.Excel {
     /// </summary>
     public enum ExcelWorksheetCopyMode {
         /// <summary>
-        /// Copy cell values through the workbook reader and writer surface.
+        /// Copy cell values through the workbook reader and writer surface, with tables and the sheet layout: column
+        /// widths, row heights, views, merged cells, conditional formats, data validations and print settings.
         /// </summary>
         Values = 0,
 

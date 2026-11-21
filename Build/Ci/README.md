@@ -9,6 +9,11 @@ Linked source and resource inputs also select their consumers. A directly
 changed test project without a declared executable route fails selection so a
 new project cannot silently receive a passing aggregate without running tests.
 
+The `documentation_only` list records reviewed prose paths whose mentions in
+source or evidence do not establish a build or test dependency. Linked inputs
+and fixture rules still take precedence. Website routing is independent, so a
+roadmap edit still checks the site's links to roadmap sections.
+
 Ordinary PRs run affected Windows .NET Framework contracts and the newest Linux
 TFM. The smaller platform matrices retain Windows, Linux and macOS on the newest
 TFM. The macOS smoke retains its full-run TFM and uses the newest TFM on PRs; its PR build includes only the projects it executes. Full runs retain the original macOS solution build. Website, JavaScript,
@@ -20,6 +25,36 @@ through one generated traversal project, so shared libraries are evaluated and
 compiled once per job. The traversal passes `Configuration` and
 `TargetFramework` to each test project exactly as a per-project `dotnet build`
 does; tests then run per project with `--no-build`.
+
+Selected Windows `net472` contracts are balanced into at most eleven shards.
+The selector retains the original `windows` inventory and adds `windows_shards`;
+grouping never changes which projects are selected. Small selections create only
+as many jobs as selected projects. `windows_shard_seconds` contains median
+restore, test and optional CodeGlyphX-pack durations from five successful full
+runs (43966051373, 43966066962, 43966200215, 43966733078 and 44002772640).
+The longest estimated contract goes to the lightest shard, with stable name
+ordering for ties. Unmeasured new contracts use 180 seconds until refreshed.
+These weights affect scheduling only.
+
+Each contract keeps its own restore and test process, `net472`, Release
+configuration, test filter and TRX directory. Failures are collected while the
+remaining contracts continue. The Drawing-CodeGlyphX contract still packs all
+five bridge/adaptor projects after its tests pass. The Windows matrix remains
+a dependency of `PR validation`; other jobs and full-run triggers are unchanged.
+Results and execution manifests are uploaded as `test-results-net472-Shard-*`.
+
+To measure a change, apply the `net472-shard-evidence` PR label (reapply it for
+a later revision), or manually dispatch `netframework-shard-evidence.yml` once
+that workflow exists on the default branch. This opt-in workflow runs three
+fresh-runner samples of the same complete Windows inventory with one project
+per job and with grouped shards. Both layouts use the same source, setup,
+package-cache action, commands and parallelism limit. It compares every
+per-project TRX test identity and outcome, including skips, and requires all
+restore/test/CodeGlyphX-pack obligations. Missing or duplicated evidence fails.
+The comparison artifact and job summary report total runner duration and job
+span for each sample. Runner duration is elapsed time, not billed minutes;
+job span includes scheduling and is not a controlled queue-latency comparison.
+This verification workflow is independent of the existing required aggregate.
 
 The ordinary library build uses maintained solution membership; opt-in
 verification and comparison executables outside that solution keep their own

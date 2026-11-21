@@ -68,7 +68,7 @@ public sealed class IWorkPagesRichNumberedItemWritingTests {
         Assert.Throws<ArgumentException>(() => list.AddRichItem(new IWorkTextRunData[] { null! }));
         foreach (string text in new[] { "Line\nbreak", "Line\u2028break", "Line\u2029break" })
             Assert.Throws<ArgumentException>(() => list.AddRichItem(new[] { new IWorkTextRunData(text, "Arial", 12) }, restartAt: 100));
-        Assert.Throws<ArgumentException>(() => list.AddRichItem(new[] { new IWorkTextRunData("Size", "Arial", 14.5f) }));
+        Assert.Throws<ArgumentException>(() => list.AddRichItem(new[] { new IWorkTextRunData("Size", "Arial", 14.25f) }));
         Assert.Throws<ArgumentOutOfRangeException>(() => list.AddRichItem(valid, level: 9));
         Assert.Throws<ArgumentOutOfRangeException>(() => list.AddRichItem(valid, restartAt: 0));
         Assert.Equal(baseline, document.ToBytes()); Assert.Single(list.Items); Assert.Single(document.BodyBlocks);

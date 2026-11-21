@@ -693,7 +693,7 @@ namespace OfficeIMO.Excel {
 
             private static string? GetHeaderText(object?[]? headerValues, int ordinal) =>
                 headerValues != null && ordinal < headerValues.Length
-                    ? (headerValues[ordinal] is ExcelDataReaderDateSerial serial ? serial.Materialize() : headerValues[ordinal])?.ToString() : null;
+                    ? (headerValues[ordinal] is ExcelDataReaderDateSerial serial ? serial.MaterializeValue() : headerValues[ordinal])?.ToString() : null;
 
             private static string[] CreateGeneratedColumnNames(int fieldCount) {
                 var names = new string[fieldCount];

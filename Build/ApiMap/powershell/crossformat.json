@@ -2608,7 +2608,7 @@
               "mandatory": true,
               "position": 1,
               "pipeline": "none",
-              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
+              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}, and a Word or PowerPoint chart uses {BaseName}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
             },
             {
               "name": "Format",
@@ -2690,7 +2690,7 @@
               "mandatory": true,
               "position": 1,
               "pipeline": "none",
-              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
+              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}, and a Word or PowerPoint chart uses {BaseName}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
             },
             {
               "name": "Format",
@@ -2772,7 +2772,7 @@
               "mandatory": true,
               "position": 1,
               "pipeline": "none",
-              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
+              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}, and a Word or PowerPoint chart uses {BaseName}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
             },
             {
               "name": "Format",
@@ -2861,7 +2861,7 @@
               "mandatory": true,
               "position": 1,
               "pipeline": "none",
-              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
+              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}, and a Word or PowerPoint chart uses {BaseName}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
             },
             {
               "name": "Format",
@@ -2882,7 +2882,7 @@
               "type": "string",
               "mandatory": true,
               "pipeline": "none",
-              "note": "A chart name within -Sheet (was Export-OfficeExcelChartImage)."
+              "note": "A chart name within -Sheet for Excel sources, or a chart name in a Word document or on PowerPoint slides (was Export-OfficeExcelChartImage)."
             },
             {
               "name": "Dpi",
@@ -3203,7 +3203,7 @@
               "type": "string",
               "mandatory": true,
               "pipeline": "none",
-              "note": "A chart name within -Sheet (was Export-OfficeExcelChartImage)."
+              "note": "A chart name within -Sheet for Excel sources, or a chart name in a Word document or on PowerPoint slides (was Export-OfficeExcelChartImage)."
             },
             {
               "name": "Dpi",
@@ -3267,7 +3267,7 @@
               "mandatory": true,
               "position": 1,
               "pipeline": "none",
-              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
+              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}, and a Word or PowerPoint chart uses {BaseName}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
             },
             {
               "name": "Format",
@@ -3352,7 +3352,7 @@
               "mandatory": true,
               "position": 1,
               "pipeline": "none",
-              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
+              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}, and a Word or PowerPoint chart uses {BaseName}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
             },
             {
               "name": "Format",
@@ -3437,7 +3437,7 @@
               "mandatory": true,
               "position": 1,
               "pipeline": "none",
-              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
+              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}, and a Word or PowerPoint chart uses {BaseName}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
             },
             {
               "name": "Format",
@@ -3529,7 +3529,7 @@
               "mandatory": true,
               "position": 1,
               "pipeline": "none",
-              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
+              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}, and a Word or PowerPoint chart uses {BaseName}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
             },
             {
               "name": "Format",
@@ -3550,7 +3550,7 @@
               "type": "string",
               "mandatory": true,
               "pipeline": "none",
-              "note": "A chart name within -Sheet (was Export-OfficeExcelChartImage)."
+              "note": "A chart name within -Sheet for Excel sources, or a chart name in a Word document or on PowerPoint slides (was Export-OfficeExcelChartImage)."
             },
             {
               "name": "Dpi",
@@ -3883,7 +3883,7 @@
               "type": "string",
               "mandatory": true,
               "pipeline": "none",
-              "note": "A chart name within -Sheet (was Export-OfficeExcelChartImage)."
+              "note": "A chart name within -Sheet for Excel sources, or a chart name in a Word document or on PowerPoint slides (was Export-OfficeExcelChartImage)."
             },
             {
               "name": "Dpi",
@@ -3944,7 +3944,7 @@
               "mandatory": true,
               "position": 1,
               "pipeline": "none",
-              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
+              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}, and a Word or PowerPoint chart uses {BaseName}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
             },
             {
               "name": "Format",
@@ -4019,7 +4019,7 @@
               "mandatory": true,
               "position": 1,
               "pipeline": "none",
-              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
+              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}, and a Word or PowerPoint chart uses {BaseName}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
             },
             {
               "name": "Format",
@@ -4094,7 +4094,7 @@
               "mandatory": true,
               "position": 1,
               "pipeline": "none",
-              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
+              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}, and a Word or PowerPoint chart uses {BaseName}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
             },
             {
               "name": "Format",
@@ -4176,7 +4176,7 @@
               "mandatory": true,
               "position": 1,
               "pipeline": "none",
-              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
+              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}, and a Word or PowerPoint chart uses {BaseName}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
             },
             {
               "name": "Format",
@@ -4197,7 +4197,7 @@
               "type": "string",
               "mandatory": true,
               "pipeline": "none",
-              "note": "A chart name within -Sheet (was Export-OfficeExcelChartImage)."
+              "note": "A chart name within -Sheet for Excel sources, or a chart name in a Word document or on PowerPoint slides (was Export-OfficeExcelChartImage)."
             },
             {
               "name": "Dpi",
@@ -4507,7 +4507,7 @@
               "type": "string",
               "mandatory": true,
               "pipeline": "none",
-              "note": "A chart name within -Sheet (was Export-OfficeExcelChartImage)."
+              "note": "A chart name within -Sheet for Excel sources, or a chart name in a Word document or on PowerPoint slides (was Export-OfficeExcelChartImage)."
             },
             {
               "name": "Dpi",
@@ -4574,7 +4574,7 @@
               "mandatory": true,
               "position": 1,
               "pipeline": "none",
-              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
+              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}, and a Word or PowerPoint chart uses {BaseName}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
             },
             {
               "name": "Format",
@@ -4985,7 +4985,7 @@
               "type": "string",
               "mandatory": true,
               "pipeline": "none",
-              "note": "A chart name within -Sheet (was Export-OfficeExcelChartImage)."
+              "note": "A chart name within -Sheet for Excel sources, or a chart name in a Word document or on PowerPoint slides (was Export-OfficeExcelChartImage)."
             },
             {
               "name": "Dpi",
@@ -5283,7 +5283,7 @@
               "type": "string",
               "mandatory": true,
               "pipeline": "none",
-              "note": "A chart name within -Sheet (was Export-OfficeExcelChartImage)."
+              "note": "A chart name within -Sheet for Excel sources, or a chart name in a Word document or on PowerPoint slides (was Export-OfficeExcelChartImage)."
             },
             {
               "name": "Dpi",
@@ -5548,7 +5548,7 @@
               "type": "string",
               "mandatory": true,
               "pipeline": "none",
-              "note": "A chart name within -Sheet (was Export-OfficeExcelChartImage)."
+              "note": "A chart name within -Sheet for Excel sources, or a chart name in a Word document or on PowerPoint slides (was Export-OfficeExcelChartImage)."
             },
             {
               "name": "Dpi",
@@ -5957,6 +5957,132 @@
           "title": "Extract only photos without overwriting",
           "description": "Copies the PNG and JPEG images out of a brochure and leaves files that already exist untouched.",
           "code": "Export-OfficeDocumentAsset -Path .\\Marketing\\Brochure.docx -OutputDirectory .\\Marketing\\Images -Extension .png, .jpg -NoClobber"
+        }
+      ]
+    },
+    {
+      "name": "Test-OfficeAccessibility",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Checks Word, Excel and PowerPoint files or open documents for accessibility issues and returns the shared report, SARIF or a Boolean, without changing them.",
+      "outputType": "OfficeAccessibilityFileReport",
+      "outputTypes": [
+        "OfficeAccessibilityFileReport",
+        "string",
+        "bool"
+      ],
+      "shouldProcess": false,
+      "parameterSets": [
+        {
+          "name": "Path",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string[]",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "value",
+              "wildcards": true
+            },
+            {
+              "name": "Strict",
+              "type": "SwitchParameter"
+            },
+            {
+              "name": "Sarif",
+              "type": "SwitchParameter"
+            },
+            {
+              "name": "Quiet",
+              "type": "SwitchParameter"
+            },
+            {
+              "name": "IncludeWarnings",
+              "type": "SwitchParameter"
+            },
+            {
+              "name": "Password",
+              "type": "SecureString"
+            }
+          ]
+        },
+        {
+          "name": "LiteralPath",
+          "default": false,
+          "parameters": [
+            {
+              "name": "LiteralPath",
+              "type": "string[]",
+              "mandatory": true,
+              "pipeline": "propertyName",
+              "wildcards": false,
+              "aliases": [
+                "PSPath",
+                "FullName"
+              ]
+            },
+            {
+              "name": "Strict",
+              "type": "SwitchParameter"
+            },
+            {
+              "name": "Sarif",
+              "type": "SwitchParameter"
+            },
+            {
+              "name": "Quiet",
+              "type": "SwitchParameter"
+            },
+            {
+              "name": "IncludeWarnings",
+              "type": "SwitchParameter"
+            },
+            {
+              "name": "Password",
+              "type": "SecureString"
+            }
+          ]
+        },
+        {
+          "name": "Document",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "object",
+              "mandatory": true
+            },
+            {
+              "name": "Strict",
+              "type": "SwitchParameter"
+            },
+            {
+              "name": "Sarif",
+              "type": "SwitchParameter"
+            },
+            {
+              "name": "Quiet",
+              "type": "SwitchParameter"
+            },
+            {
+              "name": "IncludeWarnings",
+              "type": "SwitchParameter"
+            }
+          ]
+        }
+      ],
+      "notes": "Same checks as officeimo accessibility and the officeimo_check_accessibility MCP tool. Word, Excel and PowerPoint share finding codes and severities. Unsupported files write a non-terminating error and the batch continues.",
+      "examples": [
+        {
+          "title": "List the findings of a workbook",
+          "description": "Shows each accessibility finding with its severity, rule code and location.",
+          "code": "(Test-OfficeAccessibility -Path .\\Budget.xlsx).Findings | Format-Table Severity, Code, Location, Message"
+        },
+        {
+          "title": "Write a SARIF log for code scanning",
+          "description": "Saves the strict-profile findings of a presentation as SARIF 2.1.0.",
+          "code": "Test-OfficeAccessibility -Path .\\Deck.pptx -Strict -Sarif | Set-Content .\\Deck.sarif"
         }
       ]
     },
@@ -6827,7 +6953,8 @@
         "System.IO.FileInfo",
         "OfficeIMO.Word.WordDocument",
         "OfficeIMO.Excel.ExcelDocument",
-        "OfficeIMO.Pdf.PdfMergeReport"
+        "OfficeIMO.Pdf.PdfMergeReport",
+        "OfficeIMO.Yaml.YamlMergeReport"
       ],
       "shouldProcess": true,
       "parameterSets": [
@@ -7007,11 +7134,17 @@
               "type": "SwitchParameter",
               "mandatory": false,
               "pipeline": "none"
+            },
+            {
+              "name": "PassThruReport",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
             }
           ]
         }
       ],
-      "notes": "Candidate absorptions from other areas: Join-OfficeWordDocument, Join-OfficePdf, Join-OfficeExcelWorkbook. Sheet-level Join-OfficeExcelSheet stays with Excel. For PDF input, -Options also accepts one PdfLoadOptions or New-OfficePdfReadOptions result alongside PdfMergeOptions; each source receives an independent complete read-policy snapshot and its selected password. PassThruReport returns PdfMergeReport for PDF file merges; it can be combined with PassThru to also return the saved file.",
+      "notes": "Candidate absorptions from other areas: Join-OfficeWordDocument, Join-OfficePdf, Join-OfficeExcelWorkbook. Sheet-level Join-OfficeExcelSheet stays with Excel. For PDF input, -Options also accepts one PdfLoadOptions or New-OfficePdfReadOptions result alongside PdfMergeOptions; each source receives an independent complete read-policy snapshot and its selected password. PassThruReport returns PdfMergeReport for PDF file merges and one YamlMergeReport per overlay for YAML merges; it can be combined with PassThru to also return the saved file. YAML inputs (.yaml and .yml) overlay the first file or a live YamlDocument in order, the way Helm combines values files; -Options takes YamlMergeOptions or a hashtable, and only the lines the merge changes differ from the base file.",
       "examples": [
         {
           "title": "Merge PDFs into one",
@@ -7027,6 +7160,11 @@
           "title": "Append sections to an open proposal",
           "description": "Opens a proposal cover, appends the scope and pricing documents and saves the combined proposal under a new name.",
           "code": "$proposal = Open-OfficeWord -Path .\\Proposal\\Cover.docx\nMerge-OfficeDocument -Document $proposal -Path .\\Proposal\\Scope.docx, .\\Proposal\\Pricing.docx -OutputPath .\\Proposal\\Northwind-Proposal.docx\nClose-OfficeWord -Document $proposal"
+        },
+        {
+          "title": "Layer environment values over the defaults",
+          "description": "Overlays the production values on the chart defaults, removes keys the overlay sets to null and returns the merge report.",
+          "code": "Merge-OfficeDocument -Path .\\Charts\\web\\values.yaml, .\\Charts\\web\\values.prod.yaml -OutputPath .\\Out\\values.yaml -Options @{ NullRemovesKey = $true } -PassThruReport"
         }
       ]
     },
@@ -8271,6 +8409,315 @@
       "notes": "Cross-format options factories are named New-OfficeDocument{Purpose}Options. Flattens the Structural, TextIntegrity and Verification groups of OfficeProvenanceAssessmentOptions; Max* limits are named Maximum*, and the verifier Timeout (TimeSpan) is -VerificationTimeoutSeconds. Text-integrity inspection, embedded-asset processing and the typographic-space and variation-selector findings are on by default; the No* switches turn them off. -C2paToolPath and -SignalDetector stay on Get-OfficeDocumentProvenance."
     },
     {
+      "name": "Get-OfficeHiddenData",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Reports the metadata and hidden data that would leave with a Word, Excel, PowerPoint, Visio, OpenDocument, EPUB, PDF or image file, without changing it.",
+      "outputType": "OfficeHiddenDataFileReport",
+      "shouldProcess": false,
+      "parameterSets": [
+        {
+          "name": "Path",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string[]",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "value",
+              "wildcards": true
+            }
+          ]
+        },
+        {
+          "name": "LiteralPath",
+          "default": false,
+          "parameters": [
+            {
+              "name": "LiteralPath",
+              "type": "string[]",
+              "mandatory": true,
+              "pipeline": "propertyName",
+              "wildcards": false,
+              "aliases": [
+                "PSPath",
+                "FullName"
+              ]
+            }
+          ]
+        }
+      ],
+      "notes": "Same inspection as officeimo hidden-data inspect. Each finding has the Outcome Found. Unsupported files write a non-terminating error and the batch continues.",
+      "examples": [
+        {
+          "title": "List what would leave with a proposal",
+          "description": "Shows each comment, author, property and other hidden item in a Word document.",
+          "code": "(Get-OfficeHiddenData -Path .\\Proposal.docx).Findings"
+        },
+        {
+          "title": "Find outgoing files that still carry comments",
+          "description": "Checks a folder and keeps the files with comments or tracked changes.",
+          "code": "Get-ChildItem .\\Outgoing -File | Get-OfficeHiddenData |\n    Where-Object { $_.Findings.Kind -contains 'Comments' -or $_.Findings.Kind -contains 'TrackedChanges' }"
+        }
+      ]
+    },
+    {
+      "name": "Remove-OfficeHiddenData",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Writes a copy of a file without its metadata and hidden data and returns what happened to each item. The input is never changed.",
+      "outputType": "OfficeHiddenDataFileReport",
+      "shouldProcess": true,
+      "parameterSets": [
+        {
+          "name": "Path",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string[]",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "value",
+              "wildcards": true
+            },
+            {
+              "name": "OutputPath",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Cleaned copy for one input; keeps the input's extension. Defaults to <name>.cleaned<ext> beside the input."
+            },
+            {
+              "name": "Options",
+              "type": "OfficeHiddenDataOptions",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Categories, tracked-change action and provenance choices from New-OfficeHiddenDataOptions; hashtables accepted. Defaults to the Default categories."
+            },
+            {
+              "name": "RemoveInvalidatedSignatures",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Allow removal that invalidates an Office package signature. Signed PDFs are always refused."
+            },
+            {
+              "name": "NoClobber",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Refuse to replace an existing output file; without it an existing output is replaced."
+            }
+          ]
+        },
+        {
+          "name": "LiteralPath",
+          "default": false,
+          "parameters": [
+            {
+              "name": "LiteralPath",
+              "type": "string[]",
+              "mandatory": true,
+              "pipeline": "propertyName",
+              "wildcards": false,
+              "aliases": [
+                "PSPath",
+                "FullName"
+              ]
+            },
+            {
+              "name": "OutputPath",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Cleaned copy for one input; keeps the input's extension. Defaults to <name>.cleaned<ext> beside the input."
+            },
+            {
+              "name": "Options",
+              "type": "OfficeHiddenDataOptions",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Categories, tracked-change action and provenance choices from New-OfficeHiddenDataOptions; hashtables accepted. Defaults to the Default categories."
+            },
+            {
+              "name": "RemoveInvalidatedSignatures",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Allow removal that invalidates an Office package signature. Signed PDFs are always refused."
+            },
+            {
+              "name": "NoClobber",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Refuse to replace an existing output file; without it an existing output is replaced."
+            }
+          ]
+        },
+        {
+          "name": "PathDirectory",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string[]",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "value",
+              "wildcards": true
+            },
+            {
+              "name": "OutputDirectory",
+              "type": "string",
+              "mandatory": true,
+              "pipeline": "none",
+              "note": "Folder for one cleaned copy per input under its original name; created when missing."
+            },
+            {
+              "name": "Options",
+              "type": "OfficeHiddenDataOptions",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Categories, tracked-change action and provenance choices from New-OfficeHiddenDataOptions; hashtables accepted. Defaults to the Default categories."
+            },
+            {
+              "name": "RemoveInvalidatedSignatures",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Allow removal that invalidates an Office package signature. Signed PDFs are always refused."
+            },
+            {
+              "name": "NoClobber",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Refuse to replace an existing output file; without it an existing output is replaced."
+            }
+          ]
+        },
+        {
+          "name": "LiteralPathDirectory",
+          "default": false,
+          "parameters": [
+            {
+              "name": "LiteralPath",
+              "type": "string[]",
+              "mandatory": true,
+              "pipeline": "propertyName",
+              "wildcards": false,
+              "aliases": [
+                "PSPath",
+                "FullName"
+              ]
+            },
+            {
+              "name": "OutputDirectory",
+              "type": "string",
+              "mandatory": true,
+              "pipeline": "none",
+              "note": "Folder for one cleaned copy per input under its original name; created when missing."
+            },
+            {
+              "name": "Options",
+              "type": "OfficeHiddenDataOptions",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Categories, tracked-change action and provenance choices from New-OfficeHiddenDataOptions; hashtables accepted. Defaults to the Default categories."
+            },
+            {
+              "name": "RemoveInvalidatedSignatures",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Allow removal that invalidates an Office package signature. Signed PDFs are always refused."
+            },
+            {
+              "name": "NoClobber",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Refuse to replace an existing output file; without it an existing output is replaced."
+            }
+          ]
+        }
+      ],
+      "notes": "Same removal as officeimo hidden-data remove: writes <name>.cleaned<ext> unless -OutputPath or -OutputDirectory is given and replaces an existing output unless -NoClobber, like Convert-OfficeDocument and Optimize-OfficePdf. The default categories keep tracked changes, hidden content, provenance, attachments and bookmarks.",
+      "examples": [
+        {
+          "title": "Clean a proposal",
+          "description": "Writes Proposal.cleaned.docx with the default categories removed.",
+          "code": "Remove-OfficeHiddenData -Path .\\Proposal.docx"
+        },
+        {
+          "title": "Clean a folder for sharing",
+          "description": "Writes cleaned copies into a share folder and also removes Content Credentials and AI labels.",
+          "code": "$options = New-OfficeHiddenDataOptions -Kind Default, Provenance\nGet-ChildItem .\\Outgoing -File | Remove-OfficeHiddenData -OutputDirectory .\\Share -Options $options"
+        }
+      ]
+    },
+    {
+      "name": "New-OfficeHiddenDataOptions",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Chooses which hidden data Remove-OfficeHiddenData and Optimize-OfficePdf -Sanitize remove.",
+      "outputType": "OfficeHiddenDataOptions",
+      "shouldProcess": false,
+      "parameterSets": [
+        {
+          "name": "Default",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Kind",
+              "type": "OfficeHiddenDataKind[]",
+              "mandatory": false,
+              "position": 0,
+              "pipeline": "none",
+              "note": "Categories to remove, combined: Default (the CLI default), All or names such as Provenance, HiddenContent, TrackedChanges, ImageMetadata, Attachments, ActiveContent and Bookmarks."
+            },
+            {
+              "name": "TrackedChanges",
+              "type": "OfficeTrackedChangesAction",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Keep (default), AcceptAll or RejectAll."
+            },
+            {
+              "name": "KeepProvenance",
+              "type": "string[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "C2pa, External or AiSource: provenance carriers to keep when Provenance is selected."
+            },
+            {
+              "name": "AnonymousAuthor",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Replacement author name on retained comments and revisions; defaults to Author."
+            }
+          ]
+        }
+      ],
+      "notes": "Builds OfficeHiddenDataOptions with the same choices as officeimo hidden-data remove --kinds, --tracked-changes, --keep-provenance and --anonymous-author.",
+      "examples": [
+        {
+          "title": "Remove AI labels but keep Content Credentials",
+          "description": "Selects provenance and keeps the C2PA manifests and links to them.",
+          "code": "$options = New-OfficeHiddenDataOptions -Kind Default, Provenance -KeepProvenance C2pa, External\nRemove-OfficeHiddenData -Path .\\Poster.pdf -Options $options"
+        },
+        {
+          "title": "Accept tracked changes before sharing",
+          "description": "Cleans a contract and accepts every tracked change.",
+          "code": "Remove-OfficeHiddenData -Path .\\Contract.docx -Options (New-OfficeHiddenDataOptions -TrackedChanges AcceptAll)"
+        }
+      ]
+    },
+    {
       "name": "ConvertTo-OfficeVisual",
       "alias": null,
       "status": "existing",
@@ -8412,17 +8859,396 @@
           ]
         }
       ],
-      "notes": "Printers are a system resource, not a document format, so the noun stays OfficePrinter (like Get-Printer). Supports Send-OfficePdfPrinter (PDF area).",
+      "notes": "Printers are a system resource, not a document format, so the noun stays OfficePrinter (like Get-Printer). Supports Send-OfficePrinter. Get-OfficePrinterCapability reports media, duplex, color and resolution.",
       "examples": [
         {
           "title": "List printers",
-          "description": "Lists the printers available for Send-OfficePdfPrinter, including the default.",
+          "description": "Lists the printers available for Send-OfficePrinter, including the default.",
           "code": "Get-OfficePrinter"
         },
         {
           "title": "Print from a specific tray",
           "description": "Finds the letterhead tray of the finance printer and prints a statement from it.",
-          "code": "$tray = Get-OfficePrinter -Name 'Finance-HP' -PaperSource | Where-Object Name -like '*Tray 2*'\nSend-OfficePdfPrinter -Path .\\Finance\\Statement-September.pdf -PrinterName 'Finance-HP' -PaperSourceId $tray.Id"
+          "code": "$tray = Get-OfficePrinter -Name 'Finance-HP' -PaperSource | Where-Object Name -like '*Tray 2*'\nSend-OfficePrinter -Path .\\Finance\\Statement-September.pdf -PrinterName 'Finance-HP' -PaperSourceId $tray.Id"
+        }
+      ]
+    },
+    {
+      "name": "Get-OfficePrinterCapability",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Reports the media, paper sources, duplex, color, resolution and copy capabilities of a printer queue or IPP printer.",
+      "outputType": "PdfPrinterCapabilities",
+      "shouldProcess": false,
+      "notes": "Requires PowerShell 7.4+. -Name takes an installed queue name or an ipp:// or ipps:// printer URI. Reading capabilities does not change printer settings.",
+      "examples": [
+        {
+          "title": "Read printer capabilities",
+          "description": "Shows the default paper and whether the printer prints two-sided.",
+          "code": "Get-OfficePrinterCapability -Name 'Finance-HP' | Select-Object DefaultMedia, SupportsDuplex, SupportsColor"
+        }
+      ],
+      "parameterSets": [
+        {
+          "name": "Default",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Name",
+              "type": "string",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "propertyName"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Get-OfficePrintJob",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Reports the state of a print job submitted with Send-OfficePrinter, optionally waiting until it finishes.",
+      "outputType": "PdfPrintJobStatus",
+      "shouldProcess": false,
+      "notes": "Requires PowerShell 7.4+. States are the same for every transport: Pending, Held, Processing, Stopped, Canceled, Aborted, Completed and Removed.",
+      "examples": [
+        {
+          "title": "Wait for a print job",
+          "description": "Prints a report and waits up to two minutes for the printer to finish it.",
+          "code": "Send-OfficePrinter -Path .\\Report.pdf -PrinterName 'Finance-HP' | Get-OfficePrintJob -Wait -TimeoutSeconds 120"
+        }
+      ],
+      "parameterSets": [
+        {
+          "name": "Default",
+          "default": true,
+          "parameters": [
+            {
+              "name": "PrinterName",
+              "type": "string",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "propertyName"
+            },
+            {
+              "name": "JobId",
+              "type": "string",
+              "mandatory": true,
+              "position": 1,
+              "pipeline": "propertyName"
+            },
+            {
+              "name": "Wait",
+              "type": "SwitchParameter",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "TimeoutSeconds",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Stop-OfficePrintJob",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Cancels a print job submitted with Send-OfficePrinter and returns its state afterwards.",
+      "outputType": "PdfPrintJobStatus",
+      "shouldProcess": true,
+      "notes": "Requires PowerShell 7.4+. A job that has already finished is reported unchanged.",
+      "examples": [
+        {
+          "title": "Cancel a print job",
+          "description": "Cancels the job a submission returned.",
+          "code": "$receipt = Send-OfficePrinter -Path .\\Report.pdf -PrinterName 'Finance-HP'\n$receipt | Stop-OfficePrintJob"
+        }
+      ],
+      "parameterSets": [
+        {
+          "name": "Default",
+          "default": true,
+          "parameters": [
+            {
+              "name": "PrinterName",
+              "type": "string",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "propertyName"
+            },
+            {
+              "name": "JobId",
+              "type": "string",
+              "mandatory": true,
+              "position": 1,
+              "pipeline": "propertyName"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Send-OfficePrinter",
+      "alias": null,
+      "compatibilityAliases": [
+        "Send-OfficePdfPrinter"
+      ],
+      "status": "existing",
+      "synopsis": "Prints a PDF or any document OfficeIMO converts to PDF on a named printer queue or IPP printer.",
+      "outputType": "PdfPrintSubmission",
+      "parameterSets": [
+        {
+          "name": "Path",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string[]",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "none",
+              "wildcards": true,
+              "note": "A PDF or any format OfficeIMO converts to PDF."
+            },
+            {
+              "name": "PrinterName",
+              "type": "string",
+              "mandatory": true,
+              "pipeline": "none"
+            },
+            {
+              "name": "Page",
+              "type": "OfficePageSelector",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Replaces -Pages.",
+              "note": "Preserves the native print selection grammar, including last, odd, even and exclusions."
+            },
+            {
+              "name": "PagesPerSheet",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "PageSubset",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Grayscale",
+              "type": "SwitchParameter",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "RasterizeGrayscale",
+              "type": "SwitchParameter",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Copies",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Duplex",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "PaperSourceId",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "OutputPath",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Print-to-file target; replaces -OutputFilePath."
+            },
+            {
+              "name": "Dpi",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Margin",
+              "type": "OfficeLength",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Orientation",
+              "type": "OfficePageOrientation",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ScaleMode",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "PaperSize",
+              "type": "OfficePageSize",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Password",
+              "type": "SecureString",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "LiteralPath",
+          "default": false,
+          "parameters": [
+            {
+              "name": "LiteralPath",
+              "type": "string[]",
+              "mandatory": true,
+              "pipeline": "propertyName",
+              "wildcards": false,
+              "aliases": [
+                "PSPath",
+                "FullName"
+              ],
+              "note": "A PDF or any format OfficeIMO converts to PDF."
+            },
+            {
+              "name": "PrinterName",
+              "type": "string",
+              "mandatory": true,
+              "pipeline": "none"
+            },
+            {
+              "name": "Page",
+              "type": "OfficePageSelector",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Preserves the native print selection grammar, including last, odd, even and exclusions."
+            },
+            {
+              "name": "PagesPerSheet",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "PageSubset",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Grayscale",
+              "type": "SwitchParameter",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "RasterizeGrayscale",
+              "type": "SwitchParameter",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Copies",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Duplex",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "PaperSourceId",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "OutputPath",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Dpi",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Margin",
+              "type": "OfficeLength",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Orientation",
+              "type": "OfficePageOrientation",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ScaleMode",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "PaperSize",
+              "type": "OfficePageSize",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Password",
+              "type": "SecureString",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ],
+      "shouldProcess": true,
+      "notes": "Requires PowerShell 7.4+. Send-OfficePdfPrinter remains an alias. PDF files print directly; other formats are converted to PDF in memory first. -PrinterName takes an installed queue name or an ipp:// or ipps:// printer URI. -PaperSize takes the shared OfficePageSize: a name (A3, A4, A5, Letter, Legal, Executive, Tabloid) or a size such as 210mm x 297mm.",
+      "examples": [
+        {
+          "title": "Print a PDF",
+          "description": "Sends a PDF to a named printer queue.",
+          "code": "Send-OfficePrinter -Path .\\Report.pdf -PrinterName 'Finance-HP-4th-Floor'"
+        },
+        {
+          "title": "Print handouts double-sided",
+          "description": "Prints the first ten pages two to a sheet, double-sided, in three copies on the default printer.",
+          "code": "$printer = Get-OfficePrinter | Where-Object IsDefault | Select-Object -First 1\nSend-OfficePrinter -Path .\\Training\\Security-Awareness.pdf -PrinterName $printer.Name -Page '1-10' -PagesPerSheet 2 -Duplex LongEdge -Copies 3"
+        },
+        {
+          "title": "Print a Word document to an IPP printer",
+          "description": "Converts the document in memory, prints it in grayscale and waits until the printer finishes.",
+          "code": "Send-OfficePrinter -Path .\\Letter.docx -PrinterName 'ipp://printer.local/ipp/print' -Grayscale | Get-OfficePrintJob -Wait"
         }
       ]
     },

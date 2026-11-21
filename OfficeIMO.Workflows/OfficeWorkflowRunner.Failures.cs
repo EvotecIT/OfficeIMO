@@ -19,7 +19,7 @@ public sealed partial class OfficeWorkflowRunner {
         if (OfficeIMO.Provenance.OfficeProvenanceProviderContractException.Is(exception)) {
             return OfficeWorkflowFailureKind.OperationFailed;
         }
-        if (exception is NotSupportedException or InvalidDataException) {
+        if (exception is NotSupportedException or InvalidDataException or OfficeIMO.Pdf.PdfAConversionException) {
             return OfficeWorkflowFailureKind.UnsupportedInput;
         }
         if (stage == WorkflowFailureStage.Validation || exception is ArgumentException) {

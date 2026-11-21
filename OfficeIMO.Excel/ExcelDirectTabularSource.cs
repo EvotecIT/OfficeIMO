@@ -57,11 +57,13 @@ namespace OfficeIMO.Excel {
                 case uint number:
                     return NumberValue(number);
                 case long number:
-                    return NumberValue(number);
+                    return ExcelExactNumber.FitsNumberCell(number) ? NumberValue(number) : FromText(InvariantNumberText.Get(number));
                 case ulong number:
-                    return NumberValue(number);
+                    return ExcelExactNumber.FitsNumberCell(number) ? NumberValue(number) : FromText(InvariantNumberText.Get(number));
                 case decimal number:
-                    return NumberValue((double)number);
+                    return ExcelExactNumber.FitsNumberCell(number)
+                        ? NumberValue((double)number)
+                        : FromText(number.ToString(System.Globalization.CultureInfo.InvariantCulture));
                 default:
                     return new ExcelDirectTabularValue(ExcelDirectTabularValueKind.Unsupported, null, 0D, false);
             }
@@ -75,6 +77,20 @@ namespace OfficeIMO.Excel {
 
         private static ExcelDirectTabularValue NumberValue(double value) =>
             new ExcelDirectTabularValue(ExcelDirectTabularValueKind.Number, null, value, false);
+
+        internal static ExcelDirectTabularValue Unsupported { get; } =
+            new ExcelDirectTabularValue(ExcelDirectTabularValueKind.Unsupported, null, 0D, false);
+
+        internal static ExcelDirectTabularValue FromText(string text) =>
+            new ExcelDirectTabularValue(ExcelDirectTabularValueKind.Text, text, 0D, false);
+
+        internal static ExcelDirectTabularValue FromNumber(double value) => NumberValue(value);
+
+        internal static ExcelDirectTabularValue FromBoolean(bool value) =>
+            new ExcelDirectTabularValue(ExcelDirectTabularValueKind.Boolean, null, 0D, value);
+
+        internal static ExcelDirectTabularValue FromDate(double serial) =>
+            new ExcelDirectTabularValue(ExcelDirectTabularValueKind.DateTime, null, serial, false);
     }
 
     /// <summary>

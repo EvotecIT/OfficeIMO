@@ -41,11 +41,11 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
     /// <summary>Whether the task is checked.</summary>
     public bool Checked { get; }
     /// <summary>Source span of the list marker token (<c>-</c>, <c>*</c>, <c>+</c>, <c>1.</c>, or <c>1)</c>) when parsed from markdown.</summary>
-    public MarkdownSourceSpan? MarkerSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? MarkerSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
     /// <summary>Exact list marker token (<c>-</c>, <c>*</c>, <c>+</c>, <c>1.</c>, or <c>1)</c>) when parsed from markdown.</summary>
     public string? MarkerText { get; internal set; }
     /// <summary>Source span of the task marker token (<c>[ ]</c>, <c>[x]</c>, or <c>[X]</c>) when parsed from markdown.</summary>
-    public MarkdownSourceSpan? TaskMarkerSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? TaskMarkerSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
     /// <summary>Exact task marker token (<c>[ ]</c>, <c>[x]</c>, or <c>[X]</c>) when parsed from markdown.</summary>
     public string? TaskMarkerText { get; internal set; }
     internal string GenericAttributeConsumedWhitespace { get; set; } = string.Empty;
@@ -54,8 +54,12 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
     public int Level { get; set; }
     /// <summary>Forces paragraph-wrapped loose rendering even when only the first paragraph and child blocks exist.</summary>
     public bool ForceLoose { get; set; }
-    internal List<MarkdownSyntaxNode> SyntaxChildren => _syntaxChildren ??= new List<MarkdownSyntaxNode>(4);
-    IReadOnlyList<MarkdownSyntaxNode>? ISyntaxChildrenMarkdownBlock.ProvidedSyntaxChildren => _syntaxChildren;
+    internal List<MarkdownSyntaxNode> SyntaxChildren => ReadSourceInformation(ref _syntaxChildren) ?? (_syntaxChildren = new List<MarkdownSyntaxNode>(4));
+    IReadOnlyList<MarkdownSyntaxNode>? ISyntaxChildrenMarkdownBlock.ProvidedSyntaxChildren => ReadSourceInformation(ref _syntaxChildren);
+    // Markdown writing keeps abbreviation definitions found in the item's syntax children. A document
+    // with abbreviation definitions captures source information while parsing, so an item whose
+    // capture is deferred has none, and writing does not capture it.
+    internal IReadOnlyList<MarkdownSyntaxNode>? SyntaxChildrenForWriting => _syntaxChildren;
 
     /// <summary>Creates a plain list item.</summary>
     public ListItem(InlineSequence content) {
@@ -138,40 +142,51 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
     internal string RenderHtml() => RenderHtml(forceLoose: false);
 
     internal string RenderHtml(bool forceLoose, bool renderGenericAttributeConsumedWhitespace = true) {
+        var sb = new StringBuilder();
+        AppendHtml(sb, forceLoose, renderGenericAttributeConsumedWhitespace);
+        return sb.ToString();
+    }
+
+    internal void AppendHtml(StringBuilder sb, bool forceLoose, bool renderGenericAttributeConsumedWhitespace = true) {
         bool renderLoose = forceLoose || ForceLoose;
         string checkbox = BuildCheckboxHtml();
         string attributeWhitespace = renderGenericAttributeConsumedWhitespace
             ? RenderGenericAttributeConsumedWhitespace()
             : string.Empty;
         if (!renderLoose && AdditionalParagraphs.Count == 0 && NestedBlocks.Count == 0) {
-            return checkbox + Content.RenderHtml() + attributeWhitespace;
+            sb.Append(checkbox);
+            Content.AppendHtml(sb);
+            sb.Append(attributeWhitespace);
+            return;
         }
 
         if (renderLoose
             && Content.Nodes.Count == 0
             && AdditionalParagraphs.Count == 0
             && NestedBlocks.Count == 0) {
-            return checkbox;
+            sb.Append(checkbox);
+            return;
         }
 
         // Tight list behavior: when there is exactly one paragraph, keep it inline even if child blocks exist.
         if (!renderLoose && AdditionalParagraphs.Count == 0) {
-            var sbTight = new StringBuilder();
-            sbTight.Append(checkbox).Append(Content.RenderHtml()).Append(attributeWhitespace);
+            int itemStart = sb.Length;
+            sb.Append(checkbox);
+            Content.AppendHtml(sb);
+            sb.Append(attributeWhitespace);
             for (int i = 0; i < NestedBlocks.Count; i++) {
-                AppendTightListItemChildSeparator(sbTight, NestedBlocks[i]);
-                sbTight.Append(MarkdownBlockRenderDispatcher.RenderTightListItemHtml(NestedBlocks[i]));
+                AppendTightListItemChildSeparator(sb, itemStart, NestedBlocks[i]);
+                MarkdownBlockRenderDispatcher.AppendTightListItemHtml(sb, NestedBlocks[i]);
             }
-            return sbTight.ToString();
+            return;
         }
 
         // When multiple paragraphs exist, wrap paragraph content in <p> tags.
-        var sb = new StringBuilder();
         bool first = true;
         foreach (var p in Paragraphs()) {
             sb.Append("<p>");
             if (first && IsTask) sb.Append(checkbox);
-            sb.Append(p.RenderHtml());
+            p.AppendHtml(sb);
             if (first) {
                 sb.Append(attributeWhitespace);
             }
@@ -180,14 +195,14 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
         }
 
         for (int i = 0; i < NestedBlocks.Count; i++) {
-            sb.Append(MarkdownBlockRenderDispatcher.RenderHtml(NestedBlocks[i]));
+            MarkdownBlockRenderDispatcher.AppendHtml(sb, NestedBlocks[i]);
         }
-        return sb.ToString();
     }
 
-    private static void AppendTightListItemChildSeparator(StringBuilder builder, IMarkdownBlock child) {
+    private static void AppendTightListItemChildSeparator(StringBuilder builder, int itemStart, IMarkdownBlock child) {
+        // The item writes into its list's builder, so only its own output counts as preceding text.
         if (child is not TableBlock && child is not CustomContainerBlock ||
-            builder.Length == 0 ||
+            builder.Length == itemStart ||
             char.IsWhiteSpace(builder[builder.Length - 1])) {
             return;
         }
@@ -214,9 +229,9 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
                 : "<input type=\"checkbox\" disabled=\"\" /> ";
         }
 
-        return "<input class=\"task-list-item-checkbox\" type=\"checkbox\" disabled"
-               + (Checked ? " checked" : string.Empty)
-               + "> ";
+        return Checked
+            ? "<input class=\"task-list-item-checkbox\" type=\"checkbox\" disabled checked> "
+            : "<input class=\"task-list-item-checkbox\" type=\"checkbox\" disabled> ";
     }
 
     internal bool TryAbsorbTrailingParagraphBlocks(IReadOnlyList<IMarkdownBlock> trailingBlocks) {
@@ -489,4 +504,11 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
         }
     }
 
+    internal override void AdoptCapturedSourceInformation(MarkdownObject captured, MarkdownCapturedObjectMap map) {
+        var source = (ListItem)captured;
+        MarkerSourceSpan = source.MarkerSourceSpan;
+        TaskMarkerSourceSpan = source.TaskMarkerSourceSpan;
+        _syntaxChildren = source._syntaxChildren;
+        map.Retarget(_syntaxChildren);
+    }
 }

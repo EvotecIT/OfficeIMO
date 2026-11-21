@@ -25,14 +25,16 @@ internal static partial class ManagedTextShapingTestAssets {
 
     /// <summary>Valid GPOS combinations whose lookup ordering and mark adjustments are observable through the public provider.</summary>
     internal static byte[] CreateMarkCompositionFont(int valueFormat = 0, bool pair = false,
-        bool stackBeforeBase = false, string extraFeature = "kern", bool requiredExtraFeature = false) {
+        bool stackBeforeBase = false, string extraFeature = "kern", bool requiredExtraFeature = false,
+        bool adjustmentBeforeAttachment = false) {
         var lookups = new List<byte[]>();
         if (stackBeforeBase) lookups.Add(AttachmentLookup(6, AttachmentSubtable(6, false, false), false, 0));
         int baseLookup = lookups.Count;
         lookups.Add(AttachmentLookup(4, AttachmentSubtable(4, false, false), false, 0));
         int adjustmentLookup = -1;
         if (valueFormat != 0) {
-            adjustmentLookup = lookups.Count;
+            adjustmentLookup = adjustmentBeforeAttachment ? baseLookup : lookups.Count;
+            if (adjustmentBeforeAttachment) baseLookup++;
             var subtable = new MarkTableBuilder();
             subtable.U16(1); int coverage = subtable.Reserve();
             subtable.U16(pair ? 0 : valueFormat);
@@ -43,7 +45,7 @@ internal static partial class ManagedTextShapingTestAssets {
             } else {
                 subtable.U16(77); subtable.Offset(coverage, 0); subtable.Coverage(new[] { 2 });
             }
-            lookups.Add(AttachmentLookup((ushort)(pair ? 2 : 1), subtable.ToArray(), false, 0));
+            lookups.Insert(adjustmentLookup, AttachmentLookup((ushort)(pair ? 2 : 1), subtable.ToArray(), false, 0));
         }
         var features = new SortedDictionary<string, int[]>(StringComparer.Ordinal) { ["mark"] = new[] { baseLookup } };
         if (stackBeforeBase) features.Add("mkmk", new[] { 0 });

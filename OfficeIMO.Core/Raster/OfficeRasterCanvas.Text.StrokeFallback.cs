@@ -175,7 +175,7 @@ public sealed partial class OfficeRasterCanvas {
                 }
             }
         }
-        StrokeContours(strokes, strokeWidth, OfficeStrokeLineCap.Round, OfficeStrokeLineJoin.Round, 4D, null, 0D, (_, _) => color);
+        StrokeContours(strokes, strokeWidth, OfficeStrokeLineCap.Round, OfficeStrokeLineJoin.Round, 4D, null, 0D, SolidPaint(color));
     }
 
     private void DrawAffineStrokeGlyph(
@@ -233,7 +233,7 @@ public sealed partial class OfficeRasterCanvas {
                 }
             }
         }
-        StrokeContours(strokes, strokeWidth, OfficeStrokeLineCap.Round, OfficeStrokeLineJoin.Round, 4D, null, 0D, (_, _) => color);
+        StrokeContours(strokes, strokeWidth, OfficeStrokeLineCap.Round, OfficeStrokeLineJoin.Round, 4D, null, 0D, SolidPaint(color));
     }
 
 }

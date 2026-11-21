@@ -10,6 +10,7 @@ namespace OfficeIMO.Excel {
         internal ExcelSheet CopyTemplateWorksheet(string sheetName) {
             ExcelSheet target = _excelDocument.AddSheet(sheetName, ExcelSheetNameValidationMode.Sanitize);
             Worksheet worksheet = (Worksheet)WorksheetRoot.CloneNode(true);
+            _excelDocument.CarryDefaultWidthColumns(_excelDocument, WorksheetRoot, worksheet);
             RemoveRelationshipBackedTemplateCopyElements(worksheet);
             target.WorksheetRoot = worksheet;
             RewriteTemplateWorksheetLocalReferences(target.WorksheetRoot, Name, target.Name);
@@ -347,6 +348,7 @@ namespace OfficeIMO.Excel {
                 clonedTable.DisplayName = tableName;
                 _excelDocument.ReserveTableName(tableName);
 
+                _excelDocument.InvalidateTableLayouts();
                 targetTablePart.Table = clonedTable;
                 targetTablePart.Table.Save();
                 tablePart.Id = targetRelationshipId;

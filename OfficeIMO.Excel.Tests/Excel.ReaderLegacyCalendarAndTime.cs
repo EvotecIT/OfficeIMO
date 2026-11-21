@@ -42,7 +42,8 @@ public partial class Excel {
             for (int ordinal = 0; ordinal < reader.FieldCount; ordinal++) {
                 if (ordinal < 6) {
                     DateTime value = reader.GetDateTime(ordinal);
-                    if (ordinal is >= 1 and <= 4) Assert.Equal(DateTime.FromOADate(serial), value);
+                    // Durations count from December 30, 1899, so a negative one stays negative.
+                    if (ordinal is >= 1 and <= 4) Assert.Equal(new DateTime(1899, 12, 30).AddDays(serial), value);
                     else if (system == 1904) Assert.Equal(new DateTime(1904, 1, 1).AddDays(serial), value);
                     else if (serial < 60) Assert.Equal(new DateTime(1899, 12, 31).AddDays(serial), value);
                     else Assert.Equal(DateTime.FromOADate(serial), value);

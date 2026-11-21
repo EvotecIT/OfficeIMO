@@ -337,8 +337,8 @@ namespace OfficeIMO.Word {
             if (detectedFormat.Generation == OfficeFormatGeneration.Modern) {
                 WordSignatureInfo signatures = document.InspectSignatures();
                 if (signatures.HasSignatures) {
-                    bool signatureInvalidationAllowed = options.SaveOptions?.SignedDocumentPolicy
-                        == WordSignedDocumentSavePolicy.AllowSignatureInvalidation;
+                    bool signatureInvalidationAllowed = (options.SaveOptions?.SignatureMutationPolicy
+                        ?? OfficeSignatureMutationPolicy.BlockSave) != OfficeSignatureMutationPolicy.BlockSave;
                     OfficeCompatibilityState signatureState = signatureInvalidationAllowed
                         ? GetWordGenericLossState(compatibilityMode, preserveLossySource)
                         : OfficeCompatibilityState.Blocked;

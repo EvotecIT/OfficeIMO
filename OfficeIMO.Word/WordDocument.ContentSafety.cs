@@ -306,6 +306,7 @@ public partial class WordDocument {
             ApplyHidden<W.Vanish>(properties, value => target.Vanish = value);
             ApplyHidden<W.WebHidden>(properties, value => target.WebHidden = value);
             ApplyHidden<W.SpecVanish>(properties, value => target.SpecVanish = value);
+            ApplyHidden<W.Bold>(properties, value => target.Bold = value);
             W.FontSize? size = properties.GetFirstChild<W.FontSize>();
             if (size?.Val?.Value != null && double.TryParse(size.Val.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double halfPoints)) target.FontSizePoints = halfPoints / 2D;
             W.Color? color = properties.GetFirstChild<W.Color>();
@@ -327,6 +328,7 @@ public partial class WordDocument {
         internal bool WebHidden { get; set; }
         internal bool SpecVanish { get; set; }
         internal bool Hidden => Vanish || WebHidden || SpecVanish;
+        internal bool Bold { get; set; }
         internal double? FontSizePoints { get; set; }
         internal string? Foreground { get; set; }
         internal string? Background { get; set; }

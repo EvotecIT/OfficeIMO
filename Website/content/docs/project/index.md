@@ -2,6 +2,7 @@
 title: "Create Project plans and reports in C#"
 description: "Build typed Project plans, calculate schedules, and export Gantt charts, dependency networks, and timelines with complete C# examples."
 order: 53
+verified: 2026-11-14
 ---
 
 `OfficeIMO.Project` owns the typed project model and explicit schedule calculation. `OfficeIMO.Workflows` exports its report snapshots through the shared document and drawing engines. File operations do not require Microsoft Project or COM.
@@ -21,6 +22,9 @@ Each walkthrough includes the complete generating C# file, a checkout run comman
 Use `ProjectDocument.Create()` to build a plan or `ProjectDocument.Load(path)` to inspect and edit a supported file. Tasks, calendars, dependencies, resources, and assignments belong to the document model. Loading and saving retain stored values; calculation is explicit:
 
 ```csharp
+using OfficeIMO.Project;
+
+ProjectDocument project = ProjectDocument.Load("Delivery.xml");
 var schedule = project.CalculateSchedule();
 schedule.Report.ThrowIfErrors();
 var view = project.CreateView(schedule, new ProjectViewOptions {

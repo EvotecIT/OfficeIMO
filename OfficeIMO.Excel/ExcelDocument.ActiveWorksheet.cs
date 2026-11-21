@@ -145,13 +145,9 @@ namespace OfficeIMO.Excel {
         private static SheetView GetOrCreatePrimarySheetViewForActiveWorksheet(Worksheet worksheet) {
             SheetViews? sheetViews = worksheet.GetFirstChild<SheetViews>();
             if (sheetViews == null) {
+                // Schema order puts sheetViews before sheetFormatPr and cols, not just before sheetData.
                 sheetViews = new SheetViews();
-                var sheetData = worksheet.GetFirstChild<SheetData>();
-                if (sheetData != null) {
-                    worksheet.InsertBefore(sheetViews, sheetData);
-                } else {
-                    worksheet.Append(sheetViews);
-                }
+                worksheet.AddChild(sheetViews, true);
             }
 
             SheetView? sheetView = sheetViews.GetFirstChild<SheetView>();

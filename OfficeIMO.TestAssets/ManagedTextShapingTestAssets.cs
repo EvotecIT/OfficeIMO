@@ -256,8 +256,9 @@ internal static partial class ManagedTextShapingTestAssets {
             variationEncoding: 5));
     }
 
-    internal static byte[] CreateFontWithNonDefaultVariationSequence(int scalar, int variationSelector) {
-        if (scalar < 0 || scalar > 0x10FFFF) throw new ArgumentOutOfRangeException(nameof(scalar));
+    /// <summary>Maps <paramref name="scalar"/> to glyph 1 and its variation sequence to the distinct glyph 2; a blank space is glyph 3.</summary>
+    internal static byte[] CreateFontWithNonDefaultVariationSequence(int scalar, int variationSelector, bool blankSpace = false) {
+        if (scalar < 0 || scalar > 0x10FFFF || blankSpace && scalar <= 0x20) throw new ArgumentOutOfRangeException(nameof(scalar));
         if (variationSelector < 0xFE00 || variationSelector > 0xFE0F) {
             throw new ArgumentOutOfRangeException(nameof(variationSelector));
         }
@@ -267,9 +268,11 @@ internal static partial class ManagedTextShapingTestAssets {
                 variationSelector,
                 nonDefaultGlyph: 2,
                 variationPlatform: 0,
-                variationEncoding: 5),
-            glyphCount: 3,
-            distinctSecondGlyph: true);
+                variationEncoding: 5,
+                spaceGlyph: blankSpace ? 3 : null),
+            glyphCount: blankSpace ? 4 : 3,
+            distinctSecondGlyph: true,
+            blankGlyphIds: blankSpace ? new[] { 3 } : null);
     }
 
     internal static byte[] CreateFontWithMistypedVariationSequenceRecord(int scalar, int variationSelector) =>
@@ -326,7 +329,7 @@ internal static partial class ManagedTextShapingTestAssets {
         IReadOnlyDictionary<int, int>? glyphLefts = null, byte[]? vdmx = null,
         IReadOnlyList<(string Tag, byte[] Data)>? additionalTables = null,
         IReadOnlyDictionary<int, ushort>? glyphAdvances = null,
-        IReadOnlyCollection<int>? blankGlyphIds = null) {
+        IReadOnlyCollection<int>? blankGlyphIds = null, bool strictHeaders = false) {
         // A zero-contour glyph still carries its header and empty instruction stream.
         // Keep the glyf table present so both drawing and PDF readers can admit the fixture.
         byte[] glyph = emptyGlyphs ? new byte[12] : CreateVisibleGlyph(400);
@@ -349,15 +352,16 @@ internal static partial class ManagedTextShapingTestAssets {
         if (!includeTrailingMetric && glyphCount == 2) hmtx = new byte[] { 0x01, 0xF4, 0x00, 0x00 };
         var maxp = new byte[] { 0x00, 0x01, 0x00, 0x00, 0x00, 0x00 };
         WriteUInt16(maxp, 4, checked((ushort)glyphCount));
-        if (math != null) {
-            // The independent MATH oracle also reads maxp while naming covered glyphs.
-            // Supply the complete TrueType 1.0 record for these rectangular fixtures.
+        // Independent oracles (MATH, HarfBuzz) read the complete TrueType 1.0 maxp record;
+        // HarfBuzz also ignores an hhea without its 1.0 version, falling back to default advances.
+        if (math != null || strictHeaders) {
             Array.Resize(ref maxp, 32);
             WriteUInt16(maxp, 6, 4); // maxPoints
             WriteUInt16(maxp, 8, 1); // maxContours
             WriteUInt16(maxp, 14, 1); // maxZones
         }
         byte[] hhea = CreateHheaTable(ascender, descender);
+        if (strictHeaders) WriteUInt16(hhea, 0, 1);
         if (glyphAdvances != null) {
             hmtx = new byte[checked(glyphCount * 4)];
             for (int index = 0; index < glyphCount; index++) {
@@ -756,9 +760,10 @@ internal static partial class ManagedTextShapingTestAssets {
         int? nonDefaultGlyph,
         int variationPlatform,
         int variationEncoding,
-        int nonDefaultMappingCount = 1) {
+        int nonDefaultMappingCount = 1,
+        int? spaceGlyph = null) {
         const int cmapHeaderLength = 20;
-        const int format12Length = 28;
+        int format12Length = spaceGlyph.HasValue ? 40 : 28;
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(nonDefaultMappingCount);
         int format14Length = nonDefaultGlyph.HasValue ? checked(25 + nonDefaultMappingCount * 5) : 29;
         int format12 = cmapHeaderLength;
@@ -774,11 +779,18 @@ internal static partial class ManagedTextShapingTestAssets {
         WriteUInt32(data, 16, (uint)format14);
 
         WriteUInt16(data, format12, 12);
-        WriteUInt32(data, format12 + 4, format12Length);
-        WriteUInt32(data, format12 + 12, 1);
-        WriteUInt32(data, format12 + 16, checked((uint)scalar));
-        WriteUInt32(data, format12 + 20, checked((uint)scalar));
-        WriteUInt32(data, format12 + 24, 1);
+        WriteUInt32(data, format12 + 4, checked((uint)format12Length));
+        WriteUInt32(data, format12 + 12, spaceGlyph.HasValue ? 2U : 1U);
+        int group = format12 + 16;
+        if (spaceGlyph.HasValue) {
+            WriteUInt32(data, group, 0x20);
+            WriteUInt32(data, group + 4, 0x20);
+            WriteUInt32(data, group + 8, checked((uint)spaceGlyph.Value));
+            group += 12;
+        }
+        WriteUInt32(data, group, checked((uint)scalar));
+        WriteUInt32(data, group + 4, checked((uint)scalar));
+        WriteUInt32(data, group + 8, 1);
 
         WriteUInt16(data, format14, 14);
         WriteUInt32(data, format14 + 2, (uint)format14Length);

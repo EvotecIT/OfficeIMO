@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using OfficeIMO.Benchmarks;
 using OfficeIMO.Pdf;
 using UglyToad.PdfPig;
 using UglyToad.PdfPig.DocumentLayoutAnalysis.TextExtractor;
@@ -16,6 +17,37 @@ public readonly record struct PdfReadObservation(
 internal sealed record PdfExpectedPage(IReadOnlyList<string> RequiredFragments);
 
 internal static partial class PdfBenchmarkValidation {
+    /// <summary>
+    /// Runs <paramref name="validate"/> outside timing and records the outcome for the benchmark evidence catalog.
+    /// <paramref name="library"/> is the id declared in Build/benchmark-declarations.json.
+    /// </summary>
+    internal static void Record(string library, string caseName, string detail, Action validate) {
+        try {
+            validate();
+        } catch (Exception exception) {
+            BenchmarkOutputValidationLog.Failed(library, detail + ": " + exception.Message, caseName);
+            throw;
+        }
+
+        BenchmarkOutputValidationLog.Passed(library, detail, caseName);
+    }
+
+    /// <summary>Maps a benchmark lane name to the library id declared in Build/benchmark-declarations.json.</summary>
+    internal static string LibraryId(string lane) => lane switch {
+        "IText" => "iText",
+        "ITextPdfHtml" => "iText pdfHTML",
+        "PdfSharp" => "PDFsharp",
+        "OnePdf" or "OnePdfParallel" or "OnePdfLayout" => "OnePDF",
+        _ => lane
+    };
+
+    /// <summary>Maps a benchmark lane name to the case declared for it in Build/benchmark-declarations.json.</summary>
+    internal static string CaseId(string lane) => lane switch {
+        "OnePdfParallel" => "Parallel",
+        "OnePdfLayout" => "Layout",
+        _ => "Default"
+    };
+
     internal static PdfReadObservation ValidateGenerated(byte[] bytes, PdfBenchmarkScenario scenario, string engine) {
         if (bytes.Length < 5 || !bytes.AsSpan(0, 4).SequenceEqual("%PDF"u8)) {
             throw new InvalidDataException($"{engine} did not produce a PDF header for {scenario.Scale}.");
@@ -52,7 +84,9 @@ internal static partial class PdfBenchmarkValidation {
             ["TH"] = scenario.PageCount * columnCount,
             ["TD"] = scenario.PageCount * scenario.RowsPerPage * columnCount
         };
-        foreach ((string requiredType, int expectedCount) in exactRoleCounts) {
+        foreach (KeyValuePair<string, int> role in exactRoleCounts) {
+            string requiredType = role.Key;
+            int expectedCount = role.Value;
             tagged.StructureTypeCounts.TryGetValue(requiredType, out int actualCount);
             if (actualCount != expectedCount) {
                 throw new InvalidDataException(
@@ -145,7 +179,7 @@ internal static partial class PdfBenchmarkValidation {
     internal static void ValidatePageContent(string actualText, PdfExpectedPage expected, string context) {
         string actual = Normalize(actualText);
         foreach (string fragment in expected.RequiredFragments) {
-            if (!actual.Contains(fragment, StringComparison.Ordinal)) {
+            if (actual.IndexOf(fragment, StringComparison.Ordinal) < 0) {
                 throw new InvalidDataException($"{context} did not preserve required content '{fragment}'.");
             }
         }
@@ -178,7 +212,9 @@ internal static partial class PdfBenchmarkValidation {
             }
         }
 
-        foreach ((string fragment, int requiredCount) in requiredCounts) {
+        foreach (KeyValuePair<string, int> required in requiredCounts) {
+            string fragment = required.Key;
+            int requiredCount = required.Value;
             int actualCount = CountOccurrences(actual, fragment);
             if (actualCount < requiredCount) {
                 throw new InvalidDataException(
@@ -193,8 +229,8 @@ internal static partial class PdfBenchmarkValidation {
             foreach (string[] row in scenario.TableRows(page).Skip(1)) {
                 string exactFragment = Normalize(string.Concat(row));
                 string semanticFragment = string.Concat(row.Select(NormalizeTableCell));
-                if (!actual.Contains(exactFragment, StringComparison.Ordinal) &&
-                    !actual.Contains(semanticFragment, StringComparison.Ordinal)) {
+                if (actual.IndexOf(exactFragment, StringComparison.Ordinal) < 0 &&
+                    actual.IndexOf(semanticFragment, StringComparison.Ordinal) < 0) {
                     throw new InvalidDataException(
                         $"{engine} did not preserve required table row '{exactFragment}'.");
                 }

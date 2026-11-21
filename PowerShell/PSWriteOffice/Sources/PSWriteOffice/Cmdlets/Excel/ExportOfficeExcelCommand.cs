@@ -52,6 +52,7 @@ public sealed partial class ExportOfficeExcelCommand : PSCmdlet, IDisposable
 
     /// <summary>Workbook paths resolved with filesystem wildcard support.</summary>
     [Parameter(Mandatory = true, Position = 0)]
+    [Alias("FilePath")]
     public string Path { get; set; } = null!;
 
     /// <summary>Objects, dictionaries or native tabular data supplied directly or through the pipeline.</summary>
@@ -61,6 +62,7 @@ public sealed partial class ExportOfficeExcelCommand : PSCmdlet, IDisposable
     /// <summary>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</summary>
     [Parameter()]
     [OfficeSheetTransformation]
+    [Alias("WorksheetName")]
     public OfficeSheetSelector? Sheet { get; set; }
 
     /// <summary>Optional Excel table name.</summary>
@@ -166,6 +168,10 @@ public sealed partial class ExportOfficeExcelCommand : PSCmdlet, IDisposable
     /// <summary>Workbook date system for Excel date serials.</summary>
     [Parameter()]
     public ExcelDateSystem? DateSystem { get; set; }
+
+    /// <summary>How DateTimeOffset values are written: Text (default) keeps the offset as ISO 8601 text; Serial writes local-time Excel dates.</summary>
+    [Parameter()]
+    public ExcelDateTimeOffsetWriteMode DateTimeOffsetMode { get; set; } = ExcelDateTimeOffsetWriteMode.Text;
 
     /// <summary>Native save options or a hashtable, applied to a completed content block.</summary>
     [Parameter()]
@@ -282,6 +288,7 @@ public sealed partial class ExportOfficeExcelCommand : PSCmdlet, IDisposable
         try
         {
             if (DateSystem.HasValue) document.DateSystem = DateSystem.Value;
+            document.DateTimeOffsetWriteMode = DateTimeOffsetMode;
             if (Theme != null) document.ApplyTheme(Theme.Resolve(OfficeTheme.FromDocument));
             if (Sheet != null && (Sheet.Position.HasValue || Sheet.Sheet != null)) {
                 if (!preserveWorkbook && Sheet.Position == 1) _resolvedSheetName = "Sheet1";

@@ -18,7 +18,9 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             }
 
             worksheet.RemoveAllChildren<SheetViews>();
-            worksheet.InsertBefore(CreateSheetViews(sourceSheet), sheetData);
+            SheetViews views = CreateSheetViews(sourceSheet);
+            if (sourceSheet.TabSelected == true) views.Elements<SheetView>().Single().TabSelected = true;
+            worksheet.InsertBefore(views, sheetData);
 
             SheetFormatProperties? format = CreateSheetFormatProperties(sourceSheet.FormatInfo);
             if (format != null) {
@@ -44,36 +46,32 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
         internal static void ValidateUnchanged(ExcelSheet sheet, XlsbSheet sourceSheet) {
             Worksheet worksheet = sheet.WorksheetPart.Worksheet
                 ?? throw new InvalidDataException($"Worksheet '{sheet.Name}' has no worksheet root.");
-            OpenXmlElement? unsupportedChild = worksheet.ChildElements.FirstOrDefault(element =>
-                element is not SheetProperties
-                && element is not SheetDimension
-                && element is not SheetViews
-                && element is not SheetFormatProperties
-                && element is not Columns
-                && element is not SheetData
-                && element is not SheetProtection
-                && element is not AutoFilter
-                && element is not MergeCells
-                && element is not Hyperlinks
-                && element is not PrintOptions
-                && element is not PageMargins
-                && element is not PageSetup
-                && element is not HeaderFooter);
+            OpenXmlElement? unsupportedChild = Write.XlsbWorksheetContent.FindUnsupported(worksheet);
             if (unsupportedChild != null) {
                 ThrowGeometryMutation(sheet, unsupportedChild.LocalName);
             }
 
             ValidateDimension(worksheet, sourceSheet, sheet);
-            SheetViews[] actualViews = worksheet.Elements<SheetViews>().ToArray();
-            bool equivalentDefaultView = sourceSheet.Pane == null && sourceSheet.ShowGridLines != false
+            // Tab selection is written from the document model by the rewrite; it is not pane geometry.
+            SheetViews[] actualViews = worksheet.Elements<SheetViews>().Select(WithoutTabSelection).ToArray();
+            bool equivalentDefaultView = ExcelSheet.IsNeutralSheetViews(CreateSheetViews(sourceSheet))
                 && (actualViews.Length == 0 || actualViews.Length == 1 && ExcelSheet.IsNeutralSheetViews(actualViews[0]));
             if (!equivalentDefaultView) {
-                ValidateSingleElement(worksheet, CreateSheetViews(sourceSheet), sheet, "worksheet panes");
+                SheetViews expectedViews = CreateSheetViews(sourceSheet);
+                if (actualViews.Length != 1 || !string.Equals(actualViews[0].OuterXml, expectedViews.OuterXml, StringComparison.Ordinal)) {
+                    ThrowGeometryMutation(sheet, "worksheet panes");
+                }
             }
             ValidateSingleElement(worksheet, CreateSheetFormatProperties(sourceSheet.FormatInfo), sheet, "worksheet defaults");
             ValidateSingleElement(worksheet, CreateColumns(sourceSheet.Columns), sheet, "column metadata");
             ValidateSingleElement(worksheet, CreateMergeCells(sourceSheet.MergedRanges), sheet, "merged ranges");
             ValidateRows(worksheet.GetFirstChild<SheetData>(), sourceSheet, sheet);
+        }
+
+        private static SheetViews WithoutTabSelection(SheetViews views) {
+            var copy = (SheetViews)views.CloneNode(true);
+            foreach (SheetView view in copy.Elements<SheetView>()) view.TabSelected = null;
+            return copy;
         }
 
         private static SheetDimension? CreateSheetDimension(XlsbCellRange? range) {
@@ -82,8 +80,9 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
 
         private static void ValidateDimension(Worksheet worksheet, XlsbSheet sourceSheet, ExcelSheet sheet) {
             SheetDimension[] dimensions = worksheet.Elements<SheetDimension>().ToArray();
-            if (sourceSheet.UsedRange == null) {
-                if (dimensions.Length != 0) ThrowGeometryMutation(sheet, "worksheet dimension");
+            // BrtWsDim is optional. Without it there is no stored range to keep, so only a dimension derived from the
+            // current cells is accepted, such as the one bulk row appends maintain.
+            if (sourceSheet.UsedRange == null && dimensions.Length == 0) {
                 return;
             }
             int firstRow = 0;
@@ -99,10 +98,10 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             if (!TryParseDimension(currentReference, out int currentFirstRow, out int currentFirstColumn, out int currentLastRow, out int currentLastColumn)) {
                 ThrowGeometryMutation(sheet, "worksheet dimension");
             }
-            int minimumRow = Math.Min(sourceSheet.UsedRange.FirstRow, currentFirstRow);
-            int minimumColumn = Math.Min(sourceSheet.UsedRange.FirstColumn, currentFirstColumn);
-            int maximumRow = Math.Max(sourceSheet.UsedRange.LastRow, currentLastRow);
-            int maximumColumn = Math.Max(sourceSheet.UsedRange.LastColumn, currentLastColumn);
+            int minimumRow = sourceSheet.UsedRange == null ? currentFirstRow : Math.Min(sourceSheet.UsedRange.FirstRow, currentFirstRow);
+            int minimumColumn = sourceSheet.UsedRange == null ? currentFirstColumn : Math.Min(sourceSheet.UsedRange.FirstColumn, currentFirstColumn);
+            int maximumRow = sourceSheet.UsedRange == null ? currentLastRow : Math.Max(sourceSheet.UsedRange.LastRow, currentLastRow);
+            int maximumColumn = sourceSheet.UsedRange == null ? currentLastColumn : Math.Max(sourceSheet.UsedRange.LastColumn, currentLastColumn);
             if (firstRow < minimumRow
                 || firstColumn < minimumColumn
                 || lastRow > maximumRow
@@ -225,21 +224,64 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             SheetViews views = ExcelSheet.CreateDefaultSheetViews();
             SheetView view = views.Elements<SheetView>().Single();
             if (sourceSheet.ShowGridLines == false) view.ShowGridLines = false;
+            if (sourceSheet.View != null) ApplyViewSettings(view, sourceSheet.View);
             XlsbPaneInfo? source = sourceSheet.Pane;
-            if (source == null) return views;
-
-            var pane = new Pane {
-                HorizontalSplit = source.HorizontalSplit,
-                VerticalSplit = source.VerticalSplit,
-                TopLeftCell = ExcelA1.CellReference(source.TopRow + 1, source.LeftColumn + 1),
-                ActivePane = ToPane(source.ActivePane),
-                State = source.Frozen
-                    ? source.FrozenNoSplit ? PaneStateValues.FrozenSplit : PaneStateValues.Frozen
-                    : PaneStateValues.Split
-            };
-            view.Append(pane);
+            if (source != null) {
+                view.Append(new Pane {
+                    HorizontalSplit = source.HorizontalSplit,
+                    VerticalSplit = source.VerticalSplit,
+                    TopLeftCell = ExcelA1.CellReference(source.TopRow + 1, source.LeftColumn + 1),
+                    ActivePane = ToPane(source.ActivePane),
+                    State = source.Frozen
+                        ? source.FrozenNoSplit ? PaneStateValues.FrozenSplit : PaneStateValues.Frozen
+                        : PaneStateValues.Split
+                });
+            }
+            IReadOnlyList<XlsbSelection> selections = sourceSheet.View?.Selections ?? Array.Empty<XlsbSelection>();
+            // A lone top-left A1 selection is the default every view carries; the neutral view omits it.
+            if (selections.Count != 1 || !IsDefaultSelection(selections[0])) {
+                foreach (XlsbSelection selection in selections) view.Append(CreateSelection(selection));
+            }
             return views;
         }
+
+        // Only values that differ from the SpreadsheetML defaults become attributes (MS-XLSB 2.4.307 field order).
+        private static void ApplyViewSettings(SheetView view, XlsbSheetView source) {
+            ushort flags = source.Flags;
+            if ((flags & 0x0001) != 0) view.WindowProtection = true;
+            if ((flags & 0x0002) != 0) view.ShowFormulas = true;
+            if ((flags & 0x0008) == 0) view.ShowRowColHeaders = false;
+            if ((flags & 0x0010) == 0) view.ShowZeros = false;
+            if ((flags & 0x0020) != 0) view.RightToLeft = true;
+            if ((flags & 0x0080) == 0) view.ShowRuler = false;
+            if ((flags & 0x0100) == 0) view.ShowOutlineSymbols = false;
+            if ((flags & 0x0200) == 0) view.DefaultGridColor = false;
+            if ((flags & 0x0400) != 0) view.ShowWhiteSpace = false;
+            if (source.View == 1U) view.View = SheetViewValues.PageBreakPreview;
+            else if (source.View == 2U) view.View = SheetViewValues.PageLayout;
+            if (source.TopRow != 0 || source.LeftColumn != 0) view.TopLeftCell = ExcelA1.CellReference(source.TopRow + 1, source.LeftColumn + 1);
+            if (source.GridColor != DefaultGridColorIndex) view.ColorId = source.GridColor;
+            if (source.Zoom != 100) view.ZoomScale = source.Zoom;
+            if (source.ZoomNormal != 0) view.ZoomScaleNormal = source.ZoomNormal;
+            if (source.ZoomPageBreak != 0) view.ZoomScaleSheetLayoutView = source.ZoomPageBreak;
+            if (source.ZoomPageLayout != 0) view.ZoomScalePageLayoutView = source.ZoomPageLayout;
+        }
+
+        private const byte DefaultGridColorIndex = 64;
+
+        private static bool IsDefaultSelection(XlsbSelection selection) =>
+            selection.Pane == 3U && selection.ActiveRow == 1 && selection.ActiveColumn == 1 && selection.ActiveCellId == 0U
+            && selection.Ranges.Count == 1 && selection.Ranges[0].FirstRow == 1 && selection.Ranges[0].LastRow == 1
+            && selection.Ranges[0].FirstColumn == 1 && selection.Ranges[0].LastColumn == 1;
+
+        private static Selection CreateSelection(XlsbSelection source) => new Selection {
+            Pane = source.Pane == 3U ? null : ToPane(source.Pane),
+            ActiveCell = ExcelA1.CellReference(source.ActiveRow, source.ActiveColumn),
+            ActiveCellId = source.ActiveCellId == 0U ? null : source.ActiveCellId,
+            SequenceOfReferences = new ListValue<StringValue> {
+                InnerText = string.Join(" ", source.Ranges.Select(range => range.ToA1Reference()))
+            }
+        };
 
         private static PaneValues ToPane(uint pane) {
             return pane switch {

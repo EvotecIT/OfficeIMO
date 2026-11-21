@@ -1069,7 +1069,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Application signature metadata only");
                 document.ApplicationProperties.HasDigitalSignatureMetadata = true;
-                document.Save(new WordSaveOptions { SignedDocumentPolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation });
+                document.Save(new WordSaveOptions { SignatureMutationPolicy = OfficeSignatureMutationPolicy.PreserveSignatureMarkup });
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
@@ -1097,7 +1097,7 @@ namespace OfficeIMO.Tests {
             AddDigitalSignatureMetadata(filePath, signatureBytes);
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                document.Save(new WordSaveOptions { SignedDocumentPolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation });
+                document.Save(new WordSaveOptions { SignatureMutationPolicy = OfficeSignatureMutationPolicy.PreserveSignatureMarkup });
             }
 
             using (WordprocessingDocument package = WordprocessingDocument.Open(filePath, false)) {
@@ -1141,7 +1141,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Save", exception.Operation);
                 Assert.True(exception.SignatureInfo.HasSignatures);
                 Assert.Contains("may invalidate existing signatures", exception.Message, System.StringComparison.OrdinalIgnoreCase);
-                Assert.Contains("AllowSignatureInvalidation", exception.Message, System.StringComparison.Ordinal);
+                Assert.Contains("SignatureMutationPolicy", exception.Message, System.StringComparison.Ordinal);
             }
         }
 
@@ -1159,12 +1159,41 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 document.AddParagraph("Mutation after signing");
-                document.Save(new WordSaveOptions { SignedDocumentPolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation });
+                document.Save(new WordSaveOptions { SignatureMutationPolicy = OfficeSignatureMutationPolicy.PreserveSignatureMarkup });
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 Assert.Contains(document.Paragraphs, paragraph => paragraph.Text == "Mutation after signing");
                 Assert.True(document.InspectSignatures().HasSignatures);
+            }
+        }
+
+        [Fact]
+        public void Test_DigitalSignature_SaveRemovesInvalidatedSignatures() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureSaveRemoved.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Signed removed save");
+                document.Save();
+            }
+
+            AddDigitalSignatureMetadata(filePath, CreateSignatureXml());
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                document.AddParagraph("Mutation after signing");
+                document.Save(new WordSaveOptions { SignatureMutationPolicy = OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures });
+                document.AddParagraph("Second save");
+                document.Save();
+            }
+
+            using (WordprocessingDocument package = WordprocessingDocument.Open(filePath, false)) {
+                Assert.Null(package.DigitalSignatureOriginPart);
+                Assert.Null(package.ExtendedFilePropertiesPart?.Properties?.DigitalSignature);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
+                Assert.Contains(document.Paragraphs, paragraph => paragraph.Text == "Second save");
+                Assert.False(document.InspectSignatures().HasSignatures);
             }
         }
 
@@ -1183,7 +1212,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Assert.Throws<WordSignatureSavePolicyException>(() => new System.IO.MemoryStream(document.ToBytes()));
                 using MemoryStream stream = new System.IO.MemoryStream(document.ToBytes(options:
-                    new WordSaveOptions { SignedDocumentPolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation }));
+                    new WordSaveOptions { SignatureMutationPolicy = OfficeSignatureMutationPolicy.PreserveSignatureMarkup }));
 
                 Assert.True(stream.Length > 0);
             }
@@ -1358,7 +1387,7 @@ namespace OfficeIMO.Tests {
 
             using MemoryStream saved = new System.IO.MemoryStream(loaded.ToBytes(
                 options: new WordSaveOptions {
-                    SignedDocumentPolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation
+                    SignatureMutationPolicy = OfficeSignatureMutationPolicy.PreserveSignatureMarkup
                 }));
             using WordDocument reopened = WordDocument.Load(saved);
             Assert.Contains(reopened.Paragraphs, paragraph =>

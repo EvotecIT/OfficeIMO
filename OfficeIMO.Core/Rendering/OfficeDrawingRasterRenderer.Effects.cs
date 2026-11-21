@@ -33,8 +33,10 @@ public static partial class OfficeDrawingRasterRenderer {
             throw new OfficeImageExportLimitException(layerScale, long.MaxValue, maximumRasterPixels,
                 OfficeRasterImageEncoder.GetMaximumDimension(OfficeImageExportFormat.Png));
         }
-        bool bounded = TryResolveFilledPrimitiveEffectPixelBounds(canvas, effectGroup, layerPlan, pixelTransform,
-            width, height, cancellationToken, out int boundedWidth, out int boundedHeight);
+        bool bounded = TryBoundPostCompositionLayer(canvas, effectGroup, ref layerPlan, ref pixelTransform,
+            width, height, out int boundedWidth, out int boundedHeight) ||
+            TryResolveFilledPrimitiveEffectPixelBounds(canvas, effectGroup, layerPlan, pixelTransform,
+                width, height, cancellationToken, out boundedWidth, out boundedHeight);
         if (bounded) { width = boundedWidth; height = boundedHeight; }
         canvas.ChargeIntermediateSurfacePixels((long)width * (long)height, maximumRasterPixels);
         OfficeRasterExportPlan? allocationPlan = bounded

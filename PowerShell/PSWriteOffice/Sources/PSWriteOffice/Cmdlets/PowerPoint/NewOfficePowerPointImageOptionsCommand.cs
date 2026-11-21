@@ -1,10 +1,12 @@
 using System.Management.Automation;
+using OfficeIMO;
 using OfficeIMO.PowerPoint;
 using PSWriteOffice.Cmdlets.Imaging;
 
 namespace PSWriteOffice.Cmdlets.PowerPoint;
 
-/// <summary>Creates discoverable slide selection and rendering settings for Export-OfficePowerPointImage.</summary>
+/// <summary>Creates discoverable slide selection and rendering settings for Export-OfficeDocumentImage.</summary>
+/// <para>Pass the result to Export-OfficeDocumentImage or ConvertTo-OfficeDocumentImage -Options when rendering slides.</para>
 /// <example><summary>Render selected slides without pictures.</summary>
 /// <code>$options = New-OfficePowerPointImageOptions -NoPictures
 /// Export-OfficeDocumentImage -Path ./Deck.pptx -Page 1,3 -OutputDirectory ./Slides -Options $options</code></example>
@@ -29,6 +31,8 @@ public sealed class NewOfficePowerPointImageOptionsCommand : OfficeImageOptionsC
     [Parameter] public SwitchParameter NoCharts { get; set; }
     /// <summary>Render hidden shapes.</summary>
     [Parameter] public SwitchParameter IncludeHiddenShapes { get; set; }
+    /// <summary>Chart handling: Strict (default) skips charts with formatting that cannot be drawn exactly; BestEffort draws the closest approximation and reports chart-approximation warnings.</summary>
+    [Parameter] public OfficeChartFidelity? ChartFidelity { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
@@ -43,6 +47,7 @@ public sealed class NewOfficePowerPointImageOptionsCommand : OfficeImageOptionsC
         options.IncludeTables = FeatureEnabled("Tables");
         options.IncludeCharts = FeatureEnabled("Charts");
         if (BoundSwitch(nameof(IncludeHiddenShapes)) is bool hiddenShapes) options.IncludeHiddenShapes = hiddenShapes;
+        if (ChartFidelity.HasValue) options.ChartRendering.Fidelity = ChartFidelity.Value;
         WriteObject(options);
     }
 }

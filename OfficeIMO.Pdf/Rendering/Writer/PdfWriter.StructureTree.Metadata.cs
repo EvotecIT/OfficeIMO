@@ -29,8 +29,10 @@ internal static partial class PdfWriter {
     }
 
     private static Dictionary<PageStructElement, IReadOnlyList<string>> BuildTableHeaderAssociations(IReadOnlyList<LayoutResult.Page> pages, IReadOnlyDictionary<PageStructElement, PageStructElement?> parents) {
-        var children = new Dictionary<PageStructElement, List<PageStructElement>>();
         var all = pages.SelectMany(page => page.StructElements).ToArray();
+        // Only header cells produce associations; documents without them need no child index.
+        if (!all.Any(element => element.StructureType == "TH")) return new Dictionary<PageStructElement, IReadOnlyList<string>>();
+        var children = new Dictionary<PageStructElement, List<PageStructElement>>();
         foreach (var pair in parents) {
             if (pair.Value == null) continue;
             if (!children.TryGetValue(pair.Value, out var siblings)) children[pair.Value] = siblings = new();
@@ -81,14 +83,24 @@ internal static partial class PdfWriter {
                 rowIndex++;
             }
             var headers = cells.Where(cell => cell.Element.StructureType == "TH").ToArray();
+            if (headers.Length == 0) continue;
+            // Each data cell usually has one or two headers; collect them in header order without
+            // an iterator chain per cell. Duplicate identifiers keep their first position.
+            var applicable = new List<string>();
+            var seen = new HashSet<string>(StringComparer.Ordinal);
             foreach (var cell in cells) {
-                var applicable = headers.Where(header => !ReferenceEquals(header.Element, cell.Element) && (
-                    ((header.Element.TableHeaderScope is "" or "Column" or "Both") && header.Row < cell.Row &&
-                        header.Column < cell.Column + cell.Element.TableColumnSpan && header.Column + header.Element.TableColumnSpan > cell.Column) ||
-                    ((header.Element.TableHeaderScope is "Row" or "Both") && header.Column < cell.Column &&
-                        header.Row < (long)cell.Row + cell.Element.TableRowSpan && (long)header.Row + header.Element.TableRowSpan > cell.Row)))
-                    .Select(header => StructureId(header.Element)!).Distinct(StringComparer.Ordinal).ToArray();
-                if (applicable.Length > 0) result[cell.Element] = applicable;
+                applicable.Clear();
+                seen.Clear();
+                foreach (var header in headers) {
+                    if (ReferenceEquals(header.Element, cell.Element) || !(
+                        ((header.Element.TableHeaderScope is "" or "Column" or "Both") && header.Row < cell.Row &&
+                            header.Column < cell.Column + cell.Element.TableColumnSpan && header.Column + header.Element.TableColumnSpan > cell.Column) ||
+                        ((header.Element.TableHeaderScope is "Row" or "Both") && header.Column < cell.Column &&
+                            header.Row < (long)cell.Row + cell.Element.TableRowSpan && (long)header.Row + header.Element.TableRowSpan > cell.Row))) continue;
+                    string id = StructureId(header.Element)!;
+                    if (seen.Add(id)) applicable.Add(id);
+                }
+                if (applicable.Count > 0) result[cell.Element] = applicable.ToArray();
             }
         }
         return result;

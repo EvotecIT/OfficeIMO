@@ -20,10 +20,7 @@ internal static partial class XlsbWorksheetPartWriter {
             CoerceValueHelper.ValidateSharedStringLength(value, nameof(value));
             _writer.WriteTextCell(BrtCellSt, Column, value);
         }
-        internal override void WriteNumber(double value) {
-            ValidateNumber(value);
-            _writer.WriteNumberCell(BrtCellReal, Column, value, Style);
-        }
+        internal override void WriteNumber(double value) => _writer.WriteNumberCell(BrtCellReal, Column, value, Style);
         internal override void WriteBoolean(bool value) => _writer.WriteBooleanCell(BrtCellBool, Column, value);
         internal override void WriteBlank() {
             _writer.WriteHeader(BrtCellBlank, 8);

@@ -401,11 +401,6 @@ namespace OfficeIMO.Excel {
             try {
                 ValidateUniqueSheetNames(owner.TableNames, options.CancellationToken);
                 IReadOnlyList<SheetSelection> sheets = SelectSheets(owner.TableNames, options);
-                if (sheets.Count != 1) {
-                    throw new XlsxTabularFastPathNotSupportedException(
-                        "Multi-result XLSX reads retain the complete Open XML SDK path.");
-                }
-
                 return new ExcelWorkbookDataReader(
                     sheets,
                     (index, cancellationToken) => lifetime.OpenSheet(sheets[index].Name, options, cancellationToken),
@@ -533,7 +528,7 @@ namespace OfficeIMO.Excel {
                 }
             }
             if (matchIndex < 0) {
-                throw new KeyNotFoundException($"Sheet '{options.SheetName}' was not found.");
+                throw new KeyNotFoundException($"Sheet '{options.SheetName}' was not found. The workbook has: {string.Join(", ", sheetNames)}.");
             }
 
             return new[] { new SheetSelection(sheetNames[matchIndex], matchIndex) };
@@ -567,6 +562,8 @@ namespace OfficeIMO.Excel {
             }
 
             int nextResultIndex = _resultIndex + 1;
+            // The current sheet's background reads share the package with the next sheet, so they end first.
+            _activeReader?.Dispose();
             DbDataReader nextReader;
             try {
                 nextReader = _openSheet(nextResultIndex, cancellationToken);
@@ -575,7 +572,6 @@ namespace OfficeIMO.Excel {
                 throw;
             }
 
-            _activeReader?.Dispose();
             _currentSheetCancellationSource?.Dispose();
             _currentSheetCancellationSource = null;
             CurrentReader = nextReader;
@@ -612,6 +608,7 @@ namespace OfficeIMO.Excel {
 
             try {
                 int nextResultIndex = _resultIndex + 1;
+                _activeReader?.Dispose();
                 nextReader = await Task.Run(
                         () => _openSheet(nextResultIndex, sheetCancellationSource.Token),
                         sheetCancellationSource.Token)
@@ -621,7 +618,6 @@ namespace OfficeIMO.Excel {
                 cancellationToken.ThrowIfCancellationRequested();
                 _cancellationToken.ThrowIfCancellationRequested();
 
-                _activeReader?.Dispose();
                 _currentSheetCancellationSource?.Dispose();
                 CurrentReader = nextReader;
                 _currentSheetCancellationSource = sheetCancellationSource;
@@ -713,8 +709,18 @@ namespace OfficeIMO.Excel {
         public override object this[string name] => CurrentReader[name];
         /// <inheritdoc />
         public override int Depth => CurrentReader.Depth;
+        // Hot members test for the sealed XLS and XLSB readers before the virtual call. A process that reads
+        // several formats otherwise keeps the profile-guided devirtualization of the first one it tiered,
+        // and every later format pays a failed guard and loses inlining on each cell.
         /// <inheritdoc />
-        public override int FieldCount => CurrentReader.FieldCount;
+        public override int FieldCount {
+            get {
+                DbDataReader reader = CurrentReader;
+                if (reader is LegacyXlsTabularDataReader xls) return xls.FieldCount;
+                if (reader is XlsbTabularDataReader xlsb) return xlsb.FieldCount;
+                return reader.FieldCount;
+            }
+        }
         /// <inheritdoc />
         public override bool HasRows => CurrentReader.HasRows;
         /// <inheritdoc />
@@ -724,7 +730,12 @@ namespace OfficeIMO.Excel {
         /// <inheritdoc />
         public override int VisibleFieldCount => CurrentReader.VisibleFieldCount;
         /// <inheritdoc />
-        public override bool GetBoolean(int ordinal) => CurrentReader.GetBoolean(ordinal);
+        public override bool GetBoolean(int ordinal) {
+            DbDataReader reader = CurrentReader;
+            if (reader is LegacyXlsTabularDataReader xls) return xls.GetBoolean(ordinal);
+            if (reader is XlsbTabularDataReader xlsb) return xlsb.GetBoolean(ordinal);
+            return reader.GetBoolean(ordinal);
+        }
         /// <inheritdoc />
         public override byte GetByte(int ordinal) => CurrentReader.GetByte(ordinal);
         /// <inheritdoc />
@@ -738,11 +749,26 @@ namespace OfficeIMO.Excel {
         /// <inheritdoc />
         public override string GetDataTypeName(int ordinal) => CurrentReader.GetDataTypeName(ordinal);
         /// <inheritdoc />
-        public override DateTime GetDateTime(int ordinal) => CurrentReader.GetDateTime(ordinal);
+        public override DateTime GetDateTime(int ordinal) {
+            DbDataReader reader = CurrentReader;
+            if (reader is LegacyXlsTabularDataReader xls) return xls.GetDateTime(ordinal);
+            if (reader is XlsbTabularDataReader xlsb) return xlsb.GetDateTime(ordinal);
+            return reader.GetDateTime(ordinal);
+        }
         /// <inheritdoc />
-        public override decimal GetDecimal(int ordinal) => CurrentReader.GetDecimal(ordinal);
+        public override decimal GetDecimal(int ordinal) {
+            DbDataReader reader = CurrentReader;
+            if (reader is LegacyXlsTabularDataReader xls) return xls.GetDecimal(ordinal);
+            if (reader is XlsbTabularDataReader xlsb) return xlsb.GetDecimal(ordinal);
+            return reader.GetDecimal(ordinal);
+        }
         /// <inheritdoc />
-        public override double GetDouble(int ordinal) => CurrentReader.GetDouble(ordinal);
+        public override double GetDouble(int ordinal) {
+            DbDataReader reader = CurrentReader;
+            if (reader is LegacyXlsTabularDataReader xls) return xls.GetDouble(ordinal);
+            if (reader is XlsbTabularDataReader xlsb) return xlsb.GetDouble(ordinal);
+            return reader.GetDouble(ordinal);
+        }
         /// <inheritdoc />
         public override IEnumerator GetEnumerator() => CurrentReader.GetEnumerator();
         /// <inheritdoc />
@@ -765,15 +791,18 @@ namespace OfficeIMO.Excel {
             if (destinationType == typeof(double)) return (T)(object)GetDouble(ordinal);
             if (destinationType == typeof(decimal)) return (T)(object)GetDecimal(ordinal);
             if (destinationType == typeof(DateTime)) return (T)(object)GetDateTime(ordinal);
+            if (destinationType == typeof(TimeSpan) || destinationType == typeof(DateTimeOffset)
 #if NET6_0_OR_GREATER
-            if (destinationType == typeof(DateOnly) || destinationType == typeof(TimeOnly)) {
-                object? sourceValue = IsDBNull(ordinal) ? null : GetValue(ordinal);
+                || destinationType == typeof(DateOnly) || destinationType == typeof(TimeOnly)
+#endif
+                ) {
+                // Durations come from the cell's serial and dates from the workbook's date system, as in typed mapping.
+                object? sourceValue = IsDBNull(ordinal) ? null : DataReaderMappingValue.Read(this, ordinal, destinationType);
                 return DataValueConverter.ConvertTo<T>(
                     sourceValue,
                     _culture,
                     errorValuePolicy: _mappingErrorValuePolicy)!;
             }
-#endif
             if (destinationType == typeof(Guid)) return (T)(object)GetGuid(ordinal);
 
             object value = GetValue(ordinal);
@@ -781,7 +810,7 @@ namespace OfficeIMO.Excel {
                 return typed;
             }
 
-            return (T)Convert.ChangeType(value, destinationType, _culture);
+            return (T)OfficeDecimalConversion.ChangeType(value, destinationType, _culture)!;
         }
 
         /// <inheritdoc />
@@ -792,22 +821,48 @@ namespace OfficeIMO.Excel {
         /// <inheritdoc />
         public override short GetInt16(int ordinal) => CurrentReader.GetInt16(ordinal);
         /// <inheritdoc />
-        public override int GetInt32(int ordinal) => CurrentReader.GetInt32(ordinal);
+        public override int GetInt32(int ordinal) {
+            DbDataReader reader = CurrentReader;
+            if (reader is LegacyXlsTabularDataReader xls) return xls.GetInt32(ordinal);
+            if (reader is XlsbTabularDataReader xlsb) return xlsb.GetInt32(ordinal);
+            return reader.GetInt32(ordinal);
+        }
         /// <inheritdoc />
-        public override long GetInt64(int ordinal) => CurrentReader.GetInt64(ordinal);
+        public override long GetInt64(int ordinal) {
+            DbDataReader reader = CurrentReader;
+            if (reader is LegacyXlsTabularDataReader xls) return xls.GetInt64(ordinal);
+            if (reader is XlsbTabularDataReader xlsb) return xlsb.GetInt64(ordinal);
+            return reader.GetInt64(ordinal);
+        }
         /// <inheritdoc />
         public override string GetName(int ordinal) => CurrentReader.GetName(ordinal);
         /// <inheritdoc />
         public override int GetOrdinal(string name) => CurrentReader.GetOrdinal(name);
         /// <inheritdoc />
-        public override string GetString(int ordinal) => CurrentReader.GetString(ordinal);
+        public override string GetString(int ordinal) {
+            DbDataReader reader = CurrentReader;
+            if (reader is LegacyXlsTabularDataReader xls) return xls.GetString(ordinal);
+            if (reader is XlsbTabularDataReader xlsb) return xlsb.GetString(ordinal);
+            return reader.GetString(ordinal);
+        }
         /// <inheritdoc />
-        public override object GetValue(int ordinal) => CurrentReader.GetValue(ordinal);
+        public override object GetValue(int ordinal) {
+            DbDataReader reader = CurrentReader;
+            if (reader is LegacyXlsTabularDataReader xls) return xls.GetValue(ordinal);
+            if (reader is XlsbTabularDataReader xlsb) return xlsb.GetValue(ordinal);
+            return reader.GetValue(ordinal);
+        }
         /// <inheritdoc />
         public override int GetValues(object[] values) => CurrentReader.GetValues(values);
         /// <inheritdoc />
-        public override bool IsDBNull(int ordinal) => CurrentReader.IsDBNull(ordinal);
+        public override bool IsDBNull(int ordinal) {
+            DbDataReader reader = CurrentReader;
+            if (reader is LegacyXlsTabularDataReader xls) return xls.IsDBNull(ordinal);
+            if (reader is XlsbTabularDataReader xlsb) return xlsb.IsDBNull(ordinal);
+            return reader.IsDBNull(ordinal);
+        }
         /// <inheritdoc />
+        // Read stays a plain forward: called once per row, it must stay small enough to inline for XLSX.
         public override bool Read() => CurrentReader.Read();
         /// <inheritdoc />
         public override async Task<bool> ReadAsync(CancellationToken cancellationToken) {

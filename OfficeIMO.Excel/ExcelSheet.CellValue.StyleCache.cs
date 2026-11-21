@@ -77,6 +77,8 @@ namespace OfficeIMO.Excel {
         /// <summary>Finding a part walks the relationships of the workbook, which is too slow to repeat per cell.</summary>
         private WorkbookStylesPart? GetKnownStylesPart() {
             WorkbookPart workbookPart = _excelDocument.WorkbookPartRoot;
+            // Callers holding the native package can replace the styles part behind the cache.
+            if (_excelDocument.IsOpenXmlDocumentExposed) return workbookPart.WorkbookStylesPart;
             if (_knownStylesPart == null || !ReferenceEquals(_knownStylesOwner, workbookPart)) {
                 _knownStylesOwner = workbookPart;
                 _knownStylesPart = workbookPart.WorkbookStylesPart;

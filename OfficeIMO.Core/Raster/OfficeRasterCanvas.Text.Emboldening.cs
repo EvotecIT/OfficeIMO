@@ -5,7 +5,7 @@ public sealed partial class OfficeRasterCanvas {
         var painted = TransformPositionedGlyphContours(contours);
         if (boldOffset == 0D) {
             if (_textInkObserver != null) { if (color.A != 0) _textInkObserver(painted); }
-            else FillContours(painted, color, OfficeFillRule.NonZero);
+            else if (color.A != 0) FillDisjointContourGroups(painted, OfficeFillRule.NonZero, SolidPaint(color));
             return;
         }
         // Synthetic bold is part of the glyph, so its offset precedes the glyph
@@ -16,6 +16,6 @@ public sealed partial class OfficeRasterCanvas {
     private void FillTextContourUnion(IReadOnlyList<List<OfficePoint>> contours, IReadOnlyList<List<OfficePoint>> shifted, OfficeColor color) {
         if (_textInkObserver != null) {
             if (color.A != 0) { _textInkObserver(contours); _textInkObserver(shifted); }
-        } else FillContourPaint(contours, OfficeFillRule.NonZero, (_, _) => color, shifted);
+        } else FillDisjointContourGroups(contours, OfficeFillRule.NonZero, SolidPaint(color), shifted);
     }
 }

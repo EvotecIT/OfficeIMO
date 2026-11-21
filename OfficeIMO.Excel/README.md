@@ -174,7 +174,7 @@ foreach (Order order in book["Orders"].RowsAs<Order>()) {
 record Order(string Customer, string Region, decimal Total, double Margin);
 ```
 
-Columns map to properties or constructor parameters by header name. `RowsAs` also accepts a factory or an explicit column mapping. For files from outside your organization, load with `ExcelLoadOptions.UntrustedDefaults`.
+Columns map to properties or constructor parameters by header name. `RowsAs` also accepts a factory or an explicit column mapping. For files from outside your organization, load with `ExcelLoadOptions.UntrustedDefaults`. XLSB workbooks are always checked against `OfficePackageSecurityOptions.SecureDefaults` (entry count, sizes, compression ratio, part names) unless `PackageSecurity` sets another policy, and a workbook ZIP whose directory lists more entries than `MaxPartCount` is rejected before it is opened.
 
 For a forward-only read, `OpenReader(pathOrStream, options)` returns an
 `ExcelWorkbookDataReader` derived from `DbDataReader`. The shared `OfficeIMO.Data`
@@ -198,6 +198,14 @@ and factory mapping, with `ExcelReaderOptions` and cancellation. Their
 `RowsAsParallel` counterparts take `parallelOptions`, format `options`, then
 `cancellationToken` and preserve source order. `OpenReaderAsync` returns
 `Task<ExcelWorkbookDataReader>` on .NET 8 and later.
+
+The reader validates the whole worksheet before returning its first row. For large
+XLSX and XLSB worksheets, `new ExcelReaderOptions { EnableSinglePassReading = true }` returns
+rows while the rest of the sheet is still being read. An invalid cell then raises the same error,
+naming the same cell, but only after the rows before it have been returned, so use it where a
+part-way failure can be discarded. The option applies on .NET 8 and later to worksheets of
+1 MB or more, without `A1Range`, a cell value converter or diagnostics, and when the execution
+policy allows background work; otherwise, and for XLS, the reader always validates first.
 
 XML Spreadsheet import also limits defined names (10,000 by default). Set `ExcelSpreadsheetXmlOptions.MaxNames` for a larger trusted workbook.
 
@@ -230,7 +238,7 @@ using (var writer = ExcelDocument.CreateWriter(ExcelFileFormat.Xlsb, "Events.xls
 }
 ```
 
-Use `ExcelFileFormat.Xls` for BIFF8 output, within its limit of 65,536 rows (including headers) and 256 columns. XLS stages native records and its required shared-string table; `RequireStreaming=true` rejects that format. Binary row writers create plain worksheets and reject tables, AutoFit, freeze panes and declared styles. Existing `CreateWriter(path)` and `CreateWriter(stream)` calls select XLSX. `WriteData` retains its selector and buffering behavior.
+Use `ExcelFileFormat.Xls` for BIFF8 output, within its limit of 65,536 rows (including headers) and 256 columns. XLS stages native records in memory, so `RequireStreaming=true` rejects that format. With `UseSharedStrings=false` (the binary default) text up to 255 characters is written as inline BIFF8 labels; longer text, or `UseSharedStrings=true`, uses the shared-string table. Binary row writers create plain worksheets and reject tables, AutoFit, freeze panes and declared styles. Existing `CreateWriter(path)` and `CreateWriter(stream)` calls select XLSX. `WriteData` retains its selector and buffering behavior.
 
 XLS and XLSB numeric cells use IEEE-754 double precision, including when a callback supplies a `decimal`, `long` or `ulong`. Large integers and high-precision decimals may lose digits. Write identifiers or exact decimal text as strings when every digit matters.
 
@@ -264,6 +272,26 @@ OfficeConversionReport report = book.SaveAsPdf("Orders.pdf");
 Console.WriteLine($"{report.ItemsWritten} pages, loss: {report.HasLoss}");
 ```
 
+## Chart images
+
+Render each worksheet chart on its own. Scheme colours and series without explicit colours resolve against the workbook theme:
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Drawing;
+using OfficeIMO.Excel;
+
+using var book = ExcelDocument.Load("Orders.xlsx");
+int number = 0;
+foreach (ExcelChart chart in book.Sheets.SelectMany(sheet => sheet.Charts)) {
+    OfficeImageExportResult png = chart.ToImage(new OfficeChartImageExportOptions { Scale = 2 });
+    File.WriteAllBytes($"chart-{++number}.png", png.Bytes);
+    foreach (OfficeImageExportDiagnostic diagnostic in png.Diagnostics) Console.WriteLine(diagnostic.Message);
+}
+```
+
+`OfficeChartImageExportOptions` is shared with Word and PowerPoint charts; set `Format`, `Width` and `Height` on it, or leave the size unset to keep the chart's anchor size. `SaveAsImage(pathOrStream, options)` writes the image and returns an `OfficeConversionReport`. A chart the shared renderer cannot draw throws `NotSupportedException` with the reason, and `TryGetOfficeSnapshot` checks first without throwing.
+
 ## Validate package signatures from a stream
 
 Pass the original XLSX/XLSM package stream and an explicit security provider.
@@ -282,6 +310,22 @@ The stream stays open on success and failure. Seekable streams are read from the
 beginning and their original position is restored; non-seekable streams are read
 from the current position. The existing validation options control certificate
 policy and package limits, including the maximum bytes buffered from the stream.
+
+## Before sharing
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Excel;
+
+using var document = ExcelDocument.Load("Budget.xlsx");
+OfficeHiddenDataReport report = document.RemoveHiddenData(new OfficeHiddenDataOptions {
+    Kinds = OfficeHiddenDataKind.Default | OfficeHiddenDataKind.HiddenContent
+});
+foreach (OfficeHiddenDataFinding finding in report.Findings) Console.WriteLine($"{finding.Outcome} {finding.Kind} at {finding.Location}");
+document.Save("Budget-shared.xlsx");
+```
+
+`InspectHiddenData()` reports properties, notes, threaded comments and their authors, hidden sheets, rows, columns and names, external links, pivot source paths, custom XML, image metadata and printer settings without changing anything. Hidden content is removed only when selected, because deleting hidden rows or sheets changes formulas that use them. Provenance, such as Content Credentials and an image's AI-generated declaration, is reported and kept unless `OfficeHiddenDataKind.Provenance` is selected; `ExcelDocument.RemoveProvenance(inputPath, outputPath)` removes only provenance from a file. See the [hidden data matrix](../Docs/officeimo.hidden-data-support-matrix.md).
 
 ## More
 
@@ -302,14 +346,14 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 
 | Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Create | 22 | 13 | 0 | 15 | 1 | 2 |
-| Read | 34 | 0 | 17 | 0 | 0 | 2 |
-| Edit | 11 | 0 | 39 | 2 | 1 | 0 |
-| Preserve | 10 | 0 | 39 | 0 | 0 | 0 |
+| Create | 25 | 19 | 0 | 13 | 1 | 2 |
+| Read | 43 | 0 | 15 | 0 | 0 | 2 |
+| Edit | 12 | 0 | 45 | 2 | 1 | 0 |
+| Preserve | 11 | 0 | 45 | 0 | 0 | 0 |
 | Inspect | 6 | 0 | 0 | 0 | 0 | 0 |
 | Validate | 4 | 0 | 0 | 0 | 0 | 2 |
 | Remove | 4 | 0 | 0 | 0 | 1 | 0 |
-| Convert | 49 | 41 | 0 | 8 | 0 | 0 |
+| Convert | 61 | 43 | 0 | 8 | 0 | 0 |
 | Export | 5 | 0 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Excel` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).

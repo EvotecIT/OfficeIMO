@@ -5,32 +5,19 @@ namespace OfficeIMO.Reader.Yaml;
 /// </summary>
 public sealed class YamlReadOptions {
     /// <summary>
-    /// Rows per emitted chunk.
+    /// Rows per emitted chunk. Each document of a multi-document stream starts a new chunk.
     /// </summary>
     public int ChunkRows { get; set; } = 200;
-
-    /// <summary>
-    /// Maximum node depth accepted by the streaming preflight before the representation model is loaded.
-    /// </summary>
-    public int MaxDepth { get; set; } = 32;
-
-    /// <summary>
-    /// Maximum number of YAML nodes accepted by the streaming preflight before the representation model is loaded.
-    /// </summary>
-    public int MaxNodes { get; set; } = 20_000;
-
-    /// <summary>
-    /// Maximum number of YAML parse events accepted before the representation model is loaded.
-    /// </summary>
-    public int MaxParseEvents { get; set; } = 100_000;
-
-    /// <summary>
-    /// Maximum scalar value length accepted before the representation model is loaded.
-    /// </summary>
-    public int MaxScalarLength { get; set; } = 1_048_576;
 
     /// <summary>
     /// Include markdown table previews in emitted chunks.
     /// </summary>
     public bool IncludeMarkdown { get; set; } = true;
+
+    /// <summary>
+    /// Load settings for the YAML engine: schema, duplicate-key policy and the depth, node, alias-expansion, scalar
+    /// length and input-size limits. <see langword="null"/> uses the <see cref="YamlLoadOptions"/> defaults.
+    /// <see cref="ReaderOptions.MaxInputBytes"/> still applies and wins when it is lower.
+    /// </summary>
+    public YamlLoadOptions? LoadOptions { get; set; }
 }

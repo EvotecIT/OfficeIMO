@@ -11,42 +11,22 @@ Exports objects or a CSV document to a CSV file.
 ## SYNTAX
 ### InputObjectPath (Default)
 ```powershell
-Export-OfficeCsv [-Path] <string> -InputObject <Object> [-Delimiter <string>] [-NoHeader] [-NewLine <string>] [-Culture <cultureinfo>] [-Encoding <Encoding>] [-CompressionType <CsvCompressionType>] [-CompressionLevel <CompressionLevel>] [-FormulaInjectionPolicy <CsvFormulaInjectionPolicy>] [-UseQuotes <CsvQuoteMode>] [-QuoteFields <string[]>] [-NullValue <string>] [-DateTimeFormat <string>] [-UseUtc] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-PassThru] [-Append] [-NoClobber] [-Force] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeCsv [-Path] <string> -InputObject <Object> [-Delimiter <string>] [-NoHeader] [-NewLine <string>] [-Culture <cultureinfo>] [-Encoding <Encoding>] [-CompressionType <CsvCompressionType>] [-CompressionLevel <CompressionLevel>] [-FormulaInjectionPolicy <CsvFormulaInjectionPolicy>] [-UseQuotes <CsvQuoteMode>] [-QuoteFields <string[]>] [-NullValue <string>] [-QuoteCharacter <char>] [-EscapeCharacter <Char>] [-DateTimeFormat <string>] [-UseUtc] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-PassThru] [-Append] [-NoClobber] [-Force] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### InputObjectPathCulture
 ```powershell
-Export-OfficeCsv [-Path] <string> -InputObject <Object> -UseCulture [-NoHeader] [-NewLine <string>] [-Culture <cultureinfo>] [-Encoding <Encoding>] [-CompressionType <CsvCompressionType>] [-CompressionLevel <CompressionLevel>] [-FormulaInjectionPolicy <CsvFormulaInjectionPolicy>] [-UseQuotes <CsvQuoteMode>] [-QuoteFields <string[]>] [-NullValue <string>] [-DateTimeFormat <string>] [-UseUtc] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-PassThru] [-Append] [-NoClobber] [-Force] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeCsv [-Path] <string> -InputObject <Object> -UseCulture [-NoHeader] [-NewLine <string>] [-Culture <cultureinfo>] [-Encoding <Encoding>] [-CompressionType <CsvCompressionType>] [-CompressionLevel <CompressionLevel>] [-FormulaInjectionPolicy <CsvFormulaInjectionPolicy>] [-UseQuotes <CsvQuoteMode>] [-QuoteFields <string[]>] [-NullValue <string>] [-QuoteCharacter <char>] [-EscapeCharacter <Char>] [-DateTimeFormat <string>] [-UseUtc] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-PassThru] [-Append] [-NoClobber] [-Force] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### InputObjectLiteralPath
 ```powershell
-Export-OfficeCsv -InputObject <Object> -LiteralPath <string> [-Delimiter <string>] [-NoHeader] [-NewLine <string>] [-Culture <cultureinfo>] [-Encoding <Encoding>] [-CompressionType <CsvCompressionType>] [-CompressionLevel <CompressionLevel>] [-FormulaInjectionPolicy <CsvFormulaInjectionPolicy>] [-UseQuotes <CsvQuoteMode>] [-QuoteFields <string[]>] [-NullValue <string>] [-DateTimeFormat <string>] [-UseUtc] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-PassThru] [-Append] [-NoClobber] [-Force] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeCsv -InputObject <Object> -LiteralPath <string> [-Delimiter <string>] [-NoHeader] [-NewLine <string>] [-Culture <cultureinfo>] [-Encoding <Encoding>] [-CompressionType <CsvCompressionType>] [-CompressionLevel <CompressionLevel>] [-FormulaInjectionPolicy <CsvFormulaInjectionPolicy>] [-UseQuotes <CsvQuoteMode>] [-QuoteFields <string[]>] [-NullValue <string>] [-QuoteCharacter <char>] [-EscapeCharacter <Char>] [-DateTimeFormat <string>] [-UseUtc] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-PassThru] [-Append] [-NoClobber] [-Force] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### InputObjectLiteralPathCulture
 ```powershell
-Export-OfficeCsv -InputObject <Object> -LiteralPath <string> -UseCulture [-NoHeader] [-NewLine <string>] [-Culture <cultureinfo>] [-Encoding <Encoding>] [-CompressionType <CsvCompressionType>] [-CompressionLevel <CompressionLevel>] [-FormulaInjectionPolicy <CsvFormulaInjectionPolicy>] [-UseQuotes <CsvQuoteMode>] [-QuoteFields <string[]>] [-NullValue <string>] [-DateTimeFormat <string>] [-UseUtc] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-PassThru] [-Append] [-NoClobber] [-Force] [-WhatIf] [-Confirm] [<CommonParameters>]
-```
-
-### DocumentPath
-```powershell
-Export-OfficeCsv [-Path] <string> -Document <CsvDocument> [-Delimiter <string>] [-NoHeader] [-NewLine <string>] [-Culture <cultureinfo>] [-Encoding <Encoding>] [-CompressionType <CsvCompressionType>] [-CompressionLevel <CompressionLevel>] [-FormulaInjectionPolicy <CsvFormulaInjectionPolicy>] [-UseQuotes <CsvQuoteMode>] [-QuoteFields <string[]>] [-NullValue <string>] [-DateTimeFormat <string>] [-UseUtc] [-PassThru] [-Append] [-NoClobber] [-Force] [-WhatIf] [-Confirm] [<CommonParameters>]
-```
-
-### DocumentPathCulture
-```powershell
-Export-OfficeCsv [-Path] <string> -Document <CsvDocument> -UseCulture [-NoHeader] [-NewLine <string>] [-Culture <cultureinfo>] [-Encoding <Encoding>] [-CompressionType <CsvCompressionType>] [-CompressionLevel <CompressionLevel>] [-FormulaInjectionPolicy <CsvFormulaInjectionPolicy>] [-UseQuotes <CsvQuoteMode>] [-QuoteFields <string[]>] [-NullValue <string>] [-DateTimeFormat <string>] [-UseUtc] [-PassThru] [-Append] [-NoClobber] [-Force] [-WhatIf] [-Confirm] [<CommonParameters>]
-```
-
-### DocumentLiteralPath
-```powershell
-Export-OfficeCsv -Document <CsvDocument> -LiteralPath <string> [-Delimiter <string>] [-NoHeader] [-NewLine <string>] [-Culture <cultureinfo>] [-Encoding <Encoding>] [-CompressionType <CsvCompressionType>] [-CompressionLevel <CompressionLevel>] [-FormulaInjectionPolicy <CsvFormulaInjectionPolicy>] [-UseQuotes <CsvQuoteMode>] [-QuoteFields <string[]>] [-NullValue <string>] [-DateTimeFormat <string>] [-UseUtc] [-PassThru] [-Append] [-NoClobber] [-Force] [-WhatIf] [-Confirm] [<CommonParameters>]
-```
-
-### DocumentLiteralPathCulture
-```powershell
-Export-OfficeCsv -Document <CsvDocument> -LiteralPath <string> -UseCulture [-NoHeader] [-NewLine <string>] [-Culture <cultureinfo>] [-Encoding <Encoding>] [-CompressionType <CsvCompressionType>] [-CompressionLevel <CompressionLevel>] [-FormulaInjectionPolicy <CsvFormulaInjectionPolicy>] [-UseQuotes <CsvQuoteMode>] [-QuoteFields <string[]>] [-NullValue <string>] [-DateTimeFormat <string>] [-UseUtc] [-PassThru] [-Append] [-NoClobber] [-Force] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeCsv -InputObject <Object> -LiteralPath <string> -UseCulture [-NoHeader] [-NewLine <string>] [-Culture <cultureinfo>] [-Encoding <Encoding>] [-CompressionType <CsvCompressionType>] [-CompressionLevel <CompressionLevel>] [-FormulaInjectionPolicy <CsvFormulaInjectionPolicy>] [-UseQuotes <CsvQuoteMode>] [-QuoteFields <string[]>] [-NullValue <string>] [-QuoteCharacter <char>] [-EscapeCharacter <Char>] [-DateTimeFormat <string>] [-UseUtc] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-PassThru] [-Append] [-NoClobber] [-Force] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -75,7 +55,7 @@ Append rows to an existing CSV file. Existing headers are reused when present.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture, DocumentPath, DocumentPathCulture, DocumentLiteralPath, DocumentLiteralPathCulture
+Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture
 Aliases: None
 Possible values:
 
@@ -91,7 +71,7 @@ Compression level used when CompressionType is enabled.
 
 ```yaml
 Type: CompressionLevel
-Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture, DocumentPath, DocumentPathCulture, DocumentLiteralPath, DocumentLiteralPathCulture
+Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture
 Aliases: None
 Possible values: Optimal, Fastest, NoCompression, SmallestSize
 
@@ -107,7 +87,7 @@ Compression used when writing the CSV file.
 
 ```yaml
 Type: CsvCompressionType
-Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture, DocumentPath, DocumentPathCulture, DocumentLiteralPath, DocumentLiteralPathCulture
+Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture
 Aliases: None
 Possible values: None, Auto, GZip, Deflate, Brotli, ZLib
 
@@ -123,7 +103,7 @@ Culture used for value formatting.
 
 ```yaml
 Type: CultureInfo
-Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture, DocumentPath, DocumentPathCulture, DocumentLiteralPath, DocumentLiteralPathCulture
+Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture
 Aliases: None
 Possible values:
 
@@ -139,7 +119,7 @@ Date/time format used for DateTime and DateTimeOffset values.
 
 ```yaml
 Type: String
-Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture, DocumentPath, DocumentPathCulture, DocumentLiteralPath, DocumentLiteralPathCulture
+Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture
 Aliases: None
 Possible values:
 
@@ -155,7 +135,7 @@ Field delimiter text, including multi-character separators.
 
 ```yaml
 Type: String
-Parameter Sets: InputObjectPath, InputObjectLiteralPath, DocumentPath, DocumentLiteralPath
+Parameter Sets: InputObjectPath, InputObjectLiteralPath
 Aliases: None
 Possible values:
 
@@ -166,28 +146,28 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Document
-CSV document to export.
-
-```yaml
-Type: CsvDocument
-Parameter Sets: DocumentPath, DocumentPathCulture, DocumentLiteralPath, DocumentLiteralPathCulture
-Aliases: None
-Possible values:
-
-Required: True
-Position: named
-Default value: None
-Accept pipeline input: True (ByValue)
-Accept wildcard characters: False
-```
-
 ### -Encoding
 Encoding used when writing files.
 
 ```yaml
 Type: Encoding
-Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture, DocumentPath, DocumentPathCulture, DocumentLiteralPath, DocumentLiteralPathCulture
+Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -EscapeCharacter
+Character written before the quote character, and before itself, inside quoted fields, such as a backslash. Leave unset to double the quote character.
+
+```yaml
+Type: Char
+Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture
 Aliases: None
 Possible values:
 
@@ -203,7 +183,7 @@ Allow overwriting read-only files and appending rows with missing existing colum
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture, DocumentPath, DocumentPathCulture, DocumentLiteralPath, DocumentLiteralPathCulture
+Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture
 Aliases: None
 Possible values:
 
@@ -219,7 +199,7 @@ Controls how formula-like values are written.
 
 ```yaml
 Type: CsvFormulaInjectionPolicy
-Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture, DocumentPath, DocumentPathCulture, DocumentLiteralPath, DocumentLiteralPathCulture
+Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture
 Aliases: None
 Possible values: Preserve, Escape
 
@@ -231,12 +211,12 @@ Accept wildcard characters: False
 ```
 
 ### -InputObject
-Objects to export into CSV rows.
+Objects to export into CSV rows, or a CsvDocument to export (alias Document).
 
 ```yaml
 Type: Object
 Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture
-Aliases: None
+Aliases: Document
 Possible values:
 
 Required: True
@@ -251,7 +231,7 @@ Literal destination CSV path. Wildcards are not expanded.
 
 ```yaml
 Type: String
-Parameter Sets: InputObjectLiteralPath, InputObjectLiteralPathCulture, DocumentLiteralPath, DocumentLiteralPathCulture
+Parameter Sets: InputObjectLiteralPath, InputObjectLiteralPathCulture
 Aliases: PSPath, LP
 Possible values:
 
@@ -299,7 +279,7 @@ Override the newline sequence.
 
 ```yaml
 Type: String
-Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture, DocumentPath, DocumentPathCulture, DocumentLiteralPath, DocumentLiteralPathCulture
+Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture
 Aliases: None
 Possible values:
 
@@ -315,7 +295,7 @@ Do not overwrite an existing CSV file.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture, DocumentPath, DocumentPathCulture, DocumentLiteralPath, DocumentLiteralPathCulture
+Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture
 Aliases: NoOverwrite
 Possible values:
 
@@ -331,7 +311,7 @@ Omit the header row from the output.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture, DocumentPath, DocumentPathCulture, DocumentLiteralPath, DocumentLiteralPathCulture
+Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture
 Aliases: None
 Possible values:
 
@@ -347,7 +327,7 @@ Token written for null values.
 
 ```yaml
 Type: String
-Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture, DocumentPath, DocumentPathCulture, DocumentLiteralPath, DocumentLiteralPathCulture
+Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture
 Aliases: None
 Possible values:
 
@@ -363,7 +343,7 @@ Emit a FileInfo for the exported file.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture, DocumentPath, DocumentPathCulture, DocumentLiteralPath, DocumentLiteralPathCulture
+Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture
 Aliases: None
 Possible values:
 
@@ -379,7 +359,7 @@ Destination CSV path.
 
 ```yaml
 Type: String
-Parameter Sets: InputObjectPath, InputObjectPathCulture, DocumentPath, DocumentPathCulture
+Parameter Sets: InputObjectPath, InputObjectPathCulture
 Aliases: FilePath, OutputPath, OutPath
 Possible values:
 
@@ -390,12 +370,28 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -QuoteCharacter
+Character that encloses quoted fields. Defaults to the double quote; fields that contain it are quoted.
+
+```yaml
+Type: Char
+Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -QuoteFields
 Field names that should always be quoted when UseQuotes is AsNeeded.
 
 ```yaml
 Type: String[]
-Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture, DocumentPath, DocumentPathCulture, DocumentLiteralPath, DocumentLiteralPathCulture
+Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture
 Aliases: None
 Possible values:
 
@@ -411,7 +407,7 @@ Use the list separator from the selected or current culture as the delimiter.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: InputObjectPathCulture, InputObjectLiteralPathCulture, DocumentPathCulture, DocumentLiteralPathCulture
+Parameter Sets: InputObjectPathCulture, InputObjectLiteralPathCulture
 Aliases: None
 Possible values:
 
@@ -427,7 +423,7 @@ Controls when CSV fields are quoted. Defaults to quoting only fields that need i
 
 ```yaml
 Type: CsvQuoteMode
-Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture, DocumentPath, DocumentPathCulture, DocumentLiteralPath, DocumentLiteralPathCulture
+Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture
 Aliases: None
 Possible values: AsNeeded, Always, Never
 
@@ -443,7 +439,7 @@ Convert date/time values to UTC before formatting.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture, DocumentPath, DocumentPathCulture, DocumentLiteralPath, DocumentLiteralPathCulture
+Parameter Sets: InputObjectPath, InputObjectPathCulture, InputObjectLiteralPath, InputObjectLiteralPathCulture
 Aliases: None
 Possible values:
 

@@ -22,7 +22,7 @@ public sealed class ReaderWebOptions {
 
     /// <summary>
     /// Gets or sets an optional exact host allowlist. An empty list permits any host that passes the
-    /// scheme and non-public IP-literal checks.
+    /// scheme and network address checks.
     /// </summary>
     public IReadOnlyList<string> AllowedHosts { get; set; } = Array.Empty<string>();
 
@@ -30,15 +30,16 @@ public sealed class ReaderWebOptions {
     public bool AllowSubdomains { get; set; }
 
     /// <summary>
-    /// Gets or sets whether localhost names and loopback, private, link-local, or non-routable IP literals are permitted.
-    /// Default: false.
+    /// Gets or sets whether loopback, private, link-local and other non-public network addresses may be read.
+    /// Default: false. Enable it only for trusted internal sources.
     /// </summary>
     /// <remarks>
-    /// This option screens URI literals only. It does not resolve hostnames or intercept redirects.
-    /// When a URI is not trusted, the caller-provided HTTP handler must validate resolved addresses at
-    /// connection time and validate every redirect destination before sending the redirected request.
+    /// The web reader created without an <see cref="HttpClient"/> checks every address a host name resolves to,
+    /// on the first request and on each redirect it follows. On .NET 8 and later it checks them when the connection
+    /// is made and connects to the checked address. With a caller-supplied client this option screens IP literals
+    /// and localhost names only; that client's handler resolves names, connects and follows its own redirects.
     /// </remarks>
-    public bool AllowLocalhostAndNonPublicIpLiterals { get; set; }
+    public bool AllowPrivateNetworkAddresses { get; set; }
 
     /// <summary>
     /// Gets or sets whether query strings are retained in transport metadata. Default: false.
@@ -76,7 +77,7 @@ public sealed class ReaderWebOptions {
             MaxConcurrentRequests = MaxConcurrentRequests,
             AllowedHosts = allowedHosts,
             AllowSubdomains = AllowSubdomains,
-            AllowLocalhostAndNonPublicIpLiterals = AllowLocalhostAndNonPublicIpLiterals,
+            AllowPrivateNetworkAddresses = AllowPrivateNetworkAddresses,
             IncludeQueryInMetadata = IncludeQueryInMetadata,
             SourceKeySelector = SourceKeySelector
         };

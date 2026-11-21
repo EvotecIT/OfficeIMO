@@ -83,5 +83,5 @@ internal static class SpreadsheetXmlGeometry {
         return width <= 255 ? width : throw new InvalidDataException("Column width exceeds the Open XML limit for this workbook font.");
     }
     internal static bool Flag(string text) => text switch { "1" or "true" or "True" => true, "0" or "false" or "False" => false, _ => throw new InvalidDataException("Invalid XML Spreadsheet Boolean.") };
-    private static void Attribute(XmlWriter writer, string name, double value) => writer.WriteAttributeString("ss", name, Ss.NamespaceName, value.ToString("R", CultureInfo.InvariantCulture));
+    private static void Attribute(XmlWriter writer, string name, double value) => writer.WriteAttributeString("ss", name, Ss.NamespaceName, OfficeIMO.Core.Internal.OfficeRoundTripText.Format(value, CultureInfo.InvariantCulture));
 }

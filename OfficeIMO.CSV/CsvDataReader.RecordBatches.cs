@@ -79,7 +79,7 @@ public partial class CsvDataReader
             var capture = await source.CaptureRawRecordRunAsync(batch, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
             _processingCancellationToken.ThrowIfCancellationRequested();
-            _hasCurrentTextRow = capture.Count > 0;
+            SetHasCurrentTextRow(capture.Count > 0);
             if (capture.Count > 0) { _hasRows ??= true; _rowIndex += capture.Count; }
             else if (capture.ReachedEnd) _hasRows ??= false;
             return capture;

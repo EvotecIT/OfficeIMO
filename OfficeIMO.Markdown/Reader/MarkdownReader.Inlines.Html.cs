@@ -39,38 +39,38 @@ internal static partial class MarkdownReader {
             return InlineHtmlWrapperMatchIndex.Empty;
         }
 
-        var matches = new Dictionary<int, (string TagName, int ClosingStart)>();
-        var openingsByTag = new Dictionary<string, Stack<int>>(StringComparer.OrdinalIgnoreCase);
-        for (int i = 0; i < SupportedInlineHtmlWrapperTags.Length; i++) {
-            openingsByTag[SupportedInlineHtmlWrapperTags[i]] = new Stack<int>();
-        }
-
-        for (int position = 0; position < text.Length; position++) {
-            if (text[position] != '<') {
-                continue;
-            }
-
+        // Most texts with a '<' hold no wrapper tag at all, so nothing is allocated until one opens.
+        Dictionary<int, (string TagName, int ClosingStart)>? matches = null;
+        Stack<int>?[]? openingsByTag = null;
+        for (int position = text.IndexOf('<'); position >= 0 && position < text.Length; position = text.IndexOf('<', position + 1)) {
             for (int tagIndex = 0; tagIndex < SupportedInlineHtmlWrapperTags.Length; tagIndex++) {
                 string tagName = SupportedInlineHtmlWrapperTags[tagIndex];
                 if (StartsWithExactHtmlTag(text, position, tagName, opening: true)) {
-                    openingsByTag[tagName].Push(position);
+                    openingsByTag ??= new Stack<int>?[SupportedInlineHtmlWrapperTags.Length];
+                    (openingsByTag[tagIndex] ??= new Stack<int>()).Push(position);
                     position += tagName.Length + 1;
                     break;
                 }
 
                 if (StartsWithExactHtmlTag(text, position, tagName, opening: false)) {
-                    var openings = openingsByTag[tagName];
-                    if (openings.Count > 0) {
-                        matches[openings.Pop()] = (tagName, position);
+                    var openings = openingsByTag?[tagIndex];
+                    if (openings != null && openings.Count > 0) {
+                        (matches ??= new Dictionary<int, (string TagName, int ClosingStart)>())[openings.Pop()] = (tagName, position);
                     }
 
                     position += tagName.Length + 2;
                     break;
                 }
             }
+
+            if (position + 1 >= text.Length) {
+                break;
+            }
         }
 
-        return new InlineHtmlWrapperMatchIndex(matches);
+        return matches == null
+            ? InlineHtmlWrapperMatchIndex.Empty
+            : new InlineHtmlWrapperMatchIndex(matches);
     }
 
     private static bool TryParseSupportedInlineHtmlTag(
@@ -252,12 +252,11 @@ internal static partial class MarkdownReader {
             return true;
         }
 
-        string candidate = text.Substring(start);
-        if (!HtmlBlockParser.TryParseHtmlTag(candidate, out _, out _, out int endIndex)) {
+        if (!HtmlBlockParser.TryParseHtmlTag(text, start, out _, out _, out int endIndex)) {
             return false;
         }
 
-        consumed = endIndex + 1;
+        consumed = endIndex - start + 1;
         html = RestoreRawInlineHtmlLiteral(text, start, consumed, sourceMap);
         return true;
     }
@@ -287,7 +286,7 @@ internal static partial class MarkdownReader {
             return true;
         }
 
-        int end = text.IndexOf("-->", start + 4, StringComparison.Ordinal);
+        int end = InlineScanIndexCache.IndexOf(text, "-->", start + 4);
         if (end < 0) {
             return false;
         }
@@ -310,7 +309,7 @@ internal static partial class MarkdownReader {
             return false;
         }
 
-        int end = text.IndexOf("?>", start + 2, StringComparison.Ordinal);
+        int end = InlineScanIndexCache.IndexOf(text, "?>", start + 2);
         if (end < 0) {
             return false;
         }
@@ -333,7 +332,7 @@ internal static partial class MarkdownReader {
             return false;
         }
 
-        int end = text.IndexOf('>', start + 3);
+        int end = InlineScanIndexCache.IndexOf(text, ">", start + 3);
         if (end < 0) {
             return false;
         }
@@ -356,7 +355,7 @@ internal static partial class MarkdownReader {
             return false;
         }
 
-        int end = text.IndexOf("]]>", start + 9, StringComparison.Ordinal);
+        int end = InlineScanIndexCache.IndexOf(text, "]]>", start + 9);
         if (end < 0) {
             return false;
         }

@@ -1,20 +1,5 @@
 namespace OfficeIMO.Word {
     /// <summary>
-    /// Describes how save operations should handle documents carrying digital-signature metadata.
-    /// </summary>
-    public enum WordSignedDocumentSavePolicy {
-        /// <summary>
-        /// Block saves when signature metadata is present because the resulting package may invalidate signatures.
-        /// </summary>
-        Block,
-
-        /// <summary>
-        /// Allow saving even though existing signatures may become invalid.
-        /// </summary>
-        AllowSignatureInvalidation
-    }
-
-    /// <summary>
     /// Optional behaviors applied during Word document save operations.
     /// </summary>
     public sealed class WordSaveOptions {
@@ -43,9 +28,10 @@ namespace OfficeIMO.Word {
         internal string? ResolvePassword(string? loadedPassword) => _passwordSpecified ? _password : loadedPassword;
 
         /// <summary>
-        /// Gets or sets how save operations handle documents carrying digital-signature metadata.
+        /// Gets or sets how saving handles digital signatures that rewriting the document would invalidate.
+        /// The default blocks the save.
         /// </summary>
-        public WordSignedDocumentSavePolicy SignedDocumentPolicy { get; set; } = WordSignedDocumentSavePolicy.Block;
+        public OfficeSignatureMutationPolicy SignatureMutationPolicy { get; set; } = OfficeSignatureMutationPolicy.BlockSave;
 
         /// <summary>
         /// Returns an options instance with default save behavior.
@@ -55,7 +41,7 @@ namespace OfficeIMO.Word {
         internal WordSaveOptions WithLossPolicy(OfficeConversionLossPolicy lossPolicy) {
             return new WordSaveOptions {
                 LossPolicy = lossPolicy,
-                SignedDocumentPolicy = SignedDocumentPolicy,
+                SignatureMutationPolicy = SignatureMutationPolicy,
                 Format = Format,
                 _password = _password,
                 _passwordSpecified = _passwordSpecified
@@ -87,7 +73,7 @@ namespace OfficeIMO.Word {
             string count = signatureInfo.FindingCount.ToString(System.Globalization.CultureInfo.InvariantCulture);
             return operation + " was blocked because the document contains " + count
                 + " digital-signature metadata item(s). Saving or rewriting a signed package may invalidate existing signatures. "
-                + "Pass WordSaveOptions with SignedDocumentPolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation to save anyway.";
+                + "Set WordSaveOptions.SignatureMutationPolicy to RemoveInvalidatedSignatures or PreserveSignatureMarkup explicitly to continue.";
         }
     }
 }

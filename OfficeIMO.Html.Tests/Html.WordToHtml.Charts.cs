@@ -5,6 +5,7 @@ using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
 using System.Text;
 using Xunit;
+using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Tests;
@@ -555,17 +556,17 @@ public sealed class HtmlWordChartTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void Export_ReportsUnsupportedChartOmission(bool unsupportedCategoryFormat) {
+    public void Export_ReportsUnsupportedChartOmission(bool gradientSeriesLine) {
         using var document = WordDocument.Create();
         var chart = document.AddChart(OfficeChartType.Line,Data());
-        if (unsupportedCategoryFormat) {
-            var native = chart.ChartPart!.ChartSpace!;
-            var categories = native.Descendants<C.CategoryAxisData>().Single();
-            categories.RemoveAllChildren();
-            categories.Append(new C.NumberLiteral(new C.FormatCode("General"), new C.PointCount { Val = 2 },
-                new C.NumericPoint(new C.NumericValue("1")) { Index = 0 }, new C.NumericPoint(new C.NumericValue("2")) { Index = 1 }));
-            native.Descendants<C.CategoryAxis>().Single().GetFirstChild<C.NumberingFormat>()!.FormatCode = "m/d/yyyy";
-        } else chart.ChartPart!.ChartSpace!.Descendants<C.LineChartSeries>().Single().AddChild(new C.Smooth { Val = true }, true);
+        C.LineChartSeries series = chart.ChartPart!.ChartSpace!.Descendants<C.LineChartSeries>().Single();
+        if (gradientSeriesLine) {
+            series.GetFirstChild<C.ChartShapeProperties>()?.Remove();
+            series.InsertAfter(new C.ChartShapeProperties(new A.Outline(new A.GradientFill(new A.GradientStopList(
+                new A.GradientStop(new A.RgbColorModelHex { Val = "112233" }) { Position = 0 },
+                new A.GradientStop(new A.RgbColorModelHex { Val = "445566" }) { Position = 100000 })))),
+                series.GetFirstChild<C.SeriesText>());
+        } else series.AddChild(new C.Smooth { Val = true }, true);
         var result = document.ConvertToHtmlWithEvidence();
         Assert.Contains(result.Report.Diagnostics, item => item.Code == "word-chart-omitted");
         Assert.Empty(new HtmlParser().ParseDocument(result.RequireValue()).QuerySelectorAll("img"));

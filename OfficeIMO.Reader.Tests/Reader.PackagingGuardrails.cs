@@ -18,6 +18,7 @@ public sealed class ReaderPackagingGuardrailTests {
     [InlineData("OfficeIMO.Reader.Opml/OfficeIMO.Reader.Opml.csproj")]
     [InlineData("OfficeIMO.Reader.Json/OfficeIMO.Reader.Json.csproj")]
     [InlineData("OfficeIMO.Reader.Xml/OfficeIMO.Reader.Xml.csproj")]
+    [InlineData("OfficeIMO.Reader.Toml/OfficeIMO.Reader.Toml.csproj")]
     [InlineData("OfficeIMO.Reader.Yaml/OfficeIMO.Reader.Yaml.csproj")]
     [InlineData("OfficeIMO.Reader.OneNote/OfficeIMO.Reader.OneNote.csproj")]
     public void ModularReaderProjects_RemainPackableAndPublishable(string relativeProjectPath) {

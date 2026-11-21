@@ -67,8 +67,9 @@ namespace OfficeIMO.Excel {
             bool showValueGridLines = HasImageExportMajorGridlines(valueAxis);
             bool showCategoryMinorGridLines = HasImageExportMinorGridlines(categoryAxis);
             bool showValueMinorGridLines = HasImageExportMinorGridlines(valueAxis);
-            C.PieChartSeries? radialSeries = ChartType is OfficeChartType.Pie or OfficeChartType.Doughnut
-                ? plotArea?.Descendants<C.PieChartSeries>().FirstOrDefault() : null;
+            OpenXmlCompositeElement? radialSeries = ChartType is OfficeChartType.Pie or OfficeChartType.Doughnut
+                ? plotArea?.Descendants<C.PieChartSeries>().FirstOrDefault()
+                : OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartPlotSemantics.GetPointColoredSeries(plotArea);
             OfficeColor[]? radialPalette = radialSeries == null ? null :
                 OfficeOpenXmlThemeColorResolver.ReadRadialPalette(GetChartPart(), radialSeries,
                     radialPointCount, workbookPart.ThemePart?.Theme?.ThemeElements?.ColorScheme,
@@ -194,7 +195,9 @@ namespace OfficeIMO.Excel {
             }
             if (radialChart != null && visibleLabels.Skip(1).Any(labels =>
                 !string.Equals(labels.OuterXml, dataLabels?.OuterXml, StringComparison.Ordinal)))
-                throw new NotSupportedException("Different radial data-label layouts cannot be projected by one shared layout.");
+                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartFidelityScope.Approximate(
+                    "Different radial data-label layouts cannot be projected by one shared layout.",
+                    "Radial data labels with different layouts per series are drawn with the first labelled series' layout.");
             C.Legend? legend = chart.GetFirstChild<C.Legend>();
             C.Title? title = chart.GetFirstChild<C.Title>();
             OfficeChartValueAxisLayout? secondaryValueAxis = ReadImageExportSecondaryValueAxis(plotArea);
@@ -215,8 +218,6 @@ namespace OfficeIMO.Excel {
             OfficeChartAxisTickMark verticalAxisMinorTickMark = GetImageExportVerticalAxisMinorTickMark(plotArea, categoryAxis, valueAxis);
             OfficeChartAxisTickLabelPosition horizontalAxisTickLabelPosition = GetImageExportHorizontalAxisTickLabelPosition(plotArea, categoryAxis, valueAxis);
             OfficeChartAxisTickLabelPosition verticalAxisTickLabelPosition = GetImageExportVerticalAxisTickLabelPosition(plotArea, categoryAxis, valueAxis);
-            OfficeChartAxisCrossingPosition horizontalAxisCrossingPosition = GetImageExportHorizontalAxisCrossingPosition(plotArea, categoryAxis);
-            OfficeChartAxisCrossingPosition verticalAxisCrossingPosition = GetImageExportVerticalAxisCrossingPosition(plotArea, valueAxis);
             bool reverseCategoryAxis = GetImageExportReverseCategoryAxis(categoryAxis);
             bool categoryAxisOrientationSpecified = HasImageExportCategoryAxisOrientation(categoryAxis);
             double? legendFontSize = TryGetImageExportLegendFontSize(chart, out double resolvedLegendFontSize) ? resolvedLegendFontSize : null;
@@ -255,8 +256,6 @@ namespace OfficeIMO.Excel {
             bool hasAxisMinorTickMark = horizontalAxisMinorTickMark != OfficeChartAxisTickMark.None || verticalAxisMinorTickMark != OfficeChartAxisTickMark.None;
             bool hasAxisLabelVisibility = !showCategoryAxisLabels || !showValueAxisLabels;
             bool hasAxisLabelPosition = horizontalAxisTickLabelPosition != OfficeChartAxisTickLabelPosition.NextTo || verticalAxisTickLabelPosition != OfficeChartAxisTickLabelPosition.NextTo;
-            bool hasAxisCrossingPosition = horizontalAxisCrossingPosition != OfficeChartAxisCrossingPosition.AutoZero ||
-                verticalAxisCrossingPosition != OfficeChartAxisCrossingPosition.AutoZero;
             bool hasCategoryAxisOrientation = categoryAxisOrientationSpecified;
             bool fillRadarSeries = GetImageExportFillRadarSeries(plotArea);
             bool hasRadarFillLayout = !fillRadarSeries;
@@ -292,13 +291,14 @@ namespace OfficeIMO.Excel {
                 hasAxisMinorTickMark ||
                 hasAxisLabelVisibility ||
                 hasAxisLabelPosition ||
-                hasAxisCrossingPosition ||
                 hasCategoryAxisOrientation ||
                 hasRadarFillLayout ||
                 hasScatterStyleLayout ||
                 hasTextFont;
             if (!hasLayout) {
-                return null;
+                // Blank cells and axis crossings still apply to an otherwise default layout.
+                OfficeChartLayout semantics = OfficeChartLayout.Default.WithPlotSemantics(chart, includeDisplayUnits: false);
+                return HasDefaultPlotSemantics(semantics) ? null : semantics;
             }
 
             bool showLegend = legend != null;
@@ -353,8 +353,6 @@ namespace OfficeIMO.Excel {
                 verticalAxisMinorTickMark: verticalAxisMinorTickMark,
                 horizontalAxisTickLabelPosition: horizontalAxisTickLabelPosition,
                 verticalAxisTickLabelPosition: verticalAxisTickLabelPosition,
-                horizontalAxisCrossingPosition: horizontalAxisCrossingPosition,
-                verticalAxisCrossingPosition: verticalAxisCrossingPosition,
                 reverseCategoryAxis: reverseCategoryAxis,
                 categoryAxisOrientationSpecified: categoryAxisOrientationSpecified,
                 fillRadarSeries: fillRadarSeries,
@@ -368,21 +366,35 @@ namespace OfficeIMO.Excel {
                 overlayTitle: IsEnabled(title?.GetFirstChild<C.Overlay>()))
                 .WithSecondaryValueAxis(secondaryValueAxis)
                 .WithDataLabelLeaderLines(IsEnabled(dataLabels?.GetFirstChild<C.ShowLeaderLines>()))
-                .WithCategoryGeometry(plotArea, _document.WorkbookPartRoot.ThemePart?.Theme?.ThemeElements?.ColorScheme);
+                .WithCategoryGeometry(plotArea, _document.WorkbookPartRoot.ThemePart?.Theme?.ThemeElements?.ColorScheme)
+                .WithPlotSemantics(chart, includeDisplayUnits: false);
         }
+
+        private static bool HasDefaultPlotSemantics(OfficeChartLayout layout) =>
+            layout.BlankDisplay == OfficeChartLayout.Default.BlankDisplay &&
+            layout.HorizontalAxisCrossingPosition == OfficeChartAxisCrossingPosition.AutoZero && layout.HorizontalAxisCrossesAt == null &&
+            layout.VerticalAxisCrossingPosition == OfficeChartAxisCrossingPosition.AutoZero && layout.VerticalAxisCrossesAt == null &&
+            layout.HorizontalAxisLogBase == null && layout.VerticalAxisLogBase == null &&
+            !layout.ReverseHorizontalValueAxis && !layout.ReverseVerticalValueAxis && !layout.VaryColorsByPoint &&
+            layout.PlotAreaLayout == null && layout.TitleLayout == null && layout.LegendLayout == null;
 
         private OfficeChartValueAxisLayout? ReadImageExportSecondaryValueAxis(C.PlotArea plotArea) {
             var axis = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.Resolve(plotArea);
             if (axis == null) return null;
             string? numberFormat = GetImageExportAxisNumberFormat(axis);
+            // Qualify the format before the axis layout is built: an axis format the renderer cannot reproduce falls
+            // back to General instead of dropping the chart.
+            if (numberFormat != null && !IsSimpleSupportedImageExportAxisNumberFormat(numberFormat)) {
+                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartFidelityScope.Record(
+                    "The secondary axis number format '" + numberFormat + "' is drawn as General.");
+                numberFormat = null;
+            }
             OfficeChartValueAxisLayout? native = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.Read(
                 plotArea, () => numberFormat ?? "General");
             if (native == null) return null;
-            if (numberFormat != null && !IsSimpleSupportedImageExportAxisNumberFormat(numberFormat))
-                throw new NotSupportedException("The secondary axis number format cannot be rendered.");
             var resolved = new OfficeChartValueAxisLayout(native.Minimum, native.Maximum, native.MajorUnit,
                 native.MinorUnit, numberFormat, native.MajorTickMark,
-                native.MinorTickMark);
+                native.MinorTickMark).WithLogarithmicScale(native.LogBase).WithReversedScale(native.IsReversed);
             return native.Title == null ? resolved : resolved.WithTitle(native.Title);
         }
 
@@ -461,8 +473,12 @@ namespace OfficeIMO.Excel {
                     workbookPart.ThemePart?.Theme?.ThemeElements?.ColorScheme);
                 if (series is C.PieChartSeries) {
                     if (!OfficeOpenXmlChartExplosions.TryRead(series, pointOverrides, valueCount,
-                        out int[]? explosions))
-                        throw new NotSupportedException("The native pie or doughnut point explosion cannot be rendered.");
+                        out int[]? explosions)) {
+                        OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartFidelityScope.Approximate(
+                            "The native pie or doughnut point explosion cannot be rendered.",
+                            "Pie or doughnut slice explosions that cannot be reproduced are drawn without separation.");
+                        explosions = null;
+                    }
                     style.PointExplosions = explosions;
                 }
                 if (series.Parent is C.Line3DChart) {
@@ -541,15 +557,29 @@ namespace OfficeIMO.Excel {
             int? period = trendline.GetFirstChild<C.Period>()?.Val?.Value is uint averagePeriod && averagePeriod <= int.MaxValue ? (int)averagePeriod : null;
             if (type == OfficeChartTrendlineType.Polynomial && order is null or < 2 or > 6) return null;
             if (type == OfficeChartTrendlineType.MovingAverage && period is null or < 2) return null;
+            // Rendering limits are checked only while the chart is projected for export; reading chart data alone
+            // never fails on how a trendline would be drawn.
+            bool projecting = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartFidelityScope.IsProjecting;
+            if (period > OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartTrendlines.MaximumPeriod) {
+                if (projecting)
+                    OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartFidelityScope.Approximate("The native trendline type cannot be projected.",
+                        "A trendline the renderer cannot fit is left out.");
+                return null;
+            }
             C.ChartShapeProperties? properties = trendline.GetFirstChild<C.ChartShapeProperties>();
+            A.Outline? outline = properties?.GetFirstChild<A.Outline>();
             OfficeColor? color = TryGetSolidLine(properties, workbookPart, out OfficeColor line) ? line : null;
             double? width = TryGetLineWidth(properties, out double lineWidth) && lineWidth > 0D ? lineWidth : null;
             double? intercept = trendline.GetFirstChild<C.Intercept>()?.Val?.Value is double fixedIntercept && !double.IsNaN(fixedIntercept) && !double.IsInfinity(fixedIntercept)
                 ? fixedIntercept : null;
-            return new OfficeChartTrendline(type.Value, order, period,
+            var result = new OfficeChartTrendline(type.Value, order, period,
                 displayEquation: trendline.GetFirstChild<C.DisplayEquation>()?.Val?.Value == true,
                 displayRSquared: trendline.GetFirstChild<C.DisplayRSquaredValue>()?.Val?.Value == true,
                 color: color, width: width.HasValue ? OfficeLength.Points(width.Value) : null, intercept: intercept);
+            if (OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartTrendlines.HidesLine(outline)) return result.WithHiddenLine();
+            return result.WithDashStyle(projecting
+                ? OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartTrendlines.ReadDashOrApproximate(outline)
+                : OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartTrendlines.ReadDash(outline));
         }
 
         private static string? GetImageExportSeriesColor(C.ChartShapeProperties properties, WorkbookPart workbookPart) {
@@ -1289,14 +1319,8 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool HasUnsupportedImageExportAxisScaling(C.PlotArea plotArea, OpenXmlCompositeElement axis, C.Scaling scaling) {
-            C.OrientationValues? orientation = scaling.GetFirstChild<C.Orientation>()?.Val?.Value;
-            if (orientation != null &&
-                orientation.Value != C.OrientationValues.MinMax &&
-                !IsSupportedImageExportAxisOrientation(plotArea, axis, orientation.Value)) {
-                return true;
-            }
-
-            if (scaling.GetFirstChild<C.LogBase>() != null) {
+            // Reversed value and category axes and logarithmic value axes are drawn by the shared renderer.
+            if (scaling.GetFirstChild<C.LogBase>() != null && axis is not C.ValueAxis) {
                 return true;
             }
 
@@ -1319,10 +1343,6 @@ namespace OfficeIMO.Excel {
             return min.HasValue && max.HasValue && max.Value <= min.Value;
         }
 
-        private static bool IsSupportedImageExportAxisOrientation(C.PlotArea plotArea, OpenXmlCompositeElement axis, C.OrientationValues orientation) =>
-            orientation == C.OrientationValues.MaxMin &&
-            (axis is C.CategoryAxis || axis is C.DateAxis) &&
-            !HasHorizontalBarChart(plotArea);
 
         private static bool HasUnsupportedImageExportChartAreaStyle(C.ChartSpace chartSpace, WorkbookPart workbookPart) {
             C.ShapeProperties? chartAreaProperties = chartSpace.GetFirstChild<C.ShapeProperties>();
@@ -1582,7 +1602,7 @@ namespace OfficeIMO.Excel {
                 return OfficeChartLegendPosition.Bottom;
             }
 
-            return OfficeChartLegendPosition.Right;
+            return value == C.LegendPositionValues.TopRight ? OfficeChartLegendPosition.TopRight : OfficeChartLegendPosition.Right;
         }
 
         private static OfficeChartDataLabelPosition MapDataLabelPosition(C.DataLabelPositionValues? position) {

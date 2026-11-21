@@ -44,6 +44,7 @@ namespace OfficeIMO.Excel {
         /// <summary>Inspects package-level digital-signature metadata without validating cryptographic trust.</summary>
         public ExcelSignatureInfo InspectSignatures() {
             using var snapshot = new MemoryStream();
+            CommitPendingStylesheet();
             using (_spreadSheetDocument.Clone(snapshot)) { }
             OfficePackageSignatureInfo shared = OfficePackageSignatureService.Inspect(
                 snapshot.ToArray(),

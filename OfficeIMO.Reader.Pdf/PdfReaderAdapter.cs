@@ -24,7 +24,7 @@ internal static partial class PdfReaderAdapter {
         PdfDocument pdf = OpenReaderPdf(pdfPath, effectiveReaderOptions, effectivePdfOptions, cancellationToken);
         PdfInspectionReadResult? inspection = LoadInspection(pdf, source, effectiveReaderOptions, effectivePdfOptions, cancellationToken);
         PdfDocumentReadResult document = inspection?.Document ?? LoadDocument(pdf, effectiveReaderOptions, effectivePdfOptions, cancellationToken);
-        foreach (var chunk in Read(document, source, effectiveReaderOptions, effectivePdfOptions, applyPageRanges: false, cancellationToken)) {
+        foreach (var chunk in Read(document, source, effectiveReaderOptions, effectivePdfOptions, applyPageRanges: false, cancellationToken, pdf)) {
             yield return chunk;
         }
         foreach (ReaderChunk warning in BuildInspectionWarningChunks(inspection, source)) yield return warning;
@@ -50,7 +50,7 @@ internal static partial class PdfReaderAdapter {
         UpdateSourceMetadataFromPdfDocument(source, pdf, effectiveReaderOptions.ComputeHashes);
         PdfInspectionReadResult? inspection = LoadInspection(pdf, source, effectiveReaderOptions, effectivePdfOptions, cancellationToken);
         PdfDocumentReadResult document = inspection?.Document ?? LoadDocument(pdf, effectiveReaderOptions, effectivePdfOptions, cancellationToken);
-        foreach (var chunk in Read(document, source, effectiveReaderOptions, effectivePdfOptions, applyPageRanges: false, cancellationToken)) {
+        foreach (var chunk in Read(document, source, effectiveReaderOptions, effectivePdfOptions, applyPageRanges: false, cancellationToken, pdf)) {
             yield return chunk;
         }
         foreach (ReaderChunk warning in BuildInspectionWarningChunks(inspection, source)) yield return warning;
@@ -89,8 +89,10 @@ internal static partial class PdfReaderAdapter {
     }
 
     private static IEnumerable<ReaderChunk> Read(PdfDocumentReadResult document, SourceMetadata source,
-        ReaderOptions readerOptions, ReaderPdfOptions pdfOptions, bool applyPageRanges, CancellationToken cancellationToken) =>
-        WithNativeLimits(ReadCore(document, source, readerOptions, pdfOptions, applyPageRanges, cancellationToken));
+        ReaderOptions readerOptions, ReaderPdfOptions pdfOptions, bool applyPageRanges, CancellationToken cancellationToken,
+        PdfDocument? pdf = null) =>
+        WithNativeLimits(ReadCore(document, source, readerOptions, pdfOptions, applyPageRanges, cancellationToken)
+            .Concat(ReadAttachmentChunks(pdf, document, source, readerOptions, pdfOptions, cancellationToken)));
 
     private static IEnumerable<ReaderChunk> ReadCore(PdfDocumentReadResult document, SourceMetadata source, ReaderOptions readerOptions, ReaderPdfOptions pdfOptions, bool applyPageRanges, CancellationToken cancellationToken) {
         if (readerOptions.Projection == ReaderProjection.TextAndMetadata) {

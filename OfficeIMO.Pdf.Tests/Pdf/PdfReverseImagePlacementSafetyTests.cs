@@ -240,7 +240,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             PdfPowerPointExportOptions.CreateEditableTables());
         using (tables.Value) {
             Assert.False(tables.HasLoss);
-            Assert.Equal(0, tables.Report.SourceScope.ImageCount);
+            Assert.Equal(0, tables.Report!.SourceScope!.ImageCount);
             Assert.DoesNotContain(tables.Report.Warnings, static warning => warning.Code == "pdf-images-not-editable");
         }
     }
@@ -265,7 +265,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
     }
 
     [Fact]
-    public void ClippedImagePlacementsNeverEmbedRawPixelsAcrossEditableAdapters() {
+    public void ClippedImagePlacementsEmbedOnlyVisiblePixelsAcrossEditableAdapters() {
         byte[] source = CreateDocument()
             .Canvas(canvas => canvas.Clip(
                 global::OfficeIMO.OfficeLength.Points(40D),
@@ -278,31 +278,42 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         PdfImagePlacement placement = Assert.Single(Assert.Single(Assert.Single(logical.Pages).Images).Placements);
         Assert.NotNull(placement.Clip);
 
+        // The 8x4 image covers 80x60 pt; the 20x20 pt clip shows two columns and two rows of it.
         PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
         using (word.Value) {
-            Assert.Empty(word.Value.Images);
-            Assert.True(word.HasLoss);
-            Assert.Contains(word.Report.Warnings, static warning =>
-                warning.Code == "pdf-image-clip-not-safely-editable" &&
-                warning.LossKind == OfficeConversionLossKind.Omission);
+            AssertRasterSize(Assert.Single(word.Value.Images).ToBytes(), 2, 2);
+            Assert.DoesNotContain(word.Report.Warnings, static warning =>
+                warning.Code == "pdf-image-clip-not-safely-editable");
         }
 
         PdfHtmlConversionResult html = logical.ToHtmlResult(PdfHtmlExportOptions.CreateSemanticProfile());
-        Assert.DoesNotContain("data:image/", html.Value, StringComparison.Ordinal);
-        Assert.True(html.HasLoss);
-        Assert.Contains(html.Report.Warnings, static warning =>
-            warning.Code == OfficeDiagnosticCodes.ImageClipNotSafelyEditable &&
-            warning.LossKind == OfficeConversionLossKind.Omission);
+        AssertRasterSize(ExtractSingleDataUri(html.Value), 2, 2);
+        Assert.DoesNotContain(html.Report.Warnings, static warning =>
+            warning.Code == OfficeDiagnosticCodes.ImageClipNotSafelyEditable);
 
         PdfPowerPointConversionResult powerPoint = logical.ConvertToPowerPointWithEvidence(
             PdfPowerPointExportOptions.CreateEditableContent());
         using (powerPoint.Value) {
-            Assert.Empty(powerPoint.Value.Slides.SelectMany(static slide => slide.Images));
-            Assert.True(powerPoint.HasLoss);
-            Assert.Contains(powerPoint.Report.Warnings, static warning =>
-                warning.Code == "pdf-image-clip-not-safely-editable" &&
-                warning.LossKind == OfficeConversionLossKind.Omission);
+            Assert.Single(powerPoint.Value.Slides.SelectMany(static slide => slide.Images));
+            Assert.DoesNotContain(powerPoint.Report.Warnings, static warning =>
+                warning.Code == "pdf-image-clip-not-safely-editable");
         }
+    }
+
+    private static void AssertRasterSize(byte[] bytes, int width, int height) {
+        Assert.True(global::OfficeIMO.Drawing.OfficeRasterImageDecoder.TryDecode(bytes, out global::OfficeIMO.Drawing.OfficeRasterImage? raster));
+        Assert.Equal(width, raster!.Width);
+        Assert.Equal(height, raster.Height);
+    }
+
+    private static byte[] ExtractSingleDataUri(string html) {
+        const string Marker = "data:image/png;base64,";
+        int start = html.IndexOf(Marker, StringComparison.Ordinal);
+        Assert.True(start >= 0);
+        Assert.Equal(-1, html.IndexOf("data:image/", start + Marker.Length, StringComparison.Ordinal));
+        start += Marker.Length;
+        int end = html.IndexOf('"', start);
+        return Convert.FromBase64String(html.Substring(start, end - start));
     }
 
     [Theory]
@@ -342,7 +353,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
     }
 
     [Fact]
-    public void PositionedPageAppearanceNeverEmbedsPixelsHiddenByImageClipping() {
+    public void PositionedPageAppearanceEmbedsOnlyPixelsVisibleThroughImageClipping() {
         byte[] source = CreateDocument()
             .Canvas(canvas => canvas.Clip(
                 global::OfficeIMO.OfficeLength.Points(40D),
@@ -355,14 +366,14 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         PdfHtmlConversionResult html = PdfDocument.Load(new System.IO.MemoryStream(source))
             .ToHtmlResult(PdfHtmlExportOptions.CreatePositionedReviewProfile());
 
+        // The page drawing would carry the clipped source pixels, so the page uses positioned images cropped to the clip.
         Assert.DoesNotContain("pdf-page-appearance", html.Value, StringComparison.Ordinal);
-        Assert.DoesNotContain("data:image/", html.Value, StringComparison.Ordinal);
+        AssertRasterSize(ExtractSingleDataUri(html.Value), 2, 2);
         Assert.Contains(html.Report.Warnings, static warning =>
             warning.Code == OfficeDiagnosticCodes.PageAppearanceUnsafeImageFallback &&
             warning.LossKind == OfficeConversionLossKind.None);
-        Assert.Contains(html.Report.Warnings, static warning =>
-            warning.Code == OfficeDiagnosticCodes.ImageClipNotSafelyEditable &&
-            warning.LossKind == OfficeConversionLossKind.Omission);
+        Assert.DoesNotContain(html.Report.Warnings, static warning =>
+            warning.Code == OfficeDiagnosticCodes.ImageClipNotSafelyEditable);
     }
 
     [Fact]
@@ -422,7 +433,8 @@ public sealed class PdfReverseImagePlacementSafetyTests {
 
     [Fact]
     public void RotatedPageClipsAreComparedInTheSameVisualCoordinateSpaceAsImages() {
-        const string content = "q 0 0 150 60 re W n 40 0 0 80 20 20 cm /Im1 Do Q\n";
+        // The clip hides more than half of the single source pixel, so no whole visible pixel remains.
+        const string content = "q 0 0 150 50 re W n 40 0 0 80 20 20 cm /Im1 Do Q\n";
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateRawImagePdf(content, pageEntries: "/Rotate 90"));
         PdfImagePlacement placement = Assert.Single(Assert.Single(Assert.Single(logical.Pages).Images).Placements);
         Assert.NotNull(placement.Clip);
@@ -965,7 +977,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             using DocumentFormat.OpenXml.Packaging.WordprocessingDocument package =
                 DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(stream, false);
             DocumentFormat.OpenXml.Drawing.Transform2D transform = Assert.Single(
-                package.MainDocumentPart!.Document.Descendants<DocumentFormat.OpenXml.Drawing.Transform2D>());
+                package.MainDocumentPart!.Document!.Descendants<DocumentFormat.OpenXml.Drawing.Transform2D>());
             Assert.Equal(pageRotation * 60000, transform.Rotation!.Value);
         }
     }
@@ -1319,7 +1331,6 @@ public sealed class PdfReverseImagePlacementSafetyTests {
 
     [Theory]
     [InlineData("/ColorSpace null")]
-    [InlineData("/ColorSpace [/DeviceRGB]")]
     [InlineData("/ColorSpace [/Indexed /DeviceRGB 1 <000000FFFFFF>]")]
     public void Jpeg2000WithUnsupportedExplicitPdfColorSpaceIsNotEmbeddedAcrossEditableAdapters(string colorSpace) {
         byte[] jpx = File.ReadAllBytes(Path.Combine(
@@ -1344,9 +1355,10 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             "Interoperability",
             "Scans",
             "red-rgb.jp2"));
-        int tilePart = Enumerable.Range(0, container.Length - 1).First(index =>
-            container[index] == 0xFF && container[index + 1] == 0x90);
-        container[tilePart + 11] = 2; // TNsot declares an absent second tile-part.
+        int size = Enumerable.Range(0, container.Length - 1).First(index =>
+            container[index] == 0xFF && container[index + 1] == 0x51);
+        container[size + 38] = 0; // Csiz declares no components, which no decoder can reconstruct.
+        container[size + 39] = 0;
         byte[] source = CreateRawImagePdf(
             "q 80 0 0 40 20 30 cm /Im1 Do Q\n",
             imageBytes: container,

@@ -54,6 +54,7 @@ jobs:
             python3 "$GITHUB_WORKSPACE/Build/DocumentationExamples/verify_quickstart.py" .
             dotnet run --project "$GITHUB_WORKSPACE/Build/DocumentationExamples/Word/Word.csproj" -c Release -f "$framework" --artifacts-path "$RUNNER_TEMP/officeimo-documentation-source-build"
             dotnet run --project "$GITHUB_WORKSPACE/Build/DocumentationExamples/Excel/Excel.csproj" -c Release -f "$framework" --artifacts-path "$RUNNER_TEMP/officeimo-documentation-source-build"
+            dotnet run --project "$GITHUB_WORKSPACE/Build/DocumentationExamples/Pdf/Pdf.csproj" -c Release -f "$framework" --artifacts-path "$RUNNER_TEMP/officeimo-documentation-source-build"
             python3 "$GITHUB_WORKSPACE/Build/DocumentationExamples/verify_source.py" .
           done
       - name: Run published-package consumers
@@ -63,5 +64,6 @@ jobs:
           cd "$RUNNER_TEMP/officeimo-documentation-examples/published"
           dotnet run --project "$GITHUB_WORKSPACE/Build/DocumentationExamples/Word/Word.csproj" -c Release -f net8.0 -p:OfficeIMODocumentationUsePublishedPackages=true --artifacts-path "$RUNNER_TEMP/officeimo-documentation-published-build"
           dotnet run --project "$GITHUB_WORKSPACE/Build/DocumentationExamples/Excel/Excel.csproj" -c Release -f net8.0 -p:OfficeIMODocumentationUsePublishedPackages=true --artifacts-path "$RUNNER_TEMP/officeimo-documentation-published-build"
+          dotnet run --project "$GITHUB_WORKSPACE/Build/DocumentationExamples/Pdf/Pdf.csproj" -c Release -f net8.0 -p:OfficeIMODocumentationUsePublishedPackages=true --artifacts-path "$RUNNER_TEMP/officeimo-documentation-published-build"
           python3 "$GITHUB_WORKSPACE/Build/DocumentationExamples/verify.py" .
           python3 -m unittest discover -s "$GITHUB_WORKSPACE/Build/DocumentationExamples" -p 'test_verify.py'

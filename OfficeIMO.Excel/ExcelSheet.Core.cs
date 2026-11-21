@@ -26,7 +26,7 @@ namespace OfficeIMO.Excel {
         private UInt32Value _id;
         private WorksheetPart _worksheetPart {
             get {
-                _excelDocument.FlushPendingRowDeletesIfAny();
+                _excelDocument.FlushPendingPackageEditsIfAny();
                 return _worksheetPartValue;
             }
             set => _worksheetPartValue = value;
@@ -45,7 +45,7 @@ namespace OfficeIMO.Excel {
         internal WorksheetPart DeferredMetadataWorksheetPart => _worksheetPart;
         private SpreadsheetDocument _spreadSheetDocument {
             get {
-                _excelDocument.FlushPendingRowDeletesIfAny();
+                _excelDocument.FlushPendingPackageEditsIfAny();
                 return _spreadSheetDocumentValue;
             }
             set => _spreadSheetDocumentValue = value;
@@ -403,12 +403,38 @@ namespace OfficeIMO.Excel {
                 return null;
             }
 
-            if (rowElement is ExcelStoredRow stored && stored.IsStoreAvailable) {
+            if (rowElement is ExcelStoredRow stored && stored.IsStoreAvailable && stored.HasOrderedCells) {
                 int index = stored.Find(column);
                 if (index >= 0) {
                     Cell promoted = stored.Promote(index);
                     CacheLastAccessedCell(rowElement, row, column, promoted);
                     return promoted;
+                }
+
+                using (ExcelStoredRow.BeginRawAccess()) {
+                    return TryGetCellInRow(rowElement, row, column);
+                }
+            }
+
+            return TryGetCellInRow(rowElement, row, column);
+        }
+
+        /// <summary>
+        /// Finds an existing cell for a read that does not keep the element: a stored cell stays stored and is read
+        /// through a detached copy with the same attributes and value. A row whose DOM cells lack canonical references
+        /// is searched in the DOM, where implicit columns count the stored cells before them.
+        /// </summary>
+        private Cell? TryGetCellForReading(int row, int column) {
+            Row? rowElement = TryGetRowElement(row, column);
+            return rowElement == null ? null : TryGetCellForReading(rowElement, row, column);
+        }
+
+        /// <summary>Finds a cell of a row element already located, without moving a stored cell into the DOM.</summary>
+        private Cell? TryGetCellForReading(Row rowElement, int row, int column) {
+            if (rowElement is ExcelStoredRow stored && stored.IsStoreAvailable && stored.HasOrderedCells) {
+                int index = stored.Find(column);
+                if (index >= 0) {
+                    return stored.CreateDetachedCell(index);
                 }
 
                 using (ExcelStoredRow.BeginRawAccess()) {
@@ -426,7 +452,7 @@ namespace OfficeIMO.Excel {
                 return null;
             }
 
-            if (rowElement is ExcelStoredRow stored && stored.IsStoreAvailable) {
+            if (rowElement is ExcelStoredRow stored && stored.IsStoreAvailable && stored.HasOrderedCells) {
                 using (ExcelStoredRow.BeginRawAccess()) {
                     return TryGetCellInRow(rowElement, row, column);
                 }
@@ -667,12 +693,12 @@ namespace OfficeIMO.Excel {
         // Exposed as internal so other components in the same assembly (e.g., ExcelReportBuilder)
         // can reuse the shared-string/inline-string resolution logic when they already have
         // a Cell reference. Prefer using public TryGetCellText(row,col, out text) when possible.
-        internal string GetCellText(Cell cell) {
+        internal string GetCellText(Cell cell, SharedStringCache? sharedStrings = null) {
             // Shared string lookup
             if (cell.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString) {
                 var raw = ExcelWorksheetScan.FindValue(cell)?.InnerText;
                 if (!string.IsNullOrEmpty(raw) && TryParseCellTextSharedStringIndex(raw, out int id)) {
-                    return BuildCellTextSharedStringSnapshot().Get(id) ?? string.Empty;
+                    return (sharedStrings ?? BuildCellTextSharedStringSnapshot()).Get(id) ?? string.Empty;
                 }
 
                 return string.Empty;
@@ -757,7 +783,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static bool TryParseCellTextSharedStringIndex(string? text, out int index) {
+        internal static bool TryParseCellTextSharedStringIndex(string? text, out int index) {
             index = 0;
             if (string.IsNullOrEmpty(text)) {
                 return false;

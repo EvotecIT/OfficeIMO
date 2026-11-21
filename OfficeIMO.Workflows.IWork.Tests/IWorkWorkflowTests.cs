@@ -170,6 +170,33 @@ public sealed partial class IWorkWorkflowTests {
     }
 
     [Fact]
+    public async Task Registered_conversion_runner_runs_only_its_routes() {
+        var runner = OfficeWorkflowRunner.ForRegisteredConversions(IWorkWorkflow.CreateRegistrations());
+        Assert.Equal(
+            IWorkWorkflow.CreateRegistrations().Select(registration => registration.RouteId).OrderBy(id => id, StringComparer.Ordinal),
+            runner.ConversionRoutes.Select(route => route.Id).OrderBy(id => id, StringComparer.Ordinal));
+
+        using var files = new Files("numbers", "xlsx");
+        OfficeWorkflowResult converted = await runner.RunAsync(files.Request("numbers-xlsx"));
+        Assert.True(converted.Succeeded, converted.Summary);
+        Assert.NotNull(converted.ConversionEvidence);
+
+        using var builtIn = new Files("numbers", "pdf");
+        var request = builtIn.Request("docx-pdf");
+        request.RegisteredConversionSettings = null;
+        OfficeWorkflowResult rejected = await runner.RunAsync(request);
+        Assert.Equal(OfficeWorkflowFailureKind.ValidationFailed, rejected.FailureKind);
+        Assert.False(File.Exists(builtIn.Output));
+
+        string provenanceOutput = Path.ChangeExtension(builtIn.Output, ".copy.xlsx");
+        var provenance = await runner.RunProvenanceAsync(new OfficeProvenanceWorkflowRequest {
+            Operation = OfficeProvenanceWorkflowOperation.Remove, InputPath = files.Output, OutputPath = provenanceOutput
+        });
+        Assert.Equal(OfficeWorkflowFailureKind.ValidationFailed, provenance.FailureKind);
+        Assert.False(File.Exists(provenanceOutput));
+    }
+
+    [Fact]
     public async Task Configured_policy_is_captured_and_unknown_visual_coverage_is_rejected() {
         using var files = new Files("pages", "docx");
         var policy = new IWorkConversionOptions { Mode = IWorkConversionMode.VisualOnly, RequireCompleteVisualCoverage = true };

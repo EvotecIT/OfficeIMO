@@ -36,7 +36,7 @@ internal static partial class DocumentReaderEngine {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (filesEnumerated >= effectiveFolder.MaxFiles) break;
 
-                string extension = NormalizeExtension(TryGetExtension(file));
+                string extension = GetRoutingExtension(file);
                 if (!allowedExtensions.Contains(extension) &&
                     !string.Equals(Path.GetFileName(file), "winmail.dat", StringComparison.OrdinalIgnoreCase)) {
                     continue;

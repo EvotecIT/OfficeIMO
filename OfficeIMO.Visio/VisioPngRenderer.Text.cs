@@ -14,10 +14,9 @@ namespace OfficeIMO.Visio {
             double maxWidth,
             double maxHeight,
             double rotateRadians,
-            bool drawLabelBackground,
             VisioRichTextProjection? richText = null) {
             if (richText != null) {
-                DrawRichText(canvas, richText, centerX, centerY, style, maxWidth, maxHeight, rotateRadians, drawLabelBackground);
+                DrawRichText(canvas, richText, centerX, centerY, style, maxWidth, maxHeight, rotateRadians);
                 return;
             }
             text = ResolveRasterDisplayText(text, style);
@@ -49,7 +48,7 @@ namespace OfficeIMO.Visio {
             pixelHeight = plan.Layout.FontSize;
             double renderedPixelHeight = pixelHeight * baselineScale;
 
-            Color? backgroundColor = ResolveTextBackground(style, drawLabelBackground);
+            Color? backgroundColor = ResolveTextBackground(style);
             double padX = Math.Max(canvas.Supersampling * 3D, renderedPixelHeight * 0.22D);
             double padY = Math.Max(canvas.Supersampling * 2D, renderedPixelHeight * 0.16D);
 
@@ -81,12 +80,8 @@ namespace OfficeIMO.Visio {
                 : text;
         }
 
-        private static Color? ResolveTextBackground(VisioTextStyle? style, bool drawLabelBackground) {
-            if (style?.BackgroundColor.HasValue == true) {
-                return ApplyBackgroundTransparency(style.BackgroundColor.Value, style.BackgroundTransparency);
-            }
-
-            return drawLabelBackground ? Color.FromRgba(255, 255, 255, 230) : null;
-        }
+        // Text has a background only when the file states one, as in Visio.
+        private static Color? ResolveTextBackground(VisioTextStyle? style) =>
+            style?.BackgroundColor is Color background ? ApplyBackgroundTransparency(background, style.BackgroundTransparency) : null;
     }
 }

@@ -391,8 +391,10 @@ namespace OfficeIMO.Excel {
                     return TrySetStringTextBinding(Utilities.ExcelSanitizer.DecodeXString(rawText), binding, target);
 
                 case XmlCellKind.Date:
-                    if (binding.SetDateTime != null
-                        && DateTime.TryParse(rawText, _opt.Culture, DateTimeStyles.AssumeLocal, out var dateValue)) {
+                    bool isoDate = ExcelIsoDateText.TryParse(rawText, _opt.Culture, DateTimeStyles.AssumeLocal, out var dateValue);
+                    if (ApplyRejectedDateCell(ClassifyDateCell(rawText, isoDate, binding), rawText, binding, target)) return true;
+
+                    if (isoDate && binding.SetDateTime != null) {
                         binding.SetDateTime(target, dateValue);
                         return true;
                     }

@@ -30,7 +30,7 @@ namespace OfficeIMO.Excel {
                     includeHeaders,
                     includeAutoFilter,
                     autoFit,
-                    _dateTimeOffsetWriteStrategy,
+                    EffectiveDateTimeOffsetWriteStrategy,
                     ct,
                     snapshotTables: true,
                     dateSystem: DateSystem);
@@ -152,7 +152,11 @@ namespace OfficeIMO.Excel {
             Locking.ExecuteWrite(EnsureLock(), () => MaterializeDeferredDataSetImportLocked(ct));
         }
 
-        private void MaterializeDeferredDataSetImportLocked(CancellationToken ct) {
+        /// <param name="ct">Cancels materialization.</param>
+        /// <param name="preserveFastSaveModel">
+        /// Keeps the rows on the direct worksheet writer at save, as a read leaves them unchanged.
+        /// </param>
+        private void MaterializeDeferredDataSetImportLocked(CancellationToken ct, bool preserveFastSaveModel = false) {
             ct.ThrowIfCancellationRequested();
             if (_materializingDeferredDataSetImport) {
                 return;
@@ -169,11 +173,22 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
+            DirectDataSetWorkbookModel? fastSaveModel = null;
+            if (preserveFastSaveModel
+                && TryCreateDirectPackageModel(candidate.Model, out DirectDataSetWorkbookModel? packageModel, out _, allowDrawings: true)) {
+                fastSaveModel = packageModel;
+            }
+
             _directDataSetSaveCandidate = null;
             _materializingDeferredDataSetImport = true;
             try {
                 MaterializeDirectDataSetModel(candidate.Model, cancellationToken: ct);
                 candidate.Dispose();
+                if (fastSaveModel != null) {
+                    _materializedDirectDataSetFastSaveModel = fastSaveModel;
+                    // A read changes nothing, so the next edit must still drop the model.
+                    _materializedDirectDataSetFastSaveModelHasMaterializedWorksheet = true;
+                }
             } catch {
                 if (_directDataSetSaveCandidate == null) {
                     _directDataSetSaveCandidate = candidate;
@@ -558,6 +573,10 @@ namespace OfficeIMO.Excel {
                     cell.CellValue = new CellValue(boolean ? "1" : "0");
                     cell.DataType = CellValues.Boolean;
                     break;
+                case decimal or long or ulong when CoerceValueHelper.TryGetWideNumberText(value, out string wideNumberText):
+                    cell.CellValue = new CellValue(wideNumberText);
+                    cell.DataType = CellValues.String;
+                    break;
                 case byte number:
                     ApplyCapturedDirectOverlayNumber(cell, number);
                     break;
@@ -583,16 +602,16 @@ namespace OfficeIMO.Excel {
                     ApplyCapturedDirectOverlayNumber(cell, number);
                     break;
                 case float number:
-                    ApplyCapturedDirectOverlayNumber(cell, number);
+                    ApplyCapturedDirectOverlayNumber(cell, InvariantNumberText.Get(number));
                     break;
                 case double number:
-                    ApplyCapturedDirectOverlayNumber(cell, number);
+                    ApplyCapturedDirectOverlayNumber(cell, InvariantNumberText.Get(number));
                     break;
                 case decimal number:
                     ApplyCapturedDirectOverlayNumber(cell, number);
                     break;
                 case DateTime dateTime:
-                    ApplyCapturedDirectOverlayNumber(cell, ExcelDateSystemConverter.ToSerial(dateTime, dateSystem));
+                    ApplyCapturedDirectOverlayNumber(cell, InvariantNumberText.Get(ExcelDateSystemConverter.ToSerial(dateTime, dateSystem)));
                     break;
                 default:
                     cell.CellValue = new CellValue(Utilities.ExcelSanitizer.EncodeXString(System.Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty));
@@ -601,8 +620,11 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void ApplyCapturedDirectOverlayNumber<T>(Cell cell, T value) where T : IFormattable {
-            cell.CellValue = new CellValue(value.ToString(null, CultureInfo.InvariantCulture));
+        private static void ApplyCapturedDirectOverlayNumber<T>(Cell cell, T value) where T : IFormattable =>
+            ApplyCapturedDirectOverlayNumber(cell, value.ToString(null, CultureInfo.InvariantCulture));
+
+        private static void ApplyCapturedDirectOverlayNumber(Cell cell, string text) {
+            cell.CellValue = new CellValue(text);
             cell.DataType = CellValues.Number;
         }
 
@@ -627,32 +649,11 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            MaterializePendingDirectCellValueSheetIfNeeded();
-
-            var candidate = _directDataSetSaveCandidate;
-            if (candidate == null || !candidate.IsDeferred) {
+            if (_directDataSetSaveCandidate?.IsDeferred != true && !HasPendingDirectCellValues) {
                 return;
             }
 
-            DirectDataSetWorkbookModel? fastSaveModel = null;
-            if (TryCreateDirectPackageModel(candidate.Model, out DirectDataSetWorkbookModel? packageModel, out _, allowDrawings: true)) {
-                fastSaveModel = packageModel;
-            }
-
-            _directDataSetSaveCandidate = null;
-            candidate.Dispose();
-
-            _materializingDeferredDataSetImport = true;
-            try {
-                MaterializeDirectDataSetModel(candidate.Model);
-                if (fastSaveModel != null) {
-                    _materializedDirectDataSetFastSaveModel = fastSaveModel;
-                    _materializedDirectDataSetFastSaveModelHasMaterializedWorksheet = true;
-                    _preserveMaterializedDirectDataSetFastSaveModelForNextDirtyMark = true;
-                }
-            } finally {
-                _materializingDeferredDataSetImport = false;
-            }
+            MaterializeDeferredDataSetImportLocked(CancellationToken.None, preserveFastSaveModel: true);
         }
 
         private static void InsertWorksheetMetadataElement(Worksheet worksheet, DocumentFormat.OpenXml.OpenXmlElement element, params Type[] beforeTypes) {

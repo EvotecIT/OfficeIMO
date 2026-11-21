@@ -42,7 +42,9 @@ internal static partial class HtmlPdfRenderedConverter {
     // Conversely, an exact non-static program can retain paint through outlines.
     private static bool RetainedFacesCoverLayoutText(string text, OfficeFontInfo font,
         OfficeFontFaceCollection fonts, CancellationToken cancellationToken) {
-        foreach (OfficeFontFallbackRun run in fonts.PlanFallbackRuns(text, font.FamilyName, font.Style)) {
+        IReadOnlyList<OfficeFontFallbackRun> runs = fonts.PlanFallbackRuns(text, font.FamilyName, font.Style);
+        for (int index = 0; index < runs.Count; index++) {
+            OfficeFontFallbackRun run = runs[index];
             cancellationToken.ThrowIfCancellationRequested();
             if (!fonts.TryResolveFaceForText(run.Text, run.FamilyRequest, font.Style, out _)) return false;
         }

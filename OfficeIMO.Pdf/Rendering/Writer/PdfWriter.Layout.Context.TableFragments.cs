@@ -96,7 +96,7 @@ internal static partial class PdfWriter {
                 double room = available - used;
                 if (room <= .001D) break;
                 if (geometry.CellFlows.ContainsKey(row)) {
-                    int firstRows = initial && row == 0 ? Math.Min(table.Rows.Count, style.HeaderRowCount + style.MinimumBodyRowsOnFirstPage) : 0;
+                    int firstRows = initial && row == 0 ? Math.Min(table.Rows.Count, style.HeaderRowCount + GetTableFirstPageBodyRowPreference(style, table.Rows.Count)) : 0;
                     double firstHeight = GetTableRowsHeight(rows.Heights, row, firstRows, gap);
                     if (firstRows > 0 && firstHeight <= textFrameHeight + .001D && firstHeight > room + .001D) break;
                     int lastRows = Math.Min(style.MinimumBodyRowsOnLastPage, Math.Max(0, footerStart - style.HeaderRowCount));
@@ -137,7 +137,7 @@ internal static partial class PdfWriter {
                     if (row == table.Rows.Count - 1 && height + style.SpacingAfter.ToPoints() + finalOutset > room + .001D)
                         room = Math.Max(0D, room - style.SpacingAfter.ToPoints() - finalOutset);
                     int minimumRows = initial && row == 0
-                        ? Math.Min(table.Rows.Count, style.HeaderRowCount + style.MinimumBodyRowsOnFirstPage) : 0;
+                        ? Math.Min(table.Rows.Count, style.HeaderRowCount + GetTableFirstPageBodyRowPreference(style, table.Rows.Count)) : 0;
                     double groupHeight = GetTableRowsHeight(rows.Heights, row, minimumRows, gap);
                     int finalMinimum = Math.Min(style.MinimumBodyRowsOnLastPage, Math.Max(0, footerStart - style.HeaderRowCount));
                     if (line == 0 && finalMinimum > 0 && footerStart - row == finalMinimum) {
@@ -187,7 +187,7 @@ internal static partial class PdfWriter {
                     used += slice.GapAfter;
                     row++; line = 0; tail = false;
                 } else { line += take; break; }
-                int requiredFirstRows = style.HeaderRowCount + Math.Min(style.MinimumBodyRowsOnFirstPage,
+                int requiredFirstRows = style.HeaderRowCount + Math.Min(GetTableFirstPageBodyRowPreference(style, table.Rows.Count),
                     Math.Max(0, footerStart - style.HeaderRowCount));
                 if (minimumOnly && (!initial || row >= Math.Max(1, requiredFirstRows))) break;
             }

@@ -1,0 +1,402 @@
+{
+  "description": "Opt-in large real-world YAML corpus. Update-YamlLargeCorpus.ps1 fetches each source at its pinned commit into a local cache; the files are never committed. Globs are relative to the repository root ('**' spans folders, '{a,b}' lists alternatives). 'max' samples a sorted match list evenly; 'exclude' paths are recorded with their reason and not fetched; 'classify' marks fetched files that are not YAML (templating) as excluded with a reason.",
+  "sources": [
+    {
+      "id": "starter-workflows",
+      "category": "GitHubActions",
+      "repository": "https://github.com/actions/starter-workflows",
+      "commit": "e3c451d60f119b71caebf13c98ac45da6e15b4b7",
+      "license": "MIT",
+      "licenseFile": "LICENSE",
+      "include": ["**/*.{yml,yaml}"],
+      "why": "GitHub's own workflow templates: 'on:' keys, expressions, matrices and $default-branch placeholders."
+    },
+    {
+      "id": "vscode",
+      "category": "AzurePipelines",
+      "repository": "https://github.com/microsoft/vscode",
+      "commit": "f48c6323eca71d3e6d7eef38c6b4dddaacb2bfbf",
+      "license": "MIT",
+      "licenseFile": "LICENSE.txt",
+      "include": [".github/**/*.{yml,yaml}", "build/azure-pipelines/**/*.{yml,yaml}", ".config/**/*.{yml,yaml}"],
+      "why": "Large Azure Pipelines template tree with ${{ }} template expressions, plus a busy repository's Actions, issue forms and dependabot settings."
+    },
+    {
+      "id": "dotnet-runtime",
+      "category": "AzurePipelines",
+      "repository": "https://github.com/dotnet/runtime",
+      "commit": "a6ecc0e80a43003b676ccb47088075a256b5f796",
+      "license": "MIT",
+      "licenseFile": "LICENSE.TXT",
+      "include": ["eng/pipelines/**/*.{yml,yaml}", ".github/**/*.{yml,yaml}", "eng/common/**/*.{yml,yaml}"],
+      "why": "Deeply templated Azure Pipelines with conditional insertion keys (- ${{ if ... }}:) and long folded conditions."
+    },
+    {
+      "id": "dotnet-arcade",
+      "category": "AzurePipelines",
+      "repository": "https://github.com/dotnet/arcade",
+      "commit": "ac48b193ff381faeb73f097d14ca55a95b284e18",
+      "license": "MIT",
+      "licenseFile": "LICENSE.TXT",
+      "include": ["eng/**/*.{yml,yaml}", "*.{yml,yaml}", ".github/**/*.{yml,yaml}"],
+      "why": "Shared .NET build templates consumed across hundreds of repositories."
+    },
+    {
+      "id": "azure-pipelines-yaml",
+      "category": "AzurePipelines",
+      "repository": "https://github.com/microsoft/azure-pipelines-yaml",
+      "commit": "5d433fcad43a32789a968179469c1e6271cb2fc7",
+      "license": "MIT",
+      "licenseFile": "LICENSE",
+      "include": ["**/*.{yml,yaml}"],
+      "why": "Microsoft's Azure Pipelines starter templates and design samples."
+    },
+    {
+      "id": "gitlab",
+      "category": "GitLabCI",
+      "repository": "https://github.com/gitlabhq/gitlabhq",
+      "commit": "d7b9a6176ab4e279465ba3ee09922cde2b74de47",
+      "license": "MIT",
+      "licenseFile": "LICENSE",
+      "include": [
+        "lib/gitlab/ci/templates/**/*.{yml,yaml}",
+        ".gitlab-ci.yml",
+        ".gitlab/ci/**/*.{yml,yaml}",
+        { "glob": "config/feature_flags/**/*.yml", "max": 600 },
+        { "glob": "config/events/**/*.yml", "max": 300 }
+      ],
+      "exclude": [
+        { "glob": "ee/**", "reason": "Enterprise edition directory is under the GitLab EE license, not MIT." },
+        { "glob": "doc/**", "reason": "Documentation is CC BY-SA 4.0." },
+        { "glob": "jh/**", "reason": "JiHu edition directory has its own license." }
+      ],
+      "why": "GitHub mirror of gitlab-org/gitlab (gitlab.com refuses partial clones of this size). GitLab CI templates and GitLab's own pipeline (extends, !reference tags, anchors, rules), plus thousands of small machine-written definition files."
+    },
+    {
+      "id": "circleci-node-orb",
+      "category": "CircleCI",
+      "repository": "https://github.com/CircleCI-Public/node-orb",
+      "commit": "fc8dbc1a8fd1878f2e564c69ee9fb0608b213b2a",
+      "license": "MIT",
+      "licenseFile": "LICENSE",
+      "include": ["**/*.{yml,yaml}"],
+      "why": "CircleCI orb source and config: << parameters >> placeholders inside scalars."
+    },
+    {
+      "id": "circleci-python-orb",
+      "category": "CircleCI",
+      "repository": "https://github.com/CircleCI-Public/python-orb",
+      "commit": "d44ba4496d51ec651c92cf961c3ebc9cedbc6bae",
+      "license": "MIT",
+      "licenseFile": "LICENSE",
+      "include": ["**/*.{yml,yaml}"],
+      "why": "CircleCI orb source and config."
+    },
+    {
+      "id": "circleci-docker-orb",
+      "category": "CircleCI",
+      "repository": "https://github.com/CircleCI-Public/docker-orb",
+      "commit": "30eaf030e31aac7de14e09209ed55aca318307d1",
+      "license": "MIT",
+      "licenseFile": "LICENSE",
+      "include": ["**/*.{yml,yaml}"],
+      "why": "CircleCI orb source and config."
+    },
+    {
+      "id": "circleci-aws-cli-orb",
+      "category": "CircleCI",
+      "repository": "https://github.com/CircleCI-Public/aws-cli-orb",
+      "commit": "c1e522ecb71818bccf322826825e7945cd5b479e",
+      "license": "MIT",
+      "licenseFile": "LICENSE",
+      "include": ["**/*.{yml,yaml}"],
+      "why": "CircleCI orb source and config."
+    },
+    {
+      "id": "circleci-slack-orb",
+      "category": "CircleCI",
+      "repository": "https://github.com/CircleCI-Public/slack-orb",
+      "commit": "9300c93dc7d20ebb79e7a5cfea77d5a94512071d",
+      "license": "MIT",
+      "licenseFile": "LICENSE",
+      "include": ["**/*.{yml,yaml}"],
+      "why": "CircleCI orb source with embedded JSON message templates in block scalars."
+    },
+    {
+      "id": "kubernetes-examples",
+      "category": "Kubernetes",
+      "repository": "https://github.com/kubernetes/examples",
+      "commit": "22934a040acbb0c0aa103023ccbd871507bf17f6",
+      "license": "Apache-2.0",
+      "licenseFile": "LICENSE",
+      "include": ["**/*.{yml,yaml}"],
+      "why": "Hand-written Kubernetes manifests, many multi-document."
+    },
+    {
+      "id": "kubernetes",
+      "category": "Kubernetes",
+      "repository": "https://github.com/kubernetes/kubernetes",
+      "commit": "233d4264f96aeaad0e7df0fac058c51736b43360",
+      "license": "Apache-2.0",
+      "licenseFile": "LICENSE",
+      "include": [
+        "cluster/addons/**/*.{yml,yaml}",
+        "test/e2e/testing-manifests/**/*.{yml,yaml}",
+        "test/fixtures/**/*.{yml,yaml}",
+        ".github/**/*.{yml,yaml}",
+        { "glob": "staging/**/testdata/**/*.{yml,yaml}", "max": 800 }
+      ],
+      "why": "Add-on manifests with placeholder substitutions, e2e manifests and test fixtures (some deliberately unusual)."
+    },
+    {
+      "id": "kustomize",
+      "category": "Kubernetes",
+      "repository": "https://github.com/kubernetes-sigs/kustomize",
+      "commit": "ace3fedfc2e404f835668905cffebcc62f3b8a39",
+      "license": "Apache-2.0",
+      "licenseFile": "LICENSE",
+      "include": ["examples/**/*.{yml,yaml}", "plugin/**/*.{yml,yaml}", ".github/**/*.{yml,yaml}"],
+      "why": "Kustomization files, patches and generator inputs."
+    },
+    {
+      "id": "argo-workflows",
+      "category": "Kubernetes",
+      "repository": "https://github.com/argoproj/argo-workflows",
+      "commit": "45e810c8f15eec84c13c3a3e9d8dc6d14b97d068",
+      "license": "Apache-2.0",
+      "licenseFile": "LICENSE",
+      "include": ["examples/**/*.{yml,yaml}", "manifests/**/*.{yml,yaml}", "test/e2e/**/*.{yml,yaml}"],
+      "why": "Workflow custom resources with embedded scripts in literal block scalars and {{ }} parameters inside strings."
+    },
+    {
+      "id": "istio",
+      "category": "Helm",
+      "repository": "https://github.com/istio/istio",
+      "commit": "562b793a73db8e66bc69a0fed99457c3794014da",
+      "license": "Apache-2.0",
+      "licenseFile": "LICENSE",
+      "include": ["samples/**/*.{yml,yaml}", "manifests/**/*.{yml,yaml}"],
+      "classify": [
+        { "glob": "manifests/**/templates/**", "pattern": "\\{\\{", "reason": "Helm Go template: '{{ }}' actions are not YAML until rendered." }
+      ],
+      "why": "Service-mesh samples and Helm charts; templates that are plain YAML stay in, Go-templated ones are classified out."
+    },
+    {
+      "id": "bitnami-charts",
+      "category": "Helm",
+      "repository": "https://github.com/bitnami/charts",
+      "commit": "893617002038e004458bab28a14b126de43bc3e7",
+      "license": "Apache-2.0",
+      "licenseFile": "LICENSE.md",
+      "include": ["bitnami/*/values.yaml", "bitnami/*/Chart.yaml", { "glob": "bitnami/*/templates/**/*.yaml", "max": 300 }],
+      "classify": [
+        { "glob": "bitnami/*/templates/**", "pattern": "\\{\\{", "reason": "Helm Go template: '{{ }}' actions are not YAML until rendered." }
+      ],
+      "why": "Very large, heavily commented values.yaml files with ## @param annotations."
+    },
+    {
+      "id": "prometheus-community-charts",
+      "category": "Helm",
+      "repository": "https://github.com/prometheus-community/helm-charts",
+      "commit": "3c4df2496592de5baf64ce231809406c2e4f0e61",
+      "license": "Apache-2.0",
+      "licenseFile": "LICENSE",
+      "include": ["charts/**/values.yaml", "charts/**/Chart.yaml", "charts/**/ci/*.{yml,yaml}", ".github/**/*.{yml,yaml}"],
+      "why": "Helm values with embedded alerting rules and Grafana JSON in block scalars."
+    },
+    {
+      "id": "awesome-compose",
+      "category": "Compose",
+      "repository": "https://github.com/docker/awesome-compose",
+      "commit": "30f4b7f6a6c3b0c0ecf4d4efb0de203c48d11562",
+      "license": "CC0-1.0",
+      "licenseFile": "LICENSE",
+      "include": ["**/*.{yml,yaml}"],
+      "why": "Docker's curated Compose samples."
+    },
+    {
+      "id": "openapi-directory",
+      "category": "OpenApi",
+      "repository": "https://github.com/APIs-guru/openapi-directory",
+      "commit": "f04b8d0bcd39c52e1cf3ad7a5fe744709832ae49",
+      "license": "CC0-1.0",
+      "licenseFile": "LICENSE",
+      "include": [{ "glob": "APIs/**/openapi.yaml", "max": 500 }],
+      "maxFileBytes": 4194304,
+      "why": "Real API descriptions, sampled evenly across providers and bounded in size; long quoted descriptions and deep schemas."
+    },
+    {
+      "id": "openapi-specification",
+      "category": "OpenApi",
+      "repository": "https://github.com/OAI/OpenAPI-Specification",
+      "commit": "4f86429f134f7e48b6351563549b4502fc69de52",
+      "license": "Apache-2.0",
+      "licenseFile": "LICENSE",
+      "include": ["**/*.{yml,yaml}"],
+      "why": "Specification examples, schemas and test fixtures."
+    },
+    {
+      "id": "ansible-for-devops",
+      "category": "Ansible",
+      "repository": "https://github.com/geerlingguy/ansible-for-devops",
+      "commit": "86e1bf80098239cd995d54217585e8d61117d2e7",
+      "license": "MIT",
+      "licenseFile": "LICENSE",
+      "include": ["**/*.{yml,yaml}"],
+      "why": "Playbooks, roles and inventories with Jinja expressions inside quoted scalars and YAML 1.1 yes/no booleans."
+    },
+    {
+      "id": "cloudformation-templates",
+      "category": "CloudFormation",
+      "repository": "https://github.com/aws-cloudformation/aws-cloudformation-templates",
+      "commit": "a0f43bc6d20813052892546f445037cf84c75b54",
+      "license": "Apache-2.0",
+      "licenseFile": "LICENSE.txt",
+      "include": ["**/*.{yml,yaml}"],
+      "why": "CloudFormation short-form intrinsic tags (!Ref, !Sub, !GetAtt, !If) in every position."
+    },
+    {
+      "id": "serverless-application-model",
+      "category": "CloudFormation",
+      "repository": "https://github.com/aws/serverless-application-model",
+      "commit": "88724d3bc8bc7f60d5ef1f4d53edb8c5353221fb",
+      "license": "Apache-2.0",
+      "licenseFile": "LICENSE",
+      "include": [{ "glob": "tests/translator/input/**/*.{yml,yaml}", "max": 900 }, "examples/**/*.{yml,yaml}"],
+      "why": "SAM translator inputs: every SAM resource shape, intrinsic tags and edge cases written by the SAM team."
+    },
+    {
+      "id": "serverless-patterns",
+      "category": "CloudFormation",
+      "repository": "https://github.com/aws-samples/serverless-patterns",
+      "commit": "23b5a9ec6b25c30268bae70b334b0dffca74d7ee",
+      "license": "MIT-0",
+      "licenseFile": "LICENSE",
+      "include": [{ "glob": "*/{template,template-*}.{yml,yaml}", "max": 900 }],
+      "why": "Community SAM templates written by many authors, so indentation and quoting habits vary."
+    },
+    {
+      "id": "home-assistant-core",
+      "category": "HomeAssistant",
+      "repository": "https://github.com/home-assistant/core",
+      "commit": "a3c1b933c080a15c662fd259987f728e052fd630",
+      "license": "Apache-2.0",
+      "licenseFile": "LICENSE.md",
+      "include": ["homeassistant/components/*/services.yaml", { "glob": "homeassistant/components/*/quality_scale.yaml", "max": 400 }, ".github/**/*.{yml,yaml}"],
+      "why": "Integration service descriptions with selectors, and quality-scale checklists."
+    },
+    {
+      "id": "frenck-home-assistant-config",
+      "category": "HomeAssistant",
+      "repository": "https://github.com/frenck/home-assistant-config",
+      "commit": "3aa23d58799c3a00de2bf0072e29062049b662c9",
+      "license": "MIT",
+      "licenseFile": "LICENSE.md",
+      "include": ["**/*.{yml,yaml}"],
+      "why": "A real Home Assistant configuration split with !include, !include_dir_named, !secret and Jinja templates."
+    },
+    {
+      "id": "mkdocs-material",
+      "category": "Docs",
+      "repository": "https://github.com/squidfunk/mkdocs-material",
+      "commit": "ec6319412936a1aa50285192fbc8b816d396c12c",
+      "license": "MIT",
+      "licenseFile": "LICENSE",
+      "include": ["*.yml", "docs/**/*.md", ".github/**/*.{yml,yaml}", "src/**/*.yml"],
+      "why": "mkdocs.yml with !!python/name tags and Markdown front matter."
+    },
+    {
+      "id": "jekyll",
+      "category": "Docs",
+      "repository": "https://github.com/jekyll/jekyll",
+      "commit": "97c3bdc822df9d5bea4c269b29a28de5a5e29d70",
+      "license": "MIT",
+      "licenseFile": "LICENSE",
+      "include": ["docs/**/*.{yml,yaml}", "docs/**/*.md", ".github/**/*.{yml,yaml}", "*.yml", "lib/**/*.yml"],
+      "why": "Jekyll site configuration, data files and post front matter."
+    },
+    {
+      "id": "hugo-docs",
+      "category": "Docs",
+      "repository": "https://github.com/gohugoio/hugoDocs",
+      "commit": "ad19e91d20148d22f717365b75d24ff9cff92ad4",
+      "license": "Apache-2.0",
+      "licenseFile": "content/LICENSE.md",
+      "include": ["content/**/*.md", "data/**/*.{yml,yaml}"],
+      "why": "Hugo documentation front matter (dates, aliases, lists) and data files. Pages with TOML front matter are recorded as excluded."
+    },
+    {
+      "id": "github-docs",
+      "category": "Docs",
+      "repository": "https://github.com/github/docs",
+      "commit": "404a5f4de6cd5311e3ce2d5c076571291e0107d6",
+      "license": "CC-BY-4.0",
+      "licenseFile": "LICENSE",
+      "include": [{ "glob": "data/**/*.{yml,yaml}", "max": 1200 }, { "glob": "content/actions/**/*.md", "max": 400 }],
+      "why": "GitHub documentation data and front matter: versioning maps and Liquid inside YAML strings."
+    },
+    {
+      "id": "flutter",
+      "category": "AppConfig",
+      "repository": "https://github.com/flutter/flutter",
+      "commit": "fffd8c22ae64bcc94f14b9c747c07ea129e4b40b",
+      "license": "BSD-3-Clause",
+      "licenseFile": "LICENSE",
+      "include": [{ "glob": "**/pubspec.yaml", "max": 700 }, { "glob": "**/analysis_options.yaml", "max": 200 }, ".ci.yaml", ".github/**/*.{yml,yaml}"],
+      "why": "Dart pubspec files with dependency pins and checksum comments, analysis options and Flutter's large .ci.yaml."
+    },
+    {
+      "id": "conda-staged-recipes",
+      "category": "AppConfig",
+      "repository": "https://github.com/conda-forge/staged-recipes",
+      "commit": "90e0fd4159cd932e34ca1db8d8e75012a5aa5009",
+      "license": "BSD-3-Clause",
+      "licenseFile": "LICENSE.txt",
+      "include": ["recipes/**/*.{yml,yaml}", ".github/**/*.{yml,yaml}", "*.yml"],
+      "classify": [
+        { "glob": "recipes/**", "pattern": "\\{%|(?<!\\$)\\{\\{", "reason": "conda-build Jinja template: '{% %}' and '{{ }}' are not YAML until rendered." }
+      ],
+      "why": "Conda recipes: new-style recipe.yaml is YAML with ${{ }} expressions, old-style meta.yaml is Jinja and is classified out."
+    },
+    {
+      "id": "conda",
+      "category": "AppConfig",
+      "repository": "https://github.com/conda/conda",
+      "commit": "336f69df682bb62dfc887685213920208edfb43e",
+      "license": "BSD-3-Clause",
+      "licenseFile": "LICENSE",
+      "include": ["tests/**/*.{yml,yaml}", "*.{yml,yaml}", ".github/**/*.{yml,yaml}"],
+      "why": "Conda environment files, condarc settings and test fixtures."
+    },
+    {
+      "id": "prometheus",
+      "category": "AppConfig",
+      "repository": "https://github.com/prometheus/prometheus",
+      "commit": "997549d4479dbc52382c83679dd998cd1c8eff27",
+      "license": "Apache-2.0",
+      "licenseFile": "LICENSE",
+      "include": ["**/testdata/**/*.{yml,yaml}", "documentation/examples/**/*.{yml,yaml}", ".github/**/*.{yml,yaml}", "*.yml"],
+      "why": "Prometheus configuration and rule files, including deliberately bad configurations used by config tests."
+    },
+    {
+      "id": "opentelemetry-collector-contrib",
+      "category": "AppConfig",
+      "repository": "https://github.com/open-telemetry/opentelemetry-collector-contrib",
+      "commit": "dae11e6379ac0c218c2b0723f8e6f56888278b96",
+      "license": "Apache-2.0",
+      "licenseFile": "LICENSE",
+      "include": [{ "glob": "**/metadata.yaml", "max": 400 }, { "glob": "**/testdata/**/*.{yml,yaml}", "max": 1200 }, ".github/**/*.{yml,yaml}"],
+      "why": "Collector configuration files, component metadata and pipeline test inputs."
+    },
+    {
+      "id": "aspire",
+      "category": "AppConfig",
+      "repository": "https://github.com/microsoft/aspire",
+      "commit": "cd9e0e8d159d20f3cf7e64eda2415dcc3d40c168",
+      "license": "MIT",
+      "licenseFile": "LICENSE.TXT",
+      "include": ["**/*.{yml,yaml}"],
+      "why": ".NET Aspire repository YAML: pipelines, Actions, dependabot and playground deployment manifests."
+    }
+  ]
+}

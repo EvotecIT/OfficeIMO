@@ -118,6 +118,10 @@ Table borders follow the Word style and direct cell settings: `nil` suppresses a
 
 Collapsed borders and authored cell margins contribute to row spacing and page or column fitting. Ordinary flow tables clear their leading and trailing border paint; continued rows use the border clearance at their new frame, and repeated headers retain their source spacing. Text in vertically merged cells that cross a page boundary can still appear on the earlier page. That fragmentation remains outside the qualified layout mapping.
 
+In Word 2013 and later layout, a table with repeated header rows keeps those rows with the first fragment of the following row that can legally start a page. A long row splits instead of moving to the next page as a whole, and the header is never left alone at the bottom of a page. Earlier compatibility modes and native DOC keep the header with the whole first row.
+
+Shaded headings paint their paragraph fill behind the heading lines, between the paragraph indents, and keep their outline entry, tag, links and keep-with-next behaviour.
+
 Set `cell.TextDirection` to `WordTextDirection.TopToBottomRightToLeft` or `WordTextDirection.BottomToTopLeftToRight` to export Latin cell text with a quarter turn. Borders and padding retain their physical page axes, and inline pictures remain upright at their authored size. Automatic turned text rows use paragraph-mark size and line spacing instead of increasing their height with the visible run font; exact row heights retain their source box. Automatic column widths use the visible text's cross-axis line box. A turned cell's text, objects and links are consumed on its first row fragment when a neighboring cell continues onto another page. Flow, column and canvas tables share the resolved text shrink scale.
 
 East Asian vertical glyph layout and exact automatic sizing for cells with hidden end marks or embedded objects remain outside the qualified mapping. Font metrics and source compatibility settings can still affect absolute cell geometry.
@@ -125,6 +129,8 @@ East Asian vertical glyph layout and exact automatic sizing for cells with hidde
 Inline pictures in table cells retain their position among the paragraph's text, including multiple pictures in one run. Their authored display dimensions and alternative descriptions pass to the shared PDF layout; exact-height lines can clip them. Mixed picture runs retain visible text, and hidden runs suppress their pictures in body content, tables, headers and footers. Nested-table frames use the bounded inline-table profile below.
 
 Picture crops, rotation and horizontal or vertical mirroring pass through the shared PDF image style in body paragraphs, table cells, headers and footers. Supported inline pictures in footnote and endnote paragraphs use the same image-style projection. Supported floating pictures retain those transforms at their resolved page anchors. Crop coordinates select the source image before the display transform; the authored layout box continues to determine line and table spacing. Negative crop outsets and collapsed source rectangles report `NativeImageCropApproximated` and fit the complete source to the authored frame. Floating pictures inside notes and unsupported drawing effects remain outside the supported note profile.
+
+SVG pictures, stored with an `asvg:svgBlip` part beside their PNG fallback, are drawn as PDF vector content at their placed size with the same crop and transforms. Each distinct drawing is written once and shared by its placements. An SVG part the PDF writer cannot read exports the stored PNG fallback, and SVG paint the vector writer cannot express is rasterized at the placed size; both report `svg-image-raster-fallback`. Pictures with a click hyperlink keep it as a PDF link over the picture frame, whether inline, placed in document flow or floating at their anchor.
 
 Ordinary inline DrawingML pictures in body paragraphs retain their authored display frame, including pictures wider or taller than the text area and image-only paragraphs. Paragraph alignment and surrounding text determine placement; the page boundary clips paint outside the page. A tall picture line can move to a fresh page or column, where a picture taller than the available frame retains its size. Exact-height body lines clip the picture paint to their paragraph segment without applying that picture clip to adjacent text. Pictures in table cells, text boxes, picture content controls, equation paragraphs and running stories retain their separate sizing and fallback paths.
 
@@ -154,9 +160,18 @@ Run character width (`w:w`) and tracking (`w:spacing`) flow through document,
 table, paragraph and character styles, with direct formatting and explicit resets
 taking precedence. Body text, list markers, table cells, hyperlinks and header/footer
 paragraphs, including generated page fields, retain the effective values. Width scaling preserves font height;
-tracking remains an advance in page points. These saved run settings do not
-implement the separate dynamic table-cell Fit Text policy. Font substitution can
-still change exact line endings and glyph appearance.
+tracking remains an advance in page points. Font substitution can still change
+exact line endings and glyph appearance.
+
+Table cells with Fit Text (`w:tcFitText`) fill the cell's text width line by line
+without changing font height: longer lines are condensed with character width
+scaling and shorter lines are spread with character spacing, replacing any authored
+character width and spacing on those lines. Lines ending in Hebrew, Arabic or another
+connected script are widened with character width scaling so their letters stay joined,
+and so is a line with a single visible character.
+Each visible paragraph in the cell fits on its own. Lines containing tabs or inline
+objects keep their authored layout, and cells that also hold a nested table keep
+their existing layout.
 
 Run kerning (`w:kern`) inherits through document, paragraph, character, and table styles. A positive minimum font size enables kerning at that size and above; zero disables it. Compatible Latin text runs retain pair kerning across color and link changes in paragraphs, table cells, headers, and footers. Font or size changes, disabled kerning, and text separators end that boundary. Numbering labels retain their unkerned advances, including labels with a numbering-level or paragraph-mark kerning setting. Their measurement and rendering use the same feature settings.
 

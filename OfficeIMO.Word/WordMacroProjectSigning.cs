@@ -263,8 +263,11 @@ namespace OfficeIMO.Word {
         /// <summary>Gets or sets an optional RFC 3161 timestamp-authority URL.</summary>
         public Uri? TimestampAuthorityUrl { get; set; }
 
-        /// <summary>Gets or sets how existing OPC package signatures are handled. The default blocks VBA signing.</summary>
-        public WordSignedDocumentSavePolicy ExistingPackageSignaturePolicy { get; set; } = WordSignedDocumentSavePolicy.Block;
+        /// <summary>
+        /// Gets or sets how existing OPC package signatures are handled when VBA signing rewrites the package.
+        /// The default blocks VBA signing.
+        /// </summary>
+        public OfficeSignatureMutationPolicy SignatureMutationPolicy { get; set; } = OfficeSignatureMutationPolicy.BlockSave;
     }
 
     /// <summary>Content-binding, certificate, revocation, and timestamp validation of a VBA signature.</summary>

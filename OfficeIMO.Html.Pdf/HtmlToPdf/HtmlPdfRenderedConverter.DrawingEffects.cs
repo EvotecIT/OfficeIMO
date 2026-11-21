@@ -70,6 +70,20 @@ internal static partial class HtmlPdfRenderedConverter {
         return true;
     }
 
+    private static bool ContainsBlendMode(OfficeDrawing drawing) {
+        foreach (OfficeDrawingElement element in drawing.Elements) {
+            if (element is OfficeDrawingEffectGroup effectGroup) {
+                if (effectGroup.BlendMode != OfficeBlendMode.Normal || ContainsBlendMode(effectGroup.Drawing)) return true;
+                if (effectGroup.SoftMask is OfficeDrawingSoftMask mask && ContainsBlendMode(mask.Drawing)) return true;
+            } else if (element is OfficeDrawingGroup drawingGroup) {
+                if (ContainsBlendMode(drawingGroup.Drawing)) return true;
+            } else if (element is OfficeDrawingTilingPattern tilingPattern && ContainsBlendMode(tilingPattern.Tile)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static bool TryGetRasterizedDrawingEffectReason(OfficeDrawing drawing, out string reason) {
         foreach (OfficeDrawingElement element in drawing.Elements) {
             if (element is OfficeDrawingEffectGroup effectGroup) {
@@ -82,10 +96,7 @@ internal static partial class HtmlPdfRenderedConverter {
                     }
                     if (TryGetRasterizedDrawingEffectReason(mask.Drawing, out reason)) return true;
                 }
-                if (effectGroup.BlendMode != OfficeBlendMode.Normal) {
-                    reason = "the " + effectGroup.BlendMode + " blend mode";
-                    return true;
-                }
+                // Blend modes stay native: the PDF effect group's /BM composites with the page underneath.
                 if (TryGetRasterizedDrawingEffectReason(effectGroup.Drawing, out reason)) return true;
             } else if (element is OfficeDrawingGroup drawingGroup) {
                 if (TryGetRasterizedDrawingEffectReason(drawingGroup.Drawing, out reason)) return true;

@@ -12,7 +12,7 @@ internal static partial class CsvParser
         ref TVisitor fieldVisitor)
         where TVisitor : struct, ICsvFieldSpanVisitor
     {
-        if (text.Length >= TextQuoteFreeProbeMinimumLength && text.IndexOf('"') < 0)
+        if (options.QuotesAreData || (text.Length >= TextQuoteFreeProbeMinimumLength && text.IndexOf('"') < 0))
         {
             ReadFieldSpans(text.AsSpan(), options, recordsToSkip, ref fieldVisitor, textMayContainQuote: false);
             return;
@@ -34,7 +34,7 @@ internal static partial class CsvParser
         // Quote-free text already uses the span reader above. The remaining
         // quoted batch path stays on its existing AVX2 backend.
         if (!System.Runtime.Intrinsics.X86.Avx2.IsSupported ||
-            HasFieldLengthLimits(options) ||
+            RequiresFieldMaterialization(options) ||
             UsesTextDelimiter(options) ||
             (NeedsLogicalCommentSkipping(options) &&
                 HasPotentialTextCommentRecord(text.AsSpan(), options.CommentCharacter)) ||

@@ -196,6 +196,27 @@ public sealed class PdfEditorCommandTests {
             .Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText(text),
                 style: new PdfParagraphStyle { LineHeight = 2D }))))).ToBytes();
 
+    [Theory]
+    [InlineData(90)]
+    [InlineData(180)]
+    [InlineData(270)]
+    public void AddImage_FillsTheDrawnRectangleOnRotatedPages(int rotation) {
+        byte[] blank = PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600D), global::OfficeIMO.OfficeLength.Points(800D)))).ToBytes();
+        byte[] rotated = PdfDocument.Load(new System.IO.MemoryStream(blank)).Pages.Rotate(rotation, PdfPageSelection.From(1)).ToBytes();
+
+        byte[] withImage = PdfEditorCommandExecutor.Apply(
+            rotated,
+            PdfEditorCommandFactory.Create(rotated, PdfEditorTool.AddImage, CreateGesture(), CreateProperties() with { ImageBytes = TinyPng }));
+
+        PdfPageInteractionRegion image = Assert.Single(
+            PdfDocument.Load(new System.IO.MemoryStream(withImage)).Render.Interactions(1).Regions,
+            static region => region.Kind == PdfInteractionKind.Image);
+        Assert.Equal(40D, image.Quad.Left, 3);
+        Assert.Equal(50D, image.Quad.Top, 3);
+        Assert.Equal(180D, image.Quad.Right, 3);
+        Assert.Equal(100D, image.Quad.Bottom, 3);
+    }
+
     private static PdfEditorGesture CreateGesture() => new(
         1,
         40D,

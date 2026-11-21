@@ -2857,6 +2857,27 @@ public partial class PdfUnderstandingPipelineTests {
     }
 
     [Fact]
+    public void AdvancedReadingOrder_StaysWithinDefaultWorkForThousandsOfStackedRegions() {
+        // A scanned page can yield thousands of one-line regions. Testing every region as a page-wide
+        // edge band charged region-count squared work and exhausted the default page budget.
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("placeholder")).ToBytes();
+        PdfReadPage sourcePage = PdfReadDocument.Open(pdf).Pages[0];
+        var context = new PdfUnderstandingPageContext(sourcePage, 1, new PdfTextLayoutOptions(), 100_000, 100_000);
+        const int count = 4_000;
+        PdfUnderstandingRegion[] regions = Enumerable.Range(0, count)
+            .Select(index => new PdfUnderstandingRegion(new[] {
+                CreateUnderstandingLine("Line " + index, 50D, 160D, 760D - index * 0.18D)
+            }))
+            .Reverse()
+            .ToArray();
+
+        IReadOnlyList<PdfUnderstandingRegion> ordered = new PdfRecursiveXyCutReadingOrderStage().Order(context, regions);
+
+        Assert.Equal(Enumerable.Range(0, count).Select(static index => "Line " + index), ordered.Select(static region => region.Text));
+        Assert.True(context.WorkUnitsConsumed < 1_000_000, $"Expected near-linear ordering work, but {context.WorkUnitsConsumed} units were charged.");
+    }
+
+    [Fact]
     public void AdvancedReadingOrder_IsolatesCloseSpanningHeadingBeforeColumns() {
         byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("placeholder")).ToBytes();
         PdfReadPage sourcePage = PdfReadDocument.Open(pdf).Pages[0];

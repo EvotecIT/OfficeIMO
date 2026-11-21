@@ -41,8 +41,11 @@ public static partial class OfficeDrawingRasterRenderer {
             TextShapingProvider = drawing.TextShapingProvider,
             TextShapingLanguage = drawing.TextShapingLanguage
         };
-        viewport.AddDrawingForClippedRendering(drawing, -x / scale, -y / scale, null);
-        return RenderCore(viewport, options, scale, scale, fonts: drawing.Fonts, pixelWidth: width, pixelHeight: height);
+        viewport.AddDrawingForClippedRendering(drawing.CreateCompositionSource(), -x / scale, -y / scale, null);
+        if (drawing.PostCompositionColorTransform != null)
+            viewport.SetPostCompositionColorTransform(drawing.PostCompositionColorTransform);
+        return RenderCore(viewport, options, scale, scale, fonts: options.InheritedFonts ?? drawing.Fonts,
+            pixelWidth: width, pixelHeight: height);
     }
 
     private static OfficeRasterImage RenderCore(OfficeDrawing drawing, OfficeDrawingRasterRenderOptions options,
@@ -82,7 +85,7 @@ public static partial class OfficeDrawingRasterRenderer {
         OfficeRasterCanvas canvas = new OfficeRasterCanvas(
             image,
             font: null,
-            fonts: fonts ?? drawing.Fonts,
+            fonts: fonts ?? options.InheritedFonts ?? drawing.Fonts,
             textShapingProvider: options.TextShapingProvider ?? drawing.TextShapingProvider,
             textShapingLanguage: options.TextShapingLanguage ?? drawing.TextShapingLanguage,
             diagnosticSink: options.DiagnosticSink,
@@ -101,6 +104,7 @@ public static partial class OfficeDrawingRasterRenderer {
         canvas.MaximumClipEdgeChecks = options.MaximumClipEdgeChecks;
         RenderElements(canvas, drawing.Elements, scale, imageCodec, options.MaximumRasterPixels, options.CancellationToken);
 
+        ApplyPostCompositionColorTransform(image, drawing.PostCompositionColorTransform, options.CancellationToken);
         return image;
     }
 
@@ -113,29 +117,51 @@ public static partial class OfficeDrawingRasterRenderer {
         System.Threading.CancellationToken cancellationToken) {
         foreach (OfficeDrawingElement element in elements) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (element is OfficeDrawingShape shape) {
-                RenderShape(canvas, shape, scale);
-            } else if (element is OfficeDrawingText text) {
-                bool preserve = canvas.PreservePaintedGlyphOrder;
-                canvas.PreservePaintedGlyphOrder = text.PreservesPaintedGlyphs;
-                try {
-                    RenderText(canvas, text, scale, maximumRasterPixels);
-                } finally {
-                    canvas.PreservePaintedGlyphOrder = preserve;
-                }
-            } else if (element is OfficeDrawingRichText richText) {
-                RenderRichText(canvas, richText, scale);
-            } else if (element is OfficeDrawingImage drawingImage) {
-                RenderImage(canvas, drawingImage, scale, imageCodec, maximumRasterPixels, cancellationToken);
-            } else if (element is OfficeDrawingImagePattern imagePattern) {
-                RenderImagePattern(canvas, imagePattern, scale, imageCodec, maximumRasterPixels, cancellationToken);
-            } else if (element is OfficeDrawingTilingPattern tilingPattern) {
-                RenderTilingPattern(canvas, tilingPattern, scale, imageCodec, maximumRasterPixels, cancellationToken);
-            } else if (element is OfficeDrawingGroup drawingGroup) {
-                RenderGroup(canvas, drawingGroup, scale, imageCodec, maximumRasterPixels, cancellationToken);
-            } else if (element is OfficeDrawingEffectGroup effectGroup) {
-                RenderEffectGroup(canvas, effectGroup, scale, imageCodec, maximumRasterPixels, cancellationToken);
+            if (!canvas.PdfRasterConventions) {
+                RenderElement(canvas, element, scale, imageCodec, maximumRasterPixels, cancellationToken);
+                continue;
             }
+            // Like PDF viewers, a page render omits one element whose coverage work exceeds the raster limit instead of
+            // failing the page. Rows painted before the limit was reached stay painted; the sink records the omission.
+            try {
+                RenderElement(canvas, element, scale, imageCodec, maximumRasterPixels, cancellationToken);
+            } catch (OfficeRasterWorkLimitException exception) {
+                canvas.DiagnosticSink?.Add(new OfficeImageExportDiagnostic(OfficeImageExportDiagnosticSeverity.Warning,
+                    OfficeRasterWorkLimitException.DiagnosticCode, exception.Message, canvas.DiagnosticSource,
+                    OfficeConversionLossKind.Omission));
+            }
+        }
+    }
+
+    private static void RenderElement(
+        OfficeRasterCanvas canvas,
+        OfficeDrawingElement element,
+        double scale,
+        IOfficeRasterImageCodec? imageCodec,
+        long maximumRasterPixels,
+        System.Threading.CancellationToken cancellationToken) {
+        if (element is OfficeDrawingShape shape) {
+            RenderShape(canvas, shape, scale, maximumRasterPixels);
+        } else if (element is OfficeDrawingText text) {
+            bool preserve = canvas.PreservePaintedGlyphOrder;
+            canvas.PreservePaintedGlyphOrder = text.PreservesPaintedGlyphs;
+            try {
+                RenderText(canvas, text, scale, maximumRasterPixels);
+            } finally {
+                canvas.PreservePaintedGlyphOrder = preserve;
+            }
+        } else if (element is OfficeDrawingRichText richText) {
+            RenderRichText(canvas, richText, scale);
+        } else if (element is OfficeDrawingImage drawingImage) {
+            RenderImage(canvas, drawingImage, scale, imageCodec, maximumRasterPixels, cancellationToken);
+        } else if (element is OfficeDrawingImagePattern imagePattern) {
+            RenderImagePattern(canvas, imagePattern, scale, imageCodec, maximumRasterPixels, cancellationToken);
+        } else if (element is OfficeDrawingTilingPattern tilingPattern) {
+            RenderTilingPattern(canvas, tilingPattern, scale, imageCodec, maximumRasterPixels, cancellationToken);
+        } else if (element is OfficeDrawingGroup drawingGroup) {
+            RenderGroup(canvas, drawingGroup, scale, imageCodec, maximumRasterPixels, cancellationToken);
+        } else if (element is OfficeDrawingEffectGroup effectGroup) {
+            RenderEffectGroup(canvas, effectGroup, scale, imageCodec, maximumRasterPixels, cancellationToken);
         }
     }
 
@@ -159,6 +185,15 @@ public static partial class OfficeDrawingRasterRenderer {
         if (drawingGroup.ClipPath.Kind == OfficeClipPathKind.Empty) return;
         canvas = canvas.WithDrawingTextProfile(drawingGroup.InnerDrawing);
         using (PushGroupClip(canvas, drawingGroup, scale)) {
+            if (drawingGroup.InnerDrawing.PostCompositionColorTransform != null) {
+                OfficeTransform placement = OfficeTransform.Translate(
+                    drawingGroup.X + drawingGroup.ContentOffsetX, drawingGroup.Y + drawingGroup.ContentOffsetY);
+                if (drawingGroup.FrameTransform.HasValue && drawingGroup.FrameTransform.Value.HasTransform)
+                    placement = placement.Then(drawingGroup.FrameTransform.Value.CreateDestinationTransform());
+                RenderEffectGroup(canvas, new OfficeDrawingEffectGroup(drawingGroup.InnerDrawing, placement),
+                    scale, imageCodec, maximumRasterPixels, cancellationToken);
+                return;
+            }
             var translated = new OfficeDrawing(
                 Math.Max(1D, canvas.Width / scale),
                 Math.Max(1D, canvas.Height / scale));
@@ -175,6 +210,16 @@ public static partial class OfficeDrawingRasterRenderer {
     }
 
     private static IDisposable PushGroupClip(OfficeRasterCanvas canvas, OfficeDrawingGroup drawingGroup, double scale) {
+        IDisposable primary = PushGroupPrimaryClip(canvas, drawingGroup, scale);
+        if (drawingGroup.ClipPath.Intersections.Count == 0) return primary;
+        OfficeTransform? transform = drawingGroup.FrameTransform.HasValue && drawingGroup.FrameTransform.Value.HasTransform
+            ? drawingGroup.FrameTransform.Value.CreateDestinationTransform()
+            : null;
+        return PushClipIntersections(canvas, drawingGroup.ClipPath, primary,
+            contour => TransformGroupClipContour(drawingGroup, contour, scale, transform));
+    }
+
+    private static IDisposable PushGroupPrimaryClip(OfficeRasterCanvas canvas, OfficeDrawingGroup drawingGroup, double scale) {
         IReadOnlyList<IReadOnlyList<OfficePoint>> contours = CreateGroupClipContours(drawingGroup, scale);
         if (contours.Count > 0) {
             return contours.Count == 1 && drawingGroup.ClipPath.Kind != OfficeClipPathKind.Path
@@ -205,16 +250,20 @@ public static partial class OfficeDrawingRasterRenderer {
     private static OfficePoint ScalePoint(OfficePoint point, double scale) =>
         new OfficePoint(point.X * scale, point.Y * scale);
 
-    private static void RenderShape(OfficeRasterCanvas canvas, OfficeDrawingShape drawingShape, double scale) {
+    private static void RenderShape(OfficeRasterCanvas canvas, OfficeDrawingShape drawingShape, double scale,
+        long maximumRasterPixels = long.MaxValue) {
         if (drawingShape.Shape.ClipPath?.Kind == OfficeClipPathKind.Empty) return;
-        IReadOnlyList<OfficeDrawingShape> glowShapes = CreateGlowShapes(drawingShape);
-        for (int i = 0; i < glowShapes.Count; i++) {
-            RenderShape(canvas, glowShapes[i], scale);
-        }
+        OfficeBlurredShapeEffect? glow = OfficeBlurredShapeEffect.CreateGlow(drawingShape.Shape);
+        if (glow != null) RenderBlurredEffect(canvas, drawingShape, glow, scale, maximumRasterPixels);
 
-        IReadOnlyList<OfficeDrawingShape> shadowShapes = CreateShadowShapes(drawingShape);
-        for (int i = 0; i < shadowShapes.Count; i++) {
-            RenderShape(canvas, shadowShapes[i], scale);
+        OfficeBlurredShapeEffect? softShadow = OfficeBlurredShapeEffect.CreateShadow(drawingShape.Shape);
+        if (softShadow != null) {
+            RenderBlurredEffect(canvas, drawingShape, softShadow, scale, maximumRasterPixels);
+        } else {
+            IReadOnlyList<OfficeDrawingShape> shadowShapes = CreateShadowShapes(drawingShape);
+            for (int i = 0; i < shadowShapes.Count; i++) {
+                RenderShape(canvas, shadowShapes[i], scale);
+            }
         }
 
         IDisposable? clipScope = PushShapeClip(canvas, drawingShape, scale);
@@ -333,6 +382,13 @@ public static partial class OfficeDrawingRasterRenderer {
             return null;
         }
 
+        IDisposable? primary = PushShapePrimaryClip(canvas, drawingShape, clipPath, scale);
+        return clipPath.Intersections.Count == 0
+            ? primary
+            : PushClipIntersections(canvas, clipPath, primary, contour => TransformClipContour(drawingShape, contour, scale));
+    }
+
+    private static IDisposable? PushShapePrimaryClip(OfficeRasterCanvas canvas, OfficeDrawingShape drawingShape, OfficeClipPath clipPath, double scale) {
         IReadOnlyList<IReadOnlyList<OfficePoint>> contours = CreateClipContours(drawingShape, clipPath, scale);
         if (contours.Count == 0) {
             return clipPath.Kind is OfficeClipPathKind.Path or OfficeClipPathKind.Empty
@@ -342,6 +398,38 @@ public static partial class OfficeDrawingRasterRenderer {
         return contours.Count == 1 && clipPath.Kind != OfficeClipPathKind.Path
             ? PushSingleContourClip(canvas, clipPath.Kind, contours[0])
             : PushClipPolygons(canvas, contours, clipPath.FillRule);
+    }
+
+    // Each intersection is a further clip on the stack, so the canvas multiplies their antialiased coverage.
+    private static IDisposable PushClipIntersections(OfficeRasterCanvas canvas, OfficeClipPath clipPath, IDisposable? primary,
+        Func<IReadOnlyList<OfficePoint>, IReadOnlyList<OfficePoint>> transformContour) {
+        var scopes = new List<IDisposable>(clipPath.Intersections.Count + 1);
+        if (primary != null) scopes.Add(primary);
+        try {
+            for (int i = 0; i < clipPath.Intersections.Count; i++) {
+                OfficeClipPath intersection = clipPath.Intersections[i];
+                IReadOnlyList<IReadOnlyList<OfficePoint>> contours = OfficeClipPathGeometry.CreateContours(intersection, transformContour);
+                scopes.Add(contours.Count == 0
+                    ? canvas.PushClipRectangle(0, 0, 0, 0)
+                    : PushClipPolygons(canvas, contours, intersection.FillRule));
+            }
+        } catch {
+            new ClipScopeStack(scopes).Dispose();
+            throw;
+        }
+
+        return new ClipScopeStack(scopes);
+    }
+
+    private sealed class ClipScopeStack : IDisposable {
+        private readonly List<IDisposable> _scopes;
+
+        internal ClipScopeStack(List<IDisposable> scopes) => _scopes = scopes;
+
+        public void Dispose() {
+            for (int i = _scopes.Count - 1; i >= 0; i--) _scopes[i].Dispose();
+            _scopes.Clear();
+        }
     }
 
     private static IReadOnlyList<IReadOnlyList<OfficePoint>> CreateClipContours(OfficeDrawingShape drawingShape, OfficeClipPath clipPath, double scale) {
@@ -491,14 +579,35 @@ public static partial class OfficeDrawingRasterRenderer {
         return gradient.WithStops(stops);
     }
 
-    private static IReadOnlyList<OfficeDrawingShape> CreateGlowShapes(OfficeDrawingShape drawingShape) {
-        IReadOnlyList<OfficeShape> layers = OfficeGlowLayerPlanner.CreateShapes(drawingShape.Shape);
-        if (layers.Count == 0) return Array.Empty<OfficeDrawingShape>();
-        var glowShapes = new List<OfficeDrawingShape>(layers.Count);
-        for (int i = 0; i < layers.Count; i++) {
-            glowShapes.Add(new OfficeDrawingShape(layers[i], drawingShape.X, drawingShape.Y));
+    // Draws the effect silhouette once, blurred, instead of a stack of translucent copies.
+    private static void RenderBlurredEffect(OfficeRasterCanvas canvas, OfficeDrawingShape drawingShape, OfficeBlurredShapeEffect effect,
+        double scale, long maximumRasterPixels) {
+        double transformScale = OfficeBlurredShapeEffect.GetAxisScale(effect.Transform);
+        if (!(transformScale > 0D)) return;
+        double deviceDensity = scale * Math.Max(canvas.CoordinateScaleX, canvas.CoordinateScaleY) * transformScale;
+        // The effect surface counts against the render's pixel budget like any other intermediate surface.
+        double density = effect.ChoosePixelsPerUnit(deviceDensity, Math.Min(OfficeBlurredShapeEffect.MaximumRasterPixels, maximumRasterPixels));
+        OfficeTransform pixelTransform = effect.CreateImageTransform(density, drawingShape.X, drawingShape.Y)
+            .Then(OfficeTransform.Scale(scale, scale));
+        if (!canvas.IntersectsVisibleSurface(pixelTransform, Math.Ceiling(effect.LocalWidth * density),
+                Math.Ceiling(effect.LocalHeight * density))) return;
+        long surfacePixels = effect.GetPixelCount(density);
+        canvas.ChargeIntermediateSurfacePixels(surfacePixels, maximumRasterPixels);
+        IDisposable? clipScope = null;
+        try {
+            OfficeRasterImage image = effect.Render(density, canvas.CancellationToken);
+            if (effect.ClipPath != null) {
+                OfficeShape clipCarrier = effect.Silhouette.Clone();
+                clipCarrier.Transform = effect.Transform;
+                clipCarrier.ClipPath = effect.ClipPath;
+                clipScope = PushShapeClip(canvas, new OfficeDrawingShape(clipCarrier,
+                    drawingShape.X + effect.OffsetX, drawingShape.Y + effect.OffsetY), scale);
+            }
+            canvas.DrawAffineImage(image, pixelTransform, effect.Opacity, OfficeBlendMode.Normal, interpolate: true);
+        } finally {
+            clipScope?.Dispose();
+            canvas.TransformedTextBudget.ReleaseIntermediateSurfacePixels(surfacePixels);
         }
-        return glowShapes;
     }
 
     private static IReadOnlyList<OfficeDrawingShape> CreateShadowShapes(OfficeDrawingShape drawingShape) {

@@ -35,6 +35,9 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
         internal XlsbGeneratedRecord? FormulaGroup { get; set; }
 
+        /// <summary>RichStr formatting runs for generated text cells, written as BrtCellRString.</summary>
+        internal XlsbTextRun[]? TextRuns { get; set; }
+
         internal int Row { get; }
 
         internal int Column { get; }

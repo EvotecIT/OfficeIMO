@@ -129,12 +129,17 @@ internal static partial class MarkdownReader {
 
     private static string? TryGetTaskMarkerText(string line, MarkdownLoadOptions? options = null) {
         if (string.IsNullOrEmpty(line)
-            || !TryGetRawListItemContentAfterMarker(line, out string content, options)
-            || !TryGetTaskListMarkerContentStartIndex(content, out _)) {
+            || !TryGetRawListItemContentStartIndex(line, out int contentStart, options)
+            || !TryGetTaskListMarkerContentStartIndex(line, contentStart, out _)) {
             return null;
         }
 
-        return content.Length >= 3 ? content.Substring(0, 3) : null;
+        // A task marker is one of three spellings.
+        return line[contentStart + 1] switch {
+            ' ' => "[ ]",
+            'x' => "[x]",
+            _ => "[X]"
+        };
     }
 
     private static MarkdownSourceSpan? TryCreateListMarkerSourceSpan(string line, int absoluteLineNumber, MarkdownLoadOptions? options, MarkdownReaderState state) {
@@ -162,8 +167,8 @@ internal static partial class MarkdownReader {
             return null;
         }
 
-        if (!TryGetRawListItemContentAfterMarker(line, out string content, options)
-            || !TryGetTaskListMarkerContentStartIndex(content, out _)) {
+        if (!TryGetRawListItemContentStartIndex(line, out int contentStart, options)
+            || !TryGetTaskListMarkerContentStartIndex(line, contentStart, out _)) {
             return null;
         }
 
@@ -249,7 +254,17 @@ internal static partial class MarkdownReader {
     }
 
     private static bool TryGetRawListItemContentAfterMarker(string line, out string content, MarkdownLoadOptions? options = null) {
+        if (TryGetRawListItemContentStartIndex(line, out int contentStart, options)) {
+            content = line.Substring(contentStart);
+            return true;
+        }
+
         content = string.Empty;
+        return false;
+    }
+
+    private static bool TryGetRawListItemContentStartIndex(string line, out int contentStart, MarkdownLoadOptions? options = null) {
+        contentStart = 0;
         if (string.IsNullOrEmpty(line)) return false;
         if (options?.OrderedLists != false &&
             TryGetOrderedListMarkerInfo(line, options, out var orderedLeadingSpaces, out _, out int orderedContentStartIndex, out _, out _)) {
@@ -257,7 +272,7 @@ internal static partial class MarkdownReader {
                 return false;
             }
 
-            content = line.Substring(orderedContentStartIndex);
+            contentStart = orderedContentStartIndex;
             return true;
         }
 
@@ -267,7 +282,7 @@ internal static partial class MarkdownReader {
                 return false;
             }
 
-            content = line.Substring(unorderedContentStartIndex);
+            contentStart = unorderedContentStartIndex;
             return true;
         }
 
@@ -307,7 +322,7 @@ internal static partial class MarkdownReader {
             if (markerEnd >= line.Length || (line[markerEnd] != '.' && line[markerEnd] != ')')) return false;
             delimiter = line[markerEnd];
             if (!TryGetListContentStartIndex(line, markerEnd, out contentStartIndex)) return false;
-            if (!int.TryParse(line.Substring(markerStart, markerEnd - markerStart), NumberStyles.Integer, CultureInfo.InvariantCulture, out number)) number = 1;
+            number = ParseListMarkerNumber(line, markerStart, markerEnd);
             markerStyle = MarkdownOrderedListMarkerStyle.Decimal;
             return true;
         }
@@ -335,6 +350,22 @@ internal static partial class MarkdownReader {
         number = 0;
         markerStyle = MarkdownOrderedListMarkerStyle.Decimal;
         return false;
+    }
+
+    // At most nine digits, so the value fits; as int.TryParse with invariant integer rules, a
+    // marker with a non-ASCII digit counts as 1. Every list line is parsed several times.
+    private static int ParseListMarkerNumber(string line, int start, int end) {
+        int value = 0;
+        for (int index = start; index < end; index++) {
+            char digit = line[index];
+            if (digit < '0' || digit > '9') {
+                return 1;
+            }
+
+            value = (value * 10) + (digit - '0');
+        }
+
+        return value;
     }
 
     private static int GetOrderedListMarkerDelimiterIndex(string line, int leadingSpaces) {
@@ -494,15 +525,23 @@ internal static partial class MarkdownReader {
     }
 
     private static bool HasIndentedCodePaddingAfterMarker(string line, int markerEndIndex) {
-        line = ExpandWhitespaceAfterContainerMarker(line, markerEndIndex + 1);
-        int paddingStart = markerEndIndex + 1;
-        if (paddingStart >= line.Length || line[paddingStart] != ' ') return false;
+        // Counts the spaces ExpandWhitespaceAfterContainerMarker would leave after the marker
+        // without building the expanded line: every list line is checked here.
+        int markerEnd = markerEndIndex + 1;
+        int end = markerEnd;
+        int column = markerEnd;
+        int structuralEndColumn = markerEnd + 5;
+        while (end < line.Length && column < structuralEndColumn && (line[end] == ' ' || line[end] == '\t')) {
+            column += line[end] == '\t' ? 4 - column % 4 : 1;
+            end++;
+        }
 
-        int spaces = 0;
-        int cursor = paddingStart;
-        while (cursor < line.Length && line[cursor] == ' ') {
+        int spaces = column - markerEnd;
+        if (spaces == 0) return false;
+
+        while (end < line.Length && line[end] == ' ') {
             spaces++;
-            cursor++;
+            end++;
         }
 
         return spaces >= 5;

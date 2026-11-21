@@ -4,8 +4,10 @@ Opt-in benchmark verification runner for OfficeIMO.Excel and NPOI.
 
 This project is not included in `OfficeIMO.slnx`, so normal solution restore and
 build do not pull NPOI. Run it explicitly when external benchmark verification
-evidence is wanted. The project sets NPOI's OSMF EULA acceptance property for
-this runner.
+evidence is wanted. NPOI is Apache-2.0 and open in
+[`Build/benchmark-libraries.json`](../Build/benchmark-libraries.json). Its package
+shows a build warning about the OSMF EULA on the prebuilt binaries; the project
+does not accept that EULA for you.
 SkiaSharp is referenced explicitly here because NPOI HSSF comment/drawing reads
 load it at runtime while NPOI's package metadata excludes those runtime assets
 from the transitive reference.
@@ -28,6 +30,16 @@ Run each processor-affinity domain separately on hybrid or cache-asymmetric CPUs
 ```powershell
 dotnet run -c Release --project .\OfficeIMO.Excel.Benchmarks.NPOI\OfficeIMO.Excel.Benchmarks.NPOI.csproj -- --paired-xls-write --rows 25000 --warmup 12 --iterations 40 --affinity 0xFFFF --priority High
 dotnet run -c Release --project .\OfficeIMO.Excel.Benchmarks.NPOI\OfficeIMO.Excel.Benchmarks.NPOI.csproj -- --paired-xls-write --rows 25000 --warmup 12 --iterations 40 --affinity 0xFFFF0000 --priority High
+```
+
+Use the paired XLS read runner to compare reading existing workbooks, such as the
+65K sales fixture or the generated four-column workbook the Excel benchmark project
+reads. Both engines read every cell of the first worksheet, and the run stops
+unless they produce the same checksum over each cell's position and value:
+
+```powershell
+dotnet run -c Release --project .\OfficeIMO.Excel.Benchmarks.NPOI\OfficeIMO.Excel.Benchmarks.NPOI.csproj -- --write-generated-xls .\generated-50000.xls --rows 50000
+dotnet run -c Release --project .\OfficeIMO.Excel.Benchmarks.NPOI\OfficeIMO.Excel.Benchmarks.NPOI.csproj -- --paired-xls-read --input .\65K_Records_Data.xls,.\generated-50000.xls --warmup 3 --iterations 10 --affinity 0xFFFF
 ```
 
 The first lanes are deliberately plain workbook operations:

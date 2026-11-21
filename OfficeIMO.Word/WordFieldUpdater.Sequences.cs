@@ -182,7 +182,7 @@ namespace OfficeIMO.Word {
                     return currentHeadingKey;
                 }
 
-                if (TryGetHeadingLevel(currentParagraph, out int currentLevel) && currentLevel == headingLevel) {
+                if (TryGetHeadingLevel(document, currentParagraph, out int currentLevel) && currentLevel == headingLevel) {
                     currentHeadingKey = paragraphIndex.ToString(CultureInfo.InvariantCulture);
                 }
 
@@ -192,17 +192,9 @@ namespace OfficeIMO.Word {
             return null;
         }
 
-        private static bool TryGetHeadingLevel(Paragraph paragraph, out int level) {
-            level = 0;
-            string? styleId = paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value;
-            if (styleId is not { Length: 8 } ||
-                !styleId.StartsWith("Heading", StringComparison.Ordinal) ||
-                styleId[7] < '1' || styleId[7] > '9') {
-                return false;
-            }
-
-            level = styleId[7] - '0';
-            return true;
+        private static bool TryGetHeadingLevel(WordDocument document, Paragraph paragraph, out int level) {
+            level = document.GetHeadingLevel(paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value);
+            return level > 0;
         }
 
         private static string FormatSequenceValue(int value, IReadOnlyList<WordFieldFormat> formatSwitches) {

@@ -521,6 +521,15 @@ internal static partial class StreamDecoder {
             DecodeFilterKind.Flate or DecodeFilterKind.AsciiHex or DecodeFilterKind.Ascii85 or
             DecodeFilterKind.RunLength or DecodeFilterKind.Lzw);
 
+    // A page content stream with a CCITTFax or JBIG2 filter is not skipped: those decoders report exhausted resources
+    // as damaged data. Any other declared filter, including DCT, JPX (which this decoder does not support) and an
+    // unknown or malformed declaration, cannot hold page content that decodes, so plain text extraction may leave the
+    // stream out.
+    internal static bool CanSkipUndecodablePageContent(PdfDictionary dictionary,
+        Dictionary<int, PdfIndirectObject> objects) =>
+        !TryGetDeclaredFilterNames(dictionary, objects, out IReadOnlyList<string> filters) ||
+        !filters.Any(static name => GetFilterKind(name) is DecodeFilterKind.Fax or DecodeFilterKind.Jbig2);
+
     internal static bool IsSupportedFilter(string filterName) {
         return GetFilterKind(filterName) != DecodeFilterKind.Unsupported;
     }

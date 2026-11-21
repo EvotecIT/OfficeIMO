@@ -107,7 +107,7 @@ namespace OfficeIMO.Tests {
             Assert.False(assessment.IsSupported);
             Assert.Equal("legacy-doc-write-unsupported", assessment.DiagnosticCode);
             Assert.Null(assessment.EncodedByteCount);
-            Assert.Contains("AllowSignatureInvalidation", assessment.Message, StringComparison.Ordinal);
+            Assert.Contains("SignatureMutationPolicy", assessment.Message, StringComparison.Ordinal);
         }
 
         [Theory]
@@ -683,7 +683,7 @@ namespace OfficeIMO.Tests {
                 new WordDocumentConversionOptions {
                     CompatibilityMode = OfficeCompatibilityMode.BestEffort,
                     SaveOptions = new WordSaveOptions {
-                        SignedDocumentPolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation
+                        SignatureMutationPolicy = OfficeSignatureMutationPolicy.PreserveSignatureMarkup
                     }
                 });
             Assert.True(allowed.Report.Compatibility.HasSecurityImpact);

@@ -16,9 +16,13 @@ public sealed class ParallelRowMappingOptions {
 
     /// <summary>
     /// Gets or sets the number of source rows copied into each worker batch.
-    /// A null value lets the source choose its tuned bounded default.
+    /// A null value lets the source choose its tuned bounded default. Larger values are
+    /// limited to 65,536 rows, because each batch reserves storage for its full row count.
     /// </summary>
     public int? BatchSize { get; set; }
+
+    /// <summary>Largest worker batch; batch storage is reserved before rows are read.</summary>
+    internal const int MaximumBatchSize = 65_536;
 
     internal int GetDegreeOfParallelism() {
         if (MaxDegreeOfParallelism is int configured && configured <= 0) {
@@ -32,7 +36,7 @@ public sealed class ParallelRowMappingOptions {
         return MaxDegreeOfParallelism ?? Math.Max(1, Environment.ProcessorCount);
     }
 
-    internal int GetBatchSize(int sourceDefault) => BatchSize ?? sourceDefault;
+    internal int GetBatchSize(int sourceDefault) => Math.Min(BatchSize ?? sourceDefault, MaximumBatchSize);
 }
 
 /// <summary>Ordered parallel typed projections over forward-only data readers.</summary>
@@ -759,7 +763,7 @@ public static partial class ParallelRowMappingExtensions {
         private TValue ConvertValue<TValue>(int ordinal) {
             object value = GetValue(ordinal);
             if (value is TValue typed) return typed;
-            return (TValue)Convert.ChangeType(value, typeof(TValue), _schema.Culture);
+            return (TValue)OfficeDecimalConversion.ChangeType(value, typeof(TValue), _schema.Culture)!;
         }
 
         private static long CopyField<TValue>(

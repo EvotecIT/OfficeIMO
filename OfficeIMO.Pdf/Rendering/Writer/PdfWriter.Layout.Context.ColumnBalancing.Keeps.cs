@@ -11,14 +11,14 @@ internal static partial class PdfWriter {
             if (!scope.Options.HonorKeepWithNextWhenBalancing) return 0D;
             double height = 0D;
             int inspected = 0;
-            for (int index = startIndex; index < blocks.Count; index++) {
-                if (IsNonVisualFlowMarker(blocks[index])) continue;
+            foreach (IPdfBlock block in EnumerateFollowingKeepBlocks(blocks, startIndex)) {
+                if (IsNonVisualFlowMarker(block)) continue;
                 if (++inspected > MaxKeepWithNextChainBlocks)
                     throw new NotSupportedException("KeepWithNext chains cannot contain more than " + MaxKeepWithNextChainBlocks + " visual blocks.");
-                List<ColumnBalanceUnit>? units = MeasureColumnBalanceUnits(blocks[index], scope, frameWidth);
+                List<ColumnBalanceUnit>? units = MeasureColumnBalanceUnits(block, scope, frameWidth);
                 if (units == null || units.Count == 0) return height;
                 height += units[0].Height + (precedingHeight + height > .001D ? units[0].SpacingBefore : 0D);
-                if (units.Count > 1 || !KeepsWithNext(blocks[index])) break;
+                if (units.Count > 1 || !KeepsWithNext(block)) break;
             }
             return height;
         }

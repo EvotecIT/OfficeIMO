@@ -36,7 +36,7 @@ internal static partial class PdfReaderAdapter {
             Id = id,
             Category = category,
             Name = name,
-            Value = value.ToString("R", CultureInfo.InvariantCulture),
+            Value = OfficeIMO.OfficeRoundTripNumberText.Format(value, CultureInfo.InvariantCulture),
             ValueType = "number"
         });
     }
@@ -410,6 +410,7 @@ internal static partial class PdfReaderAdapter {
         int visualStyleMetadataCount = 0;
         int pathGeometryMetadataCount = 0;
         int freeTextAppearanceMetadataCount = 0;
+        int coveredTextCount = 0;
         var subtypeCounts = new Dictionary<string, int>(StringComparer.Ordinal);
         var annotationEntries = new List<OfficeDocumentMetadataEntry>();
 
@@ -442,7 +443,9 @@ internal static partial class PdfReaderAdapter {
                     freeTextAppearanceMetadataCount++;
                 }
 
-                annotationEntries.Add(BuildAnnotationMetadataEntry(source, page, GetPageSelectionIndex(source, pageIndex), annotation, annotationIndex));
+                OfficeDocumentMetadataEntry annotationEntry = BuildAnnotationMetadataEntry(source, page, GetPageSelectionIndex(source, pageIndex), annotation, annotationIndex);
+                if (annotationEntry.Attributes.ContainsKey("coveredText")) coveredTextCount++;
+                annotationEntries.Add(annotationEntry);
             }
         }
 
@@ -452,6 +455,7 @@ internal static partial class PdfReaderAdapter {
         AddCountMetadata(entries, "pdf-annotation-visual-style-metadata-count", "pdf.annotation", "VisualStyleMetadataCount", visualStyleMetadataCount);
         AddCountMetadata(entries, "pdf-annotation-path-geometry-metadata-count", "pdf.annotation", "PathGeometryMetadataCount", pathGeometryMetadataCount);
         AddCountMetadata(entries, "pdf-annotation-freetext-appearance-metadata-count", "pdf.annotation.freeText", "AppearanceMetadataCount", freeTextAppearanceMetadataCount);
+        AddCountMetadata(entries, "pdf-annotation-covered-text-count", "pdf.annotation", "CoveredTextCount", coveredTextCount);
         if (annotationCount > 0) {
             AddNumberMetadata(entries, "pdf-annotation-geometry-coverage", "pdf.annotation", "GeometryCoverage", (double)annotationGeometryCount / annotationCount);
             AddNumberMetadata(entries, "pdf-annotation-normal-appearance-coverage", "pdf.annotation", "NormalAppearanceCoverage", (double)annotationAppearanceCount / annotationCount);
@@ -477,10 +481,10 @@ internal static partial class PdfReaderAdapter {
         var attributes = new Dictionary<string, string>(StringComparer.Ordinal) {
             ["subtype"] = annotation.Subtype,
             ["hasNormalAppearance"] = ToMetadataText(annotation.HasNormalAppearance),
-            ["x"] = annotation.X1.ToString("R", CultureInfo.InvariantCulture),
-            ["y"] = annotation.Y1.ToString("R", CultureInfo.InvariantCulture),
-            ["width"] = annotation.Width.ToString("R", CultureInfo.InvariantCulture),
-            ["height"] = annotation.Height.ToString("R", CultureInfo.InvariantCulture)
+            ["x"] = OfficeIMO.OfficeRoundTripNumberText.Format(annotation.X1, CultureInfo.InvariantCulture),
+            ["y"] = OfficeIMO.OfficeRoundTripNumberText.Format(annotation.Y1, CultureInfo.InvariantCulture),
+            ["width"] = OfficeIMO.OfficeRoundTripNumberText.Format(annotation.Width, CultureInfo.InvariantCulture),
+            ["height"] = OfficeIMO.OfficeRoundTripNumberText.Format(annotation.Height, CultureInfo.InvariantCulture)
         };
 
         AddAttribute(attributes, "objectNumber", annotation.ObjectNumber);
@@ -511,6 +515,11 @@ internal static partial class PdfReaderAdapter {
         AddAttribute(attributes, "effectiveFontSize", annotation.EffectiveFontSize);
         AddAttribute(attributes, "effectiveTextColor", annotation.EffectiveTextColor.HasValue ? FormatPdfColor(annotation.EffectiveTextColor.Value) : null);
         AddAttribute(attributes, "effectiveTextAlign", annotation.EffectiveTextAlign?.ToString());
+        if (annotation.IsTextMarkup) {
+            // Text-markup annotations record their author in /T and mark page text through /QuadPoints.
+            AddAttribute(attributes, "author", annotation.Title);
+            AddAttribute(attributes, "coveredText", page.GetMarkupText(annotation));
+        }
 
         return new OfficeDocumentMetadataEntry {
             Id = id,
@@ -716,16 +725,16 @@ internal static partial class PdfReaderAdapter {
                 builder.Append(',');
             }
 
-            builder.Append(components[i].ToString("R", CultureInfo.InvariantCulture));
+            builder.Append(OfficeIMO.OfficeRoundTripNumberText.Format(components[i], CultureInfo.InvariantCulture));
         }
 
         return builder.ToString();
     }
 
     private static string FormatPdfColor(global::OfficeIMO.OfficeColor color) =>
-        color.ToNormalizedRgb().R.ToString("R", CultureInfo.InvariantCulture) + "," +
-        color.ToNormalizedRgb().G.ToString("R", CultureInfo.InvariantCulture) + "," +
-        color.ToNormalizedRgb().B.ToString("R", CultureInfo.InvariantCulture);
+        OfficeIMO.OfficeRoundTripNumberText.Format(color.ToNormalizedRgb().R, CultureInfo.InvariantCulture) + "," +
+        OfficeIMO.OfficeRoundTripNumberText.Format(color.ToNormalizedRgb().G, CultureInfo.InvariantCulture) + "," +
+        OfficeIMO.OfficeRoundTripNumberText.Format(color.ToNormalizedRgb().B, CultureInfo.InvariantCulture);
 
     private static string? FormatNestedPdfNumberLists(IReadOnlyList<IReadOnlyList<double>> paths) {
         if (paths.Count == 0) {

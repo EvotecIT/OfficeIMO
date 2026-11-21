@@ -175,9 +175,11 @@ internal static partial class PdfExternalTextShaper {
 
     // The token shortcut predates complete normalization, attachment and blank-control
     // admission. Keep ordinary Latin on it; these runs use the canonical public result.
+    // Emoji modifier and flag sequences need the font's ccmp ligatures as well.
     internal static bool RequiresCompleteDefaultLatinShaping(string text) =>
         OfficeTextElements.ContainsCombiningMark(text)
-        || OfficeManagedTextShaper.ContainsNonPaintingControl(text, default);
+        || OfficeManagedTextShaper.ContainsNonPaintingControl(text, default)
+        || OfficeTextElements.ContainsEmojiModifierOrRegionalIndicator(text);
 
     private static bool TryRejectUnretainedDefaultControls(string text, bool managedDefaultAttempt,
         PdfTextShapingOptions options, out PdfGlyphRun glyphRun) {

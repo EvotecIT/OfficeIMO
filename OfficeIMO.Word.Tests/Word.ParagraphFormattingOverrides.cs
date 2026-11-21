@@ -35,16 +35,14 @@ public partial class Word {
     public void NativeDoc_ParagraphOffOverridesEnabledStyle() {
         string path = Path.Combine(_directoryWithFiles, "StyledOffOverrides.doc");
         using (WordDocument document = WordDocument.Create()) {
-            var definition = new WordParagraphStyleDefinition("EnabledControls") {
-                BasedOnStyleId = "Normal", PageBreakBefore = true, KeepWithNext = true,
-                KeepLinesTogether = true, AvoidWidowAndOrphan = true, ContextualSpacing = true,
-                SuppressLineNumbers = true, SuppressAutoHyphens = true, MirrorIndents = true, OutlineLevel = 2
-            };
-            Style style = definition.ToOpenXml();
-            foreach (OnOffType property in CreateAdditionalParagraphFlags(true)) style.StyleParagraphProperties!.AddChild(property, true);
-            document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
+            WordStyle definition = document.Styles.AddParagraphStyle("EnabledControls");
+            definition.PageBreakBefore = definition.KeepWithNext = definition.KeepLinesTogether = true;
+            definition.AvoidWidowAndOrphan = definition.ContextualSpacing = definition.SuppressLineNumbers = true;
+            definition.SuppressAutoHyphens = definition.MirrorIndents = true;
+            definition.OutlineLevel = 2;
+            foreach (OnOffType property in CreateAdditionalParagraphFlags(true)) definition.Element.StyleParagraphProperties!.AddChild(property, true);
             document.AddParagraph("Before styled override");
-            WordParagraph paragraph = document.AddParagraph("Styled direct off").SetStyleId(definition.StyleId);
+            WordParagraph paragraph = document.AddParagraph("Styled direct off").SetStyle(definition);
             SetParagraphOverrides(paragraph, false);
             paragraph.OutlineLevel = 9;
             foreach (OnOffType property in CreateAdditionalParagraphFlags(false)) paragraph._paragraph.ParagraphProperties!.AddChild(property, true);
@@ -94,7 +92,7 @@ public partial class Word {
             var styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
             Style style = builtInStyle
                 ? styles.Elements<Style>().Single(s => s.StyleId?.Value == "Normal")
-                : new WordParagraphStyleDefinition(styleName) { BasedOnStyleId = "Normal" }.ToOpenXml();
+                : document.Styles.AddParagraphStyle(styleName).Element;
             style.StyleParagraphProperties ??= new StyleParagraphProperties();
             using WordDocument template = WordDocument.Create();
             WordParagraph controls = template.AddParagraph("Off controls");
@@ -103,7 +101,6 @@ public partial class Word {
                 style.StyleParagraphProperties.AddChild(property.CloneNode(true), true);
             }
             foreach (OnOffType property in CreateAdditionalParagraphFlags(false)) style.StyleParagraphProperties.AddChild(property, true);
-            if (!builtInStyle) styles.Append(style);
             document.AddParagraph("Paragraph using off controls").SetStyleId(style.StyleId!.Value!);
             document.Save(path);
         }
@@ -121,24 +118,21 @@ public partial class Word {
     [InlineData(null)]
     public void ParagraphStyleFormattingOverrides_RoundTripAndClear(bool? state) {
         string path = Path.Combine(_directoryWithFiles, "StyleFormatting.docx");
-        var definition = new WordParagraphStyleDefinition("ControlledStyle") {
-            BasedOnStyleId = "Normal", PageBreakBefore = state, KeepWithNext = state,
-            KeepLinesTogether = state, AvoidWidowAndOrphan = state, ContextualSpacing = state,
-            SuppressLineNumbers = state, SuppressAutoHyphens = state, MirrorIndents = state,
-            OutlineLevel = 3, FontFamily = "Arial", SpacingAfter = global::OfficeIMO.OfficeLength.Emus(200L * 635)
-        };
         using (WordDocument document = WordDocument.Create(path)) {
-            Style style = definition.ToOpenXml();
-            Assert.Empty(new OpenXmlValidator().Validate(style));
-            document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
-            document.AddParagraph("Uses controlled style").SetStyleId(definition.StyleId);
+            WordStyle definition = document.Styles.AddParagraphStyle("ControlledStyle");
+            definition.PageBreakBefore = definition.KeepWithNext = definition.KeepLinesTogether = state;
+            definition.AvoidWidowAndOrphan = definition.ContextualSpacing = definition.SuppressLineNumbers = state;
+            definition.SuppressAutoHyphens = definition.MirrorIndents = state;
+            definition.OutlineLevel = 3;
+            definition.FontFamily = "Arial";
+            definition.LineSpacingAfter = global::OfficeIMO.OfficeLength.Emus(200L * 635);
+            Assert.Empty(new OpenXmlValidator().Validate(definition.Element));
+            document.AddParagraph("Uses controlled style").SetStyle(definition);
             document.Save();
         }
 
         using WordDocument reopened = WordDocument.Load(path);
-        Style saved = reopened._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
-            .Elements<Style>().Single(s => s.StyleId == definition.StyleId);
-        var loaded = new WordParagraphStyleDefinition(saved);
+        WordStyle loaded = reopened.Styles["ControlledStyle"];
         Assert.Equal(state, loaded.PageBreakBefore);
         Assert.Equal(state, loaded.KeepWithNext);
         Assert.Equal(state, loaded.KeepLinesTogether);
@@ -151,7 +145,7 @@ public partial class Word {
         loaded.PageBreakBefore = loaded.KeepWithNext = loaded.KeepLinesTogether = loaded.AvoidWidowAndOrphan = null;
         loaded.ContextualSpacing = loaded.SuppressLineNumbers = loaded.SuppressAutoHyphens = loaded.MirrorIndents = null;
         loaded.OutlineLevel = null;
-        Style cleared = loaded.ToOpenXml();
+        Style cleared = loaded.Element;
         Assert.Empty(new OpenXmlValidator().Validate(cleared));
         Assert.Null(cleared.StyleParagraphProperties?.PageBreakBefore);
         Assert.Null(cleared.StyleParagraphProperties?.KeepNext);
@@ -172,21 +166,15 @@ public partial class Word {
     public void NativeDoc_BuiltInStyleClearedControlsInheritInsteadOfRestoringTemplate(string styleId) {
         string path = Path.Combine(_directoryWithFiles, "ClearedControls-" + styleId + ".doc");
         using (WordDocument document = WordDocument.Create()) {
-            var styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
-            Style original = styles.Elements<Style>().Single(s => s.StyleId?.Value == styleId);
-            var definition = new WordParagraphStyleDefinition(original) {
-                PageBreakBefore = null, KeepWithNext = null, KeepLinesTogether = null, AvoidWidowAndOrphan = null,
-                ContextualSpacing = null, SuppressLineNumbers = null, SuppressAutoHyphens = null, MirrorIndents = null
-            };
-            styles.InsertBefore(definition.ToOpenXml(), original);
-            original.Remove();
+            WordStyle definition = document.Styles[styleId];
+            definition.PageBreakBefore = definition.KeepWithNext = definition.KeepLinesTogether = definition.AvoidWidowAndOrphan = null;
+            definition.ContextualSpacing = definition.SuppressLineNumbers = definition.SuppressAutoHyphens = definition.MirrorIndents = null;
             document.AddParagraph("Heading with inherited controls").SetStyleId(styleId);
             document.Save(path);
         }
         using WordDocument reopened = WordDocument.Load(path);
-        Style saved = reopened._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
-            .Elements<Style>().Single(s => s.StyleId?.Value == styleId);
-        var controls = new WordParagraphStyleDefinition(saved);
+        WordStyle controls = reopened.Styles[styleId];
+        Style saved = controls.Element;
         Assert.Null(controls.KeepWithNext);
         Assert.Null(controls.KeepLinesTogether);
         Assert.Null(controls.PageBreakBefore);
@@ -247,7 +235,8 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph = document.AddParagraph("Bounded outline");
         paragraph.OutlineLevel = 2;
-        var definition = new WordParagraphStyleDefinition("BoundedStyle") { OutlineLevel = 2 };
+        WordStyle definition = document.Styles.AddParagraphStyle("BoundedStyle");
+        definition.OutlineLevel = 2;
         Assert.Throws<ArgumentOutOfRangeException>(() => paragraph.OutlineLevel = level);
         Assert.Throws<ArgumentOutOfRangeException>(() => definition.OutlineLevel = level);
         Assert.Equal(2, paragraph.OutlineLevel);

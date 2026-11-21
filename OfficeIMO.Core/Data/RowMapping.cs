@@ -207,14 +207,21 @@ public static partial class DataReaderMappingExtensions {
         }
 
         var rowSource = reader as IDataReaderMappingRowSource;
+        DbDataReader? qualifiedReader = null;
+        AutomaticRowMappingPlan<T>.RowReaderQualification qualification = default;
         while (reader.Read()) {
+            DbDataReader rowReader = rowSource?.CurrentRowReader ?? reader;
+            if (!ReferenceEquals(rowReader, qualifiedReader)) {
+                qualification = plan.Qualify(rowReader, typeConverter);
+                qualifiedReader = rowReader;
+            }
             yield return plan.MapReaderRow(
                 reader,
+                qualification,
                 culture,
                 dateTimeFormats,
                 typeConverter,
-                errorValuePolicy,
-                rowSource?.CurrentRowReader ?? reader);
+                errorValuePolicy);
         }
     }
 
@@ -489,6 +496,29 @@ internal static class DataValueConverter {
             }
         }
         if (providerValue is not null && DataReaderMappingValue.IsNumeric(effectiveType)) value = providerValue.Numeric;
+        if (providerValue is not null && effectiveType == typeof(TimeSpan)) {
+            if (DataReaderMappingValue.TryGetDuration(providerValue.Numeric, out TimeSpan duration)) {
+                result = duration;
+                return true;
+            }
+
+            error = errorValuePolicy == DataMappingErrorValuePolicy.Redact
+                ? "Value cannot be converted to TimeSpan."
+                : $"The serial {providerValue.Numeric.ToString("R", CultureInfo.InvariantCulture)} is outside the range of TimeSpan.";
+            return false;
+        }
+        if (effectiveType == typeof(DateTimeOffset) && value is DateTime offsetDateTime) {
+            // A date without an offset takes the local offset for that date, as DateTimeOffset(DateTime) does.
+            try {
+                result = new DateTimeOffset(offsetDateTime);
+                return true;
+            } catch (ArgumentOutOfRangeException ex) {
+                error = errorValuePolicy == DataMappingErrorValuePolicy.Redact
+                    ? "Value cannot be converted to DateTimeOffset."
+                    : ex.Message;
+                return false;
+            }
+        }
         if (effectiveType.IsInstanceOfType(value)) {
             result = value;
             return true;
@@ -516,7 +546,7 @@ internal static class DataValueConverter {
         }
 #endif
         try {
-            result = Convert.ChangeType(value, effectiveType, culture);
+            result = OfficeDecimalConversion.ChangeType(value, effectiveType, culture);
             return true;
         } catch (Exception ex) {
             error = errorValuePolicy == DataMappingErrorValuePolicy.Redact
@@ -525,6 +555,11 @@ internal static class DataValueConverter {
             return false;
         }
     }
+
+    /// <summary>Whether the text starts with an ISO 8601 date, yyyy-MM-dd.</summary>
+    internal static bool IsIsoDate(string text) =>
+        text.Length >= 10 && text[4] == '-' && text[7] == '-' &&
+        char.IsDigit(text[0]) && char.IsDigit(text[3]) && char.IsDigit(text[5]) && char.IsDigit(text[9]);
 
     private static bool TryConvertFromString(
         string text,
@@ -550,10 +585,23 @@ internal static class DataValueConverter {
             else if (targetType == typeof(float) && float.TryParse(text, NumberStyles.Any, culture, out float floatValue)) result = floatValue;
             else if (targetType == typeof(DateTime) && dateTimeFormats is { Count: > 0 } &&
                      DateTime.TryParseExact(text, dateTimeFormats as string[] ?? dateTimeFormats.ToArray(), culture, DateTimeStyles.RoundtripKind, out DateTime formattedDateTime)) result = formattedDateTime;
+            // ISO 8601 text is Gregorian whatever the culture's calendar, as the CSV writers emit it.
+            else if (targetType == typeof(DateTime) && IsIsoDate(text) &&
+                     DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out DateTime isoDateTime)) result = isoDateTime;
             else if (targetType == typeof(DateTime)) result = DateTime.Parse(text, culture, DateTimeStyles.RoundtripKind);
+            else if (targetType == typeof(DateTimeOffset) && dateTimeFormats is { Count: > 0 } &&
+                     DateTimeOffset.TryParseExact(text, dateTimeFormats as string[] ?? dateTimeFormats.ToArray(), culture, DateTimeStyles.None, out DateTimeOffset formattedOffset)) result = formattedOffset;
+            else if (targetType == typeof(DateTimeOffset) && IsIsoDate(text) &&
+                     DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTimeOffset isoOffset)) result = isoOffset;
+            else if (targetType == typeof(DateTimeOffset)) result = DateTimeOffset.Parse(text, culture, DateTimeStyles.None);
+            else if (targetType == typeof(TimeSpan) && TimeSpan.TryParseExact(text, "c", CultureInfo.InvariantCulture, out TimeSpan invariantTimeSpan)) result = invariantTimeSpan;
+            else if (targetType == typeof(TimeSpan)) result = TimeSpan.Parse(text, culture);
+            else if (targetType == typeof(byte[])) result = Convert.FromBase64String(text);
 #if NET6_0_OR_GREATER
             else if (targetType == typeof(DateOnly) && dateTimeFormats is { Count: > 0 } &&
                      DateOnly.TryParseExact(text, dateTimeFormats as string[] ?? dateTimeFormats.ToArray(), culture, DateTimeStyles.None, out DateOnly formattedDateOnly)) result = formattedDateOnly;
+            else if (targetType == typeof(DateOnly) && IsIsoDate(text) &&
+                     DateOnly.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateOnly isoDate)) result = isoDate;
             else if (targetType == typeof(DateOnly)) result = DateOnly.Parse(text, culture, DateTimeStyles.None);
             else if (targetType == typeof(TimeOnly) && dateTimeFormats is { Count: > 0 } &&
                      TimeOnly.TryParseExact(text, dateTimeFormats as string[] ?? dateTimeFormats.ToArray(), culture, DateTimeStyles.None, out TimeOnly formattedTimeOnly)) result = formattedTimeOnly;

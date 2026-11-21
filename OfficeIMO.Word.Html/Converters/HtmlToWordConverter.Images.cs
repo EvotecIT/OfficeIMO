@@ -187,7 +187,7 @@ namespace OfficeIMO.Word.Html {
                     return;
                 } catch (HtmlResourcePolicyException ex) {
                     ReleaseImageBytes(reservedBytes, options);
-                    AddDiagnostic(options, "image-resource-rejected-by-policy", "Image resource was skipped because its redirect destination is not allowed by the current image policy.", src, ex);
+                    AddDiagnostic(options, "image-resource-rejected-by-policy", "Image resource was skipped because its address or redirect destination is not allowed by the current image policy.", src, ex);
                     InsertAltText(currentParagraph, headerFooter, doc, alt);
                     return;
                 } catch (Exception ex) {
@@ -329,7 +329,7 @@ namespace OfficeIMO.Word.Html {
                 InsertAltText(currentParagraph, headerFooter, doc, alt ?? string.Empty);
             } catch (HtmlResourcePolicyException ex) {
                 ReleaseImageBytes(reservedBytes, options);
-                AddDiagnostic(options, "image-resource-rejected-by-policy", "SVG image resource was skipped because its redirect destination is not allowed by the current image policy.", src, ex);
+                AddDiagnostic(options, "image-resource-rejected-by-policy", "SVG image resource was skipped because its address or redirect destination is not allowed by the current image policy.", src, ex);
                 InsertAltText(currentParagraph, headerFooter, doc, alt ?? string.Empty);
             } catch (Exception ex) {
                 ReleaseImageBytes(reservedBytes, options);

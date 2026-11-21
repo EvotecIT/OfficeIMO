@@ -44,8 +44,29 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ApplyPendingInlineTextTransforms(runs, retainSuppressedText: true);
         ApplyFirstLetterStyle(formattingContainer, width, parentStyle, runs);
         RemoveSuppressedInlineText(runs);
-        ApplyFirstLineStyle(formattingContainer, width, parentStyle, runs);
+        var runsBeforeFirstLine = new List<HtmlInlineRun>(runs);
+        bool styledFirstLine = ApplyFirstLineStyle(formattingContainer, width, parentStyle, runs);
         runs = ApplyScopedFontFallbacks(runs);
+        double layoutWidth = width;
+        double? renderWidth = null;
+        if (styledFirstLine && skipLogicalCharacters == 0
+            && TryResolveBalancedLineWidth(runs, width, parentStyle, formattingContainer, inheritedFloats, floatContext,
+                out double balanced, out int balancedLines)) {
+            // Balancing moves words off the first line, so ::first-line is matched again at the chosen length.
+            // Words that leave it change size, so the length is kept only if the line count still holds;
+            // otherwise the block keeps its unbalanced lines.
+            var rematched = new List<HtmlInlineRun>(runsBeforeFirstLine);
+            ApplyFirstLineStyle(formattingContainer, width, parentStyle, rematched, balanced);
+            rematched = ApplyScopedFontFallbacks(rematched);
+            bool keepsLineCount = CountAdmittedInlineLines(rematched, balanced, width, parentStyle, formattingContainer,
+                edgesPrepared: false) == balancedLines;
+            if (keepsLineCount) {
+                runs = rematched;
+                layoutWidth = balanced;
+            }
+            // An explicit render width also keeps LayoutInlineRuns from balancing the runs again.
+            renderWidth = width;
+        }
 
         if (formattingContainer != null && ShouldAssignNavigationNode(parentStyle)) {
             int semanticNodeId = GetSemanticNodeId(formattingContainer);
@@ -54,7 +75,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         AssignSemanticFragmentOrders(runs);
 
         if (marker == null || !marker.IsOutside || skipLogicalCharacters > 0) {
-            return LayoutInlineRuns(runs, width, parentStyle, formattingContainer, skipLogicalCharacters, pageBoundary, inheritedFloats, floatContext: floatContext);
+            return LayoutInlineRuns(runs, layoutWidth, parentStyle, formattingContainer, skipLogicalCharacters, pageBoundary, inheritedFloats,
+                floatContext: floatContext, renderWidth: renderWidth);
         }
 
         HtmlRenderBoxStyle outsideMarkerStyle = marker.Style.Clone();
@@ -70,7 +92,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double markerAdvance = marker.Image?.Width ?? MeasureInlineText(marker.Content, outsideMarkerStyle);
         double gutter = Math.Min(Math.Max(1D, width * 0.5D), markerAdvance + gap);
         HtmlInlineLayout markerLayout = LayoutInlineRuns(markerRuns, gutter, outsideMarkerStyle, formattingContainer);
-        HtmlInlineLayout bodyLayout = LayoutInlineRuns(runs, width, parentStyle, formattingContainer, skipLogicalCharacters, pageBoundary, inheritedFloats, floatContext: floatContext);
+        HtmlInlineLayout bodyLayout = LayoutInlineRuns(runs, layoutWidth, parentStyle, formattingContainer, skipLogicalCharacters, pageBoundary, inheritedFloats,
+            floatContext: floatContext, renderWidth: renderWidth);
         return CombineOutsideListMarker(markerLayout, bodyLayout, width, gap, parentStyle);
     }
 
@@ -348,6 +371,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 Array.Empty<int>(),
                 Array.Empty<int>());
         }
+        return PrepareHyphenationBreaks(paintToken, logicalToken, style);
+    }
+
+    // Kept apart from the common no-hyphenation exit so that its closures are allocated only here.
+    private HyphenationToken PrepareHyphenationBreaks(string paintToken, string logicalToken, HtmlRenderBoxStyle style) {
         var paint = new StringBuilder(paintToken.Length);
         var logical = new StringBuilder(logicalToken.Length);
         var manualBreaks = new List<int>();
@@ -530,24 +558,48 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 continue;
             }
             if (whitespace.HasValue && whitespace.Value != currentWhitespace) {
-                yield return text.Substring(tokenStart, i - tokenStart);
+                yield return SliceToken(text, tokenStart, i - tokenStart);
                 tokenStart = i;
             }
 
             whitespace = currentWhitespace;
         }
 
-        if (tokenStart < text.Length) yield return tokenStart == 0 ? text : text.Substring(tokenStart);
+        if (tokenStart < text.Length) yield return tokenStart == 0 ? text : SliceToken(text, tokenStart, text.Length - tokenStart);
     }
 
-    private static bool IsWhitespaceToken(string token) => token.Length > 0 && token.All(IsCollapsibleCssWhitespace);
+    // Every other token in running text is a single space between words; they share one string.
+    private static string SliceToken(string text, int start, int length) =>
+        length == 1 && text[start] == ' ' ? " " : text.Substring(start, length);
+
+    private static bool IsWhitespaceToken(string token) {
+        if (token.Length == 0) return false;
+        for (int index = 0; index < token.Length; index++) {
+            if (!IsCollapsibleCssWhitespace(token[index])) return false;
+        }
+        return true;
+    }
 
     // Word spacing applies to separators independently of CSS collapsing and
     // line-breaking rules, including nonbreaking spaces but excluding fixed-width spaces.
-    private static bool IsWordSpacingSeparator(string textElement) => textElement.Length > 0
-        && textElement.All(static value => char.IsWhiteSpace(value)
-            && (value < '\u2000' || value > '\u200a')
-            && value != '\u3000');
+    private static bool IsWordSpacingSeparator(string textElement) {
+        if (textElement.Length == 0) return false;
+        for (int index = 0; index < textElement.Length; index++) {
+            char value = textElement[index];
+            if (!char.IsWhiteSpace(value) || value >= '\u2000' && value <= '\u200a' || value == '\u3000') return false;
+        }
+        return true;
+    }
+
+    // Before a forced break only collapsible spaces go; preserved spaces of a preformatted inline stay.
+    private static void TrimCollapsibleTrailingWhitespace(InlineLine line) {
+        for (int index = line.Segments.Count - 1; index >= 0; index--) {
+            InlineSegment segment = line.Segments[index];
+            if (segment.Run.RunningStringElement != null || segment.Run.RunningElementAssignment != null) continue;
+            if (!IsWhitespaceToken(segment.Text) || segment.Run.Style.PreserveWhitespace) break;
+            line.RemoveAt(index);
+        }
+    }
 
     private static void TrimTrailingWhitespace(InlineLine line) {
         for (int index = line.Segments.Count - 1; index >= 0; index--) {
@@ -666,7 +718,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal double Width { get; private set; }
         internal double LeadingAdvance { get; set; }
         internal double TrailingAdvance { get; set; }
-        internal double Advance => LeadingAdvance + Width + TrailingAdvance;
+        // Space added after a word separator on a justified line. It belongs to the
+        // separator, so it is painted with it and moves the following content.
+        internal double JustificationAdvance { get; set; }
+        // Space added after each text element of this segment; its sum is JustificationAdvance.
+        internal double[]? ClusterJustification { get; set; }
+        internal double Advance => LeadingAdvance + Width + JustificationAdvance + TrailingAdvance;
         internal HtmlInlineRun Run { get; }
         internal bool BidiResolved { get; }
         internal OfficeTextDirection? ResolvedDirection { get; }

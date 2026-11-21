@@ -25,4 +25,19 @@ public partial class PdfPageImageRendererTests {
         Assert.Equal(OfficeColor.Red, raster.GetPixel(120, 100));
         Assert.Equal(OfficeColor.Red, raster.GetPixel(239, 199));
     }
+
+    [Fact]
+    public void RenderPage_FitsPageClipWhoseIntersectionRoundsPastTheRightEdge() {
+        // 0.072654 + (595.276 - 0.072654) exceeds 595.276 by one ulp, as an InDesign page-sized clip did.
+        byte[] pdf = BuildSingleStreamPdfWithPageEntries(
+            "0.072654 0 700 900 re W n\n1 0 0 rg\n100 100 600 50 re f",
+            "<< >>",
+            "/MediaBox [0 0 595.276 793.701]");
+
+        OfficeDrawing drawing = PdfReadDocument.Open(pdf).Pages[0].ToDrawing();
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing, background: OfficeColor.White);
+
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(300, 670));
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(594, 670));
+    }
 }

@@ -36,4 +36,4 @@ Desktop Office automation is fragile in unattended sessions and difficult to run
 
 PowerShell is a thin automation surface over the same engines. If a job grows into a service, needs custom concurrency, or becomes a reusable application capability, move the orchestration into .NET without changing the document platform underneath.
 
-Browse the [PSWriteOffice product page](/products/pswriteoffice/), [task guides](/docs/pswriteoffice/), and [cmdlet reference](/api/powershell/).
+Browse the [PSWriteOffice product page](/powershell/), [task guides](/docs/pswriteoffice/), and [cmdlet reference](/api/powershell/).

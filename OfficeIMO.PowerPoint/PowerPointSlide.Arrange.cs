@@ -266,12 +266,12 @@ namespace OfficeIMO.PowerPoint {
             return CreateShapeFromElement(element, _slidePart);
         }
 
-        private PowerPointShape? CreateShapeFromElement(OpenXmlElement element, OpenXmlPartContainer ownerPart) {
+        internal static PowerPointShape? CreateShapeFromElement(OpenXmlElement element, OpenXmlPartContainer ownerPart) {
             switch (element) {
                 case Shape s:
-                    return s.TextBody != null ? new PowerPointTextBox(s, ownerPart) : new PowerPointAutoShape(s);
+                    return s.TextBody != null ? new PowerPointTextBox(s, ownerPart) : new PowerPointAutoShape(s, ownerPart);
                 case ConnectionShape c:
-                    return new PowerPointConnectionShape(c);
+                    return new PowerPointConnectionShape(c, ownerPart);
                 case Picture p:
                     if (ownerPart is SlidePart slidePart) {
                         return PowerPointMedia.TryGetMediaKind(p, out PowerPointMediaKind kind)

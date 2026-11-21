@@ -7,6 +7,8 @@ namespace OfficeIMO.Pdf;
 #pragma warning disable CA1850 // Static HashData is unavailable on netstandard2.0 and net472.
 
 internal sealed partial class PdfFontResource {
+    // Shared immutable decoding evidence for runs without unmapped bytes, indexed by source.
+    internal PdfTextDecodingEvidence?[]? DecodingEvidenceBySource;
     public string ResourceName { get; }
     public string BaseFont { get; }
     public string Encoding { get; }
@@ -17,17 +19,55 @@ internal sealed partial class PdfFontResource {
     public bool IsVerticalWriting { get; }
     public ToUnicodeCMap? CMap { get; }
     internal Lazy<PdfPredefinedCMap>? PredefinedCMap { get; }
+    /// <summary>CID text from the descendant's Adobe collection or the embedded program, for codes ToUnicode does not map.</summary>
+    internal PdfCidTextFallback? CidTextFallback { get; private set; }
+    /// <summary>True when ToUnicode names Identity-H or Identity-V: each code is its own UTF-16 value.</summary>
+    internal bool HasIdentityToUnicode { get; private set; }
+    internal void SetCompositeTextSources(PdfCidTextFallback? fallback, bool identityToUnicode) {
+        CidTextFallback = fallback;
+        HasIdentityToUnicode = identityToUnicode;
+    }
+
+    /// <summary>Byte length of the composite code at <paramref name="offset"/>; two bytes unless a predefined CMap says otherwise.</summary>
+    internal int GetCompositeCodeLength(byte[] bytes, int offset) => PredefinedCMap?.Value.GetCodeLength(bytes, offset) ?? 2;
+
+    /// <summary>True when the bytes divide into complete composite codes.</summary>
+    internal bool HasCompleteCompositeCodes(byte[] bytes, int offset, int count) =>
+        PredefinedCMap?.Value.HasCompleteCodes(bytes, offset, count) ?? (count & 1) == 0;
     public IReadOnlyDictionary<int, string>? Differences { get; }
     private readonly byte[]? _embeddedTrueTypeFont;
     public byte[]? EmbeddedTrueTypeFont => _embeddedTrueTypeFont ?? RetainedDrawingResource?._embeddedTrueTypeFont;
-    private readonly string? _drawingFontFamily;
-    public string? DrawingFontFamily => _drawingFontFamily ?? RetainedDrawingResource?._drawingFontFamily;
+    // The family identity hashes the embedded program. A font that receives a drawing program is replaced by a
+    // copy with its own identity, so each resource hashes its program only when the family is first read.
+    private static readonly string DrawingFontFamilyNotCreated = new string('?', 1);
+    private string? _drawingFontFamily;
+    private readonly byte[]? _drawingFontFamilyProgramData;
+    private readonly PdfDrawingFontProgram? _drawingFontFamilyProgram;
+    private string? OwnDrawingFontFamily {
+        get {
+            string? family = Volatile.Read(ref _drawingFontFamily);
+            if (!ReferenceEquals(family, DrawingFontFamilyNotCreated)) return family;
+            family = CreateDrawingFontFamily(BaseFont, _drawingFontFamilyProgramData, _drawingFontFamilyProgram);
+            Volatile.Write(ref _drawingFontFamily, family);
+            return family;
+        }
+    }
+    public string? DrawingFontFamily => OwnDrawingFontFamily ?? RetainedDrawingResource?.OwnDrawingFontFamily;
     public int? FontWeight { get; }
     public int? FontDescriptorFlags { get; }
     internal bool IsSymbolicSubstitute { get; }
     public bool IsBold => PdfFontStyleEvidence.IsBold(BaseFont, FontWeight);
     public bool IsItalic => PdfFontStyleEvidence.IsItalic(BaseFont, FontDescriptorFlags);
     internal PdfType3FontResource? Type3 { get; }
+    /// <summary>
+    /// Lazily built CID width table, shared by every alias of this font so that each text pass does
+    /// not rebuild it from the /W array.
+    /// </summary>
+    internal sealed class CidWidthSlot {
+        internal object? Value;
+        internal bool IsBuilt;
+    }
+    internal CidWidthSlot CidWidths { get; }
     public PdfFontResource(
         string resourceName,
         string baseFont,
@@ -57,10 +97,12 @@ internal sealed partial class PdfFontResource {
         PredefinedCMap = predefinedCMap;
         Differences = differences;
         _embeddedTrueTypeFont = embeddedTrueTypeFont;
-        _drawingFontFamily = CreateDrawingFontFamily(baseFont, embeddedTrueTypeFont);
+        _drawingFontFamily = embeddedTrueTypeFont == null ? null : DrawingFontFamilyNotCreated;
+        _drawingFontFamilyProgramData = embeddedTrueTypeFont;
         FontWeight = fontWeight;
         FontDescriptorFlags = fontDescriptorFlags;
         IsSymbolicSubstitute = DetectSymbolicSubstitute(baseFont, fontDescriptorFlags);
+        CidWidths = new CidWidthSlot();
     }
 
     private PdfFontResource(string resourceName, PdfFontResource source, PdfDrawingFontProgram? drawingProgram = null) {
@@ -78,15 +120,22 @@ internal sealed partial class PdfFontResource {
         IsVerticalWriting = source.IsVerticalWriting;
         CMap = source.CMap;
         PredefinedCMap = source.PredefinedCMap;
+        CidTextFallback = source.CidTextFallback;
+        HasIdentityToUnicode = source.HasIdentityToUnicode;
         Differences = source.Differences;
         _embeddedTrueTypeFont = embeddedTrueTypeFont ?? source.EmbeddedTrueTypeFont;
-        _drawingFontFamily = embeddedTrueTypeFont == null
-            ? source.DrawingFontFamily
-            : CreateDrawingFontFamily(source.BaseFont, embeddedTrueTypeFont, drawingProgram);
+        if (embeddedTrueTypeFont == null) {
+            _drawingFontFamily = source.DrawingFontFamily;
+        } else {
+            _drawingFontFamily = DrawingFontFamilyNotCreated;
+            _drawingFontFamilyProgramData = embeddedTrueTypeFont;
+            _drawingFontFamilyProgram = drawingProgram;
+        }
         FontWeight = source.FontWeight;
         FontDescriptorFlags = source.FontDescriptorFlags;
         IsSymbolicSubstitute = source.IsSymbolicSubstitute;
         Type3 = source.Type3;
+        CidWidths = source.CidWidths;
     }
 
     private static bool DetectSymbolicSubstitute(string baseFont, int? descriptorFlags) {
@@ -113,11 +162,19 @@ internal sealed partial class PdfFontResource {
     internal PdfFontResource WithDrawingProgram(PdfDrawingFontProgram drawingProgram) =>
         new PdfFontResource(ResourceName, this, drawingProgram);
 
+    private static byte[] Sha256(byte[] data) {
+#if NET5_0_OR_GREATER
+        return SHA256.HashData(data);
+#else
+        using SHA256 sha256 = SHA256.Create();
+        return sha256.ComputeHash(data);
+#endif
+    }
+
     // Embedded programs with the same PDF base name can differ between page and annotation resources.
     private static string? CreateDrawingFontFamily(string baseFont, byte[]? fontData, PdfDrawingFontProgram? drawingProgram = null) {
         if (fontData == null) return null;
-        using SHA256 sha256 = SHA256.Create();
-        byte[] hash = sha256.ComputeHash(fontData);
+        byte[] hash = Sha256(fontData);
         if (drawingProgram != null) {
             // A rebuilt Unicode cmap can omit duplicate or cluster mappings. Keep the full PDF code
             // map in the face identity, including CID entries above the one-byte simple-font range.
@@ -134,7 +191,13 @@ internal sealed partial class PdfFontResource {
                     identity[hash.Length + 1 + code * 2 + 1] = (byte)glyph;
                 }
             }
-            hash = sha256.ComputeHash(identity);
+            // Resources sharing a program but not an encoding CMap must not share painted-glyph mappings.
+            if (drawingProgram.CodeMap != null) {
+                byte[] codeMap = System.Text.Encoding.ASCII.GetBytes(drawingProgram.CodeMap.Identity);
+                Array.Resize(ref identity, identity.Length + codeMap.Length);
+                Buffer.BlockCopy(codeMap, 0, identity, identity.Length - codeMap.Length, codeMap.Length);
+            }
+            hash = Sha256(identity);
         }
         // Font-family parsing limits each candidate to 256 characters. Keep the digest within
         // that bound so a long PDF BaseFont cannot truncate the identity used to load this face.

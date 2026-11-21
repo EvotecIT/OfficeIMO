@@ -98,7 +98,7 @@ public sealed class AsciiDocToMarkdownContractTests {
 
     [Fact]
     public void DirectPdfAdapter_PreservesProjectionDiagnosticsAndProducesPdf() {
-        const string source = "= Guide\n\n== Start\nParagraph with stem:[x^2].\n\n|===\n|Name |Value\n|===\n";
+        const string source = "= Guide\n:stem: asciimath\n\n== Start\nParagraph with stem:[x^2].\n\n|===\n|Name |Value\n|===\n";
         var result = AsciiDocDocument.ParseResult(source).Document.ConvertToPdfWithEvidence(null, default);
         byte[] bytes = result.ToBytes();
         AsciiDocToMarkdownReport projection = Assert.IsType<AsciiDocToMarkdownReport>(
@@ -123,11 +123,12 @@ public sealed class AsciiDocToMarkdownContractTests {
 
         Assert.Contains(paragraph.Inlines.Nodes, node => node is BoldSequenceInline);
         Assert.Contains(paragraph.Inlines.Nodes, node => node is ItalicSequenceInline);
-        Assert.Equal(2, paragraph.Inlines.Nodes.OfType<CodeSpanInline>().Count());
+        Assert.Single(paragraph.Inlines.Nodes.OfType<CodeSpanInline>());
+        Assert.Equal("x^2", Assert.Single(paragraph.Inlines.Nodes.OfType<MathInline>()).Source);
         Assert.Contains(paragraph.Inlines.Nodes, node => node is LinkInline);
         Assert.Contains(paragraph.Inlines.Nodes, node => node is ImageInline);
         Assert.Contains("OfficeIMO", paragraph.Inlines.Nodes.OfType<BoldSequenceInline>().Single().Inlines.Nodes.OfType<MarkdownTextRun>().Single().Text);
-        Assert.Contains(resultReport.Diagnostics, diagnostic => diagnostic.Code == "ADOCMD103");
+        Assert.DoesNotContain(resultReport.Diagnostics, diagnostic => diagnostic.Code == "ADOCMD103");
     }
 
     [Fact]

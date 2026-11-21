@@ -35,6 +35,20 @@ internal static partial class XlsbWorkbookReader {
         ReadRelatedGraph(parts, XlsbPackagePartReader.ResolveTarget(partName, drawing.Target), options, workbook, 0);
     }
 
+    // A worksheet's BrtDrawing names a relationship to an ordinary DrawingML drawing part; its graph is read like a chart sheet's.
+    private static void ReadWorksheetDrawingGraph(XlsbPackagePartReader parts, string partName, XlsbSheet sheet,
+        XlsbImportOptions options, XlsbWorkbook workbook) {
+        if (sheet.DrawingRelationshipId == null) return;
+        if (!sheet.Relationships.TryGetValue(sheet.DrawingRelationshipId, out var drawing)
+            || drawing.IsExternal || drawing.Type != "http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing")
+            throw new InvalidDataException($"Worksheet '{sheet.Name}' refers to a missing or invalid drawing relationship.");
+        string drawingPartName = XlsbPackagePartReader.ResolveTarget(partName, drawing.Target);
+        if (parts.GetContentType(drawingPartName) != "application/vnd.openxmlformats-officedocument.drawing+xml")
+            throw new InvalidDataException($"Worksheet '{sheet.Name}' links a drawing part with an invalid content type.");
+        sheet.DrawingPartName = drawingPartName;
+        ReadRelatedGraph(parts, drawingPartName, options, workbook, 0);
+    }
+
     private static void ReadVbaProjectGraph(XlsbPackagePartReader parts, string workbookPartName,
         IReadOnlyDictionary<string, XlsbPackageRelationship> relationships, XlsbImportOptions options, XlsbWorkbook workbook) {
         var matches = relationships.Values.Where(item => item.Type == "http://schemas.microsoft.com/office/2006/relationships/vbaProject").ToArray();
@@ -56,6 +70,30 @@ internal static partial class XlsbWorkbookReader {
             throw new InvalidDataException("Invalid XLSB theme content type.");
         workbook.ThemePartName = partName;
         ReadRelatedGraph(parts, partName, options, workbook, 0);
+    }
+
+    /// <summary>
+    /// Decodes the worksheet's Comments part and loads the VML drawing its BrtLegacyDrawing record names, with that
+    /// drawing's own related parts, for projection.
+    /// </summary>
+    private static void ReadComments(XlsbPackagePartReader parts, string sheetPartName, XlsbSheet sheet,
+        XlsbImportOptions options, XlsbWorkbook workbook, XlsbRecordReadBudget recordBudget) {
+        var matches = sheet.Relationships.Values.Where(item => item.Type == Read.XlsbCommentRelationships.Comments).ToArray();
+        if (matches.Length == 0) return;
+        if (matches.Length != 1 || matches[0].IsExternal) throw new InvalidDataException($"The XLSB worksheet '{sheet.Name}' must have at most one internal comments relationship.");
+        string partName = XlsbPackagePartReader.ResolveTarget(sheetPartName, matches[0].Target);
+        if (parts.GetContentType(partName) != Read.XlsbCommentRelationships.CommentsContentType) throw new InvalidDataException($"The XLSB comments part '{partName}' has an invalid content type.");
+        if (parts.ReadRelationships(partName, options.CancellationToken).Count != 0) throw new InvalidDataException($"The XLSB comments part '{partName}' must not have relationships.");
+        var records = ReadRecords(parts.ReadPart(partName, options.CancellationToken), options, recordBudget);
+        XlsbComments comments = Read.XlsbWorksheetCommentReader.Read(records, partName, matches[0].Id);
+        if (sheet.LegacyDrawingRelationshipId != null) {
+            string vmlPartName = XlsbPackagePartReader.ResolveTarget(sheetPartName, sheet.Relationships[sheet.LegacyDrawingRelationshipId].Target);
+            if (parts.GetContentType(vmlPartName) != Read.XlsbCommentRelationships.VmlDrawingContentType) throw new InvalidDataException($"The XLSB VML drawing part '{vmlPartName}' has an invalid content type.");
+            ReadRelatedGraph(parts, vmlPartName, options, workbook, 0);
+            comments.VmlPartName = vmlPartName;
+            comments.VmlRelationshipId = sheet.LegacyDrawingRelationshipId;
+        }
+        sheet.Comments = comments;
     }
 
     private static void ReadRelatedGraph(XlsbPackagePartReader parts, string partName,

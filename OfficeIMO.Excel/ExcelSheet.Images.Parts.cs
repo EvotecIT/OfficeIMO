@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Packaging;
+using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
@@ -21,6 +22,22 @@ namespace OfficeIMO.Excel {
             ImagePart part = drawingPart.AddImagePart(type);
             using (var source = new MemoryStream(bytes, writable: false)) part.FeedData(source);
             return part;
+        }
+
+        // An SVG picture stores its PNG fallback in the ordinary blip and the SVG in the Office 2016 blip extension,
+        // which is what Excel writes and what older readers expect.
+        private static A.Blip CreatePictureBlip(DrawingsPart drawingPart, byte[] bytes, string contentType, bool deduplicate) {
+            bool svg = string.Equals(ToImagePartType(contentType).ContentType, "image/svg+xml", StringComparison.OrdinalIgnoreCase);
+            if (!svg || !OfficeIMO.Core.Internal.OfficeSvgPictureFallback.TryCreate(bytes, out byte[] png, out _, out _)) {
+                return new A.Blip { Embed = drawingPart.GetIdOfPart(GetImagePart(drawingPart, bytes, contentType, deduplicate)) };
+            }
+
+            string fallbackId = drawingPart.GetIdOfPart(GetImagePart(drawingPart, png, "image/png", deduplicate));
+            string svgId = drawingPart.GetIdOfPart(GetImagePart(drawingPart, bytes, contentType, deduplicate));
+            return new A.Blip(new A.BlipExtensionList(new A.BlipExtension(
+                new DocumentFormat.OpenXml.Office2019.Drawing.SVG.SVGBlip { Embed = svgId }) {
+                Uri = OfficeIMO.Core.Internal.OfficeSvgPictureFallback.BlipExtensionUri
+            })) { Embed = fallbackId };
         }
     }
 }

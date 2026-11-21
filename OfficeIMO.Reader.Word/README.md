@@ -86,7 +86,9 @@ configures that layout. The normalized `Blocks` and `Pages` contain visible rend
 identities and baseline extents in PDF user-space points. Logical text remains available through `Chunks`; tables
 and links remain at document scope because rendered lines do not identify their authored source blocks. Page Markdown
 therefore follows rendered text rather than authored paragraph or list structure. Results can differ from Microsoft Word
-when fonts, metrics, or unsupported layout features differ, so the option is disabled by default.
+when fonts, metrics, or unsupported layout features differ, so the option is disabled by default. Set
+`ReaderOptions.LayoutTimeout` to bound the layout for one read; it throws `OfficeImageExportTimeoutException` when
+exceeded, and a shorter `PageLocationOptions.RenderTimeout` still applies.
 
 Selected WordPerfect, WordStar, Ami Pro, Lotus Word Pro, Works/Write, and Word for DOS sources are included in `OfficeIMO.Word` but remain opt-in at the Reader registration boundary:
 
@@ -108,6 +110,31 @@ OfficeDocumentReadResult document = reader.ReadDocument("archive.wpd");
 The combined registration applies the same immutable legacy options to both the family-specific extensions and content-routed Word for DOS `.doc`; compound-binary `.doc` remains on the normal Word path. `AddLegacyWordHandler(...)` remains available when only the unambiguous legacy extensions are wanted and deliberately does not claim `.doc`.
 
 Legacy warnings include the detected profile, structured-versus-salvage quality, and feature-level losses. The handler never executes source macros or embedded code.
+
+## Read only text
+
+Use `ReaderProjection.Text` when only the text is needed. The result always holds
+text chunks only, with the same `GetText()` output as the text-and-metadata
+projection, and no blocks, tables, pages, links, metadata or inspection data:
+
+```csharp
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.Word;
+
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddWordHandler().Build();
+
+string text = reader.ReadDocument("notes.docx", new ReaderOptions {
+    Projection = ReaderProjection.Text
+}).GetText();
+```
+
+DOCX bodies made of paragraphs and simple tables are read in one forward pass over
+the main document part, without building the Word document model; those results list
+`officeimo.reader.word.streamed-text` in `CapabilitiesUsed`. A document with headers or
+footers, footnotes or endnotes, fields, content controls, text boxes, revisions, merged
+or nested table cells, or a paragraph longer than `MaxChars`, and any read with a
+password, inspection or package limits, builds the Word model instead and is reduced to
+the same text chunks.
 
 ## Inspect comments and tracked changes
 

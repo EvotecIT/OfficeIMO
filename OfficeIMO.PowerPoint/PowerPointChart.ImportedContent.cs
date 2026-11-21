@@ -270,7 +270,7 @@ namespace OfficeIMO.PowerPoint {
             var cache = new C.NumberingCache(new C.FormatCode(formatCode),
                 new C.PointCount { Val = (uint)values.Count });
             for (int index = 0; index < values.Count; index++)
-                cache.Append(new C.NumericPoint(new C.NumericValue(values[index].ToString("R", CultureInfo.InvariantCulture))) { Index = (uint)index });
+                cache.Append(new C.NumericPoint(new C.NumericValue(OfficeIMO.Core.Internal.OfficeRoundTripText.Format(values[index], CultureInfo.InvariantCulture))) { Index = (uint)index });
             reference.Append(cache);
         }
 

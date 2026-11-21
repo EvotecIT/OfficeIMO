@@ -9,7 +9,11 @@ public sealed partial class PdfLoadOptions {
     /// <summary>Creates default read settings with an independent limits graph.</summary>
     internal static PdfLoadOptions Default => new PdfLoadOptions();
 
-    /// <summary>Creates strict parsing settings with bounded budgets for documents from outside.</summary>
+    /// <summary>
+    /// Creates strict parsing settings with bounded budgets for documents from outside. Single-object size and token
+    /// count, and content operations and operands keep tighter limits here than the defaults, which are sized for valid
+    /// real-world files.
+    /// </summary>
     public static PdfLoadOptions UntrustedDefaults => new PdfLoadOptions {
         ParsingMode = PdfParsingMode.Strict,
         Limits = new PdfReadLimits {
@@ -17,7 +21,11 @@ public sealed partial class PdfLoadOptions {
             MaxIndirectObjects = 100_000,
             MaxRawStreamBytes = 32 * 1024 * 1024,
             MaxDecodedStreamBytes = 64 * 1024 * 1024,
-            MaxTotalDecodedStreamBytes = 128L * 1024L * 1024L
+            MaxTotalDecodedStreamBytes = 128L * 1024L * 1024L,
+            MaxObjectCharacters = 1_000_000,
+            MaxTokensPerObject = 100_000,
+            MaxContentOperations = 1_000_000,
+            MaxContentOperands = 1_000_000
         }
     };
 
@@ -37,6 +45,12 @@ public sealed partial class PdfLoadOptions {
     /// Optional synchronous AES provider used to open Standard-security PDFs when platform AES-CBC is unavailable.
     /// </summary>
     public IOfficeAesCryptographyProvider? AesCryptographyProvider { get; init; }
+
+    /// <summary>
+    /// Recipient certificates and the security provider used to open PDFs encrypted with the public-key
+    /// security handler (/Filter /Adobe.PubSec, /SubFilter adbe.pkcs7.s3, s4 or s5).
+    /// </summary>
+    public PdfPublicKeyDecryptionOptions? PublicKeyDecryption { get; init; }
 
     /// <summary>
     /// Controls whether authenticated user-password permission restrictions are enforced.
@@ -80,7 +94,33 @@ public sealed partial class PdfLoadOptions {
             Limits = effective.Limits.WithMinimumInputBytes(minimumInputBytes),
             Password = effective.Password,
             AesCryptographyProvider = effective.AesCryptographyProvider,
+            PublicKeyDecryption = effective.PublicKeyDecryption,
             PermissionPolicy = effective.PermissionPolicy,
+            PreferToUnicode = effective.PreferToUnicode,
+            UseWinAnsiFallback = effective.UseWinAnsiFallback,
+            AdjustKerningFromTJ = effective.AdjustKerningFromTJ,
+            IncludeArtifactText = effective.IncludeArtifactText
+        };
+    }
+
+    /// <summary>The same options with another permission policy, for internal checks that an already authorized operation needs.</summary>
+    internal static PdfLoadOptions WithPermissionPolicy(PdfLoadOptions? options, PdfPermissionPolicy permissionPolicy) {
+        PdfLoadOptions effective = Resolve(options);
+        if (effective.PermissionPolicy == permissionPolicy) return effective;
+        return new PdfLoadOptions {
+            ParsingMode = effective.ParsingMode,
+            Profile = effective.Profile,
+            IncludeImages = effective.IncludeImages,
+            IncludeFormWidgets = effective.IncludeFormWidgets,
+            RecoverDecodableTextForInspection = effective.RecoverDecodableTextForInspection,
+            PageSelection = effective.PageSelection,
+            LayoutOptions = CloneLayoutOptions(effective.LayoutOptions),
+            Pipeline = ClonePipelineOptions(effective.Pipeline),
+            Limits = effective.Limits,
+            Password = effective.Password,
+            AesCryptographyProvider = effective.AesCryptographyProvider,
+            PublicKeyDecryption = effective.PublicKeyDecryption,
+            PermissionPolicy = permissionPolicy,
             PreferToUnicode = effective.PreferToUnicode,
             UseWinAnsiFallback = effective.UseWinAnsiFallback,
             AdjustKerningFromTJ = effective.AdjustKerningFromTJ,
@@ -105,6 +145,7 @@ public sealed partial class PdfLoadOptions {
             Limits = effective.Limits.WithGeneratedOutput(effective.Limits.MaxInputBytes, minimumIndirectObjects, growth),
             Password = effective.Password,
             AesCryptographyProvider = effective.AesCryptographyProvider,
+            PublicKeyDecryption = effective.PublicKeyDecryption,
             PermissionPolicy = effective.PermissionPolicy,
             PreferToUnicode = effective.PreferToUnicode,
             UseWinAnsiFallback = effective.UseWinAnsiFallback,
@@ -119,9 +160,21 @@ public sealed partial class PdfLoadOptions {
         byte[] outputPdf,
         PdfGeneratedOutputGrowth growth = default) {
         Guard.NotNull(sourcePdf, nameof(sourcePdf));
+        PdfLoadOptions source = Resolve(sourceOptions);
+        return ForGeneratedOutput(source, PdfSyntax.CountSourceStructuralMarkers(sourcePdf, source.Limits), outputPdf, growth);
+    }
+
+    /// <summary>
+    /// Derives output read limits from source markers already measured under <paramref name="sourceOptions"/>. Only the
+    /// source's header and startxref counts are read.
+    /// </summary>
+    internal static PdfLoadOptions ForGeneratedOutput(
+        PdfLoadOptions? sourceOptions,
+        PdfStructuralMarkerCounts sourceMarkers,
+        byte[] outputPdf,
+        PdfGeneratedOutputGrowth growth = default) {
         Guard.NotNull(outputPdf, nameof(outputPdf));
         PdfLoadOptions source = Resolve(sourceOptions);
-        PdfStructuralMarkerCounts sourceMarkers = PdfSyntax.InspectStructuralMarkers(sourcePdf, source.Limits);
         PdfStructuralMarkerCounts outputMarkers = PdfSyntax.InspectStructuralMarkers(outputPdf, source.Limits);
         int sourceHeaders = sourceMarkers.IndirectObjectHeaders;
         int outputHeaders = outputMarkers.IndirectObjectHeaders;
@@ -161,6 +214,7 @@ public sealed partial class PdfLoadOptions {
             Limits = source.Limits.WithGeneratedOutput(outputPdf.LongLength, Math.Max(outputHeaders, reservedObjects), effectiveGrowth),
             Password = source.Password,
             AesCryptographyProvider = source.AesCryptographyProvider,
+            PublicKeyDecryption = source.PublicKeyDecryption,
             PermissionPolicy = source.PermissionPolicy,
             PreferToUnicode = source.PreferToUnicode,
             UseWinAnsiFallback = source.UseWinAnsiFallback,
@@ -234,6 +288,7 @@ public sealed partial class PdfLoadOptions {
                 preserveExistingRawStreamLimit),
             Password = effective.Password,
             AesCryptographyProvider = effective.AesCryptographyProvider,
+            PublicKeyDecryption = effective.PublicKeyDecryption,
             PermissionPolicy = effective.PermissionPolicy,
             PreferToUnicode = effective.PreferToUnicode,
             UseWinAnsiFallback = effective.UseWinAnsiFallback,
@@ -256,6 +311,30 @@ public sealed partial class PdfLoadOptions {
             Limits = effective.Limits,
             Password = password,
             AesCryptographyProvider = effective.AesCryptographyProvider,
+            PublicKeyDecryption = effective.PublicKeyDecryption,
+            PermissionPolicy = effective.PermissionPolicy,
+            PreferToUnicode = effective.PreferToUnicode,
+            UseWinAnsiFallback = effective.UseWinAnsiFallback,
+            AdjustKerningFromTJ = effective.AdjustKerningFromTJ,
+            IncludeArtifactText = effective.IncludeArtifactText
+        };
+    }
+
+    internal static PdfLoadOptions WithPublicKeyDecryption(PdfLoadOptions? options, PdfPublicKeyDecryptionOptions? publicKeyDecryption) {
+        PdfLoadOptions effective = Resolve(options);
+        return new PdfLoadOptions {
+            ParsingMode = effective.ParsingMode,
+            Profile = effective.Profile,
+            IncludeImages = effective.IncludeImages,
+            IncludeFormWidgets = effective.IncludeFormWidgets,
+            RecoverDecodableTextForInspection = effective.RecoverDecodableTextForInspection,
+            PageSelection = effective.PageSelection,
+            LayoutOptions = CloneLayoutOptions(effective.LayoutOptions),
+            Pipeline = ClonePipelineOptions(effective.Pipeline),
+            Limits = effective.Limits,
+            Password = effective.Password,
+            AesCryptographyProvider = effective.AesCryptographyProvider,
+            PublicKeyDecryption = publicKeyDecryption,
             PermissionPolicy = effective.PermissionPolicy,
             PreferToUnicode = effective.PreferToUnicode,
             UseWinAnsiFallback = effective.UseWinAnsiFallback,
@@ -280,6 +359,7 @@ public sealed partial class PdfLoadOptions {
             Limits = effective.Limits,
             Password = effective.Password,
             AesCryptographyProvider = aesCryptographyProvider,
+            PublicKeyDecryption = effective.PublicKeyDecryption,
             PermissionPolicy = effective.PermissionPolicy,
             PreferToUnicode = effective.PreferToUnicode,
             UseWinAnsiFallback = effective.UseWinAnsiFallback,
@@ -303,6 +383,7 @@ public sealed partial class PdfLoadOptions {
             Limits = effective.Limits,
             Password = effective.Password,
             AesCryptographyProvider = effective.AesCryptographyProvider,
+            PublicKeyDecryption = effective.PublicKeyDecryption,
             PermissionPolicy = effective.PermissionPolicy,
             PreferToUnicode = effective.PreferToUnicode,
             UseWinAnsiFallback = effective.UseWinAnsiFallback,

@@ -43,18 +43,17 @@ internal static partial class MarkdownReader {
                     out var singleFirst)) {
                 first = singleFirst;
             } else {
-                firstLines = ConsumeListContinuationLines(
+                firstLines = ConsumeListLeadLines(
                     lines,
                     ref j,
                     firstContinuationIndent,
                     firstContent,
                     options,
                     breakOnAnyOrderedListLine: options.ListExtras,
-                    sourceLines: firstSourceLines,
-                    absoluteLineOffset: state.SourceLineOffset,
+                    ref firstSourceLines,
                     initialLineIndex: i,
                     initialStartColumn: firstStartColumn,
-                    state: state);
+                    state);
                 first = CreateListItemFromLeadLines(firstLines, isTask, done, options, state, i, firstSourceLines);
             }
             first.Level = 0;
@@ -126,18 +125,17 @@ internal static partial class MarkdownReader {
                         out var singleItem)) {
                     li = singleItem;
                 } else {
-                    itemLines = ConsumeListContinuationLines(
+                    itemLines = ConsumeListLeadLines(
                         lines,
                         ref next,
                         continuationIndent,
                         content2,
                         options,
                         breakOnAnyOrderedListLine: options.ListExtras,
-                        sourceLines: itemSourceLines,
-                        absoluteLineOffset: state.SourceLineOffset,
+                        ref itemSourceLines,
                         initialLineIndex: itemStart,
                         initialStartColumn: startColumn,
-                        state: state);
+                        state);
                     li = CreateListItemFromLeadLines(itemLines, isTask2, done2, options, state, itemStart, itemSourceLines);
                 }
                 li.Level = continuationIndentsByLevel != null

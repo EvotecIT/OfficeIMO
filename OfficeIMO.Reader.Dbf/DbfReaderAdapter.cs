@@ -70,7 +70,7 @@ namespace OfficeIMO.Reader.Dbf {
             DBNull => string.Empty,
             byte[] bytes => Convert.ToBase64String(bytes),
             DateTime date => date.ToString(column.NativeType == 'D' ? "yyyy-MM-dd" : "yyyy-MM-dd'T'HH:mm:ss.fff", CultureInfo.InvariantCulture),
-            double number => number.ToString("R", CultureInfo.InvariantCulture),
+            double number => OfficeIMO.OfficeRoundTripNumberText.Format(number, CultureInfo.InvariantCulture),
             bool boolean => boolean ? "true" : "false",
             IFormattable formatted => formatted.ToString(null, CultureInfo.InvariantCulture) ?? string.Empty,
             _ => value.ToString() ?? string.Empty

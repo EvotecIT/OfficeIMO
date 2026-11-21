@@ -5,7 +5,7 @@ namespace OfficeIMO.Excel.Xlsb.Write;
 
 internal static partial class XlsbWorksheetCellExtractor {
     /// <summary>Writes one array declaration and native group references for every declared member.</summary>
-    private static List<XlsbWriteCell> ApplyArrayFormulaGroups(ExcelSheet sheet, List<XlsbWriteCell> cells, XlsbFormulaWriteContext? formulas) {
+    private static List<XlsbWriteCell> ApplyArrayFormulaGroups(ExcelSheet sheet, List<XlsbWriteCell> cells, IXlsbFormulaEncodingContext? formulas) {
         var arrays = sheet.WorksheetPart.Worksheet!.Descendants<Cell>()
             .Where(cell => cell.CellFormula?.FormulaType?.Value == CellFormulaValues.Array).ToArray();
         if (arrays.Length == 0) return cells;

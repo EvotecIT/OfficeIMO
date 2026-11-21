@@ -137,6 +137,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
         internal IReadOnlyList<string> TableNames => _tableNames;
 
+        private const int PackageReadBufferSize = 64 * 1024;
+
         internal static XlsbTabularWorkbook Open(
             string path,
             ExcelReaderOptions readOptions,
@@ -146,7 +148,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             ArgumentNullException.ThrowIfNull(readOptions);
 
             cancellationToken.ThrowIfCancellationRequested();
-            var stream = File.OpenRead(path);
+            // The inflater refills its input in small reads; a larger buffer serves them from memory instead of
+            // issuing one system read for each refill. It is rented, so the read does not allocate it.
+            Stream stream = ExcelPooledReadBufferStream.OpenFile(path, PackageReadBufferSize);
             try {
                 if (stream.Length > readOptions.MaxInputBytes) {
                     throw new InvalidDataException(
@@ -248,6 +252,22 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             XlsbPooledPartStream part;
             XlsbWorksheetDiscovery? discovery = null;
 #if NET8_0_OR_GREATER
+            // Single-pass reading needs the header row to fix the columns before validation finishes.
+            if (readOptions.EnableSinglePassReading && hasHeaderRow && readOptions.CellValueConverter == null
+                && readOptions.A1Range == null && readOptions.Execution.AllowsBackgroundProcessing) {
+                var gate = new XlsbSinglePassGate(cancellationToken);
+                bool started = false;
+                try {
+                    started = _parts.TryStartStreamedRead(sheet.PartName, gate.Token, out XlsbPooledPartStream? streamedPart,
+                        out WorksheetInflationProgress? progress, out Task? producer, out Func<Exception?>? producerFault);
+                    if (started) {
+                        return OpenSinglePassTable(gate, streamedPart!, progress!, producer!, producerFault!, hasHeaderRow,
+                            readOptions, cancellationToken);
+                    }
+                } finally {
+                    if (!started) gate.StopAndJoin();
+                }
+            }
             if (readOptions.A1Range == null && readOptions.Execution.AllowsBackgroundProcessing
                 && _parts.TryReadPipelined(sheet.PartName, cancellationToken,
                     (bytes, progress) => XlsbTabularDataReader.DiscoverWorksheet(bytes, _limits,
@@ -280,6 +300,52 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 throw;
             }
         }
+
+#if NET8_0_OR_GREATER
+        /// <summary>
+        /// Validates the worksheet on a background task while it inflates, and returns a reader once the
+        /// header row is proved. A worksheet whose validation ends first, or fails, behaves exactly as in
+        /// the default mode.
+        /// </summary>
+        private DbDataReader OpenSinglePassTable(XlsbSinglePassGate gate, XlsbPooledPartStream part,
+            WorksheetInflationProgress progress, Task producer, Func<Exception?> producerFault, bool hasHeaderRow,
+            ExcelReaderOptions readOptions, CancellationToken cancellationToken) {
+            Task validation = Task.Run(() => XlsbTabularDataReader.DiscoverWorksheetForSinglePass(part, _limits,
+                _recordBudget, _cellBudget, _dateStyles, _sharedStrings.Count, readOptions, progress, gate),
+                CancellationToken.None);
+            gate.Attach(producer, producerFault, validation);
+            XlsbWorksheetDiscovery? discovery = null;
+            XlsbSinglePassGate? streaming = gate;
+            try {
+                if (!gate.WaitForSchema(cancellationToken)) {
+                    // No header row to fix the columns before the end: use the complete validation result.
+                    gate.WaitForCompletion(cancellationToken);
+                    gate.StopAndJoin();
+                    discovery = gate.Result;
+                    streaming = null;
+                }
+            } catch {
+                gate.StopAndJoin();
+                part.Dispose();
+                throw;
+            }
+
+            return new XlsbTabularDataReader(
+                part,
+                _sharedStrings,
+                _dateStyles,
+                Uses1904DateSystem,
+                hasHeaderRow,
+                readOptions,
+                _limits,
+                _recordBudget,
+                _cellBudget,
+                _logicalRowBudget,
+                cancellationToken,
+                discovery,
+                streaming);
+        }
+#endif
 
         public void Dispose() {
             if (_disposed) {
@@ -375,8 +441,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             }
 
             string partName = XlsbPackagePartReader.ResolveTarget(workbookPartName, relationship.Target);
-            byte[] bytes = _parts.ReadPart(partName, _cancellationToken);
-            var records = new XlsbRecordSliceReader(bytes, _limits.MaxRecordBytes, _recordBudget);
+            // The styles part is parsed and dropped here, so its bytes come from the pool.
+            using XlsbPooledPartStream part = _parts.ReadSeekablePart(partName, _cancellationToken);
+            var records = new XlsbRecordSliceReader(part.Buffer, _limits.MaxRecordBytes, _recordBudget, length: part.DataLength);
             var customFormats = new Dictionary<ushort, string>();
             var cellStyleFormats = new List<XlsbTabularCellFormatReference>();
             var cellFormats = new List<XlsbTabularCellFormatReference>();
@@ -898,6 +965,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             bool metadataOnly = false) {
             ZipArchive? archive = null;
             try {
+                OfficePackageSecurityInspector.Validate(packageStream, OfficePackageSecurityOptions.SecureDefaults);
                 archive = new ZipArchive(packageStream, ZipArchiveMode.Read, leaveOpen: true);
                 bool foundWorkbook = metadataOnly
                     ? XlsbPackageDetector.TryFindWorkbookPart(

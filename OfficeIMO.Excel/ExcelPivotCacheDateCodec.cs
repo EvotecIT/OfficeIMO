@@ -5,9 +5,9 @@ namespace OfficeIMO.Excel {
     /// Keep this format boundary separate from Gregorian worksheet date conversion.
     /// </summary>
     internal static class ExcelPivotCacheDateCodec {
-        internal static DateTime FromSerial(double serial, ExcelDateSystem system) => DateTime.FromOADate(
-            system == ExcelDateSystem.NineteenFour ? serial + ExcelDateSystemConverter.Date1904OffsetDays : serial);
-        internal static double ToSerial(DateTime date, ExcelDateSystem system) => date.ToOADate()
-            - (system == ExcelDateSystem.NineteenFour ? ExcelDateSystemConverter.Date1904OffsetDays : 0d);
+        internal static DateTime FromSerial(double serial, ExcelDateSystem system) =>
+            ExcelDateSystemConverter.FromOleAutomationSerial(serial, system);
+        internal static double ToSerial(DateTime date, ExcelDateSystem system) =>
+            ExcelDateSystemConverter.ToOleAutomationSerial(date, system);
     }
 }

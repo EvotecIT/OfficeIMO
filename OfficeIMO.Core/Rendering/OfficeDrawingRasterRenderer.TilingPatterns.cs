@@ -91,11 +91,13 @@ public static partial class OfficeDrawingRasterRenderer {
         IOfficeRasterImageCodec? imageCodec, long maximumRasterPixels,
         System.Threading.CancellationToken cancellationToken) {
         OfficeDrawing tile = pattern.InnerTile;
+        if (tile.PostCompositionColorTransform != null) return false;
         OfficeDrawing content = tile;
         OfficeTransform transform = pattern.Transform;
         if (transform.M11 != 1D || transform.M22 != 1D || transform.M12 != 0D || transform.M21 != 0D) return false;
         // A same-size identity wrapper contributes no paint or additional clip.
         if (content.Elements.Count == 1 && content.Elements[0] is OfficeDrawingEffectGroup wrapper &&
+            wrapper.InnerDrawing.PostCompositionColorTransform == null &&
             wrapper.Transform == OfficeTransform.Identity && wrapper.Opacity == 1D &&
             wrapper.BlendMode == OfficeBlendMode.Normal && wrapper.SoftMask == null &&
             !wrapper.UnfilteredGeometryBounds.HasValue && wrapper.InnerDrawing.Width == tile.Width &&

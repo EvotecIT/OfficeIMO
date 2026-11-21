@@ -22,7 +22,7 @@ public sealed partial class AgentIWorkConversionTests {
         using var stdout = new StringWriter();
         using var stderr = new StringWriter();
         var arguments = new List<string> { "convert", files.Input, "--output", output, "--format", "docx" };
-        if (overwrite) arguments.Add("--overwrite");
+        if (overwrite) arguments.Add("--force");
         int exit = await AgentCommand.RunAsync(arguments.ToArray(), stdout, stderr);
         using var response = System.Text.Json.JsonDocument.Parse(stdout.ToString());
         Assert.Equal(overwrite, response.RootElement.GetProperty("workflow").GetProperty("succeeded").GetBoolean());
@@ -36,7 +36,7 @@ public sealed partial class AgentIWorkConversionTests {
     [InlineData(true)]
     public async Task Stdio_iwork_conversion_accepts_typed_policy_and_returns_structured_stage_evidence(bool directoryPackage) {
         using var files = new Files(directoryPackage);
-        var transport = new StdioClientTransport(new StdioClientTransportOptions {
+        var serverOptions = new StdioClientTransportOptions {
             Name = "officeimo-iwork-source-test",
             Command = Environment.GetEnvironmentVariable("DOTNET_HOST_PATH") ?? "dotnet",
             Arguments = [typeof(OfficeImoToolApp).Assembly.Location, "mcp", "serve", "--stdio"],
@@ -44,9 +44,10 @@ public sealed partial class AgentIWorkConversionTests {
             EnvironmentVariables = new Dictionary<string, string?> {
                 [AgentPathPolicy.AllowedRootsEnvironmentVariable] = files.Root
             }
-        });
+        };
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-        await using McpClient client = await McpClient.CreateAsync(transport, cancellationToken: timeout.Token);
+        await using McpTestServer server = await McpTestServer.StartAsync(serverOptions, timeout.Token);
+        McpClient client = server.Client;
         var arguments = new Dictionary<string, object?> {
             ["path"] = files.Input, ["outputPath"] = files.Output("pdf"), ["format"] = "pdf",
             ["iworkOptions"] = new Dictionary<string, object?> { ["mode"] = 1 }

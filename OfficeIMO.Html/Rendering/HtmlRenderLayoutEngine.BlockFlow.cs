@@ -102,7 +102,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     continue;
                 }
 
-                HtmlRenderBoxStyle childStyle = _styleResolver.Resolve(element, width, parentStyle);
+                HtmlRenderBoxStyle childStyle = ResolveFlowChildStyle(element, width, parentStyle);
                 childStyle = ResolveColumnFragmentStyle(element,
                     ForwardContainingHeightBasis(element, childStyle, parentStyle));
                 if (childStyle.Display == "none") {
@@ -302,12 +302,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             emittedFloats?.Add(positioned);
                         }
                     }
-                    HtmlRenderBoxStyle placementStyle = childStyle.Clone();
-                    if (childBlock.HasCollapsibleMargins) {
-                        placementStyle.MarginTop = childBlock.CollapsibleMarginTop;
-                        placementStyle.MarginBottom = childBlock.CollapsibleMarginBottom;
+                    if (RecordsNormalFlowPlacement(element)) {
+                        HtmlRenderBoxStyle placementStyle = childStyle.Clone();
+                        if (childBlock.HasCollapsibleMargins) {
+                            placementStyle.MarginTop = childBlock.CollapsibleMarginTop;
+                            placementStyle.MarginBottom = childBlock.CollapsibleMarginBottom;
+                        }
+                        StoreNormalFlowPlacement(element, container, 0D, flowHeight - marginAdjustment, placementStyle);
                     }
-                    RecordNormalFlowPlacement(element, container, 0D, flowHeight - marginAdjustment, placementStyle);
                     blocks.Add(childBlock);
                     flowHeight += childBlock.NormalFlowAdvance;
                     if (!childBlock.HasCollapsibleMargins) {

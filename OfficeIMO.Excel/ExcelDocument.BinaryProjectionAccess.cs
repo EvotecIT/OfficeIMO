@@ -12,6 +12,8 @@ namespace OfficeIMO.Excel {
 
             byte[] packageBytes;
             try {
+                // The reopened copy is the same imported workbook, so it keeps the source's last-modified time.
+                projectedDocument._keepModifiedTimestampOnSave = true;
                 packageBytes = projectedDocument.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsx });
             } finally {
                 projectedDocument.Dispose();

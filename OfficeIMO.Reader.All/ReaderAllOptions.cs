@@ -92,6 +92,9 @@ public sealed class ReaderAllOptions {
     /// <summary>Gets or sets SRT and WebVTT adapter options.</summary>
     public Subtitles.ReaderSubtitleOptions? Subtitles { get; set; }
 
+    /// <summary>Gets or sets TOML adapter options.</summary>
+    public Toml.TomlReadOptions? Toml { get; set; }
+
     /// <summary>Gets or sets Visio adapter options.</summary>
     public Visio.ReaderVisioOptions? Visio { get; set; }
 

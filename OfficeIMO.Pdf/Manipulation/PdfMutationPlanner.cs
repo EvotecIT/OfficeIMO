@@ -296,6 +296,13 @@ internal static class PdfMutationPlanner {
             appendOnlyAvailable = false;
         }
 
+        // The catalog-preserving extraction writer copies every catalog-reachable object, so a missing or mismatched
+        // reference anywhere in that graph refuses extraction before writing, as the page-graph check does.
+        string? extractionGraphFailure = operation == PdfMutationOperation.ExtractPages && fullRewriteAvailable
+            ? preflight.CatalogPreservingExtractionGraphFailure?.Value
+            : null;
+        if (extractionGraphFailure is not null) fullRewriteAvailable = false;
+
         PdfMutationExecutionMode mode;
         if (executionPreference == PdfMutationExecutionPreference.RequireFullRewrite) {
             mode = fullRewriteAvailable ? PdfMutationExecutionMode.FullRewrite : PdfMutationExecutionMode.Blocked;
@@ -322,6 +329,11 @@ internal static class PdfMutationPlanner {
             Add(sourceBlockers, "Source.IncompleteObjectGraph");
             blockers = sourceBlockers.AsReadOnly();
         }
+        if (mode == PdfMutationExecutionMode.Blocked && extractionGraphFailure is not null) {
+            var graphBlockers = blockers.ToList();
+            Add(graphBlockers, "FullRewrite." + PdfRewriteBlockerKind.InvalidObjectReferences);
+            blockers = graphBlockers.AsReadOnly();
+        }
         if (mode == PdfMutationExecutionMode.Blocked &&
             operation == PdfMutationOperation.FinalizeExternalSignature &&
             !finalizationReservationValidated) {
@@ -341,6 +353,8 @@ internal static class PdfMutationPlanner {
             blockers);
         IReadOnlyList<string> warnings = GetWarnings(preflight, appendOnly, operation, mode, security);
         IReadOnlyList<string> diagnostics = GetDiagnostics(preflight, appendOnly, operation, mode, blockers, fullRewriteCapability, appendOnlyAvailable, security);
+        if (mode == PdfMutationExecutionMode.Blocked && extractionGraphFailure is not null)
+            diagnostics = diagnostics.Concat(new[] { extractionGraphFailure }).ToList().AsReadOnly();
 
         return new PdfMutationPlan(
             operation,
@@ -766,11 +780,14 @@ internal static class PdfMutationPlanner {
             if ((operation == PdfMutationOperation.ImportPages || operation == PdfMutationOperation.OrganizePages ||
                 operation == PdfMutationOperation.ExtractPages || operation == PdfMutationOperation.NormalizePageRotation) &&
                 preflight.UncheckedDocumentInfo?.AcroFormXfa is not null) Add(blockers, "FullRewrite.XfaPageOwnership");
-            if (security.HasXrefStreams) {
+            // Catalog-rooted page writers normalize cross-reference and object streams, so they are never the reason
+            // such an operation is blocked.
+            bool normalizesCrossReferences = NormalizesCrossReferenceStreams(operation);
+            if (security.HasXrefStreams && !normalizesCrossReferences) {
                 Add(blockers, "FullRewrite.XrefStreamPreservation");
             }
 
-            if (security.HasObjectStreams) {
+            if (security.HasObjectStreams && !normalizesCrossReferences) {
                 Add(blockers, "FullRewrite.ObjectStreamPreservation");
             }
 
@@ -956,18 +973,15 @@ internal static class PdfMutationPlanner {
         if (operation != PdfMutationOperation.ExtractPages || !CanReadForPageTransfer(preflight)) {
             return false;
         }
-        if (preflight.RewriteBlockers.Any(blocker => blocker.Kind == PdfRewriteBlockerKind.TaggedContent || blocker.Kind == PdfRewriteBlockerKind.Forms))
-            return CanFullRewrite(preflight, PdfMutationOperation.OrganizePages) &&
-                PdfPermissionAuthorization.CanMutate(preflight.Probe.Security, preflight.PermissionPolicy, operation);
-
-        for (int i = 0; i < preflight.RewriteBlockers.Count; i++) {
-            PdfRewriteBlockerKind blocker = preflight.RewriteBlockers[i].Kind;
-            if (blocker != PdfRewriteBlockerKind.Encryption && blocker != PdfRewriteBlockerKind.TaggedContent) {
-                return false;
-            }
-        }
 
         PdfDocumentSecurityInfo security = preflight.Probe.Security;
+        // Structures the subset catalog writer cannot rebuild (outlines, tags, forms, actions, name trees and other
+        // catalog extensions) move to the catalog-preserving page organizer, which keeps them and prunes only
+        // navigation into pages that are not extracted.
+        if (preflight.RewriteBlockers.Any(static blocker => blocker.Kind != PdfRewriteBlockerKind.Encryption))
+            return CanFullRewrite(preflight, PdfMutationOperation.OrganizePages) &&
+                PdfPermissionAuthorization.CanMutate(security, preflight.PermissionPolicy, operation);
+
         return PdfPermissionAuthorization.CanMutate(security, preflight.PermissionPolicy, operation);
     }
 
@@ -1162,13 +1176,18 @@ internal static class PdfMutationPlanner {
         return true;
     }
 
+    private static bool NormalizesCrossReferenceStreams(PdfMutationOperation operation) =>
+        operation == PdfMutationOperation.ExtractPages || operation == PdfMutationOperation.OrganizePages ||
+        operation == PdfMutationOperation.ImportPages || operation == PdfMutationOperation.NormalizePageRotation;
+
     internal static bool IsFullRewriteBlockerForOperation(PdfRewriteBlockerKind blocker, PdfMutationOperation operation) {
-        // These writers retain the catalog-rooted graph and maintain their affected owners explicitly.
-        if (operation == PdfMutationOperation.NormalizePageRotation || operation == PdfMutationOperation.OrganizePages || operation == PdfMutationOperation.ImportPages) {
+        // These writers retain the catalog-rooted graph and maintain their affected owners explicitly. Page extraction
+        // uses the same writer for any structure its subset catalog cannot rebuild.
+        if (operation == PdfMutationOperation.NormalizePageRotation || operation == PdfMutationOperation.OrganizePages ||
+            operation == PdfMutationOperation.ImportPages || operation == PdfMutationOperation.ExtractPages) {
             return blocker == PdfRewriteBlockerKind.Signatures || blocker == PdfRewriteBlockerKind.Encryption ||
                 blocker == PdfRewriteBlockerKind.InvalidObjectReferences || blocker == PdfRewriteBlockerKind.IncompleteObjectGraph;
         }
-        if (operation == PdfMutationOperation.ExtractPages && blocker == PdfRewriteBlockerKind.Forms) return false;
         if (operation == PdfMutationOperation.SynchronizeMetadata) {
             return blocker != PdfRewriteBlockerKind.XmpMetadata;
         }
@@ -1179,12 +1198,18 @@ internal static class PdfMutationPlanner {
                 blocker != PdfRewriteBlockerKind.CatalogNameTrees &&
                 blocker != PdfRewriteBlockerKind.CatalogUri &&
                 blocker != PdfRewriteBlockerKind.OpenActions &&
-                blocker != PdfRewriteBlockerKind.Forms;
+                blocker != PdfRewriteBlockerKind.Forms &&
+                // The sanitizer prunes structure references to the annotations it removes, and the preservation proof
+                // compares the rest of the structure tree exactly.
+                blocker != PdfRewriteBlockerKind.TaggedContent;
         }
 
         if (operation == PdfMutationOperation.ModifyAttachments) {
+            // Attachment editors keep structure-element associations and prune structure references
+            // to the file attachment annotations they remove.
             return blocker != PdfRewriteBlockerKind.EmbeddedFiles &&
-                blocker != PdfRewriteBlockerKind.CatalogNameTrees;
+                blocker != PdfRewriteBlockerKind.CatalogNameTrees &&
+                blocker != PdfRewriteBlockerKind.TaggedContent;
         }
 
         if (operation == PdfMutationOperation.ModifyJavaScript) {

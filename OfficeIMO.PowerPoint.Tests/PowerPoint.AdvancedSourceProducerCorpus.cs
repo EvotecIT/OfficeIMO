@@ -169,7 +169,7 @@ public sealed class PowerPointAdvancedSourceProducerCorpusTests {
             .Descendants<NumberingCache>().First();
         cache.FormatCode = new FormatCode("$#,##0.00");
 
-        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        Assert.True(chart.TryGetOfficeSnapshot(out _));
         chart.UpdateData(snapshot.Data);
 
         Assert.Equal(1U, GetWorkbookCellStyle(package, "B2"));

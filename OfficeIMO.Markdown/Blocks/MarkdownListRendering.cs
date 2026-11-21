@@ -1,6 +1,9 @@
 namespace OfficeIMO.Markdown;
 
 internal static class MarkdownListRendering {
+    private static readonly string[] ContainsTaskListClasses = { "contains-task-list" };
+    private static readonly string[] TaskListItemClasses = { "task-list-item" };
+
     internal static string RenderMarkdown(
         MarkdownAttributeSet? attributes,
         IReadOnlyList<ListItem> items,
@@ -38,11 +41,23 @@ internal static class MarkdownListRendering {
         Func<int, string> topLevelAttributesFactory,
         bool renderItemAttributes = false) {
         var sb = new System.Text.StringBuilder();
+        AppendHtml(sb, listTag, items, attributes, topLevelAttributesFactory, renderItemAttributes);
+        return sb.ToString();
+    }
+
+    internal static void AppendHtml(
+        System.Text.StringBuilder sb,
+        string listTag,
+        IReadOnlyList<ListItem> items,
+        MarkdownAttributeSet? attributes,
+        Func<int, string> topLevelAttributesFactory,
+        bool renderItemAttributes = false) {
         renderItemAttributes = renderItemAttributes || HtmlRenderContext.RenderListItemAttributes;
 
         var scopeStarts = new List<int>();
-        var taskScopes = new HashSet<(int StartIndex, int Level)>();
-        var looseScopes = new HashSet<(int StartIndex, int Level)>();
+        // Most lists have neither task items nor loose items, so the sets are made on first use.
+        HashSet<(int StartIndex, int Level)>? taskScopes = null;
+        HashSet<(int StartIndex, int Level)>? looseScopes = null;
         for (int index = 0; index < items.Count; index++) {
             int level = Math.Max(0, items[index].Level);
             if (scopeStarts.Count > level + 1) {
@@ -55,17 +70,17 @@ internal static class MarkdownListRendering {
 
             var scopeKey = (scopeStarts[level], level);
             if (items[index].IsTask) {
-                taskScopes.Add(scopeKey);
+                (taskScopes ??= new HashSet<(int StartIndex, int Level)>()).Add(scopeKey);
             }
 
             if (items[index].RequiresLooseListRendering()) {
-                looseScopes.Add(scopeKey);
+                (looseScopes ??= new HashSet<(int StartIndex, int Level)>()).Add(scopeKey);
             }
         }
 
-        bool ContainsTasksInScope(int startIndex, int level) => taskScopes.Contains((startIndex, level));
+        bool ContainsTasksInScope(int startIndex, int level) => taskScopes?.Contains((startIndex, level)) == true;
 
-        bool IsLooseInScope(int startIndex, int level) => looseScopes.Contains((startIndex, level));
+        bool IsLooseInScope(int startIndex, int level) => looseScopes?.Contains((startIndex, level)) == true;
 
         void AppendOpenList(int startIndex, int level, bool isTopLevel) {
             var options = HtmlRenderContext.Options;
@@ -74,7 +89,7 @@ internal static class MarkdownListRendering {
             sb.Append('<').Append(listTag);
             if (isTopLevel) {
                 var taskClasses = containsTasks && !useGitHubTaskListHtml
-                    ? new[] { "contains-task-list" }
+                    ? ContainsTaskListClasses
                     : null;
                 sb.Append(MarkdownHtmlAttributes.Render(attributes, options, additionalClasses: taskClasses));
                 var attrs = topLevelAttributesFactory(startIndex);
@@ -119,7 +134,7 @@ internal static class MarkdownListRendering {
             var options = HtmlRenderContext.Options;
             bool useGitHubTaskListHtml = options?.GitHubTaskListHtml == true;
             var itemClasses = item.IsTask && !useGitHubTaskListHtml
-                ? new[] { "task-list-item" }
+                ? TaskListItemClasses
                 : null;
             var itemAttributes = renderItemAttributes
                 ? item.Attributes
@@ -141,15 +156,14 @@ internal static class MarkdownListRendering {
             sb.Append("<li")
                 .Append(MarkdownHtmlAttributes.Render(itemAttributes, options, additionalClasses: itemClasses))
                 .Append(taskMarkerStyle)
-                .Append('>')
-                .Append(item.RenderHtml(renderLoose, renderGenericAttributeConsumedWhitespace: !renderItemAttributes));
+                .Append('>');
+            item.AppendHtml(sb, renderLoose, renderGenericAttributeConsumedWhitespace: !renderItemAttributes);
             liOpen = true;
         }
 
         if (liOpen) { sb.Append("</li>"); }
         for (int k = currentLevel; k > 0; k--) { sb.Append("</").Append(listTag).Append("></li>"); }
         sb.Append("</").Append(listTag).Append('>');
-        return sb.ToString();
     }
 
     private static void AppendItemMarkdown(System.Text.StringBuilder sb, string content, string baseIndent, string firstPrefix, string contPrefix) {
@@ -175,13 +189,14 @@ internal static class MarkdownListRendering {
         }
 
         var content = MarkdownEscaper.EscapeRenderedListItemLineStarts(item.RenderMarkdown());
-        if (item.SyntaxChildren.Count == 0) {
+        var syntaxChildren = item.SyntaxChildrenForWriting;
+        if (syntaxChildren == null || syntaxChildren.Count == 0) {
             return content;
         }
 
         var definitions = new List<string>();
-        for (int i = 0; i < item.SyntaxChildren.Count; i++) {
-            var syntaxChild = item.SyntaxChildren[i];
+        for (int i = 0; i < syntaxChildren.Count; i++) {
+            var syntaxChild = syntaxChildren[i];
             if (syntaxChild.Kind != MarkdownSyntaxKind.AbbreviationDefinition
                 || string.IsNullOrWhiteSpace(syntaxChild.Literal)) {
                 continue;

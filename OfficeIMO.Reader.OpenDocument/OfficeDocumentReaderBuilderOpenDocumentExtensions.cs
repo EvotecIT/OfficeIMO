@@ -33,7 +33,18 @@ public static class OfficeDocumentReaderBuilderOpenDocumentExtensions {
             ReadDocumentStream = (stream, sourceName, options, cancellationToken) =>
                 OpenDocumentReaderAdapter.ReadDocument(stream, sourceName, options, formatOptions, cancellationToken),
             DeterministicOutput = true,
-            SupportsTextAndMetadata = true
+            SupportsTextAndMetadata = true,
+            ClassifyReadError = ClassifyReadError
         };
     }
+
+    private static string? ClassifyReadError(Exception exception) => exception is OdfEncryptedPackageException encrypted
+        ? encrypted.Reason switch {
+            OdfEncryptionFailureReason.PasswordRequired => ReaderErrorCodes.PasswordRequired,
+            OdfEncryptionFailureReason.IncorrectPassword => ReaderErrorCodes.InvalidPassword,
+            OdfEncryptionFailureReason.UnsupportedProfile => ReaderErrorCodes.UnsupportedEncryption,
+            OdfEncryptionFailureReason.InvalidEncryptedPackage => ReaderErrorCodes.InvalidContent,
+            _ => null
+        }
+        : null;
 }

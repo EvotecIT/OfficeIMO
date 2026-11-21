@@ -56,6 +56,19 @@ public sealed class HtmlExcelGenericContentTests {
     }
 
     [Fact]
+    public void SemanticSheetNamesKeepSurrogatePairsWholeWhenShortened() {
+        string truncated = new string('a', 30) + "\U0001F600";
+        string collision = new string('b', 28) + "\U0001F600" + "c";
+        static string Section(string name) =>
+            "<section class='officeimo-sheet' data-officeimo-sheet='" + name + "'><table><tr><td>x</td></tr></table></section>";
+        using ExcelDocument workbook = HtmlConversionDocument.Parse(Section(truncated) + Section(collision) + Section(collision + "d"))
+            .ConvertToExcelWithEvidence(new HtmlExcelExportOptions { Mode = HtmlImportMode.Semantic }).RequireValue();
+
+        Assert.Equal(new[] { new string('a', 30), collision, new string('b', 28) + " 2" },
+            workbook.Sheets.Select(sheet => sheet.Name).ToArray());
+    }
+
+    [Fact]
     public void UnknownErrorLiteralFallsBackToVisibleTextAndCanBeSavedAsXlsb() {
         HtmlToExcelResult result = HtmlConversionDocument.Parse(
             "<section class='officeimo-sheet' data-officeimo-sheet='Errors'><table><tr>"

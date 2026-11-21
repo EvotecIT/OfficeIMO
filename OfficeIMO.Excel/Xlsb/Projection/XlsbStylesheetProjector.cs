@@ -42,12 +42,16 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             stylesheet.CellStyleFormats.Count = (uint)stylesheet.CellStyleFormats.Count();
             stylesheet.CellFormats = new CellFormats(source.CellFormats.Select(format => CreateCellFormat(format, isStyleFormat: false)));
             stylesheet.CellFormats.Count = (uint)stylesheet.CellFormats.Count();
-            stylesheet.CellStyles = new CellStyles(new CellStyle {
-                Name = "Normal",
-                FormatId = 0U,
-                BuiltinId = 0U
-            }) { Count = 1U };
-            stylesheet.DifferentialFormats = new DifferentialFormats { Count = 0U };
+            stylesheet.CellStyles = source.CellStyles.Count == 0
+                ? new CellStyles(new CellStyle {
+                    Name = "Normal",
+                    FormatId = 0U,
+                    BuiltinId = 0U
+                }) { Count = 1U }
+                : new CellStyles(source.CellStyles.Select(CreateCellStyle)) { Count = (uint)source.CellStyles.Count };
+            stylesheet.DifferentialFormats = new DifferentialFormats(source.DifferentialFormats.Select(format => (DifferentialFormat)format.CloneNode(true))) {
+                Count = (uint)source.DifferentialFormats.Count
+            };
             stylesheet.TableStyles = new TableStyles {
                 Count = 0U,
                 DefaultTableStyle = "TableStyleMedium2",
@@ -55,6 +59,37 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             };
 
             return stylesheet;
+        }
+
+        private static CellStyle CreateCellStyle(XlsbCellStyle source) => new CellStyle {
+            Name = source.Name,
+            FormatId = source.FormatId,
+            BuiltinId = source.BuiltIn ? source.BuiltInId : null,
+            OutlineLevel = source.BuiltIn && source.BuiltInId is 1 or 2 ? source.Level : null,
+            Hidden = source.Hidden ? true : null,
+            CustomBuiltin = source.CustomBuiltIn ? true : null
+        };
+
+        /// <summary>Creates the run properties of a rich-text run that uses a BrtFont record.</summary>
+        internal static RunProperties CreateRunProperties(XlsbFont source) {
+            var properties = new RunProperties();
+            foreach (DocumentFormat.OpenXml.OpenXmlElement child in CreateFont(source).ChildElements) {
+                switch (child) {
+                    case FontName name:
+                        properties.Append(new RunFont { Val = name.Val });
+                        break;
+                    case FontFamilyNumbering family:
+                        properties.Append(new FontFamily { Val = family.Val });
+                        break;
+                    case FontCharSet charset:
+                        properties.Append(new RunPropertyCharSet { Val = charset.Val });
+                        break;
+                    default:
+                        properties.Append(child.CloneNode(true));
+                        break;
+                }
+            }
+            return properties;
         }
 
         private static Font CreateFont(XlsbFont source) {
@@ -129,7 +164,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             if (!isStyleFormat) format.FormatId = source.ParentFormatId;
 
             bool hasAlignment = source.HorizontalAlignment != 0
-                || source.VerticalAlignment != 0
+                || source.VerticalAlignment != BottomVerticalAlignment
                 || source.TextRotation != 0
                 || source.Indent != 0
                 || source.WrapText
@@ -140,7 +175,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             if (hasAlignment || HasApplyFlag(source, 2)) {
                 format.Alignment = new Alignment {
                     Horizontal = ToHorizontalAlignment(source.HorizontalAlignment),
-                    Vertical = ToVerticalAlignment(source.VerticalAlignment),
+                    Vertical = source.VerticalAlignment == BottomVerticalAlignment ? null : ToVerticalAlignment(source.VerticalAlignment),
                     TextRotation = source.TextRotation == 0 ? null : source.TextRotation,
                     Indent = source.Indent == 0 ? null : source.Indent,
                     WrapText = source.WrapText ? true : null,
@@ -180,7 +215,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             return color;
         }
 
-        private static void ApplyColor(ColorType target, XlsbColor source) {
+        internal static void ApplyColor(ColorType target, XlsbColor source) {
             switch (source.Type) {
                 case 0:
                     target.Auto = true;
@@ -219,7 +254,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             };
         }
 
-        private static PatternValues ToFillPattern(uint value) {
+        internal static PatternValues ToFillPattern(uint value) {
             return value switch {
                 1 => PatternValues.Solid,
                 2 => PatternValues.MediumGray,
@@ -243,7 +278,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             };
         }
 
-        private static BorderStyleValues? ToBorderStyle(byte value) {
+        internal static BorderStyleValues? ToBorderStyle(byte value) {
             return value switch {
                 1 => BorderStyleValues.Thin,
                 2 => BorderStyleValues.Medium,
@@ -274,6 +309,9 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
                 _ => null
             };
         }
+
+        // BrtXF alcV 2 (bottom) is the default, so only other values need an alignment element.
+        private const byte BottomVerticalAlignment = 2;
 
         private static VerticalAlignmentValues? ToVerticalAlignment(byte value) {
             return value switch {

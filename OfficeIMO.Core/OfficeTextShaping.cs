@@ -374,6 +374,40 @@ public sealed class OfficeTextShapingResult {
         }
     }
 
+    private OfficeTextShapingResult(OfficeShapedGlyph[] glyphs, int[]? advanceAdjustments, OfficeTextDirection direction,
+        int[]? logicalClusterStarts) {
+        Glyphs = Array.AsReadOnly(glyphs);
+        Direction = direction;
+        _advanceAdjustments = advanceAdjustments;
+        _logicalClusterStarts = logicalClusterStarts;
+    }
+
+    /// <summary>
+    /// Wraps buffers a shaper built for this result alone, without the defensive copies the public constructors
+    /// make. Paragraph-length runs otherwise copy every glyph two or three times. The caller must not keep or
+    /// change the arrays afterwards.
+    /// </summary>
+    internal static OfficeTextShapingResult FromOwnedBuffers(
+        OfficeShapedGlyph[] glyphs,
+        int[]? advanceAdjustments,
+        OfficeTextDirection direction,
+        int[]? logicalClusterStarts) {
+        ArgumentNullException.ThrowIfNull(glyphs);
+        if (direction != OfficeTextDirection.Auto &&
+            direction != OfficeTextDirection.LeftToRight &&
+            direction != OfficeTextDirection.RightToLeft &&
+            direction != OfficeTextDirection.TopToBottom) {
+            throw new ArgumentOutOfRangeException(nameof(direction));
+        }
+        if (logicalClusterStarts != null && logicalClusterStarts.Length != glyphs.Length) {
+            throw new ArgumentException("Logical cluster mappings must match the glyph count.", nameof(logicalClusterStarts));
+        }
+        if (advanceAdjustments != null && advanceAdjustments.Length != glyphs.Length) {
+            throw new ArgumentException("Shaped glyph advance adjustments must match the glyph count.", nameof(advanceAdjustments));
+        }
+        return new OfficeTextShapingResult(glyphs, advanceAdjustments, direction, logicalClusterStarts);
+    }
+
     /// <summary>Glyph identifiers, source mappings, advances, and offsets.</summary>
     public IReadOnlyList<OfficeShapedGlyph> Glyphs { get; }
 

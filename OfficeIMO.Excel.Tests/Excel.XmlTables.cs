@@ -79,14 +79,11 @@ public sealed class ExcelXmlTableTests {
         Assert.Equal("value", sheet.Cell(1, 1).GetValue<string>());
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void Cell_object_reads_materialize_existing_deferred_table_and_json_insertions(bool json) {
+    [Fact]
+    public void Cell_object_reads_materialize_an_existing_deferred_table_insertion() {
         using var document = ExcelDocument.Create(); var sheet = document.AddSheet("Data");
-        if (json) sheet.FromJson("[{\"Code\":\"00127\"}]", includeHeaders: false);
-        else {
-            using var table = new System.Data.DataTable(); table.Columns.Add("Code", typeof(string)); table.Rows.Add("00127");
+        using (var table = new System.Data.DataTable()) {
+            table.Columns.Add("Code", typeof(string)); table.Rows.Add("00127");
             sheet.WriteData(table, includeHeaders: false);
         }
         Assert.Equal("00127", sheet.Cell(1, 1).GetFormattedText());

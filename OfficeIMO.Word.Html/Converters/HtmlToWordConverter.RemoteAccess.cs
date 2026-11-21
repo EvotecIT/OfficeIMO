@@ -6,33 +6,41 @@ using System.Net.Http;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
-        private static readonly Lazy<HttpClient> _sharedHttpClient = new(CreateSharedHttpClient);
         private const int MaximumRemoteResourceRedirects = 50;
+        private static readonly TimeSpan RemoteResourceChainTimeout = TimeSpan.FromSeconds(100);
         private OfficeHttpCookieScope? _remoteResourceCookies;
-
-        private static HttpClient CreateSharedHttpClient() {
-            var handler = new HttpClientHandler { AllowAutoRedirect = false };
-            OfficeHttpCookieScope.DisableAutomaticCookies(handler);
-            return new HttpClient(handler);
-        }
 
         private async Task<HttpResponseMessage> FetchRemoteResourceAsync(Uri uri,
             HashSet<string> allowedSchemes, HashSet<string> allowedHosts, CancellationToken cancellationToken,
             HtmlUrlPolicy? urlPolicy = null) {
-            // A supplied client owns its cookies, transport and redirect behavior.
-            if (_options.HttpClient is { } client) {
-                using var request = new HttpRequestMessage(HttpMethod.Get, uri);
-                return await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
-            }
+            bool allowPrivate = _options.AllowPrivateNetworkAddresses;
+            try {
+                // A supplied client owns its cookies, transport, name resolution and redirect behavior.
+                if (_options.HttpClient is { } client) {
+                    if (!allowPrivate) OfficeNetworkAddressPolicy.ThrowIfNonPublicHostName(uri);
+                    using var request = new HttpRequestMessage(HttpMethod.Get, uri);
+                    return await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                }
 
-            // Preserve the shared client's timeout across the entire redirect chain.
-            HttpClient sharedClient = _sharedHttpClient.Value;
+                return await FetchWithSharedClientAsync(uri, allowedSchemes, allowedHosts, urlPolicy, allowPrivate, cancellationToken).ConfigureAwait(false);
+            } catch (Exception exception) when (OfficeNetworkAddressPolicy.TryGetRejection(exception, out OfficeNetworkAddressException rejection)) {
+                throw new HtmlResourcePolicyException(rejection.Message);
+            }
+        }
+
+        private async Task<HttpResponseMessage> FetchWithSharedClientAsync(Uri uri,
+            HashSet<string> allowedSchemes, HashSet<string> allowedHosts, HtmlUrlPolicy? urlPolicy,
+            bool allowPrivate, CancellationToken cancellationToken) {
+            // One timeout covers the entire redirect chain.
+            HttpClient sharedClient = OfficeNetworkAddressPolicy.GetClient(allowPrivate);
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeout.CancelAfter(sharedClient.Timeout);
+            timeout.CancelAfter(RemoteResourceChainTimeout);
             OfficeHttpCookieScope cookies = LazyInitializer.EnsureInitialized(
                 ref _remoteResourceCookies, static () => new OfficeHttpCookieScope())!;
             for (int redirects = 0; ; redirects++) {
-                using var request = new HttpRequestMessage(HttpMethod.Get, uri);
+                // Each hop is checked again, so a redirect cannot reach a non-public address.
+                using HttpRequestMessage request = await OfficeNetworkAddressPolicy.CreateRequestAsync(
+                    HttpMethod.Get, uri, allowPrivate, timeout.Token).ConfigureAwait(false);
                 HttpResponseMessage response = await cookies.SendAsync(
                     sharedClient, request, uri, timeout.Token).ConfigureAwait(false);
                 int status = (int)response.StatusCode;

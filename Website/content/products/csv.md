@@ -22,12 +22,12 @@ OfficeIMO.CSV treats CSV files as first-class documents rather than raw text. De
 ## Features
 
 - **Document-centric CSV model** — headers, rows, and metadata wrapped in a structured document object
-- **Schema definition & validation** — declare column names, types, and constraints; reject invalid rows at parse time
+- **Schema definition & validation** — declare column names, types, and constraints, then validate loaded rows with `ValidateOrThrow` or `Validate(out errors)`
 - **Typed mapping** — map headers automatically for ordinary DTOs or use explicit delegates for trimming and NativeAOT
 - **Forward-only reads for large files** — process rows through the standard `DbDataReader` contract
 - **Sort, filter & transform** — chain LINQ-style operations directly on the CSV document
 - **NativeAOT scenario in CI** — publishes and executes CSV parsing with schema readback instead of inferring compatibility from dependencies
-- **Zero external dependencies** — ships as a single assembly with no third-party references
+- **No third-party dependencies** — builds only on `OfficeIMO.Core` (plus `System.Memory` on .NET Standard 2.0 and .NET Framework)
 
 ## Quick start
 

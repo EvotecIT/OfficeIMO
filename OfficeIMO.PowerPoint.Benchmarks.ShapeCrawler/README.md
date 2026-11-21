@@ -2,8 +2,9 @@
 
 This opt-in project compares OfficeIMO.PowerPoint with
 [ShapeCrawler 0.82.0](https://www.nuget.org/packages/ShapeCrawler/0.82.0)
-(MIT) and the MIT-licensed Open XML SDK 3.5.1. NPOI 2.8.1 is not included: its
-.NET packages do not ship the XSLF PowerPoint user model.
+(MIT), [RecursiveAI.OneDocument.Presentations 1.0.0](https://www.nuget.org/packages/RecursiveAI.OneDocument.Presentations/1.0.0)
+(`MIT OR Apache-2.0`) and the MIT-licensed Open XML SDK 3.5.1. NPOI 2.8.1 is not
+included: its .NET packages do not ship the XSLF PowerPoint user model.
 
 ## Warm in-process comparison
 
@@ -23,6 +24,15 @@ layouts, and theme, because writing that scaffolding by hand is not a
 representative SDK workload. Each library uses its default image handling; the
 SDK lane writes one image part per slide. Validation runs in global setup,
 outside the measured operations.
+
+The OneDocument lanes carry the `library:onedocument` category. OneDocument
+adds slides from the built-in Blank layout and adds tables and pictures through
+`Slide.AddTable` and `Slide.AddPicture`. Its slide API has no text box call, so
+the create lane builds the title and body text boxes through OneDocument's
+typed views over the slide markup, with the same positions, names, bold 28 pt
+title and three body paragraphs as the other lanes. Edit uses
+`TextBody.SetText` and `TableCell.SetText`; copy uses `DuplicateSlide`, which
+shares picture parts between a slide and its copy.
 
 ```powershell
 dotnet run -c Release --project .\OfficeIMO.PowerPoint.Benchmarks.ShapeCrawler -- validate

@@ -142,7 +142,7 @@ public sealed class PdfReverseAttachmentLossTests {
         using (excel.Value)
         using (powerPoint.Value) {
             Assert.Equal(1, excel.Report.SourceScope.AttachmentCount);
-            Assert.Equal(1, powerPoint.Report.SourceScope.AttachmentCount);
+            Assert.Equal(1, powerPoint.Report!.SourceScope!.AttachmentCount);
             Assert.True(excel.HasLoss);
             Assert.True(powerPoint.HasLoss);
         }

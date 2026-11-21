@@ -19,11 +19,9 @@ namespace OfficeIMO.Word.Markdown {
 
             var sb = new StringBuilder();
 
-            if (paragraph.IndentationBefore.HasValue && checked((int)(paragraph.IndentationBefore.Value.ToTwips())) > 0) {
-                int depth = GetBoundedBlockquoteDepth(checked((int)(paragraph.IndentationBefore.Value.ToTwips())));
-                if (depth > 0) {
-                    sb.Append(string.Join(" ", Enumerable.Repeat(">", depth))).Append(' ');
-                }
+            int quoteDepth = GetBlockquoteDepth(paragraph);
+            if (quoteDepth > 0) {
+                sb.Append(string.Join(" ", Enumerable.Repeat(">", quoteDepth))).Append(' ');
             }
 
             int? headingLevel = paragraph.Style.HasValue
@@ -226,6 +224,21 @@ namespace OfficeIMO.Word.Markdown {
         }
 
         private const int MaximumBlockquoteDepth = 64;
+
+        /// <summary>
+        /// The Markdown quote depth of a paragraph: the levels its direct indent adds to its paragraph style's own
+        /// indent, plus one when that style is the document's quote style, found by its built-in name.
+        /// </summary>
+        private static int GetBlockquoteDepth(WordParagraph paragraph) {
+            int direct = paragraph.IndentationBefore.HasValue ? checked((int)paragraph.IndentationBefore.Value.ToTwips()) : 0;
+            string? styleId = paragraph.StyleId;
+            int styleIndent = paragraph._document?.GetStyleIndentationBeforeTwips(styleId) ?? 0;
+            int nested = paragraph.IndentationBefore.HasValue && direct > styleIndent ? GetBoundedBlockquoteDepth(direct - styleIndent) : 0;
+            if (paragraph.BuiltInStyleId is "Quote" or "IntenseQuote") {
+                return Math.Min(MaximumBlockquoteDepth, 1 + nested);
+            }
+            return nested;
+        }
 
         private static int GetBoundedBlockquoteDepth(double indentationBefore) {
             double computed = Math.Round(indentationBefore / 720d);

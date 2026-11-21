@@ -11,7 +11,7 @@ namespace OfficeIMO.Excel {
 
         private static class FastWorkbookPackageWriter {
             internal static void Write(Stream destination, FastWorkbookPackageModel model, CancellationToken ct) {
-                using (var archive = new ZipArchive(destination, ZipArchiveMode.Create, leaveOpen: true)) {
+                using (ExcelPackageArchive archive = ExcelPackageArchive.Create(destination)) {
                     ct.ThrowIfCancellationRequested();
                     WriteContentTypesEntry(archive, model.WorkbookContentType, model.HasStyles, model.HasSharedStrings, model.HasCustomProperties, model.Worksheets.Count, model.Tables.Count);
                     ct.ThrowIfCancellationRequested();

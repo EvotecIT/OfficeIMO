@@ -2,6 +2,7 @@ using System.Globalization;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
+using OfficeIMO.Benchmarks;
 using OfficeIMO.PowerPoint;
 using A = DocumentFormat.OpenXml.Drawing;
 using P = DocumentFormat.OpenXml.Presentation;
@@ -83,6 +84,20 @@ internal static class PowerPointComparisonCorpus {
     internal static PresentationExpectation Copied(int slideCount) =>
         new(slideCount * 2, slide => Title(slide % slideCount), slide => Cell(slide % slideCount, 1, 1),
             slideCount, RequireNames: true);
+
+    /// <summary>
+    /// Validates one comparison lane's output and records the result under its declared library id for the
+    /// benchmark evidence catalog; a mismatch is recorded as failed and rethrown.
+    /// </summary>
+    internal static void Validate(string library, string lane, byte[] payload, PresentationExpectation expected, string detail) {
+        try {
+            Validate(lane, payload, expected);
+        } catch (Exception exception) {
+            BenchmarkOutputValidationLog.Failed(library, detail + ": " + exception.Message, "Default");
+            throw;
+        }
+        BenchmarkOutputValidationLog.Passed(library, detail, "Default");
+    }
 
     /// <summary>Validates content, picture payloads, and Open XML conformance after the measured operation.</summary>
     internal static void Validate(string lane, byte[] payload, PresentationExpectation expected) {

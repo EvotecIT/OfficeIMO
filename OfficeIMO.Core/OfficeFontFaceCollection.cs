@@ -367,7 +367,9 @@ public sealed partial class OfficeFontFaceCollection {
         if (_faces.Count == 0) return false;
 
         IReadOnlyList<OfficeFontFallbackRun> runs = PlanFallbackRuns(text, familyNames, style);
-        foreach (OfficeFontFallbackRun run in runs) {
+        // Indexed: every measured word passes here, and foreach over the interface boxes an enumerator.
+        for (int index = 0; index < runs.Count; index++) {
+            OfficeFontFallbackRun run = runs[index];
             IOfficeFontProgram? font = ResolveForText(run.Text, run.FamilyRequest, style, fontSize, out OfficeFontStyle _);
             if (font == null) return false;
             width += font.Measure(run.Text, fontSize);
@@ -538,6 +540,8 @@ public sealed partial class OfficeFontFaceCollection {
         face = null;
         if (string.IsNullOrEmpty(text) || string.IsNullOrWhiteSpace(familyNames)) return false;
         FallbackSelection selection = GetFallbackSelection(familyNames!.Trim(), descriptor);
+        // Without candidates no text resolves, so there is nothing to look up or remember.
+        if (selection.Candidates.Count == 0) return false;
         bool cacheable = text!.Length <= MaximumCachedPlanLength;
         if (cacheable && selection.FacesForText.TryGetValue(text, out face)) return face != null;
         face = SelectFaceForText(text, selection);
@@ -656,11 +660,11 @@ public sealed partial class OfficeFontFaceCollection {
         OfficeFontUnicodeRangeSet ranges) {
         string value = descriptor.Weight.ToString(System.Globalization.CultureInfo.InvariantCulture)
             + "|"
-            + descriptor.StretchPercent.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
+            + OfficeIMO.Core.Internal.OfficeRoundTripText.Format(descriptor.StretchPercent, System.Globalization.CultureInfo.InvariantCulture)
             + "|"
             + ((int)descriptor.Slant).ToString(System.Globalization.CultureInfo.InvariantCulture)
             + "|"
-            + descriptor.ObliqueAngleDegrees.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
+            + OfficeIMO.Core.Internal.OfficeRoundTripText.Format(descriptor.ObliqueAngleDegrees, System.Globalization.CultureInfo.InvariantCulture)
             + "|"
             + ranges.ToStableKey();
         uint hash = 2166136261;

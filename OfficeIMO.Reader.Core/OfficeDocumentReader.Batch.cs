@@ -22,7 +22,7 @@ public sealed partial class OfficeDocumentReader {
             policy.BatchOptions,
             MaxConcurrentReads,
             MaxConcurrentReads,
-            (index, path, token) => ReadDocumentOutcomeAsync(index, path, policy, token),
+            (index, path, token) => ReadDocumentOutcomeAsync(index, path, options, policy, token),
             onCompleted,
             cancellationToken).ConfigureAwait(false);
     }
@@ -50,7 +50,7 @@ public sealed partial class OfficeDocumentReader {
             policy.BatchOptions,
             MaxConcurrentReads,
             MaxConcurrentReads,
-            (index, path, token) => ReadDocumentOutcomeAsync(index, path, policy, token),
+            (index, path, token) => ReadDocumentOutcomeAsync(index, path, options, policy, token),
             onCompleted,
             cancellationToken).ConfigureAwait(false);
     }
@@ -58,6 +58,7 @@ public sealed partial class OfficeDocumentReader {
     private async Task<ReaderDocumentReadOutcome> ReadDocumentOutcomeAsync(
         int index,
         string path,
+        ReaderOptions options,
         ReaderBatchReadPolicy policy,
         CancellationToken cancellationToken) {
         try {
@@ -67,7 +68,7 @@ public sealed partial class OfficeDocumentReader {
         } catch (OperationCanceledException) {
             throw;
         } catch (Exception exception) when (exception is not ReaderResourceLimitException and not ReaderAdmissionLimitException) {
-            return new ReaderDocumentReadOutcome(index, path, document: null, exception);
+            return new ReaderDocumentReadOutcome(index, path, document: null, exception, ClassifyReadError(exception, path, options));
         }
     }
 }

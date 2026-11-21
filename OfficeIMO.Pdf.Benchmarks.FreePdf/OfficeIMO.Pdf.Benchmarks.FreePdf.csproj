@@ -1,0 +1,77 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    FreePDF keeps the PdfSharp and MigraDoc assembly names, so it cannot share an
+    output folder with the PDFsharp-MigraDoc package in OfficeIMO.Pdf.Benchmarks.Comparisons.
+    This project compiles the comparison project's MigraDoc generator and PDFsharp
+    page operations unchanged against one engine at a time:
+
+      PdfSharpEngine=FreePDF   io7.FreePDF.Layout (default)
+      PdfSharpEngine=PDFsharp  PDFsharp-MigraDoc 6.2.4, for a same-runtime baseline
+
+    Directory.Build.props gives the PDFsharp build its own obj/pdfsharp and bin/pdfsharp
+    folders so the two restores never mix.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net10.0</TargetFrameworks>
+    <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
+    <LangVersion>Latest</LangVersion>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>OfficeIMO.Pdf.Benchmarks.Comparisons</RootNamespace>
+    <PdfSharpEngine Condition="'$(PdfSharpEngine)' == ''">FreePDF</PdfSharpEngine>
+    <FreePdfBenchmarkVersion>7.10.2</FreePdfBenchmarkVersion>
+    <PdfSharpBenchmarkVersion>6.2.4</PdfSharpBenchmarkVersion>
+    <DefaultItemExcludes>$(DefaultItemExcludes);bin/**;obj/**</DefaultItemExcludes>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net472'">
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+
+  <Target Name="ValidatePdfSharpBenchmarkEngine" BeforeTargets="CollectPackageReferences">
+    <Error Condition="'$(PdfSharpEngine)' != 'FreePDF' and '$(PdfSharpEngine)' != 'PDFsharp'"
+           Text="PdfSharpEngine must be FreePDF or PDFsharp." />
+  </Target>
+
+  <ItemGroup>
+    <AssemblyMetadata Include="PdfSharpEngine" Value="$(PdfSharpEngine)" />
+    <AssemblyMetadata Include="FreePdfBenchmarkVersion" Value="$(FreePdfBenchmarkVersion)" />
+    <AssemblyMetadata Include="PdfSharpBenchmarkVersion" Value="$(PdfSharpBenchmarkVersion)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
+    <PackageReference Include="PdfPig" Version="0.1.15" />
+    <!-- io7.FreePDF.Layout brings io7.FreePDF. Both are MIT (license file checked in the 7.10.2 packages). -->
+    <PackageReference Include="io7.FreePDF.Layout" Version="$(FreePdfBenchmarkVersion)" Condition="'$(PdfSharpEngine)' == 'FreePDF'" />
+    <PackageReference Include="PDFsharp-MigraDoc" Version="$(PdfSharpBenchmarkVersion)" Condition="'$(PdfSharpEngine)' == 'PDFsharp'" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Html\OfficeIMO.Html.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Html.Pdf\OfficeIMO.Html.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Pdf\OfficeIMO.Pdf.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\OfficeIMO.Pdf.Benchmarks.Comparisons\PdfBenchmarkScenarios.cs" Link="Shared\%(Filename)%(Extension)" />
+    <Compile Include="..\OfficeIMO.Pdf.Benchmarks.Comparisons\PdfBenchmarkValidation.cs" Link="Shared\%(Filename)%(Extension)" />
+    <Compile Include="..\OfficeIMO.Pdf.Benchmarks.Comparisons\PdfManipulationScenarios.cs" Link="Shared\%(Filename)%(Extension)" />
+    <Compile Include="..\OfficeIMO.Pdf.Benchmarks.Comparisons\PdfManipulationValidation.cs" Link="Shared\%(Filename)%(Extension)" />
+    <Compile Include="..\OfficeIMO.Pdf.Benchmarks.Comparisons\PdfManipulationEngines.cs" Link="Shared\%(Filename)%(Extension)" />
+    <Compile Include="..\OfficeIMO.Pdf.Benchmarks.Comparisons\PdfManipulationEngines.PdfSharp.cs" Link="Shared\%(Filename)%(Extension)" />
+    <Compile Include="..\OfficeIMO.Pdf.Benchmarks.Comparisons\MigraDocPdfGenerator.cs" Link="Shared\%(Filename)%(Extension)" />
+    <Compile Include="..\OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeImoPdfGenerator.cs" Link="Shared\%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\Website\Apps\OfficeIMO.Web.Converter\Assets\Fonts\Carlito-Regular.ttf"
+          Link="Fonts\Carlito-Regular.ttf"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\Website\Apps\OfficeIMO.Web.Converter\Assets\Fonts\Carlito-Bold.ttf"
+          Link="Fonts\Carlito-Bold.ttf"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

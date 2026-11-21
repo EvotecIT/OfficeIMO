@@ -9,6 +9,14 @@ namespace OfficeIMO.Excel.Pdf {
         /// <summary>Blocks output when conversion reports fidelity loss.</summary>
         public bool FailOnLoss { get; set; }
 
+        private global::OfficeIMO.OfficeChartRenderOptions _chartRendering = new global::OfficeIMO.OfficeChartRenderOptions();
+
+        /// <summary>How native charts are drawn, including what happens to formatting the chart renderer cannot reproduce exactly.</summary>
+        public global::OfficeIMO.OfficeChartRenderOptions ChartRendering {
+            get => _chartRendering;
+            set => _chartRendering = value ?? throw new ArgumentNullException(nameof(value));
+        }
+
         internal CancellationToken CancellationToken { get; set; }
 
         private int _headerRowCount = 1;
@@ -268,6 +276,16 @@ namespace OfficeIMO.Excel.Pdf {
         public string EmptyCellText { get; set; } = string.Empty;
 
         /// <summary>
+        /// How the conversion report describes clipped worksheet cells. <see cref="ExcelPdfDiagnosticsDetail.Summary"/>,
+        /// the default, reports <c>table-cell-content-clipped</c>, <c>table-cell-paint-clipped</c> and
+        /// <c>table-cell-canvas-clip-paint-clipped</c> once per code per contiguous range of a sheet, with its cell count
+        /// and sample cells. Other codes, such as <c>table-cell-object-page-bounds-clipped</c>, are reported per occurrence.
+        /// <see cref="ExcelPdfDiagnosticsDetail.PerCell"/> reports every occurrence separately, as earlier versions did;
+        /// a merged cell can produce more than one.
+        /// </summary>
+        public ExcelPdfDiagnosticsDetail DiagnosticsDetail { get; set; } = ExcelPdfDiagnosticsDetail.Summary;
+
+        /// <summary>
         /// Applies shared deterministic typography resources to the first-party PDF engine.
         /// Worksheet selection and page layout remain owned by this converter.
         /// </summary>
@@ -436,6 +454,7 @@ namespace OfficeIMO.Excel.Pdf {
 
         internal ExcelPdfExportOptions CloneForConversion() {
             var clone = (ExcelPdfExportOptions)MemberwiseClone();
+            clone._chartRendering = ChartRendering.Clone();
             clone._pdfOptions = PdfOptions?.CreateDocumentSnapshot(useThemeDefaults: false);
             clone.Sheets = Sheets?.ToArray();
             clone.ResourcePolicy = ResourcePolicy.Clone();

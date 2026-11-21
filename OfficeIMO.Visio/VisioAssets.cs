@@ -96,7 +96,7 @@ namespace OfficeIMO.Visio {
         /// Lists masters available in the provided Visio package.
         /// </summary>
         public static IReadOnlyList<MasterInfo> ListMasters(string vsdxPath) {
-            using ZipArchive zip = ZipFile.OpenRead(vsdxPath);
+            using ZipArchive zip = OpenAssetArchive(vsdxPath);
             var mastersEntry = zip.GetEntry("visio/masters/masters.xml");
             if (mastersEntry == null) return Array.Empty<MasterInfo>();
             EnsureZipEntryWithinLimit(mastersEntry, MaxMasterXmlPartBytes, "masters XML part");
@@ -116,7 +116,7 @@ namespace OfficeIMO.Visio {
         /// </summary>
         public static IReadOnlyList<MasterContent> LoadMasterContents(string vsdxPath, IEnumerable<string>? filterNames = null) {
             HashSet<string>? filter = filterNames != null ? new HashSet<string>(filterNames, StringComparer.OrdinalIgnoreCase) : null;
-            using ZipArchive zip = ZipFile.OpenRead(vsdxPath);
+            using ZipArchive zip = OpenAssetArchive(vsdxPath);
             var mastersEntry = zip.GetEntry("visio/masters/masters.xml");
             if (mastersEntry == null) return Array.Empty<MasterContent>();
             EnsureZipEntryWithinLimit(mastersEntry, MaxMasterXmlPartBytes, "masters XML part");
@@ -169,7 +169,7 @@ namespace OfficeIMO.Visio {
         /// Loads package-level visual context that imported masters can depend on for inherited colors, styles, and theme values.
         /// </summary>
         public static PackageVisualContext LoadVisualContext(string vsdxPath) {
-            using ZipArchive zip = ZipFile.OpenRead(vsdxPath);
+            using ZipArchive zip = OpenAssetArchive(vsdxPath);
             PackageVisualContext context = new();
             ZipArchiveEntry? documentEntry = zip.GetEntry("visio/document.xml");
             if (documentEntry != null) {
@@ -186,6 +186,19 @@ namespace OfficeIMO.Visio {
             }
 
             return context;
+        }
+
+        private static ZipArchive OpenAssetArchive(string vsdxPath) {
+            var stream = new FileStream(vsdxPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            try {
+                // Stencils and templates pass the same structural package limits as document
+                // loads (entry count, sizes, compression ratio, part names) before any part is read.
+                OfficePackageSecurityInspector.Validate(stream, OfficePackageSecurityOptions.SecureDefaults);
+                return new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
+            } catch {
+                stream.Dispose();
+                throw;
+            }
         }
 
         /// <summary>

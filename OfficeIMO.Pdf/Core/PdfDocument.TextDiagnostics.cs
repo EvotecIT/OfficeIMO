@@ -4,6 +4,30 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfDocument {
+    [ThreadStatic]
+    private static List<RecordedShapingFindings>? t_shapingFindings;
+
+    private List<RecordedShapingFindings>? _passedTextPreflight;
+
+    private void DiscardPassedTextPreflight() => Volatile.Write(ref _passedTextPreflight, null);
+
+    private readonly struct RecordedShapingFindings {
+        internal RecordedShapingFindings(IReadOnlyList<PdfTextShapingDiagnostic> diagnostics, string text, bool deferProviderCoverable) {
+            Diagnostics = diagnostics;
+            Text = text;
+            DeferProviderCoverable = deferProviderCoverable;
+        }
+
+        internal IReadOnlyList<PdfTextShapingDiagnostic> Diagnostics { get; }
+        internal string Text { get; }
+        internal bool DeferProviderCoverable { get; }
+    }
+
+    private static void AddTextShapingDiagnostics(PdfCreateOptions options, IReadOnlyList<PdfTextShapingDiagnostic> diagnostics, string text, bool deferProviderCoverable) {
+        if (diagnostics.Count > 0) t_shapingFindings?.Add(new RecordedShapingFindings(diagnostics, text, deferProviderCoverable));
+        options.AddTextShapingDiagnostics(diagnostics, text, deferProviderCoverable);
+    }
+
     /// <summary>
     /// Analyzes generated document text against the configured PDF text encoding before rendering.
     /// </summary>
@@ -39,9 +63,38 @@ public sealed partial class PdfDocument {
         return diagnostics.AsReadOnly();
     }
 
+    /// <summary>
+    /// Analyzes text for a conversion that serializes this model next. A passing analysis is kept for that
+    /// serialization, which replays its shaping findings instead of analyzing unchanged content again.
+    /// The first serialization or any model change discards it.
+    /// </summary>
+    internal IReadOnlyList<PdfTextEncodingDiagnostic> AnalyzeTextEncodingForNextOutput(
+        System.Threading.CancellationToken cancellationToken) {
+        var findings = new List<RecordedShapingFindings>();
+        List<RecordedShapingFindings>? previous = t_shapingFindings;
+        t_shapingFindings = findings;
+        IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics;
+        try {
+            diagnostics = AnalyzeTextEncoding(cancellationToken);
+        } finally {
+            t_shapingFindings = previous;
+        }
+        Volatile.Write(ref _passedTextPreflight, diagnostics.Count == 0 && _source is null ? findings : null);
+        return diagnostics;
+    }
+
     private bool TryCreateTextEncodingPreflightException(
         out PdfTextEncodingPreflightException? exception,
         System.Threading.CancellationToken cancellationToken = default) {
+        if (Interlocked.Exchange(ref _passedTextPreflight, null) is { } passed) {
+            cancellationToken.ThrowIfCancellationRequested();
+            foreach (RecordedShapingFindings findings in passed) {
+                _options.AddTextShapingDiagnostics(findings.Diagnostics, findings.Text, findings.DeferProviderCoverable);
+            }
+            exception = null;
+            return false;
+        }
+
         IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = AnalyzeTextEncoding(cancellationToken);
         if (diagnostics.Count == 0) {
             exception = null;
@@ -241,7 +294,11 @@ public sealed partial class PdfDocument {
         }
     }
 
-    private static void AnalyzeDrawing(DrawingBlock drawing, PdfCreateOptions options, PdfStandardFont defaultFont, List<PdfTextEncodingDiagnostic> diagnostics, string locationPrefix, System.Threading.CancellationToken cancellationToken) {
+    private static void AnalyzeDrawing(DrawingBlock drawing, PdfCreateOptions options, PdfStandardFont defaultFont, List<PdfTextEncodingDiagnostic> diagnostics, string locationPrefix, System.Threading.CancellationToken cancellationToken) =>
+        AnalyzeDrawing(drawing, options, defaultFont, diagnostics, new CanvasLocation(null, locationPrefix, null), cancellationToken);
+
+    // Most canvas drawings are borders and fills without text, so their location path is built only for a text element.
+    private static void AnalyzeDrawing(DrawingBlock drawing, PdfCreateOptions options, PdfStandardFont defaultFont, List<PdfTextEncodingDiagnostic> diagnostics, CanvasLocation locationPrefix, System.Threading.CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         for (int elementIndex = 0; elementIndex < drawing.Drawing.Elements.Count; elementIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -265,7 +322,7 @@ public sealed partial class PdfDocument {
                     standardFont: font,
                     fontFamily: text.Font.FamilyName)
             };
-            AddRuns(diagnostics, runs, options, font, "PdfDrawingText", AppendLocation(locationPrefix, "PdfDrawingText[" + elementIndex.ToString(CultureInfo.InvariantCulture) + "]"));
+            AddRuns(diagnostics, runs, options, font, "PdfDrawingText", AppendLocation(locationPrefix.ToString(), "PdfDrawingText[" + elementIndex.ToString(CultureInfo.InvariantCulture) + "]"));
         }
     }
 
@@ -323,7 +380,7 @@ public sealed partial class PdfDocument {
                     AnalyzeCanvasItems(behindText.Items, options, defaultFont, diagnostics, new CanvasLocation(locationPrefix, "PdfCanvasBehindText", itemIndex), cancellationToken);
                     break;
                 case PdfCanvasDrawingItem drawing:
-                    AnalyzeDrawing(drawing.Block, options, defaultFont, diagnostics, AppendLocation(locationPrefix.ToString(), "PdfCanvasDrawing[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"), cancellationToken);
+                    AnalyzeDrawing(drawing.Block, options, defaultFont, diagnostics, new CanvasLocation(locationPrefix, "PdfCanvasDrawing", itemIndex), cancellationToken);
                     break;
             }
         }
@@ -477,7 +534,7 @@ public sealed partial class PdfDocument {
         }
 
         if (options.HasDiagnosticsReport) {
-            options.AddTextShapingDiagnostics(
+            AddTextShapingDiagnostics(options,
                 PdfTextDiagnostics.AnalyzeAdvancedTextLayout(text!, source),
                 text!,
                 ShouldDeferProviderCoveredTextShapingDiagnostics(options, font, text!));
@@ -622,18 +679,19 @@ public sealed partial class PdfDocument {
                 continue;
             }
 
-            PdfTextRun run = options.ResolvePlannedNamedFallbackRun(sourceRun);
-            PdfStandardFont runFont = ResolveDiagnosticRunFont(defaultFont, run);
-            options.AddTextShapingDiagnostics(
-                PdfTextDiagnostics.AnalyzeAdvancedTextLayout(run.Text, source),
-                run.Text,
-                ShouldDeferProviderCoveredTextShapingDiagnostics(options, runFont, run.Text, run));
+            foreach (PdfTextRun run in options.ResolvePlannedNamedFallbackRuns(sourceRun)) {
+                PdfStandardFont runFont = ResolveDiagnosticRunFont(defaultFont, run);
+                AddTextShapingDiagnostics(options,
+                    PdfTextDiagnostics.AnalyzeAdvancedTextLayout(run.Text, source),
+                    run.Text,
+                    ShouldDeferProviderCoveredTextShapingDiagnostics(options, runFont, run.Text, run));
+            }
         }
     }
 
     private static bool ShouldDeferProviderCoveredTextShapingDiagnostics(
         PdfCreateOptions options, PdfStandardFont font, string text, PdfTextRun? run = null) {
-        if (options.TextShapingProviderSnapshot == null && options.TextShapingModeSnapshot != PdfTextShapingMode.OpenTypeLigatures) {
+        if (options.TextShapingProviderSnapshot == null && options.TextShapingModeFor(text) != PdfTextShapingMode.OpenTypeLigatures) {
             return false;
         }
 
@@ -655,7 +713,7 @@ public sealed partial class PdfDocument {
             return false;
         }
 
-        PdfTextFallbackPlan plan = fallbackSet.PlanText(text, shapingMode: options.TextShapingModeSnapshot);
+        PdfTextFallbackPlan plan = fallbackSet.PlanText(text, shapingMode: options.TextShapingModeFor(text));
         if (!plan.IsFullyCovered) {
             return false;
         }

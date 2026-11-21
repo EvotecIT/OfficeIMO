@@ -67,7 +67,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private static bool HasNestedStackingContext(HtmlRenderVisual visual) {
         if (visual.StackingContext != null) return true;
-        IEnumerable<HtmlRenderVisual>? children = visual switch {
+        IReadOnlyList<HtmlRenderVisual>? children = visual switch {
             HtmlRenderClipGroup clip => clip.Visuals,
             HtmlRenderPathClipGroup clip => clip.Visuals,
             HtmlRenderSemanticGroup semantic => semantic.InvariantVisuals,
@@ -75,6 +75,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
             HtmlRenderLogicalTextGroup text => text.Visuals,
             _ => null
         };
-        return children?.Any(HasNestedStackingContext) == true;
+        return HtmlRenderVisualLists.Any(children, HasNestedStackingContext);
     }
 }

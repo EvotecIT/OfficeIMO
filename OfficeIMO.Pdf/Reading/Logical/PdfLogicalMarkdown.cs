@@ -9,14 +9,43 @@ public sealed class PdfLogicalMarkdownOptions {
     /// <summary>Emit horizontal-rule separators between logical pages.</summary>
     public bool IncludePageSeparators { get; set; } = true;
 
-    /// <summary>Emit readable placeholders for image elements discovered in the logical model.</summary>
-    public bool IncludeImagePlaceholders { get; set; } = true;
+    /// <summary>
+    /// Emit readable placeholder text for images that are not exported as Markdown images. False by default, so an image
+    /// that cannot be carried over never adds text to the document body.
+    /// </summary>
+    public bool IncludeImagePlaceholders { get; set; }
 
-    /// <summary>Emit a link annotation section for supported URI, named-destination, direct-destination, named-action, and remote GoTo links.</summary>
+    /// <summary>
+    /// How images are written. The default embeds each image as a base64 data URI; <see cref="PdfLogicalMarkdownImageExportMode.File"/>
+    /// writes image files to <see cref="ImageDirectory"/> and references them by file name.
+    /// </summary>
+    public PdfLogicalMarkdownImageExportMode ImageExportMode { get; set; } = PdfLogicalMarkdownImageExportMode.Base64;
+
+    /// <summary>
+    /// Directory that receives image files when <see cref="ImageExportMode"/> is <see cref="PdfLogicalMarkdownImageExportMode.File"/>.
+    /// Null uses the current working directory.
+    /// </summary>
+    public string? ImageDirectory { get; set; }
+
+    /// <summary>Maximum image size embedded as one base64 data URI. Larger images are left out. The default is 32 MiB.</summary>
+    public long MaxEmbeddedImageBytes { get; set; } = 32L * 1024L * 1024L;
+
+    /// <summary>Carry link annotations into the Markdown. <see cref="LinkStyle"/> chooses how they are written.</summary>
     public bool IncludeLinkAnnotations { get; set; }
+
+    /// <summary>
+    /// How link annotations are written when <see cref="IncludeLinkAnnotations"/> is true. The default,
+    /// <see cref="PdfLogicalMarkdownLinkStyle.Inline"/>, turns web and mail links into Markdown links on the text they cover
+    /// and leaves out links that only move within the document.
+    /// </summary>
+    public PdfLogicalMarkdownLinkStyle LinkStyle { get; set; } = PdfLogicalMarkdownLinkStyle.Inline;
 
     /// <summary>Emit a form widget section for AcroForm widgets placed on pages.</summary>
     public bool IncludeFormWidgets { get; set; }
+
+    /// <summary>Emit an annotation section at the end of each page for Highlight, Underline, StrikeOut and Squiggly annotations,
+    /// with the annotation type, author, the page text it covers and its comment.</summary>
+    public bool IncludeMarkupAnnotations { get; set; }
 
     /// <summary>Right-align table columns in Markdown when all non-empty body cells look numeric.</summary>
     public bool AlignNumericTableColumns { get; set; } = true;
@@ -26,9 +55,40 @@ public sealed class PdfLogicalMarkdownOptions {
 }
 
 /// <summary>
+/// How a logical PDF Markdown export writes link annotations.
+/// </summary>
+public enum PdfLogicalMarkdownLinkStyle {
+    /// <summary>
+    /// Web and mail links become Markdown links on the page text they cover. A link whose text cannot be matched, and a
+    /// link to another PDF file or with an unsupported URI scheme, is listed once per target. Links to destinations
+    /// inside the document (citations, cross-references, page jumps) and viewer actions add nothing, because the text
+    /// they cover is already in the body.
+    /// </summary>
+    Inline = 0,
+
+    /// <summary>Every supported link annotation adds its own <c>[Link: ...]</c> line at the link's position, including
+    /// internal destinations and viewer actions.</summary>
+    List = 1
+}
+
+/// <summary>
+/// How a logical PDF Markdown export writes images.
+/// </summary>
+public enum PdfLogicalMarkdownImageExportMode {
+    /// <summary>Embed images as base64 data URIs.</summary>
+    Base64 = 0,
+
+    /// <summary>Write images to <see cref="PdfLogicalMarkdownOptions.ImageDirectory"/> and reference them by relative file name.</summary>
+    File = 1,
+
+    /// <summary>Leave images out.</summary>
+    None = 2
+}
+
+/// <summary>
 /// Markdown rendering helpers for the first-party logical PDF read model.
 /// </summary>
-public static class PdfLogicalMarkdownExtensions {
+public static partial class PdfLogicalMarkdownExtensions {
     /// <summary>
     /// Renders the logical PDF document as Markdown using headings, paragraphs, lists, tables, and optional annotations from the existing logical model.
     /// </summary>
@@ -74,11 +134,15 @@ public static class PdfLogicalMarkdownExtensions {
     private static List<MarkdownItem> BuildPageItems(PdfLogicalPage page, PdfLogicalMarkdownOptions options) {
         var items = new List<MarkdownItem>();
         int sequence = 0;
-        HashSet<PdfImagePlacement>? figurePlacements = options.IncludeImagePlaceholders
-            ? CollectFigurePlacements(page.Images)
-            : null;
+        bool writeImages = options.ImageExportMode != PdfLogicalMarkdownImageExportMode.None || options.IncludeImagePlaceholders;
+        // Images with any output (picture or placeholder), and the distinct visible crops already exported: one
+        // image resource drawn with different clips shows different content, while repeats of one crop are dropped.
         HashSet<int>? emittedImages = null;
+        HashSet<(int Image, int Left, int Top, int Right, int Bottom)>? emittedCrops = null;
         Stack<(int Level, int ContentIndent)>? listParents = null;
+        PdfLogicalMarkdownInlineLinks? inlineLinks = options.IncludeLinkAnnotations && options.LinkStyle == PdfLogicalMarkdownLinkStyle.Inline
+            ? PdfLogicalMarkdownInlineLinks.Create(page)
+            : null;
 
         IReadOnlyList<PdfLogicalReadingOrderItem> readingOrder =
             PdfLogicalReadingOrderAnalysis.Analyze(page, PdfLogicalReadingOrderScope.PageContent);
@@ -89,28 +153,30 @@ public static class PdfLogicalMarkdownExtensions {
                 case PdfLogicalReadingOrderKind.Heading:
                     PdfLogicalHeading heading = page.Headings[item.SourceIndex];
                     int level = Math.Min(Math.Max(heading.Level, 1), 6);
-                    markdown = new string('#', level) + " " + EscapeInline(heading.Text, escapeLinePrefix: false);
+                    markdown = new string('#', level) + " " + RenderInline(heading.Text, heading.Lines, inlineLinks, escapeLinePrefix: false);
                     break;
                 case PdfLogicalReadingOrderKind.Paragraph:
-                    markdown = EscapeInline(page.Paragraphs[item.SourceIndex].Text);
+                    PdfLogicalParagraph paragraph = page.Paragraphs[item.SourceIndex];
+                    markdown = RenderInline(paragraph.Text, paragraph.Lines, inlineLinks);
                     break;
                 case PdfLogicalReadingOrderKind.ListItem:
                     PdfLogicalListItem listItem = page.ListItems[item.SourceIndex];
                     listParents ??= new Stack<(int Level, int ContentIndent)>();
-                    markdown = RenderListItem(listItem, listParents, out requiresBlankLine);
+                    markdown = RenderListItem(listItem, listParents, inlineLinks, out requiresBlankLine);
                     break;
                 case PdfLogicalReadingOrderKind.Table:
                     markdown = RenderTable(page.Tables[item.SourceIndex], options);
                     break;
                 case PdfLogicalReadingOrderKind.TextBlock:
-                    markdown = EscapeInline(page.TextBlocks[item.SourceIndex].Text);
+                    PdfLogicalTextBlock textBlock = page.TextBlocks[item.SourceIndex];
+                    markdown = RenderInline(textBlock.Text, new[] { textBlock }, inlineLinks);
                     break;
-                case PdfLogicalReadingOrderKind.Image when figurePlacements is not null &&
+                case PdfLogicalReadingOrderKind.Image when writeImages &&
                     item.HasGeometry && !item.IsClipped && item.PlacementIndex >= 0:
                     PdfLogicalImage image = page.Images[item.SourceIndex];
-                    if (!figurePlacements.Contains(image.Placements[item.PlacementIndex]) ||
-                        !(emittedImages ??= new HashSet<int>()).Add(item.SourceIndex)) continue;
-                    markdown = FormatImagePlaceholder(image);
+                    markdown = FormatImage(page, item.SourceIndex, image.Placements[item.PlacementIndex], options, ref emittedCrops,
+                        allowPlaceholder: emittedImages?.Contains(item.SourceIndex) != true);
+                    if (markdown.Length > 0) (emittedImages ??= new HashSet<int>()).Add(item.SourceIndex);
                     break;
                 default: continue;
             }
@@ -132,14 +198,34 @@ public static class PdfLogicalMarkdownExtensions {
             }
         }
 
-        if (options.IncludeImagePlaceholders) {
+        if (writeImages) {
             for (int i = 0; i < page.Images.Count; i++) {
-                if (emittedImages?.Contains(i) == true) continue;
-                items.Add(new MarkdownItem(null, 0, sequence++, FormatImagePlaceholder(page.Images[i])));
+                PdfLogicalImage image = page.Images[i];
+                bool emitted = emittedImages?.Contains(i) == true;
+                for (int placementIndex = 0; placementIndex < image.Placements.Count; placementIndex++) {
+                    string markdown = FormatImage(page, i, image.Placements[placementIndex], options, ref emittedCrops, allowPlaceholder: false);
+                    if (markdown.Length == 0) continue;
+                    items.Add(new MarkdownItem(null, 0, sequence++, markdown));
+                    emitted = true;
+                }
+                if (!emitted && options.IncludeImagePlaceholders &&
+                    (image.Placements.Count == 0 || PdfImagePlacementImportPolicy.HasVisiblePlacement(page, image))) {
+                    items.Add(new MarkdownItem(null, 0, sequence++, FormatImagePlaceholder(image)));
+                }
             }
         }
 
-        if (options.IncludeLinkAnnotations) {
+        if (options.IncludeLinkAnnotations && options.LinkStyle == PdfLogicalMarkdownLinkStyle.Inline) {
+            // Links whose text was not found in the body, and links to other files, are listed once per target.
+            IEnumerable<PdfLogicalMarkdownInlineLinks.UnplacedLink> unplaced = inlineLinks?.GetUnplacedLinks() ??
+                Enumerable.Empty<PdfLogicalMarkdownInlineLinks.UnplacedLink>();
+            foreach (PdfLogicalMarkdownInlineLinks.UnplacedLink link in unplaced) {
+                string markdown = link.IsSafeUri
+                    ? "[Link: " + EscapeInline(link.Label) + "](" + EscapeLinkTarget(link.Target) + ")"
+                    : "[Link: " + EscapeInline(link.Label) + " -> " + EscapeInline(link.Target) + "]";
+                items.Add(new MarkdownItem(link.Annotation.Y2, link.Annotation.X1, sequence++, markdown));
+            }
+        } else if (options.IncludeLinkAnnotations) {
             for (int i = 0; i < page.Links.Count; i++) {
                 PdfLogicalLinkAnnotation link = page.Links[i];
                 string? target = FormatLinkAnnotationTarget(link);
@@ -166,18 +252,109 @@ public static class PdfLogicalMarkdownExtensions {
             }
         }
 
-        return items;
-    }
-
-    private static HashSet<PdfImagePlacement>? CollectFigurePlacements(IReadOnlyList<PdfLogicalImage> images) {
-        HashSet<PdfImagePlacement>? placements = null;
-        foreach (PdfLogicalImage image in images) {
-            foreach (PdfUnderstandingImageRegion region in image.Regions) {
-                if (region.IsFigure) (placements ??= new HashSet<PdfImagePlacement>()).Add(region.Placement);
+        if (options.IncludeMarkupAnnotations) {
+            // Positionless items sort after the page content, so markup annotations form a section at the end of the page.
+            for (int i = 0; i < page.Annotations.Count; i++) {
+                string? markdown = FormatMarkupAnnotation(page, page.Annotations[i]);
+                if (markdown is not null) items.Add(new MarkdownItem(null, 0, sequence++, markdown));
             }
         }
 
-        return placements;
+        return items;
+    }
+
+    private static string? FormatMarkupAnnotation(PdfLogicalPage page, PdfAnnotation annotation) {
+        if (!annotation.IsTextMarkup) return null;
+        string? covered = CollapseWhitespace(page.GetMarkupText(annotation));
+        string? note = CollapseWhitespace(annotation.Contents ?? annotation.RichContentsPlainText);
+        if (covered is null && note is null) return null;
+        var builder = new StringBuilder("[").Append(annotation.Subtype);
+        string? author = CollapseWhitespace(annotation.Title);
+        if (author is not null) builder.Append(" by ").Append(EscapeInline(author, escapeLinePrefix: false));
+        if (covered is not null) builder.Append(": \"").Append(EscapeInline(covered, escapeLinePrefix: false)).Append('"');
+        if (note is not null) builder.Append("; note: ").Append(EscapeInline(note, escapeLinePrefix: false));
+        return builder.Append(']').ToString();
+    }
+
+    private static string? CollapseWhitespace(string? value) {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        return string.Join(" ", value!.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+    }
+
+    /// <summary>
+    /// Writes one image placement as a Markdown image. Placements that cannot be carried over safely are left out
+    /// (or become a placeholder only when the caller asked for placeholders); clipped placements carry only their
+    /// visible pixels.
+    /// </summary>
+    private static string FormatImage(
+        PdfLogicalPage page,
+        int imageIndex,
+        PdfImagePlacement placement,
+        PdfLogicalMarkdownOptions options,
+        ref HashSet<(int Image, int Left, int Top, int Right, int Bottom)>? emittedCrops,
+        bool allowPlaceholder) {
+        PdfLogicalImage image = page.Images[imageIndex];
+        PdfImagePlacementImportAssessment assessment = PdfImagePlacementImportPolicy.Analyze(page, image, placement);
+        if (assessment.IsSuppressed) return string.Empty;
+        var cropKey = GetVisibleCropKey(image, imageIndex, assessment);
+        if (emittedCrops?.Contains(cropKey) == true) return string.Empty;
+        if (options.ImageExportMode != PdfLogicalMarkdownImageExportMode.None &&
+            assessment.CanImport &&
+            page.RotationDegrees % 360 == 0 &&
+            placement.A >= 0D && placement.D >= 0D &&
+            !assessment.HasNonDefaultOpacity &&
+            !assessment.HasNonNormalBlendMode &&
+            PdfImagePlacementImportPolicy.TryGetVisibleImagePayload(image, assessment, out byte[] bytes, out string mimeType, out string extension) &&
+            OfficeIMO.Drawing.OfficeImageInfo.IsBrowserPreviewSafeContentType(mimeType)) {
+            string? source = options.ImageExportMode == PdfLogicalMarkdownImageExportMode.File
+                ? WriteImageFile(image, imageIndex, placement, bytes, extension, options)
+                : bytes.LongLength <= options.MaxEmbeddedImageBytes
+                    ? "data:" + mimeType + ";base64," + Convert.ToBase64String(bytes)
+                    : null;
+            if (source != null) {
+                (emittedCrops ??= new HashSet<(int Image, int Left, int Top, int Right, int Bottom)>()).Add(cropKey);
+                return "![" + EscapeInline(PdfImagePlacementImportPolicy.GetAlternativeText(image, placement)) + "](" + source + ")";
+            }
+        }
+
+        return allowPlaceholder && options.IncludeImagePlaceholders ? FormatImagePlaceholder(image) : string.Empty;
+    }
+
+    private static (int Image, int Left, int Top, int Right, int Bottom) GetVisibleCropKey(
+        PdfLogicalImage image,
+        int imageIndex,
+        PdfImagePlacementImportAssessment assessment) {
+        (int left, int top, int right, int bottom) = PdfImagePlacementImportPolicy.GetVisibleCropPixels(image.Width, image.Height, assessment);
+        return (imageIndex, left, top, right, bottom);
+    }
+
+    private static string WriteImageFile(PdfLogicalImage image, int imageIndex, PdfImagePlacement placement, byte[] bytes, string extension, PdfLogicalMarkdownOptions options) {
+        string directory = options.ImageDirectory ?? Directory.GetCurrentDirectory();
+        Directory.CreateDirectory(directory);
+        // Page number and image position keep names readable; resource names can collide after sanitizing, so they
+        // are not used. The content hash keeps exports that share a directory from replacing each other's images:
+        // a name that already exists holds the same bytes.
+        var name = new StringBuilder("pdf-p");
+        name.Append(image.PageNumber.ToString(CultureInfo.InvariantCulture)).Append("-image");
+        name.Append((imageIndex + 1).ToString(CultureInfo.InvariantCulture));
+        int placementIndex = 0;
+        while (placementIndex < image.Placements.Count && !ReferenceEquals(image.Placements[placementIndex], placement)) placementIndex++;
+        if (placementIndex > 0) name.Append('-').Append((placementIndex + 1).ToString(CultureInfo.InvariantCulture));
+        name.Append('-');
+#if NET6_0_OR_GREATER
+        byte[] hash = System.Security.Cryptography.SHA256.HashData(bytes);
+#else
+        byte[] hash;
+        using (var sha256 = System.Security.Cryptography.SHA256.Create()) {
+            hash = sha256.ComputeHash(bytes);
+        }
+#endif
+        for (int i = 0; i < 8; i++) name.Append(hash[i].ToString("x2", CultureInfo.InvariantCulture));
+        string normalizedExtension = string.IsNullOrEmpty(extension) ? ".png" : (extension[0] == '.' ? extension : "." + extension);
+        string fileName = name.Append(normalizedExtension).ToString();
+        string path = Path.Combine(directory, fileName);
+        if (!File.Exists(path)) File.WriteAllBytes(path, bytes);
+        return fileName;
     }
 
     private static string FormatImagePlaceholder(PdfLogicalImage image) {
@@ -283,9 +460,9 @@ public static class PdfLogicalMarkdownExtensions {
     }
 
     private static string RenderListItem(PdfLogicalListItem item, Stack<(int Level, int ContentIndent)> parents,
-        out bool requiresBlankLine) {
+        PdfLogicalMarkdownInlineLinks? inlineLinks, out bool requiresBlankLine) {
         int level = Math.Max(item.Level, 1);
-        string marker = FormatListMarker(item.Marker);
+        string marker = FormatListMarker(item.Marker, item.MarkerInfo);
         bool startsNestedList = parents.Count > 0 && parents.Peek().Level < level;
         // A non-one ordered list needs a blank line after its parent's paragraph to preserve its start number.
         requiresBlankLine = startsNestedList && marker is not ("-" or "1." or "1)");
@@ -298,10 +475,76 @@ public static class PdfLogicalMarkdownExtensions {
         }
 
         parents.Push((level, indent + marker.Length + 1));
-        return new string(' ', indent) + marker + " " + EscapeInline(item.Text);
+        return new string(' ', indent) + marker + " " +
+            (item.IsContentsEntry ? RenderContentsEntry(item) : RenderInline(item.Text, item.Lines, inlineLinks));
     }
 
-    private static string FormatListMarker(string marker) {
+    /// <summary>Escapes body text and, when inline links are active, wraps the text each web link covers in a Markdown link.</summary>
+    private static string RenderInline(string text, IReadOnlyList<PdfLogicalTextBlock> lines, PdfLogicalMarkdownInlineLinks? inlineLinks,
+        bool escapeLinePrefix = true) {
+        List<(int Start, int End, string Target)>? ranges = inlineLinks?.Place(text, lines);
+        if (ranges is null || ranges.Count == 0) return EscapeInline(text, escapeLinePrefix);
+
+        var builder = new StringBuilder(text.Length + ranges.Count * 32);
+        int position = 0;
+        foreach ((int start, int end, string target) in ranges) {
+            AppendEscaped(builder, text, position, start);
+            builder.Append('[');
+            AppendEscaped(builder, text, start, end);
+            builder.Append("](").Append(EscapeLinkTarget(target)).Append(')');
+            position = end;
+        }
+        AppendEscaped(builder, text, position, text.Length);
+
+        string value = builder.ToString().Trim();
+        if (!escapeLinePrefix || value.Length == 0) return value;
+        var prefixed = new StringBuilder(value);
+        EscapeLinePrefix(prefixed);
+        return prefixed.ToString();
+    }
+
+    private static void AppendEscaped(StringBuilder builder, string text, int start, int end) {
+        for (int i = start; i < end; i++) {
+            char ch = text[i];
+            if (ch is '\r' or '\n') {
+                builder.Append(' ');
+                continue;
+            }
+            if (ch is '\\' or '`' or '*' or '_' or '[' or ']' or '<' or '>') builder.Append('\\');
+            builder.Append(ch);
+        }
+    }
+
+    private static string RenderContentsEntry(PdfLogicalListItem item) {
+        string? target = item.Link is null ? null : FormatContentsLinkTarget(item.Link);
+        // Inside link brackets a title cannot start a block; on its own, "1. Intro" or "# Intro" would.
+        string title = EscapeInline(item.Text, escapeLinePrefix: target is null);
+        string text = target is null ? title : "[" + title + "](" + target + ")";
+        return string.IsNullOrEmpty(item.TargetPageLabel) ? text : text + " \u2014 " + EscapeInline(item.TargetPageLabel!, escapeLinePrefix: false);
+    }
+
+    // Named destinations and pages use PDF open-parameter fragments, the same form a viewer accepts after the file name.
+    private static string? FormatContentsLinkTarget(PdfLogicalLinkAnnotation link) {
+        if (!string.IsNullOrEmpty(link.Uri)) return IsSafeLinkUri(link.Uri!) ? EscapeLinkTarget(link.Uri!) : null;
+        if (!string.IsNullOrEmpty(link.DestinationName)) return "#" + EscapeContentsFragment(link.DestinationName!);
+        return link.SourceLink.DestinationPageNumber.HasValue
+            ? "#page=" + link.SourceLink.DestinationPageNumber.Value.ToString(CultureInfo.InvariantCulture)
+            : null;
+    }
+
+    private static string EscapeContentsFragment(string name) {
+        var builder = new StringBuilder(name.Length);
+        foreach (char ch in name) {
+            if (char.IsWhiteSpace(ch) || char.IsControl(ch) || ch is '(' or ')' or '<' or '>' or '[' or ']' or '%' or '&' or '\\' or '`') {
+                builder.Append(Uri.EscapeDataString(ch.ToString()));
+            } else {
+                builder.Append(ch);
+            }
+        }
+        return builder.ToString();
+    }
+
+    private static string FormatListMarker(string marker, PdfLogicalListMarker parsed) {
         string trimmed = marker.Trim();
         if (trimmed.Length == 0) {
             return "-";
@@ -312,6 +555,12 @@ public static class PdfLogicalMarkdownExtensions {
             return last == '.' || last == ')'
                 ? trimmed
                 : trimmed + ".";
+        }
+
+        // CommonMark numbers lists only with digits, so "c)" or "iv." keep their position as "3)" or "4.".
+        if (parsed.Ordinal.HasValue) {
+            bool parenthesis = parsed.Suffix.Length > 0 && parsed.Suffix[parsed.Suffix.Length - 1] == ')';
+            return parsed.Ordinal.Value.ToString(CultureInfo.InvariantCulture) + (parenthesis ? ")" : ".");
         }
 
         return "-";

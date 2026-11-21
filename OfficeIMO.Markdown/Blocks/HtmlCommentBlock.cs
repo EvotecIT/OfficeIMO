@@ -7,11 +7,11 @@ public sealed class HtmlCommentBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMar
     /// <summary>Gets the raw HTML comment text, including the comment delimiters.</summary>
     public string Comment { get; }
     /// <summary>Source span for the opening <c>&lt;!--</c> marker when available.</summary>
-    public MarkdownSourceSpan? OpeningMarkerSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? OpeningMarkerSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
     /// <summary>Source span for the comment body when available.</summary>
-    public MarkdownSourceSpan? BodySourceSpan { get; internal set; }
+    public MarkdownSourceSpan? BodySourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
     /// <summary>Source span for the closing <c>--&gt;</c> marker when available.</summary>
-    public MarkdownSourceSpan? ClosingMarkerSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? ClosingMarkerSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
 
     /// <summary>Initializes a new instance of the <see cref="HtmlCommentBlock"/> class.</summary>
     /// <param name="comment">HTML comment content to preserve verbatim.</param>
@@ -137,5 +137,12 @@ public sealed class HtmlCommentBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMar
         internal int ClosingEndIndex { get; }
         internal bool IsValid { get; }
         internal bool HasBody => BodyStartIndex >= 0 && BodyEndIndex >= BodyStartIndex;
+    }
+
+    internal override void AdoptCapturedSourceInformation(MarkdownObject captured, MarkdownCapturedObjectMap map) {
+        var source = (HtmlCommentBlock)captured;
+        OpeningMarkerSourceSpan = source.OpeningMarkerSourceSpan;
+        BodySourceSpan = source.BodySourceSpan;
+        ClosingMarkerSourceSpan = source.ClosingMarkerSourceSpan;
     }
 }

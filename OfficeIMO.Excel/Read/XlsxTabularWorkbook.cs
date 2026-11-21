@@ -185,6 +185,9 @@ namespace OfficeIMO.Excel {
                         $"Workbook input contains {snapshot.Length} bytes, exceeding the configured limit of {options.MaxInputBytes} bytes.");
                 }
 
+                using (Stream directory = snapshot.CreateView(bufferSize: 1)) {
+                    ExcelDocumentLoadRouting.ValidateZipPackage(directory, options.CancellationToken);
+                }
                 parts = OpenXmlPackagePartBufferReader.TryOpen(snapshot.CreateView(bufferSize: 1))
                     ?? throw new XlsxTabularFastPathNotSupportedException(
                         "The workbook is not a readable Open XML package.");
@@ -276,6 +279,7 @@ namespace OfficeIMO.Excel {
                     _options.MaxDataReaderSchemaSampleRows,
                     _options.MaxDataReaderBufferedCells,
                     _options.Culture,
+                    DateSystem,
                     cancellationToken)
                 : dataReader;
         }

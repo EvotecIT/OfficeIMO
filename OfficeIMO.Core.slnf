@@ -6,6 +6,10 @@
       "OfficeIMO.Archives\\OfficeIMO.Archives.csproj",
       "OfficeIMO.Core\\OfficeIMO.Core.csproj",
       "OfficeIMO.CSV\\OfficeIMO.CSV.csproj",
+      "OfficeIMO.Toml.Configuration.Tests\\OfficeIMO.Toml.Configuration.Tests.csproj",
+      "OfficeIMO.Toml.Configuration\\OfficeIMO.Toml.Configuration.csproj",
+      "OfficeIMO.Toml.Tests\\OfficeIMO.Toml.Tests.csproj",
+      "OfficeIMO.Toml\\OfficeIMO.Toml.csproj",
       "OfficeIMO.Data.Arrow\\OfficeIMO.Data.Arrow.csproj",
       "OfficeIMO.Data.Generators\\OfficeIMO.Data.Generators.csproj",
       "OfficeIMO.Epub\\OfficeIMO.Epub.csproj",
@@ -26,7 +30,10 @@
       "OfficeIMO.Security.Tests\\OfficeIMO.Security.Tests.csproj",
       "OfficeIMO.Security\\OfficeIMO.Security.csproj",
       "OfficeIMO.Visio\\OfficeIMO.Visio.csproj",
-      "OfficeIMO.Word\\OfficeIMO.Word.csproj"
+      "OfficeIMO.Word\\OfficeIMO.Word.csproj",
+      "OfficeIMO.Yaml.Configuration.Tests\\OfficeIMO.Yaml.Configuration.Tests.csproj",
+      "OfficeIMO.Yaml.Configuration\\OfficeIMO.Yaml.Configuration.csproj",
+      "OfficeIMO.Yaml\\OfficeIMO.Yaml.csproj"
     ]
   }
 }

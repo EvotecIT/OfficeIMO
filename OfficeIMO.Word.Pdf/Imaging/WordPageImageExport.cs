@@ -88,6 +88,8 @@ internal static class WordPageImageExport {
         WordDocument document, WordImageExportOptions options, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         WordPdfExportOptions layout = options.LayoutOptions.Clone();
+        // Either setting can request best-effort charts; the layout options keep their own value otherwise.
+        if (options.ChartRendering.Fidelity == OfficeChartFidelity.BestEffort) layout.ChartRendering.Fidelity = OfficeChartFidelity.BestEffort;
         if (options.Fonts.Faces.Count > 0 || options.TextShapingProvider != null || options.TextShapingLanguage != null || options.ImageCodec != null)
             layout.UseRenderingProfile(new OfficeRenderingProfile("Word image export", options.Fonts,
                 options.TextShapingProvider, options.TextShapingLanguage, options.ImageCodec), OfficeRenderingProfileApplyMode.Overlay);

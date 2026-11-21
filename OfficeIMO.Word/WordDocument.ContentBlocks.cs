@@ -29,13 +29,8 @@ public partial class WordDocument {
         ArgumentNullException.ThrowIfNull(code);
         const string styleId = "OfficeIMOCodeBlock";
         var font = WordFontResolver.Resolve("monospace") ?? "Consolas";
-        EnsureStyleDefinitionsInitialized();
-        var main = _wordprocessingDocument.MainDocumentPart
-            ?? throw new InvalidOperationException("The document's main part is missing.");
-        var part = main.StyleDefinitionsPart ?? main.AddNewPart<StyleDefinitionsPart>();
-        var styles = part.Styles ??= new Styles();
-        if (!styles.Elements<Style>().Any(style => string.Equals(style.StyleId?.Value, styleId, StringComparison.Ordinal)))
-            styles.Append(WordParagraphStyle.CreateFontStyle(styleId, font, "Code Block").ToOpenXml());
+        if (!Styles.Contains(styleId))
+            Styles.AddParagraphStyle(styleId, Styles.FindByName("Code Block") == null ? "Code Block" : null).FontFamily = font;
         return AddParagraph(code).SetStyleId(styleId);
     }
 }

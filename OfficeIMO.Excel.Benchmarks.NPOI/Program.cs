@@ -16,13 +16,14 @@ int measuredIterations = ParsePositiveOption(args, "--iterations", "--measured-i
 string? affinityMask = ParseOptionValue(args, "--affinity", "--processor-affinity");
 string? priorityName = ParseOptionValue(args, "--priority", "--process-priority");
 string outputPath = ParseOptionValue(args, "--out", "--output", "--output-path")
-    ?? Path.Combine("Docs", "benchmarks", "officeimo.excel.npoi-comparison.json");
+    ?? Path.Combine("artifacts", "benchmarks", "officeimo.excel.npoi-comparison.json");
 string[] scenarioFilters = ParseOptionValues(args, "--scenario", "--scenarios");
 
 if (HasSwitch(args, "--help") || HasSwitch(args, "-h") || HasSwitch(args, "/?")) {
     WriteUsage();
     return;
 }
+
 
 ArgumentOutOfRangeException.ThrowIfNegativeOrZero(rowCount);
 
@@ -58,6 +59,18 @@ if (HasSwitch(args, "--paired-xls-write")) {
         throw new ArgumentOutOfRangeException(nameof(rowCount), "The xls scenarios cannot exceed the BIFF8 worksheet row limit.");
     }
     XlsWritePairedRunner.Run(records, warmupIterations, measuredIterations, affinityMask, priorityName);
+    return;
+}
+
+if (ParseOptionValue(args, "--write-generated-xls") is string generatedPath) {
+    XlsReadPairedRunner.WriteGenerated(generatedPath, rowCount);
+    return;
+}
+
+if (HasSwitch(args, "--paired-xls-read")) {
+    string[] inputs = ParseOptionValues(args, "--input", "--inputs");
+    if (inputs.Length == 0) throw new ArgumentException("--paired-xls-read needs at least one --input workbook.");
+    XlsReadPairedRunner.Run(inputs, warmupIterations, measuredIterations, affinityMask, priorityName);
     return;
 }
 

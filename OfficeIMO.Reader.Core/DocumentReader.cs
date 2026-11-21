@@ -30,6 +30,7 @@ internal static partial class DocumentReaderEngine {
         if (path.Length == 0) throw new ArgumentException("Path cannot be empty.", nameof(path));
 
         string extension = NormalizeExtension(ReaderLogicalPath.GetExtension(path));
+        if (extension.Length == 0) extension = GetRoutingExtension(path);
         if (string.Equals(ReaderLogicalPath.GetFileName(path), "winmail.dat", StringComparison.OrdinalIgnoreCase)) {
             return ReaderInputKind.Email;
         }
@@ -56,6 +57,7 @@ internal static partial class DocumentReaderEngine {
             ".json" => ReaderInputKind.Json,
             ".xml" => ReaderInputKind.Xml,
             ".yml" or ".yaml" => ReaderInputKind.Yaml,
+            ".toml" => ReaderInputKind.Toml,
             ".zip" => ReaderInputKind.Zip,
             ".one" or ".onepkg" or ".onetoc2" => ReaderInputKind.OneNote,
             ".rtf" => ReaderInputKind.Rtf,

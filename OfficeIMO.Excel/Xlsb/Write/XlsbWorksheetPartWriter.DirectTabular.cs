@@ -18,6 +18,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 && candidateValues.Length == checked(rows.RowCount * rows.ColumnCount)
                     ? candidateValues
                     : null;
+            ExcelTabularCellValues? typedCells = flatValues == null ? ExcelDocument.GetTypedTabularCells(rows) : null;
+            if (typedCells != null && (typedCells.ColumnCount != rows.ColumnCount || typedCells.RowCount != rows.RowCount)) typedCells = null;
 
             using var writer = new XlsbDirectRecordWriter(output);
             writer.WriteRecord(129); // BrtBeginSheet
@@ -41,25 +43,35 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                     WriteDirectRowHeader(writer, zeroBasedRow, rows.ColumnCount);
                 }
                 object?[]? bufferedRow = flatValues == null
+                    && typedCells == null
                     && rows.TryGetBufferedRow(row, out object?[]? candidateRow)
                     && candidateRow?.Length == rows.ColumnCount
                         ? candidateRow
                         : null;
                 bool wroteCell = false;
                 for (int column = 0; column < rows.ColumnCount; column++) {
-                    object? rawValue = flatValues != null
-                        ? flatValues[checked((row * rows.ColumnCount) + column)]
-                        : bufferedRow != null
-                            ? bufferedRow[column]
-                            : rows.GetValue(row, column);
-                    if (rawValue is DateTime date) {
-                        double serial = ExcelDateSystemConverter.ToSerial(date, dateSystem);
-                        dateStyle ??= sheet.GetOrCreateDirectTabularDateStyle(source.UseCellValueNumberFormats);
-                        writer.WriteNumberCell(BrtCellReal, column, serial, dateStyle.Value);
-                        wroteCell = true;
-                        continue;
+                    ExcelDirectTabularValue value;
+                    if (typedCells != null) {
+                        int index = (row * rows.ColumnCount) + column;
+                        if (typedCells.GetKind(index) == ExcelBufferedCellKind.DateTime) {
+                            WriteDirectDateCell(writer, column, typedCells.GetDateTime(index), dateSystem, sheet, source, ref dateStyle);
+                            wroteCell = true;
+                            continue;
+                        }
+                        value = typedCells.Normalize(index, source.PreserveMissingValues);
+                    } else {
+                        object? rawValue = flatValues != null
+                            ? flatValues[checked((row * rows.ColumnCount) + column)]
+                            : bufferedRow != null
+                                ? bufferedRow[column]
+                                : rows.GetValue(row, column);
+                        if (rawValue is DateTime date) {
+                            WriteDirectDateCell(writer, column, date, dateSystem, sheet, source, ref dateStyle);
+                            wroteCell = true;
+                            continue;
+                        }
+                        value = ExcelDirectTabularValue.Normalize(rawValue, source.PreserveMissingValues);
                     }
-                    ExcelDirectTabularValue value = ExcelDirectTabularValue.Normalize(rawValue, source.PreserveMissingValues);
                     if (value.Kind == ExcelDirectTabularValueKind.Empty) continue;
                     wroteCell = true;
                     switch (value.Kind) {
@@ -130,6 +142,19 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             } else {
                 writer.WriteSharedStringCell(BrtCellIsst, zeroBasedColumn, sharedStrings.GetOrAdd(value));
             }
+        }
+
+        private static void WriteDirectDateCell(
+            XlsbDirectRecordWriter writer,
+            int zeroBasedColumn,
+            DateTime date,
+            ExcelDateSystem dateSystem,
+            ExcelSheet sheet,
+            ExcelDirectTabularSource source,
+            ref uint? dateStyle) {
+            double serial = ExcelDateSystemConverter.ToSerial(date, dateSystem);
+            dateStyle ??= sheet.GetOrCreateDirectTabularDateStyle(source.UseCellValueNumberFormats);
+            writer.WriteNumberCell(BrtCellReal, zeroBasedColumn, serial, dateStyle.Value);
         }
 
         private static void WriteDirectNumberCell(XlsbDirectRecordWriter writer, int zeroBasedColumn, double value) {

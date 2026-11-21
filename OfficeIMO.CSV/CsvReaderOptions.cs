@@ -38,7 +38,7 @@ public sealed class CsvReaderOptions
     /// </remarks>
     public CsvDataReaderParallelOptions? ParallelProcessing { get; set; }
 
-    internal CsvParsingSettings Parsing { get; set; } = new();
+    internal CsvParsingSettings Parsing { get; set; } = new() { StreamsInput = true };
 
         /// <summary>Default maximum complete stream input size (256 MiB).</summary>
     public const long DefaultMaxInputBytes = CsvParsingSettings.DefaultMaxInputBytes;
@@ -125,6 +125,21 @@ public sealed class CsvReaderOptions
     public CsvQuoteParsingMode QuoteParsingMode { get => Parsing.QuoteParsingMode; set => Parsing.QuoteParsingMode = value; }
 
     /// <summary>
+    /// Gets or sets escape decoding for unquoted fields. Default is <see cref="CsvEscapeMode.None"/>.
+    /// <see cref="CsvEscapeMode.Backslash"/> requires <see cref="QuoteParsingMode"/> to be <see cref="CsvQuoteParsingMode.None"/>.
+    /// </summary>
+    public CsvEscapeMode EscapeMode { get => Parsing.EscapeMode; set => Parsing.EscapeMode = value; }
+
+    /// <summary>Gets or sets the character that encloses quoted fields. Default is <c>"</c>.</summary>
+    public char QuoteCharacter { get => Parsing.QuoteCharacter; set => Parsing.QuoteCharacter = value; }
+
+    /// <summary>
+    /// Gets or sets the character that escapes the quote character, or itself, inside quoted fields, such as <c>\</c>.
+    /// Leave unset to read a doubled quote character as one, as RFC 4180 does; a doubled quote is also accepted when it is set.
+    /// </summary>
+    public char? EscapeCharacter { get => Parsing.EscapeCharacter; set => Parsing.EscapeCharacter = value; }
+
+    /// <summary>
     /// Gets or sets columns appended to every loaded row, useful for source file names, import timestamps, or batch metadata.
     /// </summary>
     public IReadOnlyDictionary<string, object?>? StaticColumns { get => Parsing.StaticColumns; set => Parsing.StaticColumns = value; }
@@ -200,8 +215,9 @@ public sealed class CsvReaderOptions
     public long? MaxDecompressedBytes { get => Parsing.MaxDecompressedBytes; set => Parsing.MaxDecompressedBytes = value; }
 
     /// <summary>
-    /// Gets or sets the maximum number of bytes accepted by stream-based and uncompressed path-based load APIs.
-    /// Defaults to 256 MiB so untrusted inputs cannot be buffered without bound.
+    /// Gets or sets the maximum number of input bytes. APIs that hold the whole input in memory (loading a document,
+    /// buffering a stream) default to 256 MiB so untrusted inputs cannot be buffered without bound. Streamed reads
+    /// (readers, data readers and row enumeration) apply a limit only when one is set here.
     /// </summary>
     public long MaxInputBytes { get => Parsing.MaxInputBytes; set => Parsing.MaxInputBytes = value; }
 

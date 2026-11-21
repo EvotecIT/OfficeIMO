@@ -12,6 +12,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IElement? formattingContainer, double lineStart, double lineY, double lineHeight, double baseline,
         bool emptyAtomicBaseline, bool bidiResolved,
         IReadOnlyDictionary<IElement, InlineContainingBounds> bounds) {
+        // Geometry is recorded only into the bounds of painted inline boxes.
+        if (bounds.Count == 0) return;
         bool ordinaryTextBoxes = !bidiResolved && CanUseOrdinaryInlineFontBoxes(line, paragraphStyle);
         bool qualifiedLine = !bidiResolved && line.HasFlowContent && !line.HasReplacedImage
             && paragraphStyle.WritingMode == "horizontal-tb" && paragraphStyle.Direction == "ltr"
@@ -60,7 +62,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         ownerBounds.RetainDecorationFallback();
                     } else {
                         double contentX = x;
-                        double contentWidth = segment.Width;
+                        double contentWidth = segment.Width + segment.JustificationAdvance;
                         HtmlInlineEdgeScope? scope = run.InlineEdgeScopes.FirstOrDefault(edge => ReferenceEquals(edge.Owner, current));
                         if (scope != null && _currentInlineEdgeGeometry.TryGetValue(scope, out var edges)) {
                             contentX = edges.Left;

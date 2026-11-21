@@ -127,6 +127,8 @@ public static partial class HtmlResourcePipeline {
     }
 
     private static string MaskCssComments(string css) {
+        // Most stylesheets have no comments; copy the text only once a comment needs masking.
+        if (css.IndexOf("/*", StringComparison.Ordinal) < 0) return css;
         var result = new StringBuilder(css);
         char quote = '\0';
         for (int index = 0; index < css.Length; index++) {

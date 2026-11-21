@@ -7,6 +7,24 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Excel {
         [Fact]
+        public void Style_changes_reach_the_styles_part_before_the_package_is_handed_out() {
+            using var document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddSheet("Styled");
+            sheet.Cell(1, 1).SetValue(1);
+            sheet.Cell(1, 1).SetFillColor(OfficeColor.Parse("#C00000"));
+
+            WorkbookStylesPart stylesPart = document.OpenXmlDocument.WorkbookPart!.WorkbookStylesPart!;
+            using (var reader = new StreamReader(stylesPart.GetStream(FileMode.Open, FileAccess.Read))) {
+                Assert.Contains("FFC00000", reader.ReadToEnd());
+            }
+
+            sheet.Cell(2, 1).SetFillColor(OfficeColor.Parse("#00B050"));
+            using (var reader = new StreamReader(stylesPart.GetStream(FileMode.Open, FileAccess.Read))) {
+                Assert.Contains("FF00B050", reader.ReadToEnd());
+            }
+        }
+
+        [Fact]
         public void Wrap_text_batch_can_run_in_another_sheets_workbook_batch() {
             string path = Path.Combine(_directoryWithFiles, "WrapTextBatch.CrossSheet.xlsx");
             using (var document = ExcelDocument.Create(path)) {

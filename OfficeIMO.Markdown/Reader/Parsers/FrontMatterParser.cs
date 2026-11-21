@@ -3,20 +3,11 @@ namespace OfficeIMO.Markdown;
 internal static partial class MarkdownReader {
     internal sealed class FrontMatterParser : IMarkdownBlockParser {
         public bool TryParse(string[] lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
-            if (!options.FrontMatter) return false;
-            if (i != 0) return false; // only at very top
-            if (i < lines.Length && lines[i].Trim() == "---") {
-                int start = i + 1; int end = -1;
-                for (int j = start; j < lines.Length; j++) { if (lines[j].Trim() == "---") { end = j; break; } }
-                if (end > start) {
-                    var frontMatter = ParseFrontMatterBlock(lines, start, end - 1, state);
-                    if (frontMatter.Entries.Count > 0 || frontMatter.RawYaml != null) doc.Add(frontMatter);
-                    i = end + 1;
-                    if (i < lines.Length && string.IsNullOrWhiteSpace(lines[i])) i++;
-                    return true;
-                }
-            }
-            return false;
+            if (!options.FrontMatter || i != 0 || !TryLocateFrontMatter(lines, out int closingIndex)) return false;
+            doc.Add(ParseFrontMatterBlock(lines, closingIndex, state));
+            i = closingIndex + 1;
+            if (i < lines.Length && string.IsNullOrWhiteSpace(lines[i])) i++;
+            return true;
         }
     }
 }

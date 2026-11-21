@@ -193,7 +193,7 @@ public sealed partial class PdfCreateOptions {
                 return _renderingProfileOwnedNamedFamilyNames?.Contains(
                     directFamily.FamilyName) != true;
             }
-            string literalCandidate = OfficeFontFamilyParser.Quote(candidate);
+            string literalCandidate = QuoteFontFamilyName(candidate);
             if (HasRenderingProfileFamilyPlanner(literalCandidate)) {
                 return false;
             }
@@ -912,6 +912,7 @@ public sealed partial class PdfCreateOptions {
     }
 
     private void ClearEmbeddedStandardFontMappings() {
+        ResolvePendingDefaultFontFamilies();
         _embeddedFonts?.Clear();
         _embeddedFontPrograms?.Clear();
         _embeddedOpenTypeCffFontPrograms?.Clear();

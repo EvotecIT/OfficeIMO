@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Fenced code block with optional caption. Fence length adapts to backticks inside the content.
 /// </summary>
-public sealed class CodeBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, ISyntaxMarkdownBlock {
+public sealed class CodeBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, ISyntaxMarkdownBlock, IHtmlAppendableMarkdownBlock {
     /// <summary>Parsed primary fence language token (for example <c>csharp</c> or <c>bash</c>).</summary>
     public string Language { get; }
     /// <summary>Full fenced-code info string as it appeared after the opening fence marker.</summary>
@@ -25,13 +25,13 @@ public sealed class CodeBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, ISy
     internal int ClosingFenceLength { get; private set; } = 3;
     internal int? FencedContentLineCount { get; private set; }
     /// <summary>Source span for the opening fence token when parsed from a fenced source block.</summary>
-    public MarkdownSourceSpan? OpeningFenceSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? OpeningFenceSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
     /// <summary>Source span for the fenced-code info string when parsed from a fenced source block.</summary>
-    public MarkdownSourceSpan? InfoStringSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? InfoStringSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
     /// <summary>Source span for the code payload when source-backed.</summary>
-    public MarkdownSourceSpan? ContentSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? ContentSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
     /// <summary>Source span for the closing fence token when parsed from a closed fenced source block.</summary>
-    public MarkdownSourceSpan? ClosingFenceSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? ClosingFenceSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
 
     /// <summary>Create a code block with an optional fenced-code info string.</summary>
     public CodeBlock(string language, string content) : this(language, content, isFenced: true) {
@@ -113,29 +113,51 @@ public sealed class CodeBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, ISy
 
     /// <inheritdoc />
     string IMarkdownBlock.RenderHtml() {
+        var sb = new StringBuilder();
+        AppendHtml(sb);
+        return sb.ToString();
+    }
+
+    void IHtmlAppendableMarkdownBlock.AppendHtml(StringBuilder builder) => AppendHtml(builder);
+
+    private void AppendHtml(StringBuilder sb) {
         var options = HtmlRenderContext.Options;
         var overridden = options?.CodeBlockHtmlRenderer?.Invoke(this, options);
         if (overridden != null) {
-            return overridden;
+            sb.Append(overridden);
+            return;
         }
 
         bool renderGenericAttributesOnCode = ShouldRenderGenericAttributesOnCode();
         string attrs = renderGenericAttributesOnCode ? string.Empty : MarkdownHtmlAttributes.Render(Attributes, options);
-        string lang = renderGenericAttributesOnCode
-            ? RenderCodeAttributes(options)
-            : string.IsNullOrEmpty(Language) ? string.Empty : $" class=\"language-{HtmlTextEncoder.Encode(Language, options)}\"";
-        string code = HtmlTextEncoder.Encode(Content, options);
-        if (code.Length > 0 || FencedContentLineCount is > 0) {
+        sb.Append("<pre").Append(attrs).Append("><code");
+        if (renderGenericAttributesOnCode) {
+            sb.Append(RenderCodeAttributes(options));
+        } else if (!string.IsNullOrEmpty(Language)) {
+            sb.Append(" class=\"language-");
+            HtmlTextEncoder.Append(sb, Language, options);
+            sb.Append('"');
+        }
+
+        sb.Append('>');
+        int codeStart = sb.Length;
+        HtmlTextEncoder.Append(sb, Content, options);
+        if (sb.Length > codeStart || FencedContentLineCount is > 0) {
             // CommonMark-style HTML keeps the terminating line break inside <code>
             // for multi-line block code, even though the stored model content does not.
-            code += "\n";
+            sb.Append('\n');
         }
-        string caption = string.IsNullOrWhiteSpace(Caption) ? string.Empty : $"<div class=\"caption\">{HtmlTextEncoder.Encode(Caption!, options)}</div>";
-        return $"<pre{attrs}><code{lang}>{code}</code></pre>{caption}";
+
+        sb.Append("</code></pre>");
+        if (!string.IsNullOrWhiteSpace(Caption)) {
+            sb.Append("<div class=\"caption\">");
+            HtmlTextEncoder.Append(sb, Caption, options);
+            sb.Append("</div>");
+        }
     }
 
     private bool ShouldRenderStandaloneGenericAttributes() =>
-        !Attributes.IsEmpty && MarkdownGenericAttributeSourceSpans.GetSourceSpan(this).HasValue;
+        !Attributes.IsEmpty && MarkdownGenericAttributeSourceSpans.HasStandaloneSource(this);
 
     private MarkdownAttributeSet GetStandaloneRenderedAttributes() {
         if (!ShouldRenderStandaloneGenericAttributes()) {
@@ -277,5 +299,13 @@ public sealed class CodeBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, ISy
         }
 
         return new MarkdownSourceSpan(fenceStartLine, 1, value.EndLine, value.EndColumn.Value);
+    }
+
+    internal override void AdoptCapturedSourceInformation(MarkdownObject captured, MarkdownCapturedObjectMap map) {
+        var source = (CodeBlock)captured;
+        OpeningFenceSourceSpan = source.OpeningFenceSourceSpan;
+        InfoStringSourceSpan = source.InfoStringSourceSpan;
+        ContentSourceSpan = source.ContentSourceSpan;
+        ClosingFenceSourceSpan = source.ClosingFenceSourceSpan;
     }
 }

@@ -99,11 +99,11 @@ internal static class MarkdigExtensionInventoryMarkdownWriter {
     private static string GetPublishedOfficeImoState(MarkdigExtensionInventoryRow row) =>
         row.Family switch {
             "Custom containers" => "Opt-in colon-fenced containers support root, nested, blockquote-contained, and list-contained shapes with child parsing, HTML rendering, Markdown writing, syntax fields, source slices, source edits, and stable reparse.",
-            "Diagrams" => "Semantic fenced blocks and visual renderer hooks exist; named diagram-language mapping and a complete renderer handoff contract remain open.",
+            "Diagrams" => "Semantic fenced blocks and visual renderer hooks exist. The optional ChartForgeX adapter renders Mermaid fences as embedded PNG or SVG images for HTML, Word and PDF; PDF draws SVG as vector content, and unsupported or invalid diagrams keep their source fence with diagnostics.",
             "Figures" => "Image and figure import plus publisher rendering paths exist; a dedicated Markdown figure syntax and its source/writer contract remain open.",
             "Generic attributes" => "Generic attributes have end-to-end ownership for every supported target family, including callouts, details blocks, and custom containers: semantic and syntax storage, exact source fields, HTML projection, Markdown writing, source edits, and stable reparse. Targets outside that declared set remain literal or deliberately consumed according to the documented profile boundary.",
             "List extras" => "Opt-in alphabetic and Roman ordered markers support nested parsing, marker-style HTML, source metadata and edits, and Markdown writer preservation.",
-            "Mathematics" => "Math-oriented semantic and rendering hooks exist, but inline and block delimiter parsing does not yet have a complete AST, source, writer, and renderer contract.",
+            "Mathematics" => "Opt-in MarkdownLoadOptions.Math parses `$...$` and `$$...$$` inline math, `$$` display blocks and `math` fences into MathInline, MathBlock and math semantic fences with syntax-tree source spans and Markdown writing that reparses to the same math. PDF and Word converters lay the TeX out through the shared math engine, and HTML keeps `\\(...\\)` and `\\[...\\]` delimiters for client-side renderers.",
             "Media links" => "Image and media semantics exist, but shortcut media providers do not yet have a complete parser, safe-renderer, source, and writer contract.",
             "Precise source location" => "The source contract is field-bounded: documented source-backed fields expose normalized spans, exact or line-ending-equivalent original mappings, stable semantic associations, and source edits. Generated or transformed nodes are spanless with machine-readable unavailable reasons, and arbitrary semantic edits use normalized writing.",
             _ => throw new InvalidOperationException("Published partial-family text is missing for " + row.Family + ".")
@@ -112,11 +112,11 @@ internal static class MarkdigExtensionInventoryMarkdownWriter {
     private static string GetPublishedBoundary(MarkdigExtensionInventoryRow row) =>
         row.Family switch {
             "Custom containers" => "Other optional container shapes are not recognized. Unsupported syntax remains literal rather than receiving partial parse, render, or source-edit behavior.",
-            "Diagrams" => "Named diagram-language parsing and a complete renderer handoff are not available.",
+            "Diagrams" => "The Markdown core does not parse diagram languages. Mermaid rendering requires the optional adapter, and other diagram languages keep their source fences.",
             "Figures" => "HTML figure recovery does not provide a dedicated authored Markdown figure syntax or a source-preserving writer contract.",
             "Generic attributes" => "Only the documented target families accept attributes. Other targets remain literal or follow the selected profile's documented consumption rule.",
             "List extras" => "Some list-marker edge cases and source-edit round trips remain outside the supported subset.",
-            "Mathematics" => "Built-in inline and block math delimiter parsing, source metadata, Markdown writing, and renderer handoff are not available as one complete contract.",
+            "Mathematics" => "Math is not a parser default. Native editor source fields and comparison fixtures for math delimiters remain open, and TeX outside the shared math engine's subset is shown as source with a warning.",
             "Media links" => "Shortcut media-provider syntax does not yet have a complete parser, safe HTML output, source mapping, and Markdown writer contract.",
             "Precise source location" => "Exact locations are not returned for arbitrary fields, transformed nodes, or generated nodes. Arbitrary semantic edits use normalized Markdown writing rather than a lossless source patch.",
             _ => throw new InvalidOperationException("Published boundary text is missing for " + row.Family + ".")

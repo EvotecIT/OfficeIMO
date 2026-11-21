@@ -169,23 +169,21 @@ namespace OfficeIMO.Word {
         private static WordDocument CreateInternal(string? filePath, Stream? stream, WordprocessingDocumentType documentType, DocumentPersistenceMode persistenceMode, OfficeTheme? theme) {
             // The implicit native defaults are deterministic, so reuse a package that already carries them instead of
             // parsing, cloning and reserializing the style catalog and theme part for every new document.
-            bool themeApplied = theme == null && !WordParagraphStyle.HasRuntimeStyleRegistrations;
+            bool themeApplied = theme == null;
             return CreateInternal(filePath, stream, documentType, persistenceMode, theme,
                 themeApplied ? GetDefaultThemedPackageBytes(documentType) : GetDefaultPackageBytes(documentType),
-                themeApplied, applyStyleRegistrations: true);
+                themeApplied);
         }
 
         private static WordDocument CreateInternal(string? filePath, Stream? stream, WordprocessingDocumentType documentType, DocumentPersistenceMode persistenceMode, OfficeTheme? theme,
-            byte[] templateBytes, bool themeApplied, bool applyStyleRegistrations, bool applyDefaultTheme = true) {
+            byte[] templateBytes, bool themeApplied, bool applyDefaultTheme = true) {
             var packageStream = new MemoryStream(templateBytes.Length + 4096);
             packageStream.Write(templateBytes, 0, templateBytes.Length);
             packageStream.Position = 0;
             WordprocessingDocument wordDocument;
+            WordZipPackage? zipPackage;
             try {
-                wordDocument = WordprocessingDocument.Open(
-                    packageStream,
-                    true,
-                    new OpenSettings { AutoSave = false });
+                wordDocument = OpenOwnedEditablePackage(packageStream, new OpenSettings { AutoSave = false }, out zipPackage);
             } catch {
                 packageStream.Dispose();
                 throw;
@@ -195,6 +193,7 @@ namespace OfficeIMO.Word {
                 FilePath = filePath,
                 OriginalStream = stream,
                 _ownedPackageStream = packageStream,
+                _ownedZipPackage = zipPackage,
                 _packageContentTypesAdvertiseXmlSignatures = false,
                 _wordprocessingDocument = wordDocument,
                 _document = wordDocument.MainDocumentPart?.Document
@@ -204,10 +203,14 @@ namespace OfficeIMO.Word {
                 _tableNormalizationRequired = false
             };
             word.InitializeSdtIdState();
-            if (applyStyleRegistrations && !themeApplied) ApplyCurrentStyleRegistrations(wordDocument.MainDocumentPart!.StyleDefinitionsPart);
             InitializeNewDocumentFacade(word);
             try {
-                if (themeApplied) word._creationTheme = OfficeTheme.Default;
+                if (themeApplied) {
+                    word._creationTheme = OfficeTheme.Default;
+                    word._defaultPackageThemePart = wordDocument.MainDocumentPart?.ThemePart;
+                    word._defaultPackageStylesPart = wordDocument.MainDocumentPart?.StyleDefinitionsPart;
+                    word._defaultPackageType = documentType;
+                }
                 else if (theme != null) word.ApplyCreationTheme(theme);
                 else if (applyDefaultTheme) word.ApplyDefaultCreationTheme();
                 return word;
@@ -235,9 +238,9 @@ namespace OfficeIMO.Word {
 
         private static byte[] CreateDefaultThemedPackageBytes(WordprocessingDocumentType documentType) {
             using WordDocument document = CreateInternal(filePath: null, stream: null, documentType, DocumentPersistenceMode.Explicit,
-                null, GetDefaultPackageBytes(documentType), themeApplied: false, applyStyleRegistrations: false);
+                null, GetDefaultPackageBytes(documentType), themeApplied: false);
             using var packageStream = new MemoryStream();
-            using (document._wordprocessingDocument.Clone(packageStream, true)) {
+            using (WordPackageSnapshot.Clone(document._wordprocessingDocument, packageStream)) {
             }
 
             packageStream.Position = 0;
@@ -252,7 +255,7 @@ namespace OfficeIMO.Word {
                 documentType,
                 DocumentPersistenceMode.Explicit);
             using var packageStream = new MemoryStream();
-            using (document._wordprocessingDocument.Clone(packageStream, true)) {
+            using (WordPackageSnapshot.Clone(document._wordprocessingDocument, packageStream)) {
             }
 
             packageStream.Position = 0;
@@ -345,7 +348,8 @@ namespace OfficeIMO.Word {
         }
 
         private static void InitializeNewDocumentFacade(WordDocument word) {
-            new WordSettings(word);
+            // Settings are created on first use; the default package already has a settings part, so parsing it
+            // here only made every new document load and rewrite settings.xml.
             new WordCompatibilitySettings(word);
             new WordApplicationProperties(word);
             new WordBuiltinDocumentProperties(word);
@@ -407,8 +411,9 @@ namespace OfficeIMO.Word {
             foreach (var element in list) {
                 if (element is Paragraph) {
                     Paragraph paragraph = (Paragraph)element;
-                    if (paragraph.ParagraphProperties != null && paragraph.ParagraphProperties.SectionProperties != null) {
-                        wordSection = new WordSection(this, paragraph.ParagraphProperties.SectionProperties, paragraph);
+                    // A plain child scan; the schema-driven ParagraphProperties lookup costs more per body paragraph.
+                    if (WordElementWalk.FirstChild<ParagraphProperties>(paragraph)?.SectionProperties is { } sectionProperties) {
+                        wordSection = new WordSection(this, sectionProperties, paragraph);
                     }
                 } else if (element is Table) {
                     // WordTable wordTable = new WordTable(this, wordSection, (Table)element);
@@ -500,7 +505,10 @@ namespace OfficeIMO.Word {
                     readOnly,
                     resolved.PackageSecurity?.MaxPackageBytes ?? int.MaxValue);
 
-                var wordDocument = WordprocessingDocument.Open(memoryStream, !readOnly, effectiveOpenSettings);
+                WordZipPackage? zipPackage = null;
+                var wordDocument = readOnly
+                    ? OfficeIMO.OpenXml.Internal.OfficeOpenXmlReadOnlyPackage.OpenWordprocessing(memoryStream, effectiveOpenSettings)
+                    : OpenOwnedEditablePackage(memoryStream, effectiveOpenSettings, out zipPackage);
 
                 bool applyOverrideStyles = resolved.OverrideStyles && !readOnly;
                 if (applyOverrideStyles) {
@@ -509,19 +517,19 @@ namespace OfficeIMO.Word {
 
                 word.FilePath = filePath;
                 word._ownedPackageStream = memoryStream;
+                word._ownedZipPackage = zipPackage;
                 word._legacyValidationEncodedPackageBytes = CaptureLegacyValidationEncodedPackage(
                     sourceBytes,
                     readOnly);
                 word._wordprocessingDocument = wordDocument;
                 word._document = wordDocument.MainDocumentPart?.Document ?? throw new InvalidOperationException("Document is missing.");
                 word._openXmlOriginalPackageBytes = OfficeCompatibilitySourceCarrier.ContainsPackageCarrier(sourceBytes)
-                    ? (byte[])sourceBytes.Clone()
+                    ? sourceBytes
                     : null;
                 word.LoadDocument();
                 if (applyOverrideStyles) {
                     // Ensure overrides are applied after any document initialization that may touch styles
                     InitialiseStyleDefinitions(wordDocument, readOnly, overrideStyles: true);
-                    EnsureCustomStyleNames(wordDocument);
                 }
                 WordChart.InitializeAxisIdSeed(wordDocument);
 
@@ -632,18 +640,22 @@ namespace OfficeIMO.Word {
                 readOnly,
                 resolved.PackageSecurity?.MaxPackageBytes ?? int.MaxValue);
 
-            var wordDocument = WordprocessingDocument.Open(memoryStream, !readOnly, effectiveOpenSettings);
+            WordZipPackage? zipPackage = null;
+            var wordDocument = readOnly
+                ? OfficeIMO.OpenXml.Internal.OfficeOpenXmlReadOnlyPackage.OpenWordprocessing(memoryStream, effectiveOpenSettings)
+                : OpenOwnedEditablePackage(memoryStream, effectiveOpenSettings, out zipPackage);
 
             var word = new WordDocument {
                 FilePath = filePath,
                 _ownedPackageStream = memoryStream,
+                _ownedZipPackage = zipPackage,
                 _legacyValidationEncodedPackageBytes = CaptureLegacyValidationEncodedPackage(
                     sourceBytes,
                     readOnly),
                 _wordprocessingDocument = wordDocument,
                 _document = wordDocument.MainDocumentPart?.Document ?? throw new InvalidOperationException("Document is missing."),
                 _openXmlOriginalPackageBytes = OfficeCompatibilitySourceCarrier.ContainsPackageCarrier(sourceBytes)
-                    ? (byte[])sourceBytes.Clone()
+                    ? sourceBytes
                     : null,
                 _persistenceMode = resolved.PersistenceMode
             };
@@ -655,7 +667,6 @@ namespace OfficeIMO.Word {
             word.LoadDocument();
             if (applyOverrideStyles) {
                 InitialiseStyleDefinitions(wordDocument, readOnly, overrideStyles: true);
-                EnsureCustomStyleNames(wordDocument);
             }
             WordChart.InitializeAxisIdSeed(wordDocument);
             WordListStyles.InitializeAbstractNumberId(word._wordprocessingDocument);
@@ -684,11 +695,11 @@ namespace OfficeIMO.Word {
                 cancellationToken).ConfigureAwait(false);
             if (resolved.Password == null && TryLoadWordXml(sourceBytes, null, resolved, cancellationToken) is { } xmlDocument)
                 return xmlDocument.RememberXmlStream(stream);
-            using var bufferedStream = new MemoryStream(sourceBytes.Length);
-            bufferedStream.Write(sourceBytes, 0, sourceBytes.Length);
-            bufferedStream.Position = 0;
+            // The bytes were read under the same limits the synchronous load applies, so they are
+            // loaded as they are instead of being copied into a buffer and read again.
+            using var bufferedStream = new MemoryStream(sourceBytes, 0, sourceBytes.Length, writable: true, publiclyVisible: true);
             WordDocument document = resolved.Password == null
-                ? LoadFromStream(bufferedStream, resolved, captureSourcePackageSecurity: true, detectXml: false, cancellationToken: cancellationToken)
+                ? LoadFromStream(bufferedStream, resolved, captureSourcePackageSecurity: true, detectXml: false, cancellationToken: cancellationToken, sourceBytes: sourceBytes)
                 : Load(bufferedStream, resolved);
             if (document.SourceFormat == WordFileFormat.Docx) {
                 document.OriginalStream = OfficeDocumentLifecycle.ResolveAssociatedDestination(stream, resolved.AccessMode)!;
@@ -709,7 +720,8 @@ namespace OfficeIMO.Word {
                 : LoadFromStream(stream, options, captureSourcePackageSecurity: true);
 
         private static WordDocument LoadFromStream(Stream stream, WordLoadOptions? options,
-            bool captureSourcePackageSecurity, bool detectXml = true, CancellationToken cancellationToken = default) {
+            bool captureSourcePackageSecurity, bool detectXml = true, CancellationToken cancellationToken = default,
+            OpenSettings? packageSettings = null, byte[]? sourceBytes = null) {
             ArgumentNullException.ThrowIfNull(stream);
             cancellationToken.ThrowIfCancellationRequested();
             if (!stream.CanRead) {
@@ -721,8 +733,8 @@ namespace OfficeIMO.Word {
             bool readOnly = resolved.AccessMode == DocumentAccessMode.ReadOnly;
             bool saveOnDispose = resolved.PersistenceMode == DocumentPersistenceMode.SaveOnDispose;
             OfficeDocumentLifecycle.EnsureSaveOnDisposeDestination(stream, resolved.PersistenceMode, nameof(stream));
-            var effectiveOpenSettings = CreateOpenSettings(resolved.OpenSettings);
-            byte[] sourceBytes = ReadSourceBytes(stream, resolved);
+            var effectiveOpenSettings = packageSettings ?? CreateOpenSettings(resolved.OpenSettings);
+            sourceBytes ??= ReadSourceBytes(stream, resolved);
             cancellationToken.ThrowIfCancellationRequested();
             if (detectXml && TryLoadWordXml(sourceBytes, null, resolved) is { } xmlDocument)
                 return xmlDocument.RememberXmlStream(stream);
@@ -753,12 +765,14 @@ namespace OfficeIMO.Word {
                         sourceBytes,
                         readOnly),
                     _openXmlOriginalPackageBytes = OfficeCompatibilitySourceCarrier.ContainsPackageCarrier(sourceBytes)
-                        ? (byte[])sourceBytes.Clone()
+                        ? sourceBytes
                         : null,
                     _persistenceMode = resolved.PersistenceMode
                 };
 
-                var wordDocument = WordprocessingDocument.Open(packageStream, !readOnly, effectiveOpenSettings);
+                var wordDocument = readOnly
+                    ? OfficeIMO.OpenXml.Internal.OfficeOpenXmlReadOnlyPackage.OpenWordprocessing(packageStream, effectiveOpenSettings)
+                    : OpenOwnedEditablePackage(packageStream, effectiveOpenSettings, out document._ownedZipPackage);
                 bool applyOverrideStyles = resolved.OverrideStyles && !readOnly;
 
                 document._wordprocessingDocument = wordDocument;
@@ -769,7 +783,6 @@ namespace OfficeIMO.Word {
                 document.LoadDocument();
                 if (applyOverrideStyles) {
                     InitialiseStyleDefinitions(wordDocument, readOnly, overrideStyles: true);
-                    EnsureCustomStyleNames(wordDocument);
                 }
 
                 WordChart.InitializeAxisIdSeed(wordDocument);

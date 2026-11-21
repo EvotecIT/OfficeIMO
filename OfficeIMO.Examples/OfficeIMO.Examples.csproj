@@ -21,6 +21,10 @@
         <ProjectReference Include="..\\OfficeIMO.GoogleWorkspace.Drive\\OfficeIMO.GoogleWorkspace.Drive.csproj" />
         <ProjectReference Include="..\\OfficeIMO.GoogleWorkspace.Sync\\OfficeIMO.GoogleWorkspace.Sync.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Pdf\\OfficeIMO.Pdf.csproj" />
+        <ProjectReference Include="..\\OfficeIMO.Word.CodeGlyphX\\OfficeIMO.Word.CodeGlyphX.csproj" />
+        <ProjectReference Include="..\\OfficeIMO.Excel.CodeGlyphX\\OfficeIMO.Excel.CodeGlyphX.csproj" />
+        <ProjectReference Include="..\\OfficeIMO.PowerPoint.CodeGlyphX\\OfficeIMO.PowerPoint.CodeGlyphX.csproj" />
+        <ProjectReference Include="..\\OfficeIMO.Pdf.CodeGlyphX\\OfficeIMO.Pdf.CodeGlyphX.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Invoicing\\OfficeIMO.Invoicing.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Invoicing.Pdf\\OfficeIMO.Invoicing.Pdf.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Markdown\\OfficeIMO.Markdown.csproj" />

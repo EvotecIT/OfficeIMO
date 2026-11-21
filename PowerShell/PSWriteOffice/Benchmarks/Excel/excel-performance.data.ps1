@@ -1,4 +1,29 @@
+$script:ExcelBenchmarkDataCache = @{}
+
 function Get-ExcelBenchmarkData {
+    param(
+        [string] $Profile,
+        [int] $Count
+    )
+
+    # Generating 10,000 rows in script takes up to two seconds, far longer than most measured operations. The
+    # object-row inputs are only read by every lane, so each profile and size is built once per process.
+    # DataTable and DataSet inputs stay fresh because they are mutable.
+    if ($Profile -notin @('DataTable', 'DataSet')) {
+        if ($null -eq $script:ExcelBenchmarkDataCache) {
+            $script:ExcelBenchmarkDataCache = @{}
+        }
+        $cacheKey = '{0}|{1}' -f $Profile, $Count
+        if (-not $script:ExcelBenchmarkDataCache.ContainsKey($cacheKey)) {
+            $script:ExcelBenchmarkDataCache[$cacheKey] = New-ExcelBenchmarkData -Profile $Profile -Count $Count
+        }
+        return $script:ExcelBenchmarkDataCache[$cacheKey]
+    }
+
+    New-ExcelBenchmarkData -Profile $Profile -Count $Count
+}
+
+function New-ExcelBenchmarkData {
     param(
         [string] $Profile,
         [int] $Count
@@ -321,10 +346,17 @@ function Initialize-ExcelBenchmarkInput {
 
     switch ([string]$Case.OperationKey) {
         ReadCsvSource {
-            $Run.Payload | Export-Csv -Path $Run.SourcePath -NoTypeInformation -Encoding utf8 -UseQuotes AsNeeded
+            $nativeCsvParameters = Get-NativeCsvExportParameter
+            $Run.Payload | Export-Csv -Path $Run.SourcePath @nativeCsvParameters
         }
         ReadCsvDataTable {
-            $Run.Payload | Export-Csv -Path $Run.SourcePath -NoTypeInformation -Encoding utf8 -UseQuotes AsNeeded
+            $nativeCsvParameters = Get-NativeCsvExportParameter
+            $Run.Payload | Export-Csv -Path $Run.SourcePath @nativeCsvParameters
+        }
+        ConvertFromCsvText {
+            $nativeCsvParameters = Get-NativeCsvExportParameter
+            $Run.Payload | Export-Csv -Path $Run.SourcePath @nativeCsvParameters
+            $Run.SourceText = [IO.File]::ReadAllText($Run.SourcePath)
         }
         ReadCsvGZipDataTable {
             Write-NativeGZipCsv -InputObject $Run.Payload -Path $Run.SourcePath
@@ -336,7 +368,8 @@ function Initialize-ExcelBenchmarkInput {
             New-ExcelBenchmarkDbatoolsCsvSource -Path $Run.SourcePath -Count ([int]$Case.RowCount) -ColumnCount $Run.ColumnCount -QuoteAll:([string]$Case.DataProfile -eq 'DbatoolsQuotedCsv')
         }
         CsvToExcel {
-            $Run.Payload | Export-Csv -Path $Run.SourcePath -NoTypeInformation -Encoding utf8 -UseQuotes AsNeeded
+            $nativeCsvParameters = Get-NativeCsvExportParameter
+            $Run.Payload | Export-Csv -Path $Run.SourcePath @nativeCsvParameters
         }
         ReadFullSheet { New-ExcelBenchmarkDefaultWorkbook -Engine PSWriteOffice -Run $Run }
         ReadRange { New-ExcelBenchmarkDefaultWorkbook -Engine PSWriteOffice -Run $Run }
@@ -389,7 +422,7 @@ function New-ExcelBenchmarkNamedRangeWorkbook {
         PSWriteOffice {
             New-OfficeExcel -Path $Run.Path {
                 Add-OfficeExcelSheet -Name $Run.WorksheetName -Content {
-                    Add-OfficeExcelTable -Data $Run.Payload -TableName Data
+                    Add-OfficeExcelTable -InputObject $Run.Payload -Name Data -NoAutoFit
                     Set-OfficeExcelNamedRange -Name SalesData -Range $Run.Range
                 }
             } | Out-Null

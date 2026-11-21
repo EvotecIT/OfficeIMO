@@ -15,6 +15,9 @@ public sealed partial class PdfLogicalPage {
         PdfIndexedSoftMaskPngMemo? indexedSoftMaskMemo = null,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
+        // Table styling, optional-content and visual-count passes each read the page content.
+        // Decode it once for this page; every pass is still charged for what it reads.
+        using PdfReadPage.DecodedContentReuseScope contentReuse = page.ReuseDecodedContent();
         var size = page.GetPageSize();
         PdfPageGeometry geometry = page.GetGeometry();
         List<PdfUnderstandingLine>? retainedLines = analysis is null
@@ -53,6 +56,10 @@ public sealed partial class PdfLogicalPage {
             analysis is null ? structured.TablesDetailed : null,
             projectedTableCandidates);
 
+        // Contents entries are projected as list items, never as paragraph text.
+        HashSet<PdfTextSpan>? contentsRuns = pageAnalysis.ContentsEntries.Count == 0
+            ? null
+            : new HashSet<PdfTextSpan>(pageAnalysis.ContentsEntries.SelectMany(static entry => entry.Runs));
         foreach (var line in structured.LinesDetailed) {
             cancellationToken.ThrowIfCancellationRequested();
             string text = line.Text?.Trim() ?? string.Empty;
@@ -64,7 +71,9 @@ public sealed partial class PdfLogicalPage {
             bool isStructuredListItem = analysis is null &&
                 (listLines.Contains(NormalizeForKindComparison(text)) || ContentStructureExtractor.IsListItemText(text));
             PdfUnderstandingSemanticElement? semantic = semanticIndex.Find(line.Y, line.XStart, text, line.Spans);
-            var kind = ToLogicalKind(semantic, line, isStructuredHeading)
+            var kind = contentsRuns is not null && line.Spans.Count > 0 && line.Spans.All(contentsRuns.Contains)
+                ? PdfLogicalElementKind.ListItem
+                : ToLogicalKind(semantic, line, isStructuredHeading)
                 ?? (isStructuredHeading
                     ? PdfLogicalElementKind.Heading
                     : isStructuredListItem
@@ -105,8 +114,9 @@ public sealed partial class PdfLogicalPage {
             elements.Add(logicalTable);
         }
 
+        var identityPrimitives = new PdfReadPage.IdentityVisualPrimitiveMemo(page, cancellationToken);
         if (includeImages && tables.Count > 0) {
-            PdfLogicalTableCellStyleAnalysis.Assign(page, tables, cancellationToken);
+            PdfLogicalTableCellStyleAnalysis.Assign(page, tables, identityPrimitives, cancellationToken);
         }
 
         IReadOnlyList<PdfImagePlacement> imagePlacements = !includeImages ? Array.Empty<PdfImagePlacement>() : analysis is not null
@@ -154,17 +164,23 @@ public sealed partial class PdfLogicalPage {
             pageActions.Add(readPageActions[i].WithPageNumber(pageNumber));
         }
 
-        bool hasVisualPrimitiveCounts = includeImages;
-        int vectorPrimitiveCount = 0;
-        int unrepresentedVectorPrimitiveCount = 0;
-        if (includeImages) {
-            try {
-                (vectorPrimitiveCount, unrepresentedVectorPrimitiveCount) = page.GetVisibleVisualPrimitiveCounts(structured.TablesDetailed);
-            } catch (PdfUnsupportedTextMappingException) when (recoverDecodableText &&
-                pageAnalysis.TextDecodingDiagnostics.Any(static diagnostic => diagnostic.Code == PdfFontInspectionDiagnosticCode.UnmappableText)) {
-                // Keep the recovered text and image assets without certifying visual counts from a failed paint pass.
-                cancellationToken.ThrowIfCancellationRequested();
-                hasVisualPrimitiveCounts = false;
+        // Visual primitive counts, artifact counts and vector figures serve converters
+        // and table-scope reports, not the logical projection. Each reparses page content, so they run on first
+        // use. A page whose table styling already parsed its primitives keeps them in this read.
+        List<PdfStructuredTable> detectedTables = structured.TablesDetailed;
+        IReadOnlyList<PdfFontInspectionDiagnostic> textDecodingDiagnostics = pageAnalysis.TextDecodingDiagnostics;
+        Func<CancellationToken, PdfLogicalVisualPrimitiveCounts>? visualCountsSource = includeImages
+            ? visualCancellationToken => ReadVisualPrimitiveCounts(page, detectedTables, recoverDecodableText,
+                textDecodingDiagnostics, visualCancellationToken)
+            : null;
+        Func<CancellationToken, IReadOnlyList<PdfLogicalVectorFigure>>? vectorFiguresSource = null;
+        if (includeImages && identityPrimitives.HasResult) {
+            PdfLogicalVisualPrimitiveCounts counts = visualCountsSource!(cancellationToken);
+            visualCountsSource = _ => counts;
+            if (counts.Unrepresented >= 6) {
+                IReadOnlyList<PdfLogicalVectorFigure> figures = PdfLogicalVectorFigureAnalysis.Detect(
+                    page, textBlocks, tables, imagePlacements, identityPrimitives, cancellationToken);
+                vectorFiguresSource = _ => figures;
             }
         }
         Dictionary<(PdfLogicalElementKind Kind, long BaselineY, long XStart, string Text), Queue<PdfLogicalTextBlock>> textBlockLookup =
@@ -182,24 +198,46 @@ public sealed partial class PdfLogicalPage {
             analysis is null
                 ? BuildParagraphs(pageNumber, structured.Paragraphs, textBlocks, textBlockSourceIndex)
                 : BuildParagraphsFromSemanticRegions(pageNumber, textBlocks, semanticByTextBlock),
-            BuildListItems(pageNumber, analysis is null ? structured.ListNodes : new List<PdfStructuredListItem>(), textBlocks, semanticByTextBlock, textBlockLookup, textBlockSourceIndex, pageAnalysis),
+            BuildListItems(pageNumber, analysis is null ? structured.ListNodes : new List<PdfStructuredListItem>(), textBlocks, semanticByTextBlock, textBlockLookup, textBlockSourceIndex, pageAnalysis, links),
             tables.AsReadOnly(),
-            vectorPrimitiveCount,
-            unrepresentedVectorPrimitiveCount,
             images.AsReadOnly(),
             links.AsReadOnly(),
             annotations.AsReadOnly(),
             linkAnnotations.AsReadOnly(),
             formWidgets.AsReadOnly(),
             pageActions.AsReadOnly(),
+            // Also decodes annotation appearances, so the read keeps enforcing their stream limits.
             page.HasOptionalContentUsage(cancellationToken),
-            pageAnalysis, hasVisualPrimitiveCounts: hasVisualPrimitiveCounts,
+            pageAnalysis,
             includesImages: includeImages, includesFormWidgets: includeFormWidgets);
-        logicalPage.OmittedArtifactTextSpanCount = page.CountOmittedArtifactTextSpans(cancellationToken, recoverDecodableText);
-        if (includeImages && unrepresentedVectorPrimitiveCount >= 6) {
-            logicalPage.VectorFigures = PdfLogicalVectorFigureAnalysis.Detect(page, textBlocks, tables, imagePlacements, cancellationToken);
-        }
+        logicalPage._visualPrimitiveCountsSource = visualCountsSource;
+        if (annotations.Exists(static annotation => annotation.IsTextMarkup)) logicalPage._markupTextSource = page;
+        logicalPage._omittedArtifactTextSpanCountSource = deferredCancellationToken =>
+            page.CountOmittedArtifactTextSpans(deferredCancellationToken, recoverDecodableText);
+        logicalPage._vectorFiguresSource = vectorFiguresSource ?? (includeImages
+            ? figureCancellationToken => logicalPage.GetUnrepresentedVectorPrimitiveCount(figureCancellationToken) >= 6
+                ? PdfLogicalVectorFigureAnalysis.Detect(page, textBlocks, tables, imagePlacements,
+                    new PdfReadPage.IdentityVisualPrimitiveMemo(page, figureCancellationToken), figureCancellationToken)
+                : Array.Empty<PdfLogicalVectorFigure>()
+            : null);
         return logicalPage;
     }
 
+    private static PdfLogicalVisualPrimitiveCounts ReadVisualPrimitiveCounts(
+        PdfReadPage page,
+        IReadOnlyList<PdfStructuredTable> detectedTables,
+        bool recoverDecodableText,
+        IReadOnlyList<PdfFontInspectionDiagnostic> textDecodingDiagnostics,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        try {
+            (int total, int unrepresented) = page.GetVisibleVisualPrimitiveCounts(detectedTables);
+            return new PdfLogicalVisualPrimitiveCounts(total, unrepresented, available: true);
+        } catch (PdfUnsupportedTextMappingException) when (recoverDecodableText &&
+            textDecodingDiagnostics.Any(static diagnostic => diagnostic.Code == PdfFontInspectionDiagnosticCode.UnmappableText)) {
+            // Keep the recovered text and image assets without certifying visual counts from a failed paint pass.
+            cancellationToken.ThrowIfCancellationRequested();
+            return default;
+        }
+    }
 }

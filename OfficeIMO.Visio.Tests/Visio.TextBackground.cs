@@ -183,6 +183,31 @@ public class VisioTextBackgroundTests {
         Assert.Equal(25, reopened.Pages[0].Connectors[0].TextStyle!.BackgroundTransparency);
     }
 
+    [Fact]
+    public void NewConnectorLabelsStateTheConnectorStyleBackgroundWhileLoadedConnectorsKeepTheirFile() {
+        VisioDocument document = VisioDocument.Create();
+        VisioPage page = document.AddPage("Labels");
+        VisioShape from = page.AddRectangle(OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "From");
+        VisioShape to = page.AddRectangle(OfficeLength.Inches(4), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "To");
+        page.AddConnector(from, to).Label = "labelled";
+        page.AddConnector(from, to);
+
+        XElement[] connectors = PageShapes(document.ToBytes()).Where(shape => shape.Elements(Modern + "Cell").Any(cell => (string?)cell.Attribute("N") == "BeginX")).ToArray();
+        Assert.Equal(new[] { "#FFFFFF", null }, connectors.Select(shape => (string?)shape.Elements(Modern + "Cell")
+            .SingleOrDefault(cell => (string?)cell.Attribute("N") == "TextBkgnd")?.Attribute("V")));
+
+        VisioDocument reopened = VisioDocument.Load(new MemoryStream(document.ToBytes()));
+        Assert.Equal(OfficeColor.White, reopened.Pages[0].Connectors[0].TextStyle!.BackgroundColor);
+        reopened.Pages[0].Connectors[1].Label = "added after loading";
+        Assert.DoesNotContain(PageShapes(reopened.ToBytes()).Last().Elements(Modern + "Cell"), cell => (string?)cell.Attribute("N") == "TextBkgnd");
+    }
+
+    private static IEnumerable<XElement> PageShapes(byte[] package) {
+        using var archive = new ZipArchive(new MemoryStream(package), ZipArchiveMode.Read);
+        using Stream stream = archive.GetEntry("visio/pages/page1.xml")!.Open();
+        return XDocument.Load(stream).Descendants(Modern + "Shape").ToArray();
+    }
+
     private static VisioDocument Load(string value, string paletteColor = "#123456", string? error = null) {
         string errorAttribute = error == null ? "" : " Err='" + error + "'";
         string background = "<TextBlock><TextBkgnd Unit='DL' F='GUARD(" + value + ")'" + errorAttribute + ">" + value + "</TextBkgnd>"

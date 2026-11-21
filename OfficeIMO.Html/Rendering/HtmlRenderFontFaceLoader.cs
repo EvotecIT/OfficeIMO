@@ -46,7 +46,7 @@ internal static class HtmlRenderFontFaceLoader {
                 continue;
             }
 
-            foreach (HtmlCssFontFaceDefinition definition in HtmlResourcePipeline.ExtractFontFaces(styleElement.TextContent, pipelineOptions)) {
+            foreach (HtmlCssFontFaceDefinition definition in HtmlResourcePipeline.ExtractFontFaces(HtmlStyleElementText.Read(styleElement), pipelineOptions)) {
                 LoadDefinition(
                     definition,
                     baseUri,
@@ -177,15 +177,16 @@ internal static class HtmlRenderFontFaceLoader {
             }
 
             int maximumDecodedBytes = (int)Math.Min(remainingDecodedBytes, int.MaxValue);
-            if (fonts.TryAddBounded(
+            // Policy, media type and budget checks above run for every conversion; only the
+            // parsed program of identical bytes is shared, and only when its charge fits.
+            if (fonts.TryAddContentBounded(
                 definition.FamilyName,
                 bytes,
                 descriptor,
                 ranges,
                 maximumDecodedBytes,
                 out int acceptedDecodedBytes,
-                out string? fontError,
-                applyDescriptorWeight: true)) {
+                out string? fontError)) {
                 resources.AcceptDecodedFontBytes(acceptedDecodedBytes);
                 usage.RegisterAvailable(definition.FamilyName, descriptor, ranges, definitionOrder, definitionDiagnostics);
                 return;

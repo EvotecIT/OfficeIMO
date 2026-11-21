@@ -101,11 +101,10 @@ public sealed class PdfEmbeddedFontFallbackSet {
     internal void RegisterUnoccupiedFontSlots(PdfCreateOptions options) {
         for (int index = 0; index < _candidates.Count; index++) {
             PdfStandardFont family = _fontSlots[index];
-            bool occupied = options.EmbeddedFonts.Keys.Any(font =>
-                PdfStandardFontMapper.GetFontFamily(font) == family);
+            bool occupied = options.HasEmbeddedFontInFamily(family);
             if (!occupied) {
                 PdfEmbeddedFontFallbackCandidate candidate = _candidates[index];
-                options.RegisterFallbackFontFamily(family, candidate.FontName, candidate.DataSnapshot);
+                options.RegisterFallbackFontFamily(family, candidate);
             }
         }
     }
@@ -119,10 +118,8 @@ public sealed class PdfEmbeddedFontFallbackSet {
 
         for (int index = 0; index < _candidates.Count; index++) {
             PdfEmbeddedFontFallbackCandidate candidate = _candidates[index];
-            options.RegisterFallbackFontFamily(
-                NormalizeFontSlot(fontSlots[index]),
-                candidate.FontName,
-                candidate.DataSnapshot);
+            options.RegisterFallbackFontFamily(NormalizeFontSlot(fontSlots[index]), candidate);
+
         }
 
         return options;
@@ -139,10 +136,8 @@ public sealed class PdfEmbeddedFontFallbackSet {
             }
 
             PdfEmbeddedFontFallbackCandidate candidate = _candidates[candidateIndex];
-            options.RegisterFallbackFontFamily(
-                NormalizeFontSlot(entry.Value),
-                candidate.FontName,
-                candidate.DataSnapshot);
+            options.RegisterFallbackFontFamily(NormalizeFontSlot(entry.Value), candidate);
+
         }
 
         return options;

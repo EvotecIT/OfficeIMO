@@ -27,7 +27,8 @@ public sealed partial class MainWindowViewModel {
     private PdfWorkspaceOrientationReview? _orientationReview;
     public ObservableCollection<PageOrientationChoice> OrientationChoices { get; } = new();
     public bool HasOrientationReview => _orientationReview is not null;
-    public bool CanDetectPageOrientation => CanRotateSelection && StudioOcrProvider.UnavailableReason is null &&
+    /// <summary>Reviews the selected pages, or every page when none are selected.</summary>
+    public bool CanDetectPageOrientation => (HasOrganizerSelection ? CanRotateSelection : CanRotatePages) && StudioOcrProvider.UnavailableReason is null &&
         (_hasOrientationProvider || OcrReadiness.IsReady);
     public bool CanApplyOrientationReview => HasOrientationReview && OrientationChoices.Any(choice => choice.IsAccepted && choice.CanAccept);
     public bool HasOrientationPreview => OrientationBefore is not null && OrientationAfter is not null;
@@ -62,6 +63,7 @@ public sealed partial class MainWindowViewModel {
     [RelayCommand]
     private async Task DetectPageOrientationAsync(CancellationToken token) {
         if (_workspace is not { } workspace || !CanDetectPageOrientation) return;
+        if (!HasOrganizerSelection) SelectAllPages();
         int[] pages = GetSelectedPages(); ClearOrientationReview();
         PdfWorkspaceOrientationReview? prepared = null;
         bool success = await RunStandaloneAsync(async cancellation => {
@@ -81,6 +83,8 @@ public sealed partial class MainWindowViewModel {
         SelectedOrientationChoice = OrientationChoices.FirstOrDefault();
         OnPropertyChanged(nameof(HasOrientationReview)); OnPropertyChanged(nameof(CanApplyOrientationReview));
         ShowPagesModeCommand.Execute(null);
+        // The choices and Apply live in the inspector, which Pages mode otherwise keeps closed.
+        ShowDocumentProperties();
     }
 
     [RelayCommand]

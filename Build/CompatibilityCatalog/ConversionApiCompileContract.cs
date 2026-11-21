@@ -195,6 +195,15 @@ internal static class ConversionApiCompileContract {
         _ = ConfluenceContentConverter.ToHtml(confluencePage);
         using ExcelDocument csvExcel = ExcelDocumentCsvExtensions.ToExcel(csv, null, out OfficeConversionReport csvExcelReport);
         using CsvDocument excelCsv = ExcelSheetCsvExtensions.ToCsv(excel.Sheets[0]);
+        var dataOptions = new OfficeIMO.Data.Conversions.DataConversionOptions { JsonLines = true };
+        _ = OfficeIMO.Data.Conversions.YamlDataConversions.SaveAsJson(OfficeIMO.Yaml.YamlDocument.Load(stream), stream, dataOptions);
+        _ = OfficeIMO.Data.Conversions.XmlDataConversions.SaveAsCsv(System.Xml.Linq.XDocument.Load(stream), stream, dataOptions);
+        _ = OfficeIMO.Data.Conversions.CsvDataConversions.SaveAsXml(csv, stream, dataOptions);
+        _ = OfficeIMO.Data.Conversions.JsonDataConversions.SaveAsYaml(System.Text.Json.Nodes.JsonNode.Parse(stream), stream, dataOptions);
+        _ = OfficeIMO.Data.Conversions.JsonDataConversions.SaveAsCsv(System.Text.Json.Nodes.JsonNode.Parse(stream), stream, dataOptions);
+        _ = OfficeIMO.Data.Conversions.ExcelDataConversions.SaveAsExcel(System.Text.Json.Nodes.JsonNode.Parse(stream), stream, dataOptions);
+        _ = OfficeIMO.Data.Conversions.ExcelDataConversions.SaveAsJson(excel, stream, dataOptions);
+        using var dataRows = OfficeIMO.Data.Conversions.StructuredDataReader.Open(stream, OfficeDocumentFormat.Json);
         using (DbfDataReader dbf = DbfDataReader.Open(source))
         using (StringWriter csvOutput = new StringWriter()) {
             CsvDocument.WriteDataReader(csvOutput, dbf);

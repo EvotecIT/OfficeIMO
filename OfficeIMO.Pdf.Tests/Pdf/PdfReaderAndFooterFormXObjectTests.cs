@@ -170,6 +170,22 @@ public partial class PdfReaderAndFooterRegressionTests {
     }
 
     [Fact]
+    public void PdfReadPage_GetTextSpans_ResolvesOnlyVisiblyInvokedFormColorSpaces() {
+        byte[] bytes = BuildPdfWithFormTextColorSpaces();
+
+        IReadOnlyList<PdfTextSpan> spans = PdfReadDocument.Open(bytes).Pages[0].GetTextSpans();
+
+        PdfTextSpan shown = Assert.Single(spans, span => span.Text == "Shown");
+        PdfTextSpan invisible = Assert.Single(spans, span => span.Text == "Invisible");
+        OfficeIMO.OfficeColor shownColor = Assert.IsType<OfficeIMO.OfficeColor>(shown.Color);
+        Assert.True(shownColor.R > 200 && shownColor.B < 100, shownColor.ToString());
+        // The blue CalRGB space only selects invisible text, so it is never resolved and the
+        // invisible span keeps the previous fill.
+        Assert.Equal(shown.Color, invisible.Color);
+        Assert.False(invisible.IsVisible);
+    }
+
+    [Fact]
     public void PdfReadPage_GetTextSpans_AppliesScaledFormTransformsInOrder() {
         byte[] bytes = BuildPdfWithScaledFormMatrix();
 

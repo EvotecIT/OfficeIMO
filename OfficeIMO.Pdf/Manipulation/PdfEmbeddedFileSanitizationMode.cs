@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>How the sanitizer handles embedded and associated files.</summary>
-public enum PdfEmbeddedFileSanitizationMode {
+internal enum PdfEmbeddedFileSanitizationMode {
     /// <summary>Remove embedded payload references without retaining decoded bytes in the result.</summary>
     Remove,
 

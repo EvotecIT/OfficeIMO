@@ -98,8 +98,10 @@ internal static partial class PdfWriter {
         if (run.InlineElement != null) {
             return null;
         }
-        PdfTextRun resolved = options?.ResolvePlannedNamedFallbackRun(run) ?? run;
-        if (!ReferenceEquals(resolved, run)) return new[] { resolved };
+        if (options != null) {
+            System.Collections.Generic.IReadOnlyList<PdfTextRun> resolved = options.ResolvePlannedNamedFallbackRuns(run);
+            if (resolved.Count != 1 || !ReferenceEquals(resolved[0], run)) return resolved;
+        }
 
         bool preferSelectedCallerFamily =
             options?.ShouldPreferSelectedCallerFamily(run.FontFamily) == true;
@@ -229,7 +231,7 @@ internal static partial class PdfWriter {
         if (fallbackSet.UsesNamedFontFamilies) {
             plannedRuns = fallbackSet.CreateNamedTextRuns(plan, styleTemplate)
                 .Select(options.ResolvePlannedNamedFallbackRun).ToArray();
-            return true;
+            return RegularFaceCompanionsResolved(ref plannedRuns);
         }
 
         if (!TryResolveFallbackFontSlots(fallbackSet, plan, selectedFont, options, out System.Collections.Generic.IReadOnlyDictionary<int, PdfStandardFont> fontSlots)) {
@@ -241,8 +243,16 @@ internal static partial class PdfWriter {
             options.MarkEmbeddedFallbackFontFamilySlotUsed(slot);
         }
 
-        plannedRuns = plan.ToTextRuns(fontSlots, styleTemplate);
-        return true;
+        plannedRuns = plan.ToTextRuns(fontSlots, styleTemplate).Select(options.ResolvePlannedNamedFallbackRun).ToArray();
+        return RegularFaceCompanionsResolved(ref plannedRuns);
+    }
+
+    // A styled run's regular-face companion needs a named family. When none can be registered,
+    // the plan is not renderable and the text falls back to the ordinary missing-glyph handling.
+    private static bool RegularFaceCompanionsResolved(ref System.Collections.Generic.IReadOnlyList<PdfTextRun> plannedRuns) {
+        if (!plannedRuns.Any(run => run.PlannedFontFallback?.IsRegularFaceCandidate == true)) return true;
+        plannedRuns = Array.Empty<PdfTextRun>();
+        return false;
     }
 
     private static bool TryResolveFallbackFontSlots(
@@ -326,7 +336,7 @@ internal static partial class PdfWriter {
             length = 1;
             return true;
         }
-        string textElement = System.Globalization.StringInfo.GetNextTextElement(text, index);
+        string textElement = OfficeIMO.Drawing.OfficeTextElements.NextTextElement(text, index);
         length = textElement.Length;
         if (options != null &&
             options.TryResolveNamedFontFace(run.FontFamily, run.Bold, run.Italic, out PdfNamedFontFace namedFace)) {
@@ -335,7 +345,7 @@ internal static partial class PdfWriter {
                 return CanWriteWithEmbeddedFont(
                     textElement,
                     namedFontProgram,
-                    options.TextShapingModeSnapshot,
+                    options.TextShapingModeFor(text),
                     CreateSelectedManagedCoverageOptions(options, namedFontProgram.FontName, run,
                         options.ShouldPreferSelectedCallerFamily(run.FontFamily)));
             }
@@ -345,7 +355,7 @@ internal static partial class PdfWriter {
                 return CanWriteWithEmbeddedFont(
                     textElement,
                     namedCffFontProgram,
-                    options.TextShapingModeSnapshot,
+                    options.TextShapingModeFor(text),
                     CreateSelectedManagedCoverageOptions(options, namedCffFontProgram.FontName, run,
                         options.ShouldPreferSelectedCallerFamily(run.FontFamily)));
             }
@@ -357,7 +367,7 @@ internal static partial class PdfWriter {
             return CanWriteWithEmbeddedFont(
                 textElement,
                 fontProgram,
-                options.TextShapingModeSnapshot,
+                options.TextShapingModeFor(text),
                 CreateSelectedManagedCoverageOptions(options, fontProgram.FontName, run,
                     options.HasCallerOwnedEmbeddedFontFamily(fontForRun)));
         }
@@ -368,7 +378,7 @@ internal static partial class PdfWriter {
             return CanWriteWithEmbeddedFont(
                 textElement,
                 cffFontProgram,
-                options.TextShapingModeSnapshot,
+                options.TextShapingModeFor(text),
                 CreateSelectedManagedCoverageOptions(options, cffFontProgram.FontName, run,
                     options.HasCallerOwnedEmbeddedFontFamily(fontForRun)));
         }
@@ -390,11 +400,13 @@ internal static partial class PdfWriter {
         if (options.IsEmbeddedFallbackFontFamilySlotUsed(family))
             return options.IsRegisteredFallbackFontFamily(family, candidate);
 
-        foreach (PdfStandardFont variant in EnumerateFontFamilyVariants(family)) {
-            if (options.TryGetEmbeddedStandardFont(variant, out PdfEmbeddedFont? embeddedFont) &&
+        PdfStandardFont normalized = PdfStandardFontMapper.GetFontFamily(family);
+        for (int style = 0; style < 4; style++) {
+            bool bold = (style & 1) != 0, italic = (style & 2) != 0;
+            if (options.TryGetEmbeddedStandardFont(PdfStandardFontMapper.GetStyledFont(normalized, bold, italic), out PdfEmbeddedFont? embeddedFont) &&
                 embeddedFont != null &&
-                !embeddedFont.DataSnapshot.SequenceEqual(candidate.DataSnapshot) &&
-                !EmbeddedFontMatchesUnusedFallbackCandidate(embeddedFont, fallbackSet, plannedCandidateIndexes)) {
+                !embeddedFont.DataSnapshot.SequenceEqual(candidate.GetSlotFace(bold, italic).Data) &&
+                !EmbeddedFontMatchesUnusedFallbackCandidate(embeddedFont, bold, italic, fallbackSet, plannedCandidateIndexes)) {
                 return false;
             }
         }
@@ -404,24 +416,18 @@ internal static partial class PdfWriter {
 
     private static bool EmbeddedFontMatchesUnusedFallbackCandidate(
         PdfEmbeddedFont embeddedFont,
+        bool bold,
+        bool italic,
         PdfEmbeddedFontFallbackSet fallbackSet,
         System.Collections.Generic.HashSet<int> plannedCandidateIndexes) {
         byte[] embeddedData = embeddedFont.DataSnapshot;
         for (int index = 0; index < fallbackSet.Candidates.Count; index++) {
             if (!plannedCandidateIndexes.Contains(index) &&
-                embeddedData.SequenceEqual(fallbackSet.Candidates[index].DataSnapshot)) {
+                embeddedData.SequenceEqual(fallbackSet.Candidates[index].GetSlotFace(bold, italic).Data)) {
                 return true;
             }
         }
 
         return false;
-    }
-
-    private static System.Collections.Generic.IEnumerable<PdfStandardFont> EnumerateFontFamilyVariants(PdfStandardFont family) {
-        PdfStandardFont normalized = PdfStandardFontMapper.GetFontFamily(family);
-        yield return normalized;
-        yield return PdfStandardFontMapper.GetStyledFont(normalized, bold: true, italic: false);
-        yield return PdfStandardFontMapper.GetStyledFont(normalized, bold: false, italic: true);
-        yield return PdfStandardFontMapper.GetStyledFont(normalized, bold: true, italic: true);
     }
 }

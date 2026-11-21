@@ -46,8 +46,8 @@ namespace OfficeIMO.Tests {
                 Assert.False(diff.AreEqual);
                 Assert.Contains(diff.Differences, item => item.Category == "Cell" && item.Address == "A1");
 
-                ExcelAccessibilityReport accessibility = left.AnalyzeAccessibility();
-                Assert.Contains(accessibility.Findings, finding => finding.Category == "MergedCells");
+                OfficeAccessibilityReport accessibility = left.InspectAccessibility();
+                Assert.Contains(accessibility.Findings, finding => finding.Code == OfficeDiagnosticCodes.AccessibilityMergedCells);
 
                 ExcelDataModelReport dataModel = left.InspectDataModel();
                 Assert.False(dataModel.HasDataModelOrQueries);

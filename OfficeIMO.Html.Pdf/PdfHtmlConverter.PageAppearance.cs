@@ -30,7 +30,9 @@ public static partial class PdfHtmlConverterExtensions {
         if (page.Images.Any(image => image.Placements.Any(placement => {
                 PdfCore.PdfImagePlacementImportAssessment assessment =
                     PdfCore.PdfImagePlacementImportPolicy.Analyze(page, image, placement);
-                return !assessment.CanImport && !assessment.IsSuppressed;
+                // A crop would need the clipped source pixels in the page drawing, so cropped images use the
+                // per-image fallback, which embeds only the visible pixels.
+                return (!assessment.CanImport && !assessment.IsSuppressed) || assessment.Crop != null;
             }))) {
             return ReportUnsafeImageAppearanceFallback(options);
         }

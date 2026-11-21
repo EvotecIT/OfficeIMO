@@ -21,6 +21,7 @@ internal static partial class CsvParser
         private readonly bool _trim;
         private readonly bool _strictQuotes;
         private readonly bool _allowEmpty;
+        private readonly bool _checkFieldLengths;
         private readonly Queue<CsvLine> _pendingLines = new();
         private readonly List<string> _quotedFields = new(32);
         private CsvDataReaderStreamRowVisitor _visitor;
@@ -46,6 +47,7 @@ internal static partial class CsvParser
             _trim = options.TrimWhitespace;
             _strictQuotes = options.QuoteParsingMode == CsvQuoteParsingMode.Strict;
             _allowEmpty = options.AllowEmptyLines;
+            _checkFieldLengths = HasFieldLengthLimits(options);
             _lineReader = new CsvLineReader(reader, options);
             _visitor = new CsvDataReaderStreamRowVisitor(_lineReader.Buffer);
             _emittedRecordCount = initialEmittedRecordCount;
@@ -110,6 +112,9 @@ internal static partial class CsvParser
                 int recordStartLineNumber = recordStartedFromPendingLine
                     ? _pendingLines.Peek().PhysicalLineNumber
                     : _physicalLineOffset + _lineReader.PhysicalLineSeparatorsConsumed + 1;
+                // The line reader consumes separators inside quoted fields itself; progress and parse
+                // error lines continue from the physical line on which this record starts.
+                _lineNumber = recordStartLineNumber;
                 string? fastLine = null;
                 string lineSeparator;
                 CsvLineReadResult readResult;
@@ -142,9 +147,18 @@ internal static partial class CsvParser
                             continue;
                         }
 
+                        int quotedLineSeparators = _lineReader.LastQuotedRecordLineSeparators;
+                        if (_checkFieldLengths &&
+                            !FieldLengthsWithinLimits(
+                                _visitor.FindFieldLongerThan(fieldCount, GetFieldLengthLimit(_options, quotedLineSeparators >= 0)),
+                                recordStartLineNumber + Math.Max(quotedLineSeparators, 0)))
+                        {
+                            continue;
+                        }
+
                         _visitor.InternFields(_stringCache);
                         _emittedRecordCount++;
-                        ReportProgress(_options, _emittedRecordCount, _lineNumber - 1);
+                        ReportProgress(_options, _emittedRecordCount, recordStartLineNumber);
                         _visitor.Complete(fieldCount, _options.ColumnCountMismatchPolicy);
                         _currentPhysicalLineNumber = recordStartLineNumber;
                         _currentPhysicalEndLineNumber = GetCurrentPhysicalEndLineNumber(
@@ -182,11 +196,14 @@ internal static partial class CsvParser
                     continue;
                 }
 
-                if (line.IndexOf('"') < 0 && TrySplitUnquotedRecord(line, _delimiter, _trim, out string[] fields))
+                if ((_options.QuotesAreData || line.IndexOf('"') < 0) && TrySplitUnquotedRecord(line, _delimiter, _trim, _options.QuotesAreData, out string[] fields))
                 {
                     _lineNumber++;
                     if (ShouldSkipCommentRecord(startsWithCommentCharacter, line, _options, _emittedRecordCount)
-                        || !ShouldEmitRecord(fields, _allowEmpty))
+                        || !ShouldEmitRecord(fields, _allowEmpty)
+                        || (_checkFieldLengths && !FieldLengthsWithinLimits(
+                            FindFieldLongerThan(fields, GetFieldLengthLimit(_options, quotedRecord: false)),
+                            recordStartLineNumber)))
                     {
                         continue;
                     }
@@ -194,7 +211,7 @@ internal static partial class CsvParser
                     VisitParsedFields(fields, _emittedRecordCount, null, ref _visitor);
                     _visitor.InternFields(_stringCache);
                     _emittedRecordCount++;
-                    ReportProgress(_options, _emittedRecordCount, _lineNumber - 1);
+                    ReportProgress(_options, _emittedRecordCount, recordStartLineNumber);
                     _visitor.Complete(fields.Length, _options.ColumnCountMismatchPolicy);
                     _currentPhysicalLineNumber = recordStartLineNumber;
                     _currentPhysicalEndLineNumber = GetCurrentPhysicalEndLineNumber(
@@ -232,9 +249,12 @@ internal static partial class CsvParser
                     continue;
                 }
 
-                _lineNumber++;
+                int recordEndLineNumber = _lineNumber++;
                 if (ShouldSkipCommentRecord(startsWithCommentCharacter, line, _options, _emittedRecordCount)
-                    || !ShouldEmitRecord(_quotedFields, _allowEmpty))
+                    || !ShouldEmitRecord(_quotedFields, _allowEmpty)
+                    || (_checkFieldLengths && !FieldLengthsWithinLimits(
+                        FindFieldLongerThan(_quotedFields, GetFieldLengthLimit(_options, quotedRecord: true)),
+                        recordEndLineNumber)))
                 {
                     continue;
                 }
@@ -242,7 +262,7 @@ internal static partial class CsvParser
                 VisitParsedFields(_quotedFields, _emittedRecordCount, null, ref _visitor);
                 _visitor.InternFields(_stringCache);
                 _emittedRecordCount++;
-                ReportProgress(_options, _emittedRecordCount, _lineNumber - 1);
+                ReportProgress(_options, _emittedRecordCount, recordStartLineNumber);
                 _visitor.Complete(_quotedFields.Count, _options.ColumnCountMismatchPolicy);
                 _currentPhysicalLineNumber = recordStartLineNumber;
                 _currentPhysicalEndLineNumber = GetCurrentPhysicalEndLineNumber(
@@ -250,6 +270,35 @@ internal static partial class CsvParser
                     recordStartedFromPendingLine);
                 return true;
             }
+        }
+
+        /// <summary>
+        /// Reports a field longer than the configured limits as the canonical parser does; the record
+        /// is then skipped or the error thrown.
+        /// </summary>
+        private bool FieldLengthsWithinLimits(int length, int lineNumber)
+        {
+            if (length < 0)
+            {
+                return true;
+            }
+
+            SkipOrThrowParseError(_options, CreateFieldLengthException(_options, length, lineNumber), lineNumber);
+            return false;
+        }
+
+        /// <summary>The length of the first field longer than <paramref name="maxLength"/>, or -1.</summary>
+        private static int FindFieldLongerThan(IReadOnlyList<string> fields, int maxLength)
+        {
+            for (int index = 0; index < fields.Count; index++)
+            {
+                if (fields[index].Length > maxLength)
+                {
+                    return fields[index].Length;
+                }
+            }
+
+            return -1;
         }
 
         private int GetCurrentPhysicalEndLineNumber(
@@ -465,6 +514,20 @@ internal static partial class CsvParser
                 _lengths[index] = -1;
                 _materialized[index] = null;
             }
+        }
+
+        /// <summary>The length of the first of the record's fields longer than <paramref name="maxLength"/>, or -1.</summary>
+        internal readonly int FindFieldLongerThan(int fieldCount, int maxLength)
+        {
+            for (int index = 0; index < fieldCount; index++)
+            {
+                if (_lengths[index] > maxLength)
+                {
+                    return _lengths[index];
+                }
+            }
+
+            return -1;
         }
 
         internal ReadOnlySpan<char> GetSpan(int ordinal)

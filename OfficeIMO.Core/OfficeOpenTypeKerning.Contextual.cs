@@ -11,8 +11,9 @@ internal sealed partial class OfficeOpenTypeKerning {
             if (count > MaximumRecords) throw new InvalidDataException("GPOS subtable limit exceeded.");
             Ensure(lookup + 6, checked(count * 2));
             int markSet = (flags & 0x10) != 0 ? U16(lookup + 6 + count * 2) : 0;
-            if (!_filter.SupportsFlags(flags, markSet)) throw new InvalidDataException("Unsupported GPOS glyph filtering.");
-            if (_filter.IsIgnored(_tokens[index], flags, markSet, _budget.Charge)) return false;
+            // A nested lookup acts on the glyph its context selected, as in the reference shaper;
+            // only the top-level pass filters the current glyph by the lookup's own flags.
+            if (depth == 0 && _filter.IsIgnored(_tokens[index], flags, markSet, _budget.Charge)) return false;
             for (int subtableIndex = 0; subtableIndex < count; subtableIndex++) {
                 _budget.Charge();
                 int subtable = Relative(lookup, U16(lookup + 6 + subtableIndex * 2), 2);
@@ -32,8 +33,16 @@ internal sealed partial class OfficeOpenTypeKerning {
                     case 2:
                         matched = ApplyPair(subtable, index, inputEnd, flags, markSet, out next);
                         break;
+                    case 3:
+                        matched = ApplyCursive(subtable, index, flags, markSet);
+                        break;
+                    case 7:
+                        matched = ApplyContextRule(subtable, index, inputEnd, flags, markSet, depth, chained: false, out next);
+                        break;
                     case 8:
-                        matched = ApplyChainedContext(subtable, index, inputEnd, flags, markSet, depth, out next);
+                        matched = U16(subtable) == 3
+                            ? ApplyChainedContext(subtable, index, inputEnd, flags, markSet, depth, out next)
+                            : ApplyContextRule(subtable, index, inputEnd, flags, markSet, depth, chained: true, out next);
                         break;
                     default:
                         throw new InvalidDataException("Unsupported active GPOS kern lookup.");
@@ -131,6 +140,45 @@ internal sealed partial class OfficeOpenTypeKerning {
             next = inputs[inputCount - 1] + 1;
             return true;
         }
+
+        private bool ApplyContextRule(int subtable, int index, int inputEnd, ushort flags, int markSet, int depth,
+            bool chained, out int next) {
+            next = index + 1;
+            string script = _scripts[index];
+            var inputs = new List<int> { index };
+            int InputAt(int k) {
+                while (inputs.Count <= k) {
+                    int following = NextIncluded(inputs[inputs.Count - 1], 1, flags, markSet, script, inputEnd);
+                    if (following < 0) return -1;
+                    inputs.Add(following);
+                }
+                return inputs[k];
+            }
+            int Walk(int from, int step, int k) {
+                int candidate = from;
+                for (int offset = 0; offset <= k && candidate >= 0; offset++)
+                    candidate = NextIncluded(candidate, step, flags, markSet, script, _tokens.Count - 1);
+                return candidate;
+            }
+            int GlyphAt(int position) => position < 0 ? -1 : _tokens[position].GlyphId;
+            var rules = new OfficeOpenTypeContextRules(U16Value, Coverage, _budget.Charge);
+            if (!rules.TryMatch(subtable, chained, k => GlyphAt(InputAt(k)), k => GlyphAt(Walk(index, -1, k)),
+                (inputCount, k) => GlyphAt(Walk(InputAt(inputCount - 1), 1, k)), out OfficeOpenTypeContextRules.Match match)) return false;
+            if (match.RecordCount > MaximumRecords) throw new InvalidDataException("GPOS contextual record limit exceeded.");
+            Ensure(match.Records, checked(match.RecordCount * 4));
+            int last = InputAt(match.InputCount - 1);
+            for (int offset = 0; offset < match.RecordCount; offset++) {
+                _budget.Charge();
+                int record = match.Records + offset * 4, sequenceIndex = U16(record), nestedLookup = U16(record + 2);
+                if (sequenceIndex >= match.InputCount || nestedLookup >= U16(_lookupList))
+                    throw new InvalidDataException("Invalid GPOS contextual positioning record.");
+                ApplyLookup((ushort)nestedLookup, InputAt(sequenceIndex), last, depth + 1, out _);
+            }
+            next = last + 1;
+            return true;
+        }
+
+        private int U16Value(int offset) => U16(offset);
 
         private int NextIncluded(int index, int step, ushort flags, int markSet, string script, int inputEnd) {
             for (int next = index + step; next >= 0 && next <= inputEnd; next += step) {

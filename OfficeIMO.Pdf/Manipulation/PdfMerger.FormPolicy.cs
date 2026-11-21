@@ -333,12 +333,16 @@ internal static partial class PdfMerger {
             : string.IsNullOrEmpty(partialName) ? parentName : parentName + "." + partialName;
         var fieldChildren = new List<PdfReference>();
         var widgets = new List<int>();
+        string? fieldType = (ResolveObject(objects, field.Items.TryGetValue("FT", out PdfObject? fieldTypeObject) ? fieldTypeObject : null) as PdfName)?.Name;
         if (field.Items.TryGetValue("Kids", out PdfObject? kidsObject) && ResolveObject(objects, kidsObject) is PdfArray kids) {
             foreach (PdfObject kidObject in kids.Items) {
                 if (kidObject is not PdfReference kidReference || ResolveDictionary(objects, kidReference) is not PdfDictionary kid) continue;
+                // A nameless widget kid is a widget of this field. Some producers repeat the parent's /FT on
+                // each widget; only a different type would make the kid a separately typed field.
                 bool pureWidget = kid.Get<PdfName>("Subtype")?.Name == "Widget" &&
                     !kid.Items.ContainsKey("T") &&
-                    !kid.Items.ContainsKey("FT") &&
+                    (!kid.Items.TryGetValue("FT", out PdfObject? kidTypeObject) ||
+                        fieldType is not null && (ResolveObject(objects, kidTypeObject) as PdfName)?.Name == fieldType) &&
                     !kid.Items.ContainsKey("Kids");
                 if (pureWidget) widgets.Add(kidReference.ObjectNumber); else fieldChildren.Add(kidReference);
             }

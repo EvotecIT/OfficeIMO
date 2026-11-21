@@ -47,7 +47,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private readonly string?[] _strings;
         private readonly object?[] _customValues;
         private readonly int _firstColumn;
-        private readonly int _lastDataRow;
+        // Grows while a single-pass reader learns of later data rows.
+        private int _lastDataRow;
         private readonly CancellationToken _cancellationToken;
         private CancellationToken _activeReadCancellationToken;
         private readonly XlsbLogicalRowReadBudget _logicalRowBudget;
@@ -99,7 +100,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             XlsbCellReadBudget cellBudget,
             XlsbLogicalRowReadBudget logicalRowBudget,
             CancellationToken cancellationToken,
-            XlsbWorksheetDiscovery? prevalidated = null) {
+            XlsbWorksheetDiscovery? prevalidated = null,
+            XlsbSinglePassGate? singlePass = null) {
             _sharedStrings = sharedStrings ?? throw new ArgumentNullException(nameof(sharedStrings));
             _dateStyles = dateStyles ?? throw new ArgumentNullException(nameof(dateStyles));
             _uses1904DateSystem = uses1904DateSystem;
@@ -118,12 +120,22 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             int actualLastDataRow = -1;
             try {
                 AcquireSharedStringReference();
-                if (prevalidated is XlsbWorksheetDiscovery discovery) {
+                if (singlePass != null) {
+                    // Validation continues; rows are returned once it has proved them. The header row
+                    // fixed the columns, so the schema equals the default reader's unless a later cell
+                    // falls outside it, which the reader reports when it reaches that row.
+                    _gate = singlePass;
+                    actualFirstColumn = singlePass.HeaderFirstColumn;
+                    actualLastColumn = singlePass.HeaderLastColumn;
+                    actualFirstDataRow = singlePass.FirstDataRow;
+                    actualLastDataRow = singlePass.LastDataRow;
+                } else if (prevalidated is XlsbWorksheetDiscovery discovery) {
                     actualFirstColumn = discovery.FirstColumn;
                     actualLastColumn = discovery.LastColumn;
                     actualFirstDataRow = discovery.FirstDataRow;
                     actualLastDataRow = discovery.LastDataRow;
                     _validatedRowPlan = discovery.RowPlan;
+                    _inlineTextFreeOfSurrogates = discovery.InlineTextFreeOfSurrogates;
                 } else DiscoverDataColumns(
                     worksheetPart,
                     limits,
@@ -138,8 +150,10 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     out actualLastColumn,
                     out actualFirstDataRow,
                     out actualLastDataRow,
-                    out _validatedRowPlan);
+                    out _validatedRowPlan,
+                    out _inlineTextFreeOfSurrogates);
             } catch {
+                singlePass?.StopAndJoin();
                 worksheetPart.Dispose();
                 ReleaseSharedStringReference();
                 throw;
@@ -147,11 +161,12 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
             // Discovery validates the complete immutable worksheet before the reader is exposed.
             // The delivery pass can therefore decode it without repeating those same checks.
+            // A single-pass reader decodes only the prefix validation has proved so far.
             var records = new XlsbRecordSliceReader(
                 worksheetPart.Buffer,
                 limits.MaxRecordBytes,
                 recordBudget ?? throw new ArgumentNullException(nameof(recordBudget)),
-                worksheetPart.DataLength,
+                singlePass?.ValidatedLength ?? worksheetPart.DataLength,
                 consumeRecordBudget: false);
             _records = records;
             _worksheetPart = worksheetPart;
@@ -176,12 +191,15 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 }
 
                 _hasRows = _hasPendingRow;
-                int headerFirstColumn = headerValues != null && headerValues.Count > 0
-                    ? headerValues.Keys.Min()
-                    : int.MaxValue;
-                int headerLastColumn = headerValues != null && headerValues.Count > 0
-                    ? headerValues.Keys.Max()
-                    : -1;
+                // A plain loop: LINQ Min and Max over the keys cost a cold read milliseconds of JIT time.
+                int headerFirstColumn = int.MaxValue;
+                int headerLastColumn = -1;
+                if (headerValues != null) {
+                    foreach (int column in headerValues.Keys) {
+                        if (column < headerFirstColumn) headerFirstColumn = column;
+                        if (column > headerLastColumn) headerLastColumn = column;
+                    }
+                }
                 int firstColumn = dimensionLastColumn >= dimensionFirstColumn
                     ? dimensionFirstColumn
                     : int.MaxValue;
@@ -206,7 +224,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     ? checked(lastColumn - firstColumn + 1)
                     : headerValues == null || headerValues.Count == 0
                         ? 0
-                        : checked(headerValues.Keys.Max() - firstColumn + 1);
+                        : checked(headerLastColumn - firstColumn + 1);
                 if (fieldCount > _options.MaxDataReaderColumns) {
                     throw new InvalidDataException(
                         $"XLSB table column count {fieldCount} exceeds the configured limit of {_options.MaxDataReaderColumns}.");
@@ -235,6 +253,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     ? BufferSchemaRows()
                     : null;
             } catch {
+                singlePass?.StopAndJoin();
                 worksheetPart.Dispose();
                 ReleaseSharedStringReference();
                 throw;
@@ -255,7 +274,12 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
         public override int RecordsAffected => -1;
 
-        public override bool Read() => ReadCore(_cancellationToken);
+        public override bool Read() {
+            ThrowIfClosed();
+            _cancellationToken.ThrowIfCancellationRequested();
+            // Between calls the active token is always the reader's own, so nothing needs restoring.
+            return ReadNext();
+        }
 
         public override Task<bool> ReadAsync(CancellationToken cancellationToken) {
             try {
@@ -273,25 +297,31 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             cancellationToken.ThrowIfCancellationRequested();
             _activeReadCancellationToken = cancellationToken;
             try {
-                _hasCurrentRow = false;
-                if (_schemaRows != null && _schemaRowIndex < _schemaRows.Count) {
-                    LoadBufferedRow(_schemaRows[_schemaRowIndex++]);
-                    _hasCurrentRow = true;
-                    return true;
-                }
-
-                bool result = ReadSourceRow();
-                ThrowIfReadCancellationRequested();
-                return result;
+                return ReadNext();
             } finally {
                 _activeReadCancellationToken = _cancellationToken;
             }
         }
 
+        private bool ReadNext() {
+            _hasCurrentRow = false;
+            if (_schemaRows != null && _schemaRowIndex < _schemaRows.Count) {
+                LoadBufferedRow(_schemaRows[_schemaRowIndex++]);
+                _hasCurrentRow = true;
+                return true;
+            }
+
+            bool result = ReadSourceRow();
+            ThrowIfReadCancellationRequested();
+            return result;
+        }
+
         private bool ReadSourceRow() {
-            ResetUtf8TextState();
+            ResetRowState();
             if (!_hasPendingRow) {
                 if (_reachedEndSheetData) {
+                    // Checks after the last row, such as the closing sheet records, finish here.
+                    _gate?.WaitForCompletion(_activeReadCancellationToken);
                     return false;
                 }
 
@@ -299,9 +329,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     "The XLSB worksheet ended before the required BrtEndSheetData record.");
             }
 
-            // Typed span clears avoid the general Array.Clear dispatch on every row.
-            _kinds.AsSpan().Clear();
-            _strings.AsSpan().Clear();
+            // Single-pass reading proves the pending row before it or the blank rows ahead of it are returned.
+            if (_gate != null) PrepareStreamedRow(_pendingRowIndex);
             if (_options.CellValueConverter != null) {
                 _customValues.AsSpan().Clear();
             }
@@ -316,7 +345,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             _logicalRowBudget.Consume();
             _hasPendingRow = false;
             bool reachedRowBoundary = _options.CellValueConverter == null
-                ? TryReadValidatedRowPlan(currentRowIndex) || ReadCurrentRowRecordsFast()
+                ? _validatedRowPlan != null && TryReadValidatedRowPlan(currentRowIndex) || ReadCurrentRowRecordsFast()
                 : ReadCurrentRowRecordsConverted();
 
             if (!reachedRowBoundary) {
@@ -343,6 +372,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
             _closed = true;
             ReleaseUtf8TextState();
+            // Background validation and inflation still use the worksheet buffer until joined.
+            _gate?.StopAndJoin();
             _worksheetPart.Dispose();
             ReleaseSharedStringReference();
             _schemaRows?.Clear();
@@ -364,7 +395,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             lastColumn = -1;
             bool inSheetData = false;
             bool sawDimension = false;
-            while (_records.TryReadValidated(out XlsbRecordSlice record)) {
+            while (TryReadRecord(out XlsbRecordSlice record)) {
                 CheckCancellation();
                 if (record.Type == BrtWsDim) {
                     if (sawDimension) {
@@ -401,7 +432,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private Dictionary<int, string?> ReadHeaderRow() {
             var values = new Dictionary<int, string?>();
             _hasPendingRow = false;
-            while (_records.TryReadValidated(out XlsbRecordSlice record)) {
+            while (TryReadRecord(out XlsbRecordSlice record)) {
                 CheckCancellation();
                 if (record.Type == BrtRowHdr) {
                     if (TrySetPendingRow(record)) {
@@ -537,11 +568,12 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             return ApplyCellValueConverter(cell, styleIndex, record.Type);
         }
 
-        private static XlsbTabularValueKind NumericKind(ExcelSerialDateStyle style) => style switch {
-            ExcelSerialDateStyle.Calendar => XlsbTabularValueKind.Date,
-            ExcelSerialDateStyle.Time => XlsbTabularValueKind.Time,
-            _ => XlsbTabularValueKind.Number
-        };
+        // Runs for every numeric cell; a switch here was compiled as a separate call.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static XlsbTabularValueKind NumericKind(ExcelSerialDateStyle style) =>
+            style == ExcelSerialDateStyle.Calendar ? XlsbTabularValueKind.Date
+            : style == ExcelSerialDateStyle.Time ? XlsbTabularValueKind.Time
+            : XlsbTabularValueKind.Number;
 
         private static DecodedCell NumericCell(int column, double number, ExcelSerialDateStyle dateStyle) =>
             new(column, NumericKind(dateStyle)) {
@@ -551,9 +583,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private string? CellToHeaderText(DecodedCell cell) =>
             cell.Kind switch {
                 XlsbTabularValueKind.Text or XlsbTabularValueKind.Error => cell.Text,
-                XlsbTabularValueKind.Number => cell.Number.ToString("R", _options.Culture),
+                XlsbTabularValueKind.Number => OfficeIMO.Core.Internal.OfficeRoundTripText.Format(cell.Number, _options.Culture),
                 XlsbTabularValueKind.Boolean => cell.Boolean.ToString(),
-                XlsbTabularValueKind.Date or XlsbTabularValueKind.Time => ConvertDate(cell.Number, cell.Kind == XlsbTabularValueKind.Date).ToString(_options.Culture),
+                XlsbTabularValueKind.Date or XlsbTabularValueKind.Time => FormatDateOrSerial(cell.Number, cell.Kind == XlsbTabularValueKind.Date),
                 XlsbTabularValueKind.Custom => Convert.ToString(cell.CustomValue, _options.Culture),
                 _ => null
             };
@@ -563,10 +595,17 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             uint styleIndex,
             int recordType) {
             Func<ExcelCellContext, ExcelCellValue>? converter = _options.CellValueConverter;
-            if (converter == null) {
-                return cell;
-            }
+            return converter == null ? cell : ConvertCell(converter, cell, styleIndex, recordType);
+        }
 
+        // The Open XML type hint stays out of the per-cell path, so a read without a converter does not
+        // load the Open XML SDK.
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private DecodedCell ConvertCell(
+            Func<ExcelCellContext, ExcelCellValue> converter,
+            DecodedCell cell,
+            uint styleIndex,
+            int recordType) {
             CellValues? typeHint = cell.Kind switch {
                 XlsbTabularValueKind.Number or XlsbTabularValueKind.Date or XlsbTabularValueKind.Time => CellValues.Number,
                 XlsbTabularValueKind.Boolean => CellValues.Boolean,
@@ -577,7 +616,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             };
             string? rawText = cell.RawText ?? cell.Kind switch {
                 XlsbTabularValueKind.Number or XlsbTabularValueKind.Date or XlsbTabularValueKind.Time =>
-                    cell.Number.ToString("R", CultureInfo.InvariantCulture),
+                    InvariantNumberText.GetExact(cell.Number),
                 XlsbTabularValueKind.Boolean => cell.Boolean ? "1" : "0",
                 XlsbTabularValueKind.Text or XlsbTabularValueKind.Error => cell.Text,
                 _ => null
@@ -600,6 +639,15 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 : cell;
         }
 
+        /// <summary>Returns the date, or the serial number when no date represents it (Excel shows ####).</summary>
+        private object ConvertDateOrSerial(double serial, bool calendarStyle) =>
+            LegacyXlsDateSerialConverter.TryConvert(serial, _uses1904DateSystem, out DateTime value, calendarStyle) ? value : serial;
+
+        private string FormatDateOrSerial(double serial, bool calendarStyle) =>
+            LegacyXlsDateSerialConverter.TryConvert(serial, _uses1904DateSystem, out DateTime value, calendarStyle)
+                ? value.ToString(_options.Culture)
+                : OfficeIMO.Core.Internal.OfficeRoundTripText.Format(serial, _options.Culture);
+
         private DateTime ConvertDate(double serial, bool calendarStyle) {
             if (LegacyXlsDateSerialConverter.TryConvert(serial, _uses1904DateSystem, out DateTime value, calendarStyle)) {
                 return value;
@@ -615,7 +663,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             }
 
             try {
-                value = (decimal)number;
+                value = OfficeDecimalConversion.FromDouble(number);
                 return true;
             } catch (OverflowException) {
                 value = default;
@@ -640,7 +688,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
         private bool TrySetPendingRow(XlsbRecordSlice record) {
             int rowIndex = ReadValidatedRowIndex(record);
-            if (rowIndex > _lastDataRow) {
+            if (rowIndex > _lastDataRow && !IncludesStreamedRow(rowIndex)) {
                 return false;
             }
 
@@ -787,7 +835,11 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                         ? typeof(decimal)
                         : typeof(double),
                 XlsbTabularValueKind.Boolean => typeof(bool),
-                XlsbTabularValueKind.Date or XlsbTabularValueKind.Time => typeof(DateTime),
+                // A serial without a calendar date reads as its number, so it is sampled as one.
+                XlsbTabularValueKind.Date or XlsbTabularValueKind.Time => LegacyXlsDateSerialConverter.CanConvert(
+                    _numbers[ordinal], _uses1904DateSystem, _kinds[ordinal] == XlsbTabularValueKind.Date)
+                        ? typeof(DateTime)
+                        : typeof(double),
                 XlsbTabularValueKind.Custom => IsMissingCustomValue(_customValues[ordinal])
                     ? typeof(object)
                     : _customValues[ordinal]!.GetType(),

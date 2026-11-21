@@ -44,7 +44,7 @@ public sealed partial class OfficeWorkflowRunner {
             using var output = new OfficeWorkflowBoundedMemoryStream(request.Limits.MaximumOutputBytes);
             WordFileFormat format = string.Equals(outputExtension, ".doc", StringComparison.OrdinalIgnoreCase)
                 ? WordFileFormat.Doc : WordFileFormat.Docx;
-            word.SaveAsync(output, new WordSaveOptions { Format = format, SignedDocumentPolicy = options.SignedDocumentPolicy }, token).GetAwaiter().GetResult();
+            word.SaveAsync(output, new WordSaveOptions { Format = format, SignatureMutationPolicy = options.SignatureMutationPolicy }, token).GetAwaiter().GetResult();
             bytes = output.ToArray();
         }
         return new OperationArtifact(bytes, summary, null, ConversionEvidence: evidence);

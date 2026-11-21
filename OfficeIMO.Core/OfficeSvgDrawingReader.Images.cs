@@ -63,7 +63,7 @@ public static partial class OfficeSvgDrawingReader {
         if (!contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase)
             || !ContainsBase64DataUriToken(metadata)) return false;
         try {
-            bytes = Convert.FromBase64String(href.Substring(comma + 1));
+            bytes = OfficeIMO.Core.Internal.OfficeBase64.FromBase64String(href, comma + 1);
         } catch (FormatException) {
             return false;
         }

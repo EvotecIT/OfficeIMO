@@ -6,22 +6,31 @@ namespace OfficeIMO.Markdown;
 internal static partial class MarkdownReader {
     private static List<IMarkdownBlock> ParseBlocksFromLines(string[] lines, MarkdownLoadOptions options, MarkdownReaderState state, List<MarkdownSyntaxNode>? syntaxNodes = null, int lineOffset = 0) {
         var doc = MarkdownDocument.Create();
-        var opt = CloneOptionsWithoutFrontMatter(options);
-        var pipeline = MarkdownReaderPipeline.Default(opt);
+        var opt = GetSharedOptionsWithoutFrontMatter(options, state);
+        var pipeline = GetPipeline(opt, state);
         int previousLineOffset = state.SourceLineOffset;
         bool previousSyntheticTerminalLine = state.HasSyntheticTerminalLine;
         state.SourceLineOffset = lineOffset;
         state.HasSyntheticTerminalLine = false;
 
+        // The blocks move to their container, which binds them with the rest of the document;
+        // binding this temporary document after every added block made the parse quadratic.
+        using var objectTreeBindingDeferral = doc.DeferObjectTreeBinding(completeBindingOnDispose: false);
         try {
             int i = 0;
             while (i < lines.Length) {
                 if (string.IsNullOrWhiteSpace(lines[i])) { i++; continue; }
                 bool matched = false;
                 var parsers = pipeline.Parsers;
+                var blockStarts = pipeline.BlockStarts;
+                char first = GetFirstNonWhiteSpaceCharacter(lines[i]);
                 int previousBlockCount = doc.Blocks.Count;
                 int startLine = lineOffset + i;
                 for (int p = 0; p < parsers.Count; p++) {
+                    if (!MayStartBlock(blockStarts[p], lines, i, first, opt)) {
+                        continue;
+                    }
+
                     if (parsers[p].TryParse(lines, ref i, opt, doc, state)) {
                         matched = true;
                         if (syntaxNodes != null && doc.Blocks.Count > previousBlockCount) {
@@ -29,6 +38,9 @@ internal static partial class MarkdownReader {
                         }
                         break;
                     }
+
+                    // A parser that declines may still have rewritten the line.
+                    first = i < lines.Length ? GetFirstNonWhiteSpaceCharacter(lines[i]) : '\0';
                 }
                 if (!matched) i++;
             }

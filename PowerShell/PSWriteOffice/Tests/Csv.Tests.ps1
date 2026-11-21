@@ -1,4 +1,4 @@
-﻿BeforeAll {
+BeforeAll {
     $ModuleManifest = if ($env:PSWRITEOFFICE_MODULE_MANIFEST) {
         $env:PSWRITEOFFICE_MODULE_MANIFEST
     } else {
@@ -41,6 +41,45 @@ Describe 'CSV cmdlets' {
         $data = Import-OfficeCsv -Path $path
         $data.Count | Should -Be 2
         $data[0].Region | Should -Be 'NA'
+    }
+
+    It 'reads ConvertTo-OfficeCsv output back with ConvertFrom-OfficeCsv' {
+        $rows = @(
+            [pscustomobject]@{ Name = 'Alpha'; Note = "one`ntwo" }
+            [pscustomobject]@{ Name = 'Beta'; Note = 'plain' }
+        )
+
+        $back = @($rows | ConvertTo-OfficeCsv | ConvertFrom-OfficeCsv)
+        $back.Count | Should -Be 2
+        $back[0].Name | Should -Be 'Alpha'
+        $back[0].Note | Should -Be "one`ntwo"
+        $back[1].Note | Should -Be 'plain'
+
+        $table = "Name;Total`nAlpha;10" | ConvertFrom-OfficeCsv -Delimiter ';' -As Hashtable
+        $table | Should -BeOfType [System.Collections.IDictionary]
+        $table['Total'] | Should -Be '10'
+    }
+
+    It 'applies the Import-OfficeCsv parsing options and output shapes to CSV text' {
+        $lines = @('# exported', 'Name|Total', 'Alpha|10', 'Beta|7')
+
+        $detected = @($lines | ConvertFrom-OfficeCsv -DetectDelimiter -SkipCommentRows)
+        $detected.Name | Should -Be @('Alpha', 'Beta')
+
+        $table = $lines | ConvertFrom-OfficeCsv -Delimiter '|' -As DataTable -InferSchema
+        $table.GetType() | Should -Be ([System.Data.DataTable])
+        $table.Rows.Count | Should -Be 2
+        $table.Columns['Total'].DataType | Should -Be ([int])
+
+        $culture = [System.Globalization.CultureInfo]::GetCultureInfo('de-DE')
+        ("A;B`n1;2" | ConvertFrom-OfficeCsv -UseCulture -Culture $culture).B | Should -Be '2'
+        @('Alpha,10' | ConvertFrom-OfficeCsv -Header Name, Total).Total | Should -Be '10'
+        { 'a,b' | ConvertFrom-OfficeCsv -Delimiter '' } | Should -Throw '*Delimiter cannot be empty*'
+    }
+
+    It 'accepts common parameters with ConvertFrom-OfficeCsv' {
+        ("Name,Total`nAlpha,10" | ConvertFrom-OfficeCsv -ErrorAction Stop).Total | Should -Be '10'
+        ("Name,Total`nAlpha,10" | ConvertFrom-OfficeCsv -Verbose 4>$null).Name | Should -Be 'Alpha'
     }
 
     It 'imports quoted multiline and padded fields as row objects' {
@@ -1698,12 +1737,40 @@ Describe 'CSV cmdlets' {
     }
 
     It 'keeps quoted embedded newlines inside one ConvertTo-OfficeCsv record object' {
-        $csvLines = @([pscustomobject]@{ Name = 'Alpha'; Note = "one`ntwo" } | ConvertTo-OfficeCsv)
+        $rows = @(
+            [pscustomobject]@{ Name = 'Alpha'; Note = "one`ntwo" }
+            [pscustomobject]@{ Name = 'Beta'; Note = "three`r`n`"four`"" }
+        )
 
-        $csvLines.Count | Should -Be 2
+        $csvLines = @($rows | ConvertTo-OfficeCsv)
+
+        $csvLines.Count | Should -Be 3
         $csvLines[0] | Should -Be 'Name,Note'
         $csvLines[1] | Should -Be "Alpha,`"one`ntwo`""
-        @(Import-OfficeCsv -Text ($csvLines -join "`n"))[0].Note | Should -Be "one`ntwo"
+        $csvLines[2] | Should -Be "Beta,`"three`r`n`"`"four`"`"`""
+        $parsed = @(Import-OfficeCsv -Text ($csvLines -join "`n"))
+        $parsed[0].Note | Should -Be "one`ntwo"
+        $parsed[1].Note | Should -Be "three`r`n`"four`""
+    }
+
+    It 'keeps one ConvertTo-OfficeCsv record per DataTable row when the text spans many output chunks' {
+        $table = [System.Data.DataTable]::new()
+        [void]$table.Columns.Add('Id', [int])
+        [void]$table.Columns.Add('Note', [string])
+        for ($i = 0; $i -lt 3000; $i++) {
+            $note = if ($i % 3 -eq 0) { "line $i`r`nnext, `"quoted`"" } else { "plain $i" }
+            [void]$table.Rows.Add($i, $note)
+        }
+
+        $csvLines = @(ConvertTo-OfficeCsv -InputObject $table)
+
+        $csvLines.Count | Should -Be 3001
+        $rows = @(Import-OfficeCsv -Text ($csvLines -join "`r`n"))
+        $rows.Count | Should -Be 3000
+        for ($i = 0; $i -lt 3000; $i++) {
+            $rows[$i].Id | Should -Be ([string]$i)
+            $rows[$i].Note | Should -Be $table.Rows[$i]['Note']
+        }
     }
 
     It 'keeps separate records when unquoted values contain quote characters' {
@@ -1809,5 +1876,112 @@ namespace PSWriteOffice.Tests {
         ($csvText -join "`n") | Should -Not -Match 'Name'
         $csvText | Should -Contain 'Alpha,1'
         (Get-Content -LiteralPath $path -Raw) | Should -Not -Match 'Name'
+    }
+}
+
+Describe 'CSV lossless round trip' {
+    BeforeAll {
+        $script:When = ([datetime]::new(2024, 2, 29, 13, 14, 15, [DateTimeKind]::Unspecified)).AddTicks(1234567)
+        $script:Offset = ([DateTimeOffset]::new(2024, 6, 1, 8, 30, 0, [TimeSpan]::FromMinutes(345))).AddTicks(1000001)
+        $script:ColumnTypes = [ordered]@{
+            When   = [datetime]
+            Offset = [DateTimeOffset]
+            Pi     = [double]
+            Max    = [double]
+            Single = [single]
+            Wide   = [decimal]
+            Bytes  = [byte[]]
+            Text   = [string]
+        }
+        $script:Values = [ordered]@{
+            When   = $script:When
+            Offset = $script:Offset
+            Pi     = [math]::PI
+            Max    = [double]::MaxValue
+            Single = [single]0.1
+            Wide   = [decimal]::MaxValue
+            Bytes  = [byte[]](0, 1, 44, 34, 250, 255)
+            Text   = 'a, "quoted"'
+        }
+
+        function script:Invoke-WithCulture {
+            param([string] $Name, [scriptblock] $ScriptBlock)
+            $thread = [System.Threading.Thread]::CurrentThread
+            $original = $thread.CurrentCulture
+            $thread.CurrentCulture = [System.Globalization.CultureInfo]::new($Name)
+            try { & $ScriptBlock } finally { $thread.CurrentCulture = $original }
+        }
+    }
+
+    It 'reads back every <Route> value exactly with the default options under pl-PL' -ForEach @(
+        @{ Route = 'DataTable' }
+        @{ Route = 'Objects' }
+    ) {
+        $path = Join-Path $TestDrive "lossless-$Route.csv"
+        $imported = Invoke-WithCulture 'pl-PL' {
+            $table = [System.Data.DataTable]::new()
+            foreach ($name in $script:ColumnTypes.Keys) { [void] $table.Columns.Add($name, $script:ColumnTypes[$name]) }
+            $row = $table.NewRow()
+            foreach ($name in $script:Values.Keys) { $row[$name] = $script:Values[$name] }
+            $table.Rows.Add($row)
+            $nullRow = $table.NewRow()
+            $nullRow['Text'] = ''
+            $table.Rows.Add($nullRow)
+
+            if ($Route -eq 'DataTable') {
+                Export-OfficeCsv -InputObject $table -Path $path -NullValue '\N'
+            } else {
+                @(
+                    [pscustomobject] $script:Values
+                    [pscustomobject] @{ When = $null; Offset = $null; Pi = $null; Max = $null; Single = $null; Wide = $null; Bytes = $null; Text = '' }
+                ) | Export-OfficeCsv -Path $path -NullValue '\N'
+            }
+
+            , (Import-OfficeCsv -Path $path -NullValue '\N' -ColumnType $script:ColumnTypes -As DataTable)
+        }
+
+        $read = $imported.Rows
+
+        $read.Count | Should -Be 2
+        foreach ($name in $script:Values.Keys) {
+            if ($name -eq 'Bytes') {
+                [Convert]::ToBase64String($read[0].Bytes) | Should -Be ([Convert]::ToBase64String($script:Values.Bytes))
+            } else {
+                $read[0].$name | Should -Be $script:Values[$name] -Because $name
+            }
+        }
+
+        $read[0].Offset.Offset | Should -Be $script:Offset.Offset
+        $read[1].Text | Should -BeExactly ''
+        foreach ($name in @($script:Values.Keys | Where-Object { $_ -ne 'Text' })) {
+            $read[1].$name | Should -Be ([DBNull]::Value) -Because $name
+        }
+    }
+
+    It 'writes ISO 8601 dates and shortest round-trip numbers by default' {
+        $lines = Invoke-WithCulture 'pl-PL' {
+            @([pscustomobject] @{ When = $script:When; Offset = $script:Offset; Number = 0.1 + 0.2 } | ConvertTo-OfficeCsv)
+        }
+
+        $lines[1] | Should -BeExactly '2024-02-29T13:14:15.1234567,2024-06-01T08:30:00.1000001+05:45,0.30000000000000004'
+    }
+
+    It 'round-trips text holding quotes with -QuoteCharacter <Quote> and -EscapeCharacter <Escape>' -ForEach @(
+        @{ Quote = "'"; Escape = $null; Expected = "'it''s'" }
+        @{ Quote = '"'; Escape = '\'; Expected = '"say \"hi\""' }
+        @{ Quote = "'"; Escape = '\'; Expected = "'it\'s'" }
+    ) {
+        $values = @("it's", 'say "hi"', 'back\slash', 'a,b', "line`r`nbreak")
+        $rows = $values | ForEach-Object { [pscustomobject] @{ Value = $_ } }
+        $quoting = @{ QuoteCharacter = $Quote }
+        if ($Escape) { $quoting.EscapeCharacter = $Escape }
+
+        $lines = @($rows | ConvertTo-OfficeCsv @quoting)
+        $lines | Should -Contain $Expected
+
+        $path = Join-Path $TestDrive 'quoted.csv'
+        $rows | Export-OfficeCsv -Path $path @quoting
+        @(Import-OfficeCsv -Path $path @quoting).Value | Should -Be $values
+        @($lines | ConvertFrom-OfficeCsv @quoting).Value | Should -Be $values
     }
 }

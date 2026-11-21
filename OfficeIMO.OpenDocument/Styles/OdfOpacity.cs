@@ -23,7 +23,7 @@ internal static class OdfOpacity {
         Validate(value);
         if (!value.HasValue) return null;
         if (value.Value == 0) return "0%";
-        string percent = (value.Value * 100D).ToString("R", CultureInfo.InvariantCulture);
+        string percent = OfficeIMO.Core.Internal.OfficeRoundTripText.Format((value.Value * 100D), CultureInfo.InvariantCulture);
         int exponentIndex = percent.IndexOf('E');
         if (exponentIndex >= 0) {
             string mantissa = percent.Substring(0, exponentIndex);

@@ -22,12 +22,20 @@ internal static partial class MarkdownReader {
         MarkdownInlineSourceMap? sourceMap) =>
         ParseInlines(text ?? string.Empty, options ?? new MarkdownLoadOptions(), state, sourceMap);
 
+    private static readonly MarkdownInlineParserExtension[] MathOnlyInlineParserExtensions = {
+        new MarkdownInlineParserExtension("OfficeIMO.Math", TryParseMathInline)
+    };
+
     private static IReadOnlyList<MarkdownInlineParserExtension> BuildEffectiveInlineParserExtensions(MarkdownLoadOptions options) {
         if (options.InlineParserExtensions.Count == 0) {
-            return Array.Empty<MarkdownInlineParserExtension>();
+            return options.Math ? MathOnlyInlineParserExtensions : Array.Empty<MarkdownInlineParserExtension>();
         }
 
-        var active = new List<MarkdownInlineParserExtension>(options.InlineParserExtensions.Count);
+        var active = new List<MarkdownInlineParserExtension>(options.InlineParserExtensions.Count + 1);
+        if (options.Math) {
+            active.Add(MathOnlyInlineParserExtensions[0]);
+        }
+
         for (var i = 0; i < options.InlineParserExtensions.Count; i++) {
             var extension = options.InlineParserExtensions[i];
             if (extension != null && extension.AppliesTo(options)) {
@@ -139,5 +147,55 @@ internal static partial class MarkdownReader {
 
         result = default;
         return false;
+    }
+
+    /// <summary>
+    /// Parses <c>$...$</c> and <c>$$...$$</c> math. An opening single <c>$</c> must precede a non-space character;
+    /// the closing <c>$</c> must follow a non-space character and must not precede a digit.
+    /// </summary>
+    private static bool TryParseMathInline(MarkdownInlineParserContext context, out MarkdownInlineParseResult result) {
+        result = default;
+        string text = context.Text;
+        int start = context.Position;
+        if (start >= text.Length || text[start] != '$') return false;
+
+        if (start + 1 < text.Length && text[start + 1] == '$') {
+            int close = text.IndexOf("$$", start + 2, StringComparison.Ordinal);
+            if (close < 0) return false;
+            string display = text.Substring(start + 2, close - start - 2);
+            if (display.Trim().Length == 0) return false;
+            result = CreateMathResult(context, display, isDisplay: true, delimiterLength: 2, consumed: close + 2 - start);
+            return true;
+        }
+
+        if (start + 1 >= text.Length || char.IsWhiteSpace(text[start + 1])) return false;
+        for (int j = start + 1; j < text.Length; j++) {
+            char value = text[j];
+            if (value == '\\') {
+                j++;
+                continue;
+            }
+
+            if (value != '$') continue;
+            if (char.IsWhiteSpace(text[j - 1])) continue;
+            if (j + 1 < text.Length && char.IsDigit(text[j + 1])) continue;
+            string source = text.Substring(start + 1, j - start - 1);
+            result = CreateMathResult(context, source, isDisplay: false, delimiterLength: 1, consumed: j + 1 - start);
+            return true;
+        }
+
+        return false;
+    }
+
+    private static MarkdownInlineParseResult CreateMathResult(
+        MarkdownInlineParserContext context,
+        string source,
+        bool isDisplay,
+        int delimiterLength,
+        int consumed) {
+        var math = new MathInline(source, isDisplay) {
+            ContentSourceSpan = context.GetSourceSpan(delimiterLength, source.Length)
+        };
+        return new MarkdownInlineParseResult(math, consumed);
     }
 }

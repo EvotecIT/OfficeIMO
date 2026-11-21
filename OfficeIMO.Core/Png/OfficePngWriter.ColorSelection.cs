@@ -26,31 +26,115 @@ public static partial class OfficePngWriter {
         internal long MetadataBytes => Colors == null ? 0 : Colors.Length * 3L + 12 + (AlphaCount == 0 ? 0 : AlphaCount + 12);
     }
 
+    private const int GrayDepthOne = 1, GrayDepthTwo = 2, GrayDepthFour = 4;
+    // The gray depths each 8-bit sample can be stored at without loss.
+    private static readonly byte[] GrayDepthTable = CreateGrayDepthTable();
+
+    private static byte[] CreateGrayDepthTable() {
+        var table = new byte[256];
+        for (int value = 0; value < table.Length; value++) {
+            table[value] = (byte)((value == 0 || value == 255 ? GrayDepthOne : 0) |
+                (value % 85 == 0 ? GrayDepthTwo : 0) | (value % 17 == 0 ? GrayDepthFour : 0));
+        }
+        return table;
+    }
+
+    private static bool IsOpaque(byte[] rgba, int start, int end) {
+        int index = start;
+#if NET8_0_OR_GREATER
+        ReadOnlySpan<uint> pixels = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(rgba.AsSpan(start, end - start));
+        var alpha = BitConverter.IsLittleEndian ? new System.Numerics.Vector<uint>(0xFF000000U) : new System.Numerics.Vector<uint>(0x000000FFU);
+        int vectorEnd = pixels.Length - System.Numerics.Vector<uint>.Count, offset = 0;
+        for (; offset <= vectorEnd; offset += System.Numerics.Vector<uint>.Count) {
+            if (!System.Numerics.Vector.EqualsAll(new System.Numerics.Vector<uint>(pixels.Slice(offset)) & alpha, alpha)) return false;
+        }
+        index = start + offset * 4;
+#endif
+        for (; index < end; index += 4) if (rgba[index + 3] != 255) return false;
+        return true;
+    }
+
+#if NET8_0_OR_GREATER
+    /// <summary>Returns the byte offset of the first pixel in [index, end) that differs from <paramref name="pixel"/>, or end.</summary>
+    private static int SkipRepeatedPixels(byte[] rgba, int index, int end, uint pixel) {
+        ReadOnlySpan<uint> pixels = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(rgba.AsSpan(index, end - index));
+        int offset = pixels.IndexOfAnyExcept(pixel);
+        return offset < 0 ? end : index + offset * 4;
+    }
+#endif
+
+    /// <summary>Returns true when <paramref name="key"/> was already present; otherwise records it.</summary>
+    private static bool AddPaletteKey(uint[] keys, bool[] slots, uint key) {
+        int mask = keys.Length - 1;
+        int slot = (int)((key * 2654435761U) >> 23) & mask;
+        while (slots[slot]) {
+            if (keys[slot] == key) return true;
+            slot = (slot + 1) & mask;
+        }
+        slots[slot] = true;
+        keys[slot] = key;
+        return false;
+    }
+
     private static uint RgbaKey(byte[] pixels, int i) =>
         (uint)pixels[i] << 24 | (uint)pixels[i + 1] << 16 | (uint)pixels[i + 2] << 8 | pixels[i + 3];
 
     private static void EncodeAdaptiveRgba(int width, int height, byte[] rgba, Stream output,
         double? dpiX, double? dpiY, CancellationToken token,
         Action<OfficeRasterEncodingCheckpoint>? observer, bool requireRgbColorSpace, bool requireGrayColorSpace, OfficePngCompression compression, OfficeImageEncodingEffort effort) {
-        bool gray = true, opaque = true, one = true, two = true, four = true;
+        bool gray = true, opaque = true;
+        int grayDepths = GrayDepthOne | GrayDepthTwo | GrayDepthFour;
         Dictionary<uint, int>? palette = new Dictionary<uint, int>();
-        for (int i = 0; i < rgba.Length; i += 4) {
-            if ((i & 4095) == 0) {
-                observer?.Invoke(OfficeRasterEncodingCheckpoint.PngColorSelectionBlock);
-                token.ThrowIfCancellationRequested();
+        // Mirrors the palette keys in a small open-addressed table, so each color change costs one probe
+        // instead of a dictionary lookup. It never holds more than the palette's 256 colors.
+        var paletteKeys = new uint[512];
+        var paletteSlots = new bool[512];
+        uint lastKey = 0;
+        bool hasLastKey = false;
+#if NET8_0_OR_GREATER
+        uint lastPixel = 0;
+#endif
+        // Blocks keep the checkpoint after every 4096 bytes. Repeated colors skip the palette
+        // lookup, and once only opacity is undecided the remaining pixels are checked in bulk.
+        for (int block = 0; block < rgba.Length; block += 4096) {
+            observer?.Invoke(OfficeRasterEncodingCheckpoint.PngColorSelectionBlock);
+            token.ThrowIfCancellationRequested();
+            int end = Math.Min(rgba.Length, block + 4096);
+            if (palette == null && !gray) {
+                if (opaque) opaque = IsOpaque(rgba, block, end);
+                if (!opaque && observer == null) break;
+                continue;
             }
-            byte g = rgba[i];
-            gray &= g == rgba[i + 1] && g == rgba[i + 2];
-            opaque &= rgba[i + 3] == 255;
-            one &= g == 0 || g == 255; two &= g % 85 == 0; four &= g % 17 == 0;
-            if (palette != null) {
-                uint key = RgbaKey(rgba, i);
-                if (!palette.ContainsKey(key)) {
-                    if (palette.Count == 256) palette = null;
-                    else palette.Add(key, palette.Count);
+            for (int i = block; i < end; i += 4) {
+#if NET8_0_OR_GREATER
+                // A pixel equal to the previous one changes none of the gray, opacity or palette state,
+                // so runs of it (page backgrounds, solid fills) are skipped a vector at a time.
+                if (hasLastKey) {
+                    i = SkipRepeatedPixels(rgba, i, end, lastPixel);
+                    if (i >= end) break;
+                }
+                lastPixel = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<uint>(ref rgba[i]);
+#endif
+                byte g = rgba[i];
+                if (gray) {
+                    if (g == rgba[i + 1] && g == rgba[i + 2]) grayDepths &= GrayDepthTable[g];
+                    else gray = false;
+                }
+                opaque &= rgba[i + 3] == 255;
+                if (palette != null) {
+                    uint key = RgbaKey(rgba, i);
+                    if (hasLastKey && key == lastKey) continue;
+                    if (!AddPaletteKey(paletteKeys, paletteSlots, key)) {
+                        if (palette.Count == 256) palette = null;
+                        else palette.Add(key, palette.Count);
+                    }
+                    lastKey = key;
+                    hasLastKey = true;
                 }
             }
         }
+        // Bit depths only matter for opaque gray pixels, so they need not be tracked once color appears.
+        bool one = (grayDepths & GrayDepthOne) != 0, two = (grayDepths & GrayDepthTwo) != 0, four = (grayDepths & GrayDepthFour) != 0;
         if (requireGrayColorSpace && !gray) throw new ArgumentException("A grayscale ICC profile requires grayscale source pixels.", nameof(rgba));
         if (requireRgbColorSpace) gray = false;
         var layout = new PngColorLayout(gray ? opaque ? 0 : 4 : opaque ? 2 : 6,

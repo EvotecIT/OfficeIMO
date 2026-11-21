@@ -161,6 +161,11 @@ public static partial class MarkdownRenderer {
                 parseResult.ReferenceLinkDefinitions,
                 parseResult.AbbreviationDefinitions);
         } else {
+            // The document only lives for this render, so only caller hooks, which receive parsed
+            // blocks with their source spans, can read the syntax tree. Without them it is skipped;
+            // with them the reader options decide.
+            readerOptions.CaptureSyntaxTree &= HasSourceAwareRenderHooks(options, htmlOptions);
+
             doc = MarkdownDocument.Parse(markdown, readerOptions);
         }
 
@@ -220,6 +225,23 @@ public static partial class MarkdownRenderer {
         }
 
         return html ?? string.Empty;
+    }
+
+    private static bool HasSourceAwareRenderHooks(
+        MarkdownRendererOptions options,
+        MarkdownHtmlExportOptions htmlOptions) {
+        if (htmlOptions.HasCallerRenderHooks) {
+            return true;
+        }
+
+        var renderers = options.FencedCodeBlockRenderers;
+        for (int i = 0; i < renderers.Count; i++) {
+            if (renderers[i]?.ReadsFenceContentOnly != true) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool RequiresSyntaxBackedParse(MarkdownRendererOptions options, MarkdownLoadOptions readerOptions) {

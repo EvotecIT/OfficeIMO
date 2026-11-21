@@ -301,7 +301,7 @@ namespace OfficeIMO.Excel {
                 for (int index = 0; index < series.Values.Count; index++) {
                     valueLevel.Add(new XElement(cx + "pt",
                         new XAttribute("idx", index),
-                        series.Values[index].ToString("R", CultureInfo.InvariantCulture)));
+                        InvariantNumberText.GetExact(series.Values[index])));
                 }
                 chartData.Add(new XElement(cx + "data",
                     new XAttribute("id", seriesIndex),

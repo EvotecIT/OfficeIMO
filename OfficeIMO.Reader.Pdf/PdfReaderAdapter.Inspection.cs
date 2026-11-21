@@ -125,8 +125,8 @@ internal static partial class PdfReaderAdapter {
                     ["unmappedCodeBytes"] = decoding.UnmappedCodeBytes.ToString(CultureInfo.InvariantCulture),
                     ["hasDeclaredToUnicode"] = decoding.HasDeclaredToUnicode.ToString(),
                     ["usesDifferences"] = decoding.UsesDifferences.ToString(),
-                    ["x"] = run.X.ToString("R", CultureInfo.InvariantCulture),
-                    ["y"] = run.Y.ToString("R", CultureInfo.InvariantCulture)
+                    ["x"] = OfficeIMO.OfficeRoundTripNumberText.Format(run.X, CultureInfo.InvariantCulture),
+                    ["y"] = OfficeIMO.OfficeRoundTripNumberText.Format(run.Y, CultureInfo.InvariantCulture)
                 };
                 if (decoding.EncodingName is not null) attributes["encoding"] = decoding.EncodingName;
                 if (decoding.UnderlyingSource is PdfTextDecodingSource underlying) attributes["underlyingSource"] = underlying.ToString();
@@ -152,8 +152,8 @@ internal static partial class PdfReaderAdapter {
         ReaderLocation location) {
         evidence.Add("pdf.source.page", "Geometry", "retained", "source-structure", location,
             attributes: new Dictionary<string, string>(StringComparer.Ordinal) {
-                ["width"] = page.Width.ToString("R", CultureInfo.InvariantCulture),
-                ["height"] = page.Height.ToString("R", CultureInfo.InvariantCulture),
+                ["width"] = OfficeIMO.OfficeRoundTripNumberText.Format(page.Width, CultureInfo.InvariantCulture),
+                ["height"] = OfficeIMO.OfficeRoundTripNumberText.Format(page.Height, CultureInfo.InvariantCulture),
                 ["rotation"] = page.RotationDegrees.ToString(CultureInfo.InvariantCulture)
             });
         foreach (PdfLinkAnnotation link in page.LinkAnnotations) {
@@ -165,10 +165,10 @@ internal static partial class PdfReaderAdapter {
                     ["remoteFile"] = link.RemoteFile ?? string.Empty,
                     ["remoteDestinationName"] = link.RemoteDestinationName ?? string.Empty,
                     ["remoteDestinationPage"] = link.RemoteDestinationPageNumber?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
-                    ["x1"] = link.X1.ToString("R", CultureInfo.InvariantCulture),
-                    ["y1"] = link.Y1.ToString("R", CultureInfo.InvariantCulture),
-                    ["x2"] = link.X2.ToString("R", CultureInfo.InvariantCulture),
-                    ["y2"] = link.Y2.ToString("R", CultureInfo.InvariantCulture)
+                    ["x1"] = OfficeIMO.OfficeRoundTripNumberText.Format(link.X1, CultureInfo.InvariantCulture),
+                    ["y1"] = OfficeIMO.OfficeRoundTripNumberText.Format(link.Y1, CultureInfo.InvariantCulture),
+                    ["x2"] = OfficeIMO.OfficeRoundTripNumberText.Format(link.X2, CultureInfo.InvariantCulture),
+                    ["y2"] = OfficeIMO.OfficeRoundTripNumberText.Format(link.Y2, CultureInfo.InvariantCulture)
                 });
         }
         foreach (PdfAnnotation annotation in page.Annotations) {

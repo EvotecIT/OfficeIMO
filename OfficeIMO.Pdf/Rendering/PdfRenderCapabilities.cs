@@ -34,7 +34,7 @@ public sealed class PdfRenderCapability {
     public string Message { get; }
 }
 
-/// <summary>A page-specific occurrence of a simplified or unsupported renderer capability.</summary>
+/// <summary>A page-specific rendering decision or fidelity limitation.</summary>
 public sealed class PdfRenderCapabilityDiagnostic {
     internal PdfRenderCapabilityDiagnostic(PdfRenderCapability capability, string? subject = null,
         bool isStandardFontSubstitution = false) {
@@ -125,8 +125,8 @@ public sealed class PdfRenderCapabilityManifest {
 /// <summary>Stable capability registry shared by the manifest and per-page diagnostics.</summary>
 internal static class PdfRenderCapabilities {
     internal static bool HasIncompleteVisualProjection(IReadOnlyList<PdfRenderCapabilityDiagnostic> diagnostics) =>
-        diagnostics.Any(diagnostic => diagnostic.Code != FontSubstitutionId ||
-            !diagnostic.IsStandardFontSubstitution);
+        diagnostics.Any(diagnostic => diagnostic.SupportLevel != PdfRenderSupportLevel.Supported &&
+            (diagnostic.Code != FontSubstitutionId || !diagnostic.IsStandardFontSubstitution));
 
     internal const string UnknownOperatorId = "render.operator.unsupported";
     internal const string RenderingIntentId = "render.operator.rendering-intent";
@@ -140,7 +140,7 @@ internal static class PdfRenderCapabilities {
     internal const string IccColorSpaceId = "render.colorspace.icc";
     internal const string IccOutputIntentId = "render.colorspace.icc-output-intent";
     internal const string UnsupportedIccOutputIntentId = "render.colorspace.icc-output-intent-unsupported";
-    internal const string OutputIntentTransparencyId = "render.colorspace.icc-output-intent-transparency-simplified";
+    internal const string OutputIntentTransparencyId = "render.colorspace.icc-output-intent-post-composition";
     internal const string TilingPatternId = "render.resource.tiling-pattern";
     internal const string BlendModeId = "render.resource.blend-mode";
     internal const string SoftMaskId = "render.resource.soft-mask";
@@ -150,9 +150,10 @@ internal static class PdfRenderCapabilities {
     internal const string UnsupportedSoftMaskId = "render.resource.soft-mask-unsupported";
     internal const string KnockoutGroupId = "render.resource.knockout-group-simplified";
     internal const string XObjectId = "render.resource.xobject-unsupported";
+    internal const string FormNestingStackId = "render.resource.form-nesting-stack-limit";
+    internal const string RasterWorkLimitId = "render.raster.element-work-limit";
     internal const string SynthesizedAnnotationAppearanceId = "render.annotation.appearance-synthesized";
     internal const string AnnotationAppearanceId = "render.resource.annotation-appearance-missing";
-    internal const string OptionalImageCodecId = "render.resource.image-codec-optional";
     internal const string UnsupportedImageId = "render.resource.image-unsupported";
 
     private static readonly IReadOnlyList<PdfRenderCapability> Registry = BuildRegistry();
@@ -171,9 +172,9 @@ internal static class PdfRenderCapabilities {
             Entry(AnnotationAppearanceId, "annotation", "Annotations without appearance streams", PdfRenderSupportLevel.Unsupported, "The annotation is skipped because it has no usable appearance stream."),
             Entry("render.colorspace.device", "color", "DeviceGray, DeviceRGB, and DeviceCMYK", PdfRenderSupportLevel.Supported, "Device color spaces are projected to shared Drawing colors."),
             Entry("render.colorspace.calibrated", "color", "CalGray, CalRGB, and Lab color spaces", PdfRenderSupportLevel.Simplified, "Calibrated colors are projected through managed device-color approximations."),
-            Entry(IccOutputIntentId, "color", "ICC destination output intents", PdfRenderSupportLevel.Supported, "Catalog destination profiles with bounded RGB matrix/TRC or RGB/CMYK B2A0/B2A1/B2A2 mBA output transforms are soft-proofed through the shared managed color engine for content without explicit PDF transparency composition."),
+            Entry(IccOutputIntentId, "color", "ICC destination output intents", PdfRenderSupportLevel.Supported, "Catalog destination profiles with bounded RGB matrix/TRC or RGB/CMYK B2A0/B2A1/B2A2 mBA output transforms are soft-proofed through the shared managed color engine; explicit transparency is composed before relative-colorimetric destination soft proofing."),
             Entry(UnsupportedIccOutputIntentId, "color", "Unsupported ICC destination output intent", PdfRenderSupportLevel.Simplified, "The catalog output intent is retained for inspection, but its destination profile is malformed or outside the managed output-transform contract, so page colors are rendered without output-profile soft proofing."),
-            Entry(OutputIntentTransparencyId, "color", "Output intent with explicit PDF transparency", PdfRenderSupportLevel.Simplified, "The page uses blend modes, opacity, soft masks, transparency groups, or image masks. Colors remain in their authored space because output-profile conversion before transparency composition would be inaccurate."),
+            Entry(OutputIntentTransparencyId, "color", "Post-composition output intent with explicit PDF transparency", PdfRenderSupportLevel.Supported, "The page is composited in authored color over its page backdrop, then soft-proofed through the supported destination profile using relative colorimetry. SVG embeds a bounded raster surface. Other transparency limitations retain their own diagnostics."),
             Entry(IccColorSpaceId, "color", "Unsupported ICCBased profile fallback", PdfRenderSupportLevel.Simplified, "ICCBased colors whose embedded profile is unsupported use their declared alternate or component-count device fallback."),
             Entry("render.colorspace.indexed-content", "color", "Indexed content-paint color spaces", PdfRenderSupportLevel.Supported, "Bounded Indexed palettes are projected for path, text, pattern, and nested-form painting."),
             Entry("render.colorspace.indexed-image", "color", "Indexed image color spaces", PdfRenderSupportLevel.Supported, "Indexed image palettes are decoded and projected through shared Drawing images."),
@@ -198,8 +199,9 @@ internal static class PdfRenderCapabilities {
             Entry(KnockoutGroupId, "resource", "Knockout transparency groups", PdfRenderSupportLevel.Simplified, "Knockout groups (/K true) are composited as ordinary groups: each element blends with the elements painted before it instead of only with the group's initial backdrop."),
             Entry(UnsupportedSoftMaskId, "resource", "Unsupported ExtGState soft mask", PdfRenderSupportLevel.Unsupported, "The soft mask does not contain a usable transparency-group Form XObject."),
             Entry("render.resource.form-xobject", "resource", "Form XObjects", PdfRenderSupportLevel.Supported, "Form XObjects are recursively projected with bounded nesting."),
+            Entry(FormNestingStackId, "resource", "Form XObjects nested beyond the available call stack", PdfRenderSupportLevel.Unsupported, "A Form XObject or transparency group nested too deeply for the current thread's stack is skipped; the rest of the page renders."),
+            Entry(RasterWorkLimitId, "raster", "Elements beyond the raster coverage-work limit", PdfRenderSupportLevel.Unsupported, "An element whose coverage work exceeds the rasterizer's per-element limit is omitted, or left partly painted; the rest of the page renders."),
             Entry("render.resource.image-xobject", "resource", "Image XObjects and inline images", PdfRenderSupportLevel.Supported, "Decoded image resources are projected through shared Drawing image elements."),
-            Entry(OptionalImageCodecId, "resource", "JPEG 2000 and optional raster codecs", PdfRenderSupportLevel.Simplified, "JPEG 2000 image bytes require a caller-supplied IOfficeRasterImageCodec. Supported Gray/RGB images can be projected through that codec; unsupported masks, color normalization, or missing decoders prevent complete raster rendering."),
             Entry(UnsupportedImageId, "resource", "Unsupported image encoding", PdfRenderSupportLevel.Unsupported, "The image uses a filter or encoded feature outside the managed decoders, such as JBIG2 halftone or Huffman-coded regions, or its JBIG2 segments are malformed; the image is omitted."),
             Entry("render.resource.shading-pattern", "resource", "Axial and radial shading patterns", PdfRenderSupportLevel.Supported, "Supported axial and radial shadings are projected to shared Drawing gradients."),
             Entry("render.resource.function-shading", "resource", "Direct function-based shading", PdfRenderSupportLevel.Supported, "Bounded two-input functions are sampled at the requested export resolution with page-wide pixel and evaluation-work limits. Function-based shading patterns are unsupported."),

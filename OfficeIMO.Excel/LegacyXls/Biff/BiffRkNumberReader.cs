@@ -21,9 +21,15 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         /// <summary>
         /// Encodes a number as a 32-bit RK value when one exists whose decoded value has the same
         /// IEEE bits: a 30-bit integer or the upper 30 bits of the double, optionally scaled by 100.
+        /// Negative zero and non-finite values have no RK form: Excel refuses an XLSB RK cell that holds
+        /// negative zero, and NaN or infinity bits would decode as unrelated values.
         /// </summary>
         internal static bool TryEncodeRkNumber(double value, out uint rawValue) {
             long bits = BitConverter.DoubleToInt64Bits(value);
+            if (bits == NegativeZeroBits || double.IsNaN(value) || double.IsInfinity(value)) {
+                rawValue = 0;
+                return false;
+            }
             if (value >= -536_870_912d && value <= 536_870_911d) {
                 int integer = (int)value;
                 if (integer == value && bits != NegativeZeroBits) {

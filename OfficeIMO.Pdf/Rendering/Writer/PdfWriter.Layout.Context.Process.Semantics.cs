@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private void RenderSemanticBlock(SemanticBlock semantic) {
-            flowSemanticScopes.Add(new FlowSemanticScope(semantic.Role, semantic.AlternativeText));
+            flowSemanticScopes.Add(new FlowSemanticScope(semantic.StructureType ?? MapSemanticStructureType(semantic.Role), semantic.AlternativeText));
             try {
                 ProcessBlocks(semantic.Blocks, semantic);
             } finally {
@@ -24,12 +24,12 @@ internal static partial class PdfWriter {
         };
 
         private sealed class FlowSemanticScope {
-            public FlowSemanticScope(PdfSemanticRole role, string? alternativeText) {
-                Role = role;
+            public FlowSemanticScope(string structureType, string? alternativeText) {
+                StructureType = structureType;
                 AlternativeText = alternativeText;
             }
 
-            public PdfSemanticRole Role { get; }
+            public string StructureType { get; }
             public string? AlternativeText { get; }
             public PageStructElement? Element { get; set; }
             public LayoutResult.Page? ElementPage { get; set; }

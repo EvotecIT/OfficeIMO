@@ -44,7 +44,7 @@ internal static partial class WkFormulaDecoder {
                     token -= 6;
                 }
                 switch (token) {
-                    case 0x00: Push(stack, Literal(ReadLaterNumber(data, ref cursor, end, context, compact: false).ToString("R", CultureInfo.InvariantCulture), maximumCharacters), ref nodeCount, maximumNodes); break;
+                    case 0x00: Push(stack, Literal(InvariantNumberText.GetExact(ReadLaterNumber(data, ref cursor, end, context, compact: false)), maximumCharacters), ref nodeCount, maximumNodes); break;
                     case 0x01: Push(stack, Literal(ReadLaterReference(data, ref cursor, end, currentRowZeroBased, currentColumnZeroBased, context), maximumCharacters), ref nodeCount, maximumNodes); break;
                     case 0x02: {
                         if (context?.References != null) {
@@ -68,7 +68,7 @@ internal static partial class WkFormulaDecoder {
                     case 0x05:
                         Require(cursor, 2, end);
                         double integer = ReadLaterNumber(data, ref cursor, end, context, compact: true);
-                        Push(stack, Literal(integer.ToString("R", CultureInfo.InvariantCulture), maximumCharacters), ref nodeCount, maximumNodes);
+                        Push(stack, Literal(InvariantNumberText.Get(integer), maximumCharacters), ref nodeCount, maximumNodes);
                         break;
                     case 0x06: {
                         int zero = Array.IndexOf(data, (byte)0, cursor, end - cursor);

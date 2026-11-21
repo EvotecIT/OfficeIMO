@@ -131,7 +131,7 @@ internal sealed class OfficeDrawingAvaloniaRenderer : IDisposable {
             ? context.PushTransform(ToMatrix(shape.Transform.Value))
             : null;
         IDisposable? clip = shape.ClipPath is not null
-            ? context.PushGeometryClip(CreateClipGeometry(shape.ClipPath))
+            ? PushClip(context, shape.ClipPath)
             : null;
         try {
             IBrush? fill = CreateBrush(shape.FillColor, shape.FillOpacity);
@@ -276,7 +276,7 @@ internal sealed class OfficeDrawingAvaloniaRenderer : IDisposable {
         IDisposable? transform = group.FrameTransform.HasValue
             ? context.PushTransform(ToMatrix(group.FrameTransform.Value.CreateDestinationTransform()))
             : null;
-        using IDisposable clip = context.PushGeometryClip(CreateClipGeometry(group.ClipPath));
+        using IDisposable clip = PushClip(context, group.ClipPath);
         using IDisposable content = context.PushTransform(Matrix.CreateTranslation(group.ContentOffsetX, group.ContentOffsetY));
         try {
             RenderDrawing(context, group.Drawing);
@@ -371,6 +371,34 @@ internal sealed class OfficeDrawingAvaloniaRenderer : IDisposable {
         }
         if (figureOpen) context.EndFigure(false);
         return geometry;
+    }
+
+    // Nested geometry clips intersect, so each intersection keeps its own fill rule.
+    private static IDisposable PushClip(DrawingContext context, OfficeClipPath clip) {
+        if (clip.Intersections.Count == 0) return context.PushGeometryClip(CreateClipGeometry(clip));
+        return PushScopes(clip.Intersections.Count + 1, index => context.PushGeometryClip(
+            CreateClipGeometry(index == 0 ? clip : clip.Intersections[index - 1])));
+    }
+
+    // Pushes every scope or none: a failed push pops the scopes already pushed before rethrowing.
+    internal static IDisposable PushScopes(int count, Func<int, IDisposable> push) {
+        var pushed = new IDisposable[count];
+        int pushedCount = 0;
+        try {
+            for (; pushedCount < count; pushedCount++) pushed[pushedCount] = push(pushedCount);
+        } catch {
+            for (int i = pushedCount - 1; i >= 0; i--) pushed[i].Dispose();
+            throw;
+        }
+        return new ScopeStack(pushed);
+    }
+
+    private sealed class ScopeStack : IDisposable {
+        private readonly IDisposable[] _pushed;
+        internal ScopeStack(IDisposable[] pushed) => _pushed = pushed;
+        public void Dispose() {
+            for (int i = _pushed.Length - 1; i >= 0; i--) _pushed[i].Dispose();
+        }
     }
 
     private static Geometry CreateClipGeometry(OfficeClipPath clip) => clip.Kind switch {

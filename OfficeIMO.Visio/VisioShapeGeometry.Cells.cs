@@ -24,6 +24,28 @@ namespace OfficeIMO.Visio {
             return false;
         }
 
+        /// <summary>
+        /// Reads a dimensionless cell that a page instance omits because it inherits the master's row: the
+        /// master section and row with the same IX supply it. Coordinates are not read this way because master
+        /// values use the master's size.
+        /// </summary>
+        private static bool TryReadInheritedScalarCell(XElement row, XNamespace ns, string name, VisioShape shape, out double value) {
+            if (TryReadCell(row, ns, name, shape, out value)) return true;
+            // A local cell overrides the master unless it explicitly inherits; an unreadable override stays a failure.
+            XElement? local = row.Elements(ns + "Cell")
+                .FirstOrDefault(item => string.Equals(item.Attribute("N")?.Value, name, StringComparison.OrdinalIgnoreCase));
+            if (local != null && !string.Equals(local.Attribute("F")?.Value?.Trim(), "Inh", StringComparison.OrdinalIgnoreCase)) return false;
+            VisioShape? master = shape.MasterShape ?? shape.Master?.Shape;
+            string? sectionIndex = (string?)row.Parent?.Attribute("IX"), rowIndex = (string?)row.Attribute("IX");
+            if (master == null || ReferenceEquals(master, shape) || sectionIndex == null || rowIndex == null) return false;
+            XElement? inherited = master.PreservedGeometrySections
+                .Where(section => (string?)section.Attribute("IX") == sectionIndex)
+                .SelectMany(section => section.Elements(section.Name.Namespace + "Row"))
+                .FirstOrDefault(candidate => (string?)candidate.Attribute("IX") == rowIndex
+                    && string.Equals((string?)candidate.Attribute("T"), (string?)row.Attribute("T"), StringComparison.OrdinalIgnoreCase));
+            return inherited != null && TryReadRawCell(inherited, inherited.Name.Namespace, name, out value);
+        }
+
         private static bool TryReadRawCell(XElement row, XNamespace ns, string name, out double value) {
             XElement? cell = row.Elements(ns + "Cell")
                 .FirstOrDefault(item => string.Equals(item.Attribute("N")?.Value, name, StringComparison.OrdinalIgnoreCase));
@@ -42,7 +64,10 @@ namespace OfficeIMO.Visio {
         private static bool TryReadFormulaCell(XElement row, XNamespace ns, string name, out string? value) {
             XElement? cell = row.Elements(ns + "Cell")
                 .FirstOrDefault(item => string.Equals(item.Attribute("N")?.Value, name, StringComparison.OrdinalIgnoreCase));
-            value = cell?.Attribute("F")?.Value ?? cell?.Attribute("V")?.Value;
+            // F="Inh" names the inherited formula without repeating it; the V cache then holds the value.
+            string? formula = cell?.Attribute("F")?.Value;
+            value = string.IsNullOrWhiteSpace(formula) || string.Equals(formula!.Trim(), "Inh", StringComparison.OrdinalIgnoreCase)
+                ? cell?.Attribute("V")?.Value : formula;
             return !string.IsNullOrWhiteSpace(value);
         }
 

@@ -12,6 +12,10 @@
   "ProjectsRoot": "projects",
   "ThemesRoot": "themes",
   "DataRoot": "data",
+  "BenchmarkEvidence": [
+    { "Name": "benchmarks", "Catalog": "static/data/benchmarks/evidence/index.json", "Output": "data/benchmarks", "AreaFragments": true }
+  ],
+  "Templates": { "LoopLimit": 100000 },
   "TemplateExports": [
     { "Name": "documentation-shell", "SourceRoute": "/docs/", "Layout": "documentation-shell" }
   ],
@@ -26,6 +30,10 @@
     { "Source": "Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Bold.ttf", "Destination": "assets/report-fonts/Carlito-Bold.ttf" },
     { "Source": "Apps/OfficeIMO.Web.Converter/Assets/Fonts/OFL-Carlito.txt", "Destination": "assets/report-fonts/OFL-Carlito.txt" },
     { "Source": "data/pdf_corpus_report.json", "Destination": "data/corpus/pdf-quality-windows.json" },
+    { "Source": "data/documentation_catalog.json", "Destination": "data/packages.json" },
+    { "Source": "data/office_capabilities.json", "Destination": "data/capabilities.json" },
+    { "Source": "data/pswriteoffice_command_catalog.json", "Destination": "data/powershell/commands.json" },
+    { "Source": "data/cli/commands.json", "Destination": "data/cli/commands.json" },
     { "Source": "data/pdf_corpus_publication.json", "Destination": "data/corpus/pdf-quality-windows.provenance.json" },
     { "Source": "Apps/OfficeIMO.Web.Converter/wwwroot/samples/business-summary.docx", "Destination": "downloads/samples/business-summary.docx" },
     { "Source": "../OfficeIMO.Examples/Showcase/BrowserBusinessSample.cs", "Destination": "downloads/samples/BrowserBusinessSample.cs.txt" },
@@ -221,6 +229,7 @@
     "FaqPage": true,
     "HowTo": true,
     "SoftwareApplication": true,
+    "SoftwareSourceCode": true,
     "OrganizationLegalName": "Evotec Services sp. z o.o.",
     "OrganizationDescription": "Open source .NET libraries for creating, reading, and editing Office documents without Microsoft Office.",
     "OrganizationLogo": "https://evotec.xyz/favicon.svg",
@@ -387,6 +396,9 @@
         "Name": "docs",
         "Css": [
           "/css/docs.css"
+        ],
+        "Js": [
+          "/js/docs-language-tabs.js"
         ]
       },
       {
@@ -406,6 +418,15 @@
         "Name": "applications",
         "Css": [
           "/css/applications.css"
+        ],
+        "Js": [
+          "/js/surface-explorer.js"
+        ]
+      },
+      {
+        "Name": "capabilities",
+        "Css": [
+          "/css/capabilities.css"
         ]
       },
       {
@@ -424,8 +445,8 @@
       },
       {
         "Name": "benchmarks",
-        "Js": [
-          "/js/benchmarks.js"
+        "Css": [
+          "/css/benchmarks.css"
         ]
       },
       {
@@ -450,6 +471,14 @@
         ]
       },
       {
+        "Match": "/capabilities/",
+        "Bundles": [
+          "global",
+          "experience",
+          "capabilities"
+        ]
+      },
+      {
         "Match": "/studio/",
         "Bundles": [
           "global",
@@ -458,7 +487,15 @@
         ]
       },
       {
-        "Match": "/tool/",
+        "Match": "/cli/",
+        "Bundles": [
+          "global",
+          "experience",
+          "applications"
+        ]
+      },
+      {
+        "Match": "/powershell/",
         "Bundles": [
           "global",
           "experience",
@@ -503,15 +540,6 @@
         "Bundles": [
           "global",
           "product",
-          "experience"
-        ]
-      },
-      {
-        "Match": "/provenance/",
-        "Bundles": [
-          "global",
-          "product",
-          "docs",
           "experience"
         ]
       },
@@ -577,7 +605,14 @@
         "Bundles": [
           "global",
           "benchmarks",
-          "product",
+          "experience"
+        ]
+      },
+      {
+        "Match": "/benchmarks/**",
+        "Bundles": [
+          "global",
+          "benchmarks",
           "experience"
         ]
       },
@@ -619,6 +654,7 @@
         "Match": "/api/**",
         "Bundles": [
           "global",
+          "docs",
           "api",
           "experience"
         ]
@@ -759,7 +795,7 @@
         },
         {
           "Title": "CLI",
-          "Url": "/tool/",
+          "Url": "/cli/",
           "CssClass": "imo-nav__item--product",
           "Description": "Scripts, CI jobs and MCP"
         },
@@ -777,7 +813,7 @@
         },
         {
           "Title": "PowerShell",
-          "Url": "/products/pswriteoffice/",
+          "Url": "/powershell/",
           "CssClass": "imo-nav__item--product",
           "Description": "PSWriteOffice module"
         },
@@ -792,6 +828,11 @@
             {
               "Title": "Explore",
               "Items": [
+                {
+                  "Title": "Capability overview",
+                    "Description": "Every job on every surface",
+                  "Url": "/capabilities/"
+                },
                 {
                   "Title": "Document showcase",
                     "Description": "Real documents, previews, and source",
@@ -865,7 +906,7 @@
         },
         {
           "Title": "CLI",
-          "Url": "/tool/"
+          "Url": "/cli/"
         },
         {
           "Title": "AI agents",
@@ -877,7 +918,7 @@
         },
         {
           "Title": "PowerShell",
-          "Url": "/products/pswriteoffice/"
+          "Url": "/powershell/"
         },
         {
           "Title": "Downloads",
@@ -1005,9 +1046,43 @@
   },
   "Redirects": [
     {
+      "From": "/benchmarks/archive/",
+      "To": "/benchmarks/",
+      "Status": 301,
+      "MatchType": "Exact",
+      "PreserveQuery": true
+    },
+    {
+      "From": "/tool/",
+      "To": "/cli/",
+      "Status": 301,
+      "MatchType": "Exact",
+      "PreserveQuery": true
+    },
+    {
+      "From": "/products/pswriteoffice/",
+      "To": "/powershell/",
+      "Status": 301,
+      "MatchType": "Exact",
+      "PreserveQuery": true
+    },
+    {
       "From": "/showcase/html-rendering/",
       "To": "/showcase/?format=html",
       "Status": 301
+    },
+    {
+      "From": "/browser/file-origin/",
+      "To": "/browser/clean-before-sharing/",
+      "Status": 301,
+      "MatchType": "Exact",
+      "PreserveQuery": true
+    },
+    {
+      "From": "/provenance/",
+      "To": "/docs/before-sharing/provenance/",
+      "Status": 301,
+      "MatchType": "Exact"
     },
     {
       "From": "/playground/",

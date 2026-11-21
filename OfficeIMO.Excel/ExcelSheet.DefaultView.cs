@@ -6,6 +6,9 @@ namespace OfficeIMO.Excel {
         // Keep a neutral workbook view in newly generated worksheets and after unfreezing.
         internal static SheetViews CreateDefaultSheetViews() => new SheetViews(new SheetView { WorkbookViewId = 0U });
 
+        /// <summary>The serialized form of <see cref="CreateDefaultSheetViews"/>, for writers that emit XML without the element model.</summary>
+        internal const string DefaultSheetViewsXml = "<x:sheetViews xmlns:x=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><x:sheetView workbookViewId=\"0\" /></x:sheetViews>";
+
         internal static bool IsNeutralSheetViews(SheetViews views) {
             if (views.GetAttributes().Count != 0 || views.ChildElements.Count != 1 || views.FirstChild is not SheetView view
                 || view.GetAttributes().Count != 1 || view.WorkbookViewId?.Value != 0U) return false;

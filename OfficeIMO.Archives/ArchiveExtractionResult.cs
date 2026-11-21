@@ -7,7 +7,13 @@ public enum ArchiveFormat {
     /// <summary>A Windows Installer database with embedded cabinets.</summary>
     Msi,
     /// <summary>A single-disk ZIP archive with stored or Deflate members.</summary>
-    Zip
+    Zip,
+    /// <summary>A POSIX ustar, pax, GNU or v7 TAR archive.</summary>
+    Tar,
+    /// <summary>A TAR archive compressed with gzip (.tar.gz, .tgz).</summary>
+    TarGZip,
+    /// <summary>A single file compressed with gzip (.gz) whose content is not a TAR archive.</summary>
+    GZip
 }
 
 /// <summary>A verified file published by an extraction operation.</summary>

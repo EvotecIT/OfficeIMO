@@ -3,12 +3,14 @@ using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointSlideImageRenderer {
-        private static void AddChart(OfficeDrawing drawing, PowerPointChart chart, List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping, A.ColorScheme? colorScheme) {
+        private static void AddChart(OfficeDrawing drawing, PowerPointChart chart, List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping, A.ColorScheme? colorScheme,
+            OfficeChartFidelity fidelity) {
             if (!TryGetBounds(chart, drawing, diagnostics, mapping, out double left, out double top, out double width, out double height)) {
                 return;
             }
 
-            if (!chart.TryGetSnapshot(colorScheme, out PowerPointChartSnapshot snapshot, out string? failureReason)) {
+            if (!chart.TryGetSnapshot(colorScheme, fidelity, out PowerPointChartSnapshot snapshot, out string? failureReason,
+                    out IReadOnlyList<string> approximations)) {
                 AddUnsupportedShapeDiagnostic(diagnostics, chart, "Skipped a PowerPoint chart because the shared chart renderer cannot draw it: " +
                     (failureReason ?? "the chart could not be projected."), diagnosticCode: OfficeDiagnosticCodes.UnsupportedChart);
                 return;
@@ -28,12 +30,21 @@ namespace OfficeIMO.PowerPoint {
                         OfficeConversionLossKind.Approximation));
                 }
 
+                foreach (string approximation in approximations) {
+                    diagnostics.Add(new OfficeImageExportDiagnostic(OfficeImageExportDiagnosticSeverity.Warning,
+                        OfficeDiagnosticCodes.ChartApproximation, approximation, DescribeShape(chart),
+                        OfficeConversionLossKind.Approximation));
+                }
+
                 OfficeImageFrameTransform transform = CreateChartFrameTransform(chart, left, top, width, height);
                 if (transform.HasTransform) {
                     drawing.AddDrawing(chartDrawing, left, top, transform);
                 } else {
                     drawing.AddDrawing(chartDrawing, left, top);
                 }
+            } catch (NotSupportedException error) {
+                AddUnsupportedShapeDiagnostic(diagnostics, chart, "Skipped a PowerPoint chart because the shared chart renderer cannot draw it: " +
+                    error.Message, diagnosticCode: OfficeDiagnosticCodes.UnsupportedChart);
             } catch (ArgumentException) {
                 AddUnsupportedShapeDiagnostic(diagnostics, chart, "Skipped a PowerPoint chart because its frame is too small for safe rendering.", diagnosticCode: OfficeDiagnosticCodes.UnsupportedChart);
             } catch (InvalidOperationException) {

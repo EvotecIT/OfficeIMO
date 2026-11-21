@@ -283,10 +283,12 @@ public class PdfIncrementalInputLimitTests {
             "\n999 0 obj\n(" + new string('x', 1_100_000) + ")\nendobj\n");
         byte[] preparedWithOversizedObject = preparation.PreparedPdf.Concat(oversizedObject).ToArray();
 
+        var readOptions = new PdfLoadOptions { Limits = new PdfReadLimits { MaxObjectCharacters = 1_000_000 } };
+
         PdfReadLimitException error = Assert.Throws<PdfReadLimitException>(() =>
-            PdfIncrementalUpdater.ApplyExternalSignature(preparedWithOversizedObject, new byte[] { 0x30, 0x01, 0x00 }));
+            PdfIncrementalUpdater.ApplyExternalSignature(preparedWithOversizedObject, new byte[] { 0x30, 0x01, 0x00 }, readOptions));
         Assert.Equal(PdfReadLimitKind.ObjectCharacters, error.Kind);
-        Assert.Equal(new PdfReadLimits().MaxObjectCharacters, error.Limit);
+        Assert.Equal(readOptions.Limits.MaxObjectCharacters, error.Limit);
     }
 
     [Fact]
@@ -303,10 +305,12 @@ public class PdfIncrementalInputLimitTests {
             .Concat(preparation.PreparedPdf.AsSpan(markerOffset).ToArray())
             .ToArray();
 
+        var readOptions = new PdfLoadOptions { Limits = new PdfReadLimits { MaxObjectCharacters = 1_000_000 } };
+
         PdfReadLimitException error = Assert.Throws<PdfReadLimitException>(() =>
-            PdfIncrementalUpdater.ApplyExternalSignature(preparedWithOversizedReason, new byte[] { 0x30, 0x01, 0x00 }));
+            PdfIncrementalUpdater.ApplyExternalSignature(preparedWithOversizedReason, new byte[] { 0x30, 0x01, 0x00 }, readOptions));
         Assert.Equal(PdfReadLimitKind.ObjectCharacters, error.Kind);
-        Assert.Equal(new PdfReadLimits().MaxObjectCharacters, error.Limit);
+        Assert.Equal(readOptions.Limits.MaxObjectCharacters, error.Limit);
     }
 
     [Fact]

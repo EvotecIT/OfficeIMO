@@ -31,7 +31,7 @@ Import-OfficeExcel -LiteralPath <string[]> [-Sheet <OfficeSheetSelector[]>] [-No
 
 ### Uri
 ```powershell
-Import-OfficeExcel [-Uri] <uri> [-Sheet <OfficeSheetSelector[]>] [-NoHeader] [-As <ExcelImportOutput>] [-NumericAsDecimal] [-FormulaMode <OfficeExcelFormulaMode>] [-Culture <cultureinfo>] [-SchemaSampleRows <int>] [-ChunkRows <int>] [-Range <string>] [-AllowHttp] [<CommonParameters>]
+Import-OfficeExcel [-Uri] <uri> [-Sheet <OfficeSheetSelector[]>] [-NoHeader] [-As <ExcelImportOutput>] [-NumericAsDecimal] [-FormulaMode <OfficeExcelFormulaMode>] [-Culture <cultureinfo>] [-SchemaSampleRows <int>] [-ChunkRows <int>] [-Range <string>] [-AllowHttp] [-AllowPrivateNetworkAddresses] [<CommonParameters>]
 ```
 
 ### LiteralPathTable
@@ -41,7 +41,7 @@ Import-OfficeExcel -Table <string> -LiteralPath <string[]> [-NoHeader] [-As <Exc
 
 ### UriTable
 ```powershell
-Import-OfficeExcel [-Uri] <uri> -Table <string> [-NoHeader] [-As <ExcelImportOutput>] [-NumericAsDecimal] [-FormulaMode <OfficeExcelFormulaMode>] [-Culture <cultureinfo>] [-SchemaSampleRows <int>] [-ChunkRows <int>] [-AllowHttp] [<CommonParameters>]
+Import-OfficeExcel [-Uri] <uri> -Table <string> [-NoHeader] [-As <ExcelImportOutput>] [-NumericAsDecimal] [-FormulaMode <OfficeExcelFormulaMode>] [-Culture <cultureinfo>] [-SchemaSampleRows <int>] [-ChunkRows <int>] [-AllowHttp] [-AllowPrivateNetworkAddresses] [<CommonParameters>]
 ```
 
 ### DocumentTable
@@ -109,6 +109,22 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -AllowPrivateNetworkAddresses
+Allow a workbook on a loopback, private, link-local or other non-public network address. Use only for trusted internal sources.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Uri, UriTable
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -As
 Selects objects, hashtables, a DataTable, an owned IDataReader or column output.
 
@@ -126,7 +142,7 @@ Accept wildcard characters: False
 ```
 
 ### -ChunkRows
-Worksheet row count requested from each streaming chunk when -AsDataReader is used.
+Worksheet row count requested from each streaming chunk when -As DataReader is used.
 
 ```yaml
 Type: Int32
@@ -243,7 +259,7 @@ Workbook paths resolved with filesystem wildcard support.
 ```yaml
 Type: String[]
 Parameter Sets: Path, PathTable
-Aliases: None
+Aliases: FilePath
 Possible values:
 
 Required: True
@@ -270,7 +286,7 @@ Accept wildcard characters: False
 ```
 
 ### -SchemaSampleRows
-Maximum row count inspected when -AsDataReader infers the reader schema.
+Maximum row count inspected when -As DataReader infers the reader schema.
 
 ```yaml
 Type: Int32
@@ -286,12 +302,12 @@ Accept wildcard characters: False
 ```
 
 ### -Sheet
-Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.
+Worksheet name, one-based position or native worksheet object. Native worksheet objects need -Document or an enclosing Excel content block. Multi-sheet commands also accept wildcard names.
 
 ```yaml
 Type: OfficeSheetSelector[]
 Parameter Sets: Document, Path, LiteralPath, Uri
-Aliases: None
+Aliases: WorksheetName
 Possible values:
 
 Required: False

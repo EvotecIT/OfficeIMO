@@ -29,6 +29,7 @@ internal sealed class ReaderToolArguments {
     internal long? MaxTotalBytes { get; private set; }
     internal long MaxInputBytes { get; private set; } = DefaultMaxInputBytes;
     internal bool Recurse { get; private set; } = true;
+    internal bool Force { get; private set; }
     private bool ConcurrencySpecified { get; set; }
     private bool FolderLimitSpecified { get; set; }
     private bool InputLimitSpecified { get; set; }
@@ -88,6 +89,9 @@ internal sealed class ReaderToolArguments {
                     parsed.Recurse = true;
                     parsed.RecursionSpecified = true;
                     break;
+                case "--force":
+                    parsed.Force = true;
+                    break;
                 case "--no-recursive":
                     parsed.Recurse = false;
                     parsed.RecursionSpecified = true;
@@ -110,7 +114,7 @@ internal sealed class ReaderToolArguments {
 
     private void Validate() {
         if (Command == ReaderToolCommand.Capabilities) {
-            if (InputPath != null || SourceName != null || AssetsPath != null || OutputPath != null ||
+            if (InputPath != null || SourceName != null || AssetsPath != null || OutputPath != null || Force ||
                 ConcurrencySpecified || FolderLimitSpecified || InputLimitSpecified || RecursionSpecified) {
                 throw new ReaderToolUsageException("The capabilities command does not accept input or output paths.");
             }

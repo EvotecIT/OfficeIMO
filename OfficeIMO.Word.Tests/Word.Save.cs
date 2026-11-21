@@ -366,6 +366,103 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Byte array compatibility", paragraph.Text);
         }
 
+        [Fact]
+        public void Test_SaveKeepsStoredBytesOfUntouchedPartsAcrossRepeatedSaves() {
+            byte[] source = File.ReadAllBytes(Path.Combine(_directoryDocuments, "DocumentWithImages.docx"));
+            Dictionary<string, byte[]> sourceEntries = ReadStoredZipEntries(source);
+            string[] media = sourceEntries.Keys.Where(name => name.StartsWith("word/media/", StringComparison.Ordinal)).ToArray();
+            Assert.NotEmpty(media);
+
+            using var input = new MemoryStream(source, writable: false);
+            using var document = WordDocument.Load(input);
+            int images = document.Images.Count;
+            document.AddParagraph("First save");
+            byte[] first = document.ToBytes();
+            document.AddParagraph("Second save");
+            byte[] second = document.ToBytes();
+
+            foreach (byte[] saved in new[] { first, second }) {
+                Dictionary<string, byte[]> savedEntries = ReadStoredZipEntries(saved);
+                foreach (string name in media) {
+                    Assert.Equal(sourceEntries[name], savedEntries[name]);
+                }
+            }
+            using var reloaded = WordDocument.Load(new MemoryStream(second, writable: false));
+            Assert.Equal(new[] { "First save", "Second save" }, reloaded.Paragraphs.Skip(reloaded.Paragraphs.Count - 2).Select(paragraph => paragraph.Text));
+            Assert.Equal(images, reloaded.Images.Count);
+        }
+
+        [Fact]
+        public void Test_RepeatedSavesOfLargeBodyKeepOnlyCurrentContent() {
+            // Several hundred kilobytes of body XML, so the main part spans more than one buffer block.
+            const int count = 3000;
+            using var document = WordDocument.Create();
+            for (int index = 0; index < count; index++) {
+                document.AddParagraph("Paragraph " + index + " carries enough text to make the body part large.");
+            }
+            byte[] large = document.ToBytes();
+            foreach (WordParagraph paragraph in document.Paragraphs.Skip(2).ToList()) paragraph.Remove();
+            document.ToBytes();
+            document.AddParagraph("After shrinking");
+            byte[] shrunk = document.ToBytes();
+
+            using (var reloaded = WordDocument.Load(new MemoryStream(shrunk, writable: false))) {
+                Assert.Equal(
+                    new[] { "Paragraph 0 carries enough text to make the body part large.", "Paragraph 1 carries enough text to make the body part large.", "After shrinking" },
+                    reloaded.Paragraphs.Select(paragraph => paragraph.Text));
+            }
+
+            byte[] edited;
+            using (var loaded = WordDocument.Load(new MemoryStream(large, writable: false))) {
+                Assert.Equal(count, loaded.Paragraphs.Count);
+                loaded.AddParagraph("Added after loading");
+                edited = loaded.ToBytes();
+            }
+            using var reloadedEdit = WordDocument.Load(new MemoryStream(edited, writable: false));
+            List<WordParagraph> paragraphs = reloadedEdit.Paragraphs;
+            Assert.Equal(count + 1, paragraphs.Count);
+            Assert.Equal("Paragraph 2999 carries enough text to make the body part large.", paragraphs[count - 1].Text);
+            Assert.Equal("Added after loading", paragraphs[count].Text);
+        }
+
+        [Fact]
+        public void Test_AddParagraphAfterReplacingBodyThroughOpenXml_AppendsToCurrentBody() {
+            using var document = WordDocument.Create();
+            document.AddParagraph("Before replacement");
+            MainDocumentPart main = document.OpenXmlDocument.MainDocumentPart!;
+
+            main.Document!.Body = new DocumentFormat.OpenXml.Wordprocessing.Body();
+            document.AddParagraph("After body replacement");
+            Assert.Equal(new[] { "After body replacement" },
+                main.Document.Body!.Elements<DocumentFormat.OpenXml.Wordprocessing.Paragraph>().Select(paragraph => paragraph.InnerText));
+
+            main.Document = new DocumentFormat.OpenXml.Wordprocessing.Document(new DocumentFormat.OpenXml.Wordprocessing.Body());
+            document.AddParagraph("After document replacement");
+
+            using var reloaded = WordDocument.Load(new MemoryStream(document.ToBytes(), writable: false));
+            Assert.Equal(new[] { "After document replacement" }, reloaded.Paragraphs.Select(paragraph => paragraph.Text));
+        }
+
+        /// <summary>Reads each ZIP entry's stored (compressed) bytes through the central directory.</summary>
+        private static Dictionary<string, byte[]> ReadStoredZipEntries(byte[] package) {
+            int end = package.Length - 22;
+            while (BitConverter.ToUInt32(package, end) != 0x06054b50) end--;
+            int count = BitConverter.ToUInt16(package, end + 10);
+            int cursor = BitConverter.ToInt32(package, end + 16);
+            var entries = new Dictionary<string, byte[]>(StringComparer.Ordinal);
+            for (int index = 0; index < count; index++) {
+                int compressedSize = BitConverter.ToInt32(package, cursor + 20);
+                int nameLength = BitConverter.ToUInt16(package, cursor + 28);
+                int headerLength = 46 + nameLength + BitConverter.ToUInt16(package, cursor + 30) + BitConverter.ToUInt16(package, cursor + 32);
+                int local = BitConverter.ToInt32(package, cursor + 42);
+                string name = Encoding.UTF8.GetString(package, cursor + 46, nameLength);
+                int payload = local + 30 + BitConverter.ToUInt16(package, local + 26) + BitConverter.ToUInt16(package, local + 28);
+                entries.Add(name, package.Skip(payload).Take(compressedSize).ToArray());
+                cursor += headerLength;
+            }
+            return entries;
+        }
+
         private static void AssertAllRelationshipTargetsNormalized(Stream packageStream) {
             if (packageStream.CanSeek) {
                 packageStream.Seek(0, SeekOrigin.Begin);

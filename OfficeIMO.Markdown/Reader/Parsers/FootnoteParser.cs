@@ -95,8 +95,11 @@ internal static partial class MarkdownReader {
 
         // A note's lead is prose even when it contains a colon. Keep explicit
         // multi-line definition lists, but do not reinterpret narrative note text.
-        var bodyOptions = options.Clone();
-        bodyOptions.PreferNarrativeSingleLineDefinitions = true;
+        var bodyOptions = GetSharedDerivedOptions(options, state, MarkdownReaderDerivedOptions.FootnoteBody, static source => {
+            var clone = source.Clone();
+            clone.PreferNarrativeSingleLineDefinitions = true;
+            return clone;
+        });
         var suppressedParagraphAttributeStartLines = GetContinuationParagraphGenericAttributeSuppressionLines(contentSourceLines);
         var (blocks, syntaxChildren) = ParseNestedMarkdownBlocks(
             contentSourceLines,

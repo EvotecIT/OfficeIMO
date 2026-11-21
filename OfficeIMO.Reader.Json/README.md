@@ -34,6 +34,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddJsonHandler(new JsonReadOptions {
         ChunkRows = 100,
         MaxDepth = 16,
+        MaxNodes = 100_000,
         IncludeMarkdown = true
     })
     .Build();
@@ -68,6 +69,22 @@ var chunks = reader.Enumerate(stream, "payload.json", new ReaderOptions {
 - Chunked structured output with optional Markdown tables.
 - Path and stream dispatch.
 - Warning chunks for malformed JSON.
+
+## Options
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `ChunkRows` | 200 | Rows per emitted chunk. |
+| `MaxDepth` | 64 | Maximum nesting of objects and arrays, with the root container at depth one. |
+| `MaxNodes` | 1,000,000 | Maximum JSON values: objects, arrays, strings, numbers, booleans and nulls. |
+| `MaxScalarLength` | 1,048,576 | Maximum characters in one decoded string or property name, or in one number as written. |
+| `IncludeMarkdown` | `true` | Adds a Markdown table projection to each chunk. |
+
+## Limits and diagnostics
+
+The adapter checks all three limits in one forward pass over the input, before it builds the document or emits a chunk. Exceeding a limit throws `ReaderResourceLimitException` whose `LimitName` is the option name and whose `Maximum` is the configured value; it never returns a shortened value or a parse warning. Values below 1 throw `ArgumentOutOfRangeException`. Raise the limits for trusted larger inputs. `ReaderOptions.MaxInputBytes` and aggregate `ResourceLimits` apply independently.
+
+Comments and trailing commas are accepted. Malformed JSON produces a single `json-warning-0000` chunk instead of throwing.
 
 ## Boundaries
 

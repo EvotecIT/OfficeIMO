@@ -18,7 +18,7 @@ internal static class PowerPointHtmlChartPointStyleCodec {
             Attribute("hatch-color", style.HatchColor!.Value.ToString());
         }
         if (style.OutlineColor.HasValue) Attribute("outline-color", style.OutlineColor.Value.ToString());
-        if (style.OutlineWidth.HasValue) Attribute("outline-width", style.OutlineWidth.Value.ToPoints().ToString("G17", CultureInfo.InvariantCulture));
+        if (style.OutlineWidth.HasValue) Attribute("outline-width", OfficeIMO.Core.Internal.OfficeRoundTripText.Format(style.OutlineWidth.Value.ToPoints(), CultureInfo.InvariantCulture));
         if (style.ShowOutline.HasValue) Attribute("show-outline", style.ShowOutline.Value ? "true" : "false");
         if (style.OutlineJoin.HasValue) Attribute("outline-join", style.OutlineJoin.Value.ToString());
     }

@@ -1,3 +1,4 @@
+using OfficeIMO.Core.Internal;
 using System.IO.Compression;
 using System.Xml;
 
@@ -26,7 +27,9 @@ namespace OfficeIMO {
             var defaultContentTypes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             try {
                 using Stream stream = contentTypesPart.Entry.Open();
-                using XmlReader reader = XmlReader.Create(stream, CreateSecureXmlSettings(maxXmlCharactersInPart));
+                using XmlReader reader = XmlReader.Create(
+                    OfficeSmallXmlPartInput.Prepare(stream, contentTypesPart.Entry.Length),
+                    CreateSecureXmlSettings(maxXmlCharactersInPart));
                 while (reader.Read()) {
                     if (reader.NodeType != XmlNodeType.Element) continue;
                     if (string.Equals(reader.LocalName, "Override", StringComparison.Ordinal)) {

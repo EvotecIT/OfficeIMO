@@ -32,7 +32,9 @@ public enum OfficeWorkflowOperation {
     /// <summary>Analyze Word embedded-image candidates without publishing an artifact.</summary>
     AnalyzeWordImages,
     /// <summary>Optimize embedded Word media and publish a separate Word or PDF copy.</summary>
-    OptimizeWordImages
+    OptimizeWordImages,
+    /// <summary>Create a separate PDF/A copy, or report every reason the source cannot be converted without changing its content.</summary>
+    ConvertToPdfA
 }
 
 /// <summary>Terminal state of one workflow request.</summary>
@@ -207,6 +209,12 @@ public sealed class OfficeWorkflowRequest {
     /// <summary>New password protection for ProtectPdf. Cloned before execution; credentials remain request-only.</summary>
     public OfficeIMO.Pdf.PdfStandardEncryptionOptions? OutputEncryption { get; set; }
 
+    /// <summary>
+    /// PDF/A conversion settings for ConvertToPdfA. When omitted, the library defaults apply. Copied before execution.
+    /// An encrypted source needs its owner password in <see cref="PdfPassword"/>; the PDF/A copy is written without encryption.
+    /// </summary>
+    public OfficeIMO.Pdf.PdfAConversionOptions? PdfAConversion { get; set; }
+
     /// <summary>Current owner password for replacing or removing protection. Falls back to PdfPassword when omitted.</summary>
     public string? PdfOwnerPassword { get; set; }
 
@@ -321,7 +329,10 @@ public sealed class OfficeWorkflowRoute {
     public bool SupportsPdfCompression => CanExecute && Id.EndsWith("-pdf", StringComparison.Ordinal);
     /// <summary>Output profiles honored by this local route.</summary>
     public IReadOnlyList<OfficeConversionProfile> SupportedOutputProfiles =>
-        Id is "docx-pdf" or "xlsx-pdf" or "pptx-pdf" ? AllOutputProfiles : FaithfulOutputProfile;
+        Id is "docx-pdf" or "xlsx-pdf" or "pptx-pdf" ? AllOutputProfiles : Id == "email-pdf" ? EmailOutputProfiles : FaithfulOutputProfile;
+    // TextOnly selects the Reader text projection of a message instead of the styled rendering.
+    private static readonly IReadOnlyList<OfficeConversionProfile> EmailOutputProfiles =
+        Array.AsReadOnly(new[] { OfficeConversionProfile.Faithful, OfficeConversionProfile.TextOnly });
     private static readonly IReadOnlyList<OfficeConversionProfile> AllOutputProfiles = Array.AsReadOnly(EnumCompat.GetValues<OfficeConversionProfile>());
     private static readonly IReadOnlyList<OfficeConversionProfile> FaithfulOutputProfile = Array.AsReadOnly(new[] { OfficeConversionProfile.Faithful });
     /// <summary>User-facing route label.</summary>
@@ -330,14 +341,9 @@ public sealed class OfficeWorkflowRoute {
 
 /// <summary>Canonical desktop/service conversion route view.</summary>
 public static class OfficeWorkflowCatalog {
-    private static readonly HashSet<string> ExecutableIds = new(StringComparer.Ordinal) {
-        "doc-pdf", "txt-pdf", "docx-pdf", "xlsx-pdf", "pptx-pdf", "html-pdf", "markdown-pdf", "rtf-pdf", "xps-pdf", "djvu-pdf", "heic-pdf",
-        "pdf-docx", "pdf-xlsx", "pdf-pptx", "pdf-html", "book-project-epub", "odg-pdf", "visio-pdf", "publisher-pdf", "chm-pdf", "chm-markdown", "chm-epub"
-    };
-
     private static readonly IReadOnlyList<OfficeWorkflowRoute> AllRoutesValue = Array.AsReadOnly(
         OfficeConversionCapabilityCatalog.All
-            .Select(capability => new OfficeWorkflowRoute(capability, ExecutableIds.Contains(capability.Id)))
+            .Select(capability => new OfficeWorkflowRoute(capability, capability.HostExecutable))
             .OrderBy(route => route.Source, StringComparer.Ordinal)
             .ThenBy(route => route.Target, StringComparer.Ordinal)
             .ToArray());

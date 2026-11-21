@@ -28,7 +28,9 @@ internal static partial class PdfWriter {
                 }
 
                 var block = blockList[blockIndex];
-                IPdfBlock? nextBlock = blockIndex + 1 < blockList.Count ? blockList[blockIndex + 1] : null;
+                // The last child of a transparent wrapper keeps with the block after that wrapper.
+                IPdfBlock? nextBlock = blockIndex + 1 < blockList.Count ? blockList[blockIndex + 1] :
+                    EnumerateFollowingKeepBlocks(blockList, blockIndex + 1).FirstOrDefault();
                 if (block is PageBlock pageBlock) {
                     pendingFloatingBookmarks.Clear();
                     FlushPage(pageDirty || HasCurrentPageNonContentObjects());

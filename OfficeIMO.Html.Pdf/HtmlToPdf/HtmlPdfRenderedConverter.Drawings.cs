@@ -10,7 +10,8 @@ internal static partial class HtmlPdfRenderedConverter {
         RegisteredWebFonts webFonts, PdfImageResourceCache imageResources,
         PdfCore.PdfConversionReport conversionReport,
         CancellationToken cancellationToken,
-        bool suppressLink) {
+        bool suppressLink,
+        LinkTargets? linkTargets) {
         OfficeDrawing source = visual.Drawing;
         double scaleX = visual.Width / source.Width;
         double scaleY = visual.Height / source.Height;
@@ -105,6 +106,13 @@ internal static partial class HtmlPdfRenderedConverter {
                         masked.Fonts.AddRange(source.Fonts);
                         masked.AddEffectDrawing(effectGroup.Drawing, effectGroup.Transform,
                             effectGroup.BlendMode, effectGroup.SoftMask, effectGroup.Opacity);
+                        masked.RewriteLinks(uri => {
+                            string normalized = IsFragmentLink(uri) ? "#" + DecodeFragmentName(uri.Substring(1)) : uri;
+                            if (linkTargets?.Include(normalized, visual.Source) == false) return null;
+                            return IsFragmentLink(normalized)
+                                ? "#" + Uri.EscapeDataString(MapNamedDestination(normalized.Substring(1)))
+                                : normalized;
+                        }, cancellationToken);
                         target.DrawingForClippedRendering(masked, originX, originY,
                             visual.Width * PointsPerCssPixel, visual.Height * PointsPerCssPixel);
                         continue;
@@ -113,7 +121,8 @@ internal static partial class HtmlPdfRenderedConverter {
                         .Then(effectGroup.Transform)
                         .Then(drawingToPage);
                     OfficeDrawing nestedDrawing = effectGroup.Drawing;
-                    target.Effect(pageTransform, effectGroup.Opacity, nested => AddElements(nested, nestedDrawing.Elements));
+                    target.Effect(pageTransform, effectGroup.Opacity, effectGroup.BlendMode,
+                        nested => AddElements(nested, nestedDrawing.Elements));
                     continue;
                 }
                 if (element is OfficeDrawingTilingPattern tilingPattern) {
@@ -169,13 +178,15 @@ internal static partial class HtmlPdfRenderedConverter {
                 }
                 if (element is OfficeDrawingLink link) {
                     FlushShapes();
+                    string uri = IsFragmentLink(link.Uri) ? "#" + DecodeFragmentName(link.Uri.Substring(1)) : link.Uri;
+                    if (linkTargets?.Include(uri, visual.Source) == false) continue;
                     double linkX = (visual.X + link.X * scaleX) * PointsPerCssPixel;
                     double linkY = (visual.Y + link.Y * scaleY) * PointsPerCssPixel;
                     double linkWidth = link.Width * scaleX * PointsPerCssPixel;
                     double linkHeight = link.Height * scaleY * PointsPerCssPixel;
                     if (IsFragmentLink(link.Uri)) {
                         target.LinkToNamedDestination(
-                            MapNamedDestination(DecodeFragmentName(link.Uri.Substring(1))),
+                            MapNamedDestination(uri.Substring(1)),
                             global::OfficeIMO.OfficeLength.Points(linkX),
                             global::OfficeIMO.OfficeLength.Points(linkY),
                             global::OfficeIMO.OfficeLength.Points(linkWidth),
@@ -234,10 +245,16 @@ internal static partial class HtmlPdfRenderedConverter {
         }
 
         if (source.Elements.Count == 0) return;
+        // An SVG image is its own surface: its blend modes must not reach the page underneath.
+        bool isolate = !visual.BlendsWithBackdrop && ContainsBlendMode(source);
+        void AddRoot(PdfCore.PdfPageCanvas target) {
+            if (isolate) target.IsolatedGroup(group => AddElements(group, source.Elements));
+            else AddElements(target, source.Elements);
+        }
         if (string.IsNullOrWhiteSpace(visual.AlternativeText)) {
-            AddElements(canvas, source.Elements);
+            AddRoot(canvas);
         } else {
-            canvas.Figure(visual.AlternativeText!, figure => AddElements(figure, source.Elements), visual.SemanticSourceOrder);
+            canvas.Figure(visual.AlternativeText!, AddRoot, visual.SemanticSourceOrder);
         }
         double linkX = visual.ImageX * PointsPerCssPixel;
         double linkY = visual.ImageY * PointsPerCssPixel;

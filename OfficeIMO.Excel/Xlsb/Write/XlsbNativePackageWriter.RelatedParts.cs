@@ -9,13 +9,14 @@ namespace OfficeIMO.Excel.Xlsb.Write;
 
 internal static partial class XlsbNativePackageWriter {
     private static void RebindTableFormulas(ZipArchive archive, XlsbSheetStructure structure, IDictionary<string, byte[]> replacements, ISet<string> deletions,
-        int maximumPartBytes, long maximumBytes) {
+        ISet<string> generated, int maximumPartBytes, long maximumBytes) {
         if (!structure.NameIndexes.Any(item => item.Value != item.Key)) return;
         using var stream = (FindEntry(archive, "[Content_Types].xml") ?? throw new InvalidDataException("Missing native XLSB content types.")).Open();
         var types = XDocument.Load(stream);
         foreach (var type in types.Root!.Elements().Where(element => (string?)element.Attribute("ContentType") == "application/vnd.ms-excel.table")) {
             string name = ((string?)type.Attribute("PartName") ?? throw new InvalidDataException("A native table part has no package name.")).TrimStart('/');
-            if (deletions.Contains(name)) continue;
+            // Re-encoded tables already use the current name indexes.
+            if (deletions.Contains(name) || generated.Contains(name)) continue;
             byte[] bytes = replacements.TryGetValue(name, out byte[]? replacement) ? replacement
                 : ReadEntry(FindEntry(archive, name) ?? throw new InvalidDataException("Missing native XLSB table part."), maximumPartBytes);
             replacements[name] = XlsbFormulaRecordRebinder.RebindPart(bytes, structure.NameIndexes, maximumBytes);

@@ -38,12 +38,12 @@ internal static partial class HtmlPdfRenderedConverter {
         HtmlRenderLogicalText.TryResolveReorderedText(visuals, out logicalText);
     private static void AddLogicalTextGroup(PdfCore.PdfPageCanvas canvas, HtmlRenderLogicalTextGroup group, RegisteredWebFonts webFonts, PdfImageResourceCache imageResources, PdfCore.PdfConversionReport conversionReport, double surfaceWidth, double surfaceHeight, bool interactiveFormControls, CancellationToken cancellationToken, bool textAsSpan, ClipBounds? activeClip, bool logicalTextOwned, HtmlPdfPagePaintContext? pagePaint) {
         void AddChildren(PdfCore.PdfPageCanvas target) {
-            foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
+            foreach (HtmlRenderVisual child in InPaintOrder(group.Visuals)) {
                 cancellationToken.ThrowIfCancellationRequested();
                 AddVisual(target, child, webFonts, imageResources, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls, cancellationToken, textAsSpan, activeClip, logicalTextOwned: true, pagePaint: pagePaint);
             }
         }
-        if (!group.Visuals.Any(child => ContainsPdfRenderableVisual(child, webFonts, surfaceWidth, surfaceHeight, activeClip, cancellationToken))) {
+        if (!ContainsPdfRenderableChild(group.Visuals, webFonts, surfaceWidth, surfaceHeight, activeClip, cancellationToken)) {
             AddChildren(canvas);
             return;
         }
@@ -93,7 +93,8 @@ internal static partial class HtmlPdfRenderedConverter {
             double logicalHeight = Math.Min(group.Height, 12D);
             ClipBounds clip = activeClip ?? new ClipBounds(0D, 0D, surfaceWidth, surfaceHeight);
             var carrier = clip.ConstrainLogicalRectangle(group.X, group.Y, group.Width, logicalHeight);
-            if (carrier.X != group.X || carrier.Y != group.Y || carrier.Width != group.Width || carrier.Height != logicalHeight) {
+            if (group.ExtractsAtPaintBounds
+                || carrier.X != group.X || carrier.Y != group.Y || carrier.Width != group.Width || carrier.Height != logicalHeight) {
                 canvas.ActualText(logicalText, carrier.X * PointsPerCssPixel, carrier.Y * PointsPerCssPixel,
                     carrier.Width * PointsPerCssPixel, carrier.Height * PointsPerCssPixel,
                     nested => nested.AddItems(content.Items), logicalOrder: group.SemanticSourceOrder);

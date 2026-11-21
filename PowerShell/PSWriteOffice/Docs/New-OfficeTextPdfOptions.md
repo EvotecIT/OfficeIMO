@@ -6,7 +6,7 @@ schema: 2.0.0
 ---
 # New-OfficeTextPdfOptions
 ## SYNOPSIS
-Creates literal text decoding and PDF layout settings for Export-OfficeDocumentPdf.
+Creates literal text decoding and PDF layout settings for Convert-OfficeDocument -To Pdf.
 
 ## SYNTAX
 ### Default (Default)
@@ -15,14 +15,14 @@ New-OfficeTextPdfOptions [-Encoding <string>] [-TabSize <int>] [-MaximumCharacte
 ```
 
 ## DESCRIPTION
-Creates literal text decoding and PDF layout settings for Export-OfficeDocumentPdf.
+Pass the result to Convert-OfficeDocument -Options when converting plain text files to PDF.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $options = New-OfficeTextPdfOptions -EncodingName utf-16 -TabSize 4
-Export-OfficeDocumentPdf -InputPath .\Report.txt -Path .\Report.pdf -TextOptions $options
+PS> $options = New-OfficeTextPdfOptions -Encoding utf-16 -TabSize 4
+Convert-OfficeDocument -To Pdf -Path .\Report.txt -OutputPath .\Report.pdf -Options $options
 ```
 
 

@@ -5,8 +5,7 @@ namespace OfficeIMO.Word.Pdf;
 public static partial class WordPdfConverterExtensions {
     private static bool GetNativeParagraphHiddenDefault(WordParagraph paragraph) =>
         GetNativeParagraphStyleDefaults(paragraph).Hidden ??
-        ReadNativeOnOff(paragraph._document._wordprocessingDocument.MainDocumentPart?
-            .StyleDefinitionsPart?.Styles?.DocDefaults?.RunPropertiesDefault?
+        ReadNativeOnOff(WordStyleCatalog.For(paragraph._document).DocumentDefaults?.RunPropertiesDefault?
             .RunPropertiesBaseStyle?.GetFirstChild<W.Vanish>()) ?? false;
 
     private static bool ShouldRenderNativeEmptyParagraphLineBox(WordParagraph paragraph) {

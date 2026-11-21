@@ -119,6 +119,45 @@ public sealed class PdfAttachmentEditSession {
         return this;
     }
 
+    /// <summary>
+    /// Replaces the collection in one step. A target with an existing index keeps that entry's source identity,
+    /// so its content links survive a rename; a target without one is a new file.
+    /// </summary>
+    internal PdfAttachmentEditSession Recompose(IReadOnlyList<(int? ExistingIndex, PdfEmbeddedFile Attachment)> target) {
+        Guard.NotNull(target, nameof(target));
+        var attachments = new List<PdfEmbeddedFile>(target.Count);
+        var identities = new List<PdfAttachmentSourceIdentity>(target.Count);
+        var retainedNames = new Dictionary<string, string>(StringComparer.Ordinal);
+        var names = new HashSet<string>(StringComparer.Ordinal);
+        var retainedIndexes = new HashSet<int>();
+        long totalBytes = 0;
+        foreach ((int? existingIndex, PdfEmbeddedFile attachment) in target) {
+            Guard.NotNull(attachment, nameof(target));
+            if (!names.Add(attachment.FileName)) throw new ArgumentException("A PDF attachment with this file name already exists: " + attachment.FileName, nameof(target));
+            if (attachment.ByteLength > _maximumAttachmentBytes - totalBytes)
+                throw PdfReadLimitException.Create(PdfReadLimitKind.AttachmentBytes, _maximumAttachmentBytes, totalBytes + attachment.ByteLength);
+            totalBytes += attachment.ByteLength;
+            attachments.Add(attachment.Clone());
+            if (existingIndex is int index) {
+                ArgumentOutOfRangeException.ThrowIfNegative(index);
+                ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, _attachments.Count);
+                if (!retainedIndexes.Add(index)) throw new ArgumentException("An existing PDF attachment can be retained only once.", nameof(target));
+                identities.Add(_sourceIdentities[index]);
+                string currentName = _attachments[index].FileName;
+                string? originalName = _retainedOriginalNames.FirstOrDefault(pair => string.Equals(pair.Value, currentName, StringComparison.Ordinal)).Key;
+                if (originalName != null && !retainedNames.ContainsKey(originalName)) retainedNames.Add(originalName, attachment.FileName);
+            } else {
+                identities.Add(new PdfAttachmentSourceIdentity(0, 0));
+            }
+        }
+        _attachments.Clear(); _attachments.AddRange(attachments);
+        _sourceIdentities.Clear(); _sourceIdentities.AddRange(identities);
+        _retainedOriginalNames.Clear();
+        foreach (var pair in retainedNames) _retainedOriginalNames.Add(pair.Key, pair.Value);
+        _totalAttachmentBytes = totalBytes;
+        return this;
+    }
+
     internal IReadOnlyList<PdfEmbeddedFile> Snapshot() => _attachments.Select(static file => file.Clone()).ToArray();
     internal IReadOnlyList<PdfAttachmentEditEntry> SnapshotEntries() => _attachments
         .Select((file, index) => new PdfAttachmentEditEntry(file.Clone(), _sourceIdentities[index]))

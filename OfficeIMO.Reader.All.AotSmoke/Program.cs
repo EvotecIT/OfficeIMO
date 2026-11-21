@@ -33,6 +33,7 @@ string[] requiredHandlers = {
     "officeimo.reader.publisher",
     "officeimo.reader.rtf",
     "officeimo.reader.subtitles",
+    "officeimo.reader.toml",
     "officeimo.reader.visio",
     "officeimo.reader.word",
     "officeimo.reader.xml",
@@ -54,6 +55,13 @@ if (!chunks.Any(chunk => chunk.Kind == ReaderInputKind.Csv && chunk.Tables is { 
     throw new InvalidOperationException("The NativeAOT all-formats reader lost structured CSV extraction.");
 }
 
+const string toml = "[project]\nname = \"smoke\"\nversion = 0x10\n";
+OfficeDocumentReadResult tomlResult = reader.ReadDocument(Encoding.UTF8.GetBytes(toml), "pyproject.toml");
+if (tomlResult.Kind != ReaderInputKind.Toml ||
+    !tomlResult.Chunks.Any(chunk => chunk.Tables?.Any(table => table.Rows.Any(row => row[0] == "$.project.version" && row[2] == "0x10")) == true)) {
+    throw new InvalidOperationException("The NativeAOT all-formats reader lost TOML path rows.");
+}
+
 string pagesPath = Path.Combine(AppContext.BaseDirectory, "simple.pages");
 OfficeDocumentReadResult pages = reader.ReadDocument(pagesPath);
 if (pages.Kind != ReaderInputKind.IWork ||
@@ -71,7 +79,7 @@ RequireText(ReadFixture("Test_Document.xps", ReaderInputKind.Xps), "This is a te
 RequireText(ReadFixture("svnbook-ms-htmlhelp.chm", ReaderInputKind.Chm), "Subversion", "CHM topic text");
 RequireText(ReadFixture("Simple.pub", ReaderInputKind.Publisher), "0123456789abcdef", "Publisher story text");
 
-Console.WriteLine($"PASS | Reader all-formats preset registered {capabilities.Length} in-process handlers and extracted CSV, Pages, DBF, DjVu, XPS, CHM and Publisher");
+Console.WriteLine($"PASS | Reader all-formats preset registered {capabilities.Length} in-process handlers and extracted CSV, TOML, Pages, DBF, DjVu, XPS, CHM and Publisher");
 
 OfficeDocumentReadResult ReadFixture(string fileName, ReaderInputKind expectedKind) {
     OfficeDocumentReadResult result = reader.ReadDocument(Path.Combine(AppContext.BaseDirectory, fileName));

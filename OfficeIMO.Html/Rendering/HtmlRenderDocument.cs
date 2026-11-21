@@ -13,7 +13,12 @@ public sealed class HtmlRenderDocument : OfficeConversionReport {
     private readonly HtmlDiagnosticReport _diagnosticReport;
     private readonly IReadOnlyDictionary<int, HtmlRenderBookmarkDefinition>? _bookmarks;
 
-    internal HtmlRenderDocument(HtmlRenderMode mode, IEnumerable<HtmlRenderPage> pages, HtmlDiagnosticReport diagnostics, OfficeFontFaceCollection? fonts = null, HtmlRenderMetadata? metadata = null, IReadOnlyDictionary<int, HtmlRenderBookmarkDefinition>? bookmarks = null, int? sourceImagesMissingNames = null) {
+    internal HtmlRenderDocument(HtmlRenderMode mode, IEnumerable<HtmlRenderPage> pages, HtmlDiagnosticReport diagnostics, OfficeFontFaceCollection? fonts = null, HtmlRenderMetadata? metadata = null, IReadOnlyDictionary<int, HtmlRenderBookmarkDefinition>? bookmarks = null, int? sourceImagesMissingNames = null)
+        : this(mode, pages, diagnostics, fonts, metadata, bookmarks, sourceImagesMissingNames, headings: null) {
+    }
+
+    // A copy over the same pages keeps their headings instead of walking the visuals again.
+    private HtmlRenderDocument(HtmlRenderMode mode, IEnumerable<HtmlRenderPage> pages, HtmlDiagnosticReport diagnostics, OfficeFontFaceCollection? fonts, HtmlRenderMetadata? metadata, IReadOnlyDictionary<int, HtmlRenderBookmarkDefinition>? bookmarks, int? sourceImagesMissingNames, ReadOnlyCollection<HtmlRenderHeading>? headings) {
         Mode = mode;
         _pages = new List<HtmlRenderPage>(pages ?? throw new ArgumentNullException(nameof(pages))).AsReadOnly();
         if (_pages.Count == 0) {
@@ -39,7 +44,7 @@ public sealed class HtmlRenderDocument : OfficeConversionReport {
         _bookmarks = bookmarks;
         SourceImagesMissingNames = sourceImagesMissingNames;
         Metadata = metadata ?? new HtmlRenderMetadata(null, null);
-        _headings = BuildHeadings(_pages, bookmarks).AsReadOnly();
+        _headings = headings ?? BuildHeadings(_pages, bookmarks).AsReadOnly();
     }
 
     /// <summary>Layout mode used to produce the result.</summary>
@@ -73,7 +78,7 @@ public sealed class HtmlRenderDocument : OfficeConversionReport {
     internal int? SourceImagesMissingNames { get; }
 
     internal HtmlRenderDocument WithSourceAccessibilityEvidence(int imagesMissingNames) =>
-        new(Mode, _pages, _diagnosticReport, _fonts, Metadata, _bookmarks, imagesMissingNames);
+        new(Mode, _pages, _diagnosticReport, _fonts, Metadata, _bookmarks, imagesMissingNames, _headings);
 
     /// <summary>Independent snapshot of scoped font faces retained for image and PDF backends.</summary>
     public OfficeFontFaceCollection Fonts => _fonts.Clone();
@@ -94,7 +99,7 @@ public sealed class HtmlRenderDocument : OfficeConversionReport {
         ArgumentNullException.ThrowIfNull(diagnostics);
         HtmlDiagnosticReport report = _diagnosticReport.Clone();
         report.AddRange(diagnostics);
-        return new HtmlRenderDocument(Mode, _pages, report, _fonts, Metadata, _bookmarks, SourceImagesMissingNames);
+        return new HtmlRenderDocument(Mode, _pages, report, _fonts, Metadata, _bookmarks, SourceImagesMissingNames, _headings);
     }
 
     private static IEnumerable<string> EnumerateLogicalText(IEnumerable<HtmlRenderVisual> visuals) {
@@ -247,7 +252,7 @@ public sealed class HtmlRenderDocument : OfficeConversionReport {
         }
     }
 
-    private static IEnumerable<HtmlRenderVisual>? ChildVisuals(HtmlRenderVisual visual) => visual is HtmlRenderClipGroup clipGroup
+    private static IReadOnlyList<HtmlRenderVisual>? ChildVisuals(HtmlRenderVisual visual) => visual is HtmlRenderClipGroup clipGroup
         ? clipGroup.Visuals
         : visual is HtmlRenderPathClipGroup pathClipGroup
             ? pathClipGroup.Visuals
@@ -259,15 +264,17 @@ public sealed class HtmlRenderDocument : OfficeConversionReport {
 
     private static List<HtmlRenderHeading> BuildHeadings(IReadOnlyList<HtmlRenderPage> pages, IReadOnlyDictionary<int, HtmlRenderBookmarkDefinition>? bookmarks) {
         var fragments = new List<(int NodeId, int Level, string Text, int PageNumber, double X, double Y, int Order, int? LogicalOrder, bool IsAnchor)>();
+        var anchors = new List<(HtmlRenderBookmarkAnchor Anchor, OfficePoint Point)>();
+        var texts = new List<HtmlRenderTextFragment>();
         foreach (HtmlRenderPage page in pages) {
-            var anchors = new List<(HtmlRenderBookmarkAnchor Anchor, OfficePoint Point)>();
+            anchors.Clear();
             CollectBookmarkAnchors(page.Scene, OfficeTransform.Identity, anchors);
             foreach (var (anchor, point) in anchors) {
                 if (bookmarks == null || !bookmarks.TryGetValue(anchor.SemanticNodeId, out HtmlRenderBookmarkDefinition? definition) || definition.Suppressed) continue;
                 fragments.Add((anchor.SemanticNodeId, definition.Level, anchor.Text, page.PageNumber, point.X, point.Y, anchor.PaintOrder, null, true));
             }
-            var texts = new List<HtmlRenderTextFragment>();
-            CollectTextFragments(page.Scene, OfficeTransform.Identity, texts);
+            texts.Clear();
+            CollectTextFragments(page.Scene, OfficeTransform.Identity, texts, bookmarks);
             foreach (HtmlRenderTextFragment text in texts) {
                 if (!text.SemanticNodeId.HasValue) continue;
                 bool automatic = HtmlRenderHeading.TryGetLevel(text.SemanticRole, out int level);
@@ -309,32 +316,66 @@ public sealed class HtmlRenderDocument : OfficeConversionReport {
         return headings;
     }
 
-    // Collected into one list rather than nested iterators: every page visual is visited.
+    // Collected into one list rather than nested iterators: every page visual is visited. The walk
+    // keeps its own stack, so it does not depend on the caller's thread stack for deep documents.
     private static void CollectBookmarkAnchors(
-        IEnumerable<HtmlRenderVisual> visuals, OfficeTransform transform,
+        IReadOnlyList<HtmlRenderVisual> visuals, OfficeTransform transform,
         List<(HtmlRenderBookmarkAnchor Anchor, OfficePoint Point)> anchors) {
-        foreach (HtmlRenderVisual visual in visuals) {
+        var pending = new Stack<VisualWalkFrame>();
+        pending.Push(new VisualWalkFrame(visuals, transform));
+        while (pending.Count > 0) {
+            VisualWalkFrame frame = pending.Pop();
+            if (frame.Index >= frame.Visuals.Count) continue;
+            HtmlRenderVisual visual = frame.Visuals[frame.Index];
+            pending.Push(frame.Next());
             if (visual is HtmlRenderSemanticGroup { Role: HtmlRenderSemanticGroupRole.Artifact }) continue;
             if (visual is HtmlRenderBookmarkAnchor anchor) {
-                anchors.Add((anchor, transform.TransformPoint(new OfficePoint(anchor.X, anchor.Y))));
+                anchors.Add((anchor, frame.Transform.TransformPoint(new OfficePoint(anchor.X, anchor.Y))));
             }
-            IEnumerable<HtmlRenderVisual>? children = ChildVisuals(visual);
+            IReadOnlyList<HtmlRenderVisual>? children = ChildVisuals(visual);
             if (children == null) continue;
-            OfficeTransform childTransform = visual is HtmlRenderEffectGroup effect
-                ? effect.Transform.Then(transform) : transform;
-            CollectBookmarkAnchors(children, childTransform, anchors);
+            pending.Push(new VisualWalkFrame(children, visual is HtmlRenderEffectGroup effect
+                ? effect.Transform.Then(frame.Transform) : frame.Transform));
         }
     }
 
+    private readonly struct VisualWalkFrame {
+        internal VisualWalkFrame(IReadOnlyList<HtmlRenderVisual> visuals, OfficeTransform transform, int index = 0) {
+            Visuals = visuals;
+            Transform = transform;
+            Index = index;
+        }
+
+        internal IReadOnlyList<HtmlRenderVisual> Visuals { get; }
+        internal OfficeTransform Transform { get; }
+        internal int Index { get; }
+
+        internal VisualWalkFrame Next() => new(Visuals, Transform, Index + 1);
+    }
+
+    // Only fragments that can name a heading are kept: an automatic heading role or a bookmark definition.
+    private static bool CanNameHeading(string? semanticRole, int? semanticNodeId,
+        IReadOnlyDictionary<int, HtmlRenderBookmarkDefinition>? bookmarks) =>
+        semanticNodeId.HasValue
+        && (HtmlRenderHeading.TryGetLevel(semanticRole, out _) || bookmarks != null && bookmarks.ContainsKey(semanticNodeId.Value));
+
     private static void CollectTextFragments(
-        IEnumerable<HtmlRenderVisual> visuals, OfficeTransform transform, List<HtmlRenderTextFragment> fragments) {
-        foreach (HtmlRenderVisual visual in InPaintOrder(visuals)) {
+        IReadOnlyList<HtmlRenderVisual> visuals, OfficeTransform transform, List<HtmlRenderTextFragment> fragments,
+        IReadOnlyDictionary<int, HtmlRenderBookmarkDefinition>? bookmarks) {
+        var pending = new Stack<VisualWalkFrame>();
+        pending.Push(new VisualWalkFrame(InPaintOrder(visuals), transform));
+        while (pending.Count > 0) {
+            VisualWalkFrame frame = pending.Pop();
+            if (frame.Index >= frame.Visuals.Count) continue;
+            HtmlRenderVisual visual = frame.Visuals[frame.Index];
+            pending.Push(frame.Next());
+            transform = frame.Transform;
             if (visual is HtmlRenderSemanticGroup { Role: HtmlRenderSemanticGroupRole.Artifact }) {
                 continue;
             }
             if (visual is HtmlRenderLogicalTextGroup logicalTextGroup) {
                 HtmlRenderText? representative = EnumerateVisuals(logicalTextGroup.Visuals).OfType<HtmlRenderText>().FirstOrDefault();
-                if (representative != null) {
+                if (representative != null && CanNameHeading(representative.SemanticRole, representative.SemanticNodeId, bookmarks)) {
                     OfficePoint point = transform.TransformPoint(new OfficePoint(logicalTextGroup.X, logicalTextGroup.Y));
                     fragments.Add(new HtmlRenderTextFragment(
                         logicalTextGroup.Text,
@@ -348,27 +389,24 @@ public sealed class HtmlRenderDocument : OfficeConversionReport {
                 continue;
             }
             if (visual is HtmlRenderText text) {
+                if (!CanNameHeading(text.SemanticRole, text.SemanticNodeId, bookmarks)) continue;
                 OfficePoint point = transform.TransformPoint(new OfficePoint(text.X, text.Y));
                 fragments.Add(new HtmlRenderTextFragment(text.Text, text.SemanticRole, text.SemanticNodeId, point.X, point.Y, text.PaintOrder, text.SemanticFragmentOrder));
                 continue;
             }
 
-            IEnumerable<HtmlRenderVisual>? children = ChildVisuals(visual);
+            IReadOnlyList<HtmlRenderVisual>? children = ChildVisuals(visual);
             if (children == null) continue;
-            OfficeTransform childTransform = visual is HtmlRenderEffectGroup effect
-                ? effect.Transform.Then(transform) : transform;
-            CollectTextFragments(children, childTransform, fragments);
+            pending.Push(new VisualWalkFrame(InPaintOrder(children), visual is HtmlRenderEffectGroup effect
+                ? effect.Transform.Then(transform) : transform));
         }
     }
 
     // Child lists are normally already in paint order; OrderBy is stable, so skip it then.
-    private static IEnumerable<HtmlRenderVisual> InPaintOrder(IEnumerable<HtmlRenderVisual> visuals) {
-        if (visuals is IReadOnlyList<HtmlRenderVisual> list) {
-            bool ordered = true;
-            for (int index = 1; index < list.Count && ordered; index++) ordered = list[index - 1].PaintOrder <= list[index].PaintOrder;
-            if (ordered) return list;
-        }
-        return visuals.OrderBy(item => item.PaintOrder);
+    private static IReadOnlyList<HtmlRenderVisual> InPaintOrder(IReadOnlyList<HtmlRenderVisual> visuals) {
+        bool ordered = true;
+        for (int index = 1; index < visuals.Count && ordered; index++) ordered = visuals[index - 1].PaintOrder <= visuals[index].PaintOrder;
+        return ordered ? visuals : visuals.OrderBy(item => item.PaintOrder).ToArray();
     }
 
     private readonly struct HtmlRenderTextFragment {

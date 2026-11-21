@@ -105,10 +105,11 @@ public sealed class PdfConversionScenarioManifestTests {
 
         Assert.Contains("AsciiDoc direct PDF proof", text, StringComparison.Ordinal);
         Assert.Contains("Semantic route marker", text, StringComparison.Ordinal);
-        Assert.Contains(projection.Diagnostics, diagnostic => diagnostic.Code == "ADOCMD103");
+        Assert.DoesNotContain(projection.Diagnostics, diagnostic => diagnostic.Code == "ADOCMD103");
         Assert.DoesNotContain(result.Warnings, warning =>
             warning.Details.TryGetValue("stage", out string? stage) && stage == "semantic-projection");
-        Assert.True(result.HasLoss);
+        // A host without an installed math font keeps the formula as visible source and reports that loss.
+        Assert.Equal(result.Warnings.Any(warning => warning.Code == "math-font-unavailable"), result.HasLoss);
 
         WriteReviewArtifact("asciidoc-direct-semantic-document.pdf", pdf);
     }
@@ -133,7 +134,6 @@ public sealed class PdfConversionScenarioManifestTests {
 
         Assert.Contains("LaTeX direct PDF proof", text, StringComparison.Ordinal);
         Assert.Contains("Semantic route marker", text, StringComparison.Ordinal);
-        Assert.Contains(projection.Diagnostics, diagnostic => diagnostic.Code == "LATEXMD101");
         Assert.Contains(projection.Diagnostics, diagnostic => diagnostic.Code == "LATEXMD102");
         Assert.True(result.HasLoss);
 
@@ -948,7 +948,8 @@ public sealed class PdfConversionScenarioManifestTests {
         string text = chunk.Markdown ?? chunk.Text;
         Assert.Contains("Reader Degradation Corpus", text, StringComparison.Ordinal);
         Assert.Contains("Accepted degradation marker", text, StringComparison.Ordinal);
-        Assert.Contains("Form and active-content marker", text, StringComparison.Ordinal);
+        // The review link covers this line, so the default Reader profile writes it as a Markdown link on that text.
+        Assert.Contains("[Form and active-content marker](https://example.com/reader-degradation)", text, StringComparison.Ordinal);
         Assert.DoesNotContain("app.alert", text, StringComparison.Ordinal);
         Assert.Contains(logical.GetLinksByUri("https://example.com/reader-degradation"), link => link.Contents == "Review link");
         Assert.NotNull(chunk.FormFields);

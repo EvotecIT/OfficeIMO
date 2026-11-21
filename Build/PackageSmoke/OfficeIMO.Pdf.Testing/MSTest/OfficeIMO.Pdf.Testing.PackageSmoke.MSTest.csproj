@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\PdfTesting.PackageSmoke.props" />
+  <ItemGroup>
+    <PackageReference Include="MSTest.TestFramework" Version="4.5.2" />
+    <PackageReference Include="MSTest.TestAdapter" Version="4.5.2" />
+  </ItemGroup>
+</Project>

@@ -61,11 +61,11 @@ internal sealed partial class ExcelSheetReader {
             };
             try {
                 if (lengthToCopy > 0) Buffer.BlockCopy(_buffer!, minimum, buffer, 0, lengthToCopy);
-                target._rowIndexes = ArrayPool<int>.Shared.Rent(Math.Max(1, count));
+                target._rowIndexes = ExcelArrayPool.RentInts(Math.Max(1, count));
                 int cells = checked(Math.Max(1, count) * fieldCount);
-                target._valueStarts = ArrayPool<int>.Shared.Rent(cells);
-                target._valueLengths = ArrayPool<int>.Shared.Rent(cells);
-                target._cellKinds = ArrayPool<byte>.Shared.Rent(cells);
+                target._valueStarts = ExcelArrayPool.RentInts(cells);
+                target._valueLengths = ExcelArrayPool.RentInts(cells);
+                target._cellKinds = ExcelArrayPool.RentBytes(cells);
                 physical = firstPhysical;
                 for (int row = 0; row < count; row++) {
                     ct.ThrowIfCancellationRequested();

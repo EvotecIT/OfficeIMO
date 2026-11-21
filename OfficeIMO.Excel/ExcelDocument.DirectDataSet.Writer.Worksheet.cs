@@ -22,7 +22,7 @@ namespace OfficeIMO.Excel {
                 if (!string.IsNullOrEmpty(metadata?.SheetViewsXml)) {
                     writer.Write(metadata!.SheetViewsXml);
                 } else {
-                    writer.Write(ExcelSheet.CreateDefaultSheetViews().OuterXml);
+                    writer.Write(ExcelSheet.DefaultSheetViewsXml);
                 }
 
                 if (!string.IsNullOrEmpty(metadata?.SheetFormatPropertiesXml)) {
@@ -77,6 +77,11 @@ namespace OfficeIMO.Excel {
                     rowIndex += rowCount;
                 } else if (hasInlineOverlayCells) {
                     WriteDirectValueRows(writer, sheet, rowCount, columnCount, rowIndex, cellReferencePrefixes, styleAttributes, cellValueKinds, valueStyleColumns, stylePlan, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings, ct, overlayCellsByRow);
+                    rowIndex += rowCount;
+                } else if (sheet.Table.TypedCells is { } typedCells
+                    && typedCells.ColumnCount == columnCount
+                    && typedCells.RowCount == rowCount) {
+                    WriteTypedCellRows(writer, sheet, typedCells, rowIndex, cellReferencePrefixes, styleAttributes, cellValueKinds, valueStyleColumns, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings, ct);
                     rowIndex += rowCount;
                 } else if (hasBufferedRows
                     && !sheet.OmitBlankCells

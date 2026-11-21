@@ -11,7 +11,18 @@ namespace OfficeIMO.Word;
 internal static partial class WordRunFormatting {
     /// <summary>Resolves run shading, including theme colors and a blended fill for shading patterns.</summary>
     internal static string? ResolveRunShadingFillColorHex(WordParagraph paragraph) {
-        return ResolveShadingFillColorHex(ResolveRunShading(paragraph), paragraph._document);
+        RunPaintConversion? conversion = RunPaintConversions.Value;
+        if (conversion == null || paragraph._paragraph == null) {
+            return ResolveShadingFillColorHex(ResolveRunShading(paragraph), paragraph._document);
+        }
+
+        var key = new RunPaintKey(GetDirectRunProperties(paragraph), paragraph.CharacterStyleId, paragraph._paragraph);
+        lock (conversion.RunShadings) {
+            if (conversion.RunShadings.TryGetValue(key, out string? cached)) return cached;
+        }
+        string? resolved = ResolveShadingFillColorHex(ResolveRunShading(paragraph), paragraph._document);
+        lock (conversion.RunShadings) conversion.RunShadings[key] = resolved;
+        return resolved;
     }
 
     /// <summary>Resolves an authored table, cell or run fill against its document theme without changing its XML.</summary>
@@ -43,11 +54,28 @@ internal static partial class WordRunFormatting {
         ResolveThemeColor(border.ThemeColor?.InnerText, border.ThemeTint?.Value, border.ThemeShade?.Value,
             GetLiveColorScheme(document)) ?? border.Color?.Value;
 
+    /// <summary>Resolves a theme colour selector with its tint and shade against the document's current theme.</summary>
+    internal static string? ResolveThemeColorHex(string? themeColor, string? tint, string? shade, WordDocument? document) =>
+        ResolveThemeColor(themeColor, tint, shade, GetLiveColorScheme(document));
+
     private static A.ColorScheme? GetLiveColorScheme(WordDocument? document) =>
         document?._wordprocessingDocument?.MainDocumentPart?.ThemePart?.Theme?.ThemeElements?.ColorScheme;
 
     /// <summary>Resolves direct and styled highlighting, then table style and document defaults; explicit none stops inheritance.</summary>
     internal static HighlightColorValues? ResolveRunHighlight(WordParagraph paragraph, HighlightColorValues? tableStyleHighlight = null) {
+        RunPaintConversion? conversion = RunPaintConversions.Value;
+        if (conversion == null || paragraph._paragraph == null) return ResolveRunHighlightCore(paragraph, tableStyleHighlight);
+
+        var key = (new RunPaintKey(GetDirectRunProperties(paragraph), paragraph.CharacterStyleId, paragraph._paragraph), tableStyleHighlight);
+        lock (conversion.RunHighlights) {
+            if (conversion.RunHighlights.TryGetValue(key, out HighlightColorValues? cached)) return cached;
+        }
+        HighlightColorValues? resolved = ResolveRunHighlightCore(paragraph, tableStyleHighlight);
+        lock (conversion.RunHighlights) conversion.RunHighlights[key] = resolved;
+        return resolved;
+    }
+
+    private static HighlightColorValues? ResolveRunHighlightCore(WordParagraph paragraph, HighlightColorValues? tableStyleHighlight) {
         foreach (OpenXmlCompositeElement properties in EnumerateRunPropertySources(paragraph, includeDocumentDefaults: false)) {
             HighlightColorValues? highlight = ReadRunHighlight(properties);
             if (highlight.HasValue) return highlight;
@@ -101,14 +129,19 @@ internal static partial class WordRunFormatting {
     }
 
     private static RunPropertiesBaseStyle? GetDocumentDefaultRunProperties(WordParagraph paragraph) =>
-        paragraph._document?._wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart?.Styles?
-            .DocDefaults?.RunPropertiesDefault?.RunPropertiesBaseStyle;
+        paragraph._document == null ? null
+            : WordStyleCatalog.For(paragraph._document).DocumentDefaults?.RunPropertiesDefault?.RunPropertiesBaseStyle;
 
     /// <summary>Enumerates character-style then paragraph-style run properties, each in override order.</summary>
     internal static IEnumerable<StyleRunProperties> EnumerateRunStyleProperties(WordParagraph paragraph) {
-        Styles? styles = paragraph._document?._wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart?.Styles;
-        foreach (Style style in EnumerateStyleChain(styles, paragraph.CharacterStyleId, StyleValues.Character)
-                     .Concat(EnumerateStyleChain(styles, paragraph.StyleId, StyleValues.Paragraph))) {
+        if (paragraph._document == null) yield break;
+        WordStyleCatalog styles = WordStyleCatalog.For(paragraph._document);
+        foreach (Style style in GetStyleChain(styles, paragraph.CharacterStyleId, StyleValues.Character)) {
+            if (style.StyleRunProperties != null) {
+                yield return style.StyleRunProperties;
+            }
+        }
+        foreach (Style style in GetStyleChain(styles, paragraph.StyleId, StyleValues.Paragraph)) {
             if (style.StyleRunProperties != null) {
                 yield return style.StyleRunProperties;
             }
@@ -119,27 +152,8 @@ internal static partial class WordRunFormatting {
     /// Enumerates a style and its ancestors in override order, using the default style only when no ID is supplied.
     /// Missing styles, mismatched style types, and inheritance cycles terminate the chain.
     /// </summary>
-    internal static IEnumerable<Style> EnumerateStyleChain(Styles? styles, string? styleId, StyleValues expectedType) {
-        if (styles == null) yield break;
-        if (string.IsNullOrWhiteSpace(styleId))
-            styleId = styles.Elements<Style>().FirstOrDefault(style =>
-                style.Type?.Value == expectedType && style.Default?.Value == true)?.StyleId?.Value;
-        if (string.IsNullOrWhiteSpace(styleId)) yield break;
-
-        HashSet<string> visited = new HashSet<string>(StringComparer.Ordinal);
-        while (!string.IsNullOrWhiteSpace(styleId) && visited.Add(styleId!)) {
-            Style? style = styles.Elements<Style>()
-                .FirstOrDefault(candidate =>
-                    string.Equals(candidate.StyleId?.Value, styleId, StringComparison.Ordinal) &&
-                    (candidate.Type == null || !candidate.Type.HasValue || candidate.Type.Value == expectedType));
-            if (style == null) {
-                yield break;
-            }
-
-            yield return style;
-            styleId = style.BasedOn?.Val?.Value;
-        }
-    }
+    internal static IEnumerable<Style> EnumerateStyleChain(Styles? styles, string? styleId, StyleValues expectedType) =>
+        WordStyleCatalog.ForLoaded(styles).EnumerateChain(styleId, expectedType);
 
     private static bool TryResolveShadingFillColor(
         Shading? shading,

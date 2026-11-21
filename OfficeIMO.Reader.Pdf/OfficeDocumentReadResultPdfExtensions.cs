@@ -246,6 +246,7 @@ public static class OfficeDocumentReadResultPdfExtensions {
         ReaderInputKind.Epub => OfficeDocumentFormat.Epub,
         ReaderInputKind.Visio => OfficeDocumentFormat.Visio,
         ReaderInputKind.Yaml => OfficeDocumentFormat.Yaml,
+        ReaderInputKind.Toml => OfficeDocumentFormat.Toml,
         ReaderInputKind.Rtf => OfficeDocumentFormat.Rtf,
         ReaderInputKind.OpenDocument => OfficeDocumentFormat.OpenDocument,
         ReaderInputKind.AsciiDoc => OfficeDocumentFormat.AsciiDoc,

@@ -198,8 +198,7 @@ internal static partial class PdfComplianceAnalyzer {
                 }
 
                 PdfStandardFont standardFont = usage.StandardFont.Value;
-                IReadOnlyDictionary<PdfStandardFont, PdfEmbeddedFont> scopedEmbeddedFonts = usage.Options.EmbeddedFonts;
-                if (!scopedEmbeddedFonts.TryGetValue(standardFont, out PdfEmbeddedFont? embeddedFont)) {
+                if (!usage.Options.TryGetEmbeddedStandardFont(standardFont, out PdfEmbeddedFont? embeddedFont) || embeddedFont == null) {
                     AddMissingFont(missingFonts, standardFont.ToBaseFontName());
                     continue;
                 }
@@ -209,10 +208,9 @@ internal static partial class PdfComplianceAnalyzer {
                 }
             }
         } else {
-            IReadOnlyDictionary<PdfStandardFont, PdfEmbeddedFont> embeddedFonts = options.EmbeddedFonts;
             for (int i = 0; i < generatedStandardFonts.Length; i++) {
                 PdfStandardFont font = generatedStandardFonts[i];
-                if (!embeddedFonts.TryGetValue(font, out PdfEmbeddedFont? embeddedFont)) {
+                if (!options.TryGetEmbeddedStandardFont(font, out PdfEmbeddedFont? embeddedFont) || embeddedFont == null) {
                     AddMissingFont(missingFonts, font.ToBaseFontName());
                     continue;
                 }

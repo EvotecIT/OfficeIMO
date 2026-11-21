@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Opt-in comparison runner, outside the solution: editable-workbook workloads at scale (large writes, many styles,
+    merges, conditional formatting and validation, names and tables, recalculation, autofit, preserving charts,
+    images and pivot caches) against the libraries that do the same work. Each run measures one library and one
+    workload in its own process, so the reported peak working set belongs to that workload.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <!-- NPOI's build target warns, without a warning code, unless AcceptNPOIOSMFLicense is true. The property only
+         silences that warning; the project does not accept NPOI's OSMF binary terms for anyone. NPOI itself is
+         Apache-2.0 and open in Build/benchmark-libraries.json. The warning does not fail the build. -->
+    <RunAnalyzers>false</RunAnalyzers>
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ClosedXML" Version="0.105.1" />
+    <PackageReference Include="EPPlus" Version="8.7.2" />
+    <PackageReference Include="NPOI" Version="2.8.1" />
+    <PackageReference Include="XLibur.Bundle" Version="0.800.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../OfficeIMO.Excel/OfficeIMO.Excel.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="../BenchmarkLibrarySelection.cs" Link="Shared/BenchmarkLibrarySelection.cs" />
+  </ItemGroup>
+</Project>

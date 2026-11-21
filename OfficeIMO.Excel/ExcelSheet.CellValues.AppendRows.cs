@@ -238,6 +238,10 @@ namespace OfficeIMO.Excel {
             object? value,
             ref Dictionary<string, int>? sharedStringIndexes,
             bool useDirectStringCells) {
+            if (CoerceValueHelper.TryGetWideNumberText(value, out string wideNumberText)) {
+                value = wideNumberText;
+            }
+
             (CellValue cellValue, DocumentFormat.OpenXml.Spreadsheet.CellValues cellType) = value switch {
                 null => CoerceValueHelper.HandleEmptyString(),
                 DBNull => CoerceValueHelper.HandleEmptyString(),

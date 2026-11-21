@@ -106,9 +106,9 @@ namespace OfficeIMO.Excel {
                     if (sLocal.EndsWith("%", StringComparison.Ordinal)) {
                         var val = sLocal.Substring(0, sLocal.Length - 1);
                         if (double.TryParse(val, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var pInv))
-                            return new ExcelCellValue((decimal)(pInv / 100.0));
+                            return new ExcelCellValue(OfficeDecimalConversion.FromDouble(pInv / 100.0));
                         if (double.TryParse(val, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.CurrentCulture, out var pCur))
-                            return new ExcelCellValue((decimal)(pCur / 100.0));
+                            return new ExcelCellValue(OfficeDecimalConversion.FromDouble(pCur / 100.0));
                     }
 
                     // ISO date

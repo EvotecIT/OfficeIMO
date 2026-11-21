@@ -477,8 +477,9 @@ namespace OfficeIMO.PowerPoint {
             packageStream.Position = 0;
 
             try {
-                PresentationDocument document = PresentationDocument.Open(
-                    packageStream, editable, CreateOpenSettings(options.OpenSettings));
+                PresentationDocument document = editable
+                    ? PresentationDocument.Open(packageStream, true, CreateOpenSettings(options.OpenSettings))
+                    : OfficeIMO.OpenXml.Internal.OfficeOpenXmlReadOnlyPackage.OpenPresentation(packageStream, CreateOpenSettings(options.OpenSettings));
                 bool hasSignature = PowerPointPackageFingerprint
                     .HasSignatureAndEnsurePackageXmlWithinLimit(document);
                 var presentation = new PowerPointDocument(document, filePath ?? string.Empty, isNewDocument: false) {

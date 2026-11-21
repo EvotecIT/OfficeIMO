@@ -9,6 +9,7 @@ internal sealed class MarkdownReaderPipeline {
     private static readonly IMarkdownBlockParser QuoteParser = new MarkdownReader.QuoteParser();
     private static readonly IMarkdownBlockParser CustomContainerParser = new MarkdownReader.CustomContainerParser();
     private static readonly IMarkdownBlockParser FencedCodeParser = new MarkdownReader.FencedCodeParser();
+    private static readonly IMarkdownBlockParser MathBlockParser = new MarkdownReader.MathBlockParser();
     private static readonly IMarkdownBlockParser ImageParser = new MarkdownReader.ImageParser();
     private static readonly IMarkdownBlockParser HrParser = new MarkdownReader.HrParser();
     private static readonly IMarkdownBlockParser HtmlBlockParser = new MarkdownReader.HtmlBlockParser();
@@ -23,13 +24,24 @@ internal sealed class MarkdownReaderPipeline {
     private static readonly IMarkdownBlockParser HeadingParser = new MarkdownReader.HeadingParser();
     private static readonly IMarkdownBlockParser ParagraphParser = new MarkdownReader.ParagraphParser();
     private readonly List<IMarkdownBlockParser> _parsers = new List<IMarkdownBlockParser>(DefaultParserCapacity);
+    private readonly List<MarkdownBlockStart> _blockStarts = new List<MarkdownBlockStart>(DefaultParserCapacity);
     /// <summary>Gets the ordered list of block parsers.</summary>
     public IReadOnlyList<IMarkdownBlockParser> Parsers => _parsers;
+    /// <summary>Gets what each parser in <see cref="Parsers"/> needs at the start of a line.</summary>
+    public IReadOnlyList<MarkdownBlockStart> BlockStarts => _blockStarts;
 
     /// <summary>Add a parser to the end of the pipeline.</summary>
-    public MarkdownReaderPipeline Add(IMarkdownBlockParser parser) { _parsers.Add(parser); return this; }
+    public MarkdownReaderPipeline Add(IMarkdownBlockParser parser) {
+        _parsers.Add(parser);
+        _blockStarts.Add(MarkdownReader.ClassifyBlockStart(parser));
+        return this;
+    }
     /// <summary>Insert a parser at the given index in the pipeline.</summary>
-    public MarkdownReaderPipeline Insert(int index, IMarkdownBlockParser parser) { _parsers.Insert(index, parser); return this; }
+    public MarkdownReaderPipeline Insert(int index, IMarkdownBlockParser parser) {
+        _parsers.Insert(index, parser);
+        _blockStarts.Insert(index, MarkdownReader.ClassifyBlockStart(parser));
+        return this;
+    }
 
     /// <summary>Default pipeline covering the syntax OfficeIMO.Markdown emits today.</summary>
     public static MarkdownReaderPipeline Default(MarkdownLoadOptions? options = null) {
@@ -40,6 +52,7 @@ internal sealed class MarkdownReaderPipeline {
         p.Add(QuoteParser);
         if (options.CustomContainers) p.Add(CustomContainerParser);
         if (options.FencedCode) p.Add(FencedCodeParser);
+        if (options.Math) p.Add(MathBlockParser);
         if (options.Images && options.StandaloneImageBlocks) p.Add(ImageParser);
         p.Add(HrParser);
         if (options.HtmlBlocks) p.Add(HtmlBlockParser);

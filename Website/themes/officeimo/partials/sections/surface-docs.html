@@ -1,0 +1,7 @@
+{{~ if app.docs && app.docs.size > 0 ~}}
+<section class="imo-container imo-surface-docs" aria-label="Documentation">
+  {{~ for link in app.docs ~}}
+  <a href="{{ link.url }}"><strong>{{ link.label }} <span aria-hidden="true">→</span></strong><span>{{ link.detail }}</span></a>
+  {{~ end ~}}
+</section>
+{{~ end ~}}

@@ -16,7 +16,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             DocumentFormat.OpenXml.Spreadsheet.BookViews? workbookViews,
             DocumentFormat.OpenXml.Spreadsheet.WorkbookProtection? workbookProtection,
             DocumentFormat.OpenXml.Spreadsheet.DefinedNames? definedNames,
-            DocumentFormat.OpenXml.Spreadsheet.CalculationProperties? calculationProperties) {
+            DocumentFormat.OpenXml.Spreadsheet.CalculationProperties? calculationProperties,
+            XlsbNewWorkbookFormulaContext? formulas = null) {
             ArgumentNullException.ThrowIfNull(sheets);
             if (sheets.Count == 0) throw new NotSupportedException("Native XLSB generation requires at least one worksheet.");
 
@@ -30,7 +31,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 XlsbRecordWriter.Write(output, BrtBundleSh, CreateBundleSheetPayload(sheets[index], index));
             }
             XlsbRecordWriter.Write(output, BrtEndBundleShs);
-            XlsbDefinedNameWriter.Write(output, definedNames, sheets);
+            XlsbDefinedNameWriter.Write(output, definedNames, sheets, formulas);
             XlsbCalculationPropertiesWriter.Write(output, calculationProperties);
             XlsbRecordWriter.Write(output, BrtEndBook);
             return output.ToArray();

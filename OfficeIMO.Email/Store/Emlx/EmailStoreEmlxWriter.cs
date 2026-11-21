@@ -291,7 +291,7 @@ public sealed class EmailStoreEmlxWriter {
         } else if (value is long integer) {
             writer.WriteElementString("integer", integer.ToString(CultureInfo.InvariantCulture));
         } else if (value is double real) {
-            writer.WriteElementString("real", real.ToString("R", CultureInfo.InvariantCulture));
+            writer.WriteElementString("real", OfficeIMO.Core.Internal.OfficeRoundTripText.Format(real, CultureInfo.InvariantCulture));
         } else if (value is DateTimeOffset date) {
             writer.WriteElementString("date", date.ToUniversalTime().ToString(
                 "yyyy-MM-dd'T'HH:mm:ss.FFFFFFF'Z'", CultureInfo.InvariantCulture));

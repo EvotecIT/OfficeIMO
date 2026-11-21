@@ -55,6 +55,36 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     The layout this slide uses, or <see langword="null" /> when the slide has no layout.
+        /// </summary>
+        public PowerPointSlideLayout? Layout {
+            get {
+                SlideLayoutPart? layoutPart = _slidePart.SlideLayoutPart;
+                return layoutPart == null || OwnerDocument == null ? null : OwnerDocument.GetLayout(layoutPart);
+            }
+        }
+
+        /// <summary>
+        ///     Moves the slide to another layout of the same presentation. Slide content is kept; placeholders are
+        ///     matched to the new layout's by type and index.
+        /// </summary>
+        public void SetLayout(PowerPointSlideLayout layout) {
+            ArgumentNullException.ThrowIfNull(layout);
+            layout.ThrowIfRemoved();
+            if (OwnerDocument == null || !ReferenceEquals(layout.Document, OwnerDocument)) {
+                throw new ArgumentException("The layout belongs to a different presentation.", nameof(layout));
+            }
+
+            SlideLayoutPart? current = _slidePart.SlideLayoutPart;
+            if (ReferenceEquals(current, layout.LayoutPart)) return;
+            if (current != null) {
+                _slidePart.DeletePart(_slidePart.GetIdOfPart(current));
+            }
+
+            _slidePart.AddPart(layout.LayoutPart);
+        }
+
+        /// <summary>
         ///     Sets the slide layout using a layout type.
         /// </summary>
         public void SetLayout(PowerPointSlideLayoutType layoutType, int masterIndex = 0) {

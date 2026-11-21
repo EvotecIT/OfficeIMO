@@ -22,7 +22,24 @@ namespace OfficeIMO.Excel {
             /// Proves full well-formedness for the common, unprefixed SpreadsheetML shape.
             /// Richer XML constructs fall back to XmlReader validation rather than weakening it.
             /// </summary>
+            // The JIT compiles a method that combines stackalloc with loops fully optimized on its first
+            // call, which costs several milliseconds on a cold read. These wrappers allocate the scratch
+            // space and leave the loops to methods that start at the quick tier.
             private bool IsCanonicalWorksheetXmlFullyValidated(CancellationToken ct) {
+                Span<int> nameStarts = stackalloc int[MaximumFastXmlDepth];
+                Span<int> nameLengths = stackalloc int[MaximumFastXmlDepth];
+                Span<int> namespacePrefixStarts = stackalloc int[MaximumFastXmlAttributes];
+                Span<int> namespacePrefixLengths = stackalloc int[MaximumFastXmlAttributes];
+                Span<int> namespaceUriStarts = stackalloc int[MaximumFastXmlAttributes];
+                Span<int> namespaceUriLengths = stackalloc int[MaximumFastXmlAttributes];
+                return IsCanonicalWorksheetXmlFullyValidated(ct, nameStarts, nameLengths,
+                    namespacePrefixStarts, namespacePrefixLengths, namespaceUriStarts, namespaceUriLengths);
+            }
+
+            private bool IsCanonicalWorksheetXmlFullyValidated(CancellationToken ct,
+                Span<int> nameStarts, Span<int> nameLengths,
+                Span<int> namespacePrefixStarts, Span<int> namespacePrefixLengths,
+                Span<int> namespaceUriStarts, Span<int> namespaceUriLengths) {
                 ct.ThrowIfCancellationRequested();
                 // Prefixed envelopes retain XmlReader namespace and markup proof.
                 if (!_sheetDataSupportsFastValidation || _worksheetPrefixLength != 0) {
@@ -34,38 +51,11 @@ namespace OfficeIMO.Excel {
                 }
                 ct.ThrowIfCancellationRequested();
 #else
-                try {
-                    _ = StrictUtf8.GetCharCount(_buffer!, 0, _length);
-                } catch (DecoderFallbackException) {
+                if (!IsCanonicalTextValidDownLevel(ct)) {
                     return false;
-                }
-
-                for (int index = 0; index < _length; index++) {
-                    if ((index & 0xFFFF) == 0) {
-                        ct.ThrowIfCancellationRequested();
-                    }
-                    byte value = _buffer![index];
-                    if (value == (byte)'&'
-                        || value < 0x20 && value is not (byte)'\t' and not (byte)'\r' and not (byte)'\n'
-                        || value == 0xef
-                            && index + 2 < _length
-                            && _buffer[index + 1] == 0xbf
-                            && _buffer[index + 2] is 0xbe or 0xbf
-                        || value == (byte)']'
-                            && index + 2 < _length
-                            && _buffer[index + 1] == (byte)']'
-                            && _buffer[index + 2] == (byte)'>') {
-                        return false;
-                    }
                 }
 #endif
 
-                Span<int> nameStarts = stackalloc int[MaximumFastXmlDepth];
-                Span<int> nameLengths = stackalloc int[MaximumFastXmlDepth];
-                Span<int> namespacePrefixStarts = stackalloc int[MaximumFastXmlAttributes];
-                Span<int> namespacePrefixLengths = stackalloc int[MaximumFastXmlAttributes];
-                Span<int> namespaceUriStarts = stackalloc int[MaximumFastXmlAttributes];
-                Span<int> namespaceUriLengths = stackalloc int[MaximumFastXmlAttributes];
                 int depth = 0;
                 int namespacePrefixCount = 0;
                 int position = SkipUtf8PreambleAndWhitespace(0);
@@ -345,11 +335,22 @@ namespace OfficeIMO.Excel {
                 out bool declaresDefaultNamespace,
                 out bool declaresSpreadsheetNamespace,
                 out bool hasPrefixedAttributes) {
+                Span<int> starts = stackalloc int[MaximumFastXmlAttributes];
+                Span<int> lengths = stackalloc int[MaximumFastXmlAttributes];
+                return ValidateCanonicalTagAttributes(tag, starts, lengths,
+                    out declaresDefaultNamespace, out declaresSpreadsheetNamespace, out hasPrefixedAttributes);
+            }
+
+            private bool ValidateCanonicalTagAttributes(
+                Utf8Tag tag,
+                Span<int> starts,
+                Span<int> lengths,
+                out bool declaresDefaultNamespace,
+                out bool declaresSpreadsheetNamespace,
+                out bool hasPrefixedAttributes) {
                 declaresDefaultNamespace = false;
                 declaresSpreadsheetNamespace = false;
                 hasPrefixedAttributes = false;
-                Span<int> starts = stackalloc int[MaximumFastXmlAttributes];
-                Span<int> lengths = stackalloc int[MaximumFastXmlAttributes];
                 int count = 0;
                 int position = tag.NameEnd;
                 while (position < tag.End) {
@@ -453,6 +454,24 @@ namespace OfficeIMO.Excel {
                 Span<int> usedLocalStarts = stackalloc int[MaximumFastXmlAttributes];
                 Span<int> usedLocalLengths = stackalloc int[MaximumFastXmlAttributes];
                 Span<int> usedNamespaceIndexes = stackalloc int[MaximumFastXmlAttributes];
+                return ValidateCanonicalNamespaceUsage(tag, isRootStartTag, namespacePrefixStarts, namespacePrefixLengths,
+                    namespaceUriStarts, namespaceUriLengths, ref namespacePrefixCount,
+                    usedPrefixStarts, usedPrefixLengths, usedLocalStarts, usedLocalLengths, usedNamespaceIndexes);
+            }
+
+            private bool ValidateCanonicalNamespaceUsage(
+                Utf8Tag tag,
+                bool isRootStartTag,
+                Span<int> namespacePrefixStarts,
+                Span<int> namespacePrefixLengths,
+                Span<int> namespaceUriStarts,
+                Span<int> namespaceUriLengths,
+                ref int namespacePrefixCount,
+                Span<int> usedPrefixStarts,
+                Span<int> usedPrefixLengths,
+                Span<int> usedLocalStarts,
+                Span<int> usedLocalLengths,
+                Span<int> usedNamespaceIndexes) {
                 int usedPrefixCount = 0;
                 int position = tag.NameEnd;
                 while (position < tag.End) {

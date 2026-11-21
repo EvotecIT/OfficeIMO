@@ -54,6 +54,10 @@ Choose the format-specific family instead when the script must edit native featu
 
 Use `Convert-OfficeDocument` when the destination format is the outcome. HTML review commands are useful for browser-based review; Markdown is useful for source control and text pipelines; PDF is useful for fixed-layout delivery. Conversion can be loss-aware rather than lossless, so inspect diagnostics for complex documents and retain the source artifact.
 
+## Edit configuration and data files
+
+Use `Open-OfficeYaml` when a person also maintains the file: the edit changes only the values you set and keeps comments, quoting, and layout. Use `Import-OfficeYaml`, `Import-OfficeToml`, or `Import-OfficeCsv` when the script only needs the data, and `Convert-OfficeDocument` to move data between JSON, YAML, TOML, XML, CSV, and Excel. See [Configuration files and data conversion](/docs/pswriteoffice/config-data-formats/).
+
 ## Continue
 
 - [Command families](/docs/pswriteoffice/command-families/)

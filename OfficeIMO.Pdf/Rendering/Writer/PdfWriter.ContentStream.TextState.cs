@@ -27,10 +27,10 @@ internal sealed partial class ContentStreamBuilder {
         internal bool _lastNumberPrecise;
         // Made on first use: most builders write an operator or two and never encode glyph codes.
         internal int[] _codeBuffer = Array.Empty<int>();
-        internal char[] _showTail = Array.Empty<char>();
         internal bool _syntheticBold, _syntheticWeightScope;
         internal int _textObjectStart;
         internal OfficeColor _textEntryFillColor = OfficeColor.Black;
+        internal int _textEntryRenderingMode;
     }
 
     private TextState? _text;

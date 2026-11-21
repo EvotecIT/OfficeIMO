@@ -1,14 +1,18 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
+    // Resolve actual run fonts and sizes, then measure break opportunities
+    // explicitly: a wide layout never needs to discover internal breaks.
+    private static TableCellTextLayout CreateImportedTableNoWrapLayout(TableCellLayout cell, PdfStandardFont font, double size,
+        PdfCreateOptions? options, double runFontSizeScale = 1D, double minimumShrinkFontSize = 0D) =>
+        CreateTableCellTextLayout(cell, TableCellNoWrapWidth, font, size, size * 1.25D, options, runFontSizeScale,
+            minimumShrinkFontSize, purpose: RichWrapPurpose.IntrinsicMeasurement);
+
     private static double MeasureImportedTableTextWidth(TableCellLayout cell,
         PdfStandardFont font, double size, PdfCreateOptions? options, double runFontSizeScale = 1D, double minimumShrinkFontSize = 0D,
-        bool wholeLine = false, bool objectsOnly = false) {
-        // Resolve actual run fonts and sizes, then measure break opportunities
-        // explicitly: a wide layout never needs to discover internal breaks.
-        TableCellTextLayout layout = CreateTableCellTextLayout(cell, TableCellNoWrapWidth,
-            font, size, size * 1.25D, options, runFontSizeScale, minimumShrinkFontSize,
-            purpose: RichWrapPurpose.IntrinsicMeasurement);
+        bool wholeLine = false, bool objectsOnly = false, TableCellTextLayout? noWrapLayout = null) {
+        TableCellTextLayout layout = noWrapLayout ?? CreateImportedTableNoWrapLayout(cell, font, size, options,
+            runFontSizeScale, minimumShrinkFontSize);
         double minimum = 0D;
         int paragraphIndex = 0;
         for (int lineIndex = 0; lineIndex < layout.Lines.Count; lineIndex++) {

@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Opt-in PDF-to-editable fidelity evaluation. It is deliberately not part of OfficeIMO.slnx. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>OfficeIMO.PdfToXFidelity</RootNamespace>
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../OfficeIMO.Pdf/OfficeIMO.Pdf.csproj" />
+    <ProjectReference Include="../../OfficeIMO.Pdf.Word/OfficeIMO.Pdf.Word.csproj" />
+    <ProjectReference Include="../../OfficeIMO.Pdf.Excel/OfficeIMO.Pdf.Excel.csproj" />
+    <ProjectReference Include="../../OfficeIMO.Pdf.PowerPoint/OfficeIMO.Pdf.PowerPoint.csproj" />
+    <ProjectReference Include="../../OfficeIMO.Html.Pdf/OfficeIMO.Html.Pdf.csproj" />
+    <ProjectReference Include="../../OfficeIMO.Rtf.Pdf/OfficeIMO.Rtf.Pdf.csproj" />
+    <ProjectReference Include="../../OfficeIMO.OpenDocument.Odt.Pdf/OfficeIMO.OpenDocument.Odt.Pdf.csproj" />
+    <ProjectReference Include="../../OfficeIMO.OpenDocument.Ods.Pdf/OfficeIMO.OpenDocument.Ods.Pdf.csproj" />
+    <ProjectReference Include="../../OfficeIMO.OpenDocument.Odp.Pdf/OfficeIMO.OpenDocument.Odp.Pdf.csproj" />
+  </ItemGroup>
+</Project>

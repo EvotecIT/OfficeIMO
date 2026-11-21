@@ -191,6 +191,7 @@ namespace OfficeIMO.Excel {
                         namedViewsPart.NamedSheetViews?.Save();
                     }
                 }
+                InvalidateTableLayouts();
                 foreach (TableDefinitionPart tablePart in worksheetPart.TableDefinitionParts) {
                     RewriteMutationFormulaLeaves(tablePart.Table, editedSheet.Name, ownerIsEdited, transform);
                     if (ownerIsEdited) RewriteMutationAddressAttributes(tablePart.Table, transform);

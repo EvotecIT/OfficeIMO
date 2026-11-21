@@ -9,7 +9,10 @@ internal static class OfficeManagedTextShaper {
         // Noncharacters have bidi class BN, but are not default-ignorable
         // shaping controls. A blank space cannot supply their font coverage.
         if (scalar is >= 0xFDD0 and <= 0xFDEF || (scalar & 0xFFFF) is 0xFFFE or 0xFFFF) return false;
+        // Variation selectors are default ignorable: they select the preceding glyph through
+        // cmap format 14 or GSUB and are never painted themselves (Unicode chapter 23.4).
         return scalar is 0x034F or 0x061C or 0x200E or 0x200F
+        || OfficeTextElements.IsVariationSelector(scalar)
         || OfficeUnicodeBidi.GetClass(scalar) is OfficeBidiClass.BN or OfficeBidiClass.LRE or OfficeBidiClass.RLE
             or OfficeBidiClass.LRO or OfficeBidiClass.RLO or OfficeBidiClass.PDF or OfficeBidiClass.LRI
             or OfficeBidiClass.RLI or OfficeBidiClass.FSI or OfficeBidiClass.PDI;
@@ -76,7 +79,8 @@ internal static class OfficeManagedTextShaper {
             OfficeTextElements.ContainsShapingRequiredScript(text) ||
             OfficeTextElements.ContainsBidiControl(text) ||
             OfficeTextElements.ContainsVariationSelector(text) ||
-            OfficeTextElements.ContainsZeroWidthJoinerSequence(text);
+            OfficeTextElements.ContainsZeroWidthJoinerSequence(text) ||
+            OfficeTextElements.ContainsEmojiModifierOrRegionalIndicator(text);
     }
 
     internal static string ToVisualOrder(

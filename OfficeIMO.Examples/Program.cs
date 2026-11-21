@@ -88,6 +88,8 @@ namespace OfficeIMO.Examples {
             PowerPoint.LayoutStrategyComparisonPowerPoint.Example_LayoutStrategyComparisonPowerPoint(folderPath, false);
             PowerPoint.DirectEditingPowerPoint.Example(folderPath, false);
             PowerPoint.ShapesPowerPoint.Example_PowerPointShapes(folderPath, false);
+            PowerPoint.MastersLayoutsConnectorsPowerPoint.Example_MastersLayoutsConnectors(folderPath, false);
+            PowerPoint.StreamingSlideReaderPowerPoint.Example_StreamingSlideReader(folderPath, false);
             PowerPoint.SlidesManagementPowerPoint.Example_SlidesManagement(folderPath, false);
             PowerPoint.SectionsWithoutRepairPowerPoint.Example_PowerPointSectionsWithoutRepair(folderPath, false);
             PowerPoint.TablesPowerPoint.Example_PowerPointTables(folderPath, false);
@@ -157,6 +159,11 @@ namespace OfficeIMO.Examples {
                 Google.GoogleSlidesExamples.Example_ExportAsync(folderPath).GetAwaiter().GetResult();
                 return;
             }
+            if (HasArgument(args, "--barcodes")) {
+                Barcodes.BarcodeExamples.Example(Path.Combine(folderPath, "Barcodes"));
+                return;
+            }
+
             if (HasArgument(args, "--onenote")) {
                 OneNote.OfflineOneNoteExample.Example(folderPath);
                 return;
@@ -215,6 +222,16 @@ namespace OfficeIMO.Examples {
 
             if (HasArgument(args, "--powerpoint-layout-strategy")) {
                 PowerPoint.LayoutStrategyComparisonPowerPoint.Example_LayoutStrategyComparisonPowerPoint(folderPath, false);
+                return;
+            }
+
+            if (HasArgument(args, "--powerpoint-streaming")) {
+                PowerPoint.StreamingSlideReaderPowerPoint.Example_StreamingSlideReader(folderPath, false);
+                return;
+            }
+
+            if (HasArgument(args, "--powerpoint-masters")) {
+                PowerPoint.MastersLayoutsConnectorsPowerPoint.Example_MastersLayoutsConnectors(folderPath, false);
                 return;
             }
 
@@ -288,6 +305,11 @@ namespace OfficeIMO.Examples {
                 return;
             }
 
+            if (HasArgument(args, "--word-styles")) {
+                Word.Styles.Example_DocumentStylesAndTheme(folderPath, HasArgument(args, "--open-word"));
+                return;
+            }
+
             if (HasArgument(args, "--word-market-readiness")) {
                 Word.MarketReadinessProofGallery.Example_GenerateWordMarketReadinessProof(folderPath, HasArgument(args, "--open-word"));
                 return;
@@ -295,6 +317,13 @@ namespace OfficeIMO.Examples {
 
             if (HasArgument(args, "--word-mail-merge-workflows")) {
                 Word.MailMerge.Example_MailMergeWorkflowGallery(folderPath, HasArgument(args, "--open-word"));
+                return;
+            }
+
+            if (HasArgument(args, "--document-inspector")) {
+                Word.DocumentInspector.Example_PrepareForSharing(folderPath, HasArgument(args, "--open-word"));
+                Excel.DocumentInspector.Example_PrepareForSharing(folderPath, false);
+                PowerPoint.DocumentInspector.Example_PrepareForSharing(folderPath, false);
                 return;
             }
 
@@ -615,6 +644,7 @@ namespace OfficeIMO.Examples {
             // Word.CompareDocuments.Example_BasicComparison(folderPath, false);
             // // Word/MergeDocuments
             // Word.MergeDocuments.Example_AppendDocument(folderPath, false);
+            // Word.MergeDocuments.Example_SplitDocument(folderPath, false);
             // // Word/ContentControls
             // Word.ContentControls.Example_AddContentControl(folderPath, false);
             // Word.ContentControls.Example_AdvancedContentControls(folderPath, false);
@@ -677,6 +707,7 @@ namespace OfficeIMO.Examples {
             // Word.FindAndReplace.Example_FindAndReplace02(folderPath, false);
             // Word.FindAndReplace.Example_FindAndReplace03(folderPath, false);
             // Word.FindAndReplace.Example_ReplaceTextWithHtmlFragment(folderPath, false);
+            // Word.FindAndReplace.Example_TextRanges(folderPath, false);
             // // Word/Fluent
             // Word.FluentDocument.Example_FluentDocument(folderPath, false);
             // Word.FluentDocument.Example_FluentHeadersAndFooters(folderPath, false);
@@ -784,9 +815,7 @@ namespace OfficeIMO.Examples {
             // Word.Paragraphs.Example_MultipleParagraphsViaDifferentWays(folderPath, false);
             // Word.Paragraphs.Example_RunCharacterStylesSimple(folderPath, false);
             // Word.Paragraphs.Example_RunCharacterStylesAdvanced(folderPath, false);
-            // Word.Paragraphs.Example_RegisterCustomParagraphStyle(folderPath, false);
-            // Word.Paragraphs.Example_MultipleCustomParagraphStyles(folderPath, false);
-            // Word.Paragraphs.Example_OverrideBuiltInParagraphStyle(folderPath, false);
+            // Word.Styles.Example_DocumentStylesAndTheme(folderPath, false);
             // Word.Paragraphs.Example_Word_Fluent_Paragraph_TextAndFormatting(folderPath, false);
             // // Word/Pdf
             // Word.Pdf.Example_HeaderFooterImages(folderPath, false);

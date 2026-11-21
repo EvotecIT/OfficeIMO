@@ -10,7 +10,9 @@ public static partial class OfficeDrawingRasterRenderer {
     private static bool TryForwardScaledSourceOverGroup(OfficeRasterCanvas canvas,
         OfficeDrawingEffectGroup effect, EffectTextLayerPlan layer, double scale,
         IOfficeRasterImageCodec? imageCodec, long maximumRasterPixels, CancellationToken cancellationToken) {
+        if (effect.InnerDrawing.PostCompositionColorTransform != null) return false;
         if (TryForwardTranslatedImage(canvas, effect, scale, imageCodec, maximumRasterPixels, cancellationToken)) return true;
+        if (TryForwardAffineImage(canvas, effect, scale, imageCodec, maximumRasterPixels, cancellationToken)) return true;
         OfficeTransform transform = effect.Transform;
         if (layer.Interpolate || effect.Opacity != 1D || effect.BlendMode != OfficeBlendMode.Normal ||
             effect.SoftMask != null || effect.UnfilteredGeometryBounds.HasValue || layer.Left != 0D ||
@@ -57,6 +59,25 @@ public static partial class OfficeDrawingRasterRenderer {
         return true;
     }
 
+    /// <summary>
+    /// Samples a single full-frame image under a rotated or sheared group transform once, on the destination grid,
+    /// so it covers the transformed parallelogram exactly instead of resampling an intermediate layer.
+    /// </summary>
+    private static bool TryForwardAffineImage(OfficeRasterCanvas canvas, OfficeDrawingEffectGroup effect,
+        double scale, IOfficeRasterImageCodec? imageCodec, long maximumRasterPixels, CancellationToken cancellationToken) {
+        OfficeTransform transform = effect.Transform;
+        OfficeDrawing drawing = effect.InnerDrawing;
+        if (effect.Opacity != 1D || effect.BlendMode != OfficeBlendMode.Normal || effect.SoftMask != null ||
+            effect.UnfilteredGeometryBounds.HasValue || (transform.M12 == 0D && transform.M21 == 0D) ||
+            drawing.Elements.Count != 1 || drawing.Elements[0] is not OfficeDrawingImage image) return false;
+        OfficeImageProjection projection = image.Projection;
+        if (projection.HasTransform || projection.HasCrop || projection.X != 0D || projection.Y != 0D ||
+            projection.Width != drawing.Width || projection.Height != drawing.Height) return false;
+        RenderAffineImage(canvas, image, projection.CreateUnitSquareTransform().Then(transform), scale,
+            imageCodec, maximumRasterPixels, cancellationToken);
+        return true;
+    }
+
     /// <summary>Proves that removing the outer isolation cannot change a descendant's blend backdrop.</summary>
     private static bool HasOnlySourceOverCompositing(OfficeDrawing drawing, CancellationToken cancellationToken) {
         const int maximumElements = 4096;
@@ -65,7 +86,7 @@ public static partial class OfficeDrawingRasterRenderer {
         pending.Push((drawing, 0));
         while (pending.Count != 0) {
             (OfficeDrawing current, int depth) = pending.Pop();
-            if (depth > 64) return false;
+            if (depth > 64 || current.PostCompositionColorTransform != null) return false;
             foreach (OfficeDrawingElement element in current.Elements) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (--remaining < 0) return false;

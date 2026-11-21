@@ -192,7 +192,7 @@ namespace OfficeIMO.Word.Pdf {
                 PdfCore.PdfStandardFont slot,
                 out double ratio) {
                 PdfCore.PdfStandardFont normalized = PdfCore.PdfStandardFontMapper.GetFontFamily(slot);
-                if (options.EmbeddedFonts.TryGetValue(normalized, out PdfCore.PdfEmbeddedFont? embedded) &&
+                if (options.TryGetEmbeddedStandardFont(normalized, out PdfCore.PdfEmbeddedFont? embedded) && embedded != null &&
                     TryResolveEmbeddedLineSpacingRatio(embedded.DataSnapshot, out ratio)) {
                     return true;
                 }

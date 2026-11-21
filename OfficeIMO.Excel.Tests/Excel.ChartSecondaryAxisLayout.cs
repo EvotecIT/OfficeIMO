@@ -31,8 +31,6 @@ public sealed class ExcelChartSecondaryAxisLayoutTests {
     [InlineData("zeroUnit")]
     [InlineData("invertedBounds")]
     [InlineData("malformedNumber")]
-    [InlineData("logarithmic")]
-    [InlineData("reversed")]
     [InlineData("displayUnits")]
     [InlineData("deleted")]
     public void SecondaryValueAxis_InvalidImportedSettingsRejectSnapshot(string setting) {
@@ -52,9 +50,7 @@ public sealed class ExcelChartSecondaryAxisLayoutTests {
         else if (setting == "invertedBounds") {
             secondary.Scaling!.AddChild(new C.MinAxisValue { Val = 2 }, true);
             secondary.Scaling.AddChild(new C.MaxAxisValue { Val = 1 }, true);
-        } else if (setting == "logarithmic") secondary.Scaling!.AddChild(new C.LogBase { Val = 10 }, true);
-        else if (setting == "reversed") secondary.Scaling!.AddChild(new C.Orientation { Val = C.OrientationValues.MaxMin }, true);
-        else if (setting == "displayUnits") secondary.AddChild(new C.DisplayUnits(
+        } else if (setting == "displayUnits") secondary.AddChild(new C.DisplayUnits(
             new C.BuiltInUnit { Val = C.BuiltInUnitValues.Thousands }), true);
         else secondary.Scaling!.AddChild(new C.MaxAxisValue { Val = new DocumentFormat.OpenXml.DoubleValue { InnerText = "invalid" } }, true);
         Assert.False(chart.TryGetSnapshot(out _));
@@ -92,6 +88,24 @@ public sealed class ExcelChartSecondaryAxisLayoutTests {
     }
 
     [Fact]
+    public void SecondaryValueAxis_LogarithmicScaleIsDrawnWithSourceLabels() {
+        using var document = ExcelDocument.Create();
+        var chart = document.AddSheet("Results").AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(new[] { "A", "B", "C" }, new[] {
+                new OfficeSeries("Count", new[] { 1d, 2d, 3d }),
+                new OfficeSeries("Ratio", new[] { 2d, 30d, 400d }, null, null, null, true,
+                    renderKind: OfficeChartType.Line, axisGroup: OfficeChartAxisGroup.Secondary)
+            }), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 1 });
+        chart.SetSecondaryValueAxis(new OfficeChartValueAxisLayout().WithLogarithmicScale(10D));
+
+        Assert.True(chart.TryGetSnapshot(out var snapshot));
+        Assert.Equal(10D, snapshot.Layout!.SecondaryValueAxis!.LogBase);
+        string svg = System.Text.Encoding.UTF8.GetString(chart.ToImage(OfficeImageExportFormat.Svg).Bytes);
+        // The secondary axis spans the powers 1, 10, 100 and 1000 around the values.
+        Assert.Contains(">10<", svg);
+        Assert.Contains(">100<", svg);
+    }
+
+    [Fact]
     public void SecondaryValueAxis_ResolvesLinkedNumberFormatFromItsWorksheetValues() {
         using var document = ExcelDocument.Create();
         var sheet = document.AddSheet("Results");
@@ -119,5 +133,30 @@ public sealed class ExcelChartSecondaryAxisLayoutTests {
         Assert.Equal("0%", snapshot.Layout!.SecondaryValueAxis!.NumberFormat);
         var visual = Assert.Single(sheet.Range("A1:J12").CreateVisualSnapshot().Charts);
         Assert.Equal("0%", visual.Snapshot.Layout!.SecondaryValueAxis!.NumberFormat);
+    }
+
+    [Fact]
+    public void SecondaryValueAxis_OverlongLinkedFormatDrawsAsGeneral() {
+        using var document = ExcelDocument.Create();
+        var sheet = document.AddSheet("Results");
+        var chart = sheet.AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(new[] { "North", "South" }, new[] {
+                new OfficeSeries("Count", new[] { 100d, 200d }),
+                new OfficeSeries("Ratio", new[] { .5, .75 }, null, null, null, true,
+                    renderKind: OfficeChartType.Line, axisGroup: OfficeChartAxisGroup.Secondary) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5 });
+        var native = sheet.WorksheetPart.DrawingsPart!.ChartParts.Single().ChartSpace!;
+        var secondary = native.Descendants<C.ValueAxis>()
+            .Single(axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Right);
+        // The worksheet range cannot be read, so the linked axis falls back to its own cached code.
+        secondary.NumberingFormat!.FormatCode = "0\"" + new string('x', 1100) + "\"";
+        secondary.NumberingFormat.SourceLinked = true;
+        var values = native.Descendants<C.LineChartSeries>().Single().GetFirstChild<C.Values>()!;
+        values.RemoveAllChildren();
+        values.Append(new C.NumberReference(new C.Formula("Missing!$C$2:$C$3"),
+            new C.NumberingCache(new C.FormatCode("General"), new C.PointCount { Val = 2 },
+                new C.NumericPoint(new C.NumericValue("0.5")) { Index = 0 },
+                new C.NumericPoint(new C.NumericValue("0.75")) { Index = 1 })));
+
+        Assert.True(chart.TryGetSnapshot(out var snapshot));
+        Assert.Null(snapshot.Layout!.SecondaryValueAxis!.NumberFormat);
     }
 }

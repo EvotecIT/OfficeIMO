@@ -36,7 +36,7 @@ public partial class ExcelDocument {
         if (SourceFormat == ExcelFileFormat.Xls && !HasLegacyPreservationTransforms(options) && _legacyXlsPreservationSnapshot?.TryCreatePlan(this, out var plan, cancellationToken) == true) {
             preserved = true;
             long maximumBytes = Math.Min(GetPackageMaterializationLimit(options) ?? int.MaxValue, int.MaxValue);
-            return plan!.Write(null, maximumBytes, cancellationToken, calculation);
+            return LegacyXlsWriter.WithinWorkbookSizeLimit(maximumBytes, () => plan!.Write(null, maximumBytes, cancellationToken, calculation));
         }
         EnsureLegacyXlsSaveDoesNotDropImportedContent(options, preserveLinkedVbaProject: true);
         if (TryBuildDirectTabularLegacyXls(options, cancellationToken, out byte[] bytes, directDestination)) { direct = true; return bytes; }

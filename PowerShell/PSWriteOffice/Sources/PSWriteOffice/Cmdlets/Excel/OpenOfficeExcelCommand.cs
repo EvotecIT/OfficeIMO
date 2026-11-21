@@ -69,6 +69,10 @@ public sealed class OpenOfficeExcelCommand : AsyncPSCmdlet {
     [Parameter(ParameterSetName = "Uri")]
     public SwitchParameter AllowHttp { get; set; }
 
+    /// <summary>Allow a workbook on a loopback, private, link-local or other non-public network address. Use only for trusted internal sources.</summary>
+    [Parameter(ParameterSetName = "Uri")]
+    public SwitchParameter AllowPrivateNetworkAddresses { get; set; }
+
     /// <summary>Edit a local workbook and save only after the block completes successfully.</summary>
     [Parameter(ParameterSetName = "Path", Position = 1)]
     [Parameter(ParameterSetName = "LiteralPath", Position = 1)]
@@ -120,7 +124,7 @@ public sealed class OpenOfficeExcelCommand : AsyncPSCmdlet {
         string? password = Password.ToPlainText();
         if (ParameterSetName == "Uri") {
             ExcelDocument remote = await ExcelDocumentService.LoadDocumentAsync(Uri, ReadOnly.IsPresent,
-                AllowHttp.IsPresent, password, CancelToken).ConfigureAwait(false);
+                AllowHttp.IsPresent, AllowPrivateNetworkAddresses.IsPresent, password, CancelToken).ConfigureAwait(false);
             ReturnLive(remote);
             return;
         }

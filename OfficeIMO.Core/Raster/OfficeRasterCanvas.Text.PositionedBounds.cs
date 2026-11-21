@@ -62,7 +62,7 @@ public sealed partial class OfficeRasterCanvas {
             // Buffer sizing retains the historical union; ink follows the painter's choice of color or base outlines.
             if (!inkOnly || !hasColorLayers) Include(GetResolvedTextContours(text, font, textX, textTop, size, features, textDirection));
             if (hasColorLayers) foreach (OfficeColorGlyphContours layer in layers)
-                if (!inkOnly || layer.Color.A != 0) Include(layer.Contours);
+                if (!inkOnly || layer.Color.A != 0 || layer.Bitmap != null) Include(layer.Contours);
         } else {
             var bounds = MeasureStrokeTextBounds(text, textX, textTop, size,
                 (simulated & OfficeFontStyle.Bold) != 0, (simulated & OfficeFontStyle.Italic) != 0, scaleX);

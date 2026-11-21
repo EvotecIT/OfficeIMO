@@ -5463,6 +5463,12 @@
               "type": "switch",
               "mandatory": false,
               "pipeline": "none"
+            },
+            {
+              "name": "ChartFidelity",
+              "type": "OfficeChartFidelity",
+              "mandatory": false,
+              "pipeline": "none"
             }
           ]
         }
@@ -5603,6 +5609,12 @@
             {
               "name": "TextShapingLanguage",
               "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ChartFidelity",
+              "type": "OfficeChartFidelity",
               "mandatory": false,
               "pipeline": "none"
             }
@@ -5791,6 +5803,124 @@
           "title": "Publish training decks to the intranet",
           "description": "Converts each training deck to semantic HTML slides without speaker notes, ready for the intranet search index.",
           "code": "$options = New-OfficePowerPointHtmlOptions -Profile SemanticSlides -Theme Modern -NoNotes\nGet-ChildItem -Path .\\Training -Filter *.pptx | Convert-OfficeDocument -To Html -OutputDirectory .\\Intranet\\Training -Options $options"
+        }
+      ]
+    },
+    {
+      "name": "Add-OfficePowerPointBarcode",
+      "alias": "PowerPointBarcode",
+      "status": "new",
+      "synopsis": "Adds a QR code or any CodeGlyphX barcode to a slide; flows through the layout unless placed explicitly.",
+      "outputType": "PowerPointImage (with -PassThru)",
+      "parameterSets": [
+        {
+          "name": "__AllParameterSets",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Text",
+              "type": "string",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "none",
+              "notes": "Text, URL or other data to encode."
+            },
+            {
+              "name": "Type",
+              "type": "SymbolFormat",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "CodeGlyphX symbology; QrCode by default. Code128, Gs1Code128, Ean, UpcA, DataMatrix, Pdf417 and every other SymbolFormat value."
+            },
+            {
+              "name": "Width",
+              "type": "OfficeLength",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Width of the whole symbol including its quiet zone; a bare number means points."
+            },
+            {
+              "name": "Height",
+              "type": "OfficeLength",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Height including human-readable text; linear barcodes adjust their bar height, other symbols keep proportions."
+            },
+            {
+              "name": "QuietZone",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Color",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Literal, opaque color of the bars or dark modules."
+            },
+            {
+              "name": "BackgroundColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Literal, opaque background color."
+            },
+            {
+              "name": "ErrorCorrection",
+              "type": "QrErrorCorrectionLevel",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "QR codes only."
+            },
+            {
+              "name": "NoHumanReadableText",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Linear barcodes print their text under the bars unless this is set."
+            },
+            {
+              "name": "AlternativeText",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Defaults to the symbology and the encoded text."
+            },
+            {
+              "name": "Slide",
+              "type": "PowerPointSlideSelector",
+              "mandatory": false,
+              "pipeline": "value",
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block."
+            },
+            {
+              "name": "X",
+              "type": "OfficeLength",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Y",
+              "type": "OfficeLength",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        }
+      ],
+      "notes": "Requires the bundled OfficeIMO.PowerPoint.CodeGlyphX adapter. The code renders through CodeGlyphX at its physical size; PowerPoint stores an SVG picture with a PNG fallback. In the layout flow the code keeps its proportions.",
+      "examples": [
+        {
+          "title": "Link to the slides",
+          "description": "Ends a talk with a QR code placed by the slide layout.",
+          "code": "New-OfficePowerPoint -Path .\\Talk.pptx {\n    PowerPointSlide -Title 'Thank you' {\n        PowerPointBarcode 'https://evotec.xyz/talks/officeimo'\n    }\n}"
         }
       ]
     }

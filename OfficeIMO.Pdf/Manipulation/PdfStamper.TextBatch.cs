@@ -50,22 +50,21 @@ internal static partial class PdfStamper {
                 TextStampRequest[] orderedPageRequests = pageRequests.OrderBy(static request => request.PaintOrder).ToArray();
                 EnsureBatchTextStampStreamWithinLimit(orderedPageRequests, fontResources, limits.MaxDecodedStreamBytes);
                 int pageObjectNumber = pageObjectNumbers[pageRequests.Key - 1];
-                int saveStateObjectNumber = nextObjectNumber++;
-                int restoreStateObjectNumber = nextObjectNumber++;
                 int stampObjectNumber = nextObjectNumber++;
-                rewrittenObjects[saveStateObjectNumber] = new PdfIndirectObject(saveStateObjectNumber, 0, new PdfStream(new PdfDictionary(), PdfEncoding.Latin1GetBytes("q\n")));
-                rewrittenObjects[restoreStateObjectNumber] = new PdfIndirectObject(restoreStateObjectNumber, 0, new PdfStream(new PdfDictionary(), PdfEncoding.Latin1GetBytes("\nQ\n")));
                 rewrittenObjects[stampObjectNumber] = new PdfIndirectObject(
                     stampObjectNumber,
                     0,
                     BuildBatchTextStampStream(orderedPageRequests, fontResources));
+                PdfObject? existingContents = ((PdfDictionary)rewrittenObjects[pageObjectNumber].Value).Items.TryGetValue("Contents", out PdfObject? value) ? value : null;
+                PdfArray contents = existingContents is null
+                    ? new PdfArray()
+                    : PdfPageContentIsolation.Isolate(rewrittenObjects, (PdfDictionary)rewrittenObjects[pageObjectNumber].Value, existingContents, ref nextObjectNumber);
+                contents.Items.Add(new PdfReference(stampObjectNumber, 0));
                 Dictionary<string, PdfObject> overrides = BuildBatchTextPageOverrides(
                     rewrittenObjects,
                     pageObjectNumber,
                     fontResources.Values,
-                    saveStateObjectNumber,
-                    restoreStateObjectNumber,
-                    stampObjectNumber);
+                    contents);
                 PdfDictionary pageDictionary = (PdfDictionary)rewrittenObjects[pageObjectNumber].Value;
                 foreach (KeyValuePair<string, PdfObject> item in overrides) pageDictionary.Items[item.Key] = item.Value;
             }
@@ -141,21 +140,11 @@ internal static partial class PdfStamper {
         Dictionary<int, PdfIndirectObject> objects,
         int pageObjectNumber,
         IEnumerable<BatchFontResource> fontResources,
-        int saveStateObjectNumber,
-        int restoreStateObjectNumber,
-        int stampPseudoObjectNumber) {
+        PdfArray contents) {
         if (!objects.TryGetValue(pageObjectNumber, out PdfIndirectObject? indirect) || indirect.Value is not PdfDictionary pageDictionary) {
             throw new InvalidOperationException("PDF page object " + pageObjectNumber.ToString(CultureInfo.InvariantCulture) + " was not found.");
         }
 
-        var contents = new PdfArray();
-        contents.Items.Add(new PdfReference(saveStateObjectNumber, 0));
-        AppendContentEntries(
-            objects,
-            contents,
-            pageDictionary.Items.TryGetValue("Contents", out PdfObject? contentsObject) ? contentsObject : null);
-        contents.Items.Add(new PdfReference(restoreStateObjectNumber, 0));
-        contents.Items.Add(new PdfReference(stampPseudoObjectNumber, 0));
         PdfDictionary resources = CloneDictionary(ResolveDictionary(objects, GetInheritedPageValue(objects, pageDictionary, "Resources")));
         PdfDictionary fonts = CloneDictionary(ResolveDictionary(objects, resources.Items.TryGetValue("Font", out PdfObject? fontObject) ? fontObject : null));
         foreach (BatchFontResource font in fontResources) fonts.Items[font.Name] = new PdfReference(font.PseudoObjectNumber, 0);

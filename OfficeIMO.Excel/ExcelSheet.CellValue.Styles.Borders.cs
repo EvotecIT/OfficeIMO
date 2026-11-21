@@ -16,20 +16,22 @@ public partial class ExcelSheet {
         if (borders == ExcelCellBorders.None) return;
         BorderStyleValues value = style.ToOpenXml();
         Color? nativeColor = color.HasValue ? ExcelColor.ToSpreadsheetColor(color.Value, _excelDocument.ColorTheme) : null;
+        string borderKey = ((int)borders).ToString(System.Globalization.CultureInfo.InvariantCulture) + "|" + style + "|" + nativeColor?.OuterXml;
         WriteCellStyle(row, column, cell => {
             var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
             var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
             var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
             EnsureDefaultStylePrimitives(stylesheet);
-            var baseFormat = GetBaseCellFormat(stylesheet, cell.StyleIndex?.Value ?? 0U);
-            uint borderId = GetOrCreateBorderVariant(stylesheet, GetOptionalValue(baseFormat.BorderId), border => {
-                if (borders.HasFlag(ExcelCellBorders.Left)) border.LeftBorder = CreateBorderSide<LeftBorder>(value, nativeColor);
-                if (borders.HasFlag(ExcelCellBorders.Top)) border.TopBorder = CreateBorderSide<TopBorder>(value, nativeColor);
-                if (borders.HasFlag(ExcelCellBorders.Right)) border.RightBorder = CreateBorderSide<RightBorder>(value, nativeColor);
-                if (borders.HasFlag(ExcelCellBorders.Bottom)) border.BottomBorder = CreateBorderSide<BottomBorder>(value, nativeColor);
+            ApplyDerivedCellFormat(stylesPart, stylesheet, cell, "border", borderKey, () => {
+                var baseFormat = GetBaseCellFormat(stylesheet, cell.StyleIndex?.Value ?? 0U);
+                uint borderId = GetOrCreateBorderVariant(stylesheet, GetOptionalValue(baseFormat.BorderId), border => {
+                    if (borders.HasFlag(ExcelCellBorders.Left)) border.LeftBorder = CreateBorderSide<LeftBorder>(value, nativeColor);
+                    if (borders.HasFlag(ExcelCellBorders.Top)) border.TopBorder = CreateBorderSide<TopBorder>(value, nativeColor);
+                    if (borders.HasFlag(ExcelCellBorders.Right)) border.RightBorder = CreateBorderSide<RightBorder>(value, nativeColor);
+                    if (borders.HasFlag(ExcelCellBorders.Bottom)) border.BottomBorder = CreateBorderSide<BottomBorder>(value, nativeColor);
+                });
+                ApplyCellFormatOverride(stylesheet, cell, format => { format.BorderId = borderId; format.ApplyBorder = true; });
             });
-            ApplyCellFormatOverride(stylesheet, cell, format => { format.BorderId = borderId; format.ApplyBorder = true; });
-            SaveStylesheet(stylesPart);
         });
     }
 }

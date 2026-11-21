@@ -85,6 +85,29 @@ document.Save();
 record Week(string Label, int Planned, int Complete);
 ```
 
+### Chart images
+
+Render each native chart on its own, without the page around it. Scheme colours and series without explicit colours resolve against the document's theme, taking its accents in series order the way Word does:
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Drawing;
+using OfficeIMO.Word;
+
+using var document = WordDocument.Load("report.docx");
+int number = 0;
+foreach (WordChart chart in document.Charts) {
+    OfficeImageExportResult png = chart.ToImage(new OfficeChartImageExportOptions { TargetDpi = 192 });
+    File.WriteAllBytes($"chart-{++number}.png", png.Bytes);
+}
+
+document.Charts[0].SaveAsImage("first.svg", new OfficeChartImageExportOptions {
+    Format = OfficeImageExportFormat.Svg, Width = OfficeLength.Inches(6), Height = OfficeLength.Inches(3.5)
+});
+```
+
+`OfficeChartImageExportOptions` is the same type for Word, Excel and PowerPoint charts. Without `Width` and `Height` the chart keeps its frame size. The result carries the encoded `Bytes`, `Format`, `Width`, `Height` and rendering `Diagnostics`; `SaveAsImage` returns an `OfficeConversionReport`. A chart the shared renderer cannot draw throws `NotSupportedException` with the reason, and `TryGetOfficeSnapshot(out snapshot)` checks first without throwing. Both work for charts in loaded documents as well as charts built in the same session.
+
 ## Headers, footers and images
 
 ```csharp
@@ -111,7 +134,35 @@ document.AddParagraph($"Updated on {DateTime.Today:d}; {replaced} replacements."
 document.Save("Status-updated.docx");
 ```
 
-`Find` and `ReplaceAll` match ordinally and ignore case by default; pass `new OfficeTextSearchOptions { MatchCase = true }` or `WholeWords = true` to change that. `Find` returns a `WordSearchResult` with the matching paragraphs per document part and the match count, for both literal text and a `Regex`.
+`Find` and `ReplaceAll` match ordinally and ignore case by default; pass `new OfficeTextSearchOptions { MatchCase = true }` or `WholeWords = true` to change that. `Find` returns a `WordSearchResult` with the matching paragraphs per document part, the match count and each match as a `WordRange`, for both literal text and a `Regex`.
+
+### Text ranges
+
+A `WordRange` is a span of text that can start and end inside runs and cross paragraphs, in the body, tables, headers, footers, footnotes and endnotes. Get one from a search hit, a bookmark (`bookmark.GetRange()`) or a paragraph (`paragraph.GetRange(start, length)`, extended with `ExtendTo`). Read `Text`, then replace, format, bookmark, comment on or link it:
+
+```csharp
+using System.Text.RegularExpressions;
+using OfficeIMO.Word;
+
+using var document = WordDocument.Load("Contract.docx");
+
+// Regex replace with group substitution, a callback, or formatted content.
+document.ReplaceAll(new Regex(@"(\d{2})/(\d{2})/(\d{4})"), "$3-$2-$1");
+document.ReplaceAll(new Regex(@"\bTBD\b"), match => "to be confirmed");
+document.ReplaceAll(new Regex(@"\[(.+?)\]\((.+?)\)"),
+    (match, p) => p.AddHyperLink(match.Groups[1].Value, new Uri(match.Groups[2].Value), addStyle: true));
+
+WordRange amount = document.Find("1,000 EUR").Ranges[0];
+amount.AddBookmark("Amount");                   // spans exactly "1,000 EUR"; REF fields show it
+amount.AddComment("Przemysław", "PK", c => c.AddText("Confirm with ").AddText("finance").SetBold());
+document.Bookmarks.First(b => b.Name == "Amount").Text = "2,500 EUR";
+
+foreach (WordRange hit in document.Find("OfficeIMO").Ranges) hit.Format(run => run.SetBold());
+document.Find("officeimo.com").Ranges[0].AddHyperLink(new Uri("https://officeimo.com"));
+document.Save();
+```
+
+`Replace(string)` gives the new text the formatting of the first replaced character; `Replace(p => ...)` inserts formatted text, hyperlinks, images or fields. Replacing a range moves the ranges after it, so search hits can be replaced in order. Edits that could damage the document throw `InvalidOperationException` and change nothing: field results, tracked changes, equations, drawings, footnote references, part of a content control, paragraph joins across a table or section break, and comments in headers or footers. Regex `ReplaceAll` checks every match before replacing any.
 
 `Save()` writes to the path the document was created or loaded with; `Save(path)` writes a copy and keeps working on it. For files from outside your organization, load with `WordLoadOptions.UntrustedDefaults`, which rejects macros, embedded objects, ActiveX and external relationships before parsing.
 
@@ -137,6 +188,92 @@ document.SaveAsPdf("Notes-styled.pdf");
 ```
 
 `ApplyTheme` changes typography, paragraph rhythm and table decoration on the loaded model. It preserves content, semantic emphasis, code and symbol fonts, section geometry, table widths and merged cells. Table headers follow declared header rows. Word uses light-page theme defaults, including for `Dark`: an existing solid page background becomes white, while background images remain attached. Changed fonts, sizes and padding can change wrapping and pagination. The same themed model can use the existing PDF, HTML and image exporters.
+
+## Styles and theme
+
+`document.Styles` lists, creates, changes and removes the document's own paragraph, character and table styles. Changes edit the style definition in place, so everything that uses the style follows:
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Word;
+
+using var document = WordDocument.Create("Report.docx");
+document.Theme.SetColor(WordThemeColor.Accent1, OfficeColor.Parse("#0B5394"));
+document.Theme.MajorFont = "Georgia";
+
+WordStyle heading = document.Styles.GetOrAdd(WordParagraphStyles.Heading1);
+heading.ThemeColor = WordThemeColor.Accent1;   // follows later theme changes
+heading.ThemeFont = WordThemeFont.Major;
+
+WordStyle note = document.Styles.AddParagraphStyle("Note", "Note");
+note.IndentationBefore = OfficeLength.Centimeters(1);
+note.ShadingFillColor = OfficeColor.Parse("#FFF2CC");
+WordStyle term = document.Styles.AddCharacterStyle("Term", "Key Term");
+term.Bold = true;
+
+document.AddParagraph("Results").SetStyle(heading);
+document.AddParagraph("Unaudited. ").SetStyle(note).AddText("Draft").SetCharacterStyle(term);
+document.Save();
+```
+
+New styles are based on the default style of their type; set `BasedOnStyleId`, `NextStyleId` and `LinkedStyleId` to build chains. Formatting properties return what the style itself declares, and `null` inherits. `AddTableStyle` creates table styles with `SetTableBorders` and per-region formatting from `GetTableRegion` (header row, banding and so on). `Remove` falls content back to the default style and rebases dependent styles.
+
+Reading styles does not parse the whole styles part, which in Word-authored files is often hundreds of kilobytes of table and latent styles. Each style's identifier, name, type, base, next and linked styles are read once per document, and a style's formatting is parsed only when something reads it. Inspection, `WordDocumentComparer`, the Markdown, HTML, PDF and ODT converters and legacy `.doc` saving read styles this way in any document whose style definitions have no unsaved changes. `Count` and `Contains` do too, and in a document opened read-only so do the indexer and `Get`; listing every style reads every definition:
+
+```csharp
+using var document = WordDocument.Load("Report.docx", new WordLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
+WordStyle quote = document.Styles["Quote"];
+Console.WriteLine($"{quote.Name} is based on {quote.BasedOnStyleId ?? "nothing"} and linked to {quote.LinkedStyleId ?? "nothing"}");
+```
+
+`Styles.Import(source, conflictMode)` copies styles from another loaded document or `.dotx` template, together with the styles they depend on and the lists they number with. A style matches by type and name, then by identifier, so localized built-in styles map onto their counterparts. `WordStyleConflictMode` keeps the target's style, overwrites it or imports a renamed copy; the returned `WordStyleImportReport` lists each outcome. `document.Theme.Import(source)` copies a document's theme. Text, borders and shading that select a theme colour or theme font follow theme changes in Word, PDF and HTML output, and the RGB and font names Word caches beside them are updated too. Text that names a font or colour directly, such as the Aptos body font of a new document, keeps it.
+
+`EmbedFont(path)` embeds a TrueType or OpenType file in the document, and `EmbedFont(path, styleId)` also adds a paragraph style that uses it. The font's OS/2 `fsType` licence is checked first, the least restrictive way when several permissions are set: a font that forbids embedding or allows only bitmaps throws `ArgumentException`, while Preview & Print, Editable and installable fonts are embedded, as Word embeds them. For a collection, every face must allow embedding.
+
+## Merge and split documents
+
+`AppendDocument` adds another document's content at the end, with the styles, lists, images, hyperlinks, headers, footers, footnotes, endnotes and comments it uses. List, note, comment, bookmark, drawing and content-control identifiers are renumbered so nothing collides with the destination, and a list never continues one of the destination's lists. The appended content starts in its own section with its own page setup and headers.
+
+```csharp
+using var pack = WordDocument.Load("Cover.docx");
+using var chapter = WordDocument.Load("Chapter.docx");
+pack.AppendDocument(chapter, new WordDocumentMergeOptions {
+    StyleConflictMode = WordStyleConflictMode.Rename   // the default: appended text keeps its look
+});
+pack.Save("Pack.docx");
+```
+
+When a source style has the same name as a destination style but a different definition, `WordStyleConflictMode.Rename` copies it as `Heading1_0` / `heading 1_0`, `KeepTarget` formats the appended text with the destination's style, and `Overwrite` replaces the destination's definition. `WordMergeSectionMode.UseDestinationSections` continues the appended content in the destination's last section instead.
+
+`SplitBySection` and `SplitByHeading` cut a document into new documents. Each piece keeps the page setup and headers in effect where its content sits, and only the styles, lists, images, notes and comments it uses:
+
+```csharp
+using var report = WordDocument.Load("Report.docx");
+IReadOnlyList<WordDocument> chapters = report.SplitByHeading(level: 1);
+for (int i = 0; i < chapters.Count; i++) {
+    using WordDocument chapter = chapters[i];
+    chapter.Save($"Chapter{i + 1}.docx");
+}
+```
+
+## Before sharing
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Word;
+
+using var document = WordDocument.Load("Proposal.docx");
+OfficeHiddenDataReport removed = document.RemoveHiddenData(new OfficeHiddenDataOptions {
+    TrackedChanges = OfficeTrackedChangesAction.AcceptAll
+});
+OfficeAccessibilityReport accessibility = document.FixAccessibility(new WordAccessibilityFixOptions {
+    Title = "Proposal", Language = "en-US", MarkTableHeaderRows = true
+});
+foreach (OfficeAccessibilityFinding finding in accessibility.Findings) Console.WriteLine($"{finding.Severity} {finding.Code} at {finding.Location}");
+document.Save("Proposal-shared.docx");
+```
+
+`InspectHiddenData()` reports properties, comments, tracked changes, reviewer names, hidden text, variables, custom XML, image GPS and other metadata without changing anything; `RemoveHiddenData` removes the selected categories and reports what happened to each item. Hidden text and tracked changes are only changed when you ask. Provenance, such as Content Credentials and an image's AI-generated declaration, is reported and kept unless you add `OfficeHiddenDataKind.Provenance`; `WordDocument.RemoveProvenance(inputPath, outputPath)` removes only provenance from a file. `InspectAccessibility()` checks alternative text, headings, tables, links, contrast, floating objects, blank-paragraph spacing, title and language. The [hidden data matrix](../Docs/officeimo.hidden-data-support-matrix.md) and the [Word guide](../Docs/officeimo.word-guide.md#accessibility-checks) list every rule.
 
 ## Convert
 

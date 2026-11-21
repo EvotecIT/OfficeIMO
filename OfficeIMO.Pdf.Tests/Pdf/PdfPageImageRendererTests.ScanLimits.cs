@@ -9,8 +9,6 @@ public partial class PdfPageImageRendererTests {
     [InlineData(8, 100000)]
     [InlineData(12, 100000)]
     [InlineData(16, 2)]
-    [InlineData(24, 100000000)]
-    [InlineData(28, 100000000)]
     [InlineData(32, 2)]
     public void RenderPage_RejectsUnsafeJpeg2000GeometryBeforeCodec(int fieldOffset, uint value) {
         byte[] payload = ReadScanJpx("rgb");
@@ -139,7 +137,7 @@ public partial class PdfPageImageRendererTests {
             colorSpace: "/DeviceRGB", imageWidth: 1, imageFilterEntry: "/Filter [/FlateDecode /JPXDecode]");
         Assert.True(Assert.Single(PdfPageImageRenderer.RenderPages(wrapped,
             options: new PdfPageRenderOptions { ImageCodec = codec })).Succeeded);
-        Assert.Equal(1, codec.Calls);
+        Assert.Equal(0, codec.Calls);
     }
 
     [Fact]

@@ -27,5 +27,21 @@ public partial class ExcelDocument {
 #endif
             _ => Write(value.ToString() ?? string.Empty)
         };
+
+        // Binary records hold doubles, so numbers wider than 15 significant digits keep their exact text.
+        private void WriteNativeNumber(decimal value) {
+            if (ExcelExactNumber.FitsNumberCell(value)) _native!.WriteNumber((double)value);
+            else _native!.WriteText(value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        }
+
+        private void WriteNativeNumber(long value) {
+            if (ExcelExactNumber.FitsNumberCell(value)) _native!.WriteNumber(value);
+            else _native!.WriteText(InvariantNumberText.Get(value));
+        }
+
+        private void WriteNativeNumber(ulong value) {
+            if (ExcelExactNumber.FitsNumberCell(value)) _native!.WriteNumber(value);
+            else _native!.WriteText(InvariantNumberText.Get(value));
+        }
     }
 }

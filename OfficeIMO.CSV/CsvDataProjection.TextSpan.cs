@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 
 namespace OfficeIMO.CSV;
@@ -90,6 +91,106 @@ internal static partial class CsvDataProjectionConverter
         throw CreateConversionException(column, rowIndex, value, errorValuePolicy);
     }
 
+    /// <summary>
+    /// Parses a numeric column's UTF-8 text with the styles and culture <see cref="ConvertTextSpan"/>
+    /// uses for the same characters. Returns false for other columns and for text that does not
+    /// parse, which the character path then converts or reports.
+    /// </summary>
+    internal static bool TryConvertUtf8Number(
+        ReadOnlySpan<byte> text,
+        CsvDataConversionKind kind,
+        CultureInfo culture,
+        [NotNullWhen(true)] out object? value)
+    {
+        switch (kind)
+        {
+            case CsvDataConversionKind.Int32:
+                if (ReferenceEquals(culture, CultureInfo.InvariantCulture) && TryParseInvariantInt32(text, out var invariantInt32))
+                {
+                    value = invariantInt32;
+                    return true;
+                }
+
+                if (int.TryParse(text, NumberStyles.Any, culture, out var int32))
+                {
+                    value = int32;
+                    return true;
+                }
+
+                break;
+            case CsvDataConversionKind.Int64 when long.TryParse(text, NumberStyles.Any, culture, out var int64):
+                value = int64;
+                return true;
+            case CsvDataConversionKind.Int16 when short.TryParse(text, NumberStyles.Any, culture, out var int16):
+                value = int16;
+                return true;
+            case CsvDataConversionKind.Byte when byte.TryParse(text, NumberStyles.Any, culture, out var byteValue):
+                value = byteValue;
+                return true;
+            case CsvDataConversionKind.Double when double.TryParse(text, NumberStyles.Any, culture, out var doubleValue):
+                value = doubleValue;
+                return true;
+            case CsvDataConversionKind.Decimal when decimal.TryParse(text, NumberStyles.Any, culture, out var decimalValue):
+                value = decimalValue;
+                return true;
+            case CsvDataConversionKind.Single when float.TryParse(text, NumberStyles.Any, culture, out var singleValue):
+                value = singleValue;
+                return true;
+        }
+
+        value = null;
+        return false;
+    }
+
+    internal static bool IsNumber(CsvDataConversionKind kind) => kind is CsvDataConversionKind.Int32 or CsvDataConversionKind.Int64
+        or CsvDataConversionKind.Int16 or CsvDataConversionKind.Byte or CsvDataConversionKind.Double
+        or CsvDataConversionKind.Decimal or CsvDataConversionKind.Single;
+
+    /// <summary>Accepts exactly the text <see cref="TryParseInvariantInt32(ReadOnlySpan{char}, out int)"/> accepts.</summary>
+    private static bool TryParseInvariantInt32(ReadOnlySpan<byte> text, out int value)
+    {
+        value = 0;
+        if (text.Length == 0)
+        {
+            return false;
+        }
+
+        var index = 0;
+        var negative = false;
+        if (text[0] == (byte)'-')
+        {
+            negative = true;
+            index = 1;
+        }
+        else if (text[0] == (byte)'+')
+        {
+            index = 1;
+        }
+
+        if (index == text.Length)
+        {
+            return false;
+        }
+
+        var result = 0u;
+        var limit = negative ? 2147483648u : int.MaxValue;
+        for (; index < text.Length; index++)
+        {
+            var digit = (uint)(text[index] - '0');
+            if (digit > 9 || result > (limit - digit) / 10)
+            {
+                return false;
+            }
+
+            result = (result * 10) + digit;
+        }
+
+        value = negative
+            ? result == 2147483648u ? int.MinValue : -(int)result
+            : (int)result;
+        return true;
+    }
+
     private static bool TryParseInt32(ReadOnlySpan<char> text, CultureInfo culture, out int value)
     {
         if (!ReferenceEquals(culture, CultureInfo.InvariantCulture))
@@ -164,6 +265,12 @@ internal static partial class CsvDataProjectionConverter
         if (dateTimeFormats is not { Count: > 0 } &&
             ReferenceEquals(culture, CultureInfo.InvariantCulture) &&
             TryParseDefaultInvariantDateTime(text, out dateTime))
+        {
+            return true;
+        }
+
+        // ISO 8601 text, the writers' default, is Gregorian whatever the culture's calendar.
+        if (IsIsoDate(text) && DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out dateTime))
         {
             return true;
         }
@@ -250,28 +357,29 @@ internal static partial class CsvDataProjectionConverter
     private static bool TryParseDefaultInvariantDateTime(ReadOnlySpan<char> text, out DateTime dateTime)
     {
         dateTime = default;
-        // This is the round-trip format emitted by CsvSaveOptions for UTC and
-        // unspecified DateTime values. Offset-bearing local values deliberately
-        // retain the framework fallback so RoundtripKind semantics stay authoritative.
-        if ((text.Length == 27 || text.Length == 28) &&
+        // This is the round-trip text the CSV writers emit for UTC and unspecified DateTime values (and the "o"
+        // format): yyyy-MM-ddTHH:mm:ss with an optional fraction of up to seven digits and an optional Z.
+        // Offset-bearing local values deliberately retain the framework fallback so RoundtripKind semantics stay authoritative.
+        bool utc = text.Length > 19 && text[text.Length - 1] == 'Z';
+        int fractionEnd = utc ? text.Length - 1 : text.Length;
+        if (text.Length >= 19 && fractionEnd <= 27 &&
             text[4] == '-' &&
             text[7] == '-' &&
             text[10] == 'T' &&
             text[13] == ':' &&
             text[16] == ':' &&
-            text[19] == '.' &&
-            (text.Length == 27 || text[27] == 'Z') &&
+            (fractionEnd == 19 || (fractionEnd > 20 && text[19] == '.')) &&
             TryParseFourDigits(text, 0, out var roundTripYear) &&
             TryParseTwoDigits(text, 5, out var roundTripMonth) &&
             TryParseTwoDigits(text, 8, out var roundTripDay) &&
             TryParseTwoDigits(text, 11, out var roundTripHour) &&
             TryParseTwoDigits(text, 14, out var roundTripMinute) &&
             TryParseTwoDigits(text, 17, out var roundTripSecond) &&
-            TryParseSevenDigits(text, 20, out var fractionalTicks))
+            TryParseFractionTicks(text, fractionEnd, out var fractionalTicks))
         {
             try
             {
-                var kind = text.Length == 28 ? DateTimeKind.Utc : DateTimeKind.Unspecified;
+                var kind = utc ? DateTimeKind.Utc : DateTimeKind.Unspecified;
                 dateTime = new DateTime(
                     roundTripYear,
                     roundTripMonth,
@@ -367,12 +475,14 @@ internal static partial class CsvDataProjectionConverter
         return true;
     }
 
-    private static bool TryParseSevenDigits(ReadOnlySpan<char> text, int offset, out long value)
+    /// <summary>Reads the fraction digits between position 20 and <paramref name="end"/> as ticks; no fraction is zero ticks.</summary>
+    private static bool TryParseFractionTicks(ReadOnlySpan<char> text, int end, out long value)
     {
         value = 0;
-        for (var index = 0; index < 7; index++)
+        int digits = end - 20;
+        for (var index = 0; index < digits; index++)
         {
-            var digit = text[offset + index] - '0';
+            var digit = text[20 + index] - '0';
             if ((uint)digit > 9)
             {
                 value = 0;
@@ -380,6 +490,11 @@ internal static partial class CsvDataProjectionConverter
             }
 
             value = (value * 10) + digit;
+        }
+
+        for (var index = digits < 0 ? 7 : digits; index < 7; index++)
+        {
+            value *= 10;
         }
 
         return true;

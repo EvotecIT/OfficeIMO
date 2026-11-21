@@ -23,16 +23,21 @@ Copy-Item -LiteralPath (Join-Path $repository 'global.json') -Destination $consu
 using System.Security.Cryptography;
 using System.Text;
 using OfficeIMO.JavaScript.Assets;
-foreach (var asset in new[] { JavaScriptAssets.Script, JavaScriptAssets.Module, JavaScriptAssets.XlsxScript,
+var readable = new[] { JavaScriptAssets.Script, JavaScriptAssets.Module, JavaScriptAssets.XlsxScript,
     JavaScriptAssets.XlsxModule, JavaScriptAssets.CsvScript, JavaScriptAssets.CsvModule, JavaScriptAssets.PdfScript, JavaScriptAssets.PdfModule, JavaScriptAssets.DataTablesScript, JavaScriptAssets.DataTablesModule,
-    JavaScriptAssets.CanopyXScript, JavaScriptAssets.CanopyXModule, JavaScriptAssets.ExecutionScript, JavaScriptAssets.ExecutionModule }) {
+    JavaScriptAssets.DataTablesAdapterScript, JavaScriptAssets.DataTablesAdapterModule, JavaScriptAssets.CanopyXScript, JavaScriptAssets.CanopyXModule,
+    JavaScriptAssets.CanopyXAdapterScript, JavaScriptAssets.CanopyXAdapterModule, JavaScriptAssets.ExecutionScript, JavaScriptAssets.ExecutionModule };
+var assets = readable.Concat(readable.Select(asset => asset.Minified)).ToArray();
+if (assets.Length != Directory.GetFiles(args[0]).Count(path => path.EndsWith(".js") || path.EndsWith(".mjs")))
+    throw new InvalidDataException("Packed asset API and generated bundle set differ.");
+foreach (var asset in assets) {
     var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(asset.Content))).ToLowerInvariant()[..16];
     if (asset.ContentHash != hash || !asset.HashedFileName.Contains(hash) || asset.Content.Length == 0)
         throw new InvalidDataException("Packed embedded asset content/hash differs.");
     if (!Encoding.UTF8.GetBytes(asset.Content).SequenceEqual(File.ReadAllBytes(Path.Combine(args[0], asset.FileName))))
         throw new InvalidDataException("Packed asset differs from the current generated source.");
 }
-Console.WriteLine("Packed .NET consumer verified all fourteen assets and their SHA-256 names.");
+Console.WriteLine("Packed .NET consumer verified all " + assets.Length + " assets and their SHA-256 names.");
 '@ | Set-Content -LiteralPath (Join-Path $consumer 'Program.cs') -Encoding utf8
 # A task-local packages directory ensures this tests the archive, not a cached package.
 $packageCache = Join-Path $consumer ('packages/' + [Guid]::NewGuid().ToString('N'))

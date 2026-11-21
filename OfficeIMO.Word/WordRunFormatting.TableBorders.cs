@@ -17,7 +17,7 @@ internal static partial class WordRunFormatting {
         bool rightToLeft = WordTableAlignmentResolver.IsRightToLeft(table?.GetFirstChild<TableProperties>());
         BorderType? direct = ReadBorder(cell._tableCell.TableCellProperties?.TableCellBorders);
         if (direct != null || table == null) return direct;
-        TableRunPaintState state = GetTableRunPaintState(table, cell.Document.MainDocumentPartRoot.StyleDefinitionsPart?.Styles);
+        TableRunPaintState state = GetTableRunPaintState(table, WordStyleCatalog.For(cell.Document));
         if (state.HasConditionalFormatting) {
             foreach (TableStyleOverrideValues condition in EnumerateTableRunConditions(state, cell._tableCell)) {
                 foreach (Style style in state.Chain) {

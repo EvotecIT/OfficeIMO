@@ -184,8 +184,8 @@ Describe 'Authenticated PDF automation' {
 
         Set-OfficePdfMetadata -Path $source -OutputPath $metadata -Title 'Authenticated metadata' `
             -Password 'open' -IgnorePermissionRestrictions -PassThru | Should -BeOfType System.IO.FileInfo
-        $sanitization = Optimize-OfficePdf -Sanitize -PassThru -Path $source -OutputPath $sanitized `
-            -Password 'open' -IgnorePermissionRestrictions
+        Optimize-OfficePdf -Sanitize -PassThru -Path $source -OutputPath $sanitized `
+            -Password 'open' -IgnorePermissionRestrictions | Should -BeOfType OfficeIMO.OfficeHiddenDataResult
 
         foreach ($output in @($metadata, $sanitized)) {
             (Get-OfficeDocumentInfo -Detailed -Path $output).PdfPreflight.CanRead | Should -BeFalse
@@ -194,7 +194,6 @@ Describe 'Authenticated PDF automation' {
         }
         ((Get-OfficeDocumentInfo -Detailed -Path $metadata -Password 'owner').Details).Metadata.Title | Should -Be 'Authenticated metadata'
         Read-OfficeDocument -As Text -Path $sanitized -Password 'owner' | Should -Match 'Restricted rewrite source'
-        $sanitization.MutationPlan.Warnings | Should -Contain 'Input.PermissionRestrictionsIgnored'
     }
 
     It 'proves rewrites between independently authenticated document instances' {

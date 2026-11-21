@@ -38,33 +38,23 @@ public static partial class WordOpenDocumentConversionExtensions {
         for (int sectionIndex = 0; sectionIndex < snapshot.Sections.Count; sectionIndex++) {
             WordSectionInfo section = snapshot.Sections[sectionIndex];
             notes.CurrentSectionIndex = sectionIndex;
-            OdtList? currentList = null;
-            bool? currentOrdered = null;
+            var openLists = new OdtNestedLists(target);
             foreach (WordBlockInfo block in section.Elements.OrderBy(item => item.Order)) {
                 if (block is WordParagraphInfo paragraph) {
                     if (paragraph.IsListItem) {
-                        bool ordered = paragraph.IsOrderedList == true;
-                        if (currentList == null || currentOrdered != ordered) {
-                            currentList = target.AddList(ordered);
-                            currentOrdered = ordered;
-                            lists++;
-                        }
-                        OdtParagraph listParagraph = currentList.AddItem().Paragraphs[0];
+                        OdtParagraph listParagraph = openLists.AddItem(paragraph, ref lists, ref nestedListLevels).Paragraphs[0];
                         CopyParagraph(paragraph, listParagraph, effective, imageValidationBudget, ref hyperlinks, ref images, ref unsupportedImages, ref bookmarks, notes);
-                        if (paragraph.ListLevel > 0) nestedListLevels++;
                         paragraphs++;
                         continue;
                     }
 
-                    currentList = null;
-                    currentOrdered = null;
+                    openLists.Close();
                     int headingLevel = GetHeadingLevel(paragraph);
                     OdtParagraph converted = headingLevel > 0 ? target.AddHeading(string.Empty, headingLevel) : target.AddParagraph();
                     CopyParagraph(paragraph, converted, effective, imageValidationBudget, ref hyperlinks, ref images, ref unsupportedImages, ref bookmarks, notes);
                     if (headingLevel > 0) headings++; else paragraphs++;
                 } else if (block is WordTableInfo table) {
-                    currentList = null;
-                    currentOrdered = null;
+                    openLists.Close();
                     ConvertTable(table, target, effective, imageValidationBudget, ref hyperlinks, ref images, ref unsupportedImages,
                         ref bookmarks, notes);
                     tables++;
@@ -155,7 +145,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         CountWordNoteSettingsLoss(source, notes);
         AddNoteMappings(report, notes);
         if (nestedListLevels > 0) report.Add("list-levels", OdfConversionMappingStatus.Approximated, nestedListLevels,
-            "Nested Word list items are retained as top-level ODT list items because hierarchical list emission is not yet supported.");
+            "Word list items that skip a level are nested one level below the item before them, and items deeper than ten levels stay at the tenth.");
         AddUnmappedWordFindings(source.InspectFeatures(), report, images, hyperlinks, bookmarks, notes);
         return new OdfConversionResult<OdtDocument>(target, report).ApplyPolicy(effective.LossPolicy);
     }
@@ -666,9 +656,12 @@ public static partial class WordOpenDocumentConversionExtensions {
     }
 
     private static int GetHeadingLevel(WordParagraphInfo paragraph) {
-        string value = paragraph.StyleId ?? paragraph.StyleName ?? string.Empty;
-        if (!value.StartsWith("Heading", StringComparison.OrdinalIgnoreCase)) return 0;
-        return int.TryParse(value.Substring(7), out int level) ? Math.Max(1, Math.Min(9, level)) : 0;
+        // Inspection names built-in styles by their English identifier, also for localized identifiers such as
+        // Titre1; a style name can also be the built-in name itself.
+        string? builtInId = WordBuiltInStyleNames.IsBuiltInId(paragraph.StyleName) ? paragraph.StyleName
+            : WordBuiltInStyleNames.GetId(paragraph.StyleName) ??
+              (WordBuiltInStyleNames.IsBuiltInId(paragraph.StyleId) ? paragraph.StyleId : null);
+        return WordBuiltInStyleNames.GetHeadingLevel(builtInId);
     }
 
     private static WordParagraphStyles HeadingStyle(int level) {

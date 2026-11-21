@@ -59,7 +59,8 @@ public partial class DrawingTests {
 
         OfficeColor center = raster.GetPixel(70, 50);
         OfficeColor roundedCorner = raster.GetPixel(30, 50);
-        Assert.InRange(center.R, (byte)195, (byte)225);
+        // A 28 pt blur (14 pt deviation) spreads a 30 pt tall shadow, so its middle stays below the 20% core.
+        Assert.InRange(center.R, (byte)215, (byte)235);
         Assert.True(roundedCorner.R >= center.R - 20, $"Rounded blur corner {roundedCorner} was materially darker than center {center}.");
     }
 
@@ -143,5 +144,103 @@ public partial class DrawingTests {
         Assert.False(core.HasStroke);
         Assert.Equal(0.5D, core.Opacity, 6);
         Assert.All(layers.Where(layer => !layer.HasFill), layer => Assert.True(layer.HasStroke));
+    }
+
+    [Fact]
+    public void BlurredShadow_FollowsPathGeometryOutsideItsDeclaredBox() {
+        // The path runs well past its 20 x 20 box; its shadow must not be cut at the box edge.
+        OfficeShape path = OfficeShape.Path(20D, 20D,
+            OfficePathCommand.MoveTo(0D, 0D), OfficePathCommand.LineTo(60D, 0D),
+            OfficePathCommand.LineTo(60D, 20D), OfficePathCommand.LineTo(0D, 20D), OfficePathCommand.Close());
+        path.FillColor = OfficeColor.White;
+        path.StrokeWidth = 0D;
+        path.Shadow = new OfficeShadow(OfficeColor.Black, 1D, 0D, 10D, 2D);
+        var drawing = new OfficeDrawing(100D, 60D).AddShape(path, 10D, 10D);
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing, background: OfficeColor.White);
+
+        Assert.True(raster.GetPixel(55, 36).R < 32, "The shadow under the part of the path beyond its box is missing.");
+    }
+
+    [Fact]
+    public void BlurredGlow_WithSubpixelRadiusRendersWithoutBlurring() {
+        OfficeShape shape = OfficeShape.Rectangle(20D, 10D);
+        shape.FillColor = OfficeColor.Blue;
+        shape.StrokeWidth = 0D;
+        shape.Glow = new OfficeGlow(OfficeColor.FromRgb(255, 0, 255), 1D, 0.01D);
+        var drawing = new OfficeDrawing(40D, 30D).AddShape(shape, 10D, 10D);
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing, background: OfficeColor.White);
+
+        Assert.Equal(OfficeColor.Blue, raster.GetPixel(20, 15));
+        Assert.Equal(OfficeColor.White, raster.GetPixel(5, 15));
+    }
+
+    [Fact]
+    public void BlurredShadow_KeepsSquareCapCornersOfADiagonalLine() {
+        // Square caps on a 45 degree line reach half the width times root two along each axis, beyond the stroke half-width.
+        OfficeShape line = OfficeShape.Line(0D, 0D, 100D, 100D);
+        line.StrokeColor = OfficeColor.White;
+        line.StrokeWidth = 100D;
+        line.StrokeLineCap = OfficeStrokeLineCap.Square;
+        line.StrokeLineJoin = OfficeStrokeLineJoin.Round;
+        line.Shadow = new OfficeShadow(OfficeColor.Black, 1D, 250D, 0D, 1D);
+        var drawing = new OfficeDrawing(450D, 260D).AddShape(line, 80D, 80D);
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing, background: OfficeColor.White);
+
+        // 62 units left of the shadow's start point lies inside the start cap's corner.
+        Assert.True(raster.GetPixel(268, 80).R < 32, "The shadow of the square cap corner was cut off.");
+    }
+
+    [Fact]
+    public void BlurredShadow_StaysWithinTheRasterBudgetWhenDownscaled() {
+        // The 140 x 70 page fits 10000 pixels; the 1008 x 508 effect box must fit them after rounding, not only before it.
+        OfficeShape shape = OfficeShape.Rectangle(1000D, 500D);
+        shape.FillColor = OfficeColor.Blue;
+        shape.StrokeWidth = 0D;
+        shape.Shadow = new OfficeShadow(OfficeColor.Black, 1D, 0D, 0D, 2D);
+        var drawing = new OfficeDrawing(1000D, 500D).AddShape(shape, 0D, 0D);
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing, new OfficeDrawingRasterRenderOptions {
+            Scale = 0.14D,
+            MaximumRasterPixels = 10000L
+        });
+
+        Assert.Equal(OfficeColor.Blue, raster.GetPixel(70, 35));
+    }
+
+    [Fact]
+    public void BlurredShadow_OfACrispRectangleDoesNotReplaceANormalRectanglesShadow() {
+        OfficeShape crisp = OfficeShape.Rectangle(0.37D, 0.37D);
+        crisp.FillColor = OfficeColor.Black;
+        crisp.StrokeWidth = 0D;
+        crisp.CrispEdges = true;
+        crisp.Shadow = new OfficeShadow(OfficeColor.Black, 1D, 0D, 0D, 0.5D);
+        OfficeShape normal = crisp.Clone();
+        normal.CrispEdges = false;
+        OfficeBlurredShapeEffect crispEffect = OfficeBlurredShapeEffect.CreateShadow(crisp)!;
+        OfficeBlurredShapeEffect normalEffect = OfficeBlurredShapeEffect.CreateShadow(normal)!;
+
+        byte[] crispCoverage = crispEffect.RenderCoverage(4D, System.Threading.CancellationToken.None, out _, out _);
+        byte[] normalCoverage = normalEffect.RenderCoverage(4D, System.Threading.CancellationToken.None, out _, out _);
+
+        Assert.NotEqual(crispCoverage, normalCoverage);
+    }
+
+    [Fact]
+    public void BlurredGlow_OfAnElongatedEllipseFollowsItsOutline() {
+        // Near the ends of a 200 x 2 ellipse the outline 10 units out stays about 10 units tall;
+        // the ellipse grown along its axes would be only about 6 units tall there.
+        OfficeShape ellipse = OfficeShape.Ellipse(200D, 2D);
+        ellipse.FillColor = OfficeColor.Blue;
+        ellipse.StrokeWidth = 0D;
+        ellipse.Glow = new OfficeGlow(OfficeColor.FromRgb(255, 0, 255), 1D, 20D);
+        var drawing = new OfficeDrawing(240D, 60D).AddShape(ellipse, 20D, 30D);
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing, background: OfficeColor.White);
+
+        OfficeColor halo = raster.GetPixel(210, 22);
+        Assert.True(halo.G < 140, $"Expected the glow near the ellipse end, found {halo}.");
     }
 }

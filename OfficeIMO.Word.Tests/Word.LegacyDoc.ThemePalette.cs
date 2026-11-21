@@ -42,7 +42,6 @@ public partial class Word {
         Assert.Equal("Exact", Assert.Single(restored.Tables).Rows[0].Cells[0].Paragraphs[0].Text);
     }
     [Theory]
-    [InlineData("paragraph shading")]
     [InlineData("paragraph border")]
     [InlineData("table cell shading")]
     [InlineData("table cell border")]
@@ -53,7 +52,6 @@ public partial class Word {
         WordTableCell cell = source.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0];
         cell.Paragraphs[0].Text = "Cell";
         switch (kind) {
-            case "paragraph shading": paragraph.ShadingFillColor = OfficeColor.Parse("336699"); break;
             case "paragraph border": paragraph.Borders.TopStyle = WordBorderStyle.Single; paragraph.Borders.TopColor = OfficeColor.Parse("336699"); break;
             case "table cell shading": cell.ShadingFillColor = OfficeColor.Parse("336699"); break;
             case "table cell border": cell.Borders.TopStyle = WordBorderStyle.Single; cell.Borders.TopColor = OfficeColor.Parse("336699"); break;
@@ -71,7 +69,6 @@ public partial class Word {
         WordParagraph nativeParagraph = restored.Paragraphs.First(item => item.Text == "Paint");
         WordTableCell nativeCell = Assert.Single(restored.Tables).Rows[0].Cells[0];
         string? actual = kind switch {
-            "paragraph shading" => nativeParagraph.ShadingFillColor?.ToRgbHex(),
             "paragraph border" => nativeParagraph.Borders.TopColor?.ToRgbHex(),
             "table cell shading" => nativeCell.ShadingFillColor?.ToRgbHex(),
             "table cell border" => nativeCell.Borders.TopColor?.ToRgbHex(),

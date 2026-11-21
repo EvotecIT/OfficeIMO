@@ -54,6 +54,7 @@ internal sealed partial class CsvLineReader
                 Vector256.Equals(bytes, CsvCarriageReturnVector));
             uint lineFeedMask = (uint)System.Runtime.Intrinsics.X86.Avx512BW.MoveMask(
                 Vector256.Equals(bytes, CsvLineFeedVector));
+            quoteMask &= _quoteMask;
             uint terminalMask = quoteMask | carriageReturnMask | lineFeedMask;
 
             if (terminalMask != 0)

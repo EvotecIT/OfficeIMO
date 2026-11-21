@@ -319,7 +319,7 @@ namespace OfficeIMO.Word {
             _axisTitleFontName = fontFamily;
             _axisTitleFontSize = checked((int)Math.Round(fontSize.ToPoints() * 100D, MidpointRounding.AwayFromZero));
             _axisTitleColor = color;
-            UpdateAxisTitles();
+            UpdateAxisTitles(restyleExisting: true);
             return this;
         }
 

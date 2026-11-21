@@ -124,6 +124,17 @@ public sealed class HtmlPdfFontCoverageTests {
         Assert.Contains(sequence, PdfCore.PdfReadDocument.Open(document.ToBytes()).ExtractText(), StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("\U0001F3CB\uFE0F\u200D\u2642\uFE0F")]
+    [InlineData("#\uFE0F\u20E3")]
+    [InlineData("f\u200Di f\u200Ci")]
+    public void HtmlPdf_JoinedSequenceKeepsTheFontLigatureWithoutReplacement(string text) {
+        HtmlPdfRenderRequestResult result = RenderWithWebFont(ManagedTextShapingTestAssets.CreateEmojiSequenceFont(), text);
+
+        Assert.DoesNotContain(result.Output.Report.Warnings, item => item.Code == HtmlPdfDiagnosticCodes.UnavailableTextGlyphReplaced);
+        Assert.Contains(text, PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText(), StringComparison.Ordinal);
+    }
+
     [Fact]
     public void HtmlPdf_MarginBoxTextDoesNotTurnInstalledBoldIntoRegular() {
         if (!PdfCore.PdfEmbeddedFontFamily.TryFromSystem("Arial", out PdfCore.PdfEmbeddedFontFamily? arial) || arial?.Bold == null) return;

@@ -20,7 +20,7 @@ Get-OfficePrinter [-Name] <string[]> -PaperSource [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Lists system printer queues, or the paper sources of a named queue. Requires PowerShell 7.4 or newer.
+Use Get-OfficePrinterCapability for media, duplex, color and resolution details of a queue or IPP printer.
 
 ## EXAMPLES
 
@@ -34,7 +34,7 @@ PS> Get-OfficePrinter
 ## PARAMETERS
 
 ### -Name
-Printer name patterns; PaperSource requires one exact printer name.
+Printer name patterns; PaperSource requires one exact printer name or IPP printer URI.
 
 ```yaml
 Type: String[]

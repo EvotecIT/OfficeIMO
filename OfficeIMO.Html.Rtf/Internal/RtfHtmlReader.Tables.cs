@@ -289,7 +289,7 @@ internal static partial class RtfHtmlReader {
             }
 
             if (style.TextAlignment.HasValue) {
-                _cellTextAlignment = style.TextAlignment.Value;
+                _cellTextAlignment = ResolveTextAlignment(style);
             }
 
             if (style.BackgroundColor != null) {

@@ -2,7 +2,7 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Selectable document-content categories understood by the PDF sanitization engine.</summary>
 [System.Flags]
-public enum PdfSanitizationContentKind {
+internal enum PdfSanitizationContentKind {
     /// <summary>Do not select any document-content category.</summary>
     None = 0,
     /// <summary>User-authored Info fields and the catalog XMP metadata packet.</summary>

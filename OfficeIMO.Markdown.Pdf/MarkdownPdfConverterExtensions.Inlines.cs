@@ -47,6 +47,12 @@ public static partial class MarkdownPdfConverterExtensions {
             case HighlightInline highlight:
                 ApplyStyle(builder, style.With(background: global::OfficeIMO.OfficeColor.FromRgb(254, 243, 199))).AddText(highlight.Text);
                 break;
+            case MathInline math when TryCreateInlineMathRun(math, style, out PdfTextRun mathRun):
+                builder.AddRuns(new[] { mathRun });
+                break;
+            case MathInline math:
+                builder.AddRuns(new[] { CreateMathSourceRun(math, style) });
+                break;
             case CodeSpanInline code:
                 ApplyStyle(builder, style.With(font: PdfCore.PdfStandardFont.Courier, background: global::OfficeIMO.OfficeColor.FromRgb(241, 245, 249), color: global::OfficeIMO.OfficeColor.FromRgb(30, 41, 59))).AddText(code.Text);
                 break;
@@ -120,7 +126,8 @@ public static partial class MarkdownPdfConverterExtensions {
         MarkdownPdfExportOptions? options = style.Anchors?.Options;
         if (options == null || !options.IncludeImages || linkUrl != null) return false;
         if (!TryReadImageBytes(source, options, out byte[] bytes, out _, out _, out _) ||
-            !PdfCore.PdfDocument.TryPrepareImageBytes(bytes, out byte[] prepared, out OfficeImageInfo? info, out _, out _) ||
+            // SVG, such as a status badge, stays vector; raster formats are normalized for the PDF writer.
+            !PdfCore.PdfDocument.TryPrepareImageKeepingSvg(bytes, default, out byte[] prepared, out OfficeImageInfo? info, out _) ||
             info == null || info.Width <= 0 || info.Height <= 0) {
             return false;
         }
@@ -204,6 +211,9 @@ public static partial class MarkdownPdfConverterExtensions {
                 break;
             case HighlightInline highlight:
                 runs.Add(CreateRun(highlight.Text, style.With(background: global::OfficeIMO.OfficeColor.FromRgb(254, 243, 199))));
+                break;
+            case MathInline math:
+                runs.Add(TryCreateInlineMathRun(math, style, out PdfTextRun mathRun) ? mathRun : CreateMathSourceRun(math, style));
                 break;
             case CodeSpanInline code:
                 runs.Add(CreateRun(code.Text, style.With(font: PdfCore.PdfStandardFont.Courier, background: global::OfficeIMO.OfficeColor.FromRgb(241, 245, 249), color: global::OfficeIMO.OfficeColor.FromRgb(30, 41, 59))));

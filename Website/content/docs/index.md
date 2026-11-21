@@ -11,6 +11,7 @@ slug: index
 - [Workflow Finder](/docs/workflows/) maps inputs and outcomes to focused .NET packages and PowerShell commands.
 - [Database reporting](/docs/workflows/database-reporting/) connects DbaClientX query and bulk-write paths to Excel and CSV artifacts.
 - [Content publishing](/docs/workflows/content-publishing/) covers Markdown, HTML, RTF, OneNote, OpenDocument, Office, and PDF routes.
+- [Before sharing](/docs/before-sharing/) removes author names, comments, hidden content and photo locations, handles Content Credentials and AI labels, and checks accessibility.
 - [Generated output gallery](/showcase/) shows committed document previews tied to examples and tests.
 - [Reports across PowerShell modules](/docs/integrations/) turns HTML tables and event snapshots into editable reports and local email packages.
 - [PSWriteOffice benchmarks](/docs/workflows/powershell-benchmarks/) explains the comparison contract and provides reproducible commands.
@@ -20,6 +21,7 @@ slug: index
 
 - Create and edit: [Word on NuGet](https://www.nuget.org/packages/OfficeIMO.Word), [Excel on NuGet](https://www.nuget.org/packages/OfficeIMO.Excel), [PowerPoint on NuGet](https://www.nuget.org/packages/OfficeIMO.PowerPoint), [PDF on NuGet](https://www.nuget.org/packages/OfficeIMO.Pdf), [OneNote on NuGet](https://www.nuget.org/packages/OfficeIMO.OneNote), [OpenDocument on NuGet](https://www.nuget.org/packages/OfficeIMO.OpenDocument), and [Visio on NuGet](https://www.nuget.org/packages/OfficeIMO.Visio).
 - Web and text: [HTML](https://www.nuget.org/packages/OfficeIMO.Html), [Markdown](https://www.nuget.org/packages/OfficeIMO.Markdown), [RTF](https://www.nuget.org/packages/OfficeIMO.Rtf), [EPUB](https://www.nuget.org/packages/OfficeIMO.Epub), [AsciiDoc](https://www.nuget.org/packages/OfficeIMO.AsciiDoc), [LaTeX](https://www.nuget.org/packages/OfficeIMO.Latex), and [CSV](https://www.nuget.org/packages/OfficeIMO.CSV).
+- More formats: [Project](https://www.nuget.org/packages/OfficeIMO.Project), [Access](https://www.nuget.org/packages/OfficeIMO.Access), [Publisher](https://www.nuget.org/packages/OfficeIMO.Publisher), [XPS](https://www.nuget.org/packages/OfficeIMO.Xps), [iWork](https://www.nuget.org/packages/OfficeIMO.IWork), and [e-invoicing](https://www.nuget.org/packages/OfficeIMO.Invoicing). The [text and markup formats](/docs/text-formats/) guide covers DocBook, CHM, OPML, DjVu, ADF, and bibliography packages.
 - Workflow packages: [Reader.All](https://www.nuget.org/packages/OfficeIMO.Reader.All), [Google Workspace](https://www.nuget.org/packages/OfficeIMO.GoogleWorkspace), and focused conversion packages on the [downloads page](/downloads/).
 - PowerShell: [PSWriteOffice on PowerShell Gallery](https://www.powershellgallery.com/packages/PSWriteOffice).
 

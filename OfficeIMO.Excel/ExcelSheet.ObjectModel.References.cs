@@ -159,7 +159,7 @@ namespace OfficeIMO.Excel {
             return string.Equals(start, end, StringComparison.OrdinalIgnoreCase) ? start : $"{start}:{end}";
         }
 
-        private Cell? TryGetExistingCell(int row, int column) {
+        internal Cell? TryGetExistingCell(int row, int column) {
             return TryGetCell(row, column);
         }
 

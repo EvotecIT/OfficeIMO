@@ -20,6 +20,7 @@
     <None Include="..\..\..\OfficeIMO.TestAssets\Documents\Provenance\unsigned-credential-12-actions.png" Link="samples\unsigned-credential-12-actions.png" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.Web.Converter\wwwroot\samples\provenance-demo.png" Link="samples\provenance-demo.png" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.Web.Converter\wwwroot\samples\business-summary.docx" Link="samples\business-summary.docx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.Web.Converter\wwwroot\samples\share-ready-sample.docx" Link="samples\share-ready-sample.docx" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.Web.Converter\wwwroot\samples\basic.xlsx"
           Link="samples\basic.xlsx"
           CopyToOutputDirectory="PreserveNewest" />

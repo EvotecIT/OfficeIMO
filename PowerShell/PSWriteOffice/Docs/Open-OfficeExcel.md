@@ -21,7 +21,7 @@ Open-OfficeExcel [[-Content] <scriptblock>] -LiteralPath <string> [-ReadOnly] [-
 
 ### Uri
 ```powershell
-Open-OfficeExcel [-Uri] <uri> [-AllowHttp] [-ReadOnly] [-Password <securestring>] [-MaxDegreeOfParallelism <Int32>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Open-OfficeExcel [-Uri] <uri> [-AllowHttp] [-AllowPrivateNetworkAddresses] [-ReadOnly] [-Password <securestring>] [-MaxDegreeOfParallelism <Int32>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -109,6 +109,22 @@ Explicitly accept native-save reductions in a completed local content block.
 ```yaml
 Type: SwitchParameter
 Parameter Sets: Path, LiteralPath
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -AllowPrivateNetworkAddresses
+Allow a workbook on a loopback, private, link-local or other non-public network address. Use only for trusted internal sources.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Uri
 Aliases: None
 Possible values:
 

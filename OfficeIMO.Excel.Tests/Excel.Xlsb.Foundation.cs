@@ -658,7 +658,7 @@ namespace OfficeIMO.Tests {
                 using var rewrittenPart = new MemoryStream();
                 foreach (XlsbRecord record in records) {
                     if (record.Type >= 476 && record.Type <= 480) continue;
-                    if (record.Type == 130) XlsbRecordWriter.Write(rewrittenPart, 550, Array.Empty<byte>());
+                    if (record.Type == 130) XlsbRecordWriter.Write(rewrittenPart, 550, BitConverter.GetBytes(uint.MaxValue)); // BrtDrawing with a NULL RelID
                     XlsbRecordWriter.Write(rewrittenPart, record.Type, record.Data);
                 }
                 withoutPrintMetadata = ReplaceZipEntry(original, "xl/worksheets/sheet1.bin", rewrittenPart.ToArray());

@@ -26,8 +26,11 @@ public sealed class WordImageOptimizationOptions {
     public long MaxStagedBytes { get; set; } = 128L * 1024 * 1024;
     /// <summary>Maximum package parts visited. Defaults to 10000.</summary>
     public int MaxPackageParts { get; set; } = 10_000;
-    /// <summary>Save policy used to authorize invalidating a signed package during mutation.</summary>
-    public WordSignedDocumentSavePolicy SignedDocumentPolicy { get; set; } = WordSignedDocumentSavePolicy.Block;
+    /// <summary>
+    /// How optimization handles digital signatures that replacing images would invalidate. The default blocks optimization
+    /// of a signed document; pass the same policy to the save that persists the result.
+    /// </summary>
+    public OfficeSignatureMutationPolicy SignatureMutationPolicy { get; set; } = OfficeSignatureMutationPolicy.BlockSave;
 
     /// <summary>Creates an independently validated copy of these settings.</summary>
     public WordImageOptimizationOptions Clone() {
@@ -45,8 +48,8 @@ public sealed class WordImageOptimizationOptions {
             throw new ArgumentOutOfRangeException(nameof(MetadataPolicy));
         if ((MetadataSelection & ~OfficeImageMetadataKinds.All) != 0)
             throw new ArgumentOutOfRangeException(nameof(MetadataSelection));
-        if (SignedDocumentPolicy != WordSignedDocumentSavePolicy.Block && SignedDocumentPolicy != WordSignedDocumentSavePolicy.AllowSignatureInvalidation)
-            throw new ArgumentOutOfRangeException(nameof(SignedDocumentPolicy));
+        if (SignatureMutationPolicy < OfficeSignatureMutationPolicy.BlockSave || SignatureMutationPolicy > OfficeSignatureMutationPolicy.PreserveSignatureMarkup)
+            throw new ArgumentOutOfRangeException(nameof(SignatureMutationPolicy));
         return (WordImageOptimizationOptions)MemberwiseClone();
     }
 }

@@ -41,6 +41,7 @@ public sealed class AddOfficeExcelPageBreakCommand : OfficeDocumentCmdlet<ExcelD
     /// <summary>Worksheet name, one-based position or native worksheet; omission uses the current sheet.</summary>
     [Parameter(ParameterSetName = "Default")]
     [OfficeSheetTransformation]
+    [Alias("WorksheetName")]
     public OfficeSheetSelector? Sheet { get; set; }
     /// <summary>One-based rows after which printing starts a new page.</summary>
     [Parameter(ParameterSetName = "Default")]

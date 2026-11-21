@@ -45,14 +45,16 @@ public sealed class ImportOfficeExcelCommand : AsyncPSCmdlet {
     /// <summary>Workbook paths resolved with filesystem wildcard support.</summary>
     [Parameter(ParameterSetName = "Path", Mandatory = true, Position = 0, ValueFromPipeline = true)]
     [Parameter(ParameterSetName = "PathTable", Mandatory = true, Position = 0, ValueFromPipeline = true)]
+    [Alias("FilePath")]
     public string[] Path { get; set; } = Array.Empty<string>();
 
-    /// <summary>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</summary>
+    /// <summary>Worksheet name, one-based position or native worksheet object. Native worksheet objects need -Document or an enclosing Excel content block. Multi-sheet commands also accept wildcard names.</summary>
     [Parameter(ParameterSetName = "Path")]
     [Parameter(ParameterSetName = "LiteralPath")]
     [Parameter(ParameterSetName = "Uri")]
     [Parameter(ParameterSetName = "Document")]
     [OfficeSheetTransformation]
+    [Alias("WorksheetName")]
     public OfficeSheetSelector[]? Sheet { get; set; }
 
     /// <summary>Writes data without a header row.</summary>
@@ -75,12 +77,12 @@ public sealed class ImportOfficeExcelCommand : AsyncPSCmdlet {
     [Parameter()]
     public CultureInfo? Culture { get; set; }
 
-    /// <summary>Maximum row count inspected when -AsDataReader infers the reader schema.</summary>
+    /// <summary>Maximum row count inspected when -As DataReader infers the reader schema.</summary>
     [Parameter()]
     [ValidateRange(1, int.MaxValue)]
     public int SchemaSampleRows { get; set; } = 1024;
 
-    /// <summary>Worksheet row count requested from each streaming chunk when -AsDataReader is used.</summary>
+    /// <summary>Worksheet row count requested from each streaming chunk when -As DataReader is used.</summary>
     [Parameter()]
     [ValidateRange(1, int.MaxValue)]
     public int ChunkRows { get; set; } = 1024;
@@ -115,6 +117,11 @@ public sealed class ImportOfficeExcelCommand : AsyncPSCmdlet {
     [Parameter(ParameterSetName = "UriTable")]
     public SwitchParameter AllowHttp { get; set; }
 
+    /// <summary>Allow a workbook on a loopback, private, link-local or other non-public network address. Use only for trusted internal sources.</summary>
+    [Parameter(ParameterSetName = "Uri")]
+    [Parameter(ParameterSetName = "UriTable")]
+    public SwitchParameter AllowPrivateNetworkAddresses { get; set; }
+
     /// <summary>Caller-owned workbook; omission uses the enclosing Excel content block.</summary>
     [Parameter(ParameterSetName = "Document", ValueFromPipeline = true)]
     [Parameter(ParameterSetName = "DocumentTable", ValueFromPipeline = true)]
@@ -126,11 +133,11 @@ public sealed class ImportOfficeExcelCommand : AsyncPSCmdlet {
         if (Culture != null && ExcelRuntimePreflight.InspectCurrent().GlobalizationInvariantMode) WriteWarning("Culture-aware Excel parsing is affected by globalization-invariant mode.");
         if (ParameterSetName.StartsWith("Uri", StringComparison.Ordinal)) {
             if (Table != null) {
-                var document = await ExcelDocumentService.LoadDocumentAsync(Uri!, readOnly: true, allowHttp: AllowHttp, cancellationToken: CancelToken).ConfigureAwait(false);
+                var document = await ExcelDocumentService.LoadDocumentAsync(Uri!, readOnly: true, allowHttp: AllowHttp, allowPrivateNetworkAddresses: AllowPrivateNetworkAddresses, cancellationToken: CancelToken).ConfigureAwait(false);
                 await ImportDocument(document, ownsDocument: true).ConfigureAwait(false);
             } else {
                 var options = Options();
-                options.Transport = ExcelHttpLoadService.CreateOptions(AllowHttp);
+                options.Transport = ExcelHttpLoadService.CreateOptions(AllowHttp, AllowPrivateNetworkAddresses);
                 await Emit(await ExcelDocument.OpenReaderAsync(Uri!, options, CancelToken).ConfigureAwait(false), null).ConfigureAwait(false);
             }
         } else if (ParameterSetName.StartsWith("Document", StringComparison.Ordinal)) {

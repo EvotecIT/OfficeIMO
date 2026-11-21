@@ -67,7 +67,13 @@ namespace OfficeIMO.Word.Pdf {
             if (!usesConfiguredDefaultStyle && repeatedHeaderRowCount > 0) {
                 // A repeated source header starts with body content. Removing
                 // presentation row groups must not leave a header by itself.
-                style.MinimumBodyRowsOnFirstPage = 1;
+                // Word 2013 and later keep the header with the first legal fragment of the
+                // following row, the shared renderer's default. Earlier layout and native DOC
+                // keep it with the whole first row.
+                if (!UsesModernNativeWordLayout(table.Document)) {
+                    style.MinimumBodyRowsOnFirstPage = 1;
+                    style.KeepsRepeatedHeaderWithWholeRowsOnly = true;
+                }
             }
             if (repeatedHeaderRowCount > 0) {
                 style.PageContinuationSpacingBefore = global::OfficeIMO.OfficeLength.Points(Math.Max(style.PageContinuationSpacingBefore.ToPoints(), NativeTablePageContinuationSpacingBefore));
@@ -327,7 +333,7 @@ namespace OfficeIMO.Word.Pdf {
         private static NativeTableStyleDefaults ApplyNativeTableConditionalStyleDefaults(NativeTableStyleDefaults tableStyleDefaults, NativeTableConditionalStyleDefaults conditionalStyle) {
             if (!conditionalStyle.CellFill.HasValue &&
                 conditionalStyle.ParagraphPagination == default &&
-                !conditionalStyle.TextColor.HasValue &&
+                !conditionalStyle.TextColorDeclared &&
                 !conditionalStyle.FontSize.HasValue &&
                 !conditionalStyle.ComplexScript.FontSize.HasValue &&
                 !conditionalStyle.ComplexScript.Enabled.HasValue &&
@@ -386,7 +392,9 @@ namespace OfficeIMO.Word.Pdf {
                     AllCaps = conditionalStyle.AllCaps ?? runStyle.AllCaps,
                     SmallCaps = conditionalStyle.SmallCaps ?? runStyle.SmallCaps,
                     Baseline = conditionalStyle.Baseline ?? runStyle.Baseline,
-                    Color = conditionalStyle.TextColor ?? runStyle.Color,
+                    // A declared automatic color overrides the whole-table run color.
+                    Color = conditionalStyle.TextColorDeclared ? conditionalStyle.TextColor : runStyle.Color,
+                    ColorHex = conditionalStyle.TextColorDeclared && !conditionalStyle.TextColor.HasValue ? "auto" : runStyle.ColorHex,
                     Highlight = conditionalStyle.Highlight ?? runStyle.Highlight
                 }
             };

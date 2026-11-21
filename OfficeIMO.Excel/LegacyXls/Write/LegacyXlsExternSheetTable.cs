@@ -110,14 +110,20 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
         internal static LegacyXlsExternSheetTable CreateDirectTabular(string sheetName) {
             ArgumentException.ThrowIfNullOrEmpty(sheetName);
+            return CreateStreaming([sheetName]);
+        }
 
+        /// <summary>Creates the self-reference table for formula-free worksheets with no external links.</summary>
+        internal static LegacyXlsExternSheetTable CreateStreaming(IReadOnlyList<string> sheetNames) {
+            var entries = new List<ExternSheetEntry>(sheetNames.Count);
+            for (int i = 0; i < sheetNames.Count; i++) entries.Add(new ExternSheetEntry(0, checked((ushort)i), checked((ushort)i)));
             return new LegacyXlsExternSheetTable(
-                [sheetName],
+                sheetNames.ToArray(),
                 new Dictionary<string, ushort>(StringComparer.Ordinal),
                 new Dictionary<string, ushort>(StringComparer.OrdinalIgnoreCase),
                 new Dictionary<string, ExternalNameIndex>(StringComparer.OrdinalIgnoreCase),
-                [new SupportingLinkRecord(0x01ae, BuildSelfSupBookPayload(1))],
-                BuildPayload([new ExternSheetEntry(0, 0, 0)]));
+                [new SupportingLinkRecord(0x01ae, BuildSelfSupBookPayload(checked((ushort)sheetNames.Count)))],
+                BuildPayload(entries));
         }
 
         internal static bool SupportsDeclaredExternalWorkbookLinks(WorkbookPart workbookPart, out string? reason) {
@@ -471,11 +477,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 yield break;
             }
 
-            for (int i = 0; i < formulaText.Length; i++) {
-                if (formulaText[i] != '!') {
-                    continue;
-                }
-
+            foreach (int i in EnumerateReferenceBangs(formulaText)) {
                 string sheetToken = ReadSheetTokenBeforeBang(formulaText, i);
                 if (sheetToken.Length == 0) {
                     continue;
@@ -588,16 +590,38 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             }
         }
 
+        // A '!' inside a text literal is not a reference, and a double quote inside a quoted sheet name is not a literal.
+        private static IEnumerable<int> EnumerateReferenceBangs(string formulaText) {
+            bool inStringLiteral = false;
+            bool inQuotedSheet = false;
+            for (int i = 0; i < formulaText.Length; i++) {
+                char ch = formulaText[i];
+                if (ch == '"' && !inQuotedSheet) {
+                    if (inStringLiteral && i + 1 < formulaText.Length && formulaText[i + 1] == '"') {
+                        i++;
+                        continue;
+                    }
+
+                    inStringLiteral = !inStringLiteral;
+                } else if (ch == '\'' && !inStringLiteral) {
+                    if (inQuotedSheet && i + 1 < formulaText.Length && formulaText[i + 1] == '\'') {
+                        i++;
+                        continue;
+                    }
+
+                    inQuotedSheet = !inQuotedSheet;
+                } else if (ch == '!' && !inStringLiteral && !inQuotedSheet) {
+                    yield return i;
+                }
+            }
+        }
+
         private static IEnumerable<string> EnumerateExternalSheetNames(string formulaText) {
             if (formulaText.IndexOf('!') < 0 || formulaText.IndexOf('[') < 0) {
                 yield break;
             }
 
-            for (int i = 0; i < formulaText.Length; i++) {
-                if (formulaText[i] != '!') {
-                    continue;
-                }
-
+            foreach (int i in EnumerateReferenceBangs(formulaText)) {
                 string sheetToken = ReadSheetTokenBeforeBang(formulaText, i);
                 if (sheetToken.Length == 0 || sheetToken.IndexOf('[') < 0 || sheetToken.IndexOf(']') < 0) {
                     continue;

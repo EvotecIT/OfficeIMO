@@ -113,5 +113,6 @@ public sealed class CloseOfficeWordCommand : OfficeCmdlet {
 
         if (!ShouldProcess(WordDocumentService.GetAssociatedPath(document) ?? "Unsaved Word document", "Close Word document without saving")) return;
         WordDocumentService.CloseDocument(document);
+        OfficeUnsavedNewDocuments.WarnIfUnsaved(this, document, "document", "Word");
     }
 }

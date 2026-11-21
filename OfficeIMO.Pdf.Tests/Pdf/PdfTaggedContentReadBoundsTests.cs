@@ -45,8 +45,23 @@ public sealed class PdfTaggedContentReadBoundsTests {
             Assert.Equal(0, reference.MarkedContentId);
             Assert.Equal(3, reference.PageObjectNumber);
         }
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => PdfReadDocument.Open(excessive));
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => PdfReadDocument.Open(excessive).TaggedContent);
         Assert.Contains("structure nesting limit", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void LenientReadDefersStructureFailureToFirstAccessWhileStrictReadFailsOnOpen() {
+        byte[] excessive = BuildDepthPdf("array", 257);
+
+        PdfReadDocument lenient = PdfReadDocument.Open(excessive);
+        Assert.Single(lenient.Pages);
+        InvalidOperationException first = Assert.Throws<InvalidOperationException>(() => lenient.TaggedContent);
+        InvalidOperationException second = Assert.Throws<InvalidOperationException>(() => lenient.TaggedContent);
+        InvalidOperationException strict = Assert.Throws<InvalidOperationException>(() =>
+            PdfReadDocument.Open(excessive, new PdfLoadOptions { ParsingMode = PdfParsingMode.Strict }));
+
+        Assert.Same(first, second);
+        Assert.Contains("structure nesting limit", strict.Message, StringComparison.Ordinal);
     }
 
     private static byte[] BuildDepthPdf(string traversal, int depth) {

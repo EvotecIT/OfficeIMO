@@ -9,6 +9,13 @@ public static partial class OfficeChartDrawingRenderer {
         return Math.Min(radius, availableRadius);
     }
 
+    // A placed pie keeps the size its plot area gives it, so the widest supported label must fit beside it.
+    private static void RequireOutsideRadialLabelGutters(double centerX, double radius, double leftBound, double rightBound) {
+        const double gutter = 87D;
+        if (centerX - radius - gutter < leftBound || centerX + radius + gutter > rightBound)
+            throw new NotSupportedException("Outside radial chart labels need room beside the placed plot area.");
+    }
+
     private sealed class RadialOutsideLabel {
         internal RadialOutsideLabel(string text, double width, double height, double anchorX,
             double anchorY, bool rightSide, bool hasSlice) {

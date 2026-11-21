@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>Latest</LangVersion>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <!-- Comparison libraries stay in this opt-in project; OfficeIMO runtime projects never reference them. -->
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
+    <PackageReference Include="YamlDotNet" Version="18.0.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="CsvHelper" Version="33.1.0" />
+    <PackageReference Include="Tomlyn" Version="2.10.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The independent-reader check reads the same pinned suites as the tests. -->
+    <Compile Include="..\OfficeIMO.TestAssets\RepositoryTestPaths.cs" Link="Shared\RepositoryTestPaths.cs" />
+    <Compile Include="..\OfficeIMO.Yaml.Tests\Conformance\YamlTestSuite.cs" Link="Shared\Yaml\YamlTestSuite.cs" />
+    <Compile Include="..\OfficeIMO.Yaml.Tests\Conformance\YamlJsonReader.cs" Link="Shared\Yaml\YamlJsonReader.cs" />
+    <Compile Include="..\OfficeIMO.Yaml.Tests\Conformance\YamlConformanceNode.cs" Link="Shared\Yaml\YamlConformanceNode.cs" />
+    <Compile Include="..\OfficeIMO.Toml.Tests\Conformance\TomlTestAssets.cs" Link="Shared\Toml\TomlTestAssets.cs" />
+    <Compile Include="..\OfficeIMO.Toml.Tests\Conformance\TomlJson.cs" Link="Shared\Toml\TomlJson.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Data.Conversions\OfficeIMO.Data.Conversions.csproj" />
+  </ItemGroup>
+</Project>

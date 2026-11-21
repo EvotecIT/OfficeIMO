@@ -229,7 +229,7 @@ public partial class Word {
         var page = pdf.GetPage(1);
         var letters = page.Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToList();
         Assert.NotEmpty(letters);
-        double centre = (letters.Min(letter => letter.GlyphRectangle.Left) + letters.Max(letter => letter.GlyphRectangle.Right)) / 2D;
+        double centre = (letters.Min(letter => letter.BoundingBox.Left) + letters.Max(letter => letter.BoundingBox.Right)) / 2D;
         Assert.InRange(centre, page.Width / 2D - 20D, page.Width / 2D + 20D);
     }
 }

@@ -1,6 +1,6 @@
 # OfficeIMO.Email.Image
 
-`OfficeIMO.Email.Image` renders `EmailDocument` bodies and inline MIME resources through the shared OfficeIMO HTML image pipeline.
+`OfficeIMO.Email.Image` renders `EmailDocument` messages and inline MIME resources through the shared OfficeIMO HTML pipeline, as images or as a styled PDF.
 
 ```powershell
 dotnet add package OfficeIMO.Email.Image
@@ -27,7 +27,24 @@ The renderer consumes `OfficeIMO.Email.Html` for the same body selection, untrus
 
 Keeping this capability separate prevents MIME-only applications from acquiring AngleSharp, CSS layout, and the RTF bridge.
 
-Dependency footprint: `OfficeIMO.Core`, `OfficeIMO.Email`, `OfficeIMO.Email.Html`, and `OfficeIMO.Html`.
+Dependency footprint: `OfficeIMO.Core`, `OfficeIMO.Email`, `OfficeIMO.Email.Html`, `OfficeIMO.Html`, and `OfficeIMO.Html.Pdf`.
+
+## Styled PDF
+
+`SaveAsPdfAsync` renders the same message layout to PDF through `OfficeIMO.Html.Pdf`: a header block with subject, sender, To and Cc recipients and date, the selected body, inline MIME images and a list of file attachments with their content type and size. Inline body resources, hidden parts and contact photos are not listed as attachments.
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Email;
+
+EmailDocument message = EmailDocument.Load("message.msg");
+await using FileStream pdf = File.Create("message.pdf");
+OfficeConversionReport report = await message.SaveAsPdfAsync(pdf, new EmailPdfExportOptions {
+    IncludeAttachmentList = true
+});
+```
+
+`EmailPdfExportOptions.Pdf` carries the page, font, resource and PDF settings of the HTML renderer. Body projection findings, such as an RTF-only body, are reported with the rendering findings; `Pdf.FailOnLoss` rejects them before output is written. `OfficeConverter` uses this renderer for the `email-pdf` route.
 
 `SaveAsImages(folder, options)` and its async form return `OfficeConversionReport`. The options carry the output format, selection, deadlines, resource limits and file conflict policy. Use the `ToImages` consumer overloads to process each image with its sequence metadata and diagnostics.
 

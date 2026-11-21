@@ -13,8 +13,8 @@ namespace OfficeIMO.Word.Html {
                 return string.Empty;
             }
 
-            string? bodyFont = ResolveStyleFont(document, "Normal");
-            string? headingFont = ResolveStyleFont(document, "Heading1") ?? bodyFont;
+            string? bodyFont = ResolveStyleFont(document, document.ResolveBuiltInStyleId("Normal"));
+            string? headingFont = ResolveStyleFont(document, document.ResolveBuiltInStyleId("Heading1")) ?? bodyFont;
             var css = new StringBuilder();
             // The document shells style text through these custom properties with more specific
             // selectors, so override the properties as well as the plain element rules.
@@ -41,15 +41,18 @@ namespace OfficeIMO.Word.Html {
 
         private static string? ResolveStyleFont(WordDocument document, string styleId) {
             var mainPart = document._wordprocessingDocument?.MainDocumentPart;
-            Styles? styles = mainPart?.StyleDefinitionsPart?.Styles;
-            if (styles == null) {
+            WordStyleCatalog styles = WordStyleCatalog.For(document);
+            if (mainPart?.StyleDefinitionsPart == null) {
                 return null;
             }
 
-            foreach (Style style in WordRunFormatting.EnumerateStyleChain(styles, styleId, StyleValues.Paragraph)) {
+            // A localized template stores Normal under a translated identifier, such as Standard.
+            string normalStyleId = document.ResolveBuiltInStyleId("Normal");
+            bool isNormal = string.Equals(styleId, normalStyleId, StringComparison.Ordinal);
+            foreach (Style style in styles.EnumerateChain(styleId, StyleValues.Paragraph)) {
                 if (!string.Equals(style.StyleId?.Value, styleId, StringComparison.Ordinal) &&
-                    !string.Equals(styleId, "Normal", StringComparison.Ordinal) &&
-                    string.Equals(style.StyleId?.Value, "Normal", StringComparison.Ordinal)) {
+                    !isNormal &&
+                    string.Equals(style.StyleId?.Value, normalStyleId, StringComparison.Ordinal)) {
                     // A heading that names no font of its own uses the body font.
                     return null;
                 }
@@ -59,11 +62,11 @@ namespace OfficeIMO.Word.Html {
                 }
             }
 
-            if (!string.Equals(styleId, "Normal", StringComparison.Ordinal)) {
+            if (!isNormal) {
                 return null;
             }
 
-            RunFonts? defaults = styles.DocDefaults?.RunPropertiesDefault?.RunPropertiesBaseStyle?.RunFonts;
+            RunFonts? defaults = styles.DocumentDefaults?.RunPropertiesDefault?.RunPropertiesBaseStyle?.RunFonts;
             return ResolveRunFonts(defaults, mainPart);
         }
 
@@ -71,11 +74,10 @@ namespace OfficeIMO.Word.Html {
             if (fonts == null) {
                 return null;
             }
-            if (!string.IsNullOrWhiteSpace(fonts.Ascii?.Value)) {
-                return fonts.Ascii!.Value!.Trim();
-            }
+            // A theme font selection takes precedence over the family name cached beside it, as in Word.
             ThemeFontValues? theme = fonts.AsciiTheme?.Value ?? fonts.HighAnsiTheme?.Value;
             if (theme == null) {
+                if (!string.IsNullOrWhiteSpace(fonts.Ascii?.Value)) return fonts.Ascii!.Value!.Trim();
                 return string.IsNullOrWhiteSpace(fonts.HighAnsi?.Value) ? null : fonts.HighAnsi!.Value!.Trim();
             }
 
@@ -85,12 +87,13 @@ namespace OfficeIMO.Word.Html {
             string? typeface = major
                 ? scheme?.MajorFont?.LatinFont?.Typeface?.Value
                 : scheme?.MinorFont?.LatinFont?.Typeface?.Value;
+            if (string.IsNullOrWhiteSpace(typeface)) typeface = fonts.Ascii?.Value ?? fonts.HighAnsi?.Value;
             return string.IsNullOrWhiteSpace(typeface) ? null : typeface!.Trim();
         }
 
         private static string? GetFirstHeadingText(WordDocument document) {
             foreach (WordParagraph paragraph in document.Paragraphs.Take(200)) {
-                if (string.Equals(paragraph.StyleId, "Title", StringComparison.Ordinal) ||
+                if (string.Equals(paragraph.BuiltInStyleId, "Title", StringComparison.Ordinal) ||
                     (paragraph.Style.HasValue && WordHeadingStyleMapper.GetLevelForHeadingStyle(paragraph.Style.Value) == 1)) {
                     string text = paragraph.Text.Trim();
                     if (text.Length > 0) {

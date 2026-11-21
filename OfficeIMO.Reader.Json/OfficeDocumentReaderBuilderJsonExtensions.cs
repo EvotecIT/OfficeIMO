@@ -50,6 +50,8 @@ public static class OfficeDocumentReaderBuilderJsonExtensions {
         return new JsonReadOptions {
             ChunkRows = options.ChunkRows,
             MaxDepth = options.MaxDepth,
+            MaxNodes = options.MaxNodes,
+            MaxScalarLength = options.MaxScalarLength,
             IncludeMarkdown = options.IncludeMarkdown
         };
     }

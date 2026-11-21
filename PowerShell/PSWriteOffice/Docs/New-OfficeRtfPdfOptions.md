@@ -6,7 +6,7 @@ schema: 2.0.0
 ---
 # New-OfficeRtfPdfOptions
 ## SYNOPSIS
-Creates discoverable RTF-to-PDF conversion options for Export-OfficeDocumentPdf.
+Creates discoverable RTF-to-PDF conversion options for Convert-OfficeDocument -To Pdf.
 
 ## SYNTAX
 ### Default (Default)
@@ -15,14 +15,14 @@ New-OfficeRtfPdfOptions [-PdfOptions <PdfCreateOptions>] [-IncludeHiddenText] [-
 ```
 
 ## DESCRIPTION
-Creates discoverable RTF-to-PDF conversion options for Export-OfficeDocumentPdf.
+Pass the result to Convert-OfficeDocument -Options when converting RTF files to PDF.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
 PS> $options = New-OfficeRtfPdfOptions -NoImages -NoTables -NoHeaderFooters -MaximumSystemFontFamilies 32
-Export-OfficeDocumentPdf -InputPath .\Report.rtf -Path .\Report.pdf -RtfOptions $options
+Convert-OfficeDocument -To Pdf -Path .\Report.rtf -OutputPath .\Report.pdf -Options $options
 ```
 
 

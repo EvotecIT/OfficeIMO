@@ -2,7 +2,7 @@ namespace OfficeIMO.Pdf;
 
 internal sealed partial class PdfReadDocument {
     /// <summary>Embedded and associated file attachment metadata discovered from the document catalog.</summary>
-    public IReadOnlyList<PdfAttachmentInfo> Attachments => ReadLogicalContent(_attachments);
+    public IReadOnlyList<PdfAttachmentInfo> Attachments => ReadLogicalFeature(_attachmentsFeature);
 
     private IReadOnlyList<PdfAttachmentInfo> ExtractAttachmentInfos(System.Threading.CancellationToken cancellationToken) {
         // Catalog inspection must remain available for preflight even when payload extraction is restricted.

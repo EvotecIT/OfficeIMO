@@ -8,18 +8,35 @@ using OfficeIMO.MarkdownRenderer;
 
 namespace OfficeIMO.ChartForgeX.Markdown;
 
+/// <summary>Image payload used when Mermaid fences are replaced by rendered diagrams.</summary>
+public enum MermaidMarkdownImageFormat {
+    /// <summary>Embedded SVG, the default. PDF draws it as vector content, and Word stores the SVG with a PNG fallback picture.</summary>
+    Svg,
+    /// <summary>Embedded PNG, for consumers that handle SVG poorly, such as HTML email or document import services.</summary>
+    Png
+}
+
 /// <summary>Connects ChartForgeX static Mermaid rendering to OfficeIMO Markdown pipelines.</summary>
 public static class MermaidMarkdownAdapter {
-    /// <summary>Replaces successfully rendered Mermaid fences in place with embedded PNG images.</summary>
+    /// <summary>Replaces successfully rendered Mermaid fences in place with embedded SVG images.</summary>
     /// <remarks>Nested fences and captions are preserved. Unsupported or invalid fences remain source blocks and report diagnostics.</remarks>
-    public static MarkdownDocument Materialize(MarkdownDocument document, Action<MarkupDiagnostic>? diagnostic = null) {
+    public static MarkdownDocument Materialize(MarkdownDocument document, Action<MarkupDiagnostic>? diagnostic = null) =>
+        Materialize(document, MermaidMarkdownImageFormat.Svg, diagnostic);
+
+    /// <summary>Replaces successfully rendered Mermaid fences in place with embedded images of the requested format.</summary>
+    /// <remarks>Nested fences and captions are preserved. Unsupported or invalid fences remain source blocks and report diagnostics.</remarks>
+    public static MarkdownDocument Materialize(MarkdownDocument document, MermaidMarkdownImageFormat format, Action<MarkupDiagnostic>? diagnostic = null) {
         ArgumentNullException.ThrowIfNull(document);
-        return document.Rewrite(new ImageRewriter(diagnostic));
+        return document.Rewrite(new ImageRewriter(format, diagnostic));
     }
 
-    /// <summary>Creates a reusable reader transform for converters that accept MarkdownLoadOptions.</summary>
+    /// <summary>Creates a reusable reader transform that embeds SVG images, for converters that accept MarkdownLoadOptions.</summary>
     public static IMarkdownDocumentTransform CreateTransform(Action<MarkupDiagnostic>? diagnostic = null) =>
-        new ImageTransform(diagnostic);
+        CreateTransform(MermaidMarkdownImageFormat.Svg, diagnostic);
+
+    /// <summary>Creates a reusable reader transform that embeds images of the requested format.</summary>
+    public static IMarkdownDocumentTransform CreateTransform(MermaidMarkdownImageFormat format, Action<MarkupDiagnostic>? diagnostic = null) =>
+        new ImageTransform(format, diagnostic);
 
     /// <summary>Registers static SVG image rendering and disables the Mermaid browser runtime.</summary>
     /// <remarks>Each SVG is an embedded image document, isolating its IDs from other diagrams. Failed renders retain the ordinary source fence.</remarks>
@@ -74,12 +91,12 @@ public static class MermaidMarkdownAdapter {
             Message = exception.Message
         });
 
-    private sealed class ImageTransform(Action<MarkupDiagnostic>? diagnostic) : IMarkdownDocumentTransform {
+    private sealed class ImageTransform(MermaidMarkdownImageFormat format, Action<MarkupDiagnostic>? diagnostic) : IMarkdownDocumentTransform {
         public MarkdownDocument Transform(MarkdownDocument document, MarkdownDocumentTransformContext context) =>
-            Materialize(document, diagnostic);
+            Materialize(document, format, diagnostic);
     }
 
-    private sealed class ImageRewriter(Action<MarkupDiagnostic>? diagnostic) : MarkdownRewriter {
+    private sealed class ImageRewriter(MermaidMarkdownImageFormat format, Action<MarkupDiagnostic>? diagnostic) : MarkdownRewriter {
         protected override IMarkdownBlock RewriteCurrentBlock(IMarkdownBlock block) {
             string language, info, source;
             string? caption;
@@ -95,7 +112,10 @@ public static class MermaidMarkdownAdapter {
             var artifact = Render(info, source, span, contentSpan, diagnostic);
             if (artifact == null) return block;
             try {
-                return new ImageBlock("data:image/png;base64," + Convert.ToBase64String(artifact.ToPng()),
+                string imageSource = format == MermaidMarkdownImageFormat.Svg
+                    ? "data:image/svg+xml;base64," + Convert.ToBase64String(Encoding.UTF8.GetBytes(artifact.ToSvg()))
+                    : "data:image/png;base64," + Convert.ToBase64String(artifact.ToPng());
+                return new ImageBlock(imageSource,
                     AlternativeText(artifact), artifact.Title) { Caption = caption };
             } catch (Exception ex) when (IsRenderFailure(ex)) {
                 ReportFailure(span, ex, diagnostic);

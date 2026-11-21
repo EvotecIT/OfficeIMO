@@ -117,7 +117,7 @@ Workbook paths resolved with filesystem wildcard support.
 ```yaml
 Type: String[]
 Parameter Sets: Path
-Aliases: None
+Aliases: FilePath
 Possible values:
 
 Required: True
