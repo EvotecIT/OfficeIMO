@@ -45,8 +45,8 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// The shortest invariant text that parses back to the identical double. .NET Framework's "R" can return text
-        /// that parses to a neighbouring double, so those targets check the text and widen it when needed. Negative zero
+        /// The shortest invariant text that parses back to the identical double, written as .NET Core writes it on every
+        /// target framework. Negative zero
         /// is written as 0, as Excel stores it; <see cref="GetExact(double)"/> keeps its sign.
         /// </summary>
         internal static string Get(double value) {

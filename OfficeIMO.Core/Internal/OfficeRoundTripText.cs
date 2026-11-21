@@ -97,74 +97,11 @@ internal static class OfficeRoundTripText
         return new string(buffer, 0, WriteOffset(target, position, value.Offset.Ticks));
     }
 
-    /// <summary>
-    /// The shortest text that parses back to <paramref name="value"/>. .NET Core 3.0 and later write it by default;
-    /// .NET Framework writes 15 digits by default and its "R" format jumps from 15 straight to 17, so the text is
-    /// widened one digit at a time until it parses back exactly.
-    /// </summary>
-    internal static string Format(double value, CultureInfo culture)
-    {
-#if NETCOREAPP3_0_OR_GREATER
-        return value.ToString(culture);
-#else
-        // A whole number below 10^15 has at most 15 digits: "R" writes them in fixed notation, and they parse back
-        // exactly, so it is the integer's text. The integer formatter skips the round-trip check.
-        if (value != 0 && Math.Abs(value) < 1e15 && Math.Floor(value) == value)
-        {
-            return ((long)value).ToString(culture);
-        }
-
-        if (double.IsNaN(value) || double.IsInfinity(value))
-        {
-            return value.ToString("R", culture);
-        }
-
-        // A correctly rounded 15 or 16 digits is the shortest text when it parses back; 17 digits always does.
-        foreach (string format in new[] { "G15", "G16" })
-        {
-            string text = value.ToString(format, culture);
-            if (double.TryParse(text, NumberStyles.Float | NumberStyles.AllowThousands, culture, out double parsed) &&
-                BitConverter.DoubleToInt64Bits(parsed) == BitConverter.DoubleToInt64Bits(value))
-            {
-                return text;
-            }
-        }
-
-        return value.ToString("G17", culture);
-#endif
-    }
+    /// <summary>The shortest text that parses back to <paramref name="value"/>, the same on every framework.</summary>
+    internal static string Format(double value, CultureInfo culture) => OfficeRoundTripNumberText.Format(value, culture);
 
     /// <inheritdoc cref="Format(double, CultureInfo)"/>
-    internal static string Format(float value, CultureInfo culture)
-    {
-#if NETCOREAPP3_0_OR_GREATER
-        return value.ToString(culture);
-#else
-        // Seven digits for a float, as above.
-        if (value != 0 && Math.Abs(value) < 1e7f && Math.Floor(value) == value)
-        {
-            return ((int)value).ToString(culture);
-        }
-
-        if (float.IsNaN(value) || float.IsInfinity(value))
-        {
-            return value.ToString("R", culture);
-        }
-
-        // Seven or eight correctly rounded digits, as above; nine always parse back.
-        foreach (string format in new[] { "G7", "G8" })
-        {
-            string text = value.ToString(format, culture);
-            if (float.TryParse(text, NumberStyles.Float | NumberStyles.AllowThousands, culture, out float parsed) &&
-                BitConverter.ToInt32(BitConverter.GetBytes(parsed), 0) == BitConverter.ToInt32(BitConverter.GetBytes(value), 0))
-            {
-                return text;
-            }
-        }
-
-        return value.ToString("G9", culture);
-#endif
-    }
+    internal static string Format(float value, CultureInfo culture) => OfficeRoundTripNumberText.Format(value, culture);
 
     /// <summary>A per-thread buffer of <see cref="MaximumDateTimeLength"/> characters for the writers below.</summary>
     internal static char[] Buffer => t_buffer ??= new char[MaximumDateTimeLength];
