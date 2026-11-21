@@ -83,7 +83,9 @@ internal static partial class PdfWriter {
                     continue;
                 }
                 if (segment.ContributesLineBoxDescent)
-                    advance = Math.Max(advance, spacing?.GetAdvance(segment.FontSize) ?? segment.FontSize * ratio);
+                    advance = Math.Max(advance, spacing?.FixedFontLeading.HasValue == true
+                        ? spacing.GetFixedFontAdvance(segment.FontSize, IsFixedPitchFont(segment.Font, segment.NamedFont, options))
+                        : spacing?.GetAdvance(segment.FontSize) ?? segment.FontSize * ratio);
                 // Literal source spaces retain their font advance. As with the
                 // wrapper's baseline policy, an empty separator has text metrics
                 // only when its resolved tab leader actually paints glyphs.
@@ -187,7 +189,9 @@ internal static partial class PdfWriter {
             OfficeIMO.Drawing.OfficeOpenTypeLineMetrics? metrics = ResolveFontLineMetrics(font, namedFont, options);
             double fontDescent = metrics.HasValue ? size * metrics.Value.DescentRatio
                 : GetDescenderForOptions(font, namedFont, size, options);
-            ascent = rise + size * (spacing.UsesFixedFontLineBox ? natural : metrics?.HorizontalAdvanceRatio ?? natural) - fontDescent;
+            ascent = rise + (spacing.FixedFontLeading.HasValue
+                ? spacing.GetFixedFontLineBox(size, IsFixedPitchFont(font, metrics))
+                : size * (metrics?.HorizontalAdvanceRatio ?? natural)) - fontDescent;
             descent = fontDescent - rise;
         } else {
             ascent = rise + GetAscenderForOptions(font, namedFont, size, options);
@@ -212,6 +216,12 @@ internal static partial class PdfWriter {
             if (run.ContributesLineBoxDescent) descent = Math.Max(descent, runDescent);
         }
     }
+
+    private static bool IsFixedPitchFont(PdfStandardFont font, PdfNamedFontFace? namedFont, PdfCreateOptions? options) =>
+        IsFixedPitchFont(font, ResolveFontLineMetrics(font, namedFont, options));
+
+    private static bool IsFixedPitchFont(PdfStandardFont font, OfficeIMO.Drawing.OfficeOpenTypeLineMetrics? metrics) =>
+        metrics?.IsFixedPitch ?? PdfStandardFontMapper.GetFontFamily(font) == PdfStandardFont.Courier;
 
     private static OfficeIMO.Drawing.OfficeOpenTypeLineMetrics? ResolveFontLineMetrics(
         PdfStandardFont font, PdfNamedFontFace? namedFont, PdfCreateOptions? options) {

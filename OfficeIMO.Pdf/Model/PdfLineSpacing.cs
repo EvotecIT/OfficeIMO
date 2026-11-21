@@ -61,15 +61,26 @@ public sealed class PdfLineSpacing {
     internal double? LineGridPitch { get; private init; }
     internal PdfFontLineAlignment FontAlignment { get; private init; }
 
-    // A natural line box taken from the multiplier rather than each font's own line
-    // metrics, as in Word's WordPerfect-compatible line height (font size plus fixed leading).
-    internal bool UsesFixedFontLineBox { get; private init; }
+    // Word's WordPerfect-compatible line height: each run's natural line box is its font
+    // size plus this leading, or the font size alone for a fixed-pitch font, instead of
+    // the font's own line metrics.
+    internal double? FixedFontLeading { get; private init; }
 
-    internal PdfLineSpacing WithFixedFontLineBox() =>
+    internal PdfLineSpacing WithFixedFontLeading(double leading) =>
         new(Rule, _multiple, _height, NaturalMultiplier) {
             FontLineBoxMultiplier = FontLineBoxMultiplier, FixedLineBoxBaselineOffset = FixedLineBoxBaselineOffset, LineGridPitch = LineGridPitch,
-            FontAlignment = FontAlignment, FontAlignmentPointsPerPixel = FontAlignmentPointsPerPixel, UsesFixedFontLineBox = true
+            FontAlignment = FontAlignment, FontAlignmentPointsPerPixel = FontAlignmentPointsPerPixel, FixedFontLeading = leading
         };
+
+    /// <summary>The natural box of one run under <see cref="FixedFontLeading"/>.</summary>
+    internal double GetFixedFontLineBox(double fontSize, bool fixedPitch) => fontSize + (fixedPitch ? 0D : FixedFontLeading ?? 0D);
+
+    /// <summary>The advance of one run under <see cref="FixedFontLeading"/>, keeping the requested multiple and minimum.</summary>
+    internal double GetFixedFontAdvance(double fontSize, bool fixedPitch) {
+        double box = GetFixedFontLineBox(fontSize, fixedPitch);
+        if (Rule == PdfLineSpacingRule.AtLeast) return System.Math.Max(_height.ToPoints(), box);
+        return FontLineBoxMultiplier is double natural && natural > 0D ? box * _multiple / natural : box;
+    }
     internal double FontAlignmentPointsPerPixel { get; private init; }
 
     internal PdfLineSpacing WithFontAlignment(PdfFontLineAlignment alignment, double pointsPerPixel) {
@@ -77,7 +88,7 @@ public sealed class PdfLineSpacing {
             throw new System.ArgumentOutOfRangeException(nameof(pointsPerPixel));
         return new(Rule, _multiple, _height, NaturalMultiplier) {
             FontLineBoxMultiplier = FontLineBoxMultiplier, FixedLineBoxBaselineOffset = FixedLineBoxBaselineOffset,
-            LineGridPitch = LineGridPitch, FontAlignment = alignment, FontAlignmentPointsPerPixel = pointsPerPixel, UsesFixedFontLineBox = UsesFixedFontLineBox
+            LineGridPitch = LineGridPitch, FontAlignment = alignment, FontAlignmentPointsPerPixel = pointsPerPixel, FixedFontLeading = FixedFontLeading
         };
     }
 
@@ -87,7 +98,7 @@ public sealed class PdfLineSpacing {
         return new(Rule, _multiple, _height, NaturalMultiplier) {
             FontLineBoxMultiplier = FontLineBoxMultiplier, FixedLineBoxBaselineOffset = FixedLineBoxBaselineOffset,
             LineGridPitch = IsExact ? null : pitch,
-            FontAlignment = FontAlignment, FontAlignmentPointsPerPixel = FontAlignmentPointsPerPixel, UsesFixedFontLineBox = UsesFixedFontLineBox
+            FontAlignment = FontAlignment, FontAlignmentPointsPerPixel = FontAlignmentPointsPerPixel, FixedFontLeading = FixedFontLeading
         };
     }
 
@@ -96,14 +107,14 @@ public sealed class PdfLineSpacing {
             throw new System.ArgumentOutOfRangeException(nameof(baselineOffset), "A fixed line-box baseline requires exact spacing and a finite non-negative offset.");
         return new(Rule, _multiple, _height, NaturalMultiplier) {
             FontLineBoxMultiplier = FontLineBoxMultiplier, FixedLineBoxBaselineOffset = baselineOffset, LineGridPitch = LineGridPitch,
-            FontAlignment = FontAlignment, FontAlignmentPointsPerPixel = FontAlignmentPointsPerPixel, UsesFixedFontLineBox = UsesFixedFontLineBox
+            FontAlignment = FontAlignment, FontAlignmentPointsPerPixel = FontAlignmentPointsPerPixel, FixedFontLeading = FixedFontLeading
         };
     }
 
     internal PdfLineSpacing WithFontLineBoxBaseline(double naturalMultiplier) =>
         new(Rule, _multiple, _height, NaturalMultiplier) {
             FontLineBoxMultiplier = naturalMultiplier, FixedLineBoxBaselineOffset = FixedLineBoxBaselineOffset, LineGridPitch = LineGridPitch,
-            FontAlignment = FontAlignment, FontAlignmentPointsPerPixel = FontAlignmentPointsPerPixel, UsesFixedFontLineBox = UsesFixedFontLineBox
+            FontAlignment = FontAlignment, FontAlignmentPointsPerPixel = FontAlignmentPointsPerPixel, FixedFontLeading = FixedFontLeading
         };
 
     internal double GetAdvance(double fontSize) => LineGridPitch.HasValue && !IsExact

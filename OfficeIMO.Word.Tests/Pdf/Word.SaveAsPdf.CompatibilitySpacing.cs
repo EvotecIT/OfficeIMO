@@ -33,7 +33,41 @@ public partial class Word {
         Assert.Equal(expected, pitch, 1);
     }
 
-    private static (double First, double Second, double After) MeasureCellSpacing(bool automatic) {
+    [Fact]
+    public void SaveAsPdf_AutomaticSpacingSkipsCellEdgesInsideContentControls() {
+        // A block content control around the cell's paragraphs does not change which
+        // paragraphs are first and last in the cell.
+        Assert.Equal(MeasureCellSpacing(automatic: true), MeasureCellSpacing(automatic: true, contentControl: true));
+    }
+
+    [Fact]
+    public void SaveAsPdf_WordPerfectLeadingFollowsEachLineFontSize() {
+        // A 24 pt line followed by 12 pt lines in one paragraph: each 12 pt line is 14 pt.
+        using WordDocument document = WordDocument.Create();
+        document.CompatibilitySettings.CompatibilityMode = WordCompatibilityMode.Word2010;
+        W.Settings settings = document._wordprocessingDocument.MainDocumentPart!.DocumentSettingsPart!.Settings!;
+        W.Compatibility compatibility = settings.GetFirstChild<W.Compatibility>() ?? settings.AppendChild(new W.Compatibility());
+        compatibility.InsertAt(new W.SuppressTopSpacingWordPerfect(), 0);
+        WordParagraph paragraph = document.AddParagraph("LINEA");
+        paragraph.FontFamily = "Arial";
+        paragraph.FontSize = OfficeIMO.OfficeLength.Points(24);
+        paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = OfficeIMO.OfficeLength.Points(0D);
+        paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple(1D);
+        foreach (string token in new[] { "LINEB", "LINEC" }) {
+            WordParagraph run = paragraph.AddText(token);
+            run.FontFamily = "Arial";
+            run.FontSize = OfficeIMO.OfficeLength.Points(12);
+            run._run!.InsertAt(new W.Break(), run._run.RunProperties == null ? 0 : 1);
+        }
+        using WordDocument loaded = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Docx)));
+        using PdfPigDocument pdf = PdfPigDocument.Open(loaded.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false })
+            .ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+        var words = pdf.GetPage(1).GetWords().ToList();
+        double Baseline(string token) => words.First(word => word.Text == token).Letters[0].StartBaseLine.Y;
+        Assert.Equal(14D, Baseline("LINEB") - Baseline("LINEC"), 1);
+    }
+
+    private static (double First, double Second, double After) MeasureCellSpacing(bool automatic, bool contentControl = false) {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph("Intro").LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(0D);
         WordTable table = document.AddTable(1, 1);
@@ -46,6 +80,15 @@ public partial class Word {
             properties.SpacingBetweenLines = automatic
                 ? new W.SpacingBetweenLines { Before = "100", BeforeAutoSpacing = true, After = "100", AfterAutoSpacing = true }
                 : new W.SpacingBetweenLines { Before = paragraph == first ? "0" : "280", After = paragraph == first ? "0" : "0" };
+        }
+        if (contentControl) {
+            W.TableCell cell = (W.TableCell)first._paragraph.Parent!;
+            var content = new W.SdtContentBlock();
+            foreach (W.Paragraph cellParagraph in cell.Elements<W.Paragraph>().ToList()) {
+                cellParagraph.Remove();
+                content.Append(cellParagraph);
+            }
+            cell.Append(new W.SdtBlock(new W.SdtProperties(), content));
         }
         WordParagraph after = document.AddParagraph("AFTER");
         after.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(0D);

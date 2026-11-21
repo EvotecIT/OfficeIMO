@@ -31,7 +31,7 @@ namespace OfficeIMO.Word.Pdf {
                     : OfficeIMO.Pdf.PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(Value.Value / 20D))
                         .WithFixedLineBoxBaseline(Value.Value / 20D * .8D);
                 if (GridPitch.HasValue) spacing = spacing.WithLineGrid(GridPitch.Value);
-                if (FixedFontLineBox && !spacing.IsExact) spacing = spacing.WithFixedFontLineBox();
+                if (FixedFontLineBox && !spacing.IsExact) spacing = spacing.WithFixedFontLeading(NativeWordPerfectLeading);
                 // The native PDF layout device uses 600 square pixels per inch.
                 // Align each font within its line without rounding line advances.
                 if (FontAlignment.HasValue) {

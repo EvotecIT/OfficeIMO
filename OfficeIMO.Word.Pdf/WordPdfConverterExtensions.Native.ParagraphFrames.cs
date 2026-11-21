@@ -28,13 +28,20 @@ public static partial class WordPdfConverterExtensions {
         foreach (WordParagraph paragraph in paragraphs) {
             if (paragraph._paragraph != null) options?.DiagnosedFrameParagraphs.Add(paragraph._paragraph);
         }
-        foreach (W.Paragraph clone in table._table.Descendants<W.Paragraph>()) options?.DiagnosedFrameParagraphs.Add(clone);
 
         // The frame content is a copy: list markers, numbering and story relationships still
         // resolve through the source paragraphs.
         var sources = new Dictionary<W.Paragraph, W.Paragraph>();
-        List<W.Paragraph> copies = table._table.Descendants<W.Paragraph>().ToList();
-        for (int i = 0; i < paragraphs.Count && i < copies.Count; i++) sources[copies[i]] = paragraphs[i]._paragraph!;
+        List<W.Paragraph> directCopies = table._table.Descendants<W.TableCell>().First().Elements<W.Paragraph>().ToList();
+        for (int i = 0; i < paragraphs.Count && i < directCopies.Count; i++) {
+            W.Paragraph source = paragraphs[i]._paragraph!;
+            sources[directCopies[i]] = source;
+            List<W.Paragraph> nestedCopies = directCopies[i].Descendants<W.Paragraph>().ToList();
+            List<W.Paragraph> nestedSources = source.Descendants<W.Paragraph>().ToList();
+            for (int nested = 0; nested < nestedCopies.Count && nested < nestedSources.Count; nested++)
+                sources[nestedCopies[nested]] = nestedSources[nested];
+        }
+        List<W.Paragraph> copies = sources.Keys.ToList();
         Func<WordParagraph, (int Level, string Marker)?> frameMarker = paragraph =>
             paragraph._paragraph != null && sources.TryGetValue(paragraph._paragraph, out W.Paragraph? source)
                 ? getMarker(new WordParagraph(first._document, source)) : getMarker(paragraph);
@@ -52,9 +59,15 @@ public static partial class WordPdfConverterExtensions {
         var collapseFlow = pdf as NativeSpacingCollapseFlow;
         var collapseState = collapseFlow?.CaptureState();
         PdfCore.TableBlock? block;
-        using (WordDocumentTraversal.UseListParagraphAliases(first._document, sources))
-        using (WordPartOwnership.UseDetachedOwner(table._table, WordPartOwnership.Resolve(first._document, first._paragraph!)))
-            block = BuildNativeTableBlock(table, frameMarker, notes, options, contentWidth, defaults, fontMap, pdf.SupportsPositionedTables);
+        // The copies are diagnosed through their sources; their entries last only while the frame is built.
+        foreach (W.Paragraph copy in copies) options?.DiagnosedFrameParagraphs.Add(copy);
+        try {
+            using (WordDocumentTraversal.UseListParagraphAliases(first._document, sources))
+            using (WordPartOwnership.UseDetachedOwner(table._table, WordPartOwnership.Resolve(first._document, first._paragraph!)))
+                block = BuildNativeTableBlock(table, frameMarker, notes, options, contentWidth, defaults, fontMap, pdf.SupportsPositionedTables);
+        } finally {
+            foreach (W.Paragraph copy in copies) options?.DiagnosedFrameParagraphs.Remove(copy);
+        }
         if (block != null) {
             if (block.Style is { Position: { } position } blockStyle) blockStyle.Position = CreateNativeFramePosition(position, frame);
             pdf.Table(block.Cells.Select(row => row.ToArray()), block.Align, block.Style);
@@ -80,14 +93,24 @@ public static partial class WordPdfConverterExtensions {
 
     /// <summary>
     /// Frames are placed for paragraphs directly in the body or in a header or footer. Frames
-    /// in table cells, notes, text boxes and multi-column sections, frames holding a page or
-    /// column break, and drop caps keep the ordinary-paragraph approximation.
+    /// in table cells, notes, text boxes and multi-column sections, frames that start a page or
+    /// hold a page or column break, frames with paragraph shading, borders or charts, and drop
+    /// caps keep the ordinary-paragraph rendering, which already draws those.
     /// </summary>
     private static bool CanRenderNativeParagraphFrame(WordParagraph paragraph) {
         if (paragraph._paragraph?.Parent is not (W.Body or W.Header or W.Footer) || ResolveNativeParagraphFrame(paragraph) == null) return false;
         if (paragraph._paragraph.Descendants<W.Break>().Any(item => item.Type?.Value == W.BreakValues.Page || item.Type?.Value == W.BreakValues.Column))
             return false;
+        if (HasNativePageBreakBefore(paragraph) || GetNativeEffectiveParagraphShadingFill(paragraph) != null ||
+            HasNativeFrameParagraphBorders(paragraph) || GetNativeRuns(paragraph).Any(run => run.Chart != null)) return false;
         return paragraph._paragraph.Parent is not W.Body || (paragraph.GetBodySection()?.ColumnCount ?? 1) <= 1;
+    }
+
+    private static bool HasNativeFrameParagraphBorders(WordParagraph paragraph) {
+        NativeParagraphBorders borders = MergeNativeParagraphBorders(GetNativeParagraphStyleDefaults(paragraph).Borders,
+            paragraph._paragraph?.ParagraphProperties?.GetFirstChild<W.ParagraphBorders>());
+        static bool Visible(NativeParagraphBorderSide side) => !side.IsEmpty && side.Style != W.BorderValues.None && side.Style != W.BorderValues.Nil;
+        return Visible(borders.Top) || Visible(borders.Bottom) || Visible(borders.Left) || Visible(borders.Right) || Visible(borders.Between);
     }
 
     /// <summary>Returns the effective frame of a paragraph: direct formatting first, then its style chain.</summary>
@@ -109,7 +132,9 @@ public static partial class WordPdfConverterExtensions {
     private static WordTable CreateNativeFrameTable(WordDocument document, W.FrameProperties frame,
         IReadOnlyList<WordParagraph> paragraphs, bool notBeside) {
         int? width = ParseNativeFrameTwips(frame.Width?.Value);
-        var tableProperties = new W.TableProperties();
+        // A reserved, undefined style keeps the document's default table style from formatting
+        // frame text that was never in a table.
+        var tableProperties = new W.TableProperties(new W.TableStyle { Val = NativeFrameTableStyleId });
         if (!notBeside) {
             var position = new W.TablePositionProperties {
                 LeftFromText = (short?)ParseNativeFrameTwips(frame.HorizontalSpace?.Value),
@@ -199,6 +224,8 @@ public static partial class WordPdfConverterExtensions {
             properties.Append(new W.TableIndentation { Width = x, Type = W.TableWidthUnitValues.Dxa });
         }
     }
+
+    private const string NativeFrameTableStyleId = "OfficeIMONativeFrameProjection";
 
     private static int? ParseNativeFrameTwips(string? value) =>
         int.TryParse(value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int twips)

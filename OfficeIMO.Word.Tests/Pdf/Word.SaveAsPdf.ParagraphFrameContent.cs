@@ -54,6 +54,138 @@ public partial class Word {
         Assert.Equal(FramePageWidth - FrameMargin, image.Bounds.Right, 0);
     }
 
+    [Fact]
+    public void SaveAsPdf_FramedParagraphWithPageBreakBeforeStartsANewPage() {
+        using WordDocument document = CreateFrameDocument();
+        document.AddParagraph("Intro.");
+        WordParagraph framed = document.AddParagraph("FRAMED");
+        framed.PageBreakBeforeOverride = true;
+        AddFrameParagraph(framed, "notBeside", "text", "margin", x: 1, width: 2880);
+        using PdfPigDocument pdf = RenderFramePdf(document);
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.Contains("FRAMED", pdf.GetPage(2).Text);
+    }
+
+    [Theory]
+    [InlineData("shading")]
+    [InlineData("border")]
+    [InlineData("chart")]
+    public void SaveAsPdf_DecoratedFrameKeepsOrdinaryParagraphRendering(string content) {
+        // Shading, borders and charts are drawn by the ordinary paragraph route, so such a frame
+        // stays on it and reports the approximation instead of losing them.
+        using WordDocument document = CreateFrameDocument();
+        WordParagraph framed;
+        if (content == "chart") {
+            WordChart chart = document.AddChart("Frame chart");
+            chart.AddCategories(new[] { "A", "B" }.ToList());
+            chart.AddBar("Values", new[] { 2, 3 }, OfficeIMO.OfficeColor.ParseHex("276749"));
+            framed = document.Paragraphs.Last(paragraph => paragraph.Chart != null);
+        } else {
+            framed = document.AddParagraph("FRAMED");
+            if (content == "shading") framed.ShadingFillColor = OfficeIMO.OfficeColor.Parse("E6F2FF");
+            else {
+                framed.Borders.BottomStyle = WordBorderStyle.Single;
+                framed.Borders.BottomColor = OfficeIMO.OfficeColor.Parse("FF0000");
+                framed.Borders.BottomSize = OfficeIMO.OfficeLength.Points(2);
+            }
+        }
+        AddFrameParagraph(framed, "around", "text", "margin", x: 1, width: 4320);
+        document.AddParagraph("Body text.");
+
+        var result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false });
+        Assert.Contains(result.Warnings, warning => warning.Code == "native-paragraph-frame-flattened");
+    }
+
+    [Fact]
+    public void SaveAsPdf_DefaultTableStyleDoesNotFormatFrameText() {
+        using WordDocument document = CreateFrameDocument();
+        var styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        foreach (var existing in styles.Elements<DocumentFormat.OpenXml.Wordprocessing.Style>()
+                     .Where(style => style.Type?.Value == DocumentFormat.OpenXml.Wordprocessing.StyleValues.Table)) existing.Default = null;
+        styles.Append(new DocumentFormat.OpenXml.Wordprocessing.Style(
+            new DocumentFormat.OpenXml.Wordprocessing.StyleName { Val = "Bold Grid" },
+            new DocumentFormat.OpenXml.Wordprocessing.StyleRunProperties(new DocumentFormat.OpenXml.Wordprocessing.Bold())) {
+            Type = DocumentFormat.OpenXml.Wordprocessing.StyleValues.Table, StyleId = "BoldGrid", Default = true
+        });
+        WordParagraph framed = document.AddParagraph("FRAMED");
+        AddFrameParagraph(framed, "around", "text", "margin", x: 1, width: 2880);
+        document.AddParagraph("Body text.");
+
+        using PdfPigDocument pdf = RenderFramePdf(document);
+        var word = FindFrameWord(pdf, "FRAMED");
+        Assert.DoesNotContain("Bold", word.Letters[0].FontName ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void SaveAsPdf_FrameWithTextBoxKeepsLaterListMarkers() {
+        // A text box inside the first framed paragraph must not shift which source each later
+        // framed paragraph resolves its list marker from.
+        using WordDocument document = CreateFrameDocument();
+        WordParagraph boxed = document.AddParagraph("BOXHOST");
+        boxed.AddTextBox("INNERBOX", WordImageTextWrapping.Square);
+        AddFrameParagraph(boxed, "around", "text", "margin", x: 1, width: 2880);
+        WordList list = document.AddList(WordListStyle.LowerLetterWithDot);
+        WordParagraph item = list.AddItem("FRAMEDITEM");
+        AddFrameParagraph(item, "around", "text", "margin", x: 1, width: 2880);
+        document.AddParagraph("Body text.");
+
+        using PdfPigDocument pdf = RenderFramePdf(document);
+        var words = pdf.GetPage(1).GetWords().ToList();
+        var framedItem = words.Single(word => word.Text == "FRAMEDITEM");
+        Assert.Contains(words, word => word.Text == "a." && Math.Abs(word.Letters[0].StartBaseLine.Y - framedItem.Letters[0].StartBaseLine.Y) < .5D);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OutsideHeaderFrameMirrorsOnEvenPages() {
+        // Word puts an outside-aligned header frame at the right margin on odd pages and
+        // at the left margin on even pages.
+        using WordDocument document = CreateFrameDocument();
+        AddFrameParagraph(document.PageSetup.Header.AddParagraph("SIDEFRAME"), "around", "text", "margin", y: 1, width: 1440);
+        var frame = document.PageSetup.Header._header!.Descendants<DocumentFormat.OpenXml.Wordprocessing.FrameProperties>().Single();
+        frame.XAlign = DocumentFormat.OpenXml.Wordprocessing.HorizontalAlignmentValues.Outside;
+        document.PageSetup.Header.AddParagraph("ANCHOR");
+        document.AddParagraph("Page one.").AddBreak(WordBreakType.Page);
+        document.AddParagraph("Page two.");
+
+        using PdfPigDocument pdf = RenderFramePdf(document);
+        double OddLeft() => pdf.GetPage(1).GetWords().Single(word => word.Text == "SIDEFRAME").BoundingBox.Left;
+        double EvenLeft() => pdf.GetPage(2).GetWords().Single(word => word.Text == "SIDEFRAME").BoundingBox.Left;
+        Assert.Equal(FramePageWidth - FrameMargin - 72D, OddLeft(), 0);
+        Assert.Equal(FrameMargin, EvenLeft(), 0);
+    }
+
+    [Fact]
+    public void SaveAsPdf_TallFooterFrameStaysOnThePageWithoutRaisingTheFooter() {
+        // Word lets the footer keep its height and moves a frame that would cross the page
+        // edge up until it fits.
+        using WordDocument document = CreateFrameDocument();
+        document.Sections[0].PageSetup.Margins.FooterDistance = OfficeIMO.OfficeLength.Points(18D);
+        WordParagraph framed = document.PageSetup.Footer.AddParagraph("TALLFRAME");
+        framed.LineSpacingAfter = OfficeIMO.OfficeLength.Points(0D);
+        AddFrameParagraph(framed, "around", "text", "margin", x: 1, y: 1, width: 2880);
+        var frame = document.PageSetup.Footer._footer!.Descendants<DocumentFormat.OpenXml.Wordprocessing.FrameProperties>().Single();
+        frame.Height = 800U;
+        frame.HeightType = DocumentFormat.OpenXml.Wordprocessing.HeightRuleValues.Exact;
+        document.PageSetup.Footer.AddParagraph("FOOTANCHOR").LineSpacingAfter = OfficeIMO.OfficeLength.Points(0D);
+        document.AddParagraph("Body.");
+        double alone = MeasureFooterAnchorWithoutFrame();
+
+        using PdfPigDocument pdf = RenderFramePdf(document);
+        var top = FindFrameWord(pdf, "TALLFRAME");
+        Assert.Equal(alone, FindFrameWord(pdf, "FOOTANCHOR").Letters[0].StartBaseLine.Y, 1);
+        // The 40 pt frame ends at the page edge, so its first line sits about 28 pt up.
+        Assert.InRange(top.Letters[0].StartBaseLine.Y, 26D, 31D);
+
+        double MeasureFooterAnchorWithoutFrame() {
+            using WordDocument plain = CreateFrameDocument();
+            plain.Sections[0].PageSetup.Margins.FooterDistance = OfficeIMO.OfficeLength.Points(18D);
+            plain.PageSetup.Footer.AddParagraph("FOOTANCHOR").LineSpacingAfter = OfficeIMO.OfficeLength.Points(0D);
+            plain.AddParagraph("Body.");
+            using PdfPigDocument plainPdf = RenderFramePdf(plain);
+            return FindFrameWord(plainPdf, "FOOTANCHOR").Letters[0].StartBaseLine.Y;
+        }
+    }
+
     [Theory]
     [InlineData("frame")]
     [InlineData("table")]

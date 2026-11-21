@@ -53,6 +53,7 @@ internal static partial class PdfWriter {
                         // Its paint may extend past the story's flow, so the story keeps the
                         // whole page available for painting it.
                         if (!isRunningContent) deepest = Math.Min(deepest, floatingBottom);
+                        // Word lets such a frame run past the page edge rather than raising the footer.
                         else measuredNonFlowTablePaint = true;
                         continue;
                     }

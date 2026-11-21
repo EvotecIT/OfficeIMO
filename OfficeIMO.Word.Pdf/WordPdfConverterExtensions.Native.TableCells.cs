@@ -468,10 +468,15 @@ namespace OfficeIMO.Word.Pdf {
         /// paragraph of a table cell, and uses 14 pt between the paragraphs inside it.
         /// </summary>
         private static bool IsNativeCellBoundaryParagraph(WordParagraph paragraph, bool first) {
-            if (paragraph._paragraph?.Parent is not W.TableCell cell) return false;
-            DocumentFormat.OpenXml.OpenXmlElement? boundary = first
-                ? cell.ChildElements.FirstOrDefault(child => child is W.Paragraph or W.Table)
-                : cell.ChildElements.LastOrDefault(child => child is W.Paragraph or W.Table);
+            if (paragraph._paragraph == null) return false;
+            W.TableCell? cell = paragraph._paragraph.Ancestors<W.TableCell>().FirstOrDefault();
+            if (cell == null) return false;
+            // Content controls are transparent: compare with the cell's own first or last
+            // paragraph or nested table, wherever it sits.
+            IEnumerable<DocumentFormat.OpenXml.OpenXmlElement> blocks = cell.Descendants()
+                .Where(element => element is W.Paragraph or W.Table &&
+                    ReferenceEquals(element.Ancestors<W.TableCell>().FirstOrDefault(), cell));
+            DocumentFormat.OpenXml.OpenXmlElement? boundary = first ? blocks.FirstOrDefault() : blocks.LastOrDefault();
             return ReferenceEquals(boundary, paragraph._paragraph);
         }
 
