@@ -178,4 +178,26 @@ public sealed class DrawingChartSecondaryScaleTests {
         OfficeDrawingText fifty = Assert.Single(texts, text => text.Text == "50");
         Assert.True(zero.Y < fifty.Y);
     }
+
+    // Bounds within one power of the base plot as less than one major unit; the axis keeps its bounds as its ticks.
+    [Theory]
+    [InlineData(1D, 2D, new[] { "1", "2" })]
+    [InlineData(1D, 100D, new[] { "1", "10", "100" })]
+    public void LogarithmicAxesDrawBoundsWithinOnePower(double minimum, double maximum, string[] expected) {
+        var data = new OfficeChartData(new[] { "A", "B" }, new[] {
+            new OfficeSeries("Primary", new[] { 1.2d, 1.8d }),
+            new OfficeSeries("Secondary", new[] { 1.5d, 1.9d }, null, null, null, true,
+                renderKind: OfficeChartType.Line, axisGroup: OfficeChartAxisGroup.Secondary)
+        });
+        var secondary = new OfficeChartLayout(showLegend: false)
+            .WithSecondaryValueAxis(new OfficeChartValueAxisLayout(minimum, maximum).WithLogarithmicScale(10D));
+        var primary = new OfficeChartLayout(showLegend: false, verticalAxisMinimum: minimum, verticalAxisMaximum: maximum)
+            .WithLogarithmicValueAxes(null, 10D);
+        foreach (OfficeChartLayout layout in new[] { secondary, primary }) {
+            OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
+                OfficeChartType.ColumnClustered, data, global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(240), layout: layout));
+            string[] labels = drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToArray();
+            Assert.All(expected, label => Assert.Contains(label, labels));
+        }
+    }
 }

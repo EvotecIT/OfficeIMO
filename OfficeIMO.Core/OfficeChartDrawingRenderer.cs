@@ -1763,11 +1763,15 @@ public static partial class OfficeChartDrawingRenderer {
         GetRadialPlotGeometry(width, height, contentTop, bottomLegendHeight, legendWidth,
             leftLegend, 52D, 42D, out double centerX, out double centerY, out double radius,
             out double visualWidth, out double contentHeight);
-        // An outer plot area also holds the category labels: each sits RadarCategoryLabelOffset outside the web in a box
-        // RadarCategoryLabelWidth wide and one label high.
+        // An outer plot area also holds the axis labels. Each category label sits RadarCategoryLabelOffset outside the
+        // web in a box RadarCategoryLabelWidth wide and one label high. The outermost value label is centred on the top
+        // of the web, with any display-unit label above it.
+        double labelBoxHeight = GetAxisLabelBoxHeight(layout);
+        double valueLabelReserve = !layout.ShowValueAxisLabels ? 0D
+            : string.IsNullOrWhiteSpace(layout.VerticalAxisDisplayUnitLabel) ? labelBoxHeight : 3D * labelBoxHeight + 4D;
         PlaceRadialPlotArea(layout, width, height,
             layout.ShowCategoryAxisLabels ? 2D * RadarCategoryLabelOffset + layout.RadarCategoryLabelWidth : 0D,
-            layout.ShowCategoryAxisLabels ? 2D * RadarCategoryLabelOffset + GetAxisLabelBoxHeight(layout) : 0D,
+            Math.Max(layout.ShowCategoryAxisLabels ? 2D * RadarCategoryLabelOffset + labelBoxHeight : 0D, valueLabelReserve),
             ref centerX, ref centerY, ref radius);
         ValueRange range = GetRadarValueRange(series);
 

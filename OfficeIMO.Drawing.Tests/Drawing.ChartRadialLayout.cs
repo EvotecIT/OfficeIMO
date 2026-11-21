@@ -320,6 +320,21 @@ public sealed class DrawingChartRadialLayoutTests {
     }
 
     [Fact]
+    public void OuterRadarRectangleHoldsItsValueLabelsWithoutCategoryLabels() {
+        // The outermost ring's value label is centred on the top of the web.
+        var square = new OfficeChartManualLayout(0.125D, 0.1D, 0.3D, 0.5D, OfficeChartLayoutMode.Edge, OfficeChartLayoutMode.Edge);
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null, OfficeChartType.Radar,
+            new OfficeChartData(new[] { "North", "East", "South", "West" }, new[] { new OfficeSeries("Values", new[] { 3d, 2d, 4d, 1d }) }),
+            global::OfficeIMO.OfficeLength.Points(480), global::OfficeIMO.OfficeLength.Points(288),
+            layout: new OfficeChartLayout(showLegend: false, showCategoryAxisLabels: false, axisLabelFontSize: 7D)
+                .WithManualLayouts(square, null, null)));
+
+        OfficeDrawingText[] labels = drawing.Elements.OfType<OfficeDrawingText>().ToArray();
+        Assert.NotEmpty(labels);
+        Assert.All(labels, label => Assert.InRange(label.Y, 28.8D - Edge, 172.8D - label.Height + Edge));
+    }
+
+    [Fact]
     public void PlacedOverlayLegendWithoutASizeKeepsItsAutomaticWidth() {
         // Only the position is given, so the legend keeps the width it would have beside the plot.
         var legend = new OfficeChartManualLayout(0.7D, 0.3D, xMode: OfficeChartLayoutMode.Edge, yMode: OfficeChartLayoutMode.Edge);
