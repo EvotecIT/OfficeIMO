@@ -200,6 +200,9 @@ public sealed class PowerPointChartOfficeDefaultsTests {
         foreach (DocumentFormat.OpenXml.Packaging.EmbeddedPackagePart workbook in part.GetPartsOfType<DocumentFormat.OpenXml.Packaging.EmbeddedPackagePart>().ToArray()) part.DeletePart(workbook);
         space.GetFirstChild<C.ExternalData>()?.Remove();
         space.AddChild(new C.ExternalData { Id = "rIdMissing" }, true);
+        // Hidden cells are not left out, so the chart needs its workbook only for the linked format.
+        C.PlotVisibleOnly? visibleOnly = space.Descendants<C.PlotVisibleOnly>().FirstOrDefault();
+        if (visibleOnly != null) visibleOnly.Val = false;
         foreach (C.FormatCode code in space.Descendants<C.XValues>().SelectMany(values => values.Descendants<C.FormatCode>())) code.Text = "0%";
         foreach (C.FormatCode code in space.Descendants<C.YValues>().SelectMany(values => values.Descendants<C.FormatCode>())) code.Text = "General";
         C.ValueAxis xAxis = space.Descendants<C.ValueAxis>().Single(axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Bottom);
@@ -214,7 +217,9 @@ public sealed class PowerPointChartOfficeDefaultsTests {
     public void UnresolvedWorkbookLinkedAxisFormatIsReported() {
         string chart = CategoryChart("barChart", "<c:barDir val=\"col\"/><c:grouping val=\"clustered\"/>", string.Empty)
             .Replace("sourceLinked=\"0\"", "sourceLinked=\"1\"").Replace("<c:formatCode>General</c:formatCode>", "<c:formatCode>0.0</c:formatCode>")
-            .Replace("</c:chartSpace>", "<c:externalData r:id=\"rIdMissing\"><c:autoUpdate val=\"0\"/></c:externalData></c:chartSpace>");
+            .Replace("</c:chartSpace>", "<c:externalData r:id=\"rIdMissing\"><c:autoUpdate val=\"0\"/></c:externalData></c:chartSpace>")
+            // Hidden cells are not left out, so the chart needs its workbook only for the linked format.
+            .Replace("<c:plotVisOnly val=\"1\"/>", "<c:plotVisOnly val=\"0\"/>");
 
         RenderSvg(chart, OfficeChartFidelity.Strict, out IReadOnlyList<OfficeImageExportDiagnostic> diagnostics);
 

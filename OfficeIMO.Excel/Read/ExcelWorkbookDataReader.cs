@@ -791,15 +791,18 @@ namespace OfficeIMO.Excel {
             if (destinationType == typeof(double)) return (T)(object)GetDouble(ordinal);
             if (destinationType == typeof(decimal)) return (T)(object)GetDecimal(ordinal);
             if (destinationType == typeof(DateTime)) return (T)(object)GetDateTime(ordinal);
+            if (destinationType == typeof(TimeSpan) || destinationType == typeof(DateTimeOffset)
 #if NET6_0_OR_GREATER
-            if (destinationType == typeof(DateOnly) || destinationType == typeof(TimeOnly)) {
-                object? sourceValue = IsDBNull(ordinal) ? null : GetValue(ordinal);
+                || destinationType == typeof(DateOnly) || destinationType == typeof(TimeOnly)
+#endif
+                ) {
+                // Durations come from the cell's serial and dates from the workbook's date system, as in typed mapping.
+                object? sourceValue = IsDBNull(ordinal) ? null : DataReaderMappingValue.Read(this, ordinal, destinationType);
                 return DataValueConverter.ConvertTo<T>(
                     sourceValue,
                     _culture,
                     errorValuePolicy: _mappingErrorValuePolicy)!;
             }
-#endif
             if (destinationType == typeof(Guid)) return (T)(object)GetGuid(ordinal);
 
             object value = GetValue(ordinal);

@@ -57,6 +57,20 @@ public sealed class DrawingManagedEmojiSequencesTests {
         Assert.Equal("\u2764\uFE0F", result.Glyphs[0].UnicodeText);
     }
 
+    // A variable font whose ligatures and placements cannot vary shapes the same sequence; the
+    // selected instance keeps its own advances, so the ligature's advance stays nominal.
+    [Fact]
+    public void VariableFontWithInvariantLayoutShapesTheSequenceLigature() {
+        const string text = "\U0001F3CB\uFE0F\u200D\u2642\uFE0F";
+
+        OfficeTextShapingResult result = Shape(text, ManagedTextShapingTestAssets.CreateVariableEmojiSequenceFont());
+
+        OfficeShapedGlyph painted = Assert.Single(result.Glyphs, glyph => glyph.GlyphId != BlankSpaceGlyph);
+        Assert.Equal(ManagedTextShapingTestAssets.EmojiSequenceLigatures[0].Ligature, painted.GlyphId);
+        Assert.Equal(text, painted.UnicodeText);
+        Assert.All(result.Glyphs.Where(glyph => glyph.GlyphId == BlankSpaceGlyph), glyph => Assert.Equal(0, glyph.AdvanceWidth));
+    }
+
     private static OfficeTextShapingResult Shape(string text, byte[]? data = null) {
         data ??= ManagedTextShapingTestAssets.CreateEmojiSequenceFont();
         IOfficeFontProgram font = Assert.Single(new OfficeFontFaceCollection().Add("Emoji sequences", data).Faces).Program;

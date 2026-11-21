@@ -12,10 +12,14 @@ namespace OfficeIMO.Excel {
         /// <param name="ct">Cancellation token.</param>
         public IEnumerable<T> ReadColumnAs<T>(string a1Range, Func<object, T>? convert = null, CancellationToken ct = default) {
             bool canCancel = ct.CanBeCanceled;
-            foreach (var obj in ReadColumn(a1Range, ct)) {
+            using IEnumerator<object?[]>? serials = convert == null ? OpenSerialRows<T>(a1Range, ct) : null;
+            foreach (var obj0 in ReadColumn(a1Range, ct)) {
                 if (canCancel) {
                     ct.ThrowIfCancellationRequested();
                 }
+
+                object? obj = obj0;
+                double? serial = NextSerial(obj, serials, 0);
 
                 if (obj is null) {
                     yield return default(T)!;
@@ -26,7 +30,7 @@ namespace OfficeIMO.Excel {
                 if (convert != null) {
                     result = convert(obj);
                 } else {
-                    var val = TryChangeType(obj, targetType: typeof(T), culture: _opt.Culture);
+                    var val = TryChangeType(obj, typeof(T), _opt.Culture, serial);
                     result = val is null ? default(T)! : (T)val;
                 }
 
@@ -49,7 +53,9 @@ namespace OfficeIMO.Excel {
             var (r1, _, _, _) = ExcelA1.ParseRange(a1Range);
             bool canCancel = ct.CanBeCanceled;
             int offset = 0;
+            using IEnumerator<object?[]>? serials = convert == null ? OpenSerialRows<T>(a1Range, ct) : null;
             foreach (var row in ReadRows(a1Range, ct)) {
+                object?[]? serialRow = serials != null && serials.MoveNext() ? serials.Current : null;
                 if (canCancel) {
                     ct.ThrowIfCancellationRequested();
                 }
@@ -73,7 +79,7 @@ namespace OfficeIMO.Excel {
                     if (convert != null) {
                         result[i] = convert(obj);
                     } else {
-                        var val = TryChangeType(obj, targetType: typeof(T), culture: _opt.Culture);
+                        var val = TryChangeType(obj, typeof(T), _opt.Culture, SerialAt(obj, serialRow, i));
                         result[i] = val is null ? default(T)! : (T)val;
                     }
                 }
@@ -95,6 +101,7 @@ namespace OfficeIMO.Excel {
         /// <param name="ct">Cancellation token.</param>
         public T[,] ReadRangeAs<T>(string a1Range, OfficeIMO.Excel.ExcelExecutionMode? mode = null, CancellationToken ct = default) {
             var values = ReadRange(a1Range, mode, ct);
+            double?[,]? serials = ReadSerialMatrix<T>(a1Range, values.GetLength(0), values.GetLength(1), ct);
             int rows = values.GetLength(0);
             int cols = values.GetLength(1);
             var result = new T[rows, cols];
@@ -121,7 +128,7 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    var val = TryChangeType(obj, targetType: typeof(T), culture: _opt.Culture);
+                    var val = TryChangeType(obj, typeof(T), _opt.Culture, serials?[r, c]);
                     if (canCancel) {
                         ct.ThrowIfCancellationRequested();
                     }
@@ -131,6 +138,52 @@ namespace OfficeIMO.Excel {
             }
             return result;
         }
+
+        /// <summary>
+        /// For duration and time-of-day targets, reads each date cell's stored serial alongside the range, as typed
+        /// object mapping does. The untyped value of a calendar date is already shifted to the workbook's date system,
+        /// so it cannot be read back as a day count. Returns null for other targets.
+        /// </summary>
+        private IEnumerator<object?[]>? OpenSerialRows<T>(string a1Range, CancellationToken ct) {
+            Type target = Nullable.GetUnderlyingType(typeof(T)) ?? typeof(T);
+            return target == typeof(TimeSpan) || IsTimeOnly(target) ? ReadSerialRows(a1Range, ct).GetEnumerator() : null;
+        }
+
+        private IEnumerable<object?[]> ReadSerialRows(string a1Range, CancellationToken ct) {
+            using System.Data.IDataReader reader = ReadRangeAsDataReader(a1Range, headersInFirstRow: false,
+                chunkRows: Math.Min(DataReaderChunkRows, _opt.MaxDataReaderChunkRows), schemaSampleRows: 0, ct: ct);
+            while (reader.Read()) {
+                var serials = new object?[reader.FieldCount];
+                for (int ordinal = 0; ordinal < serials.Length; ordinal++) {
+                    if (reader.IsDBNull(ordinal) || reader.GetValue(ordinal) is not DateTime) continue;
+                    try {
+                        serials[ordinal] = reader.GetDouble(ordinal);
+                    } catch (InvalidCastException) {
+                    } catch (FormatException) {
+                    }
+                }
+                yield return serials;
+            }
+        }
+
+        private double?[,]? ReadSerialMatrix<T>(string a1Range, int rows, int columns, CancellationToken ct) {
+            using IEnumerator<object?[]>? serials = OpenSerialRows<T>(a1Range, ct);
+            if (serials == null) return null;
+            var matrix = new double?[rows, columns];
+            for (int r = 0; r < rows && serials.MoveNext(); r++) {
+                object?[] serialRow = serials.Current;
+                for (int c = 0; c < columns && c < serialRow.Length; c++) {
+                    matrix[r, c] = serialRow[c] as double?;
+                }
+            }
+            return matrix;
+        }
+
+        private static double? NextSerial(object? value, IEnumerator<object?[]>? serials, int ordinal) =>
+            serials != null && serials.MoveNext() ? SerialAt(value, serials.Current, ordinal) : null;
+
+        private static double? SerialAt(object? value, object?[]? row, int ordinal) =>
+            value is DateTime && row != null && ordinal < row.Length ? row[ordinal] as double? : null;
     }
 }
 

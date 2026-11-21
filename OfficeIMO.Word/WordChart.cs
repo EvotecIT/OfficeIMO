@@ -254,7 +254,7 @@ namespace OfficeIMO.Word {
             }
 
             // 2. AutoTitleDeleted (must come after Title if Title exists)
-            AutoTitleDeleted autoTitleDeleted1 = new AutoTitleDeleted() { Val = false };
+            AutoTitleDeleted autoTitleDeleted1 = new AutoTitleDeleted() { Val = string.IsNullOrEmpty(title) };
             chart1.Append(autoTitleDeleted1);
 
             // 8. PlotArea (comes after View3D, Floor, SideWall, BackWall if they were present)
@@ -298,6 +298,7 @@ namespace OfficeIMO.Word {
                         // Insert title at the beginning (before AutoTitleDeleted) to maintain schema order
                         var autoTitleDeleted = _chart.GetFirstChild<AutoTitleDeleted>();
                         if (autoTitleDeleted != null) {
+                            autoTitleDeleted.Val = false;
                             _chart.InsertBefore(newTitle, autoTitleDeleted);
                         } else {
                             // If no AutoTitleDeleted found, insert at the beginning

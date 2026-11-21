@@ -653,28 +653,28 @@ public sealed partial class OfficeChartLayout {
     public string? VerticalAxisDisplayUnitLabel { get; private set; }
 
     /// <summary>Optional minimum for horizontal value axes.</summary>
-    public double? HorizontalAxisMinimum { get; }
+    public double? HorizontalAxisMinimum { get; private set; }
 
     /// <summary>Optional maximum for horizontal value axes.</summary>
-    public double? HorizontalAxisMaximum { get; }
+    public double? HorizontalAxisMaximum { get; private set; }
 
     /// <summary>Optional major tick/grid unit for horizontal value axes.</summary>
-    public double? HorizontalAxisMajorUnit { get; }
+    public double? HorizontalAxisMajorUnit { get; private set; }
 
     /// <summary>Optional minor tick/grid unit for horizontal value axes.</summary>
-    public double? HorizontalAxisMinorUnit { get; }
+    public double? HorizontalAxisMinorUnit { get; private set; }
 
     /// <summary>Optional minimum for vertical value axes.</summary>
-    public double? VerticalAxisMinimum { get; }
+    public double? VerticalAxisMinimum { get; private set; }
 
     /// <summary>Optional maximum for vertical value axes.</summary>
-    public double? VerticalAxisMaximum { get; }
+    public double? VerticalAxisMaximum { get; private set; }
 
     /// <summary>Optional major tick/grid unit for vertical value axes.</summary>
-    public double? VerticalAxisMajorUnit { get; }
+    public double? VerticalAxisMajorUnit { get; private set; }
 
     /// <summary>Optional minor tick/grid unit for vertical value axes.</summary>
-    public double? VerticalAxisMinorUnit { get; }
+    public double? VerticalAxisMinorUnit { get; private set; }
 
     /// <summary>Major tick mark placement for the horizontal axis.</summary>
     public OfficeChartAxisTickMark HorizontalAxisMajorTickMark { get; }

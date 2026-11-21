@@ -42,6 +42,9 @@ namespace OfficeIMO.PowerPoint {
                 } else {
                     drawing.AddDrawing(chartDrawing, left, top);
                 }
+            } catch (NotSupportedException error) {
+                AddUnsupportedShapeDiagnostic(diagnostics, chart, "Skipped a PowerPoint chart because the shared chart renderer cannot draw it: " +
+                    error.Message, diagnosticCode: OfficeDiagnosticCodes.UnsupportedChart);
             } catch (ArgumentException) {
                 AddUnsupportedShapeDiagnostic(diagnostics, chart, "Skipped a PowerPoint chart because its frame is too small for safe rendering.", diagnosticCode: OfficeDiagnosticCodes.UnsupportedChart);
             } catch (InvalidOperationException) {

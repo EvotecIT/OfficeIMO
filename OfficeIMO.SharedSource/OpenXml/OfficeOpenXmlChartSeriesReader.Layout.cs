@@ -8,14 +8,11 @@ namespace OfficeIMO.OpenXml.Internal {
     internal static partial class OfficeOpenXmlChartSeriesReader {
         internal static OfficeChartLayout ReadLayout(C.Chart chart, OfficeChartType kind, OfficeChartData data, string? axisTitleFont = null, A.ColorScheme? scheme = null,
             Result? source = null) {
-            if (chart.PlotArea?.GetFirstChild<C.Layout>()?.GetFirstChild<C.ManualLayout>() != null ||
-                chart.GetFirstChild<C.Title>()?.GetFirstChild<C.Layout>()?.GetFirstChild<C.ManualLayout>() != null ||
-                chart.GetFirstChild<C.Legend>()?.GetFirstChild<C.Layout>()?.GetFirstChild<C.ManualLayout>() != null ||
-                chart.PlotArea?.Descendants<C.Title>().Any(title =>
+            if (chart.PlotArea?.Descendants<C.Title>().Any(title =>
                     title.GetFirstChild<C.Layout>()?.GetFirstChild<C.ManualLayout>() != null ||
                     title.GetFirstChild<C.Overlay>() is C.Overlay overlay && overlay.Val?.Value != false) == true)
-                OfficeOpenXmlChartFidelityScope.Approximate("Manual layouts and overlaid axis titles cannot be projected.",
-                    "Manually placed or overlaid chart elements are drawn in their automatic positions.");
+                OfficeOpenXmlChartFidelityScope.Approximate("Manual axis-title layouts and overlaid axis titles cannot be projected.",
+                    "Manually placed or overlaid axis titles are drawn in their automatic positions.");
             var labels = ReadLabels(chart, scheme);
             labels.ResolveSelection(source?.Series.Select(series => series.SourceIndex).ToArray() ??
                     Enumerable.Range(0, data.Series.Count).Select(index => (uint)index).ToArray(),
@@ -31,8 +28,10 @@ namespace OfficeIMO.OpenXml.Internal {
                 position == C.LegendPositionValues.Bottom ? OfficeChartLegendPosition.Bottom :
                 position == C.LegendPositionValues.Top ? OfficeChartLegendPosition.Top :
                 position == C.LegendPositionValues.TopRight ? OfficeChartLegendPosition.TopRight : OfficeChartLegendPosition.Right;
+            // Pie and doughnut legends, and those of a single series coloured by point, list categories.
             bool radial = kind == OfficeChartType.Pie || kind == OfficeChartType.Doughnut;
-            var hidden = radial ? legend?.Elements<C.LegendEntry>().Where(entry => entry.GetFirstChild<C.Delete>() is C.Delete delete && delete.Val?.Value != false)
+            bool categoryLegend = radial || OfficeOpenXmlChartPlotSemantics.GetPointColoredSeries(chart.PlotArea) != null;
+            var hidden = categoryLegend ? legend?.Elements<C.LegendEntry>().Where(entry => entry.GetFirstChild<C.Delete>() is C.Delete delete && delete.Val?.Value != false)
                 .Select(entry => entry.GetFirstChild<C.Index>()?.Val?.Value).Where(value => value.HasValue && value.Value <= int.MaxValue)
                 .Select(value => (int)value!.Value).ToArray() : null;
             var plot = chart.PlotArea;
@@ -67,12 +66,6 @@ namespace OfficeIMO.OpenXml.Internal {
                     if (horizontal == null || vertical == null || (numeric && (horizontal is not C.ValueAxis || vertical is not C.ValueAxis)))
                         throw new NotSupportedException("The chart axis roles cannot be projected.");
                 }
-            }
-            foreach (var axis in new[] { horizontal, vertical }.Where(axis => axis != null)) {
-                if (axis!.GetFirstChild<C.Scaling>()?.GetFirstChild<C.LogBase>() != null)
-                    throw new NotSupportedException("Logarithmic chart axes cannot be projected.");
-                if (axis is C.ValueAxis && axis.GetFirstChild<C.Scaling>()?.GetFirstChild<C.Orientation>()?.Val?.Value == C.OrientationValues.MaxMin)
-                    throw new NotSupportedException("Reversed numeric chart axes cannot be projected.");
             }
             if (kind == OfficeChartType.Radar &&
                 (horizontal?.GetFirstChild<C.Title>() != null || vertical?.GetFirstChild<C.Title>() != null ||

@@ -63,7 +63,10 @@ internal static partial class HtmlPdfRenderedConverter {
                     (simulateBold || simulateItalic || webFonts.TextShapingProvider != null ||
                         (face.Program is OfficeTrueTypeFont colorFont && colorFont.HasColorGlyphs) ||
                         !webFonts.Slots.ContainsKey(run.FamilyName))) ||
-                ContainsColorGlyph(face.Program, run.Text);
+                ContainsColorGlyph(face.Program, run.Text) ||
+                // Substitution selects the color glyph of a sequence whose components may be plain.
+                face.Program is OfficeTrueTypeFont { HasColorGlyphs: true } or OfficeTrueTypeFont { HasBitmapGlyphs: true }
+                    && OfficeTextElements.ContainsJoinerOrEmojiSequence(run.Text);
             ReportApproximatedColorGlyphs(webFonts, visual, face.Program, run.Text);
         }
         if (!requiresOutlines) {
@@ -170,6 +173,8 @@ internal static partial class HtmlPdfRenderedConverter {
                 throw new InvalidOperationException("HTML-to-PDF outlined text exceeded the configured path-command budget.");
             }
             double runTop = lineMetrics.Baseline - baselineOffsets[runIndex];
+            double runLineHeight = lineHeights[runIndex];
+            double italicBottomFor(double top) => top + (preservePositionedFrame ? visual.Font.Size : runLineHeight);
             var sourcePaintGroups = new List<OutlinedPaintContours>();
             if (run.PreparedShaping is OfficePreparedTextShaping prepared) {
                 sourcePaintGroups.Add(new OutlinedPaintContours(visual.Color,
@@ -199,6 +204,19 @@ internal static partial class HtmlPdfRenderedConverter {
                         cancellationToken,
                         out colorLayers))) {
                 foreach (OfficeColorGlyphContours layer in colorLayers) {
+                    if (layer.Bitmap is { } bitmap) {
+                        // Synthetic italic shears outlines; an upright PNG keeps its box at the sheared baseline position.
+                        OfficePoint topLeft = TransformOutlinedPoint(new OfficePoint(layer.BitmapLeft, layer.BitmapTop),
+                            textX, scaleX, italicBottomFor(runTop), false, 0D, preservePositionedFrame);
+                        OfficePoint bottomRight = TransformOutlinedPoint(
+                            new OfficePoint(layer.BitmapLeft + layer.BitmapWidth, layer.BitmapTop + layer.BitmapHeight),
+                            textX, scaleX, italicBottomFor(runTop), false, 0D, preservePositionedFrame);
+                        // In paint order with the vector layers, so a later mark is not covered by an earlier image.
+                        sourcePaintGroups.Add(new OutlinedPaintContours(bitmap, topLeft, bottomRight));
+                        allContours.Add(new List<OfficePoint> { topLeft, new OfficePoint(bottomRight.X, topLeft.Y), bottomRight,
+                            new OfficePoint(topLeft.X, bottomRight.Y) });
+                        continue;
+                    }
                     sourcePaintGroups.Add(new OutlinedPaintContours(layer.Color, layer.Contours));
                 }
             } else {
@@ -244,11 +262,16 @@ internal static partial class HtmlPdfRenderedConverter {
             }
             cancellationToken.ThrowIfCancellationRequested();
             int runPointCount = 0;
-            double italicBottom = runTop + (preservePositionedFrame ? visual.Font.Size : lineHeights[runIndex]);
+            double italicBottom = italicBottomFor(runTop);
             double boldOffset = preservePositionedFrame
                 ? OfficeSyntheticTextStyle.BoldOffset(visual.Font.Size) : Math.Max(1D, visual.Font.Size / 22D);
             int copies = run.SimulateBold ? 2 : 1;
             foreach (OutlinedPaintContours sourceGroup in sourcePaintGroups) {
+                if (sourceGroup.Bitmap != null) {
+                    // Its box is already in transformed outline coordinates.
+                    paintGroups.Add(sourceGroup);
+                    continue;
+                }
                 var transformedGroup = new List<List<OfficePoint>>();
                 foreach (List<OfficePoint> contour in sourceGroup.Contours) {
                     int retainedForContour = checked(contour.Count * copies);
@@ -338,6 +361,14 @@ internal static partial class HtmlPdfRenderedConverter {
         double drawingHeight = frame.Height;
         var drawing = new OfficeDrawing(drawingWidth, drawingHeight);
         foreach (OutlinedPaintContours group in paintGroups) {
+            if (group.Bitmap != null) {
+                double width = group.BottomRight.X - group.TopLeft.X, height = group.BottomRight.Y - group.TopLeft.Y;
+                if (width > 0D && height > 0D) {
+                    drawing.AddImage(group.Bitmap.Png, "image/png", new OfficeImageProjection(new OfficeImagePlacement(
+                        group.TopLeft.X + outlineOffsetX, group.TopLeft.Y + outlineOffsetY, width, height)));
+                }
+                continue;
+            }
             var commands = new List<OfficePathCommand>();
             AppendContours(commands, group.Contours, outlineOffsetX, outlineOffsetY, webFonts.OutlineBudget, cancellationToken);
             if (commands.Count == 0) continue;
@@ -429,7 +460,8 @@ internal static partial class HtmlPdfRenderedConverter {
             } else {
                 scalar = first;
             }
-            if (program.TryGetGlyphMetrics(scalar, out int glyphId, out _) && colorProgram.HasColorGlyph(glyphId)) return true;
+            if (program.TryGetGlyphMetrics(scalar, out int glyphId, out _) && (colorProgram.HasColorGlyph(glyphId)
+                || program is OfficeTrueTypeFont trueType && trueType.IsBitmapColorGlyph(glyphId))) return true;
         }
         return false;
     }
@@ -466,7 +498,10 @@ internal static partial class HtmlPdfRenderedConverter {
         out string? shapedText) {
         shapedText = null;
         IOfficeTextShapingProvider? provider = webFonts.TextShapingProvider;
-        if (provider == null && !featureSettings.IsDefault) provider = OfficeManagedTextShapingProvider.Instance;
+        // Emoji sequences become one glyph only through the font's default GSUB and GPOS; painting
+        // their components unshaped squeezes them into the width measured for the shaped run.
+        if (provider == null && (!featureSettings.IsDefault || OfficeTextElements.ContainsJoinerOrEmojiSequence(run.Text)))
+            provider = OfficeManagedTextShapingProvider.Instance;
         if (provider == null || run.Program.ProvidesComplexTextLayout) return null;
         shapedText = OfficeArabicTextShaper.ToLogicalText(run.Text);
         cancellationToken.ThrowIfCancellationRequested();
@@ -717,14 +752,25 @@ internal static partial class HtmlPdfRenderedConverter {
         }
     }
 
+    // One paint operation in source order: filled contours, or a PNG color glyph drawn into its box.
     private sealed class OutlinedPaintContours {
         internal OutlinedPaintContours(OfficeColor color, List<List<OfficePoint>> contours) {
             Color = color;
             Contours = contours;
         }
 
+        internal OutlinedPaintContours(OfficeBitmapGlyphImage bitmap, OfficePoint topLeft, OfficePoint bottomRight) {
+            Contours = new List<List<OfficePoint>>();
+            Bitmap = bitmap;
+            TopLeft = topLeft;
+            BottomRight = bottomRight;
+        }
+
         internal OfficeColor Color { get; }
         internal List<List<OfficePoint>> Contours { get; }
+        internal OfficeBitmapGlyphImage? Bitmap { get; }
+        internal OfficePoint TopLeft { get; }
+        internal OfficePoint BottomRight { get; }
     }
 
     internal readonly struct OutlinedTextFrame {

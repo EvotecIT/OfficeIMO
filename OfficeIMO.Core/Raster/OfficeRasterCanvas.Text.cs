@@ -232,7 +232,7 @@ public sealed partial class OfficeRasterCanvas {
                 foreach (OfficeColorGlyphContours layer in colorLayers) {
                     if (Math.Abs(horizontalScale - 1D) > 0.0001D) ScaleContoursX(layer.Contours, textX, horizontalScale);
                     if ((simulatedStyle & OfficeFontStyle.Italic) == OfficeFontStyle.Italic) SlantContours(layer.Contours, top, size);
-                    FillTextContours(layer.Contours, layer.Color, (simulatedStyle & OfficeFontStyle.Bold) != 0 ? OfficeSyntheticTextStyle.BoldOffset(size) : 0D);
+                    PaintColorGlyphLayer(layer, (simulatedStyle & OfficeFontStyle.Bold) != 0 ? OfficeSyntheticTextStyle.BoldOffset(size) : 0D);
                 }
             } else {
                 List<List<OfficePoint>> contours = GetResolvedTextContours(value, font, textX, top, size, featureSettings, textDirection);

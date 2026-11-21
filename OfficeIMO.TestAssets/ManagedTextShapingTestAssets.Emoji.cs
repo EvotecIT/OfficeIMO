@@ -29,7 +29,10 @@ internal static partial class ManagedTextShapingTestAssets {
     /// The space glyph is blank.
     /// </summary>
     /// <param name="bitmapOnlyGlyphs">Glyphs given an empty outline in a font that also carries a CBDT table, as bitmap emoji fonts do.</param>
-    internal static byte[] CreateEmojiSequenceFont(IReadOnlyCollection<int>? bitmapOnlyGlyphs = null) {
+    /// <param name="redFirstLigature">Gives the first ligature a single red COLR layer while its components stay plain, as in color emoji fonts.</param>
+    /// <param name="additionalTables">Further tables, such as an fvar that makes the font variable.</param>
+    internal static byte[] CreateEmojiSequenceFont(IReadOnlyCollection<int>? bitmapOnlyGlyphs = null, bool redFirstLigature = false,
+        IReadOnlyList<(string Tag, byte[] Data)>? additionalTables = null) {
         int glyphCount = EmojiFirstLigatureGlyph + EmojiSequenceLigatures.Length;
         var advances = new Dictionary<int, ushort>();
         for (int glyph = 1; glyph < glyphCount; glyph++) advances[glyph] = EmojiAdvance;
@@ -51,7 +54,24 @@ internal static partial class ManagedTextShapingTestAssets {
         if (bitmapOnlyGlyphs != null) blanks.AddRange(bitmapOnlyGlyphs);
         return CreateFontFromCmap(CreateDistinctFormat12Cmap(EmojiFixtureScalars), glyphCount: glyphCount,
             gsub: CreateLigatureSetGsub("ccmp", ligatures), glyphAdvances: advances, blankGlyphIds: blanks,
-            additionalTables: bitmapOnlyGlyphs == null ? null : new[] { ("CBDT", new byte[8]) });
+            colr: redFirstLigature ? CreateSingleLayerColr(EmojiFirstLigatureGlyph, paletteEntry: 0) : null,
+            cpal: redFirstLigature ? CreateCpalV1() : null,
+            additionalTables: bitmapOnlyGlyphs == null ? additionalTables
+                : new[] { ("CBDT", new byte[8]) }.Concat(additionalTables ?? Array.Empty<(string, byte[])>()).ToArray());
+    }
+
+    // COLR version 0 with one base glyph painted by its own outline in one palette entry.
+    private static byte[] CreateSingleLayerColr(int glyph, int paletteEntry) {
+        var table = new byte[24];
+        WriteUInt16(table, 2, 1);
+        WriteUInt32(table, 4, 14);
+        WriteUInt32(table, 8, 20);
+        WriteUInt16(table, 12, 1);
+        WriteUInt16(table, 14, checked((ushort)glyph));
+        WriteUInt16(table, 18, 1);
+        WriteUInt16(table, 20, checked((ushort)glyph));
+        WriteUInt16(table, 22, checked((ushort)paletteEntry));
+        return table;
     }
 
     /// <summary>The fixture glyph a scalar maps to.</summary>

@@ -334,7 +334,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void CellTimeOnlyValueCore(int row, int column, TimeOnly value) {
-            string text = InvariantNumberText.Get(value.ToTimeSpan().TotalDays);
+            string text = InvariantNumberText.Get(ExcelDateSystemConverter.ToSerial(value.ToTimeSpan()));
             var cell = GetWritableValueCell(row, column);
             ClearCellValueMetadata(cell);
             uint baseStyleIndex = cell.StyleIndex?.Value ?? 0U;
@@ -365,7 +365,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void CellTimeSpanValueCore(int row, int column, TimeSpan value) {
-            double serial = value.TotalDays;
+            double serial = ExcelDateSystemConverter.ToSerial(value);
             string text = InvariantNumberText.Get(serial);
             if (TryStoreTemporal(row, column, text, duration: true)) return;
             var cell = GetWritableValueCell(row, column);

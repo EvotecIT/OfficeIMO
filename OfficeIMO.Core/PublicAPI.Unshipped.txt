@@ -862,3 +862,32 @@ OfficeIMO.Drawing.OfficeChartLayout.WithAxisDisplayUnits(double? horizontalDivis
 OfficeIMO.Drawing.OfficeChartLayout.WithBlankDisplay(OfficeIMO.Drawing.OfficeChartBlankDisplay blankDisplay) -> OfficeIMO.Drawing.OfficeChartLayout!
 OfficeIMO.Drawing.OfficeChartLayout.ShowDataLabelsOverMaximum.get -> bool
 OfficeIMO.Drawing.OfficeChartLayout.WithDataLabelsOverMaximum(bool show) -> OfficeIMO.Drawing.OfficeChartLayout!
+OfficeIMO.Drawing.OfficeChartLayout.HorizontalAxisLogBase.get -> double?
+OfficeIMO.Drawing.OfficeChartLayout.LegendLayout.get -> OfficeIMO.Drawing.OfficeChartManualLayout?
+OfficeIMO.Drawing.OfficeChartLayout.PlotAreaLayout.get -> OfficeIMO.Drawing.OfficeChartManualLayout?
+OfficeIMO.Drawing.OfficeChartLayout.ReverseHorizontalValueAxis.get -> bool
+OfficeIMO.Drawing.OfficeChartLayout.ReverseVerticalValueAxis.get -> bool
+OfficeIMO.Drawing.OfficeChartLayout.TitleLayout.get -> OfficeIMO.Drawing.OfficeChartManualLayout?
+OfficeIMO.Drawing.OfficeChartLayout.VaryColorsByPoint.get -> bool
+OfficeIMO.Drawing.OfficeChartLayout.VerticalAxisLogBase.get -> double?
+OfficeIMO.Drawing.OfficeChartLayout.WithLogarithmicValueAxes(double? horizontalBase, double? verticalBase) -> OfficeIMO.Drawing.OfficeChartLayout!
+OfficeIMO.Drawing.OfficeChartLayout.WithManualLayouts(OfficeIMO.Drawing.OfficeChartManualLayout? plotArea, OfficeIMO.Drawing.OfficeChartManualLayout? title, OfficeIMO.Drawing.OfficeChartManualLayout? legend) -> OfficeIMO.Drawing.OfficeChartLayout!
+OfficeIMO.Drawing.OfficeChartLayout.WithReversedValueAxes(bool horizontal, bool vertical) -> OfficeIMO.Drawing.OfficeChartLayout!
+OfficeIMO.Drawing.OfficeChartLayout.WithVaryColorsByPoint(bool vary) -> OfficeIMO.Drawing.OfficeChartLayout!
+OfficeIMO.Drawing.OfficeChartLayoutMode
+OfficeIMO.Drawing.OfficeChartLayoutMode.Edge = 0 -> OfficeIMO.Drawing.OfficeChartLayoutMode
+OfficeIMO.Drawing.OfficeChartLayoutMode.Factor = 1 -> OfficeIMO.Drawing.OfficeChartLayoutMode
+OfficeIMO.Drawing.OfficeChartLayoutTarget
+OfficeIMO.Drawing.OfficeChartLayoutTarget.Inner = 0 -> OfficeIMO.Drawing.OfficeChartLayoutTarget
+OfficeIMO.Drawing.OfficeChartLayoutTarget.Outer = 1 -> OfficeIMO.Drawing.OfficeChartLayoutTarget
+OfficeIMO.Drawing.OfficeChartManualLayout
+OfficeIMO.Drawing.OfficeChartManualLayout.Height.get -> double?
+OfficeIMO.Drawing.OfficeChartManualLayout.HeightMode.get -> OfficeIMO.Drawing.OfficeChartLayoutMode
+OfficeIMO.Drawing.OfficeChartManualLayout.OfficeChartManualLayout(double x, double y, double? width = null, double? height = null, OfficeIMO.Drawing.OfficeChartLayoutMode xMode = OfficeIMO.Drawing.OfficeChartLayoutMode.Factor, OfficeIMO.Drawing.OfficeChartLayoutMode yMode = OfficeIMO.Drawing.OfficeChartLayoutMode.Factor, OfficeIMO.Drawing.OfficeChartLayoutMode widthMode = OfficeIMO.Drawing.OfficeChartLayoutMode.Factor, OfficeIMO.Drawing.OfficeChartLayoutMode heightMode = OfficeIMO.Drawing.OfficeChartLayoutMode.Factor, OfficeIMO.Drawing.OfficeChartLayoutTarget target = OfficeIMO.Drawing.OfficeChartLayoutTarget.Outer) -> void
+OfficeIMO.Drawing.OfficeChartManualLayout.Target.get -> OfficeIMO.Drawing.OfficeChartLayoutTarget
+OfficeIMO.Drawing.OfficeChartManualLayout.Width.get -> double?
+OfficeIMO.Drawing.OfficeChartManualLayout.WidthMode.get -> OfficeIMO.Drawing.OfficeChartLayoutMode
+OfficeIMO.Drawing.OfficeChartManualLayout.X.get -> double
+OfficeIMO.Drawing.OfficeChartManualLayout.XMode.get -> OfficeIMO.Drawing.OfficeChartLayoutMode
+OfficeIMO.Drawing.OfficeChartManualLayout.Y.get -> double
+OfficeIMO.Drawing.OfficeChartManualLayout.YMode.get -> OfficeIMO.Drawing.OfficeChartLayoutMode

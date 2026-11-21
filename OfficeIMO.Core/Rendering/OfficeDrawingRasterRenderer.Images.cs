@@ -40,6 +40,47 @@ public static partial class OfficeDrawingRasterRenderer {
         }
     }
 
+    /// <summary>Renders a whole image through a drawing-space transform of its unit square, sampling the source once.</summary>
+    internal static void RenderAffineImage(
+        OfficeRasterCanvas canvas,
+        OfficeDrawingImage drawingImage,
+        OfficeTransform unitSquare,
+        double scale,
+        IOfficeRasterImageCodec? imageCodec,
+        long maximumRasterPixels,
+        System.Threading.CancellationToken cancellationToken) {
+        if (drawingImage.Opacity <= 0D) return;
+        var scaled = new OfficeTransform(unitSquare.M11 * scale, unitSquare.M12 * scale, unitSquare.M21 * scale,
+            unitSquare.M22 * scale, unitSquare.OffsetX * scale, unitSquare.OffsetY * scale);
+        if (!canvas.IntersectsVisibleSurface(scaled, 1D, 1D, includePartialCoverage: drawingImage.Interpolate)) return;
+        // Decode at the length of each transformed image axis on the output grid.
+        double targetWidth = System.Math.Sqrt(System.Math.Pow(scaled.M11 * canvas.CoordinateScaleX, 2D) + System.Math.Pow(scaled.M12 * canvas.CoordinateScaleY, 2D));
+        double targetHeight = System.Math.Sqrt(System.Math.Pow(scaled.M21 * canvas.CoordinateScaleX, 2D) + System.Math.Pow(scaled.M22 * canvas.CoordinateScaleY, 2D));
+        if (TryDecodeImage(
+                drawingImage.EncodedBytes,
+                drawingImage.ContentType,
+                targetWidth,
+                targetHeight,
+                imageCodec,
+                canvas.TextShapingProvider,
+                canvas.TextShapingLanguage,
+                canvas.DiagnosticSink,
+                canvas.DiagnosticSource,
+                canvas.TransformedTextBudget,
+                canvas.ImageCache,
+                maximumRasterPixels,
+                cancellationToken,
+                out OfficeRasterImage? image) &&
+            image != null) {
+            if (drawingImage.Opacity < 1D) {
+                canvas.ChargeIntermediateSurfacePixels((long)image.Width * image.Height, maximumRasterPixels);
+                image = ApplyImageOpacity(image, drawingImage.Opacity);
+            }
+
+            canvas.DrawImage(image, scaled, drawingImage.Interpolate);
+        }
+    }
+
     private static (double Width, double Height) GetImageTargetSize(
         OfficeRasterCanvas canvas, OfficeImageProjection projection, double scale) {
         (double axisX, double axisY) = GetEffectAxisScales(

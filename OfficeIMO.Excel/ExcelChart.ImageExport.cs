@@ -67,8 +67,9 @@ namespace OfficeIMO.Excel {
             bool showValueGridLines = HasImageExportMajorGridlines(valueAxis);
             bool showCategoryMinorGridLines = HasImageExportMinorGridlines(categoryAxis);
             bool showValueMinorGridLines = HasImageExportMinorGridlines(valueAxis);
-            C.PieChartSeries? radialSeries = ChartType is OfficeChartType.Pie or OfficeChartType.Doughnut
-                ? plotArea?.Descendants<C.PieChartSeries>().FirstOrDefault() : null;
+            OpenXmlCompositeElement? radialSeries = ChartType is OfficeChartType.Pie or OfficeChartType.Doughnut
+                ? plotArea?.Descendants<C.PieChartSeries>().FirstOrDefault()
+                : OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartPlotSemantics.GetPointColoredSeries(plotArea);
             OfficeColor[]? radialPalette = radialSeries == null ? null :
                 OfficeOpenXmlThemeColorResolver.ReadRadialPalette(GetChartPart(), radialSeries,
                     radialPointCount, workbookPart.ThemePart?.Theme?.ThemeElements?.ColorScheme,
@@ -372,7 +373,10 @@ namespace OfficeIMO.Excel {
         private static bool HasDefaultPlotSemantics(OfficeChartLayout layout) =>
             layout.BlankDisplay == OfficeChartLayout.Default.BlankDisplay &&
             layout.HorizontalAxisCrossingPosition == OfficeChartAxisCrossingPosition.AutoZero && layout.HorizontalAxisCrossesAt == null &&
-            layout.VerticalAxisCrossingPosition == OfficeChartAxisCrossingPosition.AutoZero && layout.VerticalAxisCrossesAt == null;
+            layout.VerticalAxisCrossingPosition == OfficeChartAxisCrossingPosition.AutoZero && layout.VerticalAxisCrossesAt == null &&
+            layout.HorizontalAxisLogBase == null && layout.VerticalAxisLogBase == null &&
+            !layout.ReverseHorizontalValueAxis && !layout.ReverseVerticalValueAxis && !layout.VaryColorsByPoint &&
+            layout.PlotAreaLayout == null && layout.TitleLayout == null && layout.LegendLayout == null;
 
         private OfficeChartValueAxisLayout? ReadImageExportSecondaryValueAxis(C.PlotArea plotArea) {
             var axis = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.Resolve(plotArea);
@@ -1315,14 +1319,8 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool HasUnsupportedImageExportAxisScaling(C.PlotArea plotArea, OpenXmlCompositeElement axis, C.Scaling scaling) {
-            C.OrientationValues? orientation = scaling.GetFirstChild<C.Orientation>()?.Val?.Value;
-            if (orientation != null &&
-                orientation.Value != C.OrientationValues.MinMax &&
-                !IsSupportedImageExportAxisOrientation(plotArea, axis, orientation.Value)) {
-                return true;
-            }
-
-            if (scaling.GetFirstChild<C.LogBase>() != null) {
+            // Reversed value and category axes and logarithmic value axes are drawn by the shared renderer.
+            if (scaling.GetFirstChild<C.LogBase>() != null && axis is not C.ValueAxis) {
                 return true;
             }
 
@@ -1345,10 +1343,6 @@ namespace OfficeIMO.Excel {
             return min.HasValue && max.HasValue && max.Value <= min.Value;
         }
 
-        private static bool IsSupportedImageExportAxisOrientation(C.PlotArea plotArea, OpenXmlCompositeElement axis, C.OrientationValues orientation) =>
-            orientation == C.OrientationValues.MaxMin &&
-            (axis is C.CategoryAxis || axis is C.DateAxis) &&
-            !HasHorizontalBarChart(plotArea);
 
         private static bool HasUnsupportedImageExportChartAreaStyle(C.ChartSpace chartSpace, WorkbookPart workbookPart) {
             C.ShapeProperties? chartAreaProperties = chartSpace.GetFirstChild<C.ShapeProperties>();

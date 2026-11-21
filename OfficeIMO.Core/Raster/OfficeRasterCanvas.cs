@@ -475,7 +475,19 @@ public sealed partial class OfficeRasterCanvas {
             rotationCenterY,
             flipHorizontal,
             flipVertical);
-        OfficeTransform imageTransform = ScaleCoordinates(projection.CreateUnitSquareTransform());
+        DrawImageThroughTransform(image, ScaleCoordinates(projection.CreateUnitSquareTransform()),
+            sourceLeft, sourceTop, sourceWidth, sourceHeight, interpolate);
+    }
+
+    /// <summary>Draws a whole image through a drawing-space transform of its unit square, such as a sheared PDF image matrix.</summary>
+    internal void DrawImage(OfficeRasterImage image, OfficeTransform unitSquare, bool interpolate) {
+        if (image == null) return;
+        DrawImageThroughTransform(image, ScaleCoordinates(unitSquare), 0D, 0D, 1D, 1D, interpolate);
+    }
+
+    // Every destination pixel maps back through the inverse transform, so any affine paints its exact parallelogram.
+    private void DrawImageThroughTransform(OfficeRasterImage image, OfficeTransform imageTransform,
+        double sourceLeft, double sourceTop, double sourceWidth, double sourceHeight, bool interpolate) {
         if (!imageTransform.TryInvert(out OfficeTransform inverseTransform)) {
             return;
         }

@@ -270,6 +270,14 @@ namespace OfficeIMO.Excel {
                         modifiers: null)!,
                     writer,
                     value.Type == parameterType ? value : Expression.Convert(value, parameterType));
+                Expression DurationSerial(Expression duration) => Expression.Call(
+                    typeof(ExcelDateSystemConverter).GetMethod(
+                        nameof(ExcelDateSystemConverter.ToSerial),
+                        BindingFlags.Static | BindingFlags.NonPublic,
+                        binder: null,
+                        types: [typeof(TimeSpan)],
+                        modifiers: null)!,
+                    duration);
 
                 return cellValueKind switch {
                     DirectCellValueKind.String => Expression.Call(
@@ -306,11 +314,7 @@ namespace OfficeIMO.Excel {
                         Value(typeof(DateTimeOffset)),
                         dateTimeOffsetWriteStrategy,
                         dateSystem),
-                    DirectCellValueKind.TimeSpan => Raw(
-                        Expression.Property(
-                            Value(typeof(TimeSpan)),
-                            nameof(TimeSpan.TotalDays)),
-                        typeof(double)),
+                    DirectCellValueKind.TimeSpan => Raw(DurationSerial(Value(typeof(TimeSpan))), typeof(double)),
                     DirectCellValueKind.Double => Raw(Value(typeof(double)), typeof(double)),
                     DirectCellValueKind.Float => Raw(Value(typeof(float)), typeof(float)),
                     DirectCellValueKind.Decimal => Raw(Value(typeof(decimal)), typeof(decimal)),
@@ -335,12 +339,10 @@ namespace OfficeIMO.Excel {
                             Expression.Property(null, typeof(TimeOnly), nameof(TimeOnly.MinValue))),
                         dateSystem),
                     DirectCellValueKind.TimeOnly => Raw(
-                        Expression.Property(
-                            Expression.Call(
-                                Value(typeof(TimeOnly)),
-                                nameof(TimeOnly.ToTimeSpan),
-                                Type.EmptyTypes),
-                            nameof(TimeSpan.TotalDays)),
+                        DurationSerial(Expression.Call(
+                            Value(typeof(TimeOnly)),
+                            nameof(TimeOnly.ToTimeSpan),
+                            Type.EmptyTypes)),
                         typeof(double)),
 #endif
                     _ => null

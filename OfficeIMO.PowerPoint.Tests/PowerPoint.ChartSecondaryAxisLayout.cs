@@ -290,7 +290,7 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void PrimaryValueAxis_RejectsNonlinearOrReversedStaticProjection(bool reversed) {
+    public void PrimaryValueAxis_ProjectsLogarithmicAndReversedScalesAndKeepsThemOnUpdate(bool reversed) {
         using var presentation = PowerPointDocument.Create();
         var slide = presentation.AddSlide();
         var data = new OfficeChartData(new[] { "A", "B" },
@@ -299,7 +299,8 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
         var axis = slide.SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.ValueAxis>().Single();
         if (reversed) axis.Scaling!.AddChild(new C.Orientation { Val = C.OrientationValues.MaxMin }, true);
         else axis.Scaling!.AddChild(new C.LogBase { Val = 10 }, true);
-        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        Assert.Equal((reversed, reversed ? (double?)null : 10D), (snapshot.Layout.ReverseVerticalValueAxis, snapshot.Layout.VerticalAxisLogBase));
         chart.UpdateData(data);
         axis = slide.SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.ValueAxis>().Single();
         Assert.Equal(reversed, axis.Scaling!.GetFirstChild<C.Orientation>()?.Val?.Value == C.OrientationValues.MaxMin);
@@ -359,7 +360,7 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
     [InlineData(false, true)]
     [InlineData(true, false)]
     [InlineData(true, true)]
-    public void ScatterSnapshot_RejectsNonlinearOrReversedAxes(bool verticalAxis, bool reversed) {
+    public void ScatterSnapshot_ProjectsLogarithmicAndReversedAxes(bool verticalAxis, bool reversed) {
         using var presentation = PowerPointDocument.Create();
         var slide = presentation.AddSlide();
         var chart = slide.AddChart(OfficeChartType.Scatter,
@@ -371,7 +372,10 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
         if (reversed) axis.Scaling!.AddChild(new C.Orientation { Val = C.OrientationValues.MaxMin }, true);
         else axis.Scaling!.AddChild(new C.LogBase { Val = 10 }, true);
 
-        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        OfficeChartLayout layout = snapshot.Layout;
+        Assert.Equal(reversed, verticalAxis ? layout.ReverseVerticalValueAxis : layout.ReverseHorizontalValueAxis);
+        Assert.Equal(reversed ? null : 10D, verticalAxis ? layout.VerticalAxisLogBase : layout.HorizontalAxisLogBase);
     }
 
     [Fact]

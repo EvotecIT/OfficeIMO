@@ -76,6 +76,22 @@ public enum OfficeChartBlankDisplay {
     Zero,
 }
 
+/// <summary>Defines OfficeIMO values corresponding to DocumentFormat.OpenXml.Drawing.Charts.LayoutModeValues.</summary>
+public enum OfficeChartLayoutMode {
+    /// <summary>Represents the Open XML value <c>edge</c>.</summary>
+    Edge,
+    /// <summary>Represents the Open XML value <c>factor</c>.</summary>
+    Factor,
+}
+
+/// <summary>Defines OfficeIMO values corresponding to DocumentFormat.OpenXml.Drawing.Charts.LayoutTargetValues.</summary>
+public enum OfficeChartLayoutTarget {
+    /// <summary>Represents the Open XML value <c>inner</c>.</summary>
+    Inner,
+    /// <summary>Represents the Open XML value <c>outer</c>.</summary>
+    Outer,
+}
+
 /// <summary>Defines OfficeIMO values corresponding to DocumentFormat.OpenXml.Drawing.Charts.LegendPositionValues.</summary>
 public enum OfficeChartLegendPosition {
     /// <summary>Represents the Open XML value <c>b</c>.</summary>

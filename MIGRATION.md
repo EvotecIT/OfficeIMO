@@ -43,7 +43,7 @@ For .NET code:
 - **PDF image payloads.** `PdfExtractedImage.Bytes` for an Indexed image is a palette PNG at the source bit depth, and a 1-, 2- or 4-bit DeviceGray image is a gray PNG at its source depth, instead of 8-bit RGB or gray. Decoded colors are unchanged. Code that read the PNG header or raw scanlines must decode the image instead.
 - **PDF image placeholders.** PDF to Word, ODT, HTML and Markdown conversions no longer write placeholder text such as `[PDF image: page 1, resource Im24, 480x260, image/png, unsafe-placement-effects]` into the document body. An image that cannot be carried over is reported in the conversion report only. `PdfWordExportOptions.IncludeImagePlaceholders` and `PdfLogicalMarkdownOptions.IncludeImagePlaceholders` now default to `false`; set them to `true` to keep the placeholder paragraphs. Semantic HTML no longer adds an `Image: Im24 (480x260, image/png)` caption to embedded images and leaves out images it cannot embed; `PdfHtmlImageExportMode.PlaceholderOnly` still writes placeholder figures. Markdown export now embeds images as data URIs by default; set `PdfLogicalMarkdownOptions.ImageExportMode` to `File` with `ImageDirectory` to write image files, or to `None` for text only. PDF to RTF embeds images as PNG or JPEG pictures; set `PdfRtfExportOptions.ImportImages = false` to leave them out.
 - **PDF links in Markdown.** With `PdfLogicalMarkdownOptions.IncludeLinkAnnotations` on, which the Reader's default PDF profile sets, web and mail links are written as Markdown links on the text they cover, such as `[the project site](https://example.com)`, instead of a separate `[Link: ...]` line per annotation. Links to places inside the document (citations, cross-references, page jumps) and viewer actions such as NextPage no longer add a line; their text is already in the body. A web link whose text cannot be matched, a link to another PDF file (including one on a contents entry) and a link with an unsupported URI scheme are listed once per target in the old `[Link: ...]` form; an unmatched web link adds no line when another link on the same page already shows that target inline. Set `PdfLogicalMarkdownOptions.LinkStyle = PdfLogicalMarkdownLinkStyle.List` to keep one line per annotation.
-- **Chart snapshot values and axis crossings.** PowerPoint, Word and Excel chart snapshots report an empty cell (a point Office left out of the chart cache, or a blank source cell) as `double.NaN` instead of 0, and `OfficeChartLayout.BlankDisplay` says whether it is drawn as a gap, a connecting line or zero. Skip non-finite values when you total snapshot data. `OfficeChartLayout.HorizontalAxisCrossingPosition` and `VerticalAxisCrossingPosition` now come from the `c:crosses` of the axis they place, so a PowerPoint or Word value axis with `crosses="max"` reports a vertical crossing at the maximum rather than a horizontal one.
+- **Chart snapshot values and axis crossings.** PowerPoint, Word and Excel chart snapshots report an empty cell (a point Office left out of the chart cache, or a blank source cell) as `double.NaN` instead of 0, and `OfficeChartLayout.BlankDisplay` says whether it is drawn as a gap, a connecting line or zero. Skip non-finite values when you total snapshot data. `OfficeChartLayout.HorizontalAxisCrossingPosition` and `VerticalAxisCrossingPosition` now come from the `c:crosses` of the axis they place, so a PowerPoint or Word value axis with `crosses="max"` reports a vertical crossing at the maximum rather than a horizontal one. Charts written without a title now set `c:autoTitleDeleted` to 1: Excel otherwise titles a one-series chart with its series name. Setting a title clears it.
 - **Argument validation.** Nonblank string guards use the .NET throw helpers: null values throw `ArgumentNullException`, while empty or whitespace-only values throw `ArgumentException`. If you match exact exception types or messages, handle null separately and check `ParamName` instead of localized message text. Catching `ArgumentException` still catches both.
 
 ### Common jobs
@@ -7438,6 +7438,51 @@ serial directly. Calendar date formats continue to use the workbook date system.
 
 This distinction also applies to XLS and XLSB tabular readers. Early calendar
 serials in XLS and XLSB use the same January 1, 1900 = serial 1 contract as XLSX.
+
+## Excel times at the end of the day
+
+Excel stores times as day serials with millisecond resolution. `TimeSpan` and
+`TimeOnly` values are now stored truncated toward zero to whole milliseconds, as
+`DateTime` values already were, so `23:59:59.9999999` is stored as
+`23:59:59.999` instead of a serial that rounds to the next day. Code that
+compared stored duration serials with `TimeSpan.TotalDays` should compare with
+the millisecond value instead.
+
+Reading a serial rounds to the nearest millisecond but never past the last
+millisecond of the serial's day: a time cell holding `0.99999999999` reads as
+`1899-12-30 23:59:59.999` rather than `1899-12-31 00:00`. Time and elapsed-time
+cells read as December 30, 1899 plus their stored duration in both date systems,
+so a negative duration such as `-6:00:00` now reads as `1899-12-29 18:00`
+instead of `1899-12-30 06:00`. Subtract December 30, 1899 to recover the duration.
+
+In a 1904 workbook, dates before December 30, 1899 are now stored as negative
+serials counted back from January 1, 1904, as the 1900 system already counts
+back from December 31, 1899, instead of with the OLE Automation encoding. Excel
+shows such cells as `####` in either system; OfficeIMO reads them back as the
+same date.
+
+## Excel cells mapped to date and time properties
+
+Object mapping (`ReadObjects`, `ReadObjectsStream`, `ReadColumnAs`, `RowsAs`)
+and `GetFieldValue<T>` now convert time and elapsed-time cells to `TimeSpan`
+and `TimeOnly`, and date cells to `DateOnly` and `DateTimeOffset`, including
+their nullable forms. A duration is the cell's serial as a number of days, so
+`26:30:00` maps to `1.02:30:00` and a negative duration stays negative. A
+`DateTimeOffset` takes the local offset for the cell's date, as
+`new DateTimeOffset(DateTime)` does.
+
+`ReadObjects` used to leave such properties at their default, `00:00:00` or
+`0001-01-01`, and `RowsAs` threw an invalid cast. A cell with text or another
+value that is not a date, time or duration now throws `DataMappingException`
+for one of these properties, or for a `DateTime` property, instead of leaving
+the default in place. A blank cell, or one holding empty text, is not an error:
+a non-nullable property keeps its default and a nullable property is set to
+`null`, as for other property types.
+
+A plain number mapped to `DateTime`, `DateOnly` or `DateTimeOffset` is read as a
+serial in the workbook's date system. In a 1904 workbook it used to read as a
+1900-system date, four years and a day early. `RowsAs` and the data readers'
+`GetDateTime` now accept such numbers too instead of throwing.
 
 ## XLS import date-system preservation
 
