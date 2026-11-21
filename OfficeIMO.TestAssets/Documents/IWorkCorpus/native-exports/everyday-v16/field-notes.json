@@ -1,0 +1,48 @@
+{
+  "source": "native-exports/everyday-v16/field-notes.pages",
+  "sourceSha256": "3a4825e8f1437ff4843a10358bee937048caa81a9ad7f07769aebd0fbcaaa696",
+  "producer": "Pages 16.0 (7052.0.68)",
+  "buildHistory": "M16.0-7052.0.68-2",
+  "license": "MIT (OfficeIMO authored content)",
+  "artifacts": [
+    {
+      "path": "native-exports/everyday-v16/apple-field-notes.docx",
+      "sha256": "de9e5f451e464af6c89a3b09e73fe7c7f95be2ae53eaf87c25298647af49e779"
+    },
+    {
+      "path": "native-exports/everyday-v16/apple-field-notes.pdf",
+      "sha256": "8e9cfd9d095dce0987626f2d36924994ab167bc39a56b937cdb5b514db6f53af"
+    },
+    {
+      "path": "native-exports/everyday-v16/officeimo-field-notes.pdf",
+      "sha256": "2f10bb65d39252e94f1e10611d35dfb4f42fd2eb997aba3adcd37878e665f59b"
+    }
+  ],
+  "environment": {
+    "os": "macOS 27.2.1 (26B131), arm64",
+    "locale": "pl-PL",
+    "pdfRenderer": "Producing Apple application 16.0 (7052.0.68); inspected with pypdfium2 4.30.0",
+    "pdfExportOptions": "Apple app scripting defaults"
+  },
+  "origin": "Blank Pages document authored in Pages. One heading, 65 numbered inventory entries and a final paragraph.",
+  "nativeTemplates": "Blank",
+  "pdfFonts": [
+    "HelveticaNeue (embedded subset)"
+  ],
+  "comparison": {
+    "content": "67 nonempty paragraphs in order. Entry 59 ends page 1 in both PDFs.",
+    "nativePageSizePoints": [
+      595.28,
+      841.89
+    ],
+    "receivingPageSizePoints": [
+      595,
+      842
+    ],
+    "inspectedPages": [
+      2,
+      2
+    ],
+    "defaultPolicy": "Rejects an incomplete preview. Explicit partial DOCX reports IWORK_PAGES_DOCX_PRECISION."
+  }
+}

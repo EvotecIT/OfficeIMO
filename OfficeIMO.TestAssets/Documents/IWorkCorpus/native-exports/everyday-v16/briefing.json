@@ -1,0 +1,49 @@
+{
+  "source": "native-exports/everyday-v16/briefing.key",
+  "sourceSha256": "ecf7287ad96fb410f5b0bb1f091ae5e9c9164f4b8aa6b03a811ba8f3b6e93920",
+  "producer": "Keynote 16.0 (7052.0.68)",
+  "buildHistory": "M16.0-7052.0.68-2",
+  "license": "MIT (OfficeIMO authored content)",
+  "artifacts": [
+    {
+      "path": "native-exports/everyday-v16/apple-briefing.pptx",
+      "sha256": "ce2fcc8a68be80cedeab580aec6403ed8dd7a77128a0d67a08dad90eb9a09096"
+    },
+    {
+      "path": "native-exports/everyday-v16/apple-briefing.pdf",
+      "sha256": "2660a09f0b060698fe08d34e6149aaa7288fe00f6ef6e0099b6de5d877d4d51a"
+    },
+    {
+      "path": "native-exports/everyday-v16/officeimo-briefing.pdf",
+      "sha256": "f07de7bcaa7e7f5e3f2242941876aec9ad4243cb3e7378a608852dc29ac25c4e"
+    }
+  ],
+  "environment": {
+    "os": "macOS 27.2.1 (26B131), arm64",
+    "locale": "pl-PL",
+    "pdfRenderer": "Producing Apple application 16.0 (7052.0.68); inspected with pypdfium2 4.30.0",
+    "pdfExportOptions": "Apple app scripting defaults"
+  },
+  "origin": "Basic White Keynote document authored in Keynote. Three blank slides with a single auto-height Helvetica Neue text box and one note per slide.",
+  "nativeTemplates": "Basic White",
+  "pdfFonts": [
+    "HelveticaNeue (embedded subset)"
+  ],
+  "comparison": {
+    "content": "Three slide titles and three speaker cues in order. All three rendered labels are visible.",
+    "nativePageSizePoints": [
+      1920,
+      1080
+    ],
+    "receivingPageSizePoints": [
+      1920,
+      1080
+    ],
+    "inspectedPages": [
+      3,
+      3
+    ],
+    "defaultPolicy": "Rejects an incomplete preview. Explicit partial PPTX reports IWORK_KEYNOTE_DRAWABLE_UNSUPPORTED for the zero-height boxes.",
+    "appearance": "OfficeIMO uses fallback text-box positioning. The native boxes start near the top left and the reconstructed boxes sit lower on each slide."
+  }
+}
