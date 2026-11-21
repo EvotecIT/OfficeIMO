@@ -167,6 +167,7 @@ public partial class Word {
     [InlineData("floating-picture")]
     [InlineData("footnote")]
     [InlineData("page-field")]
+    [InlineData("split-page-field")]
     public void SaveAsPdf_FrameWithContentTheFrameCannotDrawKeepsOrdinaryRendering(string content) {
         // Content outside the frame projection keeps the ordinary paragraph route, which draws
         // it, and the frame approximation is reported.
@@ -198,6 +199,16 @@ public partial class Word {
                 break;
             case "page-field":
                 framed.AddField(WordFieldType.Page);
+                break;
+            case "split-page-field":
+                // The instruction " PAGE " is split across two runs, as Word often writes it.
+                framed._paragraph.Append(
+                    new DocumentFormat.OpenXml.Wordprocessing.Run(new DocumentFormat.OpenXml.Wordprocessing.FieldChar { FieldCharType = DocumentFormat.OpenXml.Wordprocessing.FieldCharValues.Begin }),
+                    new DocumentFormat.OpenXml.Wordprocessing.Run(new DocumentFormat.OpenXml.Wordprocessing.FieldCode(" PA") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
+                    new DocumentFormat.OpenXml.Wordprocessing.Run(new DocumentFormat.OpenXml.Wordprocessing.FieldCode("GE ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
+                    new DocumentFormat.OpenXml.Wordprocessing.Run(new DocumentFormat.OpenXml.Wordprocessing.FieldChar { FieldCharType = DocumentFormat.OpenXml.Wordprocessing.FieldCharValues.Separate }),
+                    new DocumentFormat.OpenXml.Wordprocessing.Run(new DocumentFormat.OpenXml.Wordprocessing.Text("1")),
+                    new DocumentFormat.OpenXml.Wordprocessing.Run(new DocumentFormat.OpenXml.Wordprocessing.FieldChar { FieldCharType = DocumentFormat.OpenXml.Wordprocessing.FieldCharValues.End }));
                 break;
         }
         AddFrameParagraph(framed, "around", "text", "margin", x: 1, width: 2880);

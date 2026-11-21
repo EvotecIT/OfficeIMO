@@ -116,6 +116,7 @@ public static partial class WordPdfConverterExtensions {
     private static readonly string[] NativeFramePageFieldNames = { "PAGE", "NUMPAGES", "SECTIONPAGES", "SECTION", "PAGEREF" };
 
     private static bool HasNativeFrameUnsupportedContent(W.Paragraph paragraph, bool inBody) {
+        if (inBody && HasNativeFramePageComplexField(paragraph)) return true;
         foreach (DocumentFormat.OpenXml.OpenXmlElement element in paragraph.Descendants()) {
             switch (element) {
                 case DocumentFormat.OpenXml.Drawing.Wordprocessing.Anchor:
@@ -130,8 +131,6 @@ public static partial class WordPdfConverterExtensions {
                     return true;
                 case DocumentFormat.OpenXml.Drawing.GraphicData data when data.Uri?.Value != NativeFramePictureGraphicUri:
                     return true;
-                case W.FieldCode code when inBody && IsNativeFramePageField(code.Text):
-                    return true;
                 case W.SimpleField field when inBody && IsNativeFramePageField(field.Instruction?.Value):
                     return true;
             }
@@ -139,8 +138,32 @@ public static partial class WordPdfConverterExtensions {
         return false;
     }
 
+    /// <summary>
+    /// Reads each complex field's instruction as a whole, since Word often splits it across
+    /// runs (" PA" + "GE "), including nested fields, and reports whether one paginates.
+    /// </summary>
+    private static bool HasNativeFramePageComplexField(W.Paragraph paragraph) {
+        var instructions = new Stack<System.Text.StringBuilder?>();
+        foreach (DocumentFormat.OpenXml.OpenXmlElement element in paragraph.Descendants()) {
+            if (element is W.FieldChar fieldChar) {
+                W.FieldCharValues? type = fieldChar.FieldCharType?.Value;
+                if (type == W.FieldCharValues.Begin) {
+                    instructions.Push(new System.Text.StringBuilder());
+                } else if (instructions.Count > 0 && (type == W.FieldCharValues.Separate || type == W.FieldCharValues.End)) {
+                    System.Text.StringBuilder? instruction = instructions.Pop();
+                    if (instruction != null && IsNativeFramePageField(instruction.ToString())) return true;
+                    // After the separator the field shows its result until its end mark.
+                    if (type == W.FieldCharValues.Separate) instructions.Push(null);
+                }
+            } else if (element is W.FieldCode code && instructions.Count > 0 && instructions.Peek() is { } current) {
+                current.Append(code.Text);
+            }
+        }
+        return false;
+    }
+
     private static bool IsNativeFramePageField(string? instruction) {
-        string name = (instruction ?? string.Empty).Trim().Split(' ')[0];
+        string name = (instruction ?? string.Empty).Trim().Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? string.Empty;
         return NativeFramePageFieldNames.Any(field => string.Equals(field, name, StringComparison.OrdinalIgnoreCase));
     }
 
