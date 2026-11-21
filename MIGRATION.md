@@ -7553,6 +7553,15 @@ For an already loaded model, `includeEmbeddedMessageContent: false` excludes emb
 semantic comparison. Archive candidate analysis uses these parent-only contracts and does not establish
 that candidate attachment payloads are equal.
 
+## Email semantic fingerprint schema 2
+
+`EmailSemanticComparer.CurrentSchemaVersion` is now `2`. Floating-point MAPI property values are digested
+from the same shortest round-trip text on every runtime; on .NET Framework, schema 1 wrote `-0.0` as `0`,
+so zero and negative zero had the same fingerprint there. Every digest changes, because the schema version is
+part of it. Fingerprints with different `SchemaVersion` values are not comparable: recompute stored
+fingerprints and verification manifests (`semantic_schema`) from the source messages instead of comparing
+them with new ones.
+
 ## Reader ingestion identities and nested transport
 
 Reader chunk hashes use length-framed fields and include normalized source spans. Hash values change for

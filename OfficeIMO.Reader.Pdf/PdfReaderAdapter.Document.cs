@@ -683,7 +683,7 @@ internal static partial class PdfReaderAdapter {
     private static void AddAttribute(Dictionary<string, string> attributes, string name, double? value) {
         double? normalized = NormalizeFiniteCoordinate(value);
         if (normalized.HasValue) {
-            attributes[name] = normalized.Value.ToString("R", CultureInfo.InvariantCulture);
+            attributes[name] = OfficeIMO.OfficeRoundTripNumberText.Format(normalized.Value, CultureInfo.InvariantCulture);
         }
     }
 

@@ -52,7 +52,7 @@ internal static partial class PdfReaderAdapter {
                     ["firstPageNumber"] = group.FirstPageNumber.ToString(CultureInfo.InvariantCulture),
                     ["lastPageNumber"] = group.LastPageNumber.ToString(CultureInfo.InvariantCulture),
                     ["segmentCount"] = group.Segments.Count.ToString(CultureInfo.InvariantCulture),
-                    ["confidence"] = group.Confidence.ToString("R", CultureInfo.InvariantCulture),
+                    ["confidence"] = OfficeIMO.OfficeRoundTripNumberText.Format(group.Confidence, CultureInfo.InvariantCulture),
                     ["evidence"] = group.Evidence.ToString(),
                     ["rejoinedSoftHyphenCount"] = group.RejoinedSoftHyphenCount.ToString(CultureInfo.InvariantCulture)
                 }

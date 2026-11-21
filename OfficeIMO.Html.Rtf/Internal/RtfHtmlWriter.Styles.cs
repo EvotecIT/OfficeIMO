@@ -143,7 +143,7 @@ internal static partial class RtfHtmlWriter {
 
     private static void AddNullableDouble(Dictionary<string, string> values, string key, double? value) {
         if (value.HasValue) {
-            values[key] = value.Value.ToString("R", CultureInfo.InvariantCulture);
+            values[key] = OfficeIMO.Core.Internal.OfficeRoundTripText.Format(value.Value, CultureInfo.InvariantCulture);
         }
     }
 }

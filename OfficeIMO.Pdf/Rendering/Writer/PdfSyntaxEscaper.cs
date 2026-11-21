@@ -8,7 +8,7 @@ internal static class PdfSyntaxEscaper {
         if (double.IsNaN(value) || double.IsInfinity(value))
             throw new ArgumentOutOfRangeException(nameof(value), "PDF numbers must be finite.");
         if (value == 0D) return "0";
-        string text = value.ToString("R", CultureInfo.InvariantCulture);
+        string text = OfficeIMO.Core.Internal.OfficeRoundTripText.Format(value, CultureInfo.InvariantCulture);
         int exponentIndex = text.IndexOf('E');
         if (exponentIndex < 0) return text;
 #if NETSTANDARD2_0 || NETFRAMEWORK

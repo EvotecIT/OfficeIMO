@@ -6,7 +6,7 @@ public partial class WordImage {
     private void WriteVmlDimension(string name, double pixels) {
         if (double.IsNaN(pixels) || double.IsInfinity(pixels) || pixels < 0)
             throw new ArgumentOutOfRangeException(nameof(pixels));
-        string replacement = name + ":" + pixels.ToString("R", CultureInfo.InvariantCulture) + "px";
+        string replacement = name + ":" + OfficeIMO.Core.Internal.OfficeRoundTripText.Format(pixels, CultureInfo.InvariantCulture) + "px";
         var declarations = new System.Collections.Generic.List<string>();
         bool replaced = false;
         foreach (string declaration in (_vmlShape?.Style?.Value ?? string.Empty).Split(';')) {

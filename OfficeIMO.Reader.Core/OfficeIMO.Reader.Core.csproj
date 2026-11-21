@@ -139,4 +139,7 @@
     <InternalsVisibleTo Include="OfficeIMO.Reader.IWork" />
   </ItemGroup>
   <ItemGroup><InternalsVisibleTo Include="OfficeIMO" /></ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\OfficeIMO.SharedSource\Numerics\OfficeRoundTripNumberText.cs" Link="SharedSource\Numerics\OfficeRoundTripNumberText.cs" />
+  </ItemGroup>
 </Project>

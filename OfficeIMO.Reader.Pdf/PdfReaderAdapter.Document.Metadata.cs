@@ -36,7 +36,7 @@ internal static partial class PdfReaderAdapter {
             Id = id,
             Category = category,
             Name = name,
-            Value = value.ToString("R", CultureInfo.InvariantCulture),
+            Value = OfficeIMO.OfficeRoundTripNumberText.Format(value, CultureInfo.InvariantCulture),
             ValueType = "number"
         });
     }
@@ -481,10 +481,10 @@ internal static partial class PdfReaderAdapter {
         var attributes = new Dictionary<string, string>(StringComparer.Ordinal) {
             ["subtype"] = annotation.Subtype,
             ["hasNormalAppearance"] = ToMetadataText(annotation.HasNormalAppearance),
-            ["x"] = annotation.X1.ToString("R", CultureInfo.InvariantCulture),
-            ["y"] = annotation.Y1.ToString("R", CultureInfo.InvariantCulture),
-            ["width"] = annotation.Width.ToString("R", CultureInfo.InvariantCulture),
-            ["height"] = annotation.Height.ToString("R", CultureInfo.InvariantCulture)
+            ["x"] = OfficeIMO.OfficeRoundTripNumberText.Format(annotation.X1, CultureInfo.InvariantCulture),
+            ["y"] = OfficeIMO.OfficeRoundTripNumberText.Format(annotation.Y1, CultureInfo.InvariantCulture),
+            ["width"] = OfficeIMO.OfficeRoundTripNumberText.Format(annotation.Width, CultureInfo.InvariantCulture),
+            ["height"] = OfficeIMO.OfficeRoundTripNumberText.Format(annotation.Height, CultureInfo.InvariantCulture)
         };
 
         AddAttribute(attributes, "objectNumber", annotation.ObjectNumber);
@@ -725,16 +725,16 @@ internal static partial class PdfReaderAdapter {
                 builder.Append(',');
             }
 
-            builder.Append(components[i].ToString("R", CultureInfo.InvariantCulture));
+            builder.Append(OfficeIMO.OfficeRoundTripNumberText.Format(components[i], CultureInfo.InvariantCulture));
         }
 
         return builder.ToString();
     }
 
     private static string FormatPdfColor(global::OfficeIMO.OfficeColor color) =>
-        color.ToNormalizedRgb().R.ToString("R", CultureInfo.InvariantCulture) + "," +
-        color.ToNormalizedRgb().G.ToString("R", CultureInfo.InvariantCulture) + "," +
-        color.ToNormalizedRgb().B.ToString("R", CultureInfo.InvariantCulture);
+        OfficeIMO.OfficeRoundTripNumberText.Format(color.ToNormalizedRgb().R, CultureInfo.InvariantCulture) + "," +
+        OfficeIMO.OfficeRoundTripNumberText.Format(color.ToNormalizedRgb().G, CultureInfo.InvariantCulture) + "," +
+        OfficeIMO.OfficeRoundTripNumberText.Format(color.ToNormalizedRgb().B, CultureInfo.InvariantCulture);
 
     private static string? FormatNestedPdfNumberLists(IReadOnlyList<IReadOnlyList<double>> paths) {
         if (paths.Count == 0) {

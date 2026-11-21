@@ -168,7 +168,7 @@ public sealed class OdsCell {
     }
 
     /// <summary>Sets a double value.</summary>
-    public void SetNumber(double value) => SetNumeric("float", value.ToString("R", CultureInfo.InvariantCulture), value.ToString(CultureInfo.InvariantCulture));
+    public void SetNumber(double value) => SetNumeric("float", OfficeIMO.Core.Internal.OfficeRoundTripText.Format(value, CultureInfo.InvariantCulture), value.ToString(CultureInfo.InvariantCulture));
     /// <summary>Sets a decimal without a binary floating-point round trip.</summary>
     public void SetDecimal(decimal value) => SetNumeric("float", value.ToString(CultureInfo.InvariantCulture), value.ToString(CultureInfo.InvariantCulture));
 

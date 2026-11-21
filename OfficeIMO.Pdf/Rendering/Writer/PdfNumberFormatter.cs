@@ -10,8 +10,7 @@ internal static class PdfNumberFormatter {
         if (double.IsNaN(value) || double.IsInfinity(value)) {
             throw new ArgumentOutOfRangeException(nameof(value), "PDF numbers must be finite.");
         }
-        // Rewritten objects carry coordinates such as 612 or 841.89, and .NET Framework's "R" formats every value
-        // twice, which dominates serialization there.
+        // Rewritten objects carry coordinates such as 612 or 841.89, so short values skip the general formatter.
 #if NET8_0_OR_GREATER
         // A value that is the nearest double to a decimal with at most six fraction digits and 15 significant
         // digits round-trips through exactly those digits, which is what "R" prints, so it is written from its
@@ -22,13 +21,12 @@ internal static class PdfNumberFormatter {
             if (units != 0 && units / DecimalScales[6] == value) return FormatScaled(units, 6);
         }
 #else
-        // .NET Framework's "R" can print 17 digits for a short decimal its internal conversion does not read back
-        // exactly, so only whole numbers below 10^15, which it always prints as their digits, skip it there.
+        // Whole numbers below 10^15 are their own digits.
         if (value > -1E15D && value < 1E15D && Math.Floor(value) == value) {
             return ((long)value).ToString(CultureInfo.InvariantCulture);
         }
 #endif
-        string text = value.ToString("R", CultureInfo.InvariantCulture);
+        string text = OfficeIMO.Core.Internal.OfficeRoundTripText.Format(value, CultureInfo.InvariantCulture);
         int exponentAt = text.IndexOf('E');
         if (exponentAt < 0) exponentAt = text.IndexOf('e');
         if (exponentAt < 0) return text;

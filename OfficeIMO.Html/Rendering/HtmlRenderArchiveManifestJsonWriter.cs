@@ -140,7 +140,7 @@ public static class HtmlRenderArchiveManifestJsonWriter {
 
     private static void Number(StringBuilder builder, int indent, string name, double value, bool comma) {
         Indent(builder, indent).Append('"').Append(Escape(name)).Append("\": ")
-            .Append(value.ToString("R", CultureInfo.InvariantCulture));
+            .Append(OfficeIMO.Core.Internal.OfficeRoundTripText.Format(value, CultureInfo.InvariantCulture));
         CommaLine(builder, comma);
     }
 
