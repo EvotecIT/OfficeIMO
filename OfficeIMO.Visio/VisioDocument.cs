@@ -580,7 +580,7 @@ namespace OfficeIMO.Visio {
                 .Attribute("V")?
                 .Value;
 
-            return double.TryParse(rawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out value) &&
+            return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(rawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out value) &&
                    !double.IsNaN(value) &&
                    !double.IsInfinity(value);
         }

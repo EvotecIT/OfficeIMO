@@ -74,8 +74,7 @@ public readonly struct OdfLength : IEquatable<OdfLength> {
         int split = 0;
         while (split < lexical.Length && (char.IsDigit(lexical[split]) || lexical[split] == '-' || lexical[split] == '+' || lexical[split] == '.')) split++;
         value = 0D;
-        if (split == 0 || !double.TryParse(lexical.Substring(0, split), NumberStyles.Float,
-                CultureInfo.InvariantCulture, out value) || double.IsNaN(value) || double.IsInfinity(value)) {
+        if (split == 0 || !OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(lexical.Substring(0, split), NumberStyles.Float, CultureInfo.InvariantCulture, out value) || double.IsNaN(value) || double.IsInfinity(value)) {
             unit = string.Empty;
             return false;
         }

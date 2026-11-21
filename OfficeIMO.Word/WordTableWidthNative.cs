@@ -24,7 +24,7 @@ namespace OfficeIMO.Word {
             if (!type.HasValue) throw new NotSupportedException("Unsupported Word preferred-width type: " + width.Type?.InnerText);
             if (value.EndsWith("%", StringComparison.Ordinal)) {
                 string numeric = value.Substring(0, value.Length - 1);
-                if (double.TryParse(numeric, NumberStyles.Float, CultureInfo.InvariantCulture, out double percent) &&
+                if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(numeric, NumberStyles.Float, CultureInfo.InvariantCulture, out double percent) &&
                     percent >= 0 && !double.IsNaN(percent) && !double.IsInfinity(percent) && percent <= int.MaxValue / 50d)
                     return WordTableWidth.Percent(percent);
                 throw new NotSupportedException("Unsupported Word percentage width: " + value);
@@ -58,7 +58,7 @@ namespace OfficeIMO.Word {
             if (!type.HasValue) return null;
             if (value.Length == 0) return TableWidthUnitValues.Auto;
             string numeric = percentage ? value.Substring(0, value.Length - 1) : value;
-            if (double.TryParse(numeric, NumberStyles.Float, CultureInfo.InvariantCulture, out double number) && number == 0D)
+            if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(numeric, NumberStyles.Float, CultureInfo.InvariantCulture, out double number) && number == 0D)
                 return TableWidthUnitValues.Auto;
             if (percentage) return TableWidthUnitValues.Pct;
             return type == TableWidthUnitValues.Nil ? TableWidthUnitValues.Auto : type;
@@ -103,7 +103,7 @@ namespace OfficeIMO.Word {
                 return int.TryParse(numeric, NumberStyles.Integer, CultureInfo.InvariantCulture, out int integer) && integer > 0
                     ? integer / 5000D : null;
             }
-            if (!double.TryParse(numeric, NumberStyles.Float, CultureInfo.InvariantCulture, out double number) ||
+            if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(numeric, NumberStyles.Float, CultureInfo.InvariantCulture, out double number) ||
                 number <= 0D || double.IsNaN(number) || double.IsInfinity(number)) return null;
             return number / 100D;
         }

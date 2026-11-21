@@ -63,8 +63,7 @@ public abstract partial class OdfShape {
         if (value.HasValue) {
             string lexical = value.Value.ToString();
             if (!Regex.IsMatch(lexical, @"\A(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:cm|mm|in|pt|pc|px|%)\z", RegexOptions.CultureInvariant) ||
-                !double.TryParse(lexical.Substring(0, lexical.Length - (lexical.EndsWith("%", StringComparison.Ordinal) ? 1 : 2)),
-                    NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out double magnitude) ||
+                !OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(lexical.Substring(0, lexical.Length - (lexical.EndsWith("%", StringComparison.Ordinal) ? 1 : 2)), NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out double magnitude) ||
                 double.IsNaN(magnitude) || double.IsInfinity(magnitude))
                 throw new ArgumentException("Text-box sizes must use finite nonnegative ODF lengths or percentages.", nameof(value));
         }

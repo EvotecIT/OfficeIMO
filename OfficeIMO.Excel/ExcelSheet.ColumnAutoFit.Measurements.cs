@@ -181,7 +181,7 @@ namespace OfficeIMO.Excel {
 
             uint numberFormatId = GetCellNumberFormatId(styleIndex, textContext);
             string? formatCode = GetNumberFormatCode(numberFormatId, textContext);
-            if (!double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)) {
+            if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)) {
                 return false;
             }
 

@@ -48,6 +48,6 @@ public sealed partial class OfficeSeries {
         if (value is Int128 signed) return (double)signed;
         if (value is UInt128 unsigned) return (double)unsigned;
 #endif
-        return Convert.ToDouble(value, CultureInfo.InvariantCulture);
+        return OfficeIMO.Core.Internal.OfficeRoundTripText.ToDouble(value, CultureInfo.InvariantCulture);
     }
 }

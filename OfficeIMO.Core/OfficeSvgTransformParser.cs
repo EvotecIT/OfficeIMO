@@ -117,7 +117,7 @@ internal static class OfficeSvgTransformParser {
             }
             int length = index - start;
             if (length > 128
-                || !double.TryParse(value.Substring(start, length), NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
+                || !OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value.Substring(start, length), NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
                 || !IsFinite(number)) return false;
             result.Add(number);
             bool hasWhitespace = false;

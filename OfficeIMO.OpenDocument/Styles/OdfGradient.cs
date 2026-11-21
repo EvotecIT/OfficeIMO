@@ -41,7 +41,7 @@ public sealed class OdfGradient {
         }
     }
     private bool HasAmbiguousLegacyAngle => _document.Version == OdfVersion.V1_2 &&
-        double.TryParse(Read("angle"), NumberStyles.Float, CultureInfo.InvariantCulture, out double angle) && angle != 0;
+        OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(Read("angle"), NumberStyles.Float, CultureInfo.InvariantCulture, out double angle) && angle != 0;
     internal static void WritePattern(XElement element, OdfGradientPattern pattern) {
         element.SetAttributeValue(OdfNamespaces.Draw + "style", pattern.Style.ToString().ToLowerInvariant());
         element.SetAttributeValue(OdfNamespaces.Draw + "start-color", pattern.StartColor.ToString());
@@ -76,7 +76,7 @@ public sealed class OdfGradient {
     }
     private static bool EquivalentStop(XElement element, double offset, string color) =>
         element.Name == LoExt + "gradient-stop" && !element.HasElements && (string?)element.Attribute(LoExt + "color-type") == "rgb" &&
-        double.TryParse((string?)element.Attribute(OdfNamespaces.Svg + "offset"), NumberStyles.Float, CultureInfo.InvariantCulture, out double value) && value == offset &&
+        OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse((string?)element.Attribute(OdfNamespaces.Svg + "offset"), NumberStyles.Float, CultureInfo.InvariantCulture, out double value) && value == offset &&
         OdfColor.TryParse((string?)element.Attribute(LoExt + "color-value"), out OdfColor actual) && actual.Equals(OdfColor.Parse(color));
     private string? Read(string name) => (string?)_element.Attribute(OdfNamespaces.Draw + name);
     private string Required(string name) => Read(name) ?? throw new InvalidDataException("Gradient '" + Name + "' omits " + name + ".");
@@ -85,7 +85,7 @@ public sealed class OdfGradient {
         if (text.EndsWith("grad", StringComparison.Ordinal)) { text = text.Substring(0, text.Length - 4); factor = 0.9; }
         else if (text.EndsWith("deg", StringComparison.Ordinal)) text = text.Substring(0, text.Length - 3);
         else if (text.EndsWith("rad", StringComparison.Ordinal)) { text = text.Substring(0, text.Length - 3); factor = 180 / Math.PI; }
-        if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) || double.IsNaN(value) || double.IsInfinity(value * factor))
+        if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) || double.IsNaN(value) || double.IsInfinity(value * factor))
             throw new InvalidDataException("Invalid gradient angle.");
         return value * factor;
     }
@@ -95,7 +95,7 @@ public sealed class OdfGradient {
         if (!text.EndsWith("%", StringComparison.Ordinal)) throw new InvalidDataException("Gradient " + name + " requires a percentage.");
         text = text.Substring(0, text.Length - 1);
         if (text.Length == 0 || text.Any(character => character != '-' && character != '.' && (character < '0' || character > '9')) ||
-            !double.TryParse(text, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out double number))
+            !OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out double number))
             throw new InvalidDataException("Invalid gradient percentage.");
         return number / 100;
     }

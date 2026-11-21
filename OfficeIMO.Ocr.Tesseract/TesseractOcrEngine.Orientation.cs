@@ -52,7 +52,7 @@ public sealed partial class TesseractOcrEngine {
                 if (rotation.HasValue || !int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsedRotation)) return null;
                 rotation = parsedRotation;
             } else if (name == "Orientation confidence") {
-                if (confidence.HasValue || !double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsedConfidence)) return null;
+                if (confidence.HasValue || !OfficeIMO.OfficeRoundTripNumberText.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsedConfidence)) return null;
                 confidence = parsedConfidence;
             }
             else if (name == "Script" && value.Length <= 256) script = value;

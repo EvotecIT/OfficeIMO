@@ -356,9 +356,8 @@ internal static partial class IWorkPdfInfo {
         }
         if (!hasDigit) return false;
         string token = System.Text.Encoding.ASCII.GetString(bytes, start, offset - start);
-        return double.TryParse(token, System.Globalization.NumberStyles.AllowLeadingSign
-            | System.Globalization.NumberStyles.AllowDecimalPoint,
-            System.Globalization.CultureInfo.InvariantCulture, out value)
+        return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(token, System.Globalization.NumberStyles.AllowLeadingSign
+            | System.Globalization.NumberStyles.AllowDecimalPoint, System.Globalization.CultureInfo.InvariantCulture, out value)
             && !double.IsNaN(value) && !double.IsInfinity(value);
     }
 

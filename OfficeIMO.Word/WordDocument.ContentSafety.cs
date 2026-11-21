@@ -308,7 +308,7 @@ public partial class WordDocument {
             ApplyHidden<W.SpecVanish>(properties, value => target.SpecVanish = value);
             ApplyHidden<W.Bold>(properties, value => target.Bold = value);
             W.FontSize? size = properties.GetFirstChild<W.FontSize>();
-            if (size?.Val?.Value != null && double.TryParse(size.Val.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double halfPoints)) target.FontSizePoints = halfPoints / 2D;
+            if (size?.Val?.Value != null && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(size.Val.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double halfPoints)) target.FontSizePoints = halfPoints / 2D;
             W.Color? color = properties.GetFirstChild<W.Color>();
             string? foreground = color?.Val?.Value;
             if (!string.IsNullOrWhiteSpace(foreground) && !string.Equals(foreground, "auto", StringComparison.OrdinalIgnoreCase)) target.Foreground = foreground;

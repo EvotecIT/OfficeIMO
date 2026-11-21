@@ -198,8 +198,7 @@ public static class HtmlResponsiveImageSelector {
             ?? parts.FirstOrDefault(part => part.EndsWith("x", StringComparison.Ordinal))
             ?? string.Empty;
         if (primary.Length < 2) return false;
-        if (!double.TryParse(primary.Substring(0, primary.Length - 1),
-            System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out value)
+        if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(primary.Substring(0, primary.Length - 1), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out value)
             || !IsFinite(value) || value <= 0D) return false;
         kind = primary.EndsWith("w", StringComparison.Ordinal) ? DescriptorKind.Width : DescriptorKind.Density;
         return true;

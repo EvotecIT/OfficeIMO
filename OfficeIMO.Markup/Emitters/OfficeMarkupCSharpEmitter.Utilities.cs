@@ -134,7 +134,7 @@ public sealed partial class OfficeMarkupCSharpEmitter {
         int.TryParse(value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out result);
 
     private static string NumericLiteral(string? value) {
-        if (double.TryParse(value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var number)) {
+        if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double number)) {
             return number.ToString("0.###############", System.Globalization.CultureInfo.InvariantCulture) + "d";
         }
 

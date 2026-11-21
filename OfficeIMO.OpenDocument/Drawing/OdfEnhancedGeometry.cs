@@ -91,7 +91,7 @@ internal static class OdfEnhancedGeometry {
             if (tokens.Count >= OdgShape.MaximumGeometryItems * 7 + 1) throw new InvalidDataException("Enhanced path data exceeds the geometry command limit.");
             if (match.Groups["command"].Success) tokens.Add(new Token(match.Groups["command"].Value[0], 0));
             else {
-                double number = double.Parse(match.Groups["number"].Value, NumberStyles.Float, CultureInfo.InvariantCulture);
+                double number = OfficeIMO.Core.Internal.OfficeRoundTripText.ParseDouble(match.Groups["number"].Value, NumberStyles.Float, CultureInfo.InvariantCulture);
                 if (double.IsNaN(number) || double.IsInfinity(number)) throw new InvalidDataException("Enhanced path coordinates must be finite.");
                 tokens.Add(new Token('\0', number));
             }

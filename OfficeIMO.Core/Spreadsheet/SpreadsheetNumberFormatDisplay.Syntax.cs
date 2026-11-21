@@ -187,7 +187,7 @@ namespace OfficeIMO.Spreadsheet {
                 }
 
                 string number = token.Substring(candidate.Length).Trim();
-                if (double.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out threshold)) {
+                if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out threshold)) {
                     op = candidate;
                     return true;
                 }

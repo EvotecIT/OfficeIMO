@@ -155,8 +155,8 @@ namespace OfficeIMO.Word {
         }
 
         private static bool TryParseDouble(string value, out double result) =>
-            double.TryParse(value.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out result) ||
-            double.TryParse(value.Trim().Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out result);
+            OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out result) ||
+            OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value.Trim().Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out result);
 
         /// <summary>
         /// Get or Set if watermark is stroked.
@@ -458,12 +458,12 @@ namespace OfficeIMO.Word {
         }
 
         private static double? ParseWatermarkStyleNumber(string stringValue) {
-            if (double.TryParse(stringValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double result)) {
+            if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(stringValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double result)) {
                 return result;
             }
 
             stringValue = stringValue.Replace(',', '.');
-            return double.TryParse(stringValue, NumberStyles.Float, CultureInfo.InvariantCulture, out result)
+            return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(stringValue, NumberStyles.Float, CultureInfo.InvariantCulture, out result)
                 ? result
                 : null;
         }

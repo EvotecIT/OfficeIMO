@@ -83,7 +83,7 @@ namespace OfficeIMO.Visio {
 
         internal static bool TryParseCellLiteral(string? raw, VisioShape shape, out double value) {
             raw = NormalizeCellLiteral(raw);
-            if (double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out value) &&
+            if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out value) &&
                 IsFinite(value)) {
                 return true;
             }
@@ -101,7 +101,7 @@ namespace OfficeIMO.Visio {
         /// <summary>Reads a finite numeric cache or guarded constant without evaluating shape-dependent expressions.</summary>
         internal static bool TryParseLiteralWithoutShape(string? raw, out double value) {
             raw = NormalizeCellLiteral(raw);
-            if (double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out value) &&
+            if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out value) &&
                 IsFinite(value)) {
                 return true;
             }

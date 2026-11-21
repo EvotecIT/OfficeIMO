@@ -16,7 +16,7 @@ internal static class WordVmlImageGeometry {
                 value = value.Substring(0, value.Length - unit.Item1.Length);
                 break;
             }
-            if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double number) &&
+            if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double number) &&
                 number >= 0 && !double.IsInfinity(number) && !double.IsNaN(number)) return number * factor;
         }
         return null;

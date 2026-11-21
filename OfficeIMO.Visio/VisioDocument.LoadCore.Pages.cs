@@ -38,7 +38,7 @@ namespace OfficeIMO.Visio {
 
         private static double ParseDouble(string? value) {
             string? normalized = NormalizeCellLiteral(value);
-            return double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double result) ? result : 0;
+            return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double result) ? result : 0;
         }
 
         private static double? ParseNonNegativeDouble(string? value) {

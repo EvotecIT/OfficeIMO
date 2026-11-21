@@ -715,7 +715,7 @@ public static partial class OfficeChartDrawingRenderer {
             return label;
         }
 
-        if (!double.TryParse(label, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out double value))
+        if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(label, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out double value))
             return label;
         return TryFormatDataLabelValue(value, layout.CategoryAxisNumberFormat, out string? formatted)
             ? formatted!

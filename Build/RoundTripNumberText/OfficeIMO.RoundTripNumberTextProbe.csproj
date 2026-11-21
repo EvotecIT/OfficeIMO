@@ -9,7 +9,7 @@
     <LangVersion>Latest</LangVersion>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="..\..\OfficeIMO.SharedSource\Numerics\OfficeRoundTripNumberText.cs" Link="OfficeRoundTripNumberText.cs" />
+    <Compile Include="..\..\OfficeIMO.SharedSource\Numerics\OfficeRoundTripNumberText*.cs" Link="%(Filename)%(Extension)" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
     <Reference Include="System.Numerics" />

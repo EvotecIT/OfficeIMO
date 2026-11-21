@@ -51,7 +51,7 @@ public static partial class WordRtfConverterExtensions {
             destination.Italic = ReadToggle(run.Italic);
             destination.TextHidden = ReadToggle(run.Vanish);
             if (run.Underline?.Val?.Value is UnderlineValues underline) destination.UnderlineStyle = ToRtfUnderlineStyle(underline);
-            if (double.TryParse(run.FontSize?.Val?.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double halfPoints)) destination.FontSize = halfPoints / 2d;
+            if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(run.FontSize?.Val?.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double halfPoints)) destination.FontSize = halfPoints / 2d;
             string? font = run.RunFonts?.Ascii?.Value ?? run.RunFonts?.HighAnsi?.Value ?? run.RunFonts?.EastAsia?.Value;
             if (!string.IsNullOrWhiteSpace(font)) destination.FontId = document.AddFont(font!);
             string? color = run.Color?.Val?.Value;

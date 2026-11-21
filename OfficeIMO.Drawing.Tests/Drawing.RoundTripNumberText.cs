@@ -57,22 +57,72 @@ public sealed class DrawingRoundTripNumberTextTests {
         Assert.Equal(expected, OfficeRoundTripText.Format(value, CultureInfo.InvariantCulture));
     }
 
-    // .NET Framework's parser reads .NET Core's shortest text for these as a neighbouring double, so on that runtime
-    // they get the 17-digit text instead. Either way the text reads back with the runtime's own parser.
+    // .NET Framework's parser reads the shortest text for these as a neighbouring double. The shortest text is still
+    // written on every framework, and OfficeIMO's parser reads it back exactly everywhere.
     [Theory]
-    [InlineData(0.91241918127630794D, "0.912419181276308", "0.91241918127630794")]
-    [InlineData(3.2506899999999998E-06D, "3.25069E-06", "3.2506899999999998E-06")]
-    [InlineData(-3.0597645285442957E-48D, "-3.059764528544296E-48", "-3.0597645285442957E-48")]
-    [InlineData(4.4465908125712189E-323D, "4.4E-323", "4.4465908125712189E-323")]
-    public void DoublesReadBackWithTheRuntimeParser(double value, string shortest, string framework) {
+    [InlineData(0.91241918127630794D, "0.912419181276308")]
+    [InlineData(3.2506899999999998E-06D, "3.25069E-06")]
+    [InlineData(-3.0597645285442957E-48D, "-3.059764528544296E-48")]
+    [InlineData(4.4465908125712189E-323D, "4.4E-323")]
+    [InlineData(0.6822871999174D, "0.6822871999174")]
+    public void ShortestTextIsWrittenAndReadBackOnEveryFramework(double value, string expected) {
         string text = OfficeRoundTripText.Format(value, CultureInfo.InvariantCulture);
-#if NETFRAMEWORK
-        Assert.Equal(framework, text);
-#else
-        Assert.Equal(shortest, text);
-#endif
+        Assert.Equal(expected, text);
         Assert.Equal(BitConverter.DoubleToInt64Bits(value),
-            BitConverter.DoubleToInt64Bits(double.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture)));
+            BitConverter.DoubleToInt64Bits(OfficeRoundTripText.ParseDouble(text, NumberStyles.Float, CultureInfo.InvariantCulture)));
+    }
+
+    // Results of .NET 10's parser. .NET Framework's returns a neighbouring double for the long digit strings and the
+    // value just below half the smallest subnormal, reports an overflow for the out-of-range ones, drops the sign of
+    // negative zero and accepts infinity only in that exact spelling.
+    [Theory]
+    [InlineData("0.6971128700134806015", 0x3FE64EBFA64A83E1L)]
+    [InlineData("0.25642034204212829653", 0x3FD06930DDC667A1L)]
+    [InlineData("2.4703282292062327E-324", 0L)]
+    [InlineData("2.4703282292062328E-324", 1L)]
+    [InlineData("1.7976931348623158E+308", 0x7FEFFFFFFFFFFFFFL)]
+    [InlineData("1.7976931348623159E+308", 0x7FF0000000000000L)]
+    [InlineData("1e400", 0x7FF0000000000000L)]
+    [InlineData("-1e400", unchecked((long)0xFFF0000000000000UL))]
+    [InlineData("-0", unchecked((long)0x8000000000000000UL))]
+    [InlineData("-1e-400", unchecked((long)0x8000000000000000UL))]
+    [InlineData("+Infinity", 0x7FF0000000000000L)]
+    [InlineData("-infinity", unchecked((long)0xFFF0000000000000UL))]
+    [InlineData("12.5", 0x4029000000000000L)]
+    public void DoublesParseAsDotNetCoreParsesThem(string text, long expected) {
+        Assert.True(OfficeRoundTripText.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value));
+        Assert.Equal(expected, BitConverter.DoubleToInt64Bits(value));
+        Assert.Equal(expected, BitConverter.DoubleToInt64Bits(OfficeRoundTripText.ToDouble(text, CultureInfo.InvariantCulture)));
+    }
+
+    [Fact]
+    public void NaNParsesInAnyLetterCaseAndMalformedTextIsRejected() {
+        Assert.True(OfficeRoundTripText.TryParse("-nan", NumberStyles.Float, CultureInfo.InvariantCulture, out double nan));
+        Assert.True(double.IsNaN(nan));
+        Assert.False(OfficeRoundTripText.TryParse("1e", NumberStyles.Float, CultureInfo.InvariantCulture, out double _));
+        Assert.False(OfficeRoundTripText.TryParse("1.5e3.2", NumberStyles.Float, CultureInfo.InvariantCulture, out double _));
+        Assert.Throws<FormatException>(() => OfficeRoundTripText.ParseDouble("--1", NumberStyles.Float, CultureInfo.InvariantCulture));
+    }
+
+    [Fact]
+    public void FloatsRoundTheDecimalOnceNotThroughADouble() {
+        // Rounding this decimal to a double first lands exactly between two floats, and the second rounding then
+        // picks the lower one; the decimal itself is above the midpoint.
+        Assert.True(OfficeRoundTripText.TryParse("26296265602111816406251e-21", NumberStyles.Float, CultureInfo.InvariantCulture, out float value));
+        Assert.Equal(0x41D25EC1, BitConverter.ToInt32(BitConverter.GetBytes(value), 0));
+    }
+
+    [Fact]
+    public void XmlAsciiAndCultureEntriesParseTheSameWay() {
+        Assert.Equal(double.PositiveInfinity, OfficeRoundTripText.ParseXmlDouble(" INF "));
+        Assert.Equal(double.NegativeInfinity, OfficeRoundTripText.ParseXmlDouble("-INF"));
+        Assert.Equal(double.PositiveInfinity, OfficeRoundTripText.ParseXmlDouble("1e400"));
+        Assert.Equal(unchecked((long)0x8000000000000000UL), BitConverter.DoubleToInt64Bits(OfficeRoundTripText.ParseXmlDouble("-0")));
+        byte[] ascii = Encoding.ASCII.GetBytes("x0.6971128700134806015");
+        Assert.True(OfficeRoundTripText.TryParseAscii(ascii, 1, ascii.Length - 1, out double fromAscii));
+        Assert.Equal(0x3FE64EBFA64A83E1L, BitConverter.DoubleToInt64Bits(fromAscii));
+        Assert.True(OfficeRoundTripText.TryParse("0,6971128700134806015", NumberStyles.Float, CultureInfo.GetCultureInfo("de-DE"), out double german));
+        Assert.Equal(0x3FE64EBFA64A83E1L, BitConverter.DoubleToInt64Bits(german));
     }
 
     [Fact]

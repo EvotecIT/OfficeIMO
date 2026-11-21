@@ -20,8 +20,7 @@ internal sealed partial class OfficeMarkupExcelExporter {
         }
 
         var fontSize = GetAttribute(attributes, "font-size", "fontSize", "fontsize", "size");
-        if (double.TryParse((fontSize ?? string.Empty).Replace("pt", string.Empty), NumberStyles.Float,
-            CultureInfo.InvariantCulture, out double parsedFontSize) && parsedFontSize > 0D) {
+        if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse((fontSize ?? string.Empty).Replace("pt", string.Empty), NumberStyles.Float, CultureInfo.InvariantCulture, out double parsedFontSize) && parsedFontSize > 0D) {
             sheet.Cell(row, column).SetFontSize(global::OfficeIMO.OfficeLength.Points(parsedFontSize));
         }
 

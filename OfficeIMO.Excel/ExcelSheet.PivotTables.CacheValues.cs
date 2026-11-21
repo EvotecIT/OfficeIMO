@@ -36,7 +36,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (grouping?.GroupBy == ExcelPivotGroupBy.Range
-                && double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out number)) {
+                && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out number)) {
                 return PivotFieldValue.FromNumber(number);
             }
 

@@ -169,7 +169,7 @@ internal static class PdfDefaultAppearanceParser {
     }
 
     private static bool TryReadNumber(string token, out double value) =>
-        double.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out value) &&
+        OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out value) &&
         !double.IsNaN(value) &&
         !double.IsInfinity(value);
 

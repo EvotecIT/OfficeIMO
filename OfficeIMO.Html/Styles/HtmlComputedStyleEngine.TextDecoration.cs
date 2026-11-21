@@ -75,8 +75,7 @@ public static partial class HtmlComputedStyleEngine {
 
     private static bool IsTextDecorationThicknessSyntax(string value) {
         if (IsKnownKeyword(value.ToLowerInvariant(), "auto", "from-font")) return true;
-        bool unitlessZero = double.TryParse(value, System.Globalization.NumberStyles.Float,
-            System.Globalization.CultureInfo.InvariantCulture, out double numeric) && numeric == 0D;
+        bool unitlessZero = OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double numeric) && numeric == 0D;
         return (unitlessZero || HtmlRenderCssValues.HasExplicitLengthSyntax(value, allowPercentage: true, allowUnitlessZero: true))
             && TryValidateCssLength(value, out _);
     }

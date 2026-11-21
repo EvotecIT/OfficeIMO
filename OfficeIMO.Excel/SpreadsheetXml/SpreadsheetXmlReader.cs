@@ -69,7 +69,7 @@ internal static class SpreadsheetXmlReader {
             if ((string?)sourceRow.Attribute(Ss + "Hidden") == "1") row.Hidden = true;
             string? height = (string?)sourceRow.Attribute(Ss + "Height");
             if (height != null) {
-                if (!double.TryParse(height, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) || double.IsNaN(value) || double.IsInfinity(value) || value < 0 || value > 409)
+                if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(height, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) || double.IsNaN(value) || double.IsInfinity(value) || value < 0 || value > 409)
                     throw new InvalidDataException("Invalid XML Spreadsheet row height.");
                 row.Height = value; row.CustomHeight = true;
             }
@@ -149,7 +149,7 @@ internal static class SpreadsheetXmlReader {
         switch ((string?)source.Attribute(Ss + "Type")) {
             case "String": cell.DataType = CellValues.InlineString; cell.InlineString = new InlineString(new Text(Utilities.ExcelSanitizer.EncodeXString(text)) { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }); break;
             case "Number":
-                if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double number) || double.IsNaN(number) || double.IsInfinity(number)) throw new InvalidDataException("Invalid XML Spreadsheet number.");
+                if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double number) || double.IsNaN(number) || double.IsInfinity(number)) throw new InvalidDataException("Invalid XML Spreadsheet number.");
                 cell.DataType = CellValues.Number; cell.CellValue = new CellValue(InvariantNumberText.GetExact(number)); break;
             case "Boolean":
                 if (text != "0" && text != "1") throw new InvalidDataException("Invalid XML Spreadsheet Boolean.");

@@ -197,7 +197,7 @@ namespace OfficeIMO.Excel {
         internal static bool TryParseThresholdNumber(string? value, out double number) {
             number = 0D;
             return !string.IsNullOrWhiteSpace(value) &&
-                double.TryParse(value!.Trim(), NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out number) &&
+                OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value!.Trim(), NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out number) &&
                 !double.IsNaN(number) &&
                 !double.IsInfinity(number);
         }

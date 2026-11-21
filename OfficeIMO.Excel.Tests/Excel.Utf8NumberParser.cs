@@ -72,8 +72,7 @@ public partial class Excel {
 
     /// <summary>
     /// Compares with .NET's correctly rounded parser. .NET Framework's parser can be one unit
-    /// off, so there the result is checked against the exact value; zero stays unsigned there,
-    /// as Framework's parsers return it.
+    /// off, so there the result is checked against the exact value, negative zero included.
     /// </summary>
     private static void AssertParserMatchesGeneralParser(string text) {
         byte[] utf8 = Encoding.UTF8.GetBytes(text);
@@ -95,7 +94,7 @@ public partial class Excel {
         int scale = point < 0 ? 0 : unsigned.Length - point - 1;
         System.Numerics.BigInteger numerator = System.Numerics.BigInteger.Parse(
             "0" + unsigned.Replace(".", string.Empty), CultureInfo.InvariantCulture);
-        Assert.Equal(text[0] == '-' && !numerator.IsZero, BitConverter.DoubleToInt64Bits(actual) < 0);
+        Assert.Equal(text[0] == '-', BitConverter.DoubleToInt64Bits(actual) < 0);
         System.Numerics.BigInteger denominator = System.Numerics.BigInteger.Pow(10, scale);
         long bits = BitConverter.DoubleToInt64Bits(Math.Abs(actual));
         if (numerator.IsZero) {
@@ -137,6 +136,18 @@ public partial class Excel {
 #else
         minimum + (long)(random.NextDouble() * (maximum - minimum));
 #endif
+
+    // .NET 10's results. System.Memory's Utf8Parser on .NET Framework returns the neighbouring double for the
+    // long texts and drops the sign of the zero.
+    [Theory]
+    [InlineData("0.6971128700134806015", 0x3FE64EBFA64A83E1L)]
+    [InlineData("0.25642034204212829653", 0x3FD06930DDC667A1L)]
+    [InlineData("2.4703282292062327E-324", 0L)]
+    [InlineData("-0", unchecked((long)0x8000000000000000UL))]
+    public void Utf8NumberParser_RoundsLongTextsCorrectlyOnEveryFramework(string text, long expected) {
+        Assert.True(ExcelUtf8NumberParser.TryParseDouble(Encoding.UTF8.GetBytes(text), out double actual));
+        Assert.Equal(expected, BitConverter.DoubleToInt64Bits(actual));
+    }
 
     [Theory]
     [InlineData("1234567890123456")]

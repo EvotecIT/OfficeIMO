@@ -47,7 +47,7 @@ internal static class HtmlCssReplacedElementParser {
             unsupported = "image-resolution=" + normalized;
             return 96D;
         }
-        if (double.TryParse(number.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double scalar)) {
+        if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(number.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double scalar)) {
             double dpi = scalar * multiplier;
             if (dpi > 0D && dpi <= 1000000D && !double.IsNaN(dpi) && !double.IsInfinity(dpi)) return dpi;
         }
@@ -156,7 +156,7 @@ internal static class HtmlCssReplacedElementParser {
     }
 
     private static bool TryPositiveNumber(string value, out double number) =>
-        double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out number)
+        OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out number)
         && number > 0D
         && !double.IsNaN(number)
         && !double.IsInfinity(number);
@@ -298,7 +298,7 @@ internal static class HtmlCssReplacedElementParser {
         percentage = 0D;
         if (!value.EndsWith("%", StringComparison.Ordinal)) return false;
         string number = value.Substring(0, value.Length - 1);
-        if (!double.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out percentage)
+        if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out percentage)
             || double.IsNaN(percentage)
             || double.IsInfinity(percentage)
             || Math.Abs(percentage) > MaximumPositionScalar) return false;

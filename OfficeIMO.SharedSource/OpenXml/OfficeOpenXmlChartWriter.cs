@@ -463,7 +463,7 @@ namespace OfficeIMO.OpenXml.Internal {
         private static IReadOnlyList<double> ParseScatterCategories(IReadOnlyList<string> categories) {
             var values = new List<double>(categories.Count);
             foreach (string category in categories) {
-                if (!double.TryParse(category, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) ||
+                if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(category, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) ||
                     double.IsNaN(value) || double.IsInfinity(value)) {
                     throw new ArgumentException(
                         "Scatter chart categories must be finite invariant numeric values when a series has no XValues.",

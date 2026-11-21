@@ -127,9 +127,9 @@ internal static partial class PdfMerger {
 
     private static PdfObject ParseViewerPreference(string key, string value) {
         if (value == "true" || value == "false") return new PdfBoolean(value == "true");
-        if (key == "NumCopies" && double.TryParse(value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double number)) return new PdfNumber(number);
+        if (key == "NumCopies" && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double number)) return new PdfNumber(number);
         if (key == "PrintPageRange" && value.Length >= 2 && value[0] == '[' && value[value.Length - 1] == ']') {
-            var array = new PdfArray(); foreach (string part in value.Substring(1, value.Length - 2).Split(ViewerPreferenceSeparators, StringSplitOptions.RemoveEmptyEntries)) if (double.TryParse(part, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out number)) array.Items.Add(new PdfNumber(number)); return array;
+            var array = new PdfArray(); foreach (string part in value.Substring(1, value.Length - 2).Split(ViewerPreferenceSeparators, StringSplitOptions.RemoveEmptyEntries)) if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(part, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out number)) array.Items.Add(new PdfNumber(number)); return array;
         }
         return new PdfName(value);
     }

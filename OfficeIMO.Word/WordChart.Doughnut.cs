@@ -18,7 +18,7 @@ public partial class WordChart {
     public WordChart AddDoughnut<T>(string category, T value) {
         if (!(value is int || value is double || value is float))
             throw new NotSupportedException("Value must be of type int, double, or float.");
-        double number = Convert.ToDouble(value, CultureInfo.InvariantCulture);
+        double number = OfficeIMO.Core.Internal.OfficeRoundTripText.ToDouble(value, CultureInfo.InvariantCulture);
         if (double.IsNaN(number) || double.IsInfinity(number) || number < 0)
             throw new ArgumentOutOfRangeException(nameof(value), "Doughnut values must be finite and nonnegative.");
         PrepareLiteralSliceAppend(category, doughnut: true);

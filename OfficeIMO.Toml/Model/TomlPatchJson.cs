@@ -184,7 +184,7 @@ internal sealed class TomlPatchJson {
         if (integer && long.TryParse(text, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out long whole)) return whole;
         double number;
         try {
-            number = double.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture);
+            number = OfficeIMO.Core.Internal.OfficeRoundTripText.ParseDouble(text, NumberStyles.Float, CultureInfo.InvariantCulture);
         } catch (OverflowException) {
             number = double.PositiveInfinity;
         }

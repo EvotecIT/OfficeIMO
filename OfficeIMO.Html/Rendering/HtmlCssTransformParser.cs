@@ -274,7 +274,7 @@ internal static class HtmlCssTransformParser {
     }
 
     private static bool TryNumber(string value, out double number) =>
-        double.TryParse(value.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out number)
+        OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out number)
         && !double.IsNaN(number)
         && !double.IsInfinity(number);
 

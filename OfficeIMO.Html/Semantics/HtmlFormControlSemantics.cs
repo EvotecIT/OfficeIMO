@@ -352,7 +352,7 @@ internal static class HtmlFormControlSemantics {
     private static bool TryParseHtmlNumber(string? text, out double value) {
         string candidate = text ?? string.Empty;
         if (!Regex.IsMatch(candidate, @"^-?(?:[0-9]+(?:\.[0-9]+)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?$", RegexOptions.CultureInvariant)
-            || !double.TryParse(candidate, NumberStyles.Float, CultureInfo.InvariantCulture, out value)
+            || !OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(candidate, NumberStyles.Float, CultureInfo.InvariantCulture, out value)
             || double.IsNaN(value)
             || double.IsInfinity(value)) {
             value = 0D;

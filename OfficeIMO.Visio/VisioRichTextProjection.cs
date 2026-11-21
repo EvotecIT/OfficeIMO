@@ -146,7 +146,7 @@ internal sealed partial class VisioRichTextProjection {
         int bits = TryInt(Cell(row, "Style"), out int parsedBits) ? parsedBits :
             (fallback?.Bold == true ? 1 : 0) | (fallback?.Italic == true ? 2 : 0) | (fallback?.Underline == true ? 4 : 0);
         double points = fallback?.Size ?? defaultSize;
-        if (double.TryParse(Cell(row, "Size"), NumberStyles.Float, CultureInfo.InvariantCulture, out double inches)
+        if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(Cell(row, "Size"), NumberStyles.Float, CultureInfo.InvariantCulture, out double inches)
             && inches > 0D && !double.IsInfinity(inches)) points = inches * 72D;
         int casing = TryInt(Cell(row, "Case"), out int parsedCase) ? parsedCase : (int?)fallback?.Capitalization ?? 0;
         if (casing == 1) text = OfficeTextCaseTransformer.Apply(text, OfficeTextCase.Uppercase, CultureInfo.InvariantCulture);
@@ -159,7 +159,7 @@ internal sealed partial class VisioRichTextProjection {
         OfficeTextDecorationStyle strike = ResolveDecoration(row, "DoubleStrikethrough", "Strikethru",
             fallback?.StrikethroughStyle ?? OfficeTextDecorationStyle.None);
         OfficeColor color = Color(Cell(row, "Color"), document, fallback?.Color ?? OfficeColor.FromRgb(17, 24, 39));
-        if (double.TryParse(Cell(row, "ColorTrans"), NumberStyles.Float, CultureInfo.InvariantCulture, out double transparency)
+        if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(Cell(row, "ColorTrans"), NumberStyles.Float, CultureInfo.InvariantCulture, out double transparency)
             && !double.IsNaN(transparency)) {
             double alpha = color.A * (1D - Math.Max(0D, Math.Min(1D, transparency)));
             color = OfficeColor.FromRgba(color.R, color.G, color.B, (byte)Math.Round(alpha));

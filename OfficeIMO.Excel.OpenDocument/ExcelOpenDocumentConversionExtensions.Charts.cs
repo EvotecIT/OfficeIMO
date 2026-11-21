@@ -130,8 +130,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             var numbers = new double[values.Length];
             for (int index = 0; index < values.Length; index++) {
                 if (values[index].Kind is not (OdsCellValueKind.Number or OdsCellValueKind.Percentage or OdsCellValueKind.Currency)
-                    || !double.TryParse(values[index].LexicalValue, NumberStyles.Float,
-                        CultureInfo.InvariantCulture, out double number)
+                    || !OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(values[index].LexicalValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
                     || double.IsNaN(number) || double.IsInfinity(number)) return false;
                 numbers[index] = number;
             }

@@ -473,8 +473,7 @@ internal sealed class PdfCffFontProgram {
                 for (int shift = 4; shift >= 0; shift -= 4) {
                     int nibble = (packed >> shift) & 0xF;
                     if (nibble == 0xF) {
-                        return double.TryParse(text.ToString(), System.Globalization.NumberStyles.Float,
-                            System.Globalization.CultureInfo.InvariantCulture, out double real) ? real : 0D;
+                        return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text.ToString(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double real) ? real : 0D;
                     }
                     if (text.Length > 64) throw new InvalidDataException("CFF real number is too long.");
                     text.Append(nibble switch {

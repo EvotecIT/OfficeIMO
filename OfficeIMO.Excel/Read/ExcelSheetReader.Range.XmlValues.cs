@@ -132,7 +132,7 @@ namespace OfficeIMO.Excel {
                                 && !useDateStyle
                                 && (cellKind == XmlCellKind.Default || cellKind == XmlCellKind.Number)
                                 && (TryParseInvariantDouble(rawText, out double numericValue)
-                                    || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out numericValue))) {
+                                    || OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out numericValue))) {
                                 return numericValue;
                             }
 
@@ -202,7 +202,7 @@ namespace OfficeIMO.Excel {
 
             if (useDateStyle
                 && (TryParseInvariantDouble(rawText, out double oa)
-                    || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))) {
+                    || OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))) {
                 return DateOrSerial(oa, calendarStyle);
             }
 
@@ -212,7 +212,7 @@ namespace OfficeIMO.Excel {
             }
 
             return (TryParseInvariantDouble(rawText, out double number)
-                    || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out number))
+                    || OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out number))
                 ? number
                 : rawText;
         }
@@ -253,13 +253,13 @@ namespace OfficeIMO.Excel {
                             if (!numericAsDecimal
                                 && !useDateStyle
                                 && (TryParseInvariantDouble(rawText, out double numericValue)
-                                    || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out numericValue))) {
+                                    || OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out numericValue))) {
                                 return numericValue;
                             }
 
                             if (useDateStyle
                                 && (TryParseInvariantDouble(rawText, out double oa)
-                                    || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))) {
+                                    || OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))) {
                                 return DateOrSerial(oa, calendarStyle);
                             }
 
@@ -273,7 +273,7 @@ namespace OfficeIMO.Excel {
                             }
 
                             return (TryParseInvariantDouble(rawText, out double number)
-                                    || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out number))
+                                    || OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out number))
                                 ? number
                                 : rawText;
                         }
@@ -317,7 +317,7 @@ namespace OfficeIMO.Excel {
 
             if (useDateStyle
                 && (TryParseInvariantDouble(rawText, out double oaValue)
-                    || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oaValue))) {
+                    || OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oaValue))) {
                 return DateOrSerial(oaValue, calendarStyle);
             }
 
@@ -327,7 +327,7 @@ namespace OfficeIMO.Excel {
             }
 
             return (TryParseInvariantDouble(rawText, out double rawNumber)
-                    || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out rawNumber))
+                    || OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out rawNumber))
                 ? rawNumber
                 : rawText;
         }
@@ -378,7 +378,7 @@ namespace OfficeIMO.Excel {
 
             if (useDateStyle
                 && (TryParseInvariantDouble(rawText, out double oa)
-                    || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))) {
+                    || OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))) {
                 value = DateOrSerial(oa, calendarStyle);
                 return true;
             }
@@ -390,7 +390,7 @@ namespace OfficeIMO.Excel {
             }
 
             value = (TryParseInvariantDouble(rawText, out double number)
-                    || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out number))
+                    || OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out number))
                 ? number
                 : rawText;
             return true;

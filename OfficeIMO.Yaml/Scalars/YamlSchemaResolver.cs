@@ -529,15 +529,15 @@ internal static class YamlSchemaResolver {
     private static bool ParseFloat(ReadOnlySpan<char> s, out double value) {
 #if NET8_0_OR_GREATER
         // Underscores occur only in YAML 1.1 spellings; other text parses in place.
-        if (s.IndexOf('_') < 0) return double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+        if (s.IndexOf('_') < 0) return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
 #endif
         Span<char> buffer = s.Length <= 128 ? stackalloc char[s.Length] : new char[s.Length];
         int n = CopyWithoutUnderscores(s, buffer);
 #if NET8_0_OR_GREATER
-        return double.TryParse(buffer.Slice(0, n), NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+        return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(buffer.Slice(0, n), NumberStyles.Float, CultureInfo.InvariantCulture, out value);
 #else
         string text = buffer.Slice(0, n).ToString();
-        if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value)) return false;
+        if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value)) return false;
         // .NET Framework reads -0 as 0; .NET Core running this build already keeps the sign.
         if (value == 0D && text[0] == '-') value = NegativeZero;
         return true;

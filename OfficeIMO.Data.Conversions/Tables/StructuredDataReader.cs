@@ -646,10 +646,10 @@ public sealed partial class StructuredDataReader : DbDataReader {
     public override decimal GetDecimal(int ordinal) => OfficeDecimalConversion.FromObject(GetValue(ordinal), CultureInfo.InvariantCulture);
 
     /// <inheritdoc />
-    public override double GetDouble(int ordinal) => System.Convert.ToDouble(GetValue(ordinal), CultureInfo.InvariantCulture);
+    public override double GetDouble(int ordinal) => OfficeIMO.OfficeRoundTripNumberText.ToDouble(GetValue(ordinal), CultureInfo.InvariantCulture);
 
     /// <inheritdoc />
-    public override float GetFloat(int ordinal) => System.Convert.ToSingle(GetValue(ordinal), CultureInfo.InvariantCulture);
+    public override float GetFloat(int ordinal) => OfficeIMO.OfficeRoundTripNumberText.ToSingle(GetValue(ordinal), CultureInfo.InvariantCulture);
 
     /// <inheritdoc />
     public override Guid GetGuid(int ordinal) => Guid.Parse(GetString(ordinal));

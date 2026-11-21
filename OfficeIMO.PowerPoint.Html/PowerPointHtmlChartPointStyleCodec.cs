@@ -55,7 +55,7 @@ internal static class PowerPointHtmlChartPointStyleCodec {
         }
         OfficeLength? width = null;
         if (rawWidth != null) {
-            if (!double.TryParse(rawWidth, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed) ||
+            if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(rawWidth, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed) ||
                 double.IsNaN(parsed) || double.IsInfinity(parsed) || parsed <= 0 || parsed > 1584) return false;
             width = OfficeLength.Points(parsed);
             if (width.Value == OfficeLength.Zero) return false;

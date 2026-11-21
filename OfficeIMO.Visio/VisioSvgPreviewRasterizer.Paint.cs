@@ -120,7 +120,7 @@ namespace OfficeIMO.Visio {
             }
 
             private static double ReadStrokeNumber(XElement element, Dictionary<string, string> style, string name, double inherited, double minimum) =>
-                double.TryParse(ReadAttributeOrStyle(element, style, name), NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
+                OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(ReadAttributeOrStyle(element, style, name), NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
                     && !double.IsInfinity(value) && value >= minimum ? value : inherited;
 
             private static string? ReadPaint(XElement element, Dictionary<string, string> style, string name) =>
@@ -133,7 +133,7 @@ namespace OfficeIMO.Visio {
             private static bool TryReadUnit(XElement element, Dictionary<string, string> style, string name, out double value) {
                 value = 0D;
                 string? raw = ReadAttributeOrStyle(element, style, name);
-                if (string.IsNullOrWhiteSpace(raw) || !double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)) {
+                if (string.IsNullOrWhiteSpace(raw) || !OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)) {
                     return false;
                 }
 

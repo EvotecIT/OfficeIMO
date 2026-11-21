@@ -19,7 +19,7 @@ public static partial class WordPdfConverterExtensions {
         W.RunProperties? markRun = mark == null ? null : new W.RunProperties(mark.ChildElements.Select(child => child.CloneNode(true)));
         NativeCharacterStyleDefaults characterStyle = GetNativeCharacterStyleDefaults(paragraph._document, markRun);
         string? authoredSize = mark?.GetFirstChild<W.FontSize>()?.Val?.Value;
-        double? sourceSize = double.TryParse(authoredSize, NumberStyles.Float, CultureInfo.InvariantCulture, out double halfPoints) && halfPoints > 0D
+        double? sourceSize = OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(authoredSize, NumberStyles.Float, CultureInfo.InvariantCulture, out double halfPoints) && halfPoints > 0D
             ? halfPoints / 2D : characterStyle.FontSize ?? style.FontSize ?? tableStyle.RunStyle.FontSize;
         if (tableStyle.UseConfiguredTypography && !sourceSize.HasValue) return null;
         double size = sourceSize ?? defaults.FontSize;

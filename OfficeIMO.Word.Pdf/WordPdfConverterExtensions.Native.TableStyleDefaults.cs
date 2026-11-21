@@ -427,7 +427,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static double? GetNativeRunPropertiesBaseStyleFontSize(W.RunPropertiesBaseStyle? runProperties) {
             string? value = runProperties?.FontSize?.Val?.Value;
-            if (!double.TryParse(value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double halfPoints) ||
+            if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double halfPoints) ||
                 halfPoints <= 0D ||
                 double.IsNaN(halfPoints) ||
                 double.IsInfinity(halfPoints)) {

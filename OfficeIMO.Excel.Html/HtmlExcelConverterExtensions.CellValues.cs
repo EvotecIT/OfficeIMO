@@ -54,7 +54,7 @@ public static partial class HtmlExcelConverterExtensions {
         }
 
         if (kind.Equals("number", StringComparison.OrdinalIgnoreCase)) {
-            if (double.TryParse(rawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
+            if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(rawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
                 && !double.IsNaN(number) && !double.IsInfinity(number)) {
                 sheet.Cell(row, column).SetValue(number);
                 preserveValue = true;

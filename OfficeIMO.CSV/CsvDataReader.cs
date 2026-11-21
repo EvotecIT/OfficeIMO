@@ -460,7 +460,7 @@ public partial class CsvDataReader : DbDataReader, ICsvDataReaderDialectMetadata
         }
 
         if (TryGetDirectTextSpan(ordinal, out var directText) &&
-            double.TryParse(directText, NumberStyles.Any, _culture, out var directDouble))
+            OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(directText, NumberStyles.Any, _culture, out double directDouble))
         {
             return directDouble;
         }
@@ -471,7 +471,7 @@ public partial class CsvDataReader : DbDataReader, ICsvDataReaderDialectMetadata
             return doubleValue;
         }
 
-        if (value is string text && double.TryParse(text, NumberStyles.Any, _culture, out doubleValue))
+        if (value is string text && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, NumberStyles.Any, _culture, out doubleValue))
         {
             return doubleValue;
         }
@@ -528,7 +528,7 @@ public partial class CsvDataReader : DbDataReader, ICsvDataReaderDialectMetadata
         }
 
         if (value is string text &&
-            float.TryParse(text, NumberStyles.Any, _culture, out floatValue))
+            OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, NumberStyles.Any, _culture, out floatValue))
         {
             return floatValue;
         }

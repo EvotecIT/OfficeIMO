@@ -54,8 +54,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             if (string.Equals(lexical, "normal", StringComparison.OrdinalIgnoreCase)) {
                 // PowerPoint's absent line-spacing element carries the normal producer default.
             } else if (lexical.EndsWith("%", StringComparison.Ordinal)
-                && double.TryParse(lexical.Substring(0, lexical.Length - 1), NumberStyles.Float,
-                    CultureInfo.InvariantCulture, out double percentage)
+                && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(lexical.Substring(0, lexical.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out double percentage)
                 && percentage > 0D) {
                 target.LineSpacingMultiplier = percentage / 100D;
             } else if (source.LineHeight.Value.TryToPoints(out double points) && points >= 0D) {

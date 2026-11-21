@@ -258,11 +258,7 @@ internal static class HtmlRenderFontFaceLoader {
             stretch = 0D;
             return false;
         }
-        return double.TryParse(
-                normalized.Substring(0, normalized.Length - 1),
-                System.Globalization.NumberStyles.Float,
-                System.Globalization.CultureInfo.InvariantCulture,
-                out stretch)
+        return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(normalized.Substring(0, normalized.Length - 1), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out stretch)
             && stretch >= 50D
             && stretch <= 200D;
     }
@@ -289,11 +285,7 @@ internal static class HtmlRenderFontFaceLoader {
         string angle = normalized.Substring("oblique".Length).Trim();
         if (angle.Length == 0) return true;
         if (!angle.EndsWith("deg", StringComparison.Ordinal)) return false;
-        return double.TryParse(
-                angle.Substring(0, angle.Length - 3).Trim(),
-                System.Globalization.NumberStyles.Float,
-                System.Globalization.CultureInfo.InvariantCulture,
-                out obliqueAngle)
+        return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(angle.Substring(0, angle.Length - 3).Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out obliqueAngle)
             && obliqueAngle > -90D
             && obliqueAngle < 90D;
     }

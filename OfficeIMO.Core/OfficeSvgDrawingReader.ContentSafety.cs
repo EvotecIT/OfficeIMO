@@ -262,7 +262,7 @@ public static partial class OfficeSvgDrawingReader {
             string[] tokens = rotation!.Split(new[] { ' ', '\t', '\r', '\n', ',' }, StringSplitOptions.RemoveEmptyEntries);
             if (tokens.Length == 0 || tokens.Length > MaximumTextRuns) return true;
             foreach (string token in tokens) {
-                if (!double.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) ||
+                if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) ||
                     double.IsNaN(value) || double.IsInfinity(value)) return true;
             }
         }

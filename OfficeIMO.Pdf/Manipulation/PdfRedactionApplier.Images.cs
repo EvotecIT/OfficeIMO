@@ -739,7 +739,7 @@ internal static partial class PdfRedactionApplier {
         }
 
         string numberText = content.Substring(start, index - start);
-        if (!double.TryParse(numberText, NumberStyles.Any, CultureInfo.InvariantCulture, out double number)) {
+        if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(numberText, NumberStyles.Any, CultureInfo.InvariantCulture, out double number)) {
             number = 0D;
         }
 

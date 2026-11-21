@@ -201,7 +201,7 @@ public static partial class HtmlResourcePipeline {
             seconds = 0D;
             return false;
         }
-        if (!double.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed) ||
+        if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed) ||
             double.IsNaN(parsed) || double.IsInfinity(parsed)) {
             seconds = 0D;
             return false;
@@ -253,7 +253,7 @@ public static partial class HtmlResourcePipeline {
     }
 
     private static bool TryReadFiniteNumber(string token, out double value) =>
-        double.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out value) &&
+        OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out value) &&
         !double.IsNaN(value) && !double.IsInfinity(value);
 
     private static bool LooksLikeAnimationTimingFunction(string token) =>
@@ -263,7 +263,7 @@ public static partial class HtmlResourcePipeline {
 
     private static bool IsAnimationIterationCount(string token) =>
         token == "infinite" ||
-        double.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) &&
+        OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) &&
         !double.IsNaN(value) && !double.IsInfinity(value) && value >= 0;
 
     private static bool IsCssWideKeyword(string token) =>

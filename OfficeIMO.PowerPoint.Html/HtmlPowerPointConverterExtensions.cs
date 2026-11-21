@@ -499,8 +499,7 @@ public static partial class HtmlPowerPointConverterExtensions {
             string? rawOutlineWidth =
                 row.GetAttribute("data-officeimo-outline-width");
             if (rawOutlineWidth != null) {
-                if (!double.TryParse(rawOutlineWidth, NumberStyles.Float,
-                        CultureInfo.InvariantCulture, out double parsedOutlineWidth) ||
+                if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(rawOutlineWidth, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsedOutlineWidth) ||
                     double.IsNaN(parsedOutlineWidth) ||
                     double.IsInfinity(parsedOutlineWidth) ||
                     parsedOutlineWidth <= 0D || parsedOutlineWidth > 1584D ||
@@ -544,7 +543,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                     hasPointColors = true;
                 }
                 string text = PreserveText(cell.TextContent);
-                if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out values[i])
+                if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out values[i])
                     || double.IsNaN(values[i]) || double.IsInfinity(values[i])) {
                     return false;
                 }
@@ -552,7 +551,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                 if (hasXValues) {
                     string? rawXValue = cell.GetAttribute("data-officeimo-x");
                     if (rawXValue == null
-                        || !double.TryParse(rawXValue, NumberStyles.Float, CultureInfo.InvariantCulture, out xValues[i])
+                        || !OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(rawXValue, NumberStyles.Float, CultureInfo.InvariantCulture, out xValues[i])
                         || double.IsNaN(xValues[i]) || double.IsInfinity(xValues[i])) {
                         return false;
                     }
@@ -560,8 +559,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                 if (hasBubbleSizes) {
                     string? rawBubbleSize = cell.GetAttribute("data-officeimo-bubble-size");
                     if (rawBubbleSize == null
-                        || !double.TryParse(rawBubbleSize, NumberStyles.Float,
-                            CultureInfo.InvariantCulture, out bubbleSizes[i])
+                        || !OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(rawBubbleSize, NumberStyles.Float, CultureInfo.InvariantCulture, out bubbleSizes[i])
                         || double.IsNaN(bubbleSizes[i]) || double.IsInfinity(bubbleSizes[i])
                         || bubbleSizes[i] < 0D) {
                         return false;
@@ -653,8 +651,8 @@ public static partial class HtmlPowerPointConverterExtensions {
             string text = meta.Substring(index + marker.Length).Split(';')[0].Trim();
             string[] parts = text.Replace("pt", string.Empty).Split('x');
             if (parts.Length == 2) {
-                _ = double.TryParse(parts[0].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out width);
-                _ = double.TryParse(parts[1].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out height);
+                _ = OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(parts[0].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out width);
+                _ = OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(parts[1].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out height);
             }
         }
 
@@ -674,8 +672,8 @@ public static partial class HtmlPowerPointConverterExtensions {
             string text = meta.Substring(index + marker.Length).Split(';')[0].Trim();
             string[] parts = text.Replace("pt", string.Empty).Split(',');
             if (parts.Length == 2) {
-                _ = double.TryParse(parts[0].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out left);
-                _ = double.TryParse(parts[1].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out top);
+                _ = OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(parts[0].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out left);
+                _ = OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(parts[1].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out top);
             }
         }
 
@@ -752,7 +750,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         value = 0D;
         string? raw = item.GetAttribute(name);
         return !string.IsNullOrWhiteSpace(raw)
-            && double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+            && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
     }
 
     private static bool TryReadBoolAttribute(IElement item, string name, out bool value) {
@@ -786,8 +784,8 @@ public static partial class HtmlPowerPointConverterExtensions {
             string text = meta.Substring(index + marker.Length).Split(';')[0].Trim();
             string[] parts = text.Replace("pt", string.Empty).Split('x');
             if (parts.Length == 2) {
-                _ = double.TryParse(parts[0].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out width);
-                _ = double.TryParse(parts[1].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out height);
+                _ = OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(parts[0].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out width);
+                _ = OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(parts[1].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out height);
             }
         }
 

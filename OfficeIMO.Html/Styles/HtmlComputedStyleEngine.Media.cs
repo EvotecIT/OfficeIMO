@@ -148,7 +148,7 @@ public static partial class HtmlComputedStyleEngine {
         string number = value.Substring(0, unitStart).Trim();
         string unit = value.Substring(unitStart).Trim();
         return number.Length > 0
-            && double.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
+            && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
             && parsed >= 0D
             && !double.IsNaN(parsed)
             && !double.IsInfinity(parsed)
@@ -454,7 +454,7 @@ public static partial class HtmlComputedStyleEngine {
         while (unitStart > 0 && char.IsLetter(value[unitStart - 1])) unitStart--;
         string number = value.Substring(0, unitStart).Trim();
         if (number.Length == 0
-            || !double.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
+            || !OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
             || parsed < 0D
             || double.IsNaN(parsed)
             || double.IsInfinity(parsed)) {
@@ -560,7 +560,7 @@ public static partial class HtmlComputedStyleEngine {
 
         string number = value.Substring(0, cursor);
         string unit = value.Substring(cursor).Trim().ToLowerInvariant();
-        if (!double.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed) || parsed < 0D) return false;
+        if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed) || parsed < 0D) return false;
         if (unit.Length == 0) {
             if (Math.Abs(parsed) > double.Epsilon) return false;
             return true;

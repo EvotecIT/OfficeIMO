@@ -213,7 +213,7 @@ internal static class PdfCffCharStringSubsetter {
                 }
             }
 
-            if (!complete || !double.TryParse(text.ToString(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double real)) {
+            if (!complete || !OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text.ToString(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double real)) {
                 throw new NotSupportedException("The CFF Top DICT contains an invalid real operand.");
             }
 

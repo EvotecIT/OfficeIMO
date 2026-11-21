@@ -112,7 +112,7 @@ namespace OfficeIMO.OpenXml.Internal {
             if (layer is C.BarChart && layer.ChildElements.OfType<OpenXmlCompositeElement>().Where(element => element.LocalName == "ser")
                 .Any(series => series.Descendants<C.InvertIfNegative>().Any(invert => invert.Val?.Value != false) &&
                     series.GetFirstChild<C.Values>()?.Descendants<C.NumericValue>().Any(value =>
-                        double.TryParse(value.Text, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double number) && number < 0D) == true)) return true;
+                        OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value.Text, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double number) && number < 0D) == true)) return true;
             bool radial = layer is C.PieChart or C.DoughnutChart;
             if (radial) {
                 // Radial default colouring is per category in the shared renderer.
@@ -202,8 +202,7 @@ namespace OfficeIMO.OpenXml.Internal {
                     if (length == 0 || points.Count != length && !allowsEmptyCells ||
                         points.Any(point => point.Index?.Value == null) ||
                         points.Select(point => point.Index!.Value).Distinct().Count() != points.Count ||
-                        points.Any(point => !double.TryParse(point.NumericValue?.Text, System.Globalization.NumberStyles.Float,
-                            System.Globalization.CultureInfo.InvariantCulture, out double number) || double.IsNaN(number) || double.IsInfinity(number))) return true;
+                        points.Any(point => !OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(point.NumericValue?.Text, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double number) || double.IsNaN(number) || double.IsInfinity(number))) return true;
                     if (seriesLength.HasValue && seriesLength.Value != length) return true;
                     seriesLength = length;
                 }

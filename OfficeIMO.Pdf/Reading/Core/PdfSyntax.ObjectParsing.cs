@@ -730,11 +730,9 @@ internal static partial class PdfSyntax {
                 TryParsePlainDecimal(source, _sourceStart, _length, out value)) return true;
 #if NET8_0_OR_GREATER
             if (_text is null) return source.TryParseDouble(_sourceStart, _length, styles, out value);
-            return double.TryParse(_text.AsSpan(), styles,
-                System.Globalization.CultureInfo.InvariantCulture, out value);
+            return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(_text.AsSpan(), styles, System.Globalization.CultureInfo.InvariantCulture, out value);
 #else
-            return double.TryParse(GetText(source, cancellationToken), styles,
-                System.Globalization.CultureInfo.InvariantCulture, out value);
+            return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(GetText(source, cancellationToken), styles, System.Globalization.CultureInfo.InvariantCulture, out value);
 #endif
         }
 

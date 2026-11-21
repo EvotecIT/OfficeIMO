@@ -235,8 +235,8 @@ namespace OfficeIMO.Visio {
         }
 
         private static double ResolvePercent(string value, VisioDataGraphicItem item) {
-            if (!double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double number) &&
-                !double.TryParse(value, out number)) {
+            if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double number) &&
+                !OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, System.Globalization.CultureInfo.CurrentCulture, out number)) {
                 return 0D;
             }
 

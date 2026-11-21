@@ -307,7 +307,7 @@ internal sealed class TableEventReader : DataEventReader {
                 string decimalText = number.ToString(CultureInfo.InvariantCulture);
                 return (decimalText.IndexOf('.') < 0 ? DataScalarKind.Integer : DataScalarKind.Float, decimalText);
             case double or float: {
-                double number = System.Convert.ToDouble(value, CultureInfo.InvariantCulture);
+                double number = OfficeIMO.OfficeRoundTripNumberText.ToDouble(value, CultureInfo.InvariantCulture);
                 if (double.IsNaN(number)) return (DataScalarKind.Float, "NaN");
                 if (double.IsInfinity(number)) return (DataScalarKind.Float, number > 0 ? "Infinity" : "-Infinity");
                 if (Math.Floor(number) == number && Math.Abs(number) < 9007199254740992d) {

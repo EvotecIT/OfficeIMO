@@ -349,7 +349,7 @@ namespace OfficeIMO.Word {
         }
 
         private static OfficeMathExpression ClassifyToken(string value) {
-            if (value.Length > 0 && double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out _)) return OfficeIMO.Drawing.OfficeMath.Number(value);
+            if (value.Length > 0 && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double _)) return OfficeIMO.Drawing.OfficeMath.Number(value);
             if (value.Length > 0 && char.IsLetter(value[0]) && value.Skip(1).All(character => char.IsLetterOrDigit(character))) return OfficeIMO.Drawing.OfficeMath.Identifier(value);
             if (value.Length > 0 && value.All(character => "+-−=*/×÷±∑∏∫≤≥≠→∞,.;:|()[]{}⟨⟩".IndexOf(character) >= 0)) return OfficeIMO.Drawing.OfficeMath.Operator(value);
             return OfficeIMO.Drawing.OfficeMath.Text(value);

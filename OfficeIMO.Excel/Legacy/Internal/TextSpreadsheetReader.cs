@@ -74,7 +74,7 @@ internal sealed class TextSpreadsheetReader : IDisposable {
     }
 
     internal static double Number(string value) {
-        if (!double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double number) || double.IsNaN(number) || double.IsInfinity(number))
+        if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double number) || double.IsNaN(number) || double.IsInfinity(number))
             throw new InvalidDataException("Text spreadsheet contains an invalid or non-finite numeric value.");
         return number;
     }

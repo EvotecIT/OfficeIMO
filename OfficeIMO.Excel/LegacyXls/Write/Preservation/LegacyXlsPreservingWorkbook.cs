@@ -94,7 +94,7 @@ internal sealed partial class LegacyXlsPreservingWorkbook {
         if (slot.Kind == "text") return edit.Kind == "text" && edit.Text.Length <= 32767 && _sstIndex >= 0;
         if (slot.Kind == "boolean") return edit.Kind == "boolean" && (edit.Text == "1" || edit.Text == "0" || bool.TryParse(edit.Text, out _));
         if (slot.Kind == "error") return edit.Kind == "error" && TryGetErrorCode(edit.Text, out _);
-        return edit.Kind == "number" && double.TryParse(edit.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
+        return edit.Kind == "number" && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(edit.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
             && !double.IsNaN(value) && !double.IsInfinity(value) && (slot.Kind != "rk" || TryEncodeRk(value, out _));
     }
 
@@ -114,7 +114,7 @@ internal sealed partial class LegacyXlsPreservingWorkbook {
             } else if (slot.Kind == "boolean") data[slot.ValueOffset] = edit.Text == "1" || bool.TryParse(edit.Text, out bool flag) && flag ? (byte)1 : (byte)0;
             else if (slot.Kind == "error") { TryGetErrorCode(edit.Text, out byte error); data[slot.ValueOffset] = error; }
             else {
-                double value = double.Parse(edit.Text, CultureInfo.InvariantCulture);
+                double value = OfficeIMO.Core.Internal.OfficeRoundTripText.ParseDouble(edit.Text, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, CultureInfo.InvariantCulture);
                 if (slot.Kind == "rk") { TryEncodeRk(value, out uint rk); WriteUInt32(data, slot.ValueOffset, rk); }
                 else Buffer.BlockCopy(BitConverter.GetBytes(value), 0, data, slot.ValueOffset, 8);
             }

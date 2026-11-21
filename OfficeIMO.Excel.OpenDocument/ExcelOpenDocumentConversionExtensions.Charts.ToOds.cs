@@ -166,8 +166,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 if (!converted.Contains((valueRow, valueColumn))) return false;
                 OdsCellValue value = reader.GetValue(valueRow - 1L, valueColumn - 1);
                 if (value.Kind != OdsCellValueKind.Number
-                    || !double.TryParse(value.LexicalValue, NumberStyles.Float,
-                        CultureInfo.InvariantCulture, out double number)
+                    || !OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value.LexicalValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
                     || double.IsNaN(number) || double.IsInfinity(number)
                     || number != data.Series[series].Values[point]) return false;
             }

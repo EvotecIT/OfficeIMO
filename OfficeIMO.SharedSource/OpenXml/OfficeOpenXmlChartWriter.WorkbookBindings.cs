@@ -60,7 +60,7 @@ namespace OfficeIMO.OpenXml.Internal {
                     uint? index = point.Index?.Value;
                     if (!index.HasValue || index.Value >= count!.Value || !indexes.Add(index.Value))
                         throw new NotSupportedException("Custom error-bar caches must have bounded, unique point indexes.");
-                    if (!double.TryParse(point.NumericValue?.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) ||
+                    if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(point.NumericValue?.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) ||
                         double.IsNaN(value) || double.IsInfinity(value))
                         throw new NotSupportedException("Custom error-bar caches must provide a finite numeric value for every declared point.");
                 }

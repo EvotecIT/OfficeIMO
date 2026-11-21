@@ -5,13 +5,8 @@ using Xunit;
 namespace OfficeIMO.Excel.Tests;
 
 public partial class Excel {
-    // Framework's canonical floating-point parsers normalize lexical negative zero;
-    // modern .NET preserves its sign, including after an integer getter runs first.
-#if NETFRAMEWORK
-    private const long ParsedNegativeZeroBits = 0;
-#else
+    // Lexical negative zero keeps its sign on every framework, including after an integer getter runs first.
     private const long ParsedNegativeZeroBits = long.MinValue;
-#endif
 
     [Theory]
     [InlineData(false)]

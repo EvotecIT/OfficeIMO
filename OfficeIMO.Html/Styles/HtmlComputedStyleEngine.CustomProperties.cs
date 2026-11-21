@@ -145,12 +145,12 @@ public static partial class HtmlComputedStyleEngine {
                     && TryValidateCssLength(normalized, out _);
             case "<percentage>":
                 return normalized.EndsWith("%", StringComparison.Ordinal)
-                    && double.TryParse(normalized.Substring(0, normalized.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out _);
+                    && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(normalized.Substring(0, normalized.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out double _);
             case "<length-percentage>":
                 return HtmlRenderCssValues.HasExplicitLengthSyntax(normalized, true, true)
                     && TryValidateCssLength(normalized, out _);
             case "<number>":
-                return double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out _);
+                return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double _);
             case "<integer>":
                 return int.TryParse(normalized, NumberStyles.Integer, CultureInfo.InvariantCulture, out _);
             case "<angle>":
@@ -181,7 +181,7 @@ public static partial class HtmlComputedStyleEngine {
 
     private static bool EndsWithFiniteNumber(string value, string suffix) {
         if (!value.EndsWith(suffix, StringComparison.OrdinalIgnoreCase) || value.Length == suffix.Length) return false;
-        return double.TryParse(value.Substring(0, value.Length - suffix.Length), NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
+        return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value.Substring(0, value.Length - suffix.Length), NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
             && !double.IsNaN(parsed) && !double.IsInfinity(parsed);
     }
 

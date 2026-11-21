@@ -305,7 +305,7 @@ namespace OfficeIMO.Excel {
                     return static (value, culture) => {
                         try {
                             if (value is double doubleValue) return doubleValue;
-                            return Convert.ToDouble(value, culture);
+                            return OfficeIMO.Core.Internal.OfficeRoundTripText.ToDouble(value, culture);
                         } catch {
                             return null;
                         }

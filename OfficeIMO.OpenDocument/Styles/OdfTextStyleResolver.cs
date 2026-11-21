@@ -21,7 +21,7 @@ internal static class OdfTextStyleResolver {
             if (lexical == null) continue;
             lexical = OdfLength.Parse(lexical).ToString();
             double value;
-            if (lexical.EndsWith("%", StringComparison.Ordinal) && double.TryParse(lexical.Substring(0, lexical.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out double percent)) {
+            if (lexical.EndsWith("%", StringComparison.Ordinal) && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(lexical.Substring(0, lexical.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out double percent)) {
                 value = percent / 100D; factor *= value;
             } else { value = OdfLength.Parse(lexical).ToPoints(); size = value; }
             if (value <= 0 || double.IsNaN(value) || double.IsInfinity(value)) throw new NotSupportedException("Text size and line spacing must be finite positive lengths.");

@@ -211,8 +211,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 C.StringPoint[] points = category.GetFirstChild<C.StringReference>()?.StringCache?.Elements<C.StringPoint>().ToArray()
                     ?? Array.Empty<C.StringPoint>();
                 return points.Length > 0 && points.All(point =>
-                    !double.TryParse(point.NumericValue?.Text, System.Globalization.NumberStyles.Float,
-                        System.Globalization.CultureInfo.InvariantCulture, out _));
+                    !OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(point.NumericValue?.Text, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double _));
             });
         }
         private static double? ReadLayoutMinimum(OpenXmlCompositeElement? axis) => axis?.GetFirstChild<C.Scaling>()?.GetFirstChild<C.MinAxisValue>()?.Val?.Value;

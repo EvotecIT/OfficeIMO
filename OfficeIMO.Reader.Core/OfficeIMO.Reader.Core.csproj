@@ -140,6 +140,6 @@
   </ItemGroup>
   <ItemGroup><InternalsVisibleTo Include="OfficeIMO" /></ItemGroup>
   <ItemGroup>
-    <Compile Include="..\OfficeIMO.SharedSource\Numerics\OfficeRoundTripNumberText.cs" Link="SharedSource\Numerics\OfficeRoundTripNumberText.cs" />
+    <Compile Include="..\OfficeIMO.SharedSource\Numerics\OfficeRoundTripNumberText*.cs" Link="SharedSource\Numerics\%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>

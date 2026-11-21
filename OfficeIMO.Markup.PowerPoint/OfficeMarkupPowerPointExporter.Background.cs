@@ -135,7 +135,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
                 && int.TryParse(parts[0].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var red)
                 && int.TryParse(parts[1].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var green)
                 && int.TryParse(parts[2].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var blue)
-                && double.TryParse(parts[3].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var alpha)) {
+                && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(parts[3].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double alpha)) {
                 red = Math.Max(0, Math.Min(255, red));
                 green = Math.Max(0, Math.Min(255, green));
                 blue = Math.Max(0, Math.Min(255, blue));
@@ -192,7 +192,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
             normalized = normalized.Substring(0, normalized.Length - 3).Trim();
         }
 
-        return double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out angleDegrees);
+        return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out angleDegrees);
     }
 
     private static string? ResolveThemeColor(string? value, PowerPointDesignTheme? theme) {

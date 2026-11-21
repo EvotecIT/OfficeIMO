@@ -917,7 +917,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                         : null;
                 }
 
-                if (double.TryParse(rawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
+                if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(rawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
                     return LegacyXlsCell.Number(row, column, styleIndex, number);
                 }
             }
