@@ -10,7 +10,8 @@ namespace OfficeIMO;
 /// in their exact spelling. Elsewhere plain decimal text is parsed here: a single exact operation when the digits and
 /// the power of ten are small enough, the Eisel-Lemire algorithm (Daniel Lemire, "Number Parsing at a Gigabyte per
 /// Second", 2021) for up to 19 significant digits, and exact big-integer arithmetic when neither settles the result.
-/// Other forms, such as currency symbols or parentheses, go to .NET Framework's parser.
+/// Other forms go to .NET Framework's parser: currency symbols, parentheses, and text read with currency allowed in a
+/// culture whose currency separators differ from its number separators.
 /// </summary>
 internal static partial class OfficeRoundTripNumberText {
     /// <summary>Parses a double as .NET Core's <see cref="double.TryParse(string, NumberStyles, IFormatProvider, out double)"/> does.</summary>
@@ -235,6 +236,13 @@ internal static partial class OfficeRoundTripNumberText {
 
         internal static bool TryScan(TextSource text, NumberStyles style, NumberFormatInfo format, out DecimalText result) {
             result = default;
+            // With currency allowed, the runtime also takes the currency separators, ahead of the number ones. When a
+            // culture's two pairs differ, that text is left to the runtime parser.
+            if ((style & NumberStyles.AllowCurrencySymbol) != 0
+                && (format.CurrencyDecimalSeparator != format.NumberDecimalSeparator
+                    || format.CurrencyGroupSeparator != format.NumberGroupSeparator)) {
+                return false;
+            }
             int index = 0, length = text.Length;
             if ((style & NumberStyles.AllowLeadingWhite) != 0) while (index < length && IsWhite(text[index])) index++;
             if ((style & NumberStyles.AllowLeadingSign) != 0) {

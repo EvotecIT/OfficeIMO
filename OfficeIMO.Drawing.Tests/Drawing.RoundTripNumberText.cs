@@ -126,6 +126,18 @@ public sealed class DrawingRoundTripNumberTextTests {
     }
 
     [Fact]
+    public void CurrencySeparatorsAreReadWhenTheStyleAllowsCurrency() {
+        var format = (NumberFormatInfo)CultureInfo.InvariantCulture.NumberFormat.Clone();
+        format.CurrencyDecimalSeparator = ",";
+        format.CurrencyGroupSeparator = ".";
+
+        Assert.True(OfficeRoundTripText.TryParse("1,234", NumberStyles.Any, format, out double withCurrency));
+        Assert.Equal(1.234D, withCurrency);
+        Assert.True(OfficeRoundTripText.TryParse("1,234", NumberStyles.Float | NumberStyles.AllowThousands, format, out double withoutCurrency));
+        Assert.Equal(1234D, withoutCurrency);
+    }
+
+    [Fact]
     public void RoundTripTextUsesTheCultureSeparators() {
         CultureInfo german = CultureInfo.GetCultureInfo("de-DE");
         Assert.Equal("1234,5", OfficeRoundTripText.Format(1234.5D, german));
