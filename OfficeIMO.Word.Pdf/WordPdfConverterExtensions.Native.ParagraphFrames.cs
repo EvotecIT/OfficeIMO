@@ -92,18 +92,56 @@ public static partial class WordPdfConverterExtensions {
     }
 
     /// <summary>
-    /// Frames are placed for paragraphs directly in the body or in a header or footer. Frames
-    /// in table cells, notes, text boxes and multi-column sections, frames that start a page or
-    /// hold a page or column break, frames with paragraph shading, borders or charts, and drop
-    /// caps keep the ordinary-paragraph rendering, which already draws those.
+    /// Frames are placed for paragraphs directly in the body or in a header or footer whose
+    /// content the frame projection draws in full: text, fields, inline pictures and form
+    /// controls. Frames in table cells, notes, text boxes and multi-column sections, frames that
+    /// start a page or hold a page or column break, body headings, and frames with paragraph
+    /// shading, borders, charts, SmartArt, shapes, text boxes, floating pictures, embedded
+    /// objects, equations, note references or page-number fields in the body keep the
+    /// ordinary-paragraph rendering, which already draws those. Drop caps are not frames here.
     /// </summary>
     private static bool CanRenderNativeParagraphFrame(WordParagraph paragraph) {
         if (paragraph._paragraph?.Parent is not (W.Body or W.Header or W.Footer) || ResolveNativeParagraphFrame(paragraph) == null) return false;
         if (paragraph._paragraph.Descendants<W.Break>().Any(item => item.Type?.Value == W.BreakValues.Page || item.Type?.Value == W.BreakValues.Column))
             return false;
         if (HasNativePageBreakBefore(paragraph) || GetNativeEffectiveParagraphShadingFill(paragraph) != null ||
-            HasNativeFrameParagraphBorders(paragraph) || GetNativeRuns(paragraph).Any(run => run.Chart != null)) return false;
+            HasNativeFrameParagraphBorders(paragraph) || GetNativeRuns(paragraph).Any(run => run.Chart != null) ||
+            HasNativeFrameUnsupportedContent(paragraph._paragraph, inBody: paragraph._paragraph.Parent is W.Body)) return false;
+        // A framed heading keeps the heading route, which also owns its outline entry.
+        if (paragraph._paragraph.Parent is W.Body && GetHeadingLevel(paragraph) > 0) return false;
         return paragraph._paragraph.Parent is not W.Body || (paragraph.GetBodySection()?.ColumnCount ?? 1) <= 1;
+    }
+
+    private const string NativeFramePictureGraphicUri = "http://schemas.openxmlformats.org/drawingml/2006/picture";
+    private static readonly string[] NativeFramePageFieldNames = { "PAGE", "NUMPAGES", "SECTIONPAGES", "SECTION", "PAGEREF" };
+
+    private static bool HasNativeFrameUnsupportedContent(W.Paragraph paragraph, bool inBody) {
+        foreach (DocumentFormat.OpenXml.OpenXmlElement element in paragraph.Descendants()) {
+            switch (element) {
+                case DocumentFormat.OpenXml.Drawing.Wordprocessing.Anchor:
+                case W.Picture:
+                case W.EmbeddedObject:
+                case W.TextBoxContent:
+                case DocumentFormat.OpenXml.AlternateContent:
+                case DocumentFormat.OpenXml.Math.OfficeMath:
+                case DocumentFormat.OpenXml.Math.Paragraph:
+                case W.FootnoteReference:
+                case W.EndnoteReference:
+                    return true;
+                case DocumentFormat.OpenXml.Drawing.GraphicData data when data.Uri?.Value != NativeFramePictureGraphicUri:
+                    return true;
+                case W.FieldCode code when inBody && IsNativeFramePageField(code.Text):
+                    return true;
+                case W.SimpleField field when inBody && IsNativeFramePageField(field.Instruction?.Value):
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    private static bool IsNativeFramePageField(string? instruction) {
+        string name = (instruction ?? string.Empty).Trim().Split(' ')[0];
+        return NativeFramePageFieldNames.Any(field => string.Equals(field, name, StringComparison.OrdinalIgnoreCase));
     }
 
     private static bool HasNativeFrameParagraphBorders(WordParagraph paragraph) {

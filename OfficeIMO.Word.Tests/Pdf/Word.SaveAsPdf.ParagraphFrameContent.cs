@@ -136,6 +136,78 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_FloatingFrameWithPageFootnotesStillExports() {
+        using WordDocument document = CreateFrameDocument();
+        AddFrameParagraph(document.AddParagraph("FRAMED"), "around", "text", "margin", x: 1, width: 2880);
+        document.AddParagraph("Body with a note.").AddFootNote("NOTETEXT");
+
+        using PdfPigDocument pdf = RenderFramePdf(document);
+        string text = string.Concat(pdf.GetPages().Select(page => page.Text));
+        Assert.Contains("FRAMED", text);
+        Assert.Contains("NOTETEXT", text);
+    }
+
+    [Fact]
+    public void SaveAsPdf_FramedHeadingKeepsItsOutlineEntry() {
+        using WordDocument document = CreateFrameDocument();
+        WordParagraph heading = document.AddParagraph("FRAMEDHEADING");
+        heading.Style = WordParagraphStyles.Heading1;
+        AddFrameParagraph(heading, "around", "text", "margin", x: 1, width: 2880);
+        document.AddParagraph("Body text.");
+
+        using PdfPigDocument pdf = RenderFramePdf(document);
+        Assert.True(pdf.TryGetBookmarks(out var bookmarks));
+        Assert.Contains(bookmarks.GetNodes(), node => node.Title.Contains("FRAMEDHEADING"));
+    }
+
+    [Theory]
+    [InlineData("smartart")]
+    [InlineData("equation")]
+    [InlineData("textbox")]
+    [InlineData("floating-picture")]
+    [InlineData("footnote")]
+    [InlineData("page-field")]
+    public void SaveAsPdf_FrameWithContentTheFrameCannotDrawKeepsOrdinaryRendering(string content) {
+        // Content outside the frame projection keeps the ordinary paragraph route, which draws
+        // it, and the frame approximation is reported.
+        using WordDocument document = CreateFrameDocument();
+        WordParagraph framed = document.AddParagraph("FRAMED ");
+        switch (content) {
+            case "smartart":
+                framed._paragraph.Append(new DocumentFormat.OpenXml.Wordprocessing.Run(new DocumentFormat.OpenXml.Wordprocessing.Drawing(
+                    new DocumentFormat.OpenXml.Drawing.Wordprocessing.Inline(
+                        new DocumentFormat.OpenXml.Drawing.Wordprocessing.Extent { Cx = 914400, Cy = 914400 },
+                        new DocumentFormat.OpenXml.Drawing.Wordprocessing.DocProperties { Id = 9001U, Name = "Diagram" },
+                        new DocumentFormat.OpenXml.Drawing.Graphic(new DocumentFormat.OpenXml.Drawing.GraphicData {
+                            Uri = "http://schemas.openxmlformats.org/drawingml/2006/diagram"
+                        })))));
+                break;
+            case "equation":
+                framed._paragraph.Append(new DocumentFormat.OpenXml.Math.OfficeMath(new DocumentFormat.OpenXml.Math.Run(
+                    new DocumentFormat.OpenXml.Math.Text("x"))));
+                break;
+            case "textbox":
+                framed.AddTextBox("INNERBOX", WordImageTextWrapping.Square);
+                break;
+            case "floating-picture":
+                framed.AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"), OfficeIMO.OfficeLength.Pixels(32),
+                    OfficeIMO.OfficeLength.Pixels(32), new WordImageOptions { Wrapping = WordImageTextWrapping.Square });
+                break;
+            case "footnote":
+                framed.AddFootNote("NOTE");
+                break;
+            case "page-field":
+                framed.AddField(WordFieldType.Page);
+                break;
+        }
+        AddFrameParagraph(framed, "around", "text", "margin", x: 1, width: 2880);
+        document.AddParagraph("Body text.");
+
+        var result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false });
+        Assert.Contains(result.Warnings, warning => warning.Code == "native-paragraph-frame-flattened");
+    }
+
+    [Fact]
     public void SaveAsPdf_OutsideHeaderFrameMirrorsOnEvenPages() {
         // Word puts an outside-aligned header frame at the right margin on odd pages and
         // at the left margin on even pages.
@@ -175,6 +247,7 @@ public partial class Word {
         Assert.Equal(alone, FindFrameWord(pdf, "FOOTANCHOR").Letters[0].StartBaseLine.Y, 1);
         // The 40 pt frame ends at the page edge, so its first line sits about 28 pt up.
         Assert.InRange(top.Letters[0].StartBaseLine.Y, 26D, 31D);
+        Assert.Equal(FrameMargin + 144D, FindFrameWord(pdf, "FOOTANCHOR").BoundingBox.Left, 0);
 
         double MeasureFooterAnchorWithoutFrame() {
             using WordDocument plain = CreateFrameDocument();
