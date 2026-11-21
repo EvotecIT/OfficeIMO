@@ -6,10 +6,14 @@ namespace OfficeIMO.OpenXml.Internal;
 
 /// <summary>Qualifies the small source-linked workbook format subset that chart snapshots can render exactly.</summary>
 internal static class OfficeOpenXmlChartAxisNumberFormats {
-    internal static string ResolveSourceLinkedGeneral(ChartPart chartPart) {
+    /// <param name="chartPart">The chart part.</param>
+    /// <param name="axis">The linked axis; its own values decide, such as the X values of a scatter X axis. Null checks
+    /// every series' values.</param>
+    internal static string ResolveSourceLinkedGeneral(ChartPart chartPart, C.ValueAxis? axis = null) {
         // A source-linked value axis takes the number format of the plotted cells, which the
         // chart caches beside every value. General caches need no workbook projection.
-        if (HasOnlyGeneralValueCaches(chartPart)) return "General";
+        if (axis != null ? HasOnlyGeneralCodes(OfficeOpenXmlChartSecondaryAxis.ReadCachedValueFormats(axis).ToArray())
+                : HasOnlyGeneralValueCaches(chartPart)) return "General";
         EmbeddedPackagePart? embedded = OfficeOpenXmlChartWriter.GetSharedEmbeddedWorkbook(chartPart);
         if (embedded == null)
             throw new NotSupportedException("The source-linked chart axis has no qualified embedded workbook.");
@@ -27,6 +31,9 @@ internal static class OfficeOpenXmlChartAxisNumberFormats {
             throw new NotSupportedException("The source-linked chart axis requires workbook number-format projection.");
         return "General";
     }
+
+    private static bool HasOnlyGeneralCodes(string?[] codes) =>
+        codes.Length > 0 && codes.All(code => string.IsNullOrWhiteSpace(code) || string.Equals(code, "General", StringComparison.OrdinalIgnoreCase));
 
     private static bool HasOnlyGeneralValueCaches(ChartPart chartPart) {
         C.PlotArea? plot = chartPart.ChartSpace?.GetFirstChild<C.Chart>()?.PlotArea;

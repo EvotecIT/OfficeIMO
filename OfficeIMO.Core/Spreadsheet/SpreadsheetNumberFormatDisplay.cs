@@ -66,7 +66,7 @@ namespace OfficeIMO.Spreadsheet {
                 : "F" + decimalPlaces.Maximum.ToString(CultureInfo.InvariantCulture);
             double roundedValue = decimalPlaces.Maximum <= 15
                 && !double.IsNaN(displayValue) && !double.IsInfinity(displayValue)
-                ? Math.Round(displayValue, decimalPlaces.Maximum, MidpointRounding.AwayFromZero)
+                ? RoundForDisplay(displayValue, decimalPlaces.Maximum)
                 : displayValue;
             var numberFormat = NumberFormatInfo.GetInstance(provider);
             string text = roundedValue.ToString(numericFormat, numberFormat);

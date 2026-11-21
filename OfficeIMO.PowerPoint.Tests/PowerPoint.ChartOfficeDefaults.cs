@@ -147,6 +147,70 @@ public sealed class PowerPointChartOfficeDefaultsTests {
     }
 
     [Fact]
+    public void SeriesThatTurnsOffLegendKeysIsDrawnInStrict() {
+        string chart = CategoryChart("barChart", "<c:barDir val=\"col\"/><c:grouping val=\"clustered\"/>",
+                "<c:dLbls><c:showLegendKey val=\"0\"/><c:showVal val=\"1\"/></c:dLbls>")
+            .Replace("<c:gapWidth", "<c:dLbls><c:showLegendKey val=\"1\"/><c:showVal val=\"1\"/></c:dLbls><c:gapWidth");
+
+        string svg = RenderSvg(chart, OfficeChartFidelity.Strict, out IReadOnlyList<OfficeImageExportDiagnostic> diagnostics);
+
+        AssertDrawn(diagnostics);
+        Assert.Contains(">4.3<", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void LabelsTakenOnlyFromACellRangeAreReported() {
+        string chart = CategoryChart("barChart", "<c:barDir val=\"col\"/><c:grouping val=\"clustered\"/>",
+            "<c:dLbls><c:showLegendKey val=\"0\"/><c:showVal val=\"0\"/><c:showCatName val=\"0\"/><c:showSerName val=\"0\"/>" +
+            "<c:extLst><c:ext uri=\"{CE6537A1-D6FC-4f65-9D91-7224C49458BB}\" xmlns:c15=\"http://schemas.microsoft.com/office/drawing/2012/chart\">" +
+            "<c15:showDataLabelsRange val=\"1\"/></c:ext></c:extLst></c:dLbls>");
+
+        RenderSvg(chart, OfficeChartFidelity.Strict, out IReadOnlyList<OfficeImageExportDiagnostic> strict);
+        RenderSvg(chart, OfficeChartFidelity.BestEffort, out IReadOnlyList<OfficeImageExportDiagnostic> bestEffort);
+
+        Assert.Contains(strict, diagnostic => diagnostic.Code == OfficeDiagnosticCodes.UnsupportedChart);
+        Assert.Contains(bestEffort, diagnostic => diagnostic.Message == "Data labels taken from cell ranges are left out of the label text.");
+    }
+
+    [Fact]
+    public void CustomTrendlineDashIsReported() {
+        string chart = CategoryChart("lineChart", "<c:grouping val=\"standard\"/>", Accent1Line + "<c:marker><c:symbol val=\"none\"/></c:marker>" +
+                "<c:trendline><c:spPr><a:ln><a:solidFill><a:srgbClr val=\"C00000\"/></a:solidFill><a:custDash><a:ds d=\"300000\" sp=\"100000\"/></a:custDash></a:ln></c:spPr>" +
+                "<c:trendlineType val=\"linear\"/><c:dispRSqr val=\"0\"/><c:dispEq val=\"0\"/></c:trendline>")
+            .Replace("<c:legendPos val=\"b\"/>", "<c:legendPos val=\"b\"/><c:legendEntry><c:idx val=\"1\"/><c:delete val=\"1\"/></c:legendEntry>");
+
+        RenderSvg(chart, OfficeChartFidelity.Strict, out IReadOnlyList<OfficeImageExportDiagnostic> strict);
+        RenderSvg(chart, OfficeChartFidelity.BestEffort, out IReadOnlyList<OfficeImageExportDiagnostic> bestEffort);
+
+        Assert.Contains(strict, diagnostic => diagnostic.Code == OfficeDiagnosticCodes.UnsupportedChart &&
+            diagnostic.Message.IndexOf("trendline dash", StringComparison.Ordinal) >= 0);
+        Assert.Contains(bestEffort, diagnostic => diagnostic.Message == "A trendline dash pattern the renderer cannot draw is drawn solid.");
+    }
+
+    [Fact]
+    public void LinkedScatterXAxisUsesTheXValueFormat() {
+        using PowerPointDocument presentation = PowerPointDocument.Create();
+        PowerPointSlide slide = presentation.AddSlide();
+        PowerPointChart chart = slide.AddChart(OfficeChartType.Scatter, new OfficeChartData(new[] { "0.25", "0.5" }, new[] {
+            new OfficeSeries("Values", new[] { 3d, 4d }, xValues: new[] { .25d, .5d })
+        }));
+        DocumentFormat.OpenXml.Packaging.ChartPart part = slide.SlidePart.ChartParts.Single();
+        C.ChartSpace space = part.ChartSpace!;
+        // Without its workbook the chart can only show the formats it cached.
+        foreach (DocumentFormat.OpenXml.Packaging.EmbeddedPackagePart workbook in part.GetPartsOfType<DocumentFormat.OpenXml.Packaging.EmbeddedPackagePart>().ToArray()) part.DeletePart(workbook);
+        space.GetFirstChild<C.ExternalData>()?.Remove();
+        space.AddChild(new C.ExternalData { Id = "rIdMissing" }, true);
+        foreach (C.FormatCode code in space.Descendants<C.XValues>().SelectMany(values => values.Descendants<C.FormatCode>())) code.Text = "0%";
+        foreach (C.FormatCode code in space.Descendants<C.YValues>().SelectMany(values => values.Descendants<C.FormatCode>())) code.Text = "General";
+        C.ValueAxis xAxis = space.Descendants<C.ValueAxis>().Single(axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Bottom);
+        xAxis.RemoveAllChildren<C.NumberingFormat>();
+        xAxis.AddChild(new C.NumberingFormat { FormatCode = "General", SourceLinked = true }, true);
+
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        Assert.Equal("0%", snapshot.Layout.HorizontalAxisNumberFormat);
+    }
+
+    [Fact]
     public void UnresolvedWorkbookLinkedAxisFormatIsReported() {
         string chart = CategoryChart("barChart", "<c:barDir val=\"col\"/><c:grouping val=\"clustered\"/>", string.Empty)
             .Replace("sourceLinked=\"0\"", "sourceLinked=\"1\"").Replace("<c:formatCode>General</c:formatCode>", "<c:formatCode>0.0</c:formatCode>")
@@ -267,6 +331,7 @@ public sealed class PowerPointChartOfficeDefaultsTests {
             OfficeSeries.CreateBubble("Values", new[] { 1d, 2d }, new[] { 3d, 4d }, new[] { 5d, 6d })
         }));
         C.BubbleChartSeries series = slide.SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.BubbleChartSeries>().Single();
+        series.InsertBefore(new C.Trendline(new C.TrendlineType { Val = C.TrendlineValues.Linear }), series.GetFirstChild<C.XValues>());
         series.InsertBefore(new C.ErrorBars(new C.ErrorDirection { Val = C.ErrorBarDirectionValues.Y },
             new C.ErrorBarType { Val = C.ErrorBarValues.Both }, new C.ErrorBarValueType { Val = C.ErrorValues.StandardError },
             new C.NoEndCap { Val = false }), series.GetFirstChild<C.XValues>());
@@ -280,6 +345,7 @@ public sealed class PowerPointChartOfficeDefaultsTests {
         IReadOnlyList<OfficeImageExportDiagnostic> bestEffort = Render(OfficeChartFidelity.BestEffort);
         AssertDrawn(bestEffort);
         Assert.Contains(bestEffort, diagnostic => diagnostic.Message == "Error bars are left out.");
+        Assert.Contains(bestEffort, diagnostic => diagnostic.Message == "Trendlines on bubble charts are left out.");
     }
 
     private static int CountPaths(string svg) => System.Text.RegularExpressions.Regex.Matches(svg, "<path").Count;

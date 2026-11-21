@@ -118,13 +118,27 @@ namespace OfficeIMO.Word.Pdf {
                 .ToList();
             // The shared reader owns qualified legend-frame appearance, including its native
             // fill and outline. Keep the PDF chart on that same projection when it is styled. Error bars and
-            // trendlines are drawn, or reported, only by the shared reader.
+            // trendlines on a flat chart without a data table go to the shared reader too, which draws or reports
+            // them; 3-D charts and data tables keep this path, which reports them below.
+            bool seriesExtras = plotArea.Descendants().Any(element => element is ErrorBars or Trendline);
+            bool sharedReadsExtras = plotArea.GetFirstChild<DataTable>() == null &&
+                !allChartElements.Any(element => element.LocalName.EndsWith("3DChart", StringComparison.Ordinal));
             if (allChartElements.Count > 1 || allChartElements.Any(element => element is BubbleChart) ||
-                plotArea.Descendants().Any(element => element is ErrorBars or Trendline) ||
+                seriesExtras && sharedReadsExtras ||
                 HasMaterialNativeLegendFrame(openXmlChart) ||
                 (plotArea.GetFirstChild<DataTable>() == null &&
                  (HasNativeExplicitValueAxisScale(plotArea) || HasMaterialNativeChartAreaShape(chartPart?.ChartSpace)))) {
                 return TryCreateSharedNativeWordChartSnapshot(chart, out snapshot, out warning);
+            }
+            if (seriesExtras) {
+                if (!OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartFidelityScope.AllowsApproximation) {
+                    warning = "Error bars and trendlines on 3-D charts or charts with a data table cannot be projected.";
+                    return false;
+                }
+                if (plotArea.Descendants<ErrorBars>().Any())
+                    OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartFidelityScope.Record("Error bars are left out.");
+                if (plotArea.Descendants<Trendline>().Any())
+                    OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartFidelityScope.Record("Trendlines are left out.");
             }
             List<OpenXmlElement> chartElements = allChartElements
                 .Where(IsNativeSupportedWordChartElement)

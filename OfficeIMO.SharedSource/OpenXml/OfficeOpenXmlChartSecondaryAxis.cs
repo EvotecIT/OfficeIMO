@@ -149,19 +149,29 @@ internal static class OfficeOpenXmlChartSecondaryAxis {
             .FirstOrDefault(code => !string.IsNullOrWhiteSpace(code));
     }
 
-    private static string? ReadCachedValueFormat(C.ValueAxis axis) {
+    private static string? ReadCachedValueFormat(C.ValueAxis axis) =>
+        ReadCachedValueFormats(axis).FirstOrDefault(code => !string.IsNullOrWhiteSpace(code));
+
+    /// <summary>
+    /// The cached format codes of the values a value axis plots: the X values for the horizontal axis of a scatter or
+    /// bubble group, otherwise the series values.
+    /// </summary>
+    internal static IEnumerable<string?> ReadCachedValueFormats(C.ValueAxis axis) {
         uint? id = axis.AxisId?.Val?.Value;
-        if (!id.HasValue || axis.Parent is not C.PlotArea plot) return null;
+        if (!id.HasValue || axis.Parent is not C.PlotArea plot) return Enumerable.Empty<string?>();
+        bool horizontal = axis.AxisPosition?.Val?.Value is C.AxisPositionValues position &&
+            (position == C.AxisPositionValues.Bottom || position == C.AxisPositionValues.Top);
         return plot.ChildElements.OfType<OpenXmlCompositeElement>()
             .Where(layer => layer.LocalName.EndsWith("Chart", StringComparison.Ordinal) &&
                 layer.Elements<C.AxisId>().Any(reference => reference.Val?.Value == id))
-            .SelectMany(layer => layer.ChildElements.Where(series => series.LocalName == "ser"))
-            .Select(series => (series.GetFirstChild<C.Values>() ?? (OpenXmlElement?)series.GetFirstChild<C.YValues>())?
-                .Descendants<C.FormatCode>().FirstOrDefault()?.Text)
-            .FirstOrDefault(code => !string.IsNullOrWhiteSpace(code));
+            .SelectMany(layer => layer.ChildElements.Where(series => series.LocalName == "ser")
+                .Select(series => horizontal && layer is C.ScatterChart or C.BubbleChart
+                    ? series.GetFirstChild<C.XValues>()
+                    : series.GetFirstChild<C.Values>() ?? (OpenXmlElement?)series.GetFirstChild<C.YValues>()))
+            .Select(values => values?.Descendants<C.FormatCode>().FirstOrDefault()?.Text);
     }
 
-    private static bool IsWorkbookLinked(OpenXmlCompositeElement owner) =>
+    internal static bool IsWorkbookLinked(OpenXmlCompositeElement owner) =>
         owner.GetFirstChild<C.NumberingFormat>()?.SourceLinked?.Value == true &&
         owner.Ancestors<C.ChartSpace>().FirstOrDefault()?.GetFirstChild<C.ExternalData>() != null;
 
@@ -173,7 +183,8 @@ internal static class OfficeOpenXmlChartSecondaryAxis {
     /// </summary>
     internal static bool IsDrawableNumberFormat(string? format) {
         if (IsGeneral(format)) return true;
-        if (!OfficeIMO.Spreadsheet.SpreadsheetNumberFormatSyntax.Parse(format!).IsValid) return false;
+        if (format!.Length > OfficeChartLayout.MaxNumberFormatLength) return false;
+        if (!OfficeIMO.Spreadsheet.SpreadsheetNumberFormatSyntax.Parse(format).IsValid) return false;
         // Sample a value from each numeric section; the text section never formats a chart value, and a
         // date section has no negative serials, which Office shows as ####.
         foreach (double sample in new[] { 45123.25, -45123.25, 0D })

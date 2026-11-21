@@ -29,6 +29,9 @@ internal sealed class OfficeOpenXmlChartFidelityScope : IDisposable {
     /// <summary>Whether the current projection may draw an approximation instead of skipping the chart.</summary>
     internal static bool AllowsApproximation => _current?.Fidelity == OfficeChartFidelity.BestEffort;
 
+    /// <summary>Whether a chart is being projected for rendering, as opposed to a caller only reading its data.</summary>
+    internal static bool IsProjecting => _current != null;
+
     /// <summary>
     /// Accepts an approximation in best-effort mode and records it; strict mode throws
     /// <see cref="NotSupportedException"/> with <paramref name="strictReason"/>.

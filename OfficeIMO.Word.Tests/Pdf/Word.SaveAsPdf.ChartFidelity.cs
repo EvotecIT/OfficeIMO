@@ -101,6 +101,29 @@ public sealed class WordChartFidelityPdfTests {
     }
 
     [Fact]
+    public void ErrorBarsOnADataTableChartAreReportedAndBestEffortDrawsTheChart() {
+        using WordDocument document = CreateChart(errorBars: true);
+        document.Charts[0].ChartPart!.ChartSpace!.Descendants<C.PlotArea>().Single()
+            .AddChild(new C.DataTable(new C.ShowHorizontalBorder { Val = true }), true);
+
+        AssertStrictSkipsAndBestEffortDraws(document);
+    }
+
+    [Fact]
+    public void BestEffortDrawsATitleThatMixesFonts() {
+        using WordDocument document = CreateChart(errorBars: false);
+        C.Chart chart = document.Charts[0].ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!;
+        chart.GetFirstChild<C.Title>()?.Remove();
+        chart.GetFirstChild<C.AutoTitleDeleted>()?.Remove();
+        chart.PrependChild(new C.Title(new C.ChartText(new C.RichText(new A.BodyProperties(), new A.ListStyle(),
+            new A.Paragraph(new A.Run(new A.RunProperties(new A.LatinFont { Typeface = "Arial" }), new A.Text("Sales ")),
+                new A.Run(new A.RunProperties(new A.LatinFont { Typeface = "Calibri" }), new A.Text("2026"))))),
+            new C.Overlay { Val = false }));
+
+        AssertStrictSkipsAndBestEffortDraws(document);
+    }
+
+    [Fact]
     public void LinkedCategoryAxisUsesTheCategoryCacheFormat() {
         using WordDocument document = WordDocument.Create();
         WordChart chart = document.AddChart(OfficeChartType.Line,

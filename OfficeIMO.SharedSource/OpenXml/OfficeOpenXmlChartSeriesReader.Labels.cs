@@ -10,6 +10,8 @@ namespace OfficeIMO.OpenXml.Internal;
 internal static partial class OfficeOpenXmlChartSeriesReader {
     internal sealed class LabelLayout {
         internal bool Values, Categories, SeriesNames, Percentages, LeaderLines;
+        /// <summary>Label parts the renderer leaves out; checked once every override has applied.</summary>
+        internal bool LegendKeys, BubbleSizes, RangeText;
         internal double? FontSize;
         internal string? FontFamily;
         internal OfficeFontStyle? FontStyle;
@@ -86,6 +88,8 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
                     labeledSeries.Add(key);
                 } else {
                     everySeriesLabeled = false;
+                    // Office still shows labels whose only content is a cell range, a legend key or a bubble size.
+                    QualifyLeftOutParts(effective);
                 }
                 // Group point entries apply to every series; the series' own entries for a point replace them.
                 var points = new Dictionary<uint, C.DataLabel>();
@@ -133,8 +137,13 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
         points.Add(point);
     }
 
-    /// <summary>Checks the position a visible label set ends up with, after every override has applied.</summary>
+    private static void ApproximateRangeText() =>
+        OfficeOpenXmlChartFidelityScope.Approximate("Data labels taken from cell ranges cannot be projected.",
+            "Data labels taken from cell ranges are left out of the label text.");
+
+    /// <summary>Checks a visible label set once every override has applied.</summary>
     private static void Qualify(LabelLayout layout, bool radial, bool pie) {
+        QualifyLeftOutParts(layout);
         if (radial && layout.Position is not OfficeChartDataLabelPosition.BestFit and not OfficeChartDataLabelPosition.OutsideEnd) {
             OfficeOpenXmlChartFidelityScope.Approximate("The native radial data label position cannot be projected.",
                 "Radial data labels in that position are drawn at the best-fit position inside their slices.");
@@ -145,6 +154,17 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
         if (pie && layout.LeaderLines && layout.Position == OfficeChartDataLabelPosition.BestFit)
             OfficeOpenXmlChartFidelityScope.Approximate("The native data label overrides cannot be projected.",
                 "Best-fit radial data labels with leader lines are drawn inside their slices.");
+    }
+
+    // Legend keys, bubble sizes and cell-range text in labels are left out of the drawn labels.
+    private static void QualifyLeftOutParts(LabelLayout layout) {
+        if (layout.LegendKeys)
+            OfficeOpenXmlChartFidelityScope.Approximate("The native data label overrides cannot be projected.",
+                "Legend keys inside data labels are left out.");
+        if (layout.BubbleSizes)
+            OfficeOpenXmlChartFidelityScope.Approximate("The native data label overrides cannot be projected.",
+                "Bubble sizes in data labels are left out.");
+        if (layout.RangeText) ApproximateRangeText();
     }
 
     /// <summary>
@@ -174,6 +194,9 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
             Percentages = radial && Flag<C.ShowPercent>(labels, inherited?.Percentages),
             // Leader lines connect radial labels to their slices; Office ignores them elsewhere.
             LeaderLines = radial && Flag<C.ShowLeaderLines>(labels, inherited?.LeaderLines),
+            LegendKeys = Flag<C.ShowLegendKey>(labels, inherited?.LegendKeys),
+            BubbleSizes = Flag<C.ShowBubbleSize>(labels, inherited?.BubbleSizes),
+            RangeText = ReadRangeTextFlag(labels) ?? inherited?.RangeText ?? false,
             Separator = separatorText,
             NumberFormat = inherited?.NumberFormat,
             Position = inherited?.Position ?? OfficeChartDataLabelPosition.BestFit,
@@ -181,12 +204,6 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
         };
         if (labels.GetFirstChild<C.DataLabelPosition>() is C.DataLabelPosition position)
             current.Position = ReadLabelPosition(position.Val?.InnerText);
-        if (Flag<C.ShowLegendKey>(labels, null))
-            OfficeOpenXmlChartFidelityScope.Approximate("The native data label overrides cannot be projected.",
-                "Legend keys inside data labels are left out.");
-        if (Flag<C.ShowBubbleSize>(labels, null))
-            OfficeOpenXmlChartFidelityScope.Approximate("The native data label overrides cannot be projected.",
-                "Bubble sizes in data labels are left out.");
         if (current.Visible || labels.GetFirstChild<C.TextProperties>() != null) {
             int checkpoint = OfficeOpenXmlChartFidelityScope.Checkpoint;
             try {
@@ -211,13 +228,7 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
                         "Data label fills and borders are left out.");
                 continue;
             }
-            if (child is C.DLblsExtensionList or C.DLblExtensionList) {
-                if (child.Descendants().Any(element => element.LocalName == "showDataLabelsRange" &&
-                        element.GetAttributes().Any(attribute => attribute.LocalName == "val" && attribute.Value is "1" or "true")))
-                    OfficeOpenXmlChartFidelityScope.Approximate("Data labels taken from cell ranges cannot be projected.",
-                        "Data labels taken from cell ranges are left out of the label text.");
-                continue;
-            }
+            if (child is C.DLblsExtensionList or C.DLblExtensionList) continue;
             OfficeOpenXmlChartFidelityScope.Approximate("The native data label appearance cannot be projected.",
                 "Data label formatting the renderer cannot draw is left out.");
         }
@@ -301,6 +312,15 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
             child is A.NoFill ||
             child is A.EffectList && !child.HasChildren ||
             child is A.Outline outline && outline.ChildElements.All(line => line is A.NoFill));
+
+    // The c15 showDataLabelsRange flag in the label extension list; null when the labels do not set it.
+    private static bool? ReadRangeTextFlag(OpenXmlCompositeElement labels) {
+        OpenXmlElement? flag = labels.ChildElements.Where(child => child is C.DLblsExtensionList or C.DLblExtensionList)
+            .SelectMany(list => list.Descendants()).FirstOrDefault(element => element.LocalName == "showDataLabelsRange");
+        if (flag == null) return null;
+        string? value = flag.GetAttributes().FirstOrDefault(attribute => attribute.LocalName == "val").Value;
+        return value is null or "1" or "true";
+    }
 
     private static bool Flag<T>(OpenXmlCompositeElement labels, bool? inherited) where T : C.BooleanType =>
         labels.GetFirstChild<T>() is T flag ? flag.Val?.Value != false : inherited ?? false;

@@ -54,12 +54,9 @@ public static partial class OfficeChartDrawingRenderer {
             if (trendline.Type == OfficeChartTrendlineType.MovingAverage) {
                 int period = trendline.Period ?? 2;
                 points = new List<OfficePoint>();
-                double sum = 0D;
-                for (int i = 0; i < ys.Count; i++) {
-                    sum += ys[i];
-                    if (i >= period) sum -= ys[i - period];
-                    if (i >= period - 1) points.Add(new OfficePoint(toPixelX(xs[i]), toPixelY(sum / period)));
-                }
+                double[] averages = GetMovingAverages(ys, period);
+                for (int i = 0; i < averages.Length; i++)
+                    points.Add(new OfficePoint(toPixelX(xs[i + period - 1]), toPixelY(averages[i])));
             } else {
                 if (!TryFitTrendline(trendline, xs, ys, out Func<double, double>? model, out equation, out rSquared)) continue;
                 double first = xs.Min();
@@ -103,6 +100,21 @@ public static partial class OfficeChartDrawingRenderer {
             AddChartText(drawing, text, labelX, labelY, width, height, fontSize, style.TextColor, OfficeTextAlignment.Right, style,
                 layout.DataLabelFontFamily);
         }
+    }
+
+    /// <summary>
+    /// Averages each window of <paramref name="period"/> values on its own: a running sum would keep the rounding error
+    /// of a large value after it leaves the window. Readers cap the period at DrawingML's 255.
+    /// </summary>
+    internal static double[] GetMovingAverages(IReadOnlyList<double> values, int period) {
+        if (period < 1 || values.Count < period) return Array.Empty<double>();
+        var averages = new double[values.Count - period + 1];
+        for (int i = period - 1; i < values.Count; i++) {
+            double sum = 0D;
+            for (int j = i - period + 1; j <= i; j++) sum += values[j];
+            averages[i - period + 1] = sum / period;
+        }
+        return averages;
     }
 
     private static double CategoryNumberToPixel(OfficeChartSnapshot snapshot, double plotLeft, double plotWidth,

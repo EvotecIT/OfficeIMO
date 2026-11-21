@@ -27,7 +27,10 @@ namespace OfficeIMO.OpenXml.Internal {
                 var element = source[index];
                 if (!forDataUpdate && element.Elements<C.ErrorBars>().Any())
                     OfficeOpenXmlChartFidelityScope.Approximate("Error bars cannot be projected.", "Error bars are left out.");
-                if (!forDataUpdate && (element.Elements<C.Trendline>().Any() ||
+                if (!forDataUpdate && element.Elements<C.Trendline>().Any())
+                    OfficeOpenXmlChartFidelityScope.Approximate("Trendlines on bubble charts cannot be projected.",
+                        "Trendlines on bubble charts are left out.");
+                if (!forDataUpdate && (
                     HasUnsupportedSeriesStyle(element.ChartShapeProperties) || HasUnresolvedSeriesColor(element.ChartShapeProperties, colorScheme) ||
                     OfficeOpenXmlChartPointStyles.GetBoundedPoints(element, maximumPointOverrides).Any(point =>
                         HasUnsupportedPointStyle(point.ChartShapeProperties) || HasUnresolvedPointColor(point.ChartShapeProperties, colorScheme)))) return null;

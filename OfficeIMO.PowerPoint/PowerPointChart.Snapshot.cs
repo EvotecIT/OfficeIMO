@@ -758,7 +758,8 @@ namespace OfficeIMO.PowerPoint {
                 .WithSecondaryValueAxis(forDataUpdate ? null :
                     OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.Read(plotArea,
                         () => OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAxisNumberFormats
-                            .ResolveSourceLinkedGeneral(GetChartPart())))
+                            .ResolveSourceLinkedGeneral(GetChartPart(),
+                                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.Resolve(plotArea))))
                 .WithDataLabelLeaderLines(radialLabels?.LeaderLines == true)
                 .WithCategoryGeometry(plotArea, GetOwnerColorScheme())
                 .WithPlotSemantics(chart);
@@ -800,7 +801,7 @@ namespace OfficeIMO.PowerPoint {
                 if (part.ChartSpace?.GetFirstChild<C.ExternalData>() != null) {
                     try {
                         return OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAxisNumberFormats
-                            .ResolveSourceLinkedGeneral(part);
+                            .ResolveSourceLinkedGeneral(part, axis);
                     } catch (NotSupportedException) {
                         // The cells carry formats; the chart caches the code Office last displayed.
                         OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.RecordLinkedFormatFallback("axis");
