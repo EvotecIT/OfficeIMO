@@ -272,7 +272,9 @@ internal static partial class DocumentReaderEngine {
     }
 
     private static void AppendHashValue(StringBuilder builder, string name, object? value) {
-        string text = value is IFormattable formattable
+        string text = value is double or float
+            ? OfficeIMO.OfficeRoundTripNumberText.FormatObject(value, CultureInfo.InvariantCulture) ?? string.Empty
+            : value is IFormattable formattable
             ? formattable.ToString(null, CultureInfo.InvariantCulture) ?? string.Empty
             : value?.ToString() ?? string.Empty;
         builder.Append(name.Length.ToString(CultureInfo.InvariantCulture)).Append(':').Append(name);

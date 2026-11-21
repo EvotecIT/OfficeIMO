@@ -116,6 +116,7 @@ internal sealed class ProjectMpxValues {
         ProjectDuration duration => duration.Value.ToString(Invariant) + (duration.IsElapsed ? "e" : "") +
             (duration.Unit switch { ProjectDurationUnit.Minute => "m", ProjectDurationUnit.Hour => "h", ProjectDurationUnit.Day => "d", ProjectDurationUnit.Week => "w", _ => "mo" }) + (duration.IsEstimated ? "?" : ""),
         ProjectWork work => work.Minutes.ToString(Invariant) + "m", ProjectUnits units => units.Value.ToString(Invariant),
+        double or float => OfficeIMO.OfficeRoundTripNumberText.FormatObject(value, Invariant)!,
         IFormattable number => number.ToString(null, Invariant), _ => value.ToString() ?? ""
     };
 }

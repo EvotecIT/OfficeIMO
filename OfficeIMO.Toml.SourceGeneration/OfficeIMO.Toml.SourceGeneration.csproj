@@ -20,6 +20,7 @@
   <!-- The shape rules and emitter are shared with the YAML generator, which ships in its own package. -->
   <ItemGroup>
     <Compile Include="..\OfficeIMO.SharedSource\SerializerGeneration\*.cs" Link="Shared\%(Filename)%(Extension)" />
+    <Compile Include="..\OfficeIMO.SharedSource\Numerics\OfficeRoundTripNumberText.cs" Link="Shared\OfficeRoundTripNumberText.cs" />
   </ItemGroup>
 
   <ItemGroup>

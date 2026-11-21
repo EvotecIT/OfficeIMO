@@ -160,6 +160,11 @@ internal static class PowerShellCellValueFormatter
             return boolValue ? "True" : "False";
         }
 
+        if (value is double or float)
+        {
+            return OfficeIMO.OfficeRoundTripNumberText.FormatObject(value, options.Culture) ?? string.Empty;
+        }
+
         if (value is IFormattable formattable)
         {
             return formattable.ToString(null, options.Culture) ?? string.Empty;

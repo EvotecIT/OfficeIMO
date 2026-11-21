@@ -886,12 +886,12 @@ internal static partial class PdfRedactionApplier {
         return string.Format(
             CultureInfo.InvariantCulture,
             "q {0} {1} {2} {3} {4} {5} cm {6} Q",
-            transform.A,
-            transform.B,
-            transform.C,
-            transform.D,
-            transform.E,
-            transform.F,
+            PdfNumberFormatter.PreciseOrRaw(transform.A),
+            PdfNumberFormatter.PreciseOrRaw(transform.B),
+            PdfNumberFormatter.PreciseOrRaw(transform.C),
+            PdfNumberFormatter.PreciseOrRaw(transform.D),
+            PdfNumberFormatter.PreciseOrRaw(transform.E),
+            PdfNumberFormatter.PreciseOrRaw(transform.F),
             content);
     }
 

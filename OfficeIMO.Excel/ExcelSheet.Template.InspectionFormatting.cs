@@ -148,6 +148,10 @@ namespace OfficeIMO.Excel {
             }
 
             string? resolvedFormat = ResolveTemplateFormatAlias(format);
+            if (resolvedFormat == null && value is double or float) {
+                return OfficeIMO.OfficeRoundTripNumberText.FormatObject(value, options.FormatProvider ?? CultureInfo.CurrentCulture) ?? string.Empty;
+            }
+
             if (value is IFormattable formattable) {
                 return formattable.ToString(resolvedFormat, options.FormatProvider ?? CultureInfo.CurrentCulture) ?? string.Empty;
             }

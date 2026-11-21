@@ -124,6 +124,6 @@ public sealed class InvokeOfficeWordMailMergeCommand : PSCmdlet
             return dateTimeOffset.ToString("o", CultureInfo.InvariantCulture);
         }
 
-        return System.Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+        return OfficeIMO.OfficeRoundTripNumberText.FormatObject(value, CultureInfo.InvariantCulture) ?? string.Empty;
     }
 }

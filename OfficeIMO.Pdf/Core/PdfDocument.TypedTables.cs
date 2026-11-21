@@ -71,7 +71,7 @@ public sealed partial class PdfDocument {
                 object? value = path == expandedPath ? expandedValue
                     : row.TryGetValue(path, out var projectedValue) ? projectedValue
                     : projectionOptions.DefaultValues.TryGetValue(path, out var defaultValue) ? defaultValue : null;
-                cells[column] = Convert.ToString(value, CultureInfo.CurrentCulture) ?? string.Empty;
+                cells[column] = OfficeIMO.OfficeRoundTripNumberText.FormatObject(value, CultureInfo.CurrentCulture) ?? string.Empty;
             }
             output.Add(cells);
             dataRows++;

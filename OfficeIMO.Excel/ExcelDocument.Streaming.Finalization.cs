@@ -64,7 +64,7 @@ public partial class ExcelDocument {
     }
 
     private static void SetStreamingDocumentProperty(SpreadsheetDocument package, string name, object? value) {
-        string? text = value == null ? null : System.Convert.ToString(value, CultureInfo.InvariantCulture);
+        string? text = value == null ? null : OfficeIMO.OfficeRoundTripNumberText.FormatObject(value, CultureInfo.InvariantCulture);
         DateTime? Date() => value == null ? null : value is DateTimeOffset offset ? offset.DateTime : System.Convert.ToDateTime(value, CultureInfo.InvariantCulture);
         switch (name.ToUpperInvariant()) {
             case "TITLE": package.PackageProperties.Title = text; return;

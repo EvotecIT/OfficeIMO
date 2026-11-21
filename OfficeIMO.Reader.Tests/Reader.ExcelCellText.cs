@@ -61,10 +61,10 @@ public sealed partial class ReaderExcelCellTextTests {
 
         IReadOnlyList<string> row = ReadFirstDataRow(workbook, ".xlsx", new ReaderExcelOptions { CellText = ReaderExcelCellText.Raw });
 
-        // Raw numbers use the runtime's default invariant text, which is shortest round-trip on .NET and 15 digits on .NET Framework.
+        // Raw numbers use the shortest invariant text that reads back to the stored double, on every framework.
         Assert.Equal(new[] {
             "0.032", "31200", "2024-01-15T00:00:00.0000000", "1899-12-31T13:30:00.0000000", "1.25", "12345.678", "00123",
-            (0.1d + 0.2d).ToString(CultureInfo.InvariantCulture), "True"
+            "0.30000000000000004", "True"
         }, row);
     }
 

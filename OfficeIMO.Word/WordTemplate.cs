@@ -432,8 +432,7 @@ namespace OfficeIMO.Word {
 
         private static string FormatScalar(object? value, CultureInfo culture) {
             if (value == null) return string.Empty;
-            if (value is IFormattable formattable) return formattable.ToString(null, culture) ?? string.Empty;
-            return Convert.ToString(value, culture) ?? string.Empty;
+            return OfficeIMO.OfficeRoundTripNumberText.FormatObject(value, culture) ?? string.Empty;
         }
 
         private static void RemoveRange(IReadOnlyList<OpenXmlElement> elements, int start, int end) {

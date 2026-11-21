@@ -56,12 +56,12 @@ internal static class OfficeChartDataBuilder {
             throw new PSArgumentException($"Property '{propertyName}' cannot be null.");
         }
 
-        var text = Convert.ToString(value, CultureInfo.InvariantCulture);
+        var text = OfficeIMO.OfficeRoundTripNumberText.FormatObject(value, CultureInfo.InvariantCulture);
         if (string.IsNullOrWhiteSpace(text)) {
             throw new PSArgumentException($"Property '{propertyName}' cannot be empty.");
         }
 
-        return text;
+        return text!;
     }
 
     internal static double ConvertToDouble(object? value, string propertyName) {

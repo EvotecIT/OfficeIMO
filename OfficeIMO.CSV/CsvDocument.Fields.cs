@@ -488,7 +488,7 @@ public sealed partial class CsvDocument
             var fieldIndex = sourceHeaderCount;
             foreach (var staticColumn in _options.StaticColumns)
             {
-                _rowVisitor.VisitFieldValue(_rowIndex, fieldIndex++, Convert.ToString(staticColumn.Value, _options.Culture) ?? string.Empty);
+                _rowVisitor.VisitFieldValue(_rowIndex, fieldIndex++, OfficeIMO.OfficeRoundTripNumberText.FormatObject(staticColumn.Value, _options.Culture) ?? string.Empty);
                 emittedFieldCount++;
             }
 

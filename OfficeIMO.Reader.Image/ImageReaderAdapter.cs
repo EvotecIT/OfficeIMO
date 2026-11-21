@@ -206,7 +206,7 @@ internal static partial class ImageReaderAdapter {
             Id = id,
             Category = "image.properties",
             Name = name,
-            Value = Convert.ToString(value, CultureInfo.InvariantCulture),
+            Value = OfficeIMO.OfficeRoundTripNumberText.FormatObject(value, CultureInfo.InvariantCulture),
             ValueType = valueType
         };
     }

@@ -136,7 +136,7 @@ internal static class ExcelRichMapping {
                     Kind = hyperlink.IsExternal ? "uri" : "internal",
                     Uri = hyperlink.IsExternal ? hyperlink.Target : null,
                     DestinationName = hyperlink.IsExternal ? null : hyperlink.Target,
-                    Text = hyperlink.Tooltip ?? Convert.ToString(cell.Value, CultureInfo.InvariantCulture),
+                    Text = hyperlink.Tooltip ?? OfficeIMO.OfficeRoundTripNumberText.FormatObject(cell.Value, CultureInfo.InvariantCulture),
                     Location = new ReaderLocation {
                         Path = sourcePath,
                         Sheet = sheet.Name,
@@ -282,10 +282,10 @@ internal static class ExcelRichMapping {
         string fallback,
         ExcelCellDisplayText? display) {
         if (!cells.TryGetValue((row, column), out ExcelCellInfo? cell) || cell.Value == null) return fallback;
-        string? value = display == null ? Convert.ToString(cell.Value, CultureInfo.InvariantCulture)
+        string? value = display == null ? OfficeIMO.OfficeRoundTripNumberText.FormatObject(cell.Value, CultureInfo.InvariantCulture)
             : display.TryFormatRaw(cell.StoredValueType == "n", cell.StoredValueType == "d", cell.StoredValue, cell.StyleIndex, out string formatted)
                 ? formatted
-                : display.FormatUnstyled(cell.Value) ?? Convert.ToString(cell.Value, CultureInfo.InvariantCulture);
+                : display.FormatUnstyled(cell.Value) ?? OfficeIMO.OfficeRoundTripNumberText.FormatObject(cell.Value, CultureInfo.InvariantCulture);
         return string.IsNullOrWhiteSpace(value) ? fallback : value!;
     }
 

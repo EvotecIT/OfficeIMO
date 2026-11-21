@@ -147,7 +147,7 @@ public sealed partial class IWorkTableCell {
         IWorkCellKind.Duration when Value is double seconds => OfficeIMO.Core.Internal.OfficeRoundTripText.Format(seconds, CultureInfo.InvariantCulture) + "s",
         IWorkCellKind.Formula => Formula ?? "=?",
         IWorkCellKind.Error => Error ?? "#ERROR",
-        _ => Convert.ToString(Value, CultureInfo.InvariantCulture) ?? string.Empty
+        _ => OfficeIMO.OfficeRoundTripNumberText.FormatObject(Value, CultureInfo.InvariantCulture) ?? string.Empty
     };
 
     /// <summary>Gets a culture-invariant display representation of the cached value, including for formula cells.</summary>
@@ -156,7 +156,7 @@ public sealed partial class IWorkTableCell {
         IWorkCellKind.DateTime when Value is DateTime date => FormatDateTime(date),
         IWorkCellKind.Duration when Value is double seconds => OfficeIMO.Core.Internal.OfficeRoundTripText.Format(seconds, CultureInfo.InvariantCulture) + "s",
         IWorkCellKind.Error => Error ?? "#ERROR",
-        _ => Convert.ToString(Value, CultureInfo.InvariantCulture) ?? string.Empty
+        _ => OfficeIMO.OfficeRoundTripNumberText.FormatObject(Value, CultureInfo.InvariantCulture) ?? string.Empty
     };
 
     private static string FormatDateTime(DateTime value) =>

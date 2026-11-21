@@ -5,6 +5,9 @@ namespace OfficeIMO.Pdf;
 internal static class PdfNumberFormatter {
     // Gradient coordinates may be tiny before an affine map magnifies them.
     // Preserve the double without exponent notation, which PDF reals forbid.
+    internal static string PreciseOrRaw(double value) =>
+        double.IsNaN(value) || double.IsInfinity(value) ? value.ToString(CultureInfo.InvariantCulture) : Precise(value);
+
     internal static string Precise(double value) {
         if (value == 0D) return "0";
         if (double.IsNaN(value) || double.IsInfinity(value)) {

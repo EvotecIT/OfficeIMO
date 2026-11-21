@@ -238,7 +238,7 @@ namespace OfficeIMO.PowerPoint {
 
             foreach (object?[] row in rowsData) {
                 for (int c = 0; c < headers.Count; c++) {
-                    string value = Convert.ToString(row[c], CultureInfo.InvariantCulture) ?? string.Empty;
+                    string value = OfficeIMO.OfficeRoundTripNumberText.FormatObject(row[c], CultureInfo.InvariantCulture) ?? string.Empty;
                     table.GetCell(rowIndex, c).Text = value;
                 }
                 rowIndex++;
@@ -316,7 +316,7 @@ namespace OfficeIMO.PowerPoint {
             foreach (var item in items) {
                 for (int c = 0; c < columnList.Count; c++) {
                     object? value = columnList[c].ValueSelector(item);
-                    string text = Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+                    string text = OfficeIMO.OfficeRoundTripNumberText.FormatObject(value, CultureInfo.InvariantCulture) ?? string.Empty;
                     table.GetCell(rowIndex, c).Text = text;
                 }
                 rowIndex++;

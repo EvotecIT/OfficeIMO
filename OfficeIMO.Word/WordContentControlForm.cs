@@ -617,6 +617,10 @@ namespace OfficeIMO.Word {
                 return null;
             }
 
+            if (value is double or float) {
+                return OfficeIMO.OfficeRoundTripNumberText.FormatObject(value, CultureInfo.InvariantCulture);
+            }
+
             return value is IFormattable formattable
                 ? formattable.ToString(null, CultureInfo.InvariantCulture)
                 : value.ToString();

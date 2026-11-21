@@ -11,7 +11,7 @@ internal static class OfficeTypedChartData {
         ArgumentNullException.ThrowIfNull(data);
         ArgumentNullException.ThrowIfNull(category);
         ArgumentNullException.ThrowIfNull(series);
-        var categories = data.Select(row => Convert.ToString(category(row), CultureInfo.InvariantCulture) ?? string.Empty).ToArray();
+        var categories = data.Select(row => OfficeIMO.OfficeRoundTripNumberText.FormatObject(category(row), CultureInfo.InvariantCulture) ?? string.Empty).ToArray();
         foreach (var item in series) {
             if (item == null) throw new ArgumentException("Series must not contain null entries.", nameof(series));
             if (item.Values.Count != categories.Length) throw new ArgumentException("Each chart series must have one value per category.", nameof(series));
@@ -32,7 +32,7 @@ internal static class OfficeTypedChartData {
         var columns = numericProperties.Select(_ => new List<double>()).ToArray();
         foreach (T row in data) {
             if (row is null) throw new ArgumentException("Chart rows must not contain null entries.", nameof(data));
-            labels.Add(Convert.ToString(categoryProperty.GetValue(row, null), CultureInfo.InvariantCulture) ?? string.Empty);
+            labels.Add(OfficeIMO.OfficeRoundTripNumberText.FormatObject(categoryProperty.GetValue(row, null), CultureInfo.InvariantCulture) ?? string.Empty);
             for (int index = 0; index < columns.Length; index++) columns[index].Add(OfficeSeries.NumericValue(numericProperties[index].GetValue(row, null)));
         }
         return new OfficeChartData(labels, numericProperties.Select((property, index) => new OfficeSeries(property.Name, columns[index])));

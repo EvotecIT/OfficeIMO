@@ -1076,7 +1076,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         return builder.ToString();
     }
 
-    private static string ValueText(object? value) => Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+    private static string ValueText(object? value) => OfficeIMO.OfficeRoundTripNumberText.FormatObject(value, CultureInfo.InvariantCulture) ?? string.Empty;
     private static double ExcelWidthToPoints(double width) => Math.Max(0D, (width * 7D + 5D) * 72D / 96D);
     private static double PointsToExcelWidth(double points) => Math.Max(0D, Math.Min(255D, (points * 96D / 72D - 5D) / 7D));
 

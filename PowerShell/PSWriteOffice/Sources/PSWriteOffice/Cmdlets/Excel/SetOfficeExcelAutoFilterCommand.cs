@@ -118,8 +118,8 @@ public sealed class SetOfficeExcelAutoFilterCommand : PSCmdlet {
             if (Criteria != null) foreach (DictionaryEntry item in Criteria) {
                 object? value = OfficeArgumentValue.Unwrap(item.Value);
                 var values = value is IEnumerable items && value is not string
-                    ? items.Cast<object?>().Select(item => Convert.ToString(OfficeArgumentValue.Unwrap(item), CultureInfo.InvariantCulture) ?? string.Empty).ToArray()
-                    : new[] { Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty };
+                    ? items.Cast<object?>().Select(item => OfficeIMO.OfficeRoundTripNumberText.FormatObject(OfficeArgumentValue.Unwrap(item), CultureInfo.InvariantCulture) ?? string.Empty).ToArray()
+                    : new[] { OfficeIMO.OfficeRoundTripNumberText.FormatObject(value, CultureInfo.InvariantCulture) ?? string.Empty };
                 filter.Column(Convert.ToString(item.Key)!).Equals(values);
             }
         } else ApplyFilter(filter.Column(Header!));
