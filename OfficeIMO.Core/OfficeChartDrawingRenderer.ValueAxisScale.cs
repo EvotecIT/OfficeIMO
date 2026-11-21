@@ -44,7 +44,7 @@ public static partial class OfficeChartDrawingRenderer {
                 .Select(index => index < sharedX.Count ? sharedX[index] : double.NaN).ToArray() : null;
             IReadOnlyList<double>? plottedX = xValues ? sourceX!.Select(xToPlot!).ToArray() : current.XValues;
             series.Add(current.WithPlottedValues(plotted, plottedX, values ? toSource : null, xValues ? xToSource : null,
-                values ? current.Values : null, sourceX));
+                values ? current.Values : null, sourceX, xValues ? xToPlot : null));
         }
 
         IReadOnlyList<double> stackTotals = transformValues && GetLogBase(layout, valueOnHorizontal).HasValue
@@ -53,8 +53,9 @@ public static partial class OfficeChartDrawingRenderer {
         OfficeChartLayout plottingLayout = layout;
         if (transformValues) plottingLayout = RestateAxis(plottingLayout, valueOnHorizontal, series.Where(item => item.SourceValue != null)
             .SelectMany(item => item.Values).Concat(stackTotals));
+        // A logarithmic X axis is bounded by the plotted points and the trendline forecasts that reach past them.
         if (transformX) plottingLayout = RestateAxis(plottingLayout, horizontal: true, series.Where(item => item.SourceXValue != null)
-            .SelectMany(item => item.XValues!));
+            .SelectMany(item => item.XValues!.Concat(GetForecastXExtents(item))));
         return new OfficeChartSnapshot(snapshot.Name, snapshot.Title, kind, new OfficeChartData(snapshot.Data.Categories, series),
             snapshot.Width, snapshot.Height, snapshot.Style, plottingLayout, snapshot.BubbleScalePercent, snapshot.BubbleSizeMode,
             snapshot.RadialLayout);

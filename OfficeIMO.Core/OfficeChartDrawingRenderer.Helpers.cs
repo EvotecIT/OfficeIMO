@@ -318,13 +318,7 @@ public static partial class OfficeChartDrawingRenderer {
                 AddErrorBarExtents(series[s], series[s].Values, i, yValue, xBars: false, yValues);
             }
             // Office widens the x axis to show a trendline's forecasts, measured from the points it plots.
-            if (series[s].Trendline is OfficeChartTrendline trendline && (trendline.Forward > 0D || trendline.Backward > 0D) &&
-                plottedMinX <= plottedMaxX) {
-                double first = plottedMinX - trendline.Backward;
-                double last = plottedMaxX + trendline.Forward;
-                if (IsFiniteChartValue(first)) xValues.Add(first);
-                if (IsFiniteChartValue(last)) xValues.Add(last);
-            }
+            if (plottedMinX <= plottedMaxX) xValues.AddRange(GetForecastXExtents(series[s], plottedMinX, plottedMaxX));
         }
 
         return xValues.Count == 0 || yValues.Count == 0
@@ -344,6 +338,40 @@ public static partial class OfficeChartDrawingRenderer {
     private static OfficePoint CreateRadarPoint(int index, int count, double centerX, double centerY, double radius) {
         double angle = -Math.PI / 2D + Math.PI * 2D * index / count;
         return new OfficePoint(centerX + Math.Cos(angle) * radius, centerY + Math.Sin(angle) * radius);
+    }
+
+    /// <summary>
+    /// The plotted x values a scatter trendline's forecasts reach from the plotted points between
+    /// <paramref name="plottedMinX"/> and <paramref name="plottedMaxX"/>. Forecasts are in source units, so on a
+    /// logarithmic or reversed axis they are measured there and plotted back; one the axis cannot draw is left out.
+    /// </summary>
+    private static IEnumerable<double> GetForecastXExtents(OfficeSeries series, double plottedMinX, double plottedMaxX) {
+        if (series.Trendline is not OfficeChartTrendline trendline || trendline.Forward <= 0D && trendline.Backward <= 0D) yield break;
+        Func<double, double>? toSource = series.SourceXValue, toPlot = series.PlotXValue;
+        bool transformed = toSource != null && toPlot != null;
+        double sourceA = transformed ? toSource!(plottedMinX) : plottedMinX;
+        double sourceB = transformed ? toSource!(plottedMaxX) : plottedMaxX;
+        double first = Math.Min(sourceA, sourceB) - trendline.Backward;
+        double last = Math.Max(sourceA, sourceB) + trendline.Forward;
+        if (transformed) {
+            first = toPlot!(first);
+            last = toPlot!(last);
+        }
+        if (IsFiniteChartValue(first)) yield return first;
+        if (IsFiniteChartValue(last)) yield return last;
+    }
+
+    /// <summary>The plotted forecast reach of a scatter series, from the points that have both values.</summary>
+    private static IEnumerable<double> GetForecastXExtents(OfficeSeries series) {
+        if (series.Trendline == null || series.XValues == null) return Array.Empty<double>();
+        double min = double.PositiveInfinity, max = double.NegativeInfinity;
+        int count = Math.Min(series.XValues.Count, series.Values.Count);
+        for (int index = 0; index < count; index++) {
+            if (!TryGetSeriesValue(series, index, out _) || !IsFiniteChartValue(series.XValues[index])) continue;
+            min = Math.Min(min, series.XValues[index]);
+            max = Math.Max(max, series.XValues[index]);
+        }
+        return min <= max ? GetForecastXExtents(series, min, max) : Array.Empty<double>();
     }
 
     // Office's automatic value axis scale also covers the reach of the series' error bars.

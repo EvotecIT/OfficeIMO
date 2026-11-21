@@ -71,6 +71,46 @@ public sealed class DrawingChartErrorBarsAndForecastsTests {
     }
 
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void ScatterForecastsAreDrawnOnReversedXAxes(bool logarithmic, bool backward) {
+        OfficeDrawing Draw(double forecast) {
+            OfficeChartLayout layout = new OfficeChartLayout(showLegend: false).WithReversedValueAxes(true, false);
+            if (logarithmic) layout = layout.WithLogarithmicValueAxes(10D, null);
+            OfficeChartTrendline trendline = new OfficeChartTrendline(OfficeChartTrendlineType.Linear, color: Trend)
+                .WithNativeDetails(backward ? 0D : forecast, backward ? forecast : 0D, null);
+            return Render(OfficeChartType.Scatter, layout, new[] { "1", "2", "3" },
+                new OfficeSeries("Sales", new[] { 1D, 2D, 3D }, new[] { 2D, 4D, 8D }, Ink, null, showMarkers: true).WithTrendline(trendline));
+        }
+
+        static double Span(OfficeDrawing drawing) {
+            OfficePoint[] points = TrendPoints(drawing).ToArray();
+            return points.Max(point => point.X) - points.Min(point => point.X);
+        }
+
+        // A forecast of one data unit either way stays on screen once the axis widens to show it, so the drawn
+        // trendline covers more of the plot than the data alone.
+        double data = Span(Draw(0D));
+        double forecast = Span(Draw(1D));
+        Assert.True(forecast > data + 10D, $"The trendline spans {forecast} with the forecast and {data} without it.");
+    }
+
+    [Fact]
+    public void ScatterForecastsWidenALogarithmicXAxisInSourceUnits() {
+        OfficeDrawing drawing = Render(OfficeChartType.Scatter, new OfficeChartLayout(showLegend: false).WithLogarithmicValueAxes(10D, null),
+            new[] { "1", "2" },
+            new OfficeSeries("Sales", new[] { 1D, 2D }, new[] { 1D, 10D }, Ink, null, showMarkers: true)
+                .WithTrendline(new OfficeChartTrendline(OfficeChartTrendlineType.Linear, color: Trend).WithNativeDetails(90D, 0D, null)));
+
+        // Forecasting 90 past x = 10 reaches 100; the axis must not read the forecast in log units (10^91).
+        double largest = Texts(drawing).Select(text => double.TryParse(text.Text, System.Globalization.NumberStyles.Float,
+            System.Globalization.CultureInfo.InvariantCulture, out double value) ? value : 0D).Max();
+        Assert.InRange(largest, 100D, 1000D);
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void HorizontalBarTrendlineMeetsTheBarCentresWhenCategoriesSitOnTickMarks(bool reversed) {

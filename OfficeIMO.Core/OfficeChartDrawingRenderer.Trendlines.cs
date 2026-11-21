@@ -94,9 +94,10 @@ public static partial class OfficeChartDrawingRenderer {
                 // Only the visible part of a forecast is sampled, so a long forecast keeps the curve's shape inside
                 // the plot, and a forecast the axis cannot draw, such as one reaching zero on a logarithmic axis,
                 // keeps its part from the visible axis edge. The data span itself is always drawn.
+                // The axis bounds are plotted values; a reversed axis restates its lower bound as the larger source value.
                 (double visibleFirst, double visibleLast) = scatter
                     ? plotX == null ? (xRange.Min, xRange.Max)
-                        : sourceX != null ? (sourceX(xRange.Min), sourceX(xRange.Max)) : (double.NegativeInfinity, double.PositiveInfinity)
+                        : sourceX != null ? OrderedPair(sourceX(xRange.Min), sourceX(xRange.Max)) : (double.NegativeInfinity, double.PositiveInfinity)
                     : (0D, categories.Count + 1D);
                 if (!(first >= visibleFirst)) first = IsFiniteChartValue(visibleFirst) ? Math.Min(drawable.Min(), visibleFirst) : drawable.Min();
                 if (!(last <= visibleLast)) last = IsFiniteChartValue(visibleLast) ? Math.Max(drawable.Max(), visibleLast) : drawable.Max();
@@ -147,6 +148,9 @@ public static partial class OfficeChartDrawingRenderer {
                 layout.DataLabelFontFamily);
         }
     }
+
+    private static (double Low, double High) OrderedPair(double first, double second) =>
+        first <= second ? (first, second) : (second, first);
 
     /// <summary>
     /// Averages each window of <paramref name="period"/> values on its own: a running sum would keep the rounding error

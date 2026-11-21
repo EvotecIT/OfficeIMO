@@ -313,6 +313,10 @@ public sealed partial class OfficeSeries {
     /// <inheritdoc cref="SourceValue"/>
     internal Func<double, double>? SourceXValue { get; private set; }
 
+    /// <summary>Plots a source X value on the transformed horizontal axis, the inverse of <see cref="SourceXValue"/>;
+    /// null when the plotted X values are the source values.</summary>
+    internal Func<double, double>? PlotXValue { get; private set; }
+
     /// <summary>The source value of each point when the values are plotted on a transformed axis, including points a
     /// logarithmic axis cannot draw; null when the plotted values are the source values.</summary>
     internal IReadOnlyList<double>? SourcePointValues { get; private set; }
@@ -324,7 +328,7 @@ public sealed partial class OfficeSeries {
     /// samples its trendline is fitted to.</summary>
     internal OfficeSeries WithPlottedValues(IReadOnlyList<double> values, IReadOnlyList<double>? xValues,
         Func<double, double>? sourceValue, Func<double, double>? sourceXValue,
-        IReadOnlyList<double>? sourceValues = null, IReadOnlyList<double>? sourceXValues = null) {
+        IReadOnlyList<double>? sourceValues = null, IReadOnlyList<double>? sourceXValues = null, Func<double, double>? plotXValue = null) {
         var copy = new OfficeSeries(Name, values, xValues, BubbleSizes, Color, PointColors,
             ShowMarkers, ShowInLegend, ConnectLine, MarkerSize, MarkerShape, MarkerOutlineColor,
             MarkerOutlineWidth, StrokeWidth, StrokeDashStyle, RenderKind, AxisGroup, ShowMarkerOutline) {
@@ -336,6 +340,7 @@ public sealed partial class OfficeSeries {
         };
         copy.SourceValue = sourceValue;
         copy.SourceXValue = sourceXValue;
+        copy.PlotXValue = sourceXValue != null ? plotXValue : null;
         copy.SourcePointValues = sourceValues;
         copy.SourcePointXValues = sourceXValues;
         return copy;
@@ -343,7 +348,7 @@ public sealed partial class OfficeSeries {
 
     /// <summary>Returns a copy plotted as steps between scaled running totals, labelled with its source values.</summary>
     internal OfficeSeries WithStackedSteps(IReadOnlyList<double> steps, IReadOnlyList<double> sourceValues) {
-        return WithPlottedValues(steps, XValues, null, SourceXValue, sourceValues, SourcePointXValues);
+        return WithPlottedValues(steps, XValues, null, SourceXValue, sourceValues, SourcePointXValues, PlotXValue);
     }
 
     /// <summary>Returns a copy with replacement point colours, keeping values and appearance.</summary>
