@@ -1009,6 +1009,19 @@ namespace OfficeIMO.Word {
             return ConvertParagraphsToWordParagraphs(_document, paragraphs);
         }
 
+        /// <summary>Returns the body children that belong to this section, in document order.</summary>
+        private List<OpenXmlElement> GetSectionBodyChildren() {
+            int targetSection = GetSectionOrdinal();
+            var children = new List<OpenXmlElement>();
+            var body = _document._document?.Body;
+            if (body == null) return children;
+            foreach (var (element, section) in EnumerateBodyChildrenBySection(body, targetSection)) {
+                if (section > targetSection) break;
+                if (section == targetSection) children.Add(element);
+            }
+            return children;
+        }
+
         /// <summary>
         /// Splits the body children into sections: a section break paragraph belongs to the section
         /// it ends, and any extra break paragraphs stay in the last section.
