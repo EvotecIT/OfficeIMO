@@ -5826,6 +5826,30 @@ Every existing library framework remains supported in 3.6. The front door and
 both Workflows packages also support `netstandard2.0`, `net8.0`, `net10.0` and
 `net472` on Windows. Modern-only optional engines retain their framework limits.
 
+## Word PDF paragraph spacing and section starts
+
+Word-to-PDF conversion now follows Word for the space around paragraphs and for
+blank pages before sections. Documents can paginate differently from earlier
+versions:
+
+- A heading takes its size, line spacing and space before and after from the
+  document defaults, its style chain and direct formatting. Built-in fallbacks
+  (24 pt before Heading 1, 16 pt text) no longer apply when the style leaves a
+  value out, and headings keep with the next paragraph only when the style says so.
+- Space before a heading is dropped at the top of a page or column, as it already
+  was for body text. It is kept for the first paragraph of the document and of a
+  next-page, odd-page or even-page section, reduced by the space after the last
+  paragraph of the previous section. In documents in Word 2010 or earlier
+  compatibility mode, it is also kept after page-break-before.
+- The paragraph mark after a column break takes an empty line at the top of the
+  next column.
+- Automatic spacing (`w:beforeAutospacing`, `w:afterAutospacing`) is 14 pt, and
+  none before the first paragraph of the document.
+- A next-page section that restarts page numbering never gets a blank page in
+  front of it. Odd-page and even-page sections with a restart change the page
+  number instead of adding a page. Blank pages for page-number parity are added
+  only with facing pages (mirror margins or different odd and even headers).
+
 ## Word field layout pagination
 
 Select the native pagination engine through `OfficeIMO.Word.Pdf` when refreshing

@@ -55,7 +55,7 @@ public static partial class WordPdfConverterExtensions {
         style.SpacingAfter = ((ShouldSuppressNativeContextualSpacingAfter(last,
             GetNextNativeRenderableElement(elements, lastIndex) as WordParagraph) ? 0D : (finalStyle.SpacingAfter?.ToPoints())) is { } pdfLength2980 ? global::OfficeIMO.OfficeLength.Points(pdfLength2980) : (global::OfficeIMO.OfficeLength?)null);
         style.KeepWithNext = finalStyle.KeepWithNext;
-        if (HasNativePageBreakBefore(first)) pdf.PageBreak();
+        if (HasNativePageBreakBefore(first)) RenderNativePageBreakBefore(pdf, first);
         foreach (WordParagraph paragraph in paragraphs) {
             RecordNativeBodyParagraphDiagnostics(paragraph, options, "joined body paragraph",
                 mapsCheckBoxes: false, mapsFormFields: false, mapsPictureControls: false, mapsRepeatingSections: false);

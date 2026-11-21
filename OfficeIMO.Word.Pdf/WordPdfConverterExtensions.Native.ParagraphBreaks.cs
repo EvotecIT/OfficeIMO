@@ -34,7 +34,7 @@ public static partial class WordPdfConverterExtensions {
             RecordNativeParagraphBarTabDiagnostics(paragraph, options, "body paragraph",
                 omitted: before == null && after == null);
         }
-        if (HasNativePageBreakBefore(paragraph)) pdf.PageBreak();
+        if (HasNativePageBreakBefore(paragraph)) RenderNativePageBreakBefore(pdf, paragraph);
         if (paragraph._paragraph != null && !GetNativeParagraphBookmarkNames(paragraph).Any() &&
             headingDestinations.TryGetValue(paragraph._paragraph, out string? generatedDestination)) pdf.Bookmark(generatedDestination);
         while (true) {
@@ -53,9 +53,11 @@ public static partial class WordPdfConverterExtensions {
             }
             if (breakType == W.BreakValues.Column) pdf.ColumnBreak();
             else pdf.PageBreak(preserveEmptyPage: true);
-            if (after == null && breakType == W.BreakValues.Page &&
+            // Word moves the paragraph mark after a column break into the next column,
+            // where it takes an empty line; after a page break it stays on the previous page.
+            if (after == null && (breakType == W.BreakValues.Column || breakType == W.BreakValues.Page &&
                 !UsesModernNativeWordLayout(paragraph._document) &&
-                paragraph._document.CompatibilitySettings.SplitPageBreakAndParagraphMark) {
+                paragraph._document.CompatibilitySettings.SplitPageBreakAndParagraphMark)) {
                 var mark = new W.Paragraph();
                 if (paragraph._paragraph?.ParagraphProperties is W.ParagraphProperties markProperties) {
                     mark.Append((W.ParagraphProperties)markProperties.CloneNode(true));

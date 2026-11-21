@@ -240,6 +240,7 @@ namespace OfficeIMO.Word.Pdf {
             string? pageFootnoteBodyProfileGap = null;
             bool pageFootnoteBodyProfileChecked = false;
             var documentEndnotes = new List<PdfFootnote>();
+            double? previousSectionSpacingAfter = null;
             for (int sectionIndex = 0; sectionIndex < sections.Count;) {
                 cancellationToken.ThrowIfCancellationRequested();
                 int sectionGroupEnd = GetNativePdfSectionGroupEnd(sections, sectionIndex, options, listMarkers, canContinueRunningStories);
@@ -260,7 +261,10 @@ namespace OfficeIMO.Word.Pdf {
                     ConfigureNativePageNumbering(page, firstSection);
                     ConfigureNativeHeaderFooter(page, firstSection, options, headerFooterMarginExpansion.Header, headerFooterMarginExpansion.Footer, nativeFontMap, listMarkers);
                     ConfigureNativeRunningHeaderFooter(page, firstSection, options, nativeFontMap, listMarkers, nativeDefaults);
-                    INativePdfFlow flow = new NativeSpacingCollapseFlow(new NativePdfDocumentFlow(pdf, sectionPageSize));
+                    var collapseFlow = new NativeSpacingCollapseFlow(new NativePdfDocumentFlow(pdf, sectionPageSize));
+                    if (sectionIndex > 0 && StartsNativeSectionOnNewPage(firstSection)) collapseFlow.PreserveNextSpacingBefore(previousSectionSpacingAfter);
+                    previousSectionSpacingAfter = null;
+                    INativePdfFlow flow = collapseFlow;
 
                     for (int currentSectionIndex = sectionIndex; currentSectionIndex < sectionGroupEnd; currentSectionIndex++) {
                         cancellationToken.ThrowIfCancellationRequested();
@@ -352,6 +356,12 @@ namespace OfficeIMO.Word.Pdf {
 
                         RenderNativeImplicitTerminalBodyBarParagraph(flow, section, options, nativeDefaults, nativeFontMap);
                         RenderNativeFootnotes(flow, footnotes, section, footnoteNumbersById, options, nativeDefaults, nativeFontMap);
+                        // An empty section-mark paragraph is not drawn, but its space after
+                        // is what the next section's first paragraph collapses against.
+                        previousSectionSpacingAfter = elements.Count > 0 && elements[elements.Count - 1] is WordParagraph sectionMark &&
+                            sectionMark._paragraph != null && WordParagraph.IsSectionMarkOnly(sectionMark._paragraph)
+                            ? CreateNativeParagraphStyle(sectionMark, nativeDefaults, nativeFontMap).SpacingAfter?.ToPoints()
+                            : collapseFlow.PendingSpacingAfter;
                     }
                 });
 
@@ -439,12 +449,22 @@ namespace OfficeIMO.Word.Pdf {
                  (canContinueRunningStories && CanContinueNativeDefaultHeaderStory(previous, current, options)));
         }
 
+        private static bool StartsNativeSectionOnNewPage(WordSection section) =>
+            section.BreakType is WordSectionBreakType.NextPage or WordSectionBreakType.OddPage or WordSectionBreakType.EvenPage;
+
         private static PdfCore.PdfPageParity? GetNativeSectionStartParity(WordSection section) {
-            if (section.BreakType == WordSectionBreakType.OddPage) return PdfCore.PdfPageParity.Odd;
-            if (section.BreakType == WordSectionBreakType.EvenPage) return PdfCore.PdfPageParity.Even;
-            if (section.BreakType == WordSectionBreakType.NextPage &&
-                section._sectionProperties.GetFirstChild<W.PageNumberType>()?.Start?.Value is int start && start > 0) {
-                return start % 2 == 0 ? PdfCore.PdfPageParity.Even : PdfCore.PdfPageParity.Odd;
+            int? restart = section._sectionProperties.GetFirstChild<W.PageNumberType>()?.Start?.Value is int start && start > 0 ? start : null;
+            // Facing pages keep odd numbers on right-hand pages, so Word adds a blank page
+            // whenever the section's first number would land on the wrong side. Without
+            // facing pages a restart only renumbers: odd and even starts move the number
+            // to the required parity, and next-page starts never add a page.
+            bool facingPages = section._document.Settings.MirrorMargins || section.DocumentOddEvenSettingEnabled;
+            if (section.BreakType == WordSectionBreakType.OddPage || section.BreakType == WordSectionBreakType.EvenPage) {
+                if (restart.HasValue && !facingPages) return null;
+                return section.BreakType == WordSectionBreakType.OddPage ? PdfCore.PdfPageParity.Odd : PdfCore.PdfPageParity.Even;
+            }
+            if (section.BreakType == WordSectionBreakType.NextPage && facingPages && restart.HasValue) {
+                return restart.Value % 2 == 0 ? PdfCore.PdfPageParity.Even : PdfCore.PdfPageParity.Odd;
             }
             return null;
         }

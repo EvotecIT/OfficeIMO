@@ -97,7 +97,7 @@ namespace OfficeIMO.Word.Pdf {
                 options, headingDestinations, nativeDefaults, nativeFontMap, nextParagraph)) return;
 
             if (HasNativePageBreakBefore(paragraph)) {
-                pdf.PageBreak();
+                RenderNativePageBreakBefore(pdf, paragraph);
             }
 
             List<WordParagraph> runs = nativeDefaults.RunningContentContext == null
@@ -230,7 +230,7 @@ namespace OfficeIMO.Word.Pdf {
             // A heading style without visible heading text still needs ordinary
             // paragraph flow for its pictures and other inline content.
             bool renderHeading = !string.IsNullOrWhiteSpace(headingText);
-            if (!renderHeading && RenderNativeDocumentStartSpacing(pdf, paragraph, style.SpacingBefore.ToPoints()))
+            if (RenderNativeDocumentStartSpacing(pdf, paragraph, style.SpacingBefore.ToPoints()))
                 style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D);
             global::OfficeIMO.OfficeColor? headingColor = GetNativeHeadingColor(headingLevel, defaultColor);
             PdfCore.PdfHorizontalRuleStyle? topBorderRuleStyle = marker == null ? CreateNativeTopBorderRuleStyle(paragraph, style) : null;
@@ -1147,51 +1147,31 @@ namespace OfficeIMO.Word.Pdf {
 
         private static PdfCore.PdfHeadingStyle CreateNativeWordHeadingStyle(int level, WordParagraph paragraph, PdfCore.PdfParagraphStyle paragraphStyle, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
             NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
-            double fontSize = level switch {
-                1 => 16D,
-                2 => 13D,
-                _ => 12D
-            };
-
+            // Word resolves heading metrics like any other paragraph: document defaults,
+            // then the style chain, then direct formatting. The paragraph style already
+            // carries that result, so a value missing from the heading style inherits it.
             var style = new PdfCore.PdfHeadingStyle {
                 AnchoredCanvas = paragraphStyle.AnchoredCanvas,
                 UseWordJustificationSpacing = paragraphStyle.UseWordJustificationSpacing,
                 JustificationMode = paragraphStyle.JustificationMode,
                 JustifyExplicitLineBreaks = paragraphStyle.JustifyExplicitLineBreaks,
                 JustifyLastLine = paragraphStyle.JustifyLastLine,
-                FontSize = global::OfficeIMO.OfficeLength.Points(fontSize),
-                LineHeight = 1.18D,
-                SpacingBefore = global::OfficeIMO.OfficeLength.Points(level == 1 ? 24D : 10D),
-                SpacingAfter = global::OfficeIMO.OfficeLength.Points(level == 1 ? 5D : 4D),
+                FontSize = global::OfficeIMO.OfficeLength.Points(ResolveNativeParagraphEffectiveFontSize(paragraph, nativeDefaults, styleDefaults)),
+                LineHeight = paragraphStyle.LineHeight ?? nativeDefaults.ParagraphLineHeight,
+                LineSpacing = paragraphStyle.LineSpacing,
+                SpacingBefore = paragraphStyle.SpacingBefore,
+                SpacingAfter = paragraphStyle.SpacingAfter ?? global::OfficeIMO.OfficeLength.Points(0D),
                 Bold = false,
-                ApplySpacingBeforeAtTop = true,
-                KeepWithNext = true
+                // Page and column tops drop the space before as they do for body text.
+                ApplySpacingBeforeAtTop = false
             };
-            if (ResolveNativeHeadingDeclaredFontSize(paragraph, styleDefaults) is { } declaredFontSize) {
-                style.FontSize = global::OfficeIMO.OfficeLength.Points(declaredFontSize);
-            }
-
-            if (ResolveNativeParagraphLineSpacing(paragraph, styleDefaults, nativeDefaults).Value.HasValue && paragraphStyle.LineHeight.HasValue) {
-                style.FontSize = global::OfficeIMO.OfficeLength.Points(ResolveNativeParagraphEffectiveFontSize(paragraph, nativeDefaults, styleDefaults));
-                style.LineHeight = paragraphStyle.LineHeight.Value;
-                style.LineSpacing = paragraphStyle.LineSpacing;
-            }
-
-            if (HasNativeHeadingDeclaredSpacingBefore(paragraph, styleDefaults)) {
-                style.SpacingBefore = paragraphStyle.SpacingBefore;
-            }
-
-            if (HasNativeHeadingDeclaredSpacingAfter(paragraph, styleDefaults)) {
-                style.SpacingAfter = paragraphStyle.SpacingAfter;
-            }
-
             // A heading's paragraph indent narrows its text frame, so it lines up with indented body text.
             style.LeftIndent = Math.Max(0D, paragraphStyle.LeftIndent.ToPoints() + Math.Min(paragraphStyle.FirstLineIndent.ToPoints(), 0D));
             style.RightIndent = Math.Max(0D, paragraphStyle.RightIndent.ToPoints());
             foreach (PdfCore.PdfTabStop stop in ResolveNativeParagraphTabStops(paragraph, 0D, 0D)
                 .Where(stop => stop.Alignment == PdfCore.PdfTabAlignment.Bar))
                 style.TabStops.Add(stop);
-            style.KeepWithNext = ReadNativeDirectParagraphOnOff<W.KeepNext>(paragraph) ?? styleDefaults.KeepWithNext ?? true;
+            style.KeepWithNext = paragraphStyle.KeepWithNext;
             foreach (string family in ResolveNativeParagraphStyleFontFamilies(paragraph._document, paragraph.StyleId)) {
                 if (nativeFontMap.TryGetNamedFontFamily(family, out string? registeredHeadingFamily)) {
                     style.FontFamily = registeredHeadingFamily;
@@ -1205,24 +1185,6 @@ namespace OfficeIMO.Word.Pdf {
 
             return style;
         }
-
-        private static double? ResolveNativeHeadingDeclaredFontSize(WordParagraph paragraph, NativeParagraphStyleDefaults styleDefaults) {
-            if (paragraph.NativeFontSizePoints.HasValue && paragraph.NativeFontSizePoints.Value > 0D) {
-                return paragraph.NativeFontSizePoints.Value;
-            }
-
-            if (styleDefaults.FontSize.HasValue && styleDefaults.FontSize.Value > 0D) {
-                return styleDefaults.FontSize.Value;
-            }
-
-            return null;
-        }
-
-        private static bool HasNativeHeadingDeclaredSpacingBefore(WordParagraph paragraph, NativeParagraphStyleDefaults styleDefaults) =>
-            paragraph.LineSpacingBefore.HasValue || styleDefaults.SpacingBefore.HasValue;
-
-        private static bool HasNativeHeadingDeclaredSpacingAfter(WordParagraph paragraph, NativeParagraphStyleDefaults styleDefaults) =>
-            paragraph.LineSpacingAfter.HasValue || styleDefaults.SpacingAfter.HasValue;
 
         private static void AddNativeRun(
             PdfCore.PdfParagraph builder,
