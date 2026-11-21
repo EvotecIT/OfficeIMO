@@ -87,13 +87,22 @@ public static partial class OfficeChartDrawingRenderer {
         int maximumExplosion = GetMaximumRenderableExplosion(values, categories.Count);
         radius /= 1D + maximumExplosion / 100D;
         // Best-fit labels stay inside their slices and move outside, with leader lines, when they do not fit. An
-        // automatic plot area then shrinks to leave room for them; a manually placed one keeps its size.
+        // automatic plot area then shrinks to leave room for them; a manually placed one keeps its size. A pie too
+        // small for outside labels keeps them inside, as before, and reports it.
         HashSet<int> movedOutside = FindBestFitLabelsOutsideSlices(snapshot, layout, values, total, scale, radius);
         if (movedOutside.Count > 0 && !outsideLabels && layout.PlotAreaLayout == null) {
             GetRadialPlotGeometry(width, height, contentTop, categoryBottomLegendHeight, legendWidth,
-                leftLegend, 180D, 56D, out centerX, out centerY, out radius, out visualWidth, out contentHeight);
-            radius = ReserveOutsideRadialLabelGutters(radius, visualWidth) / (1D + maximumExplosion / 100D);
-            movedOutside = FindBestFitLabelsOutsideSlices(snapshot, layout, values, total, scale, radius);
+                leftLegend, 180D, 56D, out double wideCenterX, out double wideCenterY, out double wideRadius,
+                out double wideVisualWidth, out double wideContentHeight);
+            if (HasOutsideRadialLabelGutters(wideVisualWidth)) {
+                (centerX, centerY, visualWidth, contentHeight) = (wideCenterX, wideCenterY, wideVisualWidth, wideContentHeight);
+                radius = ReserveOutsideRadialLabelGutters(wideRadius, wideVisualWidth) / (1D + maximumExplosion / 100D);
+                movedOutside = FindBestFitLabelsOutsideSlices(snapshot, layout, values, total, scale, radius);
+            } else {
+                movedOutside.Clear();
+                ReportRenderApproximation(snapshot.Name,
+                    "Best-fit data labels that do not fit inside their slices stay inside a pie too small for outside labels.");
+            }
         }
         var outside = new List<RadialOutsideLabel>();
         double start = GetFirstSliceAngle(snapshot.RadialLayout);

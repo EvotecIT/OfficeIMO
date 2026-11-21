@@ -1,9 +1,13 @@
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeChartDrawingRenderer {
+    // Both sides need the maximum supported label width, a leader gap, and frame padding.
+    private const double OutsideRadialLabelGutters = 174D;
+
+    private static bool HasOutsideRadialLabelGutters(double visualWidth) => visualWidth > OutsideRadialLabelGutters;
+
     private static double ReserveOutsideRadialLabelGutters(double radius, double visualWidth) {
-        // Both sides need the maximum supported label width, a leader gap, and frame padding.
-        double availableRadius = (visualWidth - 174D) / 2D;
+        double availableRadius = (visualWidth - OutsideRadialLabelGutters) / 2D;
         if (availableRadius <= 0D)
             throw new NotSupportedException("Outside radial chart labels need a wider plot area.");
         return Math.Min(radius, availableRadius);

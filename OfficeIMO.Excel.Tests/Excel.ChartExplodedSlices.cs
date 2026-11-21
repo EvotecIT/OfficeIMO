@@ -161,7 +161,7 @@ public sealed class ExcelChartExplodedSlicesTests {
     }
 
     [Fact]
-    public void ErrorBarsOnALogarithmicAxis_DataReadsAndExportStillReportsThem() {
+    public void ErrorBarsOnALogarithmicAxis_AreReadAndDrawn() {
         using var document = ExcelDocument.Create();
         ExcelChart chart = document.AddSheet("Results").AddChart(OfficeChartType.Line, new OfficeChartData(new[] { "A", "B", "C" }, new[] {
                 new OfficeSeries("Status", new[] { 7d, 30d, 500d })
@@ -175,11 +175,9 @@ public sealed class ExcelChartExplodedSlicesTests {
 
         Assert.True(chart.TryGetData(out ExcelChartData data));
         Assert.Equal(new[] { 7d, 30d, 500d }, data.Series.Single().Values);
-        NotSupportedException strict = Assert.Throws<NotSupportedException>(() => chart.ToImage(OfficeImageExportFormat.Png));
-        Assert.Contains("logarithmic or reversed", strict.Message, StringComparison.Ordinal);
-        OfficeImageExportResult image = chart.ToImage(OfficeImageExportFormat.Png,
-            new ExcelImageExportOptions { ChartRendering = { Fidelity = OfficeChartFidelity.BestEffort } });
-        Assert.Contains(image.Diagnostics, diagnostic => diagnostic.Message == "Error bars on a logarithmic or reversed axis are left out.");
+        OfficeImageExportResult image = chart.ToImage(OfficeImageExportFormat.Png);
+        Assert.NotEmpty(image.Bytes);
+        Assert.DoesNotContain(image.Diagnostics, diagnostic => diagnostic.Code == OfficeDiagnosticCodes.ChartApproximation);
     }
 
     [Fact]

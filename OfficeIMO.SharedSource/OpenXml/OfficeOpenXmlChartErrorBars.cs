@@ -20,12 +20,6 @@ internal static class OfficeOpenXmlChartErrorBars {
         Func<OpenXmlElement, IReadOnlyList<double>, IReadOnlyList<double>>? selectVisible = null) {
         List<OfficeChartErrorBars>? result = null;
         bool scatter = series.Parent is C.ScatterChart or C.BubbleChart;
-        // Bars are measured on the source values; a logarithmic or reversed value axis would need them restated.
-        if (series.Elements<C.ErrorBars>().Any() && HasScaledValueAxis(series)) {
-            Approximate("Error bars on logarithmic or reversed axes cannot be projected.",
-                "Error bars on a logarithmic or reversed axis are left out.");
-            return null;
-        }
         foreach (C.ErrorBars bars in series.Elements<C.ErrorBars>().Take(2)) {
             string? direction = Value(bars, "errDir");
             string? type = Value(bars, "errBarType");
@@ -74,14 +68,6 @@ internal static class OfficeOpenXmlChartErrorBars {
         Func<OpenXmlElement, IReadOnlyList<double>, IReadOnlyList<double>>? selectVisible) {
         IReadOnlyList<double>? amounts = OfficeOpenXmlChartCacheReader.ReadCachedNumbers(source, maximumPoints);
         return amounts != null && source != null && selectVisible != null ? selectVisible(source, amounts) : amounts;
-    }
-
-    private static bool HasScaledValueAxis(OpenXmlCompositeElement series) {
-        if (series.Parent is not OpenXmlCompositeElement layer || layer.Parent is not C.PlotArea plot) return false;
-        var ids = new HashSet<uint>(layer.Elements<C.AxisId>().Select(reference => reference.Val?.Value).OfType<uint>());
-        return plot.Elements<C.ValueAxis>().Any(axis => axis.AxisId?.Val?.Value is uint id && ids.Contains(id) &&
-            (axis.Scaling?.GetFirstChild<C.LogBase>() != null ||
-             axis.Scaling?.GetFirstChild<C.Orientation>()?.Val?.Value == C.OrientationValues.MaxMin));
     }
 
     private static OpenXmlElement? Child(OpenXmlElement parent, string localName) =>

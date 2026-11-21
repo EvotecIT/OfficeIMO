@@ -364,10 +364,25 @@ public static partial class OfficeChartDrawingRenderer {
         List<double> extents) {
         if (series.ErrorBars == null) return;
         foreach (OfficeChartErrorBars bars in series.ErrorBars) {
-            if (bars.AlongCategoryAxis != xBars || !bars.TryGetSpan(values, index, value, out _, out double low, out double high)) continue;
-            extents.Add(low);
-            extents.Add(high);
+            if (bars.AlongCategoryAxis != xBars ||
+                !TryGetPlottedErrorSpan(series, bars, index, value, 0D, xBars, values, out _, out double minusEnd, out double plusEnd)) continue;
+            // An end past a logarithmic axis edge does not stretch the axis.
+            if (IsFiniteChartValue(minusEnd)) extents.Add(minusEnd);
+            if (IsFiniteChartValue(plusEnd)) extents.Add(plusEnd);
         }
+    }
+
+    /// <summary>The plotted reach of a series' error bars along one axis, for the points it plots.</summary>
+    private static IEnumerable<double> GetErrorBarExtents(OfficeSeries series, bool xBars) {
+        if (series.ErrorBars == null) return Array.Empty<double>();
+        IReadOnlyList<double>? values = xBars ? series.XValues : series.Values;
+        if (values == null) return Array.Empty<double>();
+        var extents = new List<double>();
+        for (int index = 0; index < values.Count && index < series.Values.Count; index++) {
+            if (!IsFiniteChartValue(values[index]) || !TryGetSeriesValue(series, index, out _)) continue;
+            AddErrorBarExtents(series, values, index, values[index], xBars, extents);
+        }
+        return extents;
     }
 
     private static ValueRange GetFiniteSeriesRange(IReadOnlyList<OfficeSeries> series) {

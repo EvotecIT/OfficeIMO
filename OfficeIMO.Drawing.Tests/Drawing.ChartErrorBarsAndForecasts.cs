@@ -181,6 +181,135 @@ public sealed class DrawingChartErrorBarsAndForecastsTests {
         Assert.DoesNotContain(0, cramped);
     }
 
+    [Fact]
+    public void ErrorBarsOnALogarithmicValueAxisAreMeasuredInSourceUnits() {
+        OfficeSeries series = new OfficeSeries("Sales", new[] { 10D, 100D }, new[] { 1D, 2D }, Ink, null, showMarkers: true)
+            .WithErrorBars(new[] { Bars(OfficeChartErrorBarValueType.Fixed, 5D, OfficeChartErrorBarDirection.Both, endCaps: false) });
+
+        OfficeDrawing drawing = Render(OfficeChartType.Scatter, new OfficeChartLayout(showLegend: false).WithLogarithmicValueAxes(null, 10D),
+            new[] { "1", "2" }, series);
+
+        // 10 +/- 5 spans log(15) - log(5) = 0.48 decades; 100 +/- 5 spans log(105) - log(95) = 0.043 decades.
+        (OfficePoint From, OfficePoint To)[] lines = ErrorLines(drawing).OrderBy(line => line.From.X).ToArray();
+        Assert.Equal(2, lines.Length);
+        double ratio = Length(lines[0]) / Length(lines[1]);
+        Assert.InRange(ratio, 10D, 12D);
+    }
+
+    [Fact]
+    public void ErrorBarReachWidensALogarithmicValueAxis() {
+        OfficeSeries series = new OfficeSeries("Sales", new[] { 10D, 100D }, new[] { 1D, 2D }, Ink, null, showMarkers: true)
+            .WithErrorBars(new[] { Bars(OfficeChartErrorBarValueType.Fixed, 900D, OfficeChartErrorBarDirection.Plus, endCaps: true) });
+
+        OfficeDrawing drawing = Render(OfficeChartType.Scatter, new OfficeChartLayout(showLegend: false).WithLogarithmicValueAxes(null, 10D),
+            new[] { "1", "2" }, series);
+
+        // The plus bar of 100 reaches 1000, so the axis gains the 1000 power, labelled "1k".
+        Assert.Contains(Texts(drawing), text => text.Text == "1k");
+    }
+
+    [Fact]
+    public void ScatterOnALogarithmicXAxisKeepsItsYErrorBars() {
+        OfficeSeries series = new OfficeSeries("Sales", new[] { 1D, 2D }, new[] { 1D, 10D }, Ink, null, showMarkers: true)
+            .WithErrorBars(new[] { Bars(OfficeChartErrorBarValueType.Fixed, 0.5D, OfficeChartErrorBarDirection.Both, endCaps: false) });
+
+        OfficeDrawing drawing = Render(OfficeChartType.Scatter, new OfficeChartLayout(showLegend: false).WithLogarithmicValueAxes(10D, null),
+            new[] { "1", "2" }, series);
+
+        Assert.Equal(2, ErrorLines(drawing).Count());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PlusErrorBarsPointTowardLargerValuesOnAReversedAxis(bool reversed) {
+        OfficeSeries series = new OfficeSeries("Sales", new[] { 10D, 20D, 30D }, null, Ink, null, showMarkers: true)
+            .WithErrorBars(new[] { Bars(OfficeChartErrorBarValueType.Fixed, 5D, OfficeChartErrorBarDirection.Plus, endCaps: true) });
+        OfficeChartLayout layout = new OfficeChartLayout(showLegend: false);
+        if (reversed) layout = layout.WithReversedValueAxes(false, true);
+
+        OfficeDrawing drawing = Render(OfficeChartType.Line, layout, new[] { "A", "B", "C" }, series);
+
+        // Each plus bar has its cap at the larger value: at the top normally, at the bottom on a reversed axis.
+        (OfficePoint From, OfficePoint To)[] lines = ErrorLines(drawing).ToArray();
+        (OfficePoint From, OfficePoint To)[] bars = lines.Where(line => Math.Abs(line.From.X - line.To.X) < 0.01D).ToArray();
+        (OfficePoint From, OfficePoint To)[] caps = lines.Where(line => Math.Abs(line.From.Y - line.To.Y) < 0.01D).ToArray();
+        Assert.Equal(3, bars.Length);
+        Assert.Equal(3, caps.Length);
+        foreach ((OfficePoint From, OfficePoint To) bar in bars) {
+            double capY = caps.Single(cap => Math.Abs((cap.From.X + cap.To.X) / 2D - bar.From.X) < 0.5D).From.Y;
+            double end = reversed ? Math.Max(bar.From.Y, bar.To.Y) : Math.Min(bar.From.Y, bar.To.Y);
+            Assert.Equal(end, capY, 1);
+        }
+    }
+
+    [Fact]
+    public void StackedBarErrorBarsAreDrawnOverTheBarsStackedAboveThem() {
+        OfficeColor upper = OfficeColor.Parse("#FF7F0E");
+        OfficeSeries lower = new OfficeSeries("Lower", new[] { 10D }, null, Ink, null, showMarkers: false)
+            .WithErrorBars(new[] { Bars(OfficeChartErrorBarValueType.Fixed, 2D, OfficeChartErrorBarDirection.Both, endCaps: true) });
+        OfficeSeries top = new OfficeSeries("Upper", new[] { 10D }, null, upper, null, showMarkers: false);
+
+        OfficeDrawing drawing = Render(OfficeChartType.ColumnStacked, new OfficeChartLayout(showLegend: false), new[] { "A" }, lower, top);
+
+        List<OfficeDrawingShape> shapes = Shapes(drawing).ToList();
+        int upperBar = shapes.FindIndex(shape => shape.Shape.FillColor == upper);
+        int lastErrorLine = shapes.FindLastIndex(shape => shape.Shape.StrokeColor == ErrorBarInk);
+        Assert.True(upperBar >= 0 && lastErrorLine >= 0);
+        Assert.True(shapes.FindIndex(shape => shape.Shape.StrokeColor == ErrorBarInk) > upperBar,
+            "Every error bar line must come after the bar stacked above it.");
+    }
+
+    [Fact]
+    public void PointColoredLegendListsTheNamedTrendline() {
+        OfficeSeries series = new OfficeSeries("Sales", new[] { 1D, 3D, 2D }, null, Ink,
+                new OfficeColor?[] { OfficeColor.Parse("#FF0000"), OfficeColor.Parse("#00FF00"), OfficeColor.Parse("#0000FF") })
+            .WithTrendline(new OfficeChartTrendline(OfficeChartTrendlineType.Linear, color: Trend).WithNativeDetails(0D, 0D, "Linear (Sales)"));
+
+        OfficeDrawing drawing = Render(OfficeChartType.ColumnClustered, new OfficeChartLayout(showLegend: true).WithVaryColorsByPoint(true),
+            new[] { "North", "South", "East" }, series);
+
+        Assert.Contains(Texts(drawing), text => text.Text == "North");
+        Assert.Contains(Texts(drawing), text => text.Text == "Linear (Sales)");
+    }
+
+    [Fact]
+    public void BestFitLabelsOnAPieTooSmallForOutsideLabelsStayInsideAndAreReported() {
+        var snapshot = new OfficeChartSnapshot("Small", null, OfficeChartType.Pie,
+            new OfficeChartData(new[] { "North", "South", "East", "West" }, new[] { new OfficeSeries("Sales", new[] { 80D, 1D, 1D, 18D }) }),
+            global::OfficeIMO.OfficeLength.Points(150), global::OfficeIMO.OfficeLength.Points(150), null,
+            new OfficeChartLayout(showLegend: false, showDataLabels: true, showDataLabelCategoryNames: true));
+        var diagnostics = new List<OfficeImageExportDiagnostic>();
+
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(snapshot, useMinimumCanvas: false, diagnostics);
+
+        Assert.Contains(Texts(drawing), text => text.Text == "South");
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Code == global::OfficeIMO.OfficeDiagnosticCodes.ChartApproximation);
+    }
+
+    [Fact]
+    public void BubbleErrorBarsAreDrawn() {
+        OfficeSeries series = OfficeSeries.CreateBubble("Values", new[] { 1D, 2D }, new[] { 3D, 4D }, new[] { 5D, 6D })
+            .WithErrorBars(new[] { Bars(OfficeChartErrorBarValueType.Fixed, 1D, OfficeChartErrorBarDirection.Both, endCaps: false) });
+
+        OfficeDrawing drawing = Render(OfficeChartType.Bubble, new OfficeChartLayout(showLegend: false), new[] { "1", "2" }, series);
+
+        Assert.Equal(2, ErrorLines(drawing).Count());
+    }
+
+    private static readonly OfficeColor ErrorBarInk = OfficeColor.FromRgb(0x59, 0x59, 0x59);
+
+    private static OfficeChartErrorBars Bars(OfficeChartErrorBarValueType kind, double amount, OfficeChartErrorBarDirection direction, bool endCaps) =>
+        new OfficeChartErrorBars(kind, amount, direction, endCaps, alongCategoryAxis: false);
+
+    private static IEnumerable<(OfficePoint From, OfficePoint To)> ErrorLines(OfficeDrawing drawing) =>
+        Shapes(drawing).Where(shape => shape.Shape.StrokeColor == ErrorBarInk && shape.Shape.Kind == OfficeShapeKind.Line)
+            .Select(shape => (new OfficePoint(shape.X + shape.Shape.Points[0].X, shape.Y + shape.Shape.Points[0].Y),
+                new OfficePoint(shape.X + shape.Shape.Points[1].X, shape.Y + shape.Shape.Points[1].Y)));
+
+    private static double Length((OfficePoint From, OfficePoint To) line) =>
+        Math.Sqrt(Math.Pow(line.To.X - line.From.X, 2D) + Math.Pow(line.To.Y - line.From.Y, 2D));
+
     private static OfficeDrawing Render(OfficeChartType kind, OfficeChartLayout layout, string[] categories, params OfficeSeries[] series) =>
         OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null, kind, new OfficeChartData(categories, series),
             global::OfficeIMO.OfficeLength.Points(480), global::OfficeIMO.OfficeLength.Points(300), layout: layout));

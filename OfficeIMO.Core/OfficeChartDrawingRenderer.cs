@@ -23,13 +23,16 @@ public static partial class OfficeChartDrawingRenderer {
         ICollection<OfficeImageExportDiagnostic>? diagnostics) {
         List<ChartLabelBounds>? previousLabels = _renderPassLabels;
         HashSet<(int Series, int Point)>? previousHiddenLabels = _renderPassHiddenLabels;
+        ICollection<OfficeImageExportDiagnostic>? previousDiagnostics = _renderPassDiagnostics;
         _renderPassLabels = new List<ChartLabelBounds>();
         _renderPassHiddenLabels = null;
+        _renderPassDiagnostics = diagnostics;
         try {
             return RenderCore(snapshot, useMinimumCanvas, diagnostics);
         } finally {
             _renderPassLabels = previousLabels;
             _renderPassHiddenLabels = previousHiddenLabels;
+            _renderPassDiagnostics = previousDiagnostics;
         }
     }
 
@@ -102,7 +105,9 @@ public static partial class OfficeChartDrawingRenderer {
             return drawing;
         }
 
-        IReadOnlyList<OfficeSeries> legendSeries = GetPointColoredLegendSeries(snapshot) ?? GetRenderableLegendSeries(snapshot, style);
+        IReadOnlyList<OfficeSeries> legendSeries = GetPointColoredLegendSeries(snapshot) is IReadOnlyList<OfficeSeries> pointEntries
+            ? WithTrendlineLegendEntries(snapshot, style, pointEntries, snapshot.Data.Series)
+            : GetRenderableLegendSeries(snapshot, style);
         double topLegendHeight = layout.LegendPosition == OfficeChartLegendPosition.Top
             ? GetSeriesLegendBandHeight(legendSeries, width - 16D, layout)
             : 0D;
@@ -1144,6 +1149,7 @@ public static partial class OfficeChartDrawingRenderer {
         bool onTickMarks = UsesTickMarkCategoryPoints(snapshot, layout);
         int slotIntervals = onTickMarks ? categories.Count - 1 : categories.Count;
         OfficeDrawing barGeometry = onTickMarks ? new OfficeDrawing(drawing.Width, drawing.Height) : drawing;
+        var errorBars = new List<Action>();
         // Labels go above the clipped bars, which are added last.
         OfficeDrawing barLabels = onTickMarks ? new OfficeDrawing(drawing.Width, drawing.Height) : drawing;
         double slot = plotWidth / slotIntervals;
@@ -1236,8 +1242,14 @@ public static partial class OfficeChartDrawingRenderer {
                     if (sourceValue != 0D && (value != 0D || x1 != x2)) {
                         AddStyledPointShape(barGeometry, OfficeShape.Rectangle(w, rowHeight), x, y, color, GetPointStyle(currentSeries, category), null, 0.75D);
                     }
-                    if (!seriesPercentStacked) AddPointErrorBars(barGeometry, currentSeries, category, value, seriesStacked ? baseline : 0D,
-                        y + rowHeight / 2D, horizontal: true, point => ToPlotX(point, min, max, plotLeft, plotWidth), range);
+                    if (!seriesPercentStacked && currentSeries.ErrorBars != null) {
+                        OfficeSeries errorSeries = currentSeries;
+                        int point = category;
+                        double barValue = value, offset = seriesStacked ? baseline : 0D, cross = y + rowHeight / 2D, barMin = min, barMax = max;
+                        ValueRange barRange = range;
+                        errorBars.Add(() => AddPointErrorBars(barGeometry, errorSeries, point, barValue, offset, cross, horizontal: true,
+                            item => ToPlotX(item, barMin, barMax, plotLeft, plotWidth), barRange));
+                    }
 
                     AddHorizontalDataLabel(
                         barLabels,
@@ -1266,8 +1278,14 @@ public static partial class OfficeChartDrawingRenderer {
                     if (sourceValue != 0D && (value != 0D || y1 != y2)) {
                         AddStyledPointShape(barGeometry, OfficeShape.Rectangle(barWidth, h), x, y, color, GetPointStyle(currentSeries, category), null, 0.75D);
                     }
-                    if (!seriesPercentStacked) AddPointErrorBars(barGeometry, currentSeries, category, value, seriesStacked ? baseline : 0D,
-                        x + barWidth / 2D, horizontal: false, point => ToPlotY(point, min, max, plotTop, plotHeight), range);
+                    if (!seriesPercentStacked && currentSeries.ErrorBars != null) {
+                        OfficeSeries errorSeries = currentSeries;
+                        int point = category;
+                        double barValue = value, offset = seriesStacked ? baseline : 0D, cross = x + barWidth / 2D, barMin = min, barMax = max;
+                        ValueRange barRange = range;
+                        errorBars.Add(() => AddPointErrorBars(barGeometry, errorSeries, point, barValue, offset, cross, horizontal: false,
+                            item => ToPlotY(item, barMin, barMax, plotTop, plotHeight), barRange));
+                    }
 
                     AddVerticalDataLabel(
                         barLabels,
@@ -1286,6 +1304,8 @@ public static partial class OfficeChartDrawingRenderer {
                 }
             }
         }
+        // Error bars go over every bar, so a bar stacked above a point does not cover its bar.
+        foreach (Action errorBar in errorBars) errorBar();
         if (onTickMarks) AddClippedPlotGeometry(drawing, barGeometry, barLabels, new ChartPlotBounds(plotLeft, plotTop, plotWidth, plotHeight));
     }
 
@@ -1631,17 +1651,25 @@ public static partial class OfficeChartDrawingRenderer {
         IReadOnlyList<OfficeSeries> series = HasMixedScatterSeriesOnCategoryAxes(snapshot)
             ? snapshot.Data.Series.Where(item => !IsScatterChart(GetEffectiveSeriesKind(snapshot, item))).ToList()
             : snapshot.Data.Series;
-        if (!series.Any(item => item.Trendline?.LegendName != null)) return series;
-        // Office lists trendlines after every series, keyed by a line in the trendline colour.
-        var entries = new List<OfficeSeries>(series);
+        return WithTrendlineLegendEntries(snapshot, style, series, series);
+    }
+
+    /// <summary>
+    /// Appends the legend entries Office lists for named trendlines after every other entry, each keyed by a line in
+    /// the trendline colour; <paramref name="listedSeries"/> are the series whose trendlines the legend shows.
+    /// </summary>
+    private static IReadOnlyList<OfficeSeries> WithTrendlineLegendEntries(OfficeChartSnapshot snapshot, OfficeChartStyle style,
+        IReadOnlyList<OfficeSeries> entries, IReadOnlyList<OfficeSeries> listedSeries) {
+        if (!listedSeries.Any(item => item.Trendline?.LegendName != null)) return entries;
+        var withTrendlines = new List<OfficeSeries>(entries);
         for (int index = 0; index < snapshot.Data.Series.Count; index++) {
             OfficeChartTrendline? trendline = snapshot.Data.Series[index].Trendline;
-            if (trendline?.LegendName == null || !series.Contains(snapshot.Data.Series[index])) continue;
-            entries.Add(new OfficeSeries(trendline.LegendName, Array.Empty<double>(), null,
+            if (trendline?.LegendName == null || !listedSeries.Contains(snapshot.Data.Series[index])) continue;
+            withTrendlines.Add(new OfficeSeries(trendline.LegendName, Array.Empty<double>(), null,
                 trendline.Color ?? GetSeriesColor(style, snapshot.Data.Series, index), null, showMarkers: false,
                 renderKind: OfficeChartType.Line));
         }
-        return entries;
+        return withTrendlines;
     }
 
     private static void AddScatterSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, double plotLeft,

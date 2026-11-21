@@ -386,7 +386,7 @@ public sealed class PowerPointChartOfficeDefaultsTests {
     }
 
     [Fact]
-    public void ErrorBarsOnALogarithmicAxisAreReported() {
+    public void ErrorBarsOnALogarithmicAxisAreDrawn() {
         string chart = CategoryChart("barChart", "<c:barDir val=\"col\"/><c:grouping val=\"clustered\"/>",
             "<c:spPr><a:solidFill><a:schemeClr val=\"accent1\"/></a:solidFill></c:spPr><c:invertIfNegative val=\"0\"/>" +
             "<c:errBars><c:errBarType val=\"both\"/><c:errValType val=\"fixedVal\"/><c:noEndCap val=\"0\"/><c:val val=\"1\"/></c:errBars>");
@@ -395,16 +395,13 @@ public sealed class PowerPointChartOfficeDefaultsTests {
             .Replace("<c:scaling><c:orientation val=\"minMax\"/></c:scaling>", "<c:scaling><c:logBase val=\"10\"/><c:orientation val=\"minMax\"/></c:scaling>");
 
         RenderSvg(chart, OfficeChartFidelity.Strict, out IReadOnlyList<OfficeImageExportDiagnostic> strict);
-        RenderSvg(chart, OfficeChartFidelity.BestEffort, out IReadOnlyList<OfficeImageExportDiagnostic> bestEffort);
 
-        Assert.Contains(strict, diagnostic => diagnostic.Code == OfficeDiagnosticCodes.UnsupportedChart &&
-            diagnostic.Message.IndexOf("logarithmic or reversed", StringComparison.Ordinal) >= 0);
-        AssertDrawn(bestEffort);
-        Assert.Contains(bestEffort, diagnostic => diagnostic.Message == "Error bars on a logarithmic or reversed axis are left out.");
+        AssertDrawn(strict);
+        Assert.DoesNotContain(strict, diagnostic => diagnostic.Code == OfficeDiagnosticCodes.ChartApproximation);
     }
 
     [Fact]
-    public void BestEffortKeepsBubblesWhoseErrorBarsCannotBeDrawn() {
+    public void BubbleErrorBarsAreDrawnAndBubbleTrendlinesAreReported() {
         using PowerPointDocument presentation = PowerPointDocument.Create();
         PowerPointSlide slide = presentation.AddSlide();
         slide.AddChart(OfficeChartType.Bubble, new OfficeChartData(new[] { "A", "B" }, new[] {
@@ -421,11 +418,17 @@ public sealed class PowerPointChartOfficeDefaultsTests {
             ChartRendering = { Fidelity = fidelity }
         }).Diagnostics;
 
-        Assert.Contains(Render(OfficeChartFidelity.Strict), diagnostic => diagnostic.Code == OfficeDiagnosticCodes.UnsupportedChart);
+        Assert.Contains(Render(OfficeChartFidelity.Strict), diagnostic => diagnostic.Code == OfficeDiagnosticCodes.UnsupportedChart &&
+            diagnostic.Message.IndexOf("Trendlines on bubble charts", StringComparison.Ordinal) >= 0);
         IReadOnlyList<OfficeImageExportDiagnostic> bestEffort = Render(OfficeChartFidelity.BestEffort);
         AssertDrawn(bestEffort);
-        Assert.Contains(bestEffort, diagnostic => diagnostic.Message == "Error bars are left out.");
         Assert.Contains(bestEffort, diagnostic => diagnostic.Message == "Trendlines on bubble charts are left out.");
+        Assert.DoesNotContain(bestEffort, diagnostic => diagnostic.Message.IndexOf("Error bars", StringComparison.Ordinal) >= 0);
+
+        series.RemoveAllChildren<C.Trendline>();
+        IReadOnlyList<OfficeImageExportDiagnostic> strict = Render(OfficeChartFidelity.Strict);
+        AssertDrawn(strict);
+        Assert.DoesNotContain(strict, diagnostic => diagnostic.Code == OfficeDiagnosticCodes.ChartApproximation);
     }
 
     private static int CountPaths(string svg) => System.Text.RegularExpressions.Regex.Matches(svg, "<path").Count;
