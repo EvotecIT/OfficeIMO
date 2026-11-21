@@ -177,7 +177,7 @@ internal static class SpreadsheetXmlWriter {
         if (value == null) return;
         if (value.Length > 32767) throw new InvalidDataException("Cell value exceeds Excel's text limit.");
         if (type == "String") VerifyText(value);
-        if (type == "Number" && (!double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
+        if (type == "Number" && (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
                 || double.IsNaN(number) || double.IsInfinity(number))) throw new InvalidDataException("Invalid numeric cell value.");
         if (type == "Boolean" && value != "0" && value != "1") throw new InvalidDataException("Invalid Boolean cell value.");
         writer.WriteStartElement("Data", Ss.NamespaceName); Attribute(writer, "Type", type);

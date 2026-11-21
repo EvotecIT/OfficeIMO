@@ -259,7 +259,7 @@ public static partial class OfficeChartDrawingRenderer {
     private static IReadOnlyList<double> GetScatterXValues(IReadOnlyList<string> categories) {
         var values = new double[categories.Count];
         for (int i = 0; i < categories.Count; i++) {
-            if (double.TryParse(categories[i], NumberStyles.Float, CultureInfo.InvariantCulture, out double value) &&
+            if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(categories[i], NumberStyles.Float, CultureInfo.InvariantCulture, out double value) &&
                 !double.IsNaN(value) &&
                 !double.IsInfinity(value)) {
                 values[i] = value;

@@ -657,7 +657,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                 LegacyXlsDocumentPropertyValueKind.Boolean => new ExcelCustomProperty(Convert.ToBoolean(property.Value, CultureInfo.InvariantCulture)),
                 LegacyXlsDocumentPropertyValueKind.DateTime => new ExcelCustomProperty(Convert.ToDateTime(property.Value, CultureInfo.InvariantCulture)),
                 LegacyXlsDocumentPropertyValueKind.Integer => new ExcelCustomProperty(property.Value, ExcelCustomPropertyType.NumberInteger),
-                LegacyXlsDocumentPropertyValueKind.Number => new ExcelCustomProperty(Convert.ToDouble(property.Value, CultureInfo.InvariantCulture)),
+                LegacyXlsDocumentPropertyValueKind.Number => new ExcelCustomProperty(OfficeIMO.Core.Internal.OfficeRoundTripText.ToDouble(property.Value, CultureInfo.InvariantCulture)),
                 LegacyXlsDocumentPropertyValueKind.Binary => new ExcelCustomProperty((byte[])property.Value!),
                 _ => new ExcelCustomProperty(Convert.ToString(property.Value, CultureInfo.InvariantCulture) ?? string.Empty)
             };

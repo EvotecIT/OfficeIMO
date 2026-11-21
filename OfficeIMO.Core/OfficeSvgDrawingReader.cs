@@ -1401,7 +1401,7 @@ public static partial class OfficeSvgDrawingReader {
                 else unsupported++;
                 break;
             case "stroke-miterlimit":
-                if (!double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double miterLimit)
+                if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double miterLimit)
                     || double.IsNaN(miterLimit) || double.IsInfinity(miterLimit) || miterLimit < 1D) unsupported++;
                 else style.MiterLimit = miterLimit;
                 break;
@@ -1765,8 +1765,7 @@ public static partial class OfficeSvgDrawingReader {
             }
             int length = index - start;
             if (length <= 0
-                || !double.TryParse(value.Substring(start, length), NumberStyles.Float,
-                    CultureInfo.InvariantCulture, out double number)
+                || !OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value.Substring(start, length), NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
                 || double.IsNaN(number)
                 || double.IsInfinity(number)) return false;
             result.Add(number);

@@ -153,8 +153,8 @@ namespace OfficeIMO.Word.Pdf {
             foreach (string token in text.Split(new[] { ' ', ';' }, StringSplitOptions.RemoveEmptyEntries)) {
                 string[] parts = token.Split(',');
                 if (parts.Length != 2 ||
-                    !double.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out double x) ||
-                    !double.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out double y)) {
+                    !OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out double x) ||
+                    !OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out double y)) {
                     return false;
                 }
 
@@ -258,7 +258,7 @@ namespace OfficeIMO.Word.Pdf {
                 return resolved.Value;
             }
 
-            return double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double result) ? result : 0D;
+            return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double result) ? result : 0D;
         }
 
     }

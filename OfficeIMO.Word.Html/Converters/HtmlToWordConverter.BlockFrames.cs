@@ -646,11 +646,7 @@ namespace OfficeIMO.Word.Html {
 
             if (normalized.EndsWith("px", StringComparison.Ordinal) ||
                 normalized.EndsWith("pt", StringComparison.Ordinal)) {
-                return double.TryParse(
-                    normalized.Substring(0, normalized.Length - 2),
-                    NumberStyles.Float,
-                    CultureInfo.InvariantCulture,
-                    out width);
+                return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(normalized.Substring(0, normalized.Length - 2), NumberStyles.Float, CultureInfo.InvariantCulture, out width);
             }
 
             width = 0;

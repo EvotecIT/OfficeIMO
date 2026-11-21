@@ -83,7 +83,7 @@ public sealed class OdgGluePoint {
     private double ReadOffset(string name, double dimension, string? alignment) {
         string value = (string?)Element.Attribute(OdfNamespaces.Svg + name) ?? "0%";
         if (alignment == null && value.EndsWith("%", StringComparison.Ordinal))
-            return double.Parse(value.Substring(0, value.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture) * dimension / 100;
+            return OfficeIMO.Core.Internal.OfficeRoundTripText.ParseDouble(value.Substring(0, value.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture) * dimension / 100;
         double distance = OdfLength.Parse(value).ToPoints();
         // Older Draw producers encode relative offsets as 1/100 mm lengths over a 10,000-unit canvas.
         // An explicit alignment selects actual absolute offsets; without it these are relative.

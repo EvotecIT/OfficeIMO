@@ -90,7 +90,7 @@ public partial class WordChart {
         (point is StringPoint text ? text.Index?.Value : (point as NumericPoint)?.Index?.Value) == nextIndex - 1U;
 
     private static bool IsNumericSliceCategory(string category) =>
-        double.TryParse(category, NumberStyles.Float, CultureInfo.InvariantCulture, out double number) &&
+        OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(category, NumberStyles.Float, CultureInfo.InvariantCulture, out double number) &&
         !double.IsNaN(number) && !double.IsInfinity(number);
 
     private static uint ReadLiteralSliceLength(OpenXmlCompositeElement? literal) {

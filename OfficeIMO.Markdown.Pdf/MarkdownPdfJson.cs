@@ -68,7 +68,7 @@ internal sealed class MarkdownPdfJsonValue {
                 value = NumberValue;
                 return true;
             case MarkdownPdfJsonValueKind.String:
-                return double.TryParse(StringValue, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+                return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(StringValue, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
             default:
                 value = 0D;
                 return false;
@@ -330,7 +330,7 @@ internal sealed class MarkdownPdfJsonValue {
             }
 
             string token = _text.Substring(start, _position - start);
-            if (!double.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) ||
+            if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) ||
                 double.IsNaN(value) ||
                 double.IsInfinity(value)) {
                 Throw("Invalid JSON number.");

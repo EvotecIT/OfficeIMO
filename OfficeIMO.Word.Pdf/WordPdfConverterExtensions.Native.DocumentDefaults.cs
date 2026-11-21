@@ -147,7 +147,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static double? ParseNativeDefaultFontSize(string? value) {
-            if (!double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double halfPoints) ||
+            if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double halfPoints) ||
                 halfPoints <= 0D ||
                 double.IsNaN(halfPoints) ||
                 double.IsInfinity(halfPoints)) {

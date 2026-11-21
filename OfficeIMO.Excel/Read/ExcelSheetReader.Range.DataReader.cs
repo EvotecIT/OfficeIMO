@@ -400,11 +400,7 @@ namespace OfficeIMO.Excel {
             if (canPreserveDateSerial
                 && Styles.IsDateLike(styleIndex!.Value)
                 && (TryParseInvariantDouble(rawText, out double serial)
-                    || double.TryParse(
-                        rawText,
-                        NumberStyles.Float | NumberStyles.AllowThousands,
-                        CultureInfo.InvariantCulture,
-                        out serial))) {
+                    || OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out serial))) {
                 if (_opt.CellValueConverter != null) {
                     var converted = ConvertRaw(SnapshotCell(cell));
                     if (converted.CustomValueHandled) { value = converted.TypedValue; return true; }
@@ -424,7 +420,7 @@ namespace OfficeIMO.Excel {
                 && raw.StyleIndex is uint dateStyle && Styles.IsDateLike(dateStyle)
                 && raw.RawText != null
                 && (TryParseInvariantDouble(raw.RawText, out double rawSerial)
-                    || double.TryParse(raw.RawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out rawSerial))) {
+                    || OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(raw.RawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out rawSerial))) {
                 // Defer date range validation until a date is requested; numeric getters
                 // must work even when a date-formatted serial is outside DateTime's range.
                 return new ExcelDataReaderDateSerial(rawSerial, _dateSystem, Styles.IsDateSystemShiftStyle(dateStyle));
@@ -433,7 +429,7 @@ namespace OfficeIMO.Excel {
             if (!raw.CustomValueHandled && raw.TypedValue is DateTime
                 && raw.TypeHint != CellValues.Date && raw.StyleIndex is uint style
                 && raw.RawText != null && Styles.IsDateLike(style)
-                && double.TryParse(raw.RawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out double serial)) {
+                && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(raw.RawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out double serial)) {
                 return new ExcelDataReaderDateSerial(serial, _dateSystem, Styles.IsDateSystemShiftStyle(style));
             }
             return raw.TypedValue;
@@ -595,7 +591,7 @@ namespace OfficeIMO.Excel {
             /// <inheritdoc />
             public override double GetDouble(int ordinal) {
                 object value = GetNonDbNullValue(ordinal, preserveDateSerial: true);
-                return value is double number ? number : Convert.ToDouble(value, _culture);
+                return value is double number ? number : OfficeIMO.Core.Internal.OfficeRoundTripText.ToDouble(value, _culture);
             }
 
             /// <inheritdoc />
@@ -605,7 +601,7 @@ namespace OfficeIMO.Excel {
 
             /// <inheritdoc />
             public override float GetFloat(int ordinal) =>
-                Convert.ToSingle(GetNonDbNullValue(ordinal, preserveDateSerial: true), _culture);
+                OfficeIMO.Core.Internal.OfficeRoundTripText.ToSingle(GetNonDbNullValue(ordinal, preserveDateSerial: true), _culture);
 
             /// <inheritdoc />
             public override Guid GetGuid(int ordinal) {

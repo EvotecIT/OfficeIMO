@@ -201,7 +201,7 @@ namespace OfficeIMO.Visio {
                 }
 
                 string rawPercentage = trimmed.Substring(0, trimmed.Length - 1);
-                if (!double.TryParse(rawPercentage, NumberStyles.Float, CultureInfo.InvariantCulture, out double percentage)) {
+                if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(rawPercentage, NumberStyles.Float, CultureInfo.InvariantCulture, out double percentage)) {
                     return false;
                 }
 
@@ -214,7 +214,7 @@ namespace OfficeIMO.Visio {
                 end++;
             }
 
-            if (end == 0 || !double.TryParse(trimmed.Substring(0, end), NumberStyles.Float, CultureInfo.InvariantCulture, out result)) {
+            if (end == 0 || !OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(trimmed.Substring(0, end), NumberStyles.Float, CultureInfo.InvariantCulture, out result)) {
                 return false;
             }
 
@@ -302,7 +302,7 @@ namespace OfficeIMO.Visio {
                     break;
                 }
 
-                if (!double.TryParse(value.Substring(start, index - start), NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
+                if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value.Substring(start, index - start), NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
                     return false;
                 }
 

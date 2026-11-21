@@ -86,7 +86,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                     property = OfficeOleProperty.Integer(propertyId, value);
                     return true;
                 case ExcelCustomPropertyType.NumberDouble:
-                    property = OfficeOleProperty.Double(propertyId, Convert.ToDouble(value, CultureInfo.InvariantCulture));
+                    property = OfficeOleProperty.Double(propertyId, OfficeIMO.Core.Internal.OfficeRoundTripText.ToDouble(value, CultureInfo.InvariantCulture));
                     return true;
                 case ExcelCustomPropertyType.YesNo:
                     property = OfficeOleProperty.Boolean(propertyId, Convert.ToBoolean(value, CultureInfo.InvariantCulture));

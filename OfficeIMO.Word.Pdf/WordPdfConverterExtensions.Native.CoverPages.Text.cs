@@ -210,7 +210,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static double? GetNativeVmlRunFontSize(W.RunProperties? properties) {
             string? value = properties?.FontSize?.Val?.Value;
-            return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double halfPoints) && halfPoints > 0D
+            return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double halfPoints) && halfPoints > 0D
                 ? halfPoints / 2D
                 : null;
         }

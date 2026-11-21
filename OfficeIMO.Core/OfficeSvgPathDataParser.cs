@@ -312,7 +312,7 @@ internal static class OfficeSvgPathDataParser {
                 while (_index < _value.Length && char.IsDigit(_value[_index])) _index++;
                 if (_index == exponentDigits) _index = exponent;
             }
-            return double.TryParse(_value.Substring(start, _index - start), NumberStyles.Float, CultureInfo.InvariantCulture, out number)
+            return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(_value.Substring(start, _index - start), NumberStyles.Float, CultureInfo.InvariantCulture, out number)
                 && !double.IsNaN(number)
                 && !double.IsInfinity(number);
         }

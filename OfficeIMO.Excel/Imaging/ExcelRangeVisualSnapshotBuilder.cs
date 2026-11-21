@@ -1465,7 +1465,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (value is IConvertible convertible &&
-                double.TryParse(Convert.ToString(convertible, CultureInfo.InvariantCulture), NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out number)) {
+                OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(Convert.ToString(convertible, CultureInfo.InvariantCulture), NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out number)) {
                 return true;
             }
 
@@ -1532,7 +1532,7 @@ namespace OfficeIMO.Excel {
                 return text;
             }
 
-            return double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
+            return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
                 ? ExcelNumberFormatDisplay.FormatNumericText(value, style.NumberFormatId, style.NumberFormatCode, text, dateSystem)
                 : text;
         }

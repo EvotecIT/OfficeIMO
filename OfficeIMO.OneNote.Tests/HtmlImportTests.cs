@@ -68,6 +68,22 @@ public sealed class HtmlImportTests {
     }
 
     [Fact]
+    public void HtmlImportKeepsRunFontSizesWithinTheRangeOneNoteStores() {
+        const string html = """<p><span style="font-size:200pt">big</span> <span style="font-size:2pt">small</span> <span style="font-size:1e999pt">huge</span></p>""";
+
+        HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse(html).ConvertToOneNoteSectionWithEvidence();
+
+        Assert.True(result.Succeeded);
+        OneNoteTextRun[] runs = result.Value.Pages.SelectMany(page => page.Outlines).SelectMany(outline => outline.Children)
+            .OfType<OneNoteParagraph>().SelectMany(paragraph => paragraph.Runs).ToArray();
+        Assert.Equal(144D, Assert.Single(runs, run => run.Text == "big").Style.FontSize);
+        Assert.Equal(6D, Assert.Single(runs, run => run.Text == "small").Style.FontSize);
+        double? huge = Assert.Single(runs, run => run.Text == "huge").Style.FontSize;
+        Assert.True(huge is null or (>= 6D and <= 144D), $"font size {huge}");
+        Assert.NotEmpty(result.Value.ToBytes());
+    }
+
+    [Fact]
     public void HtmlImportBuildsTypedPagesRunsListsTablesAndImages() {
         const string html = """
             <section aria-label="Project">

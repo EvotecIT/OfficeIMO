@@ -154,7 +154,7 @@ namespace OfficeIMO.Excel {
                     && expected is IConvertible && expected is not string && expected is not bool
                     && expected is not DateTime) {
                     try {
-                        double year = Convert.ToDouble(expected, CultureInfo.InvariantCulture);
+                        double year = OfficeIMO.Core.Internal.OfficeRoundTripText.ToDouble(expected, CultureInfo.InvariantCulture);
                         if (year >= 1 && year <= 9999 && year == Math.Truncate(year))
                             expected = year.ToString(CultureInfo.InvariantCulture);
                     } catch (Exception exception) when (exception is FormatException || exception is InvalidCastException || exception is OverflowException) { }
@@ -277,7 +277,7 @@ namespace OfficeIMO.Excel {
                 return Equals(leftError.Value, rightError.Value);
             if (left is string leftText && right is string rightText) return string.Equals(leftText, rightText, StringComparison.OrdinalIgnoreCase);
             if (left is double number && right is IConvertible && right is not bool && right is not string && right is not DateTime) {
-                try { return number == Convert.ToDouble(right, CultureInfo.InvariantCulture); }
+                try { return number == OfficeIMO.Core.Internal.OfficeRoundTripText.ToDouble(right, CultureInfo.InvariantCulture); }
                 catch (Exception exception) when (exception is FormatException || exception is InvalidCastException || exception is OverflowException) { return false; }
             }
             return Equals(left, right);

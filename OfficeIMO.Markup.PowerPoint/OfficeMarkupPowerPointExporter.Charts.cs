@@ -404,7 +404,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         new OfficeChartData(data.Categories, data.Series.Take(1));
 
     private static double ParseDouble(string value) =>
-        double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed)
+        OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
             ? parsed
             : 0d;
 }

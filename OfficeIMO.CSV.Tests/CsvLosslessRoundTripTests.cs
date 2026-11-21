@@ -21,6 +21,8 @@ public sealed class CsvLosslessRoundTripTests
         ("Pi", typeof(double), Math.PI),
         ("DoubleMax", typeof(double), double.MaxValue),
         ("Sum", typeof(double), 0.1 + 0.2),
+        // .NET Framework's own parser reads the shortest text of this value as a neighbouring double.
+        ("Shortest", typeof(double), 0.6822871999174),
         ("SingleMax", typeof(float), float.MaxValue),
         ("Single", typeof(float), 0.1f),
         ("DecimalMax", typeof(decimal), decimal.MaxValue),

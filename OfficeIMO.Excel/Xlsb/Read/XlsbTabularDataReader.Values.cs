@@ -120,14 +120,14 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             ValidateReadableOrdinal(ordinal);
             return IsNumericValueKind(_kinds[ordinal])
                 ? (float)_numbers[ordinal]
-                : Convert.ToSingle(GetValue(ordinal), _options.Culture);
+                : OfficeIMO.Core.Internal.OfficeRoundTripText.ToSingle(GetValue(ordinal), _options.Culture);
         }
 
         public override double GetDouble(int ordinal) {
             ValidateReadableOrdinal(ordinal);
             return IsNumericValueKind(_kinds[ordinal])
                 ? _numbers[ordinal]
-                : Convert.ToDouble(GetValue(ordinal), _options.Culture);
+                : OfficeIMO.Core.Internal.OfficeRoundTripText.ToDouble(GetValue(ordinal), _options.Culture);
         }
 
         public override decimal GetDecimal(int ordinal) {

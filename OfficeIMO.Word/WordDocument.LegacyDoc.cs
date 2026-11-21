@@ -2166,7 +2166,7 @@ namespace OfficeIMO.Word {
 
                     return true;
                 case LegacyDocDocumentPropertyValueKind.Number:
-                    wordProperty = new WordCustomProperty(System.Convert.ToDouble(property.Value, System.Globalization.CultureInfo.InvariantCulture));
+                    wordProperty = new WordCustomProperty(OfficeIMO.Core.Internal.OfficeRoundTripText.ToDouble(property.Value, System.Globalization.CultureInfo.InvariantCulture));
                     return true;
                 case LegacyDocDocumentPropertyValueKind.Binary:
                     if (property.Value is byte[] bytes) {

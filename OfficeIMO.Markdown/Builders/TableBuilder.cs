@@ -602,8 +602,8 @@ public sealed partial class MarkdownTableBuilder {
         // Try parse with both invariant and current cultures
         var inv = System.Globalization.CultureInfo.InvariantCulture;
         var cur = System.Globalization.CultureInfo.CurrentCulture;
-        return double.TryParse(s2, System.Globalization.NumberStyles.Any, inv, out _)
-            || double.TryParse(s2, System.Globalization.NumberStyles.Any, cur, out _);
+        return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(s2, System.Globalization.NumberStyles.Any, inv, out double _)
+            || OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(s2, System.Globalization.NumberStyles.Any, cur, out double _);
     }
 
     private static bool LooksDate(string? s) {

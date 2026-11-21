@@ -31,7 +31,7 @@ internal static partial class HtmlRenderSystemFontLoader {
     private static bool IsZeroOpacity(string value) {
         string number = value.Trim();
         if (number.EndsWith("%", StringComparison.Ordinal)) number = number.Substring(0, number.Length - 1);
-        return double.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out double opacity)
+        return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out double opacity)
             && opacity <= 0D;
     }
 

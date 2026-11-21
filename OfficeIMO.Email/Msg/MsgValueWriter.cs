@@ -28,9 +28,9 @@ internal static class MsgValueWriter {
             case MapiPropertyType.ErrorCode:
                 return EncodeInt32(Convert.ToInt32(value, CultureInfo.InvariantCulture));
             case MapiPropertyType.Floating32:
-                return EncodeSingle(Convert.ToSingle(value, CultureInfo.InvariantCulture));
+                return EncodeSingle(OfficeIMO.Core.Internal.OfficeRoundTripText.ToSingle(value, CultureInfo.InvariantCulture));
             case MapiPropertyType.Floating64:
-                return EncodeDouble(Convert.ToDouble(value, CultureInfo.InvariantCulture));
+                return EncodeDouble(OfficeIMO.Core.Internal.OfficeRoundTripText.ToDouble(value, CultureInfo.InvariantCulture));
             case MapiPropertyType.Currency:
                 return EncodeInt64(decimal.ToInt64(OfficeDecimalConversion.FromObject(value, CultureInfo.InvariantCulture) * 10000m));
             case MapiPropertyType.FloatingTime:

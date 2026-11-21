@@ -187,7 +187,7 @@ public static partial class OfficeSvgDrawingReader {
             return true;
         }
         if (normalized.EndsWith("deg", StringComparison.OrdinalIgnoreCase)) normalized = normalized.Substring(0, normalized.Length - 3).Trim();
-        return double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out angle)
+        return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out angle)
             && !double.IsNaN(angle)
             && !double.IsInfinity(angle);
     }

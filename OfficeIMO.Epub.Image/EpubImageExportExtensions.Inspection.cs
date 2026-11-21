@@ -97,7 +97,7 @@ public static partial class EpubImageExportExtensions {
         }
         double Dimension(string name) {
             if (!values.TryGetValue(name, out string? value) ||
-                !double.TryParse(value, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out double result) ||
+                !OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out double result) ||
                 double.IsNaN(result) || double.IsInfinity(result) || result <= 0D)
                 throw new InvalidDataException("Fixed-layout viewport " + name + " must be a positive numeric CSS-pixel dimension.");
             return result;

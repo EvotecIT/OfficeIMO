@@ -635,8 +635,7 @@ public static partial class HtmlExcelConverterExtensions {
         string text = (value ?? string.Empty).Trim();
         bool points = text.EndsWith("pt", StringComparison.OrdinalIgnoreCase);
         if (!points && !text.EndsWith("px", StringComparison.OrdinalIgnoreCase)) return false;
-        if (!double.TryParse(text.Substring(0, text.Length - 2), System.Globalization.NumberStyles.Float,
-                System.Globalization.CultureInfo.InvariantCulture, out pixels) || pixels <= 0D) return false;
+        if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text.Substring(0, text.Length - 2), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out pixels) || pixels <= 0D) return false;
         if (points) pixels /= 0.75D;
         return true;
     }

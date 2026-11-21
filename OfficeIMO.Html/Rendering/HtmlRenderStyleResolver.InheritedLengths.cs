@@ -12,7 +12,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         // inherit their computed value, including across more than one font change.
         if (computed.IsInheritedValue("line-height") && parent != null
             && value.Length > 0 && !value.Equals("normal", StringComparison.OrdinalIgnoreCase)
-            && !double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out _)) {
+            && !OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double _)) {
             alignmentLineHeight = parent.InlineAlignmentLineHeight
                 ?? HtmlRenderCssValues.ResolveInlineAlignmentLineHeight(parent.LineHeight, parent.Font.Size);
             return parent.LineHeight;
@@ -28,7 +28,7 @@ internal sealed partial class HtmlRenderStyleResolver {
     private double ResolveLineHeight(string value, double fontSize, out double? multiplier) {
         multiplier = _options.DefaultLineHeight;
         if (value.Length == 0 || value.Equals("normal", StringComparison.OrdinalIgnoreCase)) return fontSize * multiplier.Value;
-        if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed) && parsed >= 0D) {
+        if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed) && parsed >= 0D) {
             multiplier = parsed;
             return fontSize * parsed;
         }

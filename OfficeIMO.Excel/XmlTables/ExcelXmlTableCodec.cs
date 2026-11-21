@@ -97,7 +97,7 @@ internal static class ExcelXmlTableCodec {
             switch (type) {
                 case ExcelXmlTableValueType.Text: return text;
                 case ExcelXmlTableValueType.Number:
-                    double number = XmlConvert.ToDouble(text);
+                    double number = OfficeIMO.Core.Internal.OfficeRoundTripText.ParseXmlDouble(text);
                     return !double.IsNaN(number) && !double.IsInfinity(number) ? number : throw new InvalidDataException("XML table number must be finite.");
                 case ExcelXmlTableValueType.Boolean: return XmlConvert.ToBoolean(text);
                 case ExcelXmlTableValueType.DateTime: return XmlConvert.ToDateTime(text, XmlDateTimeSerializationMode.Unspecified);

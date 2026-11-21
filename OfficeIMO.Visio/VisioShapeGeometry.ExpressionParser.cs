@@ -653,7 +653,7 @@ namespace OfficeIMO.Visio {
                     }
                 }
 
-                if (!double.TryParse(_text.Substring(start, _index - start), NumberStyles.Float, CultureInfo.InvariantCulture, out value)) {
+                if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(_text.Substring(start, _index - start), NumberStyles.Float, CultureInfo.InvariantCulture, out value)) {
                     return false;
                 }
 

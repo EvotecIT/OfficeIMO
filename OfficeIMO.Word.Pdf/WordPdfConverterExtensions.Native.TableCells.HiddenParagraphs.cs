@@ -66,7 +66,7 @@ public static partial class WordPdfConverterExtensions {
         NativeParagraphStyleDefaults style = GetNativeParagraphStyleDefaults(paragraph);
         if (!tableStyle.UseConfiguredTypography) return ResolveNativeParagraphLayoutFontSize(paragraph, defaults, style, tableStyle.RunStyle);
         string? markSize = paragraph._paragraph.ParagraphProperties?.ParagraphMarkRunProperties?.GetFirstChild<W.FontSize>()?.Val?.Value;
-        return double.TryParse(markSize, NumberStyles.Float, CultureInfo.InvariantCulture, out double halfPoints) && halfPoints > 0D
+        return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(markSize, NumberStyles.Float, CultureInfo.InvariantCulture, out double halfPoints) && halfPoints > 0D
             ? halfPoints / 2D : style.FontSize ?? tableStyle.RunStyle.FontSize;
     }
 }

@@ -11,7 +11,7 @@ internal sealed partial class OdfPackage {
                 element.Name == OdfNamespaces.Draw + "gradient" || element.Name == OdfNamespaces.Draw + "opacity")) {
                 if ((string?)definition.Attribute(OdfNamespaces.Draw + "style") == "radial") continue;
                 string? angle = (string?)definition.Attribute(OdfNamespaces.Draw + "angle");
-                if (angle != null && double.TryParse(angle, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) && value != 0)
+                if (angle != null && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(angle, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) && value != 0)
                     throw new InvalidOperationException("Changing the ODF version of a native gradient or opacity definition with a nonzero unitless angle can change its appearance. Use PreserveSource or replace the definition with an explicit angle unit before saving.");
             }
         }

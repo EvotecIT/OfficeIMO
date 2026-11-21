@@ -26,7 +26,7 @@ namespace OfficeIMO.Visio {
                 if (original == null) WriteCell(writer, ns, name, values[i]);
                 else {
                     XElement cell = new(original);
-                    if (!double.TryParse((string?)cell.Attribute("V"), NumberStyles.Float, CultureInfo.InvariantCulture, out double before) || Math.Abs(before - values[i]) > 1e-10)
+                    if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse((string?)cell.Attribute("V"), NumberStyles.Float, CultureInfo.InvariantCulture, out double before) || Math.Abs(before - values[i]) > 1e-10)
                         cell.Attribute("F")?.Remove();
                     cell.SetAttributeValue("V", ToVisioString(values[i]));
                     cell.WriteTo(writer);

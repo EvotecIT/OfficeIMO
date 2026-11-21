@@ -167,7 +167,7 @@ internal static class HtmlRenderCssValues {
         if (string.IsNullOrWhiteSpace(value)) return false;
 
         string normalized = value!.Trim().ToLowerInvariant();
-        if (double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
+        if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
             && number == 0D) return allowUnitlessZero;
         if (!allowPercentage && normalized.IndexOf('%') >= 0) return false;
         if (normalized.IndexOf('(') >= 0) return true;

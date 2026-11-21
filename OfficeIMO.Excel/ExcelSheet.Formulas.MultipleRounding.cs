@@ -45,6 +45,6 @@ namespace OfficeIMO.Excel {
         // Parse the exact decimal text once: decimal-to-double multiplication
         // can introduce an extra rounding step for values such as 2E-28.
         private static double DecimalToDouble(decimal value) =>
-            double.Parse(value.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
+            OfficeIMO.Core.Internal.OfficeRoundTripText.ParseDouble(value.ToString(CultureInfo.InvariantCulture), System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, CultureInfo.InvariantCulture);
     }
 }

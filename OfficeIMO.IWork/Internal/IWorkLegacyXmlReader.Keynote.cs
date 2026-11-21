@@ -127,6 +127,5 @@ internal static partial class IWorkLegacyXmlReader {
     }
 
     private static double? KeynoteNumber(XElement? element, string name) =>
-        double.TryParse((string?)element?.Attribute(Sfa + name), NumberStyles.Float, CultureInfo.InvariantCulture,
-            out double value) && !double.IsNaN(value) && !double.IsInfinity(value) ? value : null;
+        OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse((string?)element?.Attribute(Sfa + name), NumberStyles.Float, CultureInfo.InvariantCulture, out double value) && !double.IsNaN(value) && !double.IsInfinity(value) ? value : null;
 }

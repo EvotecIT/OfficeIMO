@@ -282,8 +282,7 @@ namespace OfficeIMO.Excel {
             if (index >= args.Count || string.IsNullOrWhiteSpace(args[index])) return true;
             if (!TryResolveFormulaValueArgument(args[index], out FormulaArgumentValue value) || value.IsError) return false;
             if (value.Number.HasValue) number = value.Number.Value;
-            else if (!double.TryParse(value.Text, System.Globalization.NumberStyles.Float,
-                System.Globalization.CultureInfo.InvariantCulture, out number)) return false;
+            else if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value.Text, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out number)) return false;
             return !double.IsNaN(number) && !double.IsInfinity(number);
         }
 

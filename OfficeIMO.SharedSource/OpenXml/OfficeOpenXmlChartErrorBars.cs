@@ -32,7 +32,7 @@ internal static class OfficeOpenXmlChartErrorBars {
                 "cust" => OfficeChartErrorBarValueType.Custom,
                 _ => OfficeChartErrorBarValueType.Fixed
             };
-            double amount = double.TryParse(Value(bars, "val"), NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed) &&
+            double amount = OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(Value(bars, "val"), NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed) &&
                 !double.IsNaN(parsed) && !double.IsInfinity(parsed) ? parsed : 1D;
             IReadOnlyList<double>? plus = null, minus = null;
             if (kind == OfficeChartErrorBarValueType.Custom) {

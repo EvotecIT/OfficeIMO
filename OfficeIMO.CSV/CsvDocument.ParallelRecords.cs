@@ -250,7 +250,7 @@ public readonly ref struct CsvRecord
             return _reader.GetDouble(ordinal);
         }
         CultureInfo culture = RecordCulture;
-        if (double.TryParse(GetNonNullSpan(ordinal), NumberStyles.Any, culture, out double result))
+        if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(GetNonNullSpan(ordinal), NumberStyles.Any, culture, out double result))
         {
             return result;
         }

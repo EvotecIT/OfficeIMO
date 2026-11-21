@@ -395,7 +395,7 @@ public sealed class OdfStyle {
         if (normalized.StartsWith("sub", StringComparison.OrdinalIgnoreCase)) return OdfTextPosition.Subscript;
         string offset = normalized.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? string.Empty;
         if (offset.EndsWith("%", StringComparison.Ordinal)
-            && double.TryParse(offset.Substring(0, offset.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out double percentage)) {
+            && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(offset.Substring(0, offset.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out double percentage)) {
             if (percentage > 0D) return OdfTextPosition.Superscript;
             if (percentage < 0D) return OdfTextPosition.Subscript;
             return OdfTextPosition.Normal;

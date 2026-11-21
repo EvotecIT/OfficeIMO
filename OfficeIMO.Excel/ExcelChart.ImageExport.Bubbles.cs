@@ -14,7 +14,7 @@ public sealed partial class ExcelChart {
         bool showNegative = false;
         if (bubble != null) {
             string? rawScale = bubble.GetFirstChild<C.BubbleScale>()?.GetAttribute("val", string.Empty).Value;
-            if (rawScale != null && (!double.TryParse(rawScale, NumberStyles.Integer, CultureInfo.InvariantCulture, out scale) || scale < 0D || scale > 300D)) {
+            if (rawScale != null && (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(rawScale, NumberStyles.Integer, CultureInfo.InvariantCulture, out scale) || scale < 0D || scale > 300D)) {
                 scale = 100D;
                 Warn(ExcelImageExportDiagnosticCodes.ChartBubbleSettingsApproximated,
                     "Invalid bubbleScale is rendered at 100 percent; supported values are integers from 0 through 300.");

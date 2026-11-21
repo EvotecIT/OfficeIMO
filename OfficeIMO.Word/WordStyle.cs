@@ -179,7 +179,7 @@ public sealed class WordStyle {
 
     /// <summary>Gets or sets the font size, rounded to Word's half-point precision.</summary>
     public OfficeLength? FontSize {
-        get => double.TryParse(ReadRun()?.GetFirstChild<FontSize>()?.Val?.Value, NumberStyles.Number, CultureInfo.InvariantCulture, out double halfPoints)
+        get => OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(ReadRun()?.GetFirstChild<FontSize>()?.Val?.Value, NumberStyles.Number, CultureInfo.InvariantCulture, out double halfPoints)
             ? OfficeLength.Points(halfPoints / 2d) : null;
         set {
             OpenXmlCompositeElement run = EnsureRun();

@@ -183,7 +183,7 @@ internal static class UrlOriginPolicy {
         }
 
         return suffix == 'x'
-            && double.TryParse(number, System.Globalization.NumberStyles.AllowDecimalPoint, System.Globalization.CultureInfo.InvariantCulture, out double density)
+            && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(number, System.Globalization.NumberStyles.AllowDecimalPoint, System.Globalization.CultureInfo.InvariantCulture, out double density)
             && density > 0
             && !double.IsInfinity(density)
             && !double.IsNaN(density);

@@ -11,7 +11,7 @@ namespace OfficeIMO.Excel {
 #if NETSTANDARD2_0 || NETFRAMEWORK
             // These targets parse only strings. Pass the existing one: on .NET Core runtimes
             // that load the netstandard2.0 build, a span's ToString always copies it.
-            return double.TryParse(rawText, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+            return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(rawText, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
 #else
             return TryParseInvariantDouble(rawText.AsSpan(), out value);
 #endif
@@ -24,20 +24,20 @@ namespace OfficeIMO.Excel {
         // double.Parse, so these targets keep the runtime parser and its one string.
         private static bool TryParseInvariantDouble(ReadOnlySpan<char> text, out double value) {
 #if NETSTANDARD2_0 || NETFRAMEWORK
-            return double.TryParse(text.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+            return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out value);
 #else
-            return double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+            return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
 #endif
         }
 
         private bool TryParseRawDouble(string rawText, out double value) {
             if (_opt.Culture != CultureInfo.InvariantCulture
-                && double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, _opt.Culture, out value)) {
+                && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, _opt.Culture, out value)) {
                 return true;
             }
 
             return TryParseInvariantDouble(rawText, out value)
-                || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out value);
+                || OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out value);
         }
 
         /// <summary>
@@ -47,8 +47,8 @@ namespace OfficeIMO.Excel {
         private static bool TryParseExcelNumberAsDouble(string rawText, CultureInfo culture, out double value) {
             return TryParseInvariantDouble(rawText, out value)
                 || (culture != CultureInfo.InvariantCulture
-                    && double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, culture, out value))
-                || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out value);
+                    && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, culture, out value))
+                || OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out value);
         }
 
         /// <summary>

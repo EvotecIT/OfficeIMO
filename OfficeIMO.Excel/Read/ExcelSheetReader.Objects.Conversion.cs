@@ -157,7 +157,7 @@ namespace OfficeIMO.Excel {
                 styleIndex = cell.StyleIndex?.Value;
                 if (styleIndex is not null && Styles.IsDateLike(styleIndex.Value)) {
                     if ((TryParseInvariantDouble(rawText, out var oa)
-                            || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))
+                            || OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))
                         && ReturnBindingConversion(TryConvertDateTimeForBinding(FromExcelSerialDate(oa, styleIndex), binding, out converted), binding, converted)) {
                         return true;
                     }
@@ -320,7 +320,7 @@ namespace OfficeIMO.Excel {
                 && raw.StyleIndex is not null
                 && Styles.IsDateLike(raw.StyleIndex.Value)) {
                 if ((TryParseInvariantDouble(raw.RawText, out var oa)
-                    || double.TryParse(raw.RawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))
+                    || OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(raw.RawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))
                     && TryConvertDateTimeForBinding(FromExcelSerialDate(oa, raw.StyleIndex), binding, out converted)) {
                     return true;
                 }
@@ -468,7 +468,7 @@ namespace OfficeIMO.Excel {
                 && raw.StyleIndex is not null
                 && Styles.IsDateLike(raw.StyleIndex.Value)) {
                 if (TryParseInvariantDouble(raw.RawText, out var oa)
-                    || double.TryParse(raw.RawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa)) {
+                    || OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(raw.RawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa)) {
                     DateTime dateValue = FromExcelSerialDate(oa, raw.StyleIndex);
                     if (binding.SetDateTime != null && binding.BindingKind == TypedBindingKind.DateTime) {
                         binding.SetDateTime(target, dateValue);
@@ -679,7 +679,7 @@ namespace OfficeIMO.Excel {
             }
 
             return TryParseInvariantDouble(raw.RawText, out _)
-                || double.TryParse(raw.RawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out _);
+                || OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(raw.RawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out double _);
         }
 
         private static bool IsNumericBindingDestination(TypedBindingKind bindingKind) {
@@ -1010,7 +1010,7 @@ namespace OfficeIMO.Excel {
 
                 if (destType == typeof(double)) {
                     if (value is double doubleValue) return doubleValue;
-                    return Convert.ToDouble(value, culture);
+                    return OfficeIMO.Core.Internal.OfficeRoundTripText.ToDouble(value, culture);
                 }
 
                 if (destType == typeof(decimal)) {

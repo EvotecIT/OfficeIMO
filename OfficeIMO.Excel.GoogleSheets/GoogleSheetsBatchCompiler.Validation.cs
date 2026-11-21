@@ -380,7 +380,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 return false;
             }
 
-            if (!double.TryParse(value, NumberStyles.Float | NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var parsed)) {
+            if (!OfficeIMO.OfficeRoundTripNumberText.TryParse(value, NumberStyles.Float | NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out double parsed)) {
                 return false;
             }
 
@@ -397,7 +397,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 return false;
             }
 
-            if (!double.TryParse(value, NumberStyles.Float | NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var serialDate)) {
+            if (!OfficeIMO.OfficeRoundTripNumberText.TryParse(value, NumberStyles.Float | NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out double serialDate)) {
                 return false;
             }
 

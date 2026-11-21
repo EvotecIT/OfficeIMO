@@ -15,15 +15,21 @@ namespace OfficeIMO.Excel {
                 || TryParseCommonFixedPoint(value, out result)
                 || (Utf8Parser.TryParse(value, out result, out int consumed) && consumed == value.Length);
 #else
-            // The short form leans on Utf8Parser, which is slow here; the common form covers it.
-            if (TryParseCommonFixedPoint(value, out result)) {
-                // .NET Framework's parsers drop the sign of a zero literal; keep that behavior.
-                if (result == 0) result = 0;
-                return true;
-            }
-            return Utf8Parser.TryParse(value, out result, out int consumed) && consumed == value.Length;
+            // The short form leans on Utf8Parser, which is slow here; the common form covers it. System.Memory's
+            // Utf8Parser rounds some long texts to a neighbouring double, so the rest goes to the correct parser.
+            return TryParseCommonFixedPoint(value, out result) || TryParseAscii(value, out result);
 #endif
         }
+
+#if !NET8_0_OR_GREATER
+        [ThreadStatic] private static byte[]? t_scratch;
+
+        private static bool TryParseAscii(ReadOnlySpan<byte> value, out double result) {
+            byte[] buffer = value.Length <= 64 ? t_scratch ??= new byte[64] : new byte[value.Length];
+            value.CopyTo(buffer);
+            return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParseAscii(buffer, 0, value.Length, out result);
+        }
+#endif
 
 #if NET8_0_OR_GREATER
         /// <summary>Parses common integers and one/two-place decimals using bounded exact mantissas.</summary>

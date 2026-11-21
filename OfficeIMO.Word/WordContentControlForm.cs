@@ -645,7 +645,7 @@ namespace OfficeIMO.Word {
             if (double.IsNaN(number) || double.IsInfinity(number)) return null;
             var rounded = RoundToFifteenDigits(number);
             return choices.FirstOrDefault(choice =>
-                double.TryParse(choice, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
+                OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(choice, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
                 && !double.IsNaN(parsed) && !double.IsInfinity(parsed) && RoundToFifteenDigits(parsed).Equals(rounded));
         }
 

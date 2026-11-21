@@ -207,7 +207,7 @@ public sealed class OutlookUserPropertyCollection : IReadOnlyCollection<OutlookU
             case OutlookUserPropertyType.Number:
             case OutlookUserPropertyType.Percent:
                 if (IsNumeric(value)) return new NormalizedValue(MapiPropertyType.Floating64,
-                    Convert.ToDouble(value, CultureInfo.InvariantCulture));
+                    OfficeIMO.Core.Internal.OfficeRoundTripText.ToDouble(value, CultureInfo.InvariantCulture));
                 break;
             case OutlookUserPropertyType.Currency:
                 if (IsNumeric(value)) return new NormalizedValue(MapiPropertyType.Currency,

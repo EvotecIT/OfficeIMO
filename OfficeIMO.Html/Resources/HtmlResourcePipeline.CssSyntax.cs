@@ -305,11 +305,7 @@ public static partial class HtmlResourcePipeline {
         else if (token.EndsWith("x", StringComparison.OrdinalIgnoreCase)) unit = "x";
         else return false;
         string number = token.Substring(0, token.Length - unit.Length);
-        return double.TryParse(
-                number,
-                System.Globalization.NumberStyles.Float,
-                System.Globalization.CultureInfo.InvariantCulture,
-                out double value) &&
+        return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(number, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double value) &&
             value > 0D && !double.IsNaN(value) && !double.IsInfinity(value);
     }
 

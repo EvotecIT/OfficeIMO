@@ -348,7 +348,7 @@ namespace OfficeIMO.Excel {
                         int row = range.Orientation == ExcelChartDataOrientation.Vertical ? range.CategoryStartRow + i : range.SeriesStartRow + s;
                         int column = range.Orientation == ExcelChartDataOrientation.Vertical ? range.SeriesStartColumn + s : range.CategoryStartColumn + i;
                         if (sheet.TryGetCellText(row, column, out var raw)
-                            && double.TryParse(raw, NumberStyles.Any, CultureInfo.InvariantCulture, out var val)) {
+                            && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(raw, NumberStyles.Any, CultureInfo.InvariantCulture, out double val)) {
                             values.Add(val);
                         } else {
                             values.Add(keepBlankCells && string.IsNullOrWhiteSpace(raw) ? double.NaN : 0d);
@@ -717,7 +717,7 @@ namespace OfficeIMO.Excel {
                 bool hasValues = false;
                 foreach (NumericPoint point in container.Elements<NumericPoint>()) {
                     string? text = point.NumericValue?.Text;
-                    if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)) {
+                    if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)) {
                         return false;
                     }
 
@@ -740,7 +740,7 @@ namespace OfficeIMO.Excel {
             var numericValues = new List<double>(actualPointCount);
             foreach (NumericPoint point in container.Elements<NumericPoint>().OrderBy(point => point.Index?.Value ?? uint.MaxValue)) {
                 string? text = point.NumericValue?.Text;
-                if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)) {
+                if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)) {
                     return false;
                 }
 
@@ -839,7 +839,7 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    if (!double.TryParse(raw, NumberStyles.Any, CultureInfo.InvariantCulture, out double value)) {
+                    if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(raw, NumberStyles.Any, CultureInfo.InvariantCulture, out double value)) {
                         pointBudget.RestoreUnusedSourceReads(requestedPointCount, consumedSourceReads);
                         return false;
                     }

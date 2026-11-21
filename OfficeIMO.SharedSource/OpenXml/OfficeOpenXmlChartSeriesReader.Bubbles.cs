@@ -198,8 +198,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 }
 
                 string? text = point.NumericValue?.Text;
-                if (!double.TryParse(text, NumberStyles.Float,
-                        CultureInfo.InvariantCulture, out double value) ||
+                if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) ||
                     double.IsNaN(value) || double.IsInfinity(value) ||
                     (!allowNegative && value < 0D)) {
                     return false;

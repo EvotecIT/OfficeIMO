@@ -36,7 +36,7 @@ public static partial class HtmlComputedStyleEngine {
             string value = StripTrailingImportant(attribute.Value.Trim(), out bool isImportant);
             if (isImportant) continue; // A presentation attribute is a value, not a declaration.
             if (name == "font-size"
-                && double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double size)
+                && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double size)
                 && !double.IsNaN(size) && !double.IsInfinity(size) && size >= 0D) {
                 // SVG unitless font sizes are user-unit lengths, rather than CSS numbers.
                 value += "px";

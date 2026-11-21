@@ -521,7 +521,7 @@ namespace OfficeIMO.Excel.Pdf {
 
             string token = text.Substring(startIndex, index - startIndex);
             endIndex = index - 1;
-            return double.TryParse(token, NumberStyles.Integer, CultureInfo.InvariantCulture, out fontSize) && fontSize > 0D;
+            return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(token, NumberStyles.Integer, CultureInfo.InvariantCulture, out fontSize) && fontSize > 0D;
         }
 
         private static bool TryReadHeaderFooterColor(string text, int startIndex, out global::OfficeIMO.OfficeColor color, out int endIndex) {

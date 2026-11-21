@@ -139,7 +139,7 @@ namespace OfficeIMO.Visio {
                 .FirstOrDefault(cell => string.Equals(cell.Attribute("N")?.Value, cellName, StringComparison.OrdinalIgnoreCase))
                 ?.Attribute("V")?.Value;
             string? normalized = NormalizeCellLiteral(value);
-            if (double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out result) &&
+            if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out result) &&
                 !double.IsNaN(result) &&
                 !double.IsInfinity(result)) {
                 return true;
@@ -205,7 +205,7 @@ namespace OfficeIMO.Visio {
                 return boolValue;
             }
 
-            return double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double numericValue) &&
+            return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double numericValue) &&
                    numericValue != 0;
         }
 
@@ -215,7 +215,7 @@ namespace OfficeIMO.Visio {
                 return true;
             }
 
-            if (double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double numericValue)
+            if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double numericValue)
                 && !double.IsNaN(numericValue)
                 && !double.IsInfinity(numericValue)
                 && numericValue >= int.MinValue

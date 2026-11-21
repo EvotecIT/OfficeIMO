@@ -130,8 +130,7 @@ internal sealed class WordImageOptimizationInventory {
     }
 
     private static bool TryAttribute(OpenXmlElement? element, string name, out double value) =>
-        double.TryParse(element?.GetAttributes().FirstOrDefault(attribute => attribute.LocalName == name).Value,
-            NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+        OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(element?.GetAttributes().FirstOrDefault(attribute => attribute.LocalName == name).Value, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
 
     private static bool TryVisibleFraction(int first, int second, out double fraction) {
         fraction = 1D - first / 100000D - second / 100000D;
@@ -144,7 +143,7 @@ internal sealed class WordImageOptimizationInventory {
         if (string.IsNullOrEmpty(text)) return true;
         bool fixedPoint = text!.EndsWith("f", StringComparison.OrdinalIgnoreCase);
         if (fixedPoint) text = text.Substring(0, text.Length - 1);
-        if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value)) return false;
+        if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value)) return false;
         if (fixedPoint) value /= 65536D;
         return value >= 0 && value < 1;
     }

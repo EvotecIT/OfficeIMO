@@ -1009,8 +1009,9 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 return true;
             }
 
-            if (double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
-                tokens = BuildNumberToken(number);
+            // PtgNum holds an Xnum: finite, with no negative zero. Text such as "nan" falls through to name lookup.
+            if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParseFinite(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
+                tokens = BuildNumberToken(number == 0D ? 0D : number);
                 return true;
             }
 

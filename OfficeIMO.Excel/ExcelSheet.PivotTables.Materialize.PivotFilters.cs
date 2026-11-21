@@ -412,7 +412,7 @@ namespace OfficeIMO.Excel {
             => type == PivotFilterValues.Count || type == PivotFilterValues.Percent || type == PivotFilterValues.Sum;
 
         private static bool TryFinitePivotThreshold(string? text, out double value)
-            => double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value)
+            => OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value)
                 && !double.IsNaN(value) && !double.IsInfinity(value);
 
         private static (double First, double Second) QualifiedPivotValueRange(PivotFilter filter) {

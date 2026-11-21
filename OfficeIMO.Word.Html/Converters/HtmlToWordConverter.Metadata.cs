@@ -84,7 +84,7 @@ namespace OfficeIMO.Word.Html {
                 WordCustomPropertyType.YesNo when bool.TryParse(content, out var value) => new WordCustomProperty(value),
                 WordCustomPropertyType.DateTime when DateTime.TryParse(content, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var value) => new WordCustomProperty(value),
                 WordCustomPropertyType.NumberInteger when int.TryParse(content, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value) => new WordCustomProperty(value),
-                WordCustomPropertyType.NumberDouble when double.TryParse(content, NumberStyles.Float, CultureInfo.InvariantCulture, out var value) => new WordCustomProperty(value),
+                WordCustomPropertyType.NumberDouble when OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(content, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) => new WordCustomProperty(value),
                 _ => new WordCustomProperty(content)
             };
         }

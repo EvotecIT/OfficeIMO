@@ -474,7 +474,7 @@ internal sealed partial class OlmStoreReader {
         string? value = Value(item, name);
         if (value == null) return null;
         if (bool.TryParse(value, out bool boolean)) return boolean;
-        if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
+        if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
             return Math.Abs(number) > double.Epsilon;
         }
         return null;

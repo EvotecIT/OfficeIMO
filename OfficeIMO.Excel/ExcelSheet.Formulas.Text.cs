@@ -383,7 +383,7 @@ namespace OfficeIMO.Excel {
             }
 
             normalized = normalized.Replace(",", string.Empty);
-            return double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out number);
+            return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out number);
         }
 
         private static string ToProperCase(string text) {

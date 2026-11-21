@@ -88,7 +88,7 @@ internal sealed partial class OdfStyleImportPlan {
         if (_source.Version != _destination.Version && (_source.Version == OdfVersion.V1_2 || _destination.Version == OdfVersion.V1_2) &&
             (source.Name == OdfNamespaces.Draw + "gradient" || source.Name == OdfNamespaces.Draw + "opacity") &&
             (string?)source.Attribute(OdfNamespaces.Draw + "style") != "radial" &&
-            double.TryParse((string?)source.Attribute(OdfNamespaces.Draw + "angle"), NumberStyles.Float, CultureInfo.InvariantCulture, out double angle) && angle != 0)
+            OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse((string?)source.Attribute(OdfNamespaces.Draw + "angle"), NumberStyles.Float, CultureInfo.InvariantCulture, out double angle) && angle != 0)
             throw new NotSupportedException("Drawing import cannot reinterpret a nonzero unitless gradient angle across ODF 1.2. Use explicit angle units.");
         _copies.Add((part, container, copy));
         _importDepth++;

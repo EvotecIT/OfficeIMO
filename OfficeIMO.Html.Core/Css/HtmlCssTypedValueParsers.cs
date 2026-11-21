@@ -148,7 +148,7 @@ internal static class HtmlCssTypedValueParsers {
     }
 
     private static bool TryFiniteNumber(string text, out double value) =>
-        double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value)
+        OfficeIMO.OfficeRoundTripNumberText.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value)
         && !double.IsNaN(value) && !double.IsInfinity(value);
 
     private static List<List<HtmlCssToken>> Split(IReadOnlyList<HtmlCssToken> tokens, HtmlCssTokenKind kind, string? delimiter) {

@@ -171,7 +171,7 @@ internal sealed class YamlSingleConverter : YamlConverter<float> {
         if (double.IsNaN(value) || double.IsInfinity(value)) return (float)value;
         // Parse the text as a float too, so values such as 0.1 round once to the nearest float, not through a double.
         string text = cursor.GetString();
-        if (float.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out float exact)) return exact;
+        if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out float exact)) return exact;
         return (float)value;
     }
 

@@ -46,6 +46,6 @@
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="All" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\OfficeIMO.SharedSource\Numerics\OfficeRoundTripNumberText.cs" Link="SharedSource\Numerics\OfficeRoundTripNumberText.cs" />
+    <Compile Include="..\OfficeIMO.SharedSource\Numerics\OfficeRoundTripNumberText*.cs" Link="SharedSource\Numerics\%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>

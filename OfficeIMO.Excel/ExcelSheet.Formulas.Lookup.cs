@@ -146,7 +146,7 @@ namespace OfficeIMO.Excel {
             if (value.IsError) { error = value; return true; }
             double position = value.Number ?? 0d;
             if (value.HasValue && !value.Number.HasValue
-                && !double.TryParse(value.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out position)) {
+                && !OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out position)) {
                 error = FormulaArgumentValue.Error("#VALUE!");
                 return true;
             }

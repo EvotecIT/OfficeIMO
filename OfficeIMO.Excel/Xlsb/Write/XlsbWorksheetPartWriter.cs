@@ -495,7 +495,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                     WriteSimpleCellHeader(output, BrtCellBlank, payloadLength: 8, cell);
                     return;
                 case XlsbWriteCellKind.Number:
-                    double number = Convert.ToDouble(cell.Value, System.Globalization.CultureInfo.InvariantCulture);
+                    double number = OfficeIMO.Core.Internal.OfficeRoundTripText.ToDouble(cell.Value, System.Globalization.CultureInfo.InvariantCulture);
                     if (double.IsNaN(number) || double.IsInfinity(number)) {
                         // XLSB has no NaN or infinite number; Excel shows #NUM! for such a result.
                         WriteSimpleCellHeader(output, BrtCellError, payloadLength: 9, cell);
@@ -542,7 +542,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             switch (cell.Kind) {
                 case XlsbWriteCellKind.FormulaNumber:
                     recordType = BrtFmlaNum;
-                    WriteDouble(payload, Convert.ToDouble(cell.Value, System.Globalization.CultureInfo.InvariantCulture));
+                    WriteDouble(payload, OfficeIMO.Core.Internal.OfficeRoundTripText.ToDouble(cell.Value, System.Globalization.CultureInfo.InvariantCulture));
                     WriteFormula(payload, cell.FormulaPayload);
                     break;
                 case XlsbWriteCellKind.FormulaText:

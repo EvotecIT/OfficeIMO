@@ -62,8 +62,7 @@ public static partial class HtmlComputedStyleEngine {
         if (string.Equals(trimmed, "normal", StringComparison.OrdinalIgnoreCase)) return true;
         // Math syntax is validated here; its sign depends on the real font and
         // containing block. Nonnegative used values are resolved by layout.
-        bool unitlessZero = double.TryParse(trimmed, System.Globalization.NumberStyles.Float,
-            System.Globalization.CultureInfo.InvariantCulture, out double numeric) && numeric == 0D;
+        bool unitlessZero = OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(trimmed, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double numeric) && numeric == 0D;
         return (unitlessZero || HtmlRenderCssValues.HasExplicitLengthSyntax(trimmed, allowPercentage: true, allowUnitlessZero: true))
             && TryValidateCssLength(trimmed, out double length)
             && (trimmed.IndexOf('(') >= 0 || length >= 0D);

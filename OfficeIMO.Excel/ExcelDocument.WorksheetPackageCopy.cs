@@ -341,7 +341,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 string? text = cell.CellValue?.Text;
-                if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double serial)) {
+                if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double serial)) {
                     continue;
                 }
 

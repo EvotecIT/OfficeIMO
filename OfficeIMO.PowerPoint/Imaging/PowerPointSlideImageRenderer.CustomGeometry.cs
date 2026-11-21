@@ -546,7 +546,7 @@ namespace OfficeIMO.PowerPoint {
         private static bool TryParseCustomGeometryCoordinate(string? value, out double coordinate) {
             coordinate = 0D;
             return !string.IsNullOrWhiteSpace(value) &&
-                double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out coordinate) &&
+                OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out coordinate) &&
                 !double.IsNaN(coordinate) &&
                 !double.IsInfinity(coordinate);
         }

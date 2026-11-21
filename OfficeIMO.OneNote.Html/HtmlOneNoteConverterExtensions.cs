@@ -238,10 +238,10 @@ public static partial class HtmlOneNoteConverterExtensions {
             run.Style.Subscript = sourceRun.Subscript ? true : null;
             run.Style.FontFamily = HtmlRenderCssValues.FirstFontFamily(sourceRun.Style?.GetValue("font-family"));
             double? resolvedFontSize = sourceRun.Style?.ResolvedFontSizePoints ?? containerStyle?.ResolvedFontSizePoints;
-            if (resolvedFontSize.HasValue && resolvedFontSize.Value > 0D) {
-                run.Style.FontSize = resolvedFontSize.Value;
+            if (resolvedFontSize.HasValue && resolvedFontSize.Value > 0D && !double.IsInfinity(resolvedFontSize.Value)) {
+                run.Style.FontSize = ClampOneNoteFontSize(resolvedFontSize.Value);
             } else if (TryParseCssPoints(sourceRun.Style?.GetValue("font-size"), out double fontSize)) {
-                run.Style.FontSize = fontSize;
+                run.Style.FontSize = ClampOneNoteFontSize(fontSize);
             }
             if (TryParseArgb(sourceRun.Style?.GetValue("color"), out uint foreground)) {
                 run.Style.ColorArgb = foreground;
@@ -271,10 +271,13 @@ public static partial class HtmlOneNoteConverterExtensions {
         } else {
             return false;
         }
-        return double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
+        return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParseFinite(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
             && parsed > 0D
             && (points = parsed * multiplier) > 0D;
     }
+
+    // OneNote stores run sizes from 6 through 144 points; larger or smaller CSS sizes keep the nearest size it can store.
+    private static double ClampOneNoteFontSize(double points) => Math.Max(6D, Math.Min(144D, points));
 
     private static bool TryParseArgb(string? value, out uint argb) {
         argb = 0U;

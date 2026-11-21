@@ -108,7 +108,7 @@ internal static class HtmlCssLinearGradientParser {
             return false;
         }
 
-        if (!double.TryParse(number.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double cssAngle)
+        if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(number.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double cssAngle)
             || double.IsNaN(cssAngle)
             || double.IsInfinity(cssAngle)) {
             return false;

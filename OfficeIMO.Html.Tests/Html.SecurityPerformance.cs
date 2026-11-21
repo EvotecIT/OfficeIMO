@@ -95,6 +95,21 @@ public partial class Html {
         Assert.Equal(1, resolverCalls);
     }
 
+    [Theory]
+    [InlineData("width=\"1e999\" height=\"1e999\"")]
+    [InlineData("width=\"NaN%\"")]
+    public async System.Threading.Tasks.Task HtmlToWord_ImageSizesThatAreNotFiniteFallBackToTheImageSize(string size) {
+        string html = $"<p><img {size} src=\"data:image/png;base64,{SecurityPixel}\"></p>";
+
+        using WordDocument document = await new HtmlToWordConverter().ConvertAsync(
+            HtmlConversionDocument.Parse(html).CreateNativeDocumentForConversion(),
+            HtmlWordExportOptions.UntrustedDefaults);
+
+        WordImage image = Assert.Single(document.Images);
+        double width = image.Width!.Value.ToPixels();
+        Assert.True(width > 0 && width < 10000, $"width {width}");
+    }
+
     [Fact]
     public async System.Threading.Tasks.Task HtmlToWord_PercentageTableImagesUsePrecomputedCellWidths() {
         string html = $"""

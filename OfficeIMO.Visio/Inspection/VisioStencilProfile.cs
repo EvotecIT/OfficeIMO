@@ -517,7 +517,7 @@ namespace OfficeIMO.Visio {
 
         private static double? GetUserCellDouble(VisioInspectionShapeSnapshot shape, string name) {
             string? value = VisioStencilMetadata.GetUserCellValue(shape.UserCells, name);
-            return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
+            return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
                 ? parsed
                 : null;
         }

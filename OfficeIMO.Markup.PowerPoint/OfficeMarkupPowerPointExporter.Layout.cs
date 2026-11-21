@@ -86,12 +86,12 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
 
         value = value!.Trim();
         if (value.EndsWith("%", StringComparison.Ordinal)) {
-            return double.TryParse(value.Substring(0, value.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out var percent)
+            return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value.Substring(0, value.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out double percent)
                 ? size * (percent / 100.0)
                 : fallback;
         }
 
-        return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var inches) ? inches : fallback;
+        return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double inches) ? inches : fallback;
     }
 
     private static void ApplyTransition(PowerPointSlide slide, string? transition) {
@@ -155,7 +155,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         seconds = default;
         var value = GetTransitionAttribute(attributes, names);
         return !string.IsNullOrWhiteSpace(value)
-               && double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out seconds);
+               && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out seconds);
     }
 
     private static bool TryGetTransitionBoolean(IReadOnlyDictionary<string, string> attributes, out bool enabled, params string[] names) {

@@ -16,7 +16,7 @@ internal static partial class OdfValidator {
             case "percentage":
             case "currency":
                 lexical = (string?)cell.Attribute(OdfNamespaces.Office + "value");
-                valid = lexical == null || double.TryParse(lexical, NumberStyles.Float, CultureInfo.InvariantCulture, out _);
+                valid = lexical == null || OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(lexical, NumberStyles.Float, CultureInfo.InvariantCulture, out double _);
                 break;
             case "boolean":
                 lexical = (string?)cell.Attribute(OdfNamespaces.Office + "boolean-value");
