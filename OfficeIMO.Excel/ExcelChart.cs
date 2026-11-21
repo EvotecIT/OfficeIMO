@@ -138,15 +138,19 @@ namespace OfficeIMO.Excel {
                 chartData = ExcelChartUtils.ApplyChartSeriesTypes(chartPart, chartData, ChartType);
                 chartData = ExcelChartUtils.ApplyScatterSeriesXValues(chartPart, chartData, sheet);
                 bool[]? hiddenSeries = null;
+                // Custom error amounts lose the same hidden cells as the values, whenever the values lost any.
+                Func<DocumentFormat.OpenXml.OpenXmlElement, IReadOnlyList<double>, IReadOnlyList<double>>? selectVisibleAmounts = null;
                 if (OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSourceVisibility.PlotsVisibleCellsOnly(
                         chartPart.ChartSpace?.GetFirstChild<C.Chart>())) {
+                    ExcelChartData? allPoints = chartData;
                     chartData = ExcelChartUtils.SelectVisiblePoints(chartPart, sheet, chartData, out hiddenSeries);
                     if (chartData == null) {
                         data = null!;
                         return false;
                     }
+                    if (!ReferenceEquals(chartData, allPoints)) selectVisibleAmounts = ExcelChartUtils.CreateVisibleAmountSelector(sheet);
                 }
-                chartData = ApplyImageExportSeriesStyles(chartPart, chartData, _document.WorkbookPartRoot);
+                chartData = ApplyImageExportSeriesStyles(chartPart, chartData, _document.WorkbookPartRoot, selectVisibleAmounts);
                 chartData = ExcelChartUtils.RemoveSeries(chartData, hiddenSeries);
                 // With every series hidden Excel plots nothing, which no snapshot can stand for.
                 if (chartData.Series.Count == 0) {

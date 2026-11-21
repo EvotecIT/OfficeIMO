@@ -59,7 +59,7 @@ public static partial class OfficeChartDrawingRenderer {
             Func<double, double> toCategoryPixel = scatter
                 ? value => plotLeft + plotWidth * GetUnclampedPlotRatio(plotX != null ? plotX(value) : value, xRange.Min, xRange.Max)
                 : horizontalBars
-                    ? value => BarCategoryNumberToPixel(plotTop, plotHeight, value, categories.Count, layout)
+                    ? value => BarCategoryNumberToPixel(plotTop, plotHeight, value, categories.Count, layout, UsesTickMarkCategoryPoints(snapshot, layout))
                     : value => CategoryNumberToPixel(snapshot, plotLeft, plotWidth, value, categories.Count, layout);
             Func<double, double> toValuePixel = horizontalBars
                 ? value => plotLeft + plotWidth * GetUnclampedPlotRatio(plotY != null ? plotY(value) : value, range.Min, range.Max)
@@ -91,6 +91,15 @@ public static partial class OfficeChartDrawingRenderer {
                 // Forecasts extend the fitted line before the first and after the last x value, as far as the axis can draw.
                 double first = drawable.Min() - trendline.Backward;
                 double last = drawable.Max() + trendline.Forward;
+                // Only the visible part of a forecast is sampled, so a long forecast keeps the curve's shape inside
+                // the plot, and a forecast the axis cannot draw, such as one reaching zero on a logarithmic axis,
+                // keeps its part from the visible axis edge. The data span itself is always drawn.
+                (double visibleFirst, double visibleLast) = scatter
+                    ? plotX == null ? (xRange.Min, xRange.Max)
+                        : sourceX != null ? (sourceX(xRange.Min), sourceX(xRange.Max)) : (double.NegativeInfinity, double.PositiveInfinity)
+                    : (0D, categories.Count + 1D);
+                if (!(first >= visibleFirst)) first = IsFiniteChartValue(visibleFirst) ? Math.Min(drawable.Min(), visibleFirst) : drawable.Min();
+                if (!(last <= visibleLast)) last = IsFiniteChartValue(visibleLast) ? Math.Max(drawable.Max(), visibleLast) : drawable.Max();
                 if (plotX != null && !IsFiniteChartValue(plotX(first))) first = drawable.Min();
                 if (plotX != null && !IsFiniteChartValue(plotX(last))) last = drawable.Max();
                 double plottedFirst = plotX != null ? plotX(first) : first;
@@ -155,10 +164,11 @@ public static partial class OfficeChartDrawingRenderer {
     }
 
     private static double BarCategoryNumberToPixel(double plotTop, double plotHeight, double categoryNumber, int categoryCount,
-        OfficeChartLayout layout) {
-        double categoryHeight = plotHeight / Math.Max(1, categoryCount);
-        // Category n sits in the slot centre; the slot order follows the horizontal category axis direction.
-        double firstCenter = plotTop + categoryHeight * (GetHorizontalBarCategorySlotIndex(0, categoryCount, layout) + 0.5D);
+        OfficeChartLayout layout, bool onTickMarks) {
+        // As for the bars: category n sits in its slot centre, or on its tick mark when the axis puts categories
+        // there (midCat); the slot order follows the horizontal category axis direction.
+        double categoryHeight = plotHeight / Math.Max(1, onTickMarks ? categoryCount - 1 : categoryCount);
+        double firstCenter = plotTop + categoryHeight * (GetHorizontalBarCategorySlotIndex(0, categoryCount, layout) + (onTickMarks ? 0D : 0.5D));
         double step = categoryCount <= 1 ? 0D : categoryHeight * (GetHorizontalBarCategorySlotIndex(1, categoryCount, layout) -
             GetHorizontalBarCategorySlotIndex(0, categoryCount, layout));
         return firstCenter + step * (categoryNumber - 1D);

@@ -299,6 +299,7 @@ public static partial class OfficeChartDrawingRenderer {
         for (int s = 0; s < series.Count; s++) {
             IReadOnlyList<double> seriesXValues = series[s].XValues ?? sharedXValues;
             int pointCount = Math.Min(seriesXValues.Count, series[s].Values.Count);
+            double plottedMinX = double.PositiveInfinity, plottedMaxX = double.NegativeInfinity;
             for (int i = 0; i < pointCount; i++) {
                 if (!TryGetSeriesValue(series[s], i, out double yValue)) {
                     continue;
@@ -311,16 +312,18 @@ public static partial class OfficeChartDrawingRenderer {
 
                 xValues.Add(xValue);
                 yValues.Add(yValue);
+                plottedMinX = Math.Min(plottedMinX, xValue);
+                plottedMaxX = Math.Max(plottedMaxX, xValue);
                 AddErrorBarExtents(series[s], seriesXValues, i, xValue, xBars: true, xValues);
                 AddErrorBarExtents(series[s], series[s].Values, i, yValue, xBars: false, yValues);
             }
-            // Office widens the x axis to show a trendline's forecasts.
-            if (series[s].Trendline is OfficeChartTrendline trendline && (trendline.Forward > 0D || trendline.Backward > 0D)) {
-                double[] seriesX = seriesXValues.Take(pointCount).Where(IsFiniteChartValue).ToArray();
-                if (seriesX.Length > 0) {
-                    xValues.Add(seriesX.Min() - trendline.Backward);
-                    xValues.Add(seriesX.Max() + trendline.Forward);
-                }
+            // Office widens the x axis to show a trendline's forecasts, measured from the points it plots.
+            if (series[s].Trendline is OfficeChartTrendline trendline && (trendline.Forward > 0D || trendline.Backward > 0D) &&
+                plottedMinX <= plottedMaxX) {
+                double first = plottedMinX - trendline.Backward;
+                double last = plottedMaxX + trendline.Forward;
+                if (IsFiniteChartValue(first)) xValues.Add(first);
+                if (IsFiniteChartValue(last)) xValues.Add(last);
             }
         }
 

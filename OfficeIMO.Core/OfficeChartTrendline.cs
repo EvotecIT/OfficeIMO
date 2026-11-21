@@ -75,7 +75,7 @@ public sealed class OfficeChartTrendline {
         return copy;
     }
 
-    private static bool IsFiniteForecast(double value) => value > 0D && !double.IsNaN(value) && !double.IsInfinity(value) && value < 1E9D;
+    private static bool IsFiniteForecast(double value) => value > 0D && !double.IsNaN(value) && !double.IsInfinity(value);
 
     internal OfficeChartTrendline WithDashStyle(OfficeStrokeDashStyle? dashStyle) {
         if (dashStyle.HasValue && !Enum.IsDefined(typeof(OfficeStrokeDashStyle), dashStyle.Value))

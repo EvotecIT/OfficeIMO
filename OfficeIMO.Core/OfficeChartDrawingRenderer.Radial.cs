@@ -284,27 +284,44 @@ public static partial class OfficeChartDrawingRenderer {
     private const double PieInsideLabelRadiusRatio = 0.58D;
 
     /// <summary>
-    /// Finds the best-fit pie labels that do not fit inside their slice: the label box must sit within the slice's
-    /// angle and inside the circle at the inside-label radius.
+    /// Finds the best-fit pie labels that do not fit inside their slice: every corner of the label box, centred at the
+    /// inside-label radius on the slice's middle angle, must lie within the slice's angle and inside the circle.
     /// </summary>
-    private static HashSet<int> FindBestFitLabelsOutsideSlices(OfficeChartSnapshot snapshot, OfficeChartLayout layout,
+    internal static HashSet<int> FindBestFitLabelsOutsideSlices(OfficeChartSnapshot snapshot, OfficeChartLayout layout,
         OfficeSeries values, double total, double scale, double radius) {
         var outside = new HashSet<int>();
         if (!layout.ShowDataLabels || layout.DataLabelPosition != OfficeChartDataLabelPosition.BestFit) return outside;
         IReadOnlyList<string> categories = snapshot.Data.Categories;
         double insideRadius = radius * PieInsideLabelRadiusRatio;
+        // Slices are laid out from the same start angle and in the same order as they are drawn.
+        double start = GetFirstSliceAngle(snapshot.RadialLayout);
         for (int i = 0; i < categories.Count; i++) {
-            if (!ShouldShowDataLabel(layout, 0, i) || !TryGetSeriesValue(values, i, out double seriesValue) || seriesValue <= 0D) continue;
-            double ratio = seriesValue / scale / total;
+            if (!TryGetSeriesValue(values, i, out double seriesValue)) continue;
+            double ratio = Math.Max(0D, seriesValue) / scale / total;
+            double sweep = ratio * Math.PI * 2D;
+            double sliceStart = start;
+            start += sweep;
+            if (!ShouldShowDataLabel(layout, 0, i) || seriesValue <= 0D) continue;
             string label = FormatDataLabel(layout, categories[i], values, seriesValue, total, ratio);
             if (string.IsNullOrWhiteSpace(label)) continue;
             double halfWidth = GetPieInsideLabelWidth(label, layout) / 2D;
             double halfHeight = Math.Max(12D, layout.DataLabelFontSize + 6D) / 2D;
-            double halfDiagonal = Math.Sqrt(halfWidth * halfWidth + halfHeight * halfHeight);
-            double sweep = ratio * Math.PI * 2D;
-            bool withinAngle = sweep >= Math.PI || insideRadius > 0D && 2D * Math.Asin(Math.Min(1D, halfDiagonal / insideRadius)) <= sweep;
-            bool withinCircle = insideRadius + halfDiagonal <= radius;
-            if (!withinAngle || !withinCircle) outside.Add(i);
+            double middle = sliceStart + sweep / 2D;
+            double centerX = Math.Cos(middle) * insideRadius, centerY = Math.Sin(middle) * insideRadius;
+            bool fits = true;
+            foreach ((double cornerX, double cornerY) in new[] {
+                         (centerX - halfWidth, centerY - halfHeight), (centerX + halfWidth, centerY - halfHeight),
+                         (centerX - halfWidth, centerY + halfHeight), (centerX + halfWidth, centerY + halfHeight) }) {
+                if (cornerX * cornerX + cornerY * cornerY > radius * radius) fits = false;
+                // A slice that is the whole pie has no edges to cross.
+                else if (sweep < Math.PI * 2D) {
+                    double offset = Math.Atan2(cornerY, cornerX) - sliceStart;
+                    offset -= Math.Floor(offset / (Math.PI * 2D)) * Math.PI * 2D;
+                    if (offset > sweep) fits = false;
+                }
+                if (!fits) break;
+            }
+            if (!fits) outside.Add(i);
         }
         return outside;
     }

@@ -279,6 +279,28 @@ public sealed class WordChartProjectionQualificationTests {
         Assert.False(chart.TryGetOfficeSnapshot(out _));
     }
 
+    [Fact]
+    public void Snapshot_KeepsCustomErrorAmountsWithTheVisiblePointsTheyBelongTo() {
+        using var document = WordDocument.Create();
+        var chart = AddChartWithTwoSeries(document);
+        C.BarChartSeries series = chart.ChartPart!.ChartSpace!.Descendants<C.BarChartSeries>().First();
+        string sheet = series.GetFirstChild<C.Values>()!.Descendants<C.Formula>().Single().Text!.Split('!')[0];
+        series.InsertBefore(new C.ErrorBars(new C.ErrorBarType { Val = C.ErrorBarValues.Plus },
+                new C.ErrorBarValueType { Val = C.ErrorValues.Custom }, new C.NoEndCap { Val = false },
+                new C.Plus(new C.NumberReference(new C.Formula(sheet + "!$D$2:$D$4"), new C.NumberingCache(new C.FormatCode("General"),
+                    new C.PointCount { Val = 3U },
+                    new C.NumericPoint(new C.NumericValue("1")) { Index = 0U },
+                    new C.NumericPoint(new C.NumericValue("2")) { Index = 1U },
+                    new C.NumericPoint(new C.NumericValue("3")) { Index = 2U })))),
+            series.GetFirstChild<C.CategoryAxisData>());
+        EditEmbeddedWorksheet(chart, worksheet => Row(worksheet, 3).Hidden = true);
+
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+
+        Assert.Equal(new[] { 3d, 5d }, snapshot.Data.Series[0].Values);
+        Assert.Equal(new[] { 1d, 3d }, Assert.Single(snapshot.Data.Series[0].ErrorBars!).Plus);
+    }
+
     private static WordChart AddChartWithTwoSeries(WordDocument document) =>
         document.AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(new[] { "A", "B", "C" }, new[] {
             new OfficeSeries("Values", new[] { 3d, 4d, 5d }), new OfficeSeries("Second", new[] { 6d, 7d, 8d }) }));

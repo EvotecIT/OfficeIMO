@@ -398,7 +398,8 @@ namespace OfficeIMO.Excel {
             return native.Title == null ? resolved : resolved.WithTitle(native.Title);
         }
 
-        private static ExcelChartData ApplyImageExportSeriesStyles(ChartPart chartPart, ExcelChartData data, WorkbookPart workbookPart) {
+        private static ExcelChartData ApplyImageExportSeriesStyles(ChartPart chartPart, ExcelChartData data, WorkbookPart workbookPart,
+            Func<OpenXmlElement, IReadOnlyList<double>, IReadOnlyList<double>>? selectVisibleAmounts = null) {
             C.PlotArea? plotArea = chartPart.ChartSpace?
                 .GetFirstChild<C.Chart>()?
                 .GetFirstChild<C.PlotArea>();
@@ -406,7 +407,7 @@ namespace OfficeIMO.Excel {
                 return data;
             }
 
-            Dictionary<int, ImageExportSeriesStyle> styles = GetImageExportSeriesStyles(plotArea, data, workbookPart);
+            Dictionary<int, ImageExportSeriesStyle> styles = GetImageExportSeriesStyles(plotArea, data, workbookPart, selectVisibleAmounts);
             if (styles.Count == 0) {
                 return data;
             }
@@ -428,7 +429,8 @@ namespace OfficeIMO.Excel {
             return changed ? new ExcelChartData(data.Categories, series) : data;
         }
 
-        private static Dictionary<int, ImageExportSeriesStyle> GetImageExportSeriesStyles(C.PlotArea plotArea, ExcelChartData data, WorkbookPart workbookPart) {
+        private static Dictionary<int, ImageExportSeriesStyle> GetImageExportSeriesStyles(C.PlotArea plotArea, ExcelChartData data, WorkbookPart workbookPart,
+            Func<OpenXmlElement, IReadOnlyList<double>, IReadOnlyList<double>>? selectVisibleAmounts) {
             var styles = new Dictionary<int, ImageExportSeriesStyle>();
             var automaticColors = new OfficeOpenXmlChartAutomaticColors.SeriesResolutionContext();
             int seriesOrder = 0;
@@ -456,7 +458,8 @@ namespace OfficeIMO.Excel {
                 }
 
                 style.Trendline = ReadImageExportTrendline(series, workbookPart, data.Series[index].Name);
-                style.ErrorBars = OfficeOpenXmlChartErrorBars.Read(series, workbookPart.ThemePart?.Theme?.ThemeElements?.ColorScheme, 100000);
+                style.ErrorBars = OfficeOpenXmlChartErrorBars.Read(series, workbookPart.ThemePart?.Theme?.ThemeElements?.ColorScheme, 100000,
+                    selectVisibleAmounts);
                 int valueCount = data.Series[index].Values.Count;
                 C.Marker? marker = series.GetFirstChild<C.Marker>();
                 C.ScatterStyleValues? scatterStyle = (series.Parent as C.ScatterChart)?.GetFirstChild<C.ScatterStyle>()?.Val?.Value;

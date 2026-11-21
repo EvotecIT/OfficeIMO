@@ -62,16 +62,14 @@ internal sealed class OfficeChartErrorBars {
                 break;
             case OfficeChartErrorBarValueType.StandardError:
             case OfficeChartErrorBarValueType.StandardDeviation:
-                double[] finite = values.Where(item => !double.IsNaN(item) && !double.IsInfinity(item)).ToArray();
-                if (finite.Length < 2) return false;
-                double mean = finite.Average();
-                double squares = finite.Sum(item => (item - mean) * (item - mean));
+                SeriesStatistics statistics = GetStatistics(values);
+                if (statistics.Count < 2) return false;
                 if (ValueType == OfficeChartErrorBarValueType.StandardError) {
-                    plus = minus = Math.Sqrt(squares / (finite.Length * (finite.Length - 1D)));
+                    plus = minus = Math.Sqrt(statistics.Squares / (statistics.Count * (statistics.Count - 1D)));
                 } else {
-                    center = mean;
-                    low = high = mean;
-                    plus = minus = Math.Abs(Amount) * Math.Sqrt(squares / (finite.Length - 1D));
+                    center = statistics.Mean;
+                    low = high = statistics.Mean;
+                    plus = minus = Math.Abs(Amount) * Math.Sqrt(statistics.Squares / (statistics.Count - 1D));
                 }
                 break;
             default:
@@ -83,5 +81,46 @@ internal sealed class OfficeChartErrorBars {
         if (Direction != OfficeChartErrorBarDirection.Minus) high = center + plus;
         if (Direction != OfficeChartErrorBarDirection.Plus) low = center - minus;
         return true;
+    }
+
+    // Drawing and axis scaling ask for every point's span with the same value list, so the series statistics are
+    // kept for the last list seen instead of being recomputed per point.
+    private SeriesStatistics? _statistics;
+
+    private SeriesStatistics GetStatistics(IReadOnlyList<double> values) {
+        SeriesStatistics? cached = _statistics;
+        if (cached != null && ReferenceEquals(cached.Values, values) && cached.Values.Count == values.Count) return cached;
+        int count = 0;
+        double sum = 0D;
+        foreach (double value in values) {
+            if (double.IsNaN(value) || double.IsInfinity(value)) continue;
+            count++;
+            sum += value;
+        }
+        double mean = count == 0 ? 0D : sum / count;
+        double squares = 0D;
+        if (count > 0) {
+            foreach (double value in values) {
+                if (double.IsNaN(value) || double.IsInfinity(value)) continue;
+                squares += (value - mean) * (value - mean);
+            }
+        }
+        var statistics = new SeriesStatistics(values, count, mean, squares);
+        _statistics = statistics;
+        return statistics;
+    }
+
+    private sealed class SeriesStatistics {
+        internal SeriesStatistics(IReadOnlyList<double> values, int count, double mean, double squares) {
+            Values = values;
+            Count = count;
+            Mean = mean;
+            Squares = squares;
+        }
+
+        internal IReadOnlyList<double> Values { get; }
+        internal int Count { get; }
+        internal double Mean { get; }
+        internal double Squares { get; }
     }
 }
