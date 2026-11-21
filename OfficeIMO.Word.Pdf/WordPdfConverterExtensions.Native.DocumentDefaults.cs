@@ -20,7 +20,6 @@ namespace OfficeIMO.Word.Pdf {
             // An inherited story uses the selecting section's page and margin geometry.
             public WordSection? RunningContentSection { get; init; }
             // Computed once by the read operation with its effective body styles and fonts.
-            public double? BodyTextInkTopOffset { get; init; }
             // Immutable per-part visibility/permission inventory captured by this read operation.
             public IReadOnlyDictionary<OpenXmlElement, NativeRunningTextBoxStoryPeers>? RunningTextBoxStoryPeers { get; init; }
             public bool RunningStoryHasDisallowedTextBoxPeers { get; init; }

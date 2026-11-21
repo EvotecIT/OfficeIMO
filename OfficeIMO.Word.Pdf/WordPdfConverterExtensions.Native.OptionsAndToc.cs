@@ -372,6 +372,13 @@ namespace OfficeIMO.Word.Pdf {
             foreach (WordElement element in CollapseNativeParagraphElements(headerFooter.Elements)) {
                 RegisterNativeElementFonts(element, pdfOptions, registeredFamilies, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
             }
+
+            // Text-box paragraphs are laid out with their own fonts.
+            foreach (W.Paragraph source in headerFooter.ChildElements.SelectMany(element => element.Descendants<W.Paragraph>())
+                .Where(source => source.Ancestors<W.TextBoxContent>().Any())) {
+                RegisterNativeParagraphContentFonts(new WordParagraph(headerFooter.Document, source), NativeTableRunStyleDefaults.Empty,
+                    pdfOptions, registeredFamilies, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
+            }
         }
 
         private static void RegisterNativeElementFonts(WordElement element, PdfCore.PdfCreateOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots, bool allowSystemFontEmbedding, NativeFontMap nativeFontMap) {

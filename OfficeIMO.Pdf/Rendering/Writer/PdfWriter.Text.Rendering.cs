@@ -613,6 +613,7 @@ internal static partial class PdfWriter {
                 RichSeg last = segs[segs.Count - 1];
                 if (last.InlineElement != null && fontPage != null)
                     MarkPageRichTextFont(fontPage, opts, last.Font, last.NamedFont);
+                if (last.TextSeparatorStyle is { } separatorStyle) last = separatorStyle;
                 string separatorFontResource = GetFontResourceName(last.Font, last.NamedFont, ChooseNormal(opts.DefaultFont));
                 double separatorFontSize = EffectiveRichFontSize(last.FontSize, last.Baseline);
                 double separatorTextRise = TextRiseForBaseline(last.FontSize, last.Baseline) + last.LineAlignmentRise;

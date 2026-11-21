@@ -41,7 +41,9 @@ public partial class Word {
         string before = paragraph._paragraph.OuterXml;
         Assert.Empty(document.ValidateDocument());
         var result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false });
-        Assert.Contains(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
+        // Header and footer boxes without nesting keep their own frames; the rest keep the bounded source-order flow.
+        bool placed = story != null && !nested;
+        Assert.Equal(!placed, result.Report.Warnings.Any(warning => warning.Code == "native-mixed-text-box-layout-approximated"));
         using var pdf = PdfDocument.Open(result.Value.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         string visible = string.Concat(pdf.GetPage(1).Letters.Select(letter => letter.Value));
         string[] tokens = nested
@@ -50,7 +52,7 @@ public partial class Word {
         int previous = -1;
         foreach (string token in tokens) {
             int position = visible.IndexOf(token, StringComparison.Ordinal);
-            Assert.True(position > previous, $"Missing or reordered {token}: {visible}");
+            Assert.True(placed ? position >= 0 : position > previous, $"Missing or reordered {token}: {visible}");
             Assert.Equal(1, visible.Split(new[] { token }, StringSplitOptions.None).Length - 1);
             previous = position;
         }

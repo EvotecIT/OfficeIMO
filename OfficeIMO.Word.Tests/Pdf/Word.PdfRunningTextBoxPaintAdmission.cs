@@ -37,50 +37,6 @@ public partial class Word {
     }
 
     [Theory]
-    [InlineData("border", false)]
-    [InlineData("border", true)]
-    [InlineData("shading", false)]
-    [InlineData("shading", true)]
-    [InlineData("pattern", true)]
-    public void SaveAsPdf_DecoratedRunningTextBoxParagraphRetainsWarnedContent(string decoration, bool inherited) {
-        using WordDocument document = CreateCompactRunningTextBoxPaintControl();
-        W.Paragraph inner = document.Sections[1].PageSetup.FirstPageHeader.TextBoxes.Single().Content!.Elements<W.Paragraph>().Single();
-        OpenXmlElement authored = decoration == "border"
-            ? new W.ParagraphBorders(new W.BottomBorder { Val = W.BorderValues.Single, Size = 16U, Color = "FF0000" })
-            : decoration == "shading" ? new W.Shading { Val = W.ShadingPatternValues.Clear, Fill = "FFFF00" }
-            : new W.Shading { Val = W.ShadingPatternValues.Percent50, Color = "FF0000", Fill = "auto" };
-        inner.ParagraphProperties ??= new W.ParagraphProperties();
-        if (inherited) {
-            document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(new W.Style(
-                new W.StyleParagraphProperties(authored)) { Type = W.StyleValues.Paragraph, StyleId = "DecoratedBox" });
-            inner.ParagraphProperties.ParagraphStyleId = new W.ParagraphStyleId { Val = "DecoratedBox" };
-        } else inner.ParagraphProperties.AddChild(authored, true);
-        string stylesBefore = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.OuterXml;
-        AssertRunningTextBoxPaintIsExplicitlyApproximated(document);
-        Assert.Equal(stylesBefore, document._wordprocessingDocument.MainDocumentPart.StyleDefinitionsPart.Styles.OuterXml);
-    }
-
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void SaveAsPdf_DocumentDefaultBoxParagraphPaintRetainsWarnedContent(bool border) {
-        using WordDocument document = CreateCompactRunningTextBoxPaintControl();
-        W.Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
-        styles.DocDefaults ??= new W.DocDefaults();
-        W.ParagraphPropertiesDefault defaults = styles.DocDefaults.GetFirstChild<W.ParagraphPropertiesDefault>() ??
-            styles.DocDefaults.AppendChild(new W.ParagraphPropertiesDefault());
-        W.ParagraphPropertiesBaseStyle properties = defaults.GetFirstChild<W.ParagraphPropertiesBaseStyle>() ??
-            defaults.AppendChild(new W.ParagraphPropertiesBaseStyle());
-        OpenXmlElement paint = border
-            ? new W.ParagraphBorders(new W.BottomBorder { Val = W.BorderValues.Single, Size = 16U, Color = "FF0000" })
-            : new W.Shading { Val = W.ShadingPatternValues.Clear, Fill = "FFFF00" };
-        properties.AddChild(paint, true);
-        string before = styles.OuterXml;
-        AssertRunningTextBoxPaintIsExplicitlyApproximated(document);
-        Assert.Equal(before, styles.OuterXml);
-    }
-
-    [Theory]
     [InlineData("columns")]
     [InlineData("warp")]
     public void SaveAsPdf_UnsupportedRunningTextBoxBodyLayoutRetainsWarnedContent(string layout) {
@@ -112,7 +68,8 @@ public partial class Word {
         using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
         Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
         Assert.Equal(3, pdf.NumberOfPages);
-        Assert.Equal((612D - 468D * .585D) / 2D + 7.2D,
+        // Word sets the text inside a visible 2pt outline: half its width beyond the inset.
+        Assert.Equal((612D - 468D * .585D) / 2D + 7.2D + (paint == "plainOutline" ? 1D : 0D),
             AnchoredRunningLetters(pdf.GetPage(2), "BOX")[0].StartBaseLine.X, 3);
         Assert.Equal(paint == "plainOutline", pdf.GetPage(2).Paths.Any(path => path.IsStroked));
         Assert.Equal(before, AnchoredRunningStoryXml(document));

@@ -87,6 +87,10 @@ internal static partial class PdfWriter {
                         ResolveFloatingBookmarks(currentOpts.PageHeight.ToPoints() - formField.Y);
                         RenderCanvasFormField(formField);
                         break;
+                    case PdfCanvasFlowItem placedFlow:
+                        ResolveFloatingBookmarks(currentOpts.PageHeight.ToPoints() - placedFlow.Y);
+                        RenderCanvasFlow(placedFlow);
+                        break;
                     case PdfCanvasTableItem table:
                         ResolveFloatingBookmarks(currentOpts.PageHeight.ToPoints() - table.Y);
                         RenderCanvasTable(table);

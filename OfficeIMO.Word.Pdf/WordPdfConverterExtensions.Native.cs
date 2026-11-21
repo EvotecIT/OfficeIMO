@@ -80,6 +80,7 @@ namespace OfficeIMO.Word.Pdf {
             void Shape(OfficeShape shape, global::OfficeIMO.OfficeAlignment? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null);
             void Drawing(OfficeDrawing drawing, global::OfficeIMO.OfficeAlignment? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null);
             void Canvas(Action<PdfCore.PdfPageCanvas> build);
+            IReadOnlyList<PdfCore.IPdfBlock> CaptureBlocks(Action<PdfCore.PdfContentBuilder> build);
             void Table(IEnumerable<PdfCore.PdfTableCell[]> rows, global::OfficeIMO.OfficeAlignment align, PdfCore.PdfTableStyle? style);
             void Image(byte[] bytes, double width, double height, global::OfficeIMO.OfficeAlignment? align = null, PdfCore.PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null);
         }
@@ -124,6 +125,7 @@ namespace OfficeIMO.Word.Pdf {
             public void Shape(OfficeShape shape, global::OfficeIMO.OfficeAlignment? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) => _pdf.Shape(shape, align, spacingBefore, spacingAfter, style, linkUri, linkContents);
             public void Drawing(OfficeDrawing drawing, global::OfficeIMO.OfficeAlignment? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) => _pdf.Drawing(drawing, align, spacingBefore, spacingAfter, style, linkUri, linkContents);
             public void Canvas(Action<PdfCore.PdfPageCanvas> build) => _pdf.Canvas(build);
+            public IReadOnlyList<PdfCore.IPdfBlock> CaptureBlocks(Action<PdfCore.PdfContentBuilder> build) => _pdf.BuildFlowBlocks(build);
             public void Table(IEnumerable<PdfCore.PdfTableCell[]> rows, global::OfficeIMO.OfficeAlignment align, PdfCore.PdfTableStyle? style) => _pdf.Table(rows, align, style);
             public void Image(byte[] bytes, double width, double height, global::OfficeIMO.OfficeAlignment? align = null, PdfCore.PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null) => _pdf.Image(bytes, width, height, align, style: style ?? CreateNativeImageStyle(), linkUri: linkUri, linkContents: linkContents);
         }
@@ -174,6 +176,7 @@ namespace OfficeIMO.Word.Pdf {
             public void CheckBox(string name, bool isChecked, double size, global::OfficeIMO.OfficeAlignment align, double spacingBefore, double spacingAfter, string checkedValueName, PdfCore.PdfFormFieldStyle? style) => _column.CheckBox(name, isChecked, global::OfficeIMO.OfficeLength.Points(size), align, global::OfficeIMO.OfficeLength.Points(spacingBefore), global::OfficeIMO.OfficeLength.Points(spacingAfter), checkedValueName, style);
             public void Shape(OfficeShape shape, global::OfficeIMO.OfficeAlignment? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) => _column.Shape(shape, align, ((double?)(spacingBefore) is double physicalLength15 ? global::OfficeIMO.OfficeLength.Points(physicalLength15) : (global::OfficeIMO.OfficeLength?)null), ((double?)(spacingAfter) is double physicalLength16 ? global::OfficeIMO.OfficeLength.Points(physicalLength16) : (global::OfficeIMO.OfficeLength?)null), style, linkUri, linkContents);
             public void Drawing(OfficeDrawing drawing, global::OfficeIMO.OfficeAlignment? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) => _column.Drawing(drawing, align, ((double?)(spacingBefore) is double physicalLength17 ? global::OfficeIMO.OfficeLength.Points(physicalLength17) : (global::OfficeIMO.OfficeLength?)null), ((double?)(spacingAfter) is double physicalLength18 ? global::OfficeIMO.OfficeLength.Points(physicalLength18) : (global::OfficeIMO.OfficeLength?)null), style, linkUri, linkContents);
+            public IReadOnlyList<PdfCore.IPdfBlock> CaptureBlocks(Action<PdfCore.PdfContentBuilder> build) => _column.CaptureBlocks(build);
             public void Canvas(Action<PdfCore.PdfPageCanvas> build) {
                 if (_page == null) _column.Canvas(build);
                 else _page.Canvas(build);
@@ -227,7 +230,6 @@ namespace OfficeIMO.Word.Pdf {
             IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries = BuildNativeTableOfContentsEntries(document, headingDestinations);
             NativeDocumentDefaults nativeDefaults = GetNativeDocumentDefaults(document, nativeFontMap);
             nativeDefaults = nativeDefaults with {
-                BodyTextInkTopOffset = GetNativeBodyTextInkTopOffset(document, nativeDefaults, nativeFontMap, options),
                 RunningTextBoxStoryPeers = GetNativeRunningTextBoxStoryPeers(document, options)
             };
             var footnoteNumbersById = new NativeNoteNumbering(document, options);
