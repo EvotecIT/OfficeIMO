@@ -42,7 +42,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
     }
 
     private bool CanApplyLookup(int lookupIndex, int depth, ref int inspections, CancellationToken cancellationToken, bool allowGlyphCountChanges = true,
-        OfficeOpenTypeGlyphFilter? glyphFilter = null, int inheritedFlags = -1, int inheritedSet = -1) {
+        OfficeOpenTypeGlyphFilter? glyphFilter = null, int inheritedFlags = -1, int inheritedSet = -1, MarkFilterUse? markFilters = null) {
         cancellationToken.ThrowIfCancellationRequested();
         if (depth >= MaximumLookupRecursion || ++inspections > MaximumPreflightInspections) return false;
         Ensure(_lookupList, 2);
@@ -64,7 +64,12 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         // A nested lookup that matches further glyphs would need its own view.
         bool ownView = glyphFilter != null && inheritedFlags >= 0
             && ((lookupFlags & 0xFF1E) != (inheritedFlags & 0xFF1E) || set != inheritedSet);
-        if (glyphFilter == null && (lookupFlags & 0xFF1E) != 0) return false;
+        if (glyphFilter == null && (lookupFlags & 0xFF1E) != 0) {
+            // Flags that only skip marks change nothing in a run without marks. Latin
+            // defaults accept them and verify each run before applying (MarkFilterUse).
+            if (markFilters == null || (lookupFlags & 0x0006) != 0) return false;
+            markFilters.Used = true;
+        }
         for (int index = 0; index < subtableCount; index++) {
             if ((index & 63) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (++inspections > MaximumPreflightInspections) return false;
@@ -89,13 +94,18 @@ internal sealed partial class OfficeOpenTypeSubstitution {
             if (effectiveType == 8 && _reader.ReadUInt16(subtable) != 1) return false;
             if ((effectiveType == 5 || effectiveType == 6)
                 && !CanApplyContextLookupRecords(effectiveType, subtable, depth, ref inspections, cancellationToken, allowGlyphCountChanges,
-                    glyphFilter, lookupFlags, set)) return false;
+                    glyphFilter, lookupFlags, set, markFilters)) return false;
         }
         return true;
     }
 
+    /// <summary>Records whether an accepted lookup skips marks, so its caller must check runs for marks.</summary>
+    internal sealed class MarkFilterUse {
+        internal bool Used { get; set; }
+    }
+
     private bool CanApplyContextLookupRecords(int lookupType, int subtable, int depth, ref int inspections, CancellationToken cancellationToken,
-        bool allowGlyphCountChanges, OfficeOpenTypeGlyphFilter? glyphFilter, int inheritedFlags, int inheritedSet) {
+        bool allowGlyphCountChanges, OfficeOpenTypeGlyphFilter? glyphFilter, int inheritedFlags, int inheritedSet, MarkFilterUse? markFilters) {
         int counted = inspections;
         List<OfficeOpenTypeContextRules.Match> rules = ContextRules(() => {
             if (++counted > MaximumPreflightInspections) throw new InvalidDataException("GSUB preflight exceeded the managed inspection limit.");
@@ -110,7 +120,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
                 // Later records address original input slots. Until slot tracking is supported,
                 // decline any earlier record (including nested contexts) that can change their positions.
                 if (sequenceIndex >= rule.InputCount || !CanApplyLookup(nestedLookup, depth + 1, ref inspections, cancellationToken,
-                    allowGlyphCountChanges && record == rule.RecordCount - 1, glyphFilter, inheritedFlags, inheritedSet)) return false;
+                    allowGlyphCountChanges && record == rule.RecordCount - 1, glyphFilter, inheritedFlags, inheritedSet, markFilters)) return false;
             }
         }
         return true;

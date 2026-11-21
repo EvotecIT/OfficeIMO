@@ -47,6 +47,10 @@ internal static partial class PdfWriter {
                 : (bodyAscent + textDescent) * spacing.MultipleValue!.Value / natural
                     + Math.Max(0D, textAscent - bodyAscent);
         contentHeight = Math.Max(contentHeight, textAdvance);
+        // A taller inline object raises the line's ascent only. Multiple spacing keeps its
+        // leading below the baseline, as Word does, so the next line keeps its usual pitch.
+        if (spacing.Rule == PdfLineSpacingRule.Multiple && textAdvance - textAscent > textDescent)
+            combined = Math.Max(textAscent, inlineAscent) + Math.Max(textAdvance - textAscent, inlineDescent);
         return hasInline && (inlineAscent > textAscent || inlineDescent > textDescent)
             ? Math.Max(contentHeight, combined) : contentHeight;
     }
@@ -174,7 +178,9 @@ internal static partial class PdfWriter {
         double fontSize, PdfTextBaseline baseline, PdfCreateOptions? options, PdfLineSpacing? spacing,
         out double ascent, out double descent) {
         double size = EffectiveRichFontSize(fontSize, baseline);
-        double rise = TextRiseForBaseline(fontSize, baseline);
+        // Word-processor line boxes (font line-box spacing) size superscript and subscript runs
+        // at their reduced size without the shift, so they never make the line taller.
+        double rise = spacing?.FontLineBoxMultiplier != null ? 0D : TextRiseForBaseline(fontSize, baseline);
         if (spacing?.IsExact == false)
             rise += ResolveFontLineAlignmentRise(font, namedFont, size, options, spacing);
         if (spacing?.FontLineBoxMultiplier is double natural) {

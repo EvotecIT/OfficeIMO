@@ -267,6 +267,45 @@ public partial class Word {
         return source;
     }
 
+    // Word draws a Symbol bullet from the Symbol font, so its taller ascent raises the
+    // first line. The marker paints as a Unicode bullet in the text font, but its line
+    // keeps the numbering level's font metrics, without embedding that font.
+    [Theory]
+    [InlineData(false, 18.7D, 18.7D)]
+    [InlineData(true, 16.5D, 18.7D)]
+    public void SaveAsPdf_NormalizedBulletLineUsesTheNumberingLevelFontAscent(bool wrapped, double lineGap, double itemGap) {
+        using WordDocument source = WordDocument.Create();
+        WordList list = source.AddCustomList();
+        var level = new WordListLevel(WordListLevelKind.Bullet) { LevelText = "", LevelSuffix = WordListLevelSuffix.Tab };
+        level.OpenXmlElement.NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
+            new RunFonts { Ascii = "Marker Face", HighAnsi = "Marker Face" });
+        list.Numbering.AddLevel(level);
+        foreach (string text in wrapped ? new[] { "A\nB", "C" } : new[] { "A", "B", "C" }) {
+            WordParagraph paragraph = list.AddItem(text);
+            paragraph.FontFamily = "Body Face"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(11);
+            paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple(1D);
+            paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
+        }
+        int[] scalars = Enumerable.Range(32, 95).Append(0x2022).ToArray();
+        var options = new PdfCreateOptions { DefaultFont = PdfStandardFont.Helvetica };
+        options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Body Face",
+            ManagedTextShapingTestAssets.CreateFontWithLineBoxMetrics(1000, -500, 0, 500, scalars)));
+        options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Marker Face",
+            ManagedTextShapingTestAssets.CreateFontWithLineBoxMetrics(1200, -300, 0, 300, scalars)));
+
+        byte[] bytes = source.ToPdf(new WordPdfExportOptions {
+            IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(), PdfOptions = options
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
+
+        using var pdf = PdfPigDocument.Open(bytes);
+        var letters = pdf.GetPage(1).Letters.Where(letter => letter.Value is "A" or "B" or "C").ToArray();
+        Assert.Equal("ABC", string.Concat(letters.Select(letter => letter.Value)));
+        Assert.Equal(lineGap, letters[0].StartBaseLine.Y - letters[1].StartBaseLine.Y, 3);
+        Assert.Equal(itemGap, letters[1].StartBaseLine.Y - letters[2].StartBaseLine.Y, 3);
+        Assert.Single(pdf.GetPage(1).Letters.Select(letter => letter.FontName).Distinct());
+        Assert.Equal(1, CountOccurrences(System.Text.Encoding.ASCII.GetString(bytes), "/FontFile2"));
+    }
+
     private static byte[] NumberingMetricFont(int width) {
         byte[] font = ManagedTextShapingTestAssets.CreateFontWithLineBoxMetrics(
             1000, -500, 0, 500, Enumerable.Range(32, 95).ToArray());

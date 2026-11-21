@@ -560,4 +560,42 @@ public class DrawingManagedTextShapingProviderTests {
         }
         return false;
     }
+
+    // PDF text from Word requests kern, liga and clig through default Latin shaping. A ligature
+    // lookup that only skips marks, as Aptos's does, changes nothing in a run without marks and
+    // must not turn kerning off.
+    [Fact]
+    public void ManagedLatinShaping_KernsRunsWhoseLigatureLookupOnlySkipsMarks() {
+        byte[] font = File.ReadAllBytes(Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.TestAssets", "Fonts", "OfficeIMOBaselineSans-Regular.ttf"));
+        SetLigatureLookupFlags(font, 0x0008);
+        var features = OfficeTextFeatureSettings.Default.With("kern", 1).With("liga", 1).With("clig", 1);
+
+        OfficeTextShapingResult? result = OfficeManagedTextShapingProvider.Instance.ShapeText(
+            new OfficeTextShapingRequest("AVATAR", "Baseline Sans", font, false, 2048, OfficeTextDirection.Auto, null,
+                CancellationToken.None, null, null, false, featureSettings: features, applyDefaultLatinLigatures: true));
+
+        Assert.NotNull(result);
+        // The font's GPOS pairs: AV -89, VA -96, AT -160, TA -160.
+        Assert.Equal(new[] { -89, -96, -160, -160, 0, 0 }, Enumerable.Range(0, result!.Glyphs.Count).Select(result.GetAdvanceAdjustment));
+    }
+
+    private static void SetLigatureLookupFlags(byte[] font, ushort flags) {
+        int U16(int offset) => font[offset] << 8 | font[offset + 1];
+        int gsub = -1;
+        for (int index = 0; index < U16(4); index++) {
+            int record = 12 + index * 16;
+            if (System.Text.Encoding.ASCII.GetString(font, record, 4) == "GSUB")
+                gsub = font[record + 8] << 24 | font[record + 9] << 16 | font[record + 10] << 8 | font[record + 11];
+        }
+        int featureList = gsub + U16(gsub + 6), lookupList = gsub + U16(gsub + 8);
+        for (int index = 0; index < U16(featureList); index++) {
+            int record = featureList + 2 + index * 6;
+            if (System.Text.Encoding.ASCII.GetString(font, record, 4) != "liga") continue;
+            int feature = featureList + U16(record + 4);
+            for (int lookup = 0; lookup < U16(feature + 2); lookup++) {
+                int offset = lookupList + U16(lookupList + 2 + U16(feature + 4 + lookup * 2) * 2);
+                font[offset + 2] = (byte)(flags >> 8); font[offset + 3] = (byte)flags;
+            }
+        }
+    }
 }

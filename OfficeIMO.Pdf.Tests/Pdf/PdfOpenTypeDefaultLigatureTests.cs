@@ -169,7 +169,7 @@ public class PdfOpenTypeDefaultLigatureTests {
         var run = font.ShapeText(text, PdfTextShapingOptions.ForRendering("Test", PdfTextShapingMode.OpenTypeLigatures));
         Assert.Equal(3, Assert.Single(run.Glyphs).GlyphId);
         Assert.Equal(text, run.Glyphs[0].UnicodeText);
-        byte[] unsupported = ManagedTextShapingTestAssets.CreateFontWithRequiredLigature("ccmp", first, 'A', 8);
+        byte[] unsupported = ManagedTextShapingTestAssets.CreateFontWithRequiredLigature("ccmp", first, 'A', 4);
         var report = new PdfConversionReport();
         PdfDocument.Create(new PdfCreateOptions().ReportDiagnosticsTo(report).EmbedStandardFont(PdfStandardFont.Helvetica, unsupported, "Test"))
             .Paragraph(p => p.AddText(text)).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
@@ -376,8 +376,8 @@ public class PdfOpenTypeDefaultLigatureTests {
     [InlineData("ccmp", 'A', 'B')]
     [InlineData("liga", 's', 't')]
     public void UnsupportedSelectedFeaturesWarnWithoutPresentationSequence(string tag, char first, char second) {
-        byte[] data = tag == "ccmp" ? ManagedTextShapingTestAssets.CreateFontWithRequiredLigature(tag, first, second, 8)
-            : ManagedTextShapingTestAssets.CreateFontWithLigature(first, second, scriptTag: "latn", lookupFlags: 8);
+        byte[] data = tag == "ccmp" ? ManagedTextShapingTestAssets.CreateFontWithRequiredLigature(tag, first, second, 4)
+            : ManagedTextShapingTestAssets.CreateFontWithLigature(first, second, scriptTag: "latn", lookupFlags: 4);
         var report = new PdfConversionReport();
         PdfDocument.Create(new PdfCreateOptions().ReportDiagnosticsTo(report).EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test"))
             .Paragraph(p => p.AddText(new string(new[] { first, second }))).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
@@ -386,8 +386,8 @@ public class PdfOpenTypeDefaultLigatureTests {
 
     [Fact]
     public void UnsupportedLookupOutsideTheRunsGlyphsReportsNoLoss() {
-        // The declined IgnoreMarks ligature starts only on 's'; a run of 't' cannot reach it.
-        byte[] data = ManagedTextShapingTestAssets.CreateFontWithLigature('s', 't', scriptTag: "latn", lookupFlags: 8);
+        // The declined IgnoreLigatures ligature starts only on 's'; a run of 't' cannot reach it.
+        byte[] data = ManagedTextShapingTestAssets.CreateFontWithLigature('s', 't', scriptTag: "latn", lookupFlags: 4);
         var report = new PdfConversionReport();
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions().ReportDiagnosticsTo(report).EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test"))
             .Paragraph(p => p.AddText("tt")).ToBytes();
@@ -527,7 +527,7 @@ public class PdfOpenTypeDefaultLigatureTests {
 
     [Fact]
     public void UnsupportedLookupFlagsPreserveScalarTextAndDiagnostic() {
-        byte[] data = ManagedTextShapingTestAssets.CreateFontWithLigature('f', 'i', scriptTag: "latn", lookupFlags: 8);
+        byte[] data = ManagedTextShapingTestAssets.CreateFontWithLigature('f', 'i', scriptTag: "latn", lookupFlags: 4);
         var run = PdfTrueTypeFontProgram.Parse(data, "Test").ShapeText("fi",
             PdfTextShapingOptions.ForRendering("Test", PdfTextShapingMode.OpenTypeLigatures));
         Assert.Equal(2, run.Glyphs.Count);
@@ -581,7 +581,7 @@ public class PdfOpenTypeDefaultLigatureTests {
     [Fact]
     public void SuccessfulProgramDoesNotSuppressAnotherProgramsFallbackWarning() {
         byte[] supported = ManagedTextShapingTestAssets.CreateFontWithLigature('f', 'i', scriptTag: "latn");
-        byte[] unsupported = ManagedTextShapingTestAssets.CreateFontWithLigature('f', 'i', scriptTag: "latn", lookupFlags: 8);
+        byte[] unsupported = ManagedTextShapingTestAssets.CreateFontWithLigature('f', 'i', scriptTag: "latn", lookupFlags: 4);
         var report = new PdfConversionReport();
         var options = new PdfCreateOptions().ReportDiagnosticsTo(report)
             .EmbedStandardFont(PdfStandardFont.Helvetica, supported, "SharedName")
@@ -623,7 +623,7 @@ public class PdfOpenTypeDefaultLigatureTests {
 
     [Fact]
     public void EnabledUnsupportedDiscretionaryLigaturesHaveFallbackDiagnostic() {
-        byte[] data = ManagedTextShapingTestAssets.CreateFontWithLigature('f', 'i', featureTag: "dlig", scriptTag: "latn", lookupFlags: 8);
+        byte[] data = ManagedTextShapingTestAssets.CreateFontWithLigature('f', 'i', featureTag: "dlig", scriptTag: "latn", lookupFlags: 4);
         var font = PdfTrueTypeFontProgram.Parse(data, "Test");
         Assert.Contains(PdfTextDiagnostics.AnalyzeAdvancedTextLayout("fi", font, featureSettings: OfficeTextFeatureSettings.Default.With("dlig", 1)),
             diagnostic => diagnostic.Code == "unsupported-font-ligature-substitution");
@@ -635,7 +635,7 @@ public class PdfOpenTypeDefaultLigatureTests {
     [InlineData(1, false)]
     [InlineData(1, true)]
     public void RunLayoutDiagnosticsHonorEachRunsOptionalFeatures(int enabled, bool configuredRunFirst) {
-        byte[] data = ManagedTextShapingTestAssets.CreateFontWithLigature('f', 'i', featureTag: "dlig", scriptTag: "latn", lookupFlags: 8);
+        byte[] data = ManagedTextShapingTestAssets.CreateFontWithLigature('f', 'i', featureTag: "dlig", scriptTag: "latn", lookupFlags: 4);
         var configured = new PdfTextRun("fi").WithFeatureSettings(OfficeTextFeatureSettings.Default.With("dlig", enabled));
         var ordinary = new PdfTextRun("fi");
         var runs = configuredRunFirst ? new[] { configured, ordinary } : new[] { ordinary, configured };

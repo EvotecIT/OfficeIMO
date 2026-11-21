@@ -113,6 +113,80 @@ public partial class Word {
         Assert.InRange(FindWordStartX(pdf.GetPage(1), "Row05Line001"), firstFrame ? 39.9 : 259.9, firstFrame ? 40.1 : 260.1);
     }
 
+    // Word fills a breaking row cell by cell: a widow rule or a trailing paragraph
+    // space that limits one cell does not cut the other cell's lines.
+    [Theory]
+    [InlineData(true, 10D, "A1 A2", "B1 B2 B3 B4")]
+    [InlineData(false, 10D, "A1 A2 A3", "B1 B2 B3 B4")]
+    public void SaveAsPdf_BreakingRowKeepsEachCellsFittingLinesOnThePage(bool widowControl, double spacingAfter,
+        string firstPageA, string firstPageB) {
+        using WordDocument document = CreateBreakingRowDocument(fillerLines: 12, widowControl, spacingAfter);
+
+        using var pdf = PdfPigDocument.Open(document.ToPdf(CellPaginationOptions()).ToBytes());
+
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.Equal(firstPageA, string.Join(" ", BreakingRowLines(pdf.GetPage(1), "A")));
+        Assert.Equal(firstPageB, string.Join(" ", BreakingRowLines(pdf.GetPage(1), "B")));
+        Assert.Equal(new[] { "A1", "A2", "A3", "A4" }, BreakingRowLines(pdf.GetPage(1), "A").Concat(BreakingRowLines(pdf.GetPage(2), "A")));
+        Assert.Equal(new[] { "B1", "B2", "B3", "B4", "B5", "B6" }, BreakingRowLines(pdf.GetPage(1), "B").Concat(BreakingRowLines(pdf.GetPage(2), "B")));
+    }
+
+    // Word applies a cell's vertical alignment where its row starts; the continued part starts at the top.
+    [Fact]
+    public void SaveAsPdf_BreakingRowContinuesCenteredCellsAtTheTop() {
+        using WordDocument document = CreateBreakingRowDocument(fillerLines: 14, widowControl: true, spacingAfter: 0D);
+        document.Tables[0].Rows[0].Cells[0].VerticalAlignment = WordTableVerticalAlignment.Center;
+
+        using var pdf = PdfPigDocument.Open(document.ToPdf(CellPaginationOptions()).ToBytes());
+
+        var page = pdf.GetPage(2);
+        Assert.Equal(FindWordBaseline(page, "B3"), FindWordBaseline(page, "A3"), 2);
+    }
+
+    // Word repeats and keeps whole only header rows marked to repeat. A first row that a table
+    // style merely formats as a header breaks across pages like any other row.
+    [Fact]
+    public void SaveAsPdf_StyledFirstRowThatDoesNotRepeatBreaksAcrossPages() {
+        using WordDocument document = CreateBreakingRowDocument(fillerLines: 12, widowControl: false, spacingAfter: 0D);
+        document.Tables[0].ConditionalFormattingFirstRow = true;
+
+        using var pdf = PdfPigDocument.Open(document.ToPdf(CellPaginationOptions()).ToBytes());
+
+        Assert.Equal("A1 A2 A3 A4", string.Join(" ", BreakingRowLines(pdf.GetPage(1), "A")));
+        Assert.Equal("B5 B6", string.Join(" ", BreakingRowLines(pdf.GetPage(2), "B")));
+    }
+
+    private static WordDocument CreateBreakingRowDocument(int fillerLines, bool widowControl, double spacingAfter) {
+        WordDocument document = WordDocument.Create();
+        void Format(WordParagraph paragraph, double after) {
+            paragraph.FontFamily = "Arial"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+            paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20));
+            paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(after);
+            paragraph.AvoidWidowAndOrphanOverride = widowControl;
+        }
+        for (int line = 1; line <= fillerLines; line++) Format(document.AddParagraph("Filler" + line), 0D);
+        WordTable table = document.AddTable(1, 2, WordTableStyle.TableGrid);
+        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Nil, global::OfficeIMO.OfficeLength.Points(0), OfficeIMO.OfficeColor.Black);
+        table.LayoutMode = WordTableLayoutMode.Fixed;
+        table.ConditionalFormattingFirstRow = false;
+        for (int column = 0; column < 2; column++) {
+            WordTableCell cell = table.Rows[0].Cells[column];
+            cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Points(160));
+            cell.MarginTop = global::OfficeIMO.OfficeLength.Zero; cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
+            string name = column == 0 ? "A" : "B";
+            cell.Paragraphs[0].Text = string.Join("\n", Enumerable.Range(1, column == 0 ? 4 : 6).Select(line => name + line));
+            Format(cell.Paragraphs[0], spacingAfter);
+        }
+        return document;
+    }
+
+    private static string[] BreakingRowLines(UglyToad.PdfPig.Content.Page page, string cell) =>
+        page.GetWords().Where(word => word.Text.Length == 2 && word.Text.StartsWith(cell, StringComparison.Ordinal))
+            .OrderByDescending(word => word.BoundingBox.Bottom).Select(word => word.Text).ToArray();
+
+    private static double FindWordBaseline(UglyToad.PdfPig.Content.Page page, string text) =>
+        page.GetWords().Single(word => word.Text == text).Letters[0].StartBaseLine.Y;
+
     private static WordTable CreatePaginationTable(WordDocument document, int rowCount) {
         document.Sections[0].ColumnCount = 2;
         document.Sections[0].ColumnsSpace = global::OfficeIMO.OfficeLength.Points(20);
