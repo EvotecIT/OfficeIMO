@@ -2,7 +2,7 @@ namespace OfficeIMO.IWork.Internal;
 
 /// <summary>Deduplicates the explicit numeric formats selected by one owned native table.</summary>
 internal sealed class IWorkTableNumberFormatWriter {
-    private readonly Dictionary<(IWorkNumberFormatKind Kind, int Decimals, bool Grouping, IWorkNegativeNumberStyle Negative),
+    private readonly Dictionary<(IWorkNumberFormatKind Kind, int Decimals, bool Grouping, IWorkNegativeNumberStyle Negative, string? Currency),
         (uint Key, uint References, IWorkNumberFormat Format)> _entries = new();
 
     internal IWorkTableNumberFormatWriter(IEnumerable<IWorkTableCell> cells, System.Threading.CancellationToken cancellationToken) {
@@ -27,12 +27,20 @@ internal sealed class IWorkTableNumberFormatWriter {
         return catalog;
     }
 
-    internal static IWorkProtoWriter FormatFields(IWorkNumberFormat format, IWorkProtoWriter message) =>
-        message.UInt(1, format.Kind switch { IWorkNumberFormatKind.Number => 256u,
-                IWorkNumberFormatKind.Percentage => 258u, IWorkNumberFormatKind.Scientific => 259u,
-                _ => throw new InvalidDataException("Unsupported native numeric creation format.") })
-            .UInt(2, (uint)format.DecimalPlaces!.Value).UInt(4, (uint)format.NegativeStyle).Bool(5, format.ThousandsSeparator);
+    internal static IWorkProtoWriter FormatFields(IWorkNumberFormat format, IWorkProtoWriter message) {
+        message.UInt(1, format.Kind switch {
+            IWorkNumberFormatKind.Number => 256u,
+            IWorkNumberFormatKind.Currency => 257u,
+            IWorkNumberFormatKind.Percentage => 258u,
+            IWorkNumberFormatKind.Scientific => 259u,
+            _ => throw new InvalidDataException("Unsupported native numeric creation format.")
+        }).UInt(2, (uint)format.DecimalPlaces!.Value);
+        if (format.Kind == IWorkNumberFormatKind.Currency) message.String(3, format.CurrencyCode!);
+        message.UInt(4, (uint)format.NegativeStyle).Bool(5, format.ThousandsSeparator);
+        if (format.Kind == IWorkNumberFormatKind.Currency) message.Bool(6, false);
+        return message;
+    }
 
-    private static (IWorkNumberFormatKind, int, bool, IWorkNegativeNumberStyle) Key(IWorkNumberFormat format) =>
-        (format.Kind, format.DecimalPlaces!.Value, format.ThousandsSeparator, format.NegativeStyle);
+    private static (IWorkNumberFormatKind, int, bool, IWorkNegativeNumberStyle, string?) Key(IWorkNumberFormat format) =>
+        (format.Kind, format.DecimalPlaces!.Value, format.ThousandsSeparator, format.NegativeStyle, format.CurrencyCode);
 }

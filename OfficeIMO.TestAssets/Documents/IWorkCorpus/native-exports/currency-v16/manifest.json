@@ -1,0 +1,29 @@
+{
+  "license": "MIT. OfficeIMO-authored content. No seed package or standalone fonts.",
+  "appleApps": "Pages, Numbers and Keynote 16.0 (7052.0.68)",
+  "environment": "macOS 27.2.1 (26B131), arm64, pl-PL. Installed Arial with PDF-embedded subsets.",
+  "edit": "Open a copy of each created file. Change B2 from -12.5 to -34.5 and explicitly select Currency using the Polish locale. Save, close, reopen and export OOXML and PDF.",
+  "rendered": "Each one-page export was inspected in pypdfium2 4.30.0. The four amounts read -34,50 zł, 12,50 USD, (1 234 JPY) and -7,25 USD.",
+  "decoder": "numbers-parser 4.19.0, descriptor set from TSTArchives_pb2 and transitive imports in dependency order. Run Build/IWork/extract-native-table-formats.py against each created and Apple-saved package.",
+  "limits": "A scripted assignment of a bare number in Numbers restores Automatic; this edit explicitly selects Currency. Other native versions and locales, accounting alignment and edited-source write-back are outside this evidence.",
+  "artifacts": {
+    "currency-created-key.json": "7343d4089afa913396cbf570c631a1912e923af23ef784e4db1e8932e9ff328e",
+    "currency-created-numbers.json": "929a94ea787f9f1654b6e2c633e008793a54a80bf0b8169979496816c204732b",
+    "currency-created-pages.json": "30b7d50cb5779adfd5a71231e1ec29763627c096532832479bcc6e28c32e81f6",
+    "currency-created.key": "d56e4c184c99dd6519430cc4c4ea59d013015763286fe31cbf984a86864954f1",
+    "currency-created.numbers": "253cc3b3d8affb499197adb2bc40f72e6969026151c576d1d2c3f0b37b5e2e12",
+    "currency-created.pages": "06a6dc258557f7008a26baa1dec864c6902a1d12ad5619cdc45e2151c290db23",
+    "currency-edited.key": "24494ad3435813d8dae015d6b63c748852ae55ee47556ab69ca54ce0822321a3",
+    "currency-edited.numbers": "95c1fac3c9b62d3c0d02845d37c0ee81077086a07ff8a236961257adb21b9f23",
+    "currency-edited.pages": "80add9643d3aa15cb17b079eae477e165833be88d6d96853f7b9b95cc628251f",
+    "edited-key.json": "fc698cc83ff3398940682ce62bcb7e323709455a93f675968fcf0cb70cce040a",
+    "edited-key.pdf": "1df3fa8d821e0952d6c624038184c6c3af57f20b4a914668044c92721ff7b751",
+    "edited-key.pptx": "c1023f10af76087759e3394c3794cc076cf9af233ceea046e4cd9815891e214b",
+    "edited-numbers.json": "aeb3de148116ecba649e971715dda059ace70d47a69d70c6aec1b2d067b880d3",
+    "edited-numbers.pdf": "7db1bb6652fc0fa74e1e196f6108d4df25d6a9f34f7d68ee60572cb2e414843b",
+    "edited-numbers.xlsx": "1060823cfc590336ebee9dae11efdd7c68160ae804e615df2ae20285dc948eee",
+    "edited-pages.docx": "0736f437e07aa9001321332fc0c1c8be282652a414aff8d1aff3c9d45ca59229",
+    "edited-pages.json": "e7b76ad5aef55add287e203ead55be187f9023bef4d697e32208734be0050018",
+    "edited-pages.pdf": "10be4a7d113e0964a0d3127cb03755665943ba55cd199819850780efd19ff7a0"
+  }
+}

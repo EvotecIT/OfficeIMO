@@ -29,8 +29,8 @@ public sealed class IWorkTableData {
         return Set(row, column, IWorkCellKind.Number, value);
     }
 
-    /// <summary>Sets a finite number with an immutable explicit decimal, percentage or scientific format.</summary>
-    /// <remarks>Formatting changes display, not the stored numeric value. Automatic, currency, temporal and custom formats are not supported by native creation.</remarks>
+    /// <summary>Sets a finite number with an immutable explicit decimal, currency, percentage or scientific format.</summary>
+    /// <remarks>Formatting changes display, not the stored numeric value. Automatic, accounting, temporal and custom formats are not supported by native creation.</remarks>
     public IWorkTableData SetNumber(int row, int column, double value, IWorkNumberFormat numberFormat) {
         ArgumentNullException.ThrowIfNull(numberFormat);
         numberFormat.ValidateNativeNumericCreation();
