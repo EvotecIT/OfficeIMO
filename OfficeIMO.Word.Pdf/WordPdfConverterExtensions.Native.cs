@@ -299,7 +299,7 @@ namespace OfficeIMO.Word.Pdf {
 
                         if (TryRenderNativeEmptySectionMark(flow, section, elements, nativeDefaults, nativeFontMap, options)) {
                             previousSectionSpacingAfter = collapseFlow.PendingSpacingAfter;
-                            RenderNativeFootnotes(flow, footnotes, section, footnoteNumbersById, options, nativeDefaults, nativeFontMap);
+                            RenderNativeSectionEndNotes(collapseFlow, footnotes, section, footnoteNumbersById, options, nativeDefaults, nativeFontMap);
                             continue;
                         }
 
@@ -325,7 +325,7 @@ namespace OfficeIMO.Word.Pdf {
                             // follows on this page collapses only with the column text's space after.
                             if (currentSectionIndex == sectionIndex) collapseFlow.ClearPreservedSpacingBefore();
                             collapseFlow.RestorePendingSpacingAfter(previousSectionSpacingAfter);
-                            RenderNativeFootnotes(flow, footnotes, section, footnoteNumbersById, options, nativeDefaults, nativeFontMap);
+                            RenderNativeSectionEndNotes(collapseFlow, footnotes, section, footnoteNumbersById, options, nativeDefaults, nativeFontMap);
                             continue;
                         }
 
@@ -374,7 +374,7 @@ namespace OfficeIMO.Word.Pdf {
                         // Notes rendered at the end of the section are not body text, so the
                         // boundary is read before them.
                         previousSectionSpacingAfter = GetNativeSectionOutgoingSpacingAfter(elements, collapseFlow, nativeDefaults, nativeFontMap);
-                        RenderNativeFootnotes(flow, footnotes, section, footnoteNumbersById, options, nativeDefaults, nativeFontMap);
+                        RenderNativeSectionEndNotes(collapseFlow, footnotes, section, footnoteNumbersById, options, nativeDefaults, nativeFontMap);
                     }
                 });
 
@@ -460,6 +460,17 @@ namespace OfficeIMO.Word.Pdf {
             return NativeSectionPageNumberingEquivalent(previous, current) &&
                 (NativeSectionHeaderFooterReferencesEquivalent(previous, current) ||
                  (canContinueRunningStories && CanContinueNativeDefaultHeaderStory(previous, current, options)));
+        }
+
+        /// <summary>
+        /// Renders notes placed at the end of a section. Word collapses the next body paragraph
+        /// with the body text before the notes, so the notes leave the body's spacing state as it was.
+        /// </summary>
+        private static void RenderNativeSectionEndNotes(NativeSpacingCollapseFlow flow, List<PdfFootnote> footnotes, WordSection section,
+            NativeNoteNumbering numbering, WordPdfExportOptions? options, NativeDocumentDefaults defaults, NativeFontMap fontMap) {
+            var state = flow.CaptureState();
+            RenderNativeFootnotes(flow, footnotes, section, numbering, options, defaults, fontMap);
+            flow.RestoreState(state);
         }
 
         /// <summary>

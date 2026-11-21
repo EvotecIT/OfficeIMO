@@ -118,6 +118,30 @@ public partial class Word {
         return baseline;
     }
 
+    [Theory]
+    [InlineData(0, 18D)]
+    [InlineData(160, 10D)]
+    public void SaveAsPdf_ContinuousSectionAfterSectionEndnotesCollapsesWithBodyText(int bodyAfter, double expectedGap) {
+        // Word collapses the next section's first paragraph with the body text above the
+        // section-end endnotes, not with the note paragraphs.
+        double spaced = MeasureContinuousAfterEndnotesTarget(bodyAfter, "360");
+        double zero = MeasureContinuousAfterEndnotesTarget(bodyAfter, "0");
+        Assert.Equal(expectedGap, zero - spaced, 1);
+    }
+
+    private static double MeasureContinuousAfterEndnotesTarget(int bodyAfter, string before) {
+        using WordDocument document = WordDocument.Create();
+        document.Sections[0].AddEndnoteProperties(WordNumberFormat.Decimal, WordEndnotePosition.SectionEnd,
+            WordNoteNumberRestart.Continuous, startNumber: 1);
+        WordParagraph body = document.AddParagraph("First");
+        body.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(bodyAfter / 20D);
+        body.AddEndNote("Note");
+        WordSection next = document.AddSection(WordSectionBreakType.Continuous);
+        next.AddEndnoteProperties(WordNumberFormat.Decimal, WordEndnotePosition.SectionEnd, WordNoteNumberRestart.Continuous, startNumber: 1);
+        ApplyPageTopSpacing(document, next.AddParagraph("Target"), "Normal", before);
+        return FindPageTopBaseline(RenderPageTopPdf(document), "Target").Baseline;
+    }
+
     [Fact]
     public void SaveAsPdf_ColumnBreakMarkIgnoresAutomaticSpacing() {
         // The paragraph mark carried into the next column belongs to the same paragraph,

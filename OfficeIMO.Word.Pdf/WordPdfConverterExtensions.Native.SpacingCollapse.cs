@@ -45,6 +45,17 @@ namespace OfficeIMO.Word.Pdf {
 
             internal void RestorePendingSpacingAfter(double? spacingAfter) => _pendingSpacingAfter = spacingAfter;
 
+            // Out-of-flow content, such as notes rendered at the end of a section, must neither
+            // read nor replace the body's collapse state.
+            internal (double? Pending, bool Preserve, double Carried) CaptureState() =>
+                (_pendingSpacingAfter, _preserveInitialSpacingBefore, _preservedSpacingAfter);
+
+            internal void RestoreState((double? Pending, bool Preserve, double Carried) state) {
+                _pendingSpacingAfter = state.Pending;
+                _preserveInitialSpacingBefore = state.Preserve;
+                _preservedSpacingAfter = state.Carried;
+            }
+
             /// <summary>Drops a carried section-start spacing that another flow has already used.</summary>
             internal void ClearPreservedSpacingBefore() {
                 _preserveInitialSpacingBefore = false;
