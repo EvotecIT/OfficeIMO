@@ -16,6 +16,9 @@ internal static partial class PdfWriter {
                     case PdfCanvasBehindTextItem behindText:
                         RenderBehindTextCanvas(behindText);
                         break;
+                    case PdfCanvasInFrontOfTextItem inFrontOfText:
+                        RenderInFrontOfTextCanvas(inFrontOfText);
+                        break;
                     case PdfCanvasParagraphAnchorItem paragraphAnchor:
                         RenderCanvasEffect(new PdfCanvasEffectItem(paragraphAnchor.Items,
                             OfficeTransform.Translate(0D, currentOpts.PageHeight.ToPoints() - (paragraphCanvasTop ?? y)), 1D, OfficeBlendMode.Normal));
@@ -86,6 +89,10 @@ internal static partial class PdfWriter {
                     case PdfCanvasFormFieldItem formField:
                         ResolveFloatingBookmarks(currentOpts.PageHeight.ToPoints() - formField.Y);
                         RenderCanvasFormField(formField);
+                        break;
+                    case PdfCanvasFlowItem placedFlow:
+                        ResolveFloatingBookmarks(currentOpts.PageHeight.ToPoints() - placedFlow.Y);
+                        RenderCanvasFlow(placedFlow);
                         break;
                     case PdfCanvasTableItem table:
                         ResolveFloatingBookmarks(currentOpts.PageHeight.ToPoints() - table.Y);

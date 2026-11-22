@@ -124,7 +124,7 @@ public partial class Word {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void SaveAsPdf_ObjectOnlyRunningTextBoxReportsBoundedFlowBeforeSerialization(bool nonRectangular) {
+    public void SaveAsPdf_ObjectOnlyRunningTextBoxKeepsItsFrameUnlessNonRectangular(bool nonRectangular) {
         using WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
         W.Header header = document.Sections[1].PageSetup.FirstPageHeader._header!;
         foreach (W.Text text in header.Descendants<W.Text>()
@@ -135,7 +135,8 @@ public partial class Word {
         string[] before = AnchoredRunningStoryXml(document);
 
         var result = document.ConvertToPdfWithEvidence(EmptyRunningOptions());
-        Assert.Contains(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
+        // A rectangular box keeps its frame on an otherwise empty anchor paragraph; other shapes keep the bounded flow.
+        Assert.Equal(nonRectangular, result.Report.Warnings.Any(warning => warning.Code == "native-mixed-text-box-layout-approximated"));
         using var pdf = PdfPigDocument.Open(result.Value.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         foreach (string token in new[] { "BOX", "S2" }) AnchoredRunningLetters(pdf.GetPage(2), token);
         Assert.Contains("COUNT 2", pdf.GetPage(3).Text);

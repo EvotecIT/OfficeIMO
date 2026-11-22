@@ -20,6 +20,17 @@ internal sealed class PdfCanvasMarginAnchorItem : PdfCanvasItem {
     internal double AuthoredLeftMargin { get; }
 }
 
+/// <summary>Paints anchored drawing content above all text of its story on its final page.</summary>
+internal sealed class PdfCanvasInFrontOfTextItem : PdfCanvasItem {
+    internal PdfCanvasInFrontOfTextItem(IReadOnlyList<PdfCanvasItem> items, long zOrder) : base(0D, 0D) {
+        Items = items;
+        ZOrder = zOrder;
+    }
+
+    internal IReadOnlyList<PdfCanvasItem> Items { get; }
+    internal long ZOrder { get; }
+}
+
 /// <summary>Paints anchored drawing content below all body text on its final page.</summary>
 internal sealed class PdfCanvasBehindTextItem : PdfCanvasItem {
     internal PdfCanvasBehindTextItem(IReadOnlyList<PdfCanvasItem> items, long zOrder) : base(0D, 0D) {

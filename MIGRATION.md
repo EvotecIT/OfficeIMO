@@ -5679,9 +5679,15 @@ versions:
 - Superscript and subscript text takes its size and offset from the font's own script metrics, rounded
   to half a point, instead of fixed proportions of the text size.
 - An inline picture's effect extent, the margin Word records around it, counts towards its line height.
+- Anchored text boxes in headers and footers keep their own position, size, insets, outline and
+  wrapping instead of flowing as panels inside the header. Their paragraphs use the same line layout,
+  spacing, list markers, shading and borders as other paragraphs, and header text wraps around boxes
+  set to square or top-and-bottom wrapping. As in Word, the header and footer paint under the body
+  text. Nested boxes, boxes containing tables and unsupported fills keep the previous flowed layout.
+- A word space that ends a line after superscript or subscript text keeps the size of its own run.
 - Text beside a floating table starts where Word starts it: past the table's outside border, or 0.75pt
-  past a borderless table, with at least 0.5pt of clearance. A bordered floating table moves by half its outer border, so the border
-  edge sits at the table's position.
+  past a borderless table, with at least 0.5pt of clearance. A bordered floating table moves by half
+  its outer border, so the border edge sits at the table's position.
 - A line break no longer makes the line it ends as tall as the break's own font. A line holding only a
   break still takes the break's size.
 

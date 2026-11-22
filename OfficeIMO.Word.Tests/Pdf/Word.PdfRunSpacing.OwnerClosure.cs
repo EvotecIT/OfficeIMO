@@ -107,9 +107,11 @@ public partial class Word {
         using var pdf = OpenJoinedParagraphPdf(document);
         Letter[] text = pdf.GetPage(1).Letters.Where(letter => letter.Value is "M" or "X").ToArray();
         Assert.Equal(string.Concat(Enumerable.Repeat("MMMMX", 4)), string.Concat(text.Select(letter => letter.Value)));
-        double[] expected = { 39.984D, 83.968D, 39.984D, 17.992D };
-        for (int index = 0; index < 4; index++)
-            Assert.InRange(Math.Abs(text[index * 5 + 4].StartBaseLine.X - text[index * 5].StartBaseLine.X - expected[index]), 0D, 0.03D);
+        // Each box is laid out in its own frame, so compare the four widths regardless of paint order.
+        double[] expected = { 17.992D, 39.984D, 39.984D, 83.968D };
+        double[] widths = Enumerable.Range(0, 4).Select(index => text[index * 5 + 4].StartBaseLine.X - text[index * 5].StartBaseLine.X)
+            .OrderBy(width => width).ToArray();
+        for (int index = 0; index < 4; index++) Assert.InRange(Math.Abs(widths[index] - expected[index]), 0D, 0.03D);
         Assert.Empty(document.ValidateDocument());
     }
 
@@ -142,7 +144,12 @@ public partial class Word {
         document.AddParagraph("Body");
         using var pdf = OpenJoinedParagraphPdf(document);
         string visible = string.Concat(pdf.GetPage(1).Letters.Select(letter => letter.Value));
-        Assert.Contains("MMMMX1.MMMMX" + (pageField ? "1" : "") + "MMMMX2.MMMMX", visible, StringComparison.Ordinal);
+        // Each box paints in its own frame; its marker stays at the start of its own text.
+        Assert.Contains("1.MMMMX", visible, StringComparison.Ordinal);
+        Assert.Contains("2.MMMMX", visible, StringComparison.Ordinal);
+        // The surrounding text wraps beside the square-wrapped boxes.
+        Assert.Contains("MMMMX" + (pageField ? "1" : "") + "MMMMX", visible.Replace("1.MMMMX", string.Empty).Replace("2.MMMMX", string.Empty).Replace(" ", string.Empty), StringComparison.Ordinal);
+        Assert.Contains("PLAIN-PEER", visible, StringComparison.Ordinal);
         Assert.Empty(document.ValidateDocument());
     }
 
