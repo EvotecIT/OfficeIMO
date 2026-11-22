@@ -52,7 +52,7 @@ internal sealed partial class OdfPackage {
             throw OdfAdmission.Limit(nameof(OdfLoadOptions.MaxPackageBytes), effective.MaxPackageBytes);
         }
         using var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-        return LoadSeekable(stream, effective);
+        return LoadOwnedSnapshot(OdfAdmission.ReadSnapshot(stream, effective.MaxPackageBytes), effective);
     }
 
     internal static OdfPackage Load(Stream stream, OdfLoadOptions? options = null) {
@@ -60,7 +60,7 @@ internal sealed partial class OdfPackage {
         if (!stream.CanRead) throw new ArgumentException("OpenDocument stream must be readable.", nameof(stream));
         OdfLoadOptions effective = (options ?? new OdfLoadOptions()).Normalize();
         byte[] bytes = OdfAdmission.ReadSnapshot(stream, effective.MaxPackageBytes);
-        return LoadSnapshot(bytes, effective);
+        return LoadOwnedSnapshot(bytes, effective);
     }
 
     internal static OdfPackage Load(byte[] packageBytes, OdfLoadOptions? options = null) {
@@ -69,24 +69,15 @@ internal sealed partial class OdfPackage {
         if (packageBytes.LongLength > effective.MaxPackageBytes) {
             throw OdfAdmission.Limit(nameof(OdfLoadOptions.MaxPackageBytes), effective.MaxPackageBytes);
         }
-        return LoadSnapshot(effective.DeferBinaryPayloads ? (byte[])packageBytes.Clone() : packageBytes, effective);
+        return LoadOwnedSnapshot(effective.DeferBinaryPayloads ? (byte[])packageBytes.Clone() : packageBytes, effective);
     }
 
-    private static OdfPackage LoadSnapshot(byte[] bytes, OdfLoadOptions effective) {
-        using var stream = new MemoryStream(bytes, writable: false);
-        return LoadSeekable(stream, effective, bytes);
-    }
-
-    private static OdfPackage LoadSeekable(Stream packageStream, OdfLoadOptions effective, byte[]? compressedSnapshot = null) {
-        // The canonical raw ZIP range owner takes a bounded byte snapshot. Stream loads already
-        // own that snapshot; file loads create one here. Eager loading does not retain it afterward.
-        compressedSnapshot ??= OdfAdmission.ReadSnapshot(packageStream, effective.MaxPackageBytes);
-        using var snapshotStream = new MemoryStream(compressedSnapshot, writable: false);
-        packageStream = snapshotStream;
-        long packageLength = packageStream.Length - packageStream.Position;
-        if (packageLength > effective.MaxPackageBytes) {
+    // Stream and path loaders already own the snapshot. Deferred entry ranges can keep it directly.
+    internal static OdfPackage LoadOwnedSnapshot(byte[] compressedSnapshot, OdfLoadOptions effective) {
+        if (compressedSnapshot.LongLength > effective.MaxPackageBytes) {
             throw OdfAdmission.Limit(nameof(OdfLoadOptions.MaxPackageBytes), effective.MaxPackageBytes);
         }
+        using var packageStream = new MemoryStream(compressedSnapshot, writable: false);
         OdfZipHeaderInspector.ValidateMimetypeEntry(packageStream);
 
         var loaded = new List<OdfPackageEntry>();

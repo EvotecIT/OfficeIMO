@@ -253,7 +253,7 @@ public abstract partial class OdfDocument {
                 stream,
                 cancellationToken,
                 effective.MaxPackageBytes).ConfigureAwait(false);
-            return OdfPackage.Load(bytes, effective);
+            return OdfPackage.LoadOwnedSnapshot(bytes, effective);
         } catch (InvalidDataException ex) when (OfficeStreamReader.IsSizeLimitException(ex)) {
             throw OdfAdmission.Limit(nameof(OdfLoadOptions.MaxPackageBytes), effective.MaxPackageBytes, ex);
         }
