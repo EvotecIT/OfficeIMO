@@ -81,7 +81,13 @@ public sealed partial class PdfDocument {
     public string? CatalogLanguage => GetReadSnapshot().Document.CatalogLanguage;
 
     /// <summary>Gets the parsed document's output intents.</summary>
-    public IReadOnlyList<PdfOutputIntentInfo> OutputIntents => GetReadSnapshot().Document.OutputIntents;
+    public IReadOnlyList<PdfOutputIntentInfo> OutputIntents {
+        get {
+            PdfReadDocument document = GetReadSnapshot().Document;
+            document.DemandContentExtraction("logical object");
+            return document.GetReportOutputIntents(CancellationToken.None);
+        }
+    }
 
     /// <summary>Gets the parsed document's output intents are complete.</summary>
     public bool OutputIntentsAreComplete => GetReadSnapshot().Document.OutputIntentsAreComplete;

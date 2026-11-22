@@ -4,12 +4,7 @@ namespace OfficeIMO.Pdf;
 
 internal sealed partial class PdfReadDocument {
     /// <summary>Catalog output intent metadata discovered from /OutputIntents.</summary>
-    public IReadOnlyList<PdfOutputIntentInfo> OutputIntents {
-        get {
-            _ = ReadLogicalContent(_outputIntents);
-            return GetReportOutputIntents(CancellationToken.None);
-        }
-    }
+    public IReadOnlyList<PdfOutputIntentInfo> OutputIntents => ReadLogicalContent(_outputIntents);
 
     internal IReadOnlyList<PdfOutputIntentInfo> GetReportOutputIntents(CancellationToken cancellationToken) {
         foreach (PdfOutputIntentInfo intent in _outputIntents) intent.RetainProfileInput(cancellationToken);
