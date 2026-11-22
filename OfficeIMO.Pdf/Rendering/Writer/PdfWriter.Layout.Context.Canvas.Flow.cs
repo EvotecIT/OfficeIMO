@@ -44,11 +44,7 @@ internal static partial class PdfWriter {
             if (isRunningContent)
                 for (int index = firstImage; index < page.Images.Count; index++)
                     runningAssets.Share(page.Images[index], cancellationToken);
-            if (story.behindTextCanvases.Count > 0) {
-                var behind = new StringBuilder();
-                foreach (var canvas in story.behindTextCanvases.OrderBy(entry => entry.ZOrder)) behind.Append(canvas.Content);
-                story.sb.Insert(0, behind.ToString());
-            }
+            story.ApplyDeferredTextLayers();
             usedBold |= story.usedBold;
             usedItalic |= story.usedItalic;
             usedBoldItalic |= story.usedBoldItalic;

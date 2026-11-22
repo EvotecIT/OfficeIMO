@@ -185,6 +185,7 @@ internal static partial class PdfWriter {
             };
             sb.Clear();
             behindTextCanvases.Clear();
+            inFrontOfTextCanvases.Clear();
             pageDirty = false;
             pageHasBodyContent = false;
             PrepareAndRenderRunningContents();
@@ -241,12 +242,7 @@ internal static partial class PdfWriter {
             for (int i = activeLayers.Count - 1; i >= 0; i--) {
                 sb.Append("EMC\n");
             }
-            if (behindTextCanvases.Count > 0) {
-                var background = new StringBuilder();
-                foreach (var canvas in behindTextCanvases.OrderBy(item => item.ZOrder)) background.Append(canvas.Content);
-                sb.Insert(0, background.ToString());
-                behindTextCanvases.Clear();
-            }
+            ApplyDeferredTextLayers();
             ReportFreeTextAnnotationDiagnostics();
             BindSvgPageImages();
             foreach (PictureParagraphPlanKey key in pictureAnchors.Paragraphs.Keys.Where(key => key.Page == PicturePage).ToArray())

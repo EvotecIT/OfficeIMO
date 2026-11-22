@@ -16,6 +16,9 @@ internal static partial class PdfWriter {
                     case PdfCanvasBehindTextItem behindText:
                         RenderBehindTextCanvas(behindText);
                         break;
+                    case PdfCanvasInFrontOfTextItem inFrontOfText:
+                        RenderInFrontOfTextCanvas(inFrontOfText);
+                        break;
                     case PdfCanvasParagraphAnchorItem paragraphAnchor:
                         RenderCanvasEffect(new PdfCanvasEffectItem(paragraphAnchor.Items,
                             OfficeTransform.Translate(0D, currentOpts.PageHeight.ToPoints() - (paragraphCanvasTop ?? y)), 1D, OfficeBlendMode.Normal));

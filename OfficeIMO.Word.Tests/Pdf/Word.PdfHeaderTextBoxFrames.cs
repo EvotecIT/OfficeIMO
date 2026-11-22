@@ -225,6 +225,53 @@ public partial class Word {
         Assert.Contains("Indented", string.Concat(pdf.GetPage(1).Letters.Select(letter => letter.Value)), StringComparison.Ordinal);
     }
 
+    // The outline narrows the box's text area too, so indents that only fit without it keep the flowed layout.
+    [Fact]
+    public void SaveAsPdf_OutlinedHeaderTextBoxCountsTheOutlineAgainstItsIndents() {
+        using WordDocument document = WordDocument.Create();
+        document.AddParagraph("Body");
+        WordTextBox box = AddPlacedHeaderBox(document.PageSetup.Header.AddParagraph("Header"), "Indented", WordImageTextWrapping.InFrontOfText, width: 75D);
+        var properties = box.DrawingShapeProperties!;
+        properties.RemoveAllChildren<A.Outline>();
+        properties.Append(new A.Outline(new A.SolidFill(new A.RgbColorModelHex { Val = "FF0000" })) { Width = 25400 });
+        // 75pt less the 7.2pt default insets leaves 0.6pt beside 45pt and 15pt indents; the 2pt outline takes the rest.
+        WordParagraph inner = box.Paragraphs.Single();
+        inner.IndentationBefore = global::OfficeIMO.OfficeLength.Points(45);
+        inner.IndentationAfter = global::OfficeIMO.OfficeLength.Points(15);
+
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false })
+            .ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+        Assert.Contains("Indented", string.Concat(pdf.GetPage(1).Letters.Select(letter => letter.Value)), StringComparison.Ordinal);
+    }
+
+    // As in Word, a box in front of text paints over the header text it overlaps, including later header
+    // paragraphs, while a box behind text stays under it.
+    [Theory]
+    [InlineData(WordImageTextWrapping.InFrontOfText)]
+    [InlineData(WordImageTextWrapping.BehindText)]
+    public void SaveAsPdf_HeaderTextBoxStacksAgainstTheHeaderText(WordImageTextWrapping wrap) {
+        using WordDocument document = WordDocument.Create();
+        document.AddParagraph("Body");
+        WordHeader header = document.PageSetup.Header;
+        WordTextBox box = AddPlacedHeaderBox(header.AddParagraph("ANCHORLINE"), "QQQ", wrap, left: 60D, top: 30D, width: 200D, height: 60D);
+        box.FillColor = global::OfficeIMO.OfficeColor.Parse("FFFF00");
+        header.AddParagraph("FOLLOWINGLINE");
+
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false })
+            .ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+        string order = string.Concat(pdf.GetPage(1).Letters.Select(letter => letter.Value));
+        int boxText = order.IndexOf("QQQ", StringComparison.Ordinal);
+        int anchorText = order.IndexOf("ANCHORLINE", StringComparison.Ordinal);
+        int followingText = order.IndexOf("FOLLOWINGLINE", StringComparison.Ordinal);
+        int bodyText = order.IndexOf("Body", StringComparison.Ordinal);
+        Assert.True(boxText >= 0 && anchorText >= 0 && followingText >= 0 && bodyText >= 0, order);
+        if (wrap == WordImageTextWrapping.InFrontOfText)
+            Assert.True(boxText > anchorText && boxText > followingText, $"The box paints after the header text: {order}");
+        else
+            Assert.True(boxText < anchorText && boxText < followingText, $"The box paints under the header text: {order}");
+        Assert.True(boxText < bodyText, $"The header layer paints before the body: {order}");
+    }
+
     // A square-wrapped box keeps header text clear of its rectangle even when it paints nothing.
     [Fact]
     public void SaveAsPdf_UnpaintedSquareWrappedHeaderTextBoxStillPushesTextAside() {

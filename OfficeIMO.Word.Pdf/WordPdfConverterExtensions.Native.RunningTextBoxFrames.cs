@@ -37,8 +37,7 @@ public static partial class WordPdfConverterExtensions {
             OfficeShape? decoration = CreateNativePlacedTextBoxDecoration(box, frame);
             if (decoration != null)
                 content.Shape(decoration, global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D));
-            // Word sets the text inside the outline: half the line width beyond each inset.
-            double outline = decoration?.StrokeColor != null ? decoration.StrokeWidth / 2D : 0D;
+            double outline = GetNativePlacedTextBoxOutlineInset(decoration);
             double contentWidth = frame.Width - frame.LeftInset - frame.RightInset - 2D * outline;
             double contentHeight = frame.Height - frame.TopInset - frame.BottomInset - 2D * outline;
             IReadOnlyList<WordParagraph> inner = GetNativeTextBoxParagraphs(box);
@@ -69,8 +68,10 @@ public static partial class WordPdfConverterExtensions {
                 items = new PdfCore.PdfCanvasItem[] { new PdfCore.PdfCanvasMarginAnchorItem(items, marginOrigin) };
             if (frame.ParagraphRelative)
                 items = new PdfCore.PdfCanvasItem[] { new PdfCore.PdfCanvasParagraphAnchorItem(items) };
-            if (frame.BehindDocument)
-                items = new PdfCore.PdfCanvasItem[] { new PdfCore.PdfCanvasBehindTextItem(items, frame.ZOrder) };
+            // Word stacks the box against all of the story's text: behind it, or in front of it.
+            items = frame.BehindDocument
+                ? new PdfCore.PdfCanvasItem[] { new PdfCore.PdfCanvasBehindTextItem(items, frame.ZOrder) }
+                : new PdfCore.PdfCanvasItem[] { new PdfCore.PdfCanvasInFrontOfTextItem(items, frame.ZOrder) };
             anchored.AddItems(items);
         }
 
@@ -229,11 +230,14 @@ public static partial class WordPdfConverterExtensions {
         double left = Inset(body?.LeftInset, 91440), right = Inset(body?.RightInset, 91440);
         double top = Inset(body?.TopInset, 45720), bottom = Inset(body?.BottomInset, 45720);
         if (left < 0D || right < 0D || top < 0D || bottom < 0D) return false;
-        if (!CanLayOutNativePlacedTextBoxContent(box, width - left - right)) return false;
-        frame = new NativePlacedTextBoxFrame(x, y, width, height, left, top, right, bottom,
+        var placed = new NativePlacedTextBoxFrame(x, y, width, height, left, top, right, bottom,
             ParagraphRelative: verticalReference == "paragraph",
             MarginOrigin: horizontalReference == "margin" ? margins.Left.ToPoints() : null,
             BehindDocument: layout.BehindDocument, ZOrder: layout.RelativeHeight, Exclusion: exclusion);
+        // Qualify the paragraphs at the width rendering gives them, inside the insets and the outline.
+        double outline = GetNativePlacedTextBoxOutlineInset(CreateNativePlacedTextBoxDecoration(box, placed));
+        if (!CanLayOutNativePlacedTextBoxContent(box, width - left - right - 2D * outline)) return false;
+        frame = placed;
         return true;
     }
 
@@ -278,7 +282,8 @@ public static partial class WordPdfConverterExtensions {
 
     /// <summary>
     /// The frame paints solid fills and plain outlines. Like Word, the header and footer layer paints
-    /// before the body, so a box that reaches into the body area stays under the body text.
+    /// before the body, so a box that reaches into the body area stays under the body text even when
+    /// it is in front of the header text.
     /// </summary>
     private static bool CanPaintNativePlacedTextBox(WordTextBox box, NativePlacedTextBoxFrame frame) {
         var properties = box.DrawingShapeProperties;
@@ -332,6 +337,10 @@ public static partial class WordPdfConverterExtensions {
         extent = (reference == "page" ? pageLength : pageLength - leadingMargin - trailingMargin) * value / 100000D;
         return !double.IsNaN(extent) && !double.IsInfinity(extent);
     }
+
+    /// <summary>Word sets the text inside the outline: half the line width beyond each inset.</summary>
+    private static double GetNativePlacedTextBoxOutlineInset(OfficeShape? decoration) =>
+        decoration?.StrokeColor != null ? decoration.StrokeWidth / 2D : 0D;
 
     /// <summary>The box's own fill and outline, painted under its text.</summary>
     private static OfficeShape? CreateNativePlacedTextBoxDecoration(WordTextBox box, NativePlacedTextBoxFrame frame) {
