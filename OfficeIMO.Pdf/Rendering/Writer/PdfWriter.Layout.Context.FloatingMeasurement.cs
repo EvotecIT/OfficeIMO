@@ -48,6 +48,18 @@ internal static partial class PdfWriter {
             return true;
         }
 
+        /// <summary>
+        /// A float placed at the flow position that keeps with the next block starts a new page
+        /// when that block cannot begin beside it, so it stays with the text it belongs to.
+        /// </summary>
+        private void KeepFloatingTableWithNext(TableBlock table, IList<IPdfBlock> blocks, int blockIndex) {
+            PdfTableStyle style = table.Style ?? currentOpts.DefaultTableStyleSnapshot ?? PdfTableStyles.Light();
+            if (isRunningContent || !style.KeepWithNext || style.Position is not { VerticalAnchor: PdfTableAnchor.Flow }) return;
+            double keepHeight = MeasureKeepWithNextChainHeight(blocks, blockIndex, currentOpts.MarginLeft.ToPoints(), width,
+                currentOpts.DefaultFontSize.ToPoints(), 0D);
+            if (keepHeight <= GetMaximumBlockContinuationHeight() + .001D && ShouldAdvanceForBlockHeight(keepHeight)) NewBlockFrame();
+        }
+
         private double MeasureFloatingParagraph(RichParagraphBlock paragraph, double frameX, double frameWidth, double fontSize, bool firstVisualOnly = false) {
             var style = EffectiveParagraphStyle(paragraph);
             if (HasParagraphPictures(style) || HasPictureExclusions)
@@ -57,7 +69,7 @@ internal static partial class PdfWriter {
             double spacing = ResolveTopLevelSpacingBefore(GetParagraphSpacingBefore(style));
             var textFrame = GetParagraphTextFrame(style, frameX, frameWidth);
             double start = y - spacing;
-            double firstLineGap = 0D;
+            var lineGaps = new List<double>();
             var wrapped = WrapRichRunsCoreWithFirstLineOrigin(paragraph.Runs, textFrame.Width, fontSize,
                 ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth,
                 textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(style), currentOpts,
@@ -65,12 +77,24 @@ internal static partial class PdfWriter {
                     double left = index == 0 ? textFrame.FirstLineX : textFrame.X;
                     double available = index == 0 ? textFrame.FirstLineWidth : textFrame.Width;
                     var frame = GetFloatingTextFrame(left, available, start - completedHeight, requiredHeight, minimumWidth);
-                    if (index == 0) firstLineGap = frame.Gap;
+                    while (lineGaps.Count <= index) lineGaps.Add(0D);
+                    lineGaps[index] = frame.Gap;
                     return (frame.Width, frame.X - textFrame.X, frame.Gap);
                 }, lineSpacing: style?.LineSpacing, textWhitespaceMode: style?.TextWhitespaceMode, wordJustificationMode: style?.UseWordJustificationSpacing == true && paragraph.Align == OfficeAlignment.Justify ? style.JustificationMode : null, cancellationToken: cancellationToken);
-            return spacing + (firstVisualOnly ? wrapped.Lines.Count == 0 ? 0D
-                : GetRichLineFrameFitHeight(wrapped.Lines[0], wrapped.LineHeights[0], firstLineGap)
-                : wrapped.LineHeights.Sum() + GetParagraphSpacingAfter(style, leading));
+            if (!firstVisualOnly) return spacing + wrapped.LineHeights.Sum() + GetParagraphSpacingAfter(style, leading);
+            if (wrapped.Lines.Count == 0) return spacing;
+            // The first placement keeps the lines the paragraph cannot leave behind: all of them
+            // when it keeps its lines together, otherwise its orphan and widow minimums.
+            int reserve = 1;
+            if (style?.KeepTogether == true) reserve = wrapped.Lines.Count;
+            else if (style != null && wrapped.Lines.Count > 1) {
+                int orphans = Math.Max(1, ResolveMinimumOrphanLines(style)), widows = Math.Max(1, ResolveMinimumWidowLines(style));
+                reserve = wrapped.Lines.Count < (long)orphans + widows ? wrapped.Lines.Count : Math.Min(orphans, wrapped.Lines.Count);
+            }
+            double leadingLines = 0D;
+            for (int line = 0; line < reserve - 1; line++) leadingLines += wrapped.LineHeights[line];
+            return spacing + leadingLines + GetRichLineFrameFitHeight(wrapped.Lines[reserve - 1], wrapped.LineHeights[reserve - 1],
+                reserve - 1 < lineGaps.Count ? lineGaps[reserve - 1] : 0D);
         }
     }
 }

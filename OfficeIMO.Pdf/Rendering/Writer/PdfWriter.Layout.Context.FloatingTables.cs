@@ -126,10 +126,12 @@ internal static partial class PdfWriter {
                 double pageWidth = PageAnchorOptions.PageWidth.ToPoints();
                 double marginLeft = PageAnchorOptions.MarginLeft.ToPoints();
                 double marginRight = PageAnchorOptions.MarginRight.ToPoints();
-                double inMargin = horizontal == OfficeAlignment.Right
-                    ? Math.Min(pageWidth - marginRight, pageWidth - tableWidth)
-                    : Math.Max(0D, marginLeft - tableWidth);
-                return inMargin + position.HorizontalOffset.ToPoints();
+                double offset = position.HorizontalOffset.ToPoints();
+                // A left frame that would leave the page stops at its edge, after its offset;
+                // the text beside it then clears the frame where it stands.
+                return horizontal == OfficeAlignment.Right
+                    ? Math.Min(pageWidth - marginRight, pageWidth - tableWidth) + offset
+                    : Math.Max(0D, marginLeft - tableWidth + offset);
             }
             double alignment = horizontal == OfficeAlignment.Right ? available - tableWidth
                 : horizontal == OfficeAlignment.Center ? (available - tableWidth) / 2 : 0;

@@ -81,4 +81,7 @@ public sealed class PdfTextRunDefaults {
 
     /// <summary>Additional advance after each glyph of new text runs. Zero is normal spacing.</summary>
     public global::OfficeIMO.OfficeLength CharacterSpacing { get; set; }
+
+    /// <summary>Raises (positive) or lowers new text runs from the baseline, in points, without changing the line box.</summary>
+    internal double BaselineShift { get; set; }
 }

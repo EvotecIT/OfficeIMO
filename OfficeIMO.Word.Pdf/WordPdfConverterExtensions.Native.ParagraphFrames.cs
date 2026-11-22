@@ -70,7 +70,11 @@ public static partial class WordPdfConverterExtensions {
             foreach (W.Paragraph copy in copies) options?.DiagnosedFrameParagraphs.Remove(copy);
         }
         if (block != null) {
-            if (block.Style is { Position: { } position } blockStyle) blockStyle.Position = CreateNativeFramePosition(position, frame);
+            if (block.Style is { Position: { } position } blockStyle) {
+                blockStyle.Position = CreateNativeFramePosition(position, frame);
+                // A drop cap moves to the next page with its paragraph.
+                if (IsNativeDropCapFrame(frame)) blockStyle.KeepWithNext = true;
+            }
             pdf.Table(block.Cells.Select(row => row.ToArray()), block.Align, block.Style);
         }
         if (collapseFlow != null && collapseState is { } state) {
@@ -99,7 +103,9 @@ public static partial class WordPdfConverterExtensions {
     /// start a page or hold a page or column break, body headings, and frames with paragraph
     /// shading, borders, charts, SmartArt, shapes, text boxes, floating pictures, embedded
     /// objects, equations, note references or page-number fields in the body keep the
-    /// ordinary-paragraph rendering, which already draws those. Drop caps are not frames here.
+    /// ordinary-paragraph rendering, which already draws those. A drop cap is a frame at the
+    /// start of the following paragraph: the text beside it wraps for the cap's lines, and a
+    /// margin drop cap hangs in the margin beside the text.
     /// </summary>
     private static bool CanRenderNativeParagraphFrame(WordParagraph paragraph) {
         if (paragraph._paragraph?.Parent is not (W.Body or W.Header or W.Footer) || ResolveNativeParagraphFrame(paragraph) == null) return false;
@@ -202,7 +208,9 @@ public static partial class WordPdfConverterExtensions {
         if (WordParagraph.IsSectionMarkOnly(source) || source.ParagraphProperties?.SectionProperties != null) return false;
         W.ParagraphProperties? properties = source.ParagraphProperties;
         NativeParagraphStyleDefaults styles = GetNativeParagraphStyleDefaults(paragraph);
-        if (ReadNativeOnOff(properties?.BiDi) == true || ReadNativeOnOff(properties?.KeepNext) == true || ReadNativeOnOff(properties?.KeepLines) == true ||
+        // Word writes keep-with-next on every drop cap; the cap is drawn beside the next paragraph.
+        bool dropCapFrame = IsNativeDropCapFrame(ResolveNativeParagraphFrame(paragraph));
+        if (ReadNativeOnOff(properties?.BiDi) == true || (!dropCapFrame && ReadNativeOnOff(properties?.KeepNext) == true) || ReadNativeOnOff(properties?.KeepLines) == true ||
             properties?.OutlineLevel != null || styles.KeepWithNext == true || styles.KeepTogether == true) return false;
         if (GetNativeParagraphStyleChain(paragraph._document, paragraph.StyleId).Any(style =>
                 ReadNativeOnOff(style.StyleParagraphProperties?.BiDi) == true || style.StyleParagraphProperties?.OutlineLevel != null ||
@@ -275,10 +283,12 @@ public static partial class WordPdfConverterExtensions {
             }
         }
 
-        // Drop caps are frames too, but they follow their own text-flow rules.
-        if (frame == null || frame.DropCap?.Value is W.DropCapLocationValues dropCap && dropCap != W.DropCapLocationValues.None) return null;
         return frame;
     }
+
+    private static bool IsNativeDropCapFrame(W.FrameProperties? frame, W.DropCapLocationValues? location = null) =>
+        frame?.DropCap?.Value is W.DropCapLocationValues dropCap && dropCap != W.DropCapLocationValues.None &&
+        (location == null || dropCap == location.Value);
 
     private static WordTable CreateNativeFrameTable(WordDocument document, W.FrameProperties frame,
         IReadOnlyList<WordParagraph> paragraphs, bool notBeside) {
@@ -297,7 +307,11 @@ public static partial class WordPdfConverterExtensions {
                 HorizontalAnchor = frame.HorizontalPosition?.Value == W.HorizontalAnchorValues.Text ? W.HorizontalAnchorValues.Text
                     : frame.HorizontalPosition?.Value == W.HorizontalAnchorValues.Margin ? W.HorizontalAnchorValues.Margin : W.HorizontalAnchorValues.Page
             };
-            if (frame.XAlign?.Value is W.HorizontalAlignmentValues xAlign) position.TablePositionXAlignment = xAlign;
+            // A margin drop cap hangs against the text area, in the page margin.
+            if (IsNativeDropCapFrame(frame, W.DropCapLocationValues.Margin)) {
+                position.HorizontalAnchor = W.HorizontalAnchorValues.Page;
+                position.TablePositionXAlignment = W.HorizontalAlignmentValues.Left;
+            } else if (frame.XAlign?.Value is W.HorizontalAlignmentValues xAlign) position.TablePositionXAlignment = xAlign;
             else position.TablePositionX = ParseNativeFrameTwips(frame.X?.Value) ?? 0;
             if (frame.YAlign?.Value is W.VerticalAlignmentValues yAlign && yAlign != W.VerticalAlignmentValues.Inline) position.TablePositionYAlignment = yAlign;
             else position.TablePositionY = ParseNativeFrameTwips(frame.Y?.Value) ?? 0;
@@ -354,13 +368,17 @@ public static partial class WordPdfConverterExtensions {
     private static PdfCore.PdfTablePosition CreateNativeFramePosition(PdfCore.PdfTablePosition position, W.FrameProperties frame) =>
         // Word treats a line that starts exactly at the frame's bottom edge as beside the
         // frame, so the clearance extends by one twip. Frames without wrapping let text
-        // run underneath them.
+        // run underneath them. A margin drop cap keeps its hSpace clear of the text by
+        // moving further into the margin.
         new(position.HorizontalAnchor, position.VerticalAnchor, position.HorizontalAlignment, position.VerticalAlignment,
-            position.HorizontalOffset, position.VerticalOffset, position.DistanceLeft, position.DistanceRight, position.DistanceTop,
+            IsNativeDropCapFrame(frame, W.DropCapLocationValues.Margin)
+                ? global::OfficeIMO.OfficeLength.Points(position.HorizontalOffset.ToPoints() - position.DistanceRight.ToPoints())
+                : position.HorizontalOffset, position.VerticalOffset, position.DistanceLeft, position.DistanceRight, position.DistanceTop,
             global::OfficeIMO.OfficeLength.Points(position.DistanceBottom.ToPoints() + 0.05D),
             position.MirrorHorizontalOnEvenPages, position.AllowOverlap) {
             WrapsText = frame.Wrap?.Value != W.TextWrappingValues.None,
-            AlignsInPageMargin = frame.XAlign?.Value is W.HorizontalAlignmentValues xAlign && xAlign != W.HorizontalAlignmentValues.Center
+            AlignsInPageMargin = frame.XAlign?.Value is W.HorizontalAlignmentValues xAlign && xAlign != W.HorizontalAlignmentValues.Center ||
+                IsNativeDropCapFrame(frame, W.DropCapLocationValues.Margin)
         };
 
     /// <summary>A notBeside frame keeps its own lines in the flow; only its horizontal placement applies.</summary>

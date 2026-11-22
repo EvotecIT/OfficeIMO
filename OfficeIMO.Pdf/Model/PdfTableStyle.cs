@@ -678,7 +678,10 @@ public partial class PdfTableStyle {
     public bool RightAlignNumeric { get; set; }
     /// <summary>When true, the table moves as a unit instead of splitting across pages when it fits in the page frame.</summary>
     public bool KeepTogether { get; set; }
-    /// <summary>When true, the table moves with the first visible part of the following block when they fit together.</summary>
+    /// <summary>
+    /// When true, the table moves with the first visible part of the following block when they fit together.
+    /// A positioned table placed at the flow position moves to the next page when the following block cannot start beside it.
+    /// </summary>
     public bool KeepWithNext { get; set; }
     /// <summary>When true, a single row that is taller than the page frame may split across pages by wrapped text line.</summary>
     public bool AllowRowBreakAcrossPages { get; set; } = true;
