@@ -65,7 +65,8 @@ internal static partial class PdfWriter {
                     textWidth = width - textOffset - rightInset;
                     var remainingRuns = firstSegment ? runs : BuildTextRunsFromWrappedLines(lines, lineIndex, lines.Count - lineIndex);
                     (lines, lineHeights) = WrapRichRunsWithSpacing(remainingRuns, textWidth, size, listFont, leading, null,
-                        DefaultParagraphTabStopWidth, currentOpts, lineSpacing, cancellationToken: cancellationToken);
+                        DefaultParagraphTabStopWidth, currentOpts, lineSpacing, GetListWordJustificationMode(prepared.Style, textAlign),
+                        cancellationToken: cancellationToken);
                     lineIndex = 0;
                     wrappedWidth = width;
                 }
@@ -184,7 +185,7 @@ internal static partial class PdfWriter {
                 int? bodyMarkedContentId = firstSegment || listItemElement == null
                     ? RegisterTextStructureElement("LBody", listItemElementIndex)
                     : RegisterTextStructureElement("LBody", listItemElement);
-                WriteRichParagraph(sb, new RichParagraphBlock(runs, textAlign, color), segmentLines, segmentHeights, currentOpts, baselineY, size, leading, currentPage!.Annotations, currentOpts.MarginLeft.ToPoints() + textOffset, textWidth, structureType: "LBody", markedContentId: bodyMarkedContentId, structurePage: currentPage,
+                WriteRichParagraph(sb, new RichParagraphBlock(runs, textAlign, color, prepared.TextStyle), segmentLines, segmentHeights, currentOpts, baselineY, size, leading, currentPage!.Annotations, currentOpts.MarginLeft.ToPoints() + textOffset, textWidth, structureType: "LBody", markedContentId: bodyMarkedContentId, structurePage: currentPage,
                     hasFollowingParagraphLines: lineIndex + take < lines.Count, suppressInlineAccessibility: _suppressCanvasAccessibilityWrappers);
                 MarkRichFonts(runs);
                 y -= heightSum;

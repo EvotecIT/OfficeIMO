@@ -460,7 +460,7 @@ internal static partial class PdfWriter {
                             int? bodyMarkedContentId = line == 0 || listItem.StructureElement == null
                                 ? RegisterTextStructureElement("LBody", listItemElementIndex)
                                 : RegisterTextStructureElement("LBody", listItem.StructureElement);
-                            WriteRichParagraph(sb, new RichParagraphBlock(listItem.Runs, listItem.TextAlign, listItem.Color), sliceLines, sliceHeights, currentOpts, baselineY, listItem.Size, leading, currentPage!.Annotations, xCol + listItem.TextXOffset, listItem.TextWidth, structureType: "LBody", markedContentId: bodyMarkedContentId, structurePage: currentPage,
+                            WriteRichParagraph(sb, new RichParagraphBlock(listItem.Runs, listItem.TextAlign, listItem.Color, listItem.TextStyle), sliceLines, sliceHeights, currentOpts, baselineY, listItem.Size, leading, currentPage!.Annotations, xCol + listItem.TextXOffset, listItem.TextWidth, structureType: "LBody", markedContentId: bodyMarkedContentId, structurePage: currentPage,
                                 hasFollowingParagraphLines: line + take < lines.Count, suppressInlineAccessibility: _suppressCanvasAccessibilityWrappers);
                             MarkRichFonts(listItem.Runs);
                             yCol -= hsum;

@@ -145,6 +145,29 @@ public sealed class PdfListStyle {
     /// <summary>When true, the list moves to the next page when it would otherwise be separated from the following flow block.</summary>
     public bool KeepWithNext { get; set; }
 
+    /// <summary>Expandable boundaries when the list uses <see cref="OfficeAlignment.Justify"/>. The default expands word separators.</summary>
+    public PdfJustificationMode JustificationMode {
+        get => _justificationMode;
+        set {
+            if (value < PdfJustificationMode.Words || value > PdfJustificationMode.Characters)
+                throw new System.ArgumentOutOfRangeException(nameof(value));
+            _justificationMode = value;
+        }
+    }
+    private PdfJustificationMode _justificationMode;
+
+    /// <summary>When true, a justified list item also expands lines ending with an explicit line break. The default retains natural spacing on those lines.</summary>
+    public bool JustifyExplicitLineBreaks { get; set; }
+
+    /// <summary>When true, a justified list item also expands its final line. The default retains natural spacing on that line.</summary>
+    public bool JustifyLastLine { get; set; }
+
+    /// <summary>Places justified lines that are not stretched, such as the last line, at the right edge, as right-to-left text does.</summary>
+    internal bool AlignJustifiedRemainderRight { get; set; }
+
+    /// <summary>Uses the imported Word ordinary-space resource when admitting justified lines.</summary>
+    internal bool UseWordJustificationSpacing { get; set; }
+
     /// <summary>Creates a copy of this list style.</summary>
     public PdfListStyle Clone() {
         return new PdfListStyle {
@@ -169,7 +192,12 @@ public sealed class PdfListStyle {
             MarkerItalic = MarkerItalic,
             KeepTogether = KeepTogether,
             KeepTogetherOverflow = KeepTogetherOverflow,
-            KeepWithNext = KeepWithNext
+            KeepWithNext = KeepWithNext,
+            JustificationMode = JustificationMode,
+            JustifyExplicitLineBreaks = JustifyExplicitLineBreaks,
+            JustifyLastLine = JustifyLastLine,
+            AlignJustifiedRemainderRight = AlignJustifiedRemainderRight,
+            UseWordJustificationSpacing = UseWordJustificationSpacing
         };
     }
 
