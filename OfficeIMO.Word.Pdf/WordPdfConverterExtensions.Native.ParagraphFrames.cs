@@ -62,6 +62,7 @@ public static partial class WordPdfConverterExtensions {
         // The copies are diagnosed through their sources; their entries last only while the frame is built.
         foreach (W.Paragraph copy in copies) options?.DiagnosedFrameParagraphs.Add(copy);
         try {
+            using (UseNativeFrameSources(sources))
             using (WordDocumentTraversal.UseListParagraphAliases(first._document, sources))
             using (WordPartOwnership.UseDetachedOwner(table._table, WordPartOwnership.Resolve(first._document, first._paragraph!)))
                 block = BuildNativeTableBlock(table, frameMarker, notes, options, contentWidth, defaults, fontMap, pdf.SupportsPositionedTables);
@@ -104,6 +105,7 @@ public static partial class WordPdfConverterExtensions {
         if (paragraph._paragraph?.Parent is not (W.Body or W.Header or W.Footer) || ResolveNativeParagraphFrame(paragraph) == null) return false;
         if (paragraph._paragraph.Descendants<W.Break>().Any(item => item.Type?.Value == W.BreakValues.Page || item.Type?.Value == W.BreakValues.Column))
             return false;
+        if (!IsNativeFrameContextSupported(paragraph)) return false;
         if (HasNativePageBreakBefore(paragraph) || GetNativeEffectiveParagraphShadingFill(paragraph) != null ||
             HasNativeFrameParagraphBorders(paragraph) || GetNativeRuns(paragraph).Any(run => run.Chart != null) ||
             HasNativeFrameUnsupportedContent(paragraph._paragraph, inBody: paragraph._paragraph.Parent is W.Body)) return false;
@@ -165,6 +167,94 @@ public static partial class WordPdfConverterExtensions {
     private static bool IsNativeFramePageField(string? instruction) {
         string name = (instruction ?? string.Empty).Trim().Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? string.Empty;
         return NativeFramePageFieldNames.Any(field => string.Equals(field, name, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static readonly System.Threading.AsyncLocal<IReadOnlyDictionary<W.Paragraph, W.Paragraph>?> NativeFrameSources = new();
+
+    private sealed class NativeFrameSourceScope : IDisposable {
+        private readonly IReadOnlyDictionary<W.Paragraph, W.Paragraph>? _previous;
+        internal NativeFrameSourceScope(IReadOnlyDictionary<W.Paragraph, W.Paragraph>? previous) => _previous = previous;
+        public void Dispose() => NativeFrameSources.Value = _previous;
+    }
+
+    private static IDisposable UseNativeFrameSources(IReadOnlyDictionary<W.Paragraph, W.Paragraph> sources) {
+        IReadOnlyDictionary<W.Paragraph, W.Paragraph>? previous = NativeFrameSources.Value;
+        NativeFrameSources.Value = sources;
+        return new NativeFrameSourceScope(previous);
+    }
+
+    /// <summary>The source paragraph of a projected frame copy, so section metrics such as the line grid still apply.</summary>
+    private static WordParagraph ResolveNativeFrameSourceParagraph(WordParagraph paragraph) =>
+        paragraph._paragraph != null && NativeFrameSources.Value is { } sources && sources.TryGetValue(paragraph._paragraph, out W.Paragraph? source)
+            ? new WordParagraph(paragraph._document, source) : paragraph;
+
+    private static bool IsNativeFrameCopy(WordParagraph paragraph) =>
+        paragraph._paragraph != null && NativeFrameSources.Value?.ContainsKey(paragraph._paragraph) == true;
+
+    /// <summary>
+    /// Context the frame copy cannot reproduce keeps the ordinary paragraph route: section
+    /// marks and line numbering, right-to-left text, keep and outline settings, automatic spacing, tracked
+    /// changes, hidden text, content controls and custom markup, fields that span paragraphs,
+    /// and relationship-backed links in headers and footers.
+    /// </summary>
+    private static bool IsNativeFrameContextSupported(WordParagraph paragraph) {
+        W.Paragraph source = paragraph._paragraph!;
+        if (WordParagraph.IsSectionMarkOnly(source) || source.ParagraphProperties?.SectionProperties != null) return false;
+        W.ParagraphProperties? properties = source.ParagraphProperties;
+        NativeParagraphStyleDefaults styles = GetNativeParagraphStyleDefaults(paragraph);
+        if (ReadNativeOnOff(properties?.BiDi) == true || ReadNativeOnOff(properties?.KeepNext) == true || ReadNativeOnOff(properties?.KeepLines) == true ||
+            properties?.OutlineLevel != null || styles.KeepWithNext == true || styles.KeepTogether == true) return false;
+        if (GetNativeParagraphStyleChain(paragraph._document, paragraph.StyleId).Any(style =>
+                ReadNativeOnOff(style.StyleParagraphProperties?.BiDi) == true || style.StyleParagraphProperties?.OutlineLevel != null ||
+                ReadNativeOnOff(style.StyleRunProperties?.GetFirstChild<W.RightToLeftText>()) == true)) return false;
+        // Automatic spacing follows table-cell rules inside the projection, which Word does not apply to frames.
+        NativeParagraphSpacing spacing = styles.ParagraphSpacing.Merge(properties);
+        W.SpacingBetweenLines? defaultSpacing = WordStyleCatalog.For(paragraph._document).DocumentDefaults?.ParagraphPropertiesDefault?
+            .ParagraphPropertiesBaseStyle?.SpacingBetweenLines;
+        if (spacing.BeforeAuto == true || spacing.AfterAuto == true ||
+            (spacing.BeforeAuto == null && defaultSpacing?.BeforeAutoSpacing?.Value == true) ||
+            (spacing.AfterAuto == null && defaultSpacing?.AfterAutoSpacing?.Value == true)) return false;
+        if (source.Parent is W.Body && paragraph.GetBodySection()?._sectionProperties.GetFirstChild<W.LineNumberType>() != null) return false;
+        if (ReadNativeOnOff(properties?.ParagraphMarkRunProperties?.GetFirstChild<W.Vanish>()) == true) return false;
+        foreach (DocumentFormat.OpenXml.OpenXmlElement element in source.Descendants()) {
+            switch (element) {
+                case W.InsertedRun or W.DeletedRun or W.MoveFromRun or W.MoveToRun or W.Inserted or W.Deleted or
+                    W.MoveFrom or W.MoveTo or W.RunPropertiesChange or W.ParagraphPropertiesChange or W.NumberingChange:
+                case W.SdtRun or W.CustomXmlRun:
+                case W.RightToLeftText:
+                    return false;
+                case W.Vanish vanish when ReadNativeOnOff(vanish) == true:
+                    return false;
+                case W.Hyperlink link when link.Id?.Value != null && source.Parent is not W.Body:
+                    return false;
+            }
+        }
+        if (GetNativeRuns(paragraph).Any(run => IsNativeHiddenTextRun(run, paragraph))) return false;
+        return !IsNativeParagraphInCrossParagraphField(source);
+    }
+
+    /// <summary>True when a complex field is open at the paragraph start or stays open at its end.</summary>
+    private static bool IsNativeParagraphInCrossParagraphField(W.Paragraph paragraph) {
+        if (FieldDepthChange(paragraph, out bool closesEarlier) != 0 || closesEarlier) return true;
+        int depth = 0;
+        for (DocumentFormat.OpenXml.OpenXmlElement? previous = paragraph.PreviousSibling(); previous != null; previous = previous.PreviousSibling()) {
+            if (previous is not W.Paragraph earlier) continue;
+            depth += FieldDepthChange(earlier, out _);
+        }
+        return depth > 0;
+
+        static int FieldDepthChange(W.Paragraph item, out bool closesOpenField) {
+            int balance = 0;
+            closesOpenField = false;
+            foreach (W.FieldChar fieldChar in item.Descendants<W.FieldChar>()) {
+                if (fieldChar.FieldCharType?.Value == W.FieldCharValues.Begin) balance++;
+                else if (fieldChar.FieldCharType?.Value == W.FieldCharValues.End) {
+                    balance--;
+                    if (balance < 0) closesOpenField = true;
+                }
+            }
+            return balance;
+        }
     }
 
     private static bool HasNativeFrameParagraphBorders(WordParagraph paragraph) {

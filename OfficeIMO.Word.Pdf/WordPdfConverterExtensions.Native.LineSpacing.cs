@@ -86,6 +86,8 @@ namespace OfficeIMO.Word.Pdf {
             NativeDocumentDefaults documentDefaults, NativeTableStyleDefaults table) {
             bool snap = ResolveNativeParagraphSpacing(paragraph, styleDefaults, documentDefaults, table).SnapToGrid ?? true;
             if (!snap) return null;
+            // A projected frame copy keeps the line grid of the section its paragraph is in.
+            if (IsNativeFrameCopy(paragraph)) return GetNativeSectionLineGridPitch(ResolveNativeFrameSourceParagraph(paragraph), documentDefaults.NoteContentSection);
             if (paragraph._paragraph.Ancestors<W.TableCell>().Any() && ReadNativeOnOff(paragraph._document
                 ._wordprocessingDocument.MainDocumentPart?.DocumentSettingsPart?.Settings?
                 .GetFirstChild<W.Compatibility>()?.GetFirstChild<W.AdjustLineHeightInTable>()) != true) return null;

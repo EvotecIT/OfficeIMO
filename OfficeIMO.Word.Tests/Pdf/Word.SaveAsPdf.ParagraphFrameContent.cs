@@ -219,6 +219,101 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_FrameTextKeepsTheSectionLineGrid() {
+        // Word lays frame lines on the section's line grid, at the same pitch as body lines.
+        using WordDocument document = CreateFrameDocument();
+        var grid = document.Sections[0]._sectionProperties.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.DocGrid>()
+            ?? document.Sections[0]._sectionProperties.AppendChild(new DocumentFormat.OpenXml.Wordprocessing.DocGrid());
+        grid.Type = DocumentFormat.OpenXml.Wordprocessing.DocGridValues.Lines;
+        grid.LinePitch = 480;
+        WordParagraph framed = document.AddParagraph("FRAMEA FRAMEB FRAMEC FRAMED FRAMEE FRAMEF");
+        AddFrameParagraph(framed, "around", "text", "margin", x: 1, width: 2880);
+        document.AddParagraph(string.Join(" ", Enumerable.Range(1, 60).Select(index => "w" + index.ToString("00"))));
+
+        using PdfPigDocument pdf = RenderFramePdf(document);
+        var words = pdf.GetPage(1).GetWords().ToList();
+        double Baseline(string token) => words.Single(word => word.Text == token).Letters[0].StartBaseLine.Y;
+        double framePitch = Baseline("FRAMEA") - Baseline("FRAMED");
+        double bodyPitch = Baseline("w01") - words.First(word => word.Text.StartsWith("w", StringComparison.Ordinal) &&
+            word.Letters[0].StartBaseLine.Y < Baseline("w01") - 1D).Letters[0].StartBaseLine.Y;
+        Assert.Equal(bodyPitch, framePitch, 1);
+    }
+
+    [Fact]
+    public void SaveAsPdf_SectionMarkOnlyFrameIsNotProjected() {
+        using WordDocument document = CreateFrameDocument();
+        document.AddParagraph("First section.");
+        document.AddSection(WordSectionBreakType.Continuous);
+        var markProperties = (DocumentFormat.OpenXml.Wordprocessing.ParagraphProperties)document.Sections[0]._sectionProperties.Parent!;
+        markProperties.AddChild(new DocumentFormat.OpenXml.Wordprocessing.FrameProperties {
+            Width = "2880", Wrap = DocumentFormat.OpenXml.Wordprocessing.TextWrappingValues.Around,
+            VerticalPosition = DocumentFormat.OpenXml.Wordprocessing.VerticalAnchorValues.Text,
+            HorizontalPosition = DocumentFormat.OpenXml.Wordprocessing.HorizontalAnchorValues.Margin, X = "1"
+        }, true);
+        document.Sections[1].AddParagraph("SECONDSECTION text");
+
+        using PdfPigDocument pdf = RenderFramePdf(document);
+        Assert.Equal(1, pdf.NumberOfPages);
+        Assert.Equal(FrameMargin, FindFrameWord(pdf, "SECONDSECTION").BoundingBox.Left, 0);
+    }
+
+    [Theory]
+    [InlineData("cross-paragraph-field")]
+    [InlineData("bidi")]
+    [InlineData("keep-next")]
+    [InlineData("tracked-insertion")]
+    [InlineData("hidden-run")]
+    [InlineData("content-control")]
+    [InlineData("automatic-spacing")]
+    public void SaveAsPdf_FrameWhoseContextTheCopyLosesKeepsOrdinaryRendering(string context) {
+        using WordDocument document = CreateFrameDocument();
+        WordParagraph framed;
+        if (context == "cross-paragraph-field") {
+            // A PAGE field that starts in the previous paragraph and ends in the framed one.
+            WordParagraph opening = document.AddParagraph("Opening ");
+            opening._paragraph.Append(
+                new DocumentFormat.OpenXml.Wordprocessing.Run(new DocumentFormat.OpenXml.Wordprocessing.FieldChar { FieldCharType = DocumentFormat.OpenXml.Wordprocessing.FieldCharValues.Begin }),
+                new DocumentFormat.OpenXml.Wordprocessing.Run(new DocumentFormat.OpenXml.Wordprocessing.FieldCode(" PAGE ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }));
+            framed = document.AddParagraph();
+            framed._paragraph.Append(
+                new DocumentFormat.OpenXml.Wordprocessing.Run(new DocumentFormat.OpenXml.Wordprocessing.FieldChar { FieldCharType = DocumentFormat.OpenXml.Wordprocessing.FieldCharValues.Separate }),
+                new DocumentFormat.OpenXml.Wordprocessing.Run(new DocumentFormat.OpenXml.Wordprocessing.Text("1")),
+                new DocumentFormat.OpenXml.Wordprocessing.Run(new DocumentFormat.OpenXml.Wordprocessing.FieldChar { FieldCharType = DocumentFormat.OpenXml.Wordprocessing.FieldCharValues.End }),
+                new DocumentFormat.OpenXml.Wordprocessing.Run(new DocumentFormat.OpenXml.Wordprocessing.Text(" FRAMED")));
+        } else {
+            framed = document.AddParagraph("FRAMED");
+            DocumentFormat.OpenXml.Wordprocessing.ParagraphProperties properties = framed._paragraph.ParagraphProperties ??= new DocumentFormat.OpenXml.Wordprocessing.ParagraphProperties();
+            DocumentFormat.OpenXml.Wordprocessing.Run run = framed._paragraph.Elements<DocumentFormat.OpenXml.Wordprocessing.Run>().First();
+            switch (context) {
+                case "bidi": properties.AddChild(new DocumentFormat.OpenXml.Wordprocessing.BiDi(), true); break;
+                case "keep-next": properties.AddChild(new DocumentFormat.OpenXml.Wordprocessing.KeepNext(), true); break;
+                case "automatic-spacing":
+                    properties.AddChild(new DocumentFormat.OpenXml.Wordprocessing.SpacingBetweenLines { BeforeAutoSpacing = true, AfterAutoSpacing = true }, true);
+                    break;
+                case "tracked-insertion":
+                    run.Remove();
+                    framed._paragraph.Append(new DocumentFormat.OpenXml.Wordprocessing.InsertedRun(run) { Id = "1", Author = "Reviewer" });
+                    break;
+                case "hidden-run":
+                    framed._paragraph.Append(new DocumentFormat.OpenXml.Wordprocessing.Run(
+                        new DocumentFormat.OpenXml.Wordprocessing.RunProperties(new DocumentFormat.OpenXml.Wordprocessing.Vanish()),
+                        new DocumentFormat.OpenXml.Wordprocessing.Text("HIDDEN")));
+                    break;
+                case "content-control":
+                    run.Remove();
+                    framed._paragraph.Append(new DocumentFormat.OpenXml.Wordprocessing.SdtRun(new DocumentFormat.OpenXml.Wordprocessing.SdtProperties(),
+                        new DocumentFormat.OpenXml.Wordprocessing.SdtContentRun(run)));
+                    break;
+            }
+        }
+        AddFrameParagraph(framed, "around", "text", "margin", x: 1, width: 2880);
+        document.AddParagraph("Body text.");
+
+        var result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false });
+        Assert.Contains(result.Warnings, warning => warning.Code == "native-paragraph-frame-flattened");
+    }
+
+    [Fact]
     public void SaveAsPdf_OutsideHeaderFrameMirrorsOnEvenPages() {
         // Word puts an outside-aligned header frame at the right margin on odd pages and
         // at the left margin on even pages.
