@@ -41,4 +41,30 @@ public sealed class PdfTableTextLayoutReuseSpacingTests {
             Assert.Equal(expectedAdvance, letters[3].StartBaseLine.X - letters[0].StartBaseLine.X, 3);
         }
     }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RepeatedCellTextKeepsEachRunsBaselineShift(bool raisedFirst) {
+        var natural = PdfTextRun.Normal("ABCD");
+        var raised = PdfTextRun.Normal("ABCD");
+        raised.BaselineShift = 6D;
+        byte[] bytes = PdfDocument.Create(pdf => pdf.Content(content => content.AddTable(new[] {
+            new[] { PdfTableCell.RichTextCell(new[] { raisedFirst ? raised : natural }), PdfTableCell.RichTextCell(new[] { raisedFirst ? natural : raised }) }
+        }, style: new PdfTableStyle {
+            FontSize = global::OfficeIMO.OfficeLength.Points(12D),
+            HeaderRowCount = 0,
+            ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(100D) },
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(0D),
+            // Room above the text, so the raised glyphs stay inside the cell.
+            CellPaddingY = global::OfficeIMO.OfficeLength.Points(8D)
+        })), new PdfCreateOptions { DefaultFont = PdfStandardFont.Courier, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D) }).ToBytes(new PdfSaveOptions { AllowLoss = true });
+
+        // Without a diagnostics report, repeated cell text takes the shared layout path.
+        using var document = PdfPigDocument.Open(bytes);
+        var starts = document.GetPage(1).Letters.Where(letter => letter.Value == "A").OrderBy(letter => letter.StartBaseLine.X).ToArray();
+        Assert.Equal(2, starts.Length);
+        double rise = starts[raisedFirst ? 0 : 1].StartBaseLine.Y - starts[raisedFirst ? 1 : 0].StartBaseLine.Y;
+        Assert.Equal(6D, rise, 3);
+    }
 }

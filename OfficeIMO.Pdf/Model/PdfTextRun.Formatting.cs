@@ -67,6 +67,7 @@ public sealed partial class PdfTextRun {
         FeatureSettings = defaults.FeatureSettings;
         HorizontalTextScaling = defaults.HorizontalTextScaling;
         CharacterSpacing = defaults.CharacterSpacing;
+        BaselineShift = defaults.BaselineShift;
         return this;
     }
 

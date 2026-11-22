@@ -5716,6 +5716,11 @@ versions:
   top-and-bottom pictures with effects such as a glow or shadow are placed too, and text keeps clear of
   the effect as well as the wrap distance. A wrapping picture saved with `behindDoc="1"` paints in its
   z-order with the other drawings instead of behind the text.
+- Drop caps are placed beside the paragraph that follows them, which wraps around the cap for the lines
+  it spans, instead of being drawn as a separate large paragraph. Margin drop caps hang in the margin.
+  As with other floating frames, a drop cap in the body selects the fallback placement for page footnotes.
+- Raised and lowered text (`w:position`) moves its glyphs up or down from the baseline. Earlier versions
+  drew it on the baseline.
 
 If your process depends on where pages break, regenerate the PDFs and compare them with your stored
 baselines, checking page counts and where tables and lists break. Refresh page-dependent content
