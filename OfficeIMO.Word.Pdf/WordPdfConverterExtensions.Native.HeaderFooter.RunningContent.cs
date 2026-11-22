@@ -137,14 +137,15 @@ public static partial class WordPdfConverterExtensions {
     private static bool CanPlaceNativeRunningShapeGroups(PdfCore.PdfPageSize pageSize, WordParagraph paragraph, WordPdfExportOptions? options) {
         if (!paragraph._paragraph.Descendants<W.Drawing>().Any(IsNativeShapeGroupDrawing)) return false;
         List<WordParagraph> runs = GetNativeRuns(paragraph);
-        int groups = runs.SelectMany(run => run.EnumerateEffectiveRunContent().OfType<W.Drawing>()).Count(IsNativeShapeGroupDrawing);
+        // Hidden groups are neither painted nor counted, so they never block placement.
+        int groups = EnumerateNativeVisibleShapeGroups(paragraph, runs).Count(source => source.Drawing != null);
         var style = new PdfCore.PdfParagraphStyle();
         int imageCount = 0;
         bool flowed = false;
         // A read-only projection: keep its warnings out of the real operation.
         ProjectNativeParagraphShapeGroups(pageSize, paragraph, runs, options?.CloneForConversion(), style,
             _ => flowed = true, ref imageCount, runningStory: true);
-        return !flowed && groups > 0 && style.AnchoredCanvas?.Items.Count == groups;
+        return !flowed && (style.AnchoredCanvas?.Items.Count ?? 0) == groups;
     }
 
     /// <summary>The simple header and footer projection has no shape group route, so it reports each story's groups as omitted.</summary>
@@ -168,17 +169,8 @@ public static partial class WordPdfConverterExtensions {
             int groups = 0;
             foreach (W.Paragraph element in root.Descendants<W.Paragraph>()) {
                 var paragraph = new WordParagraph(story!.Document, element);
-                // Hidden runs are not painted, so their groups are not lost.
-                foreach (WordParagraph run in GetNativeRuns(paragraph)) {
-                    if (IsNativeHiddenTextRun(run, paragraph)) continue;
-                    foreach (OpenXmlElement content in run.EnumerateEffectiveRunContent()) {
-                        IEnumerable<OpenXmlElement> scope = content.Descendants().Prepend(content)
-                            .Where(node => node.Ancestors<W.Paragraph>().FirstOrDefault() == element);
-                        // A DrawingML group's VML fallback is the same group, so only fallback-free VML groups count separately.
-                        groups += scope.OfType<W.Drawing>().Count(IsNativeShapeGroupDrawing) +
-                            scope.OfType<V.Group>().Count(group => !group.Ancestors<V.Group>().Any() && !group.Ancestors<AlternateContentFallback>().Any());
-                    }
-                }
+                // The groups the rich route would paint; the selected branch holds one copy of each.
+                groups += EnumerateNativeVisibleShapeGroups(paragraph, GetNativeRuns(paragraph)).Count();
             }
             if (groups == 0) return;
             AddNativeExportWarning(options, "native-header-footer-shape-group-unsupported", source,

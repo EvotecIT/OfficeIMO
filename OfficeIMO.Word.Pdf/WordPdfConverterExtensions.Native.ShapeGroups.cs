@@ -40,72 +40,106 @@ namespace OfficeIMO.Word.Pdf {
             IReadOnlyList<WordParagraph> runs, WordPdfExportOptions? options, PdfCore.PdfParagraphStyle style,
             Action<OfficeDrawing>? renderFlowObject, ref int imageCount, bool runningStory = false) {
             bool renderedFlowObject = false;
-            foreach (WordParagraph run in runs) {
-                foreach (W.Drawing drawing in run.EnumerateEffectiveRunContent().OfType<W.Drawing>()) {
-                    OpenXmlElement? group = drawing.Descendants<A.GraphicData>().FirstOrDefault()?.ChildElements
-                        .FirstOrDefault(child => child.NamespaceUri == NativeWordGroupNamespace && child.LocalName == "wgp");
-                    if (group == null || !WordDrawingLayoutReader.TryRead(drawing, out WordDrawingLayoutInfo layout)) continue;
-                    options?.CancellationToken.ThrowIfCancellationRequested();
-                    if (layout.WidthPoints <= 0D || layout.HeightPoints <= 0D) {
-                        WarnNativeGroup(options, "native-shape-group-unsupported", "The shape group has no renderable extent.");
-                        continue;
-                    }
-
-                    var scene = new OfficeDrawing(layout.WidthPoints, layout.HeightPoints);
-                    var theme = GetNativeDrawingThemeColors(group.Ancestors<OpenXmlPartRootElement>().FirstOrDefault()?.OpenXmlPart);
-                    bool native = TryAddNativeGroupChildren(scene, group, 0D, 0D, scene.Width, scene.Height, run, drawing, theme, options, 0);
-                    if (layout.Placement == WordDrawingPlacementKind.Inline) {
-                        if (native) {
-                            renderFlowObject?.Invoke(scene);
-                            renderedFlowObject = true;
-                        }
-                        else WarnNativeGroup(options, "native-shape-group-unsupported", "The inline shape group contains unsupported geometry or transforms.");
-                        continue;
-                    }
-
-                    // A header or footer story stacks its in-front groups over its own text, as Word does.
-                    if (!TryGetNativeGroupPosition(pageSize, paragraph, layout, options, out double x, out double y,
-                            out bool paragraphRelative, out double? horizontalMarginOrigin, allowInFrontOfText: runningStory)) {
-                        if (native) {
-                            renderFlowObject?.Invoke(scene);
-                            renderedFlowObject = true;
-                            WarnNativeGroup(options, "native-shape-group-flowed", "The shape group's anchor is outside the fixed-placement contract; it was placed in document flow.");
-                        } else WarnNativeGroup(options, "native-shape-group-unsupported", "The shape group's geometry and anchor could not be mapped.");
-                        continue;
-                    }
-
-                    var canvas = new PdfCore.PdfPageCanvas();
-                    if (native) canvas.Drawing(scene, global::OfficeIMO.OfficeLength.Points(x), global::OfficeIMO.OfficeLength.Points(y), global::OfficeIMO.OfficeLength.Points(scene.Width), global::OfficeIMO.OfficeLength.Points(scene.Height));
-                    else {
-                        V.Group? fallback = drawing.Ancestors<AlternateContentChoice>().FirstOrDefault()?.Parent?
-                            .GetFirstChild<AlternateContentFallback>()?.Descendants<V.Group>().FirstOrDefault();
-                        if (fallback == null) {
-                            WarnNativeGroup(options, "native-shape-group-unsupported", "The shape group contains unsupported geometry or transforms and has no VML fallback.");
-                            continue;
-                        }
-                        CountNativeVmlGroupImages(fallback, options, ref imageCount);
-                        (double cw, double ch) = GetNativeVmlCoordSize(fallback, scene.Width, scene.Height);
-                        (double cx, double cy) = GetNativeVmlCoordOrigin(fallback);
-                        var frame = new NativeVmlFrame(0D, 0D, scene.Width, scene.Height, cw, ch, cx, cy);
-                        bool rendered = false;
-                        canvas.Effect(OfficeTransform.Translate(x, y), 1D, target =>
-                            rendered = RenderNativeVmlCoverChildren(target, paragraph._document, fallback.ChildElements,
-                                frame, pageSize.Width.ToPoints(), pageSize.Height.ToPoints(), options?.CancellationToken ?? default));
-                        if (!rendered) {
-                            WarnNativeGroup(options, "native-shape-group-unsupported", "The shape group's VML fallback produced no visible content.");
-                            continue;
-                        }
-                        WarnNativeGroup(options, "native-shape-group-vml-fallback", "The shape group was rendered through its VML fallback because its DrawingML geometry or transforms are unsupported.");
-                    }
-                    AddNativeGroupCanvas(style, canvas, paragraphRelative, layout.RelativeHeight, horizontalMarginOrigin,
-                        inFrontOfText: !layout.BehindDocument);
-                }
-                foreach (V.Group legacy in run.EnumerateEffectiveRunContent().SelectMany(child => child.Descendants().Prepend(child))
-                    .OfType<V.Group>().Where(group => !group.Ancestors<V.Group>().Any())) {
+            foreach (NativeShapeGroupSource source in EnumerateNativeVisibleShapeGroups(paragraph, runs)) {
+                if (source.Legacy is V.Group legacy) {
                     RenderNativeLegacyBodyGroup(pageSize, paragraph, legacy, options, style, ref imageCount);
+                    continue;
                 }
+                WordParagraph run = source.Run;
+                W.Drawing drawing = source.Drawing!;
+                OpenXmlElement? group = drawing.Descendants<A.GraphicData>().FirstOrDefault()?.ChildElements
+                    .FirstOrDefault(child => child.NamespaceUri == NativeWordGroupNamespace && child.LocalName == "wgp");
+                if (group == null || !WordDrawingLayoutReader.TryRead(drawing, out WordDrawingLayoutInfo layout)) continue;
+                options?.CancellationToken.ThrowIfCancellationRequested();
+                if (layout.WidthPoints <= 0D || layout.HeightPoints <= 0D) {
+                    WarnNativeGroup(options, "native-shape-group-unsupported", "The shape group has no renderable extent.");
+                    continue;
+                }
+
+                var scene = new OfficeDrawing(layout.WidthPoints, layout.HeightPoints);
+                var theme = GetNativeDrawingThemeColors(group.Ancestors<OpenXmlPartRootElement>().FirstOrDefault()?.OpenXmlPart);
+                bool native = TryAddNativeGroupChildren(scene, group, 0D, 0D, scene.Width, scene.Height, run, drawing, theme, options, 0);
+                if (layout.Placement == WordDrawingPlacementKind.Inline) {
+                    if (native) {
+                        renderFlowObject?.Invoke(scene);
+                        renderedFlowObject = true;
+                    }
+                    else WarnNativeGroup(options, "native-shape-group-unsupported", "The inline shape group contains unsupported geometry or transforms.");
+                    continue;
+                }
+
+                // A header or footer story stacks its in-front groups over its own text, as Word does.
+                if (!TryGetNativeGroupPosition(pageSize, paragraph, layout, options, out double x, out double y,
+                        out bool paragraphRelative, out double? horizontalMarginOrigin, allowInFrontOfText: runningStory)) {
+                    if (native) {
+                        renderFlowObject?.Invoke(scene);
+                        renderedFlowObject = true;
+                        WarnNativeGroup(options, "native-shape-group-flowed", "The shape group's anchor is outside the fixed-placement contract; it was placed in document flow.");
+                    } else WarnNativeGroup(options, "native-shape-group-unsupported", "The shape group's geometry and anchor could not be mapped.");
+                    continue;
+                }
+
+                var canvas = new PdfCore.PdfPageCanvas();
+                if (native) canvas.Drawing(scene, global::OfficeIMO.OfficeLength.Points(x), global::OfficeIMO.OfficeLength.Points(y), global::OfficeIMO.OfficeLength.Points(scene.Width), global::OfficeIMO.OfficeLength.Points(scene.Height));
+                else {
+                    V.Group? fallback = drawing.Ancestors<AlternateContentChoice>().FirstOrDefault()?.Parent?
+                        .GetFirstChild<AlternateContentFallback>()?.Descendants<V.Group>().FirstOrDefault();
+                    if (fallback == null) {
+                        WarnNativeGroup(options, "native-shape-group-unsupported", "The shape group contains unsupported geometry or transforms and has no VML fallback.");
+                        continue;
+                    }
+                    CountNativeVmlGroupImages(fallback, options, ref imageCount);
+                    (double cw, double ch) = GetNativeVmlCoordSize(fallback, scene.Width, scene.Height);
+                    (double cx, double cy) = GetNativeVmlCoordOrigin(fallback);
+                    var frame = new NativeVmlFrame(0D, 0D, scene.Width, scene.Height, cw, ch, cx, cy);
+                    bool rendered = false;
+                    canvas.Effect(OfficeTransform.Translate(x, y), 1D, target =>
+                        rendered = RenderNativeVmlCoverChildren(target, paragraph._document, fallback.ChildElements,
+                            frame, pageSize.Width.ToPoints(), pageSize.Height.ToPoints(), options?.CancellationToken ?? default));
+                    if (!rendered) {
+                        WarnNativeGroup(options, "native-shape-group-unsupported", "The shape group's VML fallback produced no visible content.");
+                        continue;
+                    }
+                    WarnNativeGroup(options, "native-shape-group-vml-fallback", "The shape group was rendered through its VML fallback because its DrawingML geometry or transforms are unsupported.");
+                }
+                AddNativeGroupCanvas(style, canvas, paragraphRelative, layout.RelativeHeight, horizontalMarginOrigin,
+                    inFrontOfText: !layout.BehindDocument);
             }
             return renderedFlowObject;
+        }
+
+        private readonly record struct NativeShapeGroupSource(WordParagraph Run, W.Drawing? Drawing, V.Group? Legacy);
+
+        /// <summary>
+        /// The shape groups Word draws for a paragraph: DrawingML groups and outermost VML groups of
+        /// visible runs, from the markup-compatibility branch Word selects. Counting, eligibility
+        /// and painting all read this one list.
+        /// </summary>
+        private static IEnumerable<NativeShapeGroupSource> EnumerateNativeVisibleShapeGroups(WordParagraph paragraph,
+            IEnumerable<WordParagraph> runs) {
+            foreach (WordParagraph run in runs) {
+                if (IsNativeHiddenTextRun(run, paragraph)) continue;
+                foreach (OpenXmlElement content in run.EnumerateEffectiveRunContent()) {
+                    if (content is W.Drawing drawing) {
+                        if (IsNativeShapeGroupDrawing(drawing)) yield return new NativeShapeGroupSource(run, drawing, null);
+                        continue;
+                    }
+                    foreach (V.Group legacy in content.Descendants<V.Group>().Prepend(content as V.Group).OfType<V.Group>()) {
+                        if (legacy.Ancestors<V.Group>().Any() || !IsNativeSelectedBranchContent(legacy, content) ||
+                            legacy.Ancestors<W.Paragraph>().FirstOrDefault() != paragraph._paragraph) continue;
+                        yield return new NativeShapeGroupSource(run, null, legacy);
+                    }
+                }
+            }
+        }
+
+        /// <summary>Every markup-compatibility branch between the element and the run content is the one Word selects.</summary>
+        private static bool IsNativeSelectedBranchContent(OpenXmlElement element, OpenXmlElement stop) {
+            for (OpenXmlElement? node = element.Parent; node != null && node != stop.Parent; node = node.Parent) {
+                if (node is AlternateContentChoice or AlternateContentFallback &&
+                    node.Parent is AlternateContent alternate && WordAlternateContentResolver.SelectBranch(alternate) != node) return false;
+            }
+            return true;
         }
 
         private static void AddNativeGroupCanvas(PdfCore.PdfParagraphStyle style, PdfCore.PdfPageCanvas canvas,

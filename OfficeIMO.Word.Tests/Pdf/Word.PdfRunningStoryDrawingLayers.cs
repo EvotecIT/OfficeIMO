@@ -96,18 +96,26 @@ public sealed class PdfRunningStoryDrawingLayersTests {
     [InlineData("vml", false)]
     [InlineData("margin", true)]
     [InlineData("vml", true)]
+    // The VML fallback Word selects, because no choice applies, is the group itself.
+    [InlineData("vml-fallback", false)]
     public void SaveAsPdf_UndrawnHeaderShapeGroupIsReported(string kind, bool hidden) {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph("BODYTEXT");
         _ = document.PageSetup.Header;
         WordParagraph anchor = document.PageSetup.GetHeader(WordHeaderFooterType.Default)!.AddParagraph("ANCHORLINE");
-        if (kind == "vml") {
+        if (kind.StartsWith("vml", StringComparison.Ordinal)) {
             var group = new V.Group {
                 Style = "position:absolute;margin-left:60pt;margin-top:30pt;width:200pt;height:70pt;z-index:1;mso-position-horizontal-relative:page;mso-position-vertical-relative:page",
                 CoordinateSize = "200,70"
             };
             group.Append(new V.Rectangle { Style = "position:absolute;left:0;top:0;width:200;height:70", FillColor = "red", Stroked = false });
-            anchor._paragraph.Append(new W.Run(new W.Picture(group)));
+            if (kind == "vml") anchor._paragraph.Append(new W.Run(new W.Picture(group)));
+            else {
+                var choice = new DocumentFormat.OpenXml.AlternateContentChoice { Requires = "x9" };
+                choice.AddNamespaceDeclaration("x9", "urn:officeimo:unsupported-choice");
+                anchor._paragraph.Append(new W.Run(new DocumentFormat.OpenXml.AlternateContent(choice,
+                    new DocumentFormat.OpenXml.AlternateContentFallback(new W.Picture(group)))));
+            }
         } else {
             anchor.AddShapeGroup(new[] {
                 new WordShapeGroupItem(WordShapeType.Rectangle, OfficeLength.Points(0), OfficeLength.Points(0), OfficeLength.Points(100), OfficeLength.Points(70)) { FillColor = OfficeColor.Parse("FF0000") },
@@ -128,6 +136,34 @@ public sealed class PdfRunningStoryDrawingLayersTests {
         var warning = Assert.Single(evidence.Warnings, item => item.Code == "native-header-footer-shape-group-unsupported");
         Assert.Equal("default header", warning.Source);
         Assert.Equal(OfficeIMO.OfficeConversionLossKind.Omission, warning.LossKind);
+    }
+
+    // A supported group in a hidden run is not painted, as in Word.
+    [Fact]
+    public void SaveAsPdf_HiddenHeaderShapeGroupIsNotPainted() {
+        using WordDocument document = WordDocument.Create();
+        document.AddParagraph("BODYTEXT");
+        _ = document.PageSetup.Header;
+        WordParagraph anchor = document.PageSetup.GetHeader(WordHeaderFooterType.Default)!.AddParagraph("ANCHORLINE");
+        anchor.AddShapeGroup(new[] {
+            new WordShapeGroupItem(WordShapeType.Rectangle, OfficeLength.Points(0), OfficeLength.Points(0), OfficeLength.Points(100), OfficeLength.Points(70)) { FillColor = OfficeColor.Parse("FF0000") },
+            new WordShapeGroupItem(WordShapeType.Rectangle, OfficeLength.Points(100), OfficeLength.Points(0), OfficeLength.Points(100), OfficeLength.Points(70)) { FillColor = OfficeColor.Parse("FF0000") }
+        }, OfficeLength.Points(60), OfficeLength.Points(30));
+        DW.Anchor drawingAnchor = anchor._paragraph.Descendants<DW.Anchor>().Single();
+        drawingAnchor.BehindDoc = false;
+        drawingAnchor.RemoveAllChildren<DW.WrapSquare>();
+        if (drawingAnchor.GetFirstChild<DW.WrapNone>() == null) drawingAnchor.AddChild(new DW.WrapNone(), true);
+        anchor._paragraph.Elements<W.Run>().Last().PrependChild(new W.RunProperties(new W.Vanish()));
+
+        var evidence = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false });
+        Assert.DoesNotContain(evidence.Warnings, item => item.Code == "native-header-footer-shape-group-unsupported");
+        byte[] bytes = evidence.Value.ToBytes(new PdfCore.PdfSaveOptions { AllowLoss = true });
+        var pdf = PdfCore.PdfDocument.Load(new MemoryStream(bytes));
+        byte[] rendered = pdf.Render.Pages(PdfCore.PdfPageSelection.From(1), new PdfCore.PdfPageRenderOptions { Dpi = 72 })[0].Bytes!;
+        Assert.True(OfficePngReader.TryDecode(rendered, out var bitmap));
+        byte[] pixels = bitmap!.GetPixels();
+        int offset = (90 * bitmap.Width + 240) * 4;
+        Assert.Equal("255,255,255", pixels[offset] + "," + pixels[offset + 1] + "," + pixels[offset + 2]);
     }
 
     // A wrapped header picture and an in-front one share the story's in-front layer, so the higher z-order wins where they overlap.
