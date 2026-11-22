@@ -52,6 +52,28 @@ public partial class Word {
         Assert.Equal(expectedCell, FindFloatingEdgeWord(pdf, "ROWONE").BoundingBox.Left, 0.15);
     }
 
+    [Theory]
+    [InlineData("left", 189.74, 77.42)]
+    [InlineData("right", 72.02, 436.75)]
+    public void SaveAsPdf_InteriorCellBorderIsNotAFloatingTableOutsideEdge(string alignment, double expectedText, double expectedCell) {
+        // Word treats a right border on the first of two cells as an interior border: the table
+        // keeps the borderless outside edge.
+        using WordDocument document = CreateFloatingEdgeDocument();
+        string position = alignment == "right" ? "w:tblpXSpec=\"right\"" : "w:tblpXSpec=\"left\"";
+        var table = new Table("<w:tbl xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:tblPr>" +
+            $"<w:tblpPr w:leftFromText=\"180\" w:rightFromText=\"180\" w:vertAnchor=\"text\" w:horzAnchor=\"margin\" {position} w:tblpY=\"1\"/>" +
+            "<w:tblW w:w=\"2160\" w:type=\"dxa\"/></w:tblPr><w:tblGrid><w:gridCol w:w=\"1080\"/><w:gridCol w:w=\"1080\"/></w:tblGrid><w:tr>" +
+            "<w:tc><w:tcPr><w:tcW w:w=\"1080\" w:type=\"dxa\"/>" + BorderXml("tcBorders", 48, "right") + "</w:tcPr><w:p><w:r><w:t>CELLA</w:t></w:r></w:p></w:tc>" +
+            "<w:tc><w:tcPr><w:tcW w:w=\"1080\" w:type=\"dxa\"/></w:tcPr><w:p><w:r><w:t>CELLB</w:t></w:r></w:p></w:tc></w:tr></w:tbl>");
+        Body body = document._wordprocessingDocument.MainDocumentPart!.Document!.Body!;
+        body.InsertBefore(table, body.Elements<SectionProperties>().FirstOrDefault());
+        document.AddParagraph(FloatingEdgeWords(60));
+
+        using PdfPigDocument pdf = RenderFloatingEdgePdf(document);
+        Assert.Equal(expectedText, FindFloatingEdgeWord(pdf, "w01").BoundingBox.Left, 0.15);
+        Assert.Equal(expectedCell, FindFloatingEdgeWord(pdf, "CELLA").BoundingBox.Left, 0.15);
+    }
+
     private static string BorderXml(string element, int size, params string[] sides) =>
         $"<w:{element}>" + string.Concat(sides.Select(side => $"<w:{side} w:val=\"single\" w:sz=\"{size}\" w:space=\"0\" w:color=\"auto\"/>")) + $"</w:{element}>";
 }

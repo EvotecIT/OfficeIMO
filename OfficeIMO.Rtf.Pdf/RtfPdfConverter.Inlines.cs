@@ -97,14 +97,35 @@ internal static partial class RtfPdfConverter {
                 fontSize: controlStyle.FontSize, standardFont: controlStyle.StandardFont, fontFamily: controlStyle.FontFamily,
                 baseline: controlStyle.Baseline);
         } else {
-            // RtfBreak carries no character state. Use only the source defaults
-            // or inherited style the existing semantic model can resolve.
+            strut = CreateInheritedStrut();
+        }
+        strut.IsLineBoxStrut = true;
+
+        // A break sizes its line only when no text precedes it there. A generated note label is
+        // not body text, so the controls on the body's first source line size the label's line,
+        // read before unsized controls take the trailing control's size below.
+        PdfCore.PdfTextRun? labelStrut = null;
+        if (bodyStartIndex > 0) {
+            PdfCore.PdfTextRun? first = null;
+            for (int index = bodyStartIndex; index < runs.Count; index++) {
+                PdfCore.PdfTextRun control = runs[index];
+                if (control.FontSize?.ToPoints() is double size && size > (first?.FontSize?.ToPoints() ?? 0D)) first = control;
+                if (control.Text.IndexOf('\n') >= 0) break;
+            }
+            first ??= CreateInheritedStrut();
+            labelStrut = new PdfCore.PdfTextRun(string.Empty, bold: first.Bold, italic: first.Italic,
+                fontSize: first.FontSize, standardFont: first.StandardFont, fontFamily: first.FontFamily,
+                baseline: first.Baseline) { IsLineBoxStrut = true };
+        }
+
+        // RtfBreak carries no character state. Use only the source defaults
+        // or inherited style the existing semantic model can resolve.
+        PdfCore.PdfTextRun CreateInheritedStrut() {
             RtfRun inherited = GetParagraphCharacterDefaults(document, source, string.Empty);
-            strut = new PdfCore.PdfTextRun(string.Empty, bold: inherited.Bold, italic: inherited.Italic,
+            return new PdfCore.PdfTextRun(string.Empty, bold: inherited.Bold, italic: inherited.Italic,
                 fontSize: inherited.FontSize.HasValue ? OfficeLength.Points(inherited.FontSize.Value) : null, standardFont: state.ResolveFont(inherited.FontId, inherited.Bold, inherited.Italic),
                 fontFamily: state.ResolveFontFamily(inherited.FontId));
         }
-        strut.IsLineBoxStrut = true;
         if ((strut.FontSize?.ToPoints()) is double sourceSize && sourceSize > 0D &&
             !double.IsNaN(sourceSize) && !double.IsInfinity(sourceSize)) {
             for (int index = bodyStartIndex; index < runs.Count; index++) {
@@ -123,13 +144,7 @@ internal static partial class RtfPdfConverter {
                     decorationColor: control.DecorationColor).WithSpacingFrom(control);
             }
         }
-        // A break sizes its line only when no text precedes it there. A generated note label
-        // is not body text, so the body's font box also sizes the label's line.
-        if (bodyStartIndex > 0) {
-            runs.Insert(bodyStartIndex, new PdfCore.PdfTextRun(string.Empty, bold: strut.Bold, italic: strut.Italic,
-                fontSize: strut.FontSize, standardFont: strut.StandardFont, fontFamily: strut.FontFamily,
-                baseline: strut.Baseline) { IsLineBoxStrut = true });
-        }
+        if (labelStrut != null) runs.Insert(bodyStartIndex, labelStrut);
         runs.Add(strut);
     }
 
