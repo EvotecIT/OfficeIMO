@@ -69,6 +69,20 @@ public sealed class PdfDocumentSourceLifetimeTests {
     }
 
     [Fact]
+    public void MutationPreflightCanReadRevisionEvidenceAfterReturningBorrowedMemory() {
+        byte[] pdf = PdfIncrementalUpdater.UpdateMetadata(CreateTextPdf(pageCount: 2), title: "Updated title");
+        PdfMutationPlan plan;
+        using (var owner = new PooledPdfInput(pdf, prefixLength: 4096)) {
+            using PdfDocument document = PdfDocument.Load(owner.Memory.Slice(4096, pdf.Length));
+            plan = document.PlanMutation(PdfMutationOperation.UpdateMetadata);
+            Assert.True(plan.CanExecute);
+            Assert.True(plan.Preflight.Probe.Security.HasPreviousRevision);
+        }
+
+        Assert.True(plan.Preflight.CanNormalizeRedactionObjectGraph);
+    }
+
+    [Fact]
     public void StreamSourceIsOwnedSoTheStreamCanBeDisposedAfterLoading() {
         byte[] pdf = CreateTextPdf(pageCount: 3);
         var stream = new MemoryStream(pdf, writable: false);

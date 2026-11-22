@@ -389,7 +389,7 @@ internal static partial class PdfSyntax {
         return (map, trailerRaw);
     }
 
-    private static byte[] CopyBytes(ReadOnlyMemory<byte> source, int offset, int count,
+    internal static byte[] CopyBytes(ReadOnlyMemory<byte> source, int offset, int count,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         var data = new byte[count];

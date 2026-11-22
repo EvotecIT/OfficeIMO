@@ -114,6 +114,10 @@ internal sealed class PdfDocumentSource {
     /// <summary>Copies the source bytes for a caller-owned result.</summary>
     internal byte[] CopyBytes() => _bytes.ToArray();
 
+    /// <summary>Gives delayed report proofs a stable source and its own canonical parse.</summary>
+    internal PdfDocumentSource DetachBorrowed(CancellationToken cancellationToken) =>
+        _borrowed ? FromOwnedBytes(PdfSyntax.CopyBytes(_bytes, 0, _bytes.Length, cancellationToken), Options) : this;
+
     /// <summary>
     /// Reads a caller-owned PDF window in place after enforcing the configured input budget.
     /// </summary>

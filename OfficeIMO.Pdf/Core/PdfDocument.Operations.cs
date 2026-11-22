@@ -46,7 +46,7 @@ public sealed partial class PdfDocument {
     public PdfAnalysisReport Analyze(
         PdfComplianceProfile complianceProfile,
         CancellationToken cancellationToken) {
-        var snapshot = GetReadSnapshot(cancellationToken: cancellationToken);
+        var snapshot = GetReportSnapshot(options: null, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         snapshot.Document.DemandContentExtraction("analysis report");
         PdfDocumentInfo info = PdfInspector.Inspect(snapshot.Bytes, snapshot.Document, cancellationToken);
@@ -131,9 +131,12 @@ public sealed partial class PdfDocument {
         PdfLoadOptions? options,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options ?? ReadOptions);
-        ReadOnlyMemory<byte> bytes = _source?.Memory ?? GetBytesForOperation(cancellationToken);
-        Func<PdfReadDocument>? readDocumentFactory = GetOpenedReadDocumentFactory(effectiveOptions, cancellationToken);
+        PdfDocumentSource? source = _source?.DetachBorrowed(cancellationToken);
+        PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options ?? source?.Options ?? ReadOptions);
+        ReadOnlyMemory<byte> bytes = source?.Memory ?? GetBytesForOperation(cancellationToken);
+        Func<PdfReadDocument>? readDocumentFactory = source is null
+            ? null
+            : () => source.Read(effectiveOptions, cancellationToken);
         PdfDocumentPreflight preflight = PdfInspector.Preflight(bytes, effectiveOptions, readDocumentFactory, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         return (bytes, effectiveOptions, preflight);
@@ -225,7 +228,7 @@ public sealed partial class PdfDocument {
     /// Builds a combined PDF diagnostic report for this document.
     /// </summary>
     public PdfDiagnosticReport Diagnostics(PdfLoadOptions? options = null) {
-        var snapshot = GetReadSnapshot(options);
+        var snapshot = GetReportSnapshot(options, CancellationToken.None);
         snapshot.Document.DemandContentExtraction("diagnostic report");
         PdfDocumentInfo info = PdfInspector.Inspect(snapshot.Bytes, snapshot.Document);
         byte[] bytes = PdfDocumentSource.GetWholeArrayOrCopy(snapshot.Bytes);
@@ -260,7 +263,8 @@ public sealed partial class PdfDocument {
     /// Plans rectangle-based redaction impact without modifying the PDF.
     /// </summary>
     internal PdfRedactionPlan PlanRedactions(IEnumerable<PdfRedactionArea> areas, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null, CancellationToken cancellationToken = default) {
-        return PdfRedactionPlanner.Plan(GetBytesForOperation(cancellationToken), areas, layoutOptions, options ?? ReadOptions, cancellationToken);
+        byte[] bytes = _source?.DetachBorrowed(cancellationToken).Bytes ?? GetBytesForOperation(cancellationToken);
+        return PdfRedactionPlanner.Plan(bytes, areas, layoutOptions, options ?? ReadOptions, cancellationToken);
     }
 
     /// <summary>Derives a reviewable redaction plan from literal text, regex, logical kinds, and form-field names.</summary>

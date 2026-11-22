@@ -444,11 +444,22 @@ public sealed partial class PdfDocument : IDisposable {
     /// </summary>
     internal (ReadOnlyMemory<byte> Bytes, PdfReadDocument Document, PdfLoadOptions Options) GetReadSnapshot(
         PdfLoadOptions? options = null,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default) =>
+        GetReadSnapshot(_source, options, cancellationToken);
+
+    private (ReadOnlyMemory<byte> Bytes, PdfReadDocument Document, PdfLoadOptions Options) GetReportSnapshot(
+        PdfLoadOptions? options,
+        CancellationToken cancellationToken) =>
+        GetReadSnapshot(_source?.DetachBorrowed(cancellationToken), options, cancellationToken);
+
+    private (ReadOnlyMemory<byte> Bytes, PdfReadDocument Document, PdfLoadOptions Options) GetReadSnapshot(
+        PdfDocumentSource? source,
+        PdfLoadOptions? options,
+        CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options ?? ReadOptions);
-        if (_source is not null) {
-            return (_source.Memory, _source.Read(effectiveOptions, cancellationToken), effectiveOptions);
+        PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options ?? source?.Options ?? ReadOptions);
+        if (source is not null) {
+            return (source.Memory, source.Read(effectiveOptions, cancellationToken), effectiveOptions);
         }
 
         cancellationToken.ThrowIfCancellationRequested();
