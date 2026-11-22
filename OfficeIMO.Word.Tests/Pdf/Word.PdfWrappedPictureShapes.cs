@@ -18,6 +18,10 @@ public sealed class PdfWrappedPictureShapeTests {
     private static readonly long[] Rectangle = { 0, 0, 0, 21375, 21375, 21375, 21375, 0 };
     private static readonly long[] Triangle = { 0, 0, 0, 21375, 21375, 21375, 21375, 21150, 450, 0 };
     private static readonly long[] OpenToTheRight = { 0, 0, 0, 21375, 21375, 21375, 21375, 14850, 6750, 14400, 6750, 7200, 21375, 6525, 21375, 0 };
+    // Polygons Word saved for a 450 by 200pt picture: a wedge that is full width at the top, and a
+    // full-width bar over a narrow stem. Their first rows leave no room for a word beside them.
+    private static readonly long[] Wedge = { 0, 0, 0, 21384, 324, 21384, 405, 21384, 21546, 162, 21546, 0 };
+    private static readonly long[] BarOverStem = { 0, 0, 0, 21384, 5508, 21384, 5508, 10368, 21546, 8748, 21546, 0 };
     // The polygon Word saved for the triangle with a 12pt glow, which encloses the glow.
     private static readonly long[] GlowTriangle = { -1350, -1800, -1800, -1575, -1800, 21375, -1350, 23175, 22725, 23175, 23175, 20250, 23175, 20025, 1575, -1800 };
 
@@ -52,6 +56,31 @@ public sealed class PdfWrappedPictureShapeTests {
         Assert.Contains(rows, left => Math.Abs(left - 223.6D) < .5D);
     }
 
+    // When the first rows leave no room, Word resumes at the first row where a word fits beside the
+    // polygon, not below the whole picture.
+    [Theory]
+    [InlineData("wedge")]
+    [InlineData("bar")]
+    public void SaveAsPdf_TightWrapResumesWhereThePolygonLeavesRoom(string shape) {
+        IReadOnlyList<double> rows = RowsBeside(AddPicture("tight", polygon: shape == "wedge" ? Wedge : BarOverStem,
+            width: 450D, height: 200D, word: "longerword"));
+        Assert.True(rows.Count >= 5, $"Rows resume beside the picture: {rows.Count}.");
+        if (shape == "wedge") {
+            Assert.True(rows[0] > 400D, $"The first row starts in the narrow room at the right: {rows[0]}.");
+            for (int index = 1; index < rows.Count; index++) Assert.True(rows[index] < rows[index - 1]);
+        } else {
+            // The first row fits under the bar's sloping underside at the right, then rows follow the stem.
+            Assert.True(rows[0] > 400D, $"The first row starts under the sloping bar: {rows[0]}.");
+            Assert.All(rows.Skip(1), left => Assert.InRange(left, 195.5D, 197D));
+        }
+    }
+
+    // A first word that has no room beside a square picture moves below it instead of running past the margin.
+    [Fact]
+    public void SaveAsPdf_FirstWordWithNoRoomBesideSquarePictureMovesBelowIt() {
+        Assert.Empty(RowsBeside(AddPicture(null, width: 450D, height: 200D, word: "longerword")));
+    }
+
     // The polygon already encloses the effects, so the effect extent is not added again.
     [Fact]
     public void SaveAsPdf_TightWrapUsesThePolygonThatEnclosesEffects() {
@@ -81,12 +110,13 @@ public sealed class PdfWrappedPictureShapeTests {
         Assert.Equal("0,255,0", pixels[offset] + "," + pixels[offset + 1] + "," + pixels[offset + 2]);
     }
 
-    private static WordDocument AddPicture(string? wrap, long effect = 0L, long[]? polygon = null) {
+    private static WordDocument AddPicture(string? wrap, long effect = 0L, long[]? polygon = null,
+        double width = Size, double height = Size, string word = "word") {
         WordDocument document = WordDocument.Create();
-        string text = string.Join(" ", Enumerable.Range(1, 120).Select(index => "word" + index));
+        string text = string.Join(" ", Enumerable.Range(1, 120).Select(index => word + index));
         WordParagraph paragraph = document.AddParagraph(text);
         using var stream = new MemoryStream(OfficeRasterImageEncoder.Encode(new OfficeRasterImage(20, 20, OfficeColor.Parse("1E5AC8")), OfficeImageExportFormat.Png));
-        WordImage image = paragraph.AddImage(stream, "shape.png", OfficeLength.Points(Size), OfficeLength.Points(Size),
+        WordImage image = paragraph.AddImage(stream, "shape.png", OfficeLength.Points(width), OfficeLength.Points(height),
             options: new WordImageOptions { Wrapping = WordImageTextWrapping.Square });
         image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Column;
         image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Paragraph;

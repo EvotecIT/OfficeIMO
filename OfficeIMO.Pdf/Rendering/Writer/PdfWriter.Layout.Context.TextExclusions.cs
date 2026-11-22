@@ -88,33 +88,81 @@ internal static partial class PdfWriter {
         private static RichTextRowFrame ResolveTextRowFrame(double left, double width, double top,
             double height, double minimumWidth, IReadOnlyList<TextExclusionBounds> exclusions) {
             double originalTop = top;
-            for (int attempt = 0; attempt <= exclusions.Count; attempt++) {
-                var intervals = new List<RichTextInterval> { new(left, width) };
-                double nextBoundary = double.NegativeInfinity;
-                foreach (TextExclusionBounds region in exclusions) {
-                    if (top - height >= region.Top || top <= region.Bottom) continue;
-                    if (region.Kind != PdfImageTextWrapKind.TopAndBottom &&
-                        (region.Right <= left || region.Left >= left + width)) continue;
-                    if (region.Wrap?.Polygon != null) {
-                        if (GetPolygonTextExclusion(region, top - height, top) is not { } span ||
-                            span.Right <= left || span.Left >= left + width) continue;
-                        nextBoundary = Math.Max(nextBoundary, region.Bottom);
-                        intervals = SubtractTextExclusion(intervals, span.Left, span.Right);
-                        continue;
+            // A polygon can narrow at every vertex, so it may need a step for each one.
+            int attempts = exclusions.Count + 1;
+            foreach (TextExclusionBounds region in exclusions) attempts += 2 * (region.Wrap?.Polygon?.Count ?? 0);
+            double? blockedByPolygon = null;
+            for (int attempt = 0; attempt < attempts; attempt++) {
+                List<RichTextInterval>? intervals = TryFitTextRow(left, width, top, height, minimumWidth, exclusions,
+                    out double nextBoundary, out bool polygonInTheWay);
+                if (intervals != null) {
+                    // Between two polygon steps the extent moves steadily, so the row resumes as soon as it
+                    // fits, as Word places it, rather than at the step.
+                    if (blockedByPolygon is { } blocked) {
+                        double fits = top;
+                        for (int step = 0; step < 48 && blocked - fits > .001D; step++) {
+                            double middle = (fits + blocked) / 2D;
+                            if (TryFitTextRow(left, width, middle, height, minimumWidth, exclusions, out _, out _) is { } found) {
+                                fits = middle;
+                                intervals = found;
+                            } else blocked = middle;
+                        }
+                        top = fits;
                     }
-                    nextBoundary = Math.Max(nextBoundary, region.Bottom);
-                    intervals = region.Kind == PdfImageTextWrapKind.TopAndBottom
-                        ? new List<RichTextInterval>()
-                        : SubtractTextExclusion(intervals, region.Left, region.Right);
-                }
-                if (intervals.Count > 0 && (minimumWidth <= 0D || minimumWidth > width ||
-                    intervals.Any(slot => slot.Width + RichTextWidthTolerance >= minimumWidth)))
                     return new RichTextRowFrame(intervals, originalTop - top);
+                }
                 if (double.IsNegativeInfinity(nextBoundary) || nextBoundary >= top)
                     throw new InvalidOperationException("Picture exclusion clearance could not advance.");
+                blockedByPolygon = polygonInTheWay ? top : null;
                 top = nextBoundary;
             }
             throw new InvalidOperationException("Picture exclusion clearance did not resolve at a finite source boundary.");
+        }
+
+        /// <summary>
+        /// Returns the row's free intervals when one fits, else null with the next row top worth trying:
+        /// the bottom of a rectangular exclusion, or the next point where a wrap polygon's extent changes.
+        /// </summary>
+        private static List<RichTextInterval>? TryFitTextRow(double left, double width, double top, double height,
+            double minimumWidth, IReadOnlyList<TextExclusionBounds> exclusions, out double nextBoundary, out bool polygonInTheWay) {
+            var intervals = new List<RichTextInterval> { new(left, width) };
+            nextBoundary = double.NegativeInfinity;
+            polygonInTheWay = false;
+            foreach (TextExclusionBounds region in exclusions) {
+                if (top - height >= region.Top || top <= region.Bottom) continue;
+                if (region.Kind != PdfImageTextWrapKind.TopAndBottom &&
+                    (region.Right <= left || region.Left >= left + width)) continue;
+                if (region.Wrap?.Polygon != null) {
+                    if (GetPolygonTextExclusion(region, top - height, top) is not { } span ||
+                        span.Right <= left || span.Left >= left + width) continue;
+                    polygonInTheWay = true;
+                    nextBoundary = Math.Max(nextBoundary, GetNextPolygonRowTop(region, top, height));
+                    intervals = SubtractTextExclusion(intervals, span.Left, span.Right);
+                    continue;
+                }
+                nextBoundary = Math.Max(nextBoundary, region.Bottom);
+                intervals = region.Kind == PdfImageTextWrapKind.TopAndBottom
+                    ? new List<RichTextInterval>()
+                    : SubtractTextExclusion(intervals, region.Left, region.Right);
+            }
+            return intervals.Count > 0 && (minimumWidth <= 0D || minimumWidth > width ||
+                intervals.Any(slot => slot.Width + RichTextWidthTolerance >= minimumWidth)) ? intervals : null;
+        }
+
+        /// <summary>
+        /// The highest row top below the current one at which a polygon vertex enters or leaves the row
+        /// widened by the wrap distances, or the polygon's bottom.
+        /// </summary>
+        private static double GetNextPolygonRowTop(TextExclusionBounds region, double top, double height) {
+            PdfImageTextExclusion wrap = region.Wrap!;
+            double originY = region.Top - region.PictureTopOffset;
+            double next = region.Bottom;
+            foreach ((double _, double y) in wrap.Polygon!) {
+                double vertex = originY - y * region.PictureHeight;
+                foreach (double candidate in new[] { vertex - wrap.DistanceBottom, vertex + height + wrap.DistanceTop })
+                    if (candidate < top - .001D) next = Math.Max(next, candidate);
+            }
+            return next;
         }
     }
 }

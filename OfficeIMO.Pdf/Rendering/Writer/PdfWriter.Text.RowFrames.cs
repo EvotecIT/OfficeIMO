@@ -17,6 +17,8 @@ internal static partial class PdfWriter {
         private RichTextRowFrame? frame;
         private int interval;
         private int row;
+        // The width the row's first word needed. Later words on the row keep the clearance it chose.
+        private double rowMinimumWidth;
 
         internal RichRowComposition(Func<int, double, double, double, RichTextRowFrame> resolve) => this.resolve = resolve;
         internal int RowIndex => row;
@@ -24,7 +26,8 @@ internal static partial class PdfWriter {
         internal (double Width, double Origin, double Gap) Resolve(int fragment, double completedHeight,
             double height, double minimumWidth, bool empty, out bool invalidated) {
             invalidated = false;
-            RichTextRowFrame candidate = resolve(row, completedHeight, height, empty ? minimumWidth : 0D);
+            if (empty) rowMinimumWidth = Math.Max(rowMinimumWidth, minimumWidth);
+            RichTextRowFrame candidate = resolve(row, completedHeight, height, rowMinimumWidth);
             if (candidate.Intervals.Count == 0) throw new InvalidOperationException("A text row must have an available interval after clearance.");
             if (frame != null && interval > 0 && !SamePreviousIntervals(frame, candidate, interval)) {
                 invalidated = true;
@@ -66,6 +69,7 @@ internal static partial class PdfWriter {
             row++;
             interval = 0;
             frame = null;
+            rowMinimumWidth = 0D;
             return false;
         }
 
