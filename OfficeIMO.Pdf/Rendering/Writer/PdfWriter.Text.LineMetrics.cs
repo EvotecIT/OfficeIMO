@@ -55,60 +55,6 @@ internal static partial class PdfWriter {
             ? Math.Max(contentHeight, combined) : contentHeight;
     }
 
-    // A line's retained tab gaps can change after exclusion/page placement.
-    // Rebuild its owned metrics from the segments that will actually paint,
-    // while keeping the caller's line break and exact-spacing policy intact.
-    private static double RefreshRichLineMetrics(RichLine line, PdfStandardFont baseFont,
-        double fontSize, double leading, PdfCreateOptions options, PdfLineSpacing? spacing) {
-        double advance = leading;
-        if (spacing?.IsExact != true) {
-            double textAscent = 0D, textDescent = 0D, bodyAscent = 0D;
-            double inlineAscent = 0D, inlineDescent = 0D;
-            bool hasInline = false;
-            double ratio = fontSize > 0D ? leading / fontSize : 1.2D;
-            foreach (RichSeg segment in line) {
-                bool emptySeparator = segment.Text.Length == 0 && (segment.LeadingSpace || segment.LeadingIsTab) && segment.InlineElement == null;
-                if (emptySeparator && segment.LeadingIsTab && !HasPaintedRichTabLeader(segment, options)) continue;
-                if (segment.InlineElement is { } inline && !UsesInlineRunTextMetrics(inline)) {
-                    double ascent = Math.Max(0D, inline.BaselineOffset.ToPoints() + inline.Height.ToPoints());
-                    double descent = Math.Max(0D, -inline.BaselineOffset.ToPoints());
-                    inlineAscent = Math.Max(inlineAscent, ascent);
-                    inlineDescent = Math.Max(inlineDescent, descent);
-                    hasInline = true;
-                    double inlineAdvance = spacing?.FontLineBoxMultiplier != null
-                        ? Math.Max(leading, ascent + descent)
-                        : Math.Max(GetAscenderForOptions(baseFont, fontSize, options), ascent)
-                            + Math.Max(GetDescenderForOptions(baseFont, fontSize, options), descent);
-                    advance = Math.Max(advance, inlineAdvance);
-                    continue;
-                }
-                if (segment.ContributesLineBoxDescent)
-                    advance = Math.Max(advance, spacing?.FixedFontLeading.HasValue == true
-                        ? spacing.GetFixedFontAdvance(segment.FontSize, IsFixedPitchFont(segment.Font, segment.NamedFont, options))
-                        : spacing?.GetAdvance(segment.FontSize) ?? segment.FontSize * ratio);
-                // Literal source spaces retain their font advance. As with the
-                // wrapper's baseline policy, an empty separator has text metrics
-                // only when its resolved tab leader actually paints glyphs.
-                if (emptySeparator && !HasPaintedRichTabLeader(segment, options)) continue;
-                double runAscent, runDescent;
-                if (segment.InlineElement is PdfInlineFormWidget { SourceRun: not null } widget)
-                    GetInlineFormWidgetLineMetrics(widget, baseFont, fontSize, options, spacing, out runAscent, out runDescent);
-                else GetRichRunLineMetrics(segment.Font, segment.NamedFont, segment.FontSize, segment.Baseline,
-                    options, spacing, out runAscent, out runDescent);
-                textAscent = Math.Max(textAscent, runAscent);
-                if (segment.ContributesLineBoxDescent) {
-                    textDescent = Math.Max(textDescent, runDescent);
-                    bodyAscent = Math.Max(bodyAscent, runAscent);
-                }
-            }
-            advance = ResolveRichContentHeight(advance, spacing, textAscent, textDescent,
-                bodyAscent, inlineAscent, inlineDescent, hasInline);
-        }
-        RefreshRichLinePlacementMetrics(line, baseFont, fontSize, options, spacing);
-        if (line.BarTabStops != null) line.BarLineHeight = advance;
-        return advance;
-    }
-
     private static void RefreshRichLinePlacementMetrics(RichLine line, PdfStandardFont baseFont,
         double fontSize, PdfCreateOptions? options, PdfLineSpacing? spacing) {
         foreach (RichSeg segment in line) segment.LineAlignmentRise = ResolveRichRunLineAlignmentRise(segment, options, spacing);

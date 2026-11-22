@@ -2,7 +2,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private readonly record struct RichTextInterval(double X, double Width);
-    private sealed record RichTextRowFrame(IReadOnlyList<RichTextInterval> Intervals, double Gap);
+    private sealed record RichTextRowFrame(IReadOnlyList<RichTextInterval> Intervals, double Gap, bool StartsPage = false);
 
     /// <summary>A segment range and its available interval on one physical text row.</summary>
     private sealed record RichLineFragment(int Start, int Count, double Origin, double Width);
@@ -17,7 +17,7 @@ internal static partial class PdfWriter {
         private RichTextRowFrame? frame;
         private int interval;
         private int row;
-        // The width the row's first word needed. Later words on the row keep the clearance it chose.
+        // Later fragments retain the clearance chosen when earlier fragments were empty.
         private double rowMinimumWidth;
 
         internal RichRowComposition(Func<int, double, double, double, RichTextRowFrame> resolve) => this.resolve = resolve;
@@ -26,10 +26,11 @@ internal static partial class PdfWriter {
         internal (double Width, double Origin, double Gap) Resolve(int fragment, double completedHeight,
             double height, double minimumWidth, bool empty, out bool invalidated) {
             invalidated = false;
-            if (empty) rowMinimumWidth = Math.Max(rowMinimumWidth, minimumWidth);
-            RichTextRowFrame candidate = resolve(row, completedHeight, height, rowMinimumWidth);
+            double requiredWidth = Math.Max(rowMinimumWidth, minimumWidth);
+            RichTextRowFrame candidate = resolve(row, completedHeight, height, requiredWidth);
             if (candidate.Intervals.Count == 0) throw new InvalidOperationException("A text row must have an available interval after clearance.");
-            if (frame != null && interval > 0 && !SamePreviousIntervals(frame, candidate, interval)) {
+            if (frame != null && (candidate.StartsPage && !frame.StartsPage && (!empty || interval > 0) ||
+                interval > 0 && !SamePreviousIntervals(frame, candidate, interval))) {
                 invalidated = true;
                 return Current(fragment);
             }
@@ -43,6 +44,7 @@ internal static partial class PdfWriter {
                 invalidated = true;
                 return Current(fragment);
             }
+            if (empty) rowMinimumWidth = requiredWidth;
             return Current(fragment);
         }
 

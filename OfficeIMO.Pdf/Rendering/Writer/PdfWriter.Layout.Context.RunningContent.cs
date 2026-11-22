@@ -101,8 +101,8 @@ internal static partial class PdfWriter {
             if (fallbackFooter) footer = null;
             double headerHeight = measuredHeader ?? 0D;
             double footerHeight = measuredFooter ?? 0D;
-            double top = Exclusion(header, headerHeight, source.MarginTop.ToPoints());
-            double bottom = Exclusion(footer, footerHeight, source.MarginBottom.ToPoints());
+            double top = GetRunningContentExclusion(header, headerHeight, source.MarginTop.ToPoints());
+            double bottom = GetRunningContentExclusion(footer, footerHeight, source.MarginBottom.ToPoints());
             if (header?.AllowTextFallback == true && top > source.MarginTop.ToPoints() + .001D) {
                 double? footerOverlapHeight;
                 double firstBodyHeight;
@@ -175,10 +175,11 @@ internal static partial class PdfWriter {
                 RenderRunningContent(source, footerBlocks!, footer.DistanceFromEdge + footerHeight, footerHeight,
                     isHeader: false, footerHasNonFlowTablePaint);
 
-            static double Exclusion(PdfRunningContent? content, double height, double physicalMargin) =>
-                content == null || (height <= 0D && !content.ReserveDistanceWhenEmpty) ? physicalMargin
-                    : Math.Max(physicalMargin, content.DistanceFromEdge + height + content.BodyGap);
         }
+
+        private static double GetRunningContentExclusion(PdfRunningContent? content, double height, double physicalMargin) =>
+            content == null || (height <= 0D && !content.ReserveDistanceWhenEmpty) ? physicalMargin
+                : Math.Max(physicalMargin, content.DistanceFromEdge + height + content.BodyGap);
 
         private double MeasureRunningContentFirstBodyHeight(PdfCreateOptions source, out double? footerOverlapHeight, out bool allowsExactOverflow) {
             double? firstVisualFooterOverlapHeight = null;
@@ -245,7 +246,7 @@ internal static partial class PdfWriter {
         }
 
         private double? MeasureRunningContent(PdfCreateOptions source, PdfRunningContent definition, IReadOnlyList<IPdfBlock> blocks,
-            bool isHeader, out bool hasNonFlowTablePaint) {
+            bool isHeader, out bool hasNonFlowTablePaint, double? measurementWidth = null) {
             hasNonFlowTablePaint = false;
             if (blocks.Count == 0) return 0D;
             double start = source.PageHeight.ToPoints() - definition.DistanceFromEdge;
@@ -257,12 +258,12 @@ internal static partial class PdfWriter {
             using var measure = new LayoutContext(frame, cancellationToken: cancellationToken,
                 sharedPageContents: pageContents, isRunningContent: true,
                 drawingPatternAnnotations: drawingPatternAnnotations, pictureAnchors: pictureAnchors, svgForms: svgForms);
-            measure.currentPage = currentPage;
-            measure.width = width;
+            measure.currentPage = measurementWidth.HasValue ? new LayoutResult.Page { Options = source } : currentPage;
+            measure.width = measurementWidth ?? width;
             measure.yStart = start;
             measure.y = start;
             measure.SetPictureStory(isHeader ? "Header" : "Footer", PicturePage, start);
-            double? height = measure.MeasureBlockSequence(blocks, frame.MarginLeft.ToPoints(), width, frame.DefaultFontSize.ToPoints());
+            double? height = measure.MeasureBlockSequence(blocks, frame.MarginLeft.ToPoints(), measure.width, frame.DefaultFontSize.ToPoints());
             hasNonFlowTablePaint = measure.measuredNonFlowTablePaint;
             if (!height.HasValue) {
                 if (definition.AllowTextFallback) return null;

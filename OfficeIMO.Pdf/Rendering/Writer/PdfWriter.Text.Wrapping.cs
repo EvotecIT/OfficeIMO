@@ -303,33 +303,38 @@ internal static partial class PdfWriter {
             if (lineSpacing?.IsExact == true) contentHeight = lineHeight;
             double incomingContentHeight = contentHeight;
             contentHeight = CombinedContentHeight(contentHeight, includeCurrentRun, sourceTab);
-            currentContentHeight = Math.Max(lineHeight, contentHeight);
             double oldHeight = currentLineHeight - (currentFrame?.Gap ?? 0);
             var oldFrame = currentFrame;
-            double height = lines[lines.Count - 1].Count == 0 ? currentContentHeight : Math.Max(oldHeight, contentHeight);
+            double height = lines[lines.Count - 1].Count == 0 ? Math.Max(lineHeight, contentHeight) : Math.Max(oldHeight, contentHeight);
             double requiredWidth = Math.Max(currentMinimumWidth, minimumWidth);
             var frame = ResolveCurrentFrame(lines.Count - 1, completedHeight,
                 CurrentFrameFitHeight(height, includeCurrentRun, sourceTab), requiredWidth,
                 lines[lines.Count - 1].Count == 0, out bool invalidated)!.Value;
-            if (invalidated) {
-                currentFrame = oldFrame;
-                StartNewLine(forceRow: true);
-                height = Math.Max(lineHeight, CombinedContentHeight(incomingContentHeight, includeCurrentRun, sourceTab));
-                requiredWidth = minimumWidth;
-                frame = ResolveCurrentFrame(lines.Count - 1, completedHeight,
-                    CurrentFrameFitHeight(height, includeCurrentRun, sourceTab), requiredWidth, true, out _)!.Value;
-            }
-            if (lines[lines.Count - 1].Count > 0 &&
-                (MinimumLineWidth(lines[lines.Count - 1], lineWidth) > frame.Width + 0.001 || minimumWidth > 0 && frame.Gap > (oldFrame?.Gap ?? 0) + 0.001)) {
+            bool admittedContentDoesNotFit = lines[lines.Count - 1].Count > 0 &&
+                (MinimumLineWidth(lines[lines.Count - 1], lineWidth) > frame.Width + 0.001 || minimumWidth > 0 && frame.Gap > (oldFrame?.Gap ?? 0) + 0.001);
+            if (invalidated || admittedContentDoesNotFit) {
+                // Re-resolve the accepted row so a rejected probe cannot move it to the next page.
                 ResolveCurrentFrame(lines.Count - 1, completedHeight, CurrentFrameFitHeight(oldHeight, includeCurrentRun: false), currentMinimumWidth, false, out _);
                 currentFrame = oldFrame;
-                StartNewLine();
-                height = Math.Max(lineHeight, CombinedContentHeight(incomingContentHeight, includeCurrentRun, sourceTab));
+                StartNewLine(forceRow: invalidated);
+                contentHeight = CombinedContentHeight(incomingContentHeight, includeCurrentRun, sourceTab);
+                height = Math.Max(lineHeight, contentHeight);
                 requiredWidth = minimumWidth;
-                frame = ResolveCurrentFrame(lines.Count - 1, completedHeight, CurrentFrameFitHeight(height, includeCurrentRun, sourceTab), requiredWidth, true, out _)!.Value;
+                frame = ResolveCurrentFrame(lines.Count - 1, completedHeight, CurrentFrameFitHeight(height, includeCurrentRun, sourceTab), requiredWidth, true, out invalidated)!.Value;
+                if (invalidated) {
+                    // The incoming run can also invalidate a second interval on the accepted row.
+                    ResolveCurrentFrame(lines.Count - 1, completedHeight,
+                        CurrentFrameFitHeight(currentLineHeight - (currentFrame?.Gap ?? 0), includeCurrentRun: false),
+                        currentMinimumWidth, true, out _);
+                    StartNewLine(forceRow: true);
+                    contentHeight = CombinedContentHeight(incomingContentHeight, includeCurrentRun, sourceTab);
+                    height = Math.Max(lineHeight, contentHeight);
+                    frame = ResolveCurrentFrame(lines.Count - 1, completedHeight, CurrentFrameFitHeight(height, includeCurrentRun, sourceTab), requiredWidth, true, out _)!.Value;
+                }
             }
             currentFrame = frame;
             currentMinimumWidth = requiredWidth;
+            currentContentHeight = Math.Max(lineHeight, contentHeight);
             currentLineHeight = height + frame.Gap;
         }
 
@@ -718,11 +723,6 @@ internal static partial class PdfWriter {
                         inlineHeight = Math.Max(lineHeight, currentRunAscent + currentRunDescent);
                 }
                 PrepareLineFrame(inlineHeight, inlineElement.Width.ToPoints());
-                double currentMaxWidth = CurrentMaxWidth();
-                if (inlineElement.Width.ToPoints() > currentMaxWidth + 0.001D &&
-                    inlineElement is not PdfInlineImage { AllowFrameOverflow: true }) {
-                    throw new ArgumentException("Inline element width exceeds the available paragraph width.");
-                }
 
                 RichTabFieldMeasurement? tabField = pendingLeadingIsTab && (AlignsCompleteTabField(pendingLeadingTabAlignment) || mayReselectNonLeftTabStop) ||
                     BufferedTabNeedsFieldMeasurement()
@@ -731,7 +731,6 @@ internal static partial class PdfWriter {
                 if (pendingLeadingIsTab) {
                     ResolvePendingLeadingTabForCurrentLine(inlineElement.Width.ToPoints(), spaceW, string.Empty, fontForRun, runFontSize, baseline, tabField);
                     RevalidateLeadingTabFrame(inlineHeight, inlineElement.Width.ToPoints(), spaceW, string.Empty, fontForRun, runFontSize, baseline, tabField);
-                    currentMaxWidth = CurrentMaxWidth();
                 }
 
                 ResolveBufferedTab(inlineElement.Width.ToPoints(), spaceW, string.Empty, fontForRun, runFontSize, baseline, tabField, inlineHeight);
@@ -740,7 +739,7 @@ internal static partial class PdfWriter {
                 double leadingAdvance = currentLine.Count > 0 || pendingLeadingIsTab || whitespaceMode == PdfTextWhitespaceMode.Preserve ? pendingLeadingAdvance : 0D;
                 if ((currentLine.Count > 0 || whitespaceMode == PdfTextWhitespaceMode.Preserve && leadingAdvance > 0D)
                     && MinimumCandidateWidth(CreateRunKerningProbe(string.Empty, run, baseFont, fontSize, options), null,
-                        lineWidth + leadingAdvance + inlineElement.Width.ToPoints()) > currentMaxWidth + 0.001D) {
+                        lineWidth + leadingAdvance + inlineElement.Width.ToPoints()) > CurrentMaxWidth() + 0.001D) {
                     if (pendingLeadingAdvance > 0D) {
                         MarkRichLineTextSeparator(currentLine);
                     }
@@ -754,6 +753,11 @@ internal static partial class PdfWriter {
                     }
 
                     leadingAdvance = pendingLeadingIsTab ? pendingLeadingAdvance : 0D;
+                }
+
+                if (inlineElement.Width.ToPoints() > CurrentMaxWidth() + 0.001D &&
+                    inlineElement is not PdfInlineImage { AllowFrameOverflow: true }) {
+                    throw new ArgumentException("Inline element width exceeds the available paragraph width.");
                 }
 
                 if (preserveWhitespace && !pendingLeadingIsTab && pendingSpaceFragments.Count > 0

@@ -54,6 +54,35 @@ public partial class Word {
         Assert.Equal(78.86, FindFloatingEdgeWord(pdf, "FLOATCELL").BoundingBox.Left, 0.15);
     }
 
+    // A floating table away from the margins has text on both sides: words fill the room before
+    // it, and the line continues past its outside edge (0.75pt for a borderless table, then at
+    // least 0.5pt of clearance), as in Word.
+    [Theory]
+    [InlineData(1440, 0, 253.25)]
+    [InlineData(1440, 180, 261.75)]
+    [InlineData(2880, 180, 333.75)]
+    public void SaveAsPdf_TextFillsBothSidesOfAFloatingTableAwayFromTheMargins(int x, int distance, double expectedRightSide) {
+        using WordDocument document = CreateFloatingEdgeDocument();
+        AddFloatingEdgeTable(document, new TablePositionProperties {
+            HorizontalAnchor = HorizontalAnchorValues.Margin, VerticalAnchor = VerticalAnchorValues.Text,
+            TablePositionX = x, TablePositionY = 1, LeftFromText = (short)distance, RightFromText = (short)distance
+        }, borderSize: 0);
+        document.AddParagraph(FloatingEdgeWords(80));
+
+        using PdfPigDocument pdf = RenderFloatingEdgePdf(document);
+        double baseline = FindFloatingEdgeWord(pdf, "w01").Letters[0].StartBaseLine.Y;
+        var line = pdf.GetPage(1).GetWords().Where(word => word.Text.StartsWith("w", StringComparison.Ordinal) &&
+            Math.Abs(word.Letters[0].StartBaseLine.Y - baseline) < 0.5).OrderBy(word => word.BoundingBox.Left).ToList();
+        double tableLeft = 72D + x / 20D;
+        var before = line.Where(word => word.BoundingBox.Left < tableLeft).ToList();
+        var after = line.Where(word => word.BoundingBox.Left > tableLeft).ToList();
+        Assert.NotEmpty(before);
+        Assert.True(before.Max(word => word.BoundingBox.Right) <= tableLeft - distance / 20D + 0.1);
+        Assert.Equal(expectedRightSide, after[0].BoundingBox.Left, 0.15);
+        // Reading order continues from the left side straight into the right side.
+        Assert.Equal(line.Select(word => word.Text), FloatingEdgeWords(line.Count).Split(' '));
+    }
+
     [Fact]
     public void SaveAsPdf_NarrowRoomBesideAFloatingTableStaysEmpty() {
         // The 18pt gap before this table stays empty; text starts past its outside edge.

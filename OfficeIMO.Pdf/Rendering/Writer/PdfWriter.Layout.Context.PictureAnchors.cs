@@ -14,9 +14,9 @@ internal static partial class PdfWriter {
             Working = previous == null ? new() : previous.ToDictionary(pair => pair.Key, pair => pair.Value);
     }
     private readonly record struct PictureParagraphPlanKey(IPdfBlock Block, string Story, int Page,
-        double X, double Width, double FirstLineX, double FirstLineWidth, double Top, double Size);
+        double X, double Width, double FirstLineX, double FirstLineWidth, double Top, double Size, double PageBottom);
     private sealed record PictureParagraphPlan(List<List<RichSeg>> Lines, List<double> Heights,
-        TextExclusionBounds[] Exclusions, PdfCreateOptions Fonts);
+        TextExclusionBounds[] Exclusions, PdfCreateOptions Fonts, int[] PageStarts);
 
     private static bool PictureAnchorsEqual(IReadOnlyDictionary<PictureAnchorKey, PictureAnchorPlacement>? previous,
         IReadOnlyDictionary<PictureAnchorKey, PictureAnchorPlacement> actual) {
@@ -92,6 +92,12 @@ internal static partial class PdfWriter {
 
         private bool HasPictureExclusions => CurrentPictureExclusions().Any();
 
+        /// <summary>
+        /// Paragraph text wraps through the shared exclusion rows whenever a picture or a floating
+        /// table obstructs the page, so text can use the room on both sides of either.
+        /// </summary>
+        private bool HasTextExclusions => HasPictureExclusions || HasFloatingTables;
+
         /// <summary>Uses the same resolved picture rectangle for registration and final paint.</summary>
         private void RenderAnchoredPicture(PdfCanvasAnchoredImageItem item) {
             PictureAnchorPlacement placement = ResolvePictureAnchor(item, paragraphImageAnchorTop ?? paragraphCanvasTop ?? y);
@@ -122,11 +128,12 @@ internal static partial class PdfWriter {
         }
 
         private (List<List<RichSeg>> Lines, List<double> LineHeights) WrapPictureParagraph(
-            RichParagraphBlock paragraph, double frameX, double frameWidth, double fontSize, double paragraphTop) {
+            RichParagraphBlock paragraph, double frameX, double frameWidth, double fontSize, double paragraphTop,
+            HashSet<int>? pageStarts = null) {
             PdfParagraphStyle? style = EffectiveParagraphStyle(paragraph);
             double leading = GetParagraphLeading(style, fontSize);
             var textFrame = GetParagraphTextFrame(style, frameX, frameWidth);
-            return WrapPictureText(paragraph, style?.AnchoredCanvas, textFrame, fontSize, paragraphTop,
+            return WrapPictureText(paragraph, style?.AnchoredCanvas, textFrame, fontSize, paragraphTop, pageStarts,
                 rowLayout => WrapRichRunsCoreWithFirstLineOrigin(paragraph.Runs, textFrame.Width, fontSize,
                     ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth,
                     textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(style), currentOpts,
@@ -145,38 +152,60 @@ internal static partial class PdfWriter {
                     leading, null, DefaultParagraphTabStopWidth, currentOpts, style, heading.Align,
                     cancellationToken: cancellationToken);
             return WrapPictureText(heading, style?.AnchoredCanvas,
-                (frameX, frameWidth, frameX, frameWidth), fontSize, top,
+                (frameX, frameWidth, frameX, frameWidth), fontSize, top, null,
                 rowLayout => WrapRichHeadingRuns(runs, frameWidth, fontSize, ChooseNormal(currentOpts.DefaultFont),
                     leading, null, DefaultParagraphTabStopWidth, currentOpts, style, heading.Align, rowLayout,
                     cancellationToken));
         }
 
-        /// <summary>Owns source exclusions and retained rows for both paragraph and heading composition.</summary>
+        /// <summary>
+        /// Owns source exclusions and retained rows for both paragraph and heading composition.
+        /// With <paramref name="pageStarts"/>, a row that would reach past the page bottom, beside
+        /// or below an exclusion, starts the next page instead: it and the rows after it are laid
+        /// out unobstructed, and its index is recorded so the caller moves it there.
+        /// </summary>
         private (List<List<RichSeg>> Lines, List<double> LineHeights) WrapPictureText(
             IPdfBlock source, PdfCanvasBlock? canvas,
             (double X, double Width, double FirstLineX, double FirstLineWidth) textFrame,
-            double fontSize, double top,
+            double fontSize, double top, HashSet<int>? pageStarts,
             Func<Func<int, double, double, double, RichTextRowFrame>,
                 (List<List<RichSeg>> Lines, List<double> LineHeights)> compose) {
             RegisterParagraphPictures(canvas, top);
             TextExclusionBounds[] exclusions = GetCurrentTextExclusions().ToArray();
             double origin = isRunningContent ? pictureStoryOrigin ?? yStart : 0D;
+            double pageBottom = pageStarts == null ? double.NaN : FootnoteBodyBottom;
             var relative = exclusions.Select(region => region with { Top = region.Top - origin, Bottom = region.Bottom - origin }).ToArray();
             var key = new PictureParagraphPlanKey(source, pictureStory, PicturePage,
-                textFrame.X, textFrame.Width, textFrame.FirstLineX, textFrame.FirstLineWidth, top - origin, fontSize);
+                textFrame.X, textFrame.Width, textFrame.FirstLineX, textFrame.FirstLineWidth, top - origin, fontSize, pageBottom);
             if (pictureAnchors.Paragraphs.TryGetValue(key, out PictureParagraphPlan? plan) &&
-                relative.SequenceEqual(plan.Exclusions) && currentOpts.HasSameMeasurementFonts(plan.Fonts))
+                relative.SequenceEqual(plan.Exclusions) && currentOpts.HasSameMeasurementFonts(plan.Fonts)) {
+                if (pageStarts != null) { pageStarts.Clear(); pageStarts.UnionWith(plan.PageStarts); }
                 return (plan.Lines, plan.Heights);
+            }
+            pageStarts?.Clear();
+            int nextPageRow = -1;
             var wrapped = compose((row, completed, required, minimumWidth) => {
                 double left = row == 0 ? textFrame.FirstLineX : textFrame.X;
                 double available = row == 0 ? textFrame.FirstLineWidth : textFrame.Width;
-                RichTextRowFrame frame = ResolveTextRowFrame(left, available, top - completed,
-                    required, minimumWidth, exclusions);
+                // A row is composed again when a longer word changes its height; it decides afresh.
+                if (row <= nextPageRow) { pageStarts!.Remove(nextPageRow); nextPageRow = -1; }
+                RichTextRowFrame Unobstructed(bool startsPage = false) => new(new[] { new RichTextInterval(left - textFrame.X, available) }, 0D, startsPage);
+                if (nextPageRow >= 0) return Unobstructed();
+                double rowTop = top - completed;
+                RichTextRowFrame? resolved = pageStarts != null && rowTop - required < pageBottom
+                    ? null : ResolveTextRowFrame(left, available, rowTop, required, minimumWidth, exclusions);
+                if (pageStarts != null && (resolved == null || rowTop - resolved.Gap - required < pageBottom)) {
+                    nextPageRow = row;
+                    pageStarts.Add(row);
+                    return Unobstructed(startsPage: true);
+                }
+                RichTextRowFrame frame = resolved!;
                 return new RichTextRowFrame(frame.Intervals.Select(slot =>
                     new RichTextInterval(slot.X - textFrame.X, slot.Width)).ToArray(), frame.Gap);
             });
+            pageStarts?.RemoveWhere(row => row >= wrapped.Lines.Count);
             pictureAnchors.Paragraphs[key] = new PictureParagraphPlan(wrapped.Lines, wrapped.LineHeights, relative,
-                currentOpts.CreateTextMeasurementSnapshot());
+                currentOpts.CreateTextMeasurementSnapshot(), pageStarts?.ToArray() ?? Array.Empty<int>());
             return wrapped;
         }
 
@@ -187,10 +216,20 @@ internal static partial class PdfWriter {
             double leading = GetParagraphLeading(style, fontSize);
             double before = ResolveTopLevelSpacingBefore(GetParagraphSpacingBefore(style));
             var wrapped = WrapPictureParagraph(paragraph, frameX, frameWidth, fontSize, y - before);
-            return before + (firstVisualOnly
-                ? wrapped.Lines.Count == 0 ? 0D : GetRichLineFrameFitHeight(wrapped.Lines[0],
-                    wrapped.LineHeights[0], ((RichLine)wrapped.Lines[0]).FragmentTopGap)
-                : wrapped.LineHeights.Sum() + GetParagraphSpacingAfter(style, leading));
+            if (!firstVisualOnly) return before + wrapped.LineHeights.Sum() + GetParagraphSpacingAfter(style, leading);
+            if (wrapped.Lines.Count == 0) return before;
+            // The first placement keeps the lines the paragraph cannot leave behind: all of them
+            // when it keeps its lines together, otherwise its orphan and widow minimums.
+            int reserve = 1;
+            if (style?.KeepTogether == true) reserve = wrapped.Lines.Count;
+            else if (style != null && wrapped.Lines.Count > 1) {
+                int orphans = Math.Max(1, ResolveMinimumOrphanLines(style)), widows = Math.Max(1, ResolveMinimumWidowLines(style));
+                reserve = wrapped.Lines.Count < (long)orphans + widows ? wrapped.Lines.Count : Math.Min(orphans, wrapped.Lines.Count);
+            }
+            double leadingLines = 0D;
+            for (int line = 0; line < reserve - 1; line++) leadingLines += wrapped.LineHeights[line];
+            return before + leadingLines + GetRichLineFrameFitHeight(wrapped.Lines[reserve - 1], wrapped.LineHeights[reserve - 1],
+                ((RichLine)wrapped.Lines[reserve - 1]).FragmentTopGap);
         }
     }
 }

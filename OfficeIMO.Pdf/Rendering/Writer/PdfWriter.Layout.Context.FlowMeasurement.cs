@@ -59,7 +59,7 @@ internal static partial class PdfWriter {
                     }
                     double? height = block is RichParagraphBlock paragraph &&
                         (floatingTables.Count > savedFloats.Length || HasPictureExclusions || HasParagraphPictures(EffectiveParagraphStyle(paragraph)))
-                        ? MeasureFloatingParagraph(paragraph, frameX, frameWidth, fontSize)
+                        ? MeasurePictureParagraph(paragraph, frameX, frameWidth, fontSize)
                         : MeasureWholeBlockHeight(block, frameX, frameWidth, fontSize);
                     if (!height.HasValue) {
                         return null;
@@ -209,6 +209,7 @@ internal static partial class PdfWriter {
         }
 
         private double GetCurrentFramePageStartY() {
+            if (measuredKeepFrameTop is double keepTop) return keepTop;
             double pageStart = yStart;
             for (int index = activeColumnFlow?.ContainerDepth ?? 0; index < activeContainerScopes.Count; index++) {
                 ContainerRenderScope scope = activeContainerScopes[index];

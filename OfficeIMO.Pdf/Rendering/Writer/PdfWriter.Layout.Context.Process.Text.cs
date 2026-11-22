@@ -15,14 +15,34 @@ internal static partial class PdfWriter {
             var textFrame = GetParagraphTextFrame(paragraphStyle, currentOpts.MarginLeft.ToPoints(), width);
             double wrappedWidth = textFrame.Width;
             RunningFrameAdmissionAttempt? runningAdmission = null;
-            bool pictureWrapping = HasParagraphPictures(paragraphStyle) || HasPictureExclusions;
+            bool pictureWrapping = HasParagraphPictures(paragraphStyle) || HasTextExclusions;
+            // Beside a floating table, a line that would pass the page bottom starts the next page.
+            HashSet<int>? exclusionPageStarts = null;
+            HashSet<int>? TrackExclusionPageStarts() => exclusionPageStarts = HasFloatingTables ? new HashSet<int>() : null;
+            (List<List<RichSeg>> Lines, List<double> LineHeights) WrapUnobstructedParagraph() =>
+                WrapRichRunsCoreWithFirstLineOrigin(rpb.Runs, textFrame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading,
+                    textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts,
+                    paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode,
+                    wordJustificationMode: paragraphStyle?.UseWordJustificationSpacing == true && rpb.Align == OfficeAlignment.Justify ? paragraphStyle.JustificationMode : null,
+                    cancellationToken: cancellationToken);
             // Keep, widow and frame admission must see the same physical rows that will paint.
             var (lines, lineHeights) = pictureWrapping
                 ? WrapPictureParagraph(rpb, currentOpts.MarginLeft.ToPoints(), width, size,
-                    y - ResolveTopLevelSpacingBefore(spacingBefore))
-                : WrapRichRunsCoreWithFirstLineOrigin(rpb.Runs, textFrame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode, wordJustificationMode: paragraphStyle?.UseWordJustificationSpacing == true && rpb.Align == OfficeAlignment.Justify ? paragraphStyle.JustificationMode : null, cancellationToken: cancellationToken);
-            bool splittingConstrainedParagraph = ResolveParagraphConstraintOverflow(paragraphStyle, lines, lineHeights, leading, GetClosingContainerSpace()) !=
-                PdfKeepTogetherOverflowBehavior.Reject;
+                    y - ResolveTopLevelSpacingBefore(spacingBefore), TrackExclusionPageStarts())
+                : WrapUnobstructedParagraph();
+            ContainerClosingSpace closingSpace = GetClosingContainerSpace();
+            PdfKeepTogetherOverflowBehavior overflow = ResolveParagraphConstraintOverflow(paragraphStyle, lines, lineHeights, leading, closingSpace);
+            if (HasFloatingTables && overflow != PdfKeepTogetherOverflowBehavior.Reject) {
+                var unobstructed = WrapUnobstructedParagraph();
+                overflow = ResolveParagraphConstraintOverflow(paragraphStyle, unobstructed.Lines, unobstructed.LineHeights, leading, closingSpace);
+            }
+            bool splittingConstrainedParagraph = overflow != PdfKeepTogetherOverflowBehavior.Reject;
+            bool FitsWithoutFloatingTable() {
+                if (!HasFloatingTables) return false;
+                var unobstructed = WrapUnobstructedParagraph();
+                return MeasureTextBlockAdmissionHeight(unobstructed.Lines, unobstructed.LineHeights, leading, spacingAfter)
+                    <= GetMaximumBlockContinuationHeight() + 0.001;
+            }
             bool SkipColumnsForParagraphOverflow() => splittingConstrainedParagraph &&
                 paragraphStyle?.KeepTogetherOverflow == PdfKeepTogetherOverflowBehavior.SplitAcrossPages;
             // Every column shares this partial physical frame. Ordinary used
@@ -40,16 +60,16 @@ internal static partial class PdfWriter {
                 NewBlockFrame(forcePhysicalPage: forcePhysicalPage || SkipColumnsForParagraphOverflow(), preserveEmptyPage: preserveEmptyPage);
                 frameStart = GetCurrentFramePageStartY();
                 textFrame = GetParagraphTextFrame(paragraphStyle, currentOpts.MarginLeft.ToPoints(), width);
-                pictureWrapping |= HasPictureExclusions;
+                bool hadExclusions = pictureWrapping;
+                pictureWrapping = HasParagraphPictures(paragraphStyle) || HasTextExclusions;
                 if (pictureWrapping) {
                     // A page move changes paragraph anchors even when the frame width is unchanged.
                     (lines, lineHeights) = WrapPictureParagraph(rpb, currentOpts.MarginLeft.ToPoints(), width, size,
-                        y - ResolveTopLevelSpacingBefore(spacingBefore));
+                        y - ResolveTopLevelSpacingBefore(spacingBefore), TrackExclusionPageStarts());
                     wrappedWidth = textFrame.Width;
-                } else if (Math.Abs(wrappedWidth - textFrame.Width) > .001D) {
-                    (lines, lineHeights) = WrapRichRunsCoreWithFirstLineOrigin(rpb.Runs, textFrame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading,
-                        textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts,
-                        paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode, wordJustificationMode: paragraphStyle?.UseWordJustificationSpacing == true && rpb.Align == OfficeAlignment.Justify ? paragraphStyle.JustificationMode : null, cancellationToken: cancellationToken);
+                } else if (hadExclusions || Math.Abs(wrappedWidth - textFrame.Width) > .001D) {
+                    (lines, lineHeights) = WrapUnobstructedParagraph();
+                    exclusionPageStarts = null;
                     wrappedWidth = textFrame.Width;
                 }
             }
@@ -58,7 +78,8 @@ internal static partial class PdfWriter {
                 if (lines.Count == 1 && (CanOverflowImportedExactLine(paragraphStyle) ||
                     CanOverflowImportedPictureLine(lines[0]))) return false;
                 if (paragraphStyle.KeepTogetherOverflow != PdfKeepTogetherOverflowBehavior.Reject &&
-                    MeasureTextBlockAdmissionHeight(lines, lineHeights, leading, spacingAfter) > GetMaximumBlockContinuationHeight() + .001D) {
+                    MeasureTextBlockAdmissionHeight(lines, lineHeights, leading, spacingAfter) > GetMaximumBlockContinuationHeight() + .001D &&
+                    !FitsWithoutFloatingTable()) {
                     splittingConstrainedParagraph = true;
                     return false;
                 }
@@ -82,8 +103,16 @@ internal static partial class PdfWriter {
             if (IsKeptInCurrentFrame()) {
                 while (true) {
                     if (!IsKeptInCurrentFrame()) break;
-                    double paragraphContentHeight = MeasureTextBlockAdmissionHeight(lines, lineHeights, leading, spacingAfter);
-                    if (paragraphContentHeight > GetMaximumBlockContinuationHeight() + 0.001) {
+                    List<double>? exclusionGaps = pictureWrapping ? lines.Select(line => ((RichLine)line).FragmentTopGap).ToList() : null;
+                    double paragraphContentHeight = MeasureTextBlockAdmissionHeight(lines, lineHeights, leading, spacingAfter, exclusionGaps);
+                    double maximumHeight = GetMaximumBlockContinuationHeight();
+                    if (paragraphContentHeight - (exclusionGaps?.Sum() ?? 0D) > maximumHeight + 0.001) {
+                        // A table on this page can add lines as well as clearance. Only reject a paragraph that
+                        // is still too tall at the full width of the continuation frame.
+                        if (FitsWithoutFloatingTable()) {
+                            NewParagraphStartFrame(forcePhysicalPage: true);
+                            continue;
+                        }
                         if (TryAdvanceForRunningContent(ref runningAdmission, paragraphContentHeight,
                             preserve => NewParagraphStartFrame(preserveEmptyPage: preserve))) continue;
                         throw new ArgumentException("Paragraph height exceeds the available page content height.");
@@ -96,79 +125,41 @@ internal static partial class PdfWriter {
             if (splittingConstrainedParagraph && (y < frameStart - .001D || IsPartialPhysicalColumnFrame()))
                 NewParagraphStartFrame(forcePhysicalPage: IsPartialPhysicalColumnFrame());
 
-            List<double>? floatingLineOffsets = null;
             textFrame = GetParagraphTextFrame(paragraphStyle, currentOpts.MarginLeft.ToPoints(), width);
             if (!pictureWrapping && activeColumnFlow != null && Math.Abs(wrappedWidth - textFrame.Width) > 0.001D) {
-                (lines, lineHeights) = WrapRichRunsCoreWithFirstLineOrigin(rpb.Runs, textFrame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading,
-                    textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts,
-                    paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode, wordJustificationMode: paragraphStyle?.UseWordJustificationSpacing == true && rpb.Align == OfficeAlignment.Justify ? paragraphStyle.JustificationMode : null, cancellationToken: cancellationToken);
+                (lines, lineHeights) = WrapUnobstructedParagraph();
                 wrappedWidth = textFrame.Width;
                 frameStart = GetCurrentFramePageStartY();
             }
-            List<double>? floatingLineWidths = null;
             List<double>? floatingLineGaps = null;
             HashSet<int>? floatingPageStarts = null;
-            var originalLines = lines;
-            var originalLineHeights = lineHeights;
-            void RestoreUnobstructedWrapping() {
-                lines = originalLines; lineHeights = originalLineHeights;
-                floatingLineOffsets = null; floatingLineWidths = null; floatingLineGaps = null; floatingPageStarts = null;
-            }
             if (pictureWrapping) {
                 floatingLineGaps = lines.Select(line => ((RichLine)line).FragmentTopGap).ToList();
-            } else if (HasFloatingTables) {
-                floatingLineOffsets = new(); floatingLineWidths = new(); floatingLineGaps = new();
-                floatingPageStarts = new();
-                double simulatedTop = y - (y < frameStart - 0.001 ? spacingBefore : 0);
-                double previousHeight = 0;
-                bool onOriginalPage = true;
-                int layoutLineIndex = -1;
-                double lineBaseTop = simulatedTop;
-                bool lineBaseOriginalPage = true;
-                var wrapped = WrapRichRunsCoreWithFirstLineOrigin(rpb.Runs, textFrame.Width, size,
-                    ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth,
-                    textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts,
-                    paragraphStyle?.TabStops.ToArray(), (index, completedHeight, requiredHeight, minimumWidth) => {
-                        if (index != layoutLineIndex) {
-                            simulatedTop -= completedHeight - previousHeight;
-                            previousHeight = completedHeight;
-                            layoutLineIndex = index;
-                            lineBaseTop = simulatedTop;
-                            lineBaseOriginalPage = onOriginalPage;
-                        }
-                        simulatedTop = lineBaseTop;
-                        onOriginalPage = lineBaseOriginalPage;
-                        floatingPageStarts.Remove(index);
-                        if (simulatedTop - requiredHeight < FootnoteBodyBottom) { simulatedTop = frameStart; onOriginalPage = false; floatingPageStarts.Add(index); }
-                        double left = index == 0 ? textFrame.FirstLineX : textFrame.X;
-                        double availableWidth = index == 0 ? textFrame.FirstLineWidth : textFrame.Width;
-                        var frame = onOriginalPage ? GetFloatingTextFrame(left, availableWidth, simulatedTop, requiredHeight, minimumWidth) : (X: left, Width: availableWidth, Gap: 0D);
-                        if (simulatedTop - frame.Gap - requiredHeight < FootnoteBodyBottom) {
-                            frame = (left, availableWidth, 0D);
-                            simulatedTop = frameStart;
-                            onOriginalPage = false;
-                            floatingPageStarts.Add(index);
-                        }
-                        if (floatingLineOffsets.Count <= index) {
-                            floatingLineOffsets.Add(0); floatingLineWidths.Add(0); floatingLineGaps.Add(0);
-                        }
-                        floatingLineOffsets[index] = frame.X - textFrame.X;
-                        floatingLineWidths[index] = frame.Width;
-                        floatingLineGaps[index] = frame.Gap;
-                        return (frame.Width, frame.X - textFrame.X, frame.Gap);
-                    }, lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode, wordJustificationMode: paragraphStyle?.UseWordJustificationSpacing == true && rpb.Align == OfficeAlignment.Justify ? paragraphStyle.JustificationMode : null, cancellationToken: cancellationToken);
-                lines = wrapped.Lines; lineHeights = wrapped.LineHeights;
-                double actualHeight = (y < frameStart - 0.001 ? spacingBefore : 0) + lineHeights.Sum();
-                double nextHeight = paragraphStyle?.KeepWithNext == true && nextBlock != null
-                    ? MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft.ToPoints(), width, size, actualHeight + spacingAfter) : 0;
-                bool simulatedPageBreak = floatingPageStarts.Count > 0;
-                double fitHeight = (y < frameStart - 0.001 ? spacingBefore : 0D) +
-                    MeasureTextBlockAdmissionHeight(lines, lineHeights, leading, spacingAfter, floatingLineGaps);
-                bool mustMove = IsKeptInCurrentFrame() &&
-                    (simulatedPageBreak || fitHeight > y - FootnoteBodyBottom + 0.001);
-                mustMove |= nextHeight > 0 && (simulatedPageBreak || actualHeight + spacingAfter + nextHeight > y - FootnoteBodyBottom + 0.001) &&
-                    originalLineHeights.Sum() + spacingAfter + nextHeight <= frameStart - FootnoteBodyBottom + 0.001;
-                if (mustMove) { NewPage(); RestoreUnobstructedWrapping(); }
+                if (exclusionPageStarts != null) {
+                    floatingPageStarts = new HashSet<int>(exclusionPageStarts);
+                    // A kept paragraph, or one that keeps with the next block, moves to the next
+                    // page when a floating table pushes part of it there.
+                    double spacing = y < frameStart - 0.001 ? spacingBefore : 0D;
+                    double actualHeight = spacing + lineHeights.Sum();
+                    double nextHeight = paragraphStyle?.KeepWithNext == true && nextBlock != null
+                        ? MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft.ToPoints(), width, size,
+                            actualHeight + spacingAfter, measureExistingFloatingTables: true) : 0;
+                    bool simulatedPageBreak = floatingPageStarts.Count > 0;
+                    double fitHeight = spacing + MeasureTextBlockAdmissionHeight(lines, lineHeights, leading, spacingAfter, floatingLineGaps);
+                    bool mustMove = IsKeptInCurrentFrame() && (simulatedPageBreak || fitHeight > y - FootnoteBodyBottom + 0.001);
+                    if (!mustMove && nextHeight > 0 && (simulatedPageBreak || actualHeight + spacingAfter + nextHeight > y - FootnoteBodyBottom + 0.001)) {
+                        var continuation = MeasureKeepWithNextGroup(blockList, blockIndex + 1, currentOpts.MarginLeft.ToPoints(),
+                            width, size, precedingHeight: 0, measureExistingFloatingTables: false, continuationLead: rpb);
+                        mustMove = continuation.ContinuationCapacity is double capacity
+                            ? continuation.Height <= capacity + 0.001
+                            : WrapUnobstructedParagraph().LineHeights.Sum() + spacingAfter + nextHeight <= frameStart - FootnoteBodyBottom + 0.001;
+                    }
+                    if (mustMove) {
+                        NewParagraphStartFrame(forcePhysicalPage: true);
+                        floatingLineGaps = pictureWrapping ? lines.Select(line => ((RichLine)line).FragmentTopGap).ToList() : null;
+                        floatingPageStarts = exclusionPageStarts == null ? null : new HashSet<int>(exclusionPageStarts);
+                    }
+                }
             }
 
             int lineIndex = 0;
@@ -193,7 +184,8 @@ internal static partial class PdfWriter {
                         CanOverflowImportedPictureLine(lines[lineIndex]));
                 frameStart = GetCurrentFramePageStartY();
                 textFrame = GetParagraphTextFrame(paragraphStyle, currentOpts.MarginLeft.ToPoints(), width);
-                pictureWrapping |= HasPictureExclusions;
+                bool hadExclusions = pictureWrapping;
+                pictureWrapping = HasTextExclusions || firstLogicalLine && HasParagraphPictures(paragraphStyle);
                 if (pictureWrapping) {
                     IReadOnlyList<PdfTextRun> remaining = firstLogicalLine ? rpb.Runs :
                         BuildTextRunsFromWrappedLines(lines, lineIndex, lines.Count - lineIndex);
@@ -205,81 +197,28 @@ internal static partial class PdfWriter {
                         continuation.AnchoredCanvas = null;
                     }
                     var remainder = new RichParagraphBlock(remaining, rpb.Align, rpb.DefaultColor, continuation);
-                    var wrapped = WrapPictureParagraph(remainder, currentOpts.MarginLeft.ToPoints(), width, size, y);
+                    var wrapped = WrapPictureParagraph(remainder, currentOpts.MarginLeft.ToPoints(), width, size, y, TrackExclusionPageStarts());
                     lines = wrapped.Lines;
                     lineHeights = wrapped.LineHeights;
-                    floatingLineOffsets = null;
-                    floatingLineWidths = null;
                     floatingLineGaps = lines.Select(line => ((RichLine)line).FragmentTopGap).ToList();
-                    floatingPageStarts = null;
+                    floatingPageStarts = exclusionPageStarts == null ? null : new HashSet<int>(exclusionPageStarts);
                     lineIndex = 0;
                     wrappedWidth = textFrame.Width;
                     return;
                 }
-                if (activeColumnFlow != null && Math.Abs(wrappedWidth - textFrame.Width) > 0.001D) {
+                if (hadExclusions || activeColumnFlow != null && Math.Abs(wrappedWidth - textFrame.Width) > 0.001D) {
                     IReadOnlyList<PdfTextRun> remainingRuns = firstLogicalLine ? rpb.Runs :
                         BuildTextRunsFromWrappedLines(lines, lineIndex, lines.Count - lineIndex);
                     var wrapped = WrapRichRunsCoreWithFirstLineOrigin(remainingRuns, textFrame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading,
                         firstLogicalLine ? textFrame.FirstLineWidth : textFrame.Width,
                         firstLogicalLine ? textFrame.FirstLineX - textFrame.X : 0D, GetParagraphTabStopWidth(paragraphStyle), currentOpts,
                         paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode, wordJustificationMode: paragraphStyle?.UseWordJustificationSpacing == true && rpb.Align == OfficeAlignment.Justify ? paragraphStyle.JustificationMode : null, cancellationToken: cancellationToken);
-                    lines = originalLines = wrapped.Lines; lineHeights = originalLineHeights = wrapped.LineHeights;
+                    lines = wrapped.Lines; lineHeights = wrapped.LineHeights;
+                    floatingLineGaps = null;
+                    floatingPageStarts = null;
                     lineIndex = 0; wrappedWidth = textFrame.Width;
-                    floatingLineOffsets = null; floatingLineWidths = null; floatingLineGaps = null; floatingPageStarts = null;
                     return;
                 }
-                if (lineIndex == 0) { RestoreUnobstructedWrapping(); return; }
-                // Widow/orphan control can carry a previously simulated float-side line forward.
-                // Keep its line break, but remove the old page's exclusion offset and clearance.
-                if (floatingLineGaps != null) {
-                    PdfTabStop[]? destinationStops = NormalizeExplicitTabStops(paragraphStyle?.TabStops.ToArray(), textFrame.Width);
-                    for (int index = lineIndex; index < lineHeights.Count; index++) {
-                        lineHeights[index] -= floatingLineGaps[index];
-                        if (lines[index] is RichLine barLine) barLine.BarOriginOffset = 0D;
-                        bool changedLeaderInk = false;
-                        double lineWidth = 0;
-                        int nextDestinationStop = 0;
-                        for (int segmentIndex = 0; segmentIndex < lines[index].Count; segmentIndex++) {
-                            var segment = lines[index][segmentIndex];
-                            var adjusted = segment;
-                            if (segment.LeadingIsTab || segment.LeadingTabStop != null) {
-                                PdfTextRun? sourceTab = segment.SourceTabRun;
-                                PdfTabStop? stop = sourceTab?.RelativeTabStop is { } relative
-                                    ? new PdfTabStop(global::OfficeIMO.OfficeLength.Points(Math.Max(.001D, textFrame.Width * relative.Fraction + relative.Offset)),
-                                        sourceTab.TabAlignment, sourceTab.TabLeader)
-                                    : TakeNextParagraphTabStop(destinationStops, lineWidth, ref nextDestinationStop);
-                                // Older positioned segments may have no source-run
-                                // provenance. Preserve their existing selected stop.
-                                if (sourceTab == null) stop ??= segment.LeadingTabStop;
-                                PdfTabAlignment alignment = stop?.Alignment ?? sourceTab?.TabAlignment ?? segment.LeadingTabAlignment;
-                                PdfTabLeaderStyle leader = stop?.Leader ?? sourceTab?.TabLeader ?? segment.LeadingTabLeader;
-                                double spaceWidth = MeasureRichText(" ", segment.Font, segment.NamedFont, segment.FontSize, segment.Baseline,
-                                    currentOpts, segment.FeatureSettings, segment.HorizontalTextScaling, segment.CharacterSpacing,
-                                    segment.TextDirection, segment.FontMetricScale);
-                                RichTabFieldMeasurement? field = AlignsCompleteTabField(alignment)
-                                    ? MeasureWrappedTabField(lines[index], segmentIndex) : null;
-                                double fieldWidth = field?.Width ?? GetRichSegmentWidth(segment);
-                                double advance = CalculateTabAdvance(lineWidth, fieldWidth, spaceWidth,
-                                    alignment, GetParagraphTabStopWidth(paragraphStyle), segment.Text, segment.Font,
-                                    segment.FontSize, segment.Baseline, currentOpts, textFrame.Width, stop,
-                                    followingNamedFont: segment.NamedFont, featureSettings: segment.FeatureSettings,
-                                    horizontalTextScaling: segment.HorizontalTextScaling, characterSpacing: segment.CharacterSpacing,
-                                    decimalAnchorWidthOverride: ResolveRichDecimalTabAnchor(field, alignment, stop, currentOpts));
-                                adjusted = segment.WithTabPlacement(advance, stop, alignment, leader);
-                                changedLeaderInk |= HasPaintedRichTabLeader(segment, currentOpts) !=
-                                    HasPaintedRichTabLeader(adjusted, currentOpts);
-                                lines[index][segmentIndex] = adjusted;
-                            }
-                            lineWidth += GetRichSegmentWidth(adjusted) + adjusted.LeadingAdvance;
-                        }
-                        if (paragraphStyle?.UseWordJustificationSpacing == true && rpb.Align == OfficeAlignment.Justify)
-                            BindWordCompressionPlan(lines[index], textFrame.Width);
-                        if (changedLeaderInk && lines[index] is RichLine richLine)
-                            lineHeights[index] = RefreshRichLineMetrics(richLine, ChooseNormal(currentOpts.DefaultFont),
-                                size, leading, currentOpts, paragraphStyle?.LineSpacing);
-                    }
-                }
-                floatingLineOffsets = null; floatingLineWidths = null; floatingLineGaps = null; floatingPageStarts = null;
             }
             while (lineIndex < lines.Count) {
                 if (floatingPageStarts?.Remove(lineIndex) == true && (HasFloatingTables || y < frameStart - 0.001)) NewParagraphPage();
@@ -411,13 +350,12 @@ internal static partial class PdfWriter {
                 ReportRichPaintDiagnostics(PaintDiagnosticCodes.Paragraph, "PdfParagraph", rpb, sliceLines, sliceHeights,
                     FirstTextBaselineFromTop(paragraphFont, size, y), size, leading, textFrame.X, textFrame.Width,
                     new TableCellContentFrame(textFrame.X, currentOpts.PageHeight.ToPoints(), textFrame.Width, currentOpts.PageHeight.ToPoints()), clipsToFrame: false,
-                    offsets: floatingLineOffsets?.GetRange(lineIndex, take), widths: floatingLineWidths?.GetRange(lineIndex, take),
                     firstLineX: sliceStartsAtFirstLine ? textFrame.FirstLineX : null,
                     firstLineWidth: sliceStartsAtFirstLine ? textFrame.FirstLineWidth : null,
                     topGaps: floatingLineGaps?.GetRange(lineIndex, take),
                     hasFollowingParagraphLines: lineIndex + take < lines.Count);
                 WriteRichParagraph(sb, rpb, sliceLines, sliceHeights, currentOpts, FirstTextBaselineFromTop(paragraphFont, size, y), size, leading, currentPage!.Annotations, textFrame.X, textFrame.Width, sliceStartsAtFirstLine ? textFrame.FirstLineX : null, sliceStartsAtFirstLine ? textFrame.FirstLineWidth : null, rpb.StructureType, markedContentId, currentPage,
-                    lineXOffsets: floatingLineOffsets?.GetRange(lineIndex, take), lineWidths: floatingLineWidths?.GetRange(lineIndex, take), lineTopGaps: floatingLineGaps?.GetRange(lineIndex, take),
+                    lineTopGaps: floatingLineGaps?.GetRange(lineIndex, take),
                     hasFollowingParagraphLines: lineIndex + take < lines.Count,
                     paragraphSpacingAfter: lineIndex + take == lines.Count ? spacingAfter : 0D,
                     paragraphSpacingBefore: segmentSpacingBefore, suppressInlineAccessibility: _suppressCanvasAccessibilityWrappers);

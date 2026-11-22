@@ -192,11 +192,41 @@ internal static partial class PdfWriter {
 
         private const int MaxKeepWithNextChainBlocks = 256;
 
-        private double MeasureKeepWithNextChainHeight(System.Collections.Generic.IList<IPdfBlock> blocks, int startIndex, double frameX, double frameWidth, double fontSize, double precedingHeight) {
+        private double MeasureKeepWithNextChainHeight(System.Collections.Generic.IList<IPdfBlock> blocks, int startIndex, double frameX, double frameWidth, double fontSize, double precedingHeight,
+            bool measureExistingFloatingTables = false) =>
+            MeasureKeepWithNextGroup(blocks, startIndex, frameX, frameWidth, fontSize, precedingHeight,
+                measureExistingFloatingTables).Height;
+
+        private (double Height, double? ContinuationCapacity) MeasureKeepWithNextGroup(IList<IPdfBlock> blocks, int startIndex,
+            double frameX, double frameWidth, double fontSize, double precedingHeight, bool measureExistingFloatingTables,
+            RichParagraphBlock? continuationLead = null) {
             double savedY = y;
+            int? savedPicturePage = picturePhysicalPage;
+            var savedOptions = currentOpts;
+            double savedWidth = width;
+            var savedKeepPage = measuredKeepPageOptions;
+            double? savedKeepTop = measuredKeepFrameTop;
             var savedFloats = floatingTables.ToArray();
             var savedPictures = pictureAnchors.Working.ToArray();
             try {
+                double leadHeight = 0;
+                double? capacity = null;
+                if (continuationLead != null) {
+                    // Recompose the lead and its following blocks in the same destination frame.
+                    picturePhysicalPage = PicturePage + 1;
+                    floatingTables.Clear();
+                    if (MeasureKeepContinuationFrame() is not { } continuation) return (0, null);
+                    measuredKeepPageOptions = continuation.Page;
+                    measuredKeepFrameTop = continuation.Top;
+                    currentOpts = continuation.Body;
+                    width = frameWidth = continuation.Width;
+                    frameX = currentOpts.MarginLeft.ToPoints();
+                    y = continuation.Top;
+                    capacity = y - currentOpts.MarginBottom.ToPoints();
+                    leadHeight = MeasurePictureParagraph(continuationLead, frameX, frameWidth, fontSize);
+                    precedingHeight = leadHeight;
+                }
+                int initialFloats = floatingTables.Count;
                 y -= precedingHeight;
                 double startY = y;
                 double deepest = y;
@@ -228,10 +258,11 @@ internal static partial class PdfWriter {
                         blockHeight = MeasureNextBlockFirstVisualHeight(block, frameX, frameWidth, fontSize);
                     }
 
-                    if (floatingTables.Count > savedFloats.Length || HasPictureExclusions ||
-                        block is RichParagraphBlock pictureParagraph && HasParagraphPictures(EffectiveParagraphStyle(pictureParagraph))) {
+                    if (floatingTables.Count > initialFloats || HasPictureExclusions ||
+                        block is RichParagraphBlock pictureParagraph && (measureExistingFloatingTables && HasFloatingTables ||
+                            HasParagraphPictures(EffectiveParagraphStyle(pictureParagraph)))) {
                         if (block is RichParagraphBlock paragraph)
-                            blockHeight = MeasureFloatingParagraph(paragraph, frameX, frameWidth, fontSize, firstVisualOnly: !keepWithNext);
+                            blockHeight = MeasurePictureParagraph(paragraph, frameX, frameWidth, fontSize, firstVisualOnly: !keepWithNext);
                         else AvoidFloatingBlock(blockHeight);
                     }
                     // Keep the table's physical fit requirement, without adding
@@ -254,9 +285,14 @@ internal static partial class PdfWriter {
                     }
                 }
 
-                return startY - deepest;
+                return (leadHeight + (startY - deepest), capacity);
             } finally {
                 y = savedY;
+                picturePhysicalPage = savedPicturePage;
+                currentOpts = savedOptions;
+                width = savedWidth;
+                measuredKeepPageOptions = savedKeepPage;
+                measuredKeepFrameTop = savedKeepTop;
                 floatingTables.Clear(); floatingTables.AddRange(savedFloats);
                 pictureAnchors.Working.Clear();
                 foreach (var entry in savedPictures) pictureAnchors.Working.Add(entry.Key, entry.Value);

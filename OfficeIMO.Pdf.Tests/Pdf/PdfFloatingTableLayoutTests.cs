@@ -292,6 +292,187 @@ public class PdfFloatingTableLayoutTests {
     }
 
     [Fact]
+    public void KeptParagraphIgnoresDiscardedRowAfterTrailingBreak() {
+        var style = new PdfParagraphStyle {
+            KeepTogether = true,
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
+        };
+        using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options(240))
+            .Table(new[] { new[] { "floating" } }, style: Floating(120, 150))
+            .Spacer(140)
+            .Paragraph(paragraph => paragraph.AddText("kept\n"), style: style).ToBytes());
+
+        var page = Assert.Single(pdf.GetPages());
+        Assert.Contains(page.GetWords(), word => word.Text == "kept");
+    }
+
+    [Fact]
+    public void KeptGroupMeasuresFollowingTextWithoutPictureLeftOnSourcePage() {
+        var canvas = new PdfPageCanvas();
+        canvas.Image(global::OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(2, 2),
+            global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0),
+            global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(130));
+        var anchor = new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) };
+        anchor.AnchoredCanvas = new PdfCanvasBlock(new PdfCanvasItem[] {
+            new PdfCanvasAnchoredImageItem(new object(), new PdfCanvasBlock(canvas.Items), 320, 130,
+                new PdfAnchoredImagePosition(40, 74, false, 40, false),
+                new PdfImageTextExclusion(PdfImageTextWrapKind.TopAndBottom, PdfImageTextWrapSide.BothSides, 0, 0, 0, distanceBottom: 160))
+        });
+        var kept = new PdfParagraphStyle { KeepWithNext = true, SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) };
+        using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options(240))
+            .Paragraph(paragraph => paragraph.AddText("anchor"), style: anchor)
+            .Table(new[] { new[] { "floating" } }, style: Floating(100, 30))
+            .Paragraph(paragraph => paragraph.AddText("kept"), style: kept)
+            .Paragraph(paragraph => paragraph.AddText("follower")).ToBytes());
+
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.Single(pdf.GetPage(1).GetImages());
+        Assert.DoesNotContain(pdf.GetPage(1).GetWords(), word => word.Text == "kept");
+        Assert.Equal(new[] { "kept", "follower" }, pdf.GetPage(2).GetWords().Select(word => word.Text));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void KeptGroupMovesWhenAnExistingFloatBlocksJustTheFollowingText(bool shorterFirstPage) {
+        var table = Floating(320, 30);
+        table.Position = new PdfTablePosition(verticalOffset: global::OfficeIMO.OfficeLength.Points(16));
+        var kept = new PdfParagraphStyle { KeepWithNext = true, SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) };
+        var document = PdfDocument.Create(Options(240));
+        if (shorterFirstPage) document.Header(header => header.FirstPageContent(
+            content => content.Spacer(global::OfficeIMO.OfficeLength.Points(80)), global::OfficeIMO.OfficeLength.Points(20)));
+        string[] followingLines = shorterFirstPage ? new[] { "one", "two", "three", "four", "five", "six" } : new[] { "follower" };
+        using var pdf = PdfPigDocument.Open(document.Spacer(shorterFirstPage ? 50 : 110)
+            .Table(new[] { new[] { "floating" } }, style: table)
+            .Paragraph(paragraph => paragraph.AddText("kept"), style: kept)
+            .Paragraph(paragraph => paragraph.AddText(string.Join("\n", followingLines)),
+                style: new PdfParagraphStyle { KeepTogether = true }).ToBytes());
+
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.Equal("floating", Assert.Single(pdf.GetPage(1).GetWords()).Text);
+        Assert.Equal(new[] { "kept" }.Concat(followingLines), pdf.GetPage(2).GetWords().Select(word => word.Text));
+    }
+
+    [Fact]
+    public void KeptGroupUsesMirroredMarginsToMeasureFollowingPicture() {
+        var options = Options(240);
+        options.MarginRight = global::OfficeIMO.OfficeLength.Points(160);
+        options.MirrorMargins = true;
+        var canvas = new PdfPageCanvas();
+        canvas.Image(global::OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(2, 2),
+            global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0),
+            global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(158));
+        var follower = new PdfParagraphStyle();
+        follower.AnchoredCanvas = new PdfCanvasBlock(new PdfCanvasItem[] {
+            new PdfCanvasAnchoredImageItem(new object(), new PdfCanvasBlock(canvas.Items), 200, 158,
+                new PdfAnchoredImagePosition(40, 40, false, 40, false),
+                new PdfImageTextExclusion(PdfImageTextWrapKind.Square, PdfImageTextWrapSide.BothSides, 0, 0, 0, distanceBottom: 40))
+        });
+        var table = Floating(200, 30);
+        table.Position = new PdfTablePosition(verticalOffset: global::OfficeIMO.OfficeLength.Points(16));
+        var kept = new PdfParagraphStyle { KeepWithNext = true, SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) };
+        using var pdf = PdfPigDocument.Open(PdfDocument.Create(options).Spacer(110)
+            .Table(new[] { new[] { "floating" } }, style: table)
+            .Paragraph(paragraph => paragraph.AddText("kept"), style: kept)
+            .Paragraph(paragraph => paragraph.AddText("follower"), style: follower).ToBytes());
+
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.Equal("floating", Assert.Single(pdf.GetPage(1).GetWords()).Text);
+        var words = pdf.GetPage(2).GetWords().ToArray();
+        Assert.Equal(new[] { "kept", "follower" }, words.Select(word => word.Text));
+        Assert.True(words[0].BoundingBox.Left >= 239);
+        Assert.True(words[1].BoundingBox.Left >= 239);
+    }
+
+    [Theory]
+    [InlineData((int)PdfKeepTogetherOverflowBehavior.Reject, false)]
+    [InlineData((int)PdfKeepTogetherOverflowBehavior.SplitAcrossFrames, false)]
+    [InlineData((int)PdfKeepTogetherOverflowBehavior.SplitAcrossPages, false)]
+    [InlineData((int)PdfKeepTogetherOverflowBehavior.Reject, true)]
+    public void KeptParagraphRewrapsAtFullWidthWhenItCannotFitBesideTallTable(int overflow, bool keepWithNext) {
+        string[] words = Enumerable.Range(1, 45).Select(index => "word" + index).ToArray();
+        var style = new PdfParagraphStyle {
+            KeepTogether = !keepWithNext,
+            KeepWithNext = keepWithNext,
+            KeepTogetherOverflow = (PdfKeepTogetherOverflowBehavior)overflow
+        };
+        var document = PdfDocument.Create(Options(260))
+            .Table(new[] { new[] { "floating" } }, style: Floating(260, 165))
+            .Paragraph(paragraph => paragraph.AddText(string.Join(" ", words)), style: style);
+        if (keepWithNext) document.Paragraph(paragraph => paragraph.AddText("follower"));
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.Equal("floating", Assert.Single(pdf.GetPage(1).GetWords()).Text);
+        Assert.Equal(keepWithNext ? words.Concat(new[] { "follower" }) : words,
+            pdf.GetPage(2).GetWords().Select(word => word.Text));
+    }
+
+    [Fact]
+    public void WideInlineElementMovesToTheOtherSideAfterText() {
+        var table = Floating(90, 80);
+        table.Position = new PdfTablePosition(horizontalOffset: global::OfficeIMO.OfficeLength.Points(70));
+        using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options())
+            .Table(new[] { new[] { "floating" } }, style: table)
+            .Paragraph(paragraph => {
+                paragraph.AddText("before");
+                paragraph.AddInline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(110),
+                    global::OfficeIMO.OfficeLength.Points(10), background: global::OfficeIMO.OfficeColor.Black));
+                paragraph.AddText("after");
+            }).ToBytes());
+
+        var words = pdf.GetPage(1).GetWords().ToList();
+        var before = words.Single(word => word.Text == "before");
+        var after = words.Single(word => word.Text == "after");
+        Assert.InRange(before.BoundingBox.Left, 40, 110);
+        Assert.InRange(after.BoundingBox.Left, 310, 360);
+        Assert.Equal(before.BoundingBox.Bottom, after.BoundingBox.Bottom, 2);
+    }
+
+    [Fact]
+    public void TallInlineElementAdvancesWhenNewRowHeightInvalidatesSecondInterval() {
+        var right = Floating(50, 17);
+        right.Position = new PdfTablePosition(horizontalOffset: global::OfficeIMO.OfficeLength.Points(210));
+        var lower = Floating(170, 50);
+        lower.Position = new PdfTablePosition(verticalOffset: global::OfficeIMO.OfficeLength.Points(20));
+        using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options())
+            .Table(new[] { new[] { "right" } }, style: right)
+            .Table(new[] { new[] { "lower" } }, style: lower)
+            .Paragraph(paragraph => {
+                paragraph.AddText("before");
+                paragraph.AddInline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(100),
+                    global::OfficeIMO.OfficeLength.Points(32), background: global::OfficeIMO.OfficeColor.Black));
+                paragraph.AddText("after");
+            }).ToBytes());
+
+        var words = Assert.Single(pdf.GetPages()).GetWords().ToArray();
+        var before = Assert.Single(words, word => word.Text == "before");
+        var after = Assert.Single(words, word => word.Text == "after");
+        Assert.InRange(before.BoundingBox.Bottom - after.BoundingBox.Bottom, 16, 52);
+    }
+
+    [Theory]
+    [InlineData("before")]
+    [InlineData("word1 word2 word3")]
+    public void WideInlineElementOnNextPageLeavesTheAcceptedTextRowBesideTheTable(string text) {
+        var table = Floating(160, 25);
+        table.Position = new PdfTablePosition(horizontalAlignment: global::OfficeIMO.OfficeAlignment.Center);
+        using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options(260)).Spacer(150)
+            .Table(new[] { new[] { "floating" } }, style: table)
+            .Paragraph(paragraph => {
+                paragraph.AddText(text);
+                paragraph.AddInline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(110),
+                    global::OfficeIMO.OfficeLength.Points(10), background: global::OfficeIMO.OfficeColor.Black));
+                paragraph.AddText("after");
+            }, style: new PdfParagraphStyle { MinimumOrphanLines = 1, MinimumWidowLines = 1 }).ToBytes());
+
+        Assert.Equal(2, pdf.NumberOfPages);
+        var firstPageWords = pdf.GetPage(1).GetWords().Select(word => word.Text).ToList();
+        Assert.All(text.Split(' '), word => Assert.Contains(word, firstPageWords));
+        Assert.Equal("after", Assert.Single(pdf.GetPage(2).GetWords()).Text);
+    }
+
+    [Fact]
     public void WideInlineElementMovesBelowFloat() {
         byte[] bytes = PdfDocument.Create(Options())
             .Table(new[] { new[] { "floating" } }, style: Floating())
