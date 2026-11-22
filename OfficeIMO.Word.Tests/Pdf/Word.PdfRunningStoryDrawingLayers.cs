@@ -98,12 +98,23 @@ public sealed class PdfRunningStoryDrawingLayersTests {
     [InlineData("vml", true)]
     // The VML fallback Word selects, because no choice applies, is the group itself.
     [InlineData("vml-fallback", false)]
+    // A drawn group beside a selected VML fallback the rich route cannot place keeps the story on the simple route.
+    [InlineData("mixed", false)]
     public void SaveAsPdf_UndrawnHeaderShapeGroupIsReported(string kind, bool hidden) {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph("BODYTEXT");
         _ = document.PageSetup.Header;
         WordParagraph anchor = document.PageSetup.GetHeader(WordHeaderFooterType.Default)!.AddParagraph("ANCHORLINE");
-        if (kind.StartsWith("vml", StringComparison.Ordinal)) {
+        if (kind == "mixed") {
+            anchor.AddShapeGroup(new[] {
+                new WordShapeGroupItem(WordShapeType.Rectangle, OfficeLength.Points(0), OfficeLength.Points(0), OfficeLength.Points(100), OfficeLength.Points(70)) { FillColor = OfficeColor.Parse("FF0000") },
+                new WordShapeGroupItem(WordShapeType.Rectangle, OfficeLength.Points(100), OfficeLength.Points(0), OfficeLength.Points(100), OfficeLength.Points(70)) { FillColor = OfficeColor.Parse("FF0000") }
+            }, OfficeLength.Points(60), OfficeLength.Points(30));
+            DW.Anchor drawingAnchor = anchor._paragraph.Descendants<DW.Anchor>().Single();
+            drawingAnchor.RemoveAllChildren<DW.WrapSquare>();
+            if (drawingAnchor.GetFirstChild<DW.WrapNone>() == null) drawingAnchor.AddChild(new DW.WrapNone(), true);
+        }
+        if (kind is "vml" or "vml-fallback" or "mixed") {
             var group = new V.Group {
                 Style = "position:absolute;margin-left:60pt;margin-top:30pt;width:200pt;height:70pt;z-index:1;mso-position-horizontal-relative:page;mso-position-vertical-relative:page",
                 CoordinateSize = "200,70"
@@ -113,6 +124,8 @@ public sealed class PdfRunningStoryDrawingLayersTests {
             else {
                 var choice = new DocumentFormat.OpenXml.AlternateContentChoice { Requires = "x9" };
                 choice.AddNamespaceDeclaration("x9", "urn:officeimo:unsupported-choice");
+                // As Word stores it: the DrawingML copy in the choice, which this reader does not select.
+                if (kind == "mixed") choice.Append(anchor._paragraph.Descendants<W.Drawing>().Single().CloneNode(true));
                 anchor._paragraph.Append(new W.Run(new DocumentFormat.OpenXml.AlternateContent(choice,
                     new DocumentFormat.OpenXml.AlternateContentFallback(new W.Picture(group)))));
             }

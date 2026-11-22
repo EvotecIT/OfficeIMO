@@ -137,8 +137,11 @@ public static partial class WordPdfConverterExtensions {
     private static bool CanPlaceNativeRunningShapeGroups(PdfCore.PdfPageSize pageSize, WordParagraph paragraph, WordPdfExportOptions? options) {
         if (!paragraph._paragraph.Descendants<W.Drawing>().Any(IsNativeShapeGroupDrawing)) return false;
         List<WordParagraph> runs = GetNativeRuns(paragraph);
-        // Hidden groups are neither painted nor counted, so they never block placement.
-        int groups = EnumerateNativeVisibleShapeGroups(paragraph, runs).Count(source => source.Drawing != null);
+        // Hidden groups are neither painted nor counted, so they never block placement. A VML group
+        // keeps the simple route, which reports it as not drawn before the conversion report is taken.
+        List<NativeShapeGroupSource> sources = EnumerateNativeVisibleShapeGroups(paragraph, runs).ToList();
+        if (sources.Any(source => source.Legacy != null)) return false;
+        int groups = sources.Count;
         var style = new PdfCore.PdfParagraphStyle();
         int imageCount = 0;
         bool flowed = false;
