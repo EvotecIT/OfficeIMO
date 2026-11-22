@@ -346,6 +346,7 @@ OfficeIMO.OfficeTextSearchOptions.WholeWords.set -> void
 const OfficeIMO.OfficeDiagnosticCodes.FontNotEmbedded = "font-not-embedded" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.NativeBookmarkTargetMissing = "native-bookmark-target-missing" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.NativeBookmarkTargetUnprojected = "native-bookmark-target-unprojected" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.NativeHeaderFooterShapeGroupUnsupported = "native-header-footer-shape-group-unsupported" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.PdfArtifactTextOmitted = "pdf-artifact-text-omitted" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.PdfExcelNumericConventionMismatch = "pdf-excel-numeric-convention-mismatch" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.PdfExcelNumericConventionMixed = "pdf-excel-numeric-convention-mixed" -> string!

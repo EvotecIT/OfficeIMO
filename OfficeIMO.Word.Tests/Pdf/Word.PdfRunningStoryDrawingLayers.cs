@@ -3,6 +3,8 @@ using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using Xunit;
 using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
+using V = DocumentFormat.OpenXml.Vml;
+using W = DocumentFormat.OpenXml.Wordprocessing;
 using PdfCore = OfficeIMO.Pdf;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using PdfRectangle = UglyToad.PdfPig.Core.PdfRectangle;
@@ -51,7 +53,8 @@ public sealed class PdfRunningStoryDrawingLayersTests {
         story.AddParagraph("FOLLOWINGLINE");
 
         var evidence = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false });
-        Assert.DoesNotContain(evidence.Warnings, warning => warning.Code.StartsWith("native-shape-group-", StringComparison.Ordinal));
+        Assert.DoesNotContain(evidence.Warnings, warning => warning.Code.StartsWith("native-shape-group-", StringComparison.Ordinal) ||
+            warning.Code == "native-header-footer-shape-group-unsupported");
         byte[] bytes = evidence.Value.ToBytes(new PdfCore.PdfSaveOptions { AllowLoss = true });
         PdfRectangle anchorText, followingText, bodyText;
         using (var pig = PdfPigDocument.Open(bytes)) {
@@ -68,6 +71,36 @@ public sealed class PdfRunningStoryDrawingLayersTests {
         Assert.Equal(!inFront, TextShowsThrough(bitmap!, anchorText));
         Assert.Equal(!inFront, TextShowsThrough(bitmap!, followingText));
         Assert.True(TextShowsThrough(bitmap!, bodyText), "The body text paints over the header and footer layer.");
+    }
+
+    // A header group that is not drawn, placed relative to the margin or stored only as VML, is reported as omitted.
+    [Theory]
+    [InlineData("margin")]
+    [InlineData("vml")]
+    public void SaveAsPdf_UndrawnHeaderShapeGroupIsReported(string kind) {
+        using WordDocument document = WordDocument.Create();
+        document.AddParagraph("BODYTEXT");
+        _ = document.PageSetup.Header;
+        WordParagraph anchor = document.PageSetup.GetHeader(WordHeaderFooterType.Default)!.AddParagraph("ANCHORLINE");
+        if (kind == "vml") {
+            var group = new V.Group {
+                Style = "position:absolute;margin-left:60pt;margin-top:30pt;width:200pt;height:70pt;z-index:1;mso-position-horizontal-relative:page;mso-position-vertical-relative:page",
+                CoordinateSize = "200,70"
+            };
+            group.Append(new V.Rectangle { Style = "position:absolute;left:0;top:0;width:200;height:70", FillColor = "red", Stroked = false });
+            anchor._run!.Append(new W.Picture(group));
+        } else {
+            anchor.AddShapeGroup(new[] {
+                new WordShapeGroupItem(WordShapeType.Rectangle, OfficeLength.Points(0), OfficeLength.Points(0), OfficeLength.Points(100), OfficeLength.Points(70)) { FillColor = OfficeColor.Parse("FF0000") },
+                new WordShapeGroupItem(WordShapeType.Rectangle, OfficeLength.Points(100), OfficeLength.Points(0), OfficeLength.Points(100), OfficeLength.Points(70)) { FillColor = OfficeColor.Parse("FF0000") }
+            }, OfficeLength.Points(60), OfficeLength.Points(30));
+            anchor._paragraph.Descendants<DW.Anchor>().Single().HorizontalPosition!.RelativeFrom = DW.HorizontalRelativePositionValues.Margin;
+        }
+
+        var evidence = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false });
+        var warning = Assert.Single(evidence.Warnings, item => item.Code == "native-header-footer-shape-group-unsupported");
+        Assert.Equal("default header", warning.Source);
+        Assert.Equal(OfficeIMO.OfficeConversionLossKind.Omission, warning.LossKind);
     }
 
     // Counts dark text pixels inside a word's box on a 792pt page rendered at 72 dpi.

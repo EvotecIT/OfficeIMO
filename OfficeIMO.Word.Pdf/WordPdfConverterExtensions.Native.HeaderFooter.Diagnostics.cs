@@ -72,6 +72,8 @@ namespace OfficeIMO.Word.Pdf {
                 headerTextDiagnostics == null, footerTextDiagnostics == null);
             RecordNativeRunningImageWrapDiagnostics(section, options,
                 headerTextDiagnostics == null, footerTextDiagnostics == null);
+            RecordNativeRunningShapeGroupDiagnostics(section, options,
+                headerTextDiagnostics == null, footerTextDiagnostics == null);
             NativeHeaderFooterText? defaultHeader = GetNativeHeaderFooterText(section.ResolveDefaultHeader(), listMarkers, nativeFontMap, headerTextDiagnostics);
             NativeHeaderFooterText? firstHeader = section.PageSetup.DifferentFirstPage ? GetNativeHeaderFooterText(section.ResolveFirstHeader(), listMarkers, nativeFontMap, headerTextDiagnostics) : null;
             NativeHeaderFooterText? evenHeader = hasEvenPageStory ? GetNativeHeaderFooterText(section.ResolveEvenHeader(), listMarkers, nativeFontMap, headerTextDiagnostics) : null;

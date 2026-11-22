@@ -59,6 +59,7 @@ namespace OfficeIMO.Word.Pdf {
             "native-header-footer-equation-unsupported" or
             "NativeHeaderFooterImageUnsupported" or
             "native-header-footer-shape-unsupported" or
+            "native-header-footer-shape-group-unsupported" or
             "native-header-footer-smart-art-unsupported" or
             "native-header-footer-text-box-unsupported" or
             "native-footnote-content-omitted" or

@@ -342,6 +342,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string NativeHeaderFooterEmbeddedDocumentUnsupported = "native-header-footer-embedded-document-unsupported";
     /// <summary>Stable code: <c>native-header-footer-equation-unsupported</c>.</summary>
     public const string NativeHeaderFooterEquationUnsupported = "native-header-footer-equation-unsupported";
+    /// <summary>Stable code: <c>native-header-footer-shape-group-unsupported</c>.</summary>
+    public const string NativeHeaderFooterShapeGroupUnsupported = "native-header-footer-shape-group-unsupported";
     /// <summary>Stable code: <c>native-header-footer-shape-unsupported</c>.</summary>
     public const string NativeHeaderFooterShapeUnsupported = "native-header-footer-shape-unsupported";
     /// <summary>Stable code: <c>native-header-footer-smart-art-unsupported</c>.</summary>

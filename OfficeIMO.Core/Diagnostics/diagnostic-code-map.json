@@ -3008,6 +3008,14 @@
       ]
     },
     {
+      "oldCode": "NativeHeaderFooterShapeGroupUnsupported",
+      "catalogCode": "native-header-footer-shape-group-unsupported",
+      "member": "NativeHeaderFooterShapeGroupUnsupported",
+      "origins": [
+        "OfficeIMO.Word.Pdf/WordPdfConverterExtensions.Native.HeaderFooter.RunningContent.cs:172"
+      ]
+    },
+    {
       "oldCode": "NativeHeaderFooterSmartArtUnsupported",
       "catalogCode": "native-header-footer-smart-art-unsupported",
       "member": "NativeHeaderFooterSmartArtUnsupported",
