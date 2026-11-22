@@ -55,7 +55,7 @@ internal static partial class PdfWriter {
                 }
             }
         }
-        if (indexes.Count < 2) return new RichLineJustification(segments, 0D, naturalWidth);
+        if (indexes.Count < 2) return new RichLineJustification(segments, 0D, naturalWidth, alignCenter: useWordJustificationSpacing);
         bool[] boundaries = OfficeOpenTypeTracking.GetBoundaries(text.ToString(), indexes);
         // Source-only controls can follow the final visible cluster. Character
         // distribution expands between visible clusters, never after the last.
@@ -65,7 +65,7 @@ internal static partial class PdfWriter {
             break;
         }
         int opportunities = boundaries.Count(boundary => boundary);
-        if (opportunities == 0) return new RichLineJustification(segments, 0D, naturalWidth);
+        if (opportunities == 0) return new RichLineJustification(segments, 0D, naturalWidth, alignCenter: useWordJustificationSpacing);
         if (useWordJustificationSpacing)
             return PlanRichWordCharacterDistribution(segments, naturalWidth, availableWidth, options,
                 boundaries, owners, commands, opportunities);

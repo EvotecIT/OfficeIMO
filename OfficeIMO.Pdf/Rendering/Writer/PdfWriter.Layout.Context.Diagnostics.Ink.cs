@@ -95,7 +95,7 @@ internal static partial class PdfWriter {
                     line = justification.Segments;
                     double advance = justification.Width;
                     double wordSpacing = justification.WordSpacing;
-                    double dx = alignment == OfficeAlignment.Center ? Math.Max(0D, (available - advance) / 2D)
+                    double dx = alignment == OfficeAlignment.Center || justification.AlignCenter ? Math.Max(0D, (available - advance) / 2D)
                         : alignment == OfficeAlignment.Right || justification.AlignRight ? Math.Max(0D, available - advance) : 0D;
                     BidiLineLayout? bidi = bidiLevel.HasValue ? CreateBidiLineLayout(line, bidiLevel.Value, wordSpacing) : null;
                     double cursor = dx;

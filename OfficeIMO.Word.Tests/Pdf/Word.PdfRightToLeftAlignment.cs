@@ -11,6 +11,7 @@ namespace OfficeIMO.Tests;
 [Collection("WordTests")]
 public sealed class WordPdfRightToLeftAlignmentTests {
     private const string Filler = "alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma tau upsilon phi chi psi";
+    private static readonly string SoloWord = "SOLO" + new string('n', 28);
 
     // Word places w:jc start/left on the right of a bidi paragraph and end/right on its left; end aligns right in an LTR paragraph.
     [Theory]
@@ -64,7 +65,10 @@ public sealed class WordPdfRightToLeftAlignmentTests {
             CreateParagraph("RIGHTREF", false, W.JustificationValues.Right),
             CreateParagraph("JRTL " + Filler + " JRTLEND", true, W.JustificationValues.Both),
             CreateParagraph("JLTR " + Filler + " JLTREND", false, W.JustificationValues.Both),
-            CreateParagraph("DRTL " + Filler + " DRTLEND", true, W.JustificationValues.Distribute)
+            CreateParagraph("DRTL " + Filler + " DRTLEND", true, W.JustificationValues.Distribute),
+            CreateParagraph(SoloWord + " " + SoloWord.Replace("SOLO", "NEXT"), true, W.JustificationValues.Both),
+            CreateParagraph("Q", true, W.JustificationValues.Distribute),
+            CreateParagraph("Z", false, W.JustificationValues.Distribute)
         };
 
         using var pdf = PdfPigDocument.Open(Convert(container, paragraphs));
@@ -82,6 +86,13 @@ public sealed class WordPdfRightToLeftAlignmentTests {
         Assert.True(ltrLast.Last().EndBaseLine.X < right - 20D, "The last line of justified LTR text is not stretched.");
 
         AssertSpan(Line(letters, "DRTLEND"), left, right);
+        // A line that holds one word has no space to stretch, so it also keeps to the right edge.
+        Assert.InRange(Word(letters, SoloWord).Last().EndBaseLine.X, right - .05D, right + .05D);
+        // Word centres a distributed line that holds a single glyph, in either direction.
+        foreach (string single in new[] { "Q", "Z" }) {
+            List<Letter> glyph = Word(letters, single);
+            Assert.InRange((glyph.First().StartBaseLine.X + glyph.Last().EndBaseLine.X) / 2D, (left + right) / 2D - .05D, (left + right) / 2D + .05D);
+        }
     }
 
     // The document default direction applies when the paragraph's style chain is empty, as with a missing style.
