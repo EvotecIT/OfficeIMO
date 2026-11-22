@@ -334,22 +334,43 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static W.JustificationValues? ResolveNativeParagraphJustification(WordParagraph paragraph) =>
-            paragraph.ParagraphAlignment.ToOpenXml() ?? GetNativeParagraphStyleDefaults(paragraph).Alignment;
+            ResolveNativeVisualJustification(paragraph.ParagraphAlignment.ToOpenXml() ?? GetNativeParagraphStyleDefaults(paragraph).Alignment,
+                IsNativeBiDiParagraph(paragraph));
 
-        private static global::OfficeIMO.OfficeAlignment ResolveNativeParagraphAlign(WordParagraph paragraph, bool allowJustify = true) {
-            W.JustificationValues? alignment = ResolveNativeParagraphJustification(paragraph);
-            if (alignment == null && IsNativeBiDiParagraph(paragraph)) {
-                return global::OfficeIMO.OfficeAlignment.Right;
-            }
-
-            return MapNativeParagraphAlign(alignment, allowJustify);
+        /// <summary>
+        /// Word reads start and end, and also left and right, as the logical sides of the paragraph: a
+        /// right-to-left paragraph starts at the right. Returns the physical side; justification is unchanged.
+        /// </summary>
+        private static W.JustificationValues? ResolveNativeVisualJustification(W.JustificationValues? alignment, bool rightToLeft) {
+            if (alignment == null) return rightToLeft ? W.JustificationValues.Right : null;
+            if (alignment == W.JustificationValues.Start || alignment == W.JustificationValues.Left)
+                return rightToLeft ? W.JustificationValues.Right : W.JustificationValues.Left;
+            if (alignment == W.JustificationValues.End || alignment == W.JustificationValues.Right)
+                return rightToLeft ? W.JustificationValues.Left : W.JustificationValues.Right;
+            return alignment;
         }
 
+        private static global::OfficeIMO.OfficeAlignment ResolveNativeParagraphAlign(WordParagraph paragraph, bool allowJustify = true) =>
+            allowJustify ? MapNativeParagraphAlign(ResolveNativeParagraphJustification(paragraph))
+                : MapNativeParagraphAlign(ResolveNativeUnjustifiedJustification(paragraph), allowJustify: false);
+
+        /// <summary>
+        /// The physical side for a route that sets lines without justification: justified text keeps to the
+        /// paragraph's starting side, which is the right in a right-to-left paragraph.
+        /// </summary>
+        private static W.JustificationValues? ResolveNativeUnjustifiedJustification(WordParagraph paragraph) =>
+            ResolveNativeUnjustifiedJustification(ResolveNativeParagraphJustification(paragraph), IsNativeBiDiParagraph(paragraph));
+
+        private static W.JustificationValues? ResolveNativeUnjustifiedJustification(W.JustificationValues? alignment, bool rightToLeft) =>
+            MapNativeParagraphAlign(alignment) == global::OfficeIMO.OfficeAlignment.Justify
+                ? rightToLeft ? W.JustificationValues.Right : W.JustificationValues.Left
+                : alignment;
+
         private static bool IsNativeBiDiParagraph(WordParagraph paragraph) =>
-            ReadNativeDirectParagraphOnOff<W.BiDi>(paragraph) == true;
+            (ReadNativeDirectParagraphOnOff<W.BiDi>(paragraph) ?? GetNativeParagraphStyleDefaults(paragraph).BiDi) == true;
 
         private static global::OfficeIMO.OfficeAlignment ResolveNativeColumnAlign(WordParagraph paragraph) =>
-            MapNativeColumnAlign(ResolveNativeParagraphJustification(paragraph));
+            MapNativeColumnAlign(ResolveNativeUnjustifiedJustification(paragraph));
 
         private static global::OfficeIMO.OfficeAlignment MapNativeColumnAlign(W.JustificationValues? alignment) {
             if (alignment == W.JustificationValues.Center) {

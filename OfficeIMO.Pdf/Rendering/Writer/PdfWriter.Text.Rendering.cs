@@ -218,8 +218,9 @@ internal static partial class PdfWriter {
             double wordSpacing = justification[li].WordSpacing;
             double lineWForAlign = justification[li].Width;
             double dx = 0;
-            if (lineAlign == OfficeAlignment.Center) dx = Math.Max(0, (lineWidthUsed - lineWForAlign) / 2);
+            if (lineAlign == OfficeAlignment.Center || justification[li].AlignCenter) dx = Math.Max(0, (lineWidthUsed - lineWForAlign) / 2);
             else if (lineAlign == OfficeAlignment.Right) dx = Math.Max(0, lineWidthUsed - lineWForAlign);
+            else if (justification[li].AlignRight) dx = Math.Max(0, lineWidthUsed - lineWForAlign);
 
             double xCursor = dx;
             BidiLineLayout? backgroundBidi = bidiParagraphLevels[li].HasValue ? CreateBidiLineLayout(segs, bidiParagraphLevels[li]!.Value, wordSpacing) : null;
@@ -312,8 +313,9 @@ internal static partial class PdfWriter {
             double pdfWordSpacing = wordSpacing != 0D && !segs.All(seg => UsesSimpleFontText(seg, opts)) ? 0D : wordSpacing;
             double lineWForAlign = justification[li].Width;
             double dx = 0;
-            if (lineAlign == OfficeAlignment.Center) dx = Math.Max(0, (lineWidthUsed - lineWForAlign) / 2);
+            if (lineAlign == OfficeAlignment.Center || justification[li].AlignCenter) dx = Math.Max(0, (lineWidthUsed - lineWForAlign) / 2);
             else if (lineAlign == OfficeAlignment.Right) dx = Math.Max(0, lineWidthUsed - lineWForAlign);
+            else if (justification[li].AlignRight) dx = Math.Max(0, lineWidthUsed - lineWForAlign);
             content
                 .TextMatrix(lineXOrigin + dx, lineY)
                 .WordSpacing(pdfWordSpacing);

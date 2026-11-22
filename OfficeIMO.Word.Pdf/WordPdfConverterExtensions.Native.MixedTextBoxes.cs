@@ -108,7 +108,7 @@ public static partial class WordPdfConverterExtensions {
                 segment, visible, text, references, notes, options, defaults, fontMap,
                 inlineMarkerColumnWidth: currentMarker == null ? null : ResolveNativeInlineListMarkerColumnWidth(
                     paragraph, currentMarker.Value.Marker, style, defaults, fontMap), projectedContentOnly: true),
-                ResolveNativeParagraphAlign(paragraph, allowJustify: false), style: style);
+                ResolveNativeParagraphAlign(paragraph), style: style);
             emittedOwnParagraph = true;
             first = false;
             pending.Clear();

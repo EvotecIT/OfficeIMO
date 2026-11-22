@@ -6,22 +6,28 @@ internal static partial class PdfWriter {
     /// <summary>Source paragraph identity carried through cell line slicing and physical fragments.</summary>
     private readonly record struct RichLineJustificationPolicy(PdfJustificationMode Mode,
         bool ExplicitBreaks, bool LastLine, bool IsFinalParagraphLine, bool IsExplicitBreak,
-        bool UseWordJustificationSpacing = false) {
+        bool UseWordJustificationSpacing = false, bool RemainderRight = false) {
         internal RichLineJustificationPolicy(PdfParagraphStyle? style, bool final, bool explicitBreak)
             : this(style?.JustificationMode ?? PdfJustificationMode.Words,
                 style?.JustifyExplicitLineBreaks == true, style?.JustifyLastLine == true, final, explicitBreak,
-                style?.UseWordJustificationSpacing == true) { }
+                style?.UseWordJustificationSpacing == true, style?.AlignJustifiedRemainderRight == true) { }
     }
 
     private readonly struct RichLineJustification {
-        internal RichLineJustification(List<RichSeg> segments, double wordSpacing, double width) {
+        internal RichLineJustification(List<RichSeg> segments, double wordSpacing, double width, bool alignRight = false, bool alignCenter = false) {
             Segments = segments;
             WordSpacing = wordSpacing;
             Width = width;
+            AlignRight = alignRight;
+            AlignCenter = alignCenter;
         }
         internal List<RichSeg> Segments { get; }
         internal double WordSpacing { get; }
         internal double Width { get; }
+        /// <summary>A justified line left at its natural width that sits at the right edge.</summary>
+        internal bool AlignRight { get; }
+        /// <summary>A distributed line with nothing to spread, which Word centres.</summary>
+        internal bool AlignCenter { get; }
     }
 
     /// <summary>Plans one physical line's glyph and separator advances for paint and paint diagnostics.</summary>
@@ -41,31 +47,31 @@ internal static partial class PdfWriter {
         RichLineJustificationPolicy policy = segmentPolicy ?? new RichLineJustificationPolicy(style, isFinalParagraphLine, hardBreak);
         bool expands = alignment == OfficeAlignment.Justify && availableWidth > naturalWidth &&
             (policy.IsExplicitBreak ? policy.ExplicitBreaks : !policy.IsFinalParagraphLine || policy.LastLine);
-        if (!expands) return new RichLineJustification(segments, 0D, naturalWidth);
+        if (!expands) return new RichLineJustification(segments, 0D, naturalWidth, policy.RemainderRight);
         int lastTab = segments.FindLastIndex(segment => segment.LeadingIsTab);
         if (lastTab >= 0) {
             if (segments[lastTab].LeadingTabAlignment != PdfTabAlignment.Left)
                 return new RichLineJustification(segments, 0D, naturalWidth);
             if (policy.UseWordJustificationSpacing && policy.Mode == PdfJustificationMode.Words)
-                return PlanRichWordSpaceDistribution(segments, naturalWidth, availableWidth, lastTab + 1);
-            return PlanRichAnchoredWordDistribution(segments, lastTab, naturalWidth, availableWidth);
+                return PlanRichWordSpaceDistribution(segments, naturalWidth, availableWidth, lastTab + 1, policy.RemainderRight);
+            return PlanRichAnchoredWordDistribution(segments, lastTab, naturalWidth, availableWidth, policy.RemainderRight);
         }
         if (policy.Mode != PdfJustificationMode.Characters) {
             if (policy.UseWordJustificationSpacing)
-                return PlanRichWordSpaceDistribution(segments, naturalWidth, availableWidth);
+                return PlanRichWordSpaceDistribution(segments, naturalWidth, availableWidth, alignRight: policy.RemainderRight);
             int gaps = segments.Where(segment => segment.LeadingSpace && segment.LeadingSpaceIsExpandable)
                 .Sum(segment => segment.LeadingSpaceCount);
             return gaps > 0 ? new RichLineJustification(segments, (availableWidth - naturalWidth) / gaps, availableWidth)
-                : new RichLineJustification(segments, 0D, naturalWidth);
+                : new RichLineJustification(segments, 0D, naturalWidth, policy.RemainderRight);
         }
         return PlanRichCharacterDistribution(segments, naturalWidth, availableWidth, options, policy.UseWordJustificationSpacing);
     }
 
     /// <summary>Consumes source-space preferred expansion before sharing the remaining width per ordinary space.</summary>
     private static RichLineJustification PlanRichWordSpaceDistribution(List<RichSeg> segments,
-        double naturalWidth, double availableWidth, int startIndex = 0) {
+        double naturalWidth, double availableWidth, int startIndex = 0, bool alignRight = false) {
         int spaces = segments.Skip(startIndex).Where(IsWordExpansionSpace).Sum(segment => segment.LeadingSpaceCount);
-        if (spaces == 0) return new RichLineJustification(segments, 0D, naturalWidth);
+        if (spaces == 0) return new RichLineJustification(segments, 0D, naturalWidth, alignRight);
         double adjustment = availableWidth - naturalWidth;
         var resources = new List<OfficeTextSpacingResource>();
         for (int index = startIndex; index < segments.Count; index++) {
@@ -95,12 +101,12 @@ internal static partial class PdfWriter {
         IsWordExpansionSpace(segment) ? Math.Max(0D, segment.LeadingAdvance / 2D) : 0D;
 
     private static RichLineJustification PlanRichAnchoredWordDistribution(List<RichSeg> segments,
-        int lastTab, double naturalWidth, double availableWidth) {
+        int lastTab, double naturalWidth, double availableWidth, bool alignRight = false) {
         int gaps = 0;
         for (int index = lastTab + 1; index < segments.Count; index++)
             if (segments[index].LeadingSpace && segments[index].LeadingSpaceIsExpandable)
                 gaps += segments[index].LeadingSpaceCount;
-        if (gaps == 0) return new RichLineJustification(segments, 0D, naturalWidth);
+        if (gaps == 0) return new RichLineJustification(segments, 0D, naturalWidth, alignRight);
         double spacing = (availableWidth - naturalWidth) / gaps;
         var distributed = new List<RichSeg>(segments.Count);
         for (int index = 0; index < segments.Count; index++) {

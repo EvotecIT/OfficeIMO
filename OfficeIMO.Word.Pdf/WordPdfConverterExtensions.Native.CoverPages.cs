@@ -181,7 +181,7 @@ namespace OfficeIMO.Word.Pdf {
 
             IReadOnlyList<PdfCore.PdfTextRun> textRuns = GetNativeVmlTextRuns(document, element);
             if (textRuns.Count > 0) {
-                PdfCore.PdfCanvasTextBoxStyle style = CreateNativeVmlTextBoxStyle(element, textRuns);
+                PdfCore.PdfCanvasTextBoxStyle style = CreateNativeVmlTextBoxStyle(document, element, textRuns);
                 double textRotation = GetNativeVmlRotationDegrees(element) ?? 0D;
                 if (IsNativeVmlBoxVisibleOnPage(box, pageWidth, pageHeight)) {
                     RenderNativeVmlVisible(canvas, box, pageWidth, pageHeight, target => target.TextBox(textRuns, global::OfficeIMO.OfficeLength.Points(box.X), global::OfficeIMO.OfficeLength.Points(box.Y), global::OfficeIMO.OfficeLength.Points(box.Width), global::OfficeIMO.OfficeLength.Points(box.Height), style, textRotation));

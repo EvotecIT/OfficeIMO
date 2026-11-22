@@ -75,7 +75,8 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            W.JustificationValues? alignment = ResolveNativeParagraphJustification(paragraph);
+            // The header zones are not justified; justified text keeps to the paragraph's starting side.
+            W.JustificationValues? alignment = ResolveNativeUnjustifiedJustification(paragraph);
             if (alignment == W.JustificationValues.Center) {
                 parts.AppendCenter(resolvedText, pageNumberStyle, markerRun, contentStyleRun, replacements);
             } else if (alignment == W.JustificationValues.Right) {

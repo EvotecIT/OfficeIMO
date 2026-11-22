@@ -107,6 +107,7 @@ public sealed class PdfHeadingStyle {
 
     /// <summary>Retains whether imported source expands its final logical line.</summary>
     internal bool JustifyLastLine { get; set; }
+    internal bool AlignJustifiedRemainderRight { get; set; }
 
     /// <summary>Creates a copy of this heading style.</summary>
     public PdfHeadingStyle Clone() {
@@ -118,6 +119,7 @@ public sealed class PdfHeadingStyle {
             JustificationMode = JustificationMode,
             JustifyExplicitLineBreaks = JustifyExplicitLineBreaks,
             JustifyLastLine = JustifyLastLine,
+            AlignJustifiedRemainderRight = AlignJustifiedRemainderRight,
             FontSize = FontSize,
             LineSpacing = LineSpacing,
             LineHeight = LineHeight,
