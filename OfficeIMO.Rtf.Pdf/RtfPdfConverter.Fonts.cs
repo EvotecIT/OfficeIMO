@@ -169,9 +169,11 @@ internal static partial class RtfPdfConverter {
         if (referencedNotes != null) {
             foreach (RtfNote note in referencedNotes) {
                 if (note.Kind == RtfNoteKind.Annotation && note.Author != null) text.Add(note.Author);
-                foreach (RtfParagraph paragraph in note.Paragraphs) {
-                    // Note bodies do not append nested note references.
-                    CollectReferencedFontIds(document, paragraph, options, fontIds, text, numbering);
+                for (int index = 0; index < note.Paragraphs.Count; index++) {
+                    // Note bodies do not append nested note references. The first paragraph
+                    // follows the generated note label.
+                    CollectReferencedFontIds(document, note.Paragraphs[index], options, fontIds, text, numbering,
+                        followsNoteLabel: index == 0);
                 }
             }
         }
@@ -271,7 +273,7 @@ internal static partial class RtfPdfConverter {
         RtfPdfExportOptions options, HashSet<int> fontIds, List<string> text, RtfListNumbering numbering,
         ISet<RtfNote>? referencedNotes = null, bool splitBodyParagraph = false,
         bool appendStrut = true, List<PdfCore.PdfTextRun>? parentRuns = null,
-        PdfInlineProjectionContext context = PdfInlineProjectionContext.Text) {
+        PdfInlineProjectionContext context = PdfInlineProjectionContext.Text, bool followsNoteLabel = false) {
         options.CancellationToken.ThrowIfCancellationRequested();
         var runs = parentRuns ?? new List<PdfCore.PdfTextRun>();
         bool emitted = false;
@@ -343,8 +345,10 @@ internal static partial class RtfPdfConverter {
         }
 
         void AdmitInheritedStrut() {
-            if (!TryGetParagraphLineBoxControlStyle(runs, 0, out PdfCore.PdfTextRun? controlStyle) ||
-                controlStyle != null) return;
+            if (!TryGetParagraphLineBoxControlStyle(runs, 0, out PdfCore.PdfTextRun? controlStyle)) return;
+            // The line under a note label takes the inherited font when its first source line
+            // holds only unsized controls, even if a later line has a sized one.
+            if (controlStyle != null && !(followsNoteLabel && GetFirstSourceLineControlStyle(runs, 0) == null)) return;
             int? paragraphFontId = GetParagraphCharacterDefaults(document, paragraph, string.Empty).FontId;
             if (paragraphFontId.HasValue) fontIds.Add(paragraphFontId.Value);
         }

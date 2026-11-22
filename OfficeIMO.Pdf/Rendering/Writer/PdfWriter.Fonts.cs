@@ -118,18 +118,7 @@ internal static partial class PdfWriter {
         _ => ThrowUnsupportedStandardFontWidth(font)
     };
 
-    // A non-allocating '\r'/'\n' scan. `text.Any(c => ...)` allocates a CharEnumerator per call, and this
-    // runs once per token/cell/paragraph during layout. string.Contains(char) is unavailable on
-    // netstandard2.0/net472 and string.IndexOf(char) trips CA2249-as-error, so use an index loop.
-    private static bool ContainsLineBreak(string text) {
-        for (int i = 0; i < text.Length; i++) {
-            if (text[i] == '\r' || text[i] == '\n') {
-                return true;
-            }
-        }
-
-        return false;
-    }
+    private static bool ContainsLineBreak(string text) => PdfTextLineEnds.Contains(text);
 
     internal static double EstimateSimpleTextWidth(string? text, PdfStandardFont font, double fontSize) {
         if (string.IsNullOrEmpty(text)) {
