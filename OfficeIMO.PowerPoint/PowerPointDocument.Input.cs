@@ -27,19 +27,8 @@ namespace OfficeIMO.PowerPoint {
                 long originalPosition = source.Position;
                 try {
                     source.Position = 0;
-                    ValidateSeekablePackageSize(source, options);
-                    long detectionLimit = ResolveCompoundDetectionLimit(
-                        options);
-                    EnsureSeekableInputWithinDetectionLimit(source,
-                        detectionLimit, cancellationToken);
-                    OfficeCompoundDocumentDetector.DocumentKind kind =
-                        PowerPointDocumentLoadRouting.DetectCompound(source,
-                            detectionLimit,
-                            CompoundDetectionDirectoryLimit,
-                            cancellationToken, out _);
-                    long? maxInputBytes = ResolveInputLimit(kind, options,
-                        PowerPointDocumentLoadRouting
-                            .HasLegacyBinaryExtension(sourceName));
+                    long? maxInputBytes = ResolveSeekableInputLimit(source,
+                        options, cancellationToken, sourceName);
                     return OfficeStreamReader.ReadAllBytes(source,
                         cancellationToken, maxInputBytes);
                 } finally {
@@ -77,20 +66,10 @@ namespace OfficeIMO.PowerPoint {
             try {
                 if (source.CanSeek) {
                     source.Position = 0;
-                    ValidateSeekablePackageSize(source, options);
-                    long detectionLimit = ResolveCompoundDetectionLimit(
-                        options);
-                    EnsureSeekableInputWithinDetectionLimit(source,
-                        detectionLimit, cancellationToken);
-                    OfficeCompoundDocumentDetector.DocumentKind kind =
-                        PowerPointDocumentLoadRouting.DetectCompound(source,
-                            detectionLimit,
-                            CompoundDetectionDirectoryLimit,
-                            cancellationToken, out _);
+                    long? maxInputBytes = ResolveSeekableInputLimit(source,
+                        options, cancellationToken, sourceName);
                     return await OfficeStreamReader.ReadAllBytesAsync(source,
-                        cancellationToken, ResolveInputLimit(kind, options,
-                            PowerPointDocumentLoadRouting
-                                .HasLegacyBinaryExtension(sourceName)))
+                        cancellationToken, maxInputBytes)
                         .ConfigureAwait(false);
                 }
                 byte[] prefix = await ReadPrefixAsync(source,
@@ -113,6 +92,25 @@ namespace OfficeIMO.PowerPoint {
             } finally {
                 if (source.CanSeek) source.Position = originalPosition;
             }
+        }
+
+        // The seekable source is positioned at the start of the presentation.
+        internal static long? ResolveSeekableInputLimit(Stream source,
+            PowerPointLoadOptions options, CancellationToken cancellationToken,
+            string? sourceName) {
+            cancellationToken.ThrowIfCancellationRequested();
+            ValidateSeekablePackageSize(source, options);
+            long detectionLimit = ResolveCompoundDetectionLimit(options);
+            EnsureSeekableInputWithinDetectionLimit(source, detectionLimit,
+                cancellationToken);
+            OfficeCompoundDocumentDetector.DocumentKind kind =
+                PowerPointDocumentLoadRouting.DetectCompound(source,
+                    detectionLimit, CompoundDetectionDirectoryLimit,
+                    cancellationToken, out _);
+            long? maxInputBytes = ResolveInputLimit(kind, options,
+                PowerPointDocumentLoadRouting.HasLegacyBinaryExtension(sourceName));
+            OfficeStreamReader.EnsureWithinLimit(source.Length, maxInputBytes);
+            return maxInputBytes;
         }
 
         private static byte[] ReadCompoundInputThroughTemporaryStorage(

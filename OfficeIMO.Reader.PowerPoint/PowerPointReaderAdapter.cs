@@ -25,8 +25,11 @@ internal static class PowerPointReaderAdapter {
             if (file != null) return ReadDocument(file, path, readerOptions, options, cancellationToken);
             if (streamText) {
                 using var shared = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+                PowerPointLoadOptions loadOptions = CreateLoadOptions(readerOptions, path);
+                long? inputLimit = OpenXmlReaderAdmission.Load(readerOptions, () =>
+                    PowerPointDocument.ResolveSeekableInputLimit(shared, loadOptions, cancellationToken, path));
                 using Stream snapshot = ReaderInputLimits.EnsureSeekableReadStream(shared,
-                    CreateLoadOptions(readerOptions, path).MaxInputBytes, cancellationToken, out _);
+                    inputLimit, cancellationToken, out _);
                 return ReadDocument(snapshot, path, readerOptions, options, cancellationToken);
             }
         }
