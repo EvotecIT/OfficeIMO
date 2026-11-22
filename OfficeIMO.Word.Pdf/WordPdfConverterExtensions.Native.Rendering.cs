@@ -957,7 +957,7 @@ namespace OfficeIMO.Word.Pdf {
                     contentBuilder.AddParagraph(builder => AddNativeParagraphContent(builder, paragraph, getMarker(paragraph),
                         runs, hasRenderableRuns, renderContent, paragraphFootnoteNumbers, footnoteNumbersById, options, nativeDefaults, nativeFontMap,
                         inlineMarkerColumnWidth: ResolveNativeInlineListMarkerColumnWidth(paragraph, getMarker(paragraph)?.Marker ?? string.Empty, paragraphStyle, nativeDefaults, nativeFontMap)),
-                        ResolveNativeParagraphAlign(paragraph, allowJustify: false), style: paragraphStyle);
+                        ResolveNativeParagraphAlign(paragraph), style: paragraphStyle);
                 }
             }, style);
         }
@@ -1166,6 +1166,7 @@ namespace OfficeIMO.Word.Pdf {
                 JustificationMode = paragraphStyle.JustificationMode,
                 JustifyExplicitLineBreaks = paragraphStyle.JustifyExplicitLineBreaks,
                 JustifyLastLine = paragraphStyle.JustifyLastLine,
+                AlignJustifiedRemainderRight = paragraphStyle.AlignJustifiedRemainderRight,
                 FontSize = global::OfficeIMO.OfficeLength.Points(ResolveNativeParagraphEffectiveFontSize(paragraph, nativeDefaults, styleDefaults)),
                 LineHeight = paragraphStyle.LineHeight ?? nativeDefaults.ParagraphLineHeight,
                 LineSpacing = paragraphStyle.LineSpacing,

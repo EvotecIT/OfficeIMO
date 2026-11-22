@@ -34,6 +34,7 @@ namespace OfficeIMO.Word.Pdf {
             string? ShadingFillColorHex,
             NativeParagraphBorders Borders) {
             public bool? SmallCaps { get; init; }
+            public bool? BiDi { get; init; }
             public NativeLatinFontFamilies FontFamilies { get; init; }
             public NativeComplexScriptDefaults ComplexScript { get; init; }
             public NativeTextSpacing TextSpacing { get; init; }
@@ -119,6 +120,8 @@ namespace OfficeIMO.Word.Pdf {
             bool? keepWithNext = null;
             bool? widowControl = null;
             bool? contextualSpacing = null;
+            bool? bidi = ReadNativeOnOff(WordStyleCatalog.For(paragraph._document).DocumentDefaults?
+                .GetFirstChild<W.ParagraphPropertiesDefault>()?.GetFirstChild<W.ParagraphPropertiesBaseStyle>()?.GetFirstChild<W.BiDi>());
             NativeParagraphSpacing paragraphSpacing = default;
             string? shadingFillColorHex = null;
             NativeParagraphBorders borders = NativeParagraphBorders.Empty;
@@ -186,6 +189,7 @@ namespace OfficeIMO.Word.Pdf {
                     keepWithNext = ReadNativeOnOff(paragraphProperties.GetFirstChild<W.KeepNext>()) ?? keepWithNext;
                     widowControl = ReadNativeOnOff(paragraphProperties.GetFirstChild<W.WidowControl>()) ?? widowControl;
                     contextualSpacing = ReadNativeOnOff(paragraphProperties.GetFirstChild<W.ContextualSpacing>()) ?? contextualSpacing;
+                    bidi = ReadNativeOnOff(paragraphProperties.GetFirstChild<W.BiDi>()) ?? bidi;
                     if (paragraphProperties.GetFirstChild<W.Shading>() is { } shading) {
                         // A derived style's automatic fill clears the inherited fill.
                         shadingFillColorHex = NormalizeNativeShadingFill(shading.Fill?.Value);
@@ -221,7 +225,7 @@ namespace OfficeIMO.Word.Pdf {
                 widowControl,
                 contextualSpacing,
                 shadingFillColorHex,
-                borders) { SmallCaps = smallCaps, FontFamilies = fontFamilies, ComplexScript = complexScript, TextSpacing = textSpacing, LineSpacing = authoredLineSpacing, ParagraphSpacing = paragraphSpacing };
+                borders) { SmallCaps = smallCaps, BiDi = bidi, FontFamilies = fontFamilies, ComplexScript = complexScript, TextSpacing = textSpacing, LineSpacing = authoredLineSpacing, ParagraphSpacing = paragraphSpacing };
             if (cache != null && !string.IsNullOrWhiteSpace(resolvedStyleId)) {
                 cache.ParagraphDefaults[resolvedStyleId!] = result;
             }

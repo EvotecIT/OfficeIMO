@@ -338,7 +338,7 @@ namespace OfficeIMO.Word.Pdf {
                     (paragraphFontSize.HasValue ? global::OfficeIMO.OfficeLength.Points(paragraphFontSize.Value) : (global::OfficeIMO.OfficeLength?)null),
                     lineSpacing, pagination.WidowControl, pagination.KeepTogether ?? false, pagination.KeepWithNext ?? false,
                     justification.JustificationMode, justification.JustifyExplicitLineBreaks, justification.JustifyLastLine, justification.UseWordJustificationSpacing,
-                    fitText: cell.FitText);
+                    fitText: cell.FitText) { AlignJustifiedRemainderRight = justification.AlignJustifiedRemainderRight };
                 paragraphs.Add(cellParagraph);
                 if (blocks != null && !IsNativeNestedTableCellEndCarrier(cellElements, i, lastIndex, paragraph, getMarker, pagination))
                     blocks.Add(cellParagraph.ToBlock());
@@ -392,7 +392,8 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static W.JustificationValues? ResolveNativeTableCellParagraphJustification(WordParagraph paragraph, NativeTableStyleDefaults tableStyleDefaults) =>
-            paragraph.ParagraphAlignment.ToOpenXml() ?? GetNativeParagraphStyleDefaults(paragraph).Alignment ?? tableStyleDefaults.ParagraphAlignment;
+            ResolveNativeVisualJustification(paragraph.ParagraphAlignment.ToOpenXml() ?? GetNativeParagraphStyleDefaults(paragraph).Alignment ??
+                tableStyleDefaults.ParagraphAlignment, IsNativeBiDiParagraph(paragraph));
 
         private static (double Left, double Right, double FirstLine) ResolveNativeTableCellParagraphIndentation(WordParagraph paragraph, NativeTableStyleDefaults tableStyleDefaults, bool listItem) {
             NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);

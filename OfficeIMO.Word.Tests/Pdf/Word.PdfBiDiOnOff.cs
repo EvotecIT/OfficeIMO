@@ -35,7 +35,7 @@ public sealed class WordPdfBiDiOnOffTests {
     [Theory]
     [InlineData("false", false)]
     [InlineData("true", true)]
-    public void SaveAsPdf_BiDiRetainsExplicitAlignmentAndConfiguredViewerDirection(string sourceValue, bool explicitLeft) {
+    public void SaveAsPdf_BiDiMapsExplicitAlignmentAndRetainsConfiguredViewerDirection(string sourceValue, bool explicitLeft) {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph("EXPLICIT");
         W.Paragraph paragraph = document.OpenXmlDocument.MainDocumentPart!.Document.Body!.Elements<W.Paragraph>().Last();
@@ -47,10 +47,8 @@ public sealed class WordPdfBiDiOnOffTests {
         byte[] bytes = ConvertBiDiDocumentWithoutSourceChanges(document, PdfViewerDirection.LeftToRight);
         using var pdf = PdfPigDocument.Open(bytes);
         var target = Assert.Single(Assert.Single(pdf.GetPages()).GetWords(), word => word.Text == "EXPLICIT");
-        if (explicitLeft)
-            Assert.InRange(target.Letters.First().StartBaseLine.X, 29.99D, 30.01D);
-        else
-            Assert.InRange(target.Letters.Last().EndBaseLine.X, 269.99D, 270.01D);
+        // Left in a right-to-left paragraph is its starting side, the right edge, as right is in a left-to-right one.
+        Assert.InRange(target.Letters.Last().EndBaseLine.X, 269.99D, 270.01D);
         Assert.Equal("L2R", PdfInspector.Inspect(bytes).ViewerPreferences?.GetValue("Direction"));
     }
 

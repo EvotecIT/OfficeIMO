@@ -8,6 +8,9 @@ public static partial class WordPdfConverterExtensions {
     private static void ApplyNativeParagraphJustification(PdfCore.PdfParagraphStyle style, WordParagraph paragraph,
         W.JustificationValues? resolvedAlignment = null) {
         W.JustificationValues? alignment = resolvedAlignment ?? ResolveNativeParagraphJustification(paragraph);
+        // A right-to-left paragraph ends justified text, which Word does not stretch, at its right edge.
+        style.AlignJustifiedRemainderRight = IsNativeBiDiParagraph(paragraph) && alignment != W.JustificationValues.Distribute &&
+            alignment != W.JustificationValues.ThaiDistribute && MapNativeParagraphAlign(alignment) == global::OfficeIMO.OfficeAlignment.Justify;
         if (alignment != W.JustificationValues.Both && alignment != W.JustificationValues.Distribute) return;
         style.UseWordJustificationSpacing = true;
         W.DoNotExpandShiftReturn? suppression = paragraph._document?._wordprocessingDocument?.MainDocumentPart?

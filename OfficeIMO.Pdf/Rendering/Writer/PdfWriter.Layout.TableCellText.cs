@@ -225,6 +225,7 @@ internal static partial class PdfWriter {
             JustificationMode = paragraph.JustificationMode,
             JustifyExplicitLineBreaks = paragraph.JustifyExplicitLineBreaks,
             JustifyLastLine = paragraph.JustifyLastLine,
+            AlignJustifiedRemainderRight = paragraph.AlignJustifiedRemainderRight,
             UseWordJustificationSpacing = paragraph.UseWordJustificationSpacing
         };
 

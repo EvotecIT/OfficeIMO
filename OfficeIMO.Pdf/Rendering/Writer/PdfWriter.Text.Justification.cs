@@ -6,22 +6,25 @@ internal static partial class PdfWriter {
     /// <summary>Source paragraph identity carried through cell line slicing and physical fragments.</summary>
     private readonly record struct RichLineJustificationPolicy(PdfJustificationMode Mode,
         bool ExplicitBreaks, bool LastLine, bool IsFinalParagraphLine, bool IsExplicitBreak,
-        bool UseWordJustificationSpacing = false) {
+        bool UseWordJustificationSpacing = false, bool RemainderRight = false) {
         internal RichLineJustificationPolicy(PdfParagraphStyle? style, bool final, bool explicitBreak)
             : this(style?.JustificationMode ?? PdfJustificationMode.Words,
                 style?.JustifyExplicitLineBreaks == true, style?.JustifyLastLine == true, final, explicitBreak,
-                style?.UseWordJustificationSpacing == true) { }
+                style?.UseWordJustificationSpacing == true, style?.AlignJustifiedRemainderRight == true) { }
     }
 
     private readonly struct RichLineJustification {
-        internal RichLineJustification(List<RichSeg> segments, double wordSpacing, double width) {
+        internal RichLineJustification(List<RichSeg> segments, double wordSpacing, double width, bool alignRight = false) {
             Segments = segments;
             WordSpacing = wordSpacing;
             Width = width;
+            AlignRight = alignRight;
         }
         internal List<RichSeg> Segments { get; }
         internal double WordSpacing { get; }
         internal double Width { get; }
+        /// <summary>A justified line left at its natural width that sits at the right edge.</summary>
+        internal bool AlignRight { get; }
     }
 
     /// <summary>Plans one physical line's glyph and separator advances for paint and paint diagnostics.</summary>
@@ -41,7 +44,7 @@ internal static partial class PdfWriter {
         RichLineJustificationPolicy policy = segmentPolicy ?? new RichLineJustificationPolicy(style, isFinalParagraphLine, hardBreak);
         bool expands = alignment == OfficeAlignment.Justify && availableWidth > naturalWidth &&
             (policy.IsExplicitBreak ? policy.ExplicitBreaks : !policy.IsFinalParagraphLine || policy.LastLine);
-        if (!expands) return new RichLineJustification(segments, 0D, naturalWidth);
+        if (!expands) return new RichLineJustification(segments, 0D, naturalWidth, policy.RemainderRight);
         int lastTab = segments.FindLastIndex(segment => segment.LeadingIsTab);
         if (lastTab >= 0) {
             if (segments[lastTab].LeadingTabAlignment != PdfTabAlignment.Left)

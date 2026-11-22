@@ -5679,6 +5679,11 @@ versions:
 - Superscript and subscript text takes its size and offset from the font's own script metrics, rounded
   to half a point, instead of fixed proportions of the text size.
 - An inline picture's effect extent, the margin Word records around it, counts towards its line height.
+- In a right-to-left (`w:bidi`) paragraph, left and start alignment, and no alignment, place text on the
+  right, and right and end alignment place it on the left, as in Word. End alignment in a left-to-right
+  paragraph places text on the right. The last line of justified right-to-left text ends at the right
+  edge. This applies in the body, table cells, headers and text boxes, and paragraphs in text boxes are
+  now justified and distributed instead of left-aligned.
 
 If your process depends on where pages break, regenerate the PDFs and compare them with your stored
 baselines, checking page counts and where tables and lists break. Refresh page-dependent content

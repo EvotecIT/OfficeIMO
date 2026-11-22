@@ -422,6 +422,7 @@ internal sealed class PdfTableCellParagraph {
     public PdfJustificationMode JustificationMode { get; }
     public bool JustifyExplicitLineBreaks { get; }
     public bool JustifyLastLine { get; }
+    internal bool AlignJustifiedRemainderRight { get; init; }
     internal bool UseWordJustificationSpacing { get; }
 
     /// <summary>Stretches or condenses each source line to fill the paragraph's cell width without changing font height.</summary>
@@ -448,6 +449,6 @@ internal sealed class PdfTableCellParagraph {
         return new RichParagraphBlock(Runs, Align ?? OfficeAlignment.Left, null, style);
     }
 
-    internal PdfTableCellParagraph WithRuns(System.Collections.Generic.IEnumerable<PdfTextRun> runs) => new PdfTableCellParagraph(runs, SpacingAfter, Align, SpacingBefore, LeftIndent, RightIndent, FirstLineIndent, LineHeight, DefaultTabStopWidth, TabStops, FontSize, LineSpacing, WidowControl, KeepTogether, KeepWithNext, JustificationMode, JustifyExplicitLineBreaks, JustifyLastLine, UseWordJustificationSpacing, FitText);
-    internal PdfTableCellParagraph Clone() => new PdfTableCellParagraph(Runs, SpacingAfter, Align, SpacingBefore, LeftIndent, RightIndent, FirstLineIndent, LineHeight, DefaultTabStopWidth, TabStops, FontSize, LineSpacing, WidowControl, KeepTogether, KeepWithNext, JustificationMode, JustifyExplicitLineBreaks, JustifyLastLine, UseWordJustificationSpacing, FitText);
+    internal PdfTableCellParagraph WithRuns(System.Collections.Generic.IEnumerable<PdfTextRun> runs) => new PdfTableCellParagraph(runs, SpacingAfter, Align, SpacingBefore, LeftIndent, RightIndent, FirstLineIndent, LineHeight, DefaultTabStopWidth, TabStops, FontSize, LineSpacing, WidowControl, KeepTogether, KeepWithNext, JustificationMode, JustifyExplicitLineBreaks, JustifyLastLine, UseWordJustificationSpacing, FitText) { AlignJustifiedRemainderRight = AlignJustifiedRemainderRight };
+    internal PdfTableCellParagraph Clone() => new PdfTableCellParagraph(Runs, SpacingAfter, Align, SpacingBefore, LeftIndent, RightIndent, FirstLineIndent, LineHeight, DefaultTabStopWidth, TabStops, FontSize, LineSpacing, WidowControl, KeepTogether, KeepWithNext, JustificationMode, JustifyExplicitLineBreaks, JustifyLastLine, UseWordJustificationSpacing, FitText) { AlignJustifiedRemainderRight = AlignJustifiedRemainderRight };
 }
