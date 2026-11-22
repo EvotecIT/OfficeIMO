@@ -19,12 +19,16 @@ internal static class PowerPointReaderAdapter {
 
     internal static OfficeDocumentReadResult ReadDocument(string path, ReaderOptions readerOptions, ReaderPowerPointOptions options, CancellationToken cancellationToken) {
         bool isOpenXml = PowerPointFormatCatalog.TryGetByExtension(path, out var format) && format!.Generation == OfficeFormatGeneration.Modern;
-        if (isOpenXml) {
+        bool streamText = PowerPointStreamingTextReader.Applies(readerOptions) && !IsLegacySourceName(path);
+        if (isOpenXml || streamText) {
             using FileStream? file = OfficeStableFileRead.TryOpen(path);
             if (file != null) return ReadDocument(file, path, readerOptions, options, cancellationToken);
-        } else if (PowerPointStreamingTextReader.Applies(readerOptions) && !IsLegacySourceName(path)) {
-            using var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete);
-            if (PowerPointStreamingTextReader.TryRead(file, path, readerOptions, options, cancellationToken) is { } streamed) return streamed;
+            if (streamText) {
+                using var shared = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+                using Stream snapshot = ReaderInputLimits.EnsureSeekableReadStream(shared,
+                    CreateLoadOptions(readerOptions, path).MaxInputBytes, cancellationToken, out _);
+                return ReadDocument(snapshot, path, readerOptions, options, cancellationToken);
+            }
         }
         using PowerPointDocument presentation = Load(path, readerOptions, cancellationToken);
         return Project(presentation, path, readerOptions, options, cancellationToken);

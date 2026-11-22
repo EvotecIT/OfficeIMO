@@ -769,7 +769,7 @@ namespace OfficeIMO.Word {
                 var document = new WordDocument {
                     _ownedPackageStream = packageStream,
                     _openXmlOriginalPackageBytes = OfficeCompatibilitySourceCarrier.ContainsPackageCarrier(packageStream)
-                        ? OfficeStreamReader.ReadAllBytes(packageStream)
+                        ? OfficeStreamReader.ReadAllBytes(packageStream, cancellationToken)
                         : null,
                     _persistenceMode = resolved.PersistenceMode
                 };

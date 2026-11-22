@@ -20,14 +20,16 @@ internal static class WordReaderAdapter {
         if (routeWordForDos && LegacyWordReaderAdapter.HasWordForDosHeader(path, cancellationToken)) {
             return LegacyWordReaderAdapter.ReadWordForDosDocument(path, readerOptions, options, legacyImportOptions, cancellationToken);
         }
-        bool isOpenXml = WordFormatCatalog.TryGetByExtension(path, out var format) && format!.Generation == OfficeFormatGeneration.Modern;
-        if (isOpenXml) {
-            using FileStream? file = OfficeStableFileRead.TryOpen(path);
-            if (file != null)
-                return ReadDocument(file, path, readerOptions, options, legacyImportOptions, routeWordForDos: false, cancellationToken);
-        } else if (WordStreamingTextReader.Applies(readerOptions)) {
+        if (WordStreamingTextReader.Applies(readerOptions)) {
             using FileStream file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
             if (WordStreamingTextReader.TryRead(file, path, readerOptions, cancellationToken) is { } streamed) return streamed;
+        }
+        if (WordFormatCatalog.TryGetByExtension(path, out var format) && format!.Generation == OfficeFormatGeneration.Modern) {
+            using FileStream? file = OfficeStableFileRead.TryOpen(path);
+            if (file != null) {
+                using WordDocument borrowed = Load(file, readerOptions, cancellationToken);
+                return Project(borrowed, path, readerOptions, options, cancellationToken);
+            }
         }
         using WordDocument document = Load(path, readerOptions);
         return Project(document, path, readerOptions, options, cancellationToken);

@@ -45,7 +45,8 @@ namespace OfficeIMO.Visio {
             Load(stream, options, CancellationToken.None);
 
         /// <summary>Loads a diagram synchronously with the owning operation's cancellation token.</summary>
-        internal static VisioDocument Load(Stream stream, VisioLoadOptions? options, CancellationToken cancellationToken) {
+        internal static VisioDocument Load(Stream stream, VisioLoadOptions? options, CancellationToken cancellationToken,
+            bool allowInPlace = true) {
             ArgumentNullException.ThrowIfNull(stream);
             cancellationToken.ThrowIfCancellationRequested();
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
@@ -54,7 +55,7 @@ namespace OfficeIMO.Visio {
             Stream? associatedStream = OfficeDocumentLifecycle.ResolveAssociatedDestination(
                 stream,
                 DocumentAccessMode.ReadWrite);
-            if (CanLoadInPlace(stream, resolved)) {
+            if (allowInPlace && CanLoadInPlace(stream, resolved)) {
                 return LoadDocumentInPlace(stream, filePath: null, associatedStream, resolved, cancellationToken);
             }
             byte[] bytes = OfficeStreamReader.ReadAllBytes(stream, cancellationToken, ResolveInputLimit(resolved));

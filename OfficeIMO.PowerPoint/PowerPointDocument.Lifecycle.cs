@@ -535,7 +535,7 @@ namespace OfficeIMO.PowerPoint {
                     options.PackageSecurity, options.CaptureSourcePackageSecurity, cancellationToken);
                 PowerPointDocument presentation = OpenPackage(packageStream, filePath: null, associatedStream: null, options);
                 try {
-                    presentation.MarkLoadedFromOpenXml(packageStream);
+                    presentation.MarkLoadedFromOpenXml(packageStream, cancellationToken);
                     cancellationToken.ThrowIfCancellationRequested();
                 } catch {
                     presentation.Dispose();

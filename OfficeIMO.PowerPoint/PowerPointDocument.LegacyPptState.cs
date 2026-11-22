@@ -142,10 +142,10 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>Records an Open XML source read in place from the caller's stream.</summary>
-        internal void MarkLoadedFromOpenXml(Stream originalPackage) {
+        internal void MarkLoadedFromOpenXml(Stream originalPackage, CancellationToken cancellationToken) {
             ArgumentNullException.ThrowIfNull(originalPackage);
             MarkLoadedFromOpenXmlCore(OfficeCompatibilitySourceCarrier.ContainsPackageCarrier(originalPackage)
-                ? OfficeIMO.Core.Internal.OfficeStreamReader.ReadAllBytes(originalPackage)
+                ? OfficeIMO.Core.Internal.OfficeStreamReader.ReadAllBytes(originalPackage, cancellationToken)
                 : null);
         }
 

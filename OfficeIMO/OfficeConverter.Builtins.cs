@@ -92,7 +92,8 @@ public static partial class OfficeConverter {
                 WordLoadOptions loadOptions = WordInputOptions(settings);
                 if (id == "docx-pdf" && settings.WordLoad == null && settings.Theme == null)
                     loadOptions.AccessMode = DocumentAccessMode.ReadOnly;
-                using WordDocument document = await WordDocument.LoadAsync(input, loadOptions, token).ConfigureAwait(false);
+                using MemoryStream? borrowed = BorrowCapturedPackage(input, loadOptions.AccessMode);
+                using WordDocument document = await WordDocument.LoadAsync(borrowed ?? input, loadOptions, token).ConfigureAwait(false);
                 sourceReport = document.CreateLoadReport(settings.SourceName!, timer.Elapsed);
                 if (settings.FailOnLoss) sourceReport.ThrowIfLoss();
                 if (settings.Theme != null) document.ApplyTheme(settings.Theme);
@@ -126,7 +127,8 @@ public static partial class OfficeConverter {
                 // disposal from rewriting every package entry the conversion read. Caller-supplied
                 // load options keep the access they asked for.
                 if (id == "pptx-pdf" && settings.PowerPointLoad == null) loadOptions.AccessMode = DocumentAccessMode.ReadOnly;
-                using PowerPointDocument document = await PowerPointDocument.LoadAsync(input, loadOptions, token).ConfigureAwait(false);
+                using MemoryStream? borrowed = BorrowCapturedPackage(input, loadOptions.AccessMode);
+                using PowerPointDocument document = await PowerPointDocument.LoadAsync(borrowed ?? input, loadOptions, token).ConfigureAwait(false);
                 sourceReport = document.CreateLoadReport(settings.SourceName!, timer.Elapsed);
                 if (settings.FailOnLoss) sourceReport.ThrowIfLoss();
                 if (id == "pptx-html") result = await ConvertPowerPointHtmlAsync(document, output, settings, token).ConfigureAwait(false);
