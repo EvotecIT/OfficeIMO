@@ -187,7 +187,6 @@ internal sealed partial class PdfReadDocument {
     internal PdfDocumentProperties UncheckedMetadata => ExtractMetadata();
     internal PdfDocumentProperties GetUncheckedMetadata(CancellationToken cancellationToken) => ExtractMetadata(cancellationToken);
     internal PdfXmpMetadataInfo? UncheckedXmpMetadata => _xmpMetadata;
-    internal IReadOnlyList<PdfOutputIntentInfo> UncheckedOutputIntents => _outputIntents;
     internal bool UncheckedOutputIntentsAreComplete => _outputIntentsAreComplete;
     internal IReadOnlyList<PdfPageLabel> UncheckedPageLabels => _pageLabels;
     internal IReadOnlyList<PdfNamedDestination> UncheckedNamedDestinations => _namedDestinations;

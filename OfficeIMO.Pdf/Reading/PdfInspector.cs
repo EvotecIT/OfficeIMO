@@ -719,7 +719,7 @@ internal static class PdfInspector {
             ? document.UncheckedAttachments
             : Array.Empty<PdfAttachmentInfo>();
         IReadOnlyList<PdfOutputIntentInfo> outputIntents = useDocumentWideObjects
-            ? document.UncheckedOutputIntents
+            ? document.GetReportOutputIntents(cancellationToken)
             : Array.Empty<PdfOutputIntentInfo>();
         bool outputIntentsAreComplete = useDocumentWideObjects && document.UncheckedOutputIntentsAreComplete;
         PdfXmpMetadataInfo? xmpMetadata = useDocumentWideObjects
