@@ -72,6 +72,28 @@ public sealed class BibliographyIoAndSafetyTests {
         Assert.Throws<InvalidDataException>(() => BibliographyDocument.Load(stream, BibliographyFormat.BibTex, options));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Precancelled_stream_load_does_not_read_or_report_a_size_limit(bool asynchronous) {
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes("prefix@book{x,title={too long}}"));
+        stream.Position = 6;
+        var options = new BibliographyReadOptions { MaxInputBytes = 8 };
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        if (asynchronous) {
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+                BibliographyDocument.LoadAsync(stream, BibliographyFormat.BibTex, options, cancellationToken: cancellation.Token));
+        } else {
+            Assert.ThrowsAny<OperationCanceledException>(() =>
+                BibliographyDocument.Load(stream, BibliographyFormat.BibTex, options, cancellationToken: cancellation.Token));
+        }
+
+        Assert.True(stream.CanRead);
+        Assert.Equal(6, stream.Position);
+    }
+
     [Fact]
     public void Unknown_path_extension_uses_bounded_content_detection() {
         string path = Path.Combine(Path.GetTempPath(), "officeimo-bibliography-" + Guid.NewGuid().ToString("N") + ".data");

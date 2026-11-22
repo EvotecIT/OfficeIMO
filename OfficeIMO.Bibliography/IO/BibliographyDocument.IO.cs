@@ -120,16 +120,12 @@ public sealed partial class BibliographyDocument {
     }
 
     private static byte[] ReadAllBytes(Stream stream, long maximum, CancellationToken cancellationToken) {
-        var output = new MemoryStream();
-        var buffer = new byte[81920];
-        while (true) {
-            cancellationToken.ThrowIfCancellationRequested();
-            int read = stream.Read(buffer, 0, buffer.Length);
-            if (read == 0) break;
-            if (output.Length + read > maximum) throw new InvalidDataException($"Bibliography input exceeds the configured {maximum} byte limit.");
-            output.Write(buffer, 0, read);
+        cancellationToken.ThrowIfCancellationRequested();
+        try {
+            return OfficeStreamReader.ReadRemainingBytes(stream, cancellationToken, maximum);
+        } catch (InvalidDataException exception) when (OfficeStreamReader.IsSizeLimitException(exception)) {
+            throw new InvalidDataException($"Bibliography input exceeds the configured {maximum} byte limit.", exception);
         }
-        return output.ToArray();
     }
 
     private static BibliographyReadResult LoadDetected(Stream stream, BibliographyReadOptions? options, Encoding? encoding, CancellationToken cancellationToken) {
@@ -147,15 +143,12 @@ public sealed partial class BibliographyDocument {
     }
 
     private static async Task<byte[]> ReadAllBytesAsync(Stream stream, long maximum, CancellationToken cancellationToken) {
-        var output = new MemoryStream();
-        var buffer = new byte[81920];
-        while (true) {
-            int read = await stream.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false);
-            if (read == 0) break;
-            if (output.Length + read > maximum) throw new InvalidDataException($"Bibliography input exceeds the configured {maximum} byte limit.");
-            output.Write(buffer, 0, read);
+        cancellationToken.ThrowIfCancellationRequested();
+        try {
+            return await OfficeStreamReader.ReadRemainingBytesAsync(stream, cancellationToken, maximum).ConfigureAwait(false);
+        } catch (InvalidDataException exception) when (OfficeStreamReader.IsSizeLimitException(exception)) {
+            throw new InvalidDataException($"Bibliography input exceeds the configured {maximum} byte limit.", exception);
         }
-        return output.ToArray();
     }
 
 }
