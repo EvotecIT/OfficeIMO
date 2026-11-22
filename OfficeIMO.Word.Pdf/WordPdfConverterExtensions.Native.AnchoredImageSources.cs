@@ -14,7 +14,7 @@ public static partial class WordPdfConverterExtensions {
     private static bool TryPrepareNativeAnchoredImageItem(object sourceIdentity, WordImage image,
         byte[] bytes, double width, double height, WordSection? section,
         PdfCore.PdfPageSize pageSize, PdfCore.PdfPageMargins margins, WordPdfExportOptions? options,
-        string source, out PdfCore.PdfCanvasAnchoredImageItem? item, out string? unsupportedReason) {
+        string source, out PdfCore.PdfCanvasAnchoredImageItem? item, out string? unsupportedReason, bool runningStory = false) {
         item = null;
         unsupportedReason = null;
         if (image._Image == null ||
@@ -26,7 +26,8 @@ public static partial class WordPdfConverterExtensions {
         PdfCore.PdfImageStyle imageStyle = CreateNativeImageStyle(image, options, source);
         string? linkUri = GetNativeImageLink(image);
         string? linkContents = linkUri != null && !string.IsNullOrWhiteSpace(image.AltText) ? image.AltText : null;
-        if (layout.BehindDocument)
+        // Wrapped text keeps clear of the picture; in a header or footer it stays in the story's layer, under the body.
+        if (layout.BehindDocument || runningStory)
             content.Image(bytes, global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height), style: imageStyle,
                     linkUri: linkUri, linkContents: linkContents);
         else
@@ -35,6 +36,9 @@ public static partial class WordPdfConverterExtensions {
         IReadOnlyList<PdfCore.PdfCanvasItem> paint = content.Items;
         if (layout.BehindDocument)
             paint = new PdfCore.PdfCanvasItem[] { new PdfCore.PdfCanvasBehindTextItem(paint, layout.RelativeHeight) };
+        // The story's in-front layer orders it by z-order with the story's other in-front drawings.
+        else if (runningStory)
+            paint = new PdfCore.PdfCanvasItem[] { new PdfCore.PdfCanvasInFrontOfTextItem(paint, layout.RelativeHeight) };
         item = new PdfCore.PdfCanvasAnchoredImageItem(sourceIdentity, new PdfCore.PdfCanvasBlock(paint),
             width, height, new PdfCore.PdfAnchoredImagePosition(placement.X, placement.Y,
                 placement.MarginX, margins.Left.ToPoints(), placement.ParagraphY), exclusion);

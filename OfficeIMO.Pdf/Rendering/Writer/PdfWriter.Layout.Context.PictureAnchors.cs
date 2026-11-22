@@ -105,6 +105,9 @@ internal static partial class PdfWriter {
                 // Capturing only the inner image would leave its source coordinates at (0,0).
                 var translated = new PdfCanvasEffectItem(behind.Items, translation, 1D, OfficeBlendMode.Normal);
                 RenderBehindTextCanvas(new PdfCanvasBehindTextItem(new PdfCanvasItem[] { translated }, behind.ZOrder));
+            } else if (item.Content.Items.Count == 1 && item.Content.Items[0] is PdfCanvasInFrontOfTextItem inFront) {
+                var translated = new PdfCanvasEffectItem(inFront.Items, translation, 1D, OfficeBlendMode.Normal);
+                RenderInFrontOfTextCanvas(new PdfCanvasInFrontOfTextItem(new PdfCanvasItem[] { translated }, inFront.ZOrder));
             } else {
                 RenderCanvasEffect(new PdfCanvasEffectItem(item.Content.Items, translation, 1D, OfficeBlendMode.Normal));
             }

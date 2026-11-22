@@ -49,7 +49,8 @@ public static partial class WordPdfConverterExtensions {
                         groupStyle.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D);
                         groupStyle.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D);
                         RenderNativeParagraphShapeGroups(pdf, paragraph, new[] { view },
-                            ResolveNativeParagraphAlign(paragraph, allowJustify: false), options, groupStyle, ref imageCount, null);
+                            ResolveNativeParagraphAlign(paragraph, allowJustify: false), options, groupStyle, ref imageCount, null,
+                            runningStory: defaults.RunningContentContext != null);
                         if (groupStyle.AnchoredCanvas != null) {
                             pdf.Paragraph(builder => builder.AddLineBreak().SetFontSize(global::OfficeIMO.OfficeLength.Points(ResolveNativeParagraphFontSize(paragraph,
                                 defaults, GetNativeParagraphStyleDefaults(paragraph)))), style: groupStyle);

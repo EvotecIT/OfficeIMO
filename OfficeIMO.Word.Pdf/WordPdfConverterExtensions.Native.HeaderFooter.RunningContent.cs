@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml;
 using W = DocumentFormat.OpenXml.Wordprocessing;
+using V = DocumentFormat.OpenXml.Vml;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf;
@@ -68,11 +69,16 @@ public static partial class WordPdfConverterExtensions {
                 // Inline pictures retain their measured line height; supported
                 // qualified anchors retain paragraph/page placement without
                 // reserving their paint frame as flowing header/footer content.
+                // Anchored shape groups keep their own placement in the story's drawing layers.
+                bool placedGroups = CanPlaceNativeRunningShapeGroups(GetNativePageSize(section, options), paragraph, options);
                 ordinaryStoriesSupported &= source.Descendants<W.Drawing>()
-                    .All(drawing => IsNativePlacedRunningTextBoxDrawing(drawing) || IsNativeRunningPictureDrawing(drawing, section, options, margins)) &&
-                    source.Descendants<W.Picture>().All(picture => IsNativePlacedRunningTextBoxFallback(picture) || IsNativeRunningVmlPicture(picture)) &&
+                    .All(drawing => IsNativePlacedRunningTextBoxDrawing(drawing) || IsNativeRunningPictureDrawing(drawing, section, options, margins) ||
+                        placedGroups && IsNativeShapeGroupDrawing(drawing)) &&
+                    source.Descendants<W.Picture>().All(picture => IsNativePlacedRunningTextBoxFallback(picture) || IsNativeRunningVmlPicture(picture) ||
+                        placedGroups && IsNativeShapeGroupFallback(picture)) &&
                     !source.Descendants<W.EmbeddedObject>().Any() &&
-                    source.Descendants<AlternateContent>().All(IsNativePlacedRunningTextBoxAlternate) && !HasNativePageBreakBefore(paragraph) &&
+                    source.Descendants<AlternateContent>().All(alternate => IsNativePlacedRunningTextBoxAlternate(alternate) ||
+                        placedGroups && IsNativeShapeGroupAlternate(alternate)) && !HasNativePageBreakBefore(paragraph) &&
                     !source.Descendants<W.Break>().Any(item => item.Type?.Value == W.BreakValues.Page ||
                         item.Type?.Value == W.BreakValues.Column);
                 WordDocumentTraversal.ListInfo? info = WordDocumentTraversal.GetListInfo(paragraph);
@@ -123,6 +129,71 @@ public static partial class WordPdfConverterExtensions {
         }
         return true;
     }
+
+    /// <summary>
+    /// Every DrawingML shape group of a header or footer paragraph is anchored and keeps its fixed placement.
+    /// Groups that would flow or cannot be drawn keep the story on its established simple projection.
+    /// </summary>
+    private static bool CanPlaceNativeRunningShapeGroups(PdfCore.PdfPageSize pageSize, WordParagraph paragraph, WordPdfExportOptions? options) {
+        if (!paragraph._paragraph.Descendants<W.Drawing>().Any(IsNativeShapeGroupDrawing)) return false;
+        List<WordParagraph> runs = GetNativeRuns(paragraph);
+        // Hidden groups are neither painted nor counted, so they never block placement. A VML group
+        // keeps the simple route, which reports it as not drawn before the conversion report is taken.
+        List<NativeShapeGroupSource> sources = EnumerateNativeVisibleShapeGroups(paragraph, runs).ToList();
+        if (sources.Any(source => source.Legacy != null)) return false;
+        int groups = sources.Count;
+        var style = new PdfCore.PdfParagraphStyle();
+        int imageCount = 0;
+        bool flowed = false;
+        // A read-only projection: keep its warnings out of the real operation.
+        ProjectNativeParagraphShapeGroups(pageSize, paragraph, runs, options?.CloneForConversion(), style,
+            _ => flowed = true, ref imageCount, runningStory: true);
+        return !flowed && (style.AnchoredCanvas?.Items.Count ?? 0) == groups;
+    }
+
+    /// <summary>The simple header and footer projection has no shape group route, so it reports each story's groups as omitted.</summary>
+    private static void RecordNativeRunningShapeGroupDiagnostics(WordSection section, WordPdfExportOptions? options,
+        bool mapsHeader, bool mapsFooter) {
+        if (options == null) return;
+        if (!mapsHeader) {
+            Record(section.ResolveDefaultHeader(), "default header");
+            if (section.PageSetup.DifferentFirstPage) Record(section.ResolveFirstHeader(), "first header");
+            if (section.DocumentOddEvenSettingEnabled) Record(section.ResolveEvenHeader(), "even header");
+        }
+        if (!mapsFooter) {
+            Record(section.ResolveDefaultFooter(), "default footer");
+            if (section.PageSetup.DifferentFirstPage) Record(section.ResolveFirstFooter(), "first footer");
+            if (section.DocumentOddEvenSettingEnabled) Record(section.ResolveEvenFooter(), "even footer");
+        }
+
+        void Record(WordHeaderFooter? story, string source) {
+            OpenXmlElement? root = (OpenXmlElement?)story?._header ?? story?._footer;
+            if (root == null) return;
+            int groups = 0;
+            foreach (W.Paragraph element in root.Descendants<W.Paragraph>()) {
+                var paragraph = new WordParagraph(story!.Document, element);
+                // The groups the rich route would paint; the selected branch holds one copy of each.
+                groups += EnumerateNativeVisibleShapeGroups(paragraph, GetNativeRuns(paragraph)).Count();
+            }
+            if (groups == 0) return;
+            AddNativeExportWarning(options, "native-header-footer-shape-group-unsupported", source,
+                groups == 1 ? "A shape group in this header or footer is not drawn. Groups placed relative to the page or paragraph are drawn; margin-relative and VML-only groups are not yet."
+                    : $"{groups} shape groups in this header or footer are not drawn. Groups placed relative to the page or paragraph are drawn; margin-relative and VML-only groups are not yet.");
+        }
+    }
+
+    private static bool IsNativeShapeGroupDrawing(W.Drawing drawing) =>
+        drawing.Descendants<DocumentFormat.OpenXml.Drawing.GraphicData>().Any(data => data.ChildElements
+            .Any(child => child.NamespaceUri == NativeWordGroupNamespace && child.LocalName == "wgp"));
+
+    // Word stores a VML copy of a DrawingML group as the compatibility fallback.
+    private static bool IsNativeShapeGroupFallback(W.Picture picture) =>
+        picture.Ancestors<AlternateContentFallback>().FirstOrDefault()?.Parent is AlternateContent alternate && IsNativeShapeGroupAlternate(alternate);
+
+    private static bool IsNativeShapeGroupAlternate(AlternateContent alternate) =>
+        alternate.Elements<AlternateContentChoice>().Any() &&
+        alternate.Elements<AlternateContentChoice>().All(choice => choice.Descendants<W.Drawing>().Any() &&
+            choice.Descendants<W.Drawing>().All(IsNativeShapeGroupDrawing));
 
     private static bool IsNativePlacedRunningTextBoxDrawing(W.Drawing drawing) =>
         drawing.Descendants<W.TextBoxContent>().Any() || drawing.Ancestors<W.TextBoxContent>().Any();

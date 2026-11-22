@@ -5684,6 +5684,13 @@ versions:
   spacing, list markers, shading and borders as other paragraphs, and header text wraps around boxes
   set to square or top-and-bottom wrapping. As in Word, the header and footer paint under the body
   text. Nested boxes, boxes containing tables and unsupported fills keep the previous flowed layout.
+- Pictures and shape groups in front of text in headers and footers paint over all of that header's
+  or footer's text but under the body text, as in Word. In-front header pictures used to cover the body
+  text. Anchored shape groups in headers and footers, which were left out before, are now drawn when
+  every group in the paragraph keeps its own position. Groups that are still not drawn, those placed
+  relative to the margin and VML-only groups, are now reported with the
+  `native-header-footer-shape-group-unsupported` omission warning, so `ThrowIfLoss()` and strict loss
+  policies reject them.
 - A word space that ends a line after superscript or subscript text keeps the size of its own run.
 - In a right-to-left (`w:bidi`) paragraph, left and start alignment, and no alignment, place text on the
   right, and right and end alignment place it on the left, as in Word. End alignment in a left-to-right
