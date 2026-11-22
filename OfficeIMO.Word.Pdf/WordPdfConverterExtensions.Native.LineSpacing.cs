@@ -9,6 +9,9 @@ namespace OfficeIMO.Word.Pdf {
         private readonly record struct NativeLineSpacing(double? Value, W.LineSpacingRuleValues? Rule) {
             public double? GridPitch { get; init; }
             public W.VerticalTextAlignmentValues? FontAlignment { get; init; }
+            // WordPerfect-compatible line height: the natural box is the font size plus a
+            // fixed leading rather than each font's own line metrics.
+            public bool FixedFontLineBox { get; init; }
             // Word ignores a rule without a value in the same declaration.
             // Inherit the complete pair so its numeric units do not change.
             public NativeLineSpacing Inherit(NativeLineSpacing inherited) =>
@@ -28,6 +31,7 @@ namespace OfficeIMO.Word.Pdf {
                     : OfficeIMO.Pdf.PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(Value.Value / 20D))
                         .WithFixedLineBoxBaseline(Value.Value / 20D * .8D);
                 if (GridPitch.HasValue) spacing = spacing.WithLineGrid(GridPitch.Value);
+                if (FixedFontLineBox && !spacing.IsExact) spacing = spacing.WithFixedFontLeading(NativeWordPerfectLeading);
                 // The native PDF layout device uses 600 square pixels per inch.
                 // Align each font within its line without rounding line advances.
                 if (FontAlignment.HasValue) {
@@ -72,13 +76,18 @@ namespace OfficeIMO.Word.Pdf {
             NativeLineSpacing spacing = ReadNativeLineSpacing(paragraph._paragraph.ParagraphProperties?.SpacingBetweenLines,
                 paragraph._paragraph.ParagraphProperties?.TextAlignment)
                 .Inherit(styleDefaults.LineSpacing.Inherit(table.LineSpacing.Inherit(documentDefaults.LineSpacing)));
-            return spacing with { GridPitch = ResolveNativeLineGridPitch(paragraph, styleDefaults, documentDefaults, table) };
+            return spacing with {
+                GridPitch = ResolveNativeLineGridPitch(paragraph, styleDefaults, documentDefaults, table),
+                FixedFontLineBox = UsesNativeWordPerfectLineHeight(paragraph._document)
+            };
         }
 
         private static double? ResolveNativeLineGridPitch(WordParagraph paragraph, NativeParagraphStyleDefaults styleDefaults,
             NativeDocumentDefaults documentDefaults, NativeTableStyleDefaults table) {
             bool snap = ResolveNativeParagraphSpacing(paragraph, styleDefaults, documentDefaults, table).SnapToGrid ?? true;
             if (!snap) return null;
+            // A projected frame copy keeps the line grid of the section its paragraph is in.
+            if (IsNativeFrameCopy(paragraph)) return GetNativeSectionLineGridPitch(ResolveNativeFrameSourceParagraph(paragraph), documentDefaults.NoteContentSection);
             if (paragraph._paragraph.Ancestors<W.TableCell>().Any() && ReadNativeOnOff(paragraph._document
                 ._wordprocessingDocument.MainDocumentPart?.DocumentSettingsPart?.Settings?
                 .GetFirstChild<W.Compatibility>()?.GetFirstChild<W.AdjustLineHeightInTable>()) != true) return null;

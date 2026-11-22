@@ -48,7 +48,13 @@ internal static partial class PdfWriter {
                     }
 
                     if (block is TableBlock floating && TryMeasureFloatingTable(floating, frameWidth, fontSize, out double floatingBottom)) {
-                        deepest = Math.Min(deepest, floatingBottom);
+                        // A header or footer is sized by its flow; a positioned table or
+                        // frame in it floats over the page without growing the story.
+                        // Its paint may extend past the story's flow, so the story keeps the
+                        // whole page available for painting it.
+                        if (!isRunningContent) deepest = Math.Min(deepest, floatingBottom);
+                        // Word lets such a frame run past the page edge rather than raising the footer.
+                        else measuredNonFlowTablePaint = true;
                         continue;
                     }
                     double? height = block is RichParagraphBlock paragraph &&

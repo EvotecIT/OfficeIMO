@@ -106,9 +106,15 @@ internal static partial class PdfWriter {
 
             // Space kept free under the current body row for the page footer rows of a table with page summaries.
             double summaryReserve = 0D;
-            double TableBaseBottom() => style.Position?.VerticalAnchor == PdfTableAnchor.Page ? 0 : FootnoteBodyBottom;
+            // A positioned table in a header or footer cannot move to another page; like Word,
+            // it may run past the page edge, where the page clips it.
+            bool unboundedRunningFloat = isRunningContent && style.Position != null;
+            double TableBaseBottom() => unboundedRunningFloat ? -currentOpts.PageHeight.ToPoints()
+                : style.Position?.VerticalAnchor == PdfTableAnchor.Page ? 0 : FootnoteBodyBottom;
             double TableBottom() => TableBaseBottom() + summaryReserve;
-            double maxContentHeight = style.Position?.VerticalAnchor == PdfTableAnchor.Page ? currentOpts.PageHeight.ToPoints() : GetFullPageContentHeight();
+            double ResolveTableMaxContentHeight() => unboundedRunningFloat ? 2D * currentOpts.PageHeight.ToPoints()
+                : style.Position?.VerticalAnchor == PdfTableAnchor.Page ? currentOpts.PageHeight.ToPoints() : GetFullPageContentHeight();
+            double maxContentHeight = ResolveTableMaxContentHeight();
             bool tableFrameHasBodyContent = y < GetCurrentFramePageStartY() - .001D;
             if (style.Position is { VerticalAnchor: not PdfTableAnchor.Flow, VerticalAlignment: PdfTableVerticalAlignment.Top } capacityPosition && capacityPosition.VerticalOffset.ToPoints() > 0D) {
                 // Offset-preserving anchors cannot use space above their resolved top.
@@ -137,7 +143,7 @@ internal static partial class PdfWriter {
             for (int header = 0; header < repeatHeaderRowCount; header++)
                 repeatHeaderHeight += rowHeights[header] + GetTableRowGapAfter(header, tb.Rows.Count, rowGapPx);
             void ReflowTableForCurrentFrame(int rowIndex = 0, int startLine = 0, bool paddingChanged = false) {
-                maxContentHeight = style.Position?.VerticalAnchor == PdfTableAnchor.Page ? currentOpts.PageHeight.ToPoints() : GetFullPageContentHeight();
+                maxContentHeight = ResolveTableMaxContentHeight();
                 double newContentWidth = currentOpts.PageWidth.ToPoints() - currentOpts.MarginLeft.ToPoints() - currentOpts.MarginRight.ToPoints();
                 if (paddingChanged && rowIndex > 0 && startLine == 0 && activeColumnFlow == null &&
                     Math.Abs(contentWidth - newContentWidth) <= 0.001D && spanFlow.ActiveCells.Count == 0 &&
@@ -188,6 +194,8 @@ internal static partial class PdfWriter {
             }
             if (logicalTopBoundary && style.Position is { } verticalPosition) {
                 y = PositionTableY(verticalPosition, Math.Min(maxContentHeight, tableContentHeight));
+                // Word keeps a header or footer frame on the page, moving it up rather than past the edge.
+                if (unboundedRunningFloat) y = Math.Max(y, Math.Min(tableContentHeight, currentOpts.PageHeight.ToPoints()));
                 AvoidFloatingTable(verticalPosition, xOrigin, tableWidth, tableContentHeight);
             }
             void AdvanceInitialTablePage(bool preserveEmptyPage) {
@@ -202,6 +210,8 @@ internal static partial class PdfWriter {
                     pageBeforeTable = currentPage;
                     xOrigin = PositionTableX(position, tableWidth) + style.HorizontalOffset.ToPoints();
                     y = PositionTableY(position, Math.Min(maxContentHeight, tableContentHeight));
+                    // Word keeps a header or footer frame on the page, moving it up rather than past the edge.
+                    if (unboundedRunningFloat) y = Math.Max(y, Math.Min(tableContentHeight, currentOpts.PageHeight.ToPoints()));
                 }
             }
             double tableSpacingBefore = style.Position == null && y < GetCurrentFramePageStartY() - 0.001 ? style.SpacingBefore.ToPoints() : 0D;

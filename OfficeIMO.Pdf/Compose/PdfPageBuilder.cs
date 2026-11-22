@@ -21,6 +21,12 @@ public sealed class PdfPageBuilder {
         return this;
     }
 
+    /// <summary>Continues this page group on the current page when its page size matches, as a continuous section does.</summary>
+    internal PdfPageBuilder ContinueOnCurrentPage(bool continueOnCurrentPage = true) {
+        Options.ContinuesCurrentPage = continueOnCurrentPage;
+        return this;
+    }
+
     /// <summary>Sets page size using a predefined <see cref="PdfPageSize"/>.</summary>
     public PdfPageBuilder Size(PdfPageSize size) {
         Guard.Positive(size.Width.ToPoints(), nameof(size));

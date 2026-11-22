@@ -46,7 +46,12 @@ internal static partial class PdfWriter {
             pendingFloatingBookmarks.Clear();
         }
 
-        private PdfCreateOptions PageAnchorOptions => activeContainerScopes.Count > 0 ? activeContainerScopes[0].PageOptions : currentPage?.Options ?? currentOpts;
+        // A page group continued on this page anchors to its own side margins.
+        // A header or footer is laid out in its own context; its physical page decides parity.
+        private int PhysicalPageNumberForPosition => PicturePage;
+
+        private PdfCreateOptions PageAnchorOptions => activeContainerScopes.Count > 0 ? activeContainerScopes[0].PageOptions
+            : continuedPageAnchorOptions ?? currentPage?.Options ?? currentOpts;
 
         private double PositionTableX(PdfTablePosition position, double tableWidth) {
             double left = position.HorizontalAnchor == PdfTableAnchor.Page ? 0
@@ -54,8 +59,17 @@ internal static partial class PdfWriter {
             double available = position.HorizontalAnchor == PdfTableAnchor.Page ? PageAnchorOptions.PageWidth.ToPoints()
                 : position.HorizontalAnchor == PdfTableAnchor.Margin ? PageAnchorOptions.PageWidth.ToPoints() - PageAnchorOptions.MarginLeft.ToPoints() - PageAnchorOptions.MarginRight.ToPoints() : width;
             OfficeAlignment horizontal = position.HorizontalAlignment;
-            if (position.MirrorHorizontalOnEvenPages && (pages.Count + 1) % 2 == 0)
+            if (position.MirrorHorizontalOnEvenPages && PhysicalPageNumberForPosition % 2 == 0)
                 horizontal = horizontal == OfficeAlignment.Left ? OfficeAlignment.Right : horizontal == OfficeAlignment.Right ? OfficeAlignment.Left : horizontal;
+            if (position.AlignsInPageMargin && position.HorizontalAnchor == PdfTableAnchor.Page && horizontal != OfficeAlignment.Center) {
+                double pageWidth = PageAnchorOptions.PageWidth.ToPoints();
+                double marginLeft = PageAnchorOptions.MarginLeft.ToPoints();
+                double marginRight = PageAnchorOptions.MarginRight.ToPoints();
+                double inMargin = horizontal == OfficeAlignment.Right
+                    ? Math.Min(pageWidth - marginRight, pageWidth - tableWidth)
+                    : Math.Max(0D, marginLeft - tableWidth);
+                return inMargin + position.HorizontalOffset.ToPoints();
+            }
             double alignment = horizontal == OfficeAlignment.Right ? available - tableWidth
                 : horizontal == OfficeAlignment.Center ? (available - tableWidth) / 2 : 0;
             return left + alignment + position.HorizontalOffset.ToPoints();
@@ -67,7 +81,7 @@ internal static partial class PdfWriter {
             double bottom = position.VerticalAnchor == PdfTableAnchor.Page ? 0
                 : position.VerticalAnchor == PdfTableAnchor.Margin ? PageAnchorOptions.MarginBottom.ToPoints() : currentOpts.MarginBottom.ToPoints();
             PdfTableVerticalAlignment vertical = position.VerticalAlignment;
-            bool evenPage = (pages.Count + 1) % 2 == 0;
+            bool evenPage = PhysicalPageNumberForPosition % 2 == 0;
             if (vertical == PdfTableVerticalAlignment.Inside) vertical = evenPage ? PdfTableVerticalAlignment.Bottom : PdfTableVerticalAlignment.Top;
             else if (vertical == PdfTableVerticalAlignment.Outside) vertical = evenPage ? PdfTableVerticalAlignment.Top : PdfTableVerticalAlignment.Bottom;
             double alignment = vertical == PdfTableVerticalAlignment.Bottom ? top - bottom - tableHeight
@@ -92,6 +106,8 @@ internal static partial class PdfWriter {
             foreach (var capture in activeFloatingFlowCaptures)
                 capture.PaintedRegions.Add(new PdfLayoutRegion(pages.Count + 1, left, top - height, tableWidth, height));
             floatingTables.RemoveAll(region => !ReferenceEquals(region.Page, currentPage));
+            // Word lets other floats overlap a frame that text runs underneath.
+            if (!position.WrapsText) return;
             floatingTables.Add((currentPage, left - position.DistanceLeft.ToPoints(),
                 left + tableWidth + position.DistanceRight.ToPoints(), top + position.DistanceTop.ToPoints(),
                 top - height - position.DistanceBottom.ToPoints(), position.AllowOverlap));

@@ -150,6 +150,9 @@ internal static partial class PdfWriter {
             public int PageGroupId { get; set; }
             public int? RunningContentSectionId { get; set; }
             public HashSet<int>? RunningContentSections { get; set; }
+            // Page groups that begin part way down this page. The page counts as the first page
+            // of each such group, so a numbering restart applies from the following page.
+            public List<(int GroupId, PdfCreateOptions Options)>? ContinuedPageGroups { get; set; }
             public PdfPageContentHandle Content { get; set; }
             public System.Collections.Generic.List<LinkAnnotation> Annotations { get; } = new();
             public System.Collections.Generic.List<TextAnnotation> TextAnnotations { get; } = new();

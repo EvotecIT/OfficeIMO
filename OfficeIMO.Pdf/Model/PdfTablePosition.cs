@@ -59,6 +59,13 @@ public sealed class PdfTablePosition {
     public bool MirrorHorizontalOnEvenPages { get; }
     /// <summary>Whether this table can intersect earlier floating table bounds.</summary>
     public bool AllowOverlap { get; }
+    /// <summary>Whether following text wraps around the table. Word frames with no wrapping let text run under them.</summary>
+    internal bool WrapsText { get; init; } = true;
+    /// <summary>
+    /// Page-relative left or right alignment places the table in the page margin against the
+    /// text area, as Word does for frames, moving it inward only when it would leave the page.
+    /// </summary>
+    internal bool AlignsInPageMargin { get; init; }
 
     /// <summary>Horizontal reference rectangle.</summary>
     public PdfTableAnchor HorizontalAnchor { get; }

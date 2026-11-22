@@ -81,12 +81,15 @@ internal static partial class PdfWriter {
         int nextExplicitTabStopIndex = 0;
         double lineHeightRatio = fontSize > 0 ? lineHeight / fontSize : 1.2D;
         bool currentRunContributesDescent = true;
-        double RunLineHeight(double size) => currentRunContributesDescent
-            ? lineSpacing?.GetAdvance(size) ?? size * lineHeightRatio : 0D;
         double completedHeight = 0;
         double currentContentHeight = lineHeight;
         double currentMinimumWidth = 0;
         PdfNamedFontFace? currentRunNamedFont = null;
+        PdfStandardFont currentRunFont = baseFont;
+        double RunLineHeight(double size) => !currentRunContributesDescent ? 0D
+            : lineSpacing?.FixedFontLeading.HasValue == true
+                ? lineSpacing.GetFixedFontAdvance(size, IsFixedPitchFont(currentRunFont, currentRunNamedFont, options))
+                : lineSpacing?.GetAdvance(size) ?? size * lineHeightRatio;
         double currentRunAscent = 0;
         double currentRunDescent = 0;
         double currentLineTextAscent = 0;
@@ -617,6 +620,7 @@ internal static partial class PdfWriter {
             var tabAlignment = run.TabAlignment;
             var runBaseFont = run.StandardFont.HasValue ? ChooseNormal(run.StandardFont.Value) : baseFont;
             var fontForRun = (bold && italic) ? ChooseBoldItalic(runBaseFont) : bold ? ChooseBold(runBaseFont) : italic ? ChooseItalic(runBaseFont) : runBaseFont;
+            currentRunFont = fontForRun;
             currentRunNamedFont = options != null &&
                                   options.TryResolveNamedFontFace(run.FontFamily, bold, italic, out PdfNamedFontFace resolvedNamedFont)
                 ? resolvedNamedFont

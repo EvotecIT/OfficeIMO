@@ -49,6 +49,9 @@ public static partial class WordPdfConverterExtensions {
                         if (gap != null) return gap;
                     }
             } else if (element is WordParagraph paragraph && !paragraph._paragraph.Ancestors<W.TableCell>().Any()) {
+                if (CanRenderNativeParagraphFrame(paragraph) &&
+                    ResolveNativeParagraphFrame(paragraph)?.Wrap?.Value != W.TextWrappingValues.NotBeside)
+                    return "The document body contains a floating paragraph frame, outside the current page-note body profile.";
                 List<WordParagraph> runs = GetNativeRuns(paragraph, includeInlineContentControls: true)
                     .Where(run => !IsNativeHiddenTextRun(run, paragraph)).ToList();
                 if (GetNativeVisibleTextBoxes(paragraph, runs).Count > 0 || HasNativeParagraphShapeGroups(runs) ||

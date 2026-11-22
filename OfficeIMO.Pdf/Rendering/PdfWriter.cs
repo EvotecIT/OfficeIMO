@@ -2043,6 +2043,18 @@ internal static partial class PdfWriter {
             int variantPage = page.RunningContentSectionId is int owner && logicalPageNumbers.TryGetValue(owner, out int ownerPage)
                 ? ownerPage : pageNumber;
             pending.Add((variantPage, currentVisiblePageNumber, currentSequenceId, page.PageGroupId));
+            // A group that begins part way down this page counts it as its first page; a
+            // restart therefore numbers the following page with the start value plus one.
+            if (page.ContinuedPageGroups != null) {
+                foreach (var continued in page.ContinuedPageGroups) {
+                    seen.TryGetValue(continued.GroupId, out int continuedPages);
+                    seen[continued.GroupId] = continuedPages + 1;
+                    if (continued.Options.HasExplicitPageNumberStart) {
+                        currentSequenceId = nextSequenceId++;
+                        currentVisiblePageNumber = continued.Options.PageNumberStart;
+                    }
+                }
+            }
         }
 
         var totals = new Dictionary<int, int>();

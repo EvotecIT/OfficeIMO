@@ -3,7 +3,8 @@ namespace OfficeIMO.Drawing;
 /// <summary>Font-unit line metrics used by document layout, independently of PDF descriptor rounding.</summary>
 internal readonly struct OfficeOpenTypeLineMetrics {
     private OfficeOpenTypeLineMetrics(double horizontalAdvance, double ascent, double descent, OfficeOpenTypeDeviceMetrics? deviceMetrics,
-        double hheaAscent, double hheaDescent, double hheaLineGap) {
+        double hheaAscent, double hheaDescent, double hheaLineGap, bool isFixedPitch = false) {
+        IsFixedPitch = isFixedPitch;
         HorizontalAdvanceRatio = horizontalAdvance;
         AscentRatio = ascent;
         DescentRatio = descent;
@@ -22,6 +23,9 @@ internal readonly struct OfficeOpenTypeLineMetrics {
     internal double HheaAscentRatio { get; }
     internal double HheaDescentRatio { get; }
     internal double HheaLineGapRatio { get; }
+
+    // The post table's isFixedPitch flag: every glyph shares one advance width.
+    internal bool IsFixedPitch { get; }
 
     // Device metrics affect alignment inside a line, independently of its advance.
     internal void GetDeviceMetrics(double fontSize, double pointsPerPixel, out double ascent, out double descent) {
@@ -75,7 +79,9 @@ internal readonly struct OfficeOpenTypeLineMetrics {
             ? new OfficeOpenTypeLineMetrics(advance / (double)reader.UnitsPerEm, ascent / (double)reader.UnitsPerEm,
                 descent / (double)reader.UnitsPerEm, OfficeOpenTypeDeviceMetrics.TryRead(reader),
                 reader.Ascender / (double)reader.UnitsPerEm, -reader.Descender / (double)reader.UnitsPerEm,
-                reader.LineGap / (double)reader.UnitsPerEm)
+                reader.LineGap / (double)reader.UnitsPerEm,
+                reader.TryGetTable("post", out int postOffset, out int postLength) && postLength >= 16 &&
+                    (reader.ReadUInt16(postOffset + 12) != 0 || reader.ReadUInt16(postOffset + 14) != 0))
             : null;
     }
 }
