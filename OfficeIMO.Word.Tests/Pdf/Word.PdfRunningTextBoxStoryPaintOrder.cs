@@ -9,38 +9,27 @@ using W14 = DocumentFormat.OpenXml.Office2010.Word.Drawing;
 namespace OfficeIMO.Tests;
 
 public partial class Word {
+    // The story's drawings share one z-order, so a lower box in a later paragraph still paints first.
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void SaveAsPdf_ReverseDepthRunningBoxesAcrossParagraphsReportBoundedFlow(bool footer) {
+    public void SaveAsPdf_ReverseDepthRunningBoxesAcrossParagraphsPaintByDepth(bool footer) {
         using WordDocument document = CreateRunningStoryPaintOrderControl(10U, 1U, footer: footer);
         string[] before = AnchoredRunningStoryXml(document);
 
-        // Identical geometry with compatible depths must be admitted. In
-        // particular, the footer must not fail an unrelated body-paint guard.
-        using WordDocument ordered = CreateRunningStoryPaintOrderControl(1U, 10U, footer: footer);
-        var orderedResult = ordered.ConvertToPdfWithEvidence(EmptyRunningOptions());
-        Assert.DoesNotContain(orderedResult.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
-        using var orderedPdf = PdfPigDocument.Open(orderedResult.Value.ToBytes());
-        Assert.DoesNotContain(orderedResult.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
-        var orderedPage = orderedPdf.GetPage(2);
-        var orderedFirst = AnchoredRunningLetters(orderedPage, "FIRSTBOX");
-        var orderedSecond = AnchoredRunningLetters(orderedPage, "SECONDBOX");
-        if (footer) Assert.Contains("FOOTER COUNT 2", orderedPage.Text);
-        // The footer counter-control establishes admission and retained content;
-        // its native coordinates are outside this paint-order contract.
-        if (!footer) foreach (var letters in new[] { orderedFirst, orderedSecond })
-            Assert.Equal((612D - 468D * .585D) / 2D + 7.2D, letters[0].StartBaseLine.X, 3);
-
         var result = document.ConvertToPdfWithEvidence(EmptyRunningOptions());
-        Assert.Contains(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
-        using var pdf = PdfPigDocument.Open(result.Value.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
-        Assert.Contains(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
-        Assert.Equal(3, pdf.NumberOfPages);
-        foreach (string marker in new[] { "PREFIX", "FIRSTBOX", "SUFFIX", "NEXT", "SECONDBOX", "END", "S2" })
-            AnchoredRunningLetters(pdf.GetPage(2), marker);
-        if (footer) Assert.Contains("FOOTER COUNT 2", pdf.GetPage(2).Text);
-        Assert.Contains("COUNT 2", pdf.GetPage(3).Text);
+        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
+        using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
+        var page = pdf.GetPage(2);
+        string visible = string.Concat(page.Letters.Select(letter => letter.Value));
+        Assert.True(visible.IndexOf("SECONDBOX", StringComparison.Ordinal) < visible.IndexOf("FIRSTBOX", StringComparison.Ordinal), visible);
+        foreach (string marker in new[] { "PREFIX", "FIRSTBOX", "SUFFIX", "NEXT", "SECONDBOX", "END" })
+            AnchoredRunningLetters(page, marker);
+        if (footer) Assert.Contains("FOOTER COUNT 2", page.Text);
+        // The footer control establishes admission and retained content;
+        // its native coordinates are outside this paint-order contract.
+        if (!footer) foreach (string marker in new[] { "FIRSTBOX", "SECONDBOX" })
+            Assert.Equal((612D - 468D * .585D) / 2D + 7.2D, AnchoredRunningLetters(page, marker)[0].StartBaseLine.X, 3);
         Assert.Equal(before, AnchoredRunningStoryXml(document));
     }
 

@@ -5711,6 +5711,11 @@ versions:
   its outer border, so the border edge sits at the table's position.
 - A line break no longer makes the line it ends as tall as the break's own font. A line holding only a
   break still takes the break's size.
+- Pictures with tight or through wrapping stay where the document places them, and each line of text
+  follows the picture's wrap polygon. They used to be moved into the text flow. Square and
+  top-and-bottom pictures with effects such as a glow or shadow are placed too, and text keeps clear of
+  the effect as well as the wrap distance. A wrapping picture saved with `behindDoc="1"` paints in its
+  z-order with the other drawings instead of behind the text.
 - Drop caps are placed beside the paragraph that follows them, which wraps around the cap for the lines
   it spans, instead of being drawn as a separate large paragraph. Margin drop caps hang in the margin.
   As with other floating frames, a drop cap in the body selects the fallback placement for page footnotes.

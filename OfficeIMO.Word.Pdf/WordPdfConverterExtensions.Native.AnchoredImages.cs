@@ -84,9 +84,10 @@ public static partial class WordPdfConverterExtensions {
         string? linkContents = linkUri != null && !string.IsNullOrWhiteSpace(image.AltText) ? image.AltText : null;
         // Effects retain signed producer offsets without weakening the public canvas coordinate contract.
         // A header or footer story keeps its in-front pictures in its own layer, which paints under the body.
-        bool storyLayer = runningStory && !layout.BehindDocument;
+        bool behindText = IsNativeBehindText(layout);
+        bool storyLayer = runningStory && !behindText;
         imageCanvas.Effect(OfficeTransform.Translate(placement.X, placement.Y), 1D, content => {
-            if (layout.BehindDocument || storyLayer)
+            if (behindText || storyLayer)
                 content.Image(bytes, global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height), style: imageStyle,
                     linkUri: linkUri, linkContents: linkContents);
             else
@@ -96,7 +97,7 @@ public static partial class WordPdfConverterExtensions {
         IReadOnlyList<PdfCore.PdfCanvasItem> items = imageCanvas.Items;
         if (placement.MarginX) items = new PdfCore.PdfCanvasItem[] { new PdfCore.PdfCanvasMarginAnchorItem(items, margins.Left.ToPoints()) };
         if (placement.ParagraphY) items = new PdfCore.PdfCanvasItem[] { new PdfCore.PdfCanvasParagraphAnchorItem(items) };
-        if (layout.BehindDocument) items = new PdfCore.PdfCanvasItem[] { new PdfCore.PdfCanvasBehindTextItem(items, layout.RelativeHeight) };
+        if (behindText) items = new PdfCore.PdfCanvasItem[] { new PdfCore.PdfCanvasBehindTextItem(items, layout.RelativeHeight) };
         else if (storyLayer) items = new PdfCore.PdfCanvasItem[] { new PdfCore.PdfCanvasInFrontOfTextItem(items, layout.RelativeHeight) };
         PdfCore.PdfPageCanvas canvas = target ?? new PdfCore.PdfPageCanvas();
         if (target == null && style.AnchoredCanvas != null) canvas.AddItems(style.AnchoredCanvas.Items);
