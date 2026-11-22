@@ -23,6 +23,8 @@
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Reader.Core\OfficeIMO.Reader.Core.csproj" />
     <ProjectReference Include="..\OfficeIMO.Visio\OfficeIMO.Visio.csproj" />
+    <Compile Include="..\OfficeIMO.Reader.FormatInternals\OpenXmlReaderAdmission.Policy.cs" Link="FormatInternals\OpenXmlReaderAdmission.Policy.cs" />
+    <Compile Include="..\OfficeIMO.Reader.FormatInternals\NativeReaderAdmission.cs" Link="FormatInternals\NativeReaderAdmission.cs" />
   </ItemGroup>
 
   <ItemGroup>

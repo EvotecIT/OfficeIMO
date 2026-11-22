@@ -335,7 +335,7 @@ namespace OfficeIMO.Core.Internal {
             }
         }
 
-        private static void EnsureWithinLimit(long total, long? maxBytes) {
+        internal static void EnsureWithinLimit(long total, long? maxBytes) {
             if (maxBytes.HasValue && total > maxBytes.Value) {
                 throw SizeLimitExceeded($"Stream exceeds the configured maximum size ({maxBytes.Value} bytes).", maxBytes.Value);
             }

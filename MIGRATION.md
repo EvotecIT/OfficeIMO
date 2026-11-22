@@ -5656,10 +5656,10 @@ loading, and a read-only document still cannot be saved, to that stream or anywh
 
 Code that disposes or reuses the stream while a read-only document is still in use must keep the stream alive
 longer, or copy it first: load from `new MemoryStream(bytes, writable: false)` over an array you keep, or load with
-`AccessMode = DocumentAccessMode.ReadWrite`. Non-seekable streams, encrypted and binary (`.doc`, `.ppt`) sources,
-Word XML, and loads with `PackageSecurity` or `CaptureSourcePackageSecurity` still read the stream into memory, and
-the package is not read from it again. Editable loads, Excel workbooks and Visio diagrams never read the package from
-the stream after loading either.
+`AccessMode = DocumentAccessMode.ReadWrite`. This lifetime requirement also applies with `PackageSecurity` or
+`CaptureSourcePackageSecurity`. The loader inspects the same bounded stream it opens. Non-seekable streams,
+encrypted and binary (`.doc`, `.ppt`) sources, and Word XML are buffered. Editable loads, Excel workbooks and
+Visio diagrams finish reading the source before loading returns.
 
 Saving is a separate matter and is unchanged: an editable load from a writable, seekable stream keeps that stream as
 the destination of `Save()` and of `SaveOnDispose`, so it must stay open until the last save, even though the

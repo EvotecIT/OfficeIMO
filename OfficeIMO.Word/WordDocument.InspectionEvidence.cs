@@ -8,11 +8,13 @@ public partial class WordDocument {
     /// <summary>Identifies whether captured observations describe the original source, its decrypted package, or a reconstructed package.</summary>
     public string? SourcePackageSecurityScope { get; private set; }
 
-    private static WordDocument WithSourcePackageInspection(WordDocument document, byte[] sourceBytes, WordLoadOptions options, string scope = "source-container") {
+    private static WordDocument WithSourcePackageInspection(WordDocument document, byte[]? sourceBytes, WordLoadOptions options,
+        string scope = "source-container", OfficePackageSecurityReport? report = null) {
         try {
             if (options.FailOnLoss) document.CreateLoadReport(document.FilePath ?? "Word stream", TimeSpan.Zero).ThrowIfLoss();
             if (!options.CaptureSourcePackageSecurity) return document;
-            document.SourcePackageSecurityReport = OfficePackageSecurityInspector.Inspect(sourceBytes, options.PackageSecurity);
+            document.SourcePackageSecurityReport = report ?? OfficePackageSecurityInspector.Inspect(
+                sourceBytes ?? throw new ArgumentNullException(nameof(sourceBytes)), options.PackageSecurity);
             document.SourcePackageSecurityScope = scope;
             return document;
         } catch { document._persistenceMode = DocumentPersistenceMode.Explicit; document.Dispose(); throw; }

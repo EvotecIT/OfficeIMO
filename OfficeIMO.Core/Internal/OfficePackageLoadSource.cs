@@ -5,8 +5,8 @@ namespace OfficeIMO.Core.Internal {
     /// </summary>
     /// <remarks>
     /// <list type="bullet">
-    /// <item><description>A read-only load of a seekable ZIP package with no package-security policy reads the
-    /// package in place from the caller's stream. The caller keeps the stream open and unchanged while the document
+    /// <item><description>A read-only load of a seekable ZIP package reads the package in place from the caller's
+    /// stream, including package-security inspection. The caller keeps the stream open and unchanged while the document
     /// is in use, and the document never writes to it or disposes it.</description></item>
     /// <item><description>Any other read-only load opens the package over the bytes already read, through a stream
     /// that cannot write.</description></item>
@@ -31,16 +31,14 @@ namespace OfficeIMO.Core.Internal {
 
         /// <summary>
         /// Returns true when a read-only load can open the package straight over <paramref name="source"/>: the
-        /// stream is readable and seekable, starts with a ZIP local file header, fits the input limit, and no
-        /// package-security inspection needs the encoded bytes. The stream position is left unchanged.
+        /// stream is readable and seekable, starts with a ZIP local file header, and fits the input limit.
+        /// The stream position is left unchanged.
         /// </summary>
         public static bool CanReadInPlace(
             Stream source,
             DocumentAccessMode accessMode,
-            OfficePackageSecurityOptions? packageSecurity,
-            bool captureSourcePackageSecurity,
             long? maxInputBytes) {
-            if (!IsInPlaceCandidate(source, accessMode, packageSecurity, captureSourcePackageSecurity, maxInputBytes)) {
+            if (!IsInPlaceCandidate(source, accessMode, maxInputBytes)) {
                 return false;
             }
 
@@ -64,15 +62,13 @@ namespace OfficeIMO.Core.Internal {
         public static async Task<bool> CanReadInPlaceAsync(
             Stream source,
             DocumentAccessMode accessMode,
-            OfficePackageSecurityOptions? packageSecurity,
-            bool captureSourcePackageSecurity,
             long? maxInputBytes,
             CancellationToken cancellationToken) {
             // ZIP and OPC readers require synchronous reads. Custom streams may implement only ReadAsync,
             // and subclasses of the built-in streams can override their synchronous behavior.
             Type sourceType = source.GetType();
             if (sourceType != typeof(FileStream) && sourceType != typeof(MemoryStream)) return false;
-            if (!IsInPlaceCandidate(source, accessMode, packageSecurity, captureSourcePackageSecurity, maxInputBytes)) {
+            if (!IsInPlaceCandidate(source, accessMode, maxInputBytes)) {
                 return false;
             }
 
@@ -110,13 +106,9 @@ namespace OfficeIMO.Core.Internal {
         private static bool IsInPlaceCandidate(
             Stream source,
             DocumentAccessMode accessMode,
-            OfficePackageSecurityOptions? packageSecurity,
-            bool captureSourcePackageSecurity,
             long? maxInputBytes) {
             ArgumentNullException.ThrowIfNull(source);
             if (accessMode != DocumentAccessMode.ReadOnly
-                || packageSecurity != null
-                || captureSourcePackageSecurity
                 || !source.CanRead
                 || !source.CanSeek) {
                 return false;
@@ -131,6 +123,11 @@ namespace OfficeIMO.Core.Internal {
         /// the caller's stream.
         /// </summary>
         public static OfficePackageSourceView OpenInPlace(Stream source) => new OfficePackageSourceView(source);
+
+        /// <summary>Inspects the exact bounded view that the model will open, when admission or capture requests it.</summary>
+        public static OfficePackageSecurityReport? InspectInPlace(OfficePackageSourceView view,
+            OfficePackageSecurityOptions? policy, bool capture, CancellationToken cancellationToken) =>
+            policy != null || capture ? OfficePackageSecurityInspector.InspectSeekableForLoad(view, policy, cancellationToken) : null;
 
         /// <summary>Returns true when <paramref name="bytes"/> starts with a ZIP local file header.</summary>
         public static bool HasZipSignature(byte[] bytes) =>
@@ -178,14 +175,12 @@ namespace OfficeIMO.Core.Internal {
     /// </summary>
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     internal sealed class OfficePackageSourceView : Stream {
-        private readonly Stream _source;
+        private readonly SeekableReadWindowStream _source;
         private bool _disposed;
 
         internal OfficePackageSourceView(Stream source) {
-            _source = source ?? throw new ArgumentNullException(nameof(source));
-            if (!source.CanRead || !source.CanSeek) {
-                throw new ArgumentException("Stream must be readable and seekable.", nameof(source));
-            }
+            ArgumentNullException.ThrowIfNull(source);
+            _source = new SeekableReadWindowStream(source, 0, source.Length, preserveSourcePosition: true);
         }
 
         public override bool CanRead => !_disposed && _source.CanRead;

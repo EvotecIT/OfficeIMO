@@ -45,14 +45,14 @@ namespace OfficeIMO.Word {
         private static OpenSettings CreateOpenSettings(OfficeOpenXmlLoadSettings? openSettings) =>
             openSettings.ToOpenXml();
 
-        private static byte[] ReadSourceBytes(Stream stream, WordLoadOptions options) {
+        private static byte[] ReadSourceBytes(Stream stream, WordLoadOptions options, CancellationToken cancellationToken = default) {
             ValidateMaxInputBytes(options);
             if (options.PackageSecurity != null &&
                 options.PackageSecurity.MaxPackageBytes <= options.MaxInputBytes) {
-                return OfficePackageSecurityInspector.ReadBounded(stream, options.PackageSecurity);
+                return OfficePackageSecurityInspector.ReadBounded(stream, options.PackageSecurity, cancellationToken);
             }
 
-            return OfficeStreamReader.ReadAllBytes(stream, options.MaxInputBytes);
+            return OfficeStreamReader.ReadAllBytes(stream, cancellationToken, options.MaxInputBytes);
         }
 
         private static async Task<byte[]> ReadSourceBytesAsync(Stream stream,
@@ -573,21 +573,26 @@ namespace OfficeIMO.Word {
         /// <param name="stream">Readable stream containing the encrypted document.</param>
         /// <param name="password">Password used to decrypt the document package.</param>
         /// <param name="options">Access and load options for the decrypted package.</param>
+        /// <param name="cancellationToken">Cancellation for source admission and package loading.</param>
         /// <returns>Loaded <see cref="WordDocument"/> instance.</returns>
-        internal static WordDocument LoadEncrypted(Stream stream, string password, WordLoadOptions? options = null) {
+        internal static WordDocument LoadEncrypted(Stream stream, string password, WordLoadOptions? options = null,
+            CancellationToken cancellationToken = default) {
             ArgumentNullException.ThrowIfNull(stream);
             ArgumentNullException.ThrowIfNull(password);
+            cancellationToken.ThrowIfCancellationRequested();
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
             WordLoadOptions resolved = options ?? new WordLoadOptions();
             OfficeDocumentLifecycle.Validate(resolved.AccessMode, resolved.PersistenceMode, "document");
             resolved = resolved.Snapshot();
             resolved.PersistenceMode = DocumentPersistenceMode.Explicit;
 
-            byte[] encryptedBytes = ReadSourceBytes(stream, resolved);
+            byte[] encryptedBytes = ReadSourceBytes(stream, resolved, cancellationToken);
             ValidateSourcePackage(encryptedBytes, resolved.PackageSecurity);
+            cancellationToken.ThrowIfCancellationRequested();
             byte[] packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
             using var decryptedSource = new MemoryStream(packageBytes, writable: false);
-            return WithSourcePackageInspection(LoadFromStream(decryptedSource, resolved, captureSourcePackageSecurity: false), encryptedBytes, resolved, "encrypted-source-container");
+            return WithSourcePackageInspection(LoadFromStream(decryptedSource, resolved, captureSourcePackageSecurity: false,
+                cancellationToken: cancellationToken), encryptedBytes, resolved, "encrypted-source-container");
         }
 
 
@@ -724,32 +729,31 @@ namespace OfficeIMO.Word {
         /// <remarks>
         /// <para>An editable load reads the stream into memory, and the stream can be disposed or changed afterwards.
         /// Saving writes back to a writable, seekable stream.</para>
-        /// <para>A read-only load of a seekable Word Open XML stream reads the package in place: nothing is copied,
-        /// and the document reads parts from <paramref name="stream"/> as it needs them. Keep the stream open and
-        /// leave its contents unchanged until the document is disposed; changing them makes later reads fail or
-        /// return inconsistent content. The stream position is restored after loading but moves while the document
-        /// reads it. The document never writes to the stream, never disposes it, and cannot be saved. A read-only
-        /// load of a non-seekable stream, an encrypted, binary DOC or Word XML source, or a load with
-        /// <see cref="DocumentLoadOptions.PackageSecurity"/> or
-        /// <see cref="DocumentLoadOptions.CaptureSourcePackageSecurity"/> reads the stream into one in-memory copy
-        /// instead, and the stream is not used after loading.</para>
+        /// <para>A read-only load of a seekable Word Open XML stream inspects and opens the package directly.
+        /// Keep <paramref name="stream"/> open and unchanged until the document is disposed, and give the
+        /// document exclusive use of the stream during reads. Each package read preserves the caller's stream
+        /// position. The document never writes to or disposes the stream, and cannot be saved. Non-seekable
+        /// streams, encrypted packages, binary DOC and Word XML are buffered and detached from their source.
+        /// Compatibility data may require retaining an original package snapshot.</para>
         /// </remarks>
         public static WordDocument Load(Stream stream, WordLoadOptions? options = null) =>
+            Load(stream, options, CancellationToken.None);
+
+        /// <summary>Preserves the Reader cancellation scope through synchronous package admission.</summary>
+        internal static WordDocument Load(Stream stream, WordLoadOptions? options, CancellationToken cancellationToken) =>
             options?.Password is string password
-                ? AssociateEncryptedDocument(LoadEncrypted(stream, password, options), null, password, options?.AccessMode == DocumentAccessMode.ReadOnly ? null : stream, options)
-                : LoadFromStream(stream, options, captureSourcePackageSecurity: true, allowInPlace: true);
+                ? AssociateEncryptedDocument(LoadEncrypted(stream, password, options, cancellationToken), null, password, options.AccessMode == DocumentAccessMode.ReadOnly ? null : stream, options)
+                : LoadFromStream(stream, options, captureSourcePackageSecurity: true, cancellationToken: cancellationToken, allowInPlace: true);
 
         private static bool CanLoadInPlace(Stream stream, WordLoadOptions options) {
             ValidateMaxInputBytes(options);
-            return OfficePackageLoadSource.CanReadInPlace(stream, options.AccessMode, options.PackageSecurity,
-                options.CaptureSourcePackageSecurity, options.MaxInputBytes);
+            return OfficePackageLoadSource.CanReadInPlace(stream, options.AccessMode, options.MaxInputBytes);
         }
 
         private static Task<bool> CanLoadInPlaceAsync(Stream stream, WordLoadOptions options,
             CancellationToken cancellationToken) {
             ValidateMaxInputBytes(options);
-            return OfficePackageLoadSource.CanReadInPlaceAsync(stream, options.AccessMode, options.PackageSecurity,
-                options.CaptureSourcePackageSecurity, options.MaxInputBytes, cancellationToken);
+            return OfficePackageLoadSource.CanReadInPlaceAsync(stream, options.AccessMode, options.MaxInputBytes, cancellationToken);
         }
 
         /// <summary>Opens a read-only Word Open XML package over the caller's seekable stream without copying it.</summary>
@@ -760,10 +764,12 @@ namespace OfficeIMO.Word {
             long originalPosition = stream.Position;
             OfficePackageSourceView packageStream = OfficePackageLoadSource.OpenInPlace(stream);
             try {
+                OfficePackageSecurityReport? packageReport = OfficePackageLoadSource.InspectInPlace(packageStream,
+                    resolved.PackageSecurity, resolved.CaptureSourcePackageSecurity, cancellationToken);
                 var document = new WordDocument {
                     _ownedPackageStream = packageStream,
                     _openXmlOriginalPackageBytes = OfficeCompatibilitySourceCarrier.ContainsPackageCarrier(packageStream)
-                        ? OfficeStreamReader.ReadAllBytes(packageStream)
+                        ? OfficeStreamReader.ReadAllBytes(packageStream, cancellationToken)
                         : null,
                     _persistenceMode = resolved.PersistenceMode
                 };
@@ -775,8 +781,7 @@ namespace OfficeIMO.Word {
                 WordChart.InitializeAxisIdSeed(wordDocument);
                 WordListStyles.InitializeAbstractNumberId(document._wordprocessingDocument);
                 cancellationToken.ThrowIfCancellationRequested();
-                // No package-security capture applies here, so the inspection step needs no encoded bytes.
-                return WithSourcePackageInspection(document, Array.Empty<byte>(), resolved);
+                return WithSourcePackageInspection(document, sourceBytes: null, resolved, report: packageReport);
             } catch {
                 packageStream.Dispose();
                 throw;
@@ -803,7 +808,7 @@ namespace OfficeIMO.Word {
                 return LoadPackageInPlace(stream, resolved, cancellationToken);
             }
             var effectiveOpenSettings = packageSettings ?? CreateOpenSettings(resolved.OpenSettings);
-            sourceBytes ??= ReadSourceBytes(stream, resolved);
+            sourceBytes ??= ReadSourceBytes(stream, resolved, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             if (detectXml && TryLoadWordXml(sourceBytes, null, resolved) is { } xmlDocument)
                 return xmlDocument.RememberXmlStream(stream);

@@ -49,7 +49,7 @@ public static partial class OfficeDocument {
             nativeKind = ReaderInputKind.Excel;
         switch (nativeKind) {
             case ReaderInputKind.Word:
-                using (var document = OfficeIMO.Reader.Word.WordReaderAdapter.Load(input, readOptions))
+                using (var document = OfficeIMO.Reader.Word.WordReaderAdapter.Load(input, readOptions, cancellationToken))
                     PopulateSummary(result, document, settings, cancellationToken);
                 break;
             case ReaderInputKind.Excel:

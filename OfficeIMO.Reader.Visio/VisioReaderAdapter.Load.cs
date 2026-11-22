@@ -1,16 +1,26 @@
 using OfficeIMO.Visio;
+using OfficeIMO.Reader.FormatInternals;
+using OfficeIMO.Reader.Internal.IO;
 
 namespace OfficeIMO.Reader.Visio;
 
 internal static partial class VisioReaderAdapter {
     internal static VisioDocument LoadForInspection(Stream stream, string sourceName, ReaderOptions options, CancellationToken cancellationToken) =>
-        LoadForReader(stream, sourceName, CreateLoadOptions(options), new SourceMetadata(), cancellationToken);
+        LoadForReader(stream, sourceName, options, new SourceMetadata(), cancellationToken);
 
-    private static VisioDocument LoadForReader(string path, VisioLoadOptions? options, SourceMetadata source, CancellationToken cancellationToken) {
-        using var stream = File.OpenRead(path);
-        return LoadForReader(stream, path, options, source, cancellationToken);
+    private static VisioDocument LoadForReader(string path, ReaderOptions options, SourceMetadata source, CancellationToken cancellationToken) {
+        VisioLoadOptions? nativeOptions = CreateLoadOptions(options);
+        bool requiresPolicy = nativeOptions?.PackageSecurity != null;
+        FileStream? stable = requiresPolicy ? OfficeStableFileRead.TryOpen(path) : null;
+        FileShare sharing = requiresPolicy ? FileShare.ReadWrite | FileShare.Delete : FileShare.Read;
+        using var stream = stable ?? new FileStream(path, FileMode.Open, FileAccess.Read, sharing);
+        return LoadForReader(stream, path, options, source, cancellationToken,
+            allowInPlace: !requiresPolicy || stable != null);
     }
-    private static VisioDocument LoadForReader(Stream stream, string sourceName, VisioLoadOptions? options, SourceMetadata source, CancellationToken cancellationToken) {
+    private static VisioDocument LoadForReader(Stream stream, string sourceName, ReaderOptions readerOptions, SourceMetadata source,
+        CancellationToken cancellationToken, bool allowInPlace = true) {
+        cancellationToken.ThrowIfCancellationRequested();
+        VisioLoadOptions? options = CreateLoadOptions(readerOptions);
         string extension = Path.GetExtension(sourceName).ToLowerInvariant();
         bool binary = extension is ".vsd" or ".vss" or ".vst";
         if (!binary && stream.CanSeek) {
@@ -31,7 +41,8 @@ internal static partial class VisioReaderAdapter {
             source.ImportDiagnostics = result.Report.Diagnostics;
             return result.Value;
         }
-        if (extension != ".vdx" && extension != ".vsx" && extension != ".vtx") return VisioDocument.Load(stream, options);
+        if (extension != ".vdx" && extension != ".vsx" && extension != ".vtx")
+            return OpenXmlReaderAdmission.Load(readerOptions, () => VisioDocument.Load(stream, options, cancellationToken, allowInPlace));
         VisioPackageType type = extension == ".vsx" ? VisioPackageType.Stencil : extension == ".vtx" ? VisioPackageType.Template : VisioPackageType.Drawing;
         var imported = VisioDocument.LoadLegacyXml(stream, type, options, cancellationToken);
         source.ImportDiagnostics = imported.Report.Diagnostics;

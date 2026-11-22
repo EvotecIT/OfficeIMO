@@ -266,6 +266,27 @@ public sealed class ReaderVisioModularTests {
         Assert.True(capability.SupportsDocumentStream);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void VisioReaderEnforcesExplicitPackageExpansionLimits(bool perPart) {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddVisioHandler().Build();
+        using MemoryStream stream = BuildSampleVisio();
+        var options = new ReaderOptions {
+            OpenXmlMaxPartUncompressedBytes = perPart ? 1 : null,
+            OpenXmlMaxTotalUncompressedBytes = perPart ? null : 1
+        };
+
+        ReaderResourceLimitException error = Assert.Throws<ReaderResourceLimitException>(() =>
+            reader.ReadDocument(stream, "topology.vsdx", options));
+
+        Assert.Equal(perPart ? nameof(ReaderOptions.OpenXmlMaxPartUncompressedBytes) : nameof(ReaderOptions.OpenXmlMaxTotalUncompressedBytes),
+            error.LimitName);
+        Assert.Equal(1, error.Maximum);
+        var native = Assert.IsType<OfficePackageSecurityException>(error.InnerException);
+        Assert.Equal(perPart ? OfficePackageSecurityRule.PartSize : OfficePackageSecurityRule.TotalUncompressedSize, native.Rule);
+    }
+
     private static MemoryStream BuildSampleVisio() {
         var stream = new MemoryStream();
         VisioDocument document = VisioDocument.Create(stream);

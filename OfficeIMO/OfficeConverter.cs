@@ -194,6 +194,12 @@ public static partial class OfficeConverter {
             new InvalidDataException($"The input exceeds the configured input limit of {limit} bytes.");
     }
 
+    // Native readers accept a concrete MemoryStream for asynchronous in-place loads. Lend the capture's
+    // existing bytes, keeping the bounded writer and its ownership inside the converter.
+    private static MemoryStream? BorrowCapturedPackage(Stream input, DocumentAccessMode accessMode) =>
+        accessMode == DocumentAccessMode.ReadOnly && input is InputBuffer buffer && buffer.TryGetBuffer(out var bytes)
+            ? new MemoryStream(bytes.Array!, bytes.Offset, bytes.Count, writable: false) : null;
+
     private static Task CheckStagingAsync(IOfficePublicationGuard? guard, string directory, CancellationToken token) {
         token.ThrowIfCancellationRequested();
         return guard is IOfficeStagingGuard staging ? staging.EnsureStagingDirectoryAllowedAsync(directory, token) : Task.CompletedTask;

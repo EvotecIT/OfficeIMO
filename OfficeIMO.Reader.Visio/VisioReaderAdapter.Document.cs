@@ -16,7 +16,7 @@ internal static partial class VisioReaderAdapter {
         var effectiveVisioOptions = ReaderVisioOptionsCloner.CloneOrDefault(visioOptions);
         ReaderInputLimits.EnforceFileSize(visioPath, effectiveReaderOptions.MaxInputBytes);
         SourceMetadata source = BuildSourceMetadataFromPath(visioPath, effectiveReaderOptions.ComputeHashes);
-        VisioDocument document = LoadForReader(visioPath, CreateLoadOptions(effectiveReaderOptions), source, cancellationToken);
+        VisioDocument document = LoadForReader(visioPath, effectiveReaderOptions, source, cancellationToken);
         return BuildDocumentResult(document, source, effectiveReaderOptions, effectiveVisioOptions, cancellationToken);
     }
 
@@ -42,7 +42,7 @@ internal static partial class VisioReaderAdapter {
                 parseStream.Position = 0;
             }
 
-            VisioDocument document = LoadForReader(parseStream, logicalSourceName, CreateLoadOptions(effectiveReaderOptions), source, cancellationToken);
+            VisioDocument document = LoadForReader(parseStream, logicalSourceName, effectiveReaderOptions, source, cancellationToken);
             return BuildDocumentResult(document, source, effectiveReaderOptions, effectiveVisioOptions, cancellationToken);
         } finally {
             if (ownsParseStream) {

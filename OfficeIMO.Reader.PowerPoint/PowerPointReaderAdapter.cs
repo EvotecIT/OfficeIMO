@@ -4,6 +4,7 @@ using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.Reader.FormatInternals;
+using OfficeIMO.Reader.Internal.IO;
 
 namespace OfficeIMO.Reader.PowerPoint;
 
@@ -17,9 +18,20 @@ internal static class PowerPointReaderAdapter {
     };
 
     internal static OfficeDocumentReadResult ReadDocument(string path, ReaderOptions readerOptions, ReaderPowerPointOptions options, CancellationToken cancellationToken) {
-        if (PowerPointStreamingTextReader.Applies(readerOptions) && !IsLegacySourceName(path)) {
-            using var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete);
-            if (PowerPointStreamingTextReader.TryRead(file, path, readerOptions, options, cancellationToken) is { } streamed) return streamed;
+        bool isOpenXml = PowerPointFormatCatalog.TryGetByExtension(path, out var format) && format!.Generation == OfficeFormatGeneration.Modern;
+        bool streamText = PowerPointStreamingTextReader.Applies(readerOptions) && !IsLegacySourceName(path);
+        if (isOpenXml || streamText) {
+            using FileStream? file = OfficeStableFileRead.TryOpen(path);
+            if (file != null) return ReadDocument(file, path, readerOptions, options, cancellationToken);
+            if (streamText) {
+                using var shared = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+                PowerPointLoadOptions loadOptions = CreateLoadOptions(readerOptions, path);
+                long? inputLimit = OpenXmlReaderAdmission.Load(readerOptions, () =>
+                    PowerPointDocument.ResolveSeekableInputLimit(shared, loadOptions, cancellationToken, path));
+                using Stream snapshot = ReaderInputLimits.EnsureSeekableReadStream(shared,
+                    inputLimit, cancellationToken, out _);
+                return ReadDocument(snapshot, path, readerOptions, options, cancellationToken);
+            }
         }
         using PowerPointDocument presentation = Load(path, readerOptions, cancellationToken);
         return Project(presentation, path, readerOptions, options, cancellationToken);

@@ -3,6 +3,7 @@ using System.Text;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
 using OfficeIMO.Reader.FormatInternals;
+using OfficeIMO.Reader.Internal.IO;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.Reader.Word;
@@ -23,6 +24,13 @@ internal static class WordReaderAdapter {
             using FileStream file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
             if (WordStreamingTextReader.TryRead(file, path, readerOptions, cancellationToken) is { } streamed) return streamed;
         }
+        if (WordFormatCatalog.TryGetByExtension(path, out var format) && format!.Generation == OfficeFormatGeneration.Modern) {
+            using FileStream? file = OfficeStableFileRead.TryOpen(path);
+            if (file != null) {
+                using WordDocument borrowed = Load(file, readerOptions, cancellationToken);
+                return Project(borrowed, path, readerOptions, options, cancellationToken);
+            }
+        }
         using WordDocument document = Load(path, readerOptions);
         return Project(document, path, readerOptions, options, cancellationToken);
     }
@@ -35,8 +43,8 @@ internal static class WordReaderAdapter {
         string name = string.IsNullOrWhiteSpace(sourceName) ? "document.docx" : sourceName!;
         if (WordStreamingTextReader.Applies(readerOptions)
             && WordStreamingTextReader.TryRead(stream, name, readerOptions, cancellationToken) is { } streamed) return streamed;
-        using WordDocument document = Load(stream, readerOptions);
-        return Project(document, string.IsNullOrWhiteSpace(sourceName) ? "document.docx" : sourceName!, readerOptions, options, cancellationToken);
+        using WordDocument document = Load(stream, readerOptions, cancellationToken);
+        return Project(document, name, readerOptions, options, cancellationToken);
     }
 
     internal static bool ProbeEncryptedOpenXml(Stream stream, ReaderOptions options, CancellationToken cancellationToken) {
@@ -44,7 +52,7 @@ internal static class WordReaderAdapter {
         long position = stream.Position;
         try {
             cancellationToken.ThrowIfCancellationRequested();
-            using WordDocument document = Load(stream, options);
+            using WordDocument document = Load(stream, options, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             return document.OpenXmlDocument.GetAllParts().Any(static part =>
                 string.Equals(part.Uri.OriginalString, "/word/document.xml",
@@ -80,7 +88,7 @@ internal static class WordReaderAdapter {
         }
     }
 
-    internal static WordDocument Load(Stream stream, ReaderOptions options) {
+    internal static WordDocument Load(Stream stream, ReaderOptions options, CancellationToken cancellationToken = default) {
         var loadOptions = new WordLoadOptions {
             AccessMode = DocumentAccessMode.ReadOnly,
             AllowLegacyProjection = options.Projection == ReaderProjection.Full,
@@ -92,11 +100,11 @@ internal static class WordReaderAdapter {
         };
         long position = stream.CanSeek ? stream.Position : 0;
         try {
-            return OpenXmlReaderAdmission.Load(options, () => WordDocument.Load(stream, loadOptions));
+            return OpenXmlReaderAdmission.Load(options, () => WordDocument.Load(stream, loadOptions, cancellationToken));
         } catch (Exception error) when (stream.CanSeek && OpenXmlReaderAdmission.CanRetryEncrypted(error, options)) {
             stream.Position = position;
             loadOptions.Password = options.OpenPassword;
-            return OpenXmlReaderAdmission.Load(options, () => WordDocument.Load(stream, loadOptions));
+            return OpenXmlReaderAdmission.Load(options, () => WordDocument.Load(stream, loadOptions, cancellationToken));
         }
     }
 
