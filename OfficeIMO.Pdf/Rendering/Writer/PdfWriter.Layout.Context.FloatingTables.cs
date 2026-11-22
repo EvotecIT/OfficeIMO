@@ -50,8 +50,8 @@ internal static partial class PdfWriter {
         // A header or footer is laid out in its own context; its physical page decides parity.
         private int PhysicalPageNumberForPosition => PicturePage;
 
-        private PdfCreateOptions PageAnchorOptions => activeContainerScopes.Count > 0 ? activeContainerScopes[0].PageOptions
-            : continuedPageAnchorOptions ?? currentPage?.Options ?? currentOpts;
+        private PdfCreateOptions PageAnchorOptions => measuredKeepPageOptions ?? (activeContainerScopes.Count > 0 ? activeContainerScopes[0].PageOptions
+            : continuedPageAnchorOptions ?? currentPage?.Options ?? currentOpts);
 
         private const double WordBorderlessFloatingTableRightEdge = 0.75D;
         private const double WordMinimumFloatingTableTextDistance = 0.5D;

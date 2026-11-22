@@ -209,6 +209,7 @@ internal static partial class PdfWriter {
         }
 
         private double GetCurrentFramePageStartY() {
+            if (measuredKeepFrameTop is double keepTop) return keepTop;
             double pageStart = yStart;
             for (int index = activeColumnFlow?.ContainerDepth ?? 0; index < activeContainerScopes.Count; index++) {
                 ContainerRenderScope scope = activeContainerScopes[index];

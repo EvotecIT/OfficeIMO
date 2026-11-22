@@ -303,10 +303,9 @@ internal static partial class PdfWriter {
             if (lineSpacing?.IsExact == true) contentHeight = lineHeight;
             double incomingContentHeight = contentHeight;
             contentHeight = CombinedContentHeight(contentHeight, includeCurrentRun, sourceTab);
-            currentContentHeight = Math.Max(lineHeight, contentHeight);
             double oldHeight = currentLineHeight - (currentFrame?.Gap ?? 0);
             var oldFrame = currentFrame;
-            double height = lines[lines.Count - 1].Count == 0 ? currentContentHeight : Math.Max(oldHeight, contentHeight);
+            double height = lines[lines.Count - 1].Count == 0 ? Math.Max(lineHeight, contentHeight) : Math.Max(oldHeight, contentHeight);
             double requiredWidth = Math.Max(currentMinimumWidth, minimumWidth);
             var frame = ResolveCurrentFrame(lines.Count - 1, completedHeight,
                 CurrentFrameFitHeight(height, includeCurrentRun, sourceTab), requiredWidth,
@@ -318,12 +317,24 @@ internal static partial class PdfWriter {
                 ResolveCurrentFrame(lines.Count - 1, completedHeight, CurrentFrameFitHeight(oldHeight, includeCurrentRun: false), currentMinimumWidth, false, out _);
                 currentFrame = oldFrame;
                 StartNewLine(forceRow: invalidated);
-                height = Math.Max(lineHeight, CombinedContentHeight(incomingContentHeight, includeCurrentRun, sourceTab));
+                contentHeight = CombinedContentHeight(incomingContentHeight, includeCurrentRun, sourceTab);
+                height = Math.Max(lineHeight, contentHeight);
                 requiredWidth = minimumWidth;
-                frame = ResolveCurrentFrame(lines.Count - 1, completedHeight, CurrentFrameFitHeight(height, includeCurrentRun, sourceTab), requiredWidth, true, out _)!.Value;
+                frame = ResolveCurrentFrame(lines.Count - 1, completedHeight, CurrentFrameFitHeight(height, includeCurrentRun, sourceTab), requiredWidth, true, out invalidated)!.Value;
+                if (invalidated) {
+                    // The incoming run can also invalidate a second interval on the accepted row.
+                    ResolveCurrentFrame(lines.Count - 1, completedHeight,
+                        CurrentFrameFitHeight(currentLineHeight - (currentFrame?.Gap ?? 0), includeCurrentRun: false),
+                        currentMinimumWidth, true, out _);
+                    StartNewLine(forceRow: true);
+                    contentHeight = CombinedContentHeight(incomingContentHeight, includeCurrentRun, sourceTab);
+                    height = Math.Max(lineHeight, contentHeight);
+                    frame = ResolveCurrentFrame(lines.Count - 1, completedHeight, CurrentFrameFitHeight(height, includeCurrentRun, sourceTab), requiredWidth, true, out _)!.Value;
+                }
             }
             currentFrame = frame;
             currentMinimumWidth = requiredWidth;
+            currentContentHeight = Math.Max(lineHeight, contentHeight);
             currentLineHeight = height + frame.Gap;
         }
 

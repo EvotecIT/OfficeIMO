@@ -187,18 +187,7 @@ internal static partial class PdfWriter {
             currentPageBaseOptions = options;
             currentVisiblePageNumber = ResolveNextVisiblePageNumber(pages.Count,
                 !emittedPageGroups.Contains(currentPageGroupId), previousVisiblePageNumber, options);
-            currentOpts = options;
-            if (options.MirrorMargins && currentVisiblePageNumber % 2 == 0) {
-                // Keep one effective frame per source options instance. Deep copies
-                // retain document assets and font state, so they must not grow per page.
-                if (!mirroredPageOptions.TryGetValue(options, out PdfCreateOptions? mirrored)) {
-                    mirrored = options.Clone();
-                    mirrored.MarginLeft = options.MarginRight;
-                    mirrored.MarginRight = options.MarginLeft;
-                    mirroredPageOptions.Add(options, mirrored);
-                }
-                currentOpts = mirrored;
-            }
+            currentOpts = GetEffectivePageOptions(options, currentVisiblePageNumber);
             width = currentOpts.PageWidth.ToPoints() - currentOpts.MarginLeft.ToPoints() - currentOpts.MarginRight.ToPoints();
             yStart = currentOpts.PageHeight.ToPoints() - currentOpts.MarginTop.ToPoints();
             y = yStart;
@@ -221,6 +210,19 @@ internal static partial class PdfWriter {
             for (int i = 0; i < activeLayers.Count; i++) {
                 BeginLayerContent(activeLayers[i]);
             }
+        }
+
+        private PdfCreateOptions GetEffectivePageOptions(PdfCreateOptions options, int visiblePageNumber) {
+            if (!options.MirrorMargins || visiblePageNumber % 2 != 0) return options;
+            // Keep one effective frame per source options instance. Deep copies
+            // retain document assets and font state, so they must not grow per page.
+            if (!mirroredPageOptions.TryGetValue(options, out PdfCreateOptions? mirrored)) {
+                mirrored = options.Clone();
+                mirrored.MarginLeft = options.MarginRight;
+                mirrored.MarginRight = options.MarginLeft;
+                mirroredPageOptions.Add(options, mirrored);
+            }
+            return mirrored;
         }
 
         private void EnsurePage() {

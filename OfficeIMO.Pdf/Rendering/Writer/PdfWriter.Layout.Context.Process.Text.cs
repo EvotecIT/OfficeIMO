@@ -142,13 +142,17 @@ internal static partial class PdfWriter {
                     double spacing = y < frameStart - 0.001 ? spacingBefore : 0D;
                     double actualHeight = spacing + lineHeights.Sum();
                     double nextHeight = paragraphStyle?.KeepWithNext == true && nextBlock != null
-                        ? MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft.ToPoints(), width, size, actualHeight + spacingAfter) : 0;
+                        ? MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft.ToPoints(), width, size,
+                            actualHeight + spacingAfter, measureExistingFloatingTables: true) : 0;
                     bool simulatedPageBreak = floatingPageStarts.Count > 0;
                     double fitHeight = spacing + MeasureTextBlockAdmissionHeight(lines, lineHeights, leading, spacingAfter, floatingLineGaps);
                     bool mustMove = IsKeptInCurrentFrame() && (simulatedPageBreak || fitHeight > y - FootnoteBodyBottom + 0.001);
                     if (!mustMove && nextHeight > 0 && (simulatedPageBreak || actualHeight + spacingAfter + nextHeight > y - FootnoteBodyBottom + 0.001)) {
-                        double unobstructedHeight = WrapUnobstructedParagraph().LineHeights.Sum();
-                        mustMove = unobstructedHeight + spacingAfter + nextHeight <= frameStart - FootnoteBodyBottom + 0.001;
+                        var continuation = MeasureKeepWithNextGroup(blockList, blockIndex + 1, currentOpts.MarginLeft.ToPoints(),
+                            width, size, precedingHeight: 0, measureExistingFloatingTables: false, continuationLead: rpb);
+                        mustMove = continuation.ContinuationCapacity is double capacity
+                            ? continuation.Height <= capacity + 0.001
+                            : WrapUnobstructedParagraph().LineHeights.Sum() + spacingAfter + nextHeight <= frameStart - FootnoteBodyBottom + 0.001;
                     }
                     if (mustMove) {
                         NewParagraphStartFrame(forcePhysicalPage: true);

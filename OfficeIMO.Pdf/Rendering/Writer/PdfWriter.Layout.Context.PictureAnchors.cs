@@ -189,7 +189,7 @@ internal static partial class PdfWriter {
                 double available = row == 0 ? textFrame.FirstLineWidth : textFrame.Width;
                 // A row is composed again when a longer word changes its height; it decides afresh.
                 if (row <= nextPageRow) { pageStarts!.Remove(nextPageRow); nextPageRow = -1; }
-                RichTextRowFrame Unobstructed() => new(new[] { new RichTextInterval(left - textFrame.X, available) }, 0D);
+                RichTextRowFrame Unobstructed(bool startsPage = false) => new(new[] { new RichTextInterval(left - textFrame.X, available) }, 0D, startsPage);
                 if (nextPageRow >= 0) return Unobstructed();
                 double rowTop = top - completed;
                 RichTextRowFrame? resolved = pageStarts != null && rowTop - required < pageBottom
@@ -197,12 +197,13 @@ internal static partial class PdfWriter {
                 if (pageStarts != null && (resolved == null || rowTop - resolved.Gap - required < pageBottom)) {
                     nextPageRow = row;
                     pageStarts.Add(row);
-                    return Unobstructed();
+                    return Unobstructed(startsPage: true);
                 }
                 RichTextRowFrame frame = resolved!;
                 return new RichTextRowFrame(frame.Intervals.Select(slot =>
                     new RichTextInterval(slot.X - textFrame.X, slot.Width)).ToArray(), frame.Gap);
             });
+            pageStarts?.RemoveWhere(row => row >= wrapped.Lines.Count);
             pictureAnchors.Paragraphs[key] = new PictureParagraphPlan(wrapped.Lines, wrapped.LineHeights, relative,
                 currentOpts.CreateTextMeasurementSnapshot(), pageStarts?.ToArray() ?? Array.Empty<int>());
             return wrapped;
