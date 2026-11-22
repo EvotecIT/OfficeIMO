@@ -53,6 +53,42 @@ internal static partial class PdfWriter {
         private PdfCreateOptions PageAnchorOptions => activeContainerScopes.Count > 0 ? activeContainerScopes[0].PageOptions
             : continuedPageAnchorOptions ?? currentPage?.Options ?? currentOpts;
 
+        private const double WordBorderlessFloatingTableRightEdge = 0.75D;
+        private const double WordMinimumFloatingTableTextDistance = 0.5D;
+
+        /// <summary>The paint a floating table carries beyond its grid on the left and right, as Word measures it.</summary>
+        private static (double Left, double Right) GetFloatingTableOutsideEdges(PdfTablePosition position, PdfTableStyle? style) {
+            if (!position.UsesWordOutsideEdges) return (0D, 0D);
+            double left = 0D, right = 0D;
+            if (style?.CellBorders is { Count: > 0 } borders) {
+                int lastColumn = -1;
+                PdfCellBorder? last = null;
+                foreach (var entry in borders) {
+                    if (entry.Key.Row != 0) continue;
+                    if (entry.Key.Column == 0 && entry.Value.Left)
+                        left = RenderableBorderWidth(ResolveCellBorderSide(entry.Value.LeftBorderSnapshot, entry.Value));
+                    if (entry.Key.Column > lastColumn) { lastColumn = entry.Key.Column; last = entry.Value; }
+                }
+                if (last is { Right: true }) right = RenderableBorderWidth(ResolveCellBorderSide(last.RightBorderSnapshot, last));
+            }
+            return (left / 2D, right > 0D ? right / 2D : WordBorderlessFloatingTableRightEdge);
+
+            static double RenderableBorderWidth(PdfCellBorderSide? side) => IsRenderableCellBorderSide(side) ? side!.Width.ToPoints() : 0D;
+        }
+
+        private static (double Left, double Right) GetFloatingTableTextDistances(PdfTablePosition position) {
+            double left = position.DistanceLeft.ToPoints(), right = position.DistanceRight.ToPoints();
+            return position.UsesWordOutsideEdges
+                ? (Math.Max(left, WordMinimumFloatingTableTextDistance), Math.Max(right, WordMinimumFloatingTableTextDistance))
+                : (left, right);
+        }
+
+        /// <summary>Returns the grid's left edge; alignment and offsets place the table's outside edges.</summary>
+        private double PositionTableX(PdfTablePosition position, double tableWidth, PdfTableStyle? style) {
+            var outside = GetFloatingTableOutsideEdges(position, style);
+            return PositionTableX(position, tableWidth + outside.Left + outside.Right) + outside.Left;
+        }
+
         private double PositionTableX(PdfTablePosition position, double tableWidth) {
             double left = position.HorizontalAnchor == PdfTableAnchor.Page ? 0
                 : position.HorizontalAnchor == PdfTableAnchor.Margin ? PageAnchorOptions.MarginLeft.ToPoints() : currentOpts.MarginLeft.ToPoints();
@@ -102,14 +138,16 @@ internal static partial class PdfWriter {
             } while (moved);
         }
 
-        private void ReserveFloatingTable(PdfTablePosition position, double left, double top, double tableWidth, double height) {
+        private void ReserveFloatingTable(PdfTablePosition position, double left, double top, double tableWidth, double height, PdfTableStyle? style) {
             foreach (var capture in activeFloatingFlowCaptures)
                 capture.PaintedRegions.Add(new PdfLayoutRegion(pages.Count + 1, left, top - height, tableWidth, height));
             floatingTables.RemoveAll(region => !ReferenceEquals(region.Page, currentPage));
             // Word lets other floats overlap a frame that text runs underneath.
             if (!position.WrapsText) return;
-            floatingTables.Add((currentPage, left - position.DistanceLeft.ToPoints(),
-                left + tableWidth + position.DistanceRight.ToPoints(), top + position.DistanceTop.ToPoints(),
+            var outside = GetFloatingTableOutsideEdges(position, style);
+            var distance = GetFloatingTableTextDistances(position);
+            floatingTables.Add((currentPage, left - outside.Left - distance.Left,
+                left + tableWidth + outside.Right + distance.Right, top + position.DistanceTop.ToPoints(),
                 top - height - position.DistanceBottom.ToPoints(), position.AllowOverlap));
         }
 

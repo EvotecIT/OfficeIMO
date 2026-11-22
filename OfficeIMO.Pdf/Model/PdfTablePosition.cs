@@ -66,6 +66,12 @@ public sealed class PdfTablePosition {
     /// text area, as Word does for frames, moving it inward only when it would leave the page.
     /// </summary>
     internal bool AlignsInPageMargin { get; init; }
+    /// <summary>
+    /// Word places and wraps text around a floating table by its outside edges: half the outer
+    /// left and right border paint beyond the grid, or 0.75pt on the right of a borderless table,
+    /// and keeps at least 0.5pt of horizontal text clearance.
+    /// </summary>
+    internal bool UsesWordOutsideEdges { get; init; }
 
     /// <summary>Horizontal reference rectangle.</summary>
     public PdfTableAnchor HorizontalAnchor { get; }

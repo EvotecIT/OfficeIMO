@@ -87,7 +87,7 @@ public sealed class WordPdfFormattingFallbackRegressionTests {
     }
 
     [Fact]
-    public void VmlFormattedBreakKeepsItsOwnHeightWithoutChangingTheOtherLines() {
+    public void VmlFormattedBreakAfterTextLeavesTheLineHeights() {
         using var document = WordDocument.Create();
         var content = new W.Paragraph(Text("A", 11),
             new W.Run(new W.RunProperties(new W.FontSize { Val = "64" }), new W.Break()),
@@ -104,9 +104,8 @@ public sealed class WordPdfFormattingFallbackRegressionTests {
         var letters = pdf.GetPage(1).Letters.Where(letter => letter.Value is "A" or "B" or "C").ToArray();
         Assert.Equal(3, letters.Length);
         Assert.Equal(13.2D, letters[1].StartBaseLine.Y - letters[2].StartBaseLine.Y, precision: 3);
-        // The formatted break enlarges its own line box; font ascent also
-        // changes that line's baseline, so the baseline delta is not 32 * 1.2.
-        Assert.InRange(letters[0].StartBaseLine.Y - letters[1].StartBaseLine.Y, 13.3D, 38.5D);
+        // As in Word, a break ending a line of text adds no height of its own font.
+        Assert.Equal(13.2D, letters[0].StartBaseLine.Y - letters[1].StartBaseLine.Y, precision: 3);
     }
 
     [Theory]

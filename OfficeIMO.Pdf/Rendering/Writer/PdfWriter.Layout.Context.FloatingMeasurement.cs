@@ -33,14 +33,16 @@ internal static partial class PdfWriter {
             double tableWidth = ResolveTableColumnLayout(table, currentOpts, style, count, frameWidth,
                 GetTableBodyFontSize(style, fontSize), style.HeaderRowCount, table.Rows.Count - style.FooterRowCount).Width;
             double flowY = y;
-            double left = PositionTableX(position, tableWidth) + style.HorizontalOffset.ToPoints();
+            double left = PositionTableX(position, tableWidth, style) + style.HorizontalOffset.ToPoints();
             y = PositionTableY(position, height);
             // Measure a header or footer float where painting puts it: moved up onto the page.
             if (isRunningContent) y = Math.Max(y, Math.Min(height, currentOpts.PageHeight.ToPoints()));
             AvoidFloatingTable(position, left, tableWidth, height);
             bottom = y - height;
-            if (position.WrapsText) floatingTables.Add((currentPage, left - position.DistanceLeft.ToPoints(),
-                left + tableWidth + position.DistanceRight.ToPoints(), y + position.DistanceTop.ToPoints(),
+            var outside = GetFloatingTableOutsideEdges(position, style);
+            var distance = GetFloatingTableTextDistances(position);
+            if (position.WrapsText) floatingTables.Add((currentPage, left - outside.Left - distance.Left,
+                left + tableWidth + outside.Right + distance.Right, y + position.DistanceTop.ToPoints(),
                 bottom - position.DistanceBottom.ToPoints(), position.AllowOverlap));
             y = flowY;
             return true;

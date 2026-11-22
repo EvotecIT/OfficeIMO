@@ -123,6 +123,13 @@ internal static partial class RtfPdfConverter {
                     decorationColor: control.DecorationColor).WithSpacingFrom(control);
             }
         }
+        // A break sizes its line only when no text precedes it there. A generated note label
+        // is not body text, so the body's font box also sizes the label's line.
+        if (bodyStartIndex > 0) {
+            runs.Insert(bodyStartIndex, new PdfCore.PdfTextRun(string.Empty, bold: strut.Bold, italic: strut.Italic,
+                fontSize: strut.FontSize, standardFont: strut.StandardFont, fontFamily: strut.FontFamily,
+                baseline: strut.Baseline) { IsLineBoxStrut = true });
+        }
         runs.Add(strut);
     }
 
