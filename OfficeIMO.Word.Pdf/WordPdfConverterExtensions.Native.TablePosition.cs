@@ -29,7 +29,7 @@ namespace OfficeIMO.Word.Pdf {
                 global::OfficeIMO.OfficeLength.Points(Math.Max(0, (position.TopFromText?.Value ?? 0) / 20D)),
                 global::OfficeIMO.OfficeLength.Points(Math.Max(0, (position.BottomFromText?.Value ?? 0) / 20D)),
                 mirrorHorizontalOnEvenPages: horizontal == W.HorizontalAlignmentValues.Inside || horizontal == W.HorizontalAlignmentValues.Outside,
-                allowOverlap: allowOverlap);
+                allowOverlap: allowOverlap) { UsesWordOutsideEdges = true };
         }
     }
 }

@@ -53,6 +53,67 @@ internal static partial class PdfWriter {
         private PdfCreateOptions PageAnchorOptions => activeContainerScopes.Count > 0 ? activeContainerScopes[0].PageOptions
             : continuedPageAnchorOptions ?? currentPage?.Options ?? currentOpts;
 
+        private const double WordBorderlessFloatingTableRightEdge = 0.75D;
+        private const double WordMinimumFloatingTableTextDistance = 0.5D;
+
+        private readonly record struct FloatingTableOutsideEdges(double Placement, double Left, double Right);
+
+        private readonly System.Runtime.CompilerServices.ConditionalWeakTable<TableBlock, Tuple<PdfTableStyle, FloatingTableOutsideEdges>> floatingTableEdges = new();
+
+        /// <summary>
+        /// The paint a floating table carries beyond its grid, as Word measures it. The first row's
+        /// outer left border places the grid; text clears the widest outer border on each side
+        /// across all rows. A cell without its own borders takes the table's uniform grid border,
+        /// and a table with no right border anywhere still reaches 0.75pt past its grid.
+        /// </summary>
+        private FloatingTableOutsideEdges GetFloatingTableOutsideEdges(PdfTablePosition position, TableBlock table, PdfTableStyle style) {
+            if (!position.UsesWordOutsideEdges) return default;
+            if (floatingTableEdges.TryGetValue(table, out var cached) && ReferenceEquals(cached.Item1, style)) return cached.Item2;
+            int columns = GetTableColumnCount(table);
+            double placement = 0D, left = 0D, right = 0D;
+            bool firstRow = true;
+            for (int row = 0; row < table.Rows.Count; row++) {
+                List<TableCellLayout> cells = GetTableCellLayouts(table, row, columns);
+                if (cells.Count == 0) continue;
+                TableCellLayout first = cells[0], last = cells[0];
+                foreach (TableCellLayout cell in cells) {
+                    if (cell.Column < first.Column) first = cell;
+                    if (cell.Column + cell.ColumnSpan > last.Column + last.ColumnSpan) last = cell;
+                }
+                double rowLeft = first.Column == 0 ? OuterHalfWidth(row, first.Column, rightSide: false) : 0D;
+                double rowRight = last.Column + last.ColumnSpan >= columns ? OuterHalfWidth(row, last.Column, rightSide: true) : 0D;
+                if (firstRow && first.Column == 0) { placement = rowLeft; firstRow = false; }
+                left = Math.Max(left, rowLeft);
+                right = Math.Max(right, rowRight);
+            }
+            var edges = new FloatingTableOutsideEdges(placement, left, right > 0D ? right : WordBorderlessFloatingTableRightEdge);
+            floatingTableEdges.Remove(table);
+            floatingTableEdges.Add(table, Tuple.Create(style, edges));
+            return edges;
+
+            double OuterHalfWidth(int row, int column, bool rightSide) {
+                if (style.CellBorders == null || !style.CellBorders.TryGetValue((row, column), out PdfCellBorder? border))
+                    return style.BorderColor.HasValue ? style.BorderWidth.ToPoints() / 2D : 0D;
+                PdfCellBorderSide? side = rightSide
+                    ? border.Right ? ResolveCellBorderSide(border.RightBorderSnapshot, border) : null
+                    : border.Left ? ResolveCellBorderSide(border.LeftBorderSnapshot, border) : null;
+                return IsRenderableCellBorderSide(side) ? side!.Width.ToPoints() / 2D : 0D;
+            }
+        }
+
+        private static (double Left, double Right) GetFloatingTableTextDistances(PdfTablePosition position) {
+            double left = position.DistanceLeft.ToPoints(), right = position.DistanceRight.ToPoints();
+            return position.UsesWordOutsideEdges
+                ? (Math.Max(left, WordMinimumFloatingTableTextDistance), Math.Max(right, WordMinimumFloatingTableTextDistance))
+                : (left, right);
+        }
+
+        /// <summary>Returns the grid's left edge; alignment and offsets place the table's outside edges.</summary>
+        private double PositionTableX(PdfTablePosition position, double tableWidth, TableBlock table, PdfTableStyle style) {
+            var outside = GetFloatingTableOutsideEdges(position, table, style);
+            return PositionTableX(position, tableWidth + outside.Placement + outside.Right) + outside.Placement;
+        }
+
         private double PositionTableX(PdfTablePosition position, double tableWidth) {
             double left = position.HorizontalAnchor == PdfTableAnchor.Page ? 0
                 : position.HorizontalAnchor == PdfTableAnchor.Margin ? PageAnchorOptions.MarginLeft.ToPoints() : currentOpts.MarginLeft.ToPoints();
@@ -102,14 +163,16 @@ internal static partial class PdfWriter {
             } while (moved);
         }
 
-        private void ReserveFloatingTable(PdfTablePosition position, double left, double top, double tableWidth, double height) {
+        private void ReserveFloatingTable(PdfTablePosition position, double left, double top, double tableWidth, double height, TableBlock table, PdfTableStyle style) {
             foreach (var capture in activeFloatingFlowCaptures)
                 capture.PaintedRegions.Add(new PdfLayoutRegion(pages.Count + 1, left, top - height, tableWidth, height));
             floatingTables.RemoveAll(region => !ReferenceEquals(region.Page, currentPage));
             // Word lets other floats overlap a frame that text runs underneath.
             if (!position.WrapsText) return;
-            floatingTables.Add((currentPage, left - position.DistanceLeft.ToPoints(),
-                left + tableWidth + position.DistanceRight.ToPoints(), top + position.DistanceTop.ToPoints(),
+            var outside = GetFloatingTableOutsideEdges(position, table, style);
+            var distance = GetFloatingTableTextDistances(position);
+            floatingTables.Add((currentPage, left - outside.Left - distance.Left,
+                left + tableWidth + outside.Right + distance.Right, top + position.DistanceTop.ToPoints(),
                 top - height - position.DistanceBottom.ToPoints(), position.AllowOverlap));
         }
 

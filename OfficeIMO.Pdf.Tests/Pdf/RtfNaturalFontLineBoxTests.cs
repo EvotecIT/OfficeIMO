@@ -39,6 +39,86 @@ public sealed class RtfNaturalFontLineBoxTests {
     }
 
     [Fact]
+    public void ControlOnlyNoteBodySizesTheLabelLineFromItsFirstSourceLine() {
+        // A larger control on the second source line must not enlarge the label's line.
+        RtfDocument Create(double secondLineControlSize) {
+            RtfDocument source = CreateDocument(out int normal, out _);
+            RtfStyle style = source.AddStyle(7, "Note body character box");
+            style.FontId = normal;
+            style.FontSize = 12D;
+            style.LineSpacingTwips = 240;
+            style.LineSpacingMultiple = true;
+            var note = new RtfNote(RtfNoteKind.Footnote);
+            RtfParagraph first = note.AddParagraph().SetStyle(style.Id);
+            first.AddLineBreak();
+            AddText(first, "\t", secondLineControlSize, normal);
+            first.AddLineBreak();
+            AddText(note.AddParagraph(), "Z", 12, normal);
+            RtfParagraph body = source.AddParagraph();
+            AddText(body, "X", 12, normal);
+            body.AddNoteReference(note, "7");
+            return source;
+        }
+        using PdfPigDocument expected = PdfPigDocument.Open((Create(12D).ToPdf(Options())).ToBytes());
+        using PdfPigDocument actual = PdfPigDocument.Open((Create(36D).ToPdf(Options())).ToBytes());
+        Assert.Equal(Markers(expected, "F", "Z")[0].StartBaseLine.Y, Markers(actual, "F", "Z")[0].StartBaseLine.Y, 3);
+    }
+
+    [Fact]
+    public void ControlOnlyNoteBodyEndsItsFirstSourceLineAtALoneCarriageReturn() {
+        RtfDocument Create(double secondLineControlSize) {
+            RtfDocument source = CreateDocument(out int normal, out _);
+            RtfStyle style = source.AddStyle(7, "Note body character box");
+            style.FontId = normal;
+            style.FontSize = 12D;
+            style.LineSpacingTwips = 240;
+            style.LineSpacingMultiple = true;
+            var note = new RtfNote(RtfNoteKind.Footnote);
+            RtfParagraph first = note.AddParagraph().SetStyle(style.Id);
+            AddText(first, "\t\r", 12, normal);
+            AddText(first, "\t", secondLineControlSize, normal);
+            first.AddLineBreak();
+            AddText(note.AddParagraph(), "Z", 12, normal);
+            RtfParagraph body = source.AddParagraph();
+            AddText(body, "X", 12, normal);
+            body.AddNoteReference(note, "7");
+            return source;
+        }
+        using PdfPigDocument expected = PdfPigDocument.Open((Create(12D).ToPdf(Options())).ToBytes());
+        using PdfPigDocument actual = PdfPigDocument.Open((Create(36D).ToPdf(Options())).ToBytes());
+        Assert.Equal(Markers(expected, "F", "Z")[0].StartBaseLine.Y, Markers(actual, "F", "Z")[0].StartBaseLine.Y, 3);
+    }
+
+    [Fact]
+    public void ControlOnlyNoteBodyAdmitsTheInheritedFontOfItsFirstSourceLine() {
+        // The note style's tall font reaches the label line only through the unsized first-line
+        // break. It must be admitted like an explicitly formatted tall control on that line.
+        RtfDocument Create(bool explicitFirstLine) {
+            RtfDocument source = CreateDocument(out int normal, out int tall);
+            RtfStyle style = source.AddStyle(7, "Note body character box");
+            style.FontId = tall;
+            style.FontSize = 12D;
+            style.LineSpacingTwips = 240;
+            style.LineSpacingMultiple = true;
+            var note = new RtfNote(RtfNoteKind.Footnote);
+            RtfParagraph first = note.AddParagraph().SetStyle(style.Id);
+            if (explicitFirstLine) AddText(first, "\t", 12, tall);
+            first.AddLineBreak();
+            AddText(first, "\t", 12, normal);
+            first.AddLineBreak();
+            AddText(note.AddParagraph(), "Z", 12, normal);
+            RtfParagraph body = source.AddParagraph();
+            AddText(body, "X", 12, normal);
+            body.AddNoteReference(note, "7");
+            return source;
+        }
+        using PdfPigDocument expected = PdfPigDocument.Open((Create(explicitFirstLine: true).ToPdf(Options())).ToBytes());
+        using PdfPigDocument actual = PdfPigDocument.Open((Create(explicitFirstLine: false).ToPdf(Options())).ToBytes());
+        Assert.Equal(Markers(expected, "F", "Z")[0].StartBaseLine.Y, Markers(actual, "F", "Z")[0].StartBaseLine.Y, 3);
+        Assert.Equal(Markers(expected, "F", "Z")[1].StartBaseLine.Y, Markers(actual, "F", "Z")[1].StartBaseLine.Y, 3);
+    }
+
+    [Fact]
     public void PlainLineBreakOnlyParagraphKeepsItsSourceDefaultFontBoxes() {
         const string prefix = @"{\rtf1\ansi\deff0{\fonttbl{\f0 Arial;}}\plain A\par";
         RtfDocument actualSource = RtfDocument.ParseResult(prefix + @"\line\par B\par}").Document;

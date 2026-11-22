@@ -598,8 +598,21 @@ internal static partial class PdfWriter {
             }
         }
 
-        void MarkCurrentLineHardBreak(RichSeg breakSegment) =>
-            lines[lines.Count - 1].Add(breakSegment);
+        // Word measures a line by the characters on it. A break takes its own font only on a
+        // line it leaves empty; after text it follows that text's metrics.
+        void MarkCurrentLineHardBreak(RichSeg breakSegment) {
+            List<RichSeg> line = lines[lines.Count - 1];
+            RichSeg? text = line.LastOrDefault(IsLineTextSegment);
+            line.Add(text == null ? breakSegment : CreateRichLineBreakSegment(currentTextRun!, text.Font, text.FontSize, text.NamedFont, text.Baseline));
+        }
+
+        // Numbering labels and their suffixes are not document text here: a break after a
+        // list number still sets that line's height, as in Word. Raised or lowered text is
+        // measured at its script size, smaller than the full-size line box Word gives it, so a
+        // break after script-only text keeps sizing the line.
+        static bool IsLineTextSegment(RichSeg segment) =>
+            segment.Text.Length > 0 && segment.InlineElement == null && segment.ContributesLineBoxDescent &&
+            segment.Baseline == PdfTextBaseline.Normal && segment.BaselineShift == 0D;
 
         for (int runIndex = 0; runIndex < effectiveRuns.Count; runIndex++) {
             PdfTextRun run = effectiveRuns[runIndex];
@@ -1153,8 +1166,11 @@ internal static partial class PdfWriter {
                 }
                 if (hadNewline) {
                     oversizedWordContinuation = false;
-                    PrepareLineFrame(RunLineHeight(runFontSize));
-                    RegisterLineHeight(runFontSize);
+                    // The break's own font sizes and frames only a line it leaves empty.
+                    if (!lines[lines.Count - 1].Any(IsLineTextSegment)) {
+                        PrepareLineFrame(RunLineHeight(runFontSize));
+                        RegisterLineHeight(runFontSize);
+                    }
                     MarkCurrentLineHardBreak(CreateRichLineBreakSegment(run, fontForRun, runFontSize, currentRunNamedFont));
                     StartNewLine(forceRow: true);
                     ResetPendingLeading();
