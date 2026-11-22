@@ -1,9 +1,13 @@
 namespace OfficeIMO.Pdf;
 
-/// <summary>Identifies a rectangular picture exclusion without selecting a text-layout algorithm.</summary>
+/// <summary>Identifies how text wraps around a picture exclusion.</summary>
 internal enum PdfImageTextWrapKind {
     Square,
-    TopAndBottom
+    TopAndBottom,
+    /// <summary>Text follows the picture's wrap polygon on each line.</summary>
+    Tight,
+    /// <summary>Lays out as Tight: each line clears the polygon's extent across that line.</summary>
+    Through
 }
 
 /// <summary>Retains the producer's requested side of a rectangular picture exclusion.</summary>
@@ -17,14 +21,24 @@ internal enum PdfImageTextWrapSide {
 /// <summary>
 /// Source text distances in points. These expand the exclusion, never the picture's paint frame.
 /// Side is ignored by TopAndBottom because that mode clears the full paragraph width.
+/// Tight and Through carry a closed wrap polygon whose points are fractions of the picture's
+/// width and height, measured from its top-left corner; points may lie outside the picture.
 /// </summary>
 internal sealed class PdfImageTextExclusion {
     internal PdfImageTextExclusion(PdfImageTextWrapKind kind, PdfImageTextWrapSide side,
-        double distanceLeft, double distanceTop, double distanceRight, double distanceBottom) {
+        double distanceLeft, double distanceTop, double distanceRight, double distanceBottom,
+        IReadOnlyList<(double X, double Y)>? polygon = null) {
         Guard.NonNegative(distanceLeft, nameof(distanceLeft));
         Guard.NonNegative(distanceTop, nameof(distanceTop));
         Guard.NonNegative(distanceRight, nameof(distanceRight));
         Guard.NonNegative(distanceBottom, nameof(distanceBottom));
+        bool polygonKind = kind is PdfImageTextWrapKind.Tight or PdfImageTextWrapKind.Through;
+        if (polygonKind != (polygon != null))
+            throw new ArgumentException("Tight and through wrapping need a wrap polygon; other kinds take none.", nameof(polygon));
+        if (polygon != null && (polygon.Count < 3 || polygon.Any(point => double.IsNaN(point.X) || double.IsInfinity(point.X) ||
+                double.IsNaN(point.Y) || double.IsInfinity(point.Y))))
+            throw new ArgumentException("A wrap polygon needs at least three finite points.", nameof(polygon));
+        Polygon = polygon?.ToArray();
         Kind = kind;
         Side = side;
         DistanceLeft = distanceLeft;
@@ -39,6 +53,7 @@ internal sealed class PdfImageTextExclusion {
     internal double DistanceTop { get; }
     internal double DistanceRight { get; }
     internal double DistanceBottom { get; }
+    internal IReadOnlyList<(double X, double Y)>? Polygon { get; }
 }
 
 /// <summary>

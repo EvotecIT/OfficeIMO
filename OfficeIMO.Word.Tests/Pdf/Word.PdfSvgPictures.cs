@@ -86,8 +86,10 @@ public sealed class WordPdfSvgPictureTests {
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph = document.AddParagraph();
         paragraph.AddImage(new MemoryStream(Encoding.UTF8.GetBytes(Logo)), "logo.svg", OfficeLength.Points(80), OfficeLength.Points(40));
-        // Tight wrapping is outside the fixed-placement profile, so the picture is placed in document flow.
-        paragraph.Image!.WrapText = WordImageTextWrapping.Tight;
+        // One-sided wrapping is outside the fixed-placement profile, so the picture is placed in document flow.
+        paragraph.Image!.WrapText = WordImageTextWrapping.Square;
+        paragraph.Image._Image!.Anchor!.GetFirstChild<DocumentFormat.OpenXml.Drawing.Wordprocessing.WrapSquare>()!.WrapText =
+            DocumentFormat.OpenXml.Drawing.Wordprocessing.WrapTextValues.Left;
         paragraph.Image.Hyperlink = new Uri("https://example.com/flowed");
 
         byte[] pdf = document.ToPdf(null, out OfficeConversionReport report).ToBytes();

@@ -1,8 +1,45 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
+    /// <summary>
+    /// The area text keeps clear of, in page points. A polygon wrap also carries its exclusion and the
+    /// picture frame, offset from Left and Top, so moving Top and Bottom moves the polygon with them.
+    /// </summary>
     private readonly record struct TextExclusionBounds(double Left, double Right, double Top,
-        double Bottom, PdfImageTextWrapKind Kind);
+        double Bottom, PdfImageTextWrapKind Kind, PdfImageTextExclusion? Wrap = null,
+        double PictureLeftOffset = 0D, double PictureTopOffset = 0D, double PictureWidth = 0D, double PictureHeight = 0D);
+
+    /// <summary>
+    /// The horizontal extent of a wrap polygon over a band of rows, widened by the wrap distances as
+    /// Word does: the band grows by the top and bottom distances, the extent by the side distances.
+    /// </summary>
+    private static (double Left, double Right)? GetPolygonTextExclusion(TextExclusionBounds region,
+        double bandBottom, double bandTop) {
+        PdfImageTextExclusion wrap = region.Wrap!;
+        IReadOnlyList<(double X, double Y)> polygon = wrap.Polygon!;
+        double low = bandBottom - wrap.DistanceTop, high = bandTop + wrap.DistanceBottom;
+        double originX = region.Left + region.PictureLeftOffset, originY = region.Top - region.PictureTopOffset;
+        double left = double.PositiveInfinity, right = double.NegativeInfinity;
+        for (int index = 0; index < polygon.Count; index++) {
+            (double ax, double ay) = Point(polygon[index]);
+            (double bx, double by) = Point(polygon[(index + 1) % polygon.Count]);
+            if (Math.Max(ay, by) < low || Math.Min(ay, by) > high) continue;
+            if (ay == by) {
+                Include(ax); Include(bx);
+                continue;
+            }
+            // Clip the edge to the band and keep the x range of what remains.
+            double y0 = Math.Max(low, Math.Min(ay, by)), y1 = Math.Min(high, Math.Max(ay, by));
+            Include(ax + (bx - ax) * (y0 - ay) / (by - ay));
+            Include(ax + (bx - ax) * (y1 - ay) / (by - ay));
+        }
+        if (left > right) return null;
+        return (left - wrap.DistanceLeft, right + wrap.DistanceRight);
+
+        (double X, double Y) Point((double X, double Y) point) =>
+            (originX + point.X * region.PictureWidth, originY - point.Y * region.PictureHeight);
+        void Include(double x) { left = Math.Min(left, x); right = Math.Max(right, x); }
+    }
 
     /// <summary>Subtracts one exclusion without selecting or fitting a text interval.</summary>
     private static List<RichTextInterval> SubtractTextExclusion(IReadOnlyList<RichTextInterval> intervals,
@@ -24,8 +61,20 @@ internal static partial class PdfWriter {
                     yield return new TextExclusionBounds(table.Left, table.Right, table.Top, table.Bottom, PdfImageTextWrapKind.Square);
             foreach (PictureAnchorPlacement picture in CurrentPictureExclusions()) {
                 PdfImageTextExclusion wrap = picture.Exclusion!;
-                if (wrap.Kind == PdfImageTextWrapKind.Square && wrap.Side != PdfImageTextWrapSide.BothSides)
-                    throw new NotSupportedException("Only both-side rectangular picture wrapping is currently supported.");
+                if (wrap.Kind != PdfImageTextWrapKind.TopAndBottom && wrap.Side != PdfImageTextWrapSide.BothSides)
+                    throw new NotSupportedException("Only both-side picture wrapping is currently supported.");
+                if (wrap.Polygon is { } polygon) {
+                    // The bounds hold the whole polygon widened by the wrap distances; rows test the polygon itself.
+                    double minX = picture.X + polygon.Min(point => point.X) * picture.Width;
+                    double maxX = picture.X + polygon.Max(point => point.X) * picture.Width;
+                    double maxY = picture.Top - polygon.Min(point => point.Y) * picture.Height;
+                    double minY = picture.Top - polygon.Max(point => point.Y) * picture.Height;
+                    double left = minX - wrap.DistanceLeft, top = maxY + wrap.DistanceTop;
+                    yield return new TextExclusionBounds(left, maxX + wrap.DistanceRight, top,
+                        minY - wrap.DistanceBottom, wrap.Kind, wrap, picture.X - left, top - picture.Top,
+                        picture.Width, picture.Height);
+                    continue;
+                }
                 yield return new TextExclusionBounds(picture.X - wrap.DistanceLeft,
                     picture.X + picture.Width + wrap.DistanceRight, picture.Top + wrap.DistanceTop,
                     picture.Top - picture.Height - wrap.DistanceBottom, wrap.Kind);
@@ -46,6 +95,13 @@ internal static partial class PdfWriter {
                     if (top - height >= region.Top || top <= region.Bottom) continue;
                     if (region.Kind != PdfImageTextWrapKind.TopAndBottom &&
                         (region.Right <= left || region.Left >= left + width)) continue;
+                    if (region.Wrap?.Polygon != null) {
+                        if (GetPolygonTextExclusion(region, top - height, top) is not { } span ||
+                            span.Right <= left || span.Left >= left + width) continue;
+                        nextBoundary = Math.Max(nextBoundary, region.Bottom);
+                        intervals = SubtractTextExclusion(intervals, span.Left, span.Right);
+                        continue;
+                    }
                     nextBoundary = Math.Max(nextBoundary, region.Bottom);
                     intervals = region.Kind == PdfImageTextWrapKind.TopAndBottom
                         ? new List<RichTextInterval>()
