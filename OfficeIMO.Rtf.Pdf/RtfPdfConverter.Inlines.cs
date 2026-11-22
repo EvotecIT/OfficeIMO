@@ -97,14 +97,29 @@ internal static partial class RtfPdfConverter {
                 fontSize: controlStyle.FontSize, standardFont: controlStyle.StandardFont, fontFamily: controlStyle.FontFamily,
                 baseline: controlStyle.Baseline);
         } else {
-            // RtfBreak carries no character state. Use only the source defaults
-            // or inherited style the existing semantic model can resolve.
+            strut = CreateInheritedStrut();
+        }
+        strut.IsLineBoxStrut = true;
+
+        // A break sizes its line only when no text precedes it there. A generated note label is
+        // not body text, so the controls on the body's first source line size the label's line,
+        // read before unsized controls take the trailing control's size below.
+        PdfCore.PdfTextRun? labelStrut = null;
+        if (bodyStartIndex > 0) {
+            PdfCore.PdfTextRun first = GetFirstSourceLineControlStyle(runs, bodyStartIndex) ?? CreateInheritedStrut();
+            labelStrut = new PdfCore.PdfTextRun(string.Empty, bold: first.Bold, italic: first.Italic,
+                fontSize: first.FontSize, standardFont: first.StandardFont, fontFamily: first.FontFamily,
+                baseline: first.Baseline) { IsLineBoxStrut = true };
+        }
+
+        // RtfBreak carries no character state. Use only the source defaults
+        // or inherited style the existing semantic model can resolve.
+        PdfCore.PdfTextRun CreateInheritedStrut() {
             RtfRun inherited = GetParagraphCharacterDefaults(document, source, string.Empty);
-            strut = new PdfCore.PdfTextRun(string.Empty, bold: inherited.Bold, italic: inherited.Italic,
+            return new PdfCore.PdfTextRun(string.Empty, bold: inherited.Bold, italic: inherited.Italic,
                 fontSize: inherited.FontSize.HasValue ? OfficeLength.Points(inherited.FontSize.Value) : null, standardFont: state.ResolveFont(inherited.FontId, inherited.Bold, inherited.Italic),
                 fontFamily: state.ResolveFontFamily(inherited.FontId));
         }
-        strut.IsLineBoxStrut = true;
         if ((strut.FontSize?.ToPoints()) is double sourceSize && sourceSize > 0D &&
             !double.IsNaN(sourceSize) && !double.IsInfinity(sourceSize)) {
             for (int index = bodyStartIndex; index < runs.Count; index++) {
@@ -123,7 +138,24 @@ internal static partial class RtfPdfConverter {
                     decorationColor: control.DecorationColor).WithSpacingFrom(control);
             }
         }
+        if (labelStrut != null) runs.Insert(bodyStartIndex, labelStrut);
         runs.Add(strut);
+    }
+
+    /// <summary>
+    /// The largest explicitly sized control on the first source line, up to and including the
+    /// control that ends it. Resource admission and painting share it, and it follows the
+    /// writer's line-end rule. Null when the first line holds only unsized controls.
+    /// </summary>
+    private static PdfCore.PdfTextRun? GetFirstSourceLineControlStyle(IReadOnlyList<PdfCore.PdfTextRun> runs, int bodyStartIndex) {
+        PdfCore.PdfTextRun? first = null;
+        for (int index = bodyStartIndex; index < runs.Count; index++) {
+            PdfCore.PdfTextRun control = runs[index];
+            if (control.FontSize?.ToPoints() is double size && size > 0D && !double.IsNaN(size) && !double.IsInfinity(size) &&
+                size > (first?.FontSize?.ToPoints() ?? 0D)) first = control;
+            if (PdfCore.PdfTextLineEnds.Contains(control.Text)) break;
+        }
+        return first;
     }
 
     /// <summary>Shares blank-line font selection between resource admission and actual paragraph painting.</summary>

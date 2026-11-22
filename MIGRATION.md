@@ -5699,6 +5699,11 @@ versions:
   wrap at different words than before. In OfficeIMO.Pdf, bulleted and numbered lists accept
   `OfficeAlignment.Justify`, which used to throw, and `PdfListStyle` has `JustificationMode`,
   `JustifyLastLine` and `JustifyExplicitLineBreaks`, as `PdfParagraphStyle` does.
+- Text beside a floating table starts where Word starts it: past the table's outside border, or 0.75pt
+  past a borderless table, with at least 0.5pt of clearance. A bordered floating table moves by half
+  its outer border, so the border edge sits at the table's position.
+- A line break no longer makes the line it ends as tall as the break's own font. A line holding only a
+  break still takes the break's size.
 
 If your process depends on where pages break, regenerate the PDFs and compare them with your stored
 baselines, checking page counts and where tables and lists break. Refresh page-dependent content
