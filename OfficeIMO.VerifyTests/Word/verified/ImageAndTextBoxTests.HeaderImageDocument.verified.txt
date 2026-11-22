@@ -1552,7 +1552,7 @@
     <w:r>
       <w:t xml:space="preserve">Header image</w:t>
       <w:drawing>
-        <wp:anchor distT="0" distB="0" distL="114300" distR="114300" simplePos="0" relativeHeight="251658240" behindDoc="1" locked="0" layoutInCell="1" allowOverlap="1" wp14:editId="E00000001" wp14:anchorId="00000001" xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
+        <wp:anchor distT="0" distB="0" distL="114300" distR="114300" simplePos="0" relativeHeight="251658240" behindDoc="0" locked="0" layoutInCell="1" allowOverlap="1" wp14:editId="E00000001" wp14:anchorId="00000001" xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
           <wp:simplePos x="0" y="0" />
           <wp:positionH relativeFrom="column">
             <wp:posOffset>0</wp:posOffset>
@@ -1561,7 +1561,7 @@
             <wp:posOffset>0</wp:posOffset>
           </wp:positionV>
           <wp:extent cx="609600" cy="609600" />
-          <wp:effectExtent l="0" t="0" r="0" b="1905" />
+          <wp:effectExtent l="0" t="0" r="0" b="0" />
           <wp:wrapSquare wrapText="bothSides" />
           <wp:docPr id="1" name="Kulek" descr="Header image" title="Header logo" />
           <wp:cNvGraphicFramePr>
