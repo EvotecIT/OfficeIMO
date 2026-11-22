@@ -162,13 +162,13 @@ namespace OfficeIMO.Word.Pdf {
             return sourceText.Substring(0, leading) + value + sourceText.Substring(sourceText.Length - trailing, trailing);
         }
 
-        private static PdfCore.PdfCanvasTextBoxStyle CreateNativeVmlTextBoxStyle(OpenXmlElement element, IReadOnlyList<PdfCore.PdfTextRun> runs) {
+        private static PdfCore.PdfCanvasTextBoxStyle CreateNativeVmlTextBoxStyle(WordDocument document, OpenXmlElement element, IReadOnlyList<PdfCore.PdfTextRun> runs) {
             var style = new PdfCore.PdfCanvasTextBoxStyle {
                 Background = null,
                 BorderColor = null,
                 BorderWidth = global::OfficeIMO.OfficeLength.Points(0D),
                 TextColor = null,
-                Align = GetNativeVmlTextAlign(element),
+                Align = GetNativeVmlTextAlign(document, element),
                 VerticalAlign = GetNativeVmlVerticalAlign(element),
                 FontSize = global::OfficeIMO.OfficeLength.Points(GetNativeVmlDefaultFontSize(runs)),
                 LineHeight = global::OfficeIMO.OfficeLength.Points(GetNativeVmlDefaultFontSize(runs) * 1.2D)
@@ -246,13 +246,12 @@ namespace OfficeIMO.Word.Pdf {
             return max > 0D ? max : 11D;
         }
 
-        private static global::OfficeIMO.OfficeAlignment GetNativeVmlTextAlign(OpenXmlElement element) {
+        private static global::OfficeIMO.OfficeAlignment GetNativeVmlTextAlign(WordDocument document, OpenXmlElement element) {
             W.Justification? justification = element.Descendants<W.Justification>().FirstOrDefault();
-            // The VML text frame sees only direct paragraph direction; it has no style chain to resolve.
-            W.Paragraph? paragraph = justification?.Ancestors<W.Paragraph>().FirstOrDefault() ?? element.Descendants<W.Paragraph>().FirstOrDefault();
-            bool rightToLeft = paragraph?.ParagraphProperties?.BiDi is { } bidi && ReadNativeOnOff(bidi) == true;
-            W.JustificationValues? value = ResolveNativeUnjustifiedJustification(
-                ResolveNativeVisualJustification(justification?.Val?.Value, rightToLeft), rightToLeft);
+            W.Paragraph? source = justification?.Ancestors<W.Paragraph>().FirstOrDefault() ?? element.Descendants<W.Paragraph>().FirstOrDefault();
+            // The frame takes its paragraph's resolved alignment and direction: direct, style and document defaults.
+            W.JustificationValues? value = source == null ? justification?.Val?.Value
+                : ResolveNativeUnjustifiedJustification(new WordParagraph(document, source));
             if (value == W.JustificationValues.Center) return global::OfficeIMO.OfficeAlignment.Center;
             if (value == W.JustificationValues.Right) return global::OfficeIMO.OfficeAlignment.Right;
             return global::OfficeIMO.OfficeAlignment.Left;

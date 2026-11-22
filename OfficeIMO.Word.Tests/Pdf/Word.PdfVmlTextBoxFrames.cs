@@ -34,6 +34,41 @@ public partial class Word {
         Assert.Throws<NotSupportedException>(() => document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes());
     }
 
+    // A VML text frame resolves its paragraph's direction through styles and document defaults; direct
+    // w:bidi="0" still overrides them. Left alignment then sits on the right of a right-to-left paragraph.
+    [Theory]
+    [InlineData("style", true)]
+    [InlineData("defaults", true)]
+    [InlineData("direct-off", false)]
+    public void VmlTextBoxAlignsByItsResolvedParagraphDirection(string source, bool rightToLeft) {
+        using WordDocument document = WordDocument.Create();
+        var styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        styles.Append(new Style(new StyleName { Val = "RtlFrameText" }, new StyleParagraphProperties(new BiDi())) {
+            Type = StyleValues.Paragraph, StyleId = "RtlFrameText"
+        });
+        if (source != "style") {
+            styles.DocDefaults!.ParagraphPropertiesDefault ??= new ParagraphPropertiesDefault();
+            styles.DocDefaults.ParagraphPropertiesDefault.ParagraphPropertiesBaseStyle ??= new ParagraphPropertiesBaseStyle();
+            styles.DocDefaults.ParagraphPropertiesDefault.ParagraphPropertiesBaseStyle.BiDi = new BiDi();
+        }
+        var properties = new ParagraphProperties(new Justification { Val = JustificationValues.Left });
+        if (source == "style") properties.ParagraphStyleId = new ParagraphStyleId { Val = "RtlFrameText" };
+        if (source == "direct-off") properties.BiDi = new BiDi { Val = false };
+        var shape = new V.Shape(new V.TextBox(new TextBoxContent(new Paragraph(properties,
+            new Run(new RunProperties(new RunFonts { Ascii = "Arial", HighAnsi = "Arial" }), new Text("FRAMEDIR")))))) {
+            Id = "DirectionFrame", Type = "#_x0000_t202",
+            Style = "position:absolute;left:72pt;top:72pt;width:360pt;height:120pt"
+        };
+        document._document.Body!.Append(CreateNativeCoverPageBlockWithChildren(new Paragraph(new Run(new Picture(shape)))));
+        document.AddParagraph("Body");
+
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false })
+            .ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+        var word = pdf.GetPage(1).GetWords().Single(candidate => candidate.Text == "FRAMEDIR");
+        if (rightToLeft) Assert.True(word.BoundingBox.Right > 400D, $"FRAMEDIR ends at {word.BoundingBox.Right:F1}.");
+        else Assert.True(word.BoundingBox.Left < 100D, $"FRAMEDIR starts at {word.BoundingBox.Left:F1}.");
+    }
+
     [Theory]
     [InlineData("default", true, true, 0.75D)]
     [InlineData("unfilled", true, false, 0.75D)]
