@@ -5350,14 +5350,13 @@ These parameter aliases stay removed. Command aliases such as `ExcelExport` are 
 | `-Values` | `-InputObject` | `Add-OfficeExcelTableRow` |
 | `-Values` | `-Value` | `Add-OfficePowerPointTableRow`, `Get-OfficeExcelTemplateMarker`, `Invoke-OfficeExcelTemplate`, `Set-OfficeExcelAutoFilter` |
 
-## PDF byte arrays are read in place
+## PDF arrays and memory slices are read in place
 
-`PdfDocument.Load(byte[], PdfLoadOptions?)` is now public and reads the array without copying it.
-Page dictionaries and other objects are parsed from the array when they are first read, and saving
-writes from it, so keep the array unchanged while the document is in use. Changing it afterwards
-gives undefined results: reads may return the changed content or fail. Copy the array first, or
-load from a stream, when you need to reuse the buffer, for example a buffer rented from
-`ArrayPool<byte>`.
+`PdfDocument.Load(byte[], PdfLoadOptions?)` and `PdfDocument.Load(ReadOnlyMemory<byte>, PdfLoadOptions?)`
+read the supplied bytes without copying the input. Pass the exact slice for a larger buffer rented
+from `ArrayPool<byte>` or a memory-mapped view. Keep that memory available and unchanged until the
+document is disposed. Page views, enumerators, and saves can access it later. Load from a stream
+when you need a separate snapshot to reuse or release the source sooner.
 
 `PdfDocument.Load(Stream)`, `Load(string)` and `LoadAsync` still read the input once into a buffer
 the document owns, so the stream or file can be closed, disposed or changed after loading.
@@ -6346,7 +6345,7 @@ outlined SVG glyphs are not selectable text.
 
 Word image export (`ToPng`, `ToJpeg`, `ToSvg`, `ExportImages`, and their fluent builders) now uses the same page layout and font policy as Word-to-PDF. Regenerate preview baselines: page counts, line breaks, styles and borders can change, and the preview renderer no longer shortens text with an ellipsis. Set `WordImageExportOptions.LayoutOptions` to the same `WordPdfExportOptions` used for PDF export when customizing layout.
 
-`OfficeIMO.Word` now references `OfficeIMO.Pdf`, which depends only on `OfficeIMO.Core`; no external runtime dependency is added. Forward conversion APIs and `WordPdfExportOptions` move from the `OfficeIMO.Word.Pdf` assembly to `OfficeIMO.Word`, retaining their namespace. Recompile consumers; PDF-to-Word import still requires `OfficeIMO.Word.Pdf`.
+`OfficeIMO.Word` now references `OfficeIMO.Pdf`. Forward conversion APIs and `WordPdfExportOptions` move from the `OfficeIMO.Word.Pdf` assembly to `OfficeIMO.Word`, retaining their namespace. Recompile consumers; PDF-to-Word import still requires `OfficeIMO.Word.Pdf`.
 
 `WordDocumentVisualInfo.Fragments` and the guessed source-block fragment/region types are removed. Use `TextSpans` for text and geometry from the actual laid-out page, in PDF user-space coordinates. `IncludeDocumentContent`, builder `IncludeContent`/`WithoutContent`, and preview-specific `WordImageExportDiagnosticCodes` are removed. PowerShell callers should remove `-IncludeDocumentContent` from `New-OfficeWordImageOptions`; Word page images always render document content. Export diagnostics now carry the same conversion and rendering codes as the PDF-backed route. Skipped unsupported objects are classified as omissions, so `RequireNoOmissions` rejects them on both routes; font, wrapping and appearance fallbacks remain approximations. An out-of-range page index throws `ArgumentOutOfRangeException` instead of producing an empty preview.
 

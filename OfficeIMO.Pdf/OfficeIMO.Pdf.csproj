@@ -46,6 +46,11 @@
     <Compile Include="../OfficeIMO.SharedSource/Invoicing/*.cs" Link="Shared/Invoicing/%(Filename)%(Extension)" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472' Or '$(TargetFramework)' == 'netstandard2.0'">
+    <!-- Match the compatibility package version used by OfficeIMO.CSV. -->
+    <PackageReference Include="System.Memory" Version="4.6.3" />
+  </ItemGroup>
+
   <ItemGroup>
     <Using Include="System.Text" />
   </ItemGroup>

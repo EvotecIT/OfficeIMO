@@ -1,3 +1,5 @@
+using System.Runtime.InteropServices;
+
 namespace OfficeIMO.Pdf;
 
 internal abstract class PdfObject {
@@ -118,33 +120,23 @@ internal sealed class PdfReference : PdfObject {
 /// <summary>PDF stream object (dictionary + bytes).</summary>
 internal sealed class PdfStream : PdfObject {
     private byte[]? _data;
-    private readonly byte[]? _source;
-    private readonly int _sourceOffset;
-    private readonly int _sourceLength;
+    private readonly ReadOnlyMemory<byte> _source;
 
     public PdfDictionary Dictionary { get; }
-    public byte[] Data {
-        get {
-            byte[]? data = System.Threading.Volatile.Read(ref _data);
-            if (data is not null) return data;
-            data = new byte[_sourceLength];
-            Buffer.BlockCopy(_source!, _sourceOffset, data, 0, data.Length);
-            return System.Threading.Interlocked.CompareExchange(ref _data, data, null) ?? data;
-        }
-    }
+    public byte[] Data => Volatile.Read(ref _data) ?? Materialize(_source.ToArray());
+
     internal byte[] GetData(CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        byte[]? data = System.Threading.Volatile.Read(ref _data);
+        byte[]? data = Volatile.Read(ref _data);
         if (data is not null) return data;
-        data = new byte[_sourceLength];
-        for (int offset = 0; offset < data.Length; offset += 65536) {
-            cancellationToken.ThrowIfCancellationRequested();
-            Buffer.BlockCopy(_source!, _sourceOffset + offset, data, offset, Math.Min(65536, data.Length - offset));
-        }
-        cancellationToken.ThrowIfCancellationRequested();
-        return System.Threading.Interlocked.CompareExchange(ref _data, data, null) ?? data;
+        data = new byte[_source.Length];
+        CopyData(_source.Span, data, cancellationToken);
+        return Materialize(data);
     }
-    internal int DataLength => _data?.Length ?? _sourceLength;
+
+    private byte[] Materialize(byte[] data) => Interlocked.CompareExchange(ref _data, data, null) ?? data;
+
+    internal int DataLength => _data?.Length ?? _source.Length;
     internal long DataLongLength => DataLength;
     /// <summary>True when a decode filter failed; <see cref="Data"/> contains original undecoded bytes.</summary>
     public bool DecodingFailed { get; }
@@ -157,60 +149,60 @@ internal sealed class PdfStream : PdfObject {
         DecodingError = error;
     }
 
-    private PdfStream(
-        PdfDictionary dictionary,
-        byte[] ownedSource,
-        int sourceOffset,
-        int sourceLength) {
+    private PdfStream(PdfDictionary dictionary, ReadOnlyMemory<byte> source, bool decodingFailed, string? error) {
         Dictionary = dictionary;
-        _source = ownedSource;
-        _sourceOffset = sourceOffset;
-        _sourceLength = sourceLength;
+        _source = source;
+        DecodingFailed = decodingFailed;
+        DecodingError = error;
     }
 
     internal static PdfStream FromOwnedSource(
         PdfDictionary dictionary,
-        byte[] ownedSource,
+        ReadOnlyMemory<byte> source,
         int sourceOffset,
-        int sourceLength) {
-        if (sourceOffset < 0 || sourceLength < 0 || sourceOffset > ownedSource.Length - sourceLength) {
+        int sourceLength,
+        bool decodingFailed = false,
+        string? error = null) {
+        if (sourceOffset < 0 || sourceLength < 0 || sourceOffset > source.Length - sourceLength) {
             throw new ArgumentOutOfRangeException(nameof(sourceLength));
         }
-        return new PdfStream(dictionary, ownedSource, sourceOffset, sourceLength);
+        return new PdfStream(dictionary, source.Slice(sourceOffset, sourceLength), decodingFailed, error);
     }
 
-    internal void CopyDataTo(byte[] destination, int destinationOffset) {
-        byte[]? data = System.Threading.Volatile.Read(ref _data);
-        if (data is not null) {
-            Buffer.BlockCopy(data, 0, destination, destinationOffset, data.Length);
-            return;
-        }
-        Buffer.BlockCopy(_source!, _sourceOffset, destination, destinationOffset, _sourceLength);
-    }
+    internal void CopyDataTo(byte[] destination, int destinationOffset) =>
+        GetDataMemory().Span.CopyTo(destination.AsSpan(destinationOffset));
 
     internal void CopyDataTo(byte[] destination, int destinationOffset, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        GetDataSegment(out byte[] source, out int sourceOffset, out int length);
-        for (int offset = 0; offset < length; offset += 65536) {
+        CopyData(GetDataMemory().Span, destination.AsSpan(destinationOffset), cancellationToken);
+    }
+
+    private static void CopyData(ReadOnlySpan<byte> source, Span<byte> destination, CancellationToken cancellationToken) {
+        for (int offset = 0; offset < source.Length;) {
             cancellationToken.ThrowIfCancellationRequested();
-            Buffer.BlockCopy(source, sourceOffset + offset, destination, destinationOffset + offset,
-                Math.Min(65536, length - offset));
+            int count = Math.Min(65536, source.Length - offset);
+            source.Slice(offset, count).CopyTo(destination.Slice(offset));
+            offset += count;
         }
         cancellationToken.ThrowIfCancellationRequested();
     }
 
-    internal void GetDataSegment(out byte[] buffer, out int offset, out int length) {
-        byte[]? data = System.Threading.Volatile.Read(ref _data);
-        if (data is not null) {
-            buffer = data;
-            offset = 0;
-            length = data.Length;
+    private ReadOnlyMemory<byte> GetDataMemory() {
+        byte[]? data = Volatile.Read(ref _data);
+        return data is not null ? data : _source;
+    }
+
+    internal void GetDataSegment(out byte[] buffer, out int offset, out int length, CancellationToken cancellationToken = default) {
+        if (MemoryMarshal.TryGetArray(GetDataMemory(), out ArraySegment<byte> segment)) {
+            buffer = segment.Array!;
+            offset = segment.Offset;
+            length = segment.Count;
             return;
         }
 
-        buffer = _source!;
-        offset = _sourceOffset;
-        length = _sourceLength;
+        buffer = GetData(cancellationToken);
+        offset = 0;
+        length = buffer.Length;
     }
 }
 
@@ -271,32 +263,33 @@ internal sealed class PdfIndirectObject : PdfObject {
 /// One instance is shared by all deferred objects of the stream.
 /// </summary>
 internal sealed class PdfDeferredObjectSource {
-    private readonly byte[] _data;
+    private readonly PdfByteContentText _text;
     private readonly PdfReadLimits _limits;
     private readonly bool _classicDictionaries;
 
-    internal PdfDeferredObjectSource(byte[] data, PdfReadLimits limits) {
-        _data = data;
-        _limits = limits;
+    internal PdfDeferredObjectSource(byte[] data, PdfReadLimits limits)
+        : this(new PdfByteContentText(data), limits, classicDictionaries: false) {
     }
 
-    private PdfDeferredObjectSource(byte[] data, PdfReadLimits limits, bool classicDictionaries) : this(data, limits) {
+    private PdfDeferredObjectSource(PdfByteContentText text, PdfReadLimits limits, bool classicDictionaries) {
+        _text = text;
+        _limits = limits;
         _classicDictionaries = classicDictionaries;
     }
 
     /// <summary>
-    /// Dictionaries of top-level indirect objects in an owned input file. Their summaries span the text between
+    /// Dictionaries of top-level indirect objects in a stable input buffer. Their summaries span the text between
     /// the outer delimiters, which is what the eager load parses for such an object.
     /// </summary>
-    internal static PdfDeferredObjectSource ForClassicDictionaries(byte[] ownedPdf, PdfReadLimits limits) =>
-        new(ownedPdf, limits, classicDictionaries: true);
+    internal static PdfDeferredObjectSource ForClassicDictionaries(PdfByteContentText text, PdfReadLimits limits) =>
+        new(text, limits, classicDictionaries: true);
 
-    internal bool Holds(byte[] data) => ReferenceEquals(_data, data);
+    internal bool Holds(byte[] data) => ReferenceEquals(_text.Source, data);
 
     // The load-time scan accepted these bytes under the same limits, so this parse cannot fail or exceed them.
     internal PdfObject Parse(int start, int length) => _classicDictionaries
-        ? PdfSyntax.ParseDeferredClassicDictionary(_data, start, length, _limits)
-        : PdfSyntax.ParseDeferredObject(_data, start, length, _limits);
+        ? PdfSyntax.ParseDeferredClassicDictionary(_text, start, length, _limits)
+        : PdfSyntax.ParseDeferredObject(_text, start, length, _limits);
 }
 
 /// <summary>

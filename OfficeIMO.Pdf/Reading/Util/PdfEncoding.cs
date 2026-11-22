@@ -140,14 +140,30 @@ internal static class PdfEncoding {
 #endif
     }
 
+    internal static string Latin1GetString(ReadOnlySpan<byte> bytes) {
+#if NET8_0_OR_GREATER
+        return Encoding.Latin1.GetString(bytes);
+#else
+        var chars = new char[bytes.Length];
+        for (int i = 0; i < bytes.Length; i++) chars[i] = (char)bytes[i];
+        return new string(chars);
+#endif
+    }
+
     internal static string Latin1GetStringCancellable(byte[] bytes, int index, int count,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (!cancellationToken.CanBeCanceled) return Latin1GetString(bytes, index, count);
-        var chars = new char[count];
-        for (int i = 0; i < count; i++) {
+        return Latin1GetStringCancellable(bytes.AsSpan(index, count), cancellationToken);
+    }
+
+    internal static string Latin1GetStringCancellable(ReadOnlySpan<byte> bytes,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!cancellationToken.CanBeCanceled) return Latin1GetString(bytes);
+        var chars = new char[bytes.Length];
+        for (int i = 0; i < bytes.Length; i++) {
             if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
-            chars[i] = (char)bytes[index + i];
+            chars[i] = (char)bytes[i];
         }
         cancellationToken.ThrowIfCancellationRequested();
         return CharArrayToStringCancellable(chars, cancellationToken);

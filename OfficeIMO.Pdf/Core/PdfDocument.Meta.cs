@@ -115,16 +115,39 @@ public sealed partial class PdfDocument : IDisposable {
     /// from it, so changing the array after loading gives undefined results: reads may return the changed content or
     /// fail. Use <see cref="Load(Stream, PdfLoadOptions?)"/> or copy the array first when it must be reused.
     /// </remarks>
-    public static PdfDocument Load(byte[] pdf, PdfLoadOptions? loadOptions = null) =>
-        new PdfDocument(PdfDocumentSource.FromCallerArray(pdf, loadOptions));
+    public static PdfDocument Load(byte[] pdf, PdfLoadOptions? loadOptions = null) {
+        Guard.NotNull(pdf, nameof(pdf));
+        return Load((ReadOnlyMemory<byte>)pdf, loadOptions);
+    }
 
     /// <summary>Loads a PDF from a byte array without copying it, with cooperative cancellation.</summary>
     /// <param name="pdf">The complete PDF file. The document reads it in place, so keep it unchanged while the document is in use.</param>
     /// <param name="loadOptions">Optional password, parsing mode, and read limits.</param>
     /// <param name="cancellationToken">Cancels the initial parse.</param>
     /// <remarks>See <see cref="Load(byte[], PdfLoadOptions?)"/> for the lifetime of <paramref name="pdf"/>.</remarks>
-    public static PdfDocument Load(byte[] pdf, PdfLoadOptions? loadOptions, CancellationToken cancellationToken) =>
-        new PdfDocument(PdfDocumentSource.FromCallerArray(pdf, loadOptions), cancellationToken);
+    public static PdfDocument Load(byte[] pdf, PdfLoadOptions? loadOptions, CancellationToken cancellationToken) {
+        Guard.NotNull(pdf, nameof(pdf));
+        return Load((ReadOnlyMemory<byte>)pdf, loadOptions, cancellationToken);
+    }
+
+    /// <summary>Loads the supplied PDF memory window without copying it.</summary>
+    /// <param name="pdf">The exact PDF bytes, including when the input is a slice of a larger buffer.</param>
+    /// <param name="loadOptions">Optional password, parsing mode, and read limits.</param>
+    /// <remarks>
+    /// Keep the underlying memory available and unchanged until the document is disposed, including memory backed
+    /// by a pool or a map. The caller owns its lifetime. Page views and enumerators can read it later, as can saving.
+    /// Computing pipeline identity reads the entire window during loading.
+    /// </remarks>
+    public static PdfDocument Load(ReadOnlyMemory<byte> pdf, PdfLoadOptions? loadOptions = null) =>
+        new PdfDocument(PdfDocumentSource.FromBorrowedMemory(pdf, loadOptions));
+
+    /// <summary>Loads the supplied PDF memory window without copying it, with cooperative cancellation.</summary>
+    /// <param name="pdf">The exact PDF bytes. Keep the underlying memory available and unchanged while the document is in use.</param>
+    /// <param name="loadOptions">Optional password, parsing mode, and read limits.</param>
+    /// <param name="cancellationToken">Cancels the initial parse.</param>
+    /// <remarks>See <see cref="Load(ReadOnlyMemory{byte}, PdfLoadOptions?)"/> for the memory lifetime.</remarks>
+    public static PdfDocument Load(ReadOnlyMemory<byte> pdf, PdfLoadOptions? loadOptions, CancellationToken cancellationToken) =>
+        new PdfDocument(PdfDocumentSource.FromBorrowedMemory(pdf, loadOptions), cancellationToken);
 
     /// <summary>
     /// Loads an existing PDF from bytes and snapshots the caller-owned input once.
@@ -139,6 +162,11 @@ public sealed partial class PdfDocument : IDisposable {
     internal static PdfDocument LoadOwned(byte[] pdf, PdfLoadOptions? loadOptions = null,
         CancellationToken cancellationToken = default) =>
         new PdfDocument(PdfDocumentSource.FromOwnedBytes(pdf, loadOptions), cancellationToken);
+
+    /// <summary>Opens an internal immutable window without shrinking the backing buffer.</summary>
+    internal static PdfDocument LoadOwned(ReadOnlyMemory<byte> pdf, PdfLoadOptions? loadOptions,
+        CancellationToken cancellationToken) =>
+        new PdfDocument(PdfDocumentSource.FromOwnedMemory(pdf, loadOptions), cancellationToken);
 
     /// <summary>Opens an internally owned artifact together with its already validated canonical parse.</summary>
     internal static PdfDocument LoadOwned(
@@ -414,13 +442,13 @@ public sealed partial class PdfDocument : IDisposable {
     /// Captures one byte snapshot and its canonical parse for a compound read operation.
     /// Generated documents are rendered once for the complete operation.
     /// </summary>
-    internal (byte[] Bytes, PdfReadDocument Document, PdfLoadOptions Options) GetReadSnapshot(
+    internal (ReadOnlyMemory<byte> Bytes, PdfReadDocument Document, PdfLoadOptions Options) GetReadSnapshot(
         PdfLoadOptions? options = null,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options ?? ReadOptions);
         if (_source is not null) {
-            return (_source.Bytes, _source.Read(effectiveOptions, cancellationToken), effectiveOptions);
+            return (_source.Memory, _source.Read(effectiveOptions, cancellationToken), effectiveOptions);
         }
 
         cancellationToken.ThrowIfCancellationRequested();
@@ -544,7 +572,7 @@ public sealed partial class PdfDocument : IDisposable {
     /// <summary>Sizes output read limits, reusing this source's marker scan when the input is its own bytes.</summary>
     private PdfLoadOptions ForGeneratedOutput(PdfLoadOptions sourceOptions, byte[] inputBytes, byte[] pdf) {
         PdfDocumentSource? source = _source;
-        if (source is null || !ReferenceEquals(inputBytes, source.Bytes)) {
+        if (source is null || !source.Memory.Equals((ReadOnlyMemory<byte>)inputBytes)) {
             return PdfLoadOptions.ForGeneratedOutput(sourceOptions, inputBytes, pdf);
         }
 

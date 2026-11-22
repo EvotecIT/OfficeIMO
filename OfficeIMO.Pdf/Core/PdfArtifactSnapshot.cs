@@ -13,8 +13,8 @@ public sealed class PdfArtifactInfo {
         PageCount = pageCount;
     }
 
-    private PdfArtifactInfo(byte[] ownedBytes, int? pageCount) {
-        ByteCount = ownedBytes.LongLength;
+    private PdfArtifactInfo(ReadOnlyMemory<byte> ownedBytes, int? pageCount) {
+        ByteCount = ownedBytes.Length;
         _digestState = ownedBytes;
         PageCount = pageCount;
     }
@@ -33,7 +33,7 @@ public sealed class PdfArtifactInfo {
                 return digest;
             }
 
-            string computed = ComputeSha256Hex((byte[])state, CancellationToken.None);
+            string computed = ComputeSha256Hex((ReadOnlyMemory<byte>)state, CancellationToken.None);
             Interlocked.CompareExchange(ref _digestState, computed, state);
             return (string)Volatile.Read(ref _digestState);
         }
@@ -96,13 +96,20 @@ public sealed class PdfArtifactInfo {
         return new PdfArtifactInfo(bytes.LongLength, ComputeSha256Hex(bytes, cancellationToken), pageCount);
     }
 
+    internal static PdfArtifactInfo CaptureKnownPageCount(ReadOnlyMemory<byte> bytes, int? pageCount,
+        CancellationToken cancellationToken) =>
+        new PdfArtifactInfo(bytes.Length, ComputeSha256Hex(bytes, cancellationToken), pageCount);
+
     /// <summary>
     /// Captures identity for bytes that no code will mutate for the lifetime of the artifact, deferring the digest until requested.
     /// </summary>
     internal static PdfArtifactInfo CaptureOwnedKnownPageCount(byte[] ownedBytes, int? pageCount) {
         Guard.NotNull(ownedBytes, nameof(ownedBytes));
-        return new PdfArtifactInfo(ownedBytes, pageCount);
+        return CaptureOwnedKnownPageCount((ReadOnlyMemory<byte>)ownedBytes, pageCount);
     }
+
+    internal static PdfArtifactInfo CaptureOwnedKnownPageCount(ReadOnlyMemory<byte> ownedBytes, int? pageCount) =>
+        new PdfArtifactInfo(ownedBytes, pageCount);
 
     internal static PdfArtifactInfo FromDigest(long byteCount, string sha256, int? pageCount) {
         ArgumentOutOfRangeException.ThrowIfNegative(byteCount);
@@ -111,28 +118,38 @@ public sealed class PdfArtifactInfo {
         return new PdfArtifactInfo(byteCount, sha256, pageCount);
     }
 
-    private static string ComputeSha256Hex(byte[] bytes, CancellationToken cancellationToken) {
+    internal static string ComputeSha256Hex(ReadOnlyMemory<byte> bytes, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (cancellationToken.CanBeCanceled) {
-            using var sha256 = System.Security.Cryptography.IncrementalHash.CreateHash(
-                System.Security.Cryptography.HashAlgorithmName.SHA256);
-            const int chunkSize = 64 * 1024;
-            for (int offset = 0; offset < bytes.Length;) {
-                cancellationToken.ThrowIfCancellationRequested();
-                int count = Math.Min(chunkSize, bytes.Length - offset);
-                sha256.AppendData(bytes, offset, count);
-                offset += count;
-            }
-            cancellationToken.ThrowIfCancellationRequested();
-            return ToLowerHex(sha256.GetHashAndReset());
-        }
 #if NET8_0_OR_GREATER
-        return ToLowerHex(System.Security.Cryptography.SHA256.HashData(bytes));
-#else
-        using (System.Security.Cryptography.SHA256 sha256 = System.Security.Cryptography.SHA256.Create()) {
-            return ToLowerHex(sha256.ComputeHash(bytes));
-        }
+        if (!cancellationToken.CanBeCanceled)
+            return ToLowerHex(System.Security.Cryptography.SHA256.HashData(bytes.Span));
 #endif
+        using var sha256 = System.Security.Cryptography.IncrementalHash.CreateHash(
+            System.Security.Cryptography.HashAlgorithmName.SHA256);
+        const int chunkSize = 65536;
+        ReadOnlySpan<byte> input = bytes.Span;
+#if !NET8_0_OR_GREATER
+        System.Runtime.InteropServices.MemoryMarshal.TryGetArray(bytes, out ArraySegment<byte> segment);
+        byte[] buffer = segment.Array ?? new byte[Math.Min(input.Length, chunkSize)];
+#endif
+        for (int offset = 0; offset < input.Length;) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = Math.Min(chunkSize, input.Length - offset);
+#if NET8_0_OR_GREATER
+            sha256.AppendData(input.Slice(offset, count));
+#else
+            if (segment.Array is null) {
+                input.Slice(offset, count).CopyTo(buffer);
+                sha256.AppendData(buffer, 0, count);
+            } else {
+                sha256.AppendData(buffer, segment.Offset + offset, count);
+            }
+#endif
+            offset += count;
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        return ToLowerHex(sha256.GetHashAndReset());
     }
 
     internal static string ToLowerHex(byte[] bytes) {

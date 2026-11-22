@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfSyntax {
     // Security markers are observations and may also occur inside payload streams. Definition
     // ownership must use the terminal cross-reference pointer and its parsed /Prev chain.
-    private static int[] GetActiveRevisionOffsets(byte[] pdf, PdfByteContentText text, Dictionary<int, PdfIndirectObject> objects,
+    private static int[] GetActiveRevisionOffsets(ReadOnlyMemory<byte> pdf, PdfByteContentText text, Dictionary<int, PdfIndirectObject> objects,
         PdfReadLimits limits, System.Diagnostics.Stopwatch timer, CancellationToken cancellationToken) {
         if (!TryGetLatestStartXrefOffset(text, out int current, cancellationToken)) return Array.Empty<int>();
         var scanBudget = new XrefObjectScanBudget(limits);

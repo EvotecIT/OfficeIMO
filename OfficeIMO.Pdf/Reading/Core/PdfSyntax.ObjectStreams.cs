@@ -3,7 +3,6 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfSyntax {
     private static void ExpandObjectStreams(
         Dictionary<int, PdfIndirectObject> map,
-        byte[] pdf,
         Dictionary<int, int> parsedOffsets,
         HashSet<int>? allowedObjectStreamNumbers,
         PdfReadLimits limits,

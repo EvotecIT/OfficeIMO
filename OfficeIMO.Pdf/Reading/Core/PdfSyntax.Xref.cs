@@ -25,9 +25,10 @@ internal static partial class PdfSyntax {
 
     private static void ResolveIndirectStreamLengths(
         Dictionary<int, PdfIndirectObject> map,
-        byte[] pdf,
+        ReadOnlyMemory<byte> pdf,
         List<(int Id, int Generation, int DataStart)> streamLocations,
         PdfReadLimits limits,
+        bool retainSourceSlices,
         System.Threading.CancellationToken cancellationToken) {
         foreach (var streamLocation in streamLocations) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -40,7 +41,7 @@ internal static partial class PdfSyntax {
             }
 
             int byteStart = streamLocation.DataStart;
-            if (byteStart < 0 || byteLen < 0 || byteStart + byteLen > pdf.Length) {
+            if (byteStart < 0 || byteLen < 0 || byteStart > pdf.Length - byteLen) {
                 continue;
             }
 
@@ -52,14 +53,16 @@ internal static partial class PdfSyntax {
                 throw PdfReadLimitException.Create(PdfReadLimitKind.RawStreamBytes, limits.MaxRawStreamBytes, byteLen);
             }
 
-            byte[] data = CopyBytes(pdf, byteStart, byteLen, cancellationToken);
-            map[streamLocation.Id] = new PdfIndirectObject(streamLocation.Id, streamLocation.Generation, new PdfStream(stream.Dictionary, data, stream.DecodingFailed, stream.DecodingError));
+            PdfStream corrected = retainSourceSlices
+                ? PdfStream.FromOwnedSource(stream.Dictionary, pdf, byteStart, byteLen, stream.DecodingFailed, stream.DecodingError)
+                : new PdfStream(stream.Dictionary, CopyBytes(pdf, byteStart, byteLen, cancellationToken), stream.DecodingFailed, stream.DecodingError);
+            map[streamLocation.Id] = new PdfIndirectObject(streamLocation.Id, streamLocation.Generation, corrected);
         }
     }
 
     private static bool ApplyClassicXrefEntries(
         Dictionary<int, PdfIndirectObject> map,
-        byte[] pdf,
+        ReadOnlyMemory<byte> pdf,
         PdfByteContentText text,
         Dictionary<int, int> parsedOffsets,
         HashSet<int> activeObjectNumbers,
@@ -101,7 +104,7 @@ internal static partial class PdfSyntax {
 
     private static void ApplyClassicXrefTableEntries(
         Dictionary<int, PdfIndirectObject> map,
-        byte[] pdf,
+        ReadOnlyMemory<byte> pdf,
         Dictionary<int, int> parsedOffsets,
         PdfByteContentText text,
         IReadOnlyList<(int ObjectNumber, int Offset, int Generation, bool InUse)> entries,
@@ -354,7 +357,7 @@ internal static partial class PdfSyntax {
         return text.TryParseInt32(start, length, out value);
     }
 
-    private static bool ApplyXrefStreamEntries(Dictionary<int, PdfIndirectObject> map, byte[] pdf, PdfByteContentText text, Dictionary<int, int> parsedOffsets, PdfReadLimits limits, XrefObjectScanBudget scanBudget, PdfDecodedStreamBudget decodedStreamBudget, Action reportIncompleteXref,
+    private static bool ApplyXrefStreamEntries(Dictionary<int, PdfIndirectObject> map, ReadOnlyMemory<byte> pdf, PdfByteContentText text, Dictionary<int, int> parsedOffsets, PdfReadLimits limits, XrefObjectScanBudget scanBudget, PdfDecodedStreamBudget decodedStreamBudget, Action reportIncompleteXref,
         System.Threading.CancellationToken cancellationToken) {
         var xrefStreams = new List<(int ObjectNumber, int Offset, PdfStream Stream)>();
         foreach (var entry in map.Values) {
@@ -401,7 +404,7 @@ internal static partial class PdfSyntax {
         return true;
     }
 
-    private static bool ApplyCompressedXrefStreamEntries(Dictionary<int, PdfIndirectObject> map, byte[] pdf, PdfByteContentText text, Dictionary<int, int> parsedOffsets, PdfReadLimits limits, PdfDecodedStreamBudget decodedStreamBudget, Action<int> reportUnreadable, Action<int> reportRelocated, bool rejectRelocation,
+    private static bool ApplyCompressedXrefStreamEntries(Dictionary<int, PdfIndirectObject> map, ReadOnlyMemory<byte> pdf, PdfByteContentText text, Dictionary<int, int> parsedOffsets, PdfReadLimits limits, PdfDecodedStreamBudget decodedStreamBudget, Action<int> reportUnreadable, Action<int> reportRelocated, bool rejectRelocation,
         System.Threading.CancellationToken cancellationToken) {
         var xrefStreams = new List<(int ObjectNumber, int Offset, PdfStream Stream)>();
         foreach (var entry in map.Values) {
@@ -517,7 +520,7 @@ internal static partial class PdfSyntax {
 
     private static bool ApplyXrefStreamAtOffset(
         Dictionary<int, PdfIndirectObject> map,
-        byte[] pdf,
+        ReadOnlyMemory<byte> pdf,
         Dictionary<int, int> parsedOffsets,
         PdfByteContentText text,
         int xrefStreamOffset,
@@ -551,7 +554,7 @@ internal static partial class PdfSyntax {
 
     private static void ApplyXrefStreamObjectEntries(
         Dictionary<int, PdfIndirectObject> map,
-        byte[] pdf,
+        ReadOnlyMemory<byte> pdf,
         Dictionary<int, int> parsedOffsets,
         PdfByteContentText text,
         PdfStream xrefStream,
@@ -705,7 +708,7 @@ internal static partial class PdfSyntax {
         return true;
     }
 
-    private static bool TryParseIndirectObjectAt(byte[] pdf, PdfByteContentText text, int offset, Dictionary<int, PdfIndirectObject> map, XrefObjectScanBudget scanBudget, out PdfIndirectObject parsed,
+    private static bool TryParseIndirectObjectAt(ReadOnlyMemory<byte> pdf, PdfByteContentText text, int offset, Dictionary<int, PdfIndirectObject> map, XrefObjectScanBudget scanBudget, out PdfIndirectObject parsed,
         System.Threading.CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         parsed = null!;

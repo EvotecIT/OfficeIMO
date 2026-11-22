@@ -1,17 +1,20 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>
-/// Byte searches over whole PDF buffers. Modern targets use the vectorized span search; older targets have no span
-/// search, and <c>Array.IndexOf</c> there reads one byte per step behind a generic comparer, so they test eight bytes
-/// per step instead.
+/// Byte searches over PDF buffers. Modern targets use the vectorized span search and older targets test eight
+/// bytes per step.
 /// </summary>
 internal static class PdfByteSearch {
     /// <summary>Returns the index of the first <paramref name="value"/> in the range, or -1.</summary>
     internal static int IndexOf(byte[] bytes, byte value, int start, int count) {
         Guard.NotNull(bytes, nameof(bytes));
+        return IndexOf(bytes.AsSpan(), value, start, count);
+    }
+
+    internal static int IndexOf(ReadOnlySpan<byte> bytes, byte value, int start, int count) {
         if (start < 0 || count < 0 || start > bytes.Length - count) throw new ArgumentOutOfRangeException(nameof(start));
 #if NET8_0_OR_GREATER
-        int relative = bytes.AsSpan(start, count).IndexOf(value);
+        int relative = bytes.Slice(start, count).IndexOf(value);
         return relative < 0 ? -1 : start + relative;
 #else
         unsafe {

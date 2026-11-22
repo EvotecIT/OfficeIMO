@@ -16,7 +16,7 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 | HTML document contracts (`OfficeIMO.Html.Core`) | None | Owned nodes, immutable snapshots, edits and parser/charset contracts |
 | HTML syntax provider (`OfficeIMO.Html.AngleSharp`) | AngleSharp and `System.Text.Encoding.CodePages` | Translation to owned nodes, selector/serialization services and charset-provider integration |
 | HTML conversion and rendering | [AngleSharp](https://github.com/AngleSharp/AngleSharp) and AngleSharp.Css | Resource policy, media filtering, layout scene, and PNG/JPEG/TIFF/SVG/WebP output; opt-in bridges add RTF, MHTML, email-image, and PDF workflows |
-| PDF | No third-party PDF or cryptographic dependency | PDF parsing/writing/rendering, password security, signature structure, preservation policy, limits, and diagnostics |
+| PDF | `System.Memory` on .NET Standard 2.0 and .NET Framework 4.7.2 | PDF parsing/writing/rendering, password security, signature structure, preservation policy, limits, and diagnostics |
 | Email, email stores, and address books | `System.Text.Encoding.CodePages` | EML/MIME, MSG/OFT, TNEF, mbox, PST/OST, OLM, EMLX, Outlook OAB, MAPI projection, protected-wrapper preservation, limits, and diagnostics |
 | Optional Security provider | [Bouncy Castle](https://www.bouncycastle.org/csharp/) and `System.Security.Cryptography.Xml` | CMS/S/MIME/RFC 3161/X.509/XML DSig orchestration behind one typed provider explicitly supplied to Word, PDF, or Email |
 | Optional ChartForgeX bridge | [ChartForgeX](https://github.com/EvotecIT/ChartForgeX) | Vector-first visual artifact conversion, OfficeDrawing fidelity reports, and Word, Excel, PowerPoint, and PDF placement |
@@ -294,7 +294,7 @@ distinct.
 - [x] Logical recovery used by PDF-to-Word, PDF-to-Excel, PDF-to-PowerPoint, and PDF-to-RTF adapters
 - [x] Conversion proof, visual comparison, external-validator hooks, and rewrite-preservation reports for warnings, blockers, and structure drift
 
-_Dependency footprint:_ only `OfficeIMO.Core`; no third-party PDF parser, writer, renderer, OCR, or cryptographic dependency. Install `OfficeIMO.Pdf.Ocr` only for scanned-page recognition and searchable output, and `OfficeIMO.Security` only for its built-in CMS/X.509/RFC 3161 adapter.
+_Dependency footprint:_ `OfficeIMO.Core` and `System.Memory` for .NET Standard 2.0 and .NET Framework 4.7.2. Parsing, writing, rendering, and PDF password security are first-party. Install `OfficeIMO.Pdf.Ocr` only for scanned-page recognition and searchable output, and `OfficeIMO.Security` only for its built-in CMS/X.509/RFC 3161 adapter.
 
 #### [OfficeIMO.Invoicing.Pdf](../OfficeIMO.Invoicing.Pdf/README.md)
 

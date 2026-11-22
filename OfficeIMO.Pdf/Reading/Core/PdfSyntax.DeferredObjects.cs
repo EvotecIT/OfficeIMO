@@ -8,12 +8,12 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfSyntax {
     private const int MaximumScannedKeysPerDictionary = 64;
 
-    internal static PdfObject ParseDeferredObject(byte[] data, int start, int length, PdfReadLimits limits) =>
-        ParseTopLevelObject(data, start, length, limits, trackEncodedStringSourceSpans: false, CancellationToken.None)
+    internal static PdfObject ParseDeferredObject(PdfByteContentText text, int start, int length, PdfReadLimits limits) =>
+        ParseTopLevelObject(text, start, length, limits, trackEncodedStringSourceSpans: false, CancellationToken.None)
         ?? throw new InvalidOperationException("A deferred PDF object no longer parses as it did when it was validated.");
 
-    internal static PdfObject ParseDeferredClassicDictionary(byte[] data, int start, int length, PdfReadLimits limits) =>
-        ParseDictionary(new PdfByteContentText(data), start, length, limits, cancellationToken: CancellationToken.None);
+    internal static PdfObject ParseDeferredClassicDictionary(PdfByteContentText text, int start, int length, PdfReadLimits limits) =>
+        ParseDictionary(text, start, length, limits, cancellationToken: CancellationToken.None);
 
     // A top-level indirect object of the input file whose value is a dictionary that the eager load would store
     // as is: complete syntax, no stream and nothing but whitespace or comments before endobj. The summary spans

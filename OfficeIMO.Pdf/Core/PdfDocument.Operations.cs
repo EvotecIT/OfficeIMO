@@ -51,14 +51,15 @@ public sealed partial class PdfDocument {
         snapshot.Document.DemandContentExtraction("analysis report");
         PdfDocumentInfo info = PdfInspector.Inspect(snapshot.Bytes, snapshot.Document, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
+        byte[] bytes = PdfDocumentSource.GetWholeArrayOrCopy(snapshot.Bytes);
         PdfDocumentPreflight preflight = PdfInspector.Preflight(
-            snapshot.Bytes,
+            bytes,
             snapshot.Options,
             () => snapshot.Document,
             cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         PdfDiagnosticReport diagnostics = PdfDiagnostics.Analyze(
-            snapshot.Bytes,
+            bytes,
             snapshot.Document,
             info,
             preflight,
@@ -67,7 +68,7 @@ public sealed partial class PdfDocument {
         PdfOptimizationReport optimization = PdfDiagnostics.BuildOptimizationReport(diagnostics, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         PdfSignatureValidationReport signatures = PdfSignatureValidator.Validate(
-            snapshot.Bytes,
+            bytes,
             info.Security,
             cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
@@ -126,16 +127,14 @@ public sealed partial class PdfDocument {
         GetPreflightSnapshot(options, cancellationToken).Preflight;
 
     /// <summary>Captures one byte snapshot while keeping parser failures inside diagnostic preflight.</summary>
-    private (byte[] Bytes, PdfLoadOptions Options, PdfDocumentPreflight Preflight) GetPreflightSnapshot(
+    private (ReadOnlyMemory<byte> Bytes, PdfLoadOptions Options, PdfDocumentPreflight Preflight) GetPreflightSnapshot(
         PdfLoadOptions? options,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options ?? ReadOptions);
-        byte[] bytes = GetBytesForOperation(cancellationToken);
+        ReadOnlyMemory<byte> bytes = _source?.Memory ?? GetBytesForOperation(cancellationToken);
         Func<PdfReadDocument>? readDocumentFactory = GetOpenedReadDocumentFactory(effectiveOptions, cancellationToken);
-        PdfDocumentPreflight preflight = readDocumentFactory is null
-            ? PdfInspector.Preflight(bytes, effectiveOptions, cancellationToken)
-            : PdfInspector.Preflight(bytes, effectiveOptions, readDocumentFactory, cancellationToken);
+        PdfDocumentPreflight preflight = PdfInspector.Preflight(bytes, effectiveOptions, readDocumentFactory, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         return (bytes, effectiveOptions, preflight);
     }
@@ -167,7 +166,8 @@ public sealed partial class PdfDocument {
         PdfSignatureProfile? signatureProfile,
         CancellationToken cancellationToken) {
         var snapshot = GetPreflightSnapshot(options, cancellationToken);
-        return PdfMutationPlanner.Plan(snapshot.Preflight, snapshot.Bytes, operation, fieldNames, executionPreference, snapshot.Options, signatureProfile, cancellationToken);
+        byte[] bytes = PdfDocumentSource.GetWholeArrayOrCopy(snapshot.Bytes);
+        return PdfMutationPlanner.Plan(snapshot.Preflight, bytes, operation, fieldNames, executionPreference, snapshot.Options, signatureProfile, cancellationToken);
     }
 
     /// <summary>
@@ -228,11 +228,12 @@ public sealed partial class PdfDocument {
         var snapshot = GetReadSnapshot(options);
         snapshot.Document.DemandContentExtraction("diagnostic report");
         PdfDocumentInfo info = PdfInspector.Inspect(snapshot.Bytes, snapshot.Document);
+        byte[] bytes = PdfDocumentSource.GetWholeArrayOrCopy(snapshot.Bytes);
         PdfDocumentPreflight preflight = PdfInspector.Preflight(
-            snapshot.Bytes,
+            bytes,
             snapshot.Options,
             () => snapshot.Document);
-        return PdfDiagnostics.Analyze(snapshot.Bytes, snapshot.Document, info, preflight);
+        return PdfDiagnostics.Analyze(bytes, snapshot.Document, info, preflight);
     }
 
     /// <summary>Creates a bounded debugger projection of objects, revisions, pages, resources, and content operators.</summary>

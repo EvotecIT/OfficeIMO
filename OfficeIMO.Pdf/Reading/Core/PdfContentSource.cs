@@ -122,23 +122,34 @@ internal readonly struct PdfStringContentText : IPdfContentText {
 }
 
 internal readonly struct PdfByteContentText : IPdfContentText {
-    private readonly byte[] _bytes;
+    private readonly ReadOnlyMemory<byte> _bytes;
 
-    internal PdfByteContentText(byte[] bytes) => _bytes = bytes;
+    internal PdfByteContentText(byte[] ownedBytes) : this(ownedBytes, ownedBytes) {
+    }
+
+    // Borrowed views each get an identity so reusing a buffer cannot reuse a previous scan's indexes.
+    internal PdfByteContentText(ReadOnlyMemory<byte> bytes) : this(bytes, bytes) {
+    }
+
+    private PdfByteContentText(ReadOnlyMemory<byte> bytes, object source) {
+        _bytes = bytes;
+        Source = source;
+    }
 
     public int Length => _bytes.Length;
 
-    public char this[int index] => (char)_bytes[index];
-    public object Source => _bytes;
+    public char this[int index] => (char)_bytes.Span[index];
+    public object Source { get; }
 
     public int IndexOf(string value, int start, int count) {
         if (start < 0 || count < 0 || start > _bytes.Length - count) throw new ArgumentOutOfRangeException(nameof(start));
         if (count < value.Length) return -1;
+        ReadOnlySpan<byte> bytes = _bytes.Span;
 #if NET8_0_OR_GREATER
         if (value.Length <= 64) {
             Span<byte> needle = stackalloc byte[value.Length];
             for (int index = 0; index < value.Length; index++) needle[index] = (byte)value[index];
-            int relative = _bytes.AsSpan(start, count).IndexOf(needle);
+            int relative = bytes.Slice(start, count).IndexOf(needle);
             return relative < 0 ? -1 : start + relative;
         }
 #endif
@@ -148,11 +159,11 @@ internal readonly struct PdfByteContentText : IPdfContentText {
         int anchor = value.Length - 1;
         byte last = (byte)value[anchor];
         for (int index = start; index <= lastStart; index++) {
-            int found = PdfByteSearch.IndexOf(_bytes, last, index + anchor, lastStart - index + 1);
+            int found = PdfByteSearch.IndexOf(bytes, last, index + anchor, lastStart - index + 1);
             if (found < 0) return -1;
             index = found - anchor;
             int matched = 0;
-            while (matched < anchor && _bytes[index + matched] == value[matched]) matched++;
+            while (matched < anchor && bytes[index + matched] == value[matched]) matched++;
             if (matched == anchor) return index;
         }
         return -1;
@@ -161,17 +172,18 @@ internal readonly struct PdfByteContentText : IPdfContentText {
     public int LastIndexOf(string value, int start, int count, bool ignoreCase) {
         if (start < 0 || count < 0 || start > _bytes.Length - count) throw new ArgumentOutOfRangeException(nameof(start));
         if (count < value.Length) return -1;
+        ReadOnlySpan<byte> bytes = _bytes.Span;
 #if NET8_0_OR_GREATER
         if (!ignoreCase && value.Length <= 64) {
             Span<byte> needle = stackalloc byte[value.Length];
             for (int index = 0; index < value.Length; index++) needle[index] = (byte)value[index];
-            int relative = _bytes.AsSpan(start, count).LastIndexOf(needle);
+            int relative = bytes.Slice(start, count).LastIndexOf(needle);
             return relative < 0 ? -1 : start + relative;
         }
 #endif
         for (int index = start + count - value.Length; index >= start; index--) {
             int matched = 0;
-            while (matched < value.Length && SameCharacter(_bytes[index + matched], value[matched], ignoreCase)) matched++;
+            while (matched < value.Length && SameCharacter(bytes[index + matched], value[matched], ignoreCase)) matched++;
             if (matched == value.Length) return index;
         }
         return -1;
@@ -186,14 +198,14 @@ internal readonly struct PdfByteContentText : IPdfContentText {
 
     public string Substring(int start, int length) {
         if (start < 0 || length < 0 || start > _bytes.Length - length) throw new ArgumentOutOfRangeException(nameof(start));
-        return PdfEncoding.Latin1GetString(_bytes, start, length);
+        return PdfEncoding.Latin1GetString(_bytes.Span.Slice(start, length));
     }
 
     public string Substring(int start, int length, System.Threading.CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         if (start < 0 || length < 0 || start > _bytes.Length - length) throw new ArgumentOutOfRangeException(nameof(start));
         if (length == 0) return string.Empty;
-        return PdfEncoding.Latin1GetStringCancellable(_bytes, start, length, cancellationToken);
+        return PdfEncoding.Latin1GetStringCancellable(_bytes.Span.Slice(start, length), cancellationToken);
     }
 
     public bool TryParseDouble(int start, int length, out double value) =>
@@ -202,8 +214,9 @@ internal readonly struct PdfByteContentText : IPdfContentText {
     public bool TryParseDouble(int start, int length, NumberStyles styles, out double value) {
 #if NET8_0_OR_GREATER
         if (length <= 128) {
+            ReadOnlySpan<byte> bytes = _bytes.Span.Slice(start, length);
             Span<char> characters = stackalloc char[length];
-            for (int index = 0; index < length; index++) characters[index] = (char)_bytes[start + index];
+            for (int index = 0; index < length; index++) characters[index] = (char)bytes[index];
             return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(characters, styles, CultureInfo.InvariantCulture, out value);
         }
 #endif
@@ -213,8 +226,9 @@ internal readonly struct PdfByteContentText : IPdfContentText {
     public bool TryParseInt32(int start, int length, out int value) {
 #if NET8_0_OR_GREATER
         if (length <= 128) {
+            ReadOnlySpan<byte> bytes = _bytes.Span.Slice(start, length);
             Span<char> characters = stackalloc char[length];
-            for (int index = 0; index < length; index++) characters[index] = (char)_bytes[start + index];
+            for (int index = 0; index < length; index++) characters[index] = (char)bytes[index];
             return int.TryParse(characters, NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
         }
 #endif

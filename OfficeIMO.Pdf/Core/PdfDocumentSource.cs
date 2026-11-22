@@ -1,15 +1,17 @@
 using OfficeIMO.Core.Internal;
 using System.Runtime.ExceptionServices;
+using System.Runtime.InteropServices;
 
 namespace OfficeIMO.Pdf;
 
 /// <summary>
 /// Holds the immutable bytes and read contract for an opened PDF. Path and stream inputs are read into a buffer
-/// the source owns, buffers produced inside OfficeIMO.Pdf are adopted, and a caller array passed to
-/// <see cref="FromCallerArray"/> is read in place while the caller keeps it unchanged.
+/// the source owns, buffers produced inside OfficeIMO.Pdf are adopted, and borrowed memory is read in place while
+/// the caller keeps it available and unchanged.
 /// </summary>
 internal sealed class PdfDocumentSource {
-    private readonly byte[] _bytes;
+    private readonly ReadOnlyMemory<byte> _bytes;
+    private readonly bool _borrowed;
     private readonly PdfReadCache<PdfReadDocument> _readCache = new();
     // Reads that ask for artifact text parse the source once more with it included. That one parse is kept
     // beside the canonical one, so repeated reads reuse it; it is never cached on failure or cancellation.
@@ -19,8 +21,10 @@ internal sealed class PdfDocumentSource {
     private ExceptionDispatchInfo? _readFailure;
     private StructuralMarkerSnapshot? _structuralMarkers;
 
-    private PdfDocumentSource(byte[] bytes, PdfLoadOptions options, bool canonicalRewrittenOutput = false) {
+    private PdfDocumentSource(ReadOnlyMemory<byte> bytes, PdfLoadOptions options, bool canonicalRewrittenOutput = false,
+        bool borrowed = false) {
         _bytes = bytes;
+        _borrowed = borrowed;
         Options = options.Clone();
         _canonicalRewrittenOutput = canonicalRewrittenOutput;
     }
@@ -48,8 +52,48 @@ internal sealed class PdfDocumentSource {
         }
     }
 
-    /// <summary>Returns the owned source bytes for in-assembly operations without another allocation.</summary>
-    internal byte[] Bytes => _bytes;
+    /// <summary>The exact encoded input window, which remains stable during document reads.</summary>
+    internal ReadOnlyMemory<byte> Memory => _bytes;
+
+    /// <summary>Provides an exact array for operations that require one.</summary>
+    internal byte[] Bytes => GetWholeArrayOrCopy(_bytes);
+
+    internal static byte[] GetWholeArrayOrCopy(ReadOnlyMemory<byte> source) =>
+        MemoryMarshal.TryGetArray(source, out ArraySegment<byte> segment) &&
+        segment.Array is { } array && segment.Offset == 0 && segment.Count == array.Length
+            ? array
+            : source.ToArray();
+
+    internal void CopyTo(Stream destination, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (MemoryMarshal.TryGetArray(_bytes, out ArraySegment<byte> segment) &&
+            segment.Array is { } array && segment.Offset == 0 && segment.Count == array.Length) {
+            OfficeStreamWriter.CopyBytes(destination, array, cancellationToken);
+            return;
+        }
+
+        const int chunkSize = 65536;
+        ReadOnlySpan<byte> bytes = _bytes.Span;
+#if !NET8_0_OR_GREATER
+        byte[] buffer = segment.Array ?? new byte[Math.Min(chunkSize, bytes.Length)];
+#endif
+        for (int offset = 0; offset < bytes.Length;) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = Math.Min(chunkSize, bytes.Length - offset);
+#if NET8_0_OR_GREATER
+            destination.Write(bytes.Slice(offset, count));
+#else
+            if (segment.Array is null) {
+                bytes.Slice(offset, count).CopyTo(buffer);
+                destination.Write(buffer, 0, count);
+            } else {
+                destination.Write(buffer, segment.Offset + offset, count);
+            }
+#endif
+            offset += count;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+    }
 
     /// <summary>
     /// Returns the header and startxref counts of the immutable source bytes, reusing the last scan made under the same
@@ -68,17 +112,15 @@ internal sealed class PdfDocumentSource {
     }
 
     /// <summary>Copies the source bytes for a caller-owned result.</summary>
-    internal byte[] CopyBytes() => (byte[])_bytes.Clone();
+    internal byte[] CopyBytes() => _bytes.ToArray();
 
     /// <summary>
-    /// Reads a caller array in place after enforcing the configured input budget. Deferred objects, stream payloads
-    /// and saves read the array later, so the caller must keep it unchanged while the document is in use.
+    /// Reads a caller-owned PDF window in place after enforcing the configured input budget.
     /// </summary>
-    internal static PdfDocumentSource FromCallerArray(byte[] pdf, PdfLoadOptions? options) {
-        Guard.NotNull(pdf, nameof(pdf));
+    internal static PdfDocumentSource FromBorrowedMemory(ReadOnlyMemory<byte> pdf, PdfLoadOptions? options) {
         PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options);
-        ValidateLength(pdf.LongLength, effectiveOptions);
-        return new PdfDocumentSource(pdf, effectiveOptions);
+        ValidateLength(pdf.Length, effectiveOptions);
+        return new PdfDocumentSource(pdf, effectiveOptions, borrowed: true);
     }
 
     /// <summary>Snapshots caller-owned bytes after enforcing the configured input budget.</summary>
@@ -92,8 +134,12 @@ internal sealed class PdfDocumentSource {
     /// <summary>Adopts an internal operation result without copying it again.</summary>
     internal static PdfDocumentSource FromOwnedBytes(byte[] bytes, PdfLoadOptions? options) {
         Guard.NotNull(bytes, nameof(bytes));
+        return FromOwnedMemory(bytes, options);
+    }
+
+    internal static PdfDocumentSource FromOwnedMemory(ReadOnlyMemory<byte> bytes, PdfLoadOptions? options) {
         PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options);
-        ValidateLength(bytes.LongLength, effectiveOptions);
+        ValidateLength(bytes.Length, effectiveOptions);
         return new PdfDocumentSource(bytes, effectiveOptions);
     }
 
@@ -219,8 +265,8 @@ internal sealed class PdfDocumentSource {
 
         if (options is not null && !ReferenceEquals(options, Options)) {
             return _canonicalRewrittenOutput
-                ? PdfReadDocument.OpenRewrittenOutput(_bytes, options, cancellationToken)
-                : PdfReadDocument.OpenOwned(_bytes, options, cancellationToken);
+                ? PdfReadDocument.OpenRewrittenOutput(Bytes, options, cancellationToken)
+                : PdfReadDocument.OpenBorrowed(_bytes, options, cancellationToken);
         }
 
         return _readCache.GetOrCreate(this, static (source, token) => source.ParseCanonical(token), cancellationToken);
@@ -228,15 +274,15 @@ internal sealed class PdfDocumentSource {
 
     private PdfReadDocument Parse(PdfLoadOptions options, CancellationToken cancellationToken) =>
         _canonicalRewrittenOutput
-            ? PdfReadDocument.OpenRewrittenOutput(_bytes, options, cancellationToken)
-            : PdfReadDocument.OpenOwned(_bytes, options, cancellationToken);
+            ? PdfReadDocument.OpenRewrittenOutput(Bytes, options, cancellationToken)
+            : PdfReadDocument.OpenBorrowed(_bytes, options, cancellationToken);
 
     private PdfReadDocument ParseCanonical(CancellationToken cancellationToken) {
         _readFailure?.Throw();
         try {
             return _canonicalRewrittenOutput
-                ? PdfReadDocument.OpenRewrittenOutput(_bytes, Options, cancellationToken)
-                : PdfReadDocument.OpenOwned(_bytes, Options, cancellationToken);
+                ? PdfReadDocument.OpenRewrittenOutput(Bytes, Options, cancellationToken)
+                : PdfReadDocument.OpenBorrowed(_bytes, Options, cancellationToken);
         } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
             // A caller's cancellation must not poison the reusable source cache.
             throw;
@@ -261,7 +307,10 @@ internal sealed class PdfDocumentSource {
             // Artifact identity remains useful even when the canonical parse fails.
         }
 
-        return PdfArtifactInfo.CaptureOwnedKnownPageCount(_bytes, pageCount);
+        // Pipeline evidence can outlive the document and the caller's input lease.
+        return _borrowed
+            ? PdfArtifactInfo.CaptureKnownPageCount(_bytes, pageCount, cancellationToken)
+            : PdfArtifactInfo.CaptureOwnedKnownPageCount(_bytes, pageCount);
     }
 
     private static PdfDocumentSource FromBoundedStream(Stream stream, PdfLoadOptions options) =>

@@ -8,6 +8,14 @@ internal sealed partial class PdfReadDocument {
     internal static PdfReadDocument Open(
         byte[] pdf,
         PdfLoadOptions? options,
+        CancellationToken cancellationToken) {
+        Guard.NotNull(pdf, nameof(pdf));
+        return Open((ReadOnlyMemory<byte>)pdf, options, cancellationToken);
+    }
+
+    internal static PdfReadDocument Open(
+        ReadOnlyMemory<byte> pdf,
+        PdfLoadOptions? options,
         CancellationToken cancellationToken) =>
         OpenCore(pdf, options, ownsBytes: false, cancellationToken);
 
@@ -15,25 +23,25 @@ internal sealed partial class PdfReadDocument {
     internal static PdfReadDocument OpenOwned(
         byte[] ownedPdf,
         PdfLoadOptions? options,
-        CancellationToken cancellationToken = default) =>
-        OpenCore(ownedPdf, options, ownsBytes: true, cancellationToken);
+        CancellationToken cancellationToken = default) {
+        Guard.NotNull(ownedPdf, nameof(ownedPdf));
+        return OpenCore(ownedPdf, options, ownsBytes: true, cancellationToken);
+    }
 
     /// <summary>
-    /// Opens a buffer that remains stable for the complete lifetime of the returned internal reader.
-    /// The caller must not let the reader escape the synchronous operation that owns that lifetime.
+    /// Opens a buffer that remains stable and available for the complete lifetime of the returned internal reader.
     /// </summary>
     internal static PdfReadDocument OpenBorrowed(
-        byte[] borrowedPdf,
+        ReadOnlyMemory<byte> borrowedPdf,
         PdfLoadOptions? options,
         CancellationToken cancellationToken = default) =>
         OpenCore(borrowedPdf, options, ownsBytes: true, cancellationToken);
 
     private static PdfReadDocument OpenCore(
-        byte[] pdf,
+        ReadOnlyMemory<byte> pdf,
         PdfLoadOptions? options,
         bool ownsBytes,
         CancellationToken cancellationToken) {
-        Guard.NotNull(pdf, nameof(pdf));
         cancellationToken.ThrowIfCancellationRequested();
         PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options);
         PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(
