@@ -30,6 +30,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task SeekableLoadAsync_ReadsAsyncOnlyStream() {
+            byte[] original = CreateDiagram("Slow storage");
+            var gate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            using var source = new GatedReadStream(original, gate.Task);
+
+            Task<VisioDocument> loading = VisioDocument.LoadAsync(source);
+            bool returnedBeforeReading = !loading.IsCompleted;
+            gate.SetResult(true);
+
+            VisioDocument document = await loading;
+            Assert.True(returnedBeforeReading);
+            Assert.Equal("Slow storage", Assert.Single(document.Pages).Name);
+        }
+
+        [Fact]
         public void NonSeekableLoad_ReadsTheWholeDiagram() {
             byte[] original = CreateDiagram("Forward only");
             using var source = new NonSeekableReadStream(original);

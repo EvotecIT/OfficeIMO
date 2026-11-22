@@ -246,7 +246,9 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="stream">Readable source. The caller keeps ownership and disposes it.</param>
         /// <param name="options">Access, persistence and package options.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
-        /// <remarks>Stream lifetime follows <see cref="Load(Stream, PowerPointLoadOptions?)"/>.</remarks>
+        /// <remarks>Stream lifetime follows <see cref="Load(Stream, PowerPointLoadOptions?)"/>. The async
+        /// in-place path applies to standard <see cref="MemoryStream"/> and <see cref="FileStream"/> sources.
+        /// Custom streams are buffered.</remarks>
         public static PowerPointDocument Load(Stream stream,
             PowerPointLoadOptions? options,
             CancellationToken cancellationToken) {
@@ -309,8 +311,9 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLoadOptions resolved = options ?? new PowerPointLoadOptions();
             OfficeDocumentLifecycle.Validate(resolved.AccessMode, resolved.PersistenceMode, "presentation");
             OfficeDocumentLifecycle.EnsureSaveOnDisposeDestination(stream, resolved.PersistenceMode, nameof(stream));
-            if (CanLoadInPlace(stream, resolved)) {
-                return LoadPackageInPlace(stream, resolved, cancellationToken);
+            if (await CanLoadInPlaceAsync(stream, resolved, cancellationToken).ConfigureAwait(false)) {
+                return await OfficePackageLoadSource.LoadInPlaceAsync(stream,
+                    () => LoadPackageInPlace(stream, resolved, cancellationToken), cancellationToken).ConfigureAwait(false);
             }
             byte[] bytes = await ReadDocumentInputBytesAsync(stream,
                 resolved, cancellationToken)
@@ -520,6 +523,11 @@ namespace OfficeIMO.PowerPoint {
         private static bool CanLoadInPlace(Stream stream, PowerPointLoadOptions options) =>
             OfficePackageLoadSource.CanReadInPlace(stream, options.AccessMode, options.PackageSecurity,
                 options.CaptureSourcePackageSecurity, ResolvePackageInputLimit(options));
+
+        private static Task<bool> CanLoadInPlaceAsync(Stream stream, PowerPointLoadOptions options,
+            CancellationToken cancellationToken) =>
+            OfficePackageLoadSource.CanReadInPlaceAsync(stream, options.AccessMode, options.PackageSecurity,
+                options.CaptureSourcePackageSecurity, ResolvePackageInputLimit(options), cancellationToken);
 
         /// <summary>Opens a read-only Open XML presentation over the caller's seekable stream without copying it.</summary>
         private static PowerPointDocument LoadPackageInPlace(Stream stream, PowerPointLoadOptions options,

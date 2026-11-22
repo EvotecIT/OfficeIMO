@@ -40,17 +40,7 @@ namespace OfficeIMO.Core.Internal {
             OfficePackageSecurityOptions? packageSecurity,
             bool captureSourcePackageSecurity,
             long? maxInputBytes) {
-            ArgumentNullException.ThrowIfNull(source);
-            if (accessMode != DocumentAccessMode.ReadOnly
-                || packageSecurity != null
-                || captureSourcePackageSecurity
-                || !source.CanRead
-                || !source.CanSeek) {
-                return false;
-            }
-
-            long length = source.Length;
-            if (length < ZipSignatureLength || (maxInputBytes.HasValue && length > maxInputBytes.Value)) {
+            if (!IsInPlaceCandidate(source, accessMode, packageSecurity, captureSourcePackageSecurity, maxInputBytes)) {
                 return false;
             }
 
@@ -68,6 +58,72 @@ namespace OfficeIMO.Core.Internal {
             } finally {
                 source.Position = originalPosition;
             }
+        }
+
+        /// <summary>Probes sources with known synchronous read behavior for the asynchronous in-place path.</summary>
+        public static async Task<bool> CanReadInPlaceAsync(
+            Stream source,
+            DocumentAccessMode accessMode,
+            OfficePackageSecurityOptions? packageSecurity,
+            bool captureSourcePackageSecurity,
+            long? maxInputBytes,
+            CancellationToken cancellationToken) {
+            // ZIP and OPC readers require synchronous reads. Custom streams may implement only ReadAsync,
+            // and subclasses of the built-in streams can override their synchronous behavior.
+            Type sourceType = source.GetType();
+            if (sourceType != typeof(FileStream) && sourceType != typeof(MemoryStream)) return false;
+            if (!IsInPlaceCandidate(source, accessMode, packageSecurity, captureSourcePackageSecurity, maxInputBytes)) {
+                return false;
+            }
+
+            long originalPosition = source.Position;
+            try {
+                source.Position = 0;
+                var signature = new byte[ZipSignatureLength];
+                int read = 0;
+                while (read < signature.Length) {
+                    int count = await source.ReadAsync(signature, read, signature.Length - read, cancellationToken)
+                        .ConfigureAwait(false);
+                    if (count == 0) return false;
+                    read += count;
+                }
+                return HasZipSignature(signature);
+            } finally {
+                source.Position = originalPosition;
+            }
+        }
+
+        /// <summary>
+        /// Runs an asynchronous load's in-place work. The package and signature readers only read synchronously, so a
+        /// <see cref="FileStream"/> is read on a thread-pool thread. An in-memory source is read directly.
+        /// </summary>
+        public static Task<T> LoadInPlaceAsync<T>(Stream source, Func<T> load, CancellationToken cancellationToken) {
+            ArgumentNullException.ThrowIfNull(source);
+            ArgumentNullException.ThrowIfNull(load);
+            if (source.GetType() == typeof(MemoryStream)) {
+                cancellationToken.ThrowIfCancellationRequested();
+                return Task.FromResult(load());
+            }
+            return Task.Run(load, cancellationToken);
+        }
+
+        private static bool IsInPlaceCandidate(
+            Stream source,
+            DocumentAccessMode accessMode,
+            OfficePackageSecurityOptions? packageSecurity,
+            bool captureSourcePackageSecurity,
+            long? maxInputBytes) {
+            ArgumentNullException.ThrowIfNull(source);
+            if (accessMode != DocumentAccessMode.ReadOnly
+                || packageSecurity != null
+                || captureSourcePackageSecurity
+                || !source.CanRead
+                || !source.CanSeek) {
+                return false;
+            }
+
+            long length = source.Length;
+            return length >= ZipSignatureLength && (!maxInputBytes.HasValue || length <= maxInputBytes.Value);
         }
 
         /// <summary>

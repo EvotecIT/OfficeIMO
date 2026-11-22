@@ -74,15 +74,19 @@ namespace OfficeIMO.Visio {
             if (!File.Exists(fullPath)) throw new FileNotFoundException($"File '{fullPath}' doesn't exist.", fullPath);
             using var source = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, 81920, useAsync: true);
             VisioLoadOptions resolved = options ?? new VisioLoadOptions();
-            if (CanLoadInPlace(source, resolved)) {
-                return LoadDocumentInPlace(source, fullPath, sourceStream: null, resolved, cancellationToken);
+            if (await CanLoadInPlaceAsync(source, resolved, cancellationToken).ConfigureAwait(false)) {
+                return await OfficePackageLoadSource.LoadInPlaceAsync(source,
+                    () => LoadDocumentInPlace(source, fullPath, sourceStream: null, resolved, cancellationToken),
+                    cancellationToken).ConfigureAwait(false);
             }
             byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(source, cancellationToken, ResolveInputLimit(resolved)).ConfigureAwait(false);
             return LoadDocument(bytes, fullPath, sourceStream: null, options: resolved, cancellationToken: cancellationToken);
         }
 
         /// <summary>Asynchronously loads an existing .vsdx document from a caller-owned stream with optional input limits.</summary>
-        /// <remarks>Stream handling follows <see cref="Load(Stream, VisioLoadOptions?)"/>.</remarks>
+        /// <remarks>Stream handling follows <see cref="Load(Stream, VisioLoadOptions?)"/>. The async
+        /// in-place path applies to standard <see cref="MemoryStream"/> and <see cref="FileStream"/> sources.
+        /// Custom streams are buffered.</remarks>
         public static async Task<VisioDocument> LoadAsync(
             Stream stream,
             VisioLoadOptions? options = null,
@@ -90,10 +94,11 @@ namespace OfficeIMO.Visio {
             ArgumentNullException.ThrowIfNull(stream);
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
             VisioLoadOptions resolved = options ?? new VisioLoadOptions();
-            if (CanLoadInPlace(stream, resolved)) {
-                return LoadDocumentInPlace(stream, filePath: null,
-                    OfficeDocumentLifecycle.ResolveAssociatedDestination(stream, DocumentAccessMode.ReadWrite),
-                    resolved, cancellationToken);
+            if (await CanLoadInPlaceAsync(stream, resolved, cancellationToken).ConfigureAwait(false)) {
+                Stream? associatedStream = OfficeDocumentLifecycle.ResolveAssociatedDestination(stream, DocumentAccessMode.ReadWrite);
+                return await OfficePackageLoadSource.LoadInPlaceAsync(stream,
+                    () => LoadDocumentInPlace(stream, filePath: null, associatedStream, resolved, cancellationToken),
+                    cancellationToken).ConfigureAwait(false);
             }
             byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken, ResolveInputLimit(resolved)).ConfigureAwait(false);
             return LoadDocument(
@@ -128,6 +133,11 @@ namespace OfficeIMO.Visio {
         private static bool CanLoadInPlace(Stream stream, VisioLoadOptions options) =>
             OfficePackageLoadSource.CanReadInPlace(stream, DocumentAccessMode.ReadOnly, options.PackageSecurity,
                 captureSourcePackageSecurity: false, ResolveInputLimit(options));
+
+        private static Task<bool> CanLoadInPlaceAsync(Stream stream, VisioLoadOptions options,
+            CancellationToken cancellationToken) =>
+            OfficePackageLoadSource.CanReadInPlaceAsync(stream, DocumentAccessMode.ReadOnly, options.PackageSecurity,
+                captureSourcePackageSecurity: false, ResolveInputLimit(options), cancellationToken);
 
         private static VisioDocument LoadDocumentInPlace(
             Stream stream,

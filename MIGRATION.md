@@ -5352,8 +5352,9 @@ These parameter aliases stay removed. Command aliases such as `ExcelExport` are 
 
 ## Read-only Word and PowerPoint documents read seekable streams in place
 
-`WordDocument.Load(Stream)`, `LoadAsync(Stream)` and `PowerPointDocument.Load(Stream)` and `LoadAsync(Stream)`
-with `AccessMode = DocumentAccessMode.ReadOnly` no longer copy a seekable Open XML stream into memory. The document
+`WordDocument.Load(Stream)` and `PowerPointDocument.Load(Stream)` with `AccessMode = DocumentAccessMode.ReadOnly`
+can read a seekable Open XML stream directly. Their `LoadAsync(Stream)` overloads read standard `MemoryStream`
+and `FileStream` sources directly and read custom streams into memory. The in-place document
 reads parts from your stream as it needs them, so keep the stream open and leave its contents unchanged until you
 dispose the document. Disposing the document does not dispose the stream, the stream position is restored after
 loading, and a read-only document still cannot be saved, to that stream or anywhere else.
@@ -5361,8 +5362,13 @@ loading, and a read-only document still cannot be saved, to that stream or anywh
 Code that disposes or reuses the stream while a read-only document is still in use must keep the stream alive
 longer, or copy it first: load from `new MemoryStream(bytes, writable: false)` over an array you keep, or load with
 `AccessMode = DocumentAccessMode.ReadWrite`. Non-seekable streams, encrypted and binary (`.doc`, `.ppt`) sources,
-Word XML, and loads with `PackageSecurity` or `CaptureSourcePackageSecurity` still read the stream into memory and
-do not use it after loading. Editable loads, Excel workbooks and Visio diagrams never keep the stream.
+Word XML, and loads with `PackageSecurity` or `CaptureSourcePackageSecurity` still read the stream into memory, and
+the package is not read from it again. Editable loads, Excel workbooks and Visio diagrams never read the package from
+the stream after loading either.
+
+Saving is a separate matter and is unchanged: an editable load from a writable, seekable stream keeps that stream as
+the destination of `Save()` and of `SaveOnDispose`, so it must stay open until the last save, even though the
+document no longer reads from it.
 
 ## PDF text extraction keeps the readable part of damaged documents
 

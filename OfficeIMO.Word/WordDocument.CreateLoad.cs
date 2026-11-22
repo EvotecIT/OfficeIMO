@@ -678,7 +678,9 @@ namespace OfficeIMO.Word {
         /// <param name="options">Access, persistence, style, and low-level package options.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>The loaded document. The caller retains ownership of <paramref name="stream"/>.</returns>
-        /// <remarks>Stream lifetime follows <see cref="Load(Stream, WordLoadOptions?)"/>.</remarks>
+        /// <remarks>Stream lifetime follows <see cref="Load(Stream, WordLoadOptions?)"/>. The async
+        /// in-place path applies to standard <see cref="MemoryStream"/> and <see cref="FileStream"/> sources.
+        /// Custom streams are buffered.</remarks>
         public static async Task<WordDocument> LoadAsync(
             Stream stream,
             WordLoadOptions? options = null,
@@ -691,8 +693,9 @@ namespace OfficeIMO.Word {
             bool readOnly = resolved.AccessMode == DocumentAccessMode.ReadOnly;
             bool copyBackToSource = resolved.PersistenceMode == DocumentPersistenceMode.SaveOnDispose && !readOnly;
             OfficeDocumentLifecycle.EnsureSaveOnDisposeDestination(stream, resolved.PersistenceMode, nameof(stream));
-            if (resolved.Password == null && CanLoadInPlace(stream, resolved)) {
-                return LoadPackageInPlace(stream, resolved, cancellationToken);
+            if (resolved.Password == null && await CanLoadInPlaceAsync(stream, resolved, cancellationToken).ConfigureAwait(false)) {
+                return await OfficePackageLoadSource.LoadInPlaceAsync(stream,
+                    () => LoadPackageInPlace(stream, resolved, cancellationToken), cancellationToken).ConfigureAwait(false);
             }
 
             byte[] sourceBytes = await ReadSourceBytesAsync(stream, resolved,
@@ -740,6 +743,13 @@ namespace OfficeIMO.Word {
             ValidateMaxInputBytes(options);
             return OfficePackageLoadSource.CanReadInPlace(stream, options.AccessMode, options.PackageSecurity,
                 options.CaptureSourcePackageSecurity, options.MaxInputBytes);
+        }
+
+        private static Task<bool> CanLoadInPlaceAsync(Stream stream, WordLoadOptions options,
+            CancellationToken cancellationToken) {
+            ValidateMaxInputBytes(options);
+            return OfficePackageLoadSource.CanReadInPlaceAsync(stream, options.AccessMode, options.PackageSecurity,
+                options.CaptureSourcePackageSecurity, options.MaxInputBytes, cancellationToken);
         }
 
         /// <summary>Opens a read-only Word Open XML package over the caller's seekable stream without copying it.</summary>

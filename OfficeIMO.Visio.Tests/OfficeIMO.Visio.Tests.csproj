@@ -13,6 +13,7 @@
     <Compile Include="..\OfficeIMO.TestAssets\RepositoryTestPaths.cs" Link="Shared\RepositoryTestPaths.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\TestStreams\NonSeekableReadStream.cs" Link="TestStreams\NonSeekableReadStream.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\TestStreams\LargePartPackages.cs" Link="TestStreams\LargePartPackages.cs" />
+    <Compile Include="..\OfficeIMO.TestAssets\TestStreams\GatedReadStream.cs" Link="TestStreams\GatedReadStream.cs" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
     <PackageReference Include="System.Text.Json" Version="[10.0.9,11.0.0)" Condition="'$(TargetFramework)' == 'net472'" />
     <PackageReference Include="xunit" Version="2.9.3" />

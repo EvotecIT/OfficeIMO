@@ -126,21 +126,20 @@ namespace OfficeIMO.PowerPoint {
                     || _document.ExtendedFilePropertiesPart?.Properties?
                         .DigitalSignature != null;
 
-                // Ordinary unsigned saves should not need to clone and serialize
-                // the complete package merely to prove the absence of signature
-                // metadata. Inspect the current package bytes first so malformed
-                // or relationship-only carriers remain fail-closed. A live carrier
-                // still takes the full snapshot path below because unsaved Open XML
-                // mutations may not yet be reflected in the package stream.
-                if (!hasLiveSignatureCarrier
-                    && OfficeIMO.Core.Internal.OfficePackageLoadSource.TryGetPackageBytes(_packageStream, out byte[] currentPackageBytes)) {
+                // Inspect the encoded package directly for read-only documents, since
+                // a clone can omit unreferenced signature parts. For editable packages,
+                // an unsigned stream can skip cloning. A live carrier still needs a
+                // snapshot because the stream may not yet reflect unsaved edits.
+                bool readOnly = AccessMode == DocumentAccessMode.ReadOnly;
+                if ((readOnly || !hasLiveSignatureCarrier)
+                    && _packageStream is { CanRead: true, CanSeek: true } currentPackage) {
                     try {
                         shared = OfficePackageSignatureService.Inspect(
-                            currentPackageBytes,
+                            currentPackage,
                             new OfficePackageSignatureInspectionOptions {
                                 VerifyDigests = false
                             });
-                        if (!shared.HasSignatures) {
+                        if (readOnly || !shared.HasSignatures) {
                             return CreateSignatureReport(shared, policy, action);
                         }
                     } catch (InvalidDataException) {

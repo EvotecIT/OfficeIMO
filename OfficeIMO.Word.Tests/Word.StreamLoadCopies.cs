@@ -37,6 +37,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task ReadOnlySeekableLoadAsync_SnapshotsAsyncOnlyStream() {
+            byte[] original = CreateStreamLoadDocument("Slow storage");
+            var gate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            using var source = new GatedReadStream(original, gate.Task);
+
+            Task<WordDocument> loading = WordDocument.LoadAsync(source,
+                new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
+            bool returnedBeforeReading = !loading.IsCompleted;
+            gate.SetResult(true);
+
+            using WordDocument document = await loading;
+            Assert.True(returnedBeforeReading);
+            Assert.Equal("Slow storage", Assert.Single(document.Paragraphs).Text);
+        }
+
+        [Fact]
         public void ReadOnlyNonSeekableLoad_DoesNotNeedTheStreamAfterLoading() {
             byte[] original = CreateStreamLoadDocument("Forward only");
             WordDocument document;
