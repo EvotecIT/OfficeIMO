@@ -152,7 +152,7 @@ public sealed partial class EpubPublication {
     public XDocument GetPackageXml() => new XDocument(_package);
     /// <summary>Projects current authored content through the existing EPUB reader, without executing embedded content.</summary>
     public EpubDocument Read(EpubLoadOptions? options = null, CancellationToken cancellationToken = default) =>
-        EpubDocument.Load(new MemoryStream(Write(cancellationToken: cancellationToken).Bytes, false), options, cancellationToken);
+        EpubReader.ReadBytes(Write(cancellationToken: cancellationToken).Bytes, options, cancellationToken);
 
     private XElement Root => _package.Root ?? throw new InvalidDataException("Package XML has no root.");
     private XElement RequireSection(string name) => Root.Element(Opf + name) ?? throw new InvalidDataException("Package section missing: " + name);

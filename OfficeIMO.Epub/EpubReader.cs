@@ -1,6 +1,7 @@
 namespace OfficeIMO.Epub;
 
 using OfficeIMO.Core.Internal;
+using OfficeIMO.Core.Internal.IO;
 
 /// <summary>
 /// Standards-based EPUB extractor using container/OPF/spine/navigation metadata.
@@ -15,6 +16,8 @@ internal static partial class EpubReader {
         if (epubPath.Length == 0) throw new ArgumentException("EPUB path cannot be empty.", nameof(epubPath));
         if (!File.Exists(epubPath)) throw new FileNotFoundException($"EPUB file '{epubPath}' doesn't exist.", epubPath);
 
+        using var stable = OfficeStableFileRead.TryOpen(epubPath);
+        if (stable is not null) return ReadArchiveBounded(stable, Normalize(options), cancellationToken);
         using var fs = new FileStream(epubPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
         return Read(fs, options, cancellationToken);
     }
@@ -73,14 +76,27 @@ internal static partial class EpubReader {
         ArgumentNullException.ThrowIfNull(bytes);
         cancellationToken.ThrowIfCancellationRequested();
         EpubLoadOptions effective = Normalize(options);
-        if (bytes.LongLength > effective.MaxPackageBytes) {
+        using var stream = new MemoryStream(bytes, writable: false);
+        return ReadArchiveBounded(stream, effective, cancellationToken);
+    }
+
+    private static EpubDocument ReadArchiveBounded(Stream stream, EpubLoadOptions effective,
+        CancellationToken cancellationToken) {
+        long length = stream.Length;
+        if (length > effective.MaxPackageBytes) {
             throw CreateFatalReadException(
                 "epub.package.size-limit",
-                $"EPUB package size {bytes.LongLength} exceeds MaxPackageBytes ({effective.MaxPackageBytes}).");
+                $"EPUB package size {length} exceeds MaxPackageBytes ({effective.MaxPackageBytes}).");
+        }
+
+        if (length > int.MaxValue) {
+            throw CreateFatalReadException(
+                "epub.package.size-limit",
+                $"EPUB package size {length} exceeds the supported package size.");
         }
 
         try {
-            return ReadArchive(bytes, effective, cancellationToken);
+            return ReadArchive(stream, effective, cancellationToken);
         } catch (EpubReadException) {
             throw;
         } catch (InvalidDataException exception) {
@@ -93,11 +109,10 @@ internal static partial class EpubReader {
     }
 
     private static EpubDocument ReadArchive(
-        byte[] bytes,
+        Stream epubStream,
         EpubLoadOptions effective,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        using var epubStream = new MemoryStream(bytes, writable: false);
         var diagnostics = new EpubDiagnosticCollector();
 
         using var archive = new ZipArchive(epubStream, ZipArchiveMode.Read, leaveOpen: true);

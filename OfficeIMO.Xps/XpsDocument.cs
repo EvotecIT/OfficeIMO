@@ -1,4 +1,5 @@
 using OfficeIMO.Core.Internal;
+using OfficeIMO.Core.Internal.IO;
 
 namespace OfficeIMO.Xps;
 
@@ -43,8 +44,16 @@ public sealed partial class XpsDocument {
     /// <summary>Loads from a file without retaining handles.</summary>
     public static XpsDocument Load(string path, XpsLoadOptions? options = null, CancellationToken cancellationToken = default) {
         string fullPath = Path.GetFullPath(path);
-        using var stream = File.OpenRead(fullPath);
-        var document = Load(stream, options, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        var limits = (options ?? new XpsLoadOptions()).SnapshotLimits();
+        using var stable = OfficeStableFileRead.TryOpen(fullPath);
+        XpsDocument document;
+        if (stable is not null) {
+            document = ReadPackage(stable, limits, cancellationToken);
+        } else {
+            using var snapshotSource = File.OpenRead(fullPath);
+            document = LoadSnapshot(snapshotSource, limits, cancellationToken);
+        }
         document._filePath = fullPath;
         return document;
     }
@@ -58,6 +67,10 @@ public sealed partial class XpsDocument {
     public static XpsDocument Load(Stream stream, XpsLoadOptions? options = null, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(stream);
         var limits = (options ?? new XpsLoadOptions()).SnapshotLimits();
+        return LoadSnapshot(stream, limits, cancellationToken);
+    }
+
+    private static XpsDocument LoadSnapshot(Stream stream, XpsReadLimits limits, CancellationToken cancellationToken) {
         byte[] bytes;
         try {
             // Reads a seekable source into one exact-size array, and a non-seekable one without regrowing a buffer.
@@ -66,6 +79,11 @@ public sealed partial class XpsDocument {
             throw new InvalidDataException("XPS input byte limit exceeded.", exception);
         }
         using var input = new MemoryStream(bytes, writable: false);
+        return ReadPackage(input, limits, cancellationToken);
+    }
+
+    private static XpsDocument ReadPackage(Stream input, XpsReadLimits limits, CancellationToken cancellationToken) {
+        if (input.Length > limits.MaxInputBytes) throw new InvalidDataException("XPS input byte limit exceeded.");
         var scan = OfficeArchiveSafety.ScanZipCentralDirectory(input, input.Length, limits.MaxParts, cancellationToken);
         if (!scan.IsValid || scan.LimitExceeded) throw new InvalidDataException("Invalid or excessive XPS ZIP directory.");
         var parts = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
@@ -79,7 +97,7 @@ public sealed partial class XpsDocument {
                 if (entry.Length > limits.MaxPartBytes || entry.Length > limits.MaxExpandedBytes - expanded) throw new InvalidDataException("XPS expanded byte limit exceeded.");
                 expanded += entry.Length;
                 using var part = entry.Open();
-                parts.Add(name, OfficeArchiveSafety.ReadEntryBytes(part, entry.Length, limits.MaxPartBytes));
+                parts.Add(name, OfficeArchiveSafety.ReadEntryBytes(part, entry.Length, limits.MaxPartBytes, cancellationToken));
             }
         }
         parts = OfficeOpcPieceAssembler.Assemble(parts, limits.MaxPartBytes, cancellationToken);
