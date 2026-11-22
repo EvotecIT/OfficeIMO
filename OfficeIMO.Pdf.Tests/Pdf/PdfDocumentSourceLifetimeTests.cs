@@ -83,6 +83,20 @@ public sealed class PdfDocumentSourceLifetimeTests {
     }
 
     [Fact]
+    public void RedactionSearchKeepsRevisionEvidenceAfterTheCallerReusesArrayMemory() {
+        byte[] pdf = PdfIncrementalUpdater.UpdateMetadata(CreateTextPdf(pageCount: 2), title: "Updated title");
+        PdfRedactionPlan search;
+        using (PdfDocument document = PdfDocument.Load((ReadOnlyMemory<byte>)pdf)) {
+            search = document.Redactions.Search(new PdfRedactionSearchOptions().AddLiteral("missing phrase"));
+            Assert.Empty(search.Matches);
+            Assert.True(search.Preflight.Probe.Security.HasPreviousRevision);
+        }
+
+        Array.Clear(pdf, 0, pdf.Length);
+        Assert.True(search.Preflight.CanNormalizeRedactionObjectGraph);
+    }
+
+    [Fact]
     public void StreamSourceIsOwnedSoTheStreamCanBeDisposedAfterLoading() {
         byte[] pdf = CreateTextPdf(pageCount: 3);
         var stream = new MemoryStream(pdf, writable: false);

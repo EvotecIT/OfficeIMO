@@ -263,12 +263,17 @@ public sealed partial class PdfDocument {
     /// Plans rectangle-based redaction impact without modifying the PDF.
     /// </summary>
     internal PdfRedactionPlan PlanRedactions(IEnumerable<PdfRedactionArea> areas, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null, CancellationToken cancellationToken = default) {
-        byte[] bytes = _source?.DetachBorrowed(cancellationToken).Bytes ?? GetBytesForOperation(cancellationToken);
-        return PdfRedactionPlanner.Plan(bytes, areas, layoutOptions, options ?? ReadOptions, cancellationToken);
+        return PdfRedactionPlanner.Plan(GetReportBytes(cancellationToken), areas, layoutOptions, options ?? ReadOptions, cancellationToken);
     }
 
     /// <summary>Derives a reviewable redaction plan from literal text, regex, logical kinds, and form-field names.</summary>
-    internal PdfRedactionPlan SearchRedactions(PdfRedactionSearchOptions search, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) => PdfRedactionPlanner.Search(GetBytesForOperation(), search, layoutOptions, options ?? ReadOptions);
+    internal PdfRedactionPlan SearchRedactions(PdfRedactionSearchOptions search, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) {
+        Guard.NotNull(search, nameof(search));
+        return PdfRedactionPlanner.Search(GetReportBytes(search.CancellationToken), search, layoutOptions, options ?? ReadOptions);
+    }
+
+    private byte[] GetReportBytes(CancellationToken cancellationToken) =>
+        _source?.DetachBorrowed(cancellationToken).Bytes ?? GetBytesForOperation(cancellationToken);
 
     /// <summary>
     /// Creates a new PDF with intersecting text glyphs and annotations removed from the supplied redaction areas.
