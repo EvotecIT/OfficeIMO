@@ -90,17 +90,20 @@ public sealed class PdfRunningStoryDrawingLayersTests {
     }
 
     // A header group that is not drawn, placed relative to the margin or stored only as VML, is reported as
-    // omitted. A group in a hidden run is not painted in Word either, so nothing is lost.
+    // omitted. A hidden group is not painted in Word either, so nothing is lost.
     [Theory]
-    [InlineData("margin", false)]
-    [InlineData("vml", false)]
-    [InlineData("margin", true)]
-    [InlineData("vml", true)]
+    [InlineData("margin", "")]
+    [InlineData("vml", "")]
+    [InlineData("margin", "vanish")]
+    [InlineData("vml", "vanish")]
+    [InlineData("vml", "visibility")]
+    [InlineData("margin", "docPr")]
+    [InlineData("margin", "groupProperties")]
     // The VML fallback Word selects, because no choice applies, is the group itself.
-    [InlineData("vml-fallback", false)]
+    [InlineData("vml-fallback", "")]
     // A drawn group beside a selected VML fallback the rich route cannot place keeps the story on the simple route.
-    [InlineData("mixed", false)]
-    public void SaveAsPdf_UndrawnHeaderShapeGroupIsReported(string kind, bool hidden) {
+    [InlineData("mixed", "")]
+    public void SaveAsPdf_UndrawnHeaderShapeGroupIsReported(string kind, string hiddenBy) {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph("BODYTEXT");
         _ = document.PageSetup.Header;
@@ -136,13 +139,10 @@ public sealed class PdfRunningStoryDrawingLayersTests {
             }, OfficeLength.Points(60), OfficeLength.Points(30));
             anchor._paragraph.Descendants<DW.Anchor>().Single().HorizontalPosition!.RelativeFrom = DW.HorizontalRelativePositionValues.Margin;
         }
-        if (hidden) {
-            W.Run groupRun = anchor._paragraph.Elements<W.Run>().Last();
-            groupRun.PrependChild(new W.RunProperties(new W.Vanish()));
-        }
+        HideGroup(anchor, hiddenBy);
 
         var evidence = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false });
-        if (hidden) {
+        if (hiddenBy.Length > 0) {
             Assert.DoesNotContain(evidence.Warnings, item => item.Code == "native-header-footer-shape-group-unsupported");
             return;
         }
@@ -151,9 +151,12 @@ public sealed class PdfRunningStoryDrawingLayersTests {
         Assert.Equal(OfficeIMO.OfficeConversionLossKind.Omission, warning.LossKind);
     }
 
-    // A supported group in a hidden run is not painted, as in Word.
-    [Fact]
-    public void SaveAsPdf_HiddenHeaderShapeGroupIsNotPainted() {
+    // A hidden supported group is not painted, as in Word.
+    [Theory]
+    [InlineData("vanish")]
+    [InlineData("docPr")]
+    [InlineData("groupProperties")]
+    public void SaveAsPdf_HiddenHeaderShapeGroupIsNotPainted(string hiddenBy) {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph("BODYTEXT");
         _ = document.PageSetup.Header;
@@ -166,7 +169,7 @@ public sealed class PdfRunningStoryDrawingLayersTests {
         drawingAnchor.BehindDoc = false;
         drawingAnchor.RemoveAllChildren<DW.WrapSquare>();
         if (drawingAnchor.GetFirstChild<DW.WrapNone>() == null) drawingAnchor.AddChild(new DW.WrapNone(), true);
-        anchor._paragraph.Elements<W.Run>().Last().PrependChild(new W.RunProperties(new W.Vanish()));
+        HideGroup(anchor, hiddenBy);
 
         var evidence = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false });
         Assert.DoesNotContain(evidence.Warnings, item => item.Code == "native-header-footer-shape-group-unsupported");
@@ -198,6 +201,27 @@ public sealed class PdfRunningStoryDrawingLayersTests {
         byte[] pixels = bitmap!.GetPixels();
         int offset = (65 * bitmap.Width + 135) * 4;
         Assert.Equal(wrappedOnTop ? "0,255,0" : "255,0,0", pixels[offset] + "," + pixels[offset + 1] + "," + pixels[offset + 2]);
+    }
+
+    private static void HideGroup(WordParagraph anchor, string hiddenBy) {
+        switch (hiddenBy) {
+            case "vanish":
+                anchor._paragraph.Elements<W.Run>().Last().PrependChild(new W.RunProperties(new W.Vanish()));
+                break;
+            case "visibility":
+                V.Group group = anchor._paragraph.Descendants<V.Group>().Single();
+                group.Style = group.Style!.Value + ";visibility:hidden";
+                break;
+            case "docPr":
+                anchor._paragraph.Descendants<DW.DocProperties>().Single().Hidden = true;
+                break;
+            case "groupProperties":
+                var shapeGroup = anchor._paragraph.Descendants<DocumentFormat.OpenXml.Office2010.Word.DrawingGroup.WordprocessingGroup>().Single();
+                shapeGroup.PrependChild(new DocumentFormat.OpenXml.Office2010.Word.DrawingGroup.NonVisualDrawingProperties {
+                    Id = 900U, Name = "Hidden group", Hidden = true
+                });
+                break;
+        }
     }
 
     private static void AddPagePicture(WordParagraph paragraph, OfficeColor color, WordImageTextWrapping wrapping,

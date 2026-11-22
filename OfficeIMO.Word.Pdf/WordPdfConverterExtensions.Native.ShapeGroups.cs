@@ -112,8 +112,8 @@ namespace OfficeIMO.Word.Pdf {
 
         /// <summary>
         /// The shape groups Word draws for a paragraph: DrawingML groups and outermost VML groups of
-        /// visible runs, from the markup-compatibility branch Word selects. Counting, eligibility
-        /// and painting all read this one list.
+        /// visible runs, from the markup-compatibility branch Word selects, that are not hidden
+        /// themselves. Counting, eligibility and painting all read this one list.
         /// </summary>
         private static IEnumerable<NativeShapeGroupSource> EnumerateNativeVisibleShapeGroups(WordParagraph paragraph,
             IEnumerable<WordParagraph> runs) {
@@ -121,17 +121,33 @@ namespace OfficeIMO.Word.Pdf {
                 if (IsNativeHiddenTextRun(run, paragraph)) continue;
                 foreach (OpenXmlElement content in run.EnumerateEffectiveRunContent()) {
                     if (content is W.Drawing drawing) {
-                        if (IsNativeShapeGroupDrawing(drawing)) yield return new NativeShapeGroupSource(run, drawing, null);
+                        if (IsNativeShapeGroupDrawing(drawing) && !IsNativeHiddenShapeGroupDrawing(drawing))
+                            yield return new NativeShapeGroupSource(run, drawing, null);
                         continue;
                     }
                     foreach (V.Group legacy in content.Descendants<V.Group>().Prepend(content as V.Group).OfType<V.Group>()) {
-                        if (legacy.Ancestors<V.Group>().Any() || !IsNativeSelectedBranchContent(legacy, content) ||
+                        if (legacy.Ancestors<V.Group>().Any() || IsNativeVmlHidden(legacy) || !IsNativeSelectedBranchContent(legacy, content) ||
                             legacy.Ancestors<W.Paragraph>().FirstOrDefault() != paragraph._paragraph) continue;
                         yield return new NativeShapeGroupSource(run, null, legacy);
                     }
                 }
             }
         }
+
+        /// <summary>A DrawingML group is hidden through its drawing's properties or the group's own non-visual properties.</summary>
+        private static bool IsNativeHiddenShapeGroupDrawing(W.Drawing drawing) {
+            DocumentFormat.OpenXml.Drawing.Wordprocessing.DocProperties? properties =
+                drawing.Anchor?.GetFirstChild<DocumentFormat.OpenXml.Drawing.Wordprocessing.DocProperties>() ?? drawing.Inline?.DocProperties;
+            if (properties?.Hidden?.Value == true) return true;
+            OpenXmlElement? group = drawing.Descendants<A.GraphicData>().FirstOrDefault()?.ChildElements
+                .FirstOrDefault(child => child.NamespaceUri == NativeWordGroupNamespace && child.LocalName == "wgp");
+            return group?.ChildElements.FirstOrDefault(child => child.LocalName == "cNvPr") is { } groupProperties &&
+                ReadNativeOnOffAttribute(groupProperties, "hidden");
+        }
+
+        private static bool ReadNativeOnOffAttribute(OpenXmlElement element, string name) =>
+            element.GetAttributes().FirstOrDefault(attribute => attribute.NamespaceUri.Length == 0 && attribute.LocalName == name).Value
+                is "1" or "true" or "on";
 
         /// <summary>Every markup-compatibility branch between the element and the run content is the one Word selects.</summary>
         private static bool IsNativeSelectedBranchContent(OpenXmlElement element, OpenXmlElement stop) {
