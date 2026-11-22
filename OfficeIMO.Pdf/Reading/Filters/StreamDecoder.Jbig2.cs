@@ -1,12 +1,13 @@
 namespace OfficeIMO.Pdf.Filters;
 
 internal static partial class StreamDecoder {
+    private const int MaximumJbig2GlobalsDepth = 32;
     [ThreadStatic] private static HashSet<PdfStream>? _activeJbig2Globals;
 
     private static byte[] DecodeJbig2Globals(PdfStream stream, Dictionary<int, PdfIndirectObject>? objects,
         int maximumBytes, CancellationToken cancellationToken) {
         HashSet<PdfStream> active = _activeJbig2Globals ??= new HashSet<PdfStream>();
-        if (active.Count >= 32 || !active.Add(stream)) throw new InvalidDataException("Cyclic or excessively nested JBIG2Globals.");
+        if (active.Count >= MaximumJbig2GlobalsDepth || !active.Add(stream)) throw new InvalidDataException("Cyclic or excessively nested JBIG2Globals.");
         try { return Decode(stream, objects, maximumBytes, cancellationToken); }
         finally { active.Remove(stream); }
     }

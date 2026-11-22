@@ -75,14 +75,13 @@ internal static partial class PdfSyntax {
     }
 
     internal static PdfDocumentSecurityInfo ReadDocumentSecurityInfo(
-        byte[] pdf,
+        ReadOnlyMemory<byte> pdf,
         Dictionary<int, PdfIndirectObject> objects,
         string trailerRaw,
         PdfDocumentSecurityInfo fallback,
         PdfRepairReport repairReport,
         PdfLoadOptions? options = null,
         CancellationToken cancellationToken = default) {
-        Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(objects, nameof(objects));
         Guard.NotNull(fallback, nameof(fallback));
         cancellationToken.ThrowIfCancellationRequested();

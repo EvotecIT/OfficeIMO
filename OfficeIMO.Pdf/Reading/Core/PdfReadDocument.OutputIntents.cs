@@ -6,10 +6,16 @@ internal sealed partial class PdfReadDocument {
     /// <summary>Catalog output intent metadata discovered from /OutputIntents.</summary>
     public IReadOnlyList<PdfOutputIntentInfo> OutputIntents => ReadLogicalContent(_outputIntents);
 
+    internal IReadOnlyList<PdfOutputIntentInfo> GetReportOutputIntents(CancellationToken cancellationToken) {
+        foreach (PdfOutputIntentInfo intent in _outputIntents) intent.RetainProfileInput(cancellationToken);
+        return _outputIntents;
+    }
+
     /// <summary>True when every entry in the catalog /OutputIntents array resolved to a dictionary typed as /OutputIntent.</summary>
     public bool OutputIntentsAreComplete => ReadLogicalContent(_outputIntentsAreComplete);
 
-    private IReadOnlyList<PdfOutputIntentInfo> ExtractOutputIntents(out bool isComplete, System.Threading.CancellationToken cancellationToken) {
+    private IReadOnlyList<PdfOutputIntentInfo> ExtractOutputIntents(out bool isComplete,
+        bool detachOutputIntentProfiles, System.Threading.CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         isComplete = true;
         PdfDictionary? catalog = FindCatalog();
@@ -22,6 +28,11 @@ internal sealed partial class PdfReadDocument {
         }
         if (outputIntentsArray.Items.Count == 0) return Array.Empty<PdfOutputIntentInfo>();
 
+        // Bound the extra owned encoded data per document. Decoding has its own
+        // per-stream and aggregate ICC metadata budgets at property access time.
+        PdfIccProfileRetentionBudget? encodedBudget = detachOutputIntentProfiles
+            ? new PdfIccProfileRetentionBudget((int)Math.Min(_options.Limits.MaxInputBytes, int.MaxValue), PdfReadLimitKind.RawStreamBytes)
+            : null;
         var result = new List<PdfOutputIntentInfo>();
         for (int i = 0; i < outputIntentsArray.Items.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -45,6 +56,9 @@ internal sealed partial class PdfReadDocument {
                 profileStream = ResolveObject(profileObject) as PdfStream;
             }
 
+            Action<CancellationToken>? retainProfile = encodedBudget is not null && profileStream is not null
+                ? token => Filters.StreamDecoder.RetainEncodedInput(profileStream, _objects, encodedBudget, token)
+                : null;
             Func<System.Threading.CancellationToken, PdfOutputIntentProfileMetadata?>? metadataFactory = profileStream == null
                 ? null
                 : token => ReadOutputIntentProfileMetadata(profileStream, token);
@@ -61,7 +75,8 @@ internal sealed partial class PdfReadDocument {
                 profileStream is null ? null : TryReadStreamAlternateColorSpace(profileStream),
                 profileStream is null ? null : TryReadStreamFilter(profileStream, cancellationToken),
                 profileStream != null,
-                metadataFactory));
+                metadataFactory,
+                retainProfile));
         }
 
         return result.Count == 0 ? Array.Empty<PdfOutputIntentInfo>() : result.AsReadOnly();

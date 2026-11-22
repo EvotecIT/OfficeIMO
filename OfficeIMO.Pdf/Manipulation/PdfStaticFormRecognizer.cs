@@ -18,7 +18,6 @@ internal static partial class PdfStaticFormRecognizer {
         cancellationToken.ThrowIfCancellationRequested();
         PdfLoadOptions resultOptions = source.ReadOptions;
         var snapshot = source.GetReadSnapshot(PdfLoadOptions.WithArtifactText(resultOptions), cancellationToken);
-        byte[] pdf = snapshot.Bytes;
         PdfReadDocument document = snapshot.Document;
         int[] pageNumbers = effective.PageSelection?.ToPageNumbers(document.Pages.Count, nameof(effective.PageSelection))
             ?? Enumerable.Range(1, document.Pages.Count).ToArray();
@@ -213,7 +212,7 @@ internal static partial class PdfStaticFormRecognizer {
                 new PdfLogicalVisualBounds(candidate.Visual.Left, candidate.Visual.Top, candidate.Visual.Right, candidate.Visual.Bottom),
                 candidate.Confidence, candidate.Evidence, candidate.Label.IsOcr));
         }
-        return new PdfStaticFormRecognitionReport(pdf, resultOptions, proposals, diagnostics);
+        return new PdfStaticFormRecognitionReport(snapshot.Bytes, resultOptions, proposals, diagnostics);
 
         void AddDiagnostic(string code, int pageNumber, string message) {
             if (diagnostics.Count < effective.MaxDiagnostics) {

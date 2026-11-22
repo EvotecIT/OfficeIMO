@@ -223,7 +223,6 @@ public sealed class PackageDependencyGuardrailTests {
     [InlineData("OfficeIMO.Word.Rtf/OfficeIMO.Word.Rtf.csproj")]
     [InlineData("OfficeIMO.Rtf.Pdf/OfficeIMO.Rtf.Pdf.csproj")]
     [InlineData("OfficeIMO.Core/OfficeIMO.Core.csproj")]
-    [InlineData("OfficeIMO.Pdf/OfficeIMO.Pdf.csproj")]
     [InlineData("OfficeIMO.Word.Pdf/OfficeIMO.Word.Pdf.csproj")]
     [InlineData("OfficeIMO.Excel.Pdf/OfficeIMO.Excel.Pdf.csproj")]
     [InlineData("OfficeIMO.Markdown.Pdf/OfficeIMO.Markdown.Pdf.csproj")]
@@ -246,6 +245,22 @@ public sealed class PackageDependencyGuardrailTests {
             .ToArray();
 
         Assert.Empty(references);
+    }
+
+    [Fact]
+    public void PdfCore_OnlyReferencesTheMemoryCompatibilityPackageOnLegacyTargets() {
+        var projectPath = GetRepositoryPath("OfficeIMO.Pdf/OfficeIMO.Pdf.csproj");
+        Assert.True(File.Exists(projectPath), "Project file is missing: " + projectPath);
+
+        var document = XDocument.Load(projectPath);
+        var ns = document.Root?.Name.Namespace ?? XNamespace.None;
+        var reference = Assert.Single(document.Descendants(ns + "PackageReference"));
+
+        Assert.Equal("System.Memory", (string?)reference.Attribute("Include"));
+        Assert.Equal("4.6.3", (string?)reference.Attribute("Version"));
+        Assert.Equal(
+            "'$(TargetFramework)' == 'net472' Or '$(TargetFramework)' == 'netstandard2.0'",
+            (string?)reference.Parent?.Attribute("Condition"));
     }
 
     [Fact]

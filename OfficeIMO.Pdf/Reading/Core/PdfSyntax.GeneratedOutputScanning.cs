@@ -25,11 +25,10 @@ internal static partial class PdfSyntax {
     /// Counts only the indirect-object headers and startxref markers. A source document's counts are compared with its
     /// generated outputs; their object and stream sizes are not, so the object walk is skipped and they read zero.
     /// </summary>
-    internal static PdfStructuralMarkerCounts CountSourceStructuralMarkers(byte[] pdf, PdfReadLimits limits) =>
+    internal static PdfStructuralMarkerCounts CountSourceStructuralMarkers(ReadOnlyMemory<byte> pdf, PdfReadLimits limits) =>
         InspectStructuralMarkers(pdf, limits, measureObjects: false);
 
-    private static PdfStructuralMarkerCounts InspectStructuralMarkers(byte[] pdf, PdfReadLimits limits, bool measureObjects) {
-        Guard.NotNull(pdf, nameof(pdf));
+    private static PdfStructuralMarkerCounts InspectStructuralMarkers(ReadOnlyMemory<byte> pdf, PdfReadLimits limits, bool measureObjects) {
         Guard.NotNull(limits, nameof(limits));
         limits.Validate();
         var parseTimer = System.Diagnostics.Stopwatch.StartNew();
@@ -75,7 +74,7 @@ internal static partial class PdfSyntax {
 
         int startXrefMarkers = 0;
         int startXrefCursor = 0;
-        while (TryReadNextStartXrefOffset(pdf, ref startXrefCursor, out _)) {
+        while (TryReadNextStartXrefOffset(pdf.Span, ref startXrefCursor, out _)) {
             startXrefMarkers = checked(startXrefMarkers + 1);
         }
 

@@ -363,14 +363,14 @@ public sealed partial class PdfDocument {
         Stream stream,
         System.Threading.CancellationToken cancellationToken = default) {
         if (_source is not null) {
-            OfficeStreamWriter.CopyBytes(stream, _source.Bytes, cancellationToken);
+            _source.CopyTo(stream, cancellationToken);
             int? sourcePageCount = _pipeline.Output?.PageCount;
             return (
-                _source.Bytes.LongLength,
+                _source.Memory.Length,
                 sourcePageCount,
                 new PdfSerializationReport(
                     sourcePageCount,
-                    _source.Bytes.LongLength,
+                    _source.Memory.Length,
                     0L,
                     0L,
                     0L,

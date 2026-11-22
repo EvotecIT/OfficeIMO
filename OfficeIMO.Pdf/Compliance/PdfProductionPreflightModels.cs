@@ -126,10 +126,10 @@ public sealed class PdfProductionPreflightReport {
     private readonly PdfLoadOptions _readOptions;
     private readonly PdfProductionPreflightOptions _options;
 
-    internal PdfProductionPreflightReport(byte[] analyzedPdf, PdfLoadOptions readOptions, PdfProductionPreflightOptions options,
+    internal PdfProductionPreflightReport(ReadOnlyMemory<byte> analyzedPdf, PdfLoadOptions readOptions, PdfProductionPreflightOptions options,
         IReadOnlyList<int> inspectedPages, IReadOnlyList<PdfProductionFinding> findings,
         IReadOnlyList<PdfProductionFixupProposal> fixups) {
-        _analyzedPdf = (byte[])analyzedPdf.Clone();
+        _analyzedPdf = analyzedPdf.ToArray();
         _readOptions = readOptions;
         _options = options.Copy();
         SourceSha256 = PdfArtifactFingerprint.ComputeSha256(_analyzedPdf);

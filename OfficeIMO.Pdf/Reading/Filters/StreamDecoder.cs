@@ -228,7 +228,7 @@ internal static partial class StreamDecoder {
         if (resolvedFilter is PdfName filterName &&
             GetFilterKind(filterName.Name) == DecodeFilterKind.Flate &&
             HasNoEffectiveDecodeParms(stream.Dictionary, objects, cancellationToken)) {
-            stream.GetDataSegment(out byte[] data, out int offset, out int length);
+            stream.GetDataSegment(out byte[] data, out int offset, out int length, cancellationToken);
             if (FlateDecoder.TryValidate(
                     data,
                     offset,
@@ -273,7 +273,7 @@ internal static partial class StreamDecoder {
         Dictionary<int, PdfIndirectObject>? objects,
         CancellationToken cancellationToken, int stopBeforeFilter = int.MaxValue,
         Func<int, byte[]?, byte[], int, int, bool>? beforeFilter = null) {
-        stream.GetDataSegment(out byte[] data, out int offset, out int length);
+        stream.GetDataSegment(out byte[] data, out int offset, out int length, cancellationToken);
         return TryDecodeCore(stream.Dictionary, data, offset, length, maxOutputBytes, out decoded, out limitException, objects, cancellationToken, stopBeforeFilter, beforeFilter);
     }
 

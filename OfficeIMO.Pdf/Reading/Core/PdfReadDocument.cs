@@ -47,6 +47,7 @@ internal sealed partial class PdfReadDocument {
         PdfRepairReport repairReport,
         PdfLoadOptions? options,
         long decodedStreamBytes,
+        bool detachOutputIntentProfiles,
         System.Threading.CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         if (objects.Count == 0) {
@@ -86,7 +87,7 @@ internal sealed partial class PdfReadDocument {
         cancellationToken.ThrowIfCancellationRequested();
         _catalogActions = ExtractCatalogActions(out _javaScripts, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        _outputIntents = ExtractOutputIntents(out bool outputIntentsAreComplete, cancellationToken);
+        _outputIntents = ExtractOutputIntents(out bool outputIntentsAreComplete, detachOutputIntentProfiles, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         _outputIntentsAreComplete = outputIntentsAreComplete;
         _optionalContent = ExtractOptionalContent(cancellationToken);
@@ -186,7 +187,6 @@ internal sealed partial class PdfReadDocument {
     internal PdfDocumentProperties UncheckedMetadata => ExtractMetadata();
     internal PdfDocumentProperties GetUncheckedMetadata(CancellationToken cancellationToken) => ExtractMetadata(cancellationToken);
     internal PdfXmpMetadataInfo? UncheckedXmpMetadata => _xmpMetadata;
-    internal IReadOnlyList<PdfOutputIntentInfo> UncheckedOutputIntents => _outputIntents;
     internal bool UncheckedOutputIntentsAreComplete => _outputIntentsAreComplete;
     internal IReadOnlyList<PdfPageLabel> UncheckedPageLabels => _pageLabels;
     internal IReadOnlyList<PdfNamedDestination> UncheckedNamedDestinations => _namedDestinations;

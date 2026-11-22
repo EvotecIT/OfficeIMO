@@ -1,3 +1,5 @@
+using System.Buffers;
+using System.Security.Cryptography;
 using System.Text;
 using OfficeIMO.Pdf;
 using Xunit;
@@ -35,6 +37,63 @@ public sealed class PdfDocumentSourceLifetimeTests {
         Assert.Same(pdf, document.GetBytesForOperation());
         Assert.Equal(pdf, document.ToBytes());
         Assert.NotSame(pdf, document.ToBytes());
+    }
+
+    [Fact]
+    public void BorrowedPoolSliceRemainsTheSourceUntilSaveAndReadComplete() {
+        byte[] pdf = CreateTextPdf(pageCount: 5);
+        using var hash = SHA256.Create();
+        string expectedDigest = BitConverter.ToString(hash.ComputeHash(pdf)).Replace("-", string.Empty).ToLowerInvariant();
+        PdfArtifactInfo evidence;
+
+        using (var owner = new PooledPdfInput(pdf, prefixLength: 4096)) {
+            ReadOnlyMemory<byte> input = owner.Memory.Slice(4096, pdf.Length);
+            Assert.Throws<PdfReadLimitException>(() => PdfDocument.Load(input,
+                new PdfLoadOptions { Limits = new PdfReadLimits { MaxInputBytes = pdf.Length - 1 } }));
+
+            using PdfDocument document = PdfDocument.Load(input,
+                new PdfLoadOptions { Limits = new PdfReadLimits { MaxInputBytes = pdf.Length } });
+            evidence = Assert.IsType<PdfArtifactInfo>(document.Pipeline.Output);
+            Assert.Equal(pdf.Length, evidence.ByteCount);
+
+            int readsAfterLoad = owner.SpanRequests;
+            Assert.Contains("Marker page 5.", document.Read().Text, StringComparison.Ordinal);
+            Assert.True(owner.SpanRequests > readsAfterLoad);
+
+            using var output = new MemoryStream();
+            document.Save(output);
+            Assert.Equal(pdf, output.ToArray());
+        }
+
+        Assert.Equal(expectedDigest, evidence.Sha256);
+    }
+
+    [Fact]
+    public void MutationPreflightCanReadRevisionEvidenceAfterReturningBorrowedMemory() {
+        byte[] pdf = PdfIncrementalUpdater.UpdateMetadata(CreateTextPdf(pageCount: 2), title: "Updated title");
+        PdfMutationPlan plan;
+        using (var owner = new PooledPdfInput(pdf, prefixLength: 4096)) {
+            using PdfDocument document = PdfDocument.Load(owner.Memory.Slice(4096, pdf.Length));
+            plan = document.PlanMutation(PdfMutationOperation.UpdateMetadata);
+            Assert.True(plan.CanExecute);
+            Assert.True(plan.Preflight.Probe.Security.HasPreviousRevision);
+        }
+
+        Assert.True(plan.Preflight.CanNormalizeRedactionObjectGraph);
+    }
+
+    [Fact]
+    public void RedactionSearchKeepsRevisionEvidenceAfterTheCallerReusesArrayMemory() {
+        byte[] pdf = PdfIncrementalUpdater.UpdateMetadata(CreateTextPdf(pageCount: 2), title: "Updated title");
+        PdfRedactionPlan search;
+        using (PdfDocument document = PdfDocument.Load((ReadOnlyMemory<byte>)pdf)) {
+            search = document.Redactions.Search(new PdfRedactionSearchOptions().AddLiteral("missing phrase"));
+            Assert.Empty(search.Matches);
+            Assert.True(search.Preflight.Probe.Security.HasPreviousRevision);
+        }
+
+        Array.Clear(pdf, 0, pdf.Length);
+        Assert.True(search.Preflight.CanNormalizeRedactionObjectGraph);
     }
 
     [Fact]
@@ -155,6 +214,34 @@ public sealed class PdfDocumentSourceLifetimeTests {
         builder.Append("trailer\n<< /Size ").Append(bodies.Length + 1).Append(" /Root 1 0 R >>\nstartxref\n")
             .Append(xref).Append("\n%%EOF\n");
         return Encoding.ASCII.GetBytes(builder.ToString());
+    }
+
+    private sealed class PooledPdfInput : MemoryManager<byte> {
+        private byte[]? _rented;
+
+        internal PooledPdfInput(byte[] pdf, int prefixLength) {
+            _rented = ArrayPool<byte>.Shared.Rent(prefixLength + pdf.Length + 8192);
+            var buffer = _rented.AsSpan();
+            buffer.Fill((byte)'x');
+            pdf.AsSpan().CopyTo(buffer.Slice(prefixLength));
+        }
+
+        internal int SpanRequests { get; private set; }
+
+        public override Span<byte> GetSpan() {
+            SpanRequests++;
+            return _rented ?? throw new ObjectDisposedException(nameof(PooledPdfInput));
+        }
+
+        public override MemoryHandle Pin(int elementIndex = 0) => throw new NotSupportedException();
+
+        public override void Unpin() {
+        }
+
+        protected override void Dispose(bool disposing) {
+            byte[]? rented = Interlocked.Exchange(ref _rented, null);
+            if (rented is not null) ArrayPool<byte>.Shared.Return(rented);
+        }
     }
 
     private sealed class ForwardOnlyStream : Stream {

@@ -20,22 +20,17 @@ public static class ReaderInputLimits {
     }
 
     /// <summary>
-    /// Transfers the exact backing buffer of an internal Reader snapshot to a trusted format adapter.
+    /// Transfers the exact input window of an internal Reader snapshot to a trusted format adapter.
     /// The snapshot must not be written after a successful transfer.
     /// </summary>
-    internal static bool TryGetOwnedSnapshotBytes(Stream stream, out byte[] bytes) {
-        if (stream is not ReaderSnapshotStream snapshot || snapshot.Length > int.MaxValue) {
-            bytes = Array.Empty<byte>();
-            return false;
+    internal static bool TryGetOwnedSnapshotMemory(Stream stream, out ReadOnlyMemory<byte> bytes) {
+        if (stream is ReaderSnapshotStream snapshot && snapshot.TryGetBuffer(out ArraySegment<byte> segment)) {
+            bytes = segment.AsMemory();
+            return true;
         }
 
-        int length = checked((int)snapshot.Length);
-        if (snapshot.Capacity != length) {
-            snapshot.Capacity = length;
-        }
-
-        bytes = snapshot.GetBuffer();
-        return bytes.Length == length;
+        bytes = default;
+        return false;
     }
 
     /// <summary>

@@ -313,8 +313,7 @@ public sealed partial class BrowserConversionService {
     }
 
     private static BrowserConversionArtifact CreateDebugOverlay(SelectedDocument source, byte[] pdf) {
-        using var sourceStream = new MemoryStream(pdf, writable: false);
-        using PdfDocument document = PdfDocument.Load(sourceStream);
+        using PdfDocument document = PdfDocument.Load(pdf);
         OfficeDrawing drawing = document.Render.LayoutDebugOverlay(
             1,
             new PdfLayoutDebugOverlayOptions {

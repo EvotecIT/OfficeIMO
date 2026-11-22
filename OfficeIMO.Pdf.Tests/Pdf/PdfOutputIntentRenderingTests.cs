@@ -406,6 +406,24 @@ public partial class PdfOutputIntentRenderingTests {
     }
 
     [Fact]
+    public void OutputIntentMetadataRemainsReadableAfterReturningBorrowedMemory() {
+        byte[] profileBytes = PdfIccProfiles.SrgbIec6196621;
+        byte[] pdf = BuildPdfWithTwoOutputProfiles(profileBytes, indirectProfileParameters: true);
+        PdfOutputIntentInfo fromDocument;
+        PdfOutputIntentInfo fromInspection;
+        using (PdfDocument document = PdfDocument.Load((ReadOnlyMemory<byte>)pdf)) {
+            fromDocument = document.OutputIntents[1];
+            fromInspection = document.Inspect().OutputIntents[1];
+            Assert.True(fromInspection.HasDestinationOutputProfile);
+        }
+
+        Array.Clear(pdf, 0, pdf.Length);
+
+        Assert.Equal(profileBytes.Length, fromDocument.DestinationOutputProfileSizeBytes);
+        Assert.Equal(profileBytes.Length, fromInspection.DestinationOutputProfileDeclaredSizeBytes);
+        Assert.True(fromInspection.DestinationOutputProfileHasIccSignature);
+    }
+    [Fact]
     public void OutputIntentMetadata_BoundsDistinctRetainedProfileBytesAcrossDocument() {
         byte[] profileBytes = PdfIccProfiles.SrgbIec6196621;
         byte[] pdf = BuildPdfWithTwoOutputProfiles(profileBytes);
@@ -1047,7 +1065,7 @@ public partial class PdfOutputIntentRenderingTests {
         return output.ToArray();
     }
 
-    private static byte[] BuildPdfWithTwoOutputProfiles(byte[] profileBytes) {
+    private static byte[] BuildPdfWithTwoOutputProfiles(byte[] profileBytes, bool indirectProfileParameters = false) {
         using var output = new MemoryStream();
         WriteAscii(output, "%PDF-1.7\n");
         WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /OutputIntents [" +
@@ -1057,11 +1075,15 @@ public partial class PdfOutputIntentRenderingTests {
         WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>\nendobj\n");
         WriteAscii(output, "4 0 obj\n<< /Length 0 >>\nstream\n\nendstream\nendobj\n");
         for (int objectNumber = 5; objectNumber <= 6; objectNumber++) {
+            bool useIndirectParameters = objectNumber == 6 && indirectProfileParameters;
+            byte[] data = useIndirectParameters ? OfficeZlibCodec.Compress(profileBytes) : profileBytes;
+            string filter = useIndirectParameters ? " /Filter /FlateDecode /DecodeParms 7 0 R" : string.Empty;
             WriteAscii(output, objectNumber.ToString(CultureInfo.InvariantCulture) + " 0 obj\n<< /Length " +
-                profileBytes.Length.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n");
-            output.Write(profileBytes, 0, profileBytes.Length);
+                data.Length.ToString(CultureInfo.InvariantCulture) + filter + " >>\nstream\n");
+            output.Write(data, 0, data.Length);
             WriteAscii(output, "\nendstream\nendobj\n");
         }
+        if (indirectProfileParameters) WriteAscii(output, "7 0 obj\n<< /Predictor 1 >>\nendobj\n");
         WriteAscii(output, "trailer\n<< /Root 1 0 R >>\n%%EOF\n");
         return output.ToArray();
     }

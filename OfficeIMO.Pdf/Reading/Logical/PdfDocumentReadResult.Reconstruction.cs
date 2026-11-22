@@ -34,7 +34,7 @@ public sealed partial class PdfDocumentReadResult {
             ? document.Attachments
             : Array.Empty<PdfAttachmentInfo>();
         IReadOnlyList<PdfOutputIntentInfo> outputIntents = useDocumentWideObjects
-            ? document.OutputIntents
+            ? document.GetReportOutputIntents(cancellationToken)
             : Array.Empty<PdfOutputIntentInfo>();
         PdfXmpMetadataInfo? xmpMetadata = useDocumentWideObjects
             ? document.XmpMetadata

@@ -50,7 +50,7 @@ internal sealed class PdfSerializedObject {
         }
 
         CopySegment(_prefix!, 0, _prefix!.Length, destination, hash, cancellationToken);
-        _stream!.GetDataSegment(out byte[] buffer, out int offset, out int length);
+        _stream!.GetDataSegment(out byte[] buffer, out int offset, out int length, cancellationToken);
         CopySegment(buffer, offset, length, destination, hash, cancellationToken);
         CopySegment(_suffix!, 0, _suffix!.Length, destination, hash, cancellationToken);
     }

@@ -859,7 +859,7 @@ internal static partial class PdfReaderAdapter {
     private static PdfDocument OpenReaderPdf(Stream stream, ReaderOptions options, ReaderPdfOptions pdfOptions, CancellationToken cancellationToken) {
         try {
             PdfLoadOptions? readOptions = CreatePdfLoadOptions(options, pdfOptions);
-            return ReaderInputLimits.TryGetOwnedSnapshotBytes(stream, out byte[] ownedBytes)
+            return ReaderInputLimits.TryGetOwnedSnapshotMemory(stream, out ReadOnlyMemory<byte> ownedBytes)
                 ? PdfDocument.LoadOwned(ownedBytes, readOptions, cancellationToken)
                 : PdfDocument.Load(stream, readOptions, cancellationToken);
         } catch (PdfReadLimitException exception) {
@@ -914,10 +914,10 @@ internal static partial class PdfReaderAdapter {
     }
 
     private static void UpdateSourceMetadataFromPdfDocument(SourceMetadata source, PdfDocument document, bool computeHash) {
-        byte[] bytes = document.GetBytesForOperation();
-        source.LengthBytes = bytes.LongLength;
+        PdfArtifactInfo artifact = document.Pipeline.Output!;
+        source.LengthBytes = artifact.ByteCount;
         if (computeHash) {
-            source.SourceHash ??= ComputeSha256Hex(bytes);
+            source.SourceHash ??= artifact.Sha256;
         }
     }
 

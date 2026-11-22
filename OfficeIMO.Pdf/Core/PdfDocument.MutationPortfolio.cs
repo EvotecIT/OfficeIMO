@@ -51,11 +51,12 @@ public sealed partial class PdfDocument {
         }
         cancellationToken.ThrowIfCancellationRequested();
         var snapshot = GetPreflightSnapshot(options, cancellationToken);
+        byte[] bytes = PdfDocumentSource.GetWholeArrayOrCopy(snapshot.Bytes);
         var plans = new PdfMutationPlan[requested.Length];
         for (int index = 0; index < requested.Length; index++) {
             cancellationToken.ThrowIfCancellationRequested();
             plans[index] = PdfMutationPlanner.Plan(
-                snapshot.Preflight, snapshot.Bytes, requested[index], requestedFieldNames,
+                snapshot.Preflight, bytes, requested[index], requestedFieldNames,
                 executionPreference, snapshot.Options);
         }
         cancellationToken.ThrowIfCancellationRequested();

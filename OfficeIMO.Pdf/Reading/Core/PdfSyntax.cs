@@ -24,7 +24,7 @@ internal static partial class PdfSyntax {
         PdfLoadOptions options,
         Func<byte[], int, int, bool> isOversizedSignatureReservation) =>
         ParseObjectsCore(pdf, options, out _, out _, retainOwnedStreamSlices: false,
-            CancellationToken.None, isOversizedSignatureReservation).Map;
+            CancellationToken.None, (start, end) => isOversizedSignatureReservation(pdf, start, end)).Map;
 
     internal static (Dictionary<int, PdfIndirectObject> Map, string TrailerRaw) ParseObjects(
         byte[] pdf,
@@ -34,7 +34,7 @@ internal static partial class PdfSyntax {
     }
 
     internal static (Dictionary<int, PdfIndirectObject> Map, string TrailerRaw) ParseObjects(
-        byte[] pdf,
+        ReadOnlyMemory<byte> pdf,
         PdfLoadOptions? options,
         out PdfRepairReport repairReport,
         out long decodedStreamBytes,
@@ -48,7 +48,7 @@ internal static partial class PdfSyntax {
             cancellationToken);
 
     internal static (Dictionary<int, PdfIndirectObject> Map, string TrailerRaw) ParseOwnedObjects(
-        byte[] ownedPdf,
+        ReadOnlyMemory<byte> ownedPdf,
         PdfLoadOptions? options,
         out PdfRepairReport repairReport,
         out long decodedStreamBytes,
@@ -62,13 +62,13 @@ internal static partial class PdfSyntax {
             cancellationToken);
 
     private static (Dictionary<int, PdfIndirectObject> Map, string TrailerRaw) ParseObjectsCore(
-        byte[] pdf,
+        ReadOnlyMemory<byte> pdf,
         PdfLoadOptions? options,
         out PdfRepairReport repairReport,
         out long decodedStreamBytes,
         bool retainOwnedStreamSlices,
         CancellationToken cancellationToken,
-        Func<byte[], int, int, bool>? isOversizedSignatureReservation = null) {
+        Func<int, int, bool>? isOversizedSignatureReservation = null) {
         cancellationToken.ThrowIfCancellationRequested();
         decodedStreamBytes = 0;
         PdfReadLimits limits = options?.Limits ?? new PdfReadLimits();
@@ -79,8 +79,8 @@ internal static partial class PdfSyntax {
         }
 
         var repairDiagnostics = new List<PdfRepairDiagnostic>();
-        if (pdf.LongLength > limits.MaxInputBytes) {
-            throw PdfReadLimitException.Create(PdfReadLimitKind.InputBytes, limits.MaxInputBytes, pdf.LongLength);
+        if (pdf.Length > limits.MaxInputBytes) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.InputBytes, limits.MaxInputBytes, pdf.Length);
         }
 
         var parseTimer = System.Diagnostics.Stopwatch.StartNew();
@@ -113,7 +113,7 @@ internal static partial class PdfSyntax {
         // Plain dictionaries of an owned input are validated here and built on first use, like the
         // objects of object streams. Borrowed input could change after loading, so it is parsed eagerly.
         PdfDeferredObjectSource? classicDeferredSource = retainOwnedStreamSlices
-            ? PdfDeferredObjectSource.ForClassicDictionaries(pdf, limits)
+            ? PdfDeferredObjectSource.ForClassicDictionaries(text, limits)
             : null;
         DeferredObjectScan? classicDeferredScan = classicDeferredSource is null ? null : new DeferredObjectScan();
         for (int i = 0; i < matches.Length; i++) {
@@ -150,7 +150,7 @@ internal static partial class PdfSyntax {
 
             if (isOversizedSignatureReservation is not null &&
                 end - start > limits.MaxObjectCharacters &&
-                isOversizedSignatureReservation(pdf, start, end)) continue;
+                isOversizedSignatureReservation(start, end)) continue;
 
             int preliminaryBodyEnd = end;
             if (preliminaryBodyEnd - 6 >= bodyStart && MatchesAt(text, preliminaryBodyEnd - 6, "endobj")) {
@@ -296,7 +296,7 @@ internal static partial class PdfSyntax {
         cancellationToken.ThrowIfCancellationRequested();
         ValidateActiveCrossReference(text, map, parsedOffsets, parsingMode, repairDiagnostics, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        ResolveIndirectStreamLengths(map, pdf, streamLocations, limits, cancellationToken);
+        ResolveIndirectStreamLengths(map, pdf, streamLocations, limits, retainOwnedStreamSlices, cancellationToken);
         HashSet<int> activeClassicObjectNumbers = PdfCollectionSizing.CreateHashSet<int>(map.Count, map.Count);
         var xrefScanBudget = new XrefObjectScanBudget(limits);
         var decodedStreamBudget = new PdfDecodedStreamBudget(limits);
@@ -338,7 +338,7 @@ internal static partial class PdfSyntax {
             ApplyCompressedXrefStreamEntries(map, pdf, text, parsedOffsets, limits, decodedStreamBudget, ReportUnreadableCompressedObject, ReportRelocatedCompressedObject, parsingMode == PdfParsingMode.Strict, cancellationToken);
         } else {
             // Compatibility fallback for simple parser-supported files whose compressed objects are only discoverable by scanning.
-            ExpandObjectStreams(map, pdf, parsedOffsets, appliedClassicEntries ? activeClassicObjectNumbers : null, limits, decodedStreamBudget, ReportUnreadableCompressedObject, cancellationToken);
+            ExpandObjectStreams(map, parsedOffsets, appliedClassicEntries ? activeClassicObjectNumbers : null, limits, decodedStreamBudget, ReportUnreadableCompressedObject, cancellationToken);
         }
         void ReportUnreadableCompressedObject(int objectNumber) => HandleStructuralDefect(parsingMode, repairDiagnostics,
             "unreadable-indirect-object", "Compressed object content could not be read completely.", objectNumber);
@@ -389,15 +389,16 @@ internal static partial class PdfSyntax {
         return (map, trailerRaw);
     }
 
-    private static byte[] CopyBytes(byte[] source, int offset, int count,
+    internal static byte[] CopyBytes(ReadOnlyMemory<byte> source, int offset, int count,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         var data = new byte[count];
+        ReadOnlySpan<byte> bytes = source.Span.Slice(offset, count);
         const int chunkSize = 64 * 1024;
         for (int copied = 0; copied < count;) {
             cancellationToken.ThrowIfCancellationRequested();
             int chunk = Math.Min(chunkSize, count - copied);
-            Buffer.BlockCopy(source, offset + copied, data, copied, chunk);
+            bytes.Slice(copied, chunk).CopyTo(data.AsSpan(copied));
             copied += chunk;
         }
         cancellationToken.ThrowIfCancellationRequested();

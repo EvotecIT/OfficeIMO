@@ -156,8 +156,8 @@ public sealed class PdfStaticFormRecognitionReport {
     private readonly byte[] _analyzedPdf;
     private readonly PdfLoadOptions _readOptions;
     private readonly string _sourceSha256;
-    internal PdfStaticFormRecognitionReport(byte[] analyzedPdf, PdfLoadOptions readOptions, IReadOnlyList<PdfStaticFormFieldProposal> proposals, IReadOnlyList<PdfStaticFormRecognitionDiagnostic> diagnostics) {
-        _analyzedPdf = (byte[])analyzedPdf.Clone();
+    internal PdfStaticFormRecognitionReport(ReadOnlyMemory<byte> analyzedPdf, PdfLoadOptions readOptions, IReadOnlyList<PdfStaticFormFieldProposal> proposals, IReadOnlyList<PdfStaticFormRecognitionDiagnostic> diagnostics) {
+        _analyzedPdf = analyzedPdf.ToArray();
         _readOptions = readOptions;
         _sourceSha256 = PdfArtifactFingerprint.ComputeSha256(_analyzedPdf);
         Proposals = Array.AsReadOnly(proposals.ToArray());

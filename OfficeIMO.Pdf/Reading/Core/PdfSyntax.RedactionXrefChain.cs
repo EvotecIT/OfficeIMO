@@ -2,7 +2,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfSyntax {
     /// <summary>Reads newest entries first: table, its hybrid supplement, then the previous section.</summary>
-    private static bool TryReadRedactionXrefChain(byte[] pdf, PdfReadDocument document, PdfDecodedStreamBudget budget,
+    private static bool TryReadRedactionXrefChain(ReadOnlyMemory<byte> pdf, PdfReadDocument document, PdfDecodedStreamBudget budget,
         out Dictionary<int, XrefStreamEntry> winners, out bool hasXrefStreams, CancellationToken cancellationToken) {
         winners = new Dictionary<int, XrefStreamEntry>();
         hasXrefStreams = false;

@@ -7,6 +7,8 @@ public sealed class PdfOutputIntentInfo {
     private readonly bool _hasDestinationOutputProfile;
     private readonly Func<System.Threading.CancellationToken, PdfOutputIntentProfileMetadata?>? _profileMetadataFactory;
     private readonly object _profileMetadataGate = new object();
+    private Action<CancellationToken>? _retainProfileInput;
+    private System.Runtime.ExceptionServices.ExceptionDispatchInfo? _profileRetentionFailure;
     private PdfOutputIntentProfileMetadata? _profileMetadata;
     private bool _profileMetadataLoaded;
 
@@ -23,7 +25,8 @@ public sealed class PdfOutputIntentInfo {
         string? destinationOutputProfileAlternateColorSpace,
         string? destinationOutputProfileFilter,
         bool hasDestinationOutputProfile,
-        Func<System.Threading.CancellationToken, PdfOutputIntentProfileMetadata?>? profileMetadataFactory) {
+        Func<System.Threading.CancellationToken, PdfOutputIntentProfileMetadata?>? profileMetadataFactory,
+        Action<CancellationToken>? retainProfileInput) {
         ObjectNumber = objectNumber;
         Type = type;
         Subtype = subtype;
@@ -37,6 +40,7 @@ public sealed class PdfOutputIntentInfo {
         DestinationOutputProfileFilter = destinationOutputProfileFilter;
         _hasDestinationOutputProfile = hasDestinationOutputProfile;
         _profileMetadataFactory = profileMetadataFactory;
+        _retainProfileInput = retainProfileInput;
     }
 
     /// <summary>Output intent object number when the output intent is indirect.</summary>
@@ -93,10 +97,26 @@ public sealed class PdfOutputIntentInfo {
     /// <summary>True when the ICC profile is parseable and exposes a supported PCS-to-device output transform.</summary>
     public bool? DestinationOutputProfileHasSupportedOutputTransform => GetProfileMetadata(default)?.HasSupportedOutputTransform;
 
+    internal void RetainProfileInput(CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (Volatile.Read(ref _retainProfileInput) is null) return;
+        lock (_profileMetadataGate) {
+            cancellationToken.ThrowIfCancellationRequested();
+            try {
+                if (!_profileMetadataLoaded) _retainProfileInput?.Invoke(cancellationToken);
+            } catch (PdfReadLimitException exception) when (exception.Kind == PdfReadLimitKind.RawStreamBytes) {
+                // Profile data is optional metadata. Report the retention limit from the profile getter.
+                _profileRetentionFailure = System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(exception);
+            }
+            Volatile.Write(ref _retainProfileInput, null);
+        }
+    }
+
     internal PdfOutputIntentProfileMetadata? GetProfileMetadata(System.Threading.CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         lock (_profileMetadataGate) {
             cancellationToken.ThrowIfCancellationRequested();
+            _profileRetentionFailure?.Throw();
             if (!_profileMetadataLoaded) {
                 _profileMetadata = _profileMetadataFactory?.Invoke(cancellationToken);
                 _profileMetadataLoaded = true;

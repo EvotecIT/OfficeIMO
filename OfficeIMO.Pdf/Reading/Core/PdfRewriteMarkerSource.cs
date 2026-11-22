@@ -7,12 +7,12 @@ namespace OfficeIMO.Pdf;
 /// </summary>
 internal sealed class PdfRewriteMarkerSource {
     private readonly Lazy<(Dictionary<int, PdfIndirectObject> Map, string TrailerRaw)> _parsed;
-    private readonly byte[] _pdf;
+    private readonly ReadOnlyMemory<byte> _pdf;
     private readonly PdfLoadOptions? _options;
     private readonly bool _usesDocumentSnapshot;
     private (Dictionary<int, PdfIndirectObject> Map, string TrailerRaw)? _cancellableParsed;
 
-    internal PdfRewriteMarkerSource(byte[] pdf, PdfLoadOptions? options, PdfReadDocument? readDocument = null) {
+    internal PdfRewriteMarkerSource(ReadOnlyMemory<byte> pdf, PdfLoadOptions? options, PdfReadDocument? readDocument = null) {
         _pdf = pdf;
         _options = options;
         _usesDocumentSnapshot = readDocument is not null &&
@@ -23,7 +23,7 @@ internal sealed class PdfRewriteMarkerSource {
                 ? new Lazy<(Dictionary<int, PdfIndirectObject> Map, string TrailerRaw)>(
                     () => (readDocument!.Objects, readDocument.TrailerRaw))
                 : new Lazy<(Dictionary<int, PdfIndirectObject> Map, string TrailerRaw)>(
-                    () => PdfSyntax.ParseObjects(pdf, options));
+                    () => PdfSyntax.ParseObjects(pdf, options, out _, out _));
     }
 
     internal (Dictionary<int, PdfIndirectObject> Map, string TrailerRaw) Parse(

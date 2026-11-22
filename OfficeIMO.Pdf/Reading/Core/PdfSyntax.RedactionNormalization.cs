@@ -5,7 +5,7 @@ internal static partial class PdfSyntax {
     /// Independently follows the active cross-reference chain and checks that every winning
     /// entry, including deletion, agrees with the objects materialized by the reader.
     /// </summary>
-    internal static bool CanNormalizeRedactionObjectGraph(byte[] pdf, PdfReadDocument document, CancellationToken cancellationToken) {
+    internal static bool CanNormalizeRedactionObjectGraph(ReadOnlyMemory<byte> pdf, PdfReadDocument document, CancellationToken cancellationToken) {
         if (document.RepairReport.HasIncompleteObjectCoverage || !CanSerializeRedactionObjectGraph(document, cancellationToken)) return false;
         if (!RequiresRedactionNormalization(document)) return true;
         if (document.Security.HasEncryption && HasCompressedRedactionStructures(document)) return false;
