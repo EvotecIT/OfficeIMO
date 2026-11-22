@@ -111,6 +111,18 @@ public partial class Word {
         Assert.Equal(12D, Baseline(raised: true) - Baseline(raised: false), 0.05);
     }
 
+    // Adjacent runs in a table cell are joined only when their formatting matches, raised text included.
+    [Fact]
+    public void SaveAsPdf_PositionedTextInATableCellKeepsItsBaseline() {
+        using WordDocument document = WordDocument.Create();
+        WordTable table = document.AddTable(1, 1);
+        WordParagraph paragraph = table.Rows[0].Cells[0].Paragraphs[0];
+        paragraph._paragraph.Append(new Run(new Text("BEFORE")), new Run(new RunProperties(new Position { Val = "24" }), new Text("MOVED")));
+        using PdfPigDocument pdf = RenderDropCapPdf(document);
+        var letters = pdf.GetPage(1).Letters;
+        Assert.Equal(12D, letters.Single(letter => letter.Value == "M").StartBaseLine.Y - letters.Single(letter => letter.Value == "B").StartBaseLine.Y, 0.05);
+    }
+
     private const double DropCapMargin = 72D;
 
     private static WordDocument CreateDropCapDocument(int lines, string kind, int hSpace, int bodyWords = 90,

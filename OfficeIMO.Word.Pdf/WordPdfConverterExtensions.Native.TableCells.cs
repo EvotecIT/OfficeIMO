@@ -742,6 +742,7 @@ namespace OfficeIMO.Word.Pdf {
             left.StandardFont == right.StandardFont &&
             string.Equals(left.FontFamily, right.FontFamily, StringComparison.OrdinalIgnoreCase) &&
             left.Baseline == right.Baseline &&
+            left.BaselineShift == right.BaselineShift &&
             left.HorizontalTextScaling == right.HorizontalTextScaling &&
             (left.CharacterSpacing.ToPoints()) == (right.CharacterSpacing.ToPoints()) &&
             left.FeatureSettings.Equals(right.FeatureSettings) &&
