@@ -16,7 +16,7 @@ namespace OfficeIMO.Excel {
     /// </summary>
     public partial class ExcelDocument : IDisposable, IAsyncDisposable {
         private const int StreamBufferSize = 4096;
-        private ExcelCopyOnWriteStream? _packageCopyOnWriteStream;
+        private OfficeCopyOnWriteStream? _packageCopyOnWriteStream;
         private SpreadsheetDocument? _packageOnCopyOnWriteStream;
 
         /// <summary>The grid loader applies neither a part size limit nor markup-compatibility processing, as the streaming readers do not.</summary>

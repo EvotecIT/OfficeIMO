@@ -3,6 +3,7 @@ using System.IO.Packaging;
 using System.Runtime.InteropServices;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml.Experimental;
+using OfficeIMO.Core.Internal;
 using DocumentFormat.OpenXml.Packaging;
 
 namespace OfficeIMO.Word {
@@ -10,25 +11,26 @@ namespace OfficeIMO.Word {
         private static bool RequiresLegacyRuntimeSignatureSnapshot() =>
             RuntimeInformation.FrameworkDescription.StartsWith(".NET Framework", StringComparison.OrdinalIgnoreCase);
 
-        // The loader reads the source into an array of its own and never writes to it: an editable
-        // package gets a copy, and a read-only package reads the array through a stream that can't
+        // The loader reads the source into an array of its own and never writes to it: on .NET Framework an
+        // editable package gets a copy, and a read-only package reads the array through a stream that can't
         // write. The array can therefore serve as the encoded baseline without another copy.
         private static byte[]? CaptureLegacyValidationEncodedPackage(byte[] sourceBytes, bool readOnly) =>
             !readOnly && RequiresLegacyRuntimeSignatureSnapshot()
                 ? sourceBytes
                 : null;
 
-        private static MemoryStream CreateLegacyValidationPackageStream(
+        private static Stream CreateLegacyValidationPackageStream(
             byte[] sourceBytes,
             bool readOnly,
             long maximumPackageBytes) {
-            if (readOnly) {
-                return new MemoryStream(sourceBytes, 0, sourceBytes.Length, writable: false, publiclyVisible: true);
+            if (readOnly || !RequiresLegacyRuntimeSignatureSnapshot()) {
+                // A read-only package reads the loaded array; an editable one copies it only when it first writes.
+                return OfficePackageLoadSource.CreatePackageStream(sourceBytes,
+                    readOnly ? DocumentAccessMode.ReadOnly : DocumentAccessMode.ReadWrite);
             }
 
-            MemoryStream stream = RequiresLegacyRuntimeSignatureSnapshot()
-                ? new LegacyValidationPackageMemoryStream(maximumPackageBytes)
-                : new MemoryStream(sourceBytes.Length);
+            // .NET Framework validation snapshots retain the live package in a bounded stream of its own.
+            MemoryStream stream = new LegacyValidationPackageMemoryStream(maximumPackageBytes);
             stream.Write(sourceBytes, 0, sourceBytes.Length);
             stream.Position = 0;
             return stream;
@@ -59,7 +61,7 @@ namespace OfficeIMO.Word {
                 }
             }
 
-            byte[] encodedPackage = _legacyValidationEncodedPackageBytes ?? _ownedPackageStream!.ToArray();
+            byte[] encodedPackage = _legacyValidationEncodedPackageBytes ?? OfficePackageLoadSource.ReadPackageBytes(_ownedPackageStream!);
             if (encodedPackage.LongLength > options.MaxPackageBytes) {
                 throw new SignatureValidationSnapshotResourceException(
                     "The encoded OPC package exceeds the " + options.MaxPackageBytes +
@@ -106,7 +108,8 @@ namespace OfficeIMO.Word {
 
         private MemoryStream DetachLegacyValidationLivePackageStream(byte[] encodedPackage) {
             if (_legacyValidationLivePackageStream != null) return _legacyValidationLivePackageStream;
-            MemoryStream livePackageStream = _ownedPackageStream!;
+            // Editable packages on .NET Framework always sit on the bounded validation stream.
+            MemoryStream livePackageStream = (MemoryStream)_ownedPackageStream!;
             _legacyValidationLivePackageStream = livePackageStream;
             _ownedPackageStream = new MemoryStream(encodedPackage, writable: false);
             _legacyValidationEncodedPackageBytes = null;

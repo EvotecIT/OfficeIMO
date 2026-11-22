@@ -84,9 +84,10 @@ namespace OfficeIMO.Word {
                 packageStream.Seek(0, SeekOrigin.Begin);
                 projectedDocument.Dispose();
 
-                WordDocument readOnlyDocument = Load(packageStream, new WordLoadOptions {
+                // Loaded from a copy, not in place: the projected package stream is disposed next.
+                WordDocument readOnlyDocument = LoadFromStream(packageStream, new WordLoadOptions {
                     AccessMode = DocumentAccessMode.ReadOnly
-                });
+                }, captureSourcePackageSecurity: true);
                 packageStream.Dispose();
                 try {
                     cancellationToken.ThrowIfCancellationRequested();

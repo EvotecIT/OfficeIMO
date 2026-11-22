@@ -487,7 +487,7 @@ namespace OfficeIMO.Word {
             // Writes the parts that changed into the owned stream; nothing is written when the save already did.
             _ownedZipPackage?.Flush();
             _ownedPackageStream!.Flush();
-            byte[] packageBytes = _ownedPackageStream.ToArray();
+            byte[] packageBytes = OfficePackageLoadSource.ReadPackageBytes(_ownedPackageStream);
             // Aligning and normalizing reopen and rewrite the package, so each runs only when it changes something.
             // Changing the document type rewrites the main relationship, so normalization follows it. Saves to a path,
             // and saves on .NET Framework, where the SDK writes absolute targets, always normalized, so they still do.

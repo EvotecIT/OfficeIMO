@@ -85,6 +85,29 @@ internal static class OfficePackageSignatureService {
         return Inspect(archive, options);
     }
 
+    /// <summary>Inspects a seekable encoded package in place, leaving the stream open at its original position.</summary>
+    internal static OfficePackageSignatureInfo Inspect(
+        Stream package,
+        OfficePackageSignatureInspectionOptions? options = null) {
+        ArgumentNullException.ThrowIfNull(package);
+        if (!package.CanRead || !package.CanSeek) throw new ArgumentException("Stream must be readable and seekable.", nameof(package));
+        options ??= new OfficePackageSignatureInspectionOptions();
+        options.Validate();
+        if (package.Length > options.MaxPackageBytes) {
+            throw new InvalidDataException("The OPC package exceeds the configured byte limit.");
+        }
+
+        long originalPosition = package.Position;
+        try {
+            package.Position = 0;
+            using var archive = new OfficePackageSignatureArchive(
+                package, ownsStream: false, options.MaxPackageParts, options.MaxPartBytes);
+            return Inspect(archive, options);
+        } finally {
+            package.Position = originalPosition;
+        }
+    }
+
     /// <summary>Validates OPC reference digests, XML signature math, signer trust, and revocation through a caller provider.</summary>
     public static OfficePackageSignatureValidationReport Validate(
         string filePath,

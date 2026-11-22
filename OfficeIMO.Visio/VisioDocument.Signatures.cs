@@ -59,10 +59,17 @@ namespace OfficeIMO.Visio {
         /// </summary>
         public VisioSignatureInfo InspectSignatures() => _loadedSignatureInfo;
 
-        private static VisioSignatureInfo InspectPackageSignatures(byte[] packageBytes) {
-            OfficePackageSignatureInfo info = OfficePackageSignatureService.Inspect(
+        private static VisioSignatureInfo InspectPackageSignatures(byte[] packageBytes) =>
+            CreateSignatureInfo(OfficePackageSignatureService.Inspect(
                 packageBytes,
-                new OfficePackageSignatureInspectionOptions { VerifyDigests = false });
+                new OfficePackageSignatureInspectionOptions { VerifyDigests = false }));
+
+        private static VisioSignatureInfo InspectPackageSignatures(Stream package) =>
+            CreateSignatureInfo(OfficePackageSignatureService.Inspect(
+                package,
+                new OfficePackageSignatureInspectionOptions { VerifyDigests = false }));
+
+        private static VisioSignatureInfo CreateSignatureInfo(OfficePackageSignatureInfo info) {
             return new VisioSignatureInfo(
                 info.OriginRelationshipCount,
                 info.OriginPartCount,

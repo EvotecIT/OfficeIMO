@@ -1368,22 +1368,22 @@ namespace OfficeIMO.Tests {
                         .Select(reference => reference.Uri + ": " + reference.DigestVerificationStatus + " " + reference.DigestVerificationDetail)));
 
             loaded.AddParagraph("Unsaved mutation");
-            var encodedPackageStream = (MemoryStream)typeof(WordDocument)
+            var encodedPackageStream = (Stream)typeof(WordDocument)
                 .GetField("_ownedPackageStream", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
                 .GetValue(loaded)!;
-            byte[] encodedPackageBeforeValidation = encodedPackageStream.ToArray();
+            byte[] encodedPackageBeforeValidation = ReadWholeStream(encodedPackageStream);
             WordSignatureValidationReport validation = loaded.ValidateSignatures(SecurityProvider, options);
 
             Assert.Equal(WordSignatureValidationState.Failed, validation.SignedPartDigestStatus);
             Assert.False(Assert.Single(validation.Signatures).IsValidUnderPolicy);
             Assert.False(validation.IsValidUnderPolicy);
-            Assert.Equal(encodedPackageBeforeValidation, encodedPackageStream.ToArray());
+            Assert.Equal(encodedPackageBeforeValidation, ReadWholeStream(encodedPackageStream));
 
             loaded.AddParagraph("Second unsaved mutation after validation");
             WordSignatureValidationReport repeatedValidation = loaded.ValidateSignatures(SecurityProvider, options);
             Assert.Equal(WordSignatureValidationState.Failed, repeatedValidation.SignedPartDigestStatus);
             Assert.False(repeatedValidation.IsValidUnderPolicy);
-            Assert.Equal(encodedPackageBeforeValidation, encodedPackageStream.ToArray());
+            Assert.Equal(encodedPackageBeforeValidation, ReadWholeStream(encodedPackageStream));
 
             using MemoryStream saved = new System.IO.MemoryStream(loaded.ToBytes(
                 options: new WordSaveOptions {
@@ -2012,6 +2012,18 @@ namespace OfficeIMO.Tests {
             Assert.Contains(result.Details, detail =>
                 detail.Contains("private key", System.StringComparison.OrdinalIgnoreCase) ||
                 detail.Contains("signing failed", System.StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static byte[] ReadWholeStream(Stream stream) {
+            long position = stream.Position;
+            try {
+                stream.Position = 0;
+                using var copy = new MemoryStream();
+                stream.CopyTo(copy);
+                return copy.ToArray();
+            } finally {
+                stream.Position = position;
+            }
         }
 
         private static byte[] CreateSignatureXml(

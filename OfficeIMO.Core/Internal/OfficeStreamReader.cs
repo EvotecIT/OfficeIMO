@@ -196,7 +196,7 @@ namespace OfficeIMO.Core.Internal {
                 return expanded.ToArray();
             }
 
-            using var output = new MemoryStream();
+            using var output = new OfficeChunkedWriteStream();
             var buffer = new byte[BufferSize];
             output.Write(prefix, 0, prefixCount);
             long total = prefixCount;
@@ -288,7 +288,7 @@ namespace OfficeIMO.Core.Internal {
             ArgumentNullException.ThrowIfNull(source);
             if (!source.CanRead) throw new ArgumentException("Stream must be readable.", nameof(source));
             if (maxBytes.HasValue && maxBytes.Value < 1) throw new ArgumentOutOfRangeException(nameof(maxBytes));
-            using var output = new MemoryStream();
+            using var output = new OfficeChunkedWriteStream();
             var buffer = new byte[BufferSize];
             if (prefix != null) output.Write(prefix, 0, prefixCount);
             long total = prefixCount;

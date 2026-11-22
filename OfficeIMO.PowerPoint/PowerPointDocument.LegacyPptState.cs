@@ -136,10 +136,22 @@ namespace OfficeIMO.PowerPoint {
 
         internal void MarkLoadedFromOpenXml(byte[] originalPackageBytes) {
             ArgumentNullException.ThrowIfNull(originalPackageBytes);
-            _legacyPptPackage = null;
-            _openXmlOriginalPackageBytes = OfficeCompatibilitySourceCarrier.ContainsPackageCarrier(originalPackageBytes)
+            MarkLoadedFromOpenXmlCore(OfficeCompatibilitySourceCarrier.ContainsPackageCarrier(originalPackageBytes)
                 ? (byte[])originalPackageBytes.Clone()
-                : null;
+                : null);
+        }
+
+        /// <summary>Records an Open XML source read in place from the caller's stream.</summary>
+        internal void MarkLoadedFromOpenXml(Stream originalPackage) {
+            ArgumentNullException.ThrowIfNull(originalPackage);
+            MarkLoadedFromOpenXmlCore(OfficeCompatibilitySourceCarrier.ContainsPackageCarrier(originalPackage)
+                ? OfficeIMO.Core.Internal.OfficeStreamReader.ReadAllBytes(originalPackage)
+                : null);
+        }
+
+        private void MarkLoadedFromOpenXmlCore(byte[]? carrierPackageBytes) {
+            _legacyPptPackage = null;
+            _openXmlOriginalPackageBytes = carrierPackageBytes;
             _legacyPptProjectionMap = null;
             _legacyPptProjectionFingerprint = null;
             _legacyPptPreservationFingerprint = null;

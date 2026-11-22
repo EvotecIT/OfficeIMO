@@ -52,7 +52,7 @@ namespace OfficeIMO.Tests {
             FieldInfo ownedStreamField = typeof(WordDocument).GetField(
                 "_ownedPackageStream",
                 BindingFlags.Instance | BindingFlags.NonPublic)!;
-            MemoryStream ownedPackageStream = Assert.IsAssignableFrom<MemoryStream>(ownedStreamField.GetValue(loaded));
+            Stream ownedPackageStream = Assert.IsAssignableFrom<Stream>(ownedStreamField.GetValue(loaded));
             Assert.Single(loaded.Paragraphs).SetText("After");
 
             using var output = new MemoryStream();
