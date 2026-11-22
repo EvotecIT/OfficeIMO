@@ -69,7 +69,7 @@ internal static partial class PdfWriter {
             double spacing = ResolveTopLevelSpacingBefore(GetParagraphSpacingBefore(style));
             var textFrame = GetParagraphTextFrame(style, frameX, frameWidth);
             double start = y - spacing;
-            double firstLineGap = 0D;
+            var lineGaps = new List<double>();
             var wrapped = WrapRichRunsCoreWithFirstLineOrigin(paragraph.Runs, textFrame.Width, fontSize,
                 ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth,
                 textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(style), currentOpts,
@@ -77,7 +77,8 @@ internal static partial class PdfWriter {
                     double left = index == 0 ? textFrame.FirstLineX : textFrame.X;
                     double available = index == 0 ? textFrame.FirstLineWidth : textFrame.Width;
                     var frame = GetFloatingTextFrame(left, available, start - completedHeight, requiredHeight, minimumWidth);
-                    if (index == 0) firstLineGap = frame.Gap;
+                    while (lineGaps.Count <= index) lineGaps.Add(0D);
+                    lineGaps[index] = frame.Gap;
                     return (frame.Width, frame.X - textFrame.X, frame.Gap);
                 }, lineSpacing: style?.LineSpacing, textWhitespaceMode: style?.TextWhitespaceMode, wordJustificationMode: style?.UseWordJustificationSpacing == true && paragraph.Align == OfficeAlignment.Justify ? style.JustificationMode : null, cancellationToken: cancellationToken);
             if (!firstVisualOnly) return spacing + wrapped.LineHeights.Sum() + GetParagraphSpacingAfter(style, leading);
@@ -93,7 +94,7 @@ internal static partial class PdfWriter {
             double leadingLines = 0D;
             for (int line = 0; line < reserve - 1; line++) leadingLines += wrapped.LineHeights[line];
             return spacing + leadingLines + GetRichLineFrameFitHeight(wrapped.Lines[reserve - 1], wrapped.LineHeights[reserve - 1],
-                reserve == 1 ? firstLineGap : 0D);
+                reserve - 1 < lineGaps.Count ? lineGaps[reserve - 1] : 0D);
         }
     }
 }

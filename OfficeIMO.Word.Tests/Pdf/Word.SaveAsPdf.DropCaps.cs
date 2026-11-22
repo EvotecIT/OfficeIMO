@@ -46,6 +46,17 @@ public partial class Word {
         Assert.All(DropCapBodyLineStarts(pdf).Take(4), start => Assert.Equal(DropCapMargin, start, 0.15));
     }
 
+    // In a margin narrower than the cap and its hSpace, Word keeps the cap at the page edge and starts
+    // the text beside it after the hSpace.
+    [Fact]
+    public void SaveAsPdf_MarginDropCapStaysOnThePageInANarrowMargin() {
+        using WordDocument document = CreateDropCapDocument(3, "margin", hSpace: 360, leftMargin: 18D);
+        using PdfPigDocument pdf = RenderDropCapPdf(document);
+        var cap = FindDropCapWord(pdf, "D");
+        Assert.Equal(0D, cap.BoundingBox.Left, 0.5);
+        Assert.Equal(cap.Letters[0].EndBaseLine.X + 18D, DropCapBodyLineStarts(pdf)[0], 0.5);
+    }
+
     // Near the page bottom a paragraph that keeps its lines together moves to the next page, and Word
     // moves its drop cap with it rather than leaving the cap alone on the page before.
     [Fact]
@@ -126,10 +137,11 @@ public partial class Word {
     private const double DropCapMargin = 72D;
 
     private static WordDocument CreateDropCapDocument(int lines, string kind, int hSpace, int bodyWords = 90,
-        int fillerLines = 0, bool keepBodyLines = false) {
+        int fillerLines = 0, bool keepBodyLines = false, double leftMargin = DropCapMargin) {
         WordDocument document = WordDocument.Create();
         document.Sections[0].PageSetup.Size.PageSize = WordPageSize.Letter;
-        document.Sections[0].PageSetup.Margins.Left = document.Sections[0].PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points(DropCapMargin);
+        document.Sections[0].PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points(DropCapMargin);
+        document.Sections[0].PageSetup.Margins.Left = global::OfficeIMO.OfficeLength.Points(leftMargin);
         document.Sections[0].PageSetup.Margins.Top = document.Sections[0].PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(DropCapMargin);
         WordParagraph AddExactLines(string text) {
             WordParagraph added = document.AddParagraph(text);
