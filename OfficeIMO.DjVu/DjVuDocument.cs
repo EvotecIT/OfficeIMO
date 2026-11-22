@@ -52,21 +52,29 @@ public sealed class DjVuDocument {
     public static DjVuDocument Load(Stream stream, DjVuLoadOptions? options = null, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanRead) throw new ArgumentException("DjVu input stream must be readable.", nameof(stream));
-        var snapshot = (options ?? new DjVuLoadOptions()).Snapshot();
-        byte[] source;
-        try {
-            source = OfficeStreamReader.ReadForwardBytes(stream, cancellationToken, snapshot.MaxSourceBytes);
-        } catch (InvalidDataException exception) when (OfficeStreamReader.IsSizeLimitException(exception)) {
-            throw new DjVuResourceLimitException(nameof(DjVuLoadOptions.MaxSourceBytes));
-        }
-        return new DjVuDocument(source, snapshot, cancellationToken);
+        return LoadSnapshot(stream, options, cancellationToken, useFileLength: false);
     }
 
     /// <summary>Loads a file and closes its handle before returning. Component IDs never trigger implicit file access.</summary>
     public static DjVuDocument Load(string path, DjVuLoadOptions? options = null, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(path);
         using var stream = File.OpenRead(path);
-        return Load(stream, options, cancellationToken);
+        return LoadSnapshot(stream, options, cancellationToken, useFileLength: true);
+    }
+
+    private static DjVuDocument LoadSnapshot(Stream stream, DjVuLoadOptions? options, CancellationToken cancellationToken,
+        bool useFileLength) {
+        var snapshot = (options ?? new DjVuLoadOptions()).Snapshot();
+        cancellationToken.ThrowIfCancellationRequested();
+        byte[] source;
+        try {
+            source = useFileLength
+                ? OfficeStreamReader.ReadRemainingBytes(stream, cancellationToken, snapshot.MaxSourceBytes)
+                : OfficeStreamReader.ReadForwardBytes(stream, cancellationToken, snapshot.MaxSourceBytes);
+        } catch (InvalidDataException exception) when (OfficeStreamReader.IsSizeLimitException(exception)) {
+            throw new DjVuResourceLimitException(nameof(DjVuLoadOptions.MaxSourceBytes));
+        }
+        return new DjVuDocument(source, snapshot, cancellationToken);
     }
 
     private static void CheckSource(long length, DjVuLoadOptions options) {
