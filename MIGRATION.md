@@ -5350,26 +5350,6 @@ These parameter aliases stay removed. Command aliases such as `ExcelExport` are 
 | `-Values` | `-InputObject` | `Add-OfficeExcelTableRow` |
 | `-Values` | `-Value` | `Add-OfficePowerPointTableRow`, `Get-OfficeExcelTemplateMarker`, `Invoke-OfficeExcelTemplate`, `Set-OfficeExcelAutoFilter` |
 
-## Read-only Word and PowerPoint documents read seekable streams in place
-
-`WordDocument.Load(Stream)` and `PowerPointDocument.Load(Stream)` with `AccessMode = DocumentAccessMode.ReadOnly`
-can read a seekable Open XML stream directly. Their `LoadAsync(Stream)` overloads read standard `MemoryStream`
-and `FileStream` sources directly and read custom streams into memory. The in-place document
-reads parts from your stream as it needs them, so keep the stream open and leave its contents unchanged until you
-dispose the document. Disposing the document does not dispose the stream, the stream position is restored after
-loading, and a read-only document still cannot be saved, to that stream or anywhere else.
-
-Code that disposes or reuses the stream while a read-only document is still in use must keep the stream alive
-longer, or copy it first: load from `new MemoryStream(bytes, writable: false)` over an array you keep, or load with
-`AccessMode = DocumentAccessMode.ReadWrite`. Non-seekable streams, encrypted and binary (`.doc`, `.ppt`) sources,
-Word XML, and loads with `PackageSecurity` or `CaptureSourcePackageSecurity` still read the stream into memory, and
-the package is not read from it again. Editable loads, Excel workbooks and Visio diagrams never read the package from
-the stream after loading either.
-
-Saving is a separate matter and is unchanged: an editable load from a writable, seekable stream keeps that stream as
-the destination of `Save()` and of `SaveOnDispose`, so it must stay open until the last save, even though the
-document no longer reads from it.
-
 ## PDF text extraction keeps the readable part of damaged documents
 
 `PdfDocument.ExtractText()` no longer throws when part of a document cannot be read. With the
@@ -5652,6 +5632,26 @@ data-only updates retain existing native marker formatting.
 Clearing PowerPoint axis-label text styling restores the theme's font, size and
 colour while retaining label rotation. It no longer leaves those text properties
 unset.
+
+## Read-only Word and PowerPoint documents read seekable streams in place
+
+`WordDocument.Load(Stream)` and `PowerPointDocument.Load(Stream)` with `AccessMode = DocumentAccessMode.ReadOnly`
+can read a seekable Open XML stream directly. Their `LoadAsync(Stream)` overloads read standard `MemoryStream`
+and `FileStream` sources directly and read custom streams into memory. The in-place document
+reads parts from your stream as it needs them, so keep the stream open and leave its contents unchanged until you
+dispose the document. Disposing the document does not dispose the stream, the stream position is restored after
+loading, and a read-only document still cannot be saved, to that stream or anywhere else.
+
+Code that disposes or reuses the stream while a read-only document is still in use must keep the stream alive
+longer, or copy it first: load from `new MemoryStream(bytes, writable: false)` over an array you keep, or load with
+`AccessMode = DocumentAccessMode.ReadWrite`. Non-seekable streams, encrypted and binary (`.doc`, `.ppt`) sources,
+Word XML, and loads with `PackageSecurity` or `CaptureSourcePackageSecurity` still read the stream into memory, and
+the package is not read from it again. Editable loads, Excel workbooks and Visio diagrams never read the package from
+the stream after loading either.
+
+Saving is a separate matter and is unchanged: an editable load from a writable, seekable stream keeps that stream as
+the destination of `Save()` and of `SaveOnDispose`, so it must stay open until the last save, even though the
+document no longer reads from it.
 
 ## PowerPoint composition defaults
 
