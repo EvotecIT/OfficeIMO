@@ -5699,6 +5699,11 @@ versions:
   its outer border, so the border edge sits at the table's position.
 - A line break no longer makes the line it ends as tall as the break's own font. A line holding only a
   break still takes the break's size.
+- Drop caps are placed beside the paragraph that follows them, which wraps around the cap for the lines
+  it spans, instead of being drawn as a separate large paragraph. Margin drop caps hang in the margin.
+  As with other floating frames, a drop cap in the body selects the fallback placement for page footnotes.
+- Raised and lowered text (`w:position`) moves its glyphs up or down from the baseline. Earlier versions
+  drew it on the baseline.
 
 If your process depends on where pages break, regenerate the PDFs and compare them with your stored
 baselines, checking page counts and where tables and lists break. Refresh page-dependent content

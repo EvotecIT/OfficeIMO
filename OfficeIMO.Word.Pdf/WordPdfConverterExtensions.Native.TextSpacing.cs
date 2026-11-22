@@ -6,21 +6,23 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
         private readonly record struct NativeTextSpacing(double? WidthPercentage, double? CharacterSpacing,
-            double? KerningMinimumFontSize = null, string? LigatureSetting = null) {
+            double? KerningMinimumFontSize = null, string? LigatureSetting = null, double? Position = null) {
             public NativeTextSpacing Merge(OpenXmlElement? properties) => Merge(new NativeTextSpacing(
                 ReadNativeCharacterScale(properties?.GetFirstChild<W.CharacterScale>()),
                 properties?.GetFirstChild<W.Spacing>()?.Val?.Value / 20D,
                 properties?.GetFirstChild<W.Kern>()?.Val?.Value / 2D,
-                ReadNativeLigatureSetting(properties)));
+                ReadNativeLigatureSetting(properties),
+                ReadNativeTextPosition(properties?.GetFirstChild<W.Position>())));
 
             public NativeTextSpacing Merge(NativeTextSpacing overrides) => new(
                 overrides.WidthPercentage ?? WidthPercentage,
                 overrides.CharacterSpacing ?? CharacterSpacing,
                 overrides.KerningMinimumFontSize ?? KerningMinimumFontSize,
-                overrides.LigatureSetting ?? LigatureSetting);
+                overrides.LigatureSetting ?? LigatureSetting,
+                overrides.Position ?? Position);
 
             public NativeTextSpacing Resolve(bool openTypeFeaturesEnabled = true) => new(WidthPercentage ?? 100D, CharacterSpacing ?? 0D,
-                KerningMinimumFontSize, openTypeFeaturesEnabled ? LigatureSetting : LigatureSetting == null ? null : "none");
+                KerningMinimumFontSize, openTypeFeaturesEnabled ? LigatureSetting : LigatureSetting == null ? null : "none", Position ?? 0D);
 
             // Word uses half-points for the minimum size; zero explicitly disables
             // kerning. Missing formatting inherits, and an entirely absent setting
@@ -42,7 +44,10 @@ namespace OfficeIMO.Word.Pdf {
                 double spacing = CharacterSpacing ?? 0D;
                 if (run.HorizontalTextScaling != width) run = run.WithHorizontalTextScaling(width);
                 if ((run.CharacterSpacing.ToPoints()) != spacing) run = run.WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(spacing));
-                return run.WithFeatureSettings(ResolveFeatureSettings((run.FontSize?.ToPoints()) ?? defaultFontSize));
+                run = run.WithFeatureSettings(ResolveFeatureSettings((run.FontSize?.ToPoints()) ?? defaultFontSize));
+                // w:position raises or lowers the glyphs without changing the line box.
+                if (run.InlineElement == null) run.BaselineShift = Position ?? 0D;
+                return run;
             }
         }
 
@@ -55,6 +60,11 @@ namespace OfficeIMO.Word.Pdf {
             return ligatures?.GetAttributes()
                 .FirstOrDefault(attribute => attribute.LocalName == "val" && attribute.NamespaceUri == word2010).Value;
         }
+
+        /// <summary>Raised (positive) or lowered text, from signed half-points to points.</summary>
+        private static double? ReadNativeTextPosition(W.Position? position) =>
+            int.TryParse(position?.Val?.Value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int halfPoints)
+                ? halfPoints / 2D : null;
 
         private static double? ReadNativeCharacterScale(W.CharacterScale? scale) {
             if (scale?.Val == null) return null;

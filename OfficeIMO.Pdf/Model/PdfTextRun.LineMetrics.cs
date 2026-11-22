@@ -18,7 +18,8 @@ public sealed partial class PdfTextRun {
         PdfTextRun copy = CopyRunFormattingTo(new PdfTextRun(Text, Bold, Underline, Color, Italic, Strike,
             global::OfficeIMO.OfficeLength.Points(fontSize), StandardFont, LinkUri, LinkContents, PdfTextBaseline.Normal,
             LinkDestinationName, TabLeader, TabAlignment, BackgroundColor, FontFamily, UnderlineStyle, StrikeStyle, DecorationColor));
-        copy.BaselineShift = baselineShift;
+        // A raised or lowered run keeps its own offset on top of the script offset.
+        copy.BaselineShift = BaselineShift + baselineShift;
         return copy;
     }
 }
