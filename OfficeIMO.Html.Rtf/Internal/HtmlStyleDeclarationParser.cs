@@ -34,14 +34,14 @@ internal static partial class HtmlStyleDeclarationParser {
         }
 
         if (value.EndsWith("%", StringComparison.Ordinal) &&
-            double.TryParse(value.Substring(0, value.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out double percent) &&
+            OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value.Substring(0, value.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out double percent) &&
             percent > 0) {
             declaration.LineSpacingTwips = (int)Math.Round(percent * 240d / 100d, MidpointRounding.AwayFromZero);
             declaration.LineSpacingMultiple = true;
             return;
         }
 
-        if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double multiple) &&
+        if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double multiple) &&
             multiple > 0) {
             declaration.LineSpacingTwips = (int)Math.Round(multiple * 240d, MidpointRounding.AwayFromZero);
             declaration.LineSpacingMultiple = true;
@@ -96,7 +96,7 @@ internal static partial class HtmlStyleDeclarationParser {
         }
 
         if (normalized.EndsWith("%", StringComparison.Ordinal) &&
-            double.TryParse(normalized.Substring(0, normalized.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out double percent) &&
+            OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(normalized.Substring(0, normalized.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out double percent) &&
             percent > 0) {
             width = (int)Math.Round(percent * 50d, MidpointRounding.AwayFromZero);
             unit = RtfTableWidthUnit.Percent;
@@ -287,12 +287,12 @@ internal static partial class HtmlStyleDeclarationParser {
         }
 
         if (value.EndsWith("%", StringComparison.Ordinal) &&
-            double.TryParse(value.Substring(0, value.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out double percent) &&
+            OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value.Substring(0, value.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out double percent) &&
             percent > 0) {
             return 12d * percent / 100d;
         }
 
-        return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double px) && px > 0
+        return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double px) && px > 0
             ? px * 0.75d
             : null;
     }
@@ -307,7 +307,7 @@ internal static partial class HtmlStyleDeclarationParser {
             return (int)Math.Round(points * 20d, MidpointRounding.AwayFromZero);
         }
 
-        return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double px)
+        return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double px)
             ? (int)Math.Round(px * 15d, MidpointRounding.AwayFromZero)
             : null;
     }
@@ -333,7 +333,7 @@ internal static partial class HtmlStyleDeclarationParser {
         }
 
         string number = value.Substring(0, value.Length - unit.Length).Trim();
-        if (!double.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)) {
+        if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)) {
             return false;
         }
 
@@ -471,7 +471,7 @@ internal static partial class HtmlStyleDeclarationParser {
     private static bool TryParseCssByte(string value, out byte component) {
         string normalized = value.Trim();
         if (normalized.EndsWith("%", StringComparison.Ordinal)) {
-            if (double.TryParse(normalized.Substring(0, normalized.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out double percent)) {
+            if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(normalized.Substring(0, normalized.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out double percent)) {
                 component = ClampByte((int)Math.Round(percent * 2.55d, MidpointRounding.AwayFromZero));
                 return true;
             }
@@ -480,7 +480,7 @@ internal static partial class HtmlStyleDeclarationParser {
             return false;
         }
 
-        if (double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
+        if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
             component = ClampByte((int)Math.Round(number, MidpointRounding.AwayFromZero));
             return true;
         }

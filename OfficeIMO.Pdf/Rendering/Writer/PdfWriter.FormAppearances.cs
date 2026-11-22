@@ -361,7 +361,7 @@ internal static partial class PdfWriter {
             string fontResource = GetFreeTextAppearanceFontResourceName(segment.Font, formOptions);
             RegisterAppearanceFontResource(fontResources, fontResource, ensureFont(segment.Font, formOptions));
             double runFontSize = EffectiveRichFontSize(segment.FontSize, segment.Baseline);
-            double textRise = TextRiseForBaseline(segment.FontSize, segment.Baseline);
+            double textRise = TextRiseForBaseline(segment.FontSize, segment.Baseline) + segment.BaselineShift;
             if (segment.LeadingSpace) {
                 double gap = segment.LeadingAdvance;
                 AppendFreeTextAppearanceTextSegment(

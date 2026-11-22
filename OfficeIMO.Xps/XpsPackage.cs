@@ -56,7 +56,7 @@ internal static class XpsPackage {
     }
     internal static double Number(string? value, double fallback = 0) {
         if (value == null) return fallback;
-        if (!double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double result) ||
+        if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double result) ||
             double.IsNaN(result) || double.IsInfinity(result) || Math.Abs(result) > 10000000)
             throw new InvalidDataException("Invalid or excessive XPS numeric value.");
         return result;

@@ -247,7 +247,7 @@ public sealed partial class OfficeMarkupCSharpEmitter {
         seconds = default;
         var value = GetTransitionAttribute(resolvedTransition, names);
         return !string.IsNullOrWhiteSpace(value)
-               && double.TryParse(value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out seconds);
+               && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParseFinite(value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out seconds);
     }
 
     private static bool TryGetTransitionBoolean(OfficeMarkupResolvedTransition resolvedTransition, out bool enabled, params string[] names) {

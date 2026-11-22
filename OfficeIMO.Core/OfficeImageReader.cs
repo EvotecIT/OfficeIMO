@@ -655,10 +655,10 @@ public static partial class OfficeImageReader {
         if (string.IsNullOrWhiteSpace(value)) return false;
         string[] parts = value!.Split(new[] { ' ', '\t', '\r', '\n', '\f', ',' }, StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length != 4
-            || !double.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out double minX)
-            || !double.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out double minY)
-            || !double.TryParse(parts[2], NumberStyles.Float, CultureInfo.InvariantCulture, out width)
-            || !double.TryParse(parts[3], NumberStyles.Float, CultureInfo.InvariantCulture, out height)
+            || !OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out double minX)
+            || !OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out double minY)
+            || !OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(parts[2], NumberStyles.Float, CultureInfo.InvariantCulture, out width)
+            || !OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(parts[3], NumberStyles.Float, CultureInfo.InvariantCulture, out height)
             || double.IsNaN(minX) || double.IsInfinity(minX)
             || double.IsNaN(minY) || double.IsInfinity(minY)
             || double.IsNaN(width) || double.IsInfinity(width)

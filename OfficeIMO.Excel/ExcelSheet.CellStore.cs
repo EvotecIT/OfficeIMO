@@ -47,7 +47,7 @@ namespace OfficeIMO.Excel {
                     return new ExcelCellData(ExcelCellDataKind.Text, decoded, cachedText: decoded);
             }
 
-            if (double.TryParse(cached, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
+            if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(cached, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
                 return new ExcelCellData(ExcelCellDataKind.Number, number, cachedText: cached);
             }
 
@@ -61,7 +61,7 @@ namespace OfficeIMO.Excel {
             value = default;
             string? text = cell.Value;
             if (cell.Type == ExcelStoredCellType.Absent || cell.Type == ExcelStoredCellType.Number) {
-                if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) return false;
+                if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) return false;
                 value = new FormulaArgumentValue(number, text, sourceCellKind: ExcelCellDataKind.Number);
                 return true;
             }

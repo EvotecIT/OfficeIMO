@@ -110,8 +110,7 @@ public static partial class HtmlComputedStyleEngine {
         bool Component(string component) => component.Equals("none", StringComparison.OrdinalIgnoreCase)
             || component.Equals("alpha", StringComparison.OrdinalIgnoreCase)
             || component.Length == 1 && channels.IndexOf(char.ToLowerInvariant(component[0])) >= 0
-            || double.TryParse(component.EndsWith("%", StringComparison.Ordinal) ? component.Substring(0, component.Length - 1) : component, System.Globalization.NumberStyles.Float,
-                System.Globalization.CultureInfo.InvariantCulture, out double number) && !double.IsNaN(number) && !double.IsInfinity(number);
+            || OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(component.EndsWith("%", StringComparison.Ordinal) ? component.Substring(0, component.Length - 1) : component, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double number) && !double.IsNaN(number) && !double.IsInfinity(number);
         return parts.Skip(first).All(Component)
             && (alphaParts.Count == 1 || HtmlRenderCssValues.SplitWhitespace(alphaParts[1]).Count == 1 && Component(alphaParts[1].Trim()));
     }

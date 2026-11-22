@@ -91,8 +91,7 @@ public partial class WordChart {
     }
 
     private static double ReadCountMaximum(C.ChartSpace root, bool includeAuthoredMaximum) {
-        double Read(C.NumericPoint point) => double.TryParse(point.NumericValue?.Text, NumberStyles.Float,
-            CultureInfo.InvariantCulture, out double value) && !double.IsNaN(value) && !double.IsInfinity(value) ? Math.Max(0D, value) : 0D;
+        double Read(C.NumericPoint point) => OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(point.NumericValue?.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) && !double.IsNaN(value) && !double.IsInfinity(value) ? Math.Max(0D, value) : 0D;
         double maximum = root.Descendants<C.Values>().SelectMany(values => values.Descendants<C.NumericPoint>())
             .Select(Read).DefaultIfEmpty(0D).Max();
         if (includeAuthoredMaximum) maximum = Math.Max(maximum, root.Descendants<C.MaxAxisValue>()

@@ -120,8 +120,7 @@ namespace OfficeIMO.Excel {
                             // A sign in a scientific numeric literal belongs to the literal.
                             bool exponentSign = (ch == '+' || ch == '-') && _position > start
                                 && (_text[_position - 1] == 'e' || _text[_position - 1] == 'E')
-                                && double.TryParse(_text.Substring(start, _position - start - 1), NumberStyles.Float,
-                                    CultureInfo.InvariantCulture, out _);
+                                && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(_text.Substring(start, _position - start - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out double _);
                             if (!exponentSign) break;
                         }
                     }
@@ -174,7 +173,7 @@ namespace OfficeIMO.Excel {
             private static bool TryNumber(FormulaArgumentValue value, out double number) {
                 number = value.Number ?? 0;
                 if (value.Number.HasValue || !value.HasValue) return true;
-                return double.TryParse(value.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out number);
+                return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out number);
             }
 
             private static FormulaArgumentValue Numeric(double number) =>

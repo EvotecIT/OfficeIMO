@@ -637,11 +637,7 @@ namespace OfficeIMO.Word.Html {
                     continue;
                 }
 
-                return double.TryParse(
-                    lower.Substring(0, lower.Length - unit.Length),
-                    System.Globalization.NumberStyles.Float,
-                    System.Globalization.CultureInfo.InvariantCulture,
-                    out double number) && number < 0;
+                return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(lower.Substring(0, lower.Length - unit.Length), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double number) && number < 0;
             }
 
             return false;
@@ -658,7 +654,7 @@ namespace OfficeIMO.Word.Html {
             }
 
             if (allowPercent && lower.EndsWith("%", StringComparison.Ordinal) &&
-                double.TryParse(lower.Substring(0, lower.Length - 1), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var percent)) {
+                OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(lower.Substring(0, lower.Length - 1), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double percent)) {
                 return percent >= 0;
             }
 
@@ -678,7 +674,7 @@ namespace OfficeIMO.Word.Html {
                     continue;
                 }
 
-                if (!double.TryParse(value.Substring(0, value.Length - unit.Length), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var number)) {
+                if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value.Substring(0, value.Length - unit.Length), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double number)) {
                     return false;
                 }
 
@@ -696,7 +692,7 @@ namespace OfficeIMO.Word.Html {
             string[] units = { "rem", "px", "pt", "em", "cm", "mm", "in", "pc", "q" };
             foreach (var unit in units) {
                 if (value.EndsWith(unit, StringComparison.Ordinal) &&
-                    double.TryParse(value.Substring(0, value.Length - unit.Length), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var number)) {
+                    OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value.Substring(0, value.Length - unit.Length), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double number)) {
                     return number == 0;
                 }
             }

@@ -293,7 +293,7 @@ namespace OfficeIMO.Visio {
                 value = value.Substring(0, value.Length - 1);
             }
 
-            if (!double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)) {
+            if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)) {
                 return fallback;
             }
 
@@ -360,7 +360,7 @@ namespace OfficeIMO.Visio {
         }
 
         private static double ReadOpacity(string? raw, double fallback) {
-            if (string.IsNullOrWhiteSpace(raw) || !double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)) {
+            if (string.IsNullOrWhiteSpace(raw) || !OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)) {
                 return fallback;
             }
 

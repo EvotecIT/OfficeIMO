@@ -392,7 +392,7 @@ internal sealed class StructuredQuery {
             int start = _i;
             _i++;
             while (_i < text.Length && (char.IsDigit(text[_i]) || text[_i] == '.' || text[_i] == 'e' || text[_i] == 'E' || ((text[_i] == '+' || text[_i] == '-') && (text[_i - 1] == 'e' || text[_i - 1] == 'E')))) _i++;
-            if (!double.TryParse(text.Substring(start, _i - start), NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) throw Malformed(start, "the number is not valid");
+            if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text.Substring(start, _i - start), NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) throw Malformed(start, "the number is not valid");
             return QueryOperand.FromScalar(QueryScalar.FromNumber(number));
         }
         if (TryWord("true")) return QueryOperand.FromScalar(QueryScalar.FromBoolean(true));

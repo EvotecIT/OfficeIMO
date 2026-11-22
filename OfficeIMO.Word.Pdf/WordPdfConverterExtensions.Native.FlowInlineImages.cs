@@ -56,7 +56,7 @@ namespace OfficeIMO.Word.Pdf {
                 double height = image.Height?.ToPoints() ?? 144D;
                 PdfCore.PdfImageStyle style = CreateNativeImageStyle(image, options, "inline image");
                 style.ScaleDownToFit = false;
-                inline = PdfCore.PdfTextRun.Inline(new PdfCore.PdfInlineImage(prepared, global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height), style, global::OfficeIMO.OfficeLength.Points(0D),
+                inline = PdfCore.PdfTextRun.Inline(new PdfCore.PdfInlineImage(prepared, global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height), style, global::OfficeIMO.OfficeLength.Points(GetNativeInlineImageBottomExtent(image)),
                     linkUri: GetNativeImageLink(image)) {
                     AllowFrameOverflow = true
                 });

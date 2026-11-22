@@ -335,8 +335,7 @@ public static partial class HtmlPowerPointConverterExtensions {
     }
 
     private static double? ResolveTargetBaseline(IElement source, IReadOnlyDictionary<string, string> css) {
-        if (double.TryParse(source.GetAttribute("data-officeimo-powerpoint-baseline-percent"), NumberStyles.Float,
-                CultureInfo.InvariantCulture, out double native) && native >= -100D && native <= 100D) return native;
+        if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(source.GetAttribute("data-officeimo-powerpoint-baseline-percent"), NumberStyles.Float, CultureInfo.InvariantCulture, out double native) && native >= -100D && native <= 100D) return native;
         if (!TryGetTargetCss(css, "vertical-align", out string vertical)) return null;
         if (vertical.Equals("super", StringComparison.OrdinalIgnoreCase)) return 30D;
         if (vertical.Equals("sub", StringComparison.OrdinalIgnoreCase)) return -25D;
@@ -533,7 +532,7 @@ public static partial class HtmlPowerPointConverterExtensions {
 
     private static double? ResolvePowerPointBaseline(HtmlSemanticRun source) {
         if (source.DataAttributes.TryGetValue("data-officeimo-powerpoint-baseline-percent", out string? exact)
-            && double.TryParse(exact, NumberStyles.Float, CultureInfo.InvariantCulture, out double native)
+            && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(exact, NumberStyles.Float, CultureInfo.InvariantCulture, out double native)
             && native >= -100D && native <= 100D) return native;
         return source.Baseline switch {
             OfficeTextBaseline.Superscript => 30D,
@@ -576,8 +575,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         string text = (value ?? string.Empty).Trim();
         bool points = text.EndsWith("pt", StringComparison.OrdinalIgnoreCase);
         if (!points && !text.EndsWith("px", StringComparison.OrdinalIgnoreCase)) return false;
-        if (!double.TryParse(text.Substring(0, text.Length - 2), NumberStyles.Float,
-                CultureInfo.InvariantCulture, out pixels) || pixels <= 0D) return false;
+        if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text.Substring(0, text.Length - 2), NumberStyles.Float, CultureInfo.InvariantCulture, out pixels) || pixels <= 0D) return false;
         if (points) pixels /= 0.75D;
         return true;
     }

@@ -580,9 +580,9 @@ internal static class DataValueConverter {
             else if (targetType == typeof(bool) && bool.TryParse(text, out bool boolValue)) result = boolValue;
             else if (targetType == typeof(bool) && text == "0") result = false;
             else if (targetType == typeof(bool) && text == "1") result = true;
-            else if (targetType == typeof(double) && double.TryParse(text, NumberStyles.Any, culture, out double doubleValue)) result = doubleValue;
+            else if (targetType == typeof(double) && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, NumberStyles.Any, culture, out double doubleValue)) result = doubleValue;
             else if (targetType == typeof(decimal) && decimal.TryParse(text, NumberStyles.Any, culture, out decimal decimalValue)) result = decimalValue;
-            else if (targetType == typeof(float) && float.TryParse(text, NumberStyles.Any, culture, out float floatValue)) result = floatValue;
+            else if (targetType == typeof(float) && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, NumberStyles.Any, culture, out float floatValue)) result = floatValue;
             else if (targetType == typeof(DateTime) && dateTimeFormats is { Count: > 0 } &&
                      DateTime.TryParseExact(text, dateTimeFormats as string[] ?? dateTimeFormats.ToArray(), culture, DateTimeStyles.RoundtripKind, out DateTime formattedDateTime)) result = formattedDateTime;
             // ISO 8601 text is Gregorian whatever the culture's calendar, as the CSV writers emit it.

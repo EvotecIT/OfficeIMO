@@ -134,6 +134,67 @@ internal static class OfficeRoundTripText
         return negative ? "-" + expanded : expanded;
     }
 
+    /// <summary>
+    /// Parses a double with correct rounding on every framework, as .NET Core's
+    /// <see cref="double.TryParse(string, NumberStyles, IFormatProvider, out double)"/> does: overflow gives an
+    /// infinity, negative zero keeps its sign, and infinity and NaN are accepted in any letter case.
+    /// </summary>
+    internal static bool TryParse(string? text, NumberStyles style, IFormatProvider? provider, out double value) =>
+        OfficeRoundTripNumberText.TryParse(text, style, provider, out value);
+
+    /// <inheritdoc cref="TryParse(string, NumberStyles, IFormatProvider, out double)"/>
+    internal static bool TryParse(string? text, NumberStyles style, IFormatProvider? provider, out float value) =>
+        OfficeRoundTripNumberText.TryParse(text, style, provider, out value);
+
+    /// <summary>
+    /// Parses a double like <see cref="TryParse(string, NumberStyles, IFormatProvider, out double)"/>, but treats
+    /// text that reads as infinity or NaN as not a number, for values a file format stores only as finite numbers.
+    /// </summary>
+    internal static bool TryParseFinite(string? text, NumberStyles style, IFormatProvider? provider, out double value) =>
+        OfficeRoundTripNumberText.TryParseFinite(text, style, provider, out value);
+
+#if NETCOREAPP
+    /// <inheritdoc cref="TryParse(string, NumberStyles, IFormatProvider, out double)"/>
+    internal static bool TryParse(ReadOnlySpan<char> text, NumberStyles style, IFormatProvider? provider, out double value) =>
+        OfficeRoundTripNumberText.TryParse(text, style, provider, out value);
+
+    /// <inheritdoc cref="TryParse(string, NumberStyles, IFormatProvider, out double)"/>
+    internal static bool TryParse(ReadOnlySpan<char> text, NumberStyles style, IFormatProvider? provider, out float value) =>
+        OfficeRoundTripNumberText.TryParse(text, style, provider, out value);
+
+    /// <inheritdoc cref="ParseDouble(string, NumberStyles, IFormatProvider)"/>
+    internal static double ParseDouble(ReadOnlySpan<char> text, NumberStyles style, IFormatProvider? provider) =>
+        OfficeRoundTripNumberText.ParseDouble(text, style, provider);
+
+    /// <inheritdoc cref="ParseSingle(string, NumberStyles, IFormatProvider)"/>
+    internal static float ParseSingle(ReadOnlySpan<char> text, NumberStyles style, IFormatProvider? provider) =>
+        OfficeRoundTripNumberText.ParseSingle(text, style, provider);
+#endif
+
+    /// <summary>Parses a double as .NET Core's <see cref="double.Parse(string, NumberStyles, IFormatProvider)"/> does.</summary>
+    internal static double ParseDouble(string? text, NumberStyles style, IFormatProvider? provider) =>
+        OfficeRoundTripNumberText.ParseDouble(text, style, provider);
+
+    /// <summary>Parses a float as .NET Core's <see cref="float.Parse(string, NumberStyles, IFormatProvider)"/> does.</summary>
+    internal static float ParseSingle(string? text, NumberStyles style, IFormatProvider? provider) =>
+        OfficeRoundTripNumberText.ParseSingle(text, style, provider);
+
+    /// <summary>Reads an <c>xsd:double</c> as .NET Core's <see cref="System.Xml.XmlConvert.ToDouble(string)"/> does.</summary>
+    internal static double ParseXmlDouble(string? text) => OfficeRoundTripNumberText.ParseXmlDouble(text);
+
+    /// <summary>Reads an <c>xsd:float</c> as .NET Core's <see cref="System.Xml.XmlConvert.ToSingle(string)"/> does.</summary>
+    internal static float ParseXmlSingle(string? text) => OfficeRoundTripNumberText.ParseXmlSingle(text);
+
+    /// <summary>Converts a value as <see cref="Convert.ToDouble(object, IFormatProvider)"/> does, parsing text as .NET Core does.</summary>
+    internal static double ToDouble(object? value, IFormatProvider? provider) => OfficeRoundTripNumberText.ToDouble(value, provider);
+
+    /// <summary>Converts a value as <see cref="Convert.ToSingle(object, IFormatProvider)"/> does, parsing text as .NET Core does.</summary>
+    internal static float ToSingle(object? value, IFormatProvider? provider) => OfficeRoundTripNumberText.ToSingle(value, provider);
+
+    /// <summary>Parses plain ASCII number text, such as UTF-8 cell values, with correct rounding on every framework.</summary>
+    internal static bool TryParseAscii(byte[] buffer, int offset, int count, out double value) =>
+        OfficeRoundTripNumberText.TryParseAscii(buffer, offset, count, out value);
+
     /// <summary>A per-thread buffer of <see cref="MaximumDateTimeLength"/> characters for the writers below.</summary>
     internal static char[] Buffer => t_buffer ??= new char[MaximumDateTimeLength];
 

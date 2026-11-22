@@ -255,7 +255,7 @@ namespace OfficeIMO.Word.Pdf {
 
                 string offsetValue = match.Groups[1].Value;
                 string offsetText = offsetValue.TrimEnd('%', 'f', 'F');
-                if (!double.TryParse(offsetText, NumberStyles.Float, CultureInfo.InvariantCulture, out double offset)) {
+                if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(offsetText, NumberStyles.Float, CultureInfo.InvariantCulture, out double offset)) {
                     continue;
                 }
 

@@ -121,7 +121,7 @@ public static partial class WordRtfConverterExtensions {
 
                 break;
             case RtfUserProperty.NumberType:
-                if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
+                if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
                     return new WordCustomProperty(number);
                 }
 

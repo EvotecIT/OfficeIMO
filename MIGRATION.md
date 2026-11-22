@@ -5674,6 +5674,11 @@ versions:
   of a split row starts at the top of each cell.
 - Superscript and subscript text no longer makes its line taller, and a line raised by an inline
   picture keeps the paragraph's line spacing below it.
+- Kerning also applies between a word's last letter and the following space, and between a space and
+  the next word, as in Word. Times New Roman and Arial text in particular is narrower and wraps like Word.
+- Superscript and subscript text takes its size and offset from the font's own script metrics, rounded
+  to half a point, instead of fixed proportions of the text size.
+- An inline picture's effect extent, the margin Word records around it, counts towards its line height.
 
 If your process depends on where pages break, regenerate the PDFs and compare them with your stored
 baselines, checking page counts and where tables and lists break. Refresh page-dependent content

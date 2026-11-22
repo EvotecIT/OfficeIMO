@@ -115,7 +115,7 @@ namespace OfficeIMO.Excel {
             SpreadsheetNumberFormatDisplay.FormatTextValue(text, GetNumberFormatCode(GetCellNumberFormatId(styleIndex, context), context));
 
         private static string FormatAutoFitNumericText(uint styleIndex, string raw, AutoFitTextContext context, ExcelDateSystem dateSystem) {
-            if (!double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)) {
+            if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)) {
                 return raw;
             }
 

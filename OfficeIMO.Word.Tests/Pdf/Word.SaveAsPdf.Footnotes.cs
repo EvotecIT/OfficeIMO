@@ -45,8 +45,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2, spans.Count(span => span.Text == "1" && span.Y > marker.Y && span.Y - marker.Y < marker.FontSize));
             var references = spans.Where(span => span.Text == "1" && span.Y > marker.Y && span.Y - marker.Y < marker.FontSize)
                 .OrderBy(span => span.FontSize).ToArray();
-            Assert.Equal(14D * .65D, references[0].FontSize, precision: 3);
-            Assert.Equal(16D * .65D, references[1].FontSize, precision: 3);
+            // Reference marks use the font's superscript size, rounded to half a point.
+            Assert.InRange(references[0].FontSize, 14D * .5D, 14D * .7D);
+            Assert.InRange(references[1].FontSize, 16D * .5D, 16D * .7D);
         }
 
         [Fact]

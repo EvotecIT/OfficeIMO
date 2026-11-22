@@ -242,7 +242,7 @@ public static partial class HtmlRoundTripScorer {
 
     private static string NormalizeNumericAttribute(string? value) {
         string text = (value ?? string.Empty).Trim();
-        return double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
+        return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
             ? number.ToString("G17", CultureInfo.InvariantCulture)
             : text.ToLowerInvariant();
     }

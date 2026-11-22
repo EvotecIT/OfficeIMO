@@ -582,7 +582,7 @@ public static partial class HtmlExcelConverterExtensions {
             var xValues = new double[pointCount];
             for (int i = 0; i < pointCount; i++) {
                 IElement valueCell = cells[i + 1];
-                if (!double.TryParse(NormalizeText(valueCell.TextContent), NumberStyles.Float, CultureInfo.InvariantCulture, out values[i])
+                if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(NormalizeText(valueCell.TextContent), NumberStyles.Float, CultureInfo.InvariantCulture, out values[i])
                     || double.IsNaN(values[i])
                     || double.IsInfinity(values[i])) {
                     return false;
@@ -591,7 +591,7 @@ public static partial class HtmlExcelConverterExtensions {
                 if (hasXValues) {
                     string? rawXValue = valueCell.GetAttribute("data-officeimo-x");
                     if (rawXValue == null
-                        || !double.TryParse(rawXValue, NumberStyles.Float, CultureInfo.InvariantCulture, out xValues[i])
+                        || !OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(rawXValue, NumberStyles.Float, CultureInfo.InvariantCulture, out xValues[i])
                         || double.IsNaN(xValues[i])
                         || double.IsInfinity(xValues[i])) {
                         return false;
@@ -694,14 +694,14 @@ public static partial class HtmlExcelConverterExtensions {
             } else if (value.StartsWith("Size:", StringComparison.OrdinalIgnoreCase)) {
                 string[] pieces = value.Substring("Size:".Length).Split('x');
                 if (pieces.Length == 2) {
-                    _ = double.TryParse(pieces[0].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out widthPixels);
-                    _ = double.TryParse(pieces[1].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out heightPixels);
+                    _ = OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(pieces[0].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out widthPixels);
+                    _ = OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(pieces[1].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out heightPixels);
                 }
             } else if (value.StartsWith("Offset:", StringComparison.OrdinalIgnoreCase)) {
                 string[] pieces = value.Substring("Offset:".Length).Split(',');
                 if (pieces.Length == 2) {
-                    _ = double.TryParse(pieces[0].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out xPixels);
-                    _ = double.TryParse(pieces[1].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out yPixels);
+                    _ = OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(pieces[0].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out xPixels);
+                    _ = OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(pieces[1].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out yPixels);
                 }
             }
         }
@@ -808,7 +808,7 @@ public static partial class HtmlExcelConverterExtensions {
         value = 0D;
         string? raw = item.GetAttribute(name);
         return !string.IsNullOrWhiteSpace(raw)
-            && double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+            && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
     }
 
     private static bool TryReadBoolAttribute(IElement item, string name, out bool value) {

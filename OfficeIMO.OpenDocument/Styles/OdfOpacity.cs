@@ -44,7 +44,7 @@ internal static class OdfOpacity {
         if (percent) lexical = lexical.Substring(0, lexical.Length - 1);
         if (percent && lexical.Any(character => character != '.' && (character < '0' || character > '9')))
             throw new InvalidDataException("Invalid percentage opacity value.");
-        if ((!percent && !allowFraction) || !double.TryParse(lexical, NumberStyles.Float, CultureInfo.InvariantCulture, out double number))
+        if ((!percent && !allowFraction) || !OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(lexical, NumberStyles.Float, CultureInfo.InvariantCulture, out double number))
             throw new InvalidDataException("Invalid native opacity value.");
         if (percent) number /= 100D;
         if (double.IsNaN(number) || double.IsInfinity(number) || number < 0D || number > 1D)

@@ -99,7 +99,7 @@ internal static partial class LegacyXlsWriter {
 
             if ((dataType == DocumentFormat.OpenXml.Spreadsheet.CellValues.Number || dataType == null)
                 && !string.IsNullOrWhiteSpace(rawValue)
-                && double.TryParse(rawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
+                && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(rawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
                 return LegacyXlsCell.FormulaNumber(row, column, styleIndex, number, tokens, formulaExtraData, arrayFormulaPayload, sharedFormulaPayload);
             }
 

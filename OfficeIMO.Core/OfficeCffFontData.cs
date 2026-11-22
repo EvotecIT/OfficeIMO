@@ -625,7 +625,7 @@ internal sealed partial class OfficeCffFontData {
             int value = data[offset++];
             done = AppendNibble(text, value >> 4) || AppendNibble(text, value & 0x0F);
         }
-        if (!double.TryParse(text.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out double result)
+        if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out double result)
             || double.IsNaN(result) || double.IsInfinity(result)) {
             throw new InvalidDataException("A CFF real number is invalid.");
         }

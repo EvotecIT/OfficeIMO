@@ -262,7 +262,7 @@ internal sealed class HtmlCssGradientStops {
         else if (normalized.EndsWith("rad", StringComparison.Ordinal)) { divisor = 2D * Math.PI; suffixLength = 3; }
         else if (normalized.EndsWith("turn", StringComparison.Ordinal)) { divisor = 1D; suffixLength = 4; }
         else return false;
-        if (!double.TryParse(normalized.Substring(0, normalized.Length - suffixLength).Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double number)
+        if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(normalized.Substring(0, normalized.Length - suffixLength).Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double number)
             || double.IsNaN(number)
             || double.IsInfinity(number)) return false;
         turns = number / divisor;

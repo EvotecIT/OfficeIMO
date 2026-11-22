@@ -1,5 +1,6 @@
 using System.Text;
 using OfficeIMO.Pdf;
+using OfficeIMO.TestAssets;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using Xunit;
 
@@ -121,6 +122,105 @@ namespace OfficeIMO.Tests.Pdf {
             double thirdBaseline = letters.Where(letter => letter.Value == "N").Skip(2).First().StartBaseLine.Y;
 
             Assert.InRange(Math.Abs((firstBaseline - secondBaseline) - (secondBaseline - thirdBaseline)), 0D, 0.05D);
+        }
+
+        // Imported Word script runs take their size and offset from the font's OS/2 metrics:
+        // 0.6 em size, 0.3 em superscript offset and 0.05 em subscript offset at 10 pt.
+        [Theory]
+        [InlineData(PdfTextBaseline.Superscript, 3D)]
+        [InlineData(PdfTextBaseline.Subscript, -0.5D)]
+        public void StyledHeaderImportedScriptRunKeepsItsFontOffset(PdfTextBaseline baseline, double offset) {
+            byte[] font = ManagedTextShapingTestAssets.WithScriptMetrics(
+                ManagedTextShapingTestAssets.CreateFontWithLineBoxMetrics(800, -500, 0, 500, Enumerable.Range(32, 95).ToArray()),
+                subscriptSize: 600, subscriptOffset: 50, superscriptSize: 600, superscriptOffset: 300);
+            var options = new PdfCreateOptions { UseFontUnitTextLayout = true }
+                .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(ManagedTextShapingTestAssets.FamilyName, font));
+            PdfTextRun script = baseline == PdfTextBaseline.Superscript
+                ? PdfTextRun.Superscript("2", fontSize: global::OfficeIMO.OfficeLength.Points(10), fontFamily: ManagedTextShapingTestAssets.FamilyName)
+                : PdfTextRun.Subscript("2", fontSize: global::OfficeIMO.OfficeLength.Points(10), fontFamily: ManagedTextShapingTestAssets.FamilyName);
+            byte[] bytes = PdfDocument.Create(options)
+                .Header(header => header.StyledZones(
+                    left => left.Run(new PdfTextRun("x").SetFontSize(global::OfficeIMO.OfficeLength.Points(10))
+                        .SetFontFamily(ManagedTextShapingTestAssets.FamilyName)).Run(script),
+                    null,
+                    null))
+                .Paragraph(paragraph => paragraph.AddText("Body"))
+                .ToBytes();
+
+            using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+            var letters = pdf.GetPage(1).Letters;
+            var shifted = letters.Single(letter => letter.Value == "2");
+            Assert.Equal(offset, shifted.StartBaseLine.Y - letters.Single(letter => letter.Value == "x").StartBaseLine.Y, 2);
+            Assert.Equal(6D, shifted.PointSize, 2);
+        }
+
+        // A paragraph that continues into a column of another width is wrapped again from its laid-out
+        // segments; an imported script run keeps its font offset through that rebuild.
+        [Fact]
+        public void ImportedScriptRunKeepsItsOffsetWhenItsParagraphContinuesIntoAnotherColumn() {
+            byte[] font = ManagedTextShapingTestAssets.WithScriptMetrics(
+                ManagedTextShapingTestAssets.CreateFontWithLineBoxMetrics(800, -500, 0, 500, Enumerable.Range(32, 95).ToArray()),
+                subscriptSize: 600, subscriptOffset: 50, superscriptSize: 600, superscriptOffset: 300);
+            var options = new PdfCreateOptions { UseFontUnitTextLayout = true, MaxGeneratedPages = 3 }
+                .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(ManagedTextShapingTestAssets.FamilyName, font));
+            var columns = new PdfMultiColumnOptions { BalanceLastPage = false, ColumnDefinitions = new[] {
+                new PdfFlowColumn(PdfColumnWidth.Fixed(global::OfficeIMO.OfficeLength.Points(100)), global::OfficeIMO.OfficeLength.Points(36)),
+                new PdfFlowColumn(PdfColumnWidth.Fixed(global::OfficeIMO.OfficeLength.Points(332)), global::OfficeIMO.OfficeLength.Points(0))
+            } };
+            PdfTextRun Run(string text, bool script = false) => (script
+                ? PdfTextRun.Superscript(text, fontSize: global::OfficeIMO.OfficeLength.Points(10), fontFamily: ManagedTextShapingTestAssets.FamilyName)
+                : new PdfTextRun(text).SetFontSize(global::OfficeIMO.OfficeLength.Points(10)).SetFontFamily(ManagedTextShapingTestAssets.FamilyName));
+            byte[] bytes = PdfDocument.Create(options).Columns(content => content.AddParagraph(paragraph => paragraph.AddRuns(new[] {
+                Run(string.Join(" ", Enumerable.Repeat("aaaa", 400)) + " x"), Run("2", script: true), Run(" end")
+            })), columns).ToBytes();
+
+            using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+            var letters = pdf.GetPages().SelectMany(page => page.Letters).ToArray();
+            var shifted = letters.Single(letter => letter.Value == "2");
+            Assert.True(shifted.StartBaseLine.X > 72D + 136D, "The script run continues into the wider column.");
+            Assert.Equal(3D, shifted.StartBaseLine.Y - letters.Single(letter => letter.Value == "x").StartBaseLine.Y, 2);
+        }
+
+        // Positioned text, such as an imported checkbox glyph, measures an imported script run at its offset.
+        [Theory]
+        [InlineData(PdfTextBaseline.Superscript, 3D)]
+        [InlineData(PdfTextBaseline.Subscript, -0.5D)]
+        public void PositionedImportedScriptRunMeasuresAtItsFontOffset(PdfTextBaseline baseline, double offset) {
+            byte[] font = ManagedTextShapingTestAssets.WithScriptMetrics(
+                ManagedTextShapingTestAssets.CreateFontWithLineBoxMetrics(800, -500, 0, 500, Enumerable.Range(32, 95).ToArray()),
+                subscriptSize: 600, subscriptOffset: 50, superscriptSize: 600, superscriptOffset: 300);
+            var options = new PdfCreateOptions { UseFontUnitTextLayout = true }
+                .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(ManagedTextShapingTestAssets.FamilyName, font));
+            PdfTextRun script = baseline == PdfTextBaseline.Superscript
+                ? PdfTextRun.Superscript("2", fontSize: global::OfficeIMO.OfficeLength.Points(10), fontFamily: ManagedTextShapingTestAssets.FamilyName)
+                : PdfTextRun.Subscript("2", fontSize: global::OfficeIMO.OfficeLength.Points(10), fontFamily: ManagedTextShapingTestAssets.FamilyName);
+            PdfTextRun plain = new PdfTextRun("2").SetFontSize(global::OfficeIMO.OfficeLength.Points(6)).SetFontFamily(ManagedTextShapingTestAssets.FamilyName);
+
+            PdfWriter.PositionedTextBoxMeasurement shifted = PdfWriter.MeasurePositionedTextBox(script, options)!;
+            PdfWriter.PositionedTextBoxMeasurement level = PdfWriter.MeasurePositionedTextBox(plain, options)!;
+            Assert.Equal(level.Width, shifted.Width, 3);
+            Assert.Equal(level.Ascent + offset, shifted.Ascent, 3);
+            Assert.Equal(level.Descent - offset, shifted.Descent, 3);
+        }
+
+        // A script run's geometry follows the run as it is now, even after an earlier render.
+        [Fact]
+        public void ImportedScriptRunFollowsAChangedFontSize() {
+            byte[] font = ManagedTextShapingTestAssets.WithScriptMetrics(
+                ManagedTextShapingTestAssets.CreateFontWithLineBoxMetrics(800, -500, 0, 500, Enumerable.Range(32, 95).ToArray()),
+                subscriptSize: 600, subscriptOffset: 50, superscriptSize: 600, superscriptOffset: 300);
+            var options = new PdfCreateOptions { UseFontUnitTextLayout = true }
+                .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(ManagedTextShapingTestAssets.FamilyName, font));
+            PdfTextRun script = PdfTextRun.Superscript("2", fontSize: global::OfficeIMO.OfficeLength.Points(10), fontFamily: ManagedTextShapingTestAssets.FamilyName);
+            PdfDocument document = PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddRuns(new[] { script }));
+            double Size() {
+                using var pdf = PdfPigDocument.Open(new MemoryStream(document.ToBytes()));
+                return pdf.GetPage(1).Letters.Single(letter => letter.Value == "2").PointSize;
+            }
+
+            Assert.Equal(6D, Size(), 2);
+            script.SetFontSize(global::OfficeIMO.OfficeLength.Points(20));
+            Assert.Equal(12D, Size(), 2);
         }
 
         [Fact]

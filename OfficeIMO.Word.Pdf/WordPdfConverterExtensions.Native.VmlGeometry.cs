@@ -40,8 +40,8 @@ namespace OfficeIMO.Word.Pdf {
 
             string[] parts = coordSize!.Split(',');
             if (parts.Length == 2 &&
-                double.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out double width) &&
-                double.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out double height) &&
+                OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out double width) &&
+                OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out double height) &&
                 width > 0D &&
                 height > 0D) {
                 return (width, height);

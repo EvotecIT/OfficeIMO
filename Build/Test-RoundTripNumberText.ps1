@@ -1,16 +1,18 @@
 <#
 .SYNOPSIS
-Checks the round-trip number text written on .NET Framework against both runtimes' parsers.
+Checks OfficeIMO's number text and number parsing on .NET Framework against .NET 10.
 
 .DESCRIPTION
-Builds Build/RoundTripNumberText for net472 and net10.0. The net472 run writes the text of the same seeded doubles
-and floats and fails when .NET Framework's own parser reads any of them back as another value. The net10.0 run
-reads those texts and fails when a correct parser does; it also reports how many equal .NET 10's "R" and how many
-are longer because .NET Framework's parser misreads the shortest text. Requires Windows for the net472 build. The
-check is opt-in: it takes a minute or two for the default two million values.
+Builds Build/RoundTripNumberText for net472 and net10.0 and runs three steps. The net10.0 run writes a parse corpus:
+seeded digit strings of up to 25 digits across the exponent range, decimals at and next to the exact midpoint between
+two doubles or two floats, formatted values and spellings, with .NET 10's double and float results. The net472 run
+writes the text of seeded doubles and floats, fails when OfficeIMO's parser does not read every text back exactly,
+fails when OfficeIMO's parser disagrees with .NET 10 on any corpus string, and times both parsers on the corpus. The
+last net10.0 run fails unless every text written on .NET Framework is byte-identical to .NET 10's "R". Requires
+Windows for the net472 build. The check is opt-in: it takes a few minutes for the default two million values.
 
 .PARAMETER Count
-How many doubles and floats to write.
+How many doubles and floats to write, and how many random corpus strings to parse.
 
 .PARAMETER OutputDirectory
 Where the builds and the text files go; a new folder under the temporary directory by default, removed afterwards.
@@ -33,12 +35,13 @@ try {
     $results = Join-Path $OutputDirectory 'results'
     $failed = $false
     foreach ($framework in 'net472', 'net10.0') {
-        $bin = Join-Path $OutputDirectory $framework
-        dotnet build $project -c Release -f $framework -o $bin -nologo -v quiet | Out-Host
+        dotnet build $project -c Release -f $framework -o (Join-Path $OutputDirectory $framework) -nologo -v quiet | Out-Host
         if ($LASTEXITCODE -ne 0) { throw "Building the probe for $framework failed." }
-        $exe = Join-Path $bin 'OfficeIMO.RoundTripNumberTextProbe'
-        if ($framework -eq 'net472') { & "$exe.exe" $Count $results } else { dotnet "$exe.dll" $Count $results }
-        if ($LASTEXITCODE -eq 2) { throw "The probe failed to start on $framework." }
+    }
+    foreach ($step in @(@('net10.0', 'corpus'), @('net472', 'write'), @('net10.0', 'check'))) {
+        $exe = Join-Path (Join-Path $OutputDirectory $step[0]) 'OfficeIMO.RoundTripNumberTextProbe'
+        if ($step[0] -eq 'net472') { & "$exe.exe" $step[1] $Count $results } else { dotnet "$exe.dll" $step[1] $Count $results }
+        if ($LASTEXITCODE -eq 2) { throw "The probe step $($step[1]) failed to start on $($step[0])." }
         if ($LASTEXITCODE -ne 0) { $failed = $true }
     }
     if ($failed) { exit 1 }

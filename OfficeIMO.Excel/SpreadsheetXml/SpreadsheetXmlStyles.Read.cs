@@ -74,7 +74,7 @@ internal static partial class SpreadsheetXmlStyles {
 
     private static string? Text(XElement element, string name) => (string?)element.Attribute(Ss + name);
     private static bool Flag(string text) => text switch { "1" or "true" => true, "0" or "false" => false, _ => throw new InvalidDataException("Invalid XML Spreadsheet Boolean attribute.") };
-    private static double Positive(string text, double maximum) => double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
+    private static double Positive(string text, double maximum) => OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
         && !double.IsInfinity(value) && value > 0 && value <= maximum ? value : throw new InvalidDataException("Invalid XML Spreadsheet dimension.");
     private static int Nonnegative(string text, int maximum) => int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out int value)
         && value >= 0 && value <= maximum ? value : throw new InvalidDataException("Invalid XML Spreadsheet integer attribute.");

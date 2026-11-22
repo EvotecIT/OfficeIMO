@@ -154,7 +154,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return GridTrack.Auto(normalized);
         }
         if (normalized.EndsWith("fr", StringComparison.Ordinal)
-            && double.TryParse(normalized.Substring(0, normalized.Length - 2), NumberStyles.Float, CultureInfo.InvariantCulture, out double fraction)
+            && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(normalized.Substring(0, normalized.Length - 2), NumberStyles.Float, CultureInfo.InvariantCulture, out double fraction)
             && fraction > 0D
             && !double.IsNaN(fraction)
             && !double.IsInfinity(fraction)) {

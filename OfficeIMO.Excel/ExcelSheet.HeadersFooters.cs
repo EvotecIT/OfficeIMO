@@ -306,7 +306,7 @@ namespace OfficeIMO.Excel {
                     value = value.Substring(0, value.Length - 2).Trim();
                 }
 
-                if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double points) && points > 0D) {
+                if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double points) && points > 0D) {
                     return points;
                 }
             }

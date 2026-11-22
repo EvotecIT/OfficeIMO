@@ -7,14 +7,17 @@ using System.Text;
 namespace OfficeIMO;
 
 /// <summary>
-/// The shortest text that parses back to a <see cref="double"/> or <see cref="float"/>. .NET Core 3.0 and later write
-/// it with <c>"R"</c>. .NET Framework's <c>"R"</c> is longer than needed and its parser misreads some texts, so there
-/// the digits are found with exact integer arithmetic and laid out the way .NET Core lays out <c>"R"</c>, and the text
-/// must also read back with .NET Framework's own parser: for the few values it misreads, a 17-digit (9 for a float)
-/// text that both parsers read back is written instead. Negative zero reads back as zero on .NET Framework, whatever
-/// the text.
+/// The shortest text that parses back to a <see cref="double"/> or <see cref="float"/>, identical on every framework.
+/// .NET Core 3.0 and later write it with <c>"R"</c>. .NET Framework's <c>"R"</c> is longer than needed, so there the
+/// digits are found with exact integer arithmetic and laid out the way .NET Core lays out <c>"R"</c>.
 /// </summary>
-internal static class OfficeRoundTripNumberText {
+/// <remarks>
+/// The text is the correctly rounded shortest decimal, which every correct parser reads back exactly, so it does not
+/// depend on the framework that wrote it. .NET Framework's own <c>double.Parse</c> reads about 0.15% of these texts as
+/// a neighbouring double; that is a limitation of that parser, and OfficeIMO reads numbers with its own correctly
+/// rounded parser (<see cref="TryParse(string, NumberStyles, IFormatProvider, out double)"/>) on .NET Framework.
+/// </remarks>
+internal static partial class OfficeRoundTripNumberText {
     internal static string Format(double value, CultureInfo culture) {
 #if NETCOREAPP3_0_OR_GREATER
         return value.ToString("R", culture);
@@ -36,19 +39,7 @@ internal static class OfficeRoundTripNumberText {
         ulong fraction = (ulong)bits & 0xFFFFFFFFFFFFFUL;
         int biased = (int)((bits >> 52) & 0x7FF);
         RyuDouble.ToDecimal(fraction, biased, out ulong digits, out int exponent);
-        string text = Layout(negative, digits, exponent, 17, format);
-        if (FrameworkParses(text, bits, format)) return text;
-
-        // .NET Framework's parser reads some correct texts, about one in seven hundred, as a neighbouring double,
-        // and code on that runtime reads our output with it. Such values get a 17-digit text, the correctly
-        // rounded one or a neighbour, that both a correct parser and .NET Framework's read back exactly.
-        ulong mantissa = biased == 0 ? fraction : fraction | (1UL << 52);
-        int binaryExponent = biased == 0 ? -1074 : biased - 1075;
-        foreach (ulong candidate in ExactDecimal.Candidates(mantissa, binaryExponent, fraction == 0 && biased > 1, 17, out int candidateExponent)) {
-            string longer = Layout(negative, candidate, candidateExponent, 17, format);
-            if (FrameworkParses(longer, bits, format)) return longer;
-        }
-        return text;
+        return Layout(negative, digits, exponent, 17, format);
 #endif
     }
 
@@ -89,15 +80,7 @@ internal static class OfficeRoundTripNumberText {
         int binaryExponent = biased == 0 ? -149 : biased - 150;
         bool narrowLowerGap = fraction == 0 && biased > 1;
         ExactDecimal.Shortest(mantissa, binaryExponent, narrowLowerGap, 9, out ulong digits, out int exponent);
-        string text = Layout(negative, digits, exponent, 9, format);
-        if (FrameworkParses(text, value, format)) return text;
-
-        // As for doubles: a nine-digit text that .NET Framework's parser also reads back.
-        foreach (ulong candidate in ExactDecimal.Candidates(mantissa, binaryExponent, narrowLowerGap, 9, out int candidateExponent)) {
-            string longer = Layout(negative, candidate, candidateExponent, 9, format);
-            if (FrameworkParses(longer, value, format)) return longer;
-        }
-        return text;
+        return Layout(negative, digits, exponent, 9, format);
 #endif
     }
 
@@ -322,21 +305,12 @@ internal static class OfficeRoundTripNumberText {
         }
     }
 
-    // Whether .NET Framework's own parser reads the text back as exactly this value.
-    private static bool FrameworkParses(string text, long bits, NumberFormatInfo format) =>
-        double.TryParse(text, NumberStyles.Float, format, out double parsed) && BitConverter.DoubleToInt64Bits(parsed) == bits;
-
-    private static bool FrameworkParses(string text, float value, NumberFormatInfo format) =>
-        float.TryParse(text, NumberStyles.Float, format, out float parsed) &&
-        BitConverter.ToInt32(BitConverter.GetBytes(parsed), 0) == BitConverter.ToInt32(BitConverter.GetBytes(value), 0);
-
     /// <summary>
     /// Decimals that parse back to a float or double, found with exact integer arithmetic. The value is
     /// mantissa * 2^binaryExponent; a decimal reads back when it lies within half a unit in the last place (a
     /// quarter below a power of two, where the gap to the next lower value is half as wide), ends included when the
     /// mantissa is even, since a halfway text rounds to the even neighbour. Floats use it for their shortest text;
-    /// it is rare enough there that a float variant of Ryu is not worth carrying. Doubles use it only for the
-    /// longer text that .NET Framework's parser needs.
+    /// it is rare enough there that a float variant of Ryu is not worth carrying.
     /// </summary>
     private static class ExactDecimal {
         private static readonly BigInteger[] PowersOfTen = CreatePowersOfTen(400);
@@ -363,17 +337,6 @@ internal static class OfficeRoundTripNumberText {
             }
         }
 
-        // Decimals with the given number of digits that read back, closest first: the closest decimal and up to two
-        // neighbours on each side. All share the returned exponent.
-        internal static ulong[] Candidates(ulong mantissa, int binaryExponent, bool narrowLowerGap, int precision, out int exponent) {
-            ulong closest = Closest(mantissa, binaryExponent, precision, EstimateLeading(mantissa, binaryExponent), out exponent);
-            var found = new List<ulong>(5);
-            foreach (long offset in new long[] { 0, -1, 1, -2, 2 }) {
-                long candidate = (long)closest + offset;
-                if (candidate > 0 && Contains(mantissa, binaryExponent, narrowLowerGap, (ulong)candidate, exponent)) found.Add((ulong)candidate);
-            }
-            return found.ToArray();
-        }
 
         private static bool TryAtPrecision(ulong mantissa, int binaryExponent, bool narrowLowerGap, int precision, int estimate,
             out ulong digits, out int exponent) {

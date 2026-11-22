@@ -30,8 +30,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
                 if (value.Number.HasValue) number = value.Number.Value;
-                else if (value.Text != null && !double.TryParse(value.Text,
-                    System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out number)) {
+                else if (value.Text != null && !OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value.Text, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out number)) {
                     if (!firstError.IsError) firstError = FormulaArgumentValue.Error("#VALUE!");
                     continue;
                 }

@@ -309,7 +309,7 @@ namespace OfficeIMO.Word.Pdf {
                         lineSpacing = null;
                     }
                     string? markSize = paragraph._paragraph.ParagraphProperties?.ParagraphMarkRunProperties?.GetFirstChild<W.FontSize>()?.Val?.Value;
-                    paragraphFontSize = double.TryParse(markSize, NumberStyles.Float, CultureInfo.InvariantCulture, out double halfPoints) && halfPoints > 0D
+                    paragraphFontSize = OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(markSize, NumberStyles.Float, CultureInfo.InvariantCulture, out double halfPoints) && halfPoints > 0D
                         ? halfPoints / 2D : paragraphStyleDefaults.FontSize ?? tableStyleDefaults.RunStyle.FontSize;
                 }
                 if (lastIndex > i) {

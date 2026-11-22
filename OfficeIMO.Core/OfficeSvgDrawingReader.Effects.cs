@@ -236,7 +236,7 @@ public static partial class OfficeSvgDrawingReader {
     private static bool TryParseFiniteNumber(string? value, double fallback, out double result) {
         result = fallback;
         if (string.IsNullOrWhiteSpace(value)) return true;
-        return double.TryParse(value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out result)
+        return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out result)
             && !double.IsNaN(result)
             && !double.IsInfinity(result);
     }

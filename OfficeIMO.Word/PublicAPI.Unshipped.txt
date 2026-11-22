@@ -714,3 +714,4 @@ OfficeIMO.Word.WordListLevel.LegalNumbering.set -> void
 OfficeIMO.Word.WordChart.SaveAsImage(System.IO.Stream! stream, OfficeIMO.Drawing.OfficeChartImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.OfficeConversionReport!
 OfficeIMO.Word.WordChart.SaveAsImage(string! path, OfficeIMO.Drawing.OfficeChartImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.OfficeConversionReport!
 OfficeIMO.Word.WordChart.ToImage(OfficeIMO.Drawing.OfficeChartImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Drawing.OfficeImageExportResult!
+OfficeIMO.Word.WordDocument.AllCharts.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.WordChart!>!

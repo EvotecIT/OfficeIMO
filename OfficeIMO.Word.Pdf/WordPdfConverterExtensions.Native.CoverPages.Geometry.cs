@@ -177,7 +177,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static double? ResolveNativeVmlPercent(Dictionary<string, string> style, string key, double reference) {
             if (!style.TryGetValue(key, out string? value) ||
-                !double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double percent) ||
+                !OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double percent) ||
                 percent <= 0D) {
                 return null;
             }
@@ -193,8 +193,8 @@ namespace OfficeIMO.Word.Pdf {
 
             string[] parts = coordSize!.Split(',');
             if (parts.Length == 2 &&
-                double.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out double width) &&
-                double.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out double height) &&
+                OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out double width) &&
+                OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out double height) &&
                 width > 0D &&
                 height > 0D) {
                 return (width, height);
@@ -211,8 +211,8 @@ namespace OfficeIMO.Word.Pdf {
 
             string[] parts = coordOrigin!.Split(',');
             if (parts.Length == 2 &&
-                double.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out double x) &&
-                double.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out double y)) {
+                OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out double x) &&
+                OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out double y)) {
                 return (x, y);
             }
 
@@ -289,11 +289,11 @@ namespace OfficeIMO.Word.Pdf {
 
         private static double? ParseNativeVmlDouble(string value) {
             string normalized = value.Trim();
-            if (double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double result) && IsNativeVmlFinite(result)) {
+            if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double result) && IsNativeVmlFinite(result)) {
                 return result;
             }
 
-            if (double.TryParse(normalized.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out result) && IsNativeVmlFinite(result)) {
+            if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(normalized.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out result) && IsNativeVmlFinite(result)) {
                 return result;
             }
 

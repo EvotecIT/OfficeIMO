@@ -45,13 +45,13 @@ internal static class OdfDrawingTransform {
         return result;
     }
     private static double Number(string value) {
-        double result = double.Parse(value, NumberStyles.Float, CultureInfo.InvariantCulture);
+        double result = OfficeIMO.Core.Internal.OfficeRoundTripText.ParseDouble(value, NumberStyles.Float, CultureInfo.InvariantCulture);
         if (double.IsNaN(result) || double.IsInfinity(result)) throw new FormatException("Transform values must be finite.");
         return result;
     }
     private static double Length(string value) {
         // Unitless translations use the native Draw 1/100 millimeter coordinate unit.
-        if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) return Number(value) * 72 / 2540;
+        if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) return Number(value) * 72 / 2540;
         return OdfLength.Parse(value).ToPoints();
     }
 }

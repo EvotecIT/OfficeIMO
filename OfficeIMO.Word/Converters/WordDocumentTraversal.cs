@@ -668,7 +668,7 @@ namespace OfficeIMO.Word {
 
         private static double? ResolveListMarkerFontSize(NumberingSymbolRunProperties? markerProperties) {
             string? value = markerProperties?.GetFirstChild<FontSize>()?.Val?.Value;
-            if (!double.TryParse(value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double halfPoints) ||
+            if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double halfPoints) ||
                 halfPoints <= 0D ||
                 double.IsNaN(halfPoints) ||
                 double.IsInfinity(halfPoints)) {

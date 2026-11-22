@@ -71,7 +71,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
             return cell.Value.Kind switch {
                 GoogleSheetsCellValueKind.Blank => new GoogleSheetsApiExtendedValuePayload { StringValue = string.Empty },
                 GoogleSheetsCellValueKind.String => new GoogleSheetsApiExtendedValuePayload { StringValue = Convert.ToString(cell.Value.Value, CultureInfo.InvariantCulture) ?? string.Empty },
-                GoogleSheetsCellValueKind.Number => new GoogleSheetsApiExtendedValuePayload { NumberValue = Convert.ToDouble(cell.Value.Value, CultureInfo.InvariantCulture) },
+                GoogleSheetsCellValueKind.Number => new GoogleSheetsApiExtendedValuePayload { NumberValue = OfficeIMO.OfficeRoundTripNumberText.ToDouble(cell.Value.Value, CultureInfo.InvariantCulture) },
                 GoogleSheetsCellValueKind.Boolean => new GoogleSheetsApiExtendedValuePayload { BoolValue = Convert.ToBoolean(cell.Value.Value, CultureInfo.InvariantCulture) },
                 GoogleSheetsCellValueKind.DateTime => new GoogleSheetsApiExtendedValuePayload { NumberValue = ConvertToSerialDate(cell.Value.Value) },
                 GoogleSheetsCellValueKind.Formula => new GoogleSheetsApiExtendedValuePayload { FormulaValue = Convert.ToString(cell.Value.Value, CultureInfo.InvariantCulture) ?? "=" },

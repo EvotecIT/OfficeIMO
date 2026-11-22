@@ -23,8 +23,7 @@ internal static partial class IWorkTableReader {
         string digits = coefficient.ToString(CultureInfo.InvariantCulture);
         string text = ((buffer[offset + 15] & 0x80) != 0 ? "-" : "") + digits
             + "E" + exponent.ToString(CultureInfo.InvariantCulture);
-        if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture,
-                out double value) || !IsFinite(value) || value == 0d) return null;
+        if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) || !IsFinite(value) || value == 0d) return null;
         sourceText = text;
         approximate = digits.Length > 15;
         return value;

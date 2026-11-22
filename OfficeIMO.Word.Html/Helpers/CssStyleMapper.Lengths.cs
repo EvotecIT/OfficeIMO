@@ -25,7 +25,7 @@ namespace OfficeIMO.Word.Html {
                 return true;
             }
 
-            if (double.TryParse(normalized, NumberStyles.Number, CultureInfo.InvariantCulture, out double number)) {
+            if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(normalized, NumberStyles.Number, CultureInfo.InvariantCulture, out double number)) {
                 twips = (int)Math.Round(number * 15d);
                 return true;
             }
@@ -40,11 +40,7 @@ namespace OfficeIMO.Word.Html {
             out int twips) {
             twips = 0;
             if (!value.EndsWith(unit, StringComparison.Ordinal) ||
-                !double.TryParse(
-                    value.Substring(0, value.Length - unit.Length),
-                    NumberStyles.Number,
-                    CultureInfo.InvariantCulture,
-                    out double number)) {
+                !OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value.Substring(0, value.Length - unit.Length), NumberStyles.Number, CultureInfo.InvariantCulture, out double number)) {
                 return false;
             }
 

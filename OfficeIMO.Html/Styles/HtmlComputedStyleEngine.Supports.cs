@@ -261,7 +261,7 @@ public static partial class HtmlComputedStyleEngine {
             string number = normalized.EndsWith("%", StringComparison.Ordinal)
                 ? normalized.Substring(0, normalized.Length - 1)
                 : normalized;
-            return double.TryParse(number, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double opacity)
+            return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(number, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double opacity)
                 && !double.IsNaN(opacity)
                 && !double.IsInfinity(opacity);
         }
@@ -460,7 +460,7 @@ public static partial class HtmlComputedStyleEngine {
                     || IsSupportedFontLength(value);
             case "line-height":
                 return normalized == "normal"
-                    || double.TryParse(value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double lineHeight)
+                    || OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double lineHeight)
                         && !double.IsInfinity(lineHeight) && !double.IsNaN(lineHeight) && lineHeight >= 0D
                     || IsSupportedFontLength(value);
             case "position":
@@ -510,12 +510,12 @@ public static partial class HtmlComputedStyleEngine {
             case "font-stretch":
                 return IsKnownKeyword(normalized, "normal", "ultra-condensed", "extra-condensed", "condensed", "semi-condensed", "semi-expanded", "expanded", "extra-expanded", "ultra-expanded", "wider", "narrower")
                     || normalized.EndsWith("%", StringComparison.Ordinal)
-                    && double.TryParse(normalized.Substring(0, normalized.Length - 1), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double stretch)
+                    && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(normalized.Substring(0, normalized.Length - 1), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double stretch)
                     && stretch >= 50D
                     && stretch <= 200D;
             case "font-weight":
                 return IsKnownKeyword(normalized, "normal", "bold", "bolder", "lighter")
-                    || double.TryParse(normalized, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double weight)
+                    || OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(normalized, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double weight)
                     && weight >= 1D && weight <= 1000D;
             case "text-align":
                 return IsKnownKeyword(normalized, "left", "right", "center", "justify", "justify-all", "start", "end", "match-parent",
@@ -560,7 +560,7 @@ public static partial class HtmlComputedStyleEngine {
                     || int.TryParse(normalized, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int clampedLines)
                     && clampedLines > 0;
             case "tab-size":
-                return double.TryParse(normalized, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double tabCount)
+                return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(normalized, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double tabCount)
                     ? tabCount >= 0D && !double.IsNaN(tabCount) && !double.IsInfinity(tabCount)
                     : IsNonNegativeCssLength(normalized);
             case "list-style-position":

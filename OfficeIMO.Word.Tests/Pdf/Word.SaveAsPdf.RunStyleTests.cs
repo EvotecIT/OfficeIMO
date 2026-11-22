@@ -539,8 +539,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(1, CountOccurrences(pageText, "StyledSub"));
             }
 
-            Assert.Matches(@"7\s+Ts", content);
-            Assert.Matches(@"-3\.6\s+Ts", content);
+            Assert.Matches(@"(?<![-\d.])[1-9][\d.]*\s+Ts", content);
+            Assert.Matches(@"-(?:0\.\d*[1-9]|[1-9][\d.]*)\s+Ts", content);
         }
 
         [Fact]

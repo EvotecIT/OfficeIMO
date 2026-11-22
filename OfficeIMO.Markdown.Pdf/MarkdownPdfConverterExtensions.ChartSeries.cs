@@ -480,7 +480,7 @@ public static partial class MarkdownPdfConverterExtensions {
             trimmed = trimmed.Substring(0, trimmed.Length - 1);
         }
 
-        if (!double.TryParse(trimmed, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed) ||
+        if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(trimmed, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed) ||
             double.IsNaN(parsed) ||
             double.IsInfinity(parsed)) {
             return false;
@@ -502,7 +502,7 @@ public static partial class MarkdownPdfConverterExtensions {
             trimmed = trimmed.Substring(0, trimmed.Length - 1);
         }
 
-        if (!double.TryParse(trimmed, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed) ||
+        if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(trimmed, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed) ||
             double.IsNaN(parsed) ||
             double.IsInfinity(parsed)) {
             return false;

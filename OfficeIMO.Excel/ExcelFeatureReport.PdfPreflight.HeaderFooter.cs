@@ -253,7 +253,7 @@ namespace OfficeIMO.Excel {
                 builder.Append(text[index]);
             }
 
-            return double.TryParse(builder.ToString(), System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out fontSize)
+            return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(builder.ToString(), System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out fontSize)
                    && fontSize > 0D;
         }
 

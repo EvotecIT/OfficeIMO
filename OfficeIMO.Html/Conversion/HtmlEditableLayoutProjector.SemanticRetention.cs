@@ -283,8 +283,7 @@ public static partial class HtmlEditableLayoutProjector {
         if (!styles.TryGetValue(element, out HtmlComputedStyle? style)) return;
         string opacity = style.GetValue("opacity").Trim();
         if (element is not IHtmlImageElement
-            && double.TryParse(opacity, System.Globalization.NumberStyles.Float,
-                System.Globalization.CultureInfo.InvariantCulture, out double parsedOpacity)
+            && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(opacity, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double parsedOpacity)
             && parsedOpacity < 0.999D) {
             effects.Add(prefix + "opacity=" + opacity);
         }
@@ -481,10 +480,7 @@ public static partial class HtmlEditableLayoutProjector {
                 length++;
             }
             if (length == 0
-                || !double.TryParse(token.Substring(0, length),
-                    System.Globalization.NumberStyles.Float,
-                    System.Globalization.CultureInfo.InvariantCulture,
-                    out double number)
+                || !OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(token.Substring(0, length), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double number)
                 || Math.Abs(number) > 0.000001D) {
                 return false;
             }

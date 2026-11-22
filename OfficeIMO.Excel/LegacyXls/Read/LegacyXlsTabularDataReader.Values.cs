@@ -103,14 +103,14 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             ValidateReadableOrdinal(ordinal);
             return _kinds[ordinal] is ValueKind.Number or ValueKind.Date or ValueKind.DatelessSerial
                 ? (float)_numbers[ordinal]
-                : Convert.ToSingle(GetValue(ordinal), _options.Culture);
+                : OfficeIMO.Core.Internal.OfficeRoundTripText.ToSingle(GetValue(ordinal), _options.Culture);
         }
 
         public override double GetDouble(int ordinal) {
             ValidateReadableOrdinal(ordinal);
             return _kinds[ordinal] is ValueKind.Number or ValueKind.Date or ValueKind.DatelessSerial
                 ? _numbers[ordinal]
-                : Convert.ToDouble(GetValue(ordinal), _options.Culture);
+                : OfficeIMO.Core.Internal.OfficeRoundTripText.ToDouble(GetValue(ordinal), _options.Culture);
         }
 
         public override decimal GetDecimal(int ordinal) {

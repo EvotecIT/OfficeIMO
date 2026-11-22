@@ -67,7 +67,7 @@ namespace OfficeIMO.Excel {
                         || type == DocumentFormat.OpenXml.Spreadsheet.CellValues.InlineString) {
                         formulaValue = GetCellText(cell);
                     } else if (type != DocumentFormat.OpenXml.Spreadsheet.CellValues.Error
-                        && double.TryParse(cached, NumberStyles.Float, CultureInfo.InvariantCulture, out double cachedNumber)) {
+                        && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(cached, NumberStyles.Float, CultureInfo.InvariantCulture, out double cachedNumber)) {
                         formulaValue = cachedNumber;
                     }
                 }
@@ -93,7 +93,7 @@ namespace OfficeIMO.Excel {
                 return new ExcelCellData(ExcelCellDataKind.Text, text, cachedText: text);
             }
 
-            if (double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
+            if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
                 return new ExcelCellData(ExcelCellDataKind.Number, number, cachedText: text);
             }
 

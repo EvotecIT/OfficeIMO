@@ -55,9 +55,15 @@ namespace OfficeIMO.PowerPoint {
         public IEnumerable<PowerPointTable> Tables => ShapeList.OfType<PowerPointTable>();
 
         /// <summary>
-        ///     Enumerates all charts on the slide.
+        ///     Enumerates the charts placed directly on the slide; charts inside groups are listed by <see cref="AllCharts"/>.
         /// </summary>
         public IEnumerable<PowerPointChart> Charts => ShapeList.OfType<PowerPointChart>();
+
+        /// <summary>
+        ///     Gets every chart on the slide in drawing order, including charts inside groups and hidden charts.
+        /// </summary>
+        public IReadOnlyList<PowerPointChart> AllCharts =>
+            EnumerateShapesDeep(ShapeList, includeHidden: true).OfType<PowerPointChart>().ToList().AsReadOnly();
 
         /// <summary>
         ///     Enumerates all SmartArt diagrams on the slide.

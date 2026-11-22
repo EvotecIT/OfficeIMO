@@ -163,7 +163,7 @@ internal static partial class PdfType1FontConverter {
         if (parts.Length != count) return null;
         var values = new double[count];
         for (int index = 0; index < count; index++) {
-            if (!double.TryParse(parts[index], NumberStyles.Float, CultureInfo.InvariantCulture, out values[index]) ||
+            if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(parts[index], NumberStyles.Float, CultureInfo.InvariantCulture, out values[index]) ||
                 double.IsNaN(values[index]) || double.IsInfinity(values[index])) return null;
         }
         return values;

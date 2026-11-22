@@ -87,7 +87,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     property = OfficeOleProperty.Integer(propertyId, value);
                     return true;
                 case WordCustomPropertyType.NumberDouble:
-                    property = OfficeOleProperty.Double(propertyId, Convert.ToDouble(value, CultureInfo.InvariantCulture));
+                    property = OfficeOleProperty.Double(propertyId, OfficeIMO.Core.Internal.OfficeRoundTripText.ToDouble(value, CultureInfo.InvariantCulture));
                     return true;
                 case WordCustomPropertyType.YesNo:
                     property = OfficeOleProperty.Boolean(propertyId, Convert.ToBoolean(value, CultureInfo.InvariantCulture));

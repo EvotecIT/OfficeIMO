@@ -19,7 +19,7 @@ internal sealed class DataReaderMappingValue {
         if ((value is double || value is decimal) && IsDate(effective)) return ReadDate(reader, ordinal, value);
         // A plain number read as a duration is a day count, as for a date value's serial.
         if ((value is double || value is decimal) && effective == typeof(TimeSpan)) {
-            return new DataReaderMappingValue(value, Convert.ToDouble(value, System.Globalization.CultureInfo.InvariantCulture));
+            return new DataReaderMappingValue(value, OfficeIMO.Core.Internal.OfficeRoundTripText.ToDouble(value, System.Globalization.CultureInfo.InvariantCulture));
         }
         // A duration is the day count of a date value's serial, not its calendar date.
         if (value is not DateTime || !(IsNumeric(effective) || effective == typeof(TimeSpan))) return value;

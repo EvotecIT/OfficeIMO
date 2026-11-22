@@ -96,7 +96,7 @@ using OfficeIMO.Word;
 
 using var document = WordDocument.Load("report.docx");
 int number = 0;
-foreach (WordChart chart in document.Charts) {
+foreach (WordChart chart in document.AllCharts) {
     OfficeImageExportResult png = chart.ToImage(new OfficeChartImageExportOptions { TargetDpi = 192 });
     File.WriteAllBytes($"chart-{++number}.png", png.Bytes);
 }
@@ -106,7 +106,7 @@ document.Charts[0].SaveAsImage("first.svg", new OfficeChartImageExportOptions {
 });
 ```
 
-`OfficeChartImageExportOptions` is the same type for Word, Excel and PowerPoint charts. Without `Width` and `Height` the chart keeps its frame size. The result carries the encoded `Bytes`, `Format`, `Width`, `Height` and rendering `Diagnostics`; `SaveAsImage` returns an `OfficeConversionReport`. A chart the shared renderer cannot draw throws `NotSupportedException` with the reason, and `TryGetOfficeSnapshot(out snapshot)` checks first without throwing. Both work for charts in loaded documents as well as charts built in the same session.
+`document.AllCharts` lists every chart: the body, then each section's headers and footers, then footnotes and endnotes. `document.Charts` keeps listing only the body, like `Images` and `Tables`. `OfficeChartImageExportOptions` is the same type for Word, Excel and PowerPoint charts. Without `Width` and `Height` the chart keeps its frame size. The result carries the encoded `Bytes`, `Format`, `Width`, `Height` and rendering `Diagnostics`; `SaveAsImage` returns an `OfficeConversionReport`. A chart the shared renderer cannot draw throws `NotSupportedException` with the reason, and `TryGetOfficeSnapshot(out snapshot)` checks first without throwing. Both work for charts in loaded documents as well as charts built in the same session.
 
 ## Headers, footers and images
 

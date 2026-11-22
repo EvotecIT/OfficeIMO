@@ -458,7 +458,7 @@ internal sealed class TomlEventWriter : DataEventWriter {
             return;
         }
 
-        double number = double.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture);
+        double number = OfficeIMO.OfficeRoundTripNumberText.ParseDouble(text, NumberStyles.Float, CultureInfo.InvariantCulture);
         if (double.IsInfinity(number)) {
             OutOfRange(path, key, "Numbers beyond the range of a TOML float were written as strings.");
             _toml.WriteString(text);

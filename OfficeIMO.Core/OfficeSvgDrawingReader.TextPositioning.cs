@@ -131,7 +131,7 @@ public static partial class OfficeSvgDrawingReader {
             }
             var values = new List<double>(tokens.Length);
             foreach (string token in tokens) {
-                if (!double.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
+                if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
                     || double.IsNaN(value) || double.IsInfinity(value)) {
                     unsupported++;
                     return null;

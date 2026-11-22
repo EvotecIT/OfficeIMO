@@ -333,7 +333,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 formula = EncodeValueObjectFormula(context, text!);
             } else if (type is 1 or 4 or 5) {
                 if (string.IsNullOrEmpty(text)) throw Refuse(sheetName, $"a '{value.Type!.InnerText}' value object without a value");
-                if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out number)) {
+                if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParseFinite(text, NumberStyles.Float, CultureInfo.InvariantCulture, out number)) {
                     formula = EncodeValueObjectFormula(context, text!);
                 } else if (type != 1 && (number < 0D || number > 100D)) {
                     throw Refuse(sheetName, $"a percent value object of {text}; XLSB allows 0 to 100");
@@ -341,7 +341,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
             using var payload = new MemoryStream();
             XlsbPayloadWriter.WriteUInt32(payload, type);
-            XlsbPayloadWriter.WriteDouble(payload, number);
+            XlsbPayloadWriter.WriteDouble(payload, number == 0D ? 0D : number); // an Xnum has no negative zero
             // fSaveGTE and fGTE only apply to icon sets; other value objects store zero, as Excel does.
             XlsbPayloadWriter.WriteUInt32(payload, iconSet ? 1U : 0U);
             XlsbPayloadWriter.WriteUInt32(payload, iconSet && value.GreaterThanOrEqual?.Value != false ? 1U : 0U);

@@ -32,7 +32,7 @@ public sealed class OdfMarkerGeometry {
         if (tokens.Length != 4) throw new ArgumentException("Marker view box requires four numbers.", nameof(value));
         var numbers = new double[4];
         for (int i = 0; i < tokens.Length; i++)
-            if (!double.TryParse(tokens[i], NumberStyles.Float, CultureInfo.InvariantCulture, out numbers[i]) || !Finite(numbers[i]) || (i >= 2 && numbers[i] <= 0))
+            if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(tokens[i], NumberStyles.Float, CultureInfo.InvariantCulture, out numbers[i]) || !Finite(numbers[i]) || (i >= 2 && numbers[i] <= 0))
                 throw new ArgumentException("Marker view box requires finite coordinates and positive dimensions.", nameof(value));
         // ODF view boxes require integers, even though native producers sometimes emit fractional coordinates.
         double x = Math.Floor(numbers[0]), y = Math.Floor(numbers[1]);

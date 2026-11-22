@@ -121,11 +121,7 @@ namespace OfficeIMO.Word.Html {
                 return pixels > 0d;
             }
             if (normalized.EndsWith("%", StringComparison.Ordinal) &&
-                double.TryParse(
-                    normalized.Substring(0, normalized.Length - 1),
-                    NumberStyles.Float,
-                    CultureInfo.InvariantCulture,
-                    out double percent)) {
+                OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(normalized.Substring(0, normalized.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out double percent)) {
                 pixels = inheritedFontSizePixels * percent / 100d;
                 return pixels > 0d;
             }
@@ -155,11 +151,7 @@ namespace OfficeIMO.Word.Html {
             out double pixels) {
             pixels = 0d;
             if (!value.EndsWith(unit, StringComparison.Ordinal) ||
-                !double.TryParse(
-                    value.Substring(0, value.Length - unit.Length),
-                    NumberStyles.Float,
-                    CultureInfo.InvariantCulture,
-                    out double multiple)) {
+                !OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value.Substring(0, value.Length - unit.Length), NumberStyles.Float, CultureInfo.InvariantCulture, out double multiple)) {
                 return false;
             }
 

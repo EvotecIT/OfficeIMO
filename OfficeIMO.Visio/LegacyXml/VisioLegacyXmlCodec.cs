@@ -149,8 +149,7 @@ internal static partial class VisioLegacyXmlCodec {
                     XElement? connect = endpoints.FirstOrDefault(c => (string?)c.Attribute("FromCell") == prefix + "X");
                     if (connect != null) return page.Descendants(Modern + "Shape").Any(target => (string?)target.Attribute("ID") == (string?)connect.Attribute("ToSheet"));
                     return new[] { prefix + "X", prefix + "Y" }.All(name =>
-                        double.TryParse((string?)shape.Elements(Modern + "Cell").FirstOrDefault(c => (string?)c.Attribute("N") == name)?.Attribute("V"),
-                            System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double number) &&
+                        OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse((string?)shape.Elements(Modern + "Cell").FirstOrDefault(c => (string?)c.Attribute("N") == name)?.Attribute("V"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double number) &&
                         !double.IsNaN(number) && !double.IsInfinity(number));
                 }
                 if (!ReadableEndpoint("Begin") || !ReadableEndpoint("End"))

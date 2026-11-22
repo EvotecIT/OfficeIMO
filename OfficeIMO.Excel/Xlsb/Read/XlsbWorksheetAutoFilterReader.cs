@@ -98,7 +98,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 value = cursor.ReadWideString(32_767);
                 if (cursor.Remaining != 0) Invalid(record);
                 // A string comparison whose text reads as a number would be re-encoded as a numeric one; keep it native.
-                if (double.TryParse(value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out _)) value = null;
+                if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double _)) value = null;
             } else if (valueType is not (0x08 or 0x0C or 0x0E) || record.Data.Length != 10) {
                 Invalid(record);
             }

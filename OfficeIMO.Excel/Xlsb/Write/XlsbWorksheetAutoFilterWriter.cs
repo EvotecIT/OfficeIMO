@@ -130,10 +130,10 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 string value = condition.Val?.Value
                     ?? throw new NotSupportedException($"Native XLSB generation requires a value for each custom AutoFilter condition on worksheet '{sheetName}'.");
                 using var payload = new MemoryStream(10 + 4 + value.Length * 2);
-                bool number = double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double numeric);
+                bool number = OfficeIMO.Core.Internal.OfficeRoundTripText.TryParseFinite(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double numeric);
                 payload.WriteByte(number ? XlsbAutoFilterCriteria.NumberValue : XlsbAutoFilterCriteria.StringValue);
                 payload.WriteByte(XlsbAutoFilterCriteria.GetOperatorCode(condition.Operator?.Value ?? FilterOperatorValues.Equal));
-                payload.Write(BitConverter.GetBytes(number ? numeric : 0D), 0, 8);
+                payload.Write(BitConverter.GetBytes(number && numeric != 0D ? numeric : 0D), 0, 8); // an Xnum has no negative zero
                 if (!number) {
                     if (value.Length > 255) {
                         throw new NotSupportedException($"Native XLSB generation requires custom AutoFilter text of up to 255 characters on worksheet '{sheetName}'.");

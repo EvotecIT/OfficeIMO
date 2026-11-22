@@ -259,7 +259,7 @@ namespace OfficeIMO.Excel {
                         return false;
                     }
 
-                    value = Convert.ToDouble(objectValue, _culture);
+                    value = OfficeIMO.Core.Internal.OfficeRoundTripText.ToDouble(objectValue, _culture);
                     return true;
                 }
                 if (IsDBNull(ordinal)) {

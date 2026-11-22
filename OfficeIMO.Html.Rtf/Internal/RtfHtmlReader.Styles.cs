@@ -171,7 +171,7 @@ internal static partial class RtfHtmlReader {
 
         private static double? ReadDouble(Dictionary<string, string> values, string key) {
             return values.TryGetValue(key, out string? value) &&
-                   double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
+                   OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
                 ? parsed
                 : null;
         }

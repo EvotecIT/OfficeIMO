@@ -241,7 +241,7 @@ internal static partial class IWorkLegacyXmlReader {
     }
 
     private static bool TryLegacyNumber(string? text, out double value) =>
-        double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value)
+        OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value)
         && !double.IsNaN(value) && !double.IsInfinity(value);
 
     private static bool TryLegacyCount(XAttribute? attribute, out int count) =>

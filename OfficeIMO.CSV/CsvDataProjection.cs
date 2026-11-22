@@ -254,7 +254,7 @@ internal static partial class CsvDataProjectionConverter
                 }
 
                 break;
-            case CsvDataConversionKind.Double when double.TryParse(text, NumberStyles.Any, culture, out var doubleValue):
+            case CsvDataConversionKind.Double when OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, NumberStyles.Any, culture, out double doubleValue):
                 converted = doubleValue;
                 return true;
             case CsvDataConversionKind.Decimal:
@@ -272,7 +272,7 @@ internal static partial class CsvDataProjectionConverter
                 }
 
                 break;
-            case CsvDataConversionKind.Single when float.TryParse(text, NumberStyles.Any, culture, out var singleValue):
+            case CsvDataConversionKind.Single when OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, NumberStyles.Any, culture, out float singleValue):
                 converted = singleValue;
                 return true;
             case CsvDataConversionKind.DateTime:

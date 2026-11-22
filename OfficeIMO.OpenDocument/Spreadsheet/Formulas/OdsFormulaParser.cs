@@ -110,7 +110,7 @@ internal sealed class OdsFormulaParser {
         switch (_current.Kind) {
             case OdsFormulaTokenKind.Number:
                 string lexical = Take().Text;
-                if (!double.TryParse(lexical, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) throw Error("Invalid number '" + lexical + "'.");
+                if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(lexical, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) throw Error("Invalid number '" + lexical + "'.");
                 return Scalar(Number(number));
             case OdsFormulaTokenKind.String:
                 return Scalar(_context.Text(Take().Text));

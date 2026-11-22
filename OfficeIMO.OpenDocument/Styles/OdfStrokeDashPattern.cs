@@ -59,7 +59,7 @@ public sealed class OdfStrokeDashPattern {
         }
         string number = text.Substring(0, text.Length - 1);
         if (!IsDecimal(number, false)) throw new FormatException("Invalid dash percentage.");
-        return double.Parse(number, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture) / 100D * strokeWidth;
+        return OfficeIMO.Core.Internal.OfficeRoundTripText.ParseDouble(number, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture) / 100D * strokeWidth;
     }
     private static bool IsDecimal(string number, bool allowMinus) {
         int start = allowMinus && number.StartsWith("-", StringComparison.Ordinal) ? 1 : 0;

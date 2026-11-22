@@ -141,10 +141,10 @@ internal static class PdfPageDictionaryBuilder {
         string bottom,
         string right,
         string top) {
-        double serializedLeft = double.Parse(left, CultureInfo.InvariantCulture);
-        double serializedBottom = double.Parse(bottom, CultureInfo.InvariantCulture);
-        double serializedRight = double.Parse(right, CultureInfo.InvariantCulture);
-        double serializedTop = double.Parse(top, CultureInfo.InvariantCulture);
+        double serializedLeft = OfficeIMO.Core.Internal.OfficeRoundTripText.ParseDouble(left, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, CultureInfo.InvariantCulture);
+        double serializedBottom = OfficeIMO.Core.Internal.OfficeRoundTripText.ParseDouble(bottom, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, CultureInfo.InvariantCulture);
+        double serializedRight = OfficeIMO.Core.Internal.OfficeRoundTripText.ParseDouble(right, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, CultureInfo.InvariantCulture);
+        double serializedTop = OfficeIMO.Core.Internal.OfficeRoundTripText.ParseDouble(top, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, CultureInfo.InvariantCulture);
         if (serializedRight <= serializedLeft || serializedTop <= serializedBottom) {
             throw new InvalidOperationException(
                 "PDF " + name + " coordinates must retain positive width and height after serialization.");

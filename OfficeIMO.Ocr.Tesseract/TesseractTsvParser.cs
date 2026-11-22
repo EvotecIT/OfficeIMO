@@ -112,7 +112,7 @@ internal static class TesseractTsvParser {
             || !int.TryParse(columns[7], NumberStyles.Integer, CultureInfo.InvariantCulture, out int top)
             || !int.TryParse(columns[8], NumberStyles.Integer, CultureInfo.InvariantCulture, out int width)
             || !int.TryParse(columns[9], NumberStyles.Integer, CultureInfo.InvariantCulture, out int height)
-            || !double.TryParse(columns[10], NumberStyles.Float, CultureInfo.InvariantCulture, out double confidence)) return false;
+            || !OfficeIMO.OfficeRoundTripNumberText.TryParse(columns[10], NumberStyles.Float, CultureInfo.InvariantCulture, out double confidence)) return false;
         string text = columns.Length > 11 ? columns[11].Trim() : string.Empty;
         if (text.Length == 0) return true;
         word = new WordRow(sourceIndex, page, block, paragraph, line, left, top, width, height, confidence < 0D ? null : confidence / 100D, text);

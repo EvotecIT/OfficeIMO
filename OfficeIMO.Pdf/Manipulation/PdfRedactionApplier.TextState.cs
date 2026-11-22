@@ -38,12 +38,12 @@ internal static partial class PdfRedactionApplier {
                     case "cm" when operation.Operands.Count >= 6:
                         int start = operation.Operands.Count - 6;
                         current = Matrix2D.Multiply(current, new Matrix2D(
-                            Convert.ToDouble(operation.Operands[start], CultureInfo.InvariantCulture),
-                            Convert.ToDouble(operation.Operands[start + 1], CultureInfo.InvariantCulture),
-                            Convert.ToDouble(operation.Operands[start + 2], CultureInfo.InvariantCulture),
-                            Convert.ToDouble(operation.Operands[start + 3], CultureInfo.InvariantCulture),
-                            Convert.ToDouble(operation.Operands[start + 4], CultureInfo.InvariantCulture),
-                            Convert.ToDouble(operation.Operands[start + 5], CultureInfo.InvariantCulture)));
+                            OfficeIMO.Core.Internal.OfficeRoundTripText.ToDouble(operation.Operands[start], CultureInfo.InvariantCulture),
+                            OfficeIMO.Core.Internal.OfficeRoundTripText.ToDouble(operation.Operands[start + 1], CultureInfo.InvariantCulture),
+                            OfficeIMO.Core.Internal.OfficeRoundTripText.ToDouble(operation.Operands[start + 2], CultureInfo.InvariantCulture),
+                            OfficeIMO.Core.Internal.OfficeRoundTripText.ToDouble(operation.Operands[start + 3], CultureInfo.InvariantCulture),
+                            OfficeIMO.Core.Internal.OfficeRoundTripText.ToDouble(operation.Operands[start + 4], CultureInfo.InvariantCulture),
+                            OfficeIMO.Core.Internal.OfficeRoundTripText.ToDouble(operation.Operands[start + 5], CultureInfo.InvariantCulture)));
                         break;
                     case "BT":
                         contexts[operation.OperatorOffset] = new TextObjectContext(current, textState);

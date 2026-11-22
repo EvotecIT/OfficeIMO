@@ -253,15 +253,12 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Provides a list of all charts within the document.
+        /// Provides a list of the charts in the document body. <see cref="AllCharts"/> also lists header, footer, footnote and endnote charts.
         /// </summary>
         public List<WordChart> Charts {
             get {
-                return ParagraphsCharts
-                    .Select(p => p.Chart)
-                    .Where(chart => chart != null)
-                    .Cast<WordChart>()
-                    .ToList();
+                Body? body = _document?.Body;
+                return body == null ? new List<WordChart>() : CollectCharts(body.ChildElements);
             }
         }
 

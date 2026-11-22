@@ -126,8 +126,7 @@ public sealed partial class HtmlConversionDocument {
     private static bool IsInvisibleForEditableContent(HtmlComputedStyle style) {
         if (style.GetValue("display").Trim().Equals("none", StringComparison.OrdinalIgnoreCase)) return true;
         string opacity = style.GetValue("opacity").Trim();
-        return double.TryParse(opacity, NumberStyles.Float,
-            CultureInfo.InvariantCulture, out double alpha) && alpha <= 0D;
+        return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(opacity, NumberStyles.Float, CultureInfo.InvariantCulture, out double alpha) && alpha <= 0D;
     }
 
     private static bool IsPortableImageMaximumWidth(string value) {
@@ -135,7 +134,7 @@ public sealed partial class HtmlConversionDocument {
         bool percentage = value.EndsWith("%", StringComparison.Ordinal);
         if (!pixels && !percentage) return false;
         string number = value.Substring(0, value.Length - (pixels ? 2 : 1));
-        return double.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
+        return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
             && !double.IsNaN(parsed) && !double.IsInfinity(parsed) && parsed > 0D;
     }
 }

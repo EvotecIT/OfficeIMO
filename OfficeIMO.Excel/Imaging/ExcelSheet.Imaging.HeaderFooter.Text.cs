@@ -170,7 +170,7 @@ namespace OfficeIMO.Excel {
             }
 
             string value = text.Substring(start, tokenEnd - start + 1);
-            return double.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out fontSize) && fontSize > 0D;
+            return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out fontSize) && fontSize > 0D;
         }
 
         private static bool TryReadHeaderFooterFontFamilyToken(string text, int openingQuoteIndex, out string fontFamily, out bool? bold, out bool? italic, out int tokenEnd) {

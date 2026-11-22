@@ -44,7 +44,8 @@ internal static partial class PdfWriter {
                 fontMetricScale: source.FontMetricScale, leadingSpaceCount: count,
                 leadingSpaceRemainder: remainder, leadingSpaceUnitAdvance: unit,
                 contributesLineBoxDescent: source.ContributesLineBoxDescent, formField: source.FormField,
-                footnoteReference: source.TakeFootnoteReference(), leadingIsOrdinarySpace: source.LeadingIsOrdinarySpace).WithFootnoteReferenceOrigin(source).WithSourceTabRun(source.SourceTabRun));
+                footnoteReference: source.TakeFootnoteReference(), leadingIsOrdinarySpace: source.LeadingIsOrdinarySpace,
+                baselineShift: source.BaselineShift).WithFootnoteReferenceOrigin(source).WithSourceTabRun(source.SourceTabRun));
             remaining -= consumed;
             pending.ConsumeFirstAdvance(consumed);
             if (fragment.Advance <= 0.001D) pending.RemoveFirst();
@@ -65,7 +66,7 @@ internal static partial class PdfWriter {
             leadingTabAlignment: alignment, horizontalTextScaling: style.HorizontalTextScaling,
             characterSpacing: style.CharacterSpacing, fontMetricScale: style.FontMetricScale,
             leadingSpaceCount: 0, contributesLineBoxDescent: style.ContributesLineBoxDescent, formField: style.FormField,
-            footnoteReference: style.TakeFootnoteReference()).WithFootnoteReferenceOrigin(style).WithSourceTabRun(style.SourceTabRun);
+            footnoteReference: style.TakeFootnoteReference(), baselineShift: style.BaselineShift).WithFootnoteReferenceOrigin(style).WithSourceTabRun(style.SourceTabRun);
 
     private static void AppendPreservedSpaceRuns(List<PdfTextRun> runs, RichSeg segment) {
         // Links remain on their visible text. A whitespace-only public run

@@ -25,7 +25,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             operand = FormatTimeOperand(constantTime);
             return true;
         }
-        if (!double.TryParse(formula, NumberStyles.Float, CultureInfo.InvariantCulture, out double serial)
+        if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(formula, NumberStyles.Float, CultureInfo.InvariantCulture, out double serial)
             || double.IsNaN(serial) || double.IsInfinity(serial)) return false;
 
         if (kind == OdsValidationValueKind.Date) {

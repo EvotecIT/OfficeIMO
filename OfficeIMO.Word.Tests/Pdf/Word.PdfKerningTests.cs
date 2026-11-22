@@ -153,6 +153,125 @@ public sealed class WordPdfKerningTests {
         return Assert.Single(pdf.GetPages()).Letters.ToArray();
     }
 
+    // Word kerns the glyph before a word space against the space ("A " in Times New Roman and Arial),
+    // so the gap between two words is the space advance plus that pair. The test pair shortens the
+    // first glyph's advance by 20 units and the second (the space) by 40, at 10 pt per 1000 units.
+    [Theory]
+    [InlineData(1D, 9.4D)]
+    [InlineData(0D, 10D)]
+    public void PairKerningAppliesAcrossAWordSpace(double threshold, double expected) {
+        using WordDocument document = WordDocument.Create();
+        WordParagraph paragraph = document.AddParagraph("A A");
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(10);
+        paragraph.FontFamily = ManagedTextShapingTestAssets.FamilyName;
+        paragraph.KerningMinimumFontSize = global::OfficeIMO.OfficeLength.Points(threshold);
+
+        using var pdf = PdfPigDocument.Open(document.ToPdf(ConversionOptions(
+            FontOptions(ManagedTextShapingTestAssets.CreateFontWithPairPositioning('A', ' ')))).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+
+        Letter[] letters = pdf.GetPage(1).Letters.Where(letter => letter.Value == "A").ToArray();
+        Assert.Equal(2, letters.Length);
+        Assert.Equal(expected, letters[1].StartBaseLine.X - letters[0].StartBaseLine.X, 3);
+    }
+
+    // Word kerns a space only when its run has the words' font and size; a colour change does not
+    // matter. The test pair shortens 'A' by 20 units and the space by 40 at 10 pt per 1000 units.
+    [Theory]
+    [InlineData("color", 0.6D)]
+    [InlineData("size", 0D)]
+    public void PairKerningAcrossASpaceNeedsTheSpaceInTheWordsFormatting(string separator, double kerning) {
+        byte[] font = ManagedTextShapingTestAssets.CreateFontWithPairPositioning('A', ' ');
+        double Gap(double threshold) {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph paragraph = document.AddParagraph();
+            foreach (string text in new[] { "A", " ", "A" }) {
+                WordParagraph run = paragraph.AddText(text);
+                run.FontFamily = ManagedTextShapingTestAssets.FamilyName;
+                run.FontSize = global::OfficeIMO.OfficeLength.Points(text == " " && separator == "size" ? 12 : 10);
+                if (text == " " && separator == "color") run.Color = global::OfficeIMO.OfficeColor.Parse("ff0000");
+                run.KerningMinimumFontSize = global::OfficeIMO.OfficeLength.Points(threshold);
+            }
+            using var pdf = PdfPigDocument.Open(document.ToPdf(ConversionOptions(FontOptions(font)))
+                .ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+            Letter[] letters = pdf.GetPage(1).Letters.Where(letter => letter.Value == "A").ToArray();
+            return letters[1].StartBaseLine.X - letters[0].StartBaseLine.X;
+        }
+
+        Assert.Equal(kerning, Gap(0D) - Gap(1D), 3);
+    }
+
+    // A word space inside a superscript run kerns with its neighbours like any other space in one run.
+    [Fact]
+    public void PairKerningAppliesAcrossASpaceInsideASuperscriptRun() {
+        byte[] font = ManagedTextShapingTestAssets.WithScriptMetrics(ManagedTextShapingTestAssets.CreateFontWithPairPositioning('A', ' ', withOs2: true),
+            subscriptSize: 600, subscriptOffset: 50, superscriptSize: 600, superscriptOffset: 300);
+        double Gap(double threshold) {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph run = document.AddParagraph().AddText("A A");
+            run.FontFamily = ManagedTextShapingTestAssets.FamilyName;
+            run.FontSize = global::OfficeIMO.OfficeLength.Points(10);
+            run.KerningMinimumFontSize = global::OfficeIMO.OfficeLength.Points(threshold);
+            run.SetSuperscript();
+            using var pdf = PdfPigDocument.Open(document.ToPdf(ConversionOptions(FontOptions(font)))
+                .ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+            Letter[] letters = pdf.GetPage(1).Letters.Where(letter => letter.Value == "A").ToArray();
+            return letters[1].StartBaseLine.X - letters[0].StartBaseLine.X;
+        }
+
+        // The 6pt script text takes the 20 and 40 unit pair as 0.36pt.
+        Assert.Equal(0.36D, Gap(0D) - Gap(1D), 3);
+    }
+
+    // Word kerns a pair inside one script position but not between superscript and subscript text,
+    // even when both take the same script size.
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void PairKerningStaysWithinOneScriptPosition(bool sameScript) {
+        byte[] font = ManagedTextShapingTestAssets.WithScriptMetrics(ManagedTextShapingTestAssets.CreateFontWithPairPositioning('A', 'V', withOs2: true),
+            subscriptSize: 600, subscriptOffset: 50, superscriptSize: 600, superscriptOffset: 300);
+        double Span(double threshold) {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph paragraph = document.AddParagraph();
+            foreach (string text in new[] { "A", "V", "A" }) {
+                WordParagraph run = paragraph.AddText(text);
+                run.FontFamily = ManagedTextShapingTestAssets.FamilyName;
+                run.FontSize = global::OfficeIMO.OfficeLength.Points(10);
+                run.KerningMinimumFontSize = global::OfficeIMO.OfficeLength.Points(threshold);
+                if (text == "V" && !sameScript) run.SetSubscript(); else run.SetSuperscript();
+            }
+            using var pdf = PdfPigDocument.Open(document.ToPdf(ConversionOptions(FontOptions(font)))
+                .ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+            Letter[] letters = pdf.GetPage(1).Letters.Where(letter => letter.Value == "A").ToArray();
+            return letters[1].StartBaseLine.X - letters[0].StartBaseLine.X;
+        }
+
+        double kerning = Span(0D) - Span(1D);
+        if (sameScript) Assert.True(kerning > 0.1D, $"Superscript pair kerning was {kerning}.");
+        else Assert.Equal(0D, kerning, 3);
+    }
+
+    // The following word is shaped on its own, so a pair value on its first glyph reaches the
+    // line through the gap: here the space loses 20 units and the 'A' after it 40, at 10 pt.
+    [Fact]
+    public void PairKerningAcrossASpaceKeepsTheFollowingGlyphsAdjustment() {
+        byte[] font = ManagedTextShapingTestAssets.CreateFontWithPairPositioning(' ', 'A');
+        double Span(double threshold) {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph paragraph = document.AddParagraph("A AA");
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(10);
+            paragraph.FontFamily = ManagedTextShapingTestAssets.FamilyName;
+            paragraph.KerningMinimumFontSize = global::OfficeIMO.OfficeLength.Points(threshold);
+            using var pdf = PdfPigDocument.Open(document.ToPdf(ConversionOptions(FontOptions(font)))
+                .ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+            Letter[] letters = pdf.GetPage(1).Letters.Where(letter => letter.Value == "A").ToArray();
+            Assert.Equal(3, letters.Length);
+            return letters[2].StartBaseLine.X - letters[0].StartBaseLine.X;
+        }
+
+        Assert.Equal(0.6D, Span(0D) - Span(1D), 3);
+    }
+
     private static void AssertAdvance(Letter[] letters, double expected) {
         Assert.Equal("AV", string.Concat(letters.Select(letter => letter.Value)));
         Assert.Equal(letters[0].StartBaseLine.Y, letters[1].StartBaseLine.Y, 3);

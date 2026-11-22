@@ -193,7 +193,7 @@ namespace OfficeIMO.Word {
                     this.Value = DateTime.Parse(customDocumentProperty.VTFileTime.Text).ToUniversalTime();
                     this.PropertyType = WordCustomPropertyType.DateTime;
                 } else if (customDocumentProperty.VTFloat != null) {
-                    this.Value = double.Parse(customDocumentProperty.VTFloat.Text, System.Globalization.CultureInfo.InvariantCulture);
+                    this.Value = OfficeIMO.Core.Internal.OfficeRoundTripText.ParseDouble(customDocumentProperty.VTFloat.Text, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, System.Globalization.CultureInfo.InvariantCulture);
                     this.PropertyType = WordCustomPropertyType.NumberDouble;
                 } else if (customDocumentProperty.VTLPWSTR != null) {
                     this.Value = customDocumentProperty.VTLPWSTR.Text;
@@ -202,7 +202,7 @@ namespace OfficeIMO.Word {
                     this.Value = bool.Parse(customDocumentProperty.VTBool.Text);
                     this.PropertyType = WordCustomPropertyType.YesNo;
                 } else if (customDocumentProperty.VTDouble != null) {
-                    this.Value = double.Parse(customDocumentProperty.VTDouble.Text, System.Globalization.CultureInfo.InvariantCulture);
+                    this.Value = OfficeIMO.Core.Internal.OfficeRoundTripText.ParseDouble(customDocumentProperty.VTDouble.Text, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, System.Globalization.CultureInfo.InvariantCulture);
                     this.PropertyType = WordCustomPropertyType.NumberDouble;
                 } else if (customDocumentProperty.VTInt64 != null) {
                     this.Value = long.Parse(customDocumentProperty.VTInt64.Text);

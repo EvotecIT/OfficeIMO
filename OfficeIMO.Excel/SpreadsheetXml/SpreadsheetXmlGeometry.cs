@@ -75,7 +75,7 @@ internal static class SpreadsheetXmlGeometry {
         else context.Approximate("Column point conversion uses whole-pixel default-font metrics at 96 DPI. Native Excel can rasterize the font at a different window DPI, so physical column widths can differ.");
         return digit;
     }
-    internal static double Dimension(string text, double maximum) => double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
+    internal static double Dimension(string text, double maximum) => OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
         && !double.IsInfinity(value) && !double.IsNaN(value) && value >= 0 && value <= maximum ? value : throw new InvalidDataException("Invalid XML Spreadsheet dimension.");
     private static double Width(string text, double digit) {
         double points = Dimension(text, 65535);

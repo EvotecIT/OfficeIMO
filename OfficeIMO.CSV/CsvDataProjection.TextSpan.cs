@@ -73,11 +73,11 @@ internal static partial class CsvDataProjectionConverter
                 }
 
                 break;
-            case CsvDataConversionKind.Double when double.TryParse(text, NumberStyles.Any, culture, out var doubleValue):
+            case CsvDataConversionKind.Double when double.TryParse(text, NumberStyles.Any, culture, out double doubleValue):
                 return doubleValue;
             case CsvDataConversionKind.Decimal when decimal.TryParse(text, NumberStyles.Any, culture, out var decimalValue):
                 return decimalValue;
-            case CsvDataConversionKind.Single when float.TryParse(text, NumberStyles.Any, culture, out var singleValue):
+            case CsvDataConversionKind.Single when float.TryParse(text, NumberStyles.Any, culture, out float singleValue):
                 return singleValue;
             case CsvDataConversionKind.DateTime when TryParseDateTime(text, culture, dateTimeFormats, out var dateTime):
                 return dateTime;
@@ -127,13 +127,13 @@ internal static partial class CsvDataProjectionConverter
             case CsvDataConversionKind.Byte when byte.TryParse(text, NumberStyles.Any, culture, out var byteValue):
                 value = byteValue;
                 return true;
-            case CsvDataConversionKind.Double when double.TryParse(text, NumberStyles.Any, culture, out var doubleValue):
+            case CsvDataConversionKind.Double when double.TryParse(text, NumberStyles.Any, culture, out double doubleValue):
                 value = doubleValue;
                 return true;
             case CsvDataConversionKind.Decimal when decimal.TryParse(text, NumberStyles.Any, culture, out var decimalValue):
                 value = decimalValue;
                 return true;
-            case CsvDataConversionKind.Single when float.TryParse(text, NumberStyles.Any, culture, out var singleValue):
+            case CsvDataConversionKind.Single when float.TryParse(text, NumberStyles.Any, culture, out float singleValue):
                 value = singleValue;
                 return true;
         }

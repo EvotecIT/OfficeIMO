@@ -660,6 +660,34 @@ profile: presentation
     }
 
     [Fact]
+    public void Emitters_LeaveOutOverflowingNumbersInsteadOfWritingInfinity() {
+        var result = OfficeMarkupParser.Parse("""
+---
+profile: presentation
+---
+
+# Data
+
+@slide {
+  layout: blank
+  transition: fade duration=1e9999
+}
+
+::chart type=column title="Revenue" x=8% y=20% w=80% h=55%
+Quarter,Revenue
+Q1,1e9999
+""");
+
+        string csharp = new OfficeMarkupCSharpEmitter().Emit(result.Document);
+        string powershell = new OfficeMarkupPowerShellEmitter().Emit(result.Document);
+
+        Assert.DoesNotContain("Infinity", csharp, StringComparison.Ordinal);
+        Assert.DoesNotContain("TransitionDurationSeconds", csharp, StringComparison.Ordinal);
+        Assert.DoesNotContain("Infinity", powershell, StringComparison.Ordinal);
+        Assert.DoesNotContain("TransitionDurationSeconds", powershell, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void CSharpEmitter_PresentationPreservesChartsNotesAndTransitionDetails() {
         var result = OfficeMarkupParser.Parse("""
 ---

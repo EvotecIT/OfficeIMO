@@ -322,7 +322,7 @@ namespace OfficeIMO.Excel {
                 bool formulaHasNumericCache = kind == ExcelCellValueKind.Formula
                     && (dataType == null || dataType == DocumentFormat.OpenXml.Spreadsheet.CellValues.Number);
                 if ((kind == ExcelCellValueKind.Number || formulaHasNumericCache)
-                    && double.TryParse(storedValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double serial)
+                    && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(storedValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double serial)
                     && IsDateStyle(cell.StyleIndex?.Value ?? 0U, dateStyles)) {
                     try {
                         dateTimeValue = ExcelDateSystemConverter.FromSerial(serial, _excelDocument.DateSystem);

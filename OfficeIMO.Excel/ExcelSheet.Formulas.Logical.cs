@@ -252,7 +252,7 @@ namespace OfficeIMO.Excel {
                 // unresolved reference or unsupported array into a scalar value.
                 string literal = tokens[0].Trim();
                 if (!ExcelFormulaExpressionParser.TryParseTextLiteral(literal, out _)
-                    && !(double.TryParse(literal, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
+                    && !(OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(literal, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
                         && !double.IsNaN(number) && !double.IsInfinity(number))
                     && !literal.Equals("TRUE", StringComparison.OrdinalIgnoreCase)
                     && !literal.Equals("FALSE", StringComparison.OrdinalIgnoreCase)) return false;

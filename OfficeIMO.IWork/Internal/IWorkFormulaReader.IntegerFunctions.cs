@@ -14,7 +14,7 @@ internal static partial class IWorkFormulaReader {
         bool productExceedsBound = false, hasZero = false, hasNumericOperand = false;
         foreach (Operand argument in arguments) {
             if (argument.IntegerReference is not IntegerReference reference) {
-                if (!double.TryParse(argument.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
+                if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(argument.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
                     || !AccumulateInteger(number, name, ref productBound, ref productExceedsBound, ref hasZero)) return false;
                 hasNumericOperand = true;
                 continue;

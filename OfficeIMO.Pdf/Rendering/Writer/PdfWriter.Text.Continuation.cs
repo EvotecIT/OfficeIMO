@@ -82,6 +82,8 @@ internal static partial class PdfWriter {
                 run = run.WithTextDirection(segment.TextDirection);
             run.ContributesLineBoxDescent = segment.ContributesLineBoxDescent;
             run.IsLineBoxStrut = segment.IsLineBoxStrut;
+            // Imported script text already carries its own size, so its offset travels with it.
+            run.BaselineShift = segment.BaselineShift;
             if (!preserveTab && segment.FormField != null) run = run.WithFormField(segment.FormField);
             if (preserveFootnote && segment.FootnoteReference != null && text == segment.Text) run = run.WithFootnoteReference(segment.FootnoteReference);
             return run;

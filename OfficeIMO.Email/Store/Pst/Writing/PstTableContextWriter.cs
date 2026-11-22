@@ -245,7 +245,7 @@ internal static class PstTableContextWriter {
                     Convert.ToInt32(property.Value ?? 0, CultureInfo.InvariantCulture)));
             case MapiPropertyType.Floating32:
                 return EncodedCell.Inline(BitConverter.GetBytes(
-                    Convert.ToSingle(property.Value ?? 0F, CultureInfo.InvariantCulture)));
+                    OfficeIMO.Core.Internal.OfficeRoundTripText.ToSingle(property.Value ?? 0F, CultureInfo.InvariantCulture)));
             case MapiPropertyType.Boolean:
                 return EncodedCell.Inline(new[] {
                     Convert.ToBoolean(property.Value ?? false, CultureInfo.InvariantCulture) ? (byte)1 : (byte)0 });
@@ -257,7 +257,7 @@ internal static class PstTableContextWriter {
             case MapiPropertyType.Floating64:
             case MapiPropertyType.FloatingTime:
                 return EncodedCell.Inline(BitConverter.GetBytes(
-                    Convert.ToDouble(property.Value ?? 0D, CultureInfo.InvariantCulture)));
+                    OfficeIMO.Core.Internal.OfficeRoundTripText.ToDouble(property.Value ?? 0D, CultureInfo.InvariantCulture)));
             case MapiPropertyType.Time:
                 return EncodedCell.Inline(PstPropertyValueWriter.EncodeVariable(property, codePage));
             default:

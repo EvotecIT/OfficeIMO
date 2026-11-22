@@ -25,8 +25,8 @@ internal static class PdfPrinterMediaNames {
         if (keyword.StartsWith("Custom.", StringComparison.OrdinalIgnoreCase)) return null;
         Match match = Dimensions.Match(keyword);
         if (match.Success) {
-            double width = double.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture);
-            double height = double.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture);
+            double width = OfficeIMO.Core.Internal.OfficeRoundTripText.ParseDouble(match.Groups[1].Value, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, CultureInfo.InvariantCulture);
+            double height = OfficeIMO.Core.Internal.OfficeRoundTripText.ParseDouble(match.Groups[2].Value, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, CultureInfo.InvariantCulture);
             string unit = match.Groups[3].Value.ToLowerInvariant();
             // Unitless PPD names such as 4x6 are inches.
             double scale = unit == "mm" ? 72D / 25.4D : 72D;

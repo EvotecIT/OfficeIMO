@@ -545,7 +545,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static bool TryParseNativeWordChartNumber(string? text, out double value) {
-            if (double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value)) {
+            if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value)) {
                 if (!double.IsNaN(value) && !double.IsInfinity(value)) {
                     return true;
                 }

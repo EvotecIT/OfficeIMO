@@ -50,7 +50,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>The number a chart cache takes from a cell's text, as linked range charts read it.</summary>
         internal static double ParseChartNumber(string? text) =>
-            text != null && double.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out double value) ? value : 0D;
+            text != null && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out double value) ? value : 0D;
 
         /// <summary>
         /// Reads cell texts on <paramref name="sheet"/> from a table whose rows still wait for the direct writer: each as the

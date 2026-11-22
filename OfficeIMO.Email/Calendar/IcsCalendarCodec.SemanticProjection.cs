@@ -126,8 +126,7 @@ internal static partial class IcsCalendarCodec {
         task.Start = ParseDate(GetProperty(properties, "DTSTART"), diagnostics, location, out _, timeZone);
         task.Due = ParseDate(GetProperty(properties, "DUE"), diagnostics, location, out _, timeZone);
         task.CompletedAt = ParseDate(GetProperty(properties, "COMPLETED"), diagnostics, location, out _, timeZone);
-        if (double.TryParse(GetValue(properties, "PERCENT-COMPLETE"), NumberStyles.Float,
-            CultureInfo.InvariantCulture, out double percent)) task.PercentComplete = percent / 100d;
+        if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(GetValue(properties, "PERCENT-COMPLETE"), NumberStyles.Float, CultureInfo.InvariantCulture, out double percent)) task.PercentComplete = percent / 100d;
         string? status = GetValue(properties, "STATUS");
         task.IsComplete = string.Equals(status, "COMPLETED", StringComparison.OrdinalIgnoreCase);
         task.Status = ParseTaskStatus(status);

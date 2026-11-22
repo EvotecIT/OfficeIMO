@@ -305,13 +305,33 @@ namespace OfficeIMO.Word {
                             _chart.InsertAt(newTitle, 0);
                         }
                     } else {
-                        // Update existing title text
-                        var text = _chart.Title.Descendants<DocumentFormat.OpenXml.Drawing.Text>().FirstOrDefault();
-                        if (text != null) {
-                            text.Text = PrivateTitle;
-                        }
+                        ReplaceTitleText(_chart.Title, PrivateTitle);
                     }
                 }
+            }
+        }
+
+        /// <summary>Replaces a saved title's text, keeping the formatting of its first run.</summary>
+        /// <remarks>A title without literal text (a cell reference, its cache or an automatic title) gets a literal rich-text body.</remarks>
+        private void ReplaceTitleText(Title title, string text) {
+            var rich = title.ChartText?.RichText;
+            var firstRun = rich?.Descendants<DocumentFormat.OpenXml.Drawing.Run>().FirstOrDefault();
+            if (rich != null && firstRun != null) {
+                var paragraph = (DocumentFormat.OpenXml.Drawing.Paragraph)firstRun.Parent!;
+                foreach (var other in rich.Elements<DocumentFormat.OpenXml.Drawing.Paragraph>().Where(item => item != paragraph).ToList()) other.Remove();
+                foreach (var other in paragraph.ChildElements.Where(item => item != firstRun &&
+                    item is DocumentFormat.OpenXml.Drawing.Run or DocumentFormat.OpenXml.Drawing.Field or DocumentFormat.OpenXml.Drawing.Break).ToList()) other.Remove();
+                var runText = firstRun.Text ?? firstRun.AppendChild(new DocumentFormat.OpenXml.Drawing.Text());
+                runText.Text = text;
+                return;
+            }
+
+            var literal = (ChartText)AddTitle(text).ChartText!.CloneNode(true);
+            if (title.ChartText != null) {
+                title.ChartText.InsertAfterSelf(literal);
+                title.ChartText.Remove();
+            } else {
+                title.InsertAt(literal, 0);
             }
         }
 

@@ -666,7 +666,7 @@ namespace OfficeIMO.Excel {
 
             if (_opt.TreatDatesUsingNumberFormat && styleIndex is not null && Styles.IsDateLike(styleIndex.Value)) {
                 if (TryParseInvariantDouble(rawText, out var oa)
-                    || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa)) {
+                    || OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa)) {
                     value = DateOrSerial(oa, styleIndex);
                 } else {
                     value = rawText;
@@ -757,7 +757,7 @@ namespace OfficeIMO.Excel {
             if (type == CellValues.Number && rawText != null) {
                 if (_opt.TreatDatesUsingNumberFormat && styleIndex is not null && Styles.IsDateLike(styleIndex.Value)) {
                     if (TryParseInvariantDouble(rawText, out var oa)
-                        || double.TryParse(rawText, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))
+                        || OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(rawText, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))
                         return DateOrSerial(oa, styleIndex);
                 }
                 if (_opt.NumericAsDecimal) {
@@ -788,7 +788,7 @@ namespace OfficeIMO.Excel {
             if (rawText != null) {
                 if (_opt.TreatDatesUsingNumberFormat && styleIndex is not null && Styles.IsDateLike(styleIndex.Value)) {
                     if (TryParseInvariantDouble(rawText, out var oa)
-                        || double.TryParse(rawText, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))
+                        || OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(rawText, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))
                         return DateOrSerial(oa, styleIndex);
                     return rawText;
                 }

@@ -9,7 +9,7 @@ namespace OfficeIMO.Excel {
             if (value.IsError) { error = value; return true; }
             if (!value.HasValue) return true;
             if (value.Number.HasValue) number = value.Number.Value;
-            else if (!double.TryParse(value.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out number)) {
+            else if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out number)) {
                 error = FormulaArgumentValue.Error("#VALUE!"); return true;
             }
             if (!IsFinite(number)) error = FormulaArgumentValue.Error("#NUM!");

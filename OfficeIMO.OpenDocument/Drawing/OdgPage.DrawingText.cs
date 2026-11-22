@@ -253,8 +253,7 @@ public sealed partial class OdgPage {
     private static double ResolveTextLength(OdfLength length, double inherited) {
         string value = length.ToString();
         double result;
-        if (value.EndsWith("%", StringComparison.Ordinal) && double.TryParse(value.Substring(0, value.Length - 1),
-            NumberStyles.Float, CultureInfo.InvariantCulture, out double percent)) result = inherited * percent / 100D;
+        if (value.EndsWith("%", StringComparison.Ordinal) && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value.Substring(0, value.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out double percent)) result = inherited * percent / 100D;
         else result = length.ToPoints();
         if (result <= 0 || double.IsNaN(result) || double.IsInfinity(result)) throw new NotSupportedException("Text size and line spacing must be finite positive lengths.");
         return result;

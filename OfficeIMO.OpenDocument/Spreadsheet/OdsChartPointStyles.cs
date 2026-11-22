@@ -213,7 +213,7 @@ internal static class OdsChartPointStyles {
     }
 
     private static bool IsZeroPieOffset(string value) =>
-        double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double offset) && offset == 0D;
+        OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double offset) && offset == 0D;
 
     internal static IReadOnlyDictionary<string, XElement> IndexHatches(XDocument content, XDocument? styles) {
         var index = new Dictionary<string, XElement>(StringComparer.Ordinal);

@@ -9,7 +9,7 @@ internal static class TableValues {
     public static bool FitsDecimal(ReadOnlySpan<char> text) {
         string value = text.ToString();
         if (!decimal.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out decimal number)) return false;
-        if (!double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double binary)) return false;
+        if (!OfficeIMO.OfficeRoundTripNumberText.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double binary)) return false;
         return (double)number == binary && (number != 0m || binary == 0d);
     }
 
@@ -44,7 +44,7 @@ internal static class TableValues {
                 }
 
                 if (column != typeof(double) && FitsDecimal(text.AsSpan())) return decimal.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture);
-                if (double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) return number;
+                if (OfficeIMO.OfficeRoundTripNumberText.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) return number;
                 return text;
             case DataScalarKind.OffsetDateTime:
                 return DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out DateTimeOffset offset) ? offset : text;

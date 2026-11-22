@@ -815,7 +815,7 @@ namespace OfficeIMO.Excel {
         private static bool TryResolveNumericOperand(ExcelSheet sheet, ExcelVisualCell cell, string ruleRange, string operand, out double value) {
             value = 0D;
             string normalized = NormalizeFormula(operand);
-            if (double.TryParse(normalized, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out value)) {
+            if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(normalized, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out value)) {
                 return true;
             }
 
@@ -895,7 +895,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (data.Value is IConvertible convertible &&
-                double.TryParse(Convert.ToString(convertible, CultureInfo.InvariantCulture), NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out value)) {
+                OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(Convert.ToString(convertible, CultureInfo.InvariantCulture), NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out value)) {
                 return true;
             }
 
@@ -1027,7 +1027,7 @@ namespace OfficeIMO.Excel {
 
         private static bool TryGetConditionalNumericValue(string? text, out double numericValue) {
             if (!string.IsNullOrWhiteSpace(text) &&
-                double.TryParse(text!.Trim(), NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out numericValue) &&
+                OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text!.Trim(), NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out numericValue) &&
                 !double.IsNaN(numericValue) &&
                 !double.IsInfinity(numericValue)) {
                 return true;

@@ -150,7 +150,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 return textCondition;
             }
 
-            if (double.TryParse(value, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, System.Globalization.CultureInfo.InvariantCulture, out _)
+            if (OfficeIMO.OfficeRoundTripNumberText.TryParse(value, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, System.Globalization.CultureInfo.InvariantCulture, out double _)
                 && TryBuildNumericCondition(filterOperator, value, out var numericCondition)) {
                 return numericCondition;
             }
@@ -294,7 +294,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
             }
 
             normalizedOperator = (condition.Operator ?? string.Empty).Trim().ToLowerInvariant();
-            if (!double.TryParse(condition.Value, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, System.Globalization.CultureInfo.InvariantCulture, out var numericValue)) {
+            if (!OfficeIMO.OfficeRoundTripNumberText.TryParse(condition.Value, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, System.Globalization.CultureInfo.InvariantCulture, out double numericValue)) {
                 return false;
             }
 
@@ -350,7 +350,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 return false;
             }
 
-            if (double.Parse(lowerValue, System.Globalization.CultureInfo.InvariantCulture) > double.Parse(upperValue, System.Globalization.CultureInfo.InvariantCulture)) {
+            if (OfficeIMO.OfficeRoundTripNumberText.ParseDouble(lowerValue, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, System.Globalization.CultureInfo.InvariantCulture) > OfficeIMO.OfficeRoundTripNumberText.ParseDouble(upperValue, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, System.Globalization.CultureInfo.InvariantCulture)) {
                 return false;
             }
 
@@ -373,7 +373,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 return false;
             }
 
-            if (double.Parse(lowerValue, System.Globalization.CultureInfo.InvariantCulture) > double.Parse(upperValue, System.Globalization.CultureInfo.InvariantCulture)) {
+            if (OfficeIMO.OfficeRoundTripNumberText.ParseDouble(lowerValue, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, System.Globalization.CultureInfo.InvariantCulture) > OfficeIMO.OfficeRoundTripNumberText.ParseDouble(upperValue, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, System.Globalization.CultureInfo.InvariantCulture)) {
                 return false;
             }
 

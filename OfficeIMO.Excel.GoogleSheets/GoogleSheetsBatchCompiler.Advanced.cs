@@ -269,7 +269,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
 
             var parsed = new List<double>(data.Categories.Count);
             foreach (string category in data.Categories) {
-                if (!double.TryParse(category, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out double value)) {
+                if (!OfficeIMO.OfficeRoundTripNumberText.TryParseFinite(category, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out double value)) {
                     return false;
                 }
                 parsed.Add(value);

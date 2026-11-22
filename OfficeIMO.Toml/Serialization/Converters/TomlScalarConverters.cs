@@ -219,7 +219,7 @@ internal sealed class TomlDoubleConverter : TomlScalarConverter<double> {
 
     protected override string FormatText(double value) => OfficeIMO.Core.Internal.OfficeRoundTripText.Format(value, CultureInfo.InvariantCulture);
 
-    protected override bool TryParseText(string text, out double value) => double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+    protected override bool TryParseText(string text, out double value) => OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
 }
 
 /// <summary>Singles are written with their own shortest text, so <c>1.1f</c> stays <c>1.1</c> instead of its double expansion.</summary>
@@ -242,7 +242,7 @@ internal sealed class TomlSingleConverter : TomlScalarConverter<float> {
 
     protected override string FormatText(float value) => OfficeIMO.Core.Internal.OfficeRoundTripText.Format(value, CultureInfo.InvariantCulture);
 
-    protected override bool TryParseText(string text, out float value) => float.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+    protected override bool TryParseText(string text, out float value) => OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
 }
 
 /// <summary>Decimals are written with their exact digits and read from a float's text, so no digit goes through a double.</summary>
