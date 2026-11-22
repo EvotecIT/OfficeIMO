@@ -84,9 +84,12 @@ namespace OfficeIMO.Word.Pdf {
                 return cachedDefaults;
             }
 
+            // The document default direction applies even without a paragraph style, as with a missing style.
+            bool? documentBidi = ReadNativeOnOff(WordStyleCatalog.For(paragraph._document).DocumentDefaults?
+                .GetFirstChild<W.ParagraphPropertiesDefault>()?.GetFirstChild<W.ParagraphPropertiesBaseStyle>()?.GetFirstChild<W.BiDi>());
             IReadOnlyList<W.Style> styleChain = GetNativeParagraphStyleChain(paragraph._document, paragraph.StyleId);
             if (styleChain.Count == 0) {
-                return NativeParagraphStyleDefaults.Empty;
+                return NativeParagraphStyleDefaults.Empty with { BiDi = documentBidi };
             }
 
             NativeDocumentDefaults documentDefaults = GetNativeDocumentDefaults(paragraph._document);
@@ -120,8 +123,7 @@ namespace OfficeIMO.Word.Pdf {
             bool? keepWithNext = null;
             bool? widowControl = null;
             bool? contextualSpacing = null;
-            bool? bidi = ReadNativeOnOff(WordStyleCatalog.For(paragraph._document).DocumentDefaults?
-                .GetFirstChild<W.ParagraphPropertiesDefault>()?.GetFirstChild<W.ParagraphPropertiesBaseStyle>()?.GetFirstChild<W.BiDi>());
+            bool? bidi = documentBidi;
             NativeParagraphSpacing paragraphSpacing = default;
             string? shadingFillColorHex = null;
             NativeParagraphBorders borders = NativeParagraphBorders.Empty;

@@ -25,7 +25,9 @@ internal static partial class PdfWriter {
                 paragraph.LeftIndent, paragraph.RightIndent, paragraph.FirstLineIndent, paragraph.LineHeight,
                 paragraph.DefaultTabStopWidth, paragraph.TabStops, paragraph.FontSize, paragraph.LineSpacing,
                 paragraph.WidowControl, paragraph.KeepTogether, paragraph.KeepWithNext,
-                paragraph.JustificationMode, paragraph.JustifyExplicitLineBreaks, paragraph.JustifyLastLine, paragraph.UseWordJustificationSpacing, paragraph.FitText);
+                paragraph.JustificationMode, paragraph.JustifyExplicitLineBreaks, paragraph.JustifyLastLine, paragraph.UseWordJustificationSpacing, paragraph.FitText) {
+                AlignJustifiedRemainderRight = paragraph.AlignJustifiedRemainderRight
+            };
         }
         return projected ?? paragraphs;
     }

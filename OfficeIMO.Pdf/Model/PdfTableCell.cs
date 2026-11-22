@@ -443,7 +443,8 @@ internal sealed class PdfTableCellParagraph {
             DefaultTabStopWidth = DefaultTabStopWidth, WidowControl = WidowControl ?? false,
             KeepTogether = KeepTogether, KeepWithNext = KeepWithNext,
             JustificationMode = JustificationMode, JustifyExplicitLineBreaks = JustifyExplicitLineBreaks,
-            JustifyLastLine = JustifyLastLine, UseWordJustificationSpacing = UseWordJustificationSpacing
+            JustifyLastLine = JustifyLastLine, AlignJustifiedRemainderRight = AlignJustifiedRemainderRight,
+            UseWordJustificationSpacing = UseWordJustificationSpacing
         };
         foreach (PdfTabStop stop in TabStops) style.TabStops.Add(stop.Clone());
         return new RichParagraphBlock(Runs, Align ?? OfficeAlignment.Left, null, style);

@@ -248,7 +248,11 @@ namespace OfficeIMO.Word.Pdf {
 
         private static global::OfficeIMO.OfficeAlignment GetNativeVmlTextAlign(OpenXmlElement element) {
             W.Justification? justification = element.Descendants<W.Justification>().FirstOrDefault();
-            W.JustificationValues? value = justification?.Val?.Value;
+            // The VML text frame sees only direct paragraph direction; it has no style chain to resolve.
+            W.Paragraph? paragraph = justification?.Ancestors<W.Paragraph>().FirstOrDefault() ?? element.Descendants<W.Paragraph>().FirstOrDefault();
+            bool rightToLeft = paragraph?.ParagraphProperties?.BiDi is { } bidi && ReadNativeOnOff(bidi) == true;
+            W.JustificationValues? value = ResolveNativeUnjustifiedJustification(
+                ResolveNativeVisualJustification(justification?.Val?.Value, rightToLeft), rightToLeft);
             if (value == W.JustificationValues.Center) return global::OfficeIMO.OfficeAlignment.Center;
             if (value == W.JustificationValues.Right) return global::OfficeIMO.OfficeAlignment.Right;
             return global::OfficeIMO.OfficeAlignment.Left;

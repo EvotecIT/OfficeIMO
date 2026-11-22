@@ -5683,7 +5683,10 @@ versions:
   right, and right and end alignment place it on the left, as in Word. End alignment in a left-to-right
   paragraph places text on the right. The last line of justified right-to-left text ends at the right
   edge. This applies in the body, table cells, headers and text boxes, and paragraphs in text boxes are
-  now justified and distributed instead of left-aligned.
+  now justified and distributed instead of left-aligned. A paragraph with no style takes its direction
+  from the document defaults. Text in a justified paragraph that also holds a text box is justified,
+  and objects placed on their own, such as an inline shape group, keep to the paragraph's starting side:
+  the right in a right-to-left paragraph.
 
 If your process depends on where pages break, regenerate the PDFs and compare them with your stored
 baselines, checking page counts and where tables and lists break. Refresh page-dependent content
