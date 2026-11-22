@@ -64,12 +64,16 @@ internal static class RtfBytePreservingEncoding {
     }
 
     private static string FromBytes(byte[] bytes) {
+#if NET5_0_OR_GREATER
+        return Encoding.Latin1.GetString(bytes);
+#else
         var chars = new char[bytes.Length];
         for (int i = 0; i < bytes.Length; i++) {
             chars[i] = (char)bytes[i];
         }
 
         return new string(chars);
+#endif
     }
 
     private static RtfReadLimitException CreateInputLimitException(Stream stream, long limit) {

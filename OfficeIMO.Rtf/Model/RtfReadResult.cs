@@ -87,8 +87,8 @@ public sealed partial class RtfReadResult : IOfficeResult<RtfDocument> {
         OfficeIMO.Core.Internal.OfficeStreamWriter.WriteAllBytes(stream, ToBytesLossless());
     }
 
-    internal RtfReadResult AttachOriginalBytes(byte[] bytes) {
-        _originalBytes = bytes == null ? throw new ArgumentNullException(nameof(bytes)) : (byte[])bytes.Clone();
+    internal RtfReadResult AttachOwnedOriginalBytes(byte[] bytes) {
+        _originalBytes = bytes ?? throw new ArgumentNullException(nameof(bytes));
         return this;
     }
 }

@@ -161,7 +161,8 @@ public sealed partial class RtfDocument {
         ArgumentNullException.ThrowIfNull(bytes);
         RtfLoadOptions readOptions = options ?? new RtfLoadOptions();
         new RtfReadLimitGuard(readOptions, cancellationToken).CheckInputBytes(bytes.LongLength);
-        return ParseResult(RtfBytePreservingEncoding.GetString(bytes), readOptions, cancellationToken).AttachOriginalBytes(bytes);
+        return ParseResult(RtfBytePreservingEncoding.GetString(bytes), readOptions, cancellationToken)
+            .AttachOwnedOriginalBytes((byte[])bytes.Clone());
     }
 
     /// <summary>Loads RTF from a stream into the semantic document model.</summary>
@@ -174,7 +175,7 @@ public sealed partial class RtfDocument {
         RtfLoadOptions readOptions = options ?? new RtfLoadOptions();
         byte[] bytes = RtfBytePreservingEncoding.ReadBytesToEnd(stream, readOptions.Limits.MaxInputBytes, cancellationToken);
         string rtf = DecodeInput(bytes, encoding);
-        return ParseResult(rtf, readOptions, cancellationToken).AttachOriginalBytes(bytes);
+        return ParseResult(rtf, readOptions, cancellationToken).AttachOwnedOriginalBytes(bytes);
     }
 
     private static string DecodeInput(byte[] bytes, Encoding? encoding) {
