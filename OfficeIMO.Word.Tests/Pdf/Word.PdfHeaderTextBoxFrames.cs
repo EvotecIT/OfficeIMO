@@ -272,6 +272,36 @@ public partial class Word {
         Assert.True(boxText < bodyText, $"The header layer paints before the body: {order}");
     }
 
+    // Word stacks a header's boxes by z-order across paragraphs: with the first paragraph's box in front,
+    // Word's own PDF paints the second paragraph's box first, so the first one covers the overlap.
+    [Theory]
+    [InlineData(WordImageTextWrapping.Square)]
+    [InlineData(WordImageTextWrapping.InFrontOfText)]
+    public void SaveAsPdf_HeaderTextBoxesInSeparateParagraphsStackByZOrder(WordImageTextWrapping wrap) {
+        using WordDocument document = WordDocument.Create();
+        document.AddParagraph("Body");
+        WordHeader header = document.PageSetup.Header;
+        WordTextBox front = AddPlacedHeaderBox(header.AddParagraph("First header paragraph"), "Red", wrap,
+            left: 100D, top: 60D, width: 120D, height: 60D);
+        WordTextBox back = AddPlacedHeaderBox(header.AddParagraph("Second header paragraph"), "Blue", wrap,
+            left: 160D, top: 80D, width: 120D, height: 60D);
+        front.FillColor = global::OfficeIMO.OfficeColor.Parse("FF0000");
+        back.FillColor = global::OfficeIMO.OfficeColor.Parse("0000FF");
+        front.Anchor!.RelativeHeight = 251659264U;
+        back.Anchor!.RelativeHeight = 251658239U;
+
+        var result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false });
+        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
+        using var pdf = PdfPigDocument.Open(result.Value.ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+        var paths = pdf.GetPage(1).Paths.ToList();
+        int Fill(double r, double b, double left, double top) => paths.FindIndex(path => path.IsFilled &&
+            path.FillColor.ToRGBValues() == (r, 0D, b) && path.GetBoundingRectangle() is { } bounds &&
+            Math.Abs(bounds.Left - left) < 0.01D && Math.Abs(bounds.Top - (792D - top)) < 0.01D);
+        int red = Fill(1D, 0D, 100D, 60D), blue = Fill(0D, 1D, 160D, 80D);
+        Assert.True(red >= 0 && blue >= 0, $"red {red}, blue {blue}");
+        Assert.True(blue < red, "The first paragraph's box, in front, paints after the second paragraph's box.");
+    }
+
     // A square-wrapped box keeps header text clear of its rectangle even when it paints nothing.
     [Fact]
     public void SaveAsPdf_UnpaintedSquareWrappedHeaderTextBoxStillPushesTextAside() {

@@ -53,6 +53,9 @@ public static partial class WordPdfConverterExtensions {
             if (items.Count == 0 && frame.Exclusion == null) continue;
             if (frame.Exclusion != null) {
                 // A wrapping box shares the picture route, which places it once and keeps text out of it.
+                // Like a running-story picture, it paints in the story's in-front layer, ordered by z-order
+                // with every other drawing of the header or footer, whichever paragraph anchors it.
+                items = new PdfCore.PdfCanvasItem[] { new PdfCore.PdfCanvasInFrontOfTextItem(items, frame.ZOrder) };
                 anchored.AddItems(new PdfCore.PdfCanvasItem[] { new PdfCore.PdfCanvasAnchoredImageItem(box.Drawing!,
                     new PdfCore.PdfCanvasBlock(items), frame.Width, frame.Height,
                     new PdfCore.PdfAnchoredImagePosition(frame.X, frame.Y, frame.MarginOrigin.HasValue, frame.MarginOrigin ?? 0D,
