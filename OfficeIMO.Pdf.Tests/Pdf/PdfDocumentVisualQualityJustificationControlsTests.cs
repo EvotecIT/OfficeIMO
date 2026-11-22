@@ -51,8 +51,10 @@ namespace OfficeIMO.Tests.Pdf {
                     UseWordJustificationSpacing = wordSpacing
                 }).ToBytes();
             var letter = Assert.Single(ReadJustificationPolicyLetters(actual).Where(item => item.Value == "a"));
-            Assert.Equal(30D, letter.StartBaseLine.X, 3);
-            Assert.Equal(36D, letter.EndBaseLine.X, 3);
+            // The cluster keeps its natural width. Word spacing centres a line with nothing to distribute, as Word does.
+            double start = wordSpacing ? 147D : 30D;
+            Assert.Equal(start, letter.StartBaseLine.X, 3);
+            Assert.Equal(start + 6D, letter.EndBaseLine.X, 3);
             byte[] natural = PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddText("a\u200E")).ToBytes();
             // A zero-advance control can still require a TJ correction to its
             // nominal encoded width. Distribution must not add another one.

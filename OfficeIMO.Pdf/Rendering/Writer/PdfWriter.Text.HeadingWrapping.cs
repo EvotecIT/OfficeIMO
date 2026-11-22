@@ -17,7 +17,7 @@ internal static partial class PdfWriter {
             var policy = new RichLineJustificationPolicy(style?.JustificationMode ?? PdfJustificationMode.Words,
                 style?.JustifyExplicitLineBreaks == true, style?.JustifyLastLine == true,
                 lineIndex == wrapped.Lines.Count - 1, line.Any(segment => segment.EndsWithHardBreak),
-                style?.UseWordJustificationSpacing == true);
+                style?.UseWordJustificationSpacing == true, style?.AlignJustifiedRemainderRight == true);
             for (int segment = 0; segment < line.Count; segment++)
                 line[segment] = line[segment].WithJustificationPolicy(policy);
         }

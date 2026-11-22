@@ -26,7 +26,7 @@ internal static partial class PdfWriter {
                     paragraph.TabStops, paragraph.FontSize, paragraph.LineSpacing,
                     paragraph.WidowControl, paragraph.KeepTogether, paragraph.KeepWithNext,
                     paragraph.JustificationMode, paragraph.JustifyExplicitLineBreaks, paragraph.JustifyLastLine, paragraph.UseWordJustificationSpacing,
-                    fitText: paragraph.FitText));
+                    fitText: paragraph.FitText) { AlignJustifiedRemainderRight = paragraph.AlignJustifiedRemainderRight });
             }
             remainder = CreateTableCellTextLayout(CreateContinuationCell(cell,
                 paragraphs.SelectMany(paragraph => paragraph.Runs).ToArray(), paragraphs),

@@ -5685,6 +5685,15 @@ versions:
   set to square or top-and-bottom wrapping. As in Word, the header and footer paint under the body
   text. Nested boxes, boxes containing tables and unsupported fills keep the previous flowed layout.
 - A word space that ends a line after superscript or subscript text keeps the size of its own run.
+- In a right-to-left (`w:bidi`) paragraph, left and start alignment, and no alignment, place text on the
+  right, and right and end alignment place it on the left, as in Word. End alignment in a left-to-right
+  paragraph places text on the right. The last line of justified right-to-left text, and any line with no
+  space to stretch, ends at the right edge. A distributed line that holds a single glyph is centred in
+  either direction. This applies in the body, table cells, headers and text boxes, and paragraphs in text boxes are
+  now justified and distributed instead of left-aligned. A paragraph with no style takes its direction
+  from the document defaults. Text in a justified paragraph that also holds a text box is justified,
+  and objects placed on their own, such as an inline shape group, keep to the paragraph's starting side:
+  the right in a right-to-left paragraph.
 
 If your process depends on where pages break, regenerate the PDFs and compare them with your stored
 baselines, checking page counts and where tables and lists break. Refresh page-dependent content

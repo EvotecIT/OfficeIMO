@@ -113,6 +113,8 @@ public class PdfParagraphStyle {
 
     /// <summary>When true, a justified paragraph also expands its final line. The default retains natural spacing on that line.</summary>
     public bool JustifyLastLine { get; set; }
+    /// <summary>Places justified lines that are not stretched, such as the last line, at the right edge, as right-to-left text does.</summary>
+    internal bool AlignJustifiedRemainderRight { get; set; }
 
     /// <summary>Uses the imported Word ordinary-space resource when admitting justified lines.</summary>
     internal bool UseWordJustificationSpacing { get; set; }
@@ -158,6 +160,7 @@ public class PdfParagraphStyle {
             JustificationMode = JustificationMode,
             JustifyExplicitLineBreaks = JustifyExplicitLineBreaks,
             JustifyLastLine = JustifyLastLine,
+            AlignJustifiedRemainderRight = AlignJustifiedRemainderRight,
             UseWordJustificationSpacing = UseWordJustificationSpacing,
             FontSize = FontSize,
             LineSpacing = LineSpacing,
