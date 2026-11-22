@@ -1,3 +1,5 @@
+using OfficeIMO.Core.Internal;
+
 namespace OfficeIMO.Archives;
 
 /// <summary>Reads selected archive content without filesystem publication or executing its contents.</summary>
@@ -47,9 +49,11 @@ public static partial class ArchiveReader {
         var files = new List<ArchiveEntryData>();
         ZipArchiveContent.Read(source, limits, (path, payload, length) => {
             ArchiveLimits.Check(length, Math.Min(limits.Entry, int.MaxValue), nameof(ArchiveReadOptions.MaxEntryBytes));
-            using var content = new MemoryStream();
-            payload.CopyTo(content);
-            files.Add(new ArchiveEntryData(path, content.ToArray()));
+            // Above the default entry ceiling, grow with bytes actually decoded from the member.
+            byte[] content = length <= ArchiveReadOptions.DefaultMaxEntryBytes
+                ? ZipArchiveContent.ReadDeclaredPayload(payload, (int)length, token)
+                : OfficeStreamReader.ReadForwardBytes(payload, token, length);
+            files.Add(new ArchiveEntryData(path, content));
         }, token);
         token.ThrowIfCancellationRequested();
         return Array.AsReadOnly(files.OrderBy(file => file.RelativePath, StringComparer.Ordinal).ToArray());
