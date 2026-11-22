@@ -1166,8 +1166,11 @@ internal static partial class PdfWriter {
                 }
                 if (hadNewline) {
                     oversizedWordContinuation = false;
-                    PrepareLineFrame(RunLineHeight(runFontSize));
-                    if (!lines[lines.Count - 1].Any(IsLineTextSegment)) RegisterLineHeight(runFontSize);
+                    // The break's own font sizes and frames only a line it leaves empty.
+                    if (!lines[lines.Count - 1].Any(IsLineTextSegment)) {
+                        PrepareLineFrame(RunLineHeight(runFontSize));
+                        RegisterLineHeight(runFontSize);
+                    }
                     MarkCurrentLineHardBreak(CreateRichLineBreakSegment(run, fontForRun, runFontSize, currentRunNamedFont));
                     StartNewLine(forceRow: true);
                     ResetPendingLeading();

@@ -39,6 +39,23 @@ public partial class Word {
         Assert.True((large["LINEA"] - large["LINEC"]) - (plain["LINEA"] - plain["LINEC"]) > 20D);
     }
 
+    [Theory]
+    [InlineData("own-run")]
+    [InlineData("start-of-run")]
+    public void SaveAsPdf_LineBreakBesideAFloatingTableKeepsTheLineHeight(string placement) {
+        // Lines beside a floating table are framed one at a time; the break must not size those frames either.
+        Dictionary<string, double> plain = RenderLineBreakBaselines(paragraph => paragraph._paragraph.Append(
+            LineBreakRun("LINEA", null, breakAfter: true), LineBreakRun("LINEB", null, breakAfter: true), LineBreakRun("LINEC", null)), besideFloatingTable: true);
+        Dictionary<string, double> large = RenderLineBreakBaselines(paragraph => {
+            paragraph._paragraph.Append(LineBreakRun("LINEA", null));
+            if (placement == "own-run") paragraph._paragraph.Append(LineBreakRun(null, 72, breakAfter: true), LineBreakRun("LINEB", null, breakAfter: true));
+            else paragraph._paragraph.Append(LineBreakRun("LINEB", 72, breakBefore: true), LineBreakRun(null, null, breakAfter: true));
+            paragraph._paragraph.Append(LineBreakRun("LINEC", null));
+        }, besideFloatingTable: true);
+        Assert.Equal(plain["LINEA"], large["LINEA"], 1);
+        if (placement == "own-run") Assert.Equal(plain["LINEB"], large["LINEB"], 1);
+    }
+
     private static Run LineBreakRun(string? text, int? halfPoints, bool breakBefore = false, bool breakAfter = false) {
         var run = new Run();
         if (halfPoints.HasValue)
@@ -50,9 +67,19 @@ public partial class Word {
         return run;
     }
 
-    private static Dictionary<string, double> RenderLineBreakBaselines(Action<WordParagraph> fill) {
+    private static Dictionary<string, double> RenderLineBreakBaselines(Action<WordParagraph> fill, bool besideFloatingTable = false) {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph("Intro.");
+        if (besideFloatingTable) {
+            WordTable table = document.AddTable(1, 1);
+            table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Points(108D));
+            table.Rows[0].Height = global::OfficeIMO.OfficeLength.Points(120D);
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "FLOATCELL";
+            table._tableProperties!.TablePositionProperties = new TablePositionProperties {
+                HorizontalAnchor = HorizontalAnchorValues.Margin, VerticalAnchor = VerticalAnchorValues.Text,
+                TablePositionXAlignment = HorizontalAlignmentValues.Left, TablePositionY = 1, RightFromText = 180
+            };
+        }
         fill(document.AddParagraph());
         document.AddParagraph("AFTER text.");
         using WordDocument loaded = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Docx)));
