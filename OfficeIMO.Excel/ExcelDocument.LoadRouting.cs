@@ -120,7 +120,7 @@ namespace OfficeIMO.Excel {
                 || string.Equals(extension, ".xlw", StringComparison.OrdinalIgnoreCase);
         }
 
-        private static bool HasZipSignature(byte[] bytes) {
+        internal static bool HasZipSignature(byte[] bytes) {
             return bytes.Length >= ZipSignature.Length
                 && bytes[0] == ZipSignature[0]
                 && bytes[1] == ZipSignature[1];

@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
@@ -186,12 +187,23 @@ internal static partial class ExcelReaderAdapter {
         };
         if (stream.CanSeek) stream.Position = 0;
         try {
-            return OpenXmlReaderAdmission.Load(options, () => ExcelDocument.Load(stream, loadOptions, cancellationToken));
+            return OpenXmlReaderAdmission.Load(options, () => LoadSnapshotOrStream(stream, loadOptions, cancellationToken));
         } catch (Exception exception) when (stream.CanSeek && OpenXmlReaderAdmission.CanRetryEncrypted(exception, options)) {
             stream.Position = 0;
             loadOptions.Password = options.OpenPassword;
             return OpenXmlReaderAdmission.Load(options, () => ExcelDocument.Load(stream, loadOptions, cancellationToken));
         }
+    }
+
+    private static ExcelDocument LoadSnapshotOrStream(Stream stream, ExcelLoadOptions options, CancellationToken cancellationToken) {
+        if (ReaderInputLimits.TryGetOwnedSnapshotMemory(stream, out ReadOnlyMemory<byte> snapshot)
+            && MemoryMarshal.TryGetArray(snapshot, out ArraySegment<byte> segment)
+            && segment.Array is byte[] bytes && segment.Offset == 0 && segment.Count == bytes.Length
+            && ExcelDocument.TryLoadOwnedReadOnlyZipSnapshot(bytes, options, cancellationToken) is ExcelDocument document) {
+            return document;
+        }
+
+        return ExcelDocument.Load(stream, options, cancellationToken);
     }
 
     private static IEnumerable<ReaderChunk> ExtractNative(

@@ -20,6 +20,21 @@ public partial class ExcelDocument {
         return CompleteCancellableLoad(Load(stream, settings), cancellationToken);
     }
 
+    // Only take ownership of a complete, stable ZIP snapshot. Other formats and size failures use
+    // the stream path so its native probes, input-limit checks and diagnostic rules still apply.
+    internal static ExcelDocument? TryLoadOwnedReadOnlyZipSnapshot(
+        byte[] bytes, ExcelLoadOptions options, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (options.AccessMode != DocumentAccessMode.ReadOnly || options.Password != null
+            || !ExcelDocumentLoadRouting.HasZipSignature(bytes) || bytes.LongLength > ResolveInputLimit(options)) {
+            return null;
+        }
+
+        ExcelLoadOptions settings = options.Snapshot();
+        settings.LoadCancellationToken = cancellationToken;
+        return CompleteCancellableLoad(LoadFromByteArray(bytes, settings, filePath: null), cancellationToken);
+    }
+
     private static ExcelDocument CompleteCancellableLoad(ExcelDocument document, CancellationToken cancellationToken) {
         try { cancellationToken.ThrowIfCancellationRequested(); return document; }
         catch {
