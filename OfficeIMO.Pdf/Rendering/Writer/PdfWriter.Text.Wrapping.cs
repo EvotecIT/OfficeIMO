@@ -954,7 +954,7 @@ internal static partial class PdfWriter {
                 // instead of breaking to fit the interval it happens to be in. Text with break opportunities
                 // still breaks at them across the intervals.
                 bool keepWordWhole = (rowComposition != null || lineLayout != null) && token.Length > 0 &&
-                    !OfficeTextLineBreaks.GetBreakPositions(token).Any();
+                    OfficeTextLineBreaks.GetBreakPositions(token).Count == 0;
                 if (keepWordWhole && !completeWordFits && !oversizedWordContinuation && lastLine.Count == 0 &&
                     tokenW > currentMaxWidth + RichTextWidthTolerance && tokenW <= maxWidthPts + RichTextWidthTolerance) {
                     PrepareLineFrame(RunLineHeight(wordFontSize), tokenW);
