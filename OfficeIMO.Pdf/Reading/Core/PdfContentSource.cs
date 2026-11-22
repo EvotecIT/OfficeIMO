@@ -123,6 +123,7 @@ internal readonly struct PdfStringContentText : IPdfContentText {
 
 internal readonly struct PdfByteContentText : IPdfContentText {
     private readonly ReadOnlyMemory<byte> _bytes;
+    private readonly PdfSeekableCursor? _cursor;
 
     internal PdfByteContentText(byte[] ownedBytes) : this(ownedBytes, ownedBytes) {
     }
@@ -133,17 +134,64 @@ internal readonly struct PdfByteContentText : IPdfContentText {
 
     private PdfByteContentText(ReadOnlyMemory<byte> bytes, object source) {
         _bytes = bytes;
+        _cursor = null;
         Source = source;
     }
 
-    public int Length => _bytes.Length;
+    internal PdfByteContentText(PdfSeekableInput input, CancellationToken cancellationToken) {
+        _bytes = default;
+        _cursor = new PdfSeekableCursor(input, cancellationToken);
+        Source = input;
+    }
 
-    public char this[int index] => (char)_bytes.Span[index];
+    public int Length => _cursor?.Input.Length ?? _bytes.Length;
+    public char this[int index] => (char)ReadByte(index);
     public object Source { get; }
 
+    internal bool IsSeekable => _cursor is not null;
+
+    internal byte ReadByte(int index) => _cursor is null ? _bytes.Span[index] : _cursor.ReadByte(index);
+
+    internal ReadOnlySpan<byte> ReadRange(int start, int length) =>
+        _cursor is null ? _bytes.Span.Slice(start, length) : _cursor.ReadRange(start, length);
+
+    internal byte[] CopyRange(int start, int length, CancellationToken cancellationToken) =>
+        _cursor is null ? PdfSyntax.CopyBytes(_bytes, start, length, cancellationToken)
+                        : _cursor.Input.ReadAt(start, length, cancellationToken);
+
+    internal int IndexOfByte(byte value, int start, int count) =>
+        _cursor is null ? PdfByteSearch.IndexOf(_bytes.Span, value, start, count)
+                        : _cursor.IndexOf(value, start, count);
+
+    internal int IndexOfBytes(byte[] value, int start, int count) =>
+        _cursor is null ? PdfSyntax.IndexOfAscii(_bytes.Span, value, start, start + count)
+                        : _cursor.IndexOf(value, start, count);
+
+    internal void BeginRawSecurityScan() => _cursor?.BeginRawSecurityScan();
+
+    internal bool TryFindRawSecurityMarker(byte[] marker, int start, out int index) {
+        index = -1;
+        return _cursor?.TryFindRawSecurityMarker(marker, start, out index) == true;
+    }
+
+    internal PdfStream CreateStream(PdfDictionary dictionary, int start, int length, bool retainSourceSlices,
+        CancellationToken cancellationToken, bool decodingFailed = false, string? decodingError = null) {
+        if (_cursor is not null) {
+            return new PdfStream(dictionary, _cursor.Input, start, length, decodingFailed, decodingError);
+        }
+
+        return retainSourceSlices
+            ? PdfStream.FromOwnedSource(dictionary, _bytes, start, length, decodingFailed, decodingError)
+            : new PdfStream(dictionary, CopyRange(start, length, cancellationToken), decodingFailed, decodingError);
+    }
     public int IndexOf(string value, int start, int count) {
-        if (start < 0 || count < 0 || start > _bytes.Length - count) throw new ArgumentOutOfRangeException(nameof(start));
+        if (start < 0 || count < 0 || start > Length - count) throw new ArgumentOutOfRangeException(nameof(start));
         if (count < value.Length) return -1;
+        if (_cursor is not null) {
+            Span<byte> marker = value.Length <= 64 ? stackalloc byte[value.Length] : new byte[value.Length];
+            for (int index = 0; index < marker.Length; index++) marker[index] = (byte)value[index];
+            return _cursor.IndexOf(marker, start, count);
+        }
         ReadOnlySpan<byte> bytes = _bytes.Span;
 #if NET8_0_OR_GREATER
         if (value.Length <= 64) {
@@ -170,8 +218,9 @@ internal readonly struct PdfByteContentText : IPdfContentText {
     }
 
     public int LastIndexOf(string value, int start, int count, bool ignoreCase) {
-        if (start < 0 || count < 0 || start > _bytes.Length - count) throw new ArgumentOutOfRangeException(nameof(start));
+        if (start < 0 || count < 0 || start > Length - count) throw new ArgumentOutOfRangeException(nameof(start));
         if (count < value.Length) return -1;
+        if (_cursor is not null) return _cursor.LastIndexOf(value, start, count, ignoreCase);
         ReadOnlySpan<byte> bytes = _bytes.Span;
 #if NET8_0_OR_GREATER
         if (!ignoreCase && value.Length <= 64) {
@@ -189,7 +238,7 @@ internal readonly struct PdfByteContentText : IPdfContentText {
         return -1;
     }
 
-    private static bool SameCharacter(byte actual, char expected, bool ignoreCase) {
+    internal static bool SameCharacter(byte actual, char expected, bool ignoreCase) {
         if (actual == expected) return true;
         if (!ignoreCase) return false;
         char folded = (char)(actual | 0x20);
@@ -197,15 +246,15 @@ internal readonly struct PdfByteContentText : IPdfContentText {
     }
 
     public string Substring(int start, int length) {
-        if (start < 0 || length < 0 || start > _bytes.Length - length) throw new ArgumentOutOfRangeException(nameof(start));
-        return PdfEncoding.Latin1GetString(_bytes.Span.Slice(start, length));
+        if (start < 0 || length < 0 || start > Length - length) throw new ArgumentOutOfRangeException(nameof(start));
+        return PdfEncoding.Latin1GetString(ReadRange(start, length));
     }
 
     public string Substring(int start, int length, System.Threading.CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (start < 0 || length < 0 || start > _bytes.Length - length) throw new ArgumentOutOfRangeException(nameof(start));
+        if (start < 0 || length < 0 || start > Length - length) throw new ArgumentOutOfRangeException(nameof(start));
         if (length == 0) return string.Empty;
-        return PdfEncoding.Latin1GetStringCancellable(_bytes.Span.Slice(start, length), cancellationToken);
+        return PdfEncoding.Latin1GetStringCancellable(ReadRange(start, length), cancellationToken);
     }
 
     public bool TryParseDouble(int start, int length, out double value) =>
@@ -214,7 +263,7 @@ internal readonly struct PdfByteContentText : IPdfContentText {
     public bool TryParseDouble(int start, int length, NumberStyles styles, out double value) {
 #if NET8_0_OR_GREATER
         if (length <= 128) {
-            ReadOnlySpan<byte> bytes = _bytes.Span.Slice(start, length);
+            ReadOnlySpan<byte> bytes = ReadRange(start, length);
             Span<char> characters = stackalloc char[length];
             for (int index = 0; index < length; index++) characters[index] = (char)bytes[index];
             return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(characters, styles, CultureInfo.InvariantCulture, out value);
@@ -226,7 +275,7 @@ internal readonly struct PdfByteContentText : IPdfContentText {
     public bool TryParseInt32(int start, int length, out int value) {
 #if NET8_0_OR_GREATER
         if (length <= 128) {
-            ReadOnlySpan<byte> bytes = _bytes.Span.Slice(start, length);
+            ReadOnlySpan<byte> bytes = ReadRange(start, length);
             Span<char> characters = stackalloc char[length];
             for (int index = 0; index < length; index++) characters[index] = (char)bytes[index];
             return int.TryParse(characters, NumberStyles.Integer, CultureInfo.InvariantCulture, out value);

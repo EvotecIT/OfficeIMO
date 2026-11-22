@@ -1322,3 +1322,6 @@ static OfficeIMO.Pdf.PdfDocument.Load(byte[]! pdf, OfficeIMO.Pdf.PdfLoadOptions?
 static OfficeIMO.Pdf.PdfDocument.Load(byte[]! pdf, OfficeIMO.Pdf.PdfLoadOptions? loadOptions, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.Pdf.PdfDocument!
 static OfficeIMO.Pdf.PdfDocument.Load(System.ReadOnlyMemory<byte> pdf, OfficeIMO.Pdf.PdfLoadOptions? loadOptions = null) -> OfficeIMO.Pdf.PdfDocument!
 static OfficeIMO.Pdf.PdfDocument.Load(System.ReadOnlyMemory<byte> pdf, OfficeIMO.Pdf.PdfLoadOptions? loadOptions, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.Pdf.PdfDocument!
+static OfficeIMO.Pdf.PdfDocument.LoadSeekable(System.IO.Stream! stream, OfficeIMO.Pdf.PdfLoadOptions? loadOptions = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Pdf.PdfDocument!
+static OfficeIMO.Pdf.PdfDocument.LoadSeekable(System.IO.Stream! stream, long length, OfficeIMO.Pdf.PdfLoadOptions? loadOptions = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Pdf.PdfDocument!
+static OfficeIMO.Pdf.PdfDocument.LoadSeekable(string! path, OfficeIMO.Pdf.PdfLoadOptions? loadOptions = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Pdf.PdfDocument!

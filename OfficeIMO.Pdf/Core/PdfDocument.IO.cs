@@ -21,7 +21,7 @@ public sealed partial class PdfDocument {
         cancellationToken.ThrowIfCancellationRequested();
         if (_source is not null) {
             var snapshot = GetReadSnapshot(cancellationToken: cancellationToken);
-            PdfDocumentInfo info = PdfInspector.Inspect(snapshot.Bytes, snapshot.Document, cancellationToken);
+            PdfDocumentInfo info = PdfInspector.Inspect(snapshot.InspectionBytes, snapshot.Document, cancellationToken);
             return PdfComplianceAnalyzer.AssessReadback(profile, snapshot.Document, info, cancellationToken);
         }
 
@@ -99,8 +99,8 @@ public sealed partial class PdfDocument {
     internal byte[] SerializeBytes(System.Threading.CancellationToken cancellationToken, out int? pageCount) {
         cancellationToken.ThrowIfCancellationRequested();
         if (_source is not null) {
-            pageCount = _pipeline.Output?.PageCount;
-            return _source.CopyBytes();
+            pageCount = OpenedPageCount;
+            return _source.CopyBytes(cancellationToken);
         }
 
         ThrowIfTextEncodingPreflightFails(cancellationToken);
@@ -149,12 +149,14 @@ public sealed partial class PdfDocument {
 
     /// <summary>Writes the PDF while observing cancellation.</summary>
     internal PdfSaveResult SaveWithEvidence(Stream stream, System.Threading.CancellationToken cancellationToken) {
+        ValidateSaveDestination(stream);
         cancellationToken.ThrowIfCancellationRequested();
         var timer = System.Diagnostics.Stopwatch.StartNew();
         ThrowIfTextEncodingPreflightFails(cancellationToken);
         (long bytesWritten, PdfArtifactInfo output, PdfSerializationReport serialization) = RenderToStreamWithEvidence(stream, cancellationToken);
         timer.Stop();
-        PdfPipelineReport pipeline = AppendOutputStep("Save", output, timer.Elapsed);
+        PdfPipelineReport pipeline = AppendOutputStep("Save", output, timer.Elapsed,
+            sourcePassthrough: serialization?.SourcePassthrough == true);
         return PdfSaveResult.Success(outputPath: null, bytesWritten, pipeline, serialization);
     }
 
@@ -201,7 +203,8 @@ public sealed partial class PdfDocument {
             output = hashingStream.Complete(pageCount);
         }, cancellationToken);
         timer.Stop();
-        PdfPipelineReport pipeline = AppendOutputStep("Save", output, timer.Elapsed);
+        PdfPipelineReport pipeline = AppendOutputStep("Save", output, timer.Elapsed,
+            sourcePassthrough: serialization?.SourcePassthrough == true);
         return PdfSaveResult.Success(fullPath, bytesWritten, pipeline, serialization);
     }
 
@@ -231,12 +234,14 @@ public sealed partial class PdfDocument {
     /// Asynchronously writes the complete document to <paramref name="stream"/>. Seekable streams are overwritten and rewound.
     /// </summary>
     internal async System.Threading.Tasks.Task<PdfSaveResult> SaveWithEvidenceAsync(Stream stream, System.Threading.CancellationToken cancellationToken = default) {
+        ValidateSaveDestination(stream);
         var timer = System.Diagnostics.Stopwatch.StartNew();
         cancellationToken.ThrowIfCancellationRequested();
         ThrowIfTextEncodingPreflightFails(cancellationToken);
         (long bytesWritten, PdfArtifactInfo output, PdfSerializationReport serialization) = await RenderToStreamWithEvidenceAsync(stream, cancellationToken).ConfigureAwait(false);
         timer.Stop();
-        PdfPipelineReport pipeline = AppendOutputStep("Save", output, timer.Elapsed);
+        PdfPipelineReport pipeline = AppendOutputStep("Save", output, timer.Elapsed,
+            sourcePassthrough: serialization?.SourcePassthrough == true);
         return PdfSaveResult.Success(outputPath: null, bytesWritten, pipeline, serialization);
     }
 
@@ -293,7 +298,8 @@ public sealed partial class PdfDocument {
             commitPolicy,
             cancellationToken: cancellationToken).ConfigureAwait(false);
         timer.Stop();
-        PdfPipelineReport pipeline = AppendOutputStep("Save", output, timer.Elapsed);
+        PdfPipelineReport pipeline = AppendOutputStep("Save", output, timer.Elapsed,
+            sourcePassthrough: serialization?.SourcePassthrough == true);
         return PdfSaveResult.Success(fullPath, bytesWritten, pipeline, serialization);
     }
 
@@ -318,7 +324,7 @@ public sealed partial class PdfDocument {
     private byte[] RenderBytesCore(System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         if (_source is not null) {
-            return _source.CopyBytes();
+            return _source.CopyBytes(cancellationToken);
         }
 
         return PdfWriter.Write(this, _blocks, _options, _title, _author, _subject, _keywords, cancellationToken);
@@ -364,13 +370,13 @@ public sealed partial class PdfDocument {
         System.Threading.CancellationToken cancellationToken = default) {
         if (_source is not null) {
             _source.CopyTo(stream, cancellationToken);
-            int? sourcePageCount = _pipeline.Output?.PageCount;
+            int? sourcePageCount = OpenedPageCount;
             return (
-                _source.Memory.Length,
+                _source.Length,
                 sourcePageCount,
                 new PdfSerializationReport(
                     sourcePageCount,
-                    _source.Memory.Length,
+                    _source.Length,
                     0L,
                     0L,
                     0L,

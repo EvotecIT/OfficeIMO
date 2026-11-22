@@ -567,6 +567,10 @@ internal static partial class PdfSyntax {
         (repairReport.HasIncompleteObjectCoverage && ContainsAnyPdfName(pdf, CancellationToken.None, names));
 
     internal static bool ContainsAnyDocumentPdfName(ReadOnlyMemory<byte> pdf, IReadOnlyDictionary<int, PdfIndirectObject> objects,
+        PdfRepairReport repairReport, CancellationToken cancellationToken, params string[] names) =>
+        ContainsAnyDocumentPdfName(new PdfByteContentText(pdf), objects, repairReport, cancellationToken, names);
+
+    private static bool ContainsAnyDocumentPdfName(PdfByteContentText pdf, IReadOnlyDictionary<int, PdfIndirectObject> objects,
         PdfRepairReport repairReport, CancellationToken cancellationToken, params string[] names) {
         var requested = new HashSet<string>(StringComparer.Ordinal);
         foreach (string name in names) {
@@ -575,7 +579,7 @@ internal static partial class PdfSyntax {
         }
         if (CollectParsedPdfNames(objects, requested, cancellationToken).Count > 0) return true;
         return repairReport.HasIncompleteObjectCoverage &&
-            ContainsAnyPdfName(pdf, cancellationToken, names);
+            ContainsAnyPdfName(pdf, names, cancellationToken);
     }
 
     internal static bool ContainsAnyParsedPdfName(

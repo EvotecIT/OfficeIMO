@@ -1,6 +1,9 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfSyntax {
+    private static readonly string[] SignatureMarkerNames = { "ByteRange", "SigFlags", "Sig" };
+    private static readonly string[] ByteRangeMarkerNames = { "ByteRange" };
+
     /// <summary>
     /// Builds security and revision evidence for a clear-text artifact emitted by
     /// <see cref="PdfFileAssembler"/>. Callers must only use this after the rewrite
@@ -25,8 +28,16 @@ internal static partial class PdfSyntax {
             throw new InvalidDataException("The canonical full rewrite did not contain a readable terminal cross-reference pointer.");
         }
 
-        PdfReference? rootReference = trailerReferences.Second;
-        PdfReference? infoReference = trailerReferences.Third;
+        return CreateSingleClassicXrefSecurityInfo(
+            trailerReferences.Second, trailerReferences.Third, startXrefOffset, hasTrailerId: true, cancellationToken);
+    }
+
+    private static PdfDocumentSecurityInfo CreateSingleClassicXrefSecurityInfo(
+        PdfReference? rootReference,
+        PdfReference? infoReference,
+        int startXrefOffset,
+        bool hasTrailerId,
+        CancellationToken cancellationToken) {
         IReadOnlyList<int> startXrefOffsets = new[] { startXrefOffset };
         IReadOnlyList<int> previousXrefOffsets = Array.Empty<int>();
         IReadOnlyList<PdfDocumentRevisionInfo> revisions = BuildRevisionInfo(startXrefOffsets, previousXrefOffsets);
@@ -63,7 +74,7 @@ internal static partial class PdfSyntax {
             rootReference?.Generation,
             infoReference?.ObjectNumber,
             infoReference?.Generation,
-            hasTrailerId: true,
+            hasTrailerId,
             startXrefCount: 1,
             lastStartXrefOffset: startXrefOffset,
             startXrefOffsets,
@@ -76,6 +87,16 @@ internal static partial class PdfSyntax {
 
     internal static PdfDocumentSecurityInfo ReadDocumentSecurityInfo(
         ReadOnlyMemory<byte> pdf,
+        Dictionary<int, PdfIndirectObject> objects,
+        string trailerRaw,
+        PdfDocumentSecurityInfo fallback,
+        PdfRepairReport repairReport,
+        PdfLoadOptions? options = null,
+        CancellationToken cancellationToken = default) =>
+        ReadDocumentSecurityInfo(new PdfByteContentText(pdf), objects, trailerRaw, fallback, repairReport, options, cancellationToken);
+
+    internal static PdfDocumentSecurityInfo ReadDocumentSecurityInfo(
+        PdfByteContentText pdf,
         Dictionary<int, PdfIndirectObject> objects,
         string trailerRaw,
         PdfDocumentSecurityInfo fallback,
@@ -233,11 +254,11 @@ internal static partial class PdfSyntax {
         int? infoObjectGeneration = infoReference?.Generation ?? fallback.InfoObjectGeneration;
         bool hasSignatures = hasParsedSignatureMarker;
         if (!hasSignatures && repairReport.HasIncompleteObjectCoverage) {
-            hasSignatures = ContainsAnyPdfName(pdf, cancellationToken, "ByteRange", "SigFlags", "Sig");
+            hasSignatures = ContainsAnyPdfName(pdf, SignatureMarkerNames, cancellationToken);
         }
         bool hasByteRange = byteRangeValueCount > 0 || hasParsedByteRangeMarker;
         if (!hasByteRange && hasSignatures && repairReport.HasIncompleteObjectCoverage) {
-            hasByteRange = ContainsAnyPdfName(pdf, cancellationToken, "ByteRange");
+            hasByteRange = ContainsAnyPdfName(pdf, ByteRangeMarkerNames, cancellationToken);
         }
 
         cancellationToken.ThrowIfCancellationRequested();

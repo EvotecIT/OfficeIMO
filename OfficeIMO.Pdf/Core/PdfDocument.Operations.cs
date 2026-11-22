@@ -106,14 +106,14 @@ public sealed partial class PdfDocument {
         var snapshot = GetReadSnapshot(options, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         snapshot.Document.DemandContentExtraction("logical object");
-        return PdfInspector.Inspect(snapshot.Bytes, snapshot.Document, cancellationToken);
+        return PdfInspector.Inspect(snapshot.InspectionBytes, snapshot.Document, cancellationToken);
     }
 
     internal PdfDocumentInfo InspectSelectedPages(IReadOnlyList<int> pageNumbers, CancellationToken cancellationToken) {
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
         var snapshot = GetReadSnapshot(ReadOptions, cancellationToken);
         snapshot.Document.DemandContentExtraction("logical object");
-        return PdfInspector.InspectSelectedPages(snapshot.Bytes, snapshot.Document, pageNumbers.ToArray(), cancellationToken);
+        return PdfInspector.InspectSelectedPages(snapshot.InspectionBytes, snapshot.Document, pageNumbers.ToArray(), cancellationToken);
     }
 
     /// <summary>
@@ -133,7 +133,9 @@ public sealed partial class PdfDocument {
         cancellationToken.ThrowIfCancellationRequested();
         PdfDocumentSource? source = _source?.DetachBorrowed(cancellationToken);
         PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options ?? source?.Options ?? ReadOptions);
-        ReadOnlyMemory<byte> bytes = source?.Memory ?? GetBytesForOperation(cancellationToken);
+        ReadOnlyMemory<byte> bytes = source is null
+            ? GetBytesForOperation(cancellationToken)
+            : source.GetMemory(cancellationToken);
         Func<PdfReadDocument>? readDocumentFactory = source is null
             ? null
             : () => source.Read(effectiveOptions, cancellationToken);

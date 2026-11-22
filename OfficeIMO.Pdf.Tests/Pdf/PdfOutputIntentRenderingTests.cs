@@ -405,18 +405,22 @@ public partial class PdfOutputIntentRenderingTests {
         Assert.All(decoded, bytes => Assert.Same(first, bytes));
     }
 
-    [Fact]
-    public void OutputIntentMetadataRemainsReadableAfterReturningBorrowedMemory() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OutputIntentMetadataRemainsReadableAfterReleasingBorrowedInput(bool useStream) {
         byte[] profileBytes = PdfIccProfiles.SrgbIec6196621;
         byte[] pdf = BuildPdfWithTwoOutputProfiles(profileBytes, indirectProfileParameters: true);
         PdfOutputIntentInfo fromDocument;
         PdfOutputIntentInfo fromInspection;
-        using (PdfDocument document = PdfDocument.Load((ReadOnlyMemory<byte>)pdf)) {
+        using var input = new MemoryStream(pdf, writable: false);
+        using (PdfDocument document = useStream ? PdfDocument.LoadSeekable(input) : PdfDocument.Load((ReadOnlyMemory<byte>)pdf)) {
             fromDocument = document.OutputIntents[1];
             fromInspection = document.Inspect().OutputIntents[1];
             Assert.True(fromInspection.HasDestinationOutputProfile);
         }
 
+        input.Dispose();
         Array.Clear(pdf, 0, pdf.Length);
 
         Assert.Equal(profileBytes.Length, fromDocument.DestinationOutputProfileSizeBytes);

@@ -81,6 +81,16 @@ Console.WriteLine(result.ExtractMarkdown());
 
 `Read()` returns paragraphs, headings, lists and tables per page. The [reading guide](../Docs/officeimo.pdf-guide.md#load-once-and-build-one-semantic-read-result) covers decoding diagnostics, form values and scanned pages; use [`PdfLoadOptions.UntrustedDefaults`](../Docs/officeimo.pdf-guide.md#read-limits) for files from outside your organization.
 
+For a large, stable PDF when you only need a few pages, use `PdfDocument.LoadSeekable(...)`.
+Initial admission scans the complete PDF with a bounded read cache. Later page reads fetch the
+encoded ranges they need. Saving, fingerprinting and operations that need the exact source read
+the complete PDF. The library holds a path open until disposal when the operating system can
+exclude writes. Otherwise the path overload takes a bounded snapshot.
+
+Pass a seekable stream at the start of the PDF, with a length when it occupies part of a larger
+stream. Keep the input available and unchanged until the document is disposed. The document
+preserves the stream position during its reads.
+
 ### Merge, rotate and split
 
 This example combines the report with an `Appendix.pdf` of your own.

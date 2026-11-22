@@ -394,8 +394,11 @@ internal static partial class PdfSyntax {
         return ContainsParsedOrFallbackPdfName(pdf, PdfActiveContentPolicy.MarkerNames);
     }
 
+    private const int HeaderSearchBytes = 1024;
+    private const int MaximumVersionTokenLength = 16;
+    internal const int HeaderProbeLength = HeaderSearchBytes + MaximumVersionTokenLength + 1;
+
     internal static string? GetHeaderVersion(ReadOnlySpan<byte> pdf) {
-        const int maximumVersionTokenLength = 16;
 
         int header = FindHeaderOffset(pdf);
         if (header < 0) {
@@ -404,7 +407,7 @@ internal static partial class PdfSyntax {
 
         int start = header + 5;
         int end = start;
-        while (end < pdf.Length && end - start <= maximumVersionTokenLength) {
+        while (end < pdf.Length && end - start <= MaximumVersionTokenLength) {
             byte value = pdf[end];
             if (value == (byte)'\r' || value == (byte)'\n' || value == (byte)' ' || value == (byte)'\t') {
                 break;
@@ -414,7 +417,7 @@ internal static partial class PdfSyntax {
         }
 
         // A PDF version is a short token. Do not scan or allocate an entire malformed input line.
-        if (end - start > maximumVersionTokenLength) return null;
+        if (end - start > MaximumVersionTokenLength) return null;
         return end > start ? PdfEncoding.Latin1GetString(pdf.Slice(start, end - start)) : null;
     }
 
@@ -423,8 +426,7 @@ internal static partial class PdfSyntax {
     /// (ISO 32000-2, Annex H implementation note), so leading data does not hide it.
     /// </summary>
     private static int FindHeaderOffset(ReadOnlySpan<byte> pdf) {
-        const int headerSearchBytes = 1024;
-        int lastStart = Math.Min(pdf.Length - 8, headerSearchBytes - 5);
+        int lastStart = Math.Min(pdf.Length - 8, HeaderSearchBytes - 5);
         for (int index = 0; index <= lastStart; index++) {
             if (pdf[index] == (byte)'%' &&
                 pdf[index + 1] == (byte)'P' &&

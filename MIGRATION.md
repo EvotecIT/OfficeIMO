@@ -5361,6 +5361,14 @@ when you need a separate snapshot to reuse or release the source sooner.
 `PdfDocument.Load(Stream)`, `Load(string)` and `LoadAsync` still read the input once into a buffer
 the document owns, so the stream or file can be closed, disposed or changed after loading.
 
+To read selected pages of a large, stable PDF without taking an encoded snapshot up front, switch
+to `PdfDocument.LoadSeekable`. The stream overload starts at the current position, and the
+length overload limits reads to one PDF in a larger stream. Keep that stream available and
+unchanged until the document is disposed. Initial admission scans the complete window without
+keeping a full managed copy. Reading pipeline fingerprints uses the complete PDF when requested.
+Saving writes the exact PDF window. The path overload holds the file open when the operating
+system can exclude writes and otherwise uses a bounded snapshot.
+
 ## PDF text extraction keeps the readable part of damaged documents
 
 `PdfDocument.ExtractText()` no longer throws when part of a document cannot be read. With the

@@ -410,7 +410,7 @@ internal static class PdfAttachmentExtractor {
             filter,
             fileSpecObjectNumber,
             embeddedFileObjectNumber,
-            stream.Data.Length,
+            stream.DataLength,
             declaredSizeBytes,
             stream,
             source,

@@ -62,7 +62,7 @@ internal sealed partial class PdfReadDocument {
                 return new PdfRawValue(
                     PdfRawValueKind.Stream,
                     entries: dictionaryView.Entries,
-                    streamLength: stream.Data.Length,
+                    streamLength: stream.DataLength,
                     streamDecodingFailed: stream.DecodingFailed,
                     isTruncated: dictionaryView.IsTruncated);
             default:
