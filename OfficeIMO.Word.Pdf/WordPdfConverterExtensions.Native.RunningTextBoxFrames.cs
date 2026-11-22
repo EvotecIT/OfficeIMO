@@ -51,10 +51,11 @@ public static partial class WordPdfConverterExtensions {
             IReadOnlyList<PdfCore.PdfCanvasItem> items = content.Items;
             // An unpainted box still keeps wrapped text out of its rectangle.
             if (items.Count == 0 && frame.Exclusion == null) continue;
-            if (frame.BehindDocument && frame.Exclusion != null)
-                items = new PdfCore.PdfCanvasItem[] { new PdfCore.PdfCanvasBehindTextItem(items, frame.ZOrder) };
             if (frame.Exclusion != null) {
                 // A wrapping box shares the picture route, which places it once and keeps text out of it.
+                // Like a running-story picture, it paints in the story's in-front layer, ordered by z-order
+                // with every other drawing of the header or footer, whichever paragraph anchors it.
+                items = new PdfCore.PdfCanvasItem[] { new PdfCore.PdfCanvasInFrontOfTextItem(items, frame.ZOrder) };
                 anchored.AddItems(new PdfCore.PdfCanvasItem[] { new PdfCore.PdfCanvasAnchoredImageItem(box.Drawing!,
                     new PdfCore.PdfCanvasBlock(items), frame.Width, frame.Height,
                     new PdfCore.PdfAnchoredImagePosition(frame.X, frame.Y, frame.MarginOrigin.HasValue, frame.MarginOrigin ?? 0D,
@@ -219,13 +220,7 @@ public static partial class WordPdfConverterExtensions {
 
         if (box.Anchor is not DW.Anchor anchor || !TryReadNativePlacedTextBoxExclusion(anchor, out PdfCore.PdfImageTextExclusion? exclusion))
             return false;
-        // Word keeps text clear of the box's effect extent as well as its wrap distances.
-        if (exclusion != null && anchor.GetFirstChild<DW.EffectExtent>() is { } extent) {
-            static double Points(Int64Value? value) => Math.Max(0L, value?.Value ?? 0L) / 12700D;
-            exclusion = new PdfCore.PdfImageTextExclusion(exclusion.Kind, exclusion.Side,
-                exclusion.DistanceLeft + Points(extent.LeftEdge), exclusion.DistanceTop + Points(extent.TopEdge),
-                exclusion.DistanceRight + Points(extent.RightEdge), exclusion.DistanceBottom + Points(extent.BottomEdge));
-        }
+        if (exclusion != null) exclusion = AddNativeEffectExtentToExclusion(anchor, exclusion);
         double Inset(Int32Value? value, int fallback) => (value?.Value ?? fallback) / 12700D;
         double left = Inset(body?.LeftInset, 91440), right = Inset(body?.RightInset, 91440);
         double top = Inset(body?.TopInset, 45720), bottom = Inset(body?.BottomInset, 45720);
@@ -233,7 +228,7 @@ public static partial class WordPdfConverterExtensions {
         var placed = new NativePlacedTextBoxFrame(x, y, width, height, left, top, right, bottom,
             ParagraphRelative: verticalReference == "paragraph",
             MarginOrigin: horizontalReference == "margin" ? margins.Left.ToPoints() : null,
-            BehindDocument: layout.BehindDocument, ZOrder: layout.RelativeHeight, Exclusion: exclusion);
+            BehindDocument: IsNativeBehindText(layout), ZOrder: layout.RelativeHeight, Exclusion: exclusion);
         // Qualify the paragraphs at the width rendering gives them, inside the insets and the outline.
         double outline = GetNativePlacedTextBoxOutlineInset(CreateNativePlacedTextBoxDecoration(box, placed));
         if (!CanLayOutNativePlacedTextBoxContent(box, width - left - right - 2D * outline)) return false;
