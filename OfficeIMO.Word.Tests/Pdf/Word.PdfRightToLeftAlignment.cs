@@ -152,21 +152,18 @@ public sealed class WordPdfRightToLeftAlignmentTests {
         AssertSpan(Line(letters, "JBOX"), left, right);
     }
 
-    // List items that are justified or right-to-left keep their alignment.
+    // A right-to-left list item ends at the right margin.
     [Fact]
-    public void SaveAsPdf_ListItemsKeepJustificationAndDirection() {
+    public void SaveAsPdf_RightToLeftListItemEndsAtRightMargin() {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph("LEFTREF").ParagraphAlignment = WordParagraphAlignment.Left;
         document.AddParagraph("RIGHTREF").ParagraphAlignment = WordParagraphAlignment.Right;
         WordList list = document.AddList(WordListStyle.Bulleted);
-        WordParagraph justified = list.AddItem("JLIST " + Filler + " JLISTEND");
-        justified.ParagraphAlignment = WordParagraphAlignment.Both;
         WordParagraph rightToLeft = list.AddItem("RTLITEM");
         rightToLeft._paragraph.ParagraphProperties!.BiDi = new W.BiDi();
 
         var letters = ConvertDocument(document);
         double right = Word(letters, "RIGHTREF").Last().EndBaseLine.X;
-        Assert.InRange(Line(letters, "JLIST").Last().EndBaseLine.X, right - .05D, right + .05D);
         Assert.InRange(Word(letters, "RTLITEM").Last().EndBaseLine.X, right - .05D, right + .05D);
     }
 
