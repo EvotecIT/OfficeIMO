@@ -949,10 +949,25 @@ internal static partial class PdfWriter {
                     continue;
                 }
 
+                // Beside a floating exclusion a row's interval can be narrower than the line. A word with no
+                // break opportunity that fits a whole line asks for a row with room for it, as Word moves it,
+                // instead of breaking to fit the interval it happens to be in. Text with break opportunities
+                // still breaks at them across the intervals.
+                bool keepWordWhole = (rowComposition != null || lineLayout != null) && token.Length > 0 &&
+                    !OfficeTextLineBreaks.GetBreakPositions(token).Any();
+                if (keepWordWhole && !completeWordFits && !oversizedWordContinuation && lastLine.Count == 0 &&
+                    tokenW > currentMaxWidth + RichTextWidthTolerance && tokenW <= maxWidthPts + RichTextWidthTolerance) {
+                    PrepareLineFrame(RunLineHeight(wordFontSize), tokenW);
+                    lastLine = lines[lines.Count - 1];
+                    currentMaxWidth = CurrentMaxWidth();
+                }
+                // A word after others on the row wraps to a row that asks for its width, so only a word
+                // wider than a whole line is oversized there.
+                double wordCapacity = keepWordWhole && lastLine.Count > 0 ? maxWidthPts : currentMaxWidth;
                 bool continuesOversizedWord = oversizedWordContinuation && !pendingLeadingSeparator && lastLine.Count > 0;
-                oversizedWordContinuation |= !completeWordFits && wordWidth > Math.Min(currentMaxWidth, maxWidthPts) + RichTextWidthTolerance;
+                oversizedWordContinuation |= !completeWordFits && wordWidth > Math.Min(wordCapacity, maxWidthPts) + RichTextWidthTolerance;
                 double continuationBoundary = continuesOversizedWord ? runKerning.MeasureBoundary(lastLine, tokenProbe) : 0D;
-                if (!completeWordFits && (tokenW > currentMaxWidth + RichTextWidthTolerance ||
+                if (!completeWordFits && (tokenW > (continuesOversizedWord ? currentMaxWidth : wordCapacity) + RichTextWidthTolerance ||
                     continuesOversizedWord && lineWidth + tokenW + continuationBoundary > currentMaxWidth + RichTextWidthTolerance)) {
                     if (lastLine.Count > 0 && !continuesOversizedWord) { StartNewLine(); lastLine = lines[lines.Count - 1]; }
                     ResetPendingLeading();

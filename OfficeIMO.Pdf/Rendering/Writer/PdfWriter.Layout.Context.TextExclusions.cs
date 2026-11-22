@@ -93,31 +93,54 @@ internal static partial class PdfWriter {
             foreach (TextExclusionBounds region in exclusions) attempts += 2 * (region.Wrap?.Polygon?.Count ?? 0);
             double? blockedByPolygon = null;
             for (int attempt = 0; attempt < attempts; attempt++) {
-                List<RichTextInterval>? intervals = TryFitTextRow(left, width, top, height, minimumWidth, exclusions,
-                    out double nextBoundary, out bool polygonInTheWay);
-                if (intervals != null) {
-                    // Between two polygon steps the extent moves steadily, so the row resumes as soon as it
-                    // fits, as Word places it, rather than at the step.
-                    if (blockedByPolygon is { } blocked) {
-                        double fits = top;
-                        for (int step = 0; step < 48 && blocked - fits > .001D; step++) {
-                            double middle = (fits + blocked) / 2D;
-                            if (TryFitTextRow(left, width, middle, height, minimumWidth, exclusions, out _, out _) is { } found) {
-                                fits = middle;
-                                intervals = found;
-                            } else blocked = middle;
-                        }
-                        top = fits;
-                    }
+                if (TryFitTextRow(left, width, top, height, minimumWidth, exclusions,
+                    out double nextBoundary, out bool polygonInTheWay) is { } intervals) {
+                    // The row resumes as soon as it fits rather than at the step.
+                    if (blockedByPolygon is { } blocked) top = ResumeTextRow(blocked, top, ref intervals);
                     return new RichTextRowFrame(intervals, originalTop - top);
                 }
                 if (double.IsNegativeInfinity(nextBoundary) || nextBoundary >= top)
                     throw new InvalidOperationException("Picture exclusion clearance could not advance.");
-                blockedByPolygon = polygonInTheWay ? top : null;
+                blockedByPolygon = null;
+                if (polygonInTheWay) {
+                    // Between two steps the extent changes linearly, but the edge that sets it can change
+                    // partway, so a concave polygon can leave room between two blocked steps. Probe the
+                    // interval in small steps before passing it.
+                    int probes = Math.Min(MaximumPolygonRowProbes, Math.Max(1, (int)Math.Ceiling((top - nextBoundary) / PolygonRowProbeStep)));
+                    double step = (top - nextBoundary) / probes, last = top;
+                    for (int probe = 1; probe < probes; probe++) {
+                        double candidate = top - probe * step;
+                        if (TryFitTextRow(left, width, candidate, height, minimumWidth, exclusions, out _, out _) is { } found) {
+                            double resumed = ResumeTextRow(last, candidate, ref found);
+                            return new RichTextRowFrame(found, originalTop - resumed);
+                        }
+                        last = candidate;
+                    }
+                    blockedByPolygon = last;
+                }
                 top = nextBoundary;
             }
             throw new InvalidOperationException("Picture exclusion clearance did not resolve at a finite source boundary.");
+
+            // Bisects between a blocked top and a lower one that fits, to the first top where the row fits.
+            double ResumeTextRow(double blocked, double fits, ref List<RichTextInterval> found) {
+                for (int step = 0; step < 48 && blocked - fits > .001D; step++) {
+                    double middle = (fits + blocked) / 2D;
+                    if (TryFitTextRow(left, width, middle, height, minimumWidth, exclusions, out _, out _) is { } fitted) {
+                        fits = middle;
+                        found = fitted;
+                    } else blocked = middle;
+                }
+                return fits;
+            }
         }
+
+        /// <summary>
+        /// The spacing of the probes between two polygon steps, with a cap per interval so a tall picture
+        /// stays bounded; room shorter than a probe step can be missed.
+        /// </summary>
+        private const double PolygonRowProbeStep = .25D;
+        private const int MaximumPolygonRowProbes = 256;
 
         /// <summary>
         /// Returns the row's free intervals when one fits, else null with the next row top worth trying:

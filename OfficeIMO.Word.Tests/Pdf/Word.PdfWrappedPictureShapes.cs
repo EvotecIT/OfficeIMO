@@ -75,6 +75,30 @@ public sealed class PdfWrappedPictureShapeTests {
         }
     }
 
+    // A notch can leave room for a row only between two of the polygon's vertices: a row touching the tip
+    // at its top or bottom edge is blocked, while one straddling the tip fits. The row takes that room
+    // instead of moving below the picture, and its word stays whole rather than breaking to fit.
+    [Fact]
+    public void SaveAsPdf_TightWrapFindsRoomBetweenPolygonVertices() {
+        long[] notch = { 0, 0, 21600, 0, 4320, 10800, 21600, 21600, 0, 21600 };
+        WordDocument document = AddPicture("tight", polygon: notch, width: 100D, height: 100D);
+        DW.Anchor anchor = document.Paragraphs[0]._paragraph.Descendants<DW.Anchor>().Single();
+        anchor.DistanceFromLeft = anchor.DistanceFromRight = anchor.DistanceFromTop = anchor.DistanceFromBottom = 0U;
+        // A 63pt column: the notch's tip leaves 43pt beside it, the polygon's full width none.
+        document.Paragraphs[0].IndentationAfter = OfficeLength.Points(405D);
+        using (document) {
+            byte[] bytes = document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new PdfCore.PdfSaveOptions { AllowLoss = true });
+            using var pdf = PdfPigDocument.Open(bytes);
+            // Words on rows beside the 100pt picture at the top of the page.
+            var beside = pdf.GetPage(1).GetWords().Where(word => word.BoundingBox.Bottom > 792D - Margin - 100D).ToList();
+            var first = Assert.Single(beside);
+            Assert.Equal("word1", first.Text);
+            Assert.InRange(first.BoundingBox.Right, 134D, 135.5D);
+            // The tip is 50pt below the paragraph top; the row straddles it.
+            Assert.InRange(first.BoundingBox.Bottom, 792D - Margin - 50D - 14D, 792D - Margin - 50D + 14D);
+        }
+    }
+
     // A first word that has no room beside a square picture moves below it instead of running past the margin.
     [Fact]
     public void SaveAsPdf_FirstWordWithNoRoomBesideSquarePictureMovesBelowIt() {
