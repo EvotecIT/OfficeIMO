@@ -11,7 +11,7 @@ internal abstract class PdfListBlock : IPdfBlock {
         PdfListStyle? style,
         string validationName) {
         Guard.NotNull(items, nameof(items));
-        align = Guard.LeftCenterRightAlign(align, nameof(align), validationName);
+        align = Guard.ParagraphAlign(align, nameof(align), validationName);
 
         var richItems = new System.Collections.Generic.List<PdfListItem>();
         foreach (string? item in items) {
@@ -35,7 +35,7 @@ internal abstract class PdfListBlock : IPdfBlock {
         PdfListStyle? style,
         string validationName) {
         Guard.NotNull(items, nameof(items));
-        align = Guard.LeftCenterRightAlign(align, nameof(align), validationName);
+        align = Guard.ParagraphAlign(align, nameof(align), validationName);
 
         var richItems = new System.Collections.Generic.List<PdfListItem>();
         bool hasCustomMarkers = false;

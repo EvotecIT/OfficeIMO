@@ -1312,3 +1312,9 @@ OfficeIMO.Pdf.PdfLogicalMarkdownLinkStyle.Inline = 0 -> OfficeIMO.Pdf.PdfLogical
 OfficeIMO.Pdf.PdfLogicalMarkdownLinkStyle.List = 1 -> OfficeIMO.Pdf.PdfLogicalMarkdownLinkStyle
 OfficeIMO.Pdf.PdfLogicalMarkdownOptions.LinkStyle.get -> OfficeIMO.Pdf.PdfLogicalMarkdownLinkStyle
 OfficeIMO.Pdf.PdfLogicalMarkdownOptions.LinkStyle.set -> void
+OfficeIMO.Pdf.PdfListStyle.JustificationMode.get -> OfficeIMO.Pdf.PdfJustificationMode
+OfficeIMO.Pdf.PdfListStyle.JustificationMode.set -> void
+OfficeIMO.Pdf.PdfListStyle.JustifyExplicitLineBreaks.get -> bool
+OfficeIMO.Pdf.PdfListStyle.JustifyExplicitLineBreaks.set -> void
+OfficeIMO.Pdf.PdfListStyle.JustifyLastLine.get -> bool
+OfficeIMO.Pdf.PdfListStyle.JustifyLastLine.set -> void

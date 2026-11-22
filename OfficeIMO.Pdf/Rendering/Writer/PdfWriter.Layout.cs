@@ -42,6 +42,7 @@ internal static partial class PdfWriter {
         public double TextXOffset;
         public double TextWidth;
         public OfficeAlignment TextAlign;
+        public PdfParagraphStyle? TextStyle;
         public global::OfficeIMO.OfficeColor? Color;
         public double Leading;
         public double Size;

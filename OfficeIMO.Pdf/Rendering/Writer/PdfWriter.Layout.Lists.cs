@@ -18,7 +18,8 @@ internal static partial class PdfWriter {
                 double itemSpacing,
                 double spacingBefore,
                 double spacingAfter,
-                System.Collections.Generic.List<PreparedListItem> items) {
+                System.Collections.Generic.List<PreparedListItem> items,
+                PdfParagraphStyle? textStyle) {
                 Block = block;
                 Style = style;
                 MarkerFont = markerFont;
@@ -34,6 +35,7 @@ internal static partial class PdfWriter {
                 SpacingBefore = spacingBefore;
                 SpacingAfter = spacingAfter;
                 Items = items;
+                TextStyle = textStyle;
             }
 
             internal PdfListBlock Block { get; }
@@ -51,6 +53,8 @@ internal static partial class PdfWriter {
             internal double SpacingBefore { get; set; }
             internal double SpacingAfter { get; }
             internal System.Collections.Generic.List<PreparedListItem> Items { get; }
+            /// <summary>The paragraph policy the list text is justified with; null keeps the document default.</summary>
+            internal PdfParagraphStyle? TextStyle { get; }
         }
 
         private sealed class PreparedListItem {
@@ -116,6 +120,7 @@ internal static partial class PdfWriter {
                 EstimateSimpleTextWidthForOptions("WW", baseFont, size, currentOpts));
             double alignmentWidth = System.Math.Max(0D, rawTextWidth);
             double itemSpacing = GetListItemSpacing(style, leading);
+            PdfJustificationMode? wordJustificationMode = GetListWordJustificationMode(style, block.Align);
             var items = new System.Collections.Generic.List<PreparedListItem>(block.RichItems.Count);
             for (int itemIndex = 0; itemIndex < block.RichItems.Count; itemIndex++) {
                 PdfListItem item = block.RichItems[itemIndex];
@@ -127,6 +132,7 @@ internal static partial class PdfWriter {
                     leading,
                     currentOpts,
                     style?.LineSpacing,
+                    wordJustificationMode,
                     cancellationToken);
                 double firstLineWidth = textLayout.Lines.Count > 0
                     ? MeasureRichLineWidth(textLayout.Lines[0], currentOpts)
@@ -159,7 +165,8 @@ internal static partial class PdfWriter {
                 itemSpacing,
                 spacingBefore,
                 style?.GetSpacingAfter(itemSpacing) ?? itemSpacing,
-                items);
+                items,
+                CreateListTextStyle(style, currentOpts));
         }
 
         private (double X, double Width, OfficeAlignment Align) GetListMarkerPlacement(
@@ -191,6 +198,22 @@ internal static partial class PdfWriter {
             }
 
             return total;
+        }
+
+        /// <summary>Word justification also chooses line breaks, so list text wraps with the policy it paints with.</summary>
+        private static PdfJustificationMode? GetListWordJustificationMode(PdfListStyle? style, OfficeAlignment align) =>
+            style?.UseWordJustificationSpacing == true && align == OfficeAlignment.Justify ? style.JustificationMode : null;
+
+        /// <summary>The document paragraph default with the list's justification policy, so list text justifies like a paragraph.</summary>
+        private static PdfParagraphStyle? CreateListTextStyle(PdfListStyle? style, PdfCreateOptions options) {
+            if (style == null) return null;
+            PdfParagraphStyle text = options.DefaultParagraphStyleSnapshot?.Clone() ?? new PdfParagraphStyle();
+            text.JustificationMode = style.JustificationMode;
+            text.JustifyExplicitLineBreaks = style.JustifyExplicitLineBreaks;
+            text.JustifyLastLine = style.JustifyLastLine;
+            text.AlignJustifiedRemainderRight = style.AlignJustifiedRemainderRight;
+            text.UseWordJustificationSpacing = style.UseWordJustificationSpacing;
+            return text;
         }
     }
 }

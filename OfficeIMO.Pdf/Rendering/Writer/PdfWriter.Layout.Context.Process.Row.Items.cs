@@ -80,6 +80,7 @@ internal static partial class PdfWriter {
                             TextXOffset = prepared.ListLeftIndent + prepared.MarkerWidth + prepared.MarkerGap,
                             TextWidth = prepared.AlignmentWidth,
                             TextAlign = list.Align,
+                            TextStyle = prepared.TextStyle,
                             Color = listColor,
                             Leading = prepared.Leading,
                             Size = prepared.Size,

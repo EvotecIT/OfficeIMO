@@ -72,22 +72,12 @@ public partial class PdfDocumentVisualQualityTests {
         var invalidBulletAlignException = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create().Bullets(new[] { "Invalid bullet" }, (OfficeAlignment)99));
 
-        Assert.Contains("Bullet list alignment must be Left, Center, Right, Start, or End.", invalidBulletAlignException.Message, StringComparison.Ordinal);
-
-        var bulletJustifyException = Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create().Bullets(new[] { "Unsupported bullet" }, OfficeAlignment.Justify));
-
-        Assert.Contains("Bullet list alignment must be Left, Center, Right, Start, or End.", bulletJustifyException.Message, StringComparison.Ordinal);
+        Assert.Contains("Bullet list alignment must be Left, Center, Right, Justify, Start, or End.", invalidBulletAlignException.Message, StringComparison.Ordinal);
 
         var invalidNumberedAlignException = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create().Numbered(new[] { "Invalid numbered" }, (OfficeAlignment)99));
 
-        Assert.Contains("Numbered list alignment must be Left, Center, Right, Start, or End.", invalidNumberedAlignException.Message, StringComparison.Ordinal);
-
-        var numberedJustifyException = Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create().Numbered(new[] { "Unsupported numbered" }, OfficeAlignment.Justify));
-
-        Assert.Contains("Numbered list alignment must be Left, Center, Right, Start, or End.", numberedJustifyException.Message, StringComparison.Ordinal);
+        Assert.Contains("Numbered list alignment must be Left, Center, Right, Justify, Start, or End.", invalidNumberedAlignException.Message, StringComparison.Ordinal);
     }
 
     [Fact]

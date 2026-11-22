@@ -8,7 +8,7 @@ internal static partial class PdfWriter {
             int start = units.Count;
             for (int itemIndex = 0; itemIndex < prepared.Items.Count; itemIndex++) {
                 PreparedListItem item = prepared.Items[itemIndex];
-                var paragraph = new RichParagraphBlock(item.Item.Runs, block.Align, block.Color ?? prepared.Style?.Color);
+                var paragraph = new RichParagraphBlock(item.Item.Runs, block.Align, block.Color ?? prepared.Style?.Color, prepared.TextStyle);
                 for (int line = 0; line < item.TextLayout.Lines.Count; line++) {
                     if (units.Count >= MaximumTextLayoutLines) throw new InvalidDataException("Footnote flow exceeded the 100,000-fragment limit.");
                     double advance = GetRichLineHeight(item.TextLayout.LineHeights, line, prepared.Leading);

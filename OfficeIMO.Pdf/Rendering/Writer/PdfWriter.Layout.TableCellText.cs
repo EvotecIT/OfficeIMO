@@ -238,8 +238,10 @@ internal static partial class PdfWriter {
         return style;
     }
 
-    private static TableCellTextLayout CreateListItemTextLayout(PdfListItem item, double innerWidth, PdfStandardFont baseFont, double fontSize, double leading, PdfCreateOptions? options, PdfLineSpacing? lineSpacing, System.Threading.CancellationToken cancellationToken = default) {
-        var wrap = WrapRichRunsWithSpacing(item.Runs, innerWidth, fontSize, baseFont, leading, null, DefaultParagraphTabStopWidth, options, lineSpacing, cancellationToken: cancellationToken);
+    private static TableCellTextLayout CreateListItemTextLayout(PdfListItem item, double innerWidth, PdfStandardFont baseFont, double fontSize, double leading, PdfCreateOptions? options, PdfLineSpacing? lineSpacing,
+        PdfJustificationMode? wordJustificationMode = null, System.Threading.CancellationToken cancellationToken = default) {
+        var wrap = WrapRichRunsWithSpacing(item.Runs, innerWidth, fontSize, baseFont, leading, null, DefaultParagraphTabStopWidth, options, lineSpacing,
+            wordJustificationMode, cancellationToken: cancellationToken);
         if (wrap.Lines.Count == 0) {
             wrap.Lines.Add(new System.Collections.Generic.List<RichSeg>());
         }

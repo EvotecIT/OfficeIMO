@@ -5694,6 +5694,11 @@ versions:
   from the document defaults. Text in a justified paragraph that also holds a text box is justified,
   and objects placed on their own, such as an inline shape group, keep to the paragraph's starting side:
   the right in a right-to-left paragraph.
+- Justified and distributed list items are justified like other paragraphs instead of being drawn
+  left-aligned, with Word's spacing, last-line and line-break rules, so numbered and bulleted items can
+  wrap at different words than before. In OfficeIMO.Pdf, bulleted and numbered lists accept
+  `OfficeAlignment.Justify`, which used to throw, and `PdfListStyle` has `JustificationMode`,
+  `JustifyLastLine` and `JustifyExplicitLineBreaks`, as `PdfParagraphStyle` does.
 
 If your process depends on where pages break, regenerate the PDFs and compare them with your stored
 baselines, checking page counts and where tables and lists break. Refresh page-dependent content

@@ -174,7 +174,7 @@ namespace OfficeIMO.Word.Pdf {
             item = new PdfCore.PdfListItem(richRuns, destination, string.IsNullOrWhiteSpace(displayMarker) ? null : displayMarker) {
                 BookmarkAliases = bookmarks.Skip(1).ToArray()
             };
-            align = ResolveNativeParagraphAlign(paragraph, allowJustify: false);
+            align = ResolveNativeParagraphAlign(paragraph);
             NativeResolvedTextStyle textStyle = ResolveNativeTextRunStyle(paragraph, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
             color = textStyle.MarkerColor;
             style = CreateNativeListStyle(paragraph, info.Value, displayMarker, nativeDefaults, textStyle, nativeFontMap);
@@ -291,7 +291,19 @@ namespace OfficeIMO.Word.Pdf {
             style.KeepTogetherOverflow = UsesModernNativeWordLayout(paragraph._document)
                 ? PdfCore.PdfKeepTogetherOverflowBehavior.SplitAcrossPages : PdfCore.PdfKeepTogetherOverflowBehavior.SplitAcrossFrames;
             style.KeepWithNext = ReadNativeDirectParagraphOnOff<W.KeepNext>(paragraph) ?? styleDefaults.KeepWithNext ?? false;
+            ApplyNativeListJustification(style, paragraph);
             return style;
+        }
+
+        /// <summary>A list item justifies exactly as the same paragraph would outside the list.</summary>
+        private static void ApplyNativeListJustification(PdfCore.PdfListStyle style, WordParagraph paragraph) {
+            var justification = new PdfCore.PdfParagraphStyle();
+            ApplyNativeParagraphJustification(justification, paragraph);
+            style.JustificationMode = justification.JustificationMode;
+            style.JustifyExplicitLineBreaks = justification.JustifyExplicitLineBreaks;
+            style.JustifyLastLine = justification.JustifyLastLine;
+            style.AlignJustifiedRemainderRight = justification.AlignJustifiedRemainderRight;
+            style.UseWordJustificationSpacing = justification.UseWordJustificationSpacing;
         }
 
         private static PdfCore.PdfListStyle? ApplyNativeListContextualItemSpacing(PdfCore.PdfListStyle? style, IReadOnlyList<WordParagraph> paragraphs) {
@@ -483,7 +495,12 @@ namespace OfficeIMO.Word.Pdf {
                    left.Color.Equals(right.Color) &&
                    left.KeepTogether == right.KeepTogether &&
                    left.KeepTogetherOverflow == right.KeepTogetherOverflow &&
-                   left.KeepWithNext == right.KeepWithNext;
+                   left.KeepWithNext == right.KeepWithNext &&
+                   left.JustificationMode == right.JustificationMode &&
+                   left.JustifyExplicitLineBreaks == right.JustifyExplicitLineBreaks &&
+                   left.JustifyLastLine == right.JustifyLastLine &&
+                   left.AlignJustifiedRemainderRight == right.AlignJustifiedRemainderRight &&
+                   left.UseWordJustificationSpacing == right.UseWordJustificationSpacing;
         }
 
         private static bool NativeLineSpacingsEquivalent(PdfCore.PdfLineSpacing? left, PdfCore.PdfLineSpacing? right) =>
