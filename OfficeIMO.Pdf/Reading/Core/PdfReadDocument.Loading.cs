@@ -17,7 +17,7 @@ internal sealed partial class PdfReadDocument {
         ReadOnlyMemory<byte> pdf,
         PdfLoadOptions? options,
         CancellationToken cancellationToken) =>
-        OpenCore(pdf, options, ownsBytes: false, cancellationToken);
+        OpenCore(pdf, options, ownsBytes: false, detachOutputIntentProfiles: false, cancellationToken);
 
     /// <summary>Opens an immutable buffer already owned by OfficeIMO without duplicating stream payloads.</summary>
     internal static PdfReadDocument OpenOwned(
@@ -25,7 +25,7 @@ internal sealed partial class PdfReadDocument {
         PdfLoadOptions? options,
         CancellationToken cancellationToken = default) {
         Guard.NotNull(ownedPdf, nameof(ownedPdf));
-        return OpenCore(ownedPdf, options, ownsBytes: true, cancellationToken);
+        return OpenCore(ownedPdf, options, ownsBytes: true, detachOutputIntentProfiles: false, cancellationToken);
     }
 
     /// <summary>
@@ -35,12 +35,20 @@ internal sealed partial class PdfReadDocument {
         ReadOnlyMemory<byte> borrowedPdf,
         PdfLoadOptions? options,
         CancellationToken cancellationToken = default) =>
-        OpenCore(borrowedPdf, options, ownsBytes: true, cancellationToken);
+        OpenBorrowed(borrowedPdf, options, detachOutputIntentProfiles: false, cancellationToken);
+
+    internal static PdfReadDocument OpenBorrowed(
+        ReadOnlyMemory<byte> borrowedPdf,
+        PdfLoadOptions? options,
+        bool detachOutputIntentProfiles,
+        CancellationToken cancellationToken) =>
+        OpenCore(borrowedPdf, options, ownsBytes: true, detachOutputIntentProfiles, cancellationToken);
 
     private static PdfReadDocument OpenCore(
         ReadOnlyMemory<byte> pdf,
         PdfLoadOptions? options,
         bool ownsBytes,
+        bool detachOutputIntentProfiles,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options);
@@ -78,7 +86,8 @@ internal sealed partial class PdfReadDocument {
             cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
 
-        return new PdfReadDocument(map, trailer, security, repairReport, effectiveOptions, decodedStreamBytes, cancellationToken);
+        return new PdfReadDocument(map, trailer, security, repairReport, effectiveOptions, decodedStreamBytes,
+            detachOutputIntentProfiles, cancellationToken);
     }
 
     /// <summary>
@@ -108,7 +117,8 @@ internal sealed partial class PdfReadDocument {
             security = PdfSyntax.ReadRewrittenOutputSecurityInfo(pdf, trailer, effectiveOptions, cancellationToken);
         }
 
-        return new PdfReadDocument(map, trailer, security, repairReport, effectiveOptions, decodedStreamBytes, cancellationToken);
+        return new PdfReadDocument(map, trailer, security, repairReport, effectiveOptions, decodedStreamBytes,
+            detachOutputIntentProfiles: false, cancellationToken);
     }
 
     /// <summary>Opens a PDF from a bounded file snapshot.</summary>

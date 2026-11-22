@@ -270,7 +270,7 @@ internal sealed class PdfDocumentSource {
         if (options is not null && !ReferenceEquals(options, Options)) {
             return _canonicalRewrittenOutput
                 ? PdfReadDocument.OpenRewrittenOutput(Bytes, options, cancellationToken)
-                : PdfReadDocument.OpenBorrowed(_bytes, options, cancellationToken);
+                : PdfReadDocument.OpenBorrowed(_bytes, options, detachOutputIntentProfiles: _borrowed, cancellationToken);
         }
 
         return _readCache.GetOrCreate(this, static (source, token) => source.ParseCanonical(token), cancellationToken);
@@ -279,14 +279,14 @@ internal sealed class PdfDocumentSource {
     private PdfReadDocument Parse(PdfLoadOptions options, CancellationToken cancellationToken) =>
         _canonicalRewrittenOutput
             ? PdfReadDocument.OpenRewrittenOutput(Bytes, options, cancellationToken)
-            : PdfReadDocument.OpenBorrowed(_bytes, options, cancellationToken);
+            : PdfReadDocument.OpenBorrowed(_bytes, options, detachOutputIntentProfiles: _borrowed, cancellationToken);
 
     private PdfReadDocument ParseCanonical(CancellationToken cancellationToken) {
         _readFailure?.Throw();
         try {
             return _canonicalRewrittenOutput
                 ? PdfReadDocument.OpenRewrittenOutput(Bytes, Options, cancellationToken)
-                : PdfReadDocument.OpenBorrowed(_bytes, Options, cancellationToken);
+                : PdfReadDocument.OpenBorrowed(_bytes, Options, detachOutputIntentProfiles: _borrowed, cancellationToken);
         } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
             // A caller's cancellation must not poison the reusable source cache.
             throw;

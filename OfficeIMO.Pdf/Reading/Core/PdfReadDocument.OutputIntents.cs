@@ -9,7 +9,8 @@ internal sealed partial class PdfReadDocument {
     /// <summary>True when every entry in the catalog /OutputIntents array resolved to a dictionary typed as /OutputIntent.</summary>
     public bool OutputIntentsAreComplete => ReadLogicalContent(_outputIntentsAreComplete);
 
-    private IReadOnlyList<PdfOutputIntentInfo> ExtractOutputIntents(out bool isComplete, System.Threading.CancellationToken cancellationToken) {
+    private IReadOnlyList<PdfOutputIntentInfo> ExtractOutputIntents(out bool isComplete,
+        bool detachOutputIntentProfiles, System.Threading.CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         isComplete = true;
         PdfDictionary? catalog = FindCatalog();
@@ -43,6 +44,12 @@ internal sealed partial class PdfReadDocument {
                 }
 
                 profileStream = ResolveObject(profileObject) as PdfStream;
+            }
+
+            // Inspection reports can outlive the input lease. Retain only the encoded profile;
+            // decoding and its separate limits still apply when a caller reads profile metadata.
+            if (detachOutputIntentProfiles && profileStream is not null) {
+                Filters.StreamDecoder.RetainEncodedInput(profileStream, _objects, cancellationToken);
             }
 
             Func<System.Threading.CancellationToken, PdfOutputIntentProfileMetadata?>? metadataFactory = profileStream == null
