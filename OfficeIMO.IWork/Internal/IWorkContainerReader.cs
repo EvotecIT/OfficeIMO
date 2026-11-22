@@ -60,7 +60,12 @@ internal static class IWorkContainerReader {
         cancellationToken.ThrowIfCancellationRequested();
         ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanRead) throw new ArgumentException("The source stream must be readable.", nameof(stream));
-        byte[] package = ReadBounded(stream, options.MaxPackageBytes, "package", cancellationToken);
+        byte[] package;
+        try {
+            package = OfficeStreamReader.ReadRemainingBytes(stream, cancellationToken, options.MaxPackageBytes);
+        } catch (InvalidDataException exception) when (OfficeStreamReader.IsSizeLimitException(exception)) {
+            throw new InvalidDataException($"The package exceeds the configured limit of {options.MaxPackageBytes} bytes.", exception);
+        }
         using var copy = new MemoryStream(package, writable: false);
         return ReadZip(copy, options, cancellationToken);
     }
