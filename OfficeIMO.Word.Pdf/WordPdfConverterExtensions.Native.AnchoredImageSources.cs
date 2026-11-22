@@ -36,6 +36,9 @@ public static partial class WordPdfConverterExtensions {
         IReadOnlyList<PdfCore.PdfCanvasItem> paint = content.Items;
         if (layout.BehindDocument)
             paint = new PdfCore.PdfCanvasItem[] { new PdfCore.PdfCanvasBehindTextItem(paint, layout.RelativeHeight) };
+        // The story's in-front layer orders it by z-order with the story's other in-front drawings.
+        else if (runningStory)
+            paint = new PdfCore.PdfCanvasItem[] { new PdfCore.PdfCanvasInFrontOfTextItem(paint, layout.RelativeHeight) };
         item = new PdfCore.PdfCanvasAnchoredImageItem(sourceIdentity, new PdfCore.PdfCanvasBlock(paint),
             width, height, new PdfCore.PdfAnchoredImagePosition(placement.X, placement.Y,
                 placement.MarginX, margins.Left.ToPoints(), placement.ParagraphY), exclusion);

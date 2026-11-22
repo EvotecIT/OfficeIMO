@@ -21,6 +21,8 @@ public sealed class PdfRunningStoryDrawingLayersTests {
     [InlineData("group", false, true)]
     [InlineData("picture", true, false)]
     [InlineData("group", false, false)]
+    // A paragraph that also holds a text box takes the mixed text-box route.
+    [InlineData("groupbox", true, true)]
     public void SaveAsPdf_RunningStoryDrawingStacksAsInWord(string kind, bool header, bool inFront) {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph("BODYTEXT BODYTEXT BODYTEXT");
@@ -50,7 +52,20 @@ public sealed class PdfRunningStoryDrawingLayersTests {
         drawingAnchor.BehindDoc = !inFront;
         drawingAnchor.RemoveAllChildren<DW.WrapSquare>();
         if (drawingAnchor.GetFirstChild<DW.WrapNone>() == null) drawingAnchor.AddChild(new DW.WrapNone(), true);
+        if (kind == "groupbox") {
+            WordTextBox box = anchor.AddTextBox("BOXTEXT", WordImageTextWrapping.InFrontOfText);
+            box.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
+            box.HorizontalPositionOffset = OfficeLength.Points(400);
+            box.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
+            box.VerticalPositionOffset = OfficeLength.Points(top);
+            box.Width = OfficeLength.Points(120);
+            box.Height = OfficeLength.Points(30);
+            box.RelativeWidthPercentage = 0;
+            box.RelativeHeightPercentage = 0;
+        }
         story.AddParagraph("FOLLOWINGLINE");
+        // A table keeps the story on the rich route, which sends a paragraph with a text box through the mixed text-box route.
+        if (kind == "groupbox") story.AddTable(1, 1);
 
         var evidence = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false });
         Assert.DoesNotContain(evidence.Warnings, warning => warning.Code.StartsWith("native-shape-group-", StringComparison.Ordinal) ||
@@ -69,15 +84,19 @@ public sealed class PdfRunningStoryDrawingLayersTests {
         Assert.True(OfficePngReader.TryDecode(rendered, out var bitmap));
 
         Assert.Equal(!inFront, TextShowsThrough(bitmap!, anchorText));
-        Assert.Equal(!inFront, TextShowsThrough(bitmap!, followingText));
+        // The mixed route flows its text box, which moves the following line below the group.
+        if (kind != "groupbox") Assert.Equal(!inFront, TextShowsThrough(bitmap!, followingText));
         Assert.True(TextShowsThrough(bitmap!, bodyText), "The body text paints over the header and footer layer.");
     }
 
-    // A header group that is not drawn, placed relative to the margin or stored only as VML, is reported as omitted.
+    // A header group that is not drawn, placed relative to the margin or stored only as VML, is reported as
+    // omitted. A group in a hidden run is not painted in Word either, so nothing is lost.
     [Theory]
-    [InlineData("margin")]
-    [InlineData("vml")]
-    public void SaveAsPdf_UndrawnHeaderShapeGroupIsReported(string kind) {
+    [InlineData("margin", false)]
+    [InlineData("vml", false)]
+    [InlineData("margin", true)]
+    [InlineData("vml", true)]
+    public void SaveAsPdf_UndrawnHeaderShapeGroupIsReported(string kind, bool hidden) {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph("BODYTEXT");
         _ = document.PageSetup.Header;
@@ -88,7 +107,7 @@ public sealed class PdfRunningStoryDrawingLayersTests {
                 CoordinateSize = "200,70"
             };
             group.Append(new V.Rectangle { Style = "position:absolute;left:0;top:0;width:200;height:70", FillColor = "red", Stroked = false });
-            anchor._run!.Append(new W.Picture(group));
+            anchor._paragraph.Append(new W.Run(new W.Picture(group)));
         } else {
             anchor.AddShapeGroup(new[] {
                 new WordShapeGroupItem(WordShapeType.Rectangle, OfficeLength.Points(0), OfficeLength.Points(0), OfficeLength.Points(100), OfficeLength.Points(70)) { FillColor = OfficeColor.Parse("FF0000") },
@@ -96,11 +115,55 @@ public sealed class PdfRunningStoryDrawingLayersTests {
             }, OfficeLength.Points(60), OfficeLength.Points(30));
             anchor._paragraph.Descendants<DW.Anchor>().Single().HorizontalPosition!.RelativeFrom = DW.HorizontalRelativePositionValues.Margin;
         }
+        if (hidden) {
+            W.Run groupRun = anchor._paragraph.Elements<W.Run>().Last();
+            groupRun.PrependChild(new W.RunProperties(new W.Vanish()));
+        }
 
         var evidence = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false });
+        if (hidden) {
+            Assert.DoesNotContain(evidence.Warnings, item => item.Code == "native-header-footer-shape-group-unsupported");
+            return;
+        }
         var warning = Assert.Single(evidence.Warnings, item => item.Code == "native-header-footer-shape-group-unsupported");
         Assert.Equal("default header", warning.Source);
         Assert.Equal(OfficeIMO.OfficeConversionLossKind.Omission, warning.LossKind);
+    }
+
+    // A wrapped header picture and an in-front one share the story's in-front layer, so the higher z-order wins where they overlap.
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void SaveAsPdf_WrappedHeaderPictureKeepsItsZOrderOverInFrontDrawings(bool wrappedOnTop) {
+        using WordDocument document = WordDocument.Create();
+        document.AddParagraph("BODYTEXT");
+        _ = document.PageSetup.Header;
+        WordParagraph anchor = document.PageSetup.GetHeader(WordHeaderFooterType.Default)!.AddParagraph("ANCHORLINE");
+        AddPagePicture(anchor, OfficeColor.Red, WordImageTextWrapping.InFrontOfText, 60D, 30D, wrappedOnTop ? 1U : 2U);
+        AddPagePicture(anchor, OfficeColor.Parse("00FF00"), WordImageTextWrapping.Square, 110D, 40D, wrappedOnTop ? 2U : 1U);
+
+        byte[] bytes = document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new PdfCore.PdfSaveOptions { AllowLoss = true });
+        var pdf = PdfCore.PdfDocument.Load(new MemoryStream(bytes));
+        byte[] rendered = pdf.Render.Pages(PdfCore.PdfPageSelection.From(1), new PdfCore.PdfPageRenderOptions { Dpi = 72 })[0].Bytes!;
+        Assert.True(OfficePngReader.TryDecode(rendered, out var bitmap));
+        byte[] pixels = bitmap!.GetPixels();
+        int offset = (65 * bitmap.Width + 135) * 4;
+        Assert.Equal(wrappedOnTop ? "0,255,0" : "255,0,0", pixels[offset] + "," + pixels[offset + 1] + "," + pixels[offset + 2]);
+    }
+
+    private static void AddPagePicture(WordParagraph paragraph, OfficeColor color, WordImageTextWrapping wrapping,
+        double left, double top, uint zOrder) {
+        using var stream = new MemoryStream(OfficeRasterImageEncoder.Encode(new OfficeRasterImage(20, 20, color), OfficeImageExportFormat.Png));
+        WordImage image = paragraph.AddImage(stream, "fill.png", OfficeLength.Points(100), OfficeLength.Points(60),
+            options: new WordImageOptions { Wrapping = wrapping });
+        image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
+        image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
+        image.HorizontalPositionOffset = OfficeLength.Points(left);
+        image.VerticalPositionOffset = OfficeLength.Points(top);
+        image._Image!.Anchor!.RelativeHeight = zOrder;
+        // Rectangular wrapping needs zero effect extents.
+        image._Image.Anchor.GetFirstChild<DW.EffectExtent>()!.BottomEdge = 0L;
+        image._Image.Anchor.BehindDoc = false;
     }
 
     // Counts dark text pixels inside a word's box on a 792pt page rendered at 72 dpi.

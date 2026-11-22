@@ -165,9 +165,21 @@ public static partial class WordPdfConverterExtensions {
         void Record(WordHeaderFooter? story, string source) {
             OpenXmlElement? root = (OpenXmlElement?)story?._header ?? story?._footer;
             if (root == null) return;
-            // A DrawingML group's VML fallback is the same group, so only fallback-free VML groups count separately.
-            int groups = root.Descendants<W.Drawing>().Count(IsNativeShapeGroupDrawing) +
-                root.Descendants<V.Group>().Count(group => !group.Ancestors<V.Group>().Any() && !group.Ancestors<AlternateContentFallback>().Any());
+            int groups = 0;
+            foreach (W.Paragraph element in root.Descendants<W.Paragraph>()) {
+                var paragraph = new WordParagraph(story!.Document, element);
+                // Hidden runs are not painted, so their groups are not lost.
+                foreach (WordParagraph run in GetNativeRuns(paragraph)) {
+                    if (IsNativeHiddenTextRun(run, paragraph)) continue;
+                    foreach (OpenXmlElement content in run.EnumerateEffectiveRunContent()) {
+                        IEnumerable<OpenXmlElement> scope = content.Descendants().Prepend(content)
+                            .Where(node => node.Ancestors<W.Paragraph>().FirstOrDefault() == element);
+                        // A DrawingML group's VML fallback is the same group, so only fallback-free VML groups count separately.
+                        groups += scope.OfType<W.Drawing>().Count(IsNativeShapeGroupDrawing) +
+                            scope.OfType<V.Group>().Count(group => !group.Ancestors<V.Group>().Any() && !group.Ancestors<AlternateContentFallback>().Any());
+                    }
+                }
+            }
             if (groups == 0) return;
             AddNativeExportWarning(options, "native-header-footer-shape-group-unsupported", source,
                 groups == 1 ? "A shape group in this header or footer is not drawn. Groups placed relative to the page or paragraph are drawn; margin-relative and VML-only groups are not yet."
