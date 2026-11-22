@@ -81,12 +81,15 @@ internal static partial class PdfWriter {
         int nextExplicitTabStopIndex = 0;
         double lineHeightRatio = fontSize > 0 ? lineHeight / fontSize : 1.2D;
         bool currentRunContributesDescent = true;
-        double RunLineHeight(double size) => currentRunContributesDescent
-            ? lineSpacing?.GetAdvance(size) ?? size * lineHeightRatio : 0D;
         double completedHeight = 0;
         double currentContentHeight = lineHeight;
         double currentMinimumWidth = 0;
         PdfNamedFontFace? currentRunNamedFont = null;
+        PdfStandardFont currentRunFont = baseFont;
+        double RunLineHeight(double size) => !currentRunContributesDescent ? 0D
+            : lineSpacing?.FixedFontLeading.HasValue == true
+                ? lineSpacing.GetFixedFontAdvance(size, IsFixedPitchFont(currentRunFont, currentRunNamedFont, options))
+                : lineSpacing?.GetAdvance(size) ?? size * lineHeightRatio;
         double currentRunAscent = 0;
         double currentRunDescent = 0;
         double currentLineTextAscent = 0;
@@ -490,6 +493,15 @@ internal static partial class PdfWriter {
             ResetPendingLeading();
         }
 
+        // A line-ending word space keeps the formatting of its own run, as in Word.
+        RichSeg? PendingSeparatorStyle() => pendingLeadingSeparator && pendingLeadingIsOrdinarySpace &&
+            pendingSeparatorFormat is { } format
+                ? new RichSeg(string.Empty, false, false, false, false, null, null, null, null, null, format.Font, format.FontSize,
+                    format.Baseline, 0D, namedFont: format.NamedFont, featureSettings: format.FeatureSettings,
+                    horizontalTextScaling: format.HorizontalTextScaling, characterSpacing: format.CharacterSpacing,
+                    baselineShift: format.BaselineShift)
+                : null;
+
         void SetPendingSeparator(bool hadTab, double spaceW, PdfTabAlignment tabAlignment, PdfTabLeaderStyle tabLeader) {
             if (hadTab && (pendingLeadingIsTab || pendingTabSourceStyle?.LeadingIsTab == true)) CommitPendingTab();
             oversizedWordContinuation = false;
@@ -617,6 +629,7 @@ internal static partial class PdfWriter {
             var tabAlignment = run.TabAlignment;
             var runBaseFont = run.StandardFont.HasValue ? ChooseNormal(run.StandardFont.Value) : baseFont;
             var fontForRun = (bold && italic) ? ChooseBoldItalic(runBaseFont) : bold ? ChooseBold(runBaseFont) : italic ? ChooseItalic(runBaseFont) : runBaseFont;
+            currentRunFont = fontForRun;
             currentRunNamedFont = options != null &&
                                   options.TryResolveNamedFontFace(run.FontFamily, bold, italic, out PdfNamedFontFace resolvedNamedFont)
                 ? resolvedNamedFont
@@ -1095,18 +1108,21 @@ internal static partial class PdfWriter {
                      MinimumCandidateWidth(tokenProbe, continuation.Parts, lineWidth + needed + boundaryAdvance) > currentMaxWidth + RichTextWidthTolerance) && lastLine.Count > 0
                     && (token.Length > 0 || whitespaceMode != PdfTextWhitespaceMode.Preserve)) {
                     if (pendingLeadingAdvance > 0D) {
-                        MarkRichLineTextSeparator(lastLine);
+                        MarkRichLineTextSeparator(lastLine, PendingSeparatorStyle());
                     }
 
                     if (whitespaceMode == PdfTextWhitespaceMode.Preserve) {
                         // Trailing spaces do not participate in the previous line's
                         // alignment or justification after its following word wraps.
+                        RichSeg? trailingSpace = null;
                         while (lastLine.Count > 0 && lastLine[lastLine.Count - 1] is RichSeg trailing
                                && trailing.Text.Length == 0 && trailing.InlineElement == null
                                && trailing.LeadingSpace && !trailing.LeadingIsTab) {
+                            trailingSpace = trailing;
                             lastLine.RemoveAt(lastLine.Count - 1);
                         }
-                        MarkRichLineTextSeparator(lastLine);
+                        // The line-ending space keeps the formatting of its own run, as in Word.
+                        MarkRichLineTextSeparator(lastLine, trailingSpace ?? PendingSeparatorStyle());
                     }
                     StartNewLine();
                     // The next line can enter a narrower floating frame. A pending word

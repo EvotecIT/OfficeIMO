@@ -10,6 +10,8 @@ namespace OfficeIMO.Pdf;
 public sealed partial class PdfContentBuilder {
     private readonly PdfDocument _doc;
     internal PdfContentBuilder(PdfDocument doc) { _doc = doc; }
+    /// <summary>Builds flow blocks without adding them to the document, for content placed elsewhere.</summary>
+    internal IReadOnlyList<IPdfBlock> CaptureBlocks(System.Action<PdfContentBuilder> build) => _doc.BuildFlowBlocks(build);
     /// <summary>Captures reusable footnote flow without inserting it into the body. Associate its handle with a styled text run.</summary>
     /// <param name="build">Static paragraphs, lists, panels, supported eager inline tables, images, rules, and spacers forming the footnote.</param>
     /// <param name="options">Placement and optional separator flow, snapshotted during this call.</param>

@@ -180,8 +180,9 @@ public partial class Word {
         Assert.Equal((1D, 0D, 0D), outline.StrokeColor.ToRGBValues());
         Assert.Contains(frames, path => path.IsFilled && path.FillColor.ToRGBValues() == (1D, 1D, 0D));
         Letter[] box = AnchoredRunningLetters(page, "BOX");
-        Assert.Equal(left + 20D, box[0].StartBaseLine.X, 3);
-        Assert.Equal(36D - (14.4D + 10D), box[0].StartBaseLine.Y -
+        // Word sets the text inside the 2pt outline: half its width beyond each inset.
+        Assert.Equal(left + 20D + 1D, box[0].StartBaseLine.X, 3);
+        Assert.Equal(36D - (14.4D + 10D + 1D), box[0].StartBaseLine.Y -
             AnchoredRunningLetters(controlPdf.GetPage(2), "PREFIX")[0].StartBaseLine.Y, 3);
         Assert.Equal(before, AnchoredRunningStoryXml(document));
     }
@@ -189,7 +190,7 @@ public partial class Word {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void SaveAsPdf_InheritedSectionPagesPreservesUnsupportedPeerAndNestedTextBoxContent(bool nested) {
+    public void SaveAsPdf_InheritedSectionPagesPreservesPeerAndNestedTextBoxContent(bool nested) {
         using WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
         WordHeaderFooter story = document.Sections[1].PageSetup.FirstPageHeader;
         WordParagraph first = story.TextBoxes.Single().Paragraphs.Single();
@@ -205,7 +206,8 @@ public partial class Word {
         }
         string[] before = AnchoredRunningStoryXml(document);
         var result = document.ConvertToPdfWithEvidence(EmptyRunningOptions());
-        Assert.Contains(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
+        // A paragraph-relative peer keeps its own frame. A nested box keeps the bounded source-order flow.
+        Assert.Equal(nested, result.Report.Warnings.Any(warning => warning.Code == "native-mixed-text-box-layout-approximated"));
         using var pdf = PdfPigDocument.Open(result.Value.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(3, pdf.NumberOfPages);
         string visible = string.Concat(pdf.GetPage(2).Letters.Select(letter => letter.Value));
@@ -215,7 +217,7 @@ public partial class Word {
         int previous = -1;
         foreach (string marker in markers) {
             int position = visible.IndexOf(marker, StringComparison.Ordinal);
-            Assert.True(position > previous, $"Missing or reordered {marker}: {visible}");
+            Assert.True(nested ? position > previous : position >= 0, $"Missing or reordered {marker}: {visible}");
             Assert.Equal(position, visible.LastIndexOf(marker, StringComparison.Ordinal));
             previous = position;
         }

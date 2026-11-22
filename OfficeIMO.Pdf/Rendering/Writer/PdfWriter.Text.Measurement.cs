@@ -7,13 +7,13 @@ internal static partial class PdfWriter {
     // Adding and then subtracting cell padding can differ from the measured
     // glyph sum by a few floating-point bits. Preserve an exact-width fit.
     private const double RichTextWidthTolerance = 0.0000001D;
-    private static void MarkRichLineTextSeparator(System.Collections.Generic.IList<RichSeg> line) {
+    private static void MarkRichLineTextSeparator(System.Collections.Generic.IList<RichSeg> line, RichSeg? separatorStyle = null) {
         if (line.Count == 0) {
             return;
         }
 
         int lastIndex = line.Count - 1;
-        line[lastIndex] = line[lastIndex].WithEndsWithTextSeparator();
+        line[lastIndex] = line[lastIndex].WithEndsWithTextSeparator(separatorStyle);
     }
 
     private static void MarkRichLineHardBreak(System.Collections.Generic.IList<RichSeg> line) {

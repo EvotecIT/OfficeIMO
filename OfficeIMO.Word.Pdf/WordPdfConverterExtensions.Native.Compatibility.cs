@@ -26,6 +26,42 @@ public static partial class WordPdfConverterExtensions {
         pdf.PageBreak();
     }
 
+    /// <summary>
+    /// Word 2010 and earlier compatibility modes with "Suppress extra line spacing at top of page
+    /// (WordPerfect)" set every automatic line to the font size plus two points of leading, or
+    /// the font size alone for a fixed-pitch font, instead of the font's own line metrics.
+    /// Word 2013 mode ignores the option.
+    /// </summary>
+    private static bool UsesNativeWordPerfectLineHeight(WordDocument? document) =>
+        document != null && !UsesModernNativeWordLayout(document) &&
+        document._wordprocessingDocument?.MainDocumentPart?.DocumentSettingsPart?.Settings?
+            .GetFirstChild<W.Compatibility>()?.GetFirstChild<W.SuppressTopSpacingWordPerfect>() is { } option &&
+        option.Val?.Value != false;
+
+    private const double NativeWordPerfectLeading = 2D;
+
+    private static double ResolveNativeWordPerfectLineHeight(WordParagraph paragraph, NativeDocumentDefaults defaults,
+        NativeParagraphStyleDefaults styleDefaults, NativeTableRunStyleDefaults tableRunStyleDefaults, NativeFontMap? fontMap) {
+        double fontSize = ResolveNativeParagraphEffectiveFontSize(paragraph, defaults, styleDefaults, tableRunStyleDefaults);
+        if (fontSize <= 0D) return NativeDefaultParagraphLineHeight;
+        string? family = EnumerateNativeStyleFontFamilies(default, styleDefaults, tableRunStyleDefaults, defaults, true).FirstOrDefault();
+        foreach (WordParagraph run in GetNativeRuns(paragraph)) {
+            if (!IsNativeParagraphMetricBearingRun(run, paragraph, defaults.NoteContentSection != null)) continue;
+            family = EnumerateNativeParagraphOwnFontFamilies(run).FirstOrDefault() ?? family;
+            break;
+        }
+        return (fontSize + (IsNativeFixedPitchFamily(family, fontMap) ? 0D : NativeWordPerfectLeading)) / fontSize;
+    }
+
+    private static bool IsNativeFixedPitchFamily(string? family, NativeFontMap? fontMap) {
+        if (string.IsNullOrWhiteSpace(family)) return false;
+        if (fontMap?.TryGetFontSlot(family, out OfficeIMO.Pdf.PdfStandardFont slot) == true &&
+            OfficeIMO.Pdf.PdfStandardFontMapper.GetFontFamily(slot) == OfficeIMO.Pdf.PdfStandardFont.Courier) return true;
+        string name = family!.ToLowerInvariant();
+        return name.Contains("courier") || name.Contains("consolas") || name.Contains("lucida console") ||
+            name.Contains(" mono") || name.EndsWith("mono", StringComparison.Ordinal);
+    }
+
     /// <summary>Resolves the effective Word layout mode while retaining stored compatibility flags.</summary>
     private static bool UsesModernNativeWordLayout(WordDocument document) {
         if (document.SourceFormat == WordFileFormat.Doc) return false;

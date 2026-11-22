@@ -156,6 +156,7 @@ internal static partial class PdfWriter {
             JustificationPolicy = source.JustificationPolicy;
             LeadingIsOrdinarySpace = source.LeadingIsOrdinarySpace;
             CompressionPlan = source.CompressionPlan;
+            TextSeparatorStyle = source.TextSeparatorStyle;
             return this;
         }
 
@@ -236,6 +237,22 @@ internal static partial class PdfWriter {
 
         public RichSeg WithEndsWithHardBreak() =>
             new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, MeasuredWidth, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, true, true, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection, LeadingTabStop, LeadingUnderlineStyle, LeadingDecorationColor, LeadingDecorationFontSize, LeadingDecorationTextRise, LeadingIsTab, LeadingTabAlignment, HorizontalTextScaling, CharacterSpacing, FontMetricScale, LeadingSpaceCount, LeadingSpaceRemainder, LeadingSpaceUnitAdvance).CopyLayoutMetadataFrom(this);
+
+        /// <summary>The run a line-ending word space came from, when it is formatted unlike this segment.</summary>
+        internal RichSeg? TextSeparatorStyle { get; private set; }
+
+        public RichSeg WithEndsWithTextSeparator(RichSeg? separatorStyle) {
+            RichSeg marked = WithEndsWithTextSeparator();
+            // Text keeps the space in its own run's formatting; an inline object keeps the established separator.
+            marked.TextSeparatorStyle = InlineElement == null && separatorStyle != null && !SharesSeparatorFormatting(separatorStyle)
+                ? separatorStyle : null;
+            return marked;
+        }
+
+        private bool SharesSeparatorFormatting(RichSeg separator) =>
+            separator.Font == Font && separator.NamedFont == NamedFont && separator.FontSize == FontSize &&
+            separator.Baseline == Baseline && separator.BaselineShift == BaselineShift &&
+            separator.FontMetricScale == FontMetricScale && separator.FeatureSettings.Equals(FeatureSettings);
 
         public RichSeg WithEndsWithTextSeparator() =>
             new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, MeasuredWidth, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, true, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection, LeadingTabStop, LeadingUnderlineStyle, LeadingDecorationColor, LeadingDecorationFontSize, LeadingDecorationTextRise, LeadingIsTab, LeadingTabAlignment, HorizontalTextScaling, CharacterSpacing, FontMetricScale, LeadingSpaceCount, LeadingSpaceRemainder, LeadingSpaceUnitAdvance).CopyLayoutMetadataFrom(this);

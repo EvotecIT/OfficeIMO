@@ -55,19 +55,24 @@ public static partial class WordPdfConverterExtensions {
             ordinaryStoriesSupported &= story.ChildElements.All(element => element is W.Paragraph ||
                 element is W.SdtBlock block && IsNativeParagraphOnlyRunningBlock(block));
             // Without a required table/field story, retain the established simple
-            // projection. It preserves its distinct presentation override contract.
-            if (story.ChildElements.Any(element => element.Descendants<W.TextBoxContent>().Any())) return false;
+            // projection unless every text box can keep its own anchored frame.
+            // It preserves its distinct presentation override contract.
+            if (story.ChildElements.Any(element => element.Descendants<W.TextBoxContent>().Any()) &&
+                !CanPlaceNativeRunningStoryTextBoxes(story, section, options)) return false;
             foreach (W.Paragraph source in story.ChildElements.SelectMany(element => element is W.Paragraph paragraph
                 ? new[] { paragraph }.Concat(element.Descendants<W.Paragraph>()) : element.Descendants<W.Paragraph>())) {
+                // Text-box paragraphs flow inside their own frames.
+                if (source.Ancestors<W.TextBoxContent>().Any()) continue;
                 var paragraph = new WordParagraph(story.Document, source);
                 hasParagraph = true;
                 // Inline pictures retain their measured line height; supported
                 // qualified anchors retain paragraph/page placement without
                 // reserving their paint frame as flowing header/footer content.
                 ordinaryStoriesSupported &= source.Descendants<W.Drawing>()
-                    .All(drawing => IsNativeRunningPictureDrawing(drawing, section, options, margins)) &&
-                    source.Descendants<W.Picture>().All(IsNativeRunningVmlPicture) && !source.Descendants<W.EmbeddedObject>().Any() &&
-                    !source.Descendants<AlternateContent>().Any() && !HasNativePageBreakBefore(paragraph) &&
+                    .All(drawing => IsNativePlacedRunningTextBoxDrawing(drawing) || IsNativeRunningPictureDrawing(drawing, section, options, margins)) &&
+                    source.Descendants<W.Picture>().All(picture => IsNativePlacedRunningTextBoxFallback(picture) || IsNativeRunningVmlPicture(picture)) &&
+                    !source.Descendants<W.EmbeddedObject>().Any() &&
+                    source.Descendants<AlternateContent>().All(IsNativePlacedRunningTextBoxAlternate) && !HasNativePageBreakBefore(paragraph) &&
                     !source.Descendants<W.Break>().Any(item => item.Type?.Value == W.BreakValues.Page ||
                         item.Type?.Value == W.BreakValues.Column);
                 WordDocumentTraversal.ListInfo? info = WordDocumentTraversal.GetListInfo(paragraph);
@@ -101,6 +106,35 @@ public static partial class WordPdfConverterExtensions {
         }
         return hasNumberedParagraph || (hasParagraph && ordinaryStoriesSupported);
     }
+
+    /// <summary>Every text box of the story is anchored with a frame the placed route reproduces.</summary>
+    private static bool CanPlaceNativeRunningStoryTextBoxes(WordHeaderFooter story, WordSection section, WordPdfExportOptions? options) {
+        PdfCore.PdfPageSize pageSize = GetNativePageSize(section, options);
+        foreach (W.Paragraph source in story.ChildElements.SelectMany(element => element is W.Paragraph paragraph
+            ? new[] { paragraph }.Concat(element.Descendants<W.Paragraph>()) : element.Descendants<W.Paragraph>())) {
+            options?.CancellationToken.ThrowIfCancellationRequested();
+            bool insideBox = source.Ancestors<W.TextBoxContent>().Any();
+            if (!source.Descendants<W.TextBoxContent>().Any()) continue;
+            // Nested boxes and boxes anchored in table cells keep the bounded flow.
+            if (insideBox || source.Ancestors<W.TableCell>().Any()) return false;
+            var paragraph = new WordParagraph(story.Document, source);
+            if (!TryCollectNativePlacedRunningTextBoxes(pageSize, paragraph, GetNativeRuns(paragraph), section, options, out _, out _))
+                return false;
+        }
+        return true;
+    }
+
+    private static bool IsNativePlacedRunningTextBoxDrawing(W.Drawing drawing) =>
+        drawing.Descendants<W.TextBoxContent>().Any() || drawing.Ancestors<W.TextBoxContent>().Any();
+
+    // Word stores a VML copy of each text box as the compatibility fallback.
+    private static bool IsNativePlacedRunningTextBoxFallback(W.Picture picture) =>
+        picture.Ancestors<AlternateContentFallback>().Any() && picture.Descendants<W.TextBoxContent>().Any() ||
+        picture.Ancestors<W.TextBoxContent>().Any();
+
+    private static bool IsNativePlacedRunningTextBoxAlternate(AlternateContent alternate) =>
+        alternate.Descendants<W.TextBoxContent>().Any() &&
+        alternate.Elements<AlternateContentChoice>().All(choice => choice.Descendants<W.Drawing>().All(IsNativePlacedRunningTextBoxDrawing));
 
     // Word's page-number galleries wrap the footer paragraph in a block content
     // control. Its paragraphs flow like direct story paragraphs.
@@ -199,11 +233,10 @@ public static partial class WordPdfConverterExtensions {
                 if (source.Ancestors<W.TextBoxContent>().Any()) continue;
                 var paragraph = new WordParagraph(story.Document, source);
                 List<WordParagraph> runs = GetNativeRuns(paragraph);
-                // Context-dependent fields are assessed when materialized. Keep
-                // their conservative report rather than prequalifying cached text.
-                if (source.Descendants<W.SimpleField>().Any() || source.Descendants<W.FieldChar>().Any() ||
-                    !TryPrepareNativeAnchoredRunningTextBoxParagraph(GetNativePageSize(section, options), paragraph,
-                        runs, null, null, options, defaults with { RunningContentSection = section }, fontMap, out _))
+                // Box frames are qualified from geometry and paint, not from the
+                // paragraph's text, so field results cannot change the decision.
+                if (!TryCollectNativePlacedRunningTextBoxes(GetNativePageSize(section, options), paragraph, runs, section, options, out _, out _,
+                        defaults with { RunningContentSection = section }))
                     RecordNativeMixedTextBoxDiagnostic(paragraph, runs, options, "header/footer paragraph");
             }
         // A text-free source footer owns blank geometry; its generated number
@@ -223,8 +256,9 @@ public static partial class WordPdfConverterExtensions {
             using IDisposable? resolutionScope = resolutionSnapshot?.Use();
             using IDisposable trackedChangeScope = UseNativeTrackedChangeView(trackedChangeView);
             options?.CancellationToken.ThrowIfCancellationRequested();
+            // Header and footer stories lay out on one page, so positioned frames can float there.
             var flow = new NativeSpacingCollapseFlow(new NativePdfColumnFlow(content,
-                new PdfCore.PdfPageSize(context.PageWidth, context.PageHeight)), preserveInitialSpacingBefore: true);
+                new PdfCore.PdfPageSize(context.PageWidth, context.PageHeight)) { SupportsPositionedTables = true }, preserveInitialSpacingBefore: true);
             NativeDocumentDefaults runningDefaults = defaults with { RunningContentContext = context, RunningContentSection = section };
             if (story != null && !story.ChildElements.Any())
                 RenderNativeImplicitRunningParagraph(flow, story, runningDefaults, fontMap);
@@ -235,6 +269,9 @@ public static partial class WordPdfConverterExtensions {
             int rejectedJoinUntil = -1;
             for (int index = 0; index < elements.Count; index++) {
                 options?.CancellationToken.ThrowIfCancellationRequested();
+                if (TryRenderNativeParagraphFrame(flow, elements, ref index,
+                    paragraph => listMarkers.TryGetValue(paragraph, out var frameMarker) ? frameMarker : null,
+                    notes, options, context.ContentWidth.ToPoints(), runningDefaults, fontMap)) continue;
                 if (TryRenderNativeJoinedParagraphs(flow, elements, ref index, ref rejectedJoinUntil,
                     paragraph => listMarkers.TryGetValue(paragraph, out var joinedMarker) ? joinedMarker : null,
                     notes, options, runningDefaults, fontMap)) continue;

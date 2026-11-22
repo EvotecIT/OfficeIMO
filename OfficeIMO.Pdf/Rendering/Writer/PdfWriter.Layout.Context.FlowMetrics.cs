@@ -794,7 +794,7 @@ internal static partial class PdfWriter {
                     !HasCurrentPageNonContentObjects() && sb.Length == 0 &&
                     activeLayers.Count == 0 && activeContainerScopes.Count == 0 &&
                     activeFloatingFlowCaptures.Count == 0 && pendingFloatingBookmarks.Count == 0 &&
-                    behindTextCanvases.Count == 0 && !HasFloatingTables && !HasPageFootnotes) {
+                    behindTextCanvases.Count == 0 && inFrontOfTextCanvases.Count == 0 && !HasFloatingTables && !HasPageFootnotes) {
                     double completePages = System.Math.Floor((remaining - 0.001D) / available);
                     if (completePages >= 2D) {
                         if (completePages > long.MaxValue - startedPageCount)

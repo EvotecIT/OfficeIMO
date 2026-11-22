@@ -5679,6 +5679,12 @@ versions:
 - Superscript and subscript text takes its size and offset from the font's own script metrics, rounded
   to half a point, instead of fixed proportions of the text size.
 - An inline picture's effect extent, the margin Word records around it, counts towards its line height.
+- Anchored text boxes in headers and footers keep their own position, size, insets, outline and
+  wrapping instead of flowing as panels inside the header. Their paragraphs use the same line layout,
+  spacing, list markers, shading and borders as other paragraphs, and header text wraps around boxes
+  set to square or top-and-bottom wrapping. As in Word, the header and footer paint under the body
+  text. Nested boxes, boxes containing tables and unsupported fills keep the previous flowed layout.
+- A word space that ends a line after superscript or subscript text keeps the size of its own run.
 - In a right-to-left (`w:bidi`) paragraph, left and start alignment, and no alignment, place text on the
   right, and right and end alignment place it on the left, as in Word. End alignment in a left-to-right
   paragraph places text on the right. The last line of justified right-to-left text ends at the right
@@ -5877,13 +5883,27 @@ versions:
   direct formatting says so.
 - Space before a heading is dropped at the top of a page or column, as it already
   was for body text. It is kept for the first paragraph of the document and of a
-  next-page, odd-page or even-page section, including multi-column sections,
+  next-page, odd-page or even-page section, including multi-column sections and
+  continuous sections that start a new page because their paper size changes,
   reduced by the space after the last paragraph of the previous section. In documents in Word 2010 or earlier
   compatibility mode, it is also kept after page-break-before.
 - The paragraph mark after a column break takes an empty line at the top of the
   next column.
 - Automatic spacing (`w:beforeAutospacing`, `w:afterAutospacing`) is 14 pt, and
-  none before the first paragraph of the document.
+  none before the first paragraph of the document or before the first and after
+  the last paragraph of a table cell.
+- A continuous section stays on the page it starts on when the paper size is unchanged,
+  even when it changes margins, page numbering or headers and footers, as in Word. Its
+  side margins apply at once; its top and bottom margins, headers, footers and numbering
+  restart take effect on the next page, so a restart at 5 numbers that page 6.
+  `native-continuous-section-pagination-approximated` is no longer reported.
+- Paragraph frames (`w:framePr`) in the body, headers and footers are placed at
+  their anchors, alignment and offsets, with following text wrapping around them,
+  instead of being drawn as ordinary paragraphs. A page-number frame in a footer
+  now sits at the right margin on the footer line, as in Word.
+- In Word 2010 and earlier compatibility modes with "Suppress extra line spacing at
+  top of page (WordPerfect)", automatic lines are the font size plus 2 pt (the font
+  size alone for fixed-pitch fonts).
 - Without facing pages (mirror margins or different odd and even headers), a
   next-page section that restarts page numbering gets no blank page in front of
   it, and odd-page and even-page sections with a restart change the page number

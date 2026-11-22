@@ -17,6 +17,11 @@ public sealed partial class PdfCreateOptions {
     private PdfPageParity? _pageStartParity;
     /// <summary>Uses the page number continuing the preceding group for start parity. Numbering restarts are applied after padding. Default is false, which uses the physical page index.</summary>
     public bool UseContinuingPageNumberForStartParity { get; set; }
+
+    // A composed page group that continues on the current page when the page size
+    // matches: its side margins apply at once, while its top and bottom margins,
+    // running content and numbering start on the next page.
+    internal bool ContinuesCurrentPage { get; set; }
     /// <summary>Optional start parity for a composed page or section. Uses the physical page index unless <see cref="UseContinuingPageNumberForStartParity"/> is enabled. A blank page is inserted before a later section when needed; the first section starts without padding.</summary>
     public PdfPageParity? PageStartParity {
         get => _pageStartParity;

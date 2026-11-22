@@ -180,6 +180,7 @@ namespace OfficeIMO.Word.Pdf {
                 _pendingSpacingAfter = spacingAfter;
             }
 
+            public IReadOnlyList<PdfCore.IPdfBlock> CaptureBlocks(Action<PdfCore.PdfContentBuilder> build) => _inner.CaptureBlocks(build);
             public void Canvas(Action<PdfCore.PdfPageCanvas> build) {
                 _inner.Canvas(build);
                 ResetSpacingCollapse();

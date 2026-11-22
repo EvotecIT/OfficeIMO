@@ -32,12 +32,15 @@ internal static partial class PdfWriter {
                 IPdfBlock? nextBlock = blockIndex + 1 < blockList.Count ? blockList[blockIndex + 1] :
                     EnumerateFollowingKeepBlocks(blockList, blockIndex + 1).FirstOrDefault();
                 if (block is PageBlock pageBlock) {
+                    bool continuesPage = ContinuesCurrentPage(pageBlock);
                     pendingFloatingBookmarks.Clear();
-                    FlushPage(pageDirty || HasCurrentPageNonContentObjects());
-                    FinishFootnoteContinuations();
+                    if (!continuesPage) {
+                        FlushPage(pageDirty || HasCurrentPageNonContentObjects());
+                        FinishFootnoteContinuations();
+                    }
                     // An explicit page section owns its setup and parity padding.
                     nextRunningPageOptions = null;
-                    PadSectionStart(pageBlock.Options);
+                    if (!continuesPage) PadSectionStart(pageBlock.Options);
                     optionsStack.Push(pageBlock.Options);
                     pageGroupStack.Push(currentPageGroupId);
                     currentOpts = pageBlock.Options;
@@ -45,18 +48,25 @@ internal static partial class PdfWriter {
                     int? enclosingRunningSectionId = currentRunningSectionId;
                     currentRunningSectionId = pageBlock.Blocks.Count > 0
                         ? (pageBlock.Blocks[0] as RunningContentSectionBlock)?.SectionId : null;
-                    currentPage = null;
-                    StartPage(currentOpts);
+                    if (continuesPage) {
+                        ContinuePageGroupOnCurrentPage(pageBlock.Options);
+                    } else {
+                        currentPage = null;
+                        StartPage(currentOpts);
+                    }
                     ProcessBlocks(pageBlock.Blocks);
                     pendingFloatingBookmarks.Clear();
-                    FlushPage(force: true);
-                    FinishFootnoteContinuations();
+                    bool nextContinues = nextBlock is PageBlock following && ContinuesCurrentPage(following);
+                    if (!nextContinues) {
+                        FlushPage(force: true);
+                        FinishFootnoteContinuations();
+                    }
                     nextRunningPageOptions = null;
                     optionsStack.Pop();
                     currentPageGroupId = pageGroupStack.Pop();
                     currentOpts = optionsStack.Peek();
                     currentPageBaseOptions = currentOpts;
-                    currentPage = null;
+                    if (!nextContinues) currentPage = null;
                     currentRunningSectionId = enclosingRunningSectionId;
                     continue;
                 }

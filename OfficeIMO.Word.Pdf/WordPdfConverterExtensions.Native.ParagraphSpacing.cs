@@ -53,7 +53,7 @@ public static partial class WordPdfConverterExtensions {
     }
 
     private static double? GetNativeSectionLineGridPitch(WordParagraph paragraph, WordSection? sourceSection = null) {
-        W.DocGrid? grid = (sourceSection ?? paragraph.GetBodySection())?._sectionProperties.GetFirstChild<W.DocGrid>();
+        W.DocGrid? grid = (sourceSection ?? ResolveNativeFrameSourceParagraph(paragraph).GetBodySection())?._sectionProperties.GetFirstChild<W.DocGrid>();
         return grid?.Type?.Value != null && grid.Type.Value != W.DocGridValues.Default &&
             grid.LinePitch?.Value is int pitch && pitch > 0 ? pitch / 20D : null;
     }

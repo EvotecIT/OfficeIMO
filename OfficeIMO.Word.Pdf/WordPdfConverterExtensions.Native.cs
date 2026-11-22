@@ -80,6 +80,7 @@ namespace OfficeIMO.Word.Pdf {
             void Shape(OfficeShape shape, global::OfficeIMO.OfficeAlignment? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null);
             void Drawing(OfficeDrawing drawing, global::OfficeIMO.OfficeAlignment? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null);
             void Canvas(Action<PdfCore.PdfPageCanvas> build);
+            IReadOnlyList<PdfCore.IPdfBlock> CaptureBlocks(Action<PdfCore.PdfContentBuilder> build);
             void Table(IEnumerable<PdfCore.PdfTableCell[]> rows, global::OfficeIMO.OfficeAlignment align, PdfCore.PdfTableStyle? style);
             void Image(byte[] bytes, double width, double height, global::OfficeIMO.OfficeAlignment? align = null, PdfCore.PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null);
         }
@@ -124,6 +125,7 @@ namespace OfficeIMO.Word.Pdf {
             public void Shape(OfficeShape shape, global::OfficeIMO.OfficeAlignment? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) => _pdf.Shape(shape, align, spacingBefore, spacingAfter, style, linkUri, linkContents);
             public void Drawing(OfficeDrawing drawing, global::OfficeIMO.OfficeAlignment? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) => _pdf.Drawing(drawing, align, spacingBefore, spacingAfter, style, linkUri, linkContents);
             public void Canvas(Action<PdfCore.PdfPageCanvas> build) => _pdf.Canvas(build);
+            public IReadOnlyList<PdfCore.IPdfBlock> CaptureBlocks(Action<PdfCore.PdfContentBuilder> build) => _pdf.BuildFlowBlocks(build);
             public void Table(IEnumerable<PdfCore.PdfTableCell[]> rows, global::OfficeIMO.OfficeAlignment align, PdfCore.PdfTableStyle? style) => _pdf.Table(rows, align, style);
             public void Image(byte[] bytes, double width, double height, global::OfficeIMO.OfficeAlignment? align = null, PdfCore.PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null) => _pdf.Image(bytes, width, height, align, style: style ?? CreateNativeImageStyle(), linkUri: linkUri, linkContents: linkContents);
         }
@@ -135,7 +137,7 @@ namespace OfficeIMO.Word.Pdf {
                 _column.ContinuedFlow(build, separator, continuationSeparator, continuationNotice, reserveFinalNotice,
                     allowContinuationSeparatorInBottomMargin);
             public PdfCore.PdfFootnoteDefinition DefineFootnote(Action<PdfCore.PdfContentBuilder> build, PdfCore.PdfFootnoteOptions options) => _column.DefineFootnote(build, options);
-            public bool SupportsPositionedTables => false;
+            public bool SupportsPositionedTables { get; init; }
             private readonly PdfCore.PdfPageBuilder? _page;
             private readonly PdfCore.PdfContentBuilder _column;
 
@@ -174,6 +176,7 @@ namespace OfficeIMO.Word.Pdf {
             public void CheckBox(string name, bool isChecked, double size, global::OfficeIMO.OfficeAlignment align, double spacingBefore, double spacingAfter, string checkedValueName, PdfCore.PdfFormFieldStyle? style) => _column.CheckBox(name, isChecked, global::OfficeIMO.OfficeLength.Points(size), align, global::OfficeIMO.OfficeLength.Points(spacingBefore), global::OfficeIMO.OfficeLength.Points(spacingAfter), checkedValueName, style);
             public void Shape(OfficeShape shape, global::OfficeIMO.OfficeAlignment? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) => _column.Shape(shape, align, ((double?)(spacingBefore) is double physicalLength15 ? global::OfficeIMO.OfficeLength.Points(physicalLength15) : (global::OfficeIMO.OfficeLength?)null), ((double?)(spacingAfter) is double physicalLength16 ? global::OfficeIMO.OfficeLength.Points(physicalLength16) : (global::OfficeIMO.OfficeLength?)null), style, linkUri, linkContents);
             public void Drawing(OfficeDrawing drawing, global::OfficeIMO.OfficeAlignment? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) => _column.Drawing(drawing, align, ((double?)(spacingBefore) is double physicalLength17 ? global::OfficeIMO.OfficeLength.Points(physicalLength17) : (global::OfficeIMO.OfficeLength?)null), ((double?)(spacingAfter) is double physicalLength18 ? global::OfficeIMO.OfficeLength.Points(physicalLength18) : (global::OfficeIMO.OfficeLength?)null), style, linkUri, linkContents);
+            public IReadOnlyList<PdfCore.IPdfBlock> CaptureBlocks(Action<PdfCore.PdfContentBuilder> build) => _column.CaptureBlocks(build);
             public void Canvas(Action<PdfCore.PdfPageCanvas> build) {
                 if (_page == null) _column.Canvas(build);
                 else _page.Canvas(build);
@@ -227,7 +230,6 @@ namespace OfficeIMO.Word.Pdf {
             IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries = BuildNativeTableOfContentsEntries(document, headingDestinations);
             NativeDocumentDefaults nativeDefaults = GetNativeDocumentDefaults(document, nativeFontMap);
             nativeDefaults = nativeDefaults with {
-                BodyTextInkTopOffset = GetNativeBodyTextInkTopOffset(document, nativeDefaults, nativeFontMap, options),
                 RunningTextBoxStoryPeers = GetNativeRunningTextBoxStoryPeers(document, options)
             };
             var footnoteNumbersById = new NativeNoteNumbering(document, options);
@@ -246,8 +248,6 @@ namespace OfficeIMO.Word.Pdf {
                 int sectionGroupEnd = GetNativePdfSectionGroupEnd(sections, sectionIndex, options, listMarkers, canContinueRunningStories);
                 bool changesRunningStories = NativeSectionGroupChangesRunningStories(sections, sectionIndex, sectionGroupEnd);
                 WordSection firstSection = sections[sectionIndex];
-                if (sectionIndex > 0) ReportNativeContinuousStoryPageFallback(
-                    sections[sectionIndex - 1], firstSection, sectionIndex, options);
                 bool preserveLogicalRunningSections = changesRunningStories || UsesNativeSectionPageCounts(firstSection) || firstSection.PageSetup.DifferentFirstPage;
                 PdfCore.PdfPageSize sectionPageSize = GetNativePageSize(firstSection, options);
                 (double Header, double Footer) headerFooterMarginExpansion = GetNativeHeaderFooterMarginExpansion(firstSection, options, listMarkers);
@@ -258,6 +258,9 @@ namespace OfficeIMO.Word.Pdf {
                     page.Margin(sectionMargins);
                     page.MirrorMargins(ShouldMirrorNativeMargins(firstSection, options));
                     page.StartOnPageParity(GetNativeSectionStartParity(firstSection), useContinuingPageNumber: true);
+                    // A continuous section stays on the current page whenever the paper size allows,
+                    // even when it changes margins, numbering or running stories.
+                    page.ContinueOnCurrentPage(sectionIndex > 0 && firstSection.BreakType == WordSectionBreakType.Continuous);
                     ConfigureNativePageNumbering(page, firstSection);
                     ConfigureNativeHeaderFooter(page, firstSection, options, headerFooterMarginExpansion.Header, headerFooterMarginExpansion.Footer, nativeFontMap, listMarkers);
                     ConfigureNativeRunningHeaderFooter(page, firstSection, options, nativeFontMap, listMarkers, nativeDefaults);
@@ -336,6 +339,10 @@ namespace OfficeIMO.Word.Pdf {
                             if (element is WordFootNote) {
                                 continue;
                             }
+
+                            if (TryRenderNativeParagraphFrame(flow, elements, ref i,
+                                paragraph => listMarkers.TryGetValue(paragraph, out var frameMarker) ? frameMarker : null,
+                                footnoteNumbersById, options, sectionContentWidth, nativeDefaults, nativeFontMap, headingDestinations)) continue;
 
                             if (TryRenderNativeJoinedParagraphs(flow, elements, ref i, ref rejectedJoinUntil,
                                 paragraph => listMarkers.TryGetValue(paragraph, out var joinMarker) ? joinMarker : null,

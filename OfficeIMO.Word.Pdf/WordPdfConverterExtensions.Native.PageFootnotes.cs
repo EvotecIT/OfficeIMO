@@ -275,6 +275,6 @@ public static partial class WordPdfConverterExtensions {
     private static NativeDocumentDefaults CreateNativeNoteStoryDefaults(NativeDocumentDefaults defaults,
         WordSection section, string? label) => defaults with {
             NoteContentSection = section, NoteBodyLabel = label,
-            BodyTextInkTopOffset = null, RunningContentContext = null, RunningContentSection = null
+            RunningContentContext = null, RunningContentSection = null
         };
 }
