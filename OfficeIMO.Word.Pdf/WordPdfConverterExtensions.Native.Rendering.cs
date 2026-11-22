@@ -131,11 +131,8 @@ namespace OfficeIMO.Word.Pdf {
                 reportDiagnostics: nativeDefaults.RunningContentContext == null);
             if (textBoxes.Count > 0) {
                 RenderNativeSmartArt(pdf, smartArtDrawings, ResolveNativeParagraphAlign(paragraph, allowJustify: false));
-                if (TryRenderNativeAnchoredRunningTextBoxParagraph(pdf, paragraph, runs, marker,
-                        footnoteNumbersById, options, nativeDefaults, nativeFontMap, nextParagraph)) {
-                    RecordNativeParagraphBarTabDiagnostics(paragraph, options, "anchored text-box paragraph");
-                    return;
-                }
+                if (TryRenderNativePlacedRunningTextBoxParagraph(pdf, paragraph, runs, marker, getMarker,
+                        footnoteNumbersById, options, nativeDefaults, nativeFontMap, nextParagraph)) return;
                 RenderNativeMixedTextBoxes(pdf, paragraph, runs, marker, getMarker,
                     footnoteNumbersById, options, nativeDefaults, nativeFontMap, 0, nextParagraph);
                 return;

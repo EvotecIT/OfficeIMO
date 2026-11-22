@@ -80,10 +80,6 @@ namespace OfficeIMO.Word.Pdf {
                     severity: PdfCore.PdfConversionWarningSeverity.Warning,
                     lossKind: OfficeIMO.OfficeConversionLossKind.Omission));
 
-            public PdfCore.PdfWriter.CanvasTextBoxMeasurement? MeasureCanvasTextBox(
-                IReadOnlyList<PdfCore.PdfTextRun> runs, double width, double height, PdfCore.PdfCanvasTextBoxStyle style) =>
-                _resolvedOptions == null ? null : PdfCore.PdfWriter.MeasureCanvasTextBox(runs, width, height, style, _resolvedOptions);
-
             public void PreferPdfDefaultForDocumentDefaultFont() =>
                 UsePdfDefaultForDocumentDefaultFont = true;
 

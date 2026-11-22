@@ -305,11 +305,7 @@ internal static partial class PdfWriter {
                 runningAssets.Share(currentPage.Images[index], cancellationToken);
             if (story.y < start - height - .001D)
                 throw new InvalidOperationException("Running PDF content exceeded its measured frame.");
-            if (story.behindTextCanvases.Count > 0) {
-                var behind = new StringBuilder();
-                foreach (var canvas in story.behindTextCanvases.OrderBy(item => item.ZOrder)) behind.Append(canvas.Content);
-                story.sb.Insert(0, behind.ToString());
-            }
+            story.ApplyDeferredTextLayers();
             usedBold |= story.usedBold;
             usedItalic |= story.usedItalic;
             usedBoldItalic |= story.usedBoldItalic;

@@ -5679,6 +5679,12 @@ versions:
 - Superscript and subscript text takes its size and offset from the font's own script metrics, rounded
   to half a point, instead of fixed proportions of the text size.
 - An inline picture's effect extent, the margin Word records around it, counts towards its line height.
+- Anchored text boxes in headers and footers keep their own position, size, insets, outline and
+  wrapping instead of flowing as panels inside the header. Their paragraphs use the same line layout,
+  spacing, list markers, shading and borders as other paragraphs, and header text wraps around boxes
+  set to square or top-and-bottom wrapping. As in Word, the header and footer paint under the body
+  text. Nested boxes, boxes containing tables and unsupported fills keep the previous flowed layout.
+- A word space that ends a line after superscript or subscript text keeps the size of its own run.
 
 If your process depends on where pages break, regenerate the PDFs and compare them with your stored
 baselines, checking page counts and where tables and lists break. Refresh page-dependent content

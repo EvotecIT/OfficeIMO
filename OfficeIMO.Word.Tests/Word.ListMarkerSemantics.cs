@@ -100,10 +100,12 @@ public sealed partial class WordListMarkerSemanticsTests {
         AttachToList(box.Paragraphs[0], list.NumberId);
         document.AddParagraph("Body");
 
-        string pdfText = PdfReadDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })).ExtractText();
-        Assert.Contains("Before ◆ Header box marker", pdfText, StringComparison.Ordinal);
+        // The header is a pagination artifact and the box paints in its own frame.
+        string pdfText = PdfReadDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
+            new PdfLoadOptions { IncludeArtifactText = true }).ExtractText();
+        Assert.Contains("◆ Header box marker", pdfText, StringComparison.Ordinal);
+        Assert.Contains("Before", pdfText, StringComparison.Ordinal);
         Assert.Contains("After", pdfText, StringComparison.Ordinal);
-        Assert.True(pdfText.IndexOf("Header box marker", StringComparison.Ordinal) < pdfText.IndexOf("After", StringComparison.Ordinal));
     }
 
     [Fact]

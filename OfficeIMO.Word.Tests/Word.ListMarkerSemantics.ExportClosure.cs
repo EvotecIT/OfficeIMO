@@ -304,14 +304,18 @@ public sealed partial class WordListMarkerSemanticsTests {
         AttachToList(box.Paragraphs[0], list.NumberId);
         document.AddParagraph("Body");
 
-        PdfTextSpan[] spans = PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).Pages[0].GetTextSpans().ToArray();
+        PdfTextSpan[] spans = PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })),
+            new PdfLoadOptions { IncludeArtifactText = true }).Pages[0].GetTextSpans().ToArray();
         PdfTextSpan marker = Assert.Single(spans, span => span.Text == "*");
         Assert.InRange(marker.FontSize, 17.5D, 18.5D);
         Assert.True(marker.IsBold);
         Assert.Equal(OfficeColor.FromRgb(255, 0, 0), marker.Color);
-        string text = PdfReadDocument.Open(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })).ExtractText();
-        Assert.Contains("Before * StyledHeaderBox", text, StringComparison.Ordinal);
-        Assert.True(text.IndexOf("StyledHeaderBox", StringComparison.Ordinal) < text.IndexOf("After", StringComparison.Ordinal));
+        // The header is a pagination artifact and the box paints in its own frame.
+        string text = PdfReadDocument.Open(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
+            new PdfLoadOptions { IncludeArtifactText = true }).ExtractText();
+        Assert.Contains("* StyledHeaderBox", text, StringComparison.Ordinal);
+        Assert.Contains("Before", text, StringComparison.Ordinal);
+        Assert.Contains("After", text, StringComparison.Ordinal);
     }
 
     [Fact]

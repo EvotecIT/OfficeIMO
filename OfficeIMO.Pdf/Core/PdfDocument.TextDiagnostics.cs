@@ -379,6 +379,9 @@ public sealed partial class PdfDocument {
                 case PdfCanvasBehindTextItem behindText:
                     AnalyzeCanvasItems(behindText.Items, options, defaultFont, diagnostics, new CanvasLocation(locationPrefix, "PdfCanvasBehindText", itemIndex), cancellationToken);
                     break;
+                case PdfCanvasInFrontOfTextItem inFrontOfText:
+                    AnalyzeCanvasItems(inFrontOfText.Items, options, defaultFont, diagnostics, new CanvasLocation(locationPrefix, "PdfCanvasInFrontOfText", itemIndex), cancellationToken);
+                    break;
                 case PdfCanvasDrawingItem drawing:
                     AnalyzeDrawing(drawing.Block, options, defaultFont, diagnostics, new CanvasLocation(locationPrefix, "PdfCanvasDrawing", itemIndex), cancellationToken);
                     break;
