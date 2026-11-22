@@ -37,33 +37,22 @@ namespace OfficeIMO.Word {
         /// <param name="wrapImage">The desired wrapping option.</param>
         /// <returns>The modified anchor.</returns>
         public static Anchor AppendWrapTextImage(Anchor anchor, WordImageTextWrapping wrapImage) {
-            if (wrapImage == WordImageTextWrapping.Square) {
-                WrapSquare wrapSquare1 = new WrapSquare() {
-                    WrapText = WrapTextValues.BothSides
-                };
-                anchor.Append(wrapSquare1);
-            } else if (wrapImage == WordImageTextWrapping.Tight) {
-                WrapTight wrapTight1 = WordWrapTextImage.WrapTight;
-                anchor.Append(wrapTight1);
-            } else if (wrapImage == WordImageTextWrapping.Through) {
-                WrapThrough wrapThrough1 = WordWrapTextImage.WrapThrough;
-                anchor.Append(wrapThrough1);
-            } else if (wrapImage == WordImageTextWrapping.TopAndBottom) {
-                WrapTopBottom wrapTopBottom1 = WordWrapTextImage.WrapTopBottom;
-                anchor.Append(wrapTopBottom1);
-            } else if (wrapImage == WordImageTextWrapping.BehindText) {
-                WrapNone wrapNone1 = new WrapNone();
-                anchor.Append(wrapNone1);
-                anchor.BehindDoc = true;
-            } else if (wrapImage == WordImageTextWrapping.InFrontOfText) {
-                WrapNone wrapNone1 = new WrapNone();
-                anchor.Append(wrapNone1);
-                anchor.BehindDoc = false;
-            } else {
-                throw new InvalidOperationException("WrapTextImage: " + wrapImage + " not supported yet.");
-            }
+            anchor.Append(CreateWrapElement(wrapImage));
+            anchor.BehindDoc = wrapImage == WordImageTextWrapping.BehindText;
             return anchor;
         }
+
+        /// <summary>
+        /// Creates the anchor wrap element for a floating wrap option.
+        /// </summary>
+        private static OpenXmlElement CreateWrapElement(WordImageTextWrapping wrapImage) => wrapImage switch {
+            WordImageTextWrapping.Square => new WrapSquare() { WrapText = WrapTextValues.BothSides },
+            WordImageTextWrapping.Tight => WrapTight,
+            WordImageTextWrapping.Through => WrapThrough,
+            WordImageTextWrapping.TopAndBottom => WrapTopBottom,
+            WordImageTextWrapping.BehindText or WordImageTextWrapping.InFrontOfText => new WrapNone(),
+            _ => throw new InvalidOperationException("WrapTextImage: " + wrapImage + " not supported yet.")
+        };
 
         /// <summary>
         /// Returns the currently applied wrapping option for the specified drawing.
@@ -122,53 +111,17 @@ namespace OfficeIMO.Word {
                     drawing.Append(convertedInline);
                     drawing.OfType<Anchor>().FirstOrDefault()?.Remove();
                 } else {
-                    // remove current Wrap
-                    if (currentWrap == WordImageTextWrapping.Square) {
-                        anchor.OfType<WrapSquare>().FirstOrDefault()?.Remove();
-                    } else if (currentWrap == WordImageTextWrapping.Tight) {
-                        anchor.OfType<WrapTight>().FirstOrDefault()?.Remove();
-                    } else if (currentWrap == WordImageTextWrapping.Through) {
-                        anchor.OfType<WrapThrough>().FirstOrDefault()?.Remove();
-                    } else if (currentWrap == WordImageTextWrapping.TopAndBottom) {
-                        anchor.OfType<WrapTopBottom>().FirstOrDefault()?.Remove();
-                    } else if (currentWrap == WordImageTextWrapping.BehindText) {
-                        anchor.OfType<WrapNone>().FirstOrDefault()?.Remove();
-                        anchor.BehindDoc = false;
-                    } else if (currentWrap == WordImageTextWrapping.InFrontOfText) {
-                        anchor.OfType<WrapNone>().FirstOrDefault()?.Remove();
-                        anchor.BehindDoc = false;
-                    } else if (currentWrap == WordImageTextWrapping.InLineWithText) {
-                        // this won't really happen
+                    foreach (OpenXmlElement existing in anchor.ChildElements
+                        .Where(static element => element is WrapNone or WrapSquare or DocumentFormat.OpenXml.Drawing.Wordprocessing.WrapTight
+                            or DocumentFormat.OpenXml.Drawing.Wordprocessing.WrapThrough or DocumentFormat.OpenXml.Drawing.Wordprocessing.WrapTopBottom).ToList()) {
+                        existing.Remove();
                     }
-
-                    // wrap needs to be inserted after extent or it will not work
-                    var extent = anchor.Elements<Extent>().FirstOrDefault();
-                    if (extent != null) {
-                        if (wrapImage == WordImageTextWrapping.Square) {
-                            var wrap = new WrapSquare() { WrapText = WrapTextValues.BothSides };
-                            extent.InsertAfterSelf(wrap);
-                        } else if (wrapImage == WordImageTextWrapping.Tight) {
-                            anchor.Append(new WrapTight() { WrapText = WrapTextValues.BothSides });
-                        } else if (wrapImage == WordImageTextWrapping.Through) {
-                            var wrap = WordWrapTextImage.WrapThrough;
-                            extent.InsertAfterSelf(wrap);
-                        } else if (wrapImage == WordImageTextWrapping.TopAndBottom) {
-                            var wrap = WordWrapTextImage.WrapTopBottom;
-                            extent.InsertAfterSelf(wrap);
-                        } else if (wrapImage == WordImageTextWrapping.BehindText) {
-                            var wrap = new WrapNone();
-                            extent.InsertAfterSelf(wrap);
-                            anchor.BehindDoc = true;
-                        } else if (wrapImage == WordImageTextWrapping.InFrontOfText) {
-                            var wrap = new WrapNone();
-                            extent.InsertAfterSelf(wrap);
-                            anchor.BehindDoc = false;
-                        } else if (wrapImage == WordImageTextWrapping.InLineWithText) {
-                            throw new InvalidOperationException("WrapTextImage.InLineWithText should be handled before.");
-                        }
-                    } else {
-                        throw new InvalidOperationException("Extent is missing. Weird. Shouldn't happen.");
-                    }
+                    // The wrap follows the extent and effect extent in the anchor's schema order.
+                    OpenXmlElement? previous = (OpenXmlElement?)anchor.GetFirstChild<EffectExtent>() ?? anchor.GetFirstChild<Extent>();
+                    if (previous == null) throw new InvalidOperationException("Extent is missing. Weird. Shouldn't happen.");
+                    previous.InsertAfterSelf(CreateWrapElement(wrapImage.Value));
+                    // Word saves behindDoc="1" only for behind-text pictures; a wrapped picture paints by z-order.
+                    anchor.BehindDoc = wrapImage == WordImageTextWrapping.BehindText;
                 }
             } else if (inline != null) {
                 if (wrapImage == WordImageTextWrapping.InLineWithText) {

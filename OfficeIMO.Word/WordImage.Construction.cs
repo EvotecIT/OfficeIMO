@@ -250,16 +250,6 @@ namespace OfficeIMO.Word {
         }
 
         private Anchor GetAnchor(double emuWidth, double emuHeight, UInt32Value docPropertiesId, Graphic graphic, string imageName, string description, WordImageTextWrapping wrapImage) {
-            bool behindDoc;
-            if (wrapImage == WordImageTextWrapping.BehindText) {
-                behindDoc = true;
-            } else if (wrapImage == WordImageTextWrapping.InFrontOfText) {
-                behindDoc = false;
-            } else {
-                // i think this is default for other cases, except for InlineText which is handled outside of Anchor
-                behindDoc = true;
-            }
-
             Anchor anchor1 = new Anchor() {
                 DistanceFromTop = (UInt32Value)0U,
                 DistanceFromBottom = (UInt32Value)0U,
@@ -267,7 +257,7 @@ namespace OfficeIMO.Word {
                 DistanceFromRight = (UInt32Value)114300U,
                 SimplePos = false,
                 RelativeHeight = (UInt32Value)251658240U,
-                BehindDoc = behindDoc,
+                BehindDoc = wrapImage == WordImageTextWrapping.BehindText,
                 Locked = false,
                 LayoutInCell = true,
                 AllowOverlap = true,
@@ -291,7 +281,7 @@ namespace OfficeIMO.Word {
             Extent extent1 = new Extent() { Cx = (Int64Value)emuWidth, Cy = (Int64Value)emuHeight };
             anchor1.Append(extent1);
 
-            EffectExtent effectExtent1 = new EffectExtent() { LeftEdge = 0L, TopEdge = 0L, RightEdge = 0L, BottomEdge = 1905L };
+            EffectExtent effectExtent1 = new EffectExtent() { LeftEdge = 0L, TopEdge = 0L, RightEdge = 0L, BottomEdge = 0L };
             anchor1.Append(effectExtent1);
 
             WordWrapTextImage.AppendWrapTextImage(anchor1, wrapImage);
