@@ -42,7 +42,10 @@ public partial class Word {
             using var output = new MemoryStream();
             if (placed) {
                 Assert.DoesNotContain(result.Warnings, item => item.Code == "native-paragraph-frame-flattened");
-                result.ThrowIfLoss();
+                // A placed frame reports no loss of its own. The default font (Aptos) is missing on
+                // machines without Office, where its substitution is the only expected loss.
+                Assert.All(result.Diagnostics.Where(item => item.LossKind != OfficeIMO.OfficeConversionLossKind.None),
+                    item => Assert.True(item.Code == "font-family-substitution", item.Code + ": " + item.Message));
                 Assert.True(result.Save(output).Succeeded);
             } else {
                 PdfConversionWarning warning = Assert.Single(result.Warnings,
