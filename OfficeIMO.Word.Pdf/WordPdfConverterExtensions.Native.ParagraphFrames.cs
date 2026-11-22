@@ -70,7 +70,11 @@ public static partial class WordPdfConverterExtensions {
             foreach (W.Paragraph copy in copies) options?.DiagnosedFrameParagraphs.Remove(copy);
         }
         if (block != null) {
-            if (block.Style is { Position: { } position } blockStyle) blockStyle.Position = CreateNativeFramePosition(position, frame);
+            if (block.Style is { Position: { } position } blockStyle) {
+                blockStyle.Position = CreateNativeFramePosition(position, frame);
+                // A drop cap moves to the next page with its paragraph.
+                if (IsNativeDropCapFrame(frame)) blockStyle.KeepWithNext = true;
+            }
             pdf.Table(block.Cells.Select(row => row.ToArray()), block.Align, block.Style);
         }
         if (collapseFlow != null && collapseState is { } state) {
@@ -364,9 +368,12 @@ public static partial class WordPdfConverterExtensions {
     private static PdfCore.PdfTablePosition CreateNativeFramePosition(PdfCore.PdfTablePosition position, W.FrameProperties frame) =>
         // Word treats a line that starts exactly at the frame's bottom edge as beside the
         // frame, so the clearance extends by one twip. Frames without wrapping let text
-        // run underneath them.
+        // run underneath them. A margin drop cap keeps its hSpace clear of the text by
+        // moving further into the margin.
         new(position.HorizontalAnchor, position.VerticalAnchor, position.HorizontalAlignment, position.VerticalAlignment,
-            position.HorizontalOffset, position.VerticalOffset, position.DistanceLeft, position.DistanceRight, position.DistanceTop,
+            IsNativeDropCapFrame(frame, W.DropCapLocationValues.Margin)
+                ? global::OfficeIMO.OfficeLength.Points(position.HorizontalOffset.ToPoints() - position.DistanceRight.ToPoints())
+                : position.HorizontalOffset, position.VerticalOffset, position.DistanceLeft, position.DistanceRight, position.DistanceTop,
             global::OfficeIMO.OfficeLength.Points(position.DistanceBottom.ToPoints() + 0.05D),
             position.MirrorHorizontalOnEvenPages, position.AllowOverlap) {
             WrapsText = frame.Wrap?.Value != W.TextWrappingValues.None,

@@ -35,12 +35,28 @@ public partial class Word {
         Assert.Equal(DropCapBodyLineStarts(plainPdf)[0] + 18D, DropCapBodyLineStarts(spacedPdf)[0], 0.15);
     }
 
-    [Fact]
-    public void SaveAsPdf_MarginDropCapHangsBesideTheText() {
-        using WordDocument document = CreateDropCapDocument(3, "margin", hSpace: 0);
+    // Word keeps a margin drop cap's hSpace between the cap and the text by moving the cap further out.
+    [Theory]
+    [InlineData(0)]
+    [InlineData(360)]
+    public void SaveAsPdf_MarginDropCapHangsBesideTheText(int hSpace) {
+        using WordDocument document = CreateDropCapDocument(3, "margin", hSpace);
         using PdfPigDocument pdf = RenderDropCapPdf(document);
-        Assert.Equal(DropCapMargin, FindDropCapWord(pdf, "D").Letters[0].EndBaseLine.X, 0.5);
+        Assert.Equal(DropCapMargin - hSpace / 20D, FindDropCapWord(pdf, "D").Letters[0].EndBaseLine.X, 0.5);
         Assert.All(DropCapBodyLineStarts(pdf).Take(4), start => Assert.Equal(DropCapMargin, start, 0.15));
+    }
+
+    // Near the page bottom a paragraph that keeps its lines together moves to the next page, and Word
+    // moves its drop cap with it rather than leaving the cap alone on the page before.
+    [Fact]
+    public void SaveAsPdf_DropCapMovesToTheNextPageWithItsKeptParagraph() {
+        using WordDocument document = CreateDropCapDocument(3, "drop", hSpace: 0, fillerLines: 42, keepBodyLines: true);
+        using PdfPigDocument pdf = RenderDropCapPdf(document);
+        var page = pdf.GetPage(2).GetWords().ToList();
+        var cap = Assert.Single(page, word => word.Text == "D");
+        var first = Assert.Single(page, word => word.Text == "w01");
+        Assert.Equal(cap.Letters[0].EndBaseLine.X, first.BoundingBox.Left, 0.5);
+        Assert.DoesNotContain(pdf.GetPage(1).GetWords(), word => word.Text == "D");
     }
 
     [Fact]
@@ -75,13 +91,42 @@ public partial class Word {
         Assert.Equal(expectedRise, Baseline(halfPoints), 0.05);
     }
 
+    // Raised text is a spacing adjustment of its own: a footer drawn with presentation overrides (the
+    // text projection) still raises a run whose only formatting is w:position.
+    [Fact]
+    public void SaveAsPdf_PositionAloneRaisesProjectedFooterText() {
+        double Baseline(bool raised) {
+            using WordDocument document = WordDocument.Create();
+            document.AddParagraph("BODY");
+            var run = new Run(new Text("MMX"));
+            if (raised) run.PrependChild(new RunProperties(new Position { Val = "24" }));
+            document.PageSetup.Footer.AddParagraph()._paragraph.Append(run);
+            var options = new WordPdfExportOptions {
+                IncludePageNumbers = false,
+                PdfOptions = new OfficeIMO.Pdf.PdfCreateOptions { PageSetup = { Footer = { Offset = global::OfficeIMO.OfficeLength.Points(24D) } } }
+            };
+            using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+            return pdf.GetPage(1).Letters.Single(letter => letter.Value == "X").StartBaseLine.Y;
+        }
+        Assert.Equal(12D, Baseline(raised: true) - Baseline(raised: false), 0.05);
+    }
+
     private const double DropCapMargin = 72D;
 
-    private static WordDocument CreateDropCapDocument(int lines, string kind, int hSpace, int bodyWords = 90) {
+    private static WordDocument CreateDropCapDocument(int lines, string kind, int hSpace, int bodyWords = 90,
+        int fillerLines = 0, bool keepBodyLines = false) {
         WordDocument document = WordDocument.Create();
         document.Sections[0].PageSetup.Size.PageSize = WordPageSize.Letter;
         document.Sections[0].PageSetup.Margins.Left = document.Sections[0].PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points(DropCapMargin);
-        document.AddParagraph("Intro.");
+        document.Sections[0].PageSetup.Margins.Top = document.Sections[0].PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(DropCapMargin);
+        WordParagraph AddExactLines(string text) {
+            WordParagraph added = document.AddParagraph(text);
+            added._paragraph.ParagraphProperties ??= new ParagraphProperties();
+            added._paragraph.ParagraphProperties.AddChild(new SpacingBetweenLines { Before = "0", After = "0", Line = "280", LineRule = LineSpacingRuleValues.Exact }, true);
+            return added;
+        }
+        AddExactLines("Intro.");
+        for (int filler = 1; filler <= fillerLines; filler++) AddExactLines("Filler" + filler.ToString(System.Globalization.CultureInfo.InvariantCulture));
         // The size, exact line height and lowering Word writes for each drop cap height.
         (int size, int line, int position) = lines switch { 2 => (77, 553, -4), 3 => (111, 827, -8), _ => (148, 1102, -10) };
         WordParagraph cap = document.AddParagraph();
@@ -100,8 +145,9 @@ public partial class Word {
                 new FontSize { Val = size.ToString(System.Globalization.CultureInfo.InvariantCulture) },
                 new FontSizeComplexScript { Val = size.ToString(System.Globalization.CultureInfo.InvariantCulture) }),
             new Text("D")));
-        document.AddParagraph(string.Join(" ", Enumerable.Range(1, bodyWords).Select(index => "w" + index.ToString("00", System.Globalization.CultureInfo.InvariantCulture))));
-        document.AddParagraph("AFTER paragraph.");
+        WordParagraph body = AddExactLines(string.Join(" ", Enumerable.Range(1, bodyWords).Select(index => "w" + index.ToString("00", System.Globalization.CultureInfo.InvariantCulture))));
+        if (keepBodyLines) body._paragraph.ParagraphProperties!.AddChild(new KeepLines(), true);
+        AddExactLines("AFTER paragraph.");
         return document;
     }
 
