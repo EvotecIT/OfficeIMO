@@ -56,6 +56,79 @@ public sealed class OfficeStreamReaderContracts {
         Assert.True(source.CanRead);
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task SeekableSnapshotDoesNotRetainASourceReadBuffer(bool asynchronous, bool readRemaining) {
+        byte[] bytes = Enumerable.Range(0, 200_017).Select(index => (byte)(index * 13 + index / 251)).ToArray();
+        const int startingPosition = 43;
+        using var source = new BufferRecordingStream(bytes) { Position = startingPosition };
+
+        byte[] snapshot;
+        if (readRemaining) {
+            snapshot = asynchronous
+                ? await OfficeStreamReader.ReadRemainingBytesAsync(source)
+                : OfficeStreamReader.ReadRemainingBytes(source);
+        } else {
+            snapshot = asynchronous
+                ? await OfficeStreamReader.ReadAllBytesAsync(source)
+                : OfficeStreamReader.ReadAllBytes(source);
+        }
+
+        Assert.Equal(readRemaining ? bytes.Skip(startingPosition).ToArray() : bytes, snapshot);
+        Assert.NotEmpty(source.ReadBuffers);
+        Assert.DoesNotContain(source.ReadBuffers, buffer => ReferenceEquals(buffer, snapshot));
+        Assert.True(source.CanRead);
+        Assert.Equal(readRemaining ? bytes.Length : startingPosition, source.Position);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ExpandingSnapshotObservesCancellationAtEndOfInput(bool asynchronous) {
+        using var cancellation = new CancellationTokenSource();
+        using var source = new ExpandingStream(new byte[211], cancellation);
+
+        if (asynchronous) {
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+                OfficeStreamReader.ReadAllBytesAsync(source, cancellation.Token));
+        } else {
+            Assert.ThrowsAny<OperationCanceledException>(() =>
+                OfficeStreamReader.ReadAllBytes(source, cancellation.Token));
+        }
+
+        Assert.True(source.CanRead);
+        Assert.Equal(0, source.Position);
+    }
+
+    private sealed class ExpandingStream(byte[] bytes, CancellationTokenSource cancellation) : MemoryStream(bytes) {
+        public override long Length => 64;
+
+        public override int Read(byte[] buffer, int offset, int count) {
+            int read = base.Read(buffer, offset, count);
+            if (read == 0) cancellation.Cancel();
+            return read;
+        }
+
+        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) =>
+            Task.FromResult(Read(buffer, offset, count));
+    }
+
+    private sealed class BufferRecordingStream(byte[] bytes) : MemoryStream(bytes) {
+        internal HashSet<byte[]> ReadBuffers { get; } = new();
+
+        public override int Read(byte[] buffer, int offset, int count) {
+            int read = base.Read(buffer, offset, Math.Min(count, 2048));
+            if (read > 0) ReadBuffers.Add(buffer);
+            return read;
+        }
+
+        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) =>
+            Task.FromResult(Read(buffer, offset, count));
+    }
+
     private sealed class CountingForwardStream : MemoryStream {
         private readonly CancellationTokenSource? _cancellation;
         internal CountingForwardStream(byte[] bytes, CancellationTokenSource? cancellation = null) : base(bytes) =>

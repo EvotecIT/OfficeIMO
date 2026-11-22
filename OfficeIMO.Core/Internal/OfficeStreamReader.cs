@@ -147,13 +147,15 @@ namespace OfficeIMO.Core.Internal {
                 byte[] result = remaining == 0
                     ? Array.Empty<byte>()
                     : new byte[checked((int)remaining)];
+                byte[] readBuffer = GetSnapshotReadBuffer(source, result);
+                bool copyReadBuffer = !ReferenceEquals(readBuffer, result);
                 int offset = 0;
                 while (offset < result.Length) {
                     cancellationToken.ThrowIfCancellationRequested();
                     int exactRead = await source.ReadAsync(
-                        result,
-                        offset,
-                        result.Length - offset,
+                        readBuffer,
+                        copyReadBuffer ? 0 : offset,
+                        Math.Min(BufferSize, result.Length - offset),
                         cancellationToken).ConfigureAwait(false);
                     cancellationToken.ThrowIfCancellationRequested();
                     if (exactRead == 0) {
@@ -161,6 +163,7 @@ namespace OfficeIMO.Core.Internal {
                         return result;
                     }
 
+                    if (copyReadBuffer) Buffer.BlockCopy(readBuffer, 0, result, offset, exactRead);
                     offset += exactRead;
                 }
 
@@ -240,16 +243,20 @@ namespace OfficeIMO.Core.Internal {
                 byte[] result = remaining == 0
                     ? Array.Empty<byte>()
                     : new byte[checked((int)remaining)];
+                byte[] readBuffer = GetSnapshotReadBuffer(source, result);
+                bool copyReadBuffer = !ReferenceEquals(readBuffer, result);
                 int offset = 0;
                 while (offset < result.Length) {
                     cancellationToken.ThrowIfCancellationRequested();
-                    int exactRead = source.Read(result, offset, result.Length - offset);
+                    int exactRead = source.Read(readBuffer, copyReadBuffer ? 0 : offset,
+                        Math.Min(BufferSize, result.Length - offset));
                     cancellationToken.ThrowIfCancellationRequested();
                     if (exactRead == 0) {
                         Array.Resize(ref result, offset);
                         return result;
                     }
 
+                    if (copyReadBuffer) Buffer.BlockCopy(readBuffer, 0, result, offset, exactRead);
                     offset += exactRead;
                 }
 
@@ -263,9 +270,11 @@ namespace OfficeIMO.Core.Internal {
                 expanded.Write(result, 0, result.Length);
                 expanded.WriteByte(checked((byte)trailingByte));
                 var expandedBuffer = new byte[BufferSize];
-                int expandedRead;
-                while ((expandedRead = source.Read(expandedBuffer, 0, GetReadSize(expandedTotal, maxBytes))) > 0) {
+                while (true) {
                     cancellationToken.ThrowIfCancellationRequested();
+                    int expandedRead = source.Read(expandedBuffer, 0, GetReadSize(expandedTotal, maxBytes));
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (expandedRead <= 0) break;
                     expandedTotal = checked(expandedTotal + expandedRead);
                     EnsureWithinLimit(expandedTotal, maxBytes);
                     expanded.Write(expandedBuffer, 0, expandedRead);
@@ -274,6 +283,15 @@ namespace OfficeIMO.Core.Internal {
             }
 
             return ReadForwardBytes(source, cancellationToken, maxBytes, prefix, prefixCount);
+        }
+
+        private static byte[] GetSnapshotReadBuffer(Stream source, byte[] snapshot) {
+            // Only built-in readers can fill the retained array directly. A custom Read override
+            // gets scratch storage, keeping the returned snapshot independent of the source.
+            Type type = source.GetType();
+            return snapshot.Length == 0 || type == typeof(MemoryStream) || type == typeof(FileStream)
+                ? snapshot
+                : new byte[Math.Min(BufferSize, snapshot.Length)];
         }
 
         /// <summary>
