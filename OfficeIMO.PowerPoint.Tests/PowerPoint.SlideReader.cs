@@ -214,14 +214,40 @@ namespace OfficeIMO.Tests {
             Assert.True(source.Triggered);
         }
 
+        [Fact]
+        public void CancellationDuringSecurePackageInspectionKeepsTheSourceOpenAndRestoresItsPosition() {
+            using var cancellation = new CancellationTokenSource();
+            using var source = new CancelOnEntryStream(CreateCraftedDeck(), "[Content_Types].xml", cancellation, matchReadStartOnly: true) {
+                Position = 7,
+                Armed = true
+            };
+            var options = new PowerPointLoadOptions {
+                AccessMode = DocumentAccessMode.ReadOnly,
+                PackageSecurity = OfficePackageSecurityOptions.SecureDefaults,
+                CaptureSourcePackageSecurity = true
+            };
+
+            var error = Assert.Throws<OperationCanceledException>(() => {
+                using PowerPointDocument document = PowerPointDocument.Load(source, options, cancellation.Token);
+            });
+
+            Assert.Equal(cancellation.Token, error.CancellationToken);
+            Assert.True(source.Triggered);
+            Assert.True(source.CanRead);
+            Assert.Equal(7, source.Position);
+        }
+
         // Cancels when the package first reads the stored data of the named ZIP entry.
         private sealed class CancelOnEntryStream : MemoryStream {
             private readonly long _dataStart;
             private readonly CancellationTokenSource _cancellation;
+            private readonly bool _matchReadStartOnly;
 
-            internal CancelOnEntryStream(byte[] bytes, string entryName, CancellationTokenSource cancellation) : base(bytes, writable: false) {
+            internal CancelOnEntryStream(byte[] bytes, string entryName, CancellationTokenSource cancellation,
+                bool matchReadStartOnly = false) : base(bytes, writable: false) {
                 _dataStart = FindEntryData(bytes, System.Text.Encoding.ASCII.GetBytes(entryName));
                 _cancellation = cancellation;
+                _matchReadStartOnly = matchReadStartOnly;
             }
 
             internal bool Armed { get; set; }
@@ -244,7 +270,9 @@ namespace OfficeIMO.Tests {
 #endif
 
             private void Inspect(long position, int count) {
-                if (Armed && !Triggered && position <= _dataStart && _dataStart < position + count) {
+                bool readsEntry = _matchReadStartOnly ? count > 0 && position == _dataStart
+                    : position <= _dataStart && _dataStart < position + count;
+                if (Armed && !Triggered && readsEntry) {
                     Triggered = true;
                     _cancellation.Cancel();
                 }

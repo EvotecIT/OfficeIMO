@@ -4,6 +4,7 @@ using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.Reader.FormatInternals;
+using OfficeIMO.Reader.Internal.IO;
 
 namespace OfficeIMO.Reader.PowerPoint;
 
@@ -17,7 +18,11 @@ internal static class PowerPointReaderAdapter {
     };
 
     internal static OfficeDocumentReadResult ReadDocument(string path, ReaderOptions readerOptions, ReaderPowerPointOptions options, CancellationToken cancellationToken) {
-        if (PowerPointStreamingTextReader.Applies(readerOptions) && !IsLegacySourceName(path)) {
+        bool isOpenXml = PowerPointFormatCatalog.TryGetByExtension(path, out var format) && format!.Generation == OfficeFormatGeneration.Modern;
+        if (isOpenXml) {
+            using FileStream? file = OfficeStableFileRead.TryOpen(path);
+            if (file != null) return ReadDocument(file, path, readerOptions, options, cancellationToken);
+        } else if (PowerPointStreamingTextReader.Applies(readerOptions) && !IsLegacySourceName(path)) {
             using var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete);
             if (PowerPointStreamingTextReader.TryRead(file, path, readerOptions, options, cancellationToken) is { } streamed) return streamed;
         }

@@ -35,7 +35,7 @@ internal static partial class VisioReaderAdapter {
             return result.Value;
         }
         if (extension != ".vdx" && extension != ".vsx" && extension != ".vtx")
-            return OpenXmlReaderAdmission.Load(readerOptions, () => VisioDocument.Load(stream, options));
+            return OpenXmlReaderAdmission.Load(readerOptions, () => VisioDocument.Load(stream, options, cancellationToken));
         VisioPackageType type = extension == ".vsx" ? VisioPackageType.Stencil : extension == ".vtx" ? VisioPackageType.Template : VisioPackageType.Drawing;
         var imported = VisioDocument.LoadLegacyXml(stream, type, options, cancellationToken);
         source.ImportDiagnostics = imported.Report.Diagnostics;

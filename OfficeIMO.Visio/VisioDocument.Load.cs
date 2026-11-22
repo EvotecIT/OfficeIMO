@@ -1,6 +1,7 @@
 using System.IO.Packaging;
 using OfficeIMO.Drawing;
 using OfficeIMO.Core.Internal;
+using OfficeIMO.Core.Internal.IO;
 
 namespace OfficeIMO.Visio {
     // Load orchestrator for VisioDocument.
@@ -40,8 +41,13 @@ namespace OfficeIMO.Visio {
         /// then. Non-seekable streams are buffered. A writable, seekable stream becomes the destination of
         /// <see cref="Save()"/>.
         /// </remarks>
-        public static VisioDocument Load(Stream stream, VisioLoadOptions? options) {
+        public static VisioDocument Load(Stream stream, VisioLoadOptions? options) =>
+            Load(stream, options, CancellationToken.None);
+
+        /// <summary>Loads a diagram synchronously with the owning operation's cancellation token.</summary>
+        internal static VisioDocument Load(Stream stream, VisioLoadOptions? options, CancellationToken cancellationToken) {
             ArgumentNullException.ThrowIfNull(stream);
+            cancellationToken.ThrowIfCancellationRequested();
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
             VisioLoadOptions resolved = options ?? new VisioLoadOptions();
@@ -49,14 +55,15 @@ namespace OfficeIMO.Visio {
                 stream,
                 DocumentAccessMode.ReadWrite);
             if (CanLoadInPlace(stream, resolved)) {
-                return LoadDocumentInPlace(stream, filePath: null, associatedStream, resolved);
+                return LoadDocumentInPlace(stream, filePath: null, associatedStream, resolved, cancellationToken);
             }
-            byte[] bytes = OfficeStreamReader.ReadAllBytes(stream, ResolveInputLimit(resolved));
+            byte[] bytes = OfficeStreamReader.ReadAllBytes(stream, cancellationToken, ResolveInputLimit(resolved));
             return LoadDocument(
                 bytes,
                 filePath: null,
                 sourceStream: associatedStream,
-                options: resolved);
+                options: resolved,
+                cancellationToken: cancellationToken);
         }
 
         /// <summary>Asynchronously loads an existing .vsdx file with optional input limits.</summary>
@@ -129,17 +136,10 @@ namespace OfficeIMO.Visio {
         // file when a competing handle prevents that open, by checking and reading one snapshot.
         private static FileStream OpenLoadFile(string path, VisioLoadOptions options, bool useAsync, out bool canBorrow) {
             const FileShare sharedWriters = FileShare.ReadWrite | FileShare.Delete;
-            const int sharingViolation = unchecked((int)0x80070020);
             int bufferSize = useAsync ? 81920 : 4096;
-            canBorrow = true;
-            if (options.PackageSecurity != null) {
-                try {
-                    return new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete, bufferSize, useAsync);
-                } catch (IOException exception) when (exception.HResult == sharingViolation) {
-                    canBorrow = false;
-                }
-            }
-            return new FileStream(path, FileMode.Open, FileAccess.Read, sharedWriters, bufferSize, useAsync);
+            FileStream? stable = options.PackageSecurity == null ? null : OfficeStableFileRead.TryOpen(path, bufferSize, useAsync);
+            canBorrow = options.PackageSecurity == null || stable != null;
+            return stable ?? new FileStream(path, FileMode.Open, FileAccess.Read, sharedWriters, bufferSize, useAsync);
         }
 
         // The diagram is materialized while the package is open, so a seekable source can be read in place.

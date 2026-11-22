@@ -8,6 +8,7 @@ namespace OfficeIMO {
             OfficePackageSecurityOptions? policy, CancellationToken cancellationToken) {
             var report = InspectSeekableSource(source, policy ?? OfficePackageSecurityOptions.SecureDefaults,
                 cancellationToken, reportOversizedPackage: policy == null);
+            cancellationToken.ThrowIfCancellationRequested();
             if (policy != null) ThrowFirstError(report);
             return report;
         }
