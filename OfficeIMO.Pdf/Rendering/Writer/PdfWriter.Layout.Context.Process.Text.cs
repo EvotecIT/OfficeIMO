@@ -19,11 +19,17 @@ internal static partial class PdfWriter {
             // Beside a floating table, a line that would pass the page bottom starts the next page.
             HashSet<int>? exclusionPageStarts = null;
             HashSet<int>? TrackExclusionPageStarts() => exclusionPageStarts = HasFloatingTables ? new HashSet<int>() : null;
+            (List<List<RichSeg>> Lines, List<double> LineHeights) WrapUnobstructedParagraph() =>
+                WrapRichRunsCoreWithFirstLineOrigin(rpb.Runs, textFrame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading,
+                    textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts,
+                    paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode,
+                    wordJustificationMode: paragraphStyle?.UseWordJustificationSpacing == true && rpb.Align == OfficeAlignment.Justify ? paragraphStyle.JustificationMode : null,
+                    cancellationToken: cancellationToken);
             // Keep, widow and frame admission must see the same physical rows that will paint.
             var (lines, lineHeights) = pictureWrapping
                 ? WrapPictureParagraph(rpb, currentOpts.MarginLeft.ToPoints(), width, size,
                     y - ResolveTopLevelSpacingBefore(spacingBefore), TrackExclusionPageStarts())
-                : WrapRichRunsCoreWithFirstLineOrigin(rpb.Runs, textFrame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode, wordJustificationMode: paragraphStyle?.UseWordJustificationSpacing == true && rpb.Align == OfficeAlignment.Justify ? paragraphStyle.JustificationMode : null, cancellationToken: cancellationToken);
+                : WrapUnobstructedParagraph();
             bool splittingConstrainedParagraph = ResolveParagraphConstraintOverflow(paragraphStyle, lines, lineHeights, leading, GetClosingContainerSpace()) !=
                 PdfKeepTogetherOverflowBehavior.Reject;
             bool SkipColumnsForParagraphOverflow() => splittingConstrainedParagraph &&
@@ -50,9 +56,7 @@ internal static partial class PdfWriter {
                         y - ResolveTopLevelSpacingBefore(spacingBefore), TrackExclusionPageStarts());
                     wrappedWidth = textFrame.Width;
                 } else if (Math.Abs(wrappedWidth - textFrame.Width) > .001D) {
-                    (lines, lineHeights) = WrapRichRunsCoreWithFirstLineOrigin(rpb.Runs, textFrame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading,
-                        textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts,
-                        paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode, wordJustificationMode: paragraphStyle?.UseWordJustificationSpacing == true && rpb.Align == OfficeAlignment.Justify ? paragraphStyle.JustificationMode : null, cancellationToken: cancellationToken);
+                    (lines, lineHeights) = WrapUnobstructedParagraph();
                     wrappedWidth = textFrame.Width;
                 }
             }
@@ -85,10 +89,19 @@ internal static partial class PdfWriter {
             if (IsKeptInCurrentFrame()) {
                 while (true) {
                     if (!IsKeptInCurrentFrame()) break;
-                    double paragraphContentHeight = MeasureTextBlockAdmissionHeight(lines, lineHeights, leading, spacingAfter);
-                    // Clearance below an exclusion belongs to this page; only the paragraph's own lines can be too tall.
-                    double exclusionGaps = pictureWrapping ? lines.Sum(line => (line as RichLine)?.FragmentTopGap ?? 0D) : 0D;
-                    if (paragraphContentHeight - exclusionGaps > GetMaximumBlockContinuationHeight() + 0.001) {
+                    List<double>? exclusionGaps = pictureWrapping ? lines.Select(line => ((RichLine)line).FragmentTopGap).ToList() : null;
+                    double paragraphContentHeight = MeasureTextBlockAdmissionHeight(lines, lineHeights, leading, spacingAfter, exclusionGaps);
+                    double maximumHeight = GetMaximumBlockContinuationHeight();
+                    if (paragraphContentHeight - (exclusionGaps?.Sum() ?? 0D) > maximumHeight + 0.001) {
+                        // A table on this page can add lines as well as clearance. Only reject a paragraph that
+                        // is still too tall at the full width of the continuation frame.
+                        if (HasFloatingTables) {
+                            var unobstructed = WrapUnobstructedParagraph();
+                            if (MeasureTextBlockAdmissionHeight(unobstructed.Lines, unobstructed.LineHeights, leading, spacingAfter) <= maximumHeight + 0.001) {
+                                NewParagraphStartFrame(forcePhysicalPage: true);
+                                continue;
+                            }
+                        }
                         if (TryAdvanceForRunningContent(ref runningAdmission, paragraphContentHeight,
                             preserve => NewParagraphStartFrame(preserveEmptyPage: preserve))) continue;
                         throw new ArgumentException("Paragraph height exceeds the available page content height.");
@@ -103,9 +116,7 @@ internal static partial class PdfWriter {
 
             textFrame = GetParagraphTextFrame(paragraphStyle, currentOpts.MarginLeft.ToPoints(), width);
             if (!pictureWrapping && activeColumnFlow != null && Math.Abs(wrappedWidth - textFrame.Width) > 0.001D) {
-                (lines, lineHeights) = WrapRichRunsCoreWithFirstLineOrigin(rpb.Runs, textFrame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading,
-                    textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts,
-                    paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode, wordJustificationMode: paragraphStyle?.UseWordJustificationSpacing == true && rpb.Align == OfficeAlignment.Justify ? paragraphStyle.JustificationMode : null, cancellationToken: cancellationToken);
+                (lines, lineHeights) = WrapUnobstructedParagraph();
                 wrappedWidth = textFrame.Width;
                 frameStart = GetCurrentFramePageStartY();
             }

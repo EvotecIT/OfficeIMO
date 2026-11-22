@@ -718,11 +718,6 @@ internal static partial class PdfWriter {
                         inlineHeight = Math.Max(lineHeight, currentRunAscent + currentRunDescent);
                 }
                 PrepareLineFrame(inlineHeight, inlineElement.Width.ToPoints());
-                double currentMaxWidth = CurrentMaxWidth();
-                if (inlineElement.Width.ToPoints() > currentMaxWidth + 0.001D &&
-                    inlineElement is not PdfInlineImage { AllowFrameOverflow: true }) {
-                    throw new ArgumentException("Inline element width exceeds the available paragraph width.");
-                }
 
                 RichTabFieldMeasurement? tabField = pendingLeadingIsTab && (AlignsCompleteTabField(pendingLeadingTabAlignment) || mayReselectNonLeftTabStop) ||
                     BufferedTabNeedsFieldMeasurement()
@@ -731,7 +726,6 @@ internal static partial class PdfWriter {
                 if (pendingLeadingIsTab) {
                     ResolvePendingLeadingTabForCurrentLine(inlineElement.Width.ToPoints(), spaceW, string.Empty, fontForRun, runFontSize, baseline, tabField);
                     RevalidateLeadingTabFrame(inlineHeight, inlineElement.Width.ToPoints(), spaceW, string.Empty, fontForRun, runFontSize, baseline, tabField);
-                    currentMaxWidth = CurrentMaxWidth();
                 }
 
                 ResolveBufferedTab(inlineElement.Width.ToPoints(), spaceW, string.Empty, fontForRun, runFontSize, baseline, tabField, inlineHeight);
@@ -740,7 +734,7 @@ internal static partial class PdfWriter {
                 double leadingAdvance = currentLine.Count > 0 || pendingLeadingIsTab || whitespaceMode == PdfTextWhitespaceMode.Preserve ? pendingLeadingAdvance : 0D;
                 if ((currentLine.Count > 0 || whitespaceMode == PdfTextWhitespaceMode.Preserve && leadingAdvance > 0D)
                     && MinimumCandidateWidth(CreateRunKerningProbe(string.Empty, run, baseFont, fontSize, options), null,
-                        lineWidth + leadingAdvance + inlineElement.Width.ToPoints()) > currentMaxWidth + 0.001D) {
+                        lineWidth + leadingAdvance + inlineElement.Width.ToPoints()) > CurrentMaxWidth() + 0.001D) {
                     if (pendingLeadingAdvance > 0D) {
                         MarkRichLineTextSeparator(currentLine);
                     }
@@ -754,6 +748,11 @@ internal static partial class PdfWriter {
                     }
 
                     leadingAdvance = pendingLeadingIsTab ? pendingLeadingAdvance : 0D;
+                }
+
+                if (inlineElement.Width.ToPoints() > CurrentMaxWidth() + 0.001D &&
+                    inlineElement is not PdfInlineImage { AllowFrameOverflow: true }) {
+                    throw new ArgumentException("Inline element width exceeds the available paragraph width.");
                 }
 
                 if (preserveWhitespace && !pendingLeadingIsTab && pendingSpaceFragments.Count > 0

@@ -292,6 +292,40 @@ public class PdfFloatingTableLayoutTests {
     }
 
     [Fact]
+    public void KeptParagraphRewrapsAtFullWidthWhenItCannotFitBesideTallTable() {
+        string[] words = Enumerable.Range(1, 45).Select(index => "word" + index).ToArray();
+        var style = new PdfParagraphStyle { KeepTogether = true };
+        using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options(260))
+            .Table(new[] { new[] { "floating" } }, style: Floating(260, 165))
+            .Paragraph(paragraph => paragraph.AddText(string.Join(" ", words)), style: style).ToBytes());
+
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.Equal("floating", Assert.Single(pdf.GetPage(1).GetWords()).Text);
+        Assert.Equal(words, pdf.GetPage(2).GetWords().Select(word => word.Text));
+    }
+
+    [Fact]
+    public void WideInlineElementMovesToTheOtherSideAfterText() {
+        var table = Floating(90, 80);
+        table.Position = new PdfTablePosition(horizontalOffset: global::OfficeIMO.OfficeLength.Points(70));
+        using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options())
+            .Table(new[] { new[] { "floating" } }, style: table)
+            .Paragraph(paragraph => {
+                paragraph.AddText("before");
+                paragraph.AddInline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(110),
+                    global::OfficeIMO.OfficeLength.Points(10), background: global::OfficeIMO.OfficeColor.Black));
+                paragraph.AddText("after");
+            }).ToBytes());
+
+        var words = pdf.GetPage(1).GetWords().ToList();
+        var before = words.Single(word => word.Text == "before");
+        var after = words.Single(word => word.Text == "after");
+        Assert.InRange(before.BoundingBox.Left, 40, 110);
+        Assert.InRange(after.BoundingBox.Left, 310, 360);
+        Assert.Equal(before.BoundingBox.Bottom, after.BoundingBox.Bottom, 2);
+    }
+
+    [Fact]
     public void WideInlineElementMovesBelowFloat() {
         byte[] bytes = PdfDocument.Create(Options())
             .Table(new[] { new[] { "floating" } }, style: Floating())
