@@ -228,15 +228,12 @@ namespace OfficeIMO.PowerPoint {
         /// <remarks>
         /// <para>An editable load reads the stream into one in-memory copy, which the package is opened over, and the
         /// stream can be disposed or changed afterwards. Saving writes back to a writable, seekable stream.</para>
-        /// <para>A read-only load of a seekable Open XML stream reads the package in place: nothing is copied, and the
-        /// presentation reads parts from <paramref name="stream"/> as it needs them. Keep the stream open and leave
-        /// its contents unchanged until the presentation is disposed; changing them makes later reads fail or
-        /// return inconsistent content. The stream position is restored after loading but moves while the
-        /// presentation reads it. The presentation never writes to the stream, never disposes it, and cannot be
-        /// saved. A read-only load of a non-seekable stream, an encrypted or binary source, or a load with
-        /// <see cref="DocumentLoadOptions.PackageSecurity"/> or
-        /// <see cref="DocumentLoadOptions.CaptureSourcePackageSecurity"/> reads the stream into one in-memory copy
-        /// instead, and the stream is not used after loading.</para>
+        /// <para>A read-only load of a seekable Open XML stream inspects and opens the package directly.
+        /// Keep <paramref name="stream"/> open and unchanged until the presentation is disposed, and give the
+        /// presentation exclusive use of the stream during reads. Each package read preserves the caller's stream
+        /// position. The presentation never writes to or disposes the stream, and cannot be saved. Non-seekable
+        /// streams and encrypted or binary sources are buffered and detached from their source. Compatibility
+        /// data may require retaining an original package snapshot.</para>
         /// </remarks>
         public static PowerPointDocument Load(Stream stream,
             PowerPointLoadOptions? options = null) => Load(stream, options,
@@ -521,13 +518,11 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static bool CanLoadInPlace(Stream stream, PowerPointLoadOptions options) =>
-            OfficePackageLoadSource.CanReadInPlace(stream, options.AccessMode, options.PackageSecurity,
-                options.CaptureSourcePackageSecurity, ResolvePackageInputLimit(options));
+            OfficePackageLoadSource.CanReadInPlace(stream, options.AccessMode, ResolvePackageInputLimit(options));
 
         private static Task<bool> CanLoadInPlaceAsync(Stream stream, PowerPointLoadOptions options,
             CancellationToken cancellationToken) =>
-            OfficePackageLoadSource.CanReadInPlaceAsync(stream, options.AccessMode, options.PackageSecurity,
-                options.CaptureSourcePackageSecurity, ResolvePackageInputLimit(options), cancellationToken);
+            OfficePackageLoadSource.CanReadInPlaceAsync(stream, options.AccessMode, ResolvePackageInputLimit(options), cancellationToken);
 
         /// <summary>Opens a read-only Open XML presentation over the caller's seekable stream without copying it.</summary>
         private static PowerPointDocument LoadPackageInPlace(Stream stream, PowerPointLoadOptions options,
@@ -536,6 +531,8 @@ namespace OfficeIMO.PowerPoint {
             long originalPosition = stream.Position;
             OfficePackageSourceView packageStream = OfficePackageLoadSource.OpenInPlace(stream);
             try {
+                OfficePackageSecurityReport? packageReport = OfficePackageLoadSource.InspectInPlace(packageStream,
+                    options.PackageSecurity, options.CaptureSourcePackageSecurity, cancellationToken);
                 PowerPointDocument presentation = OpenPackage(packageStream, filePath: null, associatedStream: null, options);
                 try {
                     presentation.MarkLoadedFromOpenXml(packageStream);
@@ -544,7 +541,7 @@ namespace OfficeIMO.PowerPoint {
                     presentation.Dispose();
                     throw;
                 }
-                return presentation;
+                return WithSourcePackageInspection(presentation, sourceBytes: null, options, report: packageReport);
             } catch {
                 packageStream.Dispose();
                 throw;

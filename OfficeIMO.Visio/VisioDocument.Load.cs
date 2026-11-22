@@ -18,12 +18,8 @@ namespace OfficeIMO.Visio {
             if (!File.Exists(fullPath)) throw new FileNotFoundException($"File '{fullPath}' doesn't exist.", fullPath);
 
             VisioLoadOptions resolved = options ?? new VisioLoadOptions();
-            using var source = new FileStream(
-                fullPath,
-                FileMode.Open,
-                FileAccess.Read,
-                FileShare.ReadWrite | FileShare.Delete);
-            if (CanLoadInPlace(source, resolved)) {
+            using var source = OpenLoadFile(fullPath, resolved, useAsync: false, out bool canBorrow);
+            if (canBorrow && CanLoadInPlace(source, resolved)) {
                 return LoadDocumentInPlace(source, fullPath, sourceStream: null, resolved);
             }
             byte[] bytes = OfficeStreamReader.ReadAllBytes(source, ResolveInputLimit(resolved));
@@ -39,10 +35,10 @@ namespace OfficeIMO.Visio {
         /// <param name="stream">Readable source. The caller keeps ownership and disposes it.</param>
         /// <param name="options">Input limits and package-security options.</param>
         /// <remarks>
-        /// The diagram is read completely during loading, and the stream is not read again afterwards. A seekable
-        /// stream is read in place without copying it and its position is restored; a non-seekable stream, or a load
-        /// with <see cref="VisioLoadOptions.PackageSecurity"/>, is read into one in-memory copy first. A writable,
-        /// seekable stream becomes the destination of <see cref="Save()"/>.
+        /// A seekable Open XML stream is inspected and read in place. Keep it unchanged and give the loader
+        /// exclusive use until it returns. The caller's position is restored and the diagram is fully loaded by
+        /// then. Non-seekable streams are buffered. A writable, seekable stream becomes the destination of
+        /// <see cref="Save()"/>.
         /// </remarks>
         public static VisioDocument Load(Stream stream, VisioLoadOptions? options) {
             ArgumentNullException.ThrowIfNull(stream);
@@ -72,9 +68,9 @@ namespace OfficeIMO.Visio {
             ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
             string fullPath = Path.GetFullPath(filePath);
             if (!File.Exists(fullPath)) throw new FileNotFoundException($"File '{fullPath}' doesn't exist.", fullPath);
-            using var source = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, 81920, useAsync: true);
             VisioLoadOptions resolved = options ?? new VisioLoadOptions();
-            if (await CanLoadInPlaceAsync(source, resolved, cancellationToken).ConfigureAwait(false)) {
+            using var source = OpenLoadFile(fullPath, resolved, useAsync: true, out bool canBorrow);
+            if (canBorrow && await CanLoadInPlaceAsync(source, resolved, cancellationToken).ConfigureAwait(false)) {
                 return await OfficePackageLoadSource.LoadInPlaceAsync(source,
                     () => LoadDocumentInPlace(source, fullPath, sourceStream: null, resolved, cancellationToken),
                     cancellationToken).ConfigureAwait(false);
@@ -129,15 +125,30 @@ namespace OfficeIMO.Visio {
             return document;
         }
 
+        // A secure load borrows a file only while it can exclude writers. Keep accepting a shared
+        // file when a competing handle prevents that open, by checking and reading one snapshot.
+        private static FileStream OpenLoadFile(string path, VisioLoadOptions options, bool useAsync, out bool canBorrow) {
+            const FileShare sharedWriters = FileShare.ReadWrite | FileShare.Delete;
+            const int sharingViolation = unchecked((int)0x80070020);
+            int bufferSize = useAsync ? 81920 : 4096;
+            canBorrow = true;
+            if (options.PackageSecurity != null) {
+                try {
+                    return new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete, bufferSize, useAsync);
+                } catch (IOException exception) when (exception.HResult == sharingViolation) {
+                    canBorrow = false;
+                }
+            }
+            return new FileStream(path, FileMode.Open, FileAccess.Read, sharedWriters, bufferSize, useAsync);
+        }
+
         // The diagram is materialized while the package is open, so a seekable source can be read in place.
         private static bool CanLoadInPlace(Stream stream, VisioLoadOptions options) =>
-            OfficePackageLoadSource.CanReadInPlace(stream, DocumentAccessMode.ReadOnly, options.PackageSecurity,
-                captureSourcePackageSecurity: false, ResolveInputLimit(options));
+            OfficePackageLoadSource.CanReadInPlace(stream, DocumentAccessMode.ReadOnly, ResolveInputLimit(options));
 
         private static Task<bool> CanLoadInPlaceAsync(Stream stream, VisioLoadOptions options,
             CancellationToken cancellationToken) =>
-            OfficePackageLoadSource.CanReadInPlaceAsync(stream, DocumentAccessMode.ReadOnly, options.PackageSecurity,
-                captureSourcePackageSecurity: false, ResolveInputLimit(options), cancellationToken);
+            OfficePackageLoadSource.CanReadInPlaceAsync(stream, DocumentAccessMode.ReadOnly, ResolveInputLimit(options), cancellationToken);
 
         private static VisioDocument LoadDocumentInPlace(
             Stream stream,
@@ -149,6 +160,7 @@ namespace OfficeIMO.Visio {
             long originalPosition = stream.Position;
             try {
                 using OfficePackageSourceView view = OfficePackageLoadSource.OpenInPlace(stream);
+                OfficePackageLoadSource.InspectInPlace(view, options.PackageSecurity, capture: false, cancellationToken);
                 VisioDocument document;
                 using (Package package = Package.Open(view, FileMode.Open, FileAccess.Read)) {
                     document = LoadCore(package, filePath, cancellationToken, (options.Limits ?? throw new ArgumentNullException(nameof(options.Limits))).MaxPackageXmlCharacters);

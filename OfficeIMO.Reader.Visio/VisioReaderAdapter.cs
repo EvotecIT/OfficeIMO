@@ -1,4 +1,5 @@
 using OfficeIMO.Visio;
+using OfficeIMO.Reader.FormatInternals;
 
 namespace OfficeIMO.Reader.Visio;
 
@@ -17,7 +18,7 @@ internal static partial class VisioReaderAdapter {
         var effectiveReaderOptions = readerOptions ?? new ReaderOptions();
         ReaderInputLimits.EnforceFileSize(visioPath, effectiveReaderOptions.MaxInputBytes);
         var source = BuildSourceMetadataFromPath(visioPath, effectiveReaderOptions.ComputeHashes);
-        VisioDocument document = LoadForReader(visioPath, CreateLoadOptions(effectiveReaderOptions), source, cancellationToken);
+        VisioDocument document = LoadForReader(visioPath, effectiveReaderOptions, source, cancellationToken);
         foreach (var chunk in Read(document, source, effectiveReaderOptions, cancellationToken)) {
             yield return chunk;
         }
@@ -44,7 +45,7 @@ internal static partial class VisioReaderAdapter {
                 parseStream.Position = 0;
             }
 
-            VisioDocument document = LoadForReader(parseStream, logicalSourceName, CreateLoadOptions(effectiveReaderOptions), source, cancellationToken);
+            VisioDocument document = LoadForReader(parseStream, logicalSourceName, effectiveReaderOptions, source, cancellationToken);
             foreach (var chunk in Read(document, source, effectiveReaderOptions, cancellationToken)) {
                 yield return chunk;
             }
@@ -73,10 +74,16 @@ internal static partial class VisioReaderAdapter {
         }
     }
 
-    internal static VisioLoadOptions? CreateLoadOptions(ReaderOptions readerOptions) =>
-        readerOptions.MaxInputBytes.HasValue
-            ? new VisioLoadOptions { Limits = { MaxInputBytes = readerOptions.MaxInputBytes } }
-            : null;
+    internal static VisioLoadOptions? CreateLoadOptions(ReaderOptions readerOptions) {
+        bool hasExpansionLimit = readerOptions.OpenXmlMaxPartUncompressedBytes.HasValue ||
+            readerOptions.OpenXmlMaxTotalUncompressedBytes.HasValue;
+        if (!readerOptions.MaxInputBytes.HasValue && !hasExpansionLimit) return null;
+        var options = new VisioLoadOptions();
+        if (readerOptions.MaxInputBytes is long maxInputBytes) options.Limits.MaxInputBytes = maxInputBytes;
+        if (hasExpansionLimit)
+            options.PackageSecurity = OpenXmlReaderAdmission.Policy(readerOptions, options.Limits.MaxInputBytes ?? VisioLoadLimits.DefaultMaxInputBytes);
+        return options;
+    }
 
     private static IEnumerable<ReaderChunk> Read(VisioDocument document, SourceMetadata source, ReaderOptions readerOptions, CancellationToken cancellationToken) {
         VisioInspectionSnapshot snapshot = document.Inspect();

@@ -5,9 +5,11 @@ namespace OfficeIMO.Core.Internal {
         private readonly long _offset;
         private readonly long _length;
         private readonly bool _preserveSourcePosition;
+        private readonly CancellationToken _cancellationToken;
         private long _position;
 
-        internal SeekableReadWindowStream(Stream source, long offset, long length, bool preserveSourcePosition = false) {
+        internal SeekableReadWindowStream(Stream source, long offset, long length, bool preserveSourcePosition = false,
+            CancellationToken cancellationToken = default) {
             ArgumentNullException.ThrowIfNull(source);
             if (!source.CanRead || !source.CanSeek) throw new ArgumentException(
                 "The source must be readable and seekable.", nameof(source));
@@ -18,6 +20,7 @@ namespace OfficeIMO.Core.Internal {
             _offset = offset;
             _length = length;
             _preserveSourcePosition = preserveSourcePosition;
+            _cancellationToken = cancellationToken;
         }
 
         public override bool CanRead => true;
@@ -30,6 +33,7 @@ namespace OfficeIMO.Core.Internal {
         }
 
         public override int Read(byte[] buffer, int offset, int count) {
+            _cancellationToken.ThrowIfCancellationRequested();
             ArgumentNullException.ThrowIfNull(buffer);
             if (offset < 0 || count < 0 || offset > buffer.Length - count) {
                 throw new ArgumentOutOfRangeException(nameof(offset));

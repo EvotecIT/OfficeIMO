@@ -89,7 +89,10 @@ public static partial class OfficeConverter {
             case "docx-pdf":
             case "docx-html":
             case "docx-markdown": {
-                using WordDocument document = await WordDocument.LoadAsync(input, WordInputOptions(settings), token).ConfigureAwait(false);
+                WordLoadOptions loadOptions = WordInputOptions(settings);
+                if (id == "docx-pdf" && settings.WordLoad == null && settings.Theme == null)
+                    loadOptions.AccessMode = DocumentAccessMode.ReadOnly;
+                using WordDocument document = await WordDocument.LoadAsync(input, loadOptions, token).ConfigureAwait(false);
                 sourceReport = document.CreateLoadReport(settings.SourceName!, timer.Elapsed);
                 if (settings.FailOnLoss) sourceReport.ThrowIfLoss();
                 if (settings.Theme != null) document.ApplyTheme(settings.Theme);
