@@ -291,17 +291,28 @@ public class PdfFloatingTableLayoutTests {
         Assert.Equal(20, pdf.GetPage(2).GetWords().Count(word => word.Text.StartsWith("word")));
     }
 
-    [Fact]
-    public void KeptParagraphRewrapsAtFullWidthWhenItCannotFitBesideTallTable() {
+    [Theory]
+    [InlineData((int)PdfKeepTogetherOverflowBehavior.Reject, false)]
+    [InlineData((int)PdfKeepTogetherOverflowBehavior.SplitAcrossFrames, false)]
+    [InlineData((int)PdfKeepTogetherOverflowBehavior.SplitAcrossPages, false)]
+    [InlineData((int)PdfKeepTogetherOverflowBehavior.Reject, true)]
+    public void KeptParagraphRewrapsAtFullWidthWhenItCannotFitBesideTallTable(int overflow, bool keepWithNext) {
         string[] words = Enumerable.Range(1, 45).Select(index => "word" + index).ToArray();
-        var style = new PdfParagraphStyle { KeepTogether = true };
-        using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options(260))
+        var style = new PdfParagraphStyle {
+            KeepTogether = !keepWithNext,
+            KeepWithNext = keepWithNext,
+            KeepTogetherOverflow = (PdfKeepTogetherOverflowBehavior)overflow
+        };
+        var document = PdfDocument.Create(Options(260))
             .Table(new[] { new[] { "floating" } }, style: Floating(260, 165))
-            .Paragraph(paragraph => paragraph.AddText(string.Join(" ", words)), style: style).ToBytes());
+            .Paragraph(paragraph => paragraph.AddText(string.Join(" ", words)), style: style);
+        if (keepWithNext) document.Paragraph(paragraph => paragraph.AddText("follower"));
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
 
         Assert.Equal(2, pdf.NumberOfPages);
         Assert.Equal("floating", Assert.Single(pdf.GetPage(1).GetWords()).Text);
-        Assert.Equal(words, pdf.GetPage(2).GetWords().Select(word => word.Text));
+        Assert.Equal(keepWithNext ? words.Concat(new[] { "follower" }) : words,
+            pdf.GetPage(2).GetWords().Select(word => word.Text));
     }
 
     [Fact]
@@ -323,6 +334,25 @@ public class PdfFloatingTableLayoutTests {
         Assert.InRange(before.BoundingBox.Left, 40, 110);
         Assert.InRange(after.BoundingBox.Left, 310, 360);
         Assert.Equal(before.BoundingBox.Bottom, after.BoundingBox.Bottom, 2);
+    }
+
+    [Fact]
+    public void WideInlineElementOnNextPageLeavesTheAcceptedTextRowBesideTheTable() {
+        var table = Floating(160, 25);
+        table.Position = new PdfTablePosition(horizontalAlignment: global::OfficeIMO.OfficeAlignment.Center);
+        using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options(260)).Spacer(150)
+            .Table(new[] { new[] { "floating" } }, style: table)
+            .Paragraph(paragraph => {
+                paragraph.AddText("word1 word2 word3");
+                paragraph.AddInline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(110),
+                    global::OfficeIMO.OfficeLength.Points(10), background: global::OfficeIMO.OfficeColor.Black));
+                paragraph.AddText("after");
+            }, style: new PdfParagraphStyle { MinimumOrphanLines = 1, MinimumWidowLines = 1 }).ToBytes());
+
+        Assert.Equal(2, pdf.NumberOfPages);
+        var firstPageWords = pdf.GetPage(1).GetWords().Select(word => word.Text).ToList();
+        Assert.All(new[] { "word1", "word2", "word3" }, word => Assert.Contains(word, firstPageWords));
+        Assert.Equal("after", Assert.Single(pdf.GetPage(2).GetWords()).Text);
     }
 
     [Fact]

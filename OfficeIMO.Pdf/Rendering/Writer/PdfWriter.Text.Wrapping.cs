@@ -311,19 +311,13 @@ internal static partial class PdfWriter {
             var frame = ResolveCurrentFrame(lines.Count - 1, completedHeight,
                 CurrentFrameFitHeight(height, includeCurrentRun, sourceTab), requiredWidth,
                 lines[lines.Count - 1].Count == 0, out bool invalidated)!.Value;
-            if (invalidated) {
-                currentFrame = oldFrame;
-                StartNewLine(forceRow: true);
-                height = Math.Max(lineHeight, CombinedContentHeight(incomingContentHeight, includeCurrentRun, sourceTab));
-                requiredWidth = minimumWidth;
-                frame = ResolveCurrentFrame(lines.Count - 1, completedHeight,
-                    CurrentFrameFitHeight(height, includeCurrentRun, sourceTab), requiredWidth, true, out _)!.Value;
-            }
-            if (lines[lines.Count - 1].Count > 0 &&
-                (MinimumLineWidth(lines[lines.Count - 1], lineWidth) > frame.Width + 0.001 || minimumWidth > 0 && frame.Gap > (oldFrame?.Gap ?? 0) + 0.001)) {
+            bool admittedContentDoesNotFit = lines[lines.Count - 1].Count > 0 &&
+                (MinimumLineWidth(lines[lines.Count - 1], lineWidth) > frame.Width + 0.001 || minimumWidth > 0 && frame.Gap > (oldFrame?.Gap ?? 0) + 0.001);
+            if (invalidated || admittedContentDoesNotFit) {
+                // Re-resolve the accepted row so a rejected probe cannot move it to the next page.
                 ResolveCurrentFrame(lines.Count - 1, completedHeight, CurrentFrameFitHeight(oldHeight, includeCurrentRun: false), currentMinimumWidth, false, out _);
                 currentFrame = oldFrame;
-                StartNewLine();
+                StartNewLine(forceRow: invalidated);
                 height = Math.Max(lineHeight, CombinedContentHeight(incomingContentHeight, includeCurrentRun, sourceTab));
                 requiredWidth = minimumWidth;
                 frame = ResolveCurrentFrame(lines.Count - 1, completedHeight, CurrentFrameFitHeight(height, includeCurrentRun, sourceTab), requiredWidth, true, out _)!.Value;
