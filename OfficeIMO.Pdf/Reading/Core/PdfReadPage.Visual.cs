@@ -3,9 +3,11 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadPage {
-    private readonly object _rootInvokedResourceNamesSync = new();
+    private object? _rootInvokedResourceNamesSync;
     private PdfPageInvokedResourceNames? _rootInvokedResourceNames;
     private bool _rootInvokedResourceNamesInitialized;
+
+    private object RootInvokedResourceNamesSync => LazyInitializer.EnsureInitialized(ref _rootInvokedResourceNamesSync)!;
 
     internal bool WouldAppendingTextChangeVisibleStacking(IReadOnlyList<PdfTextSpan> sourceSpans, IReadOnlyList<PdfAppendedTextBounds>? appendedBounds = null) {
         if (sourceSpans.Count == 0) return false;
@@ -2575,7 +2577,7 @@ public sealed partial class PdfReadPage {
         PdfContentSource content,
         PdfDictionary? resources,
         Action? operationCheck = null) {
-        lock (_rootInvokedResourceNamesSync) {
+        lock (RootInvokedResourceNamesSync) {
             if (!_rootInvokedResourceNamesInitialized) {
                 _rootInvokedResourceNames = GetInvokedResourceNames(content, resources, operationCheck);
                 _rootInvokedResourceNamesInitialized = true;
@@ -2864,7 +2866,7 @@ public sealed partial class PdfReadPage {
         bool printableOnly = false) {
         cancellationToken.ThrowIfCancellationRequested();
         PdfArray? annotations = selectedAnnotations;
-        if (annotations == null && _pageDict.Items.TryGetValue("Annots", out PdfObject? annotationsObject))
+        if (annotations == null && PageDictionary.Items.TryGetValue("Annots", out PdfObject? annotationsObject))
             annotations = ResolveArray(annotationsObject);
         if (annotations == null) {
             return;
@@ -2874,8 +2876,8 @@ public sealed partial class PdfReadPage {
         PdfDictionary? pageResources = ResolveDictionary(GetInheritedValue("Resources"));
         registeredFonts ??= new Dictionary<(string Family, OfficeFontStyle Style), PdfFontResource>();
         paintedGlyphMaps ??= pageContentBudget.PaintedGlyphMaps;
-        Dictionary<string, Func<byte[], int, string>> pageDecoders = ResourceResolver.GetBudgetedFontDecoders(_pageDict, _objects);
-        Dictionary<string, Func<byte[], double>> pageWidthProviders = ResourceResolver.GetFontWidthProviders(_pageDict, _objects);
+        Dictionary<string, Func<byte[], int, string>> pageDecoders = ResourceResolver.GetBudgetedFontDecoders(PageDictionary, _objects);
+        Dictionary<string, Func<byte[], double>> pageWidthProviders = ResourceResolver.GetFontWidthProviders(PageDictionary, _objects);
         Dictionary<string, PdfFontResource> pageFonts = _fontResourceCache.GetFonts(pageResources, _objects, forDrawing: true, cancellationToken);
         var activeForms = new HashSet<PdfStream>();
         // Collect all appearance aliases before rebuilding the root font. Otherwise a page with
@@ -3066,7 +3068,8 @@ public sealed partial class PdfReadPage {
     }
 
     private PdfDictionary? GetAcroForm() =>
-        _acroForm.GetOrCreate(this, static (page, cancellationToken) => page.ResolveDictionary(
+        LazyInitializer.EnsureInitialized(ref _acroForm, static () => new PdfReadCache<PdfDictionary?>())!
+            .GetOrCreate(this, static (page, cancellationToken) => page.ResolveDictionary(
             PdfSyntax.FindCatalog(page._objects, cancellationToken: cancellationToken) is PdfDictionary catalog &&
             catalog.Items.TryGetValue("AcroForm", out PdfObject? acroForm) ? acroForm : null));
 
@@ -3193,8 +3196,8 @@ public sealed partial class PdfReadPage {
         pageContentBudget ??= new PageContentBudget(this);
         var spans = new List<PdfTextSpan>();
         PdfDictionary? pageResources = ResolveDictionary(GetInheritedValue("Resources"));
-        Dictionary<string, Func<byte[], int, string>> pageDecoders = ResourceResolver.GetBudgetedFontDecoders(_pageDict, _objects);
-        Dictionary<string, Func<byte[], double>> pageWidthProviders = ResourceResolver.GetFontWidthProviders(_pageDict, _objects);
+        Dictionary<string, Func<byte[], int, string>> pageDecoders = ResourceResolver.GetBudgetedFontDecoders(PageDictionary, _objects);
+        Dictionary<string, Func<byte[], double>> pageWidthProviders = ResourceResolver.GetFontWidthProviders(PageDictionary, _objects);
         Dictionary<string, PdfFontResource> pageFonts = _fontResourceCache.GetFonts(pageResources, _objects);
         var activeForms = new HashSet<PdfStream>();
 

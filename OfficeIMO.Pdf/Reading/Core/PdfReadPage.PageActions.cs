@@ -9,7 +9,7 @@ public sealed partial class PdfReadPage {
 
     internal IReadOnlyList<PdfPageAction> GetPageActionsUnchecked(CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        return _pageDict.Items.TryGetValue("AA", out var additionalActionsObject)
+        return PageDictionary.Items.TryGetValue("AA", out var additionalActionsObject)
             ? ReadPageActions(additionalActionsObject, cancellationToken)
             : Array.Empty<PdfPageAction>();
     }

@@ -114,5 +114,5 @@ public sealed class PdfAcroFormEditResult {
     /// <summary>Returns edited PDF bytes.</summary>
     public byte[] ToBytes() => (byte[])_pdf.Clone();
     /// <summary>Opens the edited artifact.</summary>
-    public PdfDocument ToDocument() => PdfDocument.Load(_pdf, _readOptions);
+    public PdfDocument ToDocument() => PdfDocument.LoadSnapshot(_pdf, _readOptions);
 }

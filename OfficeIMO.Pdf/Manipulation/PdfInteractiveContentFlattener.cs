@@ -27,7 +27,7 @@ public sealed class PdfInteractiveContentFlattenResult {
     /// <summary>Whether any interactive object was flattened.</summary>
     public bool Applied => FlattenedFormFieldCount > 0 || FlattenedAnnotationCount > 0;
     /// <summary>Opens the flattened artifact.</summary>
-    public PdfDocument ToDocument() => PdfDocument.Load(_bytes, ReadOptions);
+    public PdfDocument ToDocument() => PdfDocument.LoadSnapshot(_bytes, ReadOptions);
     private PdfLoadOptions ReadOptions { get; }
 }
 

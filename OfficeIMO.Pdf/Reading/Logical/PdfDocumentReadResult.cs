@@ -1104,13 +1104,13 @@ public sealed partial class PdfDocumentReadResult {
     /// <summary>Loads a PDF from bytes and returns the logical read model.</summary>
     internal static PdfDocumentReadResult Load(byte[] pdf, PdfTextLayoutOptions? options = null) {
         Guard.NotNull(pdf, nameof(pdf));
-        return PdfDocument.Load(pdf).Read(new PdfLoadOptions { LayoutOptions = options ?? new PdfTextLayoutOptions() });
+        return PdfDocument.LoadSnapshot(pdf).Read(new PdfLoadOptions { LayoutOptions = options ?? new PdfTextLayoutOptions() });
     }
 
     /// <summary>Loads a PDF from bytes with explicit read limits or credentials and returns the logical read model.</summary>
     internal static PdfDocumentReadResult Load(byte[] pdf, PdfTextLayoutOptions? options, PdfLoadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
-        return PdfDocument.Load(pdf, readOptions).Read(new PdfLoadOptions { LayoutOptions = options ?? new PdfTextLayoutOptions() });
+        return PdfDocument.LoadSnapshot(pdf, readOptions).Read(new PdfLoadOptions { LayoutOptions = options ?? new PdfTextLayoutOptions() });
     }
 
     /// <summary>Loads a PDF from a file path and returns the logical read model.</summary>
@@ -1136,7 +1136,7 @@ public sealed partial class PdfDocumentReadResult {
     /// <summary>Loads selected source page ranges from PDF bytes into the logical read model, preserving caller order and overlaps.</summary>
     internal static PdfDocumentReadResult LoadPageRanges(byte[] pdf, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
         Guard.NotNull(pdf, nameof(pdf));
-        return PdfDocument.Load(pdf).Read(new PdfLoadOptions {
+        return PdfDocument.LoadSnapshot(pdf).Read(new PdfLoadOptions {
             LayoutOptions = options ?? new PdfTextLayoutOptions(),
             PageSelection = PdfPageSelection.FromRanges(pageRanges)
         });

@@ -176,7 +176,7 @@ public sealed class PdfRedactionApplyResult {
     public bool IsVerified => Evidence.IsVerified;
 
     /// <summary>Opens the rewritten bytes through the normal fluent document API.</summary>
-    public PdfDocument ToDocument() => PdfDocument.Load(_pdf, _readOptions);
+    public PdfDocument ToDocument() => PdfDocument.LoadSnapshot(_pdf, _readOptions);
 
     /// <summary>Throws when the rewritten artifact did not pass every configured evidence check.</summary>
     public PdfRedactionApplyResult ThrowIfUnverified() {

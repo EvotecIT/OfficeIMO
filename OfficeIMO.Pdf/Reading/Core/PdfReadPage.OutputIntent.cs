@@ -5,7 +5,7 @@ public sealed partial class PdfReadPage {
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         PdfDictionary? resources = ResolveDictionary(GetInheritedValue("Resources"));
-        if (!IsDefinitelyPrintVisible(_pageDict, resources)) return (false, false, false);
+        if (!IsDefinitelyPrintVisible(PageDictionary, resources)) return (false, false, false);
         var budget = new PageContentBudget(this, cancellationToken);
         bool foundRgb = false;
         bool foundIndependent = false;
@@ -256,7 +256,8 @@ public sealed partial class PdfReadPage {
     }
 
     private bool GetOutputIntentCompositionInteraction(CancellationToken cancellationToken) =>
-        _outputIntentColorTransform != null && _hasOutputIntentCompositionInteraction.GetOrCreate(
+        _outputIntentColorTransform != null &&
+        LazyInitializer.EnsureInitialized(ref _hasOutputIntentCompositionInteraction, static () => new PdfReadCache<bool>())!.GetOrCreate(
             this, static (page, token) => page.ScanOutputIntentCompositionInteraction(token), cancellationToken);
 
     // A text read that leaves out damaged page content streams leaves them out of the composition scan too. That
@@ -295,7 +296,7 @@ public sealed partial class PdfReadPage {
 
     private bool ScanOutputIntentCompositionInteraction(CancellationToken cancellationToken, bool skipUndecodableContentStreams = false) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (IsTransparencyGroup(_pageDict)) return true;
+        if (IsTransparencyGroup(PageDictionary)) return true;
         PdfDictionary? resources = ResolveDictionary(GetInheritedValue("Resources"));
         var activeStreams = new HashSet<PdfStream>();
         var budget = new PageContentBudget(this, cancellationToken) {
@@ -314,7 +315,7 @@ public sealed partial class PdfReadPage {
                 () => GetRootInvokedResourceNames(content, resources, cancellationToken.ThrowIfCancellationRequested))) return true;
 
         PdfArray? annotations = ResolveArray(
-            _pageDict.Items.TryGetValue("Annots", out PdfObject? annotationsObject) ? annotationsObject : null);
+            PageDictionary.Items.TryGetValue("Annots", out PdfObject? annotationsObject) ? annotationsObject : null);
         if (annotations == null) return false;
         EnsureAnnotationBudget(annotations);
         for (int index = 0; index < annotations.Items.Count; index++) {

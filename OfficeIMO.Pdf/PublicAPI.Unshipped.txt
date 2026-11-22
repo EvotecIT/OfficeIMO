@@ -1318,3 +1318,5 @@ OfficeIMO.Pdf.PdfListStyle.JustifyExplicitLineBreaks.get -> bool
 OfficeIMO.Pdf.PdfListStyle.JustifyExplicitLineBreaks.set -> void
 OfficeIMO.Pdf.PdfListStyle.JustifyLastLine.get -> bool
 OfficeIMO.Pdf.PdfListStyle.JustifyLastLine.set -> void
+static OfficeIMO.Pdf.PdfDocument.Load(byte[]! pdf, OfficeIMO.Pdf.PdfLoadOptions? loadOptions = null) -> OfficeIMO.Pdf.PdfDocument!
+static OfficeIMO.Pdf.PdfDocument.Load(byte[]! pdf, OfficeIMO.Pdf.PdfLoadOptions? loadOptions, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.Pdf.PdfDocument!

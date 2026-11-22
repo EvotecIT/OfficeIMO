@@ -85,7 +85,7 @@ public sealed class PdfExternalSignaturePreparation {
         Guard.NotNull(signatureContents, nameof(signatureContents));
         byte[] completedPdf = PdfIncrementalUpdater.ApplyExternalSignature(this, signatureContents);
         PdfLoadOptions effectiveOptions = readOptions ?? GetCompletionReadOptions(completedPdf.LongLength);
-        return PdfDocument.Load(completedPdf, effectiveOptions);
+        return PdfDocument.LoadSnapshot(completedPdf, effectiveOptions);
     }
 
     internal PdfLoadOptions GetCompletionReadOptions(long completedLength) =>

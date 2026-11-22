@@ -13,6 +13,8 @@ internal sealed partial class PdfReadDocument {
     private readonly PdfDecodedStreamBudget _decodedStreamBudget;
     private Dictionary<int, int>? _pageNumberByObject;
     private readonly PdfFontResourceCache _fontResourceCache = new();
+    private Action? _demandTextExtractionAction;
+    private Action<string>? _demandContentExtractionAction;
     private readonly PdfDocumentProperties _metadata;
     private readonly IReadOnlyList<PdfOutputIntentInfo> _outputIntents;
     private readonly bool _outputIntentsAreComplete;

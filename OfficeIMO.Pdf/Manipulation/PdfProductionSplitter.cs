@@ -75,7 +75,7 @@ public sealed class PdfProductionSplitPart {
     /// <summary>Returns an independent copy of the generated part.</summary>
     public byte[] ToBytes() => (byte[])_pdf.Clone();
     /// <summary>Opens the generated part through the public document API.</summary>
-    public PdfDocument ToDocument(PdfLoadOptions? readOptions = null) => PdfDocument.Load(_pdf, readOptions ?? _readOptions);
+    public PdfDocument ToDocument(PdfLoadOptions? readOptions = null) => PdfDocument.LoadSnapshot(_pdf, readOptions ?? _readOptions);
 }
 
 /// <summary>Generated production split artifacts and bounded-probe evidence.</summary>

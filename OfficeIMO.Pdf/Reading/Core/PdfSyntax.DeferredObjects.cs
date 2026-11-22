@@ -104,12 +104,13 @@ internal static partial class PdfSyntax {
                 if (!scan.TryAddKey(token, source, keysStart)) return false;
                 if (i + 1 >= tokens.Count || tokens[i + 1].Equals(source, ">>")) return false;
                 TopLevelKey key = ClassifyTopLevelKey(token, source);
-                // Every load builds the page tree, so deferring a page or page-tree node only scans it twice. Their
-                // keys usually come early, and the eager parser builds the same value.
-                if (key == TopLevelKey.PageTreeLink) return false;
+                // Every load walks the page-tree nodes, so deferring one only scans it twice. Their keys usually come
+                // early, and the eager parser builds the same value.
+                if (key == TopLevelKey.Kids) return false;
                 if (key == TopLevelKey.Encrypt) scan.MarkEncryptKey();
+                if (key == TopLevelKey.Parent) scan.MarkParentKey();
                 if (!ScanObject(tokens, i + 1, limits, 0, scan, key, out int consumed, cancellationToken)) return false;
-                if (key == TopLevelKey.Type && scan.IsPageTreeType) return false;
+                if (key == TopLevelKey.Type && scan.IsPagesNodeType) return false;
                 i += consumed + 1;
             } else if (token.Equals(source, ">>") && i == tokens.Count - 1) {
                 break;
@@ -117,6 +118,9 @@ internal static partial class PdfSyntax {
                 return false;
             }
         }
+        // Leaf pages are built when a page is read; the page-tree walk uses their summary. Other values with a
+        // /Parent (fields, outline items, annotations) stay eager, as they always were.
+        if (scan.HasParentKey && !scan.IsPageType) return false;
         scan.EndDictionary(keysStart);
         return true;
     }
@@ -208,7 +212,8 @@ internal static partial class PdfSyntax {
         if (key.Equals(source, "/Subtype")) return TopLevelKey.Subtype;
         if (key.Equals(source, "/FT")) return TopLevelKey.FieldType;
         if (key.Equals(source, "/Encrypt")) return TopLevelKey.Encrypt;
-        if (key.Equals(source, "/Parent") || key.Equals(source, "/Kids")) return TopLevelKey.PageTreeLink;
+        if (key.Equals(source, "/Parent")) return TopLevelKey.Parent;
+        if (key.Equals(source, "/Kids")) return TopLevelKey.Kids;
         return TopLevelKey.Other;
     }
 
@@ -219,8 +224,10 @@ internal static partial class PdfSyntax {
         Subtype,
         FieldType,
         Encrypt,
-        // /Parent or /Kids: page-tree nodes, and also fields, outline items and annotations, which are built when read.
-        PageTreeLink
+        // /Parent: leaf pages, and also fields, outline items and annotations, which are built when read.
+        Parent,
+        // /Kids: page-tree nodes and field hierarchies.
+        Kids
     }
 
     /// <summary>Reusable state for scanning the objects of one load.</summary>
@@ -235,6 +242,8 @@ internal static partial class PdfSyntax {
         private bool _hasEncryptKey;
         private bool _mayCarrySignatureData;
         private ulong _markerNames;
+        private bool _hasParentKey;
+        private long _parentReference = PdfDeferredObjectSummary.NoReference;
 
         internal void Reset() {
             _references.Clear();
@@ -244,9 +253,17 @@ internal static partial class PdfSyntax {
             _hasEncryptKey = false;
             _mayCarrySignatureData = false;
             _markerNames = 0;
+            _hasParentKey = false;
+            _parentReference = PdfDeferredObjectSummary.NoReference;
         }
 
-        internal bool IsPageTreeType => _knownType is "Page" or "Pages";
+        internal bool IsPagesNodeType => _knownType is "Pages";
+
+        internal bool IsPageType => _knownType is "Page";
+
+        internal bool HasParentKey => _hasParentKey;
+
+        internal void MarkParentKey() => _hasParentKey = true;
 
         internal int BeginDictionary() => _keys.Count;
 
@@ -290,7 +307,9 @@ internal static partial class PdfSyntax {
         }
 
         internal void AddReference(int objectNumber, int generation, TopLevelKey topLevelKey) {
-            _references.Add(((long)objectNumber << 32) | (uint)generation);
+            long packed = ((long)objectNumber << 32) | (uint)generation;
+            _references.Add(packed);
+            if (topLevelKey == TopLevelKey.Parent) _parentReference = packed;
             // Signature fields and values are found by resolving /FT and /Type, which may be indirect.
             if (topLevelKey is TopLevelKey.FieldType or TopLevelKey.Type) _mayCarrySignatureData = true;
         }
@@ -303,7 +322,8 @@ internal static partial class PdfSyntax {
             _knownSubtype,
             _hasEncryptKey,
             _mayCarrySignatureData,
-            _markerNames);
+            _markerNames,
+            _parentReference);
 
         private void NoteSignatureName(PdfToken name, PdfByteContentText source) {
             if (name.Equals(source, "/ByteRange") || name.Equals(source, "/Sig") || name.Equals(source, "/SigFlags")) {

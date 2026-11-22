@@ -15,7 +15,7 @@ public sealed partial class PdfReadPage {
         var pageContentBudget = new PageContentBudget(this, cancellationToken);
         bool canInspectFormInvocations = MayContainFormXObjects(pageResources);
         StringBuilder? content = canInspectFormInvocations ? new StringBuilder() : null;
-        PdfArray? recoveryArray = recoverPrefix && _pageDict.Items.TryGetValue("Contents", out PdfObject? contents)
+        PdfArray? recoveryArray = recoverPrefix && PageDictionary.Items.TryGetValue("Contents", out PdfObject? contents)
             ? ResolveArray(contents) : null;
         List<PageContentStreamEntry>? streams = recoveryArray is null ? GetContentStreamObjects() : null;
         int streamCount = recoveryArray?.Items.Count ?? streams!.Count;
@@ -63,7 +63,7 @@ public sealed partial class PdfReadPage {
 
     private PdfReadPage WithInspectionContentPrefix(PdfArray contents, int count, CancellationToken cancellationToken) {
         var page = new PdfDictionary();
-        foreach (KeyValuePair<string, PdfObject> item in _pageDict.Items) {
+        foreach (KeyValuePair<string, PdfObject> item in PageDictionary.Items) {
             cancellationToken.ThrowIfCancellationRequested();
             page.Items.Add(item.Key, item.Value);
         }

@@ -31,5 +31,5 @@ public sealed class PdfExternalSignatureCompletion {
     public int SignatureContentsLength { get; }
 
     /// <summary>Opens the completed PDF through the normal fluent document API.</summary>
-    public PdfDocument ToDocument() => PdfDocument.Load(_pdf, _readOptions);
+    public PdfDocument ToDocument() => PdfDocument.LoadSnapshot(_pdf, _readOptions);
 }

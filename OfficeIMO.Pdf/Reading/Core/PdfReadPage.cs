@@ -7,7 +7,9 @@ namespace OfficeIMO.Pdf;
 /// Provides access to plain text and basic text spans based on content stream operators.
 /// </summary>
 public sealed partial class PdfReadPage {
-    private readonly PdfDictionary _pageDict;
+    // A page found through the page tree keeps its object and builds the dictionary when the page is first read.
+    private PdfDictionary? _pageDict;
+    private readonly PdfIndirectObject? _pageObject;
     private readonly Dictionary<int, PdfIndirectObject> _objects;
     private readonly int _maxDecodedStreamBytes;
     private readonly PdfReadLimits _limits;
@@ -20,10 +22,20 @@ public sealed partial class PdfReadPage {
     private readonly Action<string>? _demandContentExtraction;
     private readonly PdfOutputIntentColorTransform? _outputIntentColorTransform;
     private readonly PdfPageOptionalContentVisibility.DocumentState _optionalContentVisibilityState;
-    private readonly PdfReadCache<bool> _hasOutputIntentCompositionInteraction = new();
-    private readonly PdfReadCache<PdfDictionary?> _acroForm = new();
+    // Per-page caches and locks are created on first use, so a page that is never read stays small.
+    private PdfReadCache<bool>? _hasOutputIntentCompositionInteraction;
+    private PdfReadCache<PdfDictionary?>? _acroForm;
 
-    internal PdfDictionary PageDictionary => _pageDict;
+    internal PdfDictionary PageDictionary => Volatile.Read(ref _pageDict) ?? BuildPageDictionary();
+
+    private PdfDictionary BuildPageDictionary() {
+        // The object returns the same value to every reader, so racing readers publish the same dictionary.
+        PdfDictionary dictionary = _pageObject!.Value as PdfDictionary ??
+            throw new InvalidOperationException("Page object " + ObjectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                " no longer reads as a dictionary. The PDF source changed after the document was loaded.");
+        Volatile.Write(ref _pageDict, dictionary);
+        return dictionary;
+    }
 
     internal PdfReadPage(int objectNumber, PdfDictionary pageDict, Dictionary<int, PdfIndirectObject> objects)
         : this(objectNumber, pageDict, objects, new PdfReadLimits(), new PdfFontResourceCache()) { }
@@ -39,9 +51,44 @@ public sealed partial class PdfReadPage {
         bool includeArtifactText = false,
         PdfOutputIntentColorTransform? outputIntentColorTransform = null,
         PdfPageOptionalContentVisibility.DocumentState? optionalContentVisibilityState = null,
-        bool preferToUnicode = true, bool useWinAnsiFallback = true, bool adjustKerningFromTJ = true) {
+        bool preferToUnicode = true, bool useWinAnsiFallback = true, bool adjustKerningFromTJ = true)
+        : this(objectNumber, pageDict, null, objects, limits, fontResourceCache,
+            demandTextExtraction, demandContentExtraction, includeArtifactText, outputIntentColorTransform,
+            optionalContentVisibilityState, preferToUnicode, useWinAnsiFallback, adjustKerningFromTJ) { }
+
+    /// <summary>Creates a page whose dictionary is built from <paramref name="pageObject"/> when the page is first read.</summary>
+    internal PdfReadPage(
+        int objectNumber,
+        PdfIndirectObject pageObject,
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfReadLimits limits,
+        PdfFontResourceCache fontResourceCache,
+        Action? demandTextExtraction,
+        Action<string>? demandContentExtraction,
+        bool includeArtifactText,
+        PdfOutputIntentColorTransform? outputIntentColorTransform,
+        PdfPageOptionalContentVisibility.DocumentState? optionalContentVisibilityState,
+        bool preferToUnicode, bool useWinAnsiFallback, bool adjustKerningFromTJ)
+        : this(objectNumber, null, pageObject, objects, limits, fontResourceCache,
+            demandTextExtraction, demandContentExtraction, includeArtifactText, outputIntentColorTransform,
+            optionalContentVisibilityState, preferToUnicode, useWinAnsiFallback, adjustKerningFromTJ) { }
+
+    private PdfReadPage(
+        int objectNumber,
+        PdfDictionary? pageDict,
+        PdfIndirectObject? pageObject,
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfReadLimits limits,
+        PdfFontResourceCache fontResourceCache,
+        Action? demandTextExtraction,
+        Action<string>? demandContentExtraction,
+        bool includeArtifactText,
+        PdfOutputIntentColorTransform? outputIntentColorTransform,
+        PdfPageOptionalContentVisibility.DocumentState? optionalContentVisibilityState,
+        bool preferToUnicode, bool useWinAnsiFallback, bool adjustKerningFromTJ) {
         ObjectNumber = objectNumber;
         _pageDict = pageDict;
+        _pageObject = pageObject;
         _objects = objects;
         _limits = limits;
         _fontResourceCache = fontResourceCache;
@@ -61,7 +108,7 @@ public sealed partial class PdfReadPage {
     }
 
     internal PdfReadPage WithOptionalContentVisibility(PdfPageOptionalContentVisibility.DocumentState state) =>
-        new PdfReadPage(ObjectNumber, _pageDict, _objects, _limits, _fontResourceCache,
+        new PdfReadPage(ObjectNumber, Volatile.Read(ref _pageDict), _pageObject, _objects, _limits, _fontResourceCache,
             _demandTextExtraction, _demandContentExtraction, _includeArtifactText,
             _outputIntentColorTransform, state, _preferToUnicode, _useWinAnsiFallback, _adjustKerningFromTJ);
 
@@ -331,7 +378,7 @@ public sealed partial class PdfReadPage {
 
     internal IReadOnlyList<PdfLinkAnnotation> GetLinkAnnotationsUnchecked(CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (!_pageDict.Items.TryGetValue("Annots", out var annotsObject)) {
+        if (!PageDictionary.Items.TryGetValue("Annots", out var annotsObject)) {
             return Array.Empty<PdfLinkAnnotation>();
         }
 
@@ -402,7 +449,7 @@ public sealed partial class PdfReadPage {
 
     private IReadOnlyList<PdfAnnotation> GetAnnotationsUnchecked(bool includeUnreadableRectangles, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (!_pageDict.Items.TryGetValue("Annots", out var annotsObject)) {
+        if (!PageDictionary.Items.TryGetValue("Annots", out var annotsObject)) {
             return Array.Empty<PdfAnnotation>();
         }
 
@@ -532,7 +579,7 @@ public sealed partial class PdfReadPage {
 
     internal IReadOnlyList<int> GetAnnotationObjectNumbers(string subtypeName, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (!_pageDict.Items.TryGetValue("Annots", out var annotsObject)) {
+        if (!PageDictionary.Items.TryGetValue("Annots", out var annotsObject)) {
             return Array.Empty<int>();
         }
 
@@ -1973,7 +2020,7 @@ public sealed partial class PdfReadPage {
     }
 
     private PdfObject? GetInheritedValue(string key) {
-        PdfDictionary? current = _pageDict;
+        PdfDictionary? current = PageDictionary;
         int guard = 0;
         while (current is not null && guard++ < 100) {
             if (current.Items.TryGetValue(key, out var value)) {
@@ -2532,22 +2579,22 @@ public sealed partial class PdfReadPage {
     /// stage decode it once. Each pass is still charged for the content it reads.
     /// </summary>
     internal DecodedContentReuseScope ReuseDecodedContent() {
-        lock (_decodedContentReuseSync) _decodedContentReuseDepth++;
+        lock (DecodedContentReuseSync) _decodedContentReuseDepth++;
         return new DecodedContentReuseScope(this);
     }
 
     private PageContentStreamSequence? GetReusableContentSequence() {
-        lock (_decodedContentReuseSync) return _decodedContentReuseDepth > 0 ? _reusableContentSequence : null;
+        lock (DecodedContentReuseSync) return _decodedContentReuseDepth > 0 ? _reusableContentSequence : null;
     }
 
     private void OfferReusableContentSequence(PageContentStreamSequence sequence) {
-        lock (_decodedContentReuseSync) {
+        lock (DecodedContentReuseSync) {
             if (_decodedContentReuseDepth > 0) _reusableContentSequence ??= sequence;
         }
     }
 
     private void EndDecodedContentReuse() {
-        lock (_decodedContentReuseSync) {
+        lock (DecodedContentReuseSync) {
             if (_decodedContentReuseDepth > 0 && --_decodedContentReuseDepth == 0) {
                 _reusableContentSequence = null;
                 _reusableWrappedContent = null;
@@ -2561,7 +2608,7 @@ public sealed partial class PdfReadPage {
     /// </summary>
     private PdfContentSource WrapReusedContentWithTransform(PdfContentSource content, Matrix2D transform, out int contentOffset) {
         object key = (object?)content.Text ?? content.Bytes!;
-        lock (_decodedContentReuseSync) {
+        lock (DecodedContentReuseSync) {
             if (_decodedContentReuseDepth > 0 && _reusableWrappedContent is { } reused &&
                 ReferenceEquals(reused.Content, key) && SameBits(reused.Transform, transform)) {
                 contentOffset = reused.Offset;
@@ -2571,7 +2618,7 @@ public sealed partial class PdfReadPage {
         PdfContentSource wrapped = content.Text is string text
             ? WrapContentWithTransform(text, transform, out contentOffset)
             : WrapContentBytesWithTransform(content, transform, out contentOffset);
-        lock (_decodedContentReuseSync) {
+        lock (DecodedContentReuseSync) {
             if (_decodedContentReuseDepth > 0) _reusableWrappedContent = (key, transform, contentOffset, wrapped);
         }
         return wrapped;
@@ -2587,9 +2634,11 @@ public sealed partial class PdfReadPage {
 
     private (object Content, Matrix2D Transform, int Offset, PdfContentSource Wrapped)? _reusableWrappedContent;
 
-    private readonly object _decodedContentReuseSync = new();
+    private object? _decodedContentReuseSync;
     private int _decodedContentReuseDepth;
     private PageContentStreamSequence? _reusableContentSequence;
+
+    private object DecodedContentReuseSync => LazyInitializer.EnsureInitialized(ref _decodedContentReuseSync)!;
 
     internal readonly struct DecodedContentReuseScope : IDisposable {
         private readonly PdfReadPage? _page;
@@ -2601,7 +2650,7 @@ public sealed partial class PdfReadPage {
 
     private List<PageContentStreamEntry> GetContentStreamObjects() {
         var result = new List<PageContentStreamEntry>();
-        var contents = _pageDict.Items.TryGetValue("Contents", out var obj) ? obj : null;
+        var contents = PageDictionary.Items.TryGetValue("Contents", out var obj) ? obj : null;
         if (TryResolvePageContentStream(contents, out PageContentStreamEntry stream)) {
             result.Add(stream);
             return result;

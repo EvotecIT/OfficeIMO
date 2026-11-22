@@ -58,6 +58,8 @@ internal static class PdfSemanticRepairDiagnostics {
         for (int index = kids.Items.Count - 1; index >= 0; index--) {
             cancellationToken.ThrowIfCancellationRequested();
             PdfObject kidObject = kids.Items[index];
+            // A leaf page that is not built yet needs no repair when its scanned /Parent already names this node.
+            if (IsUnbuiltLeafPageOf(objects, kidObject, parent)) continue;
             PdfDictionary? kid = ResolveDictionary(objects, kidObject);
             if (kid is null) {
                 int? objectNumber = kidObject is PdfReference reference ? reference.ObjectNumber : null;
@@ -263,6 +265,23 @@ internal static class PdfSemanticRepairDiagnostics {
     }
 
     private static bool ResolvesTo(Dictionary<int, PdfIndirectObject> objects, PdfObject value, PdfDictionary expected) => ReferenceEquals(PdfObjectLookup.Resolve(objects, value), expected);
+
+    // The /Parent check of RepairPageNode, answered from the load scan. A deferred leaf page has no /Kids, so
+    // nothing else needs its dictionary.
+    private static bool IsUnbuiltLeafPageOf(Dictionary<int, PdfIndirectObject> objects, PdfObject kidObject, PdfDictionary parent) {
+        if (kidObject is not PdfReference reference ||
+            !PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject kid) ||
+            !kid.TryGetUnbuiltSummary(out PdfDeferredObjectSummary summary) ||
+            !string.Equals(summary.KnownType, "Page", StringComparison.Ordinal) ||
+            summary.ParentReference == PdfDeferredObjectSummary.NoReference) {
+            return false;
+        }
+
+        return objects.TryGetValue((int)(summary.ParentReference >> 32), out PdfIndirectObject? parentObject) &&
+            parentObject.Generation == (int)summary.ParentReference &&
+            ReferenceEquals(parentObject.Value, parent);
+    }
+
     private static PdfDictionary? ResolveDictionary(Dictionary<int, PdfIndirectObject> objects, PdfObject? value) => PdfObjectLookup.Resolve(objects, value) as PdfDictionary;
     private static PdfArray? ResolveArray(Dictionary<int, PdfIndirectObject> objects, PdfObject? value) => PdfObjectLookup.Resolve(objects, value) as PdfArray;
     private static int FindObjectNumber(Dictionary<int, PdfIndirectObject> objects, PdfObject value, System.Threading.CancellationToken cancellationToken) {

@@ -18,7 +18,7 @@ public sealed class PdfAConversionResult : IOfficeResult<PdfDocument> {
     public PdfAConversionReport Report { get; }
 
     /// <summary>Gets the converted document, or <see langword="null"/> when conversion was refused.</summary>
-    public PdfDocument? Value => _pdf is null ? null : _document ??= PdfDocument.Load(_pdf);
+    public PdfDocument? Value => _pdf is null ? null : _document ??= PdfDocument.LoadSnapshot(_pdf);
 
     /// <summary>Returns the converted document, or throws <see cref="PdfAConversionException"/> listing every violation.</summary>
     public PdfDocument RequireValue() => Value ?? throw new PdfAConversionException(Report);

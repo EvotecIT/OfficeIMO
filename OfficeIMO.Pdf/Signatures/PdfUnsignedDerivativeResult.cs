@@ -14,5 +14,5 @@ public sealed class PdfUnsignedDerivativeResult {
     /// <summary>Signature definitions present in the source security inventory.</summary>
     public int RemovedSignatureCount { get; }
     /// <summary>Opens the derivative through the normal fluent API.</summary>
-    public PdfDocument ToDocument() => PdfDocument.Load(_pdf);
+    public PdfDocument ToDocument() => PdfDocument.LoadSnapshot(_pdf);
 }

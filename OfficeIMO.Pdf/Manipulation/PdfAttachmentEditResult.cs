@@ -31,5 +31,5 @@ public sealed class PdfAttachmentEditResult {
     /// <summary>Returns a defensive copy of the edited PDF.</summary>
     public byte[] ToBytes() => (byte[])_pdf.Clone();
     /// <summary>Opens the edited artifact.</summary>
-    public PdfDocument ToDocument() => PdfDocument.Load(_pdf, _readOptions);
+    public PdfDocument ToDocument() => PdfDocument.LoadSnapshot(_pdf, _readOptions);
 }

@@ -1568,7 +1568,7 @@ public sealed partial class PdfReadPage {
         PageContentBudget pageContentBudget,
         Type3GlyphBudget type3GlyphBudget,
         PdfTextClippingBudget textClippingBudget) {
-        PdfArray? annotations = ResolveArray(_pageDict.Items.TryGetValue("Annots", out PdfObject? value) ? value : null);
+        PdfArray? annotations = ResolveArray(PageDictionary.Items.TryGetValue("Annots", out PdfObject? value) ? value : null);
         if (annotations == null) return;
         EnsureAnnotationBudget(annotations);
         PdfDictionary? pageResources = ResolveDictionary(GetInheritedValue("Resources"));

@@ -41,5 +41,5 @@ public sealed class PdfImpositionResult {
     /// <summary>Source features that the output does not retain.</summary>
     public PdfImpositionSourceFeatureLoss SourceFeatureLoss { get; }
     /// <summary>Opens the imposed PDF through the normal engine API.</summary>
-    public PdfDocument ToDocument() => PdfDocument.Load(_bytes);
+    public PdfDocument ToDocument() => PdfDocument.LoadSnapshot(_bytes);
 }

@@ -4,8 +4,9 @@ using System.Runtime.ExceptionServices;
 namespace OfficeIMO.Pdf;
 
 /// <summary>
-/// Owns the immutable bytes and read contract for an opened PDF.
-/// Caller-owned buffers are copied once; buffers produced inside OfficeIMO.Pdf are adopted.
+/// Holds the immutable bytes and read contract for an opened PDF. Path and stream inputs are read into a buffer
+/// the source owns, buffers produced inside OfficeIMO.Pdf are adopted, and a caller array passed to
+/// <see cref="FromCallerArray"/> is read in place while the caller keeps it unchanged.
 /// </summary>
 internal sealed class PdfDocumentSource {
     private readonly byte[] _bytes;
@@ -68,6 +69,17 @@ internal sealed class PdfDocumentSource {
 
     /// <summary>Copies the source bytes for a caller-owned result.</summary>
     internal byte[] CopyBytes() => (byte[])_bytes.Clone();
+
+    /// <summary>
+    /// Reads a caller array in place after enforcing the configured input budget. Deferred objects, stream payloads
+    /// and saves read the array later, so the caller must keep it unchanged while the document is in use.
+    /// </summary>
+    internal static PdfDocumentSource FromCallerArray(byte[] pdf, PdfLoadOptions? options) {
+        Guard.NotNull(pdf, nameof(pdf));
+        PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options);
+        ValidateLength(pdf.LongLength, effectiveOptions);
+        return new PdfDocumentSource(pdf, effectiveOptions);
+    }
 
     /// <summary>Snapshots caller-owned bytes after enforcing the configured input budget.</summary>
     internal static PdfDocumentSource FromCallerBytes(byte[] bytes, PdfLoadOptions? options) {
