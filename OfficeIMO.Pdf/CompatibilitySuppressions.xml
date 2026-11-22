@@ -730,11 +730,6 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Pdf.PdfDocument.Load(System.Byte[],OfficeIMO.Pdf.PdfLoadOptions)</Target>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Pdf.PdfDocument.Merge(OfficeIMO.Pdf.PdfDocument[])</Target>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
