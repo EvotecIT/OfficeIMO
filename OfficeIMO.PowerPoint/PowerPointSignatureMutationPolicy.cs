@@ -133,10 +133,10 @@ namespace OfficeIMO.PowerPoint {
                 // still takes the full snapshot path below because unsaved Open XML
                 // mutations may not yet be reflected in the package stream.
                 if (!hasLiveSignatureCarrier
-                    && _packageStream is MemoryStream currentPackage) {
+                    && OfficeIMO.Core.Internal.OfficePackageLoadSource.TryGetPackageBytes(_packageStream, out byte[] currentPackageBytes)) {
                     try {
                         shared = OfficePackageSignatureService.Inspect(
-                            currentPackage.ToArray(),
+                            currentPackageBytes,
                             new OfficePackageSignatureInspectionOptions {
                                 VerifyDigests = false
                             });

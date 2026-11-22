@@ -48,5 +48,12 @@ public sealed class VisioCancellationTests {
             if (read == 0) _cancellation.Cancel();
             return read;
         }
+
+        // A seekable package is read in place, and its last bytes hold the ZIP directory.
+        public override int Read(byte[] buffer, int offset, int count) {
+            int read = base.Read(buffer, offset, count);
+            if (read == 0 || Position == Length) _cancellation.Cancel();
+            return read;
+        }
     }
 }

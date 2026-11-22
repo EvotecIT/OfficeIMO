@@ -23,7 +23,7 @@ namespace OfficeIMO.Word {
         internal WordTableOfContentsStyle? _tableOfContentStyle;
         // The table of contents this instance created, refreshed on save; loaded TOCs keep their stored entries.
         internal WordTableOfContent? _generatedTableOfContent;
-        private MemoryStream? _ownedPackageStream;
+        private Stream? _ownedPackageStream;
         // On .NET Framework, validation detaches the immutable encoded baseline from the
         // writable package stream so later unsaved edits can be flushed without corrupting it.
         private MemoryStream? _legacyValidationLivePackageStream;

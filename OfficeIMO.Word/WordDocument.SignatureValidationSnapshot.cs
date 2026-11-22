@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using System.Xml;
 using System.Xml.Linq;
+using OfficeIMO.Core.Internal;
 using DocumentFormat.OpenXml.Packaging;
 
 namespace OfficeIMO.Word {
@@ -13,13 +14,13 @@ namespace OfficeIMO.Word {
                 throw new InvalidDataException("The current OPC package exceeds the " + options.MaxPackageBytes + " byte validation limit.");
             }
             if (_wordprocessingDocument.FileOpenAccess == FileAccess.Read) {
-                return _ownedPackageStream.ToArray();
+                return OfficePackageLoadSource.ReadPackageBytes(_ownedPackageStream);
             }
             if (RequiresLegacyRuntimeSignatureSnapshot()) {
                 return CreateLegacyRuntimeSignatureValidationSnapshot(options);
             }
 
-            byte[] encodedPackage = _ownedPackageStream.ToArray();
+            byte[] encodedPackage = OfficePackageLoadSource.ReadPackageBytes(_ownedPackageStream);
             HashSet<string> encodedRelationshipEntryNames = GetSignatureSnapshotRelationshipEntryNames(
                 encodedPackage,
                 options.MaxPackageParts);

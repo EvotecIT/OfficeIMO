@@ -21,7 +21,8 @@ namespace OfficeIMO.Security {
         internal const string CanonicalXmlWithCommentsAlgorithm = XmlDigitalSignatureAlgorithms.CanonicalXmlWithComments;
         internal const string RelationshipsContentType = "application/vnd.openxmlformats-package.relationships+xml";
 
-        private readonly MemoryStream _stream;
+        private readonly Stream _stream;
+        private readonly bool _ownsStream;
         private readonly ZipArchive _archive;
         private readonly Dictionary<string, ZipArchiveEntry> _entries;
         private readonly Dictionary<string, string> _contentTypes;
@@ -31,14 +32,26 @@ namespace OfficeIMO.Security {
             byte[] packageBytes,
             int maxParts = 10000,
             long maxPartBytes = 64L * 1024 * 1024,
+            IOfficeSecurityProvider? securityProvider = null)
+            : this(new MemoryStream(packageBytes ?? throw new ArgumentNullException(nameof(packageBytes)), writable: false),
+                ownsStream: true, maxParts, maxPartBytes, securityProvider) {
+        }
+
+        /// <summary>Reads a seekable package stream in place. The stream is left open unless <paramref name="ownsStream"/> is set.</summary>
+        internal OfficePackageSignatureArchive(
+            Stream package,
+            bool ownsStream,
+            int maxParts = 10000,
+            long maxPartBytes = 64L * 1024 * 1024,
             IOfficeSecurityProvider? securityProvider = null) {
-            ArgumentNullException.ThrowIfNull(packageBytes);
+            ArgumentNullException.ThrowIfNull(package);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxParts);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxPartBytes);
             _securityProvider = securityProvider;
 
-            _stream = new MemoryStream(packageBytes, writable: false);
-            _archive = new ZipArchive(_stream, ZipArchiveMode.Read, leaveOpen: false);
+            _stream = package;
+            _ownsStream = ownsStream;
+            _archive = new ZipArchive(_stream, ZipArchiveMode.Read, leaveOpen: true);
             if (_archive.Entries.Count > maxParts) {
                 throw new OfficePackageSignatureResourceLimitException(
                     "The OPC package contains more than " + maxParts + " ZIP entries.");
@@ -224,7 +237,7 @@ namespace OfficeIMO.Security {
 
         public void Dispose() {
             _archive.Dispose();
-            _stream.Dispose();
+            if (_ownsStream) _stream.Dispose();
         }
 
         internal static string NormalizePartUri(string partUri) {

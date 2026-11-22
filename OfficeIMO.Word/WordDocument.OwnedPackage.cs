@@ -10,7 +10,7 @@ namespace OfficeIMO.Word {
         /// rewrites only the parts that changed. Packages the in-memory package does not handle, and Strict documents,
         /// open through System.IO.Packaging as before.
         /// </summary>
-        private static WordprocessingDocument OpenOwnedEditablePackage(MemoryStream packageStream, OpenSettings settings,
+        private static WordprocessingDocument OpenOwnedEditablePackage(Stream packageStream, OpenSettings settings,
             out WordZipPackage? ownedZipPackage) {
             ownedZipPackage = WordZipPackage.TryOpen(packageStream);
             if (ownedZipPackage != null) {

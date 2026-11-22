@@ -287,22 +287,27 @@ namespace OfficeIMO.Excel {
                 byte[] unchangedPackageBytes;
                 if (!shouldRetainPackageStream && Utilities.ExcelPackageUtilities.TryNormalizeContentTypes(
                         bytes, effectiveOpenSettings.MaxCharactersInPart, out byte[] normalizedBytes, out _)) {
-                    normalizedStream = new ExcelCopyOnWriteStream(normalizedBytes);
+                    normalizedStream = OfficePackageLoadSource.CreatePackageStream(normalizedBytes, DocumentAccessMode.ReadWrite);
                     unchangedPackageBytes = normalizedBytes;
                 } else {
-                    var packageStream = shouldRetainPackageStream
-                        ? new NonDisposingMemoryStream(bytes.Length + StreamBufferSize)
+                    // A package copied back on dispose is read and written over the loaded array, which it copies only
+                    // when it first writes. Like NonDisposingMemoryStream, the stream keeps its bytes after the SDK
+                    // closes it, until DisposeStream releases it.
+                    Stream packageStream = shouldRetainPackageStream
+                        ? new OfficeCopyOnWriteStream(bytes, survivesDispose: true)
                         : new MemoryStream(bytes.Length + StreamBufferSize);
                     normalizedStream = packageStream;
-                    packageStream.Write(bytes, 0, bytes.Length);
-                    packageStream.Position = 0;
+                    if (!shouldRetainPackageStream) {
+                        packageStream.Write(bytes, 0, bytes.Length);
+                        packageStream.Position = 0;
+                    }
 
                     bool normalizedContentTypes = Utilities.ExcelPackageUtilities.NormalizeContentTypes(
                         packageStream,
                         leaveOpen: true,
                         maxCharactersInPart: effectiveOpenSettings.MaxCharactersInPart);
                     packageStream.Position = 0;
-                    unchangedPackageBytes = normalizedContentTypes ? packageStream.ToArray() : bytes;
+                    unchangedPackageBytes = normalizedContentTypes ? OfficePackageLoadSource.ReadPackageBytes(packageStream) : bytes;
                 }
 
                 var memDoc = readOnly
@@ -319,7 +324,8 @@ namespace OfficeIMO.Excel {
                     packageContentTypesKnownNormalized: true,
                     unchangedPackageBytes: unchangedPackageBytes,
                     persistenceMode: options.PersistenceMode);
-                document._packageCopyOnWriteStream = normalizedStream as ExcelCopyOnWriteStream;
+                // A retained package must still write its final archive for the copy back, so it is never abandoned.
+                document._packageCopyOnWriteStream = shouldRetainPackageStream ? null : normalizedStream as OfficeCopyOnWriteStream;
                 document._packageOnCopyOnWriteStream = document._packageCopyOnWriteStream != null ? memDoc : null;
                 document._sourceMaxCharactersInPart = effectiveOpenSettings.MaxCharactersInPart;
                 // The streaming readers apply neither setting, so those loads stay on the SDK route.
@@ -391,6 +397,8 @@ namespace OfficeIMO.Excel {
 
             if (stream is NonDisposingMemoryStream ndms) {
                 ndms.DisposeUnderlying();
+            } else if (stream is OfficeCopyOnWriteStream copyOnWrite) {
+                copyOnWrite.Release();
             } else {
                 stream.Dispose();
             }

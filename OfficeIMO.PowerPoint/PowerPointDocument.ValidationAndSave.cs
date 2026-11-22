@@ -243,8 +243,8 @@ namespace OfficeIMO.PowerPoint {
                     || destinationType == PresentationDocumentType.Presentation)
                 && _presentationPart.VbaProjectPart == null;
             if (canSnapshotCurrentPackage
-                && _packageStream is MemoryStream currentPackage) {
-                return currentPackage.ToArray();
+                && OfficePackageLoadSource.TryGetPackageBytes(_packageStream, out byte[] currentPackageBytes)) {
+                return currentPackageBytes;
             }
 #endif
 

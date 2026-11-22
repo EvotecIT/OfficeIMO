@@ -297,7 +297,7 @@ namespace OfficeIMO.PowerPoint {
             byte[] prefix, CancellationToken cancellationToken,
             long? maxBytes = null,
             OfficePackageSecurityOptions? packageSecurity = null) {
-            using var output = new MemoryStream();
+            using var output = new OfficeChunkedWriteStream();
             output.Write(prefix, 0, prefix.Length);
             CopyTo(source, output, cancellationToken, maxBytes,
                 prefix.Length, packageSecurity);
@@ -309,7 +309,7 @@ namespace OfficeIMO.PowerPoint {
             CancellationToken cancellationToken,
             long? maxBytes = null,
             OfficePackageSecurityOptions? packageSecurity = null) {
-            using var output = new MemoryStream();
+            using var output = new OfficeChunkedWriteStream();
             await output.WriteAsync(prefix, 0, prefix.Length,
                 cancellationToken).ConfigureAwait(false);
             await CopyToAsync(source, output, cancellationToken, maxBytes,

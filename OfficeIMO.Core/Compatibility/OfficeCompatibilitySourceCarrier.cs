@@ -149,9 +149,26 @@ internal static class OfficeCompatibilitySourceCarrier {
 
     internal static bool ContainsPackageCarrier(byte[]? packageBytes) {
         if (packageBytes == null || packageBytes.Length == 0) return false;
+        using var input = new MemoryStream(packageBytes, writable: false);
+        return ContainsPackageCarrierCore(input);
+    }
+
+    /// <summary>Checks a seekable package stream for a compatibility carrier and restores its position.</summary>
+    internal static bool ContainsPackageCarrier(Stream package) {
+        ArgumentNullException.ThrowIfNull(package);
+        if (!package.CanSeek || package.Length == 0) return false;
+        long originalPosition = package.Position;
         try {
-            using var input = new MemoryStream(packageBytes, writable: false);
-            using var archive = new ZipArchive(input, ZipArchiveMode.Read, leaveOpen: false);
+            package.Position = 0;
+            return ContainsPackageCarrierCore(package);
+        } finally {
+            package.Position = originalPosition;
+        }
+    }
+
+    private static bool ContainsPackageCarrierCore(Stream input) {
+        try {
+            using var archive = new ZipArchive(input, ZipArchiveMode.Read, leaveOpen: true);
             return FindEntry(archive, PackageMetadataPath) != null
                 && FindEntry(archive, PackagePayloadPath) != null;
         } catch (Exception exception) when (

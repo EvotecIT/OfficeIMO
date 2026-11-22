@@ -18,17 +18,20 @@ public sealed class OfficeStreamReaderContracts {
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task ExactLimitAndUnboundedMaximumReturnAllBytes(bool asynchronous) {
-        byte[] bytes = Enumerable.Range(0, 64).Select(index => (byte)index).ToArray();
-        foreach (long limit in new[] { 64L, long.MaxValue }) {
+    [InlineData(false, 64)]
+    [InlineData(true, 64)]
+    // Spans several of the growing chunks a forward read collects into, ending part-way through one.
+    [InlineData(false, 81920 * 7 + 17)]
+    [InlineData(true, 81920 * 7 + 17)]
+    public async Task ExactLimitAndUnboundedMaximumReturnAllBytes(bool asynchronous, int length) {
+        byte[] bytes = Enumerable.Range(0, length).Select(index => (byte)(index * 31 + index / 251)).ToArray();
+        foreach (long limit in new[] { length, long.MaxValue }) {
             using var source = new CountingForwardStream(bytes);
             byte[] actual = asynchronous
                 ? await OfficeStreamReader.ReadRemainingBytesAsync(source, maxBytes: limit)
                 : OfficeStreamReader.ReadRemainingBytes(source, maxBytes: limit);
             Assert.Equal(bytes, actual);
-            Assert.Equal(64, source.BytesRead);
+            Assert.Equal(length, source.BytesRead);
             Assert.True(source.CanRead);
         }
     }

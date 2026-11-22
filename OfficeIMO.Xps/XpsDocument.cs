@@ -58,16 +58,14 @@ public sealed partial class XpsDocument {
     public static XpsDocument Load(Stream stream, XpsLoadOptions? options = null, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(stream);
         var limits = (options ?? new XpsLoadOptions()).SnapshotLimits();
-        using var input = new MemoryStream();
-        var buffer = new byte[81920];
-        while (true) {
-            cancellationToken.ThrowIfCancellationRequested();
-            int read = stream.Read(buffer, 0, (int)Math.Min(buffer.Length, limits.MaxInputBytes - input.Length + 1));
-            if (read == 0) break;
-            if (input.Length + read > limits.MaxInputBytes) throw new InvalidDataException("XPS input byte limit exceeded.");
-            input.Write(buffer, 0, read);
+        byte[] bytes;
+        try {
+            // Reads a seekable source into one exact-size array, and a non-seekable one without regrowing a buffer.
+            bytes = OfficeStreamReader.ReadRemainingBytes(stream, cancellationToken, limits.MaxInputBytes);
+        } catch (InvalidDataException exception) when (OfficeStreamReader.IsSizeLimitException(exception)) {
+            throw new InvalidDataException("XPS input byte limit exceeded.", exception);
         }
-        input.Position = 0;
+        using var input = new MemoryStream(bytes, writable: false);
         var scan = OfficeArchiveSafety.ScanZipCentralDirectory(input, input.Length, limits.MaxParts, cancellationToken);
         if (!scan.IsValid || scan.LimitExceeded) throw new InvalidDataException("Invalid or excessive XPS ZIP directory.");
         var parts = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);

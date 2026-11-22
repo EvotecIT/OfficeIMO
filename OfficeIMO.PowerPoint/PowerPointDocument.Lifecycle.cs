@@ -31,6 +31,8 @@ namespace OfficeIMO.PowerPoint {
                 pendingException = ex;
             } finally {
                 try {
+                    // A closing editable package rewrites its stream, which nothing reads again.
+                    OfficePackageLoadSource.AbandonPackageStream(_packageStream);
                     document?.Dispose();
                 } catch (Exception ex) {
                     pendingException ??= ex;
@@ -80,6 +82,8 @@ namespace OfficeIMO.PowerPoint {
                 pendingException = ex;
             } finally {
                 try {
+                    // A closing editable package rewrites its stream, which nothing reads again.
+                    OfficePackageLoadSource.AbandonPackageStream(_packageStream);
                     document?.Dispose();
                 } catch (Exception ex) {
                     pendingException ??= ex;
@@ -218,12 +222,31 @@ namespace OfficeIMO.PowerPoint {
                 resolved, cancellationToken);
         }
 
-        /// <summary>Loads a presentation from a caller-owned stream into memory. Editable writable seekable sources become the associated destination; other sources remain detached.</summary>
+        /// <summary>Loads a presentation from a caller-owned stream. Editable writable seekable sources become the associated destination; other sources remain detached.</summary>
+        /// <param name="stream">Readable source. The caller keeps ownership and disposes it.</param>
+        /// <param name="options">Access, persistence and package options.</param>
+        /// <remarks>
+        /// <para>An editable load reads the stream into one in-memory copy, which the package is opened over, and the
+        /// stream can be disposed or changed afterwards. Saving writes back to a writable, seekable stream.</para>
+        /// <para>A read-only load of a seekable Open XML stream reads the package in place: nothing is copied, and the
+        /// presentation reads parts from <paramref name="stream"/> as it needs them. Keep the stream open and leave
+        /// its contents unchanged until the presentation is disposed; changing them makes later reads fail or
+        /// return inconsistent content. The stream position is restored after loading but moves while the
+        /// presentation reads it. The presentation never writes to the stream, never disposes it, and cannot be
+        /// saved. A read-only load of a non-seekable stream, an encrypted or binary source, or a load with
+        /// <see cref="DocumentLoadOptions.PackageSecurity"/> or
+        /// <see cref="DocumentLoadOptions.CaptureSourcePackageSecurity"/> reads the stream into one in-memory copy
+        /// instead, and the stream is not used after loading.</para>
+        /// </remarks>
         public static PowerPointDocument Load(Stream stream,
             PowerPointLoadOptions? options = null) => Load(stream, options,
                 CancellationToken.None);
 
-        /// <summary>Loads a presentation from a caller-owned stream into memory with cancellation.</summary>
+        /// <summary>Loads a presentation from a caller-owned stream with cancellation.</summary>
+        /// <param name="stream">Readable source. The caller keeps ownership and disposes it.</param>
+        /// <param name="options">Access, persistence and package options.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <remarks>Stream lifetime follows <see cref="Load(Stream, PowerPointLoadOptions?)"/>.</remarks>
         public static PowerPointDocument Load(Stream stream,
             PowerPointLoadOptions? options,
             CancellationToken cancellationToken) {
@@ -234,6 +257,9 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLoadOptions resolved = options ?? new PowerPointLoadOptions();
             OfficeDocumentLifecycle.Validate(resolved.AccessMode, resolved.PersistenceMode, "presentation");
             OfficeDocumentLifecycle.EnsureSaveOnDisposeDestination(stream, resolved.PersistenceMode, nameof(stream));
+            if (CanLoadInPlace(stream, resolved)) {
+                return LoadPackageInPlace(stream, resolved, cancellationToken);
+            }
 
             return LoadDocument(ReadDocumentInputBytes(stream, resolved,
                     cancellationToken),
@@ -269,6 +295,10 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>Asynchronously loads a presentation from a caller-owned stream.</summary>
+        /// <param name="stream">Readable source. The caller keeps ownership and disposes it.</param>
+        /// <param name="options">Access, persistence and package options.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <remarks>Stream lifetime follows <see cref="Load(Stream, PowerPointLoadOptions?)"/>.</remarks>
         public static async Task<PowerPointDocument> LoadAsync(
             Stream stream,
             PowerPointLoadOptions? options = null,
@@ -279,6 +309,9 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLoadOptions resolved = options ?? new PowerPointLoadOptions();
             OfficeDocumentLifecycle.Validate(resolved.AccessMode, resolved.PersistenceMode, "presentation");
             OfficeDocumentLifecycle.EnsureSaveOnDisposeDestination(stream, resolved.PersistenceMode, nameof(stream));
+            if (CanLoadInPlace(stream, resolved)) {
+                return LoadPackageInPlace(stream, resolved, cancellationToken);
+            }
             byte[] bytes = await ReadDocumentInputBytesAsync(stream,
                 resolved, cancellationToken)
                 .ConfigureAwait(false);
@@ -468,37 +501,69 @@ namespace OfficeIMO.PowerPoint {
             bool captureSourcePackageSecurity = true) {
             ValidatePackageSecurity(bytes, options);
             OfficeDocumentLifecycle.Validate(options.AccessMode, options.PersistenceMode, "presentation");
-            bool editable = options.AccessMode == DocumentAccessMode.ReadWrite;
             Stream? associatedStream = OfficeDocumentLifecycle.ResolveAssociatedDestination(
                 sourceStream,
                 options.AccessMode);
-            var packageStream = new MemoryStream(bytes.Length + StreamBufferSize);
-            packageStream.Write(bytes, 0, bytes.Length);
-            packageStream.Position = 0;
+            // The package reads the loaded array directly; an editable package copies it only when it first writes.
+            Stream packageStream = OfficePackageLoadSource.CreatePackageStream(bytes, options.AccessMode);
 
             try {
-                PresentationDocument document = editable
-                    ? PresentationDocument.Open(packageStream, true, CreateOpenSettings(options.OpenSettings))
-                    : OfficeIMO.OpenXml.Internal.OfficeOpenXmlReadOnlyPackage.OpenPresentation(packageStream, CreateOpenSettings(options.OpenSettings));
-                bool hasSignature = PowerPointPackageFingerprint
-                    .HasSignatureAndEnsurePackageXmlWithinLimit(document);
-                var presentation = new PowerPointDocument(document, filePath ?? string.Empty, isNewDocument: false) {
-                    _packageStream = packageStream,
-                    _sourceStream = associatedStream,
-                    _persistenceMode = options.PersistenceMode,
-                    _maximumSlideXmlCharacters = options.OpenSettings?.MaxCharactersInPart > 0
-                        ? Math.Min(PowerPointXmlReader.MaximumPackageXmlCharacters, options.OpenSettings.MaxCharactersInPart)
-                        : PowerPointXmlReader.MaximumPackageXmlCharacters
-                };
-                if (hasSignature) {
-                    presentation._signedPackageOpenFingerprint = CreatePackageFingerprint(document);
-                }
+                PowerPointDocument presentation = OpenPackage(packageStream, filePath, associatedStream, options);
                 presentation.MarkLoadedFromOpenXml(bytes);
                 return captureSourcePackageSecurity ? WithSourcePackageInspection(presentation, bytes, options) : presentation;
             } catch {
                 packageStream.Dispose();
                 throw;
             }
+        }
+
+        private static bool CanLoadInPlace(Stream stream, PowerPointLoadOptions options) =>
+            OfficePackageLoadSource.CanReadInPlace(stream, options.AccessMode, options.PackageSecurity,
+                options.CaptureSourcePackageSecurity, ResolvePackageInputLimit(options));
+
+        /// <summary>Opens a read-only Open XML presentation over the caller's seekable stream without copying it.</summary>
+        private static PowerPointDocument LoadPackageInPlace(Stream stream, PowerPointLoadOptions options,
+            CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
+            long originalPosition = stream.Position;
+            OfficePackageSourceView packageStream = OfficePackageLoadSource.OpenInPlace(stream);
+            try {
+                PowerPointDocument presentation = OpenPackage(packageStream, filePath: null, associatedStream: null, options);
+                try {
+                    presentation.MarkLoadedFromOpenXml(packageStream);
+                    cancellationToken.ThrowIfCancellationRequested();
+                } catch {
+                    presentation.Dispose();
+                    throw;
+                }
+                return presentation;
+            } catch {
+                packageStream.Dispose();
+                throw;
+            } finally {
+                stream.Position = originalPosition;
+            }
+        }
+
+        private static PowerPointDocument OpenPackage(Stream packageStream, string? filePath,
+            Stream? associatedStream, PowerPointLoadOptions options) {
+            PresentationDocument document = options.AccessMode == DocumentAccessMode.ReadWrite
+                ? PresentationDocument.Open(packageStream, true, CreateOpenSettings(options.OpenSettings))
+                : OfficeIMO.OpenXml.Internal.OfficeOpenXmlReadOnlyPackage.OpenPresentation(packageStream, CreateOpenSettings(options.OpenSettings));
+            bool hasSignature = PowerPointPackageFingerprint
+                .HasSignatureAndEnsurePackageXmlWithinLimit(document);
+            var presentation = new PowerPointDocument(document, filePath ?? string.Empty, isNewDocument: false) {
+                _packageStream = packageStream,
+                _sourceStream = associatedStream,
+                _persistenceMode = options.PersistenceMode,
+                _maximumSlideXmlCharacters = options.OpenSettings?.MaxCharactersInPart > 0
+                    ? Math.Min(PowerPointXmlReader.MaximumPackageXmlCharacters, options.OpenSettings.MaxCharactersInPart)
+                    : PowerPointXmlReader.MaximumPackageXmlCharacters
+            };
+            if (hasSignature) {
+                presentation._signedPackageOpenFingerprint = CreatePackageFingerprint(document);
+            }
+            return presentation;
         }
 
         private static PowerPointDocument LoadDocument(

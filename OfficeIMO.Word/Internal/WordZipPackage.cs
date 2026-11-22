@@ -6,7 +6,8 @@ using OfficeIMO.Core.Internal;
 namespace OfficeIMO.Word;
 
 /// <summary>
-/// An editable OPC package over a ZIP archive held in a memory stream the document owns.
+/// An editable OPC package over a ZIP archive held in a memory stream the document owns, or in the loaded bytes
+/// behind a copy-on-write stream.
 /// </summary>
 /// <remarks>
 /// <para>System.IO.Packaging rewrites the whole archive on every flush: on .NET it closes the ZIP archive, which
@@ -28,7 +29,8 @@ internal sealed class WordZipPackage : Package {
     private static readonly byte[] Utf8Preamble = { 0xEF, 0xBB, 0xBF };
     private static readonly char[] AttributeSpecialCharacters = { '&', '<', '>', '"' };
 
-    private readonly MemoryStream _container;
+    // A MemoryStream, or an OfficeCopyOnWriteStream whose loaded array is read until the first flush writes a new archive.
+    private readonly Stream _container;
     // Entries in archive order. New parts are appended, as ZipArchive appends new entries.
     private readonly List<Entry> _entries;
     private readonly Dictionary<string, Part> _parts = new(StringComparer.OrdinalIgnoreCase);
@@ -39,7 +41,7 @@ internal sealed class WordZipPackage : Package {
     private bool _contentTypesChanged;
     private bool _abandoned;
 
-    private WordZipPackage(MemoryStream container, List<Entry> entries, Entry contentTypes,
+    private WordZipPackage(Stream container, List<Entry> entries, Entry contentTypes,
         Dictionary<string, string> defaults, Dictionary<string, KeyValuePair<string, string>> overrides)
         : base(FileAccess.ReadWrite) {
         _container = container;
@@ -60,13 +62,15 @@ internal sealed class WordZipPackage : Package {
     /// needs System.IO.Packaging (ZIP64, encryption, unmapped or interleaved entries, unusual names or content types).
     /// </summary>
     /// <remarks>The stream is read but not written until the package is flushed.</remarks>
-    internal static WordZipPackage? TryOpen(MemoryStream container) {
-        if (!container.CanRead || !container.CanSeek || !container.CanWrite || !container.TryGetBuffer(out _)) return null;
-        try {
-            // Flushing rewrites the archive in place, which a fixed-size stream cannot hold.
-            container.Capacity = container.Capacity;
-        } catch (NotSupportedException) {
-            return null;
+    internal static WordZipPackage? TryOpen(Stream container) {
+        if (!container.CanRead || !container.CanSeek || !container.CanWrite || !TryGetBuffer(container, out _)) return null;
+        if (container is MemoryStream memory) {
+            try {
+                // Flushing rewrites the archive in place, which a fixed-size stream cannot hold.
+                memory.Capacity = memory.Capacity;
+            } catch (NotSupportedException) {
+                return null;
+            }
         }
         long originalPosition = container.Position;
         try {
@@ -183,26 +187,45 @@ internal sealed class WordZipPackage : Package {
         }
         capacity = Math.Min(capacity, int.MaxValue);
 
+        var written = new List<WrittenEntry>(_entries.Count);
+        if (_container is OfficeCopyOnWriteStream { CopiedStream: null } loaded) {
+            // The loaded array is never written, so the first archive reads its entries straight from it.
+            ArraySegment<byte> loadedBytes = GetContainerBuffer();
+            MemoryStream output = loaded.BeginRewrite((int)capacity);
+            try {
+                WriteArchive(output, loadedBytes, contentTypesXml, written);
+            } catch {
+                loaded.CancelRewrite();
+                throw;
+            }
+            output.Position = 0;
+            foreach (WrittenEntry entry in written) entry.Entry.Rebase(entry);
+            _structureChanged = false;
+            _contentTypesChanged = false;
+            return;
+        }
+
+        MemoryStream container = _container as MemoryStream
+            ?? ((OfficeCopyOnWriteStream)_container).CopiedStream!;
         // The new archive is written over the old one, so the bytes it copies from are set aside first.
-        int previousLength = checked((int)_container.Length);
+        int previousLength = checked((int)container.Length);
         ArraySegment<byte> current = GetContainerBuffer();
         byte[] previous = RentBuffer(previousLength);
         Buffer.BlockCopy(current.Array!, current.Offset, previous, 0, previousLength);
         var source = new ArraySegment<byte>(previous, 0, previousLength);
-        var written = new List<WrittenEntry>(_entries.Count);
         try {
-            _container.SetLength(0);
-            if (_container.Capacity < capacity) _container.Capacity = (int)capacity;
-            WriteArchive(_container, source, contentTypesXml, written);
+            container.SetLength(0);
+            if (container.Capacity < capacity) container.Capacity = (int)capacity;
+            WriteArchive(container, source, contentTypesXml, written);
         } catch {
-            _container.SetLength(0);
-            _container.Write(previous, 0, previousLength);
-            _container.Position = 0;
+            container.SetLength(0);
+            container.Write(previous, 0, previousLength);
+            container.Position = 0;
             throw;
         } finally {
             ReturnBuffer(previous);
         }
-        _container.Position = 0;
+        container.Position = 0;
         foreach (WrittenEntry entry in written) entry.Entry.Rebase(entry);
         _structureChanged = false;
         _contentTypesChanged = false;
@@ -260,13 +283,25 @@ internal sealed class WordZipPackage : Package {
         return false;
     }
 
+    private static bool TryGetBuffer(Stream container, out ArraySegment<byte> buffer) {
+        switch (container) {
+            case MemoryStream memory:
+                return memory.TryGetBuffer(out buffer);
+            case OfficeCopyOnWriteStream copyOnWrite:
+                return copyOnWrite.TryGetBuffer(out buffer);
+            default:
+                buffer = default;
+                return false;
+        }
+    }
+
     private ArraySegment<byte> GetContainerBuffer() {
-        if (_container.TryGetBuffer(out ArraySegment<byte> buffer)) return buffer;
+        if (TryGetBuffer(_container, out ArraySegment<byte> buffer)) return buffer;
         throw new InvalidOperationException("The Word package stream no longer exposes its buffer.");
     }
 
     private PartBuffer ReadEntry(Entry entry) {
-        if (!_container.TryGetBuffer(out ArraySegment<byte> buffer)) {
+        if (!TryGetBuffer(_container, out ArraySegment<byte> buffer)) {
             throw new InvalidOperationException("The Word package stream no longer exposes its buffer.");
         }
         int compressedSize = checked((int)entry.CompressedSize);
@@ -282,8 +317,8 @@ internal sealed class WordZipPackage : Package {
         return data;
     }
 
-    private static byte[] Inflate(MemoryStream container, Entry entry, out int length) {
-        if (!container.TryGetBuffer(out ArraySegment<byte> buffer)) {
+    private static byte[] Inflate(Stream container, Entry entry, out int length) {
+        if (!TryGetBuffer(container, out ArraySegment<byte> buffer)) {
             throw new InvalidOperationException("The Word package stream no longer exposes its buffer.");
         }
         int compressedSize = checked((int)entry.CompressedSize);
