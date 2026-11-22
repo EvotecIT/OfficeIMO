@@ -115,8 +115,8 @@ public static partial class WordPdfConverterExtensions {
             options?.CancellationToken.ThrowIfCancellationRequested();
             bool insideBox = source.Ancestors<W.TextBoxContent>().Any();
             if (!source.Descendants<W.TextBoxContent>().Any()) continue;
-            // Nested boxes keep the bounded flow.
-            if (insideBox) return false;
+            // Nested boxes and boxes anchored in table cells keep the bounded flow.
+            if (insideBox || source.Ancestors<W.TableCell>().Any()) return false;
             var paragraph = new WordParagraph(story.Document, source);
             if (!TryCollectNativePlacedRunningTextBoxes(pageSize, paragraph, GetNativeRuns(paragraph), section, options, out _, out _))
                 return false;

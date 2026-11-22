@@ -62,6 +62,17 @@ internal static partial class PdfWriter {
             TransformCanvasRectangles(page.FreeTextAnnotations, firstFreeTextAnnotation, toFrame);
             TransformCanvasRectangles(page.HighlightAnnotations, firstHighlightAnnotation, toFrame);
             TransformCanvasRectangles(page.FormFields, firstFormField, toFrame);
+            // Content outside the frame is not painted, so its interactive regions must not remain either.
+            ClipFrameRectangles(page.Annotations, firstAnnotation, item.ClipX, clipBottom, item.ClipX + item.ClipWidth, clipBottom + item.ClipHeight,
+                link => (link.X1, link.Y1, link.X2, link.Y2), (link, box) => { link.X1 = box.X1; link.Y1 = box.Y1; link.X2 = box.X2; link.Y2 = box.Y2; });
+            ClipFrameRectangles(page.TextAnnotations, firstTextAnnotation, item.ClipX, clipBottom, item.ClipX + item.ClipWidth, clipBottom + item.ClipHeight,
+                note => (note.X1, note.Y1, note.X2, note.Y2), null);
+            ClipFrameRectangles(page.FreeTextAnnotations, firstFreeTextAnnotation, item.ClipX, clipBottom, item.ClipX + item.ClipWidth, clipBottom + item.ClipHeight,
+                note => (note.X1, note.Y1, note.X2, note.Y2), null);
+            ClipFrameRectangles(page.HighlightAnnotations, firstHighlightAnnotation, item.ClipX, clipBottom, item.ClipX + item.ClipWidth, clipBottom + item.ClipHeight,
+                note => (note.X1, note.Y1, note.X2, note.Y2), null);
+            ClipFrameRectangles(page.FormFields, firstFormField, item.ClipX, clipBottom, item.ClipX + item.ClipWidth, clipBottom + item.ClipHeight,
+                field => (field.X1, field.Y1, field.X2, field.Y2), null);
             TransformCanvasPageImageBounds(page.Images, firstImage, toFrame);
             OfficeTransform toPage = toFrame.Then(_canvasEffectToPage);
             for (int index = firstBookmark; index < page.Bookmarks.Count; index++) {
@@ -82,6 +93,27 @@ internal static partial class PdfWriter {
             pageDirty = true;
 
             static string Format(double value) => value.ToString("0.###", CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>
+        /// Drops regions wholly outside the frame. A link that is partly inside is trimmed to the visible
+        /// part; other annotations and fields have a fixed appearance, so they stay only when wholly inside.
+        /// </summary>
+        private static void ClipFrameRectangles<T>(List<T> items, int start, double left, double bottom, double right, double top,
+            Func<T, (double X1, double Y1, double X2, double Y2)> read, Action<T, (double X1, double Y1, double X2, double Y2)>? trim) {
+            for (int index = items.Count - 1; index >= start; index--) {
+                var (x1, y1, x2, y2) = read(items[index]);
+                double minX = Math.Min(x1, x2), maxX = Math.Max(x1, x2), minY = Math.Min(y1, y2), maxY = Math.Max(y1, y2);
+                double clippedLeft = Math.Max(minX, left), clippedRight = Math.Min(maxX, right);
+                double clippedBottom = Math.Max(minY, bottom), clippedTop = Math.Min(maxY, top);
+                bool inside = minX >= left - 0.001D && maxX <= right + 0.001D && minY >= bottom - 0.001D && maxY <= top + 0.001D;
+                if (inside) continue;
+                if (trim == null || clippedRight - clippedLeft <= 0.001D || clippedTop - clippedBottom <= 0.001D) {
+                    items.RemoveAt(index);
+                    continue;
+                }
+                trim(items[index], (clippedLeft, clippedBottom, clippedRight, clippedTop));
+            }
         }
     }
 }

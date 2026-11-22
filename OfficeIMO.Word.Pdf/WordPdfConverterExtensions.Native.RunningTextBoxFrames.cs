@@ -50,7 +50,8 @@ public static partial class WordPdfConverterExtensions {
                         0D, 0D, frame.Width, frame.Height);
             }
             IReadOnlyList<PdfCore.PdfCanvasItem> items = content.Items;
-            if (items.Count == 0) continue;
+            // An unpainted box still keeps wrapped text out of its rectangle.
+            if (items.Count == 0 && frame.Exclusion == null) continue;
             if (frame.BehindDocument && frame.Exclusion != null)
                 items = new PdfCore.PdfCanvasItem[] { new PdfCore.PdfCanvasBehindTextItem(items, frame.ZOrder) };
             if (frame.Exclusion != null) {
@@ -85,18 +86,35 @@ public static partial class WordPdfConverterExtensions {
         WordParagraph[] selected = own.ToArray();
         bool visible = selected.Any(run => IsNativeRenderableTextRun(run, paragraph));
         List<int> references = GetNativeMixedTextBoxNoteNumbers(selected, notes, new HashSet<NativeNoteKey>());
+        global::OfficeIMO.OfficeAlignment align = ResolveNativeParagraphAlign(paragraph, allowJustify: false);
+        Action<PdfCore.PdfParagraph> build;
         if (visible || references.Count > 0 || hasMarker) {
             string text = string.Concat(selected.Select(run => run.Text));
-            pdf.Paragraph(builder => AddNativeParagraphContent(builder, paragraph, marker, selected, visible, text,
-                    references, notes, options, defaults, fontMap,
-                    inlineMarkerColumnWidth: hasMarker ? ResolveNativeInlineListMarkerColumnWidth(paragraph, marker!.Value.Marker, style, defaults, fontMap) : null,
-                    projectedContentOnly: true),
-                ResolveNativeParagraphAlign(paragraph, allowJustify: false), style: style);
+            PdfCore.PdfParagraphStyle markerStyle = style;
+            build = builder => AddNativeParagraphContent(builder, paragraph, marker, selected, visible, text,
+                references, notes, options, defaults, fontMap,
+                inlineMarkerColumnWidth: hasMarker ? ResolveNativeInlineListMarkerColumnWidth(paragraph, marker!.Value.Marker, markerStyle, defaults, fontMap) : null,
+                projectedContentOnly: true);
         } else {
             // The anchor paragraph still owns an empty line in its own font.
             double fontSize = ResolveNativeParagraphFontSize(paragraph, defaults, GetNativeParagraphStyleDefaults(paragraph));
-            pdf.Paragraph(builder => builder.AddLineBreak().SetFontSize(global::OfficeIMO.OfficeLength.Points(fontSize)),
-                ResolveNativeParagraphAlign(paragraph, allowJustify: false), style: style);
+            build = builder => builder.AddLineBreak().SetFontSize(global::OfficeIMO.OfficeLength.Points(fontSize));
+        }
+        // The anchor paragraph keeps its own shading, borders and bottom rule, as on the ordinary route.
+        if (CreateNativeParagraphPanelStyle(paragraph, style) is { } panelStyle) {
+            style = JoinNativeAdjacentParagraphShading(nextParagraph, style, panelStyle, defaults).Clone();
+            style.LeftIndent -= panelStyle.LeftInset;
+            style.RightIndent -= panelStyle.RightInset;
+            pdf.PanelParagraph(builder => {
+                using NativePaintedPanelScope paintedPanel = EnterNativePaintedPanel(paragraph, panelStyle.Background);
+                build(builder);
+            }, panelStyle, align, null, style);
+        } else if (!hasMarker && CreateNativeBottomBorderRuleStyle(paragraph, style) is { } ruleStyle) {
+            style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D);
+            pdf.Paragraph(build, align, style: style);
+            pdf.HR(style: ruleStyle);
+        } else {
+            pdf.Paragraph(build, align, style: style);
         }
         RecordNativeParagraphBarTabDiagnostics(paragraph, options, "anchored text-box paragraph");
         return true;
@@ -130,7 +148,9 @@ public static partial class WordPdfConverterExtensions {
         NativeDocumentDefaults? defaults = null) {
         boxes = new List<(WordTextBox, NativePlacedTextBoxFrame)>();
         own = new List<WordParagraph>();
-        if (WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph).Count > 0) return false;
+        // A framed anchor paragraph is positioned by its own frame; keep the bounded flow for it.
+        if (WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph).Count > 0 ||
+            paragraph._paragraph.ParagraphProperties?.FrameProperties != null) return false;
         // Boxes that must not overlap would need Word's repositioning; keep the bounded flow.
         if (defaults?.RunningStoryHasDisallowedTextBoxPeers == true) return false;
         foreach (WordParagraph run in runs) {
@@ -144,7 +164,7 @@ public static partial class WordPdfConverterExtensions {
                     if (view.GetGroupTextBoxes().Any()) return false;
                     foreach (WordTextBox box in childBoxes) {
                         if (!TryGetNativePlacedTextBoxFrame(box, section, options, pageSize, out NativePlacedTextBoxFrame? frame) ||
-                            defaults != null && !CanPaintNativePlacedTextBox(box, frame!))
+                            !CanPaintNativePlacedTextBox(box, frame!))
                             return false;
                         boxes.Add((box, frame!));
                     }
@@ -209,10 +229,32 @@ public static partial class WordPdfConverterExtensions {
         double left = Inset(body?.LeftInset, 91440), right = Inset(body?.RightInset, 91440);
         double top = Inset(body?.TopInset, 45720), bottom = Inset(body?.BottomInset, 45720);
         if (left < 0D || right < 0D || top < 0D || bottom < 0D) return false;
+        if (!CanLayOutNativePlacedTextBoxContent(box, width - left - right)) return false;
         frame = new NativePlacedTextBoxFrame(x, y, width, height, left, top, right, bottom,
             ParagraphRelative: verticalReference == "paragraph",
             MarginOrigin: horizontalReference == "margin" ? margins.Left.ToPoints() : null,
             BehindDocument: layout.BehindDocument, ZOrder: layout.RelativeHeight, Exclusion: exclusion);
+        return true;
+    }
+
+    /// <summary>
+    /// A frame lays out ordinary paragraphs on one page at a fixed width. Page and column breaks, floating
+    /// frames, floating drawings and indents that leave no text width keep the bounded flow instead.
+    /// </summary>
+    private static bool CanLayOutNativePlacedTextBoxContent(WordTextBox box, double contentWidth) {
+        W.TextBoxContent content = box.Content!;
+        if (content.Descendants<W.Break>().Any(item => item.Type?.Value == W.BreakValues.Page || item.Type?.Value == W.BreakValues.Column) ||
+            content.Descendants<W.FrameProperties>().Any() || content.Descendants<W.SectionProperties>().Any() ||
+            content.Descendants<DW.Anchor>().Any() || content.Descendants<DocumentFormat.OpenXml.Vml.Shape>().Any() ||
+            content.Descendants<DocumentFormat.OpenXml.Vml.Group>().Any()) return false;
+        foreach (WordParagraph inner in GetNativeTextBoxParagraphs(box)) {
+            if (HasNativePageBreakBefore(inner)) return false;
+            PdfCore.PdfParagraphStyle style = CreateNativeParagraphStyle(inner);
+            if (WordDocumentTraversal.GetListInfo(inner).HasValue) ApplyNativeInlineListIndent(inner, style);
+            double textWidth = contentWidth - style.LeftIndent.ToPoints() - style.RightIndent.ToPoints();
+            double firstLineWidth = textWidth - style.FirstLineIndent.ToPoints();
+            if (!(textWidth > 0D) || !(firstLineWidth > 0D)) return false;
+        }
         return true;
     }
 

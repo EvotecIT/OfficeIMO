@@ -5,6 +5,8 @@ using UglyToad.PdfPig.Content;
 using Xunit;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using PdfWord = UglyToad.PdfPig.Content.Word;
+using A = DocumentFormat.OpenXml.Drawing;
+using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Tests;
 
@@ -166,6 +168,153 @@ public partial class Word {
         Assert.True(letters[script].PointSize < 9D);
         Assert.Equal(10D, letters[script + 1].PointSize, 2);
         Assert.True(letters.Single(letter => letter.Value == "n").StartBaseLine.Y < letters[script].StartBaseLine.Y - 5D);
+    }
+
+    private static WordTextBox AddPlacedHeaderBox(WordParagraph host, string text, WordImageTextWrapping wrap,
+        double left = 300D, double top = 24D, double width = 150D, double height = 60D) {
+        WordTextBox box = host.AddTextBox(text, wrap);
+        box.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
+        box.HorizontalPositionOffset = global::OfficeIMO.OfficeLength.Points(left);
+        box.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
+        box.VerticalPositionOffset = global::OfficeIMO.OfficeLength.Points(top);
+        box.Width = global::OfficeIMO.OfficeLength.Points(width);
+        box.Height = global::OfficeIMO.OfficeLength.Points(height);
+        box.RelativeWidthPercentage = 0;
+        box.RelativeHeightPercentage = 0;
+        return box;
+    }
+
+    // A frame holds one page of paragraphs, so a page break inside the box keeps the flowed layout.
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SaveAsPdf_HeaderTextBoxWithPageBreakBeforeKeepsFlowedLayout(bool inherited) {
+        using WordDocument document = WordDocument.Create();
+        document.AddParagraph("Body");
+        WordTextBox box = AddPlacedHeaderBox(document.PageSetup.Header.AddParagraph("Header"), "First", WordImageTextWrapping.InFrontOfText);
+        W.Paragraph second = (W.Paragraph)box.Content!.Elements<W.Paragraph>().Single().CloneNode(true);
+        second.Descendants<W.Text>().Single().Text = "Second";
+        second.Descendants<W.Break>().ToList().ForEach(lineBreak => lineBreak.Remove());
+        second.ParagraphProperties ??= new W.ParagraphProperties();
+        if (inherited) {
+            document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(new W.Style(
+                new W.StyleParagraphProperties(new W.PageBreakBefore())) { Type = W.StyleValues.Paragraph, StyleId = "BreakBefore" });
+            second.ParagraphProperties.ParagraphStyleId = new W.ParagraphStyleId { Val = "BreakBefore" };
+        } else second.ParagraphProperties.PageBreakBefore = new W.PageBreakBefore();
+        box.Content.Append(second);
+
+        var result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false });
+        using var pdf = PdfPigDocument.Open(result.Value.ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+        string text = string.Concat(pdf.GetPages().SelectMany(page => page.Letters).Select(letter => letter.Value));
+        Assert.Contains("First", text, StringComparison.Ordinal);
+        Assert.Contains("Second", text, StringComparison.Ordinal);
+    }
+
+    // Inner indents that leave no text width keep the flowed layout instead of failing the export.
+    [Fact]
+    public void SaveAsPdf_HeaderTextBoxWithOversizedIndentsKeepsFlowedLayout() {
+        using WordDocument document = WordDocument.Create();
+        document.AddParagraph("Body");
+        WordTextBox box = AddPlacedHeaderBox(document.PageSetup.Header.AddParagraph("Header"), "Indented", WordImageTextWrapping.InFrontOfText, width: 75D);
+        WordParagraph inner = box.Paragraphs.Single();
+        inner.IndentationBefore = global::OfficeIMO.OfficeLength.Points(45);
+        inner.IndentationAfter = global::OfficeIMO.OfficeLength.Points(25);
+
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false })
+            .ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+        Assert.Contains("Indented", string.Concat(pdf.GetPage(1).Letters.Select(letter => letter.Value)), StringComparison.Ordinal);
+    }
+
+    // A square-wrapped box keeps header text clear of its rectangle even when it paints nothing.
+    [Fact]
+    public void SaveAsPdf_UnpaintedSquareWrappedHeaderTextBoxStillPushesTextAside() {
+        using WordDocument document = WordDocument.Create();
+        document.AddParagraph("Body");
+        WordParagraph line = document.PageSetup.Header.AddParagraph("Header words keep clear of the box and wrap beside it on the right side of the page");
+        WordTextBox box = AddPlacedHeaderBox(line, "Box", WordImageTextWrapping.Square, left: 72D, top: 30D, height: 60D);
+        var properties = box.DrawingShapeProperties!;
+        properties.RemoveAllChildren<A.SolidFill>();
+        properties.RemoveAllChildren<A.Outline>();
+        properties.Append(new A.NoFill(), new A.Outline(new A.NoFill()));
+        W.Paragraph inner = box.Content!.Elements<W.Paragraph>().Single();
+        inner.RemoveAllChildren<W.Run>();
+        inner.ParagraphProperties ??= new W.ParagraphProperties();
+        inner.ParagraphProperties.ParagraphMarkRunProperties = new W.ParagraphMarkRunProperties(new W.Vanish());
+
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false })
+            .ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+        PdfWord first = pdf.GetPage(1).GetWords().First(word => word.Text == "Header");
+        Assert.True(first.Letters[0].StartBaseLine.X >= 222D, $"Header text starts at {first.Letters[0].StartBaseLine.X}.");
+    }
+
+    // Links in content past the bottom of a box are not clickable; a link crossing the edge is trimmed to it.
+    [Fact]
+    public void SaveAsPdf_HeaderTextBoxLinksStayInsideTheVisibleFrame() {
+        using WordDocument document = WordDocument.Create();
+        document.AddParagraph("Body");
+        WordTextBox box = AddPlacedHeaderBox(document.PageSetup.Header.AddParagraph("Header"), "Shown ", WordImageTextWrapping.InFrontOfText, height: 22D);
+        WordParagraph inner = box.Paragraphs.Single();
+        inner.AddHyperLink("SHOWNLINK", new Uri("https://example.com/shown"));
+        W.Paragraph hidden = new W.Paragraph(new W.Run(new W.Text("Overflow ") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }));
+        box.Content!.Append(hidden);
+        new WordParagraph(document, hidden).AddHyperLink("OVERFLOWLINK", new Uri("https://example.com/overflow"));
+
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false })
+            .ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+        var links = pdf.GetPage(1).GetAnnotations().Where(annotation => annotation.Type == UglyToad.PdfPig.Annotations.AnnotationType.Link).ToArray();
+        var link = Assert.Single(links);
+        Assert.True(link.Rectangle.Bottom >= 792D - 24D - 22D - 0.01D, $"Link bottom {link.Rectangle.Bottom} is below the frame.");
+    }
+
+    // Paint the frame cannot reproduce keeps the whole header on its simple layout; a solid fill still places the box.
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SaveAsPdf_HeaderTextBoxPaintDecidesThePlacedRouteBeforeLayout(bool gradient) {
+        using WordDocument document = WordDocument.Create();
+        document.AddParagraph("Body");
+        WordTextBox box = AddPlacedHeaderBox(document.PageSetup.Header.AddParagraph("Header"), "PAINTED", WordImageTextWrapping.InFrontOfText);
+        var properties = box.DrawingShapeProperties!;
+        properties.RemoveAllChildren<A.SolidFill>();
+        properties.RemoveAllChildren<A.NoFill>();
+        OpenXmlElementFill(properties, gradient);
+
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false })
+            .ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+        Page page = pdf.GetPage(1);
+        Assert.Contains("PAINTED", string.Concat(page.Letters.Select(letter => letter.Value)), StringComparison.Ordinal);
+        if (gradient) {
+            // The simple header layout draws the box text without the bordered panel of the rich flowed route.
+            Assert.DoesNotContain(page.Paths, path => path.IsStroked);
+        } else {
+            Assert.InRange(page.GetWords().Single(word => word.Text == "PAINTED").Letters[0].StartBaseLine.X, 300D, 312D);
+        }
+    }
+
+    private static void OpenXmlElementFill(DocumentFormat.OpenXml.Office2010.Word.DrawingShape.ShapeProperties properties, bool gradient) {
+        DocumentFormat.OpenXml.OpenXmlElement fill = gradient
+            ? new A.GradientFill(new A.GradientStopList(
+                new A.GradientStop(new A.RgbColorModelHex { Val = "FFFFFF" }) { Position = 0 },
+                new A.GradientStop(new A.RgbColorModelHex { Val = "FFFF00" }) { Position = 100000 }), new A.LinearGradientFill { Angle = 0 })
+            : new A.SolidFill(new A.RgbColorModelHex { Val = "FFFF00" });
+        properties.InsertAfter(fill, properties.GetFirstChild<A.PresetGeometry>());
+    }
+
+    // The paragraph that anchors a placed box keeps its own shading.
+    [Fact]
+    public void SaveAsPdf_HeaderTextBoxAnchorParagraphKeepsItsShading() {
+        using WordDocument document = WordDocument.Create();
+        document.AddParagraph("Body");
+        WordParagraph anchorParagraph = document.PageSetup.Header.AddParagraph("Shaded header");
+        anchorParagraph.ShadingFillColor = global::OfficeIMO.OfficeColor.Parse("00FF00");
+        AddPlacedHeaderBox(anchorParagraph, "Box", WordImageTextWrapping.InFrontOfText);
+
+        var result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false });
+        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
+        using var pdf = PdfPigDocument.Open(result.Value.ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+        Page page = pdf.GetPage(1);
+        Assert.Contains(page.Paths, path => path.IsFilled && path.FillColor.ToRGBValues() == (0D, 1D, 0D));
+        Assert.InRange(page.GetWords().Single(word => word.Text == "Box").Letters[0].StartBaseLine.X, 300D, 312D);
     }
 
     private static byte[] RenderWithFont(WordDocument document, byte[] font) {
