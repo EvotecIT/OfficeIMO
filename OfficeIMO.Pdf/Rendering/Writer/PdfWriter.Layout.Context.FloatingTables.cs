@@ -192,28 +192,5 @@ internal static partial class PdfWriter {
                 }
             } while (moved);
         }
-
-        // Choose the widest connected text interval; a line that cannot fit moves below the obstruction.
-        private (double X, double Width, double Gap) GetFloatingTextFrame(double left, double lineWidth, double top, double height, double minimumWidth = 0) {
-            double originalTop = top;
-            for (int attempt = 0; attempt <= floatingTables.Count; attempt++) {
-                var intervals = new List<(double Left, double Right)> { (left, left + lineWidth) };
-                double nextBottom = top;
-                foreach (var region in floatingTables) {
-                    if (!ReferenceEquals(region.Page, currentPage) || top - height >= region.Top || top <= region.Bottom) continue;
-                    if (region.Right <= left || region.Left >= left + lineWidth) continue;
-                    nextBottom = Math.Min(nextBottom, region.Bottom);
-                    intervals = SubtractTextExclusion(intervals.Select(interval =>
-                            new RichTextInterval(interval.Left, interval.Right - interval.Left)).ToArray(), region.Left, region.Right)
-                        .Select(interval => (Left: interval.X, Right: interval.X + interval.Width)).ToList();
-                }
-                var best = intervals.OrderByDescending(interval => interval.Right - interval.Left).FirstOrDefault();
-                if (best.Right - best.Left >= Math.Min(lineWidth, Math.Max(minimumWidth, Math.Max(24, currentOpts.DefaultFontSize.ToPoints() * 2))))
-                    return (best.Left, best.Right - best.Left, originalTop - top);
-                if (nextBottom >= top) break;
-                top = nextBottom;
-            }
-            return (left, lineWidth, originalTop - top);
-        }
     }
 }

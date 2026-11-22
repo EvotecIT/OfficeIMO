@@ -24,7 +24,8 @@ internal static partial class PdfWriter {
         internal (double Width, double Origin, double Gap) Resolve(int fragment, double completedHeight,
             double height, double minimumWidth, bool empty, out bool invalidated) {
             invalidated = false;
-            RichTextRowFrame candidate = resolve(row, completedHeight, height, empty ? minimumWidth : 0D);
+            // Content already on the row keeps its widest unit's width requirement when the row is resolved again.
+            RichTextRowFrame candidate = resolve(row, completedHeight, height, minimumWidth);
             if (candidate.Intervals.Count == 0) throw new InvalidOperationException("A text row must have an available interval after clearance.");
             if (frame != null && interval > 0 && !SamePreviousIntervals(frame, candidate, interval)) {
                 invalidated = true;

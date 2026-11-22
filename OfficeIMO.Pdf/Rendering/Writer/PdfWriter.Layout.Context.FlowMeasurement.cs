@@ -59,7 +59,7 @@ internal static partial class PdfWriter {
                     }
                     double? height = block is RichParagraphBlock paragraph &&
                         (floatingTables.Count > savedFloats.Length || HasPictureExclusions || HasParagraphPictures(EffectiveParagraphStyle(paragraph)))
-                        ? MeasureFloatingParagraph(paragraph, frameX, frameWidth, fontSize)
+                        ? MeasurePictureParagraph(paragraph, frameX, frameWidth, fontSize)
                         : MeasureWholeBlockHeight(block, frameX, frameWidth, fontSize);
                     if (!height.HasValue) {
                         return null;

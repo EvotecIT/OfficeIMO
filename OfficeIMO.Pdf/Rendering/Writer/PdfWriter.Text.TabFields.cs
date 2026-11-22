@@ -31,9 +31,6 @@ internal static partial class PdfWriter {
         return new RichTabFieldMeasurement(wrapped.Lines.Count == 0 ? Array.Empty<RichSeg>() : wrapped.Lines[0], 0);
     }
 
-    private static RichTabFieldMeasurement MeasureWrappedTabField(IReadOnlyList<RichSeg> line, int start) =>
-        new(line, start);
-
     private static double? ResolveRichDecimalTabAnchor(RichTabFieldMeasurement? field, PdfTabAlignment alignment,
         PdfTabStop? stop, PdfCreateOptions? options, double leadingAdvance = 0D) =>
         field != null && (stop?.Alignment ?? alignment) == PdfTabAlignment.DecimalSeparator

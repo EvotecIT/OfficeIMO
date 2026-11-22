@@ -5716,6 +5716,8 @@ versions:
   As with other floating frames, a drop cap in the body selects the fallback placement for page footnotes.
 - Raised and lowered text (`w:position`) moves its glyphs up or down from the baseline. Earlier versions
   drew it on the baseline.
+- Text beside a floating table that sits away from the margins now also fills the room on its other
+  side when a word fits there, as Word does, so those paragraphs wrap at different words than before.
 
 If your process depends on where pages break, regenerate the PDFs and compare them with your stored
 baselines, checking page counts and where tables and lists break. Refresh page-dependent content

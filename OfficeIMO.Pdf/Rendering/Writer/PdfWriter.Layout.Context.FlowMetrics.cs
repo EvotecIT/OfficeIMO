@@ -231,7 +231,7 @@ internal static partial class PdfWriter {
                     if (floatingTables.Count > savedFloats.Length || HasPictureExclusions ||
                         block is RichParagraphBlock pictureParagraph && HasParagraphPictures(EffectiveParagraphStyle(pictureParagraph))) {
                         if (block is RichParagraphBlock paragraph)
-                            blockHeight = MeasureFloatingParagraph(paragraph, frameX, frameWidth, fontSize, firstVisualOnly: !keepWithNext);
+                            blockHeight = MeasurePictureParagraph(paragraph, frameX, frameWidth, fontSize, firstVisualOnly: !keepWithNext);
                         else AvoidFloatingBlock(blockHeight);
                     }
                     // Keep the table's physical fit requirement, without adding
