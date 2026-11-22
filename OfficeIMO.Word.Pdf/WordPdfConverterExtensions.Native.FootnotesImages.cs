@@ -249,7 +249,8 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static bool RenderNativeImage(INativePdfFlow pdf, WordImage image, global::OfficeIMO.OfficeAlignment align = global::OfficeIMO.OfficeAlignment.Left, WordPdfExportOptions? options = null, string source = "body image", PdfCore.PdfParagraphStyle? anchorStyle = null, PdfCore.PdfPageCanvas? anchoredCanvas = null, NativeObjectParagraphSpacing? paragraphSpacing = null, WordParagraph? anchorParagraph = null, WordSection? anchorSection = null) {
+        private static bool RenderNativeImage(INativePdfFlow pdf, WordImage image, global::OfficeIMO.OfficeAlignment align = global::OfficeIMO.OfficeAlignment.Left, WordPdfExportOptions? options = null, string source = "body image", PdfCore.PdfParagraphStyle? anchorStyle = null, PdfCore.PdfPageCanvas? anchoredCanvas = null, NativeObjectParagraphSpacing? paragraphSpacing = null, WordParagraph? anchorParagraph = null, WordSection? anchorSection = null,
+            bool runningStory = false) {
             if (image == null) {
                 return false;
             }
@@ -261,7 +262,7 @@ namespace OfficeIMO.Word.Pdf {
             double width = image.Width?.ToPoints() ?? 144D;
             double height = image.Height?.ToPoints() ?? 144D;
             if (anchorStyle != null && TryAddNativeAnchoredImage(pdf, image, preparedBytes, width, height,
-                    anchorStyle, anchoredCanvas, anchorParagraph, options, source, anchorSection)) return false;
+                    anchorStyle, anchoredCanvas, anchorParagraph, options, source, anchorSection, runningStory)) return false;
             if (image._Image?.Anchor != null && options != null &&
                 !options.DiagnosedImageWrapElements.Contains(image._Image))
                 AddNativeExportWarning(options, "native-anchored-image-flowed", source,

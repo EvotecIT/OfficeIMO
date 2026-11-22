@@ -17,10 +17,11 @@ namespace OfficeIMO.Word.Pdf {
 
         /// <summary>Projects a group as one object, retaining its child coordinate system and paragraph anchor.</summary>
         private static bool RenderNativeParagraphShapeGroups(INativePdfFlow pdf, WordParagraph paragraph,
-            IReadOnlyList<WordParagraph> runs, global::OfficeIMO.OfficeAlignment align, WordPdfExportOptions? options, PdfCore.PdfParagraphStyle style, ref int imageCount, NativeObjectParagraphSpacing? paragraphSpacing) =>
+            IReadOnlyList<WordParagraph> runs, global::OfficeIMO.OfficeAlignment align, WordPdfExportOptions? options, PdfCore.PdfParagraphStyle style, ref int imageCount, NativeObjectParagraphSpacing? paragraphSpacing,
+            bool runningStory = false) =>
             ProjectNativeParagraphShapeGroups(pdf.PageSize, paragraph, runs, options, style,
                 scene => RenderNativeFlowObject(pdf, paragraphSpacing,
-                    flow => flow.Drawing(scene, align, spacingAfter: 0D)), ref imageCount);
+                    flow => flow.Drawing(scene, align, spacingAfter: 0D)), ref imageCount, runningStory);
 
         private static bool HasNativeParagraphShapeGroupAnchor(PdfCore.PdfPageSize pageSize, WordParagraph paragraph,
             IReadOnlyList<WordParagraph> runs, WordPdfExportOptions? options) {
@@ -37,7 +38,7 @@ namespace OfficeIMO.Word.Pdf {
         // supported canvas. Only the renderer supplies a flow-object callback.
         private static bool ProjectNativeParagraphShapeGroups(PdfCore.PdfPageSize pageSize, WordParagraph paragraph,
             IReadOnlyList<WordParagraph> runs, WordPdfExportOptions? options, PdfCore.PdfParagraphStyle style,
-            Action<OfficeDrawing>? renderFlowObject, ref int imageCount) {
+            Action<OfficeDrawing>? renderFlowObject, ref int imageCount, bool runningStory = false) {
             bool renderedFlowObject = false;
             foreach (WordParagraph run in runs) {
                 foreach (W.Drawing drawing in run.EnumerateEffectiveRunContent().OfType<W.Drawing>()) {
@@ -62,8 +63,9 @@ namespace OfficeIMO.Word.Pdf {
                         continue;
                     }
 
+                    // A header or footer story stacks its in-front groups over its own text, as Word does.
                     if (!TryGetNativeGroupPosition(pageSize, paragraph, layout, options, out double x, out double y,
-                            out bool paragraphRelative, out double? horizontalMarginOrigin)) {
+                            out bool paragraphRelative, out double? horizontalMarginOrigin, allowInFrontOfText: runningStory)) {
                         if (native) {
                             renderFlowObject?.Invoke(scene);
                             renderedFlowObject = true;
@@ -95,7 +97,8 @@ namespace OfficeIMO.Word.Pdf {
                         }
                         WarnNativeGroup(options, "native-shape-group-vml-fallback", "The shape group was rendered through its VML fallback because its DrawingML geometry or transforms are unsupported.");
                     }
-                    AddNativeGroupCanvas(style, canvas, paragraphRelative, layout.RelativeHeight, horizontalMarginOrigin);
+                    AddNativeGroupCanvas(style, canvas, paragraphRelative, layout.RelativeHeight, horizontalMarginOrigin,
+                        inFrontOfText: !layout.BehindDocument);
                 }
                 foreach (V.Group legacy in run.EnumerateEffectiveRunContent().SelectMany(child => child.Descendants().Prepend(child))
                     .OfType<V.Group>().Where(group => !group.Ancestors<V.Group>().Any())) {
@@ -106,7 +109,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static void AddNativeGroupCanvas(PdfCore.PdfParagraphStyle style, PdfCore.PdfPageCanvas canvas,
-            bool paragraphRelative, long zOrder, double? horizontalMarginOrigin = null) {
+            bool paragraphRelative, long zOrder, double? horizontalMarginOrigin = null, bool inFrontOfText = false) {
             var combined = new PdfCore.PdfPageCanvas();
             if (style.AnchoredCanvas != null) combined.AddItems(style.AnchoredCanvas.Items);
             IReadOnlyList<PdfCore.PdfCanvasItem> items = canvas.Items;
@@ -114,7 +117,9 @@ namespace OfficeIMO.Word.Pdf {
                 items = new PdfCore.PdfCanvasItem[] { new PdfCore.PdfCanvasMarginAnchorItem(items, horizontalMarginOrigin.Value) };
             if (paragraphRelative)
                 items = new PdfCore.PdfCanvasItem[] { new PdfCore.PdfCanvasParagraphAnchorItem(items) };
-            combined.AddItems(new[] { new PdfCore.PdfCanvasBehindTextItem(items, zOrder) });
+            combined.AddItems(new PdfCore.PdfCanvasItem[] { inFrontOfText
+                ? new PdfCore.PdfCanvasInFrontOfTextItem(items, zOrder)
+                : new PdfCore.PdfCanvasBehindTextItem(items, zOrder) });
             style.AnchoredCanvas = new PdfCore.PdfCanvasBlock(combined.Items);
         }
 
@@ -157,11 +162,11 @@ namespace OfficeIMO.Word.Pdf {
 
         private static bool TryGetNativeGroupPosition(PdfCore.PdfPageSize pageSize, WordParagraph paragraph,
             WordDrawingLayoutInfo layout, WordPdfExportOptions? options, out double x, out double y,
-            out bool paragraphRelative, out double? horizontalMarginOrigin) {
+            out bool paragraphRelative, out double? horizontalMarginOrigin, bool allowInFrontOfText = false) {
             x = y = 0D;
             horizontalMarginOrigin = null;
             paragraphRelative = layout.VerticalRelativeFrom == "paragraph";
-            if (layout.Wrap != WordDrawingWrapKind.None || !layout.BehindDocument) return false;
+            if (layout.Wrap != WordDrawingWrapKind.None || !layout.BehindDocument && !allowInFrontOfText) return false;
             PdfCore.PdfPageMargins margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(0D));
             if (layout.HorizontalRelativeFrom == "margin" || layout.VerticalRelativeFrom == "margin") {
                 if (paragraph.Parent is not WordSection section) return false;

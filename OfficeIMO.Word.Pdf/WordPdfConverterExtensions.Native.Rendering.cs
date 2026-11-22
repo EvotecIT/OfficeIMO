@@ -181,7 +181,9 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             int groupedImageCount = 0;
-            bool renderedFlowObject = RenderNativeParagraphShapeGroups(pdf, paragraph, runs, objectAlign, options, style, ref groupedImageCount, objectSpacing);
+            bool runningStory = nativeDefaults.RunningContentContext != null;
+            bool renderedFlowObject = RenderNativeParagraphShapeGroups(pdf, paragraph, runs, objectAlign, options, style, ref groupedImageCount, objectSpacing,
+                runningStory);
             renderedFlowObject |= RenderNativeSmartArt(pdf, smartArtDrawings, objectAlign, objectSpacing);
             if (currentShape != null) {
                 renderedFlowObject |= RenderNativeShape(pdf, currentShape, spacingAfter: objectOnly ? 0D : 6D, paragraphSpacing: objectSpacing);
@@ -190,7 +192,7 @@ namespace OfficeIMO.Word.Pdf {
             IReadOnlyDictionary<DocumentFormat.OpenXml.OpenXmlElement, PdfCore.PdfTextRun> inlineImages =
                 CreateNativeFlowInlineImages(paragraph, runs, !hasEquationContent, options);
             renderedFlowObject |= RenderNativeParagraphImages(pdf, paragraph, runs, objectAlign, options, style, groupedImageCount, objectSpacing, inlineImages,
-                nativeDefaults.RunningContentSection);
+                nativeDefaults.RunningContentSection, runningStory);
             needsAnchorLine = style.AnchoredCanvas != null && inlineImages.Count == 0 &&
                 !runs.Any(run => IsNativeRenderableTextRun(run, paragraph) && !string.IsNullOrWhiteSpace(run.Text)) &&
                 string.IsNullOrWhiteSpace(renderContent) && marker == null && paragraphFootnoteNumbers.Count == 0;
@@ -787,7 +789,8 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static bool RenderNativeParagraphImages(INativePdfFlow pdf, WordParagraph paragraph, IReadOnlyList<WordParagraph> runs, global::OfficeIMO.OfficeAlignment align, WordPdfExportOptions? options, PdfCore.PdfParagraphStyle anchorStyle, int groupedImageCount, NativeObjectParagraphSpacing? paragraphSpacing, IReadOnlyDictionary<DocumentFormat.OpenXml.OpenXmlElement, PdfCore.PdfTextRun>? inlineImages = null, WordSection? anchorSection = null) {
+        private static bool RenderNativeParagraphImages(INativePdfFlow pdf, WordParagraph paragraph, IReadOnlyList<WordParagraph> runs, global::OfficeIMO.OfficeAlignment align, WordPdfExportOptions? options, PdfCore.PdfParagraphStyle anchorStyle, int groupedImageCount, NativeObjectParagraphSpacing? paragraphSpacing, IReadOnlyDictionary<DocumentFormat.OpenXml.OpenXmlElement, PdfCore.PdfTextRun>? inlineImages = null, WordSection? anchorSection = null,
+            bool runningStory = false) {
             int imageLimit = options?.MaxImagesPerParagraph ?? 1_000;
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(imageLimit, nameof(WordPdfExportOptions.MaxImagesPerParagraph));
             var positions = paragraph._paragraph!.Descendants().Select((element, index) => (element, index))
@@ -819,7 +822,8 @@ namespace OfficeIMO.Word.Pdf {
             foreach (var image in images.OrderBy(item => item.Position)) {
                 options?.CancellationToken.ThrowIfCancellationRequested();
                 if (inlineImages?.ContainsKey(image.Image.OccurrenceElement) == true) continue;
-                renderedFlowObject |= RenderNativeImage(pdf, image.Image, align, options, "body paragraph image", anchorStyle, anchoredCanvas, paragraphSpacing, paragraph, anchorSection);
+                renderedFlowObject |= RenderNativeImage(pdf, image.Image, align, options, "body paragraph image", anchorStyle, anchoredCanvas, paragraphSpacing, paragraph, anchorSection,
+                    runningStory);
             }
             if (anchoredCanvas.Items.Count > 0)
                 anchorStyle.AnchoredCanvas = new PdfCore.PdfCanvasBlock(anchoredCanvas.Items);

@@ -68,11 +68,16 @@ public static partial class WordPdfConverterExtensions {
                 // Inline pictures retain their measured line height; supported
                 // qualified anchors retain paragraph/page placement without
                 // reserving their paint frame as flowing header/footer content.
+                // Anchored shape groups keep their own placement in the story's drawing layers.
+                bool placedGroups = CanPlaceNativeRunningShapeGroups(GetNativePageSize(section, options), paragraph, options);
                 ordinaryStoriesSupported &= source.Descendants<W.Drawing>()
-                    .All(drawing => IsNativePlacedRunningTextBoxDrawing(drawing) || IsNativeRunningPictureDrawing(drawing, section, options, margins)) &&
-                    source.Descendants<W.Picture>().All(picture => IsNativePlacedRunningTextBoxFallback(picture) || IsNativeRunningVmlPicture(picture)) &&
+                    .All(drawing => IsNativePlacedRunningTextBoxDrawing(drawing) || IsNativeRunningPictureDrawing(drawing, section, options, margins) ||
+                        placedGroups && IsNativeShapeGroupDrawing(drawing)) &&
+                    source.Descendants<W.Picture>().All(picture => IsNativePlacedRunningTextBoxFallback(picture) || IsNativeRunningVmlPicture(picture) ||
+                        placedGroups && IsNativeShapeGroupFallback(picture)) &&
                     !source.Descendants<W.EmbeddedObject>().Any() &&
-                    source.Descendants<AlternateContent>().All(IsNativePlacedRunningTextBoxAlternate) && !HasNativePageBreakBefore(paragraph) &&
+                    source.Descendants<AlternateContent>().All(alternate => IsNativePlacedRunningTextBoxAlternate(alternate) ||
+                        placedGroups && IsNativeShapeGroupAlternate(alternate)) && !HasNativePageBreakBefore(paragraph) &&
                     !source.Descendants<W.Break>().Any(item => item.Type?.Value == W.BreakValues.Page ||
                         item.Type?.Value == W.BreakValues.Column);
                 WordDocumentTraversal.ListInfo? info = WordDocumentTraversal.GetListInfo(paragraph);
@@ -123,6 +128,36 @@ public static partial class WordPdfConverterExtensions {
         }
         return true;
     }
+
+    /// <summary>
+    /// Every DrawingML shape group of a header or footer paragraph is anchored and keeps its fixed placement.
+    /// Groups that would flow or cannot be drawn keep the story on its established simple projection.
+    /// </summary>
+    private static bool CanPlaceNativeRunningShapeGroups(PdfCore.PdfPageSize pageSize, WordParagraph paragraph, WordPdfExportOptions? options) {
+        if (!paragraph._paragraph.Descendants<W.Drawing>().Any(IsNativeShapeGroupDrawing)) return false;
+        List<WordParagraph> runs = GetNativeRuns(paragraph);
+        int groups = runs.SelectMany(run => run.EnumerateEffectiveRunContent().OfType<W.Drawing>()).Count(IsNativeShapeGroupDrawing);
+        var style = new PdfCore.PdfParagraphStyle();
+        int imageCount = 0;
+        bool flowed = false;
+        // A read-only projection: keep its warnings out of the real operation.
+        ProjectNativeParagraphShapeGroups(pageSize, paragraph, runs, options?.CloneForConversion(), style,
+            _ => flowed = true, ref imageCount, runningStory: true);
+        return !flowed && groups > 0 && style.AnchoredCanvas?.Items.Count == groups;
+    }
+
+    private static bool IsNativeShapeGroupDrawing(W.Drawing drawing) =>
+        drawing.Descendants<DocumentFormat.OpenXml.Drawing.GraphicData>().Any(data => data.ChildElements
+            .Any(child => child.NamespaceUri == NativeWordGroupNamespace && child.LocalName == "wgp"));
+
+    // Word stores a VML copy of a DrawingML group as the compatibility fallback.
+    private static bool IsNativeShapeGroupFallback(W.Picture picture) =>
+        picture.Ancestors<AlternateContentFallback>().FirstOrDefault()?.Parent is AlternateContent alternate && IsNativeShapeGroupAlternate(alternate);
+
+    private static bool IsNativeShapeGroupAlternate(AlternateContent alternate) =>
+        alternate.Elements<AlternateContentChoice>().Any() &&
+        alternate.Elements<AlternateContentChoice>().All(choice => choice.Descendants<W.Drawing>().Any() &&
+            choice.Descendants<W.Drawing>().All(IsNativeShapeGroupDrawing));
 
     private static bool IsNativePlacedRunningTextBoxDrawing(W.Drawing drawing) =>
         drawing.Descendants<W.TextBoxContent>().Any() || drawing.Ancestors<W.TextBoxContent>().Any();
