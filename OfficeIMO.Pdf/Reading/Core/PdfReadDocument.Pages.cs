@@ -92,6 +92,14 @@ internal sealed partial class PdfReadDocument {
         foreach (var kid in kids.Items) {
             cancellationToken.ThrowIfCancellationRequested();
             if (limit.HasValue && outList.Count >= limit.Value) return;
+            if (TryGetUnbuiltLeafPage(kid, out PdfIndirectObject? leafPage)) {
+                // A leaf page whose load scan recorded /Type /Page is added without building its dictionary.
+                if (visitedPages.Add(leafPage.ObjectNumber)) {
+                    AddPageWithinBudget(outList, CreateReadPage(leafPage));
+                    if (limit.HasValue && outList.Count >= limit.Value) return;
+                }
+                continue;
+            }
             var d = ResolveDict(kid);
             if (d is null) { continue; }
             var t = d.Get<PdfName>("Type")?.Name;
@@ -115,12 +123,44 @@ internal sealed partial class PdfReadDocument {
             _objects,
             _options.Limits,
             _fontResourceCache,
-            DemandTextExtraction,
-            DemandContentExtraction,
+            DemandTextExtractionAction,
+            DemandContentExtractionAction,
             _options.IncludeArtifactText,
             _outputIntentColorTransform,
             _optionalContentVisibilityState,
             _options.PreferToUnicode, _options.UseWinAnsiFallback, _options.AdjustKerningFromTJ);
+
+    private PdfReadPage CreateReadPage(PdfIndirectObject pageObject) =>
+        new PdfReadPage(
+            pageObject.ObjectNumber,
+            pageObject,
+            _objects,
+            _options.Limits,
+            _fontResourceCache,
+            DemandTextExtractionAction,
+            DemandContentExtractionAction,
+            _options.IncludeArtifactText,
+            _outputIntentColorTransform,
+            _optionalContentVisibilityState,
+            _options.PreferToUnicode, _options.UseWinAnsiFallback, _options.AdjustKerningFromTJ);
+
+    // Every page shares the document's permission checks, so the delegates are created once.
+    private Action DemandTextExtractionAction => _demandTextExtractionAction ??= DemandTextExtraction;
+
+    private Action<string> DemandContentExtractionAction => _demandContentExtractionAction ??= DemandContentExtraction;
+
+    private bool TryGetUnbuiltLeafPage(PdfObject kid, out PdfIndirectObject page) {
+        page = null!;
+        if (kid is not PdfReference reference ||
+            !PdfObjectLookup.TryGet(_objects, reference, out PdfIndirectObject indirect) ||
+            !indirect.TryGetUnbuiltSummary(out PdfDeferredObjectSummary summary) ||
+            !string.Equals(summary.KnownType, "Page", StringComparison.Ordinal)) {
+            return false;
+        }
+
+        page = indirect;
+        return true;
+    }
 
     private HashSet<int> CollectReachableLeafCandidates(PdfDictionary pagesRoot, System.Threading.CancellationToken cancellationToken) {
         var set = new HashSet<int>();

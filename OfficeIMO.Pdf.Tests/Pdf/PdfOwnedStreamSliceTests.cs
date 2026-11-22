@@ -100,12 +100,12 @@ public sealed class PdfOwnedStreamSliceTests {
     }
 
     [Fact]
-    public void LoadedDocumentRetainsItsCallerSnapshotAfterInputMutation() {
+    public void SnapshotLoadRetainsItsCopyAfterInputMutation() {
         byte[] callerBytes = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.AddText("Caller snapshot"))
             .ToBytes();
         byte[] expected = (byte[])callerBytes.Clone();
-        PdfDocument document = PdfDocument.Load(callerBytes);
+        PdfDocument document = PdfDocument.LoadSnapshot(callerBytes);
 
         Array.Clear(callerBytes, 0, callerBytes.Length);
 

@@ -18,5 +18,5 @@ public sealed class PdfPageRewriteResult {
     public IReadOnlyDictionary<int, int> ObjectNumberMap { get; }
 
     /// <summary>Opens the rewritten document with the source read options.</summary>
-    public PdfDocument ToDocument() => PdfDocument.Load(_bytes, _readOptions);
+    public PdfDocument ToDocument() => PdfDocument.LoadSnapshot(_bytes, _readOptions);
 }

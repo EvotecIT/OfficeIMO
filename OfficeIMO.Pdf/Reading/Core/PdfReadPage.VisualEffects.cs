@@ -104,7 +104,7 @@ public sealed partial class PdfReadPage {
     }
 
     private bool HasSupportedType3PageBlendColorSpace() {
-        if (!_pageDict.Items.TryGetValue("Group", out PdfObject? groupObject)) return true;
+        if (!PageDictionary.Items.TryGetValue("Group", out PdfObject? groupObject)) return true;
         PdfObject? resolvedGroup = ResolveEffectObject(groupObject);
         if (resolvedGroup is PdfNull) return true;
         if (resolvedGroup is not PdfDictionary group ||
@@ -1135,9 +1135,9 @@ public sealed partial class PdfReadPage {
         var spans = new List<PdfTextSpan>();
         var actualTextScopes = new List<TextContentParser.DrawingActualTextScope>();
         Dictionary<string, Func<byte[], int, string>> decoders = MergeDecoders(
-            ResourceResolver.GetBudgetedFontDecoders(_pageDict, _objects),
+            ResourceResolver.GetBudgetedFontDecoders(PageDictionary, _objects),
             ResourceResolver.GetBudgetedFontDecodersForForm(form.Dictionary, _objects));
-        Dictionary<string, Func<byte[], double>> widthProviders = MergeWidthProviders(ResourceResolver.GetFontWidthProviders(_pageDict, _objects), ResourceResolver.GetFontWidthProviders(form.Dictionary, _objects));
+        Dictionary<string, Func<byte[], double>> widthProviders = MergeWidthProviders(ResourceResolver.GetFontWidthProviders(PageDictionary, _objects), ResourceResolver.GetFontWidthProviders(form.Dictionary, _objects));
         Dictionary<string, PdfFontResource> fonts = MergeFonts(_fontResourceCache.GetFonts(pageResources, _objects, forDrawing: true, cancellationToken), _fontResourceCache.GetFonts(resources, _objects, forDrawing: true, cancellationToken));
         string transformedContent = WrapContentWithTransform(content, transform, out int transformedOffset);
         CollectTextAndForms(

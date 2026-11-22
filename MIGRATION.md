@@ -5350,6 +5350,18 @@ These parameter aliases stay removed. Command aliases such as `ExcelExport` are 
 | `-Values` | `-InputObject` | `Add-OfficeExcelTableRow` |
 | `-Values` | `-Value` | `Add-OfficePowerPointTableRow`, `Get-OfficeExcelTemplateMarker`, `Invoke-OfficeExcelTemplate`, `Set-OfficeExcelAutoFilter` |
 
+## PDF byte arrays are read in place
+
+`PdfDocument.Load(byte[], PdfLoadOptions?)` is now public and reads the array without copying it.
+Page dictionaries and other objects are parsed from the array when they are first read, and saving
+writes from it, so keep the array unchanged while the document is in use. Changing it afterwards
+gives undefined results: reads may return the changed content or fail. Copy the array first, or
+load from a stream, when you need to reuse the buffer, for example a buffer rented from
+`ArrayPool<byte>`.
+
+`PdfDocument.Load(Stream)`, `Load(string)` and `LoadAsync` still read the input once into a buffer
+the document owns, so the stream or file can be closed, disposed or changed after loading.
+
 ## PDF text extraction keeps the readable part of damaged documents
 
 `PdfDocument.ExtractText()` no longer throws when part of a document cannot be read. With the

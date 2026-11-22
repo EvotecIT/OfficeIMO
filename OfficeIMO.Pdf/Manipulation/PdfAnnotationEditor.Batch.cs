@@ -81,7 +81,7 @@ internal static partial class PdfAnnotationEditor {
         PdfAnnotation[] selected, double deltaX, double deltaY, bool visualOffset, CancellationToken cancellationToken) {
         int[] pageNumbers = selected.Select(annotation => annotation.PageNumber!.Value).Distinct().ToArray();
         if (!visualOffset) return pageNumbers.ToDictionary(number => number, _ => new PdfPagePoint(deltaX, deltaY));
-        var pages = PdfDocument.Load(pdf, readOptions).GetPageLayouts(readOptions, cancellationToken);
+        var pages = PdfDocument.LoadSnapshot(pdf, readOptions).GetPageLayouts(readOptions, cancellationToken);
         return pageNumbers.ToDictionary(number => number, number => {
             var page = pages[number - 1];
             var origin = page.MapVisualPointToUserSpace(0, 0);

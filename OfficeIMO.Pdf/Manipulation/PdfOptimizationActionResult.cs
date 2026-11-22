@@ -102,6 +102,6 @@ public sealed class PdfOptimizationActionResult {
     public int SkippedActionCount => SkippedActions.Count;
 
     /// <summary>Opens the selected optimized or original bytes through the fluent document API.</summary>
-    public PdfDocument ToDocument(PdfLoadOptions? readOptions = null) => PdfDocument.Load(_bytes, readOptions ?? _readOptions);
+    public PdfDocument ToDocument(PdfLoadOptions? readOptions = null) => PdfDocument.LoadSnapshot(_bytes, readOptions ?? _readOptions);
 
 }

@@ -220,7 +220,7 @@ public sealed partial class PdfDocument {
             id,
             operation,
             sourcePdf,
-            pdf => rewrite(Load(pdf)).GetBytesForOperation()) {
+            pdf => rewrite(LoadSnapshot(pdf)).GetBytesForOperation()) {
                 ExpectedClassification = expectedClassification,
                 PreservationOptions = options
             };

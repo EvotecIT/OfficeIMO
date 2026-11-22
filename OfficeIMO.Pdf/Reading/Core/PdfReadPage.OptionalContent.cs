@@ -40,7 +40,7 @@ public sealed partial class PdfReadPage {
         bool printableAnnotationsOnly = false, bool unsupportedOnly = false) {
         cancellationToken.ThrowIfCancellationRequested();
         OptionalContentUsageInspectionObserverForTesting?.Invoke();
-        if (HasRelevantOptionalContentEntry(_pageDict, hiddenOnly, unsupportedOnly)) return true;
+        if (HasRelevantOptionalContentEntry(PageDictionary, hiddenOnly, unsupportedOnly)) return true;
 
         PdfDictionary? resources = ResolveDictionary(GetInheritedValue("Resources"));
         var activeStreams = new HashSet<PdfStream>();
@@ -55,7 +55,7 @@ public sealed partial class PdfReadPage {
                 depth: 0, hiddenOnly, unsupportedOnly)) return true;
 
         PdfArray? annotations = ResolveArray(
-            _pageDict.Items.TryGetValue("Annots", out PdfObject? annotationsObject) ? annotationsObject : null);
+            PageDictionary.Items.TryGetValue("Annots", out PdfObject? annotationsObject) ? annotationsObject : null);
         if (annotations == null) return false;
         EnsureAnnotationBudget(annotations);
         for (int index = 0; index < annotations.Items.Count; index++) {
@@ -350,12 +350,12 @@ public sealed partial class PdfReadPage {
         cancellationToken.ThrowIfCancellationRequested();
         var fonts = new Dictionary<PdfDictionary, HashSet<int>>();
         PdfDictionary? resources = ResolveDictionary(GetInheritedValue("Resources"));
-        if (!IsDefinitelyPrintVisible(_pageDict, resources)) return fonts;
+        if (!IsDefinitelyPrintVisible(PageDictionary, resources)) return fonts;
         var budget = new PageContentBudget(this, cancellationToken);
         var activeForms = new HashSet<PdfStream>();
         Scan(GetContentStreamContent(budget), resources, initialFont: null, depth: 0);
         PdfArray? annotations = ResolveArray(
-            _pageDict.Items.TryGetValue("Annots", out PdfObject? annotationsObject) ? annotationsObject : null);
+            PageDictionary.Items.TryGetValue("Annots", out PdfObject? annotationsObject) ? annotationsObject : null);
         if (annotations != null) {
             EnsureAnnotationBudget(annotations);
             foreach (PdfObject item in annotations.Items) {
@@ -459,7 +459,7 @@ public sealed partial class PdfReadPage {
         cancellationToken.ThrowIfCancellationRequested();
         var keys = new HashSet<PdfContentOrderKey>();
         PdfDictionary? resources = ResolveDictionary(GetInheritedValue("Resources"));
-        if (!IsDefinitelyPrintVisible(_pageDict, resources)) return keys;
+        if (!IsDefinitelyPrintVisible(PageDictionary, resources)) return keys;
         var budget = new PageContentBudget(this, cancellationToken);
         var activeForms = new HashSet<PdfStream>();
         Scan(GetContentStreamContent(budget), resources, PdfContentOrderKey.Root, 0);

@@ -2,7 +2,7 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Publishes one completed read result while keeping callers' waits cancellable.</summary>
 internal sealed class PdfReadCache<T> {
-    private readonly object _sync = new();
+    // The cache is never exposed, so it is its own lock; a separate lock object per cache added up across pages.
     private T _value = default!;
     private int _initialized;
 
@@ -18,7 +18,7 @@ internal sealed class PdfReadCache<T> {
         cancellationToken.ThrowIfCancellationRequested();
         if (Volatile.Read(ref _initialized) != 0) return _value;
 
-        while (!Monitor.TryEnter(_sync, millisecondsTimeout: 25)) {
+        while (!Monitor.TryEnter(this, millisecondsTimeout: 25)) {
             cancellationToken.ThrowIfCancellationRequested();
         }
         try {
@@ -31,7 +31,7 @@ internal sealed class PdfReadCache<T> {
             }
             return _value;
         } finally {
-            Monitor.Exit(_sync);
+            Monitor.Exit(this);
         }
     }
 }

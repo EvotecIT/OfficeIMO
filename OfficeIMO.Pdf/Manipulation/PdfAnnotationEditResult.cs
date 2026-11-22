@@ -45,7 +45,7 @@ public sealed class PdfAnnotationEditResult {
     public bool Applied => AffectedAnnotationCount > 0;
 
     /// <summary>Opens the edited bytes through the fluent document API.</summary>
-    public PdfDocument ToDocument(PdfLoadOptions? readOptions = null) => PdfDocument.Load(_bytes, readOptions ?? _readOptions);
+    public PdfDocument ToDocument(PdfLoadOptions? readOptions = null) => PdfDocument.LoadSnapshot(_bytes, readOptions ?? _readOptions);
 
     internal PdfLoadOptions OutputReadOptions => _readOptions!;
 }

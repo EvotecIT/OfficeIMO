@@ -60,7 +60,7 @@ public sealed partial class PdfReadPage {
     }
 
     private PdfObject? GetDirectValue(string key) {
-        return _pageDict.Items.TryGetValue(key, out PdfObject? value) ? value : null;
+        return PageDictionary.Items.TryGetValue(key, out PdfObject? value) ? value : null;
     }
 
     private string? TryReadDirectName(string key) {

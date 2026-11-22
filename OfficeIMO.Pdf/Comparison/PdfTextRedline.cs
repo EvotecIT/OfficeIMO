@@ -337,7 +337,7 @@ internal sealed class PdfRedlineText {
     internal string PlainText => _text.ToString();
 
     internal static PdfRedlineText Read(byte[] pdf, PdfLoadOptions? readOptions, string parameterName, string label, CancellationToken cancellationToken) {
-        PdfDocumentReadResult document = PdfDocument.Load(pdf, readOptions).Read(new PdfLoadOptions { LayoutOptions = new PdfTextLayoutOptions() }, cancellationToken);
+        PdfDocumentReadResult document = PdfDocument.LoadSnapshot(pdf, readOptions).Read(new PdfLoadOptions { LayoutOptions = new PdfTextLayoutOptions() }, cancellationToken);
         var text = new PdfRedlineText();
         int lineKey = 0;
         foreach (PdfLogicalPage page in document.Pages) {

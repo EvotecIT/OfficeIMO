@@ -121,5 +121,5 @@ public sealed class PdfJavaScriptEditResult {
     public byte[] ToBytes() => (byte[])_pdf.Clone();
 
     /// <summary>Opens the edited artifact as a fluent PDF document.</summary>
-    public PdfDocument ToDocument() => PdfDocument.Load(_pdf, _readOptions);
+    public PdfDocument ToDocument() => PdfDocument.LoadSnapshot(_pdf, _readOptions);
 }

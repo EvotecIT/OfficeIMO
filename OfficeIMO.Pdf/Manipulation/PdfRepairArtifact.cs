@@ -54,7 +54,7 @@ public sealed class PdfRepairArtifactResult {
     /// <summary>Returns an independent copy of the normalized artifact.</summary>
     public byte[] ToBytes() => (byte[])_pdf.Clone();
     /// <summary>Opens the normalized artifact through the public document API.</summary>
-    public PdfDocument ToDocument(PdfLoadOptions? readOptions = null) => PdfDocument.Load(_pdf, readOptions ?? _readOptions);
+    public PdfDocument ToDocument(PdfLoadOptions? readOptions = null) => PdfDocument.LoadSnapshot(_pdf, readOptions ?? _readOptions);
 }
 
 /// <summary>Creates bounded repair artifacts only for defects the parser recovered explicitly.</summary>

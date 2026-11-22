@@ -8,7 +8,7 @@ public sealed partial class PdfReadPage {
     /// <summary>Visits existing viewable normal appearances without requiring content-copy authorization.</summary>
     internal void VisitNormalAppearanceStreams(Action<PdfStream, PdfDictionary?> visit,
         System.Threading.CancellationToken cancellationToken) {
-        if (!_pageDict.Items.TryGetValue("Annots", out PdfObject? value) || ResolveArray(value) is not PdfArray annotations) return;
+        if (!PageDictionary.Items.TryGetValue("Annots", out PdfObject? value) || ResolveArray(value) is not PdfArray annotations) return;
         EnsureAnnotationBudget(annotations);
         PdfDictionary? pageResources = ResolveDictionary(GetInheritedValue("Resources"));
         foreach (PdfObject item in annotations.Items) {

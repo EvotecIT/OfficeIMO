@@ -104,10 +104,32 @@ public sealed partial class PdfDocument : IDisposable {
         return new PdfDocument(options).Compose(compose);
     }
 
+#pragma warning disable RS0026, RS0027 // Every source has an overload with optional settings and one with cancellation.
+    /// <summary>
+    /// Loads a PDF from a byte array without copying it.
+    /// </summary>
+    /// <param name="pdf">The complete PDF file. The document reads it in place, so keep it unchanged while the document is in use.</param>
+    /// <param name="loadOptions">Optional password, parsing mode, and read limits.</param>
+    /// <remarks>
+    /// Objects and page dictionaries are parsed from <paramref name="pdf"/> when they are first read, and saving writes
+    /// from it, so changing the array after loading gives undefined results: reads may return the changed content or
+    /// fail. Use <see cref="Load(Stream, PdfLoadOptions?)"/> or copy the array first when it must be reused.
+    /// </remarks>
+    public static PdfDocument Load(byte[] pdf, PdfLoadOptions? loadOptions = null) =>
+        new PdfDocument(PdfDocumentSource.FromCallerArray(pdf, loadOptions));
+
+    /// <summary>Loads a PDF from a byte array without copying it, with cooperative cancellation.</summary>
+    /// <param name="pdf">The complete PDF file. The document reads it in place, so keep it unchanged while the document is in use.</param>
+    /// <param name="loadOptions">Optional password, parsing mode, and read limits.</param>
+    /// <param name="cancellationToken">Cancels the initial parse.</param>
+    /// <remarks>See <see cref="Load(byte[], PdfLoadOptions?)"/> for the lifetime of <paramref name="pdf"/>.</remarks>
+    public static PdfDocument Load(byte[] pdf, PdfLoadOptions? loadOptions, CancellationToken cancellationToken) =>
+        new PdfDocument(PdfDocumentSource.FromCallerArray(pdf, loadOptions), cancellationToken);
+
     /// <summary>
     /// Loads an existing PDF from bytes and snapshots the caller-owned input once.
     /// </summary>
-    internal static PdfDocument Load(byte[] pdf, PdfLoadOptions? loadOptions = null) =>
+    internal static PdfDocument LoadSnapshot(byte[] pdf, PdfLoadOptions? loadOptions = null) =>
         new PdfDocument(PdfDocumentSource.FromCallerBytes(pdf, loadOptions));
 
     /// <summary>
@@ -134,6 +156,10 @@ public sealed partial class PdfDocument : IDisposable {
     /// <summary>
     /// Loads a complete PDF from a readable stream. Seekable streams are read from the beginning and restored.
     /// </summary>
+    /// <remarks>
+    /// The stream is read once into a buffer the document owns, so it can be disposed or reused after this call.
+    /// To avoid that copy when the file is already in a byte array, use <see cref="Load(byte[], PdfLoadOptions?)"/>.
+    /// </remarks>
     public static PdfDocument Load(Stream stream, PdfLoadOptions? loadOptions = null) =>
         new PdfDocument(PdfDocumentSource.FromStream(stream, loadOptions));
 
@@ -144,6 +170,7 @@ public sealed partial class PdfDocument : IDisposable {
     /// <summary>Loads a bounded stream snapshot with cooperative cancellation and preserves seekable stream position.</summary>
     public static PdfDocument Load(Stream stream, PdfLoadOptions? loadOptions, CancellationToken cancellationToken) =>
         new PdfDocument(PdfDocumentSource.FromStream(stream, loadOptions, cancellationToken), cancellationToken);
+#pragma warning restore RS0026, RS0027
 
     /// <summary>Asynchronously loads an existing PDF from a bounded file snapshot.</summary>
     public static async Task<PdfDocument> LoadAsync(

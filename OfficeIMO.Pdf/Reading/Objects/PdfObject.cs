@@ -304,7 +304,11 @@ internal sealed class PdfDeferredObjectSource {
 /// top-level facts. It is recorded only for objects whose syntax is complete and unambiguous.
 /// </summary>
 internal sealed class PdfDeferredObjectSummary {
-    internal PdfDeferredObjectSummary(int start, int length, long[] references, string? knownType, string? knownSubtype, bool hasEncryptKey, bool mayCarrySignatureData, ulong markerNames) {
+    /// <summary>Marks <see cref="ParentReference"/> when the value has no top-level /Parent given by reference.</summary>
+    internal const long NoReference = -1;
+
+    internal PdfDeferredObjectSummary(int start, int length, long[] references, string? knownType, string? knownSubtype, bool hasEncryptKey, bool mayCarrySignatureData, ulong markerNames, long parentReference = NoReference) {
+        ParentReference = parentReference;
         Start = start;
         Length = length;
         References = references;
@@ -319,6 +323,12 @@ internal sealed class PdfDeferredObjectSummary {
     /// One bit for each whole-document feature-marker name that occurs as a key or name value at any depth of the value.
     /// </summary>
     internal ulong MarkerNames { get; }
+
+    /// <summary>
+    /// The top-level /Parent when it is a reference, as object number (high 32 bits) and generation (low 32 bits);
+    /// otherwise <see cref="NoReference"/>. The page-tree walk checks a leaf page's parent link with it.
+    /// </summary>
+    internal long ParentReference { get; }
 
     /// <summary>Offset of the object in its source's decoded bytes.</summary>
     internal int Start { get; }

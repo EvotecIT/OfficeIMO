@@ -141,7 +141,7 @@ public sealed class PdfBatesDocumentResult {
     /// <summary>Returns an independent copy of the numbered PDF.</summary>
     public byte[] ToBytes() => (byte[])_pdf.Clone();
     /// <summary>Opens the numbered PDF through the public document API.</summary>
-    public PdfDocument ToDocument(PdfLoadOptions? readOptions = null) => PdfDocument.Load(_pdf, readOptions ?? _readOptions);
+    public PdfDocument ToDocument(PdfLoadOptions? readOptions = null) => PdfDocument.LoadSnapshot(_pdf, readOptions ?? _readOptions);
 }
 
 /// <summary>Continuous Bates-numbering outputs and assignments for a complete batch.</summary>

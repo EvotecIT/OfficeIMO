@@ -72,5 +72,5 @@ internal sealed class PdfSanitizationResult {
     internal PdfLoadOptions ReadOptions => _readOptions;
 
     /// <summary>Opens the sanitized artifact as a fluent PDF document.</summary>
-    public PdfDocument ToDocument() => PdfDocument.Load(_pdfBytes, _readOptions);
+    public PdfDocument ToDocument() => PdfDocument.LoadSnapshot(_pdfBytes, _readOptions);
 }
