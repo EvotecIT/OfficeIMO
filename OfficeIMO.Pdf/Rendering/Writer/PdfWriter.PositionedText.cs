@@ -17,7 +17,7 @@ internal static partial class PdfWriter {
             RichSeg segment = CreatePositionedTextSegment(part, options.DefaultFontSize.ToPoints(), options);
             width += GetRichSegmentWidth(segment);
             double size = EffectiveRichFontSize(segment.FontSize, segment.Baseline);
-            double rise = TextRiseForBaseline(segment.FontSize, segment.Baseline);
+            double rise = TextRiseForBaseline(segment.FontSize, segment.Baseline) + segment.BaselineShift;
             ascent = Math.Max(ascent, rise + GetAscenderForOptions(segment.Font, segment.NamedFont, size, options));
             descent = Math.Max(descent, GetDescenderForOptions(segment.Font, segment.NamedFont, size, options) - rise);
         }
@@ -52,7 +52,7 @@ internal static partial class PdfWriter {
             underlineStyle: run.UnderlineStyle, strikeStyle: run.StrikeStyle,
             decorationColor: run.DecorationColor, featureSettings: run.FeatureSettings,
             textDirection: run.TextDirection, horizontalTextScaling: run.HorizontalTextScaling, characterSpacing: (run.CharacterSpacing.ToPoints()), fontMetricScale: fontMetricScale,
-            preservesPaintedGlyphs: run.PreservesPaintedGlyphs, formField: run.FormField);
+            preservesPaintedGlyphs: run.PreservesPaintedGlyphs, formField: run.FormField, baselineShift: run.BaselineShift);
     }
 
     private static double MeasurePositionedTextWidth(

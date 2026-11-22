@@ -17,6 +17,14 @@ namespace OfficeIMO.Word.Pdf {
                 ? link : null;
         }
 
+        // Word lays an inline picture out with its effect extent, the margin Word records around the
+        // drawing for effects and for rounding the picture to whole pixels. The bottom extent lifts
+        // the picture above the baseline, so it makes the line taller like the picture itself.
+        private static double GetNativeInlineImageBottomExtent(WordImage image) {
+            long? bottom = image._Image?.Inline?.EffectExtent?.BottomEdge?.Value;
+            return bottom is > 0L and <= 12_700L * 1_584L ? bottom.Value / 12_700D : 0D;
+        }
+
         private static bool TryCreateNativeCellInlineImage(WordImage image, out PdfCore.PdfTextRun? run, WordPdfExportOptions? options = null,
             System.Threading.CancellationToken cancellationToken = default, bool reportPreparationWarnings = true,
             bool clipToParagraphFragment = false, string? linkUri = null) {
@@ -26,7 +34,7 @@ namespace OfficeIMO.Word.Pdf {
             double width = image.Width?.ToPoints() ?? 144D;
             double height = image.Height?.ToPoints() ?? 144D;
             run = PdfCore.PdfTextRun.Inline(new PdfCore.PdfInlineImage(prepared, global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height),
-                CreateNativeImageStyle(image, options, "inline image"), baselineOffset: global::OfficeIMO.OfficeLength.Points(0D),
+                CreateNativeImageStyle(image, options, "inline image"), baselineOffset: global::OfficeIMO.OfficeLength.Points(GetNativeInlineImageBottomExtent(image)),
                 linkUri: linkUri) {
                 ClipToParagraphFragment = clipToParagraphFragment
             });

@@ -24,7 +24,7 @@ internal static partial class PdfWriter {
         double size = (run.FontSize?.ToPoints()) ?? options.DefaultFontSize.ToPoints();
         metric.GetDeviceMetrics(EffectiveRichFontSize(size, run.Baseline), pointsPerPixel,
             out double position, out double thickness);
-        return new TextDecorationMeasurement(position + TextRiseForBaseline(size, run.Baseline), thickness);
+        return new TextDecorationMeasurement(position + TextRiseForBaseline(size, run.Baseline) + run.BaselineShift, thickness);
     }
 
     private static OfficeOpenTypeDecorationMetrics? ResolveFontDecorationMetrics(

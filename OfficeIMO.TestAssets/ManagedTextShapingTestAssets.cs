@@ -30,6 +30,20 @@ internal static partial class ManagedTextShapingTestAssets {
     internal static byte[] CreateFontWithEmptyGlyphs(int glyphCount, params int[] scalars) =>
         CreateFontFromCmap(CreateFormat12Cmap(scalars), glyphCount: glyphCount, emptyGlyphs: true);
 
+    /// <summary>Writes OS/2 subscript and superscript sizes and offsets, in font units, into a generated font.</summary>
+    internal static byte[] WithScriptMetrics(byte[] font, short subscriptSize, short subscriptOffset, short superscriptSize, short superscriptOffset) {
+        int tables = font[4] << 8 | font[5];
+        for (int index = 0; index < tables; index++) {
+            int record = 12 + index * 16;
+            if (System.Text.Encoding.ASCII.GetString(font, record, 4) != "OS/2") continue;
+            int os2 = font[record + 8] << 24 | font[record + 9] << 16 | font[record + 10] << 8 | font[record + 11];
+            void Write(int offset, short value) { font[os2 + offset] = (byte)(value >> 8); font[os2 + offset + 1] = (byte)value; }
+            Write(12, subscriptSize); Write(16, subscriptOffset); Write(20, superscriptSize); Write(24, superscriptOffset);
+            return font;
+        }
+        throw new InvalidOperationException("The test font has no OS/2 table.");
+    }
+
     internal static byte[] CreateFontWithLineBoxMetrics(short ascender, short descender, short lineGap,
         ushort windowsDescent, params int[] scalars) {
         int[] ordered = new SortedSet<int>(scalars).ToArray();
@@ -103,12 +117,20 @@ internal static partial class ManagedTextShapingTestAssets {
             glyphCount: baseGlyphCount + 1, colr: colr, cpal: CreateCpalV1());
     }
 
-    internal static byte[] CreateFontWithPairPositioning(int firstScalar, int secondScalar, bool includeSpace = false) {
+    /// <param name="withOs2">Adds an OS/2 table, so script metrics can be written with <see cref="WithScriptMetrics"/>.</param>
+    internal static byte[] CreateFontWithPairPositioning(int firstScalar, int secondScalar, bool includeSpace = false, bool withOs2 = false) {
         if (firstScalar == secondScalar) throw new ArgumentException("Positioning test scalars must be distinct.", nameof(secondScalar));
+        byte[]? os2 = null;
+        if (withOs2) {
+            os2 = new byte[78];
+            WriteUInt16(os2, 4, 400);
+            WriteUInt16(os2, 74, 800);
+            WriteUInt16(os2, 76, 200);
+        }
         return CreateFontFromCmap(
             CreateFormat12Cmap(firstScalar, 1, secondScalar, 2, includeSpace ? 32 : null, 3),
             glyphCount: includeSpace ? 4 : 3,
-            gpos: CreatePairPositioningGpos());
+            gpos: CreatePairPositioningGpos(), os2: os2);
     }
 
     internal static byte[] CreateFontWithMultipleSubstitution(int scalar, string? scriptTag = null, string featureTag = "ccmp") =>

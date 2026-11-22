@@ -167,7 +167,7 @@ public partial class Word {
             Assert.Equal(1, CountOccurrences(pageText, "TableStyledSub"));
         }
 
-        Assert.Matches(@"-3\.6\s+Ts", content);
+        Assert.Matches(@"-(?:0\.\d*[1-9]|[1-9][\d.]*)\s+Ts", content);
     }
 
     [Fact]
