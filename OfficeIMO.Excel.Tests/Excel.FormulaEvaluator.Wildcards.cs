@@ -38,7 +38,9 @@ namespace OfficeIMO.Tests {
             sheet.Cell(1, 1).SetValue("\u212Aelvin");
             sheet.Cell(1, 4).SetFormula("COUNTIFS(A1,\"k*\")");
             Assert.Equal(1, document.Calculate());
-            AssertFormulaCache(sheet, 1, 4, "1");
+            // Matching follows the runtime's invariant case tables, as the Regex it replaced did. .NET maps the Kelvin
+            // sign to 'k'; .NET Framework leaves it unchanged, so neither matched there.
+            AssertFormulaCache(sheet, 1, 4, char.ToLowerInvariant('\u212A') == 'k' ? "1" : "0");
         }
     }
 }
