@@ -137,7 +137,7 @@ namespace OfficeIMO.Excel {
                         return true;
                     }
                     // Without a row end there is nothing to slide past, so stop before holding the whole part.
-                    if (_sheetDataContentStart < 0 && _windowFilled >= MaximumWindowHeadBytes) return false;
+                    if (UnslidBytes() >= MaximumWindowHeadBytes) return false;
                 }
             }
 
@@ -166,14 +166,24 @@ namespace OfficeIMO.Excel {
                 return -1;
             }
 
-            /// <summary>Reads the bytes after the last row, which the final envelope proof inspects.</summary>
-            private void CompleteWindowedQualification(CancellationToken ct) {
-                while (TryReadIntoWindow(ct)) { }
+            /// <summary>
+            /// Reads the bytes after the last row, which the final envelope proof inspects. Declines, before any row
+            /// is returned, when they would not fit the same bound as a run without a row end.
+            /// </summary>
+            private bool CompleteWindowedQualification(CancellationToken ct) {
+                while (TryReadIntoWindow(ct)) {
+                    if (UnslidBytes() >= MaximumWindowHeadBytes) return false;
+                }
                 if (_windowFilled > _length) {
                     _length = _windowFilled;
                     ValidateProducedCanonicalText(ct);
                 }
+                return true;
             }
+
+            // Bytes held that the window cannot slide past: the head before the rows are found, then the bytes
+            // after the pinned area.
+            private int UnslidBytes() => _windowFilled - Math.Max(0, WindowRowRegionStart());
 
             // Bytes that hot-loop caches compare against are copied next to the head when rows leave the window.
             private int _windowPinnedLength;
