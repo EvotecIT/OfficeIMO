@@ -102,7 +102,34 @@ internal static partial class PdfSyntax {
         PdfDocumentSecurityInfo fallback,
         PdfRepairReport repairReport,
         PdfLoadOptions? options = null,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default) =>
+        ReadDocumentSecurityInfo(pdf, objects, trailerRaw, fallback, repairReport, options,
+            resolveMissingTrailerReferencesFromSource: false, cancellationToken);
+
+    /// <summary>
+    /// Completes a <see cref="ReadSourceSecurityFallback"/> result with the parsed object graph. /Root and /Info that
+    /// the trailer does not name are read from the source, as the complete source pass would have read them.
+    /// </summary>
+    internal static PdfDocumentSecurityInfo CompleteSourceSecurityFallback(
+        PdfByteContentText pdf,
+        Dictionary<int, PdfIndirectObject> objects,
+        string trailerRaw,
+        PdfDocumentSecurityInfo sourceFallback,
+        PdfRepairReport repairReport,
+        PdfLoadOptions? options,
+        CancellationToken cancellationToken) =>
+        ReadDocumentSecurityInfo(pdf, objects, trailerRaw, sourceFallback, repairReport, options,
+            resolveMissingTrailerReferencesFromSource: true, cancellationToken);
+
+    private static PdfDocumentSecurityInfo ReadDocumentSecurityInfo(
+        PdfByteContentText pdf,
+        Dictionary<int, PdfIndirectObject> objects,
+        string trailerRaw,
+        PdfDocumentSecurityInfo fallback,
+        PdfRepairReport repairReport,
+        PdfLoadOptions? options,
+        bool resolveMissingTrailerReferencesFromSource,
+        CancellationToken cancellationToken) {
         Guard.NotNull(objects, nameof(objects));
         Guard.NotNull(fallback, nameof(fallback));
         cancellationToken.ThrowIfCancellationRequested();
@@ -247,11 +274,17 @@ internal static partial class PdfSyntax {
         }
 
         PdfReference? rootReference = trailerReferences.Second;
-        int? rootObjectNumber = rootReference?.ObjectNumber ?? fallback.RootObjectNumber;
-        int? rootObjectGeneration = rootReference?.Generation ?? fallback.RootObjectGeneration;
         PdfReference? infoReference = trailerReferences.Third;
-        int? infoObjectNumber = infoReference?.ObjectNumber ?? fallback.InfoObjectNumber;
-        int? infoObjectGeneration = infoReference?.Generation ?? fallback.InfoObjectGeneration;
+        PdfReference? sourceRootReference = rootReference is null && resolveMissingTrailerReferencesFromSource
+            ? TryReadLastReference(pdf, "Root", cancellationToken)
+            : null;
+        PdfReference? sourceInfoReference = infoReference is null && resolveMissingTrailerReferencesFromSource
+            ? TryReadLastReference(pdf, "Info", cancellationToken)
+            : null;
+        int? rootObjectNumber = rootReference?.ObjectNumber ?? sourceRootReference?.ObjectNumber ?? fallback.RootObjectNumber;
+        int? rootObjectGeneration = rootReference?.Generation ?? sourceRootReference?.Generation ?? fallback.RootObjectGeneration;
+        int? infoObjectNumber = infoReference?.ObjectNumber ?? sourceInfoReference?.ObjectNumber ?? fallback.InfoObjectNumber;
+        int? infoObjectGeneration = infoReference?.Generation ?? sourceInfoReference?.Generation ?? fallback.InfoObjectGeneration;
         bool hasSignatures = hasParsedSignatureMarker;
         if (!hasSignatures && repairReport.HasIncompleteObjectCoverage) {
             hasSignatures = ContainsAnyPdfName(pdf, SignatureMarkerNames, cancellationToken);

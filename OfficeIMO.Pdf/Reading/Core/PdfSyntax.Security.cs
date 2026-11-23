@@ -22,6 +22,25 @@ internal static partial class PdfSyntax {
         PdfByteContentText pdf,
         PdfLoadOptions? options,
         bool includeParsedDetails,
+        CancellationToken cancellationToken) =>
+        ReadDocumentSecurityInfo(pdf, options, includeParsedDetails, sourceFallbackOnly: false, cancellationToken);
+
+    /// <summary>
+    /// Reads only the source evidence that the parsed security pass takes from its fallback: raw markers, startxref
+    /// offsets and revisions. The parsed pass reads encryption from the object graph and resolves /Root and /Info from
+    /// the source only when the trailer has no such reference, so those source scans are left to it.
+    /// </summary>
+    internal static PdfDocumentSecurityInfo ReadSourceSecurityFallback(
+        PdfByteContentText pdf,
+        PdfLoadOptions? options,
+        CancellationToken cancellationToken) =>
+        ReadDocumentSecurityInfo(pdf, options, includeParsedDetails: false, sourceFallbackOnly: true, cancellationToken);
+
+    private static PdfDocumentSecurityInfo ReadDocumentSecurityInfo(
+        PdfByteContentText pdf,
+        PdfLoadOptions? options,
+        bool includeParsedDetails,
+        bool sourceFallbackOnly,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         PdfReadLimits limits = options?.Limits ?? new PdfReadLimits();
@@ -38,7 +57,7 @@ internal static partial class PdfSyntax {
         // cancellation-aware caller does not pay for a second, tokenless parse.
         input.BeginRawSecurityScan();
         RawSecurityMarkers markers = ScanRawSecurityMarkers(input, cancellationToken);
-        int? encryptObjectNumber = TryReadLastReferenceObjectNumber(input, "Encrypt", cancellationToken);
+        int? encryptObjectNumber = sourceFallbackOnly ? null : TryReadLastReferenceObjectNumber(input, "Encrypt", cancellationToken);
         bool hasEncryption = encryptObjectNumber.HasValue;
         bool hasSignatures = markers.HasSignatures;
         bool hasByteRange = markers.HasByteRange;
@@ -52,10 +71,10 @@ internal static partial class PdfSyntax {
         bool hasObjectStreams = markers.HasObjectStreams;
         bool hasTrailerId = markers.HasTrailerId;
 
-        PdfReference? rootReference = TryReadLastReference(input, "Root", cancellationToken);
+        PdfReference? rootReference = sourceFallbackOnly ? null : TryReadLastReference(input, "Root", cancellationToken);
         int? rootObjectNumber = rootReference?.ObjectNumber;
         int? rootObjectGeneration = rootReference?.Generation;
-        PdfReference? infoReference = TryReadLastReference(input, "Info", cancellationToken);
+        PdfReference? infoReference = sourceFallbackOnly ? null : TryReadLastReference(input, "Info", cancellationToken);
         int? infoObjectNumber = infoReference?.ObjectNumber;
         int? infoObjectGeneration = infoReference?.Generation;
         string? encryptionFilter = null;
