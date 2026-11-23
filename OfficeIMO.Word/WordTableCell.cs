@@ -14,9 +14,9 @@ namespace OfficeIMO.Word {
         public WordTableCellBorder Borders => _borders ??= new WordTableCellBorder(_document, _wordTable, _wordTableRow, this);
 
         internal TableCell _tableCell;
-        internal TableCellProperties? _tableCellProperties;
-        private TableCellProperties? CurrentTableCellProperties =>
-            _tableCellProperties = _tableCell.TableCellProperties;
+        // Read live so wrappers never hold a stale tcPr and reads never create one.
+        internal TableCellProperties? _tableCellProperties => _tableCell.TableCellProperties;
+        private TableCellProperties? CurrentTableCellProperties => _tableCellProperties;
 
         /// <summary>
         /// Gets all <see cref="WordParagraph"/> instances contained in the cell.
@@ -432,7 +432,6 @@ namespace OfficeIMO.Word {
 
             wordTableRow._tableRow.Append(tableCell);
 
-            _tableCellProperties = tableCellProperties;
             _tableCell = tableCell;
             _wordTable = wordTable;
             _wordTableRow = wordTableRow;
@@ -455,7 +454,6 @@ namespace OfficeIMO.Word {
                 tableCell.TableCellProperties = new TableCellProperties();
             }
 
-            _tableCellProperties = tableCell.TableCellProperties;
             _wordTable = wordTable;
             _wordTableRow = wordTableRow;
             _document = document;
@@ -466,7 +464,7 @@ namespace OfficeIMO.Word {
         /// Ensure that TableCellProperties exist for current cell
         /// </summary>
         internal void AddTableCellProperties() {
-            _tableCellProperties = GetOrCreateTableCellProperties(_tableCell);
+            GetOrCreateTableCellProperties(_tableCell);
         }
 
         private static TableCellProperties GetOrCreateTableCellProperties(TableCell cell) {
@@ -494,7 +492,6 @@ namespace OfficeIMO.Word {
         internal void RemoveTableCellProperties() {
             if (_tableCell.TableCellProperties != null) {
                 _tableCell.TableCellProperties.Remove();
-                _tableCellProperties = null;
             }
         }
 
