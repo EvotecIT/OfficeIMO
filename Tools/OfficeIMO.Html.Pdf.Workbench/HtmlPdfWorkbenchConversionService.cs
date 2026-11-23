@@ -41,7 +41,7 @@ public sealed class HtmlPdfWorkbenchConversionService {
             request.Engine.ToString(),
             payload.RendererVersion,
             ComputeInputSha256(request.Html, request.Css),
-            Sha256(payload.PdfBytes),
+            pdf.Pipeline.Input!.Sha256,
             elapsedMilliseconds,
             payload.PdfBytes.Length,
             pdfInfo.PageCount,
@@ -191,8 +191,6 @@ public sealed class HtmlPdfWorkbenchConversionService {
             throw new ArgumentOutOfRangeException(nameof(request), "Margins must be between 0 and 80 millimeters.");
         }
     }
-
-    private static string Sha256(byte[] bytes) => Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
 
     internal static string ComputeInputSha256(string html, string css) {
         using IncrementalHash hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);

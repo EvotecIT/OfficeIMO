@@ -14,7 +14,7 @@ public static partial class PdfOcrExtensions {
         if (effective.Regions.Count != 0 || effective.ScanProcessing != null || effective.Perspective != null)
             throw new ArgumentException("Page orientation review requires whole pages without scan preprocessing.", nameof(options));
         cancellationToken.ThrowIfCancellationRequested();
-        var source = PdfDocument.Load(document.GetBytesForOperation(cancellationToken), document.ReadOptions);
+        var source = PdfDocument.LoadOwned(document.GetReportBytes(cancellationToken), document.ReadOptions, cancellationToken);
         NormalizeReviewPageSelection(effective, source.Inspect(source.ReadOptions, cancellationToken).PageCount);
         return PdfOcr.PrepareOrientationReviewAsync(source, engine, effective, cancellationToken);
     }
