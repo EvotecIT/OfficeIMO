@@ -24,6 +24,14 @@ internal static class WordReaderAdapter {
             using FileStream file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
             if (WordStreamingTextReader.TryRead(file, path, readerOptions, cancellationToken) is { } streamed) return streamed;
         }
+        return ReadModel(path, readerOptions, options, cancellationToken);
+    }
+
+    // The Word model loads the Open XML SDK; keeping it out of the method above lets a streamed read finish without
+    // the JIT loading the SDK for this method's locals.
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static OfficeDocumentReadResult ReadModel(string path, ReaderOptions readerOptions, ReaderWordOptions options,
+        CancellationToken cancellationToken) {
         if (WordFormatCatalog.TryGetByExtension(path, out var format) && format!.Generation == OfficeFormatGeneration.Modern) {
             using FileStream? file = OfficeStableFileRead.TryOpen(path);
             if (file != null) {
@@ -43,6 +51,12 @@ internal static class WordReaderAdapter {
         string name = string.IsNullOrWhiteSpace(sourceName) ? "document.docx" : sourceName!;
         if (WordStreamingTextReader.Applies(readerOptions)
             && WordStreamingTextReader.TryRead(stream, name, readerOptions, cancellationToken) is { } streamed) return streamed;
+        return ReadModel(stream, name, readerOptions, options, cancellationToken);
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static OfficeDocumentReadResult ReadModel(Stream stream, string name, ReaderOptions readerOptions, ReaderWordOptions options,
+        CancellationToken cancellationToken) {
         using WordDocument document = Load(stream, readerOptions, cancellationToken);
         return Project(document, name, readerOptions, options, cancellationToken);
     }

@@ -215,7 +215,7 @@ namespace OfficeIMO.PowerPoint {
             byte[] bytes;
             using (var source = new FileStream(filePath, FileMode.Open, FileAccess.Read,
                        FileShare.ReadWrite | FileShare.Delete)) {
-                bytes = ReadDocumentInputBytes(source, resolved,
+                bytes = PowerPointDocumentInput.ReadDocumentInputBytes(source, resolved,
                     cancellationToken, filePath);
             }
             return LoadDocument(bytes, filePath, sourceStream: null,
@@ -260,7 +260,7 @@ namespace OfficeIMO.PowerPoint {
                 return LoadPackageInPlace(stream, resolved, cancellationToken);
             }
 
-            return LoadDocument(ReadDocumentInputBytes(stream, resolved,
+            return LoadDocument(PowerPointDocumentInput.ReadDocumentInputBytes(stream, resolved,
                     cancellationToken),
                 filePath: null, stream, resolved, cancellationToken);
         }
@@ -286,7 +286,7 @@ namespace OfficeIMO.PowerPoint {
                 FileShare.ReadWrite | FileShare.Delete,
                 81920,
                 useAsync: true);
-            byte[] bytes = await ReadDocumentInputBytesAsync(source,
+            byte[] bytes = await PowerPointDocumentInput.ReadDocumentInputBytesAsync(source,
                 resolved, cancellationToken, fullPath)
                 .ConfigureAwait(false);
             return LoadDocument(bytes, fullPath, sourceStream: null,
@@ -312,7 +312,7 @@ namespace OfficeIMO.PowerPoint {
                 return await OfficePackageLoadSource.LoadInPlaceAsync(stream,
                     () => LoadPackageInPlace(stream, resolved, cancellationToken), cancellationToken).ConfigureAwait(false);
             }
-            byte[] bytes = await ReadDocumentInputBytesAsync(stream,
+            byte[] bytes = await PowerPointDocumentInput.ReadDocumentInputBytesAsync(stream,
                 resolved, cancellationToken)
                 .ConfigureAwait(false);
             return LoadDocument(bytes, filePath: null, stream, resolved,
@@ -342,7 +342,7 @@ namespace OfficeIMO.PowerPoint {
             EnsureEncryptedLoadUsesExplicitPersistence(resolved);
             using var source = new FileStream(filePath, FileMode.Open,
                 FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-            byte[] encryptedBytes = ReadDocumentInputBytes(source,
+            byte[] encryptedBytes = PowerPointDocumentInput.ReadDocumentInputBytes(source,
                 resolved, cancellationToken, filePath);
             ValidatePackageSecurity(encryptedBytes, resolved);
             LegacyBinaryEncryptionKind legacyEncryption =
@@ -360,7 +360,7 @@ namespace OfficeIMO.PowerPoint {
             ThrowIfUnencryptedLegacyBinary(legacyEncryption);
             byte[] packageBytes = OfficeEncryption.DecryptPackage(
                 encryptedBytes, password, cancellationToken,
-                ResolvePackageInputLimit(resolved));
+                PowerPointDocumentInput.ResolvePackageInputLimit(resolved));
             cancellationToken.ThrowIfCancellationRequested();
             return WithSourcePackageInspection(LoadPackage(packageBytes, filePath: null, sourceStream: null, resolved, captureSourcePackageSecurity: false), encryptedBytes, resolved, "encrypted-source-container");
         }
@@ -386,7 +386,7 @@ namespace OfficeIMO.PowerPoint {
                 FileShare.ReadWrite | FileShare.Delete,
                 81920,
                 useAsync: true);
-            byte[] encryptedBytes = await ReadDocumentInputBytesAsync(
+            byte[] encryptedBytes = await PowerPointDocumentInput.ReadDocumentInputBytesAsync(
                 source, resolved, cancellationToken, fullPath)
                 .ConfigureAwait(false);
             ValidatePackageSecurity(encryptedBytes, resolved);
@@ -405,7 +405,7 @@ namespace OfficeIMO.PowerPoint {
             ThrowIfUnencryptedLegacyBinary(legacyEncryption);
             byte[] packageBytes = OfficeEncryption.DecryptPackage(
                 encryptedBytes, password, cancellationToken,
-                ResolvePackageInputLimit(resolved));
+                PowerPointDocumentInput.ResolvePackageInputLimit(resolved));
             cancellationToken.ThrowIfCancellationRequested();
             return WithSourcePackageInspection(LoadPackage(packageBytes, filePath: null, sourceStream: null, resolved, captureSourcePackageSecurity: false), encryptedBytes, resolved, "encrypted-source-container");
         }
@@ -421,7 +421,7 @@ namespace OfficeIMO.PowerPoint {
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
             PowerPointLoadOptions resolved = options ?? new PowerPointLoadOptions();
             EnsureEncryptedLoadUsesExplicitPersistence(resolved);
-            byte[] encryptedBytes = await ReadDocumentInputBytesAsync(
+            byte[] encryptedBytes = await PowerPointDocumentInput.ReadDocumentInputBytesAsync(
                 stream, resolved, cancellationToken)
                 .ConfigureAwait(false);
             ValidatePackageSecurity(encryptedBytes, resolved);
@@ -439,7 +439,7 @@ namespace OfficeIMO.PowerPoint {
             ThrowIfUnencryptedLegacyBinary(legacyEncryption);
             byte[] packageBytes = OfficeEncryption.DecryptPackage(
                 encryptedBytes, password, cancellationToken,
-                ResolvePackageInputLimit(resolved));
+                PowerPointDocumentInput.ResolvePackageInputLimit(resolved));
             cancellationToken.ThrowIfCancellationRequested();
             return WithSourcePackageInspection(LoadPackage(packageBytes, filePath: null, sourceStream: null, resolved, captureSourcePackageSecurity: false), encryptedBytes, resolved, "encrypted-source-container");
         }
@@ -463,7 +463,7 @@ namespace OfficeIMO.PowerPoint {
 
             PowerPointLoadOptions resolved = options ?? new PowerPointLoadOptions();
             EnsureEncryptedLoadUsesExplicitPersistence(resolved);
-            byte[] encryptedBytes = ReadDocumentInputBytes(stream,
+            byte[] encryptedBytes = PowerPointDocumentInput.ReadDocumentInputBytes(stream,
                 resolved, cancellationToken);
             ValidatePackageSecurity(encryptedBytes, resolved);
             LegacyBinaryEncryptionKind legacyEncryption =
@@ -480,7 +480,7 @@ namespace OfficeIMO.PowerPoint {
             ThrowIfUnencryptedLegacyBinary(legacyEncryption);
             byte[] packageBytes = OfficeEncryption.DecryptPackage(
                 encryptedBytes, password, cancellationToken,
-                ResolvePackageInputLimit(resolved));
+                PowerPointDocumentInput.ResolvePackageInputLimit(resolved));
             cancellationToken.ThrowIfCancellationRequested();
             return WithSourcePackageInspection(LoadPackage(packageBytes, filePath: null, sourceStream: null, resolved, captureSourcePackageSecurity: false), encryptedBytes, resolved, "encrypted-source-container");
         }
@@ -518,11 +518,11 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static bool CanLoadInPlace(Stream stream, PowerPointLoadOptions options) =>
-            OfficePackageLoadSource.CanReadInPlace(stream, options.AccessMode, ResolvePackageInputLimit(options));
+            OfficePackageLoadSource.CanReadInPlace(stream, options.AccessMode, PowerPointDocumentInput.ResolvePackageInputLimit(options));
 
         private static Task<bool> CanLoadInPlaceAsync(Stream stream, PowerPointLoadOptions options,
             CancellationToken cancellationToken) =>
-            OfficePackageLoadSource.CanReadInPlaceAsync(stream, options.AccessMode, ResolvePackageInputLimit(options), cancellationToken);
+            OfficePackageLoadSource.CanReadInPlaceAsync(stream, options.AccessMode, PowerPointDocumentInput.ResolvePackageInputLimit(options), cancellationToken);
 
         /// <summary>Opens a read-only Open XML presentation over the caller's seekable stream without copying it.</summary>
         private static PowerPointDocument LoadPackageInPlace(Stream stream, PowerPointLoadOptions options,
