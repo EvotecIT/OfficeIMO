@@ -379,33 +379,47 @@ internal static partial class OfficeJpegReader {
                 : 0;
             Samples = new BaselineComponentState(component, blocksPerRow, blocksPerCol, ref aggregateBytes, precision, allocatePlane: false);
             // Rented last, after every budget check that can throw.
-            Coeffs = RentCleared<short>(coeffLength);
-            NonzeroPositions = RentCleared<ulong>(maskLength);
+            Coeffs = RentCleared<short>(coeffLength, sizeof(short), ref aggregateBytes);
+            NonzeroPositions = RentCleared<ulong>(maskLength, sizeof(ulong), ref aggregateBytes);
             PrevDc = 0;
         }
 
         // Coefficient planes are as large as the image and needed only while one image
-        // decodes, so they come from the shared pool; rented arrays may be longer than
-        // asked for and only the requested length is cleared and used.
-        private static T[] RentCleared<T>(int length) {
+        // decodes, so they come from the shared pool. The pool rounds lengths up to a power
+        // of two; that extra capacity is charged to the decode budget, and a plane whose
+        // rounding does not fit is allocated at its exact length instead. Only the
+        // requested length is cleared and used.
+        private static T[] RentCleared<T>(int length, int elementSize, ref long aggregateBytes) {
             if (length == 0) return Array.Empty<T>();
 #if NET8_0_OR_GREATER
-            T[] array = System.Buffers.ArrayPool<T>.Shared.Rent(length);
-            Array.Clear(array, 0, length);
-            return array;
-#else
-            return new T[length];
+            if (length <= 1 << 30) {
+                long capacity = Math.Max(16L, (long)System.Numerics.BitOperations.RoundUpToPowerOf2((uint)length));
+                long rounded = checked(aggregateBytes + (capacity - length) * elementSize);
+                if (rounded <= OfficeRasterGuards.MaximumDecodedBytes) {
+                    T[] array = System.Buffers.ArrayPool<T>.Shared.Rent(length);
+                    if (array.Length <= capacity) {
+                        aggregateBytes = rounded;
+                        Array.Clear(array, 0, length);
+                        return array;
+                    }
+                    System.Buffers.ArrayPool<T>.Shared.Return(array);
+                }
+            }
 #endif
+            return new T[length];
         }
 
         public void ReturnBuffers() {
 #if NET8_0_OR_GREATER
-            if (Coeffs.Length != 0) System.Buffers.ArrayPool<short>.Shared.Return(Coeffs);
-            if (NonzeroPositions.Length != 0) System.Buffers.ArrayPool<ulong>.Shared.Return(NonzeroPositions);
+            // Exact-length fallbacks are left to the collector.
+            if (IsPooledLength(Coeffs.Length)) System.Buffers.ArrayPool<short>.Shared.Return(Coeffs);
+            if (IsPooledLength(NonzeroPositions.Length)) System.Buffers.ArrayPool<ulong>.Shared.Return(NonzeroPositions);
 #endif
             Coeffs = Array.Empty<short>();
             NonzeroPositions = Array.Empty<ulong>();
         }
+
+        private static bool IsPooledLength(int length) => length >= 16 && (length & (length - 1)) == 0;
     }
 
 }
