@@ -41,6 +41,20 @@ public sealed class PdfSeekableDocumentSourceTests {
     }
 
     [Fact]
+    public void ActiveXrefStreamKeepsPageContentAvailableForDemandReads() {
+        byte[] pdf = PdfExternalDocumentCompatibilityTests.BuildXrefStreamPdfWithTrailingStaleDuplicatePage();
+        const int prefixLength = 43;
+        using var input = OpenWindow(pdf, prefixLength);
+        using PdfDocument document = PdfDocument.LoadSeekable(input, pdf.Length);
+        PdfReadPage page = Assert.Single(document.Pages);
+        long bytesReadBeforeExtraction = input.BytesRead;
+
+        Assert.Equal("Active xref stream page", page.ExtractText().Trim());
+        Assert.True(input.BytesRead > bytesReadBeforeExtraction);
+        Assert.Equal(prefixLength, input.Position);
+    }
+
+    [Fact]
     public void IncrementalInputKeepsCanonicalRevisionEvidence() {
         byte[] inputPdf = PdfIncrementalUpdater.UpdateMetadata(
             PdfDocumentSourceLifetimeTests.CreateTextPdf(3), title: "Revision title");

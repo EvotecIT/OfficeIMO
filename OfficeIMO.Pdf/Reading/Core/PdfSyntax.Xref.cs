@@ -773,9 +773,9 @@ internal static partial class PdfSyntax {
                         if (endStream > dataStart) byteLen = endStream - dataStart;
                     }
 
-                    if (byteLen >= 0 && dataStart >= 0 && dataStart + byteLen <= text.Length) {
-                        byte[] data = text.CopyRange(dataStart, byteLen, cancellationToken);
-                        parsed = new PdfIndirectObject(id, gen, new PdfStream(dict, data));
+                    if (byteLen >= 0 && dataStart >= 0 && dataStart <= text.Length - byteLen) {
+                        PdfStream stream = text.CreateStream(dict, dataStart, byteLen, retainSourceSlices: false, cancellationToken);
+                        parsed = new PdfIndirectObject(id, gen, stream);
                         return true;
                     }
                 }
