@@ -4,18 +4,15 @@ The native Swift app for the Mac, iPad and iPhone, built on the shared C# engine
 
 ## Build
 
-Open `OfficeIMOStudio.xcodeproj` and run the `OfficeIMOStudio-macOS` or `OfficeIMOStudio-iOS` scheme. Both targets use the local [engine package](../OfficeIMOStudioEngine/Package.swift), which downloads the versioned OfficeIMO NativeAOT XCFramework and verifies its SHA-256. No separate local engine copy or symlink is needed. The apps require macOS, iPadOS or iOS 26; the framework includes Intel and Apple silicon Mac slices, arm64 iOS, and the arm64 iOS simulator.
-
-The Swift UI calls the existing OfficeIMO engine through its C interface. Packaging the engine separately changes build delivery, not document behavior or the native interface. The package also embeds the engine's MIT and third-party license notices.
-
-To produce an updated engine from the repository root on a Mac with Xcode and the SDK selected by `global.json`:
+The apps link the OfficeIMO engine built from this checkout, so a merged engine change reaches the next app build without publishing anything. From the repository root on a Mac with Xcode and the SDK selected by `global.json`:
 
 ```sh
-pwsh OfficeIMO.Studio.Native/Build-AppleEngine.ps1 -OutputDirectory <build-folder>/engine
-pwsh Build/Studio/Apple/Pack-StudioAppleEngine.ps1 -EngineDirectory <build-folder>/engine -OutputDirectory <build-folder>/package -PowerForgeCli <PowerForge.Cli.dll> -SourceCommit <engine-source-commit> -Version <x.y.z>
+pwsh Build/Studio/Apple/Build-StudioEngine.ps1
 ```
 
-The packer uses PowerForge's exact dependency notice validation and archive builder. Its `Publish` option uses PowerForge's GitHub release publisher and the private `GITHUB_TOKEN` environment variable. Update the package's immutable URL, checksum and generated license resources together for a new engine artifact. See [Apple distribution](../../Build/Studio/Apple/README.md) for release entrypoints.
+Then open `OfficeIMOStudio.xcodeproj` and run the `OfficeIMOStudio-macOS` or `OfficeIMOStudio-iOS` scheme. The script builds the NativeAOT XCFramework into the [engine package](../OfficeIMOStudioEngine/Package.swift), which isn't committed, and does nothing while the engine sources are unchanged. For a quicker first build, `-RuntimeIdentifier osx-arm64,iossimulator-arm64` builds only the Apple silicon Mac and simulator slices; archives and device builds need all four. Until the engine is built, package resolution fails with that instruction. The apps require macOS, iPadOS or iOS 26.
+
+The Swift UI calls the engine through its C interface. The engine package also embeds the engine's MIT and third-party license notices. When the engine's dependencies change, regenerate those notices with `Build/Studio/Apple/Pack-StudioAppleEngine.ps1`, which validates them against `Build/Studio/Apple/third-party-notices.json`. See [Apple distribution](../../Build/Studio/Apple/README.md) for release entrypoints.
 
 ## Layout
 

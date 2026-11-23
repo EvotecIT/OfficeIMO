@@ -59,6 +59,8 @@ if ($Role -eq 'all') {
     if (Test-Path -LiteralPath $WorkRoot) { throw 'The capture work folder must be new.' }
     $null = New-Item -ItemType Directory -Path $WorkRoot, $captureRoot
     Write-Host "Capture build and diagnostic output: $WorkRoot"
+    & (Join-Path $PSScriptRoot 'Build-StudioEngine.ps1') -RuntimeIdentifier osx-arm64, osx-x64, iossimulator-arm64 `
+        -WorkDirectory (Join-Path $WorkRoot 'engine')
     foreach ($platform in 'macOS', 'iOS') {
         $destination = if ($platform -eq 'macOS') { 'generic/platform=macOS' } else { 'generic/platform=iOS Simulator' }
         $signing = if ($platform -eq 'macOS') {

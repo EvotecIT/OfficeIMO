@@ -1,14 +1,20 @@
 // swift-tools-version: 6.0
+import Foundation
 import PackageDescription
+
+// The engine is built from this checkout, so the apps always use the engine source they were built with:
+// run Build/Studio/Apple/Build-StudioEngine.ps1 before building them.
+let engine = "OfficeIMOStudioEngine.xcframework"
+let packageDirectory = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+precondition(FileManager.default.fileExists(atPath: packageDirectory.appendingPathComponent(engine).path),
+             "The Studio engine hasn't been built. Run Build/Studio/Apple/Build-StudioEngine.ps1 from the repository root.")
 
 let package = Package(
     name: "OfficeIMOStudioEngine",
     platforms: [.macOS("26.0"), .iOS("26.0")],
     products: [.library(name: "OfficeIMOStudioEngine", targets: ["OfficeIMOStudioEngine", "OfficeIMOStudioEngineNotices"])],
     targets: [
-        .binaryTarget(name: "OfficeIMOStudioEngine",
-                      url: "https://github.com/EvotecIT/OfficeIMO/releases/download/studio-engine-v1.0.0/OfficeIMOStudioEngine-1.0.0.zip",
-                      checksum: "97e882243fffcdc04074552ea22cdfa249a8691e7c6b1e9b9ea9b6ff6070cbea"),
+        .binaryTarget(name: "OfficeIMOStudioEngine", path: engine),
         .target(name: "OfficeIMOStudioEngineNotices", resources: [.copy("Licenses")])
     ]
 )

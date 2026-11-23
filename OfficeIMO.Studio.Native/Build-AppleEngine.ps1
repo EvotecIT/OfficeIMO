@@ -63,7 +63,14 @@ foreach ($rid in $RuntimeIdentifier) {
     # Apple SDKs ship the C++ standard library as libc++; NativeAOT names it stdc++ for every Unix target.
     $inputs = $inputs | ForEach-Object { if ($_ -eq '-lstdc++') { '-lc++' } else { $_ } }
     Set-Content (Join-Path $inputsRoot "$rid.txt") (@("$name.a") + $inputs)
-    Copy-Item (Join-Path $publish "$name.deps.json") (Join-Path $inputsRoot "$rid.deps.json")
+    # Some SDKs leave the dependency manifest in the build output instead of the publish folder.
+    $deps = Join-Path $publish "$name.deps.json"
+    if (-not (Test-Path $deps)) {
+        $deps = Get-ChildItem (Join-Path $OutputDirectory 'dotnet/bin/OfficeIMO.Studio.Native') -Recurse -Filter "$name.deps.json" |
+            Where-Object { $_.FullName -like "*$rid*" } | Select-Object -First 1 -ExpandProperty FullName
+        if (-not $deps) { throw "The $rid publish produced no $name.deps.json." }
+    }
+    Copy-Item $deps (Join-Path $inputsRoot "$rid.deps.json")
 
     # Object files such as the bootstrapper export nothing: they start the runtime from a static initializer. As
     # archive members the linker would never load them, so they are prelinked into the object that holds the exports,

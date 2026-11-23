@@ -36,11 +36,20 @@ jobs:
     if: needs.changes.outputs.selected == 'true'
     name: Native Apple qualification
     runs-on: xcode-27
-    timeout-minutes: 30
+    # A cold four-slice engine build takes most of this; unchanged engine sources come from the runner's cache.
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - name: Build the engine from this checkout
+        shell: pwsh
+        env:
+          OFFICEIMO_STUDIO_ENGINE_CACHE: ${{ runner.tool_cache }}/officeimo-studio-engine
+        run: ./Build/Studio/Apple/Build-StudioEngine.ps1 -WorkDirectory (Join-Path $env:RUNNER_TEMP 'studio-engine')
       - name: Swift state contracts
         run: >-
           swift test --package-path Apple --scratch-path "$RUNNER_TEMP/studio-state"
