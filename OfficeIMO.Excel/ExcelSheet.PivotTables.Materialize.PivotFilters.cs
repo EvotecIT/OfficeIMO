@@ -1,6 +1,5 @@
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.Globalization;
-using System.Text.RegularExpressions;
 using X15 = DocumentFormat.OpenXml.Office2013.Excel;
 
 namespace OfficeIMO.Excel {
@@ -148,11 +147,9 @@ namespace OfficeIMO.Excel {
                     string savedPattern = NormalizePivotFilterAutoFilterValue(type, needle);
                     var comparison = ResolveSingleFilterOperator(type);
                     ValidateMaterializedPivotLabelPredicate(filter, savedPattern, comparison);
-                    var pattern = new Regex("\\A" + CreateFormulaWildcardPattern(savedPattern) + "\\z",
-                        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Singleline, FormulaRegexTimeout);
                     bool negate = comparison == FilterOperatorValues.NotEqual;
                     included = new HashSet<PivotFieldValue>(maps[field].Items.Where(key => {
-                        return pattern.IsMatch(DisplayCaption(key)) != negate;
+                        return MatchesFormulaWildcard(savedPattern, DisplayCaption(key)) != negate;
                     }));
                 }
                 FilterMaterializedSourceRows(source, visibility.IncludedRows, included, field,

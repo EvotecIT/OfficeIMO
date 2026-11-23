@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
@@ -19,10 +18,9 @@ namespace OfficeIMO.Excel {
             if (Math.Abs(searchMode) == 2) {
                 return TryFindBinaryLookupPosition(lookupValue, values, matchMode, searchMode, out position, out failure);
             }
-            Regex? wildcard = matchMode == 2 && !lookupValue.Number.HasValue && lookupValue.Text != null
+            string? wildcard = matchMode == 2 && !lookupValue.Number.HasValue && lookupValue.Text != null
                 && (lookupValue.Text.IndexOf('*') >= 0 || lookupValue.Text.IndexOf('?') >= 0 || lookupValue.Text.IndexOf('~') >= 0)
-                ? new Regex("\\A" + CreateFormulaWildcardPattern(lookupValue.Text) + "\\z",
-                    RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Singleline, FormulaRegexTimeout)
+                ? lookupValue.Text
                 : null;
             int start = searchMode == -1 ? values.Count - 1 : 0;
             int end = searchMode == -1 ? -1 : values.Count;
@@ -33,7 +31,7 @@ namespace OfficeIMO.Excel {
                 if (candidate.IsUnresolvedFormula) { failure = candidate; return false; }
                 if (candidate.IsError) continue;
                 bool exact = wildcard != null
-                    ? !candidate.Number.HasValue && candidate.Text != null && wildcard.IsMatch(candidate.Text)
+                    ? !candidate.Number.HasValue && candidate.Text != null && MatchesFormulaWildcard(wildcard, candidate.Text)
                     : LookupValuesEqual(candidate, lookupValue);
                 if (exact) {
                     position = index + 1;

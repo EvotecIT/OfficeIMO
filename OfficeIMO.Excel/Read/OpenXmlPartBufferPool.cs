@@ -7,6 +7,10 @@ namespace OfficeIMO.Excel {
         private const int CapacityQuantum = 64 * 1024;
         private const int MaximumBufferSize = 256 * 1024 * 1024;
         private const long MaximumRetainedBytes = 64L * 1024 * 1024;
+        // The idle-released store must be able to hold the largest buffer this pool hands out. With a smaller limit a
+        // worksheet bigger than the limit is inflated into a new array on every read of a batch, so allocation jumps
+        // from a few kilobytes to the whole part size once a worksheet crosses it.
+        private const long MaximumIdleRetainedBytes = MaximumBufferSize;
         // A buffer for a whole large part helps the next read in a batch, but keeping it after the work is done would
         // hold that much memory for as long as the process runs, so buffers above this size are only kept until the
         // collector needs the memory.
@@ -15,8 +19,12 @@ namespace OfficeIMO.Excel {
         private static readonly Dictionary<int, byte[]> RetainedBuffers = new Dictionary<int, byte[]>();
         // Concurrent reads of several worksheets need one buffer each. Buffers beyond the one kept per size, and every
         // buffer above the long-lived size, wait here only until the process is idle.
-        private static readonly ExcelReleasingArrayStore<byte> LargeBuffers = new ExcelReleasingArrayStore<byte>(32, MaximumRetainedBytes);
+        private static readonly ExcelReleasingArrayStore<byte> LargeBuffers = CreateLargeBufferStore();
         private static long _retainedBytes;
+
+        /// <summary>Creates a store with the limits this pool uses for buffers it does not keep long-lived.</summary>
+        internal static ExcelReleasingArrayStore<byte> CreateLargeBufferStore() =>
+            new ExcelReleasingArrayStore<byte>(32, MaximumIdleRetainedBytes);
 
         internal static byte[] Rent(int minimumLength) {
             int capacity = GetCapacity(minimumLength);

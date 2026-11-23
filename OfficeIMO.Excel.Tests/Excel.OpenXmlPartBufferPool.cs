@@ -24,6 +24,18 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OpenXmlPartBufferPool_ReusesWholePartBuffersAboveTheLongLivedLimit() {
+            // A worksheet of about 1M typed rows inflates to roughly this size. Reads in a batch must reuse its buffer
+            // rather than allocate the whole part again on each read.
+            // A fresh store with the pool's limits keeps the result independent of buffers other tests leave retained.
+            const int requestedLength = 170_561_745;
+            var store = OpenXmlPartBufferPool.CreateLargeBufferStore();
+            byte[] buffer = new byte[OpenXmlPartBufferPool.GetCapacity(requestedLength)];
+            Assert.True(store.TryAdd(buffer));
+            Assert.Same(buffer, store.TryTake(buffer.Length));
+        }
+
+        [Fact]
         public void OpenXmlPartBufferPool_RejectsPartsAboveTheBoundedFastPath() {
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 OpenXmlPartBufferPool.Rent((256 * 1024 * 1024) + 1));
