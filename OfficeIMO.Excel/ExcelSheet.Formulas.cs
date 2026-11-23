@@ -7,9 +7,9 @@ using DocumentFormat.OpenXml.Spreadsheet;
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         private const int MaxSupportedFormulaLength = 8192;
-        private Dictionary<string, FormulaArgumentValue>? _formulaEvaluationCache;
-        private Dictionary<string, int>? _formulaEvaluationDepthCache;
-        private HashSet<string>? _formulaEvaluationStack;
+        private FormulaEvaluationResults? _formulaEvaluationCache;
+        private Dictionary<long, int>? _formulaEvaluationDepthCache;
+        private HashSet<long>? _formulaEvaluationStack;
         private Stack<FormulaEvaluationDepthFrame>? _formulaEvaluationDepthFrames;
         private FormulaEvaluationGuardState? _formulaEvaluationGuardState;
         private IReadOnlyDictionary<uint, SharedFormulaDefinition>? _formulaEvaluationSharedDefinitions;
@@ -115,6 +115,8 @@ namespace OfficeIMO.Excel {
                 MaterializePendingDirectCellValues();
                 // Formulas reach other sheets too, whose buffered cells must be in their worksheets by then.
                 MaterializeDeferredDataSetImportIfNeeded();
+                // The write lock makes this thread the workbook's only evaluator, so the pass may reuse parsed syntax.
+                using ExcelFormulaSyntaxCache.Scope syntaxScope = _excelDocument.FormulaSyntaxCache.Enter();
                 long formulaInputMutationVersion = _excelDocument.CaptureFormulaInputMutationVersion();
 
                 var previousCache = _formulaEvaluationCache;
@@ -256,7 +258,7 @@ namespace OfficeIMO.Excel {
                     return supported;
                 }
 
-                string cacheKey = GetFormulaEvaluationCacheKey(reference);
+                long cacheKey = GetFormulaEvaluationCacheKey(reference);
                 if (_formulaEvaluationCache.TryGetValue(cacheKey, out FormulaArgumentValue cachedResult)) {
                     if (!_formulaEvaluationDepthCache.TryGetValue(cacheKey, out int cachedDepth)
                         || _formulaEvaluationStack.Count + cachedDepth > _excelDocument.Calculation.MaximumDependencyDepth) {
@@ -417,8 +419,8 @@ namespace OfficeIMO.Excel {
                 var previousSharedDefinitionsBySheet = _formulaEvaluationSharedDefinitionsBySheet;
                 _formulaEvaluationCache = context.Cache;
                 _formulaCalculationContext = context;
-                _formulaEvaluationDepthCache = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-                _formulaEvaluationStack = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                _formulaEvaluationDepthCache = new Dictionary<long, int>();
+                _formulaEvaluationStack = new HashSet<long>();
                 _formulaEvaluationDepthFrames = new Stack<FormulaEvaluationDepthFrame>();
                 _formulaEvaluationGuardState = new FormulaEvaluationGuardState();
                 _formulaEvaluationSharedDefinitions = sharedFormulaDefinitions;
@@ -743,7 +745,7 @@ namespace OfficeIMO.Excel {
             }
             ExcelFormulaExpressionParser.TryParseSupportedFunctionCall(formula, out ExcelFormulaFunctionCallSyntax? functionCall);
             if (functionCall != null) {
-                    string function = functionCall.Name.ToUpperInvariant();
+                    string function = functionCall.UpperName;
                     string args = functionCall.Arguments;
                     if (function == "MATCH" || function == "XMATCH") return TryEvaluateMatchValue(function, args, out result);
                     if (function is "INT" or "MOD" or "SQRT" or "SIGN" or "TRUNC" or "ROUNDUP" or "ROUNDDOWN" or "EXP" or "LN" or "LOG" or "LOG10" or "CEILING" or "FLOOR" or "EVEN" or "ODD" or "FACT" or "COMBIN") return TryEvaluateScalarMathValue(function, args, out result);
@@ -824,7 +826,7 @@ namespace OfficeIMO.Excel {
             formula = NormalizeSupportedFunctionPrefix(formula);
             ExcelFormulaExpressionParser.TryParseSupportedFunctionCall(formula, out ExcelFormulaFunctionCallSyntax? functionCall);
             if (functionCall != null) {
-                    string function = functionCall.Name.ToUpperInvariant();
+                    string function = functionCall.UpperName;
                     string args = functionCall.Arguments;
                     if (IsRangeAggregateFunction(function)) {
                         bool aggregated = TryEvaluateRangeAggregate(function, args, out result, out error, out bool handled);

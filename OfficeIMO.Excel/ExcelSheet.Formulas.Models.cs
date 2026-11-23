@@ -60,15 +60,53 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        /// <summary>Formula results of one calculation pass, keyed by sheet number, row and column.</summary>
+        internal sealed class FormulaEvaluationResults : Dictionary<long, FormulaArgumentValue> {
+            private readonly Dictionary<string, int> _sheetNumbers = new(StringComparer.OrdinalIgnoreCase);
+
+            internal int GetSheetNumber(string sheetName) {
+                if (!_sheetNumbers.TryGetValue(sheetName, out int number)) {
+                    number = _sheetNumbers.Count + 1;
+                    _sheetNumbers.Add(sheetName, number);
+                }
+                return number;
+            }
+
+            // Rows need 21 bits and columns 15, so the sheet number starts at bit 36.
+            internal static long Key(int sheet, int row, int column) => ((long)sheet << 36) | ((long)row << 15) | (uint)column;
+        }
+
+        private enum FormulaCriteriaOperator {
+            Equal,
+            NotEqual,
+            GreaterThan,
+            LessThan,
+            GreaterThanOrEqual,
+            LessThanOrEqual
+        }
+
         private readonly struct FormulaCriteria {
             internal FormulaCriteria(string op, string text, double? number, string? errorCode = null) {
                 Operator = op;
                 Text = text;
                 Number = number;
                 ErrorCode = errorCode;
+                Kind = op switch {
+                    ">" => FormulaCriteriaOperator.GreaterThan,
+                    "<" => FormulaCriteriaOperator.LessThan,
+                    ">=" => FormulaCriteriaOperator.GreaterThanOrEqual,
+                    "<=" => FormulaCriteriaOperator.LessThanOrEqual,
+                    "<>" => FormulaCriteriaOperator.NotEqual,
+                    _ => FormulaCriteriaOperator.Equal
+                };
+                IsTextPattern = text.IndexOf('*') >= 0 || text.IndexOf('?') >= 0 || text.IndexOf('~') >= 0;
             }
 
             internal string Operator { get; }
+            /// <summary>The operator, resolved once so each compared cell switches on a number.</summary>
+            internal FormulaCriteriaOperator Kind { get; }
+            /// <summary>Whether the text holds a wildcard or escape, found once for every compared cell.</summary>
+            internal bool IsTextPattern { get; }
             internal string Text { get; }
             internal double? Number { get; }
             internal string? ErrorCode { get; }

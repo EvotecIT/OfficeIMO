@@ -908,19 +908,24 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private string GetFormulaEvaluationCacheKey(string reference) {
-            // Dependants look up the same formula cells many times in one pass, so the pass keeps each key it builds.
-            if (_formulaCalculationContext is not { IsDisposed: false } context) return Name + "!" + reference;
-            string name = Name;
-            if (!context.CacheKeys.TryGetValue(name, out Dictionary<string, string>? keys)) {
-                keys = new Dictionary<string, string>(StringComparer.Ordinal);
-                context.CacheKeys.Add(name, keys);
+        private object? _formulaEvaluationKeyOwner;
+        private int _formulaEvaluationKeySheet;
+
+        /// <summary>
+        /// The evaluation-cache key of a cell on this sheet: the sheet's number in the current results, then the row
+        /// and column. Sheets are numbered by name, ignoring case, so every wrapper of one sheet shares its keys.
+        /// </summary>
+        private long GetFormulaEvaluationCacheKey(string reference) {
+            FormulaEvaluationResults results = _formulaEvaluationCache
+                ?? throw new InvalidOperationException("Formula evaluation keys belong to a calculation pass.");
+            if (!ReferenceEquals(_formulaEvaluationKeyOwner, results)) {
+                _formulaEvaluationKeySheet = results.GetSheetNumber(Name);
+                _formulaEvaluationKeyOwner = results;
             }
-            if (!keys.TryGetValue(reference, out string? key)) {
-                key = name + "!" + reference;
-                keys.Add(reference, key);
-            }
-            return key;
+            string? normalized = IsCanonicalCellReference(reference) ? reference : NormalizeFormulaCellReference(reference);
+            int row = 0, column = 0;
+            if (normalized != null) ExcelA1.TryParseCellReferenceFast(normalized, out row, out column);
+            return FormulaEvaluationResults.Key(_formulaEvaluationKeySheet, row, column);
         }
 
         private static bool TryParseFormulaErrorLiteral(string token, out string errorCode) {

@@ -6,7 +6,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            string functionName = call!.Name.ToUpperInvariant();
+            string functionName = call!.UpperName;
             if (!_excelDocument.Calculation.TryGetCustomFunction(functionName, out ExcelCustomFormulaFunction? function)
                 || function == null
                 || !TryResolveFormulaArguments(call.Arguments, out List<FormulaArgumentValue> arguments, coerceScalarValues: false)

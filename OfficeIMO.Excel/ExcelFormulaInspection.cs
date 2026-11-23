@@ -728,6 +728,16 @@ namespace OfficeIMO.Excel {
             return FunctionSet.Contains(name);
         }
 
+        private static readonly Dictionary<string, string> CanonicalFunctionNames =
+            AllFunctions.ToDictionary(name => name, name => name, StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// The upper-case function name. A built-in name returns its single shared instance, so evaluator comparisons
+        /// against the literal names match by reference and allocate nothing.
+        /// </summary>
+        internal static string ToCanonicalFunctionName(string name) =>
+            CanonicalFunctionNames.TryGetValue(name, out string? canonical) ? canonical : name.ToUpperInvariant();
+
         internal static bool IsArrayFunction(string name) => ArrayFunctions.Contains(name, StringComparer.OrdinalIgnoreCase);
         internal static IReadOnlyList<string> ArrayFunctionNames => ArrayFunctions;
 
