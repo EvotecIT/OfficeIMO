@@ -61,16 +61,22 @@ namespace OfficeIMO.Tests {
             (string, Func<int, object?>)[] columns = [
                 ("Name", index => "Name" + index), ("Id", index => index),
                 ("CreatedOn", index => start.AddDays(index)), ("Amount", index => index * 1.25),
-                ("Offset", index => new DateTimeOffset(start.AddDays(index), TimeSpan.Zero))
+                ("Offset", index => new DateTimeOffset(start.AddDays(index), TimeSpan.Zero)),
+                ("Duration", index => TimeSpan.FromMinutes(index * 7)),
+#if NET6_0_OR_GREATER
+                ("Day", index => DateOnly.FromDateTime(start.AddDays(index))), ("Time", index => TimeOnly.FromTimeSpan(TimeSpan.FromMinutes(index))),
+#endif
             ];
 
             string expectedFormat;
-            string expectedOffsetFormat;
+            var expectedFormats = new string?[columns.Length + 1];
             using (var single = ExcelDocument.Create()) {
                 single.AddSheet("Data").WriteData(rows, columns);
                 using var loaded = ExcelDocument.Load(new MemoryStream(single.ToBytes(format)));
                 expectedFormat = loaded.Sheets[0].Cell(2, 3).GetStyle().NumberFormatCode!;
-                expectedOffsetFormat = loaded.Sheets[0].Cell(301, 5).GetStyle().NumberFormatCode!;
+                for (int column = 5; column <= columns.Length; column++) {
+                    expectedFormats[column] = loaded.Sheets[0].Cell(301, column).GetStyle().NumberFormatCode;
+                }
             }
 
             using var document = ExcelDocument.Create();
@@ -81,7 +87,9 @@ namespace OfficeIMO.Tests {
                 foreach (int row in new[] { 2, 301 }) {
                     int index = row - 2;
                     Assert.Equal(expectedFormat, sheet.Cell(row, 3).GetStyle().NumberFormatCode);
-                    Assert.Equal(expectedOffsetFormat, sheet.Cell(row, 5).GetStyle().NumberFormatCode);
+                    for (int column = 5; column <= columns.Length; column++) {
+                        Assert.Equal(expectedFormats[column], sheet.Cell(row, column).GetStyle().NumberFormatCode);
+                    }
                     Assert.True(sheet.TryGetCellText(row, 1, out string name));
                     Assert.Equal("Name" + index, name);
                     Assert.True(sheet.TryGetCellText(row, 2, out string id));

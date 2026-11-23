@@ -4,7 +4,7 @@ namespace OfficeIMO.Excel {
         /// Writes an optional header row and row-major selector results on an empty sheet straight into the pending
         /// cell buffer, the route <see cref="TryBufferFreshSheetCellValues"/> takes for boxed cells. The values stay
         /// typed until save, and the per-cell admission work runs once for the block instead of once per cell.
-        /// Missing values stay blank, and date and time values (offset dates included) take the tabular insertion format, as they do when the
+        /// Missing values stay blank, and date and time values (offset and date-only values included) take the tabular insertion format, as they do when the
         /// block is the workbook's only sheet. Returns false, with nothing written, when the sheet cannot take the block.
         /// </summary>
         internal bool TryBufferFreshSheetTabularValues(IReadOnlyList<string>? headers, ExcelTabularCellValues values, int startRow, CancellationToken ct) {
@@ -51,7 +51,7 @@ namespace OfficeIMO.Excel {
             for (int index = 0; index < cellCount; index++) {
                 ExcelBufferedCellKind kind = values.GetKind(index);
                 if (kind == ExcelBufferedCellKind.DateTime
-                    || (kind == ExcelBufferedCellKind.Value && values.GetReference(index) is DateTimeOffset)) {
+                    || (kind == ExcelBufferedCellKind.Value && IsTabularDateValue(values.GetReference(index)))) {
                     dateStyle = GetOrCreateDirectTabularDateStyle(useCellValueNumberFormats: false);
                     break;
                 }
@@ -89,8 +89,8 @@ namespace OfficeIMO.Excel {
         /// </summary>
         private bool TryAppendFreshSheetCell(int row, int column, in ExcelBufferedCell cell, uint dateStyle, CancellationToken ct) {
             ExcelCellValueBuffer? buffer = _pendingCellValueDirectSaveBuffer;
-            // Offset dates arrive as values and are converted to date cells by the single-cell route.
-            bool date = dateStyle != 0U && (cell.Kind == ExcelBufferedCellKind.DateTime || cell.Reference is DateTimeOffset);
+            // Offset and date-only values arrive as values and are converted to date cells by the single-cell route.
+            bool date = dateStyle != 0U && (cell.Kind == ExcelBufferedCellKind.DateTime || IsTabularDateValue(cell.Reference));
             if (buffer != null
                 && buffer.CellCount >= PendingDirectCellValueMinimumCellCount
                 && cell.Kind != ExcelBufferedCellKind.Value
@@ -116,6 +116,14 @@ namespace OfficeIMO.Excel {
             MaterializePendingDirectCellValues(ct);
             return false;
         }
+
+        /// <summary>Values other than <see cref="DateTime"/> that tabular writes format as dates.</summary>
+        private static bool IsTabularDateValue(object? value) =>
+            value is DateTimeOffset
+#if NET6_0_OR_GREATER
+            || value is DateOnly
+#endif
+            ;
 
         private static ExcelBufferedCell GetBufferedCell(ExcelTabularCellValues values, int index) {
             int offset = values.GetChunk(index, out byte[] kinds, out long[] bits);
