@@ -82,6 +82,23 @@ public sealed partial class ReaderMediaAdapterTests {
     }
 
     [Fact]
+    public void ImageAdapter_KeepsAssetsIndependentOfCallerOwnedSnapshot() {
+        byte[] png = CreatePng(3, 2);
+        using var source = new MemoryStream(png, writable: false);
+        using Stream snapshot = ReaderInputLimits.EnsureSeekableReadStream(
+            source, png.Length, CancellationToken.None, out bool ownsSnapshot);
+        Assert.True(ownsSnapshot);
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddImageHandler().Build();
+
+        OfficeDocumentAsset asset = Assert.Single(reader.ReadDocument(snapshot, "diagram.png").Assets);
+        snapshot.Position = 0;
+        snapshot.WriteByte(0);
+
+        Assert.Equal(png, asset.PayloadBytes);
+        Assert.True(asset.PayloadHashMatches(out _));
+    }
+
+    [Fact]
     public void ImageAdapter_CanProjectMetadataWithoutRetainingPayload() {
         byte[] png = CreatePng(1, 1);
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()

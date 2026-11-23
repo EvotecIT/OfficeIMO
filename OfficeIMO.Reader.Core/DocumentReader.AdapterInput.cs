@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Runtime.InteropServices;
 
 namespace OfficeIMO.Reader;
 
@@ -70,7 +71,7 @@ internal static partial class DocumentReaderEngine {
             cancellationToken,
             out bool ownsSnapshot);
         try {
-            byte[] payload = ReadSnapshotPayload(snapshot, cancellationToken, maxInputBytes);
+            byte[] payload = ReadSnapshotPayload(snapshot, ownsSnapshot, cancellationToken, maxInputBytes);
             return new ReaderAdapterInputSnapshot(
                 payload,
                 new OfficeDocumentSource {
@@ -90,6 +91,7 @@ internal static partial class DocumentReaderEngine {
 
     private static byte[] ReadSnapshotPayload(
         Stream snapshot,
+        bool ownsSnapshot,
         CancellationToken cancellationToken,
         long? maxInputBytes) {
         cancellationToken.ThrowIfCancellationRequested();
@@ -105,6 +107,14 @@ internal static partial class DocumentReaderEngine {
         }
         if (remaining > int.MaxValue) {
             throw new IOException("Adapter input exceeds the maximum supported byte-array length.");
+        }
+
+        // Use only a snapshot created here. An incoming snapshot may still belong to the caller.
+        if (ownsSnapshot && snapshot.Position == 0 &&
+            ReaderInputLimits.TryGetOwnedSnapshotMemory(snapshot, out ReadOnlyMemory<byte> memory) &&
+            MemoryMarshal.TryGetArray(memory, out ArraySegment<byte> segment) && segment.Offset == 0 &&
+            segment.Array is byte[] owned && owned.Length == segment.Count) {
+            return owned;
         }
 
         var payload = new byte[(int)remaining];

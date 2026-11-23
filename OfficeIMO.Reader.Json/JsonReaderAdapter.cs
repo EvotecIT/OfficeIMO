@@ -139,6 +139,13 @@ internal static class JsonReaderAdapter {
         long remaining = stream.Length - stream.Position;
         if (remaining > int.MaxValue) throw new ReaderResourceLimitException("MaxInputBytes", int.MaxValue);
 
+        if (ReaderInputLimits.TryGetOwnedSnapshotMemory(stream, out ReadOnlyMemory<byte> snapshot)) {
+            cancellationToken.ThrowIfCancellationRequested();
+            ReadOnlyMemory<byte> payload = snapshot.Slice((int)stream.Position);
+            stream.Position = stream.Length;
+            return SkipUtf8Bom(payload);
+        }
+
         var buffer = new byte[(int)remaining];
         int offset = 0;
         while (offset < buffer.Length) {
@@ -148,8 +155,13 @@ internal static class JsonReaderAdapter {
             offset += read;
         }
 
-        int start = offset >= 3 && buffer[0] == 0xEF && buffer[1] == 0xBB && buffer[2] == 0xBF ? 3 : 0;
-        return new ReadOnlyMemory<byte>(buffer, start, offset - start);
+        return SkipUtf8Bom(new ReadOnlyMemory<byte>(buffer, 0, offset));
+    }
+
+    private static ReadOnlyMemory<byte> SkipUtf8Bom(ReadOnlyMemory<byte> payload) {
+        ReadOnlySpan<byte> bytes = payload.Span;
+        return bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF
+            ? payload.Slice(3) : payload;
     }
 
     /// <summary>
