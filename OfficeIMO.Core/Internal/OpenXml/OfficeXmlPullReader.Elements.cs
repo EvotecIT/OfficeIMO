@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace OfficeIMO.Core.Internal.OpenXml;
 
 internal sealed partial class OfficeXmlPullReader {
@@ -26,6 +28,8 @@ internal sealed partial class OfficeXmlPullReader {
         internal int PrefixStart;
         internal int PrefixLength;
         internal int NamespaceId;
+        // The exact URI, which XML compares when it checks attribute names; NamespaceId folds Strict URIs.
+        internal int UriId;
     }
 
     private struct ProcessContentEntry {
@@ -104,6 +108,11 @@ internal sealed partial class OfficeXmlPullReader {
 
         bool skip = false;
         frame.Kind = _processMarkupCompatibility ? Classify(ref frame, out skip) : FrameKind.Element;
+        if (_mustUnderstandFailure != null) {
+            string prefix = _mustUnderstandFailure;
+            _mustUnderstandFailure = null;
+            if (!skip) throw new InvalidDataException("The part requires the namespace of prefix '" + prefix + "', which this reader does not understand.");
+        }
         if (skip) {
             if (!empty) SkipContent();
             _frameCount--;
@@ -154,6 +163,7 @@ internal sealed partial class OfficeXmlPullReader {
         while (position < _end && data[position] != quote) {
             byte value = data[position];
             if (value == (byte)'<') throw Malformed("An attribute value contains '<'.");
+            if (value < 0x20 && value != (byte)'\t' && value != (byte)'\n' && value != (byte)'\r' || value == 0xEF) RejectNonCharacter(position);
             if (value == (byte)'&' || value == (byte)'\r' || value == (byte)'\n' || value == (byte)'\t') needsDecoding = true;
             position++;
         }
@@ -172,24 +182,43 @@ internal sealed partial class OfficeXmlPullReader {
         return position + 1;
     }
 
-    // Two attributes may not share an expanded name, even when different prefixes are bound to the same namespace.
+    // Two attributes may not share an expanded name, even when different prefixes are bound to the same namespace
+    // URI. Strict and transitional URIs are different names here, although readers treat them as one namespace.
     private void RejectDuplicateAttributes() {
+        if (_attributeCount > 32) {
+            // A set keeps wide start tags linear; ordinary tags compare pairs without allocating.
+            var names = new HashSet<string>(StringComparer.Ordinal);
+            for (int index = 0; index < _attributeCount; index++) {
+                ref Attribute attribute = ref _attributes[index];
+                string name = AttributeUri(attribute).ToString(System.Globalization.CultureInfo.InvariantCulture) + ":"
+                    + Encoding.UTF8.GetString(_data, attribute.LocalStart, attribute.LocalLength);
+                if (!names.Add(name)) throw Malformed("An element repeats an attribute.");
+            }
+            return;
+        }
         for (int first = 1; first < _attributeCount; first++) {
             ref Attribute later = ref _attributes[first];
             for (int second = 0; second < first; second++) {
                 ref Attribute earlier = ref _attributes[second];
                 if (earlier.LocalLength != later.LocalLength || !BytesEqual(earlier.LocalStart, later.LocalStart, later.LocalLength)) continue;
-                if (AttributeNamespace(earlier) == AttributeNamespace(later)) throw Malformed("An element repeats an attribute.");
+                if (AttributeUri(earlier) == AttributeUri(later)) throw Malformed("An element repeats an attribute.");
             }
         }
     }
 
     // Namespace declarations sit in the xmlns namespace; other unprefixed attributes have no namespace.
-    private int AttributeNamespace(in Attribute attribute) {
+    private int AttributeUri(in Attribute attribute) {
         if (attribute.PrefixLength == 0) {
             return AsciiEquals(attribute.LocalStart, attribute.LocalLength, "xmlns") ? OfficeXmlNamespaces.Xmlns : OfficeXmlNamespaces.None;
         }
         if (attribute.PrefixLength == 5 && AsciiEquals(attribute.PrefixStart, 5, "xmlns")) return OfficeXmlNamespaces.Xmlns;
+        for (int index = _bindingCount - 1; index >= 0; index--) {
+            ref Binding binding = ref _bindings[index];
+            if (binding.PrefixLength == attribute.PrefixLength && BytesEqual(binding.PrefixStart, attribute.PrefixStart, attribute.PrefixLength)) {
+                return binding.UriId;
+            }
+        }
+        // The xml prefix is bound implicitly; any other unbound prefix fails here as it does everywhere else.
         return ResolvePrefix(attribute.PrefixStart, attribute.PrefixLength);
     }
 
@@ -208,16 +237,17 @@ internal sealed partial class OfficeXmlPullReader {
                 continue;
             }
             int namespaceId;
+            int uriId;
             if (attribute.ValueLength == 0) {
                 if (prefixLength != 0) throw Malformed("A namespace prefix is bound to an empty URI.");
-                namespaceId = OfficeXmlNamespaces.None;
+                namespaceId = uriId = OfficeXmlNamespaces.None;
             } else if (attribute.NeedsDecoding) {
-                namespaceId = _namespaces.GetId(DecodeAttribute(attribute));
+                namespaceId = _namespaces.GetId(DecodeAttribute(attribute), out uriId);
             } else {
-                namespaceId = _namespaces.GetId(_data, attribute.ValueStart, attribute.ValueLength);
+                namespaceId = _namespaces.GetId(_data, attribute.ValueStart, attribute.ValueLength, out uriId);
             }
             if (_bindingCount == _bindings.Length) Array.Resize(ref _bindings, _bindings.Length * 2);
-            _bindings[_bindingCount++] = new Binding { PrefixStart = prefixStart, PrefixLength = prefixLength, NamespaceId = namespaceId };
+            _bindings[_bindingCount++] = new Binding { PrefixStart = prefixStart, PrefixLength = prefixLength, NamespaceId = namespaceId, UriId = uriId };
         }
     }
 
@@ -252,9 +282,10 @@ internal sealed partial class OfficeXmlPullReader {
                         _ignorable[_ignorableCount++] = ignorable;
                     }
                 } else if (AsciiEquals(attribute.LocalStart, attribute.LocalLength, "MustUnderstand")) {
+                    // Checked once the element is kept: an alternative that is not selected cannot require anything.
                     foreach (string prefix in SplitList(GetAttributeValue(attribute))) {
                         if (!TryResolvePrefix(prefix, out int required) || !IsUnderstood(required)) {
-                            throw new InvalidDataException("The part requires the namespace of prefix '" + prefix + "', which this reader does not understand.");
+                            _mustUnderstandFailure ??= prefix;
                         }
                     }
                 } else if (AsciiEquals(attribute.LocalStart, attribute.LocalLength, "ProcessContent")) {
@@ -272,6 +303,8 @@ internal sealed partial class OfficeXmlPullReader {
             }
         }
     }
+
+    private string? _mustUnderstandFailure;
 
     private FrameKind Classify(ref Frame frame, out bool skip) {
         skip = false;

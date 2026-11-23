@@ -142,28 +142,41 @@ internal static class OfficeXmlNamespaces {
         private int _lastKnown = -1;
 
         /// <summary>Returns the id of the UTF-8 URI in <paramref name="data"/>, registering it when it is new.</summary>
-        internal int GetId(byte[] data, int start, int length) {
+        internal int GetId(byte[] data, int start, int length) => GetId(data, start, length, out _);
+
+        /// <summary>Returns the id of a URI and, in <paramref name="uriId"/>, an id unique to its exact spelling, so a
+        /// Strict URI and its transitional counterpart share an id but not a URI id.</summary>
+        internal int GetId(byte[] data, int start, int length, out int uriId) {
             // Packages repeat the same few declarations on many elements, so try the last match first.
-            if (_lastKnown >= 0 && Matches(KnownUriBytes[_lastKnown], data, start, length)) return KnownUris[_lastKnown].Value;
+            if (_lastKnown >= 0 && Matches(KnownUriBytes[_lastKnown], data, start, length)) {
+                uriId = KnownUriIdBase + _lastKnown;
+                return KnownUris[_lastKnown].Value;
+            }
             for (int index = 0; index < KnownUriBytes.Length; index++) {
                 if (Matches(KnownUriBytes[index], data, start, length)) {
                     _lastKnown = index;
+                    uriId = KnownUriIdBase + index;
                     return KnownUris[index].Value;
                 }
             }
             for (int index = 0; index < _dynamicUris.Count; index++) {
-                if (Matches(_dynamicUris[index], data, start, length)) return FirstDynamic + index;
+                if (Matches(_dynamicUris[index], data, start, length)) return uriId = FirstDynamic + index;
             }
             var uri = new byte[length];
             Buffer.BlockCopy(data, start, uri, 0, length);
             _dynamicUris.Add(uri);
-            return FirstDynamic + _dynamicUris.Count - 1;
+            return uriId = FirstDynamic + _dynamicUris.Count - 1;
         }
 
+        // URI ids of listed namespaces sit far above any dynamic id.
+        private const int KnownUriIdBase = 1 << 24;
+
         /// <summary>Returns the id of a URI given as a string, registering it when it is new.</summary>
-        internal int GetId(string uri) {
+        internal int GetId(string uri) => GetId(uri, out _);
+
+        internal int GetId(string uri, out int uriId) {
             byte[] bytes = Encoding.UTF8.GetBytes(uri);
-            return GetId(bytes, 0, bytes.Length);
+            return GetId(bytes, 0, bytes.Length, out uriId);
         }
 
         /// <summary>Returns the URI behind an id; for a fixed id this is its transitional spelling.</summary>

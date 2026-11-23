@@ -43,7 +43,7 @@ internal static class WordStreamedBodyText {
             declineReason = "no main document part";
             return null;
         }
-        var context = new Context(package, main, maxTableRows, maxCharactersInPart, cancellationToken);
+        var context = new Context(package, main, maxChars, maxTableRows, maxCharactersInPart, cancellationToken);
         bool read = context.Read(main, reader => ReadBody(reader, context));
         if (read && includeNotes) read = WriteNotes(context);
         if (!read) {
@@ -63,9 +63,10 @@ internal static class WordStreamedBodyText {
         private readonly Dictionary<string, PartLines> _headerFooters = new(StringComparer.Ordinal);
         private readonly HashSet<string> _noteReferences = new(StringComparer.Ordinal);
 
-        internal Context(OfficeOpcPackage package, string mainPart, int maxTableRows, long? maxCharactersInPart, CancellationToken cancellationToken) {
+        internal Context(OfficeOpcPackage package, string mainPart, int maxChars, int maxTableRows, long? maxCharactersInPart, CancellationToken cancellationToken) {
             Package = package;
             MainPart = mainPart;
+            MaxChars = maxChars;
             MaxTableRows = maxTableRows;
             MaxCharactersInPart = maxCharactersInPart;
             CancellationToken = cancellationToken;
@@ -73,6 +74,7 @@ internal static class WordStreamedBodyText {
 
         internal OfficeOpcPackage Package { get; }
         internal string MainPart { get; }
+        internal int MaxChars { get; }
         internal int MaxTableRows { get; }
         internal long? MaxCharactersInPart { get; }
         internal CancellationToken CancellationToken { get; }
@@ -106,7 +108,10 @@ internal static class WordStreamedBodyText {
             OfficeXmlPullReader reader = Package.OpenXml(partName, out OfficePooledBytes content, processMarkupCompatibility: false);
             using (content) {
                 // The model load caps a part's characters; a part that may exceed the cap declines and the model reports it.
-                if (MaxCharactersInPart > 0 && content.Length > MaxCharactersInPart) return Decline("part over the character limit");
+                if (MaxCharactersInPart > 0 && content.Length > MaxCharactersInPart
+                    && OfficeXmlPullReader.CountCharacters(content.Array, content.Length) > MaxCharactersInPart) {
+                    return Decline("part over the character limit");
+                }
                 return read(reader);
             }
         }
@@ -160,7 +165,10 @@ internal static class WordStreamedBodyText {
     private static bool ReadBody(OfficeXmlPullReader reader, Context context) {
         while (reader.Read()) {
             if (reader.NodeKind == OfficeXmlNodeKind.StartElement && reader.NamespaceId == W && reader.LocalName == "body") {
-                return ReadBlocks(reader, context);
+                if (!ReadBlocks(reader, context)) return false;
+                // Reading to the end lets the parser check the rest of the part, such as a second root element.
+                while (reader.Read()) { }
+                return true;
             }
         }
         return context.Decline("no body");
@@ -543,8 +551,10 @@ internal static class WordStreamedBodyText {
                 if (!reader.IsEmptyElement) {
                     int propertiesDepth = reader.Depth;
                     while (reader.Read() && !(reader.NodeKind == OfficeXmlNodeKind.EndElement && reader.Depth == propertiesDepth)) {
-                        if (reader.NodeKind == OfficeXmlNodeKind.StartElement && reader.Depth == propertiesDepth + 1
-                            && reader.NamespaceId == W && reader.LocalName == "vanish") hidden = IsOn(reader);
+                        if (reader.NodeKind != OfficeXmlNodeKind.StartElement) continue;
+                        // A compatibility branch could change whether the run is hidden.
+                        if (reader.NamespaceId == OfficeXmlNamespaces.MarkupCompatibility) return context.Decline("markup compatibility in run properties");
+                        if (reader.Depth == propertiesDepth + 1 && reader.NamespaceId == W && reader.LocalName == "vanish") hidden = IsOn(reader);
                     }
                 }
                 continue;
@@ -681,6 +691,8 @@ internal static class WordStreamedBodyText {
         }
         int columns = 0;
         foreach (List<string> row in rows) columns = Math.Max(columns, row.Count);
+        // Every line carries the separators of the widest row, so a table wider than the line limit cannot stream.
+        if (columns - 1 > context.MaxChars) return context.Decline("line longer than MaxChars");
         bool hasHeader = repeatsHeader && rows.Count > 0;
         if (columns > 0) {
             var names = new string[columns];
@@ -688,14 +700,18 @@ internal static class WordStreamedBodyText {
                 string value = hasHeader ? Cell(rows[0], index) : string.Empty;
                 names[index] = string.IsNullOrWhiteSpace(value) ? "Column " + (index + 1).ToString(CultureInfo.InvariantCulture) : value;
             }
-            context.Lines.Add(string.Join("\t", names));
+            string line = string.Join("\t", names);
+            if (line.Length > context.MaxChars) return context.Decline("line longer than MaxChars");
+            context.Lines.Add(line);
         }
         int written = 0;
         for (int rowIndex = hasHeader ? 1 : 0; rowIndex < rows.Count; rowIndex++) {
             if (context.MaxTableRows > 0 && written == context.MaxTableRows) break;
             var values = new string[columns];
             for (int index = 0; index < columns; index++) values[index] = Cell(rows[rowIndex], index);
-            context.Lines.Add(string.Join("\t", values));
+            string line = string.Join("\t", values);
+            if (line.Length > context.MaxChars) return context.Decline("line longer than MaxChars");
+            context.Lines.Add(line);
             written++;
         }
         return true;

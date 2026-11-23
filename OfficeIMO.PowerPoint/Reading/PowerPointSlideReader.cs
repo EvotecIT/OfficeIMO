@@ -4,8 +4,9 @@ using OfficeIMO.Core.Internal.OpenXml;
 namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     Reads the slides of a PPTX, PPTM, POTX or PPSX package one at a time without building the presentation
-    ///     model or loading the Open XML SDK. Each slide part is read forward when its turn comes, so memory stays
-    ///     proportional to one slide and the first slide is available before the rest of the deck is read.
+    ///     model or loading the Open XML SDK. Each slide part is read forward when its turn comes and its XML is
+    ///     released once read, so the first slide is available before the rest of the deck is read. Relationship
+    ///     metadata of the slides read so far stays cached until the reader is disposed.
     /// </summary>
     /// <remarks>
     ///     <para>
@@ -37,9 +38,10 @@ namespace OfficeIMO.PowerPoint {
             _slides = slides;
             _maximumCharacters = maximumCharacters;
             // The first slide-list entry of each part numbers it, as slide hyperlinks resolve in the model.
-            _slideNumbers = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            // Slides are keyed by part identity, so a hyperlink that spells the part with percent-encoding still finds it.
+            _slideNumbers = new Dictionary<string, int>(OfficeAsciiIgnoreCaseComparer.Instance);
             for (int index = 0; index < slides.Count; index++) {
-                string key = slides[index].PartName;
+                string key = OfficeOpcPackage.GetPartIdentity(slides[index].PartName);
                 if (!_slideNumbers.ContainsKey(key)) _slideNumbers.Add(key, index + 1);
             }
         }

@@ -187,6 +187,7 @@ internal sealed partial class OfficeXmlPullReader {
                 if (value == (byte)'&') whitespace = false;
             } else if (value != (byte)' ' && value != (byte)'\n' && value != (byte)'\t') {
                 whitespace = false;
+                if (value < 0x20 || value == 0xEF) RejectNonCharacter(position);
             }
             position++;
         }
@@ -211,6 +212,10 @@ internal sealed partial class OfficeXmlPullReader {
             int start = _position + 9;
             int end = IndexOf(start, "]]>");
             if (end < 0) throw Malformed("A CDATA section is not closed.");
+            for (int index = start; index < end; index++) {
+                byte value = _data[index];
+                if (value < 0x20 && value != (byte)'\t' && value != (byte)'\n' && value != (byte)'\r' || value == 0xEF) RejectNonCharacter(index);
+            }
             _position = end + 3;
             if (_frameCount == 0) throw Malformed("The part has a CDATA section outside its root element.");
             if (_frames[_frameCount - 1].Kind == FrameKind.AlternateContent) return false;
@@ -268,6 +273,35 @@ internal sealed partial class OfficeXmlPullReader {
         // Depth still reports the closing element; its parent becomes current on the next read.
         _decrementDepth = true;
         return true;
+    }
+
+    // XML 1.0 characters exclude C0 controls other than tab, line feed and carriage return, and U+FFFE and U+FFFF
+    // (EF BF BE and EF BF BF in UTF-8). Other lead bytes reach here only to be checked.
+    private void RejectNonCharacter(int position) {
+        byte value = _data[position];
+        if (value == 0xEF) {
+            if (position + 2 < _end && _data[position + 1] == 0xBF && (_data[position + 2] == 0xBE || _data[position + 2] == 0xBF)) {
+                throw Malformed("The part contains a character XML does not allow.");
+            }
+            return;
+        }
+        throw Malformed("The part contains a character XML does not allow.");
+    }
+
+    /// <summary>
+    /// UTF-16 code units of the XML text in a part, the unit XML readers count against a character limit: the byte order
+    /// mark is not counted, and UTF-16 parts count two bytes per unit.
+    /// </summary>
+    internal static long CountCharacters(byte[] data, int length) {
+        if (length >= 2 && (data[0] == 0xFF && data[1] == 0xFE || data[0] == 0xFE && data[1] == 0xFF)) return (length - 2) / 2;
+        if (length >= 2 && (data[0] == 0x3C && data[1] == 0x00 || data[0] == 0x00 && data[1] == 0x3C)) return length / 2;
+        int start = length >= 3 && data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF ? 3 : 0;
+        long count = 0;
+        for (int index = start; index < length; index++) {
+            byte value = data[index];
+            if ((value & 0xC0) != 0x80) count += value >= 0xF0 ? 2 : 1;
+        }
+        return count;
     }
 
     private static System.Xml.XmlException Malformed(string message) => new("The Open XML part is not well-formed: " + message);

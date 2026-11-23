@@ -130,6 +130,11 @@ internal sealed class OfficeOpcPackage : IDisposable {
         return identity != null && _members.TryGetValue(identity, out string? member) ? member : null;
     }
 
+    /// <summary>The once-decoded spelling two part names share when they name the same part; compare it ASCII
+    /// case-insensitively with <see cref="OfficeAsciiIgnoreCaseComparer"/>.</summary>
+    internal static string GetPartIdentity(string partName) =>
+        partName.Length > 1 && partName[0] == '/' && ToIdentity(partName.Substring(1)) is { } identity ? "/" + identity : partName;
+
     // Part names are URIs, and a writer may store a member name with or without percent-encoding, so members and
     // references both compare by their once-decoded spelling.
     private static string? ToIdentity(string name) {

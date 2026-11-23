@@ -450,22 +450,11 @@ namespace OfficeIMO.PowerPoint {
             content = package.ReadPart(partName);
             // A part can only exceed the limit when it has more bytes than the limit, as UTF-8 never encodes a
             // character in less than a byte; only then are its characters counted.
-            if (content.Length > maximumCharacters && CountCharacters(content) > maximumCharacters) {
+            if (content.Length > maximumCharacters && OfficeXmlPullReader.CountCharacters(content.Array, content.Length) > maximumCharacters) {
                 content.Dispose();
                 throw PartSizeLimit(partName, maximumCharacters);
             }
             return new OfficeXmlPullReader(content.Array, content.Length, package.Namespaces, processMarkupCompatibility: false);
-        }
-
-        // UTF-16 code units of a UTF-8 part: one per lead byte, two for a four-byte sequence.
-        private static long CountCharacters(OfficePooledBytes content) {
-            long count = 0;
-            byte[] bytes = content.Array;
-            for (int index = 0; index < content.Length; index++) {
-                byte value = bytes[index];
-                if ((value & 0xC0) != 0x80) count += value >= 0xF0 ? 2 : 1;
-            }
-            return count;
         }
 
         private static bool MoveToRoot(OfficeXmlPullReader reader) {
@@ -679,7 +668,7 @@ namespace OfficeIMO.PowerPoint {
             // targets as they are, and slide jumps and next-slide actions as #slide-N fragments.
             internal Uri? ResolveHyperlink(string? action, string? relationshipId) {
                 if (string.Equals(action, NextSlideAction, StringComparison.OrdinalIgnoreCase)) {
-                    return _reader._slideNumbers.TryGetValue(_slidePart, out int position)
+                    return _reader._slideNumbers.TryGetValue(OfficeOpcPackage.GetPartIdentity(_slidePart), out int position)
                         ? SlideFragment(position + 1)
                         : null;
                 }
@@ -693,7 +682,7 @@ namespace OfficeIMO.PowerPoint {
                 }
                 string target = relationship.TargetPartName;
                 if (!hyperlink && !_reader._package.PartExists(target)) return null;
-                return _reader._slideNumbers.TryGetValue(target, out int number) ? SlideFragment(number) : null;
+                return _reader._slideNumbers.TryGetValue(OfficeOpcPackage.GetPartIdentity(target), out int number) ? SlideFragment(number) : null;
             }
 
             private static Uri SlideFragment(int number) =>

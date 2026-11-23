@@ -48,6 +48,7 @@ public class OpenXmlWordParagraphTextReaderTests {
 
     [Theory]
     [InlineData("entities", "<w:p><w:r><w:t>a &amp; b &lt;c&gt; &quot;d&quot; &apos;e&apos; &#169; &#x1F600;</w:t></w:r></w:p>")]
+    [InlineData("strict and transitional attribute names", "<w:p xmlns:t=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:s=\"http://purl.oclc.org/ooxml/officeDocument/relationships\" t:id=\"1\" s:id=\"2\"><w:r><w:t>both</w:t></w:r></w:p>")]
     [InlineData("zero-padded references", "<w:p><w:r><w:t>&#0000000000000065;&#x0000000000000041;</w:t></w:r></w:p>")]
     [InlineData("line ends", "<w:p><w:r><w:t xml:space=\"preserve\">one\r\ntwo\rthree</w:t></w:r></w:p>")]
     [InlineData("whitespace", "<w:p>\n  <w:r>\n    <w:rPr>\n    </w:rPr>\n    <w:tab>  </w:tab>\n    <w:t>   </w:t></w:r><w:r><w:t xml:space=\"preserve\">   </w:t></w:r><w:r><w:t> x </w:t></w:r></w:p>")]
@@ -93,6 +94,8 @@ public class OpenXmlWordParagraphTextReaderTests {
     [InlineData("<w:p w:rsidR=\"1\" w:rsidR=\"2\"/>")]
     [InlineData("<w:p xmlns:w2=\"" + WordNamespace + "\" w:rsidR=\"1\" w2:rsidR=\"2\"/>")]
     [InlineData("SECOND-ROOT")]
+    [InlineData("<w:p><w:r><w:t>a\u0001b</w:t></w:r></w:p>")]
+    [InlineData("<w:p w14:x=\"\uFFFE\" xmlns:w14=\"urn:example\"/>")]
     public void RejectsMarkupItCannotReadSafely(string body) {
         byte[] package = body.StartsWith("<!DOCTYPE", StringComparison.Ordinal)
             ? CreatePackage("<w:p/>", prolog: body)
@@ -103,6 +106,22 @@ public class OpenXmlWordParagraphTextReaderTests {
         // Malformed XML is an XmlException; a namespace the markup requires but the reader does not know is not a syntax error.
         Type expected = body.Contains("MustUnderstand") ? typeof(InvalidDataException) : typeof(System.Xml.XmlException);
         Assert.IsType(expected, Record.Exception(() => ReadWithPackageReader(package)));
+    }
+
+    [Fact]
+    public void RequiresMustUnderstandNamespacesOnlyOnTheSelectedBranch() {
+        byte[] package = CreatePackage("<w:p><w:r><mc:AlternateContent><mc:Choice xmlns:x9=\"urn:example:x9\" Requires=\"x9\" mc:MustUnderstand=\"x9\"><w:t>choice</w:t></mc:Choice><mc:Fallback><w:t>fallback</w:t></mc:Fallback></mc:AlternateContent></w:r></w:p>");
+
+        Assert.Equal(new[] { "fallback" }, ReadWithPackageReader(package));
+    }
+
+    [Theory]
+    [InlineData(new byte[] { 0x3C, 0x61, 0x2F, 0x3E }, 4)]
+    [InlineData(new byte[] { 0xEF, 0xBB, 0xBF, 0x3C, 0x61, 0x2F, 0x3E }, 4)]
+    [InlineData(new byte[] { 0xFF, 0xFE, 0x3C, 0x00, 0x61, 0x00, 0x2F, 0x00, 0x3E, 0x00 }, 4)]
+    [InlineData(new byte[] { 0x3C, 0xC3, 0xA9, 0xF0, 0x9F, 0x98, 0x80, 0x3E }, 5)]
+    public void CountsXmlCharactersInTheirEncoding(byte[] part, long expected) {
+        Assert.Equal(expected, OfficeXmlPullReader.CountCharacters(part, part.Length));
     }
 
     [Fact]

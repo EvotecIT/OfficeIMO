@@ -390,7 +390,7 @@ namespace OfficeIMO {
                 using (Stream stream = entry.Open()) {
                     bytes = OfficeArchiveSafety.ReadEntryBytes(stream, entry.Length, entry.Length);
                 }
-                if (bytes.Length > maxXmlCharactersInPart && maxXmlCharactersInPart > 0 && CountXmlCharacters(bytes) > maxXmlCharactersInPart) {
+                if (bytes.Length > maxXmlCharactersInPart && maxXmlCharactersInPart > 0 && OfficeXmlPullReader.CountCharacters(bytes, bytes.Length) > maxXmlCharactersInPart) {
                     throw new XmlException($"The part has more than {maxXmlCharactersInPart} characters.");
                 }
                 var reader = new OfficeXmlPullReader(bytes, bytes.Length, null, processMarkupCompatibility: false);
@@ -422,15 +422,6 @@ namespace OfficeIMO {
                     $"Relationship part '{partName}' could not be parsed safely. {exception.Message}", partName));
             }
             return externalCount;
-        }
-
-        // UTF-16 code units of a UTF-8 part, the unit the XML reader's character limit counts.
-        private static long CountXmlCharacters(byte[] bytes) {
-            long count = 0;
-            foreach (byte value in bytes) {
-                if ((value & 0xC0) != 0x80) count += value >= 0xF0 ? 2 : 1;
-            }
-            return count;
         }
 
         internal static void ValidateOptions(OfficePackageSecurityOptions options) {
