@@ -10,13 +10,56 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Returns the first index at or after <paramref name="start"/> where the wildcard pattern matches.</summary>
         private static int FindFormulaWildcard(string pattern, string text, int start) {
-            for (int index = start; index <= text.Length; index++) {
-                switch (MatchFormulaWildcard(pattern, text, index, prefixOnly: true)) {
-                    case WildcardMatch.Matched: return index;
+            // Any match starts with the pattern's leading literal run, so candidate starts come from one KMP pass over
+            // the text instead of comparing that run again at every position.
+            string run = ReadLeadingFormulaWildcardLiterals(pattern);
+            if (run.Length == 0) {
+                for (int index = start; index <= text.Length; index++) {
+                    switch (MatchFormulaWildcard(pattern, text, index, prefixOnly: true)) {
+                        case WildcardMatch.Matched: return index;
+                        case WildcardMatch.FailedAfterStar: return -1;
+                    }
+                }
+                return -1;
+            }
+
+            int[] fallback = BuildFormulaWildcardFallback(run);
+            int matched = 0;
+            for (int index = start; index < text.Length; index++) {
+                char current = char.ToLowerInvariant(text[index]);
+                while (matched > 0 && run[matched] != current) matched = fallback[matched - 1];
+                if (run[matched] == current) matched++;
+                if (matched < run.Length) continue;
+
+                int candidate = index - run.Length + 1;
+                switch (MatchFormulaWildcard(pattern, text, candidate, prefixOnly: true)) {
+                    case WildcardMatch.Matched: return candidate;
                     case WildcardMatch.FailedAfterStar: return -1;
                 }
+                matched = fallback[matched - 1];
             }
             return -1;
+        }
+
+        /// <summary>Returns the literal characters before the pattern's first <c>*</c> or <c>?</c>, lower-cased.</summary>
+        private static string ReadLeadingFormulaWildcardLiterals(string pattern) {
+            var run = new System.Text.StringBuilder();
+            for (int index = 0; index < pattern.Length;) {
+                index = ReadFormulaWildcardToken(pattern, index, out char kind, out char literal);
+                if (kind != '\0') break;
+                run.Append(char.ToLowerInvariant(literal));
+            }
+            return run.ToString();
+        }
+
+        private static int[] BuildFormulaWildcardFallback(string run) {
+            var fallback = new int[run.Length];
+            for (int index = 1, length = 0; index < run.Length; index++) {
+                while (length > 0 && run[index] != run[length]) length = fallback[length - 1];
+                if (run[index] == run[length]) length++;
+                fallback[index] = length;
+            }
+            return fallback;
         }
 
         private enum WildcardMatch {
@@ -81,11 +124,9 @@ namespace OfficeIMO.Excel {
             return index + 1;
         }
 
-        // Comparing both case mappings keeps the equivalences of an invariant, case-insensitive Regex, such as the
-        // Kelvin sign matching 'k', which upper-casing alone misses.
+        // Invariant lower-case equality is the relation the case-insensitive Regex this replaced used: the Kelvin sign
+        // matches 'k', while final sigma stays distinct from sigma even though both upper-case to the same letter.
         private static bool FormulaWildcardCharactersEqual(char left, char right) =>
-            left == right
-            || char.ToUpperInvariant(left) == char.ToUpperInvariant(right)
-            || char.ToLowerInvariant(left) == char.ToLowerInvariant(right);
+            left == right || char.ToLowerInvariant(left) == char.ToLowerInvariant(right);
     }
 }
