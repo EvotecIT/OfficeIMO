@@ -236,6 +236,10 @@ internal sealed class ExcelDeflateEncoder : IDisposable {
         private int _outputUsed;
         private ulong _bits;
         private int _bitCount;
+        // Zeroed table entries sit below the first origin, so a new table starts empty.
+        private uint _origin = 1;
+        /// <summary>The origin the next encoding takes; every value in the match table is below it.</summary>
+        internal uint Origin { get => _origin; init => _origin = value; }
 
         internal Region() : this(new byte[BufferLength], new byte[OutputLength], new uint[1 << HashBits]) { }
 
@@ -316,9 +320,9 @@ internal sealed class ExcelDeflateEncoder : IDisposable {
             _outputCount = 0;
             _bits = 0;
             _bitCount = 0;
-            PrimeHistory(start);
+            uint origin = PrimeHistory(start, end);
             PutBits(Final ? 0b011UL : 0b010UL, 3); // BFINAL, then BTYPE 01 (fixed codes) least-significant bit first
-            EncodeSymbols(start, end);
+            EncodeSymbols(start, end, origin);
             PutBits(0, 7); // end of block: symbol 256 has the 7-bit fixed code 0000000
             // A non-final region also spends an empty stored block (3 bits, padding, 4 bytes) to end on a byte boundary.
             long fixedBits = (long)_outputCount * 8 + _bitCount + (Final ? 0 : 3 + 7 + 32);
@@ -340,14 +344,26 @@ internal sealed class ExcelDeflateEncoder : IDisposable {
         }
 
         /// <summary>Starts the match table from the history, so matches can reach into the previous region.</summary>
-        private void PrimeHistory(int start) {
-            Array.Clear(_heads, 0, _heads.Length);
+        /// <remarks>
+        /// The table stores <see cref="_origin"/> plus the buffer index. Each encoding takes a new origin above every
+        /// value already stored, so entries left by earlier regions fail the distance check without clearing the table,
+        /// and the output depends only on the region's own bytes.
+        /// </remarks>
+        /// <returns>The origin of this encoding.</returns>
+        private uint PrimeHistory(int start, int end) {
+            if (_origin > uint.MaxValue - 2U * BufferLength) {
+                Array.Clear(_heads, 0, _heads.Length);
+                _origin = 1;
+            }
+            uint origin = _origin;
+            _origin = origin + (uint)end;
             ref byte data = ref ArrayStart(_buffer);
             ref uint heads = ref ArrayStart(_heads);
             for (int index = 0; index + MinimumMatch <= start; index++) {
                 uint prefix = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref data, index));
-                Unsafe.Add(ref heads, (int)((prefix * 0x9E37_79B1U) >> (32 - HashBits))) = (uint)index;
+                Unsafe.Add(ref heads, (int)((prefix * 0x9E37_79B1U) >> (32 - HashBits))) = origin + (uint)index;
             }
+            return origin;
         }
 
         private static long StoredBits(int length) {
@@ -399,7 +415,7 @@ internal sealed class ExcelDeflateEncoder : IDisposable {
 #if NET8_0_OR_GREATER
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
-        private void EncodeSymbols(int start, int end) {
+        private void EncodeSymbols(int start, int end, uint origin) {
             ref byte data = ref ArrayStart(_buffer);
             ref uint heads = ref ArrayStart(_heads);
             ref uint literals = ref ArrayStart(FixedCodes.Literals);
@@ -420,7 +436,7 @@ internal sealed class ExcelDeflateEncoder : IDisposable {
             while (index <= lastMatchStart) {
                 uint prefix = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref data, index));
                 ref uint head = ref Unsafe.Add(ref heads, (int)((prefix * 0x9E37_79B1U) >> (32 - HashBits)));
-                uint here = (uint)index;
+                uint here = origin + (uint)index;
                 uint distance = here - head;
                 head = here;
                 ulong code;
@@ -512,11 +528,13 @@ internal sealed class ExcelDeflateEncoder : IDisposable {
         private readonly WeakReference<byte[]> _buffer = new(region.Buffer);
         private readonly WeakReference<byte[]> _output = new(region.Output);
         private readonly WeakReference<uint[]> _heads = new(region.Heads);
+        // The match table still holds the old region's positions, so the next origin carries over with it.
+        private readonly uint _origin = region.Origin;
 
         /// <returns>The arrays as a region, or null when a collection has reclaimed any of them.</returns>
         internal Region? TryGetRegion() =>
             _buffer.TryGetTarget(out byte[]? buffer) && _output.TryGetTarget(out byte[]? output) && _heads.TryGetTarget(out uint[]? heads)
-                ? new Region(buffer, output, heads)
+                ? new Region(buffer, output, heads) { Origin = _origin }
                 : null;
     }
 

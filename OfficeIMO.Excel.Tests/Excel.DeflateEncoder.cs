@@ -13,12 +13,17 @@ namespace OfficeIMO.Tests {
         [InlineData(163_841)]
         [InlineData(294_912)]
         [InlineData(3_000_017)]
-        public void DeflateEncoder_RoundTripsWithTheInputCrcWhetherRegionsRunInlineOrInTheBackground(int length) {
+        public void DeflateEncoder_RoundTripsWithTheInputCrcAndTheSameBytesWhereverRegionsRun(int length) {
             byte[] input = CreateDeflateInput(length);
             (byte[] inline, uint inlineCrc) = Deflate(input, background: false);
             (byte[] background, uint backgroundCrc) = Deflate(input, background: true);
 
             Assert.Equal(inline, background);
+            // The pooled match tables still hold another part's positions; the bytes must not depend on them.
+            byte[] other = CreateDeflateInput(length + 4_099);
+            Array.Reverse(other);
+            Deflate(other, background: false);
+            Assert.Equal(inline, Deflate(input, background: false).Compressed);
             uint expectedCrc = BitwiseCrc32(input);
             Assert.Equal(expectedCrc, inlineCrc);
             Assert.Equal(expectedCrc, backgroundCrc);
