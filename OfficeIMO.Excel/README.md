@@ -240,7 +240,7 @@ using (var writer = ExcelDocument.CreateWriter(ExcelFileFormat.Xlsb, "Events.xls
 
 Use `ExcelFileFormat.Xls` for BIFF8 output, within its limit of 65,536 rows (including headers) and 256 columns. XLS stages native records in memory, so `RequireStreaming=true` rejects that format. With `UseSharedStrings=false` (the binary default) text up to 255 characters is written as inline BIFF8 labels; longer text, or `UseSharedStrings=true`, uses the shared-string table. Binary row writers create plain worksheets and reject tables, AutoFit, freeze panes and declared styles. Existing `CreateWriter(path)` and `CreateWriter(stream)` calls select XLSX. `WriteData` retains its selector and buffering behavior.
 
-In an editable workbook, `WriteData` with typed columns writes the same plain cells as `(header, selector)` columns, but keeps numbers, dates and Boolean values unboxed until the workbook is saved:
+In an editable workbook, `WriteData` with typed columns writes the same plain cells as `(header, selector)` columns, but keeps `int`, `long`, `double`, `DateTime` and `bool` values (and their nullable forms) unboxed until the workbook is saved. `decimal`, `float`, `ulong`, `char` and other values go through the same object path as a selector:
 
 ```csharp
 sheet.WriteData(events, columns => columns

@@ -88,6 +88,20 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void WriteData_ReadsEveryCellOfTheOnlySheetBeforeSave() {
+            var rows = Enumerable.Range(0, 300).ToArray();
+            using var document = ExcelDocument.Create();
+            var sheet = document.AddSheet("Data");
+            sheet.WriteData(rows, ("Id", index => index), ("Name", index => "Name" + index));
+
+            Assert.True(sheet.TryGetCellText(301, 2, out string name));
+            Assert.Equal("Name299", name);
+            var ids = sheet.GetCellValueSnapshots(1, 2, 301);
+            Assert.Equal(300, ids.Count);
+            Assert.All(ids, snapshot => Assert.NotNull(snapshot));
+        }
+
         [Theory]
         [InlineData(1)]
         [InlineData(2)]
@@ -104,19 +118,22 @@ namespace OfficeIMO.Tests {
                 ("Text", index => index % 7 == 0 ? null : index % 11 == 0 ? string.Empty : "Item " + index),
                 ("Int", index => index - 100), ("Long", index => index == 5 ? long.MaxValue : (object)(index * 1_000_000_000L)),
                 ("Double", index => index % 9 == 0 ? null : index / 8.0), ("Date", index => start.AddHours(index)),
-                ("Flag", index => index % 3 == 0), ("Decimal", index => index * 0.1m)));
+                ("Flag", index => index % 3 == 0), ("Decimal", index => index * 0.1m),
+                ("Code", index => index % 4 == 0 ? null : (char)('A' + index % 26)), ("Big", index => index % 5 == 0 ? null : ulong.MaxValue - (ulong)index)));
             byte[] typed = Write(sheet => sheet.WriteData(rows, columns => columns
                 .Add("Text", index => index % 7 == 0 ? null : index % 11 == 0 ? string.Empty : "Item " + index)
                 .Add("Int", index => index - 100).Add("Long", index => index == 5 ? long.MaxValue : index * 1_000_000_000L)
                 .Add("Double", index => index % 9 == 0 ? (double?)null : index / 8.0).Add("Date", index => start.AddHours(index))
-                .Add("Flag", index => index % 3 == 0).Add("Decimal", index => index * 0.1m)));
+                .Add("Flag", index => index % 3 == 0).Add("Decimal", index => index * 0.1m)
+                .Add("Code", index => index % 4 == 0 ? null : (char?)(char)('A' + index % 26))
+                .Add("Big", index => index % 5 == 0 ? null : (ulong?)(ulong.MaxValue - (ulong)index))));
 
             using var expected = ExcelDocument.Load(new MemoryStream(objects));
             using var actual = ExcelDocument.Load(new MemoryStream(typed));
             Assert.Equal(sheetCount, actual.Sheets.Count);
             for (int sheet = 0; sheet < sheetCount; sheet++) {
                 for (int row = 1; row <= rows.Length + 1; row++) {
-                    for (int column = 1; column <= 7; column++) {
+                    for (int column = 1; column <= 9; column++) {
                         bool expectedHasText = expected.Sheets[sheet].TryGetCellText(row, column, out string expectedText);
                         Assert.Equal(expectedHasText, actual.Sheets[sheet].TryGetCellText(row, column, out string actualText));
                         Assert.Equal(expectedText, actualText);

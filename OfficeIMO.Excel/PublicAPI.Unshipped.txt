@@ -607,3 +607,7 @@ OfficeIMO.Excel.ExcelDataColumns<T>.Add(string! header, System.Func<T, object?>!
 OfficeIMO.Excel.ExcelDataColumns<T>.Add(string! header, System.Func<T, string?>! selector) -> OfficeIMO.Excel.ExcelDataColumns<T>!
 OfficeIMO.Excel.ExcelDataColumns<T>.Add(string! header, System.Func<T, ulong>! selector) -> OfficeIMO.Excel.ExcelDataColumns<T>!
 OfficeIMO.Excel.ExcelSheet.WriteData<T>(System.Collections.Generic.IEnumerable<T>! data, System.Action<OfficeIMO.Excel.ExcelDataColumns<T>!>! columns) -> void
+OfficeIMO.Excel.ExcelDataColumns<T>.Add(string! header, System.Func<T, char?>! selector) -> OfficeIMO.Excel.ExcelDataColumns<T>!
+OfficeIMO.Excel.ExcelDataColumns<T>.Add(string! header, System.Func<T, decimal?>! selector) -> OfficeIMO.Excel.ExcelDataColumns<T>!
+OfficeIMO.Excel.ExcelDataColumns<T>.Add(string! header, System.Func<T, float?>! selector) -> OfficeIMO.Excel.ExcelDataColumns<T>!
+OfficeIMO.Excel.ExcelDataColumns<T>.Add(string! header, System.Func<T, ulong?>! selector) -> OfficeIMO.Excel.ExcelDataColumns<T>!

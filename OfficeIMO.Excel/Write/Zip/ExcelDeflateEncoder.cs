@@ -27,7 +27,8 @@ internal sealed class ExcelDeflateEncoder : IDisposable {
     private static Workspace? _cachedWorkspace;
     // Parts prepared on worker threads each hold a workspace. The extra sets are held weakly, so a burst of parallel
     // saves reuses them without the large-object allocations, and a later full collection can still reclaim them.
-    private static readonly WeakReference<Workspace>?[] _sharedWorkspaces = new WeakReference<Workspace>?[Math.Min(Environment.ProcessorCount, 64)];
+    // The slots reference the arrays themselves: a weakly held wrapper would die in the next young collection.
+    private static readonly WeakWorkspace?[] _sharedWorkspaces = new WeakWorkspace?[Math.Min(Environment.ProcessorCount, 64)];
     private readonly Stream _destination;
     private byte[] _buffer;
     private byte[] _output;
@@ -99,10 +100,9 @@ internal sealed class ExcelDeflateEncoder : IDisposable {
         Workspace? workspace = Interlocked.Exchange(ref _cachedWorkspace, null);
         if (workspace != null) return workspace;
         for (int i = 0; i < _sharedWorkspaces.Length; i++) {
-            if (Volatile.Read(ref _sharedWorkspaces[i]) is { } reference
-                && Interlocked.CompareExchange(ref _sharedWorkspaces[i], null, reference) == reference
-                && reference.TryGetTarget(out workspace)) {
-                return workspace;
+            if (Volatile.Read(ref _sharedWorkspaces[i]) != null
+                && Interlocked.Exchange(ref _sharedWorkspaces[i], null)?.TryGetWorkspace() is { } shared) {
+                return shared;
             }
         }
         return new Workspace();
@@ -112,7 +112,7 @@ internal sealed class ExcelDeflateEncoder : IDisposable {
         if (Interlocked.CompareExchange(ref _cachedWorkspace, workspace, null) == null) return;
         for (int i = 0; i < _sharedWorkspaces.Length; i++) {
             if (Volatile.Read(ref _sharedWorkspaces[i]) == null
-                && Interlocked.CompareExchange(ref _sharedWorkspaces[i], new WeakReference<Workspace>(workspace), null) == null) {
+                && Interlocked.CompareExchange(ref _sharedWorkspaces[i], new WeakWorkspace(workspace), null) == null) {
                 return;
             }
         }
@@ -304,6 +304,18 @@ internal sealed class ExcelDeflateEncoder : IDisposable {
         internal byte[] Buffer { get; } = buffer;
         internal byte[] Output { get; } = output;
         internal uint[] Heads { get; } = heads;
+    }
+
+    private sealed class WeakWorkspace(Workspace workspace) {
+        private readonly WeakReference<byte[]> _buffer = new(workspace.Buffer);
+        private readonly WeakReference<byte[]> _output = new(workspace.Output);
+        private readonly WeakReference<uint[]> _heads = new(workspace.Heads);
+
+        /// <returns>The arrays as a workspace, or null when a collection has reclaimed any of them.</returns>
+        internal Workspace? TryGetWorkspace() =>
+            _buffer.TryGetTarget(out byte[]? buffer) && _output.TryGetTarget(out byte[]? output) && _heads.TryGetTarget(out uint[]? heads)
+                ? new Workspace(buffer, output, heads)
+                : null;
     }
 
     /// <summary>The fixed literal/length and distance codes of RFC 1951 section 3.2.6.</summary>

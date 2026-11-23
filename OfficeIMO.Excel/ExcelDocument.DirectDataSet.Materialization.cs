@@ -138,6 +138,21 @@ namespace OfficeIMO.Excel {
         internal void MaterializeDeferredDataSetImport() =>
             MaterializeDeferredDataSetImport(CancellationToken.None);
 
+        /// <summary>
+        /// Materializes the deferred import for a caller that only adds worksheet data beside it, such as a new sheet.
+        /// Plain selector cells may then stay in the sheet's pending cell buffer instead of the cell DOM; every other
+        /// caller gets fully materialized worksheet cells.
+        /// </summary>
+        internal void MaterializeDeferredDataSetImportKeepingCellBuffers(CancellationToken ct) {
+            bool previous = _keepMaterializedCellsInBuffers;
+            _keepMaterializedCellsInBuffers = true;
+            try {
+                MaterializeDeferredDataSetImport(ct);
+            } finally {
+                _keepMaterializedCellsInBuffers = previous;
+            }
+        }
+
         internal void MaterializeDeferredDataSetImport(CancellationToken ct) {
             if (!RequiresDeferredMaterialization) {
                 ct.ThrowIfCancellationRequested();
@@ -275,7 +290,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                if (TryMaterializeTypedCellsToCellValueBuffer(sheet, sheetModel, cancellationToken)) {
+                if (_keepMaterializedCellsInBuffers && TryMaterializeTypedCellsToCellValueBuffer(sheet, sheetModel, cancellationToken)) {
                     continue;
                 }
 

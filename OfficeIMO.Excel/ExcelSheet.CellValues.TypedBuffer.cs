@@ -18,7 +18,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (!_excelDocument.IsMaterializingDeferredDataSetImport && _excelDocument.HasUnmaterializedDirectDataSetRows) {
-                _excelDocument.MaterializeDeferredDataSetImport(ct);
+                _excelDocument.MaterializeDeferredDataSetImportKeepingCellBuffers(ct);
             }
 
             if (HasCellValueWriteAccess) {
