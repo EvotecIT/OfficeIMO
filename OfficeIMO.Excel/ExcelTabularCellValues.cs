@@ -37,49 +37,16 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Stores a value; text and other references are appended in call order.</summary>
         internal void Set(int index, object? value) {
-            ExcelBufferedCellKind kind;
-            long bits;
             switch (value) {
-                case null:
-                    kind = ExcelBufferedCellKind.Blank;
-                    bits = 0L;
-                    break;
-                case string text:
-                    kind = ExcelBufferedCellKind.Text;
-                    bits = AddReference(text);
-                    break;
-                case double number:
-                    kind = ExcelBufferedCellKind.Number;
-                    bits = BitConverter.DoubleToInt64Bits(number);
-                    break;
-                case int number:
-                    kind = ExcelBufferedCellKind.Int32;
-                    bits = number;
-                    break;
-                case long number when ExcelExactNumber.FitsNumberCell(number):
-                    kind = ExcelBufferedCellKind.Int64;
-                    bits = number;
-                    break;
-                case long number:
-                    kind = ExcelBufferedCellKind.Text;
-                    bits = AddReference(InvariantNumberText.Get(number));
-                    break;
-                case DateTime date:
-                    kind = ExcelBufferedCellKind.DateTime;
-                    bits = date.Ticks | ((long)date.Kind << DateKindShift);
-                    break;
-                case bool boolean:
-                    kind = ExcelBufferedCellKind.Boolean;
-                    bits = boolean ? 1L : 0L;
-                    break;
-                default:
-                    kind = ExcelBufferedCellKind.Value;
-                    bits = AddReference(value);
-                    break;
+                case null: SetBlank(index); break;
+                case string text: SetText(index, text); break;
+                case double number: SetNumber(index, number); break;
+                case int number: SetInt32(index, number); break;
+                case long number: SetInt64(index, number); break;
+                case DateTime date: SetDateTime(index, date); break;
+                case bool boolean: SetBoolean(index, boolean); break;
+                default: Store(index, ExcelBufferedCellKind.Value, AddReference(value)); break;
             }
-
-            _kinds[index >> ChunkBits][index & ChunkMask] = (byte)kind;
-            _bits[index >> ChunkBits][index & ChunkMask] = bits;
         }
 
         /// <summary>Stores text; null stays blank.</summary>
