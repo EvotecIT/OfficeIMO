@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Text;
-using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 
@@ -262,8 +261,7 @@ namespace OfficeIMO.Excel {
                 return string.Equals(text, criteria, StringComparison.OrdinalIgnoreCase);
             }
 
-            string pattern = "\\A" + CreateFormulaWildcardPattern(criteria) + "\\z";
-            return Regex.IsMatch(text, pattern, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Singleline, FormulaRegexTimeout);
+            return MatchesFormulaWildcard(criteria, text);
         }
 
         private static bool IsFormulaBlankValue(FormulaArgumentValue value) {
