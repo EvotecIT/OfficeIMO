@@ -33,6 +33,7 @@ public class WordReadComparisonBenchmarks {
         _expected = WordBenchmarkCorpus.ObserveExpectedParagraphs(ItemCount);
         EnsureExpected("OfficeIMO", "Default", nameof(OfficeIMO), OfficeIMO());
         EnsureExpected("Open XML SDK", "Default", nameof(OpenXmlSdk), OpenXmlSdk());
+        EnsureExpected("OfficeIMO", "PackageReader", nameof(OfficeIMOPackageReader), OfficeIMOPackageReader());
         EnsureExpected("OfficeIMO", "ReaderText", nameof(OfficeIMOReaderText), OfficeIMOReaderText());
         EnsureExpected("OfficeIMO", "ReaderStreamedText", nameof(OfficeIMOReaderStreamedText), OfficeIMOReaderStreamedText());
     }
@@ -95,6 +96,18 @@ public class WordReadComparisonBenchmarks {
         var observation = WordReadObservation.Empty;
         foreach (Paragraph paragraph in body.Elements<Paragraph>()) {
             observation = observation.Add(paragraph.InnerText);
+        }
+        return observation;
+    }
+
+    /// <summary>The SDK-free Open XML package and pull reader in OfficeIMO.Core: same paragraphs as the SDK lane.</summary>
+    [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:PackageReader")]
+    public WordReadObservation OfficeIMOPackageReader() {
+        using var stream = new MemoryStream(_fixture, writable: false);
+        var observation = WordReadObservation.Empty;
+        foreach (string text in global::OfficeIMO.Core.Internal.OpenXml.OfficeOpenXmlTextReader.ReadWordBodyParagraphs(stream)) {
+            observation = observation.Add(text);
         }
         return observation;
     }
