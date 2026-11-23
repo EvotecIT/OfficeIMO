@@ -79,15 +79,14 @@ internal sealed partial class StudioNativeDocument {
 
     /// <summary>What the document's structure says about it, as the desktop's document health inspection reports it.</summary>
     private static StudioNativeHealth HealthOf(byte[] bytes, PdfLoadOptions options, CancellationToken cancellationToken) {
-        PdfDocumentPreflight preflight = OfficeDocument.Inspect(new MemoryStream(bytes), "source.pdf",
-            new OfficeInspectOptions { IncludeContent = false, PdfPreflight = options,
-                MaximumInputBytes = options.Limits.MaxInputBytes }, cancellationToken).PdfPreflight!;
+        PdfDocumentPreflight preflight = PdfDocument.Preflight(bytes, options, cancellationToken);
         PdfDocumentInfo? info = preflight.DocumentInfo;
         var diagnostics = new List<string>(preflight.Diagnostics);
         PdfRepairReport? repairs = null;
         if (preflight.CanRead) {
             try {
-                PdfAnalysisReport analysis = PdfDocument.Load(new MemoryStream(bytes), options).Analyze(PdfComplianceProfile.None, cancellationToken);
+                using PdfDocument document = PdfDocument.LoadOwned(bytes, options, cancellationToken);
+                PdfAnalysisReport analysis = document.Analyze(PdfComplianceProfile.None, cancellationToken);
                 info = analysis.Info;
                 repairs = analysis.Repair;
                 diagnostics.AddRange(repairs.Diagnostics.Select(static item => item.Message));
@@ -118,7 +117,8 @@ internal sealed partial class StudioNativeDocument {
                         "web" => PdfOptimizationProfile.Web, "archival" => PdfOptimizationProfile.Archival,
                         _ => throw new ArgumentException($"“{copy.Profile}” isn't an optimization profile.", nameof(copy))
                     });
-                    PdfOptimizationActionResult result = PdfDocument.Load(new MemoryStream(input), options).Optimization.Apply(optimization, cancellationToken: cancellationToken);
+                    using PdfDocument document = PdfDocument.LoadOwned(input, options, cancellationToken);
+                    PdfOptimizationActionResult result = document.Optimization.Apply(optimization, cancellationToken: cancellationToken);
                     if (!result.PreservationReport.IsPreserved) throw new InvalidOperationException("The optimized copy wouldn't keep everything the document contains, so it wasn't written.");
                     return (result.Bytes, result.ReturnedOriginal ? "The document is already as small as lossless optimization makes it."
                         : string.Create(CultureInfo.InvariantCulture, $"Saved {result.SavedBytes} bytes."));
@@ -131,7 +131,8 @@ internal sealed partial class StudioNativeDocument {
                 }
                 default: {
                     // Removal throws when the rewritten copy still holds a selected item or changed anything else.
-                    OfficeHiddenDataResult result = PdfDocument.Load(new MemoryStream(input), options).RemoveHiddenData(
+                    using PdfDocument document = PdfDocument.LoadOwned(input, options, cancellationToken);
+                    OfficeHiddenDataResult result = document.RemoveHiddenData(
                         new OfficeHiddenDataOptions { Kinds = OfficeHiddenDataKind.ActiveContent | OfficeHiddenDataKind.Attachments }, cancellationToken);
                     int removed = result.Report.Findings.Count(static finding => finding.Outcome == OfficeHiddenDataOutcome.Removed);
                     return (result.ToArray(), string.Create(CultureInfo.InvariantCulture,

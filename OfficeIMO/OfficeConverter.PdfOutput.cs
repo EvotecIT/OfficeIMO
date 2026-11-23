@@ -47,7 +47,7 @@ public static partial class OfficeConverter {
         var compression = PdfOptimizationOptions.Create(PdfOptimizationProfile.MaximumCompression);
         compression.KeepOriginalWhenNotSmaller = true;
         compression.MaximumOutputBytes = maximumOutputBytes;
-        using var document = PdfDocument.Load(new MemoryStream(bytes), readOptions, token);
+        using var document = PdfDocument.LoadOwned(bytes, readOptions, token);
         PdfOptimizationActionResult optimized = document.Optimization.Apply(compression, cancellationToken: token);
         if (!optimized.PreservationReport.IsPreserved)
             throw new InvalidOperationException("PDF compression did not preserve the converted document.");

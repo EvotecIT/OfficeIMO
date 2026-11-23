@@ -153,7 +153,7 @@ public sealed partial class PrintPreviewViewModel : ObservableObject, IDisposabl
 
     private async Task<PdfDocument> ReadStorageSnapshotAsync(string path, CancellationToken token) {
         StudioStorageSnapshot snapshot = await _storage.ReadSnapshotAsync(path, token).ConfigureAwait(true);
-        return await Task.Run(() => PdfDocument.Load(new MemoryStream(snapshot.Bytes)), token).ConfigureAwait(true);
+        return await Task.Run(() => PdfDocument.LoadOwned(snapshot.Bytes, cancellationToken: token), token).ConfigureAwait(true);
     }
 
     internal void UseDocument(string? path) {
