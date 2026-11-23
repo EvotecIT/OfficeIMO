@@ -135,15 +135,12 @@ def select(root, changed, full=False):
     # Non-.NET lanes declare their own inputs. The selector, SDK and NuGet
     # configuration still select every one of them; full runs always do.
     shared = full or matches(config.get("shared_inputs", []))
-    # A path suite can also list projects under "suites"; then either selects it.
-    path_suites = config.get("path_suites", {})
-    for key, patterns in path_suites.items():
-        suites[key] = suites.get(key, False) or shared or matches(patterns)
+    for key, patterns in config.get("path_suites", {}).items():
+        suites[key] = shared or matches(patterns)
     if ci_only:
         narrow_names = {Path(p).stem for p in narrow}
         for key in config.get("macos_suites", []):
-            suites[key] = (shared or matches(path_suites.get(key, []))
-                           or bool(narrow_names.intersection(config["suites"][key])))
+            suites[key] = shared or bool(narrow_names.intersection(config["suites"][key]))
     partitions = [p for p, roots in config["partitions"].items() if selected(roots)]
     frameworks = ["net8.0", "net10.0"] if full else ["net10.0"]
     ubuntu = [{"framework": f, "partition": p} for f in frameworks for p in partitions]

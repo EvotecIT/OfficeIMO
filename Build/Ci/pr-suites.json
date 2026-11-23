@@ -58,16 +58,13 @@
     "Build/Ci/**"
   ],
   "macos_suites": [
-    "platform-image-codecs",
-    "studio-apple"
+    "platform-image-codecs"
   ],
   "path_suites": {
     "studio-apple": [
       ".github/workflows/studio-apple.yml",
       "Apple/**",
-      "OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/openpreserve-high-resolution-image.pdf",
-      "Build/Studio/Apple/**",
-      "OfficeIMO.Studio.Native/**"
+      "OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/openpreserve-high-resolution-image.pdf"
     ],
     "apple-dependency-graph": [
       ".github/workflows/dependency-submission.yml",
@@ -132,9 +129,6 @@
     "studio-contracts": [
       "OfficeIMO.Studio.Core.Tests",
       "OfficeIMO.Studio.Tests"
-    ],
-    "studio-apple": [
-      "OfficeIMO.Studio.Native"
     ],
     "studio-release-restore": [
       "OfficeIMO.Studio",

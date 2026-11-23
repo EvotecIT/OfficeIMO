@@ -145,22 +145,6 @@ class SelectionTests(unittest.TestCase):
                 self.assertEqual(expected, self.choose(*paths)["suites"]["studio-apple"])
         self.assertTrue(self.choose("OfficeIMO.Word/Save.cs", full=True)["suites"]["studio-apple"])
 
-    def test_path_suite_also_follows_the_projects_it_lists(self):
-        self.project("OfficeIMO.Studio.Native", "OfficeIMO.Word")
-        config_path = self.root / "Build/Ci/pr-suites.json"
-        config = json.loads(config_path.read_text())
-        config["suites"]["studio-apple"] = ["OfficeIMO.Studio.Native"]
-        config["macos_suites"] = ["studio-apple"]
-        config["ci_only_inputs"] = [".github/**"]
-        config["shared_inputs"] = ["global.json"]
-        config_path.write_text(json.dumps(config))
-        self.stage()
-        cases = {"OfficeIMO.Core/Document.cs": True, "OfficeIMO.CSV/Csv.cs": False, "Apple/App.swift": True,
-                 ".github/workflows/dotnet-tests.yml": False}
-        for path, expected in cases.items():
-            with self.subTest(path=path):
-                self.assertEqual(expected, self.choose(path)["suites"]["studio-apple"])
-
     def test_full_ci_retains_website_even_without_a_website_path_change(self):
         self.assertTrue(self.choose("OfficeIMO.Word/Save.cs", full=True)["suites"]["website"])
 
@@ -227,8 +211,6 @@ class SelectionTests(unittest.TestCase):
                 self.assertEqual([True] * 3, [result["suites"][key] for key in macos])
         result = selection.select(repository, [".github/workflows/studio-apple.yml", "OfficeIMO.Drawing.ImageIO/Decode.cs"])
         self.assertEqual([True, False, True], [result["suites"][key] for key in macos])
-        result = selection.select(repository, [".github/workflows/studio-apple.yml"])
-        self.assertEqual([True, False, False], [result["suites"][key] for key in macos])
         for path in ["OfficeIMO.Studio.iOS/OfficeIMO.Studio.iOS.csproj", "OfficeIMO.Studio/OfficeIMO.Studio.csproj"]:
             with self.subTest(path=path):
                 self.assertTrue(selection.select(repository, [path])["suites"]["apple-dependency-graph"])

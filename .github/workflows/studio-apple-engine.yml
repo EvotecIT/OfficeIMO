@@ -1,0 +1,86 @@
+name: Studio Apple engine
+
+# Builds the Studio engine from master for the Studio Apple job, which compiles the apps against the newest build.
+# A four-slice NativeAOT build takes well over an hour, so it runs nightly, and only when the engine sources changed.
+on:
+  schedule:
+    - cron: '41 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: studio-apple-engine
+  cancel-in-progress: false
+
+jobs:
+  sources:
+    name: Check the engine sources
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      key: ${{ steps.key.outputs.key }}
+      built: ${{ steps.key.outputs.built }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - id: key
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $key = "studio-apple-engine-$(./Build/Studio/Apple/Build-StudioEngine.ps1 -PrintSourceKey)"
+          $existing = [int](gh cache list --repo $env:GITHUB_REPOSITORY --key $key --ref refs/heads/master --json key --jq 'length')
+          if ($LASTEXITCODE) { throw 'Cannot list the engine caches.' }
+          "key=$key" >> $env:GITHUB_OUTPUT
+          "built=$(($existing -gt 0).ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
+          Write-Host ($existing -gt 0 ? "An engine for these sources is already cached ($key)." : "Building $key.")
+
+  engine:
+    name: Build the engine
+    needs: sources
+    if: needs.sources.outputs.built != 'true'
+    runs-on: xcode-27
+    timeout-minutes: 180
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - name: Build all four slices
+        shell: pwsh
+        run: ./Build/Studio/Apple/Build-StudioEngine.ps1 -WorkDirectory (Join-Path $env:RUNNER_TEMP 'studio-engine')
+      # Saved under the key computed above, so the next check finds it whichever SDK this runner rolled forward to.
+      - uses: actions/cache/save@v6
+        with:
+          path: |
+            Apple/OfficeIMOStudioEngine/OfficeIMOStudioEngine.xcframework
+            Apple/OfficeIMOStudioEngine/link-inputs
+          key: ${{ needs.sources.outputs.key }}
+      # Each engine is large, and the Studio Apple job only uses the newest, so older ones would just crowd the cache.
+      - name: Remove older engines
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          KEEP: ${{ needs.sources.outputs.key }}
+        run: |
+          $old = gh cache list --repo $env:GITHUB_REPOSITORY --key studio-apple-engine- --limit 100 --json id,key --jq ".[] | select(.key != \"$env:KEEP\") | .id"
+          if ($LASTEXITCODE) { throw 'Cannot list the engine caches.' }
+          foreach ($id in $old) {
+              gh cache delete $id --repo $env:GITHUB_REPOSITORY
+              if ($LASTEXITCODE) { throw "Cannot delete engine cache $id." }
+          }

@@ -8,11 +8,9 @@ the same checkout and never committed, so a merged engine change reaches the nex
 anything. This script builds it with OfficeIMO.Studio.Native/Build-AppleEngine.ps1 and records a key for the engine
 sources and runtimes it was built from. A later run with the same key does nothing.
 
-Run it before building the apps in Xcode, in CI and before an App Store archive. The key covers every tracked file
-outside Apple/, Website/, Docs/, .github/ and Markdown files, including uncommitted and untracked changes.
-
-With -CacheDirectory (or OFFICEIMO_STUDIO_ENGINE_CACHE), builds are also kept there by key, so a runner or a second
-checkout reuses them. The newest three are kept.
+Run it before building the apps in Xcode and before an App Store archive. The key covers every tracked file outside
+Apple/, Website/, Docs/, .github/ and Markdown files, including uncommitted and untracked changes. The Studio Apple
+engine workflow uses the same key to build master's engine only when it changed.
 
 .EXAMPLE
 ./Build/Studio/Apple/Build-StudioEngine.ps1
@@ -26,7 +24,6 @@ param(
     [string[]]$RuntimeIdentifier = @('osx-arm64', 'osx-x64', 'ios-arm64', 'iossimulator-arm64'),
     # Build output and intermediates. Defaults to the engine package's ignored .build folder.
     [string]$WorkDirectory,
-    [string]$CacheDirectory = $env:OFFICEIMO_STUDIO_ENGINE_CACHE,
     # Prints the source key and exits.
     [switch]$PrintSourceKey,
     [switch]$Force
@@ -68,8 +65,8 @@ if (-not $Force -and (Test-Path $framework) -and (Test-Path $stamp) -and (Get-Co
     return
 }
 
-# Installs the framework and its link inputs (dependency manifests for the third-party notices) from a build or cache
-# folder. The stamp is written last, so an interrupted install is never taken as up to date.
+# Installs the framework and its link inputs (dependency manifests for the third-party notices) from the build folder.
+# The stamp is written last, so an interrupted install is never taken as up to date.
 function Install-Engine([string]$Source) {
     if (Test-Path $stamp) { Remove-Item -Force $stamp }
     foreach ($item in $framework, $inputs) { if (Test-Path $item) { Remove-Item -Recurse -Force $item } }
@@ -78,36 +75,7 @@ function Install-Engine([string]$Source) {
     Set-Content -LiteralPath $stamp -Value $key -NoNewline
 }
 
-$cached = if ($CacheDirectory) { Join-Path $CacheDirectory $key } else { $null }
-if (-not $Force -and $cached -and (Test-Path (Join-Path $cached 'OfficeIMOStudioEngine.xcframework')) -and (Test-Path (Join-Path $cached 'link-inputs'))) {
-    Install-Engine $cached
-    Write-Host "Installed the cached engine for this checkout ($($key.Substring(0, 12)))."
-    return
-}
-
 if (-not $WorkDirectory) { $WorkDirectory = Join-Path $package '.build/engine' }
 & (Join-Path $root 'OfficeIMO.Studio.Native/Build-AppleEngine.ps1') -OutputDirectory $WorkDirectory -RuntimeIdentifier $RuntimeIdentifier
 Install-Engine $WorkDirectory
-
-if ($CacheDirectory) {
-    # Copied into this run's own staging folder and renamed once complete, so an interrupted copy never looks like a
-    # cache hit and two builds of the same key don't remove each other's copy.
-    $entry = Join-Path $CacheDirectory $key
-    $staging = "$entry.$([guid]::NewGuid().ToString('N')).tmp"
-    try {
-        New-Item -ItemType Directory -Force $staging | Out-Null
-        Copy-Item -Recurse $framework (Join-Path $staging 'OfficeIMOStudioEngine.xcframework')
-        Copy-Item -Recurse $inputs (Join-Path $staging 'link-inputs')
-        if (Test-Path $entry) { Remove-Item -Recurse -Force $entry }
-        Move-Item $staging $entry
-    } finally {
-        if (Test-Path $staging) { Remove-Item -Recurse -Force $staging }
-    }
-    Get-ChildItem -Directory $CacheDirectory | Where-Object Name -NotLike '*.tmp' |
-        Sort-Object LastWriteTimeUtc -Descending | Select-Object -Skip 3 |
-        ForEach-Object { Remove-Item -Recurse -Force $_.FullName }
-    # A run that was killed mid-copy leaves its staging folder; one a day old is no longer in use.
-    Get-ChildItem -Directory $CacheDirectory -Filter '*.tmp' | Where-Object LastWriteTimeUtc -LT ([datetime]::UtcNow.AddDays(-1)) |
-        ForEach-Object { Remove-Item -Recurse -Force $_.FullName }
-}
 Write-Host "Built the engine for this checkout ($($key.Substring(0, 12)))."
