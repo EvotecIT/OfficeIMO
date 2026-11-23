@@ -251,6 +251,10 @@ internal static partial class OfficeJpegReader {
                         quantTables[comp.QuantId] ?? Array.Empty<int>(),
                         ref aggregateBytes, frame.Precision, trackNonzeroPositions: !arithmeticCoding);
                 }
+                // Exact storage for every component is reserved above; pool rounding may use
+                // only what is left after room for a later orientation canvas and lookups.
+                long headroom = (orientation > 1 ? 0L : (long)frame.Width * frame.Height * 4L) + 64L * 1024L;
+                foreach (ProgressiveComponentState component in components) component.AllocateBuffers(ref aggregateBytes, headroom);
             } catch {
                 foreach (ProgressiveComponentState? created in components) created?.ReturnBuffers();
                 throw;
@@ -378,24 +382,34 @@ internal static partial class OfficeJpegReader {
                 ? OfficeRasterGuards.EnsureByteArrayLength(coeffLength / 64 * 8L, ref aggregateBytes, JpegDimensionsLimitMessage) / 8
                 : 0;
             Samples = new BaselineComponentState(component, blocksPerRow, blocksPerCol, ref aggregateBytes, precision, allocatePlane: false);
-            // Rented last, after every budget check that can throw.
-            Coeffs = RentCleared<short>(coeffLength, sizeof(short), ref aggregateBytes);
-            NonzeroPositions = RentCleared<ulong>(maskLength, sizeof(ulong), ref aggregateBytes);
+            _coefficientLength = coeffLength;
+            _maskLength = maskLength;
+            Coeffs = Array.Empty<short>();
+            NonzeroPositions = Array.Empty<ulong>();
             PrevDc = 0;
+        }
+
+        private readonly int _coefficientLength;
+        private readonly int _maskLength;
+
+        // Called once every component's exact storage is reserved.
+        public void AllocateBuffers(ref long aggregateBytes, long headroom) {
+            Coeffs = RentCleared<short>(_coefficientLength, sizeof(short), ref aggregateBytes, headroom);
+            NonzeroPositions = RentCleared<ulong>(_maskLength, sizeof(ulong), ref aggregateBytes, headroom);
         }
 
         // Coefficient planes are as large as the image and needed only while one image
         // decodes, so they come from the shared pool. The pool rounds lengths up to a power
         // of two; that extra capacity is charged to the decode budget, and a plane whose
-        // rounding does not fit is allocated at its exact length instead. Only the
-        // requested length is cleared and used.
-        private static T[] RentCleared<T>(int length, int elementSize, ref long aggregateBytes) {
+        // rounding does not fit (keeping headroom free) is allocated at its exact length
+        // instead. Only the requested length is cleared and used.
+        private static T[] RentCleared<T>(int length, int elementSize, ref long aggregateBytes, long headroom) {
             if (length == 0) return Array.Empty<T>();
 #if NET8_0_OR_GREATER
             if (length <= 1 << 30) {
                 long capacity = Math.Max(16L, (long)System.Numerics.BitOperations.RoundUpToPowerOf2((uint)length));
                 long rounded = checked(aggregateBytes + (capacity - length) * elementSize);
-                if (rounded <= OfficeRasterGuards.MaximumDecodedBytes) {
+                if (rounded + headroom <= OfficeRasterGuards.MaximumDecodedBytes) {
                     T[] array = System.Buffers.ArrayPool<T>.Shared.Rent(length);
                     if (array.Length <= capacity) {
                         aggregateBytes = rounded;
