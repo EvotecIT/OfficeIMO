@@ -42,6 +42,7 @@ internal static class JsonReaderAdapter {
         var parseStream = ReaderInputLimits.EnsureSeekableReadStream(
             stream,
             effectiveReaderOptions.MaxInputBytes,
+            inputLimitProbe: null,
             cancellationToken,
             out var ownsParseStream);
         UpdateSourceMetadataFromSeekableStream(source, parseStream, effectiveReaderOptions.ComputeHashes);

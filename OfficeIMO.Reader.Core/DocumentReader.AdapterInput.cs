@@ -68,6 +68,7 @@ internal static partial class DocumentReaderEngine {
         Stream snapshot = ReaderInputLimits.EnsureSeekableReadStream(
             stream,
             maxInputBytes,
+            inputLimitProbe: null,
             cancellationToken,
             out bool ownsSnapshot);
         try {
