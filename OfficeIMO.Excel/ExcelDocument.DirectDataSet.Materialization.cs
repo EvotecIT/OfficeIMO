@@ -144,13 +144,17 @@ namespace OfficeIMO.Excel {
         /// caller gets fully materialized worksheet cells.
         /// </summary>
         internal void MaterializeDeferredDataSetImportKeepingCellBuffers(CancellationToken ct) {
-            bool previous = _keepMaterializedCellsInBuffers;
-            _keepMaterializedCellsInBuffers = true;
-            try {
-                MaterializeDeferredDataSetImport(ct);
-            } finally {
-                _keepMaterializedCellsInBuffers = previous;
+            if (!RequiresDeferredMaterialization) {
+                ct.ThrowIfCancellationRequested();
+                return;
             }
+
+            if (Locking.IsNoLock || (_lock != null && _lock.IsWriteLockHeld)) {
+                MaterializeDeferredDataSetImportLocked(ct, keepCellBuffers: true);
+                return;
+            }
+
+            Locking.ExecuteWrite(EnsureLock(), () => MaterializeDeferredDataSetImportLocked(ct, keepCellBuffers: true));
         }
 
         internal void MaterializeDeferredDataSetImport(CancellationToken ct) {
@@ -171,7 +175,11 @@ namespace OfficeIMO.Excel {
         /// <param name="preserveFastSaveModel">
         /// Keeps the rows on the direct worksheet writer at save, as a read leaves them unchanged.
         /// </param>
-        private void MaterializeDeferredDataSetImportLocked(CancellationToken ct, bool preserveFastSaveModel = false) {
+        /// <param name="keepCellBuffers">
+        /// Lets plain selector cells stay in the sheet's pending cell buffer; set only under the workbook write lock, so
+        /// a concurrent reader never sees partly materialized cells.
+        /// </param>
+        private void MaterializeDeferredDataSetImportLocked(CancellationToken ct, bool preserveFastSaveModel = false, bool keepCellBuffers = false) {
             ct.ThrowIfCancellationRequested();
             if (_materializingDeferredDataSetImport) {
                 return;
@@ -196,6 +204,7 @@ namespace OfficeIMO.Excel {
 
             _directDataSetSaveCandidate = null;
             _materializingDeferredDataSetImport = true;
+            _keepMaterializedCellsInBuffers = keepCellBuffers;
             try {
                 MaterializeDirectDataSetModel(candidate.Model, cancellationToken: ct);
                 candidate.Dispose();
@@ -213,6 +222,7 @@ namespace OfficeIMO.Excel {
                 throw;
             } finally {
                 _materializingDeferredDataSetImport = false;
+                _keepMaterializedCellsInBuffers = false;
             }
         }
 

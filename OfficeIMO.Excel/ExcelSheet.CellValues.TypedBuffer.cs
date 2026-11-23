@@ -4,7 +4,7 @@ namespace OfficeIMO.Excel {
         /// Writes an optional header row and row-major selector results on an empty sheet straight into the pending
         /// cell buffer, the route <see cref="TryBufferFreshSheetCellValues"/> takes for boxed cells. The values stay
         /// typed until save, and the per-cell admission work runs once for the block instead of once per cell.
-        /// Missing values stay blank, and date and time values take the tabular insertion format, as they do when the
+        /// Missing values stay blank, and date and time values (offset dates included) take the tabular insertion format, as they do when the
         /// block is the workbook's only sheet. Returns false, with nothing written, when the sheet cannot take the block.
         /// </summary>
         internal bool TryBufferFreshSheetTabularValues(IReadOnlyList<string>? headers, ExcelTabularCellValues values, int startRow, CancellationToken ct) {
@@ -49,7 +49,9 @@ namespace OfficeIMO.Excel {
 
             uint dateStyle = 0U;
             for (int index = 0; index < cellCount; index++) {
-                if (values.GetKind(index) == ExcelBufferedCellKind.DateTime) {
+                ExcelBufferedCellKind kind = values.GetKind(index);
+                if (kind == ExcelBufferedCellKind.DateTime
+                    || (kind == ExcelBufferedCellKind.Value && values.GetReference(index) is DateTimeOffset)) {
                     dateStyle = GetOrCreateDirectTabularDateStyle(useCellValueNumberFormats: false);
                     break;
                 }
@@ -87,7 +89,8 @@ namespace OfficeIMO.Excel {
         /// </summary>
         private bool TryAppendFreshSheetCell(int row, int column, in ExcelBufferedCell cell, uint dateStyle, CancellationToken ct) {
             ExcelCellValueBuffer? buffer = _pendingCellValueDirectSaveBuffer;
-            bool date = cell.Kind == ExcelBufferedCellKind.DateTime && dateStyle != 0U;
+            // Offset dates arrive as values and are converted to date cells by the single-cell route.
+            bool date = dateStyle != 0U && (cell.Kind == ExcelBufferedCellKind.DateTime || cell.Reference is DateTimeOffset);
             if (buffer != null
                 && buffer.CellCount >= PendingDirectCellValueMinimumCellCount
                 && cell.Kind != ExcelBufferedCellKind.Value

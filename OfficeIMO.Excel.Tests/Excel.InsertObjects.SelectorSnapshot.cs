@@ -60,14 +60,17 @@ namespace OfficeIMO.Tests {
             var rows = Enumerable.Range(0, 300).ToArray();
             (string, Func<int, object?>)[] columns = [
                 ("Name", index => "Name" + index), ("Id", index => index),
-                ("CreatedOn", index => start.AddDays(index)), ("Amount", index => index * 1.25)
+                ("CreatedOn", index => start.AddDays(index)), ("Amount", index => index * 1.25),
+                ("Offset", index => new DateTimeOffset(start.AddDays(index), TimeSpan.Zero))
             ];
 
             string expectedFormat;
+            string expectedOffsetFormat;
             using (var single = ExcelDocument.Create()) {
                 single.AddSheet("Data").WriteData(rows, columns);
                 using var loaded = ExcelDocument.Load(new MemoryStream(single.ToBytes(format)));
                 expectedFormat = loaded.Sheets[0].Cell(2, 3).GetStyle().NumberFormatCode!;
+                expectedOffsetFormat = loaded.Sheets[0].Cell(301, 5).GetStyle().NumberFormatCode!;
             }
 
             using var document = ExcelDocument.Create();
@@ -78,6 +81,7 @@ namespace OfficeIMO.Tests {
                 foreach (int row in new[] { 2, 301 }) {
                     int index = row - 2;
                     Assert.Equal(expectedFormat, sheet.Cell(row, 3).GetStyle().NumberFormatCode);
+                    Assert.Equal(expectedOffsetFormat, sheet.Cell(row, 5).GetStyle().NumberFormatCode);
                     Assert.True(sheet.TryGetCellText(row, 1, out string name));
                     Assert.Equal("Name" + index, name);
                     Assert.True(sheet.TryGetCellText(row, 2, out string id));
