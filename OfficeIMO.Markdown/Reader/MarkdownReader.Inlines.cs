@@ -129,6 +129,8 @@ internal static partial class MarkdownReader {
         // Every parse owns the root frame. Frame stacks are reused per thread; nested label parses
         // take their own while their parent's is in use.
         var stack = RentInlineFrameStack();
+        // Created on the first extension probe and shared by the rest of this parse.
+        Func<int, int, bool, bool, InlineSequence>? nestedInlineSegmentParser = null;
         stack.Push(new InlineFrame(FrameKind.Root, '\0', 0, root, -1));
         InlineSequence Current() => stack.Peek().Seq;
         MarkdownInlineSourceMap? SliceMap(int start, int length) => sourceMap?.Slice(start, length);
@@ -460,7 +462,7 @@ internal static partial class MarkdownReader {
                     allowImages,
                     sourceMap,
                     inlineParserExtensions,
-                    CreateNestedInlineSegmentParser(text, options, state, sourceMap, inlineHtmlWrapperMatches, inlineHtmlWrapperDepth, imageAltDepth, tableCellHtmlMode),
+                    nestedInlineSegmentParser ??= CreateNestedInlineSegmentParser(text, options, state, sourceMap, inlineHtmlWrapperMatches, inlineHtmlWrapperDepth, imageAltDepth, tableCellHtmlMode),
                     out var extensionResult)) {
                 AddRawNode(extensionResult.Inline, pos, extensionResult.ConsumedLength);
                 pos += extensionResult.ConsumedLength;
@@ -1033,7 +1035,7 @@ internal static partial class MarkdownReader {
                         allowImages,
                         sourceMap,
                         inlineParserExtensions,
-                        CreateNestedInlineSegmentParser(text, options, state, sourceMap, inlineHtmlWrapperMatches, inlineHtmlWrapperDepth, imageAltDepth, tableCellHtmlMode),
+                        nestedInlineSegmentParser ??= CreateNestedInlineSegmentParser(text, options, state, sourceMap, inlineHtmlWrapperMatches, inlineHtmlWrapperDepth, imageAltDepth, tableCellHtmlMode),
                         out _)) break;
                 pos++;
             }
