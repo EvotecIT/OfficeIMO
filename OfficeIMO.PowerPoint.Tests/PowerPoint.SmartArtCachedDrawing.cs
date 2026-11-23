@@ -176,6 +176,7 @@ public sealed class PowerPointSmartArtCachedDrawingTests {
             writer.Write(xml.Replace(">Discover<", ">Dis<![CDATA[co]]>ver<"));
         }
 
-        Assert.True(smartArt.TryCreateCachedDrawing(out _, out string? reason), reason);
+        Assert.True(smartArt.TryCreateCachedDrawing(out PowerPointGroupShape group, out string? reason), reason);
+        Assert.Contains("Discover", slide.GetGroupChildren(group).OfType<PowerPointTextBox>().Select(text => text.Text.Trim()));
     }
 }

@@ -128,7 +128,7 @@ namespace OfficeIMO.PowerPoint {
                 GetRotation(textTransform) != (shapeTransform?.Rotation?.Value ?? 0));
             var shape = new Shape(CreateShapeNames(ref nextId), new ShapeProperties(CloneChildren(properties)));
             if (style != null) shape.Append(new ShapeStyle(CloneChildren(style)));
-            if (text != null && !separateText) shape.Append(colors.WithTextColor(new TextBody(CloneChildren(text)), style));
+            if (text != null && !separateText) shape.Append(colors.WithTextColor(CloneTextBody(text), style));
             target.Append(colors.Resolve(shape));
             if (!separateText) return;
             // The cached text rectangle (dsp:txXfrm) can differ from the shape, for example for the
@@ -142,7 +142,7 @@ namespace OfficeIMO.PowerPoint {
                 new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle },
                 new A.NoFill(), new A.Outline(new A.NoFill())));
             if (style != null) label.Append(new ShapeStyle(CloneChildren(style)));
-            label.Append(colors.WithTextColor(new TextBody(CloneChildren(text!)), style));
+            label.Append(colors.WithTextColor(CloneTextBody(text!), style));
             target.Append(colors.Resolve(label));
         }
 
@@ -208,6 +208,23 @@ namespace OfficeIMO.PowerPoint {
                 new NonVisualDrawingProperties { Id = nextId, Name = "SmartArt shape " + nextId++ },
                 new NonVisualShapeDrawingProperties(),
                 new ApplicationNonVisualDrawingProperties());
+
+        /// <summary>Clones a cached text body, keeping text that a CDATA section splits within one a:t element.</summary>
+        private static TextBody CloneTextBody(OpenXmlElement source) {
+            var body = new TextBody(CloneChildren(source));
+            List<OpenXmlElement> sourceTexts = source.Descendants().Where(IsDrawingText).ToList();
+            List<OpenXmlElement> clonedTexts = body.Descendants().Where(IsDrawingText).ToList();
+            for (int index = 0; index < sourceTexts.Count && index < clonedTexts.Count; index++) {
+                string value = ReadFullText(sourceTexts[index]);
+                if (!string.Equals(value, clonedTexts[index].InnerText, StringComparison.Ordinal)) {
+                    clonedTexts[index].Parent!.ReplaceChild(new A.Text(value), clonedTexts[index]);
+                }
+            }
+            return body;
+        }
+
+        private static bool IsDrawingText(OpenXmlElement element) =>
+            element.LocalName == "t" && element.NamespaceUri == "http://schemas.openxmlformats.org/drawingml/2006/main";
 
         private static IEnumerable<OpenXmlElement> CloneChildren(OpenXmlElement? element) =>
             element?.ChildElements.Select(child => child.CloneNode(true)) ?? Enumerable.Empty<OpenXmlElement>();
@@ -304,21 +321,30 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>A parse without whitespace preservation drops whitespace-only text unless xml:space keeps it.</summary>
         private static string ParsedTextValue(OpenXmlElement textElement) {
-            string value = textElement.InnerText;
-            // InnerText keeps only the first segment when plain text and CDATA share one element.
-            string markup = textElement.OuterXml;
-            if (markup.IndexOf("<![CDATA[", StringComparison.Ordinal) >= 0) value = XElement.Parse(markup).Value;
+            string value = ReadFullText(textElement);
             if (value.Length == 0) return value;
             foreach (char character in value) {
                 if (character != ' ' && character != '\t' && character != '\r' && character != '\n') return value;
             }
-            for (OpenXmlElement? scope = textElement; scope != null; scope = scope.Parent) {
+            return PreservesWhitespace(textElement) ? value : string.Empty;
+        }
+
+        /// <summary>InnerText keeps only the first segment when plain text and CDATA share one element.</summary>
+        private static string ReadFullText(OpenXmlElement textElement) {
+            string markup = textElement.OuterXml;
+            if (markup.IndexOf("<![CDATA[", StringComparison.Ordinal) < 0) return textElement.InnerText;
+            // Parse with the xml:space setting the element inherits, as a parse of the whole body would.
+            return XElement.Parse(markup, PreservesWhitespace(textElement) ? LoadOptions.PreserveWhitespace : LoadOptions.None).Value;
+        }
+
+        private static bool PreservesWhitespace(OpenXmlElement element) {
+            for (OpenXmlElement? scope = element; scope != null; scope = scope.Parent) {
                 string? space = scope.GetAttributes().FirstOrDefault(attribute =>
                     attribute.LocalName == "space" && attribute.NamespaceUri == "http://www.w3.org/XML/1998/namespace").Value;
-                if (space == "preserve") return value;
-                if (space == "default") return string.Empty;
+                if (space == "preserve") return true;
+                if (space == "default") return false;
             }
-            return string.Empty;
+            return false;
         }
 
         private static string ReadVisibleText(XElement? body, XNamespace drawingNamespace) => body == null
