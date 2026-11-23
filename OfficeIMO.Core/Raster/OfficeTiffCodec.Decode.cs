@@ -140,6 +140,13 @@ public static partial class OfficeTiffCodec {
                         compression, planarConfiguration, predictor, floating, baseSamples, alphaIndex, effective, decodeWorkBudget,
                         retainPixels: true, out byte[] source, out TiffJpegColorTransform? jpegColor)) return false;
 
+                // Straight-alpha RGBA8 strips are already the raster layout.
+                if (orientation == 1 && jpegColor == null && !floating && sampleBytes == 1 && sampleBits == 8 &&
+                    packedBits == 0 && colorProfile == null && photometric == 2 && samples == 4 &&
+                    alphaIndex == 3 && alphaKind == 2 && source.Length == checked(width * height * 4)) {
+                    image = OfficeRasterImage.FromOwnedRgba32(width, height, source);
+                    return true;
+                }
                 int orientedWidth = orientation >= 5 ? height : width;
                 int orientedHeight = orientation >= 5 ? width : height;
                 byte[] rgba = OfficeRasterGuards.AllocateRgba32(orientedWidth, orientedHeight, "TIFF decoded pixels exceed the managed limit.");

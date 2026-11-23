@@ -104,6 +104,10 @@ public static partial class OfficeRasterResampler {
         byte[] output = result.PixelBuffer;
         double scaleX = source.Width / (double)width;
         double scaleY = source.Height / (double)height;
+        if (mode == OfficeRasterResamplingMode.Bilinear && colorSpace == OfficeRasterResamplingColorSpace.EncodedSrgb) {
+            ResizeBilinearEncoded(input, source.Width, source.Height, output, width, height, scaleX, scaleY, cancellationToken);
+            return result;
+        }
         for (int y = 0; y < height; y++) {
             cancellationToken.ThrowIfCancellationRequested();
             double sourceY = ((y + 0.5D) * scaleY) - 0.5D;
