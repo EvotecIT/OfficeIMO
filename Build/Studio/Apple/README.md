@@ -20,7 +20,7 @@ The iOS target includes iPhone and iPad. The native Mac target is a separate bin
 
 The apps link the engine built from the same checkout, the way the rest of the app's code is built. `Build-StudioEngine.ps1` builds it with `OfficeIMO.Studio.Native/Build-AppleEngine.ps1` into the local [Swift package](../../../Apple/OfficeIMOStudioEngine/Package.swift) and skips the build while the engine sources are unchanged. CI runs it before compiling the apps, with a cache on the runner, and an App Store build runs it before archiving, so a release always ships the engine from the commit it was archived from. Nothing is published to build or test the apps.
 
-The engine stays MIT licensed. The package's notice target carries the first-party license files and dependency notices. When the engine's dependencies change, `Pack-StudioAppleEngine.ps1` regenerates and validates the notices with PowerForge: `third-party-notices.json` binds reviewed texts to exact package versions, and missing coverage fails.
+The engine stays MIT licensed. The package's notice target carries the first-party license files and dependency notices. When the engine's dependencies change, `Pack-StudioAppleEngine.ps1` regenerates and validates the notices with PowerForge: `third-party-notices.json` binds reviewed texts to exact package versions, and missing coverage fails. Pass `-EngineDirectory Apple/OfficeIMOStudioEngine` after a full `Build-StudioEngine.ps1` run, which installs the dependency manifests for every runtime next to the framework.
 
 ## Local native development
 

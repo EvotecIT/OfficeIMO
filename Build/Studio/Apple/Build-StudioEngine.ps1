@@ -36,16 +36,26 @@ $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path (Join-Path $PSScriptRoot '../../..')).Path
 $package = Join-Path $root 'Apple/OfficeIMOStudioEngine'
 $framework = Join-Path $package 'OfficeIMOStudioEngine.xcframework'
+$inputs = Join-Path $package 'link-inputs'
 $stamp = Join-Path $package 'OfficeIMOStudioEngine.source-key'
+
+function Invoke-Git([string[]]$Arguments, [string[]]$InputObject) {
+    $output = if ($PSBoundParameters.ContainsKey('InputObject')) { $InputObject | git -C $root @Arguments } else { git -C $root @Arguments }
+    if ($LASTEXITCODE -ne 0) { throw "git $($Arguments[0]) failed while reading the engine sources." }
+    return $output
+}
 
 function Get-SourceKey {
     $spec = @('--', '.', ':(exclude)Apple', ':(exclude)Website', ':(exclude)Docs', ':(exclude).github', ':(exclude)*.md')
-    $tracked = git -C $root ls-files -s @spec
-    if ($LASTEXITCODE -ne 0) { throw 'Cannot list the engine sources with git.' }
-    $changes = git -C $root diff --no-ext-diff --binary @spec
-    $untracked = @(git -C $root ls-files --others --exclude-standard @spec)
-    $untrackedHashes = if ($untracked.Count -gt 0) { $untracked | git -C $root hash-object --stdin-paths } else { @() }
-    $text = (@($tracked) + @($changes) + $untracked + @($untrackedHashes) + ($RuntimeIdentifier | Sort-Object)) -join "`n"
+    $tracked = Invoke-Git (@('ls-files', '-s') + $spec)
+    $changes = Invoke-Git (@('diff', '--no-ext-diff', '--binary') + $spec)
+    $untracked = @(Invoke-Git (@('ls-files', '--others', '--exclude-standard') + $spec))
+    $untrackedHashes = if ($untracked.Count -gt 0) { Invoke-Git @('hash-object', '--stdin-paths') $untracked } else { @() }
+    # The engine statically links the NativeAOT runtime, so an SDK update needs a new build even when the sources match.
+    Push-Location $root
+    try { $sdk = dotnet --version } finally { Pop-Location }
+    if ($LASTEXITCODE -ne 0) { throw 'Cannot resolve the .NET SDK for this checkout.' }
+    $text = (@($tracked) + @($changes) + $untracked + @($untrackedHashes) + ($RuntimeIdentifier | Sort-Object) + "sdk $sdk") -join "`n"
     $bytes = [System.Security.Cryptography.SHA256]::HashData([System.Text.Encoding]::UTF8.GetBytes($text))
     return [System.Convert]::ToHexString($bytes).ToLowerInvariant()
 }
@@ -58,14 +68,18 @@ if (-not $Force -and (Test-Path $framework) -and (Test-Path $stamp) -and (Get-Co
     return
 }
 
+# Installs the framework and its link inputs (dependency manifests for the third-party notices) from a build or cache
+# folder. The stamp is written last, so an interrupted install is never taken as up to date.
 function Install-Engine([string]$Source) {
-    if (Test-Path $framework) { Remove-Item -Recurse -Force $framework }
-    Copy-Item -Recurse $Source $framework
+    if (Test-Path $stamp) { Remove-Item -Force $stamp }
+    foreach ($item in $framework, $inputs) { if (Test-Path $item) { Remove-Item -Recurse -Force $item } }
+    Copy-Item -Recurse (Join-Path $Source 'OfficeIMOStudioEngine.xcframework') $framework
+    Copy-Item -Recurse (Join-Path $Source 'link-inputs') $inputs
     Set-Content -LiteralPath $stamp -Value $key -NoNewline
 }
 
-$cached = if ($CacheDirectory) { Join-Path $CacheDirectory $key 'OfficeIMOStudioEngine.xcframework' } else { $null }
-if (-not $Force -and $cached -and (Test-Path $cached)) {
+$cached = if ($CacheDirectory) { Join-Path $CacheDirectory $key } else { $null }
+if (-not $Force -and $cached -and (Test-Path (Join-Path $cached 'OfficeIMOStudioEngine.xcframework')) -and (Test-Path (Join-Path $cached 'link-inputs'))) {
     Install-Engine $cached
     Write-Host "Installed the cached engine for this checkout ($($key.Substring(0, 12)))."
     return
@@ -73,13 +87,14 @@ if (-not $Force -and $cached -and (Test-Path $cached)) {
 
 if (-not $WorkDirectory) { $WorkDirectory = Join-Path $package '.build/engine' }
 & (Join-Path $root 'OfficeIMO.Studio.Native/Build-AppleEngine.ps1') -OutputDirectory $WorkDirectory -RuntimeIdentifier $RuntimeIdentifier
-Install-Engine (Join-Path $WorkDirectory 'OfficeIMOStudioEngine.xcframework')
+Install-Engine $WorkDirectory
 
 if ($CacheDirectory) {
     $entry = Join-Path $CacheDirectory $key
     if (Test-Path $entry) { Remove-Item -Recurse -Force $entry }
     New-Item -ItemType Directory -Force $entry | Out-Null
     Copy-Item -Recurse $framework (Join-Path $entry 'OfficeIMOStudioEngine.xcframework')
+    Copy-Item -Recurse $inputs (Join-Path $entry 'link-inputs')
     Get-ChildItem -Directory $CacheDirectory | Sort-Object LastWriteTimeUtc -Descending | Select-Object -Skip 3 |
         ForEach-Object { Remove-Item -Recurse -Force $_.FullName }
 }
