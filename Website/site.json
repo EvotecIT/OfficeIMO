@@ -343,7 +343,7 @@
     "Cache": {
       "EdgeTtlSeconds": 604800
     },
-    "PurgeMode": "hostname",
+    "PurgeMode": "incremental",
     "SmartTieredCache": true,
     "ImmutablePaths": [
       "/apps/officeimo-converter/_framework/*.*.wasm",
