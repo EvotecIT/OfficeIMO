@@ -73,30 +73,58 @@ internal static partial class OfficeJpegReader {
         public void ComposeRow(int y) =>
             ComposeYccRow(_output, y * _width * (_outputRgba ? 4 : 3), _width, _outputRgba,
                 _luma.Buffer, y * _luma.Stride,
-                _cb.Buffer, _cbRows.First[y] * _cb.Stride, _cb.Buffer, _cbRows.Second[y] * _cb.Stride, _cbRows.Weight[y], _cbColumns,
-                _cr.Buffer, _crRows.First[y] * _cr.Stride, _cr.Buffer, _crRows.Second[y] * _cr.Stride, _crRows.Weight[y], _crColumns);
+                new ChromaRows(_cb.Buffer, _cbRows.First[y] * _cb.Stride, _cb.Buffer, _cbRows.Second[y] * _cb.Stride, _cbRows.Weight[y], _cbColumns),
+                new ChromaRows(_cr.Buffer, _crRows.First[y] * _cr.Stride, _cr.Buffer, _crRows.Second[y] * _cr.Stride, _crRows.Weight[y], _crColumns));
     }
 
-    // Converts one output row. Chroma rows may live in different buffers (adjacent bands).
+    // Two chroma rows (possibly in different band buffers) and the bilinear weights that
+    // place one output row between them.
+    private readonly struct ChromaRows {
+        public readonly byte[] TopSamples;
+        public readonly int Top;
+        public readonly byte[] BottomSamples;
+        public readonly int Bottom;
+        public readonly int RowWeight;
+        public readonly ChromaAxis Columns;
+
+        public ChromaRows(byte[] topSamples, int top, byte[] bottomSamples, int bottom, int rowWeight, ChromaAxis columns) {
+            TopSamples = topSamples;
+            Top = top;
+            BottomSamples = bottomSamples;
+            Bottom = bottom;
+            RowWeight = rowWeight;
+            Columns = columns;
+        }
+
+        // Chroma in sixteenths for output column x.
+        public int Interpolate(int x) =>
+            Interpolate16(TopSamples, Top, BottomSamples, Bottom, Columns.First[x], Columns.Second[x], Columns.Weight[x], RowWeight);
+    }
+
+    // Converts one output row. The vector form covers the interior of RGBA rows; the
+    // pixels it leaves are converted here one at a time.
     private static void ComposeYccRow(byte[] output, int target, int width, bool outputRgba,
-        byte[] luma, int lumaRow,
-        byte[] cbTopSamples, int cbTop, byte[] cbBottomSamples, int cbBottom, int cbRowWeight, ChromaAxis cbColumns,
-        byte[] crTopSamples, int crTop, byte[] crBottomSamples, int crBottom, int crRowWeight, ChromaAxis crColumns) {
-        int[] cbFirst = cbColumns.First;
-        int[] cbSecond = cbColumns.Second;
-        int[] cbWeight = cbColumns.Weight;
-        int[] crFirst = crColumns.First;
-        int[] crSecond = crColumns.Second;
-        int[] crWeight = crColumns.Weight;
-        double[] redTerms = YccHighQualityTables.Red;
-        double[] greenCbTerms = YccHighQualityTables.GreenCb;
-        double[] greenCrTerms = YccHighQualityTables.GreenCr;
-        double[] blueTerms = YccHighQualityTables.Blue;
+        byte[] luma, int lumaRow, in ChromaRows cb, in ChromaRows cr) {
+        int vectorStart = 0;
+        int vectorEnd = 0;
+#if NET8_0_OR_GREATER
+        if (outputRgba) ComposeYccRowVector(output, target, width, luma, lumaRow, cb, cr, out vectorStart, out vectorEnd);
+#endif
+        ComposeYccPixels(output, target, outputRgba, luma, lumaRow, cb, cr, 0, vectorStart);
+        ComposeYccPixels(output, target, outputRgba, luma, lumaRow, cb, cr, vectorEnd, width);
+    }
+
+    private static void ComposeYccPixels(byte[] output, int rowTarget, bool outputRgba,
+        byte[] luma, int lumaRow, in ChromaRows cb, in ChromaRows cr, int start, int end) {
+        int[] redOffsets = YccHighQualityTables.RedOffset;
+        int[] blueOffsets = YccHighQualityTables.BlueOffset;
+        int[] greenCbFixed = YccHighQualityTables.GreenCbFixed;
+        int[] greenCrFixed = YccHighQualityTables.GreenCrFixed;
         int pixelBytes = outputRgba ? 4 : 3;
 
-        for (int x = 0; x < width; x++, target += pixelBytes) {
-            int cb16 = Interpolate16(cbTopSamples, cbTop, cbBottomSamples, cbBottom, cbFirst[x], cbSecond[x], cbWeight[x], cbRowWeight);
-            int cr16 = Interpolate16(crTopSamples, crTop, crBottomSamples, crBottom, crFirst[x], crSecond[x], crWeight[x], crRowWeight);
+        for (int x = start, target = rowTarget + start * pixelBytes; x < end; x++, target += pixelBytes) {
+            int cb16 = cb.Interpolate(x);
+            int cr16 = cr.Interpolate(x);
             int lumaSample = luma[lumaRow + x];
             if (((cb16 | cr16) & 15) == 0) {
                 int cbSample = cb16 >> 4;
@@ -105,10 +133,15 @@ internal static partial class OfficeJpegReader {
                 output[target + 1] = ClampToByte(lumaSample + ((CbToG[cbSample] + CrToG[crSample]) >> 16));
                 output[target + 2] = ClampToByte(lumaSample + CbToB[cbSample]);
             } else {
-                double lumaValue = lumaSample;
-                output[target] = RoundColorSample(lumaValue + redTerms[cr16]);
-                output[target + 1] = RoundColorSample(lumaValue - greenCbTerms[cb16] - greenCrTerms[cr16]);
-                output[target + 2] = RoundColorSample(lumaValue + blueTerms[cb16]);
+                output[target] = ClampToByte(lumaSample + redOffsets[cr16]);
+                int green = (lumaSample << YccHighQualityTables.GreenFractionBits) - greenCbFixed[cb16] - greenCrFixed[cr16] +
+                    (1 << (YccHighQualityTables.GreenFractionBits - 1));
+                int fraction = green & YccHighQualityTables.GreenFractionMask;
+                output[target + 1] = (uint)(fraction - YccHighQualityTables.GreenTieMargin) <=
+                    (uint)(YccHighQualityTables.GreenFractionMask - 2 * YccHighQualityTables.GreenTieMargin)
+                    ? ClampToByte(green >> YccHighQualityTables.GreenFractionBits)
+                    : RoundColorSample(lumaSample - YccHighQualityTables.GreenCb[cb16] - YccHighQualityTables.GreenCr[cr16]);
+                output[target + 2] = ClampToByte(lumaSample + blueOffsets[cb16]);
             }
             if (pixelBytes == 4) output[target + 3] = byte.MaxValue;
         }
@@ -143,6 +176,9 @@ internal static partial class OfficeJpegReader {
         public int[] Second = Array.Empty<int>();
         // Weight of the second sample in quarters.
         public int[] Weight = Array.Empty<int>();
+        // Output samples per component sample (1 or 2) and the component samples in use.
+        public int Step;
+        public int ComponentLength;
     }
 
     // Mirrors SampleComponentBilinear's coordinate mapping and edge replication for one axis.
@@ -175,15 +211,27 @@ internal static partial class OfficeJpegReader {
         axis.First = first;
         axis.Second = second;
         axis.Weight = weight;
+        axis.Step = maximumSampling / sampling;
+        axis.ComponentLength = (imageLength * sampling + maximumSampling - 1) / maximumSampling;
         return true;
     }
 
+    // The double terms are the products the per-pixel path computes. Red and blue round to
+    // the same byte as luma + term for every luma, so they are kept as integer offsets.
+    // Green subtracts two terms; its fixed-point sum is exact except within a few units
+    // of a rounding tie, where the double expression is evaluated instead. Both forms
+    // were checked against the double path for every luma and chroma pair.
     private static class YccHighQualityTables {
         private const int Length = 255 * 16 + 1;
-        public static readonly double[] Red = Create(1.402D);
+        public const int GreenFractionBits = 22;
+        public const int GreenFractionMask = (1 << GreenFractionBits) - 1;
+        public const int GreenTieMargin = 4;
         public static readonly double[] GreenCb = Create(.344136286D);
         public static readonly double[] GreenCr = Create(.714136286D);
-        public static readonly double[] Blue = Create(1.772D);
+        public static readonly int[] RedOffset = CreateOffsets(Create(1.402D));
+        public static readonly int[] BlueOffset = CreateOffsets(Create(1.772D));
+        public static readonly int[] GreenCbFixed = CreateFixed(GreenCb);
+        public static readonly int[] GreenCrFixed = CreateFixed(GreenCr);
 
         private static double[] Create(double factor) {
             var table = new double[Length];
@@ -193,6 +241,18 @@ internal static partial class OfficeJpegReader {
                 table[i] = factor * centered;
             }
             return table;
+        }
+
+        private static int[] CreateOffsets(double[] terms) {
+            var offsets = new int[terms.Length];
+            for (int i = 0; i < terms.Length; i++) offsets[i] = (int)Math.Floor(terms[i] + .5D);
+            return offsets;
+        }
+
+        private static int[] CreateFixed(double[] terms) {
+            var fixedTerms = new int[terms.Length];
+            for (int i = 0; i < terms.Length; i++) fixedTerms[i] = (int)Math.Round(terms[i] * (1 << GreenFractionBits));
+            return fixedTerms;
         }
     }
 }

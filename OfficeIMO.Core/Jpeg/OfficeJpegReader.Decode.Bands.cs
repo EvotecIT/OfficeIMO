@@ -62,7 +62,8 @@ internal static partial class OfficeJpegReader {
             return false;
         }
 
-        byte[] output = OfficeRasterGuards.AllocateRgba32(frame.Width, frame.Height, JpegDimensionsLimitMessage);
+        // Every band writes all of its rows, so the output needs no clearing.
+        byte[] output = OfficeRasterGuards.AllocateRgba32Uninitialized(frame.Width, frame.Height, JpegDimensionsLimitMessage);
         var plan = new BandPlan(frame, state, output, luma, cb, cr, cbColumns, crColumns, cbRows, crRows);
         if (workers <= 1) {
             plan.RenderBands(0, bands, cancellationToken);
@@ -133,8 +134,8 @@ internal static partial class OfficeJpegReader {
                     crRing.Locate(_crRows.Second[y], out byte[] crBottom, out int crBottomOffset);
                     ComposeYccRow(_output, y * width * 4, width, outputRgba: true,
                         lumaBand.Buffer, (y - firstRow) * lumaBand.Stride,
-                        cbTop, cbTopOffset, cbBottom, cbBottomOffset, _cbRows.Weight[y], _cbColumns,
-                        crTop, crTopOffset, crBottom, crBottomOffset, _crRows.Weight[y], _crColumns);
+                        new ChromaRows(cbTop, cbTopOffset, cbBottom, cbBottomOffset, _cbRows.Weight[y], _cbColumns),
+                        new ChromaRows(crTop, crTopOffset, crBottom, crBottomOffset, _crRows.Weight[y], _crColumns));
                 }
             }
         }

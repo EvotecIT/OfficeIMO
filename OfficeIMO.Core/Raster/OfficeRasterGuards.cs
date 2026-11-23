@@ -67,6 +67,16 @@ internal static class OfficeRasterGuards {
         return new byte[checked(pixels * 4)];
     }
 
+    // For decoders that write every byte of the buffer before returning it.
+    public static byte[] AllocateRgba32Uninitialized(int width, int height, string message) {
+        int pixels = EnsurePixelCount(width, height, message);
+#if NET8_0_OR_GREATER
+        return GC.AllocateUninitializedArray<byte>(checked(pixels * 4));
+#else
+        return new byte[checked(pixels * 4)];
+#endif
+    }
+
     public static int EnsureOutputPixels(int width, int height, string message) {
         if (TryEnsurePixelCount(width, height, out int pixels)) return pixels;
         throw new ArgumentException(message);
