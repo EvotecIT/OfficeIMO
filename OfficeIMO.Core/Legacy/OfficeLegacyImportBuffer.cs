@@ -17,12 +17,8 @@ internal static class OfficeLegacyImportBuffer {
         ArgumentNullException.ThrowIfNull(limits);
         limits.Validate();
 
-        if (stream.CanSeek && stream.Length - stream.Position > limits.MaxInputBytes) {
-            throw new InvalidDataException($"Legacy input exceeds the configured {limits.MaxInputBytes} byte limit.");
-        }
-
         try {
-            return OfficeStreamReader.ReadForwardBytes(stream, cancellationToken, limits.MaxInputBytes);
+            return OfficeStreamReader.ReadRemainingBytes(stream, cancellationToken, limits.MaxInputBytes);
         } catch (InvalidDataException exception) when (OfficeStreamReader.IsSizeLimitException(exception)) {
             throw new InvalidDataException($"Legacy input exceeds the configured {limits.MaxInputBytes} byte limit.");
         }
