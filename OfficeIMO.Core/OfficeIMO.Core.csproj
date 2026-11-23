@@ -46,6 +46,8 @@
     <InternalsVisibleTo Include="OfficeIMO.CSV" />
     <InternalsVisibleTo Include="OfficeIMO.Data.Arrow" />
     <InternalsVisibleTo Include="OfficeIMO.Excel" />
+    <!-- The shared package writer compiles into Core on .NET 8 and later. -->
+    <InternalsVisibleTo Include="OfficeIMO.Excel.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Excel.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.PowerPoint" />
     <InternalsVisibleTo Include="OfficeIMO.PowerPoint.Pdf" />
@@ -98,6 +100,8 @@
     <Compile Include="..\OfficeIMO.SharedSource\IO\OfficeStableFileRead.cs" Link="Internal\IO\OfficeStableFileRead.cs" />
     <Compile Include="..\OfficeIMO.SharedSource\Compound\*.cs" Link="Internal\Compound\%(Filename)%(Extension)" />
     <Compile Include="..\OfficeIMO.SharedSource\Numerics\*.cs" Link="Internal\Numerics\%(Filename)%(Extension)" />
+    <!-- The shared package writer needs spans; netstandard2.0 and net472 writers fall back to ZipArchive. -->
+    <Compile Include="..\OfficeIMO.SharedSource\Packaging\*.cs" Link="Internal\Packaging\%(Filename)%(Extension)" Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0'" />
     <None Include="..\Assets\OfficeIMO.png">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
