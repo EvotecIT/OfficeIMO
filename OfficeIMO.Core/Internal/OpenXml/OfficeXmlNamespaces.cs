@@ -179,6 +179,10 @@ internal static class OfficeXmlNamespaces {
             return GetId(bytes, 0, bytes.Length, out uriId);
         }
 
+        /// <summary>Returns the exact URI behind a URI id from <see cref="GetId(byte[], int, int, out int)"/>.</summary>
+        internal string GetUriById(int uriId) =>
+            uriId >= KnownUriIdBase ? KnownUris[uriId - KnownUriIdBase].Key : GetUri(uriId);
+
         /// <summary>Returns the URI behind an id; for a fixed id this is its transitional spelling.</summary>
         internal string GetUri(int id) {
             if (id >= FirstDynamic) return Encoding.UTF8.GetString(_dynamicUris[id - FirstDynamic]);

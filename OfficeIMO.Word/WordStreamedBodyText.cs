@@ -12,10 +12,11 @@ namespace OfficeIMO.Word;
 /// <remarks>
 /// The text follows the Word model's inspection snapshot: field instructions are hidden and their results kept, with
 /// field state carried across the paragraphs of a story; paragraphs the snapshot drops are dropped; insertions,
-/// deletions, moves and smart tags contribute no text; inline content controls contribute their content; block content
-/// controls, alternative-format chunks, nested tables in cells and merged-cell markup are left out the way the snapshot
-/// leaves them out. A construct whose text depends on more of the model (drawings with text, markup compatibility,
-/// math, fields inside content controls, revised table properties) makes the pass decline.
+/// deletions, moves and smart tags contribute no text; text boxes contribute their text inline from the compatibility
+/// branch the model selects; content controls contribute their content, or their runs when they hold a field; block
+/// content controls, alternative-format chunks, paragraph-level math, nested tables in cells and merged-cell markup are
+/// left out the way the snapshot leaves them out. Constructs whose text needs more of the model (math inside runs or
+/// drawings, compatibility markup outside runs, revised row properties) make the pass decline.
 /// </remarks>
 internal static class WordStreamedBodyText {
     private const int W = OfficeXmlNamespaces.WordprocessingML;
@@ -323,6 +324,16 @@ internal static class WordStreamedBodyText {
                     continue;
                 }
                 if (reader.NodeKind != OfficeXmlNodeKind.StartElement) continue;
+                if (reader.NamespaceId == OfficeXmlNamespaces.Math && reader.Depth == depth + 1
+                    && (reader.LocalNameEquals("oMath") || reader.LocalNameEquals("oMathPara"))) {
+                    // Paragraph-level math is no part of the paragraph's text, but it keeps the paragraph.
+                    children++;
+                    if (children == 1) first = "oMath";
+                    else if (children == 2) second = "oMath";
+                    hasPart = true;
+                    reader.SkipElement();
+                    continue;
+                }
                 if (reader.NamespaceId != W) return context.Decline(Outside(reader));
                 string name = reader.LocalName;
                 if (reader.Depth == depth + 1) {
@@ -475,47 +486,67 @@ internal static class WordStreamedBodyText {
         return inner.Balanced || context.Decline("field inside a simple field");
     }
 
-    // An inline content control contributes the text of its content: every run, inserted runs included. A check box
-    // contributes nothing.
+    // A content control that holds a field contributes its content's runs with the story's field state, inserted runs
+    // left out; any other contributes the visible text of its whole content when the field state shows it, and a check
+    // box contributes nothing. Which applies depends on the whole control, so a forked reader looks ahead first.
     private static bool ReadInlineContentControl(OfficeXmlPullReader reader, Context context, OfficeCharBuffer builder, ParagraphState state) {
         if (reader.IsEmptyElement) return true;
-        int start = builder.Length;
-        var inner = new ParagraphState();
-        bool checkBox = false;
+        bool hasField = false, hasNote = false, checkBox = false;
+        OfficeXmlPullReader ahead = reader.Fork();
+        int depth = ahead.Depth;
+        while (ahead.Read() && !(ahead.NodeKind == OfficeXmlNodeKind.EndElement && ahead.Depth == depth)) {
+            if (ahead.NodeKind != OfficeXmlNodeKind.StartElement) continue;
+            if (ahead.NamespaceId == W && ahead.LocalName == "fldChar") hasField = true;
+            else if (ahead.NamespaceId == W && ahead.LocalName is "footnoteReference" or "endnoteReference") hasNote = true;
+            else if (ahead.LocalNameEquals("checkbox")) checkBox = true;
+        }
+        if (!hasField) {
+            if (!state.Visible || checkBox) {
+                reader.SkipElement();
+                return true;
+            }
+            return AppendVisibleChildren(reader, context, builder);
+        }
+        if (hasNote) return context.Decline("note reference in a content control with a field");
+        return ReadContentControlRuns(reader, context, builder, state);
+    }
+
+    // Enumerates runs the way the model's run list does: through custom XML, hyperlinks, simple fields and nested
+    // content controls, but not inserted runs.
+    private static bool ReadContentControlRuns(OfficeXmlPullReader reader, Context context, OfficeCharBuffer builder, ParagraphState state) {
+        if (reader.IsEmptyElement) return true;
         int depth = reader.Depth;
-        while (reader.Read() && !(reader.NodeKind == OfficeXmlNodeKind.EndElement && reader.Depth == depth)) {
-            if (reader.NodeKind != OfficeXmlNodeKind.StartElement) continue;
-            if (reader.Depth == depth + 1 && reader.NamespaceId == W && reader.LocalName == "sdtPr") {
-                int propertiesDepth = reader.Depth;
-                while (reader.Read() && !(reader.NodeKind == OfficeXmlNodeKind.EndElement && reader.Depth == propertiesDepth)) {
-                    if (reader.NodeKind == OfficeXmlNodeKind.StartElement && reader.LocalNameEquals("checkbox")) checkBox = true;
-                }
+        while (reader.Read()) {
+            if (reader.NodeKind == OfficeXmlNodeKind.EndElement && reader.Depth == depth) return true;
+            if (reader.NodeKind != OfficeXmlNodeKind.StartElement || reader.Depth != depth + 1) continue;
+            if (reader.NamespaceId != W) {
+                reader.SkipElement();
                 continue;
             }
-            if (reader.NamespaceId != W) return context.Decline(Outside(reader));
             switch (reader.LocalName) {
+                case "sdtContent": case "customXml": case "hyperlink":
+                    if (!ReadContentControlRuns(reader, context, builder, state)) return false;
+                    break;
                 case "r":
-                    if (!ReadRun(reader, context, builder, inner, out _)) return false;
-                    if (!inner.Balanced) return context.Decline("field inside a content control");
+                    bool recordNotes = state.RecordNotes;
+                    state.RecordNotes = false;
+                    bool read = ReadRun(reader, context, builder, state, out _);
+                    state.RecordNotes = recordNotes;
+                    if (!read) return false;
                     break;
-                case "sdtContent": case "hyperlink": case "ins": case "customXml": case "smartTag":
-                    break;
-                case "sdtEndPr":
-                    reader.SkipElement();
+                case "fldSimple":
+                    if (!state.Visible) return context.Decline("simple field inside a hidden field");
+                    if (!ReadContentControlRuns(reader, context, builder, state)) return false;
                     break;
                 case "sdt":
-                    return context.Decline("nested content control");
-                case "del": case "moveFrom":
-                case "bookmarkStart": case "bookmarkEnd": case "proofErr": case "permStart": case "permEnd":
-                case "commentRangeStart": case "commentRangeEnd":
-                    reader.SkipElement();
+                    if (!ReadInlineContentControl(reader, context, builder, state)) return false;
                     break;
                 default:
-                    return context.Decline("content control element w:" + reader.LocalName);
+                    reader.SkipElement();
+                    break;
             }
         }
-        if (checkBox || !state.Visible) builder.Truncate(start);
-        return true;
+        return context.Decline("unclosed content control");
     }
 
     // Matches WordParagraph.Text for a run: text honours xml:space, tabs and breaks become characters, field
@@ -532,6 +563,12 @@ internal static class WordStreamedBodyText {
                 return true;
             }
             if (reader.NodeKind != OfficeXmlNodeKind.StartElement) continue;
+            if (reader.NamespaceId == OfficeXmlNamespaces.MarkupCompatibility && reader.LocalNameEquals("AlternateContent")) {
+                // A drawing or text box in compatibility markup: the model reads the branch it can interpret.
+                if (!state.Visible) reader.SkipElement();
+                else if (!AppendVisible(reader, context, run)) return false;
+                continue;
+            }
             if (reader.NamespaceId != W) return context.Decline(Outside(reader));
             string name = reader.LocalName;
             if (name == "fldChar") {
@@ -606,9 +643,10 @@ internal static class WordStreamedBodyText {
                 case "pgNum":
                     reader.SkipElement();
                     break;
-                case "drawing":
-                    // A picture adds no text; a drawing that holds a text box or other text declines.
-                    if (!SkipWithoutText(reader, context)) return false;
+                case "drawing": case "pict": case "object":
+                    // Text boxes contribute their text inline, with no separator, as the model reads them.
+                    if (!visible) reader.SkipElement();
+                    else if (!AppendVisible(reader, context, run)) return false;
                     break;
                 default:
                     return context.Decline("run element w:" + name);
@@ -622,12 +660,161 @@ internal static class WordStreamedBodyText {
         }
     }
 
-    private static bool SkipWithoutText(OfficeXmlPullReader reader, Context context) {
+    // Choice branches the model interprets: those requiring only these Office extension namespaces.
+    private static readonly HashSet<string> SupportedChoiceNamespaces = new(StringComparer.Ordinal) {
+        "http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas",
+        "http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing",
+        "http://schemas.microsoft.com/office/word/2010/wordprocessingGroup",
+        "http://schemas.microsoft.com/office/word/2010/wordprocessingInk",
+        "http://schemas.microsoft.com/office/word/2010/wordprocessingShape",
+        "http://schemas.microsoft.com/office/word/2010/wordml",
+        "http://schemas.microsoft.com/office/word/2012/wordml",
+        "http://schemas.microsoft.com/office/word/2015/wordml/symex",
+        "http://schemas.microsoft.com/office/word/2016/wordml/cid",
+        "http://schemas.microsoft.com/office/word/2018/wordml",
+        "http://schemas.microsoft.com/office/word/2018/wordml/cex",
+        "http://schemas.microsoft.com/office/word/2020/wordml/sdtdatahash"
+    };
+
+    // Prefixes the model accepts undeclared, as older documents omitted the declaration in header and footer parts.
+    private static readonly Dictionary<string, string> SupportedChoicePrefixes = new(StringComparer.Ordinal) {
+        ["wpc"] = "http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas",
+        ["wp14"] = "http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing",
+        ["wpg"] = "http://schemas.microsoft.com/office/word/2010/wordprocessingGroup",
+        ["wpi"] = "http://schemas.microsoft.com/office/word/2010/wordprocessingInk",
+        ["wps"] = "http://schemas.microsoft.com/office/word/2010/wordprocessingShape",
+        ["w14"] = "http://schemas.microsoft.com/office/word/2010/wordml",
+        ["w15"] = "http://schemas.microsoft.com/office/word/2012/wordml",
+        ["w16se"] = "http://schemas.microsoft.com/office/word/2015/wordml/symex",
+        ["w16cid"] = "http://schemas.microsoft.com/office/word/2016/wordml/cid",
+        ["w16"] = "http://schemas.microsoft.com/office/word/2018/wordml",
+        ["w16cex"] = "http://schemas.microsoft.com/office/word/2018/wordml/cex",
+        ["w16sdtdh"] = "http://schemas.microsoft.com/office/word/2020/wordml/sdtdatahash"
+    };
+
+    private const string WordprocessingGroupNamespace = "http://schemas.microsoft.com/office/word/2010/wordprocessingGroup";
+
+    // Appends the visible text of an element and its descendants the way the model reads drawings, text boxes and
+    // content controls: text, tabs and breaks of every nested run in document order, with no separators; field
+    // characters and instructions, comment references, deletions, moves from and grouped shapes add nothing; markup
+    // compatibility contributes its selected branch.
+    private static bool AppendVisible(OfficeXmlPullReader reader, Context context, OfficeCharBuffer builder) {
+        int namespaceId = reader.NamespaceId;
+        if (namespaceId == W) {
+            switch (reader.LocalName) {
+                case "t":
+                    bool preserve = reader.TryGetAttribute(OfficeXmlNamespaces.Xml, "space", out string space) && space == "preserve";
+                    return ReadText(reader, context, builder, preserve);
+                case "tab": case "ptab":
+                    builder.Append('\t');
+                    reader.SkipElement();
+                    return true;
+                case "cr":
+                    builder.Append('\n');
+                    reader.SkipElement();
+                    return true;
+                case "noBreakHyphen":
+                    builder.Append('\u2011');
+                    reader.SkipElement();
+                    return true;
+                case "softHyphen":
+                    builder.Append('\u00ad');
+                    reader.SkipElement();
+                    return true;
+                case "br":
+                    string? type = reader.TryGetAttribute(W, "type", out string typeValue) ? typeValue : null;
+                    builder.Append(type is null or "textWrapping" ? '\n' : '\u2028');
+                    reader.SkipElement();
+                    return true;
+                case "commentReference": case "fldChar": case "instrText": case "del": case "moveFrom":
+                    reader.SkipElement();
+                    return true;
+                case "r":
+                    return AppendVisibleRun(reader, context, builder);
+            }
+        } else if (namespaceId == OfficeXmlNamespaces.Math) {
+            return context.Decline("math in a drawing or content control");
+        } else if (namespaceId == OfficeXmlNamespaces.MarkupCompatibility && reader.LocalNameEquals("AlternateContent")) {
+            return AppendAlternateContent(reader, context, builder);
+        } else if (namespaceId == OfficeXmlNamespaces.Vml && reader.LocalNameEquals("group")
+            || (reader.LocalNameEquals("wgp") || reader.LocalNameEquals("grpSp"))
+            && reader.Namespaces.GetUri(namespaceId) == WordprocessingGroupNamespace) {
+            // A grouped drawing owns its labels; they are not part of the enclosing paragraph's text.
+            reader.SkipElement();
+            return true;
+        }
+        return AppendVisibleChildren(reader, context, builder);
+    }
+
+    private static bool AppendVisibleChildren(OfficeXmlPullReader reader, Context context, OfficeCharBuffer builder) {
         if (reader.IsEmptyElement) return true;
         int depth = reader.Depth;
-        while (reader.Read() && !(reader.NodeKind == OfficeXmlNodeKind.EndElement && reader.Depth == depth)) {
-            if (reader.NodeKind == OfficeXmlNodeKind.StartElement && (reader.NamespaceId == W
-                || reader.LocalName is "txbx" or "txbxContent" or "AlternateContent")) return context.Decline("drawing with text");
+        while (reader.Read()) {
+            if (reader.NodeKind == OfficeXmlNodeKind.EndElement && reader.Depth == depth) return true;
+            if (reader.NodeKind == OfficeXmlNodeKind.StartElement && reader.Depth == depth + 1 && !AppendVisible(reader, context, builder)) return false;
+        }
+        return context.Decline("unclosed element");
+    }
+
+    // A nested run hidden with vanish that carries a comment reference adds nothing, as in the host paragraph.
+    private static bool AppendVisibleRun(OfficeXmlPullReader reader, Context context, OfficeCharBuffer builder) {
+        if (reader.IsEmptyElement) return true;
+        int start = builder.Length;
+        bool hidden = false, commentReference = false;
+        int depth = reader.Depth;
+        while (reader.Read()) {
+            if (reader.NodeKind == OfficeXmlNodeKind.EndElement && reader.Depth == depth) {
+                if (hidden && commentReference) builder.Truncate(start);
+                return true;
+            }
+            if (reader.NodeKind != OfficeXmlNodeKind.StartElement || reader.Depth != depth + 1) continue;
+            if (reader.NamespaceId == W && reader.LocalName == "rPr") {
+                if (!reader.IsEmptyElement) {
+                    int propertiesDepth = reader.Depth;
+                    while (reader.Read() && !(reader.NodeKind == OfficeXmlNodeKind.EndElement && reader.Depth == propertiesDepth)) {
+                        if (reader.NodeKind != OfficeXmlNodeKind.StartElement) continue;
+                        if (reader.NamespaceId == OfficeXmlNamespaces.MarkupCompatibility) return context.Decline("markup compatibility in run properties");
+                        if (reader.Depth == propertiesDepth + 1 && reader.NamespaceId == W && reader.LocalName == "vanish") hidden = IsOn(reader);
+                    }
+                }
+                continue;
+            }
+            if (reader.NamespaceId == W && reader.LocalName == "commentReference") commentReference = true;
+            if (!AppendVisible(reader, context, builder)) return false;
+        }
+        return context.Decline("unclosed run");
+    }
+
+    // The first Choice whose required namespaces are all supported, else the Fallback.
+    private static bool AppendAlternateContent(OfficeXmlPullReader reader, Context context, OfficeCharBuffer builder) {
+        if (reader.IsEmptyElement) return true;
+        bool selected = false, fallbackSeen = false;
+        int depth = reader.Depth;
+        while (reader.Read()) {
+            if (reader.NodeKind == OfficeXmlNodeKind.EndElement && reader.Depth == depth) return true;
+            if (reader.NodeKind != OfficeXmlNodeKind.StartElement || reader.Depth != depth + 1) continue;
+            bool choice = reader.NamespaceId == OfficeXmlNamespaces.MarkupCompatibility && reader.LocalNameEquals("Choice");
+            bool fallback = reader.NamespaceId == OfficeXmlNamespaces.MarkupCompatibility && reader.LocalNameEquals("Fallback");
+            if (choice && fallbackSeen) return context.Decline("compatibility choice after its fallback");
+            fallbackSeen |= fallback;
+            if (!selected && (fallback || choice && RequirementsSupported(reader))) {
+                selected = true;
+                if (!AppendVisibleChildren(reader, context, builder)) return false;
+            } else {
+                reader.SkipElement();
+            }
+        }
+        return context.Decline("unclosed compatibility markup");
+    }
+
+    private static bool RequirementsSupported(OfficeXmlPullReader reader) {
+        if (!reader.TryGetAttribute(OfficeXmlNamespaces.None, "Requires", out string requires)) return false;
+        string[] prefixes = requires.Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+        if (prefixes.Length == 0) return false;
+        foreach (string prefix in prefixes) {
+            string? uri = reader.LookupNamespace(prefix);
+            if (uri == null) SupportedChoicePrefixes.TryGetValue(prefix, out uri);
+            if (uri == null || !SupportedChoiceNamespaces.Contains(uri)) return false;
         }
         return true;
     }
@@ -736,7 +923,7 @@ internal static class WordStreamedBodyText {
                         while (reader.Read() && !(reader.NodeKind == OfficeXmlNodeKind.EndElement && reader.Depth == propertiesDepth)) {
                             if (reader.NodeKind != OfficeXmlNodeKind.StartElement || reader.NamespaceId != W) continue;
                             // Revised row properties are a revision; the model read handles those.
-                            if (reader.LocalName is "trPrChange" or "tblPrExChange") return context.Decline("row property w:" + reader.LocalName);
+                            if (reader.LocalName == "trPrChange") return context.Decline("row property w:" + reader.LocalName);
                             // Like the model, only the first direct tblHeader of the row's own properties counts.
                             if (rowProperties && !headerSeen && reader.LocalName == "tblHeader" && reader.Depth == propertiesDepth + 1) {
                                 repeatsHeader = IsOn(reader);

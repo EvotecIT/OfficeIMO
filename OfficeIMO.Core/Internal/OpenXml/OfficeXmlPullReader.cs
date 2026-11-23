@@ -164,6 +164,38 @@ internal sealed partial class OfficeXmlPullReader {
         }
     }
 
+    /// <summary>
+    /// Returns an independent reader positioned where this one is, for looking ahead into the current element without
+    /// moving this reader. Both read the same part bytes; the namespace table is shared.
+    /// </summary>
+    internal OfficeXmlPullReader Fork() {
+        var fork = (OfficeXmlPullReader)MemberwiseClone();
+        fork._frames = (Frame[])_frames.Clone();
+        fork._bindings = (Binding[])_bindings.Clone();
+        fork._ignorable = (int[])_ignorable.Clone();
+        fork._processContent = (ProcessContentEntry[])_processContent.Clone();
+        fork._attributes = (Attribute[])_attributes.Clone();
+        fork._decodeBuffer = null;
+        return fork;
+    }
+
+    /// <summary>The namespace URI a prefix is bound to in the current scope, or null when it is not bound.</summary>
+    internal string? LookupNamespace(string prefix) =>
+        TryResolvePrefix(prefix, out int namespaceId) ? UriOf(prefix, namespaceId) : null;
+
+    // Strict URIs fold into transitional ids, so the exact spelling comes from the binding's URI id.
+    private string UriOf(string prefix, int namespaceId) {
+        byte[] bytes = Encoding.UTF8.GetBytes(prefix);
+        for (int index = _bindingCount - 1; index >= 0; index--) {
+            ref Binding binding = ref _bindings[index];
+            if (binding.PrefixLength != bytes.Length) continue;
+            bool equal = true;
+            for (int offset = 0; offset < bytes.Length && equal; offset++) equal = _data[binding.PrefixStart + offset] == bytes[offset];
+            if (equal) return _namespaces.GetUriById(binding.UriId);
+        }
+        return _namespaces.GetUri(namespaceId);
+    }
+
     /// <summary>Skips the rest of the current element, leaving the reader on its end tag.</summary>
     internal void SkipElement() {
         if (NodeKind != OfficeXmlNodeKind.StartElement) return;

@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests;
 public sealed class ReaderWordTextProjectionTests {
     private const string StreamedCapability = "officeimo.reader.word.streamed-text";
 
-    // A text box stops the streamed pass, so that row reads the Word model and reduces it to text.
+    // A text box streams too: its text is read inline as the model reads it.
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -38,7 +38,8 @@ public sealed class ReaderWordTextProjectionTests {
         Assert.Empty(text.Metadata);
         Assert.Null(text.Markdown);
         Assert.Contains("officeimo.reader.projection.text", text.CapabilitiesUsed);
-        Assert.Equal(!withTextBox, text.CapabilitiesUsed.Contains(StreamedCapability));
+        Assert.Contains(StreamedCapability, text.CapabilitiesUsed);
+        Assert.Equal(withTextBox, text.GetText().Contains("Boxed note"));
         Assert.DoesNotContain(StreamedCapability, lean.CapabilitiesUsed);
     }
 
@@ -83,6 +84,8 @@ public sealed class ReaderWordTextProjectionTests {
         Assert.Contains("A footnote", text.GetText());
         Assert.DoesNotContain("PAGE", text.GetText());
         Assert.DoesNotContain("deleted", text.GetText());
+        Assert.Contains("field result", text.GetText());
+        Assert.DoesNotContain("DATE", text.GetText());
     }
 
     // A table in a later section, after a section with a header, is read once and in source order.
@@ -123,6 +126,13 @@ public sealed class ReaderWordTextProjectionTests {
             W.Paragraph paragraph = body.Elements<W.Paragraph>().First();
             paragraph.Append(new W.DeletedRun(new W.Run(new W.DeletedText("deleted text"))) { Id = "1", Author = "A" });
             paragraph.Append(new W.SdtRun(new W.SdtContentRun(new W.Run(new W.Text(" in a control")))));
+            // A content control holding a field: its runs follow the field state, so only the result shows.
+            paragraph.Append(new W.SdtRun(new W.SdtContentRun(
+                new W.Run(new W.FieldChar { FieldCharType = W.FieldCharValues.Begin }),
+                new W.Run(new W.FieldCode(" DATE ")),
+                new W.Run(new W.FieldChar { FieldCharType = W.FieldCharValues.Separate }),
+                new W.Run(new W.Text(" field result")),
+                new W.Run(new W.FieldChar { FieldCharType = W.FieldCharValues.End }))));
         }
         return stream.ToArray();
     }
