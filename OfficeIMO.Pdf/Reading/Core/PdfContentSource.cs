@@ -35,6 +35,16 @@ internal readonly struct PdfContentSource {
         if (Text is not null) return Text.IndexOf(value, StringComparison.Ordinal);
         if (value.Length == 0) return 0;
         byte[] bytes = Bytes!;
+#if NET8_0_OR_GREATER
+        if (value.Length <= 64) {
+            Span<byte> needle = stackalloc byte[value.Length];
+            for (int index = 0; index < value.Length; index++) {
+                if (value[index] > 0xFF) return -1;
+                needle[index] = (byte)value[index];
+            }
+            return bytes.AsSpan(0, Length).IndexOf(needle);
+        }
+#endif
         char first = value[0];
         int last = Length - value.Length;
         for (int index = 0; index <= last; index++) {
@@ -123,9 +133,13 @@ internal readonly struct PdfStringContentText : IPdfContentText {
 
 internal readonly struct PdfByteContentText : IPdfContentText {
     private readonly ReadOnlyMemory<byte> _bytes;
+    // Owned whole arrays are read directly; tokenizers index every character, and going through the memory's span
+    // on each read costs more than the byte itself.
+    private readonly byte[]? _array;
     private readonly PdfSeekableCursor? _cursor;
 
     internal PdfByteContentText(byte[] ownedBytes) : this(ownedBytes, ownedBytes) {
+        _array = ownedBytes;
     }
 
     // Borrowed views each get an identity so reusing a buffer cannot reuse a previous scan's indexes.
@@ -134,23 +148,26 @@ internal readonly struct PdfByteContentText : IPdfContentText {
 
     private PdfByteContentText(ReadOnlyMemory<byte> bytes, object source) {
         _bytes = bytes;
+        _array = null;
         _cursor = null;
         Source = source;
     }
 
     internal PdfByteContentText(PdfSeekableInput input, CancellationToken cancellationToken) {
         _bytes = default;
+        _array = null;
         _cursor = new PdfSeekableCursor(input, cancellationToken);
         Source = input;
     }
 
-    public int Length => _cursor?.Input.Length ?? _bytes.Length;
+    public int Length => _array?.Length ?? _cursor?.Input.Length ?? _bytes.Length;
     public char this[int index] => (char)ReadByte(index);
     public object Source { get; }
 
     internal bool IsSeekable => _cursor is not null;
 
-    internal byte ReadByte(int index) => _cursor is null ? _bytes.Span[index] : _cursor.ReadByte(index);
+    internal byte ReadByte(int index) =>
+        _array is byte[] array ? array[index] : _cursor is null ? _bytes.Span[index] : _cursor.ReadByte(index);
 
     internal ReadOnlySpan<byte> ReadRange(int start, int length) =>
         _cursor is null ? _bytes.Span.Slice(start, length) : _cursor.ReadRange(start, length);

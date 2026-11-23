@@ -356,7 +356,7 @@ public sealed partial class PdfReadPage {
                 cancellationCheck: cancellationToken.CanBeCanceled
                     ? cancellationToken.ThrowIfCancellationRequested
                     : null,
-                invokedResourceNames: () => GetRootInvokedResourceNames(content, pageResources,
+                visibleColorSpaceNames: () => GetRootVisibleColorSpaceNames(content, pageResources,
                     cancellationToken.CanBeCanceled ? cancellationToken.ThrowIfCancellationRequested : null),
                 onUnmappableText: onUnmappableText,
                 retainEditingEvidence: retainEditingEvidence);
@@ -1028,7 +1028,7 @@ public sealed partial class PdfReadPage {
         Action? cancellationCheck = null,
         bool includeHiddenOptionalContent = false,
         PdfTextStateSnapshot? initialTextState = null,
-        Func<PdfPageInvokedResourceNames>? invokedResourceNames = null,
+        Func<HashSet<string>>? visibleColorSpaceNames = null,
         Action<int>? onTextSpan = null,
         double initialStrokeWidth = 1D, int initialStrokeLineJoin = 0, double initialMiterLimit = 10D,
         bool initialFillColorResolved = true, bool initialStrokeColorResolved = true, string initialStrokeDashIdentity = "[]:0",
@@ -1158,7 +1158,7 @@ public sealed partial class PdfReadPage {
         PageContentBudget colorSpaceBudget = pageContentBudget;
         IReadOnlyDictionary<string, PdfPageColorSpace> colorSpaceResources = GetDeferredColorSpaceResources(
             resources,
-            invokedResourceNames ?? (() => GetInvokedResourceNames(
+            visibleColorSpaceNames ?? (() => GetVisibleColorSpaceNames(
                 content, resources, cancellationCheck ?? (Action)colorSpaceBudget.CancellationToken.ThrowIfCancellationRequested)),
             colorSpaceBudget);
         Dictionary<string, PdfPageGraphicsStateResource> graphicsStates =

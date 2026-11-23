@@ -99,7 +99,8 @@ internal static partial class PdfPageXObjectInvocationParser {
         Action? operationCheck = null,
         PdfTextStateSnapshot? initialTextState = null,
         Action<string>? operatorVisitor = null,
-        int maxGraphicsStateDepth = PdfReadLimits.DefaultMaxGraphicsStateDepth) {
+        int maxGraphicsStateDepth = PdfReadLimits.DefaultMaxGraphicsStateDepth,
+        Func<bool>? stopRequested = null) {
         if (content.IsNullOrEmpty) {
             return Array.Empty<PdfPageXObjectInvocation>();
         }
@@ -107,11 +108,15 @@ internal static partial class PdfPageXObjectInvocationParser {
         var parser = new Parser(content, baseTransform, pageHeight, pageWidth, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, maxNestingDepth, maxOperands, fonts, fontWidthProviders, type3TextVisitor, renderedType3PaintOrders, type3GlyphBudgetConsumer, unsupportedTextVisitor, unsupportedGraphicsEffectVisitor, unsupportedPatternVisitor, unsupportedColorVisitor, visibleFontVisitor, patternInvocationVisitor, patternInvocationWithIntentVisitor, authoredPatternInvocationVisitor, graphicsStateVisitor, allowSupportedGraphicsEffects, patternBaseColorSpaces, initialFillPattern, initialFillPatternBaseColorSpace, initialStrokePattern, initialStrokePatternBaseColorSpace, tilingPatterns, shadingPatterns, type3PaintChannelResolver, xObjectPaintChannelResolver, softMaskVisibilityResolver, visibleShadingVisitor, visibleShadingWithIntentVisitor, graphicsEffectPaintVisitor, invalidPatternSelectionVisitor, ordinaryTextPaintVisitor, patternSelectionVisitor, contentOrderPrefix, textClippingBudget, initialBlendMode, initialAuthoredBlendMode, initialHasUnsupportedBlendMode, initialHasUnsupportedPaintState, initialHasUnsupportedImagePaintEffect, initialImagePaintEffectState, initialHasSoftMask, initialHasAuthoredRenderingIntent, initialRenderingIntent, initialFillColorSelection, initialStrokeColorSelection, outputIntentColorTransform, inlineImageArrayComponentCount, visibleColorSpaceVisitor, initialStrokeDashPattern, mcidForProperty, operationCheck, maxGraphicsStateDepth);
         parser.InitializeTextState(initialTextState ?? PdfTextStateSnapshot.Default);
         parser.OperatorVisitor = operatorVisitor;
+        parser.StopRequested = stopRequested;
         return parser.Parse();
     }
 
     private sealed partial class Parser {
         internal Action<string>? OperatorVisitor { get; set; }
+
+        /// <summary>Checked after each operation; returning true ends the pass for callers that already have their answer.</summary>
+        internal Func<bool>? StopRequested { get; set; }
         private readonly PdfContentSource _content;
         private readonly double _pageHeight;
         private readonly double? _pageWidth;
@@ -423,7 +428,8 @@ internal static partial class PdfPageXObjectInvocationParser {
                 _maxOperands,
                 inlineImageArrayComponentCount: _inlineImageArrayComponentCount,
                 operandBuffer: _args,
-                maxGraphicsStateDepth: _maxGraphicsStateDepth);
+                maxGraphicsStateDepth: _maxGraphicsStateDepth,
+                stopRequested: StopRequested);
 
             ApplyPendingTextClippingPath();
 
@@ -490,6 +496,7 @@ internal static partial class PdfPageXObjectInvocationParser {
                 isVisible &&
                 !usesType3GlyphProgram &&
                 (TextAffectsOutput(_textRenderingMode) || AddsTextToClippingPath(_textRenderingMode)) &&
+                OrdinaryTextPaintHasObserver(ordinaryTextPaintChannels) &&
                 IsOrdinaryTextFrameVisible(advance.X);
             if (ordinaryTextAffectsOutput) _visibleFontVisitor?.Invoke(_textFont);
             PdfType3PaintChannels type3PaintChannels = isVisible && usesType3GlyphProgram
@@ -620,6 +627,12 @@ internal static partial class PdfPageXObjectInvocationParser {
             }
             List<PdfPageType3GlyphInvocation>? glyphs = CreateType3GlyphBatch(usesType3GlyphProgram, isVisible, (int)glyphCount);
             PdfType3PaintChannels ordinaryTextPaintChannels = ResolveTextPaintChannels(_textRenderingMode);
+            // Frame visibility only feeds the observers below, and one visible frame decides it for the whole array.
+            bool measureOrdinaryText =
+                isVisible &&
+                !usesType3GlyphProgram &&
+                (TextAffectsOutput(_textRenderingMode) || AddsTextToClippingPath(_textRenderingMode)) &&
+                OrdinaryTextPaintHasObserver(ordinaryTextPaintChannels);
             bool ordinaryTextAffectsOutput = false;
             for (int i = 0; i < items.Count; i++) {
                 byte[]? bytes = typed != null
@@ -627,11 +640,9 @@ internal static partial class PdfPageXObjectInvocationParser {
                     : items[i] as byte[];
                 if (bytes != null) {
                     (double X, double Y) advance = ProcessShownText(bytes, glyphs);
-                    ordinaryTextAffectsOutput |=
-                        isVisible &&
-                        !usesType3GlyphProgram &&
-                        (TextAffectsOutput(_textRenderingMode) || AddsTextToClippingPath(_textRenderingMode)) &&
-                        IsOrdinaryTextFrameVisible(advance.X);
+                    if (measureOrdinaryText && !ordinaryTextAffectsOutput) {
+                        ordinaryTextAffectsOutput = IsOrdinaryTextFrameVisible(advance.X);
+                    }
                     if (isVisible && !usesType3GlyphProgram) ApplyTextClippingPath(advance.X);
                     _textMatrix = Matrix2D.Multiply(_textMatrix, Matrix2D.Translation(advance.X, advance.Y));
                 } else if (TryGetArrayNumber(items, typed, i, out double kerning)) {
@@ -1030,6 +1041,14 @@ internal static partial class PdfPageXObjectInvocationParser {
         private bool IsUnpublishedColorSpace(string? name) =>
             _visibleColorSpaceVisitor != null && !string.IsNullOrEmpty(name) &&
             _publishedColorSpaceNames?.Contains(name!) != true;
+
+        // Ordinary text frame visibility only feeds font, text, paint, color-space and graphics-effect observers.
+        // When none of them can observe this text, the frame geometry is skipped.
+        private bool OrdinaryTextPaintHasObserver(PdfType3PaintChannels channels) =>
+            _visibleFontVisitor != null || _unsupportedTextVisitor != null || _ordinaryTextPaintVisitor != null ||
+            _graphicsEffectState.HasEffect || _graphicsEffectPaintVisitor != null ||
+            ((channels & PdfType3PaintChannels.Fill) != 0 && IsUnpublishedColorSpace(_fillColorSpaceResourceName)) ||
+            ((channels & PdfType3PaintChannels.Stroke) != 0 && IsUnpublishedColorSpace(_strokeColorSpaceResourceName));
 
         // Path visibility analysis only feeds the observers below. When none of them can
         // observe this paint, the geometry work is skipped.
