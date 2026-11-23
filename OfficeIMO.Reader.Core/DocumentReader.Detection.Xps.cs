@@ -29,6 +29,9 @@ internal static partial class DocumentReaderEngine {
             if (!read) return null;
             var xml = InflateBoundedContainerEntry(payload, compression, expandedSize, token);
             if (xml == null) return null;
+            // Both XPS relationship types contain this ASCII text. A UTF-8 part without it, without references that
+            // could spell it and without NUL bytes from UTF-16, cannot name either type, so it is not parsed.
+            if (!CouldNameXpsRepresentation(xml)) return null;
             using var input = new MemoryStream(xml, false);
             using var reader = XmlReader.Create(input, new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit,
                 XmlResolver = null, MaxCharactersInDocument = 65536 });
@@ -48,5 +51,19 @@ internal static partial class DocumentReaderEngine {
         catch (IOException) { return null; }
         catch (XmlException) { return null; }
         finally { stream.Position = returnPosition; }
+    }
+
+    private static bool CouldNameXpsRepresentation(byte[] xml) {
+        byte[] marker = { (byte)'f', (byte)'i', (byte)'x', (byte)'e', (byte)'d', (byte)'r', (byte)'e', (byte)'p', (byte)'r', (byte)'e',
+            (byte)'s', (byte)'e', (byte)'n', (byte)'t', (byte)'a', (byte)'t', (byte)'i', (byte)'o', (byte)'n' };
+        for (int index = 0; index < xml.Length; index++) {
+            byte value = xml[index];
+            if (value == 0 || value == (byte)'&') return true;
+            if (value != marker[0] || index > xml.Length - marker.Length) continue;
+            int offset = 1;
+            while (offset < marker.Length && xml[index + offset] == marker[offset]) offset++;
+            if (offset == marker.Length) return true;
+        }
+        return false;
     }
 }
