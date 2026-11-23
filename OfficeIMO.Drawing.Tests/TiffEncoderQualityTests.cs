@@ -107,6 +107,24 @@ public sealed class TiffEncoderQualityTests {
         Assert.Equal(encoded, stream.ToArray());
     }
 
+    [Fact]
+    public void LzwWithoutPredictorRestoresRepeatedNonzeroRuns() {
+        // Unpredicted solid runs make the encoder emit codes for the entry the decoder
+        // is still defining (KwKwK); that string ends with its own first byte.
+        var image = new OfficeRasterImage(97, 23);
+        for (int y = 0; y < image.Height; y++) for (int x = 0; x < image.Width; x++) {
+            image.SetPixel(x, y, x < 61
+                ? OfficeColor.FromRgba((byte)(40 + y * 9), 200, 17, 255)
+                : OfficeColor.FromRgba((byte)(x * 3), (byte)(y * 11), 90, 128));
+        }
+        byte[] encoded = OfficeTiffCodec.Encode(image, new OfficeTiffEncodeOptions {
+            Compression = OfficeTiffCompression.Lzw,
+            Predictor = OfficeTiffPredictor.None
+        });
+        Assert.Equal(-1, Entry(encoded, 317));
+        AssertDecoded(image, encoded);
+    }
+
     [Theory]
     [InlineData(OfficeImageResolutionUnit.AspectRatio, 3.0, 2.0, 1, 3.0, 2.0)]
     [InlineData(OfficeImageResolutionUnit.PixelsPerInch, 300.5, 150.25, 2, 300.5, 150.25)]

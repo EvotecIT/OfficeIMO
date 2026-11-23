@@ -104,6 +104,14 @@ public static partial class OfficeRasterResampler {
         byte[] output = result.PixelBuffer;
         double scaleX = source.Width / (double)width;
         double scaleY = source.Height / (double)height;
+        // The column and row tables stay inside the reported working set; elongated
+        // targets whose tables would not fit keep the per-pixel path below.
+        if (mode == OfficeRasterResamplingMode.Bilinear && colorSpace == OfficeRasterResamplingColorSpace.EncodedSrgb &&
+            TryGetSimpleWorkingSetBytes(source.Width, source.Height, width, height,
+                retainedManagedBytes + BilinearAxis.GetTableBytes(width, height), out _)) {
+            ResizeBilinearEncoded(input, source.Width, source.Height, output, width, height, scaleX, scaleY, cancellationToken);
+            return result;
+        }
         for (int y = 0; y < height; y++) {
             cancellationToken.ThrowIfCancellationRequested();
             double sourceY = ((y + 0.5D) * scaleY) - 0.5D;

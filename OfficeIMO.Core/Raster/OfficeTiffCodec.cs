@@ -537,6 +537,22 @@ public static partial class OfficeTiffCodec {
         CancellationToken cancellationToken) {
         int pixelBytes = checked(samples * sampleBytes);
         int rowBytes = checked(width * pixelBytes);
+        if (sampleBytes == 1) {
+            // Eight-bit samples add bytewise modulo 256 to the same channel one pixel left.
+            for (int row = 0; row < rows; row++) {
+                if ((row & 31) == 0) cancellationToken.ThrowIfCancellationRequested();
+                int rowOffset = checked(offset + row * rowBytes);
+                int rowEnd = checked(rowOffset + rowBytes);
+                for (int chunk = rowOffset + pixelBytes; chunk < rowEnd; chunk += 4096) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    int chunkEnd = Math.Min(rowEnd, chunk + 4096);
+                    for (int index = chunk; index < chunkEnd; index++) {
+                        pixels[index] = unchecked((byte)(pixels[index] + pixels[index - pixelBytes]));
+                    }
+                }
+            }
+            return;
+        }
         for (int row = 0; row < rows; row++) {
             if ((row & 31) == 0) cancellationToken.ThrowIfCancellationRequested();
             int rowOffset = checked(offset + row * rowBytes);

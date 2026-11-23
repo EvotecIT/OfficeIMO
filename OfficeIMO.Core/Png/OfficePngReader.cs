@@ -84,7 +84,7 @@ public static partial class OfficePngReader {
         cancellationToken.ThrowIfCancellationRequested();
 #if NET8_0_OR_GREATER
         if (payload.ColorType == 6 && payload.BitDepth == 8 && payload.Stride >= 64
-            && System.Runtime.Intrinsics.X86.Ssse3.IsSupported) {
+            && (System.Runtime.Intrinsics.X86.Ssse3.IsSupported || System.Runtime.Intrinsics.Vector128.IsHardwareAccelerated)) {
             DecodeRgbaScanlines(payload, result, cancellationToken);
             return;
         }

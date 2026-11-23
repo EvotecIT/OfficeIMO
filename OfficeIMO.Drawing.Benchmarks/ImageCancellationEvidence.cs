@@ -10,13 +10,7 @@ internal static class ImageCancellationEvidence {
 
     internal static void Validate(TextWriter writer) {
         OfficeRasterImage source = ImageBenchmarkCorpus.CreatePattern(Width, Height);
-        var tiffOptions = new OfficeRasterEncodingOptions {
-            Tiff = new OfficeTiffEncodeOptions {
-                Compression = OfficeTiffCompression.None,
-                Predictor = OfficeTiffPredictor.None
-            }
-        };
-        byte[] tiff = OfficeRasterImageEncoder.Encode(source, OfficeImageExportFormat.Tiff, tiffOptions);
+        byte[] tiff = OfficeRasterImageEncoder.Encode(source, OfficeImageExportFormat.Tiff, EncodingOptions);
         byte[] webp = OfficeRasterImageEncoder.Encode(source, OfficeImageExportFormat.Webp);
 
         writer.WriteLine();
@@ -30,14 +24,17 @@ internal static class ImageCancellationEvidence {
             throw new ArgumentOutOfRangeException(nameof(format));
         }
         OfficeRasterImage source = ImageBenchmarkCorpus.CreatePattern(Width, Height);
-        var options = new OfficeRasterEncodingOptions {
-            Tiff = new OfficeTiffEncodeOptions {
-                Compression = OfficeTiffCompression.None,
-                Predictor = OfficeTiffPredictor.None
-            }
-        };
-        return Measure(OfficeRasterImageEncoder.Encode(source, format, options));
+        return Measure(OfficeRasterImageEncoder.Encode(source, format, EncodingOptions));
     }
+
+    // LZW keeps the TIFF decoder busy expanding codes for well past the cancellation
+    // delay; an uncompressed straight-alpha strip is only a copy and can finish first.
+    private static OfficeRasterEncodingOptions EncodingOptions => new() {
+        Tiff = new OfficeTiffEncodeOptions {
+            Compression = OfficeTiffCompression.Lzw,
+            Predictor = OfficeTiffPredictor.None
+        }
+    };
 
     private static TimeSpan Measure(byte[] encoded) => TimeSpan.FromMilliseconds(
         MeasureRepresentativeLatency(() => MeasureSingle(encoded).TotalMilliseconds));
@@ -64,7 +61,9 @@ internal static class ImageCancellationEvidence {
         long cancellationTimestamp = 0L;
         var cancellationThread = new Thread(() => {
             beginDecode.Wait();
-            Thread.Sleep(CancellationDelay);
+            // Thread.Sleep(1) can wait a full timer tick (about 15 ms on Windows).
+            long delayStart = Stopwatch.GetTimestamp();
+            while (Stopwatch.GetElapsedTime(delayStart) < CancellationDelay) Thread.SpinWait(64);
             Volatile.Write(ref cancellationTimestamp, Stopwatch.GetTimestamp());
             cancellation.Cancel();
         }) {

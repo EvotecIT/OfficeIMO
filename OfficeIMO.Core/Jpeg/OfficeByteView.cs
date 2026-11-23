@@ -15,6 +15,10 @@ internal readonly struct OfficeByteView {
     }
 
     public int Length { get; }
+
+    internal byte[] UnderlyingArray => _data;
+
+    internal int Offset => _offset;
     public long LongLength => Length;
 
     public byte this[int index] {
