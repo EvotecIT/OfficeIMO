@@ -131,6 +131,22 @@ internal static class OfficeXmlNamespaces {
             ? TransitionalRelationshipTypePrefix + type.Substring(StrictRelationshipTypePrefix.Length)
             : type;
 
+    /// <summary>The exact URI id of a namespace's transitional spelling; for a namespace that is not listed, its own id.</summary>
+    internal static int TransitionalUriId(int namespaceId) {
+        if (namespaceId <= Xmlns && namespaceId != Xml || namespaceId >= FirstDynamic) return namespaceId;
+        for (int index = 0; index < KnownUris.Length; index++) {
+            if (KnownUris[index].Value == namespaceId) return KnownUriIdBase + index;
+        }
+        return namespaceId;
+    }
+
+    /// <summary>Whether a URI id is a Strict spelling (ISO/IEC 29500-1) of a listed namespace.</summary>
+    internal static bool IsStrictUriId(int uriId) =>
+        uriId >= KnownUriIdBase && KnownUris[uriId - KnownUriIdBase].Key.StartsWith("http://purl.oclc.org/ooxml/", StringComparison.Ordinal);
+
+    // URI ids of listed namespaces sit far above any dynamic id.
+    private const int KnownUriIdBase = 1 << 24;
+
     /// <summary>Per-package table that assigns ids to namespace URIs declared in the parts it reads and caches local names.</summary>
     internal sealed class Table {
         private const int NameCacheSize = 128;
@@ -140,6 +156,61 @@ internal static class OfficeXmlNamespaces {
         /// <summary>The cache slot for an element local name with this hash; readers of one package share it.</summary>
         internal ref string? NameSlot(int hash) => ref (_names ??= new string?[NameCacheSize])[hash & (NameCacheSize - 1)];
         private int _lastKnown = -1;
+
+        private OfficeXmlName[] _xmlNames = new OfficeXmlName[64];
+        private int _xmlNameCount;
+        // Open addressing over name ids plus one; zero marks an empty slot.
+        private int[] _xmlNameSlots = new int[128];
+
+        /// <summary>
+        /// The id of a qualified name as an element or attribute uses it: local name, prefix (null when a writer picks
+        /// it), folded namespace and exact URI. Trees of the package share the ids, so nodes store one integer.
+        /// </summary>
+        internal int GetNameId(string localName, string? prefix, int namespaceId, int uriId) {
+            int hash = ((localName.GetHashCode() * 31 + (prefix == null ? 1 : prefix.GetHashCode())) * 31 + namespaceId) * 31 + uriId;
+            int mask = _xmlNameSlots.Length - 1;
+            int slot = hash & mask;
+            while (true) {
+                int entry = _xmlNameSlots[slot];
+                if (entry == 0) break;
+                ref OfficeXmlName name = ref _xmlNames[entry - 1];
+                if (name.NamespaceId == namespaceId && name.UriId == uriId && string.Equals(name.LocalName, localName, StringComparison.Ordinal)
+                    && string.Equals(name.Prefix, prefix, StringComparison.Ordinal)) {
+                    return entry - 1;
+                }
+                slot = (slot + 1) & mask;
+            }
+            if (_xmlNameCount == _xmlNames.Length) Array.Resize(ref _xmlNames, _xmlNames.Length * 2);
+            int id = _xmlNameCount++;
+            _xmlNames[id] = new OfficeXmlName(localName, prefix, namespaceId, uriId);
+            _xmlNameSlots[slot] = id + 1;
+            if (_xmlNameCount * 2 > _xmlNameSlots.Length) RehashNames();
+            return id;
+        }
+
+        /// <summary>The name behind an id from <see cref="GetNameId"/>.</summary>
+        internal ref readonly OfficeXmlName GetName(int id) => ref _xmlNames[id];
+
+        private byte[]?[] _xmlNameUtf8 = new byte[]?[64];
+
+        /// <summary>The UTF-8 bytes of a name's local part, for writers.</summary>
+        internal byte[] GetLocalNameUtf8(int id) {
+            if (id >= _xmlNameUtf8.Length) Array.Resize(ref _xmlNameUtf8, System.Math.Max(_xmlNameUtf8.Length * 2, id + 1));
+            return _xmlNameUtf8[id] ??= Encoding.UTF8.GetBytes(_xmlNames[id].LocalName);
+        }
+
+        private void RehashNames() {
+            var slots = new int[_xmlNameSlots.Length * 2];
+            int mask = slots.Length - 1;
+            for (int id = 0; id < _xmlNameCount; id++) {
+                ref OfficeXmlName name = ref _xmlNames[id];
+                int hash = ((name.LocalName.GetHashCode() * 31 + (name.Prefix == null ? 1 : name.Prefix.GetHashCode())) * 31 + name.NamespaceId) * 31 + name.UriId;
+                int slot = hash & mask;
+                while (slots[slot] != 0) slot = (slot + 1) & mask;
+                slots[slot] = id + 1;
+            }
+            _xmlNameSlots = slots;
+        }
 
         /// <summary>Returns the id of the UTF-8 URI in <paramref name="data"/>, registering it when it is new.</summary>
         internal int GetId(byte[] data, int start, int length) => GetId(data, start, length, out _);
@@ -176,13 +247,16 @@ internal static class OfficeXmlNamespaces {
             return uriId = FirstDynamic + _dynamicUris.Count - 1;
         }
 
-        // URI ids of listed namespaces sit far above any dynamic id.
-        private const int KnownUriIdBase = 1 << 24;
-
         /// <summary>Returns the id of a URI given as a string, registering it when it is new.</summary>
         internal int GetId(string uri) => GetId(uri, out _);
 
         internal int GetId(string uri, out int uriId) {
+            for (int index = 0; index < KnownUris.Length; index++) {
+                if (string.Equals(KnownUris[index].Key, uri, StringComparison.Ordinal)) {
+                    uriId = KnownUriIdBase + index;
+                    return KnownUris[index].Value;
+                }
+            }
             byte[] bytes = Encoding.UTF8.GetBytes(uri);
             return GetId(bytes, 0, bytes.Length, out uriId);
         }
@@ -229,4 +303,22 @@ internal static class OfficeXmlNamespaces {
             return true;
         }
     }
+}
+
+/// <summary>A qualified name as an element or attribute is written: local name, prefix, folded namespace and exact URI.</summary>
+internal readonly struct OfficeXmlName {
+    internal OfficeXmlName(string localName, string? prefix, int namespaceId, int uriId) {
+        LocalName = localName;
+        Prefix = prefix;
+        NamespaceId = namespaceId;
+        UriId = uriId;
+    }
+
+    internal string LocalName { get; }
+
+    /// <summary>The prefix as written, empty for none, or null for a created name whose prefix the writer chooses.</summary>
+    internal string? Prefix { get; }
+
+    internal int NamespaceId { get; }
+    internal int UriId { get; }
 }
