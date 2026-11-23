@@ -29,10 +29,18 @@ namespace OfficeIMO.Excel {
                     || length < owner._opt.WindowedWorksheetMinimumBytes || length > int.MaxValue
                     || !reader.TryOpenExactPartStream(owner._worksheetPartName, ct, out Stream? stream)) return false;
 
-                var candidate = new ExcelUtf8RangeRowSource(owner, OpenXmlPartBufferPool.Rent(owner._opt.WorksheetWindowBytes), 0) {
-                    _partStream = WrapPartStream(reader, stream!, ct),
-                    _windowedPart = true
-                };
+                byte[]? window = null;
+                Stream partStream = stream!;
+                ExcelUtf8RangeRowSource candidate;
+                try {
+                    window = OpenXmlPartBufferPool.Rent(owner._opt.WorksheetWindowBytes);
+                    partStream = WrapPartStream(reader, stream!, ct);
+                    candidate = new ExcelUtf8RangeRowSource(owner, window, 0) { _partStream = partStream, _windowedPart = true };
+                } catch {
+                    partStream.Dispose();
+                    if (window != null) OpenXmlPartBufferPool.Return(window);
+                    throw;
+                }
                 try {
                     while (candidate._windowFilled < 256 && candidate.TryReadIntoWindow(ct)) { }
                     if (!CanBufferUtf8WorksheetPrefix(candidate._buffer!, candidate._windowFilled)) {
@@ -253,10 +261,16 @@ namespace OfficeIMO.Excel {
                 _partStream = null;
                 // A self-closing sheetData has no rows to deliver.
                 if (_sheetDataContentStart < 0) return;
-                if (!_owner._partBufferReader!.TryOpenExactPartStream(_owner._worksheetPartName, ct, out Stream? stream)) {
+                // Delivery observes cancellation between windows (see SelectCellWindowRow), not inside a refill.
+                if (!_owner._partBufferReader!.TryOpenExactPartStream(_owner._worksheetPartName, CancellationToken.None, out Stream? stream)) {
                     throw new InvalidDataException($"Worksheet '{_owner._sheetName}' could not be reopened for reading.");
                 }
-                _partStream = WrapPartStream(_owner._partBufferReader!, stream!, ct);
+                try {
+                    _partStream = WrapPartStream(_owner._partBufferReader!, stream!, CancellationToken.None);
+                } catch {
+                    stream!.Dispose();
+                    throw;
+                }
                 int head = _sheetDataContentStart;
                 byte[] check = ArrayPool<byte>.Shared.Rent(Math.Min(Math.Max(head, 1), 64 * 1024));
                 try {

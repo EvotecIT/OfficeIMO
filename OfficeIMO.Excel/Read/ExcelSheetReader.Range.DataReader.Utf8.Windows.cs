@@ -75,19 +75,26 @@ namespace OfficeIMO.Excel {
             /// Reuses the ordinary cell indexers over previously qualified immutable
             /// rows. A canceled refill restores the selected row, so its unloaded
             /// getters and borrowed text remain usable before reading is retried.
+            /// A windowed source observes cancellation before its window moves and then
+            /// loads and indexes the bounded run of rows without interruption, so the
+            /// selected row's bytes never move under text already borrowed from it.
             /// </summary>
             private int SelectCellWindowRow(
                 int physicalRow, CancellationToken lifetimeCt, CancellationToken readCt) {
                 if (physicalRow < _cellWindowFirstRow
                     || physicalRow >= _cellWindowFirstRow + _cellWindowRowCount) {
+                    if (_windowedPart) {
+                        lifetimeCt.ThrowIfCancellationRequested();
+                        readCt.ThrowIfCancellationRequested();
+                    }
                     _cellWindowFirstRow = -1;
                     _cellWindowRowCount = 0;
                     int count = Math.Min(_cellWindowRowCapacity, _rowCount - physicalRow);
-                    if (_windowedPart) count = LoadWindowedDeliveryRows(physicalRow, count, readCt.CanBeCanceled ? readCt : lifetimeCt);
-                    CancellationTokenSource? linkedCancellation = lifetimeCt.CanBeCanceled
+                    if (_windowedPart) count = LoadWindowedDeliveryRows(physicalRow, count, CancellationToken.None);
+                    CancellationTokenSource? linkedCancellation = !_windowedPart && lifetimeCt.CanBeCanceled
                         && readCt.CanBeCanceled && lifetimeCt != readCt
                             ? CancellationTokenSource.CreateLinkedTokenSource(lifetimeCt, readCt) : null;
-                    CancellationToken ct = linkedCancellation?.Token
+                    CancellationToken ct = _windowedPart ? CancellationToken.None : linkedCancellation?.Token
                         ?? (readCt.CanBeCanceled ? readCt : lifetimeCt);
                     int qualifiedLastCellRow = _maximumCellRow;
                     try {

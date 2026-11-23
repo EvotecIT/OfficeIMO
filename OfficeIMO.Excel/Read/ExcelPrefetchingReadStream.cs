@@ -62,7 +62,9 @@ namespace OfficeIMO.Excel {
                         }
                     } catch (Exception exception) {
                         lock (_gate) {
-                            _free.Push(chunk);
+                            // Bytes read before the error are delivered before it.
+                            if (length > 0) _filled.Enqueue((chunk, length));
+                            else _free.Push(chunk);
                             _fault = ExceptionDispatchInfo.Capture(exception);
                             _completed = true;
                             Monitor.PulseAll(_gate);
