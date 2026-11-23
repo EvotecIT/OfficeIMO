@@ -61,5 +61,20 @@ namespace OfficeIMO.Tests {
             Assert.True(sheet.TryGetCachedFormulaValue(1, 4, out string? value));
             Assert.Equal(expected, value);
         }
+    
+
+        // Each key fits the evaluator's cell limit, but together with the input they don't, so the call is left to Excel.
+        [Fact]
+        public void Test_ArrayCalculation_SortByKeysShareTheInputCellBudget() {
+            using var document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddSheet("Arrays");
+            for (int row = 1; row <= 40000; row++) sheet.Cell(row, 1).SetValue(row);
+            sheet.Cell(1, 3).SetFormula("SUM(SORTBY(A1:A40000,A1:A40000,1,A1:A40000,-1))");
+            sheet.Cell(2, 3).SetFormula("SUM(SORTBY(A1:A40000,A1:A40000,-1))");
+            Assert.Equal(1, document.Calculate());
+            Assert.False(sheet.TryGetCachedFormulaValue(1, 3, out _));
+            Assert.True(sheet.TryGetCachedFormulaValue(2, 3, out string? value));
+            Assert.Equal("800020000", value);
+        }
     }
 }

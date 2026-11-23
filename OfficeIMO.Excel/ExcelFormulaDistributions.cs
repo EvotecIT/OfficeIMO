@@ -139,7 +139,7 @@ namespace OfficeIMO.Excel {
                 }
                 if (double.IsInfinity(lower) || double.IsInfinity(upper)) return double.NaN;
             }
-            if (x <= lower || x >= upper) x = lower + (upper - lower) / 2;
+            if (x <= lower || x >= upper) x = Bisect(lower, upper);
 
             for (int iteration = 0; iteration < 500; iteration++) {
                 double value = function(x) - target;
@@ -147,11 +147,21 @@ namespace OfficeIMO.Excel {
                 if (value < 0) lower = x; else upper = x;
                 double slope = derivative(x);
                 double next = slope > 0 && !double.IsInfinity(slope) ? x - value / slope : double.NaN;
-                if (double.IsNaN(next) || next <= lower || next >= upper) next = lower + (upper - lower) / 2;
+                if (double.IsNaN(next) || next <= lower || next >= upper) next = Bisect(lower, upper);
                 if (Math.Abs(next - x) <= 2 * Epsilon * Math.Abs(x) || upper - lower <= 2 * Epsilon * Math.Abs(next)) return next;
                 x = next;
             }
-            return x;
+            throw new NonConvergenceException();
+        }
+
+        /// <summary>
+        /// Splits a bracket on one side of zero by magnitude when its ends differ by orders of magnitude, so a root in
+        /// an extreme tail (a quantile near 1e-200, say) is reached in a bounded number of steps.
+        /// </summary>
+        private static double Bisect(double lower, double upper) {
+            if (lower >= 0 && upper > 4 * lower) return lower == 0 ? upper / 64 : Math.Sqrt(lower) * Math.Sqrt(upper);
+            if (upper <= 0 && lower < 4 * upper) return upper == 0 ? lower / 64 : -Math.Sqrt(-lower) * Math.Sqrt(-upper);
+            return lower + (upper - lower) / 2;
         }
 
         /// <summary>ln Γ(x) for x &gt; 0: Stirling's series after shifting the argument to 15 or more.</summary>

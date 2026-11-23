@@ -67,6 +67,15 @@ namespace OfficeIMO.Tests {
             Assert.Equal(probability, CalculateNumber($"CHISQ.DIST.RT(CHISQ.INV.RT({p},{k}),{k})"), 12);
         }
 
+        // Far-tail quantiles: P(χ² ≤ x) for one degree of freedom is about √(2x/π), so CHISQ.INV(1e-100,1) is π/2·1e-200.
+        [Theory]
+        [InlineData("CHISQ.INV(1E-100,1)", 1.5707963267948966e-200)]
+        [InlineData("T.INV(1E-100,1)", -3.1830988618379067e99)]
+        public void Test_FormulaEvaluator_DistributionInversesReachFarTails(string formula, double expected) {
+            double actual = CalculateNumber(formula);
+            Assert.True(Math.Abs(actual / expected - 1) < 1e-9, $"{formula} returned {actual}, expected {expected}.");
+        }
+
         [Fact]
         public void Test_FormulaEvaluator_DistributionArgumentErrorsPropagate() {
             Assert.Equal("#DIV/0!", CalculateText("NORM.DIST(1/0,0,1,TRUE)"));

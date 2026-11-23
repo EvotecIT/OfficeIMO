@@ -80,8 +80,12 @@ namespace OfficeIMO.Excel {
                 && _formulaEvaluationDepthFrames.Peek().UsedUnevaluatedFormulaCache) return false;
             var keys = new List<(FormulaArrayValue Values, ArraySortKeyKind[] Kinds, int Order)>();
             bool? byColumns = null;
+            // The input and every key share one cell budget, so many large keys can't multiply the memory a call holds.
+            long cells = input.Values.Length;
             for (int index = 1; index < args.Count; index += 2) {
                 if (string.IsNullOrWhiteSpace(args[index]) || !TryEvaluateArrayValue(args[index], depth + 1, out FormulaArrayValue key)) return false;
+                cells += key.Values.Length;
+                if (cells > MaxResolvedFormulaRangeCells) return false;
                 double order = 1;
                 if (index + 1 < args.Count && !TryArrayNumber(args, index + 1, 1, out order)) return false;
                 order = Math.Truncate(order);
