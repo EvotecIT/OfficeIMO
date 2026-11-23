@@ -2613,6 +2613,11 @@ public sealed partial class PdfReadPage {
              hash = hash + 1 < text.Length ? text.IndexOf("#", hash + 1, text.Length - hash - 1) : -1) {
             int start = hash;
             while (start > 0 && hash - start < MaximumNameScanLength && !IsContentDelimiter(text[start - 1])) start--;
+            if (start > 0 && !IsContentDelimiter(text[start - 1])) {
+                // The token is longer than the scan reaches, so it may be an escaped name; count every declared name.
+                referenced.UnionWith(declared.Keys);
+                return referenced;
+            }
             if (start == 0 || text[start - 1] != '/') continue;
             if (++escapedNames > MaximumEscapedNameChecks) {
                 referenced.UnionWith(declared.Keys);
