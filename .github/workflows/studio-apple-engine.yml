@@ -78,7 +78,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           KEEP: ${{ needs.sources.outputs.key }}
         run: |
-          $old = gh cache list --repo $env:GITHUB_REPOSITORY --key studio-apple-engine- --limit 100 --json id,key --jq ".[] | select(.key != \"$env:KEEP\") | .id"
+          $old = gh cache list --repo $env:GITHUB_REPOSITORY --key studio-apple-engine- --limit 100 --json id,key --jq ".[] | select(.key != `"$env:KEEP`") | .id"
           if ($LASTEXITCODE) { throw 'Cannot list the engine caches.' }
           foreach ($id in $old) {
               gh cache delete $id --repo $env:GITHUB_REPOSITORY
