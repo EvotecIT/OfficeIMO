@@ -305,6 +305,9 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>A parse without whitespace preservation drops whitespace-only text unless xml:space keeps it.</summary>
         private static string ParsedTextValue(OpenXmlElement textElement) {
             string value = textElement.InnerText;
+            // InnerText keeps only the first segment when plain text and CDATA share one element.
+            string markup = textElement.OuterXml;
+            if (markup.IndexOf("<![CDATA[", StringComparison.Ordinal) >= 0) value = XElement.Parse(markup).Value;
             if (value.Length == 0) return value;
             foreach (char character in value) {
                 if (character != ' ' && character != '\t' && character != '\r' && character != '\n') return value;

@@ -160,4 +160,22 @@ public sealed class PowerPointSmartArtCachedDrawingTests {
         PdfDocumentConversionResult result = presentation.ConvertToPdfWithEvidence();
         Assert.Contains(result.Warnings, warning => warning.Code == "unsupported-smartart");
     }
+
+    [Fact]
+    public void CachedSmartArtReadsTextSplitAcrossCdataSections() {
+        using PowerPointDocument presentation = PowerPointDocument.Load(RoadmapPath);
+        PowerPointSlide slide = presentation.Slides.Single(item => item.Shapes.OfType<PowerPointSmartArt>().Any());
+        PowerPointSmartArt smartArt = slide.Shapes.OfType<PowerPointSmartArt>().Single();
+        DiagramPersistLayoutPart part = slide.SlidePart.Parts.Select(item => item.OpenXmlPart)
+            .OfType<DiagramPersistLayoutPart>().Single();
+        string xml;
+        using (var reader = new StreamReader(part.GetStream(FileMode.Open, FileAccess.Read))) xml = reader.ReadToEnd();
+        Assert.Contains(">Discover<", xml, StringComparison.Ordinal);
+        using (Stream stream = part.GetStream(FileMode.Create, FileAccess.Write))
+        using (var writer = new StreamWriter(stream)) {
+            writer.Write(xml.Replace(">Discover<", ">Dis<![CDATA[co]]>ver<"));
+        }
+
+        Assert.True(smartArt.TryCreateCachedDrawing(out _, out string? reason), reason);
+    }
 }

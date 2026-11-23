@@ -105,11 +105,13 @@ namespace OfficeIMO.PowerPoint {
             DocumentFormat.OpenXml.OpenXmlElement container) {
             ArgumentNullException.ThrowIfNull(container);
             List<string>? ids = null;
+            HashSet<string>? seen = null;
             foreach (A.HyperlinkSound sound in container.Descendants<A.HyperlinkSound>()) {
                 string? id = sound.Embed?.Value;
                 if (string.IsNullOrEmpty(id)) continue;
-                ids ??= new List<string>();
-                if (!ids.Contains(id!, StringComparer.Ordinal)) ids.Add(id!);
+                seen ??= new HashSet<string>(StringComparer.Ordinal);
+                if (!seen.Add(id!)) continue;
+                (ids ??= new List<string>()).Add(id!);
             }
             return ids == null ? Array.Empty<string>() : ids.ToArray();
         }
