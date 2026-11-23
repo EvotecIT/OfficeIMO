@@ -116,7 +116,7 @@ namespace OfficeIMO {
             return normalized[0] == '/' ? normalized : "/" + normalized;
         }
 
-        private static string? ResolveRelationshipTarget(string relationshipPartName, string? target) {
+        internal static string? ResolveRelationshipTarget(string relationshipPartName, string? target) {
             if (string.IsNullOrWhiteSpace(target)) return null;
             string normalizedTarget = target!.Replace('\\', '/');
             // OPC uses one leading slash for a package-root part reference.

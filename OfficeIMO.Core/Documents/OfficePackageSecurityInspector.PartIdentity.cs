@@ -63,7 +63,7 @@ namespace OfficeIMO {
             || length == 2 && path[start] == '.' && path[start + 1] == '.';
 
         /// <summary>Decodes each segment once; encoded separators, dot segments and controls cannot identify another part.</summary>
-        private static string? DecodePartIdentity(string path) {
+        internal static string? DecodePartIdentity(string path) {
             if (!IsCanonicalPartPath(path)) return null;
             // A canonical path without escapes is its own identity.
             if (path.IndexOf('%') < 0) return path;

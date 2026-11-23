@@ -1,0 +1,180 @@
+using System.IO.Compression;
+using System.Text;
+using OfficeIMO.Drawing;
+
+namespace OfficeIMO.Core.Internal.OpenXml;
+
+/// <summary>
+/// Read-only ZIP container for Open XML packages. The central directory is scanned once by
+/// <see cref="OfficeArchiveSafety"/>, which rejects layouts other readers could resolve differently; members are
+/// inflated on demand with the runtime's <see cref="DeflateStream"/> into exactly sized buffers and checked against
+/// their declared length and CRC-32.
+/// </summary>
+internal sealed class OfficeZipPackageReader : IDisposable {
+    private const int MaximumEntries = 100_000;
+
+    private readonly Stream _source;
+    private readonly bool _leaveOpen;
+    private readonly byte[]? _buffer;
+    private readonly int _bufferOrigin;
+    private readonly OfficeArchiveSafety.ZipCentralDirectoryRecord[] _records;
+    private readonly Dictionary<string, int> _entries;
+    private readonly long _maximumEntryLength;
+
+    private OfficeZipPackageReader(Stream source, bool leaveOpen, byte[]? buffer, int bufferOrigin,
+        OfficeArchiveSafety.ZipCentralDirectoryRecord[] records, Dictionary<string, int> entries, long maximumEntryLength) {
+        _source = source;
+        _leaveOpen = leaveOpen;
+        _buffer = buffer;
+        _bufferOrigin = bufferOrigin;
+        _records = records;
+        _entries = entries;
+        _maximumEntryLength = maximumEntryLength;
+    }
+
+    /// <summary>Number of members, including the content-types catalog and relationship parts.</summary>
+    internal int Count => _records.Length;
+
+    /// <summary>Opens the ZIP archive that starts at the current position of a readable, seekable stream.</summary>
+    /// <exception cref="InvalidDataException">The archive is malformed, ambiguous or repeats a member name.</exception>
+    internal static OfficeZipPackageReader Open(Stream source, bool leaveOpen = false, long maximumEntryLength = 1L << 30) {
+        ArgumentNullException.ThrowIfNull(source);
+        if (!source.CanRead || !source.CanSeek) throw new ArgumentException("The package stream must be readable and seekable.", nameof(source));
+        long origin = source.Position;
+        var records = new List<OfficeArchiveSafety.ZipCentralDirectoryRecord>();
+        OfficeArchiveSafety.ZipCentralDirectoryScanResult scan = OfficeArchiveSafety.ScanZipCentralDirectoryForExtraction(
+            source, source.Length - origin, MaximumEntries, records);
+        if (!scan.IsValid) throw new InvalidDataException(scan.Error ?? "The package is not a valid ZIP archive.");
+        if (scan.LimitExceeded) throw new InvalidDataException("The package has more members than an Open XML reader accepts.");
+
+        var entries = new Dictionary<string, int>(records.Count, StringComparer.OrdinalIgnoreCase);
+        for (int index = 0; index < records.Count; index++) {
+            string name = DecodeName(records[index].NameBytes);
+            // OPC part names compare without regard to ASCII case, so two such members name the same part.
+            if (entries.ContainsKey(name)) throw new InvalidDataException("The package repeats the member '" + name + "'.");
+            entries.Add(name, index);
+        }
+
+        byte[]? buffer = null;
+        int bufferOrigin = 0;
+        if (source is MemoryStream memory && memory.TryGetBuffer(out ArraySegment<byte> segment) && segment.Array != null) {
+            buffer = segment.Array;
+            bufferOrigin = segment.Offset;
+        }
+        return new OfficeZipPackageReader(source, leaveOpen, buffer, bufferOrigin, records.ToArray(), entries, maximumEntryLength);
+    }
+
+    /// <summary>Returns whether the archive has a member with this name (ASCII case-insensitive).</summary>
+    internal bool Contains(string name) => _entries.ContainsKey(name);
+
+    /// <summary>Inflates one member into a buffer the caller disposes.</summary>
+    /// <returns><see langword="false"/> when no member has this name.</returns>
+    /// <exception cref="InvalidDataException">The member's local header, length or checksum disagrees with the directory.</exception>
+    internal bool TryRead(string name, out OfficePooledBytes content) {
+        if (!_entries.TryGetValue(name, out int index)) {
+            content = default;
+            return false;
+        }
+        content = Read(_records[index]);
+        return true;
+    }
+
+    private OfficePooledBytes Read(OfficeArchiveSafety.ZipCentralDirectoryRecord record) {
+        if (!OfficeArchiveSafety.HasSupportedZipFlags(record.Flags, record.CompressionMethod)) {
+            throw new InvalidDataException("A package member is encrypted or uses an unsupported compression method.");
+        }
+        if (record.UncompressedSize > _maximumEntryLength || record.UncompressedSize > int.MaxValue - 64) {
+            throw new InvalidDataException("A package member is larger than the reader accepts.");
+        }
+        long payload = OfficeArchiveSafety.ValidateEntryPayload(_source, record);
+        int length = (int)record.UncompressedSize;
+        OfficePooledBytes content = OfficePooledBytes.Rent(length);
+        try {
+            if (record.CompressionMethod == 0) {
+                CopyStored(payload, content.Array, length);
+            } else {
+                Inflate(payload, record.CompressedSize, content.Array, length);
+            }
+            if (OfficePngCrc32.Compute(content.Array, 0, length) != record.Crc32) {
+                throw new InvalidDataException("A package member does not match its ZIP checksum.");
+            }
+            return content;
+        } catch {
+            content.Dispose();
+            throw;
+        }
+    }
+
+    private void CopyStored(long payload, byte[] target, int length) {
+        if (_buffer != null) {
+            Buffer.BlockCopy(_buffer, checked(_bufferOrigin + (int)payload), target, 0, length);
+            return;
+        }
+        _source.Position = payload;
+        ReadExactly(_source, target, length);
+    }
+
+    private void Inflate(long payload, long compressedLength, byte[] target, int length) {
+        Stream compressed = _buffer != null
+            ? new MemoryStream(_buffer, checked(_bufferOrigin + (int)payload), checked((int)compressedLength), writable: false)
+            : new SeekableReadWindowStream(_source, payload, compressedLength);
+        using var inflater = new DeflateStream(compressed, CompressionMode.Decompress, leaveOpen: false);
+        ReadExactly(inflater, target, length);
+        // A member that inflates past its declared length is corrupt or crafted; reading one more byte proves the end.
+        var probe = new byte[1];
+        if (inflater.Read(probe, 0, 1) != 0) throw new InvalidDataException("A package member inflates past its declared length.");
+    }
+
+    private static void ReadExactly(Stream stream, byte[] target, int length) {
+        int offset = 0;
+        while (offset < length) {
+            int read = stream.Read(target, offset, length - offset);
+            if (read <= 0) throw new InvalidDataException("A package member ends before its declared length.");
+            offset += read;
+        }
+    }
+
+    private static string DecodeName(byte[] bytes) {
+        for (int index = 0; index < bytes.Length; index++) {
+            if (bytes[index] >= 0x80) {
+                // OPC writers percent-encode non-ASCII part names; names that still carry raw bytes are read as UTF-8
+                // whether or not the language-encoding flag is set.
+                return Encoding.UTF8.GetString(bytes);
+            }
+        }
+#if NET8_0_OR_GREATER
+        return Encoding.ASCII.GetString(bytes);
+#else
+        return Encoding.ASCII.GetString(bytes, 0, bytes.Length);
+#endif
+    }
+
+    public void Dispose() {
+        if (!_leaveOpen) _source.Dispose();
+    }
+}
+
+/// <summary>A byte buffer rented for one package member; <see cref="Length"/> bytes are valid.</summary>
+internal readonly struct OfficePooledBytes : IDisposable {
+    private OfficePooledBytes(byte[] array, int length) {
+        Array = array;
+        Length = length;
+    }
+
+    internal byte[] Array { get; }
+    internal int Length { get; }
+
+    internal static OfficePooledBytes Rent(int length) {
+#if NET8_0_OR_GREATER
+        return new OfficePooledBytes(length == 0 ? System.Array.Empty<byte>() : System.Buffers.ArrayPool<byte>.Shared.Rent(length), length);
+#else
+        return new OfficePooledBytes(length == 0 ? System.Array.Empty<byte>() : new byte[length], length);
+#endif
+    }
+
+    public void Dispose() {
+#if NET8_0_OR_GREATER
+        if (Array != null && Array.Length > 0) System.Buffers.ArrayPool<byte>.Shared.Return(Array);
+#endif
+    }
+}

@@ -1,0 +1,181 @@
+using System.Text;
+
+namespace OfficeIMO.Core.Internal.OpenXml;
+
+/// <summary>
+/// Namespace identifiers for the Open XML pull reader. Well-known namespaces have fixed ids; ISO/IEC 29500 Strict
+/// URIs map to the same id as their transitional counterpart, so readers match one id whichever conformance class
+/// the part uses. Other URIs get ids as they are first declared in a part.
+/// </summary>
+internal static class OfficeXmlNamespaces {
+    internal const int None = 0;
+    internal const int Xml = 1;
+    internal const int Xmlns = 2;
+    internal const int MarkupCompatibility = 3;
+    internal const int ContentTypes = 4;
+    internal const int PackageRelationships = 5;
+    internal const int Relationships = 6;
+    internal const int WordprocessingML = 7;
+    internal const int SpreadsheetML = 8;
+    internal const int PresentationML = 9;
+    internal const int DrawingML = 10;
+    internal const int Math = 11;
+    internal const int WordprocessingDrawing = 12;
+    internal const int SpreadsheetDrawing = 13;
+    internal const int Picture = 14;
+    internal const int Chart = 15;
+    internal const int ChartDrawing = 16;
+    internal const int Diagram = 17;
+    internal const int LockedCanvas = 18;
+    internal const int DrawingCompatibility = 19;
+    internal const int SharedTypes = 20;
+    internal const int CustomXml = 21;
+    internal const int Bibliography = 22;
+    internal const int SchemaLibrary = 23;
+    internal const int ExtendedProperties = 24;
+    internal const int CustomProperties = 25;
+    internal const int DocPropsVTypes = 26;
+    internal const int Vml = 27;
+    internal const int VmlOffice = 28;
+    internal const int VmlWord = 29;
+    internal const int VmlExcel = 30;
+    internal const int VmlPowerPoint = 31;
+    internal const int CoreProperties = 32;
+    internal const int DublinCore = 33;
+    internal const int DublinCoreTerms = 34;
+
+    /// <summary>The first id handed to a namespace that is not listed here.</summary>
+    internal const int FirstDynamic = 35;
+
+    /// <summary>Transitional relationship-type prefix that Strict relationship types are rewritten to.</summary>
+    internal const string TransitionalRelationshipTypePrefix = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/";
+    private const string StrictRelationshipTypePrefix = "http://purl.oclc.org/ooxml/officeDocument/relationships/";
+
+    // Namespaces ECMA-376 defines (Part 1 for markup, Part 2 for packaging, Part 3 for markup compatibility, Part 4
+    // for VML) plus the Dublin Core vocabularies of the core-properties part. Strict URIs come from ISO/IEC 29500-1.
+    private static readonly KeyValuePair<string, int>[] KnownUris = {
+        new("http://www.w3.org/XML/1998/namespace", Xml),
+        new("http://www.w3.org/2000/xmlns/", Xmlns),
+        new("http://schemas.openxmlformats.org/markup-compatibility/2006", MarkupCompatibility),
+        new("http://schemas.openxmlformats.org/package/2006/content-types", ContentTypes),
+        new("http://schemas.openxmlformats.org/package/2006/relationships", PackageRelationships),
+        new("http://schemas.openxmlformats.org/package/2006/metadata/core-properties", CoreProperties),
+        new("http://purl.org/dc/elements/1.1/", DublinCore),
+        new("http://purl.org/dc/terms/", DublinCoreTerms),
+        new("http://schemas.openxmlformats.org/officeDocument/2006/relationships", Relationships),
+        new("http://purl.oclc.org/ooxml/officeDocument/relationships", Relationships),
+        new("http://schemas.openxmlformats.org/wordprocessingml/2006/main", WordprocessingML),
+        new("http://purl.oclc.org/ooxml/wordprocessingml/main", WordprocessingML),
+        new("http://schemas.openxmlformats.org/spreadsheetml/2006/main", SpreadsheetML),
+        new("http://purl.oclc.org/ooxml/spreadsheetml/main", SpreadsheetML),
+        new("http://schemas.openxmlformats.org/presentationml/2006/main", PresentationML),
+        new("http://purl.oclc.org/ooxml/presentationml/main", PresentationML),
+        new("http://schemas.openxmlformats.org/drawingml/2006/main", DrawingML),
+        new("http://purl.oclc.org/ooxml/drawingml/main", DrawingML),
+        new("http://schemas.openxmlformats.org/officeDocument/2006/math", Math),
+        new("http://purl.oclc.org/ooxml/officeDocument/math", Math),
+        new("http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing", WordprocessingDrawing),
+        new("http://purl.oclc.org/ooxml/drawingml/wordprocessingDrawing", WordprocessingDrawing),
+        new("http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing", SpreadsheetDrawing),
+        new("http://purl.oclc.org/ooxml/drawingml/spreadsheetDrawing", SpreadsheetDrawing),
+        new("http://schemas.openxmlformats.org/drawingml/2006/picture", Picture),
+        new("http://purl.oclc.org/ooxml/drawingml/picture", Picture),
+        new("http://schemas.openxmlformats.org/drawingml/2006/chart", Chart),
+        new("http://purl.oclc.org/ooxml/drawingml/chart", Chart),
+        new("http://schemas.openxmlformats.org/drawingml/2006/chartDrawing", ChartDrawing),
+        new("http://purl.oclc.org/ooxml/drawingml/chartDrawing", ChartDrawing),
+        new("http://schemas.openxmlformats.org/drawingml/2006/diagram", Diagram),
+        new("http://purl.oclc.org/ooxml/drawingml/diagram", Diagram),
+        new("http://schemas.openxmlformats.org/drawingml/2006/lockedCanvas", LockedCanvas),
+        new("http://purl.oclc.org/ooxml/drawingml/lockedCanvas", LockedCanvas),
+        new("http://schemas.openxmlformats.org/drawingml/2006/compatibility", DrawingCompatibility),
+        new("http://purl.oclc.org/ooxml/drawingml/compatibility", DrawingCompatibility),
+        new("http://schemas.openxmlformats.org/officeDocument/2006/sharedTypes", SharedTypes),
+        new("http://purl.oclc.org/ooxml/officeDocument/sharedTypes", SharedTypes),
+        new("http://schemas.openxmlformats.org/officeDocument/2006/customXml", CustomXml),
+        new("http://purl.oclc.org/ooxml/officeDocument/customXml", CustomXml),
+        new("http://schemas.openxmlformats.org/officeDocument/2006/bibliography", Bibliography),
+        new("http://purl.oclc.org/ooxml/officeDocument/bibliography", Bibliography),
+        new("http://schemas.openxmlformats.org/schemaLibrary/2006/main", SchemaLibrary),
+        new("http://purl.oclc.org/ooxml/schemaLibrary/main", SchemaLibrary),
+        new("http://schemas.openxmlformats.org/officeDocument/2006/extended-properties", ExtendedProperties),
+        new("http://purl.oclc.org/ooxml/officeDocument/extendedProperties", ExtendedProperties),
+        new("http://schemas.openxmlformats.org/officeDocument/2006/custom-properties", CustomProperties),
+        new("http://purl.oclc.org/ooxml/officeDocument/customProperties", CustomProperties),
+        new("http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes", DocPropsVTypes),
+        new("http://purl.oclc.org/ooxml/officeDocument/docPropsVTypes", DocPropsVTypes),
+        new("urn:schemas-microsoft-com:vml", Vml),
+        new("urn:schemas-microsoft-com:office:office", VmlOffice),
+        new("urn:schemas-microsoft-com:office:word", VmlWord),
+        new("urn:schemas-microsoft-com:office:excel", VmlExcel),
+        new("urn:schemas-microsoft-com:office:powerpoint", VmlPowerPoint),
+    };
+
+    private static readonly byte[][] KnownUriBytes = CreateKnownUriBytes();
+
+    private static byte[][] CreateKnownUriBytes() {
+        var bytes = new byte[KnownUris.Length][];
+        for (int index = 0; index < KnownUris.Length; index++) bytes[index] = Encoding.UTF8.GetBytes(KnownUris[index].Key);
+        return bytes;
+    }
+
+    /// <summary>
+    /// Every fixed id: the namespaces an ECMA-376 first-edition consumer understands. Markup-compatibility processing
+    /// treats any other namespace as not understood unless the reader is told otherwise.
+    /// </summary>
+    internal static bool IsEcma376(int id) => id > None && id < FirstDynamic;
+
+    /// <summary>Rewrites a Strict relationship type to its transitional spelling; other types are returned unchanged.</summary>
+    internal static string NormalizeRelationshipType(string type) =>
+        type.StartsWith(StrictRelationshipTypePrefix, StringComparison.Ordinal)
+            ? TransitionalRelationshipTypePrefix + type.Substring(StrictRelationshipTypePrefix.Length)
+            : type;
+
+    /// <summary>Per-reader table that assigns ids to namespace URIs declared in the parts it reads.</summary>
+    internal sealed class Table {
+        private readonly List<byte[]> _dynamicUris = new();
+        private int _lastKnown = -1;
+
+        /// <summary>Returns the id of the UTF-8 URI in <paramref name="data"/>, registering it when it is new.</summary>
+        internal int GetId(byte[] data, int start, int length) {
+            // Packages repeat the same few declarations on many elements, so try the last match first.
+            if (_lastKnown >= 0 && Matches(KnownUriBytes[_lastKnown], data, start, length)) return KnownUris[_lastKnown].Value;
+            for (int index = 0; index < KnownUriBytes.Length; index++) {
+                if (Matches(KnownUriBytes[index], data, start, length)) {
+                    _lastKnown = index;
+                    return KnownUris[index].Value;
+                }
+            }
+            for (int index = 0; index < _dynamicUris.Count; index++) {
+                if (Matches(_dynamicUris[index], data, start, length)) return FirstDynamic + index;
+            }
+            var uri = new byte[length];
+            Buffer.BlockCopy(data, start, uri, 0, length);
+            _dynamicUris.Add(uri);
+            return FirstDynamic + _dynamicUris.Count - 1;
+        }
+
+        /// <summary>Returns the id of a URI given as a string, registering it when it is new.</summary>
+        internal int GetId(string uri) {
+            byte[] bytes = Encoding.UTF8.GetBytes(uri);
+            return GetId(bytes, 0, bytes.Length);
+        }
+
+        /// <summary>Returns the URI behind an id; for a fixed id this is its transitional spelling.</summary>
+        internal string GetUri(int id) {
+            if (id >= FirstDynamic) return Encoding.UTF8.GetString(_dynamicUris[id - FirstDynamic]);
+            foreach (KeyValuePair<string, int> known in KnownUris) {
+                if (known.Value == id) return known.Key;
+            }
+            return string.Empty;
+        }
+
+        private static bool Matches(byte[] expected, byte[] data, int start, int length) {
+            if (expected.Length != length) return false;
+            for (int index = 0; index < length; index++) {
+                if (expected[index] != data[start + index]) return false;
+            }
+            return true;
+        }
+    }
+}
