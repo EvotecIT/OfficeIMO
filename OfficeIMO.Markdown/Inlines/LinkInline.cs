@@ -18,12 +18,15 @@ public sealed class LinkInline : MarkdownInline, IRenderableMarkdownInline, IPla
     /// <summary>Source span for the link URL token when parsed from markdown.</summary>
     public MarkdownSourceSpan? UrlSourceSpan { get => ReadSourceInformation(ref _urlSourceSpan); internal set => WriteSourceInformation(ref _urlSourceSpan, value); }
     private MarkdownSourceSpan? _urlSourceSpan;
+    // Source spans of this object, set only by a parse that captures source information.
+    private MarkdownSourceSpan?[]? _sourceSpanSlots;
+
     /// <summary>Source span for the optional link title token when parsed from markdown.</summary>
-    public MarkdownSourceSpan? TitleSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
+    public MarkdownSourceSpan? TitleSourceSpan { get => ReadSourceSpanSlot(ref _sourceSpanSlots, 0); internal set => WriteSourceSpanSlot(ref _sourceSpanSlots, 0, 3, value); }
     /// <summary>Source span for the optional HTML target attribute when imported from richer sources.</summary>
-    public MarkdownSourceSpan? HtmlTargetSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
+    public MarkdownSourceSpan? HtmlTargetSourceSpan { get => ReadSourceSpanSlot(ref _sourceSpanSlots, 1); internal set => WriteSourceSpanSlot(ref _sourceSpanSlots, 1, 3, value); }
     /// <summary>Source span for the optional HTML rel attribute when imported from richer sources.</summary>
-    public MarkdownSourceSpan? HtmlRelSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
+    public MarkdownSourceSpan? HtmlRelSourceSpan { get => ReadSourceSpanSlot(ref _sourceSpanSlots, 2); internal set => WriteSourceSpanSlot(ref _sourceSpanSlots, 2, 3, value); }
 
     // Optional richer label representation (produced by the reader). When present, RenderHtml/RenderMarkdown
     // uses it instead of the plain Text property.

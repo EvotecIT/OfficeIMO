@@ -40,12 +40,15 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
     public bool IsTask { get; }
     /// <summary>Whether the task is checked.</summary>
     public bool Checked { get; }
+    // Source spans of this object, set only by a parse that captures source information.
+    private MarkdownSourceSpan?[]? _sourceSpanSlots;
+
     /// <summary>Source span of the list marker token (<c>-</c>, <c>*</c>, <c>+</c>, <c>1.</c>, or <c>1)</c>) when parsed from markdown.</summary>
-    public MarkdownSourceSpan? MarkerSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
+    public MarkdownSourceSpan? MarkerSourceSpan { get => ReadSourceSpanSlot(ref _sourceSpanSlots, 0); internal set => WriteSourceSpanSlot(ref _sourceSpanSlots, 0, 2, value); }
     /// <summary>Exact list marker token (<c>-</c>, <c>*</c>, <c>+</c>, <c>1.</c>, or <c>1)</c>) when parsed from markdown.</summary>
     public string? MarkerText { get; internal set; }
     /// <summary>Source span of the task marker token (<c>[ ]</c>, <c>[x]</c>, or <c>[X]</c>) when parsed from markdown.</summary>
-    public MarkdownSourceSpan? TaskMarkerSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
+    public MarkdownSourceSpan? TaskMarkerSourceSpan { get => ReadSourceSpanSlot(ref _sourceSpanSlots, 1); internal set => WriteSourceSpanSlot(ref _sourceSpanSlots, 1, 2, value); }
     /// <summary>Exact task marker token (<c>[ ]</c>, <c>[x]</c>, or <c>[X]</c>) when parsed from markdown.</summary>
     public string? TaskMarkerText { get; internal set; }
     internal string GenericAttributeConsumedWhitespace { get; set; } = string.Empty;

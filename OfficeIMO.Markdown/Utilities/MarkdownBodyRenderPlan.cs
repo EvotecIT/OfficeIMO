@@ -15,7 +15,7 @@ internal sealed class MarkdownBodyRenderPlan {
     internal IReadOnlyList<IFootnoteSectionMarkdownBlock> Footnotes { get; }
 
     internal static MarkdownBodyRenderPlan Create(IReadOnlyList<IMarkdownBlock> blocks) {
-        var renderBlocks = new List<IMarkdownBlock>();
+        var renderBlocks = new List<IMarkdownBlock>(blocks.Count);
         var footnotes = new List<IFootnoteSectionMarkdownBlock>();
         IBodySidebarMarkdownBlock? sidebar = null;
 

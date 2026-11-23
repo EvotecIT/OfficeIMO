@@ -5,6 +5,8 @@ namespace OfficeIMO.Markdown;
 /// </summary>
 public sealed class MarkdownCodeFenceInfo {
     private static readonly IReadOnlyList<string> EmptyClasses = Array.Empty<string>();
+    private static readonly IReadOnlyDictionary<string, string?> EmptyAttributes =
+        new System.Collections.ObjectModel.ReadOnlyDictionary<string, string?>(new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase));
     private readonly IReadOnlyDictionary<string, string?> _attributes;
     private readonly IReadOnlyList<string> _classes;
 
@@ -213,7 +215,7 @@ public sealed class MarkdownCodeFenceInfo {
                 string.Empty,
                 null,
                 EmptyClasses,
-                new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase),
+                EmptyAttributes,
                 MarkdownAttributeSet.Empty,
                 null,
                 hasExplicitAttributes: false);
@@ -340,18 +342,20 @@ public sealed class MarkdownCodeFenceInfo {
         string? genericElementId = null;
         genericAttributeSourceText = null;
         hasExplicitAttributes = false;
+        // Most fences carry only a language, so the common case shares the empty collections.
+        if (string.IsNullOrWhiteSpace(additionalInfo)) {
+            classes = EmptyClasses;
+            attributes = EmptyAttributes;
+            genericAttributes = MarkdownAttributeSet.Empty;
+            return;
+        }
+
         var parsedAttributes = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
         var parsedGenericAttributes = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
         var parsedClasses = new List<string>();
         var parsedGenericClasses = new List<string>();
         int genericAttributeStart = -1;
         int genericAttributeEnd = -1;
-        if (string.IsNullOrWhiteSpace(additionalInfo)) {
-            classes = EmptyClasses;
-            attributes = parsedAttributes;
-            genericAttributes = MarkdownAttributeSet.Empty;
-            return;
-        }
 
         foreach (var segment in EnumerateMetadataSegments(additionalInfo)) {
             if (segment.IsOpaque) {

@@ -13,12 +13,15 @@ public sealed class ImageInline : MarkdownInline, IRenderableMarkdownInline, IPl
     public string Src { get; }
     /// <summary>Optional title attribute shown as tooltip in HTML.</summary>
     public string? Title { get; }
+    // Source spans of this object, set only by a parse that captures source information.
+    private MarkdownSourceSpan?[]? _sourceSpanSlots;
+
     /// <summary>Source span for the image alternate-text token when parsed from markdown.</summary>
-    public MarkdownSourceSpan? AltSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
+    public MarkdownSourceSpan? AltSourceSpan { get => ReadSourceSpanSlot(ref _sourceSpanSlots, 0); internal set => WriteSourceSpanSlot(ref _sourceSpanSlots, 0, 3, value); }
     /// <summary>Source span for the image source token when parsed from markdown.</summary>
-    public MarkdownSourceSpan? SrcSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
+    public MarkdownSourceSpan? SrcSourceSpan { get => ReadSourceSpanSlot(ref _sourceSpanSlots, 1); internal set => WriteSourceSpanSlot(ref _sourceSpanSlots, 1, 3, value); }
     /// <summary>Source span for the optional image title token when parsed from markdown.</summary>
-    public MarkdownSourceSpan? TitleSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
+    public MarkdownSourceSpan? TitleSourceSpan { get => ReadSourceSpanSlot(ref _sourceSpanSlots, 2); internal set => WriteSourceSpanSlot(ref _sourceSpanSlots, 2, 3, value); }
     /// <summary>Creates a new inline image.</summary>
     public ImageInline(string alt, string src, string? title = null, string? plainAlt = null) {
         Alt = alt ?? string.Empty;
