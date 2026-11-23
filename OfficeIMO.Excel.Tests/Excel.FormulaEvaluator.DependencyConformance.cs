@@ -98,7 +98,8 @@ namespace OfficeIMO.Tests {
                     using var document = ExcelDocument.Create();
                     var first = document.AddSheet("First");
                     var second = crossSheet ? document.AddSheet("Second") : first;
-                    const int cells = 30;
+                    // Deep enough that the stack guard trips on every runtime, however little stack each level uses.
+                    const int cells = 120;
                     int nesting = parentheses ? 70 : 50;
                     for (int row = 1; row <= cells; row++) {
                         var sheet = row % 2 == 0 ? second : first;

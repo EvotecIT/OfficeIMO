@@ -155,10 +155,17 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Parses a reference token once per pass when its text needs new strings to parse, as a qualified or absolute
-        /// reference does; a plain relative reference parses without allocating and is not kept.
+        /// Parses a reference token once. A calculation pass keeps every token in the workbook's syntax cache, so later
+        /// passes reuse it; outside a pass a qualified or absolute token is kept for the current context only.
         /// </summary>
         private FormulaReferenceSyntax GetFormulaReferenceSyntax(string token) {
+            if (ExcelFormulaSyntaxCache.Current is ExcelFormulaSyntaxCache cache) {
+                if (!cache.TryGetReference(token, out FormulaReferenceSyntax cached)) {
+                    cached = new FormulaReferenceSyntax(token);
+                    cache.AddReference(token, cached);
+                }
+                return cached;
+            }
             if (_formulaCalculationContext is not { IsDisposed: false } context
                 || (token.IndexOf('!') < 0 && token.IndexOf('$') < 0)) {
                 return new FormulaReferenceSyntax(token);
@@ -908,25 +915,36 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private string GetFormulaEvaluationCacheKey(string reference) {
-            // Dependants look up the same formula cells many times in one pass, so the pass keeps each key it builds.
-            if (_formulaCalculationContext is not { IsDisposed: false } context) return Name + "!" + reference;
-            string name = Name;
-            if (!context.CacheKeys.TryGetValue(name, out Dictionary<string, string>? keys)) {
-                keys = new Dictionary<string, string>(StringComparer.Ordinal);
-                context.CacheKeys.Add(name, keys);
+        private long _formulaEvaluationKeyPass;
+        private int _formulaEvaluationKeySheet;
+
+        /// <summary>
+        /// The evaluation-cache key of a cell on this sheet: the sheet's number in the current results, then the row
+        /// and column. Sheets are numbered by name, ignoring case, so every wrapper of one sheet shares its keys.
+        /// </summary>
+        private long GetFormulaEvaluationCacheKey(string reference) {
+            FormulaEvaluationResults results = _formulaEvaluationCache
+                ?? throw new InvalidOperationException("Formula evaluation keys belong to a calculation pass.");
+            // The pass number, not the results themselves, so a sheet does not keep a finished pass's values alive.
+            if (_formulaEvaluationKeyPass != results.Pass) {
+                _formulaEvaluationKeySheet = results.GetSheetNumber(Name);
+                _formulaEvaluationKeyPass = results.Pass;
             }
-            if (!keys.TryGetValue(reference, out string? key)) {
-                key = name + "!" + reference;
-                keys.Add(reference, key);
-            }
-            return key;
+            string? normalized = IsCanonicalCellReference(reference) ? reference : NormalizeFormulaCellReference(reference);
+            int row = 0, column = 0;
+            if (normalized != null) ExcelA1.TryParseCellReferenceFast(normalized, out row, out column);
+            return FormulaEvaluationResults.Key(_formulaEvaluationKeySheet, row, column);
         }
 
         private static bool TryParseFormulaErrorLiteral(string token, out string errorCode) {
             string value = token.Trim();
             if (value.StartsWith("=", StringComparison.Ordinal)) {
                 value = value.Substring(1).Trim();
+            }
+            // Every error literal starts with '#', so other operands skip the upper-casing below.
+            if (value.Length == 0 || value[0] != '#') {
+                errorCode = string.Empty;
+                return false;
             }
 
             switch (value.ToUpperInvariant()) {

@@ -128,12 +128,12 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (ExcelFormulaExpressionParser.TryParseSupportedFunctionCall(formula, out ExcelFormulaFunctionCallSyntax? supportedFunction)) {
-                    string function = supportedFunction!.Name.ToUpperInvariant();
+                    string function = supportedFunction!.UpperName;
                     return $"Formula uses supported function '{function}' with arguments OfficeIMO's lightweight evaluator cannot currently evaluate.";
                 }
 
                 if (ExcelFormulaExpressionParser.TryParseFunctionCall(formula, out ExcelFormulaFunctionCallSyntax? functionCall)) {
-                    string function = functionCall!.Name.ToUpperInvariant();
+                    string function = functionCall!.UpperName;
                     if (_excelDocument.Calculation.TryGetCustomFunction(function, out _)) {
                         return $"Formula uses registered custom function '{function}' with arguments the custom evaluator cannot currently evaluate.";
                     }

@@ -2,12 +2,12 @@ using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
-        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Dictionary<string, FormulaArgumentValue>, ArrayCalculationContext> ArrayCalculationContexts = new System.Runtime.CompilerServices.ConditionalWeakTable<Dictionary<string, FormulaArgumentValue>, ArrayCalculationContext>();
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<FormulaEvaluationResults, ArrayCalculationContext> ArrayCalculationContexts = new System.Runtime.CompilerServices.ConditionalWeakTable<FormulaEvaluationResults, ArrayCalculationContext>();
 
         private sealed class ArrayCalculationContext {
             internal readonly Dictionary<string, FixedArraySheetIndex> Sheets = new Dictionary<string, FixedArraySheetIndex>(StringComparer.OrdinalIgnoreCase);
-            internal readonly Dictionary<string, FormulaArrayValue> Results = new Dictionary<string, FormulaArrayValue>(StringComparer.OrdinalIgnoreCase);
-            internal readonly Dictionary<string, DynamicArrayPlan> DynamicPlans = new Dictionary<string, DynamicArrayPlan>(StringComparer.OrdinalIgnoreCase);
+            internal readonly Dictionary<long, FormulaArrayValue> Results = new Dictionary<long, FormulaArrayValue>();
+            internal readonly Dictionary<long, DynamicArrayPlan> DynamicPlans = new Dictionary<long, DynamicArrayPlan>();
         }
 
         private bool TryGetCalculatedArray(Cell cell, out FormulaArrayValue array) {

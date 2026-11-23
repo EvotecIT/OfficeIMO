@@ -197,6 +197,17 @@ namespace OfficeIMO.Excel {
         }
 
         private static IReadOnlyList<string> SplitFormulaArguments(string args, bool preserveEmpty = false) {
+            ExcelFormulaSyntaxCache? cache = ExcelFormulaSyntaxCache.Current;
+            if (cache == null) return SplitFormulaArgumentsCore(args, preserveEmpty);
+            if (!cache.TryGetArguments(args, preserveEmpty, out string[] arguments)) {
+                IReadOnlyList<string> split = SplitFormulaArgumentsCore(args, preserveEmpty);
+                arguments = split as string[] ?? ((List<string>)split).ToArray();
+                cache.AddArguments(args, preserveEmpty, arguments);
+            }
+            return arguments;
+        }
+
+        private static IReadOnlyList<string> SplitFormulaArgumentsCore(string args, bool preserveEmpty) {
             var tokens = new List<string>();
             int tokenStart = 0;
             int depth = 0;

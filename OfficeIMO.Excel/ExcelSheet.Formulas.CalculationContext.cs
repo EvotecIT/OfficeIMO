@@ -3,13 +3,12 @@ namespace OfficeIMO.Excel {
         // One context per workbook calculation, or per standalone sheet calculation.
         // Referenced sheets already borrow these objects when resolving dependencies.
         internal sealed class FormulaCalculationContext : IDisposable {
-            internal Dictionary<string, FormulaArgumentValue> Cache { get; } = new(StringComparer.OrdinalIgnoreCase);
-            internal Dictionary<string, int> DepthCache { get; } = new(StringComparer.OrdinalIgnoreCase);
-            internal HashSet<string> Stack { get; } = new(StringComparer.OrdinalIgnoreCase);
+            internal FormulaEvaluationResults Cache { get; } = new();
+            internal Dictionary<long, int> DepthCache { get; } = new();
+            internal HashSet<long> Stack { get; } = new();
             internal Stack<FormulaEvaluationDepthFrame> DepthFrames { get; } = new();
             internal FormulaEvaluationGuardState GuardState { get; } = new();
             internal Dictionary<string, ExcelSheet> ReferenceSheets { get; } = new(StringComparer.OrdinalIgnoreCase);
-            internal Dictionary<string, Dictionary<string, string>> CacheKeys { get; } = new(StringComparer.Ordinal);
             /// <summary>Parsed qualified or absolute references by text; the text alone determines each entry.</summary>
             internal Dictionary<string, FormulaReferenceSyntax> ReferenceSyntax { get; } = new(StringComparer.Ordinal);
             /// <summary>Resolved ranges whose every cell held its final value for the pass, with the deepest dependency among them.</summary>
@@ -31,12 +30,6 @@ namespace OfficeIMO.Excel {
                 if (formulaCells <= 0) return;
                 Cache.EnsureCapacity(Cache.Count + formulaCells);
                 DepthCache.EnsureCapacity(DepthCache.Count + formulaCells);
-                if (!CacheKeys.TryGetValue(sheetName, out Dictionary<string, string>? keys)) {
-                    keys = new Dictionary<string, string>(formulaCells, StringComparer.Ordinal);
-                    CacheKeys.Add(sheetName, keys);
-                } else {
-                    keys.EnsureCapacity(keys.Count + formulaCells);
-                }
 #endif
             }
 
