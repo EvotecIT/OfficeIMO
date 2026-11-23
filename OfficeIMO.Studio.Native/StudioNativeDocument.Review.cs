@@ -25,7 +25,7 @@ internal sealed partial class StudioNativeDocument {
                 { Standard: { } standard } => new StudioNativeCheckResult(StudioNativeAbi.Version, _workspace.Revision,
                     Standard: Standard(await _workspace.AssessComplianceAsync(ProfileOf(standard), cancellationToken).ConfigureAwait(false))),
                 _ => new StudioNativeCheckResult(StudioNativeAbi.Version, _workspace.Revision,
-                    Health: await Task.Run(() => HealthOf(_workspace.CopyBytes(), _workspace.ReadOptions, cancellationToken), cancellationToken)
+                    Health: await Task.Run(() => InspectHealth(cancellationToken), cancellationToken)
                         .ConfigureAwait(false))
             };
         } finally { _gate.Release(); }
@@ -78,14 +78,15 @@ internal sealed partial class StudioNativeDocument {
             }, requirement.Diagnostic)).ToArray());
 
     /// <summary>What the document's structure says about it, as the desktop's document health inspection reports it.</summary>
-    private static StudioNativeHealth HealthOf(byte[] bytes, PdfLoadOptions options, CancellationToken cancellationToken) {
-        PdfDocumentPreflight preflight = PdfDocument.Preflight(bytes, options, cancellationToken);
+    private StudioNativeHealth InspectHealth(CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        PdfDocumentPreflight preflight = _workspace.CurrentPreflight;
         PdfDocumentInfo? info = preflight.DocumentInfo;
         var diagnostics = new List<string>(preflight.Diagnostics);
         PdfRepairReport? repairs = null;
         if (preflight.CanRead) {
             try {
-                using PdfDocument document = PdfDocument.LoadOwned(bytes, options, cancellationToken);
+                using PdfDocument document = _workspace.CreateDocumentSnapshot(cancellationToken);
                 PdfAnalysisReport analysis = document.Analyze(PdfComplianceProfile.None, cancellationToken);
                 info = analysis.Info;
                 repairs = analysis.Repair;
@@ -95,7 +96,7 @@ internal sealed partial class StudioNativeDocument {
             }
         }
         PdfDocumentSecurityInfo security = info?.Security ?? preflight.Probe.Security;
-        return new StudioNativeHealth(bytes.LongLength, info?.PageCount ?? 0, info?.EffectiveVersion ?? info?.HeaderVersion, preflight.CanRead,
+        return new StudioNativeHealth(_workspace.FileSize, info?.PageCount ?? 0, info?.EffectiveVersion ?? info?.HeaderVersion, preflight.CanRead,
             preflight.CanRewrite, security.HasEncryption, security.HasSignatures, info?.HasTaggedContent == true, info?.HasActiveContent == true,
             info?.HasEmbeddedFiles == true, repairs?.RepairCount ?? 0, repairs?.DetectionOnlyCount ?? 0, diagnostics.Distinct().Take(50).ToArray());
     }
@@ -107,8 +108,6 @@ internal sealed partial class StudioNativeDocument {
     private async Task<(IReadOnlyList<string> Files, string Summary)> WriteHealthCopyAsync(StudioNativeHealthCopy copy, string kind,
         CancellationToken cancellationToken) {
         if (string.IsNullOrWhiteSpace(copy.Path)) throw new ArgumentException("A destination is required.", nameof(copy));
-        byte[] input = _workspace.CopyBytes();
-        PdfLoadOptions options = _workspace.ReadOptions;
         (byte[] output, string summary) = await Task.Run(() => {
             switch (kind) {
                 case "optimize": {
@@ -117,21 +116,21 @@ internal sealed partial class StudioNativeDocument {
                         "web" => PdfOptimizationProfile.Web, "archival" => PdfOptimizationProfile.Archival,
                         _ => throw new ArgumentException($"“{copy.Profile}” isn't an optimization profile.", nameof(copy))
                     });
-                    using PdfDocument document = PdfDocument.LoadOwned(input, options, cancellationToken);
+                    using PdfDocument document = _workspace.CreateDocumentSnapshot(cancellationToken);
                     PdfOptimizationActionResult result = document.Optimization.Apply(optimization, cancellationToken: cancellationToken);
                     if (!result.PreservationReport.IsPreserved) throw new InvalidOperationException("The optimized copy wouldn't keep everything the document contains, so it wasn't written.");
                     return (result.Bytes, result.ReturnedOriginal ? "The document is already as small as lossless optimization makes it."
                         : string.Create(CultureInfo.InvariantCulture, $"Saved {result.SavedBytes} bytes."));
                 }
                 case "repair": {
-                    PdfRepairArtifactResult result = PdfRepairArtifact.Create(input,
-                        new PdfRepairArtifactOptions(), options, cancellationToken: cancellationToken);
+                    PdfRepairArtifactResult result = PdfRepairArtifact.Create(_workspace.CopyBytes(),
+                        new PdfRepairArtifactOptions(), _workspace.ReadOptions, cancellationToken: cancellationToken);
                     if (!result.IsVerified) throw new InvalidOperationException("The repaired copy couldn't be verified, so it wasn't written.");
                     return (result.ToBytes(), string.Create(CultureInfo.InvariantCulture, $"Repaired {result.SourceRepairReport.RepairCount} structural problem(s)."));
                 }
                 default: {
                     // Removal throws when the rewritten copy still holds a selected item or changed anything else.
-                    using PdfDocument document = PdfDocument.LoadOwned(input, options, cancellationToken);
+                    using PdfDocument document = _workspace.CreateDocumentSnapshot(cancellationToken);
                     OfficeHiddenDataResult result = document.RemoveHiddenData(
                         new OfficeHiddenDataOptions { Kinds = OfficeHiddenDataKind.ActiveContent | OfficeHiddenDataKind.Attachments }, cancellationToken);
                     int removed = result.Report.Findings.Count(static finding => finding.Outcome == OfficeHiddenDataOutcome.Removed);
