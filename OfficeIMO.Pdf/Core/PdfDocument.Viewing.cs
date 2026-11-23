@@ -22,7 +22,7 @@ public sealed partial class PdfDocument {
         bool canExtractText = PdfPermissionAuthorization.CanExtractText(document.Security, snapshot.Options.PermissionPolicy);
         bool canExtractContent = PdfPermissionAuthorization.CanExtractContent(document.Security, snapshot.Options.PermissionPolicy);
         if (includeLogicalContent && canExtractContent) {
-            PdfDocumentInfo content = PdfInspector.Inspect(snapshot.Bytes, document, cancellationToken);
+            PdfDocumentInfo content = PdfInspector.Inspect(snapshot.InspectionBytes, document, cancellationToken);
             return new PdfDocumentViewInfo(content.Pages, document.Security, canExtractText, content);
         }
         var pages = new List<PdfPageInfo>(document.Pages.Count);

@@ -5,21 +5,31 @@ public sealed partial class PdfDocument {
         string operation,
         PdfArtifactInfo? output,
         TimeSpan duration,
-        Exception? exception = null) {
+        Exception? exception = null,
+        bool sourcePassthrough = false) {
+        if (sourcePassthrough && output is not null && Volatile.Read(ref _pipeline) is null)
+            Interlocked.CompareExchange(ref _pipeline, PdfPipelineReport.Opened(output), null);
+
+        // Input I/O can be the reason output failed. Do not read the source again
+        // just to construct a failure report before any artifact was captured.
+        if (exception is not null && _source?.IsSeekable == true && Volatile.Read(ref _pipeline) is null)
+            return PdfPipelineReport.FailedOutput(operation, exception);
+
         IReadOnlyList<string> diagnostics = exception is null
             ? Array.Empty<string>()
             : PdfOutputDiagnostics.BuildExceptionDiagnostics(exception);
+        PdfPipelineReport pipeline = Pipeline;
         var step = new PdfPipelineStep(
             PdfPipelineStepKind.Output,
             operation,
             exception is null,
-            _pipeline.Output,
+            pipeline.Output,
             output,
             duration,
             mutationOperation: null,
             executionMode: null,
             diagnostics);
-        return _pipeline.Append(step);
+        return pipeline.Append(step);
     }
 
     private static bool IsAppendOnly(byte[] input, byte[] output) {

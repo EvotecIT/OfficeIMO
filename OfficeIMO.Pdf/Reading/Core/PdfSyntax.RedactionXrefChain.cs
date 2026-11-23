@@ -36,7 +36,7 @@ internal static partial class PdfSyntax {
             } else {
                 hasXrefStreams = true;
                 if (!streams.TryGetValue(section.Offset, out PdfStream? stream)) {
-                    if (!TryParseIndirectObjectAt(pdf, text, section.Offset, objects, scanBudget, out PdfIndirectObject parsed, cancellationToken) ||
+                    if (!TryParseIndirectObjectAt(text, section.Offset, objects, scanBudget, out PdfIndirectObject parsed, cancellationToken) ||
                         parsed.Value is not PdfStream parsedStream || parsedStream.Dictionary.Get<PdfName>("Type")?.Name != "XRef") return false;
                     stream = parsedStream;
                     streams.Add(section.Offset, stream);

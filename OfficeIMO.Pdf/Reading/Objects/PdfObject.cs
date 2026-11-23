@@ -121,14 +121,20 @@ internal sealed class PdfReference : PdfObject {
 internal sealed class PdfStream : PdfObject {
     private byte[]? _data;
     private readonly ReadOnlyMemory<byte> _source;
+    private readonly PdfSeekableInput? _seekableSource;
+    private readonly int _seekableOffset;
+    private readonly int _seekableLength;
 
     public PdfDictionary Dictionary { get; }
-    public byte[] Data => Volatile.Read(ref _data) ?? Materialize(_source.ToArray());
+    public byte[] Data => GetData(CancellationToken.None);
 
     internal byte[] GetData(CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         byte[]? data = Volatile.Read(ref _data);
         if (data is not null) return data;
+        if (_seekableSource is not null)
+            return Materialize(_seekableSource.ReadAt(_seekableOffset, _seekableLength, cancellationToken));
+        if (!cancellationToken.CanBeCanceled) return Materialize(_source.ToArray());
         data = new byte[_source.Length];
         CopyData(_source.Span, data, cancellationToken);
         return Materialize(data);
@@ -136,7 +142,7 @@ internal sealed class PdfStream : PdfObject {
 
     private byte[] Materialize(byte[] data) => Interlocked.CompareExchange(ref _data, data, null) ?? data;
 
-    internal int DataLength => _data?.Length ?? _source.Length;
+    internal int DataLength => _data?.Length ?? (_seekableSource is null ? _source.Length : _seekableLength);
     internal long DataLongLength => DataLength;
     /// <summary>True when a decode filter failed; <see cref="Data"/> contains original undecoded bytes.</summary>
     public bool DecodingFailed { get; }
@@ -156,6 +162,17 @@ internal sealed class PdfStream : PdfObject {
         DecodingError = error;
     }
 
+    internal PdfStream(PdfDictionary dictionary, PdfSeekableInput source, int sourceOffset, int sourceLength,
+        bool decodingFailed, string? error) {
+        source.ValidateRange(sourceOffset, sourceLength);
+        Dictionary = dictionary;
+        _seekableSource = source;
+        _seekableOffset = sourceOffset;
+        _seekableLength = sourceLength;
+        DecodingFailed = decodingFailed;
+        DecodingError = error;
+    }
+
     internal static PdfStream FromOwnedSource(
         PdfDictionary dictionary,
         ReadOnlyMemory<byte> source,
@@ -170,11 +187,15 @@ internal sealed class PdfStream : PdfObject {
     }
 
     internal void CopyDataTo(byte[] destination, int destinationOffset) =>
-        GetDataMemory().Span.CopyTo(destination.AsSpan(destinationOffset));
+        CopyDataTo(destination, destinationOffset, CancellationToken.None);
 
     internal void CopyDataTo(byte[] destination, int destinationOffset, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        CopyData(GetDataMemory().Span, destination.AsSpan(destinationOffset), cancellationToken);
+        if (_seekableSource is not null && Volatile.Read(ref _data) is null) {
+            _seekableSource.ReadAt(_seekableOffset, destination, destinationOffset, _seekableLength, cancellationToken);
+            return;
+        }
+        CopyData(GetDataMemory(cancellationToken).Span, destination.AsSpan(destinationOffset), cancellationToken);
     }
 
     private static void CopyData(ReadOnlySpan<byte> source, Span<byte> destination, CancellationToken cancellationToken) {
@@ -187,13 +208,13 @@ internal sealed class PdfStream : PdfObject {
         cancellationToken.ThrowIfCancellationRequested();
     }
 
-    private ReadOnlyMemory<byte> GetDataMemory() {
-        byte[]? data = Volatile.Read(ref _data);
-        return data is not null ? data : _source;
-    }
+    private ReadOnlyMemory<byte> GetDataMemory(CancellationToken cancellationToken) =>
+        _seekableSource is not null
+            ? GetData(cancellationToken)
+            : Volatile.Read(ref _data) is { } data ? data : _source;
 
     internal void GetDataSegment(out byte[] buffer, out int offset, out int length, CancellationToken cancellationToken = default) {
-        if (MemoryMarshal.TryGetArray(GetDataMemory(), out ArraySegment<byte> segment)) {
+        if (MemoryMarshal.TryGetArray(GetDataMemory(cancellationToken), out ArraySegment<byte> segment)) {
             buffer = segment.Array!;
             offset = segment.Offset;
             length = segment.Count;

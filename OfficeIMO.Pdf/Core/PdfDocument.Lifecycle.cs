@@ -63,6 +63,7 @@ public sealed partial class PdfDocument {
     public void Save(Stream stream, PdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
         Guard.NotNull(stream, nameof(stream));
         if (!stream.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(stream));
+        ValidateSaveDestination(stream);
         SaveNativeStream(stream, options, cancellationToken);
     }
 
@@ -83,8 +84,11 @@ public sealed partial class PdfDocument {
     public async Task SaveAsync(Stream stream, PdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
         Guard.NotNull(stream, nameof(stream));
         if (!stream.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(stream));
+        ValidateSaveDestination(stream);
         await SaveNativeStreamAsync(stream, options, cancellationToken).ConfigureAwait(false);
     }
+
+    internal void ValidateSaveDestination(Stream stream) => _source?.ValidateDestination(stream);
 
     private static OfficeFileCommit.ConflictPolicy ResolveConflictPolicy(PdfSaveOptions? options) =>
         (options?.ConflictPolicy ?? OfficeConversionFileConflictPolicy.Replace) switch {
@@ -93,8 +97,8 @@ public sealed partial class PdfDocument {
             _ => throw new ArgumentOutOfRangeException(nameof(options))
         };
 
-    /// <summary>Completes this in-memory document's lifetime. Caller-owned streams remain open.</summary>
-    public void Dispose() { }
+    /// <summary>Completes this document's lifetime. Caller-owned streams remain open.</summary>
+    public void Dispose() => _source?.Dispose();
 
     /// <summary>Completes this in-memory document's lifetime asynchronously.</summary>
     public Task DisposeAsync() { Dispose(); return Task.CompletedTask; }

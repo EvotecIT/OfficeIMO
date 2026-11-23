@@ -461,11 +461,12 @@ public sealed partial class PdfDocumentConversionResult : IOfficeResult<PdfDocum
         return (staging.ToArray(), result);
     }
 
-    private static void ValidateLosslessDestination(Stream stream) {
+    private void ValidateLosslessDestination(Stream stream) {
         Guard.NotNull(stream, nameof(stream));
         if (!stream.CanWrite) {
             throw new ArgumentException("Destination stream must be writable.", nameof(stream));
         }
+        Value.ValidateSaveDestination(stream);
     }
 
     /// <summary>

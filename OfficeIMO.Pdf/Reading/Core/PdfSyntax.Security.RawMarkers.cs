@@ -29,7 +29,7 @@ internal static partial class PdfSyntax {
     }
 
     /// <summary>Collects the conservative raw-name evidence used before the object graph is parsed.</summary>
-    private static RawSecurityMarkers ScanRawSecurityMarkers(ReadOnlySpan<byte> pdf, CancellationToken cancellationToken) {
+    private static RawSecurityMarkers ScanRawSecurityMarkers(PdfByteContentText pdf, CancellationToken cancellationToken) {
         RawSecurityName names = RawSecurityName.None;
         int byteRangeCount = 0;
         const int window = 65536;
@@ -41,7 +41,7 @@ internal static partial class PdfSyntax {
                 cancellationToken.ThrowIfCancellationRequested();
                 checkedWindowEnd = windowEnd;
             }
-            int found = PdfByteSearch.IndexOf(pdf, (byte)'/', index, windowEnd - index);
+            int found = pdf.IndexOfByte((byte)'/', index, windowEnd - index);
             if (found < 0) {
                 index = windowEnd;
                 continue;
@@ -82,7 +82,7 @@ internal static partial class PdfSyntax {
         return new RawSecurityMarkers(names, byteRangeCount);
     }
 
-    private static bool MatchesRawPdfName(ReadOnlySpan<byte> pdf, int slashIndex, string name) {
+    private static bool MatchesRawPdfName(PdfByteContentText pdf, int slashIndex, string name) {
         int afterName = slashIndex + name.Length + 1;
         if (afterName > pdf.Length) return false;
         for (int i = 0; i < name.Length; i++) {

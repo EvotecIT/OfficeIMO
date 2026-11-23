@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfSyntax {
     // Security markers are observations and may also occur inside payload streams. Definition
     // ownership must use the terminal cross-reference pointer and its parsed /Prev chain.
-    private static int[] GetActiveRevisionOffsets(ReadOnlyMemory<byte> pdf, PdfByteContentText text, Dictionary<int, PdfIndirectObject> objects,
+    private static int[] GetActiveRevisionOffsets(PdfByteContentText text, Dictionary<int, PdfIndirectObject> objects,
         PdfReadLimits limits, System.Diagnostics.Stopwatch timer, CancellationToken cancellationToken) {
         if (!TryGetLatestStartXrefOffset(text, out int current, cancellationToken)) return Array.Empty<int>();
         var scanBudget = new XrefObjectScanBudget(limits);
@@ -15,7 +15,7 @@ internal static partial class PdfSyntax {
             int? previous;
             if (TryParseClassicXrefTable(text, current, out _, out previous, out _, out _, cancellationToken)) {
                 // A hybrid /XRefStm describes the same update; only /Prev changes its owner.
-            } else if (TryParseIndirectObjectAt(pdf, text, current, objects, scanBudget, out var indirect, cancellationToken) &&
+            } else if (TryParseIndirectObjectAt(text, current, objects, scanBudget, out var indirect, cancellationToken) &&
                 indirect.Value is PdfStream stream && stream.Dictionary.Get<PdfName>("Type")?.Name == "XRef") {
                 // A previous stream may have been freed or replaced in the final object map.
                 var dictionary = stream.Dictionary;
@@ -40,7 +40,7 @@ internal static partial class PdfSyntax {
         var timer = System.Diagnostics.Stopwatch.StartNew();
         var limits = document.ReadOptions.Limits;
         var text = new PdfByteContentText(pdf);
-        int[] offsets = GetActiveRevisionOffsets(pdf, text, document.Objects, limits, timer, cancellationToken);
+        int[] offsets = GetActiveRevisionOffsets(text, document.Objects, limits, timer, cancellationToken);
         var ends = new List<int>();
         for (int index = offsets.Length - 2; index >= 0; index--) {
             cancellationToken.ThrowIfCancellationRequested();

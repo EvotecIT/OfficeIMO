@@ -1,4 +1,5 @@
 using OfficeIMO.Core.Internal;
+using OfficeIMO.Core.Internal.IO;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 
@@ -9,8 +10,11 @@ namespace OfficeIMO.Pdf;
 /// the source owns, buffers produced inside OfficeIMO.Pdf are adopted, and borrowed memory is read in place while
 /// the caller keeps it available and unchanged.
 /// </summary>
-internal sealed class PdfDocumentSource {
+internal sealed class PdfDocumentSource : IDisposable {
     private readonly ReadOnlyMemory<byte> _bytes;
+    private readonly PdfSeekableInput? _seekable;
+    private readonly PdfReadDocument? _seekableReader;
+    private byte[]? _seekableSnapshot;
     private readonly bool _borrowed;
     private readonly PdfReadCache<PdfReadDocument> _readCache = new();
     // Reads that ask for artifact text parse the source once more with it included. That one parse is kept
@@ -35,6 +39,17 @@ internal sealed class PdfDocumentSource {
         _readCache = new PdfReadCache<PdfReadDocument>(readDocument);
     }
 
+    private PdfDocumentSource(PdfSeekableInput seekable, PdfLoadOptions options, PdfReadDocument readDocument) {
+        _seekable = seekable;
+        _seekableReader = readDocument;
+        Options = options;
+        _readCache = new PdfReadCache<PdfReadDocument>(readDocument);
+    }
+
+    internal bool IsSeekable => _seekable is not null;
+    internal int Length => _seekable?.Length ?? _bytes.Length;
+    internal int? SeekablePageCount => _seekableReader?.Pages.Count;
+
     /// <summary>Immutable read settings captured when the source is opened.</summary>
     internal PdfLoadOptions Options { get; }
 
@@ -53,10 +68,25 @@ internal sealed class PdfDocumentSource {
     }
 
     /// <summary>The exact encoded input window, which remains stable during document reads.</summary>
-    internal ReadOnlyMemory<byte> Memory => _bytes;
+    internal ReadOnlyMemory<byte> Memory => GetMemory(CancellationToken.None);
+
+    internal ReadOnlyMemory<byte> GetMemory(CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (_seekable is null) return _bytes;
+        byte[]? bytes = Volatile.Read(ref _seekableSnapshot);
+        if (bytes is not null) return bytes;
+        bytes = _seekable.ReadAt(0, _seekable.Length, cancellationToken);
+        return Interlocked.CompareExchange(ref _seekableSnapshot, bytes, null) ?? bytes;
+    }
+
+    internal ReadOnlyMemory<byte> GetInspectionBytes(PdfReadDocument document, CancellationToken cancellationToken) {
+        if (_seekable is not null && !document.RepairReport.HasIncompleteObjectCoverage)
+            return _seekable.ReadAt(0, Math.Min(PdfSyntax.HeaderProbeLength, _seekable.Length), cancellationToken);
+        return GetMemory(cancellationToken);
+    }
 
     /// <summary>Provides an exact array for operations that require one.</summary>
-    internal byte[] Bytes => GetWholeArrayOrCopy(_bytes);
+    internal byte[] Bytes => GetWholeArrayOrCopy(Memory);
 
     internal static byte[] GetWholeArrayOrCopy(ReadOnlyMemory<byte> source) =>
         MemoryMarshal.TryGetArray(source, out ArraySegment<byte> segment) &&
@@ -64,8 +94,17 @@ internal sealed class PdfDocumentSource {
             ? array
             : source.ToArray();
 
+    internal void ValidateDestination(Stream stream) {
+        if (_seekable?.IsSource(stream) == true)
+            throw new ArgumentException("The destination must differ from the PDF input stream.", nameof(stream));
+    }
+
     internal void CopyTo(Stream destination, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
+        if (_seekable is not null) {
+            _seekable.CopyTo(destination, cancellationToken);
+            return;
+        }
         if (MemoryMarshal.TryGetArray(_bytes, out ArraySegment<byte> segment) &&
             segment.Array is { } array && segment.Offset == 0 && segment.Count == array.Length) {
             OfficeStreamWriter.CopyBytes(destination, array, cancellationToken);
@@ -106,17 +145,23 @@ internal sealed class PdfDocumentSource {
             return snapshot.Counts;
         }
 
-        PdfStructuralMarkerCounts counts = PdfSyntax.CountSourceStructuralMarkers(_bytes, limits);
+        PdfStructuralMarkerCounts counts = PdfSyntax.CountSourceStructuralMarkers(Memory, limits);
         Volatile.Write(ref _structuralMarkers, new StructuralMarkerSnapshot(limits, counts));
         return counts;
     }
 
     /// <summary>Copies the source bytes for a caller-owned result.</summary>
-    internal byte[] CopyBytes() => _bytes.ToArray();
+    internal byte[] CopyBytes(CancellationToken cancellationToken = default) => _seekable is null
+        ? _bytes.ToArray()
+        : _seekable.ReadAt(0, _seekable.Length, cancellationToken);
+
+    public void Dispose() => _seekable?.Dispose();
 
     /// <summary>Gives delayed report proofs a stable source and its own canonical parse.</summary>
     internal PdfDocumentSource DetachBorrowed(CancellationToken cancellationToken) =>
-        _borrowed ? FromOwnedBytes(PdfSyntax.CopyBytes(_bytes, 0, _bytes.Length, cancellationToken), Options) : this;
+        _seekable is not null
+            ? FromOwnedBytes(CopyBytes(cancellationToken), Options)
+            : _borrowed ? FromOwnedBytes(PdfSyntax.CopyBytes(_bytes, 0, _bytes.Length, cancellationToken), Options) : this;
 
     /// <summary>
     /// Reads a caller-owned PDF window in place after enforcing the configured input budget.
@@ -165,6 +210,44 @@ internal sealed class PdfDocumentSource {
         PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options);
         ValidateLength(bytes.LongLength, effectiveOptions);
         return new PdfDocumentSource(bytes, effectiveOptions, readDocument);
+    }
+
+    internal static PdfDocumentSource FromSeekableStream(Stream stream, long? length, PdfLoadOptions? options,
+        CancellationToken cancellationToken) =>
+        FromSeekableStream(stream, length, PdfLoadOptions.Resolve(options).Clone(), ownsSource: false, cancellationToken);
+
+    internal static PdfDocumentSource FromSeekablePath(string path, PdfLoadOptions? options,
+        CancellationToken cancellationToken) {
+        Guard.NotNullOrWhiteSpace(path, nameof(path));
+        cancellationToken.ThrowIfCancellationRequested();
+        PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options).Clone();
+        string fullPath = Path.GetFullPath(path);
+        FileStream? file = OfficeStableFileRead.TryOpen(fullPath);
+        if (file is null) {
+            PdfDocumentSource snapshot = FromPath(fullPath, effectiveOptions, cancellationToken);
+            _ = snapshot.Read(cancellationToken: cancellationToken);
+            return snapshot;
+        }
+        return FromSeekableStream(file, length: null, effectiveOptions, ownsSource: true, cancellationToken);
+    }
+
+    private static PdfDocumentSource FromSeekableStream(Stream stream, long? length, PdfLoadOptions options,
+        bool ownsSource, CancellationToken cancellationToken) {
+        Guard.NotNull(stream, nameof(stream));
+        PdfSeekableInput? input = null;
+        try {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!stream.CanRead || !stream.CanSeek)
+                throw new ArgumentException("The PDF stream must be readable and seekable.", nameof(stream));
+            long start = stream.Position;
+            input = new PdfSeekableInput(stream, start, length ?? stream.Length - start, options.Limits, ownsSource);
+            PdfReadDocument opened = PdfReadDocument.OpenSeekable(input, options, cancellationToken);
+            return new PdfDocumentSource(input, options, opened);
+        } catch {
+            if (input is not null) input.Dispose();
+            else if (ownsSource) stream.Dispose();
+            throw;
+        }
     }
 
     /// <summary>Reads and owns one bounded file snapshot.</summary>
@@ -268,25 +351,26 @@ internal sealed class PdfDocumentSource {
         }
 
         if (options is not null && !ReferenceEquals(options, Options)) {
-            return _canonicalRewrittenOutput
-                ? PdfReadDocument.OpenRewrittenOutput(Bytes, options, cancellationToken)
-                : PdfReadDocument.OpenBorrowed(_bytes, options, detachOutputIntentProfiles: _borrowed, cancellationToken);
+            return Parse(options, cancellationToken);
         }
 
         return _readCache.GetOrCreate(this, static (source, token) => source.ParseCanonical(token), cancellationToken);
     }
 
-    private PdfReadDocument Parse(PdfLoadOptions options, CancellationToken cancellationToken) =>
-        _canonicalRewrittenOutput
+    private PdfReadDocument Parse(PdfLoadOptions options, CancellationToken cancellationToken) {
+        if (_seekable is not null) {
+            return PdfReadDocument.OpenSeekable(_seekable, options, cancellationToken);
+        }
+
+        return _canonicalRewrittenOutput
             ? PdfReadDocument.OpenRewrittenOutput(Bytes, options, cancellationToken)
             : PdfReadDocument.OpenBorrowed(_bytes, options, detachOutputIntentProfiles: _borrowed, cancellationToken);
+    }
 
     private PdfReadDocument ParseCanonical(CancellationToken cancellationToken) {
         _readFailure?.Throw();
         try {
-            return _canonicalRewrittenOutput
-                ? PdfReadDocument.OpenRewrittenOutput(Bytes, Options, cancellationToken)
-                : PdfReadDocument.OpenBorrowed(_bytes, Options, detachOutputIntentProfiles: _borrowed, cancellationToken);
+            return Parse(Options, cancellationToken);
         } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
             // A caller's cancellation must not poison the reusable source cache.
             throw;
@@ -312,6 +396,11 @@ internal sealed class PdfDocumentSource {
         }
 
         // Pipeline evidence can outlive the document and the caller's input lease.
+        if (_seekable is not null) {
+            using var hashing = new PdfPipelineHashingStream(Stream.Null);
+            _seekable.CopyTo(hashing, cancellationToken);
+            return hashing.Complete(pageCount);
+        }
         return _borrowed
             ? PdfArtifactInfo.CaptureKnownPageCount(_bytes, pageCount, cancellationToken)
             : PdfArtifactInfo.CaptureOwnedKnownPageCount(_bytes, pageCount);

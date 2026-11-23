@@ -44,8 +44,28 @@ internal sealed partial class PdfReadDocument {
         CancellationToken cancellationToken) =>
         OpenCore(borrowedPdf, options, ownsBytes: true, detachOutputIntentProfiles, cancellationToken);
 
+    internal static PdfReadDocument OpenSeekable(PdfSeekableInput input, PdfLoadOptions options, CancellationToken cancellationToken) {
+        using PdfSeekableInput.Admission admission = input.BeginAdmission();
+        try {
+            return OpenCore(new PdfByteContentText(input, cancellationToken), options, ownsBytes: true,
+                detachOutputIntentProfiles: true, cancellationToken);
+        } finally {
+            // Some PDF syntax paths recover from a damaged object. A failed read
+            // cannot be treated as damage in the bytes that were successfully read.
+            admission.ThrowIfReadFailed();
+        }
+    }
+
     private static PdfReadDocument OpenCore(
         ReadOnlyMemory<byte> pdf,
+        PdfLoadOptions? options,
+        bool ownsBytes,
+        bool detachOutputIntentProfiles,
+        CancellationToken cancellationToken) =>
+        OpenCore(new PdfByteContentText(pdf), options, ownsBytes, detachOutputIntentProfiles, cancellationToken);
+
+    private static PdfReadDocument OpenCore(
+        PdfByteContentText pdf,
         PdfLoadOptions? options,
         bool ownsBytes,
         bool detachOutputIntentProfiles,
@@ -53,26 +73,10 @@ internal sealed partial class PdfReadDocument {
         cancellationToken.ThrowIfCancellationRequested();
         PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options);
         PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(
-            pdf,
-            effectiveOptions,
-            includeParsedDetails: false,
-            cancellationToken);
+            pdf, effectiveOptions, includeParsedDetails: false, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        PdfRepairReport repairReport;
-        long decodedStreamBytes;
-        (Dictionary<int, PdfIndirectObject> Map, string TrailerRaw) parsed = ownsBytes
-            ? PdfSyntax.ParseOwnedObjects(
-                pdf,
-                effectiveOptions,
-                out repairReport,
-                out decodedStreamBytes,
-                cancellationToken)
-            : PdfSyntax.ParseObjects(
-                pdf,
-                effectiveOptions,
-                out repairReport,
-                out decodedStreamBytes,
-                cancellationToken);
+        var parsed = PdfSyntax.ParseObjectsCore(pdf, effectiveOptions, out PdfRepairReport repairReport,
+            out long decodedStreamBytes, ownsBytes, cancellationToken);
         Dictionary<int, PdfIndirectObject> map = parsed.Map;
         string trailer = parsed.TrailerRaw;
         cancellationToken.ThrowIfCancellationRequested();

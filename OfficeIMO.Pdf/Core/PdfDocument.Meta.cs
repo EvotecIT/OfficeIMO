@@ -20,7 +20,7 @@ public sealed partial class PdfDocument : IDisposable {
     private PdfCreateOptions? _optionsStorage;
     private readonly System.Collections.Generic.Stack<System.Action<IPdfBlock>>? _blockScopes;
     private readonly PdfDocumentSource? _source;
-    private readonly PdfPipelineReport _pipeline;
+    private PdfPipelineReport? _pipeline;
     private PdfDocumentPages? _pages;
     private PdfDocumentReader? _reader;
     private PdfDocumentRenderer? _render;
@@ -54,7 +54,7 @@ public sealed partial class PdfDocument : IDisposable {
 
     private PdfDocument(PdfDocumentSource source, CancellationToken cancellationToken = default) {
         _source = source;
-        _pipeline = PdfPipelineReport.Opened(source, cancellationToken);
+        if (!source.IsSeekable) _pipeline = PdfPipelineReport.Opened(source, cancellationToken);
     }
 
     private PdfDocument(PdfDocumentSource source, PdfPipelineReport pipeline) {
@@ -294,7 +294,16 @@ public sealed partial class PdfDocument : IDisposable {
     /// Immutable create/open and mutation history accumulated by this document.
     /// Save and byte-generation results append their own exact output stage.
     /// </summary>
-    public PdfPipelineReport Pipeline => _pipeline;
+    public PdfPipelineReport Pipeline => GetPipelineReport(CancellationToken.None);
+
+    private PdfPipelineReport GetPipelineReport(CancellationToken cancellationToken) {
+        PdfPipelineReport? existing = Volatile.Read(ref _pipeline);
+        if (existing is not null) return existing;
+        PdfPipelineReport opened = PdfPipelineReport.Opened(_source!, cancellationToken);
+        return Interlocked.CompareExchange(ref _pipeline, opened, null) ?? opened;
+    }
+
+    private int? OpenedPageCount => Volatile.Read(ref _pipeline)?.Output?.PageCount ?? _source?.SeekablePageCount;
 
     /// <summary>
     /// Text and image stamping operations for this PDF.
@@ -409,7 +418,9 @@ public sealed partial class PdfDocument : IDisposable {
     internal byte[] GetBytesForOperation() => GetBytesForOperation(CancellationToken.None);
 
     internal byte[] GetBytesForOperation(CancellationToken cancellationToken) =>
-        _source?.Bytes ?? RenderBytesCore(cancellationToken);
+        _source is null
+            ? RenderBytesCore(cancellationToken)
+            : PdfDocumentSource.GetWholeArrayOrCopy(_source.GetMemory(cancellationToken));
 
     internal PdfReadDocument GetReadDocument(
         PdfLoadOptions? options = null,
@@ -442,29 +453,29 @@ public sealed partial class PdfDocument : IDisposable {
     /// Captures one byte snapshot and its canonical parse for a compound read operation.
     /// Generated documents are rendered once for the complete operation.
     /// </summary>
-    internal (ReadOnlyMemory<byte> Bytes, PdfReadDocument Document, PdfLoadOptions Options) GetReadSnapshot(
+    internal PdfReadSnapshot GetReadSnapshot(
         PdfLoadOptions? options = null,
         CancellationToken cancellationToken = default) =>
         GetReadSnapshot(_source, options, cancellationToken);
 
-    private (ReadOnlyMemory<byte> Bytes, PdfReadDocument Document, PdfLoadOptions Options) GetReportSnapshot(
+    private PdfReadSnapshot GetReportSnapshot(
         PdfLoadOptions? options,
         CancellationToken cancellationToken) =>
         GetReadSnapshot(_source?.DetachBorrowed(cancellationToken), options, cancellationToken);
 
-    private (ReadOnlyMemory<byte> Bytes, PdfReadDocument Document, PdfLoadOptions Options) GetReadSnapshot(
+    private PdfReadSnapshot GetReadSnapshot(
         PdfDocumentSource? source,
         PdfLoadOptions? options,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options ?? source?.Options ?? ReadOptions);
         if (source is not null) {
-            return (source.Memory, source.Read(effectiveOptions, cancellationToken), effectiveOptions);
+            return new PdfReadSnapshot(source, source.Read(effectiveOptions, cancellationToken), effectiveOptions, cancellationToken);
         }
 
         cancellationToken.ThrowIfCancellationRequested();
         byte[] bytes = RenderBytesCore(cancellationToken);
-        return (bytes, PdfReadDocument.Open(bytes, effectiveOptions, cancellationToken), effectiveOptions);
+        return new PdfReadSnapshot(bytes, PdfReadDocument.Open(bytes, effectiveOptions, cancellationToken), effectiveOptions);
     }
 
     /// <summary>The read settings with artifact text included; for opened bytes, an instance whose parse is reused.</summary>
@@ -521,7 +532,7 @@ public sealed partial class PdfDocument : IDisposable {
         CancellationToken cancellationToken = default) {
         Guard.NotNull(inputBytes, nameof(inputBytes));
         cancellationToken.ThrowIfCancellationRequested();
-        PdfArtifactInfo input = _pipeline.Output ?? PdfArtifactInfo.CaptureOwned(inputBytes, ReadOptions, out _, cancellationToken);
+        PdfArtifactInfo input = GetPipelineReport(cancellationToken).Output ?? PdfArtifactInfo.CaptureOwned(inputBytes, ReadOptions, out _, cancellationToken);
         return WithBytes(inputBytes, input, pdf, readOptions, operationName, validatedReadDocument, cancellationToken);
     }
 
@@ -620,7 +631,7 @@ public sealed partial class PdfDocument : IDisposable {
                 ? PdfDocumentSource.FromOwnedRewrittenBytes(pdf, effectiveReadOptions)
                 : PdfDocumentSource.FromOwnedBytes(pdf, effectiveReadOptions)
             : PdfDocumentSource.FromOwnedBytes(pdf, effectiveReadOptions, readDocument);
-        return new PdfDocument(source, _pipeline.Append(step));
+        return new PdfDocument(source, Pipeline.Append(step));
     }
 
     private sealed class Scope : System.IDisposable {
