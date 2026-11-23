@@ -36,7 +36,12 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            double outcome = EvaluateDistribution(function, numbers);
+            double outcome;
+            try {
+                outcome = EvaluateDistribution(function, numbers);
+            } catch (ExcelFormulaDistributions.NonConvergenceException) {
+                return false;
+            }
             result = double.IsNaN(outcome) || double.IsInfinity(outcome)
                 ? FormulaArgumentValue.Error("#NUM!")
                 : new FormulaArgumentValue(outcome, InvariantNumberText.Get(outcome));

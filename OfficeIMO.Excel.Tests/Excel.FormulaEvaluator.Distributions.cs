@@ -30,6 +30,9 @@ namespace OfficeIMO.Tests {
         [InlineData("TINV(0.546449,60)", 0.606533, 6)]
         [InlineData("CHIDIST(18.307,10)", 0.0500006, 7)]
         [InlineData("CHIINV(0.050001,10)", 18.306973, 6)]
+        // Large parameters need far more expansion terms; P(a, a) tends to 1/2 + 1/(3√(2πa)).
+        [InlineData("CHISQ.DIST(1000000,1000000,TRUE)", 0.5001880631, 8)]
+        [InlineData("T.DIST(0.5,1000000,TRUE)", 0.6914624, 6)]
         public void Test_FormulaEvaluator_DistributionsMatchDocumentedExamples(string formula, double expected, int digits) {
             Assert.Equal(expected, CalculateNumber(formula), digits);
         }

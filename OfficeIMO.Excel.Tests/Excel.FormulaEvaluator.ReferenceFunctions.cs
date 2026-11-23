@@ -54,6 +54,10 @@ namespace OfficeIMO.Tests {
         [InlineData("INDIRECT(\"R3C2\",FALSE)", "45")]
         [InlineData("INDIRECT(\"R[2]C[1]\",FALSE)", "45")]
         [InlineData("INDIRECT(\"Other!A1\")", "7")]
+        [InlineData("INDIRECT(\"'Data (2)'!A1\")", "8")]
+        [InlineData("INDIRECT(ADDRESS(1,1,1,TRUE,\"Data (2)\"))", "8")]
+        [InlineData("INDIRECT(\"George\",FALSE)", "10")]
+        [InlineData("INDIRECT(\"B2\",FALSE)", "#REF!")]
         [InlineData("INDIRECT(\"'Missing sheet'!A1\")", "#REF!")]
         [InlineData("INDIRECT(\"not a reference\")", "#REF!")]
         [InlineData("IFERROR(INDIRECT(A5),\"none\")", "none")]
@@ -63,6 +67,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddSheet("Data");
             ExcelSheet other = document.AddSheet("Other");
             other.Cell(1, 1).SetValue(7);
+            document.AddSheet("Data (2)").Cell(1, 1).SetValue(8);
             sheet.Cell(2, 1).SetValue("B2");
             sheet.Cell(3, 1).SetValue("B3");
             sheet.Cell(4, 1).SetValue("George");

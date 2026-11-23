@@ -7,7 +7,16 @@ namespace OfficeIMO.Excel {
     internal static class ExcelFormulaDistributions {
         private const double Epsilon = 1e-16;
         private const double Tiny = 1e-300;
-        private const int MaximumIterations = 1000;
+        private const int MinimumIterations = 1000;
+
+        /// <summary>Thrown when a series or continued fraction has not converged; the formula is then left uncalculated.</summary>
+        internal sealed class NonConvergenceException : ArithmeticException {
+            internal NonConvergenceException() : base("A distribution series did not converge.") { }
+        }
+
+        // Near the mean the gamma and beta expansions need on the order of √a terms, so the limit grows with the parameter.
+        private static int IterationLimit(double parameter) =>
+            (int)Math.Min(int.MaxValue / 2, MinimumIterations + 40 * Math.Sqrt(Math.Max(0, parameter)));
         private static readonly double SquareRootOfTwoPi = Math.Sqrt(2 * Math.PI);
 
         internal static double NormalDensity(double z) => Math.Exp(-0.5 * z * z) / SquareRootOfTwoPi;
@@ -182,7 +191,9 @@ namespace OfficeIMO.Excel {
         private static double GammaSeries(double a, double x) {
             double term = 1 / a;
             double sum = term;
-            for (int n = 1; n < MaximumIterations; n++) {
+            int limit = IterationLimit(Math.Max(a, x));
+            for (int n = 1; ; n++) {
+                if (n >= limit) throw new NonConvergenceException();
                 term *= x / (a + n);
                 sum += term;
                 if (Math.Abs(term) < Math.Abs(sum) * Epsilon) break;
@@ -196,7 +207,9 @@ namespace OfficeIMO.Excel {
             double c = 1 / Tiny;
             double d = 1 / b;
             double result = d;
-            for (int n = 1; n < MaximumIterations; n++) {
+            int limit = IterationLimit(Math.Max(a, x));
+            for (int n = 1; ; n++) {
+                if (n >= limit) throw new NonConvergenceException();
                 double an = -n * (n - a);
                 b += 2;
                 d = an * d + b;
@@ -230,7 +243,9 @@ namespace OfficeIMO.Excel {
             if (Math.Abs(d) < Tiny) d = Tiny;
             d = 1 / d;
             double result = d;
-            for (int m = 1; m < MaximumIterations; m++) {
+            int limit = IterationLimit(Math.Max(a, b));
+            for (int m = 1; ; m++) {
+                if (m >= limit) throw new NonConvergenceException();
                 int twoM = 2 * m;
                 double even = m * (b - m) * x / ((a + twoM - 1) * (a + twoM));
                 d = 1 + even * d;

@@ -167,12 +167,17 @@ namespace OfficeIMO.Excel {
                 }
 
                 string text = (reference.Text ?? string.Empty).Trim();
-                if (text.Length == 0 || text.IndexOf('(') >= 0 || text.IndexOf('"') >= 0) {
+                SplitIndirectQualifier(text, out string qualifier, out string unqualified);
+                // A quoted sheet name may hold parentheses; the reference after it cannot.
+                if (unqualified.Length == 0 || unqualified.IndexOf('(') >= 0 || unqualified.IndexOf('"') >= 0) {
                     error = FormulaArgumentValue.Error("#REF!");
                     return true;
                 }
                 if (!a1) {
-                    if (!TryConvertR1C1Reference(text, out string? converted)) {
+                    // The style names the cell notation; a defined name resolves the same in either style.
+                    if (!TryConvertR1C1Reference(qualifier, unqualified, out string? converted)) {
+                        if (qualifier.Length == 0
+                            && TryResolveDefinedNameRange(text, currentRow, out sheet, out r1, out c1, out r2, out c2)) return true;
                         error = FormulaArgumentValue.Error("#REF!");
                         return true;
                     }
@@ -187,7 +192,6 @@ namespace OfficeIMO.Excel {
                     return true;
                 }
                 // Neither a reference nor a name can hold other characters, such as spaces, outside its sheet qualifier.
-                string unqualified = text.Substring(text.LastIndexOf('!') + 1);
                 foreach (char character in unqualified) {
                     if (!char.IsLetterOrDigit(character) && character is not ('$' or '_' or '.' or ':' or '\\')) {
                         error = FormulaArgumentValue.Error("#REF!");
@@ -201,17 +205,31 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        /// <summary>
+        /// Splits reference text after its sheet qualifier, which keeps its '!'. A quoted qualifier ends at its closing
+        /// quote, so a sheet name may contain '!' or parentheses.
+        /// </summary>
+        private static void SplitIndirectQualifier(string text, out string qualifier, out string reference) {
+            int end = -1;
+            if (text.StartsWith("'", StringComparison.Ordinal)) {
+                for (int index = 1; index < text.Length; index++) {
+                    if (text[index] != '\'') continue;
+                    if (index + 1 < text.Length && text[index + 1] == '\'') { index++; continue; }
+                    end = index + 1 < text.Length && text[index + 1] == '!' ? index + 1 : -1;
+                    break;
+                }
+            } else {
+                end = text.LastIndexOf('!');
+            }
+            qualifier = end >= 0 ? text.Substring(0, end + 1) : string.Empty;
+            reference = end >= 0 ? text.Substring(end + 1) : text;
+        }
+
         /// <summary>Rewrites an R1C1 cell or range, optionally sheet-qualified, as A1 relative to the formula cell.</summary>
-        private bool TryConvertR1C1Reference(string text, out string? converted) {
+        private bool TryConvertR1C1Reference(string prefix, string reference, out string? converted) {
             converted = null;
             int currentRow = 1, currentColumn = 1;
             if (_formulaEvaluationCellReference != null) TryParseCellReference(_formulaEvaluationCellReference, out currentRow, out currentColumn);
-            string prefix = string.Empty, reference = text;
-            int bang = text.LastIndexOf('!');
-            if (bang >= 0) {
-                prefix = text.Substring(0, bang + 1);
-                reference = text.Substring(bang + 1);
-            }
             string[] parts = reference.ToUpperInvariant().Split(':');
             if (parts.Length > 2) return false;
             var builder = new StringBuilder(prefix);
