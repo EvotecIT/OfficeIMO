@@ -15,6 +15,8 @@ namespace OfficeIMO.Tests {
         [InlineData("search_star", "SEARCH(\"A*D\",\"xxabcd\")", "3")]
         [InlineData("search_escaped", "SEARCH(\"~*\",\"a*c\")", "2")]
         [InlineData("search_start", "SEARCH(\"a?c\",\"abcaxc\",2)", "4")]
+        [InlineData("search_no_match_after_star", "IFERROR(SEARCH(\"a*z\",\"aaaaaa\"),0)", "0")]
+        [InlineData("search_leading_star", "SEARCH(\"*c\",\"abcabc\",2)", "2")]
         public void FormulaEvaluator_WildcardCriteriaMatchCaseInsensitively(string caseId, string formula, string expected) {
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("Wildcards");
@@ -27,6 +29,16 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, document.Calculate());
             AssertFormulaCache(sheet, 1, 4, expected);
             Assert.True(Assert.Single(sheet.InspectFormulas().Formulas).IsSupportedByOfficeIMO, caseId);
+        }
+
+        [Fact]
+        public void FormulaEvaluator_WildcardCriteriaKeepUnicodeCaseEquivalences() {
+            using var document = ExcelDocument.Create();
+            var sheet = document.AddSheet("Wildcards");
+            sheet.Cell(1, 1).SetValue("\u212Aelvin");
+            sheet.Cell(1, 4).SetFormula("COUNTIFS(A1,\"k*\")");
+            Assert.Equal(1, document.Calculate());
+            AssertFormulaCache(sheet, 1, 4, "1");
         }
     }
 }
