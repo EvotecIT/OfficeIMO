@@ -47,7 +47,7 @@ internal sealed class OfficeZipPackageReader : IDisposable {
         if (!scan.IsValid) throw new InvalidDataException(scan.Error ?? "The package is not a valid ZIP archive.");
         if (scan.LimitExceeded) throw new InvalidDataException("The package has more members than an Open XML reader accepts.");
 
-        var entries = new Dictionary<string, int>(records.Count, StringComparer.OrdinalIgnoreCase);
+        var entries = new Dictionary<string, int>(records.Count, OfficeAsciiIgnoreCaseComparer.Instance);
         for (int index = 0; index < records.Count; index++) {
             string name = DecodeName(records[index].NameBytes);
             // OPC part names compare without regard to ASCII case, so two such members name the same part.
@@ -63,6 +63,9 @@ internal sealed class OfficeZipPackageReader : IDisposable {
         }
         return new OfficeZipPackageReader(source, leaveOpen, buffer, bufferOrigin, records.ToArray(), entries, maximumEntryLength);
     }
+
+    /// <summary>Member names in central-directory order.</summary>
+    internal IEnumerable<string> Names => _entries.Keys;
 
     /// <summary>Returns whether the archive has a member with this name (ASCII case-insensitive).</summary>
     internal bool Contains(string name) => _entries.ContainsKey(name);
@@ -115,14 +118,45 @@ internal sealed class OfficeZipPackageReader : IDisposable {
     }
 
     private void Inflate(long payload, long compressedLength, byte[] target, int length) {
+        if (compressedLength > int.MaxValue) throw new InvalidDataException("A package member is larger than the reader accepts.");
+        int count = (int)compressedLength;
+#if NET8_0_OR_GREATER
+        // One managed pass decodes the member and proves its Deflate framing ends exactly at the compressed length,
+        // which DeflateStream does not report: it stops at the final block and also stops quietly at the end of
+        // truncated input.
+        if (_buffer != null) {
+            if (!OfficeDeflateStreamValidator.TryInflateExact(_buffer, checked(_bufferOrigin + (int)payload), count, target, length, null)) {
+                throw new InvalidDataException("A package member has invalid or incomplete Deflate framing.");
+            }
+            return;
+        }
+        byte[] compressed = System.Buffers.ArrayPool<byte>.Shared.Rent(Math.Max(1, count));
+        try {
+            _source.Position = payload;
+            ReadExactly(_source, compressed, count);
+            if (!OfficeDeflateStreamValidator.TryInflateExact(compressed, 0, count, target, length, null)) {
+                throw new InvalidDataException("A package member has invalid or incomplete Deflate framing.");
+            }
+        } finally {
+            System.Buffers.ArrayPool<byte>.Shared.Return(compressed);
+        }
+#else
         Stream compressed = _buffer != null
-            ? new MemoryStream(_buffer, checked(_bufferOrigin + (int)payload), checked((int)compressedLength), writable: false)
+            ? new MemoryStream(_buffer, checked(_bufferOrigin + (int)payload), count, writable: false)
             : new SeekableReadWindowStream(_source, payload, compressedLength);
+        bool exact = _buffer != null
+            ? OfficeDeflateStreamValidator.TryValidateExact(_buffer, checked(_bufferOrigin + (int)payload), count, length)
+            : OfficeDeflateStreamValidator.TryValidateExact(compressed, length);
+        if (!exact) {
+            compressed.Dispose();
+            throw new InvalidDataException("A package member has invalid or incomplete Deflate framing.");
+        }
         using var inflater = new DeflateStream(compressed, CompressionMode.Decompress, leaveOpen: false);
         ReadExactly(inflater, target, length);
         // A member that inflates past its declared length is corrupt or crafted; reading one more byte proves the end.
         var probe = new byte[1];
         if (inflater.Read(probe, 0, 1) != 0) throw new InvalidDataException("A package member inflates past its declared length.");
+#endif
     }
 
     private static void ReadExactly(Stream stream, byte[] target, int length) {
@@ -177,4 +211,28 @@ internal readonly struct OfficePooledBytes : IDisposable {
         if (Array != null && Array.Length > 0) System.Buffers.ArrayPool<byte>.Shared.Return(Array);
 #endif
     }
+}
+
+/// <summary>Compares strings ignoring the case of ASCII letters only, as OPC part names compare.</summary>
+internal sealed class OfficeAsciiIgnoreCaseComparer : IEqualityComparer<string> {
+    internal static readonly OfficeAsciiIgnoreCaseComparer Instance = new();
+
+    public bool Equals(string? x, string? y) {
+        if (ReferenceEquals(x, y)) return true;
+        if (x == null || y == null || x.Length != y.Length) return false;
+        for (int index = 0; index < x.Length; index++) {
+            if (Fold(x[index]) != Fold(y[index])) return false;
+        }
+        return true;
+    }
+
+    public int GetHashCode(string value) {
+        unchecked {
+            int hash = (int)2166136261;
+            foreach (char character in value) hash = (hash ^ Fold(character)) * 16777619;
+            return hash;
+        }
+    }
+
+    private static char Fold(char value) => value >= 'A' && value <= 'Z' ? (char)(value + 32) : value;
 }

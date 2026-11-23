@@ -30,8 +30,8 @@ internal sealed partial class OfficeXmlPullReader {
 
     private struct ProcessContentEntry {
         internal int NamespaceId;
-        // A null local name stands for every element of the namespace (prefix:*).
-        internal string? LocalName;
+        // UTF-8 local name; null stands for every element of the namespace (prefix:*).
+        internal byte[]? LocalName;
     }
 
     private struct Attribute {
@@ -77,6 +77,11 @@ internal sealed partial class OfficeXmlPullReader {
         }
         _position = position;
 
+        if (_frameCount == 0) {
+            // Counted before markup compatibility, so a root that compatibility processing hides still counts.
+            if (_rootSeen) throw Malformed("The part has more than one root element.");
+            _rootSeen = true;
+        }
         if (_frameCount == MaximumDepth) throw Malformed("Elements are nested too deeply.");
         if (_frameCount == _frames.Length) Array.Resize(ref _frames, _frames.Length * 2);
         bool parentPreserves = _frameCount > 0 && _frames[_frameCount - 1].PreserveSpace;
@@ -94,9 +99,11 @@ internal sealed partial class OfficeXmlPullReader {
 
         DeclareNamespaces();
         frame.NamespaceId = colon < 0 ? ResolvePrefix(0, 0) : ResolvePrefix(qnameStart, colon - qnameStart);
+        if (_attributeCount > 1) RejectDuplicateAttributes();
         if (_attributeCount > 0) ApplySpecialAttributes(ref frame);
 
-        frame.Kind = Classify(ref frame, out bool skip);
+        bool skip = false;
+        frame.Kind = _processMarkupCompatibility ? Classify(ref frame, out skip) : FrameKind.Element;
         if (skip) {
             if (!empty) SkipContent();
             _frameCount--;
@@ -165,6 +172,27 @@ internal sealed partial class OfficeXmlPullReader {
         return position + 1;
     }
 
+    // Two attributes may not share an expanded name, even when different prefixes are bound to the same namespace.
+    private void RejectDuplicateAttributes() {
+        for (int first = 1; first < _attributeCount; first++) {
+            ref Attribute later = ref _attributes[first];
+            for (int second = 0; second < first; second++) {
+                ref Attribute earlier = ref _attributes[second];
+                if (earlier.LocalLength != later.LocalLength || !BytesEqual(earlier.LocalStart, later.LocalStart, later.LocalLength)) continue;
+                if (AttributeNamespace(earlier) == AttributeNamespace(later)) throw Malformed("An element repeats an attribute.");
+            }
+        }
+    }
+
+    // Namespace declarations sit in the xmlns namespace; other unprefixed attributes have no namespace.
+    private int AttributeNamespace(in Attribute attribute) {
+        if (attribute.PrefixLength == 0) {
+            return AsciiEquals(attribute.LocalStart, attribute.LocalLength, "xmlns") ? OfficeXmlNamespaces.Xmlns : OfficeXmlNamespaces.None;
+        }
+        if (attribute.PrefixLength == 5 && AsciiEquals(attribute.PrefixStart, 5, "xmlns")) return OfficeXmlNamespaces.Xmlns;
+        return ResolvePrefix(attribute.PrefixStart, attribute.PrefixLength);
+    }
+
     private void DeclareNamespaces() {
         for (int index = 0; index < _attributeCount; index++) {
             ref Attribute attribute = ref _attributes[index];
@@ -215,7 +243,7 @@ internal sealed partial class OfficeXmlPullReader {
                     if (value == "preserve") frame.PreserveSpace = true;
                     else if (value == "default") frame.PreserveSpace = false;
                 }
-            } else if (namespaceId == OfficeXmlNamespaces.MarkupCompatibility) {
+            } else if (namespaceId == OfficeXmlNamespaces.MarkupCompatibility && _processMarkupCompatibility) {
                 if (AsciiEquals(attribute.LocalStart, attribute.LocalLength, "Ignorable")) {
                     foreach (string prefix in SplitList(GetAttributeValue(attribute))) {
                         // A prefix with no binding cannot name any element or attribute, so it has nothing to ignore.
@@ -237,7 +265,7 @@ internal sealed partial class OfficeXmlPullReader {
                         if (_processContentCount == _processContent.Length) Array.Resize(ref _processContent, _processContent.Length * 2);
                         _processContent[_processContentCount++] = new ProcessContentEntry {
                             NamespaceId = processed,
-                            LocalName = local == "*" ? null : local
+                            LocalName = local == "*" ? null : System.Text.Encoding.UTF8.GetBytes(local)
                         };
                     }
                 }
@@ -303,15 +331,16 @@ internal sealed partial class OfficeXmlPullReader {
     private bool ProcessesContent(int namespaceId, int localStart, int localLength) {
         for (int index = 0; index < _processContentCount; index++) {
             ref ProcessContentEntry entry = ref _processContent[index];
-            if (entry.NamespaceId == namespaceId && (entry.LocalName == null || AsciiEquals(localStart, localLength, entry.LocalName))) return true;
+            if (entry.NamespaceId == namespaceId && (entry.LocalName == null || Utf8Equals(localStart, localLength, entry.LocalName))) return true;
         }
         return false;
     }
 
     private bool TryResolvePrefix(string prefix, out int namespaceId) {
+        byte[] bytes = System.Text.Encoding.UTF8.GetBytes(prefix);
         for (int index = _bindingCount - 1; index >= 0; index--) {
             ref Binding binding = ref _bindings[index];
-            if (binding.PrefixLength != 0 && AsciiEquals(binding.PrefixStart, binding.PrefixLength, prefix)) {
+            if (binding.PrefixLength != 0 && Utf8Equals(binding.PrefixStart, binding.PrefixLength, bytes)) {
                 namespaceId = binding.NamespaceId;
                 return true;
             }

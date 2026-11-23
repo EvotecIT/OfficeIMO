@@ -21,10 +21,12 @@ internal enum OfficeXmlNodeKind : byte {
 /// <see cref="IsEmptyElement"/> set, followed by its <see cref="OfficeXmlNodeKind.EndElement"/>.</remarks>
 internal sealed partial class OfficeXmlPullReader {
     private const int MaximumDepth = 1024;
+    private const int NameCacheSize = 128;
 
     private readonly byte[] _data;
     private readonly int _end;
     private readonly OfficeXmlNamespaces.Table _namespaces;
+    private readonly bool _processMarkupCompatibility;
     private int _position;
 
     private Frame[] _frames = new Frame[32];
@@ -32,6 +34,8 @@ internal sealed partial class OfficeXmlPullReader {
     private int _depth;
     private bool _pendingEnd;
     private bool _decrementDepth;
+    private bool _rootSeen;
+    private readonly string?[] _nameCache = new string?[NameCacheSize];
 
     private Binding[] _bindings = new Binding[16];
     private int _bindingCount;
@@ -53,10 +57,13 @@ internal sealed partial class OfficeXmlPullReader {
     /// <param name="data">The part bytes.</param>
     /// <param name="length">Number of valid bytes in <paramref name="data"/>.</param>
     /// <param name="namespaces">Namespace ids shared with other parts of the same package.</param>
-    internal OfficeXmlPullReader(byte[] data, int length, OfficeXmlNamespaces.Table? namespaces = null) {
+    /// <param name="processMarkupCompatibility">False reports <c>mc:</c> elements and elements in ignorable
+    /// namespaces as ordinary elements, for callers that decline such markup themselves.</param>
+    internal OfficeXmlPullReader(byte[] data, int length, OfficeXmlNamespaces.Table? namespaces = null, bool processMarkupCompatibility = true) {
         ArgumentNullException.ThrowIfNull(data);
         if (length < 0 || length > data.Length) throw new ArgumentOutOfRangeException(nameof(length));
         _namespaces = namespaces ?? new OfficeXmlNamespaces.Table();
+        _processMarkupCompatibility = processMarkupCompatibility;
 
         int start = 0;
         if (length >= 2 && (data[0] == 0xFF && data[1] == 0xFE || data[0] == 0xFE && data[1] == 0xFF
@@ -106,12 +113,21 @@ internal sealed partial class OfficeXmlPullReader {
 
     internal bool IsElement(int namespaceId, string localName) => NamespaceId == namespaceId && AsciiEquals(_nameStart, _nameLength, localName);
 
-    internal string LocalName => Encoding.UTF8.GetString(_data, _nameStart, _nameLength);
+    /// <summary>The local name of the current element. Names repeat, so recent ones are cached rather than decoded again.</summary>
+    internal string LocalName {
+        get {
+            int hash = _nameLength;
+            for (int index = 0; index < _nameLength; index++) hash = hash * 31 + _data[_nameStart + index];
+            ref string? cached = ref _nameCache[hash & (NameCacheSize - 1)];
+            if (cached != null && AsciiEquals(_nameStart, _nameLength, cached)) return cached;
+            return cached = Encoding.UTF8.GetString(_data, _nameStart, _nameLength);
+        }
+    }
 
     /// <summary>Advances to the next element boundary or text node the caller should see.</summary>
     /// <returns><see langword="false"/> at the end of the part.</returns>
-    /// <exception cref="InvalidDataException">The part is not well-formed XML, declares a DTD, uses an unbound
-    /// prefix, or requires a namespace through <c>mc:MustUnderstand</c> that is not understood.</exception>
+    /// <exception cref="System.Xml.XmlException">The part is not well-formed XML, declares a DTD or uses an unbound prefix.</exception>
+    /// <exception cref="InvalidDataException">The part requires a namespace through <c>mc:MustUnderstand</c> that is not understood.</exception>
     internal bool Read() {
         if (_decrementDepth) {
             _decrementDepth = false;
@@ -125,6 +141,7 @@ internal sealed partial class OfficeXmlPullReader {
             }
             if (_position >= _end) {
                 if (_frameCount != 0) throw Malformed("The part ends inside an element.");
+                if (!_rootSeen) throw Malformed("The part has no root element.");
                 NodeKind = OfficeXmlNodeKind.None;
                 return false;
             }
@@ -254,5 +271,5 @@ internal sealed partial class OfficeXmlPullReader {
         return true;
     }
 
-    private static InvalidDataException Malformed(string message) => new("The Open XML part is not well-formed: " + message);
+    private static System.Xml.XmlException Malformed(string message) => new("The Open XML part is not well-formed: " + message);
 }

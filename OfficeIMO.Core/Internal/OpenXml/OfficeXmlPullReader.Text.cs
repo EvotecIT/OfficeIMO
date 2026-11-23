@@ -59,7 +59,7 @@ internal sealed partial class OfficeXmlPullReader {
         try {
             return StrictUtf8.GetString(_data, start, length);
         } catch (DecoderFallbackException exception) {
-            throw new InvalidDataException("The Open XML part is not valid UTF-8.", exception);
+            throw new System.Xml.XmlException("The Open XML part is not valid UTF-8.", exception);
         }
     }
 
@@ -104,7 +104,8 @@ internal sealed partial class OfficeXmlPullReader {
 
     private int AppendReference(OfficeCharBuffer target, int start, int end) {
         int semicolon = start;
-        while (semicolon < end && semicolon - start <= 12 && _data[semicolon] != (byte)';') semicolon++;
+        // Numeric references may carry any number of leading zeros, so only the value is bounded, not the spelling.
+        while (semicolon < end && _data[semicolon] != (byte)';') semicolon++;
         if (semicolon >= end || _data[semicolon] != (byte)';') throw Malformed("A reference is not terminated.");
         int length = semicolon - start;
         if (length >= 2 && _data[start] == (byte)'#') {
@@ -168,6 +169,14 @@ internal sealed partial class OfficeXmlPullReader {
         return true;
     }
 
+    private bool Utf8Equals(int start, int length, byte[] value) {
+        if (length != value.Length) return false;
+        for (int index = 0; index < length; index++) {
+            if (_data[start + index] != value[index]) return false;
+        }
+        return true;
+    }
+
     private bool BytesEqual(int first, int second, int length) {
         byte[] data = _data;
         for (int index = 0; index < length; index++) {
@@ -214,6 +223,14 @@ internal sealed class OfficeCharBuffer {
 
     internal void Clear() => Length = 0;
 
+    internal char this[int index] => _chars[index];
+
+    /// <summary>Removes <paramref name="count"/> characters starting at <paramref name="start"/>.</summary>
+    internal void Remove(int start, int count) {
+        Array.Copy(_chars, start + count, _chars, start, Length - start - count);
+        Length -= count;
+    }
+
     /// <summary>Drops characters appended after <paramref name="length"/>.</summary>
     internal void Truncate(int length) => Length = length;
 
@@ -229,7 +246,7 @@ internal sealed class OfficeCharBuffer {
         try {
             Length += StrictUtf8.GetChars(data, start, count, _chars, Length);
         } catch (DecoderFallbackException exception) {
-            throw new InvalidDataException("The Open XML part is not valid UTF-8.", exception);
+            throw new System.Xml.XmlException("The Open XML part is not valid UTF-8.", exception);
         }
     }
 

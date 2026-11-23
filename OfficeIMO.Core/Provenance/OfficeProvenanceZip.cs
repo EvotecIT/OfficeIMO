@@ -772,14 +772,7 @@ internal static class OfficeProvenanceZip {
         return decoded;
     }
 
-    private static uint ComputeCrc32(byte[] bytes) {
-        uint crc = uint.MaxValue;
-        foreach (byte value in bytes) {
-            crc ^= value;
-            for (int bit = 0; bit < 8; bit++) crc = (crc & 1) != 0 ? 0xEDB88320U ^ (crc >> 1) : crc >> 1;
-        }
-        return ~crc;
-    }
+    private static uint ComputeCrc32(byte[] bytes) => OfficeIMO.Drawing.OfficePngCrc32.Compute(bytes, 0, bytes.Length);
 
     private static bool BytesEqual(byte[] data, int offset, byte[] expected) {
         if (offset < 0 || offset > data.Length - expected.Length) return false;

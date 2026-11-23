@@ -8,6 +8,7 @@ namespace OfficeIMO.Core.Internal.OpenXml;
 internal sealed class OfficeOpcPackage : IDisposable {
     internal const string OfficeDocumentRelationshipType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "officeDocument";
     internal const string SlideRelationshipType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "slide";
+    internal const string CorePropertiesRelationshipType = "http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties";
 
     private const string ContentTypesMember = "[Content_Types].xml";
 
@@ -16,7 +17,19 @@ internal sealed class OfficeOpcPackage : IDisposable {
     private Dictionary<string, string>? _defaultContentTypes;
     private Dictionary<string, string>? _overrideContentTypes;
 
-    private OfficeOpcPackage(OfficeZipPackageReader zip) => _zip = zip;
+    // Part identity (percent-decoded once, ASCII case-insensitive) to the ZIP member that stores the part.
+    private readonly Dictionary<string, string> _members;
+
+    private OfficeOpcPackage(OfficeZipPackageReader zip) {
+        _zip = zip;
+        _members = new Dictionary<string, string>(zip.Count, OfficeAsciiIgnoreCaseComparer.Instance);
+        foreach (string member in zip.Names) {
+            string identity = ToIdentity(member) ?? member;
+            // Two members that name the same part make every reference to it ambiguous.
+            if (_members.ContainsKey(identity)) throw new InvalidDataException("The package stores the part '/" + identity + "' more than once.");
+            _members.Add(identity, member);
+        }
+    }
 
     /// <summary>Namespace ids shared by every part read from this package.</summary>
     internal OfficeXmlNamespaces.Table Namespaces { get; } = new();
@@ -38,14 +51,14 @@ internal sealed class OfficeOpcPackage : IDisposable {
     }
 
     /// <summary>Opens a pull reader over a part. Dispose the returned buffer after reading.</summary>
-    internal OfficeXmlPullReader OpenXml(string partName, out OfficePooledBytes content) {
+    internal OfficeXmlPullReader OpenXml(string partName, out OfficePooledBytes content, bool processMarkupCompatibility = true) {
         content = ReadPart(partName);
-        return new OfficeXmlPullReader(content.Array, content.Length, Namespaces);
+        return new OfficeXmlPullReader(content.Array, content.Length, Namespaces, processMarkupCompatibility);
     }
 
     /// <summary>Relationships whose source is <paramref name="sourcePartName"/>, or the package when it is null.</summary>
     internal IReadOnlyList<OfficeOpcRelationship> GetRelationships(string? sourcePartName) {
-        string relationshipsPart = GetRelationshipsPartName(sourcePartName);
+        string relationshipsPart = OfficeOpcPartNames.GetRelationshipsPartName(sourcePartName);
         if (_relationships.TryGetValue(relationshipsPart, out OfficeOpcRelationship[]? cached)) return cached;
         OfficeOpcRelationship[] relationships = PartExists(relationshipsPart)
             ? ReadRelationships(relationshipsPart)
@@ -64,6 +77,43 @@ internal sealed class OfficeOpcPackage : IDisposable {
         return null;
     }
 
+    /// <summary>Title, creator, subject and keywords from the core-properties part; all null when it is absent.</summary>
+    internal OfficeOpcCoreProperties ReadCoreProperties() {
+        string? partName = GetRelatedPartName(null, CorePropertiesRelationshipType);
+        var properties = new OfficeOpcCoreProperties();
+        if (partName == null || !PartExists(partName)) return properties;
+        OfficeXmlPullReader reader = OpenXml(partName, out OfficePooledBytes content);
+        using (content) {
+            var text = new OfficeCharBuffer();
+            while (reader.Read()) {
+                if (reader.NodeKind != OfficeXmlNodeKind.StartElement || reader.Depth != 2) continue;
+                bool dublinCore = reader.NamespaceId == OfficeXmlNamespaces.DublinCore;
+                string? name = dublinCore && reader.LocalNameEquals("title") ? "title"
+                    : dublinCore && reader.LocalNameEquals("creator") ? "creator"
+                    : dublinCore && reader.LocalNameEquals("subject") ? "subject"
+                    : reader.IsElement(OfficeXmlNamespaces.CoreProperties, "keywords") ? "keywords"
+                    : null;
+                if (name == null) {
+                    reader.SkipElement();
+                    continue;
+                }
+                text.Clear();
+                int depth = reader.Depth;
+                while (reader.Read() && !(reader.NodeKind == OfficeXmlNodeKind.EndElement && reader.Depth == depth)) {
+                    if (reader.NodeKind == OfficeXmlNodeKind.Text) reader.AppendText(text);
+                }
+                string value = text.ToString();
+                switch (name) {
+                    case "title": properties.Title = value; break;
+                    case "creator": properties.Creator = value; break;
+                    case "subject": properties.Subject = value; break;
+                    default: properties.Keywords = value; break;
+                }
+            }
+        }
+        return properties;
+    }
+
     /// <summary>The content type of a part from its override or the default for its extension.</summary>
     internal string? GetContentType(string partName) {
         if (_overrideContentTypes == null) ReadContentTypes();
@@ -76,24 +126,21 @@ internal sealed class OfficeOpcPackage : IDisposable {
 
     private string? FindMember(string partName) {
         if (partName.Length < 2 || partName[0] != '/') return null;
-        string member = partName.Substring(1);
-        if (_zip.Contains(member)) return member;
-        // Part names are URIs; a writer may have stored the member name with or without percent-encoding.
-        if (partName.IndexOf('%') >= 0) {
-            string? decoded = OfficePackageSecurityInspector.DecodePartIdentity(partName);
-            if (decoded != null && _zip.Contains(decoded.Substring(1))) return decoded.Substring(1);
-        }
-        return null;
+        string? identity = ToIdentity(partName.Substring(1));
+        return identity != null && _members.TryGetValue(identity, out string? member) ? member : null;
     }
 
-    private static string GetRelationshipsPartName(string? sourcePartName) {
-        if (sourcePartName == null || sourcePartName == "/") return "/_rels/.rels";
-        int slash = sourcePartName.LastIndexOf('/');
-        return sourcePartName.Substring(0, slash + 1) + "_rels/" + sourcePartName.Substring(slash + 1) + ".rels";
+    // Part names are URIs, and a writer may store a member name with or without percent-encoding, so members and
+    // references both compare by their once-decoded spelling.
+    private static string? ToIdentity(string name) {
+        if (name.IndexOf('%') < 0) return name;
+        string? decoded = OfficeOpcPartNames.DecodePartIdentity("/" + name);
+        return decoded?.Substring(1);
     }
 
     private OfficeOpcRelationship[] ReadRelationships(string relationshipsPart) {
         var relationships = new List<OfficeOpcRelationship>();
+        var ids = new HashSet<string>(StringComparer.Ordinal);
         OfficeXmlPullReader reader = OpenXml(relationshipsPart, out OfficePooledBytes content);
         using (content) {
             while (reader.Read()) {
@@ -106,7 +153,8 @@ internal sealed class OfficeOpcPackage : IDisposable {
                 }
                 bool external = reader.TryGetAttribute(OfficeXmlNamespaces.None, "TargetMode", out string mode)
                     && string.Equals(mode, "External", StringComparison.Ordinal);
-                string? targetPart = external ? null : OfficePackageSecurityInspector.ResolveRelationshipTarget(relationshipsPart, target);
+                string? targetPart = external ? null : OfficeOpcPartNames.ResolveRelationshipTarget(relationshipsPart, target);
+                if (!ids.Add(id)) throw new InvalidDataException("'" + relationshipsPart + "' repeats the relationship id '" + id + "'.");
                 relationships.Add(new OfficeOpcRelationship(id, OfficeXmlNamespaces.NormalizeRelationshipType(type), target, external, targetPart));
             }
         }
@@ -154,4 +202,12 @@ internal sealed class OfficeOpcRelationship {
     internal string Target { get; }
     internal bool IsExternal { get; }
     internal string? TargetPartName { get; }
+}
+
+/// <summary>The core document properties a text projection reports.</summary>
+internal sealed class OfficeOpcCoreProperties {
+    internal string? Title { get; set; }
+    internal string? Creator { get; set; }
+    internal string? Subject { get; set; }
+    internal string? Keywords { get; set; }
 }

@@ -21,7 +21,6 @@ internal static class OfficeProvenanceZipWriter {
     private const ushort Zip64ExtraFieldId = 0x0001;
     private const ushort UnicodePathExtraFieldId = 0x7075;
     private const ushort UnicodeCommentExtraFieldId = 0x6375;
-    private static readonly uint[] CrcTable = CreateCrcTable();
 
     internal static byte[] Write(
         IReadOnlyList<OfficeProvenanceZipWriteEntry> entries,
@@ -135,7 +134,7 @@ internal static class OfficeProvenanceZipWriter {
             }
             expandedBytes += read;
             entryBytes += read;
-            for (int index = 0; index < read; index++) crc = CrcTable[(crc ^ buffer[index]) & 0xFF] ^ (crc >> 8);
+            crc = OfficeIMO.Drawing.OfficePngCrc32.Append(crc, buffer, 0, read);
             destination.Write(buffer, 0, read);
         }
     }
@@ -217,16 +216,6 @@ internal static class OfficeProvenanceZipWriter {
     private static uint ToUInt32(long value, string description) {
         if (value < 0 || value > uint.MaxValue) throw new InvalidDataException("ZIP " + description + " exceeds the supported limit.");
         return (uint)value;
-    }
-
-    private static uint[] CreateCrcTable() {
-        var table = new uint[256];
-        for (uint index = 0; index < table.Length; index++) {
-            uint value = index;
-            for (int bit = 0; bit < 8; bit++) value = (value & 1) != 0 ? 0xEDB88320u ^ (value >> 1) : value >> 1;
-            table[index] = value;
-        }
-        return table;
     }
 
     private static byte[] RemoveExtraField(byte[] extraField, ushort fieldId) {

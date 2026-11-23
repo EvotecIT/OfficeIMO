@@ -48,6 +48,7 @@ public class OpenXmlWordParagraphTextReaderTests {
 
     [Theory]
     [InlineData("entities", "<w:p><w:r><w:t>a &amp; b &lt;c&gt; &quot;d&quot; &apos;e&apos; &#169; &#x1F600;</w:t></w:r></w:p>")]
+    [InlineData("zero-padded references", "<w:p><w:r><w:t>&#0000000000000065;&#x0000000000000041;</w:t></w:r></w:p>")]
     [InlineData("line ends", "<w:p><w:r><w:t xml:space=\"preserve\">one\r\ntwo\rthree</w:t></w:r></w:p>")]
     [InlineData("whitespace", "<w:p>\n  <w:r>\n    <w:rPr>\n    </w:rPr>\n    <w:tab>  </w:tab>\n    <w:t>   </w:t></w:r><w:r><w:t xml:space=\"preserve\">   </w:t></w:r><w:r><w:t> x </w:t></w:r></w:p>")]
     [InlineData("cdata and comments", "<w:p><w:r><w:t>a<!-- note --> <![CDATA[<b>]]> c<?pi data?></w:t></w:r></w:p>")]
@@ -89,12 +90,38 @@ public class OpenXmlWordParagraphTextReaderTests {
     [InlineData("<w:p><w:r><w:t>open</w:r></w:p>")]
     [InlineData("<w:p><q:r><q:t>unbound</q:t></q:r></w:p>")]
     [InlineData("<w:p xmlns:x9=\"urn:example:x9\" mc:MustUnderstand=\"x9\"><w:r><w:t>required</w:t></w:r></w:p>")]
+    [InlineData("<w:p w:rsidR=\"1\" w:rsidR=\"2\"/>")]
+    [InlineData("<w:p xmlns:w2=\"" + WordNamespace + "\" w:rsidR=\"1\" w2:rsidR=\"2\"/>")]
+    [InlineData("SECOND-ROOT")]
     public void RejectsMarkupItCannotReadSafely(string body) {
         byte[] package = body.StartsWith("<!DOCTYPE", StringComparison.Ordinal)
             ? CreatePackage("<w:p/>", prolog: body)
-            : CreatePackage(body);
+            : body == "SECOND-ROOT"
+                ? CreatePackage("<w:p><w:r><w:t>first</w:t></w:r></w:p>", epilog: "<w:document xmlns:w=\"" + WordNamespace + "\"><w:body><w:p/></w:body></w:document>")
+                : CreatePackage(body);
+
+        // Malformed XML is an XmlException; a namespace the markup requires but the reader does not know is not a syntax error.
+        Type expected = body.Contains("MustUnderstand") ? typeof(InvalidDataException) : typeof(System.Xml.XmlException);
+        Assert.IsType(expected, Record.Exception(() => ReadWithPackageReader(package)));
+    }
+
+    [Fact]
+    public void RejectsPartsWithoutARootElement() {
+        Assert.Throws<System.Xml.XmlException>(() => ReadWithPackageReader(CreatePackage(null, documentXml: "<?xml version=\"1.0\"?>\n  ")));
+    }
+
+    [Fact]
+    public void RejectsRepeatedRelationshipIds() {
+        byte[] package = CreatePackage("<w:p/>", extraRelationship: "<Relationship Id=\"rId1\" Type=\"urn:example\" Target=\"other.xml\"/>");
 
         Assert.Throws<InvalidDataException>(() => ReadWithPackageReader(package));
+    }
+
+    [Fact]
+    public void ResolvesNonAsciiTargetsToPercentEncodedMembers() {
+        byte[] package = CreatePackage("<w:p><w:r><w:t>encoded</w:t></w:r></w:p>", documentPath: "word/pr%C3%A9sentation.xml", documentTarget: "word/pr\u00E9sentation.xml");
+
+        Assert.Equal(new[] { "encoded" }, ReadWithPackageReader(package));
     }
 
     [Fact]
@@ -160,9 +187,10 @@ public class OpenXmlWordParagraphTextReaderTests {
         return stream.ToArray();
     }
 
-    private static byte[] CreatePackage(string body, bool strict = false, Encoding? encoding = null, string prolog = "",
+    private static byte[] CreatePackage(string? body, bool strict = false, Encoding? encoding = null, string prolog = "",
         string? extraMember = null, CompressionLevel compression = CompressionLevel.Optimal,
-        string documentPath = "word/document.xml", string? documentTarget = null) {
+        string documentPath = "word/document.xml", string? documentTarget = null, string epilog = "",
+        string? documentXml = null, string extraRelationship = "") {
         string wordNamespace = strict ? "http://purl.oclc.org/ooxml/wordprocessingml/main" : WordNamespace;
         string relationshipType = strict
             ? "http://purl.oclc.org/ooxml/officeDocument/relationships/officeDocument"
@@ -171,14 +199,15 @@ public class OpenXmlWordParagraphTextReaderTests {
         string declaration = "<?xml version=\"1.0\" encoding=\"" + (encoding is UnicodeEncoding ? "UTF-16" : "UTF-8") + "\" standalone=\"yes\"?>";
         string document = declaration + prolog
             + "<w:document xmlns:w=\"" + wordNamespace + "\" xmlns:mc=\"http://schemas.openxmlformats.org/markup-compatibility/2006\"><w:body>"
-            + body + "</w:body></w:document>";
-        string partName = "/" + documentPath.Replace(" ", "%20");
+            + body + "</w:body></w:document>" + epilog;
+        if (documentXml != null) document = documentXml;
+        string partName = "/" + documentPath.Replace(" ", "%20").Replace("\u00E9", "%C3%A9");
         string contentTypes = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">"
             + "<Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/>"
             + "<Default Extension=\"xml\" ContentType=\"application/xml\"/>"
             + "<Override PartName=\"" + partName + "\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml\"/></Types>";
         string relationships = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">"
-            + "<Relationship Id=\"rId1\" Type=\"" + relationshipType + "\" Target=\"" + (documentTarget ?? documentPath) + "\"/></Relationships>";
+            + "<Relationship Id=\"rId1\" Type=\"" + relationshipType + "\" Target=\"" + (documentTarget ?? documentPath) + "\"/>" + extraRelationship + "</Relationships>";
 
         using var stream = new MemoryStream();
         using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true)) {

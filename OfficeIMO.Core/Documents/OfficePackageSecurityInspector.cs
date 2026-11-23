@@ -1,3 +1,4 @@
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.Core.Internal;
 using System.IO.Compression;
 using System.Xml;
@@ -403,7 +404,7 @@ namespace OfficeIMO {
 
                     string? relationshipType = reader.GetAttribute("Type");
                     string? target = reader.GetAttribute("Target");
-                    string? targetPart = ResolveRelationshipTarget(partName, target);
+                    string? targetPart = OfficeOpcPartNames.ResolveRelationshipTarget(partName, target);
                     if (targetPart != null) targetPart = partIdentities.Resolve(targetPart);
                     string classificationKey = targetPart ?? partName + "#" + (target ?? string.Empty);
                     AddRelationshipClassification(relationshipType, classificationKey, macroParts, embeddedParts, activeXParts);
