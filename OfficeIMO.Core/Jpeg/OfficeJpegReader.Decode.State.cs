@@ -221,7 +221,9 @@ internal static partial class OfficeJpegReader {
             JpegFrame frame,
             int[][] quantTables,
             int orientation,
-            long retainedEncodedBytes, bool allowDeferredQuantization = false) {
+            long retainedEncodedBytes, bool arithmeticCoding = false) {
+            // Arithmetic scans may define quantization tables late and never use the
+            // Huffman refinement masks.
             var maxH = frame.MaxH;
             var maxV = frame.MaxV;
             var mcuWidth = maxH * 8;
@@ -234,19 +236,24 @@ internal static partial class OfficeJpegReader {
                     retainedEncodedBytes, frame.Width, frame.Height, orientation, out long aggregateBytes, Math.Max(4, frame.ComponentCount))) {
                 throw new FormatException(JpegDimensionsLimitMessage);
             }
-            for (var i = 0; i < frame.ComponentCount; i++) {
-                var comp = frame.Components[i];
-                if (comp.QuantId >= quantTables.Length || !allowDeferredQuantization && quantTables[comp.QuantId] is null) {
-                    throw new FormatException("Missing JPEG quantization table.");
+            try {
+                for (var i = 0; i < frame.ComponentCount; i++) {
+                    var comp = frame.Components[i];
+                    if (comp.QuantId >= quantTables.Length || !arithmeticCoding && quantTables[comp.QuantId] is null) {
+                        throw new FormatException("Missing JPEG quantization table.");
+                    }
+                    var blocksPerRow = OfficeRasterGuards.EnsureByteCount((long)mcuCols * comp.H, JpegDimensionsLimitMessage);
+                    var blocksPerCol = OfficeRasterGuards.EnsureByteCount((long)mcuRows * comp.V, JpegDimensionsLimitMessage);
+                    components[i] = new ProgressiveComponentState(
+                        comp,
+                        blocksPerRow,
+                        blocksPerCol,
+                        quantTables[comp.QuantId] ?? Array.Empty<int>(),
+                        ref aggregateBytes, frame.Precision, trackNonzeroPositions: !arithmeticCoding);
                 }
-                var blocksPerRow = OfficeRasterGuards.EnsureByteCount((long)mcuCols * comp.H, JpegDimensionsLimitMessage);
-                var blocksPerCol = OfficeRasterGuards.EnsureByteCount((long)mcuRows * comp.V, JpegDimensionsLimitMessage);
-                components[i] = new ProgressiveComponentState(
-                    comp,
-                    blocksPerRow,
-                    blocksPerCol,
-                    quantTables[comp.QuantId] ?? Array.Empty<int>(),
-                    ref aggregateBytes, frame.Precision);
+            } catch {
+                foreach (ProgressiveComponentState? created in components) created?.ReturnBuffers();
+                throw;
             }
 
             return new ProgressiveState {
@@ -269,6 +276,11 @@ internal static partial class OfficeJpegReader {
                     frame.Width, frame.Height, ref _reservedBytes, ref _orientationCanvasReserved)) {
                 throw new FormatException(JpegDimensionsLimitMessage);
             }
+        }
+
+        // The decoder calls this once the image is rendered or decoding failed.
+        public void ReturnBuffers() {
+            foreach (ProgressiveComponentState component in Components) component.ReturnBuffers();
         }
 
         public byte[] RenderRgba(
@@ -344,6 +356,9 @@ internal static partial class OfficeJpegReader {
         public int BlocksPerRow;
         public int BlocksPerCol;
         public short[] Coeffs;
+        // Per block, bit j set when the coefficient at zigzag position j is nonzero;
+        // maintained by the Huffman AC scans for refinement.
+        public ulong[] NonzeroPositions;
         public int[] Quantization;
         public BaselineComponentState Samples;
         public int PrevDc;
@@ -353,15 +368,43 @@ internal static partial class OfficeJpegReader {
             int blocksPerRow,
             int blocksPerCol,
             int[] quantization,
-            ref long aggregateBytes, int precision) {
+            ref long aggregateBytes, int precision, bool trackNonzeroPositions) {
             Component = component;
             BlocksPerRow = blocksPerRow;
             BlocksPerCol = blocksPerCol;
             Quantization = quantization;
             var coeffLength = OfficeRasterGuards.EnsureInt16ArrayLength((long)BlocksPerRow * BlocksPerCol * 64, ref aggregateBytes, JpegDimensionsLimitMessage);
-            Coeffs = new short[coeffLength];
+            int maskLength = trackNonzeroPositions
+                ? OfficeRasterGuards.EnsureByteArrayLength(coeffLength / 64 * 8L, ref aggregateBytes, JpegDimensionsLimitMessage) / 8
+                : 0;
             Samples = new BaselineComponentState(component, blocksPerRow, blocksPerCol, ref aggregateBytes, precision, allocatePlane: false);
+            // Rented last, after every budget check that can throw.
+            Coeffs = RentCleared<short>(coeffLength);
+            NonzeroPositions = RentCleared<ulong>(maskLength);
             PrevDc = 0;
+        }
+
+        // Coefficient planes are as large as the image and needed only while one image
+        // decodes, so they come from the shared pool; rented arrays may be longer than
+        // asked for and only the requested length is cleared and used.
+        private static T[] RentCleared<T>(int length) {
+            if (length == 0) return Array.Empty<T>();
+#if NET8_0_OR_GREATER
+            T[] array = System.Buffers.ArrayPool<T>.Shared.Rent(length);
+            Array.Clear(array, 0, length);
+            return array;
+#else
+            return new T[length];
+#endif
+        }
+
+        public void ReturnBuffers() {
+#if NET8_0_OR_GREATER
+            if (Coeffs.Length != 0) System.Buffers.ArrayPool<short>.Shared.Return(Coeffs);
+            if (NonzeroPositions.Length != 0) System.Buffers.ArrayPool<ulong>.Shared.Return(NonzeroPositions);
+#endif
+            Coeffs = Array.Empty<short>();
+            NonzeroPositions = Array.Empty<ulong>();
         }
     }
 

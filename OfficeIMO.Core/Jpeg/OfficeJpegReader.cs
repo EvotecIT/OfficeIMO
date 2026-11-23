@@ -174,6 +174,31 @@ internal static partial class OfficeJpegReader {
         CancellationToken cancellationToken,
         long retainedManagedBytes,
         bool preserveRaw16 = false, bool samplesLittleEndian = true) {
+        ProgressiveState? progressiveState = null;
+        try {
+            return DecodeSegments(data, out width, out height, out componentCount, options, requestedColorTransform,
+                usePdfColorTransformDefault, returnColorComponents, cancellationToken, retainedManagedBytes,
+                preserveRaw16, samplesLittleEndian, ref progressiveState);
+        } finally {
+            progressiveState?.ReturnBuffers();
+        }
+    }
+
+    // The progressive state is handed out so its pooled coefficient planes are returned
+    // whether decoding finishes or fails.
+    private static byte[] DecodeSegments(
+        OfficeByteView data,
+        out int width,
+        out int height,
+        out int componentCount,
+        OfficeJpegDecodeOptions options,
+        int? requestedColorTransform,
+        bool usePdfColorTransformDefault,
+        bool returnColorComponents,
+        CancellationToken cancellationToken,
+        long retainedManagedBytes,
+        bool preserveRaw16, bool samplesLittleEndian,
+        ref ProgressiveState? progressiveState) {
         componentCount = 0;
         ArgumentOutOfRangeException.ThrowIfLessThan(retainedManagedBytes, 0L);
         cancellationToken.ThrowIfCancellationRequested();
@@ -194,7 +219,6 @@ internal static partial class OfficeJpegReader {
         int? adobeTransform = null;
         var frame = default(JpegFrame);
         BaselineState? baselineState = null;
-        ProgressiveState? progressiveState = null;
         ArithmeticProgression? arithmeticProgression = null;
 
         var offset = 2;
@@ -235,7 +259,7 @@ internal static partial class OfficeJpegReader {
                         arithmeticProgression.Validate(scan);
                         progressiveState ??= ProgressiveState.Create(frame, quantTables, orientation,
                             checked(data.LongLength + retainedManagedBytes + 8192 + frame.ComponentCount * 96L),
-                            allowDeferredQuantization: true);
+                            arithmeticCoding: true);
                         DecodeArithmeticProgressive(scanData, scan, frame, progressiveState, arithmeticProgression,
                             quantTables, conditioning, restartInterval, cancellationToken);
                     } else {

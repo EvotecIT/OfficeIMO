@@ -149,6 +149,16 @@ internal static partial class OfficeJpegReader {
             if (scan.Se > 0 && scan.Ah == 0) state.PrepareAcLookup(ref acTables[frame.Components[componentIndex].AcTable]);
         }
 
+        // Validation fixed the tables for this scan, so the block kind and each
+        // component's tables are resolved once. Malformed spectral ranges keep the
+        // general block decoder, which reports them.
+        ProgressiveBlockKind kind = scan.Ss == 0 && scan.Se == 0
+            ? (scan.Ah == 0 ? ProgressiveBlockKind.DcFirst : ProgressiveBlockKind.DcRefine)
+            : scan.Ss > 0 && scan.Ss <= scan.Se && scan.Se <= 63
+                ? (scan.Ah == 0 ? ProgressiveBlockKind.AcFirst : ProgressiveBlockKind.AcRefine)
+                : ProgressiveBlockKind.General;
+        var singleState = state.Components[scan.ComponentIndices[0]];
+
         for (var my = 0; my < scanMcuRows; my++) {
             cancellationToken.ThrowIfCancellationRequested();
             for (var mx = 0; mx < scanMcuCols; mx++) {
@@ -161,35 +171,18 @@ internal static partial class OfficeJpegReader {
                 }
 
                 if (isSingle) {
-                    var compIndex = scan.ComponentIndices[0];
-                    DecodeProgressiveBlock(
-                        ref reader,
-                        scan,
-                        state.Components[compIndex],
-                        dcTables,
-                        acTables,
-                        quantTables,
-                        mx,
-                        my,
-                        ref eobRun);
+                    DecodeProgressiveBlock(ref reader, kind, scan, singleState, dcTables, acTables, quantTables,
+                        mx, my, ref eobRun);
                 } else {
                     for (var ci = 0; ci < scan.ComponentIndices.Length; ci++) {
-                        var compIndex = scan.ComponentIndices[ci];
-                        var compState = state.Components[compIndex];
-                        var blocks = compState.Component.H * compState.Component.V;
-                        for (var b = 0; b < blocks; b++) {
-                            var blockX = mx * compState.Component.H + (b % compState.Component.H);
-                            var blockY = my * compState.Component.V + (b / compState.Component.H);
-                            DecodeProgressiveBlock(
-                                ref reader,
-                                scan,
-                                compState,
-                                dcTables,
-                                acTables,
-                                quantTables,
-                                blockX,
-                                blockY,
-                                ref eobRun);
+                        var compState = state.Components[scan.ComponentIndices[ci]];
+                        int horizontal = compState.Component.H;
+                        int vertical = compState.Component.V;
+                        for (var v = 0; v < vertical; v++) {
+                            for (var h = 0; h < horizontal; h++) {
+                                DecodeProgressiveBlock(ref reader, kind, scan, compState, dcTables, acTables, quantTables,
+                                    mx * horizontal + h, my * vertical + v, ref eobRun);
+                            }
                         }
                     }
                 }
@@ -204,6 +197,53 @@ internal static partial class OfficeJpegReader {
 
                 mcuIndex++;
             }
+        }
+    }
+
+    private enum ProgressiveBlockKind {
+        General,
+        DcFirst,
+        DcRefine,
+        AcFirst,
+        AcRefine
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static void DecodeProgressiveBlock(
+        ref JpegBitReader reader,
+        ProgressiveBlockKind kind,
+        ScanHeader scan,
+        ProgressiveComponentState state,
+        HuffmanTable[] dcTables,
+        HuffmanTable[] acTables,
+        int[][] quantTables,
+        int blockX,
+        int blockY,
+        ref int eobRun) {
+        var baseIndex = (blockY * state.BlocksPerRow + blockX) * 64;
+        switch (kind) {
+            case ProgressiveBlockKind.DcFirst: {
+                    var t = DecodeHuffman(ref reader, dcTables[state.Component.DcTable], useFast: true);
+                    var diff = t == 0 ? 0 : Extend(reader.ReadBits(t), t);
+                    var dc = state.PrevDc + (diff << scan.Al);
+                    state.PrevDc = dc;
+                    SetProgressiveCoefficient(state.Coeffs, baseIndex, dc);
+                    return;
+                }
+            case ProgressiveBlockKind.DcRefine:
+                if (reader.ReadBit() != 0) {
+                    state.Coeffs[baseIndex] = unchecked((short)((ushort)state.Coeffs[baseIndex] | (ushort)(1 << scan.Al)));
+                }
+                return;
+            case ProgressiveBlockKind.AcFirst:
+                DecodeProgressiveAcFirst(ref reader, scan, state, acTables[state.Component.AcTable], baseIndex, ref eobRun);
+                return;
+            case ProgressiveBlockKind.AcRefine:
+                DecodeProgressiveAcRefine(ref reader, scan, state, acTables[state.Component.AcTable], baseIndex, ref eobRun);
+                return;
+            default:
+                DecodeProgressiveBlock(ref reader, scan, state, dcTables, acTables, quantTables, blockX, blockY, ref eobRun);
+                return;
         }
     }
 
@@ -305,6 +345,7 @@ internal static partial class OfficeJpegReader {
                             reader.SkipBits(entry & 15);
                             k += run;
                             SetProgressiveCoefficient(state.Coeffs, baseIndex + ZigZag[k], coefficient << scan.Al);
+                            state.NonzeroPositions[baseIndex >> 6] |= 1UL << k;
                             k++;
                             continue;
                         }
@@ -342,10 +383,16 @@ internal static partial class OfficeJpegReader {
             var ac = Extend(reader.ReadBits(s), s);
             var zig = ZigZag[k];
             SetProgressiveCoefficient(state.Coeffs, baseIndex + zig, ac << scan.Al);
+            state.NonzeroPositions[baseIndex >> 6] |= 1UL << k;
             k++;
         }
     }
 
+    // Successive-approximation AC refinement. Each block keeps which of its coefficients
+    // are nonzero (bit j = zigzag position j); Huffman AC scans set a bit whenever they
+    // store a coefficient, and stored AC coefficients are never zero. Zero runs
+    // are then located in that mask, and every nonzero coefficient passed on the way takes
+    // one correction bit, in zigzag order, exactly as a position-by-position walk would.
     private static void DecodeProgressiveAcRefine(
         ref JpegBitReader reader,
         ScanHeader scan,
@@ -358,8 +405,13 @@ internal static partial class OfficeJpegReader {
         int end = scan.Se;
         int al = scan.Al;
         var k = (int)scan.Ss;
+        ref ulong nonzeroPositions = ref state.NonzeroPositions[baseIndex >> 6];
+        ulong nonzero = nonzeroPositions & BandMask(k, end);
+        // DC scans do not track position zero; a malformed band that includes it reads
+        // the coefficient itself.
+        if (k == 0) nonzero = (nonzero & ~1UL) | (coeffs[baseIndex] != 0 ? 1UL : 0UL);
         if (eobRun > 0) {
-            RefineRemaining(ref reader, coeffs, zigZag, baseIndex, k, end, al);
+            RefineMasked(ref reader, coeffs, zigZag, baseIndex, nonzero, al);
             eobRun--;
             return;
         }
@@ -368,70 +420,101 @@ internal static partial class OfficeJpegReader {
             var rs = DecodeHuffman(ref reader, acTable, useFast: true);
             var r = rs >> 4;
             var s = rs & 0x0F;
+            ulong remaining = BandMask(k, end);
 
             if (s == 0) {
                 if (r == 15) {
-                    var zeros = 16;
-                    while (zeros > 0 && k <= end) {
-                        var index = baseIndex + zigZag[k];
-                        if (coeffs[index] != 0) {
-                            RefineCoefficient(ref reader, coeffs, index, al);
-                        } else {
-                            zeros--;
-                        }
-                        k++;
-                    }
+                    // Sixteen zeros are skipped, or the rest of the band when it has fewer.
+                    ulong zeros = ~nonzero & remaining;
+                    for (int skipped = 0; skipped < 15 && zeros != 0; skipped++) zeros &= zeros - 1;
+                    int stop = zeros == 0 ? end + 1 : LowestSetBit(zeros) + 1;
+                    RefineMasked(ref reader, coeffs, zigZag, baseIndex, nonzero & remaining & BandPrefix(stop), al);
+                    k = stop;
                     continue;
                 }
 
                 eobRun = (1 << r) - 1;
                 if (r > 0) eobRun += reader.ReadBits(r);
-                RefineRemaining(ref reader, coeffs, zigZag, baseIndex, k, end, al);
+                RefineMasked(ref reader, coeffs, zigZag, baseIndex, nonzero & remaining, al);
                 break;
             }
 
             if (s != 1) throw new FormatException("Invalid progressive JPEG AC refinement symbol.");
             var ac = reader.ReadBit() == 1 ? 1 : -1;
-            while (k <= end) {
-                var index = baseIndex + zigZag[k];
-                if (coeffs[index] != 0) {
-                    RefineCoefficient(ref reader, coeffs, index, al);
-                    k++;
-                    continue;
-                }
-
-                if (r > 0) {
-                    r--;
-                    k++;
-                    continue;
-                }
-
-                SetProgressiveCoefficient(coeffs, index, ac << al);
-                k++;
+            // The new coefficient lands on the zero that follows r skipped zeros.
+            ulong candidates = ~nonzero & remaining;
+            for (int skipped = 0; skipped < r && candidates != 0; skipped++) candidates &= candidates - 1;
+            if (candidates == 0) {
+                RefineMasked(ref reader, coeffs, zigZag, baseIndex, nonzero & remaining, al);
+                k = end + 1;
                 break;
             }
+            int position = LowestSetBit(candidates);
+            RefineMasked(ref reader, coeffs, zigZag, baseIndex, nonzero & remaining & BandPrefix(position), al);
+            SetProgressiveCoefficient(coeffs, baseIndex + zigZag[position], ac << al);
+            nonzeroPositions |= 1UL << position;
+            k = position + 1;
         }
     }
 
-    // Refines every nonzero coefficient from k through end; zero coefficients read no bits.
-    private static void RefineRemaining(ref JpegBitReader reader, short[] coeffs, byte[] zigZag,
-        int baseIndex, int k, int end, int al) {
-        for (; k <= end; k++) {
-            var index = baseIndex + zigZag[k];
-            if (coeffs[index] != 0) RefineCoefficient(ref reader, coeffs, index, al);
+    // Positions start..end (end at most 63).
+    private static ulong BandMask(int start, int end) => (ulong.MaxValue << start) & (ulong.MaxValue >> (63 - end));
+
+    // Positions below stop (stop at most 64).
+    private static ulong BandPrefix(int stop) => stop >= 64 ? ulong.MaxValue : (1UL << stop) - 1;
+
+    private static int LowestSetBit(ulong value) {
+#if NET8_0_OR_GREATER
+        return System.Numerics.BitOperations.TrailingZeroCount(value);
+#else
+        int position = 0;
+        if ((value & 0xFFFFFFFFUL) == 0) { position += 32; value >>= 32; }
+        if ((value & 0xFFFFUL) == 0) { position += 16; value >>= 16; }
+        if ((value & 0xFFUL) == 0) { position += 8; value >>= 8; }
+        if ((value & 0xFUL) == 0) { position += 4; value >>= 4; }
+        if ((value & 0x3UL) == 0) { position += 2; value >>= 2; }
+        if ((value & 0x1UL) == 0) position++;
+        return position;
+#endif
+    }
+
+    // Applies one correction bit to each coefficient in the mask, lowest position first.
+    // The bit buffer stays in locals; bits are applied without branching on their values.
+    private static void RefineMasked(ref JpegBitReader reader, short[] coeffs, byte[] zigZag,
+        int baseIndex, ulong mask, int al) {
+        if (mask == 0) return;
+        ulong buffer = reader.BufferedBits;
+        int count = reader.BufferedBitCount;
+        do {
+            int index = baseIndex + zigZag[LowestSetBit(mask)];
+            mask &= mask - 1;
+            if (count == 0) {
+                reader.BufferedBitCount = count;
+                reader.EnsureBits(1);
+                buffer = reader.BufferedBits;
+                count = reader.BufferedBitCount;
+            }
+            count--;
+            coeffs[index] = ApplyCorrectionBit(coeffs[index], (int)(buffer >> count) & 1, al);
+        } while (mask != 0);
+        reader.BufferedBitCount = count;
+    }
+
+    // A set correction bit moves a nonzero coefficient one step of 2^al away from zero
+    // unless that bit is already set; a zero coefficient always reads a zero bit.
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static short ApplyCorrectionBit(int value, int bit, int al) {
+        int delta = 1 << al;
+        int apply = bit & (((ushort)value & (ushort)delta) == 0 ? 1 : 0);
+        int sign = value >> 31;
+        int refined = value + (((delta ^ sign) - sign) & -apply);
+        if ((uint)(refined - short.MinValue) > ushort.MaxValue) {
+            throw new FormatException("Progressive JPEG coefficient exceeds the signed sixteen-bit range.");
         }
+        return (short)refined;
     }
 
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void RefineCoefficient(ref JpegBitReader reader, short[] coeffs, int index, int al) {
-        if (coeffs[index] == 0) return;
-        var bit = reader.ReadBit();
-        if (bit == 0) return;
-        var delta = 1 << al;
-        if (((ushort)coeffs[index] & (ushort)delta) != 0) return;
-        SetProgressiveCoefficient(coeffs, index, coeffs[index] + (coeffs[index] > 0 ? delta : -delta));
-    }
-
     private static void SetProgressiveCoefficient(short[] coefficients, int index, int value) {
         if (value < short.MinValue || value > short.MaxValue) {
             throw new FormatException("Progressive JPEG coefficient exceeds the signed sixteen-bit range.");
