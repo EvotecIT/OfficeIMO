@@ -16,11 +16,13 @@ OfficeIMO Studio uses the native Swift app for the Mac App Store and the iPhone/
 
 The iOS target includes iPhone and iPad. The native Mac target is a separate binary under the same App Store Connect record. `powerforge.release.json` selects both Xcode schemes and reads their shared identity from `Apple/OfficeIMOStudio/Version.xcconfig`. Action flags stay false in Git; named PowerForge actions select the transition to execute.
 
-## Engine artifact and notices
+## Engine and notices
 
-The local [Swift package](../../../Apple/OfficeIMOStudioEngine/Package.swift) pins the versioned XCFramework by URL and SHA-256. The engine stays MIT licensed and uses the existing OfficeIMO libraries. Its notice resource target carries the first-party license files and exact dependency inventories for all four native runtime slices.
+The apps link the engine built from the same checkout, the way the rest of the app's code is built. `Build-StudioEngine.ps1` builds it with `OfficeIMO.Studio.Native/Build-AppleEngine.ps1` into the local [Swift package](../../../Apple/OfficeIMOStudioEngine/Package.swift) and skips the build while the engine sources are unchanged. An App Store build runs it before archiving, so a release always ships the engine from the commit it was archived from. Nothing is published to build or test the apps.
 
-Build an engine with `OfficeIMO.Studio.Native/Build-AppleEngine.ps1`, then package it with `Pack-StudioAppleEngine.ps1` as shown in the [native app guide](../../../Apple/OfficeIMOStudio/README.md#build). The packer uses PowerForge for dependency notice validation, archive creation, provenance metadata and optional GitHub release publication. `third-party-notices.json` binds reviewed texts to exact package versions; missing coverage fails packaging. Keep the artifact URL, checksum and generated package licenses together when updating the engine.
+A four-slice NativeAOT build takes over an hour on GitHub's Mac runners, so pull requests don't build the engine. The Studio Apple engine workflow builds it from master each night when the engine sources changed and keeps it in the Actions cache, and the Studio Apple job compiles the apps against that build, or against the last released engine (`studio-engine-v1.0.0`) when none is cached. A pull request that changes the engine's C interface together with the Swift that calls it therefore needs a local build to check. CI checks it against the new engine once it is on master and the next nightly build has run.
+
+The engine stays MIT licensed. The package's notice target carries the first-party license files and dependency notices. When the engine's dependencies change, `Pack-StudioAppleEngine.ps1` regenerates and validates the notices with PowerForge: `third-party-notices.json` binds reviewed texts to exact package versions, and missing coverage fails. Pass `-EngineDirectory Apple/OfficeIMOStudioEngine` after a full `Build-StudioEngine.ps1` run, which installs the dependency manifests for every runtime next to the framework.
 
 ## Local native development
 
@@ -47,7 +49,7 @@ powerforge apple-release SubmitAppReview --config Build/Studio/Apple/powerforge.
 powerforge apple-release SubmitAppReview --config Build/Studio/Apple/powerforge.release.json --confirm-apple-action --summary --output json
 ```
 
-Commit the shared version change before archiving. Review each plan and use the exact-source release mode for signed candidates. `Advance` prepares builds, store metadata and the configured internal `Studio Internal` TestFlight group. Submission to public App Review is a separate action. The same Store-eligible binary can serve internal testing and App Review; do not export it as TestFlight Internal Only.
+Build the engine with `./Build/Studio/Apple/Build-StudioEngine.ps1` (all four slices) and commit the shared version change before archiving. Review each plan and use the exact-source release mode for signed candidates. `Advance` prepares builds, store metadata and the configured internal `Studio Internal` TestFlight group. Submission to public App Review is a separate action. The same Store-eligible binary can serve internal testing and App Review; do not export it as TestFlight Internal Only.
 
 The two metadata files describe each native platform's supported scope. The two screenshot mappings select native Mac, iPhone and iPad PNGs under ignored `Artifacts/Studio/Apple/screenshots`. Keep those captures and their source-bound `approval-macOS.json` / `approval-iOS.json` manifests private until review. Screenshots must show the corresponding native product and use reviewed byte manifests. Qualify open/save, markup, page organization, form filling, scan/conversion, recovery and accessibility on the actual candidates. Simulator proof does not establish physical-device acceptance. Open work belongs in [the Studio roadmap](../../../Docs/ROADMAP.md#desktop-studio).
 

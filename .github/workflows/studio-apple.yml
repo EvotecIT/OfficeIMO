@@ -41,6 +41,28 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+      # A four-slice NativeAOT build takes well over an hour here, so the apps compile against the newest engine the
+      # Studio Apple engine workflow built from master.
+      - name: Restore the engine built from master
+        id: engine
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            Apple/OfficeIMOStudioEngine/OfficeIMOStudioEngine.xcframework
+            Apple/OfficeIMOStudioEngine/link-inputs
+          key: studio-apple-engine-${{ github.sha }}
+          restore-keys: studio-apple-engine-
+      # Before the first nightly build, or after the cache is evicted, the last released engine stands in.
+      - name: Use the released engine
+        if: steps.engine.outputs.cache-matched-key == ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/studio-engine.zip"
+          curl -fsSL -o "$archive" https://github.com/EvotecIT/OfficeIMO/releases/download/studio-engine-v1.0.0/OfficeIMOStudioEngine-1.0.0.zip
+          echo "97e882243fffcdc04074552ea22cdfa249a8691e7c6b1e9b9ea9b6ff6070cbea  $archive" | shasum -a 256 -c -
+          unzip -q "$archive" 'OfficeIMOStudioEngine.xcframework/*' -d Apple/OfficeIMOStudioEngine
+          test -d Apple/OfficeIMOStudioEngine/OfficeIMOStudioEngine.xcframework
       - name: Swift state contracts
         run: >-
           swift test --package-path Apple --scratch-path "$RUNNER_TEMP/studio-state"

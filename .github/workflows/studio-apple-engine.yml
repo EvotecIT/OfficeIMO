@@ -1,12 +1,11 @@
 name: Studio Apple engine
 
+# Builds the Studio engine from master for the Studio Apple job, which compiles the apps against the newest build.
+# A four-slice NativeAOT build takes well over an hour, so it runs nightly, and only when the engine sources changed.
 on:
+  schedule:
+    - cron: '41 2 * * *'
   workflow_dispatch:
-    inputs:
-      version:
-        description: New immutable engine artifact version (x.y.z)
-        type: string
-        required: true
 
 permissions:
   contents: read
@@ -16,80 +15,72 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  publish:
+  sources:
+    name: Check the engine sources
     if: github.ref == 'refs/heads/master'
-    runs-on: [self-hosted, macOS, ARM64]
-    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
-      contents: write
+      contents: read
+      actions: read
+    outputs:
+      key: ${{ steps.key.outputs.key }}
+      built: ${{ steps.key.outputs.built }}
     steps:
-      - name: Check build storage
-        shell: bash
-        run: |
-          set -euo pipefail
-          available_kb="$(df -Pk "$RUNNER_TEMP" | awk 'NR == 2 { print $4 }')"
-          if (( available_kb < 30 * 1024 * 1024 )); then
-            echo 'At least 30 GiB is required for the four-slice NativeAOT build.' >&2
-            exit 1
-          fi
-          echo "STUDIO_ENGINE_OUTPUT=$RUNNER_TEMP/studio-engine-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: actions/checkout@v7
-        with:
-          repository: EvotecIT/PSPublishModule
-          ref: 5ec7e30460de47b9a804127806a42fd654d89833
-          path: .powerforge-engine-build
-          persist-credentials: false
-      - uses: actions/setup-dotnet@v6
-        with:
-          global-json-file: .powerforge-engine-build/global.json
       - uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
-      - name: Build pinned packaging CLI and publisher
-        working-directory: .powerforge-engine-build
-        shell: pwsh
-        run: |
-          dotnet build PowerForge.Cli/PowerForge.Cli.csproj -c Release -f net10.0
-          if ($LASTEXITCODE) { throw 'Pinned packaging CLI build failed.' }
-          dotnet build PSPublishModule/PSPublishModule.csproj -c Release -f net8.0
-          if ($LASTEXITCODE) { throw 'Pinned publisher module build failed.' }
-      - name: Build and publish the native engine
+      - id: key
         shell: pwsh
         env:
-          ENGINE_VERSION: ${{ inputs.version }}
-          ENGINE_SOURCE: ${{ github.sha }}
-          GITHUB_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          $output = $env:STUDIO_ENGINE_OUTPUT
-          $cli = Join-Path $PWD '.powerforge-engine-build/PowerForge.Cli/bin/Release/net10.0/PowerForge.Cli.dll'
-          $publisher = Join-Path $PWD '.powerforge-engine-build/PSPublishModule/bin/Release/net8.0/PSPublishModule.dll'
-          ./OfficeIMO.Studio.Native/Build-AppleEngine.ps1 -OutputDirectory (Join-Path $output 'engine')
-          ./Build/Studio/Apple/Pack-StudioAppleEngine.ps1 -EngineDirectory (Join-Path $output 'engine') `
-            -OutputDirectory (Join-Path $output 'package') -PowerForgeCli $cli -PowerForgeModule $publisher `
-            -SourceCommit $env:ENGINE_SOURCE -Version $env:ENGINE_VERSION -Publish $true
-      - name: Retain package identity and dependency evidence
-        if: always() && env.STUDIO_ENGINE_OUTPUT != ''
-        uses: actions/upload-artifact@v7
+          $key = "studio-apple-engine-$(./Build/Studio/Apple/Build-StudioEngine.ps1 -PrintSourceKey)"
+          $existing = [int](gh cache list --repo $env:GITHUB_REPOSITORY --key $key --ref refs/heads/master --json key --jq 'length')
+          if ($LASTEXITCODE) { throw 'Cannot list the engine caches.' }
+          "key=$key" >> $env:GITHUB_OUTPUT
+          "built=$(($existing -gt 0).ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
+          Write-Host ($existing -gt 0 ? "An engine for these sources is already cached ($key)." : "Building $key.")
+
+  engine:
+    name: Build the engine
+    needs: sources
+    if: needs.sources.outputs.built != 'true'
+    runs-on: xcode-27
+    timeout-minutes: 180
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - uses: actions/checkout@v7
         with:
-          name: studio-engine-evidence
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - name: Build all four slices
+        shell: pwsh
+        run: ./Build/Studio/Apple/Build-StudioEngine.ps1 -WorkDirectory (Join-Path $env:RUNNER_TEMP 'studio-engine')
+      # Saved under the key computed above, so the next check finds it whichever SDK this runner rolled forward to.
+      - uses: actions/cache/save@v6
+        with:
           path: |
-            ${{ env.STUDIO_ENGINE_OUTPUT }}/package/engine-package.json
-            ${{ env.STUDIO_ENGINE_OUTPUT }}/package/*.sha256
-            ${{ env.STUDIO_ENGINE_OUTPUT }}/engine/link-inputs/
-          if-no-files-found: ignore
-      - name: Remove this run's engine intermediates
-        if: always() && env.STUDIO_ENGINE_OUTPUT != ''
-        shell: bash
+            Apple/OfficeIMOStudioEngine/OfficeIMOStudioEngine.xcframework
+            Apple/OfficeIMOStudioEngine/link-inputs
+          key: ${{ needs.sources.outputs.key }}
+      # Each engine is large, and the Studio Apple job only uses the newest, so older ones would just crowd the cache.
+      - name: Remove older engines
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          KEEP: ${{ needs.sources.outputs.key }}
         run: |
-          set -euo pipefail
-          expected="$RUNNER_TEMP/studio-engine-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
-          test "$STUDIO_ENGINE_OUTPUT" = "$expected"
-          if [ -d "$expected" ]; then
-            test ! -L "$expected"
-            test -z "$(find "$expected" \( -type l -o -name .git \) -print -quit)"
-            rm -r "$expected"
-            test ! -e "$expected"
-          fi
+          $old = gh cache list --repo $env:GITHUB_REPOSITORY --key studio-apple-engine- --limit 100 --json id,key --jq ".[] | select(.key != `"$env:KEEP`") | .id"
+          if ($LASTEXITCODE) { throw 'Cannot list the engine caches.' }
+          foreach ($id in $old) {
+              gh cache delete $id --repo $env:GITHUB_REPOSITORY
+              if ($LASTEXITCODE) { throw "Cannot delete engine cache $id." }
+          }
