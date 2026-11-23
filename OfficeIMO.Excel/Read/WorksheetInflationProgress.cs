@@ -11,16 +11,17 @@ namespace OfficeIMO.Excel {
         private int _written;
         private int _scanned;
         private bool _complete;
+        // Consumers register before they read the published length, and the producer reads this count after
+        // publishing, so the producer takes the lock only when a consumer may be blocked. Publication happens
+        // for every inflated block; locking each time contends with consumers that poll for more bytes.
+        private int _waiters;
 
         internal WorksheetInflationProgress(int initiallyWritten = 256) => _written = initiallyWritten;
 
         /// <summary>Publishes initialized binary bytes; framing and payload validation stay with the consumer.</summary>
         internal void PublishBytes(int written) {
             _written = written;
-            lock (_gate) {
-                Volatile.Write(ref _available, written);
-                Monitor.PulseAll(_gate);
-            }
+            Publish(written);
         }
 
         /// <summary>Waits for a complete header or payload without exposing an unwritten pooled tail.</summary>
@@ -43,10 +44,14 @@ namespace OfficeIMO.Excel {
             _scanned = written;
             int closing = bytes.AsSpan(searchStart, written - searchStart).LastIndexOf("</row>"u8);
             if (closing < 0) return;
-            lock (_gate) {
-                Volatile.Write(ref _available, searchStart + closing + 6);
-                Monitor.PulseAll(_gate);
-            }
+            Publish(searchStart + closing + 6);
+        }
+
+        private void Publish(int available) {
+            Volatile.Write(ref _available, available);
+            Interlocked.MemoryBarrier();
+            if (Volatile.Read(ref _waiters) == 0) return;
+            lock (_gate) Monitor.PulseAll(_gate);
         }
 
         /// <summary>Waits for a longer initialized prefix, or a terminal producer state.</summary>
@@ -55,9 +60,14 @@ namespace OfficeIMO.Excel {
             int available = Volatile.Read(ref _available);
             if (available > previous) return available;
             lock (_gate) {
-                while (_available <= previous && !_complete) {
-                    ct.ThrowIfCancellationRequested();
-                    Monitor.Wait(_gate, 20);
+                Interlocked.Increment(ref _waiters);
+                try {
+                    while (Volatile.Read(ref _available) <= previous && !_complete) {
+                        ct.ThrowIfCancellationRequested();
+                        Monitor.Wait(_gate, 20);
+                    }
+                } finally {
+                    Interlocked.Decrement(ref _waiters);
                 }
                 ct.ThrowIfCancellationRequested();
                 return _available;
