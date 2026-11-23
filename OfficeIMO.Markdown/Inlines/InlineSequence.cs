@@ -79,9 +79,9 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
     }
 
     internal string RenderMarkdown() {
-        StringBuilder sb = new StringBuilder();
+        StringBuilder sb = MarkdownStringBuilderCache.Acquire();
         AppendMarkdown(sb);
-        return sb.ToString();
+        return MarkdownStringBuilderCache.GetStringAndRelease(sb);
     }
 
     internal void AppendMarkdown(StringBuilder sb) {

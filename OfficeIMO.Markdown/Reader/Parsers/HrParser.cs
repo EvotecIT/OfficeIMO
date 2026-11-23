@@ -43,11 +43,15 @@ internal static partial class MarkdownReader {
     private static bool LooksLikeHr(string line) {
         if (string.IsNullOrWhiteSpace(line)) return false;
         if (CountLeadingIndentColumns(line) > 3) return false;
-        var t = line.Trim();
+        // Scan the trimmed range in place instead of trimming a copy.
+        int start = 0;
+        int end = line.Length;
+        while (start < end && char.IsWhiteSpace(line[start])) start++;
+        while (end > start && char.IsWhiteSpace(line[end - 1])) end--;
         // Allow spaces between characters, e.g., "- - -". Only '-', '*', '_' are valid.
         char kind = '\0'; int count = 0;
-        for (int k = 0; k < t.Length; k++) {
-            char ch = t[k];
+        for (int k = start; k < end; k++) {
+            char ch = line[k];
             if (ch == ' ' || ch == '\t') continue;
             if (ch == '-' || ch == '*' || ch == '_') {
                 if (kind == '\0') kind = ch; else if (kind != ch) return false;

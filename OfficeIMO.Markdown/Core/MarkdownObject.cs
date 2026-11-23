@@ -32,6 +32,30 @@ public abstract class MarkdownObject {
         storage = value;
     }
 
+    /// <summary>
+    /// Reads one of several optional source spans kept in a side array. Types with several such
+    /// spans keep them out of line so objects from a parse without source capture stay small.
+    /// </summary>
+    private protected MarkdownSourceSpan? ReadSourceSpanSlot(ref MarkdownSourceSpan?[]? slots, int index) {
+        EnsureSourceInformation();
+        MarkdownSourceSpan?[]? current = slots;
+        return current == null ? null : current[index];
+    }
+
+    /// <summary>Writes one of several optional source spans, creating the side array on the first value.</summary>
+    private protected void WriteSourceSpanSlot(ref MarkdownSourceSpan?[]? slots, int index, int slotCount, MarkdownSourceSpan? value) {
+        EnsureSourceInformation();
+        if (slots == null) {
+            if (!value.HasValue) {
+                return;
+            }
+
+            slots = new MarkdownSourceSpan?[slotCount];
+        }
+
+        slots[index] = value;
+    }
+
     internal bool HasMetadata => _metadata != null;
 
     internal void DeferSourceInformation(MarkdownDeferredSourceCapture capture) => _metadata = capture;

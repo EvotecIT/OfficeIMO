@@ -14,7 +14,7 @@ public partial class MarkdownDocument {
         var (blocks, headingCatalog) = GetBlocksAndHeadingSlugs(cancellationToken: cancellationToken);
         var context = new MarkdownWriteContext(this, blocks, options, headingCatalog, cancellationToken);
         using var _ctx = MarkdownRenderContext.Push(context);
-        var sb = new StringBuilder();
+        var sb = MarkdownStringBuilderCache.AcquireDocument();
         var renderedFrontMatter = RenderFrontMatter(_frontMatter, options);
         cancellationToken.ThrowIfCancellationRequested();
         if (!string.IsNullOrEmpty(renderedFrontMatter)) {
@@ -28,7 +28,7 @@ public partial class MarkdownDocument {
             if (!string.IsNullOrEmpty(rendered)) sb.AppendLine(rendered);
             if (i < blocks.Count - 1) sb.AppendLine();
         }
-        string markdown = sb.ToString();
+        string markdown = MarkdownStringBuilderCache.GetDocumentStringAndRelease(sb);
         if (options.OutputLineEnding != null) markdown = NormalizeLineEndings(markdown, options.OutputLineEnding);
         cancellationToken.ThrowIfCancellationRequested();
         return markdown;

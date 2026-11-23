@@ -34,15 +34,51 @@ internal static class MarkdownReaderAdapter {
         Stream parseStream = ReaderInputLimits.EnsureSeekableReadStream(
             stream,
             maxInputBytes,
+            inputLimitProbe: null,
             cancellationToken,
             out bool ownsParseStream);
         try {
-            using var reader = new StreamReader(parseStream, Encoding.UTF8, true, 4096, leaveOpen: true);
-            string text = reader.ReadToEnd();
+            string text = ReadText(parseStream);
             return Project(text, string.IsNullOrWhiteSpace(sourceName) ? "document.md" : sourceName!, readerOptions, options, cancellationToken);
         } finally {
             if (ownsParseStream) parseStream.Dispose();
         }
+    }
+
+    // The text is decoded straight from an owned Reader snapshot when there is one; the bytes are
+    // only read, never kept. Input with a UTF-16 or UTF-32 byte order mark takes the stream reader,
+    // which detects those encodings.
+    private static string ReadText(Stream parseStream) {
+        if (ReaderInputLimits.TryGetOwnedSnapshotMemory(parseStream, out ReadOnlyMemory<byte> snapshot)
+            && parseStream.Position <= snapshot.Length) {
+            ReadOnlyMemory<byte> payload = snapshot.Slice((int)parseStream.Position);
+            ReadOnlySpan<byte> bytes = payload.Span;
+            if (!StartsWithNonUtf8ByteOrderMark(bytes)) {
+                if (bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF) {
+                    payload = payload.Slice(3);
+                }
+
+                parseStream.Position = parseStream.Length;
+                return DecodeUtf8(payload);
+            }
+        }
+
+        using var reader = new StreamReader(parseStream, Encoding.UTF8, true, 4096, leaveOpen: true);
+        return reader.ReadToEnd();
+    }
+
+    private static bool StartsWithNonUtf8ByteOrderMark(ReadOnlySpan<byte> bytes) =>
+        bytes.Length >= 2 && ((bytes[0] == 0xFE && bytes[1] == 0xFF) || (bytes[0] == 0xFF && bytes[1] == 0xFE))
+        || bytes.Length >= 4 && bytes[0] == 0x00 && bytes[1] == 0x00 && bytes[2] == 0xFE && bytes[3] == 0xFF;
+
+    private static string DecodeUtf8(ReadOnlyMemory<byte> bytes) {
+#if NET
+        return Encoding.UTF8.GetString(bytes.Span);
+#else
+        return System.Runtime.InteropServices.MemoryMarshal.TryGetArray(bytes, out ArraySegment<byte> segment) && segment.Array != null
+            ? Encoding.UTF8.GetString(segment.Array, segment.Offset, segment.Count)
+            : Encoding.UTF8.GetString(bytes.ToArray());
+#endif
     }
 
     private static ReaderChunk[] Project(string text, string sourceName, ReaderOptions readerOptions, ReaderMarkdownOptions options, CancellationToken cancellationToken) {

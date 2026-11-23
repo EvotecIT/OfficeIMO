@@ -2,13 +2,26 @@ namespace OfficeIMO.Markdown;
 
 internal static partial class MarkdownReader {
     private static bool TryUpdateQuotedFencePreScanState(string line, ref bool inFence, ref char fenceChar, ref int fenceLen) {
-        if (!TryStripQuotedPreScanLine(line, out var content, out _)) {
+        if (!TryGetQuotedPreScanMarkerIndex(line, out int markerIndex)) {
             if (inFence && !string.IsNullOrWhiteSpace(line)) {
                 inFence = false;
             }
 
             return false;
         }
+
+        // A fence opens or closes only with '`' or '~' first in the quoted content. Other quoted
+        // lines are answered without copying their content.
+        int contentStart = markerIndex + 1;
+        while (contentStart < line.Length && line[contentStart] is ' ' or '\t') {
+            contentStart++;
+        }
+
+        if (contentStart >= line.Length || (line[contentStart] != '`' && line[contentStart] != '~')) {
+            return inFence;
+        }
+
+        string content = StripSingleQuoteMarker(line);
 
         if (!inFence) {
             if (IsCodeFenceOpen(content, out _, out fenceChar, out fenceLen)) {
@@ -133,6 +146,19 @@ internal static partial class MarkdownReader {
 
         return !string.IsNullOrWhiteSpace(strippedLines[previousIndex])
                && IsReferenceDefinitionParagraphContinuationLine(strippedLines, previousIndex, options);
+    }
+
+    private static bool TryGetQuotedPreScanMarkerIndex(string line, out int markerIndex) {
+        markerIndex = 0;
+        if (string.IsNullOrEmpty(line) || CountLeadingIndentColumns(line) > 3) {
+            return false;
+        }
+
+        while (markerIndex < line.Length && char.IsWhiteSpace(line[markerIndex])) {
+            markerIndex++;
+        }
+
+        return markerIndex < line.Length && line[markerIndex] == '>';
     }
 
     private static bool TryStripQuotedPreScanLine(string line, out string content, out int contentStartColumn) {

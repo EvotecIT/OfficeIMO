@@ -213,8 +213,36 @@ internal static class MarkdownObjectTreeBinder {
         MarkdownObjectSequence? visited) {
         node.SetTreePosition(parent, indexInParent, previousSibling, nextSibling);
         visited?.Add(node);
-        var pending = new Stack<MarkdownObject>();
-        var children = new List<MarkdownObject>();
+        // The walk's scratch collections are kept for the next binding on this thread; a binding
+        // that starts while one is running takes its own.
+        var pending = t_pending ?? new Stack<MarkdownObject>();
+        var children = t_children ?? new List<MarkdownObject>();
+        t_pending = null;
+        t_children = null;
+        int largestPending = int.MaxValue;
+        try {
+            largestPending = BindObjectTree(node, visited, pending, children);
+        } finally {
+            pending.Clear();
+            children.Clear();
+            if (children.Capacity <= MaxRetainedScratchCapacity && largestPending <= MaxRetainedScratchCapacity) {
+                t_children = children;
+                t_pending = pending;
+            }
+        }
+    }
+
+    private const int MaxRetainedScratchCapacity = 4096;
+    [ThreadStatic] private static Stack<MarkdownObject>? t_pending;
+    [ThreadStatic] private static List<MarkdownObject>? t_children;
+
+    // Returns the largest number of objects waiting at once, which bounds the stack's capacity.
+    private static int BindObjectTree(
+        MarkdownObject node,
+        MarkdownObjectSequence? visited,
+        Stack<MarkdownObject> pending,
+        List<MarkdownObject> children) {
+        int largestPending = 1;
         pending.Push(node);
 
         while (pending.Count > 0) {
@@ -240,7 +268,13 @@ internal static class MarkdownObjectTreeBinder {
                     pending.Push(child);
                 }
             }
+
+            if (pending.Count > largestPending) {
+                largestPending = pending.Count;
+            }
         }
+
+        return largestPending;
     }
 
     // Sealed types that never hold child objects.

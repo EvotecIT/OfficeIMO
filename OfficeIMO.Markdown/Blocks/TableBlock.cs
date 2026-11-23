@@ -227,7 +227,7 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
                 AppendRow(sb, escapedRow);
             }
 
-            return sb.ToString().TrimEnd('\n');
+            return ToStringWithoutTrailingNewlines(sb);
         }
 
         var sbNoHeaders = new StringBuilder();
@@ -248,7 +248,17 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
             }
             AppendRow(sbNoHeaders, escapedRow);
         }
-        return sbNoHeaders.ToString().TrimEnd('\n');
+        return ToStringWithoutTrailingNewlines(sbNoHeaders);
+    }
+
+    // Same result as ToString().TrimEnd('\n') without the untrimmed copy.
+    private static string ToStringWithoutTrailingNewlines(StringBuilder builder) {
+        int length = builder.Length;
+        while (length > 0 && builder[length - 1] == '\n') {
+            length--;
+        }
+
+        return builder.ToString(0, length);
     }
 
     /// <inheritdoc />

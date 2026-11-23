@@ -28,17 +28,40 @@ internal sealed partial class HtmlToMarkdownConverter {
             cancellationToken.ThrowIfCancellationRequested();
             if (root == null) return Empty;
 
-            List<IElement> elements = EnumerateElements(root, cancellationToken).ToList();
+            // One walk collects the references and the few elements that can be definitions: a
+            // semantic definition, or an element whose id has a footnote prefix.
             var referencedIds = new HashSet<string>(StringComparer.Ordinal);
-            foreach (IElement element in elements) {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (!LooksLikeFootnoteReference(element)) continue;
-                string? targetId = GetLocalFragmentId(element.GetAttribute("href"));
-                if (!string.IsNullOrWhiteSpace(targetId)) referencedIds.Add(targetId!);
+            List<IElement>? candidates = null;
+            var pending = new Stack<INode>();
+            INodeList rootChildren = root.ChildNodes;
+            for (int i = rootChildren.Length - 1; i >= 0; i--) {
+                pending.Push(rootChildren[i]);
             }
 
+            while (pending.Count > 0) {
+                cancellationToken.ThrowIfCancellationRequested();
+                INode node = pending.Pop();
+                if (node is IElement element) {
+                    if (LooksLikeFootnoteReference(element)) {
+                        string? targetId = GetLocalFragmentId(element.GetAttribute("href"));
+                        if (!string.IsNullOrWhiteSpace(targetId)) referencedIds.Add(targetId!);
+                    }
+
+                    if (HasFootnoteDefinitionIdPrefix(element) || IsSemanticFootnoteDefinition(element)) {
+                        (candidates ??= new List<IElement>()).Add(element);
+                    }
+                }
+
+                INodeList children = node.ChildNodes;
+                for (int i = children.Length - 1; i >= 0; i--) {
+                    pending.Push(children[i]);
+                }
+            }
+
+            if (candidates == null) return Empty;
+
             var definitions = new List<IElement>();
-            foreach (IElement element in elements) {
+            foreach (IElement element in candidates) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (IsSemanticFootnoteDefinition(element)
                     || IsRecognizedIdDefinition(element, referencedIds)) {
@@ -138,27 +161,6 @@ internal sealed partial class HtmlToMarkdownConverter {
             return NormalizeBlockText(builder.ToString());
         }
 
-        private static IEnumerable<IElement> EnumerateElements(INode root, System.Threading.CancellationToken cancellationToken) {
-            var pending = new Stack<INode>();
-            INodeList rootChildren = root.ChildNodes;
-            for (int i = rootChildren.Length - 1; i >= 0; i--) {
-                pending.Push(rootChildren[i]);
-            }
-
-            while (pending.Count > 0) {
-                cancellationToken.ThrowIfCancellationRequested();
-                INode node = pending.Pop();
-                if (node is IElement element) {
-                    yield return element;
-                }
-
-                INodeList children = node.ChildNodes;
-                for (int i = children.Length - 1; i >= 0; i--) {
-                    pending.Push(children[i]);
-                }
-            }
-        }
-
         // Every element is checked when a conversion starts, so the semantic names are kept in
         // shared arrays and checked without per-element delegates.
         private static readonly string[] DefinitionEpubTypes = { "footnote", "endnote", "rearnote" };
@@ -171,6 +173,13 @@ internal sealed partial class HtmlToMarkdownConverter {
         private static bool IsSemanticFootnoteDefinition(IElement element) =>
             HasAnyEpubType(element, DefinitionEpubTypes)
             || HasAnyRole(element, DefinitionRoles);
+
+        private static bool HasFootnoteDefinitionIdPrefix(IElement element) {
+            string? id = element.Id;
+            return !string.IsNullOrWhiteSpace(id)
+                && (id!.StartsWith("fn:", StringComparison.OrdinalIgnoreCase)
+                    || id.StartsWith("fn-", StringComparison.OrdinalIgnoreCase));
+        }
 
         private static bool IsRecognizedIdDefinition(IElement element, ISet<string> referencedIds) {
             string? id = element.Id;
