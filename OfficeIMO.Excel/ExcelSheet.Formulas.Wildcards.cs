@@ -10,11 +10,12 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Returns the first index at or after <paramref name="start"/> where the wildcard pattern matches.</summary>
         private static int FindFormulaWildcard(string pattern, string text, int start) {
-            // Any match starts with the pattern's leading literal run, so candidate starts come from one KMP pass over
-            // the text instead of comparing that run again at every position.
-            string run = ReadLeadingFormulaWildcardLiterals(pattern);
+            // Every match contains the longest literal run before the first '*' at a fixed offset from its start, so
+            // candidate starts come from one KMP pass over the text instead of comparing the pattern at every position.
+            AnalyzeFormulaWildcardSearch(pattern, out string run, out int runOffset, out int minimumLength);
+            int lastStart = text.Length - minimumLength;
             if (run.Length == 0) {
-                for (int index = start; index <= text.Length; index++) {
+                for (int index = start; index <= lastStart; index++) {
                     switch (MatchFormulaWildcard(pattern, text, index, prefixOnly: true)) {
                         case WildcardMatch.Matched: return index;
                         case WildcardMatch.FailedAfterStar: return -1;
@@ -25,13 +26,14 @@ namespace OfficeIMO.Excel {
 
             int[] fallback = BuildFormulaWildcardFallback(run);
             int matched = 0;
-            for (int index = start; index < text.Length; index++) {
+            for (int index = start + runOffset; index < text.Length; index++) {
                 char current = char.ToLowerInvariant(text[index]);
                 while (matched > 0 && run[matched] != current) matched = fallback[matched - 1];
                 if (run[matched] == current) matched++;
                 if (matched < run.Length) continue;
 
-                int candidate = index - run.Length + 1;
+                int candidate = index - run.Length + 1 - runOffset;
+                if (candidate > lastStart) return -1;
                 switch (MatchFormulaWildcard(pattern, text, candidate, prefixOnly: true)) {
                     case WildcardMatch.Matched: return candidate;
                     case WildcardMatch.FailedAfterStar: return -1;
@@ -41,15 +43,48 @@ namespace OfficeIMO.Excel {
             return -1;
         }
 
-        /// <summary>Returns the literal characters before the pattern's first <c>*</c> or <c>?</c>, lower-cased.</summary>
-        private static string ReadLeadingFormulaWildcardLiterals(string pattern) {
-            var run = new System.Text.StringBuilder();
+        /// <summary>
+        /// Finds the longest literal run before the pattern's first <c>*</c> (lower-cased, with its offset in characters
+        /// from the start of a match) and the fewest characters any match spans.
+        /// </summary>
+        private static void AnalyzeFormulaWildcardSearch(string pattern, out string run, out int runOffset, out int minimumLength) {
+            int bestStart = 0, bestLength = 0, bestOffset = 0;
+            int currentStart = 0, currentLength = 0, currentOffset = 0;
+            bool beforeStar = true;
+            minimumLength = 0;
             for (int index = 0; index < pattern.Length;) {
-                index = ReadFormulaWildcardToken(pattern, index, out char kind, out char literal);
-                if (kind != '\0') break;
-                run.Append(char.ToLowerInvariant(literal));
+                int tokenStart = index;
+                index = ReadFormulaWildcardToken(pattern, index, out char kind, out _);
+                if (kind == '*') {
+                    beforeStar = false;
+                    continue;
+                }
+                if (beforeStar) {
+                    if (kind == '\0') {
+                        if (currentLength == 0) {
+                            currentStart = tokenStart;
+                            currentOffset = minimumLength;
+                        }
+                        currentLength++;
+                        if (currentLength > bestLength) {
+                            bestStart = currentStart;
+                            bestLength = currentLength;
+                            bestOffset = currentOffset;
+                        }
+                    } else {
+                        currentLength = 0;
+                    }
+                }
+                minimumLength++;
             }
-            return run.ToString();
+
+            var builder = new System.Text.StringBuilder(bestLength);
+            for (int index = bestStart; builder.Length < bestLength;) {
+                index = ReadFormulaWildcardToken(pattern, index, out _, out char literal);
+                builder.Append(char.ToLowerInvariant(literal));
+            }
+            run = builder.ToString();
+            runOffset = bestOffset;
         }
 
         private static int[] BuildFormulaWildcardFallback(string run) {
