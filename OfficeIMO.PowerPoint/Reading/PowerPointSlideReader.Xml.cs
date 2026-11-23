@@ -1,10 +1,7 @@
 using System.Globalization;
-using System.IO.Packaging;
 using System.Text;
 using System.Xml;
-using DocumentFormat.OpenXml;
-using A = DocumentFormat.OpenXml.Drawing;
-using P = DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.Core.Internal.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointSlideReader {
@@ -12,23 +9,17 @@ namespace OfficeIMO.PowerPoint {
         internal const int MaximumShapeCount = 10000;
         internal const int MaximumGroupDepth = 128;
 
-        private const string PresentationNamespace = "http://schemas.openxmlformats.org/presentationml/2006/main";
-        private const string StrictPresentationNamespace = "http://purl.oclc.org/ooxml/presentationml/main";
-        private const string DrawingNamespace = "http://schemas.openxmlformats.org/drawingml/2006/main";
-        private const string StrictDrawingNamespace = "http://purl.oclc.org/ooxml/drawingml/main";
-        private const string RelationshipNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
-        private const string StrictRelationshipNamespace = "http://purl.oclc.org/ooxml/officeDocument/relationships";
-        private const string ChartNamespace = "http://schemas.openxmlformats.org/drawingml/2006/chart";
-        private const string StrictChartNamespace = "http://purl.oclc.org/ooxml/drawingml/chart";
-        private const string DiagramNamespace = "http://schemas.openxmlformats.org/drawingml/2006/diagram";
-        private const string StrictDiagramNamespace = "http://purl.oclc.org/ooxml/drawingml/diagram";
+        // Strict namespaces read as their transitional equivalents, so one id covers both spellings.
+        private const int PresentationNamespace = OfficeXmlNamespaces.PresentationML;
+        private const int DrawingNamespace = OfficeXmlNamespaces.DrawingML;
+        private const int RelationshipNamespace = OfficeXmlNamespaces.Relationships;
 
-        private static IReadOnlyList<SlideEntry> ReadSlideList(Package package, PackagePart presentationPart,
-            XmlReaderSettings settings, CancellationToken cancellationToken) {
+        private static IReadOnlyList<SlideEntry> ReadSlideList(OfficeOpcPackage package, string presentationPart,
+            long maximumCharacters, CancellationToken cancellationToken) {
             var slides = new List<SlideEntry>();
-            using Stream stream = presentationPart.GetStream(FileMode.Open, FileAccess.Read);
-            using XmlReader reader = XmlReader.Create(stream, settings);
-            if (reader.MoveToContent() != XmlNodeType.Element || !IsPresentation(reader, "presentation")) {
+            OfficeXmlPullReader reader = OpenPart(package, presentationPart, maximumCharacters, out OfficePooledBytes content);
+            using OfficePooledBytes owned = content;
+            if (!MoveToRoot(reader) || !IsPresentation(reader, "presentation")) {
                 // A model load rejects a package whose main part is another document, such as a renamed DOCX.
                 throw new InvalidDataException("The package is not a PowerPoint presentation.");
             }
@@ -39,18 +30,16 @@ namespace OfficeIMO.PowerPoint {
                 ForEachChild(reader, () => {
                     if (!IsPresentation(reader, "sldId")) return false;
                     cancellationToken.ThrowIfCancellationRequested();
-                    string? relationshipId = reader.GetAttribute("id", RelationshipNamespace);
-                    if (string.IsNullOrEmpty(relationshipId)) relationshipId = reader.GetAttribute("id", StrictRelationshipNamespace);
+                    string? relationshipId = GetRelationshipAttribute(reader, "id");
                     if (string.IsNullOrEmpty(relationshipId)) return false;
-                    PackagePart? slidePart = presentationPart.RelationshipExists(relationshipId!)
-                        && presentationPart.GetRelationship(relationshipId!) is { } relationship
-                        && IsRelationshipType(relationship, "slide")
+                    OfficeOpcRelationship? relationship = FindRelationship(package, presentationPart, relationshipId!);
+                    string? slidePart = relationship != null && IsRelationshipType(relationship, "slide")
                         ? GetTargetPart(package, relationship)
                         : null;
                     if (slidePart == null) {
                         throw new InvalidDataException($"The slide list entry '{relationshipId}' does not target a slide part.");
                     }
-                    slides.Add(new SlideEntry(slidePart, reader.GetAttribute("show")));
+                    slides.Add(new SlideEntry(slidePart, GetAttribute(reader, "show")));
                     return false;
                 });
                 return true;
@@ -60,12 +49,12 @@ namespace OfficeIMO.PowerPoint {
 
         private PowerPointSlideContent ReadSlide(int index, bool includeNotes, CancellationToken cancellationToken) {
             SlideEntry entry = _slides[index];
-            var context = new SlideContext(this, entry.Part, cancellationToken);
+            var context = new SlideContext(this, entry.PartName, cancellationToken);
             bool? show = null;
-            using (Stream stream = entry.Part.GetStream(FileMode.Open, FileAccess.Read))
-            using (XmlReader reader = XmlReader.Create(stream, _xmlSettings)) {
-                if (reader.MoveToContent() == XmlNodeType.Element) {
-                    show = ReadBoolean(reader.GetAttribute("show"));
+            OfficeXmlPullReader reader = OpenPart(_package, entry.PartName, _maximumCharacters, out OfficePooledBytes content);
+            using (content) {
+                if (MoveToRoot(reader)) {
+                    show = ReadBoolean(GetAttribute(reader, "show"));
                     bool commonSlideDataSeen = false;
                     ForEachChild(reader, () => {
                         if (commonSlideDataSeen || !IsPresentation(reader, "cSld")) return false;
@@ -83,7 +72,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             bool hidden = show.HasValue ? !show.Value : IsHiddenShowValue(entry.ListShowValue);
-            string? notes = includeNotes ? ReadNotes(_package, entry.Part, _xmlSettings, cancellationToken) : null;
+            string? notes = includeNotes ? ReadNotes(_package, entry.PartName, _maximumCharacters, cancellationToken) : null;
             cancellationToken.ThrowIfCancellationRequested();
             return new PowerPointSlideContent(index + 1, hidden, context.Build(), notes);
         }
@@ -92,9 +81,9 @@ namespace OfficeIMO.PowerPoint {
             string.Equals(value, "0", StringComparison.Ordinal) || string.Equals(value, "false", StringComparison.OrdinalIgnoreCase);
 
         // Reads the children of a shape tree or group in drawing order; the caller is positioned on its start element.
-        private static void ReadShapeTree(XmlReader reader, SlideContext context, ShapeBuilder? parent, int depth) {
+        private static void ReadShapeTree(OfficeXmlPullReader reader, SlideContext context, ShapeBuilder? parent, int depth) {
             ForEachChild(reader, () => {
-                if (!IsPresentationNamespace(reader.NamespaceURI)) return false;
+                if (reader.NamespaceId != PresentationNamespace) return false;
                 switch (reader.LocalName) {
                     case "sp":
                     case "cxnSp":
@@ -109,7 +98,7 @@ namespace OfficeIMO.PowerPoint {
             });
         }
 
-        private static void ReadShape(XmlReader reader, SlideContext context, ShapeBuilder? parent, int depth) {
+        private static void ReadShape(OfficeXmlPullReader reader, SlideContext context, ShapeBuilder? parent, int depth) {
             context.CancellationToken.ThrowIfCancellationRequested();
             if (depth > MaximumGroupDepth) {
                 throw new InvalidOperationException("The grouped-shape nesting depth exceeds the configured limit.");
@@ -150,7 +139,7 @@ namespace OfficeIMO.PowerPoint {
                     shape.Kind = PowerPointShapeContentType.Group;
                     ForEachChild(reader,
                         () => IsPresentation(reader, "nvGrpSpPr") && ReadNonVisualProperties(reader, shape, readPlaceholder: false),
-                        child => IsPresentationNamespace(child.NamespaceURI) && child.LocalName is "sp" or "cxnSp" or "pic" or "grpSp" or "graphicFrame",
+                        child => child.NamespaceId == PresentationNamespace && child.LocalName is "sp" or "cxnSp" or "pic" or "grpSp" or "graphicFrame",
                     () => ReadShape(reader, context, shape, depth + 1));
                     break;
                 case "graphicFrame":
@@ -175,7 +164,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         // Reads the first non-visual drawing properties and placeholder of a shape's non-visual property group.
-        private static bool ReadNonVisualProperties(XmlReader reader, ShapeBuilder shape, bool readPlaceholder,
+        private static bool ReadNonVisualProperties(OfficeXmlPullReader reader, ShapeBuilder shape, bool readPlaceholder,
             bool detectMedia = false) {
             if (shape.NonVisualSeen) return false;
             shape.NonVisualSeen = true;
@@ -183,11 +172,11 @@ namespace OfficeIMO.PowerPoint {
             ForEachChild(reader, () => {
                 if (IsPresentation(reader, "cNvPr") && !drawingSeen) {
                     drawingSeen = true;
-                    string? id = reader.GetAttribute("id");
+                    string? id = GetAttribute(reader, "id");
                     shape.Id = id == null ? null : ParseUInt32(id);
-                    shape.Name = reader.GetAttribute("name");
-                    shape.AltText = reader.GetAttribute("descr");
-                    shape.Hidden = ReadBoolean(reader.GetAttribute("hidden")) == true;
+                    shape.Name = GetAttribute(reader, "name");
+                    shape.AltText = GetAttribute(reader, "descr");
+                    shape.Hidden = ReadBoolean(GetAttribute(reader, "hidden")) == true;
                     return false;
                 }
                 if (IsPresentation(reader, "nvPr") && !applicationSeen) {
@@ -197,10 +186,10 @@ namespace OfficeIMO.PowerPoint {
                     ReadDescendants(reader, () => {
                         if (readPlaceholder && !placeholderSeen && reader.Depth == propertiesDepth + 1 && IsPresentation(reader, "ph")) {
                             placeholderSeen = true;
-                            string? type = reader.GetAttribute("type");
+                            string? type = GetAttribute(reader, "type");
                             if (type != null) shape.PlaceholderType = ParsePlaceholderType(type);
                         }
-                        if (detectMedia && IsDrawingNamespace(reader.NamespaceURI)
+                        if (detectMedia && reader.NamespaceId == DrawingNamespace
                             && reader.LocalName is "audioFile" or "videoFile") {
                             shape.IsMedia = true;
                         }
@@ -212,7 +201,7 @@ namespace OfficeIMO.PowerPoint {
             return true;
         }
 
-        private static void ReadBlipFill(XmlReader reader, SlideContext context, ShapeBuilder shape) {
+        private static void ReadBlipFill(OfficeXmlPullReader reader, SlideContext context, ShapeBuilder shape) {
             bool blipSeen = false;
             ForEachChild(reader, () => {
                 if (!IsDrawing(reader, "blip") || blipSeen) return false;
@@ -229,7 +218,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         // Classifies a graphic frame the way the presentation model does: table, chart, SmartArt, then OLE object.
-        private static void ReadGraphic(XmlReader reader, SlideContext context, ShapeBuilder shape) {
+        private static void ReadGraphic(OfficeXmlPullReader reader, SlideContext context, ShapeBuilder shape) {
             bool dataSeen = false;
             ForEachChild(reader, () => {
                 if (!IsDrawing(reader, "graphicData") || dataSeen) return false;
@@ -241,8 +230,8 @@ namespace OfficeIMO.PowerPoint {
                         shape.Table = ReadTable(reader, context, shape);
                         return true;
                     }
-                    if (IsChartNamespace(reader.NamespaceURI) && reader.LocalName == "chart") chart = true;
-                    else if (IsDiagramNamespace(reader.NamespaceURI) && reader.LocalName == "relIds") smartArt = true;
+                    if (reader.IsElement(OfficeXmlNamespaces.Chart, "chart")) chart = true;
+                    else if (reader.IsElement(OfficeXmlNamespaces.Diagram, "relIds")) smartArt = true;
                     else if (IsPresentation(reader, "oleObj")) ole = true;
                     return false;
                 });
@@ -255,14 +244,14 @@ namespace OfficeIMO.PowerPoint {
             });
         }
 
-        private static PowerPointTableContent ReadTable(XmlReader reader, SlideContext context, ShapeBuilder shape) {
+        private static PowerPointTableContent ReadTable(OfficeXmlPullReader reader, SlideContext context, ShapeBuilder shape) {
             bool propertiesSeen = false, gridSeen = false, headerRow = false;
             int columnCount = 0;
             var rows = new List<PowerPointTableRowContent>();
             ForEachChild(reader, () => {
                 if (IsDrawing(reader, "tblPr") && !propertiesSeen) {
                     propertiesSeen = true;
-                    headerRow = ReadBoolean(reader.GetAttribute("firstRow")) == true;
+                    headerRow = ReadBoolean(GetAttribute(reader, "firstRow")) == true;
                     return false;
                 }
                 if (IsDrawing(reader, "tblGrid") && !gridSeen) {
@@ -296,7 +285,7 @@ namespace OfficeIMO.PowerPoint {
             return new PowerPointTableContent(null, columnCount, headerRow, rows);
         }
 
-        private static IReadOnlyList<PowerPointParagraphContent> ReadTextBody(XmlReader reader, SlideContext context) {
+        private static IReadOnlyList<PowerPointParagraphContent> ReadTextBody(OfficeXmlPullReader reader, SlideContext context) {
             var paragraphs = new List<PowerPointParagraphContent>();
             ForEachChild(reader, () => {
                 if (!IsDrawing(reader, "p")) return false;
@@ -306,7 +295,7 @@ namespace OfficeIMO.PowerPoint {
             return paragraphs;
         }
 
-        private static PowerPointParagraphContent ReadParagraph(XmlReader reader, SlideContext context) {
+        private static PowerPointParagraphContent ReadParagraph(OfficeXmlPullReader reader, SlideContext context) {
             var inlines = new List<PowerPointInlineContent>();
             bool propertiesSeen = false, bulletSeen = false, numberingSeen = false;
             int? level = null, startAt = null;
@@ -314,23 +303,23 @@ namespace OfficeIMO.PowerPoint {
             bool numbered = false;
             PowerPointNumberingScheme? scheme = null;
             ForEachChild(reader, () => {
-                if (!IsDrawingNamespace(reader.NamespaceURI)) return false;
+                if (reader.NamespaceId != DrawingNamespace) return false;
                 switch (reader.LocalName) {
                     case "pPr":
                         if (propertiesSeen) return false;
                         propertiesSeen = true;
-                        string? levelValue = reader.GetAttribute("lvl");
+                        string? levelValue = GetAttribute(reader, "lvl");
                         level = levelValue == null ? null : ParseInt32(levelValue);
                         ForEachChild(reader, () => {
                             if (IsDrawing(reader, "buChar") && !bulletSeen) {
                                 bulletSeen = true;
-                                bullet = reader.GetAttribute("char");
+                                bullet = GetAttribute(reader, "char");
                             } else if (IsDrawing(reader, "buAutoNum") && !numberingSeen) {
                                 numberingSeen = true;
                                 numbered = true;
-                                string? type = reader.GetAttribute("type");
+                                string? type = GetAttribute(reader, "type");
                                 scheme = ParseNumberingScheme(type);
-                                string? start = reader.GetAttribute("startAt");
+                                string? start = GetAttribute(reader, "startAt");
                                 startAt = start == null ? null : ParseInt32(start);
                             }
                             return false;
@@ -352,7 +341,7 @@ namespace OfficeIMO.PowerPoint {
             return new PowerPointParagraphContent(inlines, level, bullet, numbered, scheme, startAt);
         }
 
-        private static PowerPointInlineContent ReadRun(XmlReader reader, SlideContext context) {
+        private static PowerPointInlineContent ReadRun(OfficeXmlPullReader reader, SlideContext context) {
             string? text = null;
             bool propertiesSeen = false;
             Uri? hyperlink = null;
@@ -363,7 +352,7 @@ namespace OfficeIMO.PowerPoint {
                     ForEachChild(reader, () => {
                         if (!IsDrawing(reader, "hlinkClick") || linkSeen) return false;
                         linkSeen = true;
-                        hyperlink = context.ResolveHyperlink(reader.GetAttribute("action"), GetRelationshipAttribute(reader, "id"));
+                        hyperlink = context.ResolveHyperlink(GetAttribute(reader, "action"), GetRelationshipAttribute(reader, "id"));
                         return false;
                     });
                     return true;
@@ -377,7 +366,7 @@ namespace OfficeIMO.PowerPoint {
             return new PowerPointInlineContent(PowerPointParagraphInlineKind.Run, text ?? string.Empty, hyperlink, null);
         }
 
-        private static PowerPointInlineContent ReadField(XmlReader reader) {
+        private static PowerPointInlineContent ReadField(OfficeXmlPullReader reader) {
             string? text = null;
             StringBuilder? other = null;
             ForEachChild(reader, () => {
@@ -394,19 +383,19 @@ namespace OfficeIMO.PowerPoint {
         }
 
         // Matches PowerPointNotes.TryGetExistingText: the text of every top-level notes shape, blank ones skipped.
-        private static string? ReadNotes(Package package, PackagePart slidePart, XmlReaderSettings settings,
+        private static string? ReadNotes(OfficeOpcPackage package, string slidePart, long maximumCharacters,
             CancellationToken cancellationToken) {
             try {
-                PackagePart? notesPart = null;
-                foreach (PackageRelationship relationship in slidePart.GetRelationships()) {
+                string? notesPart = null;
+                foreach (OfficeOpcRelationship relationship in package.GetRelationships(slidePart)) {
                     if (IsRelationshipType(relationship, "notesSlide") && (notesPart = GetTargetPart(package, relationship)) != null) break;
                 }
                 if (notesPart == null) return null;
                 var shapes = new List<string>();
                 bool treeFound = false;
-                using (Stream stream = notesPart.GetStream(FileMode.Open, FileAccess.Read))
-                using (XmlReader reader = XmlReader.Create(stream, settings)) {
-                    if (reader.MoveToContent() != XmlNodeType.Element) return null;
+                OfficeXmlPullReader reader = OpenPart(package, notesPart, maximumCharacters, out OfficePooledBytes content);
+                using (content) {
+                    if (!MoveToRoot(reader)) return null;
                     bool commonSlideDataSeen = false;
                     ForEachChild(reader, () => {
                         if (commonSlideDataSeen || !IsPresentation(reader, "cSld")) return false;
@@ -436,11 +425,50 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        // XmlReader reports MaxCharactersInDocument with a plain XmlException whose message names the setting.
-        private static bool IsPartSizeLimit(Exception exception) =>
-            exception is XmlException && exception.Message.IndexOf(nameof(XmlReaderSettings.MaxCharactersInDocument), StringComparison.Ordinal) >= 0;
+        private const string PartSizeLimitKey = "OfficeIMO.PartSizeLimit";
 
-        private static string ReadNotesShapeText(XmlReader reader) {
+        // A part over the character limit is reported as an XmlException, as XmlReader reports MaxCharactersInDocument.
+        private static bool IsPartSizeLimit(Exception exception) => exception is XmlException && exception.Data.Contains(PartSizeLimitKey);
+
+        private static XmlException PartSizeLimit(string partName, long maximumCharacters) {
+            var exception = new XmlException($"The part '{partName}' has more than {maximumCharacters} characters, the configured maximum.");
+            exception.Data[PartSizeLimitKey] = true;
+            return exception;
+        }
+
+        // Comments and processing instructions are not reported, and compatibility markup is read as written: text in
+        // markup-compatibility fallbacks is not read, as the remarks on the class say.
+        private static OfficeXmlPullReader OpenPart(OfficeOpcPackage package, string partName, long maximumCharacters,
+            out OfficePooledBytes content) {
+            content = package.ReadPart(partName);
+            // A part can only exceed the limit when it has more bytes than the limit, as UTF-8 never encodes a
+            // character in less than a byte; only then are its characters counted.
+            if (content.Length > maximumCharacters && CountCharacters(content) > maximumCharacters) {
+                content.Dispose();
+                throw PartSizeLimit(partName, maximumCharacters);
+            }
+            return new OfficeXmlPullReader(content.Array, content.Length, package.Namespaces, processMarkupCompatibility: false);
+        }
+
+        // UTF-16 code units of a UTF-8 part: one per lead byte, two for a four-byte sequence.
+        private static long CountCharacters(OfficePooledBytes content) {
+            long count = 0;
+            byte[] bytes = content.Array;
+            for (int index = 0; index < content.Length; index++) {
+                byte value = bytes[index];
+                if ((value & 0xC0) != 0x80) count += value >= 0xF0 ? 2 : 1;
+            }
+            return count;
+        }
+
+        private static bool MoveToRoot(OfficeXmlPullReader reader) {
+            while (reader.Read()) {
+                if (reader.NodeKind == OfficeXmlNodeKind.StartElement) return true;
+            }
+            return false;
+        }
+
+        private static string ReadNotesShapeText(OfficeXmlPullReader reader) {
             var paragraphs = new List<string>();
             bool bodySeen = false;
             ForEachChild(reader, () => {
@@ -478,63 +506,61 @@ namespace OfficeIMO.PowerPoint {
         ///     it consumed the child through its end; otherwise the child is skipped. Returns with the reader on the
         ///     parent's end (or on the parent itself when it is empty).
         /// </summary>
-        private static void ForEachChild(XmlReader reader, Func<bool> visit) =>
+        private static void ForEachChild(OfficeXmlPullReader reader, Func<bool> visit) =>
             ForEachChild(reader, visit, null, null);
 
-        private static void ForEachChild(XmlReader reader, Func<bool> visit, Func<XmlReader, bool>? isNested, Action? readNested) {
+        // An empty element's end is reported after its start; the loops below step over such ends of children.
+        private static void ForEachChild(OfficeXmlPullReader reader, Func<bool> visit, Func<OfficeXmlPullReader, bool>? isNested, Action? readNested) {
             if (reader.IsEmptyElement) return;
             int depth = reader.Depth;
             while (reader.Read()) {
-                if (reader.NodeType == XmlNodeType.EndElement && reader.Depth == depth) return;
-                if (reader.NodeType != XmlNodeType.Element) continue;
+                if (reader.NodeKind == OfficeXmlNodeKind.EndElement && reader.Depth == depth) return;
+                if (reader.NodeKind != OfficeXmlNodeKind.StartElement) continue;
                 if (isNested != null && isNested(reader)) {
                     readNested!();
                     continue;
                 }
-                if (!visit()) SkipElement(reader);
+                if (!visit()) reader.SkipElement();
             }
         }
 
         // Visits every descendant element; the reader ends on the element's end.
-        private static void ReadDescendants(XmlReader reader, Action visit) {
+        private static void ReadDescendants(OfficeXmlPullReader reader, Action visit) {
             if (reader.IsEmptyElement) return;
             int depth = reader.Depth;
             while (reader.Read()) {
-                if (reader.NodeType == XmlNodeType.EndElement && reader.Depth == depth) return;
-                if (reader.NodeType == XmlNodeType.Element) visit();
+                if (reader.NodeKind == OfficeXmlNodeKind.EndElement && reader.Depth == depth) return;
+                if (reader.NodeKind == OfficeXmlNodeKind.StartElement) visit();
             }
         }
 
-        private static void SkipElement(XmlReader reader) {
-            if (reader.IsEmptyElement) return;
-            int depth = reader.Depth;
-            while (reader.Read() && !(reader.NodeType == XmlNodeType.EndElement && reader.Depth == depth)) { }
-        }
-
         // Concatenates the element's descendant text; the reader ends on the element's end.
-        private static string ReadTextContent(XmlReader reader) {
+        private static string ReadTextContent(OfficeXmlPullReader reader) {
             if (reader.IsEmptyElement) return string.Empty;
             int depth = reader.Depth;
             string? single = null;
-            StringBuilder? builder = null;
+            OfficeCharBuffer? builder = null;
             while (reader.Read()) {
-                if (reader.NodeType == XmlNodeType.EndElement && reader.Depth == depth) break;
-                if (reader.NodeType is XmlNodeType.Text or XmlNodeType.CDATA or XmlNodeType.Whitespace or XmlNodeType.SignificantWhitespace) {
-                    if (single == null && builder == null) {
-                        single = reader.Value;
-                    } else {
-                        builder ??= new StringBuilder(single);
-                        builder.Append(reader.Value);
+                if (reader.NodeKind == OfficeXmlNodeKind.EndElement && reader.Depth == depth) break;
+                if (reader.NodeKind != OfficeXmlNodeKind.Text) continue;
+                if (single == null && builder == null) {
+                    single = reader.GetText();
+                } else {
+                    if (builder == null) {
+                        builder = new OfficeCharBuffer(Math.Max(256, single!.Length * 2));
+                        foreach (char value in single) builder.Append(value);
                     }
+                    reader.AppendText(builder);
                 }
             }
             return builder?.ToString() ?? single ?? string.Empty;
         }
 
-        private static string? GetRelationshipAttribute(XmlReader reader, string localName) {
-            string? value = reader.GetAttribute(localName, RelationshipNamespace);
-            return string.IsNullOrEmpty(value) ? reader.GetAttribute(localName, StrictRelationshipNamespace) : value;
-        }
+        private static string? GetAttribute(OfficeXmlPullReader reader, string localName) =>
+            reader.TryGetAttribute(OfficeXmlNamespaces.None, localName, out string value) ? value : null;
+
+        private static string? GetRelationshipAttribute(OfficeXmlPullReader reader, string localName) =>
+            reader.TryGetAttribute(RelationshipNamespace, localName, out string value) ? value : null;
 
         private static bool? ReadBoolean(string? value) {
             if (value == null) return null;
@@ -561,71 +587,60 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static PowerPointPlaceholderType ParsePlaceholderType(string value) {
-            var parsed = new P.PlaceholderValues(value);
-            if (!((IEnumValue)parsed).IsValid) throw new InvalidDataException($"'{value}' is not a valid placeholder type.");
-            return parsed.ToOfficeEnum();
-        }
+        private static PowerPointPlaceholderType ParsePlaceholderType(string value) =>
+            PowerPointOpenXmlValueTypeExtensions.TryParseOpenXmlValue(value, out PowerPointPlaceholderType type)
+                ? type
+                : throw new InvalidDataException($"'{value}' is not a valid placeholder type.");
 
         // Like the Markdown renderer for an unset scheme, an unknown automatic-numbering type falls back to plain
         // numbers instead of failing the slide; both the streamed and the loaded projection read it this way.
-        internal static PowerPointNumberingScheme? ParseNumberingScheme(string? value) {
-            if (value == null) return null;
-            var parsed = new A.TextAutoNumberSchemeValues(value);
-            if (!((IEnumValue)parsed).IsValid) return null;
-            try {
-                return parsed.ToOfficeEnum();
-            } catch (ArgumentOutOfRangeException) {
-                return null;
-            }
-        }
+        internal static PowerPointNumberingScheme? ParseNumberingScheme(string? value) =>
+            value != null && PowerPointOpenXmlValueTypeExtensions.TryParseOpenXmlValue(value, out PowerPointNumberingScheme scheme)
+                ? scheme
+                : null;
 
         private const string RelationshipTypeBase = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/";
-        private const string StrictRelationshipTypeBase = "http://purl.oclc.org/ooxml/officeDocument/relationships/";
         private const string SlideJumpAction = "ppaction://hlinksldjump";
         private const string NextSlideAction = "ppaction://hlinkshowjump?jump=nextslide";
 
-        private static PackagePart GetPresentationPart(Package package) {
-            foreach (PackageRelationship relationship in package.GetRelationships()) {
+        private static string GetPresentationPart(OfficeOpcPackage package) {
+            foreach (OfficeOpcRelationship relationship in package.GetRelationships(null)) {
                 if (IsRelationshipType(relationship, "officeDocument") && GetTargetPart(package, relationship) is { } part) return part;
             }
             throw new InvalidDataException("The package has no presentation part.");
         }
 
-        private static bool IsRelationshipType(PackageRelationship relationship, string name) {
-            string type = relationship.RelationshipType;
-            return type == RelationshipTypeBase + name || type == StrictRelationshipTypeBase + name;
+        // Relationship types are reported with their transitional spelling, Strict ones included.
+        private static bool IsRelationshipType(OfficeOpcRelationship relationship, string name) =>
+            relationship.Type.Length == RelationshipTypeBase.Length + name.Length
+            && relationship.Type.StartsWith(RelationshipTypeBase, StringComparison.Ordinal)
+            && relationship.Type.EndsWith(name, StringComparison.Ordinal);
+
+        private static string? GetTargetPart(OfficeOpcPackage package, OfficeOpcRelationship relationship) =>
+            relationship.TargetPartName != null && package.PartExists(relationship.TargetPartName) ? relationship.TargetPartName : null;
+
+        private static OfficeOpcRelationship? FindRelationship(OfficeOpcPackage package, string sourcePart, string relationshipId) {
+            foreach (OfficeOpcRelationship relationship in package.GetRelationships(sourcePart)) {
+                if (string.Equals(relationship.Id, relationshipId, StringComparison.Ordinal)) return relationship;
+            }
+            return null;
         }
 
-        private static PackagePart? GetTargetPart(Package package, PackageRelationship relationship) {
-            if (relationship.TargetMode == TargetMode.External) return null;
-            Uri target = PackUriHelper.ResolvePartUri(relationship.SourceUri, relationship.TargetUri);
-            return package.PartExists(target) ? package.GetPart(target) : null;
-        }
+        private static Uri GetTargetUri(OfficeOpcRelationship relationship) => new(relationship.Target, UriKind.RelativeOrAbsolute);
 
-        private static bool IsPresentation(XmlReader reader, string localName) =>
-            reader.LocalName == localName && IsPresentationNamespace(reader.NamespaceURI);
+        private static bool IsPresentation(OfficeXmlPullReader reader, string localName) =>
+            reader.IsElement(PresentationNamespace, localName);
 
-        private static bool IsDrawing(XmlReader reader, string localName) =>
-            reader.LocalName == localName && IsDrawingNamespace(reader.NamespaceURI);
-
-        private static bool IsPresentationNamespace(string value) =>
-            value == PresentationNamespace || value == StrictPresentationNamespace;
-
-        private static bool IsDrawingNamespace(string value) =>
-            value == DrawingNamespace || value == StrictDrawingNamespace;
-
-        private static bool IsChartNamespace(string value) => value == ChartNamespace || value == StrictChartNamespace;
-
-        private static bool IsDiagramNamespace(string value) => value == DiagramNamespace || value == StrictDiagramNamespace;
+        private static bool IsDrawing(OfficeXmlPullReader reader, string localName) =>
+            reader.IsElement(DrawingNamespace, localName);
 
         private sealed class SlideContext {
             private readonly PowerPointSlideReader _reader;
-            private readonly PackagePart _slidePart;
+            private readonly string _slidePart;
             private readonly List<ShapeBuilder?> _shapes = new();
             private int _count;
 
-            internal SlideContext(PowerPointSlideReader reader, PackagePart slidePart, CancellationToken cancellationToken) {
+            internal SlideContext(PowerPointSlideReader reader, string slidePart, CancellationToken cancellationToken) {
                 _reader = reader;
                 _slidePart = slidePart;
                 CancellationToken = cancellationToken;
@@ -649,37 +664,39 @@ namespace OfficeIMO.PowerPoint {
                 }
             }
 
-            private PackageRelationship? GetRelationship(string relationshipId) =>
-                _slidePart.RelationshipExists(relationshipId) ? _slidePart.GetRelationship(relationshipId) : null;
+            private OfficeOpcRelationship? GetRelationship(string relationshipId) =>
+                FindRelationship(_reader._package, _slidePart, relationshipId);
 
             internal PowerPointImageReference ResolveImage(string relationshipId) {
-                PackageRelationship? relationship = GetRelationship(relationshipId);
-                if (relationship?.TargetMode == TargetMode.External) {
-                    return new PowerPointImageReference(relationshipId, null, null, relationship.TargetUri);
+                OfficeOpcRelationship? relationship = GetRelationship(relationshipId);
+                if (relationship?.IsExternal == true) {
+                    return new PowerPointImageReference(relationshipId, null, null, GetTargetUri(relationship));
                 }
-                PackagePart? part = relationship == null ? null : GetTargetPart(_reader._package, relationship);
-                return new PowerPointImageReference(relationshipId, part?.Uri, part?.ContentType, null);
+                string? part = relationship == null ? null : GetTargetPart(_reader._package, relationship);
+                return part == null
+                    ? new PowerPointImageReference(relationshipId, null, null, null)
+                    : new PowerPointImageReference(relationshipId, new Uri(part, UriKind.Relative), _reader._package.GetContentType(part), null);
             }
 
             // Resolves click hyperlinks as PowerPointHyperlinkResolver does for a loaded slide: external hyperlink
             // targets as they are, and slide jumps and next-slide actions as #slide-N fragments.
             internal Uri? ResolveHyperlink(string? action, string? relationshipId) {
                 if (string.Equals(action, NextSlideAction, StringComparison.OrdinalIgnoreCase)) {
-                    return _reader._slideNumbers.TryGetValue(_slidePart.Uri.OriginalString, out int position)
+                    return _reader._slideNumbers.TryGetValue(_slidePart, out int position)
                         ? SlideFragment(position + 1)
                         : null;
                 }
                 if (string.IsNullOrWhiteSpace(relationshipId)) return null;
-                PackageRelationship? relationship = GetRelationship(relationshipId!);
+                OfficeOpcRelationship? relationship = GetRelationship(relationshipId!);
                 bool hyperlink = relationship != null && IsRelationshipType(relationship, "hyperlink");
-                if (hyperlink && relationship!.TargetMode == TargetMode.External) return relationship.TargetUri;
+                if (hyperlink && relationship!.IsExternal) return GetTargetUri(relationship);
                 if (!string.Equals(action, SlideJumpAction, StringComparison.OrdinalIgnoreCase)
-                    || relationship == null || relationship.TargetMode == TargetMode.External) {
+                    || relationship == null || relationship.IsExternal || relationship.TargetPartName == null) {
                     return null;
                 }
-                Uri target = PackUriHelper.ResolvePartUri(relationship.SourceUri, relationship.TargetUri);
+                string target = relationship.TargetPartName;
                 if (!hyperlink && !_reader._package.PartExists(target)) return null;
-                return _reader._slideNumbers.TryGetValue(target.OriginalString, out int number) ? SlideFragment(number) : null;
+                return _reader._slideNumbers.TryGetValue(target, out int number) ? SlideFragment(number) : null;
             }
 
             private static Uri SlideFragment(int number) =>

@@ -383,6 +383,12 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
     internal static PowerPointChartGrouping? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.GroupingValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out PowerPointChartGrouping value) {
+        int index = Array.IndexOf(PowerPointChartGroupingTokens, token);
+        value = index < 0 ? default : (PowerPointChartGrouping)index;
+        return index >= 0;
+    }
+
     private static readonly string[] PowerPointLineEndLengthTokens = {
         "sm",
         "med",
@@ -401,6 +407,12 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
     internal static PowerPointLineEndLength? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.LineEndLengthValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out PowerPointLineEndLength value) {
+        int index = Array.IndexOf(PowerPointLineEndLengthTokens, token);
+        value = index < 0 ? default : (PowerPointLineEndLength)index;
+        return index >= 0;
+    }
+
     private static readonly string[] PowerPointLineEndWidthTokens = {
         "sm",
         "med",
@@ -418,6 +430,12 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
 
     internal static PowerPointLineEndWidth? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.LineEndWidthValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    internal static bool TryParseOpenXmlValue(string token, out PowerPointLineEndWidth value) {
+        int index = Array.IndexOf(PowerPointLineEndWidthTokens, token);
+        value = index < 0 ? default : (PowerPointLineEndWidth)index;
+        return index >= 0;
+    }
 
     private static readonly string[] PowerPointLineDashStyleTokens = {
         "solid",
@@ -445,6 +463,12 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
     internal static PowerPointLineDashStyle? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.PresetLineDashValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out PowerPointLineDashStyle value) {
+        int index = Array.IndexOf(PowerPointLineDashStyleTokens, token);
+        value = index < 0 ? default : (PowerPointLineDashStyle)index;
+        return index >= 0;
+    }
+
     private static readonly string[] PowerPointRectangleAlignmentTokens = {
         "tl",
         "t",
@@ -469,6 +493,12 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
     internal static PowerPointRectangleAlignment? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.RectangleAlignmentValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out PowerPointRectangleAlignment value) {
+        int index = Array.IndexOf(PowerPointRectangleAlignmentTokens, token);
+        value = index < 0 ? default : (PowerPointRectangleAlignment)index;
+        return index >= 0;
+    }
+
     private static readonly string[] PowerPointTextAlignmentTokens = {
         "l",
         "ctr",
@@ -491,6 +521,12 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
     internal static PowerPointTextAlignment? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.TextAlignmentTypeValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out PowerPointTextAlignment value) {
+        int index = Array.IndexOf(PowerPointTextAlignmentTokens, token);
+        value = index < 0 ? default : (PowerPointTextAlignment)index;
+        return index >= 0;
+    }
+
     private static readonly string[] PowerPointTextVerticalAlignmentTokens = {
         "t",
         "ctr",
@@ -508,6 +544,12 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
 
     internal static PowerPointTextVerticalAlignment? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.TextAnchoringTypeValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    internal static bool TryParseOpenXmlValue(string token, out PowerPointTextVerticalAlignment value) {
+        int index = Array.IndexOf(PowerPointTextVerticalAlignmentTokens, token);
+        value = index < 0 ? default : (PowerPointTextVerticalAlignment)index;
+        return index >= 0;
+    }
 
     private static readonly string[] PowerPointNumberingSchemeTokens = {
         "alphaLcParenBoth",
@@ -565,6 +607,12 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
     internal static PowerPointNumberingScheme? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.TextAutoNumberSchemeValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out PowerPointNumberingScheme value) {
+        int index = Array.IndexOf(PowerPointNumberingSchemeTokens, token);
+        value = index < 0 ? default : (PowerPointNumberingScheme)index;
+        return index >= 0;
+    }
+
     private static readonly string[] PowerPointUnderlineStyleTokens = {
         "none",
         "words",
@@ -598,6 +646,12 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
     internal static PowerPointUnderlineStyle? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.TextUnderlineValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out PowerPointUnderlineStyle value) {
+        int index = Array.IndexOf(PowerPointUnderlineStyleTokens, token);
+        value = index < 0 ? default : (PowerPointUnderlineStyle)index;
+        return index >= 0;
+    }
+
     private static readonly string[] PowerPointTextDirectionTokens = {
         "horz",
         "vert",
@@ -620,6 +674,12 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
     internal static PowerPointTextDirection? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.TextVerticalValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out PowerPointTextDirection value) {
+        int index = Array.IndexOf(PowerPointTextDirectionTokens, token);
+        value = index < 0 ? default : (PowerPointTextDirection)index;
+        return index >= 0;
+    }
+
     private static readonly string[] PowerPointAnimationCommandTokens = {
         "evt",
         "call",
@@ -638,6 +698,12 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
     internal static PowerPointAnimationCommand? ToOfficeEnum(this DocumentFormat.OpenXml.Presentation.CommandValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out PowerPointAnimationCommand value) {
+        int index = Array.IndexOf(PowerPointAnimationCommandTokens, token);
+        value = index < 0 ? default : (PowerPointAnimationCommand)index;
+        return index >= 0;
+    }
+
     private static readonly string[] PowerPointPlaceholderDirectionTokens = {
         "horz",
         "vert",
@@ -654,6 +720,12 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
 
     internal static PowerPointPlaceholderDirection? ToOfficeEnum(this DocumentFormat.OpenXml.Presentation.DirectionValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    internal static bool TryParseOpenXmlValue(string token, out PowerPointPlaceholderDirection value) {
+        int index = Array.IndexOf(PowerPointPlaceholderDirectionTokens, token);
+        value = index < 0 ? default : (PowerPointPlaceholderDirection)index;
+        return index >= 0;
+    }
 
     private static readonly string[] PowerPointOleFollowColorSchemeTokens = {
         "none",
@@ -673,6 +745,12 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
     internal static PowerPointOleFollowColorScheme? ToOfficeEnum(this DocumentFormat.OpenXml.Presentation.OleObjectFollowColorSchemeValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out PowerPointOleFollowColorScheme value) {
+        int index = Array.IndexOf(PowerPointOleFollowColorSchemeTokens, token);
+        value = index < 0 ? default : (PowerPointOleFollowColorScheme)index;
+        return index >= 0;
+    }
+
     private static readonly string[] PowerPointPlaceholderSizeTokens = {
         "full",
         "half",
@@ -690,6 +768,12 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
 
     internal static PowerPointPlaceholderSize? ToOfficeEnum(this DocumentFormat.OpenXml.Presentation.PlaceholderSizeValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    internal static bool TryParseOpenXmlValue(string token, out PowerPointPlaceholderSize value) {
+        int index = Array.IndexOf(PowerPointPlaceholderSizeTokens, token);
+        value = index < 0 ? default : (PowerPointPlaceholderSize)index;
+        return index >= 0;
+    }
 
     private static readonly string[] PowerPointPlaceholderTypeTokens = {
         "title",
@@ -722,6 +806,12 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
     internal static PowerPointPlaceholderType? ToOfficeEnum(this DocumentFormat.OpenXml.Presentation.PlaceholderValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out PowerPointPlaceholderType value) {
+        int index = Array.IndexOf(PowerPointPlaceholderTypeTokens, token);
+        value = index < 0 ? default : (PowerPointPlaceholderType)index;
+        return index >= 0;
+    }
+
     private static readonly string[] PowerPointSlideSizeTypeTokens = {
         "screen4x3",
         "letter",
@@ -753,6 +843,12 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
     internal static PowerPointSlideSizeType? ToOfficeEnum(this DocumentFormat.OpenXml.Presentation.SlideSizeValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out PowerPointSlideSizeType value) {
+        int index = Array.IndexOf(PowerPointSlideSizeTypeTokens, token);
+        value = index < 0 ? default : (PowerPointSlideSizeType)index;
+        return index >= 0;
+    }
+
     private static readonly string[] OfficeChartDisplayUnitTokens = {
         "hundreds",
         "thousands",
@@ -777,6 +873,12 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
     internal static OfficeChartDisplayUnit? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.BuiltInUnitValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out OfficeChartDisplayUnit value) {
+        int index = Array.IndexOf(OfficeChartDisplayUnitTokens, token);
+        value = index < 0 ? default : (OfficeChartDisplayUnit)index;
+        return index >= 0;
+    }
+
     private static readonly string[] OfficeChartAxisCrossBetweenTokens = {
         "between",
         "midCat",
@@ -793,6 +895,12 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
 
     internal static OfficeChartAxisCrossBetween? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.CrossBetweenValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    internal static bool TryParseOpenXmlValue(string token, out OfficeChartAxisCrossBetween value) {
+        int index = Array.IndexOf(OfficeChartAxisCrossBetweenTokens, token);
+        value = index < 0 ? default : (OfficeChartAxisCrossBetween)index;
+        return index >= 0;
+    }
 
     private static readonly string[] OfficeChartAxisCrossingPositionTokens = {
         "autoZero",
@@ -811,6 +919,12 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
 
     internal static OfficeChartAxisCrossingPosition? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.CrossesValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    internal static bool TryParseOpenXmlValue(string token, out OfficeChartAxisCrossingPosition value) {
+        int index = Array.IndexOf(OfficeChartAxisCrossingPositionTokens, token);
+        value = index < 0 ? default : (OfficeChartAxisCrossingPosition)index;
+        return index >= 0;
+    }
 
     private static readonly string[] OfficeChartDataLabelPositionTokens = {
         "bestFit",
@@ -836,6 +950,12 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
     internal static OfficeChartDataLabelPosition? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.DataLabelPositionValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out OfficeChartDataLabelPosition value) {
+        int index = Array.IndexOf(OfficeChartDataLabelPositionTokens, token);
+        value = index < 0 ? default : (OfficeChartDataLabelPosition)index;
+        return index >= 0;
+    }
+
     private static readonly string[] OfficeChartLegendPositionTokens = {
         "b",
         "tr",
@@ -855,6 +975,12 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
 
     internal static OfficeChartLegendPosition? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.LegendPositionValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    internal static bool TryParseOpenXmlValue(string token, out OfficeChartLegendPosition value) {
+        int index = Array.IndexOf(OfficeChartLegendPositionTokens, token);
+        value = index < 0 ? default : (OfficeChartLegendPosition)index;
+        return index >= 0;
+    }
 
     private static readonly string[] OfficeChartMarkerShapeTokens = {
         "auto",
@@ -883,6 +1009,12 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
     internal static OfficeChartMarkerShape? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.MarkerStyleValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out OfficeChartMarkerShape value) {
+        int index = Array.IndexOf(OfficeChartMarkerShapeTokens, token);
+        value = index < 0 ? default : (OfficeChartMarkerShape)index;
+        return index >= 0;
+    }
+
     private static readonly string[] OfficeChartAxisTickLabelPositionTokens = {
         "high",
         "low",
@@ -901,6 +1033,12 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
 
     internal static OfficeChartAxisTickLabelPosition? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.TickLabelPositionValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    internal static bool TryParseOpenXmlValue(string token, out OfficeChartAxisTickLabelPosition value) {
+        int index = Array.IndexOf(OfficeChartAxisTickLabelPositionTokens, token);
+        value = index < 0 ? default : (OfficeChartAxisTickLabelPosition)index;
+        return index >= 0;
+    }
 
     private static readonly string[] OfficeChartTrendlineTypeTokens = {
         "exp",
@@ -923,6 +1061,12 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
     internal static OfficeChartTrendlineType? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.TrendlineValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out OfficeChartTrendlineType value) {
+        int index = Array.IndexOf(OfficeChartTrendlineTypeTokens, token);
+        value = index < 0 ? default : (OfficeChartTrendlineType)index;
+        return index >= 0;
+    }
+
     private static readonly string[] OfficeLineMarkerKindTokens = {
         "none",
         "triangle",
@@ -943,6 +1087,12 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
 
     internal static OfficeLineMarkerKind? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.LineEndValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    internal static bool TryParseOpenXmlValue(string token, out OfficeLineMarkerKind value) {
+        int index = Array.IndexOf(OfficeLineMarkerKindTokens, token);
+        value = index < 0 ? default : (OfficeLineMarkerKind)index;
+        return index >= 0;
+    }
 
     private static readonly string[] OfficePresetShapeTypeTokens = {
         "line",
@@ -1145,6 +1295,12 @@ internal static class PowerPointOpenXmlValueTypeExtensions {
 
     internal static OfficePresetShapeType? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.ShapeTypeValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    internal static bool TryParseOpenXmlValue(string token, out OfficePresetShapeType value) {
+        int index = Array.IndexOf(OfficePresetShapeTypeTokens, token);
+        value = index < 0 ? default : (OfficePresetShapeType)index;
+        return index >= 0;
+    }
 
     private static string GetToken<TEnum>(TEnum value, string[] tokens) where TEnum : struct, Enum {
         int index = Convert.ToInt32(value, CultureInfo.InvariantCulture);

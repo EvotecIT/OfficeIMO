@@ -84,7 +84,7 @@ internal static partial class PowerPointRichMapping {
 
     /// <summary>Completes a streamed result the way <see cref="Apply"/> completes a model result.</summary>
     internal static OfficeDocumentReadResult CompleteStreamed(OfficeDocumentReadResult result,
-        System.IO.Packaging.PackageProperties properties, StreamedSlideProjection projection, IReadOnlyList<string> capabilities) {
+        (string? Title, string? Creator, string? Subject, string? Keywords) properties, StreamedSlideProjection projection, IReadOnlyList<string> capabilities) {
         result.Source.Title = properties.Title;
         result.Source.Author = properties.Creator;
         result.Source.Subject = properties.Subject;

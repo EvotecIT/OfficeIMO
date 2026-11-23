@@ -42,4 +42,5 @@ $sharedTypeNames = [ordered]@{
     -ExtensionClassName 'PowerPointOpenXmlValueTypeExtensions' `
     -AssemblyDirectory $AssemblyDirectory `
     -OutputPath $OutputPath `
-    -GeneratorName 'Build/Generate-PowerPointOpenXmlValueTypes.ps1'
+    -GeneratorName 'Build/Generate-PowerPointOpenXmlValueTypes.ps1' `
+    -EmitTokenParsers
