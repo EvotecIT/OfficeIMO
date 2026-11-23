@@ -145,7 +145,9 @@ final class StudioStoreCaptureTests: XCTestCase {
     private func openPhoneDocument(_ app: XCUIApplication, input: URL) {
         let tabBar = app.tabBars["DOC.browsingModeTabBar"].buttons["Browse"]
         let rail = app.buttons.matching(identifier: "Browse").containing(.image, identifier: "folder.fill").firstMatch
-        XCTAssertTrue(tabBar.waitForExistence(timeout: 30) || rail.exists, app.debugDescription)
+        let ready = XCTNSPredicateExpectation(
+            predicate: NSPredicate { _, _ in tabBar.exists || rail.exists }, object: nil)
+        XCTAssertEqual(XCTWaiter().wait(for: [ready], timeout: 30), .completed, app.debugDescription)
         let browse = tabBar.exists ? tabBar : rail
         browse.tap()
         let folder = app.cells.containing(.staticText, identifier: input.deletingLastPathComponent().lastPathComponent).firstMatch
