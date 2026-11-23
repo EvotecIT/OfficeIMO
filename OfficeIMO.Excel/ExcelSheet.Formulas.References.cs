@@ -155,10 +155,17 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Parses a reference token once per pass when its text needs new strings to parse, as a qualified or absolute
-        /// reference does; a plain relative reference parses without allocating and is not kept.
+        /// Parses a reference token once. A calculation pass keeps every token in the workbook's syntax cache, so later
+        /// passes reuse it; outside a pass a qualified or absolute token is kept for the current context only.
         /// </summary>
         private FormulaReferenceSyntax GetFormulaReferenceSyntax(string token) {
+            if (ExcelFormulaSyntaxCache.Current is ExcelFormulaSyntaxCache cache) {
+                if (!cache.TryGetReference(token, out FormulaReferenceSyntax cached)) {
+                    cached = new FormulaReferenceSyntax(token);
+                    cache.AddReference(token, cached);
+                }
+                return cached;
+            }
             if (_formulaCalculationContext is not { IsDisposed: false } context
                 || (token.IndexOf('!') < 0 && token.IndexOf('$') < 0)) {
                 return new FormulaReferenceSyntax(token);
@@ -915,7 +922,7 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private object? _formulaEvaluationKeyOwner;
+        private long _formulaEvaluationKeyPass;
         private int _formulaEvaluationKeySheet;
 
         /// <summary>
@@ -925,9 +932,10 @@ namespace OfficeIMO.Excel {
         private long GetFormulaEvaluationCacheKey(string reference) {
             FormulaEvaluationResults results = _formulaEvaluationCache
                 ?? throw new InvalidOperationException("Formula evaluation keys belong to a calculation pass.");
-            if (!ReferenceEquals(_formulaEvaluationKeyOwner, results)) {
+            // The pass number, not the results themselves, so a sheet does not keep a finished pass's values alive.
+            if (_formulaEvaluationKeyPass != results.Pass) {
                 _formulaEvaluationKeySheet = results.GetSheetNumber(Name);
-                _formulaEvaluationKeyOwner = results;
+                _formulaEvaluationKeyPass = results.Pass;
             }
             string? normalized = IsCanonicalCellReference(reference) ? reference : NormalizeFormulaCellReference(reference);
             int row = 0, column = 0;
@@ -939,6 +947,11 @@ namespace OfficeIMO.Excel {
             string value = token.Trim();
             if (value.StartsWith("=", StringComparison.Ordinal)) {
                 value = value.Substring(1).Trim();
+            }
+            // Every error literal starts with '#', so other operands skip the upper-casing below.
+            if (value.Length == 0 || value[0] != '#') {
+                errorCode = string.Empty;
+                return false;
             }
 
             switch (value.ToUpperInvariant()) {

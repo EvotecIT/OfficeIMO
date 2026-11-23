@@ -174,7 +174,10 @@ namespace OfficeIMO.Excel {
                             SetFormulaCachedValue(cell, result);
                             if (TryGetCalculatedArray(cell, out FormulaArrayValue array)) WriteFixedArrayFormulaCache(cell, array);
                         }
-                        ExcelWorksheetScan.FindFormula(cell)!.CalculateCell = false;
+                        // Writing an equal value would only replace the attribute object.
+                        CellFormula calculatedFormula = ExcelWorksheetScan.FindFormula(cell)!;
+                        if (calculatedFormula.CalculateCell is not { HasValue: true, Value: false })
+                            calculatedFormula.CalculateCell = false;
                         recalculatedCells.Add(cell.CellReference?.Value ?? string.Empty);
                         changed = true;
                         count++;

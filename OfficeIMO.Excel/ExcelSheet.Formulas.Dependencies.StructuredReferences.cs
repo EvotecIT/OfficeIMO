@@ -231,8 +231,10 @@ namespace OfficeIMO.Excel {
             firstColumn = 0;
             lastRow = 0;
             lastColumn = 0;
+            // An unqualified structured reference always opens with a bracket, so ordinary operands stop here.
             if (!currentRow.HasValue
                 || !currentColumn.HasValue
+                || !StartsWithBracket(token)
                 || !TryGetUnqualifiedCurrentRowReference(token, out FormulaStructuredTableReference structuredReference)
                 || !TryGetContainingFormulaTable(currentRow.Value, currentColumn.Value, out Table table)) {
                 return false;
@@ -248,10 +250,18 @@ namespace OfficeIMO.Excel {
                 out lastColumn);
         }
 
+        private static bool StartsWithBracket(string token) {
+            foreach (char character in token) {
+                if (!char.IsWhiteSpace(character)) return character == '[';
+            }
+            return false;
+        }
+
         private bool TryGetContainingFormulaTable(int row, int column, out Table table) {
-            foreach (Table candidate in _worksheetPart.TableDefinitionParts
-                .Select(part => part.Table)
-                .OfType<Table>()) {
+            table = null!;
+            if (!HasTableDefinitions) return false;
+            foreach (DocumentFormat.OpenXml.Packaging.TableDefinitionPart part in _worksheetPart.TableDefinitionParts) {
+                if (part.Table is not Table candidate) continue;
                 if (candidate.Reference?.Value != null
                     && ExcelA1.TryParseRange(
                         candidate.Reference.Value.Replace("$", string.Empty),

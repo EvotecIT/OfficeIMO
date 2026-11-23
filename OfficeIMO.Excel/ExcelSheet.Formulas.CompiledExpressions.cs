@@ -60,33 +60,42 @@ namespace OfficeIMO.Excel {
             Atom,
             Unary,
             Parentheses,
-            Percent,
-            Binary
+            Chain
+        }
+
+        /// <summary>One operator of a chain: a binary operator with its right operand, or <c>%</c> without one.</summary>
+        private readonly struct ScalarExpressionStep {
+            internal ScalarExpressionStep(string @operator, ScalarExpressionNode? right) {
+                Operator = @operator;
+                Right = right;
+            }
+
+            internal string Operator { get; }
+            internal ScalarExpressionNode? Right { get; }
         }
 
         /// <summary>
         /// One node of a compiled scalar expression. A <see cref="ScalarExpressionNodeKind.Level"/> node marks where
         /// the interpreting parser starts a nested precedence level, which checks the stack and rejects an
-        /// unresolved result exactly where the parser would.
+        /// unresolved result exactly where the parser would. A <see cref="ScalarExpressionNodeKind.Chain"/> applies a
+        /// level's operators in a loop, as the parser does, so a long flat formula needs no deeper stack.
         /// </summary>
         private sealed class ScalarExpressionNode {
-            private ScalarExpressionNode(ScalarExpressionNodeKind kind, ScalarExpressionNode? left = null, ScalarExpressionNode? right = null,
-                string? text = null, string? errorLiteral = null, string? @operator = null, double factor = 0) {
+            private ScalarExpressionNode(ScalarExpressionNodeKind kind, ScalarExpressionNode? left = null,
+                string? text = null, string? errorLiteral = null, ScalarExpressionStep[]? steps = null, double factor = 0) {
                 Kind = kind;
                 Left = left;
-                Right = right;
                 Text = text;
                 ErrorLiteral = errorLiteral;
-                Operator = @operator;
+                Steps = steps;
                 Factor = factor;
             }
 
             internal ScalarExpressionNodeKind Kind { get; }
             internal ScalarExpressionNode? Left { get; }
-            internal ScalarExpressionNode? Right { get; }
             internal string? Text { get; }
             internal string? ErrorLiteral { get; }
-            internal string? Operator { get; }
+            internal ScalarExpressionStep[]? Steps { get; }
             internal double Factor { get; }
 
             internal static ScalarExpressionNode Level(ScalarExpressionNode inner) => new(ScalarExpressionNodeKind.Level, inner);
@@ -94,9 +103,8 @@ namespace OfficeIMO.Excel {
             internal static ScalarExpressionNode Error(string literal) => new(ScalarExpressionNodeKind.Atom, errorLiteral: literal);
             internal static ScalarExpressionNode Unary(ScalarExpressionNode operand, double factor) => new(ScalarExpressionNodeKind.Unary, operand, factor: factor);
             internal static ScalarExpressionNode Parentheses(ScalarExpressionNode inner) => new(ScalarExpressionNodeKind.Parentheses, inner);
-            internal static ScalarExpressionNode Percent(ScalarExpressionNode operand) => new(ScalarExpressionNodeKind.Percent, operand);
-            internal static ScalarExpressionNode Binary(ScalarExpressionNode left, string @operator, ScalarExpressionNode right) =>
-                new(ScalarExpressionNodeKind.Binary, left, right, @operator: @operator);
+            internal static ScalarExpressionNode Chain(ScalarExpressionNode first, ScalarExpressionStep[] steps) =>
+                new(ScalarExpressionNodeKind.Chain, first, steps: steps);
         }
 
         /// <summary>
@@ -147,6 +155,7 @@ namespace OfficeIMO.Excel {
                         if (value == null) return null;
                     }
 
+                    List<ScalarExpressionStep>? steps = null;
                     while (true) {
                         SkipWhiteSpace();
                         if (_position == _text.Length) break;
@@ -154,15 +163,14 @@ namespace OfficeIMO.Excel {
                         int precedence = ScalarFormulaParser.Precedence(op);
                         if (precedence < minimumPrecedence) break;
                         _position += op.Length;
-                        if (op == "%") {
-                            value = ScalarExpressionNode.Percent(value);
-                            continue;
+                        ScalarExpressionNode? right = null;
+                        if (op != "%") {
+                            right = ParseLevel(precedence + 1);
+                            if (right == null) return null;
                         }
-                        ScalarExpressionNode? right = ParseLevel(precedence + 1);
-                        if (right == null) return null;
-                        value = ScalarExpressionNode.Binary(value, op, right);
+                        (steps ??= new List<ScalarExpressionStep>()).Add(new ScalarExpressionStep(op, right));
                     }
-                    return ScalarExpressionNode.Level(value);
+                    return ScalarExpressionNode.Level(steps == null ? value : ScalarExpressionNode.Chain(value, steps.ToArray()));
                 } finally { _depth--; }
             }
 
@@ -215,17 +223,19 @@ namespace OfficeIMO.Excel {
                     if (!TryEvaluateScalarNode(node.Left!, ref state, out value)) return false;
                     state.LastOperationWasAddition = false;
                     return true;
-                case ScalarExpressionNodeKind.Percent:
+                case ScalarExpressionNodeKind.Chain:
                     if (!TryEvaluateScalarNode(node.Left!, ref state, out value)) return false;
-                    value = ScalarFormulaParser.NumericUnary(value, 0.01);
-                    state.LastOperationWasAddition = false;
+                    foreach (ScalarExpressionStep step in node.Steps!) {
+                        if (step.Right == null) {
+                            value = ScalarFormulaParser.NumericUnary(value, 0.01);
+                            state.LastOperationWasAddition = false;
+                            continue;
+                        }
+                        if (!TryEvaluateScalarNode(step.Right, ref state, out FormulaArgumentValue right)
+                            || !ScalarFormulaParser.ApplyOperator(value, step.Operator, right, out value,
+                                ref state.LastOperationWasAddition, ref state.LastLeft, ref state.LastRight)) return false;
+                    }
                     return true;
-                case ScalarExpressionNodeKind.Binary:
-                    value = default;
-                    if (!TryEvaluateScalarNode(node.Left!, ref state, out FormulaArgumentValue left)
-                        || !TryEvaluateScalarNode(node.Right!, ref state, out FormulaArgumentValue right)) return false;
-                    return ScalarFormulaParser.ApplyOperator(left, node.Operator!, right, out value,
-                        ref state.LastOperationWasAddition, ref state.LastLeft, ref state.LastRight);
                 default:
                     value = default;
                     return false;

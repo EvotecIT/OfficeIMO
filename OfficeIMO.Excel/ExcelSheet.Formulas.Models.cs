@@ -62,7 +62,11 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Formula results of one calculation pass, keyed by sheet number, row and column.</summary>
         internal sealed class FormulaEvaluationResults : Dictionary<long, FormulaArgumentValue> {
+            private static long _passes;
             private readonly Dictionary<string, int> _sheetNumbers = new(StringComparer.OrdinalIgnoreCase);
+
+            /// <summary>A number unique to this pass in the process; never zero.</summary>
+            internal long Pass { get; } = System.Threading.Interlocked.Increment(ref _passes);
 
             internal int GetSheetNumber(string sheetName) {
                 if (!_sheetNumbers.TryGetValue(sheetName, out int number)) {

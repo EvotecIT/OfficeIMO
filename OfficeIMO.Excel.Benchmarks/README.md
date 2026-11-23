@@ -306,6 +306,24 @@ layout setter that rewrites the worksheet or stylesheet on every call.
 ```powershell
 dotnet run -c Release -f net10.0 --project ./OfficeIMO.Excel.Benchmarks -- --filter '*ExcelFormattedReportBenchmarks*' --priority Normal --warmupCount 2 --iterationCount 6 --invocationCount 1 --unrollFactor 1 --outliers DontRemove --artifacts ./Ignore/Benchmarks/formatted-report
 ```
+## Formula recalculation
+
+`ExcelFormulaRecalculationBenchmarks` recalculates every formula of a
+2,000-order report: per-row arithmetic, `IF`, a cross-sheet `VLOOKUP`,
+`ROUND`, `IFERROR(INDEX(…,MATCH(…)))`, text concatenation, and four sheet totals
+(`SUM`, `COUNTIF`, `AVERAGE`, `MAX`). The `ConditionalTotals` shape adds a
+`SUMIFS` per row over the whole order column, which makes the pass quadratic in
+the row count. OfficeIMO, ClosedXML and EPPlus each load the same workbook once,
+outside timing, and recalculate it in full per invocation, so the lane measures
+parsing, dispatch and reference resolution rather than package loading. Setup
+compares the totals, a per-row column and a text result from every engine with
+values computed from the input rows. EPPlus runs only when it is enabled, as
+described under [Library comparison](#library-comparison).
+
+```powershell
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.Excel.Benchmarks -- --filter '*ExcelFormulaRecalculationBenchmarks*' --priority Normal --warmupCount 3 --iterationCount 10 --artifacts ./Ignore/Benchmarks/formula-recalculation
+```
+
 ## Numeric XML result shapes
 
 `ExcelNumericXmlReadBenchmarks` exercises numeric decoding through DataReader
