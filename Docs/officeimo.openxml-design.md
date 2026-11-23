@@ -25,11 +25,12 @@ Fidelity is part of the bar:
 
 | Capability | Owner |
 | --- | --- |
-| ZIP container read and write, exact Deflate framing, CRC-32 | `OfficeIMO.Core` (`Internal/OpenXml`, `Internal/Packaging`, `Internal/Compression`) |
+| ZIP container read, exact Deflate framing, CRC-32 | `OfficeIMO.Core` (`Internal/OpenXml`, `Internal/Packaging`, `Internal/Compression`) |
+| ZIP writer and Deflate encoder | `OfficeIMO.SharedSource/Packaging`, compiled into `OfficeIMO.Core` for .NET 8 and later and into `OfficeIMO.Excel` for older targets |
 | OPC: part names and identity, content types, relationships, core properties | `OfficeIMO.Core` (`OfficeOpcPackage`, `OfficeOpcPartNames`) |
 | XML pull reader, namespace table, markup compatibility | `OfficeIMO.Core` (`OfficeXmlPullReader`, `OfficeXmlNamespaces`) |
-| Editable element tree, UTF-8 writer, package writer | `OfficeIMO.Core` |
-| Typed views over the tree | Generated from the ECMA-376 schemas, into the engine that uses them |
+| Editable element tree, UTF-8 writer, editable package | `OfficeIMO.Core` (`OfficeXmlTree`, `OfficeXmlUtf8Writer`, `OfficeOpcEditablePackage`) |
+| Typed views over the tree | Generated into the engine that uses them by `Build/Generate-OpenXmlViews.ps1` from the ISO/IEC 29500-4 transitional schemas, which are passed in and not stored in the repository |
 | Package security inspection | `OfficePackageSecurityInspector`, sharing the part-name rules above |
 | Validation | The Open XML SDK, as an opt-in and as the test reference |
 
@@ -53,11 +54,11 @@ Readers built on this layer follow the semantics of the model they replace. The 
 
 Each parsed part is a generic tree stored in arrays: node records indexed by integer, not one object per element. A node keeps:
 
-- its element name and its namespace, as both the folded and the exact id;
-- its attributes in source order, and its namespace declarations where they were declared;
-- the byte ranges of its source markup.
+- a name id from the package's name table, which holds the local name, the prefix as written, and the namespace as both the folded and the exact id;
+- its attributes in source order, each with its own name id, and its namespace declarations where they were declared;
+- for a parsed node, the byte ranges of its source markup, kept apart from the node records so created trees don't carry them.
 
-Typed access comes from views generated from the ECMA-376 schemas, for the types an engine uses. A view is a small value over a tree and a node index. It reads and writes attributes with schema value types, and inserts children in schema order.
+Typed access comes from views generated from the ECMA-376 schemas, for the types an engine uses. A view is a small value over a tree and a node index. It reads and writes attributes with schema value types, and inserts children in schema order: each sequence item has a rank, and the alternatives of a choice share one, so runs, breaks and fields can follow each other in any order. Unions and enumerations are strings for now.
 
 ### Laziness and passthrough
 
@@ -80,7 +81,9 @@ New elements use the prefix already in scope for their namespace, with its exact
 
 ### Write path
 
-Edited parts are serialised as UTF-8 straight into the Deflate encoder, with no intermediate strings or DOM. The ZIP writer and Deflate encoder that Excel's direct writer uses are the shared writer.
+Edited parts are serialised as UTF-8 straight into the Deflate encoder, with no intermediate strings or DOM. The ZIP writer and Deflate encoder that Excel's direct writer uses are the shared writer. Untouched members are copied with their compressed bytes, CRC, sizes and timestamps.
+
+On `netstandard2.0` and `net472` the layer saves through `ZipArchive`, which recompresses every member: the output is the same XML, but untouched members are not byte for byte the same ZIP entries.
 
 ### Public API
 
