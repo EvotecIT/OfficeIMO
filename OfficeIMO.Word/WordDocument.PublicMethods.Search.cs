@@ -1,3 +1,4 @@
+using System.Text;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -147,37 +148,61 @@ namespace OfficeIMO.Word {
                 return false;
             }
 
-            var nodes = new List<Text>();
-            OpenXmlElement? bodyChild = body.FirstChild;
-            while (bodyChild != null) {
-                if (bodyChild is Paragraph paragraph) {
-                    if (!TryCollectSimpleTextNodes(paragraph, nodes)) return false;
-                } else if (bodyChild is not SectionProperties) {
-                    return false;
+            // Template fills call this once per field, so the node list and replacement buffer are reused per thread.
+            List<Text> nodes = t_simpleTextNodes ??= new List<Text>();
+            try {
+                OpenXmlElement? bodyChild = body.FirstChild;
+                while (bodyChild != null) {
+                    if (bodyChild is Paragraph paragraph) {
+                        if (!TryCollectSimpleTextNodes(paragraph, nodes)) return false;
+                    } else if (bodyChild is not SectionProperties) {
+                        return false;
+                    }
+                    bodyChild = bodyChild.NextSibling();
                 }
-                bodyChild = bodyChild.NextSibling();
-            }
-            string[] values = new string[nodes.Count];
-            for (int index = 0; index < nodes.Count; index++) values[index] = WordParagraph.ReadVisibleText(nodes[index]);
-            if (HasCrossParagraphMatch(values, textToFind, stringComparison)) return false;
+                if (HasCrossParagraphMatch(new VisibleTextList(nodes), textToFind, stringComparison)) return false;
 
-            for (int index = 0; index < nodes.Count; index++) {
-                string value = values[index];
-                if (value.IndexOf(textToFind, stringComparison) < 0) continue;
-                int localCount = 0;
-                string updated = value.FindAndReplace(
-                    textToFind,
-                    replacement,
-                    stringComparison,
-                    ref localCount);
-                nodes[index].Text = updated;
-                if (updated.Length > 0 &&
-                    (char.IsWhiteSpace(updated[0]) || char.IsWhiteSpace(updated[updated.Length - 1]))) {
-                    nodes[index].Space = SpaceProcessingModeValues.Preserve;
+                StringBuilder builder = t_replacementBuilder ??= new StringBuilder();
+                for (int index = 0; index < nodes.Count; index++) {
+                    string value = WordParagraph.ReadVisibleText(nodes[index]);
+                    int found = value.IndexOf(textToFind, stringComparison);
+                    if (found < 0) continue;
+                    builder.Clear();
+                    int start = 0;
+                    while (found >= 0) {
+                        builder.Append(value, start, found - start).Append(replacement);
+                        count++;
+                        start = found + textToFind.Length;
+                        found = start < value.Length ? value.IndexOf(textToFind, start, stringComparison) : -1;
+                    }
+                    builder.Append(value, start, value.Length - start);
+                    string updated = builder.ToString();
+                    nodes[index].Text = updated;
+                    if (updated.Length > 0 &&
+                        (char.IsWhiteSpace(updated[0]) || char.IsWhiteSpace(updated[updated.Length - 1]))) {
+                        nodes[index].Space = SpaceProcessingModeValues.Preserve;
+                    }
                 }
-                count += localCount;
+                return true;
+            } finally {
+                nodes.Clear();
+                if (t_replacementBuilder?.Capacity > 4096) t_replacementBuilder = null;
             }
-            return true;
+        }
+
+        [ThreadStatic] private static List<Text>? t_simpleTextNodes;
+        [ThreadStatic] private static StringBuilder? t_replacementBuilder;
+
+        /// <summary>The visible text of each collected node, read on demand instead of copied into an array.</summary>
+        private sealed class VisibleTextList : IReadOnlyList<string> {
+            private readonly List<Text> _nodes;
+            internal VisibleTextList(List<Text> nodes) => _nodes = nodes;
+            public string this[int index] => WordParagraph.ReadVisibleText(_nodes[index]);
+            public int Count => _nodes.Count;
+            public IEnumerator<string> GetEnumerator() {
+                for (int index = 0; index < _nodes.Count; index++) yield return this[index];
+            }
+            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
         }
 
         private static bool TryCollectSimpleTextNodes(OpenXmlElement parent, List<Text> nodes) {
@@ -441,9 +466,7 @@ namespace OfficeIMO.Word {
 
         private void ForEachSearchScope(SearchScopeVisitor visit, WordSearchResult? result, WordSection? section = null) {
             visit(section?.Paragraphs ?? this.Paragraphs, result?.MutableBodyParagraphs);
-            foreach (var table in section?.Tables ?? this.Tables) {
-                visit(table.Paragraphs, result?.MutableTableParagraphs);
-            }
+            VisitTables((section?.Tables ?? this.Tables).Select(table => table._table), result?.MutableTableParagraphs);
 
             // A document-level operation edits each authored running story once, even when several
             // section references point to the same part. Section searches retain their resolved roles.
@@ -492,10 +515,31 @@ namespace OfficeIMO.Word {
                 }
             }
 
+            // Each table is its own scope, followed by the tables nested in its cells, in document order.
             void VisitTables(IEnumerable<Table> tables, List<WordParagraph>? destination) {
-                foreach (Table table in tables) {
+                var pending = new Stack<Table>(tables.Reverse());
+                while (pending.Count > 0) {
+                    Table table = pending.Pop();
                     var tableView = new WordTable(this, table, initializeChildren: false, readOnly: true);
                     visit(tableView.Paragraphs, destination);
+                    var nested = new List<Table>();
+                    foreach (TableRow row in WordTableContent.Rows(table)) {
+                        foreach (TableCell cell in WordTableContent.Cells(row)) {
+                            CollectCellTables(cell, nested);
+                        }
+                    }
+                    for (int index = nested.Count - 1; index >= 0; index--) pending.Push(nested[index]);
+                }
+            }
+
+            // Content controls and custom XML can wrap a nested table. Stop at each table so its own nested tables are visited once.
+            static void CollectCellTables(OpenXmlElement container, List<Table> tables) {
+                foreach (OpenXmlElement child in container.ChildElements) {
+                    if (child is Table table) {
+                        tables.Add(table);
+                    } else if (child is SdtBlock || child is SdtContentBlock || child is CustomXmlBlock) {
+                        CollectCellTables(child, tables);
+                    }
                 }
             }
         }

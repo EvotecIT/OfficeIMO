@@ -24,7 +24,13 @@ internal static partial class OfficeJpegReader {
         for (var y = 0; y < 8; y++) {
             var row = (baseY + y) * stride + baseX;
             var src = y * 8;
+#if NET8_0_OR_GREATER
+            if ((uint)row > (uint)(buffer.Length - 8)) throw new ArgumentOutOfRangeException(nameof(blockY));
+            System.Runtime.CompilerServices.Unsafe.WriteUnaligned(ref buffer[row],
+                System.Runtime.CompilerServices.Unsafe.ReadUnaligned<ulong>(ref pixels[src]));
+#else
             Buffer.BlockCopy(pixels, src, buffer, row, 8);
+#endif
         }
     }
 

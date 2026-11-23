@@ -208,10 +208,9 @@ public sealed partial class PdfEmbeddedFontFamily {
         }
 
         try {
-            var fileInfo = new System.IO.FileInfo(path);
-            if (!fileInfo.Exists ||
-                (fileInfo.Attributes & System.IO.FileAttributes.ReparsePoint) != 0 ||
-                fileInfo.Length > MaxSystemFontFileBytes) {
+            if (!System.IO.File.Exists(path) ||
+                OfficeIMO.Internal.OfficeFileSystemLinks.IsLinkOrReparsePoint(path) ||
+                GetOpenedFileLength(path) > MaxSystemFontFileBytes) {
                 return false;
             }
 
@@ -256,6 +255,14 @@ public sealed partial class PdfEmbeddedFontFamily {
             exception is System.InvalidOperationException) {
             return false;
         }
+    }
+
+    /// <summary>The length of the opened file. <see cref="System.IO.FileInfo.Length"/> would read the entry's attributes,
+    /// which fails on iOS for system fonts (see <see cref="OfficeIMO.Internal.OfficeFileSystemLinks"/>).</summary>
+    private static long GetOpenedFileLength(string path) {
+        using var stream = new System.IO.FileStream(path, System.IO.FileMode.Open, System.IO.FileAccess.Read,
+            System.IO.FileShare.ReadWrite | System.IO.FileShare.Delete, bufferSize: 1);
+        return stream.Length;
     }
 
     private static bool TryReadSystemFontFace(string path, byte[] data, string normalizedMetadataFamily, string[] acceptedFileNamePrefixes, out SystemFontFaceCandidate? candidate) {
@@ -603,7 +610,7 @@ public sealed partial class PdfEmbeddedFontFamily {
                 canonicalPath = System.IO.Path.GetFullPath(current);
                 var directoryInfo = new System.IO.DirectoryInfo(canonicalPath);
                 if (!directoryInfo.Exists ||
-                    (directoryInfo.Attributes & System.IO.FileAttributes.ReparsePoint) != 0 ||
+                    OfficeIMO.Internal.OfficeFileSystemLinks.IsLinkOrReparsePoint(directoryInfo) ||
                     !seenDirectories.Add(canonicalPath)) {
                     continue;
                 }

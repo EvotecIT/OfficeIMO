@@ -44,7 +44,21 @@ public static partial class OfficeWebpCodec {
             if (!allocationBudget.TryReserveArray(pixels, sizeof(uint))) return false;
             cancellationToken.ThrowIfCancellationRequested();
             byte[] rgba = OfficeRasterGuards.AllocateRgba32(width, height, "WebP decoded pixels exceed the managed limit.");
-            for (int pixel = 0; pixel < argb.Length; pixel++) {
+            int pixel = 0;
+#if NET8_0_OR_GREATER
+            if (System.Runtime.Intrinsics.Vector128.IsHardwareAccelerated) {
+                // Little-endian ARGB words hold B, G, R, A bytes; swap B and R in place.
+                var order = System.Runtime.Intrinsics.Vector128.Create((byte)2, 1, 0, 3, 6, 5, 4, 7, 10, 9, 8, 11, 14, 13, 12, 15);
+                ref byte source = ref System.Runtime.CompilerServices.Unsafe.As<uint, byte>(ref argb[0]);
+                ref byte target = ref rgba[0];
+                for (; pixel <= argb.Length - 4; pixel += 4) {
+                    if ((pixel & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                    var bytes = System.Runtime.Intrinsics.Vector128.LoadUnsafe(ref source, (nuint)pixel * 4);
+                    System.Runtime.Intrinsics.Vector128.StoreUnsafe(System.Runtime.Intrinsics.Vector128.Shuffle(bytes, order), ref target, (nuint)pixel * 4);
+                }
+            }
+#endif
+            for (; pixel < argb.Length; pixel++) {
                 if ((pixel & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
                 uint color = argb[pixel];
                 int offset = pixel * 4;

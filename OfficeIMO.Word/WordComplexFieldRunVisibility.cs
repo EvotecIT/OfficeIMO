@@ -51,10 +51,17 @@ namespace OfficeIMO.Word {
         internal static WordComplexFieldRunVisibility ForParagraph(Paragraph paragraph) {
             if (paragraph.Annotation<FragmentPrefix>() is FragmentPrefix fragmentPrefix)
                 return new WordComplexFieldRunVisibility(fragmentPrefix.State);
-            OpenXmlElement? textBoxStory = paragraph.Ancestors<TextBoxContent>().FirstOrDefault();
-            OpenXmlElement story = textBoxStory ?? paragraph.Ancestors().FirstOrDefault(element =>
-                element is Footnote or Endnote or Header or Footer)
-                ?? paragraph.Ancestors().LastOrDefault() ?? paragraph;
+            // The story is the nearest text box, else the nearest note, header or footer, else the part root.
+            OpenXmlElement? textBoxStory = null, noteStory = null, root = null;
+            for (OpenXmlElement? ancestor = paragraph.Parent; ancestor != null; ancestor = ancestor.Parent) {
+                if (ancestor is TextBoxContent) {
+                    textBoxStory = ancestor;
+                    break;
+                }
+                if (noteStory == null && ancestor is Footnote or Endnote or Header or Footer) noteStory = ancestor;
+                root = ancestor;
+            }
+            OpenXmlElement story = textBoxStory ?? noteStory ?? root ?? paragraph;
             Dictionary<OpenXmlElement, Dictionary<Paragraph, FieldState>>? cache = ConversionPrefixes.Value;
             if (cache != null) {
                 if (!cache.TryGetValue(story, out Dictionary<Paragraph, FieldState>? prefixes)) {
@@ -72,7 +79,7 @@ namespace OfficeIMO.Word {
             var visibility = new WordComplexFieldRunVisibility();
             foreach (Paragraph earlier in story.Descendants<Paragraph>()) {
                 if (ReferenceEquals(earlier, paragraph)) break;
-                if (textBoxStory == null && earlier.Ancestors<TextBoxContent>().Any()) continue;
+                if (textBoxStory == null && OpenXmlTreeQueries.HasAncestor<TextBoxContent>(earlier)) continue;
                 visibility.ObserveParagraphMarkers(earlier);
             }
             return visibility;
@@ -181,7 +188,7 @@ namespace OfficeIMO.Word {
             var prefixes = new Dictionary<Paragraph, FieldState>();
             var visibility = new WordComplexFieldRunVisibility();
             foreach (Paragraph paragraph in story.Descendants<Paragraph>()) {
-                if (!isTextBoxStory && paragraph.Ancestors<TextBoxContent>().Any()) continue;
+                if (!isTextBoxStory && OpenXmlTreeQueries.HasAncestor<TextBoxContent>(paragraph)) continue;
                 if (visibility.CurrentState is FieldState state) prefixes[paragraph] = state;
                 visibility.ObserveParagraphMarkers(paragraph);
             }
@@ -189,13 +196,14 @@ namespace OfficeIMO.Word {
         }
 
         internal void ObserveParagraphMarkers(Paragraph paragraph) {
-            foreach (FieldChar marker in paragraph.Descendants<FieldChar>()
-                .Where(marker => IsObservedFieldMarker(marker, paragraph)))
-                Observe(marker);
+            if (!OpenXmlTreeQueries.HasDescendant<FieldChar>(paragraph)) return;
+            foreach (FieldChar marker in paragraph.Descendants<FieldChar>()) {
+                if (IsObservedFieldMarker(marker, paragraph)) Observe(marker);
+            }
         }
 
         private static bool IsObservedFieldMarker(FieldChar marker, Paragraph paragraph) =>
-            ReferenceEquals(marker.Ancestors<Paragraph>().FirstOrDefault(), paragraph) &&
+            ReferenceEquals(OpenXmlTreeQueries.FindAncestor<Paragraph>(marker), paragraph) &&
             !IsInIgnoredRevisionContainer(marker);
 
         // Visible-run readers do not traverse revision run containers. Their field

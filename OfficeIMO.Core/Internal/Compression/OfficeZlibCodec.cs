@@ -60,6 +60,22 @@ namespace OfficeIMO.Core.Internal {
                 throw new NotSupportedException("Preset-dictionary zlib streams are not supported.");
             }
             cancellationToken.ThrowIfCancellationRequested();
+#if NET8_0_OR_GREATER
+            // An exact-size payload inflates once into its final buffer. The managed
+            // decoder enforces the same structure, distance, output and trailing-byte
+            // rules as validation followed by DeflateStream; any rejection takes the
+            // original path below, which reports the specific failure.
+            if (expectedOutputBytes.HasValue) {
+                var inflated = new byte[expectedOutputBytes.Value];
+                if (OfficeDeflateStreamValidator.TryInflateExact(
+                        bytes, 2, bytes.Length - 6, inflated, inflated.Length, publish: null, cancellationToken)) {
+                    if (Adler32(inflated, cancellationToken) != ReadBigEndianUInt32(bytes, bytes.Length - 4)) {
+                        throw new InvalidDataException("The zlib stream Adler-32 checksum is invalid.");
+                    }
+                    return inflated;
+                }
+            }
+#endif
             int validationOutputLimit = expectedOutputBytes ?? maximumOutputBytes;
             if (!OfficeDeflateStreamValidator.TryValidateExact(
                     bytes, 2, bytes.Length - 6, validationOutputLimit,
