@@ -15,8 +15,8 @@ public static partial class OfficeRasterResampler {
         double scaleX,
         double scaleY,
         CancellationToken cancellationToken) {
-        var columns = BilinearAxis.Create(width, sourceWidth, scaleX, 4);
-        var rows = BilinearAxis.Create(height, sourceHeight, scaleY, sourceWidth * 4);
+        var columns = BilinearAxis.Create(width, sourceWidth, scaleX, 4, cancellationToken);
+        var rows = BilinearAxis.Create(height, sourceHeight, scaleY, sourceWidth * 4, cancellationToken);
         ResampleRows(height, (long)width * height * 4L, cancellationToken, y => {
             cancellationToken.ThrowIfCancellationRequested();
             int top = rows.First[y];
@@ -67,8 +67,14 @@ public static partial class OfficeRasterResampler {
         public double[] Fraction = Array.Empty<double>();
         public double[] InverseFraction = Array.Empty<double>();
 
+        // Two int and two double entries per column and per row, plus array headers.
+        public static long GetTableBytes(int width, int height) =>
+            ((long)width + height) * (2L * sizeof(int) + 2L * sizeof(double)) + 8L * 24L;
+
         // Offsets are pre-multiplied by the axis stride in bytes.
-        public static BilinearAxis Create(int length, int sourceLength, double scale, int stride) {
+        public static BilinearAxis Create(int length, int sourceLength, double scale, int stride,
+            CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             var axis = new BilinearAxis {
                 First = new int[length],
                 Second = new int[length],
@@ -76,6 +82,7 @@ public static partial class OfficeRasterResampler {
                 InverseFraction = new double[length]
             };
             for (int i = 0; i < length; i++) {
+                if ((i & 0xFFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
                 double position = ((i + 0.5D) * scale) - 0.5D;
                 double sample = Clamp(position, 0D, sourceLength - 1D);
                 int first = (int)Math.Floor(sample);
