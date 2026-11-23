@@ -17,12 +17,13 @@ internal static class PdfContentStreamInterpreter {
         bool dispatchInvalidOperations = false,
         Func<PdfArray, int>? inlineImageArrayComponentCount = null,
         PdfContentOperands? operandBuffer = null,
-        int maxGraphicsStateDepth = PdfReadLimits.DefaultMaxGraphicsStateDepth) {
+        int maxGraphicsStateDepth = PdfReadLimits.DefaultMaxGraphicsStateDepth,
+        Func<bool>? stopRequested = null) {
         content.ThrowIfNull(nameof(content));
         Guard.NotNull(visit, nameof(visit));
         Func<PdfContentOperation, bool> visitAll = operation => {
             visit(operation);
-            return true;
+            return stopRequested == null || !stopRequested();
         };
         if (content.Bytes is byte[] bytes) {
             new Reader<PdfByteContentText>(new PdfByteContentText(bytes), maxOperations, maxOperands, maxNestingDepth, maxGraphicsStateDepth, inlineImageComponentCount, inlineImageArrayComponentCount, dispatchInvalidOperations, operandBuffer)

@@ -6,6 +6,7 @@ public sealed partial class PdfReadPage {
     private object? _rootInvokedResourceNamesSync;
     private PdfPageInvokedResourceNames? _rootInvokedResourceNames;
     private bool _rootInvokedResourceNamesInitialized;
+    private HashSet<string>? _rootVisibleColorSpaceNames;
 
     private object RootInvokedResourceNamesSync => LazyInitializer.EnsureInitialized(ref _rootInvokedResourceNamesSync)!;
 
@@ -2539,9 +2540,20 @@ public sealed partial class PdfReadPage {
     private PdfPageInvokedResourceNames GetInvokedResourceNames(
         PdfContentSource content,
         PdfDictionary? resources,
-        Action? operationCheck = null) {
+        Action? operationCheck = null,
+        bool stopWhenColorSpacesKnown = false) {
         var names = new PdfPageInvokedResourceNames();
         Dictionary<string, PdfPageColorSpace> placeholders = GetColorSpaceResourcePlaceholders(resources);
+        // A declared color space can become visible only through a name token in this content. Once every
+        // declared name the content mentions has been seen visibly the color-space answer cannot change, so a
+        // caller that needs only that answer stops the pass there.
+        HashSet<string>? referencedColorSpaces = stopWhenColorSpacesKnown
+            ? GetReferencedResourceNames(content, placeholders)
+            : null;
+        int unseenColorSpaces = referencedColorSpaces?.Count ?? placeholders.Count;
+        Func<bool>? stopRequested = referencedColorSpaces != null
+            ? () => unseenColorSpaces == 0
+            : null;
         (double Width, double Height) pageSize = GetVisualPageSize();
         _ = PdfPageXObjectInvocationParser.Parse(
             content,
@@ -2566,11 +2578,94 @@ public sealed partial class PdfReadPage {
                     : PdfType3PaintChannels.Visible;
             },
             inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
-            visibleColorSpaceVisitor: name => names.ColorSpaces.Add(name),
+            visibleColorSpaceVisitor: name => {
+                if (names.ColorSpaces.Add(name) && referencedColorSpaces?.Contains(name) == true) unseenColorSpaces--;
+            },
             operatorVisitor: names.ObserveOperator,
             operationCheck: operationCheck,
-            textClippingBudget: new PdfTextClippingBudget(_limits));
+            textClippingBudget: new PdfTextClippingBudget(_limits),
+            stopRequested: stopRequested);
+        names.IsComplete = stopRequested == null || unseenColorSpaces > 0;
         return names;
+    }
+
+    /// <summary>
+    /// Returns the declared names that occur as a name token in the content. Plain ASCII names are found by their
+    /// literal spelling; names written with <c>#</c> escapes are decoded first. A declared name that is not plain
+    /// ASCII, or content with too many escaped names to check cheaply, counts as referenced.
+    /// </summary>
+    private static HashSet<string> GetReferencedResourceNames<TValue>(PdfContentSource content, Dictionary<string, TValue> declared) {
+        var referenced = new HashSet<string>(StringComparer.Ordinal);
+        foreach (string name in declared.Keys) {
+            if (!IsPlainAsciiName(name) || content.IndexOf("/" + name) >= 0) referenced.Add(name);
+        }
+        if (referenced.Count == declared.Count) return referenced;
+
+        return content.Text is string text
+            ? AddEscapedNameReferences(new PdfStringContentText(text), declared, referenced)
+            : AddEscapedNameReferences(new PdfByteContentText(content.Bytes!), declared, referenced);
+    }
+
+    private static HashSet<string> AddEscapedNameReferences<TText, TValue>(TText text, Dictionary<string, TValue> declared,
+        HashSet<string> referenced) where TText : struct, IPdfContentText {
+        int escapedNames = 0;
+        for (int hash = text.IndexOf("#", 0, text.Length); hash >= 0;
+             hash = hash + 1 < text.Length ? text.IndexOf("#", hash + 1, text.Length - hash - 1) : -1) {
+            int start = hash;
+            while (start > 0 && hash - start < MaximumNameScanLength && !IsContentDelimiter(text[start - 1])) start--;
+            if (start > 0 && !IsContentDelimiter(text[start - 1])) {
+                // The token is longer than the scan reaches, so it may be an escaped name; count every declared name.
+                referenced.UnionWith(declared.Keys);
+                return referenced;
+            }
+            if (start == 0 || text[start - 1] != '/') continue;
+            if (++escapedNames > MaximumEscapedNameChecks) {
+                referenced.UnionWith(declared.Keys);
+                return referenced;
+            }
+            int end = hash + 1;
+            while (end < text.Length && !IsContentDelimiter(text[end])) end++;
+            string decoded = PdfSyntax.DecodeName(text.Substring(start, end - start));
+            if (declared.ContainsKey(decoded)) referenced.Add(decoded);
+        }
+        return referenced;
+    }
+
+    private const int MaximumNameScanLength = 256;
+    private const int MaximumEscapedNameChecks = 64;
+
+    private static bool IsPlainAsciiName(string name) {
+        foreach (char character in name) {
+            if (character <= ' ' || character >= 0x7F || character == '#' || IsContentDelimiter(character)) return false;
+        }
+        return name.Length > 0;
+    }
+
+    private static bool IsContentDelimiter(char value) =>
+        char.IsWhiteSpace(value) || value is '/' or '[' or ']' or '(' or ')' or '<' or '>' or '%';
+
+    /// <summary>Declared color-space names that the content visibly invokes, which is all text interpretation needs.</summary>
+    private HashSet<string> GetVisibleColorSpaceNames(
+        PdfContentSource content,
+        PdfDictionary? resources,
+        Action? operationCheck = null) =>
+        GetInvokedResourceNames(content, resources, operationCheck, stopWhenColorSpacesKnown: true).ColorSpaces;
+
+    private HashSet<string> GetRootVisibleColorSpaceNames(
+        PdfContentSource content,
+        PdfDictionary? resources,
+        Action? operationCheck = null) {
+        lock (RootInvokedResourceNamesSync) {
+            if (_rootInvokedResourceNamesInitialized) return _rootInvokedResourceNames!.ColorSpaces;
+            if (_rootVisibleColorSpaceNames != null) return _rootVisibleColorSpaceNames;
+            PdfPageInvokedResourceNames names = GetInvokedResourceNames(content, resources, operationCheck, stopWhenColorSpacesKnown: true);
+            if (names.IsComplete) {
+                _rootInvokedResourceNames = names;
+                _rootInvokedResourceNamesInitialized = true;
+            }
+            _rootVisibleColorSpaceNames = names.ColorSpaces;
+            return names.ColorSpaces;
+        }
     }
 
     private PdfPageInvokedResourceNames GetRootInvokedResourceNames(
@@ -2653,6 +2748,8 @@ public sealed partial class PdfReadPage {
 
     private sealed class PdfPageInvokedResourceNames {
         internal HashSet<string> ColorSpaces { get; } = new HashSet<string>(StringComparer.Ordinal);
+        /// <summary>False when the pass stopped once the color-space answer was known, so the paint flags may be incomplete.</summary>
+        internal bool IsComplete { get; set; } = true;
         internal bool HasObjectPaint { get; private set; }
         internal bool HasVectorPaint { get; private set; }
 
