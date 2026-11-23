@@ -525,10 +525,21 @@ namespace OfficeIMO.Word {
                     var nested = new List<Table>();
                     foreach (TableRow row in WordTableContent.Rows(table)) {
                         foreach (TableCell cell in WordTableContent.Cells(row)) {
-                            nested.AddRange(cell.Elements<Table>());
+                            CollectCellTables(cell, nested);
                         }
                     }
                     for (int index = nested.Count - 1; index >= 0; index--) pending.Push(nested[index]);
+                }
+            }
+
+            // Content controls and custom XML can wrap a nested table. Stop at each table so its own nested tables are visited once.
+            static void CollectCellTables(OpenXmlElement container, List<Table> tables) {
+                foreach (OpenXmlElement child in container.ChildElements) {
+                    if (child is Table table) {
+                        tables.Add(table);
+                    } else if (child is SdtBlock || child is SdtContentBlock || child is CustomXmlBlock) {
+                        CollectCellTables(child, tables);
+                    }
                 }
             }
         }

@@ -219,16 +219,21 @@ namespace OfficeIMO.Tests {
             WordTable inner = outer.Rows[0].Cells[0].AddTable(1, 1);
             inner.Rows[0].Cells[0].Paragraphs[0].Text = "TOKEN inner";
             inner.Rows[0].Cells[0].AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].Text = "TOKEN deepest";
+            // A nested table can also sit inside a block content control in the cell.
+            outer.Rows[0].Cells[0]._tableCell.Append(new SdtBlock(new SdtContentBlock(
+                new Table(new TableGrid(new GridColumn()),
+                    new TableRow(new TableCell(new Paragraph(
+                        new Run(new Text("TOKEN wrapped")))))))));
             WordTable headerTable = document.Sections[0].PageSetup.Header.AddTable(1, 1);
             headerTable.Rows[0].Cells[0].AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].Text = "TOKEN header inner";
 
             WordSearchResult result = document.Find("TOKEN");
-            Assert.Equal(4, result.MatchCount);
-            Assert.Equal(new[] { "TOKEN outer", "TOKEN inner", "TOKEN deepest" }, result.TableParagraphs.Select(paragraph => paragraph.Text));
+            Assert.Equal(5, result.MatchCount);
+            Assert.Equal(new[] { "TOKEN outer", "TOKEN inner", "TOKEN deepest", "TOKEN wrapped" }, result.TableParagraphs.Select(paragraph => paragraph.Text));
             Assert.Equal("TOKEN header inner", Assert.Single(result.DefaultHeaderParagraphs).Text);
-            Assert.Equal(4, document.Find(new Regex("^TOKEN")).MatchCount);
+            Assert.Equal(5, document.Find(new Regex("^TOKEN")).MatchCount);
 
-            Assert.Equal(4, document.ReplaceAll("TOKEN", "DONE"));
+            Assert.Equal(5, document.ReplaceAll("TOKEN", "DONE"));
             Assert.Equal("DONE deepest", inner.Rows[0].Cells[0].NestedTables.Single().Rows[0].Cells[0].Paragraphs[0].Text);
             Assert.Equal(0, document.Find("TOKEN").MatchCount);
         }
