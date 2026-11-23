@@ -248,7 +248,7 @@ internal sealed partial class OfficeXmlPullReader {
                     foreach (string prefix in SplitList(GetAttributeValue(attribute))) {
                         // A prefix with no binding cannot name any element or attribute, so it has nothing to ignore.
                         if (!TryResolvePrefix(prefix, out int ignorable)) continue;
-                        if (_ignorableCount == _ignorable.Length) Array.Resize(ref _ignorable, _ignorable.Length * 2);
+                        if (_ignorableCount == _ignorable.Length) Array.Resize(ref _ignorable, Math.Max(4, _ignorable.Length * 2));
                         _ignorable[_ignorableCount++] = ignorable;
                     }
                 } else if (AsciiEquals(attribute.LocalStart, attribute.LocalLength, "MustUnderstand")) {
@@ -262,7 +262,7 @@ internal sealed partial class OfficeXmlPullReader {
                         int colon = name.IndexOf(':');
                         if (colon <= 0 || !TryResolvePrefix(name.Substring(0, colon), out int processed)) continue;
                         string local = name.Substring(colon + 1);
-                        if (_processContentCount == _processContent.Length) Array.Resize(ref _processContent, _processContent.Length * 2);
+                        if (_processContentCount == _processContent.Length) Array.Resize(ref _processContent, Math.Max(4, _processContent.Length * 2));
                         _processContent[_processContentCount++] = new ProcessContentEntry {
                             NamespaceId = processed,
                             LocalName = local == "*" ? null : System.Text.Encoding.UTF8.GetBytes(local)

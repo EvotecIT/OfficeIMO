@@ -34,6 +34,7 @@ public class WordReadComparisonBenchmarks {
         EnsureExpected("OfficeIMO", "Default", nameof(OfficeIMO), OfficeIMO());
         EnsureExpected("Open XML SDK", "Default", nameof(OpenXmlSdk), OpenXmlSdk());
         EnsureExpected("OfficeIMO", "PackageReader", nameof(OfficeIMOPackageReader), OfficeIMOPackageReader());
+        EnsureExpected("OfficeIMO", "StreamedBodyText", nameof(OfficeIMOStreamedBodyText), OfficeIMOStreamedBodyText());
         EnsureExpected("OfficeIMO", "ReaderText", nameof(OfficeIMOReaderText), OfficeIMOReaderText());
         EnsureExpected("OfficeIMO", "ReaderStreamedText", nameof(OfficeIMOReaderStreamedText), OfficeIMOReaderStreamedText());
     }
@@ -109,6 +110,18 @@ public class WordReadComparisonBenchmarks {
         foreach (string text in global::OfficeIMO.Core.Internal.OpenXml.OfficeOpenXmlTextReader.ReadWordBodyParagraphs(stream)) {
             observation = observation.Add(text);
         }
+        return observation;
+    }
+
+    /// <summary>The SDK-free body-text pass behind the Reader's streamed text projection, without the Reader's chunks.</summary>
+    [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:StreamedBodyText")]
+    public WordReadObservation OfficeIMOStreamedBodyText() {
+        using var stream = new MemoryStream(_fixture, writable: false);
+        List<string> lines = global::OfficeIMO.Word.WordStreamedBodyText.TryReadLines(stream, int.MaxValue, 0, null, CancellationToken.None)
+            ?? throw new InvalidDataException("The streamed body-text pass declined the fixture.");
+        var observation = WordReadObservation.Empty;
+        foreach (string line in lines) observation = observation.Add(line);
         return observation;
     }
 

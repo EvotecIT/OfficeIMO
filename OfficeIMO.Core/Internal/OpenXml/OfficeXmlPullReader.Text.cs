@@ -5,7 +5,7 @@ namespace OfficeIMO.Core.Internal.OpenXml;
 internal sealed partial class OfficeXmlPullReader {
     private static readonly UTF8Encoding StrictUtf8 = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
 
-    private char[] _decodeBuffer = new char[256];
+    private char[]? _decodeBuffer;
 
     /// <summary>Reads an attribute of the current start element by namespace id and ASCII local name.</summary>
     /// <remarks>Unprefixed attributes have no namespace (<see cref="OfficeXmlNamespaces.None"/>).</remarks>
@@ -49,7 +49,7 @@ internal sealed partial class OfficeXmlPullReader {
         attribute.NeedsDecoding ? DecodeAttribute(attribute) : Decode(attribute.ValueStart, attribute.ValueLength);
 
     private string DecodeAttribute(in Attribute attribute) {
-        var buffer = new OfficeCharBuffer(_decodeBuffer);
+        var buffer = new OfficeCharBuffer(_decodeBuffer ??= new char[64]);
         AppendDecoded(buffer, attribute.ValueStart, attribute.ValueLength, attribute: true);
         _decodeBuffer = buffer.Chars;
         return buffer.ToString();

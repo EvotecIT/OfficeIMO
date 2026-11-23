@@ -131,9 +131,14 @@ internal static class OfficeXmlNamespaces {
             ? TransitionalRelationshipTypePrefix + type.Substring(StrictRelationshipTypePrefix.Length)
             : type;
 
-    /// <summary>Per-reader table that assigns ids to namespace URIs declared in the parts it reads.</summary>
+    /// <summary>Per-package table that assigns ids to namespace URIs declared in the parts it reads and caches local names.</summary>
     internal sealed class Table {
+        private const int NameCacheSize = 128;
         private readonly List<byte[]> _dynamicUris = new();
+        private string?[]? _names;
+
+        /// <summary>The cache slot for an element local name with this hash; readers of one package share it.</summary>
+        internal ref string? NameSlot(int hash) => ref (_names ??= new string?[NameCacheSize])[hash & (NameCacheSize - 1)];
         private int _lastKnown = -1;
 
         /// <summary>Returns the id of the UTF-8 URI in <paramref name="data"/>, registering it when it is new.</summary>

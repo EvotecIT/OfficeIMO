@@ -21,7 +21,6 @@ internal enum OfficeXmlNodeKind : byte {
 /// <see cref="IsEmptyElement"/> set, followed by its <see cref="OfficeXmlNodeKind.EndElement"/>.</remarks>
 internal sealed partial class OfficeXmlPullReader {
     private const int MaximumDepth = 1024;
-    private const int NameCacheSize = 128;
 
     private readonly byte[] _data;
     private readonly int _end;
@@ -29,22 +28,21 @@ internal sealed partial class OfficeXmlPullReader {
     private readonly bool _processMarkupCompatibility;
     private int _position;
 
-    private Frame[] _frames = new Frame[32];
+    private Frame[] _frames = new Frame[16];
     private int _frameCount;
     private int _depth;
     private bool _pendingEnd;
     private bool _decrementDepth;
     private bool _rootSeen;
-    private readonly string?[] _nameCache = new string?[NameCacheSize];
 
-    private Binding[] _bindings = new Binding[16];
+    private Binding[] _bindings = new Binding[8];
     private int _bindingCount;
-    private int[] _ignorable = new int[8];
+    private int[] _ignorable = Array.Empty<int>();
     private int _ignorableCount;
-    private ProcessContentEntry[] _processContent = new ProcessContentEntry[4];
+    private ProcessContentEntry[] _processContent = Array.Empty<ProcessContentEntry>();
     private int _processContentCount;
 
-    private Attribute[] _attributes = new Attribute[16];
+    private Attribute[] _attributes = new Attribute[8];
     private int _attributeCount;
 
     private int _nameStart;
@@ -113,12 +111,13 @@ internal sealed partial class OfficeXmlPullReader {
 
     internal bool IsElement(int namespaceId, string localName) => NamespaceId == namespaceId && AsciiEquals(_nameStart, _nameLength, localName);
 
-    /// <summary>The local name of the current element. Names repeat, so recent ones are cached rather than decoded again.</summary>
+    /// <summary>The local name of the current element. Names repeat across the parts of a package, so the
+    /// package's namespace table caches them rather than decoding them again.</summary>
     internal string LocalName {
         get {
             int hash = _nameLength;
             for (int index = 0; index < _nameLength; index++) hash = hash * 31 + _data[_nameStart + index];
-            ref string? cached = ref _nameCache[hash & (NameCacheSize - 1)];
+            ref string? cached = ref _namespaces.NameSlot(hash);
             if (cached != null && AsciiEquals(_nameStart, _nameLength, cached)) return cached;
             return cached = Encoding.UTF8.GetString(_data, _nameStart, _nameLength);
         }

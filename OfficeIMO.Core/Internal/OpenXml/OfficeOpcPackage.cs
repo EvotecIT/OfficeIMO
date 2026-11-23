@@ -153,9 +153,8 @@ internal sealed class OfficeOpcPackage : IDisposable {
                 }
                 bool external = reader.TryGetAttribute(OfficeXmlNamespaces.None, "TargetMode", out string mode)
                     && string.Equals(mode, "External", StringComparison.Ordinal);
-                string? targetPart = external ? null : OfficeOpcPartNames.ResolveRelationshipTarget(relationshipsPart, target);
                 if (!ids.Add(id)) throw new InvalidDataException("'" + relationshipsPart + "' repeats the relationship id '" + id + "'.");
-                relationships.Add(new OfficeOpcRelationship(id, OfficeXmlNamespaces.NormalizeRelationshipType(type), target, external, targetPart));
+                relationships.Add(new OfficeOpcRelationship(relationshipsPart, id, OfficeXmlNamespaces.NormalizeRelationshipType(type), target, external));
             }
         }
         return relationships.ToArray();
@@ -189,19 +188,33 @@ internal sealed class OfficeOpcPackage : IDisposable {
 
 /// <summary>One package or part relationship. <see cref="TargetPartName"/> is null for external or unresolvable targets.</summary>
 internal sealed class OfficeOpcRelationship {
-    internal OfficeOpcRelationship(string id, string type, string target, bool isExternal, string? targetPartName) {
+    private readonly string _relationshipsPart;
+    private string? _targetPartName;
+    private bool _resolved;
+
+    internal OfficeOpcRelationship(string relationshipsPart, string id, string type, string target, bool isExternal) {
+        _relationshipsPart = relationshipsPart;
         Id = id;
         Type = type;
         Target = target;
         IsExternal = isExternal;
-        TargetPartName = targetPartName;
     }
 
     internal string Id { get; }
     internal string Type { get; }
     internal string Target { get; }
     internal bool IsExternal { get; }
-    internal string? TargetPartName { get; }
+
+    /// <summary>The target part name, resolved on first use: most relationships a reader loads are never followed.</summary>
+    internal string? TargetPartName {
+        get {
+            if (!_resolved) {
+                _targetPartName = IsExternal ? null : OfficeOpcPartNames.ResolveRelationshipTarget(_relationshipsPart, Target);
+                _resolved = true;
+            }
+            return _targetPartName;
+        }
+    }
 }
 
 /// <summary>The core document properties a text projection reports.</summary>
