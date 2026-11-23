@@ -11,9 +11,10 @@ namespace OfficeIMO.Excel {
         private int _written;
         private int _scanned;
         private bool _complete;
-        // Consumers register before they read the published length, and the producer reads this count after
-        // publishing, so the producer takes the lock only when a consumer may be blocked. Publication happens
-        // for every inflated block; locking each time contends with consumers that poll for more bytes.
+        // Consumers register before they read the published length, and the XML producer reads this count after
+        // publishing, so it takes the lock only when a consumer may be blocked. XML publication happens for every
+        // inflated block, and locking each time contended with the indexers polling for more rows. Binary
+        // publication keeps the lock: skipping it measured slower for sequential XLSB reads.
         private int _waiters;
 
         internal WorksheetInflationProgress(int initiallyWritten = 256) => _written = initiallyWritten;
@@ -21,7 +22,10 @@ namespace OfficeIMO.Excel {
         /// <summary>Publishes initialized binary bytes; framing and payload validation stay with the consumer.</summary>
         internal void PublishBytes(int written) {
             _written = written;
-            Publish(written);
+            lock (_gate) {
+                Volatile.Write(ref _available, written);
+                Monitor.PulseAll(_gate);
+            }
         }
 
         /// <summary>Waits for a complete header or payload without exposing an unwritten pooled tail.</summary>
