@@ -6,18 +6,22 @@ using Xunit;
 namespace OfficeIMO.Excel.Tests;
 
 public partial class Excel {
-    // Large enough (about 19 MB of worksheet XML) that the reader holds only a window of the inflated part.
-    private const int LargeWorksheetRows = 110_000;
+    // About 3.5 MB of worksheet XML; a 64 KB window makes the reader slide it hundreds of times.
+    private const int LargeWorksheetRows = 20_000;
+
+    private static ExcelReaderOptions WorksheetWindowOptions(bool windowed) => new ExcelReaderOptions {
+        WindowedWorksheetMinimumBytes = windowed ? 1 : int.MaxValue,
+        WorksheetWindowBytes = 64 * 1024,
+    };
 
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void OpenDataReader_LargeWorksheetReturnsEveryValue(bool dimension) {
+    public void OpenDataReader_WindowedWorksheetReturnsEveryValue(bool dimension) {
         string path = CreateWindowedIndexWorkbook(LargeWindowWorksheet(dimension, lastRowCells: null, tail: null));
         try {
-            using var reader = ExcelDocument.OpenReader(path);
-            Assert.Equal(4, reader.FieldCount);
-            Assert.Equal(new[] { "Name", "Id", "Date", "Value" }, Enumerable.Range(0, 4).Select(reader.GetName));
+            using var reader = ExcelDocument.OpenReader(path, WorksheetWindowOptions(windowed: true));
+            Assert.Equal(new[] { "Name", "Id", "Date", "Value" }, Enumerable.Range(0, reader.FieldCount).Select(reader.GetName));
             int count = 0;
             while (reader.Read()) {
                 int row = count + 2;
@@ -40,19 +44,79 @@ public partial class Excel {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void OpenDataReader_LargeWorksheetRejectsLateInvalidInputBeforeTheFirstRow(bool malformedXml) {
+    public void OpenDataReader_WindowedWorksheetRejectsLateInvalidInputBeforeTheFirstRow(bool malformedXml) {
         string path = CreateWindowedIndexWorkbook(malformedXml
             ? LargeWindowWorksheet(dimension: false, lastRowCells: null, tail: "<broken>")
             : LargeWindowWorksheet(dimension: false, lastRowCells: "<c s=\"9\"/>", tail: null));
         try {
             if (malformedXml) {
-                Assert.Throws<XmlException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
+                Assert.Throws<XmlException>(() => {
+                    using var reader = ExcelDocument.OpenReader(path, WorksheetWindowOptions(windowed: true)); _ = reader.FieldCount;
+                });
             } else {
-                Assert.Throws<InvalidDataException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
+                Assert.Throws<InvalidDataException>(() => {
+                    using var reader = ExcelDocument.OpenReader(path, WorksheetWindowOptions(windowed: true)); _ = reader.FieldCount;
+                });
             }
         } finally {
             File.Delete(path);
         }
+    }
+
+    [Fact]
+    public void OpenDataReader_WindowedWorksheetMatchesTheBufferedReader() {
+        // Implicit rows and cells, gaps in row numbers, empty and sparse rows, formulas, entities, line breaks and
+        // rows longer than the window, so every row shape crosses window boundaries.
+        var rows = new StringBuilder(WindowedIndexHeader);
+        int rowNumber = 1;
+        for (int index = 0; index < 6000; index++) {
+            rowNumber += index % 7 == 0 ? 3 : 1;
+            string r = rowNumber.ToString(CultureInfo.InvariantCulture);
+            switch (index % 5) {
+                case 0:
+                    rows.Append("<row r=\"").Append(r).Append("\"><c r=\"A").Append(r).Append("\" t=\"inlineStr\"><is><t>a&lt;b ")
+                        .Append(r).Append("</t></is></c><c r=\"C").Append(r).Append("\" s=\"1\"><v>45000.5</v></c></row>");
+                    break;
+                case 1:
+                    rows.Append("<row r=\"").Append(r).Append("\"><c t=\"inlineStr\"><is><t>line\r\nbreak</t></is></c><c><v>")
+                        .Append(r).Append("</v></c><c/><c><f>B").Append(r).Append("+1</f><v>").Append(rowNumber + 1).Append("</v></c></row>");
+                    break;
+                case 2:
+                    rows.Append("<row r=\"").Append(r).Append("\"/>");
+                    break;
+                case 3:
+                    string text = index % 1000 == 3 ? new string('x', 100_000) : "plain";
+                    rows.Append("<row r=\"").Append(r).Append("\" ht=\"20\" customHeight=\"1\"><c r=\"D").Append(r)
+                        .Append("\" t=\"inlineStr\"><is><t>").Append(text).Append("</t></is></c></row>");
+                    break;
+                default:
+                    rows.Append("<row r=\"").Append(r).Append("\"><c r=\"A").Append(r).Append("\" t=\"b\"><v>1</v></c><c r=\"B")
+                        .Append(r).Append("\"><v>-0.25</v></c><c r=\"C").Append(r).Append("\" s=\"1\"><v>45001</v></c><c r=\"D")
+                        .Append(r).Append("\" t=\"e\"><v>#N/A</v></c></row>");
+                    break;
+            }
+        }
+        string path = CreateWindowedIndexWorkbook(WindowedIndexWorksheet(rows.ToString(), dimension: null));
+        try {
+            List<object?[]> expected = ReadAllValues(path, windowed: false);
+            List<object?[]> actual = ReadAllValues(path, windowed: true);
+            Assert.True(expected.Count > 6000);
+            Assert.Equal(expected.Count, actual.Count);
+            for (int index = 0; index < expected.Count; index++) Assert.Equal(expected[index], actual[index]);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    private static List<object?[]> ReadAllValues(string path, bool windowed) {
+        using var reader = ExcelDocument.OpenReader(path, WorksheetWindowOptions(windowed));
+        var rows = new List<object?[]>();
+        while (reader.Read()) {
+            var values = new object?[reader.FieldCount];
+            reader.GetValues(values!);
+            rows.Add(values);
+        }
+        return rows;
     }
 
     private static string LargeWindowWorksheet(bool dimension, string? lastRowCells, string? tail) {

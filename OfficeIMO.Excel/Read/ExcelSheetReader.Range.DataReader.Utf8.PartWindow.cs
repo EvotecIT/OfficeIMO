@@ -5,11 +5,6 @@ using System.Buffers;
 namespace OfficeIMO.Excel {
     internal sealed partial class ExcelSheetReader {
         private sealed partial class ExcelUtf8RangeRowSource {
-            // Worksheets at least this large are read through a bounded byte window instead of one buffer holding the
-            // whole inflated part. Smaller parts keep the single-buffer readers, which also index them in parallel.
-            internal const int WindowedPartMinimumBytes = 16 * 1024 * 1024;
-            private const int PartWindowBytes = 4 * 1024 * 1024;
-
             // The window keeps the worksheet head (everything before the first row) at the start of the buffer, then
             // the bytes that hot-loop caches compare against, then a sliding run of rows. A row byte at buffer index i
             // (at or after the sliding run) is at part offset i + _windowShift. Row positions retained for delivery are
@@ -31,11 +26,11 @@ namespace OfficeIMO.Excel {
                 OpenXmlPackagePartBufferReader? reader = owner._partBufferReader;
                 if (reader == null || owner._opt.DisplayText != null
                     || !reader.TryGetLength(owner._worksheetPartName, out long length)
-                    || length < WindowedPartMinimumBytes || length > int.MaxValue
+                    || length < owner._opt.WindowedWorksheetMinimumBytes || length > int.MaxValue
                     || !reader.TryOpenExactPartStream(owner._worksheetPartName, ct, out Stream? stream)) return false;
 
-                var candidate = new ExcelUtf8RangeRowSource(owner, OpenXmlPartBufferPool.Rent(PartWindowBytes), 0) {
-                    _partStream = ExcelPrefetchingReadStream.Wrap(stream!, ct),
+                var candidate = new ExcelUtf8RangeRowSource(owner, OpenXmlPartBufferPool.Rent(owner._opt.WorksheetWindowBytes), 0) {
+                    _partStream = WrapPartStream(reader, stream!, ct),
                     _windowedPart = true
                 };
                 try {
@@ -58,6 +53,13 @@ namespace OfficeIMO.Excel {
                     throw;
                 }
             }
+
+            /// <summary>
+            /// Decompresses ahead on a worker only when the worksheet has its own archive cursor; otherwise another
+            /// part read on this thread would share the cursor with the worker.
+            /// </summary>
+            private static Stream WrapPartStream(OpenXmlPackagePartBufferReader reader, Stream stream, CancellationToken ct) =>
+                reader.AllowsPipelining ? ExcelPrefetchingReadStream.Wrap(stream, ct) : stream;
 
             /// <summary>Indexes every row into one reused metadata row; only row positions survive qualification.</summary>
             private void EnterWindowedCellMode() {
@@ -215,7 +217,7 @@ namespace OfficeIMO.Excel {
                 if (!_owner._partBufferReader!.TryOpenExactPartStream(_owner._worksheetPartName, ct, out Stream? stream)) {
                     throw new InvalidDataException($"Worksheet '{_owner._sheetName}' could not be reopened for reading.");
                 }
-                _partStream = ExcelPrefetchingReadStream.Wrap(stream!, ct);
+                _partStream = WrapPartStream(_owner._partBufferReader!, stream!, ct);
                 int head = _sheetDataContentStart;
                 byte[] check = ArrayPool<byte>.Shared.Rent(Math.Min(Math.Max(head, 1), 64 * 1024));
                 try {
