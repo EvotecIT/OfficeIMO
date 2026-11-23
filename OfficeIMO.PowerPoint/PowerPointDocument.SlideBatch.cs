@@ -24,7 +24,7 @@ public sealed partial class PowerPointDocument {
             for (int index = 0; index < count; index++) {
                 cancellationToken.ThrowIfCancellationRequested();
                 string relationship = ReserveSlideRelationshipId(relationships, ref nextRelationship);
-                added.Add(AddSlideCore(layoutPart, relationship, nextSlideId++, savePresentation: false));
+                added.Add(AddSlideCore(layoutPart, relationship, nextSlideId++));
             }
         } finally {
             PresentationRoot.Save();

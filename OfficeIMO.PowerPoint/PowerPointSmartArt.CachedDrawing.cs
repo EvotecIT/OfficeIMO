@@ -268,7 +268,7 @@ namespace OfficeIMO.PowerPoint {
             foreach (OpenXmlCompositeElement shape in tree.Descendants<OpenXmlCompositeElement>()
                 .Where(item => item.LocalName == "sp")) {
                 OpenXmlElement? body = shape.ChildElements.FirstOrDefault(item => item.LocalName == "txBody");
-                string text = body == null ? string.Empty : ReadVisibleText(XElement.Parse(body.OuterXml), a);
+                string text = body == null ? string.Empty : ReadVisibleText(body, a.NamespaceName);
                 string? id = shape.GetAttributes().FirstOrDefault(item => item.LocalName == "modelId").Value;
                 if (id != null && associations.TryGetValue(id, out string? source)) id = source;
                 if (id != null && nodes.TryGetValue(id, out string? expected)) {
@@ -277,6 +277,45 @@ namespace OfficeIMO.PowerPoint {
                 } else if (text.Length != 0) return false;
             }
             return nodes.All(node => node.Value.Length == 0 || covered.Contains(node.Key));
+        }
+
+        /// <summary>
+        ///     Reads cached-drawing text from the loaded Open XML tree with the same result as
+        ///     <see cref="ReadVisibleText(XElement?, XNamespace)" /> over a parsed copy, without serializing the shape.
+        /// </summary>
+        private static string ReadVisibleText(OpenXmlElement body, string drawingNamespace) {
+            var text = new System.Text.StringBuilder();
+            bool firstParagraph = true;
+            foreach (OpenXmlElement paragraph in body.ChildElements) {
+                if (paragraph.LocalName != "p" || paragraph.NamespaceUri != drawingNamespace) continue;
+                if (!firstParagraph) text.Append('\n');
+                firstParagraph = false;
+                foreach (OpenXmlElement item in paragraph.Descendants()) {
+                    if (item.NamespaceUri != drawingNamespace) continue;
+                    switch (item.LocalName) {
+                        case "br": text.Append('\n'); break;
+                        case "tab": text.Append('\t'); break;
+                        case "t": text.Append(ParsedTextValue(item)); break;
+                    }
+                }
+            }
+            return text.ToString();
+        }
+
+        /// <summary>A parse without whitespace preservation drops whitespace-only text unless xml:space keeps it.</summary>
+        private static string ParsedTextValue(OpenXmlElement textElement) {
+            string value = textElement.InnerText;
+            if (value.Length == 0) return value;
+            foreach (char character in value) {
+                if (character != ' ' && character != '\t' && character != '\r' && character != '\n') return value;
+            }
+            for (OpenXmlElement? scope = textElement; scope != null; scope = scope.Parent) {
+                string? space = scope.GetAttributes().FirstOrDefault(attribute =>
+                    attribute.LocalName == "space" && attribute.NamespaceUri == "http://www.w3.org/XML/1998/namespace").Value;
+                if (space == "preserve") return value;
+                if (space == "default") return string.Empty;
+            }
+            return string.Empty;
         }
 
         private static string ReadVisibleText(XElement? body, XNamespace drawingNamespace) => body == null

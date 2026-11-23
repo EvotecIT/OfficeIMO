@@ -25,10 +25,14 @@ internal static class PowerPointXmlReader {
                 ? Math.Min(MaximumPackageXmlCharacters, maximumCharactersInPart)
                 : MaximumPackageXmlCharacters
         };
+        // A part can't hold more characters than bytes, so a part within the limit needs only its root element.
+        bool withinLimit = stream.CanSeek && stream.Length <= settings.MaxCharactersInDocument;
         using XmlReader reader = XmlReader.Create(stream, settings);
         reader.MoveToContent();
         string? value = reader.GetAttribute("show");
-        while (reader.Read()) { }
+        if (!withinLimit) {
+            while (reader.Read()) { }
+        }
         return value == null ? null : XmlConvert.ToBoolean(value);
     }
 }

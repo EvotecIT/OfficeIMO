@@ -104,12 +104,14 @@ namespace OfficeIMO.PowerPoint {
         internal static string[] GetRelationshipIds(
             DocumentFormat.OpenXml.OpenXmlElement container) {
             ArgumentNullException.ThrowIfNull(container);
-            return container.Descendants<A.HyperlinkSound>()
-                .Select(sound => sound.Embed?.Value)
-                .Where(id => !string.IsNullOrEmpty(id))
-                .Cast<string>()
-                .Distinct(StringComparer.Ordinal)
-                .ToArray();
+            List<string>? ids = null;
+            foreach (A.HyperlinkSound sound in container.Descendants<A.HyperlinkSound>()) {
+                string? id = sound.Embed?.Value;
+                if (string.IsNullOrEmpty(id)) continue;
+                ids ??= new List<string>();
+                if (!ids.Contains(id!, StringComparer.Ordinal)) ids.Add(id!);
+            }
+            return ids == null ? Array.Empty<string>() : ids.ToArray();
         }
 
         internal static void RemoveIfUnused(OpenXmlPart? ownerPart,
