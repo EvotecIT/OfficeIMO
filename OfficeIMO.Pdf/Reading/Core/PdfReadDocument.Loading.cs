@@ -72,15 +72,16 @@ internal sealed partial class PdfReadDocument {
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options);
-        PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(
-            pdf, effectiveOptions, includeParsedDetails: false, cancellationToken);
+        // The source pass collects only what the parsed pass keeps from it; encryption, signatures and trailer
+        // references come from the object graph.
+        PdfDocumentSecurityInfo security = PdfSyntax.ReadSourceSecurityFallback(pdf, effectiveOptions, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         var parsed = PdfSyntax.ParseObjectsCore(pdf, effectiveOptions, out PdfRepairReport repairReport,
             out long decodedStreamBytes, ownsBytes, cancellationToken);
         Dictionary<int, PdfIndirectObject> map = parsed.Map;
         string trailer = parsed.TrailerRaw;
         cancellationToken.ThrowIfCancellationRequested();
-        security = PdfSyntax.ReadDocumentSecurityInfo(
+        security = PdfSyntax.CompleteSourceSecurityFallback(
             pdf,
             map,
             trailer,
@@ -115,8 +116,9 @@ internal sealed partial class PdfReadDocument {
         cancellationToken.ThrowIfCancellationRequested();
         PdfDocumentSecurityInfo security;
         if (PdfSyntax.ReadTrailerReference(trailer, "Encrypt", effectiveOptions.Limits, cancellationToken) is not null) {
-            security = PdfSyntax.ReadDocumentSecurityInfo(pdf, effectiveOptions, includeParsedDetails: false, cancellationToken);
-            security = PdfSyntax.ReadDocumentSecurityInfo(pdf, map, trailer, security, repairReport, effectiveOptions, cancellationToken);
+            var source = new PdfByteContentText((ReadOnlyMemory<byte>)pdf);
+            security = PdfSyntax.ReadSourceSecurityFallback(source, effectiveOptions, cancellationToken);
+            security = PdfSyntax.CompleteSourceSecurityFallback(source, map, trailer, security, repairReport, effectiveOptions, cancellationToken);
         } else {
             security = PdfSyntax.ReadRewrittenOutputSecurityInfo(pdf, trailer, effectiveOptions, cancellationToken);
         }
