@@ -79,7 +79,7 @@ Console.WriteLine($"{warnings} warnings");
 record LogEvent(DateTime Time, string Level, string Message);
 ```
 
-By default the reader validates the whole worksheet before returning the first row. `EnableSinglePassReading` returns rows while the rest of the sheet is still being read; an invalid cell then fails after the rows before it were returned, so use it where a part-way failure can be discarded. It applies on .NET 8 and later to XLSX and XLSB worksheets of 1 MB or more.
+By default the reader validates the whole worksheet before returning the first row. For XLSX worksheets with 64 MB or more of XML it does that through a bounded window and decompresses the sheet a second time to return rows, so memory stays flat as the sheet grows. `EnableSinglePassReading` returns rows while the rest of the sheet is still being read; an invalid cell then fails after the rows before it were returned, so use it where a part-way failure can be discarded. It applies on .NET 8 and later to XLSX and XLSB worksheets of 1 MB or more.
 
 ### PowerShell
 
