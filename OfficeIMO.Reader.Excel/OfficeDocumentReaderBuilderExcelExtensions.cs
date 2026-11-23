@@ -16,6 +16,7 @@ public static class OfficeDocumentReaderBuilderExcelExtensions {
         ReaderExcelOptions configured = ExcelReaderAdapter.Clone(options);
         return builder.AddHandler(new ReaderHandlerRegistration {
             Origin = ReaderHandlerOrigin.OfficeIMO,
+            AcceptsOwnedSnapshot = true,
             SupportsTextAndMetadata = true,
             TextAndMetadataExtensions = global::OfficeIMO.Excel.ExcelFormatCatalog.All.Where(format => format.Encoding == OfficeFormatEncoding.OpenXml).Select(format => format.Extension).ToArray(),
             Id = HandlerId,

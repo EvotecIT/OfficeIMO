@@ -24,7 +24,7 @@ public static class ReaderInputLimits {
     /// The snapshot must not be written after a successful transfer.
     /// </summary>
     internal static bool TryGetOwnedSnapshotMemory(Stream stream, out ReadOnlyMemory<byte> bytes) {
-        if (stream is ReaderSnapshotStream { IsCallerOwned: false } snapshot
+        if (stream is ReaderSnapshotStream { IsExposed: false } snapshot
             && snapshot.TryGetBuffer(out ArraySegment<byte> segment)) {
             bytes = segment.AsMemory();
             return true;
@@ -119,7 +119,7 @@ public static class ReaderInputLimits {
     /// Non-seekable inputs are read from their current forward position.
     /// </summary>
     public static Stream EnsureSeekableReadStream(Stream stream, long? maxInputBytes, CancellationToken cancellationToken, out bool ownsStream) =>
-        MarkCallerOwnedSnapshot(EnsureSeekableReadStream(
+        MarkSnapshotExposed(EnsureSeekableReadStream(
             stream, maxInputBytes, inputLimitProbe: null, cancellationToken, out ownsStream));
 
     internal static Stream EnsureSeekableReadStream(Stream stream, long? maxInputBytes, ReaderInputLimitProbe? inputLimitProbe,
@@ -217,7 +217,7 @@ public static class ReaderInputLimits {
         Stream stream,
         long? maxInputBytes,
         CancellationToken cancellationToken = default) =>
-        MarkCallerOwnedSnapshot(await EnsureSeekableReadStreamAsync(
+        MarkSnapshotExposed(await EnsureSeekableReadStreamAsync(
             stream, maxInputBytes, inputLimitProbe: null, cancellationToken).ConfigureAwait(false));
 
     internal static async Task<Stream> EnsureSeekableReadStreamAsync(
@@ -407,13 +407,13 @@ public static class ReaderInputLimits {
         }
     }
 
-    private static Stream MarkCallerOwnedSnapshot(Stream snapshot) {
-        if (snapshot is ReaderSnapshotStream memory) memory.IsCallerOwned = true;
+    internal static Stream MarkSnapshotExposed(Stream snapshot) {
+        if (snapshot is ReaderSnapshotStream memory) memory.IsExposed = true;
         return snapshot;
     }
 
     private sealed class ReaderSnapshotStream : MemoryStream {
-        internal bool IsCallerOwned { get; set; }
+        internal bool IsExposed { get; set; }
 
         internal ReaderSnapshotStream(int initialCapacity) : base(initialCapacity) {
         }

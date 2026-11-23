@@ -120,6 +120,9 @@ public sealed class ReaderHandlerRegistration {
     /// </summary>
     public Func<Exception, string?>? ClassifyReadError { get; set; }
 
+    // Only built-in adapters with an ownership-safe load path can borrow the private snapshot.
+    internal bool AcceptsOwnedSnapshot { get; set; }
+
     // A strict path handler also protects content detection before the kind is known.
     // Internal because consumers do not otherwise need to change Reader path-opening policy.
     internal Func<string, FileStream>? OpenPathForContentDetection { get; set; }
