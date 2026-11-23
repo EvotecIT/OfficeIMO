@@ -27,16 +27,46 @@ namespace OfficeIMO.PowerPoint {
                     string? relId = PowerPointUtils.GetRelationshipIdValue(slideId);
                     if (!string.IsNullOrEmpty(relId)) {
                         SlidePart slidePart = (SlidePart)_presentationPart.GetPartById(relId!);
-                        _slides.Add(new PowerPointSlide(slidePart, this));
+                        var slide = new PowerPointSlide(slidePart, this);
+                        slide.RememberSlideId(slideId);
+                        _slides.Add(slide);
                     }
                 }
             }
         }
 
         private string GetNextSlideRelationshipId() {
-            HashSet<string> existingRelationships = GetPresentationRelationships();
-            long nextId = 1;
-            return ReserveSlideRelationshipId(existingRelationships, ref nextId);
+            // Each candidate is checked against the live relationships, so changes made through the Open XML
+            // document are respected. The search resumes after the last reserved number instead of rebuilding
+            // the whole relationship set for every added slide; removing a slide restarts it at rId1.
+            long nextId = _slideRelationshipSearchStart;
+            while (true) {
+                string candidate = "rId" + nextId.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                nextId = checked(nextId + 1);
+                if (IsPresentationRelationshipIdInUse(candidate)) continue;
+                _slideRelationshipSearchStart = nextId;
+                return candidate;
+            }
+        }
+
+        private bool IsPresentationRelationshipIdInUse(string relationshipId) {
+            if (_presentationPart.TryGetPartById(relationshipId, out _)) return true;
+            foreach (ExternalRelationship relationship in _presentationPart.ExternalRelationships) {
+                if (relationship.Id == relationshipId) return true;
+            }
+            foreach (HyperlinkRelationship relationship in _presentationPart.HyperlinkRelationships) {
+                if (relationship.Id == relationshipId) return true;
+            }
+            foreach (DataPartReferenceRelationship relationship in _presentationPart.DataPartReferenceRelationships) {
+                if (relationship.Id == relationshipId) return true;
+            }
+            SlideIdList? slideIdList = PresentationRoot.SlideIdList;
+            if (slideIdList != null) {
+                foreach (SlideId existingSlideId in slideIdList.Elements<SlideId>()) {
+                    if (existingSlideId.RelationshipId?.Value == relationshipId) return true;
+                }
+            }
+            return false;
         }
 
         private HashSet<string> GetPresentationRelationships() {
@@ -128,14 +158,22 @@ namespace OfficeIMO.PowerPoint {
         private uint GetNextSlideMasterId() => NextMasterOrLayoutId();
 
         private static void InsertSlideId(SlideIdList slideIdList, SlideId slideId, int index) {
-            List<SlideId> ids = slideIdList.Elements<SlideId>().ToList();
             ArgumentOutOfRangeException.ThrowIfNegative(index);
-            ArgumentOutOfRangeException.ThrowIfGreaterThan(index, ids.Count);
-
-            ids.Insert(index, slideId);
-            slideIdList.RemoveAllChildren();
-            foreach (SlideId id in ids) {
-                slideIdList.Append(id);
+            int position = 0;
+            SlideId? last = null;
+            foreach (SlideId existing in slideIdList.Elements<SlideId>()) {
+                if (position == index) {
+                    slideIdList.InsertBefore(slideId, existing);
+                    return;
+                }
+                last = existing;
+                position++;
+            }
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(index, position);
+            if (last != null) {
+                slideIdList.InsertAfter(slideId, last);
+            } else {
+                slideIdList.Append(slideId);
             }
         }
 

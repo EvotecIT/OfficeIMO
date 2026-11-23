@@ -131,12 +131,22 @@ namespace OfficeIMO.PowerPoint {
             }
 
             Ap.Properties properties = EnsureApplicationProperties(presentationDocument);
-            SlideId[] slideIds = presentationPart.Presentation?.SlideIdList?.Elements<SlideId>().ToArray() ?? Array.Empty<SlideId>();
-            properties.Slides!.Text = slideIds.Length.ToString(CultureInfo.InvariantCulture);
-            properties.Notes!.Text = presentationPart.SlideParts.Count(slidePart => slidePart.NotesSlidePart != null)
-                .ToString(CultureInfo.InvariantCulture);
-            properties.HiddenSlides!.Text = slideIds.Count(slideId => IsHiddenSlide(presentationPart, slideId, maximumSlideXmlCharacters))
-                .ToString(CultureInfo.InvariantCulture);
+            int slideCount = 0;
+            int hiddenCount = 0;
+            SlideIdList? slideIdList = presentationPart.Presentation?.SlideIdList;
+            if (slideIdList != null) {
+                foreach (SlideId slideId in slideIdList.Elements<SlideId>()) {
+                    slideCount++;
+                    if (IsHiddenSlide(presentationPart, slideId, maximumSlideXmlCharacters)) hiddenCount++;
+                }
+            }
+            int notesCount = 0;
+            foreach (SlidePart slidePart in presentationPart.SlideParts) {
+                if (slidePart.NotesSlidePart != null) notesCount++;
+            }
+            properties.Slides!.Text = slideCount.ToString(CultureInfo.InvariantCulture);
+            properties.Notes!.Text = notesCount.ToString(CultureInfo.InvariantCulture);
+            properties.HiddenSlides!.Text = hiddenCount.ToString(CultureInfo.InvariantCulture);
             properties.PresentationFormat!.Text = GetPresentationFormat(presentationPart.Presentation?.SlideSize);
 
             presentationDocument.PackageProperties.Modified = DateTime.UtcNow;
@@ -158,10 +168,15 @@ namespace OfficeIMO.PowerPoint {
                 if (show.HasValue) return !show.Value;
             }
 
-            string? legacyShowValue = slideId.GetAttributes()
-                .FirstOrDefault(attribute =>
-                    attribute.LocalName == "show" && string.IsNullOrEmpty(attribute.NamespaceUri))
-                .Value;
+            string? legacyShowValue = null;
+            if (slideId.HasAttributes) {
+                foreach (OpenXmlAttribute attribute in slideId.ExtendedAttributes) {
+                    if (attribute.LocalName == "show" && string.IsNullOrEmpty(attribute.NamespaceUri)) {
+                        legacyShowValue = attribute.Value;
+                        break;
+                    }
+                }
+            }
             if (string.IsNullOrEmpty(legacyShowValue)) {
                 return false;
             }

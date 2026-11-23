@@ -16,6 +16,7 @@ namespace OfficeIMO.PowerPoint {
         private bool _shapesLoaded;
         private uint _nextShapeId = 2;
         private bool _shapeIdsExhausted;
+        private bool _shapeIdsResolved;
         private const string P14Namespace = "http://schemas.microsoft.com/office/powerpoint/2010/main";
         private const string P159Namespace = "http://schemas.microsoft.com/office/powerpoint/2015/09/main";
         private const string MarkupCompatibilityNamespace = "http://schemas.openxmlformats.org/markup-compatibility/2006";
@@ -127,6 +128,7 @@ namespace OfficeIMO.PowerPoint {
                 _notes = null;
                 _nextShapeId = 2;
                 _shapeIdsExhausted = false;
+                _shapeIdsResolved = false;
                 _shapesLoaded = false;
                 throw;
             }
@@ -139,7 +141,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal void ReserveShapeIdsThrough(uint nextShapeId) {
-            EnsureShapesLoaded();
+            EnsureShapeIdsResolved();
             if (_shapeIdsExhausted) return;
             if (nextShapeId > _nextShapeId) _nextShapeId = nextShapeId;
         }
@@ -147,7 +149,7 @@ namespace OfficeIMO.PowerPoint {
         private uint AllocateShapeId() => AllocateShapeIds(1);
 
         private uint AllocateShapeIds(int count) {
-            EnsureShapesLoaded();
+            EnsureShapeIdsResolved();
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(count);
             ulong lastShapeId = (ulong)_nextShapeId
                 + unchecked((uint)count) - 1UL;
@@ -175,11 +177,17 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private string GenerateUniqueName(string baseName) {
+            List<PowerPointShape> shapes = ShapeList;
+            var names = new HashSet<string>(StringComparer.Ordinal);
+            foreach (PowerPointShape shape in shapes) {
+                if (shape.Name is string existing) names.Add(existing);
+            }
+
             int index = 1;
             string name;
             do {
                 name = baseName + " " + index++;
-            } while (ShapeList.Any(s => s.Name == name));
+            } while (names.Contains(name));
 
             return name;
         }
@@ -210,44 +218,43 @@ namespace OfficeIMO.PowerPoint {
             _notes?.Save();
         }
 
-        private void LoadExistingShapes() {
-            ShapeTree? tree = SlideRoot.CommonSlideData?.ShapeTree;
-            if (tree == null) {
-                return;
-            }
+        /// <summary>
+        ///     Finds the next free shape ID on first allocation. Reading a slide never needs it, and the scan
+        ///     walks every drawing ID in the tree, including grouped and nested shapes.
+        /// </summary>
+        private void EnsureShapeIdsResolved() {
+            EnsureShapesLoaded();
+            if (_shapeIdsResolved) return;
 
             uint maxId = 1;
-            foreach (OpenXmlElement element in tree.ChildElements) {
-                uint? id = element switch {
-                    Shape s => s.NonVisualShapeProperties?.NonVisualDrawingProperties?.Id?.Value,
-                    ConnectionShape c => c.NonVisualConnectionShapeProperties?.NonVisualDrawingProperties?.Id?.Value,
-                    DocumentFormat.OpenXml.Presentation.Picture p => p.NonVisualPictureProperties?.NonVisualDrawingProperties?.Id?.Value,
-                    GraphicFrame g => g.NonVisualGraphicFrameProperties?.NonVisualDrawingProperties?.Id?.Value,
-                    _ => null
-                };
-
-                if (id.HasValue && id.Value > maxId) {
-                    maxId = id.Value;
-                }
-
-                PowerPointShape? shape = CreateShapeFromElement(element);
-                if (shape != null) {
-                    TrackShape(shape);
+            ShapeTree? tree = SlideRoot.CommonSlideData?.ShapeTree;
+            if (tree != null) {
+                foreach (NonVisualDrawingProperties properties in tree.Descendants<NonVisualDrawingProperties>()) {
+                    uint id = properties.Id?.Value ?? 0U;
+                    if (id > maxId) maxId = id;
                 }
             }
-
-            uint descendantMaxId = tree
-                .Descendants<NonVisualDrawingProperties>()
-                .Select(properties => properties.Id?.Value ?? 0U)
-                .DefaultIfEmpty(maxId)
-                .Max();
-            if (descendantMaxId > maxId) maxId = descendantMaxId;
 
             if (maxId == uint.MaxValue) {
                 _nextShapeId = uint.MaxValue;
                 _shapeIdsExhausted = true;
             } else {
                 _nextShapeId = maxId + 1U;
+            }
+            _shapeIdsResolved = true;
+        }
+
+        private void LoadExistingShapes() {
+            ShapeTree? tree = SlideRoot.CommonSlideData?.ShapeTree;
+            if (tree == null) {
+                return;
+            }
+
+            foreach (OpenXmlElement element in tree.ChildElements) {
+                PowerPointShape? shape = CreateShapeFromElement(element);
+                if (shape != null) {
+                    TrackShape(shape);
+                }
             }
 
             if (_slidePart.NotesSlidePart != null) {

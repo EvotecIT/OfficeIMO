@@ -49,6 +49,12 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Shrinks the frame to the image's aspect ratio, centred in the current frame.</summary>
         internal void ContainInFrame() {
             if (!TryGetPixelSize(out int width, out int height)) return;
+            ContainInFrame(width, height);
+        }
+
+        /// <summary>Fits the picture into its frame using a pixel size the caller already read.</summary>
+        internal void ContainInFrame(int width, int height) {
+            if (width <= 0 || height <= 0) return;
             double boxWidth = Width.ToPoints(), boxHeight = Height.ToPoints();
             if (boxWidth <= 0 || boxHeight <= 0) return;
             double imageAspect = width / (double)height, boxAspect = boxWidth / boxHeight;

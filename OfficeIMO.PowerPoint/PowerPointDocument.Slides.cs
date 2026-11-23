@@ -19,11 +19,11 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointSlide AddSlide(int masterIndex = 0, int layoutIndex = 0) {
             ThrowIfDisposed();
             SlideLayoutPart layoutPart = GetSlideLayoutPart(masterIndex, layoutIndex);
-            return AddSlideCore(layoutPart, GetNextSlideRelationshipId(), GetNextSlideId(), savePresentation: true);
+            return AddSlideCore(layoutPart, GetNextSlideRelationshipId(), GetNextSlideId());
         }
 
         private PowerPointSlide AddSlideCore(SlideLayoutPart layoutPart, string slideRelId,
-            uint newId, bool savePresentation) {
+            uint newId) {
             SlidePart slidePart = _presentationPart.AddNewPart<SlidePart>(slideRelId);
             // Create slide exactly like the working example
             slidePart.Slide = new Slide(
@@ -77,9 +77,9 @@ namespace OfficeIMO.PowerPoint {
             PowerPointUtils.SetRelationshipIdValue(slideId, slideRelId);
             PresentationRoot.SlideIdList.Append(slideId);
             AssignSlideToNearestSection(newId, _slides.Count);
-            if (savePresentation) PresentationRoot.Save();
 
             PowerPointSlide slide = new(slidePart, this);
+            slide.RememberSlideId(slideId);
             _slides.Add(slide);
             return slide;
         }
@@ -106,6 +106,7 @@ namespace OfficeIMO.PowerPoint {
 
             _slides.RemoveAt(index);
             slideId.Remove();
+            _slideRelationshipSearchStart = 1;
 
             if (!string.IsNullOrWhiteSpace(relIdValue)) {
                 string relId = relIdValue!;
@@ -346,10 +347,11 @@ namespace OfficeIMO.PowerPoint {
                 targetIndex);
 
             PowerPointSlide duplicate = new(slidePart, this);
+            duplicate.RememberSlideId(slideId);
             // Serialized copies already carry the source show attribute; Save() only defers loading when no legacy value exists.
             if (!copiedSerializedSlide) duplicate.Hidden = sourceSlide.Hidden;
             _slides.Insert(targetIndex, duplicate);
-            PresentationRoot.Save();
+            // The package save persists the loaded presentation root; serializing it per slide made copying quadratic.
             return duplicate;
         }
 

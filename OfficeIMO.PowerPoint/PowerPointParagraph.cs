@@ -27,11 +27,51 @@ namespace OfficeIMO.PowerPoint {
         /// Text content of the paragraph.
         /// </summary>
         public string Text {
-            get => string.Concat(InlineNodes.Select(node => node.Text));
+            get => ReadText(Paragraph);
             set {
                 ClearInlineContent();
                 InsertRun(value ?? string.Empty);
             }
+        }
+
+        /// <summary>Reads the same text as <see cref="InlineNodes" /> without creating run wrappers.</summary>
+        internal static string ReadText(A.Paragraph paragraph) {
+            string? single = null;
+            System.Text.StringBuilder? builder = null;
+            foreach (OpenXmlElement child in paragraph.ChildElements) {
+                string? part = child switch {
+                    A.Run run => run.Text?.Text ?? string.Empty,
+                    A.Break => Environment.NewLine,
+                    A.Field field => field.Text?.Text ?? string.Empty,
+                    _ => null
+                };
+                if (part == null) continue;
+                if (builder != null) {
+                    builder.Append(part);
+                } else if (single == null) {
+                    single = part;
+                } else {
+                    builder = new System.Text.StringBuilder(single).Append(part);
+                }
+            }
+            return builder?.ToString() ?? single ?? string.Empty;
+        }
+
+        /// <summary>Joins paragraph text with line breaks, as the text box and table cell <c>Text</c> getters return it.</summary>
+        internal static string ReadText(OpenXmlElement textBody) {
+            string? single = null;
+            System.Text.StringBuilder? builder = null;
+            foreach (A.Paragraph paragraph in textBody.Elements<A.Paragraph>()) {
+                string text = ReadText(paragraph);
+                if (builder != null) {
+                    builder.Append(Environment.NewLine).Append(text);
+                } else if (single == null) {
+                    single = text;
+                } else {
+                    builder = new System.Text.StringBuilder(single).Append(Environment.NewLine).Append(text);
+                }
+            }
+            return builder?.ToString() ?? single ?? string.Empty;
         }
 
         internal void ClearInlineContent() {
