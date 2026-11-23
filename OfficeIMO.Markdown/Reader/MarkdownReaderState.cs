@@ -210,6 +210,23 @@ public sealed class MarkdownReaderState {
     internal bool SuppressHeadingGenericAttributes { get; set; }
     internal bool IsMarkdigDefinitionListBody { get; set; }
     internal int NestedBlockDepth { get; set; }
+    private List<MarkdownDocument>? _nestedListScratchDocuments;
+    private int _nestedListScratchDepth;
+
+    /// <summary>Takes the holder document for a nested list parsed without syntax capture.</summary>
+    internal MarkdownDocument RentNestedListScratchDocument() {
+        var documents = _nestedListScratchDocuments ??= new List<MarkdownDocument>();
+        if (_nestedListScratchDepth == documents.Count) {
+            documents.Add(MarkdownDocument.Create());
+        }
+
+        return documents[_nestedListScratchDepth++];
+    }
+
+    internal void ReturnNestedListScratchDocument(MarkdownDocument document) {
+        document.ClearParserScratchBlocks();
+        _nestedListScratchDepth--;
+    }
     internal bool DiscardsNestedListSourceRemap { get; set; }
     internal MarkdownPendingGenericAttributeBlock? PendingGenericAttributeBlock { get; set; }
     internal MarkdownLineIndexSet LazyQuoteContinuationLines { get; } = new MarkdownLineIndexSet();

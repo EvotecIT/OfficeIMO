@@ -69,9 +69,13 @@ internal static partial class MarkdownEscaper {
 
     private static string Escape(string? text, char[] reserved) {
         if (string.IsNullOrEmpty(text)) return string.Empty;
+        int first = text!.IndexOfAny(reserved);
+        if (first < 0) return text;
 
-        StringBuilder sb = new(text!.Length);
-        foreach (char c in text) {
+        StringBuilder sb = new(text.Length + 4);
+        sb.Append(text, 0, first);
+        for (int index = first; index < text.Length; index++) {
+            char c = text[index];
             if (Array.IndexOf(reserved, c) >= 0) sb.Append('\\');
             sb.Append(c);
         }
@@ -81,6 +85,10 @@ internal static partial class MarkdownEscaper {
     private static string EscapeMarkdownLineStarts(string text, bool preserveDefinitionText = false, bool escapeIndentation = false) {
         if (string.IsNullOrEmpty(text)) {
             return string.Empty;
+        }
+
+        if (text.IndexOf('\n') < 0) {
+            return EscapeMarkdownLineStart(text, preserveDefinitionText: preserveDefinitionText, escapeIndentation: escapeIndentation);
         }
 
         StringBuilder sb = new StringBuilder(text.Length + 8);

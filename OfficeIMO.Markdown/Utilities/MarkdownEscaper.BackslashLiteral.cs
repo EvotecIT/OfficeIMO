@@ -17,16 +17,25 @@ internal static partial class MarkdownEscaper {
     /// </summary>
     internal static string EscapeBackslashLiteralText(string? text) {
         if (string.IsNullOrEmpty(text)) { return string.Empty; }
-        var escaped = new StringBuilder(text!.Length);
-        bool superscriptPair = text.IndexOf('^') != text.LastIndexOf('^');
+        bool superscriptPair = text!.IndexOf('^') != text.LastIndexOf('^');
+        StringBuilder? escaped = null;
         for (int index = 0; index < text.Length; index++) {
             char character = text[index];
-            bool entity = character == '&' && IsEntityLikeAmpersand(text, index);
-            bool highlight = character == '=' && ((index > 0 && text[index - 1] == '=') || (index + 1 < text.Length && text[index + 1] == '='));
-            bool insertion = character == '+' && ((index > 0 && text[index - 1] == '+') || (index + 1 < text.Length && text[index + 1] == '+'));
-            if ("<>\\`*_{}[]|#~".IndexOf(character) >= 0 || entity || highlight || insertion || (character == '^' && superscriptPair)) { escaped.Append('\\'); }
-            escaped.Append(character);
+            if (RequiresBackslash(text, index, character, superscriptPair)) {
+                // Most text needs no escapes; copy it only once one is found.
+                escaped ??= new StringBuilder(text.Length + 8).Append(text, 0, index);
+                escaped.Append('\\');
+            }
+
+            escaped?.Append(character);
         }
-        return EscapeMarkdownLineStarts(escaped.ToString(), preserveDefinitionText: true);
+        return EscapeMarkdownLineStarts(escaped?.ToString() ?? text, preserveDefinitionText: true);
+    }
+
+    private static bool RequiresBackslash(string text, int index, char character, bool superscriptPair) {
+        bool entity = character == '&' && IsEntityLikeAmpersand(text, index);
+        bool highlight = character == '=' && ((index > 0 && text[index - 1] == '=') || (index + 1 < text.Length && text[index + 1] == '='));
+        bool insertion = character == '+' && ((index > 0 && text[index - 1] == '+') || (index + 1 < text.Length && text[index + 1] == '+'));
+        return "<>\\`*_{}[]|#~".IndexOf(character) >= 0 || entity || highlight || insertion || (character == '^' && superscriptPair);
     }
 }

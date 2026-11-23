@@ -495,6 +495,16 @@ internal static partial class MarkdownReader {
         return balancedEnd >= 1 && balancedEnd + 1 < trimmed.Length && trimmed[balancedEnd + 1] == ':';
     }
 
+    /// <summary>Reports whether a reference definition matches <paramref name="text"/>[start..start+length) after label normalization.</summary>
+    private static bool HasLinkReference(MarkdownReaderState state, string text, int start, int length) {
+        // Most documents define no references; skip slicing and normalizing the label.
+        if (state.LinkRefs.Count == 0) {
+            return false;
+        }
+
+        return state.LinkRefs.ContainsKey(NormalizeReferenceLabel(start == 0 && length == text.Length ? text : text.Substring(start, length)));
+    }
+
     private static string NormalizeReferenceLabel(string? label) {
         if (string.IsNullOrWhiteSpace(label)) return string.Empty;
         var t = label!.Trim();
@@ -515,10 +525,26 @@ internal static partial class MarkdownReader {
                 continue;
             }
 
-            AppendUnicodeCaseFold(sb, c.ToString());
+            AppendUnicodeCaseFold(sb, c);
             prevSpace = false;
         }
         return sb.ToString();
+    }
+
+    private static void AppendUnicodeCaseFold(System.Text.StringBuilder builder, char value) {
+        switch (value) {
+            case 'ß':
+            case 'ẞ':
+                builder.Append("ss");
+                return;
+            case 'ς':
+                builder.Append('σ');
+                return;
+            default:
+                // Invariant lower-casing of a single UTF-16 unit matches lower-casing it as a string.
+                builder.Append(char.ToLowerInvariant(value));
+                return;
+        }
     }
 
     private static void AppendUnicodeCaseFold(System.Text.StringBuilder builder, string scalar) {

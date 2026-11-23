@@ -5,15 +5,18 @@ namespace OfficeIMO.Markdown.Html;
 
 internal sealed partial class HtmlToMarkdownConverter {
     internal static InlineSequence ConvertInlineNodesToInlineSequence(IEnumerable<INode> nodes, ConversionContext? context) {
-        var sequence = new InlineSequence { AutoSpacing = false };
         if (nodes is INodeList nodeList) {
+            // One inline per child node is the usual result, so size the sequence for that.
+            var sized = new InlineSequence(nodeList.Length) { AutoSpacing = false };
             for (int i = 0; i < nodeList.Length; i++) {
                 bool trimEnd = NextVisibleInlineNodeIsBoundary(nodeList, i + 1, context);
-                AppendInlineNode(sequence, nodeList[i], context, trimEnd);
+                AppendInlineNode(sized, nodeList[i], context, trimEnd);
             }
-            return sequence;
+
+            return sized;
         }
 
+        var sequence = new InlineSequence { AutoSpacing = false };
         var materializedNodes = nodes as IList<INode> ?? nodes.ToList();
         for (int i = 0; i < materializedNodes.Count; i++) {
             bool trimEnd = NextVisibleInlineNodeIsBoundary(materializedNodes, i + 1, context);
@@ -493,11 +496,11 @@ internal sealed partial class HtmlToMarkdownConverter {
             previousWasWhitespace = false;
         }
 
-        return sb?.ToString() ?? text;
+        return sb == null ? text : MarkdownStringBuilderCache.GetStringAndRelease(sb);
     }
 
     private static StringBuilder AllocateWhitespaceBuilder(string text, int prefixLength) {
-        var builder = new StringBuilder(text.Length);
+        var builder = MarkdownStringBuilderCache.Acquire(text.Length);
         if (prefixLength > 0) {
             builder.Append(text, 0, prefixLength);
         }

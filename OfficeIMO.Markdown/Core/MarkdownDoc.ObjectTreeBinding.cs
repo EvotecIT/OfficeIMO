@@ -27,6 +27,13 @@ public partial class MarkdownDocument {
         ClearParseOwnedState();
     }
 
+    /// <summary>Empties a parser-owned holder document whose blocks were added unbound.</summary>
+    internal void ClearParserScratchBlocks() {
+        _blocks.Clear();
+        _lastBlock = null;
+        _frontMatter = null;
+    }
+
     internal void EnsureObjectTreeBound() {
         if (_objectTreeBindingPending) {
             MarkdownObjectTreeBinder.BindDocument(this);

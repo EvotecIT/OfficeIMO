@@ -48,6 +48,41 @@ internal static partial class MarkdownReader {
         return sequence;
     }
 
+    // Built only when an inline extension runs: a local function converted to a delegate would make
+    // every ParseInlinesInternal call allocate its locals on the heap.
+    private static Func<int, int, bool, bool, InlineSequence> CreateNestedInlineSegmentParser(
+        string text,
+        MarkdownLoadOptions options,
+        MarkdownReaderState? state,
+        MarkdownInlineSourceMap? sourceMap,
+        InlineHtmlWrapperMatchIndex inlineHtmlWrapperMatches,
+        int inlineHtmlWrapperDepth,
+        int imageAltDepth,
+        TableCellHtmlMode tableCellHtmlMode) {
+        return (relativeStart, length, nestedAllowLinks, nestedAllowImages) => {
+            if (relativeStart < 0 || length <= 0 || relativeStart >= text.Length) {
+                return new InlineSequence();
+            }
+
+            var safeLength = Math.Min(length, text.Length - relativeStart);
+            if (safeLength <= 0) {
+                return new InlineSequence();
+            }
+
+            return ParseInlinesInternal(
+                text.Substring(relativeStart, safeLength),
+                options,
+                state,
+                nestedAllowLinks,
+                nestedAllowImages,
+                sourceMap?.Slice(relativeStart, safeLength),
+                inlineHtmlWrapperMatches.Slice(relativeStart),
+                inlineHtmlWrapperDepth,
+                imageAltDepth,
+                tableCellHtmlMode);
+        };
+    }
+
     private static InlineSequence ParseInlinesInternal(
         string text,
         MarkdownLoadOptions options,
@@ -395,29 +430,6 @@ internal static partial class MarkdownReader {
 
             return -1;
         }
-        InlineSequence ParseNestedInlineSegment(int relativeStart, int length, bool nestedAllowLinks, bool nestedAllowImages) {
-            if (relativeStart < 0 || length <= 0 || relativeStart >= text.Length) {
-                return new InlineSequence();
-            }
-
-            var safeLength = Math.Min(length, text.Length - relativeStart);
-            if (safeLength <= 0) {
-                return new InlineSequence();
-            }
-
-            return ParseInlinesInternal(
-                text.Substring(relativeStart, safeLength),
-                options,
-                state,
-                nestedAllowLinks,
-                nestedAllowImages,
-                SliceMap(relativeStart, safeLength),
-                inlineHtmlWrapperMatches.Slice(relativeStart),
-                inlineHtmlWrapperDepth,
-                imageAltDepth,
-                tableCellHtmlMode);
-        }
-
         int pos = 0;
         while (pos < text.Length) {
             // Hard break signal encoded by paragraph joiner as a bare '\n'
@@ -448,7 +460,7 @@ internal static partial class MarkdownReader {
                     allowImages,
                     sourceMap,
                     inlineParserExtensions,
-                    ParseNestedInlineSegment,
+                    CreateNestedInlineSegmentParser(text, options, state, sourceMap, inlineHtmlWrapperMatches, inlineHtmlWrapperDepth, imageAltDepth, tableCellHtmlMode),
                     out var extensionResult)) {
                 AddRawNode(extensionResult.Inline, pos, extensionResult.ConsumedLength);
                 pos += extensionResult.ConsumedLength;
@@ -1021,7 +1033,7 @@ internal static partial class MarkdownReader {
                         allowImages,
                         sourceMap,
                         inlineParserExtensions,
-                        ParseNestedInlineSegment,
+                        CreateNestedInlineSegmentParser(text, options, state, sourceMap, inlineHtmlWrapperMatches, inlineHtmlWrapperDepth, imageAltDepth, tableCellHtmlMode),
                         out _)) break;
                 pos++;
             }
