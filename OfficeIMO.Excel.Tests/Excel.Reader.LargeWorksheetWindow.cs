@@ -108,6 +108,42 @@ public partial class Excel {
         }
     }
 
+    [Theory]
+    [InlineData("prefixed")]
+    [InlineData("leadingEmptyRows")]
+    public void OpenDataReader_WindowedWorksheetShapesMatchTheBufferedReader(string shape) {
+        var xml = new StringBuilder();
+        if (shape == "prefixed") {
+            // Prefixed row closing tags are the only row boundaries the window can slide past.
+            xml.Append("<x:worksheet xmlns:x=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><x:sheetData>");
+            for (int row = 1; row <= 4000; row++) {
+                string r = row.ToString(CultureInfo.InvariantCulture);
+                xml.Append("<x:row r=\"").Append(r).Append("\"><x:c r=\"A").Append(r).Append("\"><x:v>").Append(r)
+                    .Append("</x:v></x:c><x:c r=\"B").Append(r).Append("\" t=\"inlineStr\"><x:is><x:t>text ").Append(r)
+                    .Append("</x:t></x:is></x:c></x:row>");
+            }
+            xml.Append("</x:sheetData></x:worksheet>");
+        } else {
+            // More empty rows than one window holds precede the first cell, so delivery starts past the window.
+            xml.Append("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><dimension ref=\"A8001:A9000\"/><sheetData>");
+            for (int row = 1; row <= 8000; row++) xml.Append("<row r=\"").Append(row).Append("\" ht=\"20\" customHeight=\"1\"></row>");
+            for (int row = 8001; row <= 9000; row++) {
+                xml.Append("<row r=\"").Append(row).Append("\"><c r=\"A").Append(row).Append("\"><v>").Append(row).Append("</v></c></row>");
+            }
+            xml.Append("</sheetData></worksheet>");
+        }
+        string path = CreateWindowedIndexWorkbook(xml.ToString());
+        try {
+            List<object?[]> expected = ReadAllValues(path, windowed: false);
+            List<object?[]> actual = ReadAllValues(path, windowed: true);
+            Assert.Equal(expected.Count, actual.Count);
+            for (int index = 0; index < expected.Count; index++) Assert.Equal(expected[index], actual[index]);
+            Assert.NotEmpty(expected);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
     private static List<object?[]> ReadAllValues(string path, bool windowed) {
         using var reader = ExcelDocument.OpenReader(path, WorksheetWindowOptions(windowed));
         var rows = new List<object?[]>();

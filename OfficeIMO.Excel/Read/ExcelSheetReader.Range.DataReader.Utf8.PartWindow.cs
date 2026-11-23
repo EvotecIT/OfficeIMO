@@ -85,10 +85,10 @@ namespace OfficeIMO.Excel {
             private bool TryReadIntoWindow(CancellationToken ct) {
                 if (_windowFilled == _buffer!.Length) GrowWindow();
                 int read = _partStream!.Read(_buffer!, _windowFilled, _buffer!.Length - _windowFilled);
-                ct.ThrowIfCancellationRequested();
-                if (read == 0) return false;
+                // Record the bytes before observing cancellation, so a canceled refill can be retried.
                 _windowFilled += read;
-                return true;
+                ct.ThrowIfCancellationRequested();
+                return read != 0;
             }
 
             private void GrowWindow() {
@@ -122,13 +122,40 @@ namespace OfficeIMO.Excel {
                         ValidateProducedCanonicalText(ct);
                         return true;
                     }
-                    int closing = _buffer!.AsSpan(_length, _windowFilled - _length).LastIndexOf("</row>"u8);
-                    if (closing >= 0) {
-                        _length += closing + 6;
+                    int rowEnd = FindLastRowEnd(_length, _windowFilled);
+                    if (rowEnd >= 0) {
+                        _length = rowEnd;
                         ValidateProducedCanonicalText(ct);
                         return true;
                     }
+                    // Without a row end there is nothing to slide past, so stop before holding the whole part.
+                    if (_sheetDataContentStart < 0 && _windowFilled >= MaximumWindowHeadBytes) return false;
                 }
+            }
+
+            private const int MaximumWindowHeadBytes = 64 * 1024 * 1024;
+
+            /// <summary>
+            /// Returns the end of the last complete row closing tag (<c>&lt;/row&gt;</c> or a prefixed
+            /// <c>&lt;/x:row&gt;</c>) in the range, or -1.
+            /// </summary>
+            private int FindLastRowEnd(int start, int end) {
+                byte[] buffer = _buffer!;
+                int limit = end;
+                while (limit > start) {
+                    int index = buffer.AsSpan(start, limit - start).LastIndexOf("row>"u8);
+                    if (index < 0) return -1;
+                    int name = start + index;
+                    int cursor = name - 1;
+                    if (cursor >= start && buffer[cursor] == (byte)':') {
+                        cursor--;
+                        while (cursor >= start && buffer[cursor] != (byte)'/' && buffer[cursor] != (byte)'<'
+                            && buffer[cursor] > (byte)' ' && buffer[cursor] != (byte)'>') cursor--;
+                    }
+                    if (cursor - 1 >= start && buffer[cursor] == (byte)'/' && buffer[cursor - 1] == (byte)'<') return name + 4;
+                    limit = name;
+                }
+                return -1;
             }
 
             /// <summary>Reads the bytes after the last row, which the final envelope proof inspects.</summary>
@@ -195,7 +222,7 @@ namespace OfficeIMO.Excel {
                                 tag.IsEmpty, tag.EncodedKind, tag.DateStylesEnabled);
                         }
                     }
-                    Buffer.BlockCopy(buffer, keepFrom, buffer, head + pinnedLength, movable);
+                    if (movable > 0) Buffer.BlockCopy(buffer, keepFrom, buffer, head + pinnedLength, movable);
                     Buffer.BlockCopy(pinned, 0, buffer, head, pinnedLength);
                 } finally {
                     ArrayPool<byte>.Shared.Return(pinned, clearArray: true);
@@ -224,6 +251,8 @@ namespace OfficeIMO.Excel {
             private void BeginWindowedDelivery(CancellationToken ct) {
                 _partStream!.Dispose();
                 _partStream = null;
+                // A self-closing sheetData has no rows to deliver.
+                if (_sheetDataContentStart < 0) return;
                 if (!_owner._partBufferReader!.TryOpenExactPartStream(_owner._worksheetPartName, ct, out Stream? stream)) {
                     throw new InvalidDataException($"Worksheet '{_owner._sheetName}' could not be reopened for reading.");
                 }
