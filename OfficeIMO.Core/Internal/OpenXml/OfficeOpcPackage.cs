@@ -38,9 +38,9 @@ internal sealed class OfficeOpcPackage : IDisposable {
     }
 
     /// <summary>Opens a pull reader over a part. Dispose the returned buffer after reading.</summary>
-    internal OfficeXmlPullReader OpenXml(string partName, out OfficePooledBytes content, IReadOnlyList<string>? understoodNamespaces = null) {
+    internal OfficeXmlPullReader OpenXml(string partName, out OfficePooledBytes content) {
         content = ReadPart(partName);
-        return new OfficeXmlPullReader(content.Array, content.Length, Namespaces, understoodNamespaces);
+        return new OfficeXmlPullReader(content.Array, content.Length, Namespaces);
     }
 
     /// <summary>Relationships whose source is <paramref name="sourcePartName"/>, or the package when it is null.</summary>

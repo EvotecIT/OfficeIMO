@@ -25,7 +25,6 @@ internal sealed partial class OfficeXmlPullReader {
     private readonly byte[] _data;
     private readonly int _end;
     private readonly OfficeXmlNamespaces.Table _namespaces;
-    private readonly int[] _understood;
     private int _position;
 
     private Frame[] _frames = new Frame[32];
@@ -54,16 +53,10 @@ internal sealed partial class OfficeXmlPullReader {
     /// <param name="data">The part bytes.</param>
     /// <param name="length">Number of valid bytes in <paramref name="data"/>.</param>
     /// <param name="namespaces">Namespace ids shared with other parts of the same package.</param>
-    /// <param name="understoodNamespaces">Namespaces understood beyond ECMA-376 first edition, by URI.</param>
-    internal OfficeXmlPullReader(byte[] data, int length, OfficeXmlNamespaces.Table? namespaces = null,
-        IReadOnlyList<string>? understoodNamespaces = null) {
+    internal OfficeXmlPullReader(byte[] data, int length, OfficeXmlNamespaces.Table? namespaces = null) {
         ArgumentNullException.ThrowIfNull(data);
         if (length < 0 || length > data.Length) throw new ArgumentOutOfRangeException(nameof(length));
         _namespaces = namespaces ?? new OfficeXmlNamespaces.Table();
-        _understood = understoodNamespaces == null || understoodNamespaces.Count == 0
-            ? Array.Empty<int>()
-            : new int[understoodNamespaces.Count];
-        for (int index = 0; index < _understood.Length; index++) _understood[index] = _namespaces.GetId(understoodNamespaces![index]);
 
         int start = 0;
         if (length >= 2 && (data[0] == 0xFF && data[1] == 0xFE || data[0] == 0xFE && data[1] == 0xFF

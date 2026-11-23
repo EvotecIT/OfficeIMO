@@ -121,7 +121,7 @@ internal static class OfficeXmlNamespaces {
 
     /// <summary>
     /// Every fixed id: the namespaces an ECMA-376 first-edition consumer understands. Markup-compatibility processing
-    /// treats any other namespace as not understood unless the reader is told otherwise.
+    /// treats any other namespace as not understood.
     /// </summary>
     internal static bool IsEcma376(int id) => id > None && id < FirstDynamic;
 

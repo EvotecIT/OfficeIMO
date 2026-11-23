@@ -290,13 +290,8 @@ internal sealed partial class OfficeXmlPullReader {
         throw Malformed("mc:Choice has no Requires attribute.");
     }
 
-    private bool IsUnderstood(int namespaceId) {
-        if (OfficeXmlNamespaces.IsEcma376(namespaceId)) return true;
-        foreach (int understood in _understood) {
-            if (understood == namespaceId) return true;
-        }
-        return false;
-    }
+    // The reader understands the namespaces of ECMA-376 first edition, as an Office 2007 consumer does.
+    private static bool IsUnderstood(int namespaceId) => OfficeXmlNamespaces.IsEcma376(namespaceId);
 
     private bool IsIgnorable(int namespaceId) {
         for (int index = 0; index < _ignorableCount; index++) {
