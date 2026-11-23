@@ -29,7 +29,7 @@ public sealed partial class RtfDocument {
         RtfLoadOptions readOptions = options ?? new RtfLoadOptions();
         byte[] bytes = await RtfBytePreservingEncoding.ReadBytesToEndAsync(stream, readOptions.Limits.MaxInputBytes, cancellationToken).ConfigureAwait(false);
         string rtf = DecodeInput(bytes, encoding);
-        return ParseResult(rtf, readOptions, cancellationToken).AttachOriginalBytes(bytes);
+        return ParseResult(rtf, readOptions, cancellationToken).AttachOwnedOriginalBytes(bytes);
     }
 
     /// <summary>Saves the document to an RTF file.</summary>
