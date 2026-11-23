@@ -209,6 +209,30 @@ public class PdfIccColorRenderingTests {
     }
 
     [Fact]
+    public void GetTextSpans_ResolvesIccTextPaintSelectedThroughEscapedResourceName() {
+        byte[] profile = IccLutTestProfiles.CreateCmykLut8WithDistinctRelativeIntent();
+        // The other declared space is painted first; the ICC space is selected later, spelled with a name escape.
+        const string text = "BT /F1 12 Tf /CsRgb cs 1 0 0 sc 20 80 Td (A) Tj ET " +
+            "BT /F1 12 Tf /Cs#49cc cs 0 0 0 0 scn 60 80 Td (B) Tj ET";
+        byte[] pdf = BuildIccContentPdf(
+            profile,
+            "/N 4",
+            string.Empty,
+            colorSpaceResources: "/CsIcc [/ICCBased 5 0 R] /CsRgb /DeviceRGB",
+            extraResourceEntries: "/Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >>",
+            contentOverride: text);
+
+        PdfTextSpan[] spans = PdfReadDocument.Open(pdf).Pages[0].GetTextSpans().ToArray();
+        OfficeColor expected = Assert.Single(PdfPageImageRenderer.RenderPage(BuildIccContentPdf(
+            profile,
+            "/N 4",
+            "0 0 0 0 scn")).Shapes).Shape.FillColor!.Value;
+
+        Assert.Equal(new[] { "A", "B" }, spans.Select(static span => span.Text).ToArray());
+        Assert.Equal(expected, spans[1].Color);
+    }
+
+    [Fact]
     public void RenderPage_AppliesPaintTimeIntentToInheritedImageMaskTint() {
         byte[] profile = IccLutTestProfiles.CreateCmykLut8WithDistinctRelativeIntent();
         OfficeColor perceptual = ReadSingleRenderedImagePixel(BuildIccImageMaskPdf(
