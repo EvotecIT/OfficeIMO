@@ -149,15 +149,24 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            ExcelTabularCellValues? values = null;
+            // Selectors run once; their results stay typed for every route below.
+            ExcelTabularCellValues values = CreateExplicitObjectExportCellValues(rows, selectors, out Type?[] inferredColumnTypes);
+            WriteProjectedObjectValues(headers, values, inferredColumnTypes, includeHeaders, startRow, hasBlankDisplayHeader);
+        }
+
+        /// <summary>
+        /// Writes projected selector values: as the workbook's direct model on its only sheet, into the pending cell
+        /// buffer on another empty sheet, and through the cell writer otherwise.
+        /// </summary>
+        private void WriteProjectedObjectValues(string[] headers, ExcelTabularCellValues values, Type?[] inferredColumnTypes,
+            bool includeHeaders, int startRow, bool hasBlankDisplayHeader) {
+            int rowCount = values.RowCount;
             if (!hasBlankDisplayHeader
                 && !HasDuplicateObjectExportHeaders(headers)
                 && CanRegisterDirectTabularSaveCandidate(startRow, 1, headers.Length)) {
-                Type?[] inferredColumnTypes;
-                values = CreateExplicitObjectExportCellValues(rows, selectors, out inferredColumnTypes);
                 try {
                     var columnTypes = CompleteObjectExportColumnTypes(inferredColumnTypes);
-                    string directSaveRange = BuildObjectExportRange(startRow, headers.Length, rows.Count, includeHeaders);
+                    string directSaveRange = BuildObjectExportRange(startRow, headers.Length, rowCount, includeHeaders);
                     if (TryInsertCellValuesAsDeferredDirectSave(Name, headers, columnTypes, values, startRow, includeHeaders, directSaveRange)) {
                         return;
                     }
@@ -166,8 +175,13 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+            if (!hasBlankDisplayHeader
+                && TryBufferFreshSheetTabularValues(includeHeaders ? headers : null, values, startRow, CancellationToken.None)) {
+                return;
+            }
+
             int headerRows = includeHeaders ? 1 : 0;
-            int totalCellCount = checked((rows.Count + headerRows) * headers.Length);
+            int totalCellCount = checked((rowCount + headerRows) * headers.Length);
             var cells = new (int Row, int Column, object Value)[totalCellCount];
             int cellIndex = 0;
             int row = startRow;
@@ -178,23 +192,13 @@ namespace OfficeIMO.Excel {
                 row++;
             }
 
-            if (values != null) {
-                for (int r = 0; r < rows.Count; r++) {
-                    int rowOffset = r * headers.Length;
-                    for (int c = 0; c < headers.Length; c++) {
-                        cells[cellIndex++] = (row, c + 1, values.GetValue(rowOffset + c)!);
-                    }
-
-                    row++;
+            for (int r = 0; r < rowCount; r++) {
+                int rowOffset = r * headers.Length;
+                for (int c = 0; c < headers.Length; c++) {
+                    cells[cellIndex++] = (row, c + 1, values.GetValue(rowOffset + c)!);
                 }
-            } else {
-                foreach (var item in rows) {
-                    for (int c = 0; c < headers.Length; c++) {
-                        cells[cellIndex++] = (row, c + 1, selectors[c](item)!);
-                    }
 
-                    row++;
-                }
+                row++;
             }
 
             CellValuesCore(cells, hasBlankDisplayHeader ? ExcelExecutionMode.Parallel : null, CancellationToken.None, preserveMissingValues: true);

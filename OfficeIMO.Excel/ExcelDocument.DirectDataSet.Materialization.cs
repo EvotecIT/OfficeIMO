@@ -138,6 +138,25 @@ namespace OfficeIMO.Excel {
         internal void MaterializeDeferredDataSetImport() =>
             MaterializeDeferredDataSetImport(CancellationToken.None);
 
+        /// <summary>
+        /// Materializes the deferred import for a caller that only adds worksheet data beside it, such as a new sheet.
+        /// Plain selector cells may then stay in the sheet's pending cell buffer instead of the cell DOM; every other
+        /// caller gets fully materialized worksheet cells.
+        /// </summary>
+        internal void MaterializeDeferredDataSetImportKeepingCellBuffers(CancellationToken ct) {
+            if (!RequiresDeferredMaterialization) {
+                ct.ThrowIfCancellationRequested();
+                return;
+            }
+
+            if (Locking.IsNoLock || (_lock != null && _lock.IsWriteLockHeld)) {
+                MaterializeDeferredDataSetImportLocked(ct, keepCellBuffers: true);
+                return;
+            }
+
+            Locking.ExecuteWrite(EnsureLock(), () => MaterializeDeferredDataSetImportLocked(ct, keepCellBuffers: true));
+        }
+
         internal void MaterializeDeferredDataSetImport(CancellationToken ct) {
             if (!RequiresDeferredMaterialization) {
                 ct.ThrowIfCancellationRequested();
@@ -156,7 +175,11 @@ namespace OfficeIMO.Excel {
         /// <param name="preserveFastSaveModel">
         /// Keeps the rows on the direct worksheet writer at save, as a read leaves them unchanged.
         /// </param>
-        private void MaterializeDeferredDataSetImportLocked(CancellationToken ct, bool preserveFastSaveModel = false) {
+        /// <param name="keepCellBuffers">
+        /// Lets plain selector cells stay in the sheet's pending cell buffer; set only under the workbook write lock, so
+        /// a concurrent reader never sees partly materialized cells.
+        /// </param>
+        private void MaterializeDeferredDataSetImportLocked(CancellationToken ct, bool preserveFastSaveModel = false, bool keepCellBuffers = false) {
             ct.ThrowIfCancellationRequested();
             if (_materializingDeferredDataSetImport) {
                 return;
@@ -181,6 +204,7 @@ namespace OfficeIMO.Excel {
 
             _directDataSetSaveCandidate = null;
             _materializingDeferredDataSetImport = true;
+            _keepMaterializedCellsInBuffers = keepCellBuffers;
             try {
                 MaterializeDirectDataSetModel(candidate.Model, cancellationToken: ct);
                 candidate.Dispose();
@@ -198,6 +222,7 @@ namespace OfficeIMO.Excel {
                 throw;
             } finally {
                 _materializingDeferredDataSetImport = false;
+                _keepMaterializedCellsInBuffers = false;
             }
         }
 
@@ -230,6 +255,28 @@ namespace OfficeIMO.Excel {
             candidate.Dispose();
         }
 
+        /// <summary>
+        /// Moves plain selector cells from the workbook's direct model into the sheet's pending cell buffer, where
+        /// later edits and other sheets keep them out of the cell DOM, as when the sheet was written beside others.
+        /// </summary>
+        private static bool TryMaterializeTypedCellsToCellValueBuffer(ExcelSheet sheet, DirectDataSetSheetModel sheetModel, CancellationToken ct) {
+            if (sheetModel.Table.TypedCells is not { } typedCells
+                || sheetModel.HasTable || sheetModel.AutoFitColumns || sheetModel.IncludeAutoFilter
+                || sheetModel.ColumnWidths != null || sheetModel.Metadata != null || sheetModel.ColumnNumberFormats != null
+                || sheetModel.UseCellValueNumberFormats || !sheetModel.OmitBlankCells || !sheetModel.IncludeCellReferences
+                || !sheetModel.Range.StartsWith("A1:", StringComparison.Ordinal)) {
+                return false;
+            }
+
+            string[]? headers = null;
+            if (sheetModel.IncludeHeaders) {
+                headers = new string[sheetModel.Table.ColumnCount];
+                for (int i = 0; i < headers.Length; i++) headers[i] = sheetModel.Table.GetColumnName(i);
+            }
+
+            return sheet.TryBufferFreshSheetTabularValues(headers, typedCells, 1, ct);
+        }
+
         private void MaterializeDirectDataSetModel(
             DirectDataSetWorkbookModel model,
             bool preserveExistingWorksheetStructure = false,
@@ -250,6 +297,10 @@ namespace OfficeIMO.Excel {
                     // The worksheet already holds these cells' settings and its first cells.
                     using var bufferNoLock = sheet.BeginNoLock();
                     sheet.ApplyCellValueBufferToWorksheet(cellValueBuffer, sheet.MirroredCellCount, cancellationToken);
+                    continue;
+                }
+
+                if (_keepMaterializedCellsInBuffers && TryMaterializeTypedCellsToCellValueBuffer(sheet, sheetModel, cancellationToken)) {
                     continue;
                 }
 

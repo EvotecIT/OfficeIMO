@@ -42,7 +42,7 @@ namespace OfficeIMO.Excel {
         public ExcelSheet AddSheet(string worksheetName, ExcelSheetNameValidationMode validationMode, CancellationToken cancellationToken) {
             cancellationToken.ThrowIfCancellationRequested();
             if (!_materializingDeferredDataSetImport && HasUnmaterializedDirectDataSetRows) {
-                MaterializeDeferredDataSetImport(cancellationToken);
+                MaterializeDeferredDataSetImportKeepingCellBuffers(cancellationToken);
             }
 
             return Locking.ExecuteWrite(EnsureLock(), () => {
