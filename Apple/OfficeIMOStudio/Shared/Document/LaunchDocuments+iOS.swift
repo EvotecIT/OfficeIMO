@@ -15,6 +15,11 @@ enum LaunchDocuments {
                 guard let output = try await prepare() else { return }
                 defer { StudioTemporaryFiles.removeGeneratedPDF(output) }
                 guard let browser = documentBrowser() else { throw CocoaError(.featureUnsupported) }
+                // A document window that is closing, such as a viewed document's after Edit as PDF, must be gone
+                // before the browser opens the next one.
+                for _ in 0..<30 where browser.presentedViewController != nil {
+                    try await Task.sleep(for: .milliseconds(100))
+                }
                 if output != SampleDocument.url { pendingNotice = String(localized: "Saved to OfficeIMO Studio in Files.") }
                 browser.delegate?.documentBrowser?(browser, didPickDocumentsAt: [try keep(output)])
             } catch {

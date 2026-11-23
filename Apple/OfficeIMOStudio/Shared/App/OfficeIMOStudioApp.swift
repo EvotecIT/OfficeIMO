@@ -29,15 +29,7 @@ struct OfficeIMOStudioApp: App {
 
     var body: some Scene {
         DocumentGroup(newDocument: { StudioDocument() }) { configuration in
-            #if os(macOS)
-            if let source = configuration.document.officeSource {
-                OfficeDocumentView(source: source)
-            } else {
-                DocumentWindow(document: configuration.document, fileURL: configuration.fileURL)
-            }
-            #else
             DocumentWindow(document: configuration.document, fileURL: configuration.fileURL)
-            #endif
         }
         #if os(macOS)
         .defaultSize(width: 1180, height: 860)
@@ -49,6 +41,14 @@ struct OfficeIMOStudioApp: App {
             ImportFromDevicesCommands()
             #endif
         }
+
+        // Word, Excel, PowerPoint and other documents open read-only, as their PDF conversion.
+        DocumentGroup(viewing: ViewerDocument.self) { configuration in
+            ViewerWindow(document: configuration.document)
+        }
+        #if os(macOS)
+        .defaultSize(width: 980, height: 820)
+        #endif
 
         #if os(macOS)
         // A WindowGroup, as a Window scene beside a DocumentGroup crashes in SwiftUI at launch.

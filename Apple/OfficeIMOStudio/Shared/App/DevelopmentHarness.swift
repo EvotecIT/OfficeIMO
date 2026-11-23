@@ -19,12 +19,16 @@ enum DevelopmentHarness {
 struct DevelopmentHarnessApp: App {
     private let url: URL
     private let document: StudioDocument?
+    private let viewed: ViewerDocument?
 
     init() {
         StudioDocument.removeStaleWorkingCopies()
         let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         url = documents.appending(path: DevelopmentHarness.file ?? "")
-        document = try? StudioDocument(contentsOf: url)
+        // Word, Excel, PowerPoint and other documents open in the viewer, as they do from the document browser.
+        let isPDF = url.pathExtension.lowercased() == "pdf"
+        document = isPDF ? try? StudioDocument(contentsOf: url) : nil
+        viewed = isPDF ? nil : try? ViewerDocument(contentsOf: url)
     }
 
     var body: some Scene {
@@ -33,6 +37,8 @@ struct DevelopmentHarnessApp: App {
                 HarnessScan()
             } else if let document {
                 HarnessWindow(document: document, url: url)
+            } else if let viewed {
+                NavigationStack { ViewerWindow(document: viewed).navigationTitle(viewed.name) }
             } else {
                 ContentUnavailableView("No Document", systemImage: "doc", description: Text(url.lastPathComponent))
             }
