@@ -34,6 +34,23 @@ internal static partial class OfficeJpegReader {
         ProgressiveComponentState cr = state.Components[crIndex];
         int maxH = frame.MaxH;
         int maxV = frame.MaxV;
+        int bands = state.McuRows;
+        int workers = (long)frame.Width * frame.Height >= 262_144 && frame.Height >= 16 && Environment.ProcessorCount > 1
+            ? Math.Min(Math.Min(8, Environment.ProcessorCount), bands)
+            : 1;
+        // Band rings and axis tables replace the component planes the state reserved but
+        // never allocated; together they must fit that reservation plus the unreserved budget.
+        long planeBytes = 0L;
+        long bandBytes = 0L;
+        foreach (ProgressiveComponentState component in state.Components) {
+            long componentBandBytes = (long)component.Samples.Stride * component.Component.V * 8L;
+            planeBytes += componentBandBytes * component.BlocksPerCol / component.Component.V;
+            bandBytes += 3L * (componentBandBytes + 24L + 4L * 64L * 3L);
+        }
+        if (workers * bandBytes + GetChromaAxisBytes(frame.Width, frame.Height) > planeBytes + state.AvailableBytes) {
+            return false;
+        }
+
         // Bounded tables keep dequantization exception-free inside the parallel bands.
         if (!HasBoundedQuantization(luma.Quantization) || !HasBoundedQuantization(cb.Quantization) ||
             !HasBoundedQuantization(cr.Quantization) ||
@@ -47,10 +64,6 @@ internal static partial class OfficeJpegReader {
 
         byte[] output = OfficeRasterGuards.AllocateRgba32(frame.Width, frame.Height, JpegDimensionsLimitMessage);
         var plan = new BandPlan(frame, state, output, luma, cb, cr, cbColumns, crColumns, cbRows, crRows);
-        int bands = state.McuRows;
-        int workers = (long)frame.Width * frame.Height >= 262_144 && frame.Height >= 16 && Environment.ProcessorCount > 1
-            ? Math.Min(Math.Min(8, Environment.ProcessorCount), bands)
-            : 1;
         if (workers <= 1) {
             plan.RenderBands(0, bands, cancellationToken);
         } else {

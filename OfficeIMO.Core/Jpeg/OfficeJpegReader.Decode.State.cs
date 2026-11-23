@@ -108,6 +108,9 @@ internal static partial class OfficeJpegReader {
         public void PrepareAcLookup(ref HuffmanTable table) =>
             table.PrepareBaselineAcLookup(ref _reservedBytes);
 
+        // Decode budget not yet reserved, for optional rendering tables.
+        public long AvailableBytes => OfficeRasterGuards.MaximumDecodedBytes - _reservedBytes;
+
         public void ReserveOrientationCanvas(JpegFrame frame) {
             if (!TryReserveOrientationCanvas(
                     frame.Width, frame.Height, ref _reservedBytes, ref _orientationCanvasReserved)) {
@@ -124,7 +127,7 @@ internal static partial class OfficeJpegReader {
                 if (!DecodedComponents[i]) throw new FormatException("Missing JPEG component scan.");
             }
 
-            return ComposeRgba(frame, Components, adobeTransform, highQualityChroma, cancellationToken);
+            return ComposeRgba(frame, Components, adobeTransform, highQualityChroma, AvailableBytes, cancellationToken);
         }
 
         public byte[] RenderColorComponents(
@@ -147,6 +150,7 @@ internal static partial class OfficeJpegReader {
                 usePdfColorTransformDefault,
                 highQualityChroma,
                 outputRgba: false,
+                AvailableBytes,
                 cancellationToken,
                 out componentCount);
         }
@@ -257,6 +261,9 @@ internal static partial class OfficeJpegReader {
         public void PrepareAcLookup(ref HuffmanTable table) =>
             table.PrepareBaselineAcLookup(ref _reservedBytes);
 
+        // Decode budget not yet reserved, for optional rendering tables.
+        public long AvailableBytes => OfficeRasterGuards.MaximumDecodedBytes - _reservedBytes;
+
         public void ReserveOrientationCanvas(JpegFrame frame) {
             if (!TryReserveOrientationCanvas(
                     frame.Width, frame.Height, ref _reservedBytes, ref _orientationCanvasReserved)) {
@@ -273,7 +280,7 @@ internal static partial class OfficeJpegReader {
                 return banded;
             }
             BaselineComponentState[] baselineStates = CreateBaselineStates(cancellationToken);
-            return ComposeRgba(frame, baselineStates, adobeTransform, highQualityChroma, cancellationToken);
+            return ComposeRgba(frame, baselineStates, adobeTransform, highQualityChroma, AvailableBytes, cancellationToken);
         }
 
         public byte[] RenderColorComponents(
@@ -293,6 +300,7 @@ internal static partial class OfficeJpegReader {
                 usePdfColorTransformDefault,
                 highQualityChroma,
                 outputRgba: false,
+                AvailableBytes,
                 cancellationToken,
                 out componentCount);
         }

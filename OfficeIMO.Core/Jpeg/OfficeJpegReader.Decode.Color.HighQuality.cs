@@ -16,7 +16,9 @@ internal static partial class OfficeJpegReader {
         int maximumHorizontalSampling,
         int maximumVerticalSampling,
         bool outputRgba,
+        long availableBytes,
         CancellationToken cancellationToken) {
+        if (GetChromaAxisBytes(width, height) > availableBytes) return false;
         if (luma.WideBuffer != null || cb.WideBuffer != null || cr.WideBuffer != null) return false;
         if (luma.Component.H != maximumHorizontalSampling || luma.Component.V != maximumVerticalSampling) return false;
         if (!TryCreateChromaAxis(cb.Component.H, maximumHorizontalSampling, width, out ChromaAxis cbColumns) ||
@@ -130,6 +132,11 @@ internal static partial class OfficeJpegReader {
         if (rounded >= 255) return 255;
         return (byte)rounded;
     }
+
+    // Column and row axes for both chroma components: three int entries each, plus
+    // array headers. Paths that need them reserve this from the decode budget.
+    private static long GetChromaAxisBytes(int width, int height) =>
+        ((long)width + height) * 2L * 3L * sizeof(int) + 12L * 24L;
 
     private sealed class ChromaAxis {
         public int[] First = Array.Empty<int>();

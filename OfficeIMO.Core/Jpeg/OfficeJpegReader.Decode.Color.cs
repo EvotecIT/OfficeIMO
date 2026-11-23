@@ -10,6 +10,7 @@ internal static partial class OfficeJpegReader {
         BaselineComponentState[] states,
         int? adobeTransform,
         bool highQualityChroma,
+        long availableBytes,
         CancellationToken cancellationToken) {
         return ComposeColorComponents(
             frame,
@@ -19,6 +20,7 @@ internal static partial class OfficeJpegReader {
             usePdfColorTransformDefault: false,
             highQualityChroma,
             outputRgba: true,
+            availableBytes,
             cancellationToken,
             out _);
     }
@@ -31,6 +33,7 @@ internal static partial class OfficeJpegReader {
         bool usePdfColorTransformDefault,
         bool highQualityChroma,
         bool outputRgba,
+        long availableBytes,
         CancellationToken cancellationToken,
         out int componentCount) {
         componentCount = frame.ComponentCount;
@@ -197,6 +200,7 @@ internal static partial class OfficeJpegReader {
                     maxH,
                     maxV,
                     outputRgba,
+                    availableBytes,
                     cancellationToken)) {
                 return components;
             }
