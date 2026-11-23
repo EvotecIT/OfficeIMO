@@ -118,7 +118,7 @@ public class WordReadComparisonBenchmarks {
     [BenchmarkCategory("library:OfficeIMO", "case:StreamedBodyText")]
     public WordReadObservation OfficeIMOStreamedBodyText() {
         using var stream = new MemoryStream(_fixture, writable: false);
-        List<string> lines = global::OfficeIMO.Word.WordStreamedBodyText.TryReadLines(stream, int.MaxValue, 0, null, CancellationToken.None)
+        List<string> lines = global::OfficeIMO.Word.WordStreamedBodyText.TryReadLines(stream, int.MaxValue, 0, null, includeNotes: true, CancellationToken.None, out _)
             ?? throw new InvalidDataException("The streamed body-text pass declined the fixture.");
         var observation = WordReadObservation.Empty;
         foreach (string line in lines) observation = observation.Add(line);

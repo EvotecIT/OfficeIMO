@@ -16,13 +16,14 @@ internal static class WordStreamingTextReader {
         && FormatInternals.OpenXmlReaderAdmission.Policy(readerOptions, global::OfficeIMO.Word.WordLoadOptions.DefaultMaxInputBytes) == null;
 
     /// <summary>Returns the streamed result, or null to read the document through the Word model.</summary>
-    internal static OfficeDocumentReadResult? TryRead(Stream stream, string sourceName, ReaderOptions readerOptions, CancellationToken cancellationToken) {
+    internal static OfficeDocumentReadResult? TryRead(Stream stream, string sourceName, ReaderOptions readerOptions, ReaderWordOptions options,
+        CancellationToken cancellationToken) {
         if (!stream.CanSeek) return null;
         long start = stream.Position;
         if (stream.Length - start > global::OfficeIMO.Word.WordLoadOptions.DefaultMaxInputBytes) return null;
         try {
             List<string>? lines = global::OfficeIMO.Word.WordStreamedBodyText.TryReadLines(stream, readerOptions.MaxChars,
-                readerOptions.MaxTableRows, readerOptions.OpenXmlMaxCharactersInPart, cancellationToken);
+                readerOptions.MaxTableRows, readerOptions.OpenXmlMaxCharactersInPart, options.IncludeFootnotes, cancellationToken, out _);
             return lines == null ? null : CreateResult(lines, sourceName);
         } catch (OperationCanceledException) {
             throw;
