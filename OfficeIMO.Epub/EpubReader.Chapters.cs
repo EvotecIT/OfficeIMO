@@ -1,5 +1,7 @@
 namespace OfficeIMO.Epub;
 
+using OfficeIMO.Core.Internal;
+
 #if NET8_0_OR_GREATER
 using System.Buffers;
 #endif
@@ -186,44 +188,34 @@ internal static partial class EpubReader {
         }
 
         using Stream entryStream = entry.Open();
-        if (entry.Length == 0) {
-            if (entryStream.ReadByte() >= 0) {
-                throw new InvalidDataException(
-                    $"EPUB entry '{entry.FullName}' expanded beyond its declared uncompressed size.");
+        const int smallEntryLimit = 81920;
+        if (entry.Length <= smallEntryLimit) {
+            byte[] bytes = entry.Length == 0 ? Array.Empty<byte>() : new byte[checked((int)entry.Length)];
+            int offset = 0;
+            while (offset < bytes.Length) {
+                cancellationToken.ThrowIfCancellationRequested();
+                int read = entryStream.Read(bytes, offset, bytes.Length - offset);
+                cancellationToken.ThrowIfCancellationRequested();
+                if (read == 0) {
+                    Array.Resize(ref bytes, offset);
+                    return bytes;
+                }
+                offset += read;
             }
-            return Array.Empty<byte>();
+            int trailing = entryStream.ReadByte();
+            cancellationToken.ThrowIfCancellationRequested();
+            if (trailing < 0) return bytes;
+            throw new InvalidDataException(
+                $"EPUB entry '{entry.FullName}' expanded beyond its declared uncompressed size.");
         }
 
-        const int bufferSize = 81920;
-        int initialCapacity = checked((int)Math.Min(entry.Length, bufferSize));
-        using var output = new MemoryStream(initialCapacity);
-#if NET8_0_OR_GREATER
-        byte[] buffer = ArrayPool<byte>.Shared.Rent(initialCapacity);
-#else
-        byte[] buffer = new byte[initialCapacity];
-#endif
         try {
-            long total = 0;
-            while (true) {
-                cancellationToken.ThrowIfCancellationRequested();
-                int read = entryStream.Read(buffer, 0, buffer.Length);
-                if (read == 0) break;
-                if (read > entry.Length - total) {
-                    throw new InvalidDataException(
-                        $"EPUB entry '{entry.FullName}' expanded beyond its declared uncompressed size.");
-                }
-                if (maxBytes.HasValue && read > maxBytes.Value - total) {
-                    throw new InvalidDataException(
-                        $"EPUB entry '{entry.FullName}' exceeds the configured maximum size ({maxBytes.Value} bytes).");
-                }
-                output.Write(buffer, 0, read);
-                total += read;
-            }
-            return output.ToArray();
-        } finally {
-#if NET8_0_OR_GREATER
-            ArrayPool<byte>.Shared.Return(buffer, clearArray: true);
-#endif
+            // Large entries retain their historical short-read behavior while
+            // growing only with decoded bytes, rather than trusting a large declaration.
+            return OfficeStreamReader.ReadRemainingBytes(entryStream, cancellationToken, entry.Length);
+        } catch (InvalidDataException exception) when (OfficeStreamReader.IsSizeLimitException(exception)) {
+            throw new InvalidDataException(
+                $"EPUB entry '{entry.FullName}' expanded beyond its declared uncompressed size.", exception);
         }
     }
 

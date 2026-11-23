@@ -113,27 +113,28 @@ internal static partial class OfficeArchiveSafety {
                 "The archive entry has an invalid declared length.");
         }
 
-        using var output = new MemoryStream(checked((int)declaredLength));
-        var buffer = new byte[81920];
-        long remaining = declaredLength;
-        while (remaining > 0) {
+        byte[] bytes = declaredLength == 0 ? Array.Empty<byte>() : new byte[checked((int)declaredLength)];
+        int offset = 0;
+        while (offset < bytes.Length) {
             cancellationToken.ThrowIfCancellationRequested();
-            int requested = (int)Math.Min(buffer.Length, remaining);
-            int read = source.Read(buffer, 0, requested);
+            int requested = Math.Min(81920, bytes.Length - offset);
+            int read = source.Read(bytes, offset, requested);
             if (read <= 0 || read > requested) {
                 throw new InvalidDataException(
                     "The archive entry is shorter than its declared length.");
             }
-            output.Write(buffer, 0, read);
-            remaining -= read;
+            offset += read;
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        if (source.Read(buffer, 0, 1) != 0) {
+        // Use the same read overload so stream wrappers account for the probe.
+        int trailing = source.Read(new byte[1], 0, 1);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (trailing != 0) {
             throw new InvalidDataException(
                 "The archive entry exceeds its declared expansion length.");
         }
-        return output.ToArray();
+        return bytes;
     }
 
     /// <summary>

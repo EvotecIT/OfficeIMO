@@ -67,7 +67,7 @@ public sealed partial class HtmlSiteBundle {
             if (item.Key == entryPath) htmlBytes = data;
             string key = ResourceKey(CreateEntryUri(options.ArchiveBaseUri, item.Key));
             if (resources.ContainsKey(key)) throw new InvalidDataException("The ZIP site bundle contains colliding resource URI identities.");
-            resources.Add(key, new HtmlResolvedResource(data, ContentType(item.Key)));
+            resources.Add(key, HtmlResolvedResource.FromOwnedBytes(data, ContentType(item.Key)));
         }
         using var htmlStream = new MemoryStream(htmlBytes!, writable: false);
         // The async HTML loader also passes cancellation into parsing; the synchronous

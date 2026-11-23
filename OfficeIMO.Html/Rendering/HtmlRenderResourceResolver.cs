@@ -75,15 +75,18 @@ public sealed class HtmlResolvedResource {
         : this(bytes, contentType, finalUri, redirectCount, hasRedirectProvenance: true) {
     }
 
-    private HtmlResolvedResource(byte[] bytes, string contentType, Uri? finalUri, int redirectCount, bool hasRedirectProvenance) {
+    private HtmlResolvedResource(byte[] bytes, string contentType, Uri? finalUri, int redirectCount, bool hasRedirectProvenance, bool ownsBytes = false) {
         ArgumentNullException.ThrowIfNull(bytes);
         ArgumentOutOfRangeException.ThrowIfNegative(redirectCount);
-        _bytes = (byte[])bytes.Clone();
+        _bytes = ownsBytes ? bytes : (byte[])bytes.Clone();
         ContentType = string.IsNullOrWhiteSpace(contentType) ? "application/octet-stream" : contentType.Trim();
         FinalUri = finalUri;
         RedirectCount = redirectCount;
         HasRedirectProvenance = hasRedirectProvenance;
     }
+
+    internal static HtmlResolvedResource FromOwnedBytes(byte[] bytes, string contentType) =>
+        new(bytes, contentType, null, 0, hasRedirectProvenance: false, ownsBytes: true);
 
     /// <summary>Resolved resource bytes.</summary>
     public byte[] Bytes => (byte[])_bytes.Clone();
