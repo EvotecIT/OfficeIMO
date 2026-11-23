@@ -1,3 +1,6 @@
+#if NET8_0_OR_GREATER
+using System.Buffers.Binary;
+#endif
 using System.Runtime.CompilerServices;
 
 namespace OfficeIMO.Drawing;
@@ -19,6 +22,13 @@ internal static partial class OfficeJpegReader {
         private int _position;
         private ulong _buffer;
         private int _bitCount;
+
+        // Hot loops copy the bit buffer into locals and hand it back before any other read.
+        public readonly ulong BufferedBits => _buffer;
+        public int BufferedBitCount {
+            readonly get => _bitCount;
+            set => _bitCount = value;
+        }
 
         public bool RestartMarkerSeen;
 
@@ -110,7 +120,7 @@ internal static partial class OfficeJpegReader {
             return false;
         }
 
-        private void EnsureBits(int count) {
+        public void EnsureBits(int count) {
             Fill(_prefetch ? PrefetchBits : count);
             while (_bitCount < count) {
                 // Fill stops only at the end of the data or at a marker.
@@ -128,6 +138,28 @@ internal static partial class OfficeJpegReader {
         // Loads whole bytes until the buffer holds at least target bits, undoing byte
         // stuffing. Stops before a marker, and at the end of non-truncated data.
         private void Fill(int target) {
+            // Whole-word refill when the next eight bytes hold no 0xFF (no stuffing or marker).
+            if (_bitCount < target && _end - _position >= 8) {
+#if NET8_0_OR_GREATER
+                ulong word = BinaryPrimitives.ReadUInt64BigEndian(new ReadOnlySpan<byte>(_bytes, _position, 8));
+#else
+                ulong word = 0;
+                for (int i = 0; i < 8; i++) word = (word << 8) | _bytes[_position + i];
+#endif
+                ulong inverted = ~word;
+                if (((inverted - 0x0101010101010101UL) & ~inverted & 0x8080808080808080UL) == 0) {
+                    int bytes = (target - _bitCount + 7) >> 3;
+                    if (bytes >= 8) {
+                        _buffer = word;
+                        bytes = 8;
+                    } else {
+                        _buffer = (_buffer << (bytes * 8)) | (word >> (64 - bytes * 8));
+                    }
+                    _bitCount += bytes * 8;
+                    _position += bytes;
+                    return;
+                }
+            }
             while (_bitCount < target) {
                 if (_position >= _end) {
                     if (!_allowTruncated) return;
