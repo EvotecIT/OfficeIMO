@@ -104,7 +104,7 @@ public sealed partial class DocBookDocument {
     /// <summary>Loads DocBook from a caller-owned stream while preserving seekable position.</summary>
     public static DocBookDocument Load(Stream stream, DocBookLoadOptions? options = null, CancellationToken cancellationToken = default) {
         options ??= new DocBookLoadOptions(); options.Validate();
-        return ParseBytes(OfficeStreamReader.ReadAllBytes(stream, cancellationToken, options.MaxInputBytes), options, cancellationToken);
+        return ParseOwnedBytes(OfficeStreamReader.ReadAllBytes(stream, cancellationToken, options.MaxInputBytes), options, cancellationToken);
     }
 
     /// <summary>Loads DocBook asynchronously from a caller-owned stream.</summary>
@@ -112,7 +112,7 @@ public sealed partial class DocBookDocument {
         options ??= new DocBookLoadOptions(); options.Validate();
         byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken, options.MaxInputBytes).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
-        return ParseBytes(bytes, options, cancellationToken);
+        return ParseOwnedBytes(bytes, options, cancellationToken);
     }
 
     /// <summary>Adds a top-level section, creating a chapter container first for a book.</summary>
@@ -693,14 +693,14 @@ public sealed partial class DocBookDocument {
         return output.ToArray();
     }
 
-    private static DocBookDocument ParseBytes(byte[] bytes, DocBookLoadOptions options, CancellationToken cancellationToken) {
+    private static DocBookDocument ParseOwnedBytes(byte[] bytes, DocBookLoadOptions options, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         using var memory = new MemoryStream(bytes, writable: false);
         using var reader = CreateLimitingReader(XmlReader.Create(memory, CreateSettings(options)), options, cancellationToken);
         XDocument xml = XDocument.Load(reader, LoadOptions.PreserveWhitespace | LoadOptions.SetLineInfo);
         cancellationToken.ThrowIfCancellationRequested();
         DocBookProfile profile = DetectAndValidateShape(xml, options, cancellationToken);
-        return new DocBookDocument(xml, profile, (byte[])bytes.Clone(), null);
+        return new DocBookDocument(xml, profile, bytes, null);
     }
 
     private static XmlReaderSettings CreateSettings(DocBookLoadOptions options) => new XmlReaderSettings {
