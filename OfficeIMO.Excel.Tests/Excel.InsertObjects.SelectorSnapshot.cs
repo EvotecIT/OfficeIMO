@@ -52,6 +52,110 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Theory]
+        [InlineData(ExcelFileFormat.Xlsx)]
+        [InlineData(ExcelFileFormat.Xlsb)]
+        public void WriteData_OnSeveralSheetsKeepsTheSingleSheetValuesAndDateFormat(ExcelFileFormat format) {
+            var start = new DateTime(2024, 1, 2, 13, 45, 0);
+            var rows = Enumerable.Range(0, 300).ToArray();
+            (string, Func<int, object?>)[] columns = [
+                ("Name", index => "Name" + index), ("Id", index => index),
+                ("CreatedOn", index => start.AddDays(index)), ("Amount", index => index * 1.25),
+                ("Offset", index => new DateTimeOffset(start.AddDays(index), TimeSpan.Zero)),
+                ("Duration", index => TimeSpan.FromMinutes(index * 7)),
+#if NET6_0_OR_GREATER
+                ("Day", index => DateOnly.FromDateTime(start.AddDays(index))), ("Time", index => TimeOnly.FromTimeSpan(TimeSpan.FromMinutes(index))),
+#endif
+            ];
+
+            string expectedFormat;
+            var expectedFormats = new string?[columns.Length + 1];
+            using (var single = ExcelDocument.Create()) {
+                single.AddSheet("Data").WriteData(rows, columns);
+                using var loaded = ExcelDocument.Load(new MemoryStream(single.ToBytes(format)));
+                expectedFormat = loaded.Sheets[0].Cell(2, 3).GetStyle().NumberFormatCode!;
+                for (int column = 5; column <= columns.Length; column++) {
+                    expectedFormats[column] = loaded.Sheets[0].Cell(301, column).GetStyle().NumberFormatCode;
+                }
+            }
+
+            using var document = ExcelDocument.Create();
+            for (int sheet = 1; sheet <= 3; sheet++) document.AddSheet("Sheet" + sheet).WriteData(rows, columns);
+            using var reloaded = ExcelDocument.Load(new MemoryStream(document.ToBytes(format)));
+            Assert.Equal(3, reloaded.Sheets.Count);
+            foreach (var sheet in reloaded.Sheets) {
+                foreach (int row in new[] { 2, 301 }) {
+                    int index = row - 2;
+                    Assert.Equal(expectedFormat, sheet.Cell(row, 3).GetStyle().NumberFormatCode);
+                    for (int column = 5; column <= columns.Length; column++) {
+                        Assert.Equal(expectedFormats[column], sheet.Cell(row, column).GetStyle().NumberFormatCode);
+                    }
+                    Assert.True(sheet.TryGetCellText(row, 1, out string name));
+                    Assert.Equal("Name" + index, name);
+                    Assert.True(sheet.TryGetCellText(row, 2, out string id));
+                    Assert.Equal(index.ToString(System.Globalization.CultureInfo.InvariantCulture), id);
+                    Assert.True(sheet.TryGetCellText(row, 3, out string serial));
+                    Assert.Equal(start.AddDays(index).ToOADate(), double.Parse(serial, System.Globalization.CultureInfo.InvariantCulture), 9);
+                }
+            }
+        }
+
+        [Fact]
+        public void WriteData_ReadsEveryCellOfTheOnlySheetBeforeSave() {
+            var rows = Enumerable.Range(0, 300).ToArray();
+            using var document = ExcelDocument.Create();
+            var sheet = document.AddSheet("Data");
+            sheet.WriteData(rows, ("Id", index => index), ("Name", index => "Name" + index));
+
+            Assert.True(sheet.TryGetCellText(301, 2, out string name));
+            Assert.Equal("Name299", name);
+            var ids = sheet.GetCellValueSnapshots(1, 2, 301);
+            Assert.Equal(300, ids.Count);
+            Assert.All(ids, snapshot => Assert.NotNull(snapshot));
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        public void WriteData_TypedColumnsWriteTheSameCellsAsObjectSelectors(int sheetCount) {
+            var start = new DateTime(2024, 3, 4, 5, 6, 7);
+            var rows = Enumerable.Range(0, 200).ToArray();
+            byte[] Write(Action<ExcelSheet> write) {
+                using var document = ExcelDocument.Create();
+                for (int sheet = 1; sheet <= sheetCount; sheet++) write(document.AddSheet("Sheet" + sheet));
+                return document.ToBytes(ExcelFileFormat.Xlsx);
+            }
+
+            byte[] objects = Write(sheet => sheet.WriteData(rows,
+                ("Text", index => index % 7 == 0 ? null : index % 11 == 0 ? string.Empty : "Item " + index),
+                ("Int", index => index - 100), ("Long", index => index == 5 ? long.MaxValue : (object)(index * 1_000_000_000L)),
+                ("Double", index => index % 9 == 0 ? null : index / 8.0), ("Date", index => start.AddHours(index)),
+                ("Flag", index => index % 3 == 0), ("Decimal", index => index * 0.1m),
+                ("Code", index => index % 4 == 0 ? null : (char)('A' + index % 26)), ("Big", index => index % 5 == 0 ? null : ulong.MaxValue - (ulong)index)));
+            byte[] typed = Write(sheet => sheet.WriteData(rows, columns => columns
+                .Add("Text", index => index % 7 == 0 ? null : index % 11 == 0 ? string.Empty : "Item " + index)
+                .Add("Int", index => index - 100).Add("Long", index => index == 5 ? long.MaxValue : index * 1_000_000_000L)
+                .Add("Double", index => index % 9 == 0 ? (double?)null : index / 8.0).Add("Date", index => start.AddHours(index))
+                .Add("Flag", index => index % 3 == 0).Add("Decimal", index => index * 0.1m)
+                .Add("Code", index => index % 4 == 0 ? null : (char?)(char)('A' + index % 26))
+                .Add("Big", index => index % 5 == 0 ? null : (ulong?)(ulong.MaxValue - (ulong)index))));
+
+            using var expected = ExcelDocument.Load(new MemoryStream(objects));
+            using var actual = ExcelDocument.Load(new MemoryStream(typed));
+            Assert.Equal(sheetCount, actual.Sheets.Count);
+            for (int sheet = 0; sheet < sheetCount; sheet++) {
+                for (int row = 1; row <= rows.Length + 1; row++) {
+                    for (int column = 1; column <= 9; column++) {
+                        bool expectedHasText = expected.Sheets[sheet].TryGetCellText(row, column, out string expectedText);
+                        Assert.Equal(expectedHasText, actual.Sheets[sheet].TryGetCellText(row, column, out string actualText));
+                        Assert.Equal(expectedText, actualText);
+                        Assert.Equal(expected.Sheets[sheet].Cell(row, column).GetStyle().NumberFormatCode,
+                            actual.Sheets[sheet].Cell(row, column).GetStyle().NumberFormatCode);
+                    }
+                }
+            }
+        }
+
         private sealed class SelectorSnapshotRow {
             internal int Id { get; set; }
         }

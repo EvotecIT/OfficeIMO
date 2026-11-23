@@ -85,6 +85,9 @@ slide.AddImage("logo.png", left: OfficeLength.Centimeters(2), top: OfficeLength.
 deck.Save();
 ```
 
+A picture added several times, for example a logo on every slide, is stored once in the file and shared by the
+slides that show it. An SVG picture also keeps one PNG fallback for repeated additions.
+
 ## Masters, layouts and connectors
 
 Shapes and placeholders on a slide master or layout show on every slide that uses them. Connectors stay glued to

@@ -256,6 +256,8 @@ internal static class WordRichMapping {
         ref int tableIndex,
         ref int linkIndex) {
         var headingStack = new List<(int Level, string Text)>();
+        // The path changes only at headings, so most blocks share the previous value.
+        string? headingPath = null;
         for (int elementIndex = 0; elementIndex < elements.Count; elementIndex++) {
             WordBlockInfo element = elements[elementIndex];
             string anchor = "word-" + owner + "-block-" + elementIndex.ToString("D4", CultureInfo.InvariantCulture);
@@ -273,8 +275,9 @@ internal static class WordRichMapping {
                         if (headingStack[headingIndex].Level >= headingLevel.Value) headingStack.RemoveAt(headingIndex);
                     }
                     headingStack.Add((headingLevel.Value, string.IsNullOrWhiteSpace(paragraph.Text) ? "Heading " + headingLevel.Value.ToString(CultureInfo.InvariantCulture) : paragraph.Text));
+                    headingPath = BuildWordHeadingPath(headingStack);
                 }
-                location.HeadingPath = BuildWordHeadingPath(headingStack);
+                location.HeadingPath = headingPath;
                 string kind = headingLevel.HasValue ? "heading" : paragraph.IsListItem ? "list-item" : "paragraph";
                 location.SourceBlockKind = kind;
                 blocks.Add(new OfficeDocumentBlock {
@@ -288,7 +291,7 @@ internal static class WordRichMapping {
                 });
                 AddWordParagraphLinks(paragraph, location, links, ref linkIndex);
             } else if (element is WordTableInfo table) {
-                location.HeadingPath = BuildWordHeadingPath(headingStack);
+                location.HeadingPath = headingPath;
                 ReaderTable mapped = MapWordTable(table, location, tableIndex++, options.MaxTableRows);
                 blocks.Add(new OfficeDocumentBlock {
                     Id = anchor,

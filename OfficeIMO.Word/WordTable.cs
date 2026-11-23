@@ -11,10 +11,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public List<WordParagraph> Paragraphs {
             get {
+                // Walk the cells' XML directly; row and cell wrappers are not needed to read paragraphs.
                 List<WordParagraph> list = new List<WordParagraph>();
-                foreach (var row in this.Rows) {
-                    foreach (var cell in row.Cells) {
-                        list.AddRange(cell.Paragraphs);
+                foreach (TableRow row in WordTableContent.Rows(_table)) {
+                    foreach (TableCell cell in WordTableContent.Cells(row)) {
+                        list.AddRange(WordSection.ConvertParagraphsToWordParagraphs(_document, cell.ChildElements.OfType<Paragraph>()));
                     }
                 }
                 return list;
@@ -182,7 +183,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets the number of rows in the table.
         /// </summary>
-        public int RowCount => this.Rows.Count;
+        public int RowCount => WordTableContent.Rows(_table).Count();
 
         /// <summary>
         /// Gets the table's rows in document order, including rows inside content controls and custom XML.
@@ -192,7 +193,7 @@ namespace OfficeIMO.Word {
                 var list = new List<WordTableRow>(_table.ChildElements.Count);
 
                 foreach (TableRow row in WordTableContent.Rows(_table)) {
-                    list.Add(GetOrCreateRow(row, initializeCells: !IsReadOnlyView));
+                    list.Add(GetOrCreateRow(row));
                 }
 
                 return list;
@@ -204,7 +205,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordTableRow FirstRow {
             get {
-                return Rows.First();
+                return GetOrCreateRow(WordTableContent.Rows(_table).First());
             }
         }
         /// <summary>
@@ -212,7 +213,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordTableRow LastRow {
             get {
-                return Rows.Last();
+                return GetOrCreateRow(WordTableContent.Rows(_table).Last());
             }
         }
 
@@ -229,12 +230,12 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private WordTableRow GetOrCreateRow(TableRow row, bool initializeCells) {
+        private WordTableRow GetOrCreateRow(TableRow row) {
             if (_rowCache.TryGetValue(row, out WordTableRow? cachedRow)) {
                 return cachedRow;
             }
 
-            var wordRow = new WordTableRow(this, row, _document, initializeCells);
+            var wordRow = new WordTableRow(this, row, _document);
             _rowCache.Add(row, wordRow);
             return wordRow;
         }
@@ -383,13 +384,7 @@ namespace OfficeIMO.Word {
             if (!readOnly) document.MarkTableNormalizationRequired();
             _table = table;
             _document = document;
-            _rowElements = WordTableContent.Rows(table).ToList();
-
-            if (initializeChildren && !readOnly) {
-                foreach (TableRow row in WordTableContent.Rows(table).ToList()) {
-                    GetOrCreateRow(row, initializeCells: true);
-                }
-            }
+            // Rows and cells are wrapped lazily; reading a table never changes its XML.
 
             // Establish Position property
             Position = new WordTablePosition(this);

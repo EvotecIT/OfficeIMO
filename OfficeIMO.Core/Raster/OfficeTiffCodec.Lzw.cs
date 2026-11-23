@@ -83,6 +83,9 @@ public static partial class OfficeTiffCodec {
         int expectedCount,
         CancellationToken cancellationToken) {
         if (expectedCount <= 0) return false;
+        if (output != null) {
+            return TryDecodeLzwToOutput(input, inputOffset, inputCount, output, outputOffset, expectedCount, cancellationToken);
+        }
         var reader = new TiffLzwBitReader(input, inputOffset, inputCount);
         var prefixes = new short[4096];
         var suffixes = new byte[4096];
@@ -147,6 +150,93 @@ public static partial class OfficeTiffCodec {
         return ended && target == outputEnd && reader.HasOnlyZeroBitPaddingAtEnd;
     }
 
+    // Output-producing form of TryDecodeLzwCore with the same acceptance rules. Every
+    // dictionary string is the previous code's string plus the next code's first byte,
+    // and both were already written contiguously, so an entry is a (start, length)
+    // reference into the output and expanding a code is a copy of earlier output.
+    private static bool TryDecodeLzwToOutput(
+        byte[] input,
+        int inputOffset,
+        int inputCount,
+        byte[] output,
+        int outputOffset,
+        int expectedCount,
+        CancellationToken cancellationToken) {
+        var reader = new TiffLzwBitReader(input, inputOffset, inputCount);
+        var starts = new int[4096];
+        var lengths = new short[4096];
+        int codeSize = 9;
+        int nextCode = LzwFirstCode;
+        int previousCode = -1;
+        int previousStart = 0;
+        int previousLength = 0;
+        int target = outputOffset;
+        int outputEnd = checked(outputOffset + expectedCount);
+        bool ended = false;
+        bool requiresInitialClear = true;
+        int decodedCodes = 0;
+
+        while (reader.TryRead(codeSize, out int code)) {
+            if ((decodedCodes++ & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if (requiresInitialClear) {
+                requiresInitialClear = false;
+                if (code != LzwClearCode) return false;
+            }
+            if (code == LzwClearCode) {
+                codeSize = 9;
+                nextCode = LzwFirstCode;
+                previousCode = -1;
+                continue;
+            }
+            if (code == LzwEndCode) {
+                ended = true;
+                break;
+            }
+            if (code < 0 || code > LzwMaximumCode || code > nextCode || previousCode < 0 && code >= 256) return false;
+
+            int start = target;
+            int length;
+            if (code < 256) {
+                if (target >= outputEnd) return false;
+                output[target++] = (byte)code;
+                length = 1;
+            } else if (code < nextCode) {
+                length = lengths[code];
+                if (target > outputEnd - length) return false;
+                CopyEarlierOutput(output, starts[code], target, length);
+                target += length;
+            } else {
+                // The code being defined: the previous string followed by its own first byte.
+                length = previousLength + 1;
+                if (target > outputEnd - length) return false;
+                CopyEarlierOutput(output, previousStart, target, previousLength);
+                output[target + previousLength] = output[previousStart];
+                target += length;
+            }
+
+            if (previousCode >= 0 && nextCode <= LzwMaximumCode) {
+                starts[nextCode] = previousStart;
+                lengths[nextCode] = (short)(previousLength + 1);
+                nextCode++;
+                // The decoder constructs each dictionary entry one emitted code later than the encoder.
+                if (codeSize < 12 && nextCode == (1 << codeSize) - 1) codeSize++;
+            }
+            previousCode = code;
+            previousStart = start;
+            previousLength = length;
+        }
+        return ended && target == outputEnd && reader.HasOnlyZeroBitPaddingAtEnd;
+    }
+
+    // The source range always ends at or before the destination, so a forward copy is exact.
+    private static void CopyEarlierOutput(byte[] output, int source, int destination, int count) {
+        if (count <= 16) {
+            for (int index = 0; index < count; index++) output[destination + index] = output[source + index];
+        } else {
+            Buffer.BlockCopy(output, source, output, destination, count);
+        }
+    }
+
     private sealed class TiffLzwBitWriter : IDisposable {
         private byte[] _buffer;
         private int _length;
@@ -203,11 +293,13 @@ public static partial class OfficeTiffCodec {
         }
     }
 
+    // MSB-first code reader. Bytes are prefetched into a 64-bit buffer; bits above
+    // _bitCount are stale and masked on every read.
     private sealed class TiffLzwBitReader {
         private readonly byte[] _input;
         private readonly int _end;
         private int _offset;
-        private uint _bits;
+        private ulong _bits;
         private int _bitCount;
 
         internal TiffLzwBitReader(byte[] input, int offset, int count) {
@@ -217,20 +309,23 @@ public static partial class OfficeTiffCodec {
         }
 
         internal bool TryRead(int width, out int value) {
-            while (_bitCount < width) {
-                if (_offset >= _end) {
+            if (_bitCount < width) {
+                while (_bitCount <= 56 && _offset < _end) {
+                    _bits = (_bits << 8) | _input[_offset++];
+                    _bitCount += 8;
+                }
+                if (_bitCount < width) {
                     value = 0;
                     return false;
                 }
-                _bits = (_bits << 8) | _input[_offset++];
-                _bitCount += 8;
             }
             _bitCount -= width;
-            value = (int)((_bits >> _bitCount) & ((1U << width) - 1U));
-            _bits &= _bitCount == 0 ? 0U : (1U << _bitCount) - 1U;
+            value = (int)(_bits >> _bitCount) & ((1 << width) - 1);
             return true;
         }
 
-        internal bool HasOnlyZeroBitPaddingAtEnd => _offset == _end && _bitCount < 8 && _bits == 0U;
+        // Fewer than eight bits remain in the payload and all of them are zero.
+        internal bool HasOnlyZeroBitPaddingAtEnd =>
+            _offset == _end && _bitCount < 8 && (_bits & ((1UL << _bitCount) - 1UL)) == 0UL;
     }
 }

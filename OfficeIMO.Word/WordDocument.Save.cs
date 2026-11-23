@@ -431,14 +431,7 @@ namespace OfficeIMO.Word {
                 }
                 return;
             }
-            OfficeFileCommit.Write(filePath, stream => {
-                using (var clone = WordPackageSnapshot.Clone(_wordprocessingDocument, stream)) {
-                    AlignDocumentTypeWithFilePath(clone, filePath);
-                }
-
-                stream.Seek(0, SeekOrigin.Begin);
-                WordPackageCompatibility.NormalizeOpenOfficeRelationships(stream);
-            });
+            OfficeFileCommit.Write(filePath, stream => WritePackageCopy(stream, filePath));
 
             if (updateFilePath) {
                 FilePath = filePath;
@@ -460,25 +453,32 @@ namespace OfficeIMO.Word {
 
         private byte[] CreateClonedPackageSnapshot(string? filePath) {
             using var memoryStream = new MemoryStream();
-            // Without a document type to align, the copy is final once written; reopening it through the SDK only
-            // to copy core properties and dispose it rewrote the whole package again.
-            if (string.IsNullOrEmpty(filePath) &&
-                WordPackageSnapshot.TryWriteFinalCopy(_wordprocessingDocument, memoryStream, out bool needsNormalization)) {
+            WritePackageCopy(memoryStream, filePath);
+            return memoryStream.ToArray();
+        }
+
+        /// <summary>
+        /// Writes a copy of the package to <paramref name="destination"/>. The copy is reopened through the SDK only
+        /// when its document type must follow <paramref name="filePath"/> or a Strict main relationship needs
+        /// translating, and relationships are normalized only when a target would change.
+        /// </summary>
+        private void WritePackageCopy(Stream destination, string? filePath) {
+            bool align = !string.IsNullOrEmpty(filePath) && NeedsDocumentTypeAlignment(filePath!);
+            if (!align && WordPackageSnapshot.TryWriteFinalCopy(_wordprocessingDocument, destination, out bool needsNormalization)) {
                 if (needsNormalization) {
-                    memoryStream.Seek(0, SeekOrigin.Begin);
-                    WordPackageCompatibility.NormalizeOpenOfficeRelationships(memoryStream);
+                    destination.Seek(0, SeekOrigin.Begin);
+                    WordPackageCompatibility.NormalizeOpenOfficeRelationships(destination);
                 }
-                return memoryStream.ToArray();
+                return;
             }
-            using (var clone = WordPackageSnapshot.Clone(_wordprocessingDocument, memoryStream)) {
+            using (var clone = WordPackageSnapshot.Clone(_wordprocessingDocument, destination)) {
                 if (!string.IsNullOrEmpty(filePath)) {
                     AlignDocumentTypeWithFilePath(clone, filePath!);
                 }
             }
 
-            memoryStream.Seek(0, SeekOrigin.Begin);
-            WordPackageCompatibility.NormalizeOpenOfficeRelationships(memoryStream);
-            return memoryStream.ToArray();
+            destination.Seek(0, SeekOrigin.Begin);
+            WordPackageCompatibility.NormalizeOpenOfficeRelationships(destination);
         }
 
 #pragma warning disable OOXML0001

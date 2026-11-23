@@ -44,7 +44,7 @@ public class ExcelFormulaRecalculationBenchmarks {
         int lastRow = Rows + 1;
         string detail = $"{Shape}: {Rows} order rows x {FormulasPerRow} formulas plus 4 totals; the totals and two per-row columns compared with expected values";
         Observation expected = Expected(Rows, ConditionalTotals);
-        ExcelOutputValidation.Check("OfficeIMO", "Recalculate", detail, () => {
+        ExcelOutputValidation.Check("OfficeIMO", "Default", detail, () => {
             int calculated = OfficeIMO();
             int formulas = Rows * FormulasPerRow + 4;
             if (calculated != formulas) throw new InvalidDataException($"OfficeIMO calculated {calculated} of {formulas} formulas.");
@@ -58,7 +58,7 @@ public class ExcelFormulaRecalculationBenchmarks {
                 ConditionalTotals ? SumColumn(row => OfficeImoNumber(sheet, row, 10), lastRow) : 0,
                 OfficeImoText(sheet, 2, 11)));
         });
-        ExcelOutputValidation.Check("ClosedXML", "Recalculate", detail, () => {
+        ExcelOutputValidation.Check("ClosedXML", "Default", detail, () => {
             ClosedXML();
             IXLWorksheet sheet = _closedXml.Worksheet("Orders");
             expected.Check(new Observation(
@@ -72,7 +72,7 @@ public class ExcelFormulaRecalculationBenchmarks {
         });
         if (BenchmarkLibrarySelection.IsEnabled("epplus")) {
             _epPlus = new ExcelPackage(new MemoryStream(workbook));
-            ExcelOutputValidation.Check("EPPlus", "Recalculate", detail, () => {
+            ExcelOutputValidation.Check("EPPlus", "Default", detail, () => {
                 EPPlus();
                 ExcelWorksheet sheet = _epPlus.Workbook.Worksheets["Orders"];
                 expected.Check(new Observation(
@@ -210,7 +210,7 @@ public class ExcelFormulaRecalculationBenchmarks {
         }
 
         private static void Compare(string name, double expected, double actual) {
-            if (Math.Abs(expected - actual) > 1e-6 * Math.Max(1, Math.Abs(expected)))
+            if (double.IsNaN(actual) || double.IsInfinity(actual) || Math.Abs(expected - actual) > 1e-6 * Math.Max(1, Math.Abs(expected)))
                 throw new InvalidDataException($"{name} {actual} differs from the expected {expected}.");
         }
     }

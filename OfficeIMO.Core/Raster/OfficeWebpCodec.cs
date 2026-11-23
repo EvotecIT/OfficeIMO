@@ -593,13 +593,18 @@ public static partial class OfficeWebpCodec {
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         internal uint PeekBits(int count) {
             if (count < 0 || count > 32) throw new FormatException("WebP bit count is invalid.");
-            while (_bitCount < count) {
-                if (_offset >= _end) throw new FormatException("WebP bitstream is truncated.");
+            if (_bitCount < count) Refill(count);
+            ulong mask = count == 32 ? uint.MaxValue : (1UL << count) - 1UL;
+            return (uint)(_buffer & mask);
+        }
+
+        // Buffers whole bytes up to 64 bits; only a read that needs missing bits fails.
+        private void Refill(int count) {
+            while (_bitCount <= 56 && _offset < _end) {
                 _buffer |= (ulong)_input[_offset++] << _bitCount;
                 _bitCount += 8;
             }
-            ulong mask = count == 32 ? uint.MaxValue : (1UL << count) - 1UL;
-            return (uint)(_buffer & mask);
+            if (_bitCount < count) throw new FormatException("WebP bitstream is truncated.");
         }
 
         // Only a successful prefix lookup consumes pre-buffered bits. Keep

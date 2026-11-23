@@ -19,8 +19,12 @@ namespace OfficeIMO.Excel {
         private static readonly Dictionary<int, byte[]> RetainedBuffers = new Dictionary<int, byte[]>();
         // Concurrent reads of several worksheets need one buffer each. Buffers beyond the one kept per size, and every
         // buffer above the long-lived size, wait here only until the process is idle.
-        private static readonly ExcelReleasingArrayStore<byte> LargeBuffers = new ExcelReleasingArrayStore<byte>(32, MaximumIdleRetainedBytes);
+        private static readonly ExcelReleasingArrayStore<byte> LargeBuffers = CreateLargeBufferStore();
         private static long _retainedBytes;
+
+        /// <summary>Creates a store with the limits this pool uses for buffers it does not keep long-lived.</summary>
+        internal static ExcelReleasingArrayStore<byte> CreateLargeBufferStore() =>
+            new ExcelReleasingArrayStore<byte>(32, MaximumIdleRetainedBytes);
 
         internal static byte[] Rent(int minimumLength) {
             int capacity = GetCapacity(minimumLength);

@@ -82,13 +82,7 @@ internal static partial class PdfSyntax {
 
         appliedClassicEntries = true;
         bool appliedXrefStream = false;
-        var parsedObjectsByOffset = new Dictionary<int, PdfIndirectObject?>(parsedOffsets.Count);
-        foreach (KeyValuePair<int, int> parsedOffset in parsedOffsets) {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (map.TryGetValue(parsedOffset.Key, out PdfIndirectObject? parsedObject)) {
-                parsedObjectsByOffset[parsedOffset.Value] = parsedObject;
-            }
-        }
+        var parsedObjectsByOffset = CreateParsedObjectsByOffset(map, parsedOffsets, cancellationToken);
         foreach (var table in tables) {
             cancellationToken.ThrowIfCancellationRequested();
             ApplyClassicXrefTableEntries(map, parsedOffsets, text, table.Entries, scanBudget, activeObjectNumbers, parsedObjectsByOffset, cancellationToken);
@@ -98,6 +92,22 @@ internal static partial class PdfSyntax {
         }
 
         return appliedXrefStream;
+    }
+
+    // Objects the indirect-object scan already parsed, by their offset. An xref entry that points at one of these
+    // offsets reuses that object instead of parsing the same bytes again.
+    private static Dictionary<int, PdfIndirectObject?> CreateParsedObjectsByOffset(
+        Dictionary<int, PdfIndirectObject> map,
+        Dictionary<int, int> parsedOffsets,
+        System.Threading.CancellationToken cancellationToken) {
+        var parsedObjectsByOffset = new Dictionary<int, PdfIndirectObject?>(parsedOffsets.Count);
+        foreach (KeyValuePair<int, int> parsedOffset in parsedOffsets) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (map.TryGetValue(parsedOffset.Key, out PdfIndirectObject? parsedObject)) {
+                parsedObjectsByOffset[parsedOffset.Value] = parsedObject;
+            }
+        }
+        return parsedObjectsByOffset;
     }
 
     private static void ApplyClassicXrefTableEntries(
@@ -561,7 +571,7 @@ internal static partial class PdfSyntax {
         byte[] data = decodedStreamBudget.Decode(xrefStream, map, int.MaxValue, cancellationToken);
         var entries = new List<XrefStreamEntry>(GetXrefEntryCapacity(xrefStream.Dictionary, limits, GetXrefRowCount(xrefStream.Dictionary, data.Length)));
         entries.AddRange(ReadXrefStreamEntries(xrefStream.Dictionary, data, reportIncompleteXref, cancellationToken));
-        var parsedObjectsByOffset = new Dictionary<int, PdfIndirectObject?>();
+        var parsedObjectsByOffset = CreateParsedObjectsByOffset(map, parsedOffsets, cancellationToken);
         foreach (var entry in entries) {
             cancellationToken.ThrowIfCancellationRequested();
             if (entry.Type == 0 &&
@@ -825,23 +835,42 @@ internal static partial class PdfSyntax {
         cancellationToken.ThrowIfCancellationRequested();
         parsed = null!;
         objectStreamOffset = int.MaxValue;
-        if (!map.TryGetValue(objectStreamNumber, out var objectStreamIndirect) ||
-            objectStreamIndirect.Value is not PdfStream objectStream ||
-            objectStream.Dictionary.Get<PdfName>("Type")?.Name != "ObjStm") {
-            return false;
-        }
+        if (!map.TryGetValue(objectStreamNumber, out var objectStreamIndirect)) return false;
+        PdfStream objectStream;
+        byte[] data;
+        int n;
+        int first;
+        List<(int Obj, int Off)>? pairs;
+        ObjectStreamHeaderMemo.ResolvedObjectStream? resolved = null;
+        if (headerMemo is not null && headerMemo.TryGetResolved(objectStreamNumber, objectStreamIndirect, out resolved)) {
+            // The validated header, layout and decoded bytes of an object stream do not change during the load, so the
+            // stream's other entries reuse them without decoding or hashing the stream again.
+            objectStream = resolved.Stream;
+            data = resolved.Data;
+            n = resolved.ObjectCount;
+            first = resolved.FirstObjectOffset;
+            pairs = resolved.Pairs;
+            if (objectStreamIndex < 0 || objectStreamIndex >= n) return false;
+        } else {
+            if (objectStreamIndirect.Value is not PdfStream stream ||
+                stream.Dictionary.Get<PdfName>("Type")?.Name != "ObjStm") {
+                return false;
+            }
 
-        byte[] data = decodedStreamBudget.Decode(objectStream, map, int.MaxValue, cancellationToken);
-        if (!TryReadObjectStreamLayout(objectStream.Dictionary, data.Length, limits, out int n, out int first)
-            || objectStreamIndex < 0 || objectStreamIndex >= n) {
-            return false;
-        }
+            objectStream = stream;
+            data = decodedStreamBudget.Decode(objectStream, map, int.MaxValue, cancellationToken);
+            if (!TryReadObjectStreamLayout(objectStream.Dictionary, data.Length, limits, out n, out first)
+                || objectStreamIndex < 0 || objectStreamIndex >= n) {
+                return false;
+            }
 
-        List<(int Obj, int Off)>? pairs = headerMemo?.TryGet(objectStream, data, n, first);
-        if (pairs is null) {
-            pairs = ParsePairs(data, first, n, out bool completeHeader, cancellationToken);
-            if (!completeHeader) return false;
-            headerMemo?.Add(objectStream, data, n, first, pairs);
+            pairs = headerMemo?.TryGet(objectStream, data, n, first);
+            if (pairs is null) {
+                pairs = ParsePairs(data, first, n, out bool completeHeader, cancellationToken);
+                if (!completeHeader) return false;
+                headerMemo?.Add(objectStream, data, n, first, pairs);
+            }
+            resolved = headerMemo?.SetResolved(objectStreamNumber, objectStreamIndirect, objectStream, data, n, first, pairs);
         }
         bool relocated = false;
         if (pairs[objectStreamIndex].Obj != expectedObjectNumber) {
@@ -869,7 +898,7 @@ internal static partial class PdfSyntax {
         objectStreamOffset = parsedOffsets.TryGetValue(objectStreamNumber, out int streamOffset) ? streamOffset : int.MaxValue;
         if (deferredScan is not null &&
             TryScanDeferrableObject(data, start, end - start, limits, deferredScan, out PdfDeferredObjectSummary summary, cancellationToken)) {
-            parsed = new PdfIndirectObject(expectedObjectNumber, 0, headerMemo?.GetDeferredSource(objectStream, data, limits) ?? new PdfDeferredObjectSource(data, limits), summary);
+            parsed = new PdfIndirectObject(expectedObjectNumber, 0, (resolved is not null ? headerMemo!.GetDeferredSource(resolved, limits) : null) ?? new PdfDeferredObjectSource(data, limits), summary);
             if (relocated) reportRelocated!(expectedObjectNumber);
             return true;
         }
@@ -935,6 +964,44 @@ internal static partial class PdfSyntax {
             _headers[stream] = (data, objectCount, firstObjectOffset, pairs);
 
         private readonly Dictionary<PdfStream, PdfDeferredObjectSource> _deferredSources = new();
+        // Resolved object streams by object number. Entries of one stream are not always consecutive, and an integer key
+        // avoids hashing the stream object again for every compressed entry.
+        private readonly Dictionary<int, ResolvedObjectStream> _resolved = new();
+
+        internal sealed class ResolvedObjectStream {
+            internal ResolvedObjectStream(PdfIndirectObject indirect, PdfStream stream, byte[] data,
+                int objectCount, int firstObjectOffset, List<(int Obj, int Off)> pairs) {
+                Indirect = indirect;
+                Stream = stream;
+                Data = data;
+                ObjectCount = objectCount;
+                FirstObjectOffset = firstObjectOffset;
+                Pairs = pairs;
+            }
+
+            internal PdfIndirectObject Indirect { get; }
+            internal PdfStream Stream { get; }
+            internal byte[] Data { get; }
+            internal int ObjectCount { get; }
+            internal int FirstObjectOffset { get; }
+            internal List<(int Obj, int Off)> Pairs { get; }
+            internal PdfDeferredObjectSource? DeferredSource { get; set; }
+        }
+
+        // Answers only for the exact map entry that was resolved, so a replaced object is resolved again.
+        internal bool TryGetResolved(int objectNumber, PdfIndirectObject indirect, out ResolvedObjectStream resolved) =>
+            _resolved.TryGetValue(objectNumber, out resolved!) && ReferenceEquals(resolved.Indirect, indirect);
+
+        internal ResolvedObjectStream SetResolved(int objectNumber, PdfIndirectObject indirect, PdfStream stream, byte[] data,
+            int objectCount, int firstObjectOffset, List<(int Obj, int Off)> pairs) {
+            var resolved = new ResolvedObjectStream(indirect, stream, data, objectCount, firstObjectOffset, pairs);
+            _resolved[objectNumber] = resolved;
+            return resolved;
+        }
+
+        // Same source as GetDeferredSource returns for the resolved stream and its bytes.
+        internal PdfDeferredObjectSource GetDeferredSource(ResolvedObjectStream resolved, PdfReadLimits limits) =>
+            resolved.DeferredSource ??= GetDeferredSource(resolved.Stream, resolved.Data, limits);
 
         // Deferred objects of one object stream share its decoded bytes through a single source.
         internal PdfDeferredObjectSource GetDeferredSource(PdfStream stream, byte[] data, PdfReadLimits limits) {

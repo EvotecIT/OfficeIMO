@@ -134,7 +134,6 @@ public sealed class WordBorderTabPhysicalLengthTests {
         WordTableCell cell = document.AddTable(1, 1, WordTableStyle.TableNormal).Rows[0].Cells[0];
         // Start without tcPr so rejected values must not create any formatting container.
         cell._tableCell.TableCellProperties?.Remove();
-        cell._tableCellProperties = null;
         string beforeRead = cell._tableCell.OuterXml;
         WordTableCellBorder cellBorders = cell.Borders;
         Assert.All(CellLengths(cellBorders), value => Assert.Null(value));

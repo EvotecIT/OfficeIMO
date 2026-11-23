@@ -31,20 +31,24 @@ internal static partial class ExcelSanitizer {
         // Most text is BMP characters from the space up with no underscore, and needs no further checks.
         if (value.AsSpan().IndexOfAnyExceptInRange(' ', '\uD7FF') < 0 && value.IndexOf('_') < 0) return -1;
         // Line breaks and other text outside the fast range must not push long strings onto a per-character scan.
+        // Each kind of candidate keeps its next position until the scan passes it, so runs of valid surrogate pairs
+        // do not search the rest of the string again for every pair.
+        int ascii = -2, surrogate = -2, nonCharacter = -2;
         int start = 0;
         while (start < value.Length) {
             ReadOnlySpan<char> remaining = value.AsSpan(start);
-            int candidate = remaining.IndexOfAny(XStringAsciiCandidates);
-            int surrogate = (candidate < 0 ? remaining : remaining.Slice(0, candidate)).IndexOfAnyInRange('\uD800', '\uDFFF');
-            if (surrogate >= 0) candidate = surrogate;
-            int nonCharacter = (candidate < 0 ? remaining : remaining.Slice(0, candidate)).IndexOfAny('\uFFFE', '\uFFFF');
-            if (nonCharacter >= 0) candidate = nonCharacter;
-            if (candidate < 0) return -1;
-            int index = start + candidate;
+            if (ascii != -1 && ascii < start) ascii = Offset(start, remaining.IndexOfAny(XStringAsciiCandidates));
+            if (surrogate != -1 && surrogate < start) surrogate = Offset(start, remaining.IndexOfAnyInRange('\uD800', '\uDFFF'));
+            if (nonCharacter != -1 && nonCharacter < start) nonCharacter = Offset(start, remaining.IndexOfAny('\uFFFE', '\uFFFF'));
+            int index = Earliest(Earliest(ascii, surrogate), nonCharacter);
+            if (index < 0) return -1;
             if (IsXStringEscape(value, index) || RequiresXStringEscape(value, index)) return index;
             start = index + 1;
         }
         return -1;
+
+        static int Offset(int start, int found) => found < 0 ? -1 : start + found;
+        static int Earliest(int left, int right) => left < 0 ? right : right < 0 ? left : Math.Min(left, right);
 #else
         for (int index = 0; index < value.Length; index++) {
             if (IsXStringEscape(value, index) || RequiresXStringEscape(value, index)) return index;

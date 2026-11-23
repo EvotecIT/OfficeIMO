@@ -61,7 +61,7 @@ namespace OfficeIMO.Word {
             }
 
             var wordTable = new WordTable(document, table, initializeChildren: false);
-            var wordRow = new WordTableRow(wordTable, row, document, initializeCells: false);
+            var wordRow = new WordTableRow(wordTable, row, document);
             return new WordTableCell(document, wordTable, wordRow, tableCell, ensureCellProperties: false);
         }
 

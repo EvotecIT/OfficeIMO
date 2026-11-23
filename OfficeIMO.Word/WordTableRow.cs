@@ -12,39 +12,35 @@ namespace OfficeIMO.Word {
         /// Gets the row's cells in document order, including cells inside content controls and custom XML.
         /// </summary>
         public List<WordTableCell> Cells {
-            get { return GetCells(readOnly: false); }
+            get { return GetCells(); }
         }
 
         /// <summary>
-        /// Returns cells for this row. When <paramref name="readOnly"/> is true,
-        /// wrappers are created without ensuring tcPr, avoiding DOM mutations on read.
+        /// Returns cells for this row. Reading never changes the document: cell properties (tcPr)
+        /// are created only when a cell is written.
         /// </summary>
+        /// <param name="readOnly">Kept for compatibility; reads are non-mutating either way.</param>
         public List<WordTableCell> GetCells(bool readOnly = false) {
-            readOnly |= _wordTable.IsReadOnlyView;
             var list = new List<WordTableCell>(_tableRow.ChildElements.Count);
             foreach (TableCell cell in WordTableContent.Cells(_tableRow)) {
-                WordTableCell wordCell = GetOrCreateCell(cell, ensureCellProperties: !readOnly);
-                if (!readOnly) {
-                    wordCell.AddTableCellProperties();
-                }
-                list.Add(wordCell);
+                list.Add(GetOrCreateCell(cell));
             }
             return list;
         }
         /// <summary>
         /// Return first cell for given row
         /// </summary>
-        public WordTableCell FirstCell => Cells.First();
+        public WordTableCell FirstCell => GetOrCreateCell(WordTableContent.Cells(_tableRow).First());
 
         /// <summary>
         /// Return last cell for given row
         /// </summary>
-        public WordTableCell LastCell => Cells.Last();
+        public WordTableCell LastCell => GetOrCreateCell(WordTableContent.Cells(_tableRow).Last());
 
         /// <summary>
         /// Gets cells count
         /// </summary>
-        public int CellsCount => Cells.Count;
+        public int CellsCount => WordTableContent.Cells(_tableRow).Count();
 
         /// <summary>
         /// Gets the declared row height as a physical length, or sets an exact height. Null removes the height constraint.
@@ -173,12 +169,12 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private WordTableCell GetOrCreateCell(TableCell cell, bool ensureCellProperties) {
+        private WordTableCell GetOrCreateCell(TableCell cell) {
             if (_cellCache.TryGetValue(cell, out WordTableCell? cachedCell)) {
                 return cachedCell;
             }
 
-            var wordCell = new WordTableCell(_document, _wordTable, this, cell, ensureCellProperties);
+            var wordCell = new WordTableCell(_document, _wordTable, this, cell, ensureCellProperties: false);
             _cellCache.Add(cell, wordCell);
             return wordCell;
         }
@@ -208,19 +204,10 @@ namespace OfficeIMO.Word {
         /// <param name="wordTable">The parent <see cref="WordTable"/>.</param>
         /// <param name="row">The underlying Open XML table row.</param>
         /// <param name="document">The parent <see cref="WordDocument"/>.</param>
-        internal WordTableRow(WordTable wordTable, TableRow row, WordDocument document) : this(wordTable, row, document, initializeCells: true) {
-        }
-
-        internal WordTableRow(WordTable wordTable, TableRow row, WordDocument document, bool initializeCells) {
+        internal WordTableRow(WordTable wordTable, TableRow row, WordDocument document) {
             _document = document;
             _tableRow = row;
             _wordTable = wordTable;
-
-            if (initializeCells) {
-                foreach (TableCell cell in WordTableContent.Cells(row)) {
-                    GetOrCreateCell(cell, ensureCellProperties: true);
-                }
-            }
         }
 
         /// <summary>Creates and appends a cell, returning the attached cell for further editing.</summary>

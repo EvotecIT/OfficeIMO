@@ -146,6 +146,7 @@ internal static partial class OfficeJpegReader {
             // Keep the retained coefficient state synchronized with the current scan declaration.
             state.Components[componentIndex].Component = frame.Components[componentIndex];
             state.Components[componentIndex].PrevDc = 0;
+            if (scan.Se > 0 && scan.Ah == 0) state.PrepareAcLookup(ref acTables[frame.Components[componentIndex].AcTable]);
         }
 
         for (var my = 0; my < scanMcuRows; my++) {
@@ -244,10 +245,10 @@ internal static partial class OfficeJpegReader {
         var baseIndex = (blockY * state.BlocksPerRow + blockX) * 64;
 
         if (scan.Ss == 0 && scan.Se == 0) {
-            var dcTable = dcTables[state.Component.DcTable];
+            ref readonly HuffmanTable dcTable = ref dcTables[state.Component.DcTable];
             if (!dcTable.IsValid) throw new FormatException("Missing JPEG DC Huffman table.");
             if (scan.Ah == 0) {
-                var t = DecodeHuffman(ref reader, dcTable, useFast: false);
+                var t = DecodeHuffman(ref reader, dcTable, useFast: true);
                 var diff = t == 0 ? 0 : Extend(reader.ReadBits(t), t);
                 var dc = state.PrevDc + (diff << scan.Al);
                 state.PrevDc = dc;
@@ -264,7 +265,7 @@ internal static partial class OfficeJpegReader {
         }
 
         if (scan.Ss > scan.Se || scan.Se > 63) throw new FormatException("Invalid JPEG spectral selection.");
-        var acTable = acTables[state.Component.AcTable];
+        ref readonly HuffmanTable acTable = ref acTables[state.Component.AcTable];
         if (!acTable.IsValid) throw new FormatException("Missing JPEG AC Huffman table.");
 
         if (scan.Ah == 0) {
@@ -281,7 +282,7 @@ internal static partial class OfficeJpegReader {
         ref JpegBitReader reader,
         ScanHeader scan,
         ProgressiveComponentState state,
-        HuffmanTable acTable,
+        in HuffmanTable acTable,
         int baseIndex,
         ref int eobRun) {
         if (eobRun > 0) {
@@ -290,8 +291,36 @@ internal static partial class OfficeJpegReader {
         }
 
         var k = (int)scan.Ss;
-        while (k <= scan.Se) {
-            var rs = DecodeHuffman(ref reader, acTable, useFast: false);
+        int end = scan.Se;
+        short[]? fastAc = acTable.FastAc;
+        while (k <= end) {
+            // Codes whose symbol and magnitude bits fit the lookup decode in one step.
+            if (fastAc is not null && reader.TryPeekBits(HuffmanFastBits, out int peek)) {
+                int entry = fastAc[peek];
+                if (entry != 0) {
+                    int coefficient = entry >> 8;
+                    int run = (entry >> 4) & 15;
+                    if (coefficient != 0) {
+                        if (k + run <= end) {
+                            reader.SkipBits(entry & 15);
+                            k += run;
+                            SetProgressiveCoefficient(state.Coeffs, baseIndex + ZigZag[k], coefficient << scan.Al);
+                            k++;
+                            continue;
+                        }
+                    } else {
+                        reader.SkipBits(entry & 15);
+                        if (run == 15) {
+                            k += 16;
+                            continue;
+                        }
+                        eobRun = (1 << run) - 1;
+                        if (run > 0) eobRun += reader.ReadBits(run);
+                        break;
+                    }
+                }
+            }
+            var rs = DecodeHuffman(ref reader, acTable, useFast: true);
             if (rs == 0) {
                 eobRun = 0;
                 break;
@@ -321,30 +350,35 @@ internal static partial class OfficeJpegReader {
         ref JpegBitReader reader,
         ScanHeader scan,
         ProgressiveComponentState state,
-        HuffmanTable acTable,
+        in HuffmanTable acTable,
         int baseIndex,
         ref int eobRun) {
+        short[] coeffs = state.Coeffs;
+        byte[] zigZag = ZigZag;
+        int end = scan.Se;
+        int al = scan.Al;
         var k = (int)scan.Ss;
         if (eobRun > 0) {
-            for (; k <= scan.Se; k++) {
-                RefineCoefficient(ref reader, state.Coeffs, baseIndex + ZigZag[k], scan.Al);
-            }
+            RefineRemaining(ref reader, coeffs, zigZag, baseIndex, k, end, al);
             eobRun--;
             return;
         }
 
-        while (k <= scan.Se) {
-            var rs = DecodeHuffman(ref reader, acTable, useFast: false);
+        while (k <= end) {
+            var rs = DecodeHuffman(ref reader, acTable, useFast: true);
             var r = rs >> 4;
             var s = rs & 0x0F;
 
             if (s == 0) {
                 if (r == 15) {
                     var zeros = 16;
-                    while (zeros > 0 && k <= scan.Se) {
-                        var index = baseIndex + ZigZag[k];
-                        RefineCoefficient(ref reader, state.Coeffs, index, scan.Al);
-                        if (state.Coeffs[index] == 0) zeros--;
+                    while (zeros > 0 && k <= end) {
+                        var index = baseIndex + zigZag[k];
+                        if (coeffs[index] != 0) {
+                            RefineCoefficient(ref reader, coeffs, index, al);
+                        } else {
+                            zeros--;
+                        }
                         k++;
                     }
                     continue;
@@ -352,19 +386,16 @@ internal static partial class OfficeJpegReader {
 
                 eobRun = (1 << r) - 1;
                 if (r > 0) eobRun += reader.ReadBits(r);
-                for (; k <= scan.Se; k++) {
-                    RefineCoefficient(ref reader, state.Coeffs, baseIndex + ZigZag[k], scan.Al);
-                }
+                RefineRemaining(ref reader, coeffs, zigZag, baseIndex, k, end, al);
                 break;
             }
 
             if (s != 1) throw new FormatException("Invalid progressive JPEG AC refinement symbol.");
             var ac = reader.ReadBit() == 1 ? 1 : -1;
-            while (k <= scan.Se) {
-                var zig = ZigZag[k];
-                var index = baseIndex + zig;
-                if (state.Coeffs[index] != 0) {
-                    RefineCoefficient(ref reader, state.Coeffs, index, scan.Al);
+            while (k <= end) {
+                var index = baseIndex + zigZag[k];
+                if (coeffs[index] != 0) {
+                    RefineCoefficient(ref reader, coeffs, index, al);
                     k++;
                     continue;
                 }
@@ -375,13 +406,23 @@ internal static partial class OfficeJpegReader {
                     continue;
                 }
 
-                SetProgressiveCoefficient(state.Coeffs, index, ac << scan.Al);
+                SetProgressiveCoefficient(coeffs, index, ac << al);
                 k++;
                 break;
             }
         }
     }
 
+    // Refines every nonzero coefficient from k through end; zero coefficients read no bits.
+    private static void RefineRemaining(ref JpegBitReader reader, short[] coeffs, byte[] zigZag,
+        int baseIndex, int k, int end, int al) {
+        for (; k <= end; k++) {
+            var index = baseIndex + zigZag[k];
+            if (coeffs[index] != 0) RefineCoefficient(ref reader, coeffs, index, al);
+        }
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void RefineCoefficient(ref JpegBitReader reader, short[] coeffs, int index, int al) {
         if (coeffs[index] == 0) return;
         var bit = reader.ReadBit();

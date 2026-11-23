@@ -248,8 +248,8 @@ namespace OfficeIMO.Word {
                 return snapshot.Markers.TryGetValue(paragraph, out ResolvedListMarker marker) ? marker.Info : null;
             WordListNumberingResolver.StyleCatalog? activeCatalog = GetActiveListNumberingCatalog(paragraph._document);
             if (activeCatalog != null) return GetListInfo(paragraph, activeCatalog.ListDefinitions, activeCatalog);
-            NumberingProperties? direct = paragraph._paragraph?.ParagraphProperties?.NumberingProperties;
-            WordListNumberingResolver.StyleCatalog? styleCatalog = direct?.NumberingId?.Val?.Value > 0 &&
+            NumberingProperties? direct = paragraph._paragraph?.GetFirstChild<ParagraphProperties>()?.GetFirstChild<NumberingProperties>();
+            WordListNumberingResolver.StyleCatalog? styleCatalog = direct?.GetFirstChild<NumberingId>()?.Val?.Value > 0 &&
                 direct.NumberingLevelReference?.Val?.Value != null
                 ? null
                 : WordListNumberingResolver.CreateStyleCatalog(paragraph._document);
@@ -507,6 +507,7 @@ namespace OfficeIMO.Word {
                     if (!seen.Add(paragraph)) continue;
                     yield return new WordParagraph(document, paragraph);
 
+                    if (!OpenXmlTreeQueries.HasDescendant<TextBoxContent>(paragraph)) continue;
                     List<Paragraph> nestedParagraphs = EnumerateDirectTextBoxParagraphs(paragraph).ToList();
                     for (int index = nestedParagraphs.Count - 1; index >= 0; index--) {
                         pending.Push(nestedParagraphs[index]);
@@ -517,7 +518,7 @@ namespace OfficeIMO.Word {
             IEnumerable<WordParagraph> EnumerateStory(DocumentFormat.OpenXml.OpenXmlCompositeElement? root) {
                 if (root == null) yield break;
                 foreach (Paragraph paragraph in root.Descendants<Paragraph>()) {
-                    if (paragraph.Ancestors<TextBoxContent>().Any()) continue;
+                    if (OpenXmlTreeQueries.HasAncestor<TextBoxContent>(paragraph)) continue;
                     foreach (WordParagraph item in EnumerateParagraphTree(paragraph)) yield return item;
                 }
             }

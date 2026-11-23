@@ -464,6 +464,7 @@ namespace OfficeIMO.Excel {
         private readonly List<ExcelSheet> _pendingDirectCellValueSheets = new List<ExcelSheet>();
         private bool _pendingDirectCellValueRequiresSavePreflight;
         private bool _materializingDeferredDataSetImport;
+        private bool _keepMaterializedCellsInBuffers;
         private bool _preserveMaterializedDirectDataSetFastSaveModelForNextDirtyMark;
         private int _directDataSetExternalCellMutationPreservationDepth;
 
