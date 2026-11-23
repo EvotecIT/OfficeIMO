@@ -52,8 +52,8 @@ namespace OfficeIMO.Excel {
 
             private void RetainQualifiedRowPosition(int physicalRow, int contentStart, int contentEnd) {
                 if (UsesCellWindow || _unknownRowExtent) {
-                    _rowContentStarts![physicalRow] = contentStart;
-                    _rowContentEnds![physicalRow] = contentEnd;
+                    _rowContentStarts![physicalRow] = GetPartOffset(contentStart);
+                    _rowContentEnds![physicalRow] = GetPartOffset(contentEnd);
                 }
             }
 
@@ -83,6 +83,7 @@ namespace OfficeIMO.Excel {
                     _cellWindowFirstRow = -1;
                     _cellWindowRowCount = 0;
                     int count = Math.Min(_cellWindowRowCapacity, _rowCount - physicalRow);
+                    if (_windowedPart) count = LoadWindowedDeliveryRows(physicalRow, count, readCt.CanBeCanceled ? readCt : lifetimeCt);
                     CancellationTokenSource? linkedCancellation = lifetimeCt.CanBeCanceled
                         && readCt.CanBeCanceled && lifetimeCt != readCt
                             ? CancellationTokenSource.CreateLinkedTokenSource(lifetimeCt, readCt) : null;
@@ -117,8 +118,8 @@ namespace OfficeIMO.Excel {
             }
 
             private void IndexQualifiedWindowRow(int physicalRow, int rowOffset, CancellationToken ct) {
-                int contentStart = _rowContentStarts![physicalRow];
-                int contentEnd = _rowContentEnds![physicalRow];
+                int contentStart = GetWindowIndex(_rowContentStarts![physicalRow]);
+                int contentEnd = GetWindowIndex(_rowContentEnds![physicalRow]);
                 if (contentStart == contentEnd) {
                     InitializeMetadataRow(rowOffset);
                     return; // An empty row start tag.

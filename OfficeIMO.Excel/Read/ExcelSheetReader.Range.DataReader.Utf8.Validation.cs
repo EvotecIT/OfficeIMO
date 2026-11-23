@@ -7,10 +7,11 @@ namespace OfficeIMO.Excel {
                 using var stream = CreateWorksheetXmlValidationStream(ct);
                 try {
                     return ValidateWorksheetXmlStream(stream, ct);
-                } catch (XmlException) when (stream.Length != _length) {
+                } catch (XmlException) when (_windowedPart ? stream is MemoryStream : stream.Length != _length) {
                     // Preserve original source line and column information for callers.
-                    using var original = new MemoryStream(
-                        _buffer!, 0, _length, writable: false, publiclyVisible: false);
+                    using Stream original = _windowedPart
+                        ? OpenWindowedValidationStream(ct)
+                        : new MemoryStream(_buffer!, 0, _length, writable: false, publiclyVisible: false);
                     return ValidateWorksheetXmlStream(original, ct);
                 }
             }
