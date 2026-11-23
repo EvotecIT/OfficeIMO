@@ -52,6 +52,42 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Theory]
+        [InlineData(ExcelFileFormat.Xlsx)]
+        [InlineData(ExcelFileFormat.Xlsb)]
+        public void WriteData_OnSeveralSheetsKeepsTheSingleSheetValuesAndDateFormat(ExcelFileFormat format) {
+            var start = new DateTime(2024, 1, 2, 13, 45, 0);
+            var rows = Enumerable.Range(0, 300).ToArray();
+            (string, Func<int, object?>)[] columns = [
+                ("Name", index => "Name" + index), ("Id", index => index),
+                ("CreatedOn", index => start.AddDays(index)), ("Amount", index => index * 1.25)
+            ];
+
+            string expectedFormat;
+            using (var single = ExcelDocument.Create()) {
+                single.AddSheet("Data").WriteData(rows, columns);
+                using var loaded = ExcelDocument.Load(new MemoryStream(single.ToBytes(format)));
+                expectedFormat = loaded.Sheets[0].Cell(2, 3).GetStyle().NumberFormatCode!;
+            }
+
+            using var document = ExcelDocument.Create();
+            for (int sheet = 1; sheet <= 3; sheet++) document.AddSheet("Sheet" + sheet).WriteData(rows, columns);
+            using var reloaded = ExcelDocument.Load(new MemoryStream(document.ToBytes(format)));
+            Assert.Equal(3, reloaded.Sheets.Count);
+            foreach (var sheet in reloaded.Sheets) {
+                foreach (int row in new[] { 2, 301 }) {
+                    int index = row - 2;
+                    Assert.Equal(expectedFormat, sheet.Cell(row, 3).GetStyle().NumberFormatCode);
+                    Assert.True(sheet.TryGetCellText(row, 1, out string name));
+                    Assert.Equal("Name" + index, name);
+                    Assert.True(sheet.TryGetCellText(row, 2, out string id));
+                    Assert.Equal(index.ToString(System.Globalization.CultureInfo.InvariantCulture), id);
+                    Assert.True(sheet.TryGetCellText(row, 3, out string serial));
+                    Assert.Equal(start.AddDays(index).ToOADate(), double.Parse(serial, System.Globalization.CultureInfo.InvariantCulture), 9);
+                }
+            }
+        }
+
         private sealed class SelectorSnapshotRow {
             internal int Id { get; set; }
         }

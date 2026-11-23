@@ -149,12 +149,11 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            ExcelTabularCellValues? values = null;
+            // Selectors run once; their results stay typed for every route below.
+            ExcelTabularCellValues values = CreateExplicitObjectExportCellValues(rows, selectors, out Type?[] inferredColumnTypes);
             if (!hasBlankDisplayHeader
                 && !HasDuplicateObjectExportHeaders(headers)
                 && CanRegisterDirectTabularSaveCandidate(startRow, 1, headers.Length)) {
-                Type?[] inferredColumnTypes;
-                values = CreateExplicitObjectExportCellValues(rows, selectors, out inferredColumnTypes);
                 try {
                     var columnTypes = CompleteObjectExportColumnTypes(inferredColumnTypes);
                     string directSaveRange = BuildObjectExportRange(startRow, headers.Length, rows.Count, includeHeaders);
@@ -164,6 +163,11 @@ namespace OfficeIMO.Excel {
                 } catch {
                     // Direct-save registration is opportunistic; fall back to the normal cell path.
                 }
+            }
+
+            if (!hasBlankDisplayHeader
+                && TryBufferFreshSheetTabularValues(includeHeaders ? headers : null, values, startRow, CancellationToken.None)) {
+                return;
             }
 
             int headerRows = includeHeaders ? 1 : 0;
@@ -178,23 +182,13 @@ namespace OfficeIMO.Excel {
                 row++;
             }
 
-            if (values != null) {
-                for (int r = 0; r < rows.Count; r++) {
-                    int rowOffset = r * headers.Length;
-                    for (int c = 0; c < headers.Length; c++) {
-                        cells[cellIndex++] = (row, c + 1, values.GetValue(rowOffset + c)!);
-                    }
-
-                    row++;
+            for (int r = 0; r < rows.Count; r++) {
+                int rowOffset = r * headers.Length;
+                for (int c = 0; c < headers.Length; c++) {
+                    cells[cellIndex++] = (row, c + 1, values.GetValue(rowOffset + c)!);
                 }
-            } else {
-                foreach (var item in rows) {
-                    for (int c = 0; c < headers.Length; c++) {
-                        cells[cellIndex++] = (row, c + 1, selectors[c](item)!);
-                    }
 
-                    row++;
-                }
+                row++;
             }
 
             CellValuesCore(cells, hasBlankDisplayHeader ? ExcelExecutionMode.Parallel : null, CancellationToken.None, preserveMissingValues: true);

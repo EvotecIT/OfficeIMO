@@ -25,6 +25,9 @@ internal sealed class ExcelDeflateEncoder : IDisposable {
     private const int OutputLength = BufferLength / 8 * 9 + 256;
 
     private static Workspace? _cachedWorkspace;
+    // Parts prepared on worker threads each hold a workspace. The extra sets are held weakly, so a burst of parallel
+    // saves reuses them without the large-object allocations, and a later full collection can still reclaim them.
+    private static readonly WeakReference<Workspace>?[] _sharedWorkspaces = new WeakReference<Workspace>?[Math.Min(Environment.ProcessorCount, 64)];
     private readonly Stream _destination;
     private byte[] _buffer;
     private byte[] _output;
@@ -42,7 +45,7 @@ internal sealed class ExcelDeflateEncoder : IDisposable {
         _destination = destination;
         // The buffers exceed the large-object threshold, so one cleared set is kept for the next part
         // instead of going through the shared pool, which would drop them with a short-lived worker thread.
-        Workspace workspace = Interlocked.Exchange(ref _cachedWorkspace, null) ?? new Workspace();
+        Workspace workspace = RentWorkspace();
         _buffer = workspace.Buffer;
         _output = workspace.Output;
         _heads = workspace.Heads;
@@ -86,10 +89,33 @@ internal sealed class ExcelDeflateEncoder : IDisposable {
         Array.Clear(_buffer, 0, _bufferUsed);
         Array.Clear(_output, 0, OutputLength);
         Array.Clear(_heads, 0, _heads.Length);
-        Interlocked.CompareExchange(ref _cachedWorkspace, new Workspace(_buffer, _output, _heads), null);
+        ReturnWorkspace(new Workspace(_buffer, _output, _heads));
         _buffer = Array.Empty<byte>();
         _output = Array.Empty<byte>();
         _heads = Array.Empty<uint>();
+    }
+
+    private static Workspace RentWorkspace() {
+        Workspace? workspace = Interlocked.Exchange(ref _cachedWorkspace, null);
+        if (workspace != null) return workspace;
+        for (int i = 0; i < _sharedWorkspaces.Length; i++) {
+            if (Volatile.Read(ref _sharedWorkspaces[i]) is { } reference
+                && Interlocked.CompareExchange(ref _sharedWorkspaces[i], null, reference) == reference
+                && reference.TryGetTarget(out workspace)) {
+                return workspace;
+            }
+        }
+        return new Workspace();
+    }
+
+    private static void ReturnWorkspace(Workspace workspace) {
+        if (Interlocked.CompareExchange(ref _cachedWorkspace, workspace, null) == null) return;
+        for (int i = 0; i < _sharedWorkspaces.Length; i++) {
+            if (Volatile.Read(ref _sharedWorkspaces[i]) == null
+                && Interlocked.CompareExchange(ref _sharedWorkspaces[i], new WeakReference<Workspace>(workspace), null) == null) {
+                return;
+            }
+        }
     }
 
     private void Drain() {

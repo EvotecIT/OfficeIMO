@@ -230,6 +230,28 @@ namespace OfficeIMO.Excel {
             candidate.Dispose();
         }
 
+        /// <summary>
+        /// Moves plain selector cells from the workbook's direct model into the sheet's pending cell buffer, where
+        /// later edits and other sheets keep them out of the cell DOM, as when the sheet was written beside others.
+        /// </summary>
+        private static bool TryMaterializeTypedCellsToCellValueBuffer(ExcelSheet sheet, DirectDataSetSheetModel sheetModel, CancellationToken ct) {
+            if (sheetModel.Table.TypedCells is not { } typedCells
+                || sheetModel.HasTable || sheetModel.AutoFitColumns || sheetModel.IncludeAutoFilter
+                || sheetModel.ColumnWidths != null || sheetModel.Metadata != null || sheetModel.ColumnNumberFormats != null
+                || sheetModel.UseCellValueNumberFormats || !sheetModel.OmitBlankCells || !sheetModel.IncludeCellReferences
+                || !sheetModel.Range.StartsWith("A1:", StringComparison.Ordinal)) {
+                return false;
+            }
+
+            string[]? headers = null;
+            if (sheetModel.IncludeHeaders) {
+                headers = new string[sheetModel.Table.ColumnCount];
+                for (int i = 0; i < headers.Length; i++) headers[i] = sheetModel.Table.GetColumnName(i);
+            }
+
+            return sheet.TryBufferFreshSheetTabularValues(headers, typedCells, 1, ct);
+        }
+
         private void MaterializeDirectDataSetModel(
             DirectDataSetWorkbookModel model,
             bool preserveExistingWorksheetStructure = false,
@@ -250,6 +272,10 @@ namespace OfficeIMO.Excel {
                     // The worksheet already holds these cells' settings and its first cells.
                     using var bufferNoLock = sheet.BeginNoLock();
                     sheet.ApplyCellValueBufferToWorksheet(cellValueBuffer, sheet.MirroredCellCount, cancellationToken);
+                    continue;
+                }
+
+                if (TryMaterializeTypedCellsToCellValueBuffer(sheet, sheetModel, cancellationToken)) {
                     continue;
                 }
 
