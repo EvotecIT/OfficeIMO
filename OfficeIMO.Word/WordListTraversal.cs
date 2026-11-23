@@ -100,7 +100,7 @@ namespace OfficeIMO.Word {
             int previousLevel = -1;
 
             foreach (Paragraph paragraph in paragraphs) {
-                NumberingProperties? numProps = paragraph.ParagraphProperties?.NumberingProperties;
+                NumberingProperties? numProps = paragraph.GetFirstChild<ParagraphProperties>()?.GetFirstChild<NumberingProperties>();
                 if (numProps != null) {
                     int level = numProps.NumberingLevelReference?.Val ?? 0;
                     if (level < 0 || level >= maximumNestingDepth) {
