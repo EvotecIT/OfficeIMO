@@ -54,6 +54,43 @@ namespace OfficeIMO.Excel {
             System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
         }
 
+        /// <summary>Writes rows through typed columns along the selector route, without boxing their values.</summary>
+        private void InsertTypedObjects<T>(IEnumerable<T> items, ExcelDataColumns<T> columns, bool includeHeaders, int startRow) {
+            ArgumentNullException.ThrowIfNull(items);
+            if (columns.Count == 0) {
+                throw new ArgumentException("At least one column is required.", nameof(columns));
+            }
+
+            ValidateObjectExportDenseDimensions(rowCount: 0, columns.Count, includeHeaders: false);
+            IReadOnlyList<T> rows = MaterializeObjectRowsBounded(items, includeHeaders, startRow);
+            if (rows.Count == 0) {
+                return;
+            }
+
+            ValidateObjectExportDenseDimensions(rows.Count, columns.Count, includeHeaders);
+            var headers = new string[columns.Count];
+            bool hasBlankDisplayHeader = false;
+            for (int c = 0; c < headers.Length; c++) {
+                string header = columns[c].Header ?? $"Column{c + 1}";
+                headers[c] = header;
+                if (includeHeaders && string.IsNullOrWhiteSpace(header)) hasBlankDisplayHeader = true;
+            }
+
+            var values = new ExcelTabularCellValues(headers.Length, rows.Count);
+            var inferredColumnTypes = new Type?[headers.Length];
+            var snapshot = rows as ObjectExportRowSnapshot<T>;
+            int index = 0;
+            for (int r = 0; r < rows.Count; r++) {
+                T item = rows[r];
+                for (int c = 0; c < headers.Length; c++) {
+                    UpdateObjectExportColumnType(inferredColumnTypes, c, columns[c].Store(item, values, index++));
+                }
+                snapshot?.Release(r);
+            }
+
+            WriteProjectedObjectValues(headers, values, inferredColumnTypes, includeHeaders, startRow, hasBlankDisplayHeader);
+        }
+
         /// <summary>Projects an owned snapshot after enumeration, then releases each consumed row.</summary>
         private static void FillOwnedObjectExportValues<T>(
             ObjectExportRowSnapshot<T> rows,

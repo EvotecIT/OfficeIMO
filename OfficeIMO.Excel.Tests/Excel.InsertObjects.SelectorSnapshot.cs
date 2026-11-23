@@ -88,6 +88,45 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        public void WriteData_TypedColumnsWriteTheSameCellsAsObjectSelectors(int sheetCount) {
+            var start = new DateTime(2024, 3, 4, 5, 6, 7);
+            var rows = Enumerable.Range(0, 200).ToArray();
+            byte[] Write(Action<ExcelSheet> write) {
+                using var document = ExcelDocument.Create();
+                for (int sheet = 1; sheet <= sheetCount; sheet++) write(document.AddSheet("Sheet" + sheet));
+                return document.ToBytes(ExcelFileFormat.Xlsx);
+            }
+
+            byte[] objects = Write(sheet => sheet.WriteData(rows,
+                ("Text", index => index % 7 == 0 ? null : index % 11 == 0 ? string.Empty : "Item " + index),
+                ("Int", index => index - 100), ("Long", index => index == 5 ? long.MaxValue : (object)(index * 1_000_000_000L)),
+                ("Double", index => index % 9 == 0 ? null : index / 8.0), ("Date", index => start.AddHours(index)),
+                ("Flag", index => index % 3 == 0), ("Decimal", index => index * 0.1m)));
+            byte[] typed = Write(sheet => sheet.WriteData(rows, columns => columns
+                .Add("Text", index => index % 7 == 0 ? null : index % 11 == 0 ? string.Empty : "Item " + index)
+                .Add("Int", index => index - 100).Add("Long", index => index == 5 ? long.MaxValue : index * 1_000_000_000L)
+                .Add("Double", index => index % 9 == 0 ? (double?)null : index / 8.0).Add("Date", index => start.AddHours(index))
+                .Add("Flag", index => index % 3 == 0).Add("Decimal", index => index * 0.1m)));
+
+            using var expected = ExcelDocument.Load(new MemoryStream(objects));
+            using var actual = ExcelDocument.Load(new MemoryStream(typed));
+            Assert.Equal(sheetCount, actual.Sheets.Count);
+            for (int sheet = 0; sheet < sheetCount; sheet++) {
+                for (int row = 1; row <= rows.Length + 1; row++) {
+                    for (int column = 1; column <= 7; column++) {
+                        bool expectedHasText = expected.Sheets[sheet].TryGetCellText(row, column, out string expectedText);
+                        Assert.Equal(expectedHasText, actual.Sheets[sheet].TryGetCellText(row, column, out string actualText));
+                        Assert.Equal(expectedText, actualText);
+                        Assert.Equal(expected.Sheets[sheet].Cell(row, column).GetStyle().NumberFormatCode,
+                            actual.Sheets[sheet].Cell(row, column).GetStyle().NumberFormatCode);
+                    }
+                }
+            }
+        }
+
         private sealed class SelectorSnapshotRow {
             internal int Id { get; set; }
         }

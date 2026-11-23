@@ -589,3 +589,21 @@ OfficeIMO.Excel.ExcelChart.SaveAsImage(System.IO.Stream! stream, OfficeIMO.Drawi
 OfficeIMO.Excel.ExcelChart.SaveAsImage(string! path, OfficeIMO.Drawing.OfficeChartImageExportOptions! options, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.OfficeConversionReport!
 OfficeIMO.Excel.ExcelChart.ToImage(OfficeIMO.Drawing.OfficeChartImageExportOptions! options, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Drawing.OfficeImageExportResult!
 OfficeIMO.Excel.ExcelChart.TryGetOfficeSnapshot(out OfficeIMO.Drawing.OfficeChartSnapshot! snapshot) -> bool
+OfficeIMO.Excel.ExcelDataColumns<T>
+OfficeIMO.Excel.ExcelDataColumns<T>.Add(string! header, System.Func<T, System.DateTime>! selector) -> OfficeIMO.Excel.ExcelDataColumns<T>!
+OfficeIMO.Excel.ExcelDataColumns<T>.Add(string! header, System.Func<T, System.DateTime?>! selector) -> OfficeIMO.Excel.ExcelDataColumns<T>!
+OfficeIMO.Excel.ExcelDataColumns<T>.Add(string! header, System.Func<T, bool>! selector) -> OfficeIMO.Excel.ExcelDataColumns<T>!
+OfficeIMO.Excel.ExcelDataColumns<T>.Add(string! header, System.Func<T, bool?>! selector) -> OfficeIMO.Excel.ExcelDataColumns<T>!
+OfficeIMO.Excel.ExcelDataColumns<T>.Add(string! header, System.Func<T, char>! selector) -> OfficeIMO.Excel.ExcelDataColumns<T>!
+OfficeIMO.Excel.ExcelDataColumns<T>.Add(string! header, System.Func<T, decimal>! selector) -> OfficeIMO.Excel.ExcelDataColumns<T>!
+OfficeIMO.Excel.ExcelDataColumns<T>.Add(string! header, System.Func<T, double>! selector) -> OfficeIMO.Excel.ExcelDataColumns<T>!
+OfficeIMO.Excel.ExcelDataColumns<T>.Add(string! header, System.Func<T, double?>! selector) -> OfficeIMO.Excel.ExcelDataColumns<T>!
+OfficeIMO.Excel.ExcelDataColumns<T>.Add(string! header, System.Func<T, float>! selector) -> OfficeIMO.Excel.ExcelDataColumns<T>!
+OfficeIMO.Excel.ExcelDataColumns<T>.Add(string! header, System.Func<T, int>! selector) -> OfficeIMO.Excel.ExcelDataColumns<T>!
+OfficeIMO.Excel.ExcelDataColumns<T>.Add(string! header, System.Func<T, int?>! selector) -> OfficeIMO.Excel.ExcelDataColumns<T>!
+OfficeIMO.Excel.ExcelDataColumns<T>.Add(string! header, System.Func<T, long>! selector) -> OfficeIMO.Excel.ExcelDataColumns<T>!
+OfficeIMO.Excel.ExcelDataColumns<T>.Add(string! header, System.Func<T, long?>! selector) -> OfficeIMO.Excel.ExcelDataColumns<T>!
+OfficeIMO.Excel.ExcelDataColumns<T>.Add(string! header, System.Func<T, object?>! selector) -> OfficeIMO.Excel.ExcelDataColumns<T>!
+OfficeIMO.Excel.ExcelDataColumns<T>.Add(string! header, System.Func<T, string?>! selector) -> OfficeIMO.Excel.ExcelDataColumns<T>!
+OfficeIMO.Excel.ExcelDataColumns<T>.Add(string! header, System.Func<T, ulong>! selector) -> OfficeIMO.Excel.ExcelDataColumns<T>!
+OfficeIMO.Excel.ExcelSheet.WriteData<T>(System.Collections.Generic.IEnumerable<T>! data, System.Action<OfficeIMO.Excel.ExcelDataColumns<T>!>! columns) -> void

@@ -82,6 +82,32 @@ namespace OfficeIMO.Excel {
             _bits[index >> ChunkBits][index & ChunkMask] = bits;
         }
 
+        /// <summary>Stores text; null stays blank.</summary>
+        internal void SetText(int index, string? text) {
+            if (text == null) Store(index, ExcelBufferedCellKind.Blank, 0L);
+            else Store(index, ExcelBufferedCellKind.Text, AddReference(text));
+        }
+
+        internal void SetNumber(int index, double number) => Store(index, ExcelBufferedCellKind.Number, BitConverter.DoubleToInt64Bits(number));
+
+        internal void SetInt32(int index, int number) => Store(index, ExcelBufferedCellKind.Int32, number);
+
+        internal void SetInt64(int index, long number) {
+            if (ExcelExactNumber.FitsNumberCell(number)) Store(index, ExcelBufferedCellKind.Int64, number);
+            else Store(index, ExcelBufferedCellKind.Text, AddReference(InvariantNumberText.Get(number)));
+        }
+
+        internal void SetDateTime(int index, DateTime date) => Store(index, ExcelBufferedCellKind.DateTime, date.Ticks | ((long)date.Kind << DateKindShift));
+
+        internal void SetBoolean(int index, bool value) => Store(index, ExcelBufferedCellKind.Boolean, value ? 1L : 0L);
+
+        internal void SetBlank(int index) => Store(index, ExcelBufferedCellKind.Blank, 0L);
+
+        private void Store(int index, ExcelBufferedCellKind kind, long bits) {
+            _kinds[index >> ChunkBits][index & ChunkMask] = (byte)kind;
+            _bits[index >> ChunkBits][index & ChunkMask] = bits;
+        }
+
         private long AddReference(object value) {
             int chunk = _referenceCount >> ChunkBits;
             if (chunk == _references.Length) Array.Resize(ref _references, _references.Length * 2);
