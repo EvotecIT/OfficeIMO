@@ -43,7 +43,9 @@ internal sealed class OfficeChunkedWriteStream : Stream {
         }
         while (count > 0) {
             if (_current == null || _currentCount == _current.Length) {
-                int size = _current == null ? FirstChunkSize : Math.Min(MaximumChunkSize, _current.Length * 2);
+                int size = _current == null
+                    ? Math.Min(FirstChunkSize, Math.Max(256, count))
+                    : Math.Min(MaximumChunkSize, _current.Length * 2);
                 _current = new byte[size];
                 _currentCount = 0;
                 _chunks.Add(_current);
@@ -68,12 +70,17 @@ internal sealed class OfficeChunkedWriteStream : Stream {
     /// <summary>Returns the collected content as one array and releases the chunks.</summary>
     public byte[] ToArray() {
         if (_length == 0) return Array.Empty<byte>();
-        var result = new byte[_length];
-        int written = 0;
-        foreach (byte[] chunk in _chunks) {
-            int count = Math.Min(chunk.Length, result.Length - written);
-            Buffer.BlockCopy(chunk, 0, result, written, count);
-            written += count;
+        byte[] result;
+        if (_chunks.Count == 1 && _current is { } onlyChunk && _currentCount == onlyChunk.Length) {
+            result = onlyChunk;
+        } else {
+            result = new byte[_length];
+            int written = 0;
+            foreach (byte[] chunk in _chunks) {
+                int count = Math.Min(chunk.Length, result.Length - written);
+                Buffer.BlockCopy(chunk, 0, result, written, count);
+                written += count;
+            }
         }
         _chunks.Clear();
         _current = null;

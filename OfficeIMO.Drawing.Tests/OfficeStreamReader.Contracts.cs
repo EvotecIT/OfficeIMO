@@ -129,6 +129,36 @@ public sealed class OfficeStreamReaderContracts {
             Task.FromResult(Read(buffer, offset, count));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SeekableCancellationStopsBeforeConsumingTheWholeInput(bool asynchronous) {
+        using var cancellation = new CancellationTokenSource();
+        using var source = new CancellingSeekableStream(new byte[500_000], cancellation);
+
+        if (asynchronous) {
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+                OfficeStreamReader.ReadRemainingBytesAsync(source, cancellation.Token));
+        } else {
+            Assert.ThrowsAny<OperationCanceledException>(() =>
+                OfficeStreamReader.ReadRemainingBytes(source, cancellation.Token));
+        }
+
+        Assert.True(source.CanRead);
+        Assert.InRange(source.Position, 1, source.Length - 1);
+    }
+
+    private sealed class CancellingSeekableStream(byte[] bytes, CancellationTokenSource cancellation) : MemoryStream(bytes) {
+        public override int Read(byte[] buffer, int offset, int count) {
+            int read = base.Read(buffer, offset, count);
+            cancellation.Cancel();
+            return read;
+        }
+
+        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) =>
+            Task.FromResult(Read(buffer, offset, count));
+    }
+
     private sealed class CountingForwardStream : MemoryStream {
         private readonly CancellationTokenSource? _cancellation;
         internal CountingForwardStream(byte[] bytes, CancellationTokenSource? cancellation = null) : base(bytes) =>
