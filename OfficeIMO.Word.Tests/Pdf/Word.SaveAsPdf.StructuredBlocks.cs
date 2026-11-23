@@ -1252,6 +1252,9 @@ public partial class Word {
         }
 
         Assert.Contains("After wide chart", PdfTextExtractor.ExtractAllText(pdfPath));
+        string rawPdf = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
+        Assert.Contains(DefaultWordAccentPdfColor(1) + " rg", rawPdf, StringComparison.Ordinal);
+        Assert.Contains(DefaultWordAccentPdfColor(2) + " rg", rawPdf, StringComparison.Ordinal);
     }
 
     [Fact]
