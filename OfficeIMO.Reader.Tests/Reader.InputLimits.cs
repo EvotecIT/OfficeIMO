@@ -65,6 +65,66 @@ public sealed class ReaderInputLimitTests {
         Assert.Equal(payload, ((MemoryStream)preparedAsync).ToArray());
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task PublicSnapshotDoesNotTransferItsBuffer(bool asynchronous) {
+        byte[] payload = { 0x15, 0x26, 0x37 };
+        using var source = new MemoryStream(payload, writable: false);
+        using Stream privateSnapshot = ReaderInputLimits.EnsureSeekableReadStream(
+            source, payload.Length, inputLimitProbe: null, CancellationToken.None, out _);
+        Assert.True(ReaderInputLimits.TryGetOwnedSnapshotMemory(privateSnapshot, out ReadOnlyMemory<byte> owned));
+        Assert.Equal(payload, owned.ToArray());
+
+        using Stream publicSnapshot = asynchronous
+            ? await ReaderInputLimits.EnsureSeekableReadStreamAsync(source, payload.Length)
+            : ReaderInputLimits.EnsureSeekableReadStream(source, payload.Length, CancellationToken.None, out _);
+        Assert.False(ReaderInputLimits.TryGetOwnedSnapshotMemory(publicSnapshot, out _));
+    }
+
+    [Theory]
+    [InlineData("chunks")]
+    [InlineData("document")]
+    [InlineData("async document")]
+    [InlineData("container probe")]
+    [InlineData("extension validator")]
+    public async Task RegisteredStreamCallbackDoesNotReceiveATransferableSnapshot(string callback) {
+        using var source = new MemoryStream(new byte[] { 0x15, 0x26, 0x37 }, writable: false);
+        using Stream snapshot = ReaderInputLimits.EnsureSeekableReadStream(
+            source, 3, inputLimitProbe: null, CancellationToken.None, out _);
+        Assert.True(ReaderInputLimits.TryGetOwnedSnapshotMemory(snapshot, out _));
+
+        bool invoked = false;
+        void Observe(Stream received) {
+            Assert.Same(snapshot, received);
+            Assert.False(ReaderInputLimits.TryGetOwnedSnapshotMemory(received, out _));
+            invoked = true;
+        }
+
+        var handler = ReaderHandlerDescriptor.Create(new ReaderHandlerRegistration {
+            Id = "tests.snapshot-callback",
+            Origin = ReaderHandlerOrigin.OfficeIMO,
+            ReadStream = (input, _, _, _) => { Observe(input); return Array.Empty<ReaderChunk>(); },
+            ReadDocumentStream = (input, _, _, _) => { Observe(input); return new OfficeDocumentReadResult(); },
+            ReadDocumentStreamAsync = (input, _, _, _) => { Observe(input); return Task.FromResult(new OfficeDocumentReadResult()); },
+            ProbeStream = (input, _, _, _) => { Observe(input); return false; },
+            ExtensionValidationProbeStream = (input, _, _, _) => { Observe(input); return false; }
+        });
+
+        var options = new ReaderOptions();
+        switch (callback) {
+            case "chunks": handler.ReadStream!(snapshot, null, options, CancellationToken.None); break;
+            case "document": handler.ReadDocumentStream!(snapshot, null, options, CancellationToken.None); break;
+            case "async document": await handler.ReadDocumentStreamAsync!(snapshot, null, options, CancellationToken.None); break;
+            case "container probe": handler.ProbeStream!(snapshot, null, options, CancellationToken.None); break;
+            case "extension validator": handler.ExtensionValidationProbeStream!(snapshot, null, options, CancellationToken.None); break;
+            default: throw new ArgumentOutOfRangeException(nameof(callback));
+        }
+
+        Assert.True(invoked);
+        Assert.False(ReaderInputLimits.TryGetOwnedSnapshotMemory(snapshot, out _));
+    }
+
     private sealed class ForwardOnlyStream : Stream {
         private readonly MemoryStream _inner;
 

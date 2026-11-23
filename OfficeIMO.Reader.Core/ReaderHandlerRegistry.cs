@@ -186,6 +186,7 @@ internal sealed class ReaderHandlerDescriptor {
         ReaderSourceHashBehavior sourceHashBehavior,
         ReaderWarningBehavior warningBehavior,
         bool deterministicOutput,
+        bool acceptsOwnedSnapshot,
         Func<string, ReaderOptions, CancellationToken, IEnumerable<ReaderChunk>>? readPath,
         Func<Stream, string?, ReaderOptions, CancellationToken, IEnumerable<ReaderChunk>>? readStream,
         Func<string, ReaderOptions, CancellationToken, OfficeDocumentReadResult>? readDocumentPath,
@@ -214,15 +215,23 @@ internal sealed class ReaderHandlerDescriptor {
         // Native loaders receive the same remaining admission ceiling as Core's
         // initial guard, including when they reopen a path after detection.
         ReadPath = readPath == null ? null : (path, options, token) => readPath(path, WithNativeInputBudget(path, options), token);
-        ReadStream = readStream == null ? null : (stream, name, options, token) => readStream(stream, name, WithNativeInputBudget(name, options), token);
+        ReadStream = readStream == null ? null : (stream, name, options, token) =>
+            readStream(PrepareReadStream(stream), name, WithNativeInputBudget(name, options), token);
         ReadDocumentPath = readDocumentPath == null ? null : (path, options, token) => readDocumentPath(path, WithNativeInputBudget(path, options), token);
         ReadDirectoryBundle = readDirectoryBundle == null ? null : (path, options, token) => readDirectoryBundle(path, WithNativeInputBudget(path, options), token);
-        ReadDocumentStream = readDocumentStream == null ? null : (stream, name, options, token) => readDocumentStream(stream, name, WithNativeInputBudget(name, options), token);
+        ReadDocumentStream = readDocumentStream == null ? null : (stream, name, options, token) =>
+            readDocumentStream(PrepareReadStream(stream), name, WithNativeInputBudget(name, options), token);
         ReadDocumentPathAsync = readDocumentPathAsync == null ? null : (path, options, token) => readDocumentPathAsync(path, WithNativeInputBudget(path, options), token);
-        ReadDocumentStreamAsync = readDocumentStreamAsync == null ? null : (stream, name, options, token) => readDocumentStreamAsync(stream, name, WithNativeInputBudget(name, options), token);
-        ProbeStream = probeStream == null ? null : (stream, name, options, token) => probeStream(stream, name, WithNativeInputBudget(name, options), token);
-        ExtensionValidationProbeStream = extensionValidationProbeStream == null ? null : (stream, name, options, token) => extensionValidationProbeStream(stream, name, WithNativeInputBudget(name, options), token);
+        ReadDocumentStreamAsync = readDocumentStreamAsync == null ? null : (stream, name, options, token) =>
+            readDocumentStreamAsync(PrepareReadStream(stream), name, WithNativeInputBudget(name, options), token);
+        ProbeStream = probeStream == null ? null : (stream, name, options, token) =>
+            probeStream(ReaderInputLimits.MarkSnapshotExposed(stream), name, WithNativeInputBudget(name, options), token);
+        ExtensionValidationProbeStream = extensionValidationProbeStream == null ? null : (stream, name, options, token) =>
+            extensionValidationProbeStream(ReaderInputLimits.MarkSnapshotExposed(stream), name, WithNativeInputBudget(name, options), token);
         OpenPathForContentDetection = openPathForContentDetection;
+
+        Stream PrepareReadStream(Stream stream) => acceptsOwnedSnapshot
+            ? stream : ReaderInputLimits.MarkSnapshotExposed(stream);
     }
 
     public string Id { get; }
@@ -314,6 +323,7 @@ internal sealed class ReaderHandlerDescriptor {
             registration.SourceHashBehavior,
             registration.WarningBehavior,
             registration.DeterministicOutput,
+            registration.AcceptsOwnedSnapshot,
             registration.ReadPath,
             registration.ReadStream,
             registration.ReadDocumentPath,
