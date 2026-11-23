@@ -12,13 +12,16 @@ namespace OfficeIMO.Word.Pdf {
         private const int MaxNativeWordChartSeries = 256;
         private const int MaxNativeWordChartPoints = 4096;
         // The chart fills its wp:extent frame. The bounds only reject degenerate or runaway
-        // frames; page-width fitting happens when the drawing is placed.
+        // frames; page-width fitting happens when the drawing is placed (NativeChartDrawingStyle).
         private const double MinNativeWordChartWidthPoints = 72D;
         private const double MaxNativeWordChartWidthPoints = 1584D;
         private const double MinNativeWordChartHeightPoints = 54D;
         // Fits the text column of a landscape Letter page with one-inch margins.
         private const double MaxNativeWordChartHeightPoints = 460D;
         private const double NativeWordChartTitleTopPadding = 31D;
+        /// <summary>Places a chart at its frame size, scaled as a whole when the frame is wider than the text column.</summary>
+        private static PdfCore.PdfDrawingStyle NativeChartDrawingStyle() => new() { ConstrainToContentWidth = true };
+
         private static OfficeDrawing? PrepareNativeChart(WordChart? chart, WordPdfExportOptions? options, string source) {
             if (chart == null) {
                 return null;

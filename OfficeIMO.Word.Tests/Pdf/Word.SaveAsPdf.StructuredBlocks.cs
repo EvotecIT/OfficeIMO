@@ -1235,6 +1235,29 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Fits_Word_Charts_Wider_Than_The_Text_Column() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartWiderThanColumn.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartWiderThanColumn.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            WordChart chart = document.AddChart("Wide Word chart",false,OfficeIMO.OfficeLength.Pixels(360),OfficeIMO.OfficeLength.Pixels(220));
+            chart.AddPie("Passed", 3);
+            chart.AddPie("Failed", 1);
+            DW.Extent extent = chart.Drawing!.Inline?.Extent ?? chart.Drawing.Anchor!.Extent!;
+            extent.Cx = 9L * 914400L;
+            extent.Cy = 4L * 914400L;
+            document.AddParagraph("After wide chart");
+
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions { IncludePageNumbers = false });
+        }
+
+        Assert.Contains("After wide chart", PdfTextExtractor.ExtractAllText(pdfPath));
+        string rawPdf = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
+        Assert.Contains(DefaultWordAccentPdfColor(1) + " rg", rawPdf, StringComparison.Ordinal);
+        Assert.Contains(DefaultWordAccentPdfColor(2) + " rg", rawPdf, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Renders_Inline_Word_Charts_After_Text_Run() {
         OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeInlineWordChart.docx");
