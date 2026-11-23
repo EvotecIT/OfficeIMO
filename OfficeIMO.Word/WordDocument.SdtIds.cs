@@ -50,7 +50,6 @@ namespace OfficeIMO.Word {
         // Reading a document never needs new identifiers, so the existing ones are collected when the first one is generated.
         private void EnsureExistingSdtIdsScanned() {
             if (_sdtIdsScanned) return;
-            _sdtIdsScanned = true;
             foreach (var id in EnumerateExistingSdtIds()) {
                 if (id <= 0) {
                     continue;
@@ -61,6 +60,8 @@ namespace OfficeIMO.Word {
                     _nextSdtId = id >= MaxSdtId ? 1 : id + 1;
                 }
             }
+            // Marked only after every part was read, so a scan that throws is retried on the next id.
+            _sdtIdsScanned = true;
         }
 
         private IEnumerable<int> EnumerateExistingSdtIds() {
