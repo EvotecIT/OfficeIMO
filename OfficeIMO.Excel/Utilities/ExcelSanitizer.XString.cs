@@ -1,16 +1,17 @@
 namespace OfficeIMO.Excel.Utilities;
 
 internal static partial class ExcelSanitizer {
+#if NET8_0_OR_GREATER
+    // Characters that can start an XString escape or need one: the underscore of a literal _xHHHH_ token, and
+    // controls other than tab, line feed and carriage return. Surrogates and U+FFFE/U+FFFF are searched separately.
+    private static readonly System.Buffers.SearchValues<char> XStringAsciiCandidates =
+        System.Buffers.SearchValues.Create("\u0000\u0001\u0002\u0003\u0004\u0005\u0006\u0007\u0008\u000B\u000C\u000E\u000F\u0010\u0011\u0012\u0013\u0014\u0015\u0016\u0017\u0018\u0019\u001A\u001B\u001C\u001D\u001E\u001F_");
+#endif
+
     /// <summary>Encodes semantic text as SpreadsheetML, preserving literal tokens and XML-illegal UTF-16 units.</summary>
     internal static string EncodeXString(string value) {
-#if NET8_0_OR_GREATER
-        // These BMP characters need neither XString escaping nor surrogate checks.
-        // Underscores retain the literal-token check in the existing scalar path.
-        if (value.AsSpan().IndexOfAnyExceptInRange(' ', '\uD7FF') < 0 && value.IndexOf('_') < 0) return value;
-#endif
-        int first = 0;
-        while (first < value.Length && !IsXStringEscape(value, first) && !RequiresXStringEscape(value, first)) first++;
-        if (first == value.Length) return value;
+        int first = FindXStringEncodingStart(value);
+        if (first < 0) return value;
         var builder = new StringBuilder(value.Length + 6);
         builder.Append(value, 0, first);
         for (int index = first; index < value.Length; index++) {
@@ -22,6 +23,34 @@ internal static partial class ExcelSanitizer {
             } else builder.Append(value[index]);
         }
         return builder.ToString();
+    }
+
+    /// <summary>Returns the first index that <see cref="EncodeXString"/> must rewrite, or -1.</summary>
+    private static int FindXStringEncodingStart(string value) {
+#if NET8_0_OR_GREATER
+        // Most text is BMP characters from the space up with no underscore, and needs no further checks.
+        if (value.AsSpan().IndexOfAnyExceptInRange(' ', '\uD7FF') < 0 && value.IndexOf('_') < 0) return -1;
+        // Line breaks and other text outside the fast range must not push long strings onto a per-character scan.
+        int start = 0;
+        while (start < value.Length) {
+            ReadOnlySpan<char> remaining = value.AsSpan(start);
+            int candidate = remaining.IndexOfAny(XStringAsciiCandidates);
+            int surrogate = (candidate < 0 ? remaining : remaining.Slice(0, candidate)).IndexOfAnyInRange('\uD800', '\uDFFF');
+            if (surrogate >= 0) candidate = surrogate;
+            int nonCharacter = (candidate < 0 ? remaining : remaining.Slice(0, candidate)).IndexOfAny('\uFFFE', '\uFFFF');
+            if (nonCharacter >= 0) candidate = nonCharacter;
+            if (candidate < 0) return -1;
+            int index = start + candidate;
+            if (IsXStringEscape(value, index) || RequiresXStringEscape(value, index)) return index;
+            start = index + 1;
+        }
+        return -1;
+#else
+        for (int index = 0; index < value.Length; index++) {
+            if (IsXStringEscape(value, index) || RequiresXStringEscape(value, index)) return index;
+        }
+        return -1;
+#endif
     }
 
     /// <summary>Decodes an XML string payload once; an escaped underscore cannot start a second decoding pass.</summary>
