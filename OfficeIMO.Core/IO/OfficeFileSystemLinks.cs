@@ -16,7 +16,13 @@ internal static class OfficeFileSystemLinks {
     internal static bool IsLinkOrReparsePoint(FileSystemInfo entry) {
         if (entry == null) throw new ArgumentNullException(nameof(entry));
 #if NET6_0_OR_GREATER
-        if (!OperatingSystem.IsWindows()) return entry.LinkTarget != null;
+        if (!OperatingSystem.IsWindows()) {
+            // With a trailing separator, LinkTarget looks at the folder a link points to, not at the link.
+            string path = entry.FullName;
+            string trimmed = Path.TrimEndingDirectorySeparator(path);
+            if (trimmed.Length != path.Length) entry = entry is DirectoryInfo ? new DirectoryInfo(trimmed) : new FileInfo(trimmed);
+            return entry.LinkTarget != null;
+        }
 #endif
         return (entry.Attributes & FileAttributes.ReparsePoint) != 0;
     }

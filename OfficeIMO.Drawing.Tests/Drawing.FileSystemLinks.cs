@@ -42,6 +42,9 @@ public sealed class OfficeFileSystemLinksTests {
             Assert.True(OfficeFileSystemLinks.IsLinkOrReparsePoint(new FileInfo(fileLink)));
             Assert.True(OfficeFileSystemLinks.IsLinkOrReparsePoint(new DirectoryInfo(folderLink)));
             Assert.True(OfficeFileSystemLinks.IsLinkOrReparsePoint(fileLink));
+            string folderLinkWithSeparator = folderLink + Path.DirectorySeparatorChar;
+            Assert.True(OfficeFileSystemLinks.IsLinkOrReparsePoint(new DirectoryInfo(folderLinkWithSeparator)));
+            Assert.True(OfficeFileSystemLinks.IsLinkOrReparsePoint(folderLinkWithSeparator));
         } finally {
             if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
         }
