@@ -321,8 +321,9 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>A parse without whitespace preservation drops whitespace-only text unless xml:space keeps it.</summary>
         private static string ParsedTextValue(OpenXmlElement textElement) {
-            string value = ReadFullText(textElement);
-            if (value.Length == 0) return value;
+            string value = ReadFullText(textElement, out bool parsed);
+            // The parse already applied whitespace handling, and it always keeps CDATA content.
+            if (parsed || value.Length == 0) return value;
             foreach (char character in value) {
                 if (character != ' ' && character != '\t' && character != '\r' && character != '\n') return value;
             }
@@ -330,9 +331,12 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>InnerText keeps only the first segment when plain text and CDATA share one element.</summary>
-        private static string ReadFullText(OpenXmlElement textElement) {
+        private static string ReadFullText(OpenXmlElement textElement) => ReadFullText(textElement, out _);
+
+        private static string ReadFullText(OpenXmlElement textElement, out bool parsed) {
             string markup = textElement.OuterXml;
-            if (markup.IndexOf("<![CDATA[", StringComparison.Ordinal) < 0) return textElement.InnerText;
+            parsed = markup.IndexOf("<![CDATA[", StringComparison.Ordinal) >= 0;
+            if (!parsed) return textElement.InnerText;
             // Parse with the xml:space setting the element inherits, as a parse of the whole body would.
             return XElement.Parse(markup, PreservesWhitespace(textElement) ? LoadOptions.PreserveWhitespace : LoadOptions.None).Value;
         }
