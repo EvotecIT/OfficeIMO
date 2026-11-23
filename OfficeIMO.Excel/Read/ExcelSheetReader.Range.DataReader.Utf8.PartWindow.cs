@@ -24,7 +24,7 @@ namespace OfficeIMO.Excel {
                 source = null;
                 declaredFirstColumn = 0;
                 OpenXmlPackagePartBufferReader? reader = owner._partBufferReader;
-                if (reader == null || owner._opt.DisplayText != null
+                if (!WindowedReadsSupported || reader == null || owner._opt.DisplayText != null
                     || !reader.TryGetLength(owner._worksheetPartName, out long length)
                     || length < owner._opt.WindowedWorksheetMinimumBytes || length > int.MaxValue
                     || !reader.TryOpenExactPartStream(owner._worksheetPartName, ct, out Stream? stream)) return false;
@@ -53,6 +53,14 @@ namespace OfficeIMO.Excel {
                     throw;
                 }
             }
+
+            // Down-level text proof checks the whole buffer at the end rather than each block as it arrives, so it
+            // needs the whole part.
+#if NET8_0_OR_GREATER
+            private static bool WindowedReadsSupported => true;
+#else
+            private static bool WindowedReadsSupported => false;
+#endif
 
             /// <summary>
             /// Decompresses ahead on a worker only when the worksheet has its own archive cursor; otherwise another
