@@ -48,9 +48,32 @@ namespace OfficeIMO.Excel {
         }
 
         internal static double StudentDensity(double t, double degrees) {
-            double logDensity = LogGamma((degrees + 1) / 2) - LogGamma(degrees / 2)
-                - 0.5 * Math.Log(degrees * Math.PI) - (degrees + 1) / 2 * Math.Log(1 + t * t / degrees);
+            double logDensity = LogGammaHalfRatio(degrees / 2) - 0.5 * Math.Log(degrees * Math.PI)
+                - (degrees + 1) / 2 * LogOnePlusSquare(t / Math.Sqrt(degrees));
             return Math.Exp(logDensity);
+        }
+
+        /// <summary>ln(1 + r²) without overflowing r² or rounding away a small r.</summary>
+        private static double LogOnePlusSquare(double r) {
+            r = Math.Abs(r);
+            if (r <= 1) return LogOnePlus(r * r);
+            double s = 1 / r;
+            return 2 * Math.Log(r) + LogOnePlus(s * s);
+        }
+
+        /// <summary>ln(1 + v), accurate for small v.</summary>
+        private static double LogOnePlus(double v) {
+            double u = 1 + v;
+            return u == 1 ? v : Math.Log(u) * v / (u - 1);
+        }
+
+        /// <summary>ln Γ(z + ½) − ln Γ(z); for large z the two terms round alike, so an asymptotic series is used there.</summary>
+        private static double LogGammaHalfRatio(double z) {
+            if (z < 100) return LogGamma(z + 0.5) - LogGamma(z);
+            double inverse = 1 / z;
+            double inverseSquared = inverse * inverse;
+            return 0.5 * Math.Log(z) - inverse * (1.0 / 8 - inverseSquared * (1.0 / 192 + inverseSquared * (1.0 / 640
+                - inverseSquared * (17.0 / 14336))));
         }
 
         /// <summary>The left-tailed Student t distribution.</summary>
@@ -62,8 +85,25 @@ namespace OfficeIMO.Excel {
         /// <summary>The probability beyond |t| in one tail.</summary>
         internal static double StudentTail(double t, double degrees) {
             if (t == 0) return 0.5;
-            double x = degrees / (degrees + t * t);
-            return 0.5 * RegularizedBeta(x, degrees / 2, 0.5);
+            // I_x(ν/2, ½) with x = ν/(ν+t²). Writing r = |t|/√ν, x and 1 − x come from r or 1/r, whichever is at most 1,
+            // so neither t² overflowing nor x rounding to 1 near the median loses the result.
+            double r = Math.Abs(t) / Math.Sqrt(degrees);
+            double x, complement, logX, logComplement;
+            if (r <= 1) {
+                double square = r * r;
+                x = 1 / (1 + square);
+                complement = square / (1 + square);
+                logX = -LogOnePlus(square);
+                logComplement = 2 * Math.Log(r) + logX;
+            } else {
+                double s = 1 / r;
+                double square = s * s;
+                complement = 1 / (1 + square);
+                x = square / (1 + square);
+                logComplement = -LogOnePlus(square);
+                logX = 2 * Math.Log(s) + logComplement;
+            }
+            return 0.5 * RegularizedBeta(x, complement, logX, logComplement, degrees / 2, 0.5);
         }
 
         internal static double StudentInverse(double p, double degrees) {
@@ -238,11 +278,19 @@ namespace OfficeIMO.Excel {
         internal static double RegularizedBeta(double x, double a, double b) {
             if (x <= 0) return 0;
             if (x >= 1) return 1;
-            double prefix = Math.Exp(LogGamma(a + b) - LogGamma(a) - LogGamma(b) + a * Math.Log(x) + b * Math.Log(1 - x));
+            return RegularizedBeta(x, 1 - x, Math.Log(x), Math.Log(1 - x), a, b);
+        }
+
+        /// <summary>
+        /// I_x(a, b) from x, 1 − x and their logarithms, each computed by the caller without cancellation, so an
+        /// argument that is tiny or within rounding of 1 keeps its precision.
+        /// </summary>
+        private static double RegularizedBeta(double x, double complement, double logX, double logComplement, double a, double b) {
+            double prefix = Math.Exp(LogGamma(a + b) - LogGamma(a) - LogGamma(b) + a * logX + b * logComplement);
             // The continued fraction converges quickly below the mean; above it, use I_x(a,b) = 1 − I_(1−x)(b,a).
             return x < (a + 1) / (a + b + 2)
                 ? prefix * BetaContinuedFraction(x, a, b) / a
-                : 1 - prefix * BetaContinuedFraction(1 - x, b, a) / b;
+                : 1 - prefix * BetaContinuedFraction(complement, b, a) / b;
         }
 
         // I_x(a, b)'s continued fraction, with d₂ₘ = m(b−m)x / ((a+2m−1)(a+2m)) and
@@ -257,14 +305,14 @@ namespace OfficeIMO.Excel {
             for (int m = 1; ; m++) {
                 if (m >= limit) throw new NonConvergenceException();
                 int twoM = 2 * m;
-                double even = m * (b - m) * x / ((a + twoM - 1) * (a + twoM));
+                double even = m * (b - m) / (a + twoM - 1) * x / (a + twoM);
                 d = 1 + even * d;
                 if (Math.Abs(d) < Tiny) d = Tiny;
                 c = 1 + even / c;
                 if (Math.Abs(c) < Tiny) c = Tiny;
                 d = 1 / d;
                 result *= d * c;
-                double odd = -(a + m) * (a + b + m) * x / ((a + twoM) * (a + twoM + 1));
+                double odd = -(a + m) / (a + twoM) * ((a + b + m) / (a + twoM + 1)) * x;
                 d = 1 + odd * d;
                 if (Math.Abs(d) < Tiny) d = Tiny;
                 c = 1 + odd / c;
@@ -272,6 +320,8 @@ namespace OfficeIMO.Excel {
                 d = 1 / d;
                 double delta = d * c;
                 result *= delta;
+                // A non-finite state never settles, so stop rather than spend the whole iteration budget.
+                if (double.IsNaN(result) || double.IsInfinity(result)) throw new NonConvergenceException();
                 if (Math.Abs(delta - 1) < Epsilon) break;
             }
             return result;

@@ -62,6 +62,11 @@ namespace OfficeIMO.Tests {
         [InlineData("INDIRECT(\"not a reference\")", "#REF!")]
         [InlineData("IFERROR(INDIRECT(A5),\"none\")", "none")]
         [InlineData("ROWS(INDIRECT(\"B2:B5\"))", "4")]
+        [InlineData("INDIRECT(\"Other!LocalTarget\",FALSE)", "9")]
+        [InlineData("INDIRECT(\"BadTarget\")", "#REF!")]
+        [InlineData("INDIRECT(\"A1048577\")", "#REF!")]
+        [InlineData("INDIRECT(\"XFE1\")", "#REF!")]
+        [InlineData("INDIRECT(\"R1048577C1\",FALSE)", "#REF!")]
         public void Test_FormulaEvaluator_IndirectResolvesReferenceText(string formula, string expected) {
             using var document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
@@ -77,10 +82,26 @@ namespace OfficeIMO.Tests {
             sheet.Cell(4, 2).SetValue(10);
             sheet.Cell(5, 2).SetValue(62);
             document.SetNamedRange("George", "Data!$B$4", save: false);
+            other.Cell(2, 2).SetValue(9);
+            document.SetNamedRange("LocalTarget", "Other!$B$2", scope: other, save: false);
+            AddFormulaName(document, "BadTarget", "INDIRECT(\"not a reference\")");
             sheet.Cell(1, 1).SetFormula(formula);
             Assert.Equal(1, document.Calculate());
             Assert.True(sheet.TryGetCachedFormulaValue(1, 1, out string? value));
             Assert.Equal(expected, value);
+        }
+
+        // Names the workbook lacks and whole rows or columns are beyond this subset in either style, so Excel keeps them.
+        [Theory]
+        [InlineData("INDIRECT(\"UnknownName\")")]
+        [InlineData("INDIRECT(\"UnknownName\",FALSE)")]
+        [InlineData("INDIRECT(\"R1\",FALSE)")]
+        [InlineData("INDIRECT(\"C2\",FALSE)")]
+        public void Test_FormulaEvaluator_IndirectLeavesUnsupportedTextToExcel(string formula) {
+            using var document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetFormula(formula);
+            Assert.Equal(0, document.Calculate());
         }
 
         [Fact]

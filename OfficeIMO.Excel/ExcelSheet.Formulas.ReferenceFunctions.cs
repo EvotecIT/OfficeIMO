@@ -174,16 +174,25 @@ namespace OfficeIMO.Excel {
                     return true;
                 }
                 if (!a1) {
-                    // The style names the cell notation; a defined name resolves the same in either style.
+                    // The style names the cell notation; a defined name resolves the same in either style, and the
+                    // name lookup checks a qualified name's sheet scope.
                     if (!TryConvertR1C1Reference(qualifier, unqualified, out string? converted)) {
-                        if (qualifier.Length == 0
-                            && TryResolveDefinedNameRange(text, currentRow, out sheet, out r1, out c1, out r2, out c2)) return true;
-                        error = FormulaArgumentValue.Error("#REF!");
-                        return true;
+                        if (TryResolveDefinedNameRange(text, currentRow, out sheet, out r1, out c1, out r2, out c2)) return true;
+                        if (TryTakeIndirectReferenceError(out error)) return true;
+                        // R1C1 cell syntax that converts to nothing lies outside the grid, and A1 cell syntax is the
+                        // wrong style; whole rows or columns and unknown names are unsupported, as in A1 style.
+                        if (IsR1C1LineSyntax(unqualified)) return false;
+                        if (IsR1C1CellSyntax(unqualified) || TryClassifyA1Reference(unqualified, out _)) {
+                            error = FormulaArgumentValue.Error("#REF!");
+                            return true;
+                        }
+                        return HasOnlyReferenceCharacters(unqualified, out error);
                     }
                     text = converted!;
                 }
                 if (TryResolveFormulaRangeReference(text, currentRow, out sheet, out r1, out c1, out r2, out c2)) return true;
+                // A name whose own reference is an error, such as an INDIRECT of invalid text, passes that error on.
+                if (TryTakeIndirectReferenceError(out error)) return true;
                 // A qualified reference whose sheet is missing names nothing.
                 FormulaReferenceSyntax syntax = GetFormulaReferenceSyntax(text);
                 if (syntax.Split && syntax.SheetName != null && !TryGetFormulaReferenceSheet(syntax.SheetName, out _)
@@ -191,18 +200,100 @@ namespace OfficeIMO.Excel {
                     error = FormulaArgumentValue.Error("#REF!");
                     return true;
                 }
-                // Neither a reference nor a name can hold other characters, such as spaces, outside its sheet qualifier.
-                foreach (char character in unqualified) {
-                    if (!char.IsLetterOrDigit(character) && character is not ('$' or '_' or '.' or ':' or '\\')) {
-                        error = FormulaArgumentValue.Error("#REF!");
-                        return true;
-                    }
+                if (TryClassifyA1Reference(unqualified, out bool outsideGrid) && outsideGrid) {
+                    error = FormulaArgumentValue.Error("#REF!");
+                    return true;
                 }
-                return false;
+                return HasOnlyReferenceCharacters(unqualified, out error);
             } finally {
                 _formulaReferenceError = previousError;
                 _offsetFormulaReferenceDepth--;
             }
+        }
+
+        private bool TryTakeIndirectReferenceError(out FormulaArgumentValue error) {
+            error = _formulaReferenceError;
+            return error.IsError;
+        }
+
+        /// <summary>
+        /// Neither a reference nor a name can hold other characters, such as spaces, outside its sheet qualifier:
+        /// such text is #REF!. Anything else is a name or reference this subset can't resolve and stays unsupported.
+        /// </summary>
+        private static bool HasOnlyReferenceCharacters(string reference, out FormulaArgumentValue error) {
+            error = default;
+            foreach (char character in reference) {
+                if (!char.IsLetterOrDigit(character) && character is not ('$' or '_' or '.' or ':' or '\\')) {
+                    error = FormulaArgumentValue.Error("#REF!");
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // A whole row (R2, R[1]:R3) or column (C2): R or C alone with an optional number or bracketed offset.
+        private static bool IsR1C1LineSyntax(string reference) {
+            string[] parts = reference.ToUpperInvariant().Split(':');
+            if (parts.Length > 2) return false;
+            foreach (string part in parts) {
+                int position = 0;
+                if (part.Length == 0 || part[0] is not ('R' or 'C')) return false;
+                if (!SkipR1C1Marker(part, ref position, part[0]) || position != part.Length) return false;
+            }
+            return true;
+        }
+
+        // R and C each with an optional number or bracketed offset, for one cell or a range of two.
+        private static bool IsR1C1CellSyntax(string reference) {
+            string[] parts = reference.ToUpperInvariant().Split(':');
+            if (parts.Length > 2) return false;
+            foreach (string part in parts) {
+                int position = 0;
+                if (!SkipR1C1Marker(part, ref position, 'R') || !SkipR1C1Marker(part, ref position, 'C') || position != part.Length) return false;
+            }
+            return true;
+        }
+
+        private static bool SkipR1C1Marker(string text, ref int position, char marker) {
+            if (position >= text.Length || text[position] != marker) return false;
+            position++;
+            if (position < text.Length && text[position] == '[') {
+                int close = text.IndexOf(']', position);
+                if (close < 0) return false;
+                position = close + 1;
+                return true;
+            }
+            while (position < text.Length && char.IsDigit(text[position])) position++;
+            return true;
+        }
+
+        // Whether text is an A1 cell, or a range of two, with column letters up to three long; outside is set when a
+        // row or column lies past the grid.
+        private static bool TryClassifyA1Reference(string reference, out bool outside) {
+            outside = false;
+            string[] parts = reference.Split(':');
+            if (parts.Length > 2) return false;
+            foreach (string part in parts) {
+                int position = 0;
+                if (position < part.Length && part[position] == '$') position++;
+                int letters = position;
+                long column = 0;
+                while (position < part.Length && part[position] is (>= 'A' and <= 'Z') or (>= 'a' and <= 'z')) {
+                    column = column * 26 + (char.ToUpperInvariant(part[position]) - 'A' + 1);
+                    position++;
+                }
+                letters = position - letters;
+                if (letters is < 1 or > 3) return false;
+                if (position < part.Length && part[position] == '$') position++;
+                int digits = position;
+                while (position < part.Length && char.IsDigit(part[position])) position++;
+                if (position == digits || position != part.Length) return false;
+                string rowText = part.Substring(digits);
+                bool rowInside = rowText.Length <= 7 && int.TryParse(rowText, NumberStyles.None, CultureInfo.InvariantCulture, out int row)
+                    && row >= 1 && row <= ExcelA1.MaxRows;
+                if (!rowInside || column > ExcelA1.MaxColumns) outside = true;
+            }
+            return true;
         }
 
         /// <summary>

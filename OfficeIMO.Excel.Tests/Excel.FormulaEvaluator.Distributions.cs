@@ -71,9 +71,29 @@ namespace OfficeIMO.Tests {
         [Theory]
         [InlineData("CHISQ.INV(1E-100,1)", 1.5707963267948966e-200)]
         [InlineData("T.INV(1E-100,1)", -3.1830988618379067e99)]
+        [InlineData("T.DIST.RT(1E160,1)", 3.1830988618379067e-161)]
+        [InlineData("T.INV(1E-200,1)", -3.1830988618379067e199)]
+        [InlineData("T.DIST(0,1E20,FALSE)", 0.3989422804014327)]
+        [InlineData("T.DIST(1,1E20,FALSE)", 0.24197072451914337)]
+        [InlineData("T.DIST(0.5,300,FALSE)", 0.35164388573796046)]
         public void Test_FormulaEvaluator_DistributionInversesReachFarTails(string formula, double expected) {
             double actual = CalculateNumber(formula);
             Assert.True(Math.Abs(actual / expected - 1) < 1e-9, $"{formula} returned {actual}, expected {expected}.");
+        }
+
+        // Near the median the one-degree t distribution is the Cauchy distribution: F(t) − ½ = atan(t)/π.
+        [Fact]
+        public void Test_FormulaEvaluator_StudentTKeepsItsDistanceFromTheMedian() {
+            double above = CalculateNumber("T.DIST(1E-9,1,TRUE)") - 0.5;
+            Assert.True(Math.Abs(above / 3.183098861837907e-10 - 1) < 1e-6, $"T.DIST(1E-9,1,TRUE) − 0.5 = {above}.");
+            double quantile = CalculateNumber("T.INV(0.500000001,1)");
+            Assert.True(Math.Abs(quantile / 3.141592653589793e-9 - 1) < 1e-6, $"T.INV(0.500000001,1) = {quantile}.");
+        }
+
+        // With huge parameters the beta continued fraction's coefficients overflow; the call must end promptly.
+        [Fact]
+        public void Test_FormulaEvaluator_StudentTWithHugeParametersFinishes() {
+            Assert.Equal(1, CalculateNumber("T.DIST(1E100,1E200,TRUE)"));
         }
 
         [Fact]

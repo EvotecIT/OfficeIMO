@@ -8,7 +8,7 @@ namespace OfficeIMO.Excel {
             // Positions matter for these calls, so empty arguments are kept in place.
             IReadOnlyList<string> args = SplitFormulaArguments(arguments, preserveEmpty: true);
             if (args.Count == 0) return false;
-            if (function == "TEXTSPLIT") return TryEvaluateTextSplit(args, out array);
+            if (function == "TEXTSPLIT") return TryEvaluateTextSplit(args, depth, out array);
             var inputs = new FormulaArrayValue[args.Count];
             int cells = 0;
             int count = function == "SORTBY" ? 1 : args.Count;
@@ -88,7 +88,6 @@ namespace OfficeIMO.Excel {
                 if (cells > MaxResolvedFormulaRangeCells) return false;
                 double order = 1;
                 if (index + 1 < args.Count && !TryArrayNumber(args, index + 1, 1, out order)) return false;
-                order = Math.Truncate(order);
                 bool keyByColumns = key.Rows == 1 && key.Columns > 1;
                 int length = keyByColumns ? key.Columns : key.Rows;
                 if ((key.Rows != 1 && key.Columns != 1) || (byColumns.HasValue && byColumns.Value != keyByColumns)
@@ -103,6 +102,9 @@ namespace OfficeIMO.Excel {
                 }
                 keys.Add((key, kinds, (int)order));
             }
+            // A key read through a stale cached value would decide the order, so leave the call to Excel.
+            if (_formulaEvaluationDepthFrames?.Count > 0
+                && _formulaEvaluationDepthFrames.Peek().UsedUnevaluatedFormulaCache) return false;
             int vectors = byColumns == true ? input.Columns : input.Rows;
             int[] selected = Enumerable.Range(0, vectors).ToArray();
             System.Array.Sort(selected, (left, right) => {
@@ -157,13 +159,13 @@ namespace OfficeIMO.Excel {
         /// TEXTSPLIT(text, column delimiter, [row delimiter], [ignore empty], [match mode], [pad with]). Delimiters are
         /// text or array constants of text; at each position the earliest, then longest, delimiter wins.
         /// </summary>
-        private bool TryEvaluateTextSplit(IReadOnlyList<string> args, out FormulaArrayValue array) {
+        private bool TryEvaluateTextSplit(IReadOnlyList<string> args, int depth, out FormulaArrayValue array) {
             array = null!;
             if (args.Count < 2 || args.Count > 6 || string.IsNullOrWhiteSpace(args[0])) return false;
             if (!TryResolveFormulaValueArgument(args[0], out FormulaArgumentValue source)) return false;
             if (source.IsError) { array = ArrayError(source.ErrorCode!); return true; }
-            if (!TryGetTextSplitDelimiters(args, 1, out string[]? columnDelimiters, out FormulaArgumentValue error)
-                || !TryGetTextSplitDelimiters(args, 2, out string[]? rowDelimiters, out FormulaArgumentValue rowError)) return false;
+            if (!TryGetTextSplitDelimiters(args, 1, depth, out string[]? columnDelimiters, out FormulaArgumentValue error)
+                || !TryGetTextSplitDelimiters(args, 2, depth, out string[]? rowDelimiters, out FormulaArgumentValue rowError)) return false;
             if (!error.IsError) error = rowError;
             if (!TryArrayFlag(args, 3, out bool ignoreEmpty) || !TryArrayNumber(args, 4, 0, out double mode)) return false;
             FormulaArgumentValue padding = FormulaArgumentValue.Error("#N/A");
@@ -199,11 +201,11 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private bool TryGetTextSplitDelimiters(IReadOnlyList<string> args, int index, out string[]? delimiters, out FormulaArgumentValue error) {
+        private bool TryGetTextSplitDelimiters(IReadOnlyList<string> args, int index, int depth, out string[]? delimiters, out FormulaArgumentValue error) {
             delimiters = null;
             error = default;
             if (index >= args.Count || string.IsNullOrWhiteSpace(args[index])) return true;
-            if (!TryEvaluateArrayValue(args[index], 1, out FormulaArrayValue values)) return false;
+            if (!TryEvaluateArrayValue(args[index], depth + 1, out FormulaArrayValue values)) return false;
             var list = new List<string>(values.Values.Length);
             foreach (FormulaArgumentValue value in values.Values) {
                 if (value.IsError) { error = value; return true; }

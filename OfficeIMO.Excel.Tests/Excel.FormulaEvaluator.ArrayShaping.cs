@@ -49,6 +49,7 @@ namespace OfficeIMO.Tests {
         [InlineData("INDEX(MMULT({1,3;7,2},{1,\"x\";0,2}),1,1)", "#VALUE!")]
         [InlineData("INDEX(MMULT({1,2},{1,2}),1,1)", "#VALUE!")]
         [InlineData("SUM(SORTBY(A1:A3,{1;2}))", "#VALUE!")]
+        [InlineData("INDEX(SORTBY({10;20},{2;1},1.5),1)", "#VALUE!")]
         public void Test_ArrayCalculation_ShapingFunctionsFeedScalarFormulas(string formula, string expected) {
             using var document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Arrays");
@@ -62,6 +63,31 @@ namespace OfficeIMO.Tests {
             Assert.Equal(expected, value);
         }
     
+
+        // A key read from a formula the engine can't calculate would order the result by a stale cache.
+        [Fact]
+        public void Test_ArrayCalculation_SortByLeavesStaleCachedKeysToExcel() {
+            using var document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddSheet("Arrays");
+            sheet.Cell(1, 1).SetValue(2d);
+            sheet.Cell(1, 1).SetFormula("UNKNOWN()");
+            sheet.Cell(2, 1).SetValue(1d);
+            sheet.Cell(1, 3).SetFormula("INDEX(SORTBY({10;20},A1:A2),1)");
+            Assert.Equal(0, document.Calculate());
+        }
+
+        // TEXTSPLIT delimiters nest through the same array-expression depth limit as other array arguments.
+        [Theory]
+        [InlineData(4, true)]
+        [InlineData(40, false)]
+        public void Test_ArrayCalculation_TextSplitDelimitersShareTheNestingLimit(int levels, bool calculated) {
+            string formula = "TEXTSPLIT(\"a\",\",\")";
+            for (int level = 0; level < levels; level++) formula = $"TEXTSPLIT(\"{(level % 2 == 0 ? "b" : "a")}\",{formula})";
+            using var document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddSheet("Arrays");
+            sheet.Cell(1, 1).SetFormula("INDEX(" + formula + ",1)");
+            Assert.Equal(calculated ? 1 : 0, document.Calculate());
+        }
 
         // Each key fits the evaluator's cell limit, but together with the input they don't, so the call is left to Excel.
         [Fact]
