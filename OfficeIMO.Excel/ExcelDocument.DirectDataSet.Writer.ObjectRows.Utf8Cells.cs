@@ -84,8 +84,8 @@ namespace OfficeIMO.Excel {
                     WriteUtf8Cell(null, " t=\"inlineStr\"><is><t/></is></c>"u8);
                     return true;
                 }
-                // Each character takes at most five bytes, as &amp;.
-                byte[] buffer = BeginUtf8Cell(null, text.Length * 5 + 48, out int start, out int position);
+                // Each character takes at most five bytes, as &amp;, plus 56 bytes of markup.
+                byte[] buffer = BeginUtf8Cell(null, text.Length * 5 + 64, out int start, out int position);
                 Span<byte> output = buffer.AsSpan();
                 " t=\"inlineStr\"><is><t"u8.CopyTo(output.Slice(position));
                 position += 21;
