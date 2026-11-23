@@ -147,6 +147,24 @@ public class OpenXmlWordParagraphTextReaderTests {
         Assert.Equal(new[] { "moved" }, ReadWithPackageReader(package));
     }
 
+    [Theory]
+    [InlineData("/word/_rels/document.xml.rels", "media/image1.png", "/word/media/image1.png")]
+    [InlineData("/word/_rels/document.xml.rels", "./styles.xml", "/word/styles.xml")]
+    [InlineData("/word/_rels/document.xml.rels", "../customXml/item1.xml", "/customXml/item1.xml")]
+    [InlineData("/word/_rels/document.xml.rels", "/docProps/app.xml", "/docProps/app.xml")]
+    [InlineData("/word/_rels/document.xml.rels", "media/a%20b.png", "/word/media/a%20b.png")]
+    [InlineData("/word/_rels/document.xml.rels", "media\\image1.png#frag", "/word/media/image1.png")]
+    [InlineData("/_rels/.rels", "word/document.xml", "/word/document.xml")]
+    [InlineData("/_rels/.rels", "../../word/document.xml", null)]
+    [InlineData("/word/_rels/document.xml.rels", "https://example.com/a.png", null)]
+    [InlineData("/word/_rels/document.xml.rels", "C:\\a.png", null)]
+    [InlineData("/word/_rels/document.xml.rels", "//server/share/a.png", null)]
+    [InlineData("/word/_rels/document.xml.rels", "media/", null)]
+    [InlineData("/word/_rels/document.xml.rels", "media/%2E%2E/a.png", null)]
+    public void ResolvesRelationshipTargetsToPartNames(string relationshipsPart, string target, string? expected) {
+        Assert.Equal(expected, OfficeOpcPartNames.ResolveRelationshipTarget(relationshipsPart, target));
+    }
+
     private static List<string> ReadWithPackageReader(byte[] package) {
         using var stream = new MemoryStream(package, writable: false);
         return OfficeOpenXmlTextReader.ReadWordBodyParagraphs(stream).ToList();

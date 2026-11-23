@@ -24,14 +24,14 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidDataException("The package is not a PowerPoint presentation.");
             }
             bool listSeen = false;
-            ForEachChild(reader, () => {
-                if (listSeen || !IsPresentation(reader, "sldIdLst")) return false;
+            for (var children29 = new Children(reader); children29.Next(reader);) {
+                if (listSeen || !IsPresentation(reader, "sldIdLst")) continue;
                 listSeen = true;
-                ForEachChild(reader, () => {
-                    if (!IsPresentation(reader, "sldId")) return false;
+                for (var children28 = new Children(reader); children28.Next(reader);) {
+                    if (!IsPresentation(reader, "sldId")) continue;
                     cancellationToken.ThrowIfCancellationRequested();
                     string? relationshipId = GetRelationshipAttribute(reader, "id");
-                    if (string.IsNullOrEmpty(relationshipId)) return false;
+                    if (string.IsNullOrEmpty(relationshipId)) continue;
                     OfficeOpcRelationship? relationship = FindRelationship(package, presentationPart, relationshipId!);
                     string? slidePart = relationship != null && IsRelationshipType(relationship, "slide")
                         ? GetTargetPart(package, relationship)
@@ -40,10 +40,10 @@ namespace OfficeIMO.PowerPoint {
                         throw new InvalidDataException($"The slide list entry '{relationshipId}' does not target a slide part.");
                     }
                     slides.Add(new SlideEntry(slidePart, GetAttribute(reader, "show")));
-                    return false;
-                });
-                return true;
-            });
+                    continue;
+                }
+                continue;
+            }
             return slides;
         }
 
@@ -56,18 +56,18 @@ namespace OfficeIMO.PowerPoint {
                 if (MoveToRoot(reader)) {
                     show = ReadBoolean(GetAttribute(reader, "show"));
                     bool commonSlideDataSeen = false;
-                    ForEachChild(reader, () => {
-                        if (commonSlideDataSeen || !IsPresentation(reader, "cSld")) return false;
+                    for (var children27 = new Children(reader); children27.Next(reader);) {
+                        if (commonSlideDataSeen || !IsPresentation(reader, "cSld")) continue;
                         commonSlideDataSeen = true;
                         bool treeSeen = false;
-                        ForEachChild(reader, () => {
-                            if (treeSeen || !IsPresentation(reader, "spTree")) return false;
+                        for (var children26 = new Children(reader); children26.Next(reader);) {
+                            if (treeSeen || !IsPresentation(reader, "spTree")) continue;
                             treeSeen = true;
                             ReadShapeTree(reader, context, parent: null, depth: 0);
-                            return true;
-                        });
-                        return true;
-                    });
+                            continue;
+                        }
+                        continue;
+                    }
                 }
             }
 
@@ -82,8 +82,8 @@ namespace OfficeIMO.PowerPoint {
 
         // Reads the children of a shape tree or group in drawing order; the caller is positioned on its start element.
         private static void ReadShapeTree(OfficeXmlPullReader reader, SlideContext context, ShapeBuilder? parent, int depth) {
-            ForEachChild(reader, () => {
-                if (reader.NamespaceId != PresentationNamespace) return false;
+            for (var children25 = new Children(reader); children25.Next(reader);) {
+                if (reader.NamespaceId != PresentationNamespace) continue;
                 switch (reader.LocalName) {
                     case "sp":
                     case "cxnSp":
@@ -91,11 +91,11 @@ namespace OfficeIMO.PowerPoint {
                     case "grpSp":
                     case "graphicFrame":
                         ReadShape(reader, context, parent, depth);
-                        return true;
+                        continue;
                     default:
-                        return false;
+                        continue;
                 }
-            });
+            }
         }
 
         private static void ReadShape(OfficeXmlPullReader reader, SlideContext context, ShapeBuilder? parent, int depth) {
@@ -108,50 +108,55 @@ namespace OfficeIMO.PowerPoint {
             int position = context.Reserve(shape);
             switch (element) {
                 case "sp":
-                    ForEachChild(reader, () => {
-                        if (IsPresentation(reader, "nvSpPr")) return ReadNonVisualProperties(reader, shape, readPlaceholder: true);
+                    for (var children24 = new Children(reader); children24.Next(reader);) {
+                        if (IsPresentation(reader, "nvSpPr")) { _ = ReadNonVisualProperties(reader, shape, readPlaceholder: true); continue; }
                         if (IsPresentation(reader, "txBody") && shape.Paragraphs == null) {
                             shape.Paragraphs = ReadTextBody(reader, context);
-                            return true;
+                            continue;
                         }
-                        return false;
-                    });
+                        continue;
+                    }
                     shape.Kind = shape.Paragraphs != null ? PowerPointShapeContentType.TextBox : PowerPointShapeContentType.AutoShape;
                     break;
                 case "cxnSp":
-                    ForEachChild(reader, () => IsPresentation(reader, "nvCxnSpPr") && ReadNonVisualProperties(reader, shape, readPlaceholder: true));
+                    for (var connectorChildren = new Children(reader); connectorChildren.Next(reader);) {
+                        if (IsPresentation(reader, "nvCxnSpPr")) ReadNonVisualProperties(reader, shape, readPlaceholder: true);
+                    }
                     shape.Kind = PowerPointShapeContentType.Connector;
                     break;
                 case "pic":
                     bool fillSeen = false;
-                    ForEachChild(reader, () => {
-                        if (IsPresentation(reader, "nvPicPr")) return ReadNonVisualProperties(reader, shape, readPlaceholder: true, detectMedia: true);
+                    for (var children23 = new Children(reader); children23.Next(reader);) {
+                        if (IsPresentation(reader, "nvPicPr")) { _ = ReadNonVisualProperties(reader, shape, readPlaceholder: true, detectMedia: true); continue; }
                         if (IsPresentation(reader, "blipFill") && !fillSeen) {
                             fillSeen = true;
                             ReadBlipFill(reader, context, shape);
-                            return true;
+                            continue;
                         }
-                        return false;
-                    });
+                        continue;
+                    }
                     shape.Kind = shape.IsMedia ? PowerPointShapeContentType.Media : PowerPointShapeContentType.Picture;
                     break;
                 case "grpSp":
                     shape.Kind = PowerPointShapeContentType.Group;
-                    ForEachChild(reader,
-                        () => IsPresentation(reader, "nvGrpSpPr") && ReadNonVisualProperties(reader, shape, readPlaceholder: false),
-                        child => child.NamespaceId == PresentationNamespace && child.LocalName is "sp" or "cxnSp" or "pic" or "grpSp" or "graphicFrame",
-                    () => ReadShape(reader, context, shape, depth + 1));
+                    for (var groupChildren = new Children(reader); groupChildren.Next(reader);) {
+                        if (reader.NamespaceId == PresentationNamespace && reader.LocalName is "sp" or "cxnSp" or "pic" or "grpSp" or "graphicFrame") {
+                            ReadShape(reader, context, shape, depth + 1);
+                        } else if (IsPresentation(reader, "nvGrpSpPr")) {
+                            ReadNonVisualProperties(reader, shape, readPlaceholder: false);
+                        }
+                    }
                     break;
                 case "graphicFrame":
-                    ForEachChild(reader, () => {
-                        if (IsPresentation(reader, "nvGraphicFramePr")) return ReadNonVisualProperties(reader, shape, readPlaceholder: true);
+                    for (var children22 = new Children(reader); children22.Next(reader);) {
+                        if (IsPresentation(reader, "nvGraphicFramePr")) { _ = ReadNonVisualProperties(reader, shape, readPlaceholder: true); continue; }
                         if (IsDrawing(reader, "graphic") && !shape.GraphicSeen) {
                             shape.GraphicSeen = true;
                             ReadGraphic(reader, context, shape);
-                            return true;
+                            continue;
                         }
-                        return false;
-                    });
+                        continue;
+                    }
                     // A frame holding none of these is not a slide shape in the presentation model either.
                     if (shape.FrameKind == null) {
                         context.Release(position);
@@ -169,7 +174,7 @@ namespace OfficeIMO.PowerPoint {
             if (shape.NonVisualSeen) return false;
             shape.NonVisualSeen = true;
             bool drawingSeen = false, applicationSeen = false;
-            ForEachChild(reader, () => {
+            for (var children21 = new Children(reader); children21.Next(reader);) {
                 if (IsPresentation(reader, "cNvPr") && !drawingSeen) {
                     drawingSeen = true;
                     string? id = GetAttribute(reader, "id");
@@ -177,13 +182,15 @@ namespace OfficeIMO.PowerPoint {
                     shape.Name = GetAttribute(reader, "name");
                     shape.AltText = GetAttribute(reader, "descr");
                     shape.Hidden = ReadBoolean(GetAttribute(reader, "hidden")) == true;
-                    return false;
+                    continue;
                 }
                 if (IsPresentation(reader, "nvPr") && !applicationSeen) {
                     applicationSeen = true;
                     bool placeholderSeen = false;
                     int propertiesDepth = reader.Depth;
-                    ReadDescendants(reader, () => {
+                    while (!reader.IsEmptyElement && reader.Read()
+                           && !(reader.NodeKind == OfficeXmlNodeKind.EndElement && reader.Depth == propertiesDepth)) {
+                        if (reader.NodeKind != OfficeXmlNodeKind.StartElement) continue;
                         if (readPlaceholder && !placeholderSeen && reader.Depth == propertiesDepth + 1 && IsPresentation(reader, "ph")) {
                             placeholderSeen = true;
                             string? type = GetAttribute(reader, "type");
@@ -193,18 +200,18 @@ namespace OfficeIMO.PowerPoint {
                             && reader.LocalName is "audioFile" or "videoFile") {
                             shape.IsMedia = true;
                         }
-                    });
-                    return true;
+                    }
+                    continue;
                 }
-                return false;
-            });
+                continue;
+            }
             return true;
         }
 
         private static void ReadBlipFill(OfficeXmlPullReader reader, SlideContext context, ShapeBuilder shape) {
             bool blipSeen = false;
-            ForEachChild(reader, () => {
-                if (!IsDrawing(reader, "blip") || blipSeen) return false;
+            for (var children20 = new Children(reader); children20.Next(reader);) {
+                if (!IsDrawing(reader, "blip") || blipSeen) continue;
                 blipSeen = true;
                 string? embed = GetRelationshipAttribute(reader, "embed");
                 string? link = GetRelationshipAttribute(reader, "link");
@@ -213,85 +220,85 @@ namespace OfficeIMO.PowerPoint {
                 } else if (!string.IsNullOrEmpty(link)) {
                     shape.Image = context.ResolveImage(link!);
                 }
-                return false;
-            });
+                continue;
+            }
         }
 
         // Classifies a graphic frame the way the presentation model does: table, chart, SmartArt, then OLE object.
         private static void ReadGraphic(OfficeXmlPullReader reader, SlideContext context, ShapeBuilder shape) {
             bool dataSeen = false;
-            ForEachChild(reader, () => {
-                if (!IsDrawing(reader, "graphicData") || dataSeen) return false;
+            for (var children19 = new Children(reader); children19.Next(reader);) {
+                if (!IsDrawing(reader, "graphicData") || dataSeen) continue;
                 dataSeen = true;
                 bool chart = false, smartArt = false, ole = false;
-                ForEachChild(reader, () => {
+                for (var children18 = new Children(reader); children18.Next(reader);) {
                     if (IsDrawing(reader, "tbl")) {
-                        if (shape.Table != null) return false;
+                        if (shape.Table != null) continue;
                         shape.Table = ReadTable(reader, context, shape);
-                        return true;
+                        continue;
                     }
                     if (reader.IsElement(OfficeXmlNamespaces.Chart, "chart")) chart = true;
                     else if (reader.IsElement(OfficeXmlNamespaces.Diagram, "relIds")) smartArt = true;
                     else if (IsPresentation(reader, "oleObj")) ole = true;
-                    return false;
-                });
+                    continue;
+                }
                 shape.FrameKind = shape.Table != null ? PowerPointShapeContentType.Table
                     : chart ? PowerPointShapeContentType.Chart
                     : smartArt ? PowerPointShapeContentType.SmartArt
                     : ole ? PowerPointShapeContentType.OleObject
                     : null;
-                return true;
-            });
+                continue;
+            }
         }
 
         private static PowerPointTableContent ReadTable(OfficeXmlPullReader reader, SlideContext context, ShapeBuilder shape) {
             bool propertiesSeen = false, gridSeen = false, headerRow = false;
             int columnCount = 0;
             var rows = new List<PowerPointTableRowContent>();
-            ForEachChild(reader, () => {
+            for (var children17 = new Children(reader); children17.Next(reader);) {
                 if (IsDrawing(reader, "tblPr") && !propertiesSeen) {
                     propertiesSeen = true;
                     headerRow = ReadBoolean(GetAttribute(reader, "firstRow")) == true;
-                    return false;
+                    continue;
                 }
                 if (IsDrawing(reader, "tblGrid") && !gridSeen) {
                     gridSeen = true;
-                    ForEachChild(reader, () => {
+                    for (var children16 = new Children(reader); children16.Next(reader);) {
                         if (IsDrawing(reader, "gridCol")) columnCount++;
-                        return false;
-                    });
-                    return true;
+                        continue;
+                    }
+                    continue;
                 }
                 if (IsDrawing(reader, "tr")) {
                     context.CancellationToken.ThrowIfCancellationRequested();
                     var cells = new List<PowerPointTableCellContent>();
-                    ForEachChild(reader, () => {
-                        if (!IsDrawing(reader, "tc")) return false;
+                    for (var children15 = new Children(reader); children15.Next(reader);) {
+                        if (!IsDrawing(reader, "tc")) continue;
                         IReadOnlyList<PowerPointParagraphContent>? paragraphs = null;
-                        ForEachChild(reader, () => {
-                            if (!IsDrawing(reader, "txBody") || paragraphs != null) return false;
+                        for (var children14 = new Children(reader); children14.Next(reader);) {
+                            if (!IsDrawing(reader, "txBody") || paragraphs != null) continue;
                             paragraphs = ReadTextBody(reader, context);
-                            return true;
-                        });
+                            continue;
+                        }
                         cells.Add(new PowerPointTableCellContent(paragraphs ?? Array.Empty<PowerPointParagraphContent>()));
-                        return true;
-                    });
+                        continue;
+                    }
                     rows.Add(new PowerPointTableRowContent(cells));
-                    return true;
+                    continue;
                 }
-                return false;
-            });
+                continue;
+            }
             shape.TableHasGrid = gridSeen;
             return new PowerPointTableContent(null, columnCount, headerRow, rows);
         }
 
         private static IReadOnlyList<PowerPointParagraphContent> ReadTextBody(OfficeXmlPullReader reader, SlideContext context) {
             var paragraphs = new List<PowerPointParagraphContent>();
-            ForEachChild(reader, () => {
-                if (!IsDrawing(reader, "p")) return false;
+            for (var children13 = new Children(reader); children13.Next(reader);) {
+                if (!IsDrawing(reader, "p")) continue;
                 paragraphs.Add(ReadParagraph(reader, context));
-                return true;
-            });
+                continue;
+            }
             return paragraphs;
         }
 
@@ -302,15 +309,15 @@ namespace OfficeIMO.PowerPoint {
             string? bullet = null;
             bool numbered = false;
             PowerPointNumberingScheme? scheme = null;
-            ForEachChild(reader, () => {
-                if (reader.NamespaceId != DrawingNamespace) return false;
+            for (var children12 = new Children(reader); children12.Next(reader);) {
+                if (reader.NamespaceId != DrawingNamespace) continue;
                 switch (reader.LocalName) {
                     case "pPr":
-                        if (propertiesSeen) return false;
+                        if (propertiesSeen) continue;
                         propertiesSeen = true;
                         string? levelValue = GetAttribute(reader, "lvl");
                         level = levelValue == null ? null : ParseInt32(levelValue);
-                        ForEachChild(reader, () => {
+                        for (var children11 = new Children(reader); children11.Next(reader);) {
                             if (IsDrawing(reader, "buChar") && !bulletSeen) {
                                 bulletSeen = true;
                                 bullet = GetAttribute(reader, "char");
@@ -322,22 +329,22 @@ namespace OfficeIMO.PowerPoint {
                                 string? start = GetAttribute(reader, "startAt");
                                 startAt = start == null ? null : ParseInt32(start);
                             }
-                            return false;
-                        });
-                        return true;
+                            continue;
+                        }
+                        continue;
                     case "r":
                         inlines.Add(ReadRun(reader, context));
-                        return true;
+                        continue;
                     case "br":
                         inlines.Add(PowerPointInlineContent.LineBreak);
-                        return false;
+                        continue;
                     case "fld":
                         inlines.Add(ReadField(reader));
-                        return true;
+                        continue;
                     default:
-                        return false;
+                        continue;
                 }
-            });
+            }
             return new PowerPointParagraphContent(inlines, level, bullet, numbered, scheme, startAt);
         }
 
@@ -345,39 +352,39 @@ namespace OfficeIMO.PowerPoint {
             string? text = null;
             bool propertiesSeen = false;
             Uri? hyperlink = null;
-            ForEachChild(reader, () => {
+            for (var children10 = new Children(reader); children10.Next(reader);) {
                 if (IsDrawing(reader, "rPr") && !propertiesSeen) {
                     propertiesSeen = true;
                     bool linkSeen = false;
-                    ForEachChild(reader, () => {
-                        if (!IsDrawing(reader, "hlinkClick") || linkSeen) return false;
+                    for (var children9 = new Children(reader); children9.Next(reader);) {
+                        if (!IsDrawing(reader, "hlinkClick") || linkSeen) continue;
                         linkSeen = true;
                         hyperlink = context.ResolveHyperlink(GetAttribute(reader, "action"), GetRelationshipAttribute(reader, "id"));
-                        return false;
-                    });
-                    return true;
+                        continue;
+                    }
+                    continue;
                 }
                 if (IsDrawing(reader, "t") && text == null) {
                     text = ReadTextContent(reader);
-                    return true;
+                    continue;
                 }
-                return false;
-            });
+                continue;
+            }
             return new PowerPointInlineContent(PowerPointParagraphInlineKind.Run, text ?? string.Empty, hyperlink, null);
         }
 
         private static PowerPointInlineContent ReadField(OfficeXmlPullReader reader) {
             string? text = null;
             StringBuilder? other = null;
-            ForEachChild(reader, () => {
+            for (var children8 = new Children(reader); children8.Next(reader);) {
                 if (IsDrawing(reader, "t") && text == null) {
                     text = ReadTextContent(reader);
-                    return true;
+                    continue;
                 }
                 string content = ReadTextContent(reader);
                 if (content.Length > 0) (other ??= new StringBuilder()).Append(content);
-                return true;
-            });
+                continue;
+            }
             return new PowerPointInlineContent(PowerPointParagraphInlineKind.Field, text ?? string.Empty, null,
                 text != null ? null : other?.ToString() ?? string.Empty);
         }
@@ -397,23 +404,23 @@ namespace OfficeIMO.PowerPoint {
                 using (content) {
                     if (!MoveToRoot(reader)) return null;
                     bool commonSlideDataSeen = false;
-                    ForEachChild(reader, () => {
-                        if (commonSlideDataSeen || !IsPresentation(reader, "cSld")) return false;
+                    for (var children7 = new Children(reader); children7.Next(reader);) {
+                        if (commonSlideDataSeen || !IsPresentation(reader, "cSld")) continue;
                         commonSlideDataSeen = true;
-                        ForEachChild(reader, () => {
-                            if (treeFound || !IsPresentation(reader, "spTree")) return false;
+                        for (var children6 = new Children(reader); children6.Next(reader);) {
+                            if (treeFound || !IsPresentation(reader, "spTree")) continue;
                             treeFound = true;
-                            ForEachChild(reader, () => {
-                                if (!IsPresentation(reader, "sp")) return false;
+                            for (var children5 = new Children(reader); children5.Next(reader);) {
+                                if (!IsPresentation(reader, "sp")) continue;
                                 cancellationToken.ThrowIfCancellationRequested();
                                 string text = ReadNotesShapeText(reader);
                                 if (!string.IsNullOrWhiteSpace(text)) shapes.Add(text);
-                                return true;
-                            });
-                            return true;
-                        });
-                        return true;
-                    });
+                                continue;
+                            }
+                            continue;
+                        }
+                        continue;
+                    }
                 }
                 if (!treeFound) return null;
                 string notes = string.Join(Environment.NewLine + Environment.NewLine, shapes).Trim();
@@ -471,66 +478,56 @@ namespace OfficeIMO.PowerPoint {
         private static string ReadNotesShapeText(OfficeXmlPullReader reader) {
             var paragraphs = new List<string>();
             bool bodySeen = false;
-            ForEachChild(reader, () => {
-                if (!IsPresentation(reader, "txBody") || bodySeen) return false;
+            for (var children4 = new Children(reader); children4.Next(reader);) {
+                if (!IsPresentation(reader, "txBody") || bodySeen) continue;
                 bodySeen = true;
-                ForEachChild(reader, () => {
-                    if (!IsDrawing(reader, "p")) return false;
+                for (var children3 = new Children(reader); children3.Next(reader);) {
+                    if (!IsDrawing(reader, "p")) continue;
                     var text = new StringBuilder();
-                    ForEachChild(reader, () => {
+                    for (var children2 = new Children(reader); children2.Next(reader);) {
                         if (IsDrawing(reader, "br")) {
                             text.AppendLine();
-                            return false;
+                            continue;
                         }
-                        if (!IsDrawing(reader, "r") && !IsDrawing(reader, "fld")) return false;
+                        if (!IsDrawing(reader, "r") && !IsDrawing(reader, "fld")) continue;
                         string? value = null;
-                        ForEachChild(reader, () => {
-                            if (!IsDrawing(reader, "t") || value != null) return false;
+                        for (var children1 = new Children(reader); children1.Next(reader);) {
+                            if (!IsDrawing(reader, "t") || value != null) continue;
                             value = ReadTextContent(reader);
-                            return true;
-                        });
+                            continue;
+                        }
                         text.Append(value);
-                        return true;
-                    });
+                        continue;
+                    }
                     string paragraph = text.ToString();
                     if (!string.IsNullOrWhiteSpace(paragraph)) paragraphs.Add(paragraph);
-                    return true;
-                });
-                return true;
-            });
+                    continue;
+                }
+                continue;
+            }
             return string.Join(Environment.NewLine, paragraphs);
         }
 
         /// <summary>
-        ///     Visits the direct child elements of the element the reader is positioned on. The visitor returns true when
-        ///     it consumed the child through its end; otherwise the child is skipped. Returns with the reader on the
-        ///     parent's end (or on the parent itself when it is empty).
+        ///     Steps through the direct child elements of the element the reader is positioned on. A child the loop body
+        ///     does not read is passed over; one it reads must be left on its end. Returns false on the parent's end.
         /// </summary>
-        private static void ForEachChild(OfficeXmlPullReader reader, Func<bool> visit) =>
-            ForEachChild(reader, visit, null, null);
+        private struct Children {
+            private readonly int _depth;
+            private bool _done;
 
-        // An empty element's end is reported after its start; the loops below step over such ends of children.
-        private static void ForEachChild(OfficeXmlPullReader reader, Func<bool> visit, Func<OfficeXmlPullReader, bool>? isNested, Action? readNested) {
-            if (reader.IsEmptyElement) return;
-            int depth = reader.Depth;
-            while (reader.Read()) {
-                if (reader.NodeKind == OfficeXmlNodeKind.EndElement && reader.Depth == depth) return;
-                if (reader.NodeKind != OfficeXmlNodeKind.StartElement) continue;
-                if (isNested != null && isNested(reader)) {
-                    readNested!();
-                    continue;
-                }
-                if (!visit()) reader.SkipElement();
+            internal Children(OfficeXmlPullReader reader) {
+                _depth = reader.Depth;
+                _done = reader.IsEmptyElement;
             }
-        }
 
-        // Visits every descendant element; the reader ends on the element's end.
-        private static void ReadDescendants(OfficeXmlPullReader reader, Action visit) {
-            if (reader.IsEmptyElement) return;
-            int depth = reader.Depth;
-            while (reader.Read()) {
-                if (reader.NodeKind == OfficeXmlNodeKind.EndElement && reader.Depth == depth) return;
-                if (reader.NodeKind == OfficeXmlNodeKind.StartElement) visit();
+            internal bool Next(OfficeXmlPullReader reader) {
+                while (!_done && reader.Read()) {
+                    if (reader.NodeKind == OfficeXmlNodeKind.EndElement && reader.Depth == _depth) break;
+                    if (reader.NodeKind == OfficeXmlNodeKind.StartElement && reader.Depth == _depth + 1) return true;
+                }
+                _done = true;
+                return false;
             }
         }
 

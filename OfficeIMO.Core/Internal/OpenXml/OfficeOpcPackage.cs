@@ -141,6 +141,7 @@ internal sealed class OfficeOpcPackage : IDisposable {
     private OfficeOpcRelationship[] ReadRelationships(string relationshipsPart) {
         var relationships = new List<OfficeOpcRelationship>();
         var ids = new HashSet<string>(StringComparer.Ordinal);
+        string? sourceDirectory = OfficeOpcPartNames.GetRelationshipSourceDirectory(relationshipsPart);
         OfficeXmlPullReader reader = OpenXml(relationshipsPart, out OfficePooledBytes content);
         using (content) {
             while (reader.Read()) {
@@ -154,7 +155,7 @@ internal sealed class OfficeOpcPackage : IDisposable {
                 bool external = reader.TryGetAttribute(OfficeXmlNamespaces.None, "TargetMode", out string mode)
                     && string.Equals(mode, "External", StringComparison.Ordinal);
                 if (!ids.Add(id)) throw new InvalidDataException("'" + relationshipsPart + "' repeats the relationship id '" + id + "'.");
-                relationships.Add(new OfficeOpcRelationship(relationshipsPart, id, OfficeXmlNamespaces.NormalizeRelationshipType(type), target, external));
+                relationships.Add(new OfficeOpcRelationship(sourceDirectory, id, OfficeXmlNamespaces.NormalizeRelationshipType(type), target, external));
             }
         }
         return relationships.ToArray();
@@ -188,12 +189,12 @@ internal sealed class OfficeOpcPackage : IDisposable {
 
 /// <summary>One package or part relationship. <see cref="TargetPartName"/> is null for external or unresolvable targets.</summary>
 internal sealed class OfficeOpcRelationship {
-    private readonly string _relationshipsPart;
+    private readonly string? _sourceDirectory;
     private string? _targetPartName;
     private bool _resolved;
 
-    internal OfficeOpcRelationship(string relationshipsPart, string id, string type, string target, bool isExternal) {
-        _relationshipsPart = relationshipsPart;
+    internal OfficeOpcRelationship(string? sourceDirectory, string id, string type, string target, bool isExternal) {
+        _sourceDirectory = sourceDirectory;
         Id = id;
         Type = type;
         Target = target;
@@ -209,7 +210,7 @@ internal sealed class OfficeOpcRelationship {
     internal string? TargetPartName {
         get {
             if (!_resolved) {
-                _targetPartName = IsExternal ? null : OfficeOpcPartNames.ResolveRelationshipTarget(_relationshipsPart, Target);
+                _targetPartName = IsExternal ? null : OfficeOpcPartNames.ResolveRelationshipTargetFrom(_sourceDirectory, Target);
                 _resolved = true;
             }
             return _targetPartName;

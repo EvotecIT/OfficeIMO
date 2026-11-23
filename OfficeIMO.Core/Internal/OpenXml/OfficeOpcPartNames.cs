@@ -80,42 +80,49 @@ internal static class OfficeOpcPartNames {
         return sourcePartName.Substring(0, slash + 1) + "_rels/" + sourcePartName.Substring(slash + 1) + ".rels";
     }
 
+    private static readonly char[] QueryOrFragment = { '?', '#' };
+
     /// <summary>Resolves a relationship target against the source of its relationships part, returning the target
     /// part name or null for external, absolute, malformed or escaping targets. The target's spelling is kept.</summary>
-    internal static string? ResolveRelationshipTarget(string relationshipPartName, string? target) {
-        if (string.IsNullOrWhiteSpace(target)) return null;
-        string normalizedTarget = target!.Replace('\\', '/');
-        // OPC uses one leading slash for a package-root part reference.
-        // Authority/UNC targets and absolute URI schemes remain unresolved.
-        if (normalizedTarget.StartsWith("//", StringComparison.Ordinal)) return null;
-        if (!target.StartsWith("/", StringComparison.Ordinal)
-            && Uri.TryCreate(target, UriKind.Absolute, out Uri? absolute) && absolute.IsAbsoluteUri) return null;
+    internal static string? ResolveRelationshipTarget(string relationshipPartName, string? target) =>
+        string.IsNullOrWhiteSpace(target) ? null : ResolveRelationshipTargetFrom(GetRelationshipSourceDirectory(relationshipPartName), target);
 
+    /// <summary>The directory relationship targets of a relationships part resolve against, or null when the part
+    /// name is not a relationships part. Callers resolving many targets of one part compute it once.</summary>
+    internal static string? GetRelationshipSourceDirectory(string relationshipPartName) {
         string normalizedRelationshipPart = relationshipPartName.Replace('\\', '/');
         int relationshipsSegment = normalizedRelationshipPart.LastIndexOf("/_rels/", StringComparison.OrdinalIgnoreCase);
         if (relationshipsSegment < 0) return null;
 
-        string sourcePrefix = normalizedRelationshipPart.Substring(0, relationshipsSegment);
         string relationshipFile = normalizedRelationshipPart.Substring(relationshipsSegment + 7);
-        string sourceDirectory;
-        if (string.Equals(relationshipFile, ".rels", StringComparison.OrdinalIgnoreCase)) {
-            sourceDirectory = "/";
-        } else if (relationshipFile.EndsWith(RelationshipsExtension, StringComparison.OrdinalIgnoreCase)) {
-            string sourceFile = relationshipFile.Substring(0, relationshipFile.Length - RelationshipsExtension.Length);
-            string sourcePart = sourcePrefix + "/" + sourceFile;
-            int separator = sourcePart.LastIndexOf('/');
-            sourceDirectory = separator <= 0 ? "/" : sourcePart.Substring(0, separator + 1);
-        } else {
-            return null;
-        }
+        if (string.Equals(relationshipFile, ".rels", StringComparison.OrdinalIgnoreCase)) return "/";
+        if (!relationshipFile.EndsWith(RelationshipsExtension, StringComparison.OrdinalIgnoreCase)) return null;
+        string sourceFile = relationshipFile.Substring(0, relationshipFile.Length - RelationshipsExtension.Length);
+        string sourcePart = normalizedRelationshipPart.Substring(0, relationshipsSegment) + "/" + sourceFile;
+        int separator = sourcePart.LastIndexOf('/');
+        return separator <= 0 ? "/" : sourcePart.Substring(0, separator + 1);
+    }
 
-        int suffix = normalizedTarget.IndexOfAny(new[] { '?', '#' });
+    /// <summary>Resolves a target against a directory from <see cref="GetRelationshipSourceDirectory"/>.</summary>
+    internal static string? ResolveRelationshipTargetFrom(string? sourceDirectory, string? target) {
+        if (sourceDirectory == null || string.IsNullOrWhiteSpace(target)) return null;
+        string normalizedTarget = target!.Replace('\\', '/');
+        // OPC uses one leading slash for a package-root part reference.
+        // Authority/UNC targets and absolute URI schemes remain unresolved.
+        if (normalizedTarget.StartsWith("//", StringComparison.Ordinal)) return null;
+        // Only a target with a scheme separator, or a backslash path, can parse as an absolute URI.
+        if (!target.StartsWith("/", StringComparison.Ordinal) && (target.IndexOf(':') >= 0 || target[0] == '\\')
+            && Uri.TryCreate(target, UriKind.Absolute, out Uri? absolute) && absolute.IsAbsoluteUri) return null;
+
+        int suffix = normalizedTarget.IndexOfAny(QueryOrFragment);
         if (suffix >= 0) normalizedTarget = normalizedTarget.Substring(0, suffix);
         if (IsDirectoryOrEmptySegmentTarget(normalizedTarget)) return null;
         string combined = normalizedTarget.StartsWith("/", StringComparison.Ordinal)
             ? normalizedTarget
             : sourceDirectory + normalizedTarget;
         if (IsDirectoryOrEmptySegmentTarget(combined)) return null;
+        // A path without dot segments, escapes or controls is already its own resolved spelling.
+        if (IsPlainPartPath(combined)) return combined;
         var segments = new List<string>();
         foreach (string segment in combined.Split('/')) {
             if (segment.Length == 0 || segment == ".") continue;
@@ -130,5 +137,21 @@ internal static class OfficeOpcPartNames {
             }
         }
         return "/" + string.Join("/", segments);
+    }
+
+    // True for "/a/b" paths whose segments are neither dot segments nor carry escapes or control characters. Callers
+    // have already rejected empty segments and a trailing separator.
+    private static bool IsPlainPartPath(string path) {
+        if (path.Length == 0 || path[0] != '/') return false;
+        for (int index = 0; index < path.Length; index++) {
+            char value = path[index];
+            if (value == '%' || char.IsControl(value)) return false;
+            if (value == '.' && path[index - 1] == '/') {
+                int end = index + 1;
+                if (end < path.Length && path[end] == '.') end++;
+                if (end == path.Length || path[end] == '/') return false;
+            }
+        }
+        return true;
     }
 }
