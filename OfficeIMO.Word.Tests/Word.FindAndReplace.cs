@@ -212,6 +212,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DocumentSearchAndReplace_ReachNestedTablesInBodyAndHeaders() {
+            using var document = WordDocument.Create();
+            WordTable outer = document.AddTable(1, 1);
+            outer.Rows[0].Cells[0].Paragraphs[0].Text = "TOKEN outer";
+            WordTable inner = outer.Rows[0].Cells[0].AddTable(1, 1);
+            inner.Rows[0].Cells[0].Paragraphs[0].Text = "TOKEN inner";
+            inner.Rows[0].Cells[0].AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].Text = "TOKEN deepest";
+            WordTable headerTable = document.Sections[0].PageSetup.Header.AddTable(1, 1);
+            headerTable.Rows[0].Cells[0].AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].Text = "TOKEN header inner";
+
+            WordSearchResult result = document.Find("TOKEN");
+            Assert.Equal(4, result.MatchCount);
+            Assert.Equal(new[] { "TOKEN outer", "TOKEN inner", "TOKEN deepest" }, result.TableParagraphs.Select(paragraph => paragraph.Text));
+            Assert.Equal("TOKEN header inner", Assert.Single(result.DefaultHeaderParagraphs).Text);
+            Assert.Equal(4, document.Find(new Regex("^TOKEN")).MatchCount);
+
+            Assert.Equal(4, document.ReplaceAll("TOKEN", "DONE"));
+            Assert.Equal("DONE deepest", inner.Rows[0].Cells[0].NestedTables.Single().Rows[0].Cells[0].Paragraphs[0].Text);
+            Assert.Equal(0, document.Find("TOKEN").MatchCount);
+        }
+
+        [Fact]
         public void Test_FindAndReplace_WithNewLines() {
             string filePath = Path.Combine(_directoryWithFiles, "FindAndReplaceNewLines.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
