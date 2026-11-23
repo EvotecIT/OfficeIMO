@@ -68,7 +68,13 @@ internal sealed partial class OfficeXmlPullReader {
             || data[0] == 0x3C && data[1] == 0x00 || data[0] == 0x00 && data[1] == 0x3C)) {
             // ECMA-376 Part 2 allows UTF-16 parts. They are rare, so they are transcoded rather than read natively.
             bool bigEndian = data[0] == 0xFE || data[0] == 0x00;
-            string text = (bigEndian ? Encoding.BigEndianUnicode : Encoding.Unicode).GetString(data, 0, length);
+            string text;
+            try {
+                // Replacement characters would hide an unpaired surrogate or a cut-off code unit; fail like an XML reader.
+                text = new UnicodeEncoding(bigEndian, byteOrderMark: false, throwOnInvalidBytes: true).GetString(data, 0, length);
+            } catch (DecoderFallbackException) {
+                throw Malformed("The part is not valid UTF-16.");
+            }
             if (text.Length > 0 && text[0] == '﻿') text = text.Substring(1);
             data = Encoding.UTF8.GetBytes(text);
             length = data.Length;
@@ -339,6 +345,13 @@ internal sealed partial class OfficeXmlPullReader {
         }
 #endif
     }
+
+    /// <summary>
+    /// The most bytes a part of at most <paramref name="characters"/> characters can take: three per UTF-16 code unit in
+    /// UTF-8 (two in UTF-16), plus a byte order mark. A longer part is over the limit without counting.
+    /// </summary>
+    internal static long MaximumBytesFor(long characters) =>
+        characters >= (long.MaxValue - 3) / 3 ? long.MaxValue : characters * 3 + 3;
 
     /// <summary>
     /// UTF-16 code units of the XML text in a part, the unit XML readers count against a character limit: the byte order

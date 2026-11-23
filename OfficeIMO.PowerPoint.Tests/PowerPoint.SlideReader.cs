@@ -201,6 +201,40 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        // A part whose declared size alone is over the limit fails before it is inflated: this member claims more
+        // bytes than it holds, so reading it would fail its length check instead.
+        [Fact]
+        public void APartDeclaredOverThePartCharacterLimitFailsBeforeItIsRead() {
+            using var stream = new MemoryStream();
+            using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
+                presentation.AddSlide().AddTextBox("Short");
+                presentation.Save();
+            }
+            byte[] package = DeclareUncompressedSize(stream.ToArray(), "ppt/slides/slide1.xml", 100_000);
+            var options = new PowerPointLoadOptions { OpenSettings = new OfficeOpenXmlLoadSettings { MaxCharactersInPart = 20_000 } };
+
+            using PowerPointSlideReader reader = PowerPointSlideReader.Open(new MemoryStream(package), options, CancellationToken.None);
+            Assert.Throws<XmlException>(() => reader.ReadSlides().ToArray());
+        }
+
+        // Rewrites the uncompressed size a member declares in its local header and the central directory.
+        private static byte[] DeclareUncompressedSize(byte[] package, string member, uint size) {
+            byte[] patched = (byte[])package.Clone();
+            byte[] name = System.Text.Encoding.UTF8.GetBytes(member);
+            for (int offset = 0; offset + 46 < patched.Length; offset++) {
+                uint signature = BitConverter.ToUInt32(patched, offset);
+                if (signature == 0x04034B50 && NameAt(patched, offset + 30, BitConverter.ToUInt16(patched, offset + 26), name)) {
+                    BitConverter.GetBytes(size).CopyTo(patched, offset + 22);
+                } else if (signature == 0x02014B50 && NameAt(patched, offset + 46, BitConverter.ToUInt16(patched, offset + 28), name)) {
+                    BitConverter.GetBytes(size).CopyTo(patched, offset + 24);
+                }
+            }
+            return patched;
+
+            static bool NameAt(byte[] data, int start, int length, byte[] expected) =>
+                length == expected.Length && start + length <= data.Length && data.AsSpan(start, length).SequenceEqual(expected);
+        }
+
         // Cancellation requested while a slide's notes are read stops that slide instead of returning it.
         [Fact]
         public void CancellationDuringNotesStopsTheSlide() {

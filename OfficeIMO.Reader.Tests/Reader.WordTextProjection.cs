@@ -66,6 +66,46 @@ public sealed class ReaderWordTextProjectionTests {
         Assert.Equal(streams, text.CapabilitiesUsed.Contains(StreamedCapability));
     }
 
+    [Theory]
+    [InlineData("<w:p><w:r><w:t>before<!-- note -->after</w:t></w:r></w:p>")]
+    [InlineData("<w:p><w:r><w:t xml:space=\"preserve\">before <?pi x?>after</w:t></w:r></w:p>")]
+    [InlineData("<w:p><w:r><w:t xml:space=\"preserve\">Outer </w:t></w:r><w:sdt><w:sdtContent><w:r><w:t>kept</w:t></w:r>"
+        + "<w:sdt><w:sdtPr><w14:checkbox/></w:sdtPr><w:sdtContent><w:r><w:t>box</w:t></w:r></w:sdtContent></w:sdt></w:sdtContent></w:sdt></w:p>")]
+    [InlineData("<w:p><w:sdt><w:sdtPr><w14:checkbox/></w:sdtPr><w:sdtContent><w:r><w:t>box</w:t></w:r></w:sdtContent></w:sdt><w:r><w:t>after</w:t></w:r></w:p>")]
+    public void TextProjectionMatchesTheLeanReadForParagraphMarkup(string paragraph) {
+        byte[] package = CreateDocumentWithParagraph(paragraph);
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddWordHandler().Build();
+
+        OfficeDocumentReadResult lean = reader.ReadDocument(package, "markup.docx", new ReaderOptions { Projection = ReaderProjection.TextAndMetadata });
+        OfficeDocumentReadResult text = reader.ReadDocument(package, "markup.docx", new ReaderOptions { Projection = ReaderProjection.Text });
+
+        Assert.Equal(lean.GetText(), text.GetText());
+        Assert.Contains(StreamedCapability, text.CapabilitiesUsed);
+    }
+
+    // Replaces the paragraph that holds "Marker" with raw markup, so comments and instructions stay where they are.
+    private static byte[] CreateDocumentWithParagraph(string paragraph) {
+        using var stream = new MemoryStream();
+        using (WordDocument document = WordDocument.Create(stream)) {
+            document.AddParagraph("Marker");
+            document.Save();
+        }
+        using (var archive = new System.IO.Compression.ZipArchive(stream, System.IO.Compression.ZipArchiveMode.Update, leaveOpen: true)) {
+            System.IO.Compression.ZipArchiveEntry entry = archive.GetEntry("word/document.xml")!;
+            string xml;
+            using (var readerStream = new StreamReader(entry.Open())) xml = readerStream.ReadToEnd();
+            xml = System.Text.RegularExpressions.Regex.Replace(xml, "<w:p\\b(?:(?!</w:p>).)*?Marker.*?</w:p>", paragraph.Replace("$", "$$"),
+                System.Text.RegularExpressions.RegexOptions.Singleline);
+            if (!xml.Contains("xmlns:w14=", StringComparison.Ordinal)) {
+                xml = xml.Replace("<w:document ", "<w:document xmlns:w14=\"http://schemas.microsoft.com/office/word/2010/wordml\" ", StringComparison.Ordinal);
+            }
+            entry.Delete();
+            using var writer = new StreamWriter(archive.CreateEntry("word/document.xml").Open(), new System.Text.UTF8Encoding(false));
+            writer.Write(xml);
+        }
+        return stream.ToArray();
+    }
+
     // Headers, footers, fields, footnotes, revisions and inline content controls: the streamed pass reads them with
     // the model's rules, so the text matches the model read and the pass does not decline.
     [Fact]

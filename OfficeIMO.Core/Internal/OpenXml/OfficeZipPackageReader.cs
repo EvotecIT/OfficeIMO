@@ -70,6 +70,13 @@ internal sealed class OfficeZipPackageReader : IDisposable {
     /// <summary>Returns whether the archive has a member with this name (ASCII case-insensitive).</summary>
     internal bool Contains(string name) => _entries.ContainsKey(name);
 
+    /// <summary>The uncompressed length a member declares in the central directory.</summary>
+    internal bool TryGetLength(string name, out long length) {
+        bool found = _entries.TryGetValue(name, out int index);
+        length = found ? _records[index].UncompressedSize : 0;
+        return found;
+    }
+
     /// <summary>Inflates one member into a buffer the caller disposes.</summary>
     /// <returns><see langword="false"/> when no member has this name.</returns>
     /// <exception cref="InvalidDataException">The member's local header, length or checksum disagrees with the directory.</exception>

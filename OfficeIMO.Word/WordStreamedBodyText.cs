@@ -106,6 +106,10 @@ internal static class WordStreamedBodyText {
 
         /// <summary>Reads a part of the package through <paramref name="read"/>.</summary>
         internal bool Read(string partName, Func<OfficeXmlPullReader, bool> read) {
+            // A part whose declared size alone puts it over the limit declines before anything is inflated.
+            if (MaxCharactersInPart > 0 && Package.GetPartLength(partName) > OfficeXmlPullReader.MaximumBytesFor(MaxCharactersInPart.Value)) {
+                return Decline("part over the character limit");
+            }
             OfficeXmlPullReader reader = Package.OpenXml(partName, out OfficePooledBytes content, processMarkupCompatibility: false);
             using (content) {
                 // The model load caps a part's characters; a part that may exceed the cap declines and the model reports it.
@@ -501,14 +505,26 @@ internal static class WordStreamedBodyText {
     // box contributes nothing. Which applies depends on the whole control, so a forked reader looks ahead first.
     private static bool ReadInlineContentControl(OfficeXmlPullReader reader, Context context, OfficeCharBuffer builder, ParagraphState state) {
         if (reader.IsEmptyElement) return true;
-        bool hasField = false, hasNote = false, checkBox = false;
+        bool hasField = false, hasNote = false, checkBox = false, inProperties = false;
         OfficeXmlPullReader ahead = reader.Fork();
         int depth = ahead.Depth;
+        int checkBoxNamespace = ahead.Namespaces.GetId(Word2010Namespace);
         while (ahead.Read() && !(ahead.NodeKind == OfficeXmlNodeKind.EndElement && ahead.Depth == depth)) {
+            if (ahead.NodeKind == OfficeXmlNodeKind.EndElement) {
+                if (ahead.Depth == depth + 1) inProperties = false;
+                continue;
+            }
             if (ahead.NodeKind != OfficeXmlNodeKind.StartElement) continue;
-            if (ahead.NamespaceId == W && ahead.LocalName == "fldChar") hasField = true;
-            else if (ahead.NamespaceId == W && ahead.LocalName is "footnoteReference" or "endnoteReference") hasNote = true;
-            else if (ahead.LocalNameEquals("checkbox")) checkBox = true;
+            if (ahead.Depth == depth + 1) {
+                inProperties = ahead.NamespaceId == W && ahead.LocalNameEquals("sdtPr") && !ahead.IsEmptyElement;
+            } else if (ahead.NamespaceId == W && ahead.LocalName == "fldChar") {
+                hasField = true;
+            } else if (ahead.NamespaceId == W && ahead.LocalName is "footnoteReference" or "endnoteReference") {
+                hasNote = true;
+            } else if (inProperties && ahead.Depth == depth + 2 && ahead.NamespaceId == checkBoxNamespace && ahead.LocalNameEquals("checkbox")) {
+                // Only this control's own properties make it a check box, as in the model.
+                checkBox = true;
+            }
         }
         if (!hasField) {
             if (!state.Visible || checkBox) {
@@ -702,6 +718,7 @@ internal static class WordStreamedBodyText {
         ["w16sdtdh"] = "http://schemas.microsoft.com/office/word/2020/wordml/sdtdatahash"
     };
 
+    private const string Word2010Namespace = "http://schemas.microsoft.com/office/word/2010/wordml";
     private const string WordprocessingGroupNamespace = "http://schemas.microsoft.com/office/word/2010/wordprocessingGroup";
 
     // Appends the visible text of an element and its descendants the way the model reads drawings, text boxes and
@@ -836,7 +853,8 @@ internal static class WordStreamedBodyText {
         int depth = reader.Depth;
         while (reader.Read() && !(reader.NodeKind == OfficeXmlNodeKind.EndElement && reader.Depth == depth)) {
             if (reader.NodeKind == OfficeXmlNodeKind.Text) {
-                reader.AppendText(builder);
+                // The model reads a text element's value up to the first comment or processing instruction.
+                if (!reader.FollowsCommentOrInstruction) reader.AppendText(builder);
             } else if (reader.NodeKind == OfficeXmlNodeKind.StartElement) {
                 return context.Decline("element inside w:t");
             }

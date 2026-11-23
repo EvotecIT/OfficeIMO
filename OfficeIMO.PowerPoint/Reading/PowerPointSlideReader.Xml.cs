@@ -448,6 +448,11 @@ namespace OfficeIMO.PowerPoint {
         // markup-compatibility fallbacks is not read, as the remarks on the class say.
         private static OfficeXmlPullReader OpenPart(OfficeOpcPackage package, string partName, long maximumCharacters,
             out OfficePooledBytes content) {
+            // A member that declares more bytes than the limit allows fails before it is inflated.
+            if (package.GetPartLength(partName) > OfficeXmlPullReader.MaximumBytesFor(maximumCharacters)) {
+                content = default;
+                throw PartSizeLimit(partName, maximumCharacters);
+            }
             content = package.ReadPart(partName);
             // A part can only exceed the limit when it has more bytes than the limit, as UTF-8 never encodes a
             // character in less than a byte; only then are its characters counted.

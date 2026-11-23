@@ -146,6 +146,49 @@ public class OpenXmlWordParagraphTextReaderTests {
     }
 
     [Fact]
+    public void DeclinesAPartWhoseDeclaredSizeIsOverTheLimitBeforeInflatingIt() {
+        // The member claims more bytes than it holds; reading it would fail its length check, so a decline shows the
+        // limit was applied to the declared size first.
+        byte[] package = DeclareUncompressedSize(CreatePackage("<w:p><w:r><w:t>small</w:t></w:r></w:p>"),
+            "word/document.xml", 10_000);
+        using var stream = new MemoryStream(package, writable: false);
+
+        List<string>? lines = OfficeIMO.Word.WordStreamedBodyText.TryReadLines(stream, 8000, 0, 1_000, includeNotes: true, CancellationToken.None, out string? reason);
+
+        Assert.Null(lines);
+        Assert.Equal("part over the character limit", reason);
+    }
+
+    [Theory]
+    [InlineData(new byte[] { 0xFF, 0xFE, 0x3C, 0x00, 0x61, 0x00, 0x00, 0xD8, 0x2F, 0x00, 0x3E, 0x00 })]
+    [InlineData(new byte[] { 0xFF, 0xFE, 0x3C, 0x00, 0x61, 0x00, 0x2F, 0x00, 0x3E })]
+    public void RejectsMalformedUtf16(byte[] part) {
+        Assert.Throws<System.Xml.XmlException>(() => new OfficeXmlPullReader(part, part.Length));
+    }
+
+    [Fact]
+    public void FindsContentTypeOverridesSpelledWithDifferentPercentEncoding() {
+        byte[] package = CreatePackage("<w:p/>", documentPath: "word/pr%C3%A9sentation.xml", documentTarget: "word/pr\u00E9sentation.xml");
+        using OfficeOpcPackage opened = OfficeOpcPackage.Open(new MemoryStream(package, writable: false));
+
+        Assert.Equal("application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml", opened.GetContentType("/word/pr\u00E9sentation.xml"));
+    }
+
+    [Fact]
+    public void KeepsDistinctIdsForManyDeclaredNamespaces() {
+        var table = new OfficeXmlNamespaces.Table();
+        var ids = new int[2_000];
+        for (int index = 0; index < ids.Length; index++) ids[index] = table.GetId("urn:custom:" + index.ToString("D5", System.Globalization.CultureInfo.InvariantCulture));
+
+        Assert.Equal(ids.Length, ids.Distinct().Count());
+        for (int index = 0; index < ids.Length; index++) {
+            string uri = "urn:custom:" + index.ToString("D5", System.Globalization.CultureInfo.InvariantCulture);
+            Assert.Equal(ids[index], table.GetId(uri));
+            Assert.Equal(uri, table.GetUri(ids[index]));
+        }
+    }
+
+    [Fact]
     public void RejectsPartsWithoutARootElement() {
         Assert.Throws<System.Xml.XmlException>(() => ReadWithPackageReader(CreatePackage(null, documentXml: "<?xml version=\"1.0\"?>\n  ")));
     }
@@ -243,6 +286,24 @@ public class OpenXmlWordParagraphTextReaderTests {
             main.Document = new Document(body);
         }
         return stream.ToArray();
+    }
+
+    // Rewrites the uncompressed size a stored member declares in its local header and the central directory.
+    private static byte[] DeclareUncompressedSize(byte[] package, string member, uint size) {
+        byte[] patched = (byte[])package.Clone();
+        byte[] name = Encoding.UTF8.GetBytes(member);
+        for (int offset = 0; offset + 46 < patched.Length; offset++) {
+            uint signature = BitConverter.ToUInt32(patched, offset);
+            if (signature == 0x04034B50 && Matches(patched, offset + 30, BitConverter.ToUInt16(patched, offset + 26), name)) {
+                BitConverter.GetBytes(size).CopyTo(patched, offset + 22);
+            } else if (signature == 0x02014B50 && Matches(patched, offset + 46, BitConverter.ToUInt16(patched, offset + 28), name)) {
+                BitConverter.GetBytes(size).CopyTo(patched, offset + 24);
+            }
+        }
+        return patched;
+
+        static bool Matches(byte[] data, int start, int length, byte[] expected) =>
+            length == expected.Length && start + length <= data.Length && data.AsSpan(start, length).SequenceEqual(expected);
     }
 
     private static byte[] CreatePackage(string? body, bool strict = false, Encoding? encoding = null, string prolog = "",

@@ -50,6 +50,14 @@ internal sealed class OfficeOpcPackage : IDisposable {
         return content;
     }
 
+    /// <summary>The uncompressed length a part's ZIP member declares, checked against the content when it is read.</summary>
+    /// <exception cref="InvalidDataException">The part is missing.</exception>
+    internal long GetPartLength(string partName) {
+        string? member = FindMember(partName);
+        if (member == null || !_zip.TryGetLength(member, out long length)) throw new InvalidDataException("The package has no part '" + partName + "'.");
+        return length;
+    }
+
     /// <summary>Opens a pull reader over a part. Dispose the returned buffer after reading.</summary>
     internal OfficeXmlPullReader OpenXml(string partName, out OfficePooledBytes content, bool processMarkupCompatibility = true) {
         content = ReadPart(partName);
@@ -117,6 +125,8 @@ internal sealed class OfficeOpcPackage : IDisposable {
     /// <summary>The content type of a part from its override or the default for its extension.</summary>
     internal string? GetContentType(string partName) {
         if (_overrideContentTypes == null) ReadContentTypes();
+        // Overrides and references may spell a part with different percent-encoding; both compare by identity.
+        partName = GetPartIdentity(partName);
         if (_overrideContentTypes!.TryGetValue(partName, out string? contentType)) return contentType;
         int slash = partName.LastIndexOf('/');
         int dot = partName.LastIndexOf('.');
@@ -168,7 +178,7 @@ internal sealed class OfficeOpcPackage : IDisposable {
 
     private void ReadContentTypes() {
         var defaults = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        var overrides = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var overrides = new Dictionary<string, string>(OfficeAsciiIgnoreCaseComparer.Instance);
         if (!_zip.TryRead(ContentTypesMember, out OfficePooledBytes content)) {
             throw new InvalidDataException("The package has no content-types part.");
         }
@@ -181,7 +191,7 @@ internal sealed class OfficeOpcPackage : IDisposable {
                 if (reader.LocalNameEquals("Default") && reader.TryGetAttribute(OfficeXmlNamespaces.None, "Extension", out string extension)) {
                     defaults[extension] = contentType;
                 } else if (reader.LocalNameEquals("Override") && reader.TryGetAttribute(OfficeXmlNamespaces.None, "PartName", out string partName)) {
-                    overrides[partName] = contentType;
+                    overrides[GetPartIdentity(partName)] = contentType;
                 }
             }
         }

@@ -159,12 +159,20 @@ internal static class OfficeXmlNamespaces {
                     return KnownUris[index].Value;
                 }
             }
-            for (int index = 0; index < _dynamicUris.Count; index++) {
+            // Other URIs are found through a hash index, so a part that declares many namespaces stays linear.
+            int hash = HashOf(data, start, length);
+            int mask = _dynamicSlots.Length - 1;
+            int slot = hash & mask;
+            while (_dynamicSlots[slot] != 0) {
+                int index = _dynamicSlots[slot] - 1;
                 if (Matches(_dynamicUris[index], data, start, length)) return uriId = FirstDynamic + index;
+                slot = (slot + 1) & mask;
             }
             var uri = new byte[length];
             Buffer.BlockCopy(data, start, uri, 0, length);
             _dynamicUris.Add(uri);
+            _dynamicSlots[slot] = _dynamicUris.Count;
+            if (_dynamicUris.Count * 2 > _dynamicSlots.Length) RehashDynamicUris();
             return uriId = FirstDynamic + _dynamicUris.Count - 1;
         }
 
@@ -190,6 +198,27 @@ internal static class OfficeXmlNamespaces {
                 if (known.Value == id) return known.Key;
             }
             return string.Empty;
+        }
+
+        private int[] _dynamicSlots = new int[16];
+
+        private void RehashDynamicUris() {
+            var slots = new int[_dynamicSlots.Length * 2];
+            int mask = slots.Length - 1;
+            for (int index = 0; index < _dynamicUris.Count; index++) {
+                byte[] uri = _dynamicUris[index];
+                int slot = HashOf(uri, 0, uri.Length) & mask;
+                while (slots[slot] != 0) slot = (slot + 1) & mask;
+                slots[slot] = index + 1;
+            }
+            _dynamicSlots = slots;
+        }
+
+        // FNV-1a over the URI bytes.
+        private static int HashOf(byte[] data, int start, int length) {
+            uint hash = 2166136261;
+            for (int index = start; index < start + length; index++) hash = (hash ^ data[index]) * 16777619;
+            return (int)(hash & int.MaxValue);
         }
 
         private static bool Matches(byte[] expected, byte[] data, int start, int length) {
