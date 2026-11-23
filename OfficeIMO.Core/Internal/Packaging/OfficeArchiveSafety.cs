@@ -127,9 +127,10 @@ internal static partial class OfficeArchiveSafety {
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        int trailing = source.ReadByte();
+        // Use the same read overload so stream wrappers account for the probe.
+        int trailing = source.Read(new byte[1], 0, 1);
         cancellationToken.ThrowIfCancellationRequested();
-        if (trailing >= 0) {
+        if (trailing != 0) {
             throw new InvalidDataException(
                 "The archive entry exceeds its declared expansion length.");
         }
