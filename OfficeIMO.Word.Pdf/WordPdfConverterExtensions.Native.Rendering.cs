@@ -177,7 +177,8 @@ namespace OfficeIMO.Word.Pdf {
             if (directChartDrawing != null) {
                 RenderNativeFlowObject(pdf, objectSpacing, flow => flow.Drawing(directChartDrawing, objectAlign,
                     spacingBefore: objectOnly ? 0D : 2D,
-                    spacingAfter: 0D));
+                    spacingAfter: 0D,
+                    style: NativeChartDrawingStyle()));
             }
 
             int groupedImageCount = 0;
@@ -853,7 +854,7 @@ namespace OfficeIMO.Word.Pdf {
                 double before = index == 0 ? spacingBefore : 2D;
                 double after = index == drawings.Count - 1 ? spacingAfter : 0D;
                 RenderNativeFlowObject(pdf, paragraphSpacing,
-                    flow => flow.Drawing(drawing, align, spacingBefore: before, spacingAfter: after));
+                    flow => flow.Drawing(drawing, align, spacingBefore: before, spacingAfter: after, style: NativeChartDrawingStyle()));
             }
         }
 

@@ -68,7 +68,8 @@ public static partial class WordPdfConverterExtensions {
                     if (view.Chart is WordChart chart) {
                         Flush();
                         if (PrepareNativeChart(chart, options, "mixed text-box paragraph chart") is { } drawing)
-                            pdf.Drawing(drawing, ResolveNativeParagraphAlign(paragraph, allowJustify: false), spacingAfter: 0D);
+                            pdf.Drawing(drawing, ResolveNativeParagraphAlign(paragraph, allowJustify: false), spacingAfter: 0D,
+                                style: NativeChartDrawingStyle());
                         continue;
                     }
                     pending.Add(view);
