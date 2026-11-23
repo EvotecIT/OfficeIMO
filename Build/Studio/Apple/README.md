@@ -59,6 +59,21 @@ The capture script installs the exact iOS app before copying the PDF. Its test m
 
 Recognition and pixel stability use the native page's reported bounds clipped to the captured viewport. The heading, chart and lower decisions table must all be recognized in the same screenshot. Overlapping OCR crops preserve small table text. Mac queries stay inside the document window to avoid enumerating unrelated recent-document menu entries. The small Mac input uses native temporary storage and the app uses its own sandbox for scratch files; builds and diagnostics remain in the selected work folder.
 
+### iPhone Duo
+
+App Store Connect has two optional iPhone Duo screenshot sizes, required for iOS 27.1 SDK builds from April 2027: the outer display (1398×2034 pixels) and the inner display in portrait (2007×2853). Its API has no Duo display type yet, so the screenshot mappings leave them out and the sets are uploaded in App Store Connect by hand.
+
+`simctl` can't fold the simulator, so Duo captures run locally, one pose per run, rather than in the workflow. Use an iPhone Duo simulator on iOS 27.1 that starts shut down, and a PowerForge build with `apple-simulator run --duo-pose` (the version CasaRay and Tactra pin, or later):
+
+```sh
+export POWERFORGE_DOTNET=<dotnet> POWERFORGE_SIMULATOR_CLI=<PowerForge.Cli.dll>
+export POWERFORGE_CAPTURE_SIMULATORS='{"duo":"<iPhone Duo UUID>"}'
+pwsh Build/Studio/Apple/Capture-StudioAppleScreenshots.ps1 -Role duo -DuoPose closed -WorkRoot <scratch>/studio-duo
+pwsh Build/Studio/Apple/Capture-StudioAppleScreenshots.ps1 -Role duo -DuoPose open -WorkRoot <scratch>/studio-duo
+```
+
+Before the test starts, PowerForge checks that the pose's display is live at its exact size. A freshly booted Duo is closed. For the open pose, it asks on the terminal to open the device in Device Hub and turn it to portrait, or folds it with `POWERFORGE_DUO_FOLD_TOOL`, an opt-in community tool described in PowerForge's simulator guide. The Duo opens the PDF through the iPhone's document browser, whose Browse tab moves to a side rail on iOS 27, and captures the dashboard under `Duo/en-US/duo-outer-1398x2034` and `duo-inner-2007x2853`. The script checks each PNG's pixel size. Both runs can share one work folder, so the second reuses the first build.
+
 ## Store declarations
 
 `powerforge.store-onboarding.json` owns remote setup without archive targets. `appstoreconnect-governance.json` declares free pricing and availability outside France. The initial release excludes France while the French encryption filing is completed. Its empty `encryptionDeclarations` array contains no encryption-document declarations; each uploaded build still needs its publisher-reviewed export-compliance answer. Empty accessibility and subscription arrays make no claims and erase nothing. Plan and apply governance through PowerForge, retaining the exact reviewed plan.

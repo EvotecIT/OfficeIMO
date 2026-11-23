@@ -40,7 +40,8 @@ final class StudioStoreCaptureTests: XCTestCase {
         let viewport: XCUIElement = window
         let expectedPID: Int32? = running.processIdentifier
         #else
-        if role == "iphone" {
+        // The iPhone Duo is an iPhone in both poses, with the iPhone's document browser.
+        if role == "iphone" || role == "duo" {
             openPhoneDocument(app, input: URL(fileURLWithPath: path))
         } else {
             app.open(URL(fileURLWithPath: path))
@@ -58,7 +59,7 @@ final class StudioStoreCaptureTests: XCTestCase {
 
         // Compact iPhone chrome has its own layout. Its full-page capture is
         // sufficient; search captures use the visible regular-width search UI.
-        if role != "iphone" {
+        if role != "iphone" && role != "duo" {
             #if os(iOS)
             let open = app.buttons["Search"]
             XCTAssertTrue(open.waitForExistence(timeout: 30), viewport.debugDescription)
@@ -121,24 +122,33 @@ final class StudioStoreCaptureTests: XCTestCase {
         XCTAssertTrue(done.waitForExistence(timeout: 5), app.debugDescription)
         assertSingleDocumentBar(app)
         done.tap()
-        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "Task: Read").firstMatch.waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertTrue(taskControl(containing: "Read", in: app).waitForExistence(timeout: 5), app.debugDescription)
         XCTAssertTrue(page.waitForExistence(timeout: 10), app.debugDescription)
     }
 
+    /// Read, Markup and Pages are segments above the pages. Markup hides them until Done.
     private func selectTask(_ next: String, from current: String, in app: XCUIApplication) {
-        let menu = app.descendants(matching: .any).matching(identifier: "Task: " + current).firstMatch
-        XCTAssertTrue(menu.waitForExistence(timeout: 5), app.debugDescription)
-        menu.tap()
-        let choice = app.descendants(matching: .any).matching(identifier: next).firstMatch
-        XCTAssertTrue(choice.waitForExistence(timeout: 5), app.debugDescription)
+        let tasks = taskControl(containing: current, in: app)
+        XCTAssertTrue(tasks.waitForExistence(timeout: 5), app.debugDescription)
+        let choice = tasks.buttons[next]
+        XCTAssertTrue(choice.exists, app.debugDescription)
         choice.tap()
+    }
+
+    private func taskControl(containing task: String, in app: XCUIApplication) -> XCUIElement {
+        app.segmentedControls.containing(.button, identifier: task).containing(.button, identifier: "Pages").firstMatch
     }
 
     /// Uses Files' own hierarchy, including a browser restored inside an earlier
     /// input folder. Scope Browse to its tab bar so a breadcrumb cannot match it.
+    /// iOS 27 replaces that tab bar with a rail, whose Browse button shows a folder.
     private func openPhoneDocument(_ app: XCUIApplication, input: URL) {
-        let browse = app.tabBars["DOC.browsingModeTabBar"].buttons["Browse"]
-        XCTAssertTrue(browse.waitForExistence(timeout: 30), app.debugDescription)
+        let tabBar = app.tabBars["DOC.browsingModeTabBar"].buttons["Browse"]
+        let rail = app.buttons.matching(identifier: "Browse").containing(.image, identifier: "folder.fill").firstMatch
+        let ready = XCTNSPredicateExpectation(
+            predicate: NSPredicate { _, _ in tabBar.exists || rail.exists }, object: nil)
+        XCTAssertEqual(XCTWaiter().wait(for: [ready], timeout: 30), .completed, app.debugDescription)
+        let browse = tabBar.exists ? tabBar : rail
         browse.tap()
         let folder = app.cells.containing(.staticText, identifier: input.deletingLastPathComponent().lastPathComponent).firstMatch
         let studio = app.cells.containing(.staticText, identifier: "OfficeIMO Studio").firstMatch

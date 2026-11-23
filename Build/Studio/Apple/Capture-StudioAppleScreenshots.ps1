@@ -1,7 +1,8 @@
 [CmdletBinding()]
 param(
-    [ValidateSet('all', 'macos', 'iphone', 'ipad')][string] $Role = 'all',
-    [string] $WorkRoot
+    [ValidateSet('all', 'macos', 'iphone', 'ipad', 'duo')][string] $Role = 'all',
+    [string] $WorkRoot,
+    [ValidateSet('closed', 'open')][string] $DuoPose
 )
 
 $ErrorActionPreference = 'Stop'
@@ -34,6 +35,53 @@ function Invoke-CaptureXcode([string[]] $Arguments, [string] $LogPath, [int] $Ti
 
 foreach ($name in 'POWERFORGE_DOTNET', 'POWERFORGE_SIMULATOR_CLI') {
     if (-not [Environment]::GetEnvironmentVariable($name)) { throw "The pinned capture workflow must supply $name." }
+}
+
+if ($Role -eq 'duo') {
+    if (-not $DuoPose) { throw 'Choose -DuoPose closed (outer display) or open (inner display).' }
+    # App Store Connect's iPhone Duo sizes: the outer display, and the inner display in portrait.
+    $duoSet = if ($DuoPose -eq 'closed') { 'duo-outer-1398x2034' } else { 'duo-inner-2007x2853' }
+}
+
+if ($Role -eq 'duo' -and -not $env:POWERFORGE_DUO_POSE) {
+    # One pose per run. simctl can't fold the device, so PowerForge confirms the pose before the
+    # capture starts: it folds with POWERFORGE_DUO_FOLD_TOOL when set, and otherwise asks on the
+    # terminal to set it in Device Hub.
+    if (-not $IsMacOS) { throw 'Native store captures require macOS and Xcode.' }
+    if (-not $env:POWERFORGE_CAPTURE_SIMULATORS) { throw 'Select the owned iPhone Duo simulator UUID as {"duo":"<UUID>"}.' }
+    $devices = $env:POWERFORGE_CAPTURE_SIMULATORS | ConvertFrom-Json -AsHashtable
+    if ($devices.Count -ne 1 -or -not $devices.ContainsKey('duo')) { throw 'Select exactly the owned duo simulator UUID.' }
+    if (Test-Path -LiteralPath (Join-Path $captureRoot "Duo/en-US/$duoSet")) {
+        throw "Existing reviewed $duoSet captures are preserved; move them before capturing again."
+    }
+    if (-not $WorkRoot -or -not [IO.Path]::IsPathFullyQualified($WorkRoot) -or
+        -not (Test-Path -LiteralPath (Split-Path -Parent $WorkRoot) -PathType Container)) {
+        throw 'Pass an absolute capture work folder beneath an existing mounted scratch directory.'
+    }
+    # The closed and open runs can share one work folder, so the second run reuses the first build.
+    $products = Join-Path $WorkRoot 'iOS/Build/Products'
+    if (-not (Test-Path -LiteralPath $products -PathType Container)) {
+        if (Test-Path -LiteralPath $WorkRoot) { throw 'The capture work folder must be new or hold an earlier Duo build.' }
+        $null = New-Item -ItemType Directory -Path $WorkRoot
+        Invoke-CaptureXcode -LogPath (Join-Path $WorkRoot 'build-iOS.log') -Arguments @(
+            'build-for-testing', '-project', $project, '-scheme', 'OfficeIMOStudioCapture-iOS', '-configuration', 'Release',
+            '-destination', 'generic/platform=iOS Simulator', '-derivedDataPath', (Join-Path $WorkRoot 'iOS'),
+            '-clonedSourcePackagesDirPath', (Join-Path $WorkRoot 'SourcePackages'), 'CODE_SIGNING_ALLOWED=NO')
+    }
+    Write-Host "Capture build and diagnostic output: $WorkRoot"
+    $receiptRoot = Join-Path $sourceRoot 'build/powerforge/screenshots'
+    $null = New-Item -ItemType Directory -Path $receiptRoot -Force
+    $owner = if ($env:GITHUB_REPOSITORY -and $env:GITHUB_RUN_ID) {
+        "$env:GITHUB_REPOSITORY/$env:GITHUB_RUN_ID/$duoSet"
+    } else { "OfficeIMO/local-capture/$duoSet" }
+    & $env:POWERFORGE_DOTNET $env:POWERFORGE_SIMULATOR_CLI apple-simulator run `
+        --owner $owner --device $devices.duo --require-shutdown `
+        --simulator-timeout-seconds 180 --cleanup-timeout-seconds 90 --timeout-seconds 900 `
+        --duo-pose $DuoPose --duo-orientation portrait --output json -- `
+        pwsh -NoLogo -NoProfile -File $PSCommandPath -Role duo -DuoPose $DuoPose -WorkRoot $WorkRoot `
+        > (Join-Path $receiptRoot "$duoSet.json")
+    if ($LASTEXITCODE -ne 0) { throw "Capture or simulator release failed for $duoSet; inspect its PowerForge receipt." }
+    return
 }
 
 if ($Role -eq 'all') {
@@ -89,7 +137,12 @@ if ($Role -eq 'all') {
 
 if (-not $WorkRoot -or -not (Test-Path -LiteralPath $WorkRoot -PathType Container)) { throw 'A prepared capture WorkRoot is required.' }
 $platform = if ($Role -eq 'macos') { 'macOS' } else { 'iOS' }
-$family = switch ($Role) { 'macos' { 'macOS' }; 'iphone' { 'iPhone' }; 'ipad' { 'iPad' } }
+$family = switch ($Role) { 'macos' { 'macOS' }; 'iphone' { 'iPhone' }; 'ipad' { 'iPad' }; 'duo' { 'Duo' } }
+if ($Role -eq 'duo' -and ($env:POWERFORGE_DUO_POSE -cne $DuoPose -or -not $duoSet.EndsWith("-$env:POWERFORGE_DUO_SIZE"))) {
+    throw "PowerForge confirmed the $env:POWERFORGE_DUO_POSE pose at $env:POWERFORGE_DUO_SIZE, not $duoSet."
+}
+# The closed and open Duo runs share a work folder, so each keeps its own results.
+$runName = if ($Role -eq 'duo') { $duoSet } else { $Role }
 $products = Join-Path $WorkRoot "$platform/Build/Products"
 $target = "OfficeIMOStudioCapture-$platform"
 $original = @(Get-ChildItem -LiteralPath $products -Filter "$($target)_*.xctestrun")
@@ -151,10 +204,10 @@ try {
         # process's external TMPDIR. This does not change machine settings.
         $test.EnvironmentVariables.STUDIO_CAPTURE_NATIVE_TMPDIR = Join-Path $HOME 'Library/Containers/com.evotec.officeimo.studio/Data/tmp'
     }
-    $testManifest = Join-Path $products "StudioStoreCapture-$Role.xctestrun"
+    $testManifest = Join-Path $products "StudioStoreCapture-$runName.xctestrun"
     $manifest | ConvertTo-Json -Depth 40 | & plutil -convert xml1 -o $testManifest -
     if ($LASTEXITCODE -ne 0) { throw 'Cannot write the capture test environment.' }
-    $result = Join-Path $WorkRoot "$Role.xcresult"
+    $result = Join-Path $WorkRoot "$runName.xcresult"
     if ($Role -eq 'macos') {
         if (@(Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.Path -ceq $macExecutable }).Count) {
             throw 'The capture app is already running; preserve that session.'
@@ -181,7 +234,7 @@ try {
     $testAllowance = if ($Role -eq 'macos') { '300' } else { '120' }
     $maximumAllowance = if ($Role -eq 'macos') { '360' } else { '150' }
     $processTimeout = if ($Role -eq 'macos') { 420 } else { 240 }
-    Invoke-CaptureXcode -LogPath (Join-Path $WorkRoot "capture-$Role.log") -TimeoutSeconds $processTimeout -Arguments @(
+    Invoke-CaptureXcode -LogPath (Join-Path $WorkRoot "capture-$runName.log") -TimeoutSeconds $processTimeout -Arguments @(
         'test-without-building', '-xctestrun', $testManifest, '-destination', $destination, '-resultBundlePath', $result,
         '-only-testing', "$target/StudioStoreCaptureTests/testCapturePublicDashboard", '-parallel-testing-enabled', 'NO',
         '-collect-test-diagnostics', 'never', '-test-timeouts-enabled', 'YES',
@@ -192,19 +245,27 @@ try {
             throw 'The capture app document container changed during the native test.'
         }
     }
-    $export = Join-Path $WorkRoot "$Role-attachments"
+    $export = Join-Path $WorkRoot "$runName-attachments"
     & xcrun xcresulttool export attachments --path $result --output-path $export
     if ($LASTEXITCODE -ne 0) { throw 'Cannot export the native capture attachments.' }
     $tests = Get-Content -LiteralPath (Join-Path $export 'manifest.json') -Raw | ConvertFrom-Json
     $attachments = @($tests | ForEach-Object { $_.attachments } | Where-Object { -not $_.isAssociatedWithFailure })
     $names = @("studio-dashboard-$Role")
-    if ($Role -ne 'iphone') { $names += "studio-search-$Role" }
+    if ($Role -notin 'iphone', 'duo') { $names += "studio-search-$Role" }
     $output = Join-Path $captureRoot "$family/en-US"
+    if ($Role -eq 'duo') { $output = Join-Path $output $duoSet }
     $null = New-Item -ItemType Directory -Path $output
     foreach ($name in $names) {
         $selected = @($attachments | Where-Object { $_.suggestedHumanReadableName.StartsWith($name + '_', [StringComparison]::Ordinal) })
         if ($selected.Count -ne 1) { throw "Expected one successful native attachment for $name." }
         Copy-Item -LiteralPath (Join-Path $export $selected[0].exportedFileName) -Destination (Join-Path $output "$name.png")
+        if ($Role -eq 'duo') {
+            # App Store Connect accepts only the display's exact pixel size.
+            $header = [IO.File]::ReadAllBytes((Join-Path $output "$name.png"))[16..23]
+            $size = '{0}x{1}' -f [Buffers.Binary.BinaryPrimitives]::ReadUInt32BigEndian([byte[]]$header[0..3]),
+                [Buffers.Binary.BinaryPrimitives]::ReadUInt32BigEndian([byte[]]$header[4..7])
+            if ($size -cne $env:POWERFORGE_DUO_SIZE) { throw "$name is $size, not the $env:POWERFORGE_DUO_SIZE $duoSet size." }
+        }
     }
 } finally {
     if ($ownedMacProcess) {
