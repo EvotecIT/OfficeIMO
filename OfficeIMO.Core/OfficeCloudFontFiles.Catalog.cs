@@ -45,7 +45,7 @@ internal static partial class OfficeCloudFontFiles {
     }
 
     private static bool IsOrdinaryFile(string path) {
-        try { return (System.IO.File.GetAttributes(path) & (System.IO.FileAttributes.ReparsePoint | System.IO.FileAttributes.Directory)) == 0; }
+        try { return System.IO.File.Exists(path) && !OfficeIMO.Internal.OfficeFileSystemLinks.IsLinkOrReparsePoint(path); }
         catch (Exception exception) when (IsPathFailure(exception)) { return false; }
     }
 
