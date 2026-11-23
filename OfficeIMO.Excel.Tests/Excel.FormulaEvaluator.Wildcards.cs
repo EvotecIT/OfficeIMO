@@ -19,6 +19,9 @@ namespace OfficeIMO.Tests {
         [InlineData("search_repeated_prefix", "SEARCH(\"aab?\",\"aaaabxaab\")", "3")]
         [InlineData("search_prefix_then_star", "SEARCH(\"ab*d\",\"xabcabd\")", "2")]
         [InlineData("search_prefix_no_match", "IFERROR(SEARCH(\"aaab\",\"aaaaaa\"),0)", "0")]
+        [InlineData("search_question_then_literals", "SEARCH(\"?ab\",\"abxab\")", "3")]
+        [InlineData("search_longest_run_later", "SEARCH(\"a?bcd*e\",\"abcdaxbcde\",2)", "5")]
+        [InlineData("search_pattern_longer_than_text", "IFERROR(SEARCH(\"???????\",\"abc\"),0)", "0")]
         [InlineData("search_leading_star", "SEARCH(\"*c\",\"abcabc\",2)", "2")]
         public void FormulaEvaluator_WildcardCriteriaMatchCaseInsensitively(string caseId, string formula, string expected) {
             using var document = ExcelDocument.Create();

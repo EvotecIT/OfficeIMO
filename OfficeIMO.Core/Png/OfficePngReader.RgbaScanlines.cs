@@ -30,6 +30,10 @@ public static partial class OfficePngReader {
     private static void UnfilterRgba8(Span<byte> current, ReadOnlySpan<byte> previous, int filter,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
+        if (!Ssse3.IsSupported) {
+            UnfilterRgba8Portable(current, previous, filter, cancellationToken);
+            return;
+        }
         switch (filter) {
             case 0:
                 return;

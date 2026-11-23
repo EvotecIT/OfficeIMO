@@ -17,10 +17,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string? StyleId {
             get {
-                if (_paragraphProperties != null && _paragraphProperties.ParagraphStyleId != null) {
-                    return _paragraphProperties.ParagraphStyleId.Val;
-                }
-                return null;
+                return _paragraphProperties?.GetFirstChild<ParagraphStyleId>()?.Val;
             }
         }
 
@@ -289,7 +286,7 @@ namespace OfficeIMO.Word {
             value?.Val?.Value ?? value is not null;
 
         internal static bool HasPageBreakBefore(Paragraph paragraph) =>
-            ReadParagraphOnOff(paragraph.ParagraphProperties?.PageBreakBefore);
+            ReadParagraphOnOff(paragraph.GetFirstChild<ParagraphProperties>()?.PageBreakBefore);
 
         /// <summary>
         /// Gets or sets directly authored line spacing as a multiplier, exact height, or minimum height.
@@ -301,10 +298,10 @@ namespace OfficeIMO.Word {
         /// An omitted rule with a numeric line value uses automatic line multiples.
         /// </remarks>
         public WordLineSpacing? LineSpacing {
-            get => WordLineSpacing.Read(_paragraph.ParagraphProperties?.SpacingBetweenLines);
+            get => WordLineSpacing.Read(_paragraph.GetFirstChild<ParagraphProperties>()?.SpacingBetweenLines);
             set {
                 if (!value.HasValue) {
-                    var existing = _paragraph.ParagraphProperties?.SpacingBetweenLines;
+                    var existing = _paragraph.GetFirstChild<ParagraphProperties>()?.SpacingBetweenLines;
                     if (existing != null) { existing.Line = null; existing.LineRule = null; }
                     return;
                 }
@@ -320,7 +317,7 @@ namespace OfficeIMO.Word {
         // Native declaration access is intentionally internal. Codecs and native fixtures must
         // retain rule-only/value-only declarations rather than synthesize effective formatting.
         internal int? NativeLineSpacingValue {
-            get => int.TryParse(_paragraph.ParagraphProperties?.SpacingBetweenLines?.Line?.Value,
+            get => int.TryParse(_paragraph.GetFirstChild<ParagraphProperties>()?.SpacingBetweenLines?.Line?.Value,
                 System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture,
                 out int line) ? line : null;
             set {
@@ -332,7 +329,7 @@ namespace OfficeIMO.Word {
 
         internal WordLineSpacingRule? NativeLineSpacingRule {
             get {
-                string? rule = _paragraph.ParagraphProperties?.SpacingBetweenLines?.LineRule?.InnerText;
+                string? rule = _paragraph.GetFirstChild<ParagraphProperties>()?.SpacingBetweenLines?.LineRule?.InnerText;
                 return rule == "auto" ? WordLineSpacingRule.Auto : rule == "exact" ? WordLineSpacingRule.Exact
                     : rule == "atLeast" ? WordLineSpacingRule.AtLeast : null;
             }

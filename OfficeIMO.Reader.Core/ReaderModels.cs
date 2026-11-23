@@ -146,7 +146,12 @@ public sealed class ReaderChunk {
     /// <summary>
     /// Source location information for citations and debugging.
     /// </summary>
-    public ReaderLocation Location { get; set; } = new ReaderLocation();
+    public ReaderLocation Location {
+        // Created on first read: producers almost always assign their own location.
+        get => _location ??= new ReaderLocation();
+        set => _location = value;
+    }
+    private ReaderLocation? _location;
 
     /// <summary>
     /// Stable identifier for the source document.

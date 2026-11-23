@@ -26,7 +26,7 @@ internal static partial class OfficeJpegReader {
             throw new FormatException("Lossless JPEG restarts must align with MCU rows.");
 
         var arithmetic = conditioning == null ? null : new LosslessArithmeticScan(data, scan, frame, state, conditioning, token);
-        var reader = new JpegBitReader(data, allowTruncated: false, token);
+        var reader = new JpegBitReader(data, allowTruncated: false, token, prefetch: false);
         int mcu = 0, restartRow = 0, restartNumber = 0;
         int shift = scan.Al, mask = (1 << (frame.Precision - shift)) - 1, initial = 1 << (frame.Precision - 1 - shift);
         for (int my = 0; my < rows; my++) {

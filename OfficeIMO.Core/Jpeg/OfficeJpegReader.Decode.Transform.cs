@@ -20,10 +20,20 @@ internal static partial class OfficeJpegReader {
     private static void InverseDct(int[] input, byte[] output, int[] workspace) {
         // Extended JPEG quantization can exceed the integer workspace range.
         // Guard both hardware paths and clip samples only after the transform.
-        for (int i = 0; i < 64; i++) {
-            if (input[i] < -8191 || input[i] > 8191) {
+#if NET8_0_OR_GREATER
+        if (System.Runtime.Intrinsics.Vector128.IsHardwareAccelerated) {
+            if (HasWideCoefficient(input)) {
                 InverseDctWide(input, output);
                 return;
+            }
+        } else
+#endif
+        {
+            for (int i = 0; i < 64; i++) {
+                if (input[i] < -8191 || input[i] > 8191) {
+                    InverseDctWide(input, output);
+                    return;
+                }
             }
         }
 #if NET8_0_OR_GREATER
@@ -31,9 +41,28 @@ internal static partial class OfficeJpegReader {
             InverseDctVector(input, output, workspace);
             return;
         }
+        if (System.Runtime.Intrinsics.Arm.AdvSimd.Arm64.IsSupported) {
+            InverseDctArm(input, output, workspace);
+            return;
+        }
 #endif
         InverseDctScalar(input, output, workspace);
     }
+
+#if NET8_0_OR_GREATER
+    private static bool HasWideCoefficient(int[] input) {
+        ref int source = ref input[0];
+        var maximum = System.Runtime.Intrinsics.Vector128.LoadUnsafe(ref source);
+        var minimum = maximum;
+        for (int i = 4; i < 64; i += 4) {
+            var values = System.Runtime.Intrinsics.Vector128.LoadUnsafe(ref source, (nuint)i);
+            maximum = System.Runtime.Intrinsics.Vector128.Max(maximum, values);
+            minimum = System.Runtime.Intrinsics.Vector128.Min(minimum, values);
+        }
+        return System.Runtime.Intrinsics.Vector128.GreaterThanAny(maximum, System.Runtime.Intrinsics.Vector128.Create(8191)) ||
+            System.Runtime.Intrinsics.Vector128.LessThanAny(minimum, System.Runtime.Intrinsics.Vector128.Create(-8191));
+    }
+#endif
 
     private static void InverseDctScalar(int[] input, byte[] output, int[] workspace) {
 

@@ -108,6 +108,9 @@ internal static partial class OfficeJpegReader {
         public void PrepareAcLookup(ref HuffmanTable table) =>
             table.PrepareBaselineAcLookup(ref _reservedBytes);
 
+        // Decode budget not yet reserved, for optional rendering tables.
+        public long AvailableBytes => OfficeRasterGuards.MaximumDecodedBytes - _reservedBytes;
+
         public void ReserveOrientationCanvas(JpegFrame frame) {
             if (!TryReserveOrientationCanvas(
                     frame.Width, frame.Height, ref _reservedBytes, ref _orientationCanvasReserved)) {
@@ -124,7 +127,7 @@ internal static partial class OfficeJpegReader {
                 if (!DecodedComponents[i]) throw new FormatException("Missing JPEG component scan.");
             }
 
-            return ComposeRgba(frame, Components, adobeTransform, highQualityChroma, cancellationToken);
+            return ComposeRgba(frame, Components, adobeTransform, highQualityChroma, AvailableBytes, cancellationToken);
         }
 
         public byte[] RenderColorComponents(
@@ -147,6 +150,7 @@ internal static partial class OfficeJpegReader {
                 usePdfColorTransformDefault,
                 highQualityChroma,
                 outputRgba: false,
+                AvailableBytes,
                 cancellationToken,
                 out componentCount);
         }
@@ -175,16 +179,21 @@ internal static partial class OfficeJpegReader {
         public int SampleMaximum = 255;
         public double[] WideWorkspace;
 
-        public BaselineComponentState(Component component, int blocksPerRow, int blocksPerCol, ref long aggregateBytes, int precision = 8) {
+        private readonly int _planeLength;
+
+        // Progressive decoding reserves the plane with the rest of its working set but
+        // allocates it only when the image is rendered through component planes.
+        public BaselineComponentState(Component component, int blocksPerRow, int blocksPerCol, ref long aggregateBytes, int precision = 8,
+            bool allocatePlane = true) {
             Component = component;
             BlocksPerRow = blocksPerRow;
             BlocksPerCol = blocksPerCol;
             Stride = OfficeRasterGuards.EnsureByteCount((long)blocksPerRow * 8, JpegDimensionsLimitMessage);
             SampleMaximum = (1 << precision) - 1;
             int sampleBytes = precision > 8 ? 2 : 1;
-            var bufferLength = OfficeRasterGuards.EnsureByteArrayLength((long)Stride * blocksPerCol * 8 * sampleBytes, ref aggregateBytes, JpegDimensionsLimitMessage);
-            Buffer = sampleBytes == 1 ? new byte[bufferLength] : Array.Empty<byte>();
-            WideBuffer = sampleBytes == 2 ? new ushort[bufferLength / 2] : null;
+            _planeLength = OfficeRasterGuards.EnsureByteArrayLength((long)Stride * blocksPerCol * 8 * sampleBytes, ref aggregateBytes, JpegDimensionsLimitMessage);
+            Buffer = Array.Empty<byte>();
+            if (allocatePlane) AllocatePlane();
             BlockCoeffs = new int[OfficeRasterGuards.EnsureInt32ArrayLength(64, ref aggregateBytes, JpegDimensionsLimitMessage)];
             BlockPixels = new byte[OfficeRasterGuards.EnsureByteArrayLength(64, ref aggregateBytes, JpegDimensionsLimitMessage)];
             BlockWorkspace = new int[OfficeRasterGuards.EnsureInt32ArrayLength(64, ref aggregateBytes, JpegDimensionsLimitMessage)];
@@ -194,6 +203,11 @@ internal static partial class OfficeJpegReader {
             PrevDc = 0;
         }
 
+        public void AllocatePlane() {
+            if (Buffer.Length != 0 || WideBuffer != null) return;
+            if (SampleMaximum > 255) WideBuffer = new ushort[_planeLength / 2];
+            else Buffer = new byte[_planeLength];
+        }
     }
 
     private sealed class ProgressiveState {
@@ -244,6 +258,12 @@ internal static partial class OfficeJpegReader {
             };
         }
 
+        public void PrepareAcLookup(ref HuffmanTable table) =>
+            table.PrepareBaselineAcLookup(ref _reservedBytes);
+
+        // Decode budget not yet reserved, for optional rendering tables.
+        public long AvailableBytes => OfficeRasterGuards.MaximumDecodedBytes - _reservedBytes;
+
         public void ReserveOrientationCanvas(JpegFrame frame) {
             if (!TryReserveOrientationCanvas(
                     frame.Width, frame.Height, ref _reservedBytes, ref _orientationCanvasReserved)) {
@@ -256,8 +276,11 @@ internal static partial class OfficeJpegReader {
             int? adobeTransform,
             bool highQualityChroma,
             CancellationToken cancellationToken) {
+            if (highQualityChroma && TryRenderYccHighQualityBands(frame, this, adobeTransform, cancellationToken, out byte[] banded)) {
+                return banded;
+            }
             BaselineComponentState[] baselineStates = CreateBaselineStates(cancellationToken);
-            return ComposeRgba(frame, baselineStates, adobeTransform, highQualityChroma, cancellationToken);
+            return ComposeRgba(frame, baselineStates, adobeTransform, highQualityChroma, AvailableBytes, cancellationToken);
         }
 
         public byte[] RenderColorComponents(
@@ -277,6 +300,7 @@ internal static partial class OfficeJpegReader {
                 usePdfColorTransformDefault,
                 highQualityChroma,
                 outputRgba: false,
+                AvailableBytes,
                 cancellationToken,
                 out componentCount);
         }
@@ -285,13 +309,20 @@ internal static partial class OfficeJpegReader {
             for (var i = 0; i < Components.Length; i++) {
                 var compState = Components[i];
                 var samples = compState.Samples;
+                samples.AllocatePlane();
+                // Sixteen-bit coefficients times quantizers in [0, 65535] cannot overflow Int32.
+                bool boundedQuantization = HasBoundedQuantization(compState.Quantization);
                 for (var by = 0; by < compState.BlocksPerCol; by++) {
                     cancellationToken.ThrowIfCancellationRequested();
                     for (var bx = 0; bx < compState.BlocksPerRow; bx++) {
                         var baseIndex = (by * compState.BlocksPerRow + bx) * 64;
-                        for (int coefficient = 0; coefficient < 64; coefficient++) {
-                            samples.BlockCoeffs[coefficient] =
-                                checked(compState.Coeffs[baseIndex + coefficient] * compState.Quantization[coefficient]);
+                        if (boundedQuantization) {
+                            Dequantize(compState.Coeffs, baseIndex, compState.Quantization, samples.BlockCoeffs);
+                        } else {
+                            for (int coefficient = 0; coefficient < 64; coefficient++) {
+                                samples.BlockCoeffs[coefficient] =
+                                    checked(compState.Coeffs[baseIndex + coefficient] * compState.Quantization[coefficient]);
+                            }
                         }
                         WriteDctBlock(samples, bx, by);
                     }
@@ -329,7 +360,7 @@ internal static partial class OfficeJpegReader {
             Quantization = quantization;
             var coeffLength = OfficeRasterGuards.EnsureInt16ArrayLength((long)BlocksPerRow * BlocksPerCol * 64, ref aggregateBytes, JpegDimensionsLimitMessage);
             Coeffs = new short[coeffLength];
-            Samples = new BaselineComponentState(component, blocksPerRow, blocksPerCol, ref aggregateBytes, precision);
+            Samples = new BaselineComponentState(component, blocksPerRow, blocksPerCol, ref aggregateBytes, precision, allocatePlane: false);
             PrevDc = 0;
         }
     }

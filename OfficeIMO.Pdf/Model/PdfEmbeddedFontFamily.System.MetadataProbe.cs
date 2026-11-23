@@ -150,10 +150,7 @@ public sealed partial class PdfEmbeddedFontFamily {
         kind = FontFaceKind.Regular;
         score = 0;
         try {
-            var fileInfo = new System.IO.FileInfo(path);
-            if (!fileInfo.Exists ||
-                (fileInfo.Attributes & System.IO.FileAttributes.ReparsePoint) != 0 ||
-                fileInfo.Length > MaxSystemFontFileBytes) {
+            if (!System.IO.File.Exists(path) || OfficeIMO.Internal.OfficeFileSystemLinks.IsLinkOrReparsePoint(path)) {
                 return false;
             }
 

@@ -365,7 +365,7 @@ namespace OfficeIMO.Word {
             WordTableContent.InsertRowAfter(_table, lastRow, clonedRow);
             InvalidateRowElements();
 
-            return GetOrCreateRow(clonedRow, initializeCells: true);
+            return GetOrCreateRow(clonedRow);
         }
 
         /// <summary>
@@ -682,7 +682,6 @@ namespace OfficeIMO.Word {
                     if (tcPr == null) {
                         tcPr = new TableCellProperties();
                         cell._tableCell.InsertAt(tcPr, 0);
-                        cell._tableCellProperties = tcPr;
                     }
 
                     if (tcPr.TableCellWidth == null) {

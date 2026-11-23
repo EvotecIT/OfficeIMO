@@ -10,6 +10,7 @@ internal static partial class OfficeJpegReader {
         BaselineComponentState[] states,
         int? adobeTransform,
         bool highQualityChroma,
+        long availableBytes,
         CancellationToken cancellationToken) {
         return ComposeColorComponents(
             frame,
@@ -19,6 +20,7 @@ internal static partial class OfficeJpegReader {
             usePdfColorTransformDefault: false,
             highQualityChroma,
             outputRgba: true,
+            availableBytes,
             cancellationToken,
             out _);
     }
@@ -31,6 +33,7 @@ internal static partial class OfficeJpegReader {
         bool usePdfColorTransformDefault,
         bool highQualityChroma,
         bool outputRgba,
+        long availableBytes,
         CancellationToken cancellationToken,
         out int componentCount) {
         componentCount = frame.ComponentCount;
@@ -133,6 +136,9 @@ internal static partial class OfficeJpegReader {
         if (frame.ComponentCount == 1) {
             var grayIndex = FindComponentIndex(frame.Components, 1);
             if (grayIndex < 0) grayIndex = 0;
+            if (TryComposeGray8(components, frame.Width, frame.Height, states[grayIndex], maxH, maxV, outputRgba, cancellationToken)) {
+                return components;
+            }
             for (var y = 0; y < frame.Height; y++) {
                 cancellationToken.ThrowIfCancellationRequested();
                 for (var x = 0; x < frame.Width; x++) {
@@ -180,6 +186,22 @@ internal static partial class OfficeJpegReader {
                     transformToRgb,
                     outputRgba,
                     cancellationToken);
+                return components;
+            }
+
+            if (transformToRgb && highQualityChroma && frame.Precision == 8 &&
+                TryComposeYccHighQuality8(
+                    components,
+                    frame.Width,
+                    frame.Height,
+                    states[yIndex2],
+                    states[cbIndex],
+                    states[crIndex],
+                    maxH,
+                    maxV,
+                    outputRgba,
+                    availableBytes,
+                    cancellationToken)) {
                 return components;
             }
         }
@@ -346,6 +368,33 @@ internal static partial class OfficeJpegReader {
             output[target++] = ClampToByte(secondLuma + blueOffset);
         }
         return pairedWidth;
+    }
+
+    private static bool TryComposeGray8(byte[] output, int width, int height,
+        BaselineComponentState gray, int maximumHorizontalSampling, int maximumVerticalSampling,
+        bool outputRgba, CancellationToken cancellationToken) {
+        if (gray.WideBuffer != null || gray.SampleMaximum != 255 ||
+            gray.Component.H != maximumHorizontalSampling || gray.Component.V != maximumVerticalSampling) {
+            return false;
+        }
+        byte[] samples = gray.Buffer;
+        for (int y = 0; y < height; y++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int source = y * gray.Stride;
+            if (!outputRgba) {
+                Buffer.BlockCopy(samples, source, output, y * width, width);
+                continue;
+            }
+            int target = y * width * 4;
+            for (int x = 0; x < width; x++, target += 4) {
+                byte value = samples[source + x];
+                output[target] = value;
+                output[target + 1] = value;
+                output[target + 2] = value;
+                output[target + 3] = byte.MaxValue;
+            }
+        }
+        return true;
     }
 
     private static void WriteGrayPixel(byte[] output, int pixel, byte gray, bool outputRgba) {
