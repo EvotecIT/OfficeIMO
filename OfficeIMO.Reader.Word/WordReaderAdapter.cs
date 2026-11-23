@@ -110,7 +110,8 @@ internal static class WordReaderAdapter {
 
     internal static OfficeDocumentReadResult Project(WordDocument document, string sourceName, ReaderOptions readerOptions, ReaderWordOptions options, CancellationToken cancellationToken, IReadOnlyList<string>? sourceWarnings = null, string capabilityId = OfficeDocumentReaderBuilderWordExtensions.HandlerId) {
         bool lean = readerOptions.Projection == ReaderProjection.TextAndMetadata;
-        WordDocumentInfo snapshot = document.Inspect(includeImageBytes: !lean, cancellationToken);
+        // Text and metadata need only text, structure, links and notes, not formatting, images or statistics.
+        WordDocumentInfo snapshot = lean ? document.InspectTextStructure(cancellationToken) : document.Inspect(includeImageBytes: true, cancellationToken);
         IReadOnlyList<WordDocumentVisualInfo> pageSnapshots = Array.Empty<WordDocumentVisualInfo>();
         if (options.IncludePageLocations && !lean) {
             cancellationToken.ThrowIfCancellationRequested();

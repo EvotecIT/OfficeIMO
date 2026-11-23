@@ -5,7 +5,7 @@ namespace OfficeIMO.Word {
     public partial class WordDocument {
         private static readonly TimeSpan DefaultRegexMatchTimeout = TimeSpan.FromSeconds(2);
         internal IEnumerable<WordParagraph> EnumerateBodyParagraphs() {
-            foreach (var paragraph in this.Paragraphs) {
+            foreach (var paragraph in WordSection.EnumerateParagraphsOfAllSections(this)) {
                 yield return paragraph;
             }
 

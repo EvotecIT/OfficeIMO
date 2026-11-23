@@ -14,14 +14,25 @@ namespace OfficeIMO.Word {
         /// <summary>Creates the native semantic snapshot, optionally retaining image descriptors without copying their payload bytes.</summary>
         /// <param name="includeImageBytes">When false, image payloads are not read or copied; image metadata remains available.</param>
         /// <param name="cancellationToken">Cancellation checked between source sections, paragraphs, table cells and notes.</param>
-        public WordDocumentInfo Inspect(bool includeImageBytes, CancellationToken cancellationToken = default) {
+        public WordDocumentInfo Inspect(bool includeImageBytes, CancellationToken cancellationToken = default) =>
+            Inspect(includeImageBytes, textStructureOnly: false, cancellationToken);
+
+        /// <summary>
+        /// Creates the snapshot a text-and-metadata read needs: document properties, sections, stories, paragraph text,
+        /// styles, lists, bookmarks, hyperlinks, notes and table content. Paragraph, run and cell formatting, tab stops
+        /// and images are left at their defaults, which keeps large documents cheap to read.
+        /// </summary>
+        internal WordDocumentInfo InspectTextStructure(CancellationToken cancellationToken = default) =>
+            Inspect(includeImageBytes: false, textStructureOnly: true, cancellationToken);
+
+        private WordDocumentInfo Inspect(bool includeImageBytes, bool textStructureOnly, CancellationToken cancellationToken) {
             cancellationToken.ThrowIfCancellationRequested();
             using var storyScope = WordHeaderFooterResolutionSnapshot.Begin(this, cancellationToken);
             using var visibilityScope = WordComplexFieldRunVisibility.BeginConversionScope();
             using var styleCatalogScope = WordListNumberingResolver.BeginReadOnlyPass(this);
             var expansionContext = new InspectionExpansionContext(BuildParagraphStyleNameLookup(),
                 WordDocumentTraversal.BuildResolvedListMarkers(this)) {
-                IncludeImageBytes = includeImageBytes, CancellationToken = cancellationToken
+                IncludeImageBytes = includeImageBytes, TextStructureOnly = textStructureOnly, CancellationToken = cancellationToken
             };
             var snapshot = new WordDocumentInfo {
                 FilePath = string.IsNullOrWhiteSpace(FilePath) ? null : FilePath,
@@ -29,8 +40,9 @@ namespace OfficeIMO.Word {
                 Author = Properties?.Creator,
                 Subject = Properties?.Subject,
                 Keywords = Properties?.Keywords,
-                Statistics = new WordDocumentStatisticsInfo(Statistics),
             };
+            // Statistics walk the whole document several times; the text-structure snapshot stays internal and never reads them.
+            if (!textStructureOnly) snapshot.Statistics = new WordDocumentStatisticsInfo(Statistics);
 
             for (int sectionIndex = 0; sectionIndex < Sections.Count; sectionIndex++) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -176,8 +188,6 @@ namespace OfficeIMO.Word {
             var bookmark = paragraph.Bookmark;
             var bookmarkStart = paragraph._paragraph.ChildElements.OfType<BookmarkStart>().FirstOrDefault();
             bool hasListMarker = expansionContext.ListMarkers.TryGetValue(paragraph, out WordDocumentTraversal.ResolvedListMarker listMarker);
-            // A border view reads the paragraph's live properties, so one view serves all sixteen reads.
-            WordParagraphBorders borders = paragraph.Borders;
             var snapshot = new WordParagraphInfo {
                 Text = string.Concat(paragraph.GetRuns().Select(run => run.Text)),
                 StyleId = paragraph.StyleId,
@@ -188,48 +198,52 @@ namespace OfficeIMO.Word {
                 ListMarker = hasListMarker ? listMarker.Marker : null,
                 ListIndex = hasListMarker && listMarker.Info.Ordered ? listMarker.Index : null,
                 ListStyleName = expansionContext.ListStyleNameFor(paragraph),
-                Alignment = NormalizeOpenXmlEnumValue(paragraph._paragraphProperties?.Justification?.Val),
-                IndentStart = paragraph.IndentationBefore,
-                IndentEnd = paragraph.IndentationAfter,
-                IndentFirstLine = ResolveIndentFirstLine(paragraph),
-                SpaceAbove = paragraph.LineSpacingBefore,
-                SpaceBelow = paragraph.LineSpacingAfter,
-                LineSpacing = paragraph.LineSpacing,
-                LineSpacingValue = paragraph.NativeLineSpacingValue,
-                LineSpacingRule = paragraph.NativeLineSpacingRule?.ToString()
-                    ?? paragraph._paragraph.ParagraphProperties?.SpacingBetweenLines?.LineRule?.InnerText,
-                ShadingFillColor = paragraph.ShadingFillColor,
-                ShadingPattern = paragraph.ShadingPattern,
-                LeftBorder = BuildParagraphBorderSnapshot(
-                    NormalizeOpenXmlEnumValue(borders.LeftStyle),
-                    borders.LeftColorValue,
-                    borders.LeftSize,
-                    borders.LeftSpace),
-                RightBorder = BuildParagraphBorderSnapshot(
-                    NormalizeOpenXmlEnumValue(borders.RightStyle),
-                    borders.RightColorValue,
-                    borders.RightSize,
-                    borders.RightSpace),
-                TopBorder = BuildParagraphBorderSnapshot(
-                    NormalizeOpenXmlEnumValue(borders.TopStyle),
-                    borders.TopColorValue,
-                    borders.TopSize,
-                    borders.TopSpace),
-                BottomBorder = BuildParagraphBorderSnapshot(
-                    NormalizeOpenXmlEnumValue(borders.BottomStyle),
-                    borders.BottomColorValue,
-                    borders.BottomSize,
-                    borders.BottomSpace),
-                IsRightToLeft = paragraph.BiDi,
-                KeepWithNext = paragraph.KeepWithNext,
-                KeepLinesTogether = paragraph.KeepLinesTogether,
-                AvoidWidowAndOrphan = paragraph.AvoidWidowAndOrphan,
-                PageBreakBefore = paragraph.PageBreakBefore,
                 BookmarkName = bookmark?.Name ?? bookmarkStart?.Name,
                 BookmarkId = bookmark != null
                     ? bookmark.Id
                     : int.TryParse(bookmarkStart?.Id?.Value, out var bookmarkId) ? bookmarkId : null,
             };
+            if (!expansionContext.TextStructureOnly) {
+                // A border view reads the paragraph's live properties, so one view serves all sixteen reads.
+                WordParagraphBorders borders = paragraph.Borders;
+                snapshot.Alignment = NormalizeOpenXmlEnumValue(paragraph._paragraphProperties?.Justification?.Val);
+                snapshot.IndentStart = paragraph.IndentationBefore;
+                snapshot.IndentEnd = paragraph.IndentationAfter;
+                snapshot.IndentFirstLine = ResolveIndentFirstLine(paragraph);
+                snapshot.SpaceAbove = paragraph.LineSpacingBefore;
+                snapshot.SpaceBelow = paragraph.LineSpacingAfter;
+                snapshot.LineSpacing = paragraph.LineSpacing;
+                snapshot.LineSpacingValue = paragraph.NativeLineSpacingValue;
+                snapshot.LineSpacingRule = paragraph.NativeLineSpacingRule?.ToString()
+                    ?? paragraph._paragraph.ParagraphProperties?.SpacingBetweenLines?.LineRule?.InnerText;
+                snapshot.ShadingFillColor = paragraph.ShadingFillColor;
+                snapshot.ShadingPattern = paragraph.ShadingPattern;
+                snapshot.LeftBorder = BuildParagraphBorderSnapshot(
+                    NormalizeOpenXmlEnumValue(borders.LeftStyle),
+                    borders.LeftColorValue,
+                    borders.LeftSize,
+                    borders.LeftSpace);
+                snapshot.RightBorder = BuildParagraphBorderSnapshot(
+                    NormalizeOpenXmlEnumValue(borders.RightStyle),
+                    borders.RightColorValue,
+                    borders.RightSize,
+                    borders.RightSpace);
+                snapshot.TopBorder = BuildParagraphBorderSnapshot(
+                    NormalizeOpenXmlEnumValue(borders.TopStyle),
+                    borders.TopColorValue,
+                    borders.TopSize,
+                    borders.TopSpace);
+                snapshot.BottomBorder = BuildParagraphBorderSnapshot(
+                    NormalizeOpenXmlEnumValue(borders.BottomStyle),
+                    borders.BottomColorValue,
+                    borders.BottomSize,
+                    borders.BottomSpace);
+                snapshot.IsRightToLeft = paragraph.BiDi;
+                snapshot.KeepWithNext = paragraph.KeepWithNext;
+                snapshot.KeepLinesTogether = paragraph.KeepLinesTogether;
+                snapshot.AvoidWidowAndOrphan = paragraph.AvoidWidowAndOrphan;
+                snapshot.PageBreakBefore = paragraph.PageBreakBefore;
+            }
 
             // Walk runs and simple fields together so a field's insertion index uses the
             // same run sequence that is stored in the inspection snapshot.
@@ -259,12 +273,25 @@ namespace OfficeIMO.Word {
                 // WordParagraph.Text otherwise reads the entire enclosing hyperlink.
                 string runText = run.Text;
                 var nonTextBreaks = run.GetNonTextBreakPositions();
+                run._hyperlink = item.Ancestors<Hyperlink>().FirstOrDefault();
+                var hyperlink = run.Hyperlink;
+                if (expansionContext.TextStructureOnly) {
+                    snapshot.AddRun(new WordRunInfo {
+                        Text = runText,
+                        NonTextBreaks = nonTextBreaks,
+                        IsHyperlink = hyperlink != null,
+                        HyperlinkUri = hyperlink?.Uri?.ToString(),
+                        HyperlinkAnchor = hyperlink?.Anchor,
+                        Footnote = BuildFootnoteSnapshot(run.FootNote, expansionContext),
+                        Endnote = BuildEndnoteSnapshot(run.EndNote, expansionContext),
+                    });
+                    runIndex++;
+                    continue;
+                }
+
                 var images = run.GetPositionedImages().Select(positionedImage =>
                     new WordPositionedImageSnapshot(positionedImage.Offset,
                         BuildInlineImageSnapshot(positionedImage.Image, expansionContext.IncludeImageBytes))).ToArray();
-                run._hyperlink = item.Ancestors<Hyperlink>().FirstOrDefault();
-                var hyperlink = run.Hyperlink;
-
                 snapshot.AddRun(new WordRunInfo {
                     Text = runText,
                     NonTextBreaks = nonTextBreaks,
@@ -319,6 +346,8 @@ namespace OfficeIMO.Word {
                             resultRun.RunProperties?.ChildElements.Any(child => child is not NoProof) == true)
                 });
             }
+
+            if (expansionContext.TextStructureOnly) return snapshot;
 
             foreach (var tabStop in paragraph.TabStops) {
                 snapshot.AddTabStop(new WordTabStopInfo {
@@ -388,63 +417,73 @@ namespace OfficeIMO.Word {
 
         private WordTableInfo BuildTableSnapshot(WordTable table, InspectionExpansionContext expansionContext) {
             expansionContext.CancellationToken.ThrowIfCancellationRequested();
+            // Rows and Cells build a new list on each access, so read them once.
+            List<WordTableRow> rows = table.Rows;
+            var rowCells = new List<List<WordTableCell>>(rows.Count);
+            foreach (WordTableRow row in rows) {
+                rowCells.Add(row.Cells);
+            }
             var snapshot = new WordTableInfo {
-                RowCount = table.Rows.Count,
-                ColumnCount = table.Rows.Count == 0 ? 0 : table.Rows.Max(row => row.CellsCount),
+                RowCount = rows.Count,
+                ColumnCount = rows.Count == 0 ? 0 : rowCells.Max(cells => cells.Count),
                 StyleName = table.Style?.ToString(),
                 Title = table.Title,
                 Description = table.Description,
-                RepeatHeaderRow = table.Rows.Count > 0 && table.RepeatAsHeaderRowAtTheTopOfEachPage,
+                RepeatHeaderRow = rows.Count > 0 && table.RepeatAsHeaderRowAtTheTopOfEachPage,
             };
 
-            var gridColumnWidths = table.GridColumnWidth;
-            if (gridColumnWidths.Count > 0) {
-                foreach (var width in gridColumnWidths) {
-                    snapshot.AddColumnWidth(width);
-                }
-            } else if (table.Rows.Count > 0) {
-                foreach (var cell in table.Rows[0].Cells) {
-                    // Snapshot columns are physical lengths. Zero marks an unresolved preference
-                    // for destination adapters; percentages are never interpreted as twips.
-                    snapshot.AddColumnWidth(OfficeLength.Points(WordTableWidthNative.AbsoluteCellPoints(cell) ?? 0D));
+            if (!expansionContext.TextStructureOnly) {
+                var gridColumnWidths = table.GridColumnWidth;
+                if (gridColumnWidths.Count > 0) {
+                    foreach (var width in gridColumnWidths) {
+                        snapshot.AddColumnWidth(width);
+                    }
+                } else if (rows.Count > 0) {
+                    foreach (var cell in rowCells[0]) {
+                        // Snapshot columns are physical lengths. Zero marks an unresolved preference
+                        // for destination adapters; percentages are never interpreted as twips.
+                        snapshot.AddColumnWidth(OfficeLength.Points(WordTableWidthNative.AbsoluteCellPoints(cell) ?? 0D));
+                    }
                 }
             }
 
-            for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
-                var row = table.Rows[rowIndex];
+            for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
+                List<WordTableCell> cells = rowCells[rowIndex];
                 var rowSnapshot = new WordTableRowInfo {
                     RowIndex = rowIndex,
                 };
 
-                for (int columnIndex = 0; columnIndex < row.Cells.Count; columnIndex++) {
-                    var cell = row.Cells[columnIndex];
+                for (int columnIndex = 0; columnIndex < cells.Count; columnIndex++) {
+                    var cell = cells[columnIndex];
                     var cellSnapshot = new WordTableCellInfo {
                         ColumnIndex = columnIndex,
-                        ColumnSpan = cell.ColumnSpan,
-                        RowSpan = cell.RowSpan,
-                        ShadingFillColor = cell.ShadingFillColor,
-                        LeftBorder = BuildBorderSnapshot(
-                            NormalizeOpenXmlEnumValue(cell.Borders.LeftStyle),
-                            cell.Borders.LeftColorValue,
-                            cell.Borders.LeftSize),
-                        RightBorder = BuildBorderSnapshot(
-                            NormalizeOpenXmlEnumValue(cell.Borders.RightStyle),
-                            cell.Borders.RightColorValue,
-                            cell.Borders.RightSize),
-                        TopBorder = BuildBorderSnapshot(
-                            NormalizeOpenXmlEnumValue(cell.Borders.TopStyle),
-                            cell.Borders.TopColorValue,
-                            cell.Borders.TopSize),
-                        BottomBorder = BuildBorderSnapshot(
-                            NormalizeOpenXmlEnumValue(cell.Borders.BottomStyle),
-                            cell.Borders.BottomColorValue,
-                            cell.Borders.BottomSize),
                         HasHorizontalMerge = cell.HasHorizontalMerge,
                         HasVerticalMerge = cell.HasVerticalMerge,
                     };
+                    if (!expansionContext.TextStructureOnly) {
+                        cellSnapshot.ColumnSpan = cell.ColumnSpan;
+                        cellSnapshot.RowSpan = cell.RowSpan;
+                        cellSnapshot.ShadingFillColor = cell.ShadingFillColor;
+                        cellSnapshot.LeftBorder = BuildBorderSnapshot(
+                            NormalizeOpenXmlEnumValue(cell.Borders.LeftStyle),
+                            cell.Borders.LeftColorValue,
+                            cell.Borders.LeftSize);
+                        cellSnapshot.RightBorder = BuildBorderSnapshot(
+                            NormalizeOpenXmlEnumValue(cell.Borders.RightStyle),
+                            cell.Borders.RightColorValue,
+                            cell.Borders.RightSize);
+                        cellSnapshot.TopBorder = BuildBorderSnapshot(
+                            NormalizeOpenXmlEnumValue(cell.Borders.TopStyle),
+                            cell.Borders.TopColorValue,
+                            cell.Borders.TopSize);
+                        cellSnapshot.BottomBorder = BuildBorderSnapshot(
+                            NormalizeOpenXmlEnumValue(cell.Borders.BottomStyle),
+                            cell.Borders.BottomColorValue,
+                            cell.Borders.BottomSize);
+                    }
 
-                    snapshot.HasHorizontalMerges |= cell.HasHorizontalMerge;
-                    snapshot.HasVerticalMerges |= cell.HasVerticalMerge;
+                    snapshot.HasHorizontalMerges |= cellSnapshot.HasHorizontalMerge;
+                    snapshot.HasVerticalMerges |= cellSnapshot.HasVerticalMerge;
 
                     foreach (var paragraphGroup in GroupParagraphs(cell.Paragraphs)) {
                         cellSnapshot.AddParagraph(BuildParagraphSnapshot(paragraphGroup, expansionContext));

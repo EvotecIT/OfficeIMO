@@ -11,6 +11,8 @@ namespace OfficeIMO.Word {
 
             internal HashSet<string> ActiveNoteKeys { get; } = new(StringComparer.Ordinal);
             internal bool IncludeImageBytes { get; set; } = true;
+            /// <summary>Skips formatting, tab stops and images; see <see cref="WordDocument.InspectTextStructure"/>.</summary>
+            internal bool TextStructureOnly { get; set; }
             internal CancellationToken CancellationToken { get; set; }
             internal IReadOnlyDictionary<string, string?> ParagraphStyleNames { get; }
             internal IReadOnlyDictionary<WordParagraph, WordDocumentTraversal.ResolvedListMarker> ListMarkers { get; }
