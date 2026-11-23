@@ -85,7 +85,9 @@ namespace OfficeIMO.Excel {
 
             private void GrowWindow() {
                 byte[] previous = _buffer!;
-                byte[] next = OpenXmlPartBufferPool.Rent(checked(previous.Length * 2));
+                int length = checked(previous.Length * 2);
+                // A row or trailing worksheet content larger than the pool's largest buffer still has to fit.
+                byte[] next = length <= MaximumBufferSize ? OpenXmlPartBufferPool.Rent(length) : new byte[length];
                 Buffer.BlockCopy(previous, 0, next, 0, _windowFilled);
                 _buffer = next;
                 OpenXmlPartBufferPool.Return(previous);
