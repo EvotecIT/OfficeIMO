@@ -114,7 +114,7 @@ public sealed class EmailMailboxReader {
             int end = index + 1 < envelopes.Count ? envelopes[index + 1].LineStart : data.Length;
             byte[] messageBytes = MsgBinary.Slice(data, envelope.MessageStart, end - envelope.MessageStart);
             MboxVariant variant = _options.Variant == MboxVariant.Auto ? DetectVariant(messageBytes, cancellationToken) : _options.Variant;
-            messageBytes = Unescape(messageBytes, variant, cancellationToken);
+            messageBytes = UnescapeOwnedMessage(messageBytes, variant, cancellationToken);
             EmailReadResult message = ReadEntryMessage(reader, messageBytes, _options.MessageOptions, cancellationToken);
             var entry = new EmailMailboxEntry(message.Document) {
                 EnvelopeSender = envelope.Sender,
@@ -191,26 +191,29 @@ public sealed class EmailMailboxReader {
         return MboxVariant.Mboxo;
     }
 
-    internal static byte[] Unescape(byte[] message, MboxVariant variant, CancellationToken cancellationToken) {
-        using (MemoryStream output = new MemoryStream(message.Length)) {
-            int lineStart = 0;
-            while (lineStart < message.Length) {
-                cancellationToken.ThrowIfCancellationRequested();
-                int lineEnd = lineStart;
-                while (lineEnd < message.Length && message[lineEnd] != '\r' && message[lineEnd] != '\n') lineEnd++;
-                int writeStart = lineStart;
-                if (message[lineStart] == '>') {
-                    int position = lineStart + 1;
-                    if (variant == MboxVariant.Mboxrd) while (position < lineEnd && message[position] == '>') position++;
-                    if (StartsWith(message, position, "From ")) writeStart++;
-                }
-                output.Write(message, writeStart, lineEnd - writeStart);
-                int after = SkipLineEnding(message, lineEnd);
-                output.Write(message, lineEnd, after - lineEnd);
-                lineStart = after;
+    // The message is a private snapshot. Compact escaped lines in place so unchanged messages need no output buffer.
+    internal static byte[] UnescapeOwnedMessage(byte[] message, MboxVariant variant, CancellationToken cancellationToken) {
+        int lineStart = 0;
+        int written = 0;
+        while (lineStart < message.Length) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int lineEnd = lineStart;
+            while (lineEnd < message.Length && message[lineEnd] != '\r' && message[lineEnd] != '\n') lineEnd++;
+            int contentStart = lineStart;
+            if (message[lineStart] == '>') {
+                int position = lineStart + 1;
+                if (variant == MboxVariant.Mboxrd) while (position < lineEnd && message[position] == '>') position++;
+                if (StartsWith(message, position, "From ")) contentStart++;
             }
-            return output.ToArray();
+
+            int nextLine = SkipLineEnding(message, lineEnd);
+            int count = nextLine - contentStart;
+            if (contentStart != written) Buffer.BlockCopy(message, contentStart, message, written, count);
+            written += count;
+            lineStart = nextLine;
         }
+        if (written != message.Length) Array.Resize(ref message, written);
+        return message;
     }
 
     private static bool StartsWith(byte[] data, int offset, string value) {

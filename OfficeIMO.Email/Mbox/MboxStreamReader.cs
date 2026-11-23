@@ -84,7 +84,7 @@ internal static class MboxStreamReader {
         MboxVariant variant = options.Variant == MboxVariant.Auto
             ? EmailMailboxReader.DetectVariant(messageBytes, cancellationToken)
             : options.Variant;
-        byte[] unescaped = EmailMailboxReader.Unescape(messageBytes, variant, cancellationToken);
+        byte[] unescaped = EmailMailboxReader.UnescapeOwnedMessage(messageBytes, variant, cancellationToken);
         var reader = new EmailDocumentReader(options.MessageOptions);
         EmailReadResult message = EmailMailboxReader.ReadEntryMessage(
             reader, unescaped, options.MessageOptions, cancellationToken);
