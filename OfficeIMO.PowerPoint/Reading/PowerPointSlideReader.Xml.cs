@@ -188,7 +188,8 @@ namespace OfficeIMO.PowerPoint {
                     applicationSeen = true;
                     bool placeholderSeen = false;
                     int propertiesDepth = reader.Depth;
-                    while (!reader.IsEmptyElement && reader.Read()
+                    bool propertiesEmpty = reader.IsEmptyElement;
+                    while (!propertiesEmpty && reader.Read()
                            && !(reader.NodeKind == OfficeXmlNodeKind.EndElement && reader.Depth == propertiesDepth)) {
                         if (reader.NodeKind != OfficeXmlNodeKind.StartElement) continue;
                         if (readPlaceholder && !placeholderSeen && reader.Depth == propertiesDepth + 1 && IsPresentation(reader, "ph")) {

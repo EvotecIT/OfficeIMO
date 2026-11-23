@@ -275,27 +275,37 @@ internal static class WordStreamedBodyText {
     // result. A field may continue across paragraphs, so the state belongs to the story, not the paragraph.
     private sealed class ParagraphState {
         private readonly List<bool> _fields = new();
+        // Open fields still in their instruction; text is visible only when none are.
+        private int _instructions;
 
         internal bool RecordNotes { get; set; }
-        internal bool Visible {
-            get {
-                foreach (bool result in _fields) if (!result) return false;
-                return true;
-            }
-        }
+        internal bool Visible => _instructions == 0;
         internal bool Balanced => _fields.Count == 0;
-        internal void Begin() => _fields.Add(false);
+        internal void Begin() {
+            _fields.Add(false);
+            _instructions++;
+        }
         internal bool Separate() {
             if (_fields.Count == 0) return false;
-            _fields[_fields.Count - 1] = true;
+            if (!_fields[_fields.Count - 1]) {
+                _fields[_fields.Count - 1] = true;
+                _instructions--;
+            }
             return true;
         }
         internal bool End() {
             if (_fields.Count == 0) return false;
+            if (!_fields[_fields.Count - 1]) _instructions--;
             _fields.RemoveAt(_fields.Count - 1);
             return true;
         }
     }
+
+    // The model reads note ids as numbers, so "01" and "1" name the same note.
+    private static string NoteId(string id) =>
+        long.TryParse(id, System.Globalization.NumberStyles.Integer, CultureInfo.InvariantCulture, out long value)
+            ? value.ToString(CultureInfo.InvariantCulture)
+            : id;
 
     // Text is null when the model drops the paragraph: a paragraph whose children give the model no part to keep, such
     // as one whose only runs follow a field begin that does not end in the same paragraph.
@@ -629,7 +639,7 @@ internal static class WordStreamedBodyText {
                     break;
                 case "footnoteReference": case "endnoteReference":
                     if (visible && state.RecordNotes && reader.TryGetAttribute(W, "id", out string noteId)) {
-                        context.AddNoteReference(name == "endnoteReference", noteId);
+                        context.AddNoteReference(name == "endnoteReference", NoteId(noteId));
                     }
                     reader.SkipElement();
                     break;
@@ -1018,7 +1028,7 @@ internal static class WordStreamedBodyText {
                     reader.SkipElement();
                     continue;
                 }
-                string id = reader.TryGetAttribute(W, "id", out string value) ? value : string.Empty;
+                string id = reader.TryGetAttribute(W, "id", out string value) ? NoteId(value) : string.Empty;
                 paragraphs.Clear();
                 // Each note is a story of its own.
                 var fields = new ParagraphState();

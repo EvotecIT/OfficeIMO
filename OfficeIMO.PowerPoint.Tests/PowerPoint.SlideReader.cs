@@ -301,6 +301,26 @@ namespace OfficeIMO.Tests {
         // padded and whitespace-only runs, external and slide-jump hyperlinks, breaks, fields with and without text,
         // bullets and numbering, hidden shapes and groups, markup-compatibility content, a header-row table with a
         // multi-paragraph cell, a picture, an unknown graphic frame and a connector. The second slide is hidden.
+        [Fact]
+        public void ReadSlidesFindsMediaAfterAnEmptyApplicationProperty() {
+            const string slide = """
+                <p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">
+                  <p:cSld><p:spTree>
+                    <p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/>
+                    <p:pic><p:nvPicPr><p:cNvPr id="2" name="Clip"/><p:cNvPicPr/><p:nvPr><p:ph/><a:videoFile r:link="rIdMissing"/></p:nvPr></p:nvPicPr>
+                      <p:blipFill/><p:spPr/></p:pic>
+                  </p:spTree></p:cSld>
+                </p:sld>
+                """;
+            byte[] package = CreateCraftedDeck(secondSlideXml: slide);
+            using var stream = new MemoryStream(package, writable: false);
+            using PowerPointSlideReader reader = PowerPointSlideReader.Open(stream);
+
+            PowerPointShapeContent shape = Assert.Single(reader.ReadSlides().Last().Shapes);
+
+            Assert.Equal(PowerPointShapeContentType.Media, shape.Kind);
+        }
+
         private static byte[] CreateCraftedDeck(string? secondSlideXml = null) {
             using var stream = new MemoryStream();
             using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {

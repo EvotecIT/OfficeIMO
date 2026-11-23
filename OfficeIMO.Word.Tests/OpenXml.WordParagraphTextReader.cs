@@ -125,6 +125,27 @@ public class OpenXmlWordParagraphTextReaderTests {
     }
 
     [Fact]
+    public void RejectsMalformedUtf8OutsideDecodedText() {
+        byte[] part = Encoding.ASCII.GetBytes("<a><!-- x --></a>");
+        part[8] = 0x80;
+
+        Assert.Throws<System.Xml.XmlException>(() => new OfficeXmlPullReader(part, part.Length));
+    }
+
+    [Fact]
+    public void MatchesNoteReferencesToNotesByNumber() {
+        const string footnotes = "<w:footnotes xmlns:w=\"" + WordNamespace + "\"><w:footnote w:id=\"1\"><w:p><w:r><w:t>Numbered note</w:t></w:r></w:p></w:footnote></w:footnotes>";
+        byte[] package = CreatePackage("<w:p><w:r><w:t>Body</w:t></w:r><w:r><w:footnoteReference w:id=\"01\"/></w:r></w:p>",
+            extraPart: ("word/footnotes.xml", footnotes, "http://schemas.openxmlformats.org/officeDocument/2006/relationships/footnotes"));
+        using var stream = new MemoryStream(package, writable: false);
+
+        List<string>? lines = OfficeIMO.Word.WordStreamedBodyText.TryReadLines(stream, 8000, 0, null, includeNotes: true, CancellationToken.None, out string? reason);
+
+        Assert.Equal(new[] { "Body", "Numbered note" }, lines);
+        Assert.Null(reason);
+    }
+
+    [Fact]
     public void RejectsPartsWithoutARootElement() {
         Assert.Throws<System.Xml.XmlException>(() => ReadWithPackageReader(CreatePackage(null, documentXml: "<?xml version=\"1.0\"?>\n  ")));
     }
@@ -227,7 +248,7 @@ public class OpenXmlWordParagraphTextReaderTests {
     private static byte[] CreatePackage(string? body, bool strict = false, Encoding? encoding = null, string prolog = "",
         string? extraMember = null, CompressionLevel compression = CompressionLevel.Optimal,
         string documentPath = "word/document.xml", string? documentTarget = null, string epilog = "",
-        string? documentXml = null, string extraRelationship = "") {
+        string? documentXml = null, string extraRelationship = "", (string Path, string Xml, string RelationshipType)? extraPart = null) {
         string wordNamespace = strict ? "http://purl.oclc.org/ooxml/wordprocessingml/main" : WordNamespace;
         string relationshipType = strict
             ? "http://purl.oclc.org/ooxml/officeDocument/relationships/officeDocument"
@@ -253,6 +274,13 @@ public class OpenXmlWordParagraphTextReaderTests {
             byte[] documentBytes = encoding.GetPreamble().Concat(encoding.GetBytes(document)).ToArray();
             Write(archive, documentPath, documentBytes, compression);
             if (extraMember != null) Write(archive, extraMember, documentBytes, compression);
+            if (extraPart is { } part) {
+                Write(archive, part.Path, Encoding.UTF8.GetBytes(part.Xml), compression);
+                string documentRelationships = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">"
+                    + "<Relationship Id=\"rIdExtra\" Type=\"" + part.RelationshipType + "\" Target=\"" + Path.GetFileName(part.Path) + "\"/></Relationships>";
+                Write(archive, Path.GetDirectoryName(documentPath)!.Replace('\\', '/') + "/_rels/" + Path.GetFileName(documentPath) + ".rels",
+                    Encoding.UTF8.GetBytes(documentRelationships), compression);
+            }
         }
         return stream.ToArray();
     }

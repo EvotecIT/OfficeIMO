@@ -78,6 +78,9 @@ internal sealed partial class OfficeXmlPullReader {
         _data = data;
         _position = start;
         _end = length;
+        // XML is decoded only where a caller asks for text, so the whole part is checked once here: malformed UTF-8 in
+        // markup, comments or skipped content must fail like it does in an XML reader.
+        if (!IsValidUtf8(data, start, length - start)) throw Malformed("The part is not valid UTF-8.");
     }
 
     /// <summary>The namespace table shared by readers of the same package.</summary>
@@ -318,6 +321,23 @@ internal sealed partial class OfficeXmlPullReader {
             return;
         }
         throw Malformed("The part contains a character XML does not allow.");
+    }
+
+    private static bool IsValidUtf8(byte[] data, int start, int count) {
+#if NET8_0_OR_GREATER
+        return System.Text.Unicode.Utf8.IsValid(new ReadOnlySpan<byte>(data, start, count));
+#else
+        // ASCII runs are skipped quickly; anything else is decoded once with the strict decoder.
+        int index = start, end = start + count;
+        while (index < end && data[index] < 0x80) index++;
+        if (index == end) return true;
+        try {
+            StrictUtf8.GetCharCount(data, index, end - index);
+            return true;
+        } catch (DecoderFallbackException) {
+            return false;
+        }
+#endif
     }
 
     /// <summary>
