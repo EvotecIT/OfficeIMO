@@ -65,6 +65,23 @@ public sealed class ReaderInputLimitTests {
         Assert.Equal(payload, ((MemoryStream)preparedAsync).ToArray());
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task PublicSnapshotDoesNotTransferItsBuffer(bool asynchronous) {
+        byte[] payload = { 0x15, 0x26, 0x37 };
+        using var source = new MemoryStream(payload, writable: false);
+        using Stream privateSnapshot = ReaderInputLimits.EnsureSeekableReadStream(
+            source, payload.Length, inputLimitProbe: null, CancellationToken.None, out _);
+        Assert.True(ReaderInputLimits.TryGetOwnedSnapshotMemory(privateSnapshot, out ReadOnlyMemory<byte> owned));
+        Assert.Equal(payload, owned.ToArray());
+
+        using Stream publicSnapshot = asynchronous
+            ? await ReaderInputLimits.EnsureSeekableReadStreamAsync(source, payload.Length)
+            : ReaderInputLimits.EnsureSeekableReadStream(source, payload.Length, CancellationToken.None, out _);
+        Assert.False(ReaderInputLimits.TryGetOwnedSnapshotMemory(publicSnapshot, out _));
+    }
+
     private sealed class ForwardOnlyStream : Stream {
         private readonly MemoryStream _inner;
 
