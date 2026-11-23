@@ -90,17 +90,24 @@ if (-not $WorkDirectory) { $WorkDirectory = Join-Path $package '.build/engine' }
 Install-Engine $WorkDirectory
 
 if ($CacheDirectory) {
-    # Copied into a staging folder and renamed once complete, so an interrupted copy never looks like a cache hit.
+    # Copied into this run's own staging folder and renamed once complete, so an interrupted copy never looks like a
+    # cache hit and two builds of the same key don't remove each other's copy.
     $entry = Join-Path $CacheDirectory $key
-    $staging = "$entry.tmp"
-    if (Test-Path $staging) { Remove-Item -Recurse -Force $staging }
-    New-Item -ItemType Directory -Force $staging | Out-Null
-    Copy-Item -Recurse $framework (Join-Path $staging 'OfficeIMOStudioEngine.xcframework')
-    Copy-Item -Recurse $inputs (Join-Path $staging 'link-inputs')
-    if (Test-Path $entry) { Remove-Item -Recurse -Force $entry }
-    Move-Item $staging $entry
+    $staging = "$entry.$([guid]::NewGuid().ToString('N')).tmp"
+    try {
+        New-Item -ItemType Directory -Force $staging | Out-Null
+        Copy-Item -Recurse $framework (Join-Path $staging 'OfficeIMOStudioEngine.xcframework')
+        Copy-Item -Recurse $inputs (Join-Path $staging 'link-inputs')
+        if (Test-Path $entry) { Remove-Item -Recurse -Force $entry }
+        Move-Item $staging $entry
+    } finally {
+        if (Test-Path $staging) { Remove-Item -Recurse -Force $staging }
+    }
     Get-ChildItem -Directory $CacheDirectory | Where-Object Name -NotLike '*.tmp' |
         Sort-Object LastWriteTimeUtc -Descending | Select-Object -Skip 3 |
+        ForEach-Object { Remove-Item -Recurse -Force $_.FullName }
+    # A run that was killed mid-copy leaves its staging folder; one a day old is no longer in use.
+    Get-ChildItem -Directory $CacheDirectory -Filter '*.tmp' | Where-Object LastWriteTimeUtc -LT ([datetime]::UtcNow.AddDays(-1)) |
         ForEach-Object { Remove-Item -Recurse -Force $_.FullName }
 }
 Write-Host "Built the engine for this checkout ($($key.Substring(0, 12)))."
