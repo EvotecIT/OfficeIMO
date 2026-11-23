@@ -3,71 +3,6 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class Excel {
-        [Fact]
-        public void WorksheetCompression_PropagatesWorkerFailureWithoutReplay() {
-            using var destination = new PartiallyFailingXlsbRecordStream(rejectSecondWrite: true);
-            using var pipeline = new WorksheetCompressionPipeline(destination);
-            byte[] payload = new byte[4 * WorksheetCompressionPipeline.ChunkSize];
-            IOException error = Assert.Throws<IOException>(() => {
-                pipeline.Write(payload, 0, payload.Length);
-                pipeline.Complete();
-            });
-            Assert.Same(destination.InitialFailure, error);
-            pipeline.Dispose();
-            Assert.Equal(1, destination.WriteAttempts);
-            Assert.Equal(8, destination.Length);
-        }
-
-        [Fact]
-        public async Task WorksheetCompression_AbortKeepsProducerFailureAndJoinsConsumer() {
-            using var destination = new GatedCompressionFailureStream();
-            using var producerFailed = new ManualResetEventSlim();
-            var initial = new InvalidOperationException("Producer validation failure.");
-            Task release = Task.Run(() => {
-                Assert.True(producerFailed.Wait(TimeSpan.FromSeconds(10)));
-                destination.Release.Set();
-            });
-            try {
-                Exception error = Assert.Throws<InvalidOperationException>((Action)(() => {
-                    using var pipeline = new WorksheetCompressionPipeline(destination);
-                    byte[] payload = new byte[WorksheetCompressionPipeline.ChunkSize];
-                    pipeline.Write(payload, 0, payload.Length);
-                    Assert.True(destination.Entered.Wait(TimeSpan.FromSeconds(10)));
-                    producerFailed.Set();
-                    throw initial;
-                }));
-                Assert.Same(initial, error);
-                Assert.True(destination.Finished);
-                Assert.Equal(1, destination.WriteAttempts);
-            } finally {
-                producerFailed.Set();
-                destination.Release.Set();
-                await release;
-            }
-        }
-
-        [Fact]
-        public void WorksheetCompression_KeepsByteOrderWhenCallerAndBackgroundShareWrites() {
-            // The caller writes queued chunks itself whenever the background drain has not run yet,
-            // so both threads take turns on one destination across entries.
-            byte[] payload = new byte[24 * WorksheetCompressionPipeline.ChunkSize + 12_345];
-            for (int i = 0; i < payload.Length; i++) payload[i] = (byte)(i * 31 % 251);
-            for (int attempt = 0; attempt < 8; attempt++) {
-                var first = new MemoryStream();
-                var second = new MemoryStream();
-                using (var pipeline = new WorksheetCompressionPipeline(first)) {
-                    for (int offset = 0; offset < payload.Length; offset += 100_003)
-                        pipeline.Write(payload, offset, Math.Min(100_003, payload.Length - offset));
-                    pipeline.Drain();
-                    pipeline.Retarget(second);
-                    pipeline.Write(payload, 0, payload.Length);
-                    pipeline.Complete();
-                }
-                Assert.Equal(payload, first.ToArray());
-                Assert.Equal(payload, second.ToArray());
-            }
-        }
-
         [Theory]
         [InlineData(ExcelFileFormat.Xlsb, 4095, ExcelExecutionMode.Automatic, null, false)]
         [InlineData(ExcelFileFormat.Xlsb, 4096, ExcelExecutionMode.Automatic, null, false)]
@@ -151,25 +86,6 @@ namespace OfficeIMO.Tests {
             public override void WriteByte(byte value) {
                 RecordWrite();
                 base.WriteByte(value);
-            }
-        }
-
-        private sealed class GatedCompressionFailureStream : MemoryStream {
-            internal readonly ManualResetEventSlim Entered = new();
-            internal readonly ManualResetEventSlim Release = new();
-            internal int WriteAttempts;
-            internal bool Finished;
-            public override void Write(byte[] buffer, int offset, int count) {
-                WriteAttempts++;
-                Entered.Set();
-                try {
-                    if (!Release.Wait(TimeSpan.FromSeconds(10))) throw new TimeoutException("Consumer gate was not released.");
-                    throw new IOException("Consumer write failure.");
-                } finally { Finished = true; }
-            }
-            protected override void Dispose(bool disposing) {
-                if (disposing) { Entered.Dispose(); Release.Dispose(); }
-                base.Dispose(disposing);
             }
         }
     }

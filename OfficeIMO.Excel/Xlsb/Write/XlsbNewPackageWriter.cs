@@ -141,12 +141,10 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 ? new XlsbPackageBuffer()
                 : new MemoryStream(XlsbWorksheetPartWriter.EstimateDirectWorksheetCapacity(source));
             using (ExcelPackageArchive archive = ExcelPackageArchive.Create(package, ReproducibleEntryTime.DateTime)) {
-                using (Stream output = archive.OpenEntry("xl/worksheets/sheet1.bin", CompressionLevel.Fastest)) {
-                    using var pipeline = pooledSnapshot && source.Rows.RowCount >= 4096
-                        && document.Execution.AllowsBackgroundProcessing ? new WorksheetCompressionPipeline(output) : null;
+                using (Stream output = archive.OpenEntry("xl/worksheets/sheet1.bin", CompressionLevel.Fastest,
+                    pooledSnapshot && source.Rows.RowCount >= 4096 && document.Execution.AllowsBackgroundProcessing)) {
                     if (!XlsbWorksheetPartWriter.TryWriteDirectTabular(
-                        dateSystem, sheet, source, pipeline ?? output, cancellationToken, sharedStrings)) return false;
-                    pipeline?.Complete();
+                        dateSystem, sheet, source, output, cancellationToken, sharedStrings)) return false;
                 }
 
                 // Dates can add styles and text can populate the shared-string table

@@ -44,13 +44,13 @@ internal sealed class ExcelZipWriter : ExcelPackageArchive {
         _sink = new CountingSink(this);
     }
 
-    internal override Stream OpenEntry(string name, CompressionLevel level) {
+    internal override Stream OpenEntry(string name, CompressionLevel level, bool background = false) {
         if (_closed) throw new ObjectDisposedException(nameof(ExcelZipWriter));
         if (_current != null) throw new InvalidOperationException("Close the previous package entry before opening another.");
         if (_faulted) throw new InvalidOperationException("A package entry failed; the archive cannot take more entries.");
         var part = new Part(name, level);
         if (!_seekable) part.Flags |= DescriptorFlag;
-        return _current = new PartStream(this, part);
+        return _current = new PartStream(this, part, background && ExcelExecutionPolicy.SupportsBackgroundProcessing);
     }
 
 #if NET8_0_OR_GREATER
@@ -102,12 +102,12 @@ internal sealed class ExcelZipWriter : ExcelPackageArchive {
     }
 
     private sealed class PreparingStream(MemoryStream output) : Stream {
+        // Parts are prepared several at once already, so each encodes its regions on its own thread.
         private readonly ExcelDeflateEncoder _encoder = new(output);
-        private uint _crc = OfficePngCrc32.Begin();
         private bool _completed;
 
-        internal uint Crc => OfficePngCrc32.Complete(_crc);
-        internal long Size { get; private set; }
+        internal uint Crc => _encoder.Crc;
+        internal long Size => _encoder.Size;
 
         public override void Write(byte[] buffer, int offset, int count) {
             ValidateBufferArguments(buffer, offset, count);
@@ -116,8 +116,6 @@ internal sealed class ExcelZipWriter : ExcelPackageArchive {
 
         public override void Write(ReadOnlySpan<byte> buffer) {
             if (_completed) throw new ObjectDisposedException(nameof(PreparingStream));
-            _crc = OfficePngCrc32.Append(_crc, buffer);
-            Size += buffer.Length;
             _encoder.Write(buffer);
         }
 
@@ -149,7 +147,6 @@ internal sealed class ExcelZipWriter : ExcelPackageArchive {
     public override void Dispose() {
         if (_closed) return;
         _closed = true;
-        AbandonCompression();
         if (_current != null || _faulted) return;
         long directoryStart = _offset;
         using var directory = new MemoryStream(64 + _parts.Count * 80);
@@ -337,7 +334,8 @@ internal sealed class ExcelZipWriter : ExcelPackageArchive {
     }
 
     /// <summary>Hashes and compresses one entry as it is written; dispose completes it.</summary>
-    private sealed class PartStream(ExcelZipWriter owner, Part part) : Stream {
+    /// <remarks>The owned encoder hashes what it compresses, on the threads that compress it.</remarks>
+    private sealed class PartStream(ExcelZipWriter owner, Part part, bool background) : Stream {
         private ExcelDeflateEncoder? _encoder;
         private DeflateStream? _deflate;
         private uint _crc = OfficePngCrc32.Begin();
@@ -356,10 +354,13 @@ internal sealed class ExcelZipWriter : ExcelPackageArchive {
             if (_disposed) throw new ObjectDisposedException(nameof(PartStream));
             try {
                 Start();
+                if (_encoder != null) {
+                    _encoder.Write(buffer);
+                    return;
+                }
                 _crc = OfficePngCrc32.Append(_crc, buffer);
                 _size += buffer.Length;
-                if (_encoder != null) _encoder.Write(buffer);
-                else if (_deflate != null) _deflate.Write(buffer);
+                if (_deflate != null) _deflate.Write(buffer);
                 else owner._sink.Write(buffer);
             } catch {
                 _failed = true;
@@ -373,10 +374,13 @@ internal sealed class ExcelZipWriter : ExcelPackageArchive {
             if (_disposed) throw new ObjectDisposedException(nameof(PartStream));
             try {
                 Start();
+                if (_encoder != null) {
+                    _encoder.Write(new ReadOnlySpan<byte>(buffer, offset, count));
+                    return;
+                }
                 _crc = OfficePngCrc32.Append(_crc, buffer, offset, count);
                 _size += count;
-                if (_encoder != null) _encoder.Write(new ReadOnlySpan<byte>(buffer, offset, count));
-                else if (_deflate != null) _deflate.Write(buffer, offset, count);
+                if (_deflate != null) _deflate.Write(buffer, offset, count);
                 else owner._sink.Write(buffer, offset, count);
             } catch {
                 _failed = true;
@@ -390,7 +394,7 @@ internal sealed class ExcelZipWriter : ExcelPackageArchive {
             owner.WriteLocalHeader(part);
             _contentStart = owner._offset;
             if (part.Method == Stored) return;
-            if (part.Level == CompressionLevel.Fastest) _encoder = new ExcelDeflateEncoder(owner._sink);
+            if (part.Level == CompressionLevel.Fastest) _encoder = new ExcelDeflateEncoder(owner._sink, background);
             else _deflate = new DeflateStream(owner._sink, part.Level, leaveOpen: true);
         }
 
@@ -408,8 +412,8 @@ internal sealed class ExcelZipWriter : ExcelPackageArchive {
                     owner.FailPart();
                     throw;
                 }
-                part.Crc = OfficePngCrc32.Complete(_crc);
-                part.Size = _size;
+                part.Crc = _encoder?.Crc ?? OfficePngCrc32.Complete(_crc);
+                part.Size = _encoder?.Size ?? _size;
                 part.CompressedSize = owner._offset - _contentStart;
                 owner.CompletePart(part);
             } finally {
