@@ -2,6 +2,7 @@ namespace OfficeIMO.Archives;
 
 /// <summary>Finite limits for verified, in-memory ZIP member reads.</summary>
 public sealed class ArchiveReadOptions {
+    internal const int DefaultMaxEntryBytes = 16 * 1024 * 1024;
     /// <summary>Optional cumulative budget shared with related and nested archive operations.</summary>
     public ArchiveOperationBudget? OperationBudget { get; set; }
     /// <summary>Explicit code page for unflagged non-ASCII ZIP names. Null retains strict ASCII/UTF-8 admission;
@@ -13,7 +14,7 @@ public sealed class ArchiveReadOptions {
     /// <summary>Maximum physical members, including directories and unselected files.</summary>
     public int MaxEntryCount { get; set; } = 10000;
     /// <summary>Maximum declared size of any member, selected or not. Defaults to 16 MiB. Selected in-memory members are also bounded by Int32.MaxValue.</summary>
-    public long MaxEntryBytes { get; set; } = 16L * 1024 * 1024;
+    public long MaxEntryBytes { get; set; } = DefaultMaxEntryBytes;
     /// <summary>Maximum aggregate selected content retained in the result. Defaults to 64 MiB.</summary>
     public long MaxExpandedBytes { get; set; } = 64L * 1024 * 1024;
     /// <summary>Maximum member path segments.</summary>

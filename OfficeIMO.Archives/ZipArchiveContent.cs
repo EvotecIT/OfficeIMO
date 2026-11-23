@@ -6,6 +6,7 @@ namespace OfficeIMO.Archives;
 internal static class ZipArchiveContent {
     private const ushort ZipStored = 0;
     private const ushort ZipDeflate = 8;
+    private const string MemberLengthMismatch = "ZIP member length does not match its declaration.";
 
     internal static void Read(Stream source, ArchiveLimits limits, Action<string, Stream, long> consume, CancellationToken token) {
         // Scan metadata before opening payloads. Raw compressed windows avoid runtime-specific decoded-size clamps;
@@ -97,15 +98,22 @@ internal static class ZipArchiveContent {
     internal static byte[] ReadVerified(Stream source, OfficeArchiveSafety.ZipCentralDirectoryRecord record, CancellationToken token) {
         if (record.UncompressedSize > int.MaxValue) throw ArchiveLimits.Exceeded("MaxEntryBytes", int.MaxValue);
         using var payload = new Crc32ReadStream(OfficeArchiveSafety.OpenEntryPayload(source, record, token), record.UncompressedSize, token);
-        var result = new byte[(int)record.UncompressedSize];
+        byte[] result = ReadDeclaredPayload(payload, (int)record.UncompressedSize, token,
+            "ZIP member is shorter than its declared length.");
+        payload.VerifyComplete();
+        if (payload.Crc32 != record.Crc32) throw new InvalidDataException("ZIP member checksum does not match.");
+        return result;
+    }
+
+    internal static byte[] ReadDeclaredPayload(Stream payload, int length, CancellationToken token,
+        string shortReadMessage = MemberLengthMismatch) {
+        var result = length == 0 ? Array.Empty<byte>() : new byte[length];
         for (int offset = 0; offset < result.Length;) {
             token.ThrowIfCancellationRequested();
             int read = payload.Read(result, offset, Math.Min(65536, result.Length - offset));
-            if (read == 0) throw new InvalidDataException("ZIP member is shorter than its declared length.");
+            if (read == 0) throw new InvalidDataException(shortReadMessage);
             offset += read;
         }
-        payload.VerifyComplete();
-        if (payload.Crc32 != record.Crc32) throw new InvalidDataException("ZIP member checksum does not match.");
         return result;
     }
 
@@ -118,7 +126,7 @@ internal static class ZipArchiveContent {
         private long _read;
         internal Crc32ReadStream(Stream inner, long declared, CancellationToken token) { _inner = inner; _declared = declared; _token = token; }
         internal void VerifyComplete() {
-            if (ReadByte() != -1 || _read != _declared) throw new InvalidDataException("ZIP member length does not match its declaration.");
+            if (ReadByte() != -1 || _read != _declared) throw new InvalidDataException(MemberLengthMismatch);
         }
         internal uint Crc32 => OfficePngCrc32.Complete(_crc);
         public override bool CanRead => true;
