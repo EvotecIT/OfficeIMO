@@ -24,14 +24,18 @@ internal sealed class InvoicePreservedXml {
     internal bool HasXmlSignature => _document.Descendants(Dsig + "Signature").Any();
 
     internal static InvoicePreservedXml Load(byte[] xml) {
-#if NET6_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(xml);
-#else
-        ArgumentNullException.ThrowIfNull(xml);
-#endif
-        if (xml.Length == 0 || xml.Length > InvoiceProfileDeclaration.MaximumXmlBytes)
+        ValidateLength(xml);
+        return LoadOwned((byte[])xml.Clone());
+    }
+
+    private static void ValidateLength(byte[] bytes) {
+        if (bytes.Length == 0 || bytes.Length > InvoiceProfileDeclaration.MaximumXmlBytes)
             throw new InvalidDataException("Invoice XML must contain between 1 byte and 16 MiB.");
-        byte[] bytes = (byte[])xml.Clone();
+    }
+
+    private static InvoicePreservedXml LoadOwned(byte[] bytes) {
+        ValidateLength(bytes);
         XDocument document = InvoiceXml.Parse(bytes, InvoiceXml.MaximumNodes, InvoiceXml.MaximumAttributes);
         XName? root = document.Root?.Name;
         if (root != InvoiceXml.Rsm + "CrossIndustryInvoice" && root != InvoiceXml.UblInvoice + "Invoice" && root != InvoiceXml.UblCreditNote + "CreditNote")
@@ -41,11 +45,7 @@ internal sealed class InvoicePreservedXml {
 
     internal byte[] ToBytes() => (byte[])_bytes.Clone();
     internal static InvoicePreservedXml Load(Stream stream) {
-#if NET6_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(stream);
-#else
-        ArgumentNullException.ThrowIfNull(stream);
-#endif
         if (!stream.CanRead) throw new ArgumentException("Invoice XML stream must be readable.", nameof(stream));
         using (var buffer = new MemoryStream()) {
             byte[] chunk = new byte[8192];
@@ -55,7 +55,7 @@ internal sealed class InvoicePreservedXml {
                 buffer.Write(chunk, 0, count);
                 if (buffer.Length > InvoiceProfileDeclaration.MaximumXmlBytes) throw new InvalidDataException("Invoice XML exceeds the maximum byte length.");
             }
-            return Load(buffer.ToArray());
+            return LoadOwned(buffer.ToArray());
         }
     }
     internal string? Read(InvoiceSourceField field) {
@@ -101,7 +101,7 @@ internal sealed class InvoicePreservedXml {
         foreach (var target in targets) target.Element.Value = target.Value;
         using (var stream = new InvoiceXmlOutputStream()) {
             using (XmlWriter writer = XmlWriter.Create(stream, new XmlWriterSettings { Encoding = new UTF8Encoding(false), Indent = false, NewLineHandling = NewLineHandling.Entitize })) copy.Save(writer);
-            return Load(stream.ToArray());
+            return LoadOwned(stream.ToArray());
         }
     }
 
