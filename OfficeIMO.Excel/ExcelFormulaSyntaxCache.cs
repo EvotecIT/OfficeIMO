@@ -1,13 +1,14 @@
 namespace OfficeIMO.Excel {
     /// <summary>
-    /// Formula syntax a workbook's calculation passes reuse: function calls, argument lists and compiled scalar
-    /// expressions, each keyed by the exact text it was parsed from. Every entry is determined by its text alone, so
-    /// an edited formula, being new text, is parsed afresh and an old entry is never wrong, only unused.
+    /// Formula syntax a workbook's calculation passes reuse: function calls, argument lists, compiled scalar
+    /// expressions and reference coordinates, each keyed by the exact text it was parsed from. Every entry is
+    /// determined by its text alone, so an edited formula, being new text, is parsed afresh and an old entry is never
+    /// wrong, only unused.
     /// A pass installs the cache for its thread while it holds the workbook's write lock; evaluation outside a pass
     /// parses as before. The cache is cleared once it holds too much text, so a long-lived workbook stays bounded.
     /// </summary>
     internal sealed class ExcelFormulaSyntaxCache {
-        private const int MaximumEntries = 131072;
+        private const int MaximumEntries = 524288;
         private const long MaximumKeyCharacters = 8L * 1024 * 1024;
 
         [ThreadStatic]
@@ -17,6 +18,7 @@ namespace OfficeIMO.Excel {
         private readonly Dictionary<string, string[]> _arguments = new(StringComparer.Ordinal);
         private readonly Dictionary<string, string[]> _argumentsWithEmpty = new(StringComparer.Ordinal);
         private readonly Dictionary<string, object?> _scalars = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, ExcelSheet.FormulaReferenceSyntax> _references = new(StringComparer.Ordinal);
         private int _entries;
         private long _keyCharacters;
 
@@ -53,12 +55,20 @@ namespace OfficeIMO.Excel {
             _scalars[text] = compiled;
         }
 
+        internal bool TryGetReference(string text, out ExcelSheet.FormulaReferenceSyntax syntax) => _references.TryGetValue(text, out syntax);
+
+        internal void AddReference(string text, ExcelSheet.FormulaReferenceSyntax syntax) {
+            Reserve(text);
+            _references[text] = syntax;
+        }
+
         private void Reserve(string text) {
             if (_entries >= MaximumEntries || _keyCharacters + text.Length > MaximumKeyCharacters) {
                 _calls.Clear();
                 _arguments.Clear();
                 _argumentsWithEmpty.Clear();
                 _scalars.Clear();
+                _references.Clear();
                 _entries = 0;
                 _keyCharacters = 0;
             }
