@@ -90,12 +90,17 @@ if (-not $WorkDirectory) { $WorkDirectory = Join-Path $package '.build/engine' }
 Install-Engine $WorkDirectory
 
 if ($CacheDirectory) {
+    # Copied into a staging folder and renamed once complete, so an interrupted copy never looks like a cache hit.
     $entry = Join-Path $CacheDirectory $key
+    $staging = "$entry.tmp"
+    if (Test-Path $staging) { Remove-Item -Recurse -Force $staging }
+    New-Item -ItemType Directory -Force $staging | Out-Null
+    Copy-Item -Recurse $framework (Join-Path $staging 'OfficeIMOStudioEngine.xcframework')
+    Copy-Item -Recurse $inputs (Join-Path $staging 'link-inputs')
     if (Test-Path $entry) { Remove-Item -Recurse -Force $entry }
-    New-Item -ItemType Directory -Force $entry | Out-Null
-    Copy-Item -Recurse $framework (Join-Path $entry 'OfficeIMOStudioEngine.xcframework')
-    Copy-Item -Recurse $inputs (Join-Path $entry 'link-inputs')
-    Get-ChildItem -Directory $CacheDirectory | Sort-Object LastWriteTimeUtc -Descending | Select-Object -Skip 3 |
+    Move-Item $staging $entry
+    Get-ChildItem -Directory $CacheDirectory | Where-Object Name -NotLike '*.tmp' |
+        Sort-Object LastWriteTimeUtc -Descending | Select-Object -Skip 3 |
         ForEach-Object { Remove-Item -Recurse -Force $_.FullName }
 }
 Write-Host "Built the engine for this checkout ($($key.Substring(0, 12)))."
