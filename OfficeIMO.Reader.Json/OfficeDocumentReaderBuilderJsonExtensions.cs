@@ -25,6 +25,7 @@ public static class OfficeDocumentReaderBuilderJsonExtensions {
         JsonReadOptions? registered = Clone(jsonOptions);
         return new ReaderHandlerRegistration {
             Origin = ReaderHandlerOrigin.OfficeIMO,
+            AcceptsOwnedSnapshot = true,
             Id = HandlerId,
             DisplayName = "JSON Reader Adapter",
             Description = "Modular JSON AST parser with path/type/value chunk output.",
