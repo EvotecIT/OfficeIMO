@@ -128,6 +128,7 @@ internal static class WordReaderAdapter {
         var chunks = new List<ReaderChunk>();
         IReadOnlyList<OfficeDocumentAsset> assets = lean ? Array.Empty<OfficeDocumentAsset>() : OpenXmlImageAssetCollector.CollectWord(
             document.OpenXmlDocument, sourceName, readerOptions, options.IncludeFootnotes, cancellationToken);
+        string chunkIdPrefix = "word:" + Path.GetFileName(sourceName) + ":";
         int blockIndex = 0;
         int tableIndex = 0;
         int imageIndex = 0;
@@ -145,7 +146,7 @@ internal static class WordReaderAdapter {
                     int representationIndex = 0;
                     foreach (ParagraphRepresentation representation in representations) {
                         chunks.Add(new ReaderChunk {
-                            Id = $"word:{Path.GetFileName(sourceName)}:b{blockIndex.ToString("D4", CultureInfo.InvariantCulture)}",
+                            Id = chunkIdPrefix + "b" + blockIndex.ToString("D4", CultureInfo.InvariantCulture),
                             Kind = ReaderInputKind.Word,
                             Location = new ReaderLocation {
                                 Path = sourceName,
@@ -173,7 +174,7 @@ internal static class WordReaderAdapter {
                         readerOptions.MaxTableRows);
                     string? markdown = lean ? null : RenderTable(readerTable);
                     chunks.Add(new ReaderChunk {
-                        Id = $"word:{Path.GetFileName(sourceName)}:table:{tableIndex.ToString("D4", CultureInfo.InvariantCulture)}",
+                        Id = chunkIdPrefix + "table:" + tableIndex.ToString("D4", CultureInfo.InvariantCulture),
                         Kind = ReaderInputKind.Word,
                         Location = readerTable.Location!,
                         Text = string.Join(Environment.NewLine, readerTable.Rows.Select(static row => string.Join("\t", row))),
@@ -208,6 +209,8 @@ internal static class WordReaderAdapter {
     private static IReadOnlyList<ParagraphRepresentation> BuildPlainParagraphRepresentations(WordParagraphInfo paragraph, int maxChars) {
         string text = paragraph.Text ?? string.Empty;
         int limit = Math.Max(256, maxChars);
+        if (text.Length == 0) return Array.Empty<ParagraphRepresentation>();
+        if (text.Length <= limit) return new[] { new ParagraphRepresentation(text, string.Empty) };
         var result = new List<ParagraphRepresentation>();
         for (int offset = 0; offset < text.Length;) {
             int length = GetUnicodeSafeLength(text, offset, Math.Min(limit, text.Length - offset));

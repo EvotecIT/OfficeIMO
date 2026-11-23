@@ -10,9 +10,11 @@ namespace OfficeIMO.Word {
         private readonly HashSet<int> _usedSdtIds = new();
         private int _nextSdtId = 1;
         private readonly object _sdtIdLock = new();
+        private bool _sdtIdsScanned;
 
         internal int GenerateSdtId() {
             lock (_sdtIdLock) {
+                EnsureExistingSdtIdsScanned();
                 if (_usedSdtIds.Count >= MaxSdtId) {
                     throw new InvalidOperationException("All available SDT identifiers are exhausted.");
                 }
@@ -41,18 +43,25 @@ namespace OfficeIMO.Word {
             lock (_sdtIdLock) {
                 _usedSdtIds.Clear();
                 _nextSdtId = 1;
+                _sdtIdsScanned = false;
+            }
+        }
 
-                foreach (var id in EnumerateExistingSdtIds()) {
-                    if (id <= 0) {
-                        continue;
-                    }
+        // Reading a document never needs new identifiers, so the existing ones are collected when the first one is generated.
+        private void EnsureExistingSdtIdsScanned() {
+            if (_sdtIdsScanned) return;
+            foreach (var id in EnumerateExistingSdtIds()) {
+                if (id <= 0) {
+                    continue;
+                }
 
-                    _usedSdtIds.Add(id);
-                    if (id >= _nextSdtId) {
-                        _nextSdtId = id >= MaxSdtId ? 1 : id + 1;
-                    }
+                _usedSdtIds.Add(id);
+                if (id >= _nextSdtId) {
+                    _nextSdtId = id >= MaxSdtId ? 1 : id + 1;
                 }
             }
+            // Marked only after every part was read, so a scan that throws is retried on the next id.
+            _sdtIdsScanned = true;
         }
 
         private IEnumerable<int> EnumerateExistingSdtIds() {

@@ -133,7 +133,8 @@ namespace OfficeIMO.Word {
         internal RunProperties? _runProperties {
             get {
                 if (_run is not null) {
-                    return _run.RunProperties;
+                    // GetFirstChild instead of the typed getter, which allocates on every read.
+                    return _run.GetFirstChild<RunProperties>();
                 }
 
                 return null;
@@ -148,7 +149,7 @@ namespace OfficeIMO.Word {
         internal Text? _text {
             get {
                 if (_run != null) {
-                    return _run.ChildElements.OfType<Text>().FirstOrDefault();
+                    return _run.GetFirstChild<Text>();
                 }
 
                 return null;
@@ -160,8 +161,8 @@ namespace OfficeIMO.Word {
 
         internal ParagraphProperties? _paragraphProperties {
             get {
-                // One typed lookup: each ParagraphProperties read searches the paragraph's children again.
-                return _paragraph?.ParagraphProperties;
+                // GetFirstChild instead of the typed getter, which allocates on every read.
+                return _paragraph?.GetFirstChild<ParagraphProperties>();
             }
         }
 
@@ -185,7 +186,7 @@ namespace OfficeIMO.Word {
             }
             set {
                 if (!value.HasValue) {
-                    _paragraphProperties?.NumberingProperties?.NumberingLevelReference?.Remove();
+                    _paragraphProperties?.GetFirstChild<NumberingProperties>()?.GetFirstChild<NumberingLevelReference>()?.Remove();
                     return;
                 }
 
@@ -244,7 +245,7 @@ namespace OfficeIMO.Word {
         /// </remarks>
         public WordParagraphStyles? Style {
             get {
-                string? styleId = _paragraphProperties?.ParagraphStyleId?.Val?.Value;
+                string? styleId = _paragraphProperties?.GetFirstChild<ParagraphStyleId>()?.Val?.Value;
                 if (styleId == null) return null;
                 return WordParagraphStyle.GetStyle(_document?.GetBuiltInStyleId(styleId) ?? styleId);
             }
