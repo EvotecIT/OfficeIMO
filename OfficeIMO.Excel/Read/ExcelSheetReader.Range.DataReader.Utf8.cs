@@ -106,6 +106,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (TryCreateStreamingUsedRange(owner, ct, out source, out declaredFirstColumn)) return true;
+                if (TryCreateWindowedUsedRange(owner, ct, out source, out declaredFirstColumn)) return true;
                 byte[]? buffer = null;
                 bool validatedIndexedXml = false;
                 try {
@@ -464,6 +465,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 StopStreaming();
+                DisposePartWindow();
                 _disposed = true;
                 ReleaseSharedMappingStorage();
                 if (_buffer != null) {
@@ -601,7 +603,7 @@ namespace OfficeIMO.Excel {
                 int nextImplicitRow = 1;
                 int previousRow = 0;
                 bool repeatedRowShapeValidated = false;
-                while (position < _length || TryAdvanceInflation(ct)) {
+                while (position < _length || TryAdvanceInflation(ref position, ct)) {
                     ct.ThrowIfCancellationRequested();
                     SkipWhitespaceBetweenRows(ref position);
                     if (_parallelIndex != null && position >= _parallelIndex.NextBoundary
@@ -1126,7 +1128,7 @@ namespace OfficeIMO.Excel {
             /// </summary>
             private bool InheritedDisplayStylesPossible() {
                 if (_inheritedDisplayStylesPossible < 0) {
-                    bool rowStyles = _streaming || _buffer!.AsSpan(0, _length).IndexOf(CustomFormatAttributeName) >= 0;
+                    bool rowStyles = _streaming || _windowedPart || _buffer!.AsSpan(0, _length).IndexOf(CustomFormatAttributeName) >= 0;
                     _inheritedDisplayStylesPossible = rowStyles || _owner.HasFormattedColumnStyles ? 1 : 0;
                 }
                 return _inheritedDisplayStylesPossible == 1;

@@ -27,6 +27,23 @@ namespace OfficeIMO.Excel {
                 || entry.Length < 1_048_576 || entry.Length > maximumBytes || entry.Length > int.MaxValue
                 || entry.CompressedLength >= entry.Length) return false;
             int total = checked((int)entry.Length);
+            // The indexing worker counts against the process-wide read budget. When concurrent readers
+            // already use it, this reader inflates and indexes on its own thread instead.
+            if (ExcelParallelReadBudget.Reserve(1) == 0) return false;
+            try {
+                return TryReadPipelinedCore(entry, normalized, total, ct, consume, out buffer, out length, out consumed);
+            } finally {
+                ExcelParallelReadBudget.Release(1);
+            }
+        }
+
+        private bool TryReadPipelinedCore(
+            System.IO.Compression.ZipArchiveEntry entry, string normalized, int total, CancellationToken ct,
+            Func<byte[], int, WorksheetInflationProgress, bool> consume,
+            out byte[]? buffer, out int length, out bool consumed) {
+            buffer = null;
+            length = 0;
+            consumed = false;
             using Stream input = OpenEntry(entry, ct);
             byte[] prefix = ArrayPool<byte>.Shared.Rent(256);
             byte[]? output = null;

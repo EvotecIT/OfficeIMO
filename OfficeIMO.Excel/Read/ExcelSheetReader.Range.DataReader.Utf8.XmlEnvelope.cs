@@ -10,7 +10,7 @@ namespace OfficeIMO.Excel {
             /// Preserves XmlReader proof for enclosing markup while reusing complete
             /// indexed and character proof for a consistently qualified sheetData subtree.
             /// </summary>
-            private MemoryStream CreateWorksheetXmlValidationStream(CancellationToken ct) {
+            private Stream CreateWorksheetXmlValidationStream(CancellationToken ct) {
 #if NET8_0_OR_GREATER
                 const int maximumEnvelopeBytes = 64 * 1024;
                 int prefixLength = _sheetDataContentStart;
@@ -36,7 +36,16 @@ namespace OfficeIMO.Excel {
                     return new MemoryStream(envelope, writable: false);
                 }
 #endif
+                if (_windowedPart) return OpenWindowedValidationStream(ct);
                 return new MemoryStream(_buffer!, 0, _length, writable: false, publiclyVisible: false);
+            }
+
+            /// <summary>A windowed source no longer holds the whole part, so complete XML proof reads it again.</summary>
+            private Stream OpenWindowedValidationStream(CancellationToken ct) {
+                if (!_owner._partBufferReader!.TryOpenExactPartStream(_owner._worksheetPartName, ct, out Stream? stream)) {
+                    throw new InvalidDataException($"Worksheet '{_owner._sheetName}' could not be reopened for validation.");
+                }
+                return stream!;
             }
         }
     }

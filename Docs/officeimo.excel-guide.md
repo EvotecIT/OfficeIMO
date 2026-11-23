@@ -746,7 +746,12 @@ retains the existing package-part limits, and can be slower for small or simple 
 Enable it only after measuring a representative workbook on the target CPU.
 
 By default an XLSX or XLSB data reader validates the whole worksheet before returning its first
-row, so a malformed workbook fails before any data is consumed.
+row, so a malformed workbook fails before any data is consumed. On .NET 8 and later, XLSX
+worksheets with 64 MB or more of XML are checked through a bounded window and decompressed a
+second time to return rows, so the reader holds a few megabytes of worksheet XML instead of the
+whole part. It still keeps a small position record for each row, and the window grows to fit a
+single row or trailing worksheet content larger than it. This does not apply when `DisplayText`
+or `CellValueConverter` is set.
 `ExcelReaderOptions.EnableSinglePassReading` instead returns rows while the rest of a large
 worksheet is still being decompressed and checked. Every returned row is fully parsed and
 validated. A malformed cell later in the sheet raises the same exception as the default
