@@ -105,7 +105,7 @@ namespace OfficeIMO.Word.Markdown {
                 ApplyHeadingTheme(headingParagraph, _options);
                 string? bookmark = _converter.ResolveHeadingBookmark(block, _options);
                 if (bookmark != null) {
-                    WrapParagraphInBookmark(headingParagraph, bookmark, _options);
+                    WrapParagraphInBookmark(headingParagraph, bookmark);
                 }
             }
 
@@ -409,7 +409,7 @@ namespace OfficeIMO.Word.Markdown {
             }
 
             /// <summary>Surrounds the paragraph content with a bookmark, as Word does for heading targets.</summary>
-            private static void WrapParagraphInBookmark(WordParagraph paragraph, string name, MarkdownWordExportOptions options) {
+            private static void WrapParagraphInBookmark(WordParagraph paragraph, string name) {
                 Paragraph element = paragraph._paragraph;
                 string id = paragraph._document.GetNextBookmarkId().ToString(System.Globalization.CultureInfo.InvariantCulture);
                 var start = new BookmarkStart { Name = name, Id = id };
