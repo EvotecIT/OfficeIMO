@@ -47,6 +47,8 @@ public sealed partial class EpubPublication {
             EpubManifestItem[] analyzed = declarations
                 .Where(item => payloadChanged || !HasMediaType(OriginalManifestItem(item.Id)?.MediaType, item.MediaType))
                 .Where(item => HasMediaType(item.MediaType, "application/xhtml+xml") || HasMediaType(item.MediaType, "image/svg+xml")).ToArray();
+            if (PackageVersion == "3.0")
+                foreach (EpubManifestItem item in declarations.Where(item => !analyzed.Contains(item))) StagePropertyGrowth(item.Element, null);
             bool hasSvg = content.Descendants().Any(element => element.Name.NamespaceName == "http://www.w3.org/2000/svg" && element.Name.LocalName == "svg");
             bool hasMathMl = content.Descendants().Any(element => element.Name.NamespaceName == "http://www.w3.org/1998/Math/MathML");
             foreach (string mediaType in analyzed.Select(item => item.MediaType).Distinct(StringComparer.OrdinalIgnoreCase)) {

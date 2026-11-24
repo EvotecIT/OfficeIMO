@@ -2,12 +2,13 @@ namespace OfficeIMO.Epub;
 
 public sealed partial class EpubPublication {
     // Write derives svg, mathml and remote-resources properties from content, so the package it writes
-    // can be larger (or smaller) than the live one. Each declaration whose content an edit validated
-    // keeps what Write will derive for it, and budget checks subtract the net growth from the limit.
-    // A rejected edit drops what it staged; a declaration whose properties change is re-measured.
+    // can be larger than the live one. Each declaration whose content an edit validated keeps what Write
+    // will derive for it, and budget checks subtract the net growth from the limit. Write serializes the
+    // live package before deriving properties, so net shrinkage earns no credit. A rejected edit drops
+    // what it staged; a declaration whose properties change is re-measured.
     private readonly Dictionary<XElement, (ContentFlags Flags, long Growth)> _propertyGrowth = new();
     private readonly HashSet<XElement> _propertyGrowthChanged = new();
-    private Dictionary<XElement, ContentFlags>? _stagedPropertyGrowth;
+    private Dictionary<XElement, ContentFlags?>? _stagedPropertyGrowth;
     private long _propertyGrowthTotal;
 
     private readonly struct ContentFlags {
@@ -17,8 +18,9 @@ public sealed partial class EpubPublication {
         internal bool Remote { get; }
     }
 
-    private void StagePropertyGrowth(XElement declaration, ContentFlags flags) =>
-        (_stagedPropertyGrowth ??= new Dictionary<XElement, ContentFlags>())[declaration] = flags;
+    // Null flags drop the reservation, for a declaration whose content Write won't analyze again.
+    private void StagePropertyGrowth(XElement declaration, ContentFlags? flags) =>
+        (_stagedPropertyGrowth ??= new Dictionary<XElement, ContentFlags?>())[declaration] = flags;
 
     // Net bytes Write adds to the live package for every validated declaration, including this edit's.
     private long PropertyGrowthAllowance() {
@@ -27,15 +29,21 @@ public sealed partial class EpubPublication {
         if (_stagedPropertyGrowth != null) {
             foreach (var staged in _stagedPropertyGrowth) {
                 if (_propertyGrowth.TryGetValue(staged.Key, out var committed)) total -= committed.Growth;
-                total += PropertyGrowth(staged.Key, staged.Value);
+                if (staged.Value is ContentFlags flags) total += PropertyGrowth(staged.Key, flags);
             }
         }
-        return total;
+        return Math.Max(0, total);
     }
 
     private void CommitPropertyGrowth() {
         if (_stagedPropertyGrowth == null) return;
-        foreach (var staged in _stagedPropertyGrowth) SetPropertyGrowth(staged.Key, staged.Value);
+        foreach (var staged in _stagedPropertyGrowth) {
+            if (staged.Value is ContentFlags flags) SetPropertyGrowth(staged.Key, flags);
+            else if (_propertyGrowth.TryGetValue(staged.Key, out var previous)) {
+                _propertyGrowthTotal -= previous.Growth;
+                _propertyGrowth.Remove(staged.Key);
+            }
+        }
         _stagedPropertyGrowth = null;
     }
 
