@@ -106,7 +106,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 using var snapshot = new MemoryStream();
-                CommitPendingStylesheet();
+                CommitPendingPartStreams();
                 using (_spreadSheetDocument.Clone(snapshot)) { }
                 return OfficeCompatibilitySourceCarrier.TryReadPackage(
                     snapshot.ToArray(),
@@ -512,7 +512,7 @@ namespace OfficeIMO.Excel {
 
         private byte[] CaptureOpenXmlPackageBytesForNativeLegacyXlsReopen() {
             using var snapshot = new MemoryStream();
-            CommitPendingStylesheet();
+            CommitPendingPartStreams();
             using (_spreadSheetDocument.Clone(snapshot)) { }
             return snapshot.ToArray();
         }

@@ -171,6 +171,7 @@ namespace OfficeIMO.Excel {
         }
 
         private Dictionary<string, ExcelHeaderFooterImageInfo> ReadHeaderFooterImages(long maximumTotalSourceImageBytes) {
+            CommitCommentVmlChanges();
             var images = new Dictionary<string, ExcelHeaderFooterImageInfo>(StringComparer.OrdinalIgnoreCase);
             VmlDrawingPart? vmlPart = null;
             try {
@@ -621,6 +622,7 @@ namespace OfficeIMO.Excel {
                 ? (position == ExcelHeaderFooterPosition.Left ? "LH" : position == ExcelHeaderFooterPosition.Center ? "CH" : "RH")
                 : (position == ExcelHeaderFooterPosition.Left ? "LF" : position == ExcelHeaderFooterPosition.Center ? "CF" : "RF");
 
+            CommitCommentVmlChanges();
             XDocument vmlDocument = LoadOrCreateHeaderFooterVmlDocument(vmlPart);
             UpsertHeaderFooterVmlShape(vmlDocument, shapeId, imgRelId, wPt, hPt);
             using (var ms = new MemoryStream()) {

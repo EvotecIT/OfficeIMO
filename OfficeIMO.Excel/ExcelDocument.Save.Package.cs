@@ -39,6 +39,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (skipDirectFastSaveSheetPreparation && IsMaterializedDirectDataSetFastSaveSheet(sheet)) {
+                    sheet.CommitCommentVmlChanges();
                     ReportSaveTiming(stageWatch, "Save.PrepareWorkbook.SkipDirectFastSaveSheet");
                     continue;
                 }

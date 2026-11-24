@@ -38,7 +38,12 @@ namespace OfficeIMO.Excel {
                 if (current) return cached;
             }
 
-            cached = _worksheetPart.TableDefinitionParts.Select(part => (_worksheetPart.GetIdOfPart(part), part)).ToArray();
+            // One pass over the relationships; asking the SDK for each part's id walks them again per table.
+            var parts = new List<(string Id, TableDefinitionPart Part)>();
+            foreach (IdPartPair pair in _worksheetPart.Parts) {
+                if (pair.OpenXmlPart is TableDefinitionPart tablePart) parts.Add((pair.RelationshipId, tablePart));
+            }
+            cached = parts.ToArray();
             _tableDefinitionParts = cached;
             _tableDefinitionPartsList = list;
             _tableDefinitionPartsListCount = count;
@@ -46,32 +51,59 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Every cell write asks whether it lands on a table header, so the header rows of a worksheet's tables are
-        /// indexed by row. The index belongs to the worksheet part and serves while the tableParts list and its last
-        /// child are unchanged and no table range, header count or table part has changed since it was built; code
-        /// that changes those calls <see cref="ExcelDocument.InvalidateTableLayouts"/>. A remembered header is
-        /// confirmed against the live table. Once the package is handed out for direct editing, lookups scan.
+        /// Every cell write asks whether it lands on a table header, and every new table checks the others for overlap,
+        /// so the tables of a worksheet are indexed: header rows by row, every range, the tablePart ids and the widest
+        /// column. The index belongs to the worksheet part and serves while the tableParts list and its last child are
+        /// unchanged and no table range, header count or table part has changed since it was built; code that changes
+        /// those calls <see cref="ExcelDocument.InvalidateTableLayouts"/>, and a new table is appended to it. A remembered
+        /// table is confirmed against the live one. Once the package is handed out for direct editing, lookups scan.
         /// </summary>
         private sealed class TableHeaderIndex {
             private readonly Dictionary<int, (Table Table, string Reference, int Left, int Right)[]> _rows = new();
+            private readonly List<TableLayoutEntry> _tables = new();
+            private readonly HashSet<string> _tablePartIds = new(StringComparer.Ordinal);
+            private int _lastColumn;
 
             internal TableHeaderIndex(int epoch, TableParts? list, IEnumerable<TableDefinitionPart> parts) {
                 Epoch = epoch;
                 List = list;
                 LastChild = list?.LastChild;
                 foreach (TableDefinitionPart part in parts) {
-                    Table? table = part.Table;
-                    string? reference = table?.Reference?.Value;
-                    if (table == null || reference == null || (table.HeaderRowCount?.Value ?? 1U) == 0U
-                        || !ExcelA1.TryParseRange(reference, out int top, out int left, out _, out int right)) continue;
-                    var entry = (table, reference, left, right);
-                    _rows[top] = _rows.TryGetValue(top, out var existing) ? existing.Concat(new[] { entry }).ToArray() : new[] { entry };
+                    if (part.Table is Table table) Add(table);
+                }
+                if (list != null) {
+                    foreach (TablePart tablePart in list.Elements<TablePart>()) {
+                        if (tablePart.Id?.Value is string id) _tablePartIds.Add(id);
+                    }
                 }
             }
 
-            internal int Epoch { get; }
-            internal TableParts? List { get; }
-            internal OpenXmlElement? LastChild { get; }
+            internal int Epoch { get; private set; }
+            internal TableParts? List { get; private set; }
+            internal OpenXmlElement? LastChild { get; private set; }
+
+            /// <summary>Takes a table that was just added under the write lock, so the index stays current.</summary>
+            internal void Append(Table table, string? tablePartId, int epoch, TableParts list) {
+                Add(table);
+                if (tablePartId != null) _tablePartIds.Add(tablePartId);
+                Epoch = epoch;
+                List = list;
+                LastChild = list.LastChild;
+            }
+
+            internal bool ContainsTablePart(string id) => _tablePartIds.Contains(id);
+
+            private void Add(Table table) {
+                string? reference = table.Reference?.Value;
+                if (reference == null) return;
+                bool strict = ExcelA1.TryParseStrictRange(reference, out int strictTop, out int strictLeft, out int strictBottom, out int strictRight);
+                bool parsed = ExcelA1.TryParseRange(reference, out int top, out int left, out _, out int right);
+                _tables.Add(new TableLayoutEntry(table, reference, strict, strictTop, strictLeft, strictBottom, strictRight));
+                if (parsed && right > _lastColumn) _lastColumn = right;
+                if (!parsed || (table.HeaderRowCount?.Value ?? 1U) == 0U) return;
+                var entry = (table, reference, left, right);
+                _rows[top] = _rows.TryGetValue(top, out var existing) ? existing.Concat(new[] { entry }).ToArray() : new[] { entry };
+            }
 
             /// <summary>True or false when the index answers, null when a remembered table changed and it must be rebuilt.</summary>
             internal bool? Find(int row, int column, out Table table, out int headerIndex) {
@@ -88,21 +120,64 @@ namespace OfficeIMO.Excel {
                 }
                 return false;
             }
+
+            /// <summary>
+            /// Whether a strictly parsed table range overlaps the given cells; null when the overlapping table changed.
+            /// Range edits retire the index through the layout epoch, so only a hit is confirmed against the live table.
+            /// </summary>
+            internal bool? Overlaps(int top, int left, int bottom, int right) {
+                foreach (TableLayoutEntry entry in _tables) {
+                    if (entry.Strict && left <= entry.StrictRight && right >= entry.StrictLeft
+                        && top <= entry.StrictBottom && bottom >= entry.StrictTop) return entry.IsCurrent ? true : null;
+                }
+                return false;
+            }
+
+            /// <summary>The right-most column any table reaches.</summary>
+            internal int LastColumn => _lastColumn;
+
+            private readonly struct TableLayoutEntry {
+                internal TableLayoutEntry(Table table, string reference, bool strict, int strictTop, int strictLeft, int strictBottom, int strictRight) {
+                    Table = table;
+                    Reference = reference;
+                    Strict = strict;
+                    StrictTop = strictTop;
+                    StrictLeft = strictLeft;
+                    StrictBottom = strictBottom;
+                    StrictRight = strictRight;
+                }
+
+                internal Table Table { get; }
+                internal string Reference { get; }
+                internal bool Strict { get; }
+                internal int StrictTop { get; }
+                internal int StrictLeft { get; }
+                internal int StrictBottom { get; }
+                internal int StrictRight { get; }
+                internal bool IsCurrent => string.Equals(Table.Reference?.Value, Reference, StringComparison.Ordinal);
+            }
+        }
+
+        /// <summary>Gets the worksheet's table index, rebuilding it when tables changed; null once the package is handed out.</summary>
+        private TableHeaderIndex? GetCurrentTableLayout() {
+            if (_excelDocument.IsOpenXmlDocumentExposed) return null;
+            TableParts? list = WorksheetRoot.GetFirstChild<TableParts>();
+            int epoch = _excelDocument.TableLayoutEpoch;
+            TableHeaderIndex? index = Persistence.TableHeaders;
+            if (index == null || index.Epoch != epoch || !ReferenceEquals(index.List, list)
+                || !ReferenceEquals(index.LastChild, list?.LastChild)) {
+                index = new TableHeaderIndex(epoch, list, GetTableDefinitionParts().Select(entry => entry.Part));
+                Persistence.TableHeaders = index;
+            }
+            return index;
         }
 
         private bool TryGetTableHeader(int row, int column, out Table table, out int headerIndex) {
             table = null!;
             headerIndex = -1;
             if (!HasTableDefinitions) return false;
-            if (!_excelDocument.IsOpenXmlDocumentExposed) {
-                TableParts? list = WorksheetRoot.GetFirstChild<TableParts>();
-                int epoch = _excelDocument.TableLayoutEpoch;
-                TableHeaderIndex? index = Persistence.TableHeaders;
-                if (index == null || index.Epoch != epoch || !ReferenceEquals(index.List, list)
-                    || !ReferenceEquals(index.LastChild, list?.LastChild)) {
-                    index = new TableHeaderIndex(epoch, list, GetTableDefinitionParts().Select(entry => entry.Part));
-                    Persistence.TableHeaders = index;
-                }
+            TableHeaderIndex? index = GetCurrentTableLayout();
+            if (index != null) {
                 bool? found = index.Find(row, column, out table, out headerIndex);
                 if (found.HasValue) return found.Value;
                 Persistence.TableHeaders = null;

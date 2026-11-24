@@ -84,8 +84,12 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            CommitPendingStylesheet();
-            _spreadSheetDocument.Dispose();
+            SpreadsheetDocument package = _spreadSheetDocument;
+            try {
+                CommitPendingPartStreams();
+            } finally {
+                package.Dispose();
+            }
         }
 
         /// <summary>
