@@ -16,9 +16,11 @@ public sealed partial class EpubPublication {
         VerifyPropertiesVersion(properties);
         ArgumentNullException.ThrowIfNull(data);
         string path = VerifyContentPath(containerPath);
-        if (_entries.ContainsKey(path) || Manifest.Any(item => item.Reference.ContainerPath == path)) throw new ArgumentException("Entry path already exists: " + path);
+        if (_entries.ContainsKey(path) || LiveManifest.IsLocal(path)) throw new ArgumentException("Entry path already exists: " + path);
         EnsureEntryBudget(1);
-        if (_entries.Keys.Concat(new[] { PackagePath }).Any(existing => string.Equals(existing.Normalize(NormalizationForm.FormC), path.Normalize(NormalizationForm.FormC), StringComparison.OrdinalIgnoreCase)))
+        bool collides = string.Equals(PackagePath.Normalize(NormalizationForm.FormC), path.Normalize(NormalizationForm.FormC), StringComparison.OrdinalIgnoreCase) ||
+            (_entries.HasNormalizedCollision(path) ?? _entries.Keys.Any(existing => string.Equals(existing.Normalize(NormalizationForm.FormC), path.Normalize(NormalizationForm.FormC), StringComparison.OrdinalIgnoreCase)));
+        if (collides)
             throw new ArgumentException("Resource paths must remain distinct after Unicode normalization and case comparison.", nameof(containerPath));
         if (IsScriptMediaType(mediaType) || HasToken(properties, "scripted"))
             throw new NotSupportedException("Script authoring is outside the EPUB writer contract.");
@@ -88,7 +90,7 @@ public sealed partial class EpubPublication {
         ValidateContent(document, "application/xhtml+xml");
         byte[] chapterBytes = SerializeXml(document, _maximumEntryBytes);
         string navPath = NavigationPath();
-        byte[] navBytes = PrepareAppendedNavigation(new EpubNavigationEntry(title, EncodePath(containerPath)), containerPath);
+        byte[] navBytes = PrepareAppendedNavigation(new EpubNavigationEntry(title, EncodePath(containerPath)), containerPath, out AppendedNavigation navigation);
         if (_encryption.Any(encryption => encryption.Path == navPath)) throw new NotSupportedException("Encrypted navigation cannot be edited.");
         XElement manifestItem = PrepareResourceDeclaration(id, containerPath, "application/xhtml+xml", chapterBytes, null);
         var position = new XElement(Opf + "itemref", new XAttribute("idref", id));
@@ -102,6 +104,7 @@ public sealed partial class EpubPublication {
         _entries.Add(containerPath, chapterBytes);
         _entries[navPath] = navBytes;
         _retainedBytes += delta;
+        _appendedNavigation = navigation;
         return RequireManifestItem(id);
     }
 
@@ -133,7 +136,7 @@ public sealed partial class EpubPublication {
     public EpubSpineItem AddSpineItem(string manifestId, bool linear = true, string? properties = null) {
         RequireManifestItem(manifestId);
         VerifyPropertiesVersion(properties);
-        if (Spine.Any(position => position.ManifestId == manifestId))
+        if (SpinePositions(manifestId).Count != 0)
             throw new InvalidOperationException("New spine positions must not repeat a manifest id. Add a separate chapter resource for repeated content.");
         var element = new XElement(Opf + "itemref", new XAttribute("idref", manifestId));
         element.SetAttributeValue("linear", linear ? null : "no"); element.SetAttributeValue("properties", NormalizeProperties(properties));
@@ -184,8 +187,11 @@ public sealed partial class EpubPublication {
         }
     }
 
-    private EpubManifestItem RequireManifestItem(string id) => Manifest.SingleOrDefault(item => item.Id == id)
-        ?? throw new ArgumentException("Manifest id not found: " + id);
+    private EpubManifestItem RequireManifestItem(string id) {
+        ManifestLookup lookup = LiveManifest;
+        if (lookup.HasDuplicateIds) return Manifest.SingleOrDefault(item => item.Id == id) ?? throw new ArgumentException("Manifest id not found: " + id);
+        return lookup.ById(id) is EpubManifestItem item ? new EpubManifestItem(item.Element, PackagePath, this) : throw new ArgumentException("Manifest id not found: " + id);
+    }
     private static string RequireLocalPath(EpubManifestItem item) => item.Reference.Kind == EpubReferenceKind.Container && item.Reference.ContainerPath != null
         ? item.Reference.ContainerPath : throw new NotSupportedException("Remote resources have no retained package payload.");
     private void EnsurePayloadBudget(byte[] data, long replacedLength) {

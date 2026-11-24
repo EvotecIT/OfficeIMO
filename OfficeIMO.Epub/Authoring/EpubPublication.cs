@@ -14,7 +14,7 @@ public sealed partial class EpubPublication {
     internal static readonly XNamespace Ops = "http://www.idpf.org/2007/ops";
     private readonly XDocument _package;
     private readonly Dictionary<string, EpubManifestItem> _originalManifest;
-    private readonly Dictionary<string, byte[]> _entries;
+    private readonly EntryTable _entries;
     private readonly Dictionary<string, byte[]> _originalEntries;
     private readonly byte[]? _originalBytes;
     private readonly bool _originalHasZipSignature;
@@ -40,7 +40,7 @@ public sealed partial class EpubPublication {
             .GroupBy(element => (string?)element.Attribute("id") ?? string.Empty, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => new EpubManifestItem(new XElement(group.First()), path), StringComparer.Ordinal)
             ?? new Dictionary<string, EpubManifestItem>(StringComparer.Ordinal);
-        _entries = entries;
+        _entries = new EntryTable(entries, OnEntryChanged);
         _originalEntries = new Dictionary<string, byte[]>(entries, StringComparer.Ordinal);
         _entryOrigins = entries.Keys.ToDictionary(path => path, path => path, StringComparer.Ordinal);
         _originalBytes = originalBytes;
@@ -64,7 +64,8 @@ public sealed partial class EpubPublication {
         _modifiedAt = DateTimeOffset.UtcNow;
         _changed = originalBytes == null;
         if (originalBytes == null) EnsurePackageBudget(_package);
-        _package.Changed += (_, _) => MarkChanged();
+        _package.Changing += OnPackageChanging;
+        _package.Changed += OnPackageChanged;
     }
 
     /// <summary>Creates a publication with stable identity; newly authored packages need at least one linear chapter.</summary>
