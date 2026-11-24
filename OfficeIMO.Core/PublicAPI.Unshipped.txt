@@ -344,6 +344,7 @@ OfficeIMO.OfficeTextSearchOptions.MatchCase.set -> void
 OfficeIMO.OfficeTextSearchOptions.OfficeTextSearchOptions() -> void
 OfficeIMO.OfficeTextSearchOptions.WholeWords.get -> bool
 OfficeIMO.OfficeTextSearchOptions.WholeWords.set -> void
+const OfficeIMO.OfficeDiagnosticCodes.ExcelCellStyleRepaired = "excel-cell-style-repaired" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.FontNotEmbedded = "font-not-embedded" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.NativeBookmarkTargetMissing = "native-bookmark-target-missing" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.NativeBookmarkTargetUnprojected = "native-bookmark-target-unprojected" -> string!

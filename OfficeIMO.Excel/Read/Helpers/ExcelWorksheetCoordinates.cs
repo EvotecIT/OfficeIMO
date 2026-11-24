@@ -20,7 +20,9 @@ namespace OfficeIMO.Excel {
             int columnIndex = string.IsNullOrEmpty(reference)
                 ? nextColumnIndex
                 : ExcelA1.ParseColumnIndexFromCellReferenceFast(reference);
-            if (columnIndex > 0) nextColumnIndex = columnIndex + 1;
+            // An unparseable reference takes the next column, as a missing one does and as Excel reads it.
+            if (columnIndex <= 0) columnIndex = nextColumnIndex;
+            nextColumnIndex = columnIndex + 1;
             return columnIndex;
         }
     }

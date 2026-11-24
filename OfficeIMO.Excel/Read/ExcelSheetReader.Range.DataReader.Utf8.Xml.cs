@@ -250,7 +250,10 @@ namespace OfficeIMO.Excel {
                         typeLength = valueLength;
                     } else if (AsciiEquals(attributeStart, attributeEnd - attributeStart, "s")) {
                         if (!TryParseNonNegativeInt(_buffer!, valueStart, valueLength, out int parsedStyle)) {
-                            return false;
+                            if (valueLength != 0) return false;
+                            // Excel repairs an empty style to the default style; keep the cell unstyled.
+                            ReportEmptyCellStyle(hasReference, referenceStart, referenceLength);
+                            parsedStyle = -1;
                         }
                         styleIndex = parsedStyle;
                     } else if (AsciiEquals(attributeStart, attributeEnd - attributeStart, "vm")) {
@@ -263,13 +266,21 @@ namespace OfficeIMO.Excel {
 
                 if (hasReference) {
                     columnIndex = ParseColumnIndex(_buffer!, referenceStart, referenceLength);
-                    if (columnIndex <= 0) return false;
+                    // Excel places a cell with an unparseable reference in the next column, as if it had none.
+                    if (columnIndex <= 0) columnIndex = nextColumn;
                     nextColumn = columnIndex + 1;
                 } else {
                     columnIndex = nextColumn++;
                 }
 
                 return !hasType || TryParseCellKind(typeStart, typeLength, out kind);
+            }
+
+            private void ReportEmptyCellStyle(bool hasReference, int referenceStart, int referenceLength) {
+                if (!_owner.TryBeginEmptyCellStyleRepairReport()) return;
+                _owner.ReportEmptyCellStyleRepair(hasReference
+                    ? Encoding.UTF8.GetString(_buffer!, referenceStart, referenceLength)
+                    : "(unknown cell)");
             }
 
             private bool TryParseCellKind(int start, int length, out Utf8CellKind kind) {

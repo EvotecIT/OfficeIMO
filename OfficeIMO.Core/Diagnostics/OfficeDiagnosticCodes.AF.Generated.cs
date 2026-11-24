@@ -324,6 +324,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string ExcelCellRichTextLayoutApproximation = "excel-cell-rich-text-layout-approximation";
     /// <summary>Stable code: <c>excel-cell-stacked-text-rotation-unsupported</c>.</summary>
     public const string ExcelCellStackedTextRotationUnsupported = "excel-cell-stacked-text-rotation-unsupported";
+    /// <summary>Stable code: <c>excel-cell-style-repaired</c>.</summary>
+    public const string ExcelCellStyleRepaired = "excel-cell-style-repaired";
     /// <summary>Stable code: <c>excel-cell-text-clipped</c>.</summary>
     public const string ExcelCellTextClipped = "excel-cell-text-clipped";
     /// <summary>Stable code: <c>excel-cell-text-occluded-by-drawing</c>.</summary>
