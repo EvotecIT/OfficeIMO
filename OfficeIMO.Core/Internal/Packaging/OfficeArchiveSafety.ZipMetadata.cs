@@ -64,7 +64,11 @@ internal static partial class OfficeArchiveSafety {
             throw new InvalidDataException("ZIP local header is outside its package bounds.");
         var header = new byte[30];
         ReadExactlyAt(source, offset, header, header.Length);
-        if (ReadZipUInt32(header, 0) != 0x04034b50U || ReadZipUInt16(header, 6) != record.Flags
+        // Some writers set the UTF-8 name flag in only one of the two headers. The names are compared byte for byte
+        // below, and an ASCII name decodes the same either way, so only that flag may differ, and only for ASCII names.
+        ushort localFlags = ReadZipUInt16(header, 6);
+        if (ReadZipUInt32(header, 0) != 0x04034b50U
+            || localFlags != record.Flags && ((localFlags ^ record.Flags) != 0x0800 || !IsAsciiName(record.NameBytes))
             || ReadZipUInt16(header, 8) != record.CompressionMethod)
             throw new InvalidDataException("ZIP local and central compression metadata disagree.");
         int nameLength = ReadZipUInt16(header, 26);
@@ -77,6 +81,11 @@ internal static partial class OfficeArchiveSafety {
             if (name[index] != record.NameBytes[index]) throw new InvalidDataException("ZIP local and central names disagree.");
         ValidateLocalIntegrity(source, header, offset, payload, bound, record.Crc32, record.CompressedSize, record.UncompressedSize, record.UsesZip64);
         return payload;
+    }
+
+    private static bool IsAsciiName(byte[] name) {
+        foreach (byte value in name) if (value >= 0x80) return false;
+        return true;
     }
 
     private static void ValidateLocalIntegrity(Stream source, byte[] header, long offset, long payload, long bound,

@@ -57,6 +57,27 @@
           "answer": "<p>OfficeIMO.Excel supports parallel execution for bulk operations like AutoFit and bulk writes. Each document instance is independent and can be used on separate threads. Concurrent access to a single document instance is not supported.</p>"
         }
       ]
+    },
+    {
+      "title": "Studio",
+      "items": [
+        {
+          "question": "Where can I get OfficeIMO Studio?",
+          "answer": "<p>Studio for Windows 10 and 11 is in the <a href='https://apps.microsoft.com/detail/xp9m6j7hvm2hz0'>Microsoft Store</a>. Signed MSI installers and portable ZIPs for Windows, and Debian packages and portable ZIPs for Linux, are on the <a href='/downloads/#studio-downloads'>downloads page</a> for x64 and Arm64. The native app for Mac, iPad and iPhone is coming soon to the Mac App Store and App Store.</p>"
+        },
+        {
+          "question": "When will Studio be on the Mac App Store and App Store?",
+          "answer": "<p>The native app for Mac, iPad and iPhone is coming soon; there is no release date yet. It requires macOS, iPadOS or iOS 26. The <a href='https://github.com/EvotecIT/OfficeIMO/tree/master/Apple/OfficeIMOStudio#readme'>Apple app guide</a> describes what it does today, and the <a href='/studio/#features'>feature table</a> compares it with Studio on Windows and Linux.</p>"
+        },
+        {
+          "question": "What happened to the Avalonia build of Studio for macOS?",
+          "answer": "<p>The Avalonia desktop app is now built for Windows and Linux only. On the Mac, the native SwiftUI app replaces it and uses the same OfficeIMO engine, so the desktop source build guide no longer covers macOS. Some desktop tools, such as comment threads, comparison and editing existing text, are not in the native app yet.</p>"
+        },
+        {
+          "question": "What can Studio show from Word, Excel and other files on Mac, iPad and iPhone?",
+          "answer": "<p>The native app opens Word (DOC, DOCX, DOTX), Excel (XLSX, XLTX), PowerPoint (PPTX, POTX, PPSX), their macro-enabled variants, RTF, Markdown and OpenDocument (ODT, ODS, ODP) files read-only by converting them to PDF and showing the pages. <strong>Save as PDF</strong> keeps the conversion, and <strong>Edit as PDF</strong> opens it as a PDF you can change; the original file is not edited.</p><p>Markdown is shown as converted PDF pages, not rendered Markdown. Files larger than 100 MB are not opened.</p>"
+        }
+      ]
     }
   ]
 }

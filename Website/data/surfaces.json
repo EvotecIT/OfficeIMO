@@ -3,7 +3,7 @@
     {
       "id": "studio",
       "name": "Studio",
-      "description": "Edit PDF text, comments, forms and pages in one desktop window.",
+      "description": "Edit supported PDF text, comments, forms and pages in one desktop window.",
       "action": "Explore Studio",
       "url": "/studio/",
       "enabled": true

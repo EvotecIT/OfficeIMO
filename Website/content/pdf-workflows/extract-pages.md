@@ -29,6 +29,8 @@ meta.howto.steps:
 
 Use extraction when the output should contain only a specific subset of pages. The selector supports individual pages, ranges, comma-separated combinations, and `last`, which is resolved against the current source.
 
+**Also in Studio:** extract selected pages to a new PDF in [OfficeIMO Studio](/studio/#feature-extract-pages) on Windows and Linux, and in the native Mac, iPad and iPhone app (coming soon).
+
 ## Extract from .NET
 
 ```csharp

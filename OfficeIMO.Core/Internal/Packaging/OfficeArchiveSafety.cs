@@ -425,16 +425,26 @@ internal static partial class OfficeArchiveSafety {
         int minimumOffset = Math.Max(archiveOffset,
             archiveEnd - (22 + ushort.MaxValue));
         int candidate = -1;
+        int signatures = 0;
+        int lastSignature = -1;
         for (int offset = archiveEnd - 22;
              offset >= minimumOffset; offset--) {
             if (ReadZipUInt32(bytes, offset)
                 != EndOfCentralDirectorySignature) continue;
+            signatures++;
+            if (lastSignature < 0) lastSignature = offset;
             ushort commentLength = ReadZipUInt16(bytes, offset + 20);
             if ((long)offset + 22L + commentLength == archiveEnd) {
                 // Retain the earliest self-consistent candidate. A nested later candidate must not hide
                 // the enclosing comment from HasLaterEndOfCentralDirectorySignature.
                 candidate = offset;
             }
+        }
+        // Bytes appended after the record and its comment, such as a trailing newline, leave no self-consistent
+        // candidate. The record is still unambiguous when it is the only signature in the tail and its comment fits.
+        if (candidate < 0 && signatures == 1
+            && (long)lastSignature + 22L + ReadZipUInt16(bytes, lastSignature + 20) <= archiveEnd) {
+            candidate = lastSignature;
         }
         return candidate;
     }

@@ -29,6 +29,8 @@ meta.howto.steps:
 
 Password protection uses the PDF Standard security handler. The user password opens the document; the owner password controls privileged changes and should be stored separately from the delivered file.
 
+**Also in Studio:** add a password and set permissions on a copy in [OfficeIMO Studio](/studio/#feature-protect) on Windows and Linux, and in the native Mac, iPad and iPhone app (coming soon).
+
 ## Protect from .NET
 
 ```csharp
