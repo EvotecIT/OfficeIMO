@@ -5,10 +5,13 @@ public sealed partial class EpubPublication {
     // can be larger than the live one. Each declaration whose content an edit validated keeps what Write
     // will derive for it, and budget checks subtract the net growth from the limit. Write serializes the
     // live package before deriving properties, so net shrinkage earns no credit. A rejected edit drops
-    // what it staged; a declaration whose properties change is re-measured.
-    private readonly Dictionary<XElement, (ContentFlags Flags, long Growth)> _propertyGrowth = new();
+    // what it staged. A declaration whose properties change is re-measured, and one whose payload is
+    // replaced by anything other than the validated bytes loses its reservation.
+    private readonly Dictionary<XElement, Reservation> _propertyGrowth = new();
+    private readonly Dictionary<string, List<XElement>> _propertyGrowthByPath = new(StringComparer.Ordinal);
     private readonly HashSet<XElement> _propertyGrowthChanged = new();
-    private Dictionary<XElement, ContentFlags?>? _stagedPropertyGrowth;
+    private readonly HashSet<string> _propertyGrowthChangedPaths = new(StringComparer.Ordinal);
+    private Dictionary<XElement, (ContentFlags? Flags, byte[]? Payload)>? _stagedPropertyGrowth;
     private long _propertyGrowthTotal;
 
     private readonly struct ContentFlags {
@@ -18,9 +21,17 @@ public sealed partial class EpubPublication {
         internal bool Remote { get; }
     }
 
+    private readonly struct Reservation {
+        internal Reservation(ContentFlags flags, long growth, string? path, byte[] payload) { Flags = flags; Growth = growth; Path = path; Payload = payload; }
+        internal ContentFlags Flags { get; }
+        internal long Growth { get; }
+        internal string? Path { get; }
+        internal byte[] Payload { get; }
+    }
+
     // Null flags drop the reservation, for a declaration whose content Write won't analyze again.
-    private void StagePropertyGrowth(XElement declaration, ContentFlags? flags) =>
-        (_stagedPropertyGrowth ??= new Dictionary<XElement, ContentFlags?>())[declaration] = flags;
+    private void StagePropertyGrowth(XElement declaration, ContentFlags? flags, byte[]? payload) =>
+        (_stagedPropertyGrowth ??= new Dictionary<XElement, (ContentFlags?, byte[]?)>())[declaration] = (flags, payload);
 
     // Net bytes Write adds to the live package for every validated declaration, including this edit's.
     private long PropertyGrowthAllowance() {
@@ -28,8 +39,8 @@ public sealed partial class EpubPublication {
         long total = _propertyGrowthTotal;
         if (_stagedPropertyGrowth != null) {
             foreach (var staged in _stagedPropertyGrowth) {
-                if (_propertyGrowth.TryGetValue(staged.Key, out var committed)) total -= committed.Growth;
-                if (staged.Value is ContentFlags flags) total += PropertyGrowth(staged.Key, flags);
+                if (_propertyGrowth.TryGetValue(staged.Key, out Reservation committed)) total -= committed.Growth;
+                if (staged.Value.Flags is ContentFlags flags) total += PropertyGrowth(staged.Key, flags);
             }
         }
         return Math.Max(0, total);
@@ -38,31 +49,56 @@ public sealed partial class EpubPublication {
     private void CommitPropertyGrowth() {
         if (_stagedPropertyGrowth == null) return;
         foreach (var staged in _stagedPropertyGrowth) {
-            if (staged.Value is ContentFlags flags) SetPropertyGrowth(staged.Key, flags);
-            else if (_propertyGrowth.TryGetValue(staged.Key, out var previous)) {
-                _propertyGrowthTotal -= previous.Growth;
-                _propertyGrowth.Remove(staged.Key);
-            }
+            if (staged.Value.Flags is ContentFlags flags && staged.Value.Payload != null) SetPropertyGrowth(staged.Key, flags, staged.Value.Payload);
+            else RemovePropertyGrowth(staged.Key);
         }
         _stagedPropertyGrowth = null;
     }
 
-    private void SetPropertyGrowth(XElement declaration, ContentFlags flags) {
-        if (_propertyGrowth.TryGetValue(declaration, out var previous)) _propertyGrowthTotal -= previous.Growth;
+    private void SetPropertyGrowth(XElement declaration, ContentFlags flags, byte[] payload) {
+        RemovePropertyGrowth(declaration);
         long growth = PropertyGrowth(declaration, flags);
-        _propertyGrowth[declaration] = (flags, growth);
+        string? path = new EpubManifestItem(declaration, PackagePath).Reference.ContainerPath;
+        _propertyGrowth[declaration] = new Reservation(flags, growth, path, payload);
         _propertyGrowthTotal += growth;
+        if (path == null) return;
+        if (!_propertyGrowthByPath.TryGetValue(path, out List<XElement>? declarations)) _propertyGrowthByPath.Add(path, declarations = new List<XElement>(1));
+        declarations.Add(declaration);
+    }
+
+    private void RemovePropertyGrowth(XElement declaration) {
+        if (!_propertyGrowth.TryGetValue(declaration, out Reservation previous)) return;
+        _propertyGrowthTotal -= previous.Growth;
+        _propertyGrowth.Remove(declaration);
+        if (previous.Path != null && _propertyGrowthByPath.TryGetValue(previous.Path, out List<XElement>? declarations)) {
+            declarations.Remove(declaration);
+            if (declarations.Count == 0) _propertyGrowthByPath.Remove(previous.Path);
+        }
+    }
+
+    // Called by the entry table whenever a retained payload is added, replaced or removed.
+    private void OnEntryChanged(string path) {
+        if (_propertyGrowthByPath.ContainsKey(path)) _propertyGrowthChangedPaths.Add(path);
     }
 
     private void RefreshPropertyGrowth() {
+        if (_propertyGrowthChangedPaths.Count != 0) {
+            foreach (string path in _propertyGrowthChangedPaths) {
+                if (!_propertyGrowthByPath.TryGetValue(path, out List<XElement>? declarations)) continue;
+                _entries.TryGetValue(path, out byte[] current);
+                foreach (XElement declaration in declarations.ToArray())
+                    if (!ReferenceEquals(_propertyGrowth[declaration].Payload, current)) RemovePropertyGrowth(declaration);
+            }
+            _propertyGrowthChangedPaths.Clear();
+        }
         if (_propertyGrowthChanged.Count == 0) return;
         foreach (XElement declaration in _propertyGrowthChanged) {
-            if (!_propertyGrowth.TryGetValue(declaration, out var reserved)) continue;
-            if (declaration.Document == _package && declaration.Parent?.Name == Opf + "manifest" && declaration.Name == Opf + "item") {
-                SetPropertyGrowth(declaration, reserved.Flags);
+            if (!_propertyGrowth.TryGetValue(declaration, out Reservation reserved)) continue;
+            if (declaration.Document == _package && declaration.Parent?.Name == Opf + "manifest" && declaration.Name == Opf + "item" &&
+                new EpubManifestItem(declaration, PackagePath).Reference.ContainerPath == reserved.Path) {
+                SetPropertyGrowth(declaration, reserved.Flags, reserved.Payload);
             } else {
-                _propertyGrowthTotal -= reserved.Growth;
-                _propertyGrowth.Remove(declaration);
+                RemovePropertyGrowth(declaration);
             }
         }
         _propertyGrowthChanged.Clear();

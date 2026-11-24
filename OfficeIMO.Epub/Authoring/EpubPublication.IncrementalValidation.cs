@@ -48,7 +48,7 @@ public sealed partial class EpubPublication {
                 .Where(item => payloadChanged || !HasMediaType(OriginalManifestItem(item.Id)?.MediaType, item.MediaType))
                 .Where(item => HasMediaType(item.MediaType, "application/xhtml+xml") || HasMediaType(item.MediaType, "image/svg+xml")).ToArray();
             if (PackageVersion == "3.0")
-                foreach (EpubManifestItem item in declarations.Where(item => !analyzed.Contains(item))) StagePropertyGrowth(item.Element, null);
+                foreach (EpubManifestItem item in declarations.Where(item => !analyzed.Contains(item))) StagePropertyGrowth(item.Element, null, null);
             bool hasSvg = content.Descendants().Any(element => element.Name.NamespaceName == "http://www.w3.org/2000/svg" && element.Name.LocalName == "svg");
             bool hasMathMl = content.Descendants().Any(element => element.Name.NamespaceName == "http://www.w3.org/1998/Math/MathML");
             foreach (string mediaType in analyzed.Select(item => item.MediaType).Distinct(StringComparer.OrdinalIgnoreCase)) {
@@ -64,7 +64,7 @@ public sealed partial class EpubPublication {
                 // Write declares svg, mathml and remote-resources on these items; budget checks reserve that room.
                 if (PackageVersion == "3.0")
                     foreach (EpubManifestItem item in analyzed.Where(item => string.Equals(item.MediaType, mediaType, StringComparison.OrdinalIgnoreCase)))
-                        StagePropertyGrowth(item.Element, new ContentFlags(hasSvg, hasMathMl, hasRemote));
+                        StagePropertyGrowth(item.Element, new ContentFlags(hasSvg, hasMathMl, hasRemote), payloads[edit.Path]);
             }
             // Fragment targets are checked against the identifiers of only the documents this edit links to.
             foreach (EpubReference reference in ContentResourceReferences(content, edit.Path, token)) {

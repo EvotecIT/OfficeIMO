@@ -40,7 +40,7 @@ public sealed partial class EpubPublication {
             .GroupBy(element => (string?)element.Attribute("id") ?? string.Empty, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => new EpubManifestItem(new XElement(group.First()), path), StringComparer.Ordinal)
             ?? new Dictionary<string, EpubManifestItem>(StringComparer.Ordinal);
-        _entries = new EntryTable(entries);
+        _entries = new EntryTable(entries, OnEntryChanged);
         _originalEntries = new Dictionary<string, byte[]>(entries, StringComparer.Ordinal);
         _entryOrigins = entries.Keys.ToDictionary(path => path, path => path, StringComparer.Ordinal);
         _originalBytes = originalBytes;

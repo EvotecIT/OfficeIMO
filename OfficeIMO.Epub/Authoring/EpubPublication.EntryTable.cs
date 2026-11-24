@@ -8,10 +8,12 @@ public sealed partial class EpubPublication {
     private sealed class EntryTable : IDictionary<string, byte[]>, IReadOnlyDictionary<string, byte[]> {
         private readonly Dictionary<string, byte[]> _entries;
         private readonly Dictionary<string, int> _folded = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Action<string> _changed;
         private int _unnormalizable;
 
-        internal EntryTable(Dictionary<string, byte[]> entries) {
+        internal EntryTable(Dictionary<string, byte[]> entries, Action<string> changed) {
             _entries = entries;
+            _changed = changed;
             foreach (string key in entries.Keys) Track(key, 1);
         }
 
@@ -20,6 +22,7 @@ public sealed partial class EpubPublication {
             set {
                 if (!_entries.ContainsKey(key)) Track(key, 1);
                 _entries[key] = value;
+                _changed(key);
             }
         }
 
@@ -36,15 +39,18 @@ public sealed partial class EpubPublication {
         public void Add(string key, byte[] value) {
             _entries.Add(key, value);
             Track(key, 1);
+            _changed(key);
         }
 
         public bool Remove(string key) {
             if (!_entries.Remove(key)) return false;
             Track(key, -1);
+            _changed(key);
             return true;
         }
 
         public void Clear() {
+            foreach (string key in _entries.Keys.ToArray()) _changed(key);
             _entries.Clear();
             _folded.Clear();
             _unnormalizable = 0;
@@ -81,6 +87,7 @@ public sealed partial class EpubPublication {
         bool ICollection<KeyValuePair<string, byte[]>>.Remove(KeyValuePair<string, byte[]> item) {
             if (!((ICollection<KeyValuePair<string, byte[]>>)_entries).Remove(item)) return false;
             Track(item.Key, -1);
+            _changed(item.Key);
             return true;
         }
     }

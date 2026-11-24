@@ -193,6 +193,21 @@ public sealed class EpubIncrementalAuthoringContracts {
     }
 
     [Fact]
+    public void ReplacingAPayloadOutsideABatchReleasesItsReservation() {
+        var book = EpubPublication.Create("Math", "en", "urn:example:math");
+        book.AddChapter("c0", "EPUB/c0.xhtml", "Zero", "<p>Zero.</p>");
+        book.AddChapter("c1", "EPUB/c1.xhtml", "One", "<p>One.</p>");
+        byte[] input = book.Write(Stamp).Bytes;
+        using var zip = new ZipArchive(new MemoryStream(input), ZipArchiveMode.Read);
+        var limited = EpubPublication.Load(new MemoryStream(input), new EpubPublicationLoadOptions { MaxMetadataBytes = zip.GetEntry("EPUB/package.opf")!.Length + 25 });
+
+        limited.SetContentXml(new Dictionary<string, XDocument> { ["c0"] = MathChapter("Zero") });
+        limited.SetContentXml("c0", PlainChapter("Zero"));
+        limited.SetContentXml(new Dictionary<string, XDocument> { ["c1"] = MathChapter("One") });
+        limited.Write(Stamp);
+    }
+
+    [Fact]
     public void PropertiesWriteWillRemoveDoNotMakeRoomForOtherEdits() {
         var book = EpubPublication.Create("Math", "en", "urn:example:math");
         book.AddChapter("c0", "EPUB/c0.xhtml", "Zero", "<p>Zero.</p>");
