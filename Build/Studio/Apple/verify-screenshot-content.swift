@@ -21,21 +21,25 @@ guard let source = CGImageSourceCreateWithURL(url, nil),
 let sampleWidth = 64
 let sampleHeight = 64
 var pixels = [UInt8](repeating: 0, count: sampleWidth * sampleHeight * 4)
-guard let context = CGContext(
-    data: &pixels,
-    width: sampleWidth,
-    height: sampleHeight,
-    bitsPerComponent: 8,
-    bytesPerRow: sampleWidth * 4,
-    space: CGColorSpaceCreateDeviceRGB(),
-    bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-) else {
+// The context writes into the buffer while drawing, so it must only exist while the buffer pointer is valid.
+let rendered = pixels.withUnsafeMutableBytes { buffer -> Bool in
+    guard let context = CGContext(
+        data: buffer.baseAddress,
+        width: sampleWidth,
+        height: sampleHeight,
+        bitsPerComponent: 8,
+        bytesPerRow: sampleWidth * 4,
+        space: CGColorSpaceCreateDeviceRGB(),
+        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+    ) else { return false }
+    context.interpolationQuality = .low
+    context.draw(image, in: CGRect(x: 0, y: 0, width: sampleWidth, height: sampleHeight))
+    return true
+}
+guard rendered else {
     fputs("Could not create screenshot verification context.\n", stderr)
     exit(70)
 }
-
-context.interpolationQuality = .low
-context.draw(image, in: CGRect(x: 0, y: 0, width: sampleWidth, height: sampleHeight))
 
 var visiblyRenderedPixels = 0
 var minimumLuminance = Double.greatestFiniteMagnitude
