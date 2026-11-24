@@ -5,11 +5,13 @@ public sealed class NotebookCell {
     private readonly Dictionary<string, JsonElement> _metadata;
     private readonly List<NotebookOutput> _outputs;
     private readonly Dictionary<string, IReadOnlyDictionary<string, JsonElement>> _attachments;
+    private readonly string? _sourceLanguage;
     private string? _source;
+    private string? _language;
     private int? _executionCount;
 
     internal NotebookCell(NotebookCellKind kind, string originalKind, string id, int sourceIndex,
-        JsonElement original, JsonElement source, string? normalizedSource, string? language, int? executionCount,
+        JsonElement original, JsonElement source, string? normalizedSource, int? executionCount,
         Dictionary<string, JsonElement> metadata, List<NotebookOutput> outputs) {
         Kind = kind;
         OriginalKind = originalKind;
@@ -18,9 +20,10 @@ public sealed class NotebookCell {
         Original = original;
         SourceElement = source;
         _source = normalizedSource;
-        Language = language;
         _executionCount = executionCount;
         _metadata = metadata;
+        _sourceLanguage = NotebookJson.String(original, "language");
+        _language = ResolveLanguage();
         _outputs = outputs;
         _attachments = ReadAttachments(NotebookJson.Property(original, "attachments"));
         Metadata = new ReadOnlyDictionary<string, JsonElement>(_metadata);
@@ -46,8 +49,8 @@ public sealed class NotebookCell {
         }
     }
 
-    /// <summary>Gets the cell-specific language supplied when the cell was created or loaded.</summary>
-    public string? Language { get; }
+    /// <summary>Gets the effective cell-specific language from the cell's source and current metadata.</summary>
+    public string? Language => _language;
 
     /// <summary>Gets or sets the saved execution count of a code cell. Set it to <see langword="null"/> to clear the count.</summary>
     public int? ExecutionCount {
@@ -74,6 +77,9 @@ public sealed class NotebookCell {
         ArgumentNullException.ThrowIfNull(name);
         _metadata[name] = NotebookJson.CloneValue(value);
         MetadataEdited = true;
+        if (name is "language" or "polyglot_notebook" or "dotnet_interactive" or "vscode") {
+            _language = ResolveLanguage();
+        }
     }
 
     /// <summary>Appends a saved output to this code cell.</summary>
@@ -118,6 +124,20 @@ public sealed class NotebookCell {
     internal string GetSource(int maxChars, out bool truncated) => _source != null
         ? NotebookJson.LimitText(_source, maxChars, out truncated)
         : NotebookJson.ReadText(SourceElement, maxChars, out truncated);
+
+    private string? ResolveLanguage() {
+        string? language = _sourceLanguage ??
+            (_metadata.TryGetValue("language", out JsonElement value) && value.ValueKind == JsonValueKind.String
+                ? value.GetString() : null) ??
+            ReadVendorLanguage("polyglot_notebook", "kernelName") ??
+            ReadVendorLanguage("dotnet_interactive", "language");
+        if (!string.IsNullOrWhiteSpace(language)) return language;
+        string? editorLanguage = ReadVendorLanguage("vscode", "languageId");
+        return editorLanguage == "polyglot-notebook" ? null : editorLanguage;
+    }
+
+    private string? ReadVendorLanguage(string vendor, string key) =>
+        _metadata.TryGetValue(vendor, out JsonElement metadata) ? NotebookJson.String(metadata, key) : null;
 
     private static Dictionary<string, IReadOnlyDictionary<string, JsonElement>> ReadAttachments(JsonElement value) {
         var attachments = new Dictionary<string, IReadOnlyDictionary<string, JsonElement>>(StringComparer.Ordinal);

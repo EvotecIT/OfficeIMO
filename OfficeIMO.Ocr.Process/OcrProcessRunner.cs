@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using OfficeIMO.Processes.Internal;
 
 namespace OfficeIMO.Ocr.Process;
 
@@ -60,7 +61,7 @@ public static class OcrProcessRunner {
         IReadOnlyList<string> arguments = command.Arguments ?? Array.Empty<string>();
         var startInfo = new ProcessStartInfo {
             FileName = command.FileName,
-            Arguments = string.Join(" ", arguments.Select(QuoteArgument)),
+            Arguments = OfficeProcessArguments.Join(arguments),
             UseShellExecute = false,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -71,7 +72,7 @@ public static class OcrProcessRunner {
             startInfo.EnvironmentVariables[variable.Key] = variable.Value;
         }
 
-        using OcrProcessLifetime processLifetime = OcrProcessLifetime.Configure(startInfo, command.FileName, arguments);
+        using OcrProcessLifetime processLifetime = OcrProcessLifetime.Configure(startInfo);
         using OcrStartedProcess startedProcess = processLifetime.Start(startInfo);
         System.Diagnostics.Process process = startedProcess.Process;
         Task<BoundedText> outputTask = ReadBoundedAsync(startedProcess.StandardOutput, command.MaxStandardOutputCharacters);
@@ -158,32 +159,6 @@ public static class OcrProcessRunner {
             process.Exited -= handler;
             registration.Dispose();
         }
-    }
-
-    internal static string QuoteArgument(string value) {
-        if (value == null) return "\"\"";
-        if (value.Length > 0 && value.All(static ch => !char.IsWhiteSpace(ch) && ch != '\"')) return value;
-        var builder = new StringBuilder(value.Length + 2);
-        builder.Append('\"');
-        int slashes = 0;
-        foreach (char character in value) {
-            if (character == '\\') {
-                slashes++;
-                continue;
-            }
-            if (character == '\"') {
-                builder.Append('\\', (slashes * 2) + 1);
-                builder.Append('\"');
-                slashes = 0;
-                continue;
-            }
-            if (slashes > 0) builder.Append('\\', slashes);
-            slashes = 0;
-            builder.Append(character);
-        }
-        if (slashes > 0) builder.Append('\\', slashes * 2);
-        builder.Append('\"');
-        return builder.ToString();
     }
 
     private sealed class BoundedText {

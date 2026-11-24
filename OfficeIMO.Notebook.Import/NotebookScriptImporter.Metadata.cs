@@ -116,6 +116,7 @@ internal static partial class NotebookScriptImporter {
         if (title.Length != 0) metadata["title"] = NotebookImportContext.JsonString(title);
         string? id = MetadataString(metadata, "id") ?? (metadata.ContainsKey("id") ? string.Empty : null);
         string? language = MetadataString(metadata, "language");
+        if (string.IsNullOrWhiteSpace(language)) language = null;
         NotebookCellKind cellKind = kind switch {
             "markdown" or "md" => NotebookCellKind.Markdown,
             "raw" => NotebookCellKind.Raw,

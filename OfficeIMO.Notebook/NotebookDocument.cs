@@ -144,7 +144,7 @@ public sealed partial class NotebookDocument : IDisposable {
         var metadata = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
         if (language != null) metadata.Add("language", NotebookJson.StringValue(language));
         var cell = new NotebookCell(kind, name, id ?? Guid.NewGuid().ToString("N"), SourceCellCount++, default, default,
-            source, language, null, metadata, new List<NotebookOutput>());
+            source, null, metadata, new List<NotebookOutput>());
         _cells.Add(cell);
         return cell;
     }

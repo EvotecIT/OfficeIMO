@@ -1,4 +1,5 @@
 using OfficeIMO.Ocr.Process;
+using OfficeIMO.Processes.Internal;
 using System.Diagnostics;
 using System.Text;
 
@@ -27,7 +28,7 @@ internal static class ReaderComparisonProcessRunner {
             .ToArray();
         var startInfo = new ProcessStartInfo {
             FileName = configuration.FileName,
-            Arguments = string.Join(" ", arguments.Select(OcrProcessRunner.QuoteArgument)),
+            Arguments = OfficeProcessArguments.Join(arguments),
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
@@ -54,7 +55,7 @@ internal static class ReaderComparisonProcessRunner {
         OcrProcessLifetime processLifetime;
         OcrStartedProcess startedProcess;
         try {
-            processLifetime = OcrProcessLifetime.Configure(startInfo, configuration.FileName, arguments);
+            processLifetime = OcrProcessLifetime.Configure(startInfo);
             try {
                 startedProcess = processLifetime.Start(startInfo);
             } catch {

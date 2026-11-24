@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Globalization;
+using System.Runtime.InteropServices;
 using OfficeIMO.Notebook.PowerShell;
 
 namespace OfficeIMO.Notebook.Tests;
@@ -78,14 +79,24 @@ public sealed class NotebookPowerShellExecutionTests {
     }
 
     [PowerShellRuntimeFact]
-    public async Task CancellationFromAnOutputCallbackStopsTheCellAndItsNativeChild() {
-        using var notebook = NotebookDocument.Create();
-        NotebookCell cell = notebook.AddCodeCell("""
+    public Task CancellationFromAnOutputCallbackStopsTheCellAndItsNativeChild() =>
+        AssertCancellationStopsNativeChildAsync("""
             $executable = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
             $child = Start-Process -FilePath $executable -NoNewWindow -ArgumentList '-NoProfile','-NonInteractive','-Command','Start-Sleep -Seconds 30' -PassThru
             $child.Id
             Start-Sleep -Seconds 30
-            """, "powershell");
+            """);
+
+    [UnixProcessGroupFact]
+    public Task CancellationStopsBackgroundChildAfterItsShellExits() =>
+        AssertCancellationStopsNativeChildAsync("""
+            & /bin/sh -c '/bin/sleep 30 </dev/null >/dev/null 2>&1 & echo "$$,$!"'
+            Start-Sleep -Seconds 30
+            """, expectExitedShell: true);
+
+    private static async Task AssertCancellationStopsNativeChildAsync(string source, bool expectExitedShell = false) {
+        using var notebook = NotebookDocument.Create();
+        NotebookCell cell = notebook.AddCodeCell(source, "powershell");
         using PowerShellNotebookSession session = await StartAsync();
         using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(15));
         NotebookExecutionEvent? observed = null;
@@ -93,8 +104,16 @@ public sealed class NotebookPowerShellExecutionTests {
         var options = new NotebookExecutionOptions {
             OutputReceived = output => {
                 observed = output;
-                int pid = int.Parse(output.Output.Data["text/plain"].GetString()!, CultureInfo.InvariantCulture);
+                string[] processIds = output.Output.Data["text/plain"].GetString()!.Split(',');
+                Assert.Equal(expectExitedShell ? 2 : 1, processIds.Length);
+                int pid = int.Parse(processIds[processIds.Length - 1], CultureInfo.InvariantCulture);
                 child = Process.GetProcessById(pid);
+                if (expectExitedShell) {
+                    int shellId = int.Parse(processIds[0], CultureInfo.InvariantCulture);
+                    Assert.True(SpinWait.SpinUntil(() => HasShellExited(shellId), TimeSpan.FromSeconds(5)),
+                        "The background child's shell must exit before cancellation starts.");
+                }
+                Assert.False(HasStopped(child), "The notebook child must be running when cancellation starts.");
                 cancellation.Cancel();
             }
         };
@@ -106,15 +125,43 @@ public sealed class NotebookPowerShellExecutionTests {
             Assert.NotNull(child);
             Assert.Equal(cell.Id, observed.CellId);
             Assert.Collection(cell.Outputs,
-                item => Assert.Equal(child.Id.ToString(CultureInfo.InvariantCulture), item.Data["text/plain"].GetString()),
+                item => Assert.Equal(observed.Output.Data["text/plain"].GetString(), item.Data["text/plain"].GetString()),
                 item => Assert.Equal("NotebookExecutionCanceled", item.ErrorName));
-            Assert.True(SpinWait.SpinUntil(() => child.HasExited, TimeSpan.FromSeconds(5)), "The executed cell's native child is still running.");
+            Assert.True(SpinWait.SpinUntil(() => HasStopped(child), TimeSpan.FromSeconds(5)), "The executed cell's native child is still running.");
             Assert.False(session.IsUsable);
         } finally {
-            if (child != null) {
-                if (!child.HasExited) child.Kill();
-                child.Dispose();
+            using (child) {
+                if (child != null && !HasStopped(child)) {
+                    try {
+                        child.Kill();
+                    } catch (InvalidOperationException) when (HasStopped(child)) {
+                        // The child exited between the status check and the cleanup signal.
+                    }
+                    Assert.True(SpinWait.SpinUntil(() => HasStopped(child), TimeSpan.FromSeconds(5)), "The test child survived cleanup.");
+                }
             }
+        }
+    }
+
+    private static bool HasShellExited(int pid) {
+        try {
+            using Process shell = Process.GetProcessById(pid);
+            return HasStopped(shell);
+        } catch (ArgumentException) {
+            return true;
+        }
+    }
+
+    private static bool HasStopped(Process process) {
+        if (process.HasExited) return true;
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) return false;
+        try {
+            // A test container's PID 1 may leave a terminated orphan in zombie state.
+            string status = File.ReadAllText("/proc/" + process.Id.ToString(CultureInfo.InvariantCulture) + "/stat");
+            int state = status.LastIndexOf(')') + 2;
+            return state < status.Length ? status[state] == 'Z' : process.HasExited;
+        } catch (IOException) {
+            return process.HasExited;
         }
     }
 
@@ -155,7 +202,17 @@ public sealed class NotebookPowerShellExecutionTests {
     private static Task<PowerShellNotebookSession> StartAsync() =>
         PowerShellNotebookSession.StartAsync(new PowerShellNotebookSessionOptions { ExecutablePath = PowerShellRuntimeFactAttribute.Executable });
 
-    private sealed class PowerShellRuntimeFactAttribute : FactAttribute {
+    private sealed class UnixProcessGroupFactAttribute : PowerShellRuntimeFactAttribute {
+        public UnixProcessGroupFactAttribute() {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ||
+                !(File.Exists("/usr/bin/setsid") || File.Exists("/bin/setsid") ||
+                  (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && File.Exists("/usr/bin/perl")))) {
+                Skip ??= "A Unix session launcher is required to exercise reparented process cleanup.";
+            }
+        }
+    }
+
+    private class PowerShellRuntimeFactAttribute : FactAttribute {
         internal static string? Executable { get; } = FindPowerShell();
 
         public PowerShellRuntimeFactAttribute() {

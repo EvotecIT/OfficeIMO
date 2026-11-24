@@ -10,7 +10,7 @@ param(
 $ErrorActionPreference = 'Stop'
 Import-Module -Name $ModuleManifest -WarningAction SilentlyContinue
 if ($Engine -eq 'OfficeIMO') {
-    $report = PSWriteOffice\Invoke-OfficeNotebook -Path $InputPath -OutputPath $OutputPath -PowerShellPath $PowerShellPath -Confirm:$false
+    $report = PSWriteOffice\Invoke-OfficeNotebook -LiteralPath $InputPath -OutputPath $OutputPath -PowerShellPath $PowerShellPath -Confirm:$false
     if (-not $report.Succeeded) {
         throw 'Invoke-OfficeNotebook reported an unsuccessful execution.'
     }

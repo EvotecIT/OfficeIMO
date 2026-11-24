@@ -23,6 +23,7 @@ internal sealed class PowerShellNotebookProcess : IDisposable {
 #endif
     private readonly NamedPipeServerStream _pipe;
     private readonly Process _process;
+    private readonly OfficeUnixProcessGroup? _unixGroup;
     private readonly StreamReader _reader;
     private int _closed;
     private int _exited;
@@ -46,6 +47,7 @@ internal sealed class PowerShellNotebookProcess : IDisposable {
             RedirectStandardOutput = true,
             RedirectStandardError = true
         };
+        _unixGroup = OfficeUnixProcessGroup.TryConfigure(start, resolveExecutable: true);
         start.EnvironmentVariables["OFFICEIMO_NOTEBOOK_PIPE"] = pipeName;
         _pipe = CreatePipe(pipeName);
         _reader = new StreamReader(_pipe, new UTF8Encoding(false, true), detectEncodingFromByteOrderMarks: false,
@@ -87,6 +89,8 @@ internal sealed class PowerShellNotebookProcess : IDisposable {
             startup.CancelAfter(Timeout.Infinite);
             interrupt.Dispose();
             startup.Token.ThrowIfCancellationRequested();
+            // The ready worker has already entered its own Unix process group.
+            worker._unixGroup?.TrackLeader(worker._process.Id);
             worker.Version = version.GetString()!;
             return worker;
         } catch (Exception error) {
@@ -96,7 +100,7 @@ internal sealed class PowerShellNotebookProcess : IDisposable {
                 throw new TimeoutException("The PowerShell notebook session did not start before its deadline.", error);
             }
             if (error is IOException or ObjectDisposedException) {
-                throw new InvalidOperationException("The PowerShell process ended before its notebook session started.", error);
+                throw new InvalidOperationException("The PowerShell process at '" + executable + "' ended before its notebook session started.", error);
             }
             throw;
         }
@@ -153,20 +157,7 @@ internal sealed class PowerShellNotebookProcess : IDisposable {
         _process.Exited -= OnExited;
         _windowsJob?.Dispose();
         try {
-            if (_started && !_process.HasExited && (!_assignedToWindowsJob || !_process.WaitForExit(2_000))) {
-#if NET8_0_OR_GREATER
-                _process.Kill(entireProcessTree: true);
-#elif NETSTANDARD2_0
-                if (KillWithDescendants != null) {
-                    KillWithDescendants(_process, true);
-                } else {
-                    _process.Kill();
-                }
-#else
-                _process.Kill();
-#endif
-                _process.WaitForExit(2_000);
-            }
+            TerminateWorker();
         } catch (Exception error) when (error is Win32Exception or InvalidOperationException or NotSupportedException) {
             // The session is already closed. The process may have exited concurrently.
         } finally {
@@ -176,8 +167,32 @@ internal sealed class PowerShellNotebookProcess : IDisposable {
         }
     }
 
+    private void TerminateWorker() {
+        try {
+            if (!_started || _process.HasExited || (_assignedToWindowsJob && _process.WaitForExit(2_000))) return;
+#if NET8_0_OR_GREATER
+            _process.Kill(entireProcessTree: true);
+#elif NETSTANDARD2_0
+            if (KillWithDescendants != null) {
+                KillWithDescendants(_process, true);
+            } else {
+                _process.Kill();
+            }
+#else
+            _process.Kill();
+#endif
+        } finally {
+            // The tree can include children in another group. The group can include reparented children.
+            _unixGroup?.TryTerminate();
+        }
+        _process.WaitForExit(2_000);
+    }
+
     private void OnExited(object? sender, EventArgs args) {
         Volatile.Write(ref _exited, 1);
+        if (Volatile.Read(ref _closed) != 0) return;
+        // Release the group promptly even if the caller retains an unusable session.
+        _unixGroup?.TryTerminate();
         _pipe.Dispose();
     }
 
