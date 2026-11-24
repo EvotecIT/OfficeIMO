@@ -14,13 +14,8 @@ public static partial class OfficeConverter {
         var load = NotebookLoadOptions.UntrustedDefaults;
         load.MaxInputBytes = Math.Min(load.MaxInputBytes, settings.MaximumInputBytes);
         if (id is "notebook-source-ipynb" or "notebook-source-pdf") {
-            NotebookImportFormat format = Path.GetExtension(settings.SourceName ?? string.Empty).ToLowerInvariant() switch {
-                ".qmd" => NotebookImportFormat.Quarto,
-                ".rmd" => NotebookImportFormat.RMarkdown,
-                ".deepnote" => NotebookImportFormat.Deepnote,
-                ".zpln" => NotebookImportFormat.Zeppelin,
-                _ => throw new NotSupportedException("The notebook source extension has no implicit import profile.")
-            };
+            if (!NotebookImporter.TryGetFormatFromPath(settings.SourceName ?? string.Empty, out NotebookImportFormat format))
+                throw new NotSupportedException("The notebook source extension has no implicit import profile.");
             var imported = await NotebookImporter.LoadAsync(input, format, new NotebookImportOptions { Limits = load }, token).ConfigureAwait(false);
             using NotebookDocument source = imported.Value;
             if (id == "notebook-source-pdf") {

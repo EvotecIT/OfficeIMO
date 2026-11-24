@@ -168,6 +168,30 @@ jobs:
           $config.Output.Verbosity = 'Detailed'
           Invoke-Pester -Configuration $config
 
+      - name: Install Windows PowerShell test modules
+        uses: ./.github/actions/powershell-modules
+        with:
+          shell: powershell
+          packaging: 'false'
+
+      - name: Test packaged notebooks on PowerShell 7
+        env:
+          PSWRITEOFFICE_MODULE_MANIFEST: ${{ github.workspace }}/PowerShell/PSWriteOffice/Artefacts/Unpacked/Modules/PSWriteOffice/PSWriteOffice.psd1
+          PSWRITEOFFICE_USE_DEVELOPMENT_BINARIES: 'false'
+        shell: pwsh
+        run: |
+          Import-Module Pester -RequiredVersion $env:PESTER_VERSION -Force
+          Invoke-Pester -Path 'Tests/Notebook.Tests.ps1', 'Tests/ConversionRoutes.Tests.ps1' -CI
+
+      - name: Test packaged notebooks on Windows PowerShell 5.1
+        env:
+          PSWRITEOFFICE_MODULE_MANIFEST: ${{ github.workspace }}/PowerShell/PSWriteOffice/Artefacts/Unpacked/Modules/PSWriteOffice/PSWriteOffice.psd1
+          PSWRITEOFFICE_USE_DEVELOPMENT_BINARIES: 'false'
+        shell: powershell
+        run: |
+          Import-Module Pester -RequiredVersion $env:PESTER_VERSION -Force
+          Invoke-Pester -Path 'Tests/Notebook.Tests.ps1', 'Tests/ConversionRoutes.Tests.ps1' -CI
+
   test-ubuntu:
     needs: changes
     if: needs.changes.outputs.selected == 'true'

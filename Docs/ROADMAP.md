@@ -28,9 +28,9 @@ The [API design](officeimo.api-design.md) defines the shared lengths, colors, th
 ## Notebook formats
 
 - [ ] Measure browser latency and memory for large Jupyter notebooks on representative phones.
-- [ ] Qualify bounded static rendering of selected Plotly and Vega chart specifications with producer-backed fixtures.
+- [ ] Expand saved chart fidelity beyond the [qualified static previews](../OfficeIMO.Notebook/SUPPORT.md). Qualify chart-only subplots, layers, facets, heatmaps, maps, 3D, Bokeh and WebGL against producer renderers. Define and qualify an explicit opt-in interactive HTML profile for saved widget state and chart interactions.
 - [ ] Extend offline publishing notebook imports to caller-supplied static resources and separately qualify native publisher directives, cached results, and richer saved layouts.
-- [ ] Extend producer qualification to current hosted Kaggle exports and Databricks exports with saved results.
+- [ ] Repeat Kaggle and Databricks qualification against exports collected directly from current hosted runtimes. The pinned public producer corpus covers saved results.
 
 The [Jupyter support matrix](../OfficeIMO.Notebook/SUPPORT.md) and [notebook import guide](../OfficeIMO.Notebook.Import/README.md) describe the current format contracts.
 

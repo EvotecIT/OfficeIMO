@@ -3,7 +3,7 @@ using System.Diagnostics;
 namespace OfficeIMO.Notebook.Import;
 
 /// <summary>Imports saved notebook sources and outputs into the editable OfficeIMO notebook model.</summary>
-public static class NotebookImporter {
+public static partial class NotebookImporter {
     private const int CopyBufferSize = 64 * 1024;
 
     /// <summary>Imports a file using the selected format. The caller owns the resulting notebook.</summary>
@@ -68,6 +68,7 @@ public static class NotebookImporter {
                 case NotebookImportFormat.RNotebookHtml: RNotebookHtmlImporter.Read(input, context); break;
                 case NotebookImportFormat.Deepnote: NotebookDeepnoteImporter.Read(input, context); break;
                 case NotebookImportFormat.Zeppelin: NotebookZeppelinImporter.Read(input, context); break;
+                case NotebookImportFormat.PowerShellScript: NotebookPowerShellScript.Read(input, context); break;
                 default: throw new ArgumentOutOfRangeException(nameof(format));
             }
             return context.Complete(elapsed.Elapsed);
@@ -93,6 +94,7 @@ public static class NotebookImporter {
         NotebookImportFormat.RNotebookHtml => "R Notebook HTML",
         NotebookImportFormat.Deepnote => "Deepnote",
         NotebookImportFormat.Zeppelin => "Apache Zeppelin",
+        NotebookImportFormat.PowerShellScript => "PowerShell script",
         _ => throw new ArgumentOutOfRangeException(nameof(format))
     };
 }

@@ -98,6 +98,8 @@ public sealed class NotebookDocumentContracts {
         try {
             string destination = Path.Combine(directory, "published.ipynb");
             File.WriteAllText(destination, "existing file");
+            const UnixFileMode ownerOnly = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+            if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(destination, ownerOnly);
             using NotebookDocument legacy = NotebookDocument.Load(Fixture("test3.ipynb"));
             await Assert.ThrowsAsync<OfficeConversionException>(() => legacy.SaveAsync(destination));
             using var cancellation = new CancellationTokenSource();
@@ -111,6 +113,11 @@ public sealed class NotebookDocumentContracts {
             using JsonDocument saved = JsonDocument.Parse(File.ReadAllBytes(destination));
             Assert.Equal(4, saved.RootElement.GetProperty("nbformat").GetInt32());
             Assert.Single(Directory.EnumerateFiles(directory));
+            if (!OperatingSystem.IsWindows()) {
+                Assert.Equal(ownerOnly, File.GetUnixFileMode(destination));
+                legacy.Save(destination, new NotebookSaveOptions { AllowLoss = true });
+                Assert.Equal(ownerOnly, File.GetUnixFileMode(destination));
+            }
         } finally {
             Directory.Delete(directory, recursive: true);
         }

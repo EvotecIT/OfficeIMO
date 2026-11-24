@@ -9,9 +9,7 @@ namespace OfficeIMO.Notebook.Markdown;
 
 internal sealed partial class NotebookMarkdownProjection {
     private const int MaxHtmlOutputCharacters = 2 * 1024 * 1024;
-    private static readonly string[] PreferredOutputTypes = {
-        "image/svg+xml", "image/png", "image/jpeg", "text/html", "text/latex", "text/markdown", "text/plain"
-    };
+    private static readonly string[] PreferredOutputTypes = { "text/html", "text/latex", "text/markdown", "text/plain" };
 
     private void AddOutput(NotebookOutput output, string location) {
         switch (output.Kind) {
@@ -71,20 +69,26 @@ internal sealed partial class NotebookMarkdownProjection {
 
     private void AddDisplay(IReadOnlyDictionary<string, JsonElement> data, string location) {
         if (data.Count == 0) return;
-        bool interactive = data.Keys.Any(IsInteractive);
-        foreach (string mime in PreferredOutputTypes) {
-            if (!data.TryGetValue(mime, out JsonElement item)) continue;
-            _cancellationToken.ThrowIfCancellationRequested();
-            if (TryAddDisplay(mime, item, location)) {
-                if (interactive) {
-                    AddUnsupported("notebook-output-static-fallback", location, "A stored static representation was used for interactive output.", OfficeConversionLossKind.Approximation);
-                }
-                return;
+        bool usedImage = TryAddSavedDisplay(data, PreferredImageTypes, location);
+        if (!usedImage && TryAddChart(data, location)) return;
+        if (usedImage || TryAddSavedDisplay(data, PreferredOutputTypes, location)) {
+            if (data.Keys.Any(IsInteractive)) {
+                AddUnsupported("notebook-output-static-fallback", location, "A stored static representation was used for interactive output.", OfficeConversionLossKind.Approximation);
             }
-            AddUnsupported("notebook-output-representation", location, "The saved " + mime + " representation is unsupported, invalid, or exceeds the conversion limit.");
+            return;
         }
         AddUnsupported("notebook-output-unsupported", location, "The saved output has no supported static representation.");
         AddParagraph("[Saved notebook output unavailable]");
+    }
+
+    private bool TryAddSavedDisplay(IReadOnlyDictionary<string, JsonElement> data, string[] preferredTypes, string location) {
+        foreach (string mime in preferredTypes) {
+            if (!data.TryGetValue(mime, out JsonElement item)) continue;
+            _cancellationToken.ThrowIfCancellationRequested();
+            if (TryAddDisplay(mime, item, location)) return true;
+            AddUnsupported("notebook-output-representation", location, "The saved " + mime + " representation is unsupported, invalid, or exceeds the conversion limit.");
+        }
+        return false;
     }
 
     private bool TryAddDisplay(string mime, JsonElement item, string location) {
@@ -149,7 +153,9 @@ internal sealed partial class NotebookMarkdownProjection {
     }
 
     private static bool IsInteractive(string mime) => mime is "application/javascript" or "text/javascript"
-        || mime.StartsWith("application/vnd.", StringComparison.Ordinal) && mime.EndsWith("+json", StringComparison.Ordinal);
+        || Array.IndexOf(VegaLiteMimes, mime) >= 0
+        || mime != "application/vnd.dataresource+json" && mime.StartsWith("application/vnd.", StringComparison.Ordinal)
+            && mime.EndsWith("+json", StringComparison.Ordinal);
 
     private static string TrimMathDelimiters(string value) {
         string trimmed = value.Trim();

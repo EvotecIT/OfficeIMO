@@ -87,6 +87,12 @@ $familyDefinitions = @(
         nouns = @('OfficePrinter', 'OfficePrintJob')
     }
     [ordered]@{
+        id = 'notebooks'; title = 'Notebooks'; description = 'Open, edit and export Jupyter notebooks and saved results.'
+        docs = 'automation-patterns'; examples = $examplesRoot
+        samples = @('Open-OfficeNotebook', 'Get-OfficeNotebookCell', 'Export-OfficeNotebook')
+        nouns = @('OfficeNotebook')
+    }
+    [ordered]@{
         id = 'visio'; title = 'Visio'; description = 'Create and update VSDX diagrams with shapes, connectors, containers and pages, use built-in or imported stencils, and turn visual definitions into editable diagrams.'
         docs = 'visio'; examples = "$examplesRoot/Visio"
         samples = @('New-OfficeVisio', 'Add-OfficeVisioStencilShape', 'Add-OfficeVisioConnector', 'Find-OfficeVisioStencil')

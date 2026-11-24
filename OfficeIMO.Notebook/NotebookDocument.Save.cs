@@ -1,3 +1,5 @@
+using OfficeIMO.Core.Internal;
+
 namespace OfficeIMO.Notebook;
 
 public sealed partial class NotebookDocument {
@@ -11,15 +13,7 @@ public sealed partial class NotebookDocument {
     public void Save(string path, NotebookSaveOptions? options = null, CancellationToken cancellationToken = default) {
         string destination = GetPath(path);
         NotebookSaveOptions effective = PrepareSave(options, cancellationToken);
-        string temporary = TemporaryPath(destination);
-        using (var pending = new PendingFile(temporary)) {
-            using (FileStream output = File.Open(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None)) {
-                pending.Created = true;
-                Write(output, effective, cancellationToken);
-            }
-            cancellationToken.ThrowIfCancellationRequested();
-            pending.Publish(destination);
-        }
+        OfficeFileCommit.WriteAtomically(destination, output => Write(output, effective, cancellationToken), cancellationToken);
     }
 
     /// <summary>Writes an nbformat 4 notebook at the stream's current position, leaving the stream open.</summary>
@@ -35,16 +29,8 @@ public sealed partial class NotebookDocument {
         CancellationToken cancellationToken = default) {
         string destination = GetPath(path);
         NotebookSaveOptions effective = PrepareSave(options, cancellationToken);
-        string temporary = TemporaryPath(destination);
-        using (var pending = new PendingFile(temporary)) {
-            using (var output = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None,
-                bufferSize: 4096, useAsync: true)) {
-                pending.Created = true;
-                await WriteAsync(output, effective, cancellationToken).ConfigureAwait(false);
-            }
-            cancellationToken.ThrowIfCancellationRequested();
-            pending.Publish(destination);
-        }
+        await OfficeFileCommit.WriteAtomicallyAsync(destination, (output, token) => WriteAsync(output, effective, token),
+            cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Asynchronously writes a notebook at the stream's current position, leaving it open.</summary>
@@ -97,10 +83,16 @@ public sealed partial class NotebookDocument {
         return new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = options.Indented });
     }
 
+    /// <summary>Gets whether the native writer retains opaque root properties that other formats may omit.</summary>
+    internal bool HasAdditionalSourceProperties => _json != null && Root.EnumerateObject().Any(IsAdditionalSourceProperty);
+
+    private bool IsAdditionalSourceProperty(JsonProperty property) =>
+        property.Name is not ("nbformat" or "nbformat_minor" or "metadata" or "cells") &&
+        !(NbFormat == 3 && property.NameEquals("worksheets"));
+
     private void WriteHeader(Utf8JsonWriter writer) {
         writer.WriteStartObject();
-        NotebookJson.CopyProperties(writer, Root, prop => prop.Name is not ("nbformat" or "nbformat_minor" or "metadata" or "cells")
-            && !(NbFormat == 3 && prop.NameEquals("worksheets")));
+        NotebookJson.CopyProperties(writer, Root, IsAdditionalSourceProperty);
         writer.WriteNumber("nbformat", 4);
         writer.WriteNumber("nbformat_minor", NbFormat == 3 ? CurrentMinor : Math.Max(CurrentMinor, NbFormatMinor));
         if (_metadataEdited || !NotebookJson.WriteOriginal(writer, "metadata", NotebookJson.Property(Root, "metadata"))) {
@@ -115,30 +107,4 @@ public sealed partial class NotebookDocument {
     }
 
     private string RequirePath() => _path ?? throw new InvalidOperationException("This notebook has no default save destination.");
-
-    private static string TemporaryPath(string destination) =>
-        Path.Combine(Path.GetDirectoryName(destination)!, ".officeimo-notebook-" + Guid.NewGuid().ToString("N") + ".tmp");
-
-    private sealed class PendingFile(string path) : IDisposable {
-        internal bool Created { get; set; }
-
-        internal void Publish(string destination) {
-#if NET8_0_OR_GREATER
-            File.Move(path, destination, overwrite: true);
-#else
-            if (File.Exists(destination)) File.Replace(path, destination, destinationBackupFileName: null);
-            else File.Move(path, destination);
-#endif
-            Created = false;
-        }
-
-        public void Dispose() {
-            if (!Created) return;
-            try {
-                File.Delete(path);
-            } catch (IOException) {
-            } catch (UnauthorizedAccessException) {
-            }
-        }
-    }
 }

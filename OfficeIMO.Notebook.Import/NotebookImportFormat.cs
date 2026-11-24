@@ -17,5 +17,7 @@ public enum NotebookImportFormat {
     /// <summary>A native Deepnote file or snapshot.</summary>
     Deepnote,
     /// <summary>An exported Apache Zeppelin note.</summary>
-    Zeppelin
+    Zeppelin,
+    /// <summary>A PowerShell script, optionally containing OfficeIMO notebook cell boundaries.</summary>
+    PowerShellScript
 }

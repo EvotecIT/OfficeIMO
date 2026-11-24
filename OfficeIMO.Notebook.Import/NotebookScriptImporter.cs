@@ -15,7 +15,7 @@ internal static partial class NotebookScriptImporter {
     private static string? ReadStringProperty(JsonElement element, string name) =>
         ReadObjectProperty(element, name) is { ValueKind: JsonValueKind.String } property ? property.GetString() : null;
 
-    private static void SetLanguageInfo(NotebookDocument document, string language) {
+    internal static void SetLanguageInfo(NotebookDocument document, string language) {
         if (document.Metadata.ContainsKey("language_info")) return;
         using var json = new MemoryStream();
         using (var writer = new Utf8JsonWriter(json)) {

@@ -54,5 +54,23 @@
     "source": "https://github.com/marimo-team/marimo/tree/0.25.2",
     "license": "Repository MIT (generated fixture)",
     "sha256": "03526207a04802b6e6284723636923e66d6eba4633ca4d044b404c527b998a0d"
+  },
+  {
+    "file": "databricks-saved-results.ipynb",
+    "provenance": "Public Databricks notebook export with saved stdout",
+    "source": "https://github.com/ddmitov/machine-learning/blob/86315b5eb594d0acc8e8d267bab99473637d11cf/llm/dolly.ipynb",
+    "license": "Unlicense",
+    "licenseSource": "https://github.com/ddmitov/machine-learning/blob/86315b5eb594d0acc8e8d267bab99473637d11cf/UNLICENSE",
+    "licenseFile": "LICENSE.databricks-saved-results.txt",
+    "sha256": "7343811719488fbf4438cb806be48f8af09922bcff8bbf101eea2ab6385efc93"
+  },
+  {
+    "file": "kaggle-saved-results.ipynb",
+    "provenance": "Public Kaggle notebook export with saved results",
+    "source": "https://github.com/Seif-Yasser-Ahmed/RNN-Vs-Attention/blob/e71065bd3a0601bb449653a77e9f16ba2b301b87/main.ipynb",
+    "license": "Apache-2.0",
+    "licenseSource": "https://github.com/Seif-Yasser-Ahmed/RNN-Vs-Attention/blob/e71065bd3a0601bb449653a77e9f16ba2b301b87/LICENSE",
+    "licenseFile": "LICENSE.kaggle-saved-results.txt",
+    "sha256": "b0a497b9627b9eafebc8da5c5aa7b6022e0c6c67ed6d36154bb355fea684dafc"
   }
 ]

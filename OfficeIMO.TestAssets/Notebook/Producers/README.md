@@ -2,10 +2,12 @@
 
 `fixtures.json` pins the source and digest for each file. These files are inputs
 for JSON loading, editing, and readback. The test suite never executes their
-cells. The JupyterLab file comes from its integration tests. The Kaggle file
-comes from Deepnote's Kaggle compatibility suite. The Databricks fixture
-retains actual workspace export metadata from a public Apache-licensed
-notebook.
+cells. The JupyterLab file comes from its integration tests. The two
+`*-saved-results.ipynb` files retain hosted Kaggle or Databricks metadata and
+saved results from public exports pinned in the manifest. The manifest also
+names each adjacent license and its upstream source. The earlier fixtures
+exercise Deepnote's Kaggle compatibility case and a source-only Databricks
+workspace export.
 
 The published files are byte-identical. The upstream notices are adjacent for
 JupyterLab, Google Colab, and the Databricks export. The [Deepnote license](../Vendors/deepnote-LICENSE)

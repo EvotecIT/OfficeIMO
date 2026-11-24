@@ -121,5 +121,9 @@
     <Reference Include="System.Numerics" />
     <Reference Include="System.Net.Http" />
   </ItemGroup>
-  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Notebook.Html" /></ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Notebook" />
+    <InternalsVisibleTo Include="OfficeIMO.Notebook.Html" />
+    <InternalsVisibleTo Include="OfficeIMO.Notebook.Import" />
+  </ItemGroup>
 </Project>

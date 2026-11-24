@@ -16,6 +16,20 @@ saved MIME alternatives. It is suitable for offline inspection and editing.
 | DOCX | Writes editable text, code, headings and supported tables through the Word document engine. Saved figures use the Word adapter's supported image formats. |
 | CSV and XLSX | Exports a selected inline structured data resource with an ordered field schema. |
 
+For chart outputs, PDF, HTML, Markdown and Word first try saved SVG, PNG and
+JPEG representations. When a bundle contains only a supported chart
+specification, export can draw a vector preview.
+
+| Saved chart specification | Static preview |
+| --- | --- |
+| Plotly | Single Cartesian panel with categorical grouped bars or numeric scatter markers and lines. Numeric arrays can use Plotly.py's supported one-dimensional typed encoding. |
+| Vega-Lite | Single-unit categorical bars or numeric points and lines using inline literal rows, including a named dataset stored with the specification. |
+| Layered, faceted, 3D, map and other advanced charts | Use a supported saved image if one is present. The original chart data remains in the notebook on save. |
+
+Saved images and reconstructed previews report the reduction to static output.
+Widgets, chart interactions, and resources referenced by chart specifications
+are not loaded during export. The [chart sample and generator](../OfficeIMO.TestAssets/Notebook/RichOutputs/README.md) document the producer evidence.
+
 The notebook codec owns its bounded JSON storage for the lifetime of the model.
 Media are decoded on demand. The parser enforces byte, depth, cell and output
 budgets. Use the PDF conversion report to identify source cells and outputs
@@ -23,8 +37,8 @@ that need attention, and the save options to control acceptance of native
 normalization.
 
 The [producer corpus](../OfficeIMO.TestAssets/Notebook/Producers/README.md) covers
-JupyterLab, Colab, VS Code, a Kaggle compatibility fixture, .NET Interactive,
-Deepnote, Databricks, and marimo. Tests check typed source and saved results
+JupyterLab, Colab, VS Code, Kaggle, .NET Interactive, Deepnote, Databricks,
+and marimo. Tests check typed source and saved results
 and verify structural preservation of metadata and outputs after an edit.
 When a Deepnote Jupyter export duplicates its block group as a cell property
 and in metadata, save keeps the metadata copy to satisfy the v4.5 cell schema.

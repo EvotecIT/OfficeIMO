@@ -25,6 +25,7 @@ example prints findings and explicitly accepts them when saving.
 | --- | --- | --- |
 | `PolyglotDib` | .NET Polyglot `.dib` | Code and Markdown cells with declared kernels and aliases. Unsupported directives remain in source. |
 | `JupytextPercent` | Explicit Python, R, or Julia percent script | Code, Markdown, raw cells, supported cell markers and metadata. Optional saved results from a verified Jupyter companion. |
+| `PowerShellScript` | Explicit PowerShell `.ps1` | Plain script source as one code cell. Scripts written by OfficeIMO also restore their marked code and Markdown cells. |
 | `Quarto` | `.qmd` | Markdown, front matter and top-level executable fences. Chunk options are stored as metadata. |
 | `MySTMarkdown` | Explicit MyST notebook Markdown | Prose, front matter and top-level `{code-cell}` fences. Illustrative code fences remain prose. |
 | `RMarkdown` | `.Rmd` | Prose, front matter and top-level executable chunks. Chunk options are stored as metadata. |
@@ -33,7 +34,10 @@ example prints findings and explicitly accepts them when saving.
 | `Zeppelin` | `.zpln` or explicitly selected Zeppelin JSON | Ordered paragraphs and interpreter names, saved text, errors, HTML, images and rectangular tables. Interactive forms, Angular data and graph state may be omitted with diagnostics. |
 
 Use `NotebookDocument.Load` for an existing `.ipynb`. All other profiles
-produce a normalized `NotebookDocument`. Conversion reads local input and
+produce a normalized `NotebookDocument`. `NotebookImporter.TryGetFormatFromPath`
+can recognize notebook-specific extensions such as `.qmd` and `.nb.html`.
+Scripts, ordinary Markdown, `.dib`, and vendor JSON require an explicit
+profile. Conversion reads local input and
 embedded results as data. Kernel execution, remote resource lookup, publisher
 rendering and native source writing are outside the import profiles. Exporters
 apply their own static MIME and resource policies.
@@ -65,6 +69,23 @@ cell types, code languages where declared, and explicit IDs where supplied.
 Repeated code with saved results requires matching explicit cell IDs. A mismatch
 returns the script cells and a finding. The caller selects and owns the
 companion. OfficeIMO does not search for sidecars.
+
+## Exchange PowerShell source
+
+```csharp
+var imported = NotebookImporter.Load("report.ps1", NotebookImportFormat.PowerShellScript);
+using var notebook = imported.Value;
+notebook.Save("report.ipynb");
+NotebookPowerShellScript.Save(notebook, "roundtrip.ps1", failOnLoss: true);
+```
+
+The script writer keeps PowerShell source in code cells and writes Markdown
+cells as line comments. Its versioned comment boundaries preserve the IDs and
+order of supported cells. It reports saved output, execution state, unsupported
+metadata, or non-PowerShell cells that the script cannot carry. Pass
+`failOnLoss: true` to reject those omissions before file publication. The
+exchange reads and writes source without executing code. Execution as a
+combined script depends on how the original cells were authored.
 
 ## Shared file conversion
 

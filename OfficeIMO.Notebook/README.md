@@ -38,6 +38,14 @@ Legacy v3 worksheets load as one ordered cell list. Saving their normalized form
 requires `NotebookSaveOptions.AllowLoss`, since v4 has no worksheet boundaries.
 `NotebookDocument.Diagnostics` describes these normalization findings.
 
+Cell edits use zero-based indexes in current document order. Use
+`MoveCell(fromIndex, toIndex)` with the destination's final index and
+`RemoveCell(index)` to remove a cell. Moving a cell preserves its ID, metadata,
+attachments, and saved outputs. Use `AddCodeCell(source, language)` to set a
+per-cell language. `ClearOutputs()` removes saved outputs from a code cell.
+Setting `ExecutionCount` to `null` clears the count independently.
+`FilePath` identifies the default native save path when one exists.
+
 The package handles stored notebook content offline. It does not invoke a
 kernel, load widgets or access remote resources.
 

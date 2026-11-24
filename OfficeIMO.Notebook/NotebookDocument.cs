@@ -29,6 +29,9 @@ public sealed partial class NotebookDocument : IDisposable {
     /// <summary>Gets the source minor version, or the current writer version for a new notebook.</summary>
     public int NbFormatMinor { get; }
 
+    /// <summary>Gets the default save path, or <see langword="null"/> for a notebook without one.</summary>
+    public string? FilePath => _path;
+
     /// <summary>Gets ordered notebook cells. Legacy worksheets contribute cells in worksheet order.</summary>
     public IReadOnlyList<NotebookCell> Cells { get; }
 
@@ -61,8 +64,34 @@ public sealed partial class NotebookDocument : IDisposable {
     /// <summary>Appends code to the notebook and returns the new cell.</summary>
     public NotebookCell AddCodeCell(string source) => AddCell(NotebookCellKind.Code, "code", source);
 
+    /// <summary>Appends code with a nonblank cell language and returns the new cell.</summary>
+    public NotebookCell AddCodeCell(string source, string language) {
+        ArgumentException.ThrowIfNullOrWhiteSpace(language);
+        return AddCell(NotebookCellKind.Code, "code", source, language: language);
+    }
+
     /// <summary>Appends a raw cell to the notebook and returns it.</summary>
     public NotebookCell AddRawCell(string source) => AddCell(NotebookCellKind.Raw, "raw", source);
+
+    /// <summary>Removes the cell at the specified zero-based index.</summary>
+    public void RemoveCell(int index) {
+        CheckDisposed();
+        _cells.RemoveAt(index);
+    }
+
+    /// <summary>Moves a cell to its final zero-based index while retaining its identity and contents.</summary>
+    public void MoveCell(int fromIndex, int toIndex) {
+        CheckDisposed();
+        ArgumentOutOfRangeException.ThrowIfNegative(fromIndex);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(fromIndex, _cells.Count);
+        ArgumentOutOfRangeException.ThrowIfNegative(toIndex);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(toIndex, _cells.Count);
+        if (fromIndex == toIndex) return;
+
+        NotebookCell cell = _cells[fromIndex];
+        _cells.RemoveAt(fromIndex);
+        _cells.Insert(toIndex, cell);
+    }
 
     /// <summary>Sets a notebook metadata value. The document takes an independent snapshot of the value.</summary>
     public void SetMetadata(string name, JsonElement value) {
@@ -100,7 +129,7 @@ public sealed partial class NotebookDocument : IDisposable {
 
     private JsonElement Root => _json?.RootElement ?? default;
 
-    private void CheckDisposed() {
+    internal void CheckDisposed() {
         if (_disposed) throw new ObjectDisposedException(nameof(NotebookDocument));
     }
 

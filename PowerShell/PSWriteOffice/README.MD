@@ -177,6 +177,30 @@ New-OfficeMarkdown -Path .\Report.md -Force {
 Convert-OfficeDocument -Path .\Report.md -To Word
 ```
 
+## Notebooks
+
+Use `Convert-OfficeDocument` for file-to-file conversion and `Open-OfficeNotebook`
+for editing or inspecting a live notebook. These commands use saved content
+without starting a notebook kernel.
+
+```powershell
+Get-OfficeDocumentCapability -Conversion -From Notebook -Executable
+Convert-OfficeDocument -Path ./lab.ipynb -OutputPath ./lab.pdf
+
+$notebook = Open-OfficeNotebook -Path ./lab.ipynb
+try {
+    $notebook | Get-OfficeNotebookCell
+    $notebook | Add-OfficeNotebookCell -Kind Markdown -Source 'Reviewed.'
+    $notebook | Save-OfficeNotebook -Path ./reviewed.ipynb
+    $notebook | Export-OfficeNotebook -Path ./reviewed.html -IncludeCode:$false
+} finally {
+    $notebook | Close-OfficeNotebook
+}
+```
+
+Read `Get-Help about_PSWriteOffice_Notebook` for explicit import profiles,
+PowerShell script exchange, and saved-table export.
+
 ## Working with live documents
 
 Leave out the content block to keep a document open, for example to build it in a loop, then save and close it yourself:

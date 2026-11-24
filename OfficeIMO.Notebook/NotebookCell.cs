@@ -46,10 +46,10 @@ public sealed class NotebookCell {
         }
     }
 
-    /// <summary>Gets the cell-specific language when supplied by the input.</summary>
+    /// <summary>Gets the cell-specific language supplied when the cell was created or loaded.</summary>
     public string? Language { get; }
 
-    /// <summary>Gets or sets the saved execution count of a code cell.</summary>
+    /// <summary>Gets or sets the saved execution count of a code cell. Set it to <see langword="null"/> to clear the count.</summary>
     public int? ExecutionCount {
         get => _executionCount;
         set {
@@ -81,6 +81,13 @@ public sealed class NotebookCell {
         ArgumentNullException.ThrowIfNull(output);
         if (Kind != NotebookCellKind.Code) throw new InvalidOperationException("Only code cells can contain outputs.");
         _outputs.Add(output.Detach());
+        OutputsEdited = true;
+    }
+
+    /// <summary>Clears all saved outputs of a code cell and retains its execution count.</summary>
+    public void ClearOutputs() {
+        if (Kind != NotebookCellKind.Code) throw new InvalidOperationException("Only code cells can contain outputs.");
+        _outputs.Clear();
         OutputsEdited = true;
     }
 

@@ -99,7 +99,7 @@
       "summary": "Turn a saved notebook into a PDF. Preview the pages and review any outputs that needed a fallback.",
       "seoTitle": "Jupyter Notebook to PDF in your browser | OfficeIMO",
       "seoDescription": "Convert an .ipynb notebook to a searchable PDF in your browser. Keep saved outputs, hide code if needed, and download without uploading your file.",
-      "input": { "kind": "file", "accept": ".ipynb", "label": "Jupyter notebook", "sample": "samples/notebook-report.ipynb", "sampleName": "OfficeIMO-Notebook-Report.ipynb" },
+      "input": { "kind": "file", "accept": ".ipynb", "label": "Jupyter notebook", "sample": "samples/notebook-report.ipynb", "sampleName": "OfficeIMO-Notebook-Report.ipynb", "sampleNote": "Try a notebook with a Plotly scatter plot, an annotated heatmap, a layered Vega-Lite chart, a table and an equation." },
       "options": [
         { "id": "hideCode", "type": "flag", "label": "Hide code", "hint": "Keep saved results and notebook text." },
         { "id": "hideOutputs", "type": "flag", "label": "Hide saved outputs" },
@@ -108,7 +108,7 @@
       ],
       "engine": { "kind": "convert", "target": "notebook-pdf", "action": "convert", "assemblies": ["OfficeIMO.Notebook.wasm", "OfficeIMO.Notebook.Markdown.wasm", "OfficeIMO.Notebook.Pdf.wasm", "OfficeIMO.Markdown.wasm", "OfficeIMO.Markdown.Pdf.wasm", "OfficeIMO.Markdown.Html.wasm", "OfficeIMO.Html.wasm", "OfficeIMO.Html.Core.wasm", "OfficeIMO.Html.AngleSharp.wasm", "AngleSharp.wasm", "OfficeIMO.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm", "OfficeIMO.Web.Fonts.Notebook.wasm"] },
       "run": { "label": "Convert to PDF", "busy": ["Reading notebook cells", "Laying out saved outputs", "Writing the PDF"] },
-      "expect": "Saved text, static images, supported tables and equations appear in the PDF. Export uses the saved file and leaves interactive widgets out.",
+      "expect": "Saved images, supported Plotly and Vega-Lite chart previews, tables and equations appear in the PDF. Export uses the saved file. The report identifies outputs that need a fallback.",
       "next": ["inspect-pdf", "compress-pdf"],
       "legacy": ["route=notebook-pdf"],
       "guide": "/convert/guides/", "package": "OfficeIMO.Notebook.Pdf"

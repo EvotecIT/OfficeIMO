@@ -10,6 +10,9 @@ public sealed class NotebookProducerCompatibilityTests {
     [InlineData("deepnote", 0, 1, "deepnote_notebook_id", 0, "deepnote_sorting_key", "print(\"Hello world!\")", null, "Hello world!\n")]
     [InlineData("databricks", 0, 1, "application/vnd.databricks.v1+notebook", 0, "application/vnd.databricks.v1+cell", "teste", null, null)]
     [InlineData("marimo", 5, 2, "marimo", 1, null, "print(", null, "Saved marimo witness 42\n")]
+    [InlineData("kaggle-saved-results", 4, 29, "kaggle", 17, "execution", "device = torch.device(", null, "cuda\n")]
+    [InlineData("databricks-saved-results", 0, 5, "application/vnd.databricks.v1+notebook", 4, "application/vnd.databricks.v1+cell",
+        "res = generate_text(", null, "World Giraffe Day is celebrated on 17 October each year.\n")]
     public void OpensProducerSourceAndKeepsMetadataAndOutputsAfterEditing(string producer, int minor, int cellCount,
         string notebookMetadata, int cellIndex, string? cellMetadata, string sourcePrefix, string? language, string? stdout) {
         string path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "Producers", producer + ".ipynb");
