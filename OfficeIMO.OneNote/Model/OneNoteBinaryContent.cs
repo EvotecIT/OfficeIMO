@@ -7,12 +7,19 @@ namespace OfficeIMO.OneNote;
 /// </summary>
 public sealed class OneNoteBinaryPayload {
     private readonly byte[]? _bytes;
+    private readonly int _offset;
     private readonly Func<Stream>? _streamFactory;
 
     private OneNoteBinaryPayload(byte[]? bytes, Func<Stream>? streamFactory, long? length) {
         _bytes = bytes;
         _streamFactory = streamFactory;
         Length = length;
+    }
+
+    private OneNoteBinaryPayload(byte[] bytes, int offset, int count) {
+        _bytes = bytes;
+        _offset = offset;
+        Length = count;
     }
 
     /// <summary>Payload length when known without opening the stream.</summary>
@@ -31,6 +38,13 @@ public sealed class OneNoteBinaryPayload {
         return new OneNoteBinaryPayload(bytes, null, bytes.LongLength);
     }
 
+    // Shares a range of a buffer the reader owns and never changes, so decoded values don't need their own copies.
+    internal static OneNoteBinaryPayload FromOwnedRange(byte[] bytes, int offset, int count) {
+        ArgumentNullException.ThrowIfNull(bytes);
+        if (offset < 0 || count < 0 || offset > bytes.Length - count) throw new ArgumentOutOfRangeException(nameof(count));
+        return new OneNoteBinaryPayload(bytes, offset, count);
+    }
+
     /// <summary>
     /// Creates a lazy payload. The factory must return a new readable stream for every call.
     /// </summary>
@@ -43,7 +57,9 @@ public sealed class OneNoteBinaryPayload {
     /// <summary>Opens a new readable stream for the payload.</summary>
     public Stream OpenRead() {
         if (_bytes != null) {
-            return new MemoryStream(_bytes, 0, _bytes.Length, false, true);
+            int count = (int)Length!.Value;
+            // A range shares the reader's buffer, so its stream must not hand out the whole array.
+            return new MemoryStream(_bytes, _offset, count, false, _offset == 0 && count == _bytes.Length);
         }
 
         Stream stream = _streamFactory!();
@@ -63,8 +79,8 @@ public sealed class OneNoteBinaryPayload {
         }
 
         if (_bytes != null) {
-            var copy = new byte[_bytes.Length];
-            Buffer.BlockCopy(_bytes, 0, copy, 0, _bytes.Length);
+            var copy = new byte[(int)Length!.Value];
+            Buffer.BlockCopy(_bytes, _offset, copy, 0, copy.Length);
             return copy;
         }
 
