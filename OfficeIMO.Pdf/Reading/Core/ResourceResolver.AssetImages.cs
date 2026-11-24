@@ -6,7 +6,9 @@ internal static partial class ResourceResolver {
     internal static int ReadImageInteger(PdfDictionary dictionary, string key, Dictionary<int, PdfIndirectObject>? objects) {
         if (!dictionary.Items.TryGetValue(key, out PdfObject? value)) return 0;
         PdfObject? resolved = value is PdfReference && objects is not null ? PdfObjectLookup.ResolveChain(objects, value) : value;
-        return resolved is PdfNumber { Value: >= 1 and <= int.MaxValue } number ? (int)number.Value : 0;
+        return resolved is PdfNumber { Value: >= 1 and <= int.MaxValue } number && number.Value == (int)number.Value
+            ? (int)number.Value
+            : 0;
     }
 
     internal static bool IsRgbaPng(byte[] png) => png.Length > 25 && png[24] == 8 && png[25] == 6;

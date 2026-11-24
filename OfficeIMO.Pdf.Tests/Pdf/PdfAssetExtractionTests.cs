@@ -134,6 +134,19 @@ public sealed class PdfAssetExtractionTests {
         Assert.Equal(new byte[] { 255, 255, 255, 255 }, Assert.IsType<OfficeRasterImage>(gray).GetPixels().Take(4));
         Assert.Equal(new byte[] { 255, 0, 0, 255 }, Assert.IsType<OfficeRasterImage>(red).GetPixels().Take(4));
 
+        var svg = XDocument.Parse(Encoding.UTF8.GetString(streams["pages/0001.svg"].ToArray()));
+        byte[][] svgColors = svg.Descendants(XName.Get("image", "http://www.w3.org/2000/svg"))
+            .Select(image => (string?)image.Attribute("href") ?? (string?)image.Attribute(XName.Get("href", "http://www.w3.org/1999/xlink")))
+            .OfType<string>()
+            .Where(uri => uri.StartsWith("data:image/png;base64,", StringComparison.Ordinal))
+            .Select(uri => Convert.FromBase64String(uri.Substring("data:image/png;base64,".Length)))
+            .Select(bytes => {
+                Assert.True(OfficePngReader.TryDecode(bytes, out OfficeRasterImage? pixels));
+                return Assert.IsType<OfficeRasterImage>(pixels).GetPixels();
+            }).ToArray();
+        Assert.Contains(svgColors, colors => colors.Take(4).SequenceEqual(new byte[] { 255, 255, 255, 255 }));
+        Assert.Contains(svgColors, colors => colors.Take(4).SequenceEqual(new byte[] { 255, 0, 0, 255 }));
+
         JsonElement stamp = Assert.Single(root.GetProperty("images").EnumerateArray(),
             image => image.GetProperty("resource").GetString() == "StampImage");
         Assert.True(stamp.GetProperty("imageFile").GetBoolean());
@@ -234,12 +247,8 @@ public sealed class PdfAssetExtractionTests {
             PdfReference profile = Add(new PdfStream(Dict(("N", new PdfNumber(3))), icc));
             catalog.Items["OutputIntents"] = ArrayOf(Add(Dict(("Type", Name("OutputIntent")), ("S", Name("GTS_PDFX")),
                 ("OutputConditionIdentifier", new PdfStringObj("Fixture sRGB")), ("DestOutputProfile", profile))));
-            PdfReference mask = Add(Image(Name("DeviceGray"), new byte[] { 0, 128 }));
-            PdfStream maskedImage = Image(Name("DeviceGray"), new byte[] { 32, 200 }, mask);
-            foreach (string key in new[] { "Width", "Height", "BitsPerComponent" }) {
-                maskedImage.Dictionary.Items[key] = Add(maskedImage.Dictionary.Items[key]);
-            }
-            PdfReference masked = Add(maskedImage);
+            PdfReference mask = AddWithIndirectDimensions(Image(Name("DeviceGray"), new byte[] { 0, 128 }));
+            PdfReference masked = AddWithIndirectDimensions(Image(Name("DeviceGray"), new byte[] { 32, 200 }, mask));
             PdfArray iccSpace = ArrayOf(Name("ICCBased"), profile);
             byte[] rgb = { 20, 60, 220, 230, 110, 10 };
             PdfReference iccImage = Add(Image(iccSpace, rgb));
@@ -266,6 +275,13 @@ public sealed class PdfAssetExtractionTests {
                 int id = next++;
                 objects.Add(id, new PdfIndirectObject(id, 0, value));
                 return new PdfReference(id, 0);
+            }
+
+            PdfReference AddWithIndirectDimensions(PdfStream image) {
+                foreach (string key in new[] { "Width", "Height", "BitsPerComponent" }) {
+                    image.Dictionary.Items[key] = Add(image.Dictionary.Items[key]);
+                }
+                return Add(image);
             }
 
             PdfDictionary Font(string name) => Dict(("Type", Name("Font")), ("Subtype", Name(openType is null ? "TrueType" : "Type1")),

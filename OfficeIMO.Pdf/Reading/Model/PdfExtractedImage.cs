@@ -101,6 +101,8 @@ public sealed partial class PdfExtractedImage {
     /// <summary>Runtime identity for a direct image stream, or 0 when the image is indirect.</summary>
     internal int DirectStreamIdentity { get; }
 
+    internal PdfDictionary? ResourceContext { get; init; }
+
     /// <summary>Image width in pixels.</summary>
     public int Width { get; }
 

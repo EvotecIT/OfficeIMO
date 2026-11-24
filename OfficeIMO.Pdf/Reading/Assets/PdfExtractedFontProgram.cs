@@ -16,7 +16,7 @@ internal static class PdfExtractedFontProgram {
     internal static byte[] RepairName(byte[] bytes, PdfFontInfo font, out bool repaired, out bool readable) {
         repaired = false;
         readable = false;
-        if (!PdfTrueTypeUnicodeCmap.TryReadTables(bytes, out var tables, ignoreOutOfRangeNameTable: true) ||
+        if (!PdfTrueTypeUnicodeCmap.TryReadTablesForNameRepair(bytes, out var tables) ||
             tables.Select(static table => table.Tag).Distinct(StringComparer.Ordinal).Count() != tables.Count ||
             !tables.Any(static table => table.Tag == "head" && table.Length >= 54)) return bytes;
 

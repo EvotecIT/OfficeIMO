@@ -247,8 +247,14 @@ internal static partial class PdfTrueTypeUnicodeCmap {
             (scalar & 0xFFFE) != 0xFFFE && !(scalar >= 0xFDD0 && scalar <= 0xFDEF);
     }
 
-    internal static bool TryReadTables(byte[] data, out List<(string Tag, int Offset, int Length)> tables,
-        bool ignoreOutOfRangeNameTable = false) {
+    private static bool TryReadTables(byte[] data, out List<(string Tag, int Offset, int Length)> tables) =>
+        TryReadTableDirectory(data, out tables, ignoreOutOfRangeNameTable: false);
+
+    internal static bool TryReadTablesForNameRepair(byte[] data, out List<(string Tag, int Offset, int Length)> tables) =>
+        TryReadTableDirectory(data, out tables, ignoreOutOfRangeNameTable: true);
+
+    private static bool TryReadTableDirectory(byte[] data, out List<(string Tag, int Offset, int Length)> tables,
+        bool ignoreOutOfRangeNameTable) {
         tables = new List<(string Tag, int Offset, int Length)>();
         if (data.Length < 12) return false;
         uint version = ReadUInt32(data, 0);
