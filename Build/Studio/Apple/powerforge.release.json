@@ -82,7 +82,19 @@
     ],
     "ScreenshotConfigPaths": [
       "Build/Studio/Apple/appstoreconnect-screenshots-macos.json",
-      "Build/Studio/Apple/appstoreconnect-screenshots-ios.json"
+      "Build/Studio/Apple/appstoreconnect-screenshots-ios.json",
+      "Build/Studio/Apple/appstore/localizations/de-DE/screenshots-macos.json",
+      "Build/Studio/Apple/appstore/localizations/de-DE/screenshots-ios.json",
+      "Build/Studio/Apple/appstore/localizations/fr-FR/screenshots-macos.json",
+      "Build/Studio/Apple/appstore/localizations/fr-FR/screenshots-ios.json",
+      "Build/Studio/Apple/appstore/localizations/pl/screenshots-macos.json",
+      "Build/Studio/Apple/appstore/localizations/pl/screenshots-ios.json",
+      "Build/Studio/Apple/appstore/localizations/es-ES/screenshots-macos.json",
+      "Build/Studio/Apple/appstore/localizations/es-ES/screenshots-ios.json",
+      "Build/Studio/Apple/appstore/localizations/it/screenshots-macos.json",
+      "Build/Studio/Apple/appstore/localizations/it/screenshots-ios.json",
+      "Build/Studio/Apple/appstore/localizations/pt-BR/screenshots-macos.json",
+      "Build/Studio/Apple/appstore/localizations/pt-BR/screenshots-ios.json"
     ]
   }
 }
