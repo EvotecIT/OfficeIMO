@@ -30,6 +30,8 @@ category:
 | Read paragraphs, `OneDocument` | `Document.Open` and the text of every `Document.Paragraphs` entry | Same paragraph count, character count and checksum as every other reader |
 | Read paragraphs, `OfficeIMOReaderText` (all targets) | `OfficeIMO.Reader` with `ReaderProjection.TextAndMetadata`, then `GetText()`, split into lines | Same observation; this is OfficeIMO's plain-text route, so it pairs with OneDocument's extractor |
 | Read paragraphs, `OfficeIMOReaderStreamedText` (all targets) | The same Reader read with `ReaderProjection.Text`, which streams simple bodies without building the Word model | Same observation |
+| Read paragraphs, `OfficeIMOPackageReader` (all targets) | The internal SDK-free Open XML package and pull reader in `OfficeIMO.Core`, returning the text of each body paragraph | Same observation; the parity tests also compare it with the Open XML SDK on the Word test documents |
+| Read paragraphs, `OfficeIMOStreamedBodyText` (all targets) | The SDK-free body-text pass behind `OfficeIMOReaderStreamedText`, without the Reader's chunks | Same observation |
 | Read paragraphs, `OneDocumentExtractText` | `Document.Open` and `ExtractText()`, OneDocument's streaming extractor, split into lines | Same observation; it skips the document model, so it is the cheaper of the two OneDocument routes |
 | Create paragraphs | `Document.Create`, the first item in the new document's empty paragraph, then `Body.AddParagraph` for the rest | Exact paragraph count and text, and Open XML SDK validation |
 | Replace and save | `Document.Open`, case-sensitive `Document.Replace` for `{{Status}}`, `SaveAs` to a DOCX stream | Every output paragraph and Open XML SDK validation |

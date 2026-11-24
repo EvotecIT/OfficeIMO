@@ -5,7 +5,8 @@ using Microsoft.Win32.SafeHandles;
 using System.Runtime.InteropServices;
 
 namespace OfficeIMO.PowerPoint {
-    public sealed partial class PowerPointDocument {
+    /// <summary>Input size limits and buffering for presentation loads. Kept apart from <see cref="PowerPointDocument"/> so streamed reads can check limits without loading the Open XML SDK.</summary>
+    internal static class PowerPointDocumentInput {
         private const int CompoundDetectionDirectoryLimit = 65536;
         private const int InputCopyBufferSize = 81920;
         private const long DefaultMaxCompoundTemporaryBytes =
@@ -231,7 +232,7 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static long? ResolvePackageInputLimit(
+        internal static long? ResolvePackageInputLimit(
             PowerPointLoadOptions options) {
             long? configured = options.MaxInputBytes;
             if (configured.HasValue && configured.Value < 1) {

@@ -116,56 +116,6 @@ namespace OfficeIMO {
             return normalized[0] == '/' ? normalized : "/" + normalized;
         }
 
-        private static string? ResolveRelationshipTarget(string relationshipPartName, string? target) {
-            if (string.IsNullOrWhiteSpace(target)) return null;
-            string normalizedTarget = target!.Replace('\\', '/');
-            // OPC uses one leading slash for a package-root part reference.
-            // Authority/UNC targets and absolute URI schemes remain unresolved.
-            if (normalizedTarget.StartsWith("//", StringComparison.Ordinal)) return null;
-            if (!target.StartsWith("/", StringComparison.Ordinal)
-                && Uri.TryCreate(target, UriKind.Absolute, out Uri? absolute) && absolute.IsAbsoluteUri) return null;
-
-            string normalizedRelationshipPart = relationshipPartName.Replace('\\', '/');
-            int relationshipsSegment = normalizedRelationshipPart.LastIndexOf("/_rels/", StringComparison.OrdinalIgnoreCase);
-            if (relationshipsSegment < 0) return null;
-
-            string sourcePrefix = normalizedRelationshipPart.Substring(0, relationshipsSegment);
-            string relationshipFile = normalizedRelationshipPart.Substring(relationshipsSegment + 7);
-            string sourceDirectory;
-            if (string.Equals(relationshipFile, ".rels", StringComparison.OrdinalIgnoreCase)) {
-                sourceDirectory = "/";
-            } else if (relationshipFile.EndsWith(RelationshipSuffix, StringComparison.OrdinalIgnoreCase)) {
-                string sourceFile = relationshipFile.Substring(0, relationshipFile.Length - RelationshipSuffix.Length);
-                string sourcePart = sourcePrefix + "/" + sourceFile;
-                int separator = sourcePart.LastIndexOf('/');
-                sourceDirectory = separator <= 0 ? "/" : sourcePart.Substring(0, separator + 1);
-            } else {
-                return null;
-            }
-
-            int suffix = normalizedTarget.IndexOfAny(new[] { '?', '#' });
-            if (suffix >= 0) normalizedTarget = normalizedTarget.Substring(0, suffix);
-            if (IsDirectoryOrEmptySegmentTarget(normalizedTarget)) return null;
-            string combined = normalizedTarget.StartsWith("/", StringComparison.Ordinal)
-                ? normalizedTarget
-                : sourceDirectory + normalizedTarget;
-            if (IsDirectoryOrEmptySegmentTarget(combined)) return null;
-            var segments = new List<string>();
-            foreach (string segment in combined.Split('/')) {
-                if (segment.Length == 0 || segment == ".") continue;
-                if (segment == "..") {
-                    if (segments.Count == 0) return null;
-                    segments.RemoveAt(segments.Count - 1);
-                } else {
-                    // Validate the original spelling before a later parent segment
-                    // can remove it; retain the spelling for once-decoded lookup.
-                    if (DecodePartIdentitySegment(segment) == null) return null;
-                    segments.Add(segment);
-                }
-            }
-            return "/" + string.Join("/", segments);
-        }
-
         private static bool ContainsIgnoreCase(string value, string fragment) =>
             value.IndexOf(fragment, StringComparison.OrdinalIgnoreCase) >= 0;
     }

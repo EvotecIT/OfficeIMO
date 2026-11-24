@@ -161,7 +161,7 @@ public static class ReaderInputLimits {
 
         Stream buffer = CreateBoundedSnapshotBuffer(maxInputBytes, knownLength);
         try {
-            var chunk = new byte[64 * 1024];
+            var chunk = new byte[CopyChunkLength(knownLength)];
             long totalBytes = 0;
             if (inputLimitProbe != null) {
                 var prefix = new byte[inputLimitProbe.PrefixLength];
@@ -207,6 +207,10 @@ public static class ReaderInputLimits {
         ownsStream = true;
         return buffer;
     }
+
+    // A known, shorter length needs a copy buffer only one byte longer, enough to read to the end and see it.
+    private static int CopyChunkLength(long? knownLength) =>
+        knownLength.HasValue && knownLength.Value < 64 * 1024 ? (int)knownLength.Value + 1 : 64 * 1024;
 
     /// <summary>
     /// Asynchronously creates a seekable stream snapshot for parsers that require rewind/index operations.
@@ -262,7 +266,7 @@ public static class ReaderInputLimits {
 
         Stream buffer = CreateBoundedSnapshotBuffer(maxInputBytes, knownLength);
         try {
-            var chunk = new byte[64 * 1024];
+            var chunk = new byte[CopyChunkLength(knownLength)];
             long totalBytes = 0;
             if (inputLimitProbe != null) {
                 var prefix = new byte[inputLimitProbe.PrefixLength];

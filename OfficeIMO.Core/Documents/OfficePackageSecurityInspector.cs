@@ -1,3 +1,4 @@
+using OfficeIMO.Core.Internal.OpenXml;
 using OfficeIMO.Core.Internal;
 using System.IO.Compression;
 using System.Xml;
@@ -383,27 +384,34 @@ namespace OfficeIMO {
             ICollection<OfficePackageSecurityFinding> findings) {
             int externalCount = 0;
             try {
-                using Stream stream = entry.Open();
-                using XmlReader reader = XmlReader.Create(OfficeSmallXmlPartInput.Prepare(stream, entry.Length),
-                    CreateSecureXmlSettings(maxXmlCharactersInPart));
+                // Relationship parts are small and numerous, so each is read into an exact buffer and parsed by the
+                // package pull reader, which rejects document type declarations like the secure XmlReader settings.
+                byte[] bytes;
+                using (Stream stream = entry.Open()) {
+                    bytes = OfficeArchiveSafety.ReadEntryBytes(stream, entry.Length, entry.Length);
+                }
+                if (bytes.Length > maxXmlCharactersInPart && maxXmlCharactersInPart > 0 && OfficeXmlPullReader.CountCharacters(bytes, bytes.Length) > maxXmlCharactersInPart) {
+                    throw new XmlException($"The part has more than {maxXmlCharactersInPart} characters.");
+                }
+                var reader = new OfficeXmlPullReader(bytes, bytes.Length, null, processMarkupCompatibility: false);
+                string? sourceDirectory = OfficeOpcPartNames.GetRelationshipSourceDirectory(partName);
                 while (reader.Read()) {
-                    if (reader.NodeType != XmlNodeType.Element
-                        || !string.Equals(reader.LocalName, "Relationship", StringComparison.Ordinal)) continue;
+                    if (reader.NodeKind != OfficeXmlNodeKind.StartElement || !reader.LocalNameEquals("Relationship")) continue;
                     if (++relationshipCount > maxRelationships) {
                         findings.Add(Error(OfficePackageSecurityRule.RelationshipCount,
                             $"Package relationship count exceeds the configured maximum of {maxRelationships}.",
                             partName, relationshipCount, maxRelationships));
                         break;
                     }
-                    string? targetMode = reader.GetAttribute("TargetMode");
+                    string? targetMode = reader.TryGetAttribute(OfficeXmlNamespaces.None, "TargetMode", out string mode) ? mode : null;
                     if (string.Equals(targetMode, "External", StringComparison.OrdinalIgnoreCase)) {
                         externalCount++;
                         continue;
                     }
 
-                    string? relationshipType = reader.GetAttribute("Type");
-                    string? target = reader.GetAttribute("Target");
-                    string? targetPart = ResolveRelationshipTarget(partName, target);
+                    string? relationshipType = reader.TryGetAttribute(OfficeXmlNamespaces.None, "Type", out string type) ? type : null;
+                    string? target = reader.TryGetAttribute(OfficeXmlNamespaces.None, "Target", out string targetValue) ? targetValue : null;
+                    string? targetPart = OfficeOpcPartNames.ResolveRelationshipTargetFrom(sourceDirectory, target);
                     if (targetPart != null) targetPart = partIdentities.Resolve(targetPart);
                     string classificationKey = targetPart ?? partName + "#" + (target ?? string.Empty);
                     AddRelationshipClassification(relationshipType, classificationKey, macroParts, embeddedParts, activeXParts);

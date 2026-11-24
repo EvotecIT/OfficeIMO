@@ -274,11 +274,12 @@ internal static partial class OfficeDocumentModelTraversal {
     private static string BuildBlockIdentity(OfficeDocumentBlock block, ReaderLocation? location) {
         string? anchor = location?.BlockAnchor;
         if (!string.IsNullOrWhiteSpace(block.Id) || !string.IsNullOrWhiteSpace(anchor)) {
-            var builder = new StringBuilder(!string.IsNullOrWhiteSpace(block.Id) ? "id:" : "anchor:");
+            var builder = new StringBuilder(96);
+            builder.Append(!string.IsNullOrWhiteSpace(block.Id) ? "id:" : "anchor:");
             AppendIdentity(builder, !string.IsNullOrWhiteSpace(block.Id) ? block.Id : anchor);
             AppendIdentity(builder, location?.Path);
-            AppendIdentity(builder, location?.Page?.ToString(CultureInfo.InvariantCulture));
-            AppendIdentity(builder, location?.Slide?.ToString(CultureInfo.InvariantCulture));
+            AppendIdentity(builder, location?.Page);
+            AppendIdentity(builder, location?.Slide);
             AppendIdentity(builder, location?.Sheet);
             return builder.ToString();
         }
@@ -496,9 +497,32 @@ internal static partial class OfficeDocumentModelTraversal {
             builder.Append("-1:");
             return;
         }
-        builder.Append(value.Length.ToString(CultureInfo.InvariantCulture));
+        AppendNonNegative(builder, value.Length);
         builder.Append(':');
         builder.Append(value);
+    }
+
+    // The same text as an invariant ToString() of the number, written without allocating it.
+    private static void AppendIdentity(StringBuilder builder, int? value) {
+        if (value == null) {
+            builder.Append("-1:");
+            return;
+        }
+        int number = value.Value;
+        if (number < 0) {
+            AppendIdentity(builder, number.ToString(CultureInfo.InvariantCulture));
+            return;
+        }
+        int digits = 1;
+        for (int remaining = number; remaining >= 10; remaining /= 10) digits++;
+        AppendNonNegative(builder, digits);
+        builder.Append(':');
+        AppendNonNegative(builder, number);
+    }
+
+    private static void AppendNonNegative(StringBuilder builder, int value) {
+        if (value >= 10) AppendNonNegative(builder, value / 10);
+        builder.Append((char)('0' + value % 10));
     }
 
 }

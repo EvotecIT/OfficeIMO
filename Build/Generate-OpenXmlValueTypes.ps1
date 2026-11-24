@@ -7,7 +7,10 @@ param(
     [Parameter(Mandatory)] [string] $OutputPath,
     [Parameter(Mandatory)] [string] $GeneratorName,
     [System.Collections.IDictionary] $MemberNames = @{},
-    [switch] $SkipMappings
+    [switch] $SkipMappings,
+    # Also emit TryParseOpenXmlValue methods that map an XML token straight to the OfficeIMO enum, for readers that
+    # parse markup without loading the Open XML SDK.
+    [switch] $EmitTokenParsers
 )
 
 $frameworkPath = Join-Path $AssemblyDirectory 'DocumentFormat.OpenXml.Framework.dll'
@@ -98,6 +101,14 @@ if (-not $SkipMappings) {
     [void] $builder.AppendLine("    internal static $($model.OfficeType)? ToOfficeEnum(this $($model.OpenXmlType)? value) =>")
     [void] $builder.AppendLine('        value.HasValue ? value.Value.ToOfficeEnum() : null;')
     [void] $builder.AppendLine()
+    if ($EmitTokenParsers) {
+        [void] $builder.AppendLine("    internal static bool TryParseOpenXmlValue(string token, out $($model.OfficeType) value) {")
+        [void] $builder.AppendLine("        int index = Array.IndexOf($tokenField, token);")
+        [void] $builder.AppendLine("        value = index < 0 ? default : ($($model.OfficeType))index;")
+        [void] $builder.AppendLine('        return index >= 0;')
+        [void] $builder.AppendLine('    }')
+        [void] $builder.AppendLine()
+    }
     }
 
     [void] $builder.AppendLine('    private static string GetToken<TEnum>(TEnum value, string[] tokens) where TEnum : struct, Enum {')

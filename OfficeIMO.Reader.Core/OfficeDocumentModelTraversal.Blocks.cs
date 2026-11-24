@@ -28,6 +28,8 @@ internal static partial class OfficeDocumentModelTraversal {
         }
 
         internal ReaderLocation? ResolveLocation(OfficeDocumentBlock block) {
+            // Without page blocks there is nothing to reconcile, and building lookup keys would only allocate.
+            if (_locations.Count == 0 && _identityLocations.Count == 0) return block.Location;
             if (_locations.TryGetValue(block, out ReaderLocation? location)) return location;
             if (!IsComplete) return block.Location;
             if (_identityLocations.TryGetValue(BuildBlockProjectionKey(block), out var matches)) {
@@ -44,14 +46,14 @@ internal static partial class OfficeDocumentModelTraversal {
         internal bool HasPageFragments(OfficeDocumentBlock block) {
             // Local anchors may be reused by unrelated containers; only a stable source ID
             // establishes that page blocks are fragments replacing this aggregate observation.
-            if (!IsComplete || string.IsNullOrWhiteSpace(block.Id) || _locations.ContainsKey(block)
+            if (_identityLocations.Count == 0 || !IsComplete || string.IsNullOrWhiteSpace(block.Id) || _locations.ContainsKey(block)
                 || !_identityLocations.TryGetValue(BuildBlockProjectionKey(block), out var matches)) return false;
             return matches.Where(candidate => block.Location == null || SameContainerWhenKnown(block.Location, candidate))
                 .Select(candidate => BuildBlockIdentity(block, candidate)).Distinct(StringComparer.Ordinal).Take(2).Count() > 1;
         }
 
         internal OfficeDocumentRegion? ResolveRegion(OfficeDocumentBlock block) {
-            if (block.Region != null || !IsComplete
+            if (block.Region != null || !IsComplete || _identityLocations.Count == 0
                 || !_identityLocations.TryGetValue(BuildBlockProjectionKey(block), out var matches)) return block.Region;
             var compatible = matches.Where(candidate => block.Location == null || SameContainerWhenKnown(block.Location, candidate))
                 .GroupBy(candidate => BuildBlockIdentity(block, candidate), StringComparer.Ordinal).Take(2).ToArray();

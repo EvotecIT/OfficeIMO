@@ -68,23 +68,15 @@ internal static partial class PowerPointRichMapping {
             });
         }
 
+        // Slide pages would hold these same blocks and tables, whose locations already name the slide, and the text
+        // projection drops pages when it reduces the result, so the streamed read does not build them.
         projection.Blocks.AddRange(slideBlocks);
-        projection.Pages.Add(new OfficeDocumentPage {
-            Number = slideNumber,
-            Name = string.IsNullOrWhiteSpace(title) ? "Slide " + slideNumber.ToString(CultureInfo.InvariantCulture) : title!,
-            Location = BuildPowerPointLocation(path, slideNumber, null, "slide", "powerpoint-slide-" + slideNumber.ToString("D4", CultureInfo.InvariantCulture)),
-            Blocks = slideBlocks,
-            Tables = slideTables,
-            Assets = Array.Empty<OfficeDocumentAsset>(),
-            Links = Array.Empty<OfficeDocumentLink>(),
-            Forms = Array.Empty<OfficeDocumentFormField>()
-        });
         return true;
     }
 
     /// <summary>Completes a streamed result the way <see cref="Apply"/> completes a model result.</summary>
     internal static OfficeDocumentReadResult CompleteStreamed(OfficeDocumentReadResult result,
-        System.IO.Packaging.PackageProperties properties, StreamedSlideProjection projection, IReadOnlyList<string> capabilities) {
+        (string? Title, string? Creator, string? Subject, string? Keywords) properties, StreamedSlideProjection projection, IReadOnlyList<string> capabilities) {
         result.Source.Title = properties.Title;
         result.Source.Author = properties.Creator;
         result.Source.Subject = properties.Subject;
@@ -93,13 +85,12 @@ internal static partial class PowerPointRichMapping {
         string? path = result.Source.Path;
         foreach (OfficeDocumentBlock block in projection.Blocks) block.Location!.Path = path;
         foreach (ReaderTable table in projection.Tables) table.Location!.Path = path;
-        foreach (OfficeDocumentPage page in projection.Pages) page.Location!.Path = path;
         var metadata = new[] {
             DocumentReaderEngine.BuildCountMetadataEntry("powerpoint-shape-count", "powerpoint.structure", "ShapeCount", projection.ShapeCount),
             DocumentReaderEngine.BuildCountMetadataEntry("powerpoint-chart-count", "powerpoint.structure", "ChartCount", projection.ChartCount)
         };
         return DocumentReaderEngine.EnrichDocumentResult(result, capabilities, projection.Blocks, projection.Tables,
-            Array.Empty<OfficeDocumentLink>(), Array.Empty<ReaderVisual>(), projection.Pages, metadata);
+            Array.Empty<OfficeDocumentLink>(), Array.Empty<ReaderVisual>(), Array.Empty<OfficeDocumentPage>(), metadata);
     }
 }
 
@@ -107,7 +98,6 @@ internal static partial class PowerPointRichMapping {
 internal sealed class StreamedSlideProjection {
     internal List<OfficeDocumentBlock> Blocks { get; } = new();
     internal List<ReaderTable> Tables { get; } = new();
-    internal List<OfficeDocumentPage> Pages { get; } = new();
     internal int TableIndex { get; set; }
     internal int ShapeCount { get; set; }
     internal int ChartCount { get; set; }
