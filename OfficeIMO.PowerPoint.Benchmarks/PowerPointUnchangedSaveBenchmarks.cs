@@ -68,12 +68,17 @@ public class PowerPointUnchangedSaveFirstCallBenchmarks {
 }
 
 internal static class PowerPointUnchangedSaveWorkload {
-    private static string DeckPath(int slides) => Path.Combine(Path.GetTempPath(), "officeimo-unchanged-save-" + slides + ".pptx");
+    private static string DeckPath(int slides) => Path.Combine(Path.GetTempPath(), "officeimo-unchanged-save-v2-" + slides + ".pptx");
 
-    // The deck is the SDK-written one the model benchmarks use, kept in a file so a cold run reads bytes only.
+    // The deck the model benchmarks write, saved once through PowerPointDocument so its document properties are
+    // complete as PowerPoint writes them, and kept in a file so a cold run reads bytes only.
     internal static byte[] ReadDeck(int slides) {
         string path = DeckPath(slides);
-        if (!File.Exists(path)) File.WriteAllBytes(path, PowerPointModelWorkload.CreateWithSdk(slides));
+        if (!File.Exists(path)) {
+            using PowerPointDocument presentation = PowerPointDocument.Load(new MemoryStream(PowerPointModelWorkload.CreateWithSdk(slides), writable: false));
+            _ = presentation.OpenXmlDocument;
+            File.WriteAllBytes(path, presentation.ToBytes());
+        }
         return File.ReadAllBytes(path);
     }
 
