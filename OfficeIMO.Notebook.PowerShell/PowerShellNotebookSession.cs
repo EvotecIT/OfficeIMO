@@ -105,6 +105,7 @@ public sealed class PowerShellNotebookSession : IDisposable {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         if (settings.CellTimeout is TimeSpan timeout) deadline.CancelAfter(timeout);
         using CancellationTokenRegistration interrupt = _worker.InterruptWhenCanceled(deadline.Token);
+        bool outputTruncated = false;
         try {
             await _worker.SendAsync(source, settings.OutputCharactersLimit, settings.OutputRecordsLimit, deadline.Token).ConfigureAwait(false);
             while (true) {
@@ -118,7 +119,11 @@ public sealed class PowerShellNotebookSession : IDisposable {
                     deadline.Token.ThrowIfCancellationRequested();
                     NotebookCellExecutionStatus status = ReadFlag(frame, "failed")
                         ? NotebookCellExecutionStatus.Failed : NotebookCellExecutionStatus.Succeeded;
-                    return new NotebookCellExecutionResult(index, cell, executionCount, status, ReadFlag(frame, "truncated"));
+                    return new NotebookCellExecutionResult(index, cell, executionCount, status, ReadFlag(frame, "truncated") || outputTruncated);
+                }
+                if (kind == "truncated") {
+                    outputTruncated = true;
+                    continue;
                 }
                 if (kind == "fatal") {
                     throw new WorkerConnectionException(ReadText(frame, "text").GetString()!);
@@ -135,11 +140,11 @@ public sealed class PowerShellNotebookSession : IDisposable {
             }
             if (deadline.IsCancellationRequested) {
                 SaveInterruption(cell, "NotebookCellTimeout", "The PowerShell cell exceeded its deadline.");
-                return new NotebookCellExecutionResult(index, cell, executionCount, NotebookCellExecutionStatus.TimedOut, false);
+                return new NotebookCellExecutionResult(index, cell, executionCount, NotebookCellExecutionStatus.TimedOut, outputTruncated);
             }
             if (error is WorkerConnectionException) {
                 SaveInterruption(cell, "NotebookSessionEnded", error.Message);
-                return new NotebookCellExecutionResult(index, cell, executionCount, NotebookCellExecutionStatus.SessionEnded, false);
+                return new NotebookCellExecutionResult(index, cell, executionCount, NotebookCellExecutionStatus.SessionEnded, outputTruncated);
             }
             throw;
         } catch {

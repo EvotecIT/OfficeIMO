@@ -58,7 +58,8 @@ internal sealed class PowerShellNotebookProcess : IDisposable {
         var worker = new PowerShellNotebookProcess(executable, workingDirectory);
         using var startup = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         startup.CancelAfter(startupTimeout);
-        using CancellationTokenRegistration interrupt = worker.InterruptWhenCanceled(startup.Token);
+        // Startup can still be creating the process. No notebook code is sent until the handshake succeeds.
+        using CancellationTokenRegistration interrupt = startup.Token.Register(static pipe => ((NamedPipeServerStream)pipe!).Dispose(), worker._pipe);
         try {
             try {
                 worker._started = worker._process.Start();
@@ -96,7 +97,7 @@ internal sealed class PowerShellNotebookProcess : IDisposable {
     }
 
     internal CancellationTokenRegistration InterruptWhenCanceled(CancellationToken token) =>
-        token.Register(static pipe => ((NamedPipeServerStream)pipe!).Dispose(), _pipe);
+        token.Register(static worker => ((PowerShellNotebookProcess)worker!).Dispose(), this);
 
     internal async Task SendAsync(string source, int outputCharactersLimit, int outputRecordsLimit, CancellationToken cancellationToken) {
         using var buffer = new MemoryStream();
@@ -143,7 +144,6 @@ internal sealed class PowerShellNotebookProcess : IDisposable {
 
     public void Dispose() {
         if (Interlocked.Exchange(ref _closed, 1) != 0) return;
-        _pipe.Dispose();
         _process.Exited -= OnExited;
         _windowsJob?.Dispose();
         try {
@@ -158,6 +158,8 @@ internal sealed class PowerShellNotebookProcess : IDisposable {
         } catch (Exception error) when (error is Win32Exception or InvalidOperationException or NotSupportedException) {
             // The session is already closed. The process may have exited concurrently.
         } finally {
+            // Keep the worker alive for process-tree enumeration. It can exit on EOF when the pipe closes.
+            _pipe.Dispose();
             _process.Dispose();
         }
     }

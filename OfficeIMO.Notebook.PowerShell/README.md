@@ -35,12 +35,13 @@ after the run finishes. Each attempted cell replaces its previous outputs and
 receives a session execution count. Pipeline objects are saved as text/plain
 execution results. PowerShell host and diagnostic streams and structured
 PowerShell errors are saved in Jupyter output records. The per-cell record and
-character limits report truncation through `OutputTruncated`.
+character limits report truncation through `OutputTruncated`. The host also
+records an interruption error when a cell is stopped.
 
 The default cell deadline is 60 seconds. Set `CellTimeout` to `null` for an
 unlimited cell. A PowerShell error stops the run by default. Enable
 `ContinueOnError` to attempt later cells after those errors. A timeout ends the
-session and returns a timed-out result. Cancellation interrupts the session and
+session and returns a timed-out result. Cancelling an active cell interrupts the session and
 throws `OperationCanceledException`. Both preserve outputs received before the
 interruption and record an error on the interrupted cell. Start a new session
 to execute more cells after an interruption.

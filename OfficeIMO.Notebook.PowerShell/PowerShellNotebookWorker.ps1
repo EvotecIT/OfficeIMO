@@ -108,6 +108,10 @@ function Write-NotebookWorkerOutput {
         }
         Write-NotebookWorkerRecord $Writer $record $State
     }
+    if ($State.Truncated -and -not $State.TruncationReported) {
+        $State.TruncationReported = $true
+        Write-NotebookWorkerMessage $Writer @{ kind = 'truncated' }
+    }
     $Writer.Flush()
 }
 
@@ -135,6 +139,7 @@ function Invoke-NotebookWorkerCell {
         RecordsRemaining    = [int] $Request.maxOutputRecords
         Failed              = $false
         Truncated           = $false
+        TruncationReported  = $false
         LastError           = $null
     }
     $pipeline = [PowerShell]::Create()

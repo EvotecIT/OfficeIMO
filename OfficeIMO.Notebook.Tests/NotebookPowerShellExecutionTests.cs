@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Globalization;
 using OfficeIMO.Notebook.PowerShell;
 
 namespace OfficeIMO.Notebook.Tests;
@@ -57,14 +59,16 @@ public sealed class NotebookPowerShellExecutionTests {
     [PowerShellRuntimeFact]
     public async Task TimeoutKeepsSavedPartialOutputAndStopsLaterCells() {
         using var notebook = NotebookDocument.Create();
-        NotebookCell current = notebook.AddCodeCell("'before timeout'; Start-Sleep -Seconds 30", "powershell");
+        NotebookCell current = notebook.AddCodeCell("'before timeout'; 'omitted'; Start-Sleep -Seconds 30", "powershell");
         NotebookCell later = notebook.AddCodeCell("'untouched'", "powershell");
         using PowerShellNotebookSession session = await StartAsync();
 
         NotebookExecutionReport report = await session.ExecuteAsync(notebook,
-            new NotebookExecutionOptions { CellTimeout = TimeSpan.FromSeconds(3), ContinueOnError = true });
+            new NotebookExecutionOptions { CellTimeout = TimeSpan.FromSeconds(3), ContinueOnError = true, OutputRecordsLimit = 1 });
 
-        Assert.Equal(NotebookCellExecutionStatus.TimedOut, Assert.Single(report.Cells).Status);
+        NotebookCellExecutionResult result = Assert.Single(report.Cells);
+        Assert.Equal(NotebookCellExecutionStatus.TimedOut, result.Status);
+        Assert.True(result.OutputTruncated);
         Assert.Collection(current.Outputs,
             item => Assert.Equal("before timeout", item.Data["text/plain"].GetString()),
             item => Assert.Equal("NotebookCellTimeout", item.ErrorName));
@@ -74,27 +78,44 @@ public sealed class NotebookPowerShellExecutionTests {
     }
 
     [PowerShellRuntimeFact]
-    public async Task CancellationFromAnOutputCallbackInterruptsTheLiveCell() {
+    public async Task CancellationFromAnOutputCallbackStopsTheCellAndItsNativeChild() {
         using var notebook = NotebookDocument.Create();
-        NotebookCell cell = notebook.AddCodeCell("'before cancellation'; Start-Sleep -Seconds 30", "powershell");
+        NotebookCell cell = notebook.AddCodeCell("""
+            $executable = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
+            $child = Start-Process -FilePath $executable -NoNewWindow -ArgumentList '-NoProfile','-NonInteractive','-Command','Start-Sleep -Seconds 30' -PassThru
+            $child.Id
+            Start-Sleep -Seconds 30
+            """, "powershell");
         using PowerShellNotebookSession session = await StartAsync();
         using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(15));
         NotebookExecutionEvent? observed = null;
+        Process? child = null;
         var options = new NotebookExecutionOptions {
             OutputReceived = output => {
                 observed = output;
+                int pid = int.Parse(output.Output.Data["text/plain"].GetString()!, CultureInfo.InvariantCulture);
+                child = Process.GetProcessById(pid);
                 cancellation.Cancel();
             }
         };
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => session.ExecuteAsync(notebook, options, cancellation.Token));
+        try {
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => session.ExecuteAsync(notebook, options, cancellation.Token));
 
-        Assert.NotNull(observed);
-        Assert.Equal(cell.Id, observed.CellId);
-        Assert.Collection(cell.Outputs,
-            item => Assert.Equal("before cancellation", item.Data["text/plain"].GetString()),
-            item => Assert.Equal("NotebookExecutionCanceled", item.ErrorName));
-        Assert.False(session.IsUsable);
+            Assert.NotNull(observed);
+            Assert.NotNull(child);
+            Assert.Equal(cell.Id, observed.CellId);
+            Assert.Collection(cell.Outputs,
+                item => Assert.Equal(child.Id.ToString(CultureInfo.InvariantCulture), item.Data["text/plain"].GetString()),
+                item => Assert.Equal("NotebookExecutionCanceled", item.ErrorName));
+            Assert.True(SpinWait.SpinUntil(() => child.HasExited, TimeSpan.FromSeconds(5)), "The executed cell's native child is still running.");
+            Assert.False(session.IsUsable);
+        } finally {
+            if (child != null) {
+                if (!child.HasExited) child.Kill();
+                child.Dispose();
+            }
+        }
     }
 
     [PowerShellRuntimeFact]
