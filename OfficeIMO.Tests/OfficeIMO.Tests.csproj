@@ -23,6 +23,7 @@
     <None Include="../OfficeIMO.Visio.Tests/Fixtures/LegacyBinary/pronom-visio2003.vsd" Link="Fixtures/Visio/pronom-visio2003.vsd" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../OfficeIMO.Visio.Tests/Fixtures/LegacyBinary/pronom-visio2003.vss" Link="Fixtures/Visio/pronom-visio2003.vss" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Fixtures/Sarif/sarif-schema-2.1.0.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Fonts/OfficeIMOBaselineSans-Regular.ttf" Link="Fixtures/OfficeIMOBaselineSans-Regular.ttf" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../OfficeIMO.Visio.Tests/Fixtures/LegacyBinary/pronom-visio2003.vst" Link="Fixtures/Visio/pronom-visio2003.vst" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

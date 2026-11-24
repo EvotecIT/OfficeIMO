@@ -293,6 +293,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ViewportWidth = viewportWidth,
             ViewportHeight = viewportHeight,
             DefaultFontFamily = _options.DefaultFontFamily,
+            OperationSourceCache = requireAuthoredRasterSafety ? null : _options.SvgSourceCache,
             FontTextUsageObserver = _fontUsage == null ? null : _fontUsage.Observe
         };
         // A concrete viewport also belongs to external SVG images. Keep the
@@ -526,6 +527,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             bytes = resolvedResource.EncodedBytes;
             contentType = NormalizeImageContentType(resolvedResource.ContentType);
             extension = OfficeImageInfo.GetDefaultExtension(OfficeImageInfo.FromMimeType(contentType));
+            imageInfo = resolvedResource.GetImageInfo(extension);
+            return bytes.Length != 0;
         } else if (resolvedSource.StartsWith("data:", StringComparison.OrdinalIgnoreCase)
             && HtmlImageDataUri.TryParse(resolvedSource, out HtmlImageDataUri dataUri)) {
             long estimatedBytes;

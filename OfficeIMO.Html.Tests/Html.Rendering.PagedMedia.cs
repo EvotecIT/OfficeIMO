@@ -652,7 +652,11 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlPagedMedia_PreservesImportantGeometryAcrossMatchingPageRules() {
         const string html = """
             <style>
-              @page report { size:200px 120px !important; margin:10px !important; }
+              @page report {
+                  size:200px 120px !important;
+                  @bottom-center { content:'Report'; }
+                  margin:10px !important;
+              }
               @page report { size:300px 180px; margin:20px; margin-left:30px; }
             </style>
             <section style="page:report">Body</section>

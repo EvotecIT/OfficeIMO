@@ -1,4 +1,6 @@
+using AngleSharp.Css.Dom;
 using AngleSharp.Css.Parser;
+using OfficeIMO.Html.Css;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 
@@ -15,13 +17,13 @@ public static partial class HtmlComputedStyleEngine {
     private static IReadOnlyList<StyleRule> ParseStyleRules(
         IHtmlDocument document,
         MediaEnvironment environment,
-        HtmlCssProcessingBudget budget) {
+        HtmlCssProcessingBudget budget,
+        StylesheetSyntaxCache? syntaxCache) {
         var rules = new List<StyleRule>();
         var layers = new CascadeLayerRegistry();
         // Raw recovery supplements declarations AngleSharp cannot retain. Match each
         // parsed author rule once so recovery neither duplicates it nor charges it twice.
         var parsedRuleMatches = new ParsedSelectorRegistry();
-        CssParser parser = HtmlCssProviderParsers.StylesheetsWithUnknownDeclarations;
         foreach (IElement styleElement in document.QuerySelectorAll("style")) {
             if (!IsCssStyleElement(styleElement)) {
                 continue;
@@ -36,30 +38,64 @@ public static partial class HtmlComputedStyleEngine {
                 continue;
             }
 
-            IReadOnlyDictionary<int, int> rawRuleClosures = HtmlCssRuleBlockScanner.Scan(css, budget);
-            string parseCss = ExpandNestedConditionalRules(ElideFontFacePayloads(css, rawRuleClosures));
-            parseCss = PreserveManagedGradientFunctions(PreserveRevertLayerDeclarations(parseCss));
-            parseCss = ProtectGeneratedContentFunctions(parseCss);
-            parseCss = ProtectManagedPseudoElements(parseCss);
-            Dictionary<string, Queue<OfficeIMO.Html.Css.HtmlCssQualifiedRule>> ownedRules;
-            OfficeIMO.Html.Css.HtmlCssNamespaceContext namespaceContext;
-            try {
-                OfficeIMO.Html.Css.HtmlCssStyleSheet ownedSheet = OfficeIMO.Html.Css.HtmlCssSyntaxParser.ParseStyleSheet(
-                    parseCss, budget.CreateStylesheetSyntaxOptions());
-                parseCss = PreserveManagedDeclarations(parseCss, ownedSheet);
-                namespaceContext = OfficeIMO.Html.Css.HtmlCssNamespaceContext.FromStyleSheet(ownedSheet);
-                ownedRules = IndexOwnedQualifiedRules(ownedSheet, namespaceContext, environment, budget);
-            } catch (OfficeIMO.Html.Css.HtmlCssSyntaxLimitException exception) {
-                throw budget.TranslateSyntaxLimit(exception);
+            StylesheetSyntax sheet = syntaxCache != null && styleElement.HasAttribute("data-officeimo-source")
+                ? syntaxCache.Get(css, budget) : ParseStylesheetSyntax(css, budget);
+            Dictionary<string, Queue<HtmlCssQualifiedRule>> ownedRules =
+                IndexOwnedQualifiedRules(sheet.OwnedSheet, sheet.NamespaceContext, environment, budget);
+            foreach (var rule in sheet.ProviderSheet.Rules) {
+                AddStyleRules(rule, rules, parsedRuleMatches, environment, budget, layers, ownedRules, sheet.NamespaceContext, 1, null, null, null);
             }
-            var stylesheet = parser.ParseStyleSheet(parseCss);
-            foreach (var rule in stylesheet.Rules) {
-                AddStyleRules(rule, rules, parsedRuleMatches, environment, budget, layers, ownedRules, namespaceContext, 1, null, null, null);
-            }
-            AddRawRetainedStyleRules(css, 0, css.Length, rawRuleClosures, rules, parsedRuleMatches, environment, budget, namespaceContext);
+            AddRawRetainedStyleRules(css, 0, css.Length, sheet.RawRuleClosures, rules, parsedRuleMatches, environment, budget, sheet.NamespaceContext);
         }
 
         return rules;
+    }
+
+    private static StylesheetSyntax ParseStylesheetSyntax(string css, HtmlCssProcessingBudget budget) {
+        IReadOnlyDictionary<int, int> rawRuleClosures = HtmlCssRuleBlockScanner.Scan(css, budget);
+        string parseCss = ExpandNestedConditionalRules(ElideFontFacePayloads(css, rawRuleClosures));
+        parseCss = PreserveManagedGradientFunctions(PreserveRevertLayerDeclarations(parseCss));
+        parseCss = ProtectManagedPseudoElements(ProtectGeneratedContentFunctions(parseCss));
+        HtmlCssStyleSheet ownedSheet;
+        try {
+            ownedSheet = HtmlCssSyntaxParser.ParseStyleSheet(parseCss, budget.CreateStylesheetSyntaxOptions());
+        } catch (HtmlCssSyntaxLimitException exception) {
+            throw budget.TranslateSyntaxLimit(exception);
+        }
+        parseCss = PreserveManagedDeclarations(parseCss, ownedSheet);
+        CssParser parser = HtmlCssProviderParsers.StylesheetsWithUnknownDeclarations;
+        return new StylesheetSyntax(ownedSheet, parser.ParseStyleSheet(parseCss), rawRuleClosures);
+    }
+
+    internal sealed class StylesheetSyntax {
+        internal StylesheetSyntax(HtmlCssStyleSheet ownedSheet, ICssStyleSheet providerSheet, IReadOnlyDictionary<int, int> rawRuleClosures) {
+            OwnedSheet = ownedSheet;
+            ProviderSheet = providerSheet;
+            RawRuleClosures = rawRuleClosures;
+            NamespaceContext = HtmlCssNamespaceContext.FromStyleSheet(ownedSheet);
+        }
+
+        internal HtmlCssStyleSheet OwnedSheet { get; }
+        internal ICssStyleSheet ProviderSheet { get; }
+        internal IReadOnlyDictionary<int, int> RawRuleClosures { get; }
+        internal HtmlCssNamespaceContext NamespaceContext { get; }
+    }
+
+    // An adapter can share parsed syntax when all sections use the same conversion limits.
+    // Rule matching, cascade, media selection and per-document budgets remain local.
+    internal sealed class StylesheetSyntaxCache {
+        private readonly Dictionary<string, StylesheetSyntax> _sheets = new(StringComparer.Ordinal);
+        private int _cachedCharacters;
+
+        internal StylesheetSyntax Get(string css, HtmlCssProcessingBudget budget) {
+            if (_sheets.TryGetValue(css, out StylesheetSyntax? syntax)) return syntax;
+            syntax = ParseStylesheetSyntax(css, budget);
+            if (css.Length <= 16 * 1024 * 1024 - _cachedCharacters && _sheets.Count < 4096) {
+                _sheets.Add(css, syntax);
+                _cachedCharacters += css.Length;
+            }
+            return syntax;
+        }
     }
 
     private const int ElidedFontFacePayloadMinimumLength = 1024;

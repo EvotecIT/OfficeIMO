@@ -26,6 +26,15 @@ public sealed partial class PdfCreateOptions {
     internal PdfRunningContent? FirstPageFooterContent { get; private set; }
     internal PdfRunningContent? EvenPageFooterContent { get; private set; }
 
+    internal void ClearStructuredRunningContent() {
+        HeaderContent = null;
+        FirstPageHeaderContent = null;
+        EvenPageHeaderContent = null;
+        FooterContent = null;
+        FirstPageFooterContent = null;
+        EvenPageFooterContent = null;
+    }
+
     internal PdfRunningContent? GetRunningContentForPage(int variantPageNumber, bool isHeader) {
         if (variantPageNumber == 1 && DifferentFirstPageHeaderFooter)
             return isHeader ? FirstPageHeaderContent : FirstPageFooterContent;

@@ -39,7 +39,7 @@ public static partial class OfficeConverter {
         string id = SelectRoute(settings).Id;
         ValidateThemeRoute(settings, id);
         if (settings.OutputProfile != OfficeConversionProfile.Faithful && id is not ("doc-pdf" or "docx-pdf" or "xls-pdf" or "xlsb-pdf" or "xlsx-pdf" or "ppt-pdf" or "pptx-pdf")
-            && !(id == "email-pdf" && settings.OutputProfile == OfficeConversionProfile.TextOnly))
+            && !(id is "email-pdf" or "epub-pdf" && settings.OutputProfile == OfficeConversionProfile.TextOnly))
             throw new ArgumentException("The selected route supports only the Faithful output profile.", nameof(settings));
         if (Registrations.TryGetValue(id, out IOfficeConversionRoute? registration)) {
             OfficeConversionReport registeredReport = await registration.ConvertAsync(input, output, settings, token).ConfigureAwait(false);
@@ -56,6 +56,9 @@ public static partial class OfficeConverter {
         switch (id) {
             case "email-pdf" when settings.OutputProfile != OfficeConversionProfile.TextOnly:
                 result = await ConvertEmailPdfAsync(input, output, settings, token).ConfigureAwait(false);
+                break;
+            case "epub-pdf" when settings.OutputProfile != OfficeConversionProfile.TextOnly:
+                result = ConvertEpubPdf(input, output, settings, token);
                 break;
             case "email-pdf":
             case "epub-pdf":

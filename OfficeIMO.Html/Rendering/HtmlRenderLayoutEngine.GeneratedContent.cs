@@ -259,7 +259,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
 
             if (fragment.Kind == HtmlGeneratedContentFragmentKind.TargetPage) {
-                int pageNumber = _generatedContent.TryGetTargetPage(fragment.Value, out int resolvedPage) ? resolvedPage : 8888;
+                int pageNumber = _generatedContent.TryGetTargetPage(fragment.Value, out int resolvedPage) ? resolvedPage + _options.PageNumberOffset : 8888;
                 string counterStyle = string.IsNullOrWhiteSpace(fragment.Format) ? "decimal" : fragment.Format!;
                 string pageText = _counterStyles.TryFormat(pageNumber, counterStyle, out string custom, out _)
                     ? custom

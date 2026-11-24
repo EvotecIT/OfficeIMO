@@ -211,6 +211,7 @@ internal static partial class PdfWriter {
         public string? Contents { get; set; }
         public int? StructParentIndex { get; set; }
         public int? StructElementIndex { get; set; }
+        public PageStructElement? StructureParentElement { get; set; }
         public PageImage? LinkedImage { get; set; }
         public int ObjectId { get; set; }
     }
@@ -539,6 +540,7 @@ internal static partial class PdfWriter {
         public string Title { get; set; } = string.Empty;
         public PdfOutlineState OutlineState { get; set; }
         public OutlineNode? Parent { get; set; }
+        public int SiblingIndex { get; set; }
         public System.Collections.Generic.List<OutlineNode> Children { get; } = new();
     }
 

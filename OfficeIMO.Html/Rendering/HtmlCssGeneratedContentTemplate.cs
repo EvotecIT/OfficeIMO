@@ -12,6 +12,7 @@ internal sealed class HtmlCssGeneratedContentTemplate {
 
     internal bool IsEmpty => _segments.Count == 0;
     internal bool ContainsRunningElement => _segments.Any(segment => segment.RunningElementName != null);
+    internal bool ContainsPageTotal => _segments.Any(segment => segment.Counter == CounterKind.Pages);
 
     /// <summary>Names whose assigned text can contribute to this margin template.</summary>
     internal IEnumerable<string> ReferencedRunningStringNames {
@@ -37,7 +38,7 @@ internal sealed class HtmlCssGeneratedContentTemplate {
             int segmentLength = segment.Counter == CounterKind.Page
                 ? pageNumber.ToString(CultureInfo.InvariantCulture).Length
                 : segment.Counter == CounterKind.Pages
-                    ? pageCount.ToString(CultureInfo.InvariantCulture).Length
+                    ? (pageCount > 0 ? pageCount.ToString(CultureInfo.InvariantCulture).Length : 0)
                     : segment.RunningStringName != null
                         ? (runningStrings?.Resolve(segment.RunningStringName, segment.RunningStringPosition) ?? string.Empty).Length
                         : segment.Text.Length;
@@ -50,7 +51,9 @@ internal sealed class HtmlCssGeneratedContentTemplate {
         var text = new StringBuilder(GetRenderedLength(pageNumber, pageCount, runningStrings));
         foreach (Segment segment in _segments) {
             if (segment.Counter == CounterKind.Page) text.Append(pageNumber.ToString(CultureInfo.InvariantCulture));
-            else if (segment.Counter == CounterKind.Pages) text.Append(pageCount.ToString(CultureInfo.InvariantCulture));
+            else if (segment.Counter == CounterKind.Pages) {
+                if (pageCount > 0) text.Append(pageCount.ToString(CultureInfo.InvariantCulture));
+            }
             else if (segment.RunningStringName != null) text.Append(runningStrings?.Resolve(segment.RunningStringName, segment.RunningStringPosition));
             else text.Append(segment.Text);
         }

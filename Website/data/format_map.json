@@ -1508,7 +1508,7 @@
       "target": "PDF",
       "package": "OfficeIMO",
       "support": "Targeted",
-      "fidelity": "Semantic",
+      "fidelity": "FixedLayout",
       "api": "OfficeConverter.Convert(source, destination, options)",
       "surfaces": [
         "dotnet",

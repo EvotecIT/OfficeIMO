@@ -3,6 +3,7 @@ using AngleSharp.Css.Parser;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using OfficeIMO.Drawing;
+using OfficeIMO.Html.Css;
 
 namespace OfficeIMO.Html;
 
@@ -16,7 +17,11 @@ internal static partial class HtmlCssPageSettingsResolver {
         var layers = new CascadeLayerRegistry();
         foreach (IElement styleElement in document.QuerySelectorAll("style")) {
             if (!IsCssStyleElement(styleElement) || !IsApplicablePageMedia(styleElement.GetAttribute("media") ?? string.Empty, options)) continue;
-            ApplyRawPageRules(HtmlStyleElementText.Read(styleElement), options, diagnostics, pageRules, layers, fontBudget, cancellationToken);
+            string css = HtmlStyleElementText.Read(styleElement);
+            SyntaxCache? cache = styleElement.HasAttribute("data-officeimo-source") ? options.PublicationPageRules : null;
+            IEnumerable<RawPageRule> rules = cache?.Get(options.ExternalStylesheets?.ReuseMaterializedText(css) ?? css, cancellationToken)
+                ?? ReadRawPageRules(css, 0, css.Length, cancellationToken);
+            ApplyRawPageRules(rules, options, diagnostics, pageRules, layers, null, null, fontBudget, cache != null, cancellationToken);
         }
         pageRules.ApplyGenericGeometry(options);
         return pageRules;
@@ -110,93 +115,15 @@ internal static partial class HtmlCssPageSettingsResolver {
             options.PageHeight,
             options.MediaFeatures);
 
-    private static void ApplyRawPageRules(
-        string css,
-        HtmlRenderOptions options,
-        HtmlDiagnosticReport diagnostics,
-        HtmlCssPageRuleSet pageRules,
-        CascadeLayerRegistry layers,
-        HtmlCssProcessingBudget fontBudget, CancellationToken cancellationToken) =>
-        ScanRawRules(css, 0, css.Length, options, diagnostics, pageRules, layers, null, null, fontBudget, cancellationToken);
-
-    private static void ScanRawRules(
-        string css,
-        int start,
-        int end,
-        HtmlRenderOptions options,
-        HtmlDiagnosticReport diagnostics,
-        HtmlCssPageRuleSet pageRules,
-        CascadeLayerRegistry layers,
-        string? layerPath,
-        CascadeLayerOrder? layerOrder,
+    private static void ApplyRawPageRule(RawPageRule rule, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, HtmlCssPageRuleSet pageRules, CascadeLayerOrder? layerOrder,
         HtmlCssProcessingBudget fontBudget, CancellationToken cancellationToken) {
-        int cursor = start;
-        while (cursor < end) {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (IsCommentStart(css, cursor)) {
-                cursor = SkipComment(css, cursor + 2, end);
-                continue;
-            }
-
-            char current = css[cursor];
-            if (current == '\'' || current == '"') {
-                cursor = SkipQuoted(css, cursor + 1, end, current);
-                continue;
-            }
-
-            if (current == '{') {
-                int close = FindMatchingBrace(css, cursor);
-                cursor = close < 0 ? end : close + 1;
-                continue;
-            }
-
-            if (current != '@') {
-                cursor++;
-                continue;
-            }
-
-            int nameStart = cursor + 1;
-            int nameEnd = nameStart;
-            while (nameEnd < end && (char.IsLetter(css[nameEnd]) || css[nameEnd] == '-')) nameEnd++;
-            string name = css.Substring(nameStart, nameEnd - nameStart);
-            int boundary = FindRuleBoundary(css, nameEnd, end);
-            if (boundary < 0 || css[boundary] == ';') {
-                if (boundary >= 0 && string.Equals(name, "layer", StringComparison.OrdinalIgnoreCase)) {
-                    layers.RegisterStatement(css.Substring(nameEnd, boundary - nameEnd), layerPath);
-                }
-                cursor = boundary < 0 ? end : boundary + 1;
-                continue;
-            }
-
-            int closeBrace = FindMatchingBrace(css, boundary);
-            if (closeBrace < 0 || closeBrace >= end) return;
-            string prelude = css.Substring(nameEnd, boundary - nameEnd).Trim();
-            if (string.Equals(name, "media", StringComparison.OrdinalIgnoreCase)) {
-                if (IsApplicablePageMedia(prelude, options)) {
-                    ScanRawRules(css, boundary + 1, closeBrace, options, diagnostics, pageRules, layers, layerPath, layerOrder, fontBudget, cancellationToken);
-                }
-            } else if (string.Equals(name, "supports", StringComparison.OrdinalIgnoreCase)) {
-                if (HtmlComputedStyleEngine.IsApplicableSupports(prelude)) {
-                    ScanRawRules(css, boundary + 1, closeBrace, options, diagnostics, pageRules, layers, layerPath, layerOrder, fontBudget, cancellationToken);
-                }
-            } else if (string.Equals(name, "layer", StringComparison.OrdinalIgnoreCase)) {
-                (string nestedPath, CascadeLayerOrder nestedOrder) = layers.RegisterBlock(prelude, layerPath);
-                ScanRawRules(css, boundary + 1, closeBrace, options, diagnostics, pageRules, layers, nestedPath, nestedOrder, fontBudget, cancellationToken);
-            } else if (string.Equals(name, "page", StringComparison.OrdinalIgnoreCase)) {
-                string body = css.Substring(boundary + 1, closeBrace - boundary - 1);
-                ApplyRawPageRule(prelude, body, options, diagnostics, pageRules, layerOrder, fontBudget, cancellationToken);
-            }
-
-            cursor = closeBrace + 1;
-        }
-    }
-
-    private static void ApplyRawPageRule(string selectorText, string body, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, HtmlCssPageRuleSet pageRules, CascadeLayerOrder? layerOrder,
-        HtmlCssProcessingBudget fontBudget, CancellationToken cancellationToken) {
+        string selectorText = rule.Prelude;
         if (!TryParsePageSelector(selectorText, out string? pageName, out HtmlCssPageSelector selector)) {
             diagnostics.Add("OfficeIMO.Html.Renderer", HtmlRenderDiagnosticCodes.PageSelectorPending, "A complex page selector could not be applied to individual pages.", HtmlDiagnosticSeverity.Warning, selectorText.Length == 0 ? "@page" : selectorText);
             return;
         }
+        PageRuleBody body = rule.ReadPageBody(fontBudget, cancellationToken);
+        PageDeclarations declarations = body.Declarations;
 
         bool IsValidSize(string value) => string.Equals(value.Trim(), "revert-layer", StringComparison.OrdinalIgnoreCase)
             || TryResolvePageSize(
@@ -206,20 +133,20 @@ internal static partial class HtmlCssPageSettingsResolver {
                 options.DefaultFontSize,
                 out _,
                 out _);
-        HtmlCssPageDeclaration authoredSize = FindTopLevelDeclarationWithPriority(body, "size");
-        HtmlCssPageDeclaration sizeDeclaration = FindTopLevelDeclarationWithPriority(body, "size", IsValidSize);
+        HtmlCssPageDeclaration authoredSize = declarations.Find("size");
+        HtmlCssPageDeclaration sizeDeclaration = declarations.Find("size", IsValidSize);
         if (authoredSize.Value.Length > 0 && !IsValidSize(authoredSize.Value)) {
             string source = selectorText.Length == 0 ? "@page" : "@page " + selectorText;
             diagnostics.Add("OfficeIMO.Html.Renderer", HtmlRenderDiagnosticCodes.PageSizeUnsupported, "The @page size declaration could not be mapped to a supported physical page size.", HtmlDiagnosticSeverity.Warning, source, authoredSize.Value);
         }
-        HtmlCssPageDeclaration backgroundColor = ResolvePageBackgroundDeclaration(body);
+        HtmlCssPageDeclaration backgroundColor = ResolvePageBackgroundDeclaration(declarations);
         var geometry = new HtmlCssPageGeometryDeclaration(
             sizeDeclaration,
-            FindTopLevelDeclarationWithPriority(body, "margin", value => HtmlCssPageRuleSet.TryExpandMargin(value, out _)),
-            FindTopLevelDeclarationWithPriority(body, "margin-top", HtmlCssPageRuleSet.IsValidPageMarginComponent),
-            FindTopLevelDeclarationWithPriority(body, "margin-right", HtmlCssPageRuleSet.IsValidPageMarginComponent),
-            FindTopLevelDeclarationWithPriority(body, "margin-bottom", HtmlCssPageRuleSet.IsValidPageMarginComponent),
-            FindTopLevelDeclarationWithPriority(body, "margin-left", HtmlCssPageRuleSet.IsValidPageMarginComponent),
+            declarations.Find("margin", value => HtmlCssPageRuleSet.TryExpandMargin(value, out _)),
+            declarations.Find("margin-top", HtmlCssPageRuleSet.IsValidPageMarginComponent),
+            declarations.Find("margin-right", HtmlCssPageRuleSet.IsValidPageMarginComponent),
+            declarations.Find("margin-bottom", HtmlCssPageRuleSet.IsValidPageMarginComponent),
+            declarations.Find("margin-left", HtmlCssPageRuleSet.IsValidPageMarginComponent),
             backgroundColor);
         bool IsValidBleed(string value) => IsCssWidePageProductionValue(value)
             || string.Equals(value.Trim(), "auto", StringComparison.OrdinalIgnoreCase)
@@ -235,8 +162,8 @@ internal static partial class HtmlCssPageSettingsResolver {
                 || string.Equals(token, "cross", StringComparison.OrdinalIgnoreCase))
                 && tokens.Distinct(StringComparer.OrdinalIgnoreCase).Count() == tokens.Count;
         }
-        HtmlCssPageDeclaration authoredBleed = FindTopLevelDeclarationWithPriority(body, "bleed");
-        HtmlCssPageDeclaration authoredMarks = FindTopLevelDeclarationWithPriority(body, "marks");
+        HtmlCssPageDeclaration authoredBleed = declarations.Find("bleed");
+        HtmlCssPageDeclaration authoredMarks = declarations.Find("marks");
         string productionSource = selectorText.Length == 0 ? "@page" : "@page " + selectorText;
         if (authoredBleed.Value.Length > 0 && !IsValidBleed(authoredBleed.Value)) {
             diagnostics.Add("OfficeIMO.Html.Renderer", HtmlRenderDiagnosticCodes.PageBleedUnsupported,
@@ -249,22 +176,21 @@ internal static partial class HtmlCssPageSettingsResolver {
                 productionSource, authoredMarks.Value, OfficeConversionLossKind.Omission);
         }
         var production = new HtmlCssPageProductionDeclaration(
-            FindTopLevelDeclarationWithPriority(body, "bleed", IsValidBleed),
-            FindTopLevelDeclarationWithPriority(body, "marks", IsValidMarks));
-        IReadOnlyDictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginRule> marginBoxes = ExtractMarginBoxes(body, selectorText, diagnostics, fontBudget, cancellationToken);
-        IReadOnlyList<HtmlGeneratedStyleDeclaration> styleDeclarations = ReadContextStyleDeclarations(body, fontBudget, cancellationToken);
-        if (marginBoxes.Count > 0 || styleDeclarations.Count > 0 || !geometry.IsEmpty || !production.IsEmpty) {
-            pageRules.Add(new HtmlCssPageRule(pageName, selector, marginBoxes, geometry, production, layerOrder, styleDeclarations));
+            declarations.Find("bleed", IsValidBleed),
+            declarations.Find("marks", IsValidMarks));
+        diagnostics.AddRange(body.Diagnostics);
+        if (body.MarginBoxes.Count > 0 || body.StyleDeclarations.Count > 0 || !geometry.IsEmpty || !production.IsEmpty) {
+            pageRules.Add(new HtmlCssPageRule(pageName, selector, body.MarginBoxes, geometry, production, layerOrder, body.StyleDeclarations));
         }
     }
 
-    private static HtmlCssPageDeclaration ResolvePageBackgroundDeclaration(string body) {
+    private static HtmlCssPageDeclaration ResolvePageBackgroundDeclaration(PageDeclarations declarations) {
         static bool IsSupported(string value) => IsCssWidePageProductionValue(value)
             || string.Equals(value.Trim(), "transparent", StringComparison.OrdinalIgnoreCase)
             || HtmlRenderCssValues.TryColor(value.Trim(), out _);
 
-        HtmlCssPageDeclaration shorthand = FindTopLevelDeclarationWithPriority(body, "background", IsSupported);
-        HtmlCssPageDeclaration longhand = FindTopLevelDeclarationWithPriority(body, "background-color", IsSupported);
+        HtmlCssPageDeclaration shorthand = declarations.Find("background", IsSupported);
+        HtmlCssPageDeclaration longhand = declarations.Find("background-color", IsSupported);
         if (shorthand.Value.Length == 0) return longhand;
         if (longhand.Value.Length == 0) return shorthand;
         if (shorthand.IsImportant != longhand.IsImportant) return longhand.IsImportant ? longhand : shorthand;
@@ -315,13 +241,6 @@ internal static partial class HtmlCssPageSettingsResolver {
         return !string.Equals(value, "auto", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static bool HasPageMarginDeclaration(string body) =>
-        FindTopLevelDeclaration(body, "margin").Length > 0
-        || FindTopLevelDeclaration(body, "margin-top").Length > 0
-        || FindTopLevelDeclaration(body, "margin-right").Length > 0
-        || FindTopLevelDeclaration(body, "margin-bottom").Length > 0
-        || FindTopLevelDeclaration(body, "margin-left").Length > 0;
-
     private static IReadOnlyDictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginRule> ExtractMarginBoxes(string pageBody, string pageSelector, HtmlDiagnosticReport diagnostics,
         HtmlCssProcessingBudget fontBudget, CancellationToken cancellationToken) {
         var boxes = new Dictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginRule>();
@@ -348,13 +267,13 @@ internal static partial class HtmlCssPageSettingsResolver {
             int nameEnd = nameStart;
             while (nameEnd < pageBody.Length && (char.IsLetter(pageBody[nameEnd]) || pageBody[nameEnd] == '-')) nameEnd++;
             string name = pageBody.Substring(nameStart, nameEnd - nameStart).ToLowerInvariant();
-            int boundary = FindRuleBoundary(pageBody, nameEnd, pageBody.Length);
+            int boundary = FindRuleBoundary(pageBody, nameEnd, pageBody.Length, cancellationToken);
             if (boundary < 0 || pageBody[boundary] == ';') {
                 cursor = boundary < 0 ? pageBody.Length : boundary + 1;
                 continue;
             }
 
-            int close = FindMatchingBrace(pageBody, boundary);
+            int close = FindMatchingBrace(pageBody, boundary, cancellationToken);
             if (close < 0) break;
             string marginBody = pageBody.Substring(boundary + 1, close - boundary - 1);
             if (!TryMapMarginPosition(name, out HtmlCssPageMarginPosition position)) {
@@ -363,9 +282,10 @@ internal static partial class HtmlCssPageSettingsResolver {
                 continue;
             }
 
-            HtmlCssPageDeclaration authoredContent = FindTopLevelDeclarationWithPriority(marginBody, "content");
-            HtmlCssPageDeclaration content = FindTopLevelDeclarationWithPriority(
-                marginBody,
+            HtmlCssStyleBlock syntax = ParseContextStyleBlock(marginBody, fontBudget, cancellationToken);
+            var declarations = new PageDeclarations(syntax, isMarginBox: true, cancellationToken);
+            HtmlCssPageDeclaration authoredContent = declarations.Find("content");
+            HtmlCssPageDeclaration content = declarations.Find(
                 "content",
                 value => IsRevertLayer(value) || HtmlCssGeneratedContentTemplate.TryParse(value, out _));
             if (authoredContent.Value.Length > 0
@@ -375,7 +295,7 @@ internal static partial class HtmlCssPageSettingsResolver {
             }
 
             var marginRule = new HtmlCssPageMarginRule(content,
-                ReadContextStyleDeclarations(marginBody, fontBudget, cancellationToken));
+                ReadContextStyleDeclarations(syntax, cancellationToken));
             if (!marginRule.IsEmpty) {
                 boxes[position] = boxes.TryGetValue(position, out HtmlCssPageMarginRule? earlier)
                     ? HtmlCssPageMarginRule.Merge(earlier, marginRule)
@@ -467,9 +387,10 @@ internal static partial class HtmlCssPageSettingsResolver {
         }
     }
 
-    private static int FindRuleBoundary(string css, int start, int end) {
+    private static int FindRuleBoundary(string css, int start, int end, CancellationToken cancellationToken) {
         int parentheses = 0;
         for (int index = start; index < end; index++) {
+            if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (IsCommentStart(css, index)) {
                 index = SkipComment(css, index + 2, end) - 1;
                 continue;
@@ -490,65 +411,11 @@ internal static partial class HtmlCssPageSettingsResolver {
         return -1;
     }
 
-    private static string FindTopLevelDeclaration(string body, string propertyName) =>
-        FindTopLevelDeclarationWithPriority(body, propertyName).Value;
-
-    private static HtmlCssPageDeclaration FindTopLevelDeclarationWithPriority(
-        string body,
-        string propertyName,
-        Func<string, bool>? isValid = null) {
-        body = HtmlComputedStyleEngine.StripCssCommentsOutsideStrings(body);
-        int start = 0;
-        int depth = 0;
-        char quote = '\0';
-        var resolved = new HtmlCssPageDeclaration(string.Empty, false, -1);
-        int declarationOrder = 0;
-        for (int index = 0; index <= body.Length; index++) {
-            char current = index < body.Length ? body[index] : ';';
-            if (quote != '\0') {
-                if (current == quote && (index == 0 || body[index - 1] != '\\')) quote = '\0';
-                continue;
-            }
-
-            if (current == '\'' || current == '"') quote = current;
-            else if (current == '(' || current == '{') depth++;
-            else if ((current == ')' || current == '}') && depth > 0) depth--;
-            else if (current == ';' && depth == 0) {
-                string declaration = body.Substring(start, index - start).Trim();
-                int separator = declaration.IndexOf(':');
-                if (separator > 0 && string.Equals(declaration.Substring(0, separator).Trim(), propertyName, StringComparison.OrdinalIgnoreCase)) {
-                    string value = declaration.Substring(separator + 1).Trim();
-                    bool important = TryStripImportant(ref value);
-                    if ((isValid == null || isValid(value)) && (important || !resolved.IsImportant)) {
-                        resolved = new HtmlCssPageDeclaration(value, important, declarationOrder);
-                    }
-                }
-
-                start = index + 1;
-                declarationOrder++;
-            }
-        }
-
-        return resolved;
-    }
-
-    private static bool TryStripImportant(ref string value) {
-        int end = value.Length;
-        while (end > 0 && char.IsWhiteSpace(value[end - 1])) end--;
-        const string Important = "important";
-        int wordStart = end - Important.Length;
-        if (wordStart < 0 || !string.Equals(value.Substring(wordStart, Important.Length), Important, StringComparison.OrdinalIgnoreCase)) return false;
-        int bang = wordStart - 1;
-        while (bang >= 0 && char.IsWhiteSpace(value[bang])) bang--;
-        if (bang < 0 || value[bang] != '!') return false;
-        value = value.Substring(0, bang).TrimEnd();
-        return true;
-    }
-
-    private static int FindMatchingBrace(string css, int open) {
+    private static int FindMatchingBrace(string css, int open, CancellationToken cancellationToken) {
         int depth = 0;
         char quote = '\0';
         for (int index = open; index < css.Length; index++) {
+            if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
             char current = css[index];
             if (quote != '\0') {
                 if (current == quote && (index == 0 || css[index - 1] != '\\')) quote = '\0';

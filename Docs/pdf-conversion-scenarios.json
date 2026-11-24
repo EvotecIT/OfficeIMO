@@ -269,10 +269,10 @@
       "id": "epub-book",
       "sourceFormats": [ "epub" ],
       "status": "direct-loss-aware-adapter",
-      "stages": [ "OfficeIMO.Reader.Epub", "OfficeIMO.Reader.Core", "OfficeIMO.Reader.Pdf" ],
+      "stages": [ "OfficeIMO.Epub", "OfficeIMO.Epub.Image", "OfficeIMO.Html.Pdf" ],
       "implementationProject": "OfficeIMO/OfficeIMO.csproj",
-      "evidenceTest": "OfficeIMO.Tests/OfficeConverter.ReaderTests.cs#EpubConversion_PreservesChapterOrderAndReportsEpubPolicy",
-      "diagnosticContract": "The direct façade preserves spine chapter order and applies explicit resource, navigation, and pagination policies through the shared searchable PDF projection."
+      "evidenceTest": "OfficeIMO.Tests/OfficeConverter.EpubTests.cs#StyledEpubConversionUsesSpineOrderLinkedStylesImagesAndNavigation",
+      "diagnosticContract": "The direct façade renders styled chapters in spine order with a navigation outline, continuous page numbering and chapter-level findings. TextOnly uses the Reader projection."
     },
     {
       "id": "visio-diagram",

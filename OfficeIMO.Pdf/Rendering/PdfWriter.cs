@@ -75,7 +75,9 @@ internal static partial class PdfWriter {
         string? keywords,
         System.Threading.CancellationToken cancellationToken,
         out int pageCount,
-        out PdfSerializationReport serializationReport) {
+        out PdfSerializationReport serializationReport,
+        IEnumerable<PageBlock>? preparedPages = null, Action<int, string>? missingDestination = null,
+        Func<string, string?>? resolveMissingDestination = null) {
         Guard.NotNull(destination, nameof(destination));
         if (PdfComplianceValidator.RequiresExactArtifactValidation(opts)) {
             byte[] exactArtifact = WriteCore(
@@ -91,13 +93,14 @@ internal static partial class PdfWriter {
                 out _,
                 out _,
                 out pageCount,
-                out serializationReport)!;
+                out serializationReport, preparedPages, missingDestination, resolveMissingDestination)!;
             PdfComplianceValidator.ValidateGeneratedArtifact(opts, exactArtifact, cancellationToken: cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             destination.Write(exactArtifact, 0, exactArtifact.Length);
             return exactArtifact.LongLength;
         }
-        WriteCore(doc, blocks, opts, title, author, subject, keywords, destination, cancellationToken, out long bytesWritten, out _, out pageCount, out serializationReport);
+        WriteCore(doc, blocks, opts, title, author, subject, keywords, destination, cancellationToken,
+            out long bytesWritten, out _, out pageCount, out serializationReport, preparedPages, missingDestination, resolveMissingDestination);
         return bytesWritten;
     }
 
@@ -114,22 +117,27 @@ internal static partial class PdfWriter {
         out long bytesWritten,
         out PdfGeneratedDocumentComplianceEvidence complianceEvidence,
         out int pageCount,
-        out PdfSerializationReport serializationReport) {
+        out PdfSerializationReport serializationReport,
+        IEnumerable<PageBlock>? preparedPages = null, Action<int, string>? missingDestination = null,
+        Func<string, string?>? resolveMissingDestination = null) {
         cancellationToken.ThrowIfCancellationRequested();
         opts.Validate();
         PdfComplianceValidator.ValidateGenerationOptions(opts);
-        ApplyDefaultFontEmbedding(blocks, opts);
+        if (preparedPages == null) ApplyDefaultFontEmbedding(blocks, opts);
+        else opts.ApplyDefaultFontEmbedding();
         opts.ResetEmbeddedFontProgramUsage();
 
         // Layout blocks into pages and create per-page content streams.
         using var generatedSectionLayout = doc.BeginGeneratedSectionLayout();
-        using var layout = LayoutBlocks(blocks, opts, cancellationToken);
+        using var layout = preparedPages == null
+            ? LayoutBlocks(blocks, opts, cancellationToken)
+            : LayoutPreparedPages(preparedPages, opts, cancellationToken);
         pageCount = layout.Pages.Count;
         foreach (LayoutResult.Page page in layout.Pages) {
             cancellationToken.ThrowIfCancellationRequested();
             CoalescePositionedRadioButtonFields(page.FormFields);
         }
-        ValidateNamedDestinationLinks(layout.Pages);
+        ValidateNamedDestinationLinks(layout.Pages, missingDestination, resolveMissingDestination, cancellationToken);
         ValidateUriActionLinks(layout.Pages, opts);
         ValidateGeneratedFormFieldNames(layout.Pages);
         System.Collections.Generic.Dictionary<string, string> positionedRadioValues = ResolvePositionedRadioButtonValues(
@@ -1020,6 +1028,7 @@ internal static partial class PdfWriter {
                         } else {
                             page.StructElements.Add(new PageStructElement {
                                 StructureType = "Link",
+                                ParentElement = a.StructureParentElement,
                                 AnnotationObjectId = annId,
                                 AnnotationStructParentIndex = a.StructParentIndex
                             });
@@ -2073,9 +2082,11 @@ internal static partial class PdfWriter {
         return infos;
     }
 
-    private static void ValidateNamedDestinationLinks(IReadOnlyList<LayoutResult.Page> pages) {
+    private static void ValidateNamedDestinationLinks(IReadOnlyList<LayoutResult.Page> pages, Action<int, string>? missingDestination,
+        Func<string, string?>? resolveMissingDestination, CancellationToken cancellationToken) {
         var destinations = new HashSet<string>(StringComparer.Ordinal);
         foreach (var page in pages) {
+            cancellationToken.ThrowIfCancellationRequested();
             foreach (var destination in page.NamedDestinations) {
                 if (string.IsNullOrWhiteSpace(destination.Name)) {
                     continue;
@@ -2087,16 +2098,32 @@ internal static partial class PdfWriter {
             }
         }
 
-        foreach (var page in pages) {
-            foreach (var annotation in page.Annotations) {
-                if (string.IsNullOrWhiteSpace(annotation.DestinationName)) {
-                    continue;
-                }
-
-                if (!destinations.Contains(annotation.DestinationName!)) {
-                    throw new ArgumentException($"PDF bookmark link target '{annotation.DestinationName}' was not found.");
+        if (missingDestination == null) {
+            foreach (var page in pages) {
+                cancellationToken.ThrowIfCancellationRequested();
+                foreach (var annotation in page.Annotations) {
+                    string? name = annotation.DestinationName;
+                    if (!string.IsNullOrWhiteSpace(name) && !destinations.Contains(name!))
+                        throw new ArgumentException($"PDF bookmark link target '{name}' was not found.");
                 }
             }
+            return;
+        }
+
+        for (int index = 0; index < pages.Count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int page = index;
+            pages[index].Annotations.RemoveAll(annotation => {
+                string? name = annotation.DestinationName;
+                if (string.IsNullOrWhiteSpace(name) || destinations.Contains(name!)) return false;
+                string? replacement = resolveMissingDestination?.Invoke(name!);
+                if (replacement != null && destinations.Contains(replacement)) {
+                    annotation.DestinationName = replacement;
+                    return false;
+                }
+                missingDestination(page, name!);
+                return true;
+            });
         }
     }
 
@@ -2156,7 +2183,7 @@ internal static partial class PdfWriter {
                 Y = bookmark.Y, X = bookmark.X, Uri = bookmark.Uri,
                 OutlineState = bookmark.OutlineState,
                 StructureElement = bookmark.StructureElement, StructureElementKey = bookmark.StructureElementKey,
-                Parent = parent
+                Parent = parent, SiblingIndex = parent.Children.Count
             };
             parent.Children.Add(node);
             stack.Push(node);
@@ -2173,7 +2200,7 @@ internal static partial class PdfWriter {
 
         foreach (var node in EnumerateOutlines(root.Children)) {
             int parentId = node.Parent == null || node.Parent == root ? rootId : node.Parent.Id;
-            int index = node.Parent?.Children.IndexOf(node) ?? -1;
+            int index = node.SiblingIndex;
             int previousId = index > 0 && node.Parent != null ? node.Parent.Children[index - 1].Id : 0;
             int nextId = node.Parent != null && index >= 0 && index < node.Parent.Children.Count - 1 ? node.Parent.Children[index + 1].Id : 0;
             int firstChildId = node.Children.Count > 0 ? node.Children[0].Id : 0;

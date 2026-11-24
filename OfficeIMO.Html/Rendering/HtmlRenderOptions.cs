@@ -360,6 +360,16 @@ public partial class HtmlRenderOptions : OfficeImageExportOptions {
         target.PrintFitScale = PrintFitScale;
         target.AutoFitWidePrintRoot = AutoFitWidePrintRoot;
         target.ClipContinuousSurfaceToViewport = ClipContinuousSurfaceToViewport;
+        target.PageNumberOffset = PageNumberOffset;
+        target.IsPublicationSection = IsPublicationSection;
+        target.NamedDestinationPrefix = NamedDestinationPrefix;
+        target.AdditionalNamedDestinations = AdditionalNamedDestinations;
+        target.ResolveSectionLink = ResolveSectionLink;
+        target.StylesheetSyntaxCache = StylesheetSyntaxCache;
+        target.ExternalStylesheets = ExternalStylesheets;
+        target.SvgSourceCache = SvgSourceCache;
+        target.PublicationPageRules = PublicationPageRules;
+        target.OperationFontCache = OperationFontCache;
         return target;
     }
 
@@ -396,6 +406,30 @@ public partial class HtmlRenderOptions : OfficeImageExportOptions {
     // A viewport is a bounded continuous layout surface. Legacy ViewportHeight remains a
     // minimum height so existing full-page output does not become clipped.
     internal bool ClipContinuousSurfaceToViewport { get; set; }
+
+    internal int PageNumberOffset { get; set; }
+    internal bool IsPublicationSection { get; set; }
+
+    // Compound document adapters request named destinations without adding synthetic links to the source DOM.
+    internal string NamedDestinationPrefix { get; set; } = string.Empty;
+    internal const string PublicationStartAnchor = "start";
+    internal const string PublicationFragmentPrefix = "id:";
+    internal IReadOnlyCollection<string>? AdditionalNamedDestinations { get; set; }
+    // Null leaves the link to normal URL policy, empty means an unresolved section link.
+    internal Func<Uri, string?>? ResolveSectionLink { get; set; }
+    internal HtmlComputedStyleEngine.StylesheetSyntaxCache? StylesheetSyntaxCache { get; set; }
+    internal HtmlResourcePipeline.ExternalStylesheetCache? ExternalStylesheets { get; set; }
+    internal OfficeSvgDrawingReader.SourceCache? SvgSourceCache { get; set; }
+    internal HtmlCssPageSettingsResolver.SyntaxCache? PublicationPageRules { get; set; }
+
+    internal void SharePublicationResources() {
+        StylesheetSyntaxCache = new HtmlComputedStyleEngine.StylesheetSyntaxCache();
+        ExternalStylesheets = new HtmlResourcePipeline.ExternalStylesheetCache();
+        SvgSourceCache = new OfficeSvgDrawingReader.SourceCache();
+        PublicationPageRules = new HtmlCssPageSettingsResolver.SyntaxCache();
+        OperationFontCache = new OfficeFontFaceCollection.OperationFontCache();
+    }
+    internal OfficeIMO.Drawing.OfficeFontFaceCollection.OperationFontCache? OperationFontCache { get; set; }
 
     // Only the shared projector may opt the renderer into interpreting its private DOM marker.
     internal bool EnableEditableLayoutRegions { get; set; }

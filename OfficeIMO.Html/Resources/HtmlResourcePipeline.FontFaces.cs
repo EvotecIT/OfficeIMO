@@ -212,46 +212,35 @@ public static partial class HtmlResourcePipeline {
         return urls.AsReadOnly();
     }
 
-    internal static string RebaseExternalStylesheetUrls(string css, Uri baseUri, HtmlUrlPolicy policy, HtmlResourceSession? resources = null) {
-        if (string.IsNullOrWhiteSpace(css)) {
-            return css ?? string.Empty;
-        }
+    internal static string RebaseExternalStylesheetUrls(string css, Uri baseUri, HtmlUrlPolicy policy,
+        HtmlResourceSession? resources = null, ExternalStylesheetCache? cache = null) {
+        if (string.IsNullOrWhiteSpace(css)) return css ?? string.Empty;
 
-        var replacements = new List<(int Start, int Length, string Value)>();
+        IEnumerable<(int Start, int Length, string Source)> references = cache?.GetRebaseUrls(css) ?? ReadRebaseUrls(css);
         HtmlUrlPolicy resourcePolicy = HtmlResourceUrlPolicy.Create(policy);
-        foreach (Match match in CssUrlExpression.Matches(css)) {
-            if (!IsValidCssUrlMatch(css, match) || !IsCssFunctionNameAt(css, match.Index, "url") || IsInsideCssString(css, match.Index)) {
-                continue;
-            }
-
-            string source = DecodeCssEscapes(match.Groups["url"].Value.Trim().Trim('\'', '"'));
-            if (string.IsNullOrWhiteSpace(source) || IsFragmentOnlyReference(source)) {
-                continue;
-            }
-
-            // Imported text may already contain a policy-transformed absolute URL. Its original plan
-            // remains authoritative; re-signing it while rebasing an outer sheet changes its identity.
-            string resolved = resources != null && resources.TryGetStylesheetImagePlan(source, baseUri, out HtmlResourceReference planned)
+        StringBuilder? builder = null;
+        int cursor = 0;
+        foreach (var reference in references) {
+            // Preserve the original identity of imports already transformed by the policy.
+            string resolved = resources != null && resources.TryGetStylesheetImagePlan(reference.Source, baseUri, out HtmlResourceReference planned)
                 ? HtmlResourceSession.GetMaterializedImageSource(planned)
-                : HtmlUrlPolicyEvaluator.ResolveUrl(source, baseUri, resourcePolicy);
-            string replacement = resolved.Length == 0
-                ? "url(\"\")"
-                : "url(\"" + EscapeCssString(resolved) + "\")";
-            replacements.Add((match.Index, match.Length, replacement));
+                : HtmlUrlPolicyEvaluator.ResolveUrl(reference.Source, baseUri, resourcePolicy);
+            builder ??= new StringBuilder(css.Length);
+            builder.Append(css, cursor, reference.Start - cursor).Append("url(\"");
+            if (resolved.Length != 0) builder.Append(EscapeCssString(resolved));
+            builder.Append("\")");
+            cursor = reference.Start + reference.Length;
         }
 
-        if (replacements.Count == 0) {
-            return css;
-        }
+        return builder?.Append(css, cursor, css.Length - cursor).ToString() ?? css;
+    }
 
-        var builder = new StringBuilder(css);
-        for (int index = replacements.Count - 1; index >= 0; index--) {
-            (int start, int length, string value) = replacements[index];
-            builder.Remove(start, length);
-            builder.Insert(start, value);
+    private static IEnumerable<(int Start, int Length, string Source)> ReadRebaseUrls(string css) {
+        foreach (Match match in CssUrlExpression.Matches(css)) {
+            if (!IsValidCssUrlMatch(css, match) || !IsCssFunctionNameAt(css, match.Index, "url") || IsInsideCssString(css, match.Index)) continue;
+            string source = DecodeCssEscapes(match.Groups["url"].Value.Trim().Trim('\'', '"'));
+            if (!string.IsNullOrWhiteSpace(source) && !IsFragmentOnlyReference(source)) yield return (match.Index, match.Length, source);
         }
-
-        return builder.ToString();
     }
 
     // An at-keyword spells font-face either literally or through an escape in its name.

@@ -66,8 +66,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     }
                     // Mixed element() content is unsupported by margin layout.
                     if (box.Content.ContainsRunningElement || box.Font.Size <= 0D) continue;
-                    ChargeLayoutOperations(box.Content.GetRenderedLength(pageNumber, 3, null), "page-margin font requirements");
-                    AddText(box.Content.Render(pageNumber, 3, null), box.Font);
+                    ChargeLayoutOperations(box.Content.GetRenderedLength(pageNumber + _options.PageNumberOffset, 3, null), "page-margin font requirements");
+                    AddText(box.Content.Render(pageNumber + _options.PageNumberOffset, 3, null), box.Font);
                     foreach (string name in box.Content.ReferencedRunningStringNames) {
                         CheckCancellation();
                         ChargeLayoutOperations(1L, "page-margin font references");

@@ -30,6 +30,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO" />
     <Using Include="System.Net" />
     <Using Include="System.Text" />
   </ItemGroup>
