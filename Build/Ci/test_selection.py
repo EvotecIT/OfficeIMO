@@ -199,21 +199,18 @@ class SelectionTests(unittest.TestCase):
 
     def test_ci_only_changes_skip_macos_lanes_but_keep_hosted_fail_open(self):
         repository = Path(__file__).resolve().parents[2]
-        macos = ["studio-apple", "apple-dependency-graph", "platform-image-codecs"]
+        macos = ["studio-apple", "platform-image-codecs"]
         for path in [".github/workflows/dotnet-tests.yml", "Build/Ci/Invoke-PrBuild.ps1"]:
             with self.subTest(path=path):
                 result = selection.select(repository, [path])
-                self.assertEqual([False] * 3, [result["suites"][key] for key in macos])
+                self.assertEqual([False] * 2, [result["suites"][key] for key in macos])
                 self.assertTrue(result["windows_enabled"])
         for path in ["Build/Ci/select.py", "global.json"]:
             with self.subTest(path=path):
                 result = selection.select(repository, [path])
-                self.assertEqual([True] * 3, [result["suites"][key] for key in macos])
+                self.assertEqual([True] * 2, [result["suites"][key] for key in macos])
         result = selection.select(repository, [".github/workflows/studio-apple.yml", "OfficeIMO.Drawing.ImageIO/Decode.cs"])
-        self.assertEqual([True, False, True], [result["suites"][key] for key in macos])
-        for path in ["OfficeIMO.Studio.Native/OfficeIMO.Studio.Native.csproj", "OfficeIMO.Studio/OfficeIMO.Studio.csproj"]:
-            with self.subTest(path=path):
-                self.assertTrue(selection.select(repository, [path])["suites"]["apple-dependency-graph"])
+        self.assertEqual([True, True], [result["suites"][key] for key in macos])
 
     def test_powershell_macos_lane_follows_platform_sensitive_inputs(self):
         repository = Path(__file__).resolve().parents[2]

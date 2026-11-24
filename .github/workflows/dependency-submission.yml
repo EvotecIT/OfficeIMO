@@ -2,13 +2,8 @@ name: Controlled NuGet dependency graph
 
 on:
   pull_request:
-    # Adding or removing the full-ci label reevaluates the Apple restore selection.
-    types: [opened, synchronize, reopened, labeled, unlabeled]
     paths:
       - '.github/workflows/dependency-submission.yml'
-      - '.github/actions/contract-selection/**'
-      - 'Build/Ci/select.py'
-      - 'Build/Ci/pr-suites.json'
       - '**/*.csproj'
       - '**/*.props'
       - '**/*.targets'
@@ -47,19 +42,7 @@ jobs:
       restore: ${{ steps.profiles.outputs.restore }}
       profiles: ${{ steps.profiles.outputs.profiles }}
     steps:
-      - uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-      - id: apple
-        uses: ./.github/actions/contract-selection
-        with:
-          suite: apple-dependency-graph
-      # macOS runners are scarce. Pull requests restore the Apple graph only
-      # when Apple projects or shared build inputs change; master pushes,
-      # manual runs and full-ci requests always restore and scan all profiles.
       - id: profiles
-        env:
-          APPLE: ${{ steps.apple.outputs.selected }}
         run: |
           python3 - <<'PY'
           import json, os
@@ -69,11 +52,7 @@ jobs:
                "workloads": "wasm-tools", "workload-version": ""},
               {"profile": "windows", "runner": "windows-latest",
                "projects": json.dumps(["OfficeIMO.slnx"]), "workloads": "", "workload-version": ""},
-              {"profile": "apple", "runner": "macos-latest",
-               "projects": json.dumps(["OfficeIMO.slnx"]),
-               "workloads": "wasm-tools", "workload-version": ""},
           ]
-          restore = [row for row in restore if row["profile"] != "apple" or os.environ["APPLE"] == "true"]
           print(json.dumps(restore, indent=2))
           with open(os.environ["GITHUB_OUTPUT"], "a") as output:
               output.write("restore=" + json.dumps(restore) + "\n")
