@@ -49,8 +49,8 @@ internal sealed partial class StudioNativeDocument {
         if (string.IsNullOrWhiteSpace(reply.Text)) throw new ArgumentException("Write the reply first.", nameof(reply));
         RequireComment(reply.ObjectNumber);
         StudioNativeColor color = reply.Color ?? new StudioNativeColor(1D, 0.8D, 0.1D);
-        return _workspace.AddAnnotationReplyAsync(reply.ObjectNumber, reply.Text, reply.Author ?? string.Empty,
-            global::OfficeIMO.OfficeColor.FromNormalizedRgb(color.Red, color.Green, color.Blue), cancellationToken);
+        return Plainly(() => _workspace.AddAnnotationReplyAsync(reply.ObjectNumber, reply.Text, reply.Author ?? string.Empty,
+            global::OfficeIMO.OfficeColor.FromNormalizedRgb(color.Red, color.Green, color.Blue), cancellationToken), CommentRefused);
     }
 
     private Task SetCommentState(StudioNativeCommentState change, CancellationToken cancellationToken) {
@@ -61,7 +61,21 @@ internal sealed partial class StudioNativeDocument {
             "cancelled" => PdfAnnotationReviewState.Cancelled,
             _ => throw new ArgumentException($"“{change.State}” isn't a review state.", nameof(change))
         };
-        return _workspace.SetAnnotationReviewStateAsync(change.ObjectNumber, state, cancellationToken);
+        return Plainly(() => _workspace.SetAnnotationReviewStateAsync(change.ObjectNumber, state, cancellationToken), CommentRefused);
+    }
+
+    private const string CommentRefused = "This comment can’t be changed in this document.";
+
+    /// <summary>
+    /// Runs a change the PDF library may refuse in its own terms, such as a save mode or a preservation check, and reports
+    /// the refusal as a sentence people can act on; the library's explanation stays as the inner exception.
+    /// </summary>
+    private static async Task Plainly(Func<Task> change, string sentence) {
+        try { await change().ConfigureAwait(false); }
+        catch (NotSupportedException exception) { throw new NotSupportedException(sentence, exception); }
+        catch (InvalidOperationException exception) when (exception is not ObjectDisposedException) {
+            throw new InvalidOperationException(sentence, exception);
+        }
     }
 
     private void RequireComment(int objectNumber) {

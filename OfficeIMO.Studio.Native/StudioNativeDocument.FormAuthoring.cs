@@ -38,7 +38,7 @@ internal sealed partial class StudioNativeDocument {
                 IsMultiline = kind == PdfFormFieldCreationKind.Text && field.Multiline
             }
         };
-        return _workspace.CreateFormFieldAsync(create, cancellationToken);
+        return Plainly(() => _workspace.CreateFormFieldAsync(create, cancellationToken), FieldRefused);
     }
 
     /// <summary>The height of a radio group's buttons, 14 points each with 6 between, as the desktop lays them out.</summary>
@@ -57,21 +57,24 @@ internal sealed partial class StudioNativeDocument {
                 : throw new ArgumentException("Only a field with one box can be moved.", nameof(update));
             int page = update.Page ?? widget.PageNumber ?? throw new ArgumentException("The field isn't on a page.", nameof(update));
             PdfPageRectangle box = PageBox(page, bounds);
-            await _workspace.MoveFormWidgetAsync(name, page, box.Left, box.Bottom, box.Width, box.Height, cancellationToken).ConfigureAwait(false);
+            await Plainly(() => _workspace.MoveFormWidgetAsync(name, page, box.Left, box.Bottom, box.Width, box.Height, cancellationToken),
+                FieldRefused).ConfigureAwait(false);
             return;
         }
         string newName = update.NewName?.Trim() ?? name;
         if (newName.Length == 0) throw new ArgumentException("A field needs a name.", nameof(update));
         if (newName != name && FormFieldNames().Contains(newName)) throw new ArgumentException($"The form already has a field named “{newName}”.", nameof(update));
-        await _workspace.UpdateFormDefinitionAsync(name, newName, update.Required ?? field.IsRequired, update.ReadOnly ?? field.IsReadOnly,
-            cancellationToken).ConfigureAwait(false);
+        await Plainly(() => _workspace.UpdateFormDefinitionAsync(name, newName, update.Required ?? field.IsRequired,
+            update.ReadOnly ?? field.IsReadOnly, cancellationToken), FieldRefused).ConfigureAwait(false);
     }
 
     private Task RemoveFormField(string name, CancellationToken cancellationToken) {
         RequireFormAuthoring();
         if (!FormFieldNames().Contains(name)) throw new ArgumentException($"The form has no field “{name}”.", nameof(name));
-        return _workspace.RemoveFormDefinitionAsync(name, cancellationToken);
+        return Plainly(() => _workspace.RemoveFormDefinitionAsync(name, cancellationToken), FieldRefused);
     }
+
+    private const string FieldRefused = "This form field can’t be changed in this document.";
 
     private void RequireFormAuthoring() {
         if (!_workspace.CanAuthorForms) throw new NotSupportedException("This document's form can't be changed.");

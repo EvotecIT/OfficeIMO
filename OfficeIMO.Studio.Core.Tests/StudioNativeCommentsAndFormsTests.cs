@@ -53,6 +53,28 @@ public sealed class StudioNativeCommentsAndFormsTests : IDisposable {
     }
 
     [Fact]
+    public async Task A_comment_resolves_and_reopens_on_a_plain_pdf_and_on_one_saved_incrementally() {
+        string plain = CreateTextPdf("plain-resolve.pdf", "One");
+        // An incremental revision makes annotation changes go into an appended revision, as a tagged PDF's do.
+        string incremental = CreateTextPdf("incremental-resolve.pdf", "One");
+        File.WriteAllBytes(incremental, PdfDocument.Load(incremental).AppendMetadataRevision(title: "Draft").ToBytes());
+
+        foreach (string path in new[] { plain, incremental }) {
+            using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(path, null, default);
+            await document.AddAnnotationAsync(new StudioNativeAnnotationRequest("note", 1, new StudioNativeRectangle(40, 40, 20, 20),
+                Text: "Check this", Author: "Alex"), default);
+            int number = Assert.Single((await document.GetCommentsAsync(default)).Threads).ObjectNumber;
+
+            await document.EditAsync(new StudioNativeEditRequest(ReviewState: new StudioNativeCommentState(number, "completed")), default);
+            StudioNativeCommentThread thread = Assert.Single((await document.GetCommentsAsync(default)).Threads);
+            Assert.True(thread.Resolved, path);
+
+            await document.EditAsync(new StudioNativeEditRequest(ReviewState: new StudioNativeCommentState(thread.ObjectNumber, "none")), default);
+            Assert.False(Assert.Single((await document.GetCommentsAsync(default)).Threads).Resolved, path);
+        }
+    }
+
+    [Fact]
     public async Task Replies_and_states_are_refused_for_missing_comments_empty_text_and_unknown_states() {
         using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreateTextPdf("refused.pdf", "One"), null, default);
         await document.AddAnnotationAsync(new StudioNativeAnnotationRequest("note", 1, new StudioNativeRectangle(40, 40, 20, 20), Text: "Note"), default);

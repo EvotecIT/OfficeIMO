@@ -386,8 +386,9 @@ internal sealed partial class StudioNativeDocument : IDisposable {
             if (!(Finite(bounds.Width) > 0D && Finite(bounds.Height) > 0D)) throw new ArgumentException("An annotation needs a width and a height.", nameof(update));
             return RunAsync(() => SetAnnotationBoundsAsync(update.ObjectNumber, bounds, cancellationToken), cancellationToken);
         }
-        return RunAsync(() => _workspace.UpdateAnnotationAsync(update.ObjectNumber, update.Contents, update.Author,
-            update.Color is { } given ? global::OfficeIMO.OfficeColor.FromNormalizedRgb(given.Red, given.Green, given.Blue) : null, cancellationToken), cancellationToken);
+        return RunAsync(() => Plainly(() => _workspace.UpdateAnnotationAsync(update.ObjectNumber, update.Contents, update.Author,
+            update.Color is { } given ? global::OfficeIMO.OfficeColor.FromNormalizedRgb(given.Red, given.Green, given.Blue) : null, cancellationToken),
+            MarkupRefused), cancellationToken);
     }
 
     /// <summary>
@@ -405,9 +406,9 @@ internal sealed partial class StudioNativeDocument : IDisposable {
             new PdfEditorProperties(string.Empty, string.Empty, global::OfficeIMO.OfficeColor.Black, string.Empty, string.Empty, 12D)).Bounds;
         double left = Math.Min(current.X1, current.X2), bottom = Math.Min(current.Y1, current.Y2);
         double width = Math.Abs(current.X2 - current.X1), height = Math.Abs(current.Y2 - current.Y1);
-        return Math.Abs(target.Width - width) < 0.5D && Math.Abs(target.Height - height) < 0.5D
+        return Plainly(() => Math.Abs(target.Width - width) < 0.5D && Math.Abs(target.Height - height) < 0.5D
             ? _workspace.MoveAnnotationAsync(objectNumber, page, target.Left - left, target.Bottom - bottom, cancellationToken)
-            : _workspace.ResizeAnnotationAsync(objectNumber, page, target, cancellationToken);
+            : _workspace.ResizeAnnotationAsync(objectNumber, page, target, cancellationToken), MarkupRefused);
     }
 
     /// <summary>Removes an annotation as one undoable change.</summary>
@@ -415,8 +416,10 @@ internal sealed partial class StudioNativeDocument : IDisposable {
         RunAsync(() => {
             if (!_workspace.AnnotationMetadata.Any(annotation => annotation.ObjectNumber == objectNumber))
                 throw new ArgumentException("The annotation does not exist.", nameof(objectNumber));
-            return _workspace.RemoveAnnotationAsync(objectNumber, cancellationToken);
+            return Plainly(() => _workspace.RemoveAnnotationAsync(objectNumber, cancellationToken), MarkupRefused);
         }, cancellationToken);
+
+    private const string MarkupRefused = "This markup can’t be changed in this document.";
 
     private static double Finite(double value) =>
         double.IsFinite(value) ? value : throw new ArgumentOutOfRangeException(nameof(value), "Coordinates must be finite numbers.");
