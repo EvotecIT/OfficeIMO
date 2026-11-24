@@ -8,12 +8,12 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         internal void CellValue(int row, int column, string value) {
+            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (TrySetPendingDirectCell(row, column, ExcelBufferedCell.Text(value))) {
                 return;
             }
 
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
-            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (HasCellValueWriteAccess) {
                 MaterializeDeferredDataSetImportIfNeeded();
                 CellStringValueCore(row, column, value);
@@ -32,12 +32,12 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         internal void CellValue(int row, int column, double value) {
+            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (TrySetPendingDirectCell(row, column, ExcelBufferedCell.Number(value))) {
                 return;
             }
 
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
-            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (HasCellValueWriteAccess) {
                 MaterializeDeferredDataSetImportIfNeeded();
                 CellDoubleValueCore(row, column, value);
@@ -56,12 +56,12 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         internal void CellValue(int row, int column, float value) {
+            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (TrySetPendingDirectCellValue(row, column, value)) {
                 return;
             }
 
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
-            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (HasCellValueWriteAccess) {
                 MaterializeDeferredDataSetImportIfNeeded();
                 CellDoubleValueCore(row, column, (double)value);
@@ -80,12 +80,12 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         internal void CellValue(int row, int column, decimal value) {
+            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (TrySetPendingDirectCellValue(row, column, value)) {
                 return;
             }
 
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
-            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (HasCellValueWriteAccess) {
                 MaterializeDeferredDataSetImportIfNeeded();
                 CellDecimalValueCore(row, column, value);
@@ -104,12 +104,12 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         internal void CellValue(int row, int column, int value) {
+            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (TrySetPendingDirectCell(row, column, ExcelBufferedCell.Int32(value))) {
                 return;
             }
 
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
-            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (HasCellValueWriteAccess) {
                 MaterializeDeferredDataSetImportIfNeeded();
                 CellNumberTextValueCore(row, column, InvariantNumberText.Get(value));
@@ -128,12 +128,12 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         internal void CellValue(int row, int column, long value) {
+            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (TrySetPendingDirectCell(row, column, ExcelBufferedCell.Int64(value))) {
                 return;
             }
 
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
-            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (HasCellValueWriteAccess) {
                 MaterializeDeferredDataSetImportIfNeeded();
                 CellIntegerValueCore(row, column, InvariantNumberText.Get(value), ExcelExactNumber.FitsNumberCell(value));
@@ -152,12 +152,12 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         internal void CellValue(int row, int column, short value) {
+            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (TrySetPendingDirectCellValue(row, column, value)) {
                 return;
             }
 
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
-            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (HasCellValueWriteAccess) {
                 MaterializeDeferredDataSetImportIfNeeded();
                 CellNumberTextValueCore(row, column, InvariantNumberText.Get(value));
@@ -176,12 +176,12 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         internal void CellValue(int row, int column, DateTime value) {
+            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (TrySetPendingDirectCell(row, column, ExcelBufferedCell.DateTimeCell(value))) {
                 return;
             }
 
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
-            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (HasCellValueWriteAccess) {
                 MaterializeDeferredDataSetImportIfNeeded();
                 CellDateTimeValueCore(row, column, value);
@@ -200,12 +200,12 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         internal void CellValue(int row, int column, DateTimeOffset value) {
+            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (TrySetPendingDirectCellValue(row, column, value)) {
                 return;
             }
 
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
-            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (HasCellValueWriteAccess) {
                 MaterializeDeferredDataSetImportIfNeeded();
                 CellDateTimeOffsetValueCore(row, column, value);
@@ -225,12 +225,12 @@ namespace OfficeIMO.Excel {
         /// <inheritdoc cref="CellValue(int,int,object)" />
 #if NET6_0_OR_GREATER
         internal void CellValue(int row, int column, DateOnly value) {
+            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (TrySetPendingDirectCellValue(row, column, value)) {
                 return;
             }
 
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
-            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (HasCellValueWriteAccess) {
                 MaterializeDeferredDataSetImportIfNeeded();
                 CellDateOnlyValueCore(row, column, value);
@@ -249,12 +249,12 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         internal void CellValue(int row, int column, TimeOnly value) {
+            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (TrySetPendingDirectCellValue(row, column, value)) {
                 return;
             }
 
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
-            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (HasCellValueWriteAccess) {
                 MaterializeDeferredDataSetImportIfNeeded();
                 CellTimeOnlyValueCore(row, column, value);
@@ -274,12 +274,12 @@ namespace OfficeIMO.Excel {
         /// <inheritdoc cref="CellValue(int,int,object)" />
 #endif
         internal void CellValue(int row, int column, TimeSpan value) {
+            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (TrySetPendingDirectCellValue(row, column, value)) {
                 return;
             }
 
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
-            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (HasCellValueWriteAccess) {
                 MaterializeDeferredDataSetImportIfNeeded();
                 CellTimeSpanValueCore(row, column, value);
@@ -298,12 +298,12 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         internal void CellValue(int row, int column, uint value) {
+            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (TrySetPendingDirectCellValue(row, column, value)) {
                 return;
             }
 
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
-            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (HasCellValueWriteAccess) {
                 MaterializeDeferredDataSetImportIfNeeded();
                 CellNumberTextValueCore(row, column, InvariantNumberText.Get(value));
@@ -322,12 +322,12 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         internal void CellValue(int row, int column, ulong value) {
+            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (TrySetPendingDirectCellValue(row, column, value)) {
                 return;
             }
 
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
-            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (HasCellValueWriteAccess) {
                 MaterializeDeferredDataSetImportIfNeeded();
                 CellIntegerValueCore(row, column, InvariantNumberText.Get(value), ExcelExactNumber.FitsNumberCell(value));
@@ -346,12 +346,12 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         internal void CellValue(int row, int column, ushort value) {
+            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (TrySetPendingDirectCellValue(row, column, value)) {
                 return;
             }
 
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
-            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (HasCellValueWriteAccess) {
                 MaterializeDeferredDataSetImportIfNeeded();
                 CellNumberTextValueCore(row, column, InvariantNumberText.Get(value));
@@ -370,12 +370,12 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         internal void CellValue(int row, int column, byte value) {
+            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (TrySetPendingDirectCellValue(row, column, value)) {
                 return;
             }
 
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
-            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (HasCellValueWriteAccess) {
                 MaterializeDeferredDataSetImportIfNeeded();
                 CellNumberTextValueCore(row, column, InvariantNumberText.Get(value));
@@ -394,12 +394,12 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         internal void CellValue(int row, int column, sbyte value) {
+            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (TrySetPendingDirectCellValue(row, column, value)) {
                 return;
             }
 
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
-            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (HasCellValueWriteAccess) {
                 MaterializeDeferredDataSetImportIfNeeded();
                 CellNumberTextValueCore(row, column, InvariantNumberText.Get(value));
@@ -418,12 +418,12 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc cref="CellValue(int,int,object)" />
         internal void CellValue(int row, int column, bool value) {
+            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (TrySetPendingDirectCell(row, column, ExcelBufferedCell.Boolean(value))) {
                 return;
             }
 
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
-            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (HasCellValueWriteAccess) {
                 MaterializeDeferredDataSetImportIfNeeded();
                 CellBooleanValueCore(row, column, value);
@@ -457,7 +457,6 @@ namespace OfficeIMO.Excel {
             }
 
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
-            using var formulaMarks = DeferDefinedNameFormulaMarksForValueWrite();
             if (HasCellValueWriteAccess) {
                 MaterializeDeferredDataSetImportIfNeeded();
                 CellFormulaCore(row, column, formula);

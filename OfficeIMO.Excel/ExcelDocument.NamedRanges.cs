@@ -50,11 +50,16 @@ namespace OfficeIMO.Excel {
         private void StoreDefinedName(string name, string expression, ExcelSheet? scope, bool save, bool hidden) {
             uint? sheetIndex = scope == null ? null : GetSheetPositionIndex(scope);
             var definedNames = WorkbookRoot.DefinedNames ??= new DefinedNames();
-            foreach (var existing in definedNames.Elements<DefinedName>().Where(definition => string.Equals(definition.Name?.Value, name, StringComparison.OrdinalIgnoreCase)
-                && definition.LocalSheetId?.Value == sheetIndex).ToList()) existing.Remove();
+            List<DefinedName> replaced = FindReplacedDefinedNames(definedNames, name, sheetIndex);
+            if (replaced.Count != 0) {
+                foreach (var existing in replaced) existing.Remove();
+                RecordRemovedDefinedNames(definedNames);
+            }
             var definition = new DefinedName { Name = name, Text = expression, Hidden = hidden ? true : (bool?)null };
             if (sheetIndex.HasValue) definition.LocalSheetId = sheetIndex.Value;
+            DocumentFormat.OpenXml.OpenXmlElement? previousLastChild = definedNames.LastChild;
             definedNames.Append(definition);
+            RecordAppendedDefinedName(definedNames, previousLastChild, definition);
             InvalidateDefinedNameInputs();
             MarkPackageDirty();
             SaveWorkbookScopedChange(save);

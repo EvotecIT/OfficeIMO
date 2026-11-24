@@ -157,6 +157,33 @@ namespace OfficeIMO.Tests {
             Assert.Equal("'Data'!$A$4", names["Name1"]);
         }
 
+        [Fact]
+        public void NamesSetOneAtATimeReplaceOnlyTheSameNameAndScope() {
+            using var stream = new MemoryStream();
+            using (var document = ExcelDocument.Create(stream)) {
+                ExcelSheet data = document.AddSheet("Data");
+                ExcelSheet other = document.AddSheet("Other");
+                document.SetNamedRange("Total", "'Data'!$A$1", scope: null, save: false);
+                document.SetNamedRange("Total", "$B$1", scope: data, save: false);
+                document.SetNamedRange("Last", "'Data'!$A$2", scope: null, save: false);
+                document.SetNamedRange("total", "'Data'!$A$3", scope: null, save: false);
+                document.SetNamedRange("Last", "'Data'!$A$4", scope: null, save: false);
+                Assert.True(document.RemoveNamedRange("Last", scope: null, save: false));
+                document.SetNamedRange("Last", "'Other'!$A$5", scope: null, save: false);
+                document.SetNamedRange("Other", "$C$1", scope: other, save: false);
+                document.Save();
+            }
+
+            stream.Position = 0;
+            using (SpreadsheetDocument package = SpreadsheetDocument.Open(stream, false)) {
+                Assert.Equal(
+                    new[] { "Total@1 'Data'!$B$1", "total 'Data'!$A$3", "Last 'Other'!$A$5", "Other@2 'Other'!$C$1" },
+                    package.WorkbookPart!.Workbook.DefinedNames!.Elements<DefinedName>()
+                        .Select(name => $"{name.Name!.Value}{(name.LocalSheetId == null ? string.Empty : "@" + (name.LocalSheetId.Value + 1))} {name.Text}")
+                        .ToArray());
+            }
+        }
+
         private static void AddKeyValueTable(ExcelSheet sheet, int top, string name) {
             sheet.Cell(top, 1).SetValue("Key");
             sheet.Cell(top, 2).SetValue("Value");

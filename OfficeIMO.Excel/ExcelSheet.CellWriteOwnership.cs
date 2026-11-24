@@ -98,7 +98,7 @@ namespace OfficeIMO.Excel {
                 if (reference == null) return;
                 bool strict = ExcelA1.TryParseStrictRange(reference, out int strictTop, out int strictLeft, out int strictBottom, out int strictRight);
                 bool parsed = ExcelA1.TryParseRange(reference, out int top, out int left, out _, out int right);
-                _tables.Add(new TableLayoutEntry(table, reference, strict, strictTop, strictLeft, strictBottom, strictRight, parsed ? right : 0));
+                _tables.Add(new TableLayoutEntry(table, reference, strict, strictTop, strictLeft, strictBottom, strictRight));
                 if (parsed && right > _lastColumn) _lastColumn = right;
                 if (!parsed || (table.HeaderRowCount?.Value ?? 1U) == 0U) return;
                 var entry = (table, reference, left, right);
@@ -121,29 +121,23 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            /// <summary>Whether a strictly parsed table range overlaps the given cells; null when a remembered table changed.</summary>
+            /// <summary>
+            /// Whether a strictly parsed table range overlaps the given cells; null when the overlapping table changed.
+            /// Range edits retire the index through the layout epoch, so only a hit is confirmed against the live table.
+            /// </summary>
             internal bool? Overlaps(int top, int left, int bottom, int right) {
-                bool overlaps = false;
                 foreach (TableLayoutEntry entry in _tables) {
-                    if (!entry.IsCurrent) return null;
                     if (entry.Strict && left <= entry.StrictRight && right >= entry.StrictLeft
-                        && top <= entry.StrictBottom && bottom >= entry.StrictTop) overlaps = true;
+                        && top <= entry.StrictBottom && bottom >= entry.StrictTop) return entry.IsCurrent ? true : null;
                 }
-                return overlaps;
+                return false;
             }
 
-            /// <summary>The right-most column any table reaches, or null when a remembered table changed.</summary>
-            internal int? LastColumn {
-                get {
-                    foreach (TableLayoutEntry entry in _tables) {
-                        if (!entry.IsCurrent) return null;
-                    }
-                    return _lastColumn;
-                }
-            }
+            /// <summary>The right-most column any table reaches.</summary>
+            internal int LastColumn => _lastColumn;
 
             private readonly struct TableLayoutEntry {
-                internal TableLayoutEntry(Table table, string reference, bool strict, int strictTop, int strictLeft, int strictBottom, int strictRight, int right) {
+                internal TableLayoutEntry(Table table, string reference, bool strict, int strictTop, int strictLeft, int strictBottom, int strictRight) {
                     Table = table;
                     Reference = reference;
                     Strict = strict;
@@ -151,7 +145,6 @@ namespace OfficeIMO.Excel {
                     StrictLeft = strictLeft;
                     StrictBottom = strictBottom;
                     StrictRight = strictRight;
-                    Right = right;
                 }
 
                 internal Table Table { get; }
@@ -161,7 +154,6 @@ namespace OfficeIMO.Excel {
                 internal int StrictLeft { get; }
                 internal int StrictBottom { get; }
                 internal int StrictRight { get; }
-                internal int Right { get; }
                 internal bool IsCurrent => string.Equals(Table.Reference?.Value, Reference, StringComparison.Ordinal);
             }
         }

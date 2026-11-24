@@ -45,9 +45,13 @@ namespace OfficeIMO.Excel {
         internal void CommitPendingParts() => CommitPendingPartChanges();
 
         private void CommitPendingPartChanges() {
-            foreach (OpenXmlPart part in PendingPartSaves) {
+            if (PendingPartSaves.Count != 0) {
                 // A cleared comment or removed table can detach a queued part before Save.
-                if (_worksheetPart.Parts.Any(pair => ReferenceEquals(pair.OpenXmlPart, part))) part.RootElement?.Save();
+                var attached = new HashSet<OpenXmlPart>();
+                foreach (IdPartPair pair in _worksheetPart.Parts) attached.Add(pair.OpenXmlPart);
+                foreach (OpenXmlPart part in PendingPartSaves) {
+                    if (attached.Contains(part)) part.RootElement?.Save();
+                }
             }
             PendingPartSaves.Clear();
             CommitCommentVmlChanges();
