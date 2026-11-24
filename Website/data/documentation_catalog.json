@@ -9,7 +9,7 @@
     "validationProjectCount": 81,
     "apiReferenceCount": 129,
     "conceptualPageCount": 213,
-    "conceptualWordCount": 122599
+    "conceptualWordCount": 122604
   },
   "categories": [
     {
@@ -1754,7 +1754,7 @@
       "projectPath": "OfficeIMO.Notebook.PowerShell/OfficeIMO.Notebook.PowerShell.csproj",
       "sourceFileCount": 5,
       "referencingTestProjectCount": 1,
-      "docsUrl": "/docs/capabilities/packages/",
+      "docsUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Notebook.PowerShell/README.md",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Notebook.PowerShell",
       "targetFrameworks": [

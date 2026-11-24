@@ -9,11 +9,21 @@ namespace PSWriteOffice.Cmdlets.Notebook;
 
 /// <summary>Runs selected PowerShell notebook cells in one persistent session and records their outputs.</summary>
 /// <para>Run notebooks whose code you trust. The child PowerShell process runs under your account. The returned report contains the updated live notebook. Close the notebook when you finish using it.</para>
+/// <para>Use -WhatIf to preview execution and any requested save. Use -Confirm to ask before running the notebook.</para>
 /// <example><summary>Run PowerShell cells and save a separate notebook.</summary><code>
 /// $report = Invoke-OfficeNotebook -LiteralPath ./lab.ipynb -OutputPath ./executed.ipynb -NoClobber
-/// try {
-///     $report.Cells
-/// } finally {
+/// if ($null -ne $report) {
+///     try {
+///         $report.Cells
+///     } finally {
+///         $report.Notebook | Close-OfficeNotebook
+///     }
+/// }
+/// </code></example>
+/// <example><summary>Preview execution and ask for confirmation before running.</summary><code>
+/// Invoke-OfficeNotebook -LiteralPath ./lab.ipynb -OutputPath ./reviewed.ipynb -WhatIf
+/// $report = Invoke-OfficeNotebook -LiteralPath ./lab.ipynb -OutputPath ./reviewed.ipynb -Confirm
+/// if ($null -ne $report) {
 ///     $report.Notebook | Close-OfficeNotebook
 /// }
 /// </code></example>
@@ -67,7 +77,7 @@ public sealed class InvokeOfficeNotebookCommand : AsyncPSCmdlet {
     [Parameter]
     public SwitchParameter StreamOutput { get; set; }
 
-    /// <summary>Atomically save the executed notebook to this .ipynb path, including any partial results reported after a cell error or timeout.</summary>
+    /// <summary>Atomically save the executed notebook to this .ipynb path, including any partial results reported after a cell error or timeout. Use this parameter with one notebook per invocation.</summary>
     [Parameter, ValidateNotNullOrEmpty]
     public string? OutputPath { get; set; }
 

@@ -181,6 +181,9 @@ internal sealed class PowerShellNotebookProcess : IDisposable {
 #else
             _process.Kill();
 #endif
+        } catch (AggregateException failure) when (failure.InnerExceptions.Count > 0 &&
+            failure.InnerExceptions.All(static error => error is Win32Exception)) {
+            // Kill(entireProcessTree: true) reports partial native termination failures together.
         } finally {
             // The tree can include children in another group. The group can include reparented children.
             _unixGroup?.TryTerminate();
