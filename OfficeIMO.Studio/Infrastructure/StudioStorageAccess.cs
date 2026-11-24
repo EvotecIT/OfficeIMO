@@ -129,6 +129,8 @@ internal sealed partial class StudioStorageAccess : StudioDocumentStorage {
         return stream;
     }
 
+    private const string RetiredMacBookmarkPrefix = "officeimo.mac.v1:";
+
     private async Task<IStorageFile?> ResolveAsync(string location, CancellationToken token) {
         string key = OfficeStorageIdentity.Normalize(location);
         IStorageFile? existing;
@@ -139,6 +141,10 @@ internal sealed partial class StudioStorageAccess : StudioDocumentStorage {
             _references.TryGetValue(key, out reference);
         }
         if ((reference?.Bookmark is null || reference.PermissionFolder is not null) && OfficeStorageIdentity.GetLocalPath(location) is not null) return null;
+        // Bookmarks written by the retired Mac App Store build are not provider bookmarks; those documents must be selected again.
+        if (reference?.Bookmark?.StartsWith(RetiredMacBookmarkPrefix, StringComparison.Ordinal) == true) {
+            throw new IOException("Access to this document is unavailable. Select it again to grant access.");
+        }
         IStorageProvider provider = _provider?.Invoke()
             ?? throw new IOException("This document needs its storage provider. Select it again to grant access.");
         IStorageFile? file = reference?.Bookmark is { } bookmark
