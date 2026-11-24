@@ -40,6 +40,33 @@ namespace OfficeIMO.Tests {
             Assert.Equal(new object?[] { expected }, ReadFirstRow(package));
         }
 
+        [Theory]
+        [InlineData("http://schemas.microsoft.com/office/2006/relationships/xlMacrosheet", "application/vnd.ms-excel.macrosheet+xml")]
+        [InlineData("http://schemas.microsoft.com/office/2006/relationships/xlIntlMacrosheet", "application/vnd.ms-excel.intlmacrosheet+xml")]
+        public void MacroSheetsAreSkippedLikeOtherNonWorksheetSheets(string relationshipType, string contentType) {
+            byte[] package = CreatePackage(
+                ("[Content_Types].xml", ContentTypes(
+                    ("/xl/workbook.xml", WorkbookContentType),
+                    ("/xl/macrosheets/sheet1.xml", contentType),
+                    ("/xl/worksheets/sheet1.xml", WorksheetContentType))),
+                ("_rels/.rels", Relationships(("rId1", "officeDocument", "xl/workbook.xml"))),
+                ("xl/workbook.xml", Workbook(("Macro1", "rId1"), ("Data", "rId2"))),
+                ("xl/_rels/workbook.xml.rels",
+                    "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">"
+                    + $"<Relationship Id=\"rId1\" Type=\"{relationshipType}\" Target=\"macrosheets/sheet1.xml\"/>"
+                    + $"<Relationship Id=\"rId2\" Type=\"{RelationshipNamespace}/worksheet\" Target=\"worksheets/sheet1.xml\"/>"
+                    + "</Relationships>"),
+                ("xl/macrosheets/sheet1.xml",
+                    "<xm:macrosheet xmlns:xm=\"http://schemas.microsoft.com/office/excel/2006/main\" "
+                    + $"xmlns=\"{SpreadsheetNamespace}\"><sheetData/></xm:macrosheet>"),
+                ("xl/worksheets/sheet1.xml", Worksheet("<row r=\"1\"><c r=\"A1\"><v>7</v></c></row>")));
+
+            using var reader = ExcelDocument.OpenReader(new MemoryStream(package), Options());
+            Assert.True(reader.Read());
+            Assert.Equal(7d, reader.GetValue(0));
+            Assert.False(reader.NextResult());
+        }
+
         private static ExcelReaderOptions Options() => new() {
             HasHeaderRow = false,
             TreatDatesUsingNumberFormat = false
