@@ -1069,9 +1069,11 @@
       "package": "OfficeIMO.Workflows",
       "support": "Targeted",
       "fidelity": "Semantic",
-      "api": "BookManuscriptImporter.ImportWordAsync(document, options)",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
       "surfaces": [
-        "dotnet"
+        "dotnet",
+        "cli",
+        "studio"
       ]
     },
     {
@@ -1668,12 +1670,14 @@
       "id": "html-epub",
       "source": "HTML",
       "target": "EPUB",
-      "package": "OfficeIMO.Epub",
+      "package": "OfficeIMO.Workflows",
       "support": "Targeted",
       "fidelity": "Semantic",
-      "api": "EpubManuscript.ImportHtmlAsync(HtmlConversionDocument.Parse(html), options)",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
       "surfaces": [
-        "dotnet"
+        "dotnet",
+        "cli",
+        "studio"
       ]
     },
     {
@@ -2114,9 +2118,11 @@
       "package": "OfficeIMO.Workflows",
       "support": "Targeted",
       "fidelity": "Semantic",
-      "api": "BookManuscriptImporter.ImportMarkdownAsync(document, options)",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
       "surfaces": [
-        "dotnet"
+        "dotnet",
+        "cli",
+        "studio"
       ]
     },
     {

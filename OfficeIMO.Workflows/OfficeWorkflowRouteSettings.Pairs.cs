@@ -121,10 +121,14 @@ public sealed partial class OfficeWorkflowRouteSettings {
     /// <summary>ODP PDF projection settings.</summary>
     public OfficeIMO.OpenDocument.Odp.Pdf.OdpPdfExportOptions? OdpPdf { get; set; }
 
+    /// <summary>Metadata, chapter heading level, typography and resource limits for manuscript-to-EPUB routes.</summary>
+    public OfficeIMO.Epub.EpubManuscriptOptions? EpubManuscript { get; set; }
+
     /// <summary>Returns an independent snapshot containing only settings accepted by the selected canonical route.</summary>
     public OfficeWorkflowRouteSettings ForRoute(string routeId) {
         var copy = (OfficeWorkflowRouteSettings)Snapshot();
         return routeId switch {
+            "docx-epub" or "markdown-epub" or "html-epub" => new OfficeWorkflowRouteSettings { EpubManuscript = copy.EpubManuscript },
             "markdown-pptx" => new OfficeWorkflowRouteSettings { MarkdownPowerPoint = copy.MarkdownPowerPoint },
             "xlsx-html" => new OfficeWorkflowRouteSettings { ExcelHtml = copy.ExcelHtml },
             "pdf-markdown" => new OfficeWorkflowRouteSettings { PdfMarkdown = copy.PdfMarkdown },
@@ -170,6 +174,7 @@ public sealed partial class OfficeWorkflowRouteSettings {
     }
 
     private OfficeWorkflowRouteSettings CopyPairSettingsTo(OfficeWorkflowRouteSettings copy) {
+        copy.EpubManuscript = EpubManuscript?.Clone();
         copy.MarkdownPowerPoint = MarkdownPowerPoint?.Clone();
         copy.MarkdownLoad = MarkdownLoad?.Clone();
         copy.ExcelHtml = ExcelHtml?.Clone();

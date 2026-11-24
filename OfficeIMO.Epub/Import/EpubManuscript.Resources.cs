@@ -5,12 +5,14 @@ namespace OfficeIMO.Epub;
 
 public static partial class EpubManuscript {
     private sealed class ImportedStylesheet {
-        internal string Id = string.Empty;
+        internal ImportedStylesheet(string path) => Path = path;
+
+        internal string Path { get; }
         internal Dictionary<string, string> Attributes = new Dictionary<string, string>();
     }
 
     private static async Task<List<ImportedStylesheet>> CollectResourcesAsync(IHtmlDocument source, List<Chapter> chapters,
-        EpubPublication publication, HtmlConversionDocument manuscript, EpubManuscriptOptions options,
+        EpubPublication.ManuscriptEntries entries, HtmlConversionDocument manuscript, EpubManuscriptOptions options,
         List<OfficeDiagnostic> diagnostics, CancellationToken token) {
         var pipelineOptions = new HtmlResourcePipelineOptions {
             BaseUri = manuscript.BaseUri, ResourceUrlPolicy = manuscript.ResourceUrlPolicy, Limits = manuscript.Limits
@@ -29,7 +31,7 @@ public static partial class EpubManuscript {
             diagnostics.Add(new global::OfficeIMO.OfficeDiagnostic(diagnostic.Code, global::OfficeIMO.OfficeDiagnosticSeverity.Warning, diagnostic.Message, diagnostic.Source, diagnostic.Component, diagnostic.LossKind == OfficeConversionLossKind.None ? OfficeConversionLossKind.Omission : diagnostic.LossKind));
         var paths = new Dictionary<string, string>(StringComparer.Ordinal);
         var mediaTypes = new Dictionary<string, string>(StringComparer.Ordinal);
-        var declarations = new Dictionary<string, string>(StringComparer.Ordinal);
+        var declarations = new HashSet<string>(StringComparer.Ordinal);
         var deduplicated = new Dictionary<string, string>(StringComparer.Ordinal);
         int count = 0;
         foreach (HtmlResourceSessionEntry entry in session.Resources) {
@@ -48,7 +50,7 @@ public static partial class EpubManuscript {
             token.ThrowIfCancellationRequested();
             if (!session.TryGet(entry.Source, entry.CanonicalSource, out HtmlResolvedResource resource)) continue;
             string path = paths[entry.CanonicalSource];
-            if (declarations.ContainsKey(path)) continue;
+            if (declarations.Contains(path)) continue;
             byte[] bytes = resource.Bytes;
             string mediaType = mediaTypes[entry.CanonicalSource];
             if (mediaType == "text/css") {
@@ -81,8 +83,8 @@ public static partial class EpubManuscript {
                 }
             }
             string id = "manuscript-resource-" + (declarations.Count + 1);
-            publication.AddResource(id, path, mediaType, bytes);
-            declarations.Add(path, id);
+            entries.Add(new EpubPublication.ManuscriptEntry(id, path, mediaType, bytes));
+            declarations.Add(path);
         }
         var styles = new List<ImportedStylesheet>();
         int styleIndex = 0;
@@ -91,8 +93,8 @@ public static partial class EpubManuscript {
             if (style.LocalName == "link") {
                 if (HtmlResourcePipeline.GetLinkResourceKind(style.GetAttribute("rel"), style.GetAttribute("as")) != HtmlResourceKind.Stylesheet) continue;
                 string resourcePath = FindPath(style.GetAttribute("href")!, manuscript.BaseUri, HtmlResourceKind.Stylesheet);
-                if (declarations.TryGetValue(resourcePath, out string? resourceId)) {
-                    var imported = new ImportedStylesheet { Id = resourceId };
+                if (declarations.Contains(resourcePath)) {
+                    var imported = new ImportedStylesheet(resourcePath);
                     foreach (string attribute in new[] { "rel", "media", "title" }) {
                         string? value = style.GetAttribute(attribute);
                         if (value != null) imported.Attributes[attribute] = value;
@@ -107,7 +109,8 @@ public static partial class EpubManuscript {
             css = HtmlResourcePipeline.RewriteCssResourceUrls(css, (url, kind) => Rewrite(url, manuscript.BaseUri, path, kind));
             if (media.Length != 0) css = "@media " + media + "{" + css + "}";
             string id = "manuscript-style-" + styleIndex;
-            publication.AddStylesheet(id, path, css); styles.Add(new ImportedStylesheet { Id = id });
+            entries.Add(ManuscriptStylesheet(id, path, css));
+            styles.Add(new ImportedStylesheet(path));
         }
         foreach (Chapter chapter in chapters) {
             foreach (XElement element in chapter.Body.DescendantsAndSelf()) {
@@ -144,9 +147,15 @@ public static partial class EpubManuscript {
             if (path.Length == 0) return string.Empty;
             string fragment = Uri.TryCreate(url, UriKind.RelativeOrAbsolute, out Uri? uri) && uri.IsAbsoluteUri ? uri.Fragment :
                 url.IndexOf('#') >= 0 ? url.Substring(url.IndexOf('#')) : string.Empty;
-            return new Uri("epub://package/" + owner).MakeRelativeUri(new Uri("epub://package/" + path)).OriginalString + fragment;
+            return ManuscriptRelativeHref(owner, path) + fragment;
         }
     }
+
+    private static string ManuscriptRelativeHref(string owner, string path) =>
+        new Uri("epub://package/" + owner).MakeRelativeUri(new Uri("epub://package/" + path)).OriginalString;
+
+    private static EpubPublication.ManuscriptEntry ManuscriptStylesheet(string id, string path, string css) =>
+        new EpubPublication.ManuscriptEntry(id, path, "text/css", new UTF8Encoding(false, true).GetBytes(css));
 
     private static string Extension(string mediaType) => mediaType switch {
         "text/css" => ".css", "image/png" => ".png", "image/jpeg" => ".jpg", "image/gif" => ".gif", "image/svg+xml" => ".svg",

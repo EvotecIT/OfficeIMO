@@ -109,7 +109,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             await ValidateStagedArtifactAsync(
                 stagingPath,
                 validated.OutputStream?.Name ?? validated.OutputPath!,
-                validated.OutputPdfLoadOptions,
+                validated,
                 cancellationToken).ConfigureAwait(false);
             diagnostics.Add(new OfficeWorkflowDiagnostic(
                 global::OfficeIMO.OfficeDiagnosticCodes.ConversionOutputReopened,
@@ -549,10 +549,18 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
     private static async Task ValidateStagedArtifactAsync(
         string stagingPath,
         string outputPath,
-        PdfLoadOptions loadOptions,
+        ValidatedRequest request,
         CancellationToken cancellationToken) {
+        PdfLoadOptions loadOptions = request.OutputPdfLoadOptions;
         string extension = Path.GetExtension(outputPath).ToLowerInvariant();
         switch (extension) {
+            case ".epub" when request.Registration is null && request.Route?.Id is ("docx-epub" or "markdown-epub" or "html-epub"): {
+                using FileStream stream = OpenStagedArtifact(stagingPath);
+                var settings = request.UnifiedConversionOptions?.RegisteredSettings as OfficeWorkflowRouteSettings;
+                await OfficeWorkflow.ValidateManuscriptArtifactAsync(stream, request.Limits.MaximumOutputBytes,
+                    settings?.EpubManuscript?.RetentionLimits, cancellationToken).ConfigureAwait(false);
+                break;
+            }
             case ".epub":
                 using (FileStream stream = OpenStagedArtifact(stagingPath)) {
                     var publication = OfficeIMO.Epub.EpubPublication.Load(stream, cancellationToken: cancellationToken);

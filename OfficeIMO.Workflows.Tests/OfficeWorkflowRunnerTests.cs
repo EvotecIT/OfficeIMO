@@ -1,6 +1,8 @@
 using System.Text;
 using System.Text.RegularExpressions;
 using System.IO.Compression;
+using System.Xml.Linq;
+using OfficeIMO.Epub;
 using OfficeIMO.Excel;
 using OfficeIMO.Html;
 using OfficeIMO.Pdf;
@@ -65,7 +67,14 @@ public sealed class OfficeWorkflowRunnerTests {
     public void CatalogProjectsCanonicalRoutesAndSupportedExecutionContracts() {
         Assert.Equal(OfficeConversionCapabilityCatalog.All.Count, OfficeWorkflowCatalog.Routes.Count);
         Assert.Equal(
-            ["book-project-epub", "chm-epub", "chm-markdown", "chm-pdf", "csv-xlsx", "djvu-pdf", "doc-pdf", "docx-odt", "docx-pdf", "email-pdf", "epub-pdf", "heic-pdf", "html-docx", "html-pdf", "markdown-docx", "markdown-pdf", "notebook-docx", "notebook-html", "notebook-markdown", "notebook-pdf", "notebook-source-ipynb", "notebook-source-pdf", "odg-pdf", "odp-pdf", "odp-pptx", "ods-pdf", "ods-xlsx", "odt-docx", "odt-pdf", "pdf-docx", "pdf-html", "pdf-pptx", "pdf-xlsx", "pptx-odp", "pptx-pdf", "publisher-pdf", "rtf-docx", "rtf-pdf", "txt-pdf", "visio-pdf", "xlsx-csv", "xlsx-ods", "xlsx-pdf", "xps-pdf"],
+            [
+                "book-project-epub", "chm-epub", "chm-markdown", "chm-pdf", "csv-xlsx", "djvu-pdf", "doc-pdf", "docx-epub",
+                "docx-odt", "docx-pdf", "email-pdf", "epub-pdf", "heic-pdf", "html-docx", "html-epub", "html-pdf",
+                "markdown-docx", "markdown-epub", "markdown-pdf", "notebook-docx", "notebook-html", "notebook-markdown", "notebook-pdf", "notebook-source-ipynb",
+                "notebook-source-pdf", "odg-pdf", "odp-pdf", "odp-pptx", "ods-pdf", "ods-xlsx", "odt-docx", "odt-pdf",
+                "pdf-docx", "pdf-html", "pdf-pptx", "pdf-xlsx", "pptx-odp", "pptx-pdf", "publisher-pdf", "rtf-docx",
+                "rtf-pdf", "txt-pdf", "visio-pdf", "xlsx-csv", "xlsx-ods", "xlsx-pdf", "xps-pdf",
+            ],
             OfficeWorkflowCatalog.ExecutableRoutes.Select(route => route.Id).OrderBy(id => id, StringComparer.Ordinal));
         Assert.All(OfficeWorkflowCatalog.Routes, route => Assert.True(route.Engine == "OfficeIMO" || route.Engine.StartsWith("OfficeIMO.", StringComparison.Ordinal)));
         Assert.All(OfficeWorkflowCatalog.Routes, route => {
@@ -169,6 +178,9 @@ public sealed class OfficeWorkflowRunnerTests {
     [InlineData("pdf-xlsx")]
     [InlineData("pdf-pptx")]
     [InlineData("pdf-html")]
+    [InlineData("docx-epub")]
+    [InlineData("markdown-epub")]
+    [InlineData("html-epub")]
     public async Task EveryCatalogRoutePublishesAnArtifactThatWasReopened(string routeId) {
         using var scope = new TestDirectory();
         OfficeWorkflowRoute route = Assert.Single(OfficeWorkflowCatalog.Routes, item => item.Id == routeId);
@@ -193,6 +205,19 @@ public sealed class OfficeWorkflowRunnerTests {
         Assert.Equal(result.OutputBytes.ToString(System.Globalization.CultureInfo.InvariantCulture), reopened.Details["stagedBytes"]);
         Assert.Equal(NormalizeExtension(route.TargetExtension), reopened.Details["format"]);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "AtomicPublication");
+        if (reopened.Details["format"] == ".epub") {
+            using var stream = File.OpenRead(output);
+            EpubPublication publication = EpubPublication.Load(stream);
+            Assert.Equal(routeId == "docx-epub" ? "Word book title" : "Opening chapter", publication.Title);
+            Assert.Equal(2, publication.Spine.Count);
+            var nav = publication.GetContentXml("navigation");
+            XNamespace html = "http://www.w3.org/1999/xhtml";
+            Assert.Equal(new[] { "Opening chapter", "Closing chapter" }, nav.Descendants(html + "a").Select(link => link.Value));
+            foreach (string id in new[] { "chapter-1", "chapter-2" }) {
+                var chapter = publication.GetContentXml(id);
+                Assert.Contains(chapter.Descendants(html + "link"), link => (string?)link.Attribute("href") == "../styles/defaults.css");
+            }
+        }
     }
 
     [Theory]
@@ -317,6 +342,55 @@ public sealed class OfficeWorkflowRunnerTests {
         Assert.Contains(result.Diagnostics, diagnostic =>
             diagnostic.Message.Contains("output limit", StringComparison.Ordinal));
         Assert.False(File.Exists(output));
+    }
+
+    [Fact]
+    public async Task ManuscriptZipLimitPreservesTheExistingDestination() {
+        using var scope = new TestDirectory();
+        string input = CreateInput(scope.Path, "html-epub");
+        string output = Path.Combine(scope.Path, "existing.epub");
+        byte[] original = [6, 2, 0, 7];
+        await File.WriteAllBytesAsync(output, original);
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Convert,
+            ConversionRouteId = "html-epub",
+            InputPath = input,
+            OutputPath = output,
+            ConflictPolicy = OfficePublicationPolicy.Replace,
+            Limits = new OfficeOperationLimits { MaximumOutputBytes = 128L }
+        });
+
+        Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+        Assert.Equal(OfficeWorkflowFailureKind.OutputFailed, result.FailureKind);
+        Assert.Equal(original, await File.ReadAllBytesAsync(output));
+        Assert.Empty(Directory.GetFiles(scope.Path, ".*.tmp"));
+    }
+
+    [Fact]
+    public async Task ManuscriptPublicationReopensWithTheRequestedMetadataBudget() {
+        using var scope = new TestDirectory();
+        string input = CreateInput(scope.Path, "html-epub");
+        string output = Path.Combine(scope.Path, "expanded-metadata.epub");
+        long defaultMetadataBytes = new EpubPublicationLoadOptions().MaxMetadataBytes;
+        var options = new EpubManuscriptOptions {
+            Title = new string('a', checked((int)defaultMetadataBytes)),
+            RetentionLimits = new EpubPublicationLoadOptions { MaxMetadataBytes = defaultMetadataBytes + 32_768 }
+        };
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Convert,
+            ConversionRouteId = "html-epub",
+            InputPath = input,
+            OutputPath = output,
+            ConversionOptions = new OfficeConversionOptions {
+                RegisteredSettings = new OfficeWorkflowRouteSettings { EpubManuscript = options }
+            }
+        });
+
+        Assert.True(result.Succeeded, result.Summary);
+        using ZipArchive epub = ZipFile.OpenRead(output);
+        Assert.True(epub.GetEntry("EPUB/package.opf")!.Length > defaultMetadataBytes);
     }
 
     [Fact]
@@ -1157,6 +1231,27 @@ public sealed class OfficeWorkflowRunnerTests {
                 using WordDocument document = WordDocument.Create(path);
                 document.AddParagraph("OfficeIMO workflow Word source");
                 document.Save();
+                return path;
+            }
+            case "docx-epub": {
+                string path = System.IO.Path.Combine(root, "source.docx");
+                using WordDocument document = WordDocument.Create(path);
+                document.Properties.Title = "Word book title";
+                document.AddParagraph("Opening chapter").SetStyle(WordParagraphStyles.Heading1);
+                document.AddParagraph("Start of the story");
+                document.AddParagraph("Closing chapter").SetStyle(WordParagraphStyles.Heading1);
+                document.AddParagraph("End of the story");
+                document.Save();
+                return path;
+            }
+            case "markdown-epub": {
+                string path = System.IO.Path.Combine(root, "source.markdown");
+                File.WriteAllText(path, "# Opening chapter\n\nStart of the story.\n\n# Closing chapter\n\nEnd of the story.", Encoding.UTF8);
+                return path;
+            }
+            case "html-epub": {
+                string path = System.IO.Path.Combine(root, "source.htm");
+                File.WriteAllText(path, "<!doctype html><html><body><h1>Opening chapter</h1><p>Start of the story.</p><h1>Closing chapter</h1><p>End of the story.</p></body></html>", Encoding.UTF8);
                 return path;
             }
             case "xlsx-pdf": {

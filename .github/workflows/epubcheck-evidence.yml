@@ -28,5 +28,6 @@ jobs:
           path: |
             ${{ runner.temp }}/epubcheck/epubcheck-distribution.txt
             ${{ runner.temp }}/epubcheck/fixtures/manifest.json
+            ${{ runner.temp }}/epubcheck/fixtures/*.epub
             ${{ runner.temp }}/epubcheck/reports/
           if-no-files-found: warn

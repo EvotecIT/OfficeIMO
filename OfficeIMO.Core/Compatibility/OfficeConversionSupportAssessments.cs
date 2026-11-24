@@ -61,8 +61,8 @@ internal static class OfficeConversionSupportAssessments {
             "Book-project batch contracts verify review gating, EPUB reopen, output limits, conflict handling and checkpoint reuse through the shared workflow runner.",
             "Exports the current publication only; project revisions and review records remain in the source project. Import failures block export, and non-fatal import losses require saved author acknowledgment. Reader presentation and comprehensive accessibility qualification remain separate."),
         "html-epub" or "markdown-epub" or "docx-epub" => Targeted(
-            "Manuscript contracts cover chapter splitting, navigation, semantic structures, resource collection, import reports and re-opened EPUB output; representative artifacts pass independent EPUBCheck validation.",
-            "Reflowable EPUB 3 only. Source layout, live fields, revisions, comments and controls can require reported approximations or omissions. Missing assets and unnamed images block export; schema conformance, accessibility metadata and reader presentation require independent review. DOCX and Markdown composition uses OfficeIMO.Workflows on .NET 8 or newer."),
+            "Executable manuscript routes reopen the EPUB and check metadata, heading-based chapter boundaries, navigation and typography. The EPUBCheck lane validates representative output for all three source formats.",
+            "Produces reflowable EPUB 3. Source layout, live fields, revisions, comments and controls can require reported approximations or omissions. Missing assets and unnamed images block export. Accessibility and reader presentation require their own review. The file routes use OfficeIMO.Workflows on .NET 8 or newer."),
         "doc-pdf" => Targeted(
             "Legacy DOC import and first-party PDF rendering retain separate fidelity reports; known import loss blocks conversion by default.",
             "Only the supported Word 97-2003 import subset is projected. Preserved-only graphics and richer structures cannot be rendered; Word pagination may differ."),
