@@ -26,7 +26,7 @@ if ($RunMode -eq 'Publish' -and (-not $IncludePackages -or -not $SignModule)) {
 if ($RunMode -eq 'Publish' -and [Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT) {
     throw 'Publish requires Windows so the module includes both PowerShell 7 and Windows PowerShell 5.1 payloads.'
 }
-Import-Module PSPublishModule -MinimumVersion 3.0.194 -Force -ErrorAction Stop
+Import-Module PSPublishModule -MinimumVersion 3.0.196 -Force -ErrorAction Stop
 
 Build-Module -ModuleName 'PSWriteOffice' -Path "$PSScriptRoot/../.." -RunMode $RunMode {
     # Usual defaults as per standard module
@@ -140,6 +140,11 @@ Build-Module -ModuleName 'PSWriteOffice' -Path "$PSScriptRoot/../.." -RunMode $R
         DeleteTargetModuleBeforeBuild     = $true
         NETBinaryModuleDocumentation      = $true
         SyncNETProjectVersion             = $true
+        # PowerShell 7.6 on Windows x64 loads a precompiled net10.0 payload; other hosts keep the portable net8.0 build.
+        # All assemblies: most Word and Excel time is spent in DocumentFormat.OpenXml.
+        NETReadyToRun                     = $true
+        NETReadyToRunRuntimeIdentifier    = 'win-x64'
+        NETReadyToRunScope                = 'All'
     }
 
     New-ConfigurationBuild @newConfigurationBuildSplat
