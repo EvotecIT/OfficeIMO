@@ -12,8 +12,16 @@ internal sealed partial class OfficeXmlTree {
         ArgumentNullException.ThrowIfNull(writer);
         if (Root == NoNode) throw new InvalidOperationException("The part has no root element.");
         writer.ResetScope();
-        if (_source != null) writer.WriteRaw(_source, 0, _prologEnd);
-        else writer.WriteRaw(Declaration, 0, Declaration.Length);
+        if (_source == null) {
+            writer.WriteRaw(Declaration, 0, Declaration.Length);
+        } else if (_encodingStart >= 0) {
+            // A UTF-16 part is written as UTF-8, so its declaration has to say so.
+            writer.WriteRaw(_source, 0, _encodingStart);
+            writer.WriteAscii("UTF-8");
+            writer.WriteRaw(_source, _encodingEnd, _prologEnd - _encodingEnd);
+        } else {
+            writer.WriteRaw(_source, 0, _prologEnd);
+        }
         WriteNode(writer, Root);
         if (_source != null) writer.WriteRaw(_source, _epilogStart, _sourceLength - _epilogStart);
     }
@@ -90,6 +98,7 @@ internal sealed partial class OfficeXmlTree {
         string? declare = null;
         OfficeXmlName name = Namespaces.GetName(record.Name);
         string prefix = name.Prefix ?? ResolvePrefix(writer, name.NamespaceId, name.UriId, preferDefault: true, out declare);
+        if (name.Prefix != null) declare = RebindPrefix(writer, prefix, name.NamespaceId, name.UriId);
         writer.WriteByte((byte)'<');
         writer.WriteQualifiedName(prefix, Namespaces.GetLocalNameUtf8(record.Name));
         if (declare != null) WriteDeclaration(writer, prefix, declare);
@@ -100,6 +109,11 @@ internal sealed partial class OfficeXmlTree {
             OfficeXmlName attributeName = Namespaces.GetName(attribute.Name);
             writer.WriteByte((byte)' ');
             if (!attribute.Changed && attribute.ValueStart >= 0) {
+                if (attributeName.Prefix!.Length > 0 && attributeName.NamespaceId != OfficeXmlNamespaces.Xmlns
+                    && RebindPrefix(writer, attributeName.Prefix, attributeName.NamespaceId, attributeName.UriId) is { } attributeUri) {
+                    WriteDeclaration(writer, attributeName.Prefix, attributeUri);
+                    writer.WriteByte((byte)' ');
+                }
                 writer.WriteQualifiedName(attributeName.Prefix!, Namespaces.GetLocalNameUtf8(attribute.Name));
                 writer.WriteByte((byte)'=');
                 writer.WriteByte(attribute.Quote);
@@ -163,6 +177,19 @@ internal sealed partial class OfficeXmlTree {
         declare = Namespaces.GetUriById(uriId);
         writer.PushScope(candidate, namespaceId, uriId);
         return candidate;
+    }
+
+    // A parsed name keeps its prefix. Where that prefix is unbound, or bound to another URI (a moved node), the
+    // element declares it again; returns the URI to declare, or null when the scope already matches.
+    private string? RebindPrefix(OfficeXmlUtf8Writer writer, string prefix, int namespaceId, int uriId) {
+        if (namespaceId == OfficeXmlNamespaces.Xml || namespaceId == OfficeXmlNamespaces.Xmlns) return null;
+        if (writer.TryGetBinding(prefix, out int boundUri)) {
+            if (boundUri == uriId) return null;
+        } else if (namespaceId == OfficeXmlNamespaces.None) {
+            return null;
+        }
+        writer.PushScope(prefix, namespaceId, uriId);
+        return namespaceId == OfficeXmlNamespaces.None ? string.Empty : Namespaces.GetUriById(uriId);
     }
 
     private static void WriteDeclaration(OfficeXmlUtf8Writer writer, string prefix, string uri) {

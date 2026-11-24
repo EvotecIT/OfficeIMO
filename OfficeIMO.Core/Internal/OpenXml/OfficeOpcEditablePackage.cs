@@ -43,7 +43,8 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
                 string member = zip.GetName(index);
                 string identity = Identity("/" + member);
                 if (package._byIdentity.ContainsKey(identity)) throw new InvalidDataException("The package stores the part '" + identity + "' more than once.");
-                package.Add(new Part(identity, member) { FromSource = true });
+                // The part keeps the member's spelling; only the lookup key is decoded.
+                package.Add(new Part("/" + member, member) { FromSource = true });
             }
             return package;
         } catch {

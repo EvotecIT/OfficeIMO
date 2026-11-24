@@ -1,3 +1,4 @@
+using System.Text;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
@@ -113,6 +114,84 @@ public class OpenXmlPackageModelTests {
         Assert.True(XNode.DeepEquals(Normalize(before), Normalize(after)), "The edited slide changed outside the added shape.");
     }
 
+    [Fact]
+    public void NewShapesTakeAnIdAboveEveryDrawingObjectOnTheSlide() {
+        byte[] deck = Rewrite(CreateDeck(1), "ppt/slides/slide1.xml", xml => xml.Replace("</p:spTree>",
+            "<p:grpSp><p:nvGrpSpPr><p:cNvPr id=\"20\" name=\"Group\"/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/>"
+            + "<p:pic><p:nvPicPr><p:cNvPr id=\"40\" name=\"Picture\"/><p:cNvPicPr/><p:nvPr/></p:nvPicPr><p:blipFill/><p:spPr/></p:pic>"
+            + "</p:grpSp><p:cxnSp><p:nvCxnSpPr><p:cNvPr id=\"30\" name=\"Connector\"/><p:cNvCxnSpPr/><p:nvPr/></p:nvCxnSpPr><p:spPr/></p:cxnSp></p:spTree>"));
+
+        byte[] edited;
+        using (var source = new MemoryStream(deck))
+        using (PowerPointPackageModel model = PowerPointPackageModel.Open(source)) {
+            model.GetSlide(0).AddTextBox(0, 0, 914400, 914400, "Added");
+            var output = new MemoryStream();
+            model.Save(output);
+            edited = output.ToArray();
+        }
+
+        XNamespace p = "http://schemas.openxmlformats.org/presentationml/2006/main";
+        XElement added = LoadPart(edited, "/ppt/slides/slide1.xml").Element(p + "cSld")!.Element(p + "spTree")!.Elements(p + "sp").Last();
+        Assert.Equal("41", added.Element(p + "nvSpPr")!.Element(p + "cNvPr")!.Attribute("id")!.Value);
+    }
+
+    [Fact]
+    public void OpensAPresentationWithoutASlideListAndAddsSlidesToIt() {
+        byte[] deck = Rewrite(CreateDeck(0), "ppt/presentation.xml",
+            xml => System.Text.RegularExpressions.Regex.Replace(xml, "<p:sldIdLst\\s*/>|<p:sldIdLst>.*?</p:sldIdLst>", string.Empty));
+        Assert.DoesNotContain("sldIdLst", Encoding.UTF8.GetString(LoadPartBytes(deck, "ppt/presentation.xml")));
+
+        byte[] edited;
+        using (var source = new MemoryStream(deck))
+        using (PowerPointPackageModel model = PowerPointPackageModel.Open(source)) {
+            Assert.Equal(0, model.SlideCount);
+            model.AddSlide().AddTitle("First");
+            var output = new MemoryStream();
+            model.Save(output);
+            edited = output.ToArray();
+        }
+
+        Assert.Equal(0, CountValidationErrors(edited));
+    }
+
+    [Fact]
+    public void FindsPartsWhoseNamesHoldAnEncodedPercentSign() {
+        byte[] deck = CreateDeck(1);
+        deck = Rename(deck, "ppt/slides/slide1.xml", "ppt/slides/slide%25201.xml");
+        deck = Rename(deck, "ppt/slides/_rels/slide1.xml.rels", "ppt/slides/_rels/slide%25201.xml.rels");
+        deck = Rewrite(deck, "ppt/_rels/presentation.xml.rels", xml => xml.Replace("slides/slide1.xml", "slides/slide%25201.xml"));
+        deck = Rewrite(deck, "[Content_Types].xml", xml => xml.Replace("/ppt/slides/slide1.xml", "/ppt/slides/slide%25201.xml"));
+
+        using var source = new MemoryStream(deck);
+        using PowerPointPackageModel model = PowerPointPackageModel.Open(source);
+        Assert.NotNull(model.GetSlide(0).FindTitle());
+    }
+
+    private static byte[] Rewrite(byte[] package, string member, Func<string, string> change) {
+        string xml = Encoding.UTF8.GetString(LoadPartBytes(package, member));
+        return Replace(package, member, member, Encoding.UTF8.GetBytes(change(xml)));
+    }
+
+    private static byte[] Rename(byte[] package, string member, string newName) =>
+        Replace(package, member, newName, LoadPartBytes(package, member));
+
+    private static byte[] Replace(byte[] package, string member, string newName, byte[] content) {
+        var stream = new MemoryStream();
+        stream.Write(package, 0, package.Length);
+        using (var archive = new System.IO.Compression.ZipArchive(stream, System.IO.Compression.ZipArchiveMode.Update, leaveOpen: true)) {
+            archive.GetEntry(member)!.Delete();
+            using Stream entry = archive.CreateEntry(newName).Open();
+            entry.Write(content, 0, content.Length);
+        }
+        return stream.ToArray();
+    }
+
+    private static byte[] LoadPartBytes(byte[] package, string member) {
+        using OfficeZipPackageReader zip = OfficeZipPackageReader.Open(new MemoryStream(package));
+        Assert.True(zip.TryRead(member, out OfficePooledBytes content));
+        using (content) return content.Array.AsSpan(0, content.Length).ToArray();
+    }
+
     internal static byte[] CreateDeck(int slides) {
         using PowerPointPackageModel model = PowerPointPackageModel.Create();
         for (int index = 1; index <= slides; index++) {
@@ -131,7 +210,8 @@ public class OpenXmlPackageModelTests {
         return new OpenXmlValidator().Validate(document).Count();
     }
 
-    // Members whose stored bytes differ, or that exist in only one package.
+    // Members whose content differs. On .NET 8 and later untouched members are copied as stored, so their compressed
+    // bytes must match too; older targets save through ZipArchive and recompress them.
     private static List<string> ChangedMembers(byte[] first, byte[] second) {
         var changed = new List<string>();
         using OfficeZipPackageReader left = OfficeZipPackageReader.Open(new MemoryStream(first));
@@ -142,10 +222,17 @@ public class OpenXmlPackageModelTests {
             Assert.Equal(name, right.GetName(index));
             Assert.True(left.TryReadStored(name, out OfficeZipStoredMember a));
             Assert.True(right.TryReadStored(name, out OfficeZipStoredMember b));
+            Assert.True(left.TryRead(name, out OfficePooledBytes leftContent));
+            Assert.True(right.TryRead(name, out OfficePooledBytes rightContent));
             using (a)
-            using (b) {
-                bool same = a.Crc == b.Crc && a.Method == b.Method
+            using (b)
+            using (leftContent)
+            using (rightContent) {
+                bool same = leftContent.Array.AsSpan(0, leftContent.Length).SequenceEqual(rightContent.Array.AsSpan(0, rightContent.Length));
+#if NET8_0_OR_GREATER
+                same = same && a.Crc == b.Crc && a.Method == b.Method
                     && a.Compressed.Array.AsSpan(0, a.Compressed.Length).SequenceEqual(b.Compressed.Array.AsSpan(0, b.Compressed.Length));
+#endif
                 if (!same) changed.Add(name);
             }
         }

@@ -166,6 +166,18 @@ internal sealed class OfficeXmlUtf8Writer {
         return false;
     }
 
+    /// <summary>The URI id of the innermost binding of <paramref name="prefix"/>, if it is bound.</summary>
+    internal bool TryGetBinding(string prefix, out int uriId) {
+        for (int index = _scopeCount - 1; index >= 0; index--) {
+            if (string.Equals(_scope[index].Prefix, prefix, StringComparison.Ordinal)) {
+                uriId = _scope[index].UriId;
+                return true;
+            }
+        }
+        uriId = OfficeXmlNamespaces.None;
+        return false;
+    }
+
     internal bool IsPrefixBound(string prefix) {
         for (int index = _scopeCount - 1; index >= 0; index--) {
             if (string.Equals(_scope[index].Prefix, prefix, StringComparison.Ordinal)) return true;

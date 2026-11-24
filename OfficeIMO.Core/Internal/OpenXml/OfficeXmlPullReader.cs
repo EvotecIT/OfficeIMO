@@ -78,6 +78,7 @@ internal sealed partial class OfficeXmlPullReader {
             if (text.Length > 0 && text[0] == '﻿') text = text.Substring(1);
             data = Encoding.UTF8.GetBytes(text);
             length = data.Length;
+            Transcoded = true;
         } else if (length >= 3 && data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF) {
             start = 3;
         }

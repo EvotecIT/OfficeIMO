@@ -398,14 +398,28 @@ internal readonly struct PowerPointModelSlide {
         return shape;
     }
 
+    // Drawing ids are unique across the slide: shapes, pictures, frames, connectors and groups, nested ones included.
     private uint NextShapeId() {
         uint next = 2;
         PGroupShapeView shapes = Shapes;
-        foreach (int node in shapes.SpList) {
-            uint id = new PShapeView(shapes.Tree, node).NvSpPr?.CNvPr?.Id ?? 0;
-            if (id >= next) next = id + 1;
+        OfficeXmlTree tree = shapes.Tree;
+        int root = shapes.Node;
+        int node = root;
+        while (true) {
+            if (tree.IsElement(node, OfficeXmlNamespaces.PresentationML, "cNvPr")
+                && uint.TryParse(tree.GetAttribute(node, OfficeXmlNamespaces.None, "id"), NumberStyles.None, CultureInfo.InvariantCulture, out uint id)
+                && id >= next) {
+                next = id + 1;
+            }
+            int child = tree.KindOf(node) == OfficeXmlTreeNodeKind.Element ? tree.FirstChildOf(node) : OfficeXmlTree.NoNode;
+            if (child != OfficeXmlTree.NoNode) {
+                node = child;
+                continue;
+            }
+            while (node != root && tree.NextSiblingOf(node) == OfficeXmlTree.NoNode) node = tree.ParentOf(node);
+            if (node == root) return next;
+            node = tree.NextSiblingOf(node);
         }
-        return next;
     }
 
     private static void AddParagraph(ATextBodyView body, string text) {

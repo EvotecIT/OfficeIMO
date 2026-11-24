@@ -10,6 +10,9 @@ internal sealed partial class OfficeXmlPullReader {
     /// <summary>The part bytes the reader works on; UTF-16 parts are transcoded to UTF-8 first.</summary>
     internal byte[] Data => _data;
 
+    /// <summary>Whether the part was UTF-16 and <see cref="Data"/> holds it transcoded to UTF-8.</summary>
+    internal bool Transcoded { get; }
+
     /// <summary>Number of valid bytes in <see cref="Data"/>.</summary>
     internal int DataLength => _end;
 

@@ -36,6 +36,9 @@ internal sealed partial class OfficeXmlTree {
     private readonly int _sourceLength;
     private readonly int _prologEnd;
     private readonly int _epilogStart;
+    // The value of the declaration's encoding of a part transcoded from UTF-16, which is written as UTF-8; -1 otherwise.
+    private readonly int _encodingStart;
+    private readonly int _encodingEnd;
     private readonly OfficeXmlPullReader? _decoder;
 
     private OfficeXmlTree(OfficeXmlNamespaces.Table namespaces, int nodeCapacity, int attributeCapacity) {
@@ -53,6 +56,8 @@ internal sealed partial class OfficeXmlTree {
         _spans = new Span[_nodes.Length];
         Parse(reader, out _prologEnd, out _epilogStart);
         _sourceNodeCount = _nodeCount;
+        if (reader.Transcoded) FindDeclaredEncoding(out _encodingStart, out _encodingEnd);
+        else _encodingStart = _encodingEnd = -1;
     }
 
     /// <summary>Namespace ids shared with the other parts of the package.</summary>
@@ -372,6 +377,46 @@ internal sealed partial class OfficeXmlTree {
         Link(parent, child, reference);
         MarkChanged(parent, ContentChanged);
         MarkSubtree(child);
+        // A parsed node that moves may rely on namespace declarations of its old ancestors, so every start tag in it is
+        // written again, declaring what its new place lacks.
+        if (child < _sourceNodeCount) MarkMoved(child);
+    }
+
+    private void MarkMoved(int node) {
+        _nodes[node].Flags |= StartTagChanged | SubtreeChanged;
+        for (int child = _nodes[node].FirstChild; child != NoNode; child = _nodes[child].Next) {
+            if (_nodes[child].Kind == OfficeXmlTreeNodeKind.Element) MarkMoved(child);
+        }
+    }
+
+    private void FindDeclaredEncoding(out int start, out int end) {
+        start = end = -1;
+        byte[] source = _source!;
+        if (_prologEnd < 6 || source[0] != (byte)'<' || source[1] != (byte)'?' || source[2] != (byte)'x' || source[3] != (byte)'m' || source[4] != (byte)'l') return;
+        int close = 5;
+        while (close + 1 < _prologEnd && !(source[close] == (byte)'?' && source[close + 1] == (byte)'>')) close++;
+        for (int index = 5; index + 9 < close; index++) {
+            if (source[index] != (byte)'e' || !Matches(source, index, "encoding")) continue;
+            int position = index + 8;
+            while (position < close && (source[position] == (byte)' ' || source[position] == (byte)'\t' || source[position] == (byte)'\r' || source[position] == (byte)'\n')) position++;
+            if (position >= close || source[position] != (byte)'=') continue;
+            position++;
+            while (position < close && (source[position] == (byte)' ' || source[position] == (byte)'\t' || source[position] == (byte)'\r' || source[position] == (byte)'\n')) position++;
+            if (position >= close || source[position] != (byte)'"' && source[position] != (byte)'\'') return;
+            byte quote = source[position];
+            int valueEnd = Array.IndexOf(source, quote, position + 1, close - position - 1);
+            if (valueEnd < 0) return;
+            start = position + 1;
+            end = valueEnd;
+            return;
+        }
+
+        static bool Matches(byte[] data, int at, string text) {
+            for (int offset = 0; offset < text.Length; offset++) {
+                if (data[at + offset] != (byte)text[offset]) return false;
+            }
+            return true;
+        }
     }
 
     /// <summary>Detaches a node and its subtree.</summary>

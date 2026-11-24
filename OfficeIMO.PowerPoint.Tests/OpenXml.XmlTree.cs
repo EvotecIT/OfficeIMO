@@ -86,6 +86,37 @@ public class OpenXmlXmlTreeTests {
         Assert.Equal("<a:p xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:pPr/><a:br/><a:r/><a:endParaRPr/></a:p>", Encoding.UTF8.GetString(Write(tree)));
     }
 
+    [Fact]
+    public void WritesAnEditedUtf16PartAsUtf8WithAMatchingDeclaration() {
+        byte[] bytes = new UnicodeEncoding(bigEndian: false, byteOrderMark: true).GetPreamble()
+            .Concat(Encoding.Unicode.GetBytes("<?xml version=\"1.0\" encoding=\"UTF-16\" standalone=\"yes\"?><r a=\"\u00E9\"/>")).ToArray();
+        OfficeXmlTree tree = OfficeXmlTree.Parse(bytes, bytes.Length, new OfficeXmlNamespaces.Table());
+
+        tree.SetAttribute(tree.Root, OfficeXmlNamespaces.None, "b", "2");
+
+        byte[] written = Write(tree);
+        Assert.Equal("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><r a=\"\u00E9\" b=\"2\"/>", Encoding.UTF8.GetString(written));
+        Assert.Equal("\u00E9", Load(written).Root!.Attribute("a")!.Value);
+    }
+
+    [Theory]
+    [InlineData("<r><a xmlns:p=\"urn:x\"><p:x q:k=\"v\" xmlns:q=\"urn:q\"><p:y/></p:x></a><b/></r>")]
+    [InlineData("<r xmlns:p=\"urn:other\"><a xmlns:p=\"urn:x\"><p:x q:k=\"v\" xmlns:q=\"urn:q\"><p:y/></p:x></a><b/></r>")]
+    public void AMovedElementKeepsItsNamespacesAtItsNewPlace(string xml) {
+        OfficeXmlTree tree = Parse(xml);
+        int a = tree.FindChild(tree.Root, OfficeXmlNamespaces.None, "a");
+        int b = tree.FindChild(tree.Root, OfficeXmlNamespaces.None, "b");
+        int moved = tree.FirstChildOf(a);
+
+        tree.Remove(moved);
+        tree.Append(b, moved);
+
+        XElement x = Load(Write(tree)).Root!.Element("b")!.Elements().Single();
+        Assert.Equal(XName.Get("x", "urn:x"), x.Name);
+        Assert.Equal(XName.Get("y", "urn:x"), x.Elements().Single().Name);
+        Assert.Equal("v", x.Attribute(XName.Get("k", "urn:q"))!.Value);
+    }
+
     private static OfficeXmlTree Parse(string xml) {
         byte[] bytes = Encoding.UTF8.GetBytes(xml);
         return OfficeXmlTree.Parse(bytes, bytes.Length, new OfficeXmlNamespaces.Table());

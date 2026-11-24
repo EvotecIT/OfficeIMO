@@ -119,6 +119,7 @@ internal readonly struct OfficeXmlElementList {
         public int Current => _current;
 
         public bool MoveNext() {
+            if (_tree == null) return false;
             if (!_started) {
                 _started = true;
                 _current = _tree.FindChild(_parent, _namespaceId, _localName);
