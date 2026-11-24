@@ -29,7 +29,7 @@ meta.howto.steps:
 
 Rotation updates the selected pages in a newly written document. It is intended for sideways scans, mixed-orientation packets, and deterministic publishing workflows.
 
-**Also in Studio:** rotate selected pages, with undo, in [OfficeIMO Studio](/studio/#features) on Windows and Linux, and in the native Mac, iPad and iPhone app (coming soon).
+**Also in Studio:** rotate selected pages, with undo, in [OfficeIMO Studio](/studio/#feature-page-edits) on Windows and Linux, and in the native Mac, iPad and iPhone app (coming soon).
 
 ## Rotate from .NET
 

@@ -29,7 +29,7 @@ meta.howto.steps:
 
 Reordering writes pages in the sequence supplied by the caller. That sequence must be a full permutation: every source page appears exactly once, with no omissions or duplicates. It is useful for corrected scan order, assembled packets, covers placed after generation, and workflows that need a deterministic page tree before signing.
 
-**Also in Studio:** reorder pages, with undo, in [OfficeIMO Studio](/studio/#features) on Windows and Linux, and in the native Mac, iPad and iPhone app (coming soon).
+**Also in Studio:** reorder pages, with undo, in [OfficeIMO Studio](/studio/#feature-page-edits) on Windows and Linux, and in the native Mac, iPad and iPhone app (coming soon).
 
 ## Reorder from .NET
 

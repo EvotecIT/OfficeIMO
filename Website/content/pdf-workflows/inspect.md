@@ -29,7 +29,7 @@ meta.howto.steps:
 
 Use inspection before a workflow assumes that a PDF can be read, searched, or rewritten. The report distinguishes basic read access from rewrite readiness and records blockers instead of treating every file as an ordinary unencrypted document.
 
-**Also in Studio:** check document properties, existing signatures and PDF/A, PDF/UA and PDF/X conformance in [OfficeIMO Studio](/studio/#features) on Windows and Linux, and in the native Mac, iPad and iPhone app (coming soon).
+**Also in Studio:** check document properties, existing signatures and PDF/A, PDF/UA and PDF/X conformance in [OfficeIMO Studio](/studio/#feature-validate) on Windows and Linux, and in the native Mac, iPad and iPhone app (coming soon).
 
 ## Inspect from .NET
 

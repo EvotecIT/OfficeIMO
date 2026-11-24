@@ -29,7 +29,7 @@ meta.howto.steps:
 
 Splitting creates consecutive page groups: a 10-page source split at three pages produces ranges 1-3, 4-6, 7-9, and 10. The final part may contain fewer pages.
 
-**Also in Studio:** split a document every few pages or at each bookmark in [OfficeIMO Studio](/studio/#features) on Windows and Linux, and in the native Mac, iPad and iPhone app (coming soon).
+**Also in Studio:** split a document every few pages or at each bookmark in [OfficeIMO Studio](/studio/#feature-split) on Windows and Linux, and in the native Mac, iPad and iPhone app (coming soon).
 
 ## Split from .NET
 
