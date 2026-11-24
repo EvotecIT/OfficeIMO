@@ -18,6 +18,10 @@ namespace OfficeIMO.RealWorldCorpus;
 internal static class OpenXmlCellValueLane {
     internal const string Name = "excel-cell-values";
     internal const long MaxCells = 1_000_000L;
+    internal const long MaxWorkbookCells = 4_000_000L;
+
+    private sealed class ComparisonBudgetException : Exception {
+    }
 
     internal static CorpusOpenXmlLane Compare(byte[] snapshot, bool includeText, Func<Exception, string> typeName, Func<Exception, string?> message) {
         var lane = new CorpusOpenXmlLane { Name = Name };
@@ -28,14 +32,20 @@ internal static class OpenXmlCellValueLane {
             lane.SdkException = typeName(exception);
             lane.SdkExceptionMessage = message(exception);
         }
-        if (expected != null && expected.Extents.Any(extent => !extent.IsEmpty && (long)(extent.MaxRow - extent.MinRow + 1) * (extent.MaxColumn - extent.MinColumn + 1) > MaxCells)) {
+        if (expected != null && (expected.Extents.Any(extent => extent.Area > MaxCells) || expected.Extents.Sum(extent => extent.Area) > MaxWorkbookCells)) {
             lane.Outcome = CorpusOpenXmlOutcomes.Unavailable;
-            lane.Note = "a worksheet's used extent is over " + MaxCells.ToString("N0", CultureInfo.InvariantCulture) + " cells";
+            lane.Note = "the used extents are over the comparison budget of " + MaxCells.ToString("N0", CultureInfo.InvariantCulture)
+                + " cells per worksheet and " + MaxWorkbookCells.ToString("N0", CultureInfo.InvariantCulture) + " per workbook";
             return lane;
         }
         Workbook? actual = null;
         try {
             actual = ReadWithOfficeIMO(snapshot, expected);
+        } catch (ComparisonBudgetException) {
+            // The comparison's own budget, reached only when the reference could not bound the read in advance.
+            lane.Outcome = CorpusOpenXmlOutcomes.Unavailable;
+            lane.Note = "the workbook reader returned more than " + MaxWorkbookCells.ToString("N0", CultureInfo.InvariantCulture) + " cells";
+            return lane;
         } catch (Exception exception) when (exception is not OutOfMemoryException) {
             lane.OurException = typeName(exception);
             lane.OurExceptionMessage = message(exception);
@@ -68,6 +78,7 @@ internal static class OpenXmlCellValueLane {
         internal int MaxRow { get; set; }
         internal int MaxColumn { get; set; }
         internal bool IsEmpty => MaxRow == 0;
+        internal long Area => IsEmpty ? 0 : (long)(MaxRow - MinRow + 1) * (MaxColumn - MinColumn + 1);
 
         internal void Add(int row, int column) {
             MinRow = Math.Min(MinRow, row);
@@ -92,7 +103,12 @@ internal static class OpenXmlCellValueLane {
             workbook.Extents.Add(extent);
             int rowNumber = 0;
             foreach (S.Row row in worksheetPart.Worksheet?.GetFirstChild<S.SheetData>()?.Elements<S.Row>() ?? Enumerable.Empty<S.Row>()) {
-                rowNumber = row.RowIndex?.Value is uint index ? (int)index : rowNumber + 1;
+                // A row without r takes its number from its first cell reference, as Excel and OfficeIMO's reader do,
+                // and only then from its position.
+                rowNumber = row.RowIndex?.Value is uint index ? (int)index
+                    : row.Elements<S.Cell>().Select(cell => cell.CellReference?.Value).FirstOrDefault(reference => reference != null) is string first
+                      && TryParseRow(first, out int referencedRow) ? referencedRow
+                    : rowNumber + 1;
                 int columnNumber = 0;
                 foreach (S.Cell cell in row.Elements<S.Cell>()) {
                     columnNumber = cell.CellReference?.Value is string reference && TryParseColumn(reference, out int column) ? column : columnNumber + 1;
@@ -123,6 +139,12 @@ internal static class OpenXmlCellValueLane {
         if (type == S.CellValues.Boolean) return "b:" + (raw.Trim() is "1" or "true" ? "TRUE" : "FALSE");
         if (type == S.CellValues.String || type == S.CellValues.Error) return "s:" + Unescape(raw);
         if (type == S.CellValues.Date) {
+            // A time without a date is a fraction of a day, not a time today.
+            string time = raw.Trim().TrimStart('T');
+            if (time.IndexOf('-') < 0 && time.IndexOf(':') > 0
+                && TimeSpan.TryParse(time.TrimEnd('Z'), CultureInfo.InvariantCulture, out TimeSpan timeOfDay)) {
+                return "n:" + timeOfDay.TotalDays.ToString("R", CultureInfo.InvariantCulture);
+            }
             return DateTime.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out DateTime date)
                 ? "n:" + date.ToOADate().ToString("R", CultureInfo.InvariantCulture)
                 : "d:" + raw;
@@ -178,7 +200,7 @@ internal static class OpenXmlCellValueLane {
             while (reader.Read()) {
                 row++;
                 cells += reader.FieldCount;
-                if (cells > MaxCells * 4) throw new InvalidDataException("The workbook reader returned more cells than the comparison reads.");
+                if (cells > MaxWorkbookCells) throw new ComparisonBudgetException();
                 for (int column = 0; column < reader.FieldCount; column++) {
                     string? value = OurValue(reader, column);
                     if (value != null) workbook.Cells[(sheetIndex, row, firstColumn + column)] = value;
@@ -244,6 +266,12 @@ internal static class OpenXmlCellValueLane {
 
     private static string SheetLabel(Workbook expected, Workbook actual, int sheet) =>
         sheet < expected.Sheets.Count ? expected.Sheets[sheet] : sheet < actual.Sheets.Count ? actual.Sheets[sheet] : "#" + sheet;
+
+    private static bool TryParseRow(string reference, out int row) {
+        int index = 0;
+        while (index < reference.Length && char.IsAsciiLetter(reference[index])) index++;
+        return int.TryParse(reference.AsSpan(index), NumberStyles.None, CultureInfo.InvariantCulture, out row) && row is > 0 and <= 1_048_576;
+    }
 
     private static bool TryParseColumn(string reference, out int column) {
         column = 0;

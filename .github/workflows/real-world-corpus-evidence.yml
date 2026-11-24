@@ -272,7 +272,9 @@ jobs:
             exit 0
           fi
           pattern='^(Build/RealWorldCorpus/|OfficeIMO\.Core/Internal/OpenXml/|OfficeIMO\.Core/Documents/OfficePackageSecurityInspector|OfficeIMO\.Word/WordStreamedBodyText|OfficeIMO\.Reader\.Word/|OfficeIMO\.Reader\.PowerPoint/|OfficeIMO\.PowerPoint/Reading/|OfficeIMO\.Excel/Read/|OfficeIMO\.Excel/ExcelDocument\.DataReader|\.github/workflows/real-world-corpus-evidence\.yml)'
-          if gh pr diff "$PR_NUMBER" --repo "${{ github.repository }}" --name-only | grep -Eq "$pattern"; then
+          # A failed lookup fails the step rather than reading as a change outside the compared readers.
+          changed="$(gh pr diff "$PR_NUMBER" --repo "${{ github.repository }}" --name-only)"
+          if grep -Eq "$pattern" <<< "$changed"; then
             echo "run=true" >> "$GITHUB_OUTPUT"
           else
             echo "run=false" >> "$GITHUB_OUTPUT"
