@@ -30,6 +30,9 @@
     <None Include="..\OfficeIMO.Examples\Images\Kulek.jpg"
           Link="Corpus\photo.jpg"
           CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\Website\static\images\studio\workspace-light.png"
+          Link="Corpus\screenshot.png"
+          CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.Examples\Images\example.gif"
           Link="Corpus\animation.gif"
           CopyToOutputDirectory="PreserveNewest" />

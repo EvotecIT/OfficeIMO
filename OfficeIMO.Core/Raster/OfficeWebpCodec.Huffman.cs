@@ -75,20 +75,27 @@ public static partial class OfficeWebpCodec {
         return Vp8lHuffmanTree.TryCreate(lengths, allocationBudget, out tree);
     }
 
+    /// <summary>
+    /// Canonical VP8L prefix code decoded through a two-level table. The root level resolves codes of up to
+    /// eight bits in one lookup; longer codes jump to a second-level table sized for the longest code that shares
+    /// the root prefix. Each entry packs the symbol (or second-level offset) above an eight-bit length field.
+    /// </summary>
     private sealed class Vp8lHuffmanTree {
-        private const int LookupBits = 8;
-        internal static readonly Vp8lHuffmanTree Invalid = new Vp8lHuffmanTree(Array.Empty<int>(), Array.Empty<int>(), Array.Empty<int>(), -1);
-        private readonly int[] _symbols;
-        private readonly int[] _counts;
-        private readonly int[] _lookup;
-        private readonly int _singleSymbol;
+        internal const int RootBits = 8;
+        private const int RootMask = (1 << RootBits) - 1;
+        internal static readonly Vp8lHuffmanTree Invalid = new Vp8lHuffmanTree(Array.Empty<int>(), false);
+        private readonly int[] _table;
 
-        private Vp8lHuffmanTree(int[] symbols, int[] counts, int[] lookup, int singleSymbol) {
-            _symbols = symbols;
-            _counts = counts;
-            _lookup = lookup;
-            _singleSymbol = singleSymbol;
+        private Vp8lHuffmanTree(int[] table, bool isSingleSymbol) {
+            _table = table;
+            IsSingleSymbol = isSingleSymbol;
         }
+
+        /// <summary>Gets the packed lookup entries; the first <see cref="RootBits"/>-bit block is the root level.</summary>
+        internal int[] Table => _table;
+
+        /// <summary>Gets whether every lookup returns one symbol without consuming bits.</summary>
+        internal bool IsSingleSymbol { get; }
 
         internal static bool TryCreate(
             byte[] lengths,
@@ -109,9 +116,11 @@ public static partial class OfficeWebpCodec {
             }
             if (used == 0) return false;
             if (used == 1) {
-                if (lengths[single] != 1) return false;
-                if (!allocationBudget.TryReserveBytes(64L)) return false;
-                tree = new Vp8lHuffmanTree(Array.Empty<int>(), Array.Empty<int>(), Array.Empty<int>(), single);
+                // A lone symbol is coded with zero bits even though its declared length is one.
+                // Its zero-length table is shared by every tree in this image with the same symbol.
+                if (lengths[single] != 1 || !allocationBudget.TryReserveBytes(64L) ||
+                    !allocationBudget.TryGetSingleSymbolTable(single, out int[] singleTable)) return false;
+                tree = new Vp8lHuffmanTree(singleTable, true);
                 return true;
             }
 
@@ -122,64 +131,113 @@ public static partial class OfficeWebpCodec {
             }
             if (remaining != 0) return false;
 
-            if (!allocationBudget.TryReserveArray(used, sizeof(int)) ||
-                !allocationBudget.TryReserveArray(1 << LookupBits, sizeof(int)) ||
-                !allocationBudget.TryReserveBytes(64L)) return false;
-            var symbols = new int[used];
-            var lookup = new int[1 << LookupBits];
-            int position = 0;
-            int firstCode = 0;
+            // Canonical codes, assigned in (length, symbol) order, are read least-significant bit first.
+            var nextCode = new int[16];
+            int code = 0;
             for (int length = 1; length <= 15; length++) {
-                int code = firstCode;
-                for (int symbol = 0; symbol < lengths.Length; symbol++) {
-                    if (lengths[symbol] != length) continue;
-                    symbols[position++] = symbol;
-                    if (length <= LookupBits) {
-                        int reversed = (int)ReverseBits((uint)code, length);
-                        int packed = (symbol << 4) | length;
-                        for (int index = reversed; index < lookup.Length; index += 1 << length) {
-                            lookup[index] = packed;
-                        }
-                    }
-                    code++;
-                }
-                firstCode = code << 1;
+                code = (code + counts[length - 1]) << 1;
+                nextCode[length] = code;
             }
-            tree = new Vp8lHuffmanTree(symbols, counts, lookup, -1);
+
+            // Size each second-level table from the longest code sharing its root prefix.
+            int[]? subBits = null;
+            int longCodes = 0;
+            for (int length = RootBits + 1; length <= 15; length++) longCodes += counts[length];
+            int tableSize = 1 << RootBits;
+            int[]? subOffsets = null;
+            var reversedCodes = new int[lengths.Length];
+            for (int symbol = 0; symbol < lengths.Length; symbol++) {
+                int length = lengths[symbol];
+                if (length != 0) reversedCodes[symbol] = (int)ReverseBits((uint)nextCode[length]++, length);
+            }
+            if (longCodes != 0) {
+                subBits = new int[1 << RootBits];
+                for (int symbol = 0; symbol < lengths.Length; symbol++) {
+                    int length = lengths[symbol];
+                    if (length <= RootBits) continue;
+                    int root = reversedCodes[symbol] & RootMask;
+                    if (length - RootBits > subBits[root]) subBits[root] = length - RootBits;
+                }
+                subOffsets = new int[1 << RootBits];
+                for (int root = 0; root < subBits.Length; root++) {
+                    if (subBits[root] == 0) continue;
+                    subOffsets[root] = tableSize;
+                    tableSize += 1 << subBits[root];
+                }
+            }
+
+            if (!allocationBudget.TryReserveArray(tableSize, sizeof(int)) ||
+                !allocationBudget.TryReserveBytes(64L)) return false;
+            var table = new int[tableSize];
+            for (int symbol = 0; symbol < lengths.Length; symbol++) {
+                int length = lengths[symbol];
+                if (length == 0) continue;
+                int reversed = reversedCodes[symbol];
+                if (length <= RootBits) {
+                    int packed = (symbol << 8) | length;
+                    for (int index = reversed; index < 1 << RootBits; index += 1 << length) table[index] = packed;
+                    continue;
+                }
+                int root = reversed & RootMask;
+                int bits = subBits![root];
+                int offset = subOffsets![root];
+                int subLength = length - RootBits;
+                int subPacked = (symbol << 8) | subLength;
+                for (int index = reversed >> RootBits; index < 1 << bits; index += 1 << subLength) {
+                    table[offset + index] = subPacked;
+                }
+                table[root] = (offset << 8) | (RootBits + bits);
+            }
+            tree = new Vp8lHuffmanTree(table, false);
             return true;
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        internal int ReadSymbol(LsbBitReader reader) {
-            if (_singleSymbol >= 0) return _singleSymbol;
-            if (_symbols.Length == 0) return -1;
-            // Do not require eight bits at the end of a valid stream: short
-            // final codes still use the canonical decoder below.
-            if (reader.HasBits(LookupBits)) {
-                int packed = _lookup[reader.PeekBits(LookupBits)];
-                int length = packed & 15;
-                if (length != 0) {
-                    // PeekBits has already buffered the full lookup prefix.
-                    reader.ConsumeBufferedBits(length);
-                    return packed >> 4;
-                }
+        internal int ReadSymbol(LsbBitReader reader) => ReadSymbol(_table, reader);
+
+        /// <summary>
+        /// Decodes one symbol. Past the end of the payload the reader supplies zero bits and records the overrun,
+        /// which callers check before accepting the decoded image.
+        /// </summary>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        internal static int ReadSymbol(int[] table, LsbBitReader reader) {
+            if (table.Length == 0) return -1;
+            ulong bits = reader.PrefetchBits();
+            int entry = table[(int)bits & RootMask];
+            int length = entry & 0xFF;
+            if (length > RootBits) {
+                reader.SkipBits(RootBits);
+                entry = table[(entry >> 8) + (int)((bits >> RootBits) & ((1UL << (length - RootBits)) - 1UL))];
+                length = entry & 0xFF;
             }
-            return ReadCanonicalSymbol(reader);
+            reader.SkipBits(length);
+            return entry >> 8;
         }
 
-        private int ReadCanonicalSymbol(LsbBitReader reader) {
-            int code = 0;
-            int firstCode = 0;
-            int firstIndex = 0;
-            for (int length = 1; length <= 15; length++) {
-                code = (code << 1) | (int)reader.ReadBits(1);
-                int count = _counts[length];
-                int relative = code - firstCode;
-                if (relative >= 0 && relative < count) return _symbols[firstIndex + relative];
-                firstCode = (firstCode + count) << 1;
-                firstIndex += count;
-            }
-            return -1;
+        /// <summary>
+        /// Looks up the code at the bottom of <paramref name="bits"/> and returns the symbol shifted
+        /// left by eight above the total code length. The caller must have buffered 15 bits while
+        /// input remains.
+        /// </summary>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        internal static int Lookup(int[] table, ulong bits) {
+#if NET8_0_OR_GREATER
+            // Tables built here hold a full root level, and every second-level offset plus its
+            // masked index stays inside the table, so both lookups are in range.
+            ref int origin = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(table);
+            int entry = System.Runtime.CompilerServices.Unsafe.Add(ref origin, (int)bits & RootMask);
+#else
+            int entry = table[(int)bits & RootMask];
+#endif
+            int length = entry & 0xFF;
+            if (length <= RootBits) return entry;
+            int index = (entry >> 8) + (int)((bits >> RootBits) & ((1UL << (length - RootBits)) - 1UL));
+#if NET8_0_OR_GREATER
+            entry = System.Runtime.CompilerServices.Unsafe.Add(ref origin, index);
+#else
+            entry = table[index];
+#endif
+            return entry + RootBits;
         }
     }
 }

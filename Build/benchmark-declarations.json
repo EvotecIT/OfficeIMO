@@ -2582,13 +2582,71 @@
       "subject": "OfficeIMO",
       "libraries": [
         "OfficeIMO",
+        "SkiaSharp",
         "Magick.NET",
         "OneImage"
       ],
-      "axes": [],
+      "axes": [
+        {
+          "name": "Image",
+          "values": [
+            "Pattern",
+            "Photo",
+            "Screenshot",
+            "Logo"
+          ]
+        }
+      ],
       "cases": [
         "Encode",
         "DecodeExternal"
+      ],
+      "cells": [
+        {
+          "case": "Encode",
+          "library": "OfficeIMO",
+          "parameters": {
+            "Image": "Pattern"
+          }
+        },
+        {
+          "case": "Encode",
+          "library": "Magick.NET",
+          "parameters": {
+            "Image": "Pattern"
+          }
+        },
+        {
+          "case": "Encode",
+          "library": "OneImage",
+          "parameters": {
+            "Image": "Pattern"
+          }
+        },
+        {
+          "case": "DecodeExternal",
+          "parameters": {
+            "Image": "Pattern"
+          }
+        },
+        {
+          "case": "DecodeExternal",
+          "parameters": {
+            "Image": "Photo"
+          }
+        },
+        {
+          "case": "DecodeExternal",
+          "parameters": {
+            "Image": "Screenshot"
+          }
+        },
+        {
+          "case": "DecodeExternal",
+          "parameters": {
+            "Image": "Logo"
+          }
+        }
       ],
       "expectedPlatforms": [
         "windows",

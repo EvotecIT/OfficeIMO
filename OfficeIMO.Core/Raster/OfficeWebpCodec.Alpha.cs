@@ -19,7 +19,7 @@ public static partial class OfficeWebpCodec {
             var budget = new Vp8lAllocationBudget();
             if (!budget.TryReserveBytes(retainedManagedBytes) ||
                 !TryDecodeVp8lArgb(new LsbBitReader(bytes, offset + 1, length - 1), width, height,
-                    budget, cancellationToken, out argb)) return false;
+                    budget, cancellationToken, writeRgba: false, out argb, out _)) return false;
         }
 
         int filter = (control >> 2) & 3;
