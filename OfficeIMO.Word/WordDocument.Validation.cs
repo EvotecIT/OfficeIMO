@@ -177,6 +177,8 @@ namespace OfficeIMO.Word {
                 new WordDocumentVariables(this, true);
             }
             new WordBibliography(this, true);
+            // Identifiers written outside the allocators since the last save are picked up again on the next add.
+            InvalidateIdentifierState();
         }
     }
 }

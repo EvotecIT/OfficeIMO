@@ -77,6 +77,8 @@ namespace OfficeIMO.Word {
             foreach (OpenXmlCompositeElement root in WordMailMerge.EnumerateTemplateRoots(document)) {
                 ProcessContainer(root, scope, state);
             }
+            // Repeated blocks number their bookmark copies from their own scan.
+            document.InvalidateIdentifierState();
 
             return new WordTemplateResult(
                 state.PlaceholderCount,

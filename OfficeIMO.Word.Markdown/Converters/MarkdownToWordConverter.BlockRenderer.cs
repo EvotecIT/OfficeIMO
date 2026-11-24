@@ -411,9 +411,7 @@ namespace OfficeIMO.Word.Markdown {
             /// <summary>Surrounds the paragraph content with a bookmark, as Word does for heading targets.</summary>
             private static void WrapParagraphInBookmark(WordParagraph paragraph, string name, MarkdownWordExportOptions options) {
                 Paragraph element = paragraph._paragraph;
-                int next = options.NextBookmarkId ?? paragraph._document.BookmarkId;
-                options.NextBookmarkId = next + 1;
-                string id = next.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                string id = paragraph._document.GetNextBookmarkId().ToString(System.Globalization.CultureInfo.InvariantCulture);
                 var start = new BookmarkStart { Name = name, Id = id };
                 if (element.ParagraphProperties != null) {
                     element.ParagraphProperties.InsertAfterSelf(start);

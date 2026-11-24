@@ -24,17 +24,6 @@ namespace OfficeIMO.Word {
             _list = list;
         }
 
-        internal static string GetNewId(WordDocument document) {
-            Comments comments = GetCommentsPart(document);
-            int maxId = comments.Descendants<Comment>()
-                .Select(e => e.Id?.Value)
-                .Select(value => int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsed) ? parsed : 0)
-                .DefaultIfEmpty(0)
-                .Max();
-
-            return (maxId + 1).ToString(CultureInfo.InvariantCulture);
-        }
-
         internal static string GetNewId(WordDocument document, Comments comments) {
             ArgumentNullException.ThrowIfNull(comments);
 
@@ -157,20 +146,18 @@ namespace OfficeIMO.Word {
             return candidate.ToString("X8", CultureInfo.InvariantCulture);
         }
 
-        private static string EnsureCommentParaId(WordComment comment, Comments comments, CommentsEx commentsEx) {
+        private static string EnsureCommentParaId(WordComment comment, WordCommentIdentityState identities, CommentsEx commentsEx) {
             ArgumentNullException.ThrowIfNull(comment);
-            ArgumentNullException.ThrowIfNull(comments);
+            ArgumentNullException.ThrowIfNull(identities);
             ArgumentNullException.ThrowIfNull(commentsEx);
 
-            WordCommentIdentityPlan identities = WordCommentIdentityPlan.Prepare(comments, commentsEx);
-            identities.Apply(commentsEx);
-            if (identities.HasChanges) comments.Save();
+            // The identity state normalized legacy comments when it was built, so only a parent whose paragraphs
+            // were replaced since then still lacks an identifier.
             string? paraId = comment.ParaId;
             if (string.IsNullOrWhiteSpace(paraId)) {
-                paraId = GetNewParaId(commentsEx, comments);
+                paraId = identities.NextParagraphId();
                 Paragraph paragraph = comment._comment.Elements<Paragraph>().First();
                 paragraph.ParagraphId = paraId;
-                comments.Save();
             }
 
             CommentEx? commentEx = comment.FindCommentEx();
@@ -184,7 +171,6 @@ namespace OfficeIMO.Word {
             }
 
             comment._commentEx = commentEx;
-            commentsEx.Save();
             return paraId!;
         }
 
