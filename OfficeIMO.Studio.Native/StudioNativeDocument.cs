@@ -52,7 +52,7 @@ internal sealed partial class StudioNativeDocument : IDisposable {
                 _workspace.IsEncrypted, _workspace.CanChangeEncryption(null), _workspace.CanSign, _workspace.CanRotatePages,
                 _workspace.CanInsertBlankPages,
                 view.Security.HasEncryption && !view.Security.HasOwnerAuthorization && view.Security.AllowsHighQualityPrinting != true ? 150D : null,
-                _workspace.RequiresOwnerPasswordForEncryption);
+                _workspace.RequiresOwnerPasswordForEncryption, _workspace.CanAuthorForms);
         } finally { _gate.Release(); }
     }
 
@@ -610,7 +610,7 @@ internal sealed record StudioNativeDocumentInfo(
     bool CanExtractText, bool CanExtractContent, IReadOnlyList<StudioNativePageInfo> Pages, long MaxRenderPixels, bool CanMutatePages,
     bool CanExtractPages, bool CanEditAnnotations, bool CanPrint, bool CanImportPages, bool CanMakeSearchable, bool CanFillForms,
     bool IsEncrypted, bool CanChangeProtection, bool CanSign, bool CanRotatePages, bool CanInsertBlankPages,
-    double? MaxPrintDpi, bool RequiresOwnerPasswordForProtection);
+    double? MaxPrintDpi, bool RequiresOwnerPasswordForProtection, bool CanAuthorForms);
 
 internal sealed record StudioNativePageInfo(int Number, double Width, double Height, int Rotation);
 

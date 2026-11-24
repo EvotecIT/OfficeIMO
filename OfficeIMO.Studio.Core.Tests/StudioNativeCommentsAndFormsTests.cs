@@ -1,0 +1,125 @@
+using OfficeIMO.Pdf;
+using OfficeIMO.Studio.Native;
+
+namespace OfficeIMO.Studio.Core.Tests;
+
+/// <summary>Comment threads and form authoring through the engine library the Apple apps call.</summary>
+public sealed class StudioNativeCommentsAndFormsTests : IDisposable {
+    private readonly string _root = Path.Combine(Path.GetTempPath(), "officeimo-native-comments-" + Guid.NewGuid().ToString("N"));
+
+    public StudioNativeCommentsAndFormsTests() {
+        Directory.CreateDirectory(_root);
+        StudioNativeEngine.Initialize(Path.Combine(_root, "data"));
+    }
+
+    public void Dispose() => Directory.Delete(_root, recursive: true);
+
+    private string CreateTextPdf(string name, params string[] pages) {
+        string path = Path.Combine(_root, name);
+        PdfDocument.Create(document => {
+            foreach (string text in pages)
+                document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(300)).Content(content => content.Column(column => column.Item().AddParagraph(p => p.AddText(text)))));
+        }).Save(path);
+        return path;
+    }
+
+    [Fact]
+    public async Task Replies_nest_under_their_comment_and_resolving_is_undoable_while_the_thread_keeps_its_id() {
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreateTextPdf("comments.pdf", "One", "Two"), null, default);
+        await document.AddAnnotationAsync(new StudioNativeAnnotationRequest("note", 2, new StudioNativeRectangle(40, 40, 20, 20),
+            Text: "Check the totals", Author: "Alex Morgan"), default);
+
+        StudioNativeComments comments = await document.GetCommentsAsync(default);
+        StudioNativeCommentThread thread = Assert.Single(comments.Threads);
+        Assert.True(comments.CanReply);
+        Assert.Equal((2, "none", false), (thread.Page, thread.State, thread.Resolved));
+        Assert.Equal(("Alex Morgan", "Check the totals", 0), (thread.Entries[0].Author, thread.Entries[0].Contents, thread.Entries[0].Depth));
+        Assert.NotNull(thread.Bounds);
+
+        await document.EditAsync(new StudioNativeEditRequest(Reply: new StudioNativeCommentReply(thread.ObjectNumber, "Fixed in the second draft", "Sam Lee")), default);
+        thread = Assert.Single((await document.GetCommentsAsync(default)).Threads);
+        Assert.Equal(new (string?, int)[] { ("Alex Morgan", 0), ("Sam Lee", 1) }, thread.Entries.Select(entry => (entry.Author, entry.Depth)));
+        Assert.Equal("Fixed in the second draft", thread.Entries[1].Contents);
+        string id = thread.Id;
+
+        await document.EditAsync(new StudioNativeEditRequest(ReviewState: new StudioNativeCommentState(thread.ObjectNumber, "completed")), default);
+        thread = Assert.Single((await document.GetCommentsAsync(default)).Threads);
+        Assert.Equal((id, "completed", true), (thread.Id, thread.State, thread.Resolved));
+
+        await document.UndoAsync(default);
+        thread = Assert.Single((await document.GetCommentsAsync(default)).Threads);
+        Assert.False(thread.Resolved);
+        Assert.Equal(2, thread.Entries.Count);
+    }
+
+    [Fact]
+    public async Task Replies_and_states_are_refused_for_missing_comments_empty_text_and_unknown_states() {
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreateTextPdf("refused.pdf", "One"), null, default);
+        await document.AddAnnotationAsync(new StudioNativeAnnotationRequest("note", 1, new StudioNativeRectangle(40, 40, 20, 20), Text: "Note"), default);
+        int number = Assert.Single((await document.GetCommentsAsync(default)).Threads).ObjectNumber;
+
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => document.EditAsync(new StudioNativeEditRequest(Reply: new StudioNativeCommentReply(number + 1000, "Hello")), default));
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => document.EditAsync(new StudioNativeEditRequest(Reply: new StudioNativeCommentReply(number, "  ")), default));
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => document.EditAsync(new StudioNativeEditRequest(ReviewState: new StudioNativeCommentState(number, "done")), default));
+        Assert.Single(Assert.Single((await document.GetCommentsAsync(default)).Threads).Entries);
+    }
+
+    [Fact]
+    public async Task Fields_are_added_where_they_are_drawn_then_renamed_moved_and_removed_one_undoable_step_each() {
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreateTextPdf("form.pdf", "Application"), null, default);
+        Assert.True((await document.GetInfoAsync(default)).CanAuthorForms);
+
+        await document.EditAsync(new StudioNativeEditRequest(AddFormField: new StudioNativeFormFieldAdd("text", "FullName", 1,
+            new StudioNativeRectangle(40, 60, 160, 24), Label: "Full name")), default);
+        await document.EditAsync(new StudioNativeEditRequest(AddFormField: new StudioNativeFormFieldAdd("checkbox", "Agree", 1,
+            new StudioNativeRectangle(40, 100, 16, 16))), default);
+        await document.EditAsync(new StudioNativeEditRequest(AddFormField: new StudioNativeFormFieldAdd("choice", "Country", 1,
+            new StudioNativeRectangle(40, 130, 160, 24), ["Poland", "Germany", " ", "Poland"])), default);
+
+        StudioNativeFormFields fields = await document.GetFormFieldsAsync(1, default);
+        Assert.Equal(new[] { ("FullName", "text"), ("Agree", "checkbox"), ("Country", "combo") },
+            fields.Fields.Select(field => (field.Name, field.Kind)));
+        StudioNativeRectangle box = fields.Fields[0].Widgets.Single().Bounds;
+        Assert.Equal((40D, 60D, 160D, 24D), (Math.Round(box.X), Math.Round(box.Y), Math.Round(box.Width), Math.Round(box.Height)));
+        Assert.Equal("Full name", fields.Fields[0].Label);
+        Assert.Equal(new[] { "Poland", "Germany" }, fields.Fields[2].Options.Select(option => option.Value));
+
+        await document.EditAsync(new StudioNativeEditRequest(UpdateFormField: new StudioNativeFormFieldUpdate("FullName", NewName: "Name", Required: true)), default);
+        await document.EditAsync(new StudioNativeEditRequest(UpdateFormField: new StudioNativeFormFieldUpdate("Name", Bounds: new StudioNativeRectangle(200, 60, 120, 30))), default);
+        StudioNativeFormField renamed = Assert.Single((await document.GetFormFieldsAsync(1, default)).Fields, field => field.Name == "Name");
+        Assert.True(renamed.Required);
+        box = renamed.Widgets.Single().Bounds;
+        Assert.Equal((200D, 60D, 120D, 30D), (Math.Round(box.X), Math.Round(box.Y), Math.Round(box.Width), Math.Round(box.Height)));
+
+        await document.EditAsync(new StudioNativeEditRequest(RemoveFormField: "Agree"), default);
+        Assert.DoesNotContain((await document.GetFormFieldsAsync(1, default)).Fields, field => field.Name == "Agree");
+        await document.UndoAsync(default);
+        Assert.Contains((await document.GetFormFieldsAsync(1, default)).Fields, field => field.Name == "Agree");
+    }
+
+    [Fact]
+    public async Task A_signature_field_is_added_as_an_empty_place_to_sign() {
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreateTextPdf("signature-field.pdf", "Contract"), null, default);
+        await document.EditAsync(new StudioNativeEditRequest(AddFormField: new StudioNativeFormFieldAdd("signature", "Signature", 1,
+            new StudioNativeRectangle(40, 200, 180, 40))), default);
+
+        StudioNativeFormField field = Assert.Single((await document.GetFormFieldsAsync(1, default)).Fields);
+        Assert.Equal(("Signature", "signature"), (field.Name, field.Kind));
+        Assert.Empty(field.Values);
+    }
+
+    [Fact]
+    public async Task Field_authoring_refuses_duplicate_names_choices_without_options_and_unknown_kinds() {
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreateTextPdf("refused-form.pdf", "Form"), null, default);
+        var box = new StudioNativeRectangle(40, 60, 160, 24);
+        await document.EditAsync(new StudioNativeEditRequest(AddFormField: new StudioNativeFormFieldAdd("text", "Name", 1, box)), default);
+
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => document.EditAsync(new StudioNativeEditRequest(AddFormField: new StudioNativeFormFieldAdd("text", "Name", 1, box with { Y = 120 })), default));
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => document.EditAsync(new StudioNativeEditRequest(AddFormField: new StudioNativeFormFieldAdd("choice", "Pick", 1, box with { Y = 120 })), default));
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => document.EditAsync(new StudioNativeEditRequest(AddFormField: new StudioNativeFormFieldAdd("button", "Go", 1, box with { Y = 120 })), default));
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => document.EditAsync(new StudioNativeEditRequest(AddFormField: new StudioNativeFormFieldAdd("text", "Tiny", 1, box with { Width = 2 })), default));
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => document.EditAsync(new StudioNativeEditRequest(UpdateFormField: new StudioNativeFormFieldUpdate("Name", NewName: "Other", Bounds: box)), default));
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => document.EditAsync(new StudioNativeEditRequest(RemoveFormField: "Missing"), default));
+        Assert.Single((await document.GetFormFieldsAsync(1, default)).Fields);
+    }
+}

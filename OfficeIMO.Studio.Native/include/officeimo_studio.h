@@ -93,7 +93,7 @@ void officeimo_document_close(officeimo_document document);
  *   "hasRecovery", "canExtractText", "canExtractContent", "pages": [ { "number", "width", "height", "rotation" } ],
  *   "maxRenderPixels", "canMutatePages", "canExtractPages", "canEditAnnotations", "canPrint", "canImportPages",
  *   "canMakeSearchable", "canFillForms", "isEncrypted", "canChangeProtection", "canSign", "canRotatePages",
- *   "canInsertBlankPages", "maxPrintDpi", "requiresOwnerPasswordForProtection" }
+ *   "canInsertBlankPages", "maxPrintDpi", "requiresOwnerPasswordForProtection", "canAuthorForms" }
  * hasRecovery reports unsaved edits kept from an earlier session for this file. maxRenderPixels is the largest page
  * image officeimo_document_render_page produces. canExtractText allows search; canMutatePages allows deleting,
  * duplicating and reordering pages; canRotatePages and canInsertBlankPages describe their own operations independently.
@@ -103,7 +103,8 @@ void officeimo_document_close(officeimo_document document);
  * maxPrintDpi is 150 for user-authorized low-resolution printing, otherwise null. Print hosts must honor this ceiling.
  * requiresOwnerPasswordForProtection is true only when owner authorization is the remaining protection-change barrier.
  * canImportPages allows officeimo_document_import_pages_json; canMakeSearchable allows officeimo_document_make_searchable_json;
- * canFillForms allows officeimo_document_fill_form_json. isEncrypted reports a password-protected document;
+ * canFillForms allows officeimo_document_fill_form_json; canAuthorForms allows the form field edits of
+ * officeimo_document_edit_json. isEncrypted reports a password-protected document;
  * canChangeProtection allows officeimo_document_save_protected_copy_json without the owner password; canSign allows
  * officeimo_document_save_signed_copy_json.
  * Width and height are in points (1/72 inch) before rotation: the page's visible box at its user unit, the size that
@@ -374,6 +375,20 @@ int32_t officeimo_document_structure_json(officeimo_document document, officeimo
                                           char **error);
 
 /*
+ * The document's comment threads, in page order, as JSON:
+ * { "abiVersion", "revision", "canReply", "threads": [ { "id", "objectNumber", "page", "subtype",
+ *   "bounds": { "x", "y", "width", "height" }, "state", "resolved", "orphaned",
+ *   "entries": [ { "objectNumber", "author", "contents", "modified", "depth" } ] } ] }
+ * Each thread is a comment or markup annotation followed by its replies, depth 1 for a reply and 2 for a reply to it.
+ * id stays the same for a thread across revisions; objectNumber may change when a reply rewrites the page. state is
+ * "none", "completed", "accepted", "rejected", "cancelled", "marked" or "unmarked"; resolved means "completed". orphaned
+ * marks a reply whose comment is gone. bounds are in points of the page as displayed, or null for a comment without a
+ * box. Popups, links and form widgets are not comments.
+ */
+int32_t officeimo_document_comments_json(officeimo_document document, officeimo_cancellation cancellation, char **json,
+                                         char **error);
+
+/*
  * Applies one edit as one undoable change, described as JSON naming exactly one of:
  *   "properties": { "title", "author", "subject", "keywords" }: a field left out keeps its value; "" clears it.
  *   "outline": [ { "op", "id", "title", "page", "parentId", "index" } ]: op is "add" (title, page, optional parentId and
@@ -390,6 +405,16 @@ int32_t officeimo_document_structure_json(officeimo_document document, officeimo
  *   "flatten": { "fields" }: draws the named field, or every field when none is named, into its page; or
  *     { "markup": true }: draws every markup annotation, but links, into its page.
  *   "addAttachment": { "path", "fileName" }, or "removeAttachment": "file name".
+ *   "reply": { "objectNumber", "text", "author", "color": { "red", "green", "blue" } }: replies to a comment from
+ *     officeimo_document_comments_json.
+ *   "reviewState": { "objectNumber", "state" }: state is "completed" (resolved), "none" (open again), "accepted",
+ *     "rejected" or "cancelled".
+ *   "addFormField": { "kind", "name", "page", "bounds": { "x", "y", "width", "height" }, "options": [ ], "combo",
+ *     "required", "readOnly", "multiline", "label" }: kind is "text", "checkbox", "choice" or "signature"; bounds are in
+ *     points of the page as displayed, at least 4 by 4. A choice needs options and is a drop-down unless combo is false.
+ *   "updateFormField": { "name", "newName", "required", "readOnly" }, fields left out kept; or alone
+ *     { "name", "page", "bounds" }, which moves or resizes the field's only box.
+ *   "removeFormField": "field name".
  * Leaving out "pages" means every page. The structure's can flags tell which edits the document allows.
  */
 int32_t officeimo_document_edit_json(officeimo_document document, const char *request, officeimo_cancellation cancellation,
