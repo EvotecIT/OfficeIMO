@@ -183,14 +183,14 @@ def main():
                     remaining -= len(chunk)
             record = {"source": str(source), "sha256": digest(snapshot), "status": "failed"}
             summary["publications"].append(record)
-            with (folder / "epubcheck.log").open("w", encoding="utf-8") as log:
-                result = subprocess.run(command + [str(snapshot), "--json", str(folder / "epubcheck.json")],
-                                        stdout=log, stderr=subprocess.STDOUT, timeout=args.timeout, check=False)
-            record["exitCode"] = result.returncode
-            record["report"] = str((folder / "epubcheck.json").relative_to(output))
-            if result.returncode == 0 and (folder / "epubcheck.json").is_file():
-                # Parse the actual report so a successful process without usable evidence cannot pass.
-                report = json.loads((folder / "epubcheck.json").read_text(encoding="utf-8"))
+            report_path = folder / "epubcheck.json"
+            record["report"] = str(report_path.relative_to(output))
+            try:
+                with (folder / "epubcheck.log").open("w", encoding="utf-8") as log:
+                    result = subprocess.run(command + [str(snapshot), "--json", str(report_path)],
+                                            stdout=log, stderr=subprocess.STDOUT, timeout=args.timeout, check=False)
+                record["exitCode"] = result.returncode
+                report = json.loads(report_path.read_text(encoding="utf-8"))
                 checker = report.get("checker") if isinstance(report, dict) else None
                 if not isinstance(checker, dict) or any(type(checker.get(key)) is not int or checker[key] < 0
                                                         for key in ("nError", "nFatal", "nWarning")):
@@ -198,8 +198,10 @@ def main():
                 record["errors"] = checker["nError"]
                 record["fatalErrors"] = checker["nFatal"]
                 record["warnings"] = checker["nWarning"]
-                if record["errors"] == 0 and record["fatalErrors"] == 0:
+                if result.returncode == 0 and record["errors"] == 0 and record["fatalErrors"] == 0:
                     record["status"] = "passed"
+            except (OSError, ValueError, subprocess.SubprocessError) as error:
+                record["epubcheckFailure"] = str(error)
             failed |= record["status"] != "passed"
             record["encodedAudio"] = {"status": "not-checked", "nativePlayback": "not-checked"}
             if ffprobe:
