@@ -70,7 +70,7 @@ internal sealed partial class NotebookHtmlWidgets {
                 "The browser controls approximate the saved widget layout or appearance.", location,
                 "Jupyter", OfficeConversionLossKind.Approximation));
         }
-        return new WidgetBlock("<div class=\"officeimo-widget\">" + viewRender.Markup.ToString() + "</div>");
+        return new NotebookGeneratedHtmlBlock("<div class=\"officeimo-widget\">" + viewRender.Markup.ToString() + "</div>");
     }
 
     private bool ReadState() {
@@ -209,8 +209,4 @@ internal sealed partial class NotebookHtmlWidgets {
         internal bool ApproximatesAppearance { get; set; }
     }
 
-    private sealed class WidgetBlock(string html) : IMarkdownBlock {
-        public string RenderMarkdown() => string.Empty;
-        public string RenderHtml() => html;
-    }
 }

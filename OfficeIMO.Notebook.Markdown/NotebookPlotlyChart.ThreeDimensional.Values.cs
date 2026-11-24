@@ -137,7 +137,7 @@ internal static partial class NotebookPlotlyChart {
         double previous = -1;
         foreach (JsonElement entry in source.EnumerateArray()) {
             if (entry.ValueKind != JsonValueKind.Array || entry.GetArrayLength() != 2 ||
-                !TryReadNumber(entry[0], out double at) || at <= previous || at < 0 || at > 1 ||
+                !TryReadNumber(entry[0], out double at) || at < previous || at < 0 || at > 1 ||
                 !TryReadColor(entry[1], out OfficeColor? color) || !color.HasValue || color.Value.A != 255) return null;
             stops[index++] = new SceneColorStop(at, color.Value);
             previous = at;
@@ -146,9 +146,10 @@ internal static partial class NotebookPlotlyChart {
     }
 
     private sealed record SceneTrace(SceneVector[] Points, bool Markers, bool Lines, OfficeColor SeriesColor,
-        PlotlyTraceStyle Style, bool Legend, string? Name, List<SceneFace>? Faces, SceneScale? Scale);
+        PlotlyTraceStyle Style, bool Legend, string? Name, List<SceneFace>? Faces, SceneScale? Scale,
+        bool IsMesh = false, double Opacity = 1, string? ScaleTitle = null);
 
-    private readonly record struct SceneFace(int A, int B, int C, double ColorValue);
+    private readonly record struct SceneFace(int A, int B, int C, double ColorValue, OfficeColor? Color = null);
 
     private readonly record struct SceneColorStop(double At, OfficeColor Color);
 
@@ -163,7 +164,7 @@ internal static partial class NotebookPlotlyChart {
             for (int index = 1; index < Stops.Length; index++) {
                 SceneColorStop before = Stops[index - 1];
                 SceneColorStop after = Stops[index];
-                if (t > after.At) continue;
+                if (t >= after.At) continue;
                 double weight = (t - before.At) / (after.At - before.At);
                 return InterpolateSceneColor(before.Color, after.Color, weight);
             }

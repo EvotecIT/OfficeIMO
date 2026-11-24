@@ -55,15 +55,16 @@ internal static partial class NotebookPlotlyChart {
     }
 
     private static bool TryReadTrace(JsonElement trace, string traceType, string? orientation, bool explicitCategoryAxis,
-        int seriesIndex, int remainingPoints, ref string[]? categories, out OfficeSeries? series) {
+        int seriesIndex, int remainingPoints, ref string[]? categories, out OfficeSeries? series,
+        string xAxis = "x", string yAxis = "y", bool allowNumericCategories = false) {
         series = null;
         bool bar = orientation != null;
         if (!ContainsOnly(trace, "type", "x", "y", "xaxis", "yaxis", "name", "showlegend", "legendgroup",
                 "hoverinfo", "hovertemplate", "hovertext", "customdata", "meta", "marker", "line", "mode",
                 "orientation", "alignmentgroup", "offsetgroup", "visible") ||
             !ValueOrDefault(Property(trace, "type"), traceType, allowMissing: traceType == "scatter") ||
-            !ValueOrDefault(Property(trace, "xaxis"), "x") ||
-            !ValueOrDefault(Property(trace, "yaxis"), "y") ||
+            !ValueOrDefault(Property(trace, "xaxis"), xAxis) ||
+            !ValueOrDefault(Property(trace, "yaxis"), yAxis) ||
             !TryReadBoolean(Property(trace, "visible"), true, out bool visible) || !visible ||
             !TryReadBoolean(Property(trace, "showlegend"), true, out bool showLegend) ||
             !TryReadOptionalText(Property(trace, "name"), out string? name)) return false;
@@ -75,10 +76,12 @@ internal static partial class NotebookPlotlyChart {
         if (bar) {
             string expectedOrientation = orientation!;
             bool horizontal = expectedOrientation == "h";
+            int maxCategories = Math.Min(MaxBarCategories, remainingPoints);
+            JsonElement categoryValues = horizontal ? y : x;
             if (!ValueOrDefault(Property(trace, "orientation"), expectedOrientation, allowMissing: !horizontal) ||
                 HasProperty(trace, "mode") || HasProperty(trace, "line") ||
-                !TryReadCategories(horizontal ? y : x, Math.Min(MaxBarCategories, remainingPoints), explicitCategoryAxis,
-                    out string[]? traceCategories)) return false;
+                (!TryReadCategories(categoryValues, maxCategories, explicitCategoryAxis, out string[]? traceCategories) &&
+                    !(allowNumericCategories && TryReadNumericCategories(categoryValues, maxCategories, out traceCategories)))) return false;
             if (categories != null && !categories.SequenceEqual(traceCategories!, StringComparer.Ordinal)) return false;
             values = ReadNumbers(horizontal ? x : y, traceCategories!.Length);
             if (values == null || values.Length != traceCategories.Length) return false;

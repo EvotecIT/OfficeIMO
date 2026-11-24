@@ -1,11 +1,18 @@
 function Invoke-AdvancedFileSave {
     param($Settings, $Case, [string] $Engine, [string] $OutputPath)
     if ($Engine -eq 'Office') {
-        $format = if ($Settings.Mode -eq 'Pdf') { 'pdf' } else { 'widget-html' }
+        $format = switch ($Settings.Mode) {
+            'Pdf' { 'pdf' }
+            'WidgetHtml' { 'widget-html' }
+            'ChartHtml' { 'chart-html' }
+        }
         & dotnet $Settings.OfficeDriver $format $Case.InputPath $OutputPath
     } else {
         $arguments = @($Settings.NbconvertDriver, $Settings.Mode, $Case.InputPath, $OutputPath)
-        if ($Settings.Mode -eq 'Pdf') { $arguments += @('--chrome', $Settings.Chrome) }
+        if ($Settings.Mode -eq 'Pdf') {
+            $arguments += @('--chrome', $Settings.Chrome)
+            if ($Settings.TopojsonDirectory) { $arguments += @('--topojson', $Settings.TopojsonDirectory) }
+        }
         & $Settings.Python @arguments
     }
     if ($LASTEXITCODE -ne 0) { throw "$Engine save failed with exit code $LASTEXITCODE." }
@@ -26,21 +33,29 @@ function New-AdvancedCaseOutput {
             }
         }
     }
+    if ($Settings.Mode -eq 'ChartHtml' -and $Engine -eq 'Nbconvert') {
+        $assets = Join-Path $Directory 'assets'
+        [void][IO.Directory]::CreateDirectory($assets)
+        Copy-Item -LiteralPath $Settings.PlotlyJs -Destination (Join-Path $assets 'plotly.min.js') -Force
+    }
     $extension = if ($Settings.Mode -eq 'Pdf') { '.pdf' } else { '.html' }
     $path = Join-Path $Directory ("saved" + $extension)
     [IO.File]::Delete($path)
     $path
 }
 function Assert-AdvancedFileArtifact {
-    param($Settings, $Case, [string] $Path, [switch] $Preview)
+    param($Settings, $Case, [string] $Path, [string] $Engine, [switch] $Preview)
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { throw "Expected conversion artifact '$Path'." }
     $previewPath = [IO.Path]::ChangeExtension($Path, '.png')
     if ($Settings.Mode -eq 'Pdf') {
         $arguments = @($Settings.PdfValidator, $Path, $Case.Witness)
+        if ($Engine -eq 'Office') { $arguments += '--require-vectors' }
         if ($Preview) { $arguments += @('--preview', $previewPath) }
         $detail = & $Settings.Python @arguments
     } else {
-        $arguments = @($Settings.WidgetValidator, $Path)
+        $arguments = @($Settings.WidgetValidator)
+        if ($Settings.Mode -eq 'ChartHtml') { $arguments += @('--chart', $Path, $Engine) }
+        else { $arguments += $Path }
         if ($Preview) { $arguments += $previewPath }
         $detail = & dotnet @arguments
     }

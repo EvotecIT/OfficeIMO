@@ -192,7 +192,7 @@ try {
     $notebook | Get-OfficeNotebookCell
     $notebook | Add-OfficeNotebookCell -Kind Markdown -Source 'Reviewed.'
     $notebook | Save-OfficeNotebook -Path ./reviewed.ipynb
-    $notebook | Export-OfficeNotebook -Path ./reviewed.html -IncludeCode:$false
+    $notebook | Export-OfficeNotebook -Path ./reviewed.html -IncludeCode:$false -IncludeInteractiveCharts
 } finally {
     $notebook | Close-OfficeNotebook
 }
@@ -205,6 +205,8 @@ Use `-PreserveMarkdownSource` with a Markdown destination to keep the cell's
 authored spelling and formatting. The report identifies omitted notebook-local
 attachment data. Use `-IncludeInteractiveWidgets` with an HTML destination to
 enable supported saved controls and browser-side links.
+`-IncludeInteractiveCharts` adds offline zoom, pan, and value inspection to
+supported saved charts.
 
 ## Working with live documents
 

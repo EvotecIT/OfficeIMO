@@ -89,12 +89,14 @@ internal static partial class NotebookPlotlyChart {
         return MixScenePoint(view.Place(a), view.Place(b), fraction);
     }
 
-    private static void PaintSceneColorbar(OfficeDrawing drawing, SceneScale scale, OfficeColor textColor) {
+    private static void PaintSceneColorbar(OfficeDrawing drawing, SceneScale scale, OfficeColor textColor, string? title = null) {
         const int steps = 24;
         double left = drawing.Width - 51;
         double top = drawing.Height * 0.28;
         double height = drawing.Height * 0.43;
         double step = height / steps;
+        if (!string.IsNullOrWhiteSpace(title))
+            PaintSceneLabel(drawing, title!, left + 19, top - 12, 54, 9, textColor);
         for (int index = 0; index < steps; index++) {
             var fill = OfficeShape.Rectangle(9, step + 0.1);
             fill.FillColor = scale.FromFraction(1 - (index + 0.5) / steps);
@@ -118,6 +120,7 @@ internal static partial class NotebookPlotlyChart {
             if (trace.Lines) PaintSceneLine(drawing, new OfficePoint(x, y), new OfficePoint(x + 9, y), paint, 1.5);
             if (trace.Markers) PaintSceneMarker(drawing, new OfficePoint(x + 4.5, y), paint, 4.5,
                 trace.Style.MarkerShape ?? OfficeChartMarkerShape.Circle);
+            if (trace.IsMesh) PaintSceneMarker(drawing, new OfficePoint(x + 4.5, y), paint, 5.5, OfficeChartMarkerShape.Square);
             string label = trace.Name ?? "trace " + index.ToString(CultureInfo.InvariantCulture);
             drawing.AddText(label, x + 13, y - 6, maxWidth - 13, 12, new OfficeFontInfo(null, 9), textColor, shrinkToFit: true);
             shown++;

@@ -35,6 +35,10 @@ For HTML export, -IncludeInteractiveWidgets enables supported saved
 controls and client-side links. Notebook cells and custom widget code
 stay inert. The conversion report identifies unsupported saved views.
 
+Use -IncludeInteractiveCharts with an HTML destination to zoom and pan
+supported saved charts and inspect their data values. The charts work
+offline. Unsupported specifications use an available static fallback.
+
 The PowerShell script profile opens an ordinary .ps1 as one code cell.
 Scripts exported by OfficeIMO include comment markers for code and
 Markdown cells. The export report identifies content that a script cannot

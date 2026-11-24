@@ -27,6 +27,8 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="NotebookHtmlWidgets.js" LogicalName="OfficeIMO.Notebook.Html.NotebookHtmlWidgets.js" />
+    <EmbeddedResource Include="NotebookHtmlCharts.js" LogicalName="OfficeIMO.Notebook.Html.NotebookHtmlCharts.js" />
+    <EmbeddedResource Include="NotebookHtmlCharts.css" LogicalName="OfficeIMO.Notebook.Html.NotebookHtmlCharts.css" />
     <None Include="../Assets/OfficeIMO.png" Pack="true" PackagePath="/" />
     <None Include="README.md" Pack="true" PackagePath="README.md" />
   </ItemGroup>

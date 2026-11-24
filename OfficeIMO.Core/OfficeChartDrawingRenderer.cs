@@ -20,7 +20,12 @@ public static partial class OfficeChartDrawingRenderer {
 
     /// <summary>Renders a chart and reports unsupported point appearance to the caller's diagnostic sink.</summary>
     public static OfficeDrawing Render(OfficeChartSnapshot snapshot, bool useMinimumCanvas,
-        ICollection<OfficeImageExportDiagnostic>? diagnostics) {
+        ICollection<OfficeImageExportDiagnostic>? diagnostics) =>
+        Render(snapshot, useMinimumCanvas, diagnostics, pointRendered: null);
+
+    /// <summary>Reports the painted locations of scatter and bar values for data inspection.</summary>
+    internal static OfficeDrawing Render(OfficeChartSnapshot snapshot, bool useMinimumCanvas,
+        ICollection<OfficeImageExportDiagnostic>? diagnostics, Action<OfficeChartPointPlacement>? pointRendered) {
         List<ChartLabelBounds>? previousLabels = _renderPassLabels;
         HashSet<(int Series, int Point)>? previousHiddenLabels = _renderPassHiddenLabels;
         ICollection<OfficeImageExportDiagnostic>? previousDiagnostics = _renderPassDiagnostics;
@@ -28,7 +33,7 @@ public static partial class OfficeChartDrawingRenderer {
         _renderPassHiddenLabels = null;
         _renderPassDiagnostics = diagnostics;
         try {
-            return RenderCore(snapshot, useMinimumCanvas, diagnostics);
+            return RenderCore(snapshot, useMinimumCanvas, diagnostics, pointRendered);
         } finally {
             _renderPassLabels = previousLabels;
             _renderPassHiddenLabels = previousHiddenLabels;
@@ -37,7 +42,7 @@ public static partial class OfficeChartDrawingRenderer {
     }
 
     private static OfficeDrawing RenderCore(OfficeChartSnapshot snapshot, bool useMinimumCanvas,
-        ICollection<OfficeImageExportDiagnostic>? diagnostics) {
+        ICollection<OfficeImageExportDiagnostic>? diagnostics, Action<OfficeChartPointPlacement>? pointRendered) {
         ArgumentNullException.ThrowIfNull(snapshot);
         HashSet<(int Series, int Point)>? missingAreaPoints = GetMissingAreaPoints(snapshot);
         snapshot = ApplyBlankDisplay(snapshot);
@@ -526,11 +531,12 @@ public static partial class OfficeChartDrawingRenderer {
             AddScatterSeries(drawing, snapshot, numericPlotLeft, numericPlotTop,
                 numericPlotWidth, numericPlotHeight,
                 new ChartPlotBounds(plotLeft, plotTop, plotWidth, plotHeight), style, layout,
-                axisRange, maximumBubbleDiameterOverride: maximumBubbleDiameter);
+                axisRange, maximumBubbleDiameterOverride: maximumBubbleDiameter, pointRendered: pointRendered);
         } else if (IsLineChart(snapshot.ChartKind)) {
             AddLineSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout, axisRange);
         } else {
-            AddBarSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout, axisRange);
+            AddBarSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout, axisRange,
+                pointRendered: pointRendered);
         }
 
         AddTrendlines(drawing, snapshot, axisRange, secondaryAxisRange, hasSecondaryAxis,
@@ -1095,7 +1101,8 @@ public static partial class OfficeChartDrawingRenderer {
 
     private static void AddBarSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, double plotLeft,
         double plotTop, double plotWidth, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout,
-        ValueRange? sharedValueAxisRange = null, OfficeChartAxisGroup? axisGroup = null) {
+        ValueRange? sharedValueAxisRange = null, OfficeChartAxisGroup? axisGroup = null,
+        Action<OfficeChartPointPlacement>? pointRendered = null) {
         IReadOnlyList<string> categories = snapshot.Data.Categories;
         IReadOnlyList<OfficeSeries> series = snapshot.Data.Series;
         if (categories.Count == 0 || series.Count == 0) {
@@ -1241,6 +1248,8 @@ public static partial class OfficeChartDrawingRenderer {
                     double w = Math.Max(1D, Math.Abs(x2 - x1));
                     if (sourceValue != 0D && (value != 0D || x1 != x2)) {
                         AddStyledPointShape(barGeometry, OfficeShape.Rectangle(w, rowHeight), x, y, color, GetPointStyle(currentSeries, category), null, 0.75D);
+                        pointRendered?.Invoke(new OfficeChartPointPlacement(x, y, w, rowHeight, currentSeries.Name,
+                            categories[category], null, sourceValue));
                     }
                     if (!seriesPercentStacked && currentSeries.ErrorBars != null) {
                         OfficeSeries errorSeries = currentSeries;
@@ -1277,6 +1286,8 @@ public static partial class OfficeChartDrawingRenderer {
                     double h = Math.Max(1D, Math.Abs(y2 - y1));
                     if (sourceValue != 0D && (value != 0D || y1 != y2)) {
                         AddStyledPointShape(barGeometry, OfficeShape.Rectangle(barWidth, h), x, y, color, GetPointStyle(currentSeries, category), null, 0.75D);
+                        pointRendered?.Invoke(new OfficeChartPointPlacement(x, y, barWidth, h, currentSeries.Name,
+                            categories[category], null, sourceValue));
                     }
                     if (!seriesPercentStacked && currentSeries.ErrorBars != null) {
                         OfficeSeries errorSeries = currentSeries;
@@ -1676,7 +1687,7 @@ public static partial class OfficeChartDrawingRenderer {
         double plotTop, double plotWidth, double plotHeight, ChartPlotBounds clipBounds,
         OfficeChartStyle style, OfficeChartLayout layout,
         ValueRange? valueAxisRange = null, OfficeChartAxisGroup? axisGroup = null,
-        double? maximumBubbleDiameterOverride = null) {
+        double? maximumBubbleDiameterOverride = null, Action<OfficeChartPointPlacement>? pointRendered = null) {
         IReadOnlyList<string> categories = snapshot.Data.Categories;
         IReadOnlyList<OfficeSeries> series = snapshot.Data.Series;
         if (categories.Count == 0 || series.Count == 0) {
@@ -1787,6 +1798,9 @@ public static partial class OfficeChartDrawingRenderer {
                 }
 
                 int pointIndex = points[i].SourceIndex;
+                pointRendered?.Invoke(new OfficeChartPointPlacement(point.X - 6, point.Y - 6, 12, 12, currentSeries.Name,
+                    null, currentSeries.SourceXValue?.Invoke(xValues[pointIndex]) ?? xValues[pointIndex],
+                    GetSourceSeriesValue(currentSeries, pointIndex, currentSeries.Values[pointIndex])));
                 string labelCategory = currentSeries.XValues != null && pointIndex < xValues.Count
                     ? (currentSeries.SourceXValue?.Invoke(xValues[pointIndex]) ?? xValues[pointIndex]).ToString("0.####", CultureInfo.InvariantCulture)
                     : pointIndex < categories.Count ? categories[pointIndex] : string.Empty;

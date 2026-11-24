@@ -30,5 +30,9 @@
   <ItemGroup>
     <None Include="../Assets/OfficeIMO.png" Pack="true" PackagePath="/" />
     <None Include="README.md" Pack="true" PackagePath="README.md" />
+    <None Include="MapData/README.md" Pack="true" PackagePath="MapData/README.md" />
+    <None Include="MapData/NaturalEarth-LICENSE.txt" Pack="true" PackagePath="MapData/NaturalEarth-LICENSE.txt" />
+    <None Include="THIRD-PARTY-NOTICES.md" Pack="true" PackagePath="THIRD-PARTY-NOTICES.md" />
+    <EmbeddedResource Include="MapData/NaturalEarth110m.json.gz" LogicalName="OfficeIMO.Notebook.Markdown.NaturalEarth110m.json.gz" />
   </ItemGroup>
 </Project>

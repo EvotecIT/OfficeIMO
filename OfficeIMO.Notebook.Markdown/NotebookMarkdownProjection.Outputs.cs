@@ -73,8 +73,19 @@ internal sealed partial class NotebookMarkdownProjection {
 
     private void AddDisplay(IReadOnlyDictionary<string, JsonElement> data, string location) {
         if (data.Count == 0) return;
+        var chartRenderer = _options.ChartRenderer;
+        NotebookChartPreview? preview = chartRenderer == null ? null : CreateChartPreview(data, interactive: true);
+        if (preview != null && chartRenderer?.Invoke(preview, location) is IMarkdownBlock interactive) {
+            _blocks.Add(interactive);
+            ReportChartPreview(preview, location, interactive: true);
+            return;
+        }
         bool usedImage = TryAddSavedDisplay(data, PreferredImageTypes, location);
-        if (!usedImage && TryAddChart(data, location)) return;
+        if (!usedImage && (preview ?? (chartRenderer == null ? CreateChartPreview(data, interactive: false) : null)) is NotebookChartPreview chart) {
+            _blocks.Add(new ImageBlock(chart.ImageUri, chart.Label, null));
+            ReportChartPreview(chart, location, interactive: false);
+            return;
+        }
         if (usedImage || TryAddSavedDisplay(data, PreferredOutputTypes, location)) {
             if (data.Keys.Any(IsInteractive)) {
                 AddUnsupported("notebook-output-static-fallback", location, "A stored static representation was used for interactive output.", OfficeConversionLossKind.Approximation);

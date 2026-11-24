@@ -40,6 +40,7 @@ public sealed class NotebookMarkdownExportOptions {
     }
 
     internal Func<NotebookOutput, string, IMarkdownBlock?>? OutputRenderer { get; set; }
+    internal Func<NotebookChartPreview, string, IMarkdownBlock?>? ChartRenderer { get; set; }
 
     /// <summary>Creates an independent snapshot of these options.</summary>
     public NotebookMarkdownExportOptions Clone() => (NotebookMarkdownExportOptions)MemberwiseClone();

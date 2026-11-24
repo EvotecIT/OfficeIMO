@@ -22,6 +22,9 @@ public sealed class NotebookHtmlExportOptions {
     /// <summary>Renders supported saved Jupyter widgets as offline browser controls.</summary>
     public bool IncludeInteractiveWidgets { get; set; }
 
+    /// <summary>Enables offline zoom, pan and inspection of values in supported saved chart specifications.</summary>
+    public bool IncludeInteractiveCharts { get; set; }
+
     /// <summary>Rejects the result if a completed stage reports fidelity loss.</summary>
     public bool FailOnLoss { get; set; }
 
@@ -31,6 +34,7 @@ public sealed class NotebookHtmlExportOptions {
         Fragment = Fragment,
         Style = Style,
         IncludeInteractiveWidgets = IncludeInteractiveWidgets,
+        IncludeInteractiveCharts = IncludeInteractiveCharts,
         FailOnLoss = FailOnLoss
     };
 }

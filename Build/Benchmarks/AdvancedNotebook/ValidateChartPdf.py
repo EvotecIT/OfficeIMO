@@ -8,12 +8,17 @@ parser = argparse.ArgumentParser()
 parser.add_argument("pdf", type=Path)
 parser.add_argument("witness")
 parser.add_argument("--preview", type=Path)
+parser.add_argument("--require-vectors", action="store_true")
 args = parser.parse_args()
 text = subprocess.check_output(["pdftotext", str(args.pdf), "-"], text=True)
 if args.witness not in " ".join(text.split()):
     parser.error(f"Expected selectable text witness {args.witness!r} is absent.")
-if "Saved figure" in text:
+if "Saved figure" in text or "fig.show()" in text:
     parser.error("Hidden input leaked into the rendered PDF.")
+if args.require_vectors:
+    image_list = subprocess.check_output(["pdfimages", "-list", str(args.pdf)], text=True)
+    if len(image_list.splitlines()) != 2:
+        parser.error("Expected native vector geometry without raster images in this chart PDF.")
 
 with tempfile.TemporaryDirectory() as tmp:
     prefix = Path(tmp) / "page"

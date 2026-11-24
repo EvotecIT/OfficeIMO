@@ -90,6 +90,8 @@ internal static partial class NotebookPlotlyChart {
 
     private static bool TryReadTemplateTrace(JsonElement trace, string traceType) {
         JsonElement marker = Property(trace, "marker");
+        if (traceType == "heatmap") return ContainsOnly(trace, "type", "colorscale", "colorbar")
+            && TryReadHeatColorbar(Property(trace, "colorbar"), out _);
         if (traceType == "scattergl") return ContainsOnly(trace, "type", "marker")
             && ContainsOnly(marker, "colorbar")
             && ContainsOnly(Property(marker, "colorbar"), "outlinewidth", "ticks");

@@ -23,7 +23,11 @@ public static class NotebookHtmlConverterExtensions {
         NotebookHtmlWidgets? widgets = operation.IncludeInteractiveWidgets && operation.ProjectionOptions.IncludeOutputs
             ? new NotebookHtmlWidgets(notebook, cancellationToken)
             : null;
+        NotebookHtmlCharts? charts = operation.IncludeInteractiveCharts && operation.ProjectionOptions.IncludeOutputs
+            ? new NotebookHtmlCharts(cancellationToken)
+            : null;
         if (widgets != null) operation.ProjectionOptions.OutputRenderer = widgets.RenderOutput;
+        if (charts != null) operation.ProjectionOptions.ChartRenderer = charts.Render;
         using MarkdownDocument projection = notebook.ToMarkdown(operation.ProjectionOptions, out OfficeConversionReport projectionReport, cancellationToken);
         var htmlOptions = new MarkdownHtmlExportOptions {
             Kind = operation.Fragment ? MarkdownHtmlKind.Fragment : MarkdownHtmlKind.Document,
@@ -38,10 +42,12 @@ public static class NotebookHtmlConverterExtensions {
         NotebookHtmlMath.Register(htmlOptions, mathDiagnostics, cancellationToken);
         string html = projection.ToHtml(htmlOptions, out OfficeConversionReport htmlReport);
         if (widgets != null) html = widgets.AddRuntime(html, operation.Fragment);
+        if (charts != null) html = charts.AddRuntime(html, operation.Fragment);
         cancellationToken.ThrowIfCancellationRequested();
         var findings = new OfficeConversionReport("Jupyter", "Html", itemsWritten: projection.Blocks.Count,
             elapsed: timer.Elapsed, diagnostics: projectionReport.Diagnostics.Concat(htmlReport.Diagnostics).Concat(mathDiagnostics)
-                .Concat(widgets?.Diagnostics ?? Array.Empty<OfficeDiagnostic>()));
+                .Concat(widgets?.Diagnostics ?? Array.Empty<OfficeDiagnostic>())
+                .Concat(charts?.Diagnostics ?? Array.Empty<OfficeDiagnostic>()));
         return OfficeConversionOutput.Complete(html, findings, failOnLoss, out report);
     }
 

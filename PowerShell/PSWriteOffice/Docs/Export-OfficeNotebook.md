@@ -11,7 +11,7 @@ Exports a live notebook or a selected saved structured output, returning the con
 ## SYNTAX
 ### Document (Default)
 ```powershell
-Export-OfficeNotebook [-Path] <string> -Document <NotebookDocument> [-IncludeCode] [-IncludeOutputs] [-IncludeExecutionCounts] [-PreserveMarkdownSource] [-IncludeInteractiveWidgets] [-Title <string>] [-Author <string>] [-FailOnLoss] [-NoClobber] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeNotebook [-Path] <string> -Document <NotebookDocument> [-IncludeCode] [-IncludeOutputs] [-IncludeExecutionCounts] [-PreserveMarkdownSource] [-IncludeInteractiveWidgets] [-IncludeInteractiveCharts] [-Title <string>] [-Author <string>] [-FailOnLoss] [-NoClobber] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### SavedTable
@@ -110,6 +110,22 @@ Accept wildcard characters: False
 
 ### -IncludeExecutionCounts
 Include saved execution counts in a rendered document. Enabled by default.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Document
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -IncludeInteractiveCharts
+Enable zoom, pan and saved data inspection in supported offline HTML charts.
 
 ```yaml
 Type: SwitchParameter

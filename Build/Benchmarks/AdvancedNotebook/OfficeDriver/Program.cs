@@ -3,7 +3,7 @@ using OfficeIMO.Notebook.Html;
 using OfficeIMO.Notebook.Pdf;
 
 if (args.Length != 3) {
-    throw new ArgumentException("Usage: OfficeNotebookExport <pdf|widget-html> <notebook> <destination>");
+    throw new ArgumentException("Usage: OfficeNotebookExport <pdf|widget-html|chart-html> <notebook> <destination>");
 }
 
 using var notebook = NotebookDocument.Load(args[1]);
@@ -15,8 +15,10 @@ switch (args[0]) {
         });
         break;
     case "widget-html":
+    case "chart-html":
         await notebook.SaveAsHtmlAsync(args[2], new NotebookHtmlExportOptions {
-            IncludeInteractiveWidgets = true,
+            IncludeInteractiveWidgets = args[0] == "widget-html",
+            IncludeInteractiveCharts = args[0] == "chart-html",
             ProjectionOptions = new() { IncludeCode = false, IncludeExecutionCounts = false }
         });
         break;

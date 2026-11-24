@@ -4,11 +4,12 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Notebook.Markdown;
 
 internal static partial class NotebookPlotlyChart {
-    private static OfficeDrawing? RenderScene(SceneLayout layout, List<SceneTrace> traces, CancellationToken cancellationToken) {
+    private static OfficeDrawing? RenderScene(SceneLayout layout, List<SceneTrace> traces, CancellationToken cancellationToken,
+        List<NotebookChartMark>? chartMarks) {
         SceneDomain domain = SceneDomain.Create(layout, traces);
         SceneScale? colorbar = traces[0].Scale is { Show: true } scale ? scale : null;
         int legendCount = layout.ShowLegend ? traces.Count(trace => trace.Legend) : 0;
-        bool bottomLegend = legendCount != 0 && (layout.Legend == OfficeChartLegendPosition.Bottom || layout.Width < 360);
+        bool bottomLegend = legendCount != 0 && (layout.Legend == OfficeChartLegendPosition.Bottom || layout.Width < 360 || colorbar != null);
         double rightReserve = colorbar != null ? 48 : legendCount != 0 && !bottomLegend ? 82 : 0;
         double bottomReserve = bottomLegend ? ((legendCount + 3) / 4) * 15 + 8 : 0;
         if (!SceneView.TryCreate(layout, domain, rightReserve, bottomReserve, out SceneView view, out SceneProjection[] corners))
@@ -25,16 +26,17 @@ internal static partial class NotebookPlotlyChart {
 
         PaintSceneAxes(drawing, layout, view, corners);
         if (traces[0].Faces != null) {
-            if (!PaintSceneSurface(drawing, traces[0], view, cancellationToken)) return null;
-        } else if (!PaintSceneScatter(drawing, traces, view, cancellationToken)) {
+            if (!PaintSceneFaces(drawing, traces[0], view, cancellationToken, chartMarks)) return null;
+        } else if (!PaintSceneScatter(drawing, traces, view, cancellationToken, chartMarks)) {
             return null;
         }
-        if (colorbar != null) PaintSceneColorbar(drawing, colorbar, layout.TextColor);
+        if (colorbar != null) PaintSceneColorbar(drawing, colorbar, layout.TextColor, traces[0].ScaleTitle);
         if (legendCount != 0) PaintSceneLegend(drawing, traces, layout.TextColor, legendCount, bottomLegend, bottomReserve);
         return drawing;
     }
 
-    private static bool PaintSceneSurface(OfficeDrawing drawing, SceneTrace trace, SceneView view, CancellationToken cancellationToken) {
+    private static bool PaintSceneFaces(OfficeDrawing drawing, SceneTrace trace, SceneView view, CancellationToken cancellationToken,
+        List<NotebookChartMark>? chartMarks) {
         var points = new SceneProjection[trace.Points.Length];
         for (int index = 0; index < points.Length; index++) {
             if (!view.TryProject(trace.Points[index], out points[index])) return false;
@@ -49,13 +51,22 @@ internal static partial class NotebookPlotlyChart {
         foreach (var item in faces) {
             cancellationToken.ThrowIfCancellationRequested();
             SceneFace face = trace.Faces[item.Index];
-            PaintScenePolygon(drawing, trace.Scale!.At(face.ColorValue),
-                view.Place(points[face.A]), view.Place(points[face.B]), view.Place(points[face.C]));
+            OfficePoint a = view.Place(points[face.A]);
+            OfficePoint b = view.Place(points[face.B]);
+            OfficePoint c = view.Place(points[face.C]);
+            OfficeColor color = trace.IsMesh ? ShadeMeshFace(trace, face, view) : trace.Scale!.At(face.ColorValue);
+            if (PaintScenePolygon(drawing, color, a, b, c) && chartMarks != null && color.A != 0) {
+                SceneVector value = (trace.Points[face.A] + trace.Points[face.B] + trace.Points[face.C]) * (1d / 3);
+                var position = new OfficePoint((a.X + b.X + c.X) / 3, (a.Y + b.Y + c.Y) / 3);
+                string label = (trace.Name ?? (trace.IsMesh ? "Mesh" : "Surface")) + " face center";
+                AddSceneInspectMark(chartMarks, position, value, label, approximate: true);
+            }
         }
         return true;
     }
 
-    private static bool PaintSceneScatter(OfficeDrawing drawing, List<SceneTrace> traces, SceneView view, CancellationToken cancellationToken) {
+    private static bool PaintSceneScatter(OfficeDrawing drawing, List<SceneTrace> traces, SceneView view, CancellationToken cancellationToken,
+        List<NotebookChartMark>? chartMarks) {
         var marks = new List<SceneMark>();
         foreach (SceneTrace trace in traces) {
             SceneProjection previous = default;
@@ -63,9 +74,9 @@ internal static partial class NotebookPlotlyChart {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!view.TryProject(trace.Points[index], out SceneProjection point)) return false;
                 if (trace.Lines && index > 0) {
-                    marks.Add(new SceneMark((previous.Depth + point.Depth) / 2, marks.Count, trace, view.Place(previous), view.Place(point)));
+                    marks.Add(new SceneMark((previous.Depth + point.Depth) / 2, marks.Count, trace, view.Place(previous), view.Place(point), index));
                 }
-                if (trace.Markers) marks.Add(new SceneMark(point.Depth, marks.Count, trace, view.Place(point), null));
+                if (trace.Markers) marks.Add(new SceneMark(point.Depth, marks.Count, trace, view.Place(point), null, index));
                 previous = point;
             }
         }
@@ -76,9 +87,16 @@ internal static partial class NotebookPlotlyChart {
             if (mark.End is OfficePoint end) {
                 PaintSceneLine(drawing, mark.Start, end, style.LineColor ?? style.MarkerColor ?? mark.Trace.SeriesColor,
                     style.LineWidth?.ToPoints() ?? 1.7, style.LineDash ?? OfficeStrokeDashStyle.Solid);
+                if (chartMarks != null && !mark.Trace.Markers) {
+                    AddSceneInspectMark(chartMarks, end, mark.Trace.Points[mark.SourceIndex], mark.Trace.Name ?? "Scatter");
+                    if (mark.SourceIndex == 1)
+                        AddSceneInspectMark(chartMarks, mark.Start, mark.Trace.Points[0], mark.Trace.Name ?? "Scatter");
+                }
             } else {
                 PaintSceneMarker(drawing, mark.Start, style.MarkerColor ?? style.LineColor ?? mark.Trace.SeriesColor,
                     style.MarkerSize?.ToPoints() ?? 5.5, style.MarkerShape ?? OfficeChartMarkerShape.Circle);
+                if (chartMarks != null)
+                    AddSceneInspectMark(chartMarks, mark.Start, mark.Trace.Points[mark.SourceIndex], mark.Trace.Name ?? "Scatter");
             }
         }
         return true;
@@ -109,20 +127,21 @@ internal static partial class NotebookPlotlyChart {
         return depth != 0 ? depth : leftIndex.CompareTo(rightIndex);
     }
 
-    private static void PaintScenePolygon(OfficeDrawing drawing, OfficeColor color, params OfficePoint[] points) {
+    private static bool PaintScenePolygon(OfficeDrawing drawing, OfficeColor color, params OfficePoint[] points) {
         double area = 0;
         for (int i = 0; i < points.Length; i++) {
             OfficePoint a = points[i];
             OfficePoint b = points[(i + 1) % points.Length];
             area += a.X * b.Y - b.X * a.Y;
         }
-        if (Math.Abs(area) < 1e-7) return;
+        if (Math.Abs(area) < 1e-7) return false;
         OfficeShape polygon = OfficeShape.Polygon(points);
         polygon.FillColor = color;
         // A matching thin stroke covers antialias seams between adjacent faces.
         polygon.StrokeColor = color;
         polygon.StrokeWidth = 0.18;
         drawing.AddShape(polygon, points.Min(point => point.X), points.Min(point => point.Y));
+        return true;
     }
 
     private static void PaintSceneLine(OfficeDrawing drawing, OfficePoint start, OfficePoint end, OfficeColor color, double width,
@@ -140,5 +159,13 @@ internal static partial class NotebookPlotlyChart {
 
     private static string FormatSceneNumber(double value) => value.ToString("G4", CultureInfo.InvariantCulture);
 
-    private readonly record struct SceneMark(double Depth, int Index, SceneTrace Trace, OfficePoint Start, OfficePoint? End);
+    private static void AddSceneInspectMark(List<NotebookChartMark> chartMarks, OfficePoint position, SceneVector value, string name,
+        bool approximate = false) {
+        string format = approximate ? "G4" : "G";
+        string label = $"{name}, x {value.X.ToString(format, CultureInfo.InvariantCulture)}, y {value.Y.ToString(format, CultureInfo.InvariantCulture)}, " +
+            $"z {value.Z.ToString(format, CultureInfo.InvariantCulture)}";
+        chartMarks.Add(new NotebookChartMark(position.X - 6, position.Y - 6, 12, 12, label));
+    }
+
+    private readonly record struct SceneMark(double Depth, int Index, SceneTrace Trace, OfficePoint Start, OfficePoint? End, int SourceIndex);
 }

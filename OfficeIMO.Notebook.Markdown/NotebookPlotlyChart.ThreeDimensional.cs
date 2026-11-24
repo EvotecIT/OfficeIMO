@@ -7,17 +7,17 @@ internal static partial class NotebookPlotlyChart {
     private const int MaxSceneTraces = 8;
     private const int MaxSurfaceSide = 32;
 
-    /// <summary>Projects a bounded saved Plotly scatter or surface scene to an editable static drawing.</summary>
-    internal static OfficeDrawing? TryRenderThreeDimensional(JsonElement spec, CancellationToken cancellationToken, out string? title) {
+    /// <summary>Projects bounded saved Plotly scatter, surface, or explicit mesh geometry through the saved camera.</summary>
+    internal static OfficeDrawing? TryRenderThreeDimensional(JsonElement spec, CancellationToken cancellationToken, out string? title,
+        List<NotebookChartMark>? marks = null) {
         title = null;
         cancellationToken.ThrowIfCancellationRequested();
         if (!ContainsOnly(spec, "data", "layout", "config")) return null;
         JsonElement data = Property(spec, "data");
         if (data.ValueKind != JsonValueKind.Array || data.GetArrayLength() is < 1 or > MaxSceneTraces) return null;
-        bool surface = ValueOrDefault(Property(data[0], "type"), "surface", allowMissing: false);
-        if (surface && data.GetArrayLength() != 1) return null;
-        string kind = surface ? "surface" : "scatter3d";
-        if (!ValueOrDefault(Property(data[0], "type"), kind, allowMissing: false) ||
+        if (!TryReadString(Property(data[0], "type"), 9, out string? kind) ||
+            kind is not ("surface" or "mesh3d" or "scatter3d") ||
+            (kind != "scatter3d" && data.GetArrayLength() != 1) ||
             !TryReadSceneLayout(Property(spec, "layout"), kind, data.GetArrayLength(), out SceneLayout? layout))
             return null;
 
@@ -27,15 +27,18 @@ internal static partial class NotebookPlotlyChart {
             cancellationToken.ThrowIfCancellationRequested();
             if (!ValueOrDefault(Property(trace, "type"), kind, allowMissing: false) ||
                 !ValueOrDefault(Property(trace, "scene"), "scene")) return null;
-            SceneTrace? parsed = surface
-                ? ReadSurface(trace, layout!.TraceTemplate, remaining)
-                : ReadScatter3D(trace, layout!.Style.GetSeriesColor(traces.Count), remaining);
+            OfficeColor seriesColor = layout!.Style.GetSeriesColor(traces.Count);
+            SceneTrace? parsed = kind switch {
+                "surface" => ReadSurface(trace, layout.TraceTemplate, remaining),
+                "mesh3d" => ReadSceneMesh(trace, layout.TraceTemplate, seriesColor, remaining),
+                _ => ReadScatter3D(trace, seriesColor, remaining)
+            };
             if (parsed == null) return null;
             traces.Add(parsed);
             remaining -= parsed.Points.Length;
         }
 
-        OfficeDrawing? drawing = RenderScene(layout!, traces, cancellationToken);
+        OfficeDrawing? drawing = RenderScene(layout!, traces, cancellationToken, marks);
         if (drawing != null) title = layout!.Title;
         return drawing;
     }
@@ -85,7 +88,7 @@ internal static partial class NotebookPlotlyChart {
         if (traces.ValueKind != JsonValueKind.Array || traces.GetArrayLength() != 1) return false;
         trace = traces[0];
         if (!ValueOrDefault(Property(trace, "type"), kind, allowMissing: false)) return false;
-        if (kind == "surface") {
+        if (kind is "surface" or "mesh3d") {
             return ContainsOnly(trace, "type", "colorbar", "colorscale") &&
                 ContainsOnly(Property(trace, "colorbar"), "outlinewidth", "ticks");
         }

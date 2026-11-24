@@ -19,6 +19,23 @@ fields, toggles and Play controls can change values locally. Python callbacks
 require a live kernel. The export reports unsupported models and styles and
 leaves notebook-supplied widget code inert.
 
+To let readers explore supported saved charts offline, set `IncludeInteractiveCharts`.
+The chart uses the same native SVG drawing as other notebook export formats.
+Readers can zoom, pan after zooming, reset the view, and inspect available
+saved values by pointing, tapping, or using the data-point buttons. The
+arrow keys pan a focused, zoomed chart.
+
+```csharp
+await notebook.SaveAsHtmlAsync("interactive.html", new NotebookHtmlExportOptions {
+    IncludeInteractiveCharts = true
+});
+```
+
+The viewer is embedded in the exported file. It preserves the selected
+projection and can inspect it without a chart library, server, or network
+assets. The conversion report identifies approximations and falls back to
+available saved representations for unsupported specifications.
+
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary
 

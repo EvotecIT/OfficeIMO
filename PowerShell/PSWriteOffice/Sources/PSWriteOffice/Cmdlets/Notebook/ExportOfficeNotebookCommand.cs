@@ -58,6 +58,10 @@ public sealed class ExportOfficeNotebookCommand : AsyncPSCmdlet {
     [Parameter(ParameterSetName = "Document")]
     public SwitchParameter IncludeInteractiveWidgets { get; set; }
 
+    /// <summary>Enable zoom, pan and saved data inspection in supported offline HTML charts.</summary>
+    [Parameter(ParameterSetName = "Document")]
+    public SwitchParameter IncludeInteractiveCharts { get; set; }
+
     /// <summary>Optional title for a rendered document.</summary>
     [Parameter(ParameterSetName = "Document")]
     public string? Title { get; set; }
@@ -108,11 +112,17 @@ public sealed class ExportOfficeNotebookCommand : AsyncPSCmdlet {
         if (parameters.ContainsKey(nameof(PreserveMarkdownSource)) && extension is not (".md" or ".markdown")) {
             throw new PSArgumentException("-PreserveMarkdownSource applies only to Markdown exports.");
         }
-        if (parameters.ContainsKey(nameof(IncludeInteractiveWidgets)) && extension is not (".html" or ".htm")) {
-            throw new PSArgumentException("-IncludeInteractiveWidgets applies only to HTML exports.");
+        if (extension is not (".html" or ".htm")) {
+            if (parameters.ContainsKey(nameof(IncludeInteractiveWidgets))) {
+                throw new PSArgumentException("-IncludeInteractiveWidgets applies only to HTML exports.");
+            }
+            if (parameters.ContainsKey(nameof(IncludeInteractiveCharts))) {
+                throw new PSArgumentException("-IncludeInteractiveCharts applies only to HTML exports.");
+            }
         }
         bool failOnLoss = FailOnLoss.IsPresent;
         bool includeInteractiveWidgets = IncludeInteractiveWidgets.IsPresent;
+        bool includeInteractiveCharts = IncludeInteractiveCharts.IsPresent;
         if (extension == ".ps1") {
             if (parameters.ContainsKey(nameof(IncludeCode)) || parameters.ContainsKey(nameof(IncludeOutputs)) ||
                 parameters.ContainsKey(nameof(IncludeExecutionCounts)) || parameters.ContainsKey(nameof(Title)) ||
@@ -133,7 +143,10 @@ public sealed class ExportOfficeNotebookCommand : AsyncPSCmdlet {
             ".md" or ".markdown" => (stream, token) => document.SaveAsMarkdownAsync(stream, projection, token),
             ".html" or ".htm" => (stream, token) => document.SaveAsHtmlAsync(stream,
                 new NotebookHtmlExportOptions {
-                    ProjectionOptions = projection, FailOnLoss = failOnLoss, IncludeInteractiveWidgets = includeInteractiveWidgets
+                    ProjectionOptions = projection,
+                    FailOnLoss = failOnLoss,
+                    IncludeInteractiveWidgets = includeInteractiveWidgets,
+                    IncludeInteractiveCharts = includeInteractiveCharts
                 }, token),
             ".pdf" => (stream, token) => document.SaveAsPdfAsync(stream, new NotebookPdfExportOptions {
                 IncludeCode = projection.IncludeCode, IncludeOutputs = projection.IncludeOutputs,

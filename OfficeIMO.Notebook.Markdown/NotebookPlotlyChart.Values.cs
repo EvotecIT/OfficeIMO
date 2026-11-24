@@ -123,8 +123,8 @@ internal static partial class NotebookPlotlyChart {
         return values;
     }
 
-    /// <summary>Reads the little-endian, one-dimensional NumPy array encoding used by Plotly.py.</summary>
-    private static double[]? ReadTypedNumbers(JsonElement source, int maxCount, bool hasMatrixShape = false) {
+    /// <summary>Reads Plotly.py's little-endian NumPy array encoding. Opt in to NaN only for plots that treat it as missing.</summary>
+    private static double[]? ReadTypedNumbers(JsonElement source, int maxCount, bool hasMatrixShape = false, bool allowNaN = false) {
         bool knownShape = hasMatrixShape ? ContainsOnly(source, "dtype", "bdata", "shape") : ContainsOnly(source, "dtype", "bdata");
         if (!knownShape ||
             !TryReadString(Property(source, "dtype"), 2, out string? dtype)) return null;
@@ -161,7 +161,7 @@ internal static partial class NotebookPlotlyChart {
                 "f8" => BitConverter.ToDouble(bytes, offset),
                 _ => double.NaN
             };
-            if (!IsSupportedNumber(value)) return null;
+            if (!IsSupportedNumber(value) && !(allowNaN && double.IsNaN(value))) return null;
             result[index] = value;
         }
         return result;
