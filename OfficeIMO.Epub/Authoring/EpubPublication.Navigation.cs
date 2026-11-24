@@ -105,8 +105,9 @@ public sealed partial class EpubPublication {
     private string NavigationPath() => NavigationPath(Root, _entries);
 
     private string NavigationPath(XElement root, IReadOnlyDictionary<string, byte[]> entries) {
-        var manifest = root.Element(Opf + "manifest")!.Elements(Opf + "item").Select(element => new EpubManifestItem(element, PackagePath));
-        EpubManifestItem? item = PackageVersion == "3.0" ? manifest.SingleOrDefault(resource => HasToken(resource.Properties, "nav")) :
+        IEnumerable<EpubManifestItem> manifest = root == Root ? LiveManifest.Items :
+            root.Element(Opf + "manifest")!.Elements(Opf + "item").Select(element => new EpubManifestItem(element, PackagePath));
+        EpubManifestItem? item = PackageVersion == "3.0" ? (root == Root ? LiveManifest.NavigationItems : manifest.Where(resource => HasToken(resource.Properties, "nav"))).SingleOrDefault() :
             manifest.SingleOrDefault(resource => resource.Id == (string?)root.Element(Opf + "spine")!.Attribute("toc"));
         if (item == null) throw new InvalidDataException("Package has no declared navigation resource.");
         string expected = PackageVersion == "3.0" ? "application/xhtml+xml" : "application/x-dtbncx+xml";
@@ -115,21 +116,101 @@ public sealed partial class EpubPublication {
         if (!entries.ContainsKey(path)) throw new InvalidDataException("Navigation resource is missing.");
         return path;
     }
-    private byte[] PrepareAppendedNavigation(EpubNavigationEntry entry, string pendingPath) {
+    // AddChapter keeps the navigation it last wrote, with its TOC list and the byte offset of that
+    // list's end tag, so appending a chapter neither parses nor re-serializes the whole table of contents.
+    // The cache is reused only while the retained payload is that exact array.
+    private sealed class AppendedNavigation {
+        internal AppendedNavigation(byte[] bytes, XDocument document, XElement? list, int listEnd) {
+            Bytes = bytes; Document = document; List = list; ListEnd = listEnd;
+        }
+        internal byte[] Bytes { get; }
+        internal XDocument Document { get; }
+        internal XElement? List { get; }
+        internal int ListEnd { get; }
+    }
+
+    private AppendedNavigation? _appendedNavigation;
+    private static readonly byte[] NavigationMarker = Encoding.ASCII.GetBytes("<!--officeimo-toc-" + Guid.NewGuid().ToString("N") + "-->");
+
+    private byte[] PrepareAppendedNavigation(EpubNavigationEntry entry, string pendingPath, out AppendedNavigation appended) {
         string path = NavigationPath();
-        XDocument navigation = ParseXml(_entries[path], _maximumEntryBytes);
+        byte[] current = _entries[path];
+        AppendedNavigation? cached = _appendedNavigation != null && ReferenceEquals(_appendedNavigation.Bytes, current) ? _appendedNavigation : null;
+        _appendedNavigation = null;
+        XDocument navigation = cached?.Document ?? ParseXml(current, _maximumEntryBytes);
         ValidateNavigationRoot(navigation);
-        if (PackageVersion == "3.0") {
-            XElement nav = navigation.Descendants(Html + "nav").Single(element => HasToken((string?)element.Attribute(Ops + "type"), "toc"));
-            XElement list = nav.Element(Html + "ol") ?? throw new InvalidDataException("TOC list is missing.");
-            list.Add(BuildHtmlNodes(new[] { entry }, HtmlContentLinkOwner(navigation, path), 0, pendingPath));
-        } else {
+        if (PackageVersion != "3.0") {
             XElement map = navigation.Root?.Element(Ncx + "navMap") ?? throw new InvalidDataException("NCX navMap is missing.");
             int order = map.Descendants(Ncx + "navPoint").Count();
             map.Add(BuildNcxNodes(new[] { entry }, path, 0, ref order, NavigationIds(navigation), pendingPath));
             NormalizeNcxPlayOrder(navigation, path);
+            byte[] ncx = SerializeXml(navigation, _maximumEntryBytes);
+            appended = new AppendedNavigation(ncx, navigation, null, -1);
+            return ncx;
         }
-        return SerializeXml(navigation, _maximumEntryBytes);
+        XElement list = cached?.List ?? (navigation.Descendants(Html + "nav").Single(element => HasToken((string?)element.Attribute(Ops + "type"), "toc"))
+            .Element(Html + "ol") ?? throw new InvalidDataException("TOC list is missing."));
+        bool hadItems = list.LastNode != null;
+        XNode[] nodes = BuildHtmlNodes(new[] { entry }, HtmlContentLinkOwner(navigation, path), 0, pendingPath).Cast<XNode>().ToArray();
+        list.Add(nodes);
+        if (cached != null && cached.ListEnd >= 0 && hadItems && SerializeInListScope(list, nodes) is byte[] fragment) {
+            // The new entry is the list's last child, so its bytes go just before the list's end tag.
+            if (current.LongLength + fragment.LongLength > _maximumEntryBytes) throw new InvalidDataException("Navigation exceeds the retained entry-byte limit.");
+            byte[] spliced = new byte[current.Length + fragment.Length];
+            Buffer.BlockCopy(current, 0, spliced, 0, cached.ListEnd);
+            Buffer.BlockCopy(fragment, 0, spliced, cached.ListEnd, fragment.Length);
+            Buffer.BlockCopy(current, cached.ListEnd, spliced, cached.ListEnd + fragment.Length, current.Length - cached.ListEnd);
+            appended = new AppendedNavigation(spliced, navigation, list, cached.ListEnd + fragment.Length);
+            return spliced;
+        }
+        // Serialize once with a marker comment before the list's end tag to learn where later entries go.
+        var marker = new XComment(Encoding.ASCII.GetString(NavigationMarker, 4, NavigationMarker.Length - 7));
+        list.Add(marker);
+        byte[] marked;
+        try { marked = SerializeXml(navigation, _maximumEntryBytes + NavigationMarker.Length); } finally { marker.Remove(); }
+        int listEnd = IndexOf(marked, NavigationMarker, 0);
+        if (listEnd < 0 || IndexOf(marked, NavigationMarker, listEnd + 1) >= 0) {
+            byte[] plain = SerializeXml(navigation, _maximumEntryBytes);
+            appended = new AppendedNavigation(plain, navigation, list, -1);
+            return plain;
+        }
+        byte[] bytes = new byte[marked.Length - NavigationMarker.Length];
+        Buffer.BlockCopy(marked, 0, bytes, 0, listEnd);
+        Buffer.BlockCopy(marked, listEnd + NavigationMarker.Length, bytes, listEnd, bytes.Length - listEnd);
+        if (bytes.LongLength > _maximumEntryBytes) throw new InvalidDataException("Navigation exceeds the retained entry-byte limit.");
+        appended = new AppendedNavigation(bytes, navigation, list, listEnd);
+        return bytes;
+    }
+
+    // Serializes nodes as they appear inside the list, using the namespace declarations in scope there.
+    // Returns null when the nodes need a declaration of their own, because the document's serializer
+    // could then choose a different prefix than a standalone one.
+    private static byte[]? SerializeInListScope(XElement list, IReadOnlyList<XNode> nodes) {
+        var scope = new XElement(list.Name);
+        foreach (XElement ancestor in list.AncestorsAndSelf())
+            foreach (XAttribute declaration in ancestor.Attributes().Where(attribute => attribute.IsNamespaceDeclaration))
+                if (scope.Attribute(declaration.Name) == null) scope.Add(new XAttribute(declaration));
+        string text = Encoding.ASCII.GetString(NavigationMarker, 4, NavigationMarker.Length - 7);
+        scope.Add(new XComment(text));
+        foreach (XNode node in nodes) scope.Add(node is XElement element ? new XElement(element) : node is XText value ? new XText(value) : (object)node.ToString());
+        scope.Add(new XComment(text));
+        byte[] wrapped = SerializeXml(new XDocument(scope));
+        int start = IndexOf(wrapped, NavigationMarker, 0);
+        int end = start < 0 ? -1 : IndexOf(wrapped, NavigationMarker, start + NavigationMarker.Length);
+        if (start < 0 || end < 0) return null;
+        start += NavigationMarker.Length;
+        byte[] fragment = new byte[end - start];
+        Buffer.BlockCopy(wrapped, start, fragment, 0, fragment.Length);
+        return IndexOf(fragment, Encoding.ASCII.GetBytes("xmlns"), 0) >= 0 ? null : fragment;
+    }
+
+    private static int IndexOf(byte[] data, byte[] pattern, int start) {
+        for (int index = start; index <= data.Length - pattern.Length; index++) {
+            int offset = 0;
+            while (offset < pattern.Length && data[index + offset] == pattern[offset]) offset++;
+            if (offset == pattern.Length) return index;
+        }
+        return -1;
     }
     private void ValidateNavigationRoot(XDocument navigation) {
         if (navigation.Root?.Name != (PackageVersion == "3.0" ? Html + "html" : Ncx + "ncx"))
@@ -197,7 +278,7 @@ public sealed partial class EpubPublication {
         if (target.Kind != EpubReferenceKind.Container || target.ContainerPath == null || (!_entries.ContainsKey(target.ContainerPath) && target.ContainerPath != pendingPath))
             throw new InvalidDataException("Navigation target must be a retained container resource: " + node.Target);
         if (target.ContainerPath != pendingPath)
-            RequireSpineTarget(target, Manifest, Spine.Select(item => item.ManifestId));
+            RequireSpineTarget(target, SpineTargetPaths(LiveManifest.Items, Spine.Select(item => item.ManifestId)));
         return RelativeHref(owner, target.ContainerPath) + (target.Query == null ? string.Empty : "?" + target.Query) +
             (target.Fragment == null ? string.Empty : "#" + Uri.EscapeDataString(target.Fragment));
     }
@@ -209,13 +290,18 @@ public sealed partial class EpubPublication {
         }
     }
 
-    private static void RequireSpineTarget(EpubReference target, IEnumerable<EpubManifestItem> manifest, IEnumerable<string> spineIds, bool requireContainer = false) {
+    // Container paths of manifest declarations that have a reading position.
+    private static HashSet<string?> SpineTargetPaths(IEnumerable<EpubManifestItem> manifest, IEnumerable<string> spineIds) {
+        var ids = new HashSet<string>(spineIds, StringComparer.Ordinal);
+        return new HashSet<string?>(manifest.Where(item => ids.Contains(item.Id)).Select(item => item.Reference.ContainerPath), StringComparer.Ordinal);
+    }
+
+    private static void RequireSpineTarget(EpubReference target, HashSet<string?> spinePaths, bool requireContainer = false) {
         if (target.Kind != EpubReferenceKind.Container) {
             if (requireContainer) throw new InvalidDataException("Navigation must target container content: " + target.Original);
             return;
         }
-        var ids = new HashSet<string>(spineIds, StringComparer.Ordinal);
-        if (!manifest.Any(item => item.Reference.ContainerPath == target.ContainerPath && ids.Contains(item.Id)))
+        if (!spinePaths.Contains(target.ContainerPath))
             throw new InvalidDataException("Navigation content target must be declared in the manifest and spine: " + target.Original);
     }
     private static int NavigationDepth(IEnumerable<EpubNavigationEntry> nodes) =>

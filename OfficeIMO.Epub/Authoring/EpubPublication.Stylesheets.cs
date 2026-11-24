@@ -4,7 +4,7 @@ namespace OfficeIMO.Epub;
 
 public sealed partial class EpubPublication {
     private bool ValidateStylesheetClosure(string owner, IReadOnlyDictionary<string, byte[]> entries,
-        EpubManifestItem[] manifest, CancellationToken token) {
+        ManifestLookup manifest, CancellationToken token) {
         var pending = new Queue<string>();
         var visited = new HashSet<string>(StringComparer.Ordinal);
         pending.Enqueue(owner);

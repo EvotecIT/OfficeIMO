@@ -464,6 +464,11 @@ body positioning context. Other content and styles remain intact. The method doe
 not fit overflowing text, paginate prose or rasterize text. Existing CSS and reader
 styles can override the generated rules. Overflow is not hidden automatically.
 
+Each call validates the page it changes: its content, the resources it uses and the
+links it holds. `Write` and `Save` validate the whole publication. Adding a page with
+`AddChapter`, `AddResource` and `SetFixedLayoutPage` therefore costs the same at page
+2,000 as at page 50, and a rejected call leaves the publication unchanged.
+
 `Regions` places existing top-level XHTML body elements by their HTML `id`. Each
 rectangle supplies left, top, width and height as decimal CSS pixels, with a top-left
 origin even in RTL books. Generated rules use absolute positioning, zero margins and
@@ -590,10 +595,13 @@ publication.SetContentXml(new Dictionary<string, XDocument> {
 });
 ```
 
-The batch validates content identifiers, local ID references and publication links before
-replacing any retained bytes. Duplicate IDs, dangling links, invalid content, retention
-limits or cancellation leave the publication unchanged. Caller-owned XML remains independent.
-This overload requires a structurally valid resulting publication; the single-document
+The batch validates the edited documents before replacing any retained bytes: content
+identifiers, local ID references, declared resources and links to other documents,
+including fragments in the documents they point to. When a batch removes identifiers or
+rewrites the navigation document, the links in every document are checked again, so a batch
+cannot break links held elsewhere. Other problems in the book are reported by `Write` and
+`Save`. Duplicate IDs, dangling links, invalid content, retention limits or cancellation
+leave the publication unchanged. Caller-owned XML remains independent. The single-document
 setter remains available while assembling a book. Export still applies signature,
 encryption and output policies, and independent accessibility and reader checks remain separate.
 

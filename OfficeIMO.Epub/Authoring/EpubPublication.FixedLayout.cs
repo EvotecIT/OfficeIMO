@@ -34,8 +34,8 @@ public sealed partial class EpubPublication {
             cancellationToken: cancellationToken);
         if (EpubVocabulary.Expand(prefixes, "rendition:layout") != RenditionVocabulary + "layout")
             throw new InvalidDataException("The rendition prefix is mapped to a different vocabulary.");
-        XElement[] positions = RequireSection("spine").Elements(Opf + "itemref").Where(item => (string?)item.Attribute("idref") == manifestId).ToArray();
-        if (positions.Length != 1) throw new InvalidDataException("Fixed-layout page authoring requires exactly one spine position for the resource.");
+        IReadOnlyList<XElement> positions = SpinePositions(manifestId);
+        if (positions.Count != 1) throw new InvalidDataException("Fixed-layout page authoring requires exactly one spine position for the resource.");
         EpubManifestItem resource = RequireManifestItem(manifestId);
         XDocument document;
         if (HasMediaType(resource.MediaType, "image/svg+xml")) {
@@ -53,7 +53,8 @@ public sealed partial class EpubPublication {
             ConfigureXhtmlCanvas(document, page, cancellationToken);
         }
         var properties = new List<string>();
-        foreach (string token in Tokens((string?)positions[0].Attribute("properties"))) {
+        XElement position = positions[0];
+        foreach (string token in Tokens((string?)position.Attribute("properties"))) {
             cancellationToken.ThrowIfCancellationRequested();
             if (!IsFixedLayoutOverride(token, prefixes)) properties.Add(token);
         }
@@ -62,8 +63,7 @@ public sealed partial class EpubPublication {
         properties.Add("rendition:spread-" + spread);
         if (side != null) properties.Add(side);
         CommitContentEdits(new Dictionary<string, XDocument>(StringComparer.Ordinal) { [manifestId] = document }, cancellationToken,
-            validatePublication: true, packageEdit: root => root.Element(Opf + "spine")!.Elements(Opf + "itemref")
-                .Single(item => (string?)item.Attribute("idref") == manifestId).SetAttributeValue("properties", string.Join(" ", properties)));
+            validatePublication: true, packageEdit: _ => position.SetAttributeValue("properties", string.Join(" ", properties)));
     }
 
     private void ConfigureXhtmlCanvas(XDocument document, EpubFixedLayoutPage page, CancellationToken cancellationToken) {

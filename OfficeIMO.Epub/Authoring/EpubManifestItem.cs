@@ -6,6 +6,7 @@ public sealed class EpubManifestItem {
     private readonly string _opfPath;
     private readonly EpubPublication? _publication;
     internal EpubManifestItem(XElement element, string opfPath, EpubPublication? publication = null) { _element = element; _opfPath = opfPath; _publication = publication; }
+    internal XElement Element => _element;
     private void Set(XName name, string? value) {
         if (_publication != null) _publication.SetDeclarationAttribute(_element, name, value);
         else _element.SetAttributeValue(name, value);
@@ -15,7 +16,19 @@ public sealed class EpubManifestItem {
     /// <summary>Original OPF-relative resource URL.</summary>
     public string Href => (string?)_element.Attribute("href") ?? string.Empty;
     /// <summary>Resolved reference using the canonical EPUB URL rules.</summary>
-    public EpubReference Reference => EpubReference.Resolve(_opfPath, Href);
+    public EpubReference Reference {
+        get {
+            // Resolving is costly and the result is immutable, so reuse it until the href changes.
+            string href = Href;
+            if (_reference == null || !string.Equals(_referenceHref, href, StringComparison.Ordinal)) {
+                _reference = EpubReference.Resolve(_opfPath, href);
+                _referenceHref = href;
+            }
+            return _reference;
+        }
+    }
+    private EpubReference? _reference;
+    private string? _referenceHref;
     /// <summary>Declared MIME media type.</summary>
     public string MediaType { get => (string?)_element.Attribute("media-type") ?? string.Empty; set => Set("media-type", value); }
     /// <summary>Space-separated package properties.</summary>
