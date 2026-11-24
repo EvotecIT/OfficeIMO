@@ -46,7 +46,7 @@ public static partial class NotebookPowerShellScript {
             string source = cell.GetSource(MaximumScriptBytes - PreambleLength - sourceCharacters, out bool truncated);
             if (truncated) ThrowOutputLimit();
             sourceCharacters += source.Length;
-            if (cell.Kind == NotebookCellKind.Code) ReserveBoundaries(source, reservedBoundaries, cancellationToken);
+            ReserveBoundaries(source, cell.Kind == NotebookCellKind.Markdown, reservedBoundaries, cancellationToken);
             cells.Add(new ScriptCell(cell.Kind, cell.Id, source));
         }
 

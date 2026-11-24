@@ -47,14 +47,15 @@ internal sealed partial class NotebookHtmlWidgets {
             Report("notebook-widget-view-limit", location, "The saved widget view exceeds the HTML conversion budget.");
             return null;
         }
-        var viewRender = new WidgetRender();
-        if (!TryRenderModel(id, viewRender, 0)) {
-            Report("notebook-widget-view-unsupported", location,
-                "The saved widget uses a model, value, or layout outside the supported browser controls.");
+        var viewRender = new WidgetRender(MaxWidgetCharacters - _characters);
+        bool rendered = TryRenderModel(id, viewRender, 0);
+        if (viewRender.ExceedsLimit) {
+            Report("notebook-widget-view-limit", location, "The saved widget view exceeds the HTML conversion budget.");
             return null;
         }
-        if (viewRender.Markup.Length > MaxWidgetCharacters - _characters) {
-            Report("notebook-widget-view-limit", location, "The saved widget view exceeds the HTML conversion budget.");
+        if (!rendered) {
+            Report("notebook-widget-view-unsupported", location,
+                "The saved widget uses a model, value, or layout outside the supported browser controls.");
             return null;
         }
 
@@ -90,7 +91,7 @@ internal sealed partial class NotebookHtmlWidgets {
 
     private bool TryRenderModel(string id, WidgetRender render, int depth) {
         _cancellationToken.ThrowIfCancellationRequested();
-        if (depth > MaxDepth || ++render.Nodes > MaxNodesPerView || !render.Path.Add(id)) return false;
+        if (render.ExceedsLimit || depth > MaxDepth || ++render.Nodes > MaxNodesPerView || !render.Path.Add(id)) return false;
         bool result = TryReadModel(id, out string name, out JsonElement state)
             && (name is "BoxModel" or "HBoxModel" or "VBoxModel"
                 ? TryRenderBox(name, state, render, depth) : TryRenderControl(id, name, state, render));
@@ -200,8 +201,9 @@ internal sealed partial class NotebookHtmlWidgets {
     private void Report(string code, string location, string message) =>
         _diagnostics.Add(new OfficeDiagnostic(code, OfficeDiagnosticSeverity.Warning, message, location, "Jupyter", OfficeConversionLossKind.Omission));
 
-    private sealed class WidgetRender {
+    private sealed class WidgetRender(int characterLimit) {
         internal StringBuilder Markup { get; } = new();
+        internal bool ExceedsLimit => Markup.Length > characterLimit;
         internal Dictionary<string, WidgetValue> Values { get; } = new(StringComparer.Ordinal);
         internal HashSet<string> Path { get; } = new(StringComparer.Ordinal);
         internal int Nodes { get; set; }

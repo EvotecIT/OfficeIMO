@@ -12,9 +12,11 @@ public static class NotebookSpreadsheetExtensions {
         var timer = Stopwatch.StartNew();
         NotebookTable table = NotebookTable.Read(output, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        using (CsvRowWriter csv = CsvRowWriter.CreateStream(destination,
-            options ?? new CsvSaveOptions { FormulaInjectionPolicy = CsvFormulaInjectionPolicy.Escape },
-            leaveOpen: true)) {
+        if (options?.ConfiguredFormulaInjectionPolicy == null) {
+            options = options?.Clone() ?? new CsvSaveOptions();
+            options.FormulaInjectionPolicy = CsvFormulaInjectionPolicy.Escape;
+        }
+        using (CsvRowWriter csv = CsvRowWriter.CreateStream(destination, options, leaveOpen: true)) {
             csv.WriteRows(table.Headers, ReadCsvRows(table, cancellationToken));
         }
         return new OfficeConversionReport("Jupyter Notebook output", "CSV", itemsWritten: table.RowCount, elapsed: timer.Elapsed);

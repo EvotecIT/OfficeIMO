@@ -65,20 +65,21 @@ internal static partial class NotebookPlotlyChart {
     private static bool TryReadMapSettings(JsonElement geo, JsonElement template, out MapSettings? settings) {
         settings = null;
         JsonElement projection = Property(geo, "projection");
+        JsonElement templateProjection = Property(template, "projection");
         if (!ContainsOnly(geo, "projection", "scope", "fitbounds", "lonaxis", "lataxis", "showland", "landcolor", "bgcolor",
                 "showcoastlines", "coastlinecolor", "coastlinewidth", "showcountries", "countrycolor", "countrywidth", "showframe",
                 "framecolor", "framewidth", "showocean", "oceancolor", "showlakes", "lakecolor", "subunitcolor", "resolution",
                 "visible") ||
-            !ContainsOnly(projection, "type", "scale") ||
+            !ContainsOnly(projection, "type", "scale") || !ContainsOnly(templateProjection, "type", "scale") ||
             !ValueOrDefault(Property(geo, "scope"), "world") ||
             !TryReadBoolean(Property(geo, "visible"), true, out bool visible) || !visible ||
-            !TryReadMapDefaultNumber(Property(projection, "scale"), 1) ||
+            !TryReadMapDefaultNumber(WithTemplateDefault(projection, templateProjection, "scale"), 1) ||
             !TryReadMapDefaultNumber(Property(geo, "resolution"), 110) ||
             !TryReadMapAxis(Property(geo, "lonaxis"), 180, out MapAxis longitude) ||
             !TryReadMapAxis(Property(geo, "lataxis"), 90, out MapAxis latitude) ||
             !TryReadMapAppearance(geo, template, out MapAppearance? appearance)) return false;
 
-        JsonElement projectionType = Property(projection, "type");
+        JsonElement projectionType = WithTemplateDefault(projection, templateProjection, "type");
         bool mercator = ValueOrDefault(projectionType, "mercator", allowMissing: false);
         if (!mercator && !ValueOrDefault(projectionType, "equirectangular")) return false;
 
@@ -123,6 +124,9 @@ internal static partial class NotebookPlotlyChart {
             !TryReadBoolean(WithTemplateDefault(geo, template, "showcountries"), false, out bool showCountries) ||
             !TryReadBoolean(WithTemplateDefault(geo, template, "showframe"), true, out bool showFrame) ||
             !TryReadBoolean(WithTemplateDefault(geo, template, "showocean"), false, out bool showOcean) ||
+            !TryReadBoolean(Property(geo, "showlakes"), false, out bool showLakes) || showLakes ||
+            (HasProperty(geo, "lakecolor") && Property(geo, "showlakes").ValueKind != JsonValueKind.False &&
+                Property(template, "showlakes").ValueKind == JsonValueKind.True) ||
             !TryReadColor(WithTemplateDefault(geo, template, "landcolor"), out OfficeColor? land) ||
             !TryReadColor(WithTemplateDefault(geo, template, "coastlinecolor"), out OfficeColor? coast) ||
             !TryReadColor(WithTemplateDefault(geo, template, "countrycolor"), out OfficeColor? borders) ||
@@ -161,7 +165,7 @@ internal static partial class NotebookPlotlyChart {
 
     private static bool TryReadMapMode(JsonElement value, int count, out bool markers, out bool lines, out bool text) {
         text = false;
-        if (TryReadScatterMode(value, count, out markers, out lines)) return true;
+        if (TryReadScatterMode(value, count < 20, out markers, out lines)) return true;
         if (!TryReadString(value, 18, out string? mode)) return false;
         foreach (string part in mode!.Split('+')) {
             if (part == "text" && !text) text = true;

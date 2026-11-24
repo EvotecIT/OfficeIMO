@@ -1,3 +1,4 @@
+using System.Net;
 using OfficeIMO.Notebook.Html;
 
 namespace OfficeIMO.Notebook.Tests;
@@ -28,6 +29,57 @@ public sealed class NotebookHtmlExportTests {
         Assert.DoesNotContain("<script", html, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("src=\"https://example.invalid", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "notebook-output-static-fallback" && diagnostic.Location == "cells[1].outputs[1]");
+    }
+
+    [Fact]
+    public void EmitsVisibleFencesForNestedDelimiterListsFunctionsAndMatrices() {
+        using NotebookDocument notebook = NotebookDocument.Create();
+        notebook.AddMarkdownCell(@"$2\left(x+\sin{y}\right)$ $\left[a\mathpunct{,}b\right]$" +
+            @" $\begin{bmatrix}1&2\\3\end{bmatrix}$ $\begin{cases}1&x\\2&y\end{cases}$");
+
+        string html = notebook.ToHtml(new NotebookHtmlExportOptions { FailOnLoss = true }, out _);
+
+        Assert.DoesNotContain("<mfenced", html, StringComparison.Ordinal);
+        Assert.Contains("<mo fence=\"true\" stretchy=\"true\" form=\"prefix\">(</mo><mrow><mi>x</mi>", html, StringComparison.Ordinal);
+        Assert.Contains("<mi>sin</mi><mo>⁡</mo><mrow><mo fence=\"true\" stretchy=\"true\" form=\"prefix\">(</mo><mi>y</mi>" +
+            "<mo fence=\"true\" stretchy=\"true\" form=\"postfix\">)</mo>", html, StringComparison.Ordinal);
+        Assert.Contains("<mi>a</mi><mo separator=\"true\">,</mo><mi>b</mi>", html, StringComparison.Ordinal);
+        Assert.Contains("<mo fence=\"true\" stretchy=\"true\" form=\"prefix\">[</mo><mtable>", html, StringComparison.Ordinal);
+        Assert.Contains("</mtable><mo fence=\"true\" stretchy=\"true\" form=\"postfix\">]</mo>", html, StringComparison.Ordinal);
+        Assert.Contains("<mo fence=\"true\" stretchy=\"true\" form=\"prefix\">{</mo><mtable>", html, StringComparison.Ordinal);
+        Assert.Contains("</mtable></mrow>", html, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(192, 1)]
+    [InlineData(128, 3)]
+    public void PreservesSparseMatrixSourceWhenRectangularExpansionExceedsTheExpressionLimit(int size, int matrixCount) {
+        string matrix = @"\begin{bmatrix}x" + new string('&', size - 1) +
+            string.Concat(Enumerable.Repeat(@"\\y", size - 1)) + @"\end{bmatrix}";
+        string source = string.Join("+", Enumerable.Repeat(@"\left(" + matrix + @"\right)", matrixCount));
+        using NotebookDocument notebook = NotebookDocument.Create();
+        notebook.AddMarkdownCell("$" + source + "$");
+
+        string html = notebook.ToHtml(null, out OfficeConversionReport report);
+
+        Assert.Contains("<code>" + WebUtility.HtmlEncode(source) + "</code>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<mtable", html, StringComparison.Ordinal);
+        Assert.Single(report.Diagnostics, diagnostic => diagnostic.Code == "notebook-html-math-unsupported" &&
+            diagnostic.LossKind == OfficeConversionLossKind.Approximation);
+    }
+
+    [Fact]
+    public void PreservesUnrecognizedLatexSourceAndReportsFidelityLoss() {
+        const string source = @"\left(\mathbb{R}<x\right)";
+        using NotebookDocument notebook = NotebookDocument.Create();
+        notebook.AddMarkdownCell(@"A supported $\frac{1}{2}$" + " and an unsupported $" + source + "$ formula.");
+
+        string html = notebook.ToHtml(null, out OfficeConversionReport report);
+
+        Assert.Contains("<mfrac>", html, StringComparison.Ordinal);
+        Assert.Contains("<code>" + WebUtility.HtmlEncode(source) + "</code>", html, StringComparison.Ordinal);
+        Assert.Single(report.Diagnostics, diagnostic => diagnostic.Code == "notebook-html-math-unsupported");
+        Assert.Throws<OfficeConversionException>(() => notebook.ToHtml(new NotebookHtmlExportOptions { FailOnLoss = true }, out _));
     }
 
     [Theory]

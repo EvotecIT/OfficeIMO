@@ -362,6 +362,15 @@ public class DrawingMathTests {
     }
 
     [Fact]
+    public void LatexParserCountsNestingInUnbracedFunctionArguments() {
+        string latex = string.Concat(Enumerable.Repeat(@"\sin ", 16)) + "x";
+
+        OfficeMathParseException error = Assert.Throws<OfficeMathParseException>(() => OfficeMathMarkup.FromLatex(latex, 8));
+
+        Assert.Equal("DRAWING_MATH_DEPTH", error.Code);
+    }
+
+    [Fact]
     public void LatexRoundTripsNestedDelimiterPairs() {
         OfficeMathExpression expression = OfficeMath.Delimited(
             OfficeMath.Row(

@@ -16,7 +16,7 @@ internal sealed partial class NotebookHtmlWidgets {
         if (name == "LabelModel") {
             if (!TryOptionalText(state, "value", MaxControlText, out string value)) return false;
             markup.Append("<span").Append(Bind(id, "text-value")).Append('>').Append(Encode(value)).Append("</span>");
-            return Register(id, new WidgetValue("text", "value"), render);
+            return Register(id, new WidgetValue("text", "value", Multiline: true), render);
         }
         if (name is "DropdownModel" or "SelectModel" or "RadioButtonsModel" or "SelectionSliderModel") {
             return TryRenderSelection(id, state, label, disabled, render);
@@ -43,7 +43,8 @@ internal sealed partial class NotebookHtmlWidgets {
     private bool TryRenderText(string id, bool multiline, JsonElement state, string label, bool disabled, WidgetRender render) {
         if (!TryOptionalText(state, "value", MaxControlText, out string value)
             || !TryOptionalText(state, "placeholder", MaxControlText, out string placeholder)
-            || !TryBoolean(Property(state, "continuous_update"), true, out bool continuous)) return false;
+            || !TryBoolean(Property(state, "continuous_update"), true, out bool continuous)
+            || !multiline && (value.IndexOf('\n') >= 0 || value.IndexOf('\r') >= 0)) return false;
         StringBuilder markup = render.Markup;
         StartLabel(markup, label);
         markup.Append(multiline ? "<textarea rows=\"4\"" : "<input type=\"text\"")
@@ -57,7 +58,7 @@ internal sealed partial class NotebookHtmlWidgets {
             markup.Append(" value=\"").Append(Encode(value)).Append("\">");
         }
         markup.Append("</label>");
-        return Register(id, new WidgetValue("text", "value"), render);
+        return Register(id, new WidgetValue("text", "value", Multiline: multiline), render);
     }
 
     private bool TryRenderSelection(string id, JsonElement state, string label, bool disabled, WidgetRender render) {
@@ -76,7 +77,7 @@ internal sealed partial class NotebookHtmlWidgets {
         markup.Append("></option>");
         int current = 0;
         foreach (JsonElement value in values.EnumerateArray()) {
-            if (!TryText(value, MaxControlText, out string option) || markup.Length > MaxWidgetCharacters) return false;
+            if (render.ExceedsLimit || !TryText(value, MaxControlText, out string option)) return false;
             markup.Append("<option value=\"").Append(Number(current)).Append('"');
             if (index == current++) markup.Append(" selected");
             markup.Append('>').Append(Encode(option)).Append("</option>");
@@ -95,7 +96,14 @@ internal sealed partial class NotebookHtmlWidgets {
         double min = bounded ? 0 : -MaxNumericMagnitude;
         double max = bounded ? 100 : MaxNumericMagnitude;
         JsonElement savedStep = Property(state, "step");
-        bool unrestrictedStep = !integer && !slider && !play && (!bounded || progress || savedStep.ValueKind == JsonValueKind.Null);
+        bool unrestrictedStep = !integer && !slider && !play && (!bounded || progress
+            || savedStep.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null);
+        bool vertical = false;
+        if (slider) {
+            JsonElement orientation = Property(state, "orientation");
+            vertical = IsString(orientation, "vertical");
+            if (!vertical && orientation.ValueKind != JsonValueKind.Undefined && !IsString(orientation, "horizontal")) return false;
+        }
         if (!TryNumber(Property(state, "min"), min, integer, out min)
             || !TryNumber(Property(state, "max"), max, integer, out max)
             || !TryNumber(Property(state, "value"), 0, integer, out double value)
@@ -113,12 +121,14 @@ internal sealed partial class NotebookHtmlWidgets {
         if (progress) {
             markup.Append("<progress").Append(Bind(id, kind))
                 .Append(" value=\"").Append(Number(value - min)).Append("\" max=\"").Append(Number(max - min))
-                .Append("\" data-officeimo-widget-min=\"").Append(Number(min)).Append("\"></progress>");
+                .Append("\" data-officeimo-widget-min=\"").Append(Number(min))
+                .Append("\" data-officeimo-widget-value=\"").Append(Number(value)).Append("\"></progress>");
         } else {
             markup.Append("<input type=\"").Append(slider ? "range" : "number").Append('"').Append(Bind(id, kind, !continuous))
                 .Append(" min=\"").Append(Number(min)).Append("\" max=\"").Append(Number(max))
                 .Append("\" step=\"").Append(unrestrictedStep ? "any" : Number(step))
                 .Append("\" value=\"").Append(Number(value)).Append('"');
+            if (vertical) markup.Append(" style=\"writing-mode:vertical-lr;direction:rtl\"");
             AppendDisabled(markup, disabled);
             markup.Append('>');
         }
@@ -190,5 +200,6 @@ internal sealed partial class NotebookHtmlWidgets {
     }
 
     private readonly record struct WidgetValue(
-        string Kind, string Trait, double Min = 0, double Max = 0, bool Integer = false, double Step = 0);
+        string Kind, string Trait, double Min = 0, double Max = 0, bool Integer = false, double Step = 0,
+        bool Multiline = false);
 }

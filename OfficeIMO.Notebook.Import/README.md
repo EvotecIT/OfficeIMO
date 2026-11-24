@@ -23,7 +23,7 @@ example prints findings and explicitly accepts them when saving.
 
 | Profile | Input | Imported content |
 | --- | --- | --- |
-| `PolyglotDib` | .NET Polyglot `.dib` | Code and Markdown cells with declared kernels and aliases. Unsupported directives remain in source. |
+| `PolyglotDib` | .NET Polyglot `.dib` | Code and Markdown cells with declared kernels and aliases. The first `#!meta` block may follow earlier submissions and declares aliases for subsequent cells. Unsupported directives remain in source. |
 | `JupytextPercent` | Explicit Python, R, or Julia percent script | Code, Markdown, raw cells, supported cell markers and metadata. Optional saved results from a verified Jupyter companion. |
 | `PowerShellScript` | Explicit PowerShell `.ps1` | Plain script source as one code cell. Scripts written by OfficeIMO also restore their marked code and Markdown cells. |
 | `Quarto` | `.qmd` | Markdown, front matter and top-level executable fences. Chunk options are stored as metadata. |
@@ -65,7 +65,8 @@ notebook.Save("updated.ipynb");
 ```
 
 Pairing checks cell order, exact source after line-ending normalization,
-cell types, code languages where declared, and explicit IDs where supplied.
+cell types, effective code languages, and explicit IDs where supplied.
+Recognized leading language magics such as `%%R` identify mixed-language cells.
 Repeated code with saved results requires matching explicit cell IDs. A mismatch
 returns the script cells and a finding. The caller selects and owns the
 companion. OfficeIMO does not search for sidecars.

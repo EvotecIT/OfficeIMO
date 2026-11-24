@@ -44,6 +44,25 @@ public sealed class NotebookInteractiveChartExportTests {
     }
 
     [Fact]
+    public void HeatmapAutorangeUsesSavedOrientationAndRecomputesItsBounds() {
+        using var notebook = NotebookDocument.Create();
+        using var spec = JsonDocument.Parse("""
+            {"data":[{"type":"heatmap","x":[0,10],"y":[0],"z":[[1,2]]}],
+             "layout":{"xaxis":{"range":[1,0],"autorange":true}}}
+            """);
+        notebook.AddCodeCell(string.Empty).AddOutput(NotebookOutput.CreateDisplayData(new Dictionary<string, JsonElement> {
+            ["application/vnd.plotly.v1+json"] = spec.RootElement
+        }));
+
+        string html = notebook.ToHtml(new NotebookHtmlExportOptions { IncludeInteractiveCharts = true });
+        Match metadata = Regex.Match(html, "<template data-officeimo-chart-marks>([^<]+)</template>");
+        Assert.True(metadata.Success);
+        using var marks = JsonDocument.Parse(metadata.Groups[1].Value);
+        Assert.Equal(2, marks.RootElement.GetArrayLength());
+        Assert.True(marks.RootElement[0][0].GetDouble() > marks.RootElement[1][0].GetDouble());
+    }
+
+    [Fact]
     public void SkipsChartInteractivityWhenOutputsAreHiddenOrUseUnsupportedData() {
         using var notebook = NotebookDocument.Create();
         using var spec = JsonDocument.Parse("""

@@ -47,11 +47,17 @@ public sealed class NotebookPdfExportTests {
         Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Location == "cells[0].outputs[0]" && diagnostic.Code == "notebook-output-unsupported");
     }
 
-    [Fact]
-    public void UsesSuppliedOpenTypeMathFaceWithSystemFontsDisabled() {
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void UsesSuppliedOpenTypeMathFaceOnlyWhenRegularResolutionFindsMathMetrics(bool mathFaceIsRegular) {
         using NotebookDocument notebook = LoadNotebook("calculation", """{"text/latex":"\\frac{2}{2}"}""");
         byte[] font = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fixtures", "FixtureMath.ttf"));
-        var fontFaces = new OfficeFontFaceCollection().Add("math", font);
+        var fontFaces = new OfficeFontFaceCollection().Add("math", font, mathFaceIsRegular ? OfficeFontStyle.Regular : OfficeFontStyle.Bold);
+        if (!mathFaceIsRegular) {
+            byte[] plainFont = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fixtures", "OpenSans-Bold.ttf"));
+            fontFaces.Add("math", plainFont, OfficeFontStyle.Regular);
+        }
         var profile = new OfficeRenderingProfile("notebook-portable-math", fontFaces);
         using var destination = new MemoryStream();
         OfficeConversionReport report = notebook.SaveAsPdf(destination, new NotebookPdfExportOptions {
@@ -67,8 +73,13 @@ public sealed class NotebookPdfExportTests {
         using PdfDocument written = PdfDocument.Load(destination.ToArray());
         string text = written.ExtractText();
         Assert.Contains("2", text, StringComparison.Ordinal);
-        Assert.DoesNotContain("frac", text, StringComparison.Ordinal);
-        Assert.DoesNotContain(report.Diagnostics, diagnostic => diagnostic.Code == "math-font-unavailable");
+        if (mathFaceIsRegular) {
+            Assert.DoesNotContain("frac", text, StringComparison.Ordinal);
+            Assert.DoesNotContain(report.Diagnostics, diagnostic => diagnostic.Code == "math-font-unavailable");
+        } else {
+            Assert.Contains(@"\frac{2}{2}", text, StringComparison.Ordinal);
+            Assert.Single(report.Diagnostics, diagnostic => diagnostic.Code == "math-font-unavailable");
+        }
     }
 
     [Fact]
@@ -108,5 +119,5 @@ public sealed class NotebookPdfExportTests {
           {"id":"calculation","cell_type":"code","metadata":{},"execution_count":1,"source":"SOURCE","outputs":[
              {"output_type":"display_data","metadata":{},"data":DATA}
           ]}]}
-        """.Replace("SOURCE", source, StringComparison.Ordinal).Replace("DATA", data, StringComparison.Ordinal)));
+        """.Replace("SOURCE", source).Replace("DATA", data)));
 }

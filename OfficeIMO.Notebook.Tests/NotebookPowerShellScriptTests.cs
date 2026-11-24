@@ -42,7 +42,7 @@ public sealed class NotebookPowerShellScriptTests {
     [Fact]
     public async Task ScriptFileEncodingAndRoundTripPreserveCodeAndMarkdownAcrossBoundaryCollisions() {
         const string code = "$value = @'\r\n# %% [0] code marker\r\n中文\r\n'@\r";
-        const string markdown = "## 文档\r\n<#\r#>\n# %% [1] markdown not-a-cell\n";
+        const string markdown = "## 文档\r\n<#\r#>\n%% [1] notes\n# %% [2] markdown not-a-cell\n";
         using NotebookDocument original = NotebookDocument.Create();
         NotebookCell entry = original.AddCodeCell(code, "pwsh");
         NotebookCell note = original.AddMarkdownCell(markdown);

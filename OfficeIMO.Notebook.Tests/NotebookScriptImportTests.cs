@@ -23,9 +23,11 @@ public sealed class NotebookScriptImportTests {
             reopened.Cells.Select(cell => (cell.Id, cell.Kind, cell.Language, cell.Source)));
     }
 
-    [Fact]
-    public void PolyglotUsesDeclaredDefaultAndAliasWhileRetainingMagicSource() {
-        const string source = """
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PolyglotUsesDeclaredDefaultAndAliasWhileRetainingMagicSource(bool metadataFollowsSubmission) {
+        const string metadataAndSource = """
             #!meta
 
             {"kernelInfo":{"defaultKernelName":"custom","items":[{"name":"custom","aliases":["cust"]}]}}
@@ -44,11 +46,17 @@ public sealed class NotebookScriptImportTests {
 
             second
             """;
+        string source = metadataFollowsSubmission ? "#!csharp\n\nFirstSubmission();\n\n" + metadataAndSource : metadataAndSource;
         using NotebookDocument notebook = NotebookImporter.Load(Encoding.UTF8.GetBytes(source.Replace("\n", "\r\n")),
             NotebookImportFormat.PolyglotDib).Value;
 
         Assert.Equal("custom", notebook.Language);
-        Assert.Collection(notebook.Cells,
+        var cells = notebook.Cells.AsEnumerable();
+        if (metadataFollowsSubmission) {
+            AssertCell(notebook.Cells[0], NotebookCellKind.Code, "csharp", "FirstSubmission();");
+            cells = cells.Skip(1);
+        }
+        Assert.Collection(cells,
             cell => AssertCell(cell, NotebookCellKind.Code, "custom", "call source\n#!import other.dib\n#!undeclared"),
             cell => AssertCell(cell, NotebookCellKind.Markdown, null, "# Notes"),
             cell => AssertCell(cell, NotebookCellKind.Code, "custom", "second"));
@@ -144,6 +152,45 @@ public sealed class NotebookScriptImportTests {
         Assert.Equal("paired result", Assert.Single(notebook.Cells[1].Outputs).Text);
     }
 
+    [Theory]
+    [InlineData("# %% language=\"bash\"\n# exit", "exit", "bash", false)]
+    [InlineData("# %% language=\"R\" magic_args=\"-i values\"\n# sum(values)", "%%R -i values\nsum(values)", "R", true)]
+    [InlineData("# %%\n# %%R\nprint(1)", "%%R\nprint(1)", "python", true)]
+    public void JupytextPairsSavedResultsUsingEffectiveCellLanguages(string script, string source, string language, bool matches) {
+        using JsonDocument kernel = JsonDocument.Parse("""{"language":"python"}""");
+        using NotebookDocument original = NotebookDocument.Create();
+        original.SetMetadata("kernelspec", kernel.RootElement);
+        NotebookCell saved = original.AddCodeCell(source);
+        saved.ExecutionCount = 3;
+        saved.AddOutput(NotebookOutput.CreateStream("stdout", "saved value"));
+        using NotebookDocument companion = NotebookDocument.Load(original.ToBytes());
+
+        var result = NotebookImporter.Load(Encoding.UTF8.GetBytes(script), NotebookImportFormat.JupytextPercent,
+            new NotebookImportOptions { PairedNotebook = companion });
+        using NotebookDocument notebook = result.Value;
+        NotebookCell cell = Assert.Single(notebook.Cells);
+        AssertCell(cell, NotebookCellKind.Code, language, source);
+        if (matches) {
+            Assert.False(result.HasLoss);
+            Assert.Equal(3, cell.ExecutionCount);
+            Assert.Equal("saved value", Assert.Single(cell.Outputs).Text);
+        } else {
+            Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "notebook-companion-mismatch");
+            Assert.Null(cell.ExecutionCount);
+            Assert.Empty(cell.Outputs);
+        }
+    }
+
+    [Fact]
+    public void JupytextSameLanguageAliasPreservesCodeComments() {
+        const string code = "# This is a comment\nprint(1)";
+        var result = NotebookImporter.Load(Encoding.UTF8.GetBytes("# %% language=\"py\"\n" + code),
+            NotebookImportFormat.JupytextPercent);
+        using NotebookDocument notebook = result.Value;
+        Assert.False(result.HasLoss);
+        AssertCell(Assert.Single(notebook.Cells), NotebookCellKind.Code, "py", code);
+    }
+
     [Fact]
     public void JupytextRecognizesPinnedRJuliaAndTripleQuotedMarkdownExamples() {
         using NotebookDocument latex = NotebookImporter.Load(Fixture("Latex.py"), NotebookImportFormat.JupytextPercent).Value;
@@ -165,17 +212,62 @@ public sealed class NotebookScriptImportTests {
     }
 
     [Theory]
+    [InlineData("a'")]
+    [InlineData("a[1:end]'")]
+    [InlineData("α̂'")]
+    [InlineData("flag = true; value = !flag'")]
+    public void JupytextJuliaAdjointsPreserveCellBoundariesAndCompanionResults(string adjoint) {
+        const string next = "println(22)";
+        const string prefix = """"
+            a = [1 2]
+            α̂ = a
+            label = '#'; description = """
+            # %% remains inside the string
+            """
+            #=
+            # %% remains inside the comment
+            =#
+            """";
+        string source = prefix + "\n" + adjoint;
+        using NotebookDocument companion = NotebookDocument.Create();
+        companion.AddCodeCell(source, "julia");
+        NotebookCell saved = companion.AddCodeCell(next, "julia");
+        saved.ExecutionCount = 2;
+        saved.AddOutput(NotebookOutput.CreateStream("stdout", "22\n"));
+        byte[] script = Encoding.UTF8.GetBytes("# %%\n" + source + "\n\n# %%\n" + next);
+
+        var result = NotebookImporter.Load(script, NotebookImportFormat.JupytextPercent,
+            new NotebookImportOptions { ScriptLanguage = "julia", PairedNotebook = companion });
+        using NotebookDocument notebook = result.Value;
+        Assert.False(result.HasLoss);
+        Assert.Collection(notebook.Cells,
+            cell => AssertCell(cell, NotebookCellKind.Code, "julia", source),
+            cell => {
+                AssertCell(cell, NotebookCellKind.Code, "julia", next);
+                Assert.Equal(2, cell.ExecutionCount);
+                Assert.Equal("22\n", Assert.Single(cell.Outputs).Text);
+            });
+    }
+
+    [Theory]
     [InlineData(true)]
     [InlineData(false)]
     public void JupytextOnlyKeepsPercentCommentsInsideClosedMarkdownFences(bool closeFence) {
-        string fence = closeFence ? "# ```mermaid\n# %% inside chart\n# ```" : "# ```mermaid";
-        string source = "# %% [markdown]\n" + fence + "\n\n# %%\nprint(1)\n";
+        string fence = closeFence ? "# ```mermaid\n#     ```\n# %% inside chart\n#    ```" : "# ```mermaid";
+        const string code = """"
+            message = """
+            ```
+            # ```
+            # %% still in the string
+            """
+            """";
+        string source = "# %% [markdown]\n" + fence + "\n\n# %%\n" + code + "\n";
 
         using NotebookDocument notebook = NotebookImporter.Load(Encoding.UTF8.GetBytes(source), NotebookImportFormat.JupytextPercent).Value;
         Assert.Collection(notebook.Cells,
             cell => AssertCell(cell, NotebookCellKind.Markdown, null,
-                closeFence ? "```mermaid\n%% inside chart\n```" : "```mermaid"),
-            cell => AssertCell(cell, NotebookCellKind.Code, "python", "print(1)"));
+                closeFence ? "```mermaid\n    ```\n%% inside chart\n   ```" : "```mermaid"),
+            cell => AssertCell(cell, NotebookCellKind.Code, "python", code));
     }
 
     private static string Fixture(string name) => Path.Combine(AppContext.BaseDirectory, "Fixtures", "Scripts", name);

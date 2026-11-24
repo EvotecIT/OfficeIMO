@@ -200,7 +200,7 @@ internal static class NotebookReaderAdapter {
             return new ProjectedOutput(output.GetText(maxCharacters, out truncated), false);
         }
         if (output.Kind == NotebookOutputKind.Error) {
-            string traceback = string.Concat(output.Traceback);
+            string traceback = string.Join("\n", output.Traceback);
             if (!string.IsNullOrWhiteSpace(traceback)) return new ProjectedOutput(traceback, false);
             string error = string.Join(": ", new[] { output.ErrorName, output.ErrorValue }
                 .Where(static value => !string.IsNullOrWhiteSpace(value)));

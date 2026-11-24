@@ -19,9 +19,11 @@ internal static partial class NotebookMarkupImporter {
         ReadFrontMatter(ref body, ref language, context);
         if (language != null) SetDocumentLanguage(context.Document, language);
         int proseStart = body.Offset;
+        bool insideHtmlComment = false;
         while (body.TryRead(out SourceLine line)) {
             context.CancellationToken.ThrowIfCancellationRequested();
             ReadOnlySpan<char> text = line.Text(source);
+            if (IsHtmlCommentBlock(text, ref insideHtmlComment)) continue;
             if (!TryOpenFence(text, out Fence fence)) {
                 ReportInlineSyntax(text, format, line, context);
                 continue;
@@ -45,7 +47,7 @@ internal static partial class NotebookMarkupImporter {
             }
 
             AddProse(source, proseStart, line.Start, context);
-            int executableStart = ReadCellOptions(source, codeStart, codeEnd, format, context.CancellationToken);
+            int executableStart = ReadCellOptions(source, codeStart, codeEnd, format, cellLanguage, context.CancellationToken);
             if (info.Length > MaxAuthoringMetadataCharacters) {
                 context.Report("notebook-import-chunk-metadata-limit", "An oversized chunk header was retained in a raw cell.", Location(line.Number),
                     OfficeConversionLossKind.Approximation);
@@ -56,14 +58,19 @@ internal static partial class NotebookMarkupImporter {
                     OfficeConversionLossKind.Approximation);
                 executableStart = codeStart;
             }
-            NotebookCell cell = context.AddCell(NotebookCellKind.Code, source.Substring(executableStart, codeEnd - executableStart), cellLanguage);
+            NotebookCell cell = context.AddCell(NotebookCellKind.Code,
+                ReadFenceContent(source, executableStart, codeEnd, fence.Indent, context.CancellationToken), cellLanguage);
             if (info.Length <= MaxAuthoringMetadataCharacters) {
                 cell.SetMetadata("notebook_import_header", NotebookImportContext.JsonString(info.ToString()));
             }
             if (executableStart > codeStart) {
-                cell.SetMetadata("notebook_import_options", NotebookImportContext.JsonString(source.Substring(codeStart, executableStart - codeStart)));
+                cell.SetMetadata("notebook_import_options", NotebookImportContext.JsonString(
+                    ReadFenceContent(source, codeStart, executableStart, fence.Indent, context.CancellationToken)));
             }
-            if (executableStart > codeStart || (format is NotebookImportFormat.RMarkdown or NotebookImportFormat.RNotebookHtml && info.IndexOf(',') >= 0)) {
+            bool hasHeaderOptions = (format is NotebookImportFormat.RMarkdown or NotebookImportFormat.RNotebookHtml ||
+                format == NotebookImportFormat.Quarto && string.Equals(cellLanguage, "r", StringComparison.OrdinalIgnoreCase))
+                && info.IndexOf(',') >= 0;
+            if (executableStart > codeStart || hasHeaderOptions) {
                 context.Report("notebook-import-chunk-options",
                     "Chunk authoring options were retained as metadata. The import reads source and saved results without applying those options.",
                     Location(line.Number), OfficeConversionLossKind.Approximation);

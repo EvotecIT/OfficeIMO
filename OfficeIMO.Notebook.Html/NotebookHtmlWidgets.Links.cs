@@ -51,6 +51,7 @@ internal sealed partial class NotebookHtmlWidgets {
 
     private static bool CanLink(WidgetValue from, WidgetValue to) =>
         from.Kind == to.Kind && from.Min >= to.Min && from.Max <= to.Max
+        && (!from.Multiline || to.Multiline)
         && (!to.Integer || from.Integer)
         && (to.Step == 0 || IsGridPoint(from.Min, to.Min, to.Step)
             && (from.Min == from.Max || from.Step > 0 && IsGridPoint(from.Step, 0, to.Step)));

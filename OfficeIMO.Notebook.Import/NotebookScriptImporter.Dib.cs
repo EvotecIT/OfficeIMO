@@ -22,26 +22,31 @@ internal static partial class NotebookScriptImporter {
         }
 
         string defaultKernel = "csharp";
-        if (line == "#!meta") {
-            var header = new StringBuilder();
-            while ((line = lines.ReadLine()) != null && !line.StartsWith("#!", StringComparison.Ordinal)) {
-                context.CancellationToken.ThrowIfCancellationRequested();
-                header.AppendLine(line);
-            }
-            defaultKernel = ReadDibMetadata(header.ToString(), aliases, context) ?? defaultKernel;
-        }
-
-        SetLanguageInfo(context.Document, defaultKernel);
         string kernel = defaultKernel;
+        bool readMetadata = false;
+        bool selectedKernel = false;
         var source = new StringBuilder();
         int trailingEmpty = 0;
         while (line != null) {
             context.CancellationToken.ThrowIfCancellationRequested();
+            if (!readMetadata && line == "#!meta") {
+                var header = new StringBuilder();
+                while ((line = lines.ReadLine()) != null && !line.StartsWith("#!", StringComparison.Ordinal)) {
+                    context.CancellationToken.ThrowIfCancellationRequested();
+                    header.AppendLine(line);
+                }
+                defaultKernel = ReadDibMetadata(header.ToString(), aliases, context) ?? defaultKernel;
+                if (!selectedKernel && source.Length == 0) kernel = defaultKernel;
+                readMetadata = true;
+                if (line == null) break;
+            }
+
             if (line.StartsWith("#!", StringComparison.Ordinal) && aliases.TryGetValue(line.Substring(2), out string? selected)) {
                 AddDibCell(context, kernel, source, trailingEmpty);
                 source.Clear();
                 trailingEmpty = 0;
                 kernel = selected;
+                selectedKernel = true;
             } else if (source.Length != 0 || line.Length != 0) {
                 if (source.Length != 0) source.Append('\n');
                 source.Append(line);
@@ -50,6 +55,7 @@ internal static partial class NotebookScriptImporter {
             line = lines.ReadLine();
         }
 
+        SetLanguageInfo(context.Document, defaultKernel);
         AddDibCell(context, kernel, source, trailingEmpty);
         if (context.Document.Cells.Count == 0) {
             bool markdown = kernel == "markdown";

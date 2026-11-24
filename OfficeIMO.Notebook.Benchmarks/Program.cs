@@ -96,6 +96,12 @@ internal sealed class NotebookBenchmarkWorker : IDisposable {
     }
 
     private void Run() {
+        if (_operation == "Parse" && _document is not null) {
+            _document.Dispose();
+            _document = null;
+            _result = null;
+        }
+
         long before = GC.GetTotalAllocatedBytes(precise: true);
         _result = _engine switch {
             "OfficeIMO" => RunOfficeImo(),

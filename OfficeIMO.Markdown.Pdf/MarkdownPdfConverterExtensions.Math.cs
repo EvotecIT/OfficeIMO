@@ -26,11 +26,14 @@ public static partial class MarkdownPdfConverterExtensions {
             if (!finder.Found) return null;
 
             options.CancellationToken.ThrowIfCancellationRequested();
+            double fontSize = pdfOptions.DefaultFontSize.ToPoints();
             OfficeFontFaceCollection? scopedFonts = pdfOptions.CloneDrawingProfileFonts();
-            if (scopedFonts != null && scopedFonts.Faces.Any(static face =>
-                string.Equals(face.FamilyName, "math", StringComparison.OrdinalIgnoreCase)
-                && (face.Program as IOfficeMathFontProgram)?.MathConstants != null)) {
-                return new MathLayout(scopedFonts, pdfOptions.DefaultFontSize.ToPoints());
+            // Use the Regular face and sample glyph that the math renderer resolves for layout metrics.
+            if (scopedFonts != null && scopedFonts.TryResolveFaceForText("x", "math", OfficeFontFaceDescriptor.Regular,
+                    fontSize, out OfficeFontFace? face)
+                && string.Equals(face!.FamilyName, "math", StringComparison.OrdinalIgnoreCase)
+                && (face.Program as IOfficeMathFontProgram)?.MathConstants != null) {
+                return new MathLayout(scopedFonts, fontSize);
             }
 
             string? reason = null;
@@ -54,7 +57,7 @@ public static partial class MarkdownPdfConverterExtensions {
                 return null;
             }
 
-            return new MathLayout(fonts, pdfOptions.DefaultFontSize.ToPoints());
+            return new MathLayout(fonts, fontSize);
         }
 
         internal bool TryRender(string tex, bool display, double fontSize, OfficeColor color, MarkdownPdfExportOptions options,

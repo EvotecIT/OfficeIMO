@@ -6,15 +6,21 @@ namespace OfficeIMO.Notebook.Tests;
 public sealed class RNotebookHtmlImportTests {
     [Fact]
     public void RestoresStaticResultsAndRetainsUnmatchedOutputInASeparateCell() {
+        string input = File.ReadAllText(NotebookMarkupImportTests.Fixture("r-saved-results.nb.html"))
+            .Replace("<pre><code>[1] 2 &amp; 6</code></pre>", "<pre><code>[1] 2 &amp; 6\n</code></pre>\n" +
+                "<!-- rnb-output-end -->\n<!-- rnb-output-begin -->\n<pre><code>  \n</code></pre>\n" +
+                "<!-- rnb-output-end -->\n<!-- rnb-output-begin -->\n<span>saved</span> <span>text</span>");
         OfficeConversionResult<NotebookDocument> converted = NotebookImporter.Load(
-            NotebookMarkupImportTests.Fixture("r-saved-results.nb.html"), NotebookImportFormat.RNotebookHtml);
+            Encoding.UTF8.GetBytes(input), NotebookImportFormat.RNotebookHtml);
         using NotebookDocument notebook = converted.Value;
         NotebookCell[] code = notebook.Cells.Where(cell => cell.Kind == NotebookCellKind.Code).ToArray();
         Assert.Equal(4, code.Length);
-        Assert.Equal(3, code[0].Outputs.Count);
-        Assert.Contains("[1] 2 & 6", code[0].Outputs[0].Text, StringComparison.Ordinal);
-        Assert.Contains("<table", code[0].Outputs[1].Data["text/html"].GetString(), StringComparison.Ordinal);
-        Assert.True(code[0].Outputs[2].Data.ContainsKey("image/png"));
+        Assert.Collection(code[0].Outputs,
+            output => Assert.Equal("[1] 2 & 6\n", output.Text),
+            output => Assert.Equal("  \n", output.Text),
+            output => Assert.Equal("saved text", output.Text),
+            output => Assert.Contains("<table", output.Data["text/html"].GetString(), StringComparison.Ordinal),
+            output => Assert.True(output.Data.ContainsKey("image/png")));
         Assert.Empty(code[1].Outputs);
         Assert.Empty(code[2].Outputs);
         Assert.Equal(string.Empty, code[3].Source);
@@ -37,7 +43,7 @@ public sealed class RNotebookHtmlImportTests {
             <script>window.privateSavedTableWidget = true;</script></td>
             """;
         string input = File.ReadAllText(NotebookMarkupImportTests.Fixture("r-saved-results.nb.html"))
-            .Replace("<td>42</td>", nestedOutput, StringComparison.Ordinal);
+            .Replace("<td>42</td>", nestedOutput);
         OfficeConversionResult<NotebookDocument> converted = NotebookImporter.Load(
             Encoding.UTF8.GetBytes(input), NotebookImportFormat.RNotebookHtml);
         using NotebookDocument notebook = converted.Value;

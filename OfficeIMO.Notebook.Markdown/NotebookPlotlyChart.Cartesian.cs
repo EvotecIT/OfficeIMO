@@ -154,15 +154,15 @@ internal static partial class NotebookPlotlyChart {
         JsonElement type = Property(source, "type");
         bool categorical = ValueOrDefault(type, "category", allowMissing: false);
         bool linear = ValueOrDefault(type, "linear", allowMissing: false);
-        if ((!categorical && !linear && type.ValueKind != JsonValueKind.Undefined) || (categorical && min.HasValue))
-            return false;
         JsonElement autorange = Property(source, "autorange");
         bool reversed = ValueOrDefault(autorange, "reversed", allowMissing: false);
-        if (!reversed && !TryReadBoolean(autorange, true, out _)) return false;
-        if (min.HasValue && max < min) {
-            (min, max) = (max, min);
-            reversed = true;
-        }
+        if (!reversed && !TryReadBoolean(autorange, false, out _)) return false;
+        bool descendingRange = min.HasValue && max < min;
+        if (reversed || autorange.ValueKind == JsonValueKind.True) (min, max) = (null, null);
+        else if (descendingRange) (min, max) = (max, min);
+        reversed |= descendingRange;
+        if ((!categorical && !linear && type.ValueKind != JsonValueKind.Undefined) || (categorical && min.HasValue))
+            return false;
         bool lockAspect = HasProperty(source, "scaleanchor");
         if (!ValueOrDefault(Property(source, "scaleanchor"), anchor) ||
             !ValueOrDefault(Property(source, "constrain"), "domain")) return false;

@@ -2,22 +2,26 @@ namespace OfficeIMO.Notebook.Import;
 
 internal static partial class NotebookScriptImporter {
     private static (char Marker, int Length, bool CanClose) ReadFence(ReadOnlySpan<char> text) {
-        text = text.TrimStart();
+        int indent = 0;
+        while (indent < text.Length && text[indent] == ' ' && indent < 4) indent++;
+        if (indent == 4) return default;
+        text = text.Slice(indent);
         if (text.Length < 3 || text[0] is not ('`' or '~')) return default;
         int length = 1;
         while (length < text.Length && text[length] == text[0]) length++;
         return length >= 3 ? (text[0], length, text.Slice(length).Trim().IsEmpty) : default;
     }
 
-    // A percent marker inside Markdown is a cell boundary unless the enclosing fence has a closer.
-    // Build a suffix lookup only for scripts containing fenced Markdown, so unmatched openers cannot make repeated scans.
-    private sealed class PercentFenceIndex(string script, CancellationToken cancellationToken) {
-        private (int Length, int LastLine)[]? _backticks;
-        private (int Length, int LastLine)[]? _tildes;
+    // A percent marker inside commented Markdown is a boundary unless the enclosing fence has a closer
+    // before the next uncommented line of source. Read each run once, even when it has unmatched openers.
+    private sealed class PercentFenceIndex(StringReader reader, CancellationToken cancellationToken) {
+        private (int Length, int LastLine)[] _backticks = [];
+        private (int Length, int LastLine)[] _tildes = [];
+        private int _lineNumber;
 
         internal bool HasCloser(char marker, int length, int line) {
-            if (_backticks == null || _tildes == null) Build();
-            (int Length, int LastLine)[] entries = marker == '`' ? _backticks! : _tildes!;
+            if (line >= _lineNumber) ReadCommentRun(line);
+            (int Length, int LastLine)[] entries = marker == '`' ? _backticks : _tildes;
             int lower = 0;
             int upper = entries.Length;
             while (lower < upper) {
@@ -28,16 +32,16 @@ internal static partial class NotebookScriptImporter {
             return lower < entries.Length && entries[lower].LastLine > line;
         }
 
-        private void Build() {
+        private void ReadCommentRun(int openingLine) {
             var backticks = new Dictionary<int, int>();
             var tildes = new Dictionary<int, int>();
-            using var reader = new StringReader(script);
-            int lineNumber = 0;
             while (reader.ReadLine() is { } line) {
                 cancellationToken.ThrowIfCancellationRequested();
-                lineNumber++;
-                (char marker, int length, bool canClose) = ReadFence(RemoveComment(line.AsSpan()));
-                if (canClose) (marker == '`' ? backticks : tildes)[length] = lineNumber;
+                if (++_lineNumber <= openingLine || string.IsNullOrWhiteSpace(line)) continue;
+                ReadOnlySpan<char> text = RemoveComment(line.AsSpan());
+                if (text.Length == line.Length) break;
+                (char marker, int length, bool canClose) = ReadFence(text);
+                if (canClose) (marker == '`' ? backticks : tildes)[length] = _lineNumber;
             }
             _backticks = LastClosingLines(backticks);
             _tildes = LastClosingLines(tildes);

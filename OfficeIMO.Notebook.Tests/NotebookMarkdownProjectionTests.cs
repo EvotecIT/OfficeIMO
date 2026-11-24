@@ -41,7 +41,7 @@ public sealed class NotebookMarkdownProjectionTests {
                    "text/html":"<table><tr><th>Sample</th><th>Weight</th></tr><tr><td>Alpha</td><td>42</td></tr></table>",
                    "text/plain":"TABLE_FALLBACK"}}
               ]}]}
-            """.Replace("PAYLOAD", tinyPng, StringComparison.Ordinal)));
+            """.Replace("PAYLOAD", tinyPng)));
 
         using MarkdownDocument result = notebook.ToMarkdown(new NotebookMarkdownExportOptions { IncludeCode = false }, out OfficeConversionReport report);
         string markdown = result.ToMarkdown();

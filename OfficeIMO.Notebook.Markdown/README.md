@@ -1,6 +1,6 @@
 # OfficeIMO.Notebook.Markdown
 
-Project a Jupyter notebook into a typed Markdown document. Prose, code and saved results appear in cell order. Choose whether to include code, saved outputs and execution counts independently.
+Project a Jupyter notebook into a typed Markdown document. Prose, code and saved results appear in cell order. Choose whether to include code and saved outputs independently. When code is included, you can also show its execution count.
 
 ```csharp
 using OfficeIMO.Notebook;

@@ -47,47 +47,34 @@ import and export operate on stored data without executing cells.
 
 ## Examples
 
-
 ```powershell
 $source = Open-OfficeNotebook -Path ./lab.py -Format JupytextPercent -CompanionPath ./lab.ipynb -FailOnLoss
 try {
-$source | Save-OfficeNotebook -Path ./reviewed.ipynb
-```
-
+    $source | Save-OfficeNotebook -Path ./reviewed.ipynb
 } finally {
-
-```powershell
-$source | Close-OfficeNotebook
+    $source | Close-OfficeNotebook
 }
 ```
 
 ```powershell
 $notebook = New-OfficeNotebook
 try {
-$notebook | Add-OfficeNotebookCell -Kind Markdown -Source '# Lab'
-$notebook | Add-OfficeNotebookCell -Kind Code -Language PowerShell -Source 'Get-Date'
-$notebook | Export-OfficeNotebook -Path ./lab.ps1 -FailOnLoss
-```
-
+    $notebook | Add-OfficeNotebookCell -Kind Markdown -Source '# Lab'
+    $notebook | Add-OfficeNotebookCell -Kind Code -Language PowerShell -Source 'Get-Date'
+    $notebook | Export-OfficeNotebook -Path ./lab.ps1 -FailOnLoss
 } finally {
-
-```powershell
-$notebook | Close-OfficeNotebook
+    $notebook | Close-OfficeNotebook
 }
 ```
 
 ```powershell
 $notebook = Open-OfficeNotebook -Path ./lab.ipynb
 try {
-$notebook | Get-OfficeNotebookCell -Index 2 |
-Get-OfficeNotebookOutput -Index 0 |
-Export-OfficeNotebook -Path ./results.xlsx
-```
-
+    $notebook | Get-OfficeNotebookCell -Index 2 |
+        Get-OfficeNotebookOutput -Index 0 |
+        Export-OfficeNotebook -Path ./results.xlsx
 } finally {
-
-```powershell
-$notebook | Close-OfficeNotebook
+    $notebook | Close-OfficeNotebook
 }
 ```
 

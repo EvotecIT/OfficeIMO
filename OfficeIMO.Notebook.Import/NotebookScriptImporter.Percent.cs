@@ -15,7 +15,8 @@ internal static partial class NotebookScriptImporter {
         string language = NormalizePercentLanguage(context.Options.ScriptLanguage ?? header.Language);
         SetLanguageInfo(context.Document, language);
 
-        var fences = new PercentFenceIndex(script, context.CancellationToken);
+        using var fenceLines = new StringReader(script);
+        var fences = new PercentFenceIndex(fenceLines, context.CancellationToken);
         var framer = new PercentFramer(language, fences);
         var body = new StringBuilder();
         List<string?>? explicitIds = context.Options.PairedNotebook == null ? null : new List<string?>();
@@ -33,7 +34,7 @@ internal static partial class NotebookScriptImporter {
                 hasUnparsedMetadata |= marker.Metadata.ContainsKey("officeimo_jupytext_marker_metadata");
                 framer = new PercentFramer(language, fences, marker.Kind, explicitCell: true, uncomment: !IsActiveLanguage(marker.Metadata, language) ||
                     (marker.Kind == NotebookCellKind.Code && marker.Language != null &&
-                        !string.Equals(marker.Language, language, StringComparison.OrdinalIgnoreCase)));
+                        !SameLanguage(marker.Language, language)));
                 body.Clear();
                 trailingEmpty = 0;
                 trailingBlank = 0;
@@ -79,7 +80,7 @@ internal static partial class NotebookScriptImporter {
         }
         string? cellLanguage = kind == NotebookCellKind.Code ? marker?.Language ?? language : null;
         if (cellLanguage != null && !SameLanguage(cellLanguage, language)) {
-            if (LanguageAlias(cellLanguage) is "python" or "r" or "julia") {
+            if (IsPercentLanguageMagic(cellLanguage)) {
                 string? arguments = marker is null ? null : MetadataString(marker.Metadata, "magic_args");
                 source = "%%" + cellLanguage + (arguments == null ? "" : " " + arguments) + "\n" + source;
             } else {
@@ -135,11 +136,11 @@ internal static partial class NotebookScriptImporter {
                     if (canClose && fence == _fence && length >= _fenceLength) _fence = '\0';
                     return text.ToString();
                 }
-                if (fence != '\0' && fences.HasCloser(fence, length, lineNumber)) {
+                if (fence != '\0' && text.Length != line.Length && fences.HasCloser(fence, length, lineNumber)) {
                     _fence = fence;
                     _fenceLength = length;
                 }
-                if (text.Length != line.Length || _fence != '\0') return text.ToString();
+                if (text.Length != line.Length) return text.ToString();
             }
 
             bool mayUnescape = AtCellBoundary;
@@ -152,9 +153,10 @@ internal static partial class NotebookScriptImporter {
         }
 
         private void ReadQuotes(ReadOnlySpan<char> text) {
+            bool julia = language == "julia";
             for (int i = 0; i < text.Length; i++) {
                 char c = text[i];
-                if (language == "julia" && _quote == '\0' && i + 1 < text.Length) {
+                if (julia && _quote == '\0' && i + 1 < text.Length) {
                     if (c == '#' && text[i + 1] == '=') {
                         _juliaCommentDepth++;
                         i++;
@@ -176,6 +178,7 @@ internal static partial class NotebookScriptImporter {
                     ? 3 : 1;
                 if (_quote == '\0' && c is '\'' or '"' or '`') {
                     if (c == '`' && language == "python") continue;
+                    if (julia && c == '\'' && IsJuliaAdjoint(text, i)) continue;
                     _quote = c;
                     _quoteLength = delimiter;
                     i += delimiter - 1;
@@ -186,6 +189,28 @@ internal static partial class NotebookScriptImporter {
             }
             if (language == "python" && _quoteLength == 1 && (text.IsEmpty || text[text.Length - 1] != '\\')) _quote = '\0';
         }
+
+        private static bool IsJuliaAdjoint(ReadOnlySpan<char> text, int apostrophe) {
+            if (apostrophe == 0) return false;
+            if (text[apostrophe - 1] is ')' or ']' or '}' or '.' or '\'' or '"' or '`') return true;
+
+            int start = apostrophe;
+            while (start > 0 && IsJuliaIdentifierPart(text[start - 1])) start--;
+            // A leading bang is an operator, while a trailing one may be part of the identifier.
+            while (start < apostrophe && text[start] == '!') start++;
+            if (start == apostrophe) return false;
+
+            // These keywords can introduce a character literal without a separator.
+            return text.Slice(start, apostrophe - start) is not ("begin" or "catch" or "else" or "elseif" or "finally"
+                or "for" or "if" or "let" or "quote" or "return" or "try" or "while");
+        }
+
+        private static bool IsJuliaIdentifierPart(char c) => char.IsLetterOrDigit(c) || char.IsSurrogate(c)
+            || c is '!' or '\u2032' or '\u2033' or '\u2034' or '\u2057'
+            || char.GetUnicodeCategory(c) is UnicodeCategory.LetterNumber or UnicodeCategory.OtherNumber
+                or UnicodeCategory.NonSpacingMark or UnicodeCategory.SpacingCombiningMark or UnicodeCategory.EnclosingMark
+                or UnicodeCategory.ConnectorPunctuation or UnicodeCategory.CurrencySymbol
+                or UnicodeCategory.ModifierSymbol or UnicodeCategory.OtherSymbol;
     }
 
     private static ReadOnlySpan<char> RemoveComment(ReadOnlySpan<char> line) {

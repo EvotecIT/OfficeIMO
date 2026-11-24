@@ -73,6 +73,7 @@ public sealed class NotebookAdvancedOutputTests {
         Assert.DoesNotContain("<script", inert, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("data-officeimo-widget-id", inert, StringComparison.Ordinal);
         Assert.Contains("<input type=\"range\"", interactive, StringComparison.Ordinal);
+        Assert.Contains("writing-mode:vertical-lr;direction:rtl", interactive, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-widget-link-from", interactive, StringComparison.Ordinal);
         Assert.Contains("<script", interactive, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("<script src=", interactive, StringComparison.OrdinalIgnoreCase);
@@ -89,7 +90,8 @@ public sealed class NotebookAdvancedOutputTests {
 
         Assert.DoesNotContain("<script", html, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("addEventListener", html, StringComparison.Ordinal);
-        Assert.Contains(report.Diagnostics, item => item.Code == "notebook-widget-view-unsupported");
+        Assert.Equal(3, Regex.Matches(html, "CounterWidget object").Count);
+        Assert.Equal(3, report.Diagnostics.Count(item => item.Code == "notebook-widget-view-unsupported"));
     }
 
     [Fact]

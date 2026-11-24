@@ -116,6 +116,11 @@
                 case "ArrowDown": if (scale <= 1) return; y += height / scale / 8; updateView(); break;
                 default: return;
             }
+            if (drag) {
+                const pointerId = drag.id;
+                finishDrag({ pointerId });
+                plot.releasePointerCapture(pointerId);
+            }
             event.preventDefault();
         });
         plot.addEventListener("pointerdown", event => {

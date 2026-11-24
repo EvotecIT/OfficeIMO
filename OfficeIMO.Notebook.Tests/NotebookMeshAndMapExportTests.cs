@@ -64,12 +64,26 @@ public sealed class NotebookMeshAndMapExportTests {
     public void ScalarMeshShowsItsSavedColorbarTitleByDefault() {
         using var notebook = CreatePlotlyNotebook("""
             {"data":[{"type":"mesh3d","x":[0,1,0],"y":[0,0,1],"z":[0,1,1],"i":[0],"j":[1],"k":[2],
-              "intensity":[2,4,6],"colorbar":{"title":{"text":"Signal intensity"}}}]}
+              "intensity":[2,4,6],"facecolor":["red"],"colorbar":{"title":{"text":"Signal intensity"}}}]}
             """);
 
         XDocument mesh = ExtractSvg(notebook.ToHtml());
 
         Assert.Contains("Signal intensity", mesh.Root!.Value, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DenseThreeDimensionalScatterDefaultsToLinesAndMarkers() {
+        const string values = "[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]";
+        using var notebook = CreatePlotlyNotebook($$"""
+            {"data":[{"type":"scatter3d","x":{{values}},"y":{{values}},"z":{{values}},"marker":{"size":6} }]}
+            """);
+
+        XDocument scatter = ExtractSvg(notebook.ToHtml());
+
+        XNamespace svg = "http://www.w3.org/2000/svg";
+        Assert.Equal(20, scatter.Descendants().Count(shape => shape.Name == svg + "ellipse" || shape.Name == svg + "circle"));
+        Assert.True(scatter.Descendants(svg + "line").Count() >= 19);
     }
 
     private static XDocument ExtractSvg(string html) {

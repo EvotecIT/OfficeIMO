@@ -61,7 +61,7 @@ public sealed class NotebookDocumentContracts {
         code.ExecutionCount = 1;
         code.AddOutput(NotebookOutput.CreateStream("stdout", "42\n"));
 
-        using var destination = new MemoryStream();
+        using var destination = new AsyncOnlyOutputStream();
         await notebook.SaveAsync(destination);
         Assert.True(destination.CanWrite);
         byte[] bytes = destination.ToArray();
@@ -77,6 +77,33 @@ public sealed class NotebookDocumentContracts {
         using NotebookDocument loaded = await NotebookDocument.LoadAsync(stream, new NotebookLoadOptions { MaxInputBytes = bytes.Length });
         Assert.Equal("# Lab results", loaded.Cells[0].Source);
         Assert.False(stream.Closed);
+    }
+
+    [Fact]
+    public async Task SaveAsyncPreservesTheDestinationWriteError() {
+        using NotebookDocument notebook = NotebookDocument.Create();
+        notebook.AddMarkdownCell("Unsaved notebook");
+        var writeError = new IOException("Destination write failed.");
+        using var destination = new AsyncOnlyOutputStream(writeError);
+
+        var error = await Assert.ThrowsAsync<IOException>(() => notebook.SaveAsync(destination));
+
+        Assert.Same(writeError, error);
+        Assert.Empty(destination.ToArray());
+        Assert.True(destination.CanWrite);
+    }
+
+    [Fact]
+    public void SavePreservesTheOriginalFlushErrorWithoutRetryingTheStream() {
+        using NotebookDocument notebook = NotebookDocument.Create();
+        notebook.AddMarkdownCell("Unsaved notebook");
+        var flushError = new IOException("Destination flush failed.");
+        using var destination = new FailingFlushStream(flushError);
+
+        var error = Assert.Throws<IOException>(() => notebook.Save(destination));
+
+        Assert.Same(flushError, error);
+        Assert.True(destination.CanWrite);
     }
 
     [Fact]
@@ -98,8 +125,10 @@ public sealed class NotebookDocumentContracts {
         try {
             string destination = Path.Combine(directory, "published.ipynb");
             File.WriteAllText(destination, "existing file");
+#if NET8_0_OR_GREATER
             const UnixFileMode ownerOnly = UnixFileMode.UserRead | UnixFileMode.UserWrite;
             if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(destination, ownerOnly);
+#endif
             using NotebookDocument legacy = NotebookDocument.Load(Fixture("test3.ipynb"));
             await Assert.ThrowsAsync<OfficeConversionException>(() => legacy.SaveAsync(destination));
             using var cancellation = new CancellationTokenSource();
@@ -113,11 +142,13 @@ public sealed class NotebookDocumentContracts {
             using JsonDocument saved = JsonDocument.Parse(File.ReadAllBytes(destination));
             Assert.Equal(4, saved.RootElement.GetProperty("nbformat").GetInt32());
             Assert.Single(Directory.EnumerateFiles(directory));
+#if NET8_0_OR_GREATER
             if (!OperatingSystem.IsWindows()) {
                 Assert.Equal(ownerOnly, File.GetUnixFileMode(destination));
                 legacy.Save(destination, new NotebookSaveOptions { AllowLoss = true });
                 Assert.Equal(ownerOnly, File.GetUnixFileMode(destination));
             }
+#endif
         } finally {
             Directory.Delete(directory, recursive: true);
         }
@@ -168,6 +199,43 @@ public sealed class NotebookDocumentContracts {
     }
 
     private static string Fixture(string fileName) => Path.Combine(AppContext.BaseDirectory, "Fixtures", fileName);
+
+    private sealed class FailingFlushStream(IOException flushError) : MemoryStream {
+        private bool _flushAttempted;
+
+        public override void Flush() {
+            if (_flushAttempted) throw new InvalidOperationException("The stream was flushed again.");
+            _flushAttempted = true;
+            throw flushError;
+        }
+    }
+
+    private sealed class AsyncOnlyOutputStream(Exception? writeError = null) : Stream {
+        private readonly MemoryStream _buffer = new();
+
+        public override bool CanRead => false;
+        public override bool CanSeek => false;
+        public override bool CanWrite => _buffer.CanWrite;
+        public override long Length => throw new NotSupportedException();
+        public override long Position {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
+
+        internal byte[] ToArray() => _buffer.ToArray();
+        public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) =>
+            writeError != null ? Task.FromException(writeError) : _buffer.WriteAsync(buffer, offset, count, cancellationToken);
+        public override Task FlushAsync(CancellationToken cancellationToken) => _buffer.FlushAsync(cancellationToken);
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException("Use WriteAsync.");
+        public override void Flush() => throw new NotSupportedException("Use FlushAsync.");
+        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        protected override void Dispose(bool disposing) {
+            if (disposing) _buffer.Dispose();
+            base.Dispose(disposing);
+        }
+    }
 
     private sealed class ForwardOnlyStream(byte[] bytes) : Stream {
         private readonly MemoryStream _inner = new(bytes, writable: false);

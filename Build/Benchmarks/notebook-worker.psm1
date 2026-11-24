@@ -23,7 +23,22 @@ function Invoke-NotebookWorker {
     $process = $script:Workers[$key]
     $process.StandardInput.WriteLine(($Request | ConvertTo-Json -Compress))
     $process.StandardInput.Flush()
-    $line = $process.StandardOutput.ReadLineAsync().WaitAsync([TimeSpan]::FromSeconds($TimeoutSeconds)).GetAwaiter().GetResult()
+    try {
+        $line = $process.StandardOutput.ReadLineAsync().WaitAsync([TimeSpan]::FromSeconds($TimeoutSeconds)).GetAwaiter().GetResult()
+    } catch [TimeoutException] {
+        $script:Workers.Remove($key)
+        try {
+            if (-not $process.HasExited) {
+                $process.Kill($true)
+                [void] $process.WaitForExit(3000)
+            }
+        } catch {
+            Write-Verbose "Could not stop timed-out benchmark worker '$Name'. $_"
+        } finally {
+            $process.Dispose()
+        }
+        throw
+    }
     if ($null -eq $line) { throw "$Name benchmark worker exited before replying." }
     $response = $line | ConvertFrom-Json
     if (-not $response.ok) { throw $response.error }

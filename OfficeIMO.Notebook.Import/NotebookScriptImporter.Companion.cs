@@ -12,6 +12,7 @@ internal static partial class NotebookScriptImporter {
             return;
         }
 
+        string? companionLanguage = companion.Language;
         var seenCode = new Dictionary<string, (bool HasSavedResult, bool IsIdentified)>(StringComparer.Ordinal);
         for (int i = 0; i < scriptCells.Count; i++) {
             context.CancellationToken.ThrowIfCancellationRequested();
@@ -32,9 +33,10 @@ internal static partial class NotebookScriptImporter {
             }
             if (script.Kind != NotebookCellKind.Code) continue;
 
-            string? pairedLanguage = paired.Language ?? companion.Language;
-            string? expectedLanguage = paired.Language == null ? scriptLanguage : script.Language;
-            if (!string.IsNullOrWhiteSpace(pairedLanguage) && !SameLanguage(expectedLanguage, pairedLanguage!)) {
+            string? magicLanguage = ReadPercentLanguageMagic(pairedSource);
+            string? scriptCellLanguage = SameLanguage(script.Language, scriptLanguage) ? magicLanguage ?? script.Language : script.Language;
+            string? pairedLanguage = paired.Language ?? magicLanguage ?? companionLanguage;
+            if (!string.IsNullOrWhiteSpace(pairedLanguage) && !SameLanguage(scriptCellLanguage, pairedLanguage!)) {
                 ReportPairMismatch(context, "The script and its Jupyter companion declare different code languages.", i);
                 return;
             }

@@ -19,7 +19,7 @@ internal static partial class RNotebookHtmlImporter {
         internal ChunkReader(NotebookImportContext context) => _context = context;
         internal IReadOnlyList<SavedChunk> Chunks => _chunks;
 
-        internal void Visit(HtmlNode node) {
+        internal void Visit(HtmlNode node, bool inPreformattedText = false) {
             _context.CancellationToken.ThrowIfCancellationRequested();
             if (node.Kind == HtmlNodeKind.Comment) {
                 ReadComment(node.TextContent);
@@ -35,11 +35,12 @@ internal static partial class RNotebookHtmlImporter {
                     if (IsIgnoredSavedMarkup(element.LocalName)) return;
                 }
                 if (annotation != null && ReadElement(element, annotation)) return;
+                inPreformattedText |= element.LocalName is "pre" or "code";
             } else if (node.Kind == HtmlNodeKind.Text && annotation?.Kind is AnnotationKind.Source or AnnotationKind.Output) {
-                annotation.Text.Append(node.TextContent);
+                annotation.AppendText(node.TextContent, inPreformattedText);
                 return;
             }
-            foreach (HtmlNode child in node.ChildNodes) Visit(child);
+            foreach (HtmlNode child in node.ChildNodes) Visit(child, inPreformattedText);
         }
 
         internal void Complete() {
@@ -115,18 +116,18 @@ internal static partial class RNotebookHtmlImporter {
                 return true;
             }
             if (element.LocalName == "br") {
-                annotation.Text.Append('\n');
+                annotation.AppendText("\n", inPreformattedText: true);
                 return true;
             }
             return false;
         }
 
         private void FlushText(Annotation annotation) {
-            if (annotation.Text.Length == 0) return;
-            string text = annotation.Text.ToString().Trim('\r', '\n');
-            annotation.Text.Clear();
-            if (string.IsNullOrWhiteSpace(text)) return;
+            string text = annotation.TakeText();
+            if (text.Length == 0) return;
             if (annotation.Kind == AnnotationKind.Source) {
+                text = text.Trim('\r', '\n');
+                if (string.IsNullOrWhiteSpace(text)) return;
                 StringBuilder source = _chunk!.Source;
                 if (source.Length > 0) source.Append('\n');
                 source.Append(text);
@@ -182,6 +183,9 @@ internal static partial class RNotebookHtmlImporter {
     }
 
     private sealed class Annotation {
+        private readonly StringBuilder _text = new();
+        private int _textEnd;
+
         internal Annotation(string label, AnnotationKind kind) {
             Label = label;
             Kind = kind;
@@ -189,6 +193,20 @@ internal static partial class RNotebookHtmlImporter {
 
         internal string Label { get; }
         internal AnnotationKind Kind { get; }
-        internal StringBuilder Text { get; } = new();
+        internal void AppendText(string text, bool inPreformattedText) {
+            // Preserve whitespace between text nodes and inside saved preformatted blocks.
+            // Bare whitespace before or after rendered output is HTML layout.
+            bool layout = Kind == AnnotationKind.Output && !inPreformattedText && string.IsNullOrWhiteSpace(text);
+            if (!layout || _text.Length > 0) _text.Append(text);
+            if (!layout) _textEnd = _text.Length;
+        }
+
+        internal string TakeText() {
+            if (_textEnd == 0) return string.Empty;
+            string text = _text.ToString(0, _textEnd);
+            _text.Clear();
+            _textEnd = 0;
+            return text;
+        }
     }
 }

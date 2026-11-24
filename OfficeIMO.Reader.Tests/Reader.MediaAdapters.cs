@@ -461,7 +461,8 @@ public sealed partial class ReaderMediaAdapterTests {
                   "source": ["print('ok')"],
                   "outputs": [
                     { "output_type": "stream", "name": "stdout", "text": ["ok\n"] },
-                    { "output_type": "display_data", "data": { "text/markdown": ["**done**"] } }
+                    { "output_type": "display_data", "data": { "text/markdown": ["**done**"] } },
+                    { "output_type": "error", "ename": "RuntimeError", "evalue": "failed", "traceback": ["first", "second"] }
                   ]
                 }
               ],
@@ -479,6 +480,7 @@ public sealed partial class ReaderMediaAdapterTests {
         Assert.Contains("```python", result.Markdown, StringComparison.Ordinal);
         Assert.Contains("print('ok')", result.Markdown, StringComparison.Ordinal);
         Assert.Contains("**done**", result.Markdown, StringComparison.Ordinal);
+        Assert.Contains("first\nsecond", result.Markdown, StringComparison.Ordinal);
         Assert.Contains(result.Metadata, item => item.Name == "NbFormat" && item.Value == "4");
         Assert.Contains(OfficeDocumentReaderBuilderNotebookExtensions.HandlerId, result.CapabilitiesUsed);
     }

@@ -1,6 +1,17 @@
 namespace OfficeIMO.Notebook.Import;
 
 internal static partial class NotebookScriptImporter {
+    private static string? ReadPercentLanguageMagic(string source) {
+        ReadOnlySpan<char> text = source.AsSpan();
+        if (!text.StartsWith("%%".AsSpan(), StringComparison.Ordinal)) return null;
+        int end = 2;
+        while (end < text.Length && !char.IsWhiteSpace(text[end])) end++;
+        string magic = text.Slice(2, end - 2).ToString();
+        return IsPercentLanguageMagic(magic) ? magic : null;
+    }
+
+    private static bool IsPercentLanguageMagic(string name) => LanguageAlias(name) is "python" or "r" or "julia";
+
     private static string UnescapePercentCode(string line, string language, bool commentMagics, bool explicitCell,
         ref bool magicContinues) {
         ReadOnlySpan<char> text = line.AsSpan().TrimStart();

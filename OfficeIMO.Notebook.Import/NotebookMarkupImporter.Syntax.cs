@@ -1,7 +1,11 @@
+using System.Text;
+
 namespace OfficeIMO.Notebook.Import;
 
 internal static partial class NotebookMarkupImporter {
-    private readonly record struct Fence(char Marker, int Length, int InfoOffset);
+    private readonly record struct Fence(char Marker, int Length, int InfoOffset) {
+        internal int Indent => InfoOffset - Length;
+    }
 
     private static bool TryOpenFence(ReadOnlySpan<char> line, out Fence fence) {
         fence = default;
@@ -28,6 +32,36 @@ internal static partial class NotebookMarkupImporter {
         int index = 0;
         while (index < line.Length && line[index] == ' ') index++;
         return index;
+    }
+
+    private static bool IsHtmlCommentBlock(ReadOnlySpan<char> text, ref bool insideComment) {
+        if (!insideComment) {
+            int start = LeadingSpaces(text);
+            if (start > 3 || !text.Slice(start).StartsWith("<!--".AsSpan(), StringComparison.Ordinal)) return false;
+        }
+
+        insideComment = text.IndexOf("-->".AsSpan(), StringComparison.Ordinal) < 0;
+        return true;
+    }
+
+    private static string ReadFenceContent(string source, int start, int end, int indent, CancellationToken token) {
+        if (indent == 0) return source.Substring(start, end - start);
+
+        var cursor = new SourceCursor(source, start, end);
+        var content = new StringBuilder();
+        while (cursor.TryRead(out SourceLine line)) {
+            token.ThrowIfCancellationRequested();
+            ReadOnlySpan<char> text = line.Text(source);
+            int skipped = 0;
+            while (skipped < indent && skipped < text.Length && text[skipped] == ' ') skipped++;
+            if (skipped < indent && skipped < text.Length && text[skipped] == '\t') {
+                // The first tab stop is at column four, past every supported opener indent.
+                content.Append(' ', 4 - indent);
+                skipped++;
+            }
+            content.Append(source, line.Start + skipped, cursor.Offset - line.Start - skipped);
+        }
+        return content.ToString();
     }
 
     private static bool TryGetLanguage(ReadOnlySpan<char> info, NotebookImportFormat format, string? fallback, out string? language) {
@@ -64,7 +98,8 @@ internal static partial class NotebookMarkupImporter {
         !info.IsEmpty && info[0] == '{' && (format == NotebookImportFormat.MySTMarkdown
             || info.Length > 1 && info[1] is '=');
 
-    private static int ReadCellOptions(string source, int start, int end, NotebookImportFormat format, CancellationToken token) {
+    private static int ReadCellOptions(string source, int start, int end, NotebookImportFormat format, string? language,
+        CancellationToken token) {
         var cursor = new SourceCursor(source, start, end);
         if (!cursor.TryRead(out SourceLine first)) return start;
         ReadOnlySpan<char> text = first.Text(source).TrimStart();
@@ -76,6 +111,8 @@ internal static partial class NotebookMarkupImporter {
             return start;
         }
 
+        ReadOnlySpan<char> prefix = format == NotebookImportFormat.Quarto && string.Equals(language, "ojs", StringComparison.OrdinalIgnoreCase)
+            ? "//|".AsSpan() : "#|".AsSpan();
         int endOfOptions = start;
         SourceLine line = first;
         do {
@@ -83,7 +120,7 @@ internal static partial class NotebookMarkupImporter {
             text = line.Text(source).TrimStart();
             if (format == NotebookImportFormat.MySTMarkdown) {
                 if (!IsMySTOption(text)) break;
-            } else if (!text.StartsWith("#|".AsSpan(), StringComparison.Ordinal)) {
+            } else if (!text.StartsWith(prefix, StringComparison.Ordinal)) {
                 break;
             }
             endOfOptions = cursor.Offset;

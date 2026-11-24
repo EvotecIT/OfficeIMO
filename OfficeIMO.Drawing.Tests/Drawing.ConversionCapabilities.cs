@@ -59,6 +59,7 @@ public sealed class DrawingConversionCapabilities {
                 "markdown-html",
                 "html-markdown",
                 "markdown-docx",
+                "notebook-pdf",
                 "pdf-docx",
                 "pdf-xlsx",
                 "pdf-pptx",

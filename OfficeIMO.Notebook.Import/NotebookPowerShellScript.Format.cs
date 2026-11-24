@@ -7,8 +7,8 @@ public static partial class NotebookPowerShellScript {
     private const string Language = "powershell";
     private const string HeaderPrefix = "# OfficeIMO PowerShell Notebook ";
     private const string Header = HeaderPrefix + "v1 ";
-    private const string CellPrefix = "# %% [";
     private const string MarkdownPrefix = "# ";
+    private const string CellPrefix = MarkdownPrefix + "%% [";
     private static readonly Encoding Utf16LittleEndian = new UnicodeEncoding(false, false, true);
     private static readonly Encoding Utf16BigEndian = new UnicodeEncoding(true, false, true);
 
@@ -103,13 +103,14 @@ public static partial class NotebookPowerShellScript {
         }
     }
 
-    private static void ReserveBoundaries(string source, HashSet<int> reserved, CancellationToken cancellationToken) {
+    private static void ReserveBoundaries(string source, bool markdown, HashSet<int> reserved, CancellationToken cancellationToken) {
+        ReadOnlySpan<char> prefix = CellPrefix.AsSpan(markdown ? MarkdownPrefix.Length : 0);
         int cursor = 0;
         while (cursor < source.Length) {
             cancellationToken.ThrowIfCancellationRequested();
             ReadOnlySpan<char> line = ReadLine(source.AsSpan(), ref cursor);
-            if (!line.StartsWith(CellPrefix.AsSpan(), StringComparison.Ordinal)) continue;
-            ReadOnlySpan<char> suffix = line.Slice(CellPrefix.Length);
+            if (!line.StartsWith(prefix, StringComparison.Ordinal)) continue;
+            ReadOnlySpan<char> suffix = line.Slice(prefix.Length);
             int closing = suffix.IndexOf(']');
             if (closing > 0 && TryReadNumber(suffix.Slice(0, closing), out int number)) reserved.Add(number);
         }

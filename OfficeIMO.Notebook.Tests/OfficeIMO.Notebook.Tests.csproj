@@ -22,6 +22,7 @@
     <ProjectReference Include="..\OfficeIMO.Notebook.Spreadsheet\OfficeIMO.Notebook.Spreadsheet.csproj" />
     <ProjectReference Include="..\OfficeIMO.Notebook.Import\OfficeIMO.Notebook.Import.csproj" />
     <None Include="..\Build\PackageSmoke\OfficeIMO.Html\Assets\FixtureMath.ttf" Link="Fixtures\FixtureMath.ttf" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.Drawing.Tests\TestAssets\OpenSans-Bold.ttf" Link="Fixtures\OpenSans-Bold.ttf" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Notebook\Jupyter\*.ipynb" Link="Fixtures\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Notebook\Producers\*.ipynb" Link="Fixtures\Producers\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Notebook\AdvancedOutputs\**\*.ipynb" Link="Fixtures\AdvancedOutputs\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

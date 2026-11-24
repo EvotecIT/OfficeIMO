@@ -98,6 +98,21 @@ $nonNativeValidated = @(
         classification = 'managed-cross-platform'
         evidence = 'Static Mermaid Word/PDF/HTML/PowerPoint integration, packed .NET 8 and 10 consumers and .NET Framework 4.7.2 cross-compilation are validated; complete adapter NativeAOT qualification is separate.'
     }
+    foreach ($name in @(
+        'OfficeIMO.Notebook'
+        'OfficeIMO.Notebook.Html'
+        'OfficeIMO.Notebook.Import'
+        'OfficeIMO.Notebook.Markdown'
+        'OfficeIMO.Notebook.Pdf'
+        'OfficeIMO.Notebook.Spreadsheet'
+        'OfficeIMO.Notebook.Word'
+    )) {
+        [ordered]@{
+            name = $name
+            classification = 'managed-cross-platform'
+            evidence = 'Notebook document, import and export contracts are qualified by managed .NET 8 and 10 tests and .NET Framework 4.7.2 cross-compilation. Full-assembly NativeAOT qualification remains open.'
+        }
+    }
     [ordered]@{
         name = 'OfficeIMO.JavaScript.Assets'
         classification = 'managed-cross-platform'

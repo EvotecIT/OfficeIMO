@@ -24,7 +24,7 @@ internal static class NotebookHtmlMath {
         cancellationToken.ThrowIfCancellationRequested();
         if (tex.Length <= MaxExpressionCharacters) {
             try {
-                return OfficeMathMarkup.ToMathMl(OfficeMathMarkup.FromLatex(tex), display);
+                return OfficeMathMarkup.ToBrowserMathMl(OfficeMathMarkup.FromLatexStrict(tex), display);
             } catch (Exception ex) when (ex is FormatException or ArgumentException or NotSupportedException) {
                 // Unsupported math remains visible without executable HTML or a remote renderer.
             }

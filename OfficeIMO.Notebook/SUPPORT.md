@@ -40,6 +40,8 @@ Color scales use saved stops or the default scale. The Plotly.py fixtures
 store explicit stops when authored with named scales.
 Shared subplot axes and tile-based map layers use the fallback policy. Maps
 can use saved ranges or fit available geometry and accept no remote GeoJSON.
+The basemap omits template lake overlays. Explicit requests to draw lakes use
+the saved fallback.
 The [basemap provenance](../OfficeIMO.Notebook.Markdown/MapData/README.md)
 documents the embedded data.
 

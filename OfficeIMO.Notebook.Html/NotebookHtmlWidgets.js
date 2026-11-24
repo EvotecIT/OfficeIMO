@@ -17,7 +17,7 @@
             case "boolean": return control.checked;
             case "text": return control.value;
             case "text-value": return control.textContent;
-            case "progress": return control.value + minOf(control);
+            case "progress": return Number(control.dataset.officeimoWidgetValue);
             default: return control.value === "" || control.validity?.valid === false ? null : Number(control.value);
         }
     }
@@ -31,6 +31,7 @@
                 control.textContent = value;
                 break;
             case "progress":
+                control.dataset.officeimoWidgetValue = String(value);
                 control.value = value - minOf(control);
                 break;
             default:

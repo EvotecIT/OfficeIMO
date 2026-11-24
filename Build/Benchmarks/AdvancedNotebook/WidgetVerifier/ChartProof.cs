@@ -109,7 +109,9 @@ internal static class ChartProof {
         await page.Mouse.MoveAsync(region.X + 0.375f * region.Width, region.Y + 0.5f * region.Height);
         var hover = plot.Locator(".hoverlayer .hovertext");
         await hover.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 5000 });
-        ValidateValues(await hover.TextContentAsync());
+        var values = await hover.Locator("text.nums tspan.line").AllTextContentsAsync();
+        Require(values.SequenceEqual(new[] { "x: 2", "y: 25", "z: 18.5" }),
+            $"Expected heatmap hover values x=2, y=25, z=18.5, found `{string.Join(", ", values)}`.");
         await CaptureAsync(page, preview);
 
         var initial = await ReadPlotlyRangeAsync(plot);
@@ -124,12 +126,6 @@ internal static class ChartProof {
 
     private static Task ClickPlotlyControlAsync(ILocator plot, string title) =>
         plot.Locator($".modebar-btn[data-title='{title}']").ClickAsync(new() { Timeout = 5000 });
-
-    private static void ValidateValues(string? text) {
-        string values = text ?? string.Empty;
-        Require(new[] { "2", "25", "18.5" }.All(value => Regex.IsMatch(values, $@"(?<![\d.]){Regex.Escape(value)}(?![\d.])")),
-            $"Expected heatmap hover values x=2, y=25, z=18.5, found `{text}`.");
-    }
 
     private static Task CaptureAsync(IPage page, string? preview) => preview is null
         ? Task.CompletedTask

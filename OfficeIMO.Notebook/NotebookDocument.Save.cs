@@ -54,27 +54,37 @@ public sealed partial class NotebookDocument {
 
     private void Write(Stream stream, NotebookSaveOptions options, CancellationToken cancellationToken) {
         using Utf8JsonWriter writer = OpenWriter(stream, options);
-        WriteHeader(writer);
-        foreach (NotebookCell cell in _cells) {
+        try {
+            WriteHeader(writer);
+            foreach (NotebookCell cell in _cells) {
+                cancellationToken.ThrowIfCancellationRequested();
+                NotebookWriter.WriteCell(writer, cell, NbFormat == 3, cancellationToken);
+                if (writer.BytesPending >= FlushThreshold) writer.Flush();
+            }
+            WriteFooter(writer);
             cancellationToken.ThrowIfCancellationRequested();
-            NotebookWriter.WriteCell(writer, cell, NbFormat == 3, cancellationToken);
-            if (writer.BytesPending >= FlushThreshold) writer.Flush();
+            writer.Flush();
+        } finally {
+            // Keep disposal from retrying a failed or canceled flush against the destination.
+            writer.Reset(Stream.Null);
         }
-        WriteFooter(writer);
-        cancellationToken.ThrowIfCancellationRequested();
-        writer.Flush();
     }
 
     private async Task WriteAsync(Stream stream, NotebookSaveOptions options, CancellationToken cancellationToken) {
         using Utf8JsonWriter writer = OpenWriter(stream, options);
-        WriteHeader(writer);
-        foreach (NotebookCell cell in _cells) {
-            cancellationToken.ThrowIfCancellationRequested();
-            NotebookWriter.WriteCell(writer, cell, NbFormat == 3, cancellationToken);
-            if (writer.BytesPending >= FlushThreshold) await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+        try {
+            WriteHeader(writer);
+            foreach (NotebookCell cell in _cells) {
+                cancellationToken.ThrowIfCancellationRequested();
+                NotebookWriter.WriteCell(writer, cell, NbFormat == 3, cancellationToken);
+                if (writer.BytesPending >= FlushThreshold) await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+            }
+            WriteFooter(writer);
+            await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+        } finally {
+            // Disposal flushes its target synchronously. Detach the stream and discard any unwritten data.
+            writer.Reset(Stream.Null);
         }
-        WriteFooter(writer);
-        await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private static Utf8JsonWriter OpenWriter(Stream stream, NotebookSaveOptions options) {

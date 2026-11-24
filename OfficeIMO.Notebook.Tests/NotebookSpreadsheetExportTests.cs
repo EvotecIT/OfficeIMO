@@ -1,3 +1,4 @@
+using OfficeIMO.CSV;
 using OfficeIMO.Excel;
 using OfficeIMO.Notebook.Spreadsheet;
 
@@ -21,6 +22,17 @@ public sealed class NotebookSpreadsheetExportTests {
         string csvText = Encoding.UTF8.GetString(csv.ToArray());
         Assert.StartsWith("Label,Count,Identifier", csvText);
         Assert.Contains("'=2+3,-19,12345678901234567,0.12345678901234567,-1.25e-85", csvText);
+
+        var options = new CsvSaveOptions { Delimiter = ';' };
+        using var formatted = new MemoryStream();
+        table.SaveAsCsv(formatted, options);
+        Assert.Contains("'=2+3;-19;", Encoding.UTF8.GetString(formatted.ToArray()));
+        Assert.Equal(CsvFormulaInjectionPolicy.Preserve, options.FormulaInjectionPolicy);
+
+        options.FormulaInjectionPolicy = CsvFormulaInjectionPolicy.Preserve;
+        using var literal = new MemoryStream();
+        table.SaveAsCsv(literal, options);
+        Assert.Contains("\n=2+3;-19;", Encoding.UTF8.GetString(literal.ToArray()));
 
         using var destination = new MemoryStream();
         Assert.Equal(1, table.SaveAsExcel(destination).ItemsWritten);

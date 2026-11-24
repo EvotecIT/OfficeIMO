@@ -90,6 +90,8 @@ internal static class NotebookVegaLiteChart {
                 if (!TryText(paint, out string paintText) || !OfficeColor.TryParseCss(paintText, out OfficeColor parsed)) return false;
                 color = parsed;
             }
+            if (kind == "bar" && mark.TryGetProperty("filled", out JsonElement filled)
+                && filled.ValueKind != JsonValueKind.True) return false;
         } else if (!TryText(mark, out kind)) {
             return false;
         }

@@ -83,18 +83,20 @@ internal static partial class NotebookPlotlyChart {
         intensities = null;
         faceColors = null;
         vertexColors = null;
-        // Plotly's explicit face colors override vertex colors. Both override numeric intensity colors.
-        JsonElement faceColorSource = Property(trace, "facecolor");
-        if (faceColorSource.ValueKind != JsonValueKind.Undefined)
-            return (faceColors = ReadMeshColors(faceColorSource, faceCount)) != null;
+        // Match Plotly's selection order when the spec supplies more than one source.
+        JsonElement intensitySource = Property(trace, "intensity");
+        if (intensitySource.ValueKind != JsonValueKind.Undefined) {
+            int count = perFace ? faceCount : pointCount;
+            intensities = ReadNumbers(intensitySource, count);
+            return intensities?.Length == count
+                && TryReadSceneScale(trace, template, intensities, reverse, showScale, out scale);
+        }
         JsonElement vertexColorSource = Property(trace, "vertexcolor");
         if (vertexColorSource.ValueKind != JsonValueKind.Undefined)
             return (vertexColors = ReadMeshColors(vertexColorSource, pointCount)) != null;
-        JsonElement intensitySource = Property(trace, "intensity");
-        if (intensitySource.ValueKind == JsonValueKind.Undefined) return true;
-        int count = perFace ? faceCount : pointCount;
-        intensities = ReadNumbers(intensitySource, count);
-        return intensities?.Length == count && TryReadSceneScale(trace, template, intensities, reverse, showScale, out scale);
+        JsonElement faceColorSource = Property(trace, "facecolor");
+        return faceColorSource.ValueKind == JsonValueKind.Undefined
+            || (faceColors = ReadMeshColors(faceColorSource, faceCount)) != null;
     }
 
     private static OfficeColor[]? ReadMeshColors(JsonElement source, int count) {
