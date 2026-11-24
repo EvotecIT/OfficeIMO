@@ -363,6 +363,8 @@ internal readonly struct PowerPointModelSlide {
         bodyProperties.RtlCol = false;
         body.GetOrAddLstStyle();
         foreach (string paragraph in paragraphs) AddParagraph(body, paragraph);
+        // A text body holds at least one paragraph, even when it is empty.
+        if (paragraphs.Length == 0) body.AddP();
         return shape;
     }
 
@@ -380,6 +382,8 @@ internal readonly struct PowerPointModelSlide {
     /// <summary>Replaces a shape's text with one paragraph, keeping its body properties and list style.</summary>
     internal static void SetText(PShapeView shape, string text) {
         ATextBodyView body = shape.GetOrAddTxBody();
+        // A shape that had no text gets the body properties every text body needs.
+        body.GetOrAddBodyPr();
         OfficeXmlTree tree = body.Tree;
         int paragraph;
         while ((paragraph = tree.FindChild(body.Node, OfficeXmlNamespaces.DrawingML, "p")) != OfficeXmlTree.NoNode) tree.Remove(paragraph);

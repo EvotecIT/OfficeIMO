@@ -174,6 +174,8 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
         if (Find(name) != null) return GetXml(name);
         OfficeXmlTree tree = OfficeXmlTree.Create(Namespaces, OfficeXmlNamespaces.PackageRelationships, "Relationships", 4);
         tree.DeclareNamespace(tree.Root, string.Empty, "http://schemas.openxmlformats.org/package/2006/relationships");
+        // A package may type its relationship parts with overrides alone, so the new part needs the default.
+        AddDefaultContentType("rels", RelationshipContentType);
         AddPart(name, null).Tree = tree;
         return tree;
     }

@@ -167,6 +167,35 @@ public class OpenXmlPackageModelTests {
         Assert.NotNull(model.GetSlide(0).FindTitle());
     }
 
+    [Fact]
+    public void AddsValidTextToTextlessShapesAndRelationshipsToPackagesWithoutARelsDefault() {
+        // The relationship parts are typed by overrides alone, and the title loses its text body.
+        byte[] deck = CreateDeck(1);
+        string overrides;
+        using (var zip = new System.IO.Compression.ZipArchive(new MemoryStream(deck))) {
+            overrides = string.Concat(zip.Entries.Where(entry => entry.FullName.EndsWith(".rels", StringComparison.Ordinal))
+                .Select(entry => "<Override PartName=\"/" + entry.FullName + "\" ContentType=\"" + OfficeOpcEditablePackage.RelationshipContentType + "\"/>"));
+        }
+        deck = Rewrite(deck, "[Content_Types].xml", xml => System.Text.RegularExpressions.Regex.Replace(xml, "<Default Extension=\"rels\"[^>]*/>", string.Empty)
+            .Replace("</Types>", overrides + "</Types>"));
+        deck = Rewrite(deck, "ppt/slides/slide1.xml", xml => System.Text.RegularExpressions.Regex.Replace(xml, "<p:txBody>.*?</p:txBody>", string.Empty, System.Text.RegularExpressions.RegexOptions.None, TimeSpan.FromSeconds(1)));
+        Assert.DoesNotContain("Extension=\"rels\"", Encoding.UTF8.GetString(LoadPartBytes(deck, "[Content_Types].xml")));
+
+        byte[] edited;
+        using (var source = new MemoryStream(deck))
+        using (PowerPointPackageModel model = PowerPointPackageModel.Open(source)) {
+            PowerPointModelSlide first = model.GetSlide(0);
+            PowerPointModelSlide.SetText(first.FindTitle()!.Value, "Title again");
+            first.AddTextBox(0, 0, 914400, 914400);
+            model.AddSlide().AddTitle("Second");
+            var output = new MemoryStream();
+            model.Save(output);
+            edited = output.ToArray();
+        }
+
+        Assert.Equal(0, CountValidationErrors(edited));
+    }
+
     private static byte[] Rewrite(byte[] package, string member, Func<string, string> change) {
         string xml = Encoding.UTF8.GetString(LoadPartBytes(package, member));
         return Replace(package, member, member, Encoding.UTF8.GetBytes(change(xml)));
