@@ -286,11 +286,21 @@ namespace OfficeIMO.Excel {
         /// argument that is tiny or within rounding of 1 keeps its precision.
         /// </summary>
         private static double RegularizedBeta(double x, double complement, double logX, double logComplement, double a, double b) {
-            double prefix = Math.Exp(LogGamma(a + b) - LogGamma(a) - LogGamma(b) + a * logX + b * logComplement);
+            double prefix = Math.Exp(LogBetaNormalization(a, b) + a * logX + b * logComplement);
             // The continued fraction converges quickly below the mean; above it, use I_x(a,b) = 1 − I_(1−x)(b,a).
             return x < (a + 1) / (a + b + 2)
                 ? prefix * BetaContinuedFraction(x, a, b) / a
                 : 1 - prefix * BetaContinuedFraction(complement, b, a) / b;
+        }
+
+        /// <summary>
+        /// ln Γ(a+b) − ln Γ(a) − ln Γ(b). With one parameter ½ and the other huge, as in Student t at many degrees,
+        /// a + b rounds to the larger one and the plain difference cancels, so that case uses the half-gamma ratio.
+        /// </summary>
+        private static double LogBetaNormalization(double a, double b) {
+            if (b == 0.5) return LogGammaHalfRatio(a) - LogGamma(0.5);
+            if (a == 0.5) return LogGammaHalfRatio(b) - LogGamma(0.5);
+            return LogGamma(a + b) - LogGamma(a) - LogGamma(b);
         }
 
         // I_x(a, b)'s continued fraction, with d₂ₘ = m(b−m)x / ((a+2m−1)(a+2m)) and
