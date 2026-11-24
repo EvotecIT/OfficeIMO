@@ -1328,6 +1328,8 @@ static OfficeIMO.Pdf.PdfDocument.LoadSeekable(string! path, OfficeIMO.Pdf.PdfLoa
 OfficeIMO.Pdf.PdfAssetExtractionOptions
 OfficeIMO.Pdf.PdfAssetExtractionOptions.CompositeSoftMasks.get -> bool
 OfficeIMO.Pdf.PdfAssetExtractionOptions.CompositeSoftMasks.init -> void
+OfficeIMO.Pdf.PdfAssetExtractionOptions.MaximumInspectionWork.get -> int
+OfficeIMO.Pdf.PdfAssetExtractionOptions.MaximumInspectionWork.init -> void
 OfficeIMO.Pdf.PdfAssetExtractionOptions.MaximumOutputBytes.get -> long
 OfficeIMO.Pdf.PdfAssetExtractionOptions.MaximumOutputBytes.init -> void
 OfficeIMO.Pdf.PdfAssetExtractionOptions.MaximumPages.get -> int

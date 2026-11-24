@@ -156,6 +156,24 @@ public sealed class PdfAssetExtractionTests {
     }
 
     [Fact]
+    public void AssetInspectionHasItsOwnDocumentBudgetAcrossRepeatedPageResources() {
+        using PdfDocument seed = PdfDocument.Create();
+        const int pageCount = 24;
+        for (int index = 0; index < pageCount; index++) {
+            if (index > 0) seed.PageBreak();
+            seed.Paragraph(paragraph => paragraph.AddText("Repeated resources"));
+        }
+
+        using PdfDocument document = PdfDocument.Load(seed.ToBytes(),
+            new PdfLoadOptions { Limits = new PdfReadLimits { MaxContentOperands = 128 } });
+        IReadOnlyList<string> files = document.ExtractAssetsTo(_ => new MemoryStream());
+        Assert.Equal(pageCount, files.Count(file => file.StartsWith("pages/", StringComparison.Ordinal)));
+        PdfReadLimitException limit = Assert.Throws<PdfReadLimitException>(() =>
+            document.ExtractAssetsTo(_ => new MemoryStream(), new PdfAssetExtractionOptions { MaximumInspectionWork = 1 }));
+        Assert.Equal(PdfReadLimitKind.UnderstandingArtifacts, limit.Kind);
+    }
+
+    [Fact]
     public void FailedFolderExportDoesNotPublishPartialFiles() {
         using PdfDocument document = PdfDocument.Load(BuildPdf(PdfIccProfiles.SrgbIec6196621));
         string parent = Path.Combine(Path.GetTempPath(), "officeimo-asset-limit-" + Guid.NewGuid().ToString("N"));

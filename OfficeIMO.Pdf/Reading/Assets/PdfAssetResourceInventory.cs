@@ -5,16 +5,16 @@ internal sealed class PdfAssetResourceInventory {
     private readonly PdfReadDocument _document;
     private readonly PdfAssetOutput? _output;
     private readonly PdfAssetReport? _report;
-    private readonly CancellationToken _token;
+    private readonly PdfAssetInspectionBudget _work;
+    private CancellationToken Token => _work.CancellationToken;
     private readonly Dictionary<PdfStream, ProfileFile?> _profiles = new();
-    private int _work;
     private long _decodedBytes;
 
-    internal PdfAssetResourceInventory(PdfReadDocument document, PdfAssetOutput? output, PdfAssetReport? report, CancellationToken token) {
+    internal PdfAssetResourceInventory(PdfReadDocument document, PdfAssetOutput? output, PdfAssetReport? report, PdfAssetInspectionBudget work) {
         _document = document;
         _output = output;
         _report = report;
-        _token = token;
+        _work = work;
     }
 
     internal void InspectOutputIntents() {
@@ -22,7 +22,7 @@ internal sealed class PdfAssetResourceInventory {
             !catalog.Items.TryGetValue("OutputIntents", out PdfObject? value) ||
             Resolve(value) is not PdfArray intents) return;
         foreach (PdfObject item in intents.Items) {
-            CheckWork();
+            _work.Consume(1);
             if (Resolve(item) is PdfDictionary intent && intent.Items.TryGetValue("DestOutputProfile", out PdfObject? profile)) {
                 AddProfile(null, "OutputIntent", profile);
             }
@@ -41,7 +41,7 @@ internal sealed class PdfAssetResourceInventory {
         AddResources(page.GetFontInspectionResources());
         if (page.PageDictionary.Items.TryGetValue("Annots", out PdfObject? annotations) && Resolve(annotations) is PdfArray annots) {
             foreach (PdfObject item in annots.Items) {
-                CheckWork();
+                _work.Consume(1);
                 if (Resolve(item) is PdfDictionary annotation && annotation.Items.TryGetValue("AP", out PdfObject? appearance)) {
                     hasUnmappedAppearance = true;
                     Schedule(appearance);
@@ -91,7 +91,7 @@ internal sealed class PdfAssetResourceInventory {
         }
 
         void Schedule(PdfObject? value) {
-            CheckWork();
+            _work.Consume(1);
             if (value is PdfReference reference) {
                 if (visitedReferences.Add((reference.ObjectNumber, reference.Generation))) stack.Push(reference);
             } else if (value is PdfArray or PdfStream or PdfDictionary && visited.Add(value)) {
@@ -110,7 +110,7 @@ internal sealed class PdfAssetResourceInventory {
                     break;
                 case "DeviceN" when array.Items.Count is 4 or 5 && Resolve(array.Items[1]) is PdfArray names:
                     foreach (PdfObject name in names.Items) {
-                        CheckWork();
+                        _work.Consume(1);
                         AddInk(kind.Name, name);
                     }
                     break;
@@ -133,12 +133,12 @@ internal sealed class PdfAssetResourceInventory {
         if (!_profiles.TryGetValue(profile, out ProfileFile? file)) {
             PdfReadLimits limits = _document.ReadOptions.Limits;
             if (PdfImageStreamDecoder.TryDecode(profile, _document.Objects, out byte[] bytes,
-                    limits.MaxDecodedStreamBytes, _token) && bytes.Length != 0) {
+                    limits.MaxDecodedStreamBytes, Token) && bytes.Length != 0) {
                 _decodedBytes += bytes.LongLength;
                 if (_decodedBytes > limits.MaxTotalDecodedStreamBytes) {
                     throw PdfReadLimitException.Create(PdfReadLimitKind.TotalDecodedStreamBytes, limits.MaxTotalDecodedStreamBytes, _decodedBytes);
                 }
-                string hash = PdfArtifactInfo.ComputeSha256Hex(bytes, _token);
+                string hash = PdfArtifactInfo.ComputeSha256Hex(bytes, Token);
                 file = new ProfileFile(_output!.WriteDistinct("profiles", "icc", bytes, hash), bytes.Length, hash);
             }
             _profiles.Add(profile, file);
@@ -151,12 +151,6 @@ internal sealed class PdfAssetResourceInventory {
     }
 
     private PdfObject? Resolve(PdfObject value) => PdfObjectLookup.ResolveChain(_document.Objects, value);
-
-    private void CheckWork() {
-        _token.ThrowIfCancellationRequested();
-        int maximum = _document.ReadOptions.Limits.MaxContentOperands;
-        if (++_work > maximum) throw PdfReadLimitException.Create(PdfReadLimitKind.ContentOperands, maximum, _work);
-    }
 
     private sealed record ProfileFile(string Path, int Size, string Hash);
 }

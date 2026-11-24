@@ -95,7 +95,8 @@ internal sealed partial class BrowserPdfToolService {
                 new PdfAssetExtractionOptions {
                     CompositeSoftMasks = !request.PreserveImageFormat,
                     MaximumPages = BrowserPdfPolicy.MaxPages,
-                    MaximumOutputBytes = BrowserPdfPolicy.MaxAssetSerializedBytes
+                    MaximumOutputBytes = BrowserPdfPolicy.MaxAssetSerializedBytes,
+                    MaximumInspectionWork = BrowserPdfPolicy.MaxAssetInspectionWork
                 }, CancellationToken.None);
         }
 

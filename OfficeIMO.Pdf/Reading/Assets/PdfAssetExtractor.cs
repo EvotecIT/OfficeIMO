@@ -13,22 +13,17 @@ internal static class PdfAssetExtractor {
 
         var output = new PdfAssetOutput(create, options.MaximumOutputBytes, token);
         var report = new PdfAssetReport();
-        var inventory = new PdfAssetResourceInventory(document, output, report, token);
+        var work = new PdfAssetInspectionBudget(options.MaximumInspectionWork, token);
+        var inventory = new PdfAssetResourceInventory(document, output, report, work);
         var resourceSets = new List<IReadOnlyList<PdfDictionary>>(document.Pages.Count);
         inventory.InspectOutputIntents();
-        long placementWork = 0;
-        long maxPlacementWork = document.ReadOptions.Limits.MaxContentOperands;
         for (int index = 0; index < document.Pages.Count; index++) {
             token.ThrowIfCancellationRequested();
             PdfReadPage page = document.Pages[index];
             int pageNumber = index + 1;
             int remainingPlacements = PdfAssetReport.Table.MaximumRows - report.Placements.Rows.Count;
-            var placements = page.GetImagePlacements(pageNumber, remainingPlacements, units => {
-                placementWork += units;
-                if (placementWork > maxPlacementWork) {
-                    throw PdfReadLimitException.Create(PdfReadLimitKind.UnderstandingArtifacts, maxPlacementWork, placementWork);
-                }
-            }, token.ThrowIfCancellationRequested, token);
+            var placements = page.GetImagePlacements(pageNumber, remainingPlacements, work.Consume,
+                token.ThrowIfCancellationRequested, token);
             AddBoxes(pageNumber, page.GetGeometry(), report);
             IReadOnlyList<PdfDictionary> pageResources = inventory.InspectPage(page, pageNumber, placements);
             resourceSets.Add(pageResources);
@@ -55,7 +50,8 @@ internal static class PdfAssetExtractor {
 
     internal static void ExtractStandaloneFonts(PdfReadDocument document, PdfAssetOutput output, CancellationToken token) {
         document.DemandContentExtraction("font resource");
-        var inventory = new PdfAssetResourceInventory(document, null, null, token);
+        var work = new PdfAssetInspectionBudget(new PdfAssetExtractionOptions().MaximumInspectionWork, token);
+        var inventory = new PdfAssetResourceInventory(document, null, null, work);
         IReadOnlyList<IReadOnlyList<PdfDictionary>> resourceSets = document.Pages
             .Select((page, index) => inventory.InspectPage(page, index + 1)).ToArray();
         ExtractFonts(document, resourceSets, output, null, token);

@@ -9,6 +9,7 @@ internal static class BrowserPdfPolicy {
     internal const int MaxPages = 500;
     internal const int MaxSplitDocuments = 100;
     internal const long MaxOutputBytes = 96L * 1024L * 1024L;
+    internal const int MaxAssetInspectionWork = 2_000_000;
     internal const long MaxAssetSerializedBytes = 64L * 1024L * 1024L;
     internal const long MaxSplitSerializedBytes = 64L * 1024L * 1024L;
 
