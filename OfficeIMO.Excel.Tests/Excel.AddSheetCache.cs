@@ -37,5 +37,21 @@ namespace OfficeIMO.Tests {
             Assert.Equal(new[] { "0", "2", "3", "4" },
                 loaded.Sheets.Select(sheet => sheet.TryGetCellText(1, 1, out string text) ? text : null).ToArray());
         }
+
+        [Fact]
+        public void AddSheetSeesSheetsReorderedThroughTheOpenXmlDocument() {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            document.AddSheet("A");
+            document.AddSheet("B");
+            _ = document.Sheets;
+
+            Sheets sheets = document.OpenXmlDocument.WorkbookPart!.Workbook.Sheets!;
+            Sheet b = sheets.Elements<Sheet>().Single(sheet => sheet.Name == "B");
+            b.Remove();
+            sheets.InsertAt(b, 0);
+            document.AddSheet("C");
+
+            Assert.Equal(new[] { "B", "A", "C" }, document.Sheets.Select(sheet => sheet.Name).ToArray());
+        }
     }
 }
