@@ -97,7 +97,10 @@ namespace OfficeIMO.Tests {
                 position += count;
                 row++;
             }
-            random.NextBytes(input.AsSpan(position));
+            // .NET Framework has only the array overload of NextBytes.
+            var tail = new byte[length - position];
+            random.NextBytes(tail);
+            Array.Copy(tail, 0, input, position, tail.Length);
             return input;
         }
 
