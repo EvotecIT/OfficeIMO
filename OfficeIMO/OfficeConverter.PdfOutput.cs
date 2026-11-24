@@ -48,6 +48,7 @@ public static partial class OfficeConverter {
         "notebook-pdf" or "notebook-source-pdf" => settings.NotebookPdf?.MarkdownOptions.PdfOptions,
         "markdown-pdf" => settings.Markdown?.PdfOptions,
         "html-pdf" => settings.Html?.PdfOptions,
+        "epub-pdf" when settings.OutputProfile != OfficeConversionProfile.TextOnly => settings.Html?.PdfOptions,
         "txt-pdf" => settings.PlainText?.PdfOptions,
         "email-pdf" when settings.OutputProfile != OfficeConversionProfile.TextOnly => settings.EmailPdf?.Pdf.PdfOptions,
         "email-pdf" or "epub-pdf" or "reader-visio-pdf" => settings.ReaderPdf?.PdfOptions,
