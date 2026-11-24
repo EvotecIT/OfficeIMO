@@ -23,10 +23,6 @@
     <PublishReadyToRunComposite>false</PublishReadyToRunComposite>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(OfficeIMOStudioDistribution)' == 'MacAppStore'">
-    <DefineConstants>$(DefineConstants);OFFICEIMO_MAC_APP_STORE</DefineConstants>
-  </PropertyGroup>
-
   <ItemGroup>
     <AvaloniaResource Include="Assets\OfficeIMO.Studio.ico" />
     <AvaloniaResource Include="Assets\OfficeIMO.Studio.png" />

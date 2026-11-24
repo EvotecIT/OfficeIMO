@@ -5411,9 +5411,6 @@ Defectos recuperados: {7:N0} · Solo detectados: {8:N0}</value>
   <data name="Invoice.StandardsHint" xml:space="preserve">
     <value>Las comprobaciones de estándares requieren los archivos de reglas fijados y un entorno Java/Saxon. Deben superarse las comprobaciones solicitadas antes de crear la salida.</value>
   </data>
-  <data name="Invoice.StandardsUnavailable" xml:space="preserve">
-    <value>Las comprobaciones externas de estándares Java/Saxon no están disponibles en la edición de Mac App Store. La inspección XML, las comprobaciones del modelo, la conversión y la creación de PDF siguen disponibles.</value>
-  </data>
   <data name="Invoice.NoInput" xml:space="preserve">
     <value>Ninguna factura seleccionada</value>
   </data>
@@ -6622,9 +6619,6 @@ Defectos recuperados: {7:N0} · Solo detectados: {8:N0}</value>
   </data>
   <data name="Invoice.FontFiles" xml:space="preserve">
     <value>Fuentes</value>
-  </data>
-  <data name="Conversion.BatchExport.Unavailable" xml:space="preserve">
-    <value>La exportación PDF de carpetas requiere acceso continuo a carpetas completas, del que no dispone esta edición de Studio. Use Añadir archivos y Ejecutar pendientes para convertir varios documentos.</value>
   </data>
   <data name="PageActions.SelectAllAnnotations" xml:space="preserve">
     <value>Seleccionar todas las anotaciones</value>

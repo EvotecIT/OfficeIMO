@@ -5411,9 +5411,6 @@ Défauts récupérés : {7:N0} · Seulement détectés : {8:N0}</value>
   <data name="Invoice.StandardsHint" xml:space="preserve">
     <value>Les contrôles de normes nécessitent les fichiers de règles figés et un environnement Java/Saxon. Les contrôles demandés doivent réussir avant la création de la sortie.</value>
   </data>
-  <data name="Invoice.StandardsUnavailable" xml:space="preserve">
-    <value>Les contrôles de normes externes Java/Saxon sont indisponibles dans l'édition Mac App Store. L'inspection XML, les contrôles du modèle, la conversion et la création de PDF restent disponibles.</value>
-  </data>
   <data name="Invoice.NoInput" xml:space="preserve">
     <value>Aucune facture sélectionnée</value>
   </data>
@@ -6622,9 +6619,6 @@ Défauts récupérés : {7:N0} · Seulement détectés : {8:N0}</value>
   </data>
   <data name="Invoice.FontFiles" xml:space="preserve">
     <value>Polices</value>
-  </data>
-  <data name="Conversion.BatchExport.Unavailable" xml:space="preserve">
-    <value>L'export PDF de dossiers nécessite un accès permanent à des dossiers entiers, dont cette édition de Studio ne dispose pas. Utilisez Ajouter des fichiers et Exécuter les tâches en attente pour convertir plusieurs documents.</value>
   </data>
   <data name="PageActions.SelectAllAnnotations" xml:space="preserve">
     <value>Sélectionner toutes les annotations</value>

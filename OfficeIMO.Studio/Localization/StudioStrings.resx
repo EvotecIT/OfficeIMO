@@ -2633,7 +2633,6 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Invoice.Description" xml:space="preserve"><value>Inspect electronic invoice data, validate exact XML, create another format, or edit selected source headers.</value></data>
   <data name="Invoice.EditingHint" xml:space="preserve"><value>Blank fields retain their current values. Replacements require an existing unique field. Signed XML is protected; related references change only when supplied separately.</value></data>
   <data name="Invoice.StandardsHint" xml:space="preserve"><value>Standards checks require the pinned rule files and a Java/Saxon runtime. Requested checks must pass before output is created.</value></data>
-  <data name="Invoice.StandardsUnavailable" xml:space="preserve"><value>External Java/Saxon standards checks are unavailable in the Mac App Store edition. XML inspection, model checks, conversion and PDF creation remain available.</value></data>
   <data name="Invoice.NoInput" xml:space="preserve"><value>No invoice selected</value></data>
   <data name="Assembly.Status.Ready" xml:space="preserve"><value>Add documents, images, folders, or ZIPs in the order you want.</value></data>
   <data name="Assembly.Summary.Empty" xml:space="preserve"><value>No assembly run yet</value></data>
@@ -3037,7 +3036,6 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Invoice.ChooseFont" xml:space="preserve"><value>Choose font</value></data>
   <data name="Invoice.ChooseFontTitle" xml:space="preserve"><value>Choose a font to embed</value></data>
   <data name="Invoice.FontFiles" xml:space="preserve"><value>Fonts</value></data>
-  <data name="Conversion.BatchExport.Unavailable" xml:space="preserve"><value>Folder PDF export needs ongoing access to whole folders, which this edition of Studio does not have. Use Add files and Run pending to convert several documents.</value></data>
   <data name="PageActions.SelectAllAnnotations" xml:space="preserve"><value>Select all annotations</value></data>
   <data name="Workflow.Status.Completed" xml:space="preserve"><value>Completed</value></data>
   <data name="Workflow.Status.Failed" xml:space="preserve"><value>Failed</value></data>

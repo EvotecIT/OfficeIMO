@@ -43,8 +43,8 @@
      <Expander x:Name="InvoiceStandardsPanel" Header="{loc:Loc Invoice.Standards}">
       <StackPanel Spacing="{StaticResource StudioSpaceS}" Margin="0,8,0,0">
        <TextBlock Text="{Binding StandardsHint}" Classes="muted" TextWrapping="Wrap" />
-       <CheckBox x:Name="InvoiceStandardsToggle" IsEnabled="{Binding IsStandardsAvailable}" IsChecked="{Binding RequireStandards}"><TextBlock Text="{loc:Loc Invoice.RequireStandards}" TextWrapping="Wrap" /></CheckBox>
-       <StackPanel IsVisible="{Binding RequireStandards}" IsEnabled="{Binding IsStandardsAvailable}" Spacing="{StaticResource StudioSpaceS}">
+       <CheckBox x:Name="InvoiceStandardsToggle" IsChecked="{Binding RequireStandards}"><TextBlock Text="{loc:Loc Invoice.RequireStandards}" TextWrapping="Wrap" /></CheckBox>
+       <StackPanel IsVisible="{Binding RequireStandards}" Spacing="{StaticResource StudioSpaceS}">
         <StackPanel IsVisible="{Binding ShowsSourceRelease}"><StackPanel Spacing="{StaticResource StudioSpaceXS}"><TextBlock Text="{loc:Loc Invoice.SourceRelease}" /><ComboBox ItemsSource="{Binding Releases}" SelectedItem="{Binding SelectedRelease}" HorizontalAlignment="Stretch" AutomationProperties.Name="{loc:Loc Invoice.SourceRelease}"><ComboBox.ItemTemplate><DataTemplate x:DataType="workflow:InvoiceReleaseChoice"><TextBlock Text="{Binding Label}" TextWrapping="Wrap" /></DataTemplate></ComboBox.ItemTemplate></ComboBox></StackPanel></StackPanel>
 <StackPanel Spacing="{StaticResource StudioSpaceXS}"><TextBlock Text="{loc:Loc Invoice.RuleBundle}" /><TextBox Text="{Binding RuleBundlePath}" PlaceholderText="{loc:Loc Invoice.RuleBundle}" AutomationProperties.Name="{loc:Loc Invoice.RuleBundle}" /></StackPanel>
 <StackPanel Spacing="{StaticResource StudioSpaceXS}"><TextBlock Text="{loc:Loc Invoice.SaxonJar}" /><TextBox Text="{Binding SaxonJarPath}" PlaceholderText="{loc:Loc Invoice.SaxonJar}" AutomationProperties.Name="{loc:Loc Invoice.SaxonJar}" /></StackPanel>

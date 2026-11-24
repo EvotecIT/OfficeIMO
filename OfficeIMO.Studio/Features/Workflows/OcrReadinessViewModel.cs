@@ -39,10 +39,6 @@ public sealed partial class OcrReadinessViewModel : ObservableObject, IDisposabl
     public bool HasNotice => Notice is not null;
 
     internal void Refresh() {
-        if (StudioOcrProvider.UnavailableReason is { } reason) {
-            (Notice, CanSetUp, IsReady) = (reason, false, false);
-            return;
-        }
         bool found = _engineFound(_preferences?.Current.OcrExecutablePath);
         IsReady = found;
         (Notice, CanSetUp) = found ? (null, false) : (_localizer.Get("Ocr.Notice.EngineMissing"), true);

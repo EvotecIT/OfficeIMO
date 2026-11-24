@@ -426,15 +426,6 @@ jobs:
             $filter = 'FullyQualifiedName!~Visual&FullyQualifiedName!~Render&FullyQualifiedName!~Layout&FullyQualifiedName!~Screenshot'
           }
           dotnet test OfficeIMO.Studio.Tests/OfficeIMO.Studio.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net10.0 --filter $filter --logger 'trx;LogFileName=studio-${{ matrix.slice }}.trx' --results-directory TestResults/Studio
-      - name: Test Store channel availability
-        if: matrix.slice == 'visual'
-        shell: pwsh
-        env:
-          OFFICEIMO_STUDIO_VISUAL_OUTPUT: ${{ github.workspace }}/TestResults/Studio/StoreVisual
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $PSNativeCommandUseErrorActionPreference = $true
-          dotnet test OfficeIMO.Studio.Tests/OfficeIMO.Studio.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net10.0 -p:OfficeIMOStudioDistribution=MacAppStore --filter 'FullyQualifiedName~StudioDistributionPolicyTests|FullyQualifiedName~InvoiceWorkbenchVisualTests|FullyQualifiedName~StudioFormOcrProviderAvailabilityTests' --logger 'trx;LogFileName=studio-store.trx' --results-directory TestResults/Studio/Store
       - name: Upload test results
         if: ${{ !cancelled() && (failure() || github.event_name == 'workflow_dispatch') }}
         uses: actions/upload-artifact@v7

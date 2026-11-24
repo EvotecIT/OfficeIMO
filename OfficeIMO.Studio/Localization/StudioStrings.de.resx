@@ -5411,9 +5411,6 @@ Behobene Defekte: {7:N0} · Nur erkannt: {8:N0}</value>
   <data name="Invoice.StandardsHint" xml:space="preserve">
     <value>Standardprüfungen erfordern die festgelegten Regeldateien und eine Java/Saxon-Laufzeit. Angeforderte Prüfungen müssen bestanden werden, bevor eine Ausgabe erstellt wird.</value>
   </data>
-  <data name="Invoice.StandardsUnavailable" xml:space="preserve">
-    <value>Externe Java/Saxon-Standardprüfungen sind in der Mac App Store-Version nicht verfügbar. XML-Prüfung, Modellprüfungen, Konvertierung und PDF-Erstellung bleiben verfügbar.</value>
-  </data>
   <data name="Invoice.NoInput" xml:space="preserve">
     <value>Keine Rechnung ausgewählt</value>
   </data>
@@ -6622,9 +6619,6 @@ Behobene Defekte: {7:N0} · Nur erkannt: {8:N0}</value>
   </data>
   <data name="Invoice.FontFiles" xml:space="preserve">
     <value>Schriften</value>
-  </data>
-  <data name="Conversion.BatchExport.Unavailable" xml:space="preserve">
-    <value>Der PDF-Export ganzer Ordner benötigt dauerhaften Zugriff auf ganze Ordner, den diese Studio-Ausgabe nicht hat. Verwenden Sie „Dateien hinzufügen“ und „Ausstehende ausführen“, um mehrere Dokumente zu konvertieren.</value>
   </data>
   <data name="PageActions.SelectAllAnnotations" xml:space="preserve">
     <value>Alle Anmerkungen auswählen</value>

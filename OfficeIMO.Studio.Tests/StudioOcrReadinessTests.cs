@@ -12,7 +12,6 @@ namespace OfficeIMO.Studio.Tests;
 public sealed class StudioOcrReadinessTests {
     [Fact]
     public async Task Missing_engine_is_explained_on_the_ocr_screen_and_leads_to_its_setup() {
-        if (StudioOcrProvider.UnavailableReason is not null) return;
         using var session = TestAppBuilder.StartSession();
         await session.Dispatch(() => {
             var services = ((App)Application.Current!).Services;
@@ -52,7 +51,6 @@ public sealed class StudioOcrReadinessTests {
 
     [Fact]
     public void Readiness_reports_nothing_when_the_engine_is_found() {
-        if (StudioOcrProvider.UnavailableReason is not null) return;
         using var readiness = new OcrReadinessViewModel(null, TestAppBuilder.CreateTestServices().Localizer, _ => true);
         readiness.Refresh();
         Assert.False(readiness.HasNotice);

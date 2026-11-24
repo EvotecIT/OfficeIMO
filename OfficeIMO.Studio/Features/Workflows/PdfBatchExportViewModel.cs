@@ -25,7 +25,7 @@ public sealed partial class PdfBatchExportViewModel : ObservableObject, IDisposa
         OfficeWorkflow.RegisterConversions();
         OfficeIMO.Workflows.IWork.IWorkWorkflow.RegisterConversions();
         _fileDialogs = fileDialogs ?? (() => Infrastructure.NoStudioFileDialogs.Instance);
-        Status = UnavailableReason ?? _localizer.GetOrDefault("Conversion.BatchExport.Ready", "Choose source and PDF output folders. Add optional checkpoints to resume mixed-format document export.");
+        Status = _localizer.GetOrDefault("Conversion.BatchExport.Ready", "Choose source and PDF output folders. Add optional checkpoints to resume mixed-format document export.");
     }
     [ObservableProperty] private string _inputDirectory = string.Empty;
     [ObservableProperty] private string _outputDirectory = string.Empty;
@@ -36,12 +36,7 @@ public sealed partial class PdfBatchExportViewModel : ObservableObject, IDisposa
     [ObservableProperty] private decimal _tabSize = 8;
     [ObservableProperty] private bool _isBusy;
     [ObservableProperty] private string _status = string.Empty;
-    /// <summary>The batch runner walks and resumes whole folders by path, which sandboxed and mobile builds cannot reach.</summary>
-    public string? UnavailableReason => Infrastructure.StudioDistributionPolicy.RequiresPickedLocations
-        ? _localizer.GetOrDefault("Conversion.BatchExport.Unavailable", "Folder PDF export needs ongoing access to whole folders, which this edition of Studio does not have. Use Add files and Run pending to convert several documents.")
-        : null;
-    public bool IsAvailable => UnavailableReason is null;
-    public bool CanEdit => IsAvailable && !_disposed && !IsBusy && !_otherWorkBusy();
+    public bool CanEdit => !_disposed && !IsBusy && !_otherWorkBusy();
     internal void RefreshHostState() {
         OnPropertyChanged(nameof(CanEdit)); ChooseFolderCommand.NotifyCanExecuteChanged(); RunCommand.NotifyCanExecuteChanged();
         RefreshSavedJobCommands();

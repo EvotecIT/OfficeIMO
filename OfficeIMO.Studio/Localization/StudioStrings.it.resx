@@ -5411,9 +5411,6 @@ Difetti recuperati: {7:N0} · Solo rilevati: {8:N0}</value>
   <data name="Invoice.StandardsHint" xml:space="preserve">
     <value>Le verifiche degli standard richiedono i file di regole fissati e un runtime Java/Saxon. I controlli richiesti devono riuscire prima della creazione dell'output.</value>
   </data>
-  <data name="Invoice.StandardsUnavailable" xml:space="preserve">
-    <value>Le verifiche esterne degli standard con Java/Saxon non sono disponibili nell'edizione Mac App Store. Restano disponibili esame XML, controlli del modello, conversione e creazione PDF.</value>
-  </data>
   <data name="Invoice.NoInput" xml:space="preserve">
     <value>Nessuna fattura selezionata</value>
   </data>
@@ -6622,9 +6619,6 @@ Difetti recuperati: {7:N0} · Solo rilevati: {8:N0}</value>
   </data>
   <data name="Invoice.FontFiles" xml:space="preserve">
     <value>Caratteri</value>
-  </data>
-  <data name="Conversion.BatchExport.Unavailable" xml:space="preserve">
-    <value>L'esportazione PDF di cartelle richiede un accesso continuativo a intere cartelle, non disponibile in questa edizione di Studio. Usa Aggiungi file ed Esegui attività in attesa per convertire più documenti.</value>
   </data>
   <data name="PageActions.SelectAllAnnotations" xml:space="preserve">
     <value>Seleziona tutte le annotazioni</value>

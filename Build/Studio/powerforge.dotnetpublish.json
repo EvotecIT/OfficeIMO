@@ -9,7 +9,7 @@
     "NoRestoreInPublish": true,
     "NoBuildInPublish": true,
     "MsBuildProperties": {
-      "RuntimeIdentifiers": "win-x64;win-arm64;osx-x64;osx-arm64;linux-x64;linux-arm64"
+      "RuntimeIdentifiers": "win-x64;win-arm64;linux-x64;linux-arm64"
     },
     "EnvironmentVariables": {
       "NUGET_PACKAGES": {
@@ -52,23 +52,6 @@
         "ZipNameTemplate": "OfficeIMO-Studio-{version}-{rid}-portable.zip",
         "OutputPath": "Artifacts/Studio/{target}/{rid}/{framework}/{style}",
         "SignProfile": "OfficeIMO.Windows"
-      }
-    },
-    {
-      "Name": "Studio.macOS",
-      "Kind": "Desktop",
-      "ProjectPath": "OfficeIMO.Studio/OfficeIMO.Studio.csproj",
-      "Publish": {
-        "Framework": "net10.0",
-        "Runtimes": [ "osx-x64", "osx-arm64" ],
-        "Style": "SelfContained",
-        "UseStaging": true,
-        "ClearOutput": true,
-        "KeepSymbols": false,
-        "KeepDocs": false,
-        "Zip": true,
-        "ZipNameTemplate": "OfficeIMO-Studio-{rid}-{style}.zip",
-        "OutputPath": "Artifacts/Studio/{target}/{rid}/{framework}/{style}"
       }
     },
     {
@@ -180,32 +163,6 @@
         "StartupWmClass": "OfficeIMO.Studio",
         "IconPath": "OfficeIMO.Studio/Assets/OfficeIMO.Studio-512.png",
         "IconSize": 512
-      }
-    },
-    {
-      "Id": "OfficeIMO.Studio.macOS.App",
-      "Kind": "MacApp",
-      "PrepareFromTarget": "Studio.macOS",
-      "Runtimes": [ "osx-x64", "osx-arm64" ],
-      "Frameworks": [ "net10.0" ],
-      "Styles": [ "SelfContained" ],
-      "OutputPath": "Artifacts/Studio/Installers/{installer}/{rid}",
-      "OutputName": "OfficeIMO-Studio-{version}-{rid}.zip",
-      "MacApp": {
-        "BundleIdentifier": "com.evotec.officeimo.studio",
-        "BundleName": "OfficeIMO Studio",
-        "Version": "0.1.9768",
-        "BuildNumber": "1",
-        "Executable": "OfficeIMO.Studio",
-        "IconPath": "OfficeIMO.Studio/Assets/OfficeIMO.Studio.png",
-        "MinimumSystemVersion": "13.0",
-        "Category": "public.app-category.productivity",
-        "Copyright": "Copyright © Evotec",
-        "DocumentExtensions": [ "pdf", "docx", "xlsx", "pptx", "pages", "numbers", "key" ],
-        "CodesignIdentity": "-",
-        "HardenedRuntime": true,
-        "Timestamp": false,
-        "EntitlementsPath": "Build/Studio/Apple/Direct.entitlements"
       }
     }
   ],

@@ -5411,9 +5411,6 @@ Defeitos recuperados: {7:N0} · Apenas detectados: {8:N0}</value>
   <data name="Invoice.StandardsHint" xml:space="preserve">
     <value>As verificações de normas exigem os arquivos de regras fixados e um ambiente Java/Saxon. As verificações solicitadas precisam passar antes de criar a saída.</value>
   </data>
-  <data name="Invoice.StandardsUnavailable" xml:space="preserve">
-    <value>As verificações externas de normas com Java/Saxon estão indisponíveis na edição da Mac App Store. Inspeção XML, verificações do modelo, conversão e criação de PDF continuam disponíveis.</value>
-  </data>
   <data name="Invoice.NoInput" xml:space="preserve">
     <value>Nenhuma fatura selecionada</value>
   </data>
@@ -6622,9 +6619,6 @@ Defeitos recuperados: {7:N0} · Apenas detectados: {8:N0}</value>
   </data>
   <data name="Invoice.FontFiles" xml:space="preserve">
     <value>Fontes</value>
-  </data>
-  <data name="Conversion.BatchExport.Unavailable" xml:space="preserve">
-    <value>A exportação de PDF por pasta precisa de acesso contínuo a pastas inteiras, o que esta edição do Studio não tem. Use Adicionar arquivos e Executar pendentes para converter vários documentos.</value>
   </data>
   <data name="PageActions.SelectAllAnnotations" xml:space="preserve">
     <value>Selecionar todas as anotações</value>
