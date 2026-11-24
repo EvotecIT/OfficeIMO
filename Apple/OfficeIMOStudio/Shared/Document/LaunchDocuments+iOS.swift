@@ -20,8 +20,17 @@ enum LaunchDocuments {
                 for _ in 0..<30 where browser.presentedViewController != nil {
                     try await Task.sleep(for: .milliseconds(100))
                 }
-                if output != SampleDocument.url { pendingNotice = String(localized: "Saved to OfficeIMO Studio in Files.") }
-                browser.delegate?.documentBrowser?(browser, didPickDocumentsAt: [try keep(output)])
+                let kept = try keep(output)
+                let saved = String(localized: "Saved to OfficeIMO Studio in Files.")
+                // Still covered after the wait: the PDF stays in Files rather than opening under another window.
+                guard browser.presentedViewController == nil else {
+                    let alert = UIAlertController(title: nil, message: saved, preferredStyle: .alert)
+                    alert.addAction(UIAlertAction(title: String(localized: "OK"), style: .default))
+                    _ = await ScanSources.present(alert)
+                    return
+                }
+                if output != SampleDocument.url { pendingNotice = saved }
+                browser.delegate?.documentBrowser?(browser, didPickDocumentsAt: [kept])
             } catch {
                 let alert = UIAlertController(title: nil, message: error.localizedDescription, preferredStyle: .alert)
                 alert.addAction(UIAlertAction(title: String(localized: "OK"), style: .default))
