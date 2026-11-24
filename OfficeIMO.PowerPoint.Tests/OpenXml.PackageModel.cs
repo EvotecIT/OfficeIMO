@@ -263,6 +263,19 @@ public class OpenXmlPackageModelTests {
         }
     }
 
+    [Theory]
+    [InlineData(" 4 ")]
+    [InlineData("+4")]
+    public void CountsDrawingIdsWrittenWithWhitespaceOrASign(string spelling) {
+        byte[] deck = Rewrite(CreateDeck(1), "ppt/slides/slide1.xml", xml => xml.Replace("id=\"3\"", "id=\"" + spelling + "\""));
+        using var source = new MemoryStream(deck);
+        using PowerPointPackageModel model = PowerPointPackageModel.Open(source);
+
+        PShapeView added = model.GetSlide(0).AddTextBox(0, 0, 914400, 914400);
+
+        Assert.Equal(5u, added.NvSpPr!.Value.CNvPr!.Value.Id);
+    }
+
     [Fact]
     public void TakesTheLowestFreeDrawingIdWhenTheHighestIsTaken() {
         byte[] deck = Rewrite(CreateDeck(1), "ppt/slides/slide1.xml", xml => xml.Replace("id=\"3\"", "id=\"4294967295\""));

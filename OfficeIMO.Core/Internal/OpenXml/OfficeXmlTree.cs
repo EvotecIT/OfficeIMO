@@ -451,7 +451,8 @@ internal sealed partial class OfficeXmlTree {
         if (UsesPrefix(_nodes[element].Name)) Conflict();
         ref Node record = ref _nodes[element];
         int end = record.AttrFirst + record.AttrCount;
-        for (int index = record.AttrFirst; index < end; index++) {
+        // An unprefixed attribute is in no namespace, whatever the default namespace is.
+        for (int index = record.AttrFirst; prefix.Length > 0 && index < end; index++) {
             if (!IsDeclaration(ref _attrs[index], out _) && UsesPrefix(_attrs[index].Name)) Conflict();
         }
 
@@ -489,6 +490,15 @@ internal sealed partial class OfficeXmlTree {
                 namespaceId = attribute.DeclaredNamespace;
                 uriId = attribute.DeclaredUri;
                 return true;
+            }
+            // A moved element's inherited bindings may live only in what it carries.
+            if (CarriedBindingsOf(current) is { } carried) {
+                foreach (CarriedBinding binding in carried) {
+                    if (binding.Prefix != prefix) continue;
+                    namespaceId = binding.NamespaceId;
+                    uriId = binding.UriId;
+                    return true;
+                }
             }
         }
         namespaceId = uriId = OfficeXmlNamespaces.None;

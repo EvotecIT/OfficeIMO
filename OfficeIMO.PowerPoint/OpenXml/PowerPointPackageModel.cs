@@ -438,8 +438,9 @@ internal readonly struct PowerPointModelSlide {
         int root = shapes.Node;
         int node = root;
         while (true) {
+            // Read as XML Schema reads an unsigned int, surrounding whitespace and a leading "+" included.
             if (tree.IsElement(node, OfficeXmlNamespaces.PresentationML, "cNvPr")
-                && uint.TryParse(tree.GetAttribute(node, OfficeXmlNamespaces.None, "id"), NumberStyles.None, CultureInfo.InvariantCulture, out uint id)) {
+                && OfficeXmlViewValues.ReadUInt32(tree, node, OfficeXmlNamespaces.None, "id") is { } id) {
                 yield return id;
             }
             int child = tree.KindOf(node) == OfficeXmlTreeNodeKind.Element ? tree.FirstChildOf(node) : OfficeXmlTree.NoNode;
