@@ -759,6 +759,10 @@ namespace OfficeIMO.Excel {
                     if (function is "RATE" or "IRR" or "XIRR" or "XNPV") return TryEvaluateCashFlowValue(function, args, out result);
                     if (function == "RANDBETWEEN") return TryEvaluateRandomBetweenValue(args, out result);
                     if (function == "OFFSET") return TryEvaluateOffsetValue(args, out result);
+                    if (function == "INDIRECT") return TryEvaluateIndirectValue(args, out result);
+                    if (function == "LOOKUP") return TryEvaluateLookupFunctionValue(args, out result);
+                    if (function == "ADDRESS") return TryEvaluateAddressValue(args, out result);
+                    if (IsDistributionFunction(function)) return TryEvaluateDistributionValue(function, args, out result);
                     if (function == "GETPIVOTDATA") return TryEvaluatePivotDataValue(args, out result);
                     if ((function == "TRUE" || function == "FALSE") && string.IsNullOrWhiteSpace(args)) {
                         bool boolean = function == "TRUE";
@@ -841,11 +845,14 @@ namespace OfficeIMO.Excel {
                         result = value.Number!.Value;
                         return true;
                     }
-                    if (function is "GCD" or "LCM" or "PROB" or "RANDBETWEEN" or "OFFSET") {
+                    if (function is "GCD" or "LCM" or "PROB" or "RANDBETWEEN" or "OFFSET" or "INDIRECT" or "LOOKUP" || IsDistributionFunction(function)) {
                         bool evaluated = function is "GCD" or "LCM" ? TryEvaluateIntegerAggregateValue(function, args, out FormulaArgumentValue value)
                             : function == "PROB" ? TryEvaluateProbabilityValue(args, out value)
                             : function == "RANDBETWEEN" ? TryEvaluateRandomBetweenValue(args, out value)
-                            : TryEvaluateOffsetValue(args, out value);
+                            : function == "INDIRECT" ? TryEvaluateIndirectValue(args, out value)
+                            : function == "LOOKUP" ? TryEvaluateLookupFunctionValue(args, out value)
+                            : function == "OFFSET" ? TryEvaluateOffsetValue(args, out value)
+                            : TryEvaluateDistributionValue(function, args, out value);
                         if (!evaluated) return false;
                         if (value.IsError) { error = value; return false; }
                         if (!value.Number.HasValue) return false;

@@ -234,7 +234,8 @@ namespace OfficeIMO.Excel {
             out int c2) {
             if (ExcelFormulaExpressionParser.TryParseSupportedFunctionCall(reference, out ExcelFormulaFunctionCallSyntax? call)
                 && (call!.Name.Equals("INDEX", StringComparison.OrdinalIgnoreCase)
-                    || call.Name.Equals("OFFSET", StringComparison.OrdinalIgnoreCase)))
+                    || call.Name.Equals("OFFSET", StringComparison.OrdinalIgnoreCase)
+                    || call.Name.Equals("INDIRECT", StringComparison.OrdinalIgnoreCase)))
                 return defaultSheet.TryResolveFormulaRangeReference(reference, currentRow, out sheet, out r1, out c1, out r2, out c2);
             if (TryParseQualifiedFormulaRange(reference, defaultSheet, out sheet, out r1, out c1, out r2, out c2)) {
                 return true;

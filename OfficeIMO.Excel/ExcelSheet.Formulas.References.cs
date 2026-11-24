@@ -238,7 +238,14 @@ namespace OfficeIMO.Excel {
             out int c2) {
             if (ExcelFormulaExpressionParser.TryParseSupportedFunctionCall(token, out ExcelFormulaFunctionCallSyntax? call)
                 && (call!.Name.Equals("OFFSET", StringComparison.OrdinalIgnoreCase)
+                    || call.Name.Equals("INDIRECT", StringComparison.OrdinalIgnoreCase)
                     || call.Name.Equals("INDEX", StringComparison.OrdinalIgnoreCase))) {
+                if (call.Name.Equals("INDIRECT", StringComparison.OrdinalIgnoreCase)) {
+                    bool named = TryResolveIndirectRange(call.Arguments, currentRow, out sheet, out r1, out c1, out r2, out c2,
+                        out FormulaArgumentValue indirectError);
+                    if (named && indirectError.IsError && !_formulaReferenceError.IsError) _formulaReferenceError = indirectError;
+                    return named && !indirectError.IsError;
+                }
                 if (call.Name.Equals("INDEX", StringComparison.OrdinalIgnoreCase)) {
                     bool selected = TryResolveIndexRange(call.Arguments, currentRow, out sheet, out r1, out c1, out r2, out c2,
                         out FormulaArgumentValue indexError);

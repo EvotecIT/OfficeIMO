@@ -268,6 +268,7 @@ namespace OfficeIMO.Excel {
                 array = new FormulaArrayValue(1, 1, new[] { scalar.HasValue || preserveScalarValue ? scalar : new FormulaArgumentValue(0, null) });
                 return true;
             }
+            if (IsArrayShapingFunction(function)) return TryEvaluateArrayShaping(function, call!.Arguments, depth, out array);
             var args = SplitFormulaArguments(call!.Arguments);
             if (function == "SEQUENCE") return TryEvaluateSequence(args, out array);
             if (args.Count < 1 || !TryEvaluateArrayValue(args[0], depth + 1, out FormulaArrayValue input)) return false;

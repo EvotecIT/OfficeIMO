@@ -1747,11 +1747,18 @@ in Excel's cached results. Text compares without ASCII case and equal keys keep
 their input order. Sort inputs dependent on an unevaluated formula cache remain
 deferred. Locale-dependent, punctuation, Unicode, and error-key collation remains
 deferred. `UNIQUE` preserves the first
-occurrence of distinct rows or columns and supports `exactly_once`. These
+occurrence of distinct rows or columns and supports `exactly_once`. `SORTBY`
+sorts by one or more single-row or single-column keys with `SORT`'s collation.
+`TRANSPOSE` swaps rows and columns, and `MMULT` multiplies numeric arrays,
+returning `#VALUE!` for text, Boolean or blank elements and mismatched shapes.
+`VSTACK` and `HSTACK` append arrays and pad shorter inputs with `#N/A`.
+`TEXTSPLIT` splits text by column and row delimiters, including arrays of
+delimiters, with the ignore-empty, case-insensitive and padding options. These
 functions can be nested within this array subset. Each input and output is
 limited to 100,000 cells, with at most 32 array-expression levels.
-`SetArrayFormula` writes the Excel compatibility prefixes for these four
-functions, including nested calls, while preserving literals and reference text.
+`SetArrayFormula` writes the Excel compatibility prefixes for `SEQUENCE`,
+`FILTER`, `SORT` and `UNIQUE`, including nested calls, while preserving literals
+and reference text.
 
 Fixed arrays update only when their result matches the authored range and the
 range contains neither another formula nor a merged cell. Dynamic arrays write

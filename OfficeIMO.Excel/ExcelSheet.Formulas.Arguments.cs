@@ -91,6 +91,7 @@ namespace OfficeIMO.Excel {
             // A built-in call is no literal, name or reference unless it selects one.
             if (ExcelFormulaExpressionParser.TryParseSupportedFunctionCall(trimmed, out ExcelFormulaFunctionCallSyntax? call)
                 && !call!.Name.Equals("OFFSET", StringComparison.OrdinalIgnoreCase)
+                && !call.Name.Equals("INDIRECT", StringComparison.OrdinalIgnoreCase)
                 && !call.Name.Equals("INDEX", StringComparison.OrdinalIgnoreCase)) {
                 return TryEvaluateFormulaValue(trimmed, out value, allowScalarExpression: false);
             }
