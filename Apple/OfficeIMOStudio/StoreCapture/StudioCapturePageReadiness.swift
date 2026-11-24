@@ -2,11 +2,11 @@ import CoreGraphics
 import Foundation
 import Vision
 
-/// Capture-only recognition of the public fixture and deterministic reading-area
+/// Capture-only recognition of the public inputs and deterministic reading-area
 /// pixels. The caller supplies the visible reading area from native accessibility.
 enum StudioCapturePageReadiness {
     enum Failure: Error {
-        case missingDashboard(phrase: String, recognized: [String])
+        case missingContent(phrase: String, recognized: [String])
         case unreadablePixels
     }
 
@@ -36,15 +36,22 @@ enum StudioCapturePageReadiness {
     }
     #endif
 
-    static func pagePixels(from source: CGImage, contentBounds: CGRect? = nil) throws -> Data {
+    /// The three phrases span the heading, chart and lower decisions table of the public
+    /// dashboard. A title bar, thumbnail, blank page or different sample is insufficient.
+    static let dashboardPhrases = ["quarterly operations dashboard", "tickets resolved per month", "review the 37 open items"]
+    /// The public equipment inspection form: its title, first field and checklist heading.
+    static let formPhrases = ["equipment inspection", "asset identifier", "record the checks"]
+    /// The public quarterly sales workbook as the Office viewer converts it.
+    static let officePhrases = ["quarterly sales against target", "quarter"]
+
+    /// The documents are English public samples, so recognition stays English in every interface language.
+    static func pagePixels(from source: CGImage, contentBounds: CGRect? = nil,
+                           phrases: [String] = dashboardPhrases) throws -> Data {
         let bounds = CGRect(x: 0, y: 0, width: source.width, height: source.height)
         let visible = (contentBounds ?? bounds).integral.intersection(bounds)
         guard !visible.isNull, !visible.isEmpty,
               let image = source.cropping(to: visible) else { throw Failure.unreadablePixels }
-        var lines = try recognize(image)
-        // The three phrases span the heading, chart and lower decisions table.
-        // A title bar, thumbnail, blank page or different sample is insufficient.
-        let phrases = ["quarterly operations dashboard", "tickets resolved per month", "review the 37 open items"]
+        var lines = phrases.isEmpty ? [] : try recognize(image)
         func missingPhrase() -> String? {
             phrases.first { phrase in !lines.contains { $0.contains(phrase) } }
         }
@@ -64,7 +71,7 @@ enum StudioCapturePageReadiness {
             }
         }
         if let phrase = missingPhrase() {
-            throw Failure.missingDashboard(phrase: phrase, recognized: Array(lines.prefix(20)))
+            throw Failure.missingContent(phrase: phrase, recognized: Array(lines.prefix(20)))
         }
         // Compare a fixed native reading area, rather than OCR bounding boxes
         // that may shift between requests even when the rendered pixels do not.

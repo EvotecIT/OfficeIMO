@@ -271,6 +271,7 @@ struct DocumentWindow: View {
                 ForEach(StudioTask.allCases) { Text($0.title).tag($0) }
             }
             .pickerStyle(.segmented)
+            .accessibilityIdentifier(StudioAccessibilityID.taskPicker)
             .padding(.horizontal, 16)
             .padding(.vertical, 6)
         }
@@ -387,6 +388,7 @@ struct ReadView: View {
             }
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Page \(session.currentPage) of \(session.pageCount)")
+            .accessibilityIdentifier(StudioAccessibilityID.pages)
     }
 
     /// The shape a drag draws on iPad and iPhone, where the banner over the pages names it; the Mac's toolbar does.
@@ -410,6 +412,7 @@ private struct SearchField: View {
         HStack(spacing: 10) {
             Label("Search", systemImage: "magnifyingglass").labelStyle(.iconOnly).foregroundStyle(.secondary)
             TextField("Search", text: $session.searchText)
+                .accessibilityIdentifier(StudioAccessibilityID.searchField)
                 .focused($isFocused)
                 .submitLabel(.search)
                 .autocorrectionDisabled()
@@ -421,6 +424,7 @@ private struct SearchField: View {
                 session.isSearchFocused = false
             }
             .labelStyle(.iconOnly)
+            .accessibilityIdentifier(StudioAccessibilityID.searchClose)
             .foregroundStyle(.secondary)
         }
         .padding(.horizontal, 14)
@@ -446,6 +450,7 @@ struct FindBar: View {
                 }
                 if let index = session.currentHitIndex, !session.searchHits.isEmpty {
                     Text("\(index + 1) of \(session.searchHits.count)").monospacedDigit()
+                        .accessibilityIdentifier(StudioAccessibilityID.searchPosition)
                 } else if session.isSearching {
                     Text("Searching…")
                 } else {

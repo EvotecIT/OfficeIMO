@@ -14,6 +14,7 @@ struct DocumentToolbar: ToolbarContent {
                 ForEach(StudioTask.allCases) { Text($0.title).tag($0) }
             }
             .pickerStyle(.segmented)
+            .accessibilityIdentifier(StudioAccessibilityID.taskPicker)
             .disabled(!session.isReady)
         }
         ToolbarItemGroup(placement: .primaryAction) {
@@ -65,6 +66,7 @@ struct DocumentToolbar: ToolbarContent {
                 Button("Sidebar", systemImage: "sidebar.left") {
                     session.isPageListShown = !(session.isPageListShown ?? true)
                 }
+                .accessibilityIdentifier(StudioAccessibilityID.sidebarToggle)
                 .disabled(session.task == .pages)
             }
         }
@@ -79,6 +81,7 @@ struct DocumentToolbar: ToolbarContent {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Done", systemImage: "checkmark") { session.task = .read }
                     .buttonStyle(.glassProminent)
+                    .accessibilityIdentifier(StudioAccessibilityID.markupDone)
             }
         } else if session.task == .pages {
             ToolbarItemGroup(placement: .topBarTrailing) { undoRedo }
@@ -215,6 +218,7 @@ struct DocumentToolbar: ToolbarContent {
             session.isSearchFocused = true
         }
         .disabled(!session.isReady || session.facts?.canExtractText == false)
+        .accessibilityIdentifier(StudioAccessibilityID.searchButton)
     }
 
     /// What can be done to the document, as the Tools menu does on the Mac.
@@ -242,5 +246,6 @@ struct DocumentToolbar: ToolbarContent {
             session.isInspectorShown.toggle()
         }
         .help(session.isInspectorShown ? "Hide Inspector" : "Show Inspector")
+        .accessibilityIdentifier(StudioAccessibilityID.inspectorToggle)
     }
 }
