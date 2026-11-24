@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using System.Data.Common;
 using System.Globalization;
 using DocumentFormat.OpenXml;
@@ -139,10 +140,16 @@ internal static class OpenXmlCellValueLane {
         if (type == S.CellValues.Boolean) return "b:" + (raw.Trim() is "1" or "true" ? "TRUE" : "FALSE");
         if (type == S.CellValues.String || type == S.CellValues.Error) return "s:" + Unescape(raw);
         if (type == S.CellValues.Date) {
-            // A time without a date is a fraction of a day, not a time today.
-            string time = raw.Trim().TrimStart('T');
-            if (time.IndexOf('-') < 0 && time.IndexOf(':') > 0
-                && TimeSpan.TryParse(time.TrimEnd('Z'), CultureInfo.InvariantCulture, out TimeSpan timeOfDay)) {
+            // A time without a date is a fraction of a day, not a time today. It has no date to apply an offset to,
+            // so the offset is ignored, and a fraction is kept to the seven digits a tick holds.
+            Match timeOnly = TimeOnlyPattern.Match(raw.Trim());
+            if (timeOnly.Success) {
+                string fraction = (timeOnly.Groups[4].Value + "0000000").Substring(0, 7);
+                TimeSpan timeOfDay = new TimeSpan(
+                    int.Parse(timeOnly.Groups[1].Value, CultureInfo.InvariantCulture),
+                    int.Parse(timeOnly.Groups[2].Value, CultureInfo.InvariantCulture),
+                    timeOnly.Groups[3].Success ? int.Parse(timeOnly.Groups[3].Value, CultureInfo.InvariantCulture) : 0)
+                    + TimeSpan.FromTicks(long.Parse(fraction, CultureInfo.InvariantCulture));
                 return "n:" + timeOfDay.TotalDays.ToString("R", CultureInfo.InvariantCulture);
             }
             // Text without an offset is a wall-clock time. Text with an offset is converted to the runner's local time,
@@ -155,6 +162,10 @@ internal static class OpenXmlCellValueLane {
             ? "n:" + number.ToString("R", CultureInfo.InvariantCulture)
             : "s:" + raw;
     }
+
+    private static readonly Regex TimeOnlyPattern = new(
+        @"^[Tt]?([01][0-9]|2[0-3]):([0-5][0-9])(?::([0-5][0-9])(?:[.,]([0-9]+))?)?(?:[Zz]|[+-][0-9]{2}(?::?[0-9]{2})?)?$",
+        RegexOptions.CultureInvariant);
 
     // An ISO 8601 value carries an offset when it ends with Z or with +hh:mm or -hh:mm after the time.
     private static bool HasExplicitOffset(string raw) {
