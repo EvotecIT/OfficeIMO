@@ -26,7 +26,7 @@ internal sealed class WordCommentIdentityState {
     /// <summary>Returns the current state, normalizing legacy comment identities and rescanning when it is stale.</summary>
     internal static WordCommentIdentityState Get(WordDocument document, Comments comments, CommentsEx commentsEx) {
         WordCommentIdentityState? state = document.CommentIdentities;
-        if (state != null && state.IsCurrent(comments, commentsEx)) return state;
+        if (state != null && !document._openXmlDocumentAccessed && state.IsCurrent(comments, commentsEx)) return state;
 
         WordCommentIdentityPlan plan = WordCommentIdentityPlan.Prepare(comments, commentsEx);
         plan.Apply(commentsEx);

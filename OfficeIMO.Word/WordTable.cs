@@ -512,9 +512,10 @@ namespace OfficeIMO.Word {
             if (cellsCount == 0) {
                 // Match the previous row when available; otherwise use the
                 // declared grid width retained by an initially empty table.
-                List<WordTableRow> rows = Rows;
+                // AddRow has already appended the new row to the cached row list.
+                List<TableRow> rows = GetRowElements();
                 cellsCount = rows.Count > 1
-                    ? WordTableContent.GridColumnCount(rows[rows.Count - 2]._tableRow)
+                    ? WordTableContent.GridColumnCount(rows[rows.Count - 2])
                     : _table.GetFirstChild<TableGrid>()?.Elements<GridColumn>().Count() ?? 0;
             }
             for (int j = 0; j < cellsCount; j++) {

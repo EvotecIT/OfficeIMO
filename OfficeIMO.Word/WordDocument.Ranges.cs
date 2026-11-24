@@ -162,7 +162,7 @@ namespace OfficeIMO.Word {
         /// are scanned once; later calls continue from the highest identifier seen or handed out.
         /// </summary>
         internal int GetNextBookmarkId() {
-            if (_lastBookmarkId is not int last) {
+            if (_lastBookmarkId is not int last || _openXmlDocumentAccessed) {
                 last = 0;
                 foreach (OpenXmlElement root in EnumerateStoryRoots()) {
                     foreach (OpenXmlElement element in root.Descendants()) {

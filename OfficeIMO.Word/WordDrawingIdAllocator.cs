@@ -24,7 +24,7 @@ namespace OfficeIMO.Word {
             lock (state.SyncRoot) {
                 // The package is scanned once, so ids already present are never reused; later reservations continue
                 // from the highest id handed out. Import paths invalidate the state to pick up ids they bring in.
-                if (!state.Seeded) {
+                if (!state.Seeded || state.Shared) {
                     state.HighestReserved = Math.Max(FindPackageMaximum(document.MainDocumentPart), state.HighestReserved);
                     state.Seeded = true;
                 }
@@ -52,6 +52,15 @@ namespace OfficeIMO.Word {
             ArgumentNullException.ThrowIfNull(document);
             if (!_reservations.TryGetValue(document, out ReservationState? state)) return;
             lock (state.SyncRoot) state.Seeded = false;
+        }
+
+        /// <summary>
+        /// Rescans on every reservation once the package has been handed to callers, whose direct edits can't be observed.
+        /// </summary>
+        internal static void MarkPackageShared(WordprocessingDocument document) {
+            ArgumentNullException.ThrowIfNull(document);
+            ReservationState state = _reservations.GetOrCreateValue(document);
+            lock (state.SyncRoot) state.Shared = true;
         }
 
         internal static void Reassign(WordDocument document, OpenXmlElement root) {
@@ -118,6 +127,7 @@ namespace OfficeIMO.Word {
             internal object SyncRoot { get; } = new();
             internal uint HighestReserved { get; set; }
             internal bool Seeded { get; set; }
+            internal bool Shared { get; set; }
         }
     }
 }

@@ -154,6 +154,30 @@ namespace OfficeIMO.Tests {
             AssertUniqueIdentifiers(stream, bookmarks: 4, drawings: 4, comments: 4);
         }
 
+        [Fact]
+        public void IdentifiersWrittenThroughTheSharedPackageAreSeenWithoutASave() {
+            using var stream = new MemoryStream();
+            using (WordDocument document = WordDocument.Create(stream)) {
+                // Seeds the counters at bookmark and comment ids 1-2, comment paragraph ids 1-2 and drawing ids 1-4;
+                // the raw items below take the next ids, inserted before existing content rather than appended.
+                AddIdentifiedItems(document, "First", 2);
+
+                MainDocumentPart main = document.OpenXmlDocument.MainDocumentPart!;
+                Body body = main.Document.Body!;
+                body.InsertAt(new Paragraph(new BookmarkStart { Id = "3", Name = "Raw" }, new BookmarkEnd { Id = "3" }), 0);
+                Paragraph rawImage = (Paragraph)document.Paragraphs.First(p => p.IsImage)._paragraph.CloneNode(true);
+                rawImage.Descendants<DW.DocProperties>().Single().Id = 5U;
+                body.InsertAt(rawImage, 0);
+                Comments comments = main.WordprocessingCommentsPart!.Comments;
+                comments.InsertAt(new Comment(new Paragraph(new Run(new Text("Raw"))) { ParagraphId = "00000004" }) { Id = "3", Author = "Raw" }, 0);
+
+                AddIdentifiedItems(document, "Second", 1);
+                document.Save();
+            }
+
+            AssertUniqueIdentifiers(stream, bookmarks: 4, drawings: 4, comments: 4);
+        }
+
         private void AddIdentifiedItems(WordDocument document, string prefix, int count) {
             for (int i = 0; i < count; i++) {
                 document.AddParagraph($"{prefix} bookmark {i}").AddBookmark($"{prefix}Mark{i}");
