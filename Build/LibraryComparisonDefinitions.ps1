@@ -256,6 +256,8 @@ function Get-LibraryComparisonDefinitions {
             ExpectedCases = @(
                 foreach ($corpus in @(
                     'PortableReadme',
+                    'SmallReadme',
+                    'SmallTranscript',
                     'Transcript',
                     'TechnicalDoc',
                     'RichAst',
@@ -282,6 +284,8 @@ function Get-LibraryComparisonDefinitions {
             ExpectedCases = @(
                 foreach ($corpus in @(
                     'PortableReadme',
+                    'SmallReadme',
+                    'SmallTranscript',
                     'Transcript',
                     'TechnicalDoc',
                     'RichAst',
@@ -1109,8 +1113,9 @@ function Get-LibraryComparisonDefinitions {
             Suite = 'OfficeIMO.Word.ReadParagraphs'
             ExpectedCases = @(
                 foreach ($itemCount in @(100, 1000, 10000)) {
-                    # OfficeIMOReader* are OfficeIMO.Reader's text projections of the same paragraphs.
-                    foreach ($engine in @('OfficeIMO', 'OfficeIMOReaderText', 'OfficeIMOReaderStreamedText', 'DocX', 'NPOI', 'OpenXmlSdk'; if ($one) { 'OneDocument'; 'OneDocumentExtractText' })) {
+                    # OfficeIMOReader* are OfficeIMO.Reader's text projections of the same paragraphs; OfficeIMOPackageReader
+                    # and OfficeIMOStreamedBodyText are the SDK-free package reader and body-text pass underneath them.
+                    foreach ($engine in @('OfficeIMO', 'OfficeIMOReaderText', 'OfficeIMOReaderStreamedText', 'OfficeIMOPackageReader', 'OfficeIMOStreamedBodyText', 'DocX', 'NPOI', 'OpenXmlSdk'; if ($one) { 'OneDocument'; 'OneDocumentExtractText' })) {
                         "$engine|ItemCount=$itemCount"
                     }
                 }
