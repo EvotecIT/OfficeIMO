@@ -29,6 +29,8 @@ meta.howto.steps:
 
 Deletion is an output transformation, not an in-place edit. The browser requires confirmation because the selected pages are permanently absent from the downloaded artifact, even though the source remains untouched.
 
+**Also in Studio:** delete pages, with undo, in [OfficeIMO Studio](/studio/#features) on Windows and Linux, and in the native Mac, iPad and iPhone app (coming soon).
+
 ## Delete pages from .NET
 
 ```csharp
