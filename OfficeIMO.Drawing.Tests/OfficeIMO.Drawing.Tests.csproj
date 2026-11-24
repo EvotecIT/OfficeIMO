@@ -47,6 +47,8 @@
     <EmbeddedResource Include="TestAssets\WebpAlpha\*.rgba" />
     <EmbeddedResource Include="TestAssets\WebpVp8\*.webp" />
     <EmbeddedResource Include="TestAssets\WebpVp8\*.rgba" />
+    <EmbeddedResource Include="TestAssets\WebpLossless\*.webp" />
+    <EmbeddedResource Include="TestAssets\WebpLossless\*.rgba" />
     <None Include="..\OfficeIMO.TestAssets\ScanQuality\**\*" Link="ScanQuality\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.cs" Link="ManagedTextShapingTestAssets.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.Emoji.cs" Link="ManagedTextShapingTestAssets.Emoji.cs" />

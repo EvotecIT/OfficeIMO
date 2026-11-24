@@ -1,0 +1,90 @@
+{
+  "producer": {
+    "pillow": "11.3.0",
+    "libwebp": "1.5.0",
+    "command": "Pillow Image.save WEBP lossless=True exact=True",
+    "seed": 20261124
+  },
+  "cases": [
+    {
+      "id": "lossless-noise",
+      "path": "lossless-noise.webp",
+      "width": 61,
+      "height": 47,
+      "method": 6,
+      "quality": 100,
+      "sha256": "537f192693a77deeeca49b488626504a71abe3a94d0a46a8c0b821f7d48d6626",
+      "referenceRgbaSha256": "84c570706b8b345403e96dadb0b14b8ab95aa9aefa7845ea0cfdd7894781368a"
+    },
+    {
+      "id": "lossless-smooth",
+      "path": "lossless-smooth.webp",
+      "width": 128,
+      "height": 48,
+      "method": 6,
+      "quality": 100,
+      "sha256": "e4f8dea00c4382da0a857356eec4b6b41b70e16c2fe8f8663d8d6acf5e880112",
+      "referenceRgbaSha256": "e6d3c5a080235135758c05d0c6e3bc61df3f71b930b62bc24a40ce5adc143167"
+    },
+    {
+      "id": "lossless-smooth-fast",
+      "path": "lossless-smooth-fast.webp",
+      "width": 96,
+      "height": 64,
+      "method": 2,
+      "quality": 50,
+      "sha256": "f5a497423a62e1c8edfc9ee7e65a506196fb0684d72452d5bd32b476002b9a18",
+      "referenceRgbaSha256": "ab82d571281e575311e79a72bed5456e31db54bd3a795848fea07de5f03434e8"
+    },
+    {
+      "id": "lossless-palette-2",
+      "path": "lossless-palette-2.webp",
+      "width": 53,
+      "height": 29,
+      "method": 4,
+      "quality": 75,
+      "sha256": "7d83583d6cf9b0439e4b3c51fb688fb54cf54d1fd705e35610aeaad26eca892b",
+      "referenceRgbaSha256": "e7c92971c037fdb5dd4e0aaddb0eed09a151c045532baac45189fe9d272c3444"
+    },
+    {
+      "id": "lossless-palette-4",
+      "path": "lossless-palette-4.webp",
+      "width": 53,
+      "height": 29,
+      "method": 4,
+      "quality": 75,
+      "sha256": "421fd751065f828eca21494681976b38080bbeea103fb76afa0558aeb3f95397",
+      "referenceRgbaSha256": "eb3de0715798ff2a40bdee32f2fe39d7e092cb965f40a237e225c02d8e00118c"
+    },
+    {
+      "id": "lossless-palette-16",
+      "path": "lossless-palette-16.webp",
+      "width": 53,
+      "height": 29,
+      "method": 4,
+      "quality": 75,
+      "sha256": "bea11d005aee364dd0553015e265b2ad22314c30296a897c4913d84f248f5313",
+      "referenceRgbaSha256": "dc2c8ca927ae8198926f12860d51aa20014397ae178183cf58edf49011bda524"
+    },
+    {
+      "id": "lossless-palette-64",
+      "path": "lossless-palette-64.webp",
+      "width": 53,
+      "height": 29,
+      "method": 4,
+      "quality": 75,
+      "sha256": "59e52da0f7177d896f29015373bed4413376a6d8679d82c93425ed3842ed117e",
+      "referenceRgbaSha256": "fb6aab08b0f4bbf43265109a59362c41895ee3cdfd34c5a668e5d85def06433f"
+    },
+    {
+      "id": "lossless-repeat",
+      "path": "lossless-repeat.webp",
+      "width": 97,
+      "height": 31,
+      "method": 6,
+      "quality": 100,
+      "sha256": "738cfc37e5ca895d3872baf5f4e1834ff17989813687791de571490fef6c6076",
+      "referenceRgbaSha256": "3a184382665038e05a6140d64729c1282a8cc21464c911871c1ed6357f960118"
+    }
+  ]
+}

@@ -285,7 +285,7 @@ internal static partial class ImageComparisonValidation {
         return opaque;
     }
 
-    private static void AssertPixels(string engine, byte[] expected, byte[] actual) {
+    internal static void AssertPixels(string engine, byte[] expected, byte[] actual) {
         if (!expected.AsSpan().SequenceEqual(actual)) {
             throw new InvalidOperationException(engine + " did not produce the expected RGBA pixels.");
         }
