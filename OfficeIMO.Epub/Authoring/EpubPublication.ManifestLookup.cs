@@ -50,6 +50,7 @@ public sealed partial class EpubPublication {
         _packageIds = null;
         _spinePositions = null;
         _emptyStringElements = null;
+        MarkAllPropertyGrowthChanged();
     }
 
     private bool InManifest(XObject? node) => InSection(node, "manifest");

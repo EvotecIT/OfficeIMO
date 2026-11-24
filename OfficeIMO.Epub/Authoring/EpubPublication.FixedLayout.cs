@@ -34,8 +34,7 @@ public sealed partial class EpubPublication {
             cancellationToken: cancellationToken);
         if (EpubVocabulary.Expand(prefixes, "rendition:layout") != RenditionVocabulary + "layout")
             throw new InvalidDataException("The rendition prefix is mapped to a different vocabulary.");
-        IReadOnlyList<XElement> positions = SpinePositions(manifestId);
-        if (positions.Count != 1) throw new InvalidDataException("Fixed-layout page authoring requires exactly one spine position for the resource.");
+        if (SpinePositions(manifestId).Count != 1) throw new InvalidDataException("Fixed-layout page authoring requires exactly one spine position for the resource.");
         EpubManifestItem resource = RequireManifestItem(manifestId);
         XDocument document;
         if (HasMediaType(resource.MediaType, "image/svg+xml")) {
@@ -52,6 +51,9 @@ public sealed partial class EpubPublication {
             document = EditableXhtml(manifestId);
             ConfigureXhtmlCanvas(document, page, cancellationToken);
         }
+        // Caller-supplied regions are read above, so the position is looked up again before it's edited.
+        IReadOnlyList<XElement> positions = SpinePositions(manifestId);
+        if (positions.Count != 1) throw new InvalidDataException("Fixed-layout page authoring requires exactly one spine position for the resource.");
         var properties = new List<string>();
         XElement position = positions[0];
         foreach (string token in Tokens((string?)position.Attribute("properties"))) {

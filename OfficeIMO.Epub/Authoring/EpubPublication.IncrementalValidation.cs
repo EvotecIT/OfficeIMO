@@ -46,7 +46,7 @@ public sealed partial class EpubPublication {
             bool payloadChanged = !_originalEntries.TryGetValue(edit.Path, out byte[]? original) || !original.SequenceEqual(payloads[edit.Path]);
             EpubManifestItem[] analyzed = declarations
                 .Where(item => payloadChanged || !HasMediaType(OriginalManifestItem(item.Id)?.MediaType, item.MediaType))
-                .Where(item => !HasMediaType(item.MediaType, "application/x-dtbncx+xml")).ToArray();
+                .Where(item => HasMediaType(item.MediaType, "application/xhtml+xml") || HasMediaType(item.MediaType, "image/svg+xml")).ToArray();
             bool hasSvg = content.Descendants().Any(element => element.Name.NamespaceName == "http://www.w3.org/2000/svg" && element.Name.LocalName == "svg");
             bool hasMathMl = content.Descendants().Any(element => element.Name.NamespaceName == "http://www.w3.org/1998/Math/MathML");
             foreach (string mediaType in analyzed.Select(item => item.MediaType).Distinct(StringComparer.OrdinalIgnoreCase)) {
@@ -59,10 +59,10 @@ public sealed partial class EpubPublication {
                     new HtmlResourcePipelineOptions { Limits = limits });
                 if (resources.Resources.Any(resource => !resource.IsAllowed)) throw new NotSupportedException("Authored content contains a URL blocked by the shared HTML policy.");
                 bool hasRemote = ValidateAuthoredResources(content, edit.Path, resources, manifest, token, CheckStylesheet);
-                // Write declares svg, mathml and remote-resources on these items; reserve that room now.
+                // Write declares svg, mathml and remote-resources on these items; budget checks reserve that room.
                 if (PackageVersion == "3.0")
                     foreach (EpubManifestItem item in analyzed.Where(item => string.Equals(item.MediaType, mediaType, StringComparison.OrdinalIgnoreCase)))
-                        _packageGrowthAllowance += Math.Max(0, PropertiesBytes(ContentProperties(item, hasSvg, hasMathMl, hasRemote)) - PropertiesBytes(item.Properties));
+                        StagePropertyGrowth(item.Element, new ContentFlags(hasSvg, hasMathMl, hasRemote));
             }
             // Fragment targets are checked against the identifiers of only the documents this edit links to.
             foreach (EpubReference reference in ContentResourceReferences(content, edit.Path, token)) {
@@ -79,8 +79,6 @@ public sealed partial class EpubPublication {
         }
     }
 
-    private static long PropertiesBytes(string? properties) =>
-        properties == null ? 0 : Encoding.UTF8.GetByteCount(" properties=\"" + properties + "\"");
 
     // Read-only view of the retained entries with staged payloads layered over them.
     private sealed class EntryOverlay : IReadOnlyDictionary<string, byte[]> {

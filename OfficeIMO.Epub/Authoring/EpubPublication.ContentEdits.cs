@@ -53,8 +53,7 @@ public sealed partial class EpubPublication {
         EditPackage(() => {
             packageEdit?.Invoke(Root);
             if (validatePublication) ValidateContentEdits(edits, payloads, token);
-            token.ThrowIfCancellationRequested();
-        }, delta);
+        }, delta, token);
         foreach (var pair in payloads) _entries[pair.Key] = pair.Value;
         _retainedBytes += delta;
         MarkChanged();

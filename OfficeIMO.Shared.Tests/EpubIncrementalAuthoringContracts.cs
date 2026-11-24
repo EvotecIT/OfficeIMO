@@ -139,13 +139,55 @@ public sealed class EpubIncrementalAuthoringContracts {
         byte[] input = book.Write(Stamp).Bytes;
         using var zip = new ZipArchive(new MemoryStream(input), ZipArchiveMode.Read);
         var limited = EpubPublication.Load(new MemoryStream(input), new EpubPublicationLoadOptions { MaxMetadataBytes = zip.GetEntry("EPUB/package.opf")!.Length + 10 });
-        XNamespace math = "http://www.w3.org/1998/Math/MathML";
-        var content = new XDocument(new XElement(Html + "html", new XElement(Html + "head", new XElement(Html + "title", "Zero")),
-            new XElement(Html + "body", new XElement(math + "math", new XElement(math + "mi", "x")))));
+        XDocument content = MathChapter("Zero");
 
         // Write would declare properties="mathml", which doesn't fit in ten bytes.
         Assert.Throws<InvalidDataException>(() => limited.SetContentXml(new Dictionary<string, XDocument> { ["c0"] = content }));
         Assert.Equal(input, limited.Write(Stamp).Bytes);
+    }
+
+    [Fact]
+    public void PropertiesFromEarlierEditsStayReservedForLaterOnes() {
+        var book = EpubPublication.Create("Math", "en", "urn:example:math");
+        book.AddChapter("c0", "EPUB/c0.xhtml", "Zero", "<p>Zero.</p>");
+        book.AddChapter("c1", "EPUB/c1.xhtml", "One", "<p>One.</p>");
+        byte[] input = book.Write(Stamp).Bytes;
+        using var zip = new ZipArchive(new MemoryStream(input), ZipArchiveMode.Read);
+        // Room for one properties="mathml" declaration (20 bytes), not two.
+        var limited = EpubPublication.Load(new MemoryStream(input), new EpubPublicationLoadOptions { MaxMetadataBytes = zip.GetEntry("EPUB/package.opf")!.Length + 25 });
+
+        limited.SetContentXml(new Dictionary<string, XDocument> { ["c0"] = MathChapter("Zero") });
+        Assert.Throws<InvalidDataException>(() => limited.SetContentXml(new Dictionary<string, XDocument> { ["c1"] = MathChapter("One") }));
+        limited.Write(Stamp);
+    }
+
+    [Fact]
+    public void MovingPropertiesBetweenDocumentsInOneBatchNeedsNoExtraRoom() {
+        var book = EpubPublication.Create("Math", "en", "urn:example:math");
+        book.AddChapter("c0", "EPUB/c0.xhtml", "Zero", "<p>Zero.</p>");
+        book.AddChapter("c1", "EPUB/c1.xhtml", "One", "<p>One.</p>");
+        book.SetContentXml(new Dictionary<string, XDocument> { ["c0"] = MathChapter("Zero") });
+        byte[] input = book.Write(Stamp).Bytes;
+        using var zip = new ZipArchive(new MemoryStream(input), ZipArchiveMode.Read);
+        var limited = EpubPublication.Load(new MemoryStream(input), new EpubPublicationLoadOptions { MaxMetadataBytes = zip.GetEntry("EPUB/package.opf")!.Length });
+
+        // Write drops properties="mathml" from c0 and adds it to c1, so the package size doesn't change.
+        limited.SetContentXml(new Dictionary<string, XDocument> { ["c0"] = PlainChapter("Zero"), ["c1"] = MathChapter("One") });
+        limited.Write(Stamp);
+    }
+
+    [Fact]
+    public void LineBreaksTheWriterEscapesCountTowardThePackageBudget() {
+        var book = EpubPublication.Create("Breaks", "en", "urn:example:breaks");
+        book.AddChapter("c0", "EPUB/c0.xhtml", "Zero", "<p>Zero.</p>");
+        byte[] input = book.Write(Stamp).Bytes;
+        using var zip = new ZipArchive(new MemoryStream(input), ZipArchiveMode.Read);
+        var limited = EpubPublication.Load(new MemoryStream(input), new EpubPublicationLoadOptions { MaxMetadataBytes = zip.GetEntry("EPUB/package.opf")!.Length + 1500 });
+        limited.AddDublinCoreMetadata("subject", "warm");
+
+        // Each carriage return is written as &#xD;, so 500 of them need about 2,500 bytes.
+        Assert.Throws<InvalidDataException>(() => limited.AddDublinCoreMetadata("description", "a" + new string('\r', 500) + "b"));
+        limited.Write(Stamp);
     }
 
     [Fact]
@@ -166,6 +208,16 @@ public sealed class EpubIncrementalAuthoringContracts {
         Assert.Equal(before, imported.GetPackageXml().ToString(SaveOptions.DisableFormatting));
         Assert.Contains("<spine></spine>", before);
     }
+
+    private static XDocument MathChapter(string title) {
+        XNamespace math = "http://www.w3.org/1998/Math/MathML";
+        return new XDocument(new XElement(Html + "html", new XElement(Html + "head", new XElement(Html + "title", title)),
+            new XElement(Html + "body", new XElement(math + "math", new XElement(math + "mi", "x")))));
+    }
+
+    private static XDocument PlainChapter(string title) =>
+        new(new XElement(Html + "html", new XElement(Html + "head", new XElement(Html + "title", title)),
+            new XElement(Html + "body", new XElement(Html + "p", title))));
 
     private static byte[] Replace(byte[] epub, string path, string content) {
         using var output = new MemoryStream();

@@ -6,9 +6,6 @@ public sealed partial class EpubPublication {
     // Upper bound of the serialized package size in UTF-8 bytes, or -1 when unknown. Budget checks
     // serialize the package only when this bound cannot prove the edit fits.
     private long _packageBytesBound = -1;
-    // Package growth that Write will add on top of the live package, such as content properties it
-    // derives from edited documents. Budget checks during an edit reserve this much room.
-    private long _packageGrowthAllowance;
     // Elements loaded as <a></a>. Adding a child replaces that empty string without raising an event, so
     // undoing the add must restore it. Collected on first use inside an edit, then kept current.
     private HashSet<XElement>? _emptyStringElements;
@@ -16,10 +13,11 @@ public sealed partial class EpubPublication {
     // Applies an edit to the live package and checks its budgets. A rejected edit replays the recorded
     // changes backwards, so the package, its declaration wrappers and the change state stay as they were.
     // The cost depends on what the edit touches, not on the size of the package.
-    private void EditPackage(Action edit, long payloadDelta = 0) {
+    private void EditPackage(Action edit, long payloadDelta = 0, CancellationToken token = default) {
         if (_packageJournal != null) {
             edit();
             EnsureLivePackageBudget(payloadDelta);
+            token.ThrowIfCancellationRequested();
             return;
         }
         var journal = new PackageJournal();
@@ -29,10 +27,12 @@ public sealed partial class EpubPublication {
         try {
             edit();
             EnsureLivePackageBudget(payloadDelta);
+            token.ThrowIfCancellationRequested();
+            CommitPropertyGrowth();
             committed = true;
         } finally {
             _packageJournal = null;
-            _packageGrowthAllowance = 0;
+            _stagedPropertyGrowth = null;
             if (!committed) {
                 _packageRollback = true;
                 try { journal.Rollback(); } finally { _packageRollback = false; InvalidatePackageIndexes(); }
@@ -44,7 +44,7 @@ public sealed partial class EpubPublication {
     private void EnsureLivePackageBudget(long payloadDelta) {
         long available = _maximumRetainedBytes - RetainedPayloadBytes - payloadDelta;
         long maximum = Math.Min(_maximumMetadataBytes, Math.Min(_maximumEntryBytes, available));
-        maximum -= _packageGrowthAllowance;
+        maximum -= PropertyGrowthAllowance();
         if (maximum < 1) throw new InvalidDataException("Package XML exceeds the publication's retained-byte limits.");
         if (_packageBytesBound >= 0 && _packageBytesBound <= maximum) return;
         _packageBytesBound = SerializeXml(_package, maximum).LongLength;
@@ -53,6 +53,7 @@ public sealed partial class EpubPublication {
     private void OnPackageChanging(object? sender, XObjectChangeEventArgs args) {
         if (_packageRollback) return;
         IndexPackageChanging(sender, args.ObjectChange);
+        MarkPropertyGrowthChanging(sender, args.ObjectChange);
         if (_packageJournal == null) { _packageBytesBound = -1; return; }
         if (_emptyStringElements == null && args.ObjectChange == XObjectChange.Add)
             _emptyStringElements = new HashSet<XElement>(_package.Descendants().Where(HasEmptyStringContent));
@@ -63,6 +64,7 @@ public sealed partial class EpubPublication {
     private void OnPackageChanged(object? sender, XObjectChangeEventArgs args) {
         if (_packageRollback) return;
         IndexPackageChanged(sender, args.ObjectChange);
+        MarkPropertyGrowthChanged(sender);
         TrackEmptyStringContent(sender, args.ObjectChange);
         if (_packageJournal == null) { MarkChanged(); return; }
         long growth = PackageJournal.Completed(sender as XObject, args.ObjectChange);
@@ -156,7 +158,7 @@ public sealed partial class EpubPublication {
                 return sender switch {
                     XAttribute attribute => AttributeBound(attribute),
                     XText text => EscapedBound(text.Value) + EndTagBound(text.Parent),
-                    XNode node => Encoding.UTF8.GetByteCount(node.ToString(SaveOptions.DisableFormatting)) + 256 + EndTagBound(node.Parent),
+                    XNode node => Encoding.UTF8.GetByteCount(node.ToString(SaveOptions.DisableFormatting)) + NewLineBound(node) + 256 + EndTagBound(node.Parent),
                     _ => -1
                 };
             }
@@ -189,6 +191,22 @@ public sealed partial class EpubPublication {
             if (ns == XNamespace.None || attribute.IsNamespaceDeclaration) return size;
             string? prefix = attribute.Parent?.GetPrefixOfNamespace(ns);
             return size + (prefix != null ? Encoding.UTF8.GetByteCount(prefix) + 1 : 64 + EscapedBound(ns.NamespaceName));
+        }
+
+        // The package writer entitizes line breaks and tabs (&#xD;) that ToString writes as raw characters.
+        private static long NewLineBound(XNode node) {
+            if (node is not XElement element) return 0;
+            long count = 0;
+            foreach (XElement descendant in element.DescendantsAndSelf())
+                foreach (XAttribute attribute in descendant.Attributes()) count += LineBreaks(attribute.Value);
+            foreach (XText text in element.DescendantNodes().OfType<XText>()) count += LineBreaks(text.Value);
+            return count * 6;
+        }
+
+        private static int LineBreaks(string value) {
+            int count = 0;
+            foreach (char character in value) if (character == '\r' || character == '\n' || character == '\t') count++;
+            return count;
         }
 
         // Escaping expands one character into at most six (&quot;), each up to three UTF-8 bytes.

@@ -466,8 +466,8 @@ styles can override the generated rules. Overflow is not hidden automatically.
 
 Each call validates the page it changes: its content, the resources it uses and the
 links it holds. `Write` and `Save` validate the whole publication. Adding a page with
-`AddChapter`, `AddResource` and `SetFixedLayoutPage` therefore costs the same at page
-2,000 as at page 50, and a rejected call leaves the publication unchanged.
+`AddChapter`, `AddResource` and `SetFixedLayoutPage` therefore doesn't re-check the rest of
+the book, and a rejected call leaves the publication unchanged.
 
 `Regions` places existing top-level XHTML body elements by their HTML `id`. Each
 rectangle supplies left, top, width and height as decimal CSS pixels, with a top-left
@@ -599,8 +599,9 @@ The batch validates the edited documents before replacing any retained bytes: co
 identifiers, local ID references, declared resources and links to other documents,
 including fragments in the documents they point to. When a batch removes identifiers or
 rewrites the navigation document, the links in every document are checked again, so a batch
-cannot break links held elsewhere. Other problems in the book are reported by `Write` and
-`Save`. Duplicate IDs, dangling links, invalid content, retention limits or cancellation
+cannot break links held elsewhere, and that whole-book check can also report problems in
+documents the batch didn't touch. Otherwise, problems elsewhere in the book are reported by
+`Write` and `Save`. Duplicate IDs, dangling links, invalid content, retention limits or cancellation
 leave the publication unchanged. Caller-owned XML remains independent. The single-document
 setter remains available while assembling a book. Export still applies signature,
 encryption and output policies, and independent accessibility and reader checks remain separate.
