@@ -23,6 +23,10 @@ internal static class CorpusSources {
         IReadOnlyList<CorpusSource> sources = SelectSources(manifest, values.TryGetValue("--sources", out string? list) ? list : null);
 
         Directory.CreateDirectory(outputRoot);
+        // The files folder holds exactly the sources fetched now, so the provenance written below describes every
+        // file a later run measures.
+        DeleteDirectory(Path.Combine(outputRoot, FilesFolderName));
+        File.Delete(Path.Combine(outputRoot, ProvenanceFileName));
         var fetched = new List<CorpusSourceProvenance>();
         bool allVerified = true;
         foreach (CorpusSource source in sources) {

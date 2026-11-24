@@ -54,7 +54,9 @@ internal sealed class CorpusRunOptions {
     public string Operation { get; set; } = CorpusOperations.ReaderRead;
     public bool IncludeDifferenceText { get; set; }
     public string? SourceProvenancePath { get; set; }
+    public IReadOnlyList<CorpusSourceProvenance>? Sources { get; set; }
     public int? DeadlineSeconds { get; set; }
+    public int? WorkerHeapLimitMegabytes { get; set; }
 }
 
 internal sealed class CorpusWorkerOptions {
@@ -143,6 +145,7 @@ internal sealed class CorpusConfiguration {
     public int TimeoutSeconds { get; set; }
     public int Parallelism { get; set; }
     public int? DeadlineSeconds { get; set; }
+    public int? WorkerHeapLimitMegabytes { get; set; }
     public bool SourceNamesIncluded { get; set; }
     public CorpusReaderPolicyConfiguration ReaderPolicy { get; set; } = new();
     public CorpusPackagePolicyConfiguration PackagePolicy { get; set; } = new();

@@ -14,6 +14,10 @@ param(
     [ValidateRange(1, 900)]
     [int] $TimeoutSeconds = 30,
 
+    # Heap limit for each worker process, so one large file cannot exhaust the machine.
+    [ValidateRange(256, 65536)]
+    [int] $WorkerHeapLimitMB = 3072,
+
     # Reuse corpora already fetched into the output directory instead of fetching and verifying them again.
     [switch] $SkipFetch,
 
@@ -25,9 +29,23 @@ $ErrorActionPreference = 'Stop'
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
 $project = Join-Path $repositoryRoot 'Build/RealWorldCorpus/OfficeIMO.RealWorldCorpus.Tool.csproj'
 $manifest = Join-Path $repositoryRoot 'Build/RealWorldCorpus/openxml-corpus-sources.json'
+# Resolves symbolic links in every existing segment, so a link cannot place the output inside the repository.
+function Resolve-PhysicalPath([string] $Path) {
+    $full = [System.IO.Path]::GetFullPath($Path)
+    $root = [System.IO.Path]::GetPathRoot($full)
+    $current = $root
+    foreach ($segment in $full.Substring($root.Length).Split([System.IO.Path]::DirectorySeparatorChar, [StringSplitOptions]::RemoveEmptyEntries)) {
+        $current = Join-Path $current $segment
+        if (Test-Path -LiteralPath $current) {
+            $target = [System.IO.Directory]::ResolveLinkTarget($current, $true)
+            if ($null -ne $target) { $current = $target.FullName }
+        }
+    }
+    return $current.TrimEnd([System.IO.Path]::DirectorySeparatorChar) + [System.IO.Path]::DirectorySeparatorChar
+}
+
 $output = [System.IO.Path]::GetFullPath($OutputDirectory)
-$root = [System.IO.Path]::GetFullPath($repositoryRoot).TrimEnd([System.IO.Path]::DirectorySeparatorChar) + [System.IO.Path]::DirectorySeparatorChar
-if (($output.TrimEnd([System.IO.Path]::DirectorySeparatorChar) + [System.IO.Path]::DirectorySeparatorChar).StartsWith($root, [StringComparison]::OrdinalIgnoreCase)) {
+if ((Resolve-PhysicalPath $output).StartsWith((Resolve-PhysicalPath $repositoryRoot), [StringComparison]::OrdinalIgnoreCase)) {
     throw "The output directory must be outside the repository: $output"
 }
 
@@ -52,6 +70,7 @@ $run = @(
     '--corpus-id', 'openxml-test-corpora',
     '--max-per-format', '5000', '--max-total', '10000', '--max-traversal-entries', '20000',
     '--timeout-seconds', $TimeoutSeconds, '--parallelism', $Parallelism,
+    '--worker-heap-limit-mb', $WorkerHeapLimitMB,
     '--include-source-names'
 )
 if (-not $WithoutDifferenceText) { $run += '--include-difference-text' }

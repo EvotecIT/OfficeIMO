@@ -254,6 +254,7 @@ jobs:
       MAX_TRAVERSAL_ENTRIES: '8000'
       MAX_TOTAL: '4000'
       CORPUS_PARALLELISM: '4'
+      WORKER_HEAP_LIMIT_MB: '3072'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -270,7 +271,7 @@ jobs:
             echo "run=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          pattern='^(Build/RealWorldCorpus/|OfficeIMO\.Core/Internal/OpenXml/|OfficeIMO\.Core/Documents/OfficePackageSecurityInspector|OfficeIMO\.Word/WordStreamedBodyText|OfficeIMO\.Reader\.Word/|OfficeIMO\.Reader\.PowerPoint/|OfficeIMO\.PowerPoint/Reading/|\.github/workflows/real-world-corpus-evidence\.yml)'
+          pattern='^(Build/RealWorldCorpus/|OfficeIMO\.Core/Internal/OpenXml/|OfficeIMO\.Core/Documents/OfficePackageSecurityInspector|OfficeIMO\.Word/WordStreamedBodyText|OfficeIMO\.Reader\.Word/|OfficeIMO\.Reader\.PowerPoint/|OfficeIMO\.PowerPoint/Reading/|OfficeIMO\.Excel/Read/|OfficeIMO\.Excel/ExcelDocument\.DataReader|\.github/workflows/real-world-corpus-evidence\.yml)'
           if gh pr diff "$PR_NUMBER" --repo "${{ github.repository }}" --name-only | grep -Eq "$pattern"; then
             echo "run=true" >> "$GITHUB_OUTPUT"
           else
@@ -326,6 +327,7 @@ jobs:
             --timeout-seconds "$FILE_TIMEOUT_SECONDS" \
             --parallelism "$CORPUS_PARALLELISM" \
             --deadline-seconds "$RUN_DEADLINE_SECONDS" \
+            --worker-heap-limit-mb "$WORKER_HEAP_LIMIT_MB" \
             --include-source-names \
             --include-difference-text
 

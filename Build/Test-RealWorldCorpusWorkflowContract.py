@@ -81,10 +81,15 @@ def assert_openxml_differential_contract() -> None:
     file_timeout_seconds = job_integer(block, "FILE_TIMEOUT_SECONDS")
     job_integer(block, "MAX_TRAVERSAL_ENTRIES")
     job_integer(block, "MAX_TOTAL")
-    if not 1 <= job_integer(block, "CORPUS_PARALLELISM") <= 8:
+    parallelism = job_integer(block, "CORPUS_PARALLELISM")
+    if not 1 <= parallelism <= 8:
         raise AssertionError("The Open XML differential job must bound its parallelism.")
+    # Hosted Linux runners have 16 GB; the workers' heaps together must leave room for the coordinator and the OS.
+    if parallelism * job_integer(block, "WORKER_HEAP_LIMIT_MB") > 13 * 1024:
+        raise AssertionError("The Open XML differential workers' heap limits exceed the runner's memory.")
     for binding in (
         '--deadline-seconds "$RUN_DEADLINE_SECONDS"',
+        '--worker-heap-limit-mb "$WORKER_HEAP_LIMIT_MB"',
         '--timeout-seconds "$FILE_TIMEOUT_SECONDS"',
         '--parallelism "$CORPUS_PARALLELISM"',
         '--max-total "$MAX_TOTAL"',

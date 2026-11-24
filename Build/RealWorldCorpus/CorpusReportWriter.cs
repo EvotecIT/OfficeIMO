@@ -78,6 +78,9 @@ internal static class CorpusReportWriter {
             .Append(" | ").Append(report.Totals.ClassificationFailed).Append(" | ").Append(report.Totals.ClassificationTimedOut)
             .Append(" | ").Append(report.Totals.DuplicateContent).Append(" | ").Append(report.Totals.EligibleUnique)
             .Append(" | ").Append(report.Totals.Selected).AppendLine(" |");
+        if (report.Configuration.WorkerHeapLimitMegabytes is int heapLimit) {
+            text.AppendLine().Append("Each worker process had a ").Append(heapLimit).AppendLine(" MiB heap limit; a file over it fails with `System.OutOfMemoryException`.");
+        }
         if (report.Totals.SkippedDeadline > 0) {
             text.AppendLine().Append("The run deadline of ").Append(report.Configuration.DeadlineSeconds).Append(" seconds stopped new work before ")
                 .Append(report.Totals.SkippedDeadline).AppendLine(" files were classified or measured; they are counted as `skipped-deadline`.");

@@ -13,8 +13,14 @@ internal static class CorpusProcess {
         string? expectedSha256,
         TimeSpan timeout,
         CancellationToken cancellationToken,
-        IReadOnlyList<string>? extraArguments = null) {
+        IReadOnlyList<string>? extraArguments = null,
+        int? heapLimitMegabytes = null) {
         ProcessStartInfo startInfo = CreateStartInfo(command, stage, inputPath, maxFileBytes, expectedSha256, extraArguments);
+        // A worker over its heap limit fails with OutOfMemoryException instead of exhausting the machine the other
+        // workers and the coordinator share.
+        if (heapLimitMegabytes is int limit) {
+            startInfo.Environment["DOTNET_GCHeapHardLimit"] = ((long)limit * 1024L * 1024L).ToString("X", System.Globalization.CultureInfo.InvariantCulture);
+        }
         using var process = new Process { StartInfo = startInfo };
         var stopwatch = Stopwatch.StartNew();
         if (!process.Start()) throw new InvalidOperationException("Unable to start the corpus worker process.");

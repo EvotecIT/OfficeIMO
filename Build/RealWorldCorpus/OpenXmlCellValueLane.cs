@@ -28,9 +28,9 @@ internal static class OpenXmlCellValueLane {
             lane.SdkException = typeName(exception);
             lane.SdkExceptionMessage = message(exception);
         }
-        if (expected != null && (long)expected.MaxRow * expected.MaxColumn > MaxCells) {
+        if (expected != null && expected.Extents.Any(extent => !extent.IsEmpty && (long)(extent.MaxRow - extent.MinRow + 1) * (extent.MaxColumn - extent.MinColumn + 1) > MaxCells)) {
             lane.Outcome = CorpusOpenXmlOutcomes.Unavailable;
-            lane.Note = "the used extent is over " + MaxCells.ToString("N0", CultureInfo.InvariantCulture) + " cells";
+            lane.Note = "a worksheet's used extent is over " + MaxCells.ToString("N0", CultureInfo.InvariantCulture) + " cells";
             return lane;
         }
         Workbook? actual = null;
@@ -58,8 +58,23 @@ internal static class OpenXmlCellValueLane {
         internal List<string> Sheets { get; } = new();
         // Sheet position, row and column (1-based) to the normalized value; empty cells are absent.
         internal SortedDictionary<(int Sheet, int Row, int Column), string> Cells { get; } = new();
+        // The rectangle every cell element of each worksheet falls in, whether or not it holds a value.
+        internal List<Extent> Extents { get; } = new();
+    }
+
+    private sealed class Extent {
+        internal int MinRow { get; set; } = int.MaxValue;
+        internal int MinColumn { get; set; } = int.MaxValue;
         internal int MaxRow { get; set; }
         internal int MaxColumn { get; set; }
+        internal bool IsEmpty => MaxRow == 0;
+
+        internal void Add(int row, int column) {
+            MinRow = Math.Min(MinRow, row);
+            MinColumn = Math.Min(MinColumn, column);
+            MaxRow = Math.Max(MaxRow, row);
+            MaxColumn = Math.Max(MaxColumn, column);
+        }
     }
 
     private static Workbook ReadWithSdk(byte[] snapshot) {
@@ -73,17 +88,18 @@ internal static class OpenXmlCellValueLane {
             if (sheet.Id?.Value is not string id || workbookPart.GetPartById(id) is not WorksheetPart worksheetPart) continue;
             int sheetIndex = workbook.Sheets.Count;
             workbook.Sheets.Add(sheet.Name?.Value ?? string.Empty);
+            var extent = new Extent();
+            workbook.Extents.Add(extent);
             int rowNumber = 0;
             foreach (S.Row row in worksheetPart.Worksheet?.GetFirstChild<S.SheetData>()?.Elements<S.Row>() ?? Enumerable.Empty<S.Row>()) {
                 rowNumber = row.RowIndex?.Value is uint index ? (int)index : rowNumber + 1;
                 int columnNumber = 0;
                 foreach (S.Cell cell in row.Elements<S.Cell>()) {
                     columnNumber = cell.CellReference?.Value is string reference && TryParseColumn(reference, out int column) ? column : columnNumber + 1;
+                    extent.Add(rowNumber, columnNumber);
                     string? value = SdkValue(cell, sharedStrings);
                     if (value == null) continue;
                     workbook.Cells[(sheetIndex, rowNumber, columnNumber)] = value;
-                    workbook.MaxRow = Math.Max(workbook.MaxRow, rowNumber);
-                    workbook.MaxColumn = Math.Max(workbook.MaxColumn, columnNumber);
                 }
             }
         }
@@ -138,29 +154,34 @@ internal static class OpenXmlCellValueLane {
         return text.ToString();
     }
 
-    private static Workbook ReadWithOfficeIMO(byte[] snapshot, Workbook? extent) {
+    // The reader runs with its defaults apart from the header row and date conversion, so it takes the native
+    // workbook path a caller gets. That path exposes each worksheet's used range, so its rows and columns are placed
+    // at the top-left cell of the worksheet's cell elements as the SDK reads them; a reader that starts its used range
+    // elsewhere shows up as shifted cells.
+    private static Workbook ReadWithOfficeIMO(byte[] snapshot, Workbook? reference) {
         var options = new ExcelReaderOptions {
             HasHeaderRow = false,
-            TreatDatesUsingNumberFormat = false,
-            UseCachedFormulaResult = true,
-            FillBlanksInRanges = true,
-            MaxRangeCells = MaxCells
+            TreatDatesUsingNumberFormat = false
         };
-        // Fixing the range at A1 makes the reader's positions comparable with cell references.
-        if (extent != null && extent.MaxRow > 0) options.A1Range = "A1:" + ColumnName(extent.MaxColumn) + extent.MaxRow.ToString(CultureInfo.InvariantCulture);
         var workbook = new Workbook();
         using var stream = new MemoryStream(snapshot, writable: false);
         using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(stream, options);
         foreach (string name in reader.SheetNames) workbook.Sheets.Add(name);
-        if (options.A1Range == null) return workbook;
+        long cells = 0;
         do {
             int sheetIndex = reader.CurrentSheetIndex;
-            int row = 0;
+            Extent? origin = reference != null && sheetIndex < reference.Extents.Count && !reference.Extents[sheetIndex].IsEmpty
+                ? reference.Extents[sheetIndex]
+                : null;
+            int row = (origin?.MinRow ?? 1) - 1;
+            int firstColumn = origin?.MinColumn ?? 1;
             while (reader.Read()) {
                 row++;
+                cells += reader.FieldCount;
+                if (cells > MaxCells * 4) throw new InvalidDataException("The workbook reader returned more cells than the comparison reads.");
                 for (int column = 0; column < reader.FieldCount; column++) {
                     string? value = OurValue(reader, column);
-                    if (value != null) workbook.Cells[(sheetIndex, row, column + 1)] = value;
+                    if (value != null) workbook.Cells[(sheetIndex, row, firstColumn + column)] = value;
                 }
             }
         } while (reader.NextResult());

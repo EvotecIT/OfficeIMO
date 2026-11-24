@@ -108,7 +108,8 @@ internal static class CorpusCoordinator {
             options.MaxFileBytes,
             null,
             TimeSpan.FromSeconds(options.TimeoutSeconds),
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken,
+            heapLimitMegabytes: options.WorkerHeapLimitMegabytes).ConfigureAwait(false);
         file.ClassificationDurationMilliseconds = process.DurationMilliseconds;
         if (process.IsTimedOut) {
             file.Outcome = CorpusOutcomes.ClassificationTimedOut;
@@ -187,7 +188,8 @@ internal static class CorpusCoordinator {
             file.Sha256,
             TimeSpan.FromSeconds(options.TimeoutSeconds),
             cancellationToken,
-            ProbeArguments(options)).ConfigureAwait(false);
+            ProbeArguments(options),
+            options.WorkerHeapLimitMegabytes).ConfigureAwait(false);
         file.ProbeDurationMilliseconds = process.DurationMilliseconds;
         if (process.IsTimedOut) {
             file.Outcome = CorpusOutcomes.TimedOut;
@@ -281,9 +283,7 @@ internal static class CorpusCoordinator {
                 CorpusId = options.CorpusId,
                 SourceUri = options.SourceUri,
                 ArchiveSha256 = options.ArchiveSha256,
-                Sources = options.SourceProvenancePath == null
-                    ? null
-                    : System.Text.Json.JsonSerializer.Deserialize<CorpusSourceProvenance[]>(File.ReadAllText(options.SourceProvenancePath), CorpusJson.Options)
+                Sources = options.Sources
             },
             Configuration = new CorpusConfiguration {
                 Formats = options.Formats,
@@ -294,6 +294,7 @@ internal static class CorpusCoordinator {
                 TimeoutSeconds = options.TimeoutSeconds,
                 Parallelism = options.Parallelism,
                 DeadlineSeconds = options.DeadlineSeconds,
+                WorkerHeapLimitMegabytes = options.WorkerHeapLimitMegabytes,
                 SourceNamesIncluded = options.IncludeSourceNames,
                 ReaderPolicy = CorpusReaderPolicy.Describe(),
                 PackagePolicy = CorpusPackagePolicy.Describe(options.MaxFileBytes),
