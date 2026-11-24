@@ -114,6 +114,7 @@ internal sealed partial class OfficeXmlTree {
                             attribute.Name = Namespaces.GetNameId(reader.GetAttributeLocalName(index), reader.GetAttributePrefix(index), attributeNamespace, attributeUri);
                             reader.GetAttributeRawValue(index, out attribute.ValueStart, out attribute.ValueLength);
                             attribute.Quote = reader.GetAttributeQuote(index);
+                            if (attributeNamespace == OfficeXmlNamespaces.Xmlns) Declare(ref attribute, reader, index);
                         }
                     }
                     if (depth == 0) {
@@ -516,6 +517,18 @@ internal sealed partial class OfficeXmlTree {
             Previous = NoNode
         };
         return node;
+    }
+
+    // Binds a parsed declaration to the namespace its decoded value names, as the reader bound it, so the writer
+    // matches a value written with character references to the names declared through it.
+    private void Declare(ref Attr declaration, OfficeXmlPullReader reader, int index) {
+        if (declaration.ValueLength == 0) {
+            declaration.DeclaredNamespace = declaration.DeclaredUri = OfficeXmlNamespaces.None;
+        } else if (Array.IndexOf(reader.Data, (byte)'&', declaration.ValueStart, declaration.ValueLength) >= 0) {
+            declaration.DeclaredNamespace = Namespaces.GetId(reader.GetAttributeValue(index), out declaration.DeclaredUri);
+        } else {
+            declaration.DeclaredNamespace = Namespaces.GetId(reader.Data, declaration.ValueStart, declaration.ValueLength, out declaration.DeclaredUri);
+        }
     }
 
     private struct Node {

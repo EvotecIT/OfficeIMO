@@ -145,12 +145,6 @@ internal sealed partial class OfficeXmlTree {
             OfficeXmlName name = Namespaces.GetName(attribute.Name);
             if (name.NamespaceId != OfficeXmlNamespaces.Xmlns) continue;
             string prefix = name.Prefix!.Length == 0 ? string.Empty : name.LocalName;
-            if (attribute.ValueStart >= 0 && !attribute.Changed) {
-                int namespaceId = attribute.ValueLength == 0
-                    ? OfficeXmlNamespaces.None
-                    : Namespaces.GetId(_source!, attribute.ValueStart, attribute.ValueLength, out attribute.DeclaredUri);
-                attribute.DeclaredNamespace = namespaceId;
-            }
             writer.PushScope(prefix, attribute.DeclaredNamespace, attribute.DeclaredUri);
         }
     }

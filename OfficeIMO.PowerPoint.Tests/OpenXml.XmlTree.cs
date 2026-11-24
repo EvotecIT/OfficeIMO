@@ -117,6 +117,16 @@ public class OpenXmlXmlTreeTests {
         Assert.Equal("v", x.Attribute(XName.Get("k", "urn:q"))!.Value);
     }
 
+    [Fact]
+    public void ADeclarationWrittenWithACharacterReferenceStillBindsItsPrefix() {
+        const string xml = "<p:sld xmlns:p=\"http://schemas.openxmlformats.org/presentationml/2006/mai&#110;\"><p:cSld/></p:sld>";
+        OfficeXmlTree tree = Parse(xml);
+        tree.SetAttribute(tree.Root, OfficeXmlNamespaces.None, "show", "0");
+        tree.Append(tree.FindChild(tree.Root, OfficeXmlNamespaces.PresentationML, "cSld"), tree.CreateElement(OfficeXmlNamespaces.PresentationML, "spTree"));
+
+        Assert.Equal(xml.Replace("\"><p:cSld/>", "\" show=\"0\"><p:cSld><p:spTree/></p:cSld>"), Encoding.UTF8.GetString(Write(tree)));
+    }
+
     private static OfficeXmlTree Parse(string xml) {
         byte[] bytes = Encoding.UTF8.GetBytes(xml);
         return OfficeXmlTree.Parse(bytes, bytes.Length, new OfficeXmlNamespaces.Table());
