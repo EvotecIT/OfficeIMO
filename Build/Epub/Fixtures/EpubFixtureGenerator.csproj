@@ -15,6 +15,7 @@
     <EmbeddedResource Include="../../../Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/font-pack.json" LogicalName="OfficeIMO.Epub.Fixtures.font-pack.json" />
     <EmbeddedResource Include="Assets/narration.mp3" LogicalName="OfficeIMO.Epub.Fixtures.narration.mp3" />
     <ProjectReference Include="../../../OfficeIMO.Epub/OfficeIMO.Epub.csproj" />
+    <ProjectReference Include="../../../OfficeIMO.Workflows/OfficeIMO.Workflows.csproj" />
     <ProjectReference Include="../../../OfficeIMO.Bibliography/OfficeIMO.Bibliography.csproj" />
   </ItemGroup>
 </Project>

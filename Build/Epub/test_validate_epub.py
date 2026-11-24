@@ -1,4 +1,5 @@
 """Opt-in validator evidence and process-lifetime contracts: python3 -m unittest discover -s Build/Epub."""
+import json
 import os
 from pathlib import Path
 import subprocess
@@ -6,8 +7,9 @@ import sys
 import tempfile
 import time
 import unittest
+from unittest.mock import patch
 
-from validate_epub import ace_evidence, run_browser_audit
+from validate_epub import ace_evidence, main, run_browser_audit
 
 
 class AccessibilityEvidence(unittest.TestCase):
@@ -41,6 +43,39 @@ class AccessibilityEvidence(unittest.TestCase):
                 self.assertEqual("not-established", result["coverage"]["svgContentDocuments"])
                 if not isinstance(report, dict) or not report:
                     self.assertEqual("failed", result["status"])
+
+
+class EpubCheckEvidence(unittest.TestCase):
+    def test_malformed_report_fails_the_publication_and_batch_still_checks_the_next_book(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            jar = root / "epubcheck.jar"
+            output = root / "evidence"
+            first = root / "first.epub"
+            second = root / "second.epub"
+            jar.touch()
+            first.write_bytes(b"first book")
+            second.write_bytes(b"second book")
+
+            def validator(command, **options):
+                if command[-1] == "--version":
+                    return subprocess.CompletedProcess(command, 0, stdout="EPUBCheck v5.4.0", stderr="")
+                publication = Path(command[3]).read_bytes()
+                report = Path(command[-1])
+                if publication == b"first book":
+                    report.touch()
+                    return subprocess.CompletedProcess(command, 1)
+                self.assertEqual(b"second book", publication)
+                report.write_text('{"checker":{"nError":0,"nFatal":0,"nWarning":0}}', encoding="utf-8")
+                return subprocess.CompletedProcess(command, 0)
+
+            args = ["validate_epub.py", "--epubcheck-jar", str(jar), "--output", str(output), str(first), str(second)]
+            with patch.object(sys, "argv", args), patch("validate_epub.subprocess.run", side_effect=validator):
+                self.assertEqual(1, main())
+            publications = json.loads((output / "summary.json").read_text(encoding="utf-8"))["publications"]
+            self.assertEqual(["failed", "passed"], [record["status"] for record in publications])
+            self.assertIn("epubcheckFailure", publications[0])
+            self.assertEqual(1, publications[0]["exitCode"])
 
 
 class BrowserAuditLifetime(unittest.TestCase):
