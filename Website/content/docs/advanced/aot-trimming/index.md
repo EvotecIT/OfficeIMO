@@ -8,7 +8,7 @@ The project inventory distinguishes NativeAOT evidence from managed deployment. 
 
 `OfficeIMO.ChartForgeX.Markdown` has managed .NET 8 and 10 integration evidence for static Mermaid diagrams in document and HTML workflows. Complete adapter NativeAOT qualification is separate.
 
-The separate `OfficeIMO.Studio.iOS` host has Debug ARM64 simulator evidence. Release trimming, device AOT, signing, and physical-device acceptance remain unqualified.
+The native Swift apps for Mac, iPad and iPhone in `Apple/OfficeIMOStudio` supersede the Avalonia `OfficeIMO.Studio.iOS` host. They link `OfficeIMO.Studio.Native` as a NativeAOT XCFramework in the `Apple/OfficeIMOStudioEngine` package, which `Build/Studio/Apple/Build-StudioEngine.ps1` builds from the same checkout for macOS, iOS devices and the iOS simulator. The Avalonia iOS host is not a distribution target, and its Debug simulator evidence does not qualify the native apps.
 
 The 158 native-validated projects are not all proved in the same way:
 
@@ -61,7 +61,7 @@ The Word, Excel, PowerPoint, and Word-to-HTML packages use the Microsoft Open XM
 | Native build analyzers | 3 | `OfficeIMO.Data.Generators` emits a row-mapping plan that compiles into and executes from the main native host; `OfficeIMO.Yaml.SourceGeneration` and `OfficeIMO.Toml.SourceGeneration` emit serializer metadata that executes from the `OfficeIMO.Yaml.AotSmoke` and `OfficeIMO.Toml.AotSmoke` native hosts. | Install the analyzer at build time; only its generated application code is deployed. |
 | Managed cross-platform applications and integrations | 13 | `OfficeIMO.Html.Pdf.Browser` and the local HTML/PDF workbench use the managed HtmlTinkerX and Playwright runtime; OfficeIMO Studio uses the managed Avalonia desktop runtime; its UI-independent core has trim and AOT analyzer evidence. `OfficeIMO.AI`, `OfficeIMO.AI.IntelligenceX`, and `OfficeIMO.AI.Example` target managed .NET 10. `OfficeIMO.Access` and `OfficeIMO.Invoicing.KSeF` use managed deployment for Access and KSeF workflows. `OfficeIMO.JavaScript.Assets` distributes JavaScript assets through its managed .NET API. `OfficeIMO.ChartForgeX.Markdown` has managed document and HTML integration evidence. `OfficeIMO.Pdf.Testing` runs its snapshot assertions inside xUnit, NUnit and MSTest hosts. The PSWriteOffice module runs inside the managed PowerShell 7 and Windows PowerShell 5.1 hosts. | Use managed .NET deployment for these applications and integrations; do not advertise them as NativeAOT-compatible without separate native-publish proof. |
 | Managed Windows UI | 1 | `OfficeIMO.MarkdownRenderer.Wpf` builds and runs through the managed Windows/WPF test lane. | Do not enable NativeAOT for this WPF/WebView2 UI package. Use the managed Windows deployment model. |
-| iOS host, AOT unqualified | 1 | The separate Avalonia iPhone/iPad host has local Debug ARM64 simulator evidence; the coordinated NativeAOT CI hosts do not qualify it. | Qualify Release trimming, device AOT, signing, and physical-device behavior before distribution. |
+| Superseded iOS host | 1 | The Avalonia `OfficeIMO.Studio.iOS` host has local Debug ARM64 simulator evidence only; the native Swift apps, which link the `OfficeIMO.Studio.Native` XCFramework built by `Build/Studio/Apple/Build-StudioEngine.ps1`, replace it. | Use the native Studio engine library for Apple apps. Don't distribute the Avalonia iOS host. |
 
 CI fails if a production project is added, removed, or renamed without being classified in this matrix.
 
@@ -95,7 +95,7 @@ These eight document workflows complement the project-level compile matrix with 
 | Google Workspace, Confluence, and other network clients | The dependency-light OfficeIMO client libraries are fully rooted in the native matrix. The optional `Google.Apis` credential adapter has a bounded native token-store test; publish and test the live authentication and HTTP provider selected by your application. |
 | OCR process and Tesseract adapters | The OfficeIMO host adapter can be native; OCR still runs in the configured external executable and must be deployed separately. |
 | Chromium browser-PDF bridge | Use managed cross-platform deployment. `OfficeIMO.Html.Pdf.Browser` delegates browser capture to HtmlTinkerX and Playwright, then opens the result through `OfficeIMO.Pdf`. |
-| OfficeIMO Studio | Use the checked-in managed Avalonia distribution profiles for Windows, Linux, and macOS. The current desktop application is not advertised as NativeAOT-compatible. |
+| OfficeIMO Studio | Use the checked-in managed Avalonia distribution profiles for Windows and Linux; the desktop application is not advertised as NativeAOT-compatible. The native Mac, iPad and iPhone apps link the `OfficeIMO.Studio.Native` NativeAOT engine instead. |
 | WPF/WebView2 renderer | Use managed Windows deployment. The .NET SDK currently rejects trimmed WPF executables with `NETSDK1168`, so OfficeIMO does not market this package as NativeAOT-compatible. |
 
 ## Prefer typed data paths
