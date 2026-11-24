@@ -37,6 +37,7 @@ namespace OfficeIMO.Excel {
         private System.Collections.Generic.IEqualityComparer<string> _tableNameComparer = System.StringComparer.OrdinalIgnoreCase;
         private List<ExcelSheet>? _cachedSheets;
         private bool _sheetCacheDirty = true;
+        private int _cachedSheetElementCount;
         private readonly object _sheetCacheRebuildGate = new();
         private bool _customDocumentPropertiesDirty;
         private DocumentPersistenceMode _persistenceMode = DocumentPersistenceMode.Explicit;
@@ -223,6 +224,37 @@ namespace OfficeIMO.Excel {
             MarkPackageDirty();
         }
 
+        /// <summary>
+        /// Records a worksheet that was just appended to the workbook. A valid cache gains the new wrapper
+        /// (its sheet element is last in the workbook and its id is already registered), so adding sheets one
+        /// at a time doesn't rebuild a wrapper for every earlier sheet.
+        /// </summary>
+        private void AppendNewSheetToCache(ExcelSheet sheet)
+        {
+            if (SheetCachingEnabled && !_sheetCacheDirty && _cachedSheets != null) {
+                // The cache holds its own wrapper, as a rebuild would, rather than the one returned to the caller.
+                _cachedSheets.Add(new ExcelSheet(this, _spreadSheetDocument!, sheet.SheetElement));
+                _cachedSheetElementCount++;
+                MarkPackageDirty();
+                return;
+            }
+
+            MarkSheetCacheDirty();
+        }
+
+        /// <summary>True when the workbook has as many sheet elements as the cache was built from.</summary>
+        private bool SheetCacheMatchesWorkbook()
+        {
+            if (_cachedSheets == null) return true;
+            int count = 0;
+            var sheets = _spreadSheetDocument?.WorkbookPart?.Workbook?.Sheets;
+            if (sheets != null) {
+                foreach (Sheet _ in sheets.Elements<Sheet>()) count++;
+            }
+
+            return count == _cachedSheetElementCount;
+        }
+
         private List<Sheet> ReadSheetElements()
         {
             var sheets = _spreadSheetDocument?.WorkbookPart?.Workbook?.Sheets;
@@ -237,9 +269,10 @@ namespace OfficeIMO.Excel {
         {
             id.Clear();
             id.Add(0);
+            var seen = new HashSet<uint> { 0 };
             foreach (Sheet s in elements) {
                 var sheetId = s.SheetId;
-                if (sheetId != null && !id.Contains(sheetId)) {
+                if (sheetId != null && seen.Add(sheetId.Value)) {
                     id.Add(sheetId);
                 }
             }
@@ -267,6 +300,7 @@ namespace OfficeIMO.Excel {
             lock (_sheetCacheRebuildGate) {
                 var elements = ReadSheetElements();
                 UpdateSheetIdCache(elements);
+                _cachedSheetElementCount = elements.Count;
                 _cachedSheets = SheetCachingEnabled ? MaterializeSheets(elements) : null;
                 _sheetCacheDirty = false;
             }
