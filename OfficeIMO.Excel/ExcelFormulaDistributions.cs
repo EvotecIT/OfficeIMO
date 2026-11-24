@@ -212,13 +212,16 @@ namespace OfficeIMO.Excel {
                 product *= x;
                 x += 1;
             }
+            return (x - 0.5) * Math.Log(x) - x + 0.5 * Math.Log(2 * Math.PI) + StirlingCorrection(x) - Math.Log(product);
+        }
+
+        /// <summary>ln Γ(x) − ((x − ½) ln x − x + ½ ln 2π): B₂ₙ / (2n(2n−1) x^(2n−1)) for n = 1..7, for x ≥ 15.</summary>
+        private static double StirlingCorrection(double x) {
             double inverse = 1 / x;
             double inverseSquared = inverse * inverse;
-            // B₂ₙ / (2n(2n−1) x^(2n−1)) for n = 1..7.
-            double series = inverse * (1.0 / 12 - inverseSquared * (1.0 / 360 - inverseSquared * (1.0 / 1260
+            return inverse * (1.0 / 12 - inverseSquared * (1.0 / 360 - inverseSquared * (1.0 / 1260
                 - inverseSquared * (1.0 / 1680 - inverseSquared * (1.0 / 1188 - inverseSquared * (691.0 / 360360
                 - inverseSquared * (1.0 / 156)))))));
-            return (x - 0.5) * Math.Log(x) - x + 0.5 * Math.Log(2 * Math.PI) + series - Math.Log(product);
         }
 
         /// <summary>The regularized lower incomplete gamma function P(a, x).</summary>
@@ -235,7 +238,28 @@ namespace OfficeIMO.Excel {
             return x < a + 1 ? 1 - GammaSeries(a, x) : GammaContinuedFraction(a, x);
         }
 
-        private static double GammaPrefix(double a, double x) => Math.Exp(a * Math.Log(x) - x - LogGamma(a));
+        /// <summary>
+        /// xᵃ e⁻ˣ / Γ(a). For large a the terms a ln x, x and ln Γ(a) are huge and nearly cancel near the mean, so
+        /// Stirling's form is used: √(a / 2π) · exp(a (ln u − u + 1) − correction(a)) with u = x / a.
+        /// </summary>
+        private static double GammaPrefix(double a, double x) {
+            if (a < 15) return Math.Exp(a * Math.Log(x) - x - LogGamma(a));
+            double d = (x - a) / a;
+            return Math.Sqrt(a / (2 * Math.PI)) * Math.Exp(a * LogOnePlusMinusSelf(d) - StirlingCorrection(a));
+        }
+
+        /// <summary>ln(1 + d) − d, summed as a series when d is small so the two terms do not cancel.</summary>
+        private static double LogOnePlusMinusSelf(double d) {
+            if (Math.Abs(d) >= 0.5) return LogOnePlus(d) - d;
+            double power = d * d, sum = 0;
+            for (int k = 2; k < 200; k++) {
+                double term = power / k;
+                sum += (k % 2 == 0) ? -term : term;
+                if (Math.Abs(term) <= 1e-17 * Math.Abs(sum)) break;
+                power *= d;
+            }
+            return sum;
+        }
 
         // P(a, x) = xᵃ e⁻ˣ / Γ(a) · Σ xⁿ / (a(a+1)…(a+n)).
         private static double GammaSeries(double a, double x) {

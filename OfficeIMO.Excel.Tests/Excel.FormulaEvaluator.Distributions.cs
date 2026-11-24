@@ -78,6 +78,9 @@ namespace OfficeIMO.Tests {
         [InlineData("T.DIST(1,1E20,TRUE)", 0.8413447460685429)]
         [InlineData("T.DIST.RT(3,1E20)", 0.0013498980316300946)]
         [InlineData("T.INV(0.025,1E20)", -1.959963984540054)]
+        // At the mean of a large gamma P(a, a) is ½ + 1/(3√(2πa)) to within O(a^−3/2).
+        [InlineData("CHISQ.DIST(1E10,1E10,TRUE)", 0.5000018806319452)]
+        [InlineData("CHISQ.DIST.RT(1E10,1E10)", 0.4999981193680548)]
         [InlineData("T.DIST(0.5,300,FALSE)", 0.35164388573796046)]
         public void Test_FormulaEvaluator_DistributionInversesReachFarTails(string formula, double expected) {
             double actual = CalculateNumber(formula);
