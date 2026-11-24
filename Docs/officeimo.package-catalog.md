@@ -666,6 +666,12 @@ _Dependency footprint:_ only first-party `OfficeIMO.Core`; zero third-party runt
 
 The [notebook support matrix](../OfficeIMO.Notebook/SUPPORT.md) specifies the supported notebook versions and saved output types.
 
+#### [OfficeIMO.Notebook.Import](../OfficeIMO.Notebook.Import/README.md)
+
+- [x] Import explicitly selected Polyglot, Jupytext, Quarto, MyST, R Markdown, R Notebook HTML, Deepnote, and Zeppelin profiles into `NotebookDocument`
+- [x] Pair saved Jupyter results with Jupytext cells after checking source, order, and available identity
+- [x] Retain supported saved results and report omissions and approximations with source locations
+
 #### [OfficeIMO.Epub](../OfficeIMO.Epub/README.md)
 
 - [x] EPUB container, OPF package, manifest, spine, nav, and NCX parsing

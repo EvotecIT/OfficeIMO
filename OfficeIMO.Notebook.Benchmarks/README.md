@@ -1,8 +1,9 @@
 # Notebook benchmarks
 
 Run the optional [PowerForge notebook suite](../Build/Benchmarks/Run-NotebookBenchmarks.ps1)
-to measure notebook reading, source projection, round-trip preservation and
-static export. The workloads consume saved output and run without a kernel.
+to measure notebook reading, source projection, round-trip preservation,
+static export and source import. The workloads consume saved output and run
+without a kernel.
 The benchmark project stays outside the product solution and packages.
 
 ```powershell
@@ -54,6 +55,7 @@ the environment metadata for Python package versions and Chromium probe results.
 | `Projection` | Loads the same UTF-8 input and reads every ordered cell type and source string | Compares every projected cell to the source JSON. Microsoft and Verso include the UTF-8 decoding required by their string APIs |
 | `Export` | Projects a prepared notebook to Markdown or HTML, or reads the input and writes complete PDF bytes | Checks each content marker, verifies PNG data in HTML/Markdown, and checks searchable text, page boxes and image counts in PDF via Poppler |
 | `Fidelity` | Probes serialization against independently produced, pinned nbformat fixtures | Records per-field differences in `fidelity.json`. This family supplies compatibility evidence and has no speed comparison table |
+| `Import` | Imports explicit notebook source profiles and serializes normalized nbformat 4.5 bytes | Checks nbformat schema, exact cell order and kinds, saved-output counts, representative content and expected loss diagnostics against the pinned case manifest |
 
 `Codec/Parse` measures public model construction. OfficeIMO can defer decoding
 some fields until access, while nbformat prepares text during model construction.
@@ -73,7 +75,17 @@ control synthetic size. `-Case` can select `Common-12` or `Rich-12`.
 An input a competitor rejects stays failed in the fidelity report. The
 versions, sizes and exact input hashes are recorded with the samples.
 
+`Import` exercises .NET Polyglot, paired Jupytext percent scripts, Quarto, MyST,
+R Markdown, R Notebook HTML, Deepnote and Apache Zeppelin. It uses the [pinned
+case manifest](../Build/Benchmarks/notebook-import-fixtures.json) and the same
+Python environment as the reference suite for independent nbformat validation.
+The paired Jupytext operation includes opening the supplied companion. Time and
+allocation describe each fixture's workload. The profiles have different work
+and the suite reports no relative speed ranking.
+
 ```powershell
+./Build/Benchmarks/Run-NotebookBenchmarks.ps1 -Family Import -PythonPath $referencePython
+./Build/Benchmarks/Run-NotebookBenchmarks.ps1 -Family Import -Case Deepnote -Cold -IterationCount 1 -PythonPath $referencePython
 ./Build/Benchmarks/Run-NotebookBenchmarks.ps1 -Family Export -Cells 12,120 -PythonPath $referencePython
 ./Build/Benchmarks/Run-NotebookBenchmarks.ps1 -Family Export -Operation Pdf -Cells 12 -Cold -PythonPath $referencePython
 ./Build/Benchmarks/Run-NotebookBenchmarks.ps1 -Family Export -Operation Pdf -Cells 12 -CodeLineCharacters 600 -PythonPath $referencePython
@@ -81,7 +93,7 @@ versions, sizes and exact input hashes are recorded with the samples.
 
 `-Cold` starts a fresh worker for every operation with zero warmups. Its time
 includes process startup, imports, input loading and the first call. Cold
-exports also write the output file and any associated assets before timing ends.
+exports and imports also write the output file and any associated assets before timing ends.
 The cold route inherits the host's disk cache. Compare it separately from the
 warmed worker and retain clipping or missing content as a failed sample.
 

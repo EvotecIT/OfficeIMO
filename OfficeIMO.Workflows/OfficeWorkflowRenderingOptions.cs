@@ -120,7 +120,7 @@ internal sealed partial class OfficeWorkflowRenderingOptions {
         if (routeId is not "html-pdf" and not "chm-pdf") copy.Html = null;
         if (routeId is not "chm-pdf" and not "chm-markdown" and not "chm-epub") copy.Chm = null;
         if (routeId != "markdown-pdf") copy.Markdown = null;
-        if (routeId != "notebook-pdf") copy.NotebookPdf = null;
+        if (routeId is not ("notebook-pdf" or "notebook-source-pdf")) copy.NotebookPdf = null;
         if (routeId != "notebook-html") copy.NotebookHtml = null;
         if (routeId != "notebook-docx") copy.NotebookWord = null;
         if (routeId != "notebook-markdown") copy.NotebookMarkdown = null;
@@ -150,7 +150,7 @@ internal sealed partial class OfficeWorkflowRenderingOptions {
         if ((copy.Word != null && route.Id is not "doc-pdf" and not "docx-pdf") ||
             (copy.Excel != null && route.Id != "xlsx-pdf") || (copy.PowerPoint != null && route.Id != "pptx-pdf") ||
             (copy.Html != null && route.Id is not "html-pdf" and not "chm-pdf") || (copy.Markdown != null && route.Id != "markdown-pdf") ||
-            (copy.NotebookPdf != null && route.Id != "notebook-pdf") ||
+            (copy.NotebookPdf != null && route.Id is not ("notebook-pdf" or "notebook-source-pdf")) ||
             (copy.Rtf != null && route.Id != "rtf-pdf") || (copy.Draw != null && route.Id != "odg-pdf") ||
             (copy.Visio != null && route.Id != "visio-pdf") || (copy.Xps != null && route.Id != "xps-pdf") || (copy.DjVu != null && route.Id != "djvu-pdf") ||
             ((copy.PublisherRead != null || copy.PublisherPdf != null) && route.Id != "publisher-pdf"))

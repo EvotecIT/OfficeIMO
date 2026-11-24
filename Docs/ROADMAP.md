@@ -27,12 +27,12 @@ The [API design](officeimo.api-design.md) defines the shared lengths, colors, th
 
 ## Notebook formats
 
-- [ ] Qualify exported `.ipynb` files from Colab, VS Code, Kaggle, .NET Polyglot, Deepnote, Databricks and marimo with pinned producer fixtures. Measure the browser's large-notebook latency and memory on representative phones.
-- [ ] Import source-only Polyglot `.dib` and explicitly selected Jupytext percent scripts. Qualify language and cell boundaries with producer fixtures. Accept paired Jupyter outputs only from a caller-selected companion with verified cell alignment.
-- [ ] Project Quarto `.qmd`, MyST notebook Markdown, and R Markdown through the shared markup engine. Qualify supported front matter, code directives and caller-supplied rendered resources. Treat R Notebook HTML with embedded results as a distinct input.
-- [ ] Extend static notebook output for structured Plotly and Vega chart specifications after selecting bounded chart subsets with native producer evidence. Qualify producer-specific formats such as native Deepnote snapshots and Zeppelin when their additional structure has a concrete consumer.
+- [ ] Measure browser latency and memory for large Jupyter notebooks on representative phones.
+- [ ] Qualify bounded static rendering of selected Plotly and Vega chart specifications with producer-backed fixtures.
+- [ ] Extend offline publishing notebook imports to caller-supplied static resources and separately qualify native publisher directives, cached results, and richer saved layouts.
+- [ ] Extend producer qualification to current hosted Kaggle exports and Databricks exports with saved results.
 
-The [Jupyter support matrix](../OfficeIMO.Notebook/SUPPORT.md) records the native lifecycle and current export coverage.
+The [Jupyter support matrix](../OfficeIMO.Notebook/SUPPORT.md) and [notebook import guide](../OfficeIMO.Notebook.Import/README.md) describe the current format contracts.
 
 ## VBA host integration
 

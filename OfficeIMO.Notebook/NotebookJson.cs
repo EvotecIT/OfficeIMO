@@ -3,6 +3,8 @@ using System.Text;
 namespace OfficeIMO.Notebook;
 
 internal static class NotebookJson {
+    internal static JsonElement StringValue(string text) => JsonSerializer.SerializeToElement(text, NotebookJsonContext.Default.String);
+
     internal static JsonElement Property(JsonElement owner, string name) =>
         owner.ValueKind == JsonValueKind.Object && owner.TryGetProperty(name, out JsonElement value) ? value : default;
 

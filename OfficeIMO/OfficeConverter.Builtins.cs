@@ -23,7 +23,7 @@ namespace OfficeIMO;
 public static partial class OfficeConverter {
     private static readonly HashSet<string> BuiltinRouteIds = new HashSet<string>(new[] {
         "email-pdf", "epub-pdf", "reader-visio-pdf", "doc-pdf", "docx-pdf", "xls-pdf", "xlsb-pdf", "xlsx-pdf", "ppt-pdf", "pptx-pdf", "markdown-pdf", "html-pdf", "txt-pdf",
-        "notebook-pdf", "notebook-markdown", "notebook-html", "notebook-docx",
+        "notebook-pdf", "notebook-markdown", "notebook-html", "notebook-docx", "notebook-source-ipynb", "notebook-source-pdf",
         "word-xml-docx", "spreadsheet-xml-xlsx", "pdf-docx", "pdf-xlsx", "pdf-pptx", "pdf-html", "docx-html", "pptx-html", "docx-markdown", "html-docx", "html-markdown", "markdown-docx", "markdown-html"
     }.Concat(OfficeConversionCapabilityCatalog.All.Where(route => route.Id.StartsWith("native-", StringComparison.Ordinal)).Select(route => route.Id))
         .Concat(DataRouteIds), StringComparer.OrdinalIgnoreCase);
@@ -167,6 +167,8 @@ public static partial class OfficeConverter {
             case "notebook-markdown":
             case "notebook-html":
             case "notebook-docx":
+            case "notebook-source-ipynb":
+            case "notebook-source-pdf":
                 result = await ConvertNotebookAsync(id, input, output, settings, token).ConfigureAwait(false);
                 break;
             case "markdown-pdf":

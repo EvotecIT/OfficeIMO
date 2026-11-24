@@ -22,6 +22,15 @@ budgets. Use the PDF conversion report to identify source cells and outputs
 that need attention, and the save options to control acceptance of native
 normalization.
 
+The [producer corpus](../OfficeIMO.TestAssets/Notebook/Producers/README.md) covers
+JupyterLab, Colab, VS Code, a Kaggle compatibility fixture, .NET Interactive,
+Deepnote, Databricks, and marimo. Tests check typed source and saved results
+and verify structural preservation of metadata and outputs after an edit.
+When a Deepnote Jupyter export duplicates its block group as a cell property
+and in metadata, save keeps the metadata copy to satisfy the v4.5 cell schema.
+Use [OfficeIMO.Notebook.Import](../OfficeIMO.Notebook.Import/README.md) for
+script, publishing, and vendor-native notebook inputs.
+
 Examples and target-specific controls live in [PDF](../OfficeIMO.Notebook.Pdf/README.md),
 [HTML](../OfficeIMO.Notebook.Html/README.md), [Markdown](../OfficeIMO.Notebook.Markdown/README.md),
 [Word](../OfficeIMO.Notebook.Word/README.md) and

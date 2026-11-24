@@ -253,7 +253,7 @@ public static partial class OfficeConversionCapabilityCatalog {
     // resolve conversions from it; host tests verify every id has an implementation.
     private static readonly HashSet<string> HostExecutableIds = new(StringComparer.OrdinalIgnoreCase) {
         "doc-pdf", "txt-pdf", "docx-pdf", "xlsx-pdf", "pptx-pdf", "html-pdf", "markdown-pdf",
-        "notebook-pdf", "notebook-markdown", "notebook-html", "notebook-docx", "rtf-pdf", "xps-pdf", "djvu-pdf", "heic-pdf",
+        "notebook-pdf", "notebook-markdown", "notebook-html", "notebook-docx", "notebook-source-ipynb", "notebook-source-pdf", "rtf-pdf", "xps-pdf", "djvu-pdf", "heic-pdf",
         "pdf-docx", "pdf-xlsx", "pdf-pptx", "pdf-html", "book-project-epub", "odg-pdf", "visio-pdf", "publisher-pdf", "chm-pdf", "chm-markdown", "chm-epub",
         "odt-pdf", "ods-pdf", "odp-pdf", "email-pdf", "epub-pdf", "markdown-docx", "html-docx", "rtf-docx",
         "docx-odt", "odt-docx", "xlsx-ods", "ods-xlsx", "pptx-odp", "odp-pptx",
@@ -369,6 +369,7 @@ public static partial class OfficeConversionCapabilityCatalog {
     }
 
     private static OfficeConversionCapability[] CreateRoutes() {
+        string[] notebookSources = [".qmd", ".rmd", ".deepnote", ".zpln"];
         var routes = new List<OfficeConversionCapability> {
         new OfficeConversionCapability(
             "heic-pdf", "HEIC", "PDF", OfficeConversionInputKind.File,
@@ -423,6 +424,8 @@ public static partial class OfficeConversionCapabilityCatalog {
         Route("notebook-markdown", "Jupyter Notebook", "Markdown", OfficeConversionInputKind.File, new[] { ".ipynb" }, ".md", "OfficeIMO.Notebook.Markdown", "NotebookDocument.Load(stream).ToMarkdown(options, out report)", "Project notebook cells and supported saved outputs into typed Markdown.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport"),
         Route("notebook-html", "Jupyter Notebook", "HTML", OfficeConversionInputKind.File, new[] { ".ipynb" }, ".html", "OfficeIMO.Notebook.Html", "NotebookDocument.Load(stream).SaveAsHtml(output, options)", "Export notebook cells and supported saved outputs into standalone HTML.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport"),
         Route("notebook-docx", "Jupyter Notebook", "DOCX", OfficeConversionInputKind.File, new[] { ".ipynb" }, ".docx", "OfficeIMO.Notebook.Word", "NotebookDocument.Load(stream).SaveAsWord(output, options)", "Export notebook cells and supported saved outputs into an editable Word document.", OfficeConversionFidelityKind.Editable, "OfficeConversionReport"),
+        Route("notebook-source-ipynb", "Notebook source", "Jupyter Notebook", OfficeConversionInputKind.File, notebookSources, ".ipynb", "OfficeIMO.Notebook.Import", "NotebookImporter.Load(stream, format).Value.Save(output)", "Import notebook source and saved results into an editable Jupyter notebook.", OfficeConversionFidelityKind.Editable, "OfficeConversionReport"),
+        Route("notebook-source-pdf", "Notebook source", "PDF", OfficeConversionInputKind.File, notebookSources, ".pdf", "OfficeIMO.Notebook.Import", "OfficeConverter.Convert(source, destination, options)", "Import notebook source and render supported saved content to PDF.", OfficeConversionFidelityKind.FixedLayout, "OfficeConversionReport"),
         Route("rtf-markdown", "RTF", "Markdown", OfficeConversionInputKind.File, new[] { ".rtf" }, ".md", "OfficeIMO.Rtf.Markdown", "RtfDocument.LoadResult(stream, readOptions).Document.SaveAsMarkdown(output, options)", "Project bounded RTF into portable Markdown.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport"),
         Route("rtf-pdf", "RTF", "PDF", OfficeConversionInputKind.File, new[] { ".rtf" }, ".pdf", "OfficeIMO.Rtf.Pdf", "RtfDocument.Load(stream).SaveAsPdf(output, options)", "Render bounded RTF into a fixed-layout PDF.", OfficeConversionFidelityKind.FixedLayout, "OfficeConversionReport"),
         Route("markdown-rtf", "Markdown", "RTF", OfficeConversionInputKind.Text, new[] { ".md", ".markdown", ".txt" }, ".rtf", "OfficeIMO.Rtf.Markdown", "MarkdownDocument.Parse(markdown).SaveAsRtf(output, options)", "Convert typed Markdown into semantic RTF with loss diagnostics.", OfficeConversionFidelityKind.Editable, "OfficeConversionReport"),

@@ -249,25 +249,37 @@
     "route": "notebook-docx",
     "cmdlet": "Convert-OfficeDocument",
     "example": "Convert-OfficeDocument -Path ./in.ipynb -OutputPath ./out.docx",
-    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:280 calls OfficeConverter.ConvertAsync; OfficeIMO/OfficeConverter.Builtins.cs:166 selects the built-in notebook conversion; OfficeIMO/OfficeConverter.Notebook.cs:26 saves an editable DOCX."
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:280 calls OfficeConverter.ConvertAsync; OfficeIMO/OfficeConverter.Builtins.cs:166 selects the built-in notebook conversion; OfficeIMO/OfficeConverter.Notebook.cs:49 saves an editable DOCX."
   },
   {
     "route": "notebook-html",
     "cmdlet": "Convert-OfficeDocument",
     "example": "Convert-OfficeDocument -Path ./in.ipynb -OutputPath ./out.html",
-    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:280 calls OfficeConverter.ConvertAsync; OfficeIMO/OfficeConverter.Builtins.cs:166 selects the built-in notebook conversion; OfficeIMO/OfficeConverter.Notebook.cs:21 saves an offline HTML report."
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:280 calls OfficeConverter.ConvertAsync; OfficeIMO/OfficeConverter.Builtins.cs:166 selects the built-in notebook conversion; OfficeIMO/OfficeConverter.Notebook.cs:43 saves an offline HTML report."
   },
   {
     "route": "notebook-markdown",
     "cmdlet": "Convert-OfficeDocument",
     "example": "Convert-OfficeDocument -Path ./in.ipynb -OutputPath ./out.md",
-    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:280 calls OfficeConverter.ConvertAsync; OfficeIMO/OfficeConverter.Builtins.cs:166 selects the built-in notebook conversion; OfficeIMO/OfficeConverter.Notebook.cs:33 saves a Markdown document."
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:280 calls OfficeConverter.ConvertAsync; OfficeIMO/OfficeConverter.Builtins.cs:166 selects the built-in notebook conversion; OfficeIMO/OfficeConverter.Notebook.cs:56 saves a Markdown document."
   },
   {
     "route": "notebook-pdf",
     "cmdlet": "Convert-OfficeDocument",
     "example": "Convert-OfficeDocument -Path ./in.ipynb -OutputPath ./out.pdf -Options @{ IncludeCode = $false }",
-    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:280 calls OfficeConverter.ConvertAsync; OfficeIMO/OfficeConverter.Builtins.cs:166 selects the built-in notebook conversion; OfficeIMO/OfficeConverter.Notebook.cs:16 saves a PDF using route-owned notebook settings."
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:280 calls OfficeConverter.ConvertAsync; OfficeIMO/OfficeConverter.Builtins.cs:166 selects the built-in notebook conversion; OfficeIMO/OfficeConverter.Notebook.cs:39 saves a PDF using route-owned notebook settings."
+  },
+  {
+    "route": "notebook-source-ipynb",
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.qmd -OutputPath ./out.ipynb",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:280 calls OfficeConverter.ConvertAsync. OfficeIMO/OfficeConverter.Notebook.cs:32 writes the imported Jupyter notebook."
+  },
+  {
+    "route": "notebook-source-pdf",
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.qmd -OutputPath ./out.pdf",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:280 calls OfficeConverter.ConvertAsync. OfficeIMO/OfficeConverter.Notebook.cs:28 renders the imported notebook."
   },
   {
     "route": "numbers-xlsx",

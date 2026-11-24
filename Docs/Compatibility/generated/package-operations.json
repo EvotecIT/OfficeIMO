@@ -10573,6 +10573,48 @@
       "limitation":"Only saved static content is exported. Interactive displays and unsupported output types can require a static fallback."
     },
     {
+      "id":"conversion:notebook-source-ipynb",
+      "packageId":"OfficeIMO.Notebook.Import",
+      "formatId":"Notebook source",
+      "targetFormatId":"Jupyter Notebook",
+      "capabilityId":"notebook-source-ipynb",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"NotebookImporter.Load(stream, format).Value.Save(output)",
+      "evidence":"Notebook import contracts check ordered sources and saved outputs with upstream fixtures. Shared host validation reopens the resulting notebook or PDF.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".deepnote",".qmd",".rmd",".zpln"],
+      "limitation":"The host recognizes Quarto, R Markdown, single-notebook Deepnote files and snapshots, and Zeppelin ZPLN. Use NotebookImporter explicitly for other profiles or selecting a notebook from a multi-notebook Deepnote project. Code is never executed."
+    },
+    {
+      "id":"conversion:notebook-source-pdf",
+      "packageId":"OfficeIMO.Notebook.Import",
+      "formatId":"Notebook source",
+      "targetFormatId":"PDF",
+      "capabilityId":"notebook-source-pdf",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"OfficeConverter.Convert(source, destination, options)",
+      "evidence":"Notebook import contracts check ordered sources and saved outputs with upstream fixtures. Shared host validation reopens the resulting notebook or PDF.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".deepnote",".qmd",".rmd",".zpln"],
+      "limitation":"The host recognizes Quarto, R Markdown, single-notebook Deepnote files and snapshots, and Zeppelin ZPLN. Use NotebookImporter explicitly for other profiles or selecting a notebook from a multi-notebook Deepnote project. Code is never executed."
+    },
+    {
+      "id":"native:notebook-source-import:read",
+      "packageId":"OfficeIMO.Notebook.Import",
+      "formatId":"Notebook.Source",
+      "targetFormatId":"",
+      "capabilityId":"notebook-source-import",
+      "operation":"Read",
+      "state":"Supported",
+      "publicApi":"NotebookImporter.Load / LoadAsync",
+      "evidence":"OfficeIMO.Notebook.Tests fixture-backed script, publishing, and native producer import contracts::Read",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".deepnote",".dib",".nb.html",".qmd",".rmd",".snapshot.deepnote",".zpln"],
+      "limitation":"Select the profile explicitly for streams, bytes, Jupytext percent scripts, MyST Markdown, R Notebook HTML, or Zeppelin JSON. Import uses supported source and saved results without executing code or recreating the native input format."
+    },
+    {
       "id":"conversion:notebook-markdown",
       "packageId":"OfficeIMO.Notebook.Markdown",
       "formatId":"Jupyter Notebook",

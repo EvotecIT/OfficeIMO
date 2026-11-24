@@ -35,7 +35,7 @@ public sealed class NotebookCell {
     public string OriginalKind { get; }
 
     /// <summary>Gets the stable cell identifier.</summary>
-    public string Id { get; }
+    public string Id { get; private set; }
 
     /// <summary>Gets or sets the cell source, with multiline JSON fragments joined as stored.</summary>
     public string Source {
@@ -94,6 +94,8 @@ public sealed class NotebookCell {
         _attachments[name] = new ReadOnlyDictionary<string, JsonElement>(NotebookJson.CopyMap(data));
         AttachmentsEdited = true;
     }
+
+    internal void SetImportedId(string id) => Id = id;
 
     internal int SourceIndex { get; }
     internal int SourceOutputCount => NotebookJson.Property(Original, "outputs") is { ValueKind: JsonValueKind.Array } outputs

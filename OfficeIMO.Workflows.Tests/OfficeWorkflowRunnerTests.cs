@@ -65,7 +65,7 @@ public sealed class OfficeWorkflowRunnerTests {
     public void CatalogProjectsCanonicalRoutesAndSupportedExecutionContracts() {
         Assert.Equal(OfficeConversionCapabilityCatalog.All.Count, OfficeWorkflowCatalog.Routes.Count);
         Assert.Equal(
-            ["book-project-epub", "chm-epub", "chm-markdown", "chm-pdf", "csv-xlsx", "djvu-pdf", "doc-pdf", "docx-odt", "docx-pdf", "email-pdf", "epub-pdf", "heic-pdf", "html-docx", "html-pdf", "markdown-docx", "markdown-pdf", "notebook-docx", "notebook-html", "notebook-markdown", "notebook-pdf", "odg-pdf", "odp-pdf", "odp-pptx", "ods-pdf", "ods-xlsx", "odt-docx", "odt-pdf", "pdf-docx", "pdf-html", "pdf-pptx", "pdf-xlsx", "pptx-odp", "pptx-pdf", "publisher-pdf", "rtf-docx", "rtf-pdf", "txt-pdf", "visio-pdf", "xlsx-csv", "xlsx-ods", "xlsx-pdf", "xps-pdf"],
+            ["book-project-epub", "chm-epub", "chm-markdown", "chm-pdf", "csv-xlsx", "djvu-pdf", "doc-pdf", "docx-odt", "docx-pdf", "email-pdf", "epub-pdf", "heic-pdf", "html-docx", "html-pdf", "markdown-docx", "markdown-pdf", "notebook-docx", "notebook-html", "notebook-markdown", "notebook-pdf", "notebook-source-ipynb", "notebook-source-pdf", "odg-pdf", "odp-pdf", "odp-pptx", "ods-pdf", "ods-xlsx", "odt-docx", "odt-pdf", "pdf-docx", "pdf-html", "pdf-pptx", "pdf-xlsx", "pptx-odp", "pptx-pdf", "publisher-pdf", "rtf-docx", "rtf-pdf", "txt-pdf", "visio-pdf", "xlsx-csv", "xlsx-ods", "xlsx-pdf", "xps-pdf"],
             OfficeWorkflowCatalog.ExecutableRoutes.Select(route => route.Id).OrderBy(id => id, StringComparer.Ordinal));
         Assert.All(OfficeWorkflowCatalog.Routes, route => Assert.True(route.Engine == "OfficeIMO" || route.Engine.StartsWith("OfficeIMO.", StringComparison.Ordinal)));
         Assert.All(OfficeWorkflowCatalog.Routes, route => {
@@ -76,6 +76,49 @@ public sealed class OfficeWorkflowRunnerTests {
         });
         Assert.All(OfficeWorkflowCatalog.ExecutableRoutes, route => Assert.True(route.CanExecute));
         Assert.Contains(OfficeWorkflowCatalog.Routes, route => !route.CanExecute);
+    }
+
+    [Theory]
+    [InlineData(".ipynb", "notebook-source-ipynb")]
+    [InlineData(".pdf", "notebook-source-pdf")]
+    public async Task QuartoSourceUsesTheNotebookWorkflowAndReopensItsArtifact(string extension, string routeId) {
+        using var scope = new TestDirectory();
+        string input = System.IO.Path.Combine(scope.Path, "source.qmd");
+        string output = System.IO.Path.Combine(scope.Path, "result" + extension);
+        File.WriteAllText(input, """
+            ---
+            title: Reviewed observations
+            ---
+
+            ```{python}
+            print("Visible source marker")
+            ```
+            """);
+
+        OfficeWorkflowRoute? route = OfficeWorkflowCatalog.Find(".qmd", extension, executableOnly: true);
+        Assert.NotNull(route);
+        Assert.Equal(routeId, route.Id);
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Convert,
+            ConversionRouteId = route.Id,
+            InputPath = input,
+            OutputPath = output
+        });
+
+        Assert.True(result.Status == OfficeWorkflowStatus.Completed, result.Summary);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == OfficeDiagnosticCodes.ConversionOutputReopened);
+        if (extension == ".pdf") {
+            using PdfDocument pdf = PdfDocument.Load(output);
+            string text = pdf.ExtractText();
+            Assert.Contains("Reviewed observations", text, StringComparison.Ordinal);
+            Assert.Contains("Visible source marker", text, StringComparison.Ordinal);
+        } else {
+            using var notebook = Notebook.NotebookDocument.Load(output);
+            var code = Assert.Single(notebook.Cells, cell => cell.Kind == Notebook.NotebookCellKind.Code);
+            Assert.Contains("Visible source marker", code.Source, StringComparison.Ordinal);
+            Assert.Equal("python", code.Language);
+            Assert.Empty(code.Outputs);
+        }
     }
 
     [Theory]

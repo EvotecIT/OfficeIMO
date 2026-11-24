@@ -45,7 +45,7 @@ public static partial class OfficeConverter {
         "doc-pdf" or "docx-pdf" => settings.Word?.PdfOptions,
         "xls-pdf" or "xlsb-pdf" or "xlsx-pdf" => settings.Excel?.PdfOptions,
         "ppt-pdf" or "pptx-pdf" => settings.PowerPoint?.PdfOptions,
-        "notebook-pdf" => settings.NotebookPdf?.MarkdownOptions.PdfOptions,
+        "notebook-pdf" or "notebook-source-pdf" => settings.NotebookPdf?.MarkdownOptions.PdfOptions,
         "markdown-pdf" => settings.Markdown?.PdfOptions,
         "html-pdf" => settings.Html?.PdfOptions,
         "txt-pdf" => settings.PlainText?.PdfOptions,

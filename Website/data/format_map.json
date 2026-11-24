@@ -259,6 +259,10 @@
       "family": "other"
     },
     {
+      "name": "Notebook source",
+      "family": "other"
+    },
+    {
       "name": "POT",
       "family": "other"
     },
@@ -2594,6 +2598,40 @@
       ],
       "cmdlet": "Convert-OfficeDocument",
       "example": "Convert-OfficeDocument -Path ./in.ipynb -OutputPath ./out.pdf -Options @{ IncludeCode = $false }"
+    },
+    {
+      "id": "notebook-source-ipynb",
+      "source": "Notebook source",
+      "target": "Jupyter Notebook",
+      "package": "OfficeIMO.Notebook.Import",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "NotebookImporter.Load(stream, format).Value.Save(output)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio",
+        "powershell"
+      ],
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.qmd -OutputPath ./out.ipynb"
+    },
+    {
+      "id": "notebook-source-pdf",
+      "source": "Notebook source",
+      "target": "PDF",
+      "package": "OfficeIMO.Notebook.Import",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio",
+        "powershell"
+      ],
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.qmd -OutputPath ./out.pdf"
     },
     {
       "id": "numbers-pdf",

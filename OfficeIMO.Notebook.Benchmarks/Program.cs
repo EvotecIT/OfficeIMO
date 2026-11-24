@@ -1,8 +1,10 @@
 using System.Text;
 using System.Text.Json;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using OfficeIMO.Markdown;
 using OfficeIMO.Notebook.Html;
+using OfficeIMO.Notebook.Import;
 using OfficeIMO.Notebook.Markdown;
 using OfficeIMO.Notebook.Pdf;
 #if NOTEBOOK_COMPETITORS
@@ -19,6 +21,8 @@ internal sealed class NotebookBenchmarkWorker : IDisposable {
     private string _engine = string.Empty;
     private string _operation = string.Empty;
     private byte[] _input = Array.Empty<byte>();
+    private byte[]? _companionInput;
+    private string _importFormat = string.Empty;
     private string _artifact = string.Empty;
     private NotebookDocument? _document;
     private object? _result;
@@ -30,6 +34,7 @@ internal sealed class NotebookBenchmarkWorker : IDisposable {
             Respond(new {
                 ok = true,
                 runtime = RuntimeInformation.FrameworkDescription,
+                notebookImport = true,
 #if NOTEBOOK_COMPETITORS
                 microsoft = "1.0.0-beta.26120.1",
                 verso = "1.2.3",
@@ -78,6 +83,13 @@ internal sealed class NotebookBenchmarkWorker : IDisposable {
         _operation = request.GetProperty("operation").GetString()!;
         _artifact = request.GetProperty("artifact").GetString()!;
         _input = File.ReadAllBytes(request.GetProperty("input").GetString()!);
+        _companionInput = null;
+        if (_operation == "Import") {
+            _importFormat = request.GetProperty("importFormat").GetString()!;
+            if (request.TryGetProperty("companion", out JsonElement companion)) {
+                _companionInput = File.ReadAllBytes(companion.GetString()!);
+            }
+        }
         if (_engine == "OfficeIMO" && _operation is "Html" or "Markdown") {
             _document = NotebookDocument.Load(_input);
         }
@@ -97,6 +109,7 @@ internal sealed class NotebookBenchmarkWorker : IDisposable {
     }
 
     private object RunOfficeImo() {
+        if (_operation == "Import") return RunImport();
         if (_operation == "Parse") {
             _document = NotebookDocument.Load(_input);
             return _document;
@@ -127,6 +140,18 @@ internal sealed class NotebookBenchmarkWorker : IDisposable {
             default:
                 throw new InvalidOperationException($"Unknown operation: {_operation}");
         }
+    }
+
+    // Keep importer-specific JIT and dependency loading within the import lane.
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private byte[] RunImport() {
+        var format = Enum.Parse<NotebookImportFormat>(_importFormat);
+        using NotebookDocument? companion = _companionInput == null ? null : NotebookDocument.Load(_companionInput);
+        OfficeConversionResult<NotebookDocument> result = NotebookImporter.Load(_input, format,
+            companion == null ? null : new NotebookImportOptions { PairedNotebook = companion });
+        using NotebookDocument imported = result.Value;
+        _report = result.Report;
+        return imported.ToBytes(new NotebookSaveOptions { AllowLoss = true });
     }
 
 #if NOTEBOOK_COMPETITORS

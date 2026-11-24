@@ -61,6 +61,11 @@ internal static class NotebookWriter {
 
     private static bool IncludeAdditionalCellProperty(JsonProperty property, NotebookCell cell, bool legacy) {
         if (property.Name is "id" or "cell_type" or "metadata" or "source") return false;
+        // The Deepnote Jupyter exporter writes the same group ID outside and inside metadata.
+        // The extra cell property is invalid in nbformat 4.5. Keep the canonical metadata value.
+        if (property.NameEquals("block_group") && property.Value.ValueKind == JsonValueKind.String &&
+            cell.Metadata.TryGetValue("deepnote_block_group", out JsonElement group) && group.ValueKind == JsonValueKind.String &&
+            JsonElement.DeepEquals(property.Value, group)) return false;
         if (cell.Kind == NotebookCellKind.Code) {
             return property.Name is not ("execution_count" or "outputs") &&
                 !(legacy && property.Name is "input" or "prompt_number" or "collapsed" or "language");

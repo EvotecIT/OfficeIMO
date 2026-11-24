@@ -72,6 +72,9 @@ internal static class OfficeConversionSupportAssessments {
         "notebook-markdown" or "notebook-html" or "notebook-docx" => Targeted(
             "Preserves notebook cell order, saved text, supported images, and supported semantic tables. The conversion reports output representations that cannot be projected.",
             "Only saved static content is exported. Interactive displays and unsupported output types can require a static fallback."),
+        "notebook-source-ipynb" or "notebook-source-pdf" => Targeted(
+            "Notebook import contracts check ordered sources and saved outputs with upstream fixtures. Shared host validation reopens the resulting notebook or PDF.",
+            "The host recognizes Quarto, R Markdown, single-notebook Deepnote files and snapshots, and Zeppelin ZPLN. Use NotebookImporter explicitly for other profiles or selecting a notebook from a multi-notebook Deepnote project. Code is never executed."),
         "djvu-pdf" => Targeted(
             "Archival text and geometry, independent scanned-page comparisons, bounded malformed-input tests, and searchable PDF/OCR artifacts qualify the managed profile.",
             "JB2, MMR, IW44 1.2, palettes and managed JPEG profiles only. Annotations are reported without active rendering; indirect components require an explicit native resolver. OCR is caller-supplied and absent/empty-text-only. See OfficeIMO.DjVu/SUPPORT.md."),

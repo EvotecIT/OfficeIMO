@@ -231,7 +231,7 @@ public static partial class OfficeConverter {
         ".epub" => OfficeDocumentFormat.Epub, ".vsdx" or ".vdx" or ".vtx" => OfficeDocumentFormat.Visio,
         ".adoc" or ".asciidoc" => OfficeDocumentFormat.AsciiDoc, ".tex" or ".latex" => OfficeDocumentFormat.Latex,
         ".one" or ".onepkg" or ".onetoc2" => OfficeDocumentFormat.OneNote,
-        ".ipynb" => OfficeDocumentFormat.Notebook,
+        ".ipynb" or ".qmd" or ".rmd" or ".deepnote" or ".zpln" => OfficeDocumentFormat.Notebook,
         _ => OfficeDocumentFormat.Unknown
     };
 }

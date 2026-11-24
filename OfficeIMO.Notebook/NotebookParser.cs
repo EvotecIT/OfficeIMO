@@ -99,7 +99,7 @@ internal static class NotebookParser {
         return id;
     }
 
-    private static bool IsValidId(string? id) =>
+    internal static bool IsValidId(string? id) =>
         id is { Length: >= 1 and <= 64 } && id.All(static character =>
             character is >= '0' and <= '9' or >= 'A' and <= 'Z' or >= 'a' and <= 'z' or '-' or '_');
 

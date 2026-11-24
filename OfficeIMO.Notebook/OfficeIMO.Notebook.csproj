@@ -29,5 +29,6 @@
     <Using Include="System.Globalization" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Notebook" />
     <InternalsVisibleTo Include="OfficeIMO.Notebook.Markdown" />
+    <InternalsVisibleTo Include="OfficeIMO.Notebook.Import" />
   </ItemGroup>
 </Project>

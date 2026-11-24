@@ -83,6 +83,21 @@ public sealed partial class NotebookDocument : IDisposable {
     internal int? DeclaredNbFormatMinor { get; }
     internal int SourceCellCount { get; private set; }
 
+    internal NotebookCell AddImportedCell(NotebookCellKind kind, string source, string? language, string id) {
+        string name = kind switch {
+            NotebookCellKind.Code => "code",
+            NotebookCellKind.Markdown => "markdown",
+            NotebookCellKind.Raw => "raw",
+            _ => throw new ArgumentOutOfRangeException(nameof(kind))
+        };
+        return AddCell(kind, name, source, id, language);
+    }
+
+    internal void ApplyImportReport(OfficeConversionReport report) {
+        CheckDisposed();
+        Diagnostics = report.Diagnostics;
+    }
+
     private JsonElement Root => _json?.RootElement ?? default;
 
     private void CheckDisposed() {
@@ -94,12 +109,13 @@ public sealed partial class NotebookDocument : IDisposable {
         return Path.GetFullPath(path);
     }
 
-    private NotebookCell AddCell(NotebookCellKind kind, string name, string source) {
+    private NotebookCell AddCell(NotebookCellKind kind, string name, string source, string? id = null, string? language = null) {
         CheckDisposed();
         ArgumentNullException.ThrowIfNull(source);
-        string id = Guid.NewGuid().ToString("N");
-        var cell = new NotebookCell(kind, name, id, SourceCellCount++, default, default, source, null, null,
-            new Dictionary<string, JsonElement>(StringComparer.Ordinal), new List<NotebookOutput>());
+        var metadata = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+        if (language != null) metadata.Add("language", NotebookJson.StringValue(language));
+        var cell = new NotebookCell(kind, name, id ?? Guid.NewGuid().ToString("N"), SourceCellCount++, default, default,
+            source, language, null, metadata, new List<NotebookOutput>());
         _cells.Add(cell);
         return cell;
     }

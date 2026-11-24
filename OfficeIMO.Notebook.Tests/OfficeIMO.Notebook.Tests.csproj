@@ -20,8 +20,13 @@
     <ProjectReference Include="..\OfficeIMO.Notebook.Pdf\OfficeIMO.Notebook.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Notebook.Html\OfficeIMO.Notebook.Html.csproj" />
     <ProjectReference Include="..\OfficeIMO.Notebook.Spreadsheet\OfficeIMO.Notebook.Spreadsheet.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Notebook.Import\OfficeIMO.Notebook.Import.csproj" />
     <None Include="..\Build\PackageSmoke\OfficeIMO.Html\Assets\FixtureMath.ttf" Link="Fixtures\FixtureMath.ttf" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Notebook\Jupyter\*.ipynb" Link="Fixtures\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\Notebook\Producers\*.ipynb" Link="Fixtures\Producers\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\Notebook\Scripts\*" Exclude="..\OfficeIMO.TestAssets\Notebook\Scripts\*.md;..\OfficeIMO.TestAssets\Notebook\Scripts\LICENSE*" Link="Fixtures\Scripts\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\Notebook\Markup\**\*" Exclude="..\OfficeIMO.TestAssets\Notebook\Markup\**\LICENSE*" Link="Fixtures\Markup\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\Notebook\Vendors\**\*.deepnote;..\OfficeIMO.TestAssets\Notebook\Vendors\**\*.zpln" Link="Fixtures\Vendors\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Using Include="OfficeIMO.Notebook" />
     <Using Include="System.Text" />
     <Using Include="System.Text.Json" />

@@ -1,9 +1,9 @@
 [CmdletBinding()]
 param(
-    [ValidateSet('Codec', 'Projection', 'Export', 'Fidelity')] [string] $Family = 'Codec',
+    [ValidateSet('Codec', 'Projection', 'Export', 'Fidelity', 'Import')] [string] $Family = 'Codec',
     [ValidateSet('OfficeIMO', 'Reference', 'Microsoft', 'Verso')] [string[]] $Engine,
     [string[]] $Case,
-    [ValidateSet('Parse', 'RoundTrip', 'SourceProjection', 'RichRoundTrip', 'Html', 'Markdown', 'Pdf')] [string[]] $Operation,
+    [ValidateSet('Parse', 'RoundTrip', 'SourceProjection', 'RichRoundTrip', 'Html', 'Markdown', 'Pdf', 'Import')] [string[]] $Operation,
     [ValidateRange(2, 10000)] [int[]] $Cells = @(12, 120, 1200),
     [ValidateRange(0, 8192)] [int] $CodeLineCharacters = 32,
     [ValidateRange(0, 8192)] [int] $OutputCharacters = 32,
@@ -26,13 +26,14 @@ param(
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $true
 if (@($Cells | Sort-Object -Unique).Count -ne $Cells.Count) { throw 'Cell counts must be distinct.' }
-if ($Cold -and $Family -eq 'Fidelity') { throw 'Select Codec, Projection, or Export to measure cold worker startup.' }
+if ($Cold -and $Family -eq 'Fidelity') { throw 'Select Codec, Projection, Export, or Import to measure cold worker startup.' }
 
 $families = @{
     Codec = @{ Engines = @('OfficeIMO', 'Reference'); Operations = @('Parse', 'RoundTrip') }
     Projection = @{ Engines = @('OfficeIMO', 'Microsoft', 'Verso', 'Reference'); Operations = @('SourceProjection') }
     Export = @{ Engines = @('OfficeIMO', 'Reference'); Operations = @('Html', 'Markdown', 'Pdf') }
     Fidelity = @{ Engines = @('OfficeIMO', 'Microsoft', 'Verso', 'Reference'); Operations = @('RichRoundTrip') }
+    Import = @{ Engines = @('OfficeIMO'); Operations = @('Import') }
 }
 $selection = $families[$Family]
 if (-not $Engine) { $Engine = $selection.Engines }
@@ -78,7 +79,8 @@ $parameters = @{
         OutputCharacters = $OutputCharacters; RichImagePixels = $RichImagePixels; Session = $session
         PythonPath = $python; DotNetPath = $dotnet; ManagedBinary = $ManagedBinary
         PdfText = $pdfText; PdfImages = $pdfImages; PythonEnvironment = $pythonVersion
-        HasOfficeIMO = [bool]$managed.ok; HasMicrosoft = $managed.microsoft -eq '1.0.0-beta.26120.1'
+        HasOfficeIMO = [bool]$managed.ok; HasNotebookImport = [bool]$managed.notebookImport
+        HasMicrosoft = $managed.microsoft -eq '1.0.0-beta.26120.1'
         HasVerso = $managed.verso -eq '1.2.3'; ManagedRuntime = $managed.runtime
         HasNbformat = $reference.nbformat -eq '5.11.1' -and $reference.fastjsonschema -eq '2.22.3' -and $reference.validator -eq 'fastjsonschema'
         HasNbconvert = $reference.nbconvert -eq '7.17.2'

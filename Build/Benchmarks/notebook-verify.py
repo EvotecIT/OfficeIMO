@@ -127,6 +127,68 @@ def check_pdf(output, text_tool, image_tool):
     return "".join(words), len(pages), image_count
 
 
+def verify_import(source_bytes, output_path, manifest_path, case_name, companion_path):
+    import nbformat
+
+    fixtures = json.loads(manifest_path.read_text(encoding="utf-8"))["cases"]
+    expected = next(fixture for fixture in fixtures if fixture["name"] == case_name)
+    output_bytes = output_path.read_bytes()
+    notebook = json.loads(output_bytes)
+    if [notebook.get("nbformat"), notebook.get("nbformat_minor")] != [4, 5]:
+        raise ValueError("Import did not output nbformat 4.5.")
+    cells = notebook["cells"]
+    ids = [cell["id"] for cell in cells]
+    if len(ids) != len(set(ids)):
+        raise ValueError("Import produced duplicate cell IDs.")
+    nbformat.validate(nbformat.from_dict(notebook))
+    normalize_v4(notebook)
+    companion_size = 0
+    if expected.get("companion"):
+        if companion_path is None:
+            raise ValueError("The paired import requires its pinned companion.")
+        companion_bytes = companion_path.read_bytes()
+        companion_size = len(companion_bytes)
+        if hashlib.sha256(companion_bytes).hexdigest() != expected["companionSha256"]:
+            raise ValueError("The paired import used a different companion.")
+        if notebook_sources(notebook) != notebook_sources(json.loads(companion_bytes)):
+            raise ValueError("The paired import changed the notebook's ordered source.")
+    if [cell["cell_type"] for cell in cells] != expected["cellKinds"]:
+        raise ValueError(f"{case_name} changed expected cell order, count, or kinds.")
+    outputs = sum(len(cell.get("outputs", [])) for cell in cells)
+    if outputs != expected["outputCount"]:
+        raise ValueError(f"{case_name} produced {outputs} saved outputs, expected {expected['outputCount']}.")
+
+    for witness in expected["witnesses"]:
+        value = notebook
+        for part in witness["path"]:
+            value = value[part]
+        if "equals" in witness:
+            matched = value == witness["equals"]
+        elif "contains" in witness:
+            matched = witness["contains"] in value
+        else:
+            matched = value.startswith(witness["startsWith"])
+        if not matched:
+            raise ValueError(f"{case_name} did not preserve the sample at {witness['path']}.")
+
+    report_path = output_path.with_name("conversion-report.json")
+    diagnostics = json.loads(report_path.read_bytes())
+    missing = set(expected.get("reportCodes", [])) - {item["code"] for item in diagnostics}
+    if missing:
+        raise ValueError(f"{case_name} did not report expected findings: {sorted(missing)}")
+    return {
+        "inputSha256": hashlib.sha256(source_bytes).hexdigest(),
+        "inputBytes": len(source_bytes),
+        "companionInputBytes": companion_size,
+        "outputBytes": len(output_bytes),
+        "verifiedCells": len(cells),
+        "verifiedPages": 0,
+        "verifiedImages": sum("image/png" in output.get("data", {}) for cell in cells for output in cell.get("outputs", [])),
+        "verifiedOutputs": outputs,
+        "semanticDifferences": 0,
+    }
+
+
 def verify(operation, input_path, output_path, text_tool, image_tool):
     source_bytes = input_path.read_bytes()
     source = json.loads(source_bytes)
@@ -216,8 +278,17 @@ def main():
     parser.add_argument("output", type=Path)
     parser.add_argument("--text-tool", default="pdftotext")
     parser.add_argument("--image-tool", default="pdfimages")
+    parser.add_argument("--import-manifest", type=Path)
+    parser.add_argument("--import-case")
+    parser.add_argument("--import-companion", type=Path)
     arguments = parser.parse_args()
-    result = verify(arguments.operation, arguments.input, arguments.output, arguments.text_tool, arguments.image_tool)
+    if arguments.operation == "Import":
+        if not arguments.import_manifest or not arguments.import_case:
+            parser.error("Import requires a fixture manifest and case name.")
+        result = verify_import(arguments.input.read_bytes(), arguments.output, arguments.import_manifest,
+                               arguments.import_case, arguments.import_companion)
+    else:
+        result = verify(arguments.operation, arguments.input, arguments.output, arguments.text_tool, arguments.image_tool)
     print(json.dumps(result))
 
 

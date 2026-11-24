@@ -38,6 +38,13 @@ public static partial class OfficeOperationCapabilityCatalog {
             new[] { OfficeOperationKind.Create, OfficeOperationKind.Read, OfficeOperationKind.Edit, OfficeOperationKind.Inspect },
             partial: new[] { OfficeOperationKind.Preserve },
             limitation: "Saves preserve unknown v4 data structurally and normalize serialization and cell IDs. Saving normalized v3 worksheets requires explicit acceptance of lost worksheet boundaries.");
+        AddNativeLifecycle(rows, "notebook-source-import", "OfficeIMO.Notebook.Import", "Notebook.Source",
+            "NotebookImporter.Load / LoadAsync",
+            "OfficeIMO.Notebook.Tests fixture-backed script, publishing, and native producer import contracts",
+            new[] { ".dib", ".qmd", ".rmd", ".nb.html", ".deepnote", ".snapshot.deepnote", ".zpln" },
+            Array.Empty<OfficeOperationKind>(),
+            limitedSupported: new[] { OfficeOperationKind.Read },
+            limitation: "Select the profile explicitly for streams, bytes, Jupytext percent scripts, MyST Markdown, R Notebook HTML, or Zeppelin JSON. Import uses supported source and saved results without executing code or recreating the native input format.");
         AddNativeLifecycle(rows, "opendocument-native", "OfficeIMO.OpenDocument", "OpenDocument.Native",
             "OdfDocument.Create / Load / Save / Validate",
             "OfficeIMO.OpenDocument.Tests producer-corpus create, load, edit, save, and validation contracts",

@@ -14,7 +14,7 @@ public sealed partial class OfficeConversionOptions {
         if (id is not ("xlsx-pdf" or "xls-pdf" or "xlsb-pdf")) copy.Excel = null;
         if (id is not ("pptx-pdf" or "ppt-pdf")) copy.PowerPoint = null;
         if (id != "markdown-pdf") copy.Markdown = null;
-        if (id != "notebook-pdf") copy.NotebookPdf = null;
+        if (id is not ("notebook-pdf" or "notebook-source-pdf")) copy.NotebookPdf = null;
         if (id != "notebook-html") copy.NotebookHtml = null;
         if (id != "notebook-docx") copy.NotebookWord = null;
         if (id != "notebook-markdown") copy.NotebookMarkdown = null;

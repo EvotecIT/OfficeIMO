@@ -313,6 +313,10 @@ officeimo convert budget.xlsx budget.csv
 officeimo convert analysis.ipynb analysis.pdf
 officeimo convert analysis.ipynb analysis.md
 
+# Import Quarto, R Markdown, Deepnote, or Zeppelin as Jupyter or PDF
+officeimo convert analysis.qmd analysis.ipynb
+officeimo convert analysis.zpln analysis.pdf
+
 # Extract other documents to Markdown or JSON through OfficeIMO.Reader
 officeimo convert workbook.xlsx workbook.md
 officeimo convert report.docx report.json
