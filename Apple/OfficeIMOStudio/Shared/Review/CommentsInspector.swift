@@ -66,7 +66,11 @@ struct CommentsInspector: View {
     }
 
     private var emptyMessage: LocalizedStringKey {
-        switch session.commentFilter {
+        if session.currentComments?.threads.isEmpty == false,
+           !session.commentAuthorFilter.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return "No comments match this author. Clear the author filter to see them all."
+        }
+        return switch session.commentFilter {
         case .all: "This document has no comments. Add a note in Markup to start one."
         case .open: "No open comments."
         case .resolved: "No resolved comments."

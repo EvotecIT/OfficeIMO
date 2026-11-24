@@ -12442,6 +12442,46 @@
         }
       }
     },
+    "No comments match this author. Clear the author filter to see them all." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Kommentare dieses Autors. Leeren Sie den Autorfilter, um alle zu sehen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ningún comentario coincide con este autor. Borra el filtro de autor para verlos todos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun commentaire de cet auteur. Effacez le filtre d’auteur pour tous les voir."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun commento corrisponde a questo autore. Cancella il filtro autore per vederli tutti."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak komentarzy tego autora. Wyczyść filtr autora, aby zobaczyć wszystkie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhum comentário corresponde a este autor. Limpe o filtro de autor para ver todos."
+          }
+        }
+      }
+    },
     "No open comments." : {
       "localizations" : {
         "de" : {
