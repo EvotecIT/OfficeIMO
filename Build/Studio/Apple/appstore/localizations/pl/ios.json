@@ -1,0 +1,13 @@
+{
+  "appId": "6818096229",
+  "versionString": "1.0",
+  "platform": "iOS",
+  "locale": "pl",
+  "metadata": {
+    "description": "Czytaj pliki PDF i pracuj z nimi na iPhonie i iPadzie. Otwieraj dokumenty z aplikacji Pliki i zachowuj swoją pracę w systemowej przeglądarce dokumentów.\n\nWyszukuj i zaznaczaj tekst, dodawaj notatki i adnotacje, wypełniaj obsługiwane pola formularzy, porządkuj strony, a potem zapisuj lub udostępniaj swoją pracę. Konwertuj obsługiwane dokumenty do PDF, rozpoznawaj tekst w skanach na urządzeniu, aby dało się je przeszukiwać, i przygotowuj kopie chronione hasłem lub z zaczernionymi fragmentami.\n\nOtwieraj pliki Word, Excel i PowerPoint tylko do odczytu, bez Microsoft Office. Zapisz kopię PDF, gdy chcesz dalej nad nią pracować.\n\nDokumenty są przetwarzane na Twoim urządzeniu. OfficeIMO Studio jest bezpłatny i ma otwarty kod źródłowy na licencji MIT. Kod źródłowy i wsparcie społeczności znajdziesz na https://github.com/EvotecIT/OfficeIMO.",
+    "keywords": "pdf,czytnik,dokumenty,adnotacje,formularze,skanowanie,konwersja,open source,word,excel,powerpoint",
+    "marketingUrl": "https://officeimo.com/studio/",
+    "supportUrl": "https://github.com/EvotecIT/OfficeIMO/issues"
+  },
+  "useReleaseVersion": true
+}

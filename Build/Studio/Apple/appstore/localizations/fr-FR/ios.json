@@ -1,0 +1,13 @@
+{
+  "appId": "6818096229",
+  "versionString": "1.0",
+  "platform": "iOS",
+  "locale": "fr-FR",
+  "metadata": {
+    "description": "Lisez vos PDF et travaillez dessus sur iPhone et iPad. Ouvrez vos documents depuis Fichiers et retrouvez votre travail dans le navigateur de documents du système.\n\nRecherchez et sélectionnez du texte, ajoutez des notes et des annotations, remplissez les champs de formulaire pris en charge, organisez les pages, puis enregistrez ou partagez votre travail. Convertissez en PDF les documents pris en charge, rendez vos numérisations consultables grâce à la reconnaissance de texte sur l’appareil, et préparez des copies protégées par mot de passe ou caviardées.\n\nOuvrez les fichiers Word, Excel et PowerPoint en lecture seule, sans Microsoft Office. Enregistrez une copie PDF pour continuer à travailler dessus.\n\nLe traitement des documents s’effectue sur votre appareil. OfficeIMO Studio est gratuit et open source sous licence MIT. Le code source et l’assistance de la communauté sont disponibles sur https://github.com/EvotecIT/OfficeIMO.",
+    "keywords": "pdf,lecteur,documents,annotation,formulaires,numériser,convertir,open source,word,excel,powerpoint",
+    "marketingUrl": "https://officeimo.com/studio/",
+    "supportUrl": "https://github.com/EvotecIT/OfficeIMO/issues"
+  },
+  "useReleaseVersion": true
+}
