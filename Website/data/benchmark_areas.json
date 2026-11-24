@@ -8,7 +8,7 @@
     {
       "id": "excel",
       "title": "Excel",
-      "summary": "Typed, shared-string, multi-sheet and parallel reads of XLSX, XLSB and XLS files; workbook writes from data readers, objects and text; round trips, CSV conversion and report workbooks."
+      "summary": "Typed, shared-string, multi-sheet and parallel reads of XLSX, XLSB and XLS files; workbook writes from data readers, objects and text; round trips, CSV conversion, report workbooks and formula recalculation."
     },
     {
       "id": "csv",
