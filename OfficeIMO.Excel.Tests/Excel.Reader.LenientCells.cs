@@ -245,6 +245,47 @@ public partial class Excel {
         Assert.False(actual.Read());
     }
 
+    [Fact]
+    public void Cell_PlacesUnparseableReferenceAfterStoredCell() {
+        // The loader keeps B1 outside the DOM and the malformed cell in it; the malformed cell still belongs at C1.
+        string path = CreateLenientCellWorkbook("<row r=\"1\"><c r=\"B1\"><v>1</v></c><c r=\"D\"><v>2</v></c></row>");
+        try {
+            using var document = ExcelDocument.Load(path);
+            ExcelSheet sheet = document.GetSheet("Data");
+
+            Assert.Equal(ExcelCellDataKind.Blank, sheet.Cell("A1").GetValue().Kind);
+            Assert.Equal(1d, sheet.Cell("B1").GetValue().Value);
+            Assert.Equal(2d, sheet.Cell("C1").GetValue().Value);
+        } finally { File.Delete(path); }
+    }
+
+    [Fact]
+    public void DataReader_ReadsReferenceWrittenWithCharacterReferences() {
+        string path = CreateLenientCellWorkbook(
+            "<row r=\"1\"><c r=\"A1\" t=\"inlineStr\"><is><t>Name</t></is></c><c r=\"B1\" t=\"inlineStr\"><is><t>Amount</t></is></c></row>"
+            + "<row r=\"2\"><c r=\"&#66;2\"><v>42</v></c></row>");
+        try {
+            using var reader = ExcelDocument.OpenReader(path);
+            Assert.True(reader.Read());
+
+            Assert.Equal(DBNull.Value, reader["Name"]);
+            Assert.Equal(42d, Convert.ToDouble(reader["Amount"]));
+        } finally { File.Delete(path); }
+    }
+
+    [Fact]
+    public void Load_ReportDiagnosticsAreReadOnly() {
+        string path = CreateLenientCellWorkbook(EmptyStyleNumberRows);
+        try {
+            using var document = ExcelDocument.Load(path, null, out OfficeConversionReport report);
+            Assert.True(document.GetSheet("Data").TryGetCellText(1, 1, out _));
+
+            var findings = Assert.IsAssignableFrom<IList<OfficeDiagnostic>>(report.Diagnostics);
+            OfficeDiagnostic finding = Assert.Single(findings);
+            Assert.Throws<NotSupportedException>(() => findings[0] = finding);
+        } finally { File.Delete(path); }
+    }
+
     private static void AssertLenientDataReaderRow(string path, ExcelReaderOptions options) {
         using var reader = ExcelDocument.OpenReader(path, options);
         Assert.True(reader.Read());

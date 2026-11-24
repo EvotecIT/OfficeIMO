@@ -201,8 +201,11 @@ namespace OfficeIMO.Excel {
                 }
 
                 // The new cell joins the row's DOM cells in column order; stored cells merge with them when written.
-                using (ExcelStoredRow.BeginRawAccess()) {
-                    return GetOrCreateCellInRow(sheetData, rowElement, row, column);
+                // A row with DOM cells that lack canonical references is read whole, so implicit columns count stored cells.
+                if (storedRow.HasOrderedCells) {
+                    using (ExcelStoredRow.BeginRawAccess()) {
+                        return GetOrCreateCellInRow(sheetData, rowElement, row, column);
+                    }
                 }
             }
 

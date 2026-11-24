@@ -51,14 +51,37 @@ public partial class ExcelDocument {
 
     /// <summary>Reads the document's source findings when they are read, including repairs recorded as worksheets load.</summary>
     private sealed class ExcelLoadReport : OfficeConversionReport {
+        private static readonly IReadOnlyList<OfficeDiagnostic> NoFindings =
+            new System.Collections.ObjectModel.ReadOnlyCollection<OfficeDiagnostic>(Array.Empty<OfficeDiagnostic>());
         private readonly ExcelDocument _document;
+        private FindingsView? _view;
 
         internal ExcelLoadReport(ExcelDocument document, string source, int itemsWritten, TimeSpan elapsed)
             : base(source, "Excel", itemsWritten, elapsed) {
             _document = document;
         }
 
-        protected override IReadOnlyList<OfficeDiagnostic> GetDiagnostics() => Volatile.Read(ref _document._sourceLoadDiagnostics);
+        // Callers get a read-only view; it is rebuilt only after the document records another finding.
+        protected override IReadOnlyList<OfficeDiagnostic> GetDiagnostics() {
+            OfficeDiagnostic[] findings = Volatile.Read(ref _document._sourceLoadDiagnostics);
+            if (findings.Length == 0) return NoFindings;
+            FindingsView? view = Volatile.Read(ref _view);
+            if (view == null || !ReferenceEquals(view.Source, findings)) {
+                view = new FindingsView(findings);
+                Volatile.Write(ref _view, view);
+            }
+            return view.Items;
+        }
+
+        private sealed class FindingsView {
+            internal FindingsView(OfficeDiagnostic[] source) {
+                Source = source;
+                Items = Array.AsReadOnly(source);
+            }
+
+            internal OfficeDiagnostic[] Source { get; }
+            internal IReadOnlyList<OfficeDiagnostic> Items { get; }
+        }
     }
 
     private void CaptureLegacyLoadDiagnostics(LegacyXls.Model.LegacyXlsWorkbook workbook) {

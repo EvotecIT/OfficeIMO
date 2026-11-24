@@ -221,8 +221,12 @@ namespace OfficeIMO.Excel {
                 }
                 if (hasReference) {
                     columnIndex = ParseColumnIndex(_buffer, referenceStart, referenceLength);
-                    // Excel places a cell with an unparseable reference in the next column, as if it had none.
                     if (columnIndex <= 0) {
+                        // A reference written with character references needs the XML decoder.
+                        if (ContainsAmpersand(referenceStart, referenceLength)) {
+                            return false;
+                        }
+                        // Excel places a cell with an unparseable reference in the next column, as if it had none.
                         columnIndex = nextColumn;
                     }
                 } else {
