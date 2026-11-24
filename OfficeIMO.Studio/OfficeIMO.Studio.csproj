@@ -18,6 +18,9 @@
     <LangVersion>Latest</LangVersion>
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <!-- ReadyToRun release builds compile only Studio's own assemblies and keep the runtime's shipped native code.
+         The single-file default is a composite image that recompiles the whole framework: twice the archive size, no faster start. -->
+    <PublishReadyToRunComposite>false</PublishReadyToRunComposite>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(OfficeIMOStudioMobile)' == 'true'">
