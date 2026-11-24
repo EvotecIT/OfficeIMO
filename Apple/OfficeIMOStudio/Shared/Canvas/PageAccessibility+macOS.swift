@@ -17,7 +17,7 @@ final class AccessiblePagesView: NSView {
 
     override func accessibilityChildren() -> [Any]? {
         guard let session else { return super.accessibilityChildren() }
-        let items = session.accessibilityItems(around: session.currentPage)
+        let items = session.accessibilityItems(around: session.currentPage, in: layout())
         if cached?.items != items {
             cached = (items, items.map { PageElement(view: self, item: $0) })
         }
@@ -27,7 +27,7 @@ final class AccessiblePagesView: NSView {
 
     fileprivate func rect(of item: PageAccessibilityItem) -> CGRect? {
         let layout = layout()
-        guard layout.frames.indices.contains(item.page - 1) else { return nil }
+        guard layout.shows(item.page) else { return nil }
         return layout.layoutRect(item.rect, page: item.page)
     }
 

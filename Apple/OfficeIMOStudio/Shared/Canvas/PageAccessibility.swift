@@ -23,11 +23,12 @@ struct PageAccessibilityItem: Equatable {
 
 extension DocumentSession {
     /// What VoiceOver reads on the pages around the one in view, in reading order: each page, then its lines of text
-    /// with its form fields and comments where they sit. Pages whose text isn't read yet offer the page alone.
-    func accessibilityItems(around page: Int) -> [PageAccessibilityItem] {
+    /// with its form fields and comments where they sit. Pages whose text isn't read yet offer the page alone; pages the
+    /// layout doesn't show, such as the others in Single Page, offer nothing.
+    func accessibilityItems(around page: Int, in layout: PageLayout) -> [PageAccessibilityItem] {
         guard isReady, let facts else { return [] }
         var items: [PageAccessibilityItem] = []
-        for number in [page - 1, page, page + 1] where facts.pages.indices.contains(number - 1) {
+        for number in [page - 1, page, page + 1] where facts.pages.indices.contains(number - 1) && layout.shows(number) {
             let size = facts.pages[number - 1].displaySize
             items.append(PageAccessibilityItem(kind: .page, page: number, rect: CGRect(origin: .zero, size: size),
                                                label: String(localized: "Page \(number) of \(facts.pages.count)"),

@@ -382,7 +382,9 @@ struct ReadView: View {
                     await session.loadPageText(page)
                     await session.loadFormFields(page)
                 }
-                // VoiceOver reads comments where they sit on the pages.
+            }
+            // VoiceOver reads comments where they sit on the pages, also once it is turned on while a page is shown.
+            .task(id: "\(isVoiceOverEnabled)-\(session.revision)") {
                 if isVoiceOverEnabled { await session.loadComments() }
             }
             .task(id: "\(session.pageDragTool == .select)-\(session.currentPage)-\(session.revision)") {

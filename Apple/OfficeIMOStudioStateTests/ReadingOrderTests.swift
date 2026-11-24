@@ -21,6 +21,12 @@ final class ReadingOrderTests: XCTestCase {
                        [.other(3), .line(0), .other(2), .other(1), .line(1), .line(2), .other(0)])
     }
 
+    func testAnElementJustAboveALineIsReadBeforeItEvenWhenAnotherNearItsRowStartsBelowTheLine() {
+        let lines = [CGRect(x: 0, y: 10.5, width: 300, height: 12)]
+        let others = [CGRect(x: 0, y: 10.75, width: 20, height: 20), CGRect(x: 100, y: 10, width: 20, height: 20)]
+        XCTAssertEqual(ReadingOrder.merge(lines: lines, others: others), [.other(1), .line(0), .other(0)])
+    }
+
     func testAPageWithoutTextReadsItsOtherElementsInPlaceOrder() {
         XCTAssertEqual(ReadingOrder.merge(lines: [], others: [CGRect(x: 0, y: 50, width: 1, height: 1), CGRect(x: 0, y: 5, width: 1, height: 1)]),
                        [.other(1), .other(0)])

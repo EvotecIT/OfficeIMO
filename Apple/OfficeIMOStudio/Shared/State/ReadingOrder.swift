@@ -24,12 +24,13 @@ enum ReadingOrder {
         return ranges
     }
 
-    /// Lines in reading order with the other elements, ordered top to bottom and left to right among themselves, each
-    /// placed before the first line that starts below its top.
+    /// Lines in reading order with the other elements, ordered by their tops and, at the same top, left to right, each
+    /// placed before the first line that starts below its top. The order follows the same tops the placing compares, so
+    /// an element is never held back behind one that belongs after a line.
     static func merge(lines: [CGRect], others: [CGRect]) -> [Item] {
         let sorted = others.indices.sorted { a, b in
             let first = others[a], second = others[b]
-            return abs(first.minY - second.minY) > 1 ? first.minY < second.minY : first.minX < second.minX
+            return first.minY != second.minY ? first.minY < second.minY : first.minX < second.minX
         }
         var result: [Item] = []
         var next = 0

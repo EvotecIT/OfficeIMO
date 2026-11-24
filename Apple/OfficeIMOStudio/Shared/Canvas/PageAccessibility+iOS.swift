@@ -18,11 +18,11 @@ final class AccessiblePagesView: UIView {
     override var accessibilityElements: [Any]? {
         get {
             guard let session else { return nil }
-            let items = session.accessibilityItems(around: session.currentPage)
+            let layout = layout()
+            let items = session.accessibilityItems(around: session.currentPage, in: layout)
             if cached?.items != items {
                 cached = (items, items.map { PageElement(container: self, item: $0) })
             }
-            let layout = layout()
             for element in cached?.elements ?? [] { element.place(in: layout) }
             // Views over the pages, such as selection handles, stay reachable after the pages' own elements.
             return (cached?.elements ?? []) + subviews.filter { !$0.isHidden && $0.alpha > 0 }
@@ -73,7 +73,7 @@ private final class PageElement: UIAccessibilityElement {
     }
 
     func place(in layout: PageLayout) {
-        guard layout.frames.indices.contains(item.page - 1) else { return }
+        guard layout.shows(item.page) else { return }
         accessibilityFrameInContainerSpace = layout.layoutRect(item.rect, page: item.page)
     }
 
