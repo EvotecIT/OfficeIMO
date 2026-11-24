@@ -24,7 +24,9 @@ internal static class OpenXmlDifferentialProbe {
     internal const string SlideParagraphs = "slide-paragraphs";
     internal const string PowerPointTextProjection = "powerpoint-text-projection";
 
-    internal static readonly string[] Lanes = { Package, WordBodyParagraphs, WordTextProjection, SlideParagraphs, PowerPointTextProjection };
+    internal static readonly string[] Lanes = {
+        Package, WordBodyParagraphs, WordTextProjection, SlideParagraphs, PowerPointTextProjection, OpenXmlCellValueLane.Name
+    };
 
     private const int SnippetRadius = 40;
     private const int MaxMessageLength = 300;
@@ -65,6 +67,9 @@ internal static class OpenXmlDifferentialProbe {
             evidence.Lanes.Add(CompareLines(SlideParagraphs, () => ReadSdkSlideParagraphs(snapshot),
                 OpenXmlOwnedLayer.IsAvailable ? () => OpenXmlOwnedLayer.ReadSlideParagraphs(snapshot) : null, includeText));
             evidence.Lanes.Add(CompareProjection(PowerPointTextProjection, snapshot, sourceName, maxFileBytes, includeText));
+        } else if (family == ReaderInputKind.Excel) {
+            Start(OpenXmlCellValueLane.Name);
+            evidence.Lanes.Add(OpenXmlCellValueLane.Compare(snapshot, includeText, TypeName, Message));
         }
         evidence.Outcome = CorpusOpenXmlOutcomes.Worst(evidence.Lanes.Select(lane => lane.Outcome));
         return evidence;
@@ -463,6 +468,7 @@ internal sealed class CorpusOpenXmlLane {
     public string? SdkExceptionMessage { get; set; }
     public string? OurException { get; set; }
     public string? OurExceptionMessage { get; set; }
+    public string? Note { get; set; }
     public bool? Streamed { get; set; }
     public string? StreamedDeclineReason { get; set; }
 }

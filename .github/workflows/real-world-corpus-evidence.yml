@@ -251,8 +251,8 @@ jobs:
       FETCH_TIMEOUT_SECONDS: '1200'
       RUN_DEADLINE_SECONDS: '3600'
       FILE_TIMEOUT_SECONDS: '30'
-      MAX_TRAVERSAL_ENTRIES: '5000'
-      MAX_TOTAL: '2000'
+      MAX_TRAVERSAL_ENTRIES: '8000'
+      MAX_TOTAL: '4000'
       CORPUS_PARALLELISM: '4'
     steps:
       - name: Checkout
