@@ -32,6 +32,8 @@ struct PageCanvas: UIViewRepresentable {
             view.tiles.select(page: 0, rects: [])
         }
         view.textSelection.layoutHandles()
+        // VoiceOver hears about page text that arrived and field values that changed.
+        view.refreshAccessibility()
         // A double tap on the page draws a dot while marking up, rather than zooming.
         view.doubleTap.isEnabled = !drawing && dragTool == nil
         view.markup.update()
@@ -128,6 +130,10 @@ final class PageScrollView: UIScrollView, UIScrollViewDelegate {
         // A new layout, such as a rotated page, fits the width again on the next layout pass, keeping the page.
         laidOutWidth = 0
         setNeedsLayout()
+    }
+
+    func refreshAccessibility() {
+        content.refreshAccessibility()
     }
 
     func handle(_ request: CanvasRequest) {

@@ -30,6 +30,29 @@ final class AccessiblePagesView: UIView {
         set {}
     }
 
+    /// Catches up with what the pages show after page text arrives or a field's value changes, as the Mac does: the
+    /// elements VoiceOver holds take their new values, and a different set of elements is announced as a new layout.
+    /// Only elements already handed out need this, and only while VoiceOver runs.
+    func refreshAccessibility() {
+        guard UIAccessibility.isVoiceOverRunning, let session, let cached else { return }
+        let layout = layout()
+        let items = session.accessibilityItems(around: session.currentPage, in: layout)
+        switch ElementRefresh.plan(from: cached.items.map { ($0.identity, $0) }, to: items.map { ($0.identity, $0) }) {
+        case .none:
+            return
+        case .values(let changed):
+            self.cached = (items, cached.elements)
+            for index in changed { cached.elements[index].show(items[index]) }
+            // The focused element's new value is read again; the others are read when VoiceOver reaches them.
+            UIAccessibility.post(notification: .layoutChanged, argument: nil)
+        case .layout:
+            let elements = items.map { PageElement(container: self, item: $0) }
+            for element in elements { element.place(in: layout) }
+            self.cached = (items, elements)
+            UIAccessibility.post(notification: .layoutChanged, argument: nil)
+        }
+    }
+
     fileprivate func activate(_ item: PageAccessibilityItem) -> Bool {
         guard let session else { return false }
         switch item.kind {
@@ -52,11 +75,17 @@ final class AccessiblePagesView: UIView {
 
 /// One page, line, field or comment for VoiceOver, placed over the page in the zooming view.
 private final class PageElement: UIAccessibilityElement {
-    let item: PageAccessibilityItem
+    private(set) var item: PageAccessibilityItem
 
     init(container: AccessiblePagesView, item: PageAccessibilityItem) {
         self.item = item
         super.init(accessibilityContainer: container)
+        show(item)
+    }
+
+    /// Takes an item's traits, label and value, also later for the same field or comment with a new value.
+    func show(_ item: PageAccessibilityItem) {
+        self.item = item
         accessibilityLabel = item.label
         accessibilityValue = item.value
         accessibilityHint = item.hint
