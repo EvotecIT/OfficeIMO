@@ -81,10 +81,23 @@ internal sealed class AccessReadLane : ScalingLane {
 
     public override object? Run() {
         using AccessDocument loaded = AccessDocument.Load(new MemoryStream(_bytes, writable: false));
-        return loaded.Tables["Items"].RowCount;
+        using AccessDataReader reader = loaded.Tables["Items"].OpenDataReader();
+        int rows = 0;
+        long idSum = 0;
+        while (reader.Read()) {
+            idSum += reader.GetInt32(0);
+            if (reader.GetString(1).Length == 0) throw new InvalidDataException("Empty name.");
+            rows++;
+        }
+
+        return (rows, idSum);
     }
 
-    public override void Validate(object? result) => Require(Convert.ToInt64(result) == Units, "row count");
+    public override void Validate(object? result) {
+        (int rows, long idSum) = ((int, long))result!;
+        Require(rows == Units, "row count");
+        Require(idSum == (long)Units * (Units - 1) / 2, "row values");
+    }
 }
 
 internal sealed class OneNoteBuildLane : ScalingLane {

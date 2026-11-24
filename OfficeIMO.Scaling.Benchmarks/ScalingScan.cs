@@ -30,6 +30,7 @@ internal static class ScalingScan {
 
         Console.WriteLine("| Lane | Unit | " + string.Join(" | ", sizes.Select(size => $"{size} µs/unit | {size} B/unit")) + " | time growth (last two sizes) | alloc growth |");
         Console.WriteLine("|---|---|" + string.Concat(Enumerable.Repeat("---:|---:|", sizes.Length)) + "---:|---:|");
+        bool anyFailed = false;
         foreach (ScalingLane lane in ScalingLanes.Create()) {
             if (filter != null && lane.Name.IndexOf(filter, StringComparison.OrdinalIgnoreCase) < 0) {
                 continue;
@@ -51,6 +52,7 @@ internal static class ScalingScan {
 
             string cells = string.Join(" | ", timePerUnit.Select((time, index) => $"{time:0.0} | {allocPerUnit[index]:N0}"));
             if (failure != null) {
+                anyFailed = true;
                 Console.WriteLine($"| {lane.Name} | {lane.Unit} | {cells} | failed {failure} |");
                 continue;
             }
@@ -58,7 +60,7 @@ internal static class ScalingScan {
             Console.WriteLine($"| {lane.Name} | {lane.Unit} | {cells} | {Growth(timePerUnit):0.0}x | {Growth(allocPerUnit):0.0}x |");
         }
 
-        return 0;
+        return anyFailed ? 1 : 0;
     }
 
     private static double Growth(List<double> perUnit) =>
@@ -74,13 +76,15 @@ internal static class ScalingScan {
         int iterations = 0;
         long allocatedBefore = GC.GetTotalAllocatedBytes(precise: true);
         var stopwatch = Stopwatch.StartNew();
+        object? last;
         do {
-            lane.Run();
+            last = lane.Run();
             iterations++;
         } while (stopwatch.Elapsed.TotalMilliseconds < budgetMs);
 
         stopwatch.Stop();
         long allocated = GC.GetTotalAllocatedBytes(precise: true) - allocatedBefore;
+        lane.Validate(last);
         return (stopwatch.Elapsed.TotalMilliseconds * 1000 / iterations, (double)allocated / iterations);
     }
 }
