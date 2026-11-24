@@ -17,12 +17,12 @@ namespace OfficeIMO.PowerPoint {
         public string ThemeName {
             get {
                 ThrowIfDisposed();
-                SlideMasterPart master = _presentationPart.SlideMasterParts.First();
+                SlideMasterPart master = SdkPresentationPart.SlideMasterParts.First();
                 return master.ThemePart?.Theme?.Name?.Value ?? string.Empty;
             }
             set {
                 ThrowIfDisposed();
-                SlideMasterPart master = _presentationPart.SlideMasterParts.First();
+                SlideMasterPart master = SdkPresentationPart.SlideMasterParts.First();
                 ThemePart themePart = master.ThemePart ?? master.AddNewPart<ThemePart>();
                 if (themePart.Theme == null) {
                     themePart.Theme = new A.Theme { ThemeElements = new A.ThemeElements() };
@@ -80,7 +80,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public void SetThemeColorForAllMasters(PowerPointThemeColor color, string hexValue) {
             ThrowIfDisposed();
-            int masterCount = _presentationPart.SlideMasterParts.Count();
+            int masterCount = SdkPresentationPart.SlideMasterParts.Count();
             for (int i = 0; i < masterCount; i++) {
                 SetThemeColor(color, hexValue, i);
             }
@@ -92,7 +92,7 @@ namespace OfficeIMO.PowerPoint {
         public void SetThemeColorsForAllMasters(IDictionary<PowerPointThemeColor, string> colors) {
             ThrowIfDisposed();
             ArgumentNullException.ThrowIfNull(colors);
-            int masterCount = _presentationPart.SlideMasterParts.Count();
+            int masterCount = SdkPresentationPart.SlideMasterParts.Count();
             for (int i = 0; i < masterCount; i++) {
                 SetThemeColors(colors, i);
             }
@@ -147,7 +147,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public void SetThemeLatinFontsForAllMasters(string majorLatin, string minorLatin) {
             ThrowIfDisposed();
-            int masterCount = _presentationPart.SlideMasterParts.Count();
+            int masterCount = SdkPresentationPart.SlideMasterParts.Count();
             for (int i = 0; i < masterCount; i++) {
                 SetThemeLatinFonts(majorLatin, minorLatin, i);
             }
@@ -192,7 +192,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public void SetThemeFontsForAllMasters(PowerPointThemeFontSet fonts, bool keepExistingWhenNull = true) {
             ThrowIfDisposed();
-            int masterCount = _presentationPart.SlideMasterParts.Count();
+            int masterCount = SdkPresentationPart.SlideMasterParts.Count();
             for (int i = 0; i < masterCount; i++) {
                 SetThemeFonts(fonts, i, keepExistingWhenNull);
             }
@@ -204,7 +204,7 @@ namespace OfficeIMO.PowerPoint {
         public void SetThemeNameForAllMasters(string name) {
             ThrowIfDisposed();
             ArgumentException.ThrowIfNullOrWhiteSpace(name);
-            foreach (SlideMasterPart masterPart in _presentationPart.SlideMasterParts) {
+            foreach (SlideMasterPart masterPart in SdkPresentationPart.SlideMasterParts) {
                 ThemePart themePart = masterPart.ThemePart ?? masterPart.AddNewPart<ThemePart>();
                 themePart.Theme ??= new A.Theme { ThemeElements = new A.ThemeElements() };
                 themePart.Theme.Name = name;
@@ -227,10 +227,10 @@ namespace OfficeIMO.PowerPoint {
         public IReadOnlyList<PowerPointTableStyleInfo> TableStyles {
             get {
                 ThrowIfDisposed();
-                TableStylesPart? stylesPart = _presentationPart.TableStylesPart;
+                TableStylesPart? stylesPart = SdkPresentationPart.TableStylesPart;
                 if (stylesPart?.TableStyleList == null) {
-                    PowerPointUtils.CreateTableStylesPart(_presentationPart);
-                    stylesPart = _presentationPart.TableStylesPart;
+                    PowerPointUtils.CreateTableStylesPart(SdkPresentationPart);
+                    stylesPart = SdkPresentationPart.TableStylesPart;
                 }
 
                 List<PowerPointTableStyleInfo> styles = new();

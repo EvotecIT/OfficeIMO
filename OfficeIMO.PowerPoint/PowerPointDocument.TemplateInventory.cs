@@ -24,7 +24,7 @@ namespace OfficeIMO.PowerPoint {
             var masters = new List<PowerPointTemplateMasterInfo>();
             var assets = new List<PowerPointTemplateAssetInfo>();
             var footerContents = new List<string>();
-            SlideMasterPart[] masterParts = _presentationPart.SlideMasterParts.ToArray();
+            SlideMasterPart[] masterParts = SdkPresentationPart.SlideMasterParts.ToArray();
             PowerPointLayoutBox slideBounds = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(0L),OfficeIMO.OfficeLength.Emus(0L),OfficeIMO.OfficeLength.Emus(SlideSize.Width.ToEmus()),                OfficeIMO.OfficeLength.Emus(SlideSize.Height.ToEmus()));
             PowerPointLayoutBox fallbackSafeArea = SlideSize.GetContentBox(OfficeIMO.OfficeLength.Centimeters(1D));
 

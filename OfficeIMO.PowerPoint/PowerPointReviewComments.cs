@@ -568,9 +568,9 @@ namespace OfficeIMO.PowerPoint {
 
         internal P.CommentAuthor GetOrCreateClassicCommentAuthor(PowerPointCommentAuthor author) {
             ValidateClassicCommentAuthor(author);
-            CommentAuthorsPart? part = _presentationPart.CommentAuthorsPart;
+            CommentAuthorsPart? part = SdkPresentationPart.CommentAuthorsPart;
             if (part == null) {
-                part = _presentationPart.AddNewPart<CommentAuthorsPart>();
+                part = SdkPresentationPart.AddNewPart<CommentAuthorsPart>();
                 part.CommentAuthorList = new P.CommentAuthorList();
             }
             if (part.CommentAuthorList == null) part.CommentAuthorList = new P.CommentAuthorList();
@@ -593,7 +593,7 @@ namespace OfficeIMO.PowerPoint {
 
         internal uint AllocateClassicCommentIndex(P.CommentAuthor author) {
             uint? authorId = author.Id?.Value;
-            var usedIndexes = new HashSet<uint>(_slides.SelectMany(slide =>
+            var usedIndexes = new HashSet<uint>(LoadedSlides.SelectMany(slide =>
                     slide.SlidePart.SlideCommentsPart?.CommentList?
                         .Elements<P.Comment>() ?? Enumerable.Empty<P.Comment>())
                 .Where(comment => comment.AuthorId?.Value == authorId)
@@ -613,7 +613,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal PowerPointCommentAuthor ResolveClassicCommentAuthor(uint? authorId) {
-            P.CommentAuthor? author = _presentationPart.CommentAuthorsPart?.CommentAuthorList?
+            P.CommentAuthor? author = SdkPresentationPart.CommentAuthorsPart?.CommentAuthorList?
                 .Elements<P.CommentAuthor>()
                 .FirstOrDefault(candidate => candidate.Id?.Value == authorId);
             return author == null
@@ -624,11 +624,11 @@ namespace OfficeIMO.PowerPoint {
 
         internal void RemoveClassicCommentAuthorIfUnused(uint? authorId) {
             if (!authorId.HasValue) return;
-            CommentAuthorsPart? part = _presentationPart.CommentAuthorsPart;
+            CommentAuthorsPart? part = SdkPresentationPart.CommentAuthorsPart;
             P.CommentAuthor? author = part?.CommentAuthorList?
                 .Elements<P.CommentAuthor>()
                 .FirstOrDefault(candidate => candidate.Id?.Value == authorId.Value);
-            uint[] survivingIndexes = _slides.SelectMany(slide =>
+            uint[] survivingIndexes = LoadedSlides.SelectMany(slide =>
                     slide.SlidePart.SlideCommentsPart?.CommentList?
                         .Elements<P.Comment>() ?? Enumerable.Empty<P.Comment>())
                 .Where(comment => comment.AuthorId?.Value == authorId.Value)
@@ -641,12 +641,12 @@ namespace OfficeIMO.PowerPoint {
             author?.Remove();
             if (part?.CommentAuthorList == null
                 || part.CommentAuthorList.Elements<P.CommentAuthor>().Any()) return;
-            _presentationPart.DeletePart(part);
+            SdkPresentationPart.DeletePart(part);
         }
 
         internal P188.Author GetOrCreateModernCommentAuthor(PowerPointCommentAuthor author) {
             ValidateCommentAuthorIdentity(author);
-            PowerPointAuthorsPart[] parts = _presentationPart.Parts
+            PowerPointAuthorsPart[] parts = SdkPresentationPart.Parts
                 .Select(pair => pair.OpenXmlPart).OfType<PowerPointAuthorsPart>()
                 .ToArray();
             foreach (PowerPointAuthorsPart part in parts) {
@@ -660,7 +660,7 @@ namespace OfficeIMO.PowerPoint {
                 if (existing != null) return existing;
             }
             PowerPointAuthorsPart target = parts.FirstOrDefault()
-                ?? _presentationPart.AddNewPart<PowerPointAuthorsPart>();
+                ?? SdkPresentationPart.AddNewPart<PowerPointAuthorsPart>();
             if (target.AuthorList == null) target.AuthorList = new P188.AuthorList();
             var created = new P188.Author {
                 Id = CreateModernCommentId(),
@@ -674,7 +674,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal PowerPointCommentAuthor ResolveModernCommentAuthor(string? authorId) {
-            P188.Author? author = _presentationPart.Parts.Select(pair => pair.OpenXmlPart)
+            P188.Author? author = SdkPresentationPart.Parts.Select(pair => pair.OpenXmlPart)
                 .OfType<PowerPointAuthorsPart>()
                 .SelectMany(part => part.AuthorList?.Elements<P188.Author>()
                     ?? Enumerable.Empty<P188.Author>())
@@ -689,7 +689,7 @@ namespace OfficeIMO.PowerPoint {
 
         internal void RemoveModernCommentAuthorIfUnused(string? authorId) {
             if (string.IsNullOrWhiteSpace(authorId)) return;
-            bool inUse = _slides.SelectMany(slide => slide.SlidePart.Parts
+            bool inUse = LoadedSlides.SelectMany(slide => slide.SlidePart.Parts
                     .Select(pair => pair.OpenXmlPart)
                     .OfType<PowerPointCommentPart>())
                 .SelectMany(part => part.CommentList?.Elements<P188.Comment>()
@@ -701,7 +701,7 @@ namespace OfficeIMO.PowerPoint {
                             StringComparison.OrdinalIgnoreCase)));
             if (inUse) return;
 
-            foreach (PowerPointAuthorsPart part in _presentationPart.Parts
+            foreach (PowerPointAuthorsPart part in SdkPresentationPart.Parts
                          .Select(pair => pair.OpenXmlPart)
                          .OfType<PowerPointAuthorsPart>().ToArray()) {
                 P188.Author? author = part.AuthorList?.Elements<P188.Author>()
@@ -711,7 +711,7 @@ namespace OfficeIMO.PowerPoint {
                 author?.Remove();
                 if (part.AuthorList == null
                     || !part.AuthorList.Elements<P188.Author>().Any()) {
-                    _presentationPart.DeletePart(part);
+                    SdkPresentationPart.DeletePart(part);
                 }
             }
         }
@@ -937,13 +937,13 @@ namespace OfficeIMO.PowerPoint {
         private void EnsureCommentSlide(PowerPointSlide slide) {
             ThrowIfDisposed();
             ArgumentNullException.ThrowIfNull(slide);
-            if (!_slides.Contains(slide)) {
+            if (!LoadedSlides.Contains(slide)) {
                 throw new ArgumentException("The slide does not belong to this presentation.", nameof(slide));
             }
         }
 
         internal void EnsureAttachedCommentSlide(PowerPointSlide slide) {
-            if (!_slides.Contains(slide)) {
+            if (!LoadedSlides.Contains(slide)) {
                 throw new InvalidOperationException(
                     "The comment's slide is no longer attached to the presentation.");
             }

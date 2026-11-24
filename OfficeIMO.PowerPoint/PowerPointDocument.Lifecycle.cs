@@ -14,14 +14,15 @@ namespace OfficeIMO.PowerPoint {
             }
 
             Exception? pendingException = null;
-            PresentationDocument? document = _document;
+            PresentationDocument? document = _sdkDocument;
             try {
-                if (document != null && !_discardChangesOnDispose &&
+                if (!_discardChangesOnDispose &&
                     _persistenceMode == DocumentPersistenceMode.SaveOnDispose) {
-                    bool shouldSave = document.FileOpenAccess != FileAccess.Read;
+                    bool shouldSave = _accessMode != DocumentAccessMode.ReadOnly;
+                    // A signed package always opens the SDK at load, where its fingerprint is taken.
                     if (shouldSave && _signedPackageOpenFingerprint != null) {
                         shouldSave = !string.Equals(_signedPackageOpenFingerprint,
-                            CreatePackageFingerprint(document), StringComparison.Ordinal);
+                            CreatePackageFingerprint(SdkDocument), StringComparison.Ordinal);
                     }
                     if (shouldSave) {
                         Save();
@@ -39,7 +40,7 @@ namespace OfficeIMO.PowerPoint {
                 } catch (Exception ex) {
                     pendingException ??= ex;
                 }
-                _document = null;
+                _sdkDocument = null;
 
                 try {
                     _packageStream?.Dispose();
@@ -67,14 +68,15 @@ namespace OfficeIMO.PowerPoint {
             }
 
             Exception? pendingException = null;
-            PresentationDocument? document = _document;
+            PresentationDocument? document = _sdkDocument;
             try {
-                if (document != null && !_discardChangesOnDispose &&
+                if (!_discardChangesOnDispose &&
                     _persistenceMode == DocumentPersistenceMode.SaveOnDispose) {
-                    bool shouldSave = document.FileOpenAccess != FileAccess.Read;
+                    bool shouldSave = _accessMode != DocumentAccessMode.ReadOnly;
+                    // A signed package always opens the SDK at load, where its fingerprint is taken.
                     if (shouldSave && _signedPackageOpenFingerprint != null) {
                         shouldSave = !string.Equals(_signedPackageOpenFingerprint,
-                            CreatePackageFingerprint(document), StringComparison.Ordinal);
+                            CreatePackageFingerprint(SdkDocument), StringComparison.Ordinal);
                     }
                     if (shouldSave) {
                         await SaveAsync().ConfigureAwait(false);
@@ -92,7 +94,7 @@ namespace OfficeIMO.PowerPoint {
                 } catch (Exception ex) {
                     pendingException ??= ex;
                 }
-                _document = null;
+                _sdkDocument = null;
 
                 try {
                     _packageStream?.Dispose();
@@ -502,7 +504,8 @@ namespace OfficeIMO.PowerPoint {
             string? filePath,
             Stream? sourceStream,
             PowerPointLoadOptions options,
-            bool captureSourcePackageSecurity = true) {
+            bool captureSourcePackageSecurity = true,
+            bool allowDeferredSdk = false) {
             ValidatePackageSecurity(bytes, options);
             OfficeDocumentLifecycle.Validate(options.AccessMode, options.PersistenceMode, "presentation");
             Stream? associatedStream = OfficeDocumentLifecycle.ResolveAssociatedDestination(
@@ -512,7 +515,7 @@ namespace OfficeIMO.PowerPoint {
             Stream packageStream = OfficePackageLoadSource.CreatePackageStream(bytes, options.AccessMode);
 
             try {
-                PowerPointDocument presentation = OpenPackage(packageStream, filePath, associatedStream, options);
+                PowerPointDocument presentation = OpenPackage(packageStream, filePath, associatedStream, options, allowDeferredSdk);
                 presentation.MarkLoadedFromOpenXml(bytes);
                 return captureSourcePackageSecurity ? WithSourcePackageInspection(presentation, bytes, options) : presentation;
             } catch {
@@ -537,7 +540,7 @@ namespace OfficeIMO.PowerPoint {
             try {
                 OfficePackageSecurityReport? packageReport = OfficePackageLoadSource.InspectInPlace(packageStream,
                     options.PackageSecurity, options.CaptureSourcePackageSecurity, cancellationToken);
-                PowerPointDocument presentation = OpenPackage(packageStream, filePath: null, associatedStream: null, options);
+                PowerPointDocument presentation = OpenPackage(packageStream, filePath: null, associatedStream: null, options, allowDeferredSdk: true);
                 try {
                     presentation.MarkLoadedFromOpenXml(packageStream, cancellationToken);
                     cancellationToken.ThrowIfCancellationRequested();
@@ -555,7 +558,18 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static PowerPointDocument OpenPackage(Stream packageStream, string? filePath,
-            Stream? associatedStream, PowerPointLoadOptions options) {
+            Stream? associatedStream, PowerPointLoadOptions options, bool allowDeferredSdk = false) {
+            if (allowDeferredSdk && CanDeferSdk(packageStream, options)) {
+                return new PowerPointDocument(filePath ?? string.Empty, options.AccessMode) {
+                    _packageStream = packageStream,
+                    _sourceStream = associatedStream,
+                    _persistenceMode = options.PersistenceMode,
+                    _deferredOpenSettings = options.OpenSettings,
+                    _maximumSlideXmlCharacters = options.OpenSettings?.MaxCharactersInPart > 0
+                        ? Math.Min(PowerPointXmlReader.MaximumPackageXmlCharacters, options.OpenSettings.MaxCharactersInPart)
+                        : PowerPointXmlReader.MaximumPackageXmlCharacters
+                };
+            }
             PresentationDocument document = options.AccessMode == DocumentAccessMode.ReadWrite
                 ? PresentationDocument.Open(packageStream, true, CreateOpenSettings(options.OpenSettings))
                 : OfficeIMO.OpenXml.Internal.OfficeOpenXmlReadOnlyPackage.OpenPresentation(packageStream, CreateOpenSettings(options.OpenSettings));
@@ -589,7 +603,7 @@ namespace OfficeIMO.PowerPoint {
                     sourceStream, options, cancellationToken), bytes, options);
             }
             cancellationToken.ThrowIfCancellationRequested();
-            return LoadPackage(bytes, filePath, sourceStream, options);
+            return LoadPackage(bytes, filePath, sourceStream, options, allowDeferredSdk: true);
         }
 
         private static OpenSettings CreateOpenSettings(OfficeOpenXmlLoadSettings? openSettings) =>

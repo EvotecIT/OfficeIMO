@@ -96,15 +96,15 @@ namespace OfficeIMO.PowerPoint {
                     slideId.Remove();
                     if (string.IsNullOrWhiteSpace(relationshipId)) continue;
                     try {
-                        OpenXmlPart part = _presentationPart.GetPartById(relationshipId!);
-                        _presentationPart.DeletePart(part);
+                        OpenXmlPart part = SdkPresentationPart.GetPartById(relationshipId!);
+                        SdkPresentationPart.DeletePart(part);
                     } catch (ArgumentOutOfRangeException) {
                         // Damaged source templates can carry stale slide relationships; the ID is still removed.
                     }
                 }
             }
 
-            _slides.Clear();
+            LoadedSlides.Clear();
             SyncSectionsWithSlides();
             PresentationRoot.Save();
         }

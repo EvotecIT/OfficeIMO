@@ -245,7 +245,7 @@ namespace OfficeIMO.PowerPoint {
                      ?? Enumerable.Empty<SlideListEntry>()) {
                 string? relationshipId = entry.Id?.Value;
                 if (string.IsNullOrEmpty(relationshipId)
-                    || !sourcePresentation._presentationPart.TryGetPartById(
+                    || !sourcePresentation.SdkPresentationPart.TryGetPartById(
                         relationshipId!, out OpenXmlPart? part)
                     || part is not SlidePart slidePart
                     || !sourceByPart.ContainsKey(slidePart)) {
@@ -297,11 +297,11 @@ namespace OfficeIMO.PowerPoint {
                              .Elements<SlideListEntry>()) {
                     string sourceRelationshipId = targetEntry.Id!.Value!;
                     SlidePart sourceSlidePart = (SlidePart)
-                        sourcePresentation._presentationPart.GetPartById(
+                        sourcePresentation.SdkPresentationPart.GetPartById(
                             sourceRelationshipId);
                     SlidePart targetSlidePart =
                         importedSlides[sourceSlidePart].SlidePart;
-                    targetEntry.Id = _presentationPart.GetIdOfPart(
+                    targetEntry.Id = SdkPresentationPart.GetIdOfPart(
                         targetSlidePart);
                 }
 

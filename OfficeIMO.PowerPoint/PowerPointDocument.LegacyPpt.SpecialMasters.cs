@@ -30,7 +30,7 @@ namespace OfficeIMO.PowerPoint {
             ICollection<LegacyPptDeferredProjection>
                 deferredInteractions) {
             NotesMasterPart part = PowerPointUtils.EnsureNotesMasterPart(
-                presentation._presentationPart);
+                presentation.SdkPresentationPart);
             NotesMaster target = part.NotesMaster
                 ?? throw new InvalidDataException("The native PowerPoint scaffold has no notes master.");
             target.CommonSlideData = CreateLegacySpecialMasterCommonSlideData(part, source,
@@ -51,7 +51,7 @@ namespace OfficeIMO.PowerPoint {
             LegacyPptSoundProjectionContext soundContext,
             ICollection<LegacyPptDeferredProjection>
                 deferredInteractions) {
-            PresentationPart presentationPart = presentation._presentationPart;
+            PresentationPart presentationPart = presentation.SdkPresentationPart;
             HandoutMasterPart part = presentationPart.HandoutMasterPart
                 ?? presentationPart.AddNewPart<HandoutMasterPart>();
             EnsureLegacySpecialMasterTheme(part, presentationPart);

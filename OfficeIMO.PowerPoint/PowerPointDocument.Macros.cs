@@ -11,7 +11,7 @@ namespace OfficeIMO.PowerPoint {
         public bool HasVbaProject {
             get {
                 ThrowIfDisposed();
-                return _presentationPart.VbaProjectPart != null;
+                return SdkPresentationPart.VbaProjectPart != null;
             }
         }
 
@@ -22,7 +22,7 @@ namespace OfficeIMO.PowerPoint {
             long maximumBytes = DefaultMaximumVbaProjectBytes) {
             ThrowIfDisposed();
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
-            VbaProjectPart? part = _presentationPart.VbaProjectPart;
+            VbaProjectPart? part = SdkPresentationPart.VbaProjectPart;
             if (part == null) return null;
             using Stream input = part.GetStream(FileMode.Open, FileAccess.Read);
             return OfficeStreamReader.ReadAllBytes(input, maximumBytes);
@@ -62,8 +62,8 @@ namespace OfficeIMO.PowerPoint {
                     "VBA project is not a valid compound storage: " + reason);
             }
 
-            VbaProjectPart part = _presentationPart.VbaProjectPart
-                ?? _presentationPart.AddNewPart<VbaProjectPart>();
+            VbaProjectPart part = SdkPresentationPart.VbaProjectPart
+                ?? SdkPresentationPart.AddNewPart<VbaProjectPart>();
             foreach (IdPartPair child in part.Parts.ToArray()) {
                 part.DeletePart(child.OpenXmlPart);
             }
@@ -74,9 +74,9 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Removes the embedded VBA project and its related signature or cache parts.</summary>
         public bool RemoveVbaProject() {
             ThrowIfDisposed();
-            VbaProjectPart? part = _presentationPart.VbaProjectPart;
+            VbaProjectPart? part = SdkPresentationPart.VbaProjectPart;
             if (part == null) return false;
-            _presentationPart.DeletePart(part);
+            SdkPresentationPart.DeletePart(part);
             return true;
         }
     }

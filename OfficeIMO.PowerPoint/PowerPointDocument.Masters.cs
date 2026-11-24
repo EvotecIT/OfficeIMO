@@ -42,7 +42,7 @@ namespace OfficeIMO.PowerPoint {
             return AddSlide(layout.Master.Index, layout.Index);
         }
 
-        internal List<SlideMasterPart> SlideMasterParts => _presentationPart.SlideMasterParts.ToList();
+        internal List<SlideMasterPart> SlideMasterParts => SdkPresentationPart.SlideMasterParts.ToList();
 
         internal PowerPointSlideMaster GetMaster(SlideMasterPart part) {
             if (!_masterSurfaces.TryGetValue(part, out PowerPointMasterSurface? surface)) {
@@ -79,7 +79,7 @@ namespace OfficeIMO.PowerPoint {
                     + " slide(s). Move those slides to another master's layout first.");
             }
 
-            string relationshipId = _presentationPart.GetIdOfPart(master.MasterPart);
+            string relationshipId = SdkPresentationPart.GetIdOfPart(master.MasterPart);
             PresentationRoot.SlideMasterIdList?.Elements<SlideMasterId>()
                 .FirstOrDefault(id => PowerPointUtils.GetRelationshipIdValue(id) == relationshipId)?.Remove();
             foreach (PowerPointSlideLayout layout in master.Layouts) {
@@ -87,7 +87,7 @@ namespace OfficeIMO.PowerPoint {
                 layout.MarkRemoved();
             }
 
-            _presentationPart.DeletePart(master.MasterPart);
+            SdkPresentationPart.DeletePart(master.MasterPart);
             _masterSurfaces.Remove(master.MasterPart);
             master.MarkRemoved();
         }
@@ -118,7 +118,7 @@ namespace OfficeIMO.PowerPoint {
                 if (id.Id?.Value > max) max = id.Id.Value;
             }
 
-            foreach (SlideMasterPart masterPart in _presentationPart.SlideMasterParts) {
+            foreach (SlideMasterPart masterPart in SdkPresentationPart.SlideMasterParts) {
                 foreach (SlideLayoutId id in masterPart.SlideMaster?.SlideLayoutIdList?.Elements<SlideLayoutId>()
                              ?? Enumerable.Empty<SlideLayoutId>()) {
                     if (id.Id?.Value > max) max = id.Id.Value;

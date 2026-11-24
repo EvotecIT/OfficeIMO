@@ -224,10 +224,10 @@ namespace OfficeIMO.PowerPoint {
             var comments = new List<PowerPointReviewComment>();
             Dictionary<uint, string> classicAuthors = GetClassicAuthors();
             Dictionary<string, string> modernAuthors = GetModernAuthors();
-            for (int index = 0; index < _slides.Count; index++) {
+            for (int index = 0; index < LoadedSlides.Count; index++) {
                 cancellationToken.ThrowIfCancellationRequested();
-                AddClassicComments(_slides[index], index + 1, classicAuthors, comments, cancellationToken);
-                AddModernComments(_slides[index], index + 1, modernAuthors, comments, cancellationToken);
+                AddClassicComments(LoadedSlides[index], index + 1, classicAuthors, comments, cancellationToken);
+                AddModernComments(LoadedSlides[index], index + 1, modernAuthors, comments, cancellationToken);
             }
             return new PowerPointReviewReport(comments);
         }
@@ -242,9 +242,9 @@ namespace OfficeIMO.PowerPoint {
             options.Validate();
             var nodes = new List<PowerPointAnimationNode>();
             int visitedElements = 0;
-            for (int index = 0; index < _slides.Count; index++) {
+            for (int index = 0; index < LoadedSlides.Count; index++) {
                 options.CancellationToken.ThrowIfCancellationRequested();
-                PowerPointSlide slide = _slides[index];
+                PowerPointSlide slide = LoadedSlides[index];
                 Timing? timing = slide.SlidePart.Slide?.Timing;
                 if (timing == null) continue;
                 var slideItems = new List<AnimationInspectionItem>();
@@ -337,7 +337,7 @@ namespace OfficeIMO.PowerPoint {
 
         private Dictionary<uint, string> GetClassicAuthors() {
             var result = new Dictionary<uint, string>();
-            CommentAuthorList? list = _presentationPart.CommentAuthorsPart?.CommentAuthorList;
+            CommentAuthorList? list = SdkPresentationPart.CommentAuthorsPart?.CommentAuthorList;
             if (list == null) return result;
             foreach (CommentAuthor author in list.Elements<CommentAuthor>()) {
                 if (author.Id?.Value != null) result[author.Id.Value] = author.Name?.Value ?? string.Empty;
@@ -347,7 +347,7 @@ namespace OfficeIMO.PowerPoint {
 
         private Dictionary<string, string> GetModernAuthors() {
             var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            foreach (PowerPointAuthorsPart part in _presentationPart.Parts.Select(pair => pair.OpenXmlPart)
+            foreach (PowerPointAuthorsPart part in SdkPresentationPart.Parts.Select(pair => pair.OpenXmlPart)
                          .OfType<PowerPointAuthorsPart>()) {
                 P188.AuthorList? list = part.AuthorList;
                 if (list == null) continue;
