@@ -145,6 +145,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _counterStyles = HtmlCounterStyleRegistry.Parse(document, options);
         _generatedContent = HtmlGeneratedContentResolver.Resolve(document, computedStyles, diagnostics, options.MaxLayoutDepth, _counterStyles, _disclosures);
         foreach (string id in _generatedContent.TargetPageIds) _namedDestinationIds.Add(id);
+        if (options.AdditionalNamedDestinations != null) _namedDestinationIds.UnionWith(options.AdditionalNamedDestinations);
+        if (options.ResolveSectionLink != null) {
+            _namedDestinationIds.UnionWith(_namedDestinationTargets.Keys);
+            _namedDestinationIds.Add("top");
+        }
         foreach (IElement linkElement in document.QuerySelectorAll("[href]")) {
             string? href = linkElement.GetAttribute("href")?.Trim();
             if (href == null || href.Length <= 1 || href[0] != '#') continue;
@@ -413,11 +418,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }.Any(property => _styleResolver.IsPropertySpecified(root, property));
     }
 
+    private string QualifyDestination(string name) => _options.NamedDestinationPrefix +
+        (_options.IsPublicationSection ? HtmlRenderOptions.PublicationFragmentPrefix : string.Empty) + name;
+
+    private string QualifyDocumentStart() => _options.IsPublicationSection
+        ? _options.NamedDestinationPrefix + HtmlRenderOptions.PublicationStartAnchor : QualifyDestination("top");
+
     private IReadOnlyList<HtmlRenderFlowBlock> AddDocumentTopDestination(
         IReadOnlyList<HtmlRenderFlowBlock> blocks,
         double contentWidth) {
         if (!_namedDestinationIds.Contains("top")) return blocks;
-        var destination = new HtmlRenderNamedDestination("top", 0D, 0D, 0, "document:top-anchor");
+        var destination = new HtmlRenderNamedDestination(QualifyDocumentStart(), 0D, 0D, 0, "document:top-anchor");
         if (blocks.Count == 0) {
             return new[] {
                 new HtmlRenderFlowBlock(
@@ -917,7 +928,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ref HtmlCssPageGeometry geometry,
         string? pageName) {
         if (target != HtmlPageBreakTarget.Left && target != HtmlPageBreakTarget.Right) return;
-        int nextPageNumber = pages.Count + 1;
+        int nextPageNumber = pages.Count + 1 + _options.PageNumberOffset;
         bool nextIsRight = nextPageNumber % 2 != 0;
         bool targetIsRight = target == HtmlPageBreakTarget.Right;
         if (nextIsRight == targetIsRight) return;

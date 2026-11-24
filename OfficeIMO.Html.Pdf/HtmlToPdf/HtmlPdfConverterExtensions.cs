@@ -40,6 +40,10 @@ public static partial class HtmlPdfConverterExtensions {
     }
 
     internal static PdfCore.PdfDocumentConversionResult CreateResult(HtmlPdfRenderResult rendered) {
+        return new PdfCore.PdfDocumentConversionResult(rendered.Document, CollectRenderDiagnostics(rendered));
+    }
+
+    internal static PdfCore.PdfConversionReport CollectRenderDiagnostics(HtmlPdfRenderResult rendered) {
         PdfCore.PdfConversionReport report = rendered.ConversionReport;
         foreach (HtmlDiagnostic diagnostic in rendered.Diagnostics) {
             var details = string.IsNullOrWhiteSpace(diagnostic.Detail)
@@ -55,7 +59,7 @@ public static partial class HtmlPdfConverterExtensions {
                 details: details));
         }
 
-        return new PdfCore.PdfDocumentConversionResult(rendered.Document, report);
+        return report;
     }
 
     private static PdfCore.PdfConversionWarningSeverity MapSeverity(HtmlDiagnosticSeverity severity) => severity switch {

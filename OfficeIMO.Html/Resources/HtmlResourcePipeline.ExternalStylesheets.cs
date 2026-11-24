@@ -85,14 +85,18 @@ public static partial class HtmlResourcePipeline {
         return manifest;
     }
 
-    internal static HtmlExternalStylesheetAnalysis AnalyzeExternalStylesheet(string css, Uri baseUri, HtmlResourcePipelineOptions options, bool includeInactiveResources = false) {
-        string normalized = StripCssCommentsOutsideStrings(css ?? string.Empty);
+    internal static HtmlExternalStylesheetAnalysis AnalyzeExternalStylesheet(string css, Uri baseUri, HtmlResourcePipelineOptions options,
+        bool includeInactiveResources = false) => AnalyzeExternalStylesheet(css, baseUri, options, includeInactiveResources, null);
+
+    private static HtmlExternalStylesheetAnalysis AnalyzeExternalStylesheet(string css, Uri baseUri, HtmlResourcePipelineOptions options,
+        bool includeInactiveResources, ExternalStylesheetSyntax? syntax) {
+        string normalized = syntax?.Text ?? StripCssCommentsOutsideStrings(css ?? string.Empty);
         var imports = new List<HtmlExternalStylesheetImport>();
         var fontResources = new List<HtmlResourceReference>();
         var imageResources = new List<HtmlResourceReference>();
         var deferredImageResources = new List<HtmlResourceReference>();
         HtmlUrlPolicy resourcePolicy = GetResourceUrlPolicy(options);
-        foreach (CssImportReference import in ExtractCssImports(normalized)) {
+        foreach (CssImportReference import in syntax?.Imports ?? ExtractCssImports(normalized)) {
             string source = DecodeCssEscapes(import.Source);
             string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(source, baseUri, resourcePolicy);
             bool allowed = !string.IsNullOrWhiteSpace(resolved) && IsResourceKindSchemeAllowed(HtmlResourceKind.Stylesheet, resolved);
@@ -119,7 +123,14 @@ public static partial class HtmlResourcePipeline {
                 hasUnknownMediaCondition));
         }
 
-        foreach (HtmlCssFontFaceDefinition definition in ExtractFontFaces(normalized, options, includeInactiveResources)) {
+        IReadOnlyList<HtmlCssFontFaceDefinition> definitions;
+        if (syntax == null) definitions = ExtractFontFaces(normalized, options, includeInactiveResources);
+        else {
+            var activeFaces = new List<HtmlCssFontFaceDefinition>();
+            syntax.FontFaces.AddApplicable(options, includeInactiveResources, activeFaces);
+            definitions = activeFaces;
+        }
+        foreach (HtmlCssFontFaceDefinition definition in definitions) {
             foreach (string source in ExtractFontFaceUrls(definition.Source)) {
                 string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(source, baseUri, resourcePolicy);
                 bool allowed = !string.IsNullOrWhiteSpace(resolved) && IsResourceKindSchemeAllowed(HtmlResourceKind.Font, resolved);
@@ -134,43 +145,46 @@ public static partial class HtmlResourcePipeline {
             }
         }
 
-        List<SourceRange> inactiveRanges = includeInactiveResources ? new List<SourceRange>() : GetInactiveCssRuleRanges(normalized, options);
+        List<SourceRange> inactiveRanges = includeInactiveResources ? new List<SourceRange>()
+            : syntax?.GetInactiveRanges(options) ?? GetInactiveCssRuleRanges(normalized, options);
         List<SourceRange> importRanges = imports.Select(import => new SourceRange(import.Start, import.End)).ToList();
-        foreach (System.Text.RegularExpressions.Match match in CssUrlExpression.Matches(normalized)) {
-            if (!IsValidCssUrlMatch(normalized, match)
-                || !IsCssFunctionNameAt(normalized, match.Index, "url")
-                || IsInsideCssString(normalized, match.Index)
-                || IsInRanges(match.Index, importRanges)
-                || IsInRanges(match.Index, inactiveRanges)
-                || ClassifyCssUrl(normalized, match.Index) != HtmlResourceKind.Image && !IsCustomPropertyUrl(normalized, match.Index)) {
-                continue;
-            }
-
-            string source = DecodeCssEscapes(match.Groups["url"].Value.Trim().Trim('\'', '"'));
-            if (string.IsNullOrWhiteSpace(source) || IsFragmentOnlyReference(source)) {
-                continue;
-            }
-
-            AddImage(source, "css-url", match.Index, IsCustomPropertyUrl(normalized, match.Index));
-        }
-        foreach (CssStringUrlReference reference in ExtractImageSetStringUrls(normalized)) {
-            bool customProperty = TryGetCustomPropertyName(normalized, reference.Start, out _);
-            if (IsInRanges(reference.Start, inactiveRanges) || IsInRanges(reference.Start, importRanges) ||
-                ClassifyCssUrl(normalized, reference.Start) != HtmlResourceKind.Image && !customProperty) continue;
-            string source = DecodeCssEscapes(reference.Source);
-            if (!string.IsNullOrWhiteSpace(source) && !IsFragmentOnlyReference(source)) AddImage(source, "css-image-set", reference.Start, customProperty);
+        foreach (StylesheetImageReference image in syntax?.Images ?? ReadStylesheetImages(normalized, importRanges, options.DeferPageMarginBackgrounds)) {
+            if (IsInRanges(image.Start, inactiveRanges)) continue;
+            AddImage(image.Source, image.Attribute, image.CustomProperty || options.DeferPageMarginBackgrounds && image.PageRule);
         }
 
         return new HtmlExternalStylesheetAnalysis(normalized, imports.AsReadOnly(), fontResources.AsReadOnly(), imageResources.AsReadOnly(), deferredImageResources.AsReadOnly());
 
-        void AddImage(string source, string attribute, int index, bool customProperty) {
+        void AddImage(string source, string attribute, bool defer) {
             string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(source, baseUri, resourcePolicy);
             bool allowed = !string.IsNullOrWhiteSpace(resolved) && IsResourceKindSchemeAllowed(HtmlResourceKind.Image, resolved);
             var reference = new HtmlResourceReference(HtmlResourceKind.Image, "style", attribute, source, resolved, allowed,
                 allowed ? string.Empty : GetDiagnosticCode(HtmlResourceKind.Image), baseUri, resourcePolicy.ResolvedUrlTransform);
             // The final document cascade decides which generated box exists and which declaration wins.
-            if (customProperty || options.DeferPageMarginBackgrounds && IsInCssPageRule(normalized, index)) deferredImageResources.Add(reference);
+            if (defer) deferredImageResources.Add(reference);
             else imageResources.Add(reference);
+        }
+    }
+
+    private static IEnumerable<StylesheetImageReference> ReadStylesheetImages(string css, List<SourceRange> importRanges, bool includePageRule = true) {
+        foreach (System.Text.RegularExpressions.Match match in CssUrlExpression.Matches(css)) {
+            if (!IsValidCssUrlMatch(css, match)
+                || !IsCssFunctionNameAt(css, match.Index, "url")
+                || IsInsideCssString(css, match.Index)
+                || IsInRanges(match.Index, importRanges)) continue;
+            bool custom = IsCustomPropertyUrl(css, match.Index);
+            if (!custom && ClassifyCssUrl(css, match.Index) != HtmlResourceKind.Image) continue;
+            string source = DecodeCssEscapes(match.Groups["url"].Value.Trim().Trim('\'', '"'));
+            if (!string.IsNullOrWhiteSpace(source) && !IsFragmentOnlyReference(source))
+                yield return new StylesheetImageReference(source, "css-url", match.Index, custom, includePageRule && !custom && IsInCssPageRule(css, match.Index));
+        }
+        foreach (CssStringUrlReference reference in ExtractImageSetStringUrls(css)) {
+            if (IsInRanges(reference.Start, importRanges)) continue;
+            bool custom = TryGetCustomPropertyName(css, reference.Start, out _);
+            if (!custom && ClassifyCssUrl(css, reference.Start) != HtmlResourceKind.Image) continue;
+            string source = DecodeCssEscapes(reference.Source);
+            if (!string.IsNullOrWhiteSpace(source) && !IsFragmentOnlyReference(source))
+                yield return new StylesheetImageReference(source, "css-image-set", reference.Start, custom, includePageRule && !custom && IsInCssPageRule(css, reference.Start));
         }
     }
 

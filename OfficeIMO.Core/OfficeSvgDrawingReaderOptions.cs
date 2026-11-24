@@ -4,6 +4,7 @@ namespace OfficeIMO.Drawing;
 /// Controls bounded SVG import limits for trusted inputs that legitimately contain many elements.
 /// </summary>
 public sealed class OfficeSvgDrawingReaderOptions {
+    internal OfficeSvgDrawingReader.SourceCache? OperationSourceCache { get; set; }
     /// <summary>Retains source identifiers as paint-neutral metadata for owned format adapters.</summary>
     internal bool RetainSourceElementIds { get; set; }
     /// <summary>Uses the first containing ellipse for native point-focus radial Pad fields.</summary>

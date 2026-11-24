@@ -504,9 +504,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (!TryDecodeFragment(candidate.Substring(1), out string fragment)) {
                 return ReportUnavailableFragment(element, candidate);
             }
-            if (string.Equals(fragment, "top", StringComparison.OrdinalIgnoreCase)) return "#top";
+            if (string.Equals(fragment, "top", StringComparison.OrdinalIgnoreCase) &&
+                (!_options.IsPublicationSection || !_namedDestinationTargets.ContainsKey(fragment))) return "#" + QualifyDocumentStart();
             if (!_namedDestinationTargets.ContainsKey(fragment)) return ReportUnavailableFragment(element, candidate);
-            return "#" + fragment;
+            return "#" + QualifyDestination(fragment);
+        }
+        if (_options.ResolveSectionLink != null && _baseUri != null &&
+            Uri.TryCreate(_baseUri, candidate, out Uri? target) && _options.ResolveSectionLink(target) is string destination) {
+            return destination.Length == 0 ? ReportUnavailableFragment(element, candidate) : "#" + destination;
         }
         string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(rawHref, _baseUri, _options.UrlPolicy);
         if (resolved.Length > 0) return resolved;

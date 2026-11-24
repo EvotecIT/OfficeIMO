@@ -16,7 +16,11 @@ internal static partial class HtmlCssPageSettingsResolver {
         var layers = new CascadeLayerRegistry();
         foreach (IElement styleElement in document.QuerySelectorAll("style")) {
             if (!IsCssStyleElement(styleElement) || !IsApplicablePageMedia(styleElement.GetAttribute("media") ?? string.Empty, options)) continue;
-            ApplyRawPageRules(HtmlStyleElementText.Read(styleElement), options, diagnostics, pageRules, layers, fontBudget, cancellationToken);
+            string css = HtmlStyleElementText.Read(styleElement);
+            IEnumerable<RawPageRule> rules = options.PublicationPageRules != null && styleElement.HasAttribute("data-officeimo-source")
+                ? options.PublicationPageRules.Get(options.ExternalStylesheets?.ReuseMaterializedText(css) ?? css, cancellationToken)
+                : ReadRawPageRules(css, 0, css.Length, cancellationToken);
+            ApplyRawPageRules(rules, options, diagnostics, pageRules, layers, null, null, fontBudget, cancellationToken);
         }
         pageRules.ApplyGenericGeometry(options);
         return pageRules;
@@ -109,87 +113,6 @@ internal static partial class HtmlCssPageSettingsResolver {
             options.PageWidth,
             options.PageHeight,
             options.MediaFeatures);
-
-    private static void ApplyRawPageRules(
-        string css,
-        HtmlRenderOptions options,
-        HtmlDiagnosticReport diagnostics,
-        HtmlCssPageRuleSet pageRules,
-        CascadeLayerRegistry layers,
-        HtmlCssProcessingBudget fontBudget, CancellationToken cancellationToken) =>
-        ScanRawRules(css, 0, css.Length, options, diagnostics, pageRules, layers, null, null, fontBudget, cancellationToken);
-
-    private static void ScanRawRules(
-        string css,
-        int start,
-        int end,
-        HtmlRenderOptions options,
-        HtmlDiagnosticReport diagnostics,
-        HtmlCssPageRuleSet pageRules,
-        CascadeLayerRegistry layers,
-        string? layerPath,
-        CascadeLayerOrder? layerOrder,
-        HtmlCssProcessingBudget fontBudget, CancellationToken cancellationToken) {
-        int cursor = start;
-        while (cursor < end) {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (IsCommentStart(css, cursor)) {
-                cursor = SkipComment(css, cursor + 2, end);
-                continue;
-            }
-
-            char current = css[cursor];
-            if (current == '\'' || current == '"') {
-                cursor = SkipQuoted(css, cursor + 1, end, current);
-                continue;
-            }
-
-            if (current == '{') {
-                int close = FindMatchingBrace(css, cursor);
-                cursor = close < 0 ? end : close + 1;
-                continue;
-            }
-
-            if (current != '@') {
-                cursor++;
-                continue;
-            }
-
-            int nameStart = cursor + 1;
-            int nameEnd = nameStart;
-            while (nameEnd < end && (char.IsLetter(css[nameEnd]) || css[nameEnd] == '-')) nameEnd++;
-            string name = css.Substring(nameStart, nameEnd - nameStart);
-            int boundary = FindRuleBoundary(css, nameEnd, end);
-            if (boundary < 0 || css[boundary] == ';') {
-                if (boundary >= 0 && string.Equals(name, "layer", StringComparison.OrdinalIgnoreCase)) {
-                    layers.RegisterStatement(css.Substring(nameEnd, boundary - nameEnd), layerPath);
-                }
-                cursor = boundary < 0 ? end : boundary + 1;
-                continue;
-            }
-
-            int closeBrace = FindMatchingBrace(css, boundary);
-            if (closeBrace < 0 || closeBrace >= end) return;
-            string prelude = css.Substring(nameEnd, boundary - nameEnd).Trim();
-            if (string.Equals(name, "media", StringComparison.OrdinalIgnoreCase)) {
-                if (IsApplicablePageMedia(prelude, options)) {
-                    ScanRawRules(css, boundary + 1, closeBrace, options, diagnostics, pageRules, layers, layerPath, layerOrder, fontBudget, cancellationToken);
-                }
-            } else if (string.Equals(name, "supports", StringComparison.OrdinalIgnoreCase)) {
-                if (HtmlComputedStyleEngine.IsApplicableSupports(prelude)) {
-                    ScanRawRules(css, boundary + 1, closeBrace, options, diagnostics, pageRules, layers, layerPath, layerOrder, fontBudget, cancellationToken);
-                }
-            } else if (string.Equals(name, "layer", StringComparison.OrdinalIgnoreCase)) {
-                (string nestedPath, CascadeLayerOrder nestedOrder) = layers.RegisterBlock(prelude, layerPath);
-                ScanRawRules(css, boundary + 1, closeBrace, options, diagnostics, pageRules, layers, nestedPath, nestedOrder, fontBudget, cancellationToken);
-            } else if (string.Equals(name, "page", StringComparison.OrdinalIgnoreCase)) {
-                string body = css.Substring(boundary + 1, closeBrace - boundary - 1);
-                ApplyRawPageRule(prelude, body, options, diagnostics, pageRules, layerOrder, fontBudget, cancellationToken);
-            }
-
-            cursor = closeBrace + 1;
-        }
-    }
 
     private static void ApplyRawPageRule(string selectorText, string body, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, HtmlCssPageRuleSet pageRules, CascadeLayerOrder? layerOrder,
         HtmlCssProcessingBudget fontBudget, CancellationToken cancellationToken) {

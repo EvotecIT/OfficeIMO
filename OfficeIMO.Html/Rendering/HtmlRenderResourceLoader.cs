@@ -736,7 +736,7 @@ internal static partial class HtmlRenderResourceLoader {
                     }
                 }
                 if (reference.Kind == HtmlResourceKind.Stylesheet
-                    && HtmlRenderStylesheetText.TryDecode(resource.EncodedBytes, resource.ContentType, out string css)) {
+                    && resource.TryGetStylesheetText(out string css)) {
                     if (cssBudget != null
                         && !HtmlRenderStylesheetApplier.TryReserveCss(cssBudget, resource.EncodedBytes.LongLength, reference.Source, diagnostics)) {
                         result.MarkStylesheetRejected(reference);
@@ -754,7 +754,8 @@ internal static partial class HtmlRenderResourceLoader {
                         result.MaxStylesheetImportDepth,
                         diagnostics,
                         result,
-                        archiveResources);
+                        archiveResources,
+                        options.ExternalStylesheets);
                 }
                 AliasAcceptedRequests(result, requestAliases, reference.Kind, item.Uri);
             }
@@ -793,8 +794,10 @@ internal static partial class HtmlRenderResourceLoader {
         int maxStylesheetImportDepth,
         HtmlDiagnosticReport diagnostics,
         HtmlResourceSession resources,
-        bool archiveResources = false) {
-        HtmlExternalStylesheetAnalysis analysis = HtmlResourcePipeline.AnalyzeExternalStylesheet(css, stylesheetUri, resourceOptions, includeInactiveResources: archiveResources);
+        bool archiveResources,
+        HtmlResourcePipeline.ExternalStylesheetCache? cache) {
+        HtmlExternalStylesheetAnalysis analysis = cache?.Analyze(css, stylesheetUri, resourceOptions, archiveResources)
+            ?? HtmlResourcePipeline.AnalyzeExternalStylesheet(css, stylesheetUri, resourceOptions, includeInactiveResources: archiveResources);
         foreach (HtmlResourceReference reference in analysis.ImageResources.Concat(analysis.DeferredImageResources)) resources.RegisterImagePlan(reference);
         foreach (HtmlResourceReference imageResource in analysis.ImageResources) {
             if (imageResource.IsAllowed) {

@@ -153,7 +153,8 @@ internal static partial class PdfWriter {
                 X2 = item.X + item.Width,
                 Y2 = topY,
                 DestinationName = item.DestinationName,
-                Contents = item.Contents
+                Contents = item.Contents,
+                StructureParentElement = _canvasStructureParentElement
             });
             pageDirty = true;
         }

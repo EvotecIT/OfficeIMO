@@ -294,6 +294,11 @@ internal sealed partial class OfficeImoAgentService {
         return result;
     }
 
+    private static void RequireDefaultOutputProfile(OfficeConversionProfile profile) {
+        if (profile != OfficeConversionProfile.Faithful)
+            throw new AgentUsageException("The selected conversion supports the Faithful output profile.");
+    }
+
     internal async Task<AgentConvertResult> ConvertAsync(
         string path,
         string outputPath,
@@ -302,15 +307,19 @@ internal sealed partial class OfficeImoAgentService {
         CancellationToken cancellationToken = default,
         OfficeIMO.IWork.IWorkConversionOptions? iworkOptions = null,
         long maximumInputBytes = 256L * 1024L * 1024L,
-        long maximumOutputBytes = 512L * 1024L * 1024L) {
+        long maximumOutputBytes = 512L * 1024L * 1024L,
+        OfficeConversionProfile outputProfile = OfficeConversionProfile.Faithful) {
         string requested = format.ToLowerInvariant();
         if (requested is not ("markdown" or "md" or "json")) {
-            return IsIWorkPackage(_pathPolicy.ResolveInput(path)) || iworkOptions is not null
-                ? await ConvertIWorkAsync(path, outputPath, format, overwrite, iworkOptions,
-                    maximumInputBytes, maximumOutputBytes, cancellationToken).ConfigureAwait(false)
-                : await ConvertRouteAsync(path, outputPath, requested, overwrite,
-                    maximumInputBytes, maximumOutputBytes, cancellationToken).ConfigureAwait(false);
+            if (IsIWorkPackage(_pathPolicy.ResolveInput(path)) || iworkOptions is not null) {
+                RequireDefaultOutputProfile(outputProfile);
+                return await ConvertIWorkAsync(path, outputPath, format, overwrite, iworkOptions, maximumInputBytes,
+                    maximumOutputBytes, cancellationToken).ConfigureAwait(false);
+            }
+            return await ConvertRouteAsync(path, outputPath, requested, overwrite, maximumInputBytes,
+                maximumOutputBytes, outputProfile, cancellationToken).ConfigureAwait(false);
         }
+        RequireDefaultOutputProfile(outputProfile);
         string inputPath = _pathPolicy.ResolveInput(path);
         AgentSourceRegistration? source = IsIWorkPackage(inputPath) ? null : _registry.Register(inputPath, cancellationToken);
         if (source != null && IsEmailStoreSource(source)) {

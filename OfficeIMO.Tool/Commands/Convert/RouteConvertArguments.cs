@@ -147,7 +147,8 @@ internal sealed class RouteConvertArguments {
         if (HasDiagramOptions && !IsDrawInput) throw new RouteConvertUsageException("Diagram options require ODG or FODG input.");
         if (FailOnLoss && RouteId is "doc-pdf" or "docx-pdf" or "txt-pdf" or "xlsx-pdf" or "pptx-pdf")
             throw new RouteConvertUsageException("--require-no-loss is not available for DOC, DOCX, TXT, XLSX or PPTX to PDF.");
-        if (TextOnly && RouteId != "email-pdf") throw new RouteConvertUsageException("--text-only requires email-to-PDF conversion.");
+        if (TextOnly && route?.SupportedOutputProfiles.Contains(OfficeConversionProfile.TextOnly) != true)
+            throw new RouteConvertUsageException("The selected route does not support --text-only.");
         if (HasDataOptions && !IsDataRoute)
             throw new RouteConvertUsageException("--select, --columns, --root-name, --sheet and --range require a structured-data conversion.");
         if ((Sheet != null || Range != null) && extension != ".xlsx") throw new RouteConvertUsageException("--sheet and --range require XLSX input.");

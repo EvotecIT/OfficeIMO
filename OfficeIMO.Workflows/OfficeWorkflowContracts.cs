@@ -329,9 +329,9 @@ public sealed class OfficeWorkflowRoute {
     public bool SupportsPdfCompression => CanExecute && Id.EndsWith("-pdf", StringComparison.Ordinal);
     /// <summary>Output profiles honored by this local route.</summary>
     public IReadOnlyList<OfficeConversionProfile> SupportedOutputProfiles =>
-        Id is "docx-pdf" or "xlsx-pdf" or "pptx-pdf" ? AllOutputProfiles : Id == "email-pdf" ? EmailOutputProfiles : FaithfulOutputProfile;
-    // TextOnly selects the Reader text projection of a message instead of the styled rendering.
-    private static readonly IReadOnlyList<OfficeConversionProfile> EmailOutputProfiles =
+        Id is "docx-pdf" or "xlsx-pdf" or "pptx-pdf" ? AllOutputProfiles : Id is "email-pdf" or "epub-pdf" ? StyledAndTextOutputProfiles : FaithfulOutputProfile;
+    // TextOnly selects the Reader projection for styled conversions that offer it.
+    private static readonly IReadOnlyList<OfficeConversionProfile> StyledAndTextOutputProfiles =
         Array.AsReadOnly(new[] { OfficeConversionProfile.Faithful, OfficeConversionProfile.TextOnly });
     private static readonly IReadOnlyList<OfficeConversionProfile> AllOutputProfiles = Array.AsReadOnly(EnumCompat.GetValues<OfficeConversionProfile>());
     private static readonly IReadOnlyList<OfficeConversionProfile> FaithfulOutputProfile = Array.AsReadOnly(new[] { OfficeConversionProfile.Faithful });

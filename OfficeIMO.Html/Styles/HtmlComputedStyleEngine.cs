@@ -437,14 +437,16 @@ public static partial class HtmlComputedStyleEngine {
                 options.ContainerInlineSizes),
             true,
             false,
-            limits);
+            limits,
+            options.StylesheetSyntaxCache);
 
     private static HtmlComputedStyleSet ComputeStyleSet(
         IHtmlDocument document,
         MediaEnvironment environment,
         bool includePseudoElements,
         bool includeCascadeTraces,
-        HtmlConversionLimits? limits) {
+        HtmlConversionLimits? limits,
+        StylesheetSyntaxCache? syntaxCache = null) {
         ArgumentNullException.ThrowIfNull(document);
 
         var budget = new HtmlCssProcessingBudget(limits, MatchProviderSelectorFragment,
@@ -452,7 +454,7 @@ public static partial class HtmlComputedStyleEngine {
         IReadOnlyDictionary<string, CustomPropertyRegistration> customPropertyRegistrations =
             ParseCustomPropertyRegistrations(document, environment, budget);
         budget.ValidateRegistrationFanout(customPropertyRegistrations.Count, document.QuerySelectorAll("*").Length);
-        IReadOnlyList<StyleRule> rules = ParseStyleRules(document, environment, budget);
+        IReadOnlyList<StyleRule> rules = ParseStyleRules(document, environment, budget, syntaxCache);
         var ruleIndex = new StyleRuleIndex(rules, UsesQuirksIdClassMatching(document), customPropertyRegistrations);
         var computed = new Dictionary<IElement, HtmlComputedStyle>();
         var pseudoElements = new Dictionary<IElement, HtmlPseudoElementStylePair>();

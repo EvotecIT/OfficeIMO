@@ -9,12 +9,15 @@ internal static partial class HtmlPdfRenderedConverter {
         private readonly HashSet<string> _destinations = new(StringComparer.Ordinal);
         private readonly HashSet<string> _reported = new(StringComparer.Ordinal);
         private readonly bool _hasUriBase;
+        private readonly bool _allowDeferredDestinations;
         private readonly PdfCore.PdfConversionReport _report;
 
         internal LinkTargets(HtmlRenderDocument document, PdfCore.PdfCreateOptions options,
-            PdfCore.PdfConversionReport report, CancellationToken cancellationToken) {
+            PdfCore.PdfConversionReport report, CancellationToken cancellationToken, bool allowDeferredDestinations = false) {
+            _allowDeferredDestinations = allowDeferredDestinations;
             _hasUriBase = !string.IsNullOrWhiteSpace(options.CatalogUriBase);
             _report = report;
+            if (_allowDeferredDestinations) return;
             foreach (HtmlRenderVisual visual in EnumerateVisuals(document.Pages.SelectMany(page => page.Scene))) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (visual is HtmlRenderNamedDestination destination) _destinations.Add(destination.Name);
@@ -24,7 +27,7 @@ internal static partial class HtmlPdfRenderedConverter {
         internal bool Include(string? uri, string? source) {
             if (uri == null) return true;
             bool fragment = IsFragmentLink(uri);
-            if (fragment ? _destinations.Contains(uri.Substring(1))
+            if (fragment ? _allowDeferredDestinations || _destinations.Contains(uri.Substring(1))
                 : _hasUriBase || Uri.TryCreate(uri, UriKind.Absolute, out _)) return true;
             if (_reported.Add(uri)) {
                 _report.Add(new PdfCore.PdfConversionWarning(

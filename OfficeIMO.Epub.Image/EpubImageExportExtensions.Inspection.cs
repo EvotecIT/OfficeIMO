@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Xml;
 using System.Xml.Linq;
 using OfficeIMO.Drawing;
@@ -59,7 +58,7 @@ public static partial class EpubImageExportExtensions {
             throw new InvalidDataException("The declared viewport exceeds the configured render surface limit.");
         effective.Mode = HtmlRenderMode.Continuous;
         effective.ViewportWidth = width; effective.ViewportHeight = height; effective.Margins = HtmlRenderMargins.All(0D);
-        EpubChapterRenderPreparation preparation = PrepareChapter(chapter, effective, BuildResourceIndex(source, cancellationToken), cancellationToken);
+        EpubChapterRenderPreparation preparation = PrepareChapter(chapter, effective, new EpubChapterResources(source, cancellationToken), cancellationToken);
         HtmlRenderDocument rendering = HtmlRenderEngine.RenderForRegionInspection(preparation.Document, preparation.Options, regionIds, cancellationToken);
         HtmlRenderPage page = rendering.Pages.Single();
         OfficeDrawingQualityReport quality = page.InspectCanvasBounds(width, height, effective.MaxSurfaceWidth,
@@ -87,21 +86,8 @@ public static partial class EpubImageExportExtensions {
         XElement[] viewports = document.Root.Elements(html + "head").Elements(html + "meta")
             .Where(e => string.Equals((string?)e.Attribute("name"), "viewport", StringComparison.OrdinalIgnoreCase)).ToArray();
         if (viewports.Length != 1) throw new InvalidDataException("Fixed-layout inspection requires exactly one viewport declaration.");
-        var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (string part in ((string?)viewports[0].Attribute("content") ?? string.Empty).Split(new[] { ',', ';' })) {
-            string[] pair = part.Split('=');
-            if (pair.Length != 2) throw new InvalidDataException("Viewport declarations require unambiguous key=value pairs.");
-            string key = pair[0].Trim();
-            if (values.ContainsKey(key)) throw new InvalidDataException("Viewport declarations cannot repeat a property.");
-            values.Add(key, pair[1].Trim());
-        }
-        double Dimension(string name) {
-            if (!values.TryGetValue(name, out string? value) ||
-                !OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out double result) ||
-                double.IsNaN(result) || double.IsInfinity(result) || result <= 0D)
-                throw new InvalidDataException("Fixed-layout viewport " + name + " must be a positive numeric CSS-pixel dimension.");
-            return result;
-        }
-        return (Dimension("width"), Dimension("height"));
+        return EpubFixedLayoutViewport.TryRead((string?)viewports[0].Attribute("content") ?? string.Empty, out double width, out double height)
+            ? (width, height)
+            : throw new InvalidDataException("Fixed-layout viewport requires unambiguous positive numeric width and height.");
     }
 }

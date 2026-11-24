@@ -4,6 +4,7 @@ namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlCssPageRuleSet {
     private readonly List<HtmlCssPageRule> _rules = new List<HtmlCssPageRule>();
+    private readonly int _pageNumberOffset;
     private readonly double? _baseWidth;
     private readonly double? _baseHeight;
     private readonly HtmlRenderMargins? _baseMargins;
@@ -11,6 +12,7 @@ internal sealed partial class HtmlCssPageRuleSet {
     internal HtmlCssPageRuleSet() { }
 
     internal HtmlCssPageRuleSet(HtmlRenderOptions options) {
+        _pageNumberOffset = options.PageNumberOffset;
         _baseWidth = options.PageWidth;
         _baseHeight = options.PageHeight;
         _baseMargins = options.Margins;
@@ -190,7 +192,7 @@ internal sealed partial class HtmlCssPageRuleSet {
 
     private IEnumerable<HtmlCssPageRule> MatchingRules(int pageNumber, string? pageName) {
         return _rules.Where(rule => (rule.PageName == null || MatchesName(rule.PageName, pageName))
-            && (rule.Selector == HtmlCssPageSelector.Generic || Matches(rule.Selector, pageNumber)));
+            && (rule.Selector == HtmlCssPageSelector.Generic || Matches(rule.Selector, pageNumber + _pageNumberOffset)));
     }
 
     private static int PageSelectorSpecificity(HtmlCssPageRule rule) {
