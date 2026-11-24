@@ -19,9 +19,9 @@
       "id": "read",
       "title": "Read and extract",
       "summary": "Pull text, tables, images and structure out of documents and mail, including scanned pages.",
-      "dotnet": { "packages": ["OfficeIMO.Reader.All", "OfficeIMO.Reader.Pdf", "OfficeIMO.Reader.Ocr", "OfficeIMO.Reader.Email"] },
+      "dotnet": { "packages": ["OfficeIMO.Reader.All", "OfficeIMO.Reader.Pdf", "OfficeIMO.Pdf", "OfficeIMO.Reader.Ocr", "OfficeIMO.Reader.Email"] },
       "powershell": { "guide": "/docs/pswriteoffice/reader/", "commands": ["Read-OfficeDocument", "New-OfficeDocumentReader", "Export-OfficeDocumentAsset", "Open-OfficeEmailMailbox"] },
-      "agents": { "guide": "/agents/", "cli": ["read", "inspect", "reader", "query"], "tools": ["officeimo_inspect", "officeimo_search", "officeimo_fetch", "officeimo_search_email", "officeimo_pdf_ocr"] },
+      "agents": { "guide": "/agents/", "cli": ["read", "inspect", "reader", "query", "pdf"], "tools": ["officeimo_inspect", "officeimo_search", "officeimo_fetch", "officeimo_search_email", "officeimo_pdf_ocr", "officeimo_pdf_extract_assets"] },
       "studio": { "features": ["search", "select-text", "make-searchable", "ocr-review"] }
     },
     {

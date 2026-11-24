@@ -1,10 +1,21 @@
 ---
 title: "PDF Workflows from the CLI"
-description: "Extract, split, decrypt, flatten, optimize, sanitize, OCR, assemble, compare, print and redact PDFs with the officeimo command line."
+description: "Export assets, extract pages, split, decrypt, flatten, optimize, sanitize, OCR, assemble, compare, print and redact PDFs with the officeimo command line."
 layout: docs
 ---
 
-Every PDF command writes a separate file or folder at a destination you name; the source is never changed. Existing destinations are refused unless you pass `--force`.
+PDF commands that write files use a separate destination. Asset extraction requires a new folder. Commands that support `--force` can replace an existing destination.
+
+## Extract PDF assets
+
+```shell
+officeimo pdf extract-assets brochure.pdf --output brochure-assets
+officeimo pdf extract-assets front.pdf back.pdf --output print-assets
+```
+
+The command runs offline and writes images, embedded font programs, ICC profiles, one SVG per page, and `report.html` and `report.json`. The reports include page boxes in millimetres, spot inks, effective DPI for page image placements, and font embedding and subset status. Supported image soft masks are combined with the image as RGBA PNG by default. Pass `--preserve-image-format` to keep the standard image export instead.
+
+For multiple inputs, each PDF gets a numbered subfolder such as `001` or `002` in input order. The command publishes the folder after every input has been processed. The default limits per PDF are 500 pages, 256 MiB of input and 512 MiB of output.
 
 ## Copies, splits and cleanup
 
