@@ -156,7 +156,7 @@ internal static class OpenXmlCellValueLane {
             // as the Excel reader does, so the comparison gives the same result in every timezone.
             if (!DateTimeOffset.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out DateTimeOffset parsed)) return "d:" + raw;
             DateTime date = HasExplicitOffset(raw) ? parsed.LocalDateTime : parsed.DateTime;
-            return "n:" + date.ToOADate().ToString("R", CultureInfo.InvariantCulture);
+            return "n:" + Serial(date);
         }
         return double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
             ? "n:" + number.ToString("R", CultureInfo.InvariantCulture)
@@ -176,10 +176,17 @@ internal static class OpenXmlCellValueLane {
         return text.IndexOfAny(new[] { '+', '-' }, time) > 0;
     }
 
-    // The text of a string item: its own t element, or its runs' t elements. Phonetic runs are not cell text.
+    // Days since the OLE Automation base date at full tick precision; ToOADate keeps only whole milliseconds.
+    private static readonly DateTime SerialBase = new(1899, 12, 30);
+
+    private static string Serial(DateTime date) =>
+        (date - SerialBase).TotalDays.ToString("R", CultureInfo.InvariantCulture);
+
+    // The text of a string item: its own t element, or its runs' t elements, each decoded on its own so an escape
+    // never spans two runs. Phonetic runs are not cell text.
     private static string RichText(OpenXmlElement item) {
         if (item.GetFirstChild<S.Text>() is S.Text text) return Unescape(text.Text);
-        return Unescape(string.Concat(item.Elements<S.Run>().Select(run => run.Text?.Text ?? string.Empty)));
+        return string.Concat(item.Elements<S.Run>().Select(run => Unescape(run.Text?.Text ?? string.Empty)));
     }
 
     // ST_Xstring escapes a character as _xHHHH_ (ECMA-376 Part 1, 22.9.2.19).
@@ -242,7 +249,7 @@ internal static class OpenXmlCellValueLane {
             float number => "n:" + ((double)number).ToString("R", CultureInfo.InvariantCulture),
             decimal number => "n:" + ((double)number).ToString("R", CultureInfo.InvariantCulture),
             int or long or short => "n:" + Convert.ToDouble(value, CultureInfo.InvariantCulture).ToString("R", CultureInfo.InvariantCulture),
-            DateTime date => "n:" + date.ToOADate().ToString("R", CultureInfo.InvariantCulture),
+            DateTime date => "n:" + Serial(date),
             _ => "o:" + Convert.ToString(value, CultureInfo.InvariantCulture)
         };
     }
