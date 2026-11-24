@@ -6,6 +6,10 @@ namespace OfficeIMO.RealWorldCorpus;
 internal static class CorpusCoordinator {
     public static async Task<CorpusReport> RunAsync(CorpusRunOptions options, CancellationToken cancellationToken = default) {
         DateTimeOffset started = DateTimeOffset.UtcNow;
+        // The deadline stops new work, not running workers: each of those still ends within its own timeout, so a
+        // run takes at most the deadline plus one per-file timeout and always writes its report.
+        using var deadline = new CancellationTokenSource();
+        if (options.DeadlineSeconds is int deadlineSeconds) deadline.CancelAfter(TimeSpan.FromSeconds(deadlineSeconds));
         List<CorpusFileRecord> files = Enumerate(options);
         var parallelOptions = new ParallelOptions {
             MaxDegreeOfParallelism = options.Parallelism,
@@ -15,14 +19,26 @@ internal static class CorpusCoordinator {
         await Parallel.ForEachAsync(
             files.Where(file => file.Outcome != CorpusOutcomes.SkippedOversize),
             parallelOptions,
-            async (file, token) => await ClassifyAsync(file, options, token).ConfigureAwait(false)).ConfigureAwait(false);
+            async (file, token) => {
+                if (deadline.IsCancellationRequested) {
+                    file.Outcome = CorpusOutcomes.SkippedDeadline;
+                    return;
+                }
+                await ClassifyAsync(file, options, token).ConfigureAwait(false);
+            }).ConfigureAwait(false);
 
         Select(files, options);
 
         await Parallel.ForEachAsync(
             files.Where(file => file.Selected),
             parallelOptions,
-            async (file, token) => await ProbeAsync(file, options, token).ConfigureAwait(false)).ConfigureAwait(false);
+            async (file, token) => {
+                if (deadline.IsCancellationRequested) {
+                    file.Outcome = CorpusOutcomes.SkippedDeadline;
+                    return;
+                }
+                await ProbeAsync(file, options, token).ConfigureAwait(false);
+            }).ConfigureAwait(false);
 
         return BuildReport(options, files, started, DateTimeOffset.UtcNow);
     }
@@ -175,7 +191,7 @@ internal static class CorpusCoordinator {
         file.ProbeDurationMilliseconds = process.DurationMilliseconds;
         if (process.IsTimedOut) {
             file.Outcome = CorpusOutcomes.TimedOut;
-            file.FailureStage = CorpusOutcomes.Probe;
+            file.FailureStage = process.TimedOutStage == null ? CorpusOutcomes.Probe : CorpusOutcomes.Probe + ":" + process.TimedOutStage;
             return;
         }
         CorpusWorkerResult? worker = process.Worker;
@@ -231,6 +247,7 @@ internal static class CorpusCoordinator {
             RejectedByPolicy = Count(files, CorpusOutcomes.Rejected),
             Failed = Count(files, CorpusOutcomes.Failed),
             TimedOut = Count(files, CorpusOutcomes.TimedOut),
+            SkippedDeadline = Count(files, CorpusOutcomes.SkippedDeadline),
             PdfSelected = files.Count(file => file.Selected && file.ContentKind == ReaderInputKind.Pdf),
             PdfDeepStages = files.Sum(file => file.PdfEvidence?.Stages.Count ?? 0),
             PdfDeepStagesPassed = files.Sum(file => file.PdfEvidence?.Stages.Count(stage => stage.Succeeded) ?? 0),
@@ -276,6 +293,7 @@ internal static class CorpusCoordinator {
                 MaxTraversalEntries = options.MaxTraversalEntries,
                 TimeoutSeconds = options.TimeoutSeconds,
                 Parallelism = options.Parallelism,
+                DeadlineSeconds = options.DeadlineSeconds,
                 SourceNamesIncluded = options.IncludeSourceNames,
                 ReaderPolicy = CorpusReaderPolicy.Describe(),
                 PackagePolicy = CorpusPackagePolicy.Describe(options.MaxFileBytes),

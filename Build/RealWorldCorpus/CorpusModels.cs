@@ -19,6 +19,7 @@ internal static class CorpusOutcomes {
     public const string Rejected = "rejected-by-policy";
     public const string Failed = "failed";
     public const string TimedOut = "timed-out";
+    public const string SkippedDeadline = "skipped-deadline";
 }
 
 internal static class CorpusOperations {
@@ -53,6 +54,7 @@ internal sealed class CorpusRunOptions {
     public string Operation { get; set; } = CorpusOperations.ReaderRead;
     public bool IncludeDifferenceText { get; set; }
     public string? SourceProvenancePath { get; set; }
+    public int? DeadlineSeconds { get; set; }
 }
 
 internal sealed class CorpusWorkerOptions {
@@ -140,6 +142,7 @@ internal sealed class CorpusConfiguration {
     public int MaxTraversalEntries { get; set; }
     public int TimeoutSeconds { get; set; }
     public int Parallelism { get; set; }
+    public int? DeadlineSeconds { get; set; }
     public bool SourceNamesIncluded { get; set; }
     public CorpusReaderPolicyConfiguration ReaderPolicy { get; set; } = new();
     public CorpusPackagePolicyConfiguration PackagePolicy { get; set; } = new();
@@ -186,6 +189,7 @@ internal sealed class CorpusTotals {
     public int RejectedByPolicy { get; set; }
     public int Failed { get; set; }
     public int TimedOut { get; set; }
+    public int SkippedDeadline { get; set; }
     public int PdfSelected { get; set; }
     public int PdfDeepStages { get; set; }
     public int PdfDeepStagesPassed { get; set; }

@@ -22,6 +22,7 @@ WORKFLOW = WORKFLOW_PATH.read_text(encoding="utf-8")
 GUARD_WORKFLOW_PATH = ROOT / ".github" / "workflows" / "real-world-corpus-contract-guard.yml"
 GUARD_WORKFLOW = GUARD_WORKFLOW_PATH.read_text(encoding="utf-8")
 PINNED_SHA256 = "7fb4673ac1905a3ed16a9c5780a70c729c3abc575b06c155b7042b91fa5946aa"
+SOURCE_MANIFEST_PATH = ROOT / "Build" / "RealWorldCorpus" / "openxml-corpus-sources.json"
 
 
 def workflow_script() -> str:
@@ -54,6 +55,61 @@ def corpus_job_timeout_minutes() -> int:
     if match is None:
         raise AssertionError("The corpus evidence job timeout is missing.")
     return int(match.group(1))
+
+
+def job_block(name: str) -> str:
+    match = re.search(rf"(?ms)^  {re.escape(name)}:\r?$(?P<body>.*?)(?=^  [A-Za-z0-9_-]+:\r?$|\Z)", WORKFLOW)
+    if match is None:
+        raise AssertionError(f"The workflow job {name} is missing.")
+    return match.group("body")
+
+
+def job_integer(block: str, name: str) -> int:
+    match = re.search(rf"^      {re.escape(name)}: '([0-9]+)'\r?$", block, re.MULTILINE)
+    if match is None:
+        raise AssertionError(f"Job integer {name} is missing or not fixed.")
+    return int(match.group(1))
+
+
+def assert_openxml_differential_contract() -> None:
+    block = job_block("openxml-differential")
+    timeout = re.search(r"^    timeout-minutes: ([0-9]+)\r?$", block, re.MULTILINE)
+    if timeout is None:
+        raise AssertionError("The Open XML differential job has no timeout.")
+    fetch_seconds = job_integer(block, "FETCH_TIMEOUT_SECONDS") + 30
+    deadline_seconds = job_integer(block, "RUN_DEADLINE_SECONDS")
+    file_timeout_seconds = job_integer(block, "FILE_TIMEOUT_SECONDS")
+    job_integer(block, "MAX_TRAVERSAL_ENTRIES")
+    job_integer(block, "MAX_TOTAL")
+    if not 1 <= job_integer(block, "CORPUS_PARALLELISM") <= 8:
+        raise AssertionError("The Open XML differential job must bound its parallelism.")
+    for binding in (
+        '--deadline-seconds "$RUN_DEADLINE_SECONDS"',
+        '--timeout-seconds "$FILE_TIMEOUT_SECONDS"',
+        '--parallelism "$CORPUS_PARALLELISM"',
+        '--max-total "$MAX_TOTAL"',
+        '--max-traversal-entries "$MAX_TRAVERSAL_ENTRIES"',
+        'timeout --signal=TERM --kill-after=30s "$FETCH_TIMEOUT_SECONDS"',
+        '--manifest "$SOURCE_MANIFEST"',
+    ):
+        if binding not in block:
+            raise AssertionError(f"The Open XML differential job does not bind {binding}.")
+    # The deadline stops new work; running workers end within one per-file timeout. Thirty minutes covers checkout,
+    # SDK setup, the build, reporting and upload.
+    reserve_seconds = int(timeout.group(1)) * 60 - fetch_seconds - deadline_seconds - file_timeout_seconds
+    if reserve_seconds < 30 * 60:
+        raise AssertionError(f"The Open XML differential job leaves only {reserve_seconds} seconds of reserve.")
+
+    manifest = json.loads(SOURCE_MANIFEST_PATH.read_text(encoding="utf-8"))
+    if not manifest.get("sources"):
+        raise AssertionError("The Open XML source manifest lists no sources.")
+    for source in manifest["sources"]:
+        if not re.fullmatch(r"[0-9a-f]{40}", source.get("commit", "")):
+            raise AssertionError(f"Source {source.get('id')} does not pin a full commit.")
+        if not re.fullmatch(r"[0-9a-f]{64}", source.get("contentSha256", "")) or source["contentSha256"] == "0" * 64:
+            raise AssertionError(f"Source {source.get('id')} does not pin its content SHA-256.")
+        if source.get("fileCount", 0) <= 0 or not source.get("license") or not source.get("repository", "").startswith("https://"):
+            raise AssertionError(f"Source {source.get('id')} lacks its file count, license or https repository.")
 
 
 def assert_unrestricted_pull_request_trigger(workflow: str, name: str) -> None:
@@ -137,6 +193,7 @@ run_contract() {{
 
 def main() -> None:
     assert_contract_triggers_are_cross_guarded()
+    assert_openxml_differential_contract()
     script = workflow_script()
     if 'timeout --signal=TERM --kill-after=30s "$DOWNLOAD_TIMEOUT_SECONDS" curl' not in script:
         raise AssertionError("The complete download is not enclosed by its wall-clock deadline.")

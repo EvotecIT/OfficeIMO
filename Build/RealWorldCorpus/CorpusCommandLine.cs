@@ -8,7 +8,7 @@ internal static class CorpusCommandLine {
         "--input", "--json", "--markdown", "--corpus-id", "--source-uri", "--archive-sha256",
         "--max-per-format", "--max-total", "--max-file-bytes", "--max-traversal-entries",
         "--timeout-seconds", "--parallelism", "--include-source-names", "--formats",
-        "--operation", "--include-difference-text", "--source-provenance"
+        "--operation", "--include-difference-text", "--source-provenance", "--deadline-seconds"
     };
     private static readonly HashSet<string> WorkerOptionNames = new(StringComparer.OrdinalIgnoreCase) {
         "--stage", "--input", "--max-file-bytes", "--expected-sha256", "--operation", "--include-difference-text"
@@ -50,8 +50,12 @@ internal static class CorpusCommandLine {
             Formats = ParseFormats(Optional(values, "--formats"), operation),
             Operation = operation,
             IncludeDifferenceText = values.ContainsKey("--include-difference-text"),
-            SourceProvenancePath = Optional(values, "--source-provenance") is { } provenance ? Path.GetFullPath(provenance) : null
+            SourceProvenancePath = Optional(values, "--source-provenance") is { } provenance ? Path.GetFullPath(provenance) : null,
+            DeadlineSeconds = values.ContainsKey("--deadline-seconds") ? PositiveInt(values, "--deadline-seconds", 0, 60, 86_400) : null
         };
+        if (options.SourceProvenancePath != null && !File.Exists(options.SourceProvenancePath)) {
+            throw new FileNotFoundException("--source-provenance does not exist.", options.SourceProvenancePath);
+        }
         if (options.IncludeDifferenceText && operation != CorpusOperations.OpenXmlDifferential) {
             throw new ArgumentException("--include-difference-text applies only to --operation openxml-differential.");
         }

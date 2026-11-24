@@ -40,7 +40,12 @@ internal static class CorpusProcess {
             await IgnoreFailure(stdout).ConfigureAwait(false);
             await IgnoreFailure(stderr).ConfigureAwait(false);
             stopwatch.Stop();
-            return CorpusProcessResult.TimedOut(stopwatch.ElapsedMilliseconds);
+            string? lane = stderr.IsCompletedSuccessfully
+                ? stderr.Result.Split('\n').Select(line => line.Trim())
+                    .LastOrDefault(line => line.StartsWith(OpenXmlDifferentialProbe.LaneStartPrefix, StringComparison.Ordinal))?
+                    .Substring(OpenXmlDifferentialProbe.LaneStartPrefix.Length)
+                : null;
+            return CorpusProcessResult.TimedOut(stopwatch.ElapsedMilliseconds, lane);
         } catch {
             TryKill(process);
             throw;
@@ -95,6 +100,7 @@ internal sealed class CorpusProcessResult {
     public long DurationMilliseconds { get; private set; }
     public CorpusWorkerResult? Worker { get; private set; }
     public string? FailureCode { get; private set; }
+    public string? TimedOutStage { get; private set; }
 
     public static CorpusProcessResult Completed(long durationMilliseconds, CorpusWorkerResult worker) => new() {
         DurationMilliseconds = durationMilliseconds,
@@ -106,8 +112,9 @@ internal sealed class CorpusProcessResult {
         FailureCode = failureCode
     };
 
-    public static CorpusProcessResult TimedOut(long durationMilliseconds) => new() {
+    public static CorpusProcessResult TimedOut(long durationMilliseconds, string? stage = null) => new() {
         IsTimedOut = true,
-        DurationMilliseconds = durationMilliseconds
+        DurationMilliseconds = durationMilliseconds,
+        TimedOutStage = stage
     };
 }

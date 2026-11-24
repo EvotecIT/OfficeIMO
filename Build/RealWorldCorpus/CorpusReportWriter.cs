@@ -78,6 +78,10 @@ internal static class CorpusReportWriter {
             .Append(" | ").Append(report.Totals.ClassificationFailed).Append(" | ").Append(report.Totals.ClassificationTimedOut)
             .Append(" | ").Append(report.Totals.DuplicateContent).Append(" | ").Append(report.Totals.EligibleUnique)
             .Append(" | ").Append(report.Totals.Selected).AppendLine(" |");
+        if (report.Totals.SkippedDeadline > 0) {
+            text.AppendLine().Append("The run deadline of ").Append(report.Configuration.DeadlineSeconds).Append(" seconds stopped new work before ")
+                .Append(report.Totals.SkippedDeadline).AppendLine(" files were classified or measured; they are counted as `skipped-deadline`.");
+        }
 
         if (report.OpenXmlLanes != null) {
             RenderOpenXmlDifferential(text, report);
@@ -97,7 +101,9 @@ internal static class CorpusReportWriter {
                 string pdfFailures = file.PdfEvidence is null
                     ? string.Empty
                     : string.Join(", ", file.PdfEvidence.Stages.Where(static stage => !stage.Succeeded).Select(static stage => "pdf." + stage.Name));
-                string diagnostics = string.Join(", ", file.DiagnosticCodes.Concat(string.IsNullOrEmpty(pdfFailures) ? Array.Empty<string>() : new[] { pdfFailures }));
+                string diagnostics = string.Join(", ", file.DiagnosticCodes
+                    .Concat(string.IsNullOrEmpty(pdfFailures) ? Array.Empty<string>() : new[] { pdfFailures })
+                    .Concat(file.Outcome == CorpusOutcomes.TimedOut && file.FailureStage != null ? new[] { "stopped in " + file.FailureStage } : Array.Empty<string>()));
                 text.Append("| `").Append(ShortHash(file.Sha256)).Append("` | ").Append(E(file.SourceName ?? "withheld"))
                     .Append(" | ").Append(file.ContentKind).Append(" | ").Append(E(file.Outcome))
                     .Append(" | ").Append(E(diagnostics))
@@ -215,7 +221,9 @@ internal static class CorpusReportWriter {
     }
 
     private static string DescribeDifference(CorpusOpenXmlLane lane) {
-        if (lane.Outcome == CorpusOpenXmlOutcomes.OurError) return lane.OurException ?? "unknown";
+        if (lane.Outcome == CorpusOpenXmlOutcomes.OurError) {
+            return (lane.OurException ?? "unknown") + (lane.OurExceptionMessage == null ? string.Empty : ": " + lane.OurExceptionMessage);
+        }
         CorpusOpenXmlDifference? first = lane.Differences.FirstOrDefault();
         if (first == null) return string.Join(", ", lane.Classes);
         var description = new StringBuilder(first.Class);

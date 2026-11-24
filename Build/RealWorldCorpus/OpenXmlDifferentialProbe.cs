@@ -27,6 +27,19 @@ internal static class OpenXmlDifferentialProbe {
     internal static readonly string[] Lanes = { Package, WordBodyParagraphs, WordTextProjection, SlideParagraphs, PowerPointTextProjection };
 
     private const int SnippetRadius = 40;
+    private const int MaxMessageLength = 300;
+
+    // Exception messages describe the package (part names, ids), not its text, but they are recorded only with the
+    // difference text, which a run opts in to.
+    private static bool s_includeText;
+
+    /// <summary>Written to standard error as each lane starts, so the coordinator can name the lane a timeout stopped.</summary>
+    internal const string LaneStartPrefix = "openxml-lane-start:";
+
+    private static void Start(string lane) {
+        Console.Error.WriteLine(LaneStartPrefix + lane);
+        Console.Error.Flush();
+    }
 
     private static readonly OfficeDocumentReader Reader = new OfficeDocumentReaderBuilder()
         .AddWordHandler()
@@ -34,6 +47,7 @@ internal static class OpenXmlDifferentialProbe {
         .Build();
 
     public static CorpusOpenXmlEvidence Probe(byte[] snapshot, string sourceName, ReaderInputKind family, long maxFileBytes, bool includeText) {
+        s_includeText = includeText;
         var evidence = new CorpusOpenXmlEvidence { Family = family };
         evidence.Lanes.Add(ComparePackage(snapshot));
         if (family == ReaderInputKind.Word) {
@@ -41,6 +55,7 @@ internal static class OpenXmlDifferentialProbe {
                 OpenXmlOwnedLayer.IsAvailable ? () => OpenXmlOwnedLayer.ReadWordBodyParagraphs(snapshot) : null, includeText));
             CorpusOpenXmlLane projection = CompareProjection(WordTextProjection, snapshot, sourceName, maxFileBytes, includeText);
             if (OpenXmlOwnedLayer.WordStreamedTextAvailable) {
+                Start("word-streamed-coverage");
                 ReaderOptions options = CorpusReaderPolicy.CreateReadOptions(maxFileBytes);
                 projection.StreamedDeclineReason = OpenXmlOwnedLayer.GetWordStreamedDeclineReason(snapshot, options);
                 projection.Streamed = projection.StreamedDeclineReason == null;
@@ -56,12 +71,14 @@ internal static class OpenXmlDifferentialProbe {
     }
 
     private static CorpusOpenXmlLane ComparePackage(byte[] snapshot) {
+        Start(Package);
         var lane = new CorpusOpenXmlLane { Name = Package };
         OpenXmlPackageView? expected = null;
         try {
             expected = ReadSystemPackagingView(snapshot);
         } catch (Exception exception) when (exception is not OutOfMemoryException) {
             lane.SdkException = TypeName(exception);
+            lane.SdkExceptionMessage = Message(exception);
         }
         if (!OpenXmlOwnedLayer.IsAvailable) {
             lane.Outcome = CorpusOpenXmlOutcomes.Unavailable;
@@ -72,6 +89,7 @@ internal static class OpenXmlDifferentialProbe {
             actual = OpenXmlOwnedLayer.ReadPackage(snapshot, CandidatePartNames(snapshot, expected));
         } catch (Exception exception) when (exception is not OutOfMemoryException) {
             lane.OurException = TypeName(exception);
+            lane.OurExceptionMessage = Message(exception);
         }
         if (expected == null || actual == null) {
             lane.Outcome = ClassifyErrors(expected != null, actual != null);
@@ -96,8 +114,9 @@ internal static class OpenXmlDifferentialProbe {
             using var stream = new MemoryStream(snapshot, writable: false);
             using var archive = new ZipArchive(stream, ZipArchiveMode.Read);
             foreach (ZipArchiveEntry entry in archive.Entries) {
-                if (entry.FullName.Length == 0 || entry.FullName.EndsWith('/') || entry.FullName == "[Content_Types].xml") continue;
-                names.Add("/" + entry.FullName);
+                string name = entry.FullName.Replace('\\', '/');
+                if (name.Length == 0 || name.EndsWith('/') || string.Equals(name, "[Content_Types].xml", StringComparison.OrdinalIgnoreCase)) continue;
+                names.Add("/" + name);
             }
         } catch (Exception exception) when (exception is InvalidDataException or IOException or ArgumentException) {
         }
@@ -125,6 +144,10 @@ internal static class OpenXmlDifferentialProbe {
             string? target;
             if (external) {
                 target = relationship.TargetUri.OriginalString;
+            } else if (relationship.TargetUri.OriginalString.StartsWith('#')) {
+                // A fragment-only target (an in-document hyperlink) names no part; System.IO.Packaging resolves it to
+                // the source part, the owned layer to nothing.
+                target = null;
             } else {
                 try {
                     target = PackUriHelper.ResolvePartUri(sourceUri, relationship.TargetUri).OriginalString;
@@ -205,12 +228,14 @@ internal static class OpenXmlDifferentialProbe {
     }
 
     private static CorpusOpenXmlLane CompareLines(string name, Func<List<string>> readExpected, Func<List<string>>? readActual, bool includeText) {
+        Start(name);
         var lane = new CorpusOpenXmlLane { Name = name };
         List<string>? expected = null;
         try {
             expected = readExpected();
         } catch (Exception exception) when (exception is not OutOfMemoryException) {
             lane.SdkException = TypeName(exception);
+            lane.SdkExceptionMessage = Message(exception);
         }
         if (readActual == null) {
             lane.Outcome = CorpusOpenXmlOutcomes.Unavailable;
@@ -221,6 +246,7 @@ internal static class OpenXmlDifferentialProbe {
             actual = readActual();
         } catch (Exception exception) when (exception is not OutOfMemoryException) {
             lane.OurException = TypeName(exception);
+            lane.OurExceptionMessage = Message(exception);
         }
         if (expected == null || actual == null) {
             lane.Outcome = ClassifyErrors(expected != null, actual != null);
@@ -304,6 +330,12 @@ internal static class OpenXmlDifferentialProbe {
 
     private static string ClassifyErrors(bool sdkRead, bool ourRead) =>
         sdkRead ? CorpusOpenXmlOutcomes.OurError : ourRead ? CorpusOpenXmlOutcomes.SdkError : CorpusOpenXmlOutcomes.BothReject;
+
+    private static string? Message(Exception exception) {
+        if (!s_includeText) return null;
+        string message = exception.Message.ReplaceLineEndings(" ");
+        return message.Length <= MaxMessageLength ? message : message.Substring(0, MaxMessageLength) + "…";
+    }
 
     private static string TypeName(Exception exception) => exception is CorpusReadDiagnosticException diagnostic
         ? "diagnostic:" + diagnostic.Code
@@ -428,7 +460,9 @@ internal sealed class CorpusOpenXmlLane {
     public IReadOnlyList<string> Classes { get; set; } = Array.Empty<string>();
     public IReadOnlyList<CorpusOpenXmlDifference> Differences { get; set; } = Array.Empty<CorpusOpenXmlDifference>();
     public string? SdkException { get; set; }
+    public string? SdkExceptionMessage { get; set; }
     public string? OurException { get; set; }
+    public string? OurExceptionMessage { get; set; }
     public bool? Streamed { get; set; }
     public string? StreamedDeclineReason { get; set; }
 }
