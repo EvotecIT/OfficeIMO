@@ -604,20 +604,19 @@ public partial class MarkdownDocument : MarkdownObject {
 
     private (IReadOnlyList<IMarkdownBlock> Blocks, MarkdownHeadingCatalog HeadingCatalog) RealizeTocPlaceholders(
         MarkdownHeadingIdentifierStyle headingIdentifierStyle, System.Threading.CancellationToken cancellationToken) {
-        bool hasTocPlaceholder = false;
-        for (int i = 0; i < _blocks.Count && !hasTocPlaceholder; i++) {
-            hasTocPlaceholder = _blocks[i] is ITocPlaceholderMarkdownBlock;
-        }
-
-        // Without placeholders there is nothing to realize: render from the document's own blocks,
-        // returned read-only so callers that filter them take a copy.
-        if (!hasTocPlaceholder) {
-            return (_blocks, MarkdownHeadingCatalog.Create(_blocks, headingIdentifierStyle, cancellationToken));
-        }
-
-        // Create a shallow copy first
+        // A snapshot of the blocks: an extension that adds blocks while the document is written
+        // does not change what this pass renders.
         var realized = new System.Collections.Generic.List<IMarkdownBlock>(_blocks);
         var headingCatalog = MarkdownHeadingCatalog.Create(realized, headingIdentifierStyle, cancellationToken);
+        bool hasTocPlaceholder = false;
+        for (int i = 0; i < realized.Count && !hasTocPlaceholder; i++) {
+            hasTocPlaceholder = realized[i] is ITocPlaceholderMarkdownBlock;
+        }
+
+        if (!hasTocPlaceholder) {
+            return (realized, headingCatalog);
+        }
+
         // Placeholders are replaced below, so resolve anchors against the blocks as written.
         _ = headingCatalog.HeadingSlugs;
         // Replace placeholders with generated TOC blocks
