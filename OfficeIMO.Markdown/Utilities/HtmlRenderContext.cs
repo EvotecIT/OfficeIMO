@@ -3,112 +3,68 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Ambient render context so nested blocks (quotes/details/lists) can obey HTML rendering policies.
 /// </summary>
-/// <remarks>
-/// A render sets one async-local frame, so work an extension starts on another thread during the
-/// render still sees its options and link policies. Nested pushes within the render change that
-/// frame and restore it on dispose instead of setting the async-local again, which allocates on
-/// every change.
-/// </remarks>
+/// <remarks>The pushes return the disposer structs themselves, so a <c>using</c> does not box them.</remarks>
 internal static class HtmlRenderContext {
-    private static readonly System.Threading.AsyncLocal<Frame?> s_Frame = new();
+    private static readonly System.Threading.AsyncLocal<MarkdownHtmlExportOptions?> s_Options = new();
+    private static readonly System.Threading.AsyncLocal<HtmlFootnoteRenderState?> s_Footnotes = new();
+    private static readonly System.Threading.AsyncLocal<MarkdownBodyRenderContext?> s_BodyContext = new();
+    private static readonly System.Threading.AsyncLocal<int> s_RenderListItemAttributesDepth = new();
 
-    internal static MarkdownHtmlExportOptions? Options => s_Frame.Value?.Options;
-    internal static HtmlFootnoteRenderState? Footnotes => s_Frame.Value?.Footnotes;
-    internal static MarkdownBodyRenderContext? BodyContext => s_Frame.Value?.BodyContext;
-    internal static bool RenderListItemAttributes => (s_Frame.Value?.RenderListItemAttributesDepth ?? 0) > 0;
+    internal static MarkdownHtmlExportOptions? Options => s_Options.Value;
+    internal static HtmlFootnoteRenderState? Footnotes => s_Footnotes.Value;
+    internal static MarkdownBodyRenderContext? BodyContext => s_BodyContext.Value;
+    internal static bool RenderListItemAttributes => s_RenderListItemAttributesDepth.Value > 0;
 
     internal static Popper Push(MarkdownHtmlExportOptions options, HtmlFootnoteRenderState? footnotes = null) {
-        var prior = s_Frame.Value;
-        s_Frame.Value = new Frame(options, footnotes);
-        return new Popper(prior);
+        var prior = s_Options.Value;
+        var priorFootnotes = s_Footnotes.Value;
+        s_Options.Value = options;
+        s_Footnotes.Value = footnotes;
+        return new Popper(prior, priorFootnotes);
     }
 
     internal static BodyContextPopper PushBodyContext(MarkdownBodyRenderContext context) {
-        var frame = s_Frame.Value;
-        if (frame == null) {
-            frame = new Frame(options: null, footnotes: null);
-            s_Frame.Value = frame;
-            frame.BodyContext = context;
-            return new BodyContextPopper(frame, prior: null, ownsFrame: true);
-        }
-
-        var prior = frame.BodyContext;
-        frame.BodyContext = context;
-        return new BodyContextPopper(frame, prior, ownsFrame: false);
+        var prior = s_BodyContext.Value;
+        s_BodyContext.Value = context;
+        return new BodyContextPopper(prior);
     }
 
     internal static RenderListItemAttributesPopper PushRenderListItemAttributes() {
-        var frame = s_Frame.Value;
-        bool ownsFrame = frame == null;
-        if (frame == null) {
-            frame = new Frame(options: null, footnotes: null);
-            s_Frame.Value = frame;
-        }
-
-        frame.RenderListItemAttributesDepth++;
-        return new RenderListItemAttributesPopper(frame, ownsFrame);
-    }
-
-    internal sealed class Frame {
-        internal Frame(MarkdownHtmlExportOptions? options, HtmlFootnoteRenderState? footnotes) {
-            Options = options;
-            Footnotes = footnotes;
-        }
-
-        internal MarkdownHtmlExportOptions? Options { get; }
-        internal HtmlFootnoteRenderState? Footnotes { get; }
-        internal MarkdownBodyRenderContext? BodyContext { get; set; }
-        internal int RenderListItemAttributesDepth { get; set; }
+        s_RenderListItemAttributesDepth.Value++;
+        return new RenderListItemAttributesPopper();
     }
 
     internal readonly struct Popper : IDisposable {
-        private readonly Frame? _prior;
+        private readonly MarkdownHtmlExportOptions? _prior;
+        private readonly HtmlFootnoteRenderState? _priorFootnotes;
 
-        internal Popper(Frame? prior) {
+        public Popper(MarkdownHtmlExportOptions? prior, HtmlFootnoteRenderState? priorFootnotes) {
             _prior = prior;
+            _priorFootnotes = priorFootnotes;
         }
 
         public void Dispose() {
-            s_Frame.Value = _prior;
+            s_Options.Value = _prior;
+            s_Footnotes.Value = _priorFootnotes;
         }
     }
 
     internal readonly struct BodyContextPopper : IDisposable {
-        private readonly Frame _frame;
         private readonly MarkdownBodyRenderContext? _prior;
-        private readonly bool _ownsFrame;
 
-        internal BodyContextPopper(Frame frame, MarkdownBodyRenderContext? prior, bool ownsFrame) {
-            _frame = frame;
+        public BodyContextPopper(MarkdownBodyRenderContext? prior) {
             _prior = prior;
-            _ownsFrame = ownsFrame;
         }
 
         public void Dispose() {
-            _frame.BodyContext = _prior;
-            if (_ownsFrame) {
-                s_Frame.Value = null;
-            }
+            s_BodyContext.Value = _prior;
         }
     }
 
     internal readonly struct RenderListItemAttributesPopper : IDisposable {
-        private readonly Frame _frame;
-        private readonly bool _ownsFrame;
-
-        internal RenderListItemAttributesPopper(Frame frame, bool ownsFrame) {
-            _frame = frame;
-            _ownsFrame = ownsFrame;
-        }
-
         public void Dispose() {
-            if (_frame.RenderListItemAttributesDepth > 0) {
-                _frame.RenderListItemAttributesDepth--;
-            }
-
-            if (_ownsFrame) {
-                s_Frame.Value = null;
-            }
+            var current = s_RenderListItemAttributesDepth.Value;
+            s_RenderListItemAttributesDepth.Value = current > 0 ? current - 1 : 0;
         }
     }
 }
