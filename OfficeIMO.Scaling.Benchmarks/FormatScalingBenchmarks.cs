@@ -14,7 +14,16 @@ public class FormatScalingBenchmarks {
     private ScalingLane _lane = null!;
     private object? _result;
 
-    public static IEnumerable<string> LaneNames => ScalingLanes.Create().Select(lane => lane.Name);
+    /// <summary>All lanes, or the comma-separated names in <c>OFFICEIMO_SCALING_LANES</c>.</summary>
+    public static IEnumerable<string> LaneNames {
+        get {
+            string? selected = Environment.GetEnvironmentVariable("OFFICEIMO_SCALING_LANES");
+            IEnumerable<string> names = ScalingLanes.Create().Select(lane => lane.Name);
+            if (string.IsNullOrWhiteSpace(selected)) return names;
+            var wanted = new HashSet<string>(selected!.Split(',').Select(name => name.Trim()), StringComparer.OrdinalIgnoreCase);
+            return names.Where(wanted.Contains);
+        }
+    }
 
     [ParamsSource(nameof(LaneNames))]
     public string Lane { get; set; } = string.Empty;

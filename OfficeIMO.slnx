@@ -320,6 +320,7 @@
   <Project Path="OfficeIMO.Rtf.Pdf/OfficeIMO.Rtf.Pdf.csproj" />
   <Project Path="OfficeIMO.Rtf.Tests/OfficeIMO.Rtf.Tests.csproj" />
   <Project Path="OfficeIMO.Rtf/OfficeIMO.Rtf.csproj" />
+  <Project Path="OfficeIMO.Scaling.Benchmarks/OfficeIMO.Scaling.Benchmarks.csproj" />
   <Project Path="OfficeIMO.Security.Tests/OfficeIMO.Security.Tests.csproj" />
   <Project Path="OfficeIMO.Security/OfficeIMO.Security.csproj" />
   <Project Path="OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj" />
