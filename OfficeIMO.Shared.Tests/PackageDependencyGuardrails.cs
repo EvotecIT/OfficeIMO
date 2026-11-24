@@ -543,6 +543,7 @@ public sealed class PackageDependencyGuardrailTests {
                 "OfficeIMO.SharedSource/Packaging/OfficeDeflateEncoder.cs",
                 "OfficeIMO.SharedSource/Packaging/OfficeZipWriter.cs",
                 "OfficeIMO.SharedSource/Patching/JsonPointer.cs",
+                "OfficeIMO.SharedSource/Processes/OfficeWindowsProcessJob.cs",
                 "OfficeIMO.SharedSource/Processes/OfficeWindowsSuspendedProcess.cs",
                 "OfficeIMO.SharedSource/Query/StructuredQuery.cs",
                 "OfficeIMO.SharedSource/Reader/OfficeDocumentModelReaderMapping.cs",

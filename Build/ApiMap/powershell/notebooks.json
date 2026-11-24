@@ -391,6 +391,217 @@
       ]
     },
     {
+      "name": "Invoke-OfficeNotebook",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Runs selected PowerShell notebook cells in one persistent session and records their outputs.",
+      "outputType": "OfficeIMO.Notebook.PowerShell.NotebookExecutionReport",
+      "shouldProcess": true,
+      "parameterSets": [
+        {
+          "name": "Path",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "CellIndex",
+              "type": "int[]",
+              "mandatory": false
+            },
+            {
+              "name": "TimeoutSeconds",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "ContinueOnError",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "IncludeUnspecifiedLanguage",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "PowerShellPath",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "WorkingDirectory",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "StreamOutput",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "OutputPath",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "NoClobber",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "AllowLoss",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        },
+        {
+          "name": "LiteralPath",
+          "parameters": [
+            {
+              "name": "LiteralPath",
+              "type": "string",
+              "mandatory": true,
+              "pipeline": "byPropertyName",
+              "aliases": [
+                "FullName",
+                "PSPath"
+              ]
+            },
+            {
+              "name": "CellIndex",
+              "type": "int[]",
+              "mandatory": false
+            },
+            {
+              "name": "TimeoutSeconds",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "ContinueOnError",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "IncludeUnspecifiedLanguage",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "PowerShellPath",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "WorkingDirectory",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "StreamOutput",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "OutputPath",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "NoClobber",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "AllowLoss",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        },
+        {
+          "name": "Document",
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "OfficeIMO.Notebook.NotebookDocument",
+              "mandatory": true,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "CellIndex",
+              "type": "int[]",
+              "mandatory": false
+            },
+            {
+              "name": "TimeoutSeconds",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "ContinueOnError",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "IncludeUnspecifiedLanguage",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "PowerShellPath",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "WorkingDirectory",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "StreamOutput",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "OutputPath",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "NoClobber",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "AllowLoss",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Run a PowerShell notebook and save the updated copy",
+          "description": "Use one session for the selected cells and review the returned execution report.",
+          "code": "$report = Invoke-OfficeNotebook -LiteralPath ./lab.ipynb -OutputPath ./executed.ipynb -NoClobber\ntry {\n    $report.Cells\n} finally {\n    $report.Notebook | Close-OfficeNotebook\n}"
+        },
+        {
+          "title": "Execute selected cells in an open notebook",
+          "description": "Run zero-based indexes in notebook order with a 15-second timeout per cell.",
+          "code": "$notebook | Invoke-OfficeNotebook -CellIndex 0, 2 -TimeoutSeconds 15"
+        }
+      ]
+    },
+    {
       "name": "Move-OfficeNotebookCell",
       "alias": null,
       "status": "new",

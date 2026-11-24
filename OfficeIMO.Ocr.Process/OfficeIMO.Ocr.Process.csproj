@@ -24,6 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\OfficeIMO.SharedSource\Processes\OfficeWindowsProcessJob.cs" Link="Internal\Processes\OfficeWindowsProcessJob.cs" />
     <Compile Include="..\OfficeIMO.SharedSource\Processes\OfficeWindowsSuspendedProcess.cs" Link="Internal\Processes\OfficeWindowsSuspendedProcess.cs" />
   </ItemGroup>
 

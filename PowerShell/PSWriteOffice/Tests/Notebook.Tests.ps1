@@ -181,4 +181,80 @@ Describe 'Notebook command workflows' {
             $loaded | Close-OfficeNotebook
         }
     }
+
+    It 'runs a literal notebook in document order and saves the selected outputs' {
+        $source = Join-Path $TestDrive 'Lab[execution].ipynb'
+        $destination = Join-Path $TestDrive 'executed.ipynb'
+        $notebook = New-OfficeNotebook -Path $source
+        try {
+            $notebook | Add-OfficeNotebookCell -Kind Code -Language PowerShell -Source '$shared = 41'
+            $notebook | Add-OfficeNotebookCell -Kind Code -Language PowerShell -Source 'throw "This cell was not selected"'
+            $notebook | Add-OfficeNotebookCell -Kind Code -Language PowerShell -Source '$shared + 1'
+            $notebook | Save-OfficeNotebook
+        } finally {
+            $notebook | Close-OfficeNotebook
+        }
+        $inputHash = (Get-FileHash -LiteralPath $source).Hash
+
+        $items = @(Get-Item -LiteralPath $source |
+            Invoke-OfficeNotebook -CellIndex 2, 0 -StreamOutput -OutputPath $destination -NoClobber -ErrorAction Stop)
+        $report = $items[-1]
+        try {
+            $items[0].GetType().Name | Should -Be 'NotebookExecutionEvent'
+            $report.Cells.Count | Should -Be 2
+            $saved = Get-Content -LiteralPath $destination -Raw | ConvertFrom-Json
+            $saved.cells[0].execution_count | Should -Be 1
+            $saved.cells[1].execution_count | Should -BeNullOrEmpty
+            $saved.cells[2].execution_count | Should -Be 2
+            $saved.cells[2].outputs[0].output_type | Should -Be 'execute_result'
+            $saved.cells[2].outputs[0].data.'text/plain' | Should -BeExactly '42'
+            (Get-FileHash -LiteralPath $source).Hash | Should -BeExactly $inputHash
+        } finally {
+            $report.Notebook | Close-OfficeNotebook
+        }
+    }
+
+    It 'protects live notebooks and destinations before executing trusted code' {
+        $destination = Join-Path $TestDrive 'existing.ipynb'
+        $marker = Join-Path $TestDrive 'invoked.txt'
+        $notebook = New-OfficeNotebook
+        $code = "[IO.File]::WriteAllText('$($marker.Replace("'", "''"))', 'ran'); 'fresh result'"
+        [IO.File]::WriteAllText($destination, 'original destination')
+        try {
+            $cell = $notebook | Add-OfficeNotebookCell -Kind Code -Language PowerShell -Source $code -PassThru
+            $cell | Add-OfficeNotebookOutput -Text 'stored result'
+            $notebook | Invoke-OfficeNotebook -OutputPath $destination -WhatIf
+            { $notebook | Invoke-OfficeNotebook -OutputPath $destination -NoClobber -ErrorAction Stop } |
+                Should -Throw '*already exists*'
+            Test-Path -LiteralPath $marker | Should -BeFalse
+            [IO.File]::ReadAllText($destination) | Should -BeExactly 'original destination'
+            ($cell | Get-OfficeNotebookOutput -Index 0).Text | Should -BeExactly 'stored result'
+
+            $report = $notebook | Invoke-OfficeNotebook -ErrorAction Stop
+            [object]::ReferenceEquals($notebook, $report.Notebook) | Should -BeTrue
+            [IO.File]::ReadAllText($marker) | Should -BeExactly 'ran'
+            ($cell | Get-OfficeNotebookOutput -Index 0).Data['text/plain'].GetString() | Should -BeExactly 'fresh result'
+        } finally {
+            $notebook | Close-OfficeNotebook
+        }
+    }
+
+    It 'saves captured output when a cell times out' {
+        $destination = Join-Path $TestDrive 'timed-out.ipynb'
+        $notebook = New-OfficeNotebook
+        try {
+            $notebook | Add-OfficeNotebookCell -Kind Code -Language PowerShell -Source '"before deadline"; Start-Sleep -Seconds 10'
+            $notebook | Add-OfficeNotebookCell -Kind Code -Language PowerShell -Source '"later cell"'
+            $report = $notebook | Invoke-OfficeNotebook -TimeoutSeconds 3 -ContinueOnError -OutputPath $destination -ErrorAction Stop
+
+            $report.Cells.Count | Should -Be 1
+            $report.Cells[0].Status.ToString() | Should -Be 'TimedOut'
+            $saved = Get-Content -LiteralPath $destination -Raw | ConvertFrom-Json
+            $saved.cells[0].outputs[0].data.'text/plain' | Should -BeExactly 'before deadline'
+            $saved.cells[0].outputs[-1].ename | Should -Be 'NotebookCellTimeout'
+            $saved.cells[1].execution_count | Should -BeNullOrEmpty
+        } finally {
+            $notebook | Close-OfficeNotebook
+        }
+    }
 }
