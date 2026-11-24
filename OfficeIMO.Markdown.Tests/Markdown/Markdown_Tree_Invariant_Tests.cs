@@ -94,6 +94,30 @@ Lead[^1]
         };
     }
 
+    [Fact]
+    public void Appending_blocks_one_at_a_time_keeps_every_tree_position_consistent() {
+        var parsed = MarkdownDocument.Parse("Moved **paragraph** with [a link](https://example.com).\n\n> quoted\n");
+        var document = MarkdownDocument.Create()
+            .H1("Title")
+            .P(inlines => inlines.Text("Lead ").Bold("bold").Text(" and ").Code("code"))
+            .Ul(list => list.Item("first").ItemTask("second", done: true))
+            .Code("csharp", "var x = 1;")
+            .Quote("quoted line")
+            .Ol(list => list.Item("one").Item("two"))
+            .Table(table => table.Headers("Name", "Value").Row("One", "1"));
+        foreach (IMarkdownBlock block in parsed.Blocks.ToArray()) {
+            document.Add(block);
+        }
+
+        MarkdownInvariantAssert.SemanticTreeIsWellFormed(document);
+
+        // Front matter becomes the first child, so every block after it moves.
+        document.FrontMatter(new { title = "Report" });
+        document.P("After front matter");
+
+        MarkdownInvariantAssert.SemanticTreeIsWellFormed(document);
+    }
+
     [Theory]
     [MemberData(nameof(RepresentativeMarkdownDocuments))]
     public void ParseWithSyntaxTree_RepresentativeDocuments_Satisfy_TreeInvariants(string markdown) {

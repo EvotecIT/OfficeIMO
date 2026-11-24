@@ -232,6 +232,41 @@ internal static class MarkdownObjectTreeBinder {
         }
     }
 
+    /// <summary>
+    /// Places a block just appended to a bound document, so building a document block by block does not
+    /// re-bind every earlier block. Returns false when the document has to be bound in full instead.
+    /// </summary>
+    internal static bool TryBindAppendedBlock(MarkdownDocument document, IMarkdownBlock appended) {
+        if (appended is not MarkdownObject block) {
+            return true;
+        }
+
+        IReadOnlyList<IMarkdownBlock> blocks = document.Blocks;
+        if (blocks.Count == 0 || !ReferenceEquals(blocks[blocks.Count - 1], appended)) {
+            return false;
+        }
+
+        // The previous child is the nearest earlier block that is an object, or the front matter.
+        MarkdownObject? previous = null;
+        for (int i = blocks.Count - 2; i >= 0 && previous == null; i--) {
+            previous = blocks[i] as MarkdownObject;
+        }
+
+        previous ??= document.DocumentHeader;
+        int index = 0;
+        if (previous != null) {
+            if (!ReferenceEquals(previous.Parent, document) || previous.NextSibling != null || previous.IndexInParent is not int previousIndex) {
+                return false;
+            }
+
+            index = previousIndex + 1;
+            previous.SetTreePosition(document, previousIndex, previous.PreviousSibling, block);
+        }
+
+        BindObject(block, document, index, previous, nextSibling: null, visited: null);
+        return true;
+    }
+
     private const int MaxRetainedScratchCapacity = 4096;
     [ThreadStatic] private static Stack<MarkdownObject>? t_pending;
     [ThreadStatic] private static List<MarkdownObject>? t_children;
@@ -365,10 +400,11 @@ internal static class MarkdownObjectTreeBinder {
         MarkdownObject? pendingChild = leadingChild;
         int childIndex = leadingChild == null ? 0 : 1;
         int count = children.Count;
-        var list = children as List<IMarkdownInline>;
+        // Inline sequences store their nodes in InlineNodeList; reading it directly avoids interface calls.
+        var nodes = children as InlineNodeList;
 
         for (int i = 0; i < count; i++) {
-            if ((list != null ? list[i] : children[i]) is not MarkdownObject child) {
+            if ((nodes != null ? nodes[i] : children[i]) is not MarkdownObject child) {
                 continue;
             }
 
