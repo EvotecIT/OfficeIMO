@@ -7,19 +7,23 @@ struct CommentsInspector: View {
     @Bindable var session: DocumentSession
     @AppStorage(CommentAuthor.defaultsKey) private var authorName = ""
     @State private var summary: ExportedFile?
+    /// Which of the pane's text fields has the keyboard; editing the form takes it away.
+    @FocusState private var isTyping: Bool
 
     var body: some View {
         let threads = session.shownCommentThreads
         Form {
             Section {
+                // A menu keeps every language's names whole in the inspector's width, where segments are cut short.
                 Picker("Show", selection: $session.commentFilter) {
                     Text("All").tag(CommentFilter.all)
                     Text("Open").tag(CommentFilter.open)
                     Text("Resolved").tag(CommentFilter.resolved)
                 }
-                .pickerStyle(.segmented)
+                .pickerStyle(.menu)
                 TextField("Author", text: $session.commentAuthorFilter, prompt: Text("Filter by Author"))
                     .autocorrectionDisabled()
+                    .focused($isTyping)
                 Button("Next Open Comment", systemImage: "arrow.down.circle") { session.showNextOpenComment() }
                     .disabled(!threads.contains { !$0.resolved })
                 Button("Export Summary…", systemImage: "square.and.arrow.up") {
@@ -43,6 +47,7 @@ struct CommentsInspector: View {
             }
             Section {
                 TextField("Your Name", text: $authorName, prompt: DocumentSession.author.isEmpty ? Text("Name") : Text(verbatim: DocumentSession.author))
+                    .focused($isTyping)
             } header: {
                 Text("Your Name")
             } footer: {
@@ -51,6 +56,7 @@ struct CommentsInspector: View {
         }
         .formStyle(.grouped)
         .task(id: "\(session.isReady)-\(session.revision)") { await session.loadComments() }
+        .onChange(of: session.formFieldTool != nil) { _, editing in if editing { isTyping = false } }
         // The inspector is a sheet on iPhone, so the summary is exported from here rather than from the window.
         .fileExporter(isPresented: Binding { summary != nil } set: { if !$0 { summary = nil } }, document: summary?.document,
                       contentType: .markdown, defaultFilename: summary?.name) { result in
@@ -106,6 +112,7 @@ private struct RetainedDraftsSection: View {
 private struct CommentThreadView: View {
     @Bindable var session: DocumentSession
     let thread: CommentThread
+    @FocusState private var isReplying: Bool
 
     private var isSelected: Bool { session.selectedComment == thread.id }
 
@@ -143,6 +150,9 @@ private struct CommentThreadView: View {
         if isSelected {
             TextField("Reply", text: $session.commentDrafts[thread], prompt: Text("Write a reply"), axis: .vertical)
                 .lineLimit(1...5)
+                .focused($isReplying)
+                // Editing the form takes the keyboard away, so it doesn't cover the page being edited.
+                .onChange(of: session.formFieldTool != nil) { _, editing in if editing { isReplying = false } }
                 .onSubmit { session.reply(to: thread) }
             HStack {
                 Button("Reply", systemImage: "arrowshape.turn.up.left") { session.reply(to: thread) }
