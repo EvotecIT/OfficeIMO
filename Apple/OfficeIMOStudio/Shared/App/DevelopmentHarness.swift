@@ -38,7 +38,7 @@ struct DevelopmentHarnessApp: App {
             } else if let document {
                 HarnessWindow(document: document, url: url)
             } else if let viewed {
-                NavigationStack { ViewerWindow(document: viewed).navigationTitle(viewed.name) }
+                HarnessViewer(document: viewed)
             } else {
                 ContentUnavailableView("No Document", systemImage: "doc", description: Text(url.lastPathComponent))
             }
@@ -73,6 +73,35 @@ private struct HarnessScan: View {
                     }
                 }
                 .buttonStyle(.borderedProminent)
+            }
+        }
+    }
+}
+
+/// A viewed document, whose Edit as PDF opens the PDF here: the harness has no document browser to open it from.
+private struct HarnessViewer: View {
+    let document: ViewerDocument
+    @State private var edited: (StudioDocument, URL)?
+    @State private var message: String?
+
+    var body: some View {
+        if let (pdf, url) = edited {
+            HarnessWindow(document: pdf, url: url)
+        } else {
+            NavigationStack {
+                ViewerWindow(document: document) { url in
+                    do {
+                        edited = (try StudioDocument(contentsOf: url), url)
+                    } catch {
+                        message = error.localizedDescription
+                    }
+                }
+                .navigationTitle(document.name)
+                .alert("Couldn’t Open the PDF", isPresented: Binding { message != nil } set: { if !$0 { message = nil } }) {
+                    Button("OK") {}
+                } message: {
+                    Text(message ?? "")
+                }
             }
         }
     }

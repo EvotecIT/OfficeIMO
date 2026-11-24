@@ -51,6 +51,7 @@ final class ViewerModel {
 
     private(set) var phase = Phase.converting
     let document: ViewerDocument
+    private var isClosed = false
 
     init(document: ViewerDocument) {
         self.document = document
@@ -72,6 +73,11 @@ final class ViewerModel {
         do {
             try await EngineRuntime.ready()
             let converted = try await DocumentConversion.convert(document.source)
+            // The engine can finish after the window closed; its PDF then has no window to remove it.
+            guard !isClosed else {
+                StudioTemporaryFiles.removeGeneratedPDF(converted.url)
+                return
+            }
             guard let pages = PDFDocument(url: converted.url), pages.pageCount > 0 else { throw CocoaError(.fileReadCorruptFile) }
             phase = .ready(pages, pdf: converted.url, differs: !converted.result.notes.isEmpty)
         } catch is CancellationError {
@@ -83,6 +89,7 @@ final class ViewerModel {
 
     /// Removes the conversion and the copy of the opened file when the window closes.
     func close() {
+        isClosed = true
         if let pdf { StudioTemporaryFiles.removeGeneratedPDF(pdf) }
         try? FileManager.default.removeItem(at: document.source.deletingLastPathComponent())
     }

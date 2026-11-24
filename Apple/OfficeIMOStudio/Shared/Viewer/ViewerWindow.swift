@@ -10,11 +10,21 @@ struct ViewerWindow: View {
     @Environment(\.dismiss) private var dismiss
     #if os(macOS)
     @Environment(\.newDocument) private var newDocument
+    #else
+    /// Opens the converted PDF's copy. Without one, the PDF opens from the document browser.
+    private let openPDF: ((URL) -> Void)?
     #endif
 
+    #if os(macOS)
     init(document: ViewerDocument) {
         _model = State(initialValue: ViewerModel(document: document))
     }
+    #else
+    init(document: ViewerDocument, openPDF: ((URL) -> Void)? = nil) {
+        _model = State(initialValue: ViewerModel(document: document))
+        self.openPDF = openPDF
+    }
+    #endif
 
     var body: some View {
         content
@@ -92,6 +102,10 @@ struct ViewerWindow: View {
             try FileManager.default.copyItem(at: pdf, to: copy)
         } catch {
             exportError = error.localizedDescription
+            return
+        }
+        if let openPDF {
+            openPDF(copy)
             return
         }
         dismiss()
