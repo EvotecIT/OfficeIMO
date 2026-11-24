@@ -47,6 +47,10 @@ public static partial class OfficeWorkflow {
                     };
                     break;
                 }
+                case ".epub":
+                    await ValidateManuscriptArtifactAsync(output, options.MaximumOutputBytes,
+                        settings.EpubManuscript?.RetentionLimits, token).ConfigureAwait(false);
+                    break;
                 case ".csv": {
                     using OfficeIMO.CSV.CsvDocument csv = await OfficeIMO.CSV.CsvDocument.LoadAsync(output, null, token).ConfigureAwait(false);
                     break;

@@ -4175,20 +4175,6 @@
       "limitation":"EPUB 2/3 authoring covers non-scripted XHTML/SVG content, metadata, resources, spine and navigation. HTML manuscripts import as reflowable EPUB 3 with bounded resource collection and explicit conversion reports. Unedited imports retain exact package bytes; edits retain unknown XML and unchanged entry payloads. Save preflight checks structural references, linked CSS dependencies and bounds, not full EPUB conformance. Unsupported encrypted-resource edits are rejected; signature invalidation requires explicit removal. Fixed-layout geometry and media-overlay timing authoring are outside this contract."
     },
     {
-      "id":"conversion:html-epub",
-      "packageId":"OfficeIMO.Epub",
-      "formatId":"HTML",
-      "targetFormatId":"EPUB",
-      "capabilityId":"html-epub",
-      "operation":"Convert",
-      "state":"Partial",
-      "publicApi":"EpubManuscript.ImportHtmlAsync(HtmlConversionDocument.Parse(html), options)",
-      "evidence":"Manuscript contracts cover chapter splitting, navigation, semantic structures, resource collection, import reports and re-opened EPUB output; representative artifacts pass independent EPUBCheck validation.",
-      "sourceCatalog":"OfficeConversionCapabilityCatalog",
-      "extensions":[".htm",".html"],
-      "limitation":"Reflowable EPUB 3 only. Source layout, live fields, revisions, comments and controls can require reported approximations or omissions. Missing assets and unnamed images block export; schema conformance, accessibility metadata and reader presentation require independent review. DOCX and Markdown composition uses OfficeIMO.Workflows on .NET 8 or newer."
-    },
-    {
       "id":"conversion:epub-jpeg",
       "packageId":"OfficeIMO.Epub.Image",
       "formatId":"EPUB",
@@ -22158,11 +22144,25 @@
       "capabilityId":"docx-epub",
       "operation":"Convert",
       "state":"Partial",
-      "publicApi":"BookManuscriptImporter.ImportWordAsync(document, options)",
-      "evidence":"Manuscript contracts cover chapter splitting, navigation, semantic structures, resource collection, import reports and re-opened EPUB output; representative artifacts pass independent EPUBCheck validation.",
+      "publicApi":"OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
+      "evidence":"Executable manuscript routes reopen the EPUB and check metadata, heading-based chapter boundaries, navigation and typography. The EPUBCheck lane validates representative output for all three source formats.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
-      "extensions":[".docm",".docx",".dotm",".dotx"],
-      "limitation":"Reflowable EPUB 3 only. Source layout, live fields, revisions, comments and controls can require reported approximations or omissions. Missing assets and unnamed images block export; schema conformance, accessibility metadata and reader presentation require independent review. DOCX and Markdown composition uses OfficeIMO.Workflows on .NET 8 or newer."
+      "extensions":[".docx"],
+      "limitation":"Produces reflowable EPUB 3. Source layout, live fields, revisions, comments and controls can require reported approximations or omissions. Missing assets and unnamed images block export. Accessibility and reader presentation require their own review. The file routes use OfficeIMO.Workflows on .NET 8 or newer."
+    },
+    {
+      "id":"conversion:html-epub",
+      "packageId":"OfficeIMO.Workflows",
+      "formatId":"HTML",
+      "targetFormatId":"EPUB",
+      "capabilityId":"html-epub",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
+      "evidence":"Executable manuscript routes reopen the EPUB and check metadata, heading-based chapter boundaries, navigation and typography. The EPUBCheck lane validates representative output for all three source formats.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".htm",".html"],
+      "limitation":"Produces reflowable EPUB 3. Source layout, live fields, revisions, comments and controls can require reported approximations or omissions. Missing assets and unnamed images block export. Accessibility and reader presentation require their own review. The file routes use OfficeIMO.Workflows on .NET 8 or newer."
     },
     {
       "id":"conversion:markdown-epub",
@@ -22172,11 +22172,11 @@
       "capabilityId":"markdown-epub",
       "operation":"Convert",
       "state":"Partial",
-      "publicApi":"BookManuscriptImporter.ImportMarkdownAsync(document, options)",
-      "evidence":"Manuscript contracts cover chapter splitting, navigation, semantic structures, resource collection, import reports and re-opened EPUB output; representative artifacts pass independent EPUBCheck validation.",
+      "publicApi":"OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
+      "evidence":"Executable manuscript routes reopen the EPUB and check metadata, heading-based chapter boundaries, navigation and typography. The EPUBCheck lane validates representative output for all three source formats.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".markdown",".md"],
-      "limitation":"Reflowable EPUB 3 only. Source layout, live fields, revisions, comments and controls can require reported approximations or omissions. Missing assets and unnamed images block export; schema conformance, accessibility metadata and reader presentation require independent review. DOCX and Markdown composition uses OfficeIMO.Workflows on .NET 8 or newer."
+      "limitation":"Produces reflowable EPUB 3. Source layout, live fields, revisions, comments and controls can require reported approximations or omissions. Missing assets and unnamed images block export. Accessibility and reader presentation require their own review. The file routes use OfficeIMO.Workflows on .NET 8 or newer."
     },
     {
       "id":"conversion:markdown-pptx",
