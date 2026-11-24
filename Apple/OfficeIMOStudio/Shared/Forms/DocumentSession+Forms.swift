@@ -6,8 +6,7 @@ extension DocumentSession {
 
     /// A page's form fields, if loaded for the revision shown.
     func formFields(_ page: Int) -> FormFields? {
-        guard let fields = formPages[page], fields.revision == revision else { return nil }
-        return fields
+        formPages.value(page: page, revision: revision)
     }
 
     /// Loads a page's form fields once per revision, keeping a few pages.
@@ -21,9 +20,7 @@ extension DocumentSession {
         do {
             let fields = try await load.read(source: engine, revision: { self.revision }) { try await engine.formFields(page: page) }
             guard !Task.isCancelled, isReady, self.engine === engine, fields.revision == revision else { return }
-            formPages[page] = fields
-            if formPages.count > 8, let far = formPages.keys.max(by: { abs($0 - page) < abs($1 - page) }) { formPages[far] = nil }
-            formFieldsVersion += 1
+            formPages.store(fields, page: page, revision: fields.revision)
         } catch {
             if !Task.isCancelled, self.engine === engine { errorMessage = error.localizedDescription }
         }
@@ -33,11 +30,11 @@ extension DocumentSession {
     /// editing the form, every field's boxes.
     var fillableFieldBoxes: [Int: [CGRect]] {
         if isEditingForm {
-            return formPages.filter { $0.value.revision == revision }
+            return formPages.values(revision: revision)
                 .mapValues { $0.fields.flatMap { $0.widgets.map(\.bounds.cgRect) } }.filter { !$0.value.isEmpty }
         }
         guard canFillForms, task == .read else { return [:] }
-        return formPages.filter { $0.value.revision == revision }.mapValues(\.fillableBoxes).filter { !$0.value.isEmpty }
+        return formPages.values(revision: revision).mapValues(\.fillableBoxes).filter { !$0.value.isEmpty }
     }
 
     /// The fillable field under a point of a page.
@@ -58,10 +55,8 @@ extension DocumentSession {
     /// The fields loaded before a fill stay right after it but for the field's values, so the next tap finds them at
     /// once rather than after they load again.
     private func carryFormFields(from before: Int64, filling name: String, with values: [String]) {
-        for (page, fields) in formPages where fields.revision == before {
-            formPages[page] = fields.filling(name, with: values, revision: revision)
-        }
-        formFieldsVersion += 1
+        let after = revision
+        formPages.carry(from: before, to: after) { $0.filling(name, with: values, revision: after) }
     }
 
     /// Turns a check box or radio button on, or a check box off again.

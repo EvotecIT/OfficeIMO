@@ -86,6 +86,11 @@ final class PageDragView: NSView, NSMenuItemValidation {
         window?.makeFirstResponder(self)
         let point = convert(event.locationInWindow, from: nil)
         guard let gesture = PageDragGesture.begin(tool, at: point, layout: layout(), session: session) else { return }
+        // A double-click on a field opens its sheet, as it opens an item in Finder.
+        if tool == .formField, event.clickCount == 2, session.selectedFormField != nil, case .move = gesture.action {
+            session.editSelectedFormField()
+            return
+        }
         self.gesture = gesture
         let shape = CAShapeLayer()
         Self.style(shape, as: gesture.look, color: session.markupColor)

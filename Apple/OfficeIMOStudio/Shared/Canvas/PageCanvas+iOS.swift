@@ -24,7 +24,6 @@ struct PageCanvas: UIViewRepresentable {
         view.panGestureRecognizer.minimumNumberOfTouches = drawing || dragTool != nil ? 2 : 1
         view.textSelection.setEnabled(session.task == .read && dragTool == nil && session.canCopyText)
         view.forms.setEnabled(session.task == .read && dragTool == nil && (session.canFillForms || session.pendingSignature != nil))
-        _ = session.formFieldsVersion
         view.tiles.markFields(session.fillableFieldBoxes)
         view.tiles.selectionColor = view.tintColor.withAlphaComponent(0.3).cgColor
         if let selection = session.textSelection {

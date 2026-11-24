@@ -68,7 +68,7 @@ extension DocumentSession {
 
     /// Every field name the loaded pages show, to name new fields and check renames.
     var knownFormFieldNames: Set<String> {
-        Set(formPages.values.filter { $0.revision == revision }.flatMap { $0.fields.map(\.name) })
+        Set(formPages.values(revision: revision).values.flatMap { $0.fields.map(\.name) })
     }
 
     /// The selected field, read for the revision shown.
@@ -129,6 +129,12 @@ extension DocumentSession {
         guard canAuthorForms else { return }
         if selectedFormField?.name == name { selectedFormField = nil }
         edit(String(localized: "Delete Form Field")) { try await $0.edit(EditRequest(removeFormField: name)) }
+    }
+
+    /// Opens the selected field's sheet, to rename it or change its flags.
+    func editSelectedFormField() {
+        guard let value = selectedFormFieldValue, let page = selectedFormField?.page else { return }
+        formFieldSheet = .edit(value.field, page: page)
     }
 
     func removeSelectedFormField() {

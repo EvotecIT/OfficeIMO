@@ -126,10 +126,15 @@ final class PageDragController: NSObject, UIGestureRecognizerDelegate {
             return
         }
         if tool == .formField {
-            // Selects the field under the tap, or adds a field of the standard size where the tap is.
-            guard let gesture = PageDragGesture.begin(.formField, at: location, layout: scrollView.tiles.layout, session: session),
-                  case .draw = gesture.action else { return }
-            _ = gesture.finish(session: session, failed: {})
+            // Selects the field under the tap, opens a selected field's sheet on a second tap, or adds a field of the
+            // standard size where the tap is.
+            let selected = session.selectedFormField
+            let gesture = PageDragGesture.begin(.formField, at: location, layout: scrollView.tiles.layout, session: session)
+            if let gesture, case .draw = gesture.action {
+                _ = gesture.finish(session: session, failed: {})
+            } else if selected != nil, selected == session.selectedFormField {
+                session.editSelectedFormField()
+            }
             return
         }
         let layout = scrollView.tiles.layout

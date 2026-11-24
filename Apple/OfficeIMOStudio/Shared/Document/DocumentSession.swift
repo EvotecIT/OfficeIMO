@@ -136,11 +136,10 @@ final class DocumentSession {
     var notice: String?
     /// The title of the notice's alert, when it reports something other than text recognition.
     var noticeTitle: String?
-    /// Form fields of pages near the one in view, for the revision they were read from.
-    @ObservationIgnored var formPages: [Int: FormFields] = [:]
+    /// Form fields of pages near the one in view, for the revision they were read from. Observed, so the page view and
+    /// the selected field's name, Edit and Delete follow as fields load after an edit.
+    var formPages = RevisionPages<FormFields>()
     @ObservationIgnored var formLoads: [Int: RevisionRead<FormFields>] = [:]
-    /// Bumped when form fields load, so the page view shows where they are.
-    var formFieldsVersion = 0
     /// The field kind a drag on the page adds while editing the form; nil when not editing it.
     var formFieldTool: NewFormFieldKind?
     /// The field selected while editing the form, by name, and the page it was selected on.

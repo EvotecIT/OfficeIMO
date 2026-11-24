@@ -22,7 +22,6 @@ struct PageCanvas: NSViewRepresentable {
                                 && (session.canCopyText || session.canFillForms || session.pendingSignature != nil))
         view.forms.setEnabled(session.task == .read && dragTool == nil && (session.canFillForms || session.pendingSignature != nil))
         view.setDragTool(dragTool)
-        _ = session.formFieldsVersion
         view.tiles.markFields(session.fillableFieldBoxes)
         view.tiles.selectionColor = NSColor.selectedTextBackgroundColor.withAlphaComponent(0.6).cgColor
         if let selection = session.textSelection {
