@@ -13,6 +13,7 @@ struct FormFieldAdd: Encodable, Sendable {
     var readOnly = false
     var multiline = false
     var label: String?
+    var caption: String?
 }
 
 /// A field's new name and flags, or alone its new box.

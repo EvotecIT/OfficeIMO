@@ -75,9 +75,11 @@ public sealed class StudioNativeCommentsAndFormsTests : IDisposable {
             new StudioNativeRectangle(40, 100, 16, 16))), default);
         await document.EditAsync(new StudioNativeEditRequest(AddFormField: new StudioNativeFormFieldAdd("choice", "Country", 1,
             new StudioNativeRectangle(40, 130, 160, 24), ["Poland", "Germany", " ", "Poland"])), default);
+        await document.EditAsync(new StudioNativeEditRequest(AddFormField: new StudioNativeFormFieldAdd("signature", "Signature", 1,
+            new StudioNativeRectangle(40, 200, 180, 40))), default);
 
         StudioNativeFormFields fields = await document.GetFormFieldsAsync(1, default);
-        Assert.Equal(new[] { ("FullName", "text"), ("Agree", "checkbox"), ("Country", "combo") },
+        Assert.Equal(new[] { ("FullName", "text"), ("Agree", "checkbox"), ("Country", "combo"), ("Signature", "signature") },
             fields.Fields.Select(field => (field.Name, field.Kind)));
         StudioNativeRectangle box = fields.Fields[0].Widgets.Single().Bounds;
         Assert.Equal((40D, 60D, 160D, 24D), (Math.Round(box.X), Math.Round(box.Y), Math.Round(box.Width), Math.Round(box.Height)));
@@ -98,14 +100,26 @@ public sealed class StudioNativeCommentsAndFormsTests : IDisposable {
     }
 
     [Fact]
-    public async Task A_signature_field_is_added_as_an_empty_place_to_sign() {
-        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreateTextPdf("signature-field.pdf", "Contract"), null, default);
-        await document.EditAsync(new StudioNativeEditRequest(AddFormField: new StudioNativeFormFieldAdd("signature", "Signature", 1,
-            new StudioNativeRectangle(40, 200, 180, 40))), default);
+    public async Task Radio_groups_stack_a_button_per_option_and_push_buttons_show_their_caption() {
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreateTextPdf("radio.pdf", "Survey"), null, default);
+        await document.EditAsync(new StudioNativeEditRequest(AddFormField: new StudioNativeFormFieldAdd("radio", "Size", 1,
+            new StudioNativeRectangle(40, 40, 80, 10), ["Small", "Medium", "Large"])), default);
+        await document.EditAsync(new StudioNativeEditRequest(AddFormField: new StudioNativeFormFieldAdd("button", "Submit", 1,
+            new StudioNativeRectangle(200, 40, 90, 24), Caption: "Send")), default);
 
-        StudioNativeFormField field = Assert.Single((await document.GetFormFieldsAsync(1, default)).Fields);
-        Assert.Equal(("Signature", "signature"), (field.Name, field.Kind));
-        Assert.Empty(field.Values);
+        StudioNativeFormFields fields = await document.GetFormFieldsAsync(1, default);
+        StudioNativeFormField radio = Assert.Single(fields.Fields, field => field.Name == "Size");
+        Assert.Equal("radio", radio.Kind);
+        Assert.Equal(3, radio.Widgets.Count);
+        // Three 14-point buttons with 6 points between them need 54 points, more than the 10 drawn.
+        double top = radio.Widgets.Min(widget => widget.Bounds.Y), bottom = radio.Widgets.Max(widget => widget.Bounds.Y + widget.Bounds.Height);
+        Assert.True(bottom - top >= 53, $"The group spans {bottom - top} points.");
+        Assert.Equal("button", Assert.Single(fields.Fields, field => field.Name == "Submit").Kind);
+
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => document.EditAsync(new StudioNativeEditRequest(UpdateFormField:
+            new StudioNativeFormFieldUpdate("Size", Bounds: new StudioNativeRectangle(40, 120, 80, 60))), default));
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => document.EditAsync(new StudioNativeEditRequest(AddFormField:
+            new StudioNativeFormFieldAdd("radio", "Empty", 1, new StudioNativeRectangle(40, 200, 80, 40))), default));
     }
 
     [Fact]
@@ -116,7 +130,7 @@ public sealed class StudioNativeCommentsAndFormsTests : IDisposable {
 
         await Assert.ThrowsAnyAsync<ArgumentException>(() => document.EditAsync(new StudioNativeEditRequest(AddFormField: new StudioNativeFormFieldAdd("text", "Name", 1, box with { Y = 120 })), default));
         await Assert.ThrowsAnyAsync<ArgumentException>(() => document.EditAsync(new StudioNativeEditRequest(AddFormField: new StudioNativeFormFieldAdd("choice", "Pick", 1, box with { Y = 120 })), default));
-        await Assert.ThrowsAnyAsync<ArgumentException>(() => document.EditAsync(new StudioNativeEditRequest(AddFormField: new StudioNativeFormFieldAdd("button", "Go", 1, box with { Y = 120 })), default));
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => document.EditAsync(new StudioNativeEditRequest(AddFormField: new StudioNativeFormFieldAdd("slider", "Go", 1, box with { Y = 120 })), default));
         await Assert.ThrowsAnyAsync<ArgumentException>(() => document.EditAsync(new StudioNativeEditRequest(AddFormField: new StudioNativeFormFieldAdd("text", "Tiny", 1, box with { Width = 2 })), default));
         await Assert.ThrowsAnyAsync<ArgumentException>(() => document.EditAsync(new StudioNativeEditRequest(UpdateFormField: new StudioNativeFormFieldUpdate("Name", NewName: "Other", Bounds: box)), default));
         await Assert.ThrowsAnyAsync<ArgumentException>(() => document.EditAsync(new StudioNativeEditRequest(RemoveFormField: "Missing"), default));

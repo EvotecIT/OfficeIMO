@@ -306,14 +306,16 @@ struct PageDragGesture {
     /// While editing the form: grabs a corner of the selected field to resize it, selects the field under the point to
     /// move it, or starts drawing a new field elsewhere.
     private static func beginOnField(at point: CGPoint, local: CGPoint, page: Int, frame: CGRect, layout: PageLayout,
-                                     session: DocumentSession) -> PageDragGesture {
-        if let (field, widget) = session.selectedFormFieldValue, session.selectedFormField?.page == page,
+                                     session: DocumentSession) -> PageDragGesture? {
+        if let (field, widget) = session.selectedFormFieldValue, session.selectedFormField?.page == page, field.widgets.count == 1,
            let fixed = SelectionOutline.fixedCorner(grabbing: local, of: widget.bounds.cgRect) {
             return PageDragGesture(action: .resize(.field(field.name), fixed: fixed, original: widget.bounds.cgRect),
                                    page: page, frame: frame, layout: layout, points: [point])
         }
         if let (field, widget) = session.authoredField(at: local, page: page) {
             session.selectedFormField = FormFieldSelection(name: field.name, page: page)
+            // The engine moves a field with one box, so a radio group is selected but stays where it is.
+            guard field.widgets.count == 1 else { return nil }
             return PageDragGesture(action: .move(.field(field.name), original: widget.bounds.cgRect), page: page, frame: frame, layout: layout,
                                    points: [point])
         }
@@ -473,7 +475,8 @@ extension SelectionOutline {
             return session.selectedPageAnnotation.map { ($0.bounds.cgRect, $0.page) }
         case .formField:
             guard let page = session.selectedFormField?.page, let value = session.selectedFormFieldValue else { return nil }
-            return (value.widget.bounds.cgRect, page)
+            let boxes = value.field.widgets.map(\.bounds.cgRect)
+            return (boxes.dropFirst().reduce(boxes[0]) { $0.union($1) }, page)
         default:
             return nil
         }

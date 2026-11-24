@@ -410,10 +410,13 @@ int32_t officeimo_document_comments_json(officeimo_document document, officeimo_
  *   "reviewState": { "objectNumber", "state" }: state is "completed" (resolved), "none" (open again), "accepted",
  *     "rejected" or "cancelled".
  *   "addFormField": { "kind", "name", "page", "bounds": { "x", "y", "width", "height" }, "options": [ ], "combo",
- *     "required", "readOnly", "multiline", "label" }: kind is "text", "checkbox", "choice" or "signature"; bounds are in
- *     points of the page as displayed, at least 4 by 4. A choice needs options and is a drop-down unless combo is false.
+ *     "required", "readOnly", "multiline", "label", "caption" }: kind is "text", "checkbox", "choice", "radio", "button" or
+ *     "signature"; bounds are in points of the page as displayed, at least 4 by 4. A choice needs options and is a
+ *     drop-down unless combo is false; a radio group needs options and stacks one 14-point button per option, growing
+ *     the box to fit; a push button shows caption, "Button" by default.
  *   "updateFormField": { "name", "newName", "required", "readOnly" }, fields left out kept; or alone
- *     { "name", "page", "bounds" }, which moves or resizes the field's only box.
+ *     { "name", "page", "bounds" }, which moves or resizes the field's box; a field with several boxes, such as a radio
+ *     group, doesn't move.
  *   "removeFormField": "field name".
  * Leaving out "pages" means every page. The structure's can flags tell which edits the document allows.
  */

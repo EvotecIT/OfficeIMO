@@ -6,6 +6,8 @@ extension NewFormFieldKind {
         case .text: "Text Field"
         case .checkbox: "Check Box"
         case .choice: "Choice"
+        case .radio: "Radio Buttons"
+        case .button: "Push Button"
         case .signature: "Signature Field"
         }
     }
@@ -15,6 +17,8 @@ extension NewFormFieldKind {
         case .text: "character.cursor.ibeam"
         case .checkbox: "checkmark.square"
         case .choice: "list.bullet"
+        case .radio: "circle.inset.filled"
+        case .button: "capsule"
         case .signature: "signature"
         }
     }
@@ -92,6 +96,7 @@ struct FormFieldSheetView: View {
     @State private var multiline = false
     @State private var options = ""
     @State private var dropDown = true
+    @State private var caption = ""
 
     var body: some View {
         NavigationStack {
@@ -112,15 +117,24 @@ struct FormFieldSheetView: View {
                         Toggle("Multiple Lines", isOn: $multiline)
                     }
                 }
-                if case .new(.choice, _, _) = sheet {
+                if takesOptions {
                     Section {
                         TextField("Options", text: $options, prompt: Text("One option per line"), axis: .vertical)
                             .lineLimit(3...8)
-                        Toggle("Drop-Down List", isOn: $dropDown)
+                        if isChoice { Toggle("Drop-Down List", isOn: $dropDown) }
                     } header: {
                         Text("Options")
                     } footer: {
-                        Text("A drop-down list shows one option until it is opened; a list shows them all.")
+                        if isChoice {
+                            Text("A drop-down list shows one option until it is opened; a list shows them all.")
+                        } else {
+                            Text("Each option is a button, one under another; choosing one clears the others.")
+                        }
+                    }
+                }
+                if case .new(.button, _, _) = sheet {
+                    Section {
+                        TextField("Caption", text: $caption, prompt: Text("Button"))
                     }
                 }
                 if case .edit(let field, _) = sheet {
@@ -143,18 +157,19 @@ struct FormFieldSheetView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(isNew ? "Add" : "Save") { save() }
-                        .disabled(problem != nil || (isChoice && FormAuthoring.options(from: options).isEmpty))
+                        .disabled(problem != nil || (takesOptions && FormAuthoring.options(from: options).isEmpty))
                 }
             }
         }
         #if os(macOS)
-        .frame(minWidth: 380, minHeight: isChoice ? 420 : 280)
+        .frame(minWidth: 380, minHeight: takesOptions ? 420 : 280)
         #endif
         .onAppear(perform: fill)
     }
 
     private var isNew: Bool { if case .new = sheet { true } else { false } }
     private var isChoice: Bool { if case .new(.choice, _, _) = sheet { true } else { false } }
+    private var takesOptions: Bool { if case .new(let kind, _, _) = sheet { FormAuthoring.takesOptions(kind) } else { false } }
 
     private var title: LocalizedStringKey {
         switch sheet {
@@ -188,8 +203,9 @@ struct FormFieldSheetView: View {
             session.addFormField(FormFieldAdd(
                 kind: kind.rawValue, name: name, page: page,
                 bounds: .init(x: rect.minX, y: rect.minY, width: rect.width, height: rect.height),
-                options: kind == .choice ? FormAuthoring.options(from: options) : nil, combo: kind == .choice ? dropDown : nil,
-                required: required, readOnly: readOnly, multiline: kind == .text && multiline, label: label.isEmpty ? nil : label))
+                options: FormAuthoring.takesOptions(kind) ? FormAuthoring.options(from: options) : nil, combo: kind == .choice ? dropDown : nil,
+                required: required, readOnly: readOnly, multiline: kind == .text && multiline, label: label.isEmpty ? nil : label,
+                caption: kind == .button ? caption.trimmingCharacters(in: .whitespacesAndNewlines) : nil))
         case .edit(let field, let page):
             if name != field.name || required != field.required || readOnly != field.readOnly {
                 session.updateFormField(field.name, newName: name, required: required, readOnly: readOnly, page: page)

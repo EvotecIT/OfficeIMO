@@ -4,8 +4,8 @@ using OfficeIMO.Studio.Features.Editor;
 namespace OfficeIMO.Studio.Native;
 
 /// <summary>
-/// Form authoring, as the desktop Studio's Forms mode does it: adding text, check box, choice and signature fields where
-/// they are drawn, changing a field's name, flags and box, and removing a field. Each is one undoable change. Boxes are
+/// Form authoring, as the desktop Studio's Forms mode does it: adding text, check box, choice, radio group, push button
+/// and signature fields where they are drawn, changing a field's name, flags and box, and removing a field. Each is one undoable change. Boxes are
 /// in points of the page as displayed, which the editor maps into each page's own space through its box and rotation.
 /// </summary>
 internal sealed partial class StudioNativeDocument {
@@ -14,18 +14,24 @@ internal sealed partial class StudioNativeDocument {
         PdfFormFieldCreationKind kind = field.Kind switch {
             "text" => PdfFormFieldCreationKind.Text, "checkbox" => PdfFormFieldCreationKind.CheckBox,
             "choice" => PdfFormFieldCreationKind.Choice, "signature" => PdfFormFieldCreationKind.Signature,
+            "radio" => PdfFormFieldCreationKind.RadioButtonGroup, "button" => PdfFormFieldCreationKind.PushButton,
             _ => throw new ArgumentException($"“{field.Kind}” isn't a kind of field Studio adds.", nameof(field))
         };
         RequireFormAuthoring();
         if (FormFieldNames().Contains(name)) throw new ArgumentException($"The form already has a field named “{name}”.", nameof(field));
         string[] options = (field.Options ?? []).Select(static option => option?.Trim() ?? string.Empty).Where(static option => option.Length > 0)
             .Distinct(StringComparer.Ordinal).ToArray();
-        if (kind == PdfFormFieldCreationKind.Choice && options.Length == 0) throw new ArgumentException("A choice field needs at least one option.", nameof(field));
-        PdfPageRectangle box = PageBox(field.Page, field.Bounds ?? throw new ArgumentException("Draw the field's box.", nameof(field)));
+        if (kind is PdfFormFieldCreationKind.Choice or PdfFormFieldCreationKind.RadioButtonGroup && options.Length == 0)
+            throw new ArgumentException("A choice or radio group needs at least one option.", nameof(field));
+        StudioNativeRectangle bounds = field.Bounds ?? throw new ArgumentException("Draw the field's box.", nameof(field));
+        // A radio group stacks one button per option, as tall as the desktop makes it.
+        if (kind == PdfFormFieldCreationKind.RadioButtonGroup) bounds = bounds with { Height = Math.Max(bounds.Height, RadioGroupHeight(options.Length)) };
+        PdfPageRectangle box = PageBox(field.Page, bounds);
         var create = new PdfFormFieldCreateOptions {
             Name = name, Kind = kind, PageNumber = field.Page, X = box.Left, Y = box.Bottom, Width = box.Width, Height = box.Height,
             Value = kind == PdfFormFieldCreationKind.CheckBox ? "Off" : string.Empty,
             ChoiceOptions = options, IsComboBox = kind == PdfFormFieldCreationKind.Choice && field.Combo != false,
+            Caption = string.IsNullOrWhiteSpace(field.Caption) ? "Button" : field.Caption.Trim(),
             Style = new PdfFormFieldStyle {
                 AlternateName = string.IsNullOrWhiteSpace(field.Label) ? null : field.Label.Trim(),
                 IsRequired = field.Required, IsReadOnly = field.ReadOnly,
@@ -34,6 +40,9 @@ internal sealed partial class StudioNativeDocument {
         };
         return _workspace.CreateFormFieldAsync(create, cancellationToken);
     }
+
+    /// <summary>The height of a radio group's buttons, 14 points each with 6 between, as the desktop lays them out.</summary>
+    private static double RadioGroupHeight(int options) => options * 14D + (options - 1) * 6D;
 
     private async Task UpdateFormField(StudioNativeFormFieldUpdate update, CancellationToken cancellationToken) {
         string name = update.Name ?? throw new ArgumentException("Name the field to change.", nameof(update));
@@ -83,12 +92,13 @@ internal sealed partial class StudioNativeDocument {
 }
 
 /// <summary>
-/// A field to add: <c>kind</c> is text, checkbox, choice or signature; <c>bounds</c> are in points of the page as
-/// displayed. A choice lists its <c>options</c> and is a drop-down unless <c>combo</c> is false.
+/// A field to add: <c>kind</c> is text, checkbox, choice, radio, button or signature; <c>bounds</c> are in points of the
+/// page as displayed. A choice lists its <c>options</c> and is a drop-down unless <c>combo</c> is false; a radio group has
+/// one button per option; a push button shows its <c>caption</c>.
 /// </summary>
 internal sealed record StudioNativeFormFieldAdd(string? Kind, string? Name, int Page, StudioNativeRectangle? Bounds,
     IReadOnlyList<string>? Options = null, bool? Combo = null, bool Required = false, bool ReadOnly = false, bool Multiline = false,
-    string? Label = null);
+    string? Label = null, string? Caption = null);
 
 /// <summary>A field's new name and flags, or alone its new box, on <c>page</c> or the page it is on.</summary>
 internal sealed record StudioNativeFormFieldUpdate(string? Name, string? NewName = null, bool? Required = null, bool? ReadOnly = null,

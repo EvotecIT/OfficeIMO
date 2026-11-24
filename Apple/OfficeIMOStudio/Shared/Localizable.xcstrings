@@ -2756,6 +2756,46 @@
         }
       }
     },
+    "Button" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taste"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Botón"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bouton"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulsante"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przycisk"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Botão"
+          }
+        }
+      }
+    },
     "CONFIDENTIAL" : {
       "localizations" : {
         "de" : {
@@ -2912,6 +2952,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Não é possível mostrar este documento"
+          }
+        }
+      }
+    },
+    "Caption" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beschriftung"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Texto"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Libellé"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Didascalia"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Napis"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Legenda"
           }
         }
       }
@@ -6992,6 +7072,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cada correspondência remove toda uma área de texto, que pode incluir linhas próximas além da correspondência. Revise a página antes de ocultar e use Desfazer se for removido demais."
+          }
+        }
+      }
+    },
+    "Each option is a button, one under another; choosing one clears the others." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jede Option ist ein Feld, eines unter dem anderen; wer eines wählt, hebt die anderen auf."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cada opción es un botón, uno debajo de otro; elegir uno desmarca los demás."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chaque option est un bouton, l’un sous l’autre ; en choisir un désélectionne les autres."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ogni opzione è un pulsante, uno sotto l’altro; sceglierne uno deseleziona gli altri."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Każda opcja to przycisk, jeden pod drugim; wybranie jednego odznacza pozostałe."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cada opção é um botão, um abaixo do outro; escolher um desmarca os outros."
           }
         }
       }
@@ -13438,16 +13558,16 @@
     },
     "Page %lld of %lld, rotated %lld degrees" : {
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Page %1$lld of %2$lld, rotated %3$lld degrees"
-          }
-        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Seite %lld von %lld, um %lld Grad gedreht"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Page %1$lld of %2$lld, rotated %3$lld degrees"
           }
         },
         "es" : {
@@ -14922,6 +15042,46 @@
         }
       }
     },
+    "Push Button" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taste"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Botón"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bouton"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulsante"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przycisk"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Botão"
+          }
+        }
+      }
+    },
     "Puts PDFs, images and Word, Excel, PowerPoint and other documents together into one PDF, in the order given." : {
       "localizations" : {
         "de" : {
@@ -14958,6 +15118,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Reúne PDFs, imagens e documentos Word, Excel, PowerPoint e outros em um único PDF, na ordem informada."
+          }
+        }
+      }
+    },
+    "Radio Buttons" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optionsfelder"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Botones de opción"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Boutons radio"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulsanti di opzione"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przyciski opcji"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Botões de opção"
           }
         }
       }

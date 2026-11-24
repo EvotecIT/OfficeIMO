@@ -2,11 +2,13 @@ import CoreGraphics
 import Foundation
 
 /// The fields Edit Form adds, as the desktop Studio's form authoring does: a text field, a check box, a choice of
-/// options or a place to sign.
+/// options, a group of radio buttons, a push button or a place to sign.
 enum NewFormFieldKind: String, CaseIterable, Identifiable, Sendable {
     case text
     case checkbox
     case choice
+    case radio
+    case button
     case signature
 
     var id: Self { self }
@@ -17,6 +19,8 @@ enum NewFormFieldKind: String, CaseIterable, Identifiable, Sendable {
         case .text: CGSize(width: 180, height: 24)
         case .checkbox: CGSize(width: 16, height: 16)
         case .choice: CGSize(width: 180, height: 24)
+        case .radio: CGSize(width: 120, height: 54)
+        case .button: CGSize(width: 100, height: 24)
         case .signature: CGSize(width: 200, height: 48)
         }
     }
@@ -25,6 +29,9 @@ enum NewFormFieldKind: String, CaseIterable, Identifiable, Sendable {
 enum FormAuthoring {
     /// The smallest box a field can have, in points, which the engine also requires.
     static let minimumSide: CGFloat = 4
+
+    /// Whether the field lists options: a choice and a radio group, one button per option.
+    static func takesOptions(_ kind: NewFormFieldKind) -> Bool { kind == .choice || kind == .radio }
 
     /// The first of Field1, Field2 and so on that the form doesn't use, as the desktop names new fields.
     static func nextName(existing: Set<String>) -> String {
