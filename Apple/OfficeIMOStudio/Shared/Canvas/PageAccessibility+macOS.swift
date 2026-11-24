@@ -35,7 +35,7 @@ final class AccessiblePagesView: NSView {
         guard let session else { return false }
         switch item.kind {
         case .field:
-            guard session.canFillForms, let rect = rect(of: item) else { return false }
+            guard session.canFillFormFromPage, let rect = rect(of: item) else { return false }
             return clickField?(CGPoint(x: rect.midX, y: rect.midY)) ?? false
         case .comment(let id):
             guard let thread = session.currentComments?.threads.first(where: { $0.id == id }) else { return false }

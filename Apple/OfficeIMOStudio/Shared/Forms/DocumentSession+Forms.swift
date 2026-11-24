@@ -4,6 +4,10 @@ import Foundation
 extension DocumentSession {
     var canFillForms: Bool { isReady && facts?.canFillForms == true }
 
+    /// Whether a field on the page fills when activated, by a tap or VoiceOver: only in Read, with no page tool such as
+    /// Edit Form, a shape or redaction marking in use.
+    var canFillFormFromPage: Bool { canFillForms && task == .read && pageDragTool == nil }
+
     /// A page's form fields, if loaded for the revision shown.
     func formFields(_ page: Int) -> FormFields? {
         formPages.value(page: page, revision: revision)

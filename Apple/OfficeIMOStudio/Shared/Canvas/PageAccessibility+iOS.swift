@@ -35,7 +35,8 @@ final class AccessiblePagesView: UIView {
         switch item.kind {
         case .field(_, let name, let number):
             guard let field = session.formFields(item.page)?.fields.first(where: { $0.name == name }),
-                  let widget = field.widgets.first(where: { $0.objectNumber == number }), field.isFillable, session.canFillForms else { return false }
+                  let widget = field.widgets.first(where: { $0.objectNumber == number }), field.isFillable,
+                  session.canFillFormFromPage else { return false }
             activateField?(item.page, field, widget)
             return true
         case .comment(let id):
