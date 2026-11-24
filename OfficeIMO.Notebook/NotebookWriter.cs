@@ -19,7 +19,7 @@ internal static class NotebookWriter {
         writer.WriteString("id", cell.Id);
         if (legacy || cell.MetadataEdited ||
             !NotebookJson.WriteOriginal(writer, "metadata", NotebookJson.Property(cell.Original, "metadata"))) {
-            NotebookJson.WriteMap(writer, "metadata", cell.Metadata);
+            WriteCellMetadata(writer, cell, legacy);
         }
         bool keepSource = !legacy && !cell.SourceEdited && NotebookJson.WriteOriginal(writer, "source", cell.SourceElement);
         if (!keepSource && (cell.Kind != NotebookCellKind.Unknown || cell.SourceEdited)) writer.WriteString("source", cell.Source);
@@ -30,6 +30,20 @@ internal static class NotebookWriter {
             WriteAttachments(writer, cell, legacy);
         }
         writer.WriteEndObject();
+    }
+
+    private static void WriteCellMetadata(Utf8JsonWriter writer, NotebookCell cell, bool legacy) {
+        IReadOnlyDictionary<string, JsonElement> metadata = cell.Metadata;
+        if (legacy && cell.Kind == NotebookCellKind.Code &&
+            NotebookJson.Property(cell.Original, "language") is { ValueKind: JsonValueKind.String } sourceLanguage &&
+            !string.IsNullOrWhiteSpace(sourceLanguage.GetString()) &&
+            (!metadata.TryGetValue("language", out JsonElement currentLanguage) || !JsonElement.DeepEquals(sourceLanguage, currentLanguage))) {
+            // Version 4 carries the legacy source language in metadata.
+            var normalized = metadata.ToDictionary(static property => property.Key, static property => property.Value, StringComparer.Ordinal);
+            normalized["language"] = sourceLanguage;
+            metadata = normalized;
+        }
+        NotebookJson.WriteMap(writer, "metadata", metadata);
     }
 
     private static void WriteCodeCell(Utf8JsonWriter writer, NotebookCell cell, bool legacy, CancellationToken cancellationToken) {

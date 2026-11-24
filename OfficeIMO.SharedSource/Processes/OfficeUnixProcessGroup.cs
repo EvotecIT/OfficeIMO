@@ -1,4 +1,8 @@
 using System.Diagnostics;
+#if !NET8_0_OR_GREATER
+using System.Globalization;
+using System.Reflection;
+#endif
 using System.Runtime.InteropServices;
 
 namespace OfficeIMO.Processes.Internal;
@@ -7,12 +11,16 @@ namespace OfficeIMO.Processes.Internal;
 internal sealed class OfficeUnixProcessGroup {
     private const string MacPerl = "/usr/bin/perl";
     private const int ExecutePermission = 1;
+    private const int UnixExecuteModeBits = 0x49; // Owner, group and other execute bits.
     private const int Closed = -1;
     private const int SigKill = 9;
     private static readonly Lazy<string> PerlArgumentsPrefix = new(() => "-MPOSIX -e " +
         OfficeProcessArguments.QuoteArgument(
             "defined(POSIX::setsid()) or die qq(setsid failed: $!\\n); exec { $ARGV[0] } @ARGV; die qq(exec failed: $!\\n);") + " -- ");
     private static readonly Lazy<string?> HostExecutablePath = new(GetHostExecutablePath);
+#if !NET8_0_OR_GREATER
+    private static readonly MethodInfo? GetUnixFileMode = typeof(File).GetMethod("GetUnixFileMode", new[] { typeof(string) });
+#endif
     private int _processGroupId;
 
     private OfficeUnixProcessGroup() { }
@@ -69,11 +77,32 @@ internal sealed class OfficeUnixProcessGroup {
         foreach (string directory in path.Split(Path.PathSeparator)) {
             if (directory.Length == 0) continue;
             string candidate = Path.Combine(directory, fileName);
+            // Managed file lookup normalizes parent segments, which can change the target across symlinks.
+            if (candidate.StartsWith("../", StringComparison.Ordinal) ||
+                candidate.IndexOf("/../", StringComparison.Ordinal) >= 0) return null;
             if (!File.Exists(candidate)) continue;
-            // Keep direct Process.Start resolution for ambiguous PATH entries.
-            return Path.IsPathRooted(candidate) && Access(candidate, ExecutePermission) == 0 ? candidate : null;
+            if (Path.IsPathRooted(candidate) && Access(candidate, ExecutePermission) == 0) return candidate;
+            // A denied access check can reflect different credentials. Only skip proven non-executables.
+            if (!HasNoExecuteBits(candidate)) return null;
         }
         return null;
+    }
+
+    private static bool HasNoExecuteBits(string path) {
+        try {
+#if NET8_0_OR_GREATER
+            return !OperatingSystem.IsWindows() && ((int)File.GetUnixFileMode(path) & UnixExecuteModeBits) == 0;
+#else
+            object? mode = GetUnixFileMode?.Invoke(null, new object[] { path });
+            return mode != null && (Convert.ToInt32(mode, CultureInfo.InvariantCulture) & UnixExecuteModeBits) == 0;
+#endif
+        } catch (Exception error) when (error is IOException or UnauthorizedAccessException or NotSupportedException
+#if !NET8_0_OR_GREATER
+            or TargetInvocationException
+#endif
+        ) {
+            return false;
+        }
     }
 
     private static string? GetHostExecutablePath() {

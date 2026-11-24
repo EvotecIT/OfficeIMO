@@ -54,6 +54,33 @@ public sealed class NotebookDocumentContracts {
     }
 
     [Fact]
+    public void ExplicitLegacyNormalizationPreservesTheEffectiveCodeLanguage() {
+        const string source = """
+            {
+              "nbformat":3,"nbformat_minor":0,"metadata":{},
+              "worksheets":[{"cells":[
+                {"cell_type":"code","language":"python","metadata":{"language":"csharp"},
+                 "input":"print(42)","outputs":[]}
+              ]}]
+            }
+            """;
+        using NotebookDocument notebook = NotebookDocument.Load(Encoding.UTF8.GetBytes(source));
+        NotebookCell cell = Assert.Single(notebook.Cells);
+        Assert.Equal("python", cell.Language);
+        Assert.Equal("csharp", cell.Metadata["language"].GetString());
+        cell.SetMetadata("language", JsonSerializer.SerializeToElement("powershell"));
+        Assert.Equal("python", cell.Language);
+
+        byte[] normalized = notebook.ToBytes(new NotebookSaveOptions { AllowLoss = true });
+        Assert.Equal("powershell", cell.Metadata["language"].GetString());
+        using NotebookDocument reopened = NotebookDocument.Load(normalized);
+        Assert.Equal(4, reopened.NbFormat);
+        NotebookCell reopenedCell = Assert.Single(reopened.Cells);
+        Assert.Equal("python", reopenedCell.Language);
+        Assert.Equal("python", reopenedCell.Metadata["language"].GetString());
+    }
+
+    [Fact]
     public async Task NewNotebookCanBePreparedAndReadThroughCallerOwnedStreams() {
         using NotebookDocument notebook = NotebookDocument.Create();
         notebook.AddMarkdownCell("# Lab results");
