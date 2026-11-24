@@ -91,6 +91,32 @@ The repository contract check uses small project-owned fixtures to exercise all 
 pwsh -NoProfile -File Build/Test-RealWorldCorpusContract.ps1
 ```
 
+## Open XML differential
+
+OfficeIMO is moving its Word, Excel and PowerPoint reads off the Open XML SDK part by part, and each part must produce what the SDK path produces. The differential lane checks that on third-party test files rather than on our own fixtures. With `--operation openxml-differential`, the runner reads every file that claims an Open XML format (by extension, or by content when the extension says nothing) through both readers and keeps the SDK as the reference:
+
+| Lane | Files | OfficeIMO side | Reference |
+| --- | --- | --- | --- |
+| `package` | all | the owned package layer: parts with a content type, every relationship | `System.IO.Packaging` |
+| `word-body-paragraphs` | Word | the owned paragraph text read | the SDK's body paragraph `InnerText`, markup compatibility processed as Office 2007 |
+| `word-text-projection` | Word | the Reader's text projection (streamed, falling back to the model) | the Reader's SDK-backed text-and-metadata projection |
+| `slide-paragraphs` | PowerPoint | the owned slide paragraph read | the SDK's DrawingML paragraph `InnerText`, slide by slide |
+| `powerpoint-text-projection` | PowerPoint | the Reader's text projection | the Reader's SDK-backed text-and-metadata projection |
+
+Each lane is a `match`, a `mismatch` with its first difference and its class (for example `relationship-target`, `missing-lines`, `whitespace`), `our-error` when only OfficeIMO throws, `sdk-error` when only the reference throws, or `both-reject`. The match rate counts files the reference read. A checkout without the owned package layer builds the same runner and reports those lanes as `unavailable`. For Word, the report also says how often the streamed text pass read the document itself and why it declined otherwise.
+
+Malformed packages are compared on purpose. Packages over a size, count or expansion limit of the package inspector are still rejected before either reader opens them.
+
+The corpora are listed in `Build/RealWorldCorpus/openxml-corpus-sources.json`: currently the Open XML SDK test assets (MIT) and the Apache POI test data (Apache 2.0), 1,572 files together. Each source pins a repository commit, the folders and extensions taken, the file count and a SHA-256 over the sorted list of file hashes and paths. `fetch-sources` checks out only those folders at that commit and copies nothing unless the count and digest match. The files are never committed to this repository and the reports never include them. Adding a source means adding an entry and its pins, which `fetch-sources --print-pins` prints.
+
+The `Open XML differential corpus` job in the corpus workflow runs monthly, on demand, and on pull requests that change the Open XML readers or the runner. It is non-gating: differences become warnings, and only a failed fetch or verification fails the job. It uses four workers, a 30-second per-file timeout and a one-hour run deadline that stops new work while still writing the report. The report includes the difference text, since both corpora are public test data.
+
+To run it locally, outside the repository:
+
+```powershell
+pwsh -NoProfile -File Build/Run-OpenXmlCorpus.ps1 -OutputDirectory <scratch>/openxml-corpus
+```
+
 ## Multilingual native and OCR reconstruction
 
 The [multilingual layout corpus](../OfficeIMO.TestAssets/MultilingualLayout/README.md) provides eight independently produced Pango/Cairo cases: Polish/German/English and Hebrew/Arabic/English pages at four quarter-turn rotations. Labels specify paragraph order, table cells, and a figure caption. Each native PDF has a corresponding full-page scan. Recognition uses Tesseract with the recorded language models and labelled rotation; canonical reconstruction does not use expected text to repair OCR output.
