@@ -419,10 +419,9 @@ namespace OfficeIMO.Excel {
 
                         return;
                     case Utf8CellKind.Boolean:
-                        bool parsedBoolean = value.Length == 1
-                            ? value[0] == (byte)'1'
-                            : value.IndexOf((byte)'&') >= 0
-                                && string.Equals(DecodeString(start, length), "1", StringComparison.Ordinal);
+                        bool parsedBoolean = value.IndexOf((byte)'&') >= 0
+                            ? ExcelBooleanCellText.IsTrue(DecodeString(start, length))
+                            : ExcelBooleanCellText.IsTrue(value);
                         if (targetKind == XmlDataReaderTargetKind.String) {
                             objectValue = parsedBoolean.ToString();
                         } else if (targetKind == XmlDataReaderTargetKind.Boolean) {
@@ -1438,7 +1437,7 @@ namespace OfficeIMO.Excel {
             }
 
             private static bool ParseBoolean(ReadOnlySpan<byte> value) {
-                return value.Length == 1 && value[0] == (byte)'1';
+                return ExcelBooleanCellText.IsTrue(value);
             }
 
             private static ReadOnlySpan<byte> TrimAsciiWhitespace(ReadOnlySpan<byte> value) {

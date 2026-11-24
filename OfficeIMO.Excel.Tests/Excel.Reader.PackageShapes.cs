@@ -28,6 +28,18 @@ namespace OfficeIMO.Tests {
             Assert.Equal(new object?[] { null, "text" }, ReadFirstRow(package));
         }
 
+        [Theory]
+        [InlineData("true", true)]
+        [InlineData("TRUE", true)]
+        [InlineData(" true ", true)]
+        [InlineData("false", false)]
+        [InlineData("0", false)]
+        public void BooleanCellsAcceptXsdBooleanLexicalForms(string text, bool expected) {
+            byte[] package = CreateWorkbook($"<row r=\"1\"><c r=\"A1\" t=\"b\"><v>{text}</v></c></row>");
+
+            Assert.Equal(new object?[] { expected }, ReadFirstRow(package));
+        }
+
         private static ExcelReaderOptions Options() => new() {
             HasHeaderRow = false,
             TreatDatesUsingNumberFormat = false

@@ -375,12 +375,12 @@ namespace OfficeIMO.Excel {
 
                 case XmlCellKind.Boolean:
                     if (binding.SetBoolean != null && binding.BindingKind == TypedBindingKind.Boolean) {
-                        binding.SetBoolean(target, rawText == "1");
+                        binding.SetBoolean(target, ExcelBooleanCellText.IsTrue(rawText));
                         return true;
                     }
 
                     if (binding.SetString != null && binding.BindingKind == TypedBindingKind.String) {
-                        binding.SetString(target, (rawText == "1").ToString());
+                        binding.SetString(target, ExcelBooleanCellText.IsTrue(rawText).ToString());
                         return true;
                     }
 

@@ -117,7 +117,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (typeHint == CellValues.Boolean && rawText != null) {
-                if (ReturnBindingConversion(TryConvertBooleanForBinding(rawText == "1", binding, out converted), binding, converted)) {
+                if (ReturnBindingConversion(TryConvertBooleanForBinding(ExcelBooleanCellText.IsTrue(rawText), binding, out converted), binding, converted)) {
                     return true;
                 }
 
@@ -291,7 +291,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (raw.TypeHint == DocumentFormat.OpenXml.Spreadsheet.CellValues.Boolean && raw.RawText != null) {
-                return TryConvertBooleanForBinding(raw.RawText == "1", binding, out converted);
+                return TryConvertBooleanForBinding(ExcelBooleanCellText.IsTrue(raw.RawText), binding, out converted);
             }
 
             if (raw.TypeHint == DocumentFormat.OpenXml.Spreadsheet.CellValues.String
@@ -420,7 +420,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (raw.TypeHint == DocumentFormat.OpenXml.Spreadsheet.CellValues.Boolean && raw.RawText != null) {
-                bool boolValue = raw.RawText == "1";
+                bool boolValue = ExcelBooleanCellText.IsTrue(raw.RawText);
                 if (binding.SetBoolean != null && binding.BindingKind == TypedBindingKind.Boolean) {
                     binding.SetBoolean(target, boolValue);
                     return true;
