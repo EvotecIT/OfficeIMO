@@ -22,6 +22,27 @@ namespace OfficeIMO.Excel {
         }
 
         internal sealed class FormulaEvaluationDepthFrame {
+            private const int MaximumPooledFrames = 64;
+            [ThreadStatic]
+            private static Stack<FormulaEvaluationDepthFrame>? t_pool;
+
+            /// <summary>Returns a cleared frame; a calculation pass needs one per formula cell it evaluates.</summary>
+            internal static FormulaEvaluationDepthFrame Rent() {
+                Stack<FormulaEvaluationDepthFrame>? pool = t_pool;
+                if (pool == null || pool.Count == 0) return new FormulaEvaluationDepthFrame();
+                FormulaEvaluationDepthFrame frame = pool.Pop();
+                frame.MaximumChildDepth = 0;
+                frame.DependencyGuardBlocked = false;
+                frame.UsedUnevaluatedFormulaCache = false;
+                return frame;
+            }
+
+            /// <summary>Takes back a frame that is off the evaluation stack and no longer read.</summary>
+            internal static void Return(FormulaEvaluationDepthFrame frame) {
+                Stack<FormulaEvaluationDepthFrame> pool = t_pool ??= new Stack<FormulaEvaluationDepthFrame>();
+                if (pool.Count < MaximumPooledFrames) pool.Push(frame);
+            }
+
             internal int MaximumChildDepth { get; private set; }
             internal bool DependencyGuardBlocked { get; private set; }
             internal bool UsedUnevaluatedFormulaCache { get; private set; }
@@ -107,6 +128,8 @@ namespace OfficeIMO.Excel {
             return RecalculateSupportedFormulas(context);
         }
 
+        private int _formulaCellCountHint;
+
         internal int RecalculateSupportedFormulas(FormulaCalculationContext context) {
             MaterializePendingDirectCellValues();
 
@@ -133,7 +156,15 @@ namespace OfficeIMO.Excel {
                 _formulaEvaluationStack = context.Stack;
                 _formulaEvaluationDepthFrames = context.DepthFrames;
                 _formulaEvaluationGuardState = context.GuardState;
-                _formulaEvaluationSharedDefinitions = BuildSharedFormulaDefinitions();
+                // One walk lists the formula cells for the pass, the shared-formula check and the array index.
+                // The previous pass's count sizes the list, so a sheet recalculated again copies no growing buffer.
+                var formulaCells = new List<Cell>(_formulaCellCountHint);
+                foreach (Cell formulaCell in ExcelWorksheetScan.FormulaCells(WorksheetRoot)) formulaCells.Add(formulaCell);
+                _formulaCellCountHint = formulaCells.Count;
+                GetFixedArraySheetIndex(formulaCells);
+                _formulaEvaluationSharedDefinitions = HasSharedFormulas(formulaCells)
+                    ? BuildSharedFormulaDefinitions()
+                    : new Dictionary<uint, SharedFormulaDefinition>();
                 _formulaEvaluationSharedDefinitionsBySheet = new Dictionary<string, IReadOnlyDictionary<uint, SharedFormulaDefinition>>(
                     StringComparer.OrdinalIgnoreCase) {
                     [Name] = _formulaEvaluationSharedDefinitions
@@ -145,7 +176,6 @@ namespace OfficeIMO.Excel {
 
                 try {
                     if (_excelDocument.WorkbookPartRoot.CellMetadataPart != null) PlanDynamicArrayOwners();
-                    List<Cell> formulaCells = ExcelWorksheetScan.FormulaCells(WorksheetRoot).ToList();
                     context.ReserveFormulaCells(Name, formulaCells.Count);
                     recalculatedCells.Capacity = formulaCells.Count;
                     foreach (var cell in formulaCells) {
@@ -289,7 +319,7 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
-                var depthFrame = new FormulaEvaluationDepthFrame();
+                var depthFrame = FormulaEvaluationDepthFrame.Rent();
                 _formulaEvaluationDepthFrames.Push(depthFrame);
                 bool evaluated = false;
                 int evaluationDepth = 0;
@@ -324,6 +354,7 @@ namespace OfficeIMO.Excel {
                     } else if (depthFrame.DependencyGuardBlocked && _formulaEvaluationDepthFrames.Count > 0) {
                         _formulaEvaluationDepthFrames.Peek().BlockByDependencyGuard();
                     }
+                    FormulaEvaluationDepthFrame.Return(depthFrame);
                 }
             } finally {
                 _formulaEvaluationCellReference = previousCellReference;
@@ -810,7 +841,7 @@ namespace OfficeIMO.Excel {
             if (TryEvaluateFormulaCore(formula, out double numeric, out FormulaArgumentValue error)) {
                 bool isBoolean = functionCall != null && (functionCall.Name.Equals("AND", StringComparison.OrdinalIgnoreCase)
                     || functionCall.Name.Equals("OR", StringComparison.OrdinalIgnoreCase) || functionCall.Name.Equals("NOT", StringComparison.OrdinalIgnoreCase));
-                result = new FormulaArgumentValue(numeric, InvariantNumberText.Get(numeric), isBoolean: isBoolean);
+                result = FormulaArgumentValue.FromNumber(numeric, isBoolean);
                 return true;
             }
 
@@ -1030,8 +1061,11 @@ namespace OfficeIMO.Excel {
                         return TryEvaluateRankedAggregate(function, args, out result);
                     }
 
-                    if (!TryResolveFormulaArguments(args, out var values) || values.Any(value => value.IsUnresolvedFormula)) {
+                    if (!TryResolveFormulaArguments(args, out var values)) {
                         return false;
+                    }
+                    foreach (FormulaArgumentValue value in values) {
+                        if (value.IsUnresolvedFormula) return false;
                     }
                     if (_formulaReferenceError.IsError) { error = _formulaReferenceError; return false; }
 
@@ -1048,9 +1082,11 @@ namespace OfficeIMO.Excel {
 
 
                     bool numericReferencesOnly = function is "SUM" or "AVERAGE" or "MIN" or "MAX" or "COUNT" or "PRODUCT" or "MEDIAN" or "SUMSQ";
-                    var numericValues = numericReferencesOnly ? values : values.Select(NormalizeLookupResult);
-                    var numbers = numericValues.Where(v => v.Number.HasValue && (!numericReferencesOnly || v.IsNumericAggregateValue))
-                        .Select(v => v.Number!.Value).ToList();
+                    var numbers = new List<double>(values.Count);
+                    foreach (FormulaArgumentValue argument in values) {
+                        FormulaArgumentValue v = numericReferencesOnly ? argument : NormalizeLookupResult(argument);
+                        if (v.Number.HasValue && (!numericReferencesOnly || v.IsNumericAggregateValue)) numbers.Add(v.Number.Value);
+                    }
                     if (function == "COUNT") {
                         result = numbers.Count;
                         return true;

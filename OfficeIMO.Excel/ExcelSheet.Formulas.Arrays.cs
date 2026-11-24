@@ -25,7 +25,7 @@ namespace OfficeIMO.Excel {
             internal readonly List<FixedArrayOwner> Owners = new List<FixedArrayOwner>();
             internal readonly List<FixedArrayOwner> DynamicOwners = new List<FixedArrayOwner>();
             internal readonly Dictionary<Cell, FixedArrayOwner> DynamicByCell = new Dictionary<Cell, FixedArrayOwner>();
-            internal readonly List<Cell> FormulaCells = new List<Cell>();
+            internal List<Cell> FormulaCells = new List<Cell>();
             internal readonly Dictionary<long, Cell> Cells = new Dictionary<long, Cell>();
         }
 
@@ -48,21 +48,24 @@ namespace OfficeIMO.Excel {
             return _formulaEvaluationCache != null && TryResolveDynamicArrayChild(row, column, out result);
         }
 
-        private FixedArraySheetIndex GetFixedArraySheetIndex() {
+        /// <param name="formulaCells">The sheet's formula cells in document order when the caller has just listed
+        /// them; the index keeps that list rather than walking the worksheet again.</param>
+        private FixedArraySheetIndex GetFixedArraySheetIndex(List<Cell>? formulaCells = null) {
             var sheets = ArrayCalculationContexts.GetOrCreateValue(_formulaEvaluationCache!).Sheets;
             if (!sheets.TryGetValue(Name, out FixedArraySheetIndex? index)) {
-                index = BuildFixedArraySheetIndex();
+                index = BuildFixedArraySheetIndex(formulaCells);
                 sheets[Name] = index;
             }
             return index;
         }
 
-        private FixedArraySheetIndex BuildFixedArraySheetIndex() {
+        private FixedArraySheetIndex BuildFixedArraySheetIndex(List<Cell>? formulaCells = null) {
             var index = new FixedArraySheetIndex();
             Metadata? metadata = null;
+            if (formulaCells != null) index.FormulaCells = formulaCells;
             // Array owners and formula cells are DOM cells, so the walk leaves stored cells where they are.
-            foreach (Cell candidate in ExcelWorksheetScan.FormulaCells(WorksheetRoot)) {
-                index.FormulaCells.Add(candidate);
+            foreach (Cell candidate in formulaCells ?? ExcelWorksheetScan.FormulaCells(WorksheetRoot)) {
+                if (formulaCells == null) index.FormulaCells.Add(candidate);
                 if (ExcelWorksheetScan.FindFormula(candidate)?.FormulaType?.Value == CellFormulaValues.Array
                     && IsSupportedArrayExpression(ExcelWorksheetScan.FindFormula(candidate)!.Text)
                     && TryFixedArrayBounds(ExcelWorksheetScan.FindFormula(candidate)!.Reference?.Value ?? "",

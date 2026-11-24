@@ -18,8 +18,7 @@ namespace OfficeIMO.Excel {
             if (TryResolveIndexRange(args, currentRow, out ExcelSheet sheet, out int r1, out int c1,
                 out int r2, out int c2, out FormulaArgumentValue areaError)) {
                 selected = areaError.IsError ? LookupScalarSource(areaError)
-                    : new FormulaLookupSource(r2 - r1 + 1, c2 - c1 + 1,
-                        (row, column) => ResolveFormulaDependency(sheet, r1 + row, c1 + column));
+                    : FormulaLookupSource.FromReference(this, sheet, r2 - r1 + 1, c2 - c1 + 1, r1, c1);
                 return true;
             }
             if (tokens.Count == 4) return false;

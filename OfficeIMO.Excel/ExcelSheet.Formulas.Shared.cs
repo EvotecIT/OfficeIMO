@@ -49,6 +49,13 @@ namespace OfficeIMO.Excel {
             return definitions;
         }
 
+        private static bool HasSharedFormulas(List<Cell> formulaCells) {
+            foreach (Cell cell in formulaCells) {
+                if (ExcelWorksheetScan.FindFormula(cell)?.FormulaType?.Value == CellFormulaValues.Shared) return true;
+            }
+            return false;
+        }
+
         private bool HasSharedFormulas() {
             foreach (CellFormula formula in ExcelWorksheetScan.CellFormulas(WorksheetRoot)) {
                 if (formula.FormulaType?.Value == CellFormulaValues.Shared) return true;

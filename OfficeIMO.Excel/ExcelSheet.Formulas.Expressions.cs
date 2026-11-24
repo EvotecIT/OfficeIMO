@@ -147,7 +147,7 @@ namespace OfficeIMO.Excel {
 
             private static FormulaArgumentValue Numeric(double number) =>
                 double.IsNaN(number) || double.IsInfinity(number) ? FormulaArgumentValue.Error("#NUM!")
-                    : new FormulaArgumentValue(number, InvariantNumberText.Get(number));
+                    : FormulaArgumentValue.FromNumber(number);
 
             internal static FormulaArgumentValue NumericUnary(FormulaArgumentValue value, double factor) {
                 if (value.IsError || value.IsUnresolvedFormula) return value;
