@@ -145,13 +145,24 @@ internal static class OpenXmlCellValueLane {
                 && TimeSpan.TryParse(time.TrimEnd('Z'), CultureInfo.InvariantCulture, out TimeSpan timeOfDay)) {
                 return "n:" + timeOfDay.TotalDays.ToString("R", CultureInfo.InvariantCulture);
             }
-            return DateTime.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out DateTime date)
-                ? "n:" + date.ToOADate().ToString("R", CultureInfo.InvariantCulture)
-                : "d:" + raw;
+            // Text without an offset is a wall-clock time. Text with an offset is converted to the runner's local time,
+            // as the Excel reader does, so the comparison gives the same result in every timezone.
+            if (!DateTimeOffset.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out DateTimeOffset parsed)) return "d:" + raw;
+            DateTime date = HasExplicitOffset(raw) ? parsed.LocalDateTime : parsed.DateTime;
+            return "n:" + date.ToOADate().ToString("R", CultureInfo.InvariantCulture);
         }
         return double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
             ? "n:" + number.ToString("R", CultureInfo.InvariantCulture)
             : "s:" + raw;
+    }
+
+    // An ISO 8601 value carries an offset when it ends with Z or with +hh:mm or -hh:mm after the time.
+    private static bool HasExplicitOffset(string raw) {
+        string text = raw.Trim();
+        int time = text.IndexOf('T');
+        if (time < 0) return false;
+        if (text.EndsWith("Z", StringComparison.OrdinalIgnoreCase)) return true;
+        return text.IndexOfAny(new[] { '+', '-' }, time) > 0;
     }
 
     // The text of a string item: its own t element, or its runs' t elements. Phonetic runs are not cell text.
