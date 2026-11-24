@@ -33,14 +33,21 @@ public sealed class DrawingWebpLosslessTests {
     [InlineData("lossless-repeat")]
     public void TruncatedLosslessPayloadIsRejected(string name) {
         byte[] bytes = ReadFixture(name + ".webp");
-        // Drop the last quarter of the VP8L payload and repair both RIFF sizes, so only the
-        // entropy-coded data is short.
-        int length = bytes.Length - (bytes.Length - 20) / 4;
-        byte[] truncated = bytes.AsSpan(0, length).ToArray();
-        BitConverter.GetBytes(length - 8).CopyTo(truncated, 4);
-        BitConverter.GetBytes(length - 20).CopyTo(truncated, 16);
+        int payload = BitConverter.ToInt32(bytes, 16);
 
-        Assert.False(OfficeRasterImageDecoder.TryDecode(truncated, out _));
+        // The rebuilt container decodes at full length, so the shortened one fails only
+        // because its entropy-coded data ends early.
+        Assert.True(OfficeRasterImageDecoder.TryDecode(WithVp8lPayloadLength(bytes, payload), out _));
+        Assert.False(OfficeRasterImageDecoder.TryDecode(WithVp8lPayloadLength(bytes, payload - payload / 4), out _));
+    }
+
+    /// <summary>Keeps the first <paramref name="length"/> payload bytes with consistent sizes and the RIFF pad byte.</summary>
+    private static byte[] WithVp8lPayloadLength(byte[] bytes, int length) {
+        var result = new byte[20 + length + (length & 1)];
+        Array.Copy(bytes, result, 20 + length);
+        BitConverter.GetBytes(result.Length - 8).CopyTo(result, 4);
+        BitConverter.GetBytes(length).CopyTo(result, 16);
+        return result;
     }
 
     private static byte[] ReadFixture(string name) {

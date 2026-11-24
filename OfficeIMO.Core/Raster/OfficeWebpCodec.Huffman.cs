@@ -117,15 +117,9 @@ public static partial class OfficeWebpCodec {
             if (used == 0) return false;
             if (used == 1) {
                 // A lone symbol is coded with zero bits even though its declared length is one.
-                if (lengths[single] != 1) return false;
-                if (!allocationBudget.TryReserveArray(1 << RootBits, sizeof(int)) ||
-                    !allocationBudget.TryReserveBytes(64L)) return false;
-                var singleTable = new int[1 << RootBits];
-#if NET8_0_OR_GREATER
-                Array.Fill(singleTable, single << 8);
-#else
-                for (int index = 0; index < singleTable.Length; index++) singleTable[index] = single << 8;
-#endif
+                // Its zero-length table is shared by every tree in this image with the same symbol.
+                if (lengths[single] != 1 || !allocationBudget.TryReserveBytes(64L) ||
+                    !allocationBudget.TryGetSingleSymbolTable(single, out int[] singleTable)) return false;
                 tree = new Vp8lHuffmanTree(singleTable, true);
                 return true;
             }

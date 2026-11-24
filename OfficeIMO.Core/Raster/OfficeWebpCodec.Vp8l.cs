@@ -66,7 +66,9 @@ public static partial class OfficeWebpCodec {
             !TryReadVp8lTransforms(reader, width, height, allocationBudget, cancellationToken, out int encodedWidth,
                 out List<Vp8lTransform> transforms) ||
             !TryDecodeVp8lImageData(reader, encodedWidth, height, allowMetaCodes: true, 0,
-                allocationBudget, cancellationToken, out uint[] packed)) return false;
+                allocationBudget, cancellationToken, out uint[] packed) ||
+            // The transforms read nothing more from the stream, so reject trailing data before allocating output.
+            !reader.HasOnlyZeroPadding(cancellationToken)) return false;
         if (writeRgba) {
             if (!allocationBudget.TryReserveArray(pixels, sizeof(uint))) return false;
             cancellationToken.ThrowIfCancellationRequested();
@@ -74,7 +76,7 @@ public static partial class OfficeWebpCodec {
         }
         if (!TryApplyVp8lTransforms(packed, encodedWidth, height, width, transforms,
                 allocationBudget, cancellationToken, rgba, out argb)) return false;
-        return (rgba != null || argb.Length == pixels) && reader.HasOnlyZeroPadding(cancellationToken);
+        return rgba != null || argb.Length == pixels;
     }
 
     private static bool TryDecodeVp8lImageData(
@@ -388,6 +390,37 @@ public static partial class OfficeWebpCodec {
         internal bool TryReserveBytes(long bytes) {
             if (bytes < 0 || _reservedBytes > OfficeRasterGuards.MaximumDecodedBytes - bytes) return false;
             _reservedBytes += bytes;
+            return true;
+        }
+
+        // Green alphabets reach 280 + 2048 symbols with the largest color cache.
+        private const int MaximumAlphabet = 280 + 2048;
+        private int[]?[]? _singleSymbolTables;
+
+        /// <summary>
+        /// Returns the prefix table for a code with one symbol: a root level whose entries all decode that
+        /// symbol with zero bits. Images can declare up to 65,536 groups of five codes, so one table per
+        /// symbol is shared for the whole decode and reserved once.
+        /// </summary>
+        internal bool TryGetSingleSymbolTable(int symbol, out int[] table) {
+            table = Array.Empty<int>();
+            if ((uint)symbol >= MaximumAlphabet) return false;
+            if (_singleSymbolTables == null) {
+                if (!TryReserveArray(MaximumAlphabet, IntPtr.Size)) return false;
+                _singleSymbolTables = new int[]?[MaximumAlphabet];
+            }
+            int[]? shared = _singleSymbolTables[symbol];
+            if (shared == null) {
+                if (!TryReserveArray(1 << Vp8lHuffmanTree.RootBits, sizeof(int))) return false;
+                shared = new int[1 << Vp8lHuffmanTree.RootBits];
+#if NET8_0_OR_GREATER
+                Array.Fill(shared, symbol << 8);
+#else
+                for (int index = 0; index < shared.Length; index++) shared[index] = symbol << 8;
+#endif
+                _singleSymbolTables[symbol] = shared;
+            }
+            table = shared;
             return true;
         }
     }

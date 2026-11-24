@@ -238,8 +238,12 @@ internal static partial class ImageComparisonValidation {
         }
     }
 
-    /// <summary>Both decoders must decode the externally (Magick.NET/libtiff, libwebp) written file to exactly the source pixels.</summary>
-    internal static void ValidateLosslessDecode(string operation, OfficeRasterImage source, byte[] externalEncoded, OfficeImageFormat format) {
+    /// <summary>
+    /// Every decoder in the lane must decode the externally (Magick.NET/libtiff, libwebp) written file to exactly the
+    /// source pixels. <paramref name="includeSkia"/> adds SkiaSharp for lanes that time it.
+    /// </summary>
+    internal static void ValidateLosslessDecode(string operation, OfficeRasterImage source, byte[] externalEncoded, OfficeImageFormat format,
+        bool includeSkia = false) {
         byte[] expected = source.GetPixels();
         ImageBenchmarkCorpus.AssertIdentified(externalEncoded, format, source.Width, source.Height, operation + " external file");
         Record(OfficeImo, "DecodeExternal", () => {
@@ -250,6 +254,12 @@ internal static partial class ImageComparisonValidation {
             AssertPixels(operation + " Magick.NET decode of the external file", expected, ImageComparisonAdapters.DecodeMagickRgba(externalEncoded));
             return $"{operation} {source.Width}x{source.Height}; decoded RGBA equals the source the file was written from";
         });
+        if (includeSkia) {
+            Record(Skia, "DecodeExternal", () => {
+                AssertPixels(operation + " SkiaSharp decode of the external file", expected, ImageComparisonAdapters.DecodeSkiaRgba(externalEncoded));
+                return $"{operation} {source.Width}x{source.Height}; decoded RGBA equals the source the file was written from";
+            });
+        }
 #if NET10_0_OR_GREATER
         Record(OneImageLibrary, "DecodeExternal", () => {
             AssertPixels(operation + " OneImage decode of the external file", expected, OneImageComparisonAdapters.DecodeRgba(externalEncoded));
@@ -285,7 +295,7 @@ internal static partial class ImageComparisonValidation {
         return opaque;
     }
 
-    internal static void AssertPixels(string engine, byte[] expected, byte[] actual) {
+    private static void AssertPixels(string engine, byte[] expected, byte[] actual) {
         if (!expected.AsSpan().SequenceEqual(actual)) {
             throw new InvalidOperationException(engine + " did not produce the expected RGBA pixels.");
         }

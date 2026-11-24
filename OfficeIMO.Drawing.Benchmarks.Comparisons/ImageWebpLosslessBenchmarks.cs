@@ -12,6 +12,10 @@ public class ImageWebpLosslessEncodeBenchmarks {
     private global::OneImage.Image _oneImage = null!;
 #endif
 
+    /// <summary>The encoded source; encoding runs on the synthetic pattern, the decode lane's first input.</summary>
+    [Params("Pattern")]
+    public string Image { get; set; } = "Pattern";
+
     [GlobalSetup]
     public void Setup() {
         _image = ImageBenchmarkCorpus.CreatePattern(512, 512);
@@ -71,9 +75,8 @@ public class ImageWebpLosslessDecodeBenchmarks {
         // Keep the RGB of fully transparent pixels so every decoder must return the source exactly.
         magick.Settings.SetDefine(MagickFormat.WebP, "exact", true);
         _magickEncoded = ImageComparisonAdapters.EncodeMagickWebpLossless(magick);
-        ImageComparisonValidation.ValidateLosslessDecode("lossless WebP " + Image, image, _magickEncoded, OfficeImageFormat.Webp);
-        ImageComparisonValidation.AssertPixels("lossless WebP " + Image + " SkiaSharp decode",
-            image.GetPixels(), ImageComparisonAdapters.DecodeSkiaRgba(_magickEncoded));
+        ImageComparisonValidation.ValidateLosslessDecode("lossless WebP " + Image, image, _magickEncoded, OfficeImageFormat.Webp,
+            includeSkia: true);
     }
 
     [Benchmark(Baseline = true)]
