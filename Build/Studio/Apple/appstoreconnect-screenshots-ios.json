@@ -1,28 +1,25 @@
 {
   "appId": "6818096229",
-  "versionString": "1.0",
   "useReleaseVersion": true,
   "locale": "en-US",
   "platform": "iOS",
   "screenshotSets": [
     {
       "screenshotDisplayType": "APP_IPHONE_67",
-      "path": "../../../Artifacts/Studio/Apple/screenshots/iPhone/en-US",
+      "path": "../../../Artifacts/Studio/Apple/screenshots/store-art/en-US/iphone-69",
       "filter": "*.png",
-      "maxCount": 10,
+      "maxCount": 5,
       "allowedDimensions": [
-        "1320x2868",
-        "1290x2796"
+        "1320x2868"
       ]
     },
     {
       "screenshotDisplayType": "APP_IPAD_PRO_3GEN_129",
-      "path": "../../../Artifacts/Studio/Apple/screenshots/iPad/en-US",
+      "path": "../../../Artifacts/Studio/Apple/screenshots/store-art/en-US/ipad-13",
       "filter": "*.png",
-      "maxCount": 10,
+      "maxCount": 6,
       "allowedDimensions": [
-        "2064x2752",
-        "2048x2732"
+        "2064x2752"
       ]
     }
   ],

@@ -15,6 +15,8 @@
 		809D2665E287F2BC99EFBAC9 /* StudioStoreCaptureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E8B3EA5561DA60B2944628B /* StudioStoreCaptureTests.swift */; };
 		8DC83AFE80180208022E0D02 /* openpreserve-high-resolution-image.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 4CEF581811D5DF1947C9AAA3 /* openpreserve-high-resolution-image.pdf */; };
 		D1503065DE8691D708AA9343 /* StudioCapturePageReadiness.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23418735527A4AE879485584 /* StudioCapturePageReadiness.swift */; };
+		7A1D5C0E3B9F4E21A6C8D002 /* StudioAccessibilityID.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1D5C0E3B9F4E21A6C8D001 /* StudioAccessibilityID.swift */; };
+		7A1D5C0E3B9F4E21A6C8D003 /* StudioAccessibilityID.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1D5C0E3B9F4E21A6C8D001 /* StudioAccessibilityID.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -44,6 +46,7 @@
 		5A1C0DE00000000000000002 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		5A1C0DE00000000000000003 /* Version.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Version.xcconfig; sourceTree = "<group>"; };
 		C466EAF028F1417DD9F27A8D /* OfficeIMOStudioCapture-macOS.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "OfficeIMOStudioCapture-macOS.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		7A1D5C0E3B9F4E21A6C8D001 /* StudioAccessibilityID.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = StudioAccessibilityID.swift; path = ../Shared/App/StudioAccessibilityID.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -112,6 +115,7 @@
 			children = (
 				1E8B3EA5561DA60B2944628B /* StudioStoreCaptureTests.swift */,
 				23418735527A4AE879485584 /* StudioCapturePageReadiness.swift */,
+				7A1D5C0E3B9F4E21A6C8D001 /* StudioAccessibilityID.swift */,
 			);
 			name = StoreCapture;
 			path = StoreCapture;
@@ -311,6 +315,7 @@
 			files = (
 				341288CBAD235131DA9317A8 /* StudioStoreCaptureTests.swift in Sources */,
 				6927505F4DCE1C422A0691A5 /* StudioCapturePageReadiness.swift in Sources */,
+				7A1D5C0E3B9F4E21A6C8D002 /* StudioAccessibilityID.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -327,6 +332,7 @@
 			files = (
 				809D2665E287F2BC99EFBAC9 /* StudioStoreCaptureTests.swift in Sources */,
 				D1503065DE8691D708AA9343 /* StudioCapturePageReadiness.swift in Sources */,
+				7A1D5C0E3B9F4E21A6C8D003 /* StudioAccessibilityID.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

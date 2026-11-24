@@ -30,6 +30,11 @@ jobs:
         uses: ./.github/actions/contract-selection
         with:
           suite: studio-apple
+      # Cheap on every run: the authored listings, captions and screenshot mappings for each Studio language.
+      - name: Check the App Store listings
+        run: |
+          ruby Build/Studio/Apple/check-appstore-localizations.rb
+          ruby Build/Studio/Apple/store-art/screenshot-configs.rb --check
 
   native:
     needs: changes

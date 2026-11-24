@@ -14,7 +14,7 @@ Three alternatives were considered:
 | Native UI written in C# through .NET's iOS and macOS bindings | Viable, and the C interface below keeps it possible. Swift was chosen for SwiftUI, previews, Xcode tooling and the platform's own documentation and samples |
 | Rewrite the engines in Swift | Duplicates every format engine and its qualification, and splits behaviour between platforms |
 
-The Avalonia macOS build and the Avalonia iOS host remain in the repository until the native apps cover the everyday journeys. They receive fixes, not new Apple-specific features.
+The native apps are the only Studio on Mac, iPad and iPhone. The Avalonia app is the Windows and Linux desktop Studio.
 
 ## Layers
 

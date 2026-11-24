@@ -29,17 +29,19 @@ permissions:
 
 jobs:
   capture:
-    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-apple-screenshot-capture.yml@5ec7e30460de47b9a804127806a42fd654d89833
+    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-apple-screenshot-capture.yml@2664d018b08c69a6eed5622135b30cc6c9d2428c
     with:
       source_ref: ${{ inputs.source_ref }}
       marketing_version: ${{ inputs.marketing_version }}
       capture_script: Build/Studio/Apple/Capture-StudioAppleScreenshots.ps1
       capture_shell: pwsh
       capture_artifact_path: Artifacts/Studio/Apple/screenshots
-      simulator_tool_ref: 5ec7e30460de47b9a804127806a42fd654d89833
+      simulator_tool_ref: 2664d018b08c69a6eed5622135b30cc6c9d2428c
       simulator_devices_json: ${{ inputs.simulator_devices_json }}
       runner_labels_json: ${{ inputs.runner_labels_json }}
+      store_art_spec: Build/Studio/Apple/store-art/store-art.json
+      store_art_tool_ref: 2664d018b08c69a6eed5622135b30cc6c9d2428c
       runtime: ${{ inputs.runtime }}
       device: Native Mac, portrait iPhone and iPad matching store screenshot mappings
       theme: System appearance of the reviewed native capture runner
-      scenario: Public Northwind dashboard and PDF search
+      scenario: Public Northwind dashboard, search, markup, inspector, pages, fillable form and Excel viewer in every listing language

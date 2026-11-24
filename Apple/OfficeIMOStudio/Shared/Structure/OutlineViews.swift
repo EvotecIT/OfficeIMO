@@ -110,5 +110,6 @@ struct SidebarModePicker: View {
         .pickerStyle(.segmented)
         .labelStyle(.iconOnly)
         .labelsHidden()
+        .accessibilityIdentifier(StudioAccessibilityID.sidebarMode)
     }
 }

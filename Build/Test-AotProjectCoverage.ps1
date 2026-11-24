@@ -159,11 +159,6 @@ $nonNativeValidated = @(
         evidence = 'The Avalonia desktop application is distributed through managed cross-platform publish profiles and is not advertised as NativeAOT-compatible.'
     }
     [ordered]@{
-        name = 'OfficeIMO.Studio.iOS'
-        classification = 'ios-host-unqualified'
-        evidence = 'The Avalonia iPhone and iPad host has Debug ARM64 simulator evidence. Release trimming, device AOT, signing and physical-device acceptance remain unqualified; the simulator interpreter does not establish NativeAOT compatibility.'
-    }
-    [ordered]@{
         name = 'OfficeIMO.MarkdownRenderer.Wpf'
         classification = 'managed-windows'
         evidence = 'WPF executable publishing rejects trimming with NETSDK1168; validate this UI package with the managed Windows test lane.'
@@ -287,7 +282,6 @@ $matrix = [ordered]@{
         nativeBuildAnalyzerCount = $buildAnalyzers.Count
         managedCrossPlatformProjectCount = @($nonNativeValidated | Where-Object classification -EQ 'managed-cross-platform').Count
         managedWindowsProjectCount = @($nonNativeValidated | Where-Object classification -EQ 'managed-windows').Count
-        iosHostUnqualifiedProjectCount = @($nonNativeValidated | Where-Object classification -EQ 'ios-host-unqualified').Count
     }
     definitions = [ordered]@{
         nativeFullSurface = 'The production library is retained as a complete assembly in the NativeAOT compile graph.'
@@ -298,7 +292,6 @@ $matrix = [ordered]@{
         nativeBuildAnalyzer = 'The build-time analyzer emits code that compiles into and executes from a NativeAOT consumer; the analyzer is not deployed as a runtime assembly.'
         managedCrossPlatform = 'The package is validated in its supported cross-platform managed deployment model rather than advertised for NativeAOT.'
         managedWindows = 'The package is validated in its supported managed Windows deployment model rather than advertised for NativeAOT.'
-        iosHostUnqualified = 'The iOS host has simulator evidence, without Release trimming, device AOT, signing or physical-device qualification.'
     }
     components = @($components)
 }
@@ -321,6 +314,5 @@ if (-not [string]::IsNullOrWhiteSpace($JsonOutputPath)) {
     NativeBuildAnalyzerCount = $matrix.summary.nativeBuildAnalyzerCount
     ManagedCrossPlatformProjectCount = $matrix.summary.managedCrossPlatformProjectCount
     ManagedWindowsProjectCount = $matrix.summary.managedWindowsProjectCount
-    IosHostUnqualifiedProjectCount = $matrix.summary.iosHostUnqualifiedProjectCount
     Status = 'passed'
 }

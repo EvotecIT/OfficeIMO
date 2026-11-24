@@ -235,7 +235,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
                 token => FileDialogs.PickOpenFileAsync(_localizer.Get("OcrSetup.ChooseExecutable"), StudioFileType.Any("Tesseract"), token), _services.Ocr);
             OcrSession = new OcrSessionViewModel(pickOcrFiles ?? pickWorkflowFiles ?? (_ => Task.FromResult<IReadOnlyList<string>>([])),
                 _pickOutputFolder, _localizer, _services.Storage, _services.Jobs, publicationGuard,
-                createEngine: StudioDistributionPolicy.ExternalToolsAllowed ? _services.Ocr.CreateEngineAsync : null, openOutput: openWorkflowOutput);
+                createEngine: _services.Ocr.CreateEngineAsync, openOutput: openWorkflowOutput);
             OcrReadiness = new OcrReadinessViewModel(_services.Preferences, _localizer);
             OcrSession.Readiness = OcrReadiness;
             ConversionWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
