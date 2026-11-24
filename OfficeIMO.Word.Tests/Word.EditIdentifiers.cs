@@ -178,6 +178,23 @@ namespace OfficeIMO.Tests {
             AssertUniqueIdentifiers(stream, bookmarks: 4, drawings: 4, comments: 4);
         }
 
+        [Fact]
+        public void AddRowWithoutACellCountMatchesThePrecedingRowInTheCurrentTable() {
+            using WordDocument document = WordDocument.Create();
+            document.AddTable(1, 2);
+            WordTable first = document.Tables[0];
+            WordTable second = document.Tables[0];
+
+            first.AddRow(2);
+            second.AddRow(3);
+            Assert.Equal(3, first.AddRow().CellsCount);
+
+            first.AddRow(4);
+            TableRow last = document.OpenXmlDocument.MainDocumentPart!.Document.Body!.Descendants<TableRow>().Last();
+            last.Remove();
+            Assert.Equal(3, first.AddRow().CellsCount);
+        }
+
         private void AddIdentifiedItems(WordDocument document, string prefix, int count) {
             for (int i = 0; i < count; i++) {
                 document.AddParagraph($"{prefix} bookmark {i}").AddBookmark($"{prefix}Mark{i}");

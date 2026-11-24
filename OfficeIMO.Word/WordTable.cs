@@ -512,10 +512,15 @@ namespace OfficeIMO.Word {
             if (cellsCount == 0) {
                 // Match the previous row when available; otherwise use the
                 // declared grid width retained by an initially empty table.
-                // AddRow has already appended the new row to the cached row list.
-                List<TableRow> rows = GetRowElements();
-                cellsCount = rows.Count > 1
-                    ? WordTableContent.GridColumnCount(rows[rows.Count - 2])
+                // Read the preceding row from the current XML: other wrappers and direct package edits don't
+                // update this wrapper's row cache. Only a row wrapped in other markup needs the full row walk.
+                TableRow? previous = row._tableRow.PreviousSibling() switch {
+                    TableRow sibling => sibling,
+                    null or TableProperties or TableGrid => null,
+                    _ => WordTableContent.Rows(_table).TakeWhile(candidate => !ReferenceEquals(candidate, row._tableRow)).LastOrDefault()
+                };
+                cellsCount = previous != null
+                    ? WordTableContent.GridColumnCount(previous)
                     : _table.GetFirstChild<TableGrid>()?.Elements<GridColumn>().Count() ?? 0;
             }
             for (int j = 0; j < cellsCount; j++) {
