@@ -66,16 +66,14 @@ public abstract partial class AsyncPSCmdlet
                 return;
             }
 
-            var priorItemGeneration = CurrentHookGeneration;
-            var priorPumpLease = _pipelinePumpLease.Value;
+            var priorHookFrames = CaptureHookFrames();
             var priorSharedPumpLease =
                 Volatile.Read(ref _currentPipelinePumpLease);
             var pumpLease = new PipelinePumpLease(item.HookGeneration);
             try
             {
                 _ = Interlocked.Increment(ref _pipelinePumpDepth);
-                CurrentHookGeneration = item.HookGeneration;
-                _pipelinePumpLease.Value = pumpLease;
+                EnterHookFrame(item.HookGeneration, pumpLease);
                 Volatile.Write(
                     ref _currentPipelinePumpLease,
                     pumpLease);
@@ -216,8 +214,7 @@ public abstract partial class AsyncPSCmdlet
                 Volatile.Write(
                     ref _currentPipelinePumpLease,
                     priorSharedPumpLease);
-                _pipelinePumpLease.Value = priorPumpLease;
-                CurrentHookGeneration = priorItemGeneration;
+                RestoreHookFrames(priorHookFrames);
                 _ = Interlocked.Decrement(ref _pipelinePumpDepth);
             }
         }
@@ -355,13 +352,13 @@ public abstract partial class AsyncPSCmdlet
             Volatile.Write(ref _currentOutPipe, outPipe);
         }
 
-        var priorHookGeneration = CurrentHookGeneration;
+        var priorHookFrames = CaptureHookFrames();
         try
         {
             Volatile.Write(ref _pipelineSynchronizationContext, synchronizationContext);
             SynchronizationContext.SetSynchronizationContext(
                 hookSynchronizationContext);
-            CurrentHookGeneration = hookGeneration;
+            EnterHookFrame(hookGeneration, CurrentPumpLease);
             ThrowIfStopped();
             if (TaskScheduler.Current == TaskScheduler.Default)
             {
@@ -412,7 +409,7 @@ public abstract partial class AsyncPSCmdlet
         }
         finally
         {
-            CurrentHookGeneration = priorHookGeneration;
+            RestoreHookFrames(priorHookFrames);
             SynchronizationContext.SetSynchronizationContext(synchronizationContext);
         }
 
