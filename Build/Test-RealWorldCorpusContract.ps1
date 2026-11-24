@@ -193,7 +193,7 @@ try {
     $expectedLanes = @{
         'document.docx' = @('package', 'word-body-paragraphs', 'word-text-projection')
         'presentation.pptx' = @('package', 'slide-paragraphs', 'powerpoint-text-projection')
-        'workbook.xlsx' = @('package')
+        'workbook.xlsx' = @('package', 'excel-cell-values')
         'not-a-package.docx' = @('package', 'word-body-paragraphs', 'word-text-projection')
     }
     foreach ($entry in $expectedLanes.GetEnumerator()) {
