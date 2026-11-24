@@ -323,7 +323,10 @@
           "support": { "windows": "partial", "linux": "partial", "mac": "available", "ipad": "available", "iphone": "available" },
           "notes": {
             "windows": "Office files go through the conversion workbench, which writes a PDF to open.",
-            "linux": "Office files go through the conversion workbench, which writes a PDF to open."
+            "linux": "Office files go through the conversion workbench, which writes a PDF to open.",
+            "mac": "An HTML page opens on its own, without the images and stylesheets saved beside it.",
+            "ipad": "An HTML page opens on its own, without the images and stylesheets saved beside it.",
+            "iphone": "An HTML page opens on its own, without the images and stylesheets saved beside it."
           }
         },
         {
