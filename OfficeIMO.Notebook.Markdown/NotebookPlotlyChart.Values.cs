@@ -124,8 +124,9 @@ internal static partial class NotebookPlotlyChart {
     }
 
     /// <summary>Reads the little-endian, one-dimensional NumPy array encoding used by Plotly.py.</summary>
-    private static double[]? ReadTypedNumbers(JsonElement source, int maxCount) {
-        if (!ContainsOnly(source, "dtype", "bdata") ||
+    private static double[]? ReadTypedNumbers(JsonElement source, int maxCount, bool hasMatrixShape = false) {
+        bool knownShape = hasMatrixShape ? ContainsOnly(source, "dtype", "bdata", "shape") : ContainsOnly(source, "dtype", "bdata");
+        if (!knownShape ||
             !TryReadString(Property(source, "dtype"), 2, out string? dtype)) return null;
         int stride = dtype switch {
             "i1" or "u1" => 1,

@@ -58,7 +58,7 @@ internal static partial class NotebookPlotlyChart {
         return dash.HasValue;
     }
 
-    private static bool TryReadTemplate(JsonElement template, bool bar, out JsonElement layout) {
+    private static bool TryReadTemplate(JsonElement template, string traceType, out JsonElement layout) {
         layout = Property(template, "layout");
         // A producer template can set defaults that change this Cartesian chart. Limit the
         // applicable layout and trace defaults to presentation fields and inactive styles.
@@ -73,14 +73,13 @@ internal static partial class NotebookPlotlyChart {
         JsonElement data = Property(template, "data");
         if (data.ValueKind == JsonValueKind.Undefined) return true;
         if (data.ValueKind != JsonValueKind.Object) return false;
-        string traceType = bar ? "bar" : "scatter";
         JsonElement traces = Property(data, traceType);
         if (traces.ValueKind == JsonValueKind.Undefined) return true;
         if (traces.ValueKind != JsonValueKind.Array || traces.GetArrayLength() > MaxTraces) return false;
         foreach (JsonElement trace in traces.EnumerateArray()) {
             if (trace.ValueKind != JsonValueKind.Object ||
                 !ValueOrDefault(Property(trace, "type"), traceType) ||
-                !TryReadTemplateTrace(trace, bar)) return false;
+                !TryReadTemplateTrace(trace, traceType)) return false;
         }
         return true;
     }
@@ -89,9 +88,12 @@ internal static partial class NotebookPlotlyChart {
         ContainsOnly(axis, "automargin", "gridcolor", "linecolor", "ticks", "title", "zerolinecolor", "zerolinewidth") &&
         ContainsOnly(Property(axis, "title"), "standoff", "font");
 
-    private static bool TryReadTemplateTrace(JsonElement trace, bool bar) {
-        if (!bar) return ContainsOnly(trace, "type", "fillpattern");
+    private static bool TryReadTemplateTrace(JsonElement trace, string traceType) {
         JsonElement marker = Property(trace, "marker");
+        if (traceType == "scattergl") return ContainsOnly(trace, "type", "marker")
+            && ContainsOnly(marker, "colorbar")
+            && ContainsOnly(Property(marker, "colorbar"), "outlinewidth", "ticks");
+        if (traceType != "bar") return ContainsOnly(trace, "type", "fillpattern");
         return ContainsOnly(trace, "type", "error_x", "error_y", "marker") &&
             ContainsOnly(Property(trace, "error_x"), "color") &&
             ContainsOnly(Property(trace, "error_y"), "color") &&

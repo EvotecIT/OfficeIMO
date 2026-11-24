@@ -265,6 +265,11 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         [Fact]
         public void Null_CssScopeSelector_DisablesArticleScope() {
             var doc = MarkdownDocument.Create().H1("Title").P("Hello world");
+            var standard = doc.ToHtml(new MarkdownHtmlExportOptions {
+                Style = MarkdownHtmlStyle.Clean,
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Document
+            });
+            Assert.Contains("article.markdown-body h1", standard, StringComparison.Ordinal);
             var html = doc.ToHtml(new MarkdownHtmlExportOptions
             {
                 Style = MarkdownHtmlStyle.Clean,

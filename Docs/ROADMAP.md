@@ -28,7 +28,7 @@ The [API design](officeimo.api-design.md) defines the shared lengths, colors, th
 ## Notebook formats
 
 - [ ] Measure browser latency and memory for large Jupyter notebooks on representative phones.
-- [ ] Expand saved chart fidelity beyond the [qualified static previews](../OfficeIMO.Notebook/SUPPORT.md). Qualify chart-only subplots, layers, facets, heatmaps, maps, 3D, Bokeh and WebGL against producer renderers. Define and qualify an explicit opt-in interactive HTML profile for saved widget state and chart interactions.
+- [ ] Expand [saved chart fidelity](../OfficeIMO.Notebook/SUPPORT.md) to subplots, layers, facets, heatmaps, maps, Bokeh, mesh geometry and additional WebGL traces. Qualify chart interactions and more standalone widget models with saved producer fixtures.
 - [ ] Extend offline publishing notebook imports to caller-supplied static resources and separately qualify native publisher directives, cached results, and richer saved layouts.
 - [ ] Repeat Kaggle and Databricks qualification against exports collected directly from current hosted runtimes. The pinned public producer corpus covers saved results.
 

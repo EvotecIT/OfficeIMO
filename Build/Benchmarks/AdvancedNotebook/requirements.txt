@@ -1,0 +1,6 @@
+nbconvert[webpdf]==7.17.2
+nbformat==5.11.1
+playwright==1.63.0
+plotly==6.9.0
+kaleido==1.5.2
+numpy==2.4.6

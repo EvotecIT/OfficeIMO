@@ -11,7 +11,7 @@ saved MIME alternatives. It is suitable for offline inspection and editing.
 | nbformat 3 read | Projects worksheet cells in order into the typed model. Headings, inputs, execution counts and saved outputs are normalized. A v4 save requires explicit acceptance of the lost worksheet structure. |
 | Reader | Projects text and Markdown using the existing bounded Reader contract. Use the notebook model or the conversion packages for rich saved output. |
 | PDF | Projects ordered notebook content and supported saved text, Markdown, HTML tables, images, attachments and TeX math into fixed pages. Code wraps, tables repeat available headers and oversized figures scale to the page. A figure stays with its caption when both fit. Rendering reports unsupported MIME values, blocked resources and fidelity changes. |
-| HTML | Writes offline HTML with supported images, semantic tables and MathML. Stored script and widget payloads are treated as opaque data. |
+| HTML | Writes offline HTML with supported images, semantic tables and MathML. An opt-in profile enables supported controls from saved Jupyter widget state. |
 | Markdown | Writes standalone Markdown with supported embedded images and saved outputs. The typed projection is also shared by the document exports. |
 | DOCX | Writes editable text, code, headings and supported tables through the Word document engine. Saved figures use the Word adapter's supported image formats. |
 | CSV and XLSX | Exports a selected inline structured data resource with an ordered field schema. |
@@ -22,13 +22,21 @@ specification, export can draw a vector preview.
 
 | Saved chart specification | Static preview |
 | --- | --- |
-| Plotly | Single Cartesian panel with categorical grouped bars or numeric scatter markers and lines. Numeric arrays can use Plotly.py's supported one-dimensional typed encoding. |
+| Plotly Cartesian | Single panel with categorical grouped bars or numeric scatter markers and lines. Supported `scattergl` traces draw vector geometry from the saved data. Numeric arrays can use Plotly.py's one-dimensional typed encoding. |
+| Plotly 3D | One scene with supported `scatter3d` traces or a regular `surface` grid. Uses the saved camera, projects depth-ordered vector geometry, and accepts supported Plotly.py typed arrays. |
 | Vega-Lite | Single-unit categorical bars or numeric points and lines using inline literal rows, including a named dataset stored with the specification. |
-| Layered, faceted, 3D, map and other advanced charts | Use a supported saved image if one is present. The original chart data remains in the notebook on save. |
+| Other advanced charts | Layers, facets, meshes and maps use a supported saved image when available. The original chart data remains in the notebook on save. |
 
 Saved images and reconstructed previews report the reduction to static output.
-Widgets, chart interactions, and resources referenced by chart specifications
-are not loaded during export. The [chart sample and generator](../OfficeIMO.TestAssets/Notebook/RichOutputs/README.md) document the producer evidence.
+Plotly scenes use OfficeIMO's camera and drawing model. They approximate visual
+effects such as lighting and styling. Each figure has a bounded data and image
+budget. The [advanced chart fixture](../OfficeIMO.TestAssets/Notebook/AdvancedOutputs/Charts/README.md) records the tested camera, surface and WebGL inputs.
+
+The opt-in HTML profile renders supported saved text, selection, toggle, range,
+progress, Play and box models. It resolves browser-side widget links when both
+endpoints can be rendered. Kernel callbacks and notebook-supplied JavaScript
+remain inert. Conversion reports identify unsupported saved views. See the
+[original widget fixtures](../OfficeIMO.TestAssets/Notebook/AdvancedOutputs/Widgets/README.md).
 
 The notebook codec owns its bounded JSON storage for the lifetime of the model.
 Media are decoded on demand. The parser enforces byte, depth, cell and output

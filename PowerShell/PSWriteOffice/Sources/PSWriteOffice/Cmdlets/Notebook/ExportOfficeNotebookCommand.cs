@@ -50,6 +50,14 @@ public sealed class ExportOfficeNotebookCommand : AsyncPSCmdlet {
     [Parameter(ParameterSetName = "Document")]
     public SwitchParameter IncludeExecutionCounts { get; set; }
 
+    /// <summary>Preserve exact Markdown cell source in a Markdown export. Cell-local attachments are omitted with a report.</summary>
+    [Parameter(ParameterSetName = "Document")]
+    public SwitchParameter PreserveMarkdownSource { get; set; }
+
+    /// <summary>Include supported, interactive saved-state widgets in a standalone HTML export.</summary>
+    [Parameter(ParameterSetName = "Document")]
+    public SwitchParameter IncludeInteractiveWidgets { get; set; }
+
     /// <summary>Optional title for a rendered document.</summary>
     [Parameter(ParameterSetName = "Document")]
     public string? Title { get; set; }
@@ -97,7 +105,14 @@ public sealed class ExportOfficeNotebookCommand : AsyncPSCmdlet {
     private Func<Stream, CancellationToken, Task<OfficeConversionReport>> CaptureDocumentExport(string extension) {
         NotebookDocument document = Document;
         var parameters = MyInvocation.BoundParameters;
+        if (parameters.ContainsKey(nameof(PreserveMarkdownSource)) && extension is not (".md" or ".markdown")) {
+            throw new PSArgumentException("-PreserveMarkdownSource applies only to Markdown exports.");
+        }
+        if (parameters.ContainsKey(nameof(IncludeInteractiveWidgets)) && extension is not (".html" or ".htm")) {
+            throw new PSArgumentException("-IncludeInteractiveWidgets applies only to HTML exports.");
+        }
         bool failOnLoss = FailOnLoss.IsPresent;
+        bool includeInteractiveWidgets = IncludeInteractiveWidgets.IsPresent;
         if (extension == ".ps1") {
             if (parameters.ContainsKey(nameof(IncludeCode)) || parameters.ContainsKey(nameof(IncludeOutputs)) ||
                 parameters.ContainsKey(nameof(IncludeExecutionCounts)) || parameters.ContainsKey(nameof(Title)) ||
@@ -111,12 +126,15 @@ public sealed class ExportOfficeNotebookCommand : AsyncPSCmdlet {
             IncludeCode = OfficeSwitch.Get(parameters, nameof(IncludeCode)) ?? true,
             IncludeOutputs = OfficeSwitch.Get(parameters, nameof(IncludeOutputs)) ?? true,
             IncludeExecutionCounts = OfficeSwitch.Get(parameters, nameof(IncludeExecutionCounts)) ?? true,
+            PreserveMarkdownSource = PreserveMarkdownSource.IsPresent,
             Title = Title, Author = Author, FailOnLoss = failOnLoss
         };
         return extension switch {
-            ".md" or ".markdown" => (stream, token) => SaveMarkdownAsync(document, stream, projection, token),
+            ".md" or ".markdown" => (stream, token) => document.SaveAsMarkdownAsync(stream, projection, token),
             ".html" or ".htm" => (stream, token) => document.SaveAsHtmlAsync(stream,
-                new NotebookHtmlExportOptions { ProjectionOptions = projection, FailOnLoss = failOnLoss }, token),
+                new NotebookHtmlExportOptions {
+                    ProjectionOptions = projection, FailOnLoss = failOnLoss, IncludeInteractiveWidgets = includeInteractiveWidgets
+                }, token),
             ".pdf" => (stream, token) => document.SaveAsPdfAsync(stream, new NotebookPdfExportOptions {
                 IncludeCode = projection.IncludeCode, IncludeOutputs = projection.IncludeOutputs,
                 IncludeExecutionCounts = projection.IncludeExecutionCounts, Title = projection.Title,
@@ -129,12 +147,5 @@ public sealed class ExportOfficeNotebookCommand : AsyncPSCmdlet {
             }, token),
             _ => throw new PSArgumentException("Export a notebook to .pdf, .html, .md, .docx, or .ps1.")
         };
-    }
-
-    private static async Task<OfficeConversionReport> SaveMarkdownAsync(NotebookDocument document,
-        Stream destination, NotebookMarkdownExportOptions options, CancellationToken cancellationToken) {
-        using var markdown = document.ToMarkdown(options, out OfficeConversionReport report, cancellationToken);
-        await markdown.SaveAsync(destination, cancellationToken: cancellationToken).ConfigureAwait(false);
-        return report;
     }
 }

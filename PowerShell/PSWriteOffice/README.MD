@@ -201,6 +201,11 @@ try {
 Read `Get-Help about_PSWriteOffice_Notebook` for explicit import profiles,
 PowerShell script exchange, and saved-table export.
 
+Use `-PreserveMarkdownSource` with a Markdown destination to keep the cell's
+authored spelling and formatting. The report identifies omitted notebook-local
+attachment data. Use `-IncludeInteractiveWidgets` with an HTML destination to
+enable supported saved controls and browser-side links.
+
 ## Working with live documents
 
 Leave out the content block to keep a document open, for example to build it in a loop, then save and close it yourself:

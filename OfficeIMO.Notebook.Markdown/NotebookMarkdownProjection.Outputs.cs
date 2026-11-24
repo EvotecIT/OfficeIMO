@@ -33,6 +33,10 @@ internal sealed partial class NotebookMarkdownProjection {
                 if (_options.IncludeExecutionCounts && output.ExecutionCount is int executionCount) {
                     AddParagraph("Out [" + executionCount.ToString(CultureInfo.InvariantCulture) + "]");
                 }
+                if (_options.OutputRenderer?.Invoke(output, location) is IMarkdownBlock rendered) {
+                    _blocks.Add(rendered);
+                    break;
+                }
                 AddDisplay(output.Data, location);
                 break;
             default:

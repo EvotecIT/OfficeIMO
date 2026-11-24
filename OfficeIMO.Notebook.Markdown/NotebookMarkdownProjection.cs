@@ -20,7 +20,7 @@ internal sealed partial class NotebookMarkdownProjection {
 
     internal IReadOnlyList<OfficeDiagnostic> Diagnostics => _diagnostics;
 
-    internal MarkdownDocument Project() {
+    internal MarkdownDocument Project(bool preserveMarkdownSource = false) {
         if (!string.IsNullOrWhiteSpace(_options.Title)) {
             _blocks.Add(new HeadingBlock(1, new InlineSequence().Text(_options.Title!)));
         }
@@ -34,7 +34,11 @@ internal sealed partial class NotebookMarkdownProjection {
             string location = $"cells[{cellIndex.ToString(CultureInfo.InvariantCulture)}]";
             switch (cell.Kind) {
                 case NotebookCellKind.Markdown:
-                    AddMarkdown(ReadSource(cell, location), new CellImages(this, cell, location), location);
+                    if (preserveMarkdownSource) {
+                        AddSourceMarkdown(cell, location);
+                    } else {
+                        AddMarkdown(ReadSource(cell, location), new CellImages(this, cell, location), location);
+                    }
                     break;
                 case NotebookCellKind.Code:
                     AddCodeCell(cell, location);
@@ -90,6 +94,20 @@ internal sealed partial class NotebookMarkdownProjection {
     }
 
     private void AddParagraph(string text) => _blocks.Add(new ParagraphBlock(new InlineSequence().Text(text)));
+
+    private void AddSourceMarkdown(NotebookCell cell, string location) {
+        string source = ReadSource(cell, location);
+        if (source.Length != 0) _blocks.Add(new SourceMarkdownBlock(source));
+        if (cell.Attachments.Count != 0) {
+            AddUnsupported("notebook-source-attachments-omitted", location,
+                "Cell-local attachment data was omitted to keep Markdown source intact.");
+        }
+    }
+
+    private sealed class SourceMarkdownBlock(string source) : IMarkdownBlock {
+        public string RenderMarkdown() => source;
+        public string RenderHtml() => System.Net.WebUtility.HtmlEncode(source);
+    }
 
     private void AddMarkdown(string text, CellImages? images, string location) {
         if (text.Length == 0) return;

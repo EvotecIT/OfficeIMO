@@ -22,6 +22,14 @@ LONG DESCRIPTION
     Jupytext if saved results should be retained from a verified .ipynb.
     Supply -DeepnoteNotebookId to select a notebook in a multi-notebook file.
 
+    For Markdown export, -PreserveMarkdownSource keeps the spelling,
+    whitespace, HTML and links in Markdown cells. This mode reports omitted
+    notebook-local attachment data. Use the default export to embed it.
+
+    For HTML export, -IncludeInteractiveWidgets enables supported saved
+    controls and client-side links. Notebook cells and custom widget code
+    stay inert. The conversion report identifies unsupported saved views.
+
     The PowerShell script profile opens an ordinary .ps1 as one code cell.
     Scripts exported by OfficeIMO include comment markers for code and
     Markdown cells. The export report identifies content that a script cannot

@@ -11,7 +11,7 @@ Exports a live notebook or a selected saved structured output, returning the con
 ## SYNTAX
 ### Document (Default)
 ```powershell
-Export-OfficeNotebook [-Path] <string> -Document <NotebookDocument> [-IncludeCode] [-IncludeOutputs] [-IncludeExecutionCounts] [-Title <string>] [-Author <string>] [-FailOnLoss] [-NoClobber] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeNotebook [-Path] <string> -Document <NotebookDocument> [-IncludeCode] [-IncludeOutputs] [-IncludeExecutionCounts] [-PreserveMarkdownSource] [-IncludeInteractiveWidgets] [-Title <string>] [-Author <string>] [-FailOnLoss] [-NoClobber] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### SavedTable
@@ -124,6 +124,22 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -IncludeInteractiveWidgets
+Include supported, interactive saved-state widgets in a standalone HTML export.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Document
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -IncludeOutputs
 Include saved outputs in a rendered document. Enabled by default.
 
@@ -183,6 +199,22 @@ Possible values:
 
 Required: True
 Position: 0
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -PreserveMarkdownSource
+Preserve exact Markdown cell source in a Markdown export. Cell-local attachments are omitted with a report.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Document
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False

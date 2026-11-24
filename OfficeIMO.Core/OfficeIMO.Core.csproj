@@ -125,5 +125,6 @@
     <InternalsVisibleTo Include="OfficeIMO.Notebook" />
     <InternalsVisibleTo Include="OfficeIMO.Notebook.Html" />
     <InternalsVisibleTo Include="OfficeIMO.Notebook.Import" />
+    <InternalsVisibleTo Include="OfficeIMO.Notebook.Markdown" />
   </ItemGroup>
 </Project>

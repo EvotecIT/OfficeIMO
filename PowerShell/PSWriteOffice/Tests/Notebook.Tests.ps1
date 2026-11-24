@@ -122,6 +122,39 @@ Describe 'Notebook command workflows' {
         }
     }
 
+    It 'can preserve Markdown cell spelling in a text export' {
+        $path = Join-Path $TestDrive 'source.md'
+        $notebook = New-OfficeNotebook
+        try {
+            $source = "Source heading`r`n=============="
+            $notebook | Add-OfficeNotebookCell -Kind Markdown -Source $source
+            $cell = $notebook | Add-OfficeNotebookCell -Kind Code -Source 'example()' -PassThru
+            $cell | Add-OfficeNotebookOutput -Text 'saved result'
+            $notebook | Export-OfficeNotebook -Path $path -PreserveMarkdownSource | Out-Null
+            $text = [IO.File]::ReadAllText($path)
+            $text.StartsWith($source, [StringComparison]::Ordinal) | Should -BeTrue
+            $text | Should -Match 'saved result'
+            { $notebook | Export-OfficeNotebook -Path (Join-Path $TestDrive 'source.html') -PreserveMarkdownSource -ErrorAction Stop } |
+                Should -Throw '*only to Markdown exports*'
+        } finally {
+            $notebook | Close-OfficeNotebook
+        }
+    }
+
+    It 'can opt in to saved controls with the HTML export switch' {
+        $sample = Join-Path $PSScriptRoot '../../../OfficeIMO.TestAssets/Notebook/AdvancedOutputs/Widgets/widget-list.ipynb'
+        $path = Join-Path $TestDrive 'widgets.html'
+        $notebook = Open-OfficeNotebook -LiteralPath $sample
+        try {
+            $notebook | Export-OfficeNotebook -Path $path -IncludeInteractiveWidgets -IncludeCode:$false | Out-Null
+            [IO.File]::ReadAllText($path) | Should -Match 'data-officeimo-widget-kind="play"'
+            { $notebook | Export-OfficeNotebook -Path (Join-Path $TestDrive 'widgets.pdf') -IncludeInteractiveWidgets -ErrorAction Stop } |
+                Should -Throw '*only to HTML exports*'
+        } finally {
+            $notebook | Close-OfficeNotebook
+        }
+    }
+
     It 'round trips static PowerShell source and rejects saved output loss in strict mode' {
         $script = Join-Path $TestDrive 'work.ps1'
         $marker = Join-Path $TestDrive 'execution-witness.txt'

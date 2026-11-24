@@ -13,6 +13,12 @@ string content = markdown.ToMarkdown();
 
 The projection handles Markdown prose and equations, plain output and tracebacks, supported HTML tables, and bounded PNG, JPEG and SVG images from saved outputs and cell-local attachments. It uses stored representations and keeps interactive output inert. Cell and output locations identify unavailable or simplified content in the conversion report. Use `FailOnLoss` to require a projection without reported fidelity loss.
 
+Use `ToMarkdownText` or `SaveAsMarkdownAsync` to write Markdown directly. Set
+`PreserveMarkdownSource` to keep the spelling, whitespace, line endings, HTML and
+links within Markdown cells. Code and saved results are still rendered in cell
+order. This mode reports omitted cell-local attachment data. Use the default
+normalized export when you need attachments embedded in the result.
+
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary
 

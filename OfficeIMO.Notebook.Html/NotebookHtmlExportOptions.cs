@@ -19,6 +19,9 @@ public sealed class NotebookHtmlExportOptions {
     /// <summary>Built-in presentation style. Standalone documents embed the stylesheet.</summary>
     public MarkdownHtmlStyle Style { get; set; } = MarkdownHtmlStyle.Clean;
 
+    /// <summary>Renders supported saved Jupyter widgets as offline browser controls.</summary>
+    public bool IncludeInteractiveWidgets { get; set; }
+
     /// <summary>Rejects the result if a completed stage reports fidelity loss.</summary>
     public bool FailOnLoss { get; set; }
 
@@ -27,6 +30,7 @@ public sealed class NotebookHtmlExportOptions {
         ProjectionOptions = ProjectionOptions.Clone(),
         Fragment = Fragment,
         Style = Style,
+        IncludeInteractiveWidgets = IncludeInteractiveWidgets,
         FailOnLoss = FailOnLoss
     };
 }

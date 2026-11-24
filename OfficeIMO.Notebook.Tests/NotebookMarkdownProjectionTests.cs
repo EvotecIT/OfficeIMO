@@ -7,6 +7,27 @@ namespace OfficeIMO.Notebook.Tests;
 
 public sealed class NotebookMarkdownProjectionTests {
     [Fact]
+    public async Task TextExportPreservesAuthoredCellSpellingAndKeepsSavedOutputs() {
+        const string source = "Heading  \r\n=======\r\n\r\n*literal dialect*  \r\n<div>retained Markdown source</div>";
+        using NotebookDocument notebook = NotebookDocument.Create();
+        notebook.AddMarkdownCell(source);
+        notebook.AddCodeCell("generate()").AddOutput(NotebookOutput.CreateStream("stdout", "saved-result"));
+        using var destination = new MemoryStream();
+
+        OfficeConversionReport report = await notebook.SaveAsMarkdownAsync(destination, new NotebookMarkdownExportOptions {
+            PreserveMarkdownSource = true
+        });
+        string markdown = Encoding.UTF8.GetString(destination.ToArray());
+
+        Assert.StartsWith(source, markdown, StringComparison.Ordinal);
+        Assert.Contains("generate()", markdown, StringComparison.Ordinal);
+        Assert.Contains("saved-result", markdown, StringComparison.Ordinal);
+        Assert.True(markdown.IndexOf("generate()", StringComparison.Ordinal) < markdown.IndexOf("saved-result", StringComparison.Ordinal));
+        Assert.DoesNotContain("=======", notebook.ToMarkdownText(), StringComparison.Ordinal);
+        Assert.False(report.HasLoss);
+    }
+
+    [Fact]
     public void ProjectsCellLocalAttachmentsAndHtmlTablesWithoutMaterializingExternalImages() {
         const string tinyPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==";
         using NotebookDocument notebook = NotebookDocument.Load(Encoding.UTF8.GetBytes("""
@@ -34,5 +55,12 @@ public sealed class NotebookMarkdownProjectionTests {
         Assert.Contains("Alpha", markdown, StringComparison.Ordinal);
         Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "notebook-image-reference" && diagnostic.Location == "cells[0]");
         Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "notebook-attachment-unavailable" && diagnostic.Location == "cells[1]");
+
+        string sourceText = notebook.ToMarkdownText(new NotebookMarkdownExportOptions { PreserveMarkdownSource = true },
+            out OfficeConversionReport sourceReport);
+        Assert.Contains("[plot]: attachment:one.png", sourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain("data:image/png", sourceText, StringComparison.Ordinal);
+        Assert.Contains(sourceReport.Diagnostics, diagnostic =>
+            diagnostic.Code == "notebook-source-attachments-omitted" && diagnostic.Location == "cells[0]");
     }
 }

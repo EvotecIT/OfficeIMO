@@ -1,6 +1,6 @@
 # OfficeIMO.Notebook.Html
 
-Export stored Jupyter notebook content to a standalone HTML document or embeddable fragment. The export uses embedded styles and images with native MathML for supported equations. Notebook code and interactive output stay inert.
+Export stored Jupyter notebook content to a standalone HTML document or embeddable fragment. The default export uses embedded styles and images with native MathML for supported equations. Notebook code stays inert.
 
 ```csharp
 using OfficeIMO.Notebook;
@@ -11,6 +11,13 @@ await notebook.SaveAsHtmlAsync("analysis.html");
 ```
 
 Set `ProjectionOptions` to control visibility and add a title or author. To inspect fidelity findings without writing a file, use `ToHtml(options, out report)` or `ToHtmlAsync`. Set `FailOnLoss` to require successful conversion without reported fidelity loss.
+
+Set `IncludeInteractiveWidgets` to enable supported controls from saved Jupyter
+widget state. The exported document works offline with native form controls and
+a built-in script for supported client-side links. Sliders, selections, text
+fields, toggles and Play controls can change values locally. Python callbacks
+require a live kernel. The export reports unsupported models and styles and
+leaves notebook-supplied widget code inert.
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary

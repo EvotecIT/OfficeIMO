@@ -69,6 +69,11 @@ of each WebPDF operation. Export comparisons use synthetic inputs only. PDF text
 and image checks establish content coverage. Inspect the retained files to compare
 pagination, styling, math, and graphics fidelity.
 
+The [advanced notebook runner](../Build/Benchmarks/AdvancedNotebook/README.md)
+uses saved Plotly 3D and WebGL specifications and a linked Jupyter widget from a
+producer fixture. It checks visible PDF output and offline browser interaction
+before comparing fresh-process file export.
+
 `-Cells`, `-CodeLineCharacters`, `-OutputCharacters` and `-RichImagePixels`
 control synthetic size. `-Case` can select `Common-12` or `Rich-12`.
 `Fidelity` uses the [Jupyter fixture corpus](../OfficeIMO.TestAssets/Notebook/Jupyter/README.md).

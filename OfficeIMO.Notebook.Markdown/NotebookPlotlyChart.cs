@@ -8,6 +8,7 @@ namespace OfficeIMO.Notebook.Markdown;
 internal static partial class NotebookPlotlyChart {
     private const int MaxTraces = 12;
     private const int MaxPoints = 2048;
+    private const int MaxWebGlPoints = 8192;
     private const int MaxBarCategories = 64;
 
     /// <summary>Reads a static grouped bar or numeric scatter figure. Returns null for unsupported or malformed figures.</summary>
@@ -20,17 +21,18 @@ internal static partial class NotebookPlotlyChart {
         JsonElement firstTrace = traces[0];
         JsonElement firstType = Property(firstTrace, "type");
         bool bar = firstType.ValueKind == JsonValueKind.String && firstType.ValueEquals("bar");
+        bool webGl = firstType.ValueKind == JsonValueKind.String && firstType.ValueEquals("scattergl");
         bool horizontal = bar && ValueOrDefault(Property(firstTrace, "orientation"), "h", allowMissing: false);
-        string traceType = bar ? "bar" : "scatter";
+        string traceType = bar ? "bar" : webGl ? "scattergl" : "scatter";
         string? orientation = bar ? (horizontal ? "h" : "v") : null;
         int traceCount = traces.GetArrayLength();
 
-        if (!TryReadLayout(Property(spec, "layout"), traceCount, bar, horizontal, out PlotlyLayout layout)) return null;
+        if (!TryReadLayout(Property(spec, "layout"), traceCount, traceType, horizontal, out PlotlyLayout layout)) return null;
 
         string[]? categories = null;
         HashSet<string>? offsetGroups = bar && traceCount > 1 ? new HashSet<string>(StringComparer.Ordinal) : null;
         var series = new List<OfficeSeries>(traceCount);
-        int remainingPoints = MaxPoints;
+        int remainingPoints = webGl ? MaxWebGlPoints : MaxPoints;
         foreach (JsonElement trace in traces.EnumerateArray()) {
             cancellationToken.ThrowIfCancellationRequested();
             if (offsetGroups != null && HasProperty(trace, "offsetgroup") &&
@@ -48,7 +50,7 @@ internal static partial class NotebookPlotlyChart {
         OfficeChartType chartType = bar
             ? (horizontal ? OfficeChartType.Bar : OfficeChartType.Column)
             : OfficeChartType.Scatter;
-        return new OfficeChartSnapshot("Plotly chart", layout.Title, chartType, data, layout.Width, layout.Height,
+        return new OfficeChartSnapshot(webGl ? "Plotly WebGL chart" : "Plotly chart", layout.Title, chartType, data, layout.Width, layout.Height,
             layout.Style, layout.Layout);
     }
 
@@ -59,7 +61,7 @@ internal static partial class NotebookPlotlyChart {
         if (!ContainsOnly(trace, "type", "x", "y", "xaxis", "yaxis", "name", "showlegend", "legendgroup",
                 "hoverinfo", "hovertemplate", "hovertext", "customdata", "meta", "marker", "line", "mode",
                 "orientation", "alignmentgroup", "offsetgroup", "visible") ||
-            !ValueOrDefault(Property(trace, "type"), traceType, allowMissing: !bar) ||
+            !ValueOrDefault(Property(trace, "type"), traceType, allowMissing: traceType == "scatter") ||
             !ValueOrDefault(Property(trace, "xaxis"), "x") ||
             !ValueOrDefault(Property(trace, "yaxis"), "y") ||
             !TryReadBoolean(Property(trace, "visible"), true, out bool visible) || !visible ||
@@ -118,8 +120,9 @@ internal static partial class NotebookPlotlyChart {
         return markers || connect;
     }
 
-    private static bool TryReadLayout(JsonElement source, int seriesCount, bool bar, bool horizontal, out PlotlyLayout result) {
+    private static bool TryReadLayout(JsonElement source, int seriesCount, string traceType, bool horizontal, out PlotlyLayout result) {
         result = default;
+        bool bar = traceType == "bar";
         JsonElement xAxis = Property(source, "xaxis");
         JsonElement yAxis = Property(source, "yaxis");
         if (!ContainsOnly(source, "title", "width", "height", "xaxis", "yaxis", "showlegend", "legend", "barmode",
@@ -133,7 +136,7 @@ internal static partial class NotebookPlotlyChart {
             !TryReadBoolean(Property(source, "showlegend"), seriesCount > 1, out bool showLegend) ||
             !TryReadLegend(Property(source, "legend"), out OfficeChartLegendPosition legendPosition) ||
             !ValueOrDefault(Property(source, "scattermode"), "overlay") ||
-            !TryReadTemplate(Property(source, "template"), bar, out JsonElement templateLayout) ||
+            !TryReadTemplate(Property(source, "template"), traceType, out JsonElement templateLayout) ||
             !TryReadChartStyle(source, templateLayout, out OfficeChartStyle? style)) return false;
 
         JsonElement barMode = Property(source, "barmode");

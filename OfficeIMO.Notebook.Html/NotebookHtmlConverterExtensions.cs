@@ -5,7 +5,7 @@ using OfficeIMO.Notebook.Markdown;
 
 namespace OfficeIMO.Notebook.Html;
 
-/// <summary>Converts saved notebook cells to inert HTML documents or fragments.</summary>
+/// <summary>Converts saved notebook cells to offline HTML documents or fragments.</summary>
 public static class NotebookHtmlConverterExtensions {
     /// <summary>Converts the notebook to offline HTML.</summary>
     public static string ToHtml(this NotebookDocument notebook, NotebookHtmlExportOptions? options = null,
@@ -20,6 +20,10 @@ public static class NotebookHtmlConverterExtensions {
         bool failOnLoss = operation.FailOnLoss || operation.ProjectionOptions.FailOnLoss;
         operation.ProjectionOptions.FailOnLoss = false;
         var timer = Stopwatch.StartNew();
+        NotebookHtmlWidgets? widgets = operation.IncludeInteractiveWidgets && operation.ProjectionOptions.IncludeOutputs
+            ? new NotebookHtmlWidgets(notebook, cancellationToken)
+            : null;
+        if (widgets != null) operation.ProjectionOptions.OutputRenderer = widgets.RenderOutput;
         using MarkdownDocument projection = notebook.ToMarkdown(operation.ProjectionOptions, out OfficeConversionReport projectionReport, cancellationToken);
         var htmlOptions = new MarkdownHtmlExportOptions {
             Kind = operation.Fragment ? MarkdownHtmlKind.Fragment : MarkdownHtmlKind.Document,
@@ -33,9 +37,11 @@ public static class NotebookHtmlConverterExtensions {
         var mathDiagnostics = new List<OfficeDiagnostic>();
         NotebookHtmlMath.Register(htmlOptions, mathDiagnostics, cancellationToken);
         string html = projection.ToHtml(htmlOptions, out OfficeConversionReport htmlReport);
+        if (widgets != null) html = widgets.AddRuntime(html, operation.Fragment);
         cancellationToken.ThrowIfCancellationRequested();
         var findings = new OfficeConversionReport("Jupyter", "Html", itemsWritten: projection.Blocks.Count,
-            elapsed: timer.Elapsed, diagnostics: projectionReport.Diagnostics.Concat(htmlReport.Diagnostics).Concat(mathDiagnostics));
+            elapsed: timer.Elapsed, diagnostics: projectionReport.Diagnostics.Concat(htmlReport.Diagnostics).Concat(mathDiagnostics)
+                .Concat(widgets?.Diagnostics ?? Array.Empty<OfficeDiagnostic>()));
         return OfficeConversionOutput.Complete(html, findings, failOnLoss, out report);
     }
 

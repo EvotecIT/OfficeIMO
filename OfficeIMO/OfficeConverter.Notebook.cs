@@ -47,9 +47,7 @@ public static partial class OfficeConverter {
             case "notebook-markdown": {
                 NotebookMarkdownExportOptions options = settings.NotebookMarkdown ?? new();
                 options.FailOnLoss |= settings.FailOnLoss;
-                using var markdown = notebook.ToMarkdown(options, out OfficeConversionReport report, token);
-                await markdown.SaveAsync(output, cancellationToken: token).ConfigureAwait(false);
-                return report;
+                return await notebook.SaveAsMarkdownAsync(output, options, token).ConfigureAwait(false);
             }
             default:
                 throw new ArgumentOutOfRangeException(nameof(id), id, "The notebook conversion route is unknown.");

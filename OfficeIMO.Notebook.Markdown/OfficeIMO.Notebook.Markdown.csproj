@@ -25,6 +25,7 @@
     <ProjectReference Include="../OfficeIMO.Markdown.Html/OfficeIMO.Markdown.Html.csproj" />
     <ProjectReference Include="../OfficeIMO.Core/OfficeIMO.Core.csproj" />
     <ProjectReference Include="../OfficeIMO.Html/OfficeIMO.Html.csproj" />
+    <InternalsVisibleTo Include="OfficeIMO.Notebook.Html" />
   </ItemGroup>
   <ItemGroup>
     <None Include="../Assets/OfficeIMO.png" Pack="true" PackagePath="/" />

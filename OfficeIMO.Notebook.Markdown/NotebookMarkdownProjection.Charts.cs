@@ -14,8 +14,11 @@ internal sealed partial class NotebookMarkdownProjection {
 
     private bool TryAddChart(IReadOnlyDictionary<string, JsonElement> data, string location) {
         _cancellationToken.ThrowIfCancellationRequested();
-        if (data.TryGetValue(PlotlyMime, out JsonElement plotly)
-            && TryAddChart(NotebookPlotlyChart.TryRead(plotly, _cancellationToken), "Plotly", location)) return true;
+        if (data.TryGetValue(PlotlyMime, out JsonElement plotly)) {
+            if (TryAddChart(NotebookPlotlyChart.TryRead(plotly, _cancellationToken), "Plotly", location)) return true;
+            OfficeDrawing? scene = NotebookPlotlyChart.TryRenderThreeDimensional(plotly, _cancellationToken, out string? title);
+            if (scene != null && TryAddChart(scene, title, "Plotly 3D", location)) return true;
+        }
         foreach (string mime in VegaLiteMimes) {
             if (data.TryGetValue(mime, out JsonElement vegaLite)
                 && TryAddChart(NotebookVegaLiteChart.TryRead(vegaLite, _cancellationToken), "Vega-Lite", location)) return true;
@@ -26,12 +29,15 @@ internal sealed partial class NotebookMarkdownProjection {
     private bool TryAddChart(OfficeChartSnapshot? chart, string producer, string location) {
         if (chart == null) return false;
         _cancellationToken.ThrowIfCancellationRequested();
-        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(chart);
+        return TryAddChart(OfficeChartDrawingRenderer.Render(chart), chart.Title, producer, location);
+    }
+
+    private bool TryAddChart(OfficeDrawing drawing, string? title, string producer, string location) {
         byte[] svgBytes = OfficeDrawingSvgExporter.ToSvgBytes(drawing);
         if (svgBytes.Length > _options.MaxImageBytes) return false;
         _cancellationToken.ThrowIfCancellationRequested();
         string imageUri = "data:image/svg+xml;base64," + Convert.ToBase64String(svgBytes);
-        _blocks.Add(new ImageBlock(imageUri, chart.Title ?? (producer + " chart"), null));
+        _blocks.Add(new ImageBlock(imageUri, title ?? (producer + " chart"), null));
         AddUnsupported("notebook-output-chart-static-preview", location,
             "A static preview was drawn from the saved " + producer + " chart specification.",
             OfficeConversionLossKind.Approximation);

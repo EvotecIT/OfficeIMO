@@ -210,7 +210,8 @@ public sealed class MarkdownHtmlExportOptions {
     /// </summary>
     public List<MarkdownSyntaxInlineHtmlRenderExtension> SyntaxInlineRenderExtensions { get; } = new();
     /// <summary>Prefix selectors in emitted CSS with this scope selector to avoid collisions. Default: "article.markdown-body".</summary>
-    public string? CssScopeSelector { get; set; } = "article.markdown-body";
+    public string? CssScopeSelector { get; set; } = DefaultCssScopeSelector;
+    internal const string DefaultCssScopeSelector = "article.markdown-body";
 
     /// <summary>
     /// Controls how raw HTML blocks and inline fragments are emitted. Default: <see cref="MarkdownRawHtmlHandling.Allow"/>.

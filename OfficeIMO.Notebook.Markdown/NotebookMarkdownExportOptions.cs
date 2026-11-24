@@ -1,3 +1,5 @@
+using OfficeIMO.Markdown;
+
 namespace OfficeIMO.Notebook.Markdown;
 
 /// <summary>Controls presentation of stored notebook cells and outputs in Markdown.</summary>
@@ -12,6 +14,12 @@ public sealed class NotebookMarkdownExportOptions {
 
     /// <summary>Includes stored execution counts alongside the corresponding inputs and results.</summary>
     public bool IncludeExecutionCounts { get; set; } = true;
+
+    /// <summary>
+    /// Copies Markdown cell text as authored in text and file exports, including HTML and links.
+    /// Cell-local attachment data is reported as omitted. Typed Markdown projections are still normalized.
+    /// </summary>
+    public bool PreserveMarkdownSource { get; set; }
 
     /// <summary>Shows an explicit title above the notebook content.</summary>
     public string? Title { get; set; }
@@ -30,6 +38,8 @@ public sealed class NotebookMarkdownExportOptions {
             _maxImageBytes = value;
         }
     }
+
+    internal Func<NotebookOutput, string, IMarkdownBlock?>? OutputRenderer { get; set; }
 
     /// <summary>Creates an independent snapshot of these options.</summary>
     public NotebookMarkdownExportOptions Clone() => (NotebookMarkdownExportOptions)MemberwiseClone();
