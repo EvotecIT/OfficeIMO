@@ -270,6 +270,36 @@ internal static class MarkdownObjectTreeBinder {
         return true;
     }
 
+    /// <summary>Places an inline just added to a sequence that is already part of a bound tree.</summary>
+    internal static void BindAppendedInline(InlineSequence sequence, IMarkdownInline appended) {
+        if (appended is not MarkdownObject node) {
+            return;
+        }
+
+        IReadOnlyList<IMarkdownInline> nodes = sequence.Nodes;
+        MarkdownObject? previous = null;
+        for (int i = nodes.Count - 2; i >= 0 && previous == null; i--) {
+            previous = nodes[i] as MarkdownObject;
+        }
+
+        int index = 0;
+        if (previous != null) {
+            if (!ReferenceEquals(previous.Parent, sequence) || previous.IndexInParent is not int previousIndex) {
+                RebindSubtree(sequence);
+                return;
+            }
+
+            index = previousIndex + 1;
+            previous.SetTreePosition(sequence, previousIndex, previous.PreviousSibling, node);
+        }
+
+        BindObject(node, sequence, index, previous, nextSibling: null, visited: null);
+    }
+
+    /// <summary>Binds a node's subtree again in place, keeping the node's own position.</summary>
+    internal static void RebindSubtree(MarkdownObject node) =>
+        BindObject(node, node.Parent, node.IndexInParent, node.PreviousSibling, node.NextSibling, visited: null);
+
     private const int MaxRetainedScratchCapacity = 4096;
     [ThreadStatic] private static Stack<MarkdownObject>? t_pending;
     [ThreadStatic] private static List<MarkdownObject>? t_children;

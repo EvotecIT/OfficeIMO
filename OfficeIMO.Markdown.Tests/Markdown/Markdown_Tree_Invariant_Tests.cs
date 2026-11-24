@@ -121,14 +121,29 @@ Lead[^1]
     [Fact]
     public void Editing_the_last_block_before_appending_the_next_keeps_its_new_inlines_bound() {
         var document = MarkdownDocument.Create().P("before");
-        var paragraph = (ParagraphBlock)document.Blocks[^1];
+        var paragraph = (ParagraphBlock)document.Blocks[document.Blocks.Count - 1];
         paragraph.Inlines.Bold("after");
 
         document.P("next");
 
         MarkdownInvariantAssert.SemanticTreeIsWellFormed(document);
-        var bold = Assert.IsType<BoldInline>(paragraph.Inlines.Nodes[^1]);
+        var bold = Assert.IsType<BoldInline>(paragraph.Inlines.Nodes[paragraph.Inlines.Nodes.Count - 1]);
         Assert.Same(document, bold.Document);
+    }
+
+    [Fact]
+    public void Inlines_added_to_an_earlier_block_are_bound_as_they_are_added() {
+        var document = MarkdownDocument.Create().P("first").P("second");
+        var first = (ParagraphBlock)document.Blocks[0];
+
+        first.Inlines.Italic("later");
+        var italic = Assert.IsType<ItalicInline>(first.Inlines.Nodes[first.Inlines.Nodes.Count - 1]);
+        Assert.Same(document, italic.Document);
+        MarkdownInvariantAssert.SemanticTreeIsWellFormed(document);
+
+        first.Inlines.ReplaceItems(new IMarkdownInline[] { new MarkdownTextRun("replaced"), new BoldInline("bold") });
+        Assert.Same(document, ((MarkdownObject)first.Inlines.Nodes[1]).Document);
+        MarkdownInvariantAssert.SemanticTreeIsWellFormed(document);
     }
 
     [Fact]
