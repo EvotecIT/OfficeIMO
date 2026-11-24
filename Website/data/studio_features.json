@@ -640,7 +640,7 @@
     },
     {
       "title": "Scanners and printers on the desktop",
-      "detail": "Scan from TWAIN, WIA and SANE devices, and choose printer paper and duplex options.",
+      "detail": "Scan from TWAIN, WIA and SANE devices, and use driver-specific printer color settings.",
       "platforms": ["windows", "linux"],
       "anchor": "phase-6-optional-desktop-integrations"
     }

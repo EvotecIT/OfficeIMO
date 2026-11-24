@@ -29,6 +29,8 @@ meta.howto.steps:
 
 OfficeIMO optimization works on PDF structure and streams without rasterizing pages. Text remains text, and the operation does not deliberately trade fidelity for a smaller scan image.
 
+**Also in Studio:** optimize the open document losslessly in [OfficeIMO Studio](/studio/#features) on Windows and Linux, and in the native Mac, iPad and iPhone app (coming soon).
+
 ## Optimize from .NET
 
 ```csharp

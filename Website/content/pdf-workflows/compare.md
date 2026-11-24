@@ -29,6 +29,8 @@ meta.howto.steps:
 
 PDF comparison is useful for regression baselines, generated reports, invoices, and publishing pipelines where a successful file write is not enough. The comparison report keeps structural findings beside rendered evidence so a changed page count is not reduced to a pixel score.
 
+**Also in Studio:** compare two PDFs side by side with a list of visual differences in [OfficeIMO Studio](/studio/#feature-compare) on Windows and Linux.
+
 ## Compare from .NET
 
 ```csharp
