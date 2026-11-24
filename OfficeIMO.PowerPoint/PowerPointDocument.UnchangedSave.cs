@@ -124,9 +124,8 @@ namespace OfficeIMO.PowerPoint {
             foreach (string id in slideIds) {
                 OfficeOpcRelationship? relationship = package.FindRelationship(main, id);
                 if (relationship?.TargetPartName is not { } slide || relationship.IsExternal || !package.PartExists(slide)) return false;
-                using OfficePooledBytes slideContent = package.ReadPart(slide);
-                using var slideStream = new MemoryStream(slideContent.Array, 0, slideContent.Length, writable: false);
-                if (PowerPointXmlReader.ReadSlideShow(slideStream, maximumSlideXmlCharacters) == false) hidden++;
+                if (!TryReadSlideShow(package, slide, maximumSlideXmlCharacters, out bool? show)) return false;
+                if (show == false) hidden++;
             }
 
             // Notes count slide parts, each once, as the SDK's SlideParts does.
@@ -143,6 +142,34 @@ namespace OfficeIMO.PowerPoint {
 
             values = new UnchangedSaveValues(application, core, slideIds.Count, notes, hidden, presentationFormat);
             return true;
+        }
+
+        // The slide root's show attribute, as PowerPointXmlReader.ReadSlideShow reads it for the SDK save. A part over the
+        // size limit, a value XML Schema does not read as a boolean, or markup the pull reader rejects leaves the
+        // answer to that save, which fails or succeeds as before.
+        private static bool TryReadSlideShow(OfficeOpcPackage package, string slide, long maximumSlideXmlCharacters, out bool? show) {
+            show = null;
+            long limit = maximumSlideXmlCharacters > 0
+                ? Math.Min(PowerPointXmlReader.MaximumPackageXmlCharacters, maximumSlideXmlCharacters)
+                : PowerPointXmlReader.MaximumPackageXmlCharacters;
+            if (package.GetPartLength(slide) > limit) return false;
+            try {
+                OfficeXmlPullReader reader = package.OpenXml(slide, out OfficePooledBytes content, processMarkupCompatibility: false);
+                using (content) {
+                    while (reader.Read()) {
+                        if (reader.NodeKind != OfficeXmlNodeKind.StartElement) continue;
+                        if (!reader.TryGetAttribute(OfficeXmlNamespaces.None, "show", out string value)) return true;
+                        switch (value.Trim(' ', '\t', '\r', '\n')) {
+                            case "true": case "1": show = true; return true;
+                            case "false": case "0": show = false; return true;
+                            default: return false;
+                        }
+                    }
+                }
+                return false;
+            } catch (Exception exception) when (exception is System.Xml.XmlException or InvalidDataException) {
+                return false;
+            }
         }
 
         // The SDK save adds any of these that are missing; this path only replaces their text.

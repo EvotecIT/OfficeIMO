@@ -39,17 +39,19 @@ public class PowerPointUnchangedSaveTests {
 
     // Opt-in: OFFICEIMO_PPTX_CORPUS names a folder of presentations, such as the public corpora the real-world corpus
     // runner fetches. A deck the deferred load accepts must open in the SDK, and save as the SDK path saves it.
-    public static IEnumerable<object[]> ExternalCorpus() {
+    [Fact]
+    public void ExternalCorpusPresentationsLoadAndSaveAsTheSdkPathDoes() {
         string? folder = Environment.GetEnvironmentVariable("OFFICEIMO_PPTX_CORPUS");
-        if (string.IsNullOrEmpty(folder) || !Directory.Exists(folder)) yield break;
-        foreach (string file in Directory.EnumerateFiles(folder, "*.pptx", SearchOption.AllDirectories).OrderBy(file => file, StringComparer.Ordinal)) {
-            yield return new object[] { file };
+        if (string.IsNullOrEmpty(folder) || !Directory.Exists(folder)) return;
+        var failures = new List<string>();
+        foreach (string path in Directory.EnumerateFiles(folder, "*.pptx", SearchOption.AllDirectories).OrderBy(file => file, StringComparer.Ordinal)) {
+            Exception? failure = Record.Exception(() => CheckCorpusPresentation(path));
+            if (failure != null) failures.Add(path + ": " + failure.Message);
         }
+        Assert.True(failures.Count == 0, string.Join(Environment.NewLine, failures));
     }
 
-    [Theory]
-    [MemberData(nameof(ExternalCorpus))]
-    public void ExternalCorpusPresentationsLoadAndSaveAsTheSdkPathDoes(string path) {
+    private static void CheckCorpusPresentation(string path) {
         byte[] source = File.ReadAllBytes(path);
         PowerPointDocument presentation;
         try {
