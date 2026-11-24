@@ -118,6 +118,47 @@ Lead[^1]
         MarkdownInvariantAssert.SemanticTreeIsWellFormed(document);
     }
 
+    [Fact]
+    public void Editing_the_last_block_before_appending_the_next_keeps_its_new_inlines_bound() {
+        var document = MarkdownDocument.Create().P("before");
+        var paragraph = (ParagraphBlock)document.Blocks[^1];
+        paragraph.Inlines.Bold("after");
+
+        document.P("next");
+
+        MarkdownInvariantAssert.SemanticTreeIsWellFormed(document);
+        var bold = Assert.IsType<BoldInline>(paragraph.Inlines.Nodes[^1]);
+        Assert.Same(document, bold.Document);
+    }
+
+    [Fact]
+    public void Append_after_a_block_whose_children_failed_to_bind_binds_them() {
+        var document = MarkdownDocument.Create().P("lead");
+        var panel = new ThrowingPanelBlock(new ParagraphBlock(new InlineSequence().Text("inside"))) { ThrowOnChildBlocks = true };
+
+        Assert.Throws<InvalidOperationException>(() => document.Add(panel));
+        panel.ThrowOnChildBlocks = false;
+        document.P("after");
+
+        MarkdownInvariantAssert.SemanticTreeIsWellFormed(document);
+        Assert.Same(panel, ((MarkdownObject)panel.ChildBlocks[0]).Parent);
+    }
+
+    private sealed class ThrowingPanelBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdownBlockContainer {
+        private readonly IMarkdownBlock[] _children;
+
+        internal ThrowingPanelBlock(params IMarkdownBlock[] children) => _children = children;
+
+        internal bool ThrowOnChildBlocks { get; set; }
+
+        public IReadOnlyList<IMarkdownBlock> ChildBlocks =>
+            ThrowOnChildBlocks ? throw new InvalidOperationException("Children are not available yet.") : _children;
+
+        public string RenderMarkdown() => string.Empty;
+
+        public string RenderHtml() => string.Empty;
+    }
+
     [Theory]
     [MemberData(nameof(RepresentativeMarkdownDocuments))]
     public void ParseWithSyntaxTree_RepresentativeDocuments_Satisfy_TreeInvariants(string markdown) {

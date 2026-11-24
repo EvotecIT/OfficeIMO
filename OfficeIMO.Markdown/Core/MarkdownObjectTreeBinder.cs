@@ -234,7 +234,8 @@ internal static class MarkdownObjectTreeBinder {
 
     /// <summary>
     /// Places a block just appended to a bound document, so building a document block by block does not
-    /// re-bind every earlier block. Returns false when the document has to be bound in full instead.
+    /// re-bind every earlier block. The block before it is bound again too, which picks up edits made to the
+    /// most recently added block. Returns false when the document has to be bound in full instead.
     /// </summary>
     internal static bool TryBindAppendedBlock(MarkdownDocument document, IMarkdownBlock appended) {
         if (appended is not MarkdownObject block) {
@@ -260,7 +261,9 @@ internal static class MarkdownObjectTreeBinder {
             }
 
             index = previousIndex + 1;
-            previous.SetTreePosition(document, previousIndex, previous.PreviousSibling, block);
+            // Builders often edit the block they just added (p.Inlines.Bold(...)) before adding the next
+            // one, so the previous block's subtree is bound again rather than only relinked.
+            BindObject(previous, document, previousIndex, previous.PreviousSibling, block, visited: null);
         }
 
         BindObject(block, document, index, previous, nextSibling: null, visited: null);

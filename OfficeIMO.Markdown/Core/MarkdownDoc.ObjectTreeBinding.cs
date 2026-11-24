@@ -52,10 +52,21 @@ public partial class MarkdownDocument {
     }
 
     // An append to a document that is bound and not deferring binding only needs the new block placed.
-    private bool TryBindAppendedBlockNow(IMarkdownBlock block) =>
-        _objectTreeBindingDeferralDepth == 0
-        && !_objectTreeBindingPending
-        && MarkdownObjectTreeBinder.TryBindAppendedBlock(this, block);
+    // Binding stays marked pending until the placement finishes, so a child getter that throws part way
+    // leaves the next change to bind the whole document.
+    private bool TryBindAppendedBlockNow(IMarkdownBlock block) {
+        if (_objectTreeBindingDeferralDepth != 0 || _objectTreeBindingPending) {
+            return false;
+        }
+
+        _objectTreeBindingPending = true;
+        if (!MarkdownObjectTreeBinder.TryBindAppendedBlock(this, block)) {
+            return false;
+        }
+
+        _objectTreeBindingPending = false;
+        return true;
+    }
 
     private void RequestObjectTreeBinding() {
         if (_objectTreeBindingDeferralDepth > 0) {
