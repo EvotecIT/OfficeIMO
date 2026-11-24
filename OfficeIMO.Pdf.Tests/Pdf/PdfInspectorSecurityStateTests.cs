@@ -175,6 +175,19 @@ public partial class PdfInspectorTests {
     }
 
     [Fact]
+    public void Preservation_RefusesRenumberingASignedSignatureField() {
+        byte[] signed = BuildSignedIncrementalPdf();
+        // The same document with the signed field as object 15: its signature covers the bytes as numbered.
+        byte[] renumbered = System.Text.Encoding.ASCII.GetBytes(System.Text.Encoding.ASCII.GetString(signed)
+            .Replace("5 0 obj", "15 0 obj").Replace("[5 0 R]", "[15 0 R]").Replace("/Size 15", "/Size 16"));
+
+        PdfRewritePreservationReport report = PdfRewritePreservation.Assess(signed, renumbered);
+
+        Assert.Equal(new[] { 15 }, report.Rewritten.Security.SignatureFieldObjectNumbers);
+        Assert.Contains(report.Issues, issue => issue.Feature == "Security.SignatureFieldObjectNumbers");
+    }
+
+    [Fact]
     public void Inspect_ReadsSignatureAndRevisionSecurityState() {
         PdfDocumentInfo info = PdfInspector.Inspect(BuildSignedIncrementalPdf());
 

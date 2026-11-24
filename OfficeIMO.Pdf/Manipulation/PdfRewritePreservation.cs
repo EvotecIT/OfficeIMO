@@ -468,7 +468,11 @@ internal static partial class PdfRewritePreservation {
         CompareNullableBoolean(issues, "Security.EncryptMetadata", original.EncryptMetadata, rewritten.EncryptMetadata);
         CompareBooleanMarker(issues, "Security.Signatures", original.HasSignatures, rewritten.HasSignatures, true);
         CompareCounts(issues, "Security.SignatureFields", original.SignatureFieldCount, rewritten.SignatureFieldCount, original.SignatureFieldCount > 0);
-        CompareIntList(issues, "Security.SignatureFieldObjectNumbers", original.SignatureFieldObjectNumbers, rewritten.SignatureFieldObjectNumbers);
+        // A full rewrite renumbers objects, which only unsigned signature fields may go through; their names identify
+        // them. Once a revision is signed, its byte range covers the objects as numbered, so the numbers must stay.
+        if (original.SignatureValueCount > 0 || original.HasByteRange || original.HasDocMDPPermissions) {
+            CompareIntList(issues, "Security.SignatureFieldObjectNumbers", original.SignatureFieldObjectNumbers, rewritten.SignatureFieldObjectNumbers);
+        }
         CompareStringList(issues, "Security.SignatureFieldNames", original.SignatureFieldNames, rewritten.SignatureFieldNames);
         CompareCounts(issues, "Security.SignatureValues", original.SignatureValueCount, rewritten.SignatureValueCount, original.SignatureValueCount > 0);
         CompareCounts(issues, "Security.Signatures.Readable", original.Signatures.Count, rewritten.Signatures.Count, original.Signatures.Count > 0);
