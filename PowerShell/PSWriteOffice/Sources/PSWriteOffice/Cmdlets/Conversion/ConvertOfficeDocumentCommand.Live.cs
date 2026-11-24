@@ -28,7 +28,7 @@ public sealed partial class ConvertOfficeDocumentCommand {
             throw new PSArgumentException("To and the OutputPath extension must name the same target format.");
         if (outputPath != null && source.Path != null && OfficePath.AreEquivalent(source.Path, outputPath))
             throw new PSArgumentException("The conversion destination must differ from the live document's associated source.");
-        var options = CaptureOptions(new[] { source.Name }, target.Extension);
+        var options = CaptureOptions(new[] { source.Name }, target.Extension, sourceNamesOnly: true);
         options.SourceName = source.Name;
         options.TargetName = outputPath == null ? "output" + target.Extension : System.IO.Path.GetFileName(outputPath);
         if (source.Path != null) options.ResourceDirectory = System.IO.Path.GetDirectoryName(source.Path);

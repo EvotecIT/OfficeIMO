@@ -388,6 +388,21 @@ pwsh -NoLogo -NoProfile -File ./Benchmarks/Compare-MarkdownPerformance.ps1
 `OfficeIMO.Markdown.Benchmarks` remains the engine comparison against standalone
 Markdig.
 
+## Per-call cost over a session
+
+`Measure-CmdletSessionGrowth.ps1` runs cmdlets that scripts call in loops
+(`Add-OfficeWordParagraph`, `Set-OfficeExcelCell`, `Add-OfficeMarkdownParagraph`,
+`Get-OfficeExcelTable`, `Get-OfficeExcelNamedRange`, `Split-OfficeDocument` and
+`Convert-OfficeDocument`) in batches of calls, each cmdlet in its own fresh
+process against one live document. It prints the per-call time of every batch
+and the gen 2 collections, so a cost that grows with the number of calls in a
+session shows up as a rising row. `New-OfficeMarkdownHtmlOptions` gives the
+binding floor.
+
+```powershell
+pwsh -NoLogo -NoProfile -File ./Benchmarks/Measure-CmdletSessionGrowth.ps1
+```
+
 ## Options
 
 The wrappers build PSWriteOffice in `Release` mode by default and import local

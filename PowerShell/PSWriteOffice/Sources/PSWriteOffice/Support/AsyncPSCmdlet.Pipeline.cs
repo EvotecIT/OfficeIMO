@@ -293,7 +293,7 @@ public abstract partial class AsyncPSCmdlet
     private bool TryQueue(PipelineItem item)
     {
         item.BindToHook(CurrentHookGeneration);
-        var pumpLease = _pipelinePumpLease.Value;
+        var pumpLease = CurrentPumpLease;
         if (pumpLease is null)
         {
             var sharedPumpLease =
