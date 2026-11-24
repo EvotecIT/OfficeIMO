@@ -154,9 +154,11 @@ namespace OfficeIMO.Excel {
 
         private bool TryResolveFormulaArguments(string args, out List<FormulaArgumentValue> values,
             bool skipBlankScalarReferences = false, bool coerceScalarValues = true) {
-            values = new List<FormulaArgumentValue>();
+            IReadOnlyList<string> tokens = SplitFormulaArguments(args);
+            values = new List<FormulaArgumentValue>(tokens.Count);
             int remainingCellBudget = MaxResolvedFormulaRangeCells;
-            foreach (string trimmed in SplitFormulaArguments(args)) {
+            for (int tokenIndex = 0; tokenIndex < tokens.Count; tokenIndex++) {
+                string trimmed = tokens[tokenIndex];
                 if (TryResolveFormulaRange(trimmed, out var rangeValues, ref remainingCellBudget, out bool isReference)) {
                     // Integer aggregates ignore an empty direct cell argument.
                     // The same empty position inside a range remains a zero operand.
