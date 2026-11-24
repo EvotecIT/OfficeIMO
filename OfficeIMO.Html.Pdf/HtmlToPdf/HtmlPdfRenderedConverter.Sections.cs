@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Html.Pdf;
@@ -38,6 +39,7 @@ internal static partial class HtmlPdfRenderedConverter {
         var bookOptions = options.PdfOptions.Clone();
         bookOptions.UseContentStreamCompressionByDefault();
         bookOptions.PageStartParity = null;
+        bookOptions.ClearStructuredRunningContent();
         ApplyLibraryDefaultFontEmbedding(options, bookOptions);
         using var book = PdfCore.PdfDocument.CreateForImportedLayout(bookOptions);
         book.Meta(title: title, author: author);
@@ -46,6 +48,11 @@ internal static partial class HtmlPdfRenderedConverter {
         if (options.PdfOptions.PageStartParity != null) {
             writerReport.Add(new PdfCore.PdfConversionWarning("OfficeIMO.Html.Pdf", "SectionStartParityUnavailable",
                 "PageStartParity", "EPUB chapters start on the next physical page without parity padding.",
+                PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission));
+        }
+        if (options.PdfOptions.HasAnyRunningContent) {
+            writerReport.Add(new PdfCore.PdfConversionWarning("OfficeIMO.Html.Pdf", "SectionRunningContentUnavailable",
+                "PdfOptions", "Structured PDF headers and footers cannot be laid out while streaming EPUB chapters.",
                 PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission));
         }
         book.Options.ReportDiagnosticsTo(writerReport, "OfficeIMO.Html.Pdf");
@@ -67,6 +74,7 @@ internal static partial class HtmlPdfRenderedConverter {
                     PageNumberOffset = pageOffset, IsPublicationSection = true
                 };
                 sectionOptions.PdfOptions.PageStartParity = null;
+                sectionOptions.PdfOptions.ClearStructuredRunningContent();
                 PreparedPdfRequest prepared = PrepareRequest(section.Request.WithOptions(sectionOptions), sectionOptions,
                     allowNonPdfEncoder: true, preserveHtmlResourcePolicy: true);
                 var effective = (HtmlPdfExportOptions)HtmlRenderEngine.PrepareOptions(section.Document, prepared.Request);
@@ -111,10 +119,8 @@ internal static partial class HtmlPdfRenderedConverter {
         var destinations = new Dictionary<string, (int Page, double Y)>(StringComparer.Ordinal);
         if (outline.Any(target => !string.IsNullOrEmpty(target.Fragment))) {
             foreach (HtmlRenderPage page in layout.Pages) {
-                foreach (HtmlRenderVisual visual in EnumerateVisuals(page.Scene)) {
-                    token.ThrowIfCancellationRequested();
-                    if (visual is HtmlRenderNamedDestination destination && !destinations.ContainsKey(destination.Name))
-                        destinations.Add(destination.Name, (page.PageNumber, destination.Y));
+                foreach ((string name, OfficePoint point) in EnumerateNamedDestinationPositions(page.Scene, OfficeTransform.Identity, token)) {
+                    if (!destinations.ContainsKey(name)) destinations.Add(name, (page.PageNumber, point.Y));
                 }
             }
         }

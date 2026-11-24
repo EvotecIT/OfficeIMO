@@ -167,10 +167,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private string FootnoteCallDestination(int number) =>
-        QualifyDestination("officeimo-footnote-call-" + number.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        QualifyFootnoteDestination("officeimo-footnote-call-" + number.ToString(System.Globalization.CultureInfo.InvariantCulture));
 
     private string FootnoteNoteDestination(int number) =>
-        QualifyDestination("officeimo-footnote-note-" + number.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        QualifyFootnoteDestination("officeimo-footnote-note-" + number.ToString(System.Globalization.CultureInfo.InvariantCulture));
+
+    private string QualifyFootnoteDestination(string name) =>
+        _options.NamedDestinationPrefix + (_options.IsPublicationSection ? "footnote:" : string.Empty) + name;
 
     private HtmlRenderFlowBlock? LayoutFootnoteMarkerContent(
         IElement element,

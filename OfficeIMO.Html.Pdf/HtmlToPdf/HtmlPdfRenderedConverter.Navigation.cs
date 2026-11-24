@@ -49,19 +49,22 @@ internal static partial class HtmlPdfRenderedConverter {
         IEnumerable<HtmlRenderVisual> visuals,
         OfficeTransform transform,
         CancellationToken cancellationToken) {
+        foreach ((string name, OfficePoint point) in EnumerateNamedDestinationPositions(visuals, transform, cancellationToken)) {
+            canvas.NamedDestination(MapNamedDestination(name),
+                global::OfficeIMO.OfficeLength.Points(point.X * PointsPerCssPixel), global::OfficeIMO.OfficeLength.Points(point.Y * PointsPerCssPixel));
+        }
+    }
+
+    private static IEnumerable<(string Name, OfficePoint Point)> EnumerateNamedDestinationPositions(
+        IEnumerable<HtmlRenderVisual> visuals, OfficeTransform transform, CancellationToken cancellationToken) {
         foreach (HtmlRenderVisual visual in visuals) {
             cancellationToken.ThrowIfCancellationRequested();
             if (visual is HtmlRenderNamedDestination destination) {
-                OfficePoint point = transform.TransformPoint(new OfficePoint(destination.X, destination.Y));
-                canvas.NamedDestination(MapNamedDestination(destination.Name),
-                    global::OfficeIMO.OfficeLength.Points(point.X * PointsPerCssPixel), global::OfficeIMO.OfficeLength.Points(point.Y * PointsPerCssPixel));
-                continue;
-            }
-            if (visual is HtmlRenderEffectGroup effect) {
-                AddClippedNamedDestinations(canvas, effect.Visuals, effect.Transform.Then(transform), cancellationToken);
+                yield return (destination.Name, transform.TransformPoint(new OfficePoint(destination.X, destination.Y)));
                 continue;
             }
             IEnumerable<HtmlRenderVisual>? children = visual switch {
+                HtmlRenderEffectGroup effect => effect.Visuals,
                 HtmlRenderClipGroup clip => clip.Visuals,
                 HtmlRenderPathClipGroup path => path.Visuals,
                 HtmlRenderSemanticGroup semantic => semantic.Visuals,
@@ -70,7 +73,10 @@ internal static partial class HtmlPdfRenderedConverter {
                 HtmlRenderFormField field => field.Visuals,
                 _ => null
             };
-            if (children != null) AddClippedNamedDestinations(canvas, children, transform, cancellationToken);
+            if (children == null) continue;
+            OfficeTransform childTransform = visual is HtmlRenderEffectGroup group ? group.Transform.Then(transform) : transform;
+            foreach (var target in EnumerateNamedDestinationPositions(children, childTransform, cancellationToken))
+                yield return target;
         }
     }
 }

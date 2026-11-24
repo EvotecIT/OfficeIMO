@@ -3,12 +3,14 @@ using OfficeIMO.Html.Css;
 namespace OfficeIMO.Html;
 
 internal static partial class HtmlCssPageSettingsResolver {
-    /// <summary>Retains authored context declarations for the shared computed cascade, including shorthand order.</summary>
-    private static IReadOnlyList<HtmlGeneratedStyleDeclaration> ReadContextStyleDeclarations(string body,
+    private static HtmlCssStyleBlock ParseContextStyleBlock(string body,
         HtmlCssProcessingBudget budget, CancellationToken cancellationToken) {
-        HtmlCssStyleBlock block;
-        try { block = HtmlCssSyntaxParser.ParseStyleBlock(body, budget.CreateInlineSyntaxOptions(), cancellationToken); }
+        try { return HtmlCssSyntaxParser.ParseStyleBlock(body, budget.CreateInlineSyntaxOptions(), cancellationToken); }
         catch (HtmlCssSyntaxLimitException exception) { throw budget.TranslateSyntaxLimit(exception); }
+    }
+
+    /// <summary>Retains authored context declarations for the shared computed cascade, including shorthand order.</summary>
+    private static IReadOnlyList<HtmlGeneratedStyleDeclaration> ReadContextStyleDeclarations(HtmlCssStyleBlock block, CancellationToken cancellationToken) {
         var result = new List<HtmlGeneratedStyleDeclaration>();
         var boundedTokens = new HtmlCssTokenizationOptions { MaxInputCharacters = null, MaxTokens = null };
         int order = 0;

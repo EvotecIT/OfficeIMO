@@ -113,7 +113,7 @@ must report that failure without discarding completed output counts.
 
 Email PDF renders the styled message through the HTML-to-PDF engine: a header block with subject, sender, recipients and date, the HTML, RTF or plain body under the shared sanitization and remote-resource policy, inline MIME images, and a list of file attachments. `OfficeConversionOptions.EmailPdf` adjusts the header, attachment list, inline-resource limits and page settings. `OutputProfile = OfficeConversionProfile.TextOnly` selects the Reader text projection for archival output. EPUB PDF renders styled chapters and package images through the HTML-to-PDF engine in spine order, with a navigation outline and chapter-level findings. The same `TextOnly` profile selects EPUB’s Reader text projection. Unsupported or filtered files produce skipped outcomes; their count is separate from selected conversions.
 
-Each EPUB chapter starts on a new page. Reflowable chapters use the print stylesheet, while fixed-layout chapters with a supported viewport use its page size. Page numbering continues across chapters. Publication-wide CSS `counter(pages)` and requested PDF parity padding are reported as omissions.
+Each EPUB chapter starts on a new page. Reflowable chapters use the print stylesheet, while fixed-layout chapters with a supported viewport use its page size. Page numbering continues across chapters. Publication-wide CSS `counter(pages)`, requested PDF parity padding and structured PDF headers or footers are reported as omissions.
 
 ```csharp
 using OfficeIMO;

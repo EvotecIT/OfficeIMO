@@ -12,14 +12,16 @@ public sealed class OfficeConverterEpubTests {
         var book = EpubPublication.Create("A publication", "en", "urn:officeimo:styled-epub-pdf-test");
         book.AddResource("figure", "EPUB/art/dot.png", "image/png",
             OfficeRasterImageEncoder.Encode(new OfficeRasterImage(8, 8, OfficeColor.FromRgb(38, 95, 112)), OfficeImageExportFormat.Png));
-        book.AddStylesheet("print", "EPUB/styles/book.css", "h1 { font-size: 22pt } img { width: 24px; height: 24px } @page { margin: 36pt; @bottom-center { content: 'Book page ' counter(page) } }");
+        book.AddStylesheet("print", "EPUB/styles/book.css", "h1 { font-size: 22pt } img { width: 24px; height: 24px } "
+            + "@media print { @page { margin: 36pt; @bottom-center { content: 'Book page ' counter(page) } } }");
         book.AddChapter("first", "EPUB/text/z.xhtml", "Opening",
             "<h1 id='heading'>Opening text</h1><p><a href='a.xhtml#heading'>Continue reading</a></p>" +
             "<p><a href='a.xhtml'>Start of closing chapter</a></p><p><a href='a.xhtml#top'>Authored top anchor</a></p>" +
             "<img src='../art/dot.png' alt='Opening figure' />",
             ["print"]);
         book.AddChapter("second", "EPUB/text/a.xhtml", "Closing",
-            "<h1 id='heading'>Closing text</h1><p id='top'><a href='#heading'>Back to heading</a></p><img src='../art/dot.png' alt='Closing figure' />",
+            "<div style='transform:translateY(5px)'><h1 id='heading'>Closing text</h1></div>"
+            + "<p id='top'><a href='#heading'>Back to heading</a></p><img src='../art/dot.png' alt='Closing figure' />",
             ["print"]);
         book.SetNavigation([new EpubNavigationEntry("Beginning", "EPUB/text/z.xhtml",
             [new EpubNavigationEntry("End of the story", "EPUB/text/a.xhtml#heading")])]);
@@ -43,7 +45,8 @@ public sealed class OfficeConverterEpubTests {
         Assert.Contains("Book page 2", text, StringComparison.Ordinal);
         PdfLinkAnnotation link = Assert.Single(pdf.Inspect().LinkAnnotations, item => item.Contents == "Continue reading");
         Assert.Equal(1, link.PageNumber);
-        Assert.Equal(2, Assert.Single(pdf.NamedDestinations, target => target.Name == link.DestinationName).PageNumber);
+        PdfNamedDestination closing = Assert.Single(pdf.NamedDestinations, target => target.Name == link.DestinationName);
+        Assert.Equal(2, closing.PageNumber);
         PdfNamedDestination start = FindTarget("Start of closing chapter");
         PdfNamedDestination authored = FindTarget("Authored top anchor");
         Assert.Equal(2, start.PageNumber);
@@ -58,6 +61,7 @@ public sealed class OfficeConverterEpubTests {
         PdfOutlineItem child = Assert.Single(root.Children);
         Assert.Equal("End of the story", child.Title);
         Assert.Equal(2, child.PageNumber);
+        Assert.Equal(closing.DestinationTop!.Value, child.DestinationTop!.Value, precision: 4);
 
         PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(pdf.TaggedContent);
         var structures = tagged.StructureElements.ToDictionary(element => element.ObjectNumber);
@@ -72,6 +76,29 @@ public sealed class OfficeConverterEpubTests {
             PdfLinkAnnotation annotation = Assert.Single(pdf.Inspect().LinkAnnotations, item => item.Contents == label);
             return Assert.Single(pdf.NamedDestinations, target => target.Name == annotation.DestinationName);
         }
+    }
+
+    [Fact]
+    public void StyledEpubKeepsAuthoredFragmentsAndGeneratedFootnoteLinksDistinct() {
+        var book = EpubPublication.Create("Notes", "en", "urn:officeimo:epub-pdf-footnote-destinations");
+        book.AddChapter("notes", "EPUB/text/notes.xhtml", "Notes",
+            "<h1 id='officeimo-footnote-call-1'>Notes</h1>"
+            + "<p>Body <span style='float:footnote'>Footnote text.</span> after the call.</p>"
+            + "<p><a href='#officeimo-footnote-call-1'>Go to heading</a></p>");
+        using var source = new MemoryStream(book.Write().Bytes);
+        using var output = new MemoryStream();
+        OfficeConverter.Convert(source, OfficeDocumentFormat.Epub, output, OfficeDocumentFormat.Pdf);
+        using var pdf = PdfDocument.Load(output.ToArray());
+
+        Assert.Contains("Footnote text.", pdf.ExtractText(), StringComparison.Ordinal);
+        PdfLinkAnnotation[] links = pdf.Inspect().LinkAnnotations.Where(link => link.DestinationName != null).ToArray();
+        PdfLinkAnnotation headingLink = Assert.Single(links, link => link.Contents == "Go to heading");
+        var distinctTargets = links.Select(link => link.DestinationName).Distinct().ToArray();
+        Assert.Equal(3, distinctTargets.Length);
+        var destinations = pdf.NamedDestinations.ToDictionary(destination => destination.Name);
+        PdfNamedDestination heading = destinations[headingLink.DestinationName!];
+        Assert.All(distinctTargets.Where(name => name != headingLink.DestinationName), name =>
+            Assert.True(heading.DestinationTop > destinations[name!].DestinationTop));
     }
 
     [Fact]
