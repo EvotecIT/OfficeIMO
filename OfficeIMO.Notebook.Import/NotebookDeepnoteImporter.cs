@@ -158,14 +158,14 @@ internal static partial class NotebookDeepnoteImporter {
 
     private static NotebookCell AddImage(YamlMapping block, string location, string? id, NotebookImportContext context) {
         string? path = Text(Get(block, "metadata") as YamlMapping, "deepnote_img_src");
-        if (!OfficeImageReader.TryReadBase64DataUri(path, context.Limits.MaxInputBytes, out byte[] bytes, out OfficeImageInfo info)) {
+        if (!NotebookImportImage.TryReadBase64DataUri(path, context.Limits.MaxInputBytes, out string payload, out OfficeImageInfo info)) {
             context.Report("notebook-deepnote-image", "The image block has no supported embedded image. External references are not opened.", location);
             return context.AddCell(NotebookCellKind.Raw, string.Empty, sourceId: id);
         }
         string attachment = "deepnote-image" + OfficeImageInfo.GetDefaultExtension(info.Format);
         NotebookCell image = context.AddCell(NotebookCellKind.Markdown, "![Deepnote image](attachment:" + attachment + ")", sourceId: id);
         image.SetAttachment(attachment, new Dictionary<string, JsonElement>(StringComparer.Ordinal) {
-            [info.MimeType] = NotebookImportContext.JsonString(Convert.ToBase64String(bytes))
+            [info.MimeType] = NotebookImportContext.JsonString(payload)
         });
         return image;
     }

@@ -92,8 +92,8 @@ internal static partial class NotebookZeppelinImporter {
 
     private static NotebookOutput? ReadImage(string payload, long maximumImageBytes) {
         if (payload.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) {
-            return OfficeImageReader.TryReadBase64DataUri(payload, maximumImageBytes, out byte[] image, out OfficeImageInfo identified)
-                ? Display(identified.MimeType, Convert.ToBase64String(image))
+            return NotebookImportImage.TryReadBase64DataUri(payload, maximumImageBytes, out string image, out OfficeImageInfo identified)
+                ? Display(identified.MimeType, image)
                 : null;
         }
         // Built-in Zeppelin renderers store base64 image bytes with no MIME declaration.

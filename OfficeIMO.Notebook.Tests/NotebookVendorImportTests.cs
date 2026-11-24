@@ -1,3 +1,4 @@
+using System.Xml.Linq;
 using OfficeIMO.Markdown;
 using OfficeIMO.Notebook.Import;
 using OfficeIMO.Notebook.Markdown;
@@ -140,6 +141,56 @@ public sealed class NotebookVendorImportTests {
         Assert.Contains(exported.Blocks, block => block is ImageBlock);
     }
 
+    [Theory]
+    [InlineData(NotebookImportFormat.Deepnote, "utf-8")]
+    [InlineData(NotebookImportFormat.Deepnote, "utf-16")]
+    [InlineData(NotebookImportFormat.Deepnote, "utf-32")]
+    [InlineData(NotebookImportFormat.Zeppelin, "utf-8")]
+    [InlineData(NotebookImportFormat.Zeppelin, "utf-16")]
+    [InlineData(NotebookImportFormat.Zeppelin, "utf-32")]
+    public void VendorSvgDataUrisRoundTripAsRenderableJupyterXml(NotebookImportFormat format, string encoding) {
+        const string svg = """<svg xmlns="http://www.w3.org/2000/svg" width="8" height="9"><!-- Zażółć 🙂 --><rect width="8" height="9" fill="red"/></svg>""";
+        byte[] image = encoding == "utf-32"
+            ? Encoding.UTF32.GetPreamble().Concat(Encoding.UTF32.GetBytes(svg)).ToArray()
+            : Encoding.GetEncoding(encoding).GetBytes($"""<?xml version="1.0" encoding="{encoding}"?>""" + svg);
+        string uri = "data:image/svg+xml;base64," + Convert.ToBase64String(image);
+
+        var imported = NotebookImporter.Load(VendorImageInput(format, uri), format);
+        using NotebookDocument notebook = imported.Value;
+        Assert.False(imported.HasLoss);
+        using NotebookDocument reopened = NotebookDocument.Load(notebook.ToBytes());
+        NotebookCell cell = Assert.Single(reopened.Cells);
+        var mime = format == NotebookImportFormat.Deepnote
+            ? Assert.Single(cell.Attachments).Value : Assert.Single(cell.Outputs).Data;
+        XElement stored = XElement.Parse(mime["image/svg+xml"].GetString()!);
+        Assert.True(XNode.DeepEquals(XElement.Parse(svg), stored));
+
+        using MarkdownDocument exported = reopened.ToMarkdown(new NotebookMarkdownExportOptions { IncludeCode = false });
+        Assert.Single(exported.Blocks, block => block is ImageBlock);
+    }
+
+    [Theory]
+    [InlineData(NotebookImportFormat.Deepnote, "notebook-deepnote-image")]
+    [InlineData(NotebookImportFormat.Zeppelin, "notebook-zeppelin-result")]
+    public void VendorSvgNormalizationReportsImagesThatExpandPastTheInputByteLimit(NotebookImportFormat format, string diagnosticCode) {
+        const int limit = 4_096;
+        string svg = """<svg xmlns="http://www.w3.org/2000/svg" width="8" height="9" data-label='""" + new string('"', 1_000)
+            + """'><rect width="8" height="9"/></svg>""";
+        string uri = "data:image/svg+xml;base64," + Convert.ToBase64String(Encoding.UTF8.GetBytes(svg));
+        byte[] input = VendorImageInput(format, uri);
+        Assert.True(input.Length < limit);
+
+        var imported = NotebookImporter.Load(input, format, new NotebookImportOptions {
+            Limits = new NotebookLoadOptions { MaxInputBytes = limit }
+        });
+        using NotebookDocument notebook = imported.Value;
+        NotebookCell cell = Assert.Single(notebook.Cells);
+        Assert.Empty(cell.Attachments);
+        Assert.Empty(cell.Outputs);
+        Assert.Contains(imported.Report.Diagnostics, diagnostic => diagnostic.Code == diagnosticCode &&
+            diagnostic.LossKind == OfficeConversionLossKind.Omission);
+    }
+
     [Fact]
     public void ZeppelinReportsUnsupportedSavedResultsAndCountsThemAgainstImportLimits() {
         byte[] bytes = Encoding.UTF8.GetBytes("""
@@ -165,6 +216,22 @@ public sealed class NotebookVendorImportTests {
         Assert.Throws<FormatException>(() => NotebookImporter.Load(Encoding.UTF8.GetBytes("{\"paragraphs\":[]}"),
             NotebookImportFormat.Zeppelin));
     }
+
+    private static byte[] VendorImageInput(NotebookImportFormat format, string uri) => Encoding.UTF8.GetBytes(
+        format == NotebookImportFormat.Deepnote ? $$$"""
+            version: 1.0.0
+            project:
+              notebooks:
+                - id: notebook
+                  blocks:
+                    - type: image
+                      sortingKey: a0
+                      metadata:
+                        deepnote_img_src: {{{uri}}}
+            """ : $$$"""
+            {"id":"book","name":"Saved chart","paragraphs":[{"id":"chart","text":"%python\nplot()",
+              "results":{"msg":[{"type":"IMG","data":"{{{uri}}}"}]}}]}
+            """);
 
     private static string Vendor(string name) => Path.Combine(AppContext.BaseDirectory, "Fixtures", "Vendors", name);
 }
