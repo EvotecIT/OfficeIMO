@@ -127,6 +127,7 @@ Install a format package for that format alone. Conversion adapters are named `O
 | Visio `.vsdx` | [OfficeIMO.Visio](OfficeIMO.Visio/README.md) | `VisioDocument` | `.Visio.Pdf` |
 | Project `.mpp`, `.xml` | [OfficeIMO.Project](OfficeIMO.Project/README.md) | `ProjectDocument` | |
 | Access `.accdb`, `.mdb` | [OfficeIMO.Access](OfficeIMO.Access/README.md) | `AccessDocument` | |
+| Jupyter `.ipynb` and notebook sources | [OfficeIMO.Notebook](OfficeIMO.Notebook/README.md), [OfficeIMO.Notebook.Import](OfficeIMO.Notebook.Import/README.md) | `NotebookDocument` | `.Notebook.Pdf`, `.Notebook.Html`, `.Notebook.Word`, `.Notebook.Markdown`, `.Notebook.Spreadsheet` |
 | OneNote `.one` | [OfficeIMO.OneNote](OfficeIMO.OneNote/README.md) | `OneNoteSection` | `.OneNote.Markdown`, `.OneNote.Html`, `.OneNote.Pdf` |
 | Email `.eml`, `.msg`, `.pst` | [OfficeIMO.Email](OfficeIMO.Email/README.md) | | `.Email.Html`, `.Email.Image` |
 | RTF | [OfficeIMO.Rtf](OfficeIMO.Rtf/README.md) | `RtfDocument` | `.Rtf.Pdf`, `.Rtf.Markdown` |

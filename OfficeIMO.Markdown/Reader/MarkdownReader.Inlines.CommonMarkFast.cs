@@ -133,7 +133,7 @@ internal static partial class MarkdownReader {
                     string source = text.Substring(token.TargetStart, token.TargetLength);
                     string? resolvedSource = string.IsNullOrWhiteSpace(source)
                         ? string.Empty
-                        : ResolveUrl(source, options);
+                        : ResolveImageUrl(source, options);
                     if (resolvedSource == null) {
                         sequence.AddRaw(new MarkdownTextRun(altText));
                     } else {

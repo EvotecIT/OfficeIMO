@@ -76,4 +76,5 @@ public sealed record ConversionResult(
     public long ConversionMilliseconds { get; init; }
     public BrowserPdfProfile? Profile { get; init; }
     public SelectedDocument? SourceSnapshot { get; init; }
+    internal Services.ManifestFontAsset[]? SupplementalFonts { get; init; }
 }

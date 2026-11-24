@@ -38,6 +38,7 @@
     <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO\OfficeIMO.csproj" />
     <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Core\OfficeIMO.Core.csproj" />
     <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Project\OfficeIMO.Project.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Notebook.Spreadsheet\OfficeIMO.Notebook.Spreadsheet.csproj" />
     <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Access\OfficeIMO.Access.csproj" />
     <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Epub\OfficeIMO.Epub.csproj" />
 

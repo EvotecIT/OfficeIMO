@@ -10,6 +10,7 @@ public sealed class MarkdownPdfExportOptions {
     public bool FailOnLoss { get; set; }
 
     internal System.Threading.CancellationToken CancellationToken { get; set; }
+    internal bool PaginateFigures { get; set; }
 
     private global::OfficeIMO.OfficeLength _defaultImageWidth = global::OfficeIMO.OfficeLength.Points(320D);
     private global::OfficeIMO.OfficeLength _defaultImageHeight = global::OfficeIMO.OfficeLength.Points(180D);

@@ -787,7 +787,7 @@ internal static partial class CsvWriter
 
     private static bool IsFormulaSafeTypedValue(object value)
     {
-        if (value is bool || IsKnownCsvSafeSpanFormattedValue(value))
+        if (value is bool or CsvNumericText || IsKnownCsvSafeSpanFormattedValue(value))
         {
             return true;
         }

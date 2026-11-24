@@ -17,7 +17,7 @@ internal sealed record PdfConversionResult(string Route, string Source, long Out
 
 /// <summary>
 /// Converts documents to PDF through the same workflow routes as OfficeIMO Studio's Convert window: Word, Excel,
-/// PowerPoint, RTF, text, HTML, Markdown, XPS, Visio, Draw and Publisher files. PDFs convert to Word, Excel,
+/// PowerPoint, RTF, text, HTML, Markdown, Jupyter Notebook, XPS, Visio, Draw and Publisher files. PDFs convert to Word, Excel,
 /// PowerPoint and HTML the same way.
 /// </summary>
 internal static class PdfConversion {

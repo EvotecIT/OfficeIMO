@@ -1,0 +1,6 @@
+altair==6.3.0
+kaleido==1.5.2
+nbformat==5.11.1
+numpy==2.4.6
+plotly==6.9.0
+vl-convert-python==1.9.0.post1

@@ -1,0 +1,48 @@
+figure[data-officeimo-chart] {
+    margin: 1.25em 0;
+}
+figure[data-officeimo-chart] > svg {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    touch-action: pan-y;
+}
+figure[data-officeimo-chart] > svg[data-chart-zoomed] {
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+}
+figure[data-officeimo-chart] > svg[data-chart-dragging] {
+    cursor: grabbing;
+}
+[data-officeimo-chart-highlight] {
+    fill: none;
+    stroke: #155cbd;
+    stroke-width: 2;
+    vector-effect: non-scaling-stroke;
+    pointer-events: none;
+}
+[data-officeimo-chart-tools]:not([hidden]) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35em;
+    margin: .45em 0;
+}
+[data-officeimo-chart-tools] button {
+    font: inherit;
+    color: inherit;
+    background: transparent;
+    border: 1px solid currentColor;
+    border-radius: .3em;
+    padding: .32em .55em;
+    cursor: pointer;
+}
+[data-officeimo-chart-tools] button[aria-disabled="true"] {
+    opacity: .55;
+    cursor: default;
+}
+[data-officeimo-chart-value]:not([hidden]) {
+    display: block;
+    min-height: 1.4em;
+    overflow-wrap: anywhere;
+}

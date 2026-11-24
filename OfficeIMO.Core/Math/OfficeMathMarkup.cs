@@ -12,12 +12,44 @@ public static partial class OfficeMathMarkup {
     public const int DefaultMaximumParseDepth = 128;
 
     /// <summary>Serializes an expression as presentation MathML.</summary>
-    public static string ToMathMl(OfficeMathExpression expression, bool display = false) {
+    public static string ToMathMl(OfficeMathExpression expression, bool display = false) =>
+        WriteMathMl(expression, display, expandFences: false);
+
+    internal static string ToBrowserMathMl(OfficeMathExpression expression, bool display) =>
+        WriteMathMl(expression, display, expandFences: true);
+
+    private static string WriteMathMl(OfficeMathExpression expression, bool display, bool expandFences) {
         ArgumentNullException.ThrowIfNull(expression);
         var root = new XElement(MathMlNamespace + "math", ToMathMlElement(expression));
         if (display) root.SetAttributeValue("display", "block");
+        if (expandFences) ExpandMathMlFences(root);
         return root.ToString(SaveOptions.DisableFormatting);
     }
+
+    // MathML Core expects explicit operators rather than the presentation MathML mfenced shorthand.
+    private static void ExpandMathMlFences(XElement root) {
+        foreach (XElement fence in root.Descendants(MathMlNamespace + "mfenced").ToArray()) {
+            string open = (string?)fence.Attribute("open") ?? "(";
+            string close = (string?)fence.Attribute("close") ?? ")";
+            string separator = (string?)fence.Attribute("separators") ?? ",";
+            fence.Name = MathMlNamespace + "mrow";
+            fence.RemoveAttributes();
+            if (fence.FirstNode?.NextNode != null && separator.Length > 0) {
+                XElement[] items = fence.Elements().ToArray();
+                fence.RemoveNodes();
+                var list = Element("mrow", items[0]);
+                for (int i = 1; i < items.Length; i++) {
+                    list.Add(Element("mo", new XAttribute("separator", "true"), separator), items[i]);
+                }
+                fence.Add(list);
+            }
+            if (open.Length > 0) fence.AddFirst(MathMlFenceOperator(open, "prefix"));
+            if (close.Length > 0) fence.Add(MathMlFenceOperator(close, "postfix"));
+        }
+    }
+
+    private static XElement MathMlFenceOperator(string text, string form) =>
+        Element("mo", new XAttribute("fence", "true"), new XAttribute("stretchy", "true"), new XAttribute("form", form), text);
 
     /// <summary>Parses presentation MathML into the shared expression tree.</summary>
     public static OfficeMathExpression FromMathMl(string mathMl) => FromMathMl(mathMl, DefaultMaximumParseDepth);
@@ -48,12 +80,15 @@ public static partial class OfficeMathMarkup {
     /// <summary>Parses common LaTeX math constructs without requiring a TeX runtime.</summary>
     public static OfficeMathExpression FromLatex(string latex) => FromLatex(latex, DefaultMaximumParseDepth);
 
-    /// <summary>Parses common LaTeX math constructs with a hard nesting-depth limit.</summary>
+    /// <summary>Parses common LaTeX math constructs with bounded nesting and environment expansion.</summary>
     public static OfficeMathExpression FromLatex(string latex, int maximumDepth) {
         ArgumentNullException.ThrowIfNull(latex);
         ArgumentOutOfRangeException.ThrowIfLessThan(maximumDepth, 1);
         return new LatexParser(latex, maximumDepth).Parse();
     }
+
+    internal static OfficeMathExpression FromLatexStrict(string latex) =>
+        new LatexParser(latex, DefaultMaximumParseDepth, rejectUnknownCommands: true).Parse();
 
     internal static void ValidateXmlDepth(string mathMl, int maximumDepth) {
         var settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null };
@@ -430,15 +465,26 @@ public static partial class OfficeMathMarkup {
         private static readonly HashSet<string> Functions = new HashSet<string>(new[] { "sin", "cos", "tan", "log", "ln", "exp", "lim", "min", "max" }, StringComparer.Ordinal);
         private readonly string _text;
         private readonly int _maximumDepth;
+        private readonly EnvironmentExpansionBudget _environmentBudget;
+        private readonly bool _rejectUnknownCommands;
         private int _depth;
         private int _position;
         private bool _preserveNextOperatorKind;
 
-        internal LatexParser(string text, int maximumDepth, int initialDepth = 0) {
+        internal LatexParser(string text, int maximumDepth, bool rejectUnknownCommands = false)
+            : this(text, maximumDepth, 0, new EnvironmentExpansionBudget(), rejectUnknownCommands) { }
+
+        private LatexParser(string text, int maximumDepth, int initialDepth, EnvironmentExpansionBudget environmentBudget,
+            bool rejectUnknownCommands) {
             _text = text;
             _maximumDepth = maximumDepth;
             _depth = initialDepth;
+            _environmentBudget = environmentBudget;
+            _rejectUnknownCommands = rejectUnknownCommands;
         }
+
+        private OfficeMathExpression ParseNested(string text) =>
+            new LatexParser(text, _maximumDepth, _depth, _environmentBudget, _rejectUnknownCommands).Parse();
 
         internal static bool IsKnownFunctionName(string name) => Functions.Contains(name);
 
@@ -449,11 +495,15 @@ public static partial class OfficeMathMarkup {
             return expression;
         }
 
-        private OfficeMathExpression ParseSequence(char terminator) {
-            if (++_depth > _maximumDepth) {
-                _depth--;
+        private void EnterDepth() {
+            if (_depth >= _maximumDepth) {
                 throw new OfficeMathParseException("DRAWING_MATH_DEPTH", "The mathematical markup nesting depth limit was exceeded.");
             }
+            _depth++;
+        }
+
+        private OfficeMathExpression ParseSequence(char terminator) {
+            EnterDepth();
             try {
                 var items = new List<OfficeMathExpression>();
                 while (_position < _text.Length) {
@@ -609,7 +659,7 @@ public static partial class OfficeMathMarkup {
                     string right = ReadDelimiter();
                     if (TryParseSlashedFraction(inner, left, right, out OfficeMathExpression? slashed)) return slashed!;
                     if (TryParseDelimiterList(inner, left, right, out OfficeMathExpression? delimiterList)) return delimiterList!;
-                    return OfficeMath.Delimited(new LatexParser(inner, _maximumDepth, _depth).Parse(), left, right);
+                    return OfficeMath.Delimited(ParseNested(inner), left, right);
                 default:
                     if (Symbols.TryGetValue(command, out (string Value, OfficeMathKind Kind) symbol)) {
                         return symbol.Kind == OfficeMathKind.Identifier ? OfficeMath.Identifier(symbol.Value) : OfficeMath.Operator(symbol.Value);
@@ -617,6 +667,7 @@ public static partial class OfficeMathMarkup {
                     if (Functions.Contains(command)) {
                         return OfficeMath.Function(command, ParseFunctionArgument());
                     }
+                    if (_rejectUnknownCommands) throw Error("Unsupported mathematical command \\" + command + ".");
                     if (NextIsLeftDelimiter()) return OfficeMath.Function(command, ParseFunctionArgument());
                     return OfficeMath.Identifier(command);
             }
@@ -625,7 +676,17 @@ public static partial class OfficeMathMarkup {
         private OfficeMathExpression ParseFunctionArgument() {
             SkipWhitespace();
             if (_position >= _text.Length) return OfficeMath.Text(string.Empty);
-            OfficeMathExpression argument = Peek('{') ? ParseRequiredGroup() : ParseAtom();
+            OfficeMathExpression argument;
+            if (Peek('{')) {
+                argument = ParseRequiredGroup();
+            } else {
+                EnterDepth();
+                try {
+                    argument = ParseAtom();
+                } finally {
+                    _depth--;
+                }
+            }
             return argument.Kind == OfficeMathKind.Delimited && argument.Character == "(" && argument.SecondaryCharacter == ")"
                 ? argument.Children[0]
                 : argument;
@@ -666,14 +727,13 @@ public static partial class OfficeMathMarkup {
             if (!string.Equals(environment, closing, StringComparison.Ordinal)) throw Error("Mismatched mathematical environment end.");
 
             IReadOnlyList<IReadOnlyList<string>> sourceRows = SplitEnvironmentBody(body);
-            int rows = Math.Max(1, sourceRows.Count);
-            int columns = Math.Max(1, sourceRows.Count == 0 ? 1 : sourceRows.Max(row => row.Count));
-            var cells = new List<OfficeMathExpression>(rows * columns);
-            if (sourceRows.Count == 0) cells.Add(OfficeMath.Text(string.Empty));
+            int rows = sourceRows.Count;
+            int columns = sourceRows.Max(row => row.Count);
+            var cells = new List<OfficeMathExpression>(_environmentBudget.ReserveCells(rows, columns));
             foreach (IReadOnlyList<string> row in sourceRows) {
                 for (int column = 0; column < columns; column++) {
                     cells.Add(column < row.Count && !string.IsNullOrWhiteSpace(row[column])
-                        ? new LatexParser(row[column], _maximumDepth, _depth).Parse()
+                        ? ParseNested(row[column])
                         : OfficeMath.Text(string.Empty));
                 }
             }
@@ -694,7 +754,7 @@ public static partial class OfficeMathMarkup {
             OfficeMathExpression[] rows = sourceRows
                 .Select(row => CollapseRow(row.Select(cell => string.IsNullOrWhiteSpace(cell)
                     ? OfficeMath.Text(string.Empty)
-                    : new LatexParser(cell, _maximumDepth, _depth).Parse())))
+                    : ParseNested(cell))))
                 .ToArray();
             return OfficeMath.StretchStack(rows);
         }
@@ -722,8 +782,8 @@ public static partial class OfficeMathMarkup {
                         while (delimiterIndex < source.Length && char.IsWhiteSpace(source[delimiterIndex])) delimiterIndex++;
                         if (delimiterIndex >= source.Length || source[delimiterIndex] != '/') return false;
                         expression = OfficeMath.SlashedFraction(
-                            new LatexParser(source.Substring(0, index), _maximumDepth, _depth).Parse(),
-                            new LatexParser(source.Substring(delimiterIndex + 1), _maximumDepth, _depth).Parse());
+                            ParseNested(source.Substring(0, index)),
+                            ParseNested(source.Substring(delimiterIndex + 1)));
                         return true;
                     }
                     if (index + 1 < source.Length && (source[index + 1] == '{' || source[index + 1] == '}')) index++;
@@ -761,7 +821,7 @@ public static partial class OfficeMathMarkup {
                         int groupEnd = FindGroupEnd(source, groupStart);
                         if (groupEnd < 0) throw Error("A \\mathpunct separator is missing a closing brace.");
                         string separatorSource = source.Substring(groupStart + 1, groupEnd - groupStart - 1);
-                        string currentSeparator = new LatexParser(separatorSource, _maximumDepth, _depth).Parse().ToPlainText();
+                        string currentSeparator = ParseNested(separatorSource).ToPlainText();
                         if (separator != null && !string.Equals(separator, currentSeparator, StringComparison.Ordinal)) {
                             throw Error("A delimiter list must use one separator.");
                         }
@@ -782,9 +842,7 @@ public static partial class OfficeMathMarkup {
                 return false;
             }
             itemSources.Add(source.Substring(itemStart));
-            OfficeMathExpression[] items = itemSources
-                .Select(item => new LatexParser(item, _maximumDepth, _depth).Parse())
-                .ToArray();
+            OfficeMathExpression[] items = itemSources.Select(ParseNested).ToArray();
             expression = OfficeMath.DelimiterList(left, right, separator, items);
             return true;
         }
@@ -892,6 +950,20 @@ public static partial class OfficeMathMarkup {
             return rows;
         }
 
+        private sealed class EnvironmentExpansionBudget {
+            private int _remainingCells = 32 * 1024;
+
+            internal int ReserveCells(int rows, int columns) {
+                long cellCount = (long)rows * columns;
+                if (cellCount > _remainingCells) {
+                    throw new OfficeMathParseException("DRAWING_MATH_ENVIRONMENT_CELLS",
+                        "The mathematical environment cell limit was exceeded.");
+                }
+                _remainingCells -= (int)cellCount;
+                return (int)cellCount;
+            }
+        }
+
         private static bool TryReadEnvironmentCommand(string text, int index, out bool begin, out string? name, out int next) {
             begin = false;
             name = null;
@@ -957,6 +1029,7 @@ public static partial class OfficeMathMarkup {
                     escaped == "#" || escaped == "%" || escaped == "&" || escaped == "$") {
                     builder.Append(escaped);
                 } else {
+                    if (_rejectUnknownCommands) throw Error("Unsupported command in mathematical text \\" + escaped + ".");
                     builder.Append('\\').Append(escaped);
                 }
             }

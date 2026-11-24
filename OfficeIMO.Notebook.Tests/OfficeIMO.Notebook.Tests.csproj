@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <LangVersion>Latest</LangVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Notebook\OfficeIMO.Notebook.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Notebook.Markdown\OfficeIMO.Notebook.Markdown.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Notebook.Pdf\OfficeIMO.Notebook.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Notebook.Html\OfficeIMO.Notebook.Html.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Notebook.Spreadsheet\OfficeIMO.Notebook.Spreadsheet.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Notebook.Import\OfficeIMO.Notebook.Import.csproj" />
+    <None Include="..\Build\PackageSmoke\OfficeIMO.Html\Assets\FixtureMath.ttf" Link="Fixtures\FixtureMath.ttf" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.Drawing.Tests\TestAssets\OpenSans-Bold.ttf" Link="Fixtures\OpenSans-Bold.ttf" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\Notebook\Jupyter\*.ipynb" Link="Fixtures\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\Notebook\Producers\*.ipynb" Link="Fixtures\Producers\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\Notebook\AdvancedOutputs\**\*.ipynb" Link="Fixtures\AdvancedOutputs\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\Website\Apps\OfficeIMO.Web.Converter\wwwroot\samples\notebook-report.ipynb" Link="Fixtures\rich-charts.ipynb" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\Notebook\Scripts\*" Exclude="..\OfficeIMO.TestAssets\Notebook\Scripts\*.md;..\OfficeIMO.TestAssets\Notebook\Scripts\LICENSE*" Link="Fixtures\Scripts\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\Notebook\Markup\**\*" Exclude="..\OfficeIMO.TestAssets\Notebook\Markup\**\LICENSE*" Link="Fixtures\Markup\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\Notebook\Vendors\**\*.deepnote;..\OfficeIMO.TestAssets\Notebook\Vendors\**\*.zpln" Link="Fixtures\Vendors\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Using Include="OfficeIMO.Notebook" />
+    <Using Include="System.Text" />
+    <Using Include="System.Text.Json" />
+    <Using Include="Xunit" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,4 @@
+quarto-analysis.qmd text eol=lf
+myst-analysis.md text eol=lf
+r-analysis.Rmd text eol=lf
+r-saved-results.nb.html text eol=lf

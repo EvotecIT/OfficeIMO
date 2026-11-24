@@ -1,0 +1,21 @@
+---
+title: "Offline R lab"
+output: html_notebook
+---
+
+## Saved measurements
+
+```{r measurements, echo=TRUE}
+measurements <- c(2, 4, 6)
+summary(measurements)
+```
+
+The unsaved inline value is `r sum(measurements)`.
+
+```{r hidden, include=FALSE}
+hidden <- 42
+```
+
+```{r separate}
+plot(42)
+```

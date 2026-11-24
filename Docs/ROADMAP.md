@@ -25,6 +25,15 @@ The [API design](officeimo.api-design.md) defines the shared lengths, colors, th
 - [ ] M8 Documentation: extend the getting-started guides and executable examples with enum choices, output properties and representative results for each format. Keep package quick starts, command help, `about_` topics and website pages aligned with those examples.
 - [ ] M9 Console experience: optional ConsoleMonster integration.
 
+## Notebook formats
+
+- [ ] Measure browser latency and memory for large Jupyter notebooks on representative phones.
+- [ ] Extend [saved chart fidelity](../OfficeIMO.Notebook/SUPPORT.md) to mixed subplot axes and scenes, Vega-Lite layers and facets, Bokeh, and additional WebGL traces. Qualify camera rotation, additional map projections, and more standalone widget models with saved producer fixtures.
+- [ ] Extend offline publishing notebook imports to caller-supplied static resources and separately qualify native publisher directives, cached results, and richer saved layouts.
+- [ ] Repeat Kaggle and Databricks qualification against exports collected directly from current hosted runtimes. The pinned public producer corpus covers saved results.
+
+The [Jupyter support matrix](../OfficeIMO.Notebook/SUPPORT.md) and [notebook import guide](../OfficeIMO.Notebook.Import/README.md) describe the current format contracts.
+
 ## VBA host integration
 
 - [ ] Extend [Access VBA persistence](../OfficeIMO.Access/SUPPORT.md#native-vba-persistence) to create qualified form/report code-behind and author inert event bindings, with native Access/VBE and unrelated-designer preservation proof.

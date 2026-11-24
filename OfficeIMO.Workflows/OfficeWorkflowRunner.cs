@@ -586,6 +586,12 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                     stream,
                     cancellationToken: cancellationToken).ConfigureAwait(false)) { }
                 break;
+            case ".ipynb":
+                using (FileStream stream = OpenStagedArtifact(stagingPath))
+                using (Notebook.NotebookDocument document = await Notebook.NotebookDocument.LoadAsync(stream,
+                    new Notebook.NotebookLoadOptions { MaxInputBytes = Math.Min(loadOptions.Limits.MaxInputBytes, int.MaxValue) },
+                    cancellationToken).ConfigureAwait(false)) { }
+                break;
             case ".odt":
                 using (FileStream stream = OpenStagedArtifact(stagingPath))
                 using (OfficeIMO.OpenDocument.OdtDocument document = await OfficeIMO.OpenDocument.OdtDocument.LoadAsync(

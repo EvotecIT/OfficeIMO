@@ -69,6 +69,18 @@ internal static class OfficeConversionSupportAssessments {
         "txt-pdf" => Targeted(
             "Literal text conversion uses the canonical PDF flow engine, strict decoding, source whitespace and bounded pagination.",
             "Long lines wrap to page width. Unicode appearance depends on supplied fonts; no Markdown, HTML or ANSI interpretation occurs."),
+        "notebook-pdf" => Targeted(
+            "The managed notebook projection preserves cell order and reports MIME substitutions and omissions alongside PDF layout diagnostics.",
+            "Renders saved static output. Kernel execution, widgets and script-driven displays are outside the export profile. Supported math and symbols depend on the rendering fonts."),
+        "notebook-html" => Targeted(
+            "Notebook HTML fixtures cover ordered cells, saved text, supported tables and images, native MathML, and supported saved chart and widget state.",
+            "Opt in to offline chart zoom, pan and value inspection, and to browser controls for supported saved widgets. Kernel callbacks and notebook-supplied scripts remain inactive. Unsupported outputs are reported and can use a static fallback."),
+        "notebook-markdown" or "notebook-docx" => Targeted(
+            "Preserves notebook cell order, saved text, supported images, and supported semantic tables. The conversion reports output representations that cannot be projected.",
+            "Only saved static content is exported. Interactive displays and unsupported output types can require a static fallback."),
+        "notebook-source-ipynb" or "notebook-source-pdf" => Targeted(
+            "Notebook import contracts check ordered sources and saved outputs with upstream fixtures. Shared host validation reopens the resulting notebook or PDF.",
+            "The host recognizes Quarto, R Markdown, single-notebook Deepnote files and snapshots, and Zeppelin ZPLN. Use NotebookImporter explicitly for other profiles or selecting a notebook from a multi-notebook Deepnote project. Code is never executed."),
         "djvu-pdf" => Targeted(
             "Archival text and geometry, independent scanned-page comparisons, bounded malformed-input tests, and searchable PDF/OCR artifacts qualify the managed profile.",
             "JB2, MMR, IW44 1.2, palettes and managed JPEG profiles only. Annotations are reported without active rendering; indirect components require an explicit native resolver. OCR is caller-supplied and absent/empty-text-only. See OfficeIMO.DjVu/SUPPORT.md."),

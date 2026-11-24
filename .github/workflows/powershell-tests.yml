@@ -168,6 +168,27 @@ jobs:
           $config.Output.Verbosity = 'Detailed'
           Invoke-Pester -Configuration $config
 
+      - name: Test packaged notebooks on PowerShell 7
+        env:
+          PSWRITEOFFICE_MODULE_MANIFEST: ${{ github.workspace }}/PowerShell/PSWriteOffice/Artefacts/Unpacked/Modules/PSWriteOffice/PSWriteOffice.psd1
+          PSWRITEOFFICE_USE_DEVELOPMENT_BINARIES: 'false'
+        shell: pwsh
+        run: |
+          Import-Module Pester -RequiredVersion $env:PESTER_VERSION -Force
+          Invoke-Pester -Path 'Tests/Notebook.Tests.ps1', 'Tests/ConversionRoutes.Tests.ps1' -CI
+
+      - name: Test packaged notebooks on Windows PowerShell 5.1
+        env:
+          PSWRITEOFFICE_MODULE_MANIFEST: ${{ github.workspace }}/PowerShell/PSWriteOffice/Artefacts/Unpacked/Modules/PSWriteOffice/PSWriteOffice.psd1
+          PSWRITEOFFICE_USE_DEVELOPMENT_BINARIES: 'false'
+        shell: powershell
+        run: |
+          # Reuse the pinned tools with WinPS system modules instead of inheriting PowerShell 7 modules.
+          $moduleRoot = Join-Path $env:RUNNER_TEMP 'officeimo-ci-modules'
+          $env:PSModulePath = $moduleRoot + [IO.Path]::PathSeparator + (Join-Path $PSHOME 'Modules')
+          Import-Module Pester -RequiredVersion $env:PESTER_VERSION -Force
+          Invoke-Pester -Path 'Tests/Notebook.Tests.ps1', 'Tests/ConversionRoutes.Tests.ps1' -CI
+
   test-ubuntu:
     needs: changes
     if: needs.changes.outputs.selected == 'true'

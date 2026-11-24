@@ -1,4 +1,12 @@
 #nullable enable
+OfficeIMO.OfficeConversionOptions.NotebookPdf.get -> OfficeIMO.Notebook.Pdf.NotebookPdfExportOptions?
+OfficeIMO.OfficeConversionOptions.NotebookPdf.set -> void
+OfficeIMO.OfficeConversionOptions.NotebookHtml.get -> OfficeIMO.Notebook.Html.NotebookHtmlExportOptions?
+OfficeIMO.OfficeConversionOptions.NotebookHtml.set -> void
+OfficeIMO.OfficeConversionOptions.NotebookWord.get -> OfficeIMO.Notebook.Word.NotebookWordExportOptions?
+OfficeIMO.OfficeConversionOptions.NotebookWord.set -> void
+OfficeIMO.OfficeConversionOptions.NotebookMarkdown.get -> OfficeIMO.Notebook.Markdown.NotebookMarkdownExportOptions?
+OfficeIMO.OfficeConversionOptions.NotebookMarkdown.set -> void
 OfficeIMO.OfficeConversionOptions.Theme.get -> OfficeIMO.OfficeTheme?
 OfficeIMO.OfficeConversionOptions.Theme.set -> void
 OfficeIMO.OfficeConversionOptions.CsvSave.get -> OfficeIMO.CSV.CsvSaveOptions?

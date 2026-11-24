@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>CSV and Excel export of structured Jupyter notebook output.</Description>
+    <VersionPrefix>3.6.2</VersionPrefix>
+    <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
+    <IsPackable>true</IsPackable>
+    <IsPublishable>true</IsPublishable>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <LangVersion>Latest</LangVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../OfficeIMO.Notebook/OfficeIMO.Notebook.csproj" />
+    <ProjectReference Include="../OfficeIMO.CSV/OfficeIMO.CSV.csproj" />
+    <ProjectReference Include="../OfficeIMO.Excel/OfficeIMO.Excel.csproj" />
+    <None Include="README.md" Pack="true" PackagePath="README.md" />
+  </ItemGroup>
+</Project>

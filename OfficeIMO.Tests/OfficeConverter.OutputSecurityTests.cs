@@ -1,9 +1,11 @@
 using System.Text;
 using OfficeIMO.Excel;
+using OfficeIMO.Notebook.Pdf;
 using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Markdown;
+using OfficeIMO.Word.Pdf;
 
 namespace OfficeIMO.Tests;
 
@@ -14,6 +16,7 @@ public sealed class OfficeConverterOutputSecurityTests {
     [InlineData(".pdf", ".pptx", false)]
     [InlineData(".md", ".docx", false)]
     [InlineData(".html", ".docx", false)]
+    [InlineData(".ipynb", ".docx", false)]
     [InlineData(".pdf", ".docx", true)]
     [InlineData(".pdf", ".xlsx", true)]
     [InlineData(".pdf", ".pptx", true)]
@@ -26,7 +29,11 @@ public sealed class OfficeConverterOutputSecurityTests {
                 using var pdf = PdfDocument.Create();
                 pdf.Compose(builder => builder.Content(content => content.AddParagraph("Protected reconstructed content")));
                 source = pdf.ToBytes(new PdfSaveOptions { AllowLoss = true });
-            } else source = Encoding.UTF8.GetBytes(sourceExtension == ".html" ? "<p>Protected imported content</p>" : "Protected imported content");
+            } else source = Encoding.UTF8.GetBytes(sourceExtension switch {
+                ".html" => "<p>Protected imported content</p>",
+                ".ipynb" => """{"nbformat":4,"nbformat_minor":5,"metadata":{},"cells":[{"id":"source","cell_type":"markdown","metadata":{},"source":"Protected imported content"}]}""",
+                _ => "Protected imported content"
+            });
             const string password = "synthetic-destination-password";
             var options = new OfficeConversionOptions {
                 SourceName = "source" + sourceExtension, TargetName = "output" + targetExtension,
@@ -75,6 +82,30 @@ public sealed class OfficeConverterOutputSecurityTests {
             Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == OfficeDiagnosticCodes.ConversionOutputFailed);
             Assert.Equal("original destination", File.ReadAllText(output));
         } finally { Directory.Delete(directory, true); }
+    }
+
+    [Fact]
+    public async Task NotebookPdfCompressionUsesTheSelectedRoutePassword() {
+        const string password = "notebook-output-password";
+        using var input = new MemoryStream(Encoding.UTF8.GetBytes("""
+            {"nbformat":4,"nbformat_minor":5,"metadata":{},"cells":[
+              {"id":"source","cell_type":"markdown","metadata":{},"source":"Protected notebook content"}]}
+            """));
+        using var output = new MemoryStream();
+        await OfficeConverter.ConvertAsync(input, OfficeDocumentFormat.Notebook, output, OfficeDocumentFormat.Pdf,
+            new OfficeConversionOptions {
+                CompressPdfOutput = true,
+                Word = new WordPdfExportOptions {
+                    PdfOptions = new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions("different-route-password"))
+                },
+                NotebookPdf = new NotebookPdfExportOptions {
+                    MarkdownOptions = new() {
+                        PdfOptions = new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions(password))
+                    }
+                }
+            });
+        using PdfDocument document = PdfDocument.Load(output.ToArray(), new PdfLoadOptions { Password = password });
+        Assert.Contains("Protected notebook content", document.ExtractText(), StringComparison.Ordinal);
     }
 
     [Theory]

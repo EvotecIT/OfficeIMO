@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Assets/STIXTwoMath-Regular.ttf" LogicalName="NotebookMath.ttf" />
+    <EmbeddedResource Include="Assets/LiberationMono-Regular.ttf" LogicalName="NotebookMonospace.ttf" />
+    <InternalsVisibleTo Include="OfficeIMO.Web.Converter" />
+  </ItemGroup>
+</Project>

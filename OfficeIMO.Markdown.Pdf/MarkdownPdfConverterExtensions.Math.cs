@@ -25,10 +25,21 @@ public static partial class MarkdownPdfConverterExtensions {
             finder.Visit(document);
             if (!finder.Found) return null;
 
+            options.CancellationToken.ThrowIfCancellationRequested();
+            double fontSize = pdfOptions.DefaultFontSize.ToPoints();
+            OfficeFontFaceCollection? scopedFonts = pdfOptions.CloneDrawingProfileFonts();
+            // Use the Regular face and sample glyph that the math renderer resolves for layout metrics.
+            if (scopedFonts != null && scopedFonts.TryResolveFaceForText("x", "math", OfficeFontFaceDescriptor.Regular,
+                    fontSize, out OfficeFontFace? face)
+                && string.Equals(face!.FamilyName, "math", StringComparison.OrdinalIgnoreCase)
+                && (face.Program as IOfficeMathFontProgram)?.MathConstants != null) {
+                return new MathLayout(scopedFonts, fontSize);
+            }
+
             string? reason = null;
             var fonts = new OfficeFontFaceCollection();
             if (!options.ResourcePolicy.AllowSystemFontEmbedding) {
-                reason = "The resource policy does not allow installed fonts, and a mathematical font is required to lay out TeX math.";
+                reason = "No compatible mathematical face was supplied as the math family, and the resource policy does not allow installed fonts.";
             } else if (!fonts.TryAddInstalledFamily("math", OfficeFontFaceDescriptor.Regular, MathFontByteLimit,
                            options.CancellationToken, out _, out string? error, MathFontByteLimit)) {
                 reason = "No installed mathematical font (STIX Two Math, Cambria Math, Latin Modern Math or DejaVu Math TeX Gyre) could be loaded" +
@@ -46,7 +57,7 @@ public static partial class MarkdownPdfConverterExtensions {
                 return null;
             }
 
-            return new MathLayout(fonts, pdfOptions.DefaultFontSize.ToPoints());
+            return new MathLayout(fonts, fontSize);
         }
 
         internal bool TryRender(string tex, bool display, double fontSize, OfficeColor color, MarkdownPdfExportOptions options,

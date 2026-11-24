@@ -23,6 +23,8 @@ $runtimeWasmPath = Get-ChildItem -LiteralPath $frameworkRoot -File -Filter 'dotn
 $licenseRoot = Join-Path $converterRoot 'licenses'
 $managedAesNoticePath = Join-Path $licenseRoot 'OfficeIMO.Core-THIRD-PARTY-NOTICES.md'
 $japaneseFontLicensePath = Join-Path $licenseRoot 'OFL-NotoCJK.txt'
+$notebookMathFontLicensePath = Join-Path $licenseRoot 'OFL-STIX.txt'
+$notebookMonospaceFontLicensePath = Join-Path $licenseRoot 'OFL-Liberation.txt'
 $convertPagePath = Join-Path $SiteRoot 'convert/index.html'
 $conversionGuidesPath = Join-Path $SiteRoot 'convert/guides/index.html'
 $sharingGuidePath = Join-Path $SiteRoot 'docs/before-sharing/index.html'
@@ -37,6 +39,8 @@ foreach ($path in @(
         $runtimeWasmPath,
         $managedAesNoticePath,
         $japaneseFontLicensePath,
+        $notebookMathFontLicensePath,
+        $notebookMonospaceFontLicensePath,
         $convertPagePath,
         $conversionGuidesPath,
         $sharingGuidePath,

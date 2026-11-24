@@ -173,6 +173,16 @@
       }
     },
     {
+      "id": "notebook-natural-earth-basemap",
+      "title": "Natural Earth basemap",
+      "kind": "data",
+      "license": "LicenseRef-NaturalEarth-Public-Domain",
+      "source": "https://github.com/nvkelso/natural-earth-vector/tree/f1890d9f152c896d250a77557a5751a93d494776",
+      "project": "OfficeIMO.Notebook.Markdown",
+      "files": ["OfficeIMO.Notebook.Markdown/MapData/NaturalEarth110m.json.gz"],
+      "licenseFiles": {"OfficeIMO.Notebook.Markdown/MapData/NaturalEarth-LICENSE.txt": "MapData/NaturalEarth-LICENSE.txt"}
+    },
+    {
       "id": "ksef-schemas",
       "title": "KSeF authentication and UPO schemas",
       "kind": "data",
@@ -220,6 +230,7 @@
     "OfficeIMO.Pdf": {"path": "OfficeIMO.Pdf/THIRD-PARTY-NOTICES.md", "packagePath": "THIRD-PARTY-NOTICES.md"},
     "OfficeIMO.Adf": {"path": "OfficeIMO.Adf/THIRD-PARTY-NOTICES.md", "packagePath": "THIRD-PARTY-NOTICES.md"},
     "OfficeIMO.Bibliography": {"path": "OfficeIMO.Bibliography/THIRD-PARTY-NOTICES.md", "packagePath": "THIRD-PARTY-NOTICES.md"},
+    "OfficeIMO.Notebook.Markdown": {"path": "OfficeIMO.Notebook.Markdown/THIRD-PARTY-NOTICES.md", "packagePath": "THIRD-PARTY-NOTICES.md"},
     "OfficeIMO.Invoicing.KSeF": {"path": "OfficeIMO.Invoicing.KSeF/ThirdPartyNotices.txt", "packagePath": "ThirdPartyNotices.txt"},
     "OfficeIMO.Invoicing.Validation": {"path": "OfficeIMO.Invoicing.Validation/ThirdPartyNotices.txt", "packagePath": "ThirdPartyNotices.txt"}
   }

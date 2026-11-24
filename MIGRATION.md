@@ -3,7 +3,7 @@
 <!-- officeimo-api-map:begin -->
 ## OfficeIMO and PSWriteOffice 3.6
 
-OfficeIMO 3.6 and PSWriteOffice 3.6 change the public API in both languages and are released together. Nothing keeps a compatibility wrapper, so update scripts and code with the rules and tables below. PSWriteOffice goes from 594 commands and 383 aliases to 518 commands and 180 aliases; every job that worked before still works, usually through fewer commands. The [API design](Docs/officeimo.api-design.md) explains the rules.
+OfficeIMO 3.6 and PSWriteOffice 3.6 change the public API in both languages and are released together. Nothing keeps a compatibility wrapper, so update scripts and code with the rules and tables below. PSWriteOffice goes from 594 commands and 383 aliases to 534 commands and 180 aliases; every job that worked before still works, usually through fewer commands. The [API design](Docs/officeimo.api-design.md) explains the rules.
 
 ### What changed
 
@@ -10466,3 +10466,10 @@ Word output passes `text-align` from `body`, and from a `div` around a list, to 
 Word saves built-in styles under their English built-in name (`heading 1`, `Quote`, `toc 1`) but a translated identifier, such as `Titre1` and `Citation` in French or `berschrift1` in German. OfficeIMO now finds built-in styles by that name. `WordParagraph.Style` reads `Titre1` as `Heading1`, and setting a built-in style, `SetStyleId("Quote")`, `Styles.GetOrAdd`, lists, tables of contents, and HTML and Markdown imports reuse the template's definition instead of adding an English `Heading1` beside it. Word-to-HTML and Markdown export localized headings and quotes as headings and quotes, and PDF and OpenDocument export localized headings as headings. Code that compared `StyleId` with `"Heading1"` to find headings should read `Style` instead.
 
 HTML imported into Word now indents a block quote directly only when neither the document's quote style nor a CSS class style formats it, and a class style on `dt` or `dd` is no longer replaced by the definition-list styles. Remove workarounds that reapplied class styles or removed the quote indent after import. `HtmlWordExportOptions.DefaultParagraphStyleId`, `PreferDocumentStyles` and `IgnoreCssFormatting`, and `MarkdownWordExportOptions.DefaultParagraphStyleId` and `PreferDocumentStyles`, keep imported content on the target document's styles.
+
+## Jupyter Markdown conversion
+
+`officeimo convert lab.ipynb lab.md` uses the notebook export route and includes
+supported saved outputs and embedded images. Use
+`officeimo read lab.ipynb --format markdown --output lab.md` for the previous
+Reader projection, or pass `--assets` to extract assets separately.

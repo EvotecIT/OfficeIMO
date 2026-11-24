@@ -7,6 +7,41 @@ using OfficeIMO.Pdf;
 namespace OfficeIMO.Tests;
 
 public sealed class OfficeConverterEpubTests {
+    [Theory]
+    [InlineData(OfficeConversionProfile.Faithful)]
+    [InlineData(OfficeConversionProfile.TextOnly)]
+    public async Task EpubPdfCompressionUsesTheSelectedRoutePassword(OfficeConversionProfile profile) {
+        const string htmlPassword = "styled-epub-password";
+        const string readerPassword = "reader-epub-password";
+        var book = EpubPublication.Create("Protected publication", "en", "urn:officeimo:epub-compression-security");
+        book.AddChapter("chapter", "EPUB/chapter.xhtml", "Chapter", "<p>Protected EPUB content</p>");
+
+        using var input = new MemoryStream(book.Write().Bytes);
+        using var output = new MemoryStream();
+        var options = new OfficeConversionOptions {
+            OutputProfile = profile,
+            CompressPdfOutput = true,
+            Html = new HtmlPdfExportOptions {
+                PdfOptions = new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions(htmlPassword))
+            },
+            ReaderPdf = new() {
+                PdfOptions = new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions(readerPassword))
+            }
+        };
+        OfficeConversionReport report = await OfficeConverter.ConvertAsync(input, OfficeDocumentFormat.Epub,
+            output, OfficeDocumentFormat.Pdf, options);
+
+        Assert.Contains(report.Diagnostics, item => item.Code == OfficeDiagnosticCodes.PdfOutputCompressed);
+        byte[] encrypted = output.ToArray();
+        Assert.Throws<PdfPasswordRequiredException>(() => {
+            using var locked = PdfDocument.Load(encrypted);
+            locked.ExtractText();
+        });
+        string password = profile == OfficeConversionProfile.TextOnly ? readerPassword : htmlPassword;
+        using var pdf = PdfDocument.Load(encrypted, new PdfLoadOptions { Password = password });
+        Assert.Contains("Protected EPUB content", pdf.ExtractText(), StringComparison.Ordinal);
+    }
+
     [Fact]
     public void StyledEpubConversionUsesSpineOrderLinkedStylesImagesAndNavigation() {
         var book = EpubPublication.Create("A publication", "en", "urn:officeimo:styled-epub-pdf-test");

@@ -48,4 +48,5 @@
   <ItemGroup><InternalsVisibleTo Include="OfficeIMO.OneNote.Pdf" /></ItemGroup>
   <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Latex.Pdf" /></ItemGroup>
   <ItemGroup><InternalsVisibleTo Include="OfficeIMO.AsciiDoc.Pdf" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Notebook.Pdf" /></ItemGroup>
 </Project>

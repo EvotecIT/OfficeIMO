@@ -1,0 +1,42 @@
+[
+  {
+    "file": "Polyglot.dib",
+    "source": "https://raw.githubusercontent.com/dotnet/interactive/098a01b9183103186805a186a7dee3a3a70b2997/src/Microsoft.DotNet.Interactive.Documents.Tests/CodeSubmissionFormatTests.dib_file_can_be_round_tripped_through_read_and_write_without_the_content_changing.approved.dib",
+    "sha256": "adbc35d7e0d8640644fd4f6c3b337a26c540a6440040bcf162f08349490c61a9"
+  },
+  {
+    "file": "LICENSE.Polyglot.txt",
+    "source": "https://raw.githubusercontent.com/dotnet/interactive/098a01b9183103186805a186a7dee3a3a70b2997/License.txt",
+    "sha256": "480d420fd388a3ce0cecb73d79aee3f02f70fee060e95f4727b1335feff33201"
+  },
+  {
+    "file": "Latex.py",
+    "source": "https://raw.githubusercontent.com/jupytext/jupytext/15b692e0e3890bc0b1f5e2403cedeb27c5b3cfe4/tests/data/notebooks/outputs/ipynb_to_percent/Line_breaks_in_LateX_305.py",
+    "sha256": "03255ed85c83fd9db4b01d23d0698fc846dfbaf852349d0e0f5d94354f2bfca2"
+  },
+  {
+    "file": "RNotebook.R",
+    "source": "https://raw.githubusercontent.com/jupytext/jupytext/15b692e0e3890bc0b1f5e2403cedeb27c5b3cfe4/tests/data/notebooks/outputs/ipynb_to_percent/ir_notebook.R",
+    "sha256": "ec60af3bccf620df38effad4bda883f011924562681b8ec5f83deed32e27cfe8"
+  },
+  {
+    "file": "LICENSE.Jupytext.txt",
+    "source": "https://raw.githubusercontent.com/jupytext/jupytext/15b692e0e3890bc0b1f5e2403cedeb27c5b3cfe4/LICENSE",
+    "sha256": "070ca5b818b33b62d6673d4fa7044876d2d831b7ce942ff2e2b4923a5bbefb1b"
+  },
+  {
+    "file": "Paired.ipynb",
+    "producer": "OfficeIMO-authored inputs saved and validated by nbformat 5.11.1",
+    "sha256": "c3f02f123996c52a19c63cfe57ceca371163a9ab10e72cb4ce97e7037f17b798"
+  },
+  {
+    "file": "Paired.py",
+    "producer": "OfficeIMO-authored Paired.ipynb converted and re-read with Jupytext 1.19.7 py:percent",
+    "sha256": "59456d4addb8e5117a35d0158483326ca2711137a5c652266e236aa3f2e9eed6"
+  },
+  {
+    "file": "JuliaNotebook.jl",
+    "producer": "OfficeIMO-authored inputs converted and re-read with Jupytext 1.19.7 jl:percent",
+    "sha256": "65fa5bd1023160f8c764d824f836ddb5b044db16f4b551cdab8f1995f318233e"
+  }
+]
