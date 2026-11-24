@@ -10,6 +10,7 @@ internal static class PdfWorkflowCommand {
 OfficeIMO.Tool - PDF workflows
 
 Usage:
+  officeimo pdf extract-assets <input.pdf> [<input.pdf> ...] --output <new-folder> [--preserve-image-format] [--password-env <name>]
   officeimo pdf extract <input.pdf> --pages <selection> --output <copy.pdf> [--force]
   officeimo pdf split <input.pdf> --output <new-folder> [--pages-per-document <count>] [--force]
   officeimo pdf decrypt <input.pdf> --password-env <owner-password-variable> --output <copy.pdf> [--force]
@@ -59,6 +60,8 @@ JSON results contain bounded artifact metadata and diagnostic codes, never docum
             }
             AgentPdfAReport? completeReport = null;
             AgentPdfWorkflowResult result = parsed.Operation switch {
+                "extract-assets" => service.ExtractPdfAssets(parsed.AssetInputs, parsed.Output!, parsed.CompositeSoftMasks,
+                    parsed.Settings, cancellationToken: cancellationToken),
                 "split" => await service.SplitPdfAsync(parsed.Input!, parsed.Output!, parsed.PagesPerDocument, parsed.Settings, cancellationToken: cancellationToken).ConfigureAwait(false),
                 "convert-to-pdfa" => await service.ConvertToPdfAAsync(parsed.Input!, parsed.Output!, parsed.PdfA, parsed.Settings,
                     maxOutputCharacters: 64000, completeReport: report => completeReport = report, cancellationToken: cancellationToken).ConfigureAwait(false),

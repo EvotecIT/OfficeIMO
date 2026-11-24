@@ -60,6 +60,10 @@
              Link="wwwroot\samples\showcase-dashboard.pdf"
              CopyToOutputDirectory="PreserveNewest"
              CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\static\downloads\showcase\workflows\pdf-branded-invoice\example.pdf"
+             Link="wwwroot\samples\pdf-branded-invoice.pdf"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\..\..\OfficeIMO.Publisher.Tests\Fixtures\native-authored.pub"
              Link="wwwroot\samples\native-authored.pub"
              CopyToOutputDirectory="PreserveNewest"
