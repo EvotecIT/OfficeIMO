@@ -63,11 +63,8 @@ keeps the output captured before it stopped.
 $report = Invoke-OfficeNotebook -LiteralPath ./lab.ipynb -OutputPath ./executed.ipynb -NoClobber
 try {
 $report.Cells
-```
-
-} finally {
-
-```powershell
+}
+finally {
 $report.Notebook | Close-OfficeNotebook
 }
 ```
@@ -76,11 +73,8 @@ $report.Notebook | Close-OfficeNotebook
 $source = Open-OfficeNotebook -Path ./lab.py -Format JupytextPercent -CompanionPath ./lab.ipynb -FailOnLoss
 try {
 $source | Save-OfficeNotebook -Path ./reviewed.ipynb
-```
-
-} finally {
-
-```powershell
+}
+finally {
 $source | Close-OfficeNotebook
 }
 ```
@@ -91,11 +85,8 @@ try {
 $notebook | Add-OfficeNotebookCell -Kind Markdown -Source '# Lab'
 $notebook | Add-OfficeNotebookCell -Kind Code -Language PowerShell -Source 'Get-Date'
 $notebook | Export-OfficeNotebook -Path ./lab.ps1 -FailOnLoss
-```
-
-} finally {
-
-```powershell
+}
+finally {
 $notebook | Close-OfficeNotebook
 }
 ```
@@ -106,11 +97,8 @@ try {
 $notebook | Get-OfficeNotebookCell -Index 2 |
 Get-OfficeNotebookOutput -Index 0 |
 Export-OfficeNotebook -Path ./results.xlsx
-```
-
-} finally {
-
-```powershell
+}
+finally {
 $notebook | Close-OfficeNotebook
 }
 ```

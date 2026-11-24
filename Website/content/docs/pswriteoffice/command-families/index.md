@@ -18,7 +18,7 @@ The PSWriteOffice website catalog groups every exported cmdlet into exactly one 
 | Visio | 20 | [Visio diagrams](/docs/pswriteoffice/visio/) |
 | Project | 20 | [Project, Access, and EPUB](/docs/pswriteoffice/project-access-epub/) |
 | Cross-format operations | 14 | [Automation patterns](/docs/pswriteoffice/automation-patterns/) |
-| Notebooks | 14 | [Automation patterns](/docs/pswriteoffice/automation-patterns/) |
+| Notebooks | 14 | [Notebook workflow](/docs/pswriteoffice/automation-patterns/#run-powershell-notebook-cells) |
 | YAML | 13 | [Configuration files and data conversion](/docs/pswriteoffice/config-data-formats/) |
 | TOML | 13 | [Configuration files and data conversion](/docs/pswriteoffice/config-data-formats/) |
 | OpenDocument | 11 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
