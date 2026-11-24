@@ -61,9 +61,14 @@ public sealed partial class OdpPresentation : OdfDocument {
     public OdpSlide AddSlide(string? name = null) {
         OdpMasterPage master = EnsureDefaultMaster();
         OdpPresentationLayout layout = EnsureBlankLayout();
-        string slideName = string.IsNullOrWhiteSpace(name) ? NextSlideName() : name!;
-        if (Slides.Any(slide => string.Equals(slide.Name, slideName, StringComparison.Ordinal))) {
-            throw new InvalidOperationException($"A slide named '{slideName}' already exists.");
+        string slideName;
+        if (string.IsNullOrWhiteSpace(name)) {
+            slideName = NextSlideName();
+        } else {
+            slideName = name!;
+            if (FindSlideElement(slideName) != null) {
+                throw new InvalidOperationException($"A slide named '{slideName}' already exists.");
+            }
         }
         var element = new XElement(OdfNamespaces.Draw + "page",
             new XAttribute(OdfNamespaces.Draw + "name", slideName),
@@ -156,10 +161,38 @@ public sealed partial class OdpPresentation : OdfDocument {
     }
     private OdpMasterPage EnsureDefaultMaster() => MasterPages.FirstOrDefault() ?? AddMasterPage("Default");
     private OdpPresentationLayout EnsureBlankLayout() => Layouts.FirstOrDefault() ?? AddLayout("Blank");
+    private XElement? FindSlideElement(string slideName) {
+        foreach (XElement page in PresentationBody.Elements(OdfNamespaces.Draw + "page")) {
+            if (string.Equals((string?)page.Attribute(OdfNamespaces.Draw + "name"), slideName, StringComparison.Ordinal)) return page;
+        }
+        return null;
+    }
+
+    /// <summary>Returns the lowest unused "SlideN" name in one pass over the slide elements.</summary>
     private string NextSlideName() {
-        var names = new HashSet<string>(Slides.Select(slide => slide.Name), StringComparer.Ordinal);
-        int index = 1; string name;
-        do { name = "Slide" + index++.ToString(CultureInfo.InvariantCulture); } while (names.Contains(name));
-        return name;
+        // With n slides, one of Slide1..Slide(n+1) is always free, so only those indexes are tracked.
+        int slideCount = PresentationBody.Elements(OdfNamespaces.Draw + "page").Count();
+        var used = new System.Collections.BitArray(slideCount + 2);
+        foreach (XElement page in PresentationBody.Elements(OdfNamespaces.Draw + "page")) {
+            int index = ParseGeneratedSlideIndex((string?)page.Attribute(OdfNamespaces.Draw + "name"));
+            if (index > 0 && index < used.Length) used[index] = true;
+        }
+        int next = 1;
+        while (used[next]) next++;
+        return "Slide" + next.ToString(CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>Returns N for a canonical "SlideN" name (no sign or leading zero), otherwise 0.</summary>
+    private static int ParseGeneratedSlideIndex(string? name) {
+        const string prefix = "Slide";
+        if (name == null || name.Length <= prefix.Length || name.Length > prefix.Length + 9 ||
+            !name.StartsWith(prefix, StringComparison.Ordinal) || name[prefix.Length] == '0') return 0;
+        int value = 0;
+        for (int i = prefix.Length; i < name.Length; i++) {
+            char c = name[i];
+            if (c < '0' || c > '9') return 0;
+            value = value * 10 + (c - '0');
+        }
+        return value;
     }
 }
