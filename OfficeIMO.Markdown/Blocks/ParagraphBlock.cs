@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 namespace OfficeIMO.Markdown;
 
 /// <summary>
@@ -6,8 +8,32 @@ namespace OfficeIMO.Markdown;
 public sealed class ParagraphBlock : MarkdownBlock, IMarkdownBlock, IParagraphMarkdownBlock, IInlineSyntaxMarkdownBlock, ISyntaxMarkdownBlock, IHtmlAppendableMarkdownBlock {
     /// <summary>Inline content within this paragraph.</summary>
     public InlineSequence Inlines { get; }
-    internal string GenericAttributeConsumedWhitespace { get; set; } = string.Empty;
-    internal bool GenericAttributeSuppressSeparator { get; set; }
+    // Only paragraphs with trailing generic attributes record how the attribute block was separated,
+    // so the layout lives in a side table rather than in every paragraph.
+    private static readonly ConditionalWeakTable<ParagraphBlock, GenericAttributeLayout> GenericAttributeLayouts = new();
+
+    private sealed class GenericAttributeLayout {
+        internal string ConsumedWhitespace = string.Empty;
+        internal bool SuppressSeparator;
+    }
+
+    internal string GenericAttributeConsumedWhitespace {
+        get => GenericAttributeLayouts.TryGetValue(this, out var layout) ? layout.ConsumedWhitespace : string.Empty;
+        set {
+            if (!string.IsNullOrEmpty(value) || GenericAttributeLayouts.TryGetValue(this, out _)) {
+                GenericAttributeLayouts.GetValue(this, static _ => new GenericAttributeLayout()).ConsumedWhitespace = value ?? string.Empty;
+            }
+        }
+    }
+
+    internal bool GenericAttributeSuppressSeparator {
+        get => GenericAttributeLayouts.TryGetValue(this, out var layout) && layout.SuppressSeparator;
+        set {
+            if (value || GenericAttributeLayouts.TryGetValue(this, out _)) {
+                GenericAttributeLayouts.GetValue(this, static _ => new GenericAttributeLayout()).SuppressSeparator = value;
+            }
+        }
+    }
     /// <summary>Creates a paragraph block.</summary>
     public ParagraphBlock(InlineSequence inlines) { Inlines = inlines; }
     /// <inheritdoc />
@@ -46,10 +72,13 @@ public sealed class ParagraphBlock : MarkdownBlock, IMarkdownBlock, IParagraphMa
         MarkdownBlockSyntaxBuilder.BuildInlineBlock(this, span);
 
     private string RenderGenericAttributeConsumedWhitespace() {
-        if (string.IsNullOrEmpty(GenericAttributeConsumedWhitespace) || Attributes.IsEmpty) {
+        if (Attributes.IsEmpty) {
             return string.Empty;
         }
 
-        return HtmlTextEncoder.Encode(GenericAttributeConsumedWhitespace, HtmlRenderContext.Options);
+        string consumedWhitespace = GenericAttributeConsumedWhitespace;
+        return consumedWhitespace.Length == 0
+            ? string.Empty
+            : HtmlTextEncoder.Encode(consumedWhitespace, HtmlRenderContext.Options);
     }
 }

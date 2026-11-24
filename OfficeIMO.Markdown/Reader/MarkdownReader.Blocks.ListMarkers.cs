@@ -103,6 +103,18 @@ internal static partial class MarkdownReader {
         }
     }
 
+    private static readonly string[] SingleDigitPeriodMarkers = CreateSingleDigitMarkers('.');
+    private static readonly string[] SingleDigitParenthesisMarkers = CreateSingleDigitMarkers(')');
+
+    private static string[] CreateSingleDigitMarkers(char delimiter) {
+        var markers = new string[10];
+        for (int digit = 0; digit < markers.Length; digit++) {
+            markers[digit] = new string(new[] { (char)('0' + digit), delimiter });
+        }
+
+        return markers;
+    }
+
     private static string? TryGetListMarkerText(string line, MarkdownLoadOptions? options = null) {
         if (string.IsNullOrEmpty(line)) {
             return null;
@@ -110,9 +122,20 @@ internal static partial class MarkdownReader {
 
         if (TryGetOrderedListMarkerInfo(line, options, out int orderedLeadingSpaces, out _, out _, out _, out _)) {
             int delimiterIndex = GetOrderedListMarkerDelimiterIndex(line, orderedLeadingSpaces);
-            return delimiterIndex < line.Length
-                ? line.Substring(orderedLeadingSpaces, delimiterIndex - orderedLeadingSpaces + 1)
-                : null;
+            if (delimiterIndex >= line.Length) {
+                return null;
+            }
+
+            if (delimiterIndex == orderedLeadingSpaces + 1) {
+                // Single-digit markers are the common case; share their text instead of copying it per item.
+                int digit = line[orderedLeadingSpaces] - '0';
+                char delimiter = line[delimiterIndex];
+                if ((uint)digit <= 9 && (delimiter == '.' || delimiter == ')')) {
+                    return (delimiter == '.' ? SingleDigitPeriodMarkers : SingleDigitParenthesisMarkers)[digit];
+                }
+            }
+
+            return line.Substring(orderedLeadingSpaces, delimiterIndex - orderedLeadingSpaces + 1);
         }
 
         if (!TryGetUnorderedListMarkerInfo(line, out _, out _, out char marker)) {
