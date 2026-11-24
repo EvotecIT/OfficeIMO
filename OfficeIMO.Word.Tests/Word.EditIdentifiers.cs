@@ -179,6 +179,15 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void BookmarkIdsSetThroughTheApiAreNotReused() {
+            using WordDocument document = WordDocument.Create();
+            WordBookmark first = document.AddParagraph("First").AddBookmark("First");
+            first.Id = first.Id + 1;
+            WordBookmark second = document.AddParagraph("Second").AddBookmark("Second");
+            Assert.NotEqual(first.Id, second.Id);
+        }
+
+        [Fact]
         public void AddRowWithoutACellCountMatchesThePrecedingRowInTheCurrentTable() {
             using WordDocument document = WordDocument.Create();
             document.AddTable(1, 2);
