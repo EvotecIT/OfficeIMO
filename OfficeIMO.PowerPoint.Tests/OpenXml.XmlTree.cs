@@ -127,6 +127,98 @@ public class OpenXmlXmlTreeTests {
         Assert.Equal(xml.Replace("\"><p:cSld/>", "\" show=\"0\"><p:cSld><p:spTree/></p:cSld>"), Encoding.UTF8.GetString(Write(tree)));
     }
 
+    [Fact]
+    public void RejectsInsertionsThatWouldPutANodeInsideItself() {
+        OfficeXmlTree tree = Parse("<r/>");
+        int outer = tree.CreateElement(OfficeXmlNamespaces.None, "a");
+        int inner = tree.CreateElement(OfficeXmlNamespaces.None, "b");
+        tree.Append(outer, inner);
+
+        Assert.Throws<InvalidOperationException>(() => tree.Append(outer, outer));
+        tree.Remove(inner);
+        tree.Append(tree.Root, inner);
+        tree.Remove(inner);
+        tree.Append(outer, inner);
+        Assert.Throws<InvalidOperationException>(() => tree.Append(inner, outer));
+    }
+
+    [Fact]
+    public void RejectsAReferenceNodeUnderAnotherParent() {
+        OfficeXmlTree tree = Parse("<r><a/><b><x/><y/></b></r>");
+        int a = tree.FindChild(tree.Root, OfficeXmlNamespaces.None, "a");
+        int y = tree.FindChild(tree.FindChild(tree.Root, OfficeXmlNamespaces.None, "b"), OfficeXmlNamespaces.None, "y");
+
+        Assert.Throws<InvalidOperationException>(() => tree.InsertBefore(a, tree.CreateElement(OfficeXmlNamespaces.None, "c"), y));
+        Assert.Equal("<r><a/><b><x/><y/></b></r>", Encoding.UTF8.GetString(Write(tree)));
+    }
+
+    [Fact]
+    public void DeclaresEachPrefixOncePerElement() {
+        OfficeXmlTree tree = Parse("<r/>");
+        tree.DeclareNamespace(tree.Root, "p", "urn:p");
+        tree.DeclareNamespace(tree.Root, "p", "urn:p");
+        tree.DeclareNamespace(tree.Root, string.Empty, string.Empty);
+        tree.DeclareNamespace(tree.Root, string.Empty, string.Empty);
+
+        Assert.Throws<InvalidOperationException>(() => tree.DeclareNamespace(tree.Root, "p", "urn:other"));
+        Assert.Equal("<r xmlns:p=\"urn:p\" xmlns=\"\"/>", Encoding.UTF8.GetString(Write(tree)));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ChildrenKeepTheirNamespaceWhenAnAncestorDeclarationChanges(bool remove) {
+        OfficeXmlTree tree = Parse("<r xmlns:p=\"urn:p\"><p:a p:k=\"v\"><p:b/></p:a></r>");
+
+        if (remove) tree.RemoveAttribute(tree.Root, OfficeXmlNamespaces.Xmlns, "p");
+        else tree.SetAttribute(tree.Root, OfficeXmlNamespaces.Xmlns, "p", "urn:other");
+
+        XElement a = Load(Write(tree)).Root!.Elements().Single();
+        Assert.Equal(XName.Get("a", "urn:p"), a.Name);
+        Assert.Equal(XName.Get("b", "urn:p"), a.Elements().Single().Name);
+        Assert.Equal("v", a.Attribute(XName.Get("k", "urn:p"))!.Value);
+    }
+
+    [Theory]
+    [InlineData("<b/>")]
+    [InlineData("<b xmlns:q=\"urn:other\" xmlns:t=\"urn:new\"/>")]
+    public void AMovedElementKeepsTheBindingsOfItsEditedAttributesAndQNameValues(string destination) {
+        OfficeXmlTree tree = Parse("<r><a xmlns:q=\"urn:q\" xmlns:t=\"urn:old\"><x q:k=\"old\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"t:W\"/></a>" + destination + "</r>");
+        int x = tree.FirstChildOf(tree.FindChild(tree.Root, OfficeXmlNamespaces.None, "a"));
+        tree.SetAttribute(x, tree.Namespaces.GetId("urn:q"), "k", "new");
+
+        tree.Remove(x);
+        tree.Append(tree.FindChild(tree.Root, OfficeXmlNamespaces.None, "b"), x);
+
+        XDocument written = XDocument.Load(new MemoryStream(Write(tree)));
+        XElement moved = written.Root!.Element("b")!.Elements().Single();
+        Assert.Equal("new", moved.Attribute(XName.Get("k", "urn:q"))!.Value);
+        Assert.Equal("urn:old", moved.GetNamespaceOfPrefix("t")!.NamespaceName);
+    }
+
+    [Fact]
+    public void EscapesTextThatAnEditBringsNextToOtherText() {
+        OfficeXmlTree tree = Parse("<r>]]<x/>></r>");
+        tree.Remove(tree.FindChild(tree.Root, OfficeXmlNamespaces.None, "x"));
+
+        Assert.Equal("]]>", Load(Write(tree)).Root!.Value);
+    }
+
+    [Fact]
+    public void WritesAndReadsDoublesWithXmlSchemaSpellings() {
+        OfficeXmlTree tree = Parse("<r a=\"INF\" b=\"-INF\" c=\"Infinity\" d=\"1.5E3\"/>");
+
+        Assert.Equal(double.PositiveInfinity, OfficeXmlViewValues.ReadDouble(tree, tree.Root, OfficeXmlNamespaces.None, "a"));
+        Assert.Equal(double.NegativeInfinity, OfficeXmlViewValues.ReadDouble(tree, tree.Root, OfficeXmlNamespaces.None, "b"));
+        Assert.Null(OfficeXmlViewValues.ReadDouble(tree, tree.Root, OfficeXmlNamespaces.None, "c"));
+        Assert.Equal(1500d, OfficeXmlViewValues.ReadDouble(tree, tree.Root, OfficeXmlNamespaces.None, "d"));
+
+        OfficeXmlViewValues.Write(tree, tree.Root, OfficeXmlNamespaces.None, "a", (double?)double.NegativeInfinity);
+        OfficeXmlViewValues.Write(tree, tree.Root, OfficeXmlNamespaces.None, "b", (double?)double.PositiveInfinity);
+        Assert.Equal("-INF", tree.GetAttribute(tree.Root, OfficeXmlNamespaces.None, "a"));
+        Assert.Equal("INF", tree.GetAttribute(tree.Root, OfficeXmlNamespaces.None, "b"));
+    }
+
     private static OfficeXmlTree Parse(string xml) {
         byte[] bytes = Encoding.UTF8.GetBytes(xml);
         return OfficeXmlTree.Parse(bytes, bytes.Length, new OfficeXmlNamespaces.Table());

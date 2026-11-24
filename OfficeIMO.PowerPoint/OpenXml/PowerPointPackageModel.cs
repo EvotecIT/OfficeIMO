@@ -26,6 +26,8 @@ internal sealed class PowerPointPackageModel : IDisposable {
     private const string DrawingMLUri = "http://schemas.openxmlformats.org/drawingml/2006/main";
     private const string RelationshipsUri = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
     private const uint FirstSlideId = 256;
+    // ST_SlideId: 256 up to, but not including, 2147483648.
+    private const uint LastSlideId = 2147483647;
 
     private static readonly Lazy<byte[]> Theme = new(() => LoadResource("OfficeIMO.PowerPoint.Resources.theme1.xml"));
     private static readonly Lazy<byte[]> TableStyles = new(() => LoadResource("OfficeIMO.PowerPoint.Resources.tableStyles.xml"));
@@ -35,18 +37,15 @@ internal sealed class PowerPointPackageModel : IDisposable {
     private readonly OfficeXmlTree _presentation;
     private string? _defaultLayoutPart;
     private string? _defaultLayoutTarget;
-    private uint _nextSlideId;
     private int _nextSlidePart;
+    // A Strict deck would need Strict markup and relationship types for every new part, which this model does not write.
+    private readonly bool _strict;
 
-    private PowerPointPackageModel(OfficeOpcEditablePackage package, string presentationPart) {
+    private PowerPointPackageModel(OfficeOpcEditablePackage package, string presentationPart, bool strict = false) {
         _package = package;
         _presentationPart = presentationPart;
         _presentation = package.GetXml(presentationPart);
-        _nextSlideId = FirstSlideId;
-        foreach (int node in Presentation.SldIdLst?.SldIdList ?? default) {
-            uint id = new PSlideIdListEntryView(_presentation, node).Id ?? 0;
-            if (id >= _nextSlideId) _nextSlideId = id + 1;
-        }
+        _strict = strict;
         _nextSlidePart = 1;
         foreach (string name in package.PartNames) {
             if (!name.StartsWith("/ppt/slides/slide", StringComparison.OrdinalIgnoreCase) || !name.EndsWith(".xml", StringComparison.OrdinalIgnoreCase)) continue;
@@ -65,17 +64,19 @@ internal sealed class PowerPointPackageModel : IDisposable {
         OfficeOpcEditablePackage package = OfficeOpcEditablePackage.Open(stream, leaveOpen: true);
         try {
             string? presentation = null;
+            bool strict = false;
             OfficeXmlTree rels = package.GetRelationships(null);
             for (int node = rels.FindChild(rels.Root, OfficeXmlNamespaces.PackageRelationships, "Relationship"); node != OfficeXmlTree.NoNode;
                 node = rels.FindNextSibling(node, OfficeXmlNamespaces.PackageRelationships, "Relationship")) {
                 string? type = rels.GetAttribute(node, OfficeXmlNamespaces.None, "Type");
                 if (type != null && OfficeXmlNamespaces.NormalizeRelationshipType(type) == RelationshipTypes + "officeDocument") {
                     presentation = OfficeOpcPartNames.ResolveRelationshipTarget("/_rels/.rels", rels.GetAttribute(node, OfficeXmlNamespaces.None, "Target"));
+                    strict = !string.Equals(type, RelationshipTypes + "officeDocument", StringComparison.Ordinal);
                     break;
                 }
             }
             if (presentation == null || !package.PartExists(presentation)) throw new InvalidDataException("The package has no presentation part.");
-            return new PowerPointPackageModel(package, presentation);
+            return new PowerPointPackageModel(package, presentation, strict);
         } catch {
             package.Dispose();
             throw;
@@ -124,6 +125,8 @@ internal sealed class PowerPointPackageModel : IDisposable {
 
     /// <summary>Adds a slide on the first layout of the first master and returns it.</summary>
     internal PowerPointModelSlide AddSlide() {
+        if (_strict) throw new NotSupportedException("Adding slides to a Strict Open XML presentation is not supported yet.");
+        uint slideId = NextSlideId();
         string layout = _defaultLayoutPart ??= FindDefaultLayout();
         // Slides share a folder, so every new slide reaches the layout by the same relative target.
         string layoutTarget = _defaultLayoutTarget ??= RelativeTarget("/ppt/slides/slide1.xml", layout);
@@ -149,9 +152,25 @@ internal sealed class PowerPointPackageModel : IDisposable {
         _package.AddRelationship(partName, RelationshipTypes + "slideLayout", layoutTarget);
         string relationship = _package.AddRelationship(_presentationPart, RelationshipTypes + "slide", RelativeTarget(_presentationPart, partName));
         PSlideIdListEntryView entry = Presentation.GetOrAddSldIdLst().AddSldId();
-        entry.Id = _nextSlideId++;
+        entry.Id = slideId;
         entry.RelationshipId = relationship;
         return new PowerPointModelSlide(slide);
+    }
+
+    // Read from the slide list each time, since callers can change it through the Presentation view.
+    private uint NextSlideId() {
+        uint highest = FirstSlideId - 1;
+        foreach (uint id in SlideIds()) {
+            if (id > highest) highest = id;
+        }
+        if (highest < LastSlideId) return highest + 1;
+        return PowerPointModelSlide.LowestUnused(SlideIds(), FirstSlideId, LastSlideId) ?? throw new InvalidOperationException("The presentation has no free slide id.");
+    }
+
+    private IEnumerable<uint> SlideIds() {
+        foreach (int node in Presentation.SldIdLst?.SldIdList ?? default) {
+            if (new PSlideIdListEntryView(_presentation, node).Id is { } id) yield return id;
+        }
     }
 
     /// <summary>The slide at a zero-based position in the slide list.</summary>
@@ -403,17 +422,25 @@ internal readonly struct PowerPointModelSlide {
     }
 
     // Drawing ids are unique across the slide: shapes, pictures, frames, connectors and groups, nested ones included.
+    // A new one goes above the highest; when that is the largest id there is, the lowest unused one is taken.
     private uint NextShapeId() {
-        uint next = 2;
+        uint highest = 1;
+        foreach (uint id in DrawingIds()) {
+            if (id > highest) highest = id;
+        }
+        if (highest < uint.MaxValue) return highest + 1;
+        return LowestUnused(DrawingIds(), 2, uint.MaxValue) ?? throw new InvalidOperationException("The slide has no free drawing id.");
+    }
+
+    private IEnumerable<uint> DrawingIds() {
         PGroupShapeView shapes = Shapes;
         OfficeXmlTree tree = shapes.Tree;
         int root = shapes.Node;
         int node = root;
         while (true) {
             if (tree.IsElement(node, OfficeXmlNamespaces.PresentationML, "cNvPr")
-                && uint.TryParse(tree.GetAttribute(node, OfficeXmlNamespaces.None, "id"), NumberStyles.None, CultureInfo.InvariantCulture, out uint id)
-                && id >= next) {
-                next = id + 1;
+                && uint.TryParse(tree.GetAttribute(node, OfficeXmlNamespaces.None, "id"), NumberStyles.None, CultureInfo.InvariantCulture, out uint id)) {
+                yield return id;
             }
             int child = tree.KindOf(node) == OfficeXmlTreeNodeKind.Element ? tree.FirstChildOf(node) : OfficeXmlTree.NoNode;
             if (child != OfficeXmlTree.NoNode) {
@@ -421,8 +448,16 @@ internal readonly struct PowerPointModelSlide {
                 continue;
             }
             while (node != root && tree.NextSiblingOf(node) == OfficeXmlTree.NoNode) node = tree.ParentOf(node);
-            if (node == root) return next;
+            if (node == root) yield break;
             node = tree.NextSiblingOf(node);
+        }
+    }
+
+    internal static uint? LowestUnused(IEnumerable<uint> ids, uint first, uint last) {
+        var used = new HashSet<uint>(ids);
+        for (uint candidate = first; ; candidate++) {
+            if (!used.Contains(candidate)) return candidate;
+            if (candidate == last) return null;
         }
     }
 

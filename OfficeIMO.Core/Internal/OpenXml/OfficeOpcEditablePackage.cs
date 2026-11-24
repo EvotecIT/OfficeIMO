@@ -23,6 +23,8 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
     private OfficeXmlTree? _contentTypes;
     // Part identity to its Override element, built on first use.
     private Dictionary<string, int>? _overrides;
+    // The catalog's change count when the override index last matched it; any other edit rebuilds the index.
+    private int _overridesVersion;
     // Relationships part identity to the ids it uses, built on first use.
     private readonly Dictionary<string, RelationshipIds> _relationshipIds = new(OfficeAsciiIgnoreCaseComparer.Instance);
 
@@ -142,6 +144,7 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
             overrides.Add(identity, node);
         }
         types.SetAttribute(node, OfficeXmlNamespaces.None, "ContentType", contentType);
+        _overridesVersion = types.Version;
     }
 
     private void RemoveOverride(string partName) {
@@ -150,11 +153,14 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
         if (!overrides.TryGetValue(identity, out int node)) return;
         ContentTypes.Remove(node);
         overrides.Remove(identity);
+        _overridesVersion = ContentTypes.Version;
     }
 
+    // Callers can edit the catalog through ContentTypes, so the index is trusted only while the tree is as it left it.
     private Dictionary<string, int> Overrides() {
-        if (_overrides != null) return _overrides;
         OfficeXmlTree types = ContentTypes;
+        if (_overrides != null && _overridesVersion == types.Version) return _overrides;
+        _overridesVersion = types.Version;
         var overrides = new Dictionary<string, int>(OfficeAsciiIgnoreCaseComparer.Instance);
         for (int node = types.FindChild(types.Root, OfficeXmlNamespaces.ContentTypes, "Override"); node != OfficeXmlTree.NoNode;
             node = types.FindNextSibling(node, OfficeXmlNamespaces.ContentTypes, "Override")) {
@@ -185,6 +191,7 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
         string relationshipsPart = OfficeOpcPartNames.GetRelationshipsPartName(sourcePartName);
         OfficeXmlTree tree = RelationshipsTree(relationshipsPart);
         RelationshipIds ids = RelationshipIdsOf(relationshipsPart, tree);
+        if (id != null && ids.Used.Contains(id)) throw new InvalidOperationException("'" + relationshipsPart + "' already has the relationship id '" + id + "'.");
         if (id == null) {
             do {
                 id = "rId" + ids.Next.ToString(System.Globalization.CultureInfo.InvariantCulture);
@@ -198,6 +205,7 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
         tree.SetAttribute(relationship, OfficeXmlNamespaces.None, "Target", target);
         if (external) tree.SetAttribute(relationship, OfficeXmlNamespaces.None, "TargetMode", "External");
         tree.Append(tree.Root, relationship);
+        ids.Version = tree.Version;
         return id;
     }
 
@@ -217,21 +225,24 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
 
     private RelationshipIds RelationshipIdsOf(string relationshipsPart, OfficeXmlTree tree) {
         string identity = Identity(relationshipsPart);
-        if (_relationshipIds.TryGetValue(identity, out RelationshipIds? ids)) return ids;
-        ids = new RelationshipIds();
+        // Callers can edit the relationships through their tree, so cached ids hold only while it is as they left it.
+        if (_relationshipIds.TryGetValue(identity, out RelationshipIds? ids) && ids.Tree == tree && ids.Version == tree.Version) return ids;
+        ids = new RelationshipIds { Tree = tree, Version = tree.Version };
         for (int node = tree.FindChild(tree.Root, OfficeXmlNamespaces.PackageRelationships, "Relationship"); node != OfficeXmlTree.NoNode;
             node = tree.FindNextSibling(node, OfficeXmlNamespaces.PackageRelationships, "Relationship")) {
             string? existing = tree.GetAttribute(node, OfficeXmlNamespaces.None, "Id");
             if (existing != null) ids.Used.Add(existing);
         }
         ids.Next = ids.Used.Count + 1;
-        _relationshipIds.Add(identity, ids);
+        _relationshipIds[identity] = ids;
         return ids;
     }
 
     private sealed class RelationshipIds {
         internal HashSet<string> Used { get; } = new(StringComparer.Ordinal);
         internal int Next { get; set; }
+        internal OfficeXmlTree? Tree { get; set; }
+        internal int Version { get; set; }
     }
 
     // Part names without percent-encoding are already their identity, which spares a copy per lookup.

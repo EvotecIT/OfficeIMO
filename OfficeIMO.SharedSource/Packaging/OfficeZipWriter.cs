@@ -153,7 +153,9 @@ internal sealed class OfficeZipWriter : IDisposable {
     /// Appends a member exactly as another archive stored it: the compressed bytes, method, CRC-32 and sizes are
     /// copied, and the header records <paramref name="dosTime"/> and <paramref name="dosDate"/> as the source did.
     /// </summary>
-    /// <remarks>The caller has already checked the member against its CRC and sizes; nothing is recompressed.</remarks>
+    /// <remarks>Nothing is inflated, recompressed or hashed: the copy is only as sound as the member it came from, so
+    /// a copy is no check of the payload against its CRC. The CRC and sizes are known up front, so the local header
+    /// carries them and no data descriptor follows, even on a forward-only destination.</remarks>
     internal void WriteStored(string name, ushort method, ushort deflateOption, ushort dosTime, ushort dosDate, uint crc, long size, byte[] compressed, int offset, int count) {
         if (_closed) throw new ObjectDisposedException(nameof(OfficeZipWriter));
         if (_current != null) throw new InvalidOperationException("Close the previous package entry before opening another.");
@@ -164,13 +166,15 @@ internal sealed class OfficeZipWriter : IDisposable {
             DosDate = dosDate
         };
         part.Flags = (ushort)((part.Flags & Utf8NameFlag) | (method == Deflated ? deflateOption & 0x0006 : 0));
-        if (!_seekable) part.Flags |= DescriptorFlag;
+        part.Crc = crc;
+        part.Size = size;
+        part.CompressedSize = count;
+        // ZIP64 sizes need the extra field the descriptor path writes; every other copy has a complete local header.
+        part.HeaderComplete = !part.NeedsZip64Sizes;
+        if (!part.HeaderComplete && !_seekable) part.Flags |= DescriptorFlag;
         try {
             WriteLocalHeader(part);
             _sink.Write(compressed, offset, count);
-            part.Crc = crc;
-            part.Size = size;
-            part.CompressedSize = count;
         } catch {
             FailPart();
             throw;
@@ -200,7 +204,12 @@ internal sealed class OfficeZipWriter : IDisposable {
         BinaryPrimitives.WriteUInt16LittleEndian(span.Slice(8), part.Method);
         BinaryPrimitives.WriteUInt16LittleEndian(span.Slice(10), part.DosTime ?? _dosTime);
         BinaryPrimitives.WriteUInt16LittleEndian(span.Slice(12), part.DosDate ?? _dosDate);
-        // CRC-32 and both sizes (offsets 14-25) stay zero until the entry completes.
+        if (part.HeaderComplete) {
+            BinaryPrimitives.WriteUInt32LittleEndian(span.Slice(14), part.Crc);
+            BinaryPrimitives.WriteUInt32LittleEndian(span.Slice(18), (uint)part.CompressedSize);
+            BinaryPrimitives.WriteUInt32LittleEndian(span.Slice(22), (uint)part.Size);
+        }
+        // Otherwise CRC-32 and both sizes (offsets 14-25) stay zero until the entry completes.
         BinaryPrimitives.WriteUInt16LittleEndian(span.Slice(26), checked((ushort)part.Name.Length));
         part.Name.CopyTo(header, 30);
         _sink.Write(header, 0, header.Length);
@@ -228,7 +237,7 @@ internal sealed class OfficeZipWriter : IDisposable {
                 BinaryPrimitives.WriteUInt32LittleEndian(descriptor.AsSpan(12), (uint)part.Size);
             }
             _sink.Write(descriptor, 0, descriptor.Length);
-        } else {
+        } else if (!part.HeaderComplete) {
             byte[] crcAndSizes = new byte[12];
             BinaryPrimitives.WriteUInt32LittleEndian(crcAndSizes, part.Crc);
             BinaryPrimitives.WriteUInt32LittleEndian(crcAndSizes.AsSpan(4), (uint)part.CompressedSize);
@@ -344,6 +353,8 @@ internal sealed class OfficeZipWriter : IDisposable {
         internal uint Crc { get; set; }
         internal long CompressedSize { get; set; }
         internal long Size { get; set; }
+        // The local header was written with the CRC and sizes, so completing the entry changes nothing.
+        internal bool HeaderComplete { get; set; }
         internal bool NeedsZip64Sizes => Size >= uint.MaxValue || CompressedSize >= uint.MaxValue;
     }
 

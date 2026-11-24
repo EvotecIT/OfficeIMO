@@ -31,8 +31,8 @@ internal sealed partial class OfficeXmlTree {
         bool sourced = node < _sourceNodeCount;
         ref Span span = ref sourced ? ref _spans[node] : ref _noSpan;
         if (record.Kind == OfficeXmlTreeNodeKind.Text) {
-            if (sourced && (record.Flags & ContentChanged) == 0) writer.WriteRaw(_source!, span.StartTagStart, span.StartTagEnd - span.StartTagStart);
-            else writer.WriteEscaped(record.Text ?? string.Empty, attribute: false);
+            if (sourced && (record.Flags & ContentChanged) == 0 && !FollowsOtherText(node)) writer.WriteRaw(_source!, span.StartTagStart, span.StartTagEnd - span.StartTagStart);
+            else writer.WriteEscaped(GetText(node), attribute: false);
             return;
         }
         if (sourced && (record.Flags & SubtreeChanged) == 0) {
@@ -91,9 +91,18 @@ internal sealed partial class OfficeXmlTree {
         writer.PopScope(scope);
     }
 
+    // Text written as it was is safe next to the markup it was written beside. Next to other text, which an edit
+    // brought there, two raw pieces could join into "]]>", so the second is escaped.
+    private bool FollowsOtherText(int node) {
+        int previous = _nodes[node].Previous;
+        if (previous == NoNode || _nodes[previous].Kind != OfficeXmlTreeNodeKind.Text) return false;
+        return previous >= _sourceNodeCount || (_nodes[previous].Flags & ContentChanged) != 0 || _spans[previous].StartTagEnd != _spans[node].StartTagStart;
+    }
+
     // Writes "<name attributes" and returns the element's prefix.
     private string WriteStartTag(OfficeXmlUtf8Writer writer, int node) {
         PushDeclarations(writer, node);
+        List<CarriedBinding>? carried = PushCarriedBindings(writer, node);
         ref Node record = ref _nodes[node];
         string? declare = null;
         OfficeXmlName name = Namespaces.GetName(record.Name);
@@ -102,6 +111,11 @@ internal sealed partial class OfficeXmlTree {
         writer.WriteByte((byte)'<');
         writer.WriteQualifiedName(prefix, Namespaces.GetLocalNameUtf8(record.Name));
         if (declare != null) WriteDeclaration(writer, prefix, declare);
+        if (carried != null) {
+            foreach (CarriedBinding binding in carried) {
+                WriteDeclaration(writer, binding.Prefix, binding.NamespaceId == OfficeXmlNamespaces.None ? string.Empty : Namespaces.GetUriById(binding.UriId));
+            }
+        }
 
         int end = record.AttrFirst + record.AttrCount;
         for (int index = record.AttrFirst; index < end; index++) {
@@ -122,8 +136,16 @@ internal sealed partial class OfficeXmlTree {
                 continue;
             }
             string? attributeDeclare = null;
-            string attributePrefix = attributeName.Prefix
-                ?? ResolvePrefix(writer, attributeName.NamespaceId, attributeName.UriId, preferDefault: false, out attributeDeclare);
+            string attributePrefix;
+            if (attributeName.Prefix == null) {
+                attributePrefix = ResolvePrefix(writer, attributeName.NamespaceId, attributeName.UriId, preferDefault: false, out attributeDeclare);
+            } else {
+                // A parsed attribute keeps its prefix when its value changes; a moved element may have to declare it again.
+                attributePrefix = attributeName.Prefix;
+                if (attributePrefix.Length > 0 && attributeName.NamespaceId != OfficeXmlNamespaces.Xmlns) {
+                    attributeDeclare = RebindPrefix(writer, attributePrefix, attributeName.NamespaceId, attributeName.UriId);
+                }
+            }
             if (attributeDeclare != null) {
                 WriteDeclaration(writer, attributePrefix, attributeDeclare);
                 writer.WriteByte((byte)' ');
@@ -135,6 +157,22 @@ internal sealed partial class OfficeXmlTree {
             writer.WriteByte((byte)'"');
         }
         return prefix;
+    }
+
+    // Bindings the element keeps from where it was written and the current scope binds differently; they are pushed
+    // here and declared on the start tag.
+    private List<CarriedBinding>? PushCarriedBindings(OfficeXmlUtf8Writer writer, int node) {
+        List<CarriedBinding>? bindings = CarriedBindingsOf(node);
+        if (bindings == null) return null;
+        List<CarriedBinding>? declared = null;
+        foreach (CarriedBinding binding in bindings) {
+            if (FindAttribute(node, OfficeXmlNamespaces.Xmlns, binding.Prefix.Length == 0 ? "xmlns" : binding.Prefix) >= 0) continue;
+            bool bound = writer.TryGetBinding(binding.Prefix, out int current);
+            if (bound ? current == binding.UriId : binding.NamespaceId == OfficeXmlNamespaces.None) continue;
+            writer.PushScope(binding.Prefix, binding.NamespaceId, binding.UriId);
+            (declared ??= new List<CarriedBinding>()).Add(binding);
+        }
+        return declared;
     }
 
     private void PushDeclarations(OfficeXmlUtf8Writer writer, int node) {

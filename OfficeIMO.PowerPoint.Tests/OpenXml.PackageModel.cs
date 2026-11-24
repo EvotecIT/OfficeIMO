@@ -196,6 +196,124 @@ public class OpenXmlPackageModelTests {
         Assert.Equal(0, CountValidationErrors(edited));
     }
 
+    [Fact]
+    public void RelationshipIdsStayUniqueWhenTheRelationshipsAreEditedDirectly() {
+        using OfficeOpcEditablePackage package = OfficeOpcEditablePackage.Create();
+        Assert.Equal("rId1", package.AddRelationship("/a.xml", "urn:t", "b.xml"));
+        OfficeXmlTree relationships = package.GetRelationships("/a.xml");
+        int added = relationships.CreateElement(OfficeXmlNamespaces.PackageRelationships, "Relationship");
+        relationships.SetAttribute(added, OfficeXmlNamespaces.None, "Id", "rId2");
+        relationships.SetAttribute(added, OfficeXmlNamespaces.None, "Type", "urn:t");
+        relationships.SetAttribute(added, OfficeXmlNamespaces.None, "Target", "c.xml");
+        relationships.Append(relationships.Root, added);
+
+        Assert.Equal("rId3", package.AddRelationship("/a.xml", "urn:t", "d.xml"));
+        Assert.Throws<InvalidOperationException>(() => package.AddRelationship("/a.xml", "urn:t", "e.xml", id: "rId1"));
+        Assert.Equal("/d.xml", package.GetRelationshipTarget("/a.xml", "rId3"));
+    }
+
+    [Fact]
+    public void ContentTypeOverridesFollowDirectEditsOfTheCatalog() {
+        using OfficeOpcEditablePackage package = OfficeOpcEditablePackage.Create();
+        package.SetOverride("/x.xml", "application/first");
+        OfficeXmlTree types = package.ContentTypes;
+        types.Remove(FindOverride(types, "/x.xml"));
+
+        package.SetOverride("/x.xml", "application/second");
+
+        Assert.Equal("application/second", types.GetAttribute(FindOverride(types, "/x.xml"), OfficeXmlNamespaces.None, "ContentType"));
+
+        static int FindOverride(OfficeXmlTree catalog, string partName) {
+            for (int node = catalog.FindChild(catalog.Root, OfficeXmlNamespaces.ContentTypes, "Override"); node != OfficeXmlTree.NoNode;
+                node = catalog.FindNextSibling(node, OfficeXmlNamespaces.ContentTypes, "Override")) {
+                if (catalog.GetAttribute(node, OfficeXmlNamespaces.None, "PartName") == partName) return node;
+            }
+            throw new InvalidOperationException("No override for " + partName);
+        }
+    }
+
+    [Fact]
+    public void RefusesToAddSlidesToAStrictPresentation() {
+        byte[] deck = Rewrite(CreateDeck(1), "_rels/.rels", xml => xml.Replace(
+            "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument",
+            "http://purl.oclc.org/ooxml/officeDocument/relationships/officeDocument"));
+
+        using var source = new MemoryStream(deck);
+        using PowerPointPackageModel model = PowerPointPackageModel.Open(source);
+        Assert.Throws<NotSupportedException>(() => model.AddSlide());
+        Assert.Equal(1, model.SlideCount);
+    }
+
+    [Theory]
+    [InlineData(300u, 301u)]
+    [InlineData(2147483647u, 256u)]
+    public void NewSlideIdsComeFromTheCurrentSlideList(uint existing, uint expected) {
+        using var source = new MemoryStream(CreateDeck(1));
+        using PowerPointPackageModel model = PowerPointPackageModel.Open(source);
+        new PSlideIdListEntryView(model.Presentation.Tree, SlideIdNodes(model)[0]).Id = existing;
+
+        model.AddSlide();
+
+        Assert.Equal(expected, new PSlideIdListEntryView(model.Presentation.Tree, SlideIdNodes(model)[1]).Id);
+
+        static List<int> SlideIdNodes(PowerPointPackageModel opened) {
+            var nodes = new List<int>();
+            foreach (int node in opened.Presentation.SldIdLst!.Value.SldIdList) nodes.Add(node);
+            return nodes;
+        }
+    }
+
+    [Fact]
+    public void TakesTheLowestFreeDrawingIdWhenTheHighestIsTaken() {
+        byte[] deck = Rewrite(CreateDeck(1), "ppt/slides/slide1.xml", xml => xml.Replace("id=\"3\"", "id=\"4294967295\""));
+        using var source = new MemoryStream(deck);
+        using PowerPointPackageModel model = PowerPointPackageModel.Open(source);
+
+        PShapeView added = model.GetSlide(0).AddTextBox(0, 0, 914400, 914400);
+
+        Assert.Equal(3u, added.NvSpPr!.Value.CNvPr!.Value.Id);
+    }
+
+#if NET8_0_OR_GREATER
+    [Fact]
+    public void CopiesUnchangedMembersWithoutDataDescriptorsToAForwardOnlyStream() {
+        byte[] deck = CreateDeck(1);
+        var output = new MemoryStream();
+        using (var source = new MemoryStream(deck))
+        using (PowerPointPackageModel model = PowerPointPackageModel.Open(source)) {
+            model.Save(new ForwardOnlyStream(output));
+        }
+        byte[] saved = output.ToArray();
+
+        int header = 0;
+        int copied = 0;
+        while (header + 30 <= saved.Length && BitConverter.ToUInt32(saved, header) == 0x04034B50) {
+            ushort flags = BitConverter.ToUInt16(saved, header + 6);
+            uint compressed = BitConverter.ToUInt32(saved, header + 18);
+            int nameLength = BitConverter.ToUInt16(saved, header + 26);
+            int extraLength = BitConverter.ToUInt16(saved, header + 28);
+            Assert.Equal(0, flags & 0x0008);
+            header += 30 + nameLength + extraLength + checked((int)compressed);
+            copied++;
+        }
+        using (var archive = new System.IO.Compression.ZipArchive(new MemoryStream(deck))) Assert.Equal(archive.Entries.Count, copied);
+        Assert.Empty(ChangedMembers(deck, saved));
+    }
+
+    private sealed class ForwardOnlyStream(Stream inner) : Stream {
+        public override bool CanRead => false;
+        public override bool CanSeek => false;
+        public override bool CanWrite => true;
+        public override long Length => throw new NotSupportedException();
+        public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+        public override void Flush() => inner.Flush();
+        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => inner.Write(buffer, offset, count);
+    }
+#endif
+
     private static byte[] Rewrite(byte[] package, string member, Func<string, string> change) {
         string xml = Encoding.UTF8.GetString(LoadPartBytes(package, member));
         return Replace(package, member, member, Encoding.UTF8.GetBytes(change(xml)));
