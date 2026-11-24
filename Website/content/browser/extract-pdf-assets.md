@@ -1,6 +1,6 @@
 ---
 title: "Extract PDF assets"
-description: "Extract PDF images, embedded fonts, ICC profiles and page SVGs in your browser. Download one ZIP with image DPI, spot inks and page sizes. Your PDF stays on your device."
+description: "Extract PDF images, embedded fonts, ICC profiles and page SVGs on your device. Download a ZIP with reports on image DPI, spot inks and page sizes."
 layout: browser-tool
 meta.tool: "extract-pdf-assets"
 meta.seo_title: "Extract PDF images, fonts and assets locally | OfficeIMO"

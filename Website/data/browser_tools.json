@@ -312,7 +312,7 @@
       "title": "Extract PDF assets",
       "summary": "Save images, embedded fonts, ICC profiles and an SVG for each page in one ZIP.",
       "seoTitle": "Extract PDF images, fonts and assets locally | OfficeIMO",
-      "seoDescription": "Extract PDF images, embedded fonts, ICC profiles and page SVGs in your browser. Download one ZIP with image DPI, spot inks and page sizes. Your PDF stays on your device.",
+      "seoDescription": "Extract PDF images, embedded fonts, ICC profiles and page SVGs on your device. Download a ZIP with reports on image DPI, spot inks and page sizes.",
       "input": { "kind": "file", "accept": ".pdf", "label": "PDF", "sample": "samples/pdf-branded-invoice.pdf", "sampleName": "OfficeIMO-Branded-Invoice.pdf" },
       "options": [
         { "id": "preserveImageFormat", "type": "flag", "label": "Keep standard image formats", "hint": "By default, supported image soft masks are saved as RGBA PNGs.", "advanced": true }
