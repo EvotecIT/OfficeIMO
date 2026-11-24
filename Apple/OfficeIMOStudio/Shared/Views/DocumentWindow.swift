@@ -95,6 +95,9 @@ struct DocumentWindow: View {
             .sheet(item: $session.structureSheet, onDismiss: { session.presentPendingExportedFile() }) { sheet in
                 StructureSheetView(session: session, sheet: sheet)
             }
+            .sheet(item: $session.formFieldSheet) { sheet in
+                FormFieldSheetView(session: session, sheet: sheet)
+            }
             .sheet(isPresented: $session.isCreatingSignature) {
                 SignaturePad(session: session)
             }
@@ -251,6 +254,7 @@ struct DocumentWindow: View {
                 }
             }
             .onChange(of: session.task) { _, task in
+                if task != .read { session.endEditingForm() }
                 if task == .markup, session.formFields(session.currentPage)?.fields.contains(where: \.isFillable) == true {
                     session.transientNotice = String(localized: "To fill in the form, go back to Read.")
                 }
@@ -351,6 +355,8 @@ struct ReadView: View {
                         }
                         if session.pageDragTool == .redaction {
                             RedactionBanner(session: session)
+                        } else if session.isEditingForm {
+                            FormEditingBanner(session: session)
                         } else if session.pendingSignature != nil {
                             SigningBanner(session: session)
                         } else if let tool = shapeBannerTool {

@@ -122,7 +122,12 @@
           "id": "comments",
           "title": "Comment threads",
           "detail": "Reply, resolve, filter and export a summary",
-          "support": { "windows": "available", "linux": "available", "mac": "planned", "ipad": "planned", "iphone": "planned" },
+          "support": { "windows": "available", "linux": "available", "mac": "partial", "ipad": "partial", "iphone": "partial" },
+          "notes": {
+            "mac": "Reply, resolve, reopen and filter in the inspector; no summary export yet.",
+            "ipad": "Reply, resolve, reopen and filter in the inspector; no summary export yet.",
+            "iphone": "Reply, resolve, reopen and filter in a sheet; no summary export yet."
+          },
           "roadmap": "phase-7-native-apple-apps"
         },
         {
@@ -250,7 +255,12 @@
           "id": "create-fields",
           "title": "Create form fields",
           "detail": "Text, check box, choice and radio fields",
-          "support": { "windows": "available", "linux": "available", "mac": "planned", "ipad": "planned", "iphone": "planned" },
+          "support": { "windows": "available", "linux": "available", "mac": "partial", "ipad": "partial", "iphone": "partial" },
+          "notes": {
+            "mac": "Text, check box, choice and signature fields, drawn on the page, then moved, resized, renamed and removed; no radio groups yet.",
+            "ipad": "Text, check box, choice and signature fields, drawn on the page, then moved, resized, renamed and removed; no radio groups yet.",
+            "iphone": "Text, check box, choice and signature fields, drawn on the page, then moved, resized, renamed and removed; no radio groups yet."
+          },
           "roadmap": "phase-7-native-apple-apps"
         },
         {

@@ -141,6 +141,25 @@ final class DocumentSession {
     @ObservationIgnored var formLoads: [Int: RevisionRead<FormFields>] = [:]
     /// Bumped when form fields load, so the page view shows where they are.
     var formFieldsVersion = 0
+    /// The field kind a drag on the page adds while editing the form; nil when not editing it.
+    var formFieldTool: NewFormFieldKind?
+    /// The field selected while editing the form, by name, and the page it was selected on.
+    var selectedFormField: FormFieldSelection?
+    /// The field whose name and options the field sheet shows, new or selected.
+    var formFieldSheet: FormFieldSheet?
+
+    // Comments
+    /// What the inspector shows: the document's details or its comments.
+    var inspectorPane = InspectorPane.details
+    /// The comment threads, for the revision they were read from.
+    var comments: CommentList?
+    let commentsLoad = RevisionRead<CommentList>()
+    /// The selected thread, by the id that stays the same across revisions.
+    var selectedComment: String?
+    var commentFilter = CommentFilter.all
+    /// Keeps the threads with an entry by an author whose name contains this text.
+    var commentAuthorFilter = ""
+    var commentDrafts = CommentDrafts()
 
     // Markup
     /// Whether drawing not yet added to the document is on the page.
@@ -478,13 +497,15 @@ final class DocumentSession {
         }
     }
 
-    /// The name markup carries as its author: the user's full name where the platform gives it.
+    /// The name comments and markup carry as their author: the name chosen in the Comments inspector, or the user's
+    /// full name where the platform gives it.
     static var author: String {
         #if os(macOS)
-        NSFullUserName()
+        let system = NSFullUserName()
         #else
-        ""
+        let system = ""
         #endif
+        return CommentAuthor.resolve(stored: UserDefaults.standard.string(forKey: CommentAuthor.defaultsKey), system: system)
     }
 
     /// Runs an engine edit after any earlier one and registers its undo once it has succeeded. An edit that takes

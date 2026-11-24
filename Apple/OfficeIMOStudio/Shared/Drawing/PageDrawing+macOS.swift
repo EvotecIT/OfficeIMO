@@ -49,7 +49,12 @@ final class PageDragView: NSView, NSMenuItemValidation {
         if tool != self.tool {
             self.tool = tool
             window?.invalidateCursorRects(for: self)
-            setAccessibilityLabel(tool == .redaction ? String(localized: "Redaction area") : String(localized: "Drawing area"))
+            let label = switch tool {
+            case .redaction: String(localized: "Redaction area")
+            case .formField: String(localized: "Form editing area")
+            default: String(localized: "Drawing area")
+            }
+            setAccessibilityLabel(label)
         }
         let layout = layout()
         CATransaction.begin()
@@ -58,8 +63,8 @@ final class PageDragView: NSView, NSMenuItemValidation {
         let accent = NSColor.controlAccentColor.cgColor
         selectionOutline.strokeColor = accent
         selectionHandles.fillColor = accent
-        if tool == .select, let selected = session.selectedPageAnnotation, layout.frames.indices.contains(selected.page - 1) {
-            let paths = SelectionOutline.paths(for: selected.bounds.cgRect, page: selected.page, layout: layout)
+        if let selected = SelectionOutline.selected(for: tool, session: session), layout.frames.indices.contains(selected.page - 1) {
+            let paths = SelectionOutline.paths(for: selected.rect, page: selected.page, layout: layout)
             selectionOutline.path = paths.outline
             selectionHandles.path = paths.handles
         } else {
@@ -71,7 +76,7 @@ final class PageDragView: NSView, NSMenuItemValidation {
 
     override func resetCursorRects() {
         guard let tool else { return }
-        for frame in layout().frames { addCursorRect(frame, cursor: tool == .select ? .arrow : .crosshair) }
+        for frame in layout().frames { addCursorRect(frame, cursor: tool == .select || tool == .formField ? .arrow : .crosshair) }
     }
 
     override func mouseDown(with event: NSEvent) {
@@ -109,28 +114,33 @@ final class PageDragView: NSView, NSMenuItemValidation {
         if stays, draft.superlayer != nil { waiting.append((revision, draft)) } else { draft.removeFromSuperlayer() }
     }
 
-    /// Delete and Forward Delete remove the selected markup.
+    /// Delete and Forward Delete remove the selected markup or form field.
     override func keyDown(with event: NSEvent) {
-        if tool == .select, session.selectedPageAnnotation != nil, [51, 117].contains(event.keyCode) {
+        if hasSelection, [51, 117].contains(event.keyCode) {
             delete(nil)
         } else {
             super.keyDown(with: event)
         }
     }
 
-    /// Edit ▸ Delete removes the selected markup.
+    private var hasSelection: Bool { SelectionOutline.selected(for: tool, session: session) != nil }
+
+    /// Edit ▸ Delete removes the selected markup or form field.
     @objc func delete(_ sender: Any?) {
-        session.removeSelectedAnnotation()
+        if tool == .formField { session.removeSelectedFormField() } else { session.removeSelectedAnnotation() }
     }
 
     func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
-        menuItem.action == #selector(delete(_:)) ? tool == .select && session.selectedPageAnnotation != nil : true
+        menuItem.action == #selector(delete(_:)) ? hasSelection : true
     }
 
-    /// Esc stops marking areas to redact and clears the selection, as it cancels other modes.
+    /// Esc stops marking areas to redact and clears the selection, as it cancels other modes; with no field selected,
+    /// it stops editing the form.
     override func cancelOperation(_ sender: Any?) {
         if session.redactionAreas != nil { session.redactionAreas = nil }
+        if tool == .formField, session.selectedFormField == nil { session.endEditingForm() }
         session.selectedAnnotation = nil
+        session.selectedFormField = nil
     }
 
     /// Removes outlines the page's images now show.

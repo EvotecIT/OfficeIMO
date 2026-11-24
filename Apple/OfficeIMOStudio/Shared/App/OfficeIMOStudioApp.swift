@@ -139,6 +139,9 @@ struct StudioCommands: Commands {
                     Text("Table of Contents")
                 }
                 .keyboardShortcut("3", modifiers: [.command, .option])
+                // Preview's Highlights and Notes uses the same shortcut.
+                Button("Comments") { session?.showComments() }
+                    .keyboardShortcut("4", modifiers: [.command, .option])
                 Divider()
                 Button(session?.isInspectorShown == true ? "Hide Inspector" : "Show Inspector") { session?.isInspectorShown.toggle() }
                     .keyboardShortcut("i", modifiers: [.command, .option])

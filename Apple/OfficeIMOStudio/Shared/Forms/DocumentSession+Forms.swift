@@ -12,7 +12,7 @@ extension DocumentSession {
 
     /// Loads a page's form fields once per revision, keeping a few pages.
     func loadFormFields(_ page: Int) async {
-        guard formFields(page) == nil, let engine, canFillForms, (1...max(pageCount, 1)).contains(page) else { return }
+        guard formFields(page) == nil, let engine, canFillForms || canAuthorForms, (1...max(pageCount, 1)).contains(page) else { return }
         let load = formLoads[page] ?? RevisionRead<FormFields>()
         formLoads[page] = load
         defer {
@@ -29,8 +29,13 @@ extension DocumentSession {
         }
     }
 
-    /// The boxes of fillable fields on loaded pages, in each page's displayed points, to show where they are.
+    /// The boxes of fillable fields on loaded pages, in each page's displayed points, to show where they are; while
+    /// editing the form, every field's boxes.
     var fillableFieldBoxes: [Int: [CGRect]] {
+        if isEditingForm {
+            return formPages.filter { $0.value.revision == revision }
+                .mapValues { $0.fields.flatMap { $0.widgets.map(\.bounds.cgRect) } }.filter { !$0.value.isEmpty }
+        }
         guard canFillForms, task == .read else { return [:] }
         return formPages.filter { $0.value.revision == revision }.mapValues(\.fillableBoxes).filter { !$0.value.isEmpty }
     }

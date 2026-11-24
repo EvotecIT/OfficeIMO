@@ -49,7 +49,7 @@ final class PageDragController: NSObject, UIGestureRecognizerDelegate {
     func update(tool: PageDragTool?) {
         self.tool = tool
         pan.isEnabled = tool != nil
-        tap.isEnabled = tool == .redaction || tool == .select
+        tap.isEnabled = tool == .redaction || tool == .select || tool == .formField
         if tool == nil { cancelDraft() }
         let layout = scrollView.tiles.layout
         CATransaction.begin()
@@ -57,8 +57,8 @@ final class PageDragController: NSObject, UIGestureRecognizerDelegate {
         marks.path = DragOutline.path(for: session.redactionAreas ?? [], layout: layout)
         selectionOutline.strokeColor = scrollView.tintColor.cgColor
         selectionHandles.fillColor = scrollView.tintColor.cgColor
-        if tool == .select, let selected = session.selectedPageAnnotation, layout.frames.indices.contains(selected.page - 1) {
-            let paths = SelectionOutline.paths(for: selected.bounds.cgRect, page: selected.page, layout: layout)
+        if let selected = SelectionOutline.selected(for: tool, session: session), layout.frames.indices.contains(selected.page - 1) {
+            let paths = SelectionOutline.paths(for: selected.rect, page: selected.page, layout: layout)
             selectionOutline.path = paths.outline
             selectionHandles.path = paths.handles
         } else {
@@ -123,6 +123,13 @@ final class PageDragController: NSObject, UIGestureRecognizerDelegate {
         if tool == .select {
             // Selects the markup under the tap, or clears the selection.
             _ = PageDragGesture.begin(.select, at: location, layout: scrollView.tiles.layout, session: session)
+            return
+        }
+        if tool == .formField {
+            // Selects the field under the tap, or adds a field of the standard size where the tap is.
+            guard let gesture = PageDragGesture.begin(.formField, at: location, layout: scrollView.tiles.layout, session: session),
+                  case .draw = gesture.action else { return }
+            _ = gesture.finish(session: session, failed: {})
             return
         }
         let layout = scrollView.tiles.layout

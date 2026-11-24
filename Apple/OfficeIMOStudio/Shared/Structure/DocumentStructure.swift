@@ -90,6 +90,11 @@ struct EditRequest: Encodable, Sendable {
     var flatten: FlattenEdit?
     var addAttachment: AttachmentAdd?
     var removeAttachment: String?
+    var reply: CommentReply?
+    var reviewState: CommentStateChange?
+    var addFormField: FormFieldAdd?
+    var updateFormField: FormFieldUpdate?
+    var removeFormField: String?
 }
 
 struct OutlineEdit: Encodable, Sendable {
