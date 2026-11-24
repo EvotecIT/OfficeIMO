@@ -319,7 +319,7 @@
         {
           "id": "view-office",
           "title": "Open Office documents",
-          "detail": "Word, Excel, PowerPoint, RTF, Markdown and OpenDocument files open read-only as their PDF conversion, with Edit as PDF and Save as PDF",
+          "detail": "Word, Excel, PowerPoint, RTF, Markdown, HTML, XPS, Visio, Publisher, OpenDocument and EPUB files open read-only as their PDF conversion, with Edit as PDF and Save as PDF",
           "support": { "windows": "partial", "linux": "partial", "mac": "available", "ipad": "available", "iphone": "available" },
           "notes": {
             "windows": "Office files go through the conversion workbench, which writes a PDF to open.",
