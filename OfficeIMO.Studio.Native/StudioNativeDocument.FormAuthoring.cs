@@ -24,8 +24,13 @@ internal sealed partial class StudioNativeDocument {
         if (kind is PdfFormFieldCreationKind.Choice or PdfFormFieldCreationKind.RadioButtonGroup && options.Length == 0)
             throw new ArgumentException("A choice or radio group needs at least one option.", nameof(field));
         StudioNativeRectangle bounds = field.Bounds ?? throw new ArgumentException("Draw the field's box.", nameof(field));
-        // A radio group stacks one button per option, as tall as the desktop makes it.
-        if (kind == PdfFormFieldCreationKind.RadioButtonGroup) bounds = bounds with { Height = Math.Max(bounds.Height, RadioGroupHeight(options.Length)) };
+        // A radio group stacks one button per option, as tall as the desktop makes it, moved up where it would run off the page.
+        if (kind == PdfFormFieldCreationKind.RadioButtonGroup) {
+            double height = Math.Max(bounds.Height, RadioGroupHeight(options.Length));
+            double pageHeight = DisplayedHeight(field.Page);
+            if (height > pageHeight) throw new ArgumentException("The radio group's options don't fit on the page. Use fewer options.", nameof(field));
+            bounds = bounds with { Y = Math.Clamp(bounds.Y, 0D, pageHeight - height), Height = height };
+        }
         PdfPageRectangle box = PageBox(field.Page, bounds);
         var create = new PdfFormFieldCreateOptions {
             Name = name, Kind = kind, PageNumber = field.Page, X = box.Left, Y = box.Bottom, Width = box.Width, Height = box.Height,
@@ -39,6 +44,14 @@ internal sealed partial class StudioNativeDocument {
             }
         };
         return Plainly(() => _workspace.CreateFormFieldAsync(create, cancellationToken), FieldRefused);
+    }
+
+    /// <summary>The page's height as displayed, after its rotation.</summary>
+    private double DisplayedHeight(int page) {
+        if (page < 1 || page > _workspace.Pages.Count) throw new ArgumentOutOfRangeException(nameof(page), "The page does not exist.");
+        PdfPageInfo info = _workspace.Pages[page - 1];
+        (double width, double height) = OfficeIMO.Studio.Features.Reader.PdfDocumentSession.GetPhysicalSize(info);
+        return info.RotationDegrees % 180 == 0 ? height : width;
     }
 
     /// <summary>The height of a radio group's buttons, 14 points each with 6 between, as the desktop lays them out.</summary>

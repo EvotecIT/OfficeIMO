@@ -35,12 +35,13 @@ public sealed class StudioNativeCommentsAndFormsTests : IDisposable {
         Assert.Equal((2, "none", false), (thread.Page, thread.State, thread.Resolved));
         Assert.Equal(("Alex Morgan", "Check the totals", 0), (thread.Entries[0].Author, thread.Entries[0].Contents, thread.Entries[0].Depth));
         Assert.NotNull(thread.Bounds);
+        string id = thread.Id;
 
         await document.EditAsync(new StudioNativeEditRequest(Reply: new StudioNativeCommentReply(thread.ObjectNumber, "Fixed in the second draft", "Sam Lee")), default);
         thread = Assert.Single((await document.GetCommentsAsync(default)).Threads);
         Assert.Equal(new (string?, int)[] { ("Alex Morgan", 0), ("Sam Lee", 1) }, thread.Entries.Select(entry => (entry.Author, entry.Depth)));
         Assert.Equal("Fixed in the second draft", thread.Entries[1].Contents);
-        string id = thread.Id;
+        Assert.Equal(id, thread.Id);
 
         await document.EditAsync(new StudioNativeEditRequest(ReviewState: new StudioNativeCommentState(thread.ObjectNumber, "completed")), default);
         thread = Assert.Single((await document.GetCommentsAsync(default)).Threads);
@@ -50,6 +51,7 @@ public sealed class StudioNativeCommentsAndFormsTests : IDisposable {
         thread = Assert.Single((await document.GetCommentsAsync(default)).Threads);
         Assert.False(thread.Resolved);
         Assert.Equal(2, thread.Entries.Count);
+        Assert.Equal(id, thread.Id);
     }
 
     [Fact]
@@ -137,11 +139,32 @@ public sealed class StudioNativeCommentsAndFormsTests : IDisposable {
         double top = radio.Widgets.Min(widget => widget.Bounds.Y), bottom = radio.Widgets.Max(widget => widget.Bounds.Y + widget.Bounds.Height);
         Assert.True(bottom - top >= 53, $"The group spans {bottom - top} points.");
         Assert.Equal("button", Assert.Single(fields.Fields, field => field.Name == "Submit").Kind);
+        Assert.Equal(3, radio.WidgetCount);
+        Assert.Equal(new[] { "Size", "Submit" }, fields.AllNames.Order(StringComparer.Ordinal));
 
         await Assert.ThrowsAnyAsync<ArgumentException>(() => document.EditAsync(new StudioNativeEditRequest(UpdateFormField:
             new StudioNativeFormFieldUpdate("Size", Bounds: new StudioNativeRectangle(40, 120, 80, 60))), default));
         await Assert.ThrowsAnyAsync<ArgumentException>(() => document.EditAsync(new StudioNativeEditRequest(AddFormField:
             new StudioNativeFormFieldAdd("radio", "Empty", 1, new StudioNativeRectangle(40, 200, 80, 40))), default));
+    }
+
+    [Fact]
+    public async Task A_radio_group_drawn_near_the_bottom_moves_up_to_stay_on_the_page_and_names_cover_every_page() {
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreateTextPdf("radio-bottom.pdf", "One", "Two"), null, default);
+        await document.EditAsync(new StudioNativeEditRequest(AddFormField: new StudioNativeFormFieldAdd("text", "Remote", 2,
+            new StudioNativeRectangle(40, 40, 120, 24))), default);
+        // Ten options need 194 points; drawn 20 points above the bottom of a 300-point page, the group moves up.
+        await document.EditAsync(new StudioNativeEditRequest(AddFormField: new StudioNativeFormFieldAdd("radio", "Rating", 1,
+            new StudioNativeRectangle(40, 270, 80, 10), Enumerable.Range(1, 10).Select(static n => n.ToString(System.Globalization.CultureInfo.InvariantCulture)).ToArray())), default);
+
+        StudioNativeFormFields fields = await document.GetFormFieldsAsync(1, default);
+        StudioNativeFormField radio = Assert.Single(fields.Fields);
+        Assert.All(radio.Widgets, widget => Assert.InRange(widget.Bounds.Y + widget.Bounds.Height, 0D, 300.5D));
+        Assert.Equal(new[] { "Rating", "Remote" }, fields.AllNames.Order(StringComparer.Ordinal));
+
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => document.EditAsync(new StudioNativeEditRequest(AddFormField:
+            new StudioNativeFormFieldAdd("radio", "TooMany", 1, new StudioNativeRectangle(40, 40, 80, 10),
+                Enumerable.Range(1, 20).Select(static n => "Option " + n.ToString(System.Globalization.CultureInfo.InvariantCulture)).ToArray())), default));
     }
 
     [Fact]

@@ -150,10 +150,13 @@ internal sealed partial class StudioNativeDocument : IDisposable {
                 fields.Add(new StudioNativeFormField(field.Name, KindOf(field), field.Values.ToArray(),
                     field.Options.Select(static option => new StudioNativeFormOption(option.ExportValue, option.DisplayText)).ToArray(),
                     field.IsReadOnly, field.IsRequired, field.IsMultiline, field.IsPassword, field.IsComb, field.MaxLength,
-                    field.AllowsMultipleSelection, field.IsEditableChoice, field.AlternateName, widgets));
+                    field.AllowsMultipleSelection, field.IsEditableChoice, field.AlternateName, widgets, field.Widgets.Count));
             }
+            // Every field's name, on any page, so a host names a new field without loading every page.
+            string[] names = info.Fields.Select(static field => field.Name).Where(static name => !string.IsNullOrEmpty(name))
+                .Select(static name => name!).Distinct(StringComparer.Ordinal).ToArray();
             return new StudioNativeFormFields(StudioNativeAbi.Version, _workspace.Revision, pageNumber, _workspace.CanFillForms,
-                info.HasXfa, fields);
+                info.HasXfa, fields, names);
         } finally { _gate.Release(); }
     }
 
@@ -664,9 +667,10 @@ internal sealed record StudioNativeFormOption(string Value, string Text);
 
 internal sealed record StudioNativeFormField(string Name, string Kind, IReadOnlyList<string> Values, IReadOnlyList<StudioNativeFormOption> Options,
     bool ReadOnly, bool Required, bool Multiline, bool Password, bool Comb, int? MaxLength, bool MultipleSelection, bool Editable, string? Label,
-    IReadOnlyList<StudioNativeFormWidget> Widgets);
+    IReadOnlyList<StudioNativeFormWidget> Widgets, int WidgetCount);
 
-internal sealed record StudioNativeFormFields(int AbiVersion, long Revision, int Page, bool CanFill, bool HasXfa, IReadOnlyList<StudioNativeFormField> Fields);
+internal sealed record StudioNativeFormFields(int AbiVersion, long Revision, int Page, bool CanFill, bool HasXfa, IReadOnlyList<StudioNativeFormField> Fields,
+    IReadOnlyList<string> AllNames);
 
 internal sealed record StudioNativeFormFill(IReadOnlyDictionary<string, IReadOnlyList<string>>? Values, bool RemoveXfa = false);
 

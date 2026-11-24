@@ -176,7 +176,8 @@ int32_t officeimo_document_import_pages_json(officeimo_document document, const 
  * The form fields with a widget on a page, as JSON: { "abiVersion", "revision", "page", "canFill", "hasXfa", "fields": [ { "name",
  * "kind", "values": [ ], "options": [ { "value", "text" } ], "readOnly", "required", "multiline", "password", "comb",
  * "maxLength", "multipleSelection", "editable", "label", "widgets": [ { "objectNumber", "bounds": { "x", "y", "width",
- * "height" }, "onState", "isOn" } ] } ] }. kind is "text", "checkbox", "radio", "combo", "list", "button" or "signature";
+ * "height" }, "onState", "isOn" } ], "widgetCount" } ], "allNames": [ ] }. widgetCount counts the field's widgets on
+ * every page; allNames lists every field name in the form, on any page. kind is "text", "checkbox", "radio", "combo", "list", "button" or "signature";
  * bounds are in points of the page as displayed; onState is the value that turns a check box or radio button on.
  * hasXfa reports whether the form also carries an XFA packet.
  */
