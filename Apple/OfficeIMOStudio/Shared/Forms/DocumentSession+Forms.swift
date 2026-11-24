@@ -51,8 +51,11 @@ extension DocumentSession {
     func setField(_ field: FormField, values: [String], failed: (() -> Void)? = nil) {
         guard canFillForms, values != field.values else { return }
         let before = revision
+        // Edits run in order, so with another one queued, such as a field being moved, the fields read before it may no
+        // longer be where they were; they are read again instead of carried.
+        let isFirstInLine = !isWorking
         edit(String(localized: "Fill Form"), { try await $0.fillForm([field.name: values]) }, then: { session in
-            session.carryFormFields(from: before, filling: field.name, with: values)
+            if isFirstInLine { session.carryFormFields(from: before, filling: field.name, with: values) }
         }, failed: failed)
     }
 
