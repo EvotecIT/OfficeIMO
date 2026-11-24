@@ -60,8 +60,11 @@ public sealed class OneNoteBinaryPayload {
     public Stream OpenRead() {
         if (_bytes != null) {
             int count = (int)Length!.Value;
+            // .NET Framework's MemoryStream.Seek reports buffer-absolute positions for a nonzero start index,
+            // so a range past the start of a shared buffer gets its own copy.
+            if (_offset != 0) return new MemoryStream(ToArray(int.MaxValue), false);
             // A shared buffer also backs other values, so its stream must not hand out the array.
-            return new MemoryStream(_bytes, _offset, count, false, !_shared);
+            return new MemoryStream(_bytes, 0, count, false, !_shared);
         }
 
         Stream stream = _streamFactory!();
