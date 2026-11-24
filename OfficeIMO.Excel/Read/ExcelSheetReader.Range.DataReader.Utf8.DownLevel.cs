@@ -184,7 +184,8 @@ namespace OfficeIMO.Excel {
                     if (styleIndex >= 0 && (uint)styleIndex >= (uint)_owner.Styles.CellFormatCount) {
                         return false;
                     }
-                    if (kind == Utf8CellKind.SharedString) {
+                    // A shared-string cell without a value element holds no value.
+                    if (kind == Utf8CellKind.SharedString && valueStart >= 0) {
                         if (valueLength <= 0 || valueLength > 9) {
                             return false;
                         }
