@@ -35,11 +35,14 @@ internal sealed partial class StudioNativeDocument {
             bounds = bounds with { Y = Math.Clamp(bounds.Y, 0D, pageHeight - height), Height = height };
         }
         PdfPageRectangle box = PageBox(field.Page, bounds);
+        // The page's own units can be larger than points (/UserUnit), so the buttons are sized in them as the box is.
+        double scale = bounds.Height > 0D ? box.Height / bounds.Height : 1D;
         var create = new PdfFormFieldCreateOptions {
             Name = name, Kind = kind, PageNumber = field.Page, X = box.Left, Y = box.Bottom, Width = box.Width, Height = box.Height,
             Value = kind == PdfFormFieldCreationKind.CheckBox ? "Off" : string.Empty,
             ChoiceOptions = options, IsComboBox = kind == PdfFormFieldCreationKind.Choice && field.Combo != false,
             Caption = string.IsNullOrWhiteSpace(field.Caption) ? "Button" : field.Caption.Trim(),
+            RadioButtonSize = RadioButtonSize * scale, RadioButtonGap = RadioButtonGap * scale,
             Style = new PdfFormFieldStyle {
                 AlternateName = string.IsNullOrWhiteSpace(field.Label) ? null : field.Label.Trim(),
                 IsRequired = field.Required, IsReadOnly = field.ReadOnly,
@@ -58,7 +61,9 @@ internal sealed partial class StudioNativeDocument {
     }
 
     /// <summary>The height of a radio group's buttons, 14 points each with 6 between, as the desktop lays them out.</summary>
-    private static double RadioGroupHeight(int options) => options * 14D + (options - 1) * 6D;
+    private static double RadioGroupHeight(int options) => options * RadioButtonSize + (options - 1) * RadioButtonGap;
+
+    private const double RadioButtonSize = 14D, RadioButtonGap = 6D;
 
     private async Task UpdateFormField(StudioNativeFormFieldUpdate update, CancellationToken cancellationToken) {
         string name = update.Name ?? throw new ArgumentException("Name the field to change.", nameof(update));

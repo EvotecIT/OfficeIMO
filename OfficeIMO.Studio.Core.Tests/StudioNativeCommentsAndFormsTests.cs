@@ -181,6 +181,45 @@ public sealed class StudioNativeCommentsAndFormsTests : IDisposable {
     }
 
     [Fact]
+    public async Task A_radio_group_fits_its_box_on_a_page_whose_units_are_two_points() {
+        string path = Path.Combine(_root, "user-unit.pdf");
+        File.WriteAllBytes(path, PageWithUserUnit(2));
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(path, null, default);
+
+        // Three options take 54 points as displayed, 27 of the page's own two-point units.
+        await document.EditAsync(new StudioNativeEditRequest(AddFormField: new StudioNativeFormFieldAdd("radio", "Size", 1,
+            new StudioNativeRectangle(40, 40, 120, 54), ["Small", "Medium", "Large"])), default);
+
+        StudioNativeFormField radio = Assert.Single((await document.GetFormFieldsAsync(1, default)).Fields);
+        Assert.Equal(3, radio.Widgets.Count);
+        double top = radio.Widgets.Min(widget => widget.Bounds.Y), bottom = radio.Widgets.Max(widget => widget.Bounds.Y + widget.Bounds.Height);
+        Assert.InRange(bottom - top, 53D, 55D);
+        Assert.All(radio.Widgets, widget => Assert.InRange(widget.Bounds.Height, 13D, 15D));
+    }
+
+    /// <summary>A one-page PDF whose page is 300 by 400 of its own units, each <paramref name="userUnit"/> points.</summary>
+    private static byte[] PageWithUserUnit(double userUnit) {
+        string unit = userUnit.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        string[] objects = [
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 400] /UserUnit " + unit + " /Contents 4 0 R /Resources << >> >>",
+            "<< /Length 0 >>\nstream\n\nendstream"
+        ];
+        var text = new System.Text.StringBuilder("%PDF-1.7\n");
+        var offsets = new List<int>();
+        for (int index = 0; index < objects.Length; index++) {
+            offsets.Add(text.Length);
+            text.Append(index + 1).Append(" 0 obj\n").Append(objects[index]).Append("\nendobj\n");
+        }
+        int xref = text.Length;
+        text.Append("xref\n0 ").Append(objects.Length + 1).Append("\n0000000000 65535 f \n");
+        foreach (int offset in offsets) text.Append(offset.ToString("D10", System.Globalization.CultureInfo.InvariantCulture)).Append(" 00000 n \n");
+        text.Append("trailer\n<< /Size ").Append(objects.Length + 1).Append(" /Root 1 0 R >>\nstartxref\n").Append(xref).Append("\n%%EOF\n");
+        return System.Text.Encoding.ASCII.GetBytes(text.ToString());
+    }
+
+    [Fact]
     public async Task Field_authoring_refuses_duplicate_names_choices_without_options_and_unknown_kinds() {
         using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreateTextPdf("refused-form.pdf", "Form"), null, default);
         var box = new StudioNativeRectangle(40, 60, 160, 24);
