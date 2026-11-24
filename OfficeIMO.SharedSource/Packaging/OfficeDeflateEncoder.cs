@@ -8,7 +8,7 @@ using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using OfficeIMO.Drawing;
 
-namespace OfficeIMO.Excel;
+namespace OfficeIMO.SharedSource.Packaging;
 
 /// <summary>Raw deflate (RFC 1951) for <see cref="System.IO.Compression.CompressionLevel.Fastest"/> package parts.</summary>
 /// <remarks>Input is cut into regions at fixed offsets: the first holds up to 160 KiB, each later one 128 KiB after a
@@ -20,7 +20,7 @@ namespace OfficeIMO.Excel;
 /// new bytes, and the encoder joins those values into the CRC-32 of the whole input. Matches come from a single
 /// hash slot per four-byte prefix. Codes are written least-significant bit first, so the encoder relies on a
 /// little-endian host.</remarks>
-internal sealed class ExcelDeflateEncoder : IDisposable {
+internal sealed class OfficeDeflateEncoder : IDisposable {
     private const int HistoryLength = 32 * 1024;
     private const int RegionLength = 128 * 1024;
     private const int BufferLength = HistoryLength + RegionLength;
@@ -65,14 +65,14 @@ internal sealed class ExcelDeflateEncoder : IDisposable {
 
     /// <param name="destination">Receives the compressed bytes, always on the thread that writes or finishes.</param>
     /// <param name="background">Encodes full regions on the thread pool while the caller keeps writing.</param>
-    internal ExcelDeflateEncoder(Stream destination, bool background = false) {
+    internal OfficeDeflateEncoder(Stream destination, bool background = false) {
         _destination = destination;
         _maximumQueued = background ? BackgroundRegions : 0;
         _current = RentRegion();
     }
 
     internal void Write(ReadOnlySpan<byte> input) {
-        if (_finished || _current == null) throw new ObjectDisposedException(nameof(ExcelDeflateEncoder));
+        if (_finished || _current == null) throw new ObjectDisposedException(nameof(OfficeDeflateEncoder));
         _size += input.Length;
         while (!input.IsEmpty) {
             Region region = _current;
@@ -95,7 +95,7 @@ internal sealed class ExcelDeflateEncoder : IDisposable {
 
     /// <summary>Encodes the remaining input as the final block, then writes every region in order.</summary>
     internal void Finish() {
-        if (_finished || _current == null) throw new ObjectDisposedException(nameof(ExcelDeflateEncoder));
+        if (_finished || _current == null) throw new ObjectDisposedException(nameof(OfficeDeflateEncoder));
         _finished = true;
         Region last = _current;
         _current = null;
@@ -158,7 +158,7 @@ internal sealed class ExcelDeflateEncoder : IDisposable {
 
     private void Emit(Region region) {
         region.WriteTo(_destination);
-        _crc = ExcelCrc32Combine.Combine(_crc, region.Crc, region.End - region.Start);
+        _crc = OfficeCrc32Combine.Combine(_crc, region.Crc, region.End - region.Start);
     }
 
     /// <summary>Keeps a written region for this part's next one; its bytes are overwritten before they are read.</summary>

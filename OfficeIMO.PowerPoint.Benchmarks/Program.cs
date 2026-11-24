@@ -10,6 +10,11 @@ if (args.Length > 0 && string.Equals(args[0], "--native-text-layout",
     return PowerPointNativeTextLayoutBenchmark.Run(args.Skip(1).ToArray());
 }
 
+if (args.Length > 0 && string.Equals(args[0], "--bdn", StringComparison.OrdinalIgnoreCase)) {
+    BenchmarkDotNet.Running.BenchmarkSwitcher.FromAssembly(typeof(PowerPointModelCreateBenchmarks).Assembly).Run(args.Skip(1).ToArray());
+    return 0;
+}
+
 if (args.Length > 0 && string.Equals(args[0], "--probe",
         StringComparison.OrdinalIgnoreCase)) {
     return PowerPointBaselineRunner.RunProbe(args.Skip(1).ToArray());

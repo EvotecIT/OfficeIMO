@@ -127,6 +127,8 @@ internal sealed partial class OfficeXmlPullReader {
         }
 
         _depth++;
+        _markupStart = qnameStart - 1;
+        _markupEnd = position;
         NodeKind = OfficeXmlNodeKind.StartElement;
         NamespaceId = frame.NamespaceId;
         _nameStart = frame.LocalStart;

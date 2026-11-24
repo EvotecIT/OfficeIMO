@@ -1,9 +1,9 @@
-namespace OfficeIMO.Excel;
+namespace OfficeIMO.SharedSource.Packaging;
 
 /// <summary>Joins the CRC-32 values of consecutive byte ranges, so ranges hashed on separate threads give the whole input's CRC.</summary>
 /// <remarks>Arithmetic on polynomials over GF(2) modulo the reflected CRC-32 polynomial: appending <c>n</c> bytes multiplies
 /// the first CRC by x^(8n), and the second range's CRC is added.</remarks>
-internal static class ExcelCrc32Combine {
+internal static class OfficeCrc32Combine {
     private const uint Polynomial = 0xEDB8_8320U;
     // x^(2^k) modulo the polynomial, for k = 0..31.
     private static readonly uint[] PowersOfTwo = CreatePowersOfTwo();

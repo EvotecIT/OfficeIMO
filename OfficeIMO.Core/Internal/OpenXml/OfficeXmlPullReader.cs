@@ -78,6 +78,7 @@ internal sealed partial class OfficeXmlPullReader {
             if (text.Length > 0 && text[0] == '﻿') text = text.Substring(1);
             data = Encoding.UTF8.GetBytes(text);
             length = data.Length;
+            Transcoded = true;
         } else if (length >= 3 && data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF) {
             start = 3;
         }
@@ -122,15 +123,8 @@ internal sealed partial class OfficeXmlPullReader {
 
     /// <summary>The local name of the current element. Names repeat across the parts of a package, so the
     /// package's namespace table caches them rather than decoding them again.</summary>
-    internal string LocalName {
-        get {
-            int hash = _nameLength;
-            for (int index = 0; index < _nameLength; index++) hash = hash * 31 + _data[_nameStart + index];
-            ref string? cached = ref _namespaces.NameSlot(hash);
-            if (cached != null && AsciiEquals(_nameStart, _nameLength, cached)) return cached;
-            return cached = Encoding.UTF8.GetString(_data, _nameStart, _nameLength);
-        }
-    }
+    internal string LocalName => CachedName(_nameStart, _nameLength);
+
 
     /// <summary>Advances to the next element boundary or text node the caller should see.</summary>
     /// <returns><see langword="false"/> at the end of the part.</returns>
@@ -144,6 +138,8 @@ internal sealed partial class OfficeXmlPullReader {
         while (true) {
             if (_pendingEnd) {
                 _pendingEnd = false;
+                // An empty element's end has no markup of its own: it sits where the start tag ends.
+                _markupStart = _markupEnd;
                 if (PopFrame()) return true;
                 continue;
             }
@@ -160,7 +156,9 @@ internal sealed partial class OfficeXmlPullReader {
             if (_position + 1 >= _end) throw Malformed("The part ends inside markup.");
             byte next = _data[_position + 1];
             if (next == (byte)'/') {
+                _markupStart = _position;
                 ReadEndTag();
+                _markupEnd = _position;
                 if (PopFrame()) return true;
             } else if (next == (byte)'?') {
                 SkipPast("?>", 2);
@@ -240,6 +238,8 @@ internal sealed partial class OfficeXmlPullReader {
         // Only compatibility elements may appear directly inside mc:AlternateContent.
         if (_frames[_frameCount - 1].Kind == FrameKind.AlternateContent) return false;
         SetText(start, position - start, needsDecoding, cdata: false, whitespace);
+        _markupStart = start;
+        _markupEnd = position;
         return true;
     }
 
@@ -261,6 +261,8 @@ internal sealed partial class OfficeXmlPullReader {
             if (_frameCount == 0) throw Malformed("The part has a CDATA section outside its root element.");
             if (_frames[_frameCount - 1].Kind == FrameKind.AlternateContent) return false;
             SetText(start, end - start, needsDecoding: HasCarriageReturn(start, end - start), cdata: true, whitespace: false);
+            _markupStart = start - 9;
+            _markupEnd = end + 3;
             return true;
         }
         // ECMA-376 Part 2 forbids document type declarations in package parts; they also enable entity expansion.
