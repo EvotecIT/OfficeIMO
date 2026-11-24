@@ -65,6 +65,8 @@ final class FormController: NSObject, UIGestureRecognizerDelegate, UITextFieldDe
 
     /// Fills a field as a tap on it does, from the tap or from VoiceOver: types in it, toggles it or offers its choices.
     func activate(page: Int, field: FormField, widget: FormField.Widget) {
+        // Another field's typing is added first, whether a tap or VoiceOver moves on.
+        if let editing, editing.field.name != field.name || editing.page != page { finish(commit: true) }
         switch field.kind {
         case .text: beginTyping(page: page, field: field, widget: widget)
         case .checkbox, .radio:

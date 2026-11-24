@@ -66,9 +66,10 @@ extension DocumentSession {
         selectedFormField = nil
     }
 
-    /// Every field name the loaded pages show, to name new fields and check renames.
+    /// Every field name in the form, which each loaded page reports for the whole document, to name new fields and check
+    /// renames; the engine checks again when the field is added.
     var knownFormFieldNames: Set<String> {
-        Set(formPages.values(revision: revision).values.flatMap { $0.fields.map(\.name) })
+        Set(formPages.values(revision: revision).values.flatMap { $0.allNames ?? $0.fields.map(\.name) })
     }
 
     /// The selected field, read for the revision shown.

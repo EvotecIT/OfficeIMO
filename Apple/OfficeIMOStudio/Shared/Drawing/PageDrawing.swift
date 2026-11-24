@@ -307,15 +307,15 @@ struct PageDragGesture {
     /// move it, or starts drawing a new field elsewhere.
     private static func beginOnField(at point: CGPoint, local: CGPoint, page: Int, frame: CGRect, layout: PageLayout,
                                      session: DocumentSession) -> PageDragGesture? {
-        if let (field, widget) = session.selectedFormFieldValue, session.selectedFormField?.page == page, field.widgets.count == 1,
+        if let (field, widget) = session.selectedFormFieldValue, session.selectedFormField?.page == page, field.canMove,
            let fixed = SelectionOutline.fixedCorner(grabbing: local, of: widget.bounds.cgRect) {
             return PageDragGesture(action: .resize(.field(field.name), fixed: fixed, original: widget.bounds.cgRect),
                                    page: page, frame: frame, layout: layout, points: [point])
         }
         if let (field, widget) = session.authoredField(at: local, page: page) {
             session.selectedFormField = FormFieldSelection(name: field.name, page: page)
-            // The engine moves a field with one box, so a radio group is selected but stays where it is.
-            guard field.widgets.count == 1 else { return nil }
+            // A radio group or a field on several pages is selected but stays where it is.
+            guard field.canMove else { return nil }
             return PageDragGesture(action: .move(.field(field.name), original: widget.bounds.cgRect), page: page, frame: frame, layout: layout,
                                    points: [point])
         }

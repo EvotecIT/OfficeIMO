@@ -8,6 +8,8 @@ struct FormFields: Decodable, Sendable {
     let page: Int
     let canFill: Bool
     let fields: [FormField]
+    /// Every field name in the form, on any page; absent from engines that predate it.
+    let allNames: [String]?
 
     /// The fillable field and widget under a point of the page, if any.
     func hit(_ point: CGPoint) -> (FormField, FormField.Widget)? {
@@ -22,7 +24,7 @@ struct FormFields: Decodable, Sendable {
     /// The same fields at a later revision where one field has new values; filling changes nothing else.
     func filling(_ name: String, with values: [String], revision: Int64) -> FormFields {
         FormFields(revision: revision, page: page, canFill: canFill,
-                   fields: fields.map { $0.name == name ? $0.with(values: values) : $0 })
+                   fields: fields.map { $0.name == name ? $0.with(values: values) : $0 }, allNames: allNames)
     }
 
     /// The boxes of the fields that can be filled, to show where they are.
@@ -64,6 +66,8 @@ struct FormField: Decodable, Sendable, Identifiable {
     /// The field's tooltip name, which forms use as its label.
     let label: String?
     let widgets: [Widget]
+    /// How many widgets the field has on every page, which decides whether it can be moved.
+    let widgetCount: Int?
 
     var id: String { name }
     var text: String { values.first ?? "" }
@@ -75,8 +79,12 @@ struct FormField: Decodable, Sendable, Identifiable {
         }
         return FormField(name: name, kind: kind, values: values, options: options, readOnly: readOnly, required: required,
                          multiline: multiline, password: password, comb: comb, maxLength: maxLength,
-                         multipleSelection: multipleSelection, editable: editable, label: label, widgets: widgets)
+                         multipleSelection: multipleSelection, editable: editable, label: label, widgets: widgets,
+                         widgetCount: widgetCount)
     }
+
+    /// The engine moves a field with one box in the whole document, not a radio group or a field on several pages.
+    var canMove: Bool { (widgetCount ?? widgets.count) == 1 }
 
     var isFillable: Bool {
         !readOnly && [.text, .checkbox, .radio, .combo, .list].contains(kind)
