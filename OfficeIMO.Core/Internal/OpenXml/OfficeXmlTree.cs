@@ -458,6 +458,8 @@ internal sealed partial class OfficeXmlTree {
 
         bool UsesPrefix(int nameId) {
             OfficeXmlName name = Namespaces.GetName(nameId);
+            // A created element has no prefix until it is written; in no namespace it needs the default undeclared.
+            if (name.Prefix == null) return prefix.Length == 0 && name.NamespaceId == OfficeXmlNamespaces.None && uriId != OfficeXmlNamespaces.None;
             return name.Prefix == prefix && name.UriId != uriId && (prefix.Length > 0 || name.NamespaceId != OfficeXmlNamespaces.None || uriId != OfficeXmlNamespaces.None);
         }
 

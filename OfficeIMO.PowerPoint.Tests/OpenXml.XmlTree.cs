@@ -229,6 +229,12 @@ public class OpenXmlXmlTreeTests {
         Assert.Throws<ArgumentException>(() => tree.SetAttribute(tree.Root, OfficeXmlNamespaces.Xmlns, "p", string.Empty));
         Assert.Equal(xml, Encoding.UTF8.GetString(Write(tree)));
 
+        OfficeXmlTree created = Parse("<r/>");
+        int plain = created.CreateElement(OfficeXmlNamespaces.None, "c");
+        created.Append(created.Root, plain);
+        Assert.Throws<InvalidOperationException>(() => created.DeclareNamespace(plain, string.Empty, "urn:d"));
+        Assert.Equal("<r><c/></r>", Encoding.UTF8.GetString(Write(created)));
+
         OfficeXmlTree nested = Parse("<r xmlns:p=\"urn:old\"><p:a/></r>");
         Assert.Throws<InvalidOperationException>(() => nested.DeclareNamespace(nested.FirstChildOf(nested.Root), "p", "urn:new"));
     }
