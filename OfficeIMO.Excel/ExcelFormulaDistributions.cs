@@ -119,7 +119,8 @@ namespace OfficeIMO.Excel {
             if (x < 0) return 0;
             double k = degrees / 2;
             if (x == 0) return k == 1 ? 0.5 : k > 1 ? 0 : double.PositiveInfinity;
-            return Math.Exp((k - 1) * Math.Log(x) - x / 2 - k * Math.Log(2) - LogGamma(k));
+            // x^(k−1) e^(−x/2) / (2ᵏ Γ(k)) = P's prefix at (k, x/2) over x, which stays exact near the mean.
+            return GammaPrefix(k, x / 2) / x;
         }
 
         internal static double ChiSquaredCumulative(double x, double degrees) =>

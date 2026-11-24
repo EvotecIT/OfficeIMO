@@ -83,6 +83,10 @@ namespace OfficeIMO.Tests {
         [InlineData("CHISQ.DIST.RT(1E10,1E10)", 0.4999981193680548)]
         // Far below the mean P(a, x) ≈ xᵃ / Γ(a + 1); here (1E-16)¹⁶ / 16!.
         [InlineData("CHISQ.DIST(2E-16,32,TRUE)", 4.779477332387385e-270)]
+        // The density at a large mean: √(a/2π) e^(−1/(12a)) / x for a = 5E9.
+        [InlineData("CHISQ.DIST(1E10,1E10,FALSE)", 2.8209479176917655e-6)]
+        // z = 2 although the observation minus the mean overflows.
+        [InlineData("NORM.DIST(1E308,-1E308,1E308,TRUE)", 0.9772498680518208)]
         [InlineData("T.DIST(0.5,300,FALSE)", 0.35164388573796046)]
         public void Test_FormulaEvaluator_DistributionInversesReachFarTails(string formula, double expected) {
             double actual = CalculateNumber(formula);

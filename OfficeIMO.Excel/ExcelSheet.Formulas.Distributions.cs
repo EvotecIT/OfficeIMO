@@ -55,6 +55,8 @@ namespace OfficeIMO.Excel {
                 case "NORMDIST": {
                     if (n[2] <= 0) return double.NaN;
                     double z = (n[0] - n[1]) / n[2];
+                    // Huge values of opposite sign overflow the difference although z itself is finite.
+                    if (double.IsInfinity(z)) z = n[0] / n[2] - n[1] / n[2];
                     return n[3] != 0 ? ExcelFormulaDistributions.NormalCumulative(z) : ExcelFormulaDistributions.NormalDensity(z) / n[2];
                 }
                 case "NORM.INV":
