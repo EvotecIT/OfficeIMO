@@ -50,11 +50,30 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Keeps an edited note drawing loaded until the save, so each note costs the same however many the sheet
-        /// has. Anything that reads the part stream instead calls <see cref="CommitCommentVmlChanges"/> or
-        /// <see cref="CommitPendingCommentDrawings"/> first. Once the package is handed out, edits write through.
+        /// Writes a note drawing changed by a structural or range edit. Outside a batch the part stream is current
+        /// afterwards, as callers holding the part expect.
         /// </summary>
+        private bool _batchRewroteCommentVml;
+
         private void SaveVmlDocument(VmlDrawingPart part, XDocument doc) {
+            if (_isBatchOperation) {
+                KeepVmlDocument(part, doc);
+                _batchRewroteCommentVml = true;
+                return;
+            }
+            PendingCommentVmlDocuments.Remove(part);
+            using var stream = part.GetStream(FileMode.Create, FileAccess.Write);
+            doc.Save(stream);
+        }
+
+        /// <summary>
+        /// Keeps a note drawing changed by setting or clearing one note loaded until the save, so each note costs the same
+        /// however many the sheet has. Anything that reads the part stream instead calls <see cref="CommitCommentVmlChanges"/>
+        /// or <see cref="CommitPendingCommentDrawings"/> first; the package handed out through
+        /// <see cref="ExcelDocument.OpenXmlDocument"/> or <see cref="WorksheetPart"/> flushes it. Once the package is handed
+        /// out, edits write through.
+        /// </summary>
+        private void KeepVmlDocument(VmlDrawingPart part, XDocument doc) {
             if (_excelDocument.IsOpenXmlDocumentExposed) {
                 PendingCommentVmlDocuments.Remove(part);
                 using var stream = part.GetStream(FileMode.Create, FileAccess.Write);

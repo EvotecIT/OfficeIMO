@@ -290,6 +290,7 @@ namespace OfficeIMO.Excel {
         }
 
         private HashSet<int> CollectUsedVmlShapeBlocks(VmlDrawingPart excludedPart) {
+            ExcelSheet.CommitPendingCommentDrawings(WorkbookPartRoot);
             var blocks = new HashSet<int>();
             var visited = new HashSet<VmlDrawingPart>();
             foreach (WorksheetPart worksheetPart in WorkbookPartRoot.WorksheetParts) {

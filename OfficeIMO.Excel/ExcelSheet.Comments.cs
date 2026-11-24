@@ -580,7 +580,7 @@ namespace OfficeIMO.Excel {
             CommentVmlShapeIndex shapes = GetCommentVmlShapeIndex(doc, root);
             shapes.RemoveCell(row, column);
             shapes.Add(AppendCommentVmlShape(root, row, column, visible, commentAnchor, shapes.NextShapeId));
-            SaveVmlDocument(vmlPart, doc);
+            KeepVmlDocument(vmlPart, doc);
         }
 
         private static XElement AppendCommentVmlShape(XElement root, int row, int column, bool visible, ExcelCommentAnchor? commentAnchor, int shapeId) {

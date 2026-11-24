@@ -77,6 +77,19 @@ namespace OfficeIMO.Excel {
         /// Applies deferred defined-name formula marks. It runs from package access, which may already hold the
         /// document lock, so it marks the cells without taking it.
         /// </summary>
+        /// <summary>
+        /// Defers formula marks owed by defined-name edits around a literal value write. A sheet with tables, or one whose
+        /// worksheet is not loaded, keeps the immediate marks: a header write can regenerate totals formulas.
+        /// </summary>
+        private ExcelDocument.DefinedNameFormulaMarkDeferral DeferDefinedNameFormulaMarksForValueWrite() {
+            if (!_excelDocument.HasPendingDefinedNameFormulaMarks) return default;
+            // Read through the unguarded field: the guarded one would apply the marks this defers.
+            WorksheetPart part = _worksheetPartValue;
+            if (!part.IsRootElementLoaded || part.Worksheet is not Worksheet worksheet
+                || worksheet.GetFirstChild<TableParts>() != null) return default;
+            return _excelDocument.DeferDefinedNameFormulaMarks();
+        }
+
         internal void MarkFormulasForRecalculation() {
             foreach (var formula in ExcelWorksheetScan.CellFormulas(WorksheetRoot)) {
                 formula.CalculateCell = true;

@@ -23,8 +23,12 @@ namespace OfficeIMO.Excel {
 
             if (Locking.IsNoLock) {
                 MaterializeDeferredDataSetImportIfNeeded();
-                using (TryBeginStyleBatch()) {
-                    action(this);
+                try {
+                    using (TryBeginStyleBatch()) {
+                        action(this);
+                    }
+                } finally {
+                    CommitBatchRewrittenCommentVml();
                 }
                 return;
             }
@@ -49,6 +53,7 @@ namespace OfficeIMO.Excel {
                 } finally {
                     // Batch is not a transaction: edits made before a callback throws still need to reach Save.
                     try {
+                        CommitBatchRewrittenCommentVml();
                         if (_batchHasCellMutations) _excelDocument.MarkPackageDirty();
                     } finally {
                         _isBatchOperation = wasBatchOperation;
@@ -56,6 +61,16 @@ namespace OfficeIMO.Excel {
                     }
                 }
             });
+        }
+
+        /// <summary>
+        /// Structural and range edits in a batch leave their note-drawing rewrites to its end, where the part stream
+        /// becomes current as it would be after the same edits outside a batch. Notes set one at a time stay loaded until the save.
+        /// </summary>
+        private void CommitBatchRewrittenCommentVml() {
+            if (!_batchRewroteCommentVml) return;
+            _batchRewroteCommentVml = false;
+            CommitCommentVmlChanges();
         }
 
         internal sealed class NoLockContext : IDisposable {

@@ -29,6 +29,8 @@ namespace OfficeIMO.Excel {
             internal bool UsesCellStore;
             internal MergeReferenceIndex? MergeReferences;
             internal TableHeaderIndex? TableHeaders;
+            /// <summary>The rId number after the last one a new table took, tried before scanning every relationship.</summary>
+            internal int NextTableRelationshipNumber;
         }
 
         /// <summary>
@@ -65,6 +67,7 @@ namespace OfficeIMO.Excel {
                 state.CommentVmlShapes = null;
                 state.MergeReferences = null;
                 state.TableHeaders = null;
+                state.NextTableRelationshipNumber = 0;
             }
         }
 
