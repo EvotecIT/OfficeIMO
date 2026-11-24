@@ -361,6 +361,33 @@ The same 100,000-row object import comparison across other file shapes:
 | Quoted | 502.5 ms | 594.2 ms | 18% faster |
 | Wide, 40 columns | 1.84 s | 2.27 s | 24% faster |
 
+## Markdown to HTML
+
+`Compare-MarkdownPerformance.ps1` compares
+`Convert-OfficeDocument -Text <markdown> -From Markdown -To Html` with PowerShell's
+own `ConvertFrom-Markdown` (Markdig with its advanced extensions) on a short
+paragraph, a small README and a medium document. It is a script, not a CI test,
+and it does not use the PowerForge benchmark DSL.
+
+Warm lanes report the median of several rounds of calls in one process after a
+time-based warm-up, so the engine code has reached its optimized JIT tier. The
+`engine:` rows split the conversion into the converter call, parser setup,
+parsing, rendering and the stream wrapper; they run in a compiled loop against
+the engine assemblies the module loaded, because calling .NET methods from a
+PowerShell loop mostly measures PowerShell's method binding. The first call and
+the module import are measured separately in fresh processes.
+
+Build the module first; the script loads the development binaries from this
+checkout:
+
+```powershell
+dotnet build ./Sources/PSWriteOffice/PSWriteOffice.csproj -c Release -f net8.0
+pwsh -NoLogo -NoProfile -File ./Benchmarks/Compare-MarkdownPerformance.ps1
+```
+
+`OfficeIMO.Markdown.Benchmarks` remains the engine comparison against standalone
+Markdig.
+
 ## Options
 
 The wrappers build PSWriteOffice in `Release` mode by default and import local
