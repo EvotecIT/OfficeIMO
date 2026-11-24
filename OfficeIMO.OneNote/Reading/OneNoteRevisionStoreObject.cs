@@ -202,7 +202,7 @@ public sealed class OneNoteRevisionStoreObject {
     /// <summary>Exact encoded property-stream bytes retained for loss-aware round trips.</summary>
     public OneNoteBinaryPayload? RawPropertyData {
         get {
-            if (_rawPropertyData == null && _rawPropertyBytes != null) _rawPropertyData = OneNoteBinaryPayload.FromOwnedBytes(_rawPropertyBytes);
+            if (_rawPropertyData == null && _rawPropertyBytes != null) _rawPropertyData = OneNoteBinaryPayload.FromOwnedRange(_rawPropertyBytes, 0, _rawPropertyBytes.Length);
             return _rawPropertyData;
         }
         internal set {

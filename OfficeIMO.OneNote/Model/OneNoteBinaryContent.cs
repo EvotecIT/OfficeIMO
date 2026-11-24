@@ -8,6 +8,7 @@ namespace OfficeIMO.OneNote;
 public sealed class OneNoteBinaryPayload {
     private readonly byte[]? _bytes;
     private readonly int _offset;
+    private readonly bool _shared;
     private readonly Func<Stream>? _streamFactory;
 
     private OneNoteBinaryPayload(byte[]? bytes, Func<Stream>? streamFactory, long? length) {
@@ -19,6 +20,7 @@ public sealed class OneNoteBinaryPayload {
     private OneNoteBinaryPayload(byte[] bytes, int offset, int count) {
         _bytes = bytes;
         _offset = offset;
+        _shared = true;
         Length = count;
     }
 
@@ -58,8 +60,8 @@ public sealed class OneNoteBinaryPayload {
     public Stream OpenRead() {
         if (_bytes != null) {
             int count = (int)Length!.Value;
-            // A range shares the reader's buffer, so its stream must not hand out the whole array.
-            return new MemoryStream(_bytes, _offset, count, false, _offset == 0 && count == _bytes.Length);
+            // A shared buffer also backs other values, so its stream must not hand out the array.
+            return new MemoryStream(_bytes, _offset, count, false, !_shared);
         }
 
         Stream stream = _streamFactory!();
