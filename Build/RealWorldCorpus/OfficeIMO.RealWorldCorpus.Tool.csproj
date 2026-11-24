@@ -5,6 +5,14 @@
 
     <IsPackable>false</IsPackable>
   </PropertyGroup>
+  <!-- The Open XML differential compares OfficeIMO's own package layer with the SDK. Branches without that layer
+       still build the runner; their owned lanes report "unavailable". -->
+  <PropertyGroup Condition="Exists('$(MSBuildThisFileDirectory)../../OfficeIMO.Core/Internal/OpenXml/OfficeOpenXmlTextReader.cs')">
+    <DefineConstants>$(DefineConstants);OFFICEIMO_OWNED_OPENXML</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="Exists('$(MSBuildThisFileDirectory)../../OfficeIMO.Word/WordStreamedBodyText.cs')">
+    <DefineConstants>$(DefineConstants);OFFICEIMO_WORD_STREAMED_BODY</DefineConstants>
+  </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../OfficeIMO.Reader.All/OfficeIMO.Reader.All.csproj" />
     <ProjectReference Include="../../OfficeIMO.Pdf/OfficeIMO.Pdf.csproj" />

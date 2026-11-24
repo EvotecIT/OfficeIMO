@@ -7,13 +7,19 @@ internal static class CorpusCommandLine {
     private static readonly HashSet<string> RunOptionNames = new(StringComparer.OrdinalIgnoreCase) {
         "--input", "--json", "--markdown", "--corpus-id", "--source-uri", "--archive-sha256",
         "--max-per-format", "--max-total", "--max-file-bytes", "--max-traversal-entries",
-        "--timeout-seconds", "--parallelism", "--include-source-names", "--formats"
+        "--timeout-seconds", "--parallelism", "--include-source-names", "--formats",
+        "--operation", "--include-difference-text", "--source-provenance"
     };
     private static readonly HashSet<string> WorkerOptionNames = new(StringComparer.OrdinalIgnoreCase) {
-        "--stage", "--input", "--max-file-bytes", "--expected-sha256"
+        "--stage", "--input", "--max-file-bytes", "--expected-sha256", "--operation", "--include-difference-text"
     };
     private static readonly HashSet<string> SwitchOptionNames = new(StringComparer.OrdinalIgnoreCase) {
-        "--include-source-names"
+        "--include-source-names", "--include-difference-text"
+    };
+    private static readonly ReaderInputKind[] OpenXmlFormats = {
+        ReaderInputKind.Word,
+        ReaderInputKind.Excel,
+        ReaderInputKind.PowerPoint
     };
     private static readonly ReaderInputKind[] DefaultFormats = {
         ReaderInputKind.Word,
@@ -26,6 +32,7 @@ internal static class CorpusCommandLine {
 
     public static CorpusRunOptions ParseRun(string[] args) {
         Dictionary<string, string?> values = Parse(args, RunOptionNames);
+        string operation = ParseOperation(Optional(values, "--operation"));
         var options = new CorpusRunOptions {
             InputDirectory = Required(values, "--input"),
             JsonReportPath = Required(values, "--json"),
@@ -40,8 +47,14 @@ internal static class CorpusCommandLine {
             TimeoutSeconds = PositiveInt(values, "--timeout-seconds", 30, 1, 900),
             Parallelism = PositiveInt(values, "--parallelism", Math.Min(4, Environment.ProcessorCount), 1, 16),
             IncludeSourceNames = values.ContainsKey("--include-source-names"),
-            Formats = ParseFormats(Optional(values, "--formats"))
+            Formats = ParseFormats(Optional(values, "--formats"), operation),
+            Operation = operation,
+            IncludeDifferenceText = values.ContainsKey("--include-difference-text"),
+            SourceProvenancePath = Optional(values, "--source-provenance") is { } provenance ? Path.GetFullPath(provenance) : null
         };
+        if (options.IncludeDifferenceText && operation != CorpusOperations.OpenXmlDifferential) {
+            throw new ArgumentException("--include-difference-text applies only to --operation openxml-differential.");
+        }
 
         ResolveAndValidatePaths(options);
         if (options.ArchiveSha256 != null &&
@@ -90,7 +103,9 @@ internal static class CorpusCommandLine {
             InputPath = Path.GetFullPath(Required(values, "--input")),
             MaxFileBytes = PositiveLong(values, "--max-file-bytes", 50L * 1024L * 1024L, 256, 1024L * 1024L * 1024L),
             ExpectedSha256 = expectedSha256?.ToLowerInvariant(),
-            Stage = stage
+            Stage = stage,
+            Operation = ParseOperation(Optional(values, "--operation")),
+            IncludeDifferenceText = values.ContainsKey("--include-difference-text")
         };
     }
 
@@ -143,16 +158,23 @@ internal static class CorpusCommandLine {
         return value;
     }
 
-    private static IReadOnlyList<ReaderInputKind> ParseFormats(string? value) {
-        if (string.IsNullOrWhiteSpace(value)) return DefaultFormats;
+    private static string ParseOperation(string? value) => value switch {
+        null or CorpusOperations.ReaderRead => CorpusOperations.ReaderRead,
+        CorpusOperations.OpenXmlDifferential => CorpusOperations.OpenXmlDifferential,
+        _ => throw new ArgumentException("--operation must be 'reader' or 'openxml-differential'.")
+    };
+
+    private static IReadOnlyList<ReaderInputKind> ParseFormats(string? value, string operation) {
+        ReaderInputKind[] supported = operation == CorpusOperations.OpenXmlDifferential ? OpenXmlFormats : DefaultFormats;
+        if (string.IsNullOrWhiteSpace(value)) return supported;
         ReaderInputKind[] formats = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Select(item => Enum.TryParse(item, ignoreCase: true, out ReaderInputKind format)
                 ? format
                 : throw new ArgumentException($"Unknown format '{item}' in --formats."))
             .Distinct()
             .ToArray();
-        if (formats.Length == 0 || formats.Any(format => !DefaultFormats.Contains(format))) {
-            throw new ArgumentException("--formats supports Word, Excel, PowerPoint, Pdf, Html, and Rtf.");
+        if (formats.Length == 0 || formats.Any(format => !supported.Contains(format))) {
+            throw new ArgumentException("--formats supports " + string.Join(", ", supported) + " for this operation.");
         }
         return formats;
     }

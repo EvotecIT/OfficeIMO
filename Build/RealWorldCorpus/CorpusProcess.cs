@@ -12,8 +12,9 @@ internal static class CorpusProcess {
         long maxFileBytes,
         string? expectedSha256,
         TimeSpan timeout,
-        CancellationToken cancellationToken) {
-        ProcessStartInfo startInfo = CreateStartInfo(command, stage, inputPath, maxFileBytes, expectedSha256);
+        CancellationToken cancellationToken,
+        IReadOnlyList<string>? extraArguments = null) {
+        ProcessStartInfo startInfo = CreateStartInfo(command, stage, inputPath, maxFileBytes, expectedSha256, extraArguments);
         using var process = new Process { StartInfo = startInfo };
         var stopwatch = Stopwatch.StartNew();
         if (!process.Start()) throw new InvalidOperationException("Unable to start the corpus worker process.");
@@ -47,7 +48,7 @@ internal static class CorpusProcess {
     }
 
     private static ProcessStartInfo CreateStartInfo(string command, string stage, string inputPath,
-        long maxFileBytes, string? expectedSha256) {
+        long maxFileBytes, string? expectedSha256, IReadOnlyList<string>? extraArguments) {
         string assemblyPath = Assembly.GetExecutingAssembly().Location;
         string processPath = Environment.ProcessPath ?? throw new InvalidOperationException("Current process path is unavailable.");
         bool hostedByDotNet = string.Equals(Path.GetFileNameWithoutExtension(processPath), "dotnet", StringComparison.OrdinalIgnoreCase);
@@ -69,6 +70,9 @@ internal static class CorpusProcess {
         if (expectedSha256 != null) {
             startInfo.ArgumentList.Add("--expected-sha256");
             startInfo.ArgumentList.Add(expectedSha256);
+        }
+        if (extraArguments != null) {
+            foreach (string argument in extraArguments) startInfo.ArgumentList.Add(argument);
         }
         return startInfo;
     }

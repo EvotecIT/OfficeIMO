@@ -138,5 +138,6 @@
     <InternalsVisibleTo Include="OfficeIMO.CompatibilityCatalog.Tool" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Word" />
+    <InternalsVisibleTo Include="OfficeIMO.RealWorldCorpus.Tool" />
   </ItemGroup>
 </Project>

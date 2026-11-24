@@ -21,6 +21,11 @@ internal static class CorpusOutcomes {
     public const string TimedOut = "timed-out";
 }
 
+internal static class CorpusOperations {
+    public const string ReaderRead = "reader";
+    public const string OpenXmlDifferential = "openxml-differential";
+}
+
 internal static class CorpusJson {
     public static JsonSerializerOptions Options { get; } = new() {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -45,6 +50,9 @@ internal sealed class CorpusRunOptions {
     public int Parallelism { get; set; } = 4;
     public bool IncludeSourceNames { get; set; }
     public IReadOnlyList<ReaderInputKind> Formats { get; set; } = Array.Empty<ReaderInputKind>();
+    public string Operation { get; set; } = CorpusOperations.ReaderRead;
+    public bool IncludeDifferenceText { get; set; }
+    public string? SourceProvenancePath { get; set; }
 }
 
 internal sealed class CorpusWorkerOptions {
@@ -52,6 +60,8 @@ internal sealed class CorpusWorkerOptions {
     public long MaxFileBytes { get; set; }
     public string? ExpectedSha256 { get; set; }
     public string Stage { get; set; } = string.Empty;
+    public string Operation { get; set; } = CorpusOperations.ReaderRead;
+    public bool IncludeDifferenceText { get; set; }
 }
 
 internal sealed class CorpusWorkerResult {
@@ -74,6 +84,7 @@ internal sealed class CorpusWorkerResult {
     public int ErrorDiagnostics { get; set; }
     public IReadOnlyList<string> DiagnosticCodes { get; set; } = Array.Empty<string>();
     public CorpusPdfEvidence? PdfEvidence { get; set; }
+    public CorpusOpenXmlEvidence? OpenXmlEvidence { get; set; }
     public string? ExceptionType { get; set; }
 
     public static CorpusWorkerResult Failure(string stage, Exception exception) => new() {
@@ -94,12 +105,31 @@ internal sealed class CorpusReport {
     public CorpusTotals Totals { get; set; } = new();
     public IReadOnlyList<CorpusStratum> Strata { get; set; } = Array.Empty<CorpusStratum>();
     public IReadOnlyList<CorpusFileRecord> Files { get; set; } = Array.Empty<CorpusFileRecord>();
+    public IReadOnlyList<CorpusOpenXmlLaneSummary>? OpenXmlLanes { get; set; }
+}
+
+internal sealed class CorpusOpenXmlLaneSummary {
+    public string Lane { get; set; } = string.Empty;
+    public int Files { get; set; }
+    public int Match { get; set; }
+    public int Mismatch { get; set; }
+    public int OurError { get; set; }
+    public int SdkError { get; set; }
+    public int BothReject { get; set; }
+    public int Unavailable { get; set; }
+    public int Compared => Match + Mismatch + OurError;
+    public double? MatchRate => Compared == 0 ? null : Math.Round((double)Match / Compared, 4);
+    public int? Streamed { get; set; }
+    public IReadOnlyDictionary<string, int> MismatchClasses { get; set; } = new Dictionary<string, int>();
+    public IReadOnlyDictionary<string, int> OurExceptions { get; set; } = new Dictionary<string, int>();
+    public IReadOnlyDictionary<string, int> StreamedDeclineReasons { get; set; } = new Dictionary<string, int>();
 }
 
 internal sealed class CorpusProvenance {
     public string CorpusId { get; set; } = string.Empty;
     public string? SourceUri { get; set; }
     public string? ArchiveSha256 { get; set; }
+    public IReadOnlyList<CorpusSourceProvenance>? Sources { get; set; }
 }
 
 internal sealed class CorpusConfiguration {
@@ -194,6 +224,9 @@ internal sealed class CorpusFileRecord {
     public ReaderDetectionConfidence Confidence { get; set; }
     public bool IsMismatch { get; set; }
     public IReadOnlyList<string> DetectionEvidence { get; set; } = Array.Empty<string>();
+    public ReaderInputKind StratumKind { get; set; }
+    [JsonIgnore]
+    public bool Eligible { get; set; }
     public bool Selected { get; set; }
     public string Outcome { get; set; } = CorpusOutcomes.NotEligible;
     public string? FailureStage { get; set; }
@@ -208,6 +241,7 @@ internal sealed class CorpusFileRecord {
     public int ErrorDiagnostics { get; set; }
     public IReadOnlyList<string> DiagnosticCodes { get; set; } = Array.Empty<string>();
     public CorpusPdfEvidence? PdfEvidence { get; set; }
+    public CorpusOpenXmlEvidence? OpenXmlEvidence { get; set; }
     public string? ExceptionType { get; set; }
 }
 
