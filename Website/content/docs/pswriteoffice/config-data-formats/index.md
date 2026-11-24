@@ -204,14 +204,14 @@ Convert-OfficeDocument -Path .\service.json -OutputPath .\service.toml -FailOnLo
 Get-Content -Path .\export.txt | ConvertFrom-OfficeCsv -Delimiter ';' -As DataTable -InferSchema
 ```
 
-Use the CSV commands when the file is a contract with another system. Use the Excel commands when formatting, formulas, or charts are part of the result. The [safe CSV export recipe](https://github.com/EvotecIT/OfficeIMO/blob/0b3d4a4b27636e4908697be77b80a15b4b5e3a7b/PowerShell/PSWriteOffice/Examples/Csv/Recipe-Csv-SafeExport.ps1) shows the choices side by side.
+Use the CSV commands when the file is a contract with another system. Use the Excel commands when formatting, formulas, or charts are part of the result. The [safe CSV export recipe](https://github.com/EvotecIT/OfficeIMO/blob/8970f5b37b4a846848bbf4416b55d17d9e034bc5/PowerShell/PSWriteOffice/Examples/Csv/Recipe-Csv-SafeExport.ps1) shows the choices side by side.
 
 ## Runnable examples
 
-- [Edit, merge, and read YAML configuration](https://github.com/EvotecIT/OfficeIMO/blob/0b3d4a4b27636e4908697be77b80a15b4b5e3a7b/PowerShell/PSWriteOffice/Examples/Yaml/Example-YamlEditMergeConvert.ps1)
-- [Edit a TOML project file in place](https://github.com/EvotecIT/OfficeIMO/blob/0b3d4a4b27636e4908697be77b80a15b4b5e3a7b/PowerShell/PSWriteOffice/Examples/Toml/Example-TomlEditInPlace.ps1)
-- [Check and merge layered TOML settings](https://github.com/EvotecIT/OfficeIMO/blob/0b3d4a4b27636e4908697be77b80a15b4b5e3a7b/PowerShell/PSWriteOffice/Examples/Toml/Example-TomlMergeAndTest.ps1)
-- [TOML lock files and data conversions](https://github.com/EvotecIT/OfficeIMO/blob/0b3d4a4b27636e4908697be77b80a15b4b5e3a7b/PowerShell/PSWriteOffice/Examples/Data/Example-DataConversions.ps1)
-- [Safe CSV export](https://github.com/EvotecIT/OfficeIMO/blob/0b3d4a4b27636e4908697be77b80a15b4b5e3a7b/PowerShell/PSWriteOffice/Examples/Csv/Recipe-Csv-SafeExport.ps1)
+- [Edit, merge, and read YAML configuration](https://github.com/EvotecIT/OfficeIMO/blob/8970f5b37b4a846848bbf4416b55d17d9e034bc5/PowerShell/PSWriteOffice/Examples/Yaml/Example-YamlEditMergeConvert.ps1)
+- [Edit a TOML project file in place](https://github.com/EvotecIT/OfficeIMO/blob/8970f5b37b4a846848bbf4416b55d17d9e034bc5/PowerShell/PSWriteOffice/Examples/Toml/Example-TomlEditInPlace.ps1)
+- [Check and merge layered TOML settings](https://github.com/EvotecIT/OfficeIMO/blob/8970f5b37b4a846848bbf4416b55d17d9e034bc5/PowerShell/PSWriteOffice/Examples/Toml/Example-TomlMergeAndTest.ps1)
+- [TOML lock files and data conversions](https://github.com/EvotecIT/OfficeIMO/blob/8970f5b37b4a846848bbf4416b55d17d9e034bc5/PowerShell/PSWriteOffice/Examples/Data/Example-DataConversions.ps1)
+- [Safe CSV export](https://github.com/EvotecIT/OfficeIMO/blob/8970f5b37b4a846848bbf4416b55d17d9e034bc5/PowerShell/PSWriteOffice/Examples/Csv/Recipe-Csv-SafeExport.ps1)
 
 For every parameter, search the [command reference](/api/powershell/) for `OfficeYaml`, `OfficeToml`, `OfficeCsv`, or `Convert-OfficeDocument`. The .NET packages behind these commands are described in the [YAML](/docs/yaml/), [TOML](/docs/toml/), and [CSV](/docs/csv/) guides.

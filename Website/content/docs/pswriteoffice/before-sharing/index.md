@@ -16,7 +16,7 @@ A file that leaves your team carries more than its visible text: author and comp
 
 `Get-OfficeHiddenData` and `Remove-OfficeHiddenData` work on Word, Excel, PowerPoint, Visio, OpenDocument, EPUB and PDF files, and on JPEG, PNG, WebP, GIF and TIFF images. They are the PowerShell form of `officeimo hidden-data inspect` and `officeimo hidden-data remove`, and they use the same engine.
 
-The outputs below come from a folder with four files: a Word proposal with a reviewer comment, a custom property and a picture labelled as AI-generated; an Excel budget with a cell comment; a PowerPoint briefing with speaker notes; and a PDF summary with an attached cost model. The [clean-before-sharing recipe](https://github.com/EvotecIT/OfficeIMO/blob/0b3d4a4b27636e4908697be77b80a15b4b5e3a7b/PowerShell/PSWriteOffice/Examples/Workflows/Recipe-CleanBeforeSharing.ps1) builds similar files and runs the whole check.
+The outputs below come from a folder with four files: a Word proposal with a reviewer comment, a custom property and a picture labelled as AI-generated; an Excel budget with a cell comment; a PowerPoint briefing with speaker notes; and a PDF summary with an attached cost model. The [clean-before-sharing recipe](https://github.com/EvotecIT/OfficeIMO/blob/8970f5b37b4a846848bbf4416b55d17d9e034bc5/PowerShell/PSWriteOffice/Examples/Workflows/Recipe-CleanBeforeSharing.ps1) builds similar files and runs the whole check.
 
 ## See what would leave with a file
 

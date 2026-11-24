@@ -1632,8 +1632,8 @@
       "synopsis": "Clears saved results from a code cell, optionally including its execution count.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Notebook/ClearOfficeNotebookOutputCommand.cs",
-      "sourceLine": 12,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Notebook/ClearOfficeNotebookOutputCommand.cs#L12"
+      "sourceLine": 13,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Notebook/ClearOfficeNotebookOutputCommand.cs#L13"
     },
     {
       "name": "Close-OfficeAccess",
@@ -2891,8 +2891,8 @@
       "synopsis": "Runs selected PowerShell notebook cells in one persistent session and records their outputs.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Notebook/InvokeOfficeNotebookCommand.cs",
-      "sourceLine": 25,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Notebook/InvokeOfficeNotebookCommand.cs#L25"
+      "sourceLine": 35,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Notebook/InvokeOfficeNotebookCommand.cs#L35"
     },
     {
       "name": "Invoke-OfficeProjectSchedule",

@@ -63441,7 +63441,8 @@ cells. This keeps existing-document editing simple without forcing callers back 
     <command:examples>
       <command:example>
         <maml:title>Clear all saved results before sharing a notebook.</maml:title>
-        <dev:code>$notebook | Get-OfficeNotebookCell -Kind Code | Clear-OfficeNotebookOutput -ExecutionCount</dev:code>
+        <dev:code>$notebook | Get-OfficeNotebookCell -Kind Code | Clear-OfficeNotebookOutput -ExecutionCount
+$notebook | Save-OfficeNotebook -Path ./notebook-for-sharing.ipynb</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
@@ -121726,6 +121727,7 @@ non-terminating error with the engine's code, line and column, and the next file
     </command:details>
     <maml:description>
       <maml:para>Run notebooks whose code you trust. The child PowerShell process runs under your account. The returned report contains the updated live notebook. Close the notebook when you finish using it.</maml:para>
+      <maml:para>Use -WhatIf to preview execution and any requested save. Use -Confirm to ask before running the notebook.</maml:para>
     </maml:description>
     <command:syntax>
       <command:syntaxItem parameterSetName="Path">
@@ -121793,7 +121795,7 @@ non-terminating error with the engine's code, line and column, and the next file
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>OutputPath</maml:name>
           <maml:description>
-            <maml:para>Atomically save the executed notebook to this .ipynb path, including any partial results reported after a cell error or timeout.</maml:para>
+            <maml:para>Atomically save the executed notebook to this .ipynb path, including any partial results reported after a cell error or timeout. Use this parameter with one notebook per invocation.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -121940,7 +121942,7 @@ non-terminating error with the engine's code, line and column, and the next file
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>OutputPath</maml:name>
           <maml:description>
-            <maml:para>Atomically save the executed notebook to this .ipynb path, including any partial results reported after a cell error or timeout.</maml:para>
+            <maml:para>Atomically save the executed notebook to this .ipynb path, including any partial results reported after a cell error or timeout. Use this parameter with one notebook per invocation.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -122075,7 +122077,7 @@ non-terminating error with the engine's code, line and column, and the next file
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>OutputPath</maml:name>
           <maml:description>
-            <maml:para>Atomically save the executed notebook to this .ipynb path, including any partial results reported after a cell error or timeout.</maml:para>
+            <maml:para>Atomically save the executed notebook to this .ipynb path, including any partial results reported after a cell error or timeout. Use this parameter with one notebook per invocation.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -122222,7 +122224,7 @@ non-terminating error with the engine's code, line and column, and the next file
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>OutputPath</maml:name>
         <maml:description>
-          <maml:para>Atomically save the executed notebook to this .ipynb path, including any partial results reported after a cell error or timeout.</maml:para>
+          <maml:para>Atomically save the executed notebook to this .ipynb path, including any partial results reported after a cell error or timeout. Use this parameter with one notebook per invocation.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
         <dev:type>
@@ -122325,9 +122327,22 @@ non-terminating error with the engine's code, line and column, and the next file
       <command:example>
         <maml:title>Run PowerShell cells and save a separate notebook.</maml:title>
         <dev:code>$report = Invoke-OfficeNotebook -LiteralPath ./lab.ipynb -OutputPath ./executed.ipynb -NoClobber
-try {
-    $report.Cells
-} finally {
+if ($null -ne $report) {
+    try {
+        $report.Cells
+    } finally {
+        $report.Notebook | Close-OfficeNotebook
+    }
+}</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Preview execution and ask for confirmation before running.</maml:title>
+        <dev:code>Invoke-OfficeNotebook -LiteralPath ./lab.ipynb -OutputPath ./reviewed.ipynb -WhatIf
+$report = Invoke-OfficeNotebook -LiteralPath ./lab.ipynb -OutputPath ./reviewed.ipynb -Confirm
+if ($null -ne $report) {
     $report.Notebook | Close-OfficeNotebook
 }</dev:code>
         <dev:remarks>

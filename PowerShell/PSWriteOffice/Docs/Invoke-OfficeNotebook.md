@@ -27,20 +27,34 @@ Invoke-OfficeNotebook -Document <NotebookDocument> [-CellIndex <int[]>] [-Timeou
 ## DESCRIPTION
 Run notebooks whose code you trust. The child PowerShell process runs under your account. The returned report contains the updated live notebook. Close the notebook when you finish using it.
 
+Use -WhatIf to preview execution and any requested save. Use -Confirm to ask before running the notebook.
+
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
 $report = Invoke-OfficeNotebook -LiteralPath ./lab.ipynb -OutputPath ./executed.ipynb -NoClobber
-try {
-    $report.Cells
-} finally {
-    $report.Notebook | Close-OfficeNotebook
+if ($null -ne $report) {
+    try {
+        $report.Cells
+    } finally {
+        $report.Notebook | Close-OfficeNotebook
+    }
 }
 ```
 
 
 ### EXAMPLE 2
+```powershell
+Invoke-OfficeNotebook -LiteralPath ./lab.ipynb -OutputPath ./reviewed.ipynb -WhatIf
+$report = Invoke-OfficeNotebook -LiteralPath ./lab.ipynb -OutputPath ./reviewed.ipynb -Confirm
+if ($null -ne $report) {
+    $report.Notebook | Close-OfficeNotebook
+}
+```
+
+
+### EXAMPLE 3
 ```powershell
 $notebook | Invoke-OfficeNotebook -CellIndex 0, 2 -TimeoutSeconds 15
 ```
@@ -161,7 +175,7 @@ Accept wildcard characters: False
 ```
 
 ### -OutputPath
-Atomically save the executed notebook to this .ipynb path, including any partial results reported after a cell error or timeout.
+Atomically save the executed notebook to this .ipynb path, including any partial results reported after a cell error or timeout. Use this parameter with one notebook per invocation.
 
 ```yaml
 Type: String
