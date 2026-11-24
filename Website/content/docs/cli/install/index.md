@@ -6,7 +6,7 @@ layout: docs
 
 `OfficeIMO.Tool` is a .NET tool on NuGet. Installing it needs the .NET 10 SDK or later, and running it needs the .NET 10 runtime: the .NET 10 SDK includes it, and a later SDK needs it installed alongside. Microsoft Office is not required. The command it installs is `officeimo`.
 
-The SDK downloads a build compiled ahead of time for Windows, Linux (glibc and musl x64) and macOS on x64 and Arm64, so the first command doesn't wait on the JIT compiler. Other platforms get a portable build. The .NET 8 and 9 SDKs can't install this package; `OfficeIMO.Tool` 3.6.2 was the last version they install.
+The SDK downloads a build compiled ahead of time for Windows, Linux (glibc and musl x64) and macOS on x64 and Arm64, so the first command spends much less time in the JIT compiler. Other platforms get a portable build. The .NET 8 and 9 SDKs can't install this package; `OfficeIMO.Tool` 3.6.2 was the last version they install.
 
 ## Install globally
 

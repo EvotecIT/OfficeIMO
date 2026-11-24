@@ -403,7 +403,8 @@ internal sealed class ReleaseGeneratedRow
 "@
     Set-Content -LiteralPath $programPath -Value $programSource -Encoding utf8
 
-    $sourceMappings = $packageIds | ForEach-Object {
+    # A per-platform tool also installs {id}.{rid} packages, which an exact ID mapping doesn't match.
+    $sourceMappings = @($packageIds) + @($toolPackageIds | ForEach-Object { "$_.*" }) | ForEach-Object {
         '      <package pattern="' +
         [System.Security.SecurityElement]::Escape($_) +
         '" />'
