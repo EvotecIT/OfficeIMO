@@ -22,6 +22,7 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 | Optional ChartForgeX bridge | [ChartForgeX](https://github.com/EvotecIT/ChartForgeX) | Vector-first visual artifact conversion, OfficeDrawing fidelity reports, and Word, Excel, PowerPoint, and PDF placement |
 | Visio | `System.IO.Packaging` | VSDX/VSTX/VSSX and macro-enabled package model, bounded legacy binary import, diagram builders, editing, validation, topology, and PNG/JPEG/TIFF/SVG/WebP export |
 | MarkdownRenderer.Wpf | Microsoft WebView2 | Rendering shell, presets, plug-in model, and WPF host contract |
+| Jupyter Notebook | `System.Text.Json` | Bounded notebook reads, typed editing and structural preservation of saved JSON |
 | Optional document AI | [OfficeIMO.AI](../OfficeIMO.AI/README.md) and [IntelligenceX adapter](../OfficeIMO.AI.IntelligenceX/README.md) | Read-only questions, summaries, field extraction and proposed structure with bounded source evidence; .NET 10 and caller-selected model execution |
 | Optional Apple raster codec | Installed Apple ImageIO, CoreGraphics and CoreFoundation frameworks | Bounded HEIC/HEIF composition, transforms, alpha and color policy in Core, with explicit .NET registration |
 | Optional OCR providers | A caller-supplied executable or an installed Tesseract CLI | Neutral request/result/geometry contracts, bounded provider execution, and opt-in Reader/PDF integrations |
@@ -36,6 +37,7 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 | First-party legacy binary support | Word 97–2003 `.doc`, Excel BIFF8 `.xls`, PowerPoint 97–2003 `.ppt`/`.pot`/`.pps` |
 | First-party Apple iWork support | Modern IWA-based `.pages`, `.numbers`, and `.key` read/inspect plus editable or visual-fallback projection; bounded template-free Keynote text/image/table slides, Pages body documents and Numbers scalar-table spreadsheets |
 | First-party offline OneNote support | Desktop/FSSHTTP `.one`, `.onetoc2`, `.onepkg` |
+| Jupyter notebooks | Bounded `.ipynb` codec, Reader projection, PDF, standalone HTML, Markdown, editable Word reports and structured table export |
 | Managed PNG/JPEG/TIFF/WebP/SVG document export | Drawing; Word, Excel, PowerPoint, HTML, OneNote, Visio, and PDF; HTML-backed email and EPUB; ODT/ODS/ODP through their Office adapters |
 
 The checkboxes describe the exact level of support: authoring, editing, reading, preserving, inspecting, converting, or exporting. A checked inspection or preservation item is not presented as full authoring support.
@@ -654,6 +656,15 @@ _Dependency footprint:_ `System.Text.Encoding.CodePages` plus first-party Office
 - [x] Lazy assets, bounded corruption-resistant parsing, structured diagnostics, legal desktop/FSSHTTP/handwriting fixtures, benchmarks, and Microsoft OneNote open/edit/save/reopen interoperability proof
 
 _Dependency footprint:_ only first-party `OfficeIMO.Core`; zero third-party runtime dependencies and no Microsoft Graph, GraphEssentialsX, COM, installed OneNote, or commercial SDK.
+
+#### [OfficeIMO.Notebook](../OfficeIMO.Notebook/README.md)
+
+- [x] Create, read, edit and save Jupyter `.ipynb` with a typed cell and saved-output model
+- [x] Preserve unknown v4 JSON structurally and open v3 notebooks with worksheet normalization diagnostics
+- [x] Read notebook text through [OfficeIMO.Reader.Notebook](../OfficeIMO.Reader.Notebook/README.md)
+- [x] Export with the focused [PDF](../OfficeIMO.Notebook.Pdf/README.md), [Word](../OfficeIMO.Notebook.Word/README.md), [HTML](../OfficeIMO.Notebook.Html/README.md), [Markdown](../OfficeIMO.Notebook.Markdown/README.md) and [Spreadsheet](../OfficeIMO.Notebook.Spreadsheet/README.md) packages
+
+The [notebook support matrix](../OfficeIMO.Notebook/SUPPORT.md) specifies the supported notebook versions and saved output types.
 
 #### [OfficeIMO.Epub](../OfficeIMO.Epub/README.md)
 

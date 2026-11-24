@@ -31,6 +31,13 @@ public static partial class OfficeOperationCapabilityCatalog {
             "OfficeIMO.OneNote.Tests section, notebook, table-of-contents, and package round-trip contracts",
             new[] { ".one", ".onetoc2", ".onepkg" },
             new[] { OfficeOperationKind.Create, OfficeOperationKind.Read, OfficeOperationKind.Edit, OfficeOperationKind.Preserve, OfficeOperationKind.Inspect });
+        AddNativeLifecycle(rows, "jupyter-native", "OfficeIMO.Notebook", "Jupyter.Ipynb",
+            "NotebookDocument.Create / Load / Save",
+            "OfficeIMO.Notebook.Tests bounded reads, typed editing, native preservation and Jupyter fixture contracts",
+            new[] { ".ipynb" },
+            new[] { OfficeOperationKind.Create, OfficeOperationKind.Read, OfficeOperationKind.Edit, OfficeOperationKind.Inspect },
+            partial: new[] { OfficeOperationKind.Preserve },
+            limitation: "Saves preserve unknown v4 data structurally and normalize serialization and cell IDs. Saving normalized v3 worksheets requires explicit acceptance of lost worksheet boundaries.");
         AddNativeLifecycle(rows, "opendocument-native", "OfficeIMO.OpenDocument", "OpenDocument.Native",
             "OdfDocument.Create / Load / Save / Validate",
             "OfficeIMO.OpenDocument.Tests producer-corpus create, load, edit, save, and validation contracts",

@@ -1,3 +1,5 @@
+using global::OfficeIMO.Notebook;
+
 namespace OfficeIMO.Reader.Notebook;
 
 internal static class NotebookReaderAdapter {
@@ -31,49 +33,33 @@ internal static class NotebookReaderAdapter {
         ReaderOptions readerOptions,
         ReaderNotebookOptions notebookOptions,
         CancellationToken cancellationToken) {
-        ReadOnlyMemory<byte> jsonBytes = input.Bytes.Length >= 3 &&
-            input.Bytes[0] == 0xEF &&
-            input.Bytes[1] == 0xBB &&
-            input.Bytes[2] == 0xBF
-                ? new ReadOnlyMemory<byte>(input.Bytes, 3, input.Bytes.Length - 3)
-                : input.Bytes;
-        using JsonDocument json = JsonDocument.Parse(jsonBytes, new JsonDocumentOptions { MaxDepth = 128 });
-        JsonElement root = json.RootElement;
-        if (root.ValueKind != JsonValueKind.Object ||
-            !root.TryGetProperty("cells", out JsonElement cells) ||
-            cells.ValueKind != JsonValueKind.Array) {
-            throw new FormatException("Jupyter Notebook JSON must contain a cells array.");
-        }
-
-        string language = FindLanguage(root);
-        var chunks = new List<ReaderChunk>(Math.Min(cells.GetArrayLength(), notebookOptions.MaxCells));
+        int outputLimit = notebookOptions.IncludeOutputs && notebookOptions.IncludeCodeCells ? notebookOptions.MaxOutputsPerCell : 0;
+        using NotebookDocument notebook = NotebookDocument.LoadForReader(input.Bytes, notebookOptions.MaxCells, outputLimit, cancellationToken);
+        string language = NormalizeFenceLanguage(notebook.Language ?? string.Empty);
+        var chunks = new List<ReaderChunk>(Math.Min(notebook.Cells.Count, notebookOptions.MaxCells));
         var adapterDiagnostics = new List<OfficeDocumentDiagnostic>();
-        int inspectedCells = 0;
         int includedCells = 0;
-        bool cellLimitReached = false;
-        foreach (JsonElement cell in cells.EnumerateArray()) {
+        foreach (NotebookCell cell in notebook.Cells) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (inspectedCells >= notebookOptions.MaxCells) {
-                cellLimitReached = true;
-                break;
-            }
-
-            int cellIndex = inspectedCells++;
-            if (cell.ValueKind != JsonValueKind.Object) continue;
-            string cellType = GetString(cell, "cell_type") ?? "unknown";
-            if (string.Equals(cellType, "code", StringComparison.Ordinal) && !notebookOptions.IncludeCodeCells) continue;
-            if (cellType is not ("markdown" or "raw" or "code")) continue;
+            int cellIndex = cell.SourceIndex;
+            if (cell.Kind == NotebookCellKind.Unknown
+                || (cell.Kind == NotebookCellKind.Code && !notebookOptions.IncludeCodeCells)) continue;
+            string cellType = cell.Kind switch {
+                NotebookCellKind.Code => "code",
+                NotebookCellKind.Markdown => "markdown",
+                _ => "raw"
+            };
 
             var warnings = new List<string>();
-            string source = GetMultilineText(cell, "source");
-            source = Truncate(
-                source,
-                notebookOptions.MaxCellCharacters,
-                "Notebook cell source was truncated at MaxCellCharacters.",
-                warnings);
-            IReadOnlyList<NotebookOutput> outputs = cellType == "code" && notebookOptions.IncludeOutputs
-                ? ReadOutputs(cell, notebookOptions, warnings)
-                : Array.Empty<NotebookOutput>();
+            // Reader permits the complete first Unicode scalar at its one-character boundary.
+            string source = cell.GetSource(Math.Max(2, notebookOptions.MaxCellCharacters), out bool truncated);
+            if (truncated || source.Length > notebookOptions.MaxCellCharacters) {
+                source = DocumentReaderEngine.TruncateAdapterProjection(source, notebookOptions.MaxCellCharacters);
+                warnings.Add("Notebook cell source was truncated at MaxCellCharacters.");
+            }
+            IReadOnlyList<ProjectedOutput> outputs = cell.Kind == NotebookCellKind.Code && notebookOptions.IncludeOutputs
+                ? ReadOutputs(cell, notebookOptions, warnings, cancellationToken)
+                : Array.Empty<ProjectedOutput>();
             string markdown = BuildMarkdown(cellType, cellIndex, language, source, outputs);
             string text = BuildPlainText(source, outputs);
             if (string.IsNullOrWhiteSpace(markdown) && string.IsNullOrWhiteSpace(text)) {
@@ -125,8 +111,9 @@ internal static class NotebookReaderAdapter {
             input.Source,
             new[] { OfficeDocumentReaderBuilderNotebookExtensions.HandlerId, "jupyter.nbformat" });
         result.Source.Title = Path.GetFileName(input.Source.Path ?? "notebook.ipynb");
-        result.Metadata = result.Metadata.Concat(BuildMetadata(root, language, cells.GetArrayLength(), includedCells)).ToArray();
-        if (cellLimitReached) {
+        int totalCells = notebook.SourceCellCount;
+        result.Metadata = result.Metadata.Concat(BuildMetadata(notebook, language, totalCells, includedCells)).ToArray();
+        if (totalCells > notebookOptions.MaxCells) {
             adapterDiagnostics.Add(new OfficeDocumentDiagnostic {
                 Severity = OfficeDocumentDiagnosticSeverity.Warning,
                 Category = OfficeDocumentDiagnosticCategory.Limit,
@@ -136,7 +123,7 @@ internal static class NotebookReaderAdapter {
                 IsRecoverable = true,
                 Attributes = new Dictionary<string, string> {
                     ["maxCells"] = notebookOptions.MaxCells.ToString(CultureInfo.InvariantCulture),
-                    ["totalCells"] = cells.GetArrayLength().ToString(CultureInfo.InvariantCulture)
+                    ["totalCells"] = totalCells.ToString(CultureInfo.InvariantCulture)
                 }
             });
         }
@@ -177,62 +164,54 @@ internal static class NotebookReaderAdapter {
         }
     }
 
-    private static IReadOnlyList<NotebookOutput> ReadOutputs(
-        JsonElement cell,
+    private static IReadOnlyList<ProjectedOutput> ReadOutputs(
+        NotebookCell cell,
         ReaderNotebookOptions options,
-        List<string> warnings) {
-        if (!cell.TryGetProperty("outputs", out JsonElement outputs) || outputs.ValueKind != JsonValueKind.Array) {
-            return Array.Empty<NotebookOutput>();
-        }
-
-        var projected = new List<NotebookOutput>(Math.Min(outputs.GetArrayLength(), options.MaxOutputsPerCell));
+        List<string> warnings,
+        CancellationToken cancellationToken) {
+        int sourceOutputCount = cell.SourceOutputCount;
+        if (sourceOutputCount == 0) return Array.Empty<ProjectedOutput>();
+        var projected = new List<ProjectedOutput>(cell.Outputs.Count);
         int totalCharacters = 0;
-        int inspected = 0;
-        foreach (JsonElement output in outputs.EnumerateArray()) {
-            if (inspected++ >= options.MaxOutputsPerCell) {
-                warnings.Add("Notebook outputs were truncated at MaxOutputsPerCell.");
-                break;
-            }
-            NotebookOutput? value = ProjectOutput(output);
-            if (!value.HasValue || string.IsNullOrWhiteSpace(value.Value.Text)) continue;
+        foreach (NotebookOutput output in cell.Outputs) {
+            cancellationToken.ThrowIfCancellationRequested();
             int remaining = options.MaxOutputCharactersPerCell - totalCharacters;
+            ProjectedOutput? value = ProjectOutput(output, Math.Max(2, remaining), out bool truncated);
+            if (!value.HasValue || (string.IsNullOrWhiteSpace(value.Value.Text) && !truncated)) continue;
             if (remaining <= 0) {
                 warnings.Add("Notebook output text was truncated at MaxOutputCharactersPerCell.");
-                break;
+                return projected;
             }
             string text = value.Value.Text;
-            if (text.Length > remaining) {
+            if (truncated || text.Length > remaining) {
                 text = DocumentReaderEngine.TruncateAdapterProjection(text, remaining);
                 warnings.Add("Notebook output text was truncated at MaxOutputCharactersPerCell.");
             }
-            projected.Add(new NotebookOutput(text, value.Value.IsMarkdown));
+            projected.Add(new ProjectedOutput(text, value.Value.IsMarkdown));
             totalCharacters += text.Length;
         }
+        if (sourceOutputCount > options.MaxOutputsPerCell) warnings.Add("Notebook outputs were truncated at MaxOutputsPerCell.");
         return projected;
     }
 
-    private static NotebookOutput? ProjectOutput(JsonElement output) {
-        if (output.ValueKind != JsonValueKind.Object) return null;
-        string outputType = GetString(output, "output_type") ?? string.Empty;
-        if (string.Equals(outputType, "stream", StringComparison.Ordinal)) {
-            return new NotebookOutput(GetMultilineText(output, "text"), false);
+    private static ProjectedOutput? ProjectOutput(NotebookOutput output, int maxCharacters, out bool truncated) {
+        truncated = false;
+        if (output.Kind == NotebookOutputKind.Stream) {
+            return new ProjectedOutput(output.GetText(maxCharacters, out truncated), false);
         }
-        if (string.Equals(outputType, "error", StringComparison.Ordinal)) {
-            string traceback = GetMultilineText(output, "traceback");
-            if (!string.IsNullOrWhiteSpace(traceback)) return new NotebookOutput(traceback, false);
-            string error = string.Join(": ", new[] { GetString(output, "ename"), GetString(output, "evalue") }
+        if (output.Kind == NotebookOutputKind.Error) {
+            string traceback = string.Concat(output.Traceback);
+            if (!string.IsNullOrWhiteSpace(traceback)) return new ProjectedOutput(traceback, false);
+            string error = string.Join(": ", new[] { output.ErrorName, output.ErrorValue }
                 .Where(static value => !string.IsNullOrWhiteSpace(value)));
-            return new NotebookOutput(error, false);
+            return new ProjectedOutput(error, false);
         }
-        if (output.TryGetProperty("data", out JsonElement data) && data.ValueKind == JsonValueKind.Object) {
-            if (data.TryGetProperty("text/markdown", out JsonElement markdown)) {
-                string markdownText = GetMultilineText(markdown);
-                if (!string.IsNullOrWhiteSpace(markdownText)) return new NotebookOutput(markdownText, true);
-            }
-            if (data.TryGetProperty("text/plain", out JsonElement plain)) {
-                string plainText = GetMultilineText(plain);
-                if (!string.IsNullOrWhiteSpace(plainText)) return new NotebookOutput(plainText, false);
-            }
+        if (output.Data.TryGetValue("text/markdown", out JsonElement markdown)) {
+            string markdownText = NotebookJson.ReadText(markdown, maxCharacters, out truncated);
+            if (!string.IsNullOrWhiteSpace(markdownText) || truncated) return new ProjectedOutput(markdownText, true);
+        }
+        if (output.Data.TryGetValue("text/plain", out JsonElement plain)) {
+            return new ProjectedOutput(NotebookJson.ReadText(plain, maxCharacters, out truncated), false);
         }
         return null;
     }
@@ -242,7 +221,7 @@ internal static class NotebookReaderAdapter {
         int cellIndex,
         string language,
         string source,
-        IReadOnlyList<NotebookOutput> outputs) {
+        IReadOnlyList<ProjectedOutput> outputs) {
         if (cellType == "markdown") return source.TrimEnd();
         var markdown = new StringBuilder();
         markdown.Append("### ")
@@ -257,7 +236,7 @@ internal static class NotebookReaderAdapter {
         if (outputs.Count > 0) {
             markdown.AppendLine().AppendLine("#### Output").AppendLine();
             for (int index = 0; index < outputs.Count; index++) {
-                NotebookOutput output = outputs[index];
+                ProjectedOutput output = outputs[index];
                 if (output.IsMarkdown) {
                     markdown.AppendLine(output.Text.TrimEnd());
                 } else {
@@ -270,7 +249,7 @@ internal static class NotebookReaderAdapter {
         return markdown.ToString().TrimEnd();
     }
 
-    private static string BuildPlainText(string source, IReadOnlyList<NotebookOutput> outputs) {
+    private static string BuildPlainText(string source, IReadOnlyList<ProjectedOutput> outputs) {
         return string.Join(
             Environment.NewLine + Environment.NewLine,
             new[] { source }.Concat(outputs.Select(static output => output.Text))
@@ -300,21 +279,6 @@ internal static class NotebookReaderAdapter {
         return new string('`', Math.Max(3, longest + 1));
     }
 
-    private static string FindLanguage(JsonElement root) {
-        if (!root.TryGetProperty("metadata", out JsonElement metadata) || metadata.ValueKind != JsonValueKind.Object) {
-            return string.Empty;
-        }
-        if (metadata.TryGetProperty("kernelspec", out JsonElement kernel) && kernel.ValueKind == JsonValueKind.Object) {
-            string? language = GetString(kernel, "language");
-            if (!string.IsNullOrWhiteSpace(language)) return NormalizeFenceLanguage(language!);
-        }
-        if (metadata.TryGetProperty("language_info", out JsonElement languageInfo) && languageInfo.ValueKind == JsonValueKind.Object) {
-            string? language = GetString(languageInfo, "name");
-            if (!string.IsNullOrWhiteSpace(language)) return NormalizeFenceLanguage(language!);
-        }
-        return string.Empty;
-    }
-
     private static string NormalizeFenceLanguage(string value) {
         var normalized = new StringBuilder(Math.Min(value.Length, MaxFenceLanguageCharacters));
         for (int index = 0; index < value.Length && normalized.Length < MaxFenceLanguageCharacters; index++) {
@@ -327,14 +291,14 @@ internal static class NotebookReaderAdapter {
     }
 
     private static IEnumerable<OfficeDocumentMetadataEntry> BuildMetadata(
-        JsonElement root,
+        NotebookDocument notebook,
         string language,
         int totalCells,
         int includedCells) {
-        if (root.TryGetProperty("nbformat", out JsonElement format) && format.TryGetInt32(out int major)) {
+        if (notebook.DeclaredNbFormat is int major) {
             yield return Metadata("notebook-nbformat", "NbFormat", major, "number");
         }
-        if (root.TryGetProperty("nbformat_minor", out JsonElement minorFormat) && minorFormat.TryGetInt32(out int minor)) {
+        if (notebook.DeclaredNbFormatMinor is int minor) {
             yield return Metadata("notebook-nbformat-minor", "NbFormatMinor", minor, "number");
         }
         if (!string.IsNullOrWhiteSpace(language)) yield return Metadata("notebook-language", "Language", language, "string");
@@ -352,34 +316,8 @@ internal static class NotebookReaderAdapter {
         };
     }
 
-    private static string? GetString(JsonElement owner, string propertyName) {
-        return owner.TryGetProperty(propertyName, out JsonElement value) && value.ValueKind == JsonValueKind.String
-            ? value.GetString()
-            : null;
-    }
-
-    private static string GetMultilineText(JsonElement owner, string propertyName) {
-        return owner.TryGetProperty(propertyName, out JsonElement value) ? GetMultilineText(value) : string.Empty;
-    }
-
-    private static string GetMultilineText(JsonElement value) {
-        if (value.ValueKind == JsonValueKind.String) return value.GetString() ?? string.Empty;
-        if (value.ValueKind != JsonValueKind.Array) return string.Empty;
-        var builder = new StringBuilder();
-        foreach (JsonElement part in value.EnumerateArray()) {
-            if (part.ValueKind == JsonValueKind.String) builder.Append(part.GetString());
-        }
-        return builder.ToString();
-    }
-
-    private static string Truncate(string value, int limit, string warning, List<string> warnings) {
-        if (value.Length <= limit) return value;
-        warnings.Add(warning);
-        return DocumentReaderEngine.TruncateAdapterProjection(value, limit);
-    }
-
-    private readonly struct NotebookOutput {
-        internal NotebookOutput(string text, bool isMarkdown) {
+    private readonly struct ProjectedOutput {
+        internal ProjectedOutput(string text, bool isMarkdown) {
             Text = text;
             IsMarkdown = isMarkdown;
         }

@@ -321,6 +321,7 @@
       "OfficeIMO.Latex.Tests",
       "OfficeIMO.MarkdownRenderer.Wpf.Tests",
       "OfficeIMO.Markup.Tests",
+      "OfficeIMO.Notebook.Tests",
       "OfficeIMO.OneNote.Tests",
       "OfficeIMO.Opml.Tests",
       "OfficeIMO.OpenDocument.Converters.Tests",
@@ -457,6 +458,10 @@
     {
       "name": "OpenDocument-Converters",
       "project": "OfficeIMO.OpenDocument.Converters.Tests/OfficeIMO.OpenDocument.Converters.Tests.csproj"
+    },
+    {
+      "name": "Notebook",
+      "project": "OfficeIMO.Notebook.Tests/OfficeIMO.Notebook.Tests.csproj"
     },
     {
       "name": "OneNote",

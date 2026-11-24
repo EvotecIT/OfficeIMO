@@ -1,6 +1,9 @@
 namespace OfficeIMO.Markdown;
 
 internal static partial class MarkdownReader {
+    private static string? ResolveImageUrl(string url, MarkdownLoadOptions? options) =>
+        options?.ImageSourceResolver is { } resolveImage ? resolveImage(url) : ResolveUrl(url, options);
+
     private static string? ResolveUrl(string url, MarkdownLoadOptions? options) {
         if (url.Length == 0) return string.Empty;
         if (string.IsNullOrWhiteSpace(url)) return null;

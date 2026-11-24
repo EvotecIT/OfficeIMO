@@ -44,14 +44,15 @@ internal static class BrowserPdfSupportBundle {
                     ?? typeof(PdfDocument).Assembly.GetName().Version?.ToString()
                     ?? "unknown",
                 BrowserPortablePdfProfile.FontPackId,
-                BrowserPortablePdfProfile.FontPackFingerprint),
+                BrowserPortablePdfProfile.FontPackFingerprint,
+                result.SupplementalFonts),
             new SupportPerformance(result.ConversionMilliseconds, result.PeakRetainedMemoryBytes),
-            result.StructuredWarnings.Select(static warning => new SupportWarning(
+            result.StructuredWarnings.Select(warning => new SupportWarning(
                 warning.Code,
-                warning.Source,
-                warning.Message,
+                includeDocumentContent ? warning.Source : null,
+                includeDocumentContent ? warning.Message : null,
                 warning.Severity,
-                warning.Construct,
+                includeDocumentContent ? warning.Construct : null,
                 warning.PageNumber,
                 warning.CanChangePagination)).ToArray());
         byte[] summary = JsonSerializer.SerializeToUtf8Bytes(document, BrowserReportJsonContext.Default.SupportSummaryDocument);

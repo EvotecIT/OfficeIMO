@@ -25,6 +25,9 @@ public sealed class MarkdownLoadOptions {
     /// </summary>
     public bool CaptureSyntaxTree { get; set; } = true;
 
+    /// <summary>Resolves image destinations against a format owner's trusted embedded resources. Null rejects the image.</summary>
+    internal Func<string, string?>? ImageSourceResolver { get; set; }
+
     /// <summary>Creates bounded parser settings for documents from outside.</summary>
     public static MarkdownLoadOptions UntrustedDefaults => new MarkdownLoadOptions {
         MaxInputBytes = 32L * 1024L * 1024L,
@@ -147,6 +150,7 @@ public sealed class MarkdownLoadOptions {
             BackslashHardBreaks = BackslashHardBreaks,
             SoftLineBreaksAsHardLineBreaks = SoftLineBreaksAsHardLineBreaks,
             InlineHtml = InlineHtml,
+            ImageSourceResolver = ImageSourceResolver,
             BaseUri = BaseUri,
             DisallowScriptUrls = DisallowScriptUrls,
             DisallowFileUrls = DisallowFileUrls,

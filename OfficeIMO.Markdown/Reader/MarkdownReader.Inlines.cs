@@ -552,7 +552,7 @@ internal static partial class MarkdownReader {
                 out int? imageLinkHrefTitleLength,
                 inlineHtmlWrapperMatches)) {
                 if (allowLinks && allowImages) {
-                    var imgResolved = ResolveUrl(img2, options);
+                    var imgResolved = ResolveImageUrl(img2, options);
                     var hrefResolved = ResolveUrl(href2, options);
                     if (imgResolved is null || hrefResolved is null) {
                         // Unsafe URLs: keep content as plain text instead of a clickable linked image.
@@ -609,7 +609,7 @@ internal static partial class MarkdownReader {
                         inlineHtmlWrapperMatches)) {
                         var key = NormalizeReferenceLabel(refLabel);
                         if (state.LinkRefs.TryGetValue(key, out var defImg)) {
-                            var resolved = ResolveUrl(defImg.Url, options);
+                            var resolved = ResolveImageUrl(defImg.Url, options);
                             if (resolved is null) {
                                 AddTextNode(string.IsNullOrEmpty(altRef) ? "image" : ExtractImageAltPlainText(altRef, options, state, imageAltDepth), pos, consumedRefImg);
                             } else {
@@ -649,7 +649,7 @@ internal static partial class MarkdownReader {
                         out int? titleStartImg,
                         out int? titleLengthImg,
                         inlineHtmlWrapperMatches)) {
-                        var srcResolved = ResolveUrl(srcImg, options);
+                        var srcResolved = ResolveImageUrl(srcImg, options);
                         if (srcResolved is null) {
                             AddTextNode(string.IsNullOrEmpty(altImg) ? "image" : ExtractImageAltPlainText(altImg, options, state, imageAltDepth), pos, consumedImg);
                         } else {

@@ -21,6 +21,33 @@ public sealed class OfficeConverterStreamFileTests {
     }
 
     [Fact]
+    public async Task NotebookStreamConversionKeepsSavedOutputsWhenCodeIsHidden() {
+        const string sourceJson = """
+            {
+              "nbformat": 4, "nbformat_minor": 5, "metadata": {},
+              "cells": [{
+                "id": "answer", "cell_type": "code", "metadata": {}, "execution_count": 1,
+                "source": "notebook_private_input = 42",
+                "outputs": [{ "output_type": "stream", "name": "stdout", "text": "Saved notebook answer" }]
+              }]
+            }
+            """;
+        using var scope = new ConversionDirectory();
+        using var source = new MemoryStream(Encoding.UTF8.GetBytes(sourceJson));
+        string destination = Path.Combine(scope.Root, "answer.pdf");
+
+        OfficeConversionReport report = await OfficeConverter.ConvertAsync(source, OfficeDocumentFormat.Notebook,
+            destination, new OfficeConversionOptions { NotebookPdf = new() { IncludeCode = false } });
+
+        Assert.True(source.CanRead);
+        Assert.Equal(destination, report.OutputPath);
+        using var pdf = PdfDocument.Load(destination);
+        string text = pdf.Read().Text;
+        Assert.Contains("Saved notebook answer", text);
+        Assert.DoesNotContain("notebook_private_input", text);
+    }
+
+    [Fact]
     public async Task StreamFileConversionRejectsLossAndCancellationBeforeCreatingTheDestination() {
         using var scope = new ConversionDirectory();
         using var source = new MemoryStream(Encoding.UTF8.GetBytes("# Capture\n\n![Unavailable](https://example.invalid/image.png)"));

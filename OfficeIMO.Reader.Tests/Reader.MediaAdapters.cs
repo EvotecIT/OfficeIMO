@@ -564,6 +564,33 @@ public sealed partial class ReaderMediaAdapterTests {
     }
 
     [Fact]
+    public void NotebookAdapter_ProjectsBoundedCellsAndOutputsBeyondNativeDocumentLimits() {
+        const string projectedCell = """
+            {"cell_type":"code","source":"print('retained')","outputs":[
+            """;
+        const string output = """{"output_type":"stream","name":"stdout","text":"omitted"}""";
+        const string tailCell = """{"cell_type":"markdown","source":"outside projection"}""";
+        const string metadata = """
+            ],"metadata":{"kernelspec":{"language":" "},"language_info":{"name":"python"}},"nbformat":4,"nbformat_minor":0}
+            """;
+        string notebook = "{\"cells\":[" + projectedCell + string.Join(",", Enumerable.Repeat(output, 10_001)) + "]}," +
+            string.Join(",", Enumerable.Repeat(tailCell, 100_000)) + metadata;
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddNotebookHandler(new ReaderNotebookOptions { MaxCells = 1, MaxOutputsPerCell = 0 })
+            .Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(Encoding.UTF8.GetBytes(notebook), "many-cells.ipynb");
+
+        ReaderChunk chunk = Assert.Single(result.Chunks);
+        Assert.Contains("```python", chunk.Markdown, StringComparison.Ordinal);
+        Assert.Contains("print('retained')", chunk.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("omitted", chunk.Text, StringComparison.Ordinal);
+        Assert.Contains(chunk.Warnings!, warning => warning.Contains("MaxOutputsPerCell", StringComparison.Ordinal));
+        OfficeDocumentDiagnostic diagnostic = Assert.Single(result.Diagnostics, item => item.Code == "notebook-cell-limit");
+        Assert.Equal("100001", diagnostic.Attributes!["totalCells"]);
+    }
+
+    [Fact]
     public void NotebookAdapter_WarnsWhenOneOutputFillsTheBudgetBeforeAnotherOutput() {
         const string notebook = """
             {

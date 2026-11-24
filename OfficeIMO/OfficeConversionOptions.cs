@@ -74,6 +74,14 @@ public sealed partial class OfficeConversionOptions {
     public PowerPointPdfExportOptions? PowerPoint { get; set; }
     /// <summary>Markdown-to-PDF rendering settings.</summary>
     public MarkdownPdfExportOptions? Markdown { get; set; }
+    /// <summary>Jupyter Notebook PDF presentation and saved-output settings.</summary>
+    public Notebook.Pdf.NotebookPdfExportOptions? NotebookPdf { get; set; }
+    /// <summary>Notebook content selection and presentation for standalone HTML.</summary>
+    public Notebook.Html.NotebookHtmlExportOptions? NotebookHtml { get; set; }
+    /// <summary>Notebook content selection and presentation for editable Word reports.</summary>
+    public Notebook.Word.NotebookWordExportOptions? NotebookWord { get; set; }
+    /// <summary>Notebook content selection and media limits for standalone Markdown.</summary>
+    public Notebook.Markdown.NotebookMarkdownExportOptions? NotebookMarkdown { get; set; }
     /// <summary>HTML source decoding, base URI and parsing limits.</summary>
     public HtmlConversionDocumentOptions? HtmlLoad { get; set; }
     /// <summary>Source-neutral Reader extraction limits and policies.</summary>
@@ -171,6 +179,10 @@ public sealed partial class OfficeConversionOptions {
         copy.EmailPdf = EmailPdf?.Clone();
         copy.Html = Html?.ClonePdf(); copy.PdfHtml = PdfHtml?.CloneForConversion(); copy.PlainText = PlainText?.Clone();
         copy.Markdown = Markdown?.Clone(); copy.PdfLoad = PdfLoad?.Clone();
+        copy.NotebookPdf = NotebookPdf?.Clone();
+        copy.NotebookHtml = NotebookHtml?.Clone();
+        copy.NotebookWord = NotebookWord?.Clone();
+        copy.NotebookMarkdown = NotebookMarkdown?.Clone();
         copy.PdfWord = PdfWord?.Clone(); copy.PdfExcel = PdfExcel?.Clone(); copy.PdfPowerPoint = PdfPowerPoint?.Snapshot();
         copy.CsvSave = CsvSave?.Clone();
         copy.Data = Data?.Clone();

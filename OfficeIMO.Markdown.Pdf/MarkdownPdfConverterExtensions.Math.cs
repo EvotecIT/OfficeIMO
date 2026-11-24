@@ -25,10 +25,18 @@ public static partial class MarkdownPdfConverterExtensions {
             finder.Visit(document);
             if (!finder.Found) return null;
 
+            options.CancellationToken.ThrowIfCancellationRequested();
+            OfficeFontFaceCollection? scopedFonts = pdfOptions.CloneDrawingProfileFonts();
+            if (scopedFonts != null && scopedFonts.Faces.Any(static face =>
+                string.Equals(face.FamilyName, "math", StringComparison.OrdinalIgnoreCase)
+                && (face.Program as IOfficeMathFontProgram)?.MathConstants != null)) {
+                return new MathLayout(scopedFonts, pdfOptions.DefaultFontSize.ToPoints());
+            }
+
             string? reason = null;
             var fonts = new OfficeFontFaceCollection();
             if (!options.ResourcePolicy.AllowSystemFontEmbedding) {
-                reason = "The resource policy does not allow installed fonts, and a mathematical font is required to lay out TeX math.";
+                reason = "No compatible mathematical face was supplied as the math family, and the resource policy does not allow installed fonts.";
             } else if (!fonts.TryAddInstalledFamily("math", OfficeFontFaceDescriptor.Regular, MathFontByteLimit,
                            options.CancellationToken, out _, out string? error, MathFontByteLimit)) {
                 reason = "No installed mathematical font (STIX Two Math, Cambria Math, Latin Modern Math or DejaVu Math TeX Gyre) could be loaded" +

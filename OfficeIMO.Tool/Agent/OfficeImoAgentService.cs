@@ -4,6 +4,7 @@ using OfficeIMO.Drawing;
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.All;
 using OfficeIMO.Reader.Email;
+using OfficeIMO.Tool.Commands.Convert;
 using OfficeIMO.Tool.Commands.Reader;
 using OfficeIMO.Workflows;
 
@@ -325,11 +326,14 @@ internal sealed partial class OfficeImoAgentService {
             throw new AgentUsageException(
                 "Output file already exists. Choose a new path or explicitly enable overwrite.");
         }
-        ReaderToolOutputFormat outputFormat = format.ToLowerInvariant() switch {
-            "markdown" or "md" => ReaderToolOutputFormat.Markdown,
-            "json" => ReaderToolOutputFormat.Json,
-            _ => throw new AgentUsageException("Conversion format must be 'markdown' or 'json'.")
-        };
+        if (source is not null && requested != "json" && ConvertRoutes.UsesNotebookMarkdown(inputPath, destination)) {
+            AgentConvertResult converted = await ConvertRouteAsync(inputPath, destination, "md", overwrite,
+                maximumInputBytes, maximumOutputBytes, cancellationToken).ConfigureAwait(false);
+            converted.SourceId = source.SourceId;
+            converted.Format = "markdown";
+            return converted;
+        }
+        ReaderToolOutputFormat outputFormat = requested == "json" ? ReaderToolOutputFormat.Json : ReaderToolOutputFormat.Markdown;
         var captured = await ReadDocumentSourceAsync(inputPath, source, cancellationToken).ConfigureAwait(false);
         source = captured.Source;
         OfficeDocumentReadResult document = captured.Document;

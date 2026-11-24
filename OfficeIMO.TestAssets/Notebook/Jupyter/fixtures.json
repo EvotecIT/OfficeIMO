@@ -1,0 +1,14 @@
+{
+  "project": "jupyter/nbformat",
+  "revision": "75f819f5b60bc6ffc72145c364132efe5b3c4b35",
+  "release": "v5.11.1",
+  "license": "BSD-3-Clause",
+  "licenseSha256": "5ca74e4d2eeb9330b0d129c25f874d3544a13413bc62ae8d367819100d095072",
+  "notebooks": [
+    {"name": "Jupyter3", "file": "test3.ipynb", "sha256": "70773f0dd204b4dddb0cf0272726b581c521c1bc5f194f41cacbef2f1e4016cf"},
+    {"name": "Jupyter45", "file": "test4.5.ipynb", "sha256": "6f56a1d9334d3d7db41038515cee6d5a5e266fca30bd11b5ea51ee11fe373829"},
+    {"name": "JupyterFuture", "file": "test4plus.ipynb", "sha256": "83853eed4306b8fb2ca291fd9a634fc61c4cb520a36128277d58fc3da706959a"},
+    {"name": "JupyterVendorOutput", "file": "test4custom.ipynb", "sha256": "05e2a0d74d380b753930050fd14bcd58003818bee6d57d984499d1f1d16ef13f"},
+    {"name": "JupyterErrors", "file": "many_tracebacks.ipynb", "sha256": "cbb307af0700b884835fa8746778b6a443f2346b335d6250c8f9fd077e9fc85b"}
+  ]
+}

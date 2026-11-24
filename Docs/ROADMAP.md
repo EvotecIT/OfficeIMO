@@ -25,6 +25,15 @@ The [API design](officeimo.api-design.md) defines the shared lengths, colors, th
 - [ ] M8 Documentation: extend the getting-started guides and executable examples with enum choices, output properties and representative results for each format. Keep package quick starts, command help, `about_` topics and website pages aligned with those examples.
 - [ ] M9 Console experience: optional ConsoleMonster integration.
 
+## Notebook formats
+
+- [ ] Qualify exported `.ipynb` files from Colab, VS Code, Kaggle, .NET Polyglot, Deepnote, Databricks and marimo with pinned producer fixtures. Measure the browser's large-notebook latency and memory on representative phones.
+- [ ] Import source-only Polyglot `.dib` and explicitly selected Jupytext percent scripts. Qualify language and cell boundaries with producer fixtures. Accept paired Jupyter outputs only from a caller-selected companion with verified cell alignment.
+- [ ] Project Quarto `.qmd`, MyST notebook Markdown, and R Markdown through the shared markup engine. Qualify supported front matter, code directives and caller-supplied rendered resources. Treat R Notebook HTML with embedded results as a distinct input.
+- [ ] Extend static notebook output for structured Plotly and Vega chart specifications after selecting bounded chart subsets with native producer evidence. Qualify producer-specific formats such as native Deepnote snapshots and Zeppelin when their additional structure has a concrete consumer.
+
+The [Jupyter support matrix](../OfficeIMO.Notebook/SUPPORT.md) records the native lifecycle and current export coverage.
+
 ## VBA host integration
 
 - [ ] Extend [Access VBA persistence](../OfficeIMO.Access/SUPPORT.md#native-vba-persistence) to create qualified form/report code-behind and author inert event bindings, with native Access/VBE and unrelated-designer preservation proof.

@@ -1,0 +1,4 @@
+nbformat==5.11.1
+nbconvert==7.17.2
+fastjsonschema==2.22.3
+playwright==1.63.0

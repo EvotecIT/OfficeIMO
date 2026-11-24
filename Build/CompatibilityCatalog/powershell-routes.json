@@ -246,6 +246,30 @@
     "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:285 calls OfficeConverter after workflow registration; OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.cs:9 registers markdown-rtf; OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.Rtf.cs:80 performs the native Markdown to RTF conversion."
   },
   {
+    "route": "notebook-docx",
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.ipynb -OutputPath ./out.docx",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:280 calls OfficeConverter.ConvertAsync; OfficeIMO/OfficeConverter.Builtins.cs:166 selects the built-in notebook conversion; OfficeIMO/OfficeConverter.Notebook.cs:26 saves an editable DOCX."
+  },
+  {
+    "route": "notebook-html",
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.ipynb -OutputPath ./out.html",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:280 calls OfficeConverter.ConvertAsync; OfficeIMO/OfficeConverter.Builtins.cs:166 selects the built-in notebook conversion; OfficeIMO/OfficeConverter.Notebook.cs:21 saves an offline HTML report."
+  },
+  {
+    "route": "notebook-markdown",
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.ipynb -OutputPath ./out.md",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:280 calls OfficeConverter.ConvertAsync; OfficeIMO/OfficeConverter.Builtins.cs:166 selects the built-in notebook conversion; OfficeIMO/OfficeConverter.Notebook.cs:33 saves a Markdown document."
+  },
+  {
+    "route": "notebook-pdf",
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.ipynb -OutputPath ./out.pdf -Options @{ IncludeCode = $false }",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:280 calls OfficeConverter.ConvertAsync; OfficeIMO/OfficeConverter.Builtins.cs:166 selects the built-in notebook conversion; OfficeIMO/OfficeConverter.Notebook.cs:16 saves a PDF using route-owned notebook settings."
+  },
+  {
     "route": "numbers-xlsx",
     "cmdlet": "Convert-OfficeDocument",
     "example": "Convert-OfficeDocument -Path ./in.numbers -OutputPath ./out.xlsx",

@@ -33,6 +33,9 @@ public sealed class MarkdownHtmlExportOptions {
     public bool IncludeCssInFragment { get; set; }
     internal Action<OfficeDiagnostic>? DiagnosticSink { get; set; }
 
+    /// <summary>Enables SVG data images for an adapter that only supplies re-serialized trusted drawing scenes.</summary>
+    internal bool AllowTrustedSvgDataImages { get; set; }
+
     /// <summary>
     /// True when a caller-supplied renderer or extension receives parsed blocks or render contexts,
     /// which expose source spans and syntax nodes. Without one, rendering reads only the semantic
@@ -387,6 +390,7 @@ public sealed class MarkdownHtmlExportOptions {
             RestrictHttpLinksToBaseOrigin = RestrictHttpLinksToBaseOrigin,
             RestrictHttpImagesToBaseOrigin = RestrictHttpImagesToBaseOrigin,
             BlockExternalHttpImages = BlockExternalHttpImages,
+            AllowTrustedSvgDataImages = AllowTrustedSvgDataImages,
             ImagesLoadingLazy = ImagesLoadingLazy,
             ImagesDecodingAsync = ImagesDecodingAsync,
             ImagesReferrerPolicy = ImagesReferrerPolicy,

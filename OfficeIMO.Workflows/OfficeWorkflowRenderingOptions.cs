@@ -35,6 +35,14 @@ internal sealed partial class OfficeWorkflowRenderingOptions {
     public ChmConversionOptions? Chm { get; set; }
     /// <summary>Existing Markdown renderer settings.</summary>
     public MarkdownPdfExportOptions? Markdown { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Notebook.Pdf.NotebookPdfExportOptions? NotebookPdf { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Notebook.Html.NotebookHtmlExportOptions? NotebookHtml { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Notebook.Word.NotebookWordExportOptions? NotebookWord { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Notebook.Markdown.NotebookMarkdownExportOptions? NotebookMarkdown { get; set; }
     /// <summary>Existing RTF renderer settings.</summary>
     public RtfPdfExportOptions? Rtf { get; set; }
     /// <summary>Draw page projection and PDF settings for ODG/FODG input.</summary>
@@ -79,6 +87,10 @@ internal sealed partial class OfficeWorkflowRenderingOptions {
         copy.PowerPoint = PowerPoint?.Clone();
         copy.Html = Html?.ClonePdf();
         copy.Markdown = Markdown?.Clone();
+        copy.NotebookPdf = NotebookPdf?.Clone();
+        copy.NotebookHtml = NotebookHtml?.Clone();
+        copy.NotebookWord = NotebookWord?.Clone();
+        copy.NotebookMarkdown = NotebookMarkdown?.Clone();
         copy.Rtf = Rtf?.Clone();
         copy.Draw = Draw?.Clone();
         copy.Visio = Visio?.Clone();
@@ -108,6 +120,10 @@ internal sealed partial class OfficeWorkflowRenderingOptions {
         if (routeId is not "html-pdf" and not "chm-pdf") copy.Html = null;
         if (routeId is not "chm-pdf" and not "chm-markdown" and not "chm-epub") copy.Chm = null;
         if (routeId != "markdown-pdf") copy.Markdown = null;
+        if (routeId != "notebook-pdf") copy.NotebookPdf = null;
+        if (routeId != "notebook-html") copy.NotebookHtml = null;
+        if (routeId != "notebook-docx") copy.NotebookWord = null;
+        if (routeId != "notebook-markdown") copy.NotebookMarkdown = null;
         if (routeId != "rtf-pdf") copy.Rtf = null;
         if (routeId != "odg-pdf") copy.Draw = null;
         if (routeId != "visio-pdf") copy.Visio = null;
@@ -134,6 +150,7 @@ internal sealed partial class OfficeWorkflowRenderingOptions {
         if ((copy.Word != null && route.Id is not "doc-pdf" and not "docx-pdf") ||
             (copy.Excel != null && route.Id != "xlsx-pdf") || (copy.PowerPoint != null && route.Id != "pptx-pdf") ||
             (copy.Html != null && route.Id is not "html-pdf" and not "chm-pdf") || (copy.Markdown != null && route.Id != "markdown-pdf") ||
+            (copy.NotebookPdf != null && route.Id != "notebook-pdf") ||
             (copy.Rtf != null && route.Id != "rtf-pdf") || (copy.Draw != null && route.Id != "odg-pdf") ||
             (copy.Visio != null && route.Id != "visio-pdf") || (copy.Xps != null && route.Id != "xps-pdf") || (copy.DjVu != null && route.Id != "djvu-pdf") ||
             ((copy.PublisherRead != null || copy.PublisherPdf != null) && route.Id != "publisher-pdf"))
@@ -176,7 +193,8 @@ internal sealed partial class OfficeWorkflowRenderingOptions {
     }
 
     internal PdfCreateOptions? GetOutputPdfOptions() => Word?.PdfOptions ?? Excel?.PdfOptions ?? PowerPoint?.PdfOptions
-        ?? Html?.PdfOptions ?? Markdown?.PdfOptions ?? Rtf?.PdfOptions ?? Draw?.PdfOptions ?? Visio?.PdfOptions ?? PlainText?.PdfOptions ?? Xps?.PdfOptions ?? DjVu?.PdfOptions ?? PublisherPdf;
+        ?? Html?.PdfOptions ?? Markdown?.PdfOptions ?? NotebookPdf?.MarkdownOptions.PdfOptions
+        ?? Rtf?.PdfOptions ?? Draw?.PdfOptions ?? Visio?.PdfOptions ?? PlainText?.PdfOptions ?? Xps?.PdfOptions ?? DjVu?.PdfOptions ?? PublisherPdf;
 
     internal PdfLoadOptions? CreateReadOptions() => (PageRanges == null || string.IsNullOrWhiteSpace(PageRanges)) ? null
         : new PdfLoadOptions { PageSelection = PdfPageSelection.Parse(PageRanges) };

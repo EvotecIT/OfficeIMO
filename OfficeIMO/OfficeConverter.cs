@@ -212,7 +212,8 @@ public static partial class OfficeConverter {
         OfficeDocumentFormat.Text => ".txt", OfficeDocumentFormat.Email => ".eml", OfficeDocumentFormat.Epub => ".epub",
         OfficeDocumentFormat.Csv => ".csv", OfficeDocumentFormat.Json => ".json", OfficeDocumentFormat.Xml => ".xml", OfficeDocumentFormat.Toml => ".toml",
         OfficeDocumentFormat.AsciiDoc => ".adoc", OfficeDocumentFormat.Latex => ".tex", OfficeDocumentFormat.OneNote => ".one",
-        OfficeDocumentFormat.Visio => ".vsdx", _ => throw new NotSupportedException("The format requires an explicit physical filename and registered route.")
+        OfficeDocumentFormat.Visio => ".vsdx", OfficeDocumentFormat.Notebook => ".ipynb",
+        _ => throw new NotSupportedException("The format requires an explicit physical filename and registered route.")
     };
 
     internal static OfficeDocumentFormat FormatForExtension(string? extension) => extension?.ToLowerInvariant() switch {
@@ -230,6 +231,7 @@ public static partial class OfficeConverter {
         ".epub" => OfficeDocumentFormat.Epub, ".vsdx" or ".vdx" or ".vtx" => OfficeDocumentFormat.Visio,
         ".adoc" or ".asciidoc" => OfficeDocumentFormat.AsciiDoc, ".tex" or ".latex" => OfficeDocumentFormat.Latex,
         ".one" or ".onepkg" or ".onetoc2" => OfficeDocumentFormat.OneNote,
+        ".ipynb" => OfficeDocumentFormat.Notebook,
         _ => OfficeDocumentFormat.Unknown
     };
 }

@@ -275,6 +275,7 @@ public sealed partial class TableBlock {
         clone.BackslashHardBreaks = source.BackslashHardBreaks;
         clone.SoftLineBreaksAsHardLineBreaks = source.SoftLineBreaksAsHardLineBreaks;
         clone.InlineHtml = source.InlineHtml;
+        clone.ImageSourceResolver = source.ImageSourceResolver;
         clone.Abbreviations = source.Abbreviations;
         clone.GenericAttributes = source.GenericAttributes;
         clone.CustomContainers = source.CustomContainers;

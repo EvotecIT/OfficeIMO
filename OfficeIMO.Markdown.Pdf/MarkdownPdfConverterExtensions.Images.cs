@@ -106,6 +106,7 @@ public static partial class MarkdownPdfConverterExtensions {
         double height = heightHint ?? GetImageHeightPoints(info, width, options);
         MarkdownPdfFigureStyle figureStyle = visualTheme.FigureStyleSnapshot;
         PdfCore.PdfImageStyle imageStyle = CreateConverterImageStyle(figureStyle, altText);
+        if (options.PaginateFigures && !string.IsNullOrWhiteSpace(caption)) imageStyle.KeepWithNext = true;
         string? normalizedLinkContents = linkUri == null || string.IsNullOrWhiteSpace(linkContents) ? null : linkContents;
 
         pdf.Image(preparedBytes, width, height, align: null, clipPath: null, fit: null, spacingBefore: null, spacingAfter: null, style: imageStyle, linkUri: linkUri, linkContents: normalizedLinkContents);
@@ -141,10 +142,29 @@ public static partial class MarkdownPdfConverterExtensions {
         MarkdownPdfFigureStyle figureStyle = visualTheme.FigureStyleSnapshot;
         PdfCore.PdfDrawingStyle drawingStyle = figureStyle.DrawingStyleSnapshot;
         drawingStyle.ConstrainToContentWidth = true;
+        if (options.PaginateFigures) {
+            drawingStyle.KeepWithNext |= !string.IsNullOrWhiteSpace(caption);
+            drawing = FitSvgFigureToPageHeight(drawing, drawingStyle, pdf.Options);
+        }
         drawingStyle.Decorative = string.IsNullOrWhiteSpace(altText);
         if (!drawingStyle.Decorative) drawingStyle.AlternativeText = altText;
         pdf.Drawing(drawing, style: drawingStyle, linkUri: linkUri, linkContents: linkUri == null || string.IsNullOrWhiteSpace(linkContents) ? null : linkContents);
         RenderCaption(pdf, caption, figureStyle);
+    }
+
+    private static OfficeDrawing FitSvgFigureToPageHeight(OfficeDrawing drawing, PdfCore.PdfDrawingStyle style,
+        PdfCore.PdfCreateOptions options) {
+        double height = options.PageHeight.ToPoints() - options.MarginTop.ToPoints() - options.MarginBottom.ToPoints()
+            - style.SpacingBefore.ToPoints() - style.SpacingAfter.ToPoints();
+        if (height <= 0D) return drawing;
+
+        double width = options.PageWidth.ToPoints() - options.MarginLeft.ToPoints() - options.MarginRight.ToPoints();
+        double widthScale = Math.Min(1D, width / drawing.Width);
+        if (drawing.Height * widthScale <= height) return drawing;
+
+        double scale = height / drawing.Height;
+        return new OfficeDrawing(drawing.Width * scale, height)
+            .AddEffectDrawing(drawing, OfficeTransform.Scale(scale, scale));
     }
 
     private static void RenderImagePlaceholder(PdfCore.PdfDocument pdf, string? label, MarkdownPdfStyle visualTheme) {

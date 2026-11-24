@@ -61,6 +61,7 @@
     <InternalsVisibleTo Include="OfficeIMO.Excel.Benchmarks" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Csv" />
     <InternalsVisibleTo Include="OfficeIMO.Excel.Csv" />
+    <InternalsVisibleTo Include="OfficeIMO.Notebook.Spreadsheet" />
     <InternalsVisibleTo Include="PSWriteOffice" />
   </ItemGroup>
 

@@ -255,6 +255,10 @@
       "family": "other"
     },
     {
+      "name": "Jupyter Notebook",
+      "family": "other"
+    },
+    {
       "name": "POT",
       "family": "other"
     },
@@ -2521,6 +2525,75 @@
       "surfaces": [
         "dotnet"
       ]
+    },
+    {
+      "id": "notebook-docx",
+      "source": "Jupyter Notebook",
+      "target": "DOCX",
+      "package": "OfficeIMO.Notebook.Word",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "NotebookDocument.Load(stream).SaveAsWord(output, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio",
+        "powershell"
+      ],
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.ipynb -OutputPath ./out.docx"
+    },
+    {
+      "id": "notebook-html",
+      "source": "Jupyter Notebook",
+      "target": "HTML",
+      "package": "OfficeIMO.Notebook.Html",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "NotebookDocument.Load(stream).SaveAsHtml(output, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio",
+        "powershell"
+      ],
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.ipynb -OutputPath ./out.html"
+    },
+    {
+      "id": "notebook-markdown",
+      "source": "Jupyter Notebook",
+      "target": "Markdown",
+      "package": "OfficeIMO.Notebook.Markdown",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "NotebookDocument.Load(stream).ToMarkdown(options, out report)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio",
+        "powershell"
+      ],
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.ipynb -OutputPath ./out.md"
+    },
+    {
+      "id": "notebook-pdf",
+      "source": "Jupyter Notebook",
+      "target": "PDF",
+      "package": "OfficeIMO.Notebook.Pdf",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "NotebookDocument.Load(stream).SaveAsPdf(output, options)",
+      "surfaces": [
+        "dotnet",
+        "browser",
+        "cli",
+        "studio",
+        "powershell"
+      ],
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.ipynb -OutputPath ./out.pdf -Options @{ IncludeCode = $false }"
     },
     {
       "id": "numbers-pdf",

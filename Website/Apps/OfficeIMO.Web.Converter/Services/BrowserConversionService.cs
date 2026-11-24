@@ -48,7 +48,8 @@ public sealed partial class BrowserConversionService {
         bool limitExcelRows,
         BrowserPdfProfile? profile,
         bool generateDebugOverlay,
-        string? powerPointImportProfileId) {
+        string? powerPointImportProfileId,
+        BrowserNotebookSettings? notebookSettings = null) {
         ArgumentNullException.ThrowIfNull(route);
         ArgumentNullException.ThrowIfNull(file);
         if (string.Equals(route.Source, "PDF", StringComparison.OrdinalIgnoreCase)) {
@@ -61,6 +62,7 @@ public sealed partial class BrowserConversionService {
             "xlsx-pdf" => ConvertExcelToPdfBytes(file, limitExcelRows, effectiveProfile),
             "pptx-pdf" => ConvertPowerPointToPdfBytes(file, effectiveProfile),
             "publisher-pdf" => ConvertPublisherToPdfBytes(file, effectiveProfile),
+            "notebook-pdf" => ConvertNotebookToPdfBytes(file, effectiveProfile, notebookSettings),
             _ => throw new NotSupportedException($"The route '{route.Id}' does not accept a document upload.")
         };
         stopwatch.Stop();
@@ -269,7 +271,9 @@ public sealed partial class BrowserConversionService {
             profile,
             conversionMilliseconds,
             payload.Serialization,
-            payload.Limits);
+            payload.Limits,
+            payload.OptionsFingerprint,
+            payload.SupplementalFonts);
         BrowserConversionArtifact? debugOverlay = generateDebugOverlay
             ? CreateDebugOverlay(file, bytes)
             : null;
@@ -291,6 +295,7 @@ public sealed partial class BrowserConversionService {
             PageCount = payload.Serialization.PageCount,
             ConversionMilliseconds = conversionMilliseconds,
             Profile = profile,
+            SupplementalFonts = payload.SupplementalFonts,
             SourceSnapshot = Snapshot(file)
         };
     }
@@ -452,7 +457,9 @@ public sealed partial class BrowserConversionService {
         PdfSerializationReport Serialization,
         string Converter,
         string OptionProfile,
-        ManifestLimits? Limits = null);
+        ManifestLimits? Limits = null,
+        string? OptionsFingerprint = null,
+        ManifestFontAsset[]? SupplementalFonts = null);
 
     internal readonly record struct ExcelBrowserReadPlan(
         int? MaxRowsPerSheet,

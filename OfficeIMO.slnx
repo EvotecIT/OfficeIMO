@@ -242,6 +242,13 @@
   <Project Path="OfficeIMO.OneNote.Html/OfficeIMO.OneNote.Html.csproj" />
   <Project Path="OfficeIMO.OneNote.Markdown/OfficeIMO.OneNote.Markdown.csproj" />
   <Project Path="OfficeIMO.OneNote.Pdf/OfficeIMO.OneNote.Pdf.csproj" />
+  <Project Path="OfficeIMO.Notebook/OfficeIMO.Notebook.csproj" />
+  <Project Path="OfficeIMO.Notebook.Markdown/OfficeIMO.Notebook.Markdown.csproj" />
+  <Project Path="OfficeIMO.Notebook.Pdf/OfficeIMO.Notebook.Pdf.csproj" />
+  <Project Path="OfficeIMO.Notebook.Html/OfficeIMO.Notebook.Html.csproj" />
+  <Project Path="OfficeIMO.Notebook.Word/OfficeIMO.Notebook.Word.csproj" />
+  <Project Path="OfficeIMO.Notebook.Spreadsheet/OfficeIMO.Notebook.Spreadsheet.csproj" />
+  <Project Path="OfficeIMO.Notebook.Tests/OfficeIMO.Notebook.Tests.csproj" />
   <Project Path="OfficeIMO.OneNote.Tests/OfficeIMO.OneNote.Tests.csproj" />
   <Project Path="OfficeIMO.OneNote/OfficeIMO.OneNote.csproj" />
   <Project Path="OfficeIMO.OpenDocument.Benchmarks/OfficeIMO.OpenDocument.Benchmarks.csproj" />

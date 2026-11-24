@@ -309,7 +309,11 @@ officeimo convert budget.xlsx budget.json --sheet Summary --range A1:D20
 officeimo convert people.csv people.xlsx
 officeimo convert budget.xlsx budget.csv
 
-# Supported documents to Markdown or JSON through OfficeIMO.Reader
+# Export saved Jupyter notebook results as a PDF or standalone Markdown
+officeimo convert analysis.ipynb analysis.pdf
+officeimo convert analysis.ipynb analysis.md
+
+# Extract other documents to Markdown or JSON through OfficeIMO.Reader
 officeimo convert workbook.xlsx workbook.md
 officeimo convert report.docx report.json
 officeimo read settings.yaml --format json --output settings.reader.json
