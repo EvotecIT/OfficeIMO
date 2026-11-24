@@ -41,7 +41,9 @@ public sealed class PdfImagePlacement {
         bool requireExactProjection = false,
         bool isHiddenOptionalContent = false,
         int? markedContentId = null,
-        int? contentStreamObjectNumber = null) {
+        int? contentStreamObjectNumber = null,
+        double? effectiveDpiX = null,
+        double? effectiveDpiY = null) {
         PageNumber = pageNumber;
         ResourceName = resourceName;
         ObjectNumber = objectNumber;
@@ -77,6 +79,8 @@ public sealed class PdfImagePlacement {
         IsHiddenOptionalContent = isHiddenOptionalContent;
         MarkedContentId = markedContentId;
         ContentStreamObjectNumber = contentStreamObjectNumber;
+        EffectiveDpiX = effectiveDpiX;
+        EffectiveDpiY = effectiveDpiY;
     }
 
     /// <summary>One-based source page number containing the image invocation.</summary>
@@ -87,6 +91,12 @@ public sealed class PdfImagePlacement {
 
     /// <summary>PDF object number for the image stream, or 0 when the image is direct.</summary>
     public int ObjectNumber { get; }
+
+    /// <summary>Horizontal image pixels per physical inch along the transformed image X axis, when measurable.</summary>
+    public double? EffectiveDpiX { get; }
+
+    /// <summary>Vertical image pixels per physical inch along the transformed image Y axis, when measurable.</summary>
+    public double? EffectiveDpiY { get; }
 
     /// <summary>Runtime identity for a direct image stream, or 0 when the image is indirect.</summary>
     internal int DirectStreamIdentity { get; }
@@ -215,7 +225,8 @@ public sealed class PdfImagePlacement {
             requireExactProjection: RequireExactProjection,
             isHiddenOptionalContent: IsHiddenOptionalContent,
             markedContentId: MarkedContentId,
-            contentStreamObjectNumber: ContentStreamObjectNumber) {
+            contentStreamObjectNumber: ContentStreamObjectNumber,
+            effectiveDpiX: EffectiveDpiX, effectiveDpiY: EffectiveDpiY) {
             SourceDocumentIdentity = this.SourceDocumentIdentity
         };
 
@@ -238,7 +249,8 @@ public sealed class PdfImagePlacement {
             requireExactProjection: true,
             isHiddenOptionalContent: IsHiddenOptionalContent,
             markedContentId: MarkedContentId,
-            contentStreamObjectNumber: ContentStreamObjectNumber) {
+            contentStreamObjectNumber: ContentStreamObjectNumber,
+            effectiveDpiX: EffectiveDpiX, effectiveDpiY: EffectiveDpiY) {
             SourceDocumentIdentity = this.SourceDocumentIdentity
         };
 
@@ -261,7 +273,8 @@ public sealed class PdfImagePlacement {
             requireExactProjection: RequireExactProjection,
             isHiddenOptionalContent: isHiddenOptionalContent,
             markedContentId: MarkedContentId,
-            contentStreamObjectNumber: ContentStreamObjectNumber) {
+            contentStreamObjectNumber: ContentStreamObjectNumber,
+            effectiveDpiX: EffectiveDpiX, effectiveDpiY: EffectiveDpiY) {
             SourceDocumentIdentity = this.SourceDocumentIdentity
         };
 
@@ -300,7 +313,8 @@ public sealed class PdfImagePlacement {
             requireExactProjection: RequireExactProjection,
             isHiddenOptionalContent: IsHiddenOptionalContent,
             markedContentId: MarkedContentId,
-            contentStreamObjectNumber: ContentStreamObjectNumber) {
+            contentStreamObjectNumber: ContentStreamObjectNumber,
+            effectiveDpiX: EffectiveDpiX, effectiveDpiY: EffectiveDpiY) {
             SourceDocumentIdentity = this.SourceDocumentIdentity
         };
 

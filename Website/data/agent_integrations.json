@@ -139,6 +139,7 @@
     { "name": "officeimo_pdf_convert_to_pdfa", "writes": true, "detail": "Convert a PDF to PDF/A, reporting its changes or the reasons it can't be converted" },
     { "name": "officeimo_pdf_split", "writes": true, "detail": "Split a PDF into parts in a new folder" },
     { "name": "officeimo_pdf_assemble", "writes": true, "detail": "Combine PDFs and images, in order, into one PDF" },
+    { "name": "officeimo_pdf_extract_assets", "writes": true, "detail": "Save images, embedded fonts, ICC profiles, page SVGs and reports" },
     { "name": "officeimo_pdf_export_pages", "writes": true, "detail": "Save chosen pages as images" },
     { "name": "officeimo_pdf_ocr_providers", "writes": false, "detail": "Text-recognition providers the host registered" },
     { "name": "officeimo_pdf_ocr", "writes": true, "detail": "Make a searchable copy of a scanned PDF" },

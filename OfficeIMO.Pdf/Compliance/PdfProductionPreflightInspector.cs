@@ -208,20 +208,11 @@ internal static class PdfProductionPreflightInspector {
             int uninspectablePlacements = 0;
             foreach (PdfImagePlacement placement in placements) {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (!readPage.TryGetImagePixelDimensions(placement, out int imageWidth, out int imageHeight)) {
+                if (placement.EffectiveDpiX is not double dpiX || placement.EffectiveDpiY is not double dpiY) {
                     uninspectablePlacements++;
                     continue;
                 }
-                double userUnit = readPage.GetGeometry().UserUnit ?? 1D;
-                double horizontalPoints = Math.Sqrt(placement.A * placement.A + placement.B * placement.B) * userUnit;
-                double verticalPoints = Math.Sqrt(placement.C * placement.C + placement.D * placement.D) * userUnit;
-                if (!IsPositiveFinite(horizontalPoints) || !IsPositiveFinite(verticalPoints) ||
-                    imageWidth <= 0 || imageHeight <= 0) {
-                    AddFinding(new PdfProductionFinding(PdfProductionFindingKind.UninspectableImageResolution,
-                        PdfProductionFindingSeverity.Indeterminate, pageNumber, "A placed image lacks usable pixel or transform dimensions."));
-                    continue;
-                }
-                double ppi = Math.Min(imageWidth * 72D / horizontalPoints, imageHeight * 72D / verticalPoints);
+                double ppi = Math.Min(dpiX, dpiY);
                 if (ppi >= effective.EffectiveMinimumImagePpi) continue;
                 PdfVisualBounds visual = readPage.TransformBoundsToVisual(placement.X, placement.Y,
                     placement.X + placement.Width, placement.Y + placement.Height);

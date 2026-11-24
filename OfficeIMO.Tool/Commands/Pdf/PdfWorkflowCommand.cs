@@ -10,6 +10,8 @@ internal static class PdfWorkflowCommand {
 OfficeIMO.Tool - PDF workflows
 
 Usage:
+  officeimo pdf extract-assets <input.pdf> [<input.pdf> ...] --output <new-folder> [--preserve-image-format] [--password-env <name>]
+             [--maximum-pages <count>] [--maximum-input-bytes <bytes>] [--maximum-output-bytes <bytes>]
   officeimo pdf extract <input.pdf> --pages <selection> --output <copy.pdf> [--force]
   officeimo pdf split <input.pdf> --output <new-folder> [--pages-per-document <count>] [--force]
   officeimo pdf decrypt <input.pdf> --password-env <owner-password-variable> --output <copy.pdf> [--force]
@@ -29,7 +31,8 @@ Usage:
 
 Page selections preserve order and repeats and accept 1-3,last, odd, even, all, and ! exclusions.
 Passwords are read only from --password-env, never from command-line values or result JSON.
-All writes require a separate explicit output. Existing outputs are refused unless --force is supplied.
+All writes require a separate explicit output. Use a new folder for asset extraction.
+Other workflows refuse existing outputs unless --force is supplied.
 Flattening renders page appearances only: native text, forms, links, signatures, and attachments are omitted.
 OCR adds searchable text to the source pages; recognition confidence is provider evidence, not a correctness guarantee.
 PDF/A conversion writes a PDF/A copy, or refuses (exit 4) and writes nothing. Standard error lists every change or
@@ -39,7 +42,7 @@ Each supplied --font family needs a regular face.
 An encrypted source needs its owner password. Supplied fonts are tried before installed fonts unless
 --font-substitution none; a face is embedded only when its glyph widths match the page and its licence allows it.
 Optional OCR provider assemblies and executable settings must be trusted by the invoking host.
-Resource options: --maximum-pages 1..10000 (default100; split bounds parts),
+Resource options: --maximum-pages 1..10000 (default 100, or 500 for extract-assets; split bounds parts),
   --maximum-input-bytes 1..268435456, --maximum-output-bytes 1..536870912,
   --maximum-pixels-per-page 1..100000000 (flatten/ocr; default25000000).
 JSON results contain bounded artifact metadata and diagnostic codes, never document or OCR text.
@@ -59,6 +62,8 @@ JSON results contain bounded artifact metadata and diagnostic codes, never docum
             }
             AgentPdfAReport? completeReport = null;
             AgentPdfWorkflowResult result = parsed.Operation switch {
+                "extract-assets" => service.ExtractPdfAssets(parsed.AssetInputs, parsed.Output!, parsed.CompositeSoftMasks,
+                    parsed.Settings, cancellationToken: cancellationToken),
                 "split" => await service.SplitPdfAsync(parsed.Input!, parsed.Output!, parsed.PagesPerDocument, parsed.Settings, cancellationToken: cancellationToken).ConfigureAwait(false),
                 "convert-to-pdfa" => await service.ConvertToPdfAAsync(parsed.Input!, parsed.Output!, parsed.PdfA, parsed.Settings,
                     maxOutputCharacters: 64000, completeReport: report => completeReport = report, cancellationToken: cancellationToken).ConfigureAwait(false),

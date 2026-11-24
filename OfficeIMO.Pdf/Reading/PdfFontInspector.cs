@@ -7,7 +7,9 @@ internal static class PdfFontInspector {
     internal static PdfFontInventory Inspect(
         PdfReadDocument document,
         PdfFontInspectionOptions? options = null,
-        PdfPageSelection? selection = null) {
+        PdfPageSelection? selection = null,
+        IReadOnlyList<IReadOnlyList<PdfDictionary>>? assetResources = null,
+        CancellationToken cancellationToken = default) {
         Guard.NotNull(document, nameof(document));
         PdfFontInspectionOptions effective = PdfFontInspectionOptions.Resolve(options);
         document.DemandContentExtraction("font resource");
@@ -17,7 +19,16 @@ internal static class PdfFontInspector {
             : selection.ToPageNumbers(document.Pages.Count, nameof(selection));
         var context = new InspectionContext(document.Objects, effective);
         for (int i = 0; i < pageNumbers.Length && !context.IsStopped; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             int pageNumber = pageNumbers[i];
+            if (assetResources is not null) {
+                IReadOnlyList<PdfDictionary> pageResources = assetResources[pageNumber - 1];
+                for (int resourceIndex = 0; resourceIndex < pageResources.Count && !context.IsStopped; resourceIndex++) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    context.InspectFonts(pageResources[resourceIndex], pageNumber, "Page " + pageNumber + "/Resources " + (resourceIndex + 1));
+                }
+                continue;
+            }
             PdfDictionary? resources = document.Pages[pageNumber - 1].GetFontInspectionResources();
             if (resources is not null) {
                 context.InspectResources(
@@ -177,7 +188,7 @@ internal static class PdfFontInspector {
             return true;
         }
 
-        private void InspectFonts(PdfDictionary resources, int pageNumber, string resourcePath) {
+        internal void InspectFonts(PdfDictionary resources, int pageNumber, string resourcePath) {
             if (!resources.Items.TryGetValue("Font", out PdfObject? fontValue) ||
                 Resolve(fontValue) is not PdfDictionary fontDictionary) return;
             foreach (KeyValuePair<string, PdfObject> entry in fontDictionary.Items) {

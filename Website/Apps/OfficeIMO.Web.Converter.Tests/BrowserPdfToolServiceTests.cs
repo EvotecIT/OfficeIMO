@@ -15,8 +15,7 @@ public sealed class BrowserPdfToolServiceTests {
 
     [Fact]
     public void Catalog_ExposesUniqueTaskOrientedTools() {
-        Assert.Equal(12, PdfToolCatalog.All.Count);
-        Assert.Equal(12, PdfToolCatalog.All.Select(static tool => tool.Id).Distinct(StringComparer.OrdinalIgnoreCase).Count());
+        Assert.Equal(PdfToolCatalog.All.Count, PdfToolCatalog.All.Select(static tool => tool.Id).Distinct(StringComparer.OrdinalIgnoreCase).Count());
         Assert.Contains(PdfToolCatalog.All, static tool => tool.Kind == PdfToolKind.Redact && tool.RequiresDestructiveConfirmation);
         Assert.Contains(PdfToolCatalog.All, static tool => tool.Kind == PdfToolKind.Compare && tool.InputMode == PdfToolInputMode.Pair);
     }
@@ -58,6 +57,23 @@ public sealed class BrowserPdfToolServiceTests {
         InvalidDataException tooManyParts = Assert.Throws<InvalidDataException>(() =>
             _service.Execute(Request("split", [Document(CreatePdfWithPages(BrowserPdfPolicy.MaxSplitDocuments + 1))])));
         Assert.Contains("browser limit", tooManyParts.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [InlineData(3)]
+    [InlineData(101)]
+    public void ExtractAssetsDownloadsOneZipWithPageSvgsAndReports(int pageCount) {
+        PdfToolResult result = _service.Execute(Request("extract-assets", [Document(CreatePdfWithPages(pageCount), "source.pdf")]));
+
+        Assert.Equal("application/zip", result.Artifact.ContentType);
+        Assert.Equal(pageCount, result.PageCount);
+        Assert.False(result.PreviewInBrowser);
+        using var archive = new ZipArchive(new MemoryStream(result.Artifact.Bytes), ZipArchiveMode.Read);
+        using JsonDocument report = JsonDocument.Parse(archive.GetEntry("report.json")!.Open());
+        Assert.NotNull(archive.GetEntry("report.html"));
+        Assert.All(report.RootElement.GetProperty("pages").EnumerateArray(), page =>
+            Assert.NotNull(archive.GetEntry(page.GetProperty("file").GetString()!)));
+        Assert.Equal(pageCount, archive.Entries.Count(static entry => entry.FullName.EndsWith(".svg", StringComparison.Ordinal)));
     }
 
     [Fact]

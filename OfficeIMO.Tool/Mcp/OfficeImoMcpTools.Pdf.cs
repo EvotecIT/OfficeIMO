@@ -119,6 +119,22 @@ internal sealed partial class OfficeImoMcpTools {
             Settings(pages, passwordEnvironmentVariable, overwrite, maximumPages, dpi, maximumInputBytes, maximumOutputBytes),
             language, minimumConfidence, maxOutputCharacters, cancellationToken));
 
+    [McpServerTool(Name = "officeimo_pdf_extract_assets", Title = "Extract PDF assets", ReadOnly = false,
+        Destructive = false, Idempotent = false, OpenWorld = false, UseStructuredContent = true, OutputSchemaType = typeof(AgentPdfWorkflowResult))]
+    [Description("Save images, embedded font programs, ICC profiles, page SVGs, and JSON and HTML reports locally. The destination must be a new folder.")]
+    public Task<CallToolResult> ExtractPdfAssetsAsync(
+        [Description("Local source PDF within allowed roots.")] string path,
+        [Description("New output folder within allowed roots.")] string outputDirectory,
+        [Description("Write supported image soft masks as 32-bit RGBA PNGs.")] bool compositeSoftMasks = true,
+        [Description("Host-admitted environment-variable name containing a source password.")] string? passwordEnvironmentVariable = null,
+        [Description("Maximum source pages, 1-10000.")] int maximumPages = 500,
+        [Description("Maximum input bytes, 1-268435456.")] long maximumInputBytes = 268435456,
+        [Description("Maximum aggregate output bytes, 1-536870912.")] long maximumOutputBytes = 536870912,
+        [Description("Maximum serialized result characters, 512-64000.")] int maxOutputCharacters = 4000,
+        CancellationToken cancellationToken = default) => ExecutePdfAsync(() => Task.FromResult(_service.ExtractPdfAssets([path], outputDirectory,
+            compositeSoftMasks, Settings(null, passwordEnvironmentVariable, false, maximumPages, 150, maximumInputBytes, maximumOutputBytes),
+            maxOutputCharacters, cancellationToken)));
+
     [McpServerTool(Name = "officeimo_pdf_export_pages", Title = "Render selected PDF pages", ReadOnly = false,
         Destructive = true, Idempotent = true, OpenWorld = false, UseStructuredContent = true, OutputSchemaType = typeof(AgentPdfWorkflowResult))]
     [Description("Render selected pages into a separate explicit folder through the reusable image-export workflow. Outputs are decoded and validated before publication. Formats: png, jpeg, webp, tiff, svg.")]

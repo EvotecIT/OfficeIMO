@@ -3,7 +3,7 @@
   "tool": {
     "command": "officeimo",
     "package": "OfficeIMO.Tool",
-    "version": "3.6.0"
+    "version": "3.6.2"
   },
   "groups": [
     {
@@ -96,6 +96,7 @@
         "djvu",
         "doc",
         "docbook",
+        "dockerfile",
         "docm",
         "docx",
         "dot",
@@ -155,6 +156,7 @@
         "log",
         "lua",
         "lwp",
+        "mak",
         "markdown",
         "mbox",
         "mbx",
@@ -164,6 +166,7 @@
         "mht",
         "mhtml",
         "mjs",
+        "mk",
         "mkd",
         "mm",
         "mp",
@@ -1267,6 +1270,7 @@
         "djvu",
         "doc",
         "docbook",
+        "dockerfile",
         "docm",
         "docx",
         "dot",
@@ -1322,6 +1326,7 @@
         "log",
         "lua",
         "lwp",
+        "mak",
         "markdown",
         "mbox",
         "mbx",
@@ -1331,6 +1336,7 @@
         "mht",
         "mhtml",
         "mjs",
+        "mk",
         "mkd",
         "mm",
         "mp",
@@ -1525,6 +1531,7 @@
         "djvu",
         "doc",
         "docbook",
+        "dockerfile",
         "docm",
         "docx",
         "dot",
@@ -1580,6 +1587,7 @@
         "log",
         "lua",
         "lwp",
+        "mak",
         "markdown",
         "mbox",
         "mbx",
@@ -1589,6 +1597,7 @@
         "mht",
         "mhtml",
         "mjs",
+        "mk",
         "mkd",
         "mm",
         "mp",
@@ -2199,6 +2208,7 @@
         "djvu",
         "doc",
         "docbook",
+        "dockerfile",
         "docm",
         "docx",
         "dot",
@@ -2254,6 +2264,7 @@
         "log",
         "lua",
         "lwp",
+        "mak",
         "markdown",
         "mbox",
         "mbx",
@@ -2263,6 +2274,7 @@
         "mht",
         "mhtml",
         "mjs",
+        "mk",
         "mkd",
         "mm",
         "mp",
@@ -3592,7 +3604,7 @@
     {
       "id": "pdf",
       "title": "PDF",
-      "summary": "Extract pages, split, decrypt, flatten, optimize, sanitize, OCR, convert to PDF/A and redact PDFs into separate copies.",
+      "summary": "Export PDF assets, extract pages, split, decrypt, flatten, optimize, sanitize, run OCR, convert to PDF/A and redact PDFs.",
       "docsUrl": "/docs/cli/pdf/",
       "aliases": [],
       "shortcutFor": null,
@@ -3600,6 +3612,42 @@
         "officeimo pdf <command> [options]"
       ],
       "subcommands": [
+        {
+          "name": "extract-assets",
+          "names": [
+            "extract-assets"
+          ],
+          "summary": "Export embedded images, fonts, ICC profiles, page SVGs and asset reports to a new folder.",
+          "usage": [
+            "officeimo pdf extract-assets <input.pdf> [<input.pdf> ...] --output <new-folder> [--preserve-image-format] [--password-env <name>] [--maximum-pages <count>] [--maximum-input-bytes <bytes>] [--maximum-output-bytes <bytes>]"
+          ],
+          "options": [
+            {
+              "name": "--output",
+              "value": "<new-folder>"
+            },
+            {
+              "name": "--preserve-image-format",
+              "value": null
+            },
+            {
+              "name": "--password-env",
+              "value": "<name>"
+            },
+            {
+              "name": "--maximum-pages",
+              "value": "<count>"
+            },
+            {
+              "name": "--maximum-input-bytes",
+              "value": "<bytes>"
+            },
+            {
+              "name": "--maximum-output-bytes",
+              "value": "<bytes>"
+            }
+          ]
+        },
         {
           "name": "extract",
           "names": [
@@ -4009,8 +4057,8 @@
       "keyOptions": [
         {
           "name": "--output",
-          "value": "<copy.pdf>",
-          "description": "Destination file or folder; the source is never changed."
+          "value": "<path>",
+          "description": "Destination file or folder. The source is never changed."
         },
         {
           "name": "--pages",
@@ -4019,8 +4067,13 @@
         },
         {
           "name": "--password-env",
-          "value": "<owner-password-variable>",
+          "value": "<name>",
           "description": "Name of the environment variable that holds the owner password."
+        },
+        {
+          "name": "--preserve-image-format",
+          "value": null,
+          "description": "Use standard image export without composing soft masks."
         },
         {
           "name": "--recipe",
@@ -4050,7 +4103,7 @@
         {
           "name": "--maximum-pages",
           "value": "1..10000",
-          "description": "Page limit; 100 by default."
+          "description": "Page limit. The default is 500 for asset extraction and 100 for other PDF operations."
         },
         {
           "name": "--force",
@@ -5012,6 +5065,7 @@
         "djvu",
         "doc",
         "docbook",
+        "dockerfile",
         "docm",
         "docx",
         "dot",
@@ -5067,6 +5121,7 @@
         "log",
         "lua",
         "lwp",
+        "mak",
         "markdown",
         "mbox",
         "mbx",
@@ -5076,6 +5131,7 @@
         "mht",
         "mhtml",
         "mjs",
+        "mk",
         "mkd",
         "mm",
         "mp",

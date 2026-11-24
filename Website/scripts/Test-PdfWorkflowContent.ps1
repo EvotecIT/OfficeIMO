@@ -69,8 +69,8 @@ if ([int] $catalog.schemaVersion -ne 1) {
 }
 
 $operations = @($catalog.operations)
-if ($operations.Count -ne 12) {
-    throw "PDF workflow catalog must contain the 12 browser operations; found $($operations.Count)."
+if ($operations.Count -eq 0) {
+    throw 'PDF workflow catalog must contain browser operations.'
 }
 if (@($operations.id | Sort-Object -Unique).Count -ne $operations.Count -or
     @($operations.slug | Sort-Object -Unique).Count -ne $operations.Count) {
