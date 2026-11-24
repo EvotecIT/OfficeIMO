@@ -245,11 +245,14 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// True when the workbook holds the same sheet elements, in the same order and with the same sheet and
         /// relationship ids, as the cache was built from. Sheets added, removed, replaced, reordered or re-pointed
-        /// through the Open XML document fail this check.
+        /// internally fail this check. Once the package has been handed out through <see cref="OpenXmlDocument"/>,
+        /// callers can change anything behind the cache (including the part a relationship resolves to), so the
+        /// cache is always rebuilt, as it was before new sheets were appended to it.
         /// </summary>
         private bool SheetCacheMatchesWorkbook()
         {
             if (_cachedSheets == null) return true;
+            if (_openXmlDocumentExposed) return false;
             int index = 0;
             var sheets = _spreadSheetDocument?.WorkbookPart?.Workbook?.Sheets;
             if (sheets != null) {
