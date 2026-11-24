@@ -474,7 +474,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 SpreadsheetDocument document = _spreadSheetDocument;
-                CommitPendingStylesheet();
+                CommitPendingPartStreams();
                 ExcelSheet.MarkPackageExposed(document);
                 return document;
             }

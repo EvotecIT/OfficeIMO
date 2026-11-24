@@ -21,6 +21,7 @@ namespace OfficeIMO.Excel {
             internal readonly WorksheetReadCache ReadCaches = new();
             internal readonly HashSet<OpenXmlPart> PartSaves = new();
             internal readonly Dictionary<VmlDrawingPart, XDocument> CommentVmlDocuments = new();
+            internal CommentVmlShapeIndex? CommentVmlShapes;
             internal bool RequiresSavePreparation;
             /// <summary>Print settings on this sheet were chosen by the table defaults, not by the caller.</summary>
             internal bool OwnsTablePrintDefaults;
@@ -61,12 +62,14 @@ namespace OfficeIMO.Excel {
                 if (!WorksheetPersistenceStates.TryGetValue(part, out WorksheetPersistenceState? state)) continue;
                 state.PartSaves.Clear();
                 state.CommentVmlDocuments.Clear();
+                state.CommentVmlShapes = null;
                 state.MergeReferences = null;
                 state.TableHeaders = null;
             }
         }
 
-        internal bool RequiresSavePreparation => _requiresSavePreparation;
+        // Note drawings stay loaded until the save writes them, whatever cleared the preparation flag since.
+        internal bool RequiresSavePreparation => _requiresSavePreparation || PendingCommentVmlDocuments.Count > 0;
 
         // A direct-save model kept beside materialized rows must see every edit, or the save writes it instead.
         private bool CanSkipSavePreparationMark

@@ -694,6 +694,7 @@ namespace OfficeIMO.Excel {
             }
 
             string vmlRelationshipId = GetUnusedRelationshipId(target._worksheetPart);
+            CommitCommentVmlChanges();
             VmlDrawingPart targetVmlPart = target._worksheetPart.AddNewPart<VmlDrawingPart>(vmlRelationshipId);
             using (Stream sourceStream = sourceVmlPart.GetStream(FileMode.Open, FileAccess.Read))
             using (Stream targetStream = targetVmlPart.GetStream(FileMode.Create, FileAccess.Write)) {

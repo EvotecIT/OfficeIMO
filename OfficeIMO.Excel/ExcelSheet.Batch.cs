@@ -23,12 +23,8 @@ namespace OfficeIMO.Excel {
 
             if (Locking.IsNoLock) {
                 MaterializeDeferredDataSetImportIfNeeded();
-                try {
-                    using (TryBeginStyleBatch()) {
-                        action(this);
-                    }
-                } finally {
-                    CommitCommentVmlChanges();
+                using (TryBeginStyleBatch()) {
+                    action(this);
                 }
                 return;
             }
@@ -53,7 +49,6 @@ namespace OfficeIMO.Excel {
                 } finally {
                     // Batch is not a transaction: edits made before a callback throws still need to reach Save.
                     try {
-                        CommitCommentVmlChanges();
                         if (_batchHasCellMutations) _excelDocument.MarkPackageDirty();
                     } finally {
                         _isBatchOperation = wasBatchOperation;
