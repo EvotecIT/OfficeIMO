@@ -183,6 +183,22 @@ public class OpenXmlWordParagraphTextReaderTests {
         Assert.Equal("complex field marker in a skipped block", reason);
     }
 
+    [Fact]
+    public void DeclinesWhenANoteFieldSeparatesInsideASkippedBlock() {
+        const string footnotes = "<w:footnotes xmlns:w=\"" + WordNamespace + "\"><w:footnote w:id=\"1\">"
+            + "<w:p><w:r><w:fldChar w:fldCharType=\"begin\"/></w:r><w:r><w:instrText>PAGE</w:instrText></w:r></w:p>"
+            + "<w:tbl><w:tr><w:tc><w:p><w:r><w:fldChar w:fldCharType=\"separate\"/></w:r></w:p></w:tc></w:tr></w:tbl>"
+            + "<w:p><w:r><w:t>Result</w:t></w:r><w:r><w:fldChar w:fldCharType=\"end\"/></w:r></w:p></w:footnote></w:footnotes>";
+        byte[] package = CreatePackage("<w:p><w:r><w:t>Body</w:t></w:r><w:r><w:footnoteReference w:id=\"1\"/></w:r></w:p>",
+            extraPart: ("word/footnotes.xml", footnotes, "http://schemas.openxmlformats.org/officeDocument/2006/relationships/footnotes"));
+        using var stream = new MemoryStream(package, writable: false);
+
+        List<string>? lines = OfficeIMO.Word.WordStreamedBodyText.TryReadLines(stream, 8000, 0, null, includeNotes: true, CancellationToken.None, out string? reason);
+
+        Assert.Null(lines);
+        Assert.Equal("complex field marker in a skipped block", reason);
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData("<Types xmlns=\"urn:other\"/>")]

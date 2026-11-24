@@ -1074,8 +1074,8 @@ internal static class WordStreamedBodyText {
                             if (!ReadParagraph(reader, context, fields, recordNotes: true, canDrop: true, out string? text, out SectionReferences? section)) return false;
                             if (section != null || context.NoteReferences.Count != references) return context.Decline("note with a section or a note reference");
                             if (!string.IsNullOrWhiteSpace(text)) paragraphs.Add(text!);
-                        } else {
-                            reader.SkipElement();
+                        } else if (!SkipBlockWithoutFields(reader, context)) {
+                            return false;
                         }
                     }
                 }
