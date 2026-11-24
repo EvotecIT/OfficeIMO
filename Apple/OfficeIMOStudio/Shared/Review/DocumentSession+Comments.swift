@@ -1,5 +1,6 @@
 import CoreGraphics
 import Foundation
+import UniformTypeIdentifiers
 import OfficeIMOStudioEngine
 
 /// A reply to the comment with this object number, as officeimo_document_edit_json takes it.
@@ -92,15 +93,38 @@ extension DocumentSession {
 
     /// Adds the draft reply to the selected thread as one undoable change.
     func reply(to thread: CommentThread) {
-        let text = commentDrafts[thread.id].trimmingCharacters(in: .whitespacesAndNewlines)
+        let text = commentDrafts[thread].trimmingCharacters(in: .whitespacesAndNewlines)
         guard canReplyToComments, !text.isEmpty else { return }
-        let draft = commentDrafts[thread.id]
+        let draft = commentDrafts[thread]
         let reply = CommentReply(objectNumber: thread.objectNumber, text: text, author: Self.author,
                                  color: EngineColor(red: 1, green: 0.8, blue: 0.1))
         edit(String(localized: "Reply to Comment"), { try await $0.edit(EditRequest(reply: reply)) }, then: { session in
             session.commentDrafts.sent(draft, to: thread.id)
             Task { await session.loadComments() }
         })
+    }
+
+    /// Reply drafts whose thread is no longer in the revision shown, once its comments are read.
+    var retainedCommentDrafts: [CommentDrafts.Draft] {
+        guard let comments = currentComments else { return [] }
+        return commentDrafts.unassigned(keeping: comments.threads)
+    }
+
+    /// Writes the comment threads as a Markdown summary, grouped by page, for the export panel.
+    func commentSummaryFile() throws -> ExportedFile? {
+        guard let comments = currentComments, !comments.threads.isEmpty, let facts else { return nil }
+        let base = (facts.fileName as NSString).deletingPathExtension
+        let name = try StudioTemporaryFiles.outputName(String(localized: "\(base) Comments") + ".md")
+        let folder = StudioTemporaryFiles.root.appending(path: "Exported/\(UUID().uuidString)", directoryHint: .isDirectory)
+        let url = folder.appending(path: name)
+        do {
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            try Data(CommentSummary.markdown(comments.threads, documentName: facts.fileName).utf8).write(to: url)
+            return ExportedFile(document: try ExportedDocument(url: url, stagingFolder: folder), contentType: .markdown, name: name, folder: folder)
+        } catch {
+            try? FileManager.default.removeItem(at: folder)
+            throw error
+        }
     }
 
     /// Resolves an open thread or opens a resolved one again, as one undoable change.

@@ -55,18 +55,42 @@ final class CommentThreadsTests: XCTestCase {
         XCTAssertNil(CommentNavigation.nextOpen(after: nil, in: []))
     }
 
-    func testDraftsStayWithTheirThreadUntilTheReplyIsSent() {
+    func testDraftsStayWithTheirThreadUntilTheReplyIsSent() throws {
+        let threads = try threads()
         var drafts = CommentDrafts()
-        drafts["a"] = "Looks good"
-        drafts["b"] = "Not yet"
-        XCTAssertEqual(drafts["a"], "Looks good")
+        drafts[threads[0]] = "Looks good"
+        drafts[threads[1]] = "Not yet"
+        XCTAssertEqual(drafts.text(for: "a"), "Looks good")
         drafts.sent("Looks good", to: "a")
-        XCTAssertEqual(drafts["a"], "")
+        XCTAssertEqual(drafts[threads[0]], "")
         // A draft edited while its reply was being added is kept.
         drafts.sent("Not", to: "b")
-        XCTAssertEqual(drafts["b"], "Not yet")
-        drafts["b"] = ""
+        XCTAssertEqual(drafts[threads[1]], "Not yet")
+        drafts[threads[1]] = ""
         XCTAssertEqual(drafts, CommentDrafts())
+    }
+
+    func testADraftWhoseThreadIsGoneIsRetainedAndRestoresOnlyToAThreadWithoutOne() throws {
+        let threads = try threads()
+        var drafts = CommentDrafts()
+        drafts[threads[1]] = "Please check page 2"
+        drafts[threads[2]] = "Mine"
+        let remaining = [threads[0], threads[2]]
+        let retained = drafts.unassigned(keeping: remaining)
+        XCTAssertEqual(retained.map(\.text), ["Please check page 2"])
+        XCTAssertTrue(retained[0].label.contains("Sam"))
+        XCTAssertFalse(drafts.restore("b", to: threads[2]))
+        XCTAssertTrue(drafts.restore("b", to: threads[0]))
+        XCTAssertEqual(drafts[threads[0]], "Please check page 2")
+        XCTAssertTrue(drafts.unassigned(keeping: remaining).isEmpty)
+    }
+
+    func testTheSummaryGroupsThreadsByPageWithStatesRepliesAndEscapedText() throws {
+        let summary = CommentSummary.markdown(try threads(), documentName: "Q3_report.pdf")
+        XCTAssertTrue(summary.hasPrefix("# Comments on Q3\\_report\\.pdf\n\n3 threads, 2 open.\n\n## Page 1\n\n"), summary)
+        XCTAssertTrue(summary.contains("- **Alex Morgan** (Unresolved): Check the totals\n  - Zoë Lee: Fixed\n"), summary)
+        XCTAssertTrue(summary.contains("## Page 2\n\n- **Sam** (Resolved): (no text)\n"), summary)
+        XCTAssertEqual(CommentSummary.escape("a<b>&*\nc"), "a&lt;b&gt;&amp;\\* c")
     }
 
     func testTheChosenAuthorNameWinsOverTheSystemName() {

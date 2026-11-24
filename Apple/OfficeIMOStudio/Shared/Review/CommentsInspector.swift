@@ -6,6 +6,7 @@ import SwiftUI
 struct CommentsInspector: View {
     @Bindable var session: DocumentSession
     @AppStorage(CommentAuthor.defaultsKey) private var authorName = ""
+    @State private var summary: ExportedFile?
 
     var body: some View {
         let threads = session.shownCommentThreads
@@ -21,7 +22,12 @@ struct CommentsInspector: View {
                     .autocorrectionDisabled()
                 Button("Next Open Comment", systemImage: "arrow.down.circle") { session.showNextOpenComment() }
                     .disabled(!threads.contains { !$0.resolved })
+                Button("Export Summary…", systemImage: "square.and.arrow.up") {
+                    do { summary = try session.commentSummaryFile() } catch { session.errorMessage = error.localizedDescription }
+                }
+                .disabled(session.currentComments?.threads.isEmpty != false)
             }
+            RetainedDraftsSection(session: session)
             if threads.isEmpty {
                 Section {
                     Text(session.comments == nil ? "Reading comments…" : emptyMessage)
@@ -45,6 +51,12 @@ struct CommentsInspector: View {
         }
         .formStyle(.grouped)
         .task(id: "\(session.isReady)-\(session.revision)") { await session.loadComments() }
+        // The inspector is a sheet on iPhone, so the summary is exported from here rather than from the window.
+        .fileExporter(isPresented: Binding { summary != nil } set: { if !$0 { summary = nil } }, document: summary?.document,
+                      contentType: .markdown, defaultFilename: summary?.name) { result in
+            summary = nil
+            if case .failure(let error) = result { session.errorMessage = error.localizedDescription }
+        }
     }
 
     private var emptyMessage: LocalizedStringKey {
@@ -52,6 +64,40 @@ struct CommentsInspector: View {
         case .all: "This document has no comments. Add a note in Markup to start one."
         case .open: "No open comments."
         case .resolved: "No resolved comments."
+        }
+    }
+}
+
+/// Replies being written to comments that an edit removed or replaced, kept so they can be restored to the selected
+/// comment or copied, as the desktop keeps them.
+private struct RetainedDraftsSection: View {
+    @Bindable var session: DocumentSession
+
+    var body: some View {
+        let drafts = session.retainedCommentDrafts
+        if !drafts.isEmpty {
+            Section {
+                ForEach(drafts) { draft in
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(draft.label).font(.subheadline.weight(.semibold))
+                        Text(draft.text).font(.callout).textSelection(.enabled)
+                        HStack {
+                            Button("Restore to Selected Comment", systemImage: "arrow.uturn.backward") {
+                                if let thread = session.selectedCommentThread { session.commentDrafts.restore(draft.thread, to: thread) }
+                            }
+                            .disabled(session.selectedCommentThread.map { !session.commentDrafts[$0].isEmpty } ?? true)
+                            Spacer()
+                            Button("Discard", systemImage: "trash", role: .destructive) { session.commentDrafts.discard(draft.thread) }
+                                .labelStyle(.iconOnly)
+                        }
+                        .buttonStyle(.borderless)
+                    }
+                }
+            } header: {
+                Text("Retained Reply Drafts")
+            } footer: {
+                Text("The comment these replies were written to was removed or replaced by an edit. Select a comment without a reply to restore one, or copy its text.")
+            }
         }
     }
 }
@@ -95,13 +141,13 @@ private struct CommentThreadView: View {
         }
         .listRowBackground(isSelected ? Color.accentColor.opacity(0.12) : nil)
         if isSelected {
-            TextField("Reply", text: $session.commentDrafts[thread.id], prompt: Text("Write a reply"), axis: .vertical)
+            TextField("Reply", text: $session.commentDrafts[thread], prompt: Text("Write a reply"), axis: .vertical)
                 .lineLimit(1...5)
                 .onSubmit { session.reply(to: thread) }
             HStack {
                 Button("Reply", systemImage: "arrowshape.turn.up.left") { session.reply(to: thread) }
                     .disabled(!session.canReplyToComments
-                              || session.commentDrafts[thread.id].trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                              || session.commentDrafts[thread].trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 Spacer()
                 resolveButton
             }

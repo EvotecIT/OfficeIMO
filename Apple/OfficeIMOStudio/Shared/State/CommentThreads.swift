@@ -9,16 +9,16 @@ struct CommentList: Decodable, Sendable, Equatable {
     let threads: [CommentThread]
 }
 
-struct CommentThread: Decodable, Sendable, Identifiable, Equatable {
+struct CommentThread: Decodable, Sendable, Identifiable, Hashable {
     /// Where the comment is, in points of the page as displayed from its top-left corner.
-    struct Box: Decodable, Sendable, Equatable {
+    struct Box: Decodable, Sendable, Hashable {
         let x: Double
         let y: Double
         let width: Double
         let height: Double
     }
 
-    struct Entry: Decodable, Sendable, Equatable {
+    struct Entry: Decodable, Sendable, Hashable {
         let objectNumber: Int?
         let author: String?
         let contents: String?
@@ -84,18 +84,110 @@ enum CommentNavigation {
     }
 }
 
-/// Replies being written, one per thread, so moving to another comment and back keeps what was typed.
+/// Replies being written, one per thread, so moving to another comment and back keeps what was typed. A draft whose
+/// thread is no longer in the document, because the comment was removed or an edit replaced it, is kept with what it
+/// replied to, so it can be restored to another thread or copied, as the desktop's retained drafts are.
 struct CommentDrafts: Sendable, Equatable {
-    private var texts: [String: String] = [:]
-
-    subscript(thread: String) -> String {
-        get { texts[thread] ?? "" }
-        set { texts[thread] = newValue.isEmpty ? nil : newValue }
+    struct Draft: Sendable, Equatable, Identifiable {
+        let thread: String
+        /// What the draft replies to: the page and author of the comment.
+        let label: String
+        var text: String
+        var id: String { thread }
     }
+
+    private var drafts: [String: Draft] = [:]
+
+    subscript(thread: CommentThread) -> String {
+        get { drafts[thread.id]?.text ?? "" }
+        set { drafts[thread.id] = newValue.isEmpty ? nil : Draft(thread: thread.id, label: Self.label(thread), text: newValue) }
+    }
+
+    func text(for thread: String) -> String { drafts[thread]?.text ?? "" }
 
     /// Drops the draft once its reply is in the document, unless it changed while the reply was added.
     mutating func sent(_ text: String, to thread: String) {
-        if texts[thread] == text { texts[thread] = nil }
+        if drafts[thread]?.text == text { drafts[thread] = nil }
+    }
+
+    /// Drafts whose thread the document no longer has, in the order they were started.
+    func unassigned(keeping threads: [CommentThread]) -> [Draft] {
+        let ids = Set(threads.map(\.id))
+        return drafts.values.filter { !ids.contains($0.thread) }.sorted { $0.label < $1.label }
+    }
+
+    /// Moves a retained draft to a thread that has no draft of its own; false when it has one.
+    @discardableResult
+    mutating func restore(_ draft: String, to thread: CommentThread) -> Bool {
+        guard let retained = drafts[draft], self[thread].isEmpty else { return false }
+        drafts[draft] = nil
+        self[thread] = retained.text
+        return true
+    }
+
+    mutating func discard(_ draft: String) { drafts[draft] = nil }
+
+    private static func label(_ thread: CommentThread) -> String {
+        let author = thread.comment?.author.flatMap { $0.isEmpty ? nil : $0 } ?? String(localized: "Unknown Author")
+        guard let page = thread.page else { return author }
+        return String(localized: "Page \(page), \(author)")
+    }
+}
+
+/// The comment threads as a Markdown summary, grouped by page with each thread's state and replies, as the desktop's
+/// Export Summary writes it.
+enum CommentSummary {
+    static func markdown(_ threads: [CommentThread], documentName: String) -> String {
+        var text = "# " + String(localized: "Comments on \(escape(documentName))") + "\n\n"
+        let open = threads.filter { !$0.resolved }.count
+        text += String(localized: "\(threads.count) threads, \(open) open.") + "\n\n"
+        let pages = Dictionary(grouping: threads) { $0.page ?? 0 }
+        for page in pages.keys.sorted() {
+            text += "## " + (page == 0 ? String(localized: "No Page") : String(localized: "Page \(page)")) + "\n\n"
+            for thread in pages[page] ?? [] {
+                for (index, entry) in thread.entries.enumerated() {
+                    let author = escape(entry.author.flatMap { $0.isEmpty ? nil : $0 } ?? String(localized: "Unknown Author"))
+                    let contents = entry.contents.flatMap { $0.isEmpty ? nil : $0 }.map(escape) ?? String(localized: "(no text)")
+                    if index == 0 {
+                        text += "- **\(author)** (\(escape(stateName(thread.state)))): \(contents)\n"
+                    } else {
+                        text += "  - \(author): \(contents)\n"
+                    }
+                }
+            }
+            text += "\n"
+        }
+        return text
+    }
+
+    /// What people call a review state.
+    static func stateName(_ state: String) -> String {
+        switch state {
+        case "completed": String(localized: "Resolved")
+        case "accepted": String(localized: "Accepted")
+        case "rejected": String(localized: "Rejected")
+        case "cancelled": String(localized: "Cancelled")
+        case "marked": String(localized: "Marked")
+        case "unmarked": String(localized: "Unmarked")
+        default: String(localized: "Unresolved")
+        }
+    }
+
+    /// Text that reads the same in Markdown: whitespace as spaces, HTML characters as entities and Markdown punctuation
+    /// escaped.
+    static func escape(_ value: String) -> String {
+        var result = ""
+        for character in value {
+            if character.isWhitespace { result.append(" ") }
+            else if character == "&" { result += "&amp;" }
+            else if character == "<" { result += "&lt;" }
+            else if character == ">" { result += "&gt;" }
+            else {
+                if "\\`*_{}[]()#+-.!|~".contains(character) { result.append("\\") }
+                result.append(character)
+            }
+        }
+        return result
     }
 }
 
