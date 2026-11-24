@@ -554,7 +554,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         PdfLoadOptions loadOptions = request.OutputPdfLoadOptions;
         string extension = Path.GetExtension(outputPath).ToLowerInvariant();
         switch (extension) {
-            case ".epub" when request.Registration is null && request.Route?.Id is ("docx-epub" or "markdown-epub" or "html-epub"): {
+            case ".epub" when request.Registration is null && OfficeWorkflow.IsManuscriptEpubRoute(request.Route?.Id): {
                 using FileStream stream = OpenStagedArtifact(stagingPath);
                 var settings = request.UnifiedConversionOptions?.RegisteredSettings as OfficeWorkflowRouteSettings;
                 await OfficeWorkflow.ValidateManuscriptArtifactAsync(stream, request.Limits.MaximumOutputBytes,

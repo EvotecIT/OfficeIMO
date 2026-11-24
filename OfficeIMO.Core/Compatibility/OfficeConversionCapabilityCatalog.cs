@@ -402,7 +402,7 @@ public static partial class OfficeConversionCapabilityCatalog {
         Route("book-project-epub", "Book project", "EPUB", OfficeConversionInputKind.File, new[] { ".oibook" }, ".epub", "OfficeIMO.Workflows", "BookProject.LoadProject(bytes).Export(options)", "Export a reviewed book project through the EPUB owner, retaining its publication and fidelity evidence.", OfficeConversionFidelityKind.Semantic, "EpubWriteResult"),
         Route("html-epub", "HTML", "EPUB", OfficeConversionInputKind.File, new[] { ".html", ".htm" }, ".epub", "OfficeIMO.Workflows", "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)", "Package a static HTML manuscript and its bounded assets into a reflowable EPUB with chapter navigation.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport"),
         Route("markdown-epub", "Markdown", "EPUB", OfficeConversionInputKind.File, new[] { ".md", ".markdown" }, ".epub", "OfficeIMO.Workflows", "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)", "Publish Markdown with front matter, headings and bounded assets as a reflowable EPUB.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport"),
-        Route("docx-epub", "DOCX", "EPUB", OfficeConversionInputKind.File, new[] { ".docx" }, ".epub", "OfficeIMO.Workflows", "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)", "Publish the static final view of a DOCX manuscript as a reflowable EPUB with the Word projection's fidelity findings.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport"),
+        Route("docx-epub", "DOCX", "EPUB", OfficeConversionInputKind.File, new[] { ".docx" }, ".epub", "OfficeIMO.Workflows", "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)", "Publish the static final view of a DOCX manuscript as a reflowable EPUB with the Word projection's fidelity findings.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport", expandModernOfficeFamily: false),
         Route("markdown-html", "Markdown", "HTML", OfficeConversionInputKind.Text, new[] { ".md", ".markdown", ".txt" }, ".html", "OfficeIMO.Markdown", "MarkdownDocument.Parse(markdown).SaveAsHtml(output, options)", "Render typed Markdown through an explicit safe HTML profile.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport", browser: true),
         Route("html-markdown", "HTML", "Markdown", OfficeConversionInputKind.Text, new[] { ".html", ".htm", ".txt" }, ".md", "OfficeIMO.Markdown.Html", "HtmlConversionDocument.Parse(html).SaveAsMarkdown(output, options)", "Project HTML into portable Markdown with explicit resource and loss policy.", OfficeConversionFidelityKind.Semantic, "OfficeConversionReport", browser: true),
         Route("markdown-pptx", "Markdown", "PowerPoint", OfficeConversionInputKind.Text, new[] { ".md", ".markdown", ".txt" }, ".pptx", "OfficeIMO.Workflows", "MarkdownPowerPointConverterExtensions.SaveAsPowerPoint(markdown, output, options)", "Compose Markdown outlines into editable native slides with notes, front matter and loss diagnostics.", OfficeConversionFidelityKind.Editable, "OfficeConversionReport"),
@@ -684,9 +684,10 @@ public static partial class OfficeConversionCapabilityCatalog {
         string id, string source, string target, OfficeConversionInputKind inputKind,
         IEnumerable<string> sourceExtensions, string targetExtension, string packageId,
         string api, string description, OfficeConversionFidelityKind fidelity,
-        string resultContract, bool browser = false) =>
-        CreateRoute(id, source, target, inputKind, sourceExtensions, targetExtension,
-            packageId, api, description, fidelity, resultContract, browser);
+        string resultContract, bool browser = false, bool expandModernOfficeFamily = true) =>
+        CreateRoute(id, source, target, inputKind,
+            expandModernOfficeFamily ? ExpandModernOfficeFamily(source, sourceExtensions) : sourceExtensions,
+            targetExtension, packageId, api, description, fidelity, resultContract, browser);
 
     private static OfficeConversionCapability CreateRoute(
         string id, string source, string target, OfficeConversionInputKind inputKind,
@@ -696,7 +697,7 @@ public static partial class OfficeConversionCapabilityCatalog {
         OfficeConversionSupportAssessment support = OfficeConversionSupportAssessments.Get(id);
         (OfficeConversionTextFormattingKind textFormatting, string textFormattingContract) = GetTextFormattingContract(source, target);
         return new OfficeConversionCapability(
-            id, source, target, inputKind, ExpandModernOfficeFamily(source, sourceExtensions), targetExtension,
+            id, source, target, inputKind, sourceExtensions, targetExtension,
             packageId, api, description, fidelity, resultContract, browser,
             agentDiscoverable: true,
             supportLevel: support.Level,

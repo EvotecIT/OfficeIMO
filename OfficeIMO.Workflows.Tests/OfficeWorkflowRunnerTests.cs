@@ -220,6 +220,36 @@ public sealed class OfficeWorkflowRunnerTests {
         }
     }
 
+    [Fact]
+    public void WordManuscriptRouteAdvertisesOnlyTheSupportedSourceExtension() {
+        OfficeWorkflowRoute route = Assert.Single(OfficeWorkflowCatalog.ExecutableRoutes, item => item.Id == "docx-epub");
+        Assert.Equal(new[] { ".docx" }, route.SourceExtensions);
+        foreach (string extension in new[] { ".docm", ".dotx", ".dotm" }) {
+            Assert.Null(OfficeWorkflowCatalog.Find(extension, ".epub", executableOnly: true));
+            Assert.Equal("docx-pdf", OfficeWorkflowCatalog.Find(extension, ".pdf", executableOnly: true)?.Id);
+        }
+    }
+
+    [Fact]
+    public async Task ManuscriptProviderStreamUsesTheSelectedFilenameForItsTitle() {
+        using var scope = new TestDirectory();
+        byte[] source = Encoding.UTF8.GetBytes("A manuscript paragraph without a heading.");
+        string output = Path.Combine(scope.Path, "result.epub");
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Convert,
+            ConversionRouteId = "markdown-epub",
+            InputPath = "content://provider/selected",
+            InputStream = new OfficeWorkflowStreamInput("My Novel.md",
+                _ => Task.FromResult<Stream>(new MemoryStream(source, writable: false))),
+            OutputPath = output
+        });
+
+        Assert.True(result.Succeeded, result.Summary);
+        using FileStream stream = File.OpenRead(output);
+        Assert.Equal("My Novel", EpubPublication.Load(stream).Title);
+    }
+
     [Theory]
     [InlineData("docx-pdf")]
     [InlineData("xlsx-pdf")]

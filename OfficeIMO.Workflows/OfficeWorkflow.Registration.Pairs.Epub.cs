@@ -6,6 +6,9 @@ using OfficeIMO.Provenance;
 namespace OfficeIMO.Workflows;
 
 public static partial class OfficeWorkflow {
+    internal static bool IsManuscriptEpubRoute(string? routeId) =>
+        routeId is "docx-epub" or "markdown-epub" or "html-epub";
+
     internal static async Task ValidateManuscriptArtifactAsync(Stream output, long maximumOutputBytes,
         EpubPublicationLoadOptions? retentionLimits, CancellationToken token) {
         EpubPublicationLoadOptions limits = retentionLimits ?? new EpubPublicationLoadOptions();

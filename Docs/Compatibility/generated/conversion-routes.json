@@ -427,7 +427,7 @@
       "source":"DOCX",
       "target":"EPUB",
       "inputKind":"File",
-      "sourceExtensions":[ ".docx", ".docm", ".dotx", ".dotm" ],
+      "sourceExtensions":[ ".docx" ],
       "targetExtension":".epub",
       "packageId":"OfficeIMO.Workflows",
       "api":"OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",

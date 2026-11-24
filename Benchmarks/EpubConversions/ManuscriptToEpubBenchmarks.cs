@@ -100,9 +100,11 @@ public class ManuscriptToEpubBenchmarks {
         using var input = new MemoryStream(bytes, writable: false);
         EpubDocument book = EpubDocument.Load(input);
         if (book.Title != BookCorpus.Title || book.Chapters.Count != chapters
-            || !book.Chapters[0].Text.Contains(BookCorpus.ChapterLabel(1), StringComparison.Ordinal)
-            || !book.Chapters[chapters - 1].Text.Contains(BookCorpus.ChapterLabel(chapters), StringComparison.Ordinal)
             || book.Resources.Count(resource => resource.MediaType == "image/png") != chapters * imagesPerChapter)
-            throw new InvalidDataException("The EPUB did not retain the manuscript title, chapter order, and images.");
+            throw new InvalidDataException("The EPUB did not retain the manuscript title, chapter count, and images.");
+        for (int index = 0; index < chapters; index++) {
+            if (!book.Chapters[index].Text.Contains(BookCorpus.ChapterLabel(index + 1), StringComparison.Ordinal))
+                throw new InvalidDataException($"The EPUB did not retain manuscript chapter {index + 1} in order.");
+        }
     }
 }

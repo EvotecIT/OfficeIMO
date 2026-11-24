@@ -22147,7 +22147,7 @@
       "publicApi":"OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
       "evidence":"Executable manuscript routes reopen the EPUB and check metadata, heading-based chapter boundaries, navigation and typography. The EPUBCheck lane validates representative output for all three source formats.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
-      "extensions":[".docm",".docx",".dotm",".dotx"],
+      "extensions":[".docx"],
       "limitation":"Produces reflowable EPUB 3. Source layout, live fields, revisions, comments and controls can require reported approximations or omissions. Missing assets and unnamed images block export. Accessibility and reader presentation require their own review. The file routes use OfficeIMO.Workflows on .NET 8 or newer."
     },
     {

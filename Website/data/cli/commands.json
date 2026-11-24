@@ -443,10 +443,7 @@
           "source": "DOCX",
           "target": "EPUB",
           "sourceExtensions": [
-            ".docx",
-            ".docm",
-            ".dotx",
-            ".dotm"
+            ".docx"
           ],
           "targetExtension": ".epub"
         },
