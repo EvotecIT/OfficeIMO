@@ -37,6 +37,51 @@ public class PowerPointUnchangedSaveTests {
         AssertSamePackage(source, throughSdk, withoutSdk, keptAsLoaded: !sdkLoaded);
     }
 
+    // Opt-in: OFFICEIMO_PPTX_CORPUS names a folder of presentations, such as the public corpora the real-world corpus
+    // runner fetches. A deck the deferred load accepts must open in the SDK, and save as the SDK path saves it.
+    public static IEnumerable<object[]> ExternalCorpus() {
+        string? folder = Environment.GetEnvironmentVariable("OFFICEIMO_PPTX_CORPUS");
+        if (string.IsNullOrEmpty(folder) || !Directory.Exists(folder)) yield break;
+        foreach (string file in Directory.EnumerateFiles(folder, "*.pptx", SearchOption.AllDirectories).OrderBy(file => file, StringComparer.Ordinal)) {
+            yield return new object[] { file };
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(ExternalCorpus))]
+    public void ExternalCorpusPresentationsLoadAndSaveAsTheSdkPathDoes(string path) {
+        byte[] source = File.ReadAllBytes(path);
+        PowerPointDocument presentation;
+        try {
+            presentation = PowerPointDocument.Load(new MemoryStream(source));
+        } catch (Exception) {
+            // The load failed before any deferral could hide it.
+            return;
+        }
+        using (presentation) {
+            if (presentation.IsSdkLoaded) return;
+            byte[]? throughSdk = null;
+            Exception? sdkFailure = null;
+            try {
+                throughSdk = SaveThroughSdk(source);
+            } catch (Exception exception) {
+                sdkFailure = exception;
+            }
+            using (var opened = PowerPointDocument.Load(new MemoryStream(source))) {
+                Exception? openFailure = Record.Exception(() => opened.OpenXmlDocument);
+                Assert.True(openFailure == null, "The deferred load accepted a package the SDK rejects: " + openFailure);
+            }
+            Exception? saveFailure = Record.Exception(() => presentation.ToBytes());
+            if (sdkFailure != null) {
+                Assert.True(saveFailure != null, "The SDK save fails, the save without it did not: " + sdkFailure.Message);
+                return;
+            }
+            Assert.True(saveFailure == null, "The save without the SDK failed: " + saveFailure);
+            byte[] saved = presentation.ToBytes();
+            AssertSamePackage(source, throughSdk!, saved, keptAsLoaded: !presentation.IsSdkLoaded);
+        }
+    }
+
     [Fact]
     public void SavesWithoutOpeningTheSdkAndRefreshesTheDocumentProperties() {
         byte[] source = CreateDeckWithStaleProperties();
@@ -151,7 +196,10 @@ public class PowerPointUnchangedSaveTests {
         Assert.Equal(expected.Keys.OrderBy(name => name, StringComparer.Ordinal), actual.Keys.OrderBy(name => name, StringComparer.Ordinal));
         foreach (KeyValuePair<string, byte[]> part in actual) {
             if (part.Key == CorePart) {
-                Assert.Equal(CoreValues(expected[part.Key]), CoreValues(part.Value));
+                List<string> expectedCore = CoreValues(expected[part.Key]);
+                List<string> actualCore = CoreValues(part.Value);
+                Assert.True(expectedCore.SequenceEqual(actualCore), "Core properties differ. SDK only: "
+                    + string.Join(" | ", expectedCore.Except(actualCore)) + "; without the SDK only: " + string.Join(" | ", actualCore.Except(expectedCore)));
                 Assert.True(Regex.IsMatch(Modified(part.Value), ModifiedFormat(expected[part.Key])),
                     "SDK '" + Modified(expected[part.Key]) + "', without the SDK '" + Modified(part.Value) + "'.");
             } else if (part.Key.EndsWith(".xml", StringComparison.OrdinalIgnoreCase) || part.Key.EndsWith(".rels", StringComparison.OrdinalIgnoreCase)) {
@@ -174,11 +222,12 @@ public class PowerPointUnchangedSaveTests {
     // The SDK's spelling of the time, with digits generalised.
     private static string ModifiedFormat(byte[] core) => "^" + Regex.Replace(Regex.Escape(Modified(core)), "[0-9]", "[0-9]") + "$";
 
-    // The SDK writes the core properties again in its own order and date spelling; the values are what must match.
+    // The SDK writes the core properties again in its own order and date spelling (created, modified and lastPrinted);
+    // the values are what must match.
     private static List<string> CoreValues(byte[] core) =>
         XDocument.Load(new MemoryStream(core)).Root!.Elements()
             .Where(element => element.Name != DublinCoreTerms + "modified")
-            .Select(element => element.Name + "=" + (element.Name.Namespace == DublinCoreTerms
+            .Select(element => element.Name + "=" + (element.Name.Namespace == DublinCoreTerms || element.Name.LocalName == "lastPrinted"
                 ? DateTime.Parse(element.Value, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AdjustToUniversal).ToString("O")
                 : element.Value))
             .OrderBy(value => value, StringComparer.Ordinal)
