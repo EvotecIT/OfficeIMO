@@ -44,6 +44,11 @@ internal static class WordStreamedBodyText {
             declineReason = "no main document part";
             return null;
         }
+        package.RequireContentType(main,
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.template.main+xml",
+            "application/vnd.ms-word.document.macroEnabled.main+xml",
+            "application/vnd.ms-word.template.macroEnabledTemplate.main+xml");
         var context = new Context(package, main, maxChars, maxTableRows, maxCharactersInPart, cancellationToken);
         bool read = context.Read(main, reader => ReadBody(reader, context));
         if (read && includeNotes) read = WriteNotes(context);
@@ -123,13 +128,7 @@ internal static class WordStreamedBodyText {
 
         /// <summary>Writes the lines of a header or footer part, reading each part once however many sections use it.</summary>
         internal bool WriteHeaderFooter(string relationshipId, string relationshipType) {
-            OfficeOpcRelationship? relationship = null;
-            foreach (OfficeOpcRelationship candidate in Package.GetRelationships(MainPart)) {
-                if (string.Equals(candidate.Id, relationshipId, StringComparison.Ordinal)) {
-                    relationship = candidate;
-                    break;
-                }
-            }
+            OfficeOpcRelationship? relationship = Package.FindRelationship(MainPart, relationshipId);
             // The model keeps a reference to a missing part as an empty header.
             if (relationship == null || relationship.TargetPartName == null || !Package.PartExists(relationship.TargetPartName)) return true;
             if (!string.Equals(relationship.Type, relationshipType, StringComparison.Ordinal)) return Decline("header or footer reference to another part type");
@@ -203,7 +202,7 @@ internal static class WordStreamedBodyText {
                     break;
                 case "sdt": case "altChunk": case "customXml":
                     // The inspection snapshot keeps only paragraphs and tables of a section.
-                    reader.SkipElement();
+                    if (!SkipBlockWithoutFields(reader, context)) return false;
                     break;
                 case "bookmarkStart": case "bookmarkEnd": case "proofErr": case "permStart": case "permEnd":
                 case "commentRangeStart": case "commentRangeEnd":
@@ -268,8 +267,8 @@ internal static class WordStreamedBodyText {
                 context.Lines.Add(text!);
             } else if (reader.NamespaceId == W && reader.LocalName == "tbl") {
                 if (!ReadTable(reader, context, fields, recordNotes: true)) return false;
-            } else {
-                reader.SkipElement();
+            } else if (!SkipBlockWithoutFields(reader, context)) {
+                return false;
             }
         }
         return true;
@@ -448,6 +447,19 @@ internal static class WordStreamedBodyText {
                 default:
                     reader.SkipElement();
                     break;
+            }
+        }
+        return true;
+    }
+
+    // The model follows complex field markers through every paragraph of a story, those inside skipped block
+    // content controls included. A skipped block that holds one would leave the field state behind, so it declines.
+    private static bool SkipBlockWithoutFields(OfficeXmlPullReader reader, Context context) {
+        if (reader.IsEmptyElement) return true;
+        int depth = reader.Depth;
+        while (reader.Read() && !(reader.NodeKind == OfficeXmlNodeKind.EndElement && reader.Depth == depth)) {
+            if (reader.NodeKind == OfficeXmlNodeKind.StartElement && reader.NamespaceId == W && reader.LocalName == "fldChar") {
+                return context.Decline("complex field marker in a skipped block");
             }
         }
         return true;

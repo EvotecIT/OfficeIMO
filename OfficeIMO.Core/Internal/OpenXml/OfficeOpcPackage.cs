@@ -13,7 +13,7 @@ internal sealed class OfficeOpcPackage : IDisposable {
     private const string ContentTypesMember = "[Content_Types].xml";
 
     private readonly OfficeZipPackageReader _zip;
-    private readonly Dictionary<string, OfficeOpcRelationship[]> _relationships = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, RelationshipSet> _relationships = new(StringComparer.OrdinalIgnoreCase);
     private Dictionary<string, string>? _defaultContentTypes;
     private Dictionary<string, string>? _overrideContentTypes;
 
@@ -29,13 +29,23 @@ internal sealed class OfficeOpcPackage : IDisposable {
             if (_members.ContainsKey(identity)) throw new InvalidDataException("The package stores the part '/" + identity + "' more than once.");
             _members.Add(identity, member);
         }
+        // Every part needs a content type, so a package without a readable catalog is not a package, whatever is read.
+        ReadContentTypes();
     }
 
     /// <summary>Namespace ids shared by every part read from this package.</summary>
     internal OfficeXmlNamespaces.Table Namespaces { get; } = new();
 
-    internal static OfficeOpcPackage Open(Stream source, bool leaveOpen = false) =>
-        new(OfficeZipPackageReader.Open(source, leaveOpen));
+    /// <exception cref="InvalidDataException">The ZIP container or the content-types part is missing or malformed.</exception>
+    internal static OfficeOpcPackage Open(Stream source, bool leaveOpen = false) {
+        OfficeZipPackageReader zip = OfficeZipPackageReader.Open(source, leaveOpen);
+        try {
+            return new OfficeOpcPackage(zip);
+        } catch {
+            zip.Dispose();
+            throw;
+        }
+    }
 
     /// <summary>Returns whether the package has a part with this name, for example <c>/word/document.xml</c>.</summary>
     internal bool PartExists(string partName) => FindMember(partName) != null;
@@ -65,12 +75,28 @@ internal sealed class OfficeOpcPackage : IDisposable {
     }
 
     /// <summary>Relationships whose source is <paramref name="sourcePartName"/>, or the package when it is null.</summary>
-    internal IReadOnlyList<OfficeOpcRelationship> GetRelationships(string? sourcePartName) {
+    internal IReadOnlyList<OfficeOpcRelationship> GetRelationships(string? sourcePartName) => GetRelationshipSet(sourcePartName).All;
+
+    /// <summary>The relationship of <paramref name="sourcePartName"/> (or the package) with this id, or null.</summary>
+    internal OfficeOpcRelationship? FindRelationship(string? sourcePartName, string relationshipId) =>
+        GetRelationshipSet(sourcePartName).ById.TryGetValue(relationshipId, out OfficeOpcRelationship? relationship) ? relationship : null;
+
+    /// <summary>Checks that a part, usually the main document part, has one of the content types a reader accepts.</summary>
+    /// <exception cref="InvalidDataException">The part's content type is missing or not one of <paramref name="contentTypes"/>.</exception>
+    internal void RequireContentType(string partName, params string[] contentTypes) {
+        string? contentType = GetContentType(partName);
+        if (contentType != null) {
+            foreach (string accepted in contentTypes) {
+                if (string.Equals(contentType, accepted, StringComparison.OrdinalIgnoreCase)) return;
+            }
+        }
+        throw new InvalidDataException("The part '" + partName + "' has the content type '" + (contentType ?? "(none)") + "', which this reader does not accept.");
+    }
+
+    private RelationshipSet GetRelationshipSet(string? sourcePartName) {
         string relationshipsPart = OfficeOpcPartNames.GetRelationshipsPartName(sourcePartName);
-        if (_relationships.TryGetValue(relationshipsPart, out OfficeOpcRelationship[]? cached)) return cached;
-        OfficeOpcRelationship[] relationships = PartExists(relationshipsPart)
-            ? ReadRelationships(relationshipsPart)
-            : Array.Empty<OfficeOpcRelationship>();
+        if (_relationships.TryGetValue(relationshipsPart, out RelationshipSet? cached)) return cached;
+        RelationshipSet relationships = PartExists(relationshipsPart) ? ReadRelationships(relationshipsPart) : RelationshipSet.Empty;
         _relationships[relationshipsPart] = relationships;
         return relationships;
     }
@@ -124,7 +150,6 @@ internal sealed class OfficeOpcPackage : IDisposable {
 
     /// <summary>The content type of a part from its override or the default for its extension.</summary>
     internal string? GetContentType(string partName) {
-        if (_overrideContentTypes == null) ReadContentTypes();
         // Overrides and references may spell a part with different percent-encoding; both compare by identity.
         partName = GetPartIdentity(partName);
         if (_overrideContentTypes!.TryGetValue(partName, out string? contentType)) return contentType;
@@ -153,9 +178,9 @@ internal sealed class OfficeOpcPackage : IDisposable {
         return decoded?.Substring(1);
     }
 
-    private OfficeOpcRelationship[] ReadRelationships(string relationshipsPart) {
+    private RelationshipSet ReadRelationships(string relationshipsPart) {
         var relationships = new List<OfficeOpcRelationship>();
-        var ids = new HashSet<string>(StringComparer.Ordinal);
+        var ids = new Dictionary<string, OfficeOpcRelationship>(StringComparer.Ordinal);
         string? sourceDirectory = OfficeOpcPartNames.GetRelationshipSourceDirectory(relationshipsPart);
         OfficeXmlPullReader reader = OpenXml(relationshipsPart, out OfficePooledBytes content);
         using (content) {
@@ -169,11 +194,25 @@ internal sealed class OfficeOpcPackage : IDisposable {
                 }
                 bool external = reader.TryGetAttribute(OfficeXmlNamespaces.None, "TargetMode", out string mode)
                     && string.Equals(mode, "External", StringComparison.Ordinal);
-                if (!ids.Add(id)) throw new InvalidDataException("'" + relationshipsPart + "' repeats the relationship id '" + id + "'.");
-                relationships.Add(new OfficeOpcRelationship(sourceDirectory, id, OfficeXmlNamespaces.NormalizeRelationshipType(type), target, external));
+                if (ids.ContainsKey(id)) throw new InvalidDataException("'" + relationshipsPart + "' repeats the relationship id '" + id + "'.");
+                var relationship = new OfficeOpcRelationship(sourceDirectory, id, OfficeXmlNamespaces.NormalizeRelationshipType(type), target, external);
+                ids.Add(id, relationship);
+                relationships.Add(relationship);
             }
         }
-        return relationships.ToArray();
+        return new RelationshipSet(relationships.ToArray(), ids);
+    }
+
+    private sealed class RelationshipSet {
+        internal static readonly RelationshipSet Empty = new(Array.Empty<OfficeOpcRelationship>(), new Dictionary<string, OfficeOpcRelationship>(StringComparer.Ordinal));
+
+        internal RelationshipSet(OfficeOpcRelationship[] all, Dictionary<string, OfficeOpcRelationship> byId) {
+            All = all;
+            ById = byId;
+        }
+
+        internal OfficeOpcRelationship[] All { get; }
+        internal Dictionary<string, OfficeOpcRelationship> ById { get; }
     }
 
     private void ReadContentTypes() {
@@ -185,6 +224,10 @@ internal sealed class OfficeOpcPackage : IDisposable {
         using (content) {
             var reader = new OfficeXmlPullReader(content.Array, content.Length, Namespaces);
             while (reader.Read()) {
+                if (reader.NodeKind == OfficeXmlNodeKind.StartElement && reader.Depth == 1
+                    && !(reader.NamespaceId == OfficeXmlNamespaces.ContentTypes && reader.LocalNameEquals("Types"))) {
+                    throw new InvalidDataException("The content-types part has no Types root element.");
+                }
                 if (reader.NodeKind != OfficeXmlNodeKind.StartElement || reader.Depth != 2
                     || reader.NamespaceId != OfficeXmlNamespaces.ContentTypes) continue;
                 if (!reader.TryGetAttribute(OfficeXmlNamespaces.None, "ContentType", out string contentType)) continue;

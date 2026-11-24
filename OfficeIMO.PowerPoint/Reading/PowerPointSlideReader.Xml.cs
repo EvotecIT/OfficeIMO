@@ -597,7 +597,17 @@ namespace OfficeIMO.PowerPoint {
 
         private static string GetPresentationPart(OfficeOpcPackage package) {
             foreach (OfficeOpcRelationship relationship in package.GetRelationships(null)) {
-                if (IsRelationshipType(relationship, "officeDocument") && GetTargetPart(package, relationship) is { } part) return part;
+                if (IsRelationshipType(relationship, "officeDocument") && GetTargetPart(package, relationship) is { } part) {
+                    package.RequireContentType(part,
+                        "application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml",
+                        "application/vnd.openxmlformats-officedocument.presentationml.template.main+xml",
+                        "application/vnd.openxmlformats-officedocument.presentationml.slideshow.main+xml",
+                        "application/vnd.ms-powerpoint.presentation.macroEnabled.main+xml",
+                        "application/vnd.ms-powerpoint.template.macroEnabled.main+xml",
+                        "application/vnd.ms-powerpoint.slideshow.macroEnabled.main+xml",
+                        "application/vnd.ms-powerpoint.addin.macroEnabled.main+xml");
+                    return part;
+                }
             }
             throw new InvalidDataException("The package has no presentation part.");
         }
@@ -611,12 +621,8 @@ namespace OfficeIMO.PowerPoint {
         private static string? GetTargetPart(OfficeOpcPackage package, OfficeOpcRelationship relationship) =>
             relationship.TargetPartName != null && package.PartExists(relationship.TargetPartName) ? relationship.TargetPartName : null;
 
-        private static OfficeOpcRelationship? FindRelationship(OfficeOpcPackage package, string sourcePart, string relationshipId) {
-            foreach (OfficeOpcRelationship relationship in package.GetRelationships(sourcePart)) {
-                if (string.Equals(relationship.Id, relationshipId, StringComparison.Ordinal)) return relationship;
-            }
-            return null;
-        }
+        private static OfficeOpcRelationship? FindRelationship(OfficeOpcPackage package, string sourcePart, string relationshipId) =>
+            package.FindRelationship(sourcePart, relationshipId);
 
         private static Uri GetTargetUri(OfficeOpcRelationship relationship) => new(relationship.Target, UriKind.RelativeOrAbsolute);
 

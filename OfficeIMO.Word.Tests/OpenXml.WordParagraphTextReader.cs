@@ -167,6 +167,42 @@ public class OpenXmlWordParagraphTextReaderTests {
     }
 
     [Fact]
+    public void DeclinesWhenAComplexFieldSeparatesInsideASkippedContentControl() {
+        // The field's result in the last paragraph shows only if its separate marker, inside the control, is seen.
+        byte[] package = CreatePackage(
+            "<w:p><w:r><w:fldChar w:fldCharType=\"begin\"/></w:r><w:r><w:instrText>PAGE</w:instrText></w:r></w:p>"
+            + "<w:sdt><w:sdtContent><w:p><w:r><w:fldChar w:fldCharType=\"separate\"/></w:r></w:p></w:sdtContent></w:sdt>"
+            + "<w:p><w:r><w:t>Result</w:t></w:r><w:r><w:fldChar w:fldCharType=\"end\"/></w:r></w:p>");
+        using var stream = new MemoryStream(package, writable: false);
+
+        List<string>? lines = OfficeIMO.Word.WordStreamedBodyText.TryReadLines(stream, 8000, 0, null, includeNotes: true, CancellationToken.None, out string? reason);
+
+        Assert.Null(lines);
+        Assert.Equal("complex field marker in a skipped block", reason);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("<Types xmlns=\"urn:other\"/>")]
+    public void RejectsAPackageWithoutAReadableContentTypesPart(string contentTypes) {
+        byte[] package = CreatePackage("<w:p><w:r><w:t>Body</w:t></w:r></w:p>", contentTypesXml: contentTypes);
+
+        Assert.Throws<InvalidDataException>(() => OfficeOpcPackage.Open(new MemoryStream(package, writable: false)));
+    }
+
+    [Fact]
+    public void RejectsAMainPartWithAnotherContentType() {
+        byte[] package = CreatePackage("<w:p><w:r><w:t>Body</w:t></w:r></w:p>",
+            contentTypesXml: "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">"
+                + "<Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/>"
+                + "<Default Extension=\"xml\" ContentType=\"application/xml\"/></Types>");
+        using var stream = new MemoryStream(package, writable: false);
+
+        Assert.Throws<InvalidDataException>(() => OfficeIMO.Word.WordStreamedBodyText.TryReadLines(stream, 8000, 0, null,
+            includeNotes: true, CancellationToken.None, out _));
+    }
+
+    [Fact]
     public void FindsContentTypeOverridesSpelledWithDifferentPercentEncoding() {
         byte[] package = CreatePackage("<w:p/>", documentPath: "word/pr%C3%A9sentation.xml", documentTarget: "word/pr\u00E9sentation.xml");
         using OfficeOpcPackage opened = OfficeOpcPackage.Open(new MemoryStream(package, writable: false));
@@ -309,7 +345,8 @@ public class OpenXmlWordParagraphTextReaderTests {
     private static byte[] CreatePackage(string? body, bool strict = false, Encoding? encoding = null, string prolog = "",
         string? extraMember = null, CompressionLevel compression = CompressionLevel.Optimal,
         string documentPath = "word/document.xml", string? documentTarget = null, string epilog = "",
-        string? documentXml = null, string extraRelationship = "", (string Path, string Xml, string RelationshipType)? extraPart = null) {
+        string? documentXml = null, string extraRelationship = "", (string Path, string Xml, string RelationshipType)? extraPart = null,
+        string? contentTypesXml = null) {
         string wordNamespace = strict ? "http://purl.oclc.org/ooxml/wordprocessingml/main" : WordNamespace;
         string relationshipType = strict
             ? "http://purl.oclc.org/ooxml/officeDocument/relationships/officeDocument"
@@ -325,12 +362,13 @@ public class OpenXmlWordParagraphTextReaderTests {
             + "<Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/>"
             + "<Default Extension=\"xml\" ContentType=\"application/xml\"/>"
             + "<Override PartName=\"" + partName + "\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml\"/></Types>";
+        if (contentTypesXml != null) contentTypes = contentTypesXml;
         string relationships = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">"
             + "<Relationship Id=\"rId1\" Type=\"" + relationshipType + "\" Target=\"" + (documentTarget ?? documentPath) + "\"/>" + extraRelationship + "</Relationships>";
 
         using var stream = new MemoryStream();
         using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true)) {
-            Write(archive, "[Content_Types].xml", Encoding.UTF8.GetBytes(contentTypes), compression);
+            if (contentTypes.Length > 0) Write(archive, "[Content_Types].xml", Encoding.UTF8.GetBytes(contentTypes), compression);
             Write(archive, "_rels/.rels", Encoding.UTF8.GetBytes(relationships), compression);
             byte[] documentBytes = encoding.GetPreamble().Concat(encoding.GetBytes(document)).ToArray();
             Write(archive, documentPath, documentBytes, compression);

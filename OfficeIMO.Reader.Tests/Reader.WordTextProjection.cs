@@ -96,8 +96,8 @@ public sealed class ReaderWordTextProjectionTests {
             using (var readerStream = new StreamReader(entry.Open())) xml = readerStream.ReadToEnd();
             xml = System.Text.RegularExpressions.Regex.Replace(xml, "<w:p\\b(?:(?!</w:p>).)*?Marker.*?</w:p>", paragraph.Replace("$", "$$"),
                 System.Text.RegularExpressions.RegexOptions.Singleline);
-            if (!xml.Contains("xmlns:w14=", StringComparison.Ordinal)) {
-                xml = xml.Replace("<w:document ", "<w:document xmlns:w14=\"http://schemas.microsoft.com/office/word/2010/wordml\" ", StringComparison.Ordinal);
+            if (xml.IndexOf("xmlns:w14=", StringComparison.Ordinal) < 0) {
+                xml = xml.Replace("<w:document ", "<w:document xmlns:w14=\"http://schemas.microsoft.com/office/word/2010/wordml\" ");
             }
             entry.Delete();
             using var writer = new StreamWriter(archive.CreateEntry("word/document.xml").Open(), new System.Text.UTF8Encoding(false));
