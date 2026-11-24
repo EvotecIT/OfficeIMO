@@ -2186,6 +2186,7 @@ jobs:
           $analyzerSolution = Join-Path $env:RUNNER_TEMP 'OfficeIMO.Aot.slnx'
           dotnet sln $analyzerSolution add OfficeIMO.Studio.Core/OfficeIMO.Studio.Core.csproj OfficeIMO.Studio.Core.Tests/OfficeIMO.Studio.Core.Tests.csproj OfficeIMO.Studio.Native/OfficeIMO.Studio.Native.csproj OfficeIMO.AI/OfficeIMO.AI.csproj OfficeIMO.AI.IntelligenceX/OfficeIMO.AI.IntelligenceX.csproj OfficeIMO.AI.Tests/OfficeIMO.AI.Tests.csproj Examples/OfficeIMO.AI.Example/OfficeIMO.AI.Example.csproj OfficeIMO.Tool/OfficeIMO.Tool.csproj OfficeIMO.Tool.Tests/OfficeIMO.Tool.Tests.csproj
           dotnet build $analyzerSolution --configuration ${{ env.BUILD_CONFIGURATION }} --framework net10.0 --no-restore -p:EnableTrimAnalyzer=true -p:EnableAotAnalyzer=true
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           dotnet build OfficeIMO.Studio/OfficeIMO.Studio.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net10.0 --no-restore -p:EnableTrimAnalyzer=true -p:EnableAotAnalyzer=true
 
   aot-linux-scenarios:

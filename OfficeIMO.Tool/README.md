@@ -6,7 +6,7 @@ OfficeIMO.Tool is the installable command-line interface for OfficeIMO document 
 
 ## Install
 
-The tool needs the .NET 10 SDK or later to install and the .NET 10 runtime, which that SDK includes, to run. NuGet delivers a ReadyToRun-compiled build for Windows, Linux (glibc and musl x64) and macOS on x64 and Arm64, so the first command doesn't wait on the JIT compiler; other platforms get a portable build. The .NET 8 and 9 SDKs can't install it; version 3.6.2 was the last one they install.
+The tool needs the .NET 10 SDK or later to install and the .NET 10 runtime to run. The .NET 10 SDK includes that runtime; with a later SDK, install the .NET 10 runtime as well. NuGet delivers a ReadyToRun-compiled build for Windows, Linux (glibc and musl x64) and macOS on x64 and Arm64, so the first command doesn't wait on the JIT compiler; other platforms get a portable build. The .NET 8 and 9 SDKs can't install it; version 3.6.2 was the last one they install.
 
 Install it globally from NuGet when you want `officeimo` available from any directory:
 
