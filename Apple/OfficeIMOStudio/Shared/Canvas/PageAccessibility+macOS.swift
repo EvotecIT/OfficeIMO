@@ -25,6 +25,28 @@ final class AccessiblePagesView: NSView {
         return (cached?.elements ?? []) + (super.accessibilityChildren() ?? [])
     }
 
+    /// Catches up with what the pages show after page text arrives or a field's value changes, telling VoiceOver: the
+    /// elements it holds take their new values, and a different set of elements is announced as a new layout. Only
+    /// elements already handed out need this, and only while VoiceOver runs.
+    func refreshAccessibility() {
+        guard NSWorkspace.shared.isVoiceOverEnabled, let session, let cached else { return }
+        let items = session.accessibilityItems(around: session.currentPage, in: layout())
+        switch ElementRefresh.plan(from: cached.items.map { ($0.identity, $0) }, to: items.map { ($0.identity, $0) }) {
+        case .none:
+            return
+        case .values(let changed):
+            self.cached = (items, cached.elements)
+            for index in changed {
+                cached.elements[index].show(items[index])
+                NSAccessibility.post(element: cached.elements[index], notification: .valueChanged)
+            }
+        case .layout:
+            let elements = items.map { PageElement(view: self, item: $0) }
+            self.cached = (items, elements)
+            NSAccessibility.post(element: self, notification: .layoutChanged, userInfo: [.uiElements: elements])
+        }
+    }
+
     fileprivate func rect(of item: PageAccessibilityItem) -> CGRect? {
         let layout = layout()
         guard layout.shows(item.page) else { return nil }
@@ -52,7 +74,7 @@ final class AccessiblePagesView: NSView {
 
 /// One page, line, field or comment for VoiceOver, placed over the page.
 private final class PageElement: NSAccessibilityElement {
-    let item: PageAccessibilityItem
+    private(set) var item: PageAccessibilityItem
     private weak var view: AccessiblePagesView?
 
     init(view: AccessiblePagesView, item: PageAccessibilityItem) {
@@ -60,6 +82,12 @@ private final class PageElement: NSAccessibilityElement {
         self.view = view
         super.init()
         setAccessibilityParent(view)
+        show(item)
+    }
+
+    /// Takes an item's role, label and value, also later for the same field or comment with a new value.
+    func show(_ item: PageAccessibilityItem) {
+        self.item = item
         switch item.kind {
         case .page:
             setAccessibilityRole(.group)

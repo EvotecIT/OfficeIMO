@@ -19,6 +19,16 @@ struct PageAccessibilityItem: Equatable {
     var hint: String?
     /// Whether a check box or radio button is on.
     var isOn: Bool?
+
+    /// What the item stands for, which stays the same while only its value changes.
+    var identity: String {
+        switch kind {
+        case .page: "page-\(page)"
+        case .text: "text-\(page)-\(rect.minX)-\(rect.minY)-\(label)"
+        case .field(_, let name, let widget): "field-\(page)-\(name)-\(widget)"
+        case .comment(let id): "comment-\(id)"
+        }
+    }
 }
 
 extension DocumentSession {

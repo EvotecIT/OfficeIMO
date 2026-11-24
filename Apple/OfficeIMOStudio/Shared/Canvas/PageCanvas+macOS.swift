@@ -24,6 +24,8 @@ struct PageCanvas: NSViewRepresentable {
         view.setDragTool(dragTool)
         view.tiles.markFields(session.fillableFieldBoxes)
         view.tiles.selectionColor = NSColor.selectedTextBackgroundColor.withAlphaComponent(0.6).cgColor
+        // VoiceOver hears about page text that arrived and field values that changed.
+        view.refreshAccessibility()
         if let selection = session.textSelection {
             view.tiles.select(page: selection.page, rects: session.selectionRects)
         } else {
@@ -105,6 +107,10 @@ final class PageScrollView: NSScrollView {
         window?.invalidateCursorRects(for: drag)
         laidOutWidth = 0
         needsLayout = true
+    }
+
+    func refreshAccessibility() {
+        pages.refreshAccessibility()
     }
 
     func handle(_ request: CanvasRequest) {

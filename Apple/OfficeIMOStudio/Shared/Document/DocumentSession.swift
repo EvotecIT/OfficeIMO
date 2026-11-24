@@ -194,6 +194,8 @@ final class DocumentSession {
     /// Text selected in the Read task, on one page.
     var textSelection: TextSelection?
     @ObservationIgnored private var pageTexts: [Int: PageText] = [:]
+    /// Bumped when a page's text arrives, so what reads it, such as VoiceOver's page elements, can follow.
+    private(set) var pageTextVersion = 0
     @ObservationIgnored private var pageTextLoads: [Int: RevisionRead<PageText>] = [:]
 
     // Search
@@ -355,6 +357,7 @@ final class DocumentSession {
 
     /// A page's text, if loaded for the revision shown; loadPageText fetches it.
     func pageText(_ page: Int) -> PageText? {
+        _ = pageTextVersion
         guard let text = pageTexts[page], text.revision == revision else { return nil }
         return text
     }
@@ -375,6 +378,7 @@ final class DocumentSession {
             if text.revision == revision {
                 pageTexts[page] = text
                 if pageTexts.count > 8, let far = pageTexts.keys.max(by: { abs($0 - page) < abs($1 - page) }) { pageTexts[far] = nil }
+                pageTextVersion &+= 1
             }
         } catch {
             if !Task.isCancelled, self.engine === engine { errorMessage = error.localizedDescription }
