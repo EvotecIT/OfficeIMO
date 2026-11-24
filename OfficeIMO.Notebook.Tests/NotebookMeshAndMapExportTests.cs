@@ -6,6 +6,23 @@ using OfficeIMO.Notebook.Html;
 namespace OfficeIMO.Notebook.Tests;
 
 public sealed class NotebookMeshAndMapExportTests {
+    [Theory]
+    [InlineData(2)]
+    [InlineData(20)]
+    public void GeographicScatterDefaultsToUnconnectedMarkers(int pointCount) {
+        string coordinates = JsonSerializer.Serialize(Enumerable.Range(0, pointCount));
+        using var notebook = CreatePlotlyNotebook($$"""
+            {"data":[{"type":"scattergeo","lon":{{coordinates}},"lat":{{coordinates}} }],
+             "layout":{"geo":{"showland":false,"showcoastlines":false,"showframe":false} } }
+            """);
+
+        XDocument map = ExtractSvg(notebook.ToHtml());
+
+        XNamespace svg = "http://www.w3.org/2000/svg";
+        Assert.Equal(pointCount, map.Descendants().Count(shape => shape.Name == svg + "ellipse" || shape.Name == svg + "circle"));
+        Assert.Empty(map.Descendants(svg + "line"));
+    }
+
     [Fact]
     public void AntimeridianRouteClosesAtBothMapEdgesWithoutCrossingTheWorld() {
         using var notebook = CreatePlotlyNotebook("""

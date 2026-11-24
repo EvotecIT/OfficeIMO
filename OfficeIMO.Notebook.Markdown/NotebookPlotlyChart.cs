@@ -96,7 +96,8 @@ internal static partial class NotebookPlotlyChart {
 
         bool markers = false;
         bool connect = false;
-        if (!bar && !TryReadScatterMode(Property(trace, "mode"), values.Length < 20, out markers, out connect)) return false;
+        if (!bar && !TryReadScatterMode(Property(trace, "mode"), defaultMarkers: values.Length < 20, defaultLines: true,
+                out markers, out connect)) return false;
         if (!TryReadTraceStyle(trace, bar, markers, connect, out PlotlyTraceStyle style)) return false;
         name ??= "trace " + seriesIndex.ToString(CultureInfo.InvariantCulture);
         series = new OfficeSeries(name, values, numericX, style.MarkerColor ?? style.LineColor, pointColors: null,
@@ -109,12 +110,13 @@ internal static partial class NotebookPlotlyChart {
         return true;
     }
 
-    private static bool TryReadScatterMode(JsonElement mode, bool defaultMarkers, out bool markers, out bool connect) {
+    private static bool TryReadScatterMode(JsonElement mode, bool defaultMarkers, bool defaultLines,
+        out bool markers, out bool connect) {
         markers = false;
         connect = false;
         if (mode.ValueKind == JsonValueKind.Undefined) {
             markers = defaultMarkers;
-            connect = true;
+            connect = defaultLines;
             return true;
         }
         if (mode.ValueKind != JsonValueKind.String) return false;

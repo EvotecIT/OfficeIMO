@@ -153,14 +153,18 @@ public sealed class NotebookScriptImportTests {
     }
 
     [Theory]
-    [InlineData("# %% language=\"bash\"\n# exit", "exit", "bash", false)]
-    [InlineData("# %% language=\"R\" magic_args=\"-i values\"\n# sum(values)", "%%R -i values\nsum(values)", "R", true)]
-    [InlineData("# %%\n# %%R\nprint(1)", "%%R\nprint(1)", "python", true)]
-    public void JupytextPairsSavedResultsUsingEffectiveCellLanguages(string script, string source, string language, bool matches) {
+    [InlineData("# %% language=\"bash\"\n# exit", "exit", "bash", null, false)]
+    [InlineData("# %% language=\"R\" magic_args=\"-i values\"\n# sum(values)", "%%R -i values\nsum(values)", "R", null, true)]
+    [InlineData("# %%\n# %%R\nprint(1)", "%%R\nprint(1)", "python", null, true)]
+    [InlineData("# %% language=\"python\"\n# %%R\nprint(1)", "%%R\nprint(1)", "python", "python", true)]
+    [InlineData("# %% language=\"R\"\n# sum(values)", "%%R\nsum(values)", "R", "python", true)]
+    [InlineData("# %%\n# %%time\nprint(1)", "%%time\nprint(1)", "python", "r", false)]
+    public void JupytextPairsSavedResultsUsingEffectiveCellLanguages(string script, string source, string language,
+        string? companionLanguage, bool matches) {
         using JsonDocument kernel = JsonDocument.Parse("""{"language":"python"}""");
         using NotebookDocument original = NotebookDocument.Create();
         original.SetMetadata("kernelspec", kernel.RootElement);
-        NotebookCell saved = original.AddCodeCell(source);
+        NotebookCell saved = companionLanguage == null ? original.AddCodeCell(source) : original.AddCodeCell(source, companionLanguage);
         saved.ExecutionCount = 3;
         saved.AddOutput(NotebookOutput.CreateStream("stdout", "saved value"));
         using NotebookDocument companion = NotebookDocument.Load(original.ToBytes());
@@ -216,7 +220,14 @@ public sealed class NotebookScriptImportTests {
     [InlineData("a[1:end]'")]
     [InlineData("α̂'")]
     [InlineData("flag = true; value = !flag'")]
-    public void JupytextJuliaAdjointsPreserveCellBoundariesAndCompanionResults(string adjoint) {
+    [InlineData("for c in'\"'\n    println(c)\nend")]
+    [InlineData(":(c isa'\"')")]
+    [InlineData(":(T where'\"')")]
+    [InlineData("for c in'''\n    println(c)\nend")]
+    [InlineData("quote_char = '''")]
+    [InlineData("fields = (; in = a); fields.in'")]
+    [InlineData("value = in'")]
+    public void JupytextJuliaApostrophesPreserveCellBoundariesAndCompanionResults(string code) {
         const string next = "println(22)";
         const string prefix = """"
             a = [1 2]
@@ -228,7 +239,7 @@ public sealed class NotebookScriptImportTests {
             # %% remains inside the comment
             =#
             """";
-        string source = prefix + "\n" + adjoint;
+        string source = prefix + "\n" + code;
         using NotebookDocument companion = NotebookDocument.Create();
         companion.AddCodeCell(source, "julia");
         NotebookCell saved = companion.AddCodeCell(next, "julia");

@@ -155,7 +155,7 @@ internal static partial class NotebookPlotlyChart {
             !TryReadUnitInterval(Property(trace, "opacity"), 1, out double opacity) ||
             !TryReadOptionalText(Property(trace, "name"), out string? name)) return null;
         MapCoordinate?[]? positions = ReadMapCoordinates(trace, remaining);
-        if (positions == null || !TryReadMapMode(Property(trace, "mode"), positions.Length, out bool markers, out bool lines, out bool text) ||
+        if (positions == null || !TryReadMapMode(Property(trace, "mode"), out bool markers, out bool lines, out bool text) ||
             !TryReadMapScatterStyle(trace, seriesColor, opacity, out MapScatterStyle style)) return null;
         string?[]? labels = ReadMapLabels(Property(trace, "text"), positions.Length);
         string?[]? hover = ReadMapLabels(Property(trace, "hovertext"), positions.Length);
@@ -163,9 +163,9 @@ internal static partial class NotebookPlotlyChart {
         return new MapScatter(positions, markers, lines, text, connectGaps, style, text ? labels : null, hover ?? labels, name, legend);
     }
 
-    private static bool TryReadMapMode(JsonElement value, int count, out bool markers, out bool lines, out bool text) {
+    private static bool TryReadMapMode(JsonElement value, out bool markers, out bool lines, out bool text) {
         text = false;
-        if (TryReadScatterMode(value, count < 20, out markers, out lines)) return true;
+        if (TryReadScatterMode(value, defaultMarkers: true, defaultLines: false, out markers, out lines)) return true;
         if (!TryReadString(value, 18, out string? mode)) return false;
         foreach (string part in mode!.Split('+')) {
             if (part == "text" && !text) text = true;

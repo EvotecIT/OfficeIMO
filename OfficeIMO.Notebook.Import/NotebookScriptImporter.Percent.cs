@@ -59,7 +59,7 @@ internal static partial class NotebookScriptImporter {
 
         if (context.Options.PairedNotebook is { } companion) {
             if (hasUnparsedMetadata) ReportPairMismatch(context, "The script contains cell identity metadata that could not be verified.");
-            else AttachCompanion(context, companion, explicitIds!, language);
+            else AttachCompanion(context, companion, explicitIds!);
         }
     }
 
@@ -178,7 +178,14 @@ internal static partial class NotebookScriptImporter {
                     ? 3 : 1;
                 if (_quote == '\0' && c is '\'' or '"' or '`') {
                     if (c == '`' && language == "python") continue;
-                    if (julia && c == '\'' && IsJuliaAdjoint(text, i)) continue;
+                    if (julia && c == '\'') {
+                        if (IsJuliaAdjoint(text, i)) continue;
+                        // Julia also accepts an unescaped apostrophe as the one character in a literal.
+                        if (delimiter == 3) {
+                            i += 2;
+                            continue;
+                        }
+                    }
                     _quote = c;
                     _quoteLength = delimiter;
                     i += delimiter - 1;
@@ -200,9 +207,28 @@ internal static partial class NotebookScriptImporter {
             while (start < apostrophe && text[start] == '!') start++;
             if (start == apostrophe) return false;
 
+            ReadOnlySpan<char> token = text.Slice(start, apostrophe - start);
+            // Word operators can also be used as values or as qualified names.
+            if (token is "in" or "isa" or "where") {
+                return (start > 0 && text[start - 1] is '.' or ':' or '@')
+                    || !StartsJuliaCharacterLiteral(text.Slice(apostrophe + 1));
+            }
             // These keywords can introduce a character literal without a separator.
-            return text.Slice(start, apostrophe - start) is not ("begin" or "catch" or "else" or "elseif" or "finally"
+            return token is not ("begin" or "catch" or "else" or "elseif" or "finally"
                 or "for" or "if" or "let" or "quote" or "return" or "try" or "while");
+        }
+
+        private static bool StartsJuliaCharacterLiteral(ReadOnlySpan<char> text) {
+            if (text.Length < 2) return false;
+            int closing = char.IsSurrogatePair(text[0], text[1]) ? 2 : 1;
+            if (text[0] == '\\') {
+                closing = 2;
+                if (text[1] is 'x' or 'u' or 'U' or >= '0' and <= '7') {
+                    // The longest Unicode escape has a prefix and eight hexadecimal digits.
+                    while (closing < text.Length && closing < 10 && Uri.IsHexDigit(text[closing])) closing++;
+                }
+            }
+            return closing < text.Length && text[closing] == '\'';
         }
 
         private static bool IsJuliaIdentifierPart(char c) => char.IsLetterOrDigit(c) || char.IsSurrogate(c)

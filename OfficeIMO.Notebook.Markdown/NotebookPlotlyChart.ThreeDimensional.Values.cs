@@ -17,7 +17,7 @@ internal static partial class NotebookPlotlyChart {
         double[]? y = ReadNumbers(Property(trace, "y"), x.Length);
         double[]? z = ReadNumbers(Property(trace, "z"), x.Length);
         if (y == null || z == null || x.Length != y.Length || x.Length != z.Length ||
-            !TryReadScatterMode(Property(trace, "mode"), defaultMarkers: true, out bool markers, out bool lines) ||
+            !TryReadScatterMode(Property(trace, "mode"), defaultMarkers: true, defaultLines: true, out bool markers, out bool lines) ||
             !TryReadTraceStyle(trace, bar: false, markers, lines, out PlotlyTraceStyle style) ||
             style.MarkerShape == OfficeChartMarkerShape.Triangle || (!markers && x.Length < 2)) return null;
 

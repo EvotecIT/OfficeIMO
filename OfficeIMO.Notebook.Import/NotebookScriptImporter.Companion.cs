@@ -4,7 +4,7 @@ using System.Text.Json;
 namespace OfficeIMO.Notebook.Import;
 
 internal static partial class NotebookScriptImporter {
-    private static void AttachCompanion(NotebookImportContext context, NotebookDocument companion, IReadOnlyList<string?> explicitIds, string scriptLanguage) {
+    private static void AttachCompanion(NotebookImportContext context, NotebookDocument companion, IReadOnlyList<string?> explicitIds) {
         IReadOnlyList<NotebookCell> scriptCells = context.Document.Cells;
         IReadOnlyList<NotebookCell> pairedCells = companion.Cells;
         if (scriptCells.Count != pairedCells.Count) {
@@ -33,9 +33,10 @@ internal static partial class NotebookScriptImporter {
             }
             if (script.Kind != NotebookCellKind.Code) continue;
 
-            string? magicLanguage = ReadPercentLanguageMagic(pairedSource);
-            string? scriptCellLanguage = SameLanguage(script.Language, scriptLanguage) ? magicLanguage ?? script.Language : script.Language;
-            string? pairedLanguage = paired.Language ?? magicLanguage ?? companionLanguage;
+            // Source equality already establishes the same leading language magic on both sides.
+            string? magicLanguage = ReadPercentLanguageMagic(scriptSource);
+            string? scriptCellLanguage = magicLanguage ?? script.Language;
+            string? pairedLanguage = magicLanguage ?? paired.Language ?? companionLanguage;
             if (!string.IsNullOrWhiteSpace(pairedLanguage) && !SameLanguage(scriptCellLanguage, pairedLanguage!)) {
                 ReportPairMismatch(context, "The script and its Jupyter companion declare different code languages.", i);
                 return;
