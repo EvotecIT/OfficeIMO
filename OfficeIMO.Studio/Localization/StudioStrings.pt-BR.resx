@@ -6584,45 +6584,6 @@ Defeitos recuperados: {7:N0} · Apenas detectados: {8:N0}</value>
   <data name="Dialog.ActiveOperations.Working" xml:space="preserve">
     <value>Processando…</value>
   </data>
-  <data name="Mobile.ChoosePdf" xml:space="preserve">
-    <value>Escolha um documento PDF.</value>
-  </data>
-  <data name="Mobile.NothingToShare" xml:space="preserve">
-    <value>O documento salvo não tem um local para compartilhar.</value>
-  </data>
-  <data name="Mobile.ReadingPositionFailed" xml:space="preserve">
-    <value>Não foi possível salvar a posição de leitura: {0}</value>
-  </data>
-  <data name="Mobile.ClipboardUnavailable" xml:space="preserve">
-    <value>A área de transferência está indisponível.</value>
-  </data>
-  <data name="Mobile.AnswerSourceChanged" xml:space="preserve">
-    <value>A origem ou o destino foi alterado. Exporte a resposta atual para um arquivo separado.</value>
-  </data>
-  <data name="Mobile.DocumentFolderUnavailable" xml:space="preserve">
-    <value>A pasta de documentos do Studio neste dispositivo está indisponível.</value>
-  </data>
-  <data name="Mobile.BrowseOutputFolder" xml:space="preserve">
-    <value>Navegue pela pasta de saída selecionada em Arquivos. Abra um resultado individual para compartilhar.</value>
-  </data>
-  <data name="Mobile.NotReadyToOpenLink" xml:space="preserve">
-    <value>O Studio ainda não está pronto para abrir um link.</value>
-  </data>
-  <data name="Mobile.ChooseFolder" xml:space="preserve">
-    <value>Escolher pasta</value>
-  </data>
-  <data name="Mobile.UseOutputFormat" xml:space="preserve">
-    <value>Use o formato de saída selecionado: {0}.</value>
-  </data>
-  <data name="Mobile.FileName" xml:space="preserve">
-    <value>Nome do arquivo</value>
-  </data>
-  <data name="Mobile.ChooseFolderNext" xml:space="preserve">
-    <value>Escolha uma pasta em Arquivos em seguida. Seu documento é gravado após você concluir a revisão.</value>
-  </data>
-  <data name="Mobile.AnnotationsUnavailable" xml:space="preserve">
-    <value>As anotações estão indisponíveis para este documento.</value>
-  </data>
   <data name="Apple.Document" xml:space="preserve">
     <value>Documento</value>
   </data>
@@ -7250,9 +7211,6 @@ Opção 2</value>
   </data>
   <data name="Output.LocalFolderRequired" xml:space="preserve">
     <value>Escolha uma pasta de saída local. Use Salvar como para salvar documentos individuais na nuvem.</value>
-  </data>
-  <data name="Mobile.ReplaceFileConfirm" xml:space="preserve">
-    <value>“{0}” já existe. Ao salvar, ele será substituído após as etapas de revisão restantes. Continuar?</value>
   </data>
   <data name="Output.PublicationTooLarge" xml:space="preserve">
     <value>O resultado excede o tamanho de documento compatível.</value>

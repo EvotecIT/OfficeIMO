@@ -20,8 +20,6 @@ public sealed partial class App : Application {
 
     internal StudioApplicationServices Services { get; private set; } = null!;
 
-    internal Func<App, Avalonia.Controls.Control>? SingleViewFactory { get; init; }
-
     /// <summary>The desktop instance lock whose forwarded launches open in the main window.</summary>
     internal StudioSingleInstance? SingleInstance { get; init; }
 
@@ -99,9 +97,6 @@ public sealed partial class App : Application {
             desktop.MainWindow = window;
             AttachFileActivation(desktop, window);
             AttachForwardedLaunches(window);
-        } else if (ApplicationLifetime is ISingleViewApplicationLifetime singleView && SingleViewFactory is not null) {
-            AttachDiagnosticHandlers();
-            singleView.MainView = SingleViewFactory(this);
         }
 
         base.OnFrameworkInitializationCompleted();

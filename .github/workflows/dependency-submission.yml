@@ -70,8 +70,8 @@ jobs:
               {"profile": "windows", "runner": "windows-latest",
                "projects": json.dumps(["OfficeIMO.slnx"]), "workloads": "", "workload-version": ""},
               {"profile": "apple", "runner": "macos-latest",
-               "projects": json.dumps(["OfficeIMO.slnx", "OfficeIMO.Studio.iOS/OfficeIMO.Studio.iOS.csproj"]),
-               "workloads": "wasm-tools ios", "workload-version": "10.0.112"},
+               "projects": json.dumps(["OfficeIMO.slnx"]),
+               "workloads": "wasm-tools", "workload-version": ""},
           ]
           restore = [row for row in restore if row["profile"] != "apple" or os.environ["APPLE"] == "true"]
           print(json.dumps(restore, indent=2))

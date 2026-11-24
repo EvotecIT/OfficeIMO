@@ -6,7 +6,7 @@ namespace OfficeIMO.Studio.Infrastructure;
 internal static class StudioPickerPatterns {
     // GTK and portal pickers match globs case-sensitively; SCAN.PDF, IMG_0001.JPG or report.Pdf would otherwise be hidden.
     internal static string[] CaseInsensitive(params string[] patterns) =>
-        CaseInsensitive(patterns, OperatingSystem.IsWindows() || OperatingSystem.IsMacOS() || OperatingSystem.IsIOS());
+        CaseInsensitive(patterns, OperatingSystem.IsWindows() || OperatingSystem.IsMacOS());
 
     internal static string[] CaseInsensitive(IEnumerable<string> patterns, bool platformIgnoresCase) =>
         platformIgnoresCase ? patterns.ToArray() : patterns.Select(AnyCase).Distinct(StringComparer.Ordinal).ToArray();

@@ -73,9 +73,7 @@
       "OfficeIMO.Drawing.ImageIO/*.csproj",
       "OfficeIMO.Drawing.ImageIO.Tests/*.csproj",
       "OfficeIMO.Studio.Native/*.csproj",
-      "OfficeIMO.Studio/*.csproj",
-      "OfficeIMO.Studio.iOS/*.csproj",
-      "OfficeIMO.Studio.iOS/global.json"
+      "OfficeIMO.Studio/*.csproj"
     ],
     "powershell-macos": [
       ".github/workflows/powershell-dotnet.yml",

@@ -211,7 +211,7 @@ class SelectionTests(unittest.TestCase):
                 self.assertEqual([True] * 3, [result["suites"][key] for key in macos])
         result = selection.select(repository, [".github/workflows/studio-apple.yml", "OfficeIMO.Drawing.ImageIO/Decode.cs"])
         self.assertEqual([True, False, True], [result["suites"][key] for key in macos])
-        for path in ["OfficeIMO.Studio.iOS/OfficeIMO.Studio.iOS.csproj", "OfficeIMO.Studio/OfficeIMO.Studio.csproj"]:
+        for path in ["OfficeIMO.Studio.Native/OfficeIMO.Studio.Native.csproj", "OfficeIMO.Studio/OfficeIMO.Studio.csproj"]:
             with self.subTest(path=path):
                 self.assertTrue(selection.select(repository, [path])["suites"]["apple-dependency-graph"])
 
