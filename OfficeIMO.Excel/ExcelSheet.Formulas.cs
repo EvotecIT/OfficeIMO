@@ -156,25 +156,26 @@ namespace OfficeIMO.Excel {
                 _formulaEvaluationStack = context.Stack;
                 _formulaEvaluationDepthFrames = context.DepthFrames;
                 _formulaEvaluationGuardState = context.GuardState;
-                // One walk lists the formula cells for the pass, the shared-formula check and the array index.
-                // The previous pass's count sizes the list, so a sheet recalculated again copies no growing buffer.
-                var formulaCells = new List<Cell>(_formulaCellCountHint);
-                foreach (Cell formulaCell in ExcelWorksheetScan.FormulaCells(WorksheetRoot)) formulaCells.Add(formulaCell);
-                _formulaCellCountHint = formulaCells.Count;
-                GetFixedArraySheetIndex(formulaCells);
-                _formulaEvaluationSharedDefinitions = HasSharedFormulas(formulaCells)
-                    ? BuildSharedFormulaDefinitions()
-                    : new Dictionary<uint, SharedFormulaDefinition>();
-                _formulaEvaluationSharedDefinitionsBySheet = new Dictionary<string, IReadOnlyDictionary<uint, SharedFormulaDefinition>>(
-                    StringComparer.OrdinalIgnoreCase) {
-                    [Name] = _formulaEvaluationSharedDefinitions
-                };
                 bool changed = false;
                 bool allFormulasEvaluated = true;
                 bool passCompleted = false;
                 var recalculatedCells = new List<string>();
 
                 try {
+                    // One walk lists the formula cells for the pass, the shared-formula check and the array index.
+                    // The previous pass's count sizes the list, so a sheet recalculated again copies no growing buffer.
+                    // Inside the try, so a failure here still restores the sheet's calculation state.
+                    var formulaCells = new List<Cell>(_formulaCellCountHint);
+                    foreach (Cell formulaCell in ExcelWorksheetScan.FormulaCells(WorksheetRoot)) formulaCells.Add(formulaCell);
+                    _formulaCellCountHint = formulaCells.Count;
+                    GetFixedArraySheetIndex(formulaCells);
+                    _formulaEvaluationSharedDefinitions = HasSharedFormulas(formulaCells)
+                        ? BuildSharedFormulaDefinitions()
+                        : new Dictionary<uint, SharedFormulaDefinition>();
+                    _formulaEvaluationSharedDefinitionsBySheet = new Dictionary<string, IReadOnlyDictionary<uint, SharedFormulaDefinition>>(
+                        StringComparer.OrdinalIgnoreCase) {
+                        [Name] = _formulaEvaluationSharedDefinitions
+                    };
                     if (_excelDocument.WorkbookPartRoot.CellMetadataPart != null) PlanDynamicArrayOwners();
                     context.ReserveFormulaCells(Name, formulaCells.Count);
                     recalculatedCells.Capacity = formulaCells.Count;
