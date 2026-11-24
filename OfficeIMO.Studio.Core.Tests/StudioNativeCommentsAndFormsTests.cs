@@ -168,6 +168,19 @@ public sealed class StudioNativeCommentsAndFormsTests : IDisposable {
     }
 
     [Fact]
+    public async Task A_radio_group_is_refused_on_a_rotated_page_where_its_buttons_would_run_across() {
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreateTextPdf("radio-rotated.pdf", "One", "Two"), null, default);
+        await document.RotatePagesAsync([1], 90, default);
+        string[] options = ["Yes", "No"];
+
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => document.EditAsync(new StudioNativeEditRequest(AddFormField:
+            new StudioNativeFormFieldAdd("radio", "Turned", 1, new StudioNativeRectangle(40, 40, 120, 40), options)), default));
+        await document.EditAsync(new StudioNativeEditRequest(AddFormField:
+            new StudioNativeFormFieldAdd("radio", "Upright", 2, new StudioNativeRectangle(40, 40, 120, 40), options)), default);
+        Assert.Equal(2, Assert.Single((await document.GetFormFieldsAsync(2, default)).Fields).Widgets.Count);
+    }
+
+    [Fact]
     public async Task Field_authoring_refuses_duplicate_names_choices_without_options_and_unknown_kinds() {
         using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreateTextPdf("refused-form.pdf", "Form"), null, default);
         var box = new StudioNativeRectangle(40, 60, 160, 24);

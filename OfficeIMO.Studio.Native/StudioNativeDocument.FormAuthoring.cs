@@ -26,6 +26,9 @@ internal sealed partial class StudioNativeDocument {
         StudioNativeRectangle bounds = field.Bounds ?? throw new ArgumentException("Draw the field's box.", nameof(field));
         // A radio group stacks one button per option, as tall as the desktop makes it, moved up where it would run off the page.
         if (kind == PdfFormFieldCreationKind.RadioButtonGroup) {
+            // The buttons stack along the page's own height, which a turned page shows across or upside down.
+            if (field.Page >= 1 && field.Page <= _workspace.Pages.Count && _workspace.Pages[field.Page - 1].RotationDegrees % 360 != 0)
+                throw new ArgumentException("Radio groups can be added only on pages that aren't rotated.", nameof(field));
             double height = Math.Max(bounds.Height, RadioGroupHeight(options.Length));
             double pageHeight = DisplayedHeight(field.Page);
             if (height > pageHeight) throw new ArgumentException("The radio group's options don't fit on the page. Use fewer options.", nameof(field));
