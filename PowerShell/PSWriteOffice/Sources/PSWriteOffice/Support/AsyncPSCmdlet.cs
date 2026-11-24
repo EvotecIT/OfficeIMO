@@ -350,7 +350,17 @@ public abstract partial class AsyncPSCmdlet : PSCmdlet, IDisposable, IAsyncCmdle
     }
 
     private readonly CancellationTokenSource _cancelSource = new();
-    private readonly AsyncLocal<long> _hookGeneration = new();
+    // Each cmdlet instance owns its own async-local slots, and PowerShell keeps running later commands on
+    // the same pipeline thread. Generation 0 is stored as null so the runtime removes the slot when a hook
+    // restores it; a boxed zero would stay in the thread's execution context after every invocation, and
+    // each later async-local write would copy a map that keeps growing for the rest of the session.
+    private readonly AsyncLocal<long?> _hookGenerationSlot = new();
+
+    private long CurrentHookGeneration {
+        get => _hookGenerationSlot.Value ?? 0;
+        set => _hookGenerationSlot.Value = value == 0 ? null : value;
+    }
+
     private readonly AsyncLocal<PipelinePumpLease?> _pipelinePumpLease = new();
     private readonly int _constructionThreadId = Environment.CurrentManagedThreadId;
     private readonly object _hookAdmissionLock = new();
