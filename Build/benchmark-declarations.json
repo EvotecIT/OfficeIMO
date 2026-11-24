@@ -10132,6 +10132,44 @@
       ]
     },
     {
+      "comparisonId": "excel-formula-recalculation",
+      "area": "excel",
+      "title": "XLSX formula recalculation",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "ClosedXML",
+        "EPPlus"
+      ],
+      "axes": [
+        {
+          "name": "Rows",
+          "values": [
+            "2000"
+          ]
+        },
+        {
+          "name": "Shape",
+          "values": [
+            "RowFormulas",
+            "ConditionalTotals"
+          ]
+        }
+      ],
+      "cases": [
+        "Default"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    {
       "comparisonId": "excel-xlsx-small-workbook-loop",
       "area": "excel",
       "title": "Opening and reading 200 small XLSX workbooks",
