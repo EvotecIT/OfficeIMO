@@ -1325,3 +1325,16 @@ static OfficeIMO.Pdf.PdfDocument.Load(System.ReadOnlyMemory<byte> pdf, OfficeIMO
 static OfficeIMO.Pdf.PdfDocument.LoadSeekable(System.IO.Stream! stream, OfficeIMO.Pdf.PdfLoadOptions? loadOptions = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Pdf.PdfDocument!
 static OfficeIMO.Pdf.PdfDocument.LoadSeekable(System.IO.Stream! stream, long length, OfficeIMO.Pdf.PdfLoadOptions? loadOptions = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Pdf.PdfDocument!
 static OfficeIMO.Pdf.PdfDocument.LoadSeekable(string! path, OfficeIMO.Pdf.PdfLoadOptions? loadOptions = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Pdf.PdfDocument!
+OfficeIMO.Pdf.PdfAssetExtractionOptions
+OfficeIMO.Pdf.PdfAssetExtractionOptions.CompositeSoftMasks.get -> bool
+OfficeIMO.Pdf.PdfAssetExtractionOptions.CompositeSoftMasks.init -> void
+OfficeIMO.Pdf.PdfAssetExtractionOptions.MaximumOutputBytes.get -> long
+OfficeIMO.Pdf.PdfAssetExtractionOptions.MaximumOutputBytes.init -> void
+OfficeIMO.Pdf.PdfAssetExtractionOptions.MaximumPages.get -> int
+OfficeIMO.Pdf.PdfAssetExtractionOptions.MaximumPages.init -> void
+OfficeIMO.Pdf.PdfAssetExtractionOptions.PdfAssetExtractionOptions() -> void
+OfficeIMO.Pdf.PdfDocument.ExtractAssetsTo(System.Func<string!, System.IO.Stream!>! createOutput, OfficeIMO.Pdf.PdfAssetExtractionOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IReadOnlyList<string!>!
+OfficeIMO.Pdf.PdfDocument.ExtractAssets(string! outputDirectory, OfficeIMO.Pdf.PdfAssetExtractionOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IReadOnlyList<string!>!
+OfficeIMO.Pdf.PdfDocument.ExtractEmbeddedFonts(string! outputDirectory, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IReadOnlyList<string!>!
+OfficeIMO.Pdf.PdfImagePlacement.EffectiveDpiX.get -> double?
+OfficeIMO.Pdf.PdfImagePlacement.EffectiveDpiY.get -> double?

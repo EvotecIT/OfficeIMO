@@ -148,6 +148,19 @@ File.WriteAllBytes("Service-review-page-1.png", preview.Bytes!);
 
 Pages with a supported destination ICC output profile and explicit transparency are composited before relative-colorimetric soft proofing. Their per-page reports include `render.colorspace.icc-output-intent-post-composition` as supported. SVG embeds the proofed raster surface; text extraction and the retained drawing scene keep their text and geometry. Other color-profile and transparency limitations remain diagnostic-driven; see the [producer corpus](../OfficeIMO.Pdf.Tests/Pdf/Fixtures/Rendering/OutputIntent/SOURCE.md) for the qualified cases.
 
+### Extract PDF assets
+
+```csharp
+using var pdf = PdfDocument.Load("artwork.pdf");
+IReadOnlyList<string> files = pdf.ExtractAssets("artwork-assets");
+```
+
+The new folder contains distinct images and embedded font programs, ICC profiles and an SVG for each page. Open `report.html` to browse the files and see image placement DPI, page boxes in millimetres, spot colorants and font subset status. `report.json` contains the same inventory in a machine-readable form.
+
+Supported image soft masks are saved as RGBA PNGs by default. Pass `CompositeSoftMasks = false` in `PdfAssetExtractionOptions` to use the ordinary image extraction formats. Standalone TrueType and OpenType programs with unusable names receive a repaired name table. Font subsets keep the glyphs the PDF embedded, and raw CFF and Type 1 programs keep their decoded bytes.
+
+Use `ExtractAssetsTo` to open a stream for each bundle file, or `ExtractEmbeddedFonts` to save the fonts alone. The same extraction is available in the browser. [Extract PDF assets](https://officeimo.com/browser/extract-pdf-assets/)
+
 ## More
 
 - [PDF guide](../Docs/officeimo.pdf-guide.md): every workflow with examples, from page layout and fonts to signatures, redaction, PDF/A and deployment.

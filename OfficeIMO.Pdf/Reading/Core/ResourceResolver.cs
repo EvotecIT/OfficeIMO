@@ -1260,11 +1260,11 @@ internal static partial class ResourceResolver {
         int maxImageReferenceSteps = PdfReadLimits.DefaultMaxImageReferenceSteps,
         PdfIndexedSoftMaskPngMemo? indexedSoftMaskMemo = null,
         PdfDeferredImagePayloads? deferredPayloads = null,
-        CancellationToken cancellationToken = default) {
+        bool compositeSoftMasks = false, CancellationToken cancellationToken = default) {
         PreflightImageFilterReferences(stream.Dictionary, objects, maxImageReferenceSteps, cancellationToken);
-        int width = (int)(stream.Dictionary.Get<PdfNumber>("Width")?.Value ?? 0);
-        int height = (int)(stream.Dictionary.Get<PdfNumber>("Height")?.Value ?? 0);
-        int bitsPerComponent = (int)(stream.Dictionary.Get<PdfNumber>("BitsPerComponent")?.Value ?? 0);
+        int width = ReadImageInteger(stream.Dictionary, "Width", objects);
+        int height = ReadImageInteger(stream.Dictionary, "Height", objects);
+        int bitsPerComponent = ReadImageInteger(stream.Dictionary, "BitsPerComponent", objects);
         bool isImageMask = PdfImageMaskNormalizer.IsImageMask(stream, objects);
         if (isImageMask && bitsPerComponent == 0) {
             bitsPerComponent = 1;
@@ -1294,12 +1294,12 @@ internal static partial class ResourceResolver {
             payload = BuildExtractedImagePayload(stream, objects, objectNumber, width, height, bitsPerComponent, isImageMask,
                 colorSpaceObject, effectiveColorSpaceObject, colorSpace, filter, hasMalformedFilterDeclaration, hasSupportedOutputIntent,
                 imageMaskColor, colorizeImageMask, maxDecodedStreamBytes, renderingIntent, outputIntentColorTransform,
-                colorFunctionEvaluationBudget, functionResolutionContext, indexedSoftMaskMemo, cancellationToken);
+                colorFunctionEvaluationBudget, functionResolutionContext, indexedSoftMaskMemo, compositeSoftMasks, cancellationToken);
         } else {
             deferredPayloadIndex = deferredPayloads.Add((budget, context, token) => BuildExtractedImagePayload(stream, objects, objectNumber,
                 width, height, bitsPerComponent, isImageMask, colorSpaceObject, effectiveColorSpaceObject, colorSpace, filter,
                 hasMalformedFilterDeclaration, hasSupportedOutputIntent, imageMaskColor, colorizeImageMask, maxDecodedStreamBytes,
-                renderingIntent, outputIntentColorTransform, budget, context, indexedSoftMaskMemo, token));
+                renderingIntent, outputIntentColorTransform, budget, context, indexedSoftMaskMemo, compositeSoftMasks, token));
         }
 
         bool hasDecodeEntry = stream.Dictionary.Items.TryGetValue("Decode", out PdfObject? decodeObject);
@@ -1361,7 +1361,7 @@ internal static partial class ResourceResolver {
         Func<int, long, bool>? colorFunctionEvaluationBudget,
         PdfColorFunctionResolutionContext? functionResolutionContext,
         PdfIndexedSoftMaskPngMemo? indexedSoftMaskMemo,
-        CancellationToken cancellationToken) {
+        bool compositeSoftMasks, CancellationToken cancellationToken) {
         byte[] bytes = stream.Data;
         string? extension = null;
         string? mimeType = null;
@@ -1373,6 +1373,7 @@ internal static partial class ResourceResolver {
         bool hasUnsupportedJpxColorSpaceDeclaration = colorSpaceObject != null &&
             PdfObjectLookup.ResolveChain(objects, effectiveColorSpaceObject) is not PdfName;
         if (!hasMalformedFilterDeclaration && !hasSupportedOutputIntent &&
+            !(compositeSoftMasks && transparencyMaskKind == "soft-mask") &&
             TryGetJpxPayload(stream, objects, colorSpace, hasUnsupportedJpxColorSpaceDeclaration, maxDecodedStreamBytes, out byte[] jpxPayload, cancellationToken)) {
             bytes = jpxPayload;
             OfficeIMO.Drawing.OfficeImageFormat format = OfficeIMO.Drawing.OfficeJpeg2000Header.IsJp2Container(jpxPayload)
@@ -1457,6 +1458,9 @@ internal static partial class ResourceResolver {
                 bitsPerComponent,
                 objects,
                 maxDecodedStreamBytes);
+        }
+        if (compositeSoftMasks && transparencyMaskKind == "soft-mask" && transparencyMaskResolved && extension == "png") {
+            bytes = EnsureRgbaPng(bytes, width, height, maxDecodedStreamBytes, cancellationToken);
         }
         return new PdfExtractedImagePayload(bytes, ownsBytes, extension, mimeType, isImageFile, transparencyMaskKind, transparencyMaskResolved);
     }
