@@ -245,12 +245,16 @@ namespace OfficeIMO.Excel {
         private static double GammaPrefix(double a, double x) {
             if (a < 15) return Math.Exp(a * Math.Log(x) - x - LogGamma(a));
             double d = (x - a) / a;
-            return Math.Sqrt(a / (2 * Math.PI)) * Math.Exp(a * LogOnePlusMinusSelf(d) - StirlingCorrection(a));
+            // Away from the mean nothing cancels; taking ln x directly keeps a tiny x from rounding u to 0 and a
+            // huge x from overflowing 1 + d.
+            double exponent = Math.Abs(d) < 0.5
+                ? a * LogOnePlusMinusSelf(d)
+                : a * (Math.Log(x) - Math.Log(a)) - (x - a);
+            return Math.Sqrt(a / (2 * Math.PI)) * Math.Exp(exponent - StirlingCorrection(a));
         }
 
-        /// <summary>ln(1 + d) − d, summed as a series when d is small so the two terms do not cancel.</summary>
+        /// <summary>ln(1 + d) − d for |d| &lt; ½, summed as a series so the two terms do not cancel.</summary>
         private static double LogOnePlusMinusSelf(double d) {
-            if (Math.Abs(d) >= 0.5) return LogOnePlus(d) - d;
             double power = d * d, sum = 0;
             for (int k = 2; k < 200; k++) {
                 double term = power / k;

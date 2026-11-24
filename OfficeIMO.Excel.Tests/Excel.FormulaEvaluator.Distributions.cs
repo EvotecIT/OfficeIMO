@@ -81,10 +81,18 @@ namespace OfficeIMO.Tests {
         // At the mean of a large gamma P(a, a) is ½ + 1/(3√(2πa)) to within O(a^−3/2).
         [InlineData("CHISQ.DIST(1E10,1E10,TRUE)", 0.5000018806319452)]
         [InlineData("CHISQ.DIST.RT(1E10,1E10)", 0.4999981193680548)]
+        // Far below the mean P(a, x) ≈ xᵃ / Γ(a + 1); here (1E-16)¹⁶ / 16!.
+        [InlineData("CHISQ.DIST(2E-16,32,TRUE)", 4.779477332387385e-270)]
         [InlineData("T.DIST(0.5,300,FALSE)", 0.35164388573796046)]
         public void Test_FormulaEvaluator_DistributionInversesReachFarTails(string formula, double expected) {
             double actual = CalculateNumber(formula);
             Assert.True(Math.Abs(actual / expected - 1) < 1e-9, $"{formula} returned {actual}, expected {expected}.");
+        }
+
+        // Far above the mean the upper tail underflows to 0 rather than overflowing to #NUM!.
+        [Fact]
+        public void Test_FormulaEvaluator_ChiSquaredUpperTailUnderflowsToZero() {
+            Assert.Equal(0, CalculateNumber("CHISQ.DIST.RT(8.98846567431158E307,32)"));
         }
 
         // Near the median the one-degree t distribution is the Cauchy distribution: F(t) − ½ = atan(t)/π.
