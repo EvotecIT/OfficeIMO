@@ -189,7 +189,7 @@ Describe 'Notebook command workflows' {
         try {
             $notebook | Add-OfficeNotebookCell -Kind Code -Language PowerShell -Source '$shared = 41'
             $notebook | Add-OfficeNotebookCell -Kind Code -Language PowerShell -Source 'throw "This cell was not selected"'
-            $notebook | Add-OfficeNotebookCell -Kind Code -Language PowerShell -Source '$shared + 1'
+            $notebook | Add-OfficeNotebookCell -Kind Code -Language PowerShell -Source '$shared + 1; "$($PSVersionTable.PSEdition) $($PSVersionTable.PSVersion)"'
             $notebook | Save-OfficeNotebook
         } finally {
             $notebook | Close-OfficeNotebook
@@ -208,6 +208,9 @@ Describe 'Notebook command workflows' {
             $saved.cells[2].execution_count | Should -Be 2
             $saved.cells[2].outputs[0].output_type | Should -Be 'execute_result'
             $saved.cells[2].outputs[0].data.'text/plain' | Should -BeExactly '42'
+            $workerVersion = $saved.cells[2].outputs[1].data.'text/plain'
+            $workerVersion | Should -BeExactly "$($PSVersionTable.PSEdition) $($PSVersionTable.PSVersion)"
+            Write-Host "Notebook worker verified as $workerVersion"
             (Get-FileHash -LiteralPath $source).Hash | Should -BeExactly $inputHash
         } finally {
             $report.Notebook | Close-OfficeNotebook
