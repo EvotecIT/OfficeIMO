@@ -436,6 +436,8 @@ then use `samples.csv` when diagnosing individual failures.
 
 ## Notebook
 
+The [PowerShell execution benchmark](NotebookExecution/README.md) compares running notebooks and saving output.
+
 `Compare-NotebookPerformance.ps1` exercises the PowerShell commands with
 deterministic Jupyter notebooks containing prose, Markdown tables, Python
 source, and saved standard output. Each sample checks cell or document order
