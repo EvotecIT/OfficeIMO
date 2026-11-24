@@ -47,7 +47,7 @@ public sealed class NotebookScriptImportTests {
             second
             """;
         string source = metadataFollowsSubmission ? "#!csharp\n\nFirstSubmission();\n\n" + metadataAndSource : metadataAndSource;
-        using NotebookDocument notebook = NotebookImporter.Load(Encoding.UTF8.GetBytes(source.Replace("\n", "\r\n")),
+        using NotebookDocument notebook = NotebookImporter.Load(Encoding.UTF8.GetBytes(source.Replace("\r\n", "\n").Replace("\n", "\r\n")),
             NotebookImportFormat.PolyglotDib).Value;
 
         Assert.Equal("custom", notebook.Language);
@@ -239,7 +239,7 @@ public sealed class NotebookScriptImportTests {
             # %% remains inside the comment
             =#
             """";
-        string source = prefix + "\n" + code;
+        string source = prefix.Replace("\r\n", "\n") + "\n" + code;
         using NotebookDocument companion = NotebookDocument.Create();
         companion.AddCodeCell(source, "julia");
         NotebookCell saved = companion.AddCodeCell(next, "julia");
@@ -278,7 +278,7 @@ public sealed class NotebookScriptImportTests {
         Assert.Collection(notebook.Cells,
             cell => AssertCell(cell, NotebookCellKind.Markdown, null,
                 closeFence ? "```mermaid\n    ```\n%% inside chart\n   ```" : "```mermaid"),
-            cell => AssertCell(cell, NotebookCellKind.Code, "python", code));
+            cell => AssertCell(cell, NotebookCellKind.Code, "python", code.Replace("\r\n", "\n")));
     }
 
     private static string Fixture(string name) => Path.Combine(AppContext.BaseDirectory, "Fixtures", "Scripts", name);

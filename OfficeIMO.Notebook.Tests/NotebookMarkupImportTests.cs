@@ -49,7 +49,7 @@ public sealed class NotebookMarkupImportTests {
             plot(results)
             ```
             """;
-        var imported = NotebookImporter.Load(Encoding.UTF8.GetBytes(source), NotebookImportFormat.Quarto);
+        var imported = NotebookImporter.Load(Encoding.UTF8.GetBytes(source.Replace("\r\n", "\n")), NotebookImportFormat.Quarto);
         using NotebookDocument notebook = imported.Value;
 
         Assert.Collection(notebook.Cells,
