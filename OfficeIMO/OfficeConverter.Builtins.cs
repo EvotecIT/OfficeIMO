@@ -252,17 +252,25 @@ public static partial class OfficeConverter {
     private static OfficeConversionCapability SelectRoute(OfficeConversionOptions settings) {
         if (settings.RouteId is { } requested) {
             OfficeConversionCapability? exact = Routes.SingleOrDefault(route => string.Equals(route.Id, requested, StringComparison.OrdinalIgnoreCase));
-            if (exact == null || !exact.SourceExtensions.Contains(Path.GetExtension(settings.SourceName), StringComparer.OrdinalIgnoreCase)
+            if (exact == null || !HasSourceExtension(exact, Path.GetExtension(settings.SourceName) ?? string.Empty)
                 || !string.Equals(exact.TargetExtension, Path.GetExtension(settings.TargetName), StringComparison.OrdinalIgnoreCase))
                 throw new ArgumentException("The explicit conversion route must match the source and target filenames.");
             return exact;
         }
         string source = Path.GetExtension(settings.SourceName ?? string.Empty), target = Path.GetExtension(settings.TargetName ?? string.Empty);
-        OfficeConversionCapability[] matches = Routes.Where(route => route.SourceExtensions.Contains(source, StringComparer.OrdinalIgnoreCase)
-            && string.Equals(route.TargetExtension, target, StringComparison.OrdinalIgnoreCase)).ToArray();
+        IReadOnlyList<OfficeConversionCapability> routes = Routes;
         string? preferred = OfficeConversionCapabilityCatalog.PreferredRouteId(source, target);
-        if (preferred != null && matches.FirstOrDefault(route => route.Id == preferred) is { } defaultRoute) return defaultRoute;
-        return matches.Length == 1 ? matches[0]
+        OfficeConversionCapability? single = null;
+        int matchCount = 0;
+        for (int i = 0; i < routes.Count; i++) {
+            OfficeConversionCapability route = routes[i];
+            if (!string.Equals(route.TargetExtension, target, StringComparison.OrdinalIgnoreCase) || !HasSourceExtension(route, source)) continue;
+            if (preferred != null && route.Id == preferred) return route;
+            single = route;
+            matchCount++;
+        }
+
+        return matchCount == 1 ? single!
             : throw new NotSupportedException("No unique executable route matches the input and output. Register the owning adapter or choose RouteId for ambiguous formats.");
     }
 
