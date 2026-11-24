@@ -64,38 +64,16 @@ internal static partial class HtmlCssPageSettingsResolver {
         private readonly Dictionary<string, List<HtmlCssPageDeclaration>> _properties = new(StringComparer.OrdinalIgnoreCase);
 
         internal PageDeclarations(HtmlCssStyleBlock syntax, bool isMarginBox, CancellationToken token) {
-            string body = HtmlCssTokenizer.StripComments(syntax.Source, syntax.Tokens, token);
-            int start = 0;
-            int depth = 0;
-            char quote = '\0';
-            int order = 0;
-            for (int index = 0; index <= body.Length; index++) {
-                if ((index & 1023) == 0) token.ThrowIfCancellationRequested();
-                char current = index < body.Length ? body[index] : ';';
-                if (quote != '\0') {
-                    if (current == quote && (index == 0 || body[index - 1] != '\\')) quote = '\0';
+            for (int order = 0; order < syntax.Declarations.Count; order++) {
+                token.ThrowIfCancellationRequested();
+                HtmlCssDeclaration declaration = syntax.Declarations[order];
+                string name = declaration.Name;
+                if (isMarginBox ? !name.Equals("content", StringComparison.OrdinalIgnoreCase) : !PageProperties.Contains(name))
                     continue;
-                }
-
-                if (current == '\'' || current == '"') quote = current;
-                else if (current == '(' || current == '{') depth++;
-                else if ((current == ')' || current == '}') && depth > 0) depth--;
-                else if (current == ';' && depth == 0) {
-                    string declaration = body.Substring(start, index - start).Trim();
-                    int separator = declaration.IndexOf(':');
-                    if (separator > 0) {
-                        string name = declaration.Substring(0, separator).Trim();
-                        if (isMarginBox ? name.Equals("content", StringComparison.OrdinalIgnoreCase) : PageProperties.Contains(name)) {
-                            string value = declaration.Substring(separator + 1).Trim();
-                            bool important = TryStripImportant(ref value);
-                            if (!_properties.TryGetValue(name, out var candidates))
-                                _properties.Add(name, candidates = new List<HtmlCssPageDeclaration>());
-                            candidates.Add(new HtmlCssPageDeclaration(value, important, order));
-                        }
-                    }
-                    start = index + 1;
-                    order++;
-                }
+                if (!_properties.TryGetValue(name, out var candidates))
+                    _properties.Add(name, candidates = new List<HtmlCssPageDeclaration>());
+                string value = ReadContextDeclarationValue(declaration, token);
+                candidates.Add(new HtmlCssPageDeclaration(value, declaration.IsImportant, order));
             }
         }
 

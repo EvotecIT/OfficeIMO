@@ -36,12 +36,11 @@ public static class HtmlCssTokenizer {
 
     // Conversion owns the input budget. Preserve string and URL tokens while
     // replacing real comments with a separator, without another token list.
-    internal static string StripComments(string source, IEnumerable<HtmlCssToken>? tokens = null, CancellationToken cancellationToken = default) {
+    internal static string StripComments(string source) {
         if (source.IndexOf("/*", StringComparison.Ordinal) < 0) return source;
         System.Text.StringBuilder? result = null;
         int copied = 0;
-        foreach (HtmlCssToken token in tokens ?? Enumerate(source, cancellationToken)) {
-            cancellationToken.ThrowIfCancellationRequested();
+        foreach (HtmlCssToken token in Enumerate(source)) {
             if (token.Kind != HtmlCssTokenKind.Comment) continue;
             result ??= new System.Text.StringBuilder(source.Length);
             result.Append(source, copied, token.Offset - copied).Append(' ');

@@ -411,19 +411,6 @@ internal static partial class HtmlCssPageSettingsResolver {
         return -1;
     }
 
-    private static bool TryStripImportant(ref string value) {
-        int end = value.Length;
-        while (end > 0 && char.IsWhiteSpace(value[end - 1])) end--;
-        const string Important = "important";
-        int wordStart = end - Important.Length;
-        if (wordStart < 0 || !string.Equals(value.Substring(wordStart, Important.Length), Important, StringComparison.OrdinalIgnoreCase)) return false;
-        int bang = wordStart - 1;
-        while (bang >= 0 && char.IsWhiteSpace(value[bang])) bang--;
-        if (bang < 0 || value[bang] != '!') return false;
-        value = value.Substring(0, bang).TrimEnd();
-        return true;
-    }
-
     private static int FindMatchingBrace(string css, int open, CancellationToken cancellationToken) {
         int depth = 0;
         char quote = '\0';
