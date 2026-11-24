@@ -129,9 +129,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private string RenderPageMarginText(HtmlRenderPage page, HtmlCssPageMarginTemplate box, int pageCount) {
         CheckCancellation();
-        ChargeLayoutOperations(box.Content.GetRenderedLength(page.PageNumber, pageCount, page.RunningStrings),
+        if (_options.IsPublicationSection && box.Content.ContainsPageTotal) {
+            string source = "@page @" + GetMarginBoxName(box.Position);
+            if (_reportedMarginTextOverflow.Add(source + " page-total"))
+                _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.GeneratedContentUnsupported,
+                    "The publication page total is unavailable during chapter layout and counter(pages) was omitted.",
+                    HtmlDiagnosticSeverity.Warning, source, lossKind: OfficeConversionLossKind.Omission);
+            pageCount = 0;
+        }
+        ChargeLayoutOperations(box.Content.GetRenderedLength(page.PageNumber + _options.PageNumberOffset, pageCount, page.RunningStrings),
             "@page @" + GetMarginBoxName(box.Position) + " generated content");
-        return box.Content.Render(page.PageNumber, pageCount, page.RunningStrings);
+        return box.Content.Render(page.PageNumber + _options.PageNumberOffset, pageCount, page.RunningStrings);
     }
 
     private double MeasurePageMarginText(string value, HtmlCssPageMarginTemplate box) {

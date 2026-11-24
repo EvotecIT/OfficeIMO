@@ -78,7 +78,7 @@ internal static partial class PdfWriter {
                     currentPage.Annotations.Add(new LinkAnnotation {
                         X1 = link.X1, X2 = link.X2, Y1 = link.Y1, Y2 = link.Y2,
                         Uri = link.Uri, DestinationName = link.DestinationName, Contents = link.Contents,
-                        StructElementIndex = link.StructElementIndex
+                        StructElementIndex = link.StructElementIndex, StructureParentElement = link.StructureParentElement
                     });
                 }
                 TransformCanvasRectangles(currentPage.Annotations, linkStart, transform);

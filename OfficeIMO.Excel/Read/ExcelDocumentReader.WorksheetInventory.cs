@@ -48,7 +48,8 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool IsSupportedNonWorksheetSheetPart(OpenXmlPart part) {
-            if (part is ChartsheetPart || part is DialogsheetPart) {
+            if (part is ChartsheetPart || part is DialogsheetPart
+                || part is MacroSheetPart || part is InternationalMacroSheetPart) {
                 return true;
             }
 

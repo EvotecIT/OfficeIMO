@@ -27,6 +27,11 @@ namespace OfficeIMO.Excel {
         private const string DialogSheetRelationshipSuffix = "/dialogsheet";
         private const string MacroSheetRelationshipSuffix = "/macrosheet";
         private const string InternationalMacroSheetRelationshipSuffix = "/intlMacrosheet";
+        // Excel and the Open XML SDK write macro sheets under the Office 2006 relationship namespace.
+        private const string OfficeMacroSheetRelationshipType =
+            "http://schemas.microsoft.com/office/2006/relationships/xlMacrosheet";
+        private const string OfficeInternationalMacroSheetRelationshipType =
+            "http://schemas.microsoft.com/office/2006/relationships/xlIntlMacrosheet";
         private const string SharedStringsRelationshipSuffix = "/sharedStrings";
         private const string StylesRelationshipSuffix = "/styles";
         private const int MaximumPrefetchedWorksheetBytes = 64 * 1024 * 1024;
@@ -610,7 +615,9 @@ namespace OfficeIMO.Excel {
             IsOfficeRelationship(relationshipType, ChartSheetRelationshipSuffix)
             || IsOfficeRelationship(relationshipType, DialogSheetRelationshipSuffix)
             || IsOfficeRelationship(relationshipType, MacroSheetRelationshipSuffix)
-            || IsOfficeRelationship(relationshipType, InternationalMacroSheetRelationshipSuffix);
+            || IsOfficeRelationship(relationshipType, InternationalMacroSheetRelationshipSuffix)
+            || string.Equals(relationshipType, OfficeMacroSheetRelationshipType, StringComparison.Ordinal)
+            || string.Equals(relationshipType, OfficeInternationalMacroSheetRelationshipType, StringComparison.Ordinal);
 
         private static bool IsOfficeRelationship(string? relationshipType, string suffix) =>
             string.Equals(

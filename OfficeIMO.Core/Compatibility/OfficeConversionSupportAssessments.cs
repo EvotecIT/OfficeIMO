@@ -22,8 +22,11 @@ internal static class OfficeConversionSupportAssessments {
         if (routeId == "email-pdf") return Targeted(
             "Converter and host fixtures reopen the PDF and find the subject, sender, To and Cc recipients, date, HTML body and attachment list; the TextOnly profile keeps the Reader projection and its email policy finding.",
             "Renders through the HTML-to-PDF engine with the shared email body sanitization, blocked remote resources and bounded inline MIME images. RTF-only bodies are approximated through HTML. Attachment payloads are listed, not embedded or rendered; signed and encrypted payloads are not verified or decrypted. Mail-client visual equivalence is not promised.");
-        if (routeId is "epub-pdf" or "reader-visio-pdf") return Targeted(
-            "Reader projection fixtures cover searchable email text, EPUB chapter order, Visio semantic fallback and policy findings in reopened PDF output.",
+        if (routeId == "epub-pdf") return Targeted(
+            "Converter fixtures reopen the PDF and verify spine order, linked stylesheets, images, navigation, tags and mixed page sizes. TextOnly exercises the original Reader projection.",
+            "Each chapter begins on a new page and uses the supported HTML print or fixed-viewport subset. Unsupported CSS, missing link targets, publication page totals and requested PDF parity padding have diagnostics. Linked resources resolve inside the EPUB package.");
+        if (routeId == "reader-visio-pdf") return Targeted(
+            "Reader projection fixtures cover Visio semantic fallback and policy findings in reopened PDF output.",
             "Source-neutral semantic projection only. Attachments, pagination, resources, forms and source layout follow explicit projection policies and diagnostics; this route does not promise native visual equivalence.");
         if (routeId is "pages-pdf" or "numbers-pdf" or "keynote-pdf") return Targeted(
             "Composed workflow contracts retain complete editable iWork reconstruction and PDF-stage evidence, reopen the staged PDF, and enforce source identity, cancellation, and output limits.",
@@ -69,7 +72,10 @@ internal static class OfficeConversionSupportAssessments {
         "notebook-pdf" => Targeted(
             "The managed notebook projection preserves cell order and reports MIME substitutions and omissions alongside PDF layout diagnostics.",
             "Renders saved static output. Kernel execution, widgets and script-driven displays are outside the export profile. Supported math and symbols depend on the rendering fonts."),
-        "notebook-markdown" or "notebook-html" or "notebook-docx" => Targeted(
+        "notebook-html" => Targeted(
+            "Notebook HTML fixtures cover ordered cells, saved text, supported tables and images, native MathML, and supported saved chart and widget state.",
+            "Opt in to offline chart zoom, pan and value inspection, and to browser controls for supported saved widgets. Kernel callbacks and notebook-supplied scripts remain inactive. Unsupported outputs are reported and can use a static fallback."),
+        "notebook-markdown" or "notebook-docx" => Targeted(
             "Preserves notebook cell order, saved text, supported images, and supported semantic tables. The conversion reports output representations that cannot be projected.",
             "Only saved static content is exported. Interactive displays and unsupported output types can require a static fallback."),
         "notebook-source-ipynb" or "notebook-source-pdf" => Targeted(

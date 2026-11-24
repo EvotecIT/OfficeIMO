@@ -166,11 +166,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
             isFlowMarker: true));
     }
 
-    private static string FootnoteCallDestination(int number) =>
-        "officeimo-footnote-call-" + number.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    private string FootnoteCallDestination(int number) =>
+        QualifyFootnoteDestination("officeimo-footnote-call-" + number.ToString(System.Globalization.CultureInfo.InvariantCulture));
 
-    private static string FootnoteNoteDestination(int number) =>
-        "officeimo-footnote-note-" + number.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    private string FootnoteNoteDestination(int number) =>
+        QualifyFootnoteDestination("officeimo-footnote-note-" + number.ToString(System.Globalization.CultureInfo.InvariantCulture));
+
+    private string QualifyFootnoteDestination(string name) =>
+        _options.NamedDestinationPrefix + (_options.IsPublicationSection ? "footnote:" : string.Empty) + name;
 
     private HtmlRenderFlowBlock? LayoutFootnoteMarkerContent(
         IElement element,
@@ -307,7 +310,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return Math.Max(0.01D, entry.MarkerBlock?.Height ?? entry.MarkerStyle.LineHeight);
     }
 
-    private static int FindFootnoteCallPage(HtmlRenderDocument rendered, HtmlFootnoteEntry entry) {
+    private int FindFootnoteCallPage(HtmlRenderDocument rendered, HtmlFootnoteEntry entry) {
         string name = FootnoteCallDestination(entry.Number);
         foreach (HtmlRenderPage page in rendered.Pages) {
             if (EnumeratePageFloatVisuals(page.Scene).OfType<HtmlRenderNamedDestination>()

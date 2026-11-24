@@ -19,12 +19,16 @@ enum DevelopmentHarness {
 struct DevelopmentHarnessApp: App {
     private let url: URL
     private let document: StudioDocument?
+    private let viewed: ViewerDocument?
 
     init() {
         StudioDocument.removeStaleWorkingCopies()
         let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         url = documents.appending(path: DevelopmentHarness.file ?? "")
-        document = try? StudioDocument(contentsOf: url)
+        // Word, Excel, PowerPoint and other documents open in the viewer, as they do from the document browser.
+        let isPDF = url.pathExtension.lowercased() == "pdf"
+        document = isPDF ? try? StudioDocument(contentsOf: url) : nil
+        viewed = isPDF ? nil : try? ViewerDocument(contentsOf: url)
     }
 
     var body: some Scene {
@@ -33,6 +37,8 @@ struct DevelopmentHarnessApp: App {
                 HarnessScan()
             } else if let document {
                 HarnessWindow(document: document, url: url)
+            } else if let viewed {
+                HarnessViewer(document: viewed)
             } else {
                 ContentUnavailableView("No Document", systemImage: "doc", description: Text(url.lastPathComponent))
             }
@@ -67,6 +73,35 @@ private struct HarnessScan: View {
                     }
                 }
                 .buttonStyle(.borderedProminent)
+            }
+        }
+    }
+}
+
+/// A viewed document, whose Edit as PDF opens the PDF here: the harness has no document browser to open it from.
+private struct HarnessViewer: View {
+    let document: ViewerDocument
+    @State private var edited: (StudioDocument, URL)?
+    @State private var message: String?
+
+    var body: some View {
+        if let (pdf, url) = edited {
+            HarnessWindow(document: pdf, url: url)
+        } else {
+            NavigationStack {
+                ViewerWindow(document: document) { url in
+                    do {
+                        edited = (try StudioDocument(contentsOf: url), url)
+                    } catch {
+                        message = error.localizedDescription
+                    }
+                }
+                .navigationTitle(document.name)
+                .alert("Couldn’t Open the PDF", isPresented: Binding { message != nil } set: { if !$0 { message = nil } }) {
+                    Button("OK") {}
+                } message: {
+                    Text(message ?? "")
+                }
             }
         }
     }

@@ -17,11 +17,45 @@ public static partial class OfficeConverter {
             throw new ArgumentException("Choose a route from the canonical conversion capability catalog.", nameof(route));
         if (BuiltinRouteIds.Contains(route.Id) || !Registrations.TryAdd(route.Id, route))
             throw new ArgumentException("The conversion route already has an implementation.", nameof(route));
+        Interlocked.Increment(ref _registrationVersion);
+    }
+
+    // Every conversion selects its route from this list, so it is built once per set of registrations.
+    // A list built while a registration lands keeps the older version and is rebuilt on the next read.
+    private static int _registrationVersion;
+    private static ExecutableRouteList? _executableRoutes;
+
+    private sealed class ExecutableRouteList {
+        internal ExecutableRouteList(int version, IReadOnlyList<OfficeConversionCapability> routes) {
+            Version = version;
+            Routes = routes;
+        }
+
+        internal int Version { get; }
+        internal IReadOnlyList<OfficeConversionCapability> Routes { get; }
     }
 
     /// <summary>Executable routes from the canonical capability catalog, including explicitly registered adapters.</summary>
-    public static IReadOnlyList<OfficeConversionCapability> Routes => Array.AsReadOnly(OfficeConversionCapabilityCatalog.All
-        .Where(capability => BuiltinRouteIds.Contains(capability.Id) || Registrations.ContainsKey(capability.Id)).ToArray());
+    public static IReadOnlyList<OfficeConversionCapability> Routes {
+        get {
+            int version = Volatile.Read(ref _registrationVersion);
+            ExecutableRouteList? cached = Volatile.Read(ref _executableRoutes);
+            if (cached != null && cached.Version == version) return cached.Routes;
+            var routes = Array.AsReadOnly(OfficeConversionCapabilityCatalog.All
+                .Where(capability => BuiltinRouteIds.Contains(capability.Id) || Registrations.ContainsKey(capability.Id)).ToArray());
+            Volatile.Write(ref _executableRoutes, new ExecutableRouteList(version, routes));
+            return routes;
+        }
+    }
+
+    internal static bool HasSourceExtension(OfficeConversionCapability route, string extension) {
+        IReadOnlyList<string> extensions = route.SourceExtensions;
+        for (int i = 0; i < extensions.Count; i++) {
+            if (string.Equals(extensions[i], extension, StringComparison.OrdinalIgnoreCase)) return true;
+        }
+
+        return false;
+    }
 
     /// <summary>Converts a file using default conversion options.</summary>
     public static OfficeConversionReport Convert(string source, string destination) => Convert(source, destination, null);

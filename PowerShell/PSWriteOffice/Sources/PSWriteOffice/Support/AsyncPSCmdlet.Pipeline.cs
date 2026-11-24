@@ -94,7 +94,7 @@ public abstract partial class AsyncPSCmdlet
             return false;
         }
 
-        var originatingGeneration = _hookGeneration.Value;
+        var originatingGeneration = CurrentHookGeneration;
         return originatingGeneration == 0 ||
                originatingGeneration != Volatile.Read(ref _activeHookGeneration);
     }
@@ -183,7 +183,7 @@ public abstract partial class AsyncPSCmdlet
             return;
 
         var activeGeneration = Volatile.Read(ref _activeHookGeneration);
-        var originatingGeneration = _hookGeneration.Value;
+        var originatingGeneration = CurrentHookGeneration;
         if (activeGeneration == 0 &&
             originatingGeneration == 0 &&
             (IsPipelineThread || IsConstructionThreadOutsideAsyncHook))
@@ -217,7 +217,7 @@ public abstract partial class AsyncPSCmdlet
     {
         ThrowIfStopped();
         ValidateInteractionGeneration();
-        var hookGeneration = _hookGeneration.Value;
+        var hookGeneration = CurrentHookGeneration;
         var replyPipe = new PipelineReplyChannel();
         if (!TryQueue(new PipelineItem(value, type, replyPipe, hookGeneration)))
         {
@@ -259,7 +259,7 @@ public abstract partial class AsyncPSCmdlet
     /// </remarks>
     protected Action<object?> CapturePipelineWriter(bool enumerateCollection = false)
     {
-        var hookGeneration = _hookGeneration.Value;
+        var hookGeneration = CurrentHookGeneration;
         if (hookGeneration == 0)
         {
             throw new InvalidOperationException(
@@ -280,7 +280,7 @@ public abstract partial class AsyncPSCmdlet
     /// </summary>
     protected CapturedPipelineStreams CapturePipelineStreams()
     {
-        var hookGeneration = _hookGeneration.Value;
+        var hookGeneration = CurrentHookGeneration;
         if (hookGeneration == 0)
         {
             throw new InvalidOperationException(
@@ -292,7 +292,7 @@ public abstract partial class AsyncPSCmdlet
 
     private bool TryQueue(PipelineItem item)
     {
-        item.BindToHook(_hookGeneration.Value);
+        item.BindToHook(CurrentHookGeneration);
         var pumpLease = _pipelinePumpLease.Value;
         if (pumpLease is null)
         {

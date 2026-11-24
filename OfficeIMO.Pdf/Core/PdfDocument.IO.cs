@@ -402,6 +402,15 @@ public sealed partial class PdfDocument {
         return (bytesWritten, pageCount, serializationReport);
     }
 
+    // The source adapter prepares and validates one fixed-canvas page group at a time.
+    internal int WritePreparedPages(Stream destination, IEnumerable<PageBlock> pages,
+        Action<int, string> missingDestination, Func<string, string?> resolveMissingDestination, CancellationToken cancellationToken) {
+        EnsureGeneratedDocument();
+        PdfWriter.Write(destination, this, _blocks, _options, _title, _author, _subject, _keywords, cancellationToken,
+            out int pageCount, out _, pages, missingDestination, resolveMissingDestination);
+        return pageCount;
+    }
+
     private void ThrowIfTextEncodingPreflightFails(
         System.Threading.CancellationToken cancellationToken = default) {
         if (TryCreateTextEncodingPreflightException(out PdfTextEncodingPreflightException? preflightException, cancellationToken)) {

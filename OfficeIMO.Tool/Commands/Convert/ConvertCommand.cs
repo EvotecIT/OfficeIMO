@@ -27,8 +27,9 @@ conversion catalog; the default output is a sibling PDF. Existing output is refu
 --text-encoding and --tab-size apply to TXT-to-PDF; --allow-legacy-loss accepts reported loss when
 reading DOC input. --require-no-loss rejects source and output fidelity losses before publishing; it is
 not available for DOC, DOCX, TXT, XLSX or PPTX to PDF.
-Email PDF renders the styled message with its header block, body, inline images and attachments;
---text-only writes the Reader text projection instead.
+Email PDF renders the message with its headers, styled body, inline images and attachment list.
+EPUB PDF renders styled chapters in reading order and includes a navigation outline.
+Use --text-only to select the Reader text projection for email or EPUB.
 Draw PDF output keeps source page dimensions and uses print-visible layers by default.
 DjVu PDF output preserves scan pixels, page sizes and existing searchable text.
 Publisher PDF output keeps source page dimensions and reports fidelity losses.

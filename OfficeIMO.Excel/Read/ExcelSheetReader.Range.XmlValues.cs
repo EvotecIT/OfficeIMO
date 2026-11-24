@@ -183,7 +183,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (cellKind == XmlCellKind.Boolean && rawText != null) {
-                return BoxBoolean(rawText == "1");
+                return BoxBoolean(ExcelBooleanCellText.IsTrue(rawText));
             }
 
             if (cellKind == XmlCellKind.Date && rawText != null) {
@@ -334,14 +334,14 @@ namespace OfficeIMO.Excel {
 
         private bool ReadXmlBooleanValueAndSkipCell(XmlReader valueReader, int cellDepth, out string? rawText) {
             if (!TryReadXmlBufferedValueTextAndSkipCell(valueReader, cellDepth, out char[] buffer, out int length, out rawText)) {
-                return rawText == "1";
+                return ExcelBooleanCellText.IsTrue(rawText);
             }
 
             if (rawText == null) {
-                return length == 1 && buffer[0] == '1';
+                return ExcelBooleanCellText.IsTrue(buffer.AsSpan(0, length));
             }
 
-            return rawText == "1";
+            return ExcelBooleanCellText.IsTrue(rawText);
         }
 
         private bool TryConvertXmlRawText(
@@ -362,7 +362,7 @@ namespace OfficeIMO.Excel {
                     value = TryParseSharedStringIndex(rawText, out int sstIndex) ? GetSharedString(sstIndex) : rawText;
                     return true;
                 case XmlCellKind.Boolean:
-                    value = BoxBoolean(rawText == "1");
+                    value = BoxBoolean(ExcelBooleanCellText.IsTrue(rawText));
                     return true;
                 case XmlCellKind.Date:
                     value = ExcelIsoDateText.TryParse(rawText, culture, DateTimeStyles.AssumeLocal, out var date)

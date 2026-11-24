@@ -3,14 +3,18 @@ using OfficeIMO.Html.Css;
 namespace OfficeIMO.Html;
 
 internal static partial class HtmlCssPageSettingsResolver {
-    /// <summary>Retains authored context declarations for the shared computed cascade, including shorthand order.</summary>
-    private static IReadOnlyList<HtmlGeneratedStyleDeclaration> ReadContextStyleDeclarations(string body,
+    // The owning style block has already passed the conversion's CSS syntax limits.
+    private static readonly HtmlCssTokenizationOptions ContextValueOptions = new() { MaxInputCharacters = null, MaxTokens = null };
+
+    private static HtmlCssStyleBlock ParseContextStyleBlock(string body,
         HtmlCssProcessingBudget budget, CancellationToken cancellationToken) {
-        HtmlCssStyleBlock block;
-        try { block = HtmlCssSyntaxParser.ParseStyleBlock(body, budget.CreateInlineSyntaxOptions(), cancellationToken); }
+        try { return HtmlCssSyntaxParser.ParseStyleBlock(body, budget.CreateInlineSyntaxOptions(), cancellationToken); }
         catch (HtmlCssSyntaxLimitException exception) { throw budget.TranslateSyntaxLimit(exception); }
+    }
+
+    /// <summary>Retains authored context declarations for the shared computed cascade, including shorthand order.</summary>
+    private static IReadOnlyList<HtmlGeneratedStyleDeclaration> ReadContextStyleDeclarations(HtmlCssStyleBlock block, CancellationToken cancellationToken) {
         var result = new List<HtmlGeneratedStyleDeclaration>();
-        var boundedTokens = new HtmlCssTokenizationOptions { MaxInputCharacters = null, MaxTokens = null };
         int order = 0;
         foreach (HtmlCssDeclaration declaration in block.Declarations) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -23,8 +27,7 @@ internal static partial class HtmlCssPageSettingsResolver {
                 || name.Equals("text-align", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("vertical-align", StringComparison.OrdinalIgnoreCase)
                 || IsMarginGeometryDeclaration(name) || IsMarginBackgroundDeclaration(name)) {
-                string value = HtmlComputedStyleEngine.StripCssCommentsOutsideStrings(
-                    HtmlCssPropertyParser.Parse(declaration, boundedTokens, cancellationToken).AuthoredValue).Trim();
+                string value = ReadContextDeclarationValue(declaration, cancellationToken);
                 if (value.Length > 0) result.Add(new HtmlGeneratedStyleDeclaration(name, value,
                     declaration.IsImportant, 0, 0, null, order));
             }
@@ -32,6 +35,10 @@ internal static partial class HtmlCssPageSettingsResolver {
         }
         return result;
     }
+
+    private static string ReadContextDeclarationValue(HtmlCssDeclaration declaration, CancellationToken cancellationToken) =>
+        HtmlComputedStyleEngine.StripCssCommentsOutsideStrings(
+            HtmlCssPropertyParser.Parse(declaration, ContextValueOptions, cancellationToken).AuthoredValue).Trim();
 
     internal static bool IsMarginBackgroundDeclaration(string name) =>
         name.ToLowerInvariant() is "background" or "background-color" or "background-clip" or "background-image"

@@ -467,7 +467,7 @@ jobs:
           $PSNativeCommandUseErrorActionPreference = $true
           $config = Get-Content Build/Studio/powerforge.dotnetpublish.json -Raw | ConvertFrom-Json
           $runtimeProperty = '-p:RuntimeIdentifiers="' + $config.DotNet.MsBuildProperties.RuntimeIdentifiers + '"'
-          dotnet restore $config.Targets[0].ProjectPath -p:SelfContained=true -p:PublishSingleFile=true $runtimeProperty
+          dotnet restore $config.Targets[0].ProjectPath -p:SelfContained=true -p:PublishSingleFile=true -p:PublishReadyToRun=true $runtimeProperty
           git diff --exit-code
 
   invoice-standards:

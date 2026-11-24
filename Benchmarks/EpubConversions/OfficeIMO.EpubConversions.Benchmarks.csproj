@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <IsPublishable>false</IsPublishable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../OfficeIMO/OfficeIMO.csproj" />
+    <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
+    <None Include="../../OfficeIMO.TestAssets/Fonts/OfficeIMOBaselineSans-Regular.ttf"
+          Link="OfficeIMOBaselineSans-Regular.ttf" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

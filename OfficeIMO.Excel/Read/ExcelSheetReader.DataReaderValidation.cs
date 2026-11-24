@@ -134,9 +134,6 @@ namespace OfficeIMO.Excel {
                 bool hasCachedValue = false;
                 string? sharedStringReference = null;
                 if (reader.IsEmptyElement) {
-                    if (sharedStringCell) {
-                        ValidateSharedStringReference(null, reference);
-                    }
                     continue;
                 }
 
@@ -254,6 +251,8 @@ namespace OfficeIMO.Excel {
         }
 
         private void ValidateSharedStringReference(string? rawIndex, XmlCoordinateReference reference) {
+            // A shared-string cell without a value element holds no value, as an untyped empty cell does.
+            if (rawIndex == null) return;
             int count = _sst.Count;
             if (TryParseSharedStringIndex(rawIndex, out int index)
                 && (uint)index < (uint)count) {

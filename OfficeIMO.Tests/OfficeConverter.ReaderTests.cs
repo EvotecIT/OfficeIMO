@@ -38,11 +38,12 @@ public sealed class OfficeConverterReaderTests {
     }
 
     [Fact]
-    public void EpubConversion_PreservesChapterOrderAndReportsEpubPolicy() {
+    public void EpubTextOnlyConversion_PreservesChapterOrderAndReportsEpubPolicy() {
         using MemoryStream source = CreateEpub();
 
         using var output = new MemoryStream();
-        OfficeConversionReport conversion = OfficeConverter.Convert(source, OfficeDocumentFormat.Epub, output, OfficeDocumentFormat.Pdf);
+        OfficeConversionReport conversion = OfficeConverter.Convert(source, OfficeDocumentFormat.Epub, output, OfficeDocumentFormat.Pdf,
+            new OfficeConversionOptions { OutputProfile = OfficeConversionProfile.TextOnly });
         string text = PdfDocument.Load(new MemoryStream(output.ToArray())).ExtractText();
         Assert.True(source.CanRead);
 

@@ -150,7 +150,7 @@ internal sealed partial class OfficeImoMcpTools {
         OpenWorld = false,
         UseStructuredContent = true,
         OutputSchemaType = typeof(AgentConvertResult))]
-    [Description("Write one document as Markdown or Reader JSON, or convert it through a shared OfficeIMO conversion route selected by source extension and format: for example DOCX/XLSX/PPTX/ODT/ODS/ODP/RTF/Markdown/HTML/EML/MSG/EPUB/Visio to PDF, Markdown/HTML/RTF/ODT to DOCX, and DOCX/XLSX/PPTX to ODT/ODS/ODP. Jupyter notebooks can be converted to PDF, HTML, DOCX or standalone Markdown (.md) from saved outputs. Quarto (.qmd), R Markdown (.rmd), single-notebook Deepnote (.deepnote) and Zeppelin (.zpln) can be imported as Jupyter (.ipynb) or converted to PDF. Notebook code is never executed. officeimo_capabilities with operation 'convert' lists the routes. iWork ZIP files and authorized directory packages convert to their matching DOCX/XLSX/PPTX destination or PDF; directory packages reject linked members and require output outside the source, and iWork PDF requires complete editable reconstruction. Email PDF renders the styled message with headers, body, inline images and attachment list. Retains source hashes and fidelity evidence. Whole-mailbox conversion is intentionally rejected.")]
+    [Description("Write one document as Markdown or Reader JSON, or convert it through a shared OfficeIMO conversion route selected by source extension and format: for example DOCX/XLSX/PPTX/ODT/ODS/ODP/RTF/Markdown/HTML/EML/MSG/EPUB/Visio to PDF, Markdown/HTML/RTF/ODT to DOCX, and DOCX/XLSX/PPTX to ODT/ODS/ODP. Jupyter notebooks can be converted to PDF, HTML, DOCX or standalone Markdown (.md) from saved outputs. Quarto (.qmd), R Markdown (.rmd), single-notebook Deepnote (.deepnote) and Zeppelin (.zpln) can be imported as Jupyter (.ipynb) or converted to PDF. Notebook code is never executed. officeimo_capabilities with operation 'convert' lists the routes. iWork ZIP files and authorized directory packages convert to their matching DOCX/XLSX/PPTX destination or PDF; directory packages reject linked members and require output outside the source, and iWork PDF requires complete editable reconstruction. Email PDF renders the styled message with headers, body, inline images and attachment list. EPUB PDF renders styled chapters with a navigation outline. Retains source hashes and fidelity evidence. Whole-mailbox conversion is intentionally rejected.")]
     public async Task<CallToolResult> ConvertAsync(
         [Description("Path to one supported local document.")] string path,
         [Description("Destination file path. Existing files are protected unless overwrite is true.")] string outputPath,
@@ -159,9 +159,10 @@ internal sealed partial class OfficeImoMcpTools {
         [Description("Typed iWork representation and acceptance options. Defaults reject partial output and incomplete previews; PDF always requires complete editable output.")] IWorkConversionOptions? iworkOptions = null,
         [Description("Maximum captured input bytes for route and iWork conversions.")] long maximumInputBytes = 256L * 1024L * 1024L,
         [Description("Maximum generated destination bytes for route and iWork conversions.")] long maximumOutputBytes = 512L * 1024L * 1024L,
-        CancellationToken cancellationToken = default) =>
+        CancellationToken cancellationToken = default,
+        [Description("Output profile supported by the selected route. TextOnly uses the Reader text projection for email and EPUB PDF.")] OfficeConversionProfile outputProfile = OfficeConversionProfile.Faithful) =>
         await ExecuteAsync(
-            () => _service.ConvertAsync(path, outputPath, format, overwrite, cancellationToken, iworkOptions, maximumInputBytes, maximumOutputBytes),
+            () => _service.ConvertAsync(path, outputPath, format, overwrite, cancellationToken, iworkOptions, maximumInputBytes, maximumOutputBytes, outputProfile),
             result => result.Workflow is { Succeeded: false } failed ? failed.Summary : "Wrote " + result.Format + " to " + result.OutputPath + ".",
             result => result.Workflow is { Succeeded: false }).ConfigureAwait(false);
 

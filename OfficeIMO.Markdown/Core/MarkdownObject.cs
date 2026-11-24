@@ -98,8 +98,12 @@ public abstract class MarkdownObject {
     /// <summary>Root node for this object's tree.</summary>
     public MarkdownObject Root => Parent?.Root ?? this;
 
+    // Stored as -1 when there is no index, which keeps the field four bytes wide: derived types
+    // place their own small fields in the space a nullable index would take.
+    private int _indexInParent = -1;
+
     /// <summary>Zero-based index within the parent when this node is attached to a tree.</summary>
-    public int? IndexInParent { get; private set; }
+    public int? IndexInParent => _indexInParent < 0 ? null : _indexInParent;
 
     /// <summary>Previous sibling in the parent container when available.</summary>
     public MarkdownObject? PreviousSibling { get; private set; }
@@ -198,7 +202,7 @@ public abstract class MarkdownObject {
         MarkdownObject? previousSibling,
         MarkdownObject? nextSibling) {
         Parent = parent;
-        IndexInParent = indexInParent;
+        _indexInParent = indexInParent ?? -1;
         PreviousSibling = previousSibling;
         NextSibling = nextSibling;
     }

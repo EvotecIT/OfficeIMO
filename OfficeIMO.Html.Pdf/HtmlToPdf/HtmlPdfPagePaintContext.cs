@@ -3,21 +3,25 @@ namespace OfficeIMO.Html.Pdf;
 /// <summary>Operation-local link coverage and logical ownership for one rendered page.</summary>
 internal sealed class HtmlPdfPagePaintContext {
     private readonly HtmlPdfAnchorLinkMap _links;
+    private readonly string? _structurePrefix;
     internal HtmlPdfRenderedConverter.LinkTargets LinkTargets { get; }
     internal HtmlPdfMathMlFiles MathMlFiles { get; }
     private readonly Dictionary<HtmlRenderLogicalTextScope, List<HtmlRenderLogicalTextGroup>> _logicalGroups = new();
     private readonly HashSet<HtmlRenderLogicalTextScope> _emittedScopes = new();
     private readonly Dictionary<HtmlRenderLogicalTextScope, IReadOnlyList<HtmlRenderVisual>> _logicalPaint = new();
 
-    private HtmlPdfPagePaintContext(HtmlRenderPage page, HtmlPdfMathMlFiles mathMlFiles, HtmlPdfRenderedConverter.LinkTargets linkTargets) {
+    private HtmlPdfPagePaintContext(HtmlRenderPage page, HtmlPdfMathMlFiles mathMlFiles, HtmlPdfRenderedConverter.LinkTargets linkTargets, string? structurePrefix) {
         MathMlFiles = mathMlFiles;
         LinkTargets = linkTargets;
+        _structurePrefix = structurePrefix;
         _links = HtmlPdfAnchorLinkMap.Create(page);
         Collect(page.Scene);
     }
 
     internal static HtmlPdfPagePaintContext Create(HtmlRenderPage page, HtmlPdfMathMlFiles mathMlFiles,
-        HtmlPdfRenderedConverter.LinkTargets linkTargets) => new(page, mathMlFiles, linkTargets);
+        HtmlPdfRenderedConverter.LinkTargets linkTargets, string? structurePrefix) => new(page, mathMlFiles, linkTargets, structurePrefix);
+
+    internal string? GetStructureKey(string? key) => key == null || _structurePrefix == null ? key : _structurePrefix + key;
 
     internal bool IsActive(HtmlRenderAnchorFragment fragment) => _links.IsActive(fragment)
         && LinkTargets.Include(fragment.LinkUri, fragment.Source);

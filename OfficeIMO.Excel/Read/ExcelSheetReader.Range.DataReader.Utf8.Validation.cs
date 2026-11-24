@@ -161,13 +161,12 @@ namespace OfficeIMO.Excel {
                         $"Worksheet '{_owner._sheetName}' cell {reference} references a missing cell style.");
                 }
 
-                if (kind == Utf8CellKind.SharedString) {
-                    ReadOnlySpan<byte> value = valueLength >= 0
-                        ? _buffer!.AsSpan(valueStart, valueLength)
-                        : ReadOnlySpan<byte>.Empty;
+                // A shared-string cell without a value element holds no value.
+                if (kind == Utf8CellKind.SharedString && valueLength >= 0) {
+                    ReadOnlySpan<byte> value = _buffer!.AsSpan(valueStart, valueLength);
                     int sharedStringCount = _owner._sst.Count;
                     bool parsed = TryParseInt32(value, out int index);
-                    if (!parsed && valueLength >= 0) {
+                    if (!parsed) {
                         parsed = TryParseSharedStringIndex(
                             DecodeString(valueStart, valueLength),
                             out index);

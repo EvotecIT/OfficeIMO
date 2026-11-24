@@ -61,7 +61,7 @@ public static partial class EpubImageExportExtensions {
         EpubImageExportOptions effective =
             options?.CloneEpub() ?? new EpubImageExportOptions();
         IReadOnlyList<EpubChapter> chapters = SelectChapters(source, effective);
-        IReadOnlyDictionary<string, EpubResource> resourcesByPath = BuildResourceIndex(source, cancellationToken);
+        var resources = new EpubChapterResources(source, cancellationToken);
         OfficeImageExportBatchProcessor.Run(
             effective,
             (accept, operationCancellationToken) => {
@@ -69,7 +69,7 @@ public static partial class EpubImageExportExtensions {
                     operationCancellationToken.ThrowIfCancellationRequested();
                     EpubChapter chapter = chapters[index];
                     EpubChapterRenderPreparation preparation =
-                        PrepareChapter(chapter, effective, resourcesByPath, operationCancellationToken);
+                        PrepareChapter(chapter, effective, resources, operationCancellationToken);
                     preparation.Document.ToImages(
                         format,
                         result => accept(CompleteResult(
@@ -117,14 +117,14 @@ public static partial class EpubImageExportExtensions {
         EpubImageExportOptions effective =
             options?.CloneEpub() ?? new EpubImageExportOptions();
         IReadOnlyList<EpubChapter> chapters = SelectChapters(source, effective);
-        IReadOnlyDictionary<string, EpubResource> resourcesByPath = BuildResourceIndex(source, cancellationToken);
+        var resources = new EpubChapterResources(source, cancellationToken);
         await OfficeImageExportBatchProcessor.RunAsync(
             effective,
             async (accept, operationCancellationToken) => {
                 foreach (EpubChapter chapter in chapters) {
                     operationCancellationToken.ThrowIfCancellationRequested();
                     EpubChapterRenderPreparation preparation =
-                        PrepareChapter(chapter, effective, resourcesByPath, operationCancellationToken);
+                        PrepareChapter(chapter, effective, resources, operationCancellationToken);
                     await preparation.Document.ToImagesAsync(
                         format,
                         async (result, token) => await accept(
@@ -176,21 +176,14 @@ public static partial class EpubImageExportExtensions {
     private static EpubChapterRenderPreparation PrepareChapter(
         EpubChapter chapter,
         EpubImageExportOptions options,
-        IReadOnlyDictionary<string, EpubResource> resourcesByPath,
+        EpubChapterResources resources,
         CancellationToken cancellationToken) {
         EpubImageExportOptions effective = options.CloneEpub();
         // The shared selector was consumed as chapter selection, before per-chapter pagination.
         effective.PageSelector = null;
         effective.Policy = new OfficeImageExportPolicy();
-        Uri baseUri = CreateChapterUri(chapter);
-        effective.BaseUri = baseUri;
-        ConfigureResources(resourcesByPath, effective);
         var diagnostics = new List<OfficeImageExportDiagnostic>();
-        string html;
-        if (!string.IsNullOrWhiteSpace(chapter.Html)) {
-            html = chapter.Html!;
-        } else {
-            html = CreatePlainTextChapter(chapter, options.IncludeChapterTitle);
+        if (string.IsNullOrWhiteSpace(chapter.Html)) {
             diagnostics.Add(new OfficeImageExportDiagnostic(
                 OfficeImageExportDiagnosticSeverity.Warning,
                 "EPUB_IMAGE_RAW_HTML_UNAVAILABLE",
@@ -206,130 +199,8 @@ public static partial class EpubImageExportExtensions {
                 chapter.Path,
                 OfficeConversionLossKind.Omission));
         }
-        var conversionOptions = new HtmlConversionDocumentOptions {
-            BaseUri = baseUri,
-            UrlPolicy = effective.UrlPolicy.Clone(),
-            ResourceUrlPolicy = (effective.ResourceUrlPolicy ?? effective.UrlPolicy).Clone(),
-            UseBodyContentsOnly = false
-        };
-        HtmlConversionDocument document = !string.IsNullOrWhiteSpace(chapter.Html) &&
-            string.Equals(chapter.MediaType, "application/xhtml+xml", StringComparison.OrdinalIgnoreCase)
-                ? HtmlConversionDocument.ParseXhtml(html, conversionOptions, cancellationToken)
-                : HtmlConversionDocument.Parse(html, conversionOptions, cancellationToken);
-        return new EpubChapterRenderPreparation(
-            document,
-            effective,
-            diagnostics.AsReadOnly());
-    }
-
-    private static IReadOnlyDictionary<string, EpubResource> BuildResourceIndex(
-        EpubDocument source,
-        CancellationToken cancellationToken) {
-        cancellationToken.ThrowIfCancellationRequested();
-        var resourcesByPath = new Dictionary<string, EpubResource>(StringComparer.Ordinal);
-        foreach (EpubResource resource in source.Resources) {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (!resource.IsRemote && !resourcesByPath.ContainsKey(resource.Path)) {
-                resourcesByPath.Add(resource.Path, resource);
-            }
-        }
-        return resourcesByPath;
-    }
-
-    private static void ConfigureResources(
-        IReadOnlyDictionary<string, EpubResource> resourcesByPath,
-        EpubImageExportOptions options) {
-        HtmlUrlPolicy fallbackResourceUrlPolicy =
-            (options.ResourceUrlPolicy ??
-             options.UrlPolicy ??
-             HtmlUrlPolicy.CreateOfficeIMOProfile())
-            .Clone();
-        HtmlUrlPolicy resourcePolicy = fallbackResourceUrlPolicy.Clone();
-        resourcePolicy.RestrictUrlSchemes = true;
-        resourcePolicy.AllowedUrlSchemes.Add("epub");
-        options.ResourceUrlPolicy = resourcePolicy;
-        HtmlRenderSynchronousResourceResolver? synchronousFallback =
-            options.SynchronousResourceResolver;
-        options.SynchronousResourceResolver = (
-            HtmlRenderResourceRequest request,
-            CancellationToken cancellationToken,
-            out HtmlResolvedResource? resolved) => {
-            cancellationToken.ThrowIfCancellationRequested();
-            EpubResource? resource = FindResource(
-                resourcesByPath,
-                request);
-            byte[]? data = resource?.Data;
-            if (data is { Length: > 0 }) {
-                if (data.LongLength > options.MaxResourceBytes) {
-                    throw new HtmlRenderResourceByteLimitException(
-                        data.LongLength);
-                }
-                resolved = new HtmlResolvedResource(
-                    data,
-                    resource!.MediaType ?? "application/octet-stream");
-                return true;
-            }
-            if (resource != null ||
-                request.Uri.Scheme.Equals(
-                    "epub",
-                    StringComparison.OrdinalIgnoreCase)) {
-                resolved = null;
-                return true;
-            }
-            if (synchronousFallback != null &&
-                HtmlUrlPolicyEvaluator.IsAllowed(
-                    request.Uri.AbsoluteUri,
-                    fallbackResourceUrlPolicy)) {
-                return synchronousFallback(
-                    request,
-                    cancellationToken,
-                    out resolved);
-            }
-            resolved = null;
-            return false;
-        };
-        HtmlRenderResourceResolver? fallback = options.ResourceResolver;
-        options.ResourceResolver = async (request, cancellationToken) => {
-            cancellationToken.ThrowIfCancellationRequested();
-            EpubResource? resource = FindResource(
-                resourcesByPath,
-                request);
-            byte[]? data = resource?.Data;
-            if (data is { Length: > 0 }) {
-                if (data.LongLength > options.MaxResourceBytes) {
-                    throw new HtmlRenderResourceByteLimitException(
-                        data.LongLength);
-                }
-                return new HtmlResolvedResource(
-                    data,
-                    resource!.MediaType ?? "application/octet-stream");
-            }
-            if (resource != null ||
-                request.Uri.Scheme.Equals(
-                    "epub",
-                    StringComparison.OrdinalIgnoreCase) ||
-                fallback == null ||
-                !HtmlUrlPolicyEvaluator.IsAllowed(
-                    request.Uri.AbsoluteUri,
-                    fallbackResourceUrlPolicy)) {
-                return null;
-            }
-            return await fallback(request, cancellationToken)
-                .ConfigureAwait(false);
-        };
-    }
-
-    private static EpubResource? FindResource(
-        IReadOnlyDictionary<string, EpubResource> resourcesByPath,
-        HtmlRenderResourceRequest request) {
-        // Only the package's virtual origin may select retained bytes. An HTML base
-        // can change the request origin, but cannot change the package identity.
-        if (!request.Uri.Scheme.Equals("epub", StringComparison.OrdinalIgnoreCase) ||
-            !request.Uri.Host.Equals("document", StringComparison.OrdinalIgnoreCase) ||
-            request.Uri.Port != -1 || request.Uri.UserInfo.Length != 0) return null;
-        EpubReference reference = EpubReference.Resolve("package.opf", request.Uri.AbsolutePath);
-        return reference.Kind == EpubReferenceKind.Container && reference.ContainerPath != null &&
-            resourcesByPath.TryGetValue(reference.ContainerPath, out EpubResource? resource) ? resource : null;
+        HtmlConversionDocument document = resources.PrepareDocument(chapter, effective, options.IncludeChapterTitle, cancellationToken);
+        return new EpubChapterRenderPreparation(document, effective, diagnostics.AsReadOnly());
     }
 
     private static OfficeImageExportResult CompleteResult(
@@ -383,51 +254,6 @@ public static partial class EpubImageExportExtensions {
     private static bool IsPackageOmissionDiagnostic(string code) {
         return !string.IsNullOrWhiteSpace(code) &&
                PackageOmissionDiagnosticCodes.Contains(code);
-    }
-
-    private static string CreatePlainTextChapter(
-        EpubChapter chapter,
-        bool includeTitle) {
-        var builder = new StringBuilder(
-            "<!doctype html><html><head><meta charset=\"utf-8\"></head><body>");
-        if (includeTitle && !string.IsNullOrWhiteSpace(chapter.Title)) {
-            builder.Append("<h1>")
-                .Append(WebUtility.HtmlEncode(chapter.Title))
-                .Append("</h1>");
-        }
-        builder.Append("<div style=\"white-space:pre-wrap\">")
-            .Append(WebUtility.HtmlEncode(chapter.Text))
-            .Append("</div></body></html>");
-        return builder.ToString();
-    }
-
-    private static Uri CreateChapterUri(EpubChapter chapter) {
-        string path = NormalizePath(chapter.Path);
-        // The HTML parser applies the retained markup's base element once.
-        return new Uri("epub://document/" + EscapePath(path));
-    }
-
-    private static string EscapePath(string path) =>
-        string.Join(
-            "/",
-            path.Split('/')
-                .Where(segment => segment.Length > 0)
-                .Select(Uri.EscapeDataString));
-
-    private static string NormalizePath(string path) {
-        var segments = new List<string>();
-        foreach (string segment in path
-                     .Replace('\\', '/')
-                     .Split('/')) {
-            if (segment.Length == 0 || segment == ".") continue;
-            if (segment == "..") {
-                if (segments.Count > 0) segments.RemoveAt(
-                    segments.Count - 1);
-                continue;
-            }
-            segments.Add(segment);
-        }
-        return string.Join("/", segments);
     }
 
     private static string NormalizeCode(string code) {

@@ -136,6 +136,15 @@ internal static partial class PdfWriter {
         public System.Collections.Generic.IReadOnlyList<IPdfBlock> Blocks { get; init; }
     }
 
+    private static LayoutResult LayoutPreparedPages(IEnumerable<PageBlock> pages, PdfCreateOptions options,
+        CancellationToken cancellationToken) {
+        using var diagnostics = options.BeginLayoutDiagnosticBuffer();
+        using var context = new LayoutContext(options, cancellationToken: cancellationToken);
+        LayoutResult result = context.LayoutPreparedPages(pages);
+        diagnostics.Commit();
+        return result;
+    }
+
     private static LayoutResult LayoutBlocks(
         IEnumerable<IPdfBlock> blocks,
         PdfCreateOptions opts,
