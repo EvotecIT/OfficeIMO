@@ -15,6 +15,12 @@ namespace OfficeIMO.Notebook.PowerShell;
 /// <summary>Owns the persistent PowerShell process and its private protocol pipe.</summary>
 internal sealed class PowerShellNotebookProcess : IDisposable {
     private static readonly Lazy<string> WorkerCommand = new(BuildWorkerCommand);
+#if NETSTANDARD2_0
+    // The compatibility reference lacks the overload, but modern runtimes can provide it.
+    private static readonly Action<Process, bool>? KillWithDescendants =
+        (Action<Process, bool>?)typeof(Process).GetMethod(nameof(Process.Kill), new[] { typeof(bool) })
+            ?.CreateDelegate(typeof(Action<Process, bool>));
+#endif
     private readonly NamedPipeServerStream _pipe;
     private readonly Process _process;
     private readonly StreamReader _reader;
@@ -150,6 +156,12 @@ internal sealed class PowerShellNotebookProcess : IDisposable {
             if (_started && !_process.HasExited && (!_assignedToWindowsJob || !_process.WaitForExit(2_000))) {
 #if NET8_0_OR_GREATER
                 _process.Kill(entireProcessTree: true);
+#elif NETSTANDARD2_0
+                if (KillWithDescendants != null) {
+                    KillWithDescendants(_process, true);
+                } else {
+                    _process.Kill();
+                }
 #else
                 _process.Kill();
 #endif

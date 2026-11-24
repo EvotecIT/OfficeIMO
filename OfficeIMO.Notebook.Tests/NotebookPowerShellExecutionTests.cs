@@ -134,6 +134,24 @@ public sealed class NotebookPowerShellExecutionTests {
         Assert.Equal("19", Assert.Single(next.Outputs).Data["text/plain"].GetString());
     }
 
+    [PowerShellRuntimeFact]
+    public async Task OmittedCommandErrorStillStopsTheNotebook() {
+        using var notebook = NotebookDocument.Create();
+        NotebookCell failed = notebook.AddCodeCell("'keep'; 'omit'; Get-OfficeImoNoSuchNotebookCommand", "powershell");
+        NotebookCell later = notebook.AddCodeCell("'untouched'", "powershell");
+        using PowerShellNotebookSession session = await StartAsync();
+
+        NotebookExecutionReport report = await session.ExecuteAsync(notebook,
+            new NotebookExecutionOptions { OutputRecordsLimit = 1 });
+
+        NotebookCellExecutionResult result = Assert.Single(report.Cells);
+        Assert.Equal(NotebookCellExecutionStatus.Failed, result.Status);
+        Assert.True(result.OutputTruncated);
+        Assert.Equal("keep", Assert.Single(failed.Outputs).Data["text/plain"].GetString());
+        Assert.Null(later.ExecutionCount);
+        Assert.True(session.IsUsable);
+    }
+
     private static Task<PowerShellNotebookSession> StartAsync() =>
         PowerShellNotebookSession.StartAsync(new PowerShellNotebookSessionOptions { ExecutablePath = PowerShellRuntimeFactAttribute.Executable });
 

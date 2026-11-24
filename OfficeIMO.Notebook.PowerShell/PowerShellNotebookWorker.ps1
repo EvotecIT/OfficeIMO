@@ -104,7 +104,13 @@ function Write-NotebookWorkerOutput {
     foreach ($record in $records) {
         if ($State.RecordsRemaining -eq 0 -or $State.CharactersRemaining -eq 0) {
             $State.Truncated = $true
-            break
+            if ($State.Failed) {
+                break
+            }
+            # Merged PowerShell errors can leave HadErrors unset even when the cell failed.
+            if ($record -isnot [System.Management.Automation.ErrorRecord]) {
+                continue
+            }
         }
         Write-NotebookWorkerRecord $Writer $record $State
     }

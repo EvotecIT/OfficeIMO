@@ -8,6 +8,13 @@ Only run notebooks you trust. Cells run with your account's permissions in a
 child process. Importing, opening, previewing, and exporting saved notebooks
 remain independent operations.
 
+Add a reference from your application to the PowerShell execution project in
+your OfficeIMO checkout.
+
+```sh
+dotnet add ./MyApp/MyApp.csproj reference ./OfficeIMO/OfficeIMO.Notebook.PowerShell/OfficeIMO.Notebook.PowerShell.csproj
+```
+
 ```csharp
 using OfficeIMO.Notebook;
 using OfficeIMO.Notebook.PowerShell;

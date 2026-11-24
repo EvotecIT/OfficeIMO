@@ -55,14 +55,16 @@ EXAMPLES
     $report = Invoke-OfficeNotebook -LiteralPath ./lab.ipynb -OutputPath ./executed.ipynb -NoClobber
     try {
         $report.Cells
-    } finally {
+    }
+    finally {
         $report.Notebook | Close-OfficeNotebook
     }
 
     $source = Open-OfficeNotebook -Path ./lab.py -Format JupytextPercent -CompanionPath ./lab.ipynb -FailOnLoss
     try {
         $source | Save-OfficeNotebook -Path ./reviewed.ipynb
-    } finally {
+    }
+    finally {
         $source | Close-OfficeNotebook
     }
 
@@ -71,7 +73,8 @@ EXAMPLES
         $notebook | Add-OfficeNotebookCell -Kind Markdown -Source '# Lab'
         $notebook | Add-OfficeNotebookCell -Kind Code -Language PowerShell -Source 'Get-Date'
         $notebook | Export-OfficeNotebook -Path ./lab.ps1 -FailOnLoss
-    } finally {
+    }
+    finally {
         $notebook | Close-OfficeNotebook
     }
 
@@ -80,7 +83,8 @@ EXAMPLES
         $notebook | Get-OfficeNotebookCell -Index 2 |
             Get-OfficeNotebookOutput -Index 0 |
             Export-OfficeNotebook -Path ./results.xlsx
-    } finally {
+    }
+    finally {
         $notebook | Close-OfficeNotebook
     }
 
