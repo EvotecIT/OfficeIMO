@@ -2,7 +2,7 @@ using Microsoft.DotNet.Interactive.Commands;
 using Microsoft.DotNet.Interactive.Events;
 using Microsoft.DotNet.Interactive.PowerShell;
 
-namespace NotebookExecution.InteractiveBenchmarks;
+namespace NotebookExecution.Interactive.Benchmarks;
 
 public sealed class InteractiveBenchmarkSession : IDisposable {
     private readonly string? _modulePath = Environment.GetEnvironmentVariable("PSModulePath");

@@ -2886,6 +2886,15 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/InvokeOfficeExcelTemplateCommand.cs#L49"
     },
     {
+      "name": "Invoke-OfficeNotebook",
+      "kind": "Cmdlet",
+      "synopsis": "Runs selected PowerShell notebook cells in one persistent session and records their outputs.",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Notebook/InvokeOfficeNotebookCommand.cs",
+      "sourceLine": 25,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Notebook/InvokeOfficeNotebookCommand.cs#L25"
+    },
+    {
       "name": "Invoke-OfficeProjectSchedule",
       "kind": "Cmdlet",
       "synopsis": "Explicitly calculates a schedule and optionally applies its dates.",

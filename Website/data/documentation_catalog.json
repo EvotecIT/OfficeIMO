@@ -2,21 +2,20 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 377,
-    "productionComponentCount": 180,
+    "projectCount": 379,
+    "productionComponentCount": 181,
     "testProjectCount": 70,
-    "benchmarkProjectCount": 47,
+    "benchmarkProjectCount": 48,
     "validationProjectCount": 81,
     "apiReferenceCount": 129,
     "conceptualPageCount": 213,
-    "conceptualWordCount": 122450
+    "conceptualWordCount": 122512
   },
   "categories": [
     {
       "name": "Extraction and ingestion",
       "componentCount": 35,
       "componentIndexes": [
-        114,
         115,
         116,
         117,
@@ -50,7 +49,8 @@
         145,
         146,
         147,
-        148
+        148,
+        149
       ]
     },
     {
@@ -75,7 +75,6 @@
         58,
         73,
         74,
-        86,
         87,
         88,
         89,
@@ -85,19 +84,20 @@
         93,
         94,
         95,
-        110,
-        112,
+        96,
+        111,
         113,
-        157,
+        114,
         158,
         159,
-        161,
+        160,
         162,
-        174,
+        163,
         175,
         176,
         177,
-        178
+        178,
+        179
       ]
     },
     {
@@ -114,11 +114,11 @@
         70,
         71,
         72,
-        82,
         83,
         84,
-        111,
-        152
+        85,
+        112,
+        153
       ]
     },
     {
@@ -143,14 +143,13 @@
         40,
         41,
         42,
-        103,
         104,
         105,
         106,
         107,
         108,
         109,
-        163,
+        110,
         164,
         165,
         166,
@@ -158,14 +157,15 @@
         168,
         169,
         170,
-        171
+        171,
+        172
       ]
     },
     {
       "name": "PowerShell automation",
       "componentCount": 1,
       "componentIndexes": [
-        179
+        180
       ]
     },
     {
@@ -192,16 +192,16 @@
         63,
         64,
         65,
-        96,
         97,
         98,
         99,
         100,
         101,
         102,
-        149,
+        103,
         150,
-        151
+        151,
+        152
       ]
     },
     {
@@ -215,7 +215,7 @@
     },
     {
       "name": "Specialized components",
-      "componentCount": 27,
+      "componentCount": 28,
       "componentIndexes": [
         0,
         3,
@@ -236,14 +236,15 @@
         79,
         80,
         81,
-        85,
-        153,
+        82,
+        86,
         154,
         155,
         156,
-        160,
-        172,
-        173
+        157,
+        161,
+        173,
+        174
       ]
     }
   ],
@@ -588,7 +589,7 @@
       "description": "Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Core/OfficeIMO.Core.csproj",
-      "sourceFileCount": 1387,
+      "sourceFileCount": 1393,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/core/",
@@ -866,7 +867,7 @@
       "description": "Bounded EPUB 2/3 reading, authoring, editing and package preservation for OfficeIMO.",
       "kind": "package",
       "projectPath": "OfficeIMO.Epub/OfficeIMO.Epub.csproj",
-      "sourceFileCount": 126,
+      "sourceFileCount": 131,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/epub/",
       "apiUrl": "/api/epub/",
@@ -904,7 +905,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Excel XLS, XLSX, XLSB, XLSM, and XLTX workbooks without Microsoft Office; legacy XLT templates are supported for classification and import.",
       "kind": "package",
       "projectPath": "OfficeIMO.Excel/OfficeIMO.Excel.csproj",
-      "sourceFileCount": 1488,
+      "sourceFileCount": 1486,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel/",
@@ -1695,7 +1696,7 @@
       "description": "Bounded offline import of notebook scripts, publishing formats, Deepnote and Zeppelin into OfficeIMO.Notebook.",
       "kind": "package",
       "projectPath": "OfficeIMO.Notebook.Import/OfficeIMO.Notebook.Import.csproj",
-      "sourceFileCount": 25,
+      "sourceFileCount": 26,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -1738,6 +1739,25 @@
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Notebook.Pdf",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
+    },
+    {
+      "name": "OfficeIMO.Notebook.PowerShell",
+      "packageId": "OfficeIMO.Notebook.PowerShell",
+      "category": "Specialized components",
+      "description": "Run PowerShell cells in an explicitly started Jupyter notebook session.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Notebook.PowerShell/OfficeIMO.Notebook.PowerShell.csproj",
+      "sourceFileCount": 5,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Notebook.PowerShell",
       "targetFrameworks": [
         "netstandard2.0",
         "net8.0",
@@ -2186,7 +2206,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft PowerPoint PPT, PPTX, PPTM, POT, PPS, and related presentations without Microsoft Office.",
       "kind": "package",
       "projectPath": "OfficeIMO.PowerPoint/OfficeIMO.PowerPoint.csproj",
-      "sourceFileCount": 574,
+      "sourceFileCount": 576,
       "referencingTestProjectCount": 8,
       "docsUrl": "/docs/powerpoint/",
       "apiUrl": "/api/powerpoint/",
@@ -3608,7 +3628,7 @@
       "description": "PSWriteOffice is a focused component in the OfficeIMO managed document platform.",
       "kind": "library",
       "projectPath": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/PSWriteOffice.csproj",
-      "sourceFileCount": 817,
+      "sourceFileCount": 818,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/pswriteoffice/",
       "apiUrl": null,

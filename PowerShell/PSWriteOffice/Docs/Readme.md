@@ -874,6 +874,9 @@ Sorts the used range on the current worksheet.
 ### [Invoke-OfficeExcelTemplate](Invoke-OfficeExcelTemplate.md)
 Fills {{Marker}} placeholders, repeats template rows or sheets, and keeps or removes optional rows.
 
+### [Invoke-OfficeNotebook](Invoke-OfficeNotebook.md)
+Runs selected PowerShell notebook cells in one persistent session and records their outputs.
+
 ### [Invoke-OfficeProjectSchedule](Invoke-OfficeProjectSchedule.md)
 Explicitly calculates a schedule and optionally applies its dates.
 

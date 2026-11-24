@@ -132,7 +132,7 @@ New-BenchmarkSuite 'notebook-execution' {
                     }
                 }
                 'DotNetInteractive' {
-                    $run.Session = [NotebookExecution.InteractiveBenchmarks.InteractiveBenchmarkSession]::new()
+                    $run.Session = [NotebookExecution.Interactive.Benchmarks.InteractiveBenchmarkSession]::new()
                     $null = $run.Session.ExecuteAsync([string[]] @($primeCode)).GetAwaiter().GetResult()
                 }
             }

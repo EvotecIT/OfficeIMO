@@ -98,6 +98,11 @@ $nonNativeValidated = @(
         classification = 'managed-cross-platform'
         evidence = 'Static Mermaid Word/PDF/HTML/PowerPoint integration, packed .NET 8 and 10 consumers and .NET Framework 4.7.2 cross-compilation are validated; complete adapter NativeAOT qualification is separate.'
     }
+    [ordered]@{
+        name = 'OfficeIMO.Notebook.PowerShell'
+        classification = 'managed-cross-platform'
+        evidence = 'Explicit execution uses a managed host and an installed PowerShell process. Runtime coverage is provided by managed notebook and packaged PowerShell contracts.'
+    }
     foreach ($name in @(
         'OfficeIMO.Notebook'
         'OfficeIMO.Notebook.Html'

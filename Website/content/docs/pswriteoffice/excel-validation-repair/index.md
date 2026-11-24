@@ -20,4 +20,4 @@ Validation returns `IsValid`, `Diagnostics`, and `NativeReports`. Inspect the na
 
 Use `Repair-OfficeDocument` only after inspecting the proposed repair class and preserving the original when required. Reopen the result, repeat the integrity checks, and compare it with the source if preservation matters.
 
-For automated delivery, a useful gate is: create or update, save, preflight, test integrity, test accessibility when applicable, compare against a reference contract, then publish. The [operational dashboard](https://github.com/EvotecIT/OfficeIMO/blob/a6eb645875c1863b0ae15c51832952ff4684b3e0/PowerShell/PSWriteOffice/Examples/Showcase/Showcase-Excel-OperationalDashboard.ps1) provides a substantial artifact for exercising that path.
+For automated delivery, a useful gate is: create or update, save, preflight, test integrity, test accessibility when applicable, compare against a reference contract, then publish. The [operational dashboard](https://github.com/EvotecIT/OfficeIMO/blob/cab1b23ad3fc02d5130211dc3682a51c2592547a/PowerShell/PSWriteOffice/Examples/Showcase/Showcase-Excel-OperationalDashboard.ps1) provides a substantial artifact for exercising that path.

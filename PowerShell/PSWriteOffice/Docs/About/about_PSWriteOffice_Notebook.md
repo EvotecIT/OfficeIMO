@@ -6,7 +6,7 @@ schema: 1.0.0
 
 ## Short Description
 
-Open, edit, and export notebooks and their saved results.
+Open, edit, run, and export notebooks and their saved results.
 
 ## Long Description
 
@@ -45,36 +45,73 @@ Markdown cells. The export report identifies content that a script cannot
 carry, including saved results and cells in other languages. Notebook
 import and export operate on stored data without executing cells.
 
+Use Invoke-OfficeNotebook to run trusted PowerShell cells. Each notebook
+runs in one child PowerShell session, so later cells can use variables and
+functions defined by earlier cells. Select zero-based indexes with
+-CellIndex. Use -IncludeUnspecifiedLanguage for cells without a language.
+
+The report includes the updated notebook. Use -OutputPath to write its
+saved outputs and execution counts to .ipynb. -StreamOutput emits live
+records ahead of the report. By default, each cell has 60 seconds to run.
+Use -TimeoutSeconds to change the limit. A timeout ends the session and
+keeps the output captured before it stopped.
+
 ## Examples
+
+
+```powershell
+$report = Invoke-OfficeNotebook -LiteralPath ./lab.ipynb -OutputPath ./executed.ipynb -NoClobber
+try {
+$report.Cells
+```
+
+} finally {
+
+```powershell
+$report.Notebook | Close-OfficeNotebook
+}
+```
 
 ```powershell
 $source = Open-OfficeNotebook -Path ./lab.py -Format JupytextPercent -CompanionPath ./lab.ipynb -FailOnLoss
 try {
-    $source | Save-OfficeNotebook -Path ./reviewed.ipynb
+$source | Save-OfficeNotebook -Path ./reviewed.ipynb
+```
+
 } finally {
-    $source | Close-OfficeNotebook
+
+```powershell
+$source | Close-OfficeNotebook
 }
 ```
 
 ```powershell
 $notebook = New-OfficeNotebook
 try {
-    $notebook | Add-OfficeNotebookCell -Kind Markdown -Source '# Lab'
-    $notebook | Add-OfficeNotebookCell -Kind Code -Language PowerShell -Source 'Get-Date'
-    $notebook | Export-OfficeNotebook -Path ./lab.ps1 -FailOnLoss
+$notebook | Add-OfficeNotebookCell -Kind Markdown -Source '# Lab'
+$notebook | Add-OfficeNotebookCell -Kind Code -Language PowerShell -Source 'Get-Date'
+$notebook | Export-OfficeNotebook -Path ./lab.ps1 -FailOnLoss
+```
+
 } finally {
-    $notebook | Close-OfficeNotebook
+
+```powershell
+$notebook | Close-OfficeNotebook
 }
 ```
 
 ```powershell
 $notebook = Open-OfficeNotebook -Path ./lab.ipynb
 try {
-    $notebook | Get-OfficeNotebookCell -Index 2 |
-        Get-OfficeNotebookOutput -Index 0 |
-        Export-OfficeNotebook -Path ./results.xlsx
+$notebook | Get-OfficeNotebookCell -Index 2 |
+Get-OfficeNotebookOutput -Index 0 |
+Export-OfficeNotebook -Path ./results.xlsx
+```
+
 } finally {
-    $notebook | Close-OfficeNotebook
+
+```powershell
+$notebook | Close-OfficeNotebook
 }
 ```
 
@@ -84,6 +121,7 @@ structured data resource. Use a .csv or .xlsx destination.
 ## See Also
 
 Open-OfficeNotebook
+Invoke-OfficeNotebook
 Get-OfficeNotebookCell
 Get-OfficeNotebookOutput
 Save-OfficeNotebook

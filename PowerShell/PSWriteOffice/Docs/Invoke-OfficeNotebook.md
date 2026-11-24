@@ -1,0 +1,274 @@
+---
+external help file: PSWriteOffice-help.xml
+Module Name: PSWriteOffice
+online version: https://github.com/EvotecIT/OfficeIMO
+schema: 2.0.0
+---
+# Invoke-OfficeNotebook
+## SYNOPSIS
+Runs selected PowerShell notebook cells in one persistent session and records their outputs.
+
+## SYNTAX
+### Path (Default)
+```powershell
+Invoke-OfficeNotebook [-Path] <string> [-CellIndex <int[]>] [-TimeoutSeconds <int>] [-ContinueOnError] [-IncludeUnspecifiedLanguage] [-PowerShellPath <string>] [-WorkingDirectory <string>] [-StreamOutput] [-OutputPath <string>] [-NoClobber] [-AllowLoss] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### LiteralPath
+```powershell
+Invoke-OfficeNotebook -LiteralPath <string> [-CellIndex <int[]>] [-TimeoutSeconds <int>] [-ContinueOnError] [-IncludeUnspecifiedLanguage] [-PowerShellPath <string>] [-WorkingDirectory <string>] [-StreamOutput] [-OutputPath <string>] [-NoClobber] [-AllowLoss] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### Document
+```powershell
+Invoke-OfficeNotebook -Document <NotebookDocument> [-CellIndex <int[]>] [-TimeoutSeconds <int>] [-ContinueOnError] [-IncludeUnspecifiedLanguage] [-PowerShellPath <string>] [-WorkingDirectory <string>] [-StreamOutput] [-OutputPath <string>] [-NoClobber] [-AllowLoss] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+## DESCRIPTION
+Run notebooks whose code you trust. The child PowerShell process runs under your account. The returned report contains the updated live notebook. Close the notebook when you finish using it.
+
+## EXAMPLES
+
+### EXAMPLE 1
+```powershell
+$report = Invoke-OfficeNotebook -LiteralPath ./lab.ipynb -OutputPath ./executed.ipynb -NoClobber
+try {
+    $report.Cells
+} finally {
+    $report.Notebook | Close-OfficeNotebook
+}
+```
+
+
+### EXAMPLE 2
+```powershell
+$notebook | Invoke-OfficeNotebook -CellIndex 0, 2 -TimeoutSeconds 15
+```
+
+
+## PARAMETERS
+
+### -AllowLoss
+Accept loss reported when normalizing imported content for the .ipynb output.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Path, LiteralPath, Document
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -CellIndex
+Zero-based cell indexes. Selected PowerShell cells run in notebook order.
+
+```yaml
+Type: Int32[]
+Parameter Sets: Path, LiteralPath, Document
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -ContinueOnError
+Continue after PowerShell cell errors. A timeout or lost session stops execution.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Path, LiteralPath, Document
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Document
+Live notebook to update with the execution results.
+
+```yaml
+Type: NotebookDocument
+Parameter Sets: Document
+Aliases: None
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
+### -IncludeUnspecifiedLanguage
+Run cells without a declared cell or notebook language as PowerShell.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Path, LiteralPath, Document
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -LiteralPath
+Literal .ipynb path, including a FileInfo.FullName or provider PSPath from the pipeline.
+
+```yaml
+Type: String
+Parameter Sets: LiteralPath
+Aliases: FullName, PSPath
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
+### -NoClobber
+Refuse to replace an existing output file.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Path, LiteralPath, Document
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -OutputPath
+Atomically save the executed notebook to this .ipynb path, including any partial results reported after a cell error or timeout.
+
+```yaml
+Type: String
+Parameter Sets: Path, LiteralPath, Document
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Path
+Path to one native .ipynb notebook. FileSystem wildcards must resolve to a single file.
+
+```yaml
+Type: String
+Parameter Sets: Path
+Aliases: None
+Possible values:
+
+Required: True
+Position: 0
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: True
+```
+
+### -PowerShellPath
+Literal path to a PowerShell executable. The default uses the installed executable for this host when available.
+
+```yaml
+Type: String
+Parameter Sets: Path, LiteralPath, Document
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -StreamOutput
+Write live output records to the pipeline before the final execution report.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Path, LiteralPath, Document
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -TimeoutSeconds
+Maximum seconds per cell. The default is 60. Set to 0 to run without a per-cell timeout.
+
+```yaml
+Type: Int32
+Parameter Sets: Path, LiteralPath, Document
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -WorkingDirectory
+Initial working directory. The default uses the notebook's directory when available.
+
+```yaml
+Type: String
+Parameter Sets: Path, LiteralPath, Document
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### CommonParameters
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
+
+## INPUTS
+
+- `System.String`
+- `OfficeIMO.Notebook.NotebookDocument`
+
+## OUTPUTS
+
+- `OfficeIMO.Notebook.PowerShell.NotebookExecutionReport`
+- `OfficeIMO.Notebook.PowerShell.NotebookExecutionEvent`
+
+## RELATED LINKS
+
+- None

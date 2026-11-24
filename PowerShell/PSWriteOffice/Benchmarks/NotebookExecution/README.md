@@ -34,15 +34,15 @@ Cold timing includes process startup, loading the notebook, opening one session,
 Run the warm lane in PowerShell 7.6 on .NET 10. Set the session's `$scratch` variable to the same directory used above. Build the .NET Interactive benchmark adapter from the repository root. Use the same PSWriteOffice manifest as the cold lane.
 
 ~~~powershell
-$adapter = 'PowerShell/PSWriteOffice/Benchmarks/NotebookExecution/NotebookExecution.InteractiveBenchmarks/NotebookExecution.InteractiveBenchmarks.csproj'
+$adapter = 'PowerShell/PSWriteOffice/Benchmarks/NotebookExecution/NotebookExecution.Interactive.Benchmarks/NotebookExecution.Interactive.Benchmarks.csproj'
 $adapterArtifacts = Join-Path $scratch 'interactive-adapter'
 dotnet build $adapter -c Release --artifacts-path $adapterArtifacts
-$adapterOut = Join-Path $adapterArtifacts 'bin/NotebookExecution.InteractiveBenchmarks/release'
+$adapterOut = Join-Path $adapterArtifacts 'bin/NotebookExecution.Interactive.Benchmarks/release'
 $comparison = Join-Path $PWD 'PowerShell/PSWriteOffice/Benchmarks/Compare-NotebookExecution.ps1'
 $warm = @{
     Mode = 'Warm'
     PowerShellNotebookManifest = Join-Path $scratch 'modules/PowerShellNotebook/3.0.0/PowerShellNotebook.psd1'
-    InteractiveBenchmarkAssembly = Join-Path $adapterOut 'NotebookExecution.InteractiveBenchmarks.dll'
+    InteractiveBenchmarkAssembly = Join-Path $adapterOut 'NotebookExecution.Interactive.Benchmarks.dll'
     OutputRoot = Join-Path $scratch 'warm'
 }
 & $comparison @warm -Plan
