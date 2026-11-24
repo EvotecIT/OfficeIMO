@@ -329,6 +329,7 @@ struct DocumentWindow: View {
 struct ReadView: View {
     @Bindable var session: DocumentSession
     @State private var isIndicatorShown = false
+    @Environment(\.accessibilityVoiceOverEnabled) private var isVoiceOverEnabled
 
     var body: some View {
         PageCanvas(session: session)
@@ -381,6 +382,8 @@ struct ReadView: View {
                     await session.loadPageText(page)
                     await session.loadFormFields(page)
                 }
+                // VoiceOver reads comments where they sit on the pages.
+                if isVoiceOverEnabled { await session.loadComments() }
             }
             .task(id: "\(session.pageDragTool == .select)-\(session.currentPage)-\(session.revision)") {
                 // Selecting markup on the page needs the page's annotations.

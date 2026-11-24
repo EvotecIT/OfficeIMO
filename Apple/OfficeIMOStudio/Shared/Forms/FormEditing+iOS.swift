@@ -60,6 +60,11 @@ final class FormController: NSObject, UIGestureRecognizerDelegate, UITextFieldDe
             finish(commit: true)
         }
         guard let (page, field, widget) = target else { return }
+        activate(page: page, field: field, widget: widget)
+    }
+
+    /// Fills a field as a tap on it does, from the tap or from VoiceOver: types in it, toggles it or offers its choices.
+    func activate(page: Int, field: FormField, widget: FormField.Widget) {
         switch field.kind {
         case .text: beginTyping(page: page, field: field, widget: widget)
         case .checkbox, .radio:

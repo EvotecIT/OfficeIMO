@@ -29,7 +29,7 @@ final class PageDragView: NSView, NSMenuItemValidation {
         selectionOutline.lineWidth = 1
         selectionOutline.lineDashPattern = [4, 3]
         for layer in [marks, selectionOutline, selectionHandles] { self.layer?.addSublayer(layer) }
-        setAccessibilityElement(true)
+        setAccessibilityElement(false)
         setAccessibilityRole(.layoutArea)
     }
 
@@ -48,6 +48,8 @@ final class PageDragView: NSView, NSMenuItemValidation {
     func update(tool: PageDragTool?) {
         if tool != self.tool {
             self.tool = tool
+            // Without a tool the view only passes clicks through, so VoiceOver reads the pages beneath it.
+            setAccessibilityElement(tool != nil)
             window?.invalidateCursorRects(for: self)
             let label = switch tool {
             case .redaction: String(localized: "Redaction area")

@@ -40,7 +40,7 @@ struct PageCanvas: NSViewRepresentable {
 final class PageScrollView: NSScrollView {
     let tiles = PageTiles()
     private let session: DocumentSession
-    private let pages = FlippedView()
+    private let pages = AccessiblePagesView()
     private var handledRequest: UUID?
     private var pendingRequest: CanvasRequest?
     private var laidOutWidth: CGFloat = 0
@@ -64,6 +64,9 @@ final class PageScrollView: NSScrollView {
             self?.drag.revisionShown(revision)
         }
         tiles.renderFailed = { [weak self] error in self?.session.errorMessage = error.localizedDescription }
+        pages.session = session
+        pages.layout = { [weak self] in self?.tiles.layout ?? PageLayout(pages: []) }
+        pages.clickField = { [weak self] point in self?.forms.click(at: point) ?? false }
         hasVerticalScroller = true
         hasHorizontalScroller = true
         autohidesScrollers = true
@@ -244,11 +247,6 @@ final class PageScrollView: NSScrollView {
         guard let window else { return }
         tiles.update(visible: pages.visibleRect, pixelsPerPoint: magnification * window.backingScaleFactor, settled: !isMagnifying)
     }
-}
-
-/// The pages' coordinates start at the top left, as the page layout does.
-final class FlippedView: NSView {
-    override var isFlipped: Bool { true }
 }
 
 /// Centers pages narrower than the window instead of pinning them to the left edge.
