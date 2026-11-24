@@ -53,5 +53,40 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(new[] { "B", "A", "C" }, document.Sheets.Select(sheet => sheet.Name).ToArray());
         }
+
+        [Fact]
+        public void AddSheetSeesSheetIdsChangedThroughTheOpenXmlDocument() {
+            using var stream = new MemoryStream();
+            using (var document = ExcelDocument.Create(stream)) {
+                document.AddSheet("A");
+                document.AddSheet("B");
+                _ = document.Sheets;
+
+                Sheet b = document.OpenXmlDocument.WorkbookPart!.Workbook.Sheets!.Elements<Sheet>().Single(sheet => sheet.Name == "B");
+                b.SheetId = 3U;
+                document.AddSheet("C");
+                document.Save();
+            }
+
+            stream.Position = 0;
+            using SpreadsheetDocument package = SpreadsheetDocument.Open(stream, false);
+            uint[] ids = package.WorkbookPart!.Workbook.Sheets!.Elements<Sheet>().Select(sheet => sheet.SheetId!.Value).ToArray();
+            Assert.Equal(3, ids.Distinct().Count());
+        }
+
+        [Fact]
+        public void AddSheetSeesSheetPartsSwappedThroughTheOpenXmlDocument() {
+            using var document = ExcelDocument.Create(new MemoryStream());
+            document.AddSheet("A").Cell(1, 1).SetValue("in A");
+            document.AddSheet("B").Cell(1, 1).SetValue("in B");
+            _ = document.Sheets;
+
+            Sheet[] elements = document.OpenXmlDocument.WorkbookPart!.Workbook.Sheets!.Elements<Sheet>().ToArray();
+            (elements[0].Id, elements[1].Id) = (elements[1].Id!.Value, elements[0].Id!.Value);
+            document.AddSheet("C");
+
+            Assert.True(document.Sheets[0].TryGetCellText(1, 1, out string text));
+            Assert.Equal("in B", text);
+        }
     }
 }

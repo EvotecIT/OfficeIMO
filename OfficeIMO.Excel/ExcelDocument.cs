@@ -37,7 +37,7 @@ namespace OfficeIMO.Excel {
         private System.Collections.Generic.IEqualityComparer<string> _tableNameComparer = System.StringComparer.OrdinalIgnoreCase;
         private List<ExcelSheet>? _cachedSheets;
         private bool _sheetCacheDirty = true;
-        private List<Sheet> _cachedSheetElements = new List<Sheet>();
+        private List<CachedSheetElement> _cachedSheetElements = new List<CachedSheetElement>();
         private readonly object _sheetCacheRebuildGate = new();
         private bool _customDocumentPropertiesDirty;
         private DocumentPersistenceMode _persistenceMode = DocumentPersistenceMode.Explicit;
@@ -234,7 +234,7 @@ namespace OfficeIMO.Excel {
             if (SheetCachingEnabled && !_sheetCacheDirty && _cachedSheets != null) {
                 // The cache holds its own wrapper, as a rebuild would, rather than the one returned to the caller.
                 _cachedSheets.Add(new ExcelSheet(this, _spreadSheetDocument!, sheet.SheetElement));
-                _cachedSheetElements.Add(sheet.SheetElement);
+                _cachedSheetElements.Add(new CachedSheetElement(sheet.SheetElement));
                 MarkPackageDirty();
                 return;
             }
@@ -243,8 +243,9 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// True when the workbook holds the same sheet elements, in the same order, as the cache was built from.
-        /// Sheets added, removed, replaced or reordered through the Open XML document fail this check.
+        /// True when the workbook holds the same sheet elements, in the same order and with the same sheet and
+        /// relationship ids, as the cache was built from. Sheets added, removed, replaced, reordered or re-pointed
+        /// through the Open XML document fail this check.
         /// </summary>
         private bool SheetCacheMatchesWorkbook()
         {
@@ -253,12 +254,30 @@ namespace OfficeIMO.Excel {
             var sheets = _spreadSheetDocument?.WorkbookPart?.Workbook?.Sheets;
             if (sheets != null) {
                 foreach (Sheet sheet in sheets.Elements<Sheet>()) {
-                    if (index >= _cachedSheetElements.Count || !ReferenceEquals(sheet, _cachedSheetElements[index])) return false;
+                    if (index >= _cachedSheetElements.Count) return false;
+                    CachedSheetElement cached = _cachedSheetElements[index];
+                    if (!ReferenceEquals(sheet, cached.Element)
+                        || sheet.SheetId?.Value != cached.SheetId
+                        || !string.Equals(sheet.Id?.Value, cached.RelationshipId, StringComparison.Ordinal)) return false;
                     index++;
                 }
             }
 
             return index == _cachedSheetElements.Count;
+        }
+
+        private readonly struct CachedSheetElement
+        {
+            internal CachedSheetElement(Sheet element)
+            {
+                Element = element;
+                SheetId = element.SheetId?.Value;
+                RelationshipId = element.Id?.Value;
+            }
+
+            internal Sheet Element { get; }
+            internal uint? SheetId { get; }
+            internal string? RelationshipId { get; }
         }
 
         private List<Sheet> ReadSheetElements()
@@ -306,7 +325,7 @@ namespace OfficeIMO.Excel {
             lock (_sheetCacheRebuildGate) {
                 var elements = ReadSheetElements();
                 UpdateSheetIdCache(elements);
-                _cachedSheetElements = elements;
+                _cachedSheetElements = elements.ConvertAll(element => new CachedSheetElement(element));
                 _cachedSheets = SheetCachingEnabled ? MaterializeSheets(elements) : null;
                 _sheetCacheDirty = false;
             }
