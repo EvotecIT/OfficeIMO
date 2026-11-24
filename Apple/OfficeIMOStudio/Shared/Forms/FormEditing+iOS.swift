@@ -184,8 +184,14 @@ final class FormController: NSObject, UIGestureRecognizerDelegate, UITextFieldDe
         let text = (current.control as? UITextField)?.text ?? (current.control as? UITextView)?.text ?? ""
         current.control.removeFromSuperview()
         if commit, text != current.field.text {
-            pending = (current.field.name, [text], session.revision)
-            session.setField(current.field, values: [text])
+            let added = (name: current.field.name, values: [text], revision: session.revision)
+            pending = added
+            // Text the document refused isn't offered to the field's other widgets.
+            session.setField(current.field, values: [text], failed: { [weak self] in
+                if let pending = self?.pending, pending.name == added.name, pending.values == added.values, pending.revision == added.revision {
+                    self?.pending = nil
+                }
+            })
         }
     }
 

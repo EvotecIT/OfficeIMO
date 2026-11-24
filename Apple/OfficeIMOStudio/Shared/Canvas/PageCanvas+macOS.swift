@@ -65,7 +65,7 @@ final class PageScrollView: NSScrollView {
         tiles.renderFailed = { [weak self] error in self?.session.errorMessage = error.localizedDescription }
         pages.session = session
         pages.layout = { [weak self] in self?.tiles.layout ?? PageLayout(pages: []) }
-        pages.clickField = { [weak self] point in self?.forms.click(at: point) ?? false }
+        pages.activateField = { [weak self] page, field, widget in self?.forms.activate(page: page, field: field, widget: widget) ?? false }
         hasVerticalScroller = true
         hasHorizontalScroller = true
         autohidesScrollers = true

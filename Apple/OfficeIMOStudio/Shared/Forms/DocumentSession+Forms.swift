@@ -47,13 +47,13 @@ extension DocumentSession {
         return formFields(page)?.hit(point)
     }
 
-    /// Sets a field's values as one undoable change.
-    func setField(_ field: FormField, values: [String]) {
+    /// Sets a field's values as one undoable change; `failed` runs when the document refuses them.
+    func setField(_ field: FormField, values: [String], failed: (() -> Void)? = nil) {
         guard canFillForms, values != field.values else { return }
         let before = revision
         edit(String(localized: "Fill Form"), { try await $0.fillForm([field.name: values]) }, then: { session in
             session.carryFormFields(from: before, filling: field.name, with: values)
-        })
+        }, failed: failed)
     }
 
     /// The fields loaded before a fill stay right after it but for the field's values, so the next tap finds them at

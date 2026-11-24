@@ -6,8 +6,8 @@ import AppKit
 final class AccessiblePagesView: NSView {
     weak var session: DocumentSession?
     var layout: () -> PageLayout = { PageLayout(pages: []) }
-    /// Fills a form field as a click on it does, at a point of the pages.
-    var clickField: ((CGPoint) -> Bool)?
+    /// Fills a form field as a click on it does.
+    var activateField: ((Int, FormField, FormField.Widget) -> Bool)?
     private var cached: (items: [PageAccessibilityItem], elements: [PageElement])?
 
     /// The pages' coordinates start at the top left, as the page layout does.
@@ -34,9 +34,11 @@ final class AccessiblePagesView: NSView {
     fileprivate func press(_ item: PageAccessibilityItem) -> Bool {
         guard let session else { return false }
         switch item.kind {
-        case .field:
-            guard session.canFillFormFromPage, let rect = rect(of: item) else { return false }
-            return clickField?(CGPoint(x: rect.midX, y: rect.midY)) ?? false
+        case .field(_, let name, let number):
+            guard session.canFillFormFromPage, layout().shows(item.page),
+                  let field = session.formFields(item.page)?.fields.first(where: { $0.name == name }),
+                  let widget = field.widgets.first(where: { $0.objectNumber == number }), field.isFillable else { return false }
+            return activateField?(item.page, field, widget) ?? false
         case .comment(let id):
             guard let thread = session.currentComments?.threads.first(where: { $0.id == id }) else { return false }
             session.selectComment(thread)
