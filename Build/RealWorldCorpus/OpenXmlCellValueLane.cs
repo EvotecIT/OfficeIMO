@@ -137,7 +137,10 @@ internal static class OpenXmlCellValueLane {
             }
             return "s:" + RichText(sharedStrings[index]);
         }
-        if (type == S.CellValues.Boolean) return "b:" + (raw.Trim() is "1" or "true" ? "TRUE" : "FALSE");
+        if (type == S.CellValues.Boolean) {
+            string value = raw.Trim(' ', '\t', '\r', '\n');
+            return "b:" + (value == "1" || value.Equals("true", StringComparison.OrdinalIgnoreCase) ? "TRUE" : "FALSE");
+        }
         if (type == S.CellValues.String || type == S.CellValues.Error) return "s:" + Unescape(raw);
         if (type == S.CellValues.Date) {
             // A time without a date is a fraction of a day, not a time today. It has no date to apply an offset to,
@@ -154,7 +157,8 @@ internal static class OpenXmlCellValueLane {
             }
             // Text without an offset is a wall-clock time. Text with an offset is converted to the runner's local time,
             // as the Excel reader does, so the comparison gives the same result in every timezone.
-            if (!DateTimeOffset.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out DateTimeOffset parsed)) return "d:" + raw;
+            // Date text that is not a date, such as an ISO duration, is kept as the text it is.
+            if (!DateTimeOffset.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out DateTimeOffset parsed)) return "s:" + raw;
             DateTime date = HasExplicitOffset(raw) ? parsed.LocalDateTime : parsed.DateTime;
             return "n:" + Serial(date);
         }
