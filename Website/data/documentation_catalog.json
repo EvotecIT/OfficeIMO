@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 380,
-    "productionComponentCount": 181,
+    "projectCount": 379,
+    "productionComponentCount": 180,
     "testProjectCount": 70,
     "benchmarkProjectCount": 49,
     "validationProjectCount": 81,
     "apiReferenceCount": 129,
     "conceptualPageCount": 213,
-    "conceptualWordCount": 122681
+    "conceptualWordCount": 122599
   },
   "categories": [
     {
@@ -88,16 +88,16 @@
         111,
         113,
         114,
+        157,
         158,
         159,
-        160,
+        161,
         162,
-        163,
+        174,
         175,
         176,
         177,
-        178,
-        179
+        178
       ]
     },
     {
@@ -150,6 +150,7 @@
         108,
         109,
         110,
+        163,
         164,
         165,
         166,
@@ -157,15 +158,14 @@
         168,
         169,
         170,
-        171,
-        172
+        171
       ]
     },
     {
       "name": "PowerShell automation",
       "componentCount": 1,
       "componentIndexes": [
-        180
+        179
       ]
     },
     {
@@ -215,7 +215,7 @@
     },
     {
       "name": "Specialized components",
-      "componentCount": 28,
+      "componentCount": 27,
       "componentIndexes": [
         0,
         3,
@@ -241,10 +241,9 @@
         154,
         155,
         156,
-        157,
-        161,
-        173,
-        174
+        160,
+        172,
+        173
       ]
     }
   ],
@@ -589,7 +588,7 @@
       "description": "Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Core/OfficeIMO.Core.csproj",
-      "sourceFileCount": 1393,
+      "sourceFileCount": 1392,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/core/",
@@ -3156,7 +3155,7 @@
       "description": "Cross-platform OfficeIMO desktop document reader and workspace.",
       "kind": "library",
       "projectPath": "OfficeIMO.Studio/OfficeIMO.Studio.csproj",
-      "sourceFileCount": 301,
+      "sourceFileCount": 283,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -3180,20 +3179,6 @@
       "targetFrameworks": [
         "net10.0"
       ]
-    },
-    {
-      "name": "OfficeIMO.Studio.iOS",
-      "packageId": "OfficeIMO.Studio.iOS",
-      "category": "Specialized components",
-      "description": "OfficeIMO.Studio.iOS is a focused component in the OfficeIMO managed document platform.",
-      "kind": "tool",
-      "projectPath": "OfficeIMO.Studio.iOS/OfficeIMO.Studio.iOS.csproj",
-      "sourceFileCount": 2,
-      "referencingTestProjectCount": 0,
-      "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
-      "packageUrl": null,
-      "targetFrameworks": []
     },
     {
       "name": "OfficeIMO.Studio.Native",

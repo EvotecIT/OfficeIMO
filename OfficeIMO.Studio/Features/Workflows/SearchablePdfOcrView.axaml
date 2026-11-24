@@ -138,10 +138,10 @@
                   CornerRadius="8" Padding="16">
             <StackPanel Spacing="{StaticResource StudioSpaceSM}">
               <TextBlock TextWrapping="Wrap" Text="{loc:Loc SearchablePdfOcr.OCRRuntime}" FontWeight="SemiBold" />
-              <TextBlock Text="{loc:Loc SearchablePdfOcr.TesseractMustBeInstalledOnThisComputerOfficeIMODiscoversIt}" IsVisible="{Binding OcrWorkbench.IsRecognitionAvailable}"
+              <TextBlock Text="{loc:Loc SearchablePdfOcr.TesseractMustBeInstalledOnThisComputerOfficeIMODiscoversIt}"
                          Classes="muted" FontSize="{StaticResource StudioSecondaryFontSize}" TextWrapping="Wrap" />
               <Button Classes="tool" Content="{loc:Loc OcrSetup.OpenSettings}" Command="{Binding ShowSettingsCommand}"
-                      IsVisible="{Binding OcrWorkbench.IsRecognitionAvailable}" HorizontalAlignment="Left" />
+                      HorizontalAlignment="Left" />
             </StackPanel>
           </Border>
 

@@ -21,33 +21,33 @@ internal sealed partial class StudioStorageAccess {
 
     internal bool IsFolder(string location) { lock (_sync) return _folders.ContainsKey(OfficeStorageIdentity.Normalize(location)); }
 
-    internal async Task<string?> RegisterFolderAsync(IReadOnlyList<IStorageFolder> folders, CancellationToken token) {
+    internal Task<string?> RegisterFolderAsync(IReadOnlyList<IStorageFolder> folders, CancellationToken token) {
+        try { return Task.FromResult(RegisterFolder(folders, token)); }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { return Task.FromCanceled<string?>(token); }
+        catch (Exception error) { return Task.FromException<string?>(error); }
+    }
+
+    private string? RegisterFolder(IReadOnlyList<IStorageFolder> folders, CancellationToken token) {
         if (folders.Count == 0) { token.ThrowIfCancellationRequested(); return null; }
         IStorageFolder selected = folders[0];
         foreach (var extra in folders.Skip(1).Distinct<IStorageFolder>(ReferenceEqualityComparer.Instance))
             if (!ReferenceEquals(extra, selected)) extra.Dispose();
         bool retained = false;
-        OfficeIMO.Core.Internal.OfficeMacFilePermission? permission = null;
         try {
             token.ThrowIfCancellationRequested();
             string location = Location(selected);
             if (location.Length > 4096 || string.IsNullOrWhiteSpace(selected.Name) || selected.Name.Length > 4096)
                 throw new IOException("The provider folder reference exceeds the supported size.");
-            string? bookmark = NeedsFolderPermission && OfficeStorageIdentity.GetLocalPath(location) is not null
-                ? selected.CanBookmark ? await selected.SaveBookmarkAsync().ConfigureAwait(true) : null : null;
-            if (OfficeStorageIdentity.GetLocalPath(location) is { } local) permission = OpenFolderPermission(local, bookmark);
             token.ThrowIfCancellationRequested();
             lock (_sync) {
                 ObjectDisposedException.ThrowIf(_disposed, this);
                 if (_folders.TryGetValue(location, out var previous) && !ReferenceEquals(previous, selected)) _retiredFolders.Add(previous);
                 _folders[location] = selected;
-                _references[location] = new(location, selected.Name, bookmark);
-                RetainFolderPermission(location, permission);
-                permission = null;
+                _references[location] = new(location, selected.Name);
                 retained = true;
             }
             return location;
-        } finally { permission?.Dispose(); if (!retained) selected.Dispose(); }
+        } finally { if (!retained) selected.Dispose(); }
     }
 
     internal DirectoryInputSession CreateDirectoryInputs(IEnumerable<string> locations) {

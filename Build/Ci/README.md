@@ -104,8 +104,7 @@ They run when one of those paths changes, when a `shared_inputs` path (the
 selector and its action, SDK, MSBuild and NuGet configuration) changes, and on
 every full run. Studio Apple uses this: its workflow, Swift sources, project and
 the one linked PDF fixture select the native qualification, while its
-`CI validation` job always reports. The Apple dependency-graph restore uses the
-same rule with the Apple project files, so other PRs skip its macOS runner. The
+`CI validation` job always reports. The
 PSWriteOffice macOS lanes use `powershell-macos`: module sources, tests,
 examples and test-module installation, plus the batch, path, file-system and
 font-discovery code that differs on macOS (such as `/var` resolving to

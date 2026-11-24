@@ -5411,9 +5411,6 @@ Defectos recuperados: {7:N0} · Solo detectados: {8:N0}</value>
   <data name="Invoice.StandardsHint" xml:space="preserve">
     <value>Las comprobaciones de estándares requieren los archivos de reglas fijados y un entorno Java/Saxon. Deben superarse las comprobaciones solicitadas antes de crear la salida.</value>
   </data>
-  <data name="Invoice.StandardsUnavailable" xml:space="preserve">
-    <value>Las comprobaciones externas de estándares Java/Saxon no están disponibles en la edición de Mac App Store. La inspección XML, las comprobaciones del modelo, la conversión y la creación de PDF siguen disponibles.</value>
-  </data>
   <data name="Invoice.NoInput" xml:space="preserve">
     <value>Ninguna factura seleccionada</value>
   </data>
@@ -6584,45 +6581,6 @@ Defectos recuperados: {7:N0} · Solo detectados: {8:N0}</value>
   <data name="Dialog.ActiveOperations.Working" xml:space="preserve">
     <value>Trabajando…</value>
   </data>
-  <data name="Mobile.ChoosePdf" xml:space="preserve">
-    <value>Elija un documento PDF.</value>
-  </data>
-  <data name="Mobile.NothingToShare" xml:space="preserve">
-    <value>El documento guardado no tiene ubicación para compartir.</value>
-  </data>
-  <data name="Mobile.ReadingPositionFailed" xml:space="preserve">
-    <value>No se pudo guardar la posición de lectura: {0}</value>
-  </data>
-  <data name="Mobile.ClipboardUnavailable" xml:space="preserve">
-    <value>El portapapeles no está disponible.</value>
-  </data>
-  <data name="Mobile.AnswerSourceChanged" xml:space="preserve">
-    <value>El origen o el destino ha cambiado. Exporte la respuesta actual a un archivo independiente.</value>
-  </data>
-  <data name="Mobile.DocumentFolderUnavailable" xml:space="preserve">
-    <value>La carpeta de documentos de Studio en este dispositivo no está disponible.</value>
-  </data>
-  <data name="Mobile.BrowseOutputFolder" xml:space="preserve">
-    <value>Explore la carpeta de salida seleccionada en Archivos. Abra un resultado individual para compartirlo.</value>
-  </data>
-  <data name="Mobile.NotReadyToOpenLink" xml:space="preserve">
-    <value>Studio aún no está listo para abrir un enlace.</value>
-  </data>
-  <data name="Mobile.ChooseFolder" xml:space="preserve">
-    <value>Elegir carpeta</value>
-  </data>
-  <data name="Mobile.UseOutputFormat" xml:space="preserve">
-    <value>Use el formato de salida seleccionado: {0}.</value>
-  </data>
-  <data name="Mobile.FileName" xml:space="preserve">
-    <value>Nombre de archivo</value>
-  </data>
-  <data name="Mobile.ChooseFolderNext" xml:space="preserve">
-    <value>Elija a continuación una carpeta en Archivos. El documento se escribirá cuando finalice la revisión.</value>
-  </data>
-  <data name="Mobile.AnnotationsUnavailable" xml:space="preserve">
-    <value>Las anotaciones no están disponibles para este documento.</value>
-  </data>
   <data name="Apple.Document" xml:space="preserve">
     <value>Documento</value>
   </data>
@@ -6661,9 +6619,6 @@ Defectos recuperados: {7:N0} · Solo detectados: {8:N0}</value>
   </data>
   <data name="Invoice.FontFiles" xml:space="preserve">
     <value>Fuentes</value>
-  </data>
-  <data name="Conversion.BatchExport.Unavailable" xml:space="preserve">
-    <value>La exportación PDF de carpetas requiere acceso continuo a carpetas completas, del que no dispone esta edición de Studio. Use Añadir archivos y Ejecutar pendientes para convertir varios documentos.</value>
   </data>
   <data name="PageActions.SelectAllAnnotations" xml:space="preserve">
     <value>Seleccionar todas las anotaciones</value>
@@ -7250,9 +7205,6 @@ Opción 2</value>
   </data>
   <data name="Output.LocalFolderRequired" xml:space="preserve">
     <value>Elige una carpeta local de salida. Usa Guardar como para guardar documentos individuales en la nube.</value>
-  </data>
-  <data name="Mobile.ReplaceFileConfirm" xml:space="preserve">
-    <value>«{0}» ya existe. Al guardar, se reemplazará tras los pasos de revisión pendientes. ¿Continuar?</value>
   </data>
   <data name="Output.PublicationTooLarge" xml:space="preserve">
     <value>El resultado supera el tamaño de documento admitido.</value>

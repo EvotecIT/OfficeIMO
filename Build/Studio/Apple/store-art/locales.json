@@ -1,0 +1,40 @@
+{
+  "description": "App Store listing locales and the app language and region each store capture runs in.",
+  "locales": [
+    {
+      "store": "en-US",
+      "language": "en",
+      "region": "en_US"
+    },
+    {
+      "store": "de-DE",
+      "language": "de",
+      "region": "de_DE"
+    },
+    {
+      "store": "fr-FR",
+      "language": "fr",
+      "region": "fr_FR"
+    },
+    {
+      "store": "pl",
+      "language": "pl",
+      "region": "pl_PL"
+    },
+    {
+      "store": "es-ES",
+      "language": "es",
+      "region": "es_ES"
+    },
+    {
+      "store": "it",
+      "language": "it",
+      "region": "it_IT"
+    },
+    {
+      "store": "pt-BR",
+      "language": "pt-BR",
+      "region": "pt_BR"
+    }
+  ]
+}

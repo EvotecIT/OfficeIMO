@@ -5411,9 +5411,6 @@ Défauts récupérés : {7:N0} · Seulement détectés : {8:N0}</value>
   <data name="Invoice.StandardsHint" xml:space="preserve">
     <value>Les contrôles de normes nécessitent les fichiers de règles figés et un environnement Java/Saxon. Les contrôles demandés doivent réussir avant la création de la sortie.</value>
   </data>
-  <data name="Invoice.StandardsUnavailable" xml:space="preserve">
-    <value>Les contrôles de normes externes Java/Saxon sont indisponibles dans l'édition Mac App Store. L'inspection XML, les contrôles du modèle, la conversion et la création de PDF restent disponibles.</value>
-  </data>
   <data name="Invoice.NoInput" xml:space="preserve">
     <value>Aucune facture sélectionnée</value>
   </data>
@@ -6584,45 +6581,6 @@ Défauts récupérés : {7:N0} · Seulement détectés : {8:N0}</value>
   <data name="Dialog.ActiveOperations.Working" xml:space="preserve">
     <value>En cours…</value>
   </data>
-  <data name="Mobile.ChoosePdf" xml:space="preserve">
-    <value>Choisissez un document PDF.</value>
-  </data>
-  <data name="Mobile.NothingToShare" xml:space="preserve">
-    <value>Le document enregistré n'a pas d'emplacement à partager.</value>
-  </data>
-  <data name="Mobile.ReadingPositionFailed" xml:space="preserve">
-    <value>La position de lecture n'a pas pu être enregistrée : {0}</value>
-  </data>
-  <data name="Mobile.ClipboardUnavailable" xml:space="preserve">
-    <value>Le presse-papiers n'est pas disponible.</value>
-  </data>
-  <data name="Mobile.AnswerSourceChanged" xml:space="preserve">
-    <value>La source ou la destination a changé. Exportez la réponse actuelle dans un fichier distinct.</value>
-  </data>
-  <data name="Mobile.DocumentFolderUnavailable" xml:space="preserve">
-    <value>Le dossier de documents de Studio sur cet appareil n'est pas disponible.</value>
-  </data>
-  <data name="Mobile.BrowseOutputFolder" xml:space="preserve">
-    <value>Parcourez le dossier de sortie sélectionné dans Fichiers. Ouvrez un résultat pour le partager.</value>
-  </data>
-  <data name="Mobile.NotReadyToOpenLink" xml:space="preserve">
-    <value>Studio n'est pas encore prêt à ouvrir un lien.</value>
-  </data>
-  <data name="Mobile.ChooseFolder" xml:space="preserve">
-    <value>Choisir un dossier</value>
-  </data>
-  <data name="Mobile.UseOutputFormat" xml:space="preserve">
-    <value>Utilisez le format de sortie sélectionné : {0}.</value>
-  </data>
-  <data name="Mobile.FileName" xml:space="preserve">
-    <value>Nom du fichier</value>
-  </data>
-  <data name="Mobile.ChooseFolderNext" xml:space="preserve">
-    <value>Choisissez ensuite un dossier dans Fichiers. Le document est écrit une fois la vérification terminée.</value>
-  </data>
-  <data name="Mobile.AnnotationsUnavailable" xml:space="preserve">
-    <value>Les annotations ne sont pas disponibles pour ce document.</value>
-  </data>
   <data name="Apple.Document" xml:space="preserve">
     <value>Document</value>
   </data>
@@ -6661,9 +6619,6 @@ Défauts récupérés : {7:N0} · Seulement détectés : {8:N0}</value>
   </data>
   <data name="Invoice.FontFiles" xml:space="preserve">
     <value>Polices</value>
-  </data>
-  <data name="Conversion.BatchExport.Unavailable" xml:space="preserve">
-    <value>L'export PDF de dossiers nécessite un accès permanent à des dossiers entiers, dont cette édition de Studio ne dispose pas. Utilisez Ajouter des fichiers et Exécuter les tâches en attente pour convertir plusieurs documents.</value>
   </data>
   <data name="PageActions.SelectAllAnnotations" xml:space="preserve">
     <value>Sélectionner toutes les annotations</value>
@@ -7250,9 +7205,6 @@ Option 2</value>
   </data>
   <data name="Output.LocalFolderRequired" xml:space="preserve">
     <value>Choisissez un dossier de sortie local. Utilisez Enregistrer sous pour enregistrer des documents individuels dans le cloud.</value>
-  </data>
-  <data name="Mobile.ReplaceFileConfirm" xml:space="preserve">
-    <value>« {0} » existe déjà. L’enregistrement le remplacera après les éventuelles étapes de vérification restantes. Continuer ?</value>
   </data>
   <data name="Output.PublicationTooLarge" xml:space="preserve">
     <value>Le résultat dépasse la taille de document prise en charge.</value>

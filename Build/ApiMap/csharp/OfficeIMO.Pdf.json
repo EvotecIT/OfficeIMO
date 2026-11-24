@@ -6186,7 +6186,6 @@
         "OfficeIMO.Rtf.Pdf/RtfPdfConverter.Inlines.cs",
         "OfficeIMO.Rtf.Pdf/RtfPdfConverter.Notes.cs",
         "OfficeIMO.Rtf.Tests/Rtf/RtfPdfImportTests.cs",
-        "OfficeIMO.Studio/Features/Mobile/MobileSampleDocument.cs",
         "OfficeIMO.Studio.Core/Features/Workspace/PdfWorkspace.Document.cs",
         "OfficeIMO.Studio.Core/Features/Workspace/PdfWorkspace.cs",
         "OfficeIMO.Studio.Core.Tests/StudioNativeEngineTests.cs",

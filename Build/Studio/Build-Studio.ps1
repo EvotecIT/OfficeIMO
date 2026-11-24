@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('Studio.Windows', 'Studio.macOS', 'Studio.Linux')]
+    [ValidateSet('Studio.Windows', 'Studio.Linux')]
     [string] $Target,
     [string[]] $Runtime,
     [switch] $Validate,
@@ -13,7 +13,6 @@ if ($Runtime -and -not $Target) {
 if ($Runtime) {
     $allowedRuntimes = @{
         'Studio.Windows' = @('win-x64', 'win-arm64')
-        'Studio.macOS' = @('osx-x64', 'osx-arm64')
         'Studio.Linux' = @('linux-x64', 'linux-arm64')
     }
     $invalidRuntimes = @($Runtime | Where-Object { $_ -notin $allowedRuntimes[$Target] })

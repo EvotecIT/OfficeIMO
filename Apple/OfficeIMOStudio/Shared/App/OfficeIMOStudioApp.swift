@@ -20,11 +20,13 @@ struct OfficeIMOStudioApp: App {
 
     init() {
         StudioDocument.removeStaleWorkingCopies()
+        #if DEBUG || OFFICEIMO_AUTORUN
         // Unattended runs start with the app rather than a window, which may never appear when launched from a shell.
         if Autorun.isRequested {
             let model = JourneyModel()
             Task { await Autorun.run(model) }
         }
+        #endif
     }
 
     var body: some Scene {
@@ -205,7 +207,8 @@ struct StudioCommands: Commands {
     }
 }
 
-/// Launch arguments for unattended runs:
+#if DEBUG || OFFICEIMO_AUTORUN
+/// Launch arguments for unattended runs, in Debug builds and in builds with the OFFICEIMO_AUTORUN condition:
 /// -OfficeIMOJourney runs the journey and writes Results/journey.json;
 /// -OfficeIMOMeasure <file> measures Documents/Measurements/<file> and writes Results/measure-<file>.json;
 /// -OfficeIMOExit quits afterwards.
@@ -242,3 +245,4 @@ enum Autorun {
         }
     }
 }
+#endif

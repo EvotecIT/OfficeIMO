@@ -68,6 +68,7 @@ struct ViewerWindow: View {
             }
         case .ready(let pages, _, let differs):
             ConvertedPagesView(document: pages)
+                .accessibilityIdentifier(StudioAccessibilityID.viewerPages)
                 .ignoresSafeArea(edges: .bottom)
                 .safeAreaInset(edge: .bottom) {
                     Text(differs ? "A PDF copy. Some content looks different from the original." : "A PDF copy of the original.")

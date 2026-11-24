@@ -28,7 +28,7 @@ public sealed partial class MainWindowViewModel {
     public ObservableCollection<PageOrientationChoice> OrientationChoices { get; } = new();
     public bool HasOrientationReview => _orientationReview is not null;
     /// <summary>Reviews the selected pages, or every page when none are selected.</summary>
-    public bool CanDetectPageOrientation => (HasOrganizerSelection ? CanRotateSelection : CanRotatePages) && StudioOcrProvider.UnavailableReason is null &&
+    public bool CanDetectPageOrientation => (HasOrganizerSelection ? CanRotateSelection : CanRotatePages) &&
         (_hasOrientationProvider || OcrReadiness.IsReady);
     public bool CanApplyOrientationReview => HasOrientationReview && OrientationChoices.Any(choice => choice.IsAccepted && choice.CanAccept);
     public bool HasOrientationPreview => OrientationBefore is not null && OrientationAfter is not null;

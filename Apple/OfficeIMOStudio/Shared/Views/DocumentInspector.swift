@@ -12,6 +12,7 @@ struct DocumentInspector: View {
                     LabeledContent("Pages", value: facts.pages.count, format: .number)
                     LabeledContent("File Size", value: Measurement(value: Double(facts.fileSize), unit: UnitInformationStorage.bytes),
                                    format: .byteCount(style: .file))
+                        .accessibilityIdentifier(StudioAccessibilityID.inspectorFileSize)
                 }
                 PropertiesSection(session: session)
                 if facts.pages.indices.contains(session.currentPage - 1) {

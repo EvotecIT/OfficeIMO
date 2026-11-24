@@ -9,7 +9,6 @@ internal sealed record StudioOcrRuntimeInfo(string ExecutablePath, string Versio
 /// <summary>Shares the user's OCR executable choice across Studio recognition workflows.</summary>
 internal sealed class StudioOcrRuntime(StudioPreferencesService preferences) {
     internal async Task<StudioOcrRuntimeInfo> InspectAsync(string? executablePath, CancellationToken cancellationToken) {
-        if (StudioOcrProvider.UnavailableReason is { } reason) throw new NotSupportedException(reason);
         TesseractRuntimeInfo runtime = TesseractRuntime.Discover(executablePath);
         var engine = TesseractOcrEngine.CreateDefault(new() {
             ExecutablePath = runtime.ExecutablePath, TessdataDirectory = runtime.TessdataDirectory,

@@ -10,10 +10,7 @@
     <StudioLicense Include="$(MSBuildThisFileDirectory)../../OfficeIMO.Pdf/Resources/AdobeCMaps/source.json" Link="Licenses/AdobeCMaps/source.json" />
     <StudioLicense Include="$(MSBuildThisFileDirectory)../../OfficeIMO.Studio/OPEN_SOURCE.md" Link="Licenses/OPEN_SOURCE.md" />
   </ItemGroup>
-  <ItemGroup Condition="'$(MSBuildProjectName)' == 'OfficeIMO.Studio.iOS'">
-    <BundleResource Include="@(StudioLicense)" />
-  </ItemGroup>
-  <ItemGroup Condition="'$(MSBuildProjectName)' == 'OfficeIMO.Studio' and '$(OfficeIMOStudioMobile)' != 'true'">
+  <ItemGroup Condition="'$(MSBuildProjectName)' == 'OfficeIMO.Studio'">
     <Content Include="@(StudioLicense)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
