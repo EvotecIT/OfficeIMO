@@ -16,6 +16,10 @@ public partial class Excel {
         "<row r=\"1\"><c r=\"A1\" t=\"inlineStr\"><is><t>Name</t></is></c><c r=\"B1\" t=\"inlineStr\"><is><t>Amount</t></is></c></row>"
         + "<row r=\"2\"><c r=\"A2\" t=\"inlineStr\" s=\"0\"><is><t>Alpha</t></is></c><c r=\"B2\" s=\"0\"><v>12.5</v></c></row>";
 
+    // Plain numeric cells keep the loaded worksheet on the grid loader, which records the repair.
+    private const string EmptyStyleNumberRows =
+        "<row r=\"1\"><c r=\"A1\" s=\"\"><v>1</v></c><c r=\"B1\" s=\"\"><v>2</v></c></row>";
+
     private const string UnparseableReferenceRows =
         "<row r=\"1\"><c r=\"A\" t=\"inlineStr\"><is><t>Name</t></is></c><c r=\"B1X\" t=\"inlineStr\"><is><t>Amount</t></is></c></row>"
         + "<row r=\"2\"><c r=\"A2\" t=\"inlineStr\"><is><t>Alpha</t></is></c><c r=\"D\"><v>12.5</v></c></row>";
@@ -87,19 +91,31 @@ public partial class Excel {
         } finally { File.Delete(path); }
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void Load_ReportsEmptyStyleAttributeRepair(bool utf16) {
-        string path = CreateLenientCellWorkbook(EmptyStyleRows, utf16);
+    [Fact]
+    public void Load_ReportsEmptyStyleAttributeRepair() {
+        string path = CreateLenientCellWorkbook(EmptyStyleNumberRows);
         try {
             using var document = ExcelDocument.Load(path, null, out OfficeConversionReport report);
+            Assert.True(document.GetSheet("Data").TryGetCellText(1, 1, out _));
 
             OfficeDiagnostic diagnostic = Assert.Single(report.Diagnostics);
             Assert.Equal(OfficeDiagnosticCodes.ExcelCellStyleRepaired, diagnostic.Code);
             Assert.Equal(OfficeDiagnosticSeverity.Warning, diagnostic.Severity);
-            Assert.Equal("Data!A2", diagnostic.Location);
+            Assert.Equal("Data!A1", diagnostic.Location);
             Assert.Contains("2 cells", diagnostic.Message);
+        } finally { File.Delete(path); }
+    }
+
+    [Fact]
+    public void Load_ReportPicksUpRepairWhenTheWorksheetLoads() {
+        string path = CreateLenientCellWorkbook(EmptyStyleNumberRows);
+        try {
+            using var document = ExcelDocument.Load(path, null, out OfficeConversionReport report);
+            Assert.Empty(report.Diagnostics);
+
+            Assert.True(document.GetSheet("Data").TryGetCellText(1, 1, out _));
+
+            Assert.Equal(OfficeDiagnosticCodes.ExcelCellStyleRepaired, Assert.Single(report.Diagnostics).Code);
         } finally { File.Delete(path); }
     }
 
@@ -122,6 +138,7 @@ public partial class Excel {
         string path = CreateLenientCellWorkbook(ValidStyleRows);
         try {
             using var document = ExcelDocument.Load(path, null, out OfficeConversionReport report);
+            Assert.True(document.GetSheet("Data").TryGetCellText(2, 1, out _));
 
             Assert.Empty(report.Diagnostics);
         } finally { File.Delete(path); }

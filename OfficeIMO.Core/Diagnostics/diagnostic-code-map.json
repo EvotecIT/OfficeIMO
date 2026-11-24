@@ -1205,7 +1205,7 @@
       "catalogCode": "excel-cell-style-repaired",
       "member": "ExcelCellStyleRepaired",
       "origins": [
-        "OfficeIMO.Excel/ExcelSheet.LoadRepairs.cs:41"
+        "OfficeIMO.Excel/ExcelSheet.LoadRepairs.cs:17"
       ]
     },
     {

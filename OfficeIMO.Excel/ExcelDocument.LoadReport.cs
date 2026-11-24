@@ -9,42 +9,56 @@ namespace OfficeIMO.Excel;
 public partial class ExcelDocument {
     private OfficeDiagnostic[] _sourceLoadDiagnostics = Array.Empty<OfficeDiagnostic>();
 
-    private readonly object _sourceLoadDiagnosticsLock = new object();
-
     /// <summary>Loads a workbook and returns findings from its source projection.</summary>
-    /// <remarks>Worksheet cells are read for the findings, which the first cell access would otherwise do.</remarks>
+    /// <remarks>
+    /// Worksheet cells load on first use, and the report includes findings for each worksheet as it is loaded, so read
+    /// <see cref="OfficeConversionReport.Diagnostics"/> after reading the cells. For a complete check up front, call
+    /// <see cref="ValidateDocument"/>, which parses every worksheet into the Open XML SDK model and reports schema errors
+    /// such as an empty cell style attribute.
+    /// </remarks>
     public static ExcelDocument Load(string path, ExcelLoadOptions? options, out OfficeConversionReport report) {
         var timer = Stopwatch.StartNew();
         ExcelDocument value = Load(path, options);
-        value.RecordWorksheetCellRepairs();
         report = value.CreateLoadReport(path, timer.Elapsed);
         return value;
     }
     /// <summary>Loads a workbook stream and returns findings from its source projection.</summary>
-    /// <remarks>Worksheet cells are read for the findings, which the first cell access would otherwise do.</remarks>
+    /// <remarks>
+    /// Worksheet cells load on first use, and the report includes findings for each worksheet as it is loaded, so read
+    /// <see cref="OfficeConversionReport.Diagnostics"/> after reading the cells. For a complete check up front, call
+    /// <see cref="ValidateDocument"/>, which parses every worksheet into the Open XML SDK model and reports schema errors
+    /// such as an empty cell style attribute.
+    /// </remarks>
     public static ExcelDocument Load(Stream stream, ExcelLoadOptions? options, out OfficeConversionReport report) {
         var timer = Stopwatch.StartNew();
         ExcelDocument value = Load(stream, options);
-        value.RecordWorksheetCellRepairs();
         report = value.CreateLoadReport("Excel stream", timer.Elapsed);
         return value;
     }
     internal OfficeConversionReport CreateLoadReport(string source, TimeSpan elapsed) =>
-        new OfficeConversionReport(source, "Excel", itemsWritten: Sheets.Count, elapsed: elapsed, diagnostics: _sourceLoadDiagnostics);
+        new ExcelLoadReport(this, source, Sheets.Count, elapsed);
 
     /// <summary>Adds a finding about the source that was found after loading, such as a repair made while reading a worksheet.</summary>
     internal void AddSourceLoadDiagnostic(OfficeDiagnostic diagnostic) {
-        lock (_sourceLoadDiagnosticsLock) {
-            var findings = new OfficeDiagnostic[_sourceLoadDiagnostics.Length + 1];
-            Array.Copy(_sourceLoadDiagnostics, findings, _sourceLoadDiagnostics.Length);
+        while (true) {
+            OfficeDiagnostic[] current = Volatile.Read(ref _sourceLoadDiagnostics);
+            var findings = new OfficeDiagnostic[current.Length + 1];
+            Array.Copy(current, findings, current.Length);
             findings[findings.Length - 1] = diagnostic;
-            _sourceLoadDiagnostics = findings;
+            if (Interlocked.CompareExchange(ref _sourceLoadDiagnostics, findings, current) == current) return;
         }
     }
 
-    // Worksheet grids load on first use; a findings request reads them so cell repairs are part of the report.
-    private void RecordWorksheetCellRepairs() {
-        foreach (ExcelSheet sheet in Sheets) sheet.RecordCellRepairs();
+    /// <summary>Reads the document's source findings when they are read, including repairs recorded as worksheets load.</summary>
+    private sealed class ExcelLoadReport : OfficeConversionReport {
+        private readonly ExcelDocument _document;
+
+        internal ExcelLoadReport(ExcelDocument document, string source, int itemsWritten, TimeSpan elapsed)
+            : base(source, "Excel", itemsWritten, elapsed) {
+            _document = document;
+        }
+
+        protected override IReadOnlyList<OfficeDiagnostic> GetDiagnostics() => Volatile.Read(ref _document._sourceLoadDiagnostics);
     }
 
     private void CaptureLegacyLoadDiagnostics(LegacyXls.Model.LegacyXlsWorkbook workbook) {
