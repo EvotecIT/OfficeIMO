@@ -85,6 +85,10 @@ namespace OfficeIMO.Excel {
         /// <summary>The probability beyond |t| in one tail.</summary>
         internal static double StudentTail(double t, double degrees) {
             if (t == 0) return 0.5;
+            // The t tail differs from the normal one by a relative (t⁴ + 2t²)/(4ν) + O(ν⁻²), so at huge degrees,
+            // where x below rounds to 1 and the beta form loses the distance, the normal tail is exact to double precision.
+            double squared = t * t;
+            if (degrees >= 1e15 && squared * squared + 2 * squared <= 4e-16 * degrees) return NormalCumulative(-Math.Abs(t));
             // I_x(ν/2, ½) with x = ν/(ν+t²). Writing r = |t|/√ν, x and 1 − x come from r or 1/r, whichever is at most 1,
             // so neither t² overflowing nor x rounding to 1 near the median loses the result.
             double r = Math.Abs(t) / Math.Sqrt(degrees);

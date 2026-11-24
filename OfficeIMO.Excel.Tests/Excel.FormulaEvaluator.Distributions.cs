@@ -114,12 +114,20 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, CalculateNumber("T.DIST(1E100,1E200,TRUE)"));
         }
 
-        // At 1E20 degrees x = ν/(ν+t²) rounds to 1 once t is away from the median, which the beta continued fraction
-        // cannot work from, so these are left to Excel rather than published wrong.
+        // At 1E20 degrees x = ν/(ν+t²) rounds to 1 away from the median; the t tail is then the normal tail.
         [Theory]
-        [InlineData("T.DIST.RT(3,1E20)")]
-        [InlineData("T.DIST.RT(8,1E20)")]
-        [InlineData("T.DIST.RT(10,1E20)")]
+        [InlineData("T.DIST.RT(3,1E20)", 0.0013498980316300946)]
+        [InlineData("T.DIST.RT(8,1E20)", 6.220960574271785e-16)]
+        [InlineData("T.DIST.RT(10,1E20)", 7.619853024160527e-24)]
+        [InlineData("T.INV(0.025,1E20)", -1.959963984540054)]
+        public void Test_FormulaEvaluator_StudentTAtHugeDegreesIsTheNormalLimit(string formula, double expected) {
+            double actual = CalculateNumber(formula);
+            Assert.True(Math.Abs(actual / expected - 1) < 1e-9, $"{formula} returned {actual}, expected {expected}.");
+        }
+
+        // Below that, where x has still rounded past what the beta continued fraction can use, the tail is left to Excel.
+        [Theory]
+        [InlineData("T.DIST.RT(30,1E10)")]
         public void Test_FormulaEvaluator_StudentTFarTailAtHugeDegreesIsLeftToExcel(string formula) {
             using var document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Calc");
