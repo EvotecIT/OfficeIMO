@@ -47,11 +47,14 @@ namespace OfficeIMO.Excel {
         /// </summary>
         private sealed class DefinedNameIndex {
             private readonly Dictionary<string, List<DefinedName>> _byName = new(StringComparer.OrdinalIgnoreCase);
+            private int _entries;
+            private int _entriesAfterPrune;
 
             internal DefinedNameIndex(DefinedNames list) {
                 List = list;
                 foreach (DefinedName definition in list.Elements<DefinedName>()) Add(definition);
                 LastChild = list.LastChild;
+                _entriesAfterPrune = _entries;
             }
 
             internal DefinedNames List { get; }
@@ -64,12 +67,28 @@ namespace OfficeIMO.Excel {
             internal void Appended(DefinedName definition) {
                 Add(definition);
                 LastChild = definition;
+                // Definitions removed elsewhere stay in their bucket until their name is looked up again;
+                // dropping them once the index doubles keeps its size proportional to the live list.
+                if (_entries > 2 * _entriesAfterPrune + 16) Prune();
+            }
+
+            private void Prune() {
+                _entries = 0;
+                var emptied = new List<string>();
+                foreach (KeyValuePair<string, List<DefinedName>> bucket in _byName) {
+                    bucket.Value.RemoveAll(definition => !ReferenceEquals(definition.Parent, List)
+                        || !string.Equals(definition.Name?.Value, bucket.Key, StringComparison.OrdinalIgnoreCase));
+                    if (bucket.Value.Count == 0) emptied.Add(bucket.Key);
+                    _entries += bucket.Value.Count;
+                }
+                foreach (string key in emptied) _byName.Remove(key);
+                _entriesAfterPrune = _entries;
             }
 
             internal List<DefinedName> Find(string name, uint? sheetIndex) {
                 var found = new List<DefinedName>();
                 if (!_byName.TryGetValue(name, out List<DefinedName>? definitions)) return found;
-                definitions.RemoveAll(definition => !ReferenceEquals(definition.Parent, List)
+                _entries -= definitions.RemoveAll(definition => !ReferenceEquals(definition.Parent, List)
                     || !string.Equals(definition.Name?.Value, name, StringComparison.OrdinalIgnoreCase));
                 foreach (DefinedName definition in definitions) {
                     if (IsSameDefinedName(definition, name, sheetIndex)) found.Add(definition);
@@ -84,6 +103,7 @@ namespace OfficeIMO.Excel {
                     _byName.Add(key, definitions);
                 }
                 definitions.Add(definition);
+                _entries++;
             }
         }
     }
