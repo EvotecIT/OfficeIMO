@@ -1369,7 +1369,6 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 | Inspect | 4 | 0 | 0 | 0 | 0 | 0 |
 | Validate | 2 | 1 | 0 | 0 | 0 | 1 |
 | Remove | 2 | 0 | 0 | 0 | 0 | 1 |
-| Convert | 0 | 1 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Epub` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
 <!-- officeimo-operation-catalog:end -->

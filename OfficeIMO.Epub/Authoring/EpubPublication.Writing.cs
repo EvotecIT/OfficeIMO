@@ -7,6 +7,20 @@ namespace OfficeIMO.Epub;
 public sealed partial class EpubPublication {
     /// <summary>Produces a complete bounded ZIP before publication. Unedited imports return their exact original bytes.</summary>
     public EpubWriteResult Write(EpubSaveOptions? options = null, CancellationToken cancellationToken = default) {
+        var result = WriteCore(null, options, cancellationToken);
+        return new EpubWriteResult(result.Bytes!, result.Report);
+    }
+
+    // The caller owns publication and cleanup of the staged stream.
+    internal EpubWriteReport WriteStaged(Stream destination, EpubSaveOptions options, CancellationToken cancellationToken) {
+        ArgumentNullException.ThrowIfNull(destination);
+        if (!destination.CanWrite || !destination.CanSeek || destination.Position != 0L || destination.Length != 0L)
+            throw new ArgumentException("EPUB staging requires an empty seekable destination.", nameof(destination));
+        return WriteCore(destination, options, cancellationToken).Report;
+    }
+
+    private (byte[]? Bytes, EpubWriteReport Report) WriteCore(Stream? destination, EpubSaveOptions? options,
+        CancellationToken cancellationToken) {
         options ??= new EpubSaveOptions();
         long maxOutput = options.MaxOutputBytes, maxExpanded = options.MaxExpandedBytes;
         int maxEntries = options.MaxEntries;
@@ -71,7 +85,8 @@ public sealed partial class EpubPublication {
         if (!rewriteArchive && _originalBytes != null) {
             if (_originalExpandedBytes > maxExpanded) throw new InvalidDataException("Output exceeds MaxExpandedBytes.");
             if (_originalBytes.LongLength > maxOutput) throw new InvalidDataException("Output exceeds MaxOutputBytes.");
-            return new EpubWriteResult((byte[])_originalBytes.Clone(), new EpubWriteReport(true,
+            if (destination != null) WritePayload(destination, _originalBytes, cancellationToken);
+            return (destination == null ? (byte[])_originalBytes.Clone() : null, new EpubWriteReport(true,
                 entries.Keys.OrderBy(path => path, StringComparer.Ordinal), Array.Empty<string>(), Array.Empty<string>(), diagnostics));
         }
         OfficeProvenanceZipWriteEntry[] writeEntries = new[] { "mimetype" }
@@ -79,7 +94,11 @@ public sealed partial class EpubPublication {
             .Select(path => new OfficeProvenanceZipWriteEntry(path, entries[path].LongLength, path != "mimetype" && compress,
                 new DateTimeOffset(1980, 1, 1, 0, 0, 0, TimeSpan.Zero), 0, 0,
                 Array.Empty<byte>(), Array.Empty<byte>(), Array.Empty<byte>(), () => new MemoryStream(entries[path], false))).ToArray();
-        byte[] output = OfficeProvenanceZipWriter.Write(writeEntries, maxExpanded, maximumOutputBytes: maxOutput, cancellationToken: cancellationToken);
+        byte[]? output = null;
+        if (destination == null)
+            output = OfficeProvenanceZipWriter.Write(writeEntries, maxExpanded, maximumOutputBytes: maxOutput, cancellationToken: cancellationToken);
+        else
+            OfficeProvenanceZipWriter.WriteTo(destination, writeEntries, maxExpanded, maxOutput, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         string[] preserved = entries.Where(pair => _originalEntries.TryGetValue(pair.Key, out byte[]? original) && original.SequenceEqual(pair.Value))
             .Select(pair => pair.Key).OrderBy(path => path, StringComparer.Ordinal).ToArray();
@@ -102,7 +121,7 @@ public sealed partial class EpubPublication {
             path,
             "OfficeIMO.Epub",
             OfficeConversionLossKind.Omission));
-        return new EpubWriteResult(output, new EpubWriteReport(false, preserved, regenerated, removed, diagnostics, renamed, merged));
+        return (output, new EpubWriteReport(false, preserved, regenerated, removed, diagnostics, renamed, merged));
     }
 
     /// <summary>Atomically saves a completed artifact to a file, preserving an existing destination on validation/cancellation failure.</summary>

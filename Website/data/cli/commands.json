@@ -91,6 +91,7 @@
         "dbf",
         "dbk",
         "dbx",
+        "deepnote",
         "dif",
         "djv",
         "djvu",
@@ -219,9 +220,11 @@
         "py",
         "pyi",
         "pyw",
+        "qmd",
         "qpw",
         "r",
         "rb",
+        "rmd",
         "rs",
         "rtf",
         "sam",
@@ -307,6 +310,7 @@
         "yaml",
         "yml",
         "zip",
+        "zpln",
         "zsh"
       ],
       "outputFormats": [
@@ -314,6 +318,7 @@
         "docx",
         "epub",
         "html",
+        "ipynb",
         "json",
         "jsonl",
         "md",
@@ -434,6 +439,15 @@
           "targetExtension": ".pdf"
         },
         {
+          "id": "docx-epub",
+          "source": "DOCX",
+          "target": "EPUB",
+          "sourceExtensions": [
+            ".docx"
+          ],
+          "targetExtension": ".epub"
+        },
+        {
           "id": "docx-odt",
           "source": "DOCX",
           "target": "ODT",
@@ -509,6 +523,16 @@
             ".txt"
           ],
           "targetExtension": ".docx"
+        },
+        {
+          "id": "html-epub",
+          "source": "HTML",
+          "target": "EPUB",
+          "sourceExtensions": [
+            ".html",
+            ".htm"
+          ],
+          "targetExtension": ".epub"
         },
         {
           "id": "html-pdf",
@@ -655,6 +679,42 @@
           "targetExtension": ".yaml"
         },
         {
+          "id": "notebook-docx",
+          "source": "Jupyter Notebook",
+          "target": "DOCX",
+          "sourceExtensions": [
+            ".ipynb"
+          ],
+          "targetExtension": ".docx"
+        },
+        {
+          "id": "notebook-html",
+          "source": "Jupyter Notebook",
+          "target": "HTML",
+          "sourceExtensions": [
+            ".ipynb"
+          ],
+          "targetExtension": ".html"
+        },
+        {
+          "id": "notebook-markdown",
+          "source": "Jupyter Notebook",
+          "target": "Markdown",
+          "sourceExtensions": [
+            ".ipynb"
+          ],
+          "targetExtension": ".md"
+        },
+        {
+          "id": "notebook-pdf",
+          "source": "Jupyter Notebook",
+          "target": "PDF",
+          "sourceExtensions": [
+            ".ipynb"
+          ],
+          "targetExtension": ".pdf"
+        },
+        {
           "id": "markdown-docx",
           "source": "Markdown",
           "target": "DOCX",
@@ -666,6 +726,16 @@
           "targetExtension": ".docx"
         },
         {
+          "id": "markdown-epub",
+          "source": "Markdown",
+          "target": "EPUB",
+          "sourceExtensions": [
+            ".md",
+            ".markdown"
+          ],
+          "targetExtension": ".epub"
+        },
+        {
           "id": "markdown-pdf",
           "source": "Markdown",
           "target": "PDF",
@@ -673,6 +743,30 @@
             ".md",
             ".markdown",
             ".txt"
+          ],
+          "targetExtension": ".pdf"
+        },
+        {
+          "id": "notebook-source-ipynb",
+          "source": "Notebook source",
+          "target": "Jupyter Notebook",
+          "sourceExtensions": [
+            ".qmd",
+            ".rmd",
+            ".deepnote",
+            ".zpln"
+          ],
+          "targetExtension": ".ipynb"
+        },
+        {
+          "id": "notebook-source-pdf",
+          "source": "Notebook source",
+          "target": "PDF",
+          "sourceExtensions": [
+            ".qmd",
+            ".rmd",
+            ".deepnote",
+            ".zpln"
           ],
           "targetExtension": ".pdf"
         },
@@ -3353,6 +3447,7 @@
       "inputFormats": [
         "chm",
         "csv",
+        "deepnote",
         "djv",
         "djvu",
         "doc",
@@ -3372,6 +3467,7 @@
         "hif",
         "htm",
         "html",
+        "ipynb",
         "json",
         "jsonl",
         "markdown",
@@ -3394,6 +3490,8 @@
         "pptm",
         "pptx",
         "pub",
+        "qmd",
+        "rmd",
         "rtf",
         "tab",
         "tnef",
@@ -3412,7 +3510,8 @@
         "xps",
         "yaml",
         "yml",
-        "zip"
+        "zip",
+        "zpln"
       ],
       "outputFormats": [
         "csv",

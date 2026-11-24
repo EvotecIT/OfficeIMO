@@ -198,6 +198,13 @@ final revision view: comments are omitted, fields use their stored visible resul
 and live controls are outside the book contract. Notes and supported semantic content
 remain in the publication. Markdown front matter supplies title, language and author.
 
+For a one-step export, run `officeimo convert manuscript.docx book.epub` or
+select EPUB in `officeimo_convert` or `Convert-OfficeDocument`. The catalog routes
+use the source title metadata, then the first heading, then the source filename.
+By default they start chapters at level-one headings and apply the Basic EPUB
+typography. Set `OfficeWorkflowRouteSettings.EpubManuscript` to choose another
+chapter level, typography profile or title in .NET.
+
 ```csharp
 using OfficeIMO.Epub;
 using OfficeIMO.Workflows;
@@ -2470,7 +2477,7 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 | Edit | 1 | 0 | 0 | 0 | 0 | 0 |
 | Preserve | 1 | 0 | 0 | 0 | 0 | 0 |
 | Validate | 0 | 1 | 0 | 0 | 0 | 0 |
-| Convert | 0 | 4 | 0 | 0 | 0 | 0 |
+| Convert | 0 | 5 | 0 | 0 | 0 | 0 |
 | Export | 1 | 5 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Workflows` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
