@@ -6,6 +6,8 @@ OfficeIMO.Tool is the installable command-line interface for OfficeIMO document 
 
 ## Install
 
+The tool needs the .NET 10 SDK or later. NuGet delivers a ReadyToRun-compiled build for Windows, Linux (glibc and musl x64) and macOS on x64 and Arm64, so the first command doesn't wait on the JIT compiler; other platforms get a portable build that runs on the .NET 10 runtime. The .NET 8 and 9 SDKs can't install it; version 3.6.2 was the last one they install.
+
 Install it globally from NuGet when you want `officeimo` available from any directory:
 
 ```powershell
@@ -706,8 +708,8 @@ Install the [OfficeIMO Document Tools plugin](https://github.com/EvotecIT/Office
 Contributors can run the current checkout without installing the package:
 
 ```powershell
-dotnet run --project OfficeIMO.Tool/OfficeIMO.Tool.csproj --framework net8.0 -- help
-dotnet run --project OfficeIMO.Tool/OfficeIMO.Tool.csproj --framework net8.0 -- convert report.docx report.pdf
+dotnet run --project OfficeIMO.Tool/OfficeIMO.Tool.csproj -- help
+dotnet run --project OfficeIMO.Tool/OfficeIMO.Tool.csproj -- convert report.docx report.pdf
 ```
 
 The CLI remains a thin surface over the owning OfficeIMO packages; reusable conversion and extraction behavior belongs in those packages rather than in command handlers.

@@ -4,7 +4,9 @@ description: "Install officeimo as a global .NET tool or pin it per repository w
 layout: docs
 ---
 
-`OfficeIMO.Tool` is a .NET tool on NuGet. Installing it needs the .NET SDK; Microsoft Office is not required. The command it installs is `officeimo`.
+`OfficeIMO.Tool` is a .NET tool on NuGet. Installing it needs the .NET 10 SDK or later; Microsoft Office is not required. The command it installs is `officeimo`.
+
+The SDK downloads a build compiled ahead of time for Windows, Linux (glibc and musl x64) and macOS on x64 and Arm64, so the first command doesn't wait on the JIT compiler. Other platforms get a portable build that runs on the .NET 10 runtime. The .NET 8 and 9 SDKs can't install this package; `OfficeIMO.Tool` 3.6.2 was the last version they install.
 
 ## Install globally
 
@@ -39,7 +41,7 @@ dotnet new tool-manifest
 dotnet tool install OfficeIMO.Tool --version 3.6.1
 ```
 
-Commit the manifest: `dotnet-tools.json` at the repository root with the .NET 10 SDK, or `.config/dotnet-tools.json` with earlier SDKs. On a fresh clone or build agent, restore the pinned version and run it through the SDK:
+Commit the manifest, `dotnet-tools.json` at the repository root. On a fresh clone or build agent, restore the pinned version and run it through the SDK:
 
 ```shell
 dotnet tool restore

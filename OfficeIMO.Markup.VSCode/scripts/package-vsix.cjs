@@ -11,7 +11,7 @@ const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 function parseArgs(argv) {
   const options = {
     configuration: 'Release',
-    framework: 'net8.0',
+    framework: 'net10.0',
     runtimeIdentifiers: [...defaultRuntimeIdentifiers],
     outputDirectory: 'dist',
     skipNpmCi: false,
@@ -203,7 +203,9 @@ const commonDotnetArgs = [
   '-nr:false',
   '-p:BuildInParallel=false',
   '-p:UseSharedCompilation=false',
-  '-p:DebugType=embedded'
+  '-p:DebugType=embedded',
+  // The NuGet tool packages are ReadyToRun-compiled; the bundled CLI keeps the smaller JIT build.
+  '-p:PublishReadyToRun=false'
 ];
 
 if (options.skipRestore) {

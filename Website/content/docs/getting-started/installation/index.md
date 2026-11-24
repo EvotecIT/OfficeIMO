@@ -10,7 +10,7 @@ Install only the packages an application needs and keep coordinated OfficeIMO pa
 
 ## OfficeIMO.Tool
 
-Install the command-line tool globally when `officeimo` should be available from any directory:
+The command-line tool needs the .NET 10 SDK or later. Install it globally when `officeimo` should be available from any directory:
 
 ```powershell
 dotnet tool install --global OfficeIMO.Tool

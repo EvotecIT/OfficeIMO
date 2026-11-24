@@ -3,7 +3,7 @@ param(
     [ValidateSet('Debug', 'Release')]
     [string]$Configuration = 'Release',
 
-    [string]$Framework = 'net8.0',
+    [string]$Framework = 'net10.0',
 
     [string[]]$RuntimeIdentifiers = @('win-x64', 'win-arm64', 'linux-x64', 'linux-arm64', 'osx-x64', 'osx-arm64'),
 

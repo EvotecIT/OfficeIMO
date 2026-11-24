@@ -1468,7 +1468,8 @@ jobs:
             add_project OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj
             add_project OfficeIMO.ChartForgeX.Tests/OfficeIMO.ChartForgeX.Tests.csproj
             add_project OfficeIMO.ChartForgeX.Markdown.Tests/OfficeIMO.ChartForgeX.Markdown.Tests.csproj
-            add_project OfficeIMO.Tool.Tests/OfficeIMO.Tool.Tests.csproj
+            # The tool and its tests target .NET 10 only.
+            if [ "${{ matrix.framework }}" = "net10.0" ]; then add_project OfficeIMO.Tool.Tests/OfficeIMO.Tool.Tests.csproj; fi
             add_project OfficeIMO.Bibliography.Tests/OfficeIMO.Bibliography.Tests.csproj
           fi
           if [[ "${{ matrix.partition }}" == markdown-* ]]; then
@@ -1770,7 +1771,7 @@ jobs:
               run_shared_tests "shared-contracts"
               if ci_project_selected "OfficeIMO.ChartForgeX.Tests/OfficeIMO.ChartForgeX.Tests.csproj"; then dotnet test OfficeIMO.ChartForgeX.Tests/OfficeIMO.ChartForgeX.Tests.csproj --configuration "${BUILD_CONFIGURATION}" --no-build --verbosity "${TEST_VERBOSITY}" --framework "${OFFICEIMO_TEST_FRAMEWORK}" -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx; fi
               if ci_project_selected "OfficeIMO.ChartForgeX.Markdown.Tests/OfficeIMO.ChartForgeX.Markdown.Tests.csproj"; then dotnet test OfficeIMO.ChartForgeX.Markdown.Tests/OfficeIMO.ChartForgeX.Markdown.Tests.csproj --configuration "${BUILD_CONFIGURATION}" --no-build --verbosity "${TEST_VERBOSITY}" --framework "${OFFICEIMO_TEST_FRAMEWORK}" -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx; fi
-              if ci_project_selected "OfficeIMO.Tool.Tests/OfficeIMO.Tool.Tests.csproj"; then dotnet test OfficeIMO.Tool.Tests/OfficeIMO.Tool.Tests.csproj --configuration "${BUILD_CONFIGURATION}" --no-build --verbosity "${TEST_VERBOSITY}" --framework "${OFFICEIMO_TEST_FRAMEWORK}" --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx; fi
+              if [ "${OFFICEIMO_TEST_FRAMEWORK}" = "net10.0" ] && ci_project_selected "OfficeIMO.Tool.Tests/OfficeIMO.Tool.Tests.csproj"; then dotnet test OfficeIMO.Tool.Tests/OfficeIMO.Tool.Tests.csproj --configuration "${BUILD_CONFIGURATION}" --no-build --verbosity "${TEST_VERBOSITY}" --framework "${OFFICEIMO_TEST_FRAMEWORK}" --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx; fi
               if ci_project_selected "OfficeIMO.Bibliography.Tests/OfficeIMO.Bibliography.Tests.csproj"; then dotnet test OfficeIMO.Bibliography.Tests/OfficeIMO.Bibliography.Tests.csproj --configuration "${BUILD_CONFIGURATION}" --no-build --verbosity "${TEST_VERBOSITY}" --framework "${OFFICEIMO_TEST_FRAMEWORK}" --filter "${test_filter}" --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx; fi
               if ci_project_selected "OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj"; then dotnet test OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj --configuration "${BUILD_CONFIGURATION}" --no-build --verbosity "${TEST_VERBOSITY}" --framework "${OFFICEIMO_TEST_FRAMEWORK}" --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx; fi
               # CSV parsing has AVX-512, AVX2 and Vector128 branches. The default run takes the widest one this
