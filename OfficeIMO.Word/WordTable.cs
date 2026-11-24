@@ -486,8 +486,8 @@ namespace OfficeIMO.Word {
             List<TableRow> rowElements = GetRowElements();
             _table.Append(row._tableRow);
             rowElements.Add(row._tableRow);
+            // AddCells refreshes the grid once the cells exist.
             AddCells(row, cellsCount);
-            try { RefreshTblGridFromColumnWidths(); } catch { }
             return row;
         }
 

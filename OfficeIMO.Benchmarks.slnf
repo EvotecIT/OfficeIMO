@@ -55,6 +55,7 @@
       "OfficeIMO.Rtf.Markdown\\OfficeIMO.Rtf.Markdown.csproj",
       "OfficeIMO.Rtf.Pdf\\OfficeIMO.Rtf.Pdf.csproj",
       "OfficeIMO.Rtf\\OfficeIMO.Rtf.csproj",
+      "OfficeIMO.Scaling.Benchmarks\\OfficeIMO.Scaling.Benchmarks.csproj",
       "OfficeIMO.Visio\\OfficeIMO.Visio.csproj",
       "OfficeIMO.Word.Pdf\\OfficeIMO.Word.Pdf.csproj",
       "OfficeIMO.Word.Rtf\\OfficeIMO.Word.Rtf.csproj",

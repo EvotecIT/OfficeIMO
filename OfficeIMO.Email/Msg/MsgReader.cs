@@ -3,6 +3,15 @@ using OfficeIMO.Core.Internal;
 namespace OfficeIMO.Email;
 
 internal static class MsgReader {
+    // Attachment reads look up their object storage by path; indexing the directory once keeps that
+    // lookup constant instead of scanning every entry for every attachment.
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<OfficeCompoundFile, HashSet<string>> StoragePaths = new();
+
+    private static HashSet<string> GetStoragePaths(OfficeCompoundFile compound) =>
+        StoragePaths.GetValue(compound, static file => new HashSet<string>(
+            file.Entries.Where(entry => entry.IsStorage).Select(entry => entry.Path),
+            StringComparer.OrdinalIgnoreCase));
+
     internal static bool TryRead(byte[] data, EmailReaderOptions options, IList<EmailDiagnostic> diagnostics,
         CancellationToken cancellationToken, out EmailDocument document, EmailProcessingBudget? budget = null) {
         cancellationToken.ThrowIfCancellationRequested();
@@ -138,8 +147,7 @@ internal static class MsgReader {
         }
 
         string objectStorage = MsgBinary.CombinePath(path, "__substg1.0_3701000D");
-        bool hasObjectStorage = compound.Entries.Any(entry => entry.IsStorage &&
-            string.Equals(entry.Path, objectStorage, StringComparison.OrdinalIgnoreCase));
+        bool hasObjectStorage = GetStoragePaths(compound).Contains(objectStorage);
         if (method == 5 && hasObjectStorage) {
             long total = GetStorageLength(compound, objectStorage);
             attachment.Length = total;
