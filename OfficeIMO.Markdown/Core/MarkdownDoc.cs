@@ -528,12 +528,11 @@ public partial class MarkdownDocument : MarkdownObject {
         return HtmlRenderer.RenderParts(this, operation);
     }
 
-    internal (System.Collections.Generic.List<IMarkdownBlock> Blocks, MarkdownHeadingCatalog HeadingCatalog) GetBlocksAndHeadingSlugs(
+    internal (IReadOnlyList<IMarkdownBlock> Blocks, MarkdownHeadingCatalog HeadingCatalog) GetBlocksAndHeadingSlugs(
         MarkdownHeadingIdentifierStyle headingIdentifierStyle = MarkdownHeadingIdentifierStyle.OfficeIMO,
         System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        var registry = MarkdownSlug.CreateRegistry();
-        var (realized, headingCatalog) = RealizeTocPlaceholders(registry, headingIdentifierStyle, cancellationToken);
+        var (realized, headingCatalog) = RealizeTocPlaceholders(headingIdentifierStyle, cancellationToken);
         return (realized, headingCatalog);
     }
 
@@ -603,12 +602,23 @@ public partial class MarkdownDocument : MarkdownObject {
         return Toc(opts => { opts.Title = title ?? ""; opts.IncludeTitle = !string.IsNullOrEmpty(title); opts.MinLevel = min; opts.MaxLevel = max; opts.Ordered = ordered; opts.TitleLevel = titleLevel; opts.Scope = MarkdownTocScope.HeadingTitle; opts.ScopeHeadingTitle = headingTitle; }, placeAtTop: false);
     }
 
-    private (System.Collections.Generic.List<IMarkdownBlock> Blocks, MarkdownHeadingCatalog HeadingCatalog) RealizeTocPlaceholders(
-        System.Collections.Generic.Dictionary<string, int> slugRegistry,
+    private (IReadOnlyList<IMarkdownBlock> Blocks, MarkdownHeadingCatalog HeadingCatalog) RealizeTocPlaceholders(
         MarkdownHeadingIdentifierStyle headingIdentifierStyle, System.Threading.CancellationToken cancellationToken) {
-        // Create a shallow copy first
+        // A snapshot of the blocks: an extension that adds blocks while the document is written
+        // does not change what this pass renders.
         var realized = new System.Collections.Generic.List<IMarkdownBlock>(_blocks);
-        var headingCatalog = MarkdownHeadingCatalog.Create(realized, slugRegistry, headingIdentifierStyle, cancellationToken);
+        var headingCatalog = MarkdownHeadingCatalog.Create(realized, headingIdentifierStyle, cancellationToken);
+        bool hasTocPlaceholder = false;
+        for (int i = 0; i < realized.Count && !hasTocPlaceholder; i++) {
+            hasTocPlaceholder = realized[i] is ITocPlaceholderMarkdownBlock;
+        }
+
+        if (!hasTocPlaceholder) {
+            return (realized, headingCatalog);
+        }
+
+        // Placeholders are replaced below, so resolve anchors against the blocks as written.
+        _ = headingCatalog.HeadingSlugs;
         // Replace placeholders with generated TOC blocks
         for (int i = 0; i < realized.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();

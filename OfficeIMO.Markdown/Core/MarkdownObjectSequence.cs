@@ -4,7 +4,7 @@ namespace OfficeIMO.Markdown;
 /// Append-only object list stored in growing chunks, so recording a large tree never copies it.
 /// </summary>
 internal sealed class MarkdownObjectSequence {
-    private const int FirstChunkSize = 64;
+    private const int FirstChunkSize = 16;
     private const int MaxChunkSize = 4096;
 
     private readonly List<MarkdownObject[]> _chunks = new();

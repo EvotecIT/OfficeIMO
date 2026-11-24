@@ -94,6 +94,22 @@ public sealed class MarkdownAllSeverityBatch15SecurityTests {
     }
 
     [Fact]
+    public void WorkStartedDuringARenderKeepsTheHostAllowlist() {
+        var options = new MarkdownHtmlExportOptions();
+        options.AllowedHttpLinkHosts.Add("safe.example");
+
+        bool allowedOnWorker = true;
+        using (HtmlRenderContext.Push(options)) {
+            var worker = new System.Threading.Thread(() =>
+                allowedOnWorker = UrlOriginPolicy.IsAllowedHttpLink(HtmlRenderContext.Options, "https://tracker.example/pixel"));
+            worker.Start();
+            worker.Join();
+        }
+
+        Assert.False(allowedOnWorker);
+    }
+
+    [Fact]
     public void InvalidThemeColorsCannotEscapeTheStyleElement() {
         string payload = "red;}</style><script>alert(1)</script>";
         string html = MarkdownDocument.Create().H1("safe").ToHtml(new MarkdownHtmlExportOptions

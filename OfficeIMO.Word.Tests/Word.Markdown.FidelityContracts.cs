@@ -19,4 +19,22 @@ public sealed class WordMarkdownFidelityContracts {
         Assert.True(report.HasLoss);
         Assert.Throws<WordMarkdownConversionException>(() => report.ThrowIfLoss());
     }
+
+    [Fact]
+    public void WordExportLeavesTheMarkdownDocumentBlocksUnchanged() {
+        var markdown = OfficeIMO.Markdown.MarkdownDocument.Create();
+        markdown.Add(new OfficeIMO.Markdown.HeadingBlock(2, "Contents"));
+        markdown.Add(new OfficeIMO.Markdown.TocBlock {
+            IncludeTitle = true,
+            Title = "Contents",
+            TitleLevel = 2,
+            TitleHeadingAlreadyRendered = true
+        });
+
+        using (markdown.ToWord()) {
+        }
+
+        Assert.Equal(2, markdown.Blocks.Count);
+        Assert.IsType<OfficeIMO.Markdown.HeadingBlock>(markdown.Blocks[0]);
+    }
 }

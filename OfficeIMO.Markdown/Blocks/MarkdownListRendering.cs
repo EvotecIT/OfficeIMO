@@ -38,10 +38,10 @@ internal static class MarkdownListRendering {
         string listTag,
         IReadOnlyList<ListItem> items,
         MarkdownAttributeSet? attributes,
-        Func<int, string> topLevelAttributesFactory,
+        string topLevelAttributes,
         bool renderItemAttributes = false) {
         var sb = new System.Text.StringBuilder();
-        AppendHtml(sb, listTag, items, attributes, topLevelAttributesFactory, renderItemAttributes);
+        AppendHtml(sb, listTag, items, attributes, topLevelAttributes, renderItemAttributes);
         return sb.ToString();
     }
 
@@ -50,25 +50,37 @@ internal static class MarkdownListRendering {
         string listTag,
         IReadOnlyList<ListItem> items,
         MarkdownAttributeSet? attributes,
-        Func<int, string> topLevelAttributesFactory,
+        string topLevelAttributes,
         bool renderItemAttributes = false) {
         renderItemAttributes = renderItemAttributes || HtmlRenderContext.RenderListItemAttributes;
 
-        var scopeStarts = new List<int>();
+        // The item index where the open list at each level started. A flat list has one scope, which
+        // starts at the first item, so it needs no array.
+        int maxLevel = 0;
+        for (int index = 0; index < items.Count; index++) {
+            maxLevel = Math.Max(maxLevel, items[index].Level);
+        }
+
+        int[]? scopeStarts = maxLevel == 0 ? null : new int[maxLevel + 1];
+        int scopeCount = 0;
         // Most lists have neither task items nor loose items, so the sets are made on first use.
         HashSet<(int StartIndex, int Level)>? taskScopes = null;
         HashSet<(int StartIndex, int Level)>? looseScopes = null;
         for (int index = 0; index < items.Count; index++) {
             int level = Math.Max(0, items[index].Level);
-            if (scopeStarts.Count > level + 1) {
-                scopeStarts.RemoveRange(level + 1, scopeStarts.Count - level - 1);
+            if (scopeCount > level + 1) {
+                scopeCount = level + 1;
             }
 
-            while (scopeStarts.Count <= level) {
-                scopeStarts.Add(index);
+            while (scopeCount <= level) {
+                if (scopeStarts != null) {
+                    scopeStarts[scopeCount] = index;
+                }
+
+                scopeCount++;
             }
 
-            var scopeKey = (scopeStarts[level], level);
+            var scopeKey = (scopeStarts?[level] ?? 0, level);
             if (items[index].IsTask) {
                 (taskScopes ??= new HashSet<(int StartIndex, int Level)>()).Add(scopeKey);
             }
@@ -92,9 +104,8 @@ internal static class MarkdownListRendering {
                     ? ContainsTaskListClasses
                     : null;
                 sb.Append(MarkdownHtmlAttributes.Render(attributes, options, additionalClasses: taskClasses));
-                var attrs = topLevelAttributesFactory(startIndex);
-                if (!string.IsNullOrEmpty(attrs)) {
-                    sb.Append(attrs);
+                if (!string.IsNullOrEmpty(topLevelAttributes)) {
+                    sb.Append(topLevelAttributes);
                 }
             } else if (containsTasks && !useGitHubTaskListHtml) {
                 sb.Append(" class=\"contains-task-list\"");
@@ -107,7 +118,7 @@ internal static class MarkdownListRendering {
         bool needsInlineTaskMarker = renderOptions == null
             || renderOptions.CssDelivery == MarkdownCssDelivery.None
             || HtmlRenderer.GetEffectiveStyle(renderOptions) == MarkdownHtmlStyle.Plain;
-        var scopeStartByLevel = new List<int> { 0 };
+        int[]? scopeStartByLevel = maxLevel == 0 ? null : new int[maxLevel + 1];
         int currentLevel = 0;
         bool liOpen = false;
 
@@ -117,8 +128,7 @@ internal static class MarkdownListRendering {
             if (level > currentLevel) {
                 for (int k = currentLevel + 1; k <= level; k++) {
                     AppendOpenList(idx, k, isTopLevel: false);
-                    if (scopeStartByLevel.Count <= k) scopeStartByLevel.Add(idx);
-                    else scopeStartByLevel[k] = idx;
+                    scopeStartByLevel![k] = idx;
                 }
                 currentLevel = level;
             } else if (level < currentLevel) {
@@ -129,7 +139,7 @@ internal static class MarkdownListRendering {
                 if (liOpen) { sb.Append("</li>"); }
             }
 
-            int scopeStart = scopeStartByLevel[level];
+            int scopeStart = scopeStartByLevel?[level] ?? 0;
             bool renderLoose = IsLooseInScope(scopeStart, level);
             var options = HtmlRenderContext.Options;
             bool useGitHubTaskListHtml = options?.GitHubTaskListHtml == true;
@@ -216,7 +226,7 @@ internal static class MarkdownListRendering {
     }
 
     private static void AppendChildrenMarkdown(System.Text.StringBuilder sb, ListItem item, string baseIndent, string contPrefix) {
-        if (item.NestedBlocks.Count == 0) return;
+        if (item.NestedBlockCount == 0) return;
 
         for (int c = 0; c < item.NestedBlocks.Count; c++) {
             var child = item.NestedBlocks[c];
@@ -245,6 +255,6 @@ internal static class MarkdownListRendering {
         (child is TableBlock || child is QuoteBlock || child is CustomContainerBlock) &&
         item != null &&
         !item.RequiresLooseListRendering() &&
-        item.AdditionalParagraphs.Count == 0 &&
+        !item.HasAdditionalParagraphs &&
         item.Content.Nodes.Count > 0;
 }

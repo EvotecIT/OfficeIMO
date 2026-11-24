@@ -173,7 +173,7 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
         var options = HtmlRenderContext.Options;
         // Only render extensions read the inline context, so it is created when one is registered.
         MarkdownInlineHtmlRenderContext? context = options == null
-            || ((options.InlineRenderExtensions?.Count ?? 0) == 0 && (options.SyntaxInlineRenderExtensions?.Count ?? 0) == 0)
+            || (options.InlineRenderExtensionsIfAny == null && options.SyntaxInlineRenderExtensionsIfAny == null)
             ? null
             : new MarkdownInlineHtmlRenderContext(options, HtmlRenderContext.BodyContext);
         for (int i = 0; i < _inlines.Count; i++) {
@@ -358,7 +358,7 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
             return null;
         }
 
-        var extensions = context.Options.SyntaxInlineRenderExtensions;
+        var extensions = context.Options.SyntaxInlineRenderExtensionsIfAny;
         if (extensions == null || extensions.Count == 0) {
             return null;
         }
@@ -388,7 +388,7 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
             return null;
         }
 
-        var extensions = context.Options.InlineRenderExtensions;
+        var extensions = context.Options.InlineRenderExtensionsIfAny;
         if (extensions == null || extensions.Count == 0) {
             return null;
         }

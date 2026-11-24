@@ -15,15 +15,17 @@ internal sealed class MarkdownBodyRenderPlan {
     internal IReadOnlyList<IFootnoteSectionMarkdownBlock> Footnotes { get; }
 
     internal static MarkdownBodyRenderPlan Create(IReadOnlyList<IMarkdownBlock> blocks) {
+        // The plan keeps its own list, so block render extensions that change the document do not change
+        // the blocks this render visits. The footnote list is created by the first footnote.
         var renderBlocks = new List<IMarkdownBlock>(blocks.Count);
-        var footnotes = new List<IFootnoteSectionMarkdownBlock>();
+        List<IFootnoteSectionMarkdownBlock>? footnotes = null;
         IBodySidebarMarkdownBlock? sidebar = null;
 
         for (int i = 0; i < blocks.Count; i++) {
             var block = blocks[i];
 
             if (block is IFootnoteSectionMarkdownBlock footnote) {
-                footnotes.Add(footnote);
+                (footnotes ??= new List<IFootnoteSectionMarkdownBlock>()).Add(footnote);
                 continue;
             }
 
@@ -41,7 +43,10 @@ internal sealed class MarkdownBodyRenderPlan {
             renderBlocks.Add(block);
         }
 
-        return new MarkdownBodyRenderPlan(renderBlocks, sidebar, footnotes);
+        return new MarkdownBodyRenderPlan(
+            renderBlocks,
+            sidebar,
+            (IReadOnlyList<IFootnoteSectionMarkdownBlock>?)footnotes ?? Array.Empty<IFootnoteSectionMarkdownBlock>());
     }
 
     private static bool ShouldSkipTocTitleHeading(IReadOnlyList<IMarkdownBlock> blocks, int index, IMarkdownBlock block) {

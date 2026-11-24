@@ -115,8 +115,11 @@ public sealed class MarkdownAbbreviationDefinition {
 /// Mutable per-parse state shared across block and inline parsers.
 /// </summary>
 public sealed class MarkdownReaderState {
-    private Dictionary<string, MarkdownReferenceLinkDefinition> _linkRefs;
-    private Dictionary<string, MarkdownAbbreviationDefinition> _abbreviations;
+    // Most documents define neither, so the dictionaries are created by the first definition.
+    private static readonly Dictionary<string, MarkdownReferenceLinkDefinition> EmptyLinkRefs = new(System.StringComparer.OrdinalIgnoreCase);
+    private static readonly Dictionary<string, MarkdownAbbreviationDefinition> EmptyAbbreviations = new(System.StringComparer.Ordinal);
+    private Dictionary<string, MarkdownReferenceLinkDefinition>? _linkRefs;
+    private Dictionary<string, MarkdownAbbreviationDefinition>? _abbreviations;
     // Nested parses start from their parent's definitions. Copying them for every nested container
     // made documents with many definitions and many containers quadratic, so states share the
     // dictionaries and whichever side changes them first takes a copy of its own.
@@ -124,15 +127,12 @@ public sealed class MarkdownReaderState {
     private bool _abbreviationsShared;
 
     /// <summary>Creates an empty parse state.</summary>
-    public MarkdownReaderState()
-        : this(
-            new Dictionary<string, MarkdownReferenceLinkDefinition>(System.StringComparer.OrdinalIgnoreCase),
-            new Dictionary<string, MarkdownAbbreviationDefinition>(System.StringComparer.Ordinal)) {
+    public MarkdownReaderState() {
     }
 
     private MarkdownReaderState(
-        Dictionary<string, MarkdownReferenceLinkDefinition> linkRefs,
-        Dictionary<string, MarkdownAbbreviationDefinition> abbreviations) {
+        Dictionary<string, MarkdownReferenceLinkDefinition>? linkRefs,
+        Dictionary<string, MarkdownAbbreviationDefinition>? abbreviations) {
         _linkRefs = linkRefs;
         _abbreviations = abbreviations;
     }
@@ -146,12 +146,15 @@ public sealed class MarkdownReaderState {
     }
 
     /// <summary>Reference-style link definitions collected while parsing. Change them through <see cref="EditLinkRefs"/>.</summary>
-    internal IReadOnlyDictionary<string, MarkdownReferenceLinkDefinition> LinkRefs => _linkRefs;
+    internal IReadOnlyDictionary<string, MarkdownReferenceLinkDefinition> LinkRefs => _linkRefs ?? EmptyLinkRefs;
     /// <summary>Case-sensitive abbreviation definitions collected while parsing. Later definitions replace earlier ones, matching Markdig. Change them through <see cref="EditAbbreviations"/>.</summary>
-    internal IReadOnlyDictionary<string, MarkdownAbbreviationDefinition> Abbreviations => _abbreviations;
+    internal IReadOnlyDictionary<string, MarkdownAbbreviationDefinition> Abbreviations => _abbreviations ?? EmptyAbbreviations;
 
     internal Dictionary<string, MarkdownReferenceLinkDefinition> EditLinkRefs() {
-        if (_linkRefsShared) {
+        if (_linkRefs == null) {
+            _linkRefs = new Dictionary<string, MarkdownReferenceLinkDefinition>(System.StringComparer.OrdinalIgnoreCase);
+            _linkRefsShared = false;
+        } else if (_linkRefsShared) {
             _linkRefs = CopyDefinitions(_linkRefs, System.StringComparer.OrdinalIgnoreCase);
             _linkRefsShared = false;
         }
@@ -160,7 +163,10 @@ public sealed class MarkdownReaderState {
     }
 
     internal Dictionary<string, MarkdownAbbreviationDefinition> EditAbbreviations() {
-        if (_abbreviationsShared) {
+        if (_abbreviations == null) {
+            _abbreviations = new Dictionary<string, MarkdownAbbreviationDefinition>(System.StringComparer.Ordinal);
+            _abbreviationsShared = false;
+        } else if (_abbreviationsShared) {
             _abbreviations = CopyDefinitions(_abbreviations, System.StringComparer.Ordinal);
             _abbreviationsShared = false;
         }
@@ -229,15 +235,18 @@ public sealed class MarkdownReaderState {
     }
     internal bool DiscardsNestedListSourceRemap { get; set; }
     internal MarkdownPendingGenericAttributeBlock? PendingGenericAttributeBlock { get; set; }
-    internal MarkdownLineIndexSet LazyQuoteContinuationLines { get; } = new MarkdownLineIndexSet();
-    internal MarkdownLineIndexSet QuoteContainerLines { get; } = new MarkdownLineIndexSet();
-    internal MarkdownLineIndexSet SuppressedSetextHeadingUnderlineLines { get; } = new MarkdownLineIndexSet();
-    internal MarkdownLineIndexSet SuppressedParagraphGenericAttributeStartLines { get; } = new MarkdownLineIndexSet();
+    internal MarkdownLineIndexSet LazyQuoteContinuationLines;
+    internal MarkdownLineIndexSet QuoteContainerLines;
+    internal MarkdownLineIndexSet SuppressedSetextHeadingUnderlineLines;
+    internal MarkdownLineIndexSet SuppressedParagraphGenericAttributeStartLines;
     internal IReadOnlyList<int>? SourceLineAbsoluteNumbers { get; set; }
 }
 
-/// <summary>A set of zero-based line indexes that allocates its storage on the first added line.</summary>
-internal sealed class MarkdownLineIndexSet {
+/// <summary>
+/// A set of zero-based line indexes that allocates its storage on the first added line. It is a mutable
+/// struct held in fields of <see cref="MarkdownReaderState"/>: change it through the field, never a copy.
+/// </summary>
+internal struct MarkdownLineIndexSet {
     private HashSet<int>? _lines;
 
     internal int Count => _lines?.Count ?? 0;
@@ -248,7 +257,7 @@ internal sealed class MarkdownLineIndexSet {
 
     internal void Clear() => _lines?.Clear();
 
-    internal void CopyTo(MarkdownLineIndexSet target) {
+    internal void CopyTo(ref MarkdownLineIndexSet target) {
         if (_lines == null) {
             return;
         }
