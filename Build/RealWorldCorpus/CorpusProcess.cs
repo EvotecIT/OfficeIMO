@@ -21,6 +21,9 @@ internal static class CorpusProcess {
         if (heapLimitMegabytes is int limit) {
             startInfo.Environment["DOTNET_GCHeapHardLimit"] = ((long)limit * 1024L * 1024L).ToString("X", System.Globalization.CultureInfo.InvariantCulture);
         }
+        // Workers run in UTC so dates with an explicit offset read the same on every machine: the Excel reader turns
+        // them into local time, and the SDK reference into UTC. .NET on Windows ignores TZ, so run there in UTC too.
+        startInfo.Environment["TZ"] = "UTC";
         using var process = new Process { StartInfo = startInfo };
         var stopwatch = Stopwatch.StartNew();
         if (!process.Start()) throw new InvalidOperationException("Unable to start the corpus worker process.");
