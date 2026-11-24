@@ -122,11 +122,11 @@
           "id": "comments",
           "title": "Comment threads",
           "detail": "Reply, resolve, filter and export a summary",
-          "support": { "windows": "available", "linux": "available", "mac": "partial", "ipad": "partial", "iphone": "partial" },
+          "support": { "windows": "available", "linux": "available", "mac": "available", "ipad": "available", "iphone": "available" },
           "notes": {
-            "mac": "Reply, resolve, reopen and filter in the inspector; no summary export yet.",
-            "ipad": "Reply, resolve, reopen and filter in the inspector; no summary export yet.",
-            "iphone": "Reply, resolve, reopen and filter in a sheet; no summary export yet."
+            "mac": "In the inspector's Comments pane.",
+            "ipad": "In the inspector's Comments pane.",
+            "iphone": "In the inspector's Comments sheet."
           },
           "roadmap": "phase-7-native-apple-apps"
         },
@@ -255,11 +255,11 @@
           "id": "create-fields",
           "title": "Create form fields",
           "detail": "Text, check box, choice and radio fields",
-          "support": { "windows": "available", "linux": "available", "mac": "partial", "ipad": "partial", "iphone": "partial" },
+          "support": { "windows": "available", "linux": "available", "mac": "available", "ipad": "available", "iphone": "available" },
           "notes": {
-            "mac": "Text, check box, choice and signature fields, drawn on the page, then moved, resized, renamed and removed; no radio groups yet.",
-            "ipad": "Text, check box, choice and signature fields, drawn on the page, then moved, resized, renamed and removed; no radio groups yet.",
-            "iphone": "Text, check box, choice and signature fields, drawn on the page, then moved, resized, renamed and removed; no radio groups yet."
+            "mac": "Also push buttons and signature fields, drawn on the page with Edit Form.",
+            "ipad": "Also push buttons and signature fields, drawn on the page with Edit Form.",
+            "iphone": "Also push buttons and signature fields, drawn on the page with Edit Form."
           },
           "roadmap": "phase-7-native-apple-apps"
         },
@@ -619,6 +619,20 @@
             "ipad": "Follows the system appearance and accessibility settings.",
             "iphone": "Follows the system appearance and accessibility settings."
           }
+        },
+        {
+          "id": "screen-readers",
+          "title": "Screen readers",
+          "detail": "Page text, form fields and comments read aloud",
+          "support": { "windows": "partial", "linux": "partial", "mac": "partial", "ipad": "partial", "iphone": "partial" },
+          "notes": {
+            "windows": "Controls carry automation names; Narrator and NVDA task runs are on the roadmap.",
+            "linux": "Controls carry automation names; Orca task runs are on the roadmap.",
+            "mac": "VoiceOver reads the pages around the one in view: their text in reading order, form fields, which it fills, and comments. Other markup isn't described yet.",
+            "ipad": "VoiceOver reads the pages around the one in view: their text in reading order, form fields, which it fills, and comments. Other markup isn't described yet.",
+            "iphone": "VoiceOver reads the pages around the one in view: their text in reading order, form fields, which it fills, and comments. Other markup isn't described yet."
+          },
+          "roadmap": "phase-5-desktop-acceptance-and-distribution"
         }
       ]
     }
