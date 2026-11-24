@@ -87,6 +87,11 @@
       "artifact": "/downloads/showcase/workflows/pdf-workshop-pack/example.pdf"
     },
     {
+      "title": "Extract PDF assets",
+      "url": "/browser/extract-pdf-assets/",
+      "artifact": "/downloads/showcase/workflows/pdf-workshop-pack/example.pdf"
+    },
+    {
       "title": "Protect PDF",
       "url": "/browser/protect-pdf/",
       "artifact": "/downloads/showcase/workflows/pdf-workshop-pack/example.pdf"
@@ -282,6 +287,11 @@
       "artifact": "/downloads/showcase/workflows/pdf-branded-invoice/example.pdf"
     },
     {
+      "title": "Extract PDF assets",
+      "url": "/browser/extract-pdf-assets/",
+      "artifact": "/downloads/showcase/workflows/pdf-branded-invoice/example.pdf"
+    },
+    {
       "title": "Protect PDF",
       "url": "/browser/protect-pdf/",
       "artifact": "/downloads/showcase/workflows/pdf-branded-invoice/example.pdf"
@@ -361,6 +371,11 @@
     {
       "title": "Extract pages",
       "url": "/browser/extract-pages/",
+      "artifact": "/downloads/showcase/workflows/pdf-dispatch-note/example.pdf"
+    },
+    {
+      "title": "Extract PDF assets",
+      "url": "/browser/extract-pdf-assets/",
       "artifact": "/downloads/showcase/workflows/pdf-dispatch-note/example.pdf"
     },
     {
@@ -446,6 +461,11 @@
       "artifact": "/downloads/showcase/workflows/pdf-service-catalog/example.pdf"
     },
     {
+      "title": "Extract PDF assets",
+      "url": "/browser/extract-pdf-assets/",
+      "artifact": "/downloads/showcase/workflows/pdf-service-catalog/example.pdf"
+    },
+    {
       "title": "Protect PDF",
       "url": "/browser/protect-pdf/",
       "artifact": "/downloads/showcase/workflows/pdf-service-catalog/example.pdf"
@@ -525,6 +545,11 @@
     {
       "title": "Extract pages",
       "url": "/browser/extract-pages/",
+      "artifact": "/downloads/showcase/workflows/pdf-weekly-brief/example.pdf"
+    },
+    {
+      "title": "Extract PDF assets",
+      "url": "/browser/extract-pdf-assets/",
       "artifact": "/downloads/showcase/workflows/pdf-weekly-brief/example.pdf"
     },
     {
@@ -776,6 +801,11 @@
       "artifact": "/downloads/showcase/workflows/pdf-equipment-inspection/example.pdf"
     },
     {
+      "title": "Extract PDF assets",
+      "url": "/browser/extract-pdf-assets/",
+      "artifact": "/downloads/showcase/workflows/pdf-equipment-inspection/example.pdf"
+    },
+    {
       "title": "Protect PDF",
       "url": "/browser/protect-pdf/",
       "artifact": "/downloads/showcase/workflows/pdf-equipment-inspection/example.pdf"
@@ -858,6 +888,11 @@
       "artifact": "/downloads/showcase/workflows/pdf-linked-resource-guide/example.pdf"
     },
     {
+      "title": "Extract PDF assets",
+      "url": "/browser/extract-pdf-assets/",
+      "artifact": "/downloads/showcase/workflows/pdf-linked-resource-guide/example.pdf"
+    },
+    {
       "title": "Protect PDF",
       "url": "/browser/protect-pdf/",
       "artifact": "/downloads/showcase/workflows/pdf-linked-resource-guide/example.pdf"
@@ -937,6 +972,11 @@
     {
       "title": "Extract pages",
       "url": "/browser/extract-pages/",
+      "artifact": "/downloads/showcase/workflows/pdf-navigable-handbook/example.pdf"
+    },
+    {
+      "title": "Extract PDF assets",
+      "url": "/browser/extract-pdf-assets/",
       "artifact": "/downloads/showcase/workflows/pdf-navigable-handbook/example.pdf"
     },
     {
@@ -1231,6 +1271,11 @@
       "artifact": "/downloads/showcase/workflows/pdf-travel-itinerary/example.pdf"
     },
     {
+      "title": "Extract PDF assets",
+      "url": "/browser/extract-pdf-assets/",
+      "artifact": "/downloads/showcase/workflows/pdf-travel-itinerary/example.pdf"
+    },
+    {
       "title": "Protect PDF",
       "url": "/browser/protect-pdf/",
       "artifact": "/downloads/showcase/workflows/pdf-travel-itinerary/example.pdf"
@@ -1310,6 +1355,11 @@
     {
       "title": "Extract pages",
       "url": "/browser/extract-pages/",
+      "artifact": "/downloads/showcase/workflows/pdf-event-badges/example.pdf"
+    },
+    {
+      "title": "Extract PDF assets",
+      "url": "/browser/extract-pdf-assets/",
       "artifact": "/downloads/showcase/workflows/pdf-event-badges/example.pdf"
     },
     {
@@ -1395,6 +1445,11 @@
       "artifact": "/downloads/showcase/workflows/pdf-maintenance-job-card/example.pdf"
     },
     {
+      "title": "Extract PDF assets",
+      "url": "/browser/extract-pdf-assets/",
+      "artifact": "/downloads/showcase/workflows/pdf-maintenance-job-card/example.pdf"
+    },
+    {
       "title": "Protect PDF",
       "url": "/browser/protect-pdf/",
       "artifact": "/downloads/showcase/workflows/pdf-maintenance-job-card/example.pdf"
@@ -1474,6 +1529,11 @@
     {
       "title": "Extract pages",
       "url": "/browser/extract-pages/",
+      "artifact": "/downloads/showcase/workflows/pdf-risk-assessment/example.pdf"
+    },
+    {
+      "title": "Extract PDF assets",
+      "url": "/browser/extract-pdf-assets/",
       "artifact": "/downloads/showcase/workflows/pdf-risk-assessment/example.pdf"
     },
     {

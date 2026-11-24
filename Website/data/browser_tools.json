@@ -322,7 +322,7 @@
       "expect": "Open the HTML report in the ZIP for image DPI, page boxes in millimetres, spot inks, and font subset status.",
       "next": ["inspect-pdf", "pdf-to-images"],
       "legacy": ["workspace=pdf&tool=extract-assets"],
-      "package": "OfficeIMO.Pdf"
+      "guide": "/pdf/extract-assets/", "package": "OfficeIMO.Pdf"
     },
     {
       "id": "extract-pages", "group": "pdf", "category": "Organize",

@@ -3,6 +3,7 @@
   "operations": [
     { "id": "inspect", "slug": "inspect", "category": "Understand", "title": "Inspect PDF", "summary": "Read page, security, form, signature-marker, active-content, and rewrite-readiness evidence without changing the file." },
     { "id": "compare", "slug": "compare", "category": "Understand", "title": "Compare PDFs", "summary": "Render two PDFs and produce a self-contained gallery with expected, actual, and highlighted page differences." },
+    { "id": "extract-assets", "slug": "extract-assets", "category": "Understand", "title": "Extract PDF assets", "summary": "Save images, embedded fonts, ICC profiles, page SVGs and asset reports in one ZIP." },
     { "id": "merge", "slug": "merge", "category": "Organize", "title": "Merge PDFs", "summary": "Combine two to ten PDFs in the selected order and download a separate merged document plus operation evidence." },
     { "id": "split", "slug": "split", "category": "Organize", "title": "Split PDF", "summary": "Create consecutive PDF parts with a selected page count and download the results together as a ZIP archive." },
     { "id": "extract", "slug": "extract-pages", "category": "Organize", "title": "Extract PDF pages", "summary": "Create a new PDF from one-based page selections such as 1-3,5,last while leaving the source unchanged." },
