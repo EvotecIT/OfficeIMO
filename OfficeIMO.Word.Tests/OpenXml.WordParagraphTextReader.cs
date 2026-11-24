@@ -166,13 +166,15 @@ public class OpenXmlWordParagraphTextReaderTests {
         Assert.Throws<System.Xml.XmlException>(() => new OfficeXmlPullReader(part, part.Length));
     }
 
-    [Fact]
-    public void DeclinesWhenAComplexFieldSeparatesInsideASkippedContentControl() {
+    [Theory]
+    [InlineData("{0}")]
+    [InlineData("<w:tbl><w:tr><w:tc>{0}</w:tc></w:tr></w:tbl>")]
+    public void DeclinesWhenAComplexFieldSeparatesInsideASkippedContentControl(string container) {
         // The field's result in the last paragraph shows only if its separate marker, inside the control, is seen.
-        byte[] package = CreatePackage(
+        byte[] package = CreatePackage(string.Format(container,
             "<w:p><w:r><w:fldChar w:fldCharType=\"begin\"/></w:r><w:r><w:instrText>PAGE</w:instrText></w:r></w:p>"
             + "<w:sdt><w:sdtContent><w:p><w:r><w:fldChar w:fldCharType=\"separate\"/></w:r></w:p></w:sdtContent></w:sdt>"
-            + "<w:p><w:r><w:t>Result</w:t></w:r><w:r><w:fldChar w:fldCharType=\"end\"/></w:r></w:p>");
+            + "<w:p><w:r><w:t>Result</w:t></w:r><w:r><w:fldChar w:fldCharType=\"end\"/></w:r></w:p>"));
         using var stream = new MemoryStream(package, writable: false);
 
         List<string>? lines = OfficeIMO.Word.WordStreamedBodyText.TryReadLines(stream, 8000, 0, null, includeNotes: true, CancellationToken.None, out string? reason);
@@ -200,6 +202,27 @@ public class OpenXmlWordParagraphTextReaderTests {
 
         Assert.Throws<InvalidDataException>(() => OfficeIMO.Word.WordStreamedBodyText.TryReadLines(stream, 8000, 0, null,
             includeNotes: true, CancellationToken.None, out _));
+    }
+
+    [Fact]
+    public void KeepsRelationshipsOfPartsWhoseNamesDifferOnlyInNonAsciiCase() {
+        byte[] package = CreatePackage("<w:p/>");
+        using (var stream = new MemoryStream()) {
+            stream.Write(package, 0, package.Length);
+            using (var archive = new ZipArchive(stream, ZipArchiveMode.Update, leaveOpen: true)) {
+                foreach (string name in new[] { "\u00E9", "\u00C9" }) {
+                    Write(archive, "word/" + name + ".xml", Encoding.UTF8.GetBytes("<x/>"), CompressionLevel.Optimal);
+                    Write(archive, "word/_rels/" + name + ".xml.rels", Encoding.UTF8.GetBytes(
+                        "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">"
+                        + "<Relationship Id=\"rId1\" Type=\"urn:t\" Target=\"" + name + ".png\"/></Relationships>"), CompressionLevel.Optimal);
+                }
+            }
+            package = stream.ToArray();
+        }
+        using OfficeOpcPackage opened = OfficeOpcPackage.Open(new MemoryStream(package, writable: false));
+
+        Assert.Equal("/word/\u00E9.png", opened.GetRelationships("/word/\u00E9.xml").Single().TargetPartName);
+        Assert.Equal("/word/\u00C9.png", opened.GetRelationships("/word/\u00C9.xml").Single().TargetPartName);
     }
 
     [Fact]

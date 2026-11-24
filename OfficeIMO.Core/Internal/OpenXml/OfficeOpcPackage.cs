@@ -13,7 +13,8 @@ internal sealed class OfficeOpcPackage : IDisposable {
     private const string ContentTypesMember = "[Content_Types].xml";
 
     private readonly OfficeZipPackageReader _zip;
-    private readonly Dictionary<string, RelationshipSet> _relationships = new(StringComparer.OrdinalIgnoreCase);
+    // Keyed by part identity, like the members, so names that differ only in non-ASCII case stay separate.
+    private readonly Dictionary<string, RelationshipSet> _relationships = new(OfficeAsciiIgnoreCaseComparer.Instance);
     private Dictionary<string, string>? _defaultContentTypes;
     private Dictionary<string, string>? _overrideContentTypes;
 
@@ -95,9 +96,10 @@ internal sealed class OfficeOpcPackage : IDisposable {
 
     private RelationshipSet GetRelationshipSet(string? sourcePartName) {
         string relationshipsPart = OfficeOpcPartNames.GetRelationshipsPartName(sourcePartName);
-        if (_relationships.TryGetValue(relationshipsPart, out RelationshipSet? cached)) return cached;
+        string identity = GetPartIdentity(relationshipsPart);
+        if (_relationships.TryGetValue(identity, out RelationshipSet? cached)) return cached;
         RelationshipSet relationships = PartExists(relationshipsPart) ? ReadRelationships(relationshipsPart) : RelationshipSet.Empty;
-        _relationships[relationshipsPart] = relationships;
+        _relationships[identity] = relationships;
         return relationships;
     }
 

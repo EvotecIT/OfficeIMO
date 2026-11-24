@@ -1002,8 +1002,11 @@ internal static class WordStreamedBodyText {
                 if (reader.NodeKind != OfficeXmlNodeKind.StartElement) continue;
                 if (reader.NamespaceId != W) return context.Decline(Outside(reader));
                 switch (reader.LocalName) {
-                    case "tcPr": case "tbl": case "sdt": case "customXml":
+                    case "tcPr":
                         reader.SkipElement();
+                        break;
+                    case "tbl": case "sdt": case "customXml":
+                        if (!SkipBlockWithoutFields(reader, context)) return false;
                         break;
                     case "p":
                         if (!ReadParagraph(reader, context, fields, recordNotes, canDrop: true, out string? text, out SectionReferences? section)) return false;
