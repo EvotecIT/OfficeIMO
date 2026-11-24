@@ -3,37 +3,41 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Ambient render context so nested blocks (quotes/details/lists) can obey HTML rendering policies.
 /// </summary>
+/// <remarks>
+/// HTML rendering runs synchronously on one thread and every push is undone before the render returns,
+/// so the context lives in thread-static fields; changing an async-local value allocates on every push and pop.
+/// </remarks>
 internal static class HtmlRenderContext {
-    private static readonly System.Threading.AsyncLocal<MarkdownHtmlExportOptions?> s_Options = new();
-    private static readonly System.Threading.AsyncLocal<HtmlFootnoteRenderState?> s_Footnotes = new();
-    private static readonly System.Threading.AsyncLocal<MarkdownBodyRenderContext?> s_BodyContext = new();
-    private static readonly System.Threading.AsyncLocal<int> s_RenderListItemAttributesDepth = new();
+    [ThreadStatic] private static MarkdownHtmlExportOptions? t_Options;
+    [ThreadStatic] private static HtmlFootnoteRenderState? t_Footnotes;
+    [ThreadStatic] private static MarkdownBodyRenderContext? t_BodyContext;
+    [ThreadStatic] private static int t_RenderListItemAttributesDepth;
 
-    internal static MarkdownHtmlExportOptions? Options => s_Options.Value;
-    internal static HtmlFootnoteRenderState? Footnotes => s_Footnotes.Value;
-    internal static MarkdownBodyRenderContext? BodyContext => s_BodyContext.Value;
-    internal static bool RenderListItemAttributes => s_RenderListItemAttributesDepth.Value > 0;
+    internal static MarkdownHtmlExportOptions? Options => t_Options;
+    internal static HtmlFootnoteRenderState? Footnotes => t_Footnotes;
+    internal static MarkdownBodyRenderContext? BodyContext => t_BodyContext;
+    internal static bool RenderListItemAttributes => t_RenderListItemAttributesDepth > 0;
 
-    internal static IDisposable Push(MarkdownHtmlExportOptions options, HtmlFootnoteRenderState? footnotes = null) {
-        var prior = s_Options.Value;
-        var priorFootnotes = s_Footnotes.Value;
-        s_Options.Value = options;
-        s_Footnotes.Value = footnotes;
+    internal static Popper Push(MarkdownHtmlExportOptions options, HtmlFootnoteRenderState? footnotes = null) {
+        var prior = t_Options;
+        var priorFootnotes = t_Footnotes;
+        t_Options = options;
+        t_Footnotes = footnotes;
         return new Popper(prior, priorFootnotes);
     }
 
-    internal static IDisposable PushBodyContext(MarkdownBodyRenderContext context) {
-        var prior = s_BodyContext.Value;
-        s_BodyContext.Value = context;
+    internal static BodyContextPopper PushBodyContext(MarkdownBodyRenderContext context) {
+        var prior = t_BodyContext;
+        t_BodyContext = context;
         return new BodyContextPopper(prior);
     }
 
-    internal static IDisposable PushRenderListItemAttributes() {
-        s_RenderListItemAttributesDepth.Value++;
+    internal static RenderListItemAttributesPopper PushRenderListItemAttributes() {
+        t_RenderListItemAttributesDepth++;
         return new RenderListItemAttributesPopper();
     }
 
-    private readonly struct Popper : IDisposable {
+    internal readonly struct Popper : IDisposable {
         private readonly MarkdownHtmlExportOptions? _prior;
         private readonly HtmlFootnoteRenderState? _priorFootnotes;
 
@@ -43,12 +47,12 @@ internal static class HtmlRenderContext {
         }
 
         public void Dispose() {
-            s_Options.Value = _prior;
-            s_Footnotes.Value = _priorFootnotes;
+            t_Options = _prior;
+            t_Footnotes = _priorFootnotes;
         }
     }
 
-    private readonly struct BodyContextPopper : IDisposable {
+    internal readonly struct BodyContextPopper : IDisposable {
         private readonly MarkdownBodyRenderContext? _prior;
 
         public BodyContextPopper(MarkdownBodyRenderContext? prior) {
@@ -56,14 +60,14 @@ internal static class HtmlRenderContext {
         }
 
         public void Dispose() {
-            s_BodyContext.Value = _prior;
+            t_BodyContext = _prior;
         }
     }
 
-    private readonly struct RenderListItemAttributesPopper : IDisposable {
+    internal readonly struct RenderListItemAttributesPopper : IDisposable {
         public void Dispose() {
-            var current = s_RenderListItemAttributesDepth.Value;
-            s_RenderListItemAttributesDepth.Value = current > 0 ? current - 1 : 0;
+            var current = t_RenderListItemAttributesDepth;
+            t_RenderListItemAttributesDepth = current > 0 ? current - 1 : 0;
         }
     }
 }

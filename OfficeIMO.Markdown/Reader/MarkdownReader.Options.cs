@@ -30,19 +30,8 @@ internal static partial class MarkdownReader {
     }
 
     private static MarkdownReaderPipeline GetPipeline(MarkdownLoadOptions options, MarkdownReaderState state) {
-        var pipelines = state.ParseCache.Pipelines;
-        for (int i = 0; i < pipelines.Count; i++) {
-            if (ReferenceEquals(pipelines[i].Key, options)) {
-                return pipelines[i].Value;
-            }
-        }
-
-        var pipeline = MarkdownReaderPipeline.Default(options);
-        if (pipelines.Count < MarkdownReaderParseCache.MaxPipelines) {
-            pipelines.Add(new KeyValuePair<MarkdownLoadOptions, MarkdownReaderPipeline>(options, pipeline));
-        }
-
-        return pipeline;
+        var cache = state.ParseCache;
+        return cache.GetPipeline(options) ?? cache.AddPipeline(options, MarkdownReaderPipeline.GetDefault(options));
     }
 
     private static MarkdownLoadOptions CloneOptionsWithoutFrontMatter(MarkdownLoadOptions source) {
@@ -258,10 +247,10 @@ internal static partial class MarkdownReader {
         clone.IsMarkdigDefinitionListBody = state.IsMarkdigDefinitionListBody;
         clone.NestedBlockDepth = state.NestedBlockDepth;
         clone.DiscardsNestedListSourceRemap = state.DiscardsNestedListSourceRemap;
-        state.LazyQuoteContinuationLines.CopyTo(clone.LazyQuoteContinuationLines);
-        state.QuoteContainerLines.CopyTo(clone.QuoteContainerLines);
-        state.SuppressedSetextHeadingUnderlineLines.CopyTo(clone.SuppressedSetextHeadingUnderlineLines);
-        state.SuppressedParagraphGenericAttributeStartLines.CopyTo(clone.SuppressedParagraphGenericAttributeStartLines);
+        state.LazyQuoteContinuationLines.CopyTo(ref clone.LazyQuoteContinuationLines);
+        state.QuoteContainerLines.CopyTo(ref clone.QuoteContainerLines);
+        state.SuppressedSetextHeadingUnderlineLines.CopyTo(ref clone.SuppressedSetextHeadingUnderlineLines);
+        state.SuppressedParagraphGenericAttributeStartLines.CopyTo(ref clone.SuppressedParagraphGenericAttributeStartLines);
         return clone;
     }
 
@@ -355,12 +344,49 @@ internal static partial class MarkdownReader {
 
 /// <summary>Values derived from the options of one parse and reused by its nested parses.</summary>
 internal sealed class MarkdownReaderParseCache {
-    internal const int MaxPipelines = 8;
+    private const int MaxPipelines = 8;
     private const int MaxDerivedOptions = 8;
-    private readonly List<DerivedOptions> _derivedOptions = new List<DerivedOptions>(2);
-    internal readonly List<KeyValuePair<MarkdownLoadOptions, MarkdownReaderPipeline>> Pipelines = new List<KeyValuePair<MarkdownLoadOptions, MarkdownReaderPipeline>>(2);
+    // The first pipeline is held in fields: most parses use one set of options throughout.
+    private MarkdownLoadOptions? _firstPipelineOptions;
+    private MarkdownReaderPipeline? _firstPipeline;
+    private List<KeyValuePair<MarkdownLoadOptions, MarkdownReaderPipeline>>? _morePipelines;
+    private List<DerivedOptions>? _derivedOptions;
+
+    internal MarkdownReaderPipeline? GetPipeline(MarkdownLoadOptions options) {
+        if (ReferenceEquals(_firstPipelineOptions, options)) {
+            return _firstPipeline;
+        }
+
+        if (_morePipelines != null) {
+            for (int i = 0; i < _morePipelines.Count; i++) {
+                if (ReferenceEquals(_morePipelines[i].Key, options)) {
+                    return _morePipelines[i].Value;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    internal MarkdownReaderPipeline AddPipeline(MarkdownLoadOptions options, MarkdownReaderPipeline pipeline) {
+        if (_firstPipelineOptions == null) {
+            _firstPipelineOptions = options;
+            _firstPipeline = pipeline;
+        } else {
+            _morePipelines ??= new List<KeyValuePair<MarkdownLoadOptions, MarkdownReaderPipeline>>(2);
+            if (_morePipelines.Count < MaxPipelines - 1) {
+                _morePipelines.Add(new KeyValuePair<MarkdownLoadOptions, MarkdownReaderPipeline>(options, pipeline));
+            }
+        }
+
+        return pipeline;
+    }
 
     internal MarkdownLoadOptions? GetDerived(MarkdownLoadOptions source, MarkdownReaderDerivedOptions kind) {
+        if (_derivedOptions == null) {
+            return null;
+        }
+
         for (int i = 0; i < _derivedOptions.Count; i++) {
             var entry = _derivedOptions[i];
             if (entry.Kind == kind && ReferenceEquals(entry.Source, source)) {
@@ -372,6 +398,10 @@ internal sealed class MarkdownReaderParseCache {
     }
 
     internal bool IsDerived(MarkdownLoadOptions options, MarkdownReaderDerivedOptions kind) {
+        if (_derivedOptions == null) {
+            return false;
+        }
+
         for (int i = 0; i < _derivedOptions.Count; i++) {
             var entry = _derivedOptions[i];
             if (entry.Kind == kind && ReferenceEquals(entry.Options, options)) {
@@ -383,6 +413,7 @@ internal sealed class MarkdownReaderParseCache {
     }
 
     internal MarkdownLoadOptions AddDerived(MarkdownLoadOptions source, MarkdownReaderDerivedOptions kind, MarkdownLoadOptions options) {
+        _derivedOptions ??= new List<DerivedOptions>(2);
         if (_derivedOptions.Count < MaxDerivedOptions) {
             _derivedOptions.Add(new DerivedOptions(source, kind, options));
         }

@@ -27,6 +27,15 @@ public delegate string? MarkdownExternalTextResolver(Uri uri);
 /// Options controlling HTML rendering style and asset delivery.
 /// </summary>
 public sealed class MarkdownHtmlExportOptions {
+    /// <summary>Creates options with the default fragment rendering settings.</summary>
+    public MarkdownHtmlExportOptions() : this(assignDefaultObjects: true) {
+    }
+
+    // A render copy assigns copies of its own, so it skips creating defaults it would replace.
+    private MarkdownHtmlExportOptions(bool assignDefaultObjects) {
+        ColorOverrides = assignDefaultObjects ? new MarkdownHtmlColorOverrides() : null!;
+    }
+
     /// <summary>Blocks conversion when any fidelity loss is reported.</summary>
     public bool FailOnLoss { get; set; }
     /// <summary>Includes CSS and scripts when rendering a fragment as one self-contained string.</summary>
@@ -43,10 +52,10 @@ public sealed class MarkdownHtmlExportOptions {
         || SemanticFencedBlockHtmlRenderer != null
         || TocHtmlRenderer != null
         || FootnoteSectionHtmlRenderer != null
-        || BlockRenderExtensions.Count > 0
-        || InlineRenderExtensions.Count > 0
-        || SyntaxBlockRenderExtensions.Count > 0
-        || SyntaxInlineRenderExtensions.Count > 0;
+        || BlockRenderExtensionsIfAny != null
+        || InlineRenderExtensionsIfAny != null
+        || SyntaxBlockRenderExtensionsIfAny != null
+        || SyntaxInlineRenderExtensionsIfAny != null;
 
     internal void RecordRawHtmlChange(string original, string rendered, string location) {
         if (RawHtmlHandling == MarkdownRawHtmlHandling.Allow) {
@@ -92,9 +101,15 @@ public sealed class MarkdownHtmlExportOptions {
     /// <summary>Optional explicit CSS URL for <see cref="MarkdownCssDelivery.LinkHref"/>.</summary>
     public string? CssHref { get; set; }
     /// <summary>Additional CSS URLs to include (link or inline depending on <see cref="MarkdownAssetMode"/>).</summary>
-    public List<string> AdditionalCssHrefs { get; } = new();
+    public List<string> AdditionalCssHrefs => _additionalCssHrefs ??= new();
+    private List<string>? _additionalCssHrefs;
+    /// <summary>The entries of <see cref="AdditionalCssHrefs"/>, or <see langword="null"/> when there are none.</summary>
+    internal List<string>? AdditionalCssHrefsIfAny => _additionalCssHrefs is { Count: > 0 } ? _additionalCssHrefs : null;
     /// <summary>Additional JS URLs to include (script src or inline depending on <see cref="MarkdownAssetMode"/>).</summary>
-    public List<string> AdditionalJsHrefs { get; } = new();
+    public List<string> AdditionalJsHrefs => _additionalJsHrefs ??= new();
+    private List<string>? _additionalJsHrefs;
+    /// <summary>The entries of <see cref="AdditionalJsHrefs"/>, or <see langword="null"/> when there are none.</summary>
+    internal List<string>? AdditionalJsHrefsIfAny => _additionalJsHrefs is { Count: > 0 } ? _additionalJsHrefs : null;
     /// <summary>
     /// Optional caller-owned resolver used to inline HTTP or HTTPS CSS and JavaScript in offline mode.
     /// OfficeIMO never performs hidden synchronous network requests; return <see langword="null"/> to omit a resource.
@@ -190,22 +205,34 @@ public sealed class MarkdownHtmlExportOptions {
     /// Optional block render extensions that can override HTML emitted for specific block types.
     /// Later registrations win when block types overlap.
     /// </summary>
-    public List<MarkdownBlockHtmlRenderExtension> BlockRenderExtensions { get; } = new();
+    public List<MarkdownBlockHtmlRenderExtension> BlockRenderExtensions => _blockRenderExtensions ??= new();
+    private List<MarkdownBlockHtmlRenderExtension>? _blockRenderExtensions;
+    /// <summary>The entries of <see cref="BlockRenderExtensions"/>, or <see langword="null"/> when there are none.</summary>
+    internal List<MarkdownBlockHtmlRenderExtension>? BlockRenderExtensionsIfAny => _blockRenderExtensions is { Count: > 0 } ? _blockRenderExtensions : null;
     /// <summary>
     /// Optional inline render extensions that can override HTML emitted for specific inline types.
     /// Later registrations win when inline types overlap.
     /// </summary>
-    public List<MarkdownInlineHtmlRenderExtension> InlineRenderExtensions { get; } = new();
+    public List<MarkdownInlineHtmlRenderExtension> InlineRenderExtensions => _inlineRenderExtensions ??= new();
+    private List<MarkdownInlineHtmlRenderExtension>? _inlineRenderExtensions;
+    /// <summary>The entries of <see cref="InlineRenderExtensions"/>, or <see langword="null"/> when there are none.</summary>
+    internal List<MarkdownInlineHtmlRenderExtension>? InlineRenderExtensionsIfAny => _inlineRenderExtensions is { Count: > 0 } ? _inlineRenderExtensions : null;
     /// <summary>
     /// Optional block render extensions that can override HTML emitted for parsed blocks with specific final syntax kinds.
     /// Later registrations win when syntax kinds overlap. These extensions run before type-based block extensions.
     /// </summary>
-    public List<MarkdownSyntaxBlockHtmlRenderExtension> SyntaxBlockRenderExtensions { get; } = new();
+    public List<MarkdownSyntaxBlockHtmlRenderExtension> SyntaxBlockRenderExtensions => _syntaxBlockRenderExtensions ??= new();
+    private List<MarkdownSyntaxBlockHtmlRenderExtension>? _syntaxBlockRenderExtensions;
+    /// <summary>The entries of <see cref="SyntaxBlockRenderExtensions"/>, or <see langword="null"/> when there are none.</summary>
+    internal List<MarkdownSyntaxBlockHtmlRenderExtension>? SyntaxBlockRenderExtensionsIfAny => _syntaxBlockRenderExtensions is { Count: > 0 } ? _syntaxBlockRenderExtensions : null;
     /// <summary>
     /// Optional inline render extensions that can override HTML emitted for parsed inlines with specific final syntax kinds.
     /// Later registrations win when syntax kinds overlap. These extensions run before type-based inline extensions.
     /// </summary>
-    public List<MarkdownSyntaxInlineHtmlRenderExtension> SyntaxInlineRenderExtensions { get; } = new();
+    public List<MarkdownSyntaxInlineHtmlRenderExtension> SyntaxInlineRenderExtensions => _syntaxInlineRenderExtensions ??= new();
+    private List<MarkdownSyntaxInlineHtmlRenderExtension>? _syntaxInlineRenderExtensions;
+    /// <summary>The entries of <see cref="SyntaxInlineRenderExtensions"/>, or <see langword="null"/> when there are none.</summary>
+    internal List<MarkdownSyntaxInlineHtmlRenderExtension>? SyntaxInlineRenderExtensionsIfAny => _syntaxInlineRenderExtensions is { Count: > 0 } ? _syntaxInlineRenderExtensions : null;
     /// <summary>Prefix selectors in emitted CSS with this scope selector to avoid collisions. Default: "article.markdown-body".</summary>
     public string? CssScopeSelector { get; set; } = "article.markdown-body";
 
@@ -288,7 +315,10 @@ public sealed class MarkdownHtmlExportOptions {
     /// - <c>*.example.com</c>: any subdomain only (not the apex)
     /// Default: empty (allow all hosts).
     /// </summary>
-    public List<string> AllowedHttpLinkHosts { get; } = new();
+    public List<string> AllowedHttpLinkHosts => _allowedHttpLinkHosts ??= new();
+    private List<string>? _allowedHttpLinkHosts;
+    /// <summary>The entries of <see cref="AllowedHttpLinkHosts"/>, or <see langword="null"/> when there are none.</summary>
+    internal List<string>? AllowedHttpLinkHostsIfAny => _allowedHttpLinkHosts is { Count: > 0 } ? _allowedHttpLinkHosts : null;
 
     /// <summary>
     /// Additional URL schemes permitted for rendered hyperlinks beyond the built-in
@@ -297,7 +327,10 @@ public sealed class MarkdownHtmlExportOptions {
     /// Keep this list empty for untrusted Markdown. Add only application-specific
     /// schemes whose protocol handlers are safe for the rendering host.
     /// </summary>
-    public List<string> AdditionalAllowedLinkSchemes { get; } = new();
+    public List<string> AdditionalAllowedLinkSchemes => _additionalAllowedLinkSchemes ??= new();
+    private List<string>? _additionalAllowedLinkSchemes;
+    /// <summary>The entries of <see cref="AdditionalAllowedLinkSchemes"/>, or <see langword="null"/> when there are none.</summary>
+    internal List<string>? AdditionalAllowedLinkSchemesIfAny => _additionalAllowedLinkSchemes is { Count: > 0 } ? _additionalAllowedLinkSchemes : null;
 
     /// <summary>
     /// Optional allowlist of host patterns for absolute HTTP(S) images during HTML rendering.
@@ -305,7 +338,10 @@ public sealed class MarkdownHtmlExportOptions {
     /// Pattern rules match <see cref="AllowedHttpLinkHosts"/>.
     /// Default: empty (allow all hosts).
     /// </summary>
-    public List<string> AllowedHttpImageHosts { get; } = new();
+    public List<string> AllowedHttpImageHosts => _allowedHttpImageHosts ??= new();
+    private List<string>? _allowedHttpImageHosts;
+    /// <summary>The entries of <see cref="AllowedHttpImageHosts"/>, or <see langword="null"/> when there are none.</summary>
+    internal List<string>? AllowedHttpImageHostsIfAny => _allowedHttpImageHosts is { Count: > 0 } ? _allowedHttpImageHosts : null;
 
     // The following are used internally by the renderer; not part of the public API surface.
     internal string? ExternalCssOutputPath { get; set; }
@@ -324,7 +360,7 @@ public sealed class MarkdownHtmlExportOptions {
     /// Optional additional color overrides for links, headings, and TOC.
     /// Values set here override colors derived from <see cref="Theme"/>.
     /// </summary>
-    public MarkdownHtmlColorOverrides ColorOverrides { get; set; } = new MarkdownHtmlColorOverrides();
+    public MarkdownHtmlColorOverrides ColorOverrides { get; set; }
 
     // TOC injection (used by higher-level pipelines like Word→Markdown→HTML)
     /// <summary>
@@ -344,7 +380,7 @@ public sealed class MarkdownHtmlExportOptions {
     public int InjectTocTitleLevel { get; set; } = 2;
 
     internal MarkdownHtmlExportOptions CloneForRender(MarkdownHtmlKind? kind = null) {
-        var clone = new MarkdownHtmlExportOptions {
+        var clone = new MarkdownHtmlExportOptions(assignDefaultObjects: false) {
             FailOnLoss = FailOnLoss,
             IncludeCssInFragment = IncludeCssInFragment,
             DiagnosticSink = DiagnosticSink,
@@ -401,15 +437,17 @@ public sealed class MarkdownHtmlExportOptions {
             InjectTocOrdered = InjectTocOrdered,
             InjectTocTitleLevel = InjectTocTitleLevel
         };
-        clone.AdditionalCssHrefs.AddRange(AdditionalCssHrefs);
-        clone.AdditionalJsHrefs.AddRange(AdditionalJsHrefs);
-        clone.BlockRenderExtensions.AddRange(BlockRenderExtensions);
-        clone.InlineRenderExtensions.AddRange(InlineRenderExtensions);
-        clone.SyntaxBlockRenderExtensions.AddRange(SyntaxBlockRenderExtensions);
-        clone.SyntaxInlineRenderExtensions.AddRange(SyntaxInlineRenderExtensions);
-        clone.AllowedHttpLinkHosts.AddRange(AllowedHttpLinkHosts);
-        clone.AdditionalAllowedLinkSchemes.AddRange(AdditionalAllowedLinkSchemes);
-        clone.AllowedHttpImageHosts.AddRange(AllowedHttpImageHosts);
+        clone._additionalCssHrefs = CopyIfAny(_additionalCssHrefs);
+        clone._additionalJsHrefs = CopyIfAny(_additionalJsHrefs);
+        clone._blockRenderExtensions = CopyIfAny(_blockRenderExtensions);
+        clone._inlineRenderExtensions = CopyIfAny(_inlineRenderExtensions);
+        clone._syntaxBlockRenderExtensions = CopyIfAny(_syntaxBlockRenderExtensions);
+        clone._syntaxInlineRenderExtensions = CopyIfAny(_syntaxInlineRenderExtensions);
+        clone._allowedHttpLinkHosts = CopyIfAny(_allowedHttpLinkHosts);
+        clone._additionalAllowedLinkSchemes = CopyIfAny(_additionalAllowedLinkSchemes);
+        clone._allowedHttpImageHosts = CopyIfAny(_allowedHttpImageHosts);
         return clone;
     }
+
+    private static List<T>? CopyIfAny<T>(List<T>? source) => source is { Count: > 0 } ? new List<T>(source) : null;
 }

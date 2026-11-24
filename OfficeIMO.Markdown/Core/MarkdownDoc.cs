@@ -532,8 +532,7 @@ public partial class MarkdownDocument : MarkdownObject {
         MarkdownHeadingIdentifierStyle headingIdentifierStyle = MarkdownHeadingIdentifierStyle.OfficeIMO,
         System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        var registry = MarkdownSlug.CreateRegistry();
-        var (realized, headingCatalog) = RealizeTocPlaceholders(registry, headingIdentifierStyle, cancellationToken);
+        var (realized, headingCatalog) = RealizeTocPlaceholders(headingIdentifierStyle, cancellationToken);
         return (realized, headingCatalog);
     }
 
@@ -604,11 +603,22 @@ public partial class MarkdownDocument : MarkdownObject {
     }
 
     private (System.Collections.Generic.List<IMarkdownBlock> Blocks, MarkdownHeadingCatalog HeadingCatalog) RealizeTocPlaceholders(
-        System.Collections.Generic.Dictionary<string, int> slugRegistry,
         MarkdownHeadingIdentifierStyle headingIdentifierStyle, System.Threading.CancellationToken cancellationToken) {
+        bool hasTocPlaceholder = false;
+        for (int i = 0; i < _blocks.Count && !hasTocPlaceholder; i++) {
+            hasTocPlaceholder = _blocks[i] is ITocPlaceholderMarkdownBlock;
+        }
+
+        // Without placeholders there is nothing to realize: render from the document's own blocks.
+        if (!hasTocPlaceholder) {
+            return (_blocks, MarkdownHeadingCatalog.Create(_blocks, headingIdentifierStyle, cancellationToken));
+        }
+
         // Create a shallow copy first
         var realized = new System.Collections.Generic.List<IMarkdownBlock>(_blocks);
-        var headingCatalog = MarkdownHeadingCatalog.Create(realized, slugRegistry, headingIdentifierStyle, cancellationToken);
+        var headingCatalog = MarkdownHeadingCatalog.Create(realized, headingIdentifierStyle, cancellationToken);
+        // Placeholders are replaced below, so resolve anchors against the blocks as written.
+        _ = headingCatalog.HeadingSlugs;
         // Replace placeholders with generated TOC blocks
         for (int i = 0; i < realized.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();

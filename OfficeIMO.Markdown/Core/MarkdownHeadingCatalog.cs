@@ -15,19 +15,36 @@ internal sealed class MarkdownHeadingCatalog {
         internal string Anchor { get; }
     }
 
-    private readonly IReadOnlyList<HeadingEntry> _headings;
+    // Anchors are resolved on first use: most renders never ask for one, and resolving them
+    // creates a slug string per heading.
+    private readonly IReadOnlyList<IMarkdownBlock> _blocks;
     private readonly MarkdownHeadingIdentifierStyle _style;
+    private readonly System.Threading.CancellationToken _cancellationToken;
+    private List<HeadingEntry>? _headingEntries;
+    private Dictionary<IHeadingMarkdownBlock, string>? _headingSlugs;
 
     private MarkdownHeadingCatalog(
-        IReadOnlyList<HeadingEntry> headings,
-        IReadOnlyDictionary<IHeadingMarkdownBlock, string> headingSlugs,
-        MarkdownHeadingIdentifierStyle style) {
-        _headings = headings;
-        HeadingSlugs = headingSlugs;
+        IReadOnlyList<IMarkdownBlock> blocks,
+        MarkdownHeadingIdentifierStyle style,
+        System.Threading.CancellationToken cancellationToken) {
+        _blocks = blocks;
         _style = style;
+        _cancellationToken = cancellationToken;
     }
 
-    internal IReadOnlyDictionary<IHeadingMarkdownBlock, string> HeadingSlugs { get; }
+    private List<HeadingEntry> Headings {
+        get {
+            EnsureResolved();
+            return _headingEntries!;
+        }
+    }
+
+    internal IReadOnlyDictionary<IHeadingMarkdownBlock, string> HeadingSlugs {
+        get {
+            EnsureResolved();
+            return _headingSlugs!;
+        }
+    }
 
     internal string GetHeadingAnchor(IHeadingMarkdownBlock heading) {
         if (heading == null) {
@@ -45,28 +62,40 @@ internal sealed class MarkdownHeadingCatalog {
         return MarkdownSlug.Generate(heading.Text, _style);
     }
 
+    /// <summary>
+    /// Creates the catalog for <paramref name="blocks"/>, giving repeated heading texts distinct anchors.
+    /// Anchors are resolved the first time one is requested, so <paramref name="blocks"/> must not change before then.
+    /// </summary>
     internal static MarkdownHeadingCatalog Create(
         IReadOnlyList<IMarkdownBlock> blocks,
-        Dictionary<string, int>? slugRegistry = null,
-        MarkdownHeadingIdentifierStyle style = MarkdownHeadingIdentifierStyle.OfficeIMO,
-        System.Threading.CancellationToken cancellationToken = default) {
+        MarkdownHeadingIdentifierStyle style,
+        System.Threading.CancellationToken cancellationToken) =>
+        new MarkdownHeadingCatalog(blocks, style, cancellationToken);
+
+    private void EnsureResolved() {
+        if (_headingEntries != null) {
+            return;
+        }
+
+        var slugRegistry = MarkdownSlug.CreateRegistry();
         var headings = new List<HeadingEntry>();
         var slugs = new Dictionary<IHeadingMarkdownBlock, string>();
 
-        for (int idx = 0; idx < blocks.Count; idx++) {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (blocks[idx] is not IHeadingMarkdownBlock heading) {
+        for (int idx = 0; idx < _blocks.Count; idx++) {
+            _cancellationToken.ThrowIfCancellationRequested();
+            if (_blocks[idx] is not IHeadingMarkdownBlock heading) {
                 continue;
             }
 
-            var slug = ResolveHeadingAnchor(heading, slugRegistry, style);
+            var slug = ResolveHeadingAnchor(heading, slugRegistry, _style);
 
             slugs[heading] = slug;
             headings.Add(new HeadingEntry(idx, heading, slug));
         }
-        cancellationToken.ThrowIfCancellationRequested();
+        _cancellationToken.ThrowIfCancellationRequested();
 
-        return new MarkdownHeadingCatalog(headings, slugs, style);
+        _headingSlugs = slugs;
+        _headingEntries = headings;
     }
 
     private static string ResolveHeadingAnchor(
@@ -126,7 +155,7 @@ internal sealed class MarkdownHeadingCatalog {
 
         GetScopeBounds(placeholderIndex, minLevel, options, out var startIndex, out var endIndex);
 
-        var entries = _headings
+        var entries = Headings
             .Where(h => h.Index >= startIndex && h.Index < endIndex && h.Level >= effectiveMin && h.Level <= effectiveMax)
             .Select(h => new TocBlock.Entry { Level = h.Level, Text = h.Text, Anchor = h.Anchor })
             .ToList();
@@ -145,14 +174,14 @@ internal sealed class MarkdownHeadingCatalog {
         endIndex = int.MaxValue;
 
         if (options.Scope == MarkdownTocScope.PreviousHeading) {
-            var previous = _headings.LastOrDefault(h => h.Index < placeholderIndex && h.Level < minLevel);
+            var previous = Headings.LastOrDefault(h => h.Index < placeholderIndex && h.Level < minLevel);
             if (previous.Equals(default(HeadingEntry))) {
-                previous = _headings.LastOrDefault(h => h.Index < placeholderIndex);
+                previous = Headings.LastOrDefault(h => h.Index < placeholderIndex);
             }
 
             if (!previous.Equals(default(HeadingEntry))) {
                 startIndex = previous.Index + 1;
-                var nextAtOrAbove = _headings.FirstOrDefault(h => h.Index > previous.Index && h.Level <= previous.Level);
+                var nextAtOrAbove = Headings.FirstOrDefault(h => h.Index > previous.Index && h.Level <= previous.Level);
                 if (!nextAtOrAbove.Equals(default(HeadingEntry))) {
                     endIndex = nextAtOrAbove.Index;
                 }
@@ -162,10 +191,10 @@ internal sealed class MarkdownHeadingCatalog {
         }
 
         if (options.Scope == MarkdownTocScope.HeadingTitle && !string.IsNullOrWhiteSpace(options.ScopeHeadingTitle)) {
-            var root = _headings.FirstOrDefault(h => string.Equals(h.Text, options.ScopeHeadingTitle, StringComparison.OrdinalIgnoreCase));
+            var root = Headings.FirstOrDefault(h => string.Equals(h.Text, options.ScopeHeadingTitle, StringComparison.OrdinalIgnoreCase));
             if (!root.Equals(default(HeadingEntry))) {
                 startIndex = root.Index + 1;
-                var nextAtOrAbove = _headings.FirstOrDefault(h => h.Index > root.Index && h.Level <= root.Level);
+                var nextAtOrAbove = Headings.FirstOrDefault(h => h.Index > root.Index && h.Level <= root.Level);
                 if (!nextAtOrAbove.Equals(default(HeadingEntry))) {
                     endIndex = nextAtOrAbove.Index;
                 }

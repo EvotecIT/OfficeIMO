@@ -41,7 +41,7 @@ dotnet run --project OfficeIMO.Markdown.Benchmarks/OfficeIMO.Markdown.Benchmarks
 
 ## Corpus
 
-The benchmark corpus is intentionally stable and reviewable in source. It covers README-style docs, chat/transcript documents, technical docs, mixed AST-heavy content, long nested lists, large pipe tables, and normalization-heavy transcript artifacts.
+The benchmark corpus is intentionally stable and reviewable in source. It covers README-style docs, chat/transcript documents, single-section README and transcript documents (`SmallReadme`, `SmallTranscript`) where fixed per-document cost dominates, technical docs, mixed AST-heavy content, long nested lists, large pipe tables, and normalization-heavy transcript artifacts.
 
 Benchmark classes currently cover:
 
