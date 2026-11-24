@@ -25,13 +25,10 @@ namespace OfficeIMO.Excel {
                 string entryName = "xl/worksheets/sheet" + InvariantNumberText.Get(sheet.Index) + ".xml";
                 Stream? stream = null;
                 PooledUtf8TextWriter? writer = null;
-                StreamingWorksheetCompression? compression = null;
                 bool completed = false;
                 try {
-                    stream = archive.OpenEntry(entryName, CompressionLevel.Fastest);
-                    if (ExcelExecutionPolicy.SupportsBackgroundProcessing)
-                        compression = new StreamingWorksheetCompression(stream, archive);
-                    writer = new PooledUtf8TextWriter(compression ?? stream, Utf8NoBom, XmlWriterBufferSize, leaveOpen: true);
+                    stream = archive.OpenEntry(entryName, CompressionLevel.Fastest, background: true);
+                    writer = new PooledUtf8TextWriter(stream, Utf8NoBom, XmlWriterBufferSize, leaveOpen: true);
 
                     writer.Write("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
                     writer.Write("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">");
@@ -46,7 +43,6 @@ namespace OfficeIMO.Excel {
                     writer.Flush();
                     writer.Dispose();
                     writer = null;
-                    compression?.Complete();
                     ct.ThrowIfCancellationRequested();
                     completed = true;
                     return count;
@@ -55,11 +51,8 @@ namespace OfficeIMO.Excel {
                     catch when (!completed) {
                         // Keep the row or validation error when disposal also fails.
                     } finally {
-                        try { compression?.Dispose(); }
-                        finally {
-                            try { stream?.Dispose(); }
-                            catch when (!completed) { }
-                        }
+                        try { stream?.Dispose(); }
+                        catch when (!completed) { }
                     }
                 }
             }

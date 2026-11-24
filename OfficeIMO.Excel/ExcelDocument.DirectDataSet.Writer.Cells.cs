@@ -576,9 +576,11 @@ namespace OfficeIMO.Excel {
             }
 #endif
 
-            private static bool TryWriteTwoDecimalRawValueCell(TextWriter writer, double value) {
+            /// <summary>Whether the shortest text of <paramref name="value"/> has at most two decimals; gives the value times 100.</summary>
+            private static bool TryGetTwoDecimalScaledValue(double value, out long scaledInteger) {
                 const double minimumScaledValue = -9007199254740991D;
                 const double maximumScaledValue = 9007199254740991D;
+                scaledInteger = 0;
                 if (value == 0D && BitConverter.DoubleToInt64Bits(value) < 0) {
                     return false;
                 }
@@ -588,8 +590,12 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
-                long scaledInteger = (long)scaled;
-                if (scaled != scaledInteger || scaledInteger / 100D != value) {
+                scaledInteger = (long)scaled;
+                return scaled == scaledInteger && scaledInteger / 100D == value;
+            }
+
+            private static bool TryWriteTwoDecimalRawValueCell(TextWriter writer, double value) {
+                if (!TryGetTwoDecimalScaledValue(value, out long scaledInteger)) {
                     return false;
                 }
 

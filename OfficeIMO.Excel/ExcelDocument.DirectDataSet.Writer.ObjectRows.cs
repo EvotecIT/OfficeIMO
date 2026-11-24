@@ -41,6 +41,9 @@ namespace OfficeIMO.Excel {
                 _writer = writer;
                 _native = native;
                 _bufferedWriter = writer as PooledUtf8TextWriter;
+#if NET8_0_OR_GREATER
+                _utf8 = native == null ? _bufferedWriter : null;
+#endif
                 _rowIndex = startRowIndex;
                 _includeCellReferences = includeCellReferences;
                 _cellReferencePrefixes = cellReferencePrefixes;
@@ -90,7 +93,14 @@ namespace OfficeIMO.Excel {
                 _rowOpened = false;
                 _rowStyle = _declaredStyles?.DefaultRowStyle;
                 _nextCellStyle = null;
-                if (_includeCellReferences) _rowReference = InvariantNumberText.Get(_rowIndex);
+                if (!_includeCellReferences) return;
+#if NET8_0_OR_GREATER
+                if (_utf8 != null) {
+                    _rowIndex.TryFormat(_rowDigits, out _rowDigitCount, default, CultureInfo.InvariantCulture);
+                    return;
+                }
+#endif
+                _rowReference = InvariantNumberText.Get(_rowIndex);
             }
 
             internal void ReleaseRow() => _rowActive = false;
@@ -103,6 +113,9 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (_native != null) _native.EndRow();
+#if NET8_0_OR_GREATER
+                else if (_utf8 != null) _utf8.WriteUtf8("</row>"u8);
+#endif
                 else _writer.Write("</row>");
                 _rowActive = false;
                 _rowIndex++;
@@ -113,6 +126,9 @@ namespace OfficeIMO.Excel {
             public ExcelTabularRowWriter Write(string? value) {
                 // Reject before the cell starts so a caller that handles the error can continue the row.
                 if (value != null) CoerceValueHelper.ValidateSharedStringLength(value, nameof(value));
+#if NET8_0_OR_GREATER
+                if (_utf8 != null && TryWriteUtf8Text(value)) return this;
+#endif
                 BeginCell();
                 if (_native != null) _native.WriteText(value ?? string.Empty);
                 else if (value == null) _writer.Write(" t=\"str\"><v/></c>");
@@ -122,6 +138,12 @@ namespace OfficeIMO.Excel {
 
             /// <summary>Writes a Boolean cell.</summary>
             public ExcelTabularRowWriter Write(bool value) {
+#if NET8_0_OR_GREATER
+                if (_utf8 != null) {
+                    WriteUtf8Cell(null, value ? " t=\"b\"><v>1</v></c>"u8 : " t=\"b\"><v>0</v></c>"u8);
+                    return this;
+                }
+#endif
                 BeginCell();
                 if (_native != null) _native.WriteBoolean(value);
                 else _writer.Write(value ? " t=\"b\"><v>1</v></c>" : " t=\"b\"><v>0</v></c>");
@@ -130,6 +152,12 @@ namespace OfficeIMO.Excel {
 
             /// <summary>Writes a date and time cell.</summary>
             public ExcelTabularRowWriter Write(DateTime value) {
+#if NET8_0_OR_GREATER
+                if (_utf8 != null) {
+                    WriteUtf8DateTime(value);
+                    return this;
+                }
+#endif
                 BeginCell(DirectDataSetWorkbookWriter.GetDateStyleAttribute(_useCellValueNumberFormats));
                 if (_native != null) _native.WriteNumber(ExcelDateSystemConverter.ToSerial(value, _dateSystem));
                 else DirectDataSetWorkbookWriter.WriteDateTimeSerialCell(_writer, value, _dateSystem);
@@ -149,7 +177,11 @@ namespace OfficeIMO.Excel {
             /// <summary>Writes a duration cell.</summary>
             public ExcelTabularRowWriter Write(TimeSpan value) { BeginCell(DirectDataSetWorkbookWriter.GetTimeStyleAttribute(_useCellValueNumberFormats)); if (_native != null) _native.WriteNumber(ExcelDateSystemConverter.ToSerial(value)); else DirectDataSetWorkbookWriter.WriteRawValueCell(_writer, ExcelDateSystemConverter.ToSerial(value)); return this; }
             /// <summary>Writes a double-precision numeric cell.</summary>
-            public ExcelTabularRowWriter Write(double value) { BeginCell(); if (_native != null) _native.WriteNumber((double)(value)); else DirectDataSetWorkbookWriter.WriteRawValueCell(_writer, value); return this; }
+            public ExcelTabularRowWriter Write(double value) {
+#if NET8_0_OR_GREATER
+                if (_utf8 != null) { WriteUtf8Number(value); return this; }
+#endif
+                BeginCell(); if (_native != null) _native.WriteNumber((double)(value)); else DirectDataSetWorkbookWriter.WriteRawValueCell(_writer, value); return this; }
             /// <summary>Writes a single-precision numeric cell.</summary>
             public ExcelTabularRowWriter Write(float value) { BeginCell(); if (_native != null) _native.WriteNumber((double)(value)); else DirectDataSetWorkbookWriter.WriteRawValueCell(_writer, value); return this; }
             /// <summary>Writes a decimal cell.</summary>
@@ -163,11 +195,19 @@ namespace OfficeIMO.Excel {
             /// <summary>Writes an unsigned 16-bit integer cell.</summary>
             public ExcelTabularRowWriter Write(ushort value) { BeginCell(); if (_native != null) _native.WriteNumber((double)((int)value)); else DirectDataSetWorkbookWriter.WriteRawValueCell(_writer, (int)value); return this; }
             /// <summary>Writes a signed 32-bit integer cell.</summary>
-            public ExcelTabularRowWriter Write(int value) { BeginCell(); if (_native != null) _native.WriteNumber((double)(value)); else DirectDataSetWorkbookWriter.WriteRawValueCell(_writer, value); return this; }
+            public ExcelTabularRowWriter Write(int value) {
+#if NET8_0_OR_GREATER
+                if (_utf8 != null) { WriteUtf8Number(value); return this; }
+#endif
+                BeginCell(); if (_native != null) _native.WriteNumber((double)(value)); else DirectDataSetWorkbookWriter.WriteRawValueCell(_writer, value); return this; }
             /// <summary>Writes an unsigned 32-bit integer cell.</summary>
             public ExcelTabularRowWriter Write(uint value) { BeginCell(); if (_native != null) _native.WriteNumber((double)((long)value)); else DirectDataSetWorkbookWriter.WriteRawValueCell(_writer, (long)value); return this; }
             /// <summary>Writes a signed 64-bit integer cell.</summary>
-            public ExcelTabularRowWriter Write(long value) { BeginCell(); if (_native != null) WriteNativeNumber(value); else DirectDataSetWorkbookWriter.WriteRawValueCell(_writer, value); return this; }
+            public ExcelTabularRowWriter Write(long value) {
+#if NET8_0_OR_GREATER
+                if (_utf8 != null && ExcelExactNumber.FitsNumberCell(value)) { WriteUtf8Number(value); return this; }
+#endif
+                BeginCell(); if (_native != null) WriteNativeNumber(value); else DirectDataSetWorkbookWriter.WriteRawValueCell(_writer, value); return this; }
             /// <summary>Writes an unsigned 64-bit integer cell.</summary>
             public ExcelTabularRowWriter Write(ulong value) { BeginCell(); if (_native != null) WriteNativeNumber(value); else DirectDataSetWorkbookWriter.WriteRawValueCell(_writer, value); return this; }
 
@@ -222,15 +262,15 @@ namespace OfficeIMO.Excel {
                     _writer.Write("<c");
                 }
 
-                string? styleAttribute;
-                if (_declaredStyles != null) {
-                    styleAttribute = GetDeclaredCellAttribute(columnIndex, runtimeStyleAttribute ?? _styleAttributes?[columnIndex]);
-                } else {
-                    styleAttribute = _styleAttributes?[columnIndex];
-                    if (styleAttribute == null && ((_valueStyleColumns?[columnIndex] ?? false) || runtimeStyleAttribute != null)) styleAttribute = runtimeStyleAttribute;
-                }
-
+                string? styleAttribute = ResolveCellStyle(columnIndex, runtimeStyleAttribute);
                 if (styleAttribute != null) _writer.Write(styleAttribute);
+            }
+
+            private string? ResolveCellStyle(int columnIndex, string? runtimeStyleAttribute) {
+                if (_declaredStyles != null) return GetDeclaredCellAttribute(columnIndex, runtimeStyleAttribute ?? _styleAttributes?[columnIndex]);
+                string? styleAttribute = _styleAttributes?[columnIndex];
+                if (styleAttribute == null && ((_valueStyleColumns?[columnIndex] ?? false) || runtimeStyleAttribute != null)) styleAttribute = runtimeStyleAttribute;
+                return styleAttribute;
             }
 
             [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
@@ -240,6 +280,15 @@ namespace OfficeIMO.Excel {
                     + _cellReferencePrefixes.Length.ToString(CultureInfo.InvariantCulture) + " cells.");
 
             private void WriteReferenceStart(string prefix, string suffix) {
+#if NET8_0_OR_GREATER
+                if (_utf8 != null) {
+                    byte[] buffer = _utf8.ReserveUtf8(prefix.Length + _rowDigitCount + suffix.Length, out int start);
+                    int position = WriteUtf8Reference(buffer, start, prefix);
+                    position += Utf8Ascii(suffix, buffer, position);
+                    _utf8.CommitUtf8(position - start);
+                    return;
+                }
+#endif
                 if (_bufferedWriter != null) {
                     _bufferedWriter.WriteFragments(prefix, _rowReference, suffix);
                 } else {

@@ -1,15 +1,23 @@
 using System.Buffers.Binary;
+using System.Collections.Concurrent;
 #if NET8_0_OR_GREATER
 using System.Numerics;
 #endif
 using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Excel;
 
 /// <summary>Raw deflate (RFC 1951) for <see cref="System.IO.Compression.CompressionLevel.Fastest"/> package parts.</summary>
-/// <remarks>Input is collected in regions behind a 32 KiB history: the first fills the 160 KiB buffer, later ones add 128 KiB. Each region becomes one block with the
-/// fixed Huffman codes (section 3.2.6), or stored blocks when those would be smaller. Matches come from a single
+/// <remarks>Input is cut into regions at fixed offsets: the first holds up to 160 KiB, each later one 128 KiB after a
+/// copy of the preceding 32 KiB as history. A region is encoded on its own, with a match table that starts from its
+/// history, as one block with the fixed Huffman codes (section 3.2.6), or stored blocks when those would be smaller.
+/// A region other than the last ends with an empty stored block, so the next one starts on a byte boundary.
+/// Regions therefore compress independently: with background encoding several are compressed at once on the thread
+/// pool and written in order, and the output is the same whichever thread encoded them. Each region also hashes its
+/// new bytes, and the encoder joins those values into the CRC-32 of the whole input. Matches come from a single
 /// hash slot per four-byte prefix. Codes are written least-significant bit first, so the encoder relies on a
 /// little-endian host.</remarks>
 internal sealed class ExcelDeflateEncoder : IDisposable {
@@ -21,142 +29,367 @@ internal sealed class ExcelDeflateEncoder : IDisposable {
     private const int MaximumMatch = 258;
     private const int StoredBlockLimit = 65_535;
     // A region can hold the whole buffer before any history exists. Fixed codes spend at most 9 bits per byte and
-    // stored output adds 5 bytes per block; the headroom also covers the 8-byte stores past the last whole byte.
+    // stored output adds 5 bytes per block; the headroom also covers the 8-byte stores past the last whole byte and
+    // the empty stored block that aligns a region's end.
     private const int OutputLength = BufferLength / 8 * 9 + 256;
+    // Background encoding keeps this many full regions in flight while the caller fills the next one.
+    private static readonly int BackgroundRegions = Environment.ProcessorCount > 1 ? Math.Min(Environment.ProcessorCount - 1, 4) : 0;
+    // Background regions of every encoder go through one queue served by at most this many pool workers, so a busy
+    // caller wakes a worker only when one went idle rather than once per region.
+    private static readonly ConcurrentQueue<Region> _work = new();
+    private static readonly WaitCallback Work = _ => RunWorker();
+    private static int _workers;
 
-    private static Workspace? _cachedWorkspace;
-    // Parts prepared on worker threads each hold a workspace. The extra sets are held weakly, so a burst of parallel
-    // saves reuses them without the large-object allocations, and a later full collection can still reclaim them.
-    // The slots reference the arrays themselves: a weakly held wrapper would die in the next young collection.
-    private static readonly WeakWorkspace?[] _sharedWorkspaces = new WeakWorkspace?[Math.Min(Environment.ProcessorCount, 64)];
+    private static Region? _cachedRegion;
+    // Parts prepared on worker threads, and regions encoded in the background, each hold a region. The extra sets
+    // are held weakly, so a burst of parallel work reuses them without the large-object allocations, and a later
+    // full collection can still reclaim them. The slots reference the arrays themselves: a weakly held wrapper would
+    // die in the next young collection.
+    private static readonly WeakRegion?[] _sharedRegions = new WeakRegion?[Math.Min(Environment.ProcessorCount * 2, 64)];
     private readonly Stream _destination;
-    private byte[] _buffer;
-    private byte[] _output;
-    private uint[] _heads;
+    private readonly int _maximumQueued;
+    private readonly Queue<Region> _queued = new();
+    // Regions this part already used; they are cleared once, when the part is done with them.
+    private readonly Stack<Region> _spare = new();
+    private Region? _current;
     private int _filled;
-    private int _pending;
-    private int _bufferUsed;
-    private uint _bufferOrigin;
-    private int _outputCount;
-    private ulong _bits;
-    private int _bitCount;
     private bool _finished;
+    private uint _crc;
+    private long _size;
 
-    internal ExcelDeflateEncoder(Stream destination) {
+    /// <summary>The CRC-32 of every byte written; valid after <see cref="Finish"/>.</summary>
+    internal uint Crc => _crc;
+
+    /// <summary>The number of bytes written.</summary>
+    internal long Size => _size;
+
+    /// <param name="destination">Receives the compressed bytes, always on the thread that writes or finishes.</param>
+    /// <param name="background">Encodes full regions on the thread pool while the caller keeps writing.</param>
+    internal ExcelDeflateEncoder(Stream destination, bool background = false) {
         _destination = destination;
-        // The buffers exceed the large-object threshold, so one cleared set is kept for the next part
-        // instead of going through the shared pool, which would drop them with a short-lived worker thread.
-        Workspace workspace = RentWorkspace();
-        _buffer = workspace.Buffer;
-        _output = workspace.Output;
-        _heads = workspace.Heads;
+        _maximumQueued = background ? BackgroundRegions : 0;
+        _current = RentRegion();
     }
 
     internal void Write(ReadOnlySpan<byte> input) {
-        if (_finished || _buffer.Length == 0) throw new ObjectDisposedException(nameof(ExcelDeflateEncoder));
+        if (_finished || _current == null) throw new ObjectDisposedException(nameof(ExcelDeflateEncoder));
+        _size += input.Length;
         while (!input.IsEmpty) {
+            Region region = _current;
             int count = Math.Min(input.Length, BufferLength - _filled);
-            input.Slice(0, count).CopyTo(_buffer.AsSpan(_filled));
+            input.Slice(0, count).CopyTo(region.Buffer.AsSpan(_filled));
             _filled += count;
-            if (_filled > _bufferUsed) _bufferUsed = _filled;
             input = input.Slice(count);
             if (_filled == BufferLength) {
-                EncodeRegion(final: false);
-                // Keep the last 32 KiB as history for the next region.
-                Buffer.BlockCopy(_buffer, BufferLength - HistoryLength, _buffer, 0, HistoryLength);
-                _bufferOrigin += BufferLength - HistoryLength;
+                // The next region starts from the last 32 KiB of this one.
+                Region next = _spare.Count > 0 ? _spare.Pop() : RentRegion();
+                Buffer.BlockCopy(region.Buffer, BufferLength - HistoryLength, next.Buffer, 0, HistoryLength);
+                next.Start = HistoryLength;
+                _current = next;
                 _filled = HistoryLength;
-                _pending = HistoryLength;
+                region.End = BufferLength;
+                Submit(region);
             }
         }
     }
 
-    /// <summary>Encodes the remaining input as the final block and pads the last byte.</summary>
+    /// <summary>Encodes the remaining input as the final block, then writes every region in order.</summary>
     internal void Finish() {
-        if (_finished || _buffer.Length == 0) throw new ObjectDisposedException(nameof(ExcelDeflateEncoder));
+        if (_finished || _current == null) throw new ObjectDisposedException(nameof(ExcelDeflateEncoder));
         _finished = true;
-        EncodeRegion(final: true);
-        while (_bitCount > 0) {
-            _output[_outputCount++] = (byte)_bits;
-            _bits >>= 8;
-            _bitCount = Math.Max(0, _bitCount - 8);
+        Region last = _current;
+        _current = null;
+        last.End = _filled;
+        last.Final = true;
+        try {
+            // The last region is encoded here while earlier ones may still be running in the background.
+            last.Encode();
+            while (_queued.Count > 0) WriteOldest();
+            Emit(last);
+        } finally {
+            ReturnRegion(last);
+            while (_spare.Count > 0) ReturnRegion(_spare.Pop());
         }
-        Drain();
     }
 
     public void Dispose() {
-        if (_buffer.Length == 0) return;
-        // Both buffers held caller data; clear what was used before they return to the shared pool.
-        Array.Clear(_buffer, 0, _bufferUsed);
-        Array.Clear(_output, 0, OutputLength);
-        Array.Clear(_heads, 0, _heads.Length);
-        ReturnWorkspace(new Workspace(_buffer, _output, _heads));
-        _buffer = Array.Empty<byte>();
-        _output = Array.Empty<byte>();
-        _heads = Array.Empty<uint>();
+        // Regions still in the background own their arrays until they finish; collect them before returning any.
+        while (_queued.Count > 0) {
+            Region region = _queued.Dequeue();
+            region.Cancel();
+            ReturnRegion(region);
+        }
+        if (_current != null) {
+            _current.End = _filled;
+            ReturnRegion(_current);
+            _current = null;
+        }
+        while (_spare.Count > 0) ReturnRegion(_spare.Pop());
     }
 
-    private static Workspace RentWorkspace() {
-        Workspace? workspace = Interlocked.Exchange(ref _cachedWorkspace, null);
-        if (workspace != null) return workspace;
-        for (int i = 0; i < _sharedWorkspaces.Length; i++) {
-            if (Volatile.Read(ref _sharedWorkspaces[i]) != null
-                && Interlocked.Exchange(ref _sharedWorkspaces[i], null)?.TryGetWorkspace() is { } shared) {
+    private void Submit(Region region) {
+        if (_maximumQueued == 0) {
+            try {
+                region.Encode();
+                Emit(region);
+            } finally {
+                Recycle(region);
+            }
+            return;
+        }
+        _queued.Enqueue(region);
+        region.MarkQueued();
+        Schedule(region);
+        // Write what has finished, in order, and keep at most the configured number of regions in flight.
+        while (_queued.Count > 0 && (_queued.Count > _maximumQueued || _queued.Peek().IsComplete)) WriteOldest();
+    }
+
+    private void WriteOldest() {
+        Region region = _queued.Peek();
+        region.Join();
+        _queued.Dequeue();
+        try {
+            region.ThrowIfFailed();
+            Emit(region);
+        } finally {
+            Recycle(region);
+        }
+    }
+
+    private void Emit(Region region) {
+        region.WriteTo(_destination);
+        _crc = ExcelCrc32Combine.Combine(_crc, region.Crc, region.End - region.Start);
+    }
+
+    /// <summary>Keeps a written region for this part's next one; its bytes are overwritten before they are read.</summary>
+    private void Recycle(Region region) {
+        region.Reset();
+        _spare.Push(region);
+    }
+
+    private static void Schedule(Region region) {
+        _work.Enqueue(region);
+        int workers = Volatile.Read(ref _workers);
+        while (workers < BackgroundRegions) {
+            if (Interlocked.CompareExchange(ref _workers, workers + 1, workers) == workers) {
+                try {
+                    ThreadPool.UnsafeQueueUserWorkItem(Work, null);
+                } catch {
+                    // Without the pool the caller encodes its regions when it writes them.
+                    Interlocked.Decrement(ref _workers);
+                }
+                return;
+            }
+            workers = Volatile.Read(ref _workers);
+        }
+    }
+
+    private static void RunWorker() {
+        while (true) {
+            while (_work.TryDequeue(out Region? region)) region.RunIfQueued();
+            Interlocked.Decrement(ref _workers);
+            // A region queued while this worker was leaving may have found every slot taken; take the slot back for it.
+            if (_work.IsEmpty) return;
+            int workers = Volatile.Read(ref _workers);
+            if (workers >= BackgroundRegions || Interlocked.CompareExchange(ref _workers, workers + 1, workers) != workers) return;
+        }
+    }
+
+    private static Region RentRegion() {
+        Region? region = Interlocked.Exchange(ref _cachedRegion, null);
+        if (region != null) return region;
+        for (int i = 0; i < _sharedRegions.Length; i++) {
+            if (Volatile.Read(ref _sharedRegions[i]) != null
+                && Interlocked.Exchange(ref _sharedRegions[i], null)?.TryGetRegion() is { } shared) {
                 return shared;
             }
         }
-        return new Workspace();
+        return new Region();
     }
 
-    private static void ReturnWorkspace(Workspace workspace) {
-        if (Interlocked.CompareExchange(ref _cachedWorkspace, workspace, null) == null) return;
-        for (int i = 0; i < _sharedWorkspaces.Length; i++) {
-            if (Volatile.Read(ref _sharedWorkspaces[i]) == null
-                && Interlocked.CompareExchange(ref _sharedWorkspaces[i], new WeakWorkspace(workspace), null) == null) {
+    private static void ReturnRegion(Region region) {
+        // The buffers held caller data; clear what was used before they can serve another part.
+        region.Clear();
+        if (Interlocked.CompareExchange(ref _cachedRegion, region, null) == null) return;
+        for (int i = 0; i < _sharedRegions.Length; i++) {
+            if (Volatile.Read(ref _sharedRegions[i]) == null
+                && Interlocked.CompareExchange(ref _sharedRegions[i], new WeakRegion(region), null) == null) {
                 return;
             }
         }
     }
 
-    private void Drain() {
-        if (_outputCount == 0) return;
-        _destination.Write(_output, 0, _outputCount);
-        _outputCount = 0;
-    }
+    /// <summary>One region's input, match table and output, and its background state.</summary>
+    private sealed class Region(byte[] buffer, byte[] output, uint[] heads) {
+        // A caller that must wait moves Running to RunningWithWaiter; only then does the worker signal the event,
+        // and the caller consumes that signal before it can reuse the region.
+        private const int Idle = 0, Queued = 1, Running = 2, RunningWithWaiter = 3, Completed = 4;
+        private readonly byte[] _buffer = buffer;
+        private readonly byte[] _output = output;
+        private readonly uint[] _heads = heads;
+        private int _state;
+        private ManualResetEventSlim? _completed;
+        private ExceptionDispatchInfo? _failure;
+        private int _outputCount;
+        private uint _crc;
+        private int _used;
+        private int _outputUsed;
+        private ulong _bits;
+        private int _bitCount;
+        // Zeroed table entries sit below the first origin, so a new table starts empty.
+        private uint _origin = 1;
+        /// <summary>The origin the next encoding takes; every value in the match table is below it.</summary>
+        internal uint Origin { get => _origin; init => _origin = value; }
 
-    private void EncodeRegion(bool final) {
-        int start = _pending, end = _filled;
-        int savedCount = _outputCount;
-        ulong savedBits = _bits;
-        int savedBitCount = _bitCount;
-        PutBits(final ? 0b011UL : 0b010UL, 3); // BFINAL, then BTYPE 01 (fixed codes) least-significant bit first
-        EncodeSymbols(start, end);
-        PutBits(0, 7); // end of block: symbol 256 has the 7-bit fixed code 0000000
-        long fixedBits = (long)(_outputCount - savedCount) * 8 + _bitCount - savedBitCount;
-        if (fixedBits > StoredBits(end - start, savedBitCount)) {
-            _outputCount = savedCount;
-            _bits = savedBits;
-            _bitCount = savedBitCount;
-            WriteStored(start, end, final);
+        internal Region() : this(new byte[BufferLength], new byte[OutputLength], new uint[1 << HashBits]) { }
+
+        internal byte[] Buffer => _buffer;
+        internal byte[] Output => _output;
+        internal uint[] Heads => _heads;
+        /// <summary>The first byte to encode; the bytes before it are history.</summary>
+        internal int Start { get; set; }
+        internal int End { get; set; }
+        internal bool Final { get; set; }
+        internal bool IsComplete => Volatile.Read(ref _state) == Completed;
+        /// <summary>The CRC-32 of the region's new bytes, after it was encoded.</summary>
+        internal uint Crc => _crc;
+
+        internal void MarkQueued() => Volatile.Write(ref _state, Queued);
+
+        /// <summary>Waits for a background encoding, or encodes here when no worker has started it.</summary>
+        internal void Join() {
+            if (Interlocked.CompareExchange(ref _state, Running, Queued) == Queued) {
+                RunGuarded();
+                return;
+            }
+            if (Volatile.Read(ref _state) == Completed) return;
+            _completed ??= new ManualResetEventSlim(false);
+            if (Interlocked.CompareExchange(ref _state, RunningWithWaiter, Running) == Running) _completed.Wait();
         }
-        _pending = end;
-        Drain();
-    }
 
-    private static long StoredBits(int length, int bitCount) {
-        int blocks = Math.Max(1, (length + StoredBlockLimit - 1) / StoredBlockLimit);
-        // The first header is padded from the current bit position; later headers start on a byte boundary.
-        int firstPadding = (8 - ((bitCount + 3) & 7)) & 7;
-        return 8L * length + blocks * (3L + 32) + firstPadding + (blocks - 1) * 5L;
-    }
+        /// <summary>Drops a region nobody started, or waits for the worker that did.</summary>
+        internal void Cancel() {
+            if (Interlocked.CompareExchange(ref _state, Completed, Queued) != Queued) Join();
+        }
 
-    private void WriteStored(int start, int end, bool final) {
-        int position = start;
-        do {
-            int length = Math.Min(StoredBlockLimit, end - position);
-            bool last = position + length == end;
-            PutBits(final && last ? 1UL : 0UL, 3); // BTYPE 00
-            // Pad to a byte boundary and move every whole byte into the output.
+        internal void ThrowIfFailed() => _failure?.Throw();
+
+        internal void RunIfQueued() {
+            if (Interlocked.CompareExchange(ref _state, Running, Queued) == Queued) RunGuarded();
+        }
+
+        private void RunGuarded() {
+            try {
+                Encode();
+            } catch (Exception exception) {
+                _failure = ExceptionDispatchInfo.Capture(exception);
+            }
+            if (Interlocked.Exchange(ref _state, Completed) == RunningWithWaiter) _completed!.Set();
+        }
+
+        internal void WriteTo(Stream destination) {
+            if (_outputCount != 0) destination.Write(_output, 0, _outputCount);
+        }
+
+        internal void Clear() {
+            Reset();
+            Array.Clear(_buffer, 0, _used);
+            Array.Clear(_output, 0, _outputUsed);
+            _used = 0;
+            _outputUsed = 0;
+        }
+
+        /// <summary>Readies the region for more input of the same part.</summary>
+        internal void Reset() {
+            _used = Math.Max(_used, End);
+            _outputUsed = Math.Max(_outputUsed, _outputCount);
+            _completed?.Reset();
+            _state = Idle;
+            _failure = null;
+            _outputCount = 0;
+            _bits = 0;
+            _bitCount = 0;
+            Start = 0;
+            End = 0;
+            Final = false;
+        }
+
+        internal void Encode() {
+            int start = Start, end = End;
+            _crc = OfficePngCrc32.Complete(OfficePngCrc32.Append(OfficePngCrc32.Begin(), _buffer, start, end - start));
+            _outputCount = 0;
+            _bits = 0;
+            _bitCount = 0;
+            uint origin = PrimeHistory(start, end);
+            PutBits(Final ? 0b011UL : 0b010UL, 3); // BFINAL, then BTYPE 01 (fixed codes) least-significant bit first
+            EncodeSymbols(start, end, origin);
+            PutBits(0, 7); // end of block: symbol 256 has the 7-bit fixed code 0000000
+            // A non-final region also spends an empty stored block (3 bits, padding, 4 bytes) to end on a byte boundary.
+            long fixedBits = (long)_outputCount * 8 + _bitCount + (Final ? 0 : 3 + 7 + 32);
+            if (fixedBits > StoredBits(end - start)) {
+                _outputCount = 0;
+                _bits = 0;
+                _bitCount = 0;
+                WriteStored(start, end, Final);
+                return;
+            }
+            if (!Final) {
+                PutBits(0, 3); // BFINAL 0, BTYPE 00
+                FlushBits();
+                BinaryPrimitives.WriteUInt32LittleEndian(_output.AsSpan(_outputCount), 0xFFFF_0000U); // LEN 0, NLEN 0xFFFF
+                _outputCount += 4;
+            } else {
+                FlushBits();
+            }
+        }
+
+        /// <summary>Starts the match table from the history, so matches can reach into the previous region.</summary>
+        /// <remarks>
+        /// The table stores <see cref="_origin"/> plus the buffer index. Each encoding takes a new origin above every
+        /// value already stored, so entries left by earlier regions fail the distance check without clearing the table,
+        /// and the output depends only on the region's own bytes.
+        /// </remarks>
+        /// <returns>The origin of this encoding.</returns>
+        private uint PrimeHistory(int start, int end) {
+            if (_origin > uint.MaxValue - 2U * BufferLength) {
+                Array.Clear(_heads, 0, _heads.Length);
+                _origin = 1;
+            }
+            uint origin = _origin;
+            _origin = origin + (uint)end;
+            ref byte data = ref ArrayStart(_buffer);
+            ref uint heads = ref ArrayStart(_heads);
+            for (int index = 0; index + MinimumMatch <= start; index++) {
+                uint prefix = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref data, index));
+                Unsafe.Add(ref heads, (int)((prefix * 0x9E37_79B1U) >> (32 - HashBits))) = origin + (uint)index;
+            }
+            return origin;
+        }
+
+        private static long StoredBits(int length) {
+            int blocks = Math.Max(1, (length + StoredBlockLimit - 1) / StoredBlockLimit);
+            // Each block spends a 3-bit header padded to a byte, then LEN and NLEN.
+            return 8L * length + blocks * (8L + 32);
+        }
+
+        private void WriteStored(int start, int end, bool final) {
+            int position = start;
+            do {
+                int length = Math.Min(StoredBlockLimit, end - position);
+                bool last = position + length == end;
+                PutBits(final && last ? 1UL : 0UL, 3); // BTYPE 00
+                FlushBits();
+                BinaryPrimitives.WriteUInt16LittleEndian(_output.AsSpan(_outputCount), (ushort)length);
+                BinaryPrimitives.WriteUInt16LittleEndian(_output.AsSpan(_outputCount + 2), (ushort)~length);
+                _outputCount += 4;
+                System.Buffer.BlockCopy(_buffer, position, _output, _outputCount, length);
+                _outputCount += length;
+                position += length;
+            } while (position < end);
+        }
+
+        /// <summary>Pads to a byte boundary and moves every pending bit into the output.</summary>
+        private void FlushBits() {
             _bitCount = (_bitCount + 7) & ~7;
             while (_bitCount > 0) {
                 _output[_outputCount++] = (byte)_bits;
@@ -164,157 +397,144 @@ internal sealed class ExcelDeflateEncoder : IDisposable {
                 _bitCount -= 8;
             }
             _bits = 0;
-            BinaryPrimitives.WriteUInt16LittleEndian(_output.AsSpan(_outputCount), (ushort)length);
-            BinaryPrimitives.WriteUInt16LittleEndian(_output.AsSpan(_outputCount + 2), (ushort)~length);
-            _outputCount += 4;
-            Buffer.BlockCopy(_buffer, position, _output, _outputCount, length);
-            _outputCount += length;
-            position += length;
-        } while (position < end);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void PutBits(ulong value, int count) {
-        _bits |= value << _bitCount;
-        _bitCount += count;
-        if (_bitCount >= 32) {
-            BinaryPrimitives.WriteUInt32LittleEndian(_output.AsSpan(_outputCount), (uint)_bits);
-            _outputCount += 4;
-            _bits >>= 32;
-            _bitCount -= 32;
         }
-    }
 
-    // A long-running loop per region; skip tiering so the first regions of a process also run optimized code.
-#if NET8_0_OR_GREATER
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-#endif
-    private void EncodeSymbols(int start, int end) {
-        ref byte data = ref ArrayStart(_buffer);
-        ref uint heads = ref ArrayStart(_heads);
-        ref uint literals = ref ArrayStart(FixedCodes.Literals);
-        ref uint lengths = ref ArrayStart(FixedCodes.Lengths);
-        ref uint nearDistances = ref ArrayStart(FixedCodes.NearDistances);
-        ref byte farSymbols = ref ArrayStart(FixedCodes.FarDistanceSymbols);
-        ref uint symbolCodes = ref ArrayStart(FixedCodes.DistanceSymbolCodes);
-        ref int symbolBases = ref ArrayStart(FixedCodes.DistanceBases);
-        byte[] output = _output;
-        if (output.Length < OutputLength || end > _buffer.Length || (long)(end - start) * 9 / 8 + _outputCount + 64 > output.Length)
-            throw new InvalidOperationException("The deflate buffers are invalid.");
-        ref byte outputStart = ref ArrayStart(output);
-        ulong bits = _bits;
-        int bitCount = _bitCount;
-        int written = _outputCount;
-        uint origin = _bufferOrigin;
-        int index = start;
-        int lastMatchStart = end - MinimumMatch;
-        while (index <= lastMatchStart) {
-            uint prefix = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref data, index));
-            ref uint head = ref Unsafe.Add(ref heads, (int)((prefix * 0x9E37_79B1U) >> (32 - HashBits)));
-            uint here = origin + (uint)index;
-            uint distance = here - head;
-            head = here;
-            ulong code;
-            int codeBits;
-            if (distance - 1 < HistoryLength && distance <= (uint)index
-                && Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref data, index - (int)distance)) == prefix) {
-                int length = ExtendMatch(ref data, index - (int)distance, index, Math.Min(MaximumMatch, end - index));
-                uint lengthCode = Unsafe.Add(ref lengths, length);
-                int offset = (int)distance - 1;
-                uint distanceCode;
-                if (offset < 256) {
-                    distanceCode = Unsafe.Add(ref nearDistances, offset);
-                } else {
-                    int symbol = Unsafe.Add(ref farSymbols, offset >> 7);
-                    distanceCode = Unsafe.Add(ref symbolCodes, symbol)
-                        + ((uint)((int)distance - Unsafe.Add(ref symbolBases, symbol)) << 5);
-                }
-                int lengthBits = (int)(lengthCode >> 24);
-                code = (lengthCode & 0xFF_FFFF) | ((ulong)(distanceCode & 0xFF_FFFF) << lengthBits);
-                codeBits = lengthBits + (int)(distanceCode >> 24);
-                index += length;
-            } else {
-                uint literal = Unsafe.Add(ref literals, Unsafe.Add(ref data, index));
-                code = literal & 0xFF_FFFF;
-                codeBits = (int)(literal >> 24);
-                index++;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void PutBits(ulong value, int count) {
+            _bits |= value << _bitCount;
+            _bitCount += count;
+            if (_bitCount >= 32) {
+                BinaryPrimitives.WriteUInt32LittleEndian(_output.AsSpan(_outputCount), (uint)_bits);
+                _outputCount += 4;
+                _bits >>= 32;
+                _bitCount -= 32;
             }
-            // Store eight bytes and keep fewer than eight bits pending: at most 7 + 31 bits are ever live.
-            bits |= code << bitCount;
-            bitCount += codeBits;
-            Unsafe.WriteUnaligned(ref Unsafe.Add(ref outputStart, written), bits);
-            written += bitCount >> 3;
-            bits >>= bitCount & ~7;
-            bitCount &= 7;
         }
-        for (; index < end; index++) {
-            uint literal = Unsafe.Add(ref literals, Unsafe.Add(ref data, index));
-            bits |= (ulong)(literal & 0xFF_FFFF) << bitCount;
-            bitCount += (int)(literal >> 24);
-            Unsafe.WriteUnaligned(ref Unsafe.Add(ref outputStart, written), bits);
-            written += bitCount >> 3;
-            bits >>= bitCount & ~7;
-            bitCount &= 7;
-        }
-        _bits = bits;
-        _bitCount = bitCount;
-        _outputCount = written;
-    }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int ExtendMatch(ref byte data, int earlier, int current, int limit) {
-        int length = MinimumMatch;
-        while (length + sizeof(ulong) <= limit) {
-            ulong difference = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref data, earlier + length))
-                ^ Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref data, current + length));
-            if (difference != 0) return length + TrailingZeroBytes(difference);
-            length += sizeof(ulong);
-        }
-        while (length < limit && Unsafe.Add(ref data, earlier + length) == Unsafe.Add(ref data, current + length)) length++;
-        return length;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ref T ArrayStart<T>(T[] array) {
+        // A long-running loop per region; skip tiering so the first regions of a process also run optimized code.
 #if NET8_0_OR_GREATER
-        return ref MemoryMarshal.GetArrayDataReference(array);
-#else
-        // Every encoder table and buffer is non-empty.
-        return ref array[0];
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
 #endif
-    }
+        private void EncodeSymbols(int start, int end, uint origin) {
+            ref byte data = ref ArrayStart(_buffer);
+            ref uint heads = ref ArrayStart(_heads);
+            ref uint literals = ref ArrayStart(FixedCodes.Literals);
+            ref uint lengths = ref ArrayStart(FixedCodes.Lengths);
+            ref uint nearDistances = ref ArrayStart(FixedCodes.NearDistances);
+            ref byte farSymbols = ref ArrayStart(FixedCodes.FarDistanceSymbols);
+            ref uint symbolCodes = ref ArrayStart(FixedCodes.DistanceSymbolCodes);
+            ref int symbolBases = ref ArrayStart(FixedCodes.DistanceBases);
+            byte[] output = _output;
+            if (output.Length < OutputLength || end > _buffer.Length || (long)(end - start) * 9 / 8 + _outputCount + 64 > output.Length)
+                throw new InvalidOperationException("The deflate buffers are invalid.");
+            ref byte outputStart = ref ArrayStart(output);
+            ulong bits = _bits;
+            int bitCount = _bitCount;
+            int written = _outputCount;
+            int index = start;
+            int lastMatchStart = end - MinimumMatch;
+            while (index <= lastMatchStart) {
+                uint prefix = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref data, index));
+                ref uint head = ref Unsafe.Add(ref heads, (int)((prefix * 0x9E37_79B1U) >> (32 - HashBits)));
+                uint here = origin + (uint)index;
+                uint distance = here - head;
+                head = here;
+                ulong code;
+                int codeBits;
+                if (distance - 1 < HistoryLength && distance <= (uint)index
+                    && Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref data, index - (int)distance)) == prefix) {
+                    int length = ExtendMatch(ref data, index - (int)distance, index, Math.Min(MaximumMatch, end - index));
+                    uint lengthCode = Unsafe.Add(ref lengths, length);
+                    int offset = (int)distance - 1;
+                    uint distanceCode;
+                    if (offset < 256) {
+                        distanceCode = Unsafe.Add(ref nearDistances, offset);
+                    } else {
+                        int symbol = Unsafe.Add(ref farSymbols, offset >> 7);
+                        distanceCode = Unsafe.Add(ref symbolCodes, symbol)
+                            + ((uint)((int)distance - Unsafe.Add(ref symbolBases, symbol)) << 5);
+                    }
+                    int lengthBits = (int)(lengthCode >> 24);
+                    code = (lengthCode & 0xFF_FFFF) | ((ulong)(distanceCode & 0xFF_FFFF) << lengthBits);
+                    codeBits = lengthBits + (int)(distanceCode >> 24);
+                    index += length;
+                } else {
+                    uint literal = Unsafe.Add(ref literals, Unsafe.Add(ref data, index));
+                    code = literal & 0xFF_FFFF;
+                    codeBits = (int)(literal >> 24);
+                    index++;
+                }
+                // Store eight bytes and keep fewer than eight bits pending: at most 7 + 31 bits are ever live.
+                bits |= code << bitCount;
+                bitCount += codeBits;
+                Unsafe.WriteUnaligned(ref Unsafe.Add(ref outputStart, written), bits);
+                written += bitCount >> 3;
+                bits >>= bitCount & ~7;
+                bitCount &= 7;
+            }
+            for (; index < end; index++) {
+                uint literal = Unsafe.Add(ref literals, Unsafe.Add(ref data, index));
+                bits |= (ulong)(literal & 0xFF_FFFF) << bitCount;
+                bitCount += (int)(literal >> 24);
+                Unsafe.WriteUnaligned(ref Unsafe.Add(ref outputStart, written), bits);
+                written += bitCount >> 3;
+                bits >>= bitCount & ~7;
+                bitCount &= 7;
+            }
+            _bits = bits;
+            _bitCount = bitCount;
+            _outputCount = written;
+        }
 
-    /// <summary>The number of equal low-order bytes before the first difference; <paramref name="difference"/> is not zero.</summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int TrailingZeroBytes(ulong difference) {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int ExtendMatch(ref byte data, int earlier, int current, int limit) {
+            int length = MinimumMatch;
+            while (length + sizeof(ulong) <= limit) {
+                ulong difference = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref data, earlier + length))
+                    ^ Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref data, current + length));
+                if (difference != 0) return length + TrailingZeroBytes(difference);
+                length += sizeof(ulong);
+            }
+            while (length < limit && Unsafe.Add(ref data, earlier + length) == Unsafe.Add(ref data, current + length)) length++;
+            return length;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static ref T ArrayStart<T>(T[] array) {
 #if NET8_0_OR_GREATER
-        return BitOperations.TrailingZeroCount(difference) / 8;
+            return ref MemoryMarshal.GetArrayDataReference(array);
 #else
-        int bytes = 0;
-        if ((uint)difference == 0) { bytes = 4; difference >>= 32; }
-        if ((ushort)difference == 0) { bytes += 2; difference >>= 16; }
-        if ((byte)difference == 0) bytes++;
-        return bytes;
+            // Every encoder table and buffer is non-empty.
+            return ref array[0];
 #endif
+        }
+
+        /// <summary>The number of equal low-order bytes before the first difference; <paramref name="difference"/> is not zero.</summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int TrailingZeroBytes(ulong difference) {
+#if NET8_0_OR_GREATER
+            return BitOperations.TrailingZeroCount(difference) / 8;
+#else
+            int bytes = 0;
+            if ((uint)difference == 0) { bytes = 4; difference >>= 32; }
+            if ((ushort)difference == 0) { bytes += 2; difference >>= 16; }
+            if ((byte)difference == 0) bytes++;
+            return bytes;
+#endif
+        }
     }
 
-    /// <summary>Encoder buffers; a cached set is always fully cleared.</summary>
-    private sealed class Workspace(byte[] buffer, byte[] output, uint[] heads) {
-        internal Workspace() : this(new byte[BufferLength], new byte[OutputLength], new uint[1 << HashBits]) { }
-        internal byte[] Buffer { get; } = buffer;
-        internal byte[] Output { get; } = output;
-        internal uint[] Heads { get; } = heads;
-    }
+    private sealed class WeakRegion(Region region) {
+        private readonly WeakReference<byte[]> _buffer = new(region.Buffer);
+        private readonly WeakReference<byte[]> _output = new(region.Output);
+        private readonly WeakReference<uint[]> _heads = new(region.Heads);
+        // The match table still holds the old region's positions, so the next origin carries over with it.
+        private readonly uint _origin = region.Origin;
 
-    private sealed class WeakWorkspace(Workspace workspace) {
-        private readonly WeakReference<byte[]> _buffer = new(workspace.Buffer);
-        private readonly WeakReference<byte[]> _output = new(workspace.Output);
-        private readonly WeakReference<uint[]> _heads = new(workspace.Heads);
-
-        /// <returns>The arrays as a workspace, or null when a collection has reclaimed any of them.</returns>
-        internal Workspace? TryGetWorkspace() =>
+        /// <returns>The arrays as a region, or null when a collection has reclaimed any of them.</returns>
+        internal Region? TryGetRegion() =>
             _buffer.TryGetTarget(out byte[]? buffer) && _output.TryGetTarget(out byte[]? output) && _heads.TryGetTarget(out uint[]? heads)
-                ? new Workspace(buffer, output, heads)
+                ? new Region(buffer, output, heads) { Origin = _origin }
                 : null;
     }
 

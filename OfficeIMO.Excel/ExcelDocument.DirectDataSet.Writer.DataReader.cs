@@ -52,7 +52,7 @@ namespace OfficeIMO.Excel {
                 DirectColumnWritePlan columnWritePlan,
                 ExcelTabularStylePlan? declaredStyles,
                 CancellationToken ct) {
-                using var stream = archive.OpenEntry("xl/worksheets/sheet1.xml", CompressionLevel.Fastest);
+                using var stream = archive.OpenEntry("xl/worksheets/sheet1.xml", CompressionLevel.Fastest, background: true);
                 using var writer = new PooledUtf8TextWriter(stream, Utf8NoBom, XmlWriterBufferSize, leaveOpen: true);
 
                 writer.Write("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
