@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "id": "openxml-sdk",
+      "name": "Open XML SDK test assets",
+      "repository": "https://github.com/dotnet/Open-XML-SDK.git",
+      "commit": "431ab05cf160248cc3885a4a766026d4f8243792",
+      "paths": [ "test/DocumentFormat.OpenXml.Tests.Assets/assets" ],
+      "extensions": [ ".docx", ".docm", ".dotx", ".dotm", ".xlsx", ".xlsm", ".xltx", ".xltm", ".xlam", ".pptx", ".pptm", ".potx", ".potm", ".ppsx", ".ppsm", ".ppam" ],
+      "license": "MIT",
+      "licenseUrl": "https://github.com/dotnet/Open-XML-SDK/blob/431ab05cf160248cc3885a4a766026d4f8243792/LICENSE",
+      "fileCount": 887,
+      "contentSha256": "93921b4cd9af97abe12dd62c1bc54becc2c05c06ebd2b5b9e2d0379196e8ebdf"
+    },
+    {
+      "id": "apache-poi",
+      "name": "Apache POI test data",
+      "repository": "https://github.com/apache/poi.git",
+      "commit": "87ae84df267d7cac62b1d87c44f7f90cae855df9",
+      "paths": [ "test-data" ],
+      "extensions": [ ".docx", ".docm", ".dotx", ".dotm", ".xlsx", ".xlsm", ".xltx", ".xltm", ".xlam", ".pptx", ".pptm", ".potx", ".potm", ".ppsx", ".ppsm", ".ppam" ],
+      "license": "Apache-2.0",
+      "licenseUrl": "https://github.com/apache/poi/blob/87ae84df267d7cac62b1d87c44f7f90cae855df9/legal/LICENSE",
+      "fileCount": 685,
+      "contentSha256": "bbbb3004524d9bedfbb2136d353cb148bf04ff6b0e4bdb3625213f12ce62bc47"
+    },
+    {
+      "id": "closedxml",
+      "name": "ClosedXML test resources",
+      "repository": "https://github.com/ClosedXML/ClosedXML.git",
+      "commit": "057f5976c788d97e8eac86d1a528bd5411d9386e",
+      "paths": [ "ClosedXML.Tests/Resource" ],
+      "extensions": [ ".docx", ".docm", ".dotx", ".dotm", ".xlsx", ".xlsm", ".xltx", ".xltm", ".xlam", ".pptx", ".pptm", ".potx", ".potm", ".ppsx", ".ppsm", ".ppam" ],
+      "license": "MIT",
+      "licenseUrl": "https://github.com/ClosedXML/ClosedXML/blob/057f5976c788d97e8eac86d1a528bd5411d9386e/LICENSE",
+      "fileCount": 384,
+      "contentSha256": "3eba08fd37d5062a8687040e39e4dccca61b33dcb41f9728b7245957306af397"
+    }
+  ]
+}

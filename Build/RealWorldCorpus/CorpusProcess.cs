@@ -12,8 +12,15 @@ internal static class CorpusProcess {
         long maxFileBytes,
         string? expectedSha256,
         TimeSpan timeout,
-        CancellationToken cancellationToken) {
-        ProcessStartInfo startInfo = CreateStartInfo(command, stage, inputPath, maxFileBytes, expectedSha256);
+        CancellationToken cancellationToken,
+        IReadOnlyList<string>? extraArguments = null,
+        int? heapLimitMegabytes = null) {
+        ProcessStartInfo startInfo = CreateStartInfo(command, stage, inputPath, maxFileBytes, expectedSha256, extraArguments);
+        // A worker over its heap limit fails with OutOfMemoryException instead of exhausting the machine the other
+        // workers and the coordinator share.
+        if (heapLimitMegabytes is int limit) {
+            startInfo.Environment["DOTNET_GCHeapHardLimit"] = ((long)limit * 1024L * 1024L).ToString("X", System.Globalization.CultureInfo.InvariantCulture);
+        }
         using var process = new Process { StartInfo = startInfo };
         var stopwatch = Stopwatch.StartNew();
         if (!process.Start()) throw new InvalidOperationException("Unable to start the corpus worker process.");
@@ -39,7 +46,12 @@ internal static class CorpusProcess {
             await IgnoreFailure(stdout).ConfigureAwait(false);
             await IgnoreFailure(stderr).ConfigureAwait(false);
             stopwatch.Stop();
-            return CorpusProcessResult.TimedOut(stopwatch.ElapsedMilliseconds);
+            string? lane = stderr.IsCompletedSuccessfully
+                ? stderr.Result.Split('\n').Select(line => line.Trim())
+                    .LastOrDefault(line => line.StartsWith(OpenXmlDifferentialProbe.LaneStartPrefix, StringComparison.Ordinal))?
+                    .Substring(OpenXmlDifferentialProbe.LaneStartPrefix.Length)
+                : null;
+            return CorpusProcessResult.TimedOut(stopwatch.ElapsedMilliseconds, lane);
         } catch {
             TryKill(process);
             throw;
@@ -47,7 +59,7 @@ internal static class CorpusProcess {
     }
 
     private static ProcessStartInfo CreateStartInfo(string command, string stage, string inputPath,
-        long maxFileBytes, string? expectedSha256) {
+        long maxFileBytes, string? expectedSha256, IReadOnlyList<string>? extraArguments) {
         string assemblyPath = Assembly.GetExecutingAssembly().Location;
         string processPath = Environment.ProcessPath ?? throw new InvalidOperationException("Current process path is unavailable.");
         bool hostedByDotNet = string.Equals(Path.GetFileNameWithoutExtension(processPath), "dotnet", StringComparison.OrdinalIgnoreCase);
@@ -70,6 +82,9 @@ internal static class CorpusProcess {
             startInfo.ArgumentList.Add("--expected-sha256");
             startInfo.ArgumentList.Add(expectedSha256);
         }
+        if (extraArguments != null) {
+            foreach (string argument in extraArguments) startInfo.ArgumentList.Add(argument);
+        }
         return startInfo;
     }
 
@@ -91,6 +106,7 @@ internal sealed class CorpusProcessResult {
     public long DurationMilliseconds { get; private set; }
     public CorpusWorkerResult? Worker { get; private set; }
     public string? FailureCode { get; private set; }
+    public string? TimedOutStage { get; private set; }
 
     public static CorpusProcessResult Completed(long durationMilliseconds, CorpusWorkerResult worker) => new() {
         DurationMilliseconds = durationMilliseconds,
@@ -102,8 +118,9 @@ internal sealed class CorpusProcessResult {
         FailureCode = failureCode
     };
 
-    public static CorpusProcessResult TimedOut(long durationMilliseconds) => new() {
+    public static CorpusProcessResult TimedOut(long durationMilliseconds, string? stage = null) => new() {
         IsTimedOut = true,
-        DurationMilliseconds = durationMilliseconds
+        DurationMilliseconds = durationMilliseconds,
+        TimedOutStage = stage
     };
 }

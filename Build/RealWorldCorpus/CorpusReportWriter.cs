@@ -78,18 +78,19 @@ internal static class CorpusReportWriter {
             .Append(" | ").Append(report.Totals.ClassificationFailed).Append(" | ").Append(report.Totals.ClassificationTimedOut)
             .Append(" | ").Append(report.Totals.DuplicateContent).Append(" | ").Append(report.Totals.EligibleUnique)
             .Append(" | ").Append(report.Totals.Selected).AppendLine(" |");
+        if (report.Configuration.WorkerHeapLimitMegabytes is int heapLimit) {
+            text.AppendLine().Append("Each worker process had a ").Append(heapLimit).AppendLine(" MiB heap limit; a file over it fails with `System.OutOfMemoryException`.");
+        }
+        if (report.Totals.SkippedDeadline > 0) {
+            text.AppendLine().Append("The run deadline of ").Append(report.Configuration.DeadlineSeconds).Append(" seconds stopped new work before ")
+                .Append(report.Totals.SkippedDeadline).AppendLine(" files were classified or measured; they are counted as `skipped-deadline`.");
+        }
 
-        text.AppendLine().AppendLine("## PDF quality depth").AppendLine();
-        text.AppendLine("Selected PDF files additionally exercise the canonical PDF inspection, semantic recovery, font, image, managed first-page render, mutation-planning, and declared-compliance claim gates in the same isolated worker.").AppendLine();
-        text.AppendLine("| Selected PDFs | Deep stages passed | Deep stages | Rendered pages | Mutation plans | Declared claims | Claimable claims | ");
-        text.AppendLine("| ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
-        text.Append("| ").Append(report.Totals.PdfSelected)
-            .Append(" | ").Append(report.Totals.PdfDeepStagesPassed)
-            .Append(" | ").Append(report.Totals.PdfDeepStages)
-            .Append(" | ").Append(report.Totals.PdfRenderedPages)
-            .Append(" | ").Append(report.Totals.PdfMutationPlans)
-            .Append(" | ").Append(report.Totals.PdfDeclaredComplianceClaims)
-            .Append(" | ").Append(report.Totals.PdfClaimableComplianceClaims).AppendLine(" |");
+        if (report.OpenXmlLanes != null) {
+            RenderOpenXmlDifferential(text, report);
+        } else {
+            RenderPdfDepth(text, report);
+        }
 
         CorpusFileRecord[] observations = report.Files.Where(file => file.Selected &&
             (file.Outcome != CorpusOutcomes.Completed || file.PdfEvidence?.AllStagesSucceeded == false)).ToArray();
@@ -103,7 +104,9 @@ internal static class CorpusReportWriter {
                 string pdfFailures = file.PdfEvidence is null
                     ? string.Empty
                     : string.Join(", ", file.PdfEvidence.Stages.Where(static stage => !stage.Succeeded).Select(static stage => "pdf." + stage.Name));
-                string diagnostics = string.Join(", ", file.DiagnosticCodes.Concat(string.IsNullOrEmpty(pdfFailures) ? Array.Empty<string>() : new[] { pdfFailures }));
+                string diagnostics = string.Join(", ", file.DiagnosticCodes
+                    .Concat(string.IsNullOrEmpty(pdfFailures) ? Array.Empty<string>() : new[] { pdfFailures })
+                    .Concat(file.Outcome == CorpusOutcomes.TimedOut && file.FailureStage != null ? new[] { "stopped in " + file.FailureStage } : Array.Empty<string>()));
                 text.Append("| `").Append(ShortHash(file.Sha256)).Append("` | ").Append(E(file.SourceName ?? "withheld"))
                     .Append(" | ").Append(file.ContentKind).Append(" | ").Append(E(file.Outcome))
                     .Append(" | ").Append(E(diagnostics))
@@ -125,6 +128,118 @@ internal static class CorpusReportWriter {
                         "The managed first-page render is an operational probe and does not assess visual fidelity. The lane also does not prove editing round trips, semantic preservation of every feature, safety of opening files in another application, or support for unmeasured files. " +
                         "Actionable findings should be minimized into provenance-tracked fixtures and moved to the owning format test suite.");
         return text.ToString().Replace("\r\n", "\n");
+    }
+
+    private static void RenderPdfDepth(StringBuilder text, CorpusReport report) {
+        text.AppendLine().AppendLine("## PDF quality depth").AppendLine();
+        text.AppendLine("Selected PDF files additionally exercise the canonical PDF inspection, semantic recovery, font, image, managed first-page render, mutation-planning, and declared-compliance claim gates in the same isolated worker.").AppendLine();
+        text.AppendLine("| Selected PDFs | Deep stages passed | Deep stages | Rendered pages | Mutation plans | Declared claims | Claimable claims | ");
+        text.AppendLine("| ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
+        text.Append("| ").Append(report.Totals.PdfSelected)
+            .Append(" | ").Append(report.Totals.PdfDeepStagesPassed)
+            .Append(" | ").Append(report.Totals.PdfDeepStages)
+            .Append(" | ").Append(report.Totals.PdfRenderedPages)
+            .Append(" | ").Append(report.Totals.PdfMutationPlans)
+            .Append(" | ").Append(report.Totals.PdfDeclaredComplianceClaims)
+            .Append(" | ").Append(report.Totals.PdfClaimableComplianceClaims).AppendLine(" |");
+    }
+
+    private const int MaxDifferenceRows = 300;
+
+    private static void RenderOpenXmlDifferential(StringBuilder text, CorpusReport report) {
+        text.AppendLine().AppendLine("## Open XML differential").AppendLine();
+        text.AppendLine("Each selected package is read by OfficeIMO's own Open XML layer and by the Open XML SDK, which is the reference. " +
+                        "`package` compares parts, content types and relationships with System.IO.Packaging; the paragraph lanes compare " +
+                        "each paragraph's text with the SDK's `InnerText`; the projection lanes compare the Reader's text projection with its " +
+                        "SDK-backed model projection. The match rate counts files the SDK read: `sdk-error` and `both-reject` are listed but not in its denominator. " +
+                        "`unavailable` means this checkout does not have that owned path.").AppendLine();
+        if (report.Provenance.Sources is { Count: > 0 } sources) {
+            text.AppendLine("| Source | Commit | License | Files | Content SHA-256 | Verified |");
+            text.AppendLine("| --- | --- | --- | ---: | --- | --- |");
+            foreach (CorpusSourceProvenance source in sources) {
+                text.Append("| ").Append(E(source.Name)).Append(" | `").Append(E(source.Commit)).Append("` | ").Append(E(source.License))
+                    .Append(" | ").Append(source.FileCount).Append(" | `").Append(E(source.ContentSha256)).Append("` | ")
+                    .Append(source.Verified ? "yes" : "no").AppendLine(" |");
+            }
+            text.AppendLine();
+        }
+        text.AppendLine("| Lane | Files | Match | Mismatch | Our error | SDK error | Both reject | Unavailable | Match rate |");
+        text.AppendLine("| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
+        foreach (CorpusOpenXmlLaneSummary lane in report.OpenXmlLanes!) {
+            text.Append("| ").Append(lane.Lane).Append(" | ").Append(lane.Files).Append(" | ").Append(lane.Match)
+                .Append(" | ").Append(lane.Mismatch).Append(" | ").Append(lane.OurError).Append(" | ").Append(lane.SdkError)
+                .Append(" | ").Append(lane.BothReject).Append(" | ").Append(lane.Unavailable).Append(" | ")
+                .Append(lane.MatchRate is double rate ? (rate * 100).ToString("0.0", CultureInfo.InvariantCulture) + "%" : "n/a")
+                .AppendLine(" |");
+        }
+
+        var classes = report.OpenXmlLanes!.SelectMany(lane => lane.MismatchClasses.Select(item => (Lane: lane.Lane, Class: item.Key, Files: item.Value)))
+            .Concat(report.OpenXmlLanes!.SelectMany(lane => lane.OurExceptions.Select(item => (Lane: lane.Lane, Class: "our-error " + item.Key, Files: item.Value))))
+            .OrderByDescending(item => item.Files).ThenBy(item => item.Lane, StringComparer.Ordinal).ThenBy(item => item.Class, StringComparer.Ordinal)
+            .ToArray();
+        text.AppendLine().AppendLine("### Difference classes").AppendLine();
+        if (classes.Length == 0) {
+            text.AppendLine("No lane produced a mismatch or an error on OfficeIMO's side.");
+        } else {
+            text.AppendLine("| Lane | Class | Files |");
+            text.AppendLine("| --- | --- | ---: |");
+            foreach ((string lane, string name, int count) in classes) {
+                text.Append("| ").Append(lane).Append(" | ").Append(E(name)).Append(" | ").Append(count).AppendLine(" |");
+            }
+        }
+
+        foreach (CorpusOpenXmlLaneSummary lane in report.OpenXmlLanes!.Where(lane => lane.Streamed != null)) {
+            text.AppendLine().Append("### Streamed coverage: ").AppendLine(lane.Lane).AppendLine();
+            text.Append("The streamed pass read ").Append(lane.Streamed).Append(" of ").Append(lane.Files)
+                .AppendLine(" files itself; the others fell back to the model.").AppendLine();
+            if (lane.StreamedDeclineReasons.Count > 0) {
+                text.AppendLine("| Decline reason | Files |");
+                text.AppendLine("| --- | ---: |");
+                foreach ((string reason, int count) in lane.StreamedDeclineReasons) {
+                    text.Append("| ").Append(E(reason)).Append(" | ").Append(count).AppendLine(" |");
+                }
+            }
+        }
+
+        var rows = report.Files.Where(file => file.OpenXmlEvidence != null)
+            .SelectMany(file => file.OpenXmlEvidence!.Lanes
+                .Where(lane => lane.Outcome is CorpusOpenXmlOutcomes.Mismatch or CorpusOpenXmlOutcomes.OurError)
+                .Select(lane => (File: file, Lane: lane)))
+            .ToArray();
+        text.AppendLine().AppendLine("### Files with differences").AppendLine();
+        if (rows.Length == 0) {
+            text.AppendLine("None.").AppendLine();
+            return;
+        }
+        text.AppendLine("| Source | Lane | Outcome | First difference |");
+        text.AppendLine("| --- | --- | --- | --- |");
+        foreach ((CorpusFileRecord file, CorpusOpenXmlLane lane) in rows.Take(MaxDifferenceRows)) {
+            text.Append("| ").Append(E(file.SourceName ?? ShortHash(file.Sha256))).Append(" | ").Append(lane.Name)
+                .Append(" | ").Append(lane.Outcome).Append(" | ").Append(E(DescribeDifference(lane))).AppendLine(" |");
+        }
+        if (rows.Length > MaxDifferenceRows) {
+            text.AppendLine().Append("The JSON report lists the other ").Append(rows.Length - MaxDifferenceRows).AppendLine(" rows.");
+        }
+        text.AppendLine();
+    }
+
+    private static string DescribeDifference(CorpusOpenXmlLane lane) {
+        if (lane.Outcome == CorpusOpenXmlOutcomes.OurError) {
+            return (lane.OurException ?? "unknown") + (lane.OurExceptionMessage == null ? string.Empty : ": " + lane.OurExceptionMessage);
+        }
+        CorpusOpenXmlDifference? first = lane.Differences.FirstOrDefault();
+        if (first == null) return string.Join(", ", lane.Classes);
+        var description = new StringBuilder(first.Class);
+        if (first.Subject != null) description.Append(' ').Append(first.Subject);
+        if (first.Index != null) description.Append(" at line ").Append(first.Index);
+        if (first.Offset != null) description.Append(", column ").Append(first.Offset);
+        if (first.Expected != null || first.Actual != null) {
+            description.Append(": SDK '").Append(first.Expected ?? "(none)").Append("', OfficeIMO '").Append(first.Actual ?? "(none)").Append('\'');
+        } else if (first.ExpectedLength != null) {
+            description.Append(": SDK ").Append(first.ExpectedLength).Append(", OfficeIMO ").Append(first.ActualLength);
+        }
+        if (lane.DifferenceCount > 1) description.Append(" (").Append(lane.DifferenceCount).Append(" differences)");
+        return description.ToString();
     }
 
     private static string ShortHash(string? value) => string.IsNullOrEmpty(value) ? "unavailable" : value[..Math.Min(16, value.Length)];
