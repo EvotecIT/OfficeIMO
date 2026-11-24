@@ -153,7 +153,8 @@ namespace OfficeIMO.Word.Markdown {
 
         private IReadOnlyList<Omd.IMarkdownBlock> GetRenderableBlocks(Omd.MarkdownDocument markdown, MarkdownWordExportOptions options) {
             var (realized, catalog) = markdown.GetBlocksAndHeadingSlugs();
-            var blocks = realized ?? new List<Omd.IMarkdownBlock>();
+            // The realized blocks can be the document's own list; duplicate title removal below edits this copy.
+            var blocks = realized == null ? new List<Omd.IMarkdownBlock>() : new List<Omd.IMarkdownBlock>(realized);
             _headingCatalog = catalog;
             options.HeadingBookmarks = BuildHeadingBookmarks(blocks, catalog);
             RemoveDuplicateNativeTocTitleHeadings(blocks);

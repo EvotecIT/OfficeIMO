@@ -63,6 +63,17 @@ namespace OfficeIMO.Excel {
             Chain
         }
 
+        /// <summary>
+        /// What an atom's text is when that alone decides how operand resolution reads it: an unqualified cell
+        /// address, a quoted text literal or a plain decimal number. Every other atom is resolved from its text.
+        /// </summary>
+        private enum ScalarAtomKind {
+            Other,
+            CellReference,
+            TextLiteral,
+            Number
+        }
+
         /// <summary>One operator of a chain: a binary operator with its right operand, or <c>%</c> without one.</summary>
         private readonly struct ScalarExpressionStep {
             internal ScalarExpressionStep(string @operator, ScalarExpressionNode? right) {
@@ -94,12 +105,52 @@ namespace OfficeIMO.Excel {
             internal ScalarExpressionNodeKind Kind { get; }
             internal ScalarExpressionNode? Left { get; }
             internal string? Text { get; }
+            internal ScalarAtomKind AtomKind { get; private set; }
+            internal int Row { get; private set; }
+            internal int Column { get; private set; }
+            internal string? Literal { get; private set; }
+            internal double Number { get; private set; }
             internal string? ErrorLiteral { get; }
             internal ScalarExpressionStep[]? Steps { get; }
             internal double Factor { get; }
 
             internal static ScalarExpressionNode Level(ScalarExpressionNode inner) => new(ScalarExpressionNodeKind.Level, inner);
-            internal static ScalarExpressionNode Atom(string text) => new(ScalarExpressionNodeKind.Atom, text: text);
+            internal static ScalarExpressionNode Atom(string text) {
+                var node = new ScalarExpressionNode(ScalarExpressionNodeKind.Atom, text: text);
+                // The checks follow TryResolveFormulaArgument without scalar expressions: none of these texts is a
+                // function call, TRUE, FALSE or an error literal, so the first branch that accepts them decides.
+                if (ExcelFormulaExpressionParser.TryParseTextLiteral(text, out string literal)) {
+                    node.AtomKind = ScalarAtomKind.TextLiteral;
+                    node.Literal = literal;
+                } else if (IsPlainDecimal(text)) {
+                    // Digits are no reference, table reference or defined name, so the numeric parse reads them.
+                    if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
+                        node.AtomKind = ScalarAtomKind.Number;
+                        node.Number = number;
+                    }
+                } else if (text.IndexOf('(') < 0) {
+                    var syntax = new FormulaReferenceSyntax(text);
+                    if (syntax.Split && syntax.SheetName == null
+                        && syntax.CellRow > 0 && syntax.CellColumn > 0
+                        && syntax.CellRow <= ExcelA1.MaxRows && syntax.CellColumn <= ExcelA1.MaxColumns) {
+                        node.AtomKind = ScalarAtomKind.CellReference;
+                        node.Row = syntax.CellRow;
+                        node.Column = syntax.CellColumn;
+                    }
+                }
+                return node;
+            }
+
+            private static bool IsPlainDecimal(string text) {
+                if (text.Length == 0 || text.Length > 15) return false;
+                bool point = false;
+                for (int index = 0; index < text.Length; index++) {
+                    char ch = text[index];
+                    if (ch == '.' && !point && index > 0 && index < text.Length - 1) { point = true; continue; }
+                    if (ch < '0' || ch > '9') return false;
+                }
+                return true;
+            }
             internal static ScalarExpressionNode Error(string literal) => new(ScalarExpressionNodeKind.Atom, errorLiteral: literal);
             internal static ScalarExpressionNode Unary(ScalarExpressionNode operand, double factor) => new(ScalarExpressionNodeKind.Unary, operand, factor: factor);
             internal static ScalarExpressionNode Parentheses(ScalarExpressionNode inner) => new(ScalarExpressionNodeKind.Parentheses, inner);
@@ -212,6 +263,17 @@ namespace OfficeIMO.Excel {
                     if (node.ErrorLiteral != null) {
                         value = FormulaArgumentValue.Error(node.ErrorLiteral);
                         return true;
+                    }
+                    switch (node.AtomKind) {
+                        case ScalarAtomKind.CellReference:
+                            value = ResolveFormulaDependency(this, node.Row, node.Column);
+                            return true;
+                        case ScalarAtomKind.TextLiteral:
+                            value = new FormulaArgumentValue(null, node.Literal);
+                            return true;
+                        case ScalarAtomKind.Number:
+                            value = new FormulaArgumentValue(node.Number, node.Text);
+                            return true;
                     }
                     return TryResolveFormulaArgument(node.Text!, out value, allowScalarExpression: false);
                 case ScalarExpressionNodeKind.Unary:

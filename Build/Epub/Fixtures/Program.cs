@@ -60,6 +60,7 @@ WriteFixture("fixed-layout-escaped-id", FixedLayoutFixture.EscapedIdentifier());
 WriteFixture("fixed-layout-item-overrides", FixedLayoutFixture.Create(false, false));
 WriteFixture("fixed-layout-ltr", FixedLayoutFixture.Create(false));
 WriteFixture("fixed-layout-rtl", FixedLayoutFixture.Create(true));
+foreach (var fixture in await ManuscriptImportFixtures.CreateAsync()) WriteFixture(fixture.Key, fixture.Value);
 WriteFixture("manuscript-relationships", ManuscriptRelationshipsFixture.Create());
 WriteFixture("notes-and-pages", NotesAndPagesFixture.Create());
 WriteFixture("glossary", GlossaryFixture.Create());

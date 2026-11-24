@@ -795,33 +795,6 @@ public sealed partial class PdfReadPage {
             cancellationToken: cancellationToken);
     }
 
-    internal bool TryGetImagePixelDimensions(PdfImagePlacement placement, out int width, out int height) {
-        PdfStream? stream = placement.InlineImageStream;
-        if (stream is null && placement.ObjectNumber > 0 &&
-            _objects.TryGetValue(placement.ObjectNumber, out PdfIndirectObject? indirect)) {
-            stream = indirect.Value as PdfStream;
-        }
-        if (stream is null) {
-            PdfDictionary? resources = placement.EffectiveResources ?? ResolveDictionary(GetInheritedValue("Resources"));
-            PdfDictionary? xObjects = resources != null && resources.Items.TryGetValue("XObject", out PdfObject? xObject)
-                ? ResolveDictionary(xObject)
-                : null;
-            if (xObjects != null && xObjects.Items.TryGetValue(placement.ResourceName, out PdfObject? imageObject))
-                stream = ResolveObject(imageObject) as PdfStream;
-        }
-        width = 0;
-        height = 0;
-        if (stream?.Dictionary.Get<PdfName>("Subtype")?.Name != "Image" && placement.InlineImageStream is null)
-            return false;
-        double declaredWidth = stream?.Dictionary.Get<PdfNumber>("Width")?.Value ?? 0;
-        double declaredHeight = stream?.Dictionary.Get<PdfNumber>("Height")?.Value ?? 0;
-        if (declaredWidth <= 0 || declaredHeight <= 0 || declaredWidth > int.MaxValue || declaredHeight > int.MaxValue)
-            return false;
-        width = (int)declaredWidth;
-        height = (int)declaredHeight;
-        return width > 0 && height > 0;
-    }
-
     internal IReadOnlyList<PdfImagePlacement> GetImagePlacementsIncludingHiddenOptionalContent(int pageNumber) {
         IReadOnlyList<PdfImagePlacement> visible = GetImagePlacements(pageNumber, includeHiddenOptionalContent: false);
         IReadOnlyList<PdfImagePlacement> all = GetImagePlacements(pageNumber, includeHiddenOptionalContent: true);
@@ -1504,7 +1477,8 @@ public sealed partial class PdfReadPage {
                     renderingIntent: invocation.RenderingIntent,
                     objects: _objects,
                     markedContentId: effectiveMarkedContentId,
-                    contentStreamObjectNumber: effectiveMarkedContentStreamObjectNumber);
+                    contentStreamObjectNumber: effectiveMarkedContentStreamObjectNumber,
+                    userUnit: GetEffectiveUserUnit());
                 AddPlacement(invocationOrder == null ? placement : placement.WithContentOrderKey(invocationOrder));
                 continue;
             }
@@ -1543,7 +1517,8 @@ public sealed partial class PdfReadPage {
                     imageDictionary: imageStream!.Dictionary,
                     objects: _objects,
                     markedContentId: effectiveMarkedContentId,
-                    contentStreamObjectNumber: effectiveMarkedContentStreamObjectNumber);
+                    contentStreamObjectNumber: effectiveMarkedContentStreamObjectNumber,
+                    userUnit: GetEffectiveUserUnit());
                 AddPlacement(invocationOrder == null ? placement : placement.WithContentOrderKey(invocationOrder));
                 continue;
             }
@@ -1752,7 +1727,8 @@ public sealed partial class PdfReadPage {
         PdfDictionary? imageDictionary = null,
         Dictionary<int, PdfIndirectObject>? objects = null,
         int? markedContentId = null,
-        int? contentStreamObjectNumber = null) {
+        int? contentStreamObjectNumber = null,
+        double userUnit = 1D) {
         PdfDictionary? intentOwner = imageDictionary ?? inlineImageStream?.Dictionary;
         if (intentOwner is not null && objects is not null && PdfRenderingIntentResolver.TryRead(
                 intentOwner,
@@ -1802,7 +1778,22 @@ public sealed partial class PdfReadPage {
             hasAuthoredRenderingIntent: hasAuthoredRenderingIntent,
             renderingIntent: renderingIntent,
             markedContentId: markedContentId,
-            contentStreamObjectNumber: contentStreamObjectNumber);
+            contentStreamObjectNumber: contentStreamObjectNumber,
+            effectiveDpiX: GetEffectiveImageDpi(intentOwner, "Width", transform.A, transform.B, userUnit, objects),
+            effectiveDpiY: GetEffectiveImageDpi(intentOwner, "Height", transform.C, transform.D, userUnit, objects));
+    }
+
+    private static double? GetEffectiveImageDpi(PdfDictionary? image, string dimension, double x, double y, double userUnit,
+        Dictionary<int, PdfIndirectObject>? objects) {
+        if (image is null) return null;
+        int pixels = ResourceResolver.ReadImageInteger(image, dimension, objects);
+        if (pixels <= 0) return null;
+        double scale = Math.Max(Math.Abs(x), Math.Abs(y));
+        if (scale == 0D) return null;
+        double normalizedX = x / scale;
+        double normalizedY = y / scale;
+        double dpi = pixels * 72D / Math.Sqrt(normalizedX * normalizedX + normalizedY * normalizedY) / scale / userUnit;
+        return dpi > 0D && !double.IsInfinity(dpi) ? dpi : null;
     }
 
     private byte[]? GetMarkedContentActualTextBytes(PdfDictionary? resources, string propertyName) {

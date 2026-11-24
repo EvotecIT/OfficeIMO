@@ -46,9 +46,70 @@ internal sealed class MarkdownReaderPipeline {
     /// <summary>Default pipeline covering the syntax OfficeIMO.Markdown emits today.</summary>
     public static MarkdownReaderPipeline Default(MarkdownLoadOptions? options = null) {
         options ??= new MarkdownLoadOptions();
-        var p = new MarkdownReaderPipeline();
+        var sink = new AddingSink(new MarkdownReaderPipeline());
+        Compose(options, ref sink);
+        return sink.Pipeline;
+    }
+
+    // The most recently built pipeline. Pipelines are not changed once built, so parses whose options
+    // select the same parsers in the same order share one instead of building their own.
+    private static MarkdownReaderPipeline? s_lastDefault;
+
+    /// <summary>Returns the default pipeline for <paramref name="options"/>, reusing the last one built when it matches.</summary>
+    internal static MarkdownReaderPipeline GetDefault(MarkdownLoadOptions options) {
+        MarkdownReaderPipeline? last = s_lastDefault;
+        if (last != null) {
+            var matcher = new MatchingSink(last._parsers);
+            Compose(options, ref matcher);
+            if (matcher.IsMatch) {
+                return last;
+            }
+        }
+
+        MarkdownReaderPipeline pipeline = Default(options);
+        s_lastDefault = pipeline;
+        return pipeline;
+    }
+
+    private interface IParserSink {
+        void Add(IMarkdownBlockParser parser);
+    }
+
+    private struct AddingSink : IParserSink {
+        internal AddingSink(MarkdownReaderPipeline pipeline) {
+            Pipeline = pipeline;
+        }
+
+        internal MarkdownReaderPipeline Pipeline { get; }
+
+        public void Add(IMarkdownBlockParser parser) => Pipeline.Add(parser);
+    }
+
+    private struct MatchingSink : IParserSink {
+        private readonly List<IMarkdownBlockParser> _expected;
+        private int _count;
+        private bool _mismatch;
+
+        internal MatchingSink(List<IMarkdownBlockParser> expected) {
+            _expected = expected;
+            _count = 0;
+            _mismatch = false;
+        }
+
+        internal bool IsMatch => !_mismatch && _count == _expected.Count;
+
+        public void Add(IMarkdownBlockParser parser) {
+            if (_count >= _expected.Count || !ReferenceEquals(_expected[_count], parser)) {
+                _mismatch = true;
+            }
+
+            _count++;
+        }
+    }
+
+    private static void Compose<TSink>(MarkdownLoadOptions options, ref TSink p) where TSink : struct, IParserSink {
         if (options.FrontMatter) p.Add(FrontMatterParser);
-        AddExtensions(p, options, MarkdownBlockParserPlacement.AfterFrontMatter);
+        AddExtensions(ref p, options, MarkdownBlockParserPlacement.AfterFrontMatter);
         p.Add(QuoteParser);
         if (options.CustomContainers) p.Add(CustomContainerParser);
         if (options.FencedCode) p.Add(FencedCodeParser);
@@ -56,9 +117,9 @@ internal sealed class MarkdownReaderPipeline {
         if (options.Images && options.StandaloneImageBlocks) p.Add(ImageParser);
         p.Add(HrParser);
         if (options.HtmlBlocks) p.Add(HtmlBlockParser);
-        AddExtensions(p, options, MarkdownBlockParserPlacement.AfterHtmlBlocks);
+        AddExtensions(ref p, options, MarkdownBlockParserPlacement.AfterHtmlBlocks);
         p.Add(ReferenceLinkDefParser);
-        AddExtensions(p, options, MarkdownBlockParserPlacement.AfterReferenceLinkDefinitions);
+        AddExtensions(ref p, options, MarkdownBlockParserPlacement.AfterReferenceLinkDefinitions);
         if (options.Abbreviations) p.Add(AbbreviationDefParser);
         if (options.Tables) p.Add(TableParser);
         if (options.DefinitionLists) p.Add(DefinitionListParser);
@@ -67,15 +128,14 @@ internal sealed class MarkdownReaderPipeline {
         if (options.IndentedCodeBlocks) p.Add(IndentedCodeParser);
         p.Add(SetextHeadingParser);
         if (options.Headings) p.Add(HeadingParser);
-        AddExtensions(p, options, MarkdownBlockParserPlacement.BeforeParagraphs);
+        AddExtensions(ref p, options, MarkdownBlockParserPlacement.BeforeParagraphs);
         if (options.Paragraphs) p.Add(ParagraphParser); // must be last
-        return p;
     }
 
-    private static void AddExtensions(
-        MarkdownReaderPipeline pipeline,
+    private static void AddExtensions<TSink>(
+        ref TSink pipeline,
         MarkdownLoadOptions options,
-        MarkdownBlockParserPlacement placement) {
+        MarkdownBlockParserPlacement placement) where TSink : struct, IParserSink {
         var extensions = options.BlockParserExtensions;
         if (extensions.Count == 0) {
             return;

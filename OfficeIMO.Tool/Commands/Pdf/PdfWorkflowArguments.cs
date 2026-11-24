@@ -6,6 +6,8 @@ namespace OfficeIMO.Tool.Commands.Pdf;
 internal sealed class PdfWorkflowArguments {
     internal string Operation { get; private set; } = "";
     internal string? Input { get; private set; }
+    internal List<string> AssetInputs { get; } = [];
+    internal bool CompositeSoftMasks { get; private set; } = true;
     internal string? Output { get; private set; }
     internal string? Provider { get; private set; }
     internal string? Language { get; private set; }
@@ -21,12 +23,12 @@ internal sealed class PdfWorkflowArguments {
         var result = new PdfWorkflowArguments();
         if (args.Length == 0 || IsHelp(args[0])) { result.Help = true; return result; }
         result.Operation = args[0].ToLowerInvariant();
-        if (result.Operation is not ("extract" or "split" or "decrypt" or "flatten" or "ocr" or "optimize" or "sanitize" or "convert-to-pdfa" or "providers"))
+        if (result.Operation is not ("extract" or "split" or "decrypt" or "flatten" or "ocr" or "optimize" or "sanitize" or "convert-to-pdfa" or "extract-assets" or "providers"))
             throw new AgentUsageException("Unknown PDF workflow '" + args[0] + "'.");
         string? pages = null, password = null, profile = null, attachments = null, fontSubstitution = null, outputIntent = null, outputCondition = null;
         var fonts = new List<string>();
         bool force = false, acknowledge = false;
-        int maximumPages = 100;
+        int maximumPages = result.Operation == "extract-assets" ? new OfficeIMO.Pdf.PdfAssetExtractionOptions().MaximumPages : 100;
         double dpi = 150;
         long maximumPixels = 25_000_000, inputBytes = 256L * 1024 * 1024, outputBytes = 512L * 1024 * 1024;
         for (int index = 1; index < args.Length; index++) {
@@ -43,6 +45,7 @@ internal sealed class PdfWorkflowArguments {
                 case "--maximum-output-bytes": outputBytes = Long(Value(args, ref index, option), option); break;
                 case "--password-env": password = Value(args, ref index, option); break;
                 case "--force": force = true; break;
+                case "--preserve-image-format": Only(result.Operation, option, "extract-assets"); result.CompositeSoftMasks = false; break;
                 case "--profile": Only(result.Operation, option, "convert-to-pdfa"); profile = Value(args, ref index, option); break;
                 case "--attachments": Only(result.Operation, option, "convert-to-pdfa"); attachments = Value(args, ref index, option); break;
                 case "--font": Only(result.Operation, option, "convert-to-pdfa"); fonts.Add(Value(args, ref index, option)); break;
@@ -57,8 +60,15 @@ internal sealed class PdfWorkflowArguments {
                 case "--ocr-option": Only(result.Operation, option, "ocr"); AddProviderOption(result.ProviderOptions, Value(args, ref index, option)); break;
                 default:
                     if (option.StartsWith('-')) throw new AgentUsageException("Unknown PDF option '" + option + "'.");
-                    if (result.Input is not null) throw new AgentUsageException("PDF workflows accept one input file.");
-                    result.Input = option; break;
+                    if (result.Operation == "extract-assets") {
+                        if (result.AssetInputs.Count == 100) throw new AgentUsageException("extract-assets accepts at most 100 inputs.");
+                        result.AssetInputs.Add(option);
+                        result.Input ??= option;
+                    } else {
+                        if (result.Input is not null) throw new AgentUsageException("PDF workflows accept one input file.");
+                        result.Input = option;
+                    }
+                    break;
             }
         }
         result.Settings = new PdfWorkflowSettings {
@@ -78,6 +88,7 @@ internal sealed class PdfWorkflowArguments {
             return result;
         }
         if (result.Input is null || result.Output is null) throw new AgentUsageException("PDF workflows require one input and --output <new-path>.");
+        if (result.Operation == "extract-assets" && force) throw new AgentUsageException("extract-assets requires a new folder.");
         if (result.Operation == "ocr" && result.Provider is null) throw new AgentUsageException("ocr requires --ocr-provider <registered-id>.");
         return result;
     }

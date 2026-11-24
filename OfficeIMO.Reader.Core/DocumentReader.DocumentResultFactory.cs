@@ -65,4 +65,33 @@ internal static partial class DocumentReaderEngine {
         }
         return result;
     }
+
+    /// <summary>
+    /// Creates the document envelope for a streamed text-projection read whose caller enriches it with its own blocks,
+    /// tables and pages. It skips the chunk-derived Markdown, blocks, tables and pages that enrichment replaces and
+    /// the text reduction discards; chunks, source, capabilities and chunk diagnostics match
+    /// <see cref="CreateDocumentResult(IEnumerable{ReaderChunk}, ReaderInputKind, OfficeDocumentSource?, IEnumerable{string}?, IReadOnlyList{OfficeDocumentAsset}?)"/>.
+    /// </summary>
+    internal static OfficeDocumentReadResult CreateStreamedTextResult(IReadOnlyList<ReaderChunk> chunks, ReaderInputKind kind,
+        IEnumerable<string> capabilities) {
+        ReaderChunk? first = chunks.Count == 0 ? null : chunks[0];
+        return new OfficeDocumentReadResult {
+            Kind = kind,
+            Source = new OfficeDocumentSource {
+                Path = first?.Location.Path,
+                SourceId = first?.SourceId,
+                SourceHash = first?.SourceHash,
+                LastWriteUtc = first?.SourceLastWriteUtc,
+                LengthBytes = first?.SourceLengthBytes
+            },
+            CapabilitiesUsed = BuildChunkDocumentCapabilities(kind).Concat(capabilities)
+                .Where(static capability => !string.IsNullOrWhiteSpace(capability))
+                .Distinct(StringComparer.Ordinal).ToArray(),
+            Chunks = chunks,
+            Diagnostics = BuildChunkDocumentDiagnostics(chunks, Array.Empty<OfficeDocumentOcrCandidate>(), null),
+            Assets = Array.Empty<OfficeDocumentAsset>(),
+            Links = Array.Empty<OfficeDocumentLink>(),
+            Forms = Array.Empty<OfficeDocumentFormField>()
+        };
+    }
 }

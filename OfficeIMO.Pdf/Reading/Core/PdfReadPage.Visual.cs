@@ -3835,11 +3835,13 @@ public sealed partial class PdfReadPage {
     }
 
     private static PdfExtractedImage? FindImage(IReadOnlyList<PdfExtractedImage> images, PdfImagePlacement placement) {
+        PdfDictionary? context = placement.EffectiveResources ?? placement.InlineImageResources;
         for (int i = 0; i < images.Count; i++) {
             PdfExtractedImage image = images[i];
             if (string.Equals(image.ResourceName, placement.ResourceName, StringComparison.Ordinal) &&
                 image.ObjectNumber == placement.ObjectNumber &&
                 image.DirectStreamIdentity == placement.DirectStreamIdentity &&
+                (context is null || ReferenceEquals(image.ResourceContext, context)) &&
                 (image.IsImageMask || image.HasAuthoredRenderingIntent || image.RenderingIntent == placement.RenderingIntent) &&
                 (!image.IsImageMask || image.ImageMaskColor.Equals(placement.ImageMaskColor))) {
                 return image;

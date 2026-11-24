@@ -328,8 +328,19 @@ namespace OfficeIMO.Excel {
             return normalizedLeft.CompareTo(normalizedRight);
         }
 
-        private static double NormalizeFormulaComparisonNumber(double value) =>
-            OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value.ToString("G15", CultureInfo.InvariantCulture), NumberStyles.Float, CultureInfo.InvariantCulture, out double normalized) && !double.IsInfinity(normalized) ? normalized : value;
+        private static double NormalizeFormulaComparisonNumber(double value) {
+            // A whole number below 10^15 has at most 15 significant digits, so the G15 round trip returns it unchanged.
+            if (Math.Abs(value) < 1e15 && Math.Floor(value) == value) return value;
+            double normalized;
+#if NETCOREAPP
+            Span<char> text = stackalloc char[32];
+            if (value.TryFormat(text, out int written, "G15", CultureInfo.InvariantCulture))
+                return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text.Slice(0, written), NumberStyles.Float, CultureInfo.InvariantCulture, out normalized)
+                    && !double.IsInfinity(normalized) ? normalized : value;
+#endif
+            return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value.ToString("G15", CultureInfo.InvariantCulture), NumberStyles.Float, CultureInfo.InvariantCulture, out normalized)
+                && !double.IsInfinity(normalized) ? normalized : value;
+        }
 
         private static bool TryGetWholeNumber(double value, out int number) {
             number = (int)Math.Round(value, MidpointRounding.AwayFromZero);

@@ -13,7 +13,7 @@
     "packageCount": 160,
     "commandCount": 521,
     "cliCount": 17,
-    "toolCount": 20,
+    "toolCount": 21,
     "skillCount": 2,
     "studioFeatures": 53,
     "routeCount": 316
@@ -199,6 +199,10 @@
               "url": "/docs/reader/"
             },
             {
+              "label": "OfficeIMO.Pdf",
+              "url": "/docs/pdf/"
+            },
+            {
               "label": "OfficeIMO.Reader.Ocr",
               "url": "/docs/reader/"
             },
@@ -251,6 +255,10 @@
               "url": "/docs/cli/extract-and-inspect/#query-yaml-json-and-toml"
             },
             {
+              "label": "officeimo pdf",
+              "url": "/docs/cli/pdf/"
+            },
+            {
               "label": "officeimo_inspect",
               "url": "/agents/#tool-officeimo_inspect"
             },
@@ -269,6 +277,10 @@
             {
               "label": "officeimo_pdf_ocr",
               "url": "/agents/#tool-officeimo_pdf_ocr"
+            },
+            {
+              "label": "officeimo_pdf_extract_assets",
+              "url": "/agents/#tool-officeimo_pdf_extract_assets"
             }
           ]
         },

@@ -83,7 +83,13 @@ namespace OfficeIMO.Excel {
             column = 0;
 
             FormulaReferenceSyntax syntax = GetFormulaReferenceSyntax(token);
-            if (!syntax.Split) {
+            // Text that is no cell address needs no sheet: a nested call such as INDEX(Rates!B1:B8,MATCH(B2,Rates!A1:A8,0))
+            // splits at its last '!' into a qualifier no sheet has, and looking that up scans the workbook's sheets.
+            if (!syntax.Split
+                || syntax.CellRow <= 0
+                || syntax.CellColumn <= 0
+                || syntax.CellRow > ExcelA1.MaxRows
+                || syntax.CellColumn > ExcelA1.MaxColumns) {
                 return false;
             }
 
@@ -97,10 +103,7 @@ namespace OfficeIMO.Excel {
 
             row = syntax.CellRow;
             column = syntax.CellColumn;
-            return row > 0
-                && column > 0
-                && row <= ExcelA1.MaxRows
-                && column <= ExcelA1.MaxColumns;
+            return true;
         }
 
         private bool TryParseQualifiedFormulaRange(string token, out ExcelSheet sheet, out int r1, out int c1, out int r2, out int c2) {
@@ -115,7 +118,7 @@ namespace OfficeIMO.Excel {
             c2 = 0;
 
             FormulaReferenceSyntax syntax = GetFormulaReferenceSyntax(token);
-            if (!syntax.Split) {
+            if (!syntax.Split || !syntax.IsRange) {
                 return false;
             }
 
@@ -131,7 +134,7 @@ namespace OfficeIMO.Excel {
             c1 = syntax.C1;
             r2 = syntax.R2;
             c2 = syntax.C2;
-            return syntax.IsRange;
+            return true;
         }
 
         /// <summary>The sheet qualifier and coordinates a reference token spells; it depends on the text alone.</summary>
@@ -238,7 +241,14 @@ namespace OfficeIMO.Excel {
             out int c2) {
             if (ExcelFormulaExpressionParser.TryParseSupportedFunctionCall(token, out ExcelFormulaFunctionCallSyntax? call)
                 && (call!.Name.Equals("OFFSET", StringComparison.OrdinalIgnoreCase)
+                    || call.Name.Equals("INDIRECT", StringComparison.OrdinalIgnoreCase)
                     || call.Name.Equals("INDEX", StringComparison.OrdinalIgnoreCase))) {
+                if (call.Name.Equals("INDIRECT", StringComparison.OrdinalIgnoreCase)) {
+                    bool named = TryResolveIndirectRange(call.Arguments, currentRow, out sheet, out r1, out c1, out r2, out c2,
+                        out FormulaArgumentValue indirectError);
+                    if (named && indirectError.IsError && !_formulaReferenceError.IsError) _formulaReferenceError = indirectError;
+                    return named && !indirectError.IsError;
+                }
                 if (call.Name.Equals("INDEX", StringComparison.OrdinalIgnoreCase)) {
                     bool selected = TryResolveIndexRange(call.Arguments, currentRow, out sheet, out r1, out c1, out r2, out c2,
                         out FormulaArgumentValue indexError);
@@ -705,6 +715,12 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
+            return TryCreateFormulaReferenceSheet(sheetName, out sheet);
+        }
+
+        // Kept apart so the lookup's closure is allocated only when a sheet is not cached yet.
+        private bool TryCreateFormulaReferenceSheet(string sheetName, out ExcelSheet sheet) {
+            sheet = this;
             var sheetElement = WorkbookRoot.Sheets?
                 .Elements<Sheet>()
                 .FirstOrDefault(candidate => string.Equals(candidate.Name?.Value, sheetName, StringComparison.OrdinalIgnoreCase));

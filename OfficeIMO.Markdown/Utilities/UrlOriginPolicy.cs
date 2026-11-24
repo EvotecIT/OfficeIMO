@@ -52,7 +52,7 @@ internal static class UrlOriginPolicy {
         if (u.StartsWith("#", StringComparison.Ordinal)) return true; // fragment-only
 
         // Host allowlist (absolute HTTP(S) only).
-        var allowHosts = forImages ? o.AllowedHttpImageHosts : o.AllowedHttpLinkHosts;
+        var allowHosts = forImages ? o.AllowedHttpImageHostsIfAny : o.AllowedHttpLinkHostsIfAny;
         bool restrict = forImages ? o.RestrictHttpImagesToBaseOrigin : o.RestrictHttpLinksToBaseOrigin;
         if ((restrict || allowHosts != null && allowHosts.Count > 0)
             && TryGetScheme(u, out string? explicitScheme)
@@ -96,7 +96,7 @@ internal static class UrlOriginPolicy {
             return true;
         }
 
-        return options?.AdditionalAllowedLinkSchemes.Any(candidate =>
+        return options?.AdditionalAllowedLinkSchemesIfAny?.Any(candidate =>
             string.Equals(candidate?.Trim(), scheme, StringComparison.OrdinalIgnoreCase)) == true;
     }
 

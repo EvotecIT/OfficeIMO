@@ -32,6 +32,11 @@ internal static partial class DocumentReaderEngine {
         result.Pages = AttachOcrCandidates(pages ?? Array.Empty<OfficeDocumentPage>(), ocrCandidates);
         result.Diagnostics = RefreshOcrDiagnostics(result.Diagnostics, ocrCandidates);
 
+        // The text projection clears metadata when it reduces the result, so it is not built for it.
+        if (IsTextProjection) {
+            result.Metadata = Array.Empty<OfficeDocumentMetadataEntry>();
+            return result;
+        }
         IReadOnlyList<OfficeDocumentMetadataEntry> summary = BuildChunkDocumentMetadata(
             result.Kind,
             result.Chunks,

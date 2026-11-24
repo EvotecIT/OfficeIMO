@@ -73,6 +73,7 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
     internal ParagraphBlock LeadParagraphBlock => _leadParagraphBlock;
     internal bool HasAdditionalParagraphs => _additionalParagraphs?.Count > 0;
     internal int NestedBlockCount => _nestedBlocks?.Count ?? 0;
+    internal int AdditionalParagraphCount => _additionalParagraphs?.Count ?? 0;
     internal IReadOnlyList<IMarkdownBlock> NestedBlocksOrEmpty => _nestedBlocks ?? (IReadOnlyList<IMarkdownBlock>)Array.Empty<IMarkdownBlock>();
     internal int SyntaxBlockChildCount =>
         (IncludesLeadParagraphBlock ? 1 : 0)
@@ -124,10 +125,10 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
     public static ListItem TaskInlines(InlineSequence content, bool done = false) => new ListItem(content ?? new InlineSequence(), true, done);
 
     internal IEnumerable<InlineSequence> Paragraphs() {
-        if (Content.Nodes.Count > 0 || (AdditionalParagraphs.Count == 0 && NestedBlocks.Count == 0)) {
+        if (Content.Nodes.Count > 0 || (AdditionalParagraphCount == 0 && NestedBlockCount == 0)) {
             yield return Content;
         }
-        for (int i = 0; i < AdditionalParagraphs.Count; i++) yield return AdditionalParagraphs[i];
+        for (int i = 0; i < AdditionalParagraphCount; i++) yield return AdditionalParagraphs[i];
     }
 
     internal string RenderMarkdown() {
@@ -156,7 +157,7 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
         string attributeWhitespace = renderGenericAttributeConsumedWhitespace
             ? RenderGenericAttributeConsumedWhitespace()
             : string.Empty;
-        if (!renderLoose && AdditionalParagraphs.Count == 0 && NestedBlocks.Count == 0) {
+        if (!renderLoose && AdditionalParagraphCount == 0 && NestedBlockCount == 0) {
             sb.Append(checkbox);
             Content.AppendHtml(sb);
             sb.Append(attributeWhitespace);
@@ -165,19 +166,19 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
 
         if (renderLoose
             && Content.Nodes.Count == 0
-            && AdditionalParagraphs.Count == 0
-            && NestedBlocks.Count == 0) {
+            && AdditionalParagraphCount == 0
+            && NestedBlockCount == 0) {
             sb.Append(checkbox);
             return;
         }
 
         // Tight list behavior: when there is exactly one paragraph, keep it inline even if child blocks exist.
-        if (!renderLoose && AdditionalParagraphs.Count == 0) {
+        if (!renderLoose && AdditionalParagraphCount == 0) {
             int itemStart = sb.Length;
             sb.Append(checkbox);
             Content.AppendHtml(sb);
             sb.Append(attributeWhitespace);
-            for (int i = 0; i < NestedBlocks.Count; i++) {
+            for (int i = 0; i < NestedBlockCount; i++) {
                 AppendTightListItemChildSeparator(sb, itemStart, NestedBlocks[i]);
                 MarkdownBlockRenderDispatcher.AppendTightListItemHtml(sb, NestedBlocks[i]);
             }
@@ -197,7 +198,7 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
             first = false;
         }
 
-        for (int i = 0; i < NestedBlocks.Count; i++) {
+        for (int i = 0; i < NestedBlockCount; i++) {
             MarkdownBlockRenderDispatcher.AppendHtml(sb, NestedBlocks[i]);
         }
     }
@@ -324,7 +325,7 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
         return true;
     }
 
-    internal bool RequiresLooseListRendering() => ForceLoose || AdditionalParagraphs.Count > 0;
+    internal bool RequiresLooseListRendering() => ForceLoose || AdditionalParagraphCount > 0;
 
     internal MarkdownSyntaxNode BuildSyntaxNode(MarkdownSyntaxNode? nestedList) {
         var markerChildren = BuildListMarkerSyntaxNodes();

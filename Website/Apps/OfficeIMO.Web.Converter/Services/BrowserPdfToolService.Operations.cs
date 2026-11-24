@@ -85,6 +85,30 @@ internal sealed partial class BrowserPdfToolService {
             details);
     }
 
+    private static PdfToolExecution ExtractAssets(PdfToolRequest request) {
+        SelectedDocument file = request.Files[0];
+        using PdfDocument source = Open(file);
+        using var buffer = new MemoryStream();
+        IReadOnlyList<string> entries;
+        using (var archive = new ZipArchive(buffer, ZipArchiveMode.Create, leaveOpen: true)) {
+            entries = source.ExtractAssetsTo(path => archive.CreateEntry(path, CompressionLevel.Fastest).Open(),
+                new PdfAssetExtractionOptions {
+                    CompositeSoftMasks = !request.PreserveImageFormat,
+                    MaximumPages = BrowserPdfPolicy.MaxPages,
+                    MaximumOutputBytes = BrowserPdfPolicy.MaxAssetSerializedBytes,
+                    MaximumInspectionWork = BrowserPdfPolicy.MaxAssetInspectionWork
+                }, CancellationToken.None);
+        }
+
+        return new PdfToolExecution(
+            new BrowserConversionArtifact(buffer.ToArray(), OutputName(file, "assets", ".zip"), "application/zip"),
+            $"The ZIP contains {entries.Count} files. Open report.html to browse the assets.",
+            entries.Count(static path => path.StartsWith("pages/", StringComparison.Ordinal)),
+            [],
+            ReportDetails: null,
+            PreviewInBrowser: false);
+    }
+
     private static PdfToolExecution Split(PdfToolRequest request) {
         SelectedDocument file = request.Files[0];
         PdfDocument source = Open(file);

@@ -5,6 +5,10 @@ namespace OfficeIMO.Markdown.Benchmarks;
 internal static class MarkdownBenchmarkCorpus {
     private static readonly IReadOnlyDictionary<string, string> Corpora = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
         ["PortableReadme"] = BuildPortableReadme(),
+        // One section of the README and transcript corpora: small documents, where fixed
+        // per-document cost is a large share of the work.
+        ["SmallReadme"] = PortableReadmeSection(),
+        ["SmallTranscript"] = TranscriptSection(),
         ["Transcript"] = BuildTranscript(),
         ["TechnicalDoc"] = BuildTechnicalDoc(),
         ["RichAst"] = BuildRichAst(),
@@ -33,8 +37,11 @@ internal static class MarkdownBenchmarkCorpus {
 
     public static string Get(string name) => Corpora[name];
 
-    private static string BuildPortableReadme() {
-        var section = """
+    private static string BuildPortableReadme() =>
+        string.Concat(Enumerable.Repeat(PortableReadmeSection() + Environment.NewLine, 12));
+
+    private static string PortableReadmeSection() {
+        return """
 # OfficeIMO Markdown Overview
 
 OfficeIMO.Markdown can build, parse, inspect, and render Markdown for chat, docs, and reports.
@@ -70,12 +77,13 @@ Additional notes:
 > This quote keeps the corpus close to a normal README.
 
 """;
-
-        return string.Concat(Enumerable.Repeat(section + Environment.NewLine, 12));
     }
 
-    private static string BuildTranscript() {
-        var section = """
+    private static string BuildTranscript() =>
+        string.Concat(Enumerable.Repeat(TranscriptSection() + Environment.NewLine, 20));
+
+    private static string TranscriptSection() {
+        return """
 ## User
 
 Please summarize the deployment status and list any blockers.
@@ -102,8 +110,6 @@ Deployment summary:
 ```
 
 """;
-
-        return string.Concat(Enumerable.Repeat(section + Environment.NewLine, 20));
     }
 
     private static string BuildTechnicalDoc() {

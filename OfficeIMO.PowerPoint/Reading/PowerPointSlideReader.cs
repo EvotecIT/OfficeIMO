@@ -1,12 +1,12 @@
-using System.IO.Packaging;
-using System.Xml;
 using OfficeIMO.Core.Internal;
+using OfficeIMO.Core.Internal.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     Reads the slides of a PPTX, PPTM, POTX or PPSX package one at a time without building the presentation
-    ///     model. Each slide part is read forward with an <see cref="XmlReader"/> when its turn comes, so memory stays
-    ///     proportional to one slide and the first slide is available before the rest of the deck is read.
+    ///     model or loading the Open XML SDK. Each slide part is read forward when its turn comes and its XML is
+    ///     released once read, so the first slide is available before the rest of the deck is read. Relationship
+    ///     metadata of the slides read so far stays cached until the reader is disposed.
     /// </summary>
     /// <remarks>
     ///     <para>
@@ -24,23 +24,24 @@ namespace OfficeIMO.PowerPoint {
     ///     </para>
     /// </remarks>
     public sealed partial class PowerPointSlideReader : IDisposable {
-        private readonly Package _package;
+        private readonly OfficeOpcPackage _package;
         private readonly Stream? _ownedStream;
         private readonly IReadOnlyList<SlideEntry> _slides;
         private readonly Dictionary<string, int> _slideNumbers;
-        private readonly XmlReaderSettings _xmlSettings;
+        private readonly long _maximumCharacters;
         private bool _disposed;
 
-        private PowerPointSlideReader(Package package, Stream? ownedStream, IReadOnlyList<SlideEntry> slides,
-            XmlReaderSettings xmlSettings) {
+        private PowerPointSlideReader(OfficeOpcPackage package, Stream? ownedStream, IReadOnlyList<SlideEntry> slides,
+            long maximumCharacters) {
             _package = package;
             _ownedStream = ownedStream;
             _slides = slides;
-            _xmlSettings = xmlSettings;
+            _maximumCharacters = maximumCharacters;
             // The first slide-list entry of each part numbers it, as slide hyperlinks resolve in the model.
-            _slideNumbers = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            // Slides are keyed by part identity, so a hyperlink that spells the part with percent-encoding still finds it.
+            _slideNumbers = new Dictionary<string, int>(OfficeAsciiIgnoreCaseComparer.Instance);
             for (int index = 0; index < slides.Count; index++) {
-                string key = slides[index].Part.Uri.OriginalString;
+                string key = OfficeOpcPackage.GetPartIdentity(slides[index].PartName);
                 if (!_slideNumbers.ContainsKey(key)) _slideNumbers.Add(key, index + 1);
             }
         }
@@ -128,20 +129,13 @@ namespace OfficeIMO.PowerPoint {
             long maximumCharacters = resolved.OpenSettings?.MaxCharactersInPart > 0
                 ? Math.Min(PowerPointXmlReader.MaximumPackageXmlCharacters, resolved.OpenSettings.MaxCharactersInPart)
                 : PowerPointXmlReader.MaximumPackageXmlCharacters;
-            var xmlSettings = new XmlReaderSettings {
-                DtdProcessing = DtdProcessing.Prohibit,
-                XmlResolver = null,
-                IgnoreComments = true,
-                IgnoreProcessingInstructions = true,
-                MaxCharactersInDocument = maximumCharacters
-            };
-            Package package = Package.Open(stream, FileMode.Open, FileAccess.Read);
+            OfficeOpcPackage package = OfficeOpcPackage.Open(stream, leaveOpen: true);
             try {
-                PackagePart presentationPart = GetPresentationPart(package);
-                IReadOnlyList<SlideEntry> slides = ReadSlideList(package, presentationPart, xmlSettings, cancellationToken);
-                return new PowerPointSlideReader(package, ownsStream ? stream : null, slides, xmlSettings);
+                string presentationPart = GetPresentationPart(package);
+                IReadOnlyList<SlideEntry> slides = ReadSlideList(package, presentationPart, maximumCharacters, cancellationToken);
+                return new PowerPointSlideReader(package, ownsStream ? stream : null, slides, maximumCharacters);
             } catch {
-                package.Close();
+                package.Dispose();
                 throw;
             }
         }
@@ -185,9 +179,10 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>Core document properties of the package.</summary>
-        internal PackageProperties ReadProperties() {
+        internal (string? Title, string? Creator, string? Subject, string? Keywords) ReadProperties() {
             ThrowIfDisposed();
-            return _package.PackageProperties;
+            OfficeOpcCoreProperties properties = _package.ReadCoreProperties();
+            return (properties.Title, properties.Creator, properties.Subject, properties.Keywords);
         }
 
         /// <summary>Closes the package and any stream the reader opened.</summary>
@@ -195,7 +190,7 @@ namespace OfficeIMO.PowerPoint {
             if (_disposed) return;
             _disposed = true;
             try {
-                _package.Close();
+                _package.Dispose();
             } finally {
                 _ownedStream?.Dispose();
             }
@@ -218,12 +213,12 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private readonly struct SlideEntry {
-            internal SlideEntry(PackagePart part, string? listShowValue) {
-                Part = part;
+            internal SlideEntry(string partName, string? listShowValue) {
+                PartName = partName;
                 ListShowValue = listShowValue;
             }
 
-            internal PackagePart Part { get; }
+            internal string PartName { get; }
 
             // The legacy show attribute some producers write on the slide list entry instead of the slide.
             internal string? ListShowValue { get; }

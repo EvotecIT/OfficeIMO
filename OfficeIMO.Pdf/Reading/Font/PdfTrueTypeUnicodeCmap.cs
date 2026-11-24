@@ -247,7 +247,14 @@ internal static partial class PdfTrueTypeUnicodeCmap {
             (scalar & 0xFFFE) != 0xFFFE && !(scalar >= 0xFDD0 && scalar <= 0xFDEF);
     }
 
-    private static bool TryReadTables(byte[] data, out List<(string Tag, int Offset, int Length)> tables) {
+    private static bool TryReadTables(byte[] data, out List<(string Tag, int Offset, int Length)> tables) =>
+        TryReadTableDirectory(data, out tables, ignoreOutOfRangeNameTable: false);
+
+    internal static bool TryReadTablesForNameRepair(byte[] data, out List<(string Tag, int Offset, int Length)> tables) =>
+        TryReadTableDirectory(data, out tables, ignoreOutOfRangeNameTable: true);
+
+    private static bool TryReadTableDirectory(byte[] data, out List<(string Tag, int Offset, int Length)> tables,
+        bool ignoreOutOfRangeNameTable) {
         tables = new List<(string Tag, int Offset, int Length)>();
         if (data.Length < 12) return false;
         uint version = ReadUInt32(data, 0);
@@ -261,10 +268,14 @@ internal static partial class PdfTrueTypeUnicodeCmap {
             int record = 12 + index * 16;
             uint offset = ReadUInt32(data, record + 8);
             uint length = ReadUInt32(data, record + 12);
-            if (offset > (uint)data.Length || length > (uint)data.Length - offset) return false;
+            string tag = Encoding.ASCII.GetString(data, record, 4);
+            if (offset > (uint)data.Length || length > (uint)data.Length - offset) {
+                if (ignoreOutOfRangeNameTable && tag == "name") continue;
+                return false;
+            }
             copiedTableBytes += length;
             if (copiedTableBytes > data.Length) return false;
-            tables.Add((Encoding.ASCII.GetString(data, record, 4), (int)offset, (int)length));
+            tables.Add((tag, (int)offset, (int)length));
         }
         return true;
     }
@@ -590,7 +601,7 @@ internal static partial class PdfTrueTypeUnicodeCmap {
     }
 
     /// <summary>Writes an sfnt from table bodies given as ranges of their source buffers, which are not modified.</summary>
-    private static byte[] Assemble(List<(string Tag, byte[] Source, int Offset, int Length)> tables, uint flavor) {
+    internal static byte[] Assemble(List<(string Tag, byte[] Source, int Offset, int Length)> tables, uint flavor) {
         int count = tables.Count;
         int power = 1;
         int entrySelector = 0;

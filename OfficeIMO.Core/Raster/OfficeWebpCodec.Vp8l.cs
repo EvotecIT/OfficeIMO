@@ -38,35 +38,10 @@ public static partial class OfficeWebpCodec {
 
             var allocationBudget = new Vp8lAllocationBudget();
             if (!allocationBudget.TryReserveBytes(retainedManagedBytes) ||
-                !allocationBudget.TryReserveArray(encodedBytes.Length, sizeof(byte)) ||
-                !TryDecodeVp8lArgb(reader, width, height, allocationBudget, cancellationToken, out uint[] argb)) return false;
+                !allocationBudget.TryReserveArray(encodedBytes.Length, sizeof(byte))) return false;
 
-            if (!allocationBudget.TryReserveArray(pixels, sizeof(uint))) return false;
-            cancellationToken.ThrowIfCancellationRequested();
-            byte[] rgba = OfficeRasterGuards.AllocateRgba32(width, height, "WebP decoded pixels exceed the managed limit.");
-            int pixel = 0;
-#if NET8_0_OR_GREATER
-            if (System.Runtime.Intrinsics.Vector128.IsHardwareAccelerated) {
-                // Little-endian ARGB words hold B, G, R, A bytes; swap B and R in place.
-                var order = System.Runtime.Intrinsics.Vector128.Create((byte)2, 1, 0, 3, 6, 5, 4, 7, 10, 9, 8, 11, 14, 13, 12, 15);
-                ref byte source = ref System.Runtime.CompilerServices.Unsafe.As<uint, byte>(ref argb[0]);
-                ref byte target = ref rgba[0];
-                for (; pixel <= argb.Length - 4; pixel += 4) {
-                    if ((pixel & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
-                    var bytes = System.Runtime.Intrinsics.Vector128.LoadUnsafe(ref source, (nuint)pixel * 4);
-                    System.Runtime.Intrinsics.Vector128.StoreUnsafe(System.Runtime.Intrinsics.Vector128.Shuffle(bytes, order), ref target, (nuint)pixel * 4);
-                }
-            }
-#endif
-            for (; pixel < argb.Length; pixel++) {
-                if ((pixel & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
-                uint color = argb[pixel];
-                int offset = pixel * 4;
-                rgba[offset] = (byte)(color >> 16);
-                rgba[offset + 1] = (byte)(color >> 8);
-                rgba[offset + 2] = (byte)color;
-                rgba[offset + 3] = (byte)(color >> 24);
-            }
+            if (!TryDecodeVp8lArgb(reader, width, height, allocationBudget, cancellationToken, writeRgba: true,
+                    out _, out byte[]? rgba) || rgba == null) return false;
             image = OfficeRasterImage.FromOwnedRgba32(width, height, rgba);
             return true;
         } catch (Exception exception) when (
@@ -77,18 +52,31 @@ public static partial class OfficeWebpCodec {
         }
     }
 
-    /// <summary>Decodes a headerless lossless image stream used by VP8L and compressed ALPH chunks.</summary>
+    /// <summary>
+    /// Decodes a headerless lossless image stream used by VP8L and compressed ALPH chunks. With
+    /// <paramref name="writeRgba"/>, the restored pixels are also written as RGBA bytes once the
+    /// entropy-coded data has decoded.
+    /// </summary>
     private static bool TryDecodeVp8lArgb(LsbBitReader reader, int width, int height,
-        Vp8lAllocationBudget allocationBudget, CancellationToken cancellationToken, out uint[] argb) {
+        Vp8lAllocationBudget allocationBudget, CancellationToken cancellationToken, bool writeRgba,
+        out uint[] argb, out byte[]? rgba) {
         argb = Array.Empty<uint>();
+        rgba = null;
         if (!OfficeRasterGuards.TryEnsurePixelCount(width, height, out int pixels) ||
             !TryReadVp8lTransforms(reader, width, height, allocationBudget, cancellationToken, out int encodedWidth,
                 out List<Vp8lTransform> transforms) ||
             !TryDecodeVp8lImageData(reader, encodedWidth, height, allowMetaCodes: true, 0,
                 allocationBudget, cancellationToken, out uint[] packed) ||
-            !TryApplyVp8lTransforms(packed, encodedWidth, height, width, transforms,
-                allocationBudget, cancellationToken, out argb)) return false;
-        return argb.Length == pixels && reader.HasOnlyZeroPadding(cancellationToken);
+            // The transforms read nothing more from the stream, so reject trailing data before allocating output.
+            !reader.HasOnlyZeroPadding(cancellationToken)) return false;
+        if (writeRgba) {
+            if (!allocationBudget.TryReserveArray(pixels, sizeof(uint))) return false;
+            cancellationToken.ThrowIfCancellationRequested();
+            rgba = OfficeRasterGuards.AllocateRgba32Uninitialized(width, height, "WebP decoded pixels exceed the managed limit.");
+        }
+        if (!TryApplyVp8lTransforms(packed, encodedWidth, height, width, transforms,
+                allocationBudget, cancellationToken, rgba, out argb)) return false;
+        return rgba != null || argb.Length == pixels;
     }
 
     private static bool TryDecodeVp8lImageData(
@@ -147,67 +135,213 @@ public static partial class OfficeWebpCodec {
         if (!allocationBudget.TryReserveArray(pixelCount, sizeof(uint)) ||
             cacheSize != 0 && !allocationBudget.TryReserveArray(cacheSize, sizeof(uint))) return false;
         cancellationToken.ThrowIfCancellationRequested();
-        pixels = new uint[pixelCount];
+        // Every position is written before the loop ends or the decode fails.
+        pixels = AllocateVp8lPixels(pixelCount);
         cancellationToken.ThrowIfCancellationRequested();
         uint[] cache = cacheSize == 0 ? Array.Empty<uint>() : new uint[cacheSize];
+        return TryDecodeVp8lPixels(reader, pixels, width, groups, prefixImage, prefixBits, prefixWidth,
+            cache, cacheBits, cancellationToken);
+    }
+
+    /// <summary>
+    /// Decodes the entropy-coded pixels. The loop keeps only the bit state, the active group, the
+    /// output and the position in registers; group changes, cancellation, cache lookups and
+    /// backreference distances go through <see cref="Vp8lPixelState"/> on their less frequent paths.
+    /// </summary>
+    private static bool TryDecodeVp8lPixels(LsbBitReader reader, uint[] pixels, int width,
+        Vp8lHuffmanGroup[] groups, uint[]? prefixImage, int prefixBits, int prefixWidth,
+        uint[] cache, int cacheBits, CancellationToken cancellationToken) {
+        var state = new Vp8lPixelState(width, groups, prefixImage, prefixBits, prefixWidth, cache, cacheBits, cancellationToken);
+        Vp8lHuffmanGroup group = groups[0];
+        int[] greenTable = group.Green.Table;
         int position = 0;
-        int nextCancellationCheck = 0;
-        int prefixBlockSize = 1 << prefixBits;
-        int prefixBlockMask = prefixBlockSize - 1;
-        int nextGroupPosition = 0;
-        Vp8lHuffmanGroup currentGroup = groups[0];
-        while (position < pixelCount) {
-            // Backreferences advance by several pixels and can skip exact multiples.
-            if (position >= nextCancellationCheck) {
-                cancellationToken.ThrowIfCancellationRequested();
-                nextCancellationCheck = position + 4096;
+        int boundary = 0;
+        byte[] input = reader.Input;
+        int end = reader.End;
+        int offset = reader.Offset;
+        ulong buffer = reader.Buffer;
+        int count = reader.BitCount;
+        // Refills and lookups take and return values, so the bit state stays in registers.
+        while (position < pixels.Length) {
+            if (position >= boundary) {
+                if (count < 0 || !state.TryAdvance(position, ref group, out boundary)) return false;
+                greenTable = group.Green.Table;
             }
-            if (prefixImage != null && position >= nextGroupPosition) {
-                int y = position / width;
-                int x = position - y * width;
-                int groupIndex = (int)((prefixImage[(y >> prefixBits) * prefixWidth + (x >> prefixBits)] >> 8) & 0xFFFFU);
-                if ((uint)groupIndex >= (uint)groups.Length) return false;
-                currentGroup = groups[groupIndex];
+            if ((uint)count < 32U && offset < end) {
+                buffer |= LsbBitReader.LoadWord(input, offset, end) << count;
+                int bytes = Math.Min((63 - count) >> 3, end - offset);
+                offset += bytes;
+                count += bytes << 3;
+            }
+            int entry = Vp8lHuffmanTree.Lookup(greenTable, buffer);
+            buffer >>= entry & 0xFF;
+            count -= entry & 0xFF;
+            int symbol = entry >> 8;
+            if (symbol < 256) {
+                if (group.HasConstantRedBlueAlpha) {
+                    pixels[position++] = group.ConstantRedBlueAlpha | (uint)symbol << 8;
+                    continue;
+                }
+                // Codes are at most 15 bits, so 32 buffered bits cover two of them.
+                if ((uint)count < 32U && offset < end) {
+                    buffer |= LsbBitReader.LoadWord(input, offset, end) << count;
+                    int bytes = Math.Min((63 - count) >> 3, end - offset);
+                    offset += bytes;
+                    count += bytes << 3;
+                }
+                entry = Vp8lHuffmanTree.Lookup(group.Red.Table, buffer);
+                buffer >>= entry & 0xFF;
+                count -= entry & 0xFF;
+                uint color = (uint)(entry >> 8) << 16 | (uint)symbol << 8;
+                entry = Vp8lHuffmanTree.Lookup(group.Blue.Table, buffer);
+                buffer >>= entry & 0xFF;
+                count -= entry & 0xFF;
+                color |= (uint)(entry >> 8);
+                if ((uint)count < 32U && offset < end) {
+                    buffer |= LsbBitReader.LoadWord(input, offset, end) << count;
+                    int bytes = Math.Min((63 - count) >> 3, end - offset);
+                    offset += bytes;
+                    count += bytes << 3;
+                }
+                entry = Vp8lHuffmanTree.Lookup(group.Alpha.Table, buffer);
+                buffer >>= entry & 0xFF;
+                count -= entry & 0xFF;
+                // Red, blue and alpha alphabets have 256 symbols, so each value fits its byte.
+                pixels[position++] = color | (uint)(entry >> 8) << 24;
+            } else if (symbol < 280) {
+                reader.Resume(offset, buffer, count);
+                int length = ReadVp8lPrefixValue(reader, symbol - 256);
+                int distancePrefix = group.Distance.ReadSymbol(reader);
+                int distanceCode = ReadVp8lPrefixValue(reader, distancePrefix);
+                offset = reader.Offset;
+                buffer = reader.Buffer;
+                count = reader.BitCount;
+                if (distancePrefix >= 40 || !state.TryCopy(pixels, position, distanceCode, length)) return false;
+                position += length;
+            } else {
+                if (!state.TryReadCache(pixels, position, symbol - 280, out uint color)) return false;
+                pixels[position++] = color;
+            }
+        }
+        if (count < 0) return false;
+        reader.Resume(offset, buffer, count);
+        return true;
+    }
+
+    /// <summary>State the pixel loop needs only at group boundaries, cache codes and backreferences.</summary>
+    private sealed class Vp8lPixelState {
+        private readonly int _width;
+        private readonly Vp8lHuffmanGroup[] _groups;
+        private readonly uint[]? _prefixImage;
+        private readonly int _prefixBits;
+        private readonly int _prefixWidth;
+        private readonly uint[] _cache;
+        private readonly int _cacheShift;
+        private readonly CancellationToken _cancellationToken;
+        private int _nextCancellationCheck;
+        private int _nextGroupPosition;
+        // Cache inserts are deferred until a cache code needs them; inserting the same colors in
+        // the same order just before each lookup leaves the cache in the state the format defines.
+        private int _cached;
+
+        internal Vp8lPixelState(int width, Vp8lHuffmanGroup[] groups, uint[]? prefixImage, int prefixBits,
+            int prefixWidth, uint[] cache, int cacheBits, CancellationToken cancellationToken) {
+            _width = width;
+            _groups = groups;
+            _prefixImage = prefixImage;
+            _prefixBits = prefixBits;
+            _prefixWidth = prefixWidth;
+            _cache = cache;
+            _cacheShift = 32 - cacheBits;
+            _cancellationToken = cancellationToken;
+            _nextGroupPosition = prefixImage == null ? int.MaxValue : 0;
+        }
+
+        /// <summary>
+        /// Checks cancellation and selects the group at <paramref name="position"/> when either is
+        /// due; returns the next position at which either is due again.
+        /// </summary>
+        internal bool TryAdvance(int position, ref Vp8lHuffmanGroup group, out int boundary) {
+            // Backreferences advance by several pixels and can skip exact multiples.
+            if (position >= _nextCancellationCheck) {
+                _cancellationToken.ThrowIfCancellationRequested();
+                _nextCancellationCheck = position + 4096;
+            }
+            if (position >= _nextGroupPosition) {
+                int y = position / _width;
+                int x = position - y * _width;
+                int groupIndex = (int)((_prefixImage![(y >> _prefixBits) * _prefixWidth + (x >> _prefixBits)] >> 8) & 0xFFFFU);
+                if ((uint)groupIndex >= (uint)_groups.Length) {
+                    boundary = 0;
+                    return false;
+                }
+                group = _groups[groupIndex];
                 // Reuse this group up to the next block or row boundary.
                 // A copy may jump past it; its next encoded symbol selects
                 // the group at the new position, not inside copied pixels.
-                nextGroupPosition = position + Math.Min(width - x, prefixBlockSize - (x & prefixBlockMask));
+                int blockSize = 1 << _prefixBits;
+                _nextGroupPosition = position + Math.Min(_width - x, blockSize - (x & (blockSize - 1)));
             }
-            Vp8lHuffmanGroup group = currentGroup;
-            int symbol = group.Green.ReadSymbol(reader);
-            if (symbol < 0) return false;
-            if (symbol < 256) {
-                int red = group.Red.ReadSymbol(reader);
-                int blue = group.Blue.ReadSymbol(reader);
-                int alpha = group.Alpha.ReadSymbol(reader);
-                if ((uint)red > 255U || (uint)blue > 255U || (uint)alpha > 255U)
-                    return false;
-                uint color = (uint)(alpha << 24 | red << 16 | symbol << 8 | blue);
-                pixels[position++] = color;
-                AddToVp8lCache(cache, cacheBits, color);
-            } else if (symbol < 280) {
-                int length = ReadVp8lPrefixValue(reader, symbol - 256);
-                int distancePrefix = group.Distance.ReadSymbol(reader);
-                if (length < 1 || distancePrefix < 0 || distancePrefix >= 40)
-                    return false;
-                int distanceCode = ReadVp8lPrefixValue(reader, distancePrefix);
-                int distance = MapVp8lDistance(distanceCode, width);
-                if (distance < 1 || distance > position || length > pixelCount - position)
-                    return false;
-                for (int index = 0; index < length; index++) {
-                    uint color = pixels[position - distance];
-                    pixels[position++] = color;
-                    AddToVp8lCache(cache, cacheBits, color);
-                }
-            } else {
-                int cacheIndex = symbol - 280;
-                if ((uint)cacheIndex >= (uint)cache.Length) return false;
-                uint color = cache[cacheIndex];
-                pixels[position++] = color;
-                AddToVp8lCache(cache, cacheBits, color);
-            }
+            boundary = Math.Min(_nextCancellationCheck, _nextGroupPosition);
+            return true;
         }
-        return true;
+
+        internal bool TryCopy(uint[] pixels, int position, int distanceCode, int length) {
+            int distance = MapVp8lDistance(distanceCode, _width);
+            if (distance < 1 || distance > position || length > pixels.Length - position) return false;
+            CopyVp8lBackReference(pixels, position, distance, length);
+            return true;
+        }
+
+        internal bool TryReadCache(uint[] pixels, int position, int index, out uint color) {
+            uint[] cache = _cache;
+            if ((uint)index >= (uint)cache.Length) {
+                color = 0;
+                return false;
+            }
+            int shift = _cacheShift;
+            int cached = _cached;
+            for (; cached < position; cached++) {
+                uint value = pixels[cached];
+                cache[(int)((0x1E35A7BDU * value) >> shift)] = value;
+            }
+            _cached = cached;
+            color = cache[index];
+            return true;
+        }
+    }
+
+    /// <summary>Copies an LZ77 backreference whose source may overlap the destination.</summary>
+    private static void CopyVp8lBackReference(uint[] pixels, int position, int distance, int length) {
+        int source = position - distance;
+        if (length <= 16) {
+            // A forward pixel loop repeats overlapping patterns and avoids call overhead on short runs.
+            for (int index = 0; index < length; index++) pixels[position + index] = pixels[source + index];
+            return;
+        }
+        if (distance >= length) {
+            Array.Copy(pixels, source, pixels, position, length);
+            return;
+        }
+        if (distance == 1) {
+            uint color = pixels[source];
+#if NET8_0_OR_GREATER
+            pixels.AsSpan(position, length).Fill(color);
+#else
+            for (int index = 0; index < length; index++) pixels[position + index] = color;
+#endif
+            return;
+        }
+        // The copied span repeats with the backreference period. Copying from its start while the
+        // written length stays a whole number of periods doubles the span on each pass.
+        int copied = 0;
+        int available = distance;
+        while (copied < length) {
+            int chunk = Math.Min(available, length - copied);
+            Array.Copy(pixels, source, pixels, position + copied, chunk);
+            copied += chunk;
+            available += chunk;
+        }
     }
 
     internal static int FindMaximumVp8lGroup(
@@ -258,6 +392,37 @@ public static partial class OfficeWebpCodec {
             _reservedBytes += bytes;
             return true;
         }
+
+        // Green alphabets reach 280 + 2048 symbols with the largest color cache.
+        private const int MaximumAlphabet = 280 + 2048;
+        private int[]?[]? _singleSymbolTables;
+
+        /// <summary>
+        /// Returns the prefix table for a code with one symbol: a root level whose entries all decode that
+        /// symbol with zero bits. Images can declare up to 65,536 groups of five codes, so one table per
+        /// symbol is shared for the whole decode and reserved once.
+        /// </summary>
+        internal bool TryGetSingleSymbolTable(int symbol, out int[] table) {
+            table = Array.Empty<int>();
+            if ((uint)symbol >= MaximumAlphabet) return false;
+            if (_singleSymbolTables == null) {
+                if (!TryReserveArray(MaximumAlphabet, IntPtr.Size)) return false;
+                _singleSymbolTables = new int[]?[MaximumAlphabet];
+            }
+            int[]? shared = _singleSymbolTables[symbol];
+            if (shared == null) {
+                if (!TryReserveArray(1 << Vp8lHuffmanTree.RootBits, sizeof(int))) return false;
+                shared = new int[1 << Vp8lHuffmanTree.RootBits];
+#if NET8_0_OR_GREATER
+                Array.Fill(shared, symbol << 8);
+#else
+                for (int index = 0; index < shared.Length; index++) shared[index] = symbol << 8;
+#endif
+                _singleSymbolTables[symbol] = shared;
+            }
+            table = shared;
+            return true;
+        }
     }
 
     private sealed class Vp8lHuffmanGroup {
@@ -268,7 +433,15 @@ public static partial class OfficeWebpCodec {
             Blue = blue;
             Alpha = alpha;
             Distance = distance;
+            if (red.IsSingleSymbol && blue.IsSingleSymbol && alpha.IsSingleSymbol) {
+                HasConstantRedBlueAlpha = true;
+                ConstantRedBlueAlpha = (uint)((alpha.Table[0] >> 8) << 24 | (red.Table[0] >> 8) << 16 | (blue.Table[0] >> 8));
+            }
         }
+        /// <summary>Gets whether literals take red, blue and alpha from single-symbol codes that read no bits.</summary>
+        internal bool HasConstantRedBlueAlpha { get; }
+        /// <summary>Gets the red, blue and alpha bits shared by every literal when <see cref="HasConstantRedBlueAlpha"/> is set.</summary>
+        internal uint ConstantRedBlueAlpha { get; }
         internal Vp8lHuffmanTree Green { get; }
         internal Vp8lHuffmanTree Red { get; }
         internal Vp8lHuffmanTree Blue { get; }

@@ -524,7 +524,7 @@ internal static partial class DocumentReaderEngine {
     }
 
     private static byte[] ReadDetectionPrefix(Stream stream, int maxBytes) {
-        var buffer = new byte[maxBytes];
+        var buffer = new byte[ProbeBufferLength(stream, maxBytes)];
         int total = 0;
         while (total < buffer.Length) {
             int read = stream.Read(buffer, total, buffer.Length - total);
@@ -538,11 +538,22 @@ internal static partial class DocumentReaderEngine {
         return exact;
     }
 
+    // A seekable input shorter than the probe needs a buffer only as long as what remains of it.
+    private static int ProbeBufferLength(Stream stream, int maxBytes) {
+        if (!stream.CanSeek) return maxBytes;
+        try {
+            long remaining = stream.Length - stream.Position;
+            return remaining <= 0 ? maxBytes : (int)Math.Min(maxBytes, remaining);
+        } catch (NotSupportedException) {
+            return maxBytes;
+        }
+    }
+
     private static async Task<byte[]> ReadDetectionPrefixAsync(
         Stream stream,
         int maxBytes,
         CancellationToken cancellationToken) {
-        var buffer = new byte[maxBytes];
+        var buffer = new byte[ProbeBufferLength(stream, maxBytes)];
         int total = 0;
         while (total < buffer.Length) {
             int read = await stream.ReadAsync(buffer, total, buffer.Length - total, cancellationToken).ConfigureAwait(false);

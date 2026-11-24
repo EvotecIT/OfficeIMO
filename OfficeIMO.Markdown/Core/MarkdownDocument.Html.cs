@@ -5,7 +5,11 @@ namespace OfficeIMO.Markdown;
 
 public partial class MarkdownDocument {
     /// <summary>Converts Markdown to HTML text using the requested fragment or document options.</summary>
-    public string ToHtml(MarkdownHtmlExportOptions? options = null) => ToHtml(options, out _);
+    public string ToHtml(MarkdownHtmlExportOptions? options = null) {
+        MarkdownHtmlExportOptions operation = (options ?? new MarkdownHtmlExportOptions()).CloneForRender();
+        // Without a report to return, diagnostics are collected only when a loss has to fail the conversion.
+        return operation.FailOnLoss ? RenderHtmlConversion(operation, out _) : RenderHtml(operation);
+    }
 
     /// <summary>Converts Markdown to HTML text and returns its fidelity report.</summary>
     public string ToHtml(MarkdownHtmlExportOptions? options, out OfficeConversionReport report) =>
@@ -43,13 +47,16 @@ public partial class MarkdownDocument {
         var diagnostics = new List<OfficeDiagnostic>();
         Action<OfficeDiagnostic>? caller = operation.DiagnosticSink;
         operation.DiagnosticSink = diagnostic => { diagnostics.Add(diagnostic); caller?.Invoke(diagnostic); };
-        string html = operation.Kind == MarkdownHtmlKind.Fragment && operation.IncludeCssInFragment
-            ? RenderHtmlFragmentWithCss(operation) : HtmlRenderer.Render(this, operation);
+        string html = RenderHtml(operation);
         report = new OfficeConversionReport("Markdown", "Html", itemsWritten: Blocks.Count,
             elapsed: timer.Elapsed, diagnostics: diagnostics);
         if (operation.FailOnLoss) report.ThrowIfLoss();
         return html;
     }
+
+    private string RenderHtml(MarkdownHtmlExportOptions operation) =>
+        operation.Kind == MarkdownHtmlKind.Fragment && operation.IncludeCssInFragment
+            ? RenderHtmlFragmentWithCss(operation) : HtmlRenderer.Render(this, operation);
 
     /// <summary>Writes HTML to a file, including an external CSS sidecar when requested.</summary>
     /// <remarks>Without options the file is a complete HTML document without a presentation stylesheet. Pass options to select a theme, style, or fragment output.</remarks>

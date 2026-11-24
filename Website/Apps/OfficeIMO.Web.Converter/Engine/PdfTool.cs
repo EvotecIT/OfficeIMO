@@ -51,7 +51,8 @@ internal static class PdfTool {
             options.Text("userPassword"),
             options.Text("ownerPassword"),
             redactionText,
-            options.Flag("confirm")));
+            options.Flag("confirm"),
+            options.Flag("preserveImageFormat")));
 
         // An inspection's answer is the fact sheet itself; its JSON is an extra download, not the result.
         ToolArtifact[] artifacts = session.ReplaceArtifacts((result.Artifact, tool.Kind == PdfToolKind.Inspect ? "report" : "primary"), (result.Report, "report"));
@@ -62,6 +63,7 @@ internal static class PdfTool {
             PdfToolKind.Optimize => OptimizeVerdict(details, facts),
             PdfToolKind.Compare => CompareVerdict(details, facts),
             PdfToolKind.Merge => new(ToolTone.Good, "Merged PDF ready" + PagesSuffix(result.PageCount), result.Summary),
+            PdfToolKind.ExtractAssets => new(ToolTone.Good, "PDF assets ready", result.Summary),
             PdfToolKind.Split => new(ToolTone.Good, result.Summary.TrimEnd('.'), "The parts are packed together in one ZIP file."),
             PdfToolKind.Protect => new(ToolTone.Good, "Password added",
                 "Anyone who opens this PDF now needs the password. Keep it somewhere safe: it can't be recovered."),

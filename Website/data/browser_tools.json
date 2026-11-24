@@ -328,6 +328,23 @@
       "guide": "/pdf/split/", "package": "OfficeIMO.Pdf"
     },
     {
+      "id": "extract-pdf-assets", "group": "pdf", "category": "Understand",
+      "title": "Extract PDF assets",
+      "summary": "Save images, embedded fonts, ICC profiles and an SVG for each page in one ZIP.",
+      "seoTitle": "Extract PDF images, fonts and assets locally | OfficeIMO",
+      "seoDescription": "Extract PDF images, embedded fonts, ICC profiles and page SVGs on your device. Download a ZIP with reports on image DPI, spot inks and page sizes.",
+      "input": { "kind": "file", "accept": ".pdf", "label": "PDF", "sample": "samples/pdf-branded-invoice.pdf", "sampleName": "OfficeIMO-Branded-Invoice.pdf" },
+      "options": [
+        { "id": "preserveImageFormat", "type": "flag", "label": "Keep standard image formats", "hint": "By default, supported image soft masks are saved as RGBA PNGs.", "advanced": true }
+      ],
+      "engine": { "kind": "pdf", "target": "extract-assets", "action": "run", "assemblies": ["OfficeIMO.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm", "OfficeIMO.Web.Fonts.Fallback.wasm"] },
+      "run": { "label": "Extract assets", "busy": ["Reading the PDF", "Extracting assets", "Packing the ZIP"] },
+      "expect": "Open the HTML report in the ZIP for image DPI, page boxes in millimetres, spot inks, and font subset status.",
+      "next": ["inspect-pdf", "pdf-to-images"],
+      "legacy": ["workspace=pdf&tool=extract-assets"],
+      "guide": "/pdf/extract-assets/", "package": "OfficeIMO.Pdf"
+    },
+    {
       "id": "extract-pages", "group": "pdf", "category": "Organize",
       "title": "Extract pages",
       "summary": "Pick the pages you want and save them as a new PDF.",

@@ -278,11 +278,12 @@ internal static class OfficeImoToolCommands {
         new() {
             Id = "pdf",
             Title = "PDF",
-            Summary = "Extract pages, split, decrypt, flatten, optimize, sanitize, OCR, convert to PDF/A and redact PDFs into separate copies.",
+            Summary = "Export PDF assets, extract pages, split, decrypt, flatten, optimize, sanitize, run OCR, convert to PDF/A and redact PDFs.",
             Synopsis = "<command> [options]",
             Run = static (args, _, output, error, token) => OfficeImoToolApp.WithWriterAsync(output, writer => PdfCommand.RunAsync(args, writer, error, token)),
             Help = [PdfWorkflowCommand.Usage, PdfCommand.Usage],
             Subcommands = new Dictionary<string, string> {
+                ["extract-assets"] = "Export embedded images, fonts, ICC profiles, page SVGs and asset reports to a new folder.",
                 ["extract"] = "Copy selected pages into a new PDF.",
                 ["split"] = "Split a PDF into parts of a fixed page count.",
                 ["decrypt"] = "Write an unencrypted copy using the owner password from an environment variable.",
@@ -299,15 +300,16 @@ internal static class OfficeImoToolCommands {
                 ["redact verify"] = "Check that an existing redacted PDF matches the reviewed decisions."
             },
             KeyOptions = [
-                new("--output", "Destination file or folder; the source is never changed."),
+                new("--output", "Destination file or folder. The source is never changed.", "<path>"),
                 new("--pages", "Page selection such as 1-3,last, odd, even or all,!2."),
                 new("--password-env", "Name of the environment variable that holds the owner password."),
+                new("--preserve-image-format", "Use standard image export without composing soft masks."),
                 new("--recipe", "Redaction recipe JSON."),
                 new("--decisions", "Reviewed redaction decisions JSON."),
                 new("--evidence", "Path for the redaction evidence JSON."),
                 new("--ocr-provider", "OCR provider id."),
                 new("--ocr-provider-assembly", "Trusted assembly that contains an OCR provider."),
-                new("--maximum-pages", "Page limit; 100 by default.", "1..10000"),
+                new("--maximum-pages", "Page limit. The default is 500 for asset extraction and 100 for other PDF operations.", "1..10000"),
                 new("--force", "Replace an existing output.")
             ],
             InputFormats = static () => ["pdf"],

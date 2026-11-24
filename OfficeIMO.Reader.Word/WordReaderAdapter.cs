@@ -22,8 +22,16 @@ internal static class WordReaderAdapter {
         }
         if (WordStreamingTextReader.Applies(readerOptions)) {
             using FileStream file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-            if (WordStreamingTextReader.TryRead(file, path, readerOptions, cancellationToken) is { } streamed) return streamed;
+            if (WordStreamingTextReader.TryRead(file, path, readerOptions, options, cancellationToken) is { } streamed) return streamed;
         }
+        return ReadModel(path, readerOptions, options, cancellationToken);
+    }
+
+    // The Word model loads the Open XML SDK; keeping it out of the method above lets a streamed read finish without
+    // the JIT loading the SDK for this method's locals.
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static OfficeDocumentReadResult ReadModel(string path, ReaderOptions readerOptions, ReaderWordOptions options,
+        CancellationToken cancellationToken) {
         if (WordFormatCatalog.TryGetByExtension(path, out var format) && format!.Generation == OfficeFormatGeneration.Modern) {
             using FileStream? file = OfficeStableFileRead.TryOpen(path);
             if (file != null) {
@@ -42,7 +50,13 @@ internal static class WordReaderAdapter {
         }
         string name = string.IsNullOrWhiteSpace(sourceName) ? "document.docx" : sourceName!;
         if (WordStreamingTextReader.Applies(readerOptions)
-            && WordStreamingTextReader.TryRead(stream, name, readerOptions, cancellationToken) is { } streamed) return streamed;
+            && WordStreamingTextReader.TryRead(stream, name, readerOptions, options, cancellationToken) is { } streamed) return streamed;
+        return ReadModel(stream, name, readerOptions, options, cancellationToken);
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static OfficeDocumentReadResult ReadModel(Stream stream, string name, ReaderOptions readerOptions, ReaderWordOptions options,
+        CancellationToken cancellationToken) {
         using WordDocument document = Load(stream, readerOptions, cancellationToken);
         return Project(document, name, readerOptions, options, cancellationToken);
     }
@@ -132,6 +146,11 @@ internal static class WordReaderAdapter {
         int blockIndex = 0;
         int tableIndex = 0;
         int imageIndex = 0;
+        // Chunk tables carry the block and table numbering of the rich projection, which counts each section's header
+        // and footer blocks after its body. With the same numbering the Reader matches a chunk table to its rich table
+        // instead of reading the table twice, or out of order after a section with headers.
+        int richBlockIndex = 0;
+        int richTableIndex = 0;
         foreach (WordSectionInfo section in snapshot.Sections) {
             foreach (WordBlockInfo block in section.Elements) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -170,7 +189,9 @@ internal static class WordReaderAdapter {
                         table,
                         sourceName,
                         blockIndex,
+                        richBlockIndex,
                         tableIndex++,
+                        richTableIndex++,
                         readerOptions.MaxTableRows);
                     string? markdown = lean ? null : RenderTable(readerTable);
                     chunks.Add(new ReaderChunk {
@@ -187,6 +208,17 @@ internal static class WordReaderAdapter {
                                 : null))
                     });
                     blockIndex++;
+                }
+                richBlockIndex++;
+            }
+            foreach (WordHeaderFooterInfo? headerFooter in new[] {
+                section.DefaultHeader, section.FirstHeader, section.EvenHeader,
+                section.DefaultFooter, section.FirstFooter, section.EvenFooter
+            }) {
+                if (headerFooter == null) continue;
+                richBlockIndex += headerFooter.Elements.Count;
+                foreach (WordBlockInfo element in headerFooter.Elements) {
+                    if (element is WordTableInfo) richTableIndex++;
                 }
             }
         }
@@ -421,15 +453,17 @@ internal static class WordReaderAdapter {
         WordTableInfo table,
         string sourceName,
         int blockIndex,
+        int sourceBlockIndex,
         int tableIndex,
+        int sourceTableIndex,
         int maxRows) => WordTableProjection.Map(
             table,
             new ReaderLocation {
                 Path = sourceName,
                 BlockIndex = blockIndex,
-                SourceBlockIndex = table.Order,
+                SourceBlockIndex = sourceBlockIndex,
                 SourceBlockKind = "table",
-                TableIndex = tableIndex
+                TableIndex = sourceTableIndex
             },
             tableIndex,
             maxRows);

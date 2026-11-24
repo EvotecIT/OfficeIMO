@@ -64,6 +64,9 @@
     <InternalsVisibleTo Include="OfficeIMO.Security.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Provenance.C2pa" />
     <InternalsVisibleTo Include="OfficeIMO.Word.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Word.Benchmarks" />
+    <InternalsVisibleTo Include="OfficeIMO.PowerPoint.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Benchmarks" />
     <InternalsVisibleTo Include="OfficeIMO.Tool" />
     <InternalsVisibleTo Include="OfficeIMO.Tool.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Studio" />

@@ -20,7 +20,8 @@ public enum PdfToolKind {
     Protect,
     Unlock,
     Redact,
-    Compare
+    Compare,
+    ExtractAssets
 }
 
 public sealed record PdfToolDefinition(
@@ -51,7 +52,8 @@ public sealed record PdfToolRequest(
     string UserPassword,
     string OwnerPassword,
     string RedactionText,
-    bool DestructiveActionConfirmed);
+    bool DestructiveActionConfirmed,
+    bool PreserveImageFormat = false);
 
 public sealed record PdfToolMessage(string Title, string Message, string ToneClass);
 

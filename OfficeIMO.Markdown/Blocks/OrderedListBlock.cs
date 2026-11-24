@@ -55,7 +55,7 @@ public sealed class OrderedListBlock : MarkdownBlock, IMarkdownListBlock, ISynta
             "ol",
             Items,
             Attributes,
-            _ => RenderOrderedListAttributes(),
+            RenderOrderedListAttributes(),
             renderItemAttributes);
 
     void IHtmlAppendableMarkdownBlock.AppendHtml(StringBuilder builder) =>
@@ -64,7 +64,7 @@ public sealed class OrderedListBlock : MarkdownBlock, IMarkdownListBlock, ISynta
             "ol",
             Items,
             Attributes,
-            _ => RenderOrderedListAttributes(),
+            RenderOrderedListAttributes(),
             renderItemAttributes: false);
 
     IReadOnlyList<ListItem> IMarkdownListBlock.ListItems => Items;

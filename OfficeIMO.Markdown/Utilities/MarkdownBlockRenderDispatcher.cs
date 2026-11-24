@@ -204,8 +204,8 @@ internal static class MarkdownBlockRenderDispatcher {
     }
 
     private static string? TryRenderSyntaxBlockHtmlOverride(IMarkdownBlock block, MarkdownBodyRenderContext context) {
-        var extensions = context.Options.SyntaxBlockRenderExtensions;
-        if (extensions.Count == 0) {
+        var extensions = context.Options.SyntaxBlockRenderExtensionsIfAny;
+        if (extensions == null) {
             return null;
         }
 
@@ -230,8 +230,8 @@ internal static class MarkdownBlockRenderDispatcher {
     }
 
     private static string? TryRenderBlockHtmlOverride(IMarkdownBlock block, MarkdownBodyRenderContext context) {
-        var extensions = context.Options.BlockRenderExtensions;
-        if (extensions.Count == 0) {
+        var extensions = context.Options.BlockRenderExtensionsIfAny;
+        if (extensions == null) {
             return null;
         }
 

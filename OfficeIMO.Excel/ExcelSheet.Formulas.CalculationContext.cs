@@ -94,7 +94,8 @@ namespace OfficeIMO.Excel {
         private static bool TryNormalizeFormulaResult(ref FormulaArgumentValue result) {
             if (result.Number.HasValue && (double.IsNaN(result.Number.Value) || double.IsInfinity(result.Number.Value)))
                 result = FormulaArgumentValue.Error("#NUM!");
-            return result.Text == null || IsFormulaTextXmlSafe(result.Text);
+            // A number's own spelling is digits, signs and letters only.
+            return result.IsTextNumberSpelling || result.Text == null || IsFormulaTextXmlSafe(result.Text);
         }
 
         // Legacy text indexing counts UTF-16 units. A slice through a surrogate pair
