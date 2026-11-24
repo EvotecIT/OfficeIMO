@@ -119,8 +119,9 @@ namespace OfficeIMO.Excel {
             if (x < 0) return 0;
             double k = degrees / 2;
             if (x == 0) return k == 1 ? 0.5 : k > 1 ? 0 : double.PositiveInfinity;
-            // x^(k−1) e^(−x/2) / (2ᵏ Γ(k)) = P's prefix at (k, x/2) over x, which stays exact near the mean.
-            return GammaPrefix(k, x / 2) / x;
+            // x^(k−1) e^(−x/2) / (2ᵏ Γ(k)) = P's prefix at (k, x/2) over x, which stays exact near the mean; the
+            // division happens in logarithms so a tiny x cannot underflow the prefix first.
+            return Math.Exp(LogGammaPrefix(k, x / 2) - Math.Log(x));
         }
 
         internal static double ChiSquaredCumulative(double x, double degrees) =>
@@ -243,15 +244,18 @@ namespace OfficeIMO.Excel {
         /// xᵃ e⁻ˣ / Γ(a). For large a the terms a ln x, x and ln Γ(a) are huge and nearly cancel near the mean, so
         /// Stirling's form is used: √(a / 2π) · exp(a (ln u − u + 1) − correction(a)) with u = x / a.
         /// </summary>
-        private static double GammaPrefix(double a, double x) {
-            if (a < 15) return Math.Exp(a * Math.Log(x) - x - LogGamma(a));
+        private static double GammaPrefix(double a, double x) => Math.Exp(LogGammaPrefix(a, x));
+
+        /// <summary>ln(xᵃ e⁻ˣ / Γ(a)), so a caller can scale it before it underflows.</summary>
+        private static double LogGammaPrefix(double a, double x) {
+            if (a < 15) return a * Math.Log(x) - x - LogGamma(a);
             double d = (x - a) / a;
             // Away from the mean nothing cancels; taking ln x directly keeps a tiny x from rounding u to 0 and a
             // huge x from overflowing 1 + d.
             double exponent = Math.Abs(d) < 0.5
                 ? a * LogOnePlusMinusSelf(d)
                 : a * (Math.Log(x) - Math.Log(a)) - (x - a);
-            return Math.Sqrt(a / (2 * Math.PI)) * Math.Exp(exponent - StirlingCorrection(a));
+            return 0.5 * Math.Log(a / (2 * Math.PI)) + exponent - StirlingCorrection(a);
         }
 
         /// <summary>ln(1 + d) − d for |d| &lt; ½, summed as a series so the two terms do not cancel.</summary>
@@ -317,9 +321,13 @@ namespace OfficeIMO.Excel {
         private static double RegularizedBeta(double x, double complement, double logX, double logComplement, double a, double b) {
             double prefix = Math.Exp(LogBetaNormalization(a, b) + a * logX + b * logComplement);
             // The continued fraction converges quickly below the mean; above it, use I_x(a,b) = 1 − I_(1−x)(b,a).
-            return x < (a + 1) / (a + b + 2)
-                ? prefix * BetaContinuedFraction(x, a, b) / a
-                : 1 - prefix * BetaContinuedFraction(complement, b, a) / b;
+            // Compare on the side nearer 0, where neither x nor the mean has rounded to 1.
+            bool belowMean = x <= 0.5 ? x < (a + 1) / (a + b + 2) : complement > (b + 1) / (a + b + 2);
+            if (!belowMean) return 1 - prefix * BetaContinuedFraction(complement, b, a) / b;
+            // With a huge a the fraction is sensitive to x at about a·ε; once x has rounded further than that from
+            // 1 − complement (x = 1 itself, say) neither form is reliable, so the formula is left uncalculated.
+            if (a * Math.Abs(1 - x - complement) > 1e-8) throw new NonConvergenceException();
+            return prefix * BetaContinuedFraction(x, a, b) / a;
         }
 
         /// <summary>

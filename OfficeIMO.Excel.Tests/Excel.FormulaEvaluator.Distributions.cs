@@ -76,8 +76,6 @@ namespace OfficeIMO.Tests {
         [InlineData("T.DIST(0,1E20,FALSE)", 0.3989422804014327)]
         [InlineData("T.DIST(1,1E20,FALSE)", 0.24197072451914337)]
         [InlineData("T.DIST(1,1E20,TRUE)", 0.8413447460685429)]
-        [InlineData("T.DIST.RT(3,1E20)", 0.0013498980316300946)]
-        [InlineData("T.INV(0.025,1E20)", -1.959963984540054)]
         // At the mean of a large gamma P(a, a) is ½ + 1/(3√(2πa)) to within O(a^−3/2).
         [InlineData("CHISQ.DIST(1E10,1E10,TRUE)", 0.5000018806319452)]
         [InlineData("CHISQ.DIST.RT(1E10,1E10)", 0.4999981193680548)]
@@ -87,6 +85,8 @@ namespace OfficeIMO.Tests {
         [InlineData("CHISQ.DIST(1E10,1E10,FALSE)", 2.8209479176917655e-6)]
         // z = 2 although the observation minus the mean overflows.
         [InlineData("NORM.DIST(1E308,-1E308,1E308,TRUE)", 0.9772498680518208)]
+        // Four degrees: x e^(−x/2) / 4.
+        [InlineData("CHISQ.DIST(1E-200,4,FALSE)", 2.5e-201)]
         [InlineData("T.DIST(0.5,300,FALSE)", 0.35164388573796046)]
         public void Test_FormulaEvaluator_DistributionInversesReachFarTails(string formula, double expected) {
             double actual = CalculateNumber(formula);
@@ -112,6 +112,19 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaEvaluator_StudentTWithHugeParametersFinishes() {
             Assert.Equal(1, CalculateNumber("T.DIST(1E100,1E200,TRUE)"));
+        }
+
+        // At 1E20 degrees x = ν/(ν+t²) rounds to 1 once t is away from the median, which the beta continued fraction
+        // cannot work from, so these are left to Excel rather than published wrong.
+        [Theory]
+        [InlineData("T.DIST.RT(3,1E20)")]
+        [InlineData("T.DIST.RT(8,1E20)")]
+        [InlineData("T.DIST.RT(10,1E20)")]
+        public void Test_FormulaEvaluator_StudentTFarTailAtHugeDegreesIsLeftToExcel(string formula) {
+            using var document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddSheet("Calc");
+            sheet.Cell(1, 1).SetFormula(formula);
+            Assert.Equal(0, document.Calculate());
         }
 
         [Fact]
