@@ -19,13 +19,14 @@ public sealed partial class EpubPublication {
             HashSet<string> after = EpubContentIdentifiers.Collect(edit.Document.Root!, edit.Path, false, token);
             anchors[edit.Path] = after;
             if (edit.Path == navPath) { wholeBook = true; continue; }
-            HashSet<string> before = EpubContentIdentifiers.Collect(ParseXml(_entries[edit.Path], _maximumEntryBytes).Root!, edit.Path, false, token);
-            if (!before.IsSubsetOf(after)) wholeBook = true;
+            // A payload that no longer parses (for example one relying on an undeclared DTD entity) has
+            // unknown identifiers, so replacing it re-checks the whole book.
+            HashSet<string>? before;
+            try { before = EpubContentIdentifiers.Collect(ParseXml(_entries[edit.Path], _maximumEntryBytes).Root!, edit.Path, false, token); }
+            catch (XmlException) { before = null; }
+            if (before == null || !before.IsSubsetOf(after)) wholeBook = true;
         }
-        if (wholeBook) {
-            ValidatePublication(_package, entries, new List<OfficeDiagnostic>(), token, changed: true, updateContentProperties: false);
-            return;
-        }
+        if (wholeBook) ValidatePublication(_package, entries, new List<OfficeDiagnostic>(), token, changed: true, updateContentProperties: false);
 
         ManifestLookup manifest = LiveManifest;
         var stylesheetResults = new Dictionary<string, bool>(StringComparer.Ordinal);
@@ -43,9 +44,12 @@ public sealed partial class EpubPublication {
                 throw new NotSupportedException("Script authoring is outside the EPUB writer contract.");
             // Like Write, an unchanged imported payload under its original media type isn't analyzed again.
             bool payloadChanged = !_originalEntries.TryGetValue(edit.Path, out byte[]? original) || !original.SequenceEqual(payloads[edit.Path]);
-            foreach (string mediaType in declarations
-                .Where(item => payloadChanged || !HasMediaType(OriginalManifestItem(item.Id)?.MediaType, item.MediaType)).Select(item => item.MediaType)
-                .Where(type => !HasMediaType(type, "application/x-dtbncx+xml")).Distinct(StringComparer.OrdinalIgnoreCase)) {
+            EpubManifestItem[] analyzed = declarations
+                .Where(item => payloadChanged || !HasMediaType(OriginalManifestItem(item.Id)?.MediaType, item.MediaType))
+                .Where(item => !HasMediaType(item.MediaType, "application/x-dtbncx+xml")).ToArray();
+            bool hasSvg = content.Descendants().Any(element => element.Name.NamespaceName == "http://www.w3.org/2000/svg" && element.Name.LocalName == "svg");
+            bool hasMathMl = content.Descendants().Any(element => element.Name.NamespaceName == "http://www.w3.org/1998/Math/MathML");
+            foreach (string mediaType in analyzed.Select(item => item.MediaType).Distinct(StringComparer.OrdinalIgnoreCase)) {
                 ValidateContent(content, mediaType);
                 string analysisContent = content.ToString(SaveOptions.DisableFormatting);
                 var limits = HtmlConversionLimits.UntrustedDefaults;
@@ -54,7 +58,11 @@ public sealed partial class EpubPublication {
                     HtmlXmlDocumentParser.CreateDocument(content, limits, token, skipProcessingInstructions: true),
                     new HtmlResourcePipelineOptions { Limits = limits });
                 if (resources.Resources.Any(resource => !resource.IsAllowed)) throw new NotSupportedException("Authored content contains a URL blocked by the shared HTML policy.");
-                ValidateAuthoredResources(content, edit.Path, resources, manifest, token, CheckStylesheet);
+                bool hasRemote = ValidateAuthoredResources(content, edit.Path, resources, manifest, token, CheckStylesheet);
+                // Write declares svg, mathml and remote-resources on these items; reserve that room now.
+                if (PackageVersion == "3.0")
+                    foreach (EpubManifestItem item in analyzed.Where(item => string.Equals(item.MediaType, mediaType, StringComparison.OrdinalIgnoreCase)))
+                        _packageGrowthAllowance += Math.Max(0, PropertiesBytes(ContentProperties(item, hasSvg, hasMathMl, hasRemote)) - PropertiesBytes(item.Properties));
             }
             // Fragment targets are checked against the identifiers of only the documents this edit links to.
             foreach (EpubReference reference in ContentResourceReferences(content, edit.Path, token)) {
@@ -70,6 +78,9 @@ public sealed partial class EpubPublication {
             ValidateContentReferences(content, edit.Path, entries, anchors, token);
         }
     }
+
+    private static long PropertiesBytes(string? properties) =>
+        properties == null ? 0 : Encoding.UTF8.GetByteCount(" properties=\"" + properties + "\"");
 
     // Read-only view of the retained entries with staged payloads layered over them.
     private sealed class EntryOverlay : IReadOnlyDictionary<string, byte[]> {

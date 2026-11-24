@@ -183,13 +183,16 @@ public sealed partial class EpubPublication {
     }
 
     // Serializes nodes as they appear inside the list, using the namespace declarations in scope there.
-    // Returns null when the nodes need a declaration of their own, because the document's serializer
-    // could then choose a different prefix than a standalone one.
+    // Returns null when that scope is ambiguous or the nodes need a declaration of their own, because the
+    // document's serializer could then choose a different prefix than a standalone one.
     private static byte[]? SerializeInListScope(XElement list, IReadOnlyList<XNode> nodes) {
         var scope = new XElement(list.Name);
         foreach (XElement ancestor in list.AncestorsAndSelf())
             foreach (XAttribute declaration in ancestor.Attributes().Where(attribute => attribute.IsNamespaceDeclaration))
                 if (scope.Attribute(declaration.Name) == null) scope.Add(new XAttribute(declaration));
+        // With two prefixes bound to one namespace the document uses the nearer binding, which a flattened
+        // scope can't reproduce, so those lists are serialized in full.
+        if (scope.Attributes().GroupBy(declaration => declaration.Value, StringComparer.Ordinal).Any(group => group.Count() > 1)) return null;
         string text = Encoding.ASCII.GetString(NavigationMarker, 4, NavigationMarker.Length - 7);
         scope.Add(new XComment(text));
         foreach (XNode node in nodes) scope.Add(node is XElement element ? new XElement(element) : node is XText value ? new XText(value) : (object)node.ToString());

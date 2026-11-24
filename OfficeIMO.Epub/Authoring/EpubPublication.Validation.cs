@@ -188,13 +188,16 @@ public sealed partial class EpubPublication {
             throw new InvalidDataException("Content fragment missing in " + owner + ": " + reference.Original);
     }
 
-    private static void UpdateContentProperties(EpubManifestItem item, bool hasSvg, bool hasMathMl, bool hasRemoteResources) {
+    private static void UpdateContentProperties(EpubManifestItem item, bool hasSvg, bool hasMathMl, bool hasRemoteResources) =>
+        item.Properties = ContentProperties(item, hasSvg, hasMathMl, hasRemoteResources);
+
+    private static string? ContentProperties(EpubManifestItem item, bool hasSvg, bool hasMathMl, bool hasRemoteResources) {
         // Linked CSS dependencies are not exhaustively traversed, so retain an explicit remote declaration.
         var properties = new List<string>(Tokens(item.Properties).Where(token => token != "svg" && token != "mathml"));
         if (hasSvg && HasMediaType(item.MediaType, "application/xhtml+xml")) properties.Add("svg");
         if (hasMathMl) properties.Add("mathml");
         if (hasRemoteResources) properties.Add("remote-resources");
-        item.Properties = properties.Count == 0 ? null : string.Join(" ", properties.Distinct(StringComparer.Ordinal));
+        return properties.Count == 0 ? null : string.Join(" ", properties.Distinct(StringComparer.Ordinal));
     }
 
     private EpubManifestItem? OriginalManifestItem(string id) => _originalManifest.TryGetValue(id, out EpubManifestItem? item) ? item : null;

@@ -99,6 +99,85 @@ public sealed class EpubIncrementalAuthoringContracts {
         Assert.Equal(before, book.Write(Stamp).Bytes);
     }
 
+    [Fact]
+    public void BatchCanReplaceAChapterWhoseRetainedBytesDoNotParse() {
+        var book = EpubPublication.Create("Repair", "en", "urn:example:repair");
+        book.AddChapter("one", "EPUB/one.xhtml", "One", "<p>One.</p>");
+        book.AddChapter("two", "EPUB/two.xhtml", "Two", "<p>Two.</p>");
+        // XHTML 1.1 chapters in the wild use DTD entities such as &nbsp; that a DTD-less parse rejects.
+        var imported = EpubPublication.Load(new MemoryStream(Replace(book.Write(Stamp).Bytes, "EPUB/two.xhtml",
+            "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.1//EN\" \"http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd\">" +
+            "<html xmlns=\"http://www.w3.org/1999/xhtml\"><head><title>Two</title></head><body><p>a&nbsp;b</p></body></html>")));
+        var repaired = new XDocument(new XElement(Html + "html", new XElement(Html + "head", new XElement(Html + "title", "Two")),
+            new XElement(Html + "body", new XElement(Html + "p", "Repaired."))));
+
+        imported.SetContentXml(new Dictionary<string, XDocument> { ["two"] = repaired });
+
+        Assert.Contains("Repaired.", Encoding.UTF8.GetString(imported.GetResourceBytes("two")));
+    }
+
+    [Fact]
+    public void AppendedNavigationMatchesWhenTwoPrefixesBindXhtml() {
+        var book = EpubPublication.Create("Prefixes", "en", "urn:example:prefixes");
+        book.AddChapter("c0", "EPUB/c0.xhtml", "Zero", "<p>Zero.</p>");
+        var navigation = book.GetContentXml("navigation");
+        navigation.Descendants(Html + "nav").Single().Add(new XAttribute(XNamespace.Xmlns + "h", Html.NamespaceName));
+        book.SetContentXml("navigation", navigation);
+        for (int index = 1; index < 4; index++) book.AddChapter("c" + index, "EPUB/c" + index + ".xhtml", "Chapter " + index, "<p>Text.</p>");
+        var reloaded = EpubPublication.Load(new MemoryStream(book.Write(Stamp).Bytes));
+
+        book.AddChapter("c4", "EPUB/c4.xhtml", "Four", "<p>Four.</p>");
+        reloaded.AddChapter("c4", "EPUB/c4.xhtml", "Four", "<p>Four.</p>");
+
+        Assert.Equal(reloaded.GetResourceBytes("navigation"), book.GetResourceBytes("navigation"));
+    }
+
+    [Fact]
+    public void ContentPropertiesWriteWillAddCountTowardTheCallBudget() {
+        var book = EpubPublication.Create("Math", "en", "urn:example:math");
+        book.AddChapter("c0", "EPUB/c0.xhtml", "Zero", "<p>Zero.</p>");
+        byte[] input = book.Write(Stamp).Bytes;
+        using var zip = new ZipArchive(new MemoryStream(input), ZipArchiveMode.Read);
+        var limited = EpubPublication.Load(new MemoryStream(input), new EpubPublicationLoadOptions { MaxMetadataBytes = zip.GetEntry("EPUB/package.opf")!.Length + 10 });
+        XNamespace math = "http://www.w3.org/1998/Math/MathML";
+        var content = new XDocument(new XElement(Html + "html", new XElement(Html + "head", new XElement(Html + "title", "Zero")),
+            new XElement(Html + "body", new XElement(math + "math", new XElement(math + "mi", "x")))));
+
+        // Write would declare properties="mathml", which doesn't fit in ten bytes.
+        Assert.Throws<InvalidDataException>(() => limited.SetContentXml(new Dictionary<string, XDocument> { ["c0"] = content }));
+        Assert.Equal(input, limited.Write(Stamp).Bytes);
+    }
+
+    [Fact]
+    public void RejectedEditKeepsAnExplicitlyEmptyElement() {
+        var book = EpubPublication.Create("Empty", "en", "urn:example:empty");
+        book.AddChapter("c0", "EPUB/c0.xhtml", "Zero", "<p>Zero.</p>");
+        byte[] written = book.Write(Stamp).Bytes;
+        string package;
+        using (var zip = new ZipArchive(new MemoryStream(written), ZipArchiveMode.Read))
+        using (var reader = new StreamReader(zip.GetEntry("EPUB/package.opf")!.Open())) package = reader.ReadToEnd();
+        package = System.Text.RegularExpressions.Regex.Replace(package, "<spine>.*</spine>", "<spine></spine>");
+        var imported = EpubPublication.Load(new MemoryStream(Replace(written, "EPUB/package.opf", package)),
+            new EpubPublicationLoadOptions { MaxMetadataBytes = Encoding.UTF8.GetByteCount(package) + 8 });
+        string before = imported.GetPackageXml().ToString(SaveOptions.DisableFormatting);
+
+        Assert.Throws<InvalidDataException>(() => imported.AddSpineItem("c0"));
+
+        Assert.Equal(before, imported.GetPackageXml().ToString(SaveOptions.DisableFormatting));
+        Assert.Contains("<spine></spine>", before);
+    }
+
+    private static byte[] Replace(byte[] epub, string path, string content) {
+        using var output = new MemoryStream();
+        output.Write(epub, 0, epub.Length);
+        using (var zip = new ZipArchive(output, ZipArchiveMode.Update, true)) {
+            zip.GetEntry(path)!.Delete();
+            using var writer = new StreamWriter(zip.CreateEntry(path).Open(), new UTF8Encoding(false));
+            writer.Write(content);
+        }
+        return output.ToArray();
+    }
+
     // Builds a fixed-layout book one page at a time: chapter, image, then page canvas.
     internal static EpubPublication PageBook(int pages) {
         var book = EpubPublication.Create("Pages", "en", "urn:example:pages");

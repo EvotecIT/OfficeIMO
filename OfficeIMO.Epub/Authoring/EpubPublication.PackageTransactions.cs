@@ -6,6 +6,12 @@ public sealed partial class EpubPublication {
     // Upper bound of the serialized package size in UTF-8 bytes, or -1 when unknown. Budget checks
     // serialize the package only when this bound cannot prove the edit fits.
     private long _packageBytesBound = -1;
+    // Package growth that Write will add on top of the live package, such as content properties it
+    // derives from edited documents. Budget checks during an edit reserve this much room.
+    private long _packageGrowthAllowance;
+    // Elements loaded as <a></a>. Adding a child replaces that empty string without raising an event, so
+    // undoing the add must restore it. Collected on first use inside an edit, then kept current.
+    private HashSet<XElement>? _emptyStringElements;
 
     // Applies an edit to the live package and checks its budgets. A rejected edit replays the recorded
     // changes backwards, so the package, its declaration wrappers and the change state stay as they were.
@@ -26,6 +32,7 @@ public sealed partial class EpubPublication {
             committed = true;
         } finally {
             _packageJournal = null;
+            _packageGrowthAllowance = 0;
             if (!committed) {
                 _packageRollback = true;
                 try { journal.Rollback(); } finally { _packageRollback = false; InvalidatePackageIndexes(); }
@@ -37,6 +44,7 @@ public sealed partial class EpubPublication {
     private void EnsureLivePackageBudget(long payloadDelta) {
         long available = _maximumRetainedBytes - RetainedPayloadBytes - payloadDelta;
         long maximum = Math.Min(_maximumMetadataBytes, Math.Min(_maximumEntryBytes, available));
+        maximum -= _packageGrowthAllowance;
         if (maximum < 1) throw new InvalidDataException("Package XML exceeds the publication's retained-byte limits.");
         if (_packageBytesBound >= 0 && _packageBytesBound <= maximum) return;
         _packageBytesBound = SerializeXml(_package, maximum).LongLength;
@@ -46,6 +54,8 @@ public sealed partial class EpubPublication {
         if (_packageRollback) return;
         IndexPackageChanging(sender, args.ObjectChange);
         if (_packageJournal == null) { _packageBytesBound = -1; return; }
+        if (_emptyStringElements == null && args.ObjectChange == XObjectChange.Add)
+            _emptyStringElements = new HashSet<XElement>(_package.Descendants().Where(HasEmptyStringContent));
         long growth = _packageJournal.Record(sender as XObject, args.ObjectChange);
         _packageBytesBound = _packageBytesBound < 0 || growth < 0 ? -1 : _packageBytesBound + growth;
     }
@@ -53,9 +63,23 @@ public sealed partial class EpubPublication {
     private void OnPackageChanged(object? sender, XObjectChangeEventArgs args) {
         if (_packageRollback) return;
         IndexPackageChanged(sender, args.ObjectChange);
+        TrackEmptyStringContent(sender, args.ObjectChange);
         if (_packageJournal == null) { MarkChanged(); return; }
         long growth = PackageJournal.Completed(sender as XObject, args.ObjectChange);
         _packageBytesBound = _packageBytesBound < 0 || growth < 0 ? -1 : _packageBytesBound + growth;
+    }
+
+    private static bool HasEmptyStringContent(XElement element) =>
+        !element.IsEmpty && !element.HasElements && element.Value.Length == 0 && element.LastNode == null;
+
+    private void TrackEmptyStringContent(object? sender, XObjectChange change) {
+        if (_emptyStringElements == null) return;
+        if (sender is XElement element && change == XObjectChange.Value) {
+            if (HasEmptyStringContent(element)) _emptyStringElements.Add(element); else _emptyStringElements.Remove(element);
+        } else if (sender is XNode node && change == XObjectChange.Add && node.Parent is XElement parent &&
+            _emptyStringElements.Remove(parent) && _packageJournal != null) {
+            _packageJournal.RestoreEmptyStringOnUndo(node, parent);
+        }
     }
 
     // Records enough state before each XML change to undo it exactly, and estimates how much each change
@@ -64,6 +88,10 @@ public sealed partial class EpubPublication {
         private readonly List<Action> _undo = new();
 
         internal bool HasChanges => _undo.Count != 0;
+
+        // Called right after the node's add was recorded, so the last undo entry is that add.
+        internal void RestoreEmptyStringOnUndo(XNode node, XElement parent) =>
+            _undo[_undo.Count - 1] = () => { node.Remove(); if (parent.IsEmpty) parent.Add(string.Empty); };
 
         internal long Record(XObject? sender, XObjectChange change) {
             switch (sender) {
