@@ -36,6 +36,66 @@
       "licenseUrl": "https://github.com/ClosedXML/ClosedXML/blob/057f5976c788d97e8eac86d1a528bd5411d9386e/LICENSE",
       "fileCount": 384,
       "contentSha256": "3eba08fd37d5062a8687040e39e4dccca61b33dcb41f9728b7245957306af397"
+    },
+    {
+      "id": "exceldatareader",
+      "name": "ExcelDataReader test data",
+      "repository": "https://github.com/ExcelDataReader/ExcelDataReader.git",
+      "commit": "700813d4d3b4a8f107b0be4c0dff80bdba652f2a",
+      "paths": [ "src/TestData" ],
+      "extensions": [ ".docx", ".docm", ".dotx", ".dotm", ".xlsx", ".xlsm", ".xltx", ".xltm", ".xlam", ".pptx", ".pptm", ".potx", ".potm", ".ppsx", ".ppsm", ".ppam" ],
+      "license": "MIT",
+      "licenseUrl": "https://github.com/ExcelDataReader/ExcelDataReader/blob/700813d4d3b4a8f107b0be4c0dff80bdba652f2a/LICENSE",
+      "fileCount": 202,
+      "contentSha256": "e3bd35a60e1b0d3103ebb98475c583702f54b9957c8c08d6e22954dc730facba"
+    },
+    {
+      "id": "python-docx",
+      "name": "python-docx test files",
+      "repository": "https://github.com/python-openxml/python-docx.git",
+      "commit": "e45454602b53e8e572b179ccf1c91093ec9f4ed7",
+      "paths": [ "features/steps/test_files", "tests/test_files" ],
+      "extensions": [ ".docx", ".docm", ".dotx", ".dotm", ".xlsx", ".xlsm", ".xltx", ".xltm", ".xlam", ".pptx", ".pptm", ".potx", ".potm", ".ppsx", ".ppsm", ".ppam" ],
+      "license": "MIT",
+      "licenseUrl": "https://github.com/python-openxml/python-docx/blob/e45454602b53e8e572b179ccf1c91093ec9f4ed7/LICENSE",
+      "fileCount": 45,
+      "contentSha256": "fe03ed04098f0e17248990e1a63b63ccdf76d19e23c69ed7be60547cdee19c82"
+    },
+    {
+      "id": "python-pptx",
+      "name": "python-pptx test files",
+      "repository": "https://github.com/scanny/python-pptx.git",
+      "commit": "278b47b1dedd5b46ee84c286e77cdfb0bf4594be",
+      "paths": [ "features/steps/test_files", "tests/test_files" ],
+      "extensions": [ ".docx", ".docm", ".dotx", ".dotm", ".xlsx", ".xlsm", ".xltx", ".xltm", ".xlam", ".pptx", ".pptm", ".potx", ".potm", ".ppsx", ".ppsm", ".ppam" ],
+      "license": "MIT",
+      "licenseUrl": "https://github.com/scanny/python-pptx/blob/278b47b1dedd5b46ee84c286e77cdfb0bf4594be/LICENSE",
+      "fileCount": 69,
+      "contentSha256": "2da54a434a8dd3c916ea5e23b003c510925176fa97e71aef43a1648d7c965c28"
+    },
+    {
+      "id": "mammoth",
+      "name": "Mammoth test documents",
+      "repository": "https://github.com/mwilliamson/mammoth.js.git",
+      "commit": "5171a9072f8b7343ab1c9ed3a15d6d372cb59b67",
+      "paths": [ "test/test-data" ],
+      "extensions": [ ".docx", ".docm", ".dotx", ".dotm", ".xlsx", ".xlsm", ".xltx", ".xltm", ".xlam", ".pptx", ".pptm", ".potx", ".potm", ".ppsx", ".ppsm", ".ppam" ],
+      "license": "BSD-2-Clause",
+      "licenseUrl": "https://github.com/mwilliamson/mammoth.js/blob/5171a9072f8b7343ab1c9ed3a15d6d372cb59b67/LICENSE",
+      "fileCount": 17,
+      "contentSha256": "d7eb06d6175da6136a22f37846a541bfdbcde194151231a9971d346b042df23a"
+    },
+    {
+      "id": "calamine",
+      "name": "calamine test workbooks",
+      "repository": "https://github.com/tafia/calamine.git",
+      "commit": "93e2e6b32b87a7b1e80bd036ea63bbe6f1ca90a6",
+      "paths": [ "tests" ],
+      "extensions": [ ".docx", ".docm", ".dotx", ".dotm", ".xlsx", ".xlsm", ".xltx", ".xltm", ".xlam", ".pptx", ".pptm", ".potx", ".potm", ".ppsx", ".ppsm", ".ppam" ],
+      "license": "MIT",
+      "licenseUrl": "https://github.com/tafia/calamine/blob/93e2e6b32b87a7b1e80bd036ea63bbe6f1ca90a6/LICENSE-MIT.md",
+      "fileCount": 82,
+      "contentSha256": "81acc34c991ef59048a0e3339173caee267583ce20d5e7c6d66c593a983e4815"
     }
   ]
 }
