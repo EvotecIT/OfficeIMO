@@ -123,4 +123,4 @@ $table = foreach ($group in $results | Group-Object Cmdlet) {
     $row['Gen2'] = [int]($group.Group | Measure-Object Gen2Collections -Sum).Sum
     [pscustomobject]$row
 }
-$table | Format-Table -AutoSize | Out-String -Width 220
+$table | Format-Table -AutoSize | Out-String -Width 4096
