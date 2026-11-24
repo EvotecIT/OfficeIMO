@@ -528,7 +528,7 @@ public partial class MarkdownDocument : MarkdownObject {
         return HtmlRenderer.RenderParts(this, operation);
     }
 
-    internal (System.Collections.Generic.List<IMarkdownBlock> Blocks, MarkdownHeadingCatalog HeadingCatalog) GetBlocksAndHeadingSlugs(
+    internal (IReadOnlyList<IMarkdownBlock> Blocks, MarkdownHeadingCatalog HeadingCatalog) GetBlocksAndHeadingSlugs(
         MarkdownHeadingIdentifierStyle headingIdentifierStyle = MarkdownHeadingIdentifierStyle.OfficeIMO,
         System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
@@ -602,14 +602,15 @@ public partial class MarkdownDocument : MarkdownObject {
         return Toc(opts => { opts.Title = title ?? ""; opts.IncludeTitle = !string.IsNullOrEmpty(title); opts.MinLevel = min; opts.MaxLevel = max; opts.Ordered = ordered; opts.TitleLevel = titleLevel; opts.Scope = MarkdownTocScope.HeadingTitle; opts.ScopeHeadingTitle = headingTitle; }, placeAtTop: false);
     }
 
-    private (System.Collections.Generic.List<IMarkdownBlock> Blocks, MarkdownHeadingCatalog HeadingCatalog) RealizeTocPlaceholders(
+    private (IReadOnlyList<IMarkdownBlock> Blocks, MarkdownHeadingCatalog HeadingCatalog) RealizeTocPlaceholders(
         MarkdownHeadingIdentifierStyle headingIdentifierStyle, System.Threading.CancellationToken cancellationToken) {
         bool hasTocPlaceholder = false;
         for (int i = 0; i < _blocks.Count && !hasTocPlaceholder; i++) {
             hasTocPlaceholder = _blocks[i] is ITocPlaceholderMarkdownBlock;
         }
 
-        // Without placeholders there is nothing to realize: render from the document's own blocks.
+        // Without placeholders there is nothing to realize: render from the document's own blocks,
+        // returned read-only so callers that filter them take a copy.
         if (!hasTocPlaceholder) {
             return (_blocks, MarkdownHeadingCatalog.Create(_blocks, headingIdentifierStyle, cancellationToken));
         }
