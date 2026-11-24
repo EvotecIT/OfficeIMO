@@ -40,8 +40,6 @@ internal sealed partial class OfficeXmlTree {
     private readonly int _encodingStart;
     private readonly int _encodingEnd;
     private readonly OfficeXmlPullReader? _decoder;
-    // For a parsed element that was detached: the parent it was parsed under, whose namespace scope its markup assumes.
-    private Dictionary<int, int>? _detachedFrom;
     // Bindings a moved or re-scoped element keeps from where it was written, so its names and any QName values in its
     // attributes or text mean what they meant there. The writer declares those its new scope binds differently.
     private Dictionary<int, List<CarriedBinding>>? _carried;
@@ -253,6 +251,7 @@ internal sealed partial class OfficeXmlTree {
                 return;
             }
             if (string.Equals(AttributeValue(ref _attrs[index]), value, StringComparison.Ordinal)) return;
+            CheckDeclaration(node, prefix, value);
             CarryBindingToChildren(node, prefix);
             BindDeclaration(ref _attrs[index], prefix, value);
             _attrs[index].Value = value;
@@ -291,12 +290,12 @@ internal sealed partial class OfficeXmlTree {
     /// <exception cref="InvalidOperationException">The element already binds the prefix to another namespace.</exception>
     internal void DeclareNamespace(int node, string prefix, string uri) {
         ArgumentNullException.ThrowIfNull(uri);
-        if (prefix.Length > 0 && uri.Length == 0) throw new ArgumentException("A prefix cannot be bound to an empty namespace.", nameof(uri));
         int existing = FindAttribute(node, OfficeXmlNamespaces.Xmlns, prefix.Length == 0 ? "xmlns" : prefix);
         if (existing >= 0) {
             if (string.Equals(AttributeValue(ref _attrs[existing]), uri, StringComparison.Ordinal)) return;
             throw new InvalidOperationException("The element already declares the prefix '" + prefix + "' for another namespace.");
         }
+        CheckDeclaration(node, prefix, uri);
         CarryBindingToChildren(node, prefix);
         int index = AppendAttribute(node);
         ref Attr declaration = ref _attrs[index];
@@ -415,23 +414,19 @@ internal sealed partial class OfficeXmlTree {
         MarkSubtree(child);
         // A parsed node that moves may rely on namespace declarations of its old ancestors, so every start tag in it is
         // written again, declaring what its new place binds differently.
-        if (child < _sourceNodeCount) {
-            if (_nodes[child].Kind == OfficeXmlTreeNodeKind.Element && _detachedFrom != null && _detachedFrom.TryGetValue(child, out int oldParent)) {
-                CarryScope(child, oldParent);
-            }
-            MarkMoved(child);
-        }
+        if (child < _sourceNodeCount) MarkMoved(child);
     }
 
-    // Records every binding in scope at the old parent that the element does not declare itself. Only the first move
-    // counts: the markup was written for the scope it was parsed in.
-    private void CarryScope(int element, int oldParent) {
+    // Records every binding in scope where the element sits now that it does not declare itself, keeping a binding it
+    // already carries: the markup was written for the scope it was parsed in. An ancestor's own declarations come
+    // before the bindings it carries, as they do when it is written.
+    private void CarryScope(int element, int parent) {
         _carried ??= new Dictionary<int, List<CarriedBinding>>();
-        if (_carried.ContainsKey(element)) return;
-        var bindings = new List<CarriedBinding>();
+        if (!_carried.TryGetValue(element, out List<CarriedBinding>? bindings)) _carried.Add(element, bindings = new List<CarriedBinding>());
         var seen = new HashSet<string>(StringComparer.Ordinal);
         CollectDeclaredPrefixes(element, seen);
-        for (int ancestor = oldParent; ancestor != NoNode; ancestor = _nodes[ancestor].Parent) {
+        foreach (CarriedBinding binding in bindings) seen.Add(binding.Prefix);
+        for (int ancestor = parent; ancestor != NoNode; ancestor = _nodes[ancestor].Parent) {
             ref Node record = ref _nodes[ancestor];
             int end = record.AttrFirst + record.AttrCount;
             for (int index = record.AttrFirst; index < end; index++) {
@@ -439,9 +434,33 @@ internal sealed partial class OfficeXmlTree {
                 if (!IsDeclaration(ref attribute, out string prefix) || !seen.Add(prefix)) continue;
                 bindings.Add(new CarriedBinding(prefix, attribute.DeclaredNamespace, attribute.DeclaredUri));
             }
+            if (_carried.TryGetValue(ancestor, out List<CarriedBinding>? inherited)) {
+                foreach (CarriedBinding binding in inherited) {
+                    if (seen.Add(binding.Prefix)) bindings.Add(binding);
+                }
+            }
         }
         if (seen.Add(string.Empty)) bindings.Add(new CarriedBinding(string.Empty, OfficeXmlNamespaces.None, OfficeXmlNamespaces.None));
-        _carried.Add(element, bindings);
+    }
+
+    // A declaration on an element whose own name or attributes use the prefix would need two bindings on one tag.
+    private void CheckDeclaration(int element, string prefix, string uri) {
+        if (prefix.Length > 0 && uri.Length == 0) throw new ArgumentException("A prefix cannot be bound to an empty namespace.", nameof(uri));
+        int uriId = OfficeXmlNamespaces.None;
+        if (uri.Length > 0) Namespaces.GetId(uri, out uriId);
+        if (UsesPrefix(_nodes[element].Name)) Conflict();
+        ref Node record = ref _nodes[element];
+        int end = record.AttrFirst + record.AttrCount;
+        for (int index = record.AttrFirst; index < end; index++) {
+            if (!IsDeclaration(ref _attrs[index], out _) && UsesPrefix(_attrs[index].Name)) Conflict();
+        }
+
+        bool UsesPrefix(int nameId) {
+            OfficeXmlName name = Namespaces.GetName(nameId);
+            return name.Prefix == prefix && name.UriId != uriId && (prefix.Length > 0 || name.NamespaceId != OfficeXmlNamespaces.None || uriId != OfficeXmlNamespaces.None);
+        }
+
+        void Conflict() => throw new InvalidOperationException("The element uses the prefix '" + prefix + "' for another namespace, so it cannot bind it to '" + uri + "'.");
     }
 
     // Before a declaration on the element changes, its children keep the binding the prefix had there, and their start
@@ -546,20 +565,18 @@ internal sealed partial class OfficeXmlTree {
 
     /// <summary>Detaches a node and its subtree.</summary>
     internal void Remove(int node) {
-        ref Node record = ref _nodes[node];
-        int parent = record.Parent;
+        int parent = _nodes[node].Parent;
         if (parent == NoNode) throw new InvalidOperationException("The root cannot be removed.");
+        // The scope a parsed element was written in is taken before it leaves, so later edits there do not change it.
+        if (node < _sourceNodeCount && _nodes[node].Kind == OfficeXmlTreeNodeKind.Element) CarryScope(node, parent);
+        ref Node record = ref _nodes[node];
         if (record.Previous != NoNode) _nodes[record.Previous].Next = record.Next;
         else _nodes[parent].FirstChild = record.Next;
         if (record.Next != NoNode) _nodes[record.Next].Previous = record.Previous;
         else _nodes[parent].LastChild = record.Previous;
         record.Parent = record.Next = record.Previous = NoNode;
         // Comments and instructions written before the node leave with it rather than reappear where it is inserted.
-        if (node < _sourceNodeCount) {
-            _spans[node].GapStart = -1;
-            _detachedFrom ??= new Dictionary<int, int>();
-            if (!_detachedFrom.ContainsKey(node)) _detachedFrom.Add(node, parent);
-        }
+        if (node < _sourceNodeCount) _spans[node].GapStart = -1;
         MarkChanged(parent, ContentChanged);
     }
 

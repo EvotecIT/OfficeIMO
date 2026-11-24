@@ -31,7 +31,7 @@ internal sealed partial class OfficeXmlTree {
         bool sourced = node < _sourceNodeCount;
         ref Span span = ref sourced ? ref _spans[node] : ref _noSpan;
         if (record.Kind == OfficeXmlTreeNodeKind.Text) {
-            if (sourced && (record.Flags & ContentChanged) == 0 && !FollowsOtherText(node)) writer.WriteRaw(_source!, span.StartTagStart, span.StartTagEnd - span.StartTagStart);
+            if (IsTextWrittenRaw(node)) writer.WriteRaw(_source!, span.StartTagStart, span.StartTagEnd - span.StartTagStart);
             else writer.WriteEscaped(GetText(node), attribute: false);
             return;
         }
@@ -92,11 +92,16 @@ internal sealed partial class OfficeXmlTree {
     }
 
     // Text written as it was is safe next to the markup it was written beside. Next to other text, which an edit
-    // brought there, two raw pieces could join into "]]>", so the second is escaped.
-    private bool FollowsOtherText(int node) {
-        int previous = _nodes[node].Previous;
-        if (previous == NoNode || _nodes[previous].Kind != OfficeXmlTreeNodeKind.Text) return false;
-        return previous >= _sourceNodeCount || (_nodes[previous].Flags & ContentChanged) != 0 || _spans[previous].StartTagEnd != _spans[node].StartTagStart;
+    // brought there, two pieces could join into "]]>", so the second is escaped, and so is every piece after it.
+    // A run of text keeps its raw spelling only as long as each piece follows the raw piece it was written after.
+    private bool IsTextWrittenRaw(int node) {
+        while (true) {
+            if (node >= _sourceNodeCount || (_nodes[node].Flags & ContentChanged) != 0) return false;
+            int previous = _nodes[node].Previous;
+            if (previous == NoNode || _nodes[previous].Kind != OfficeXmlTreeNodeKind.Text) return true;
+            if (previous >= _sourceNodeCount || _spans[previous].StartTagEnd != _spans[node].StartTagStart) return false;
+            node = previous;
+        }
     }
 
     // Writes "<name attributes" and returns the element's prefix.

@@ -219,6 +219,84 @@ public class OpenXmlXmlTreeTests {
         Assert.Equal("INF", tree.GetAttribute(tree.Root, OfficeXmlNamespaces.None, "b"));
     }
 
+    [Theory]
+    [InlineData("<p:r xmlns:p=\"urn:old\"/>")]
+    [InlineData("<r xmlns:p=\"urn:old\" p:a=\"1\"/>")]
+    public void RejectsDeclarationEditsThatConflictWithNamesOnTheSameTag(string xml) {
+        OfficeXmlTree tree = Parse(xml);
+
+        Assert.Throws<InvalidOperationException>(() => tree.SetAttribute(tree.Root, OfficeXmlNamespaces.Xmlns, "p", "urn:new"));
+        Assert.Throws<ArgumentException>(() => tree.SetAttribute(tree.Root, OfficeXmlNamespaces.Xmlns, "p", string.Empty));
+        Assert.Equal(xml, Encoding.UTF8.GetString(Write(tree)));
+
+        OfficeXmlTree nested = Parse("<r xmlns:p=\"urn:old\"><p:a/></r>");
+        Assert.Throws<InvalidOperationException>(() => nested.DeclareNamespace(nested.FirstChildOf(nested.Root), "p", "urn:new"));
+    }
+
+    [Fact]
+    public void AnElementMovedOutOfAMovedElementKeepsTheBindingsItWasWrittenWith() {
+        OfficeXmlTree tree = Parse("<r xmlns:t=\"urn:old\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"><outer><x xsi:type=\"t:W\"/></outer>"
+            + "<d xmlns:t=\"urn:new\"/><n xmlns:t=\"urn:third\"/></r>");
+        int outer = tree.FindChild(tree.Root, OfficeXmlNamespaces.None, "outer");
+        int x = tree.FirstChildOf(outer);
+        tree.Remove(outer);
+        tree.Append(tree.FindChild(tree.Root, OfficeXmlNamespaces.None, "d"), outer);
+
+        tree.Remove(x);
+        tree.Append(tree.FindChild(tree.Root, OfficeXmlNamespaces.None, "n"), x);
+
+        Assert.Equal("urn:old", MovedX(tree, "n").GetNamespaceOfPrefix("t")!.NamespaceName);
+    }
+
+    [Fact]
+    public void AMoveAfterADeclarationEditKeepsEveryInheritedBinding() {
+        OfficeXmlTree tree = Parse("<r><p xmlns:q=\"urn:q\" xmlns:t=\"urn:old\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"><x q:k=\"v\" xsi:type=\"t:W\"/></p><d xmlns:t=\"urn:new\"/></r>");
+        int parent = tree.FindChild(tree.Root, OfficeXmlNamespaces.None, "p");
+        int x = tree.FirstChildOf(parent);
+        tree.RemoveAttribute(parent, OfficeXmlNamespaces.Xmlns, "q");
+
+        tree.Remove(x);
+        tree.Append(tree.FindChild(tree.Root, OfficeXmlNamespaces.None, "d"), x);
+
+        XElement moved = MovedX(tree, "d");
+        Assert.Equal("urn:old", moved.GetNamespaceOfPrefix("t")!.NamespaceName);
+        Assert.Equal("v", moved.Attribute(XName.Get("k", "urn:q"))!.Value);
+    }
+
+    [Fact]
+    public void ADetachedElementKeepsTheBindingsItHadWhenItWasRemoved() {
+        OfficeXmlTree tree = Parse("<r><d xmlns:t=\"urn:old\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"><x xsi:type=\"t:W\"/></d></r>");
+        int parent = tree.FindChild(tree.Root, OfficeXmlNamespaces.None, "d");
+        int x = tree.FirstChildOf(parent);
+
+        tree.Remove(x);
+        tree.SetAttribute(parent, OfficeXmlNamespaces.Xmlns, "t", "urn:new");
+        tree.Append(parent, x);
+
+        Assert.Equal("urn:old", MovedX(tree, "d").GetNamespaceOfPrefix("t")!.NamespaceName);
+    }
+
+    [Fact]
+    public void EscapesEveryTextPieceAfterOneThatIsWrittenAgain() {
+        OfficeXmlTree tree = Parse("<r>A<x/><![CDATA[]]]]>>Z</r>");
+        tree.Remove(tree.FindChild(tree.Root, OfficeXmlNamespaces.None, "x"));
+
+        Assert.Equal("A]]>Z", Load(Write(tree)).Root!.Value);
+    }
+
+    [Fact]
+    public void TrimsOnlyXmlWhitespaceAroundValues() {
+        OfficeXmlTree tree = Parse("<r a=\" INF \" b=\" &#xA0;INF\" c=\"&#xA0;5\" d=\"\t7\r\n\"/>");
+
+        Assert.Equal(double.PositiveInfinity, OfficeXmlViewValues.ReadDouble(tree, tree.Root, OfficeXmlNamespaces.None, "a"));
+        Assert.Null(OfficeXmlViewValues.ReadDouble(tree, tree.Root, OfficeXmlNamespaces.None, "b"));
+        Assert.Null(OfficeXmlViewValues.ReadInt32(tree, tree.Root, OfficeXmlNamespaces.None, "c"));
+        Assert.Equal(7, OfficeXmlViewValues.ReadInt32(tree, tree.Root, OfficeXmlNamespaces.None, "d"));
+    }
+
+    private static XElement MovedX(OfficeXmlTree tree, string parent) =>
+        XDocument.Load(new MemoryStream(Write(tree))).Root!.Descendants(parent).Single().Element("x")!;
+
     private static OfficeXmlTree Parse(string xml) {
         byte[] bytes = Encoding.UTF8.GetBytes(xml);
         return OfficeXmlTree.Parse(bytes, bytes.Length, new OfficeXmlNamespaces.Table());

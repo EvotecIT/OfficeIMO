@@ -88,7 +88,10 @@ internal static class OfficeXmlViewValues {
     }
 
     // XML Schema collapses whitespace in boolean and numeric values.
-    private static string Trim(string value) => value.Length > 0 && (value[0] <= ' ' || value[value.Length - 1] <= ' ') ? value.Trim() : value;
+    // XML Schema's whitespace collapse removes only space, tab, carriage return and line feed.
+    private static readonly char[] XmlWhitespace = { ' ', '\t', '\r', '\n' };
+
+    private static string Trim(string value) => value.Length > 0 && (value[0] <= ' ' || value[value.Length - 1] <= ' ') ? value.Trim(XmlWhitespace) : value;
 }
 
 /// <summary>The child elements of one name, enumerated without allocating.</summary>
