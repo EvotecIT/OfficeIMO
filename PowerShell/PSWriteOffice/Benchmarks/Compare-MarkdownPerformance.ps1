@@ -214,6 +214,10 @@ $expectedText = @{
     MediumDocument = @('OfficeIMO Markdown Overview', 'Typed document traversal', 'MarkdownDocument.Create();', 'Keep portability in mind.', 'close to a normal README.')
 }
 
+# The README inputs repeat one section; each lane must render this line once per section.
+$sectionMarker = 'close to a normal README.'
+$expectedSections = @{ Paragraph = 0; SmallReadme = 1; MediumDocument = 12 }
+
 function Assert-LaneOutput {
     param([string] $Lane, [string] $InputName, [string] $Html)
     $text = [Net.WebUtility]::HtmlDecode($Html)
@@ -221,6 +225,11 @@ function Assert-LaneOutput {
         if ($text.IndexOf($expected, [StringComparison]::Ordinal) -lt 0) {
             throw "$Lane did not produce the expected HTML for $InputName (missing '$expected')."
         }
+    }
+
+    $sections = ([regex]::Matches($text, [regex]::Escape($sectionMarker))).Count
+    if ($sections -ne $expectedSections[$InputName]) {
+        throw "$Lane rendered $sections of $($expectedSections[$InputName]) sections for $InputName."
     }
 }
 
