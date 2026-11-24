@@ -40,6 +40,13 @@ namespace OfficeIMO.Tests {
             Assert.Equal(new object?[] { expected }, ReadFirstRow(package));
         }
 
+        [Fact]
+        public void TimeOnlyIsoCellKeepsTickPrecision() {
+            byte[] package = CreateWorkbook("<row r=\"1\"><c r=\"A1\" t=\"d\"><v>10:59:59.9999999999984025</v></c></row>");
+
+            Assert.Equal(new object?[] { new DateTime(1899, 12, 30, 10, 59, 59).AddTicks(9_999_999) }, ReadFirstRow(package));
+        }
+
         [Theory]
         [InlineData("http://schemas.microsoft.com/office/2006/relationships/xlMacrosheet", "application/vnd.ms-excel.macrosheet+xml")]
         [InlineData("http://schemas.microsoft.com/office/2006/relationships/xlIntlMacrosheet", "application/vnd.ms-excel.intlmacrosheet+xml")]
