@@ -197,6 +197,39 @@ internal static partial class TableDetector {
     /// Where no rule separates two rows within a column, the cell spans both: its text, which a producer
     /// often centres vertically, belongs to the span's top cell.
     /// </summary>
+    /// <summary>Splits a run that crosses drawn dividers into its cells, between words only.</summary>
+    private static bool TrySplitAtColumns(PdfTextSpan span, double[] x, int row, int columnCount, List<PdfTextSpan>?[] cells,
+        Dictionary<PdfTextSpan, PdfTextSpan> fragments) {
+        string text = span.Text;
+        if (Math.Abs(span.RotationDegrees) > 0.01D || !PdfTextAdvanceProjection.TryGetResolvedBoundaries(span, out double[] boundaries) ||
+            boundaries.Length != text.Length + 1) return false;
+        int start = 0;
+        while (start < text.Length) {
+            int column = ColumnOf(start);
+            int end = start + 1;
+            while (end < text.Length && ColumnOf(end) == column) end++;
+            // A divider through the middle of a word does not separate values; only split between words.
+            if (end < text.Length && !char.IsWhiteSpace(text[end - 1]) && !char.IsWhiteSpace(text[end])) return false;
+            int first = start, last = end - 1;
+            while (first <= last && char.IsWhiteSpace(text[first])) first++;
+            while (last >= first && char.IsWhiteSpace(text[last])) last--;
+            if (first <= last) {
+                PdfTextSpan piece = span.WithVisualText(text.Substring(first, last - first + 1)).WithOffset(boundaries[first], 0D);
+                fragments[piece] = span;
+                (cells[row * columnCount + column] ??= new List<PdfTextSpan>()).Add(piece);
+            }
+            start = end;
+        }
+        return true;
+
+        int ColumnOf(int index) {
+            double centre = span.X + (boundaries[index] + boundaries[index + 1]) / 2D;
+            int column = 0;
+            while (column + 1 < columnCount && centre >= x[column + 1]) column++;
+            return column;
+        }
+    }
+
     /// <summary>
     /// The span of a run's painted characters. Character boundaries give it exactly; without them a run far wider
     /// than its characters could be (word spacing stretching a space the decoder trimmed) keeps its ink at the end.
@@ -342,6 +375,7 @@ internal static partial class TableDetector {
                 (cells[row * columnCount + column] ??= new List<PdfTextSpan>()).Add(span);
                 continue;
             }
+            if (!TrySplitAtColumns(span, x, row, columnCount, cells, fragments)) return null;
         }
         if (owned == 0) return null;
         MergeVerticalSpans(cells, x, y, horizontals, context);

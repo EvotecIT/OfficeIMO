@@ -114,8 +114,8 @@ public sealed partial class PdfReadPage {
             if (thickness <= MaximumRuleThickness && length >= Math.Max(MinimumRuleLength, thickness * 2D) && color.HasValue) {
                 // Producers leave the joint square out of the bars on either side of it; extending each bar
                 // by its thickness reconnects them.
-                if (width >= height) AddRule(left - height, top + height / 2D, right + height, top + height / 2D, height, order, color.Value);
-                else AddRule(left + width / 2D, top - width, left + width / 2D, bottom + width, width, order, color.Value);
+                if (width >= height) AddRule(left - height, top + height / 2D, right + height, top + height / 2D, height, order, color.Value, opaque);
+                else AddRule(left + width / 2D, top - width, left + width / 2D, bottom + width, width, order, color.Value, opaque);
                 return;
             }
             if (thickness <= MaximumRuleThickness) return;
@@ -131,16 +131,17 @@ public sealed partial class PdfReadPage {
                 primitive.StrokeColor is not { } color || color.A == 0 ||
                 primitive.StrokeGradient is not null || primitive.StrokeRadialGradient is not null ||
                 primitive.StrokeTilingPattern is not null) return;
+            bool opaque = opacity >= 1D && color.A == byte.MaxValue;
             if (primitive.Kind == PdfPageVisualPrimitiveKind.Line) {
-                AddClippedRule(primitive.X1, primitive.Y1, primitive.X2, primitive.Y2, width, clip, order, color);
+                AddClippedRule(primitive.X1, primitive.Y1, primitive.X2, primitive.Y2, width, clip, order, color, opaque);
                 return;
             }
             if (primitive.Kind == PdfPageVisualPrimitiveKind.Rectangle) {
                 double right = primitive.X + primitive.Width, bottom = primitive.Y + primitive.Height;
-                AddClippedRule(primitive.X, primitive.Y, right, primitive.Y, width, clip, order, color);
-                AddClippedRule(right, primitive.Y, right, bottom, width, clip, order, color);
-                AddClippedRule(right, bottom, primitive.X, bottom, width, clip, order, color);
-                AddClippedRule(primitive.X, bottom, primitive.X, primitive.Y, width, clip, order, color);
+                AddClippedRule(primitive.X, primitive.Y, right, primitive.Y, width, clip, order, color, opaque);
+                AddClippedRule(right, primitive.Y, right, bottom, width, clip, order, color, opaque);
+                AddClippedRule(right, bottom, primitive.X, bottom, width, clip, order, color, opaque);
+                AddClippedRule(primitive.X, bottom, primitive.X, primitive.Y, width, clip, order, color, opaque);
                 return;
             }
             OfficePoint? previous = null, start = null;
@@ -148,10 +149,10 @@ public sealed partial class PdfReadPage {
                 context.ConsumeWork();
                 if (command.Kind == OfficePathCommandKind.MoveTo) previous = start = command.Point;
                 else if (command.Kind == OfficePathCommandKind.LineTo && previous.HasValue) {
-                    AddClippedRule(previous.Value.X, previous.Value.Y, command.Point.X, command.Point.Y, width, clip, order, color);
+                    AddClippedRule(previous.Value.X, previous.Value.Y, command.Point.X, command.Point.Y, width, clip, order, color, opaque);
                     previous = command.Point;
                 } else if (command.Kind == OfficePathCommandKind.Close && previous.HasValue && start.HasValue) {
-                    AddClippedRule(previous.Value.X, previous.Value.Y, start.Value.X, start.Value.Y, width, clip, order, color);
+                    AddClippedRule(previous.Value.X, previous.Value.Y, start.Value.X, start.Value.Y, width, clip, order, color, opaque);
                     previous = start;
                 } else {
                     // Curves are artwork; keep the straight pieces already read and skip the rest of the path.
@@ -161,23 +162,25 @@ public sealed partial class PdfReadPage {
         }
 
         private void AddClippedRule(double x1, double y1, double x2, double y2, double thickness, PdfVisualBounds clip,
-            double order, OfficeColor color) {
+            double order, OfficeColor color, bool opaque) {
             if (!IsFinite(x1) || !IsFinite(y1) || !IsFinite(x2) || !IsFinite(y2)) return;
             if (Math.Abs(y1 - y2) <= TableDetector.RulingTolerance) {
                 if (y1 < clip.Top || y1 > clip.Bottom) return;
                 double from = Math.Max(Math.Min(x1, x2), clip.Left), to = Math.Min(Math.Max(x1, x2), clip.Right);
+                if (to <= from) return;
                 x1 = from; x2 = to; y2 = y1;
             } else if (Math.Abs(x1 - x2) <= TableDetector.RulingTolerance) {
                 if (x1 < clip.Left || x1 > clip.Right) return;
                 double from = Math.Max(Math.Min(y1, y2), clip.Top), to = Math.Min(Math.Max(y1, y2), clip.Bottom);
+                if (to <= from) return;
                 y1 = from; y2 = to; x2 = x1;
             } else {
                 return;
             }
-            AddRule(x1, y1, x2, y2, thickness, order, color);
+            AddRule(x1, y1, x2, y2, thickness, order, color, opaque);
         }
 
-        private void AddRule(double x1, double y1, double x2, double y2, double thickness, double order, OfficeColor color) {
+        private void AddRule(double x1, double y1, double x2, double y2, double thickness, double order, OfficeColor color, bool opaque) {
             if (_rules.Count >= TableDetector.MaximumRulingSegments) { _overflow = true; return; }
             (double X, double Y) a = _toReadingPoint(x1, y1), b = _toReadingPoint(x2, y2);
             if (!IsFinite(a.X) || !IsFinite(a.Y) || !IsFinite(b.X) || !IsFinite(b.Y)) return;
@@ -186,7 +189,7 @@ public sealed partial class PdfReadPage {
             double hi = horizontal ? Math.Max(a.X, b.X) : Math.Max(a.Y, b.Y);
             if (hi - lo < MinimumRuleLength) return;
             double position = horizontal ? (a.Y + b.Y) / 2D : (a.X + b.X) / 2D;
-            _rules.Add(new Rule(horizontal, position, lo, hi, thickness / 2D, order, color));
+            _rules.Add(new Rule(horizontal, position, lo, hi, thickness / 2D, order, color, opaque));
         }
 
         internal IReadOnlyList<PdfTableRuling> Build(PdfUnderstandingPageContext context) {
@@ -200,6 +203,13 @@ public sealed partial class PdfReadPage {
                     image.PaintOrder, null, image.Opacity >= 1D));
             }
             var index = new FillIndex(fills, context);
+            // Rules by orientation and whole-point position, so a rule finds the later rules painted over it.
+            var byLine = new Dictionary<long, List<int>>();
+            for (int ruleIndex = 0; ruleIndex < _rules.Count; ruleIndex++) {
+                long key = LineKey(_rules[ruleIndex].Horizontal, _rules[ruleIndex].Position);
+                if (!byLine.TryGetValue(key, out List<int>? list)) byLine.Add(key, list = new List<int>());
+                list.Add(ruleIndex);
+            }
             var result = new List<PdfTableRuling>();
             var cuts = new List<(double From, double To)>();
             var candidates = new List<int>();
@@ -232,6 +242,18 @@ public sealed partial class PdfReadPage {
                         }
                     }
                 }
+                // A later opaque stroke or bar along the same line covering the whole thickness paints this
+                // stretch over, whatever its own colour: a white stroke over a black divider erases it.
+                for (long key = LineKey(rule.Horizontal, rule.Position) - 2; key <= LineKey(rule.Horizontal, rule.Position) + 2; key++) {
+                    if (!byLine.TryGetValue(key, out List<int>? sameLine)) continue;
+                    foreach (int other in sameLine) {
+                        context.ConsumeWork();
+                        Rule cover = _rules[other];
+                        if (!cover.Opaque || cover.Order <= rule.Order || cover.Horizontal != rule.Horizontal ||
+                            Math.Abs(cover.Position - rule.Position) + rule.Half > cover.Half + 0.05D) continue;
+                        cuts.Add((cover.Lo, cover.Hi));
+                    }
+                }
                 if (backdrop is { } under && !Contrasts(rule.Color, under)) continue;
                 AddVisible(rule, cuts, result, context);
                 if (result.Count > TableDetector.MaximumRulingSegments) return Array.Empty<PdfTableRuling>();
@@ -260,6 +282,9 @@ public sealed partial class PdfReadPage {
                 : new PdfTableRuling(rule.Position, lo, rule.Position, hi));
         }
 
+        private static long LineKey(bool horizontal, double position) =>
+            (horizontal ? 1L << 40 : 0L) + (long)Math.Floor(position);
+
         private static bool Contrasts(OfficeColor ink, OfficeColor backdrop) =>
             Math.Abs(ink.R - backdrop.R) >= MinimumContrast || Math.Abs(ink.G - backdrop.G) >= MinimumContrast ||
             Math.Abs(ink.B - backdrop.B) >= MinimumContrast;
@@ -267,7 +292,7 @@ public sealed partial class PdfReadPage {
         private static bool Orthogonal(OfficePoint a, OfficePoint b) =>
             Math.Abs(a.X - b.X) <= TableDetector.RulingTolerance || Math.Abs(a.Y - b.Y) <= TableDetector.RulingTolerance;
 
-        private readonly record struct Rule(bool Horizontal, double Position, double Lo, double Hi, double Half, double Order, OfficeColor Color);
+        private readonly record struct Rule(bool Horizontal, double Position, double Lo, double Hi, double Half, double Order, OfficeColor Color, bool Opaque);
 
         private readonly record struct Fill(double Left, double Bottom, double Right, double Top, double Order, OfficeColor? Color, bool Opaque);
 

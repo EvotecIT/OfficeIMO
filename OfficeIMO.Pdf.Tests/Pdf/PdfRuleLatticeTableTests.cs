@@ -44,15 +44,42 @@ public sealed class PdfRuleLatticeTableTests {
             Fill(content, "0 g", x[0], y[row] - 0.3, x[2] - x[0], 0.6);
             Fill(content, "0.65 g", x[2], y[row] - 0.3, x[5] - x[2], 0.6);
         }
-        Fill(content, "0 g", x[0] - 0.3, y[^1], 0.6, y[0] - y[^1]);
-        Fill(content, "0 g", x[5] - 0.3, y[^1], 0.6, y[0] - y[^1]);
-        Fill(content, "0.65 g", x[1] - 0.3, y[^1], 0.6, y[0] - y[^1]);
+        Fill(content, "0 g", x[0] - 0.3, y[y.Length - 1], 0.6, y[0] - y[y.Length - 1]);
+        Fill(content, "0 g", x[5] - 0.3, y[y.Length - 1], 0.6, y[0] - y[y.Length - 1]);
+        Fill(content, "0.65 g", x[1] - 0.3, y[y.Length - 1], 0.6, y[0] - y[y.Length - 1]);
         for (int column = 2; column < 5; column++) Fill(content, "1 g", x[column] - 0.3, y[1], 0.6, y[0] - y[1]);
 
-        PdfLogicalTable table = Assert.Single(Read(content).Tables);
+        PdfLogicalTable table = Assert.Single(Read(content, "Helvetica").Tables);
 
         Assert.Contains(table.Evidence, evidence => evidence.Code == "table-ruling-lattice");
         Assert.Equal(expected, table.Rows.Select(row => row.ToArray()));
+    }
+
+    [Fact]
+    public void RunStretchedAcrossADrawnDividerSplitsBetweenItsWords() {
+        // One string per row; word spacing stretches the space so the second word starts in the next column.
+        string[][] rows = {
+            new[] { "Code", "Item" },
+            new[] { "A-01", "Widget" },
+            new[] { "B-02", "Sprocket" },
+            new[] { "C-03", "Flange" }
+        };
+        double[] x = { 72, 162, 262 };
+        double[] y = Rows(700, 16, 16, rows.Length - 1);
+        var content = new StringBuilder();
+        content.Append("0 G 0.5 w\n");
+        foreach (double row in y) Line(content, x[0], row, x[x.Length - 1], row);
+        foreach (double column in x) Line(content, column, y[0], column, y[y.Length - 1]);
+        for (int row = 0; row < rows.Length; row++) {
+            // Courier is 5.4 pt per character at 9 pt.
+            double spacing = x[1] + 3 - (x[0] + 3 + rows[row][0].Length * 5.4) - 5.4;
+            content.Append("BT /F1 9 Tf ").Append(Number(spacing)).Append(" Tw 0 g 1 0 0 1 ").Append(Number(x[0] + 3)).Append(' ')
+                .Append(Number(y[row + 1] + 5)).Append(" Tm (").Append(rows[row][0]).Append(' ').Append(rows[row][1]).Append(") Tj ET\n");
+        }
+
+        PdfLogicalTable table = Assert.Single(Read(content, "Courier").Tables);
+
+        Assert.Equal(rows, table.Rows.Select(row => row.ToArray()));
     }
 
     [Fact]
@@ -67,7 +94,7 @@ public sealed class PdfRuleLatticeTableTests {
         foreach (double rule in frame) Line(content, x[0], rule, x[5], rule);
         foreach (double divider in x) Line(content, divider, frame[0], divider, frame[2]);
 
-        PdfLogicalTable table = Assert.Single(Read(content).Tables);
+        PdfLogicalTable table = Assert.Single(Read(content, "Helvetica").Tables);
 
         Assert.DoesNotContain(table.Evidence, evidence => evidence.Code == "table-ruling-lattice");
         Assert.Equal(Market, table.Rows.Select(row => row.ToArray()));
@@ -92,11 +119,11 @@ public sealed class PdfRuleLatticeTableTests {
         content.Append("0 G 0.5 w\n");
         for (int row = 0; row < y.Length; row++) {
             // The rule between the two merged rows skips the first column.
-            Line(content, row == 2 ? x[1] : x[0], y[row], x[^1], y[row]);
+            Line(content, row == 2 ? x[1] : x[0], y[row], x[x.Length - 1], y[row]);
         }
-        foreach (double divider in x) Line(content, divider, y[0], divider, y[^1]);
+        foreach (double divider in x) Line(content, divider, y[0], divider, y[y.Length - 1]);
 
-        PdfLogicalTable table = Assert.Single(Read(content).Tables);
+        PdfLogicalTable table = Assert.Single(Read(content, "Helvetica").Tables);
 
         Assert.Equal(rows, table.Rows.Select(row => row.ToArray()));
     }
@@ -130,14 +157,16 @@ public sealed class PdfRuleLatticeTableTests {
 
     private static string Number(double value) => value.ToString("0.###", CultureInfo.InvariantCulture);
 
-    private static PdfLogicalPage Read(StringBuilder content) {
+    private static PdfLogicalPage Read(StringBuilder content, string font) {
         string stream = content.ToString();
         string[] objects = {
             "<< /Type /Catalog /Pages 2 0 R >>",
             "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
             "<< /Length " + Encoding.ASCII.GetByteCount(stream).ToString(CultureInfo.InvariantCulture) + " >>\nstream\n" + stream + "endstream",
-            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"
+            // Producers write glyph widths into the font; Courier's are all 600.
+            "<< /Type /Font /Subtype /Type1 /BaseFont /" + font + (font == "Courier"
+                ? " /FirstChar 32 /LastChar 126 /Widths [" + string.Join(" ", Enumerable.Repeat("600", 95)) + "]" : string.Empty) + " >>"
         };
         var builder = new StringBuilder("%PDF-1.7\n");
         var offsets = new List<int>();

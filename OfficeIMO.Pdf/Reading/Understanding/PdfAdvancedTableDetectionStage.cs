@@ -202,6 +202,17 @@ internal sealed class PdfAdvancedTableDetectionStage : IPdfTableDetectionStage {
                 if (run.IsArtifactContent || string.IsNullOrWhiteSpace(run.Text) || latticeRuns.Contains(run)) continue;
                 if (run.X >= left && run.X <= right && run.Y <= lattice.YTop && run.Y >= lattice.YBottom) return;
             }
+            // A text table that carries on past the grid with rows of its own (ruled header rows, unruled body
+            // rows) would lose them if the grid replaced it.
+            int outsideRows = 0;
+            foreach (TextLayoutEngine.TextLine line in table.SourceLines) {
+                context.ConsumeWork();
+                bool owned = false;
+                foreach (PdfTextSpan run in line.Spans) {
+                    if (latticeRuns.Contains(run)) { owned = true; break; }
+                }
+                if (!owned && line.Spans.Count > 0 && ++outsideRows >= 2) return;
+            }
         }
         foreach (PdfStructuredTable table in covered) tables.Remove(table);
         tables.Add(lattice);
