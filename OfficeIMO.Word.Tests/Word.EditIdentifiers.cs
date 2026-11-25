@@ -188,6 +188,15 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void BookmarkIdsImportedFromParagraphXmlAreNotReused() {
+            using WordDocument document = WordDocument.Create();
+            document.AddParagraph("First").AddBookmark("First");
+            document.AddParagraphFromXml("<w:p xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:bookmarkStart w:id=\"2\" w:name=\"Imported\"/><w:r><w:t>Imported</w:t></w:r><w:bookmarkEnd w:id=\"2\"/></w:p>");
+            WordBookmark added = document.AddParagraph("Added").AddBookmark("Added");
+            Assert.Equal(3, added.Id);
+        }
+
+        [Fact]
         public void AddRowWithoutACellCountMatchesThePrecedingRowInTheCurrentTable() {
             using WordDocument document = WordDocument.Create();
             document.AddTable(1, 2);
