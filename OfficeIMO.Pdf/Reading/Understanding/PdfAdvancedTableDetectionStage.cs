@@ -193,6 +193,16 @@ internal sealed class PdfAdvancedTableDetectionStage : IPdfTableDetectionStage {
             covered.Add(table);
         }
         if (covered.Count == 1 && HasEquivalentGridProjection(covered[0], lattice, latticeRuns.Count, context)) return;
+        // Text a covering table places inside the grid that the grid itself could not place is an assignment
+        // conflict; the text-aligned table stands.
+        double left = lattice.Columns[0].From, right = lattice.Columns[lattice.Columns.Count - 1].To;
+        foreach (PdfStructuredTable table in covered) {
+            foreach (PdfTextSpan run in table.SourceRuns) {
+                context.ConsumeWork();
+                if (run.IsArtifactContent || string.IsNullOrWhiteSpace(run.Text) || latticeRuns.Contains(run)) continue;
+                if (run.X >= left && run.X <= right && run.Y <= lattice.YTop && run.Y >= lattice.YBottom) return;
+            }
+        }
         foreach (PdfStructuredTable table in covered) tables.Remove(table);
         tables.Add(lattice);
     }

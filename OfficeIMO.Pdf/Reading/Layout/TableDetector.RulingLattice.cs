@@ -198,47 +198,20 @@ internal static partial class TableDetector {
     /// often centres vertically, belongs to the span's top cell.
     /// </summary>
     /// <summary>
-    /// The span of a run's painted characters. Word spacing can stretch a space the decoder trims from the
-    /// text across a whole column; a run far wider than its characters could be keeps its ink at the end.
+    /// The span of a run's painted characters. Character boundaries give it exactly; without them a run far wider
+    /// than its characters could be (word spacing stretching a space the decoder trimmed) keeps its ink at the end.
+    /// Boundaries are only looked up for runs whose advance reaches past a column boundary.
     /// </summary>
-    private static bool TrySplitAtColumns(PdfTextSpan span, double[] x, int row, int columnCount, List<PdfTextSpan>?[] cells,
-        Dictionary<PdfTextSpan, PdfTextSpan> fragments) {
-        string text = span.Text;
-        if (Math.Abs(span.RotationDegrees) > 0.01D || !PdfTextAdvanceProjection.TryGetResolvedBoundaries(span, out double[] boundaries) ||
-            boundaries.Length != text.Length + 1) return false;
-        int start = 0;
-        while (start < text.Length) {
-            int column = ColumnOf(start);
-            int end = start + 1;
-            while (end < text.Length && ColumnOf(end) == column) end++;
-            // A divider through the middle of a word does not separate values; only split between words.
-            if (end < text.Length && !char.IsWhiteSpace(text[end - 1]) && !char.IsWhiteSpace(text[end])) return false;
-            int first = start, last = end - 1;
-            while (first <= last && char.IsWhiteSpace(text[first])) first++;
-            while (last >= first && char.IsWhiteSpace(text[last])) last--;
-            if (first <= last) {
-                PdfTextSpan piece = span.WithVisualText(text.Substring(first, last - first + 1)).WithOffset(boundaries[first], 0D);
-                fragments[piece] = span;
-                (cells[row * columnCount + column] ??= new List<PdfTextSpan>()).Add(piece);
-            }
-            start = end;
-        }
-        return true;
-
-        int ColumnOf(int index) {
-            double centre = span.X + (boundaries[index] + boundaries[index + 1]) / 2D;
-            int column = 0;
-            while (column + 1 < columnCount && centre >= x[column + 1]) column++;
-            return column;
-        }
-    }
-
-
-    private static (double Start, double End, bool Reliable) VisibleExtent(PdfTextSpan span) {
+    private static (double Start, double End, bool Reliable) VisibleExtent(PdfTextSpan span, double[] x) {
         double start = span.X, end = span.X + Math.Max(0D, span.Advance);
+        bool spansBoundary = false;
+        for (int index = 1; index < x.Length - 1 && !spansBoundary; index++) {
+            spansBoundary = x[index] > start + 0.5D && x[index] < end - LatticeAxisTolerance;
+        }
         string text = span.Text;
-        if (text.Length > 0 && (char.IsWhiteSpace(text[0]) || char.IsWhiteSpace(text[text.Length - 1])) &&
-            Math.Abs(span.RotationDegrees) <= 0.01D && PdfTextAdvanceProjection.TryGetResolvedBoundaries(span, out double[] boundaries) &&
+        bool padded = text.Length > 0 && (char.IsWhiteSpace(text[0]) || char.IsWhiteSpace(text[text.Length - 1]));
+        if (!spansBoundary && !padded) return (start, end, true);
+        if (Math.Abs(span.RotationDegrees) <= 0.01D && PdfTextAdvanceProjection.TryGetResolvedBoundaries(span, out double[] boundaries) &&
             boundaries.Length == text.Length + 1) {
             int first = 0, last = text.Length - 1;
             while (first <= last && char.IsWhiteSpace(text[first])) first++;
@@ -345,7 +318,7 @@ internal static partial class TableDetector {
             context.ConsumeWork();
             // The run's first visible character places it in a column; the middle of its text height places it
             // in a row. Word spacing can stretch a leading space across a whole column.
-            (double inkStart, double inkEnd, bool reliable) = VisibleExtent(span);
+            (double inkStart, double inkEnd, bool reliable) = VisibleExtent(span, x);
             double start = inkStart + 0.5D;
             double middle = span.Y + Math.Max(0D, span.FontSize) * 0.3D;
             if (start < x[0] || start > x[columnCount] || middle > y[0] || middle < y[rowCount]) continue;
@@ -369,7 +342,6 @@ internal static partial class TableDetector {
                 (cells[row * columnCount + column] ??= new List<PdfTextSpan>()).Add(span);
                 continue;
             }
-            if (!TrySplitAtColumns(span, x, row, columnCount, cells, fragments)) return null;
         }
         if (owned == 0) return null;
         MergeVerticalSpans(cells, x, y, horizontals, context);

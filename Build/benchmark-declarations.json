@@ -402,6 +402,14 @@
       "restriction": "open"
     },
     {
+      "id": "Tabula",
+      "package": "Tabula",
+      "version": "1.0.1",
+      "license": "MIT",
+      "licenseUrl": "https://licenses.nuget.org/MIT",
+      "restriction": "open"
+    },
+    {
       "id": "Tomlet",
       "package": "Samboy063.Tomlet",
       "version": "6.2.0",
@@ -3282,6 +3290,45 @@
         "macos"
       ],
       "frameworks": [
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "pdf-table-extraction",
+      "area": "pdf",
+      "title": "PDF ruled table extraction",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "Tabula"
+      ],
+      "axes": [
+        {
+          "name": "Producer",
+          "values": [
+            "PeachPDF",
+            "MigraDoc",
+            "IText"
+          ]
+        },
+        {
+          "name": "Scale",
+          "values": [
+            "Easy",
+            "Medium"
+          ]
+        }
+      ],
+      "cases": [
+        "Default"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
         "net10.0"
       ]
     },
