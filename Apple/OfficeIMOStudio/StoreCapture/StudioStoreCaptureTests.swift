@@ -305,8 +305,7 @@ final class StudioStoreCaptureTests: XCTestCase {
     /// input folder. Scope Browse to its tab bar so a breadcrumb cannot match it.
     /// iOS 27 replaces that tab bar with a rail, whose Browse button shows a folder.
     private func openPhoneDocument(_ app: XCUIApplication, input: URL) {
-        // Files names Browse and On My iPhone in the system language, so find them by structure:
-        // Browse is the tab bar's last tab, or the rail's folder button, and the local location names the device.
+        // Find the Browse tab or rail button by structure and the local device row by its icon.
         let tabs = app.tabBars["DOC.browsingModeTabBar"].buttons
         let rail = app.buttons.containing(.image, identifier: "folder.fill").firstMatch
         let ready = XCTNSPredicateExpectation(
@@ -316,12 +315,14 @@ final class StudioStoreCaptureTests: XCTestCase {
         browse.tap()
         let folder = app.cells.containing(.staticText, identifier: input.deletingLastPathComponent().lastPathComponent).firstMatch
         let studio = app.cells.containing(.staticText, identifier: "OfficeIMO Studio").firstMatch
-        let local = app.cells.containing(NSPredicate(format: "elementType == %lu AND label CONTAINS 'iPhone'",
-                                                     XCUIElement.ElementType.staticText.rawValue)).firstMatch
+        let local = app.cells.containing(.image, identifier: "iphone").firstMatch
+        let namedLocal = app.cells.containing(NSPredicate(format: "elementType == %lu AND label CONTAINS 'iPhone'",
+                                                          XCUIElement.ElementType.staticText.rawValue)).firstMatch
         for _ in 0..<4 {
             if folder.waitForExistence(timeout: 2) { break }
             if studio.exists { studio.tap() }
             else if local.exists { local.tap() }
+            else if namedLocal.exists { namedLocal.tap() }
             else {
                 let back = app.navigationBars["FullDocumentManagerViewControllerNavigationBar"].buttons["BackButton"]
                 XCTAssertTrue(back.exists, app.debugDescription)
