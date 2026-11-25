@@ -70,6 +70,7 @@ namespace OfficeIMO.Excel {
                     || fields > _options.MaxDataReaderBufferedCells || _options.MaxDataReaderChunkRows <= 0) return false;
                 InitializeRange(firstRow, lastRow, firstColumn, fields);
                 if (_windowedPart) EnterWindowedCellMode();
+                PublishRowBatchRange(firstRow, lastRow, firstColumn, fields, declared);
                 if (!TryIndexRows(firstRow, lastRow, ct)) return false;
                 // A row-like token in trailing comments may publish sheetData's end
                 // before the root XML is complete. Global proof needs the full part.

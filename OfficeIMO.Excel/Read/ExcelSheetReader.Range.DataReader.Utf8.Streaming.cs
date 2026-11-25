@@ -155,6 +155,10 @@ namespace OfficeIMO.Excel {
 
             /// <summary>Waits for the remaining worksheet to be validated at the end of the rows.</summary>
             internal void CompleteStreaming(CancellationToken readCt) {
+                if (UsesRowBatches) {
+                    CompleteRowBatches(readCt);
+                    return;
+                }
                 if (!_streaming) return;
                 while (!Volatile.Read(ref _streamComplete)) {
                     readCt.ThrowIfCancellationRequested();

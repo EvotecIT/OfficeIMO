@@ -745,27 +745,34 @@ decompression with workbook metadata parsing on a spare worker. It is disabled b
 retains the existing package-part limits, and can be slower for small or simple workbooks.
 Enable it only after measuring a representative workbook on the target CPU.
 
-By default an XLSX or XLSB data reader validates the whole worksheet before returning its first
-row, so a malformed workbook fails before any data is consumed. On .NET 8 and later, XLSX
-worksheets with 64 MB or more of XML are checked through a bounded window and decompressed a
-second time to return rows, so the reader holds a few megabytes of worksheet XML instead of the
-whole part. It still keeps a small position record for each row, and the window grows to fit a
-single row or trailing worksheet content larger than it. This does not apply when `DisplayText`
-or `CellValueConverter` is set.
-`ExcelReaderOptions.EnableSinglePassReading` instead returns rows while the rest of a large
-worksheet is still being decompressed and checked. Every returned row is fully parsed and
-validated. A malformed cell later in the sheet raises the same exception as the default
-reader, but only when `Read` reaches it, after the rows before it have been returned; issues
-found by the final check of the worksheet are raised by the last `Read`. Use it when the caller
-can handle a failure part-way through, such as a stream into a staging table that is discarded
-on error. It applies on .NET 8 and later to worksheets of 1 MB or more, when no diagnostics or
-diagnostic callbacks are requested, parallelism is not capped at one and the execution policy
-allows background work, with `A1Range` and `CellValueConverter` unset: XLSX worksheets that
-declare their dimension, up to 256 MB, and XLSB worksheets read with a header row, up to 64 MB;
-larger worksheets use the default mode. An XLSB reader takes its columns from the header row, so a later cell outside them
-raises `NotSupportedException` at that row, because the default reader would return a wider
-table. On .NET Framework and .NET Standard, with a sequential execution policy, for other
-worksheets and in the XLS reader, the reader always validates before the first row.
+On .NET 8 and later, an XLSX data reader checks a worksheet of 1 MB or more that declares its
+dimension while it returns rows: a background thread decompresses and checks the part once, and
+the reader receives each checked run of rows. Every returned row has been fully parsed and
+validated, and peak memory stays at a few megabytes of worksheet XML whatever the sheet's size.
+An invalid cell or malformed XML later in the sheet raises its exception from the `Read` that
+reaches it, after the rows before it were returned; problems in content after the last row are
+raised by the last `Read`. Content the fast reader does not index, such as CDATA sections,
+comments or indented XML, is read on with the general XML reader and returns the same values.
+The reader's columns come from the declared dimension, which Excel and OfficeIMO's streaming
+writer record, so a later cell outside it raises `InvalidDataException` at that row.
+
+Set `ExcelReaderOptions.ValidateWorksheetBeforeFirstRow = true` when a part-way failure cannot be
+handled, for example when each row is applied to a database as it is read. The reader then
+validates the whole worksheet before the first row, as earlier versions did: worksheets with 64 MB
+or more of XML are checked through a bounded window and decompressed a second time to return
+rows, and smaller ones are held in memory. Worksheets without a declared dimension, smaller
+worksheets, XLSB and XLS worksheets, `A1Range`, `CellValueConverter` and `DisplayText` always use
+that mode. Reading while checking uses one background thread; set `Execution.Mode` to
+`ExcelExecutionMode.Sequential` to read on the calling thread only, which also validates first.
+
+`ExcelReaderOptions.EnableSinglePassReading` returns XLSX and XLSB rows while the rest of the
+worksheet is still being decompressed, holding the whole part in memory. It applies on .NET 8 and
+later to worksheets of 1 MB or more, when no diagnostics or diagnostic callbacks are requested,
+parallelism is not capped at one and the execution policy allows background work, with `A1Range`
+and `CellValueConverter` unset: XLSX worksheets that declare their dimension, up to 256 MB, and XLSB
+worksheets read with a header row, up to 64 MB. An XLSB reader takes its columns from the header
+row, so a later cell outside them raises `NotSupportedException` at that row, because the default
+reader would return a wider table.
 
 ### Choose automatic or ordered parallel reads
 

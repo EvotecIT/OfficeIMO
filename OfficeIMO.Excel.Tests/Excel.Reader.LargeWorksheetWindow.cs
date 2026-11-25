@@ -42,25 +42,46 @@ public partial class Excel {
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void OpenDataReader_WindowedWorksheetRejectsLateInvalidInputBeforeTheFirstRow(bool malformedXml) {
+    [InlineData(false, true, false)]
+    [InlineData(true, true, false)]
+    [InlineData(false, false, false)]
+    [InlineData(true, false, false)]
+    [InlineData(false, true, true)]
+    [InlineData(true, true, true)]
+    public void OpenDataReader_WindowedWorksheetReportsLateInvalidInput(bool malformedXml, bool dimension, bool validateFirst) {
         string path = CreateWindowedIndexWorkbook(malformedXml
-            ? LargeWindowWorksheet(dimension: false, lastRowCells: null, tail: "<broken>")
-            : LargeWindowWorksheet(dimension: false, lastRowCells: "<c s=\"9\"/>", tail: null));
+            ? LargeWindowWorksheet(dimension, lastRowCells: null, tail: "<broken>")
+            : LargeWindowWorksheet(dimension, lastRowCells: "<c s=\"9\"/>", tail: null));
         try {
-            if (malformedXml) {
-                Assert.Throws<XmlException>(() => {
-                    using var reader = ExcelDocument.OpenReader(path, WorksheetWindowOptions(windowed: true)); _ = reader.FieldCount;
-                });
+            ExcelReaderOptions options = WorksheetWindowOptions(windowed: true);
+            options.ValidateWorksheetBeforeFirstRow = validateFirst;
+            Type expected = malformedXml ? typeof(XmlException) : typeof(InvalidDataException);
+            if (validateFirst || !dimension) {
+                // Without a declared dimension the columns are known only after the whole worksheet, so it is
+                // validated before the first row, as it is when that is requested.
+                Assert.IsType(expected, Record.Exception(() => {
+                    using var reader = ExcelDocument.OpenReader(path, options); _ = reader.FieldCount;
+                }));
             } else {
-                Assert.Throws<InvalidDataException>(() => {
-                    using var reader = ExcelDocument.OpenReader(path, WorksheetWindowOptions(windowed: true)); _ = reader.FieldCount;
-                });
+                using var reader = ExcelDocument.OpenReader(path, options);
+                Exception? failure = ReadUntilError(reader, out int rows);
+                Assert.IsType(expected, failure);
+                if (!malformedXml) Assert.Contains("missing cell style", failure!.Message);
+                Assert.True(rows > 0);
             }
         } finally {
             File.Delete(path);
         }
+    }
+
+    /// <summary>Reads rows until a read fails and returns that failure with the number of rows returned before it.</summary>
+    internal static Exception? ReadUntilError(System.Data.Common.DbDataReader reader, out int rows) {
+        int count = 0;
+        Exception? failure = Record.Exception(() => {
+            while (reader.Read()) count++;
+        });
+        rows = count;
+        return failure;
     }
 
     [Fact]
@@ -159,7 +180,8 @@ public partial class Excel {
         int lastRow = LargeWorksheetRows + 1;
         var xml = new StringBuilder(lastRow * 180);
         xml.Append("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">");
-        if (dimension) xml.Append("<dimension ref=\"A1:D").Append(lastRow).Append("\"/>");
+        // An extra last-row cell is the fifth column, so the declared range then includes it.
+        if (dimension) xml.Append(lastRowCells == null ? "<dimension ref=\"A1:D" : "<dimension ref=\"A1:E").Append(lastRow).Append("\"/>");
         xml.Append("<sheetData>").Append(WindowedIndexHeader.Replace("<row>", "<row r=\"1\">"));
         for (int row = 2; row <= lastRow; row++) {
             string r = row.ToString(CultureInfo.InvariantCulture);

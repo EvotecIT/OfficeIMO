@@ -30,9 +30,11 @@ public partial class Excel {
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void OpenDataReader_OverDefaultCellLimitRejectsLateInvalidInputBeforeDelivery(bool malformedXml) {
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void OpenDataReader_OverDefaultCellLimitReportsLateInvalidInput(bool malformedXml, bool validateFirst) {
         string xml = WindowedIndexLargeWorksheet();
         if (malformedXml) xml = xml.Replace("</worksheet>", "<broken></worksheet>");
         else {
@@ -41,10 +43,18 @@ public partial class Excel {
         }
         string path = CreateWindowedIndexWorkbook(xml);
         try {
-            if (malformedXml) Assert.Throws<XmlException>(() => { using var reader = ExcelDocument.OpenReader(path,
-                new ExcelReaderOptions { HasHeaderRow = false }); _ = reader.FieldCount; });
-            else Assert.Throws<InvalidDataException>(() => { using var reader = ExcelDocument.OpenReader(path,
-                new ExcelReaderOptions { HasHeaderRow = false }); _ = reader.FieldCount; });
+            var options = new ExcelReaderOptions { HasHeaderRow = false, ValidateWorksheetBeforeFirstRow = validateFirst };
+            Type expected = malformedXml ? typeof(XmlException) : typeof(InvalidDataException);
+            if (validateFirst) {
+                Assert.IsType(expected, Record.Exception(() => {
+                    using var reader = ExcelDocument.OpenReader(path, options); _ = reader.FieldCount;
+                }));
+            } else {
+                // The rows before the invalid content are returned first.
+                using var reader = ExcelDocument.OpenReader(path, options);
+                Assert.IsType(expected, ReadUntilError(reader, out int rows));
+                Assert.True(rows > 0);
+            }
         } finally {
             File.Delete(path);
         }

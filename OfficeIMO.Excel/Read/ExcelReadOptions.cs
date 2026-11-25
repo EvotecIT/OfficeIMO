@@ -89,6 +89,36 @@ namespace OfficeIMO.Excel {
         /// </remarks>
         public bool EnableSinglePassReading { get; set; }
 
+        /// <summary>
+        /// Validates the whole XLSX worksheet before the data reader returns its first row. Defaults to
+        /// <c>false</c>: worksheets of 1 MB or more that declare their dimension are decompressed and checked once,
+        /// on a background thread, while rows are returned.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// By default every returned row has been fully checked, but an invalid cell or malformed XML later in the
+        /// worksheet raises its exception from the <c>Read</c> that reaches it, after the rows before it were
+        /// returned. Problems in content after the last row are raised by the last <c>Read</c>. Content the fast
+        /// reader does not index, such as CDATA sections or indented XML, is read on with the general XML reader,
+        /// with the same values. The columns come from the worksheet's declared dimension, which Excel and
+        /// OfficeIMO's streaming writer record; a later cell outside it raises <see cref="InvalidDataException"/> at
+        /// that row. A worksheet without a dimension is validated before the first row.
+        /// </para>
+        /// <para>
+        /// Set this option when a part-way failure cannot be handled, for example when rows are applied as they
+        /// are read. The reader then raises any error before the first row, as earlier versions did, and holds the
+        /// worksheet in memory or decompresses it twice to do so.
+        /// </para>
+        /// <para>
+        /// Reading while validating uses one background thread. Set <see cref="Execution"/>.Mode to
+        /// <see cref="ExcelExecutionMode.Sequential"/> to read on the calling thread only; the reader then validates
+        /// the whole worksheet first. Smaller worksheets, .NET Framework and .NET Standard, <see cref="A1Range"/>,
+        /// <see cref="CellValueConverter"/>, <see cref="EnableSinglePassReading"/>, XLSB and XLS keep
+        /// their existing reading modes.
+        /// </para>
+        /// </remarks>
+        public bool ValidateWorksheetBeforeFirstRow { get; set; }
+
         // XLSX worksheets at least this large are qualified and read through a bounded window of the inflated part.
         // Smaller ones keep the single-buffer reader, which indexes in parallel. Tests lower both values.
         internal int WindowedWorksheetMinimumBytes { get; set; } = 64 * 1024 * 1024;

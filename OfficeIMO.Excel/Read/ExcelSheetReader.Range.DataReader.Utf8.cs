@@ -106,6 +106,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (TryCreateStreamingUsedRange(owner, ct, out source, out declaredFirstColumn)) return true;
+                if (TryCreateRowBatchUsedRange(owner, ct, out source, out declaredFirstColumn)) return true;
                 if (TryCreateWindowedUsedRange(owner, ct, out source, out declaredFirstColumn)) return true;
                 byte[]? buffer = null;
                 bool validatedIndexedXml = false;
@@ -228,6 +229,7 @@ namespace OfficeIMO.Excel {
 
             internal bool SelectRow(int rowIndex, CancellationToken lifetimeCt, CancellationToken readCt) {
                 EnsureNotDisposed();
+                if (UsesRowBatches) return SelectBatchRow(rowIndex, readCt);
                 int rowCount = _streaming ? WaitForStreamRow(rowIndex, readCt) : _rowCount;
                 while (_rowCursor < rowCount && _rowIndexes![_rowCursor] < rowIndex) {
                     _rowCursor++;
@@ -246,7 +248,7 @@ namespace OfficeIMO.Excel {
             }
 
             // Single-pass reading proves the declared range at the end of the sheet instead.
-            internal bool CellsFitWithinRange => _streaming || _cellsFitWithinRange;
+            internal bool CellsFitWithinRange => _streaming || UsesRowBatches || _cellsFitWithinRange;
 
             internal bool IsNull(int ordinal) {
                 EnsureNotDisposed();
@@ -324,6 +326,7 @@ namespace OfficeIMO.Excel {
                 out int lastRow,
                 out int lastColumn) {
                 if (TryGetStreamingBounds(out firstRow, out firstColumn, out lastRow, out lastColumn)) return true;
+                if (TryGetRowBatchBounds(out firstRow, out firstColumn, out lastRow, out lastColumn)) return true;
                 firstRow = _minimumCellRow;
                 firstColumn = _minimumCellColumn;
                 lastRow = _maximumCellRow;
@@ -463,6 +466,7 @@ namespace OfficeIMO.Excel {
                     return;
                 }
 
+                StopRowBatches();
                 StopStreaming();
                 DisposePartWindow();
                 _disposed = true;
@@ -733,7 +737,10 @@ namespace OfficeIMO.Excel {
                     if (includeRow) {
                         _rowIndexes![_rowCount] = rowIndex;
                         RetainQualifiedRowPosition(_rowCount, indexedRowContentStart, position);
+                        if (_batchSink != null) AddRowToBatch(rowIndex, indexedRowContentStart, position, rowOffset);
                         _rowCount++;
+                        // Handed-over rows need no retained positions, so the background pass reuses its row slots.
+                        if (_batchSink != null && _rowCount == RowBatchRows) _rowCount = 8;
                         if (_streaming) PublishStreamRows();
                     }
 
@@ -1339,9 +1346,9 @@ namespace OfficeIMO.Excel {
             }
 
             private void EnsureRowCapacity(int required) {
-                if (_unknownRowExtent && !UsesCellWindow
-                    && (long)required * _fieldCount > Math.Min(MaximumIndexedCells, _options.MaxDataReaderBufferedCells)) {
-                    PromoteProvisionalIndexToWindow();
+                if (_unknownRowExtent && !UsesCellWindow && (long)required * _fieldCount > RegularIndexedCellBudget) {
+                    if ((long)required * _fieldCount > IndexedCellBudget()) PromoteProvisionalIndexToWindow();
+                    else EnterIndexBeyondBudget();
                 }
                 if (UsesCellWindow) {
                     EnsureWindowRowCapacity(required);
@@ -1354,8 +1361,14 @@ namespace OfficeIMO.Excel {
 
                 int nextCapacity = Math.Min(ExcelA1.MaxRows, Math.Max(required, checked(currentCapacity * 2)));
                 if (_unknownRowExtent) {
-                    nextCapacity = (int)Math.Min(nextCapacity,
-                        Math.Min(MaximumIndexedCells, _options.MaxDataReaderBufferedCells) / _fieldCount);
+                    long budgetRows = IndexedCellBudget() / _fieldCount;
+                    long estimatedRows = EstimateUnknownRowCount();
+                    if (estimatedRows > nextCapacity && estimatedRows <= budgetRows) {
+                        // Growing once to the size the part implies avoids holding two copies of a large index.
+                        if (estimatedRows * _fieldCount > RegularIndexedCellBudget) EnterIndexBeyondBudget();
+                        nextCapacity = (int)estimatedRows;
+                    }
+                    nextCapacity = (int)Math.Min(nextCapacity, budgetRows);
                     GrowRowArray(ref _rowContentStarts, nextCapacity, _rowCount);
                     GrowRowArray(ref _rowContentEnds, nextCapacity, _rowCount);
                 }
@@ -1370,6 +1383,15 @@ namespace OfficeIMO.Excel {
                 }
                 GrowCellKindArray(nextCellCapacity, currentCellCount);
                 GrowDecodedValues(nextCellCapacity, currentCellCount);
+            }
+
+            /// <summary>Estimates the rows of a worksheet without a declared extent from its part length and the rows read so far.</summary>
+            private long EstimateUnknownRowCount() {
+                if (_rowCount < 16 || _rowContentEnds == null || _sheetDataContentStart < 0) return 0;
+                long partBytes = _expectedLength > 0 ? _expectedLength : _length;
+                long rowBytes = (long)_rowContentEnds[_rowCount - 1] - _sheetDataContentStart;
+                if (rowBytes <= 0) return 0;
+                return (partBytes - _sheetDataContentStart) * _rowCount / rowBytes * 102 / 100 + 16;
             }
 
             // Preserve an already indexed prefix when only absent trailing cells need clearing.

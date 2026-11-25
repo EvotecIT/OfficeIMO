@@ -28,23 +28,49 @@ namespace OfficeIMO.Excel {
             /// only physical row coordinates and byte positions survive that pass.
             /// </summary>
             private int InitializeCellWindow(int rowCapacity, long rangeRows, int fieldCount) {
-                long maximumCells = Math.Min(MaximumIndexedCells, _options.MaxDataReaderBufferedCells);
+                long maximumCells = IndexedCellBudget();
                 if (_unknownRowExtent) {
                     _rowContentStarts = ExcelArrayPool.RentInts(rowCapacity);
                     _rowContentEnds = ExcelArrayPool.RentInts(rowCapacity);
                     return (int)Math.Min(rowCapacity, maximumCells / fieldCount);
                 }
                 if (rangeRows * fieldCount <= maximumCells) {
+                    if (rangeRows * fieldCount > RegularIndexedCellBudget) EnterIndexBeyondBudget();
                     return rowCapacity;
                 }
 
                 _cellWindowRowCapacity = (int)Math.Min(
-                    _options.MaxDataReaderChunkRows, maximumCells / fieldCount);
+                    _options.MaxDataReaderChunkRows, RegularIndexedCellBudget / fieldCount);
                 _indexedTreatDatesUsingNumberFormat = _options.TreatDatesUsingNumberFormat;
                 _indexedUseCachedFormulaResult = _options.UseCachedFormulaResult;
                 _rowContentStarts = ExcelArrayPool.RentInts(rowCapacity);
                 _rowContentEnds = ExcelArrayPool.RentInts(rowCapacity);
                 return _cellWindowRowCapacity;
+            }
+
+            // Index metadata kept past the regular cell budget: value offset, length and kind.
+            private const int CoreIndexBytesPerCell = 9;
+            private bool _indexBeyondBudget;
+
+            private long RegularIndexedCellBudget => Math.Min(MaximumIndexedCells, _options.MaxDataReaderBufferedCells);
+
+            /// <summary>
+            /// While the whole worksheet XML is held in memory anyway, a compact whole-sheet index up to a quarter of
+            /// its size replaces the rolling window, so rows are not indexed a second time. A lower configured
+            /// MaxDataReaderBufferedCells keeps its limit.
+            /// </summary>
+            private long IndexedCellBudget() {
+                long budget = RegularIndexedCellBudget;
+                if (_windowedPart || _isParallelIndexHelper || _options.MaxDataReaderBufferedCells < MaximumIndexedCells) return budget;
+                long partBytes = _expectedLength > 0 ? _expectedLength : _length;
+                return Math.Max(budget, partBytes / 4 / CoreIndexBytesPerCell);
+            }
+
+            /// <summary>Drops the optional decoded-value cache, so the index stays at its compact core.</summary>
+            private void EnterIndexBeyondBudget() {
+                if (_indexBeyondBudget) return;
+                _indexBeyondBudget = true;
+                ReturnDecodedValues();
             }
 
             private int GetQualificationRowOffset(int physicalRow) => UsesCellWindow

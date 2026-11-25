@@ -12,14 +12,14 @@ namespace OfficeIMO.Excel {
     internal sealed partial class ExcelSheetReader {
         private sealed partial class ExcelXmlRangeDataReader : DbDataReader, IDataReaderFastValueSource {
             private readonly ExcelSheetReader _owner;
-            private readonly Stream _stream = Stream.Null;
+            private Stream _stream = Stream.Null;
             private XmlReader _reader = null!;
             private WorksheetXmlRowSelector _worksheetRows;
-            private readonly XmlDataReaderTextBudget? _xmlTextBudget;
-            private readonly ExcelUtf8RangeRowSource? _utf8Source;
+            private XmlDataReaderTextBudget? _xmlTextBudget;
+            private ExcelUtf8RangeRowSource? _utf8Source;
             private readonly int _utf8SourceOrdinalOffset;
             private readonly int _firstRow;
-            private readonly int _lastRow;
+            private int _lastRow;
             private readonly int _firstColumn;
             private readonly int _lastColumn;
             private readonly int _fieldCount;
