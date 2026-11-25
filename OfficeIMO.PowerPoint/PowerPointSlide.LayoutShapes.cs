@@ -21,11 +21,11 @@ namespace OfficeIMO.PowerPoint {
             ShapeTree tree = data.ShapeTree ??= new ShapeTree();
             tree.AppendChild(shape);
             return textBox
-                ? TrackShape(new PowerPointTextBox(shape, _slidePart))
+                ? TrackShape(new PowerPointTextBox(shape, SlidePart))
                 : TrackShape(new PowerPointAutoShape(shape));
         }
 
         /// <summary>Name of the slide layout this slide uses, or null.</summary>
-        internal string? SlideLayoutName => _slidePart.SlideLayoutPart?.SlideLayout?.CommonSlideData?.Name?.Value;
+        internal string? SlideLayoutName => SlidePart.SlideLayoutPart?.SlideLayout?.CommonSlideData?.Name?.Value;
     }
 }

@@ -77,7 +77,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Moves a slide without the SDK, or returns false, having changed nothing, for the model to move it.</summary>
         private bool TryMoveSlideWithoutSdk(int fromIndex, int toIndex) {
-            if (GetPendingPackage() is not { } package) return false;
+            if (GetPackage(edit: true) is not { } package) return false;
             try {
                 PackageSlideList? slides = PackageSlideList.Read(package);
                 if (slides == null || fromIndex < 0 || toIndex < 0 || fromIndex >= slides.Entries.Count || toIndex >= slides.Entries.Count) return false;
@@ -101,6 +101,7 @@ namespace OfficeIMO.PowerPoint {
                 while (presentation.FirstChildOf(slides.List) != OfficeXmlTree.NoNode) presentation.Remove(presentation.FirstChildOf(slides.List));
                 foreach (int node in nodes) presentation.Append(slides.List, node);
                 if (sections != null) PowerPointTreeSections.Apply(sections);
+                PackageSlidesChanged();
                 _pendingEdits = true;
                 return true;
             } catch (Exception exception) when (exception is XmlException or InvalidDataException) {
@@ -110,7 +111,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Removes a slide without the SDK, or returns false, having changed nothing, for the model to remove it.</summary>
         private bool TryRemoveSlideWithoutSdk(int index) {
-            if (GetPendingPackage() is not { } package) return false;
+            if (GetPackage(edit: true) is not { } package) return false;
             try {
                 PackageSlideList? slides = PackageSlideList.Read(package);
                 if (slides == null || index < 0 || index >= slides.Entries.Count) return false;
@@ -151,6 +152,7 @@ namespace OfficeIMO.PowerPoint {
                 }
                 if (sections != null) PowerPointTreeSections.Apply(sections);
                 _deferredSlideCount = ids.Count;
+                PackageSlidesChanged(slide);
                 _pendingEdits = true;
                 return true;
             } catch (Exception exception) when (exception is XmlException or InvalidDataException) {

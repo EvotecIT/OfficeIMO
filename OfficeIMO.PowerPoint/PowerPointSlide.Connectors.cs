@@ -79,7 +79,7 @@ namespace OfficeIMO.PowerPoint {
             CommonSlideData data = SlideRoot.CommonSlideData ??= new CommonSlideData(new ShapeTree());
             ShapeTree tree = data.ShapeTree ??= new ShapeTree();
             tree.Append(connection);
-            return TrackShape(new PowerPointConnectionShape(connection, _slidePart));
+            return TrackShape(new PowerPointConnectionShape(connection, SlidePart));
         }
     }
 }

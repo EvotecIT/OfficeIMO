@@ -52,7 +52,10 @@ namespace OfficeIMO.PowerPoint {
             }
             _sdkDeferred = false;
             _deferredOpenSettings = null;
+            _packageSlides = null;
+            _packageSlideOrder = null;
             DeferredSdkOpenCount++;
+            RecordSdkFallback();
             return document;
         }
 

@@ -5,11 +5,11 @@ using A = DocumentFormat.OpenXml.Drawing;
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointSlide {
         /// <summary>Whether the slide already contains a speaker-notes part.</summary>
-        public bool HasSpeakerNotes => _slidePart.NotesSlidePart?.NotesSlide != null;
+        public bool HasSpeakerNotes => SlidePart.NotesSlidePart?.NotesSlide != null;
 
         /// <summary>Reads existing speaker-note text without creating a notes part as a side effect.</summary>
         public string GetSpeakerNotesText() {
-            NotesSlide? notesSlide = _slidePart.NotesSlidePart?.NotesSlide;
+            NotesSlide? notesSlide = SlidePart.NotesSlidePart?.NotesSlide;
             if (notesSlide == null) return string.Empty;
             List<string> blocks = notesSlide.CommonSlideData?.ShapeTree?
                 .Elements<Shape>()

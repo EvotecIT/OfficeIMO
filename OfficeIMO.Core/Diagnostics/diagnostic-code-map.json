@@ -11389,6 +11389,14 @@
       "origins": [
         "OfficeIMO.Word/WordDocument.Accessibility.cs"
       ]
+    },
+    {
+      "oldCode": "sdk-fallback",
+      "catalogCode": "sdk-fallback",
+      "member": "SdkFallback",
+      "origins": [
+        "OfficeIMO.PowerPoint/PowerPointDocument.SdkFallback.cs"
+      ]
     }
   ],
   "dynamicPatterns": [

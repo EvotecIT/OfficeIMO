@@ -18,7 +18,7 @@ namespace OfficeIMO.PowerPoint {
         private bool TryReplaceAllWithoutSdk(string text, string replacement, PowerPointTextSearchOptions? options, out int count) {
             count = 0;
             // Notes are rewritten whole by the model.
-            if (options?.IncludeNotes == true || GetPendingPackage() is not { } package) return false;
+            if (options?.IncludeNotes == true || GetPackage(edit: true) is not { } package) return false;
             try {
                 List<string>? slides = ReadSlideParts(package);
                 if (slides == null) return false;
@@ -40,23 +40,6 @@ namespace OfficeIMO.PowerPoint {
                 // The model reads the package with its own errors.
                 return false;
             }
-        }
-
-        /// <summary>
-        /// The package that holds edits made without the SDK, opened on first use; null when the document can't be edited
-        /// that way: it is closed, read-only, has the SDK open, or the SDK has a part size limit to enforce.
-        /// </summary>
-        private OfficeOpcEditablePackage? GetPendingPackage() {
-            if (_disposed || !_sdkDeferred || _sdkDocument != null || _accessMode != DocumentAccessMode.ReadWrite
-                || _deferredOpenSettings?.MaxCharactersInPart > 0
-                || _packageStream is not { CanRead: true, CanSeek: true } stream) {
-                return null;
-            }
-            if (_pendingPackage == null) {
-                stream.Position = 0;
-                _pendingPackage = OfficeOpcEditablePackage.Open(stream, leaveOpen: true);
-            }
-            return _pendingPackage;
         }
 
         // The slide parts of the first slide list, in order; null when one is missing, external or listed twice.

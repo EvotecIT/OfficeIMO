@@ -92,7 +92,7 @@ namespace OfficeIMO.PowerPoint {
                     nameof(name));
             }
             EnsureClassicAnimationTarget(shape);
-            string relationshipId = PowerPointEmbeddedSound.Add(_slidePart,
+            string relationshipId = PowerPointEmbeddedSound.Add(SlidePart,
                 audio, contentType, extension);
             try {
                 UpdateClassicAnimation(shape, animation => CopyClassicAnimation(
@@ -100,7 +100,7 @@ namespace OfficeIMO.PowerPoint {
                     stopsSound: stopExistingSounds,
                     soundRelationshipId: relationshipId, soundName: name));
             } catch {
-                PowerPointEmbeddedSound.RemoveIfUnused(_slidePart,
+                PowerPointEmbeddedSound.RemoveIfUnused(SlidePart,
                     relationshipId);
                 throw;
             }
@@ -125,7 +125,7 @@ namespace OfficeIMO.PowerPoint {
                 ? ReadClassicAnimations().FirstOrDefault(item =>
                     item.ShapeId == shapeId.Value)
                 : null;
-            return PowerPointEmbeddedSound.Read(_slidePart,
+            return PowerPointEmbeddedSound.Read(SlidePart,
                 animation?.SoundRelationshipId);
         }
 
@@ -637,7 +637,7 @@ namespace OfficeIMO.PowerPoint {
         private void RemoveUnusedClassicAnimationSounds(
             IEnumerable<string> relationshipIds) {
             foreach (string relationshipId in relationshipIds) {
-                PowerPointEmbeddedSound.RemoveIfUnused(_slidePart,
+                PowerPointEmbeddedSound.RemoveIfUnused(SlidePart,
                     relationshipId);
             }
         }

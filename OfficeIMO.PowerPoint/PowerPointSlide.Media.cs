@@ -87,14 +87,14 @@ namespace OfficeIMO.PowerPoint {
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
             uint shapeId = AllocateShapeId();
-            string relationshipId = GetNextRelationshipId(_slidePart);
+            string relationshipId = GetNextRelationshipId(SlidePart);
             string relationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/" +
                 (kind == PowerPointMediaKind.Audio ? "audio" : "video");
-            _slidePart.AddExternalRelationship(relationshipType, source, relationshipId);
+            SlidePart.AddExternalRelationship(relationshipType, source, relationshipId);
             ImagePart poster = AddGeneratedMediaPoster(kind);
             string name = GenerateUniqueName(kind == PowerPointMediaKind.Audio ? "Linked Audio" : "Linked Video");
             Picture picture = CreateMediaPicture(kind, shapeId, name,
-                relationshipId, relationshipId, _slidePart.GetIdOfPart(poster),
+                relationshipId, relationshipId, SlidePart.GetIdOfPart(poster),
                 left, top, width, height);
             P14.Media metadata = picture.Descendants<P14.Media>().Single();
             metadata.Embed = null;
@@ -102,7 +102,7 @@ namespace OfficeIMO.PowerPoint {
             CommonSlideData data = SlideRoot.CommonSlideData ??= new CommonSlideData(new ShapeTree());
             (data.ShapeTree ??= new ShapeTree()).Append(picture);
             EnsureMediaTiming(shapeId, kind);
-            return TrackShape(new PowerPointMedia(picture, _slidePart, kind));
+            return TrackShape(new PowerPointMedia(picture, SlidePart, kind));
         }
 
         private PowerPointMedia AddMedia(Stream media, string contentType, string extension, PowerPointMediaKind kind,
@@ -124,19 +124,19 @@ namespace OfficeIMO.PowerPoint {
 
             uint shapeId = AllocateShapeId();
             MediaDataPart mediaPart = CreateMediaDataPart(media, contentType, extension);
-            string fileReferenceId = GetNextRelationshipId(_slidePart);
+            string fileReferenceId = GetNextRelationshipId(SlidePart);
             if (kind == PowerPointMediaKind.Audio) {
-                _slidePart.AddAudioReferenceRelationship(mediaPart, fileReferenceId);
+                SlidePart.AddAudioReferenceRelationship(mediaPart, fileReferenceId);
             } else {
-                _slidePart.AddVideoReferenceRelationship(mediaPart, fileReferenceId);
+                SlidePart.AddVideoReferenceRelationship(mediaPart, fileReferenceId);
             }
-            string playbackReferenceId = GetNextRelationshipId(_slidePart);
-            _slidePart.AddMediaReferenceRelationship(mediaPart, playbackReferenceId);
+            string playbackReferenceId = GetNextRelationshipId(SlidePart);
+            SlidePart.AddMediaReferenceRelationship(mediaPart, playbackReferenceId);
 
             ImagePart posterPart = posterImage == null
                 ? AddGeneratedMediaPoster(kind)
                 : AddImagePartFromStream(posterImage, posterImageType);
-            string posterRelationshipId = _slidePart.GetIdOfPart(posterPart);
+            string posterRelationshipId = SlidePart.GetIdOfPart(posterPart);
 
             string name = GenerateUniqueName(kind == PowerPointMediaKind.Audio ? "Audio" : "Video");
             Picture picture = CreateMediaPicture(kind, shapeId, name, fileReferenceId, playbackReferenceId,
@@ -147,11 +147,11 @@ namespace OfficeIMO.PowerPoint {
             tree.AppendChild(picture);
             EnsureMediaTiming(shapeId, kind);
 
-            return TrackShape(new PowerPointMedia(picture, _slidePart, kind));
+            return TrackShape(new PowerPointMedia(picture, SlidePart, kind));
         }
 
         private MediaDataPart CreateMediaDataPart(Stream media, string contentType, string extension) {
-            if (_slidePart.OpenXmlPackage is not PresentationDocument document) {
+            if (SlidePart.OpenXmlPackage is not PresentationDocument document) {
                 throw new InvalidOperationException("Slide is not attached to a presentation document.");
             }
 
@@ -203,13 +203,13 @@ namespace OfficeIMO.PowerPoint {
             PartTypeInfo partTypeInfo = imageType.ToPartTypeInfo();
             string imageExtension = PowerPointPartFactory.GetImageExtension(imageType);
             string imagePartUri = PowerPointPartFactory.GetIndexedPartUri(
-                _slidePart.OpenXmlPackage,
+                SlidePart.OpenXmlPackage,
                 "ppt/media",
                 "image",
                 imageExtension,
                 allowBaseWithoutIndex: false);
             ImagePart imagePart = PowerPointPartFactory.CreatePart<ImagePart>(
-                _slidePart,
+                SlidePart,
                 partTypeInfo.ContentType,
                 imagePartUri);
             if (image.CanSeek) {

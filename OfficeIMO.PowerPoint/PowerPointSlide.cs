@@ -11,7 +11,7 @@ namespace OfficeIMO.PowerPoint {
     /// </summary>
     public partial class PowerPointSlide {
         private readonly List<PowerPointShape> _shapes = new();
-        private readonly SlidePart _slidePart;
+        private SlidePart? _slidePart;
         private PowerPointNotes? _notes;
         private bool _shapesLoaded;
         private uint _nextShapeId = 2;
@@ -26,9 +26,27 @@ namespace OfficeIMO.PowerPoint {
             _slidePart = slidePart;
         }
 
+        // A slide of a presentation whose SDK package is not open: it reads and edits its part in the document's package,
+        // and anything it does not do there opens the SDK, which binds the slide to its SDK part.
+        internal PowerPointSlide(PowerPointDocument presentation, string partName) {
+            OwnerDocument = presentation;
+            PackagePartName = partName;
+        }
+
         internal PowerPointDocument? OwnerDocument { get; }
 
-        internal SlidePart SlidePart => _slidePart;
+        /// <summary>The slide's part name in the package, for a slide created before the SDK opened.</summary>
+        internal string? PackagePartName { get; }
+
+        /// <summary>Whether the slide works on the document's package rather than an SDK part.</summary>
+        internal bool IsPackageBacked => _slidePart == null;
+
+        internal SlidePart SlidePart => _slidePart ?? OwnerDocument!.BindSdkSlide(this);
+
+        /// <summary>Binds a package-backed slide to its part once the SDK opened the package.</summary>
+        internal void BindSdk(SlidePart slidePart) {
+            _slidePart ??= slidePart;
+        }
 
         /// <summary>
         ///     Collection of shapes on the slide.
@@ -108,7 +126,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Notes associated with the slide.
         /// </summary>
-        public PowerPointNotes Notes => _notes ??= new PowerPointNotes(_slidePart);
+        public PowerPointNotes Notes => _notes ??= new PowerPointNotes(SlidePart);
 
         private List<PowerPointShape> ShapeList {
             get {
@@ -197,7 +215,7 @@ namespace OfficeIMO.PowerPoint {
         ///     so serializing the slide here as well would only repeat that work.
         /// </summary>
         internal void PrepareForPackageSave() {
-            if (!_slidePart.IsRootElementLoaded
+            if (!SlidePart.IsRootElementLoaded
                 && GetLegacySlideIdShowValue(GetSlideId()) == null) {
                 return;
             }
@@ -207,7 +225,7 @@ namespace OfficeIMO.PowerPoint {
 
         internal void Save() {
             SlideId slideId = GetSlideId();
-            if (!_slidePart.IsRootElementLoaded
+            if (!SlidePart.IsRootElementLoaded
                 && GetLegacySlideIdShowValue(slideId) == null) {
                 _notes?.Save();
                 return;
@@ -257,8 +275,8 @@ namespace OfficeIMO.PowerPoint {
                 }
             }
 
-            if (_slidePart.NotesSlidePart != null) {
-                _notes = new PowerPointNotes(_slidePart);
+            if (SlidePart.NotesSlidePart != null) {
+                _notes = new PowerPointNotes(SlidePart);
             }
         }
     }

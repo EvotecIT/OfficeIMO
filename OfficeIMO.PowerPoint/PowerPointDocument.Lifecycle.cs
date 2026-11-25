@@ -595,6 +595,7 @@ namespace OfficeIMO.PowerPoint {
             if (hasSignature) {
                 presentation._signedPackageOpenFingerprint = CreatePackageFingerprint(document);
             }
+            presentation.RecordSdkAtLoad();
             return presentation;
         }
 

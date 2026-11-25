@@ -43,7 +43,7 @@ namespace OfficeIMO.PowerPoint {
         public void Show() => Hidden = false;
 
         private SlideId GetSlideId() {
-            PresentationPart presentationPart = _slidePart.GetParentPresentationPart()
+            PresentationPart presentationPart = SlidePart.GetParentPresentationPart()
                 ?? throw new InvalidOperationException("Slide is not attached to a presentation.");
 
             SlideIdList? slideIdList = presentationPart.Presentation?.SlideIdList;
@@ -57,12 +57,12 @@ namespace OfficeIMO.PowerPoint {
                 string? cachedRelId = cached.RelationshipId?.Value;
                 if (cachedRelId is { Length: > 0 }
                     && presentationPart.TryGetPartById(cachedRelId, out OpenXmlPart? cachedPart)
-                    && ReferenceEquals(cachedPart, _slidePart)) {
+                    && ReferenceEquals(cachedPart, SlidePart)) {
                     return cached;
                 }
             }
 
-            string relId = presentationPart.GetIdOfPart(_slidePart);
+            string relId = presentationPart.GetIdOfPart(SlidePart);
             SlideId? slideId = null;
             foreach (SlideId candidate in slideIdList.Elements<SlideId>()) {
                 if (candidate.RelationshipId?.Value == relId) {

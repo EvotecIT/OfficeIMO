@@ -21,7 +21,7 @@ namespace OfficeIMO.PowerPoint {
                     continue;
                 }
 
-                PowerPointShape? shape = CreateShapeFromElement(child, groupShape.OwnerPart ?? _slidePart);
+                PowerPointShape? shape = CreateShapeFromElement(child, groupShape.OwnerPart ?? SlidePart);
                 if (shape != null) {
                     if (children.Count >= maximumChildren) {
                         throw new InvalidOperationException("The shape count exceeds the configured inspection limit.");

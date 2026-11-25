@@ -28,7 +28,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new NotSupportedException("Only text boxes, pictures, tables and charts can be placed into placeholders.");
             }
 
-            SlideLayoutPart layoutPart = _slidePart.SlideLayoutPart
+            SlideLayoutPart layoutPart = SlidePart.SlideLayoutPart
                 ?? throw new InvalidOperationException("The slide has no layout.");
             PlaceholderValues wanted = placeholderType.ToOpenXml();
             OpenXmlElement layoutElement = layoutPart.SlideLayout?.CommonSlideData?.ShapeTree?.ChildElements

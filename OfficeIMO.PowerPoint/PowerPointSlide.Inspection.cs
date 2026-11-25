@@ -7,13 +7,13 @@ public partial class PowerPointSlide {
     /// <summary>Zero-based position in the owning presentation, or -1 for a detached slide.</summary>
     public int Index {
         get {
-            var presentation = _slidePart.GetParentPresentationPart();
+            var presentation = SlidePart.GetParentPresentationPart();
             var ids = presentation?.Presentation?.SlideIdList?.Elements<SlideId>();
             if (ids == null) return -1;
             int index = 0;
             foreach (var id in ids) {
                 var relationship = id.RelationshipId?.Value;
-                if (relationship != null && ReferenceEquals(presentation!.GetPartById(relationship), _slidePart)) return index;
+                if (relationship != null && ReferenceEquals(presentation!.GetPartById(relationship), SlidePart)) return index;
                 index++;
             }
             return -1;
@@ -23,7 +23,7 @@ public partial class PowerPointSlide {
     /// <summary>Inspects the current layout and owning master without modifying the package.</summary>
     /// <returns>The layout description, or null when the slide has no layout.</returns>
     public PowerPointSlideLayoutInfo? GetLayoutInfo() {
-        var layout = _slidePart.SlideLayoutPart;
+        var layout = SlidePart.SlideLayoutPart;
         if (layout == null) return null;
         var master = layout.GetParentParts().OfType<SlideMasterPart>().FirstOrDefault();
         var presentation = master?.GetParentPresentationPart();
