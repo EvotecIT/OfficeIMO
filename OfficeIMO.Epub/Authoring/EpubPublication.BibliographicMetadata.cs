@@ -88,7 +88,7 @@ public sealed partial class EpubPublication {
 
     /// <summary>
     /// Atomically updates supplied primary EPUB 3 publisher, description, rights and publication-date values.
-    /// Null fields retain existing values. Other values, attributes and refinements remain intact.
+    /// Null, empty or whitespace-only fields retain existing values. Other values, attributes and refinements remain intact.
     /// </summary>
     public void SetPublicationDetails(EpubPublicationDetails details) {
         ArgumentNullException.ThrowIfNull(details);
@@ -98,7 +98,7 @@ public sealed partial class EpubPublication {
             new KeyValuePair<string, string?>("description", details.Description),
             new KeyValuePair<string, string?>("rights", details.Rights),
             new KeyValuePair<string, string?>("date", details.PublicationDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture))
-        }.Where(pair => pair.Value != null).ToArray();
+        }.Where(pair => !string.IsNullOrWhiteSpace(pair.Value)).ToArray();
         foreach (var pair in values) ValidatePublishingName(pair.Value!, null, null);
         if (values.Length == 0) return;
         EditPackageElement(RequireSection("metadata"), proposed => {
