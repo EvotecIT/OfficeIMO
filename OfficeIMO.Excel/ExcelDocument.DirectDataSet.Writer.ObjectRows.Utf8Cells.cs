@@ -49,6 +49,12 @@ namespace OfficeIMO.Excel {
                 _utf8!.CommitUtf8(position - start);
             }
 
+            private void WriteUtf8Number(decimal value) {
+                byte[] buffer = BeginUtf8Cell(null, Utf8NumberBytes, out int start, out int position);
+                position += DirectDataSetWorkbookWriter.WriteUtf8NumberCell(buffer.AsSpan(position), value);
+                _utf8!.CommitUtf8(position - start);
+            }
+
             private void WriteUtf8Number(long value) {
                 byte[] buffer = BeginUtf8Cell(null, Utf8NumberBytes, out int start, out int position);
                 position += DirectDataSetWorkbookWriter.WriteUtf8NumberCell(buffer.AsSpan(position), value);
@@ -128,6 +134,13 @@ namespace OfficeIMO.Excel {
 
         private static partial class DirectDataSetWorkbookWriter {
             /// <summary>Writes <c>&gt;&lt;v&gt;</c>, the invariant digits and the closing tags of a numeric cell.</summary>
+            internal static int WriteUtf8NumberCell(Span<byte> output, decimal value) {
+                "><v>"u8.CopyTo(output);
+                value.TryFormat(output.Slice(4), out int written, default, CultureInfo.InvariantCulture);
+                return CloseUtf8Value(output, 4 + written);
+            }
+
+            /// <summary>Writes <c>&gt;&lt;v&gt;</c>, the invariant digits and the closing tags of a numeric cell.</summary>
             internal static int WriteUtf8NumberCell(Span<byte> output, long value) {
                 "><v>"u8.CopyTo(output);
                 value.TryFormat(output.Slice(4), out int written, default, CultureInfo.InvariantCulture);
@@ -180,6 +193,16 @@ namespace OfficeIMO.Excel {
 
                 long timeTicks = ticks % TimeSpan.TicksPerDay;
                 int dayDigits = CountDigits(daySerial);
+                if (dayDigits == 5 && timeTicks % TimeSpan.TicksPerMinute == 0) {
+                    // The common case of the character path: a whole minute after a day in 1927-2173 has a ready suffix.
+                    "><v>"u8.CopyTo(output);
+                    daySerial.TryFormat(output.Slice(4), out _, default, CultureInfo.InvariantCulture);
+                    int suffixEnd = 9;
+                    foreach (char digit in FiveDigitDayMinuteFractionSuffixes[(int)(timeTicks / TimeSpan.TicksPerMinute)]) {
+                        output[suffixEnd++] = (byte)digit;
+                    }
+                    return CloseUtf8Value(output, suffixEnd);
+                }
                 ulong fraction = 0;
                 int fractionDigitCount = 0;
                 ulong millisecondsAfterMidnight = (ulong)(timeTicks / TimeSpan.TicksPerMillisecond);
