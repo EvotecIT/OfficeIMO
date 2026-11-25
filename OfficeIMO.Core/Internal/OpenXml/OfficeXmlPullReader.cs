@@ -235,12 +235,45 @@ internal sealed partial class OfficeXmlPullReader {
         }
     }
 
+#if NET8_0_OR_GREATER
+    // Bytes the character-data scan stops at: markup, references, carriage returns, control characters and the lead
+    // byte of U+FFFE and U+FFFF. Tabs and line feeds are ordinary text.
+    private static readonly System.Buffers.SearchValues<byte> TextStops = System.Buffers.SearchValues.Create(CreateTextStops());
+
+    private static readonly System.Buffers.SearchValues<byte> TextWhitespace = System.Buffers.SearchValues.Create(new byte[] { (byte)' ', (byte)'\n', (byte)'\t', (byte)'\r' });
+
+    private static byte[] CreateTextStops() {
+        var stops = new List<byte> { (byte)'<', (byte)'&', 0xEF };
+        for (int value = 0; value < 0x20; value++) {
+            if (value != '\t' && value != '\n') stops.Add((byte)value);
+        }
+        return stops.ToArray();
+    }
+#endif
+
     private bool ReadCharacterData() {
         int start = _position;
         bool needsDecoding = false;
         bool whitespace = true;
         int position = start;
         byte[] data = _data;
+#if NET8_0_OR_GREATER
+        while (position < _end) {
+            int next = new ReadOnlySpan<byte>(data, position, _end - position).IndexOfAny(TextStops);
+            if (next < 0) {
+                position = _end;
+                break;
+            }
+            position += next;
+            byte value = data[position];
+            if (value == (byte)'<') break;
+            if (value == (byte)'&' || value == (byte)'\r') needsDecoding = true;
+            else RejectNonCharacter(position);
+            position++;
+        }
+        ReadOnlySpan<byte> text = new ReadOnlySpan<byte>(data, start, position - start);
+        whitespace = text.IndexOfAnyExcept(TextWhitespace) < 0;
+#else
         while (position < _end) {
             byte value = data[position];
             if (value == (byte)'<') break;
@@ -253,6 +286,7 @@ internal sealed partial class OfficeXmlPullReader {
             }
             position++;
         }
+#endif
         _position = position;
         if (_frameCount == 0) {
             if (!whitespace) throw Malformed("The part has text outside its root element.");

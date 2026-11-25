@@ -149,7 +149,7 @@ internal static class OfficeXmlNamespaces {
 
     /// <summary>Per-package table that assigns ids to namespace URIs declared in the parts it reads and caches local names.</summary>
     internal sealed class Table {
-        private const int NameCacheSize = 128;
+        private const int NameCacheSize = 256;
         private readonly List<byte[]> _dynamicUris = new();
         private string?[]? _names;
 

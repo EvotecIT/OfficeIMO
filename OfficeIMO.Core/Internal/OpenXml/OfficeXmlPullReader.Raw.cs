@@ -98,6 +98,8 @@ internal sealed partial class OfficeXmlPullReader {
 
     /// <summary>Decodes text written at <paramref name="start"/> in <see cref="Data"/>; for CDATA, the range between its delimiters.</summary>
     internal string DecodeTextValue(int start, int length, bool cdata) {
+        // Most text has no references and no carriage returns, so its UTF-8 bytes are the value.
+        if (!NeedsTextDecoding(start, length, cdata)) return Decode(start, length);
         var buffer = new OfficeCharBuffer(_decodeBuffer ??= new char[64]);
         if (cdata) AppendNormalizedLineEnds(buffer, start, length);
         else AppendDecoded(buffer, start, length, attribute: false);
@@ -105,20 +107,33 @@ internal sealed partial class OfficeXmlPullReader {
         return buffer.ToString();
     }
 
-    private int UriIdOfPrefix(int start, int length, int namespaceId) {
-        for (int index = _bindingCount - 1; index >= 0; index--) {
-            ref Binding binding = ref _bindings[index];
-            if (binding.PrefixLength == length && BytesEqual(binding.PrefixStart, start, length)) return binding.UriId;
+    private bool NeedsTextDecoding(int start, int length, bool cdata) {
+        byte[] data = _data;
+        int end = start + length;
+        for (int index = start; index < end; index++) {
+            byte value = data[index];
+            if (value == (byte)'\r' || value == (byte)'&' && !cdata) return true;
         }
-        return OfficeXmlNamespaces.TransitionalUriId(namespaceId);
+        return false;
+    }
+
+    private int UriIdOfPrefix(int start, int length, int namespaceId) {
+        int found = FindBinding(start, length);
+        return found >= 0 ? _bindings[found].UriId : OfficeXmlNamespaces.TransitionalUriId(namespaceId);
     }
 
     // Names repeat across the parts of a package, so the namespace table caches them.
     private string CachedName(int start, int length) {
         int hash = length;
         for (int index = 0; index < length; index++) hash = hash * 31 + _data[start + index];
+        // Two slots per name, so two names whose hashes collide don't evict each other on every element.
         ref string? cached = ref _namespaces.NameSlot(hash);
         if (cached != null && AsciiEquals(start, length, cached)) return cached;
-        return cached = Encoding.UTF8.GetString(_data, start, length);
+        ref string? alternate = ref _namespaces.NameSlot((int)((uint)hash * 2654435761u >> 7));
+        if (alternate != null && AsciiEquals(start, length, alternate)) return alternate;
+        string name = Encoding.UTF8.GetString(_data, start, length);
+        if (cached == null) cached = name;
+        else alternate = name;
+        return name;
     }
 }

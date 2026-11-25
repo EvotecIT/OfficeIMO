@@ -21,6 +21,7 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
     private readonly Dictionary<string, Part> _byIdentity = new(OfficeAsciiIgnoreCaseComparer.Instance);
     private readonly DateTime _modified;
     private OfficeXmlTree? _contentTypes;
+    private bool _poolTrees;
     // Part identity to its Override element, built on first use.
     private Dictionary<string, int>? _overrides;
     // The catalog's change count when the override index last matched it; any other edit rebuilds the index.
@@ -37,10 +38,14 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
     internal OfficeXmlNamespaces.Table Namespaces { get; } = new();
 
     /// <summary>Opens a package from a readable, seekable stream. The stream must stay open until the package is disposed.</summary>
-    internal static OfficeOpcEditablePackage Open(Stream source, bool leaveOpen = false) {
+    /// <param name="source">The package.</param>
+    /// <param name="leaveOpen">Whether disposing the package leaves <paramref name="source"/> open.</param>
+    /// <param name="poolTrees">Parse parts into storage rented from the array pool, returned when the package is
+    /// disposed. Trees from such a package must not be used after it is disposed.</param>
+    internal static OfficeOpcEditablePackage Open(Stream source, bool leaveOpen = false, bool poolTrees = false) {
         OfficeZipPackageReader zip = OfficeZipPackageReader.Open(source, leaveOpen);
         try {
-            var package = new OfficeOpcEditablePackage(zip, DateTime.Now);
+            var package = new OfficeOpcEditablePackage(zip, DateTime.Now) { _poolTrees = poolTrees };
             for (int index = 0; index < zip.Count; index++) {
                 string member = zip.GetName(index);
                 string identity = Identity("/" + member);
@@ -87,14 +92,17 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
         Part part = Find(partName) ?? throw new InvalidDataException("The package has no part '" + partName + "'.");
         if (part.Tree != null) return part.Tree;
         if (part.Content != null) {
-            part.Tree = OfficeXmlTree.Parse(part.Content, part.ContentLength, Namespaces);
+            part.Tree = Parse(part.Content, part.ContentLength);
             return part.Tree;
         }
         if (!_zip!.TryRead(part.Member, out OfficePooledBytes content)) throw new InvalidDataException("The package has no part '" + partName + "'.");
         part.Source = content;
-        part.Tree = OfficeXmlTree.Parse(content.Array, content.Length, Namespaces);
+        part.Tree = Parse(content.Array, content.Length);
         return part.Tree;
     }
+
+    private OfficeXmlTree Parse(byte[] data, int length) =>
+        _poolTrees ? OfficeXmlTree.ParsePooled(data, length, Namespaces) : OfficeXmlTree.Parse(data, length, Namespaces);
 
     /// <summary>Adds an XML part with a content-type override and returns its tree.</summary>
     internal OfficeXmlTree CreateXmlPart(string partName, string contentType, int namespaceId, string rootName, int capacity = 32) {
@@ -301,6 +309,7 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
 
     public void Dispose() {
         foreach (Part part in _parts) {
+            if (_poolTrees) part.Tree?.ReleasePooledStorage();
             part.Source?.Dispose();
             part.Source = null;
         }
