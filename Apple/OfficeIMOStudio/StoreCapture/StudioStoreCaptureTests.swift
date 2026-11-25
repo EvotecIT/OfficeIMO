@@ -148,6 +148,10 @@ final class StudioStoreCaptureTests: XCTestCase {
         // The iPhone Duo is an iPhone in both poses, with the iPhone's document browser.
         if isCompact {
             openPhoneDocument(app, input: URL(fileURLWithPath: path))
+        } else if environmentKey == "STUDIO_CAPTURE_OFFICE_PATH" {
+            // On iPadOS 27, the direct XCTest URL handoff can crash SwiftUI while
+            // opening the viewer scene. Selecting the workbook in Browse opens it.
+            openPadWorkbook(app, input: URL(fileURLWithPath: path))
         } else {
             app.open(URL(fileURLWithPath: path))
         }
@@ -229,6 +233,54 @@ final class StudioStoreCaptureTests: XCTestCase {
         done.tap()
         XCTAssertTrue(app.segmentedControls[StudioAccessibilityID.taskPicker].waitForExistence(timeout: 5), app.debugDescription)
         XCTAssertTrue(page.waitForExistence(timeout: 10), app.debugDescription)
+    }
+
+    /// Selects the staged workbook through the regular-width document browser.
+    private func openPadWorkbook(_ app: XCUIApplication, input: URL) {
+        func visibleCell(named title: String) -> XCUIElement? {
+            let name = NSPredicate(format: "identifier == %@ OR label == %@", title, title)
+            return app.cells.matching(name).allElementsBoundByIndex.first { $0.isHittable }
+                ?? app.cells.containing(.staticText, identifier: title).allElementsBoundByIndex.first { $0.isHittable }
+        }
+
+        let folder = input.deletingLastPathComponent().lastPathComponent
+        let sidebar = app.buttons["ToggleSideBar"].firstMatch
+        let local = NSPredicate(format: "label CONTAINS[c] %@", "iPad")
+        var toggledSidebar = false
+        for _ in 0..<6 {
+            if let staged = visibleCell(named: folder) {
+                staged.tap()
+                let title = input.deletingPathExtension().lastPathComponent
+                let ready = XCTNSPredicateExpectation(
+                    predicate: NSPredicate { _, _ in visibleCell(named: title) != nil }, object: nil)
+                XCTAssertEqual(XCTWaiter().wait(for: [ready], timeout: 10), .completed, app.debugDescription)
+                guard let workbook = visibleCell(named: title) else {
+                    XCTFail(app.debugDescription)
+                    return
+                }
+                workbook.tap()
+                return
+            }
+            if let studio = visibleCell(named: "OfficeIMO Studio") {
+                studio.tap()
+            } else if let device = app.cells.matching(local).allElementsBoundByIndex.first(where: { $0.isHittable }) {
+                device.tap()
+            } else if !toggledSidebar && sidebar.waitForExistence(timeout: 15) && sidebar.isHittable {
+                sidebar.tap()
+                toggledSidebar = true
+            } else {
+                let navigation = app.navigationBars["FullDocumentManagerViewControllerNavigationBar"]
+                let back = ["DOC.navBarButton.backInHistory", "BackButton"]
+                    .map { navigation.buttons[$0].firstMatch }
+                    .first { $0.exists && $0.isEnabled && $0.isHittable }
+                guard let back else {
+                    XCTFail(app.debugDescription)
+                    return
+                }
+                back.tap()
+            }
+        }
+        XCTFail("The iPad browser did not show the staged workbook folder. \(app.debugDescription)")
     }
 
     /// Uses Files' own hierarchy, including a browser restored inside an earlier
