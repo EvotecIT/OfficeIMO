@@ -98,8 +98,9 @@ internal sealed partial class OfficeXmlTree {
     internal static OfficeXmlTree ParsePooled(byte[] data, int length, OfficeXmlNamespaces.Table namespaces) {
         var reader = new OfficeXmlPullReader(data, length, namespaces, processMarkupCompatibility: false);
         // Every element and text node starts at or after a '<' of its own or its neighbour, and every attribute has an '='.
+        // Text may hold '=' too, so the attribute estimate is capped at a few per tag and grows past that when needed.
         int nodes = Count(data, length, (byte)'<') + 8;
-        int attributes = Count(data, length, (byte)'=') + 8;
+        int attributes = (int)Math.Min(Count(data, length, (byte)'=') + 8L, nodes * 2L);
         return new OfficeXmlTree(namespaces, reader, nodes, attributes, pooled: true);
     }
 
@@ -353,15 +354,17 @@ internal sealed partial class OfficeXmlTree {
             if (plain) return true;
         } else if (attribute.Value == null && _source != null
             && Array.IndexOf(_source, (byte)'&', attribute.ValueStart, attribute.ValueLength) < 0) {
-            // Without references, a value of another length can only match after whitespace normalization.
-            bool hasControl = false;
+            // Without references, an ASCII value of another length can only match after whitespace normalization. A
+            // value with other characters has more bytes than characters, so it is decoded and compared.
+            bool decode = false;
             for (int offset = 0; offset < attribute.ValueLength; offset++) {
-                if (_source[attribute.ValueStart + offset] < 0x20) {
-                    hasControl = true;
+                byte value = _source[attribute.ValueStart + offset];
+                if (value < 0x20 || value >= 0x80) {
+                    decode = true;
                     break;
                 }
             }
-            if (!hasControl) return false;
+            if (!decode) return false;
         }
         return string.Equals(AttributeValue(ref attribute), expected, StringComparison.Ordinal);
     }

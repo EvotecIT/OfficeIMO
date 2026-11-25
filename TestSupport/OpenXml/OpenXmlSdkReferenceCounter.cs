@@ -24,8 +24,13 @@ internal static class OpenXmlSdkReferenceCounter {
         string bridgeRoot = Path.Combine(projectRoot, bridgeFolder).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
         var files = new SortedSet<string>(StringComparer.Ordinal);
 
+        string? mappedRoot = FindMappedSourceRoot(projectRoot);
         foreach (string document in FindDocumentsWithSdkCode(assemblyPath)) {
-            string full = NormalizePath(document);
+            // Deterministic builds record source paths under /_/, the repository root's PathMap.
+            string path = mappedRoot != null && document.StartsWith(MappedSourcePrefix, StringComparison.Ordinal)
+                ? Path.Combine(mappedRoot, document.Substring(MappedSourcePrefix.Length))
+                : document;
+            string full = NormalizePath(path);
             if (!full.StartsWith(projectRoot, StringComparison.Ordinal)) continue;
             files.Add(full);
         }
@@ -42,6 +47,16 @@ internal static class OpenXmlSdkReferenceCounter {
             .Where(file => !file.StartsWith(bridgeRoot, StringComparison.Ordinal) && File.Exists(file))
             .Select(file => file.Substring(projectRoot.Length).Replace(Path.DirectorySeparatorChar, '/'))
             .ToList();
+    }
+
+    private const string MappedSourcePrefix = "/_/";
+
+    // The folder Directory.Build.targets maps to /_/, the nearest one above the project that holds it.
+    private static string? FindMappedSourceRoot(string projectRoot) {
+        for (DirectoryInfo? directory = new DirectoryInfo(projectRoot); directory != null; directory = directory.Parent) {
+            if (File.Exists(Path.Combine(directory.FullName, "Directory.Build.targets"))) return directory.FullName;
+        }
+        return null;
     }
 
     private static string NormalizePath(string path) =>

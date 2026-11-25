@@ -30,6 +30,9 @@ namespace OfficeIMO.Word {
         // on first use, so those paragraphs stay readable as they are on the SDK path.
         private byte[]? _disposedPackageBytes;
         private WordPackageModel? _disposedReadModel;
+        // Where each element of the disposed tree sits in document order, and the copy's element at each position.
+        private int[]? _disposedElementPositions;
+        private int[]? _disposedElementsByPosition;
         private OfficeOpenXmlLoadSettings? _disposedOpenSettings;
 
         internal WordPackageModel? DisposedReadModel {
@@ -37,9 +40,19 @@ namespace OfficeIMO.Word {
                 if (_disposedReadModel == null && _disposedPackageBytes != null && _ownedNodeElements == null) {
                     _disposedReadModel = WordPackageModel.TryOpen(_disposedPackageBytes, 0);
                     if (_disposedReadModel == null) _disposedPackageBytes = null;
+                    else _disposedElementsByPosition = _disposedReadModel.ElementsByPosition();
                 }
                 return _disposedReadModel;
             }
+        }
+
+        /// <summary>The copy's element that stands where <paramref name="node"/> stood in the disposed document, or NoNode.</summary>
+        internal int DisposedCopyNode(int node) {
+            if (node < 0 || _disposedElementPositions is not { } positions || _disposedElementsByPosition is not { } nodes) {
+                return OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree.NoNode;
+            }
+            int position = node < positions.Length ? positions[node] : -1;
+            return position >= 0 && position < nodes.Length ? nodes[position] : OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree.NoNode;
         }
 
         /// <summary>

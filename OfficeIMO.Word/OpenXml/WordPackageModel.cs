@@ -63,23 +63,47 @@ internal sealed class WordPackageModel : IDisposable {
     /// <summary>Whether the body has been brought to the state an SDK load leaves it in; see <see cref="WordOwnedEdits.PrepareBodyEdit"/>.</summary>
     internal bool BodyPrepared { get; set; }
 
-    /// <summary>The number of <c>w:p</c> children of the body, counted on first use and kept current by owned edits.</summary>
-    internal int BodyParagraphCount { get; set; } = -1;
-
-    internal int GetBodyParagraphCount() {
-        if (BodyParagraphCount < 0) {
-            int count = 0;
-            OfficeXmlTree document = Document;
-            for (int child = document.FirstChildOf(Body); child != OfficeXmlTree.NoNode; child = document.NextSiblingOf(child)) {
-                if (document.IsElement(child, OfficeXmlNamespaces.WordprocessingML, "p")) count++;
-            }
-            BodyParagraphCount = count;
-        }
-        return BodyParagraphCount;
-    }
-
     /// <summary>Whether paragraph objects were handed out, which may be read after the document is disposed.</summary>
     internal bool ParagraphsHandedOut { get; set; }
+
+    /// <summary>
+    /// The position of every element of the main part in document order, indexed by node, or -1 for other nodes. A copy
+    /// of the package written from this tree and parsed again holds the same elements in the same order, so paragraphs
+    /// find their elements in it through <see cref="ElementsByPosition"/>.
+    /// </summary>
+    internal int[] ElementPositions() {
+        OfficeXmlTree tree = Document;
+        var positions = new int[tree.NodeCount];
+        for (int index = 0; index < positions.Length; index++) positions[index] = -1;
+        int position = 0;
+        foreach (int node in ElementsInOrder(tree)) positions[node] = position++;
+        return positions;
+    }
+
+    /// <summary>The elements of the main part in document order, the inverse of <see cref="ElementPositions"/>.</summary>
+    internal int[] ElementsByPosition() {
+        OfficeXmlTree tree = Document;
+        var nodes = new List<int>(tree.NodeCount);
+        foreach (int node in ElementsInOrder(tree)) nodes.Add(node);
+        return nodes.ToArray();
+    }
+
+    private static IEnumerable<int> ElementsInOrder(OfficeXmlTree tree) {
+        int root = tree.Root;
+        int node = root;
+        while (node != OfficeXmlTree.NoNode) {
+            if (tree.KindOf(node) == OfficeXmlTreeNodeKind.Element) {
+                yield return node;
+                int child = tree.FirstChildOf(node);
+                if (child != OfficeXmlTree.NoNode) {
+                    node = child;
+                    continue;
+                }
+            }
+            while (node != root && tree.NextSiblingOf(node) == OfficeXmlTree.NoNode) node = tree.ParentOf(node);
+            node = node == root ? OfficeXmlTree.NoNode : tree.NextSiblingOf(node);
+        }
+    }
 
     /// <summary>The bytes of the last save without the SDK, and the main part's version they were written from.</summary>
     internal byte[]? LastSavedBytes { get; set; }
@@ -149,11 +173,12 @@ internal sealed class WordPackageModel : IDisposable {
             return null;
         }
         // A UTF-8 part has no more characters than bytes, so one within the limit in bytes is within it in characters.
-        if (maximumCharactersInPart > 0 && package.GetPartLength(main) > maximumCharactersInPart) return null;
+        // Any XML part may be parsed later (headers and notes at save), so every one has to be within the limit.
+        if (maximumCharactersInPart > 0 && package.HasXmlPartLongerThan(maximumCharactersInPart)) return null;
         string? application = package.GetRelatedPartName(null, ExtendedPropertiesRelationshipType);
         if (application != null && package.PartExists(application)) {
             long length = package.GetPartLength(application);
-            if (length > MaximumApplicationPropertiesBytes || maximumCharactersInPart > 0 && length > maximumCharactersInPart) return null;
+            if (length > MaximumApplicationPropertiesBytes) return null;
             if (HasDigitalSignatureFlag(package, application)) return null;
         }
         return main;

@@ -32,6 +32,14 @@ public class OpenXmlXmlTreeTests {
     }
 
     [Fact]
+    public void ComparesAttributeValuesWithOtherCharactersAsDecodedText() {
+        OfficeXmlTree tree = Parse("<a name=\"\u00e9t\u00e9\" plain=\"ab\"/>");
+        Assert.True(tree.AttributeEquals(tree.Root, OfficeXmlNamespaces.None, "name", "\u00e9t\u00e9"));
+        Assert.False(tree.AttributeEquals(tree.Root, OfficeXmlNamespaces.None, "name", "ete"));
+        Assert.False(tree.AttributeEquals(tree.Root, OfficeXmlNamespaces.None, "plain", "abc"));
+    }
+
+    [Fact]
     public void KeepsCommentsCompatibilityMarkupAndUnknownAttributesAroundAnEdit() {
         const string xml = "<?xml version=\"1.0\"?>\n<!-- before -->\n<p:sld xmlns:p=\"http://schemas.openxmlformats.org/presentationml/2006/main\" xmlns:mc=\"http://schemas.openxmlformats.org/markup-compatibility/2006\" xmlns:x=\"urn:example\" mc:Ignorable=\"x\" x:extra='kept'>\n"
             + "  <!-- inside --><p:cSld name=\"A\"/>\n  <mc:AlternateContent><mc:Choice Requires=\"x\"><x:new/></mc:Choice><mc:Fallback><p:old/></mc:Fallback></mc:AlternateContent>\n</p:sld>\n<!-- after -->";

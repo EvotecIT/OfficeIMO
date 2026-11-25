@@ -130,6 +130,7 @@ namespace OfficeIMO.Word {
             if (_ownedModel.ParagraphsHandedOut) {
                 // Paragraphs read after disposal, as PowerShell output and using blocks do, read this copy.
                 _disposedPackageBytes = _ownedModel.CurrentBytes();
+                _disposedElementPositions = _ownedModel.ElementPositions();
                 _disposedOpenSettings = _sdkDeferredLoad?.OpenSettings;
             }
             _ownedModel.Dispose();

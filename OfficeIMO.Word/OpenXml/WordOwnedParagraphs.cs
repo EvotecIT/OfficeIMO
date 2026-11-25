@@ -16,14 +16,11 @@ internal static class WordOwnedParagraphs {
         int count = 0;
         for (int child = tree.FirstChildOf(model.Body); child != NoNode; child = tree.NextSiblingOf(child)) count++;
         paragraphs = new List<WordParagraph>(count);
-        int ordinal = -1;
         for (int child = tree.FirstChildOf(model.Body); child != NoNode; child = tree.NextSiblingOf(child)) {
             if (!tree.IsElement(child, W, "p")) continue;
-            ordinal++;
             if (IsPureSectionBreak(tree, child)) continue;
-            if (!TryAppendParagraph(document, tree, child, ordinal, paragraphs)) return false;
+            if (!TryAppendParagraph(document, tree, child, paragraphs)) return false;
         }
-        model.BodyParagraphCount = ordinal + 1;
         return true;
     }
 
@@ -39,35 +36,35 @@ internal static class WordOwnedParagraphs {
         return true;
     }
 
-    private static bool TryAppendParagraph(WordDocument document, OfficeXmlTree tree, int paragraph, int ordinal, List<WordParagraph> list) {
+    private static bool TryAppendParagraph(WordDocument document, OfficeXmlTree tree, int paragraph, List<WordParagraph> list) {
         int first = NextElement(tree, tree.FirstChildOf(paragraph));
         if (first == NoNode) {
-            list.Add(WordParagraph.CreateOwned(document, tree, paragraph, ordinal));
+            list.Add(WordParagraph.CreateOwned(document, tree, paragraph));
             return true;
         }
         int second = NextElement(tree, tree.NextSiblingOf(first));
         if (second == NoNode) {
             if (tree.IsElement(first, W, "r")) {
-                list.Add(WordParagraph.CreateOwned(document, tree, paragraph, ordinal, first));
+                list.Add(WordParagraph.CreateOwned(document, tree, paragraph, first));
                 return true;
             }
             if (tree.IsElement(first, W, "pPr")) {
-                list.Add(WordParagraph.CreateOwned(document, tree, paragraph, ordinal));
+                list.Add(WordParagraph.CreateOwned(document, tree, paragraph));
                 return true;
             }
         } else if (tree.IsElement(first, W, "pPr") && tree.IsElement(second, W, "r")
             && NextElement(tree, tree.NextSiblingOf(second)) == NoNode) {
-            list.Add(WordParagraph.CreateOwned(document, tree, paragraph, ordinal, second));
+            list.Add(WordParagraph.CreateOwned(document, tree, paragraph, second));
             return true;
         }
 
         for (int child = first; child != NoNode; child = NextElement(tree, tree.NextSiblingOf(child))) {
-            if (!TryProcess(document, tree, paragraph, ordinal, child, list)) return false;
+            if (!TryProcess(document, tree, paragraph, child, list)) return false;
         }
         return true;
     }
 
-    private static bool TryProcess(WordDocument document, OfficeXmlTree tree, int paragraph, int ordinal, int element, List<WordParagraph> list) {
+    private static bool TryProcess(WordDocument document, OfficeXmlTree tree, int paragraph, int element, List<WordParagraph> list) {
         int namespaceId = tree.NamespaceOf(element);
         if (namespaceId == OfficeXmlNamespaces.Math) {
             string mathName = tree.LocalNameOf(element);
@@ -79,17 +76,17 @@ internal static class WordOwnedParagraphs {
             case "r":
                 // A field spans runs and becomes one paragraph on the SDK path.
                 if (tree.FindChild(element, W, "fldChar") != NoNode) return false;
-                list.Add(WordParagraph.CreateOwned(document, tree, paragraph, ordinal, element));
+                list.Add(WordParagraph.CreateOwned(document, tree, paragraph, element));
                 return true;
             case "ins":
             case "moveTo":
             case "customXml":
                 for (int child = NextElement(tree, tree.FirstChildOf(element)); child != NoNode; child = NextElement(tree, tree.NextSiblingOf(child))) {
-                    if (!TryProcess(document, tree, paragraph, ordinal, child, list)) return false;
+                    if (!TryProcess(document, tree, paragraph, child, list)) return false;
                 }
                 return true;
             case "bookmarkStart":
-                list.Add(WordParagraph.CreateOwned(document, tree, paragraph, ordinal, bookmark: element));
+                list.Add(WordParagraph.CreateOwned(document, tree, paragraph, bookmark: element));
                 return true;
             case "hyperlink":
             case "fldSimple":
@@ -122,12 +119,9 @@ internal static class WordOwnedParagraphs {
             tree.Append(paragraph, run);
         }
         int boundary = FinalSectionProperties(tree, body);
-        // Paragraphs are counted before the new one goes in; it lands after every paragraph, before the section properties.
-        int ordinal = model.GetBodyParagraphCount();
         tree.InsertBefore(body, paragraph, boundary);
-        model.BodyParagraphCount = ordinal + 1;
         model.MarkChanged();
-        return WordParagraph.CreateOwned(document, tree, paragraph, ordinal, run);
+        return WordParagraph.CreateOwned(document, tree, paragraph, run);
     }
 
     // The final section properties, moved to the end of the body first when something follows them.

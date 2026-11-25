@@ -27,15 +27,18 @@ internal static class WordOwnedSave {
             OfficeXmlTree settings = model.Package.GetXml(part);
             if (settings.FindChild(settings.Root, W, "docVars") != OfficeXmlTree.NoNode) return "document variables";
         }
-        foreach (string part in RelatedParts(model, HeaderRelationshipType, FooterRelationshipType)) {
+        // The same parts the SDK path repairs tables in.
+        foreach (string part in RelatedParts(model, HeaderRelationshipType, FooterRelationshipType, FootnotesRelationshipType, EndnotesRelationshipType)) {
             OfficeXmlTree tree = model.Package.GetXml(part);
-            if (ContainsElement(tree, tree.Root, "tbl")) return "tables in a header or footer";
+            if (ContainsElement(tree, tree.Root, "tbl")) return "tables in a header, footer, footnote or endnote";
         }
         return null;
     }
 
     private const string HeaderRelationshipType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "header";
     private const string FooterRelationshipType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "footer";
+    private const string FootnotesRelationshipType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "footnotes";
+    private const string EndnotesRelationshipType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "endnotes";
     private const string SettingsRelationshipType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "settings";
     private const string CustomPropertiesRelationshipType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "custom-properties";
     private const string BibliographyContentType = "application/bibliography+xml";
@@ -164,8 +167,9 @@ internal static class WordOwnedSave {
         int previous = 0;
         bool ordered = true;
         for (int child = numbering.FirstChildOf(root); child != OfficeXmlTree.NoNode; child = numbering.NextSiblingOf(child)) {
+            if (numbering.KindOf(child) != OfficeXmlTreeNodeKind.Element) continue;
             int group = NumberingGroup(numbering, child);
-            if (group < 0) continue;
+            if (group < 0) group = 3;
             if (group < previous) {
                 ordered = false;
                 break;
@@ -211,6 +215,8 @@ internal static class WordOwnedSave {
         int root = relationships.Root;
         for (int child = relationships.FirstChildOf(root); child != OfficeXmlTree.NoNode; child = relationships.NextSiblingOf(child)) {
             if (relationships.KindOf(child) != OfficeXmlTreeNodeKind.Element) continue;
+            // An external target is a location outside the package, not a part name.
+            if (relationships.AttributeEquals(child, OfficeXmlNamespaces.None, "TargetMode", "External")) continue;
             if (!relationships.TryGetAttribute(child, OfficeXmlNamespaces.None, "Target", out string target)
                 || !target.StartsWith(prefix, StringComparison.Ordinal)) continue;
             relationships.SetAttribute(child, OfficeXmlNamespaces.None, "Target", prefix.Length == 1 ? target.TrimStart('/') : target.Substring(strip));

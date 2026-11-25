@@ -12,92 +12,36 @@ namespace OfficeIMO.Word {
         private const int W = OfficeXmlNamespaces.WordprocessingML;
         private const int NoNode = OfficeXmlTree.NoNode;
 
-        // Set while the paragraph lives in an owned tree; cleared once its SDK elements are resolved. The child is the
-        // run (a node index) or the bookmark (its complement), or NoNode. The ordinals locate the same elements by
-        // position: the paragraph among the body's paragraphs, the child among the paragraph's runs or bookmarks in
-        // document order. Owned edits only append, so the ordinals stay valid for a copy of the package parsed again.
+        // Set while the paragraph lives in an owned tree; cleared once its SDK elements are resolved. A paragraph wraps
+        // its run, its bookmark, or neither; a bookmark paragraph keeps its bookmark when text gives it a run.
         internal OfficeXmlTree? _ownedTree;
         internal int _ownedParagraphNode = NoNode;
-        private int _ownedChildNode = NoNode;
-        private int _ownedParagraphOrdinal;
-        private int _ownedChildOrdinal = -1;
+        internal int _ownedRunNode = NoNode;
+        internal int _ownedBookmarkNode = NoNode;
 
-        internal int _ownedRunNode => _ownedChildNode >= 0 ? _ownedChildNode : NoNode;
-        internal int _ownedBookmarkNode => _ownedChildNode < NoNode ? ~_ownedChildNode : NoNode;
-
-        internal static WordParagraph CreateOwned(WordDocument document, OfficeXmlTree tree, int paragraph, int paragraphOrdinal,
+        internal static WordParagraph CreateOwned(WordDocument document, OfficeXmlTree tree, int paragraph,
             int run = NoNode, int bookmark = NoNode) {
             var wordParagraph = new WordParagraph(document, newParagraph: false, newRun: false) {
                 _ownedTree = tree,
                 _ownedParagraphNode = paragraph,
-                _ownedParagraphOrdinal = paragraphOrdinal,
+                _ownedRunNode = run,
+                _ownedBookmarkNode = bookmark,
             };
-            if (run != NoNode) wordParagraph.SetOwnedChild(run, "r");
-            else if (bookmark != NoNode) wordParagraph.SetOwnedChild(bookmark, "bookmarkStart");
             if (document._ownedModel is { } model) model.ParagraphsHandedOut = true;
             return wordParagraph;
         }
 
-        private void SetOwnedChild(int node, string localName) {
-            _ownedChildNode = localName == "r" ? node : ~node;
-            _ownedChildOrdinal = OwnedOrdinal(_ownedTree!, _ownedParagraphNode, node, localName);
-        }
-
-        // The number of elements with this name before node among the descendants of root, in document order.
-        private static int OwnedOrdinal(OfficeXmlTree tree, int root, int node, string localName) {
-            int ordinal = 0;
-            return Walk(tree.FirstChildOf(root)) ? ordinal : -1;
-
-            bool Walk(int child) {
-                for (; child != NoNode; child = tree.NextSiblingOf(child)) {
-                    if (tree.KindOf(child) != OfficeXmlTreeNodeKind.Element) continue;
-                    if (child == node) return true;
-                    if (tree.IsElement(child, W, localName)) ordinal++;
-                    if (Walk(tree.FirstChildOf(child))) return true;
-                }
-                return false;
-            }
-        }
-
-        // The element at that ordinal, the inverse of OwnedOrdinal.
-        private static int OwnedNodeAt(OfficeXmlTree tree, int root, int ordinal, string localName) {
-            int remaining = ordinal;
-            return Walk(tree.FirstChildOf(root));
-
-            int Walk(int child) {
-                for (; child != NoNode; child = tree.NextSiblingOf(child)) {
-                    if (tree.KindOf(child) != OfficeXmlTreeNodeKind.Element) continue;
-                    if (tree.IsElement(child, W, localName) && remaining-- == 0) return child;
-                    int found = Walk(tree.FirstChildOf(child));
-                    if (found != NoNode) return found;
-                }
-                return NoNode;
-            }
-        }
-
-        /// <summary>Points the paragraph at the same elements in <paramref name="model"/>, a copy of its package parsed again.</summary>
-        private bool RebindOwned(WordPackageModel model) {
-            OfficeXmlTree tree = model.Document;
-            int paragraph = NoNode;
-            int seen = 0;
-            for (int child = tree.FirstChildOf(model.Body); child != NoNode; child = tree.NextSiblingOf(child)) {
-                if (!tree.IsElement(child, W, "p")) continue;
-                if (seen++ == _ownedParagraphOrdinal) {
-                    paragraph = child;
-                    break;
-                }
-            }
+        /// <summary>Points the paragraph at the same elements in the copy of the package a disposed document keeps.</summary>
+        private bool RebindOwned(WordPackageModel copy) {
+            int paragraph = _document.DisposedCopyNode(_ownedParagraphNode);
             if (paragraph == NoNode) return false;
-            int childNode = NoNode;
-            if (_ownedChildNode != NoNode) {
-                bool run = _ownedChildNode >= 0;
-                int found = OwnedNodeAt(tree, paragraph, _ownedChildOrdinal, run ? "r" : "bookmarkStart");
-                if (found == NoNode) return false;
-                childNode = run ? found : ~found;
-            }
-            _ownedTree = tree;
+            int run = NoNode, bookmark = NoNode;
+            if (_ownedRunNode != NoNode && (run = _document.DisposedCopyNode(_ownedRunNode)) == NoNode) return false;
+            if (_ownedBookmarkNode != NoNode && (bookmark = _document.DisposedCopyNode(_ownedBookmarkNode)) == NoNode) return false;
+            _ownedTree = copy.Document;
             _ownedParagraphNode = paragraph;
-            _ownedChildNode = childNode;
+            _ownedRunNode = run;
+            _ownedBookmarkNode = bookmark;
             return true;
         }
 
@@ -148,7 +92,7 @@ namespace OfficeIMO.Word {
             if (_ownedRunNode == NoNode) {
                 int run = tree.CreateElement(W, "r");
                 tree.Append(_ownedParagraphNode, run);
-                SetOwnedChild(run, "r");
+                _ownedRunNode = run;
             }
             return _ownedRunNode;
         }
@@ -164,7 +108,7 @@ namespace OfficeIMO.Word {
                 WordOwnedText.Write(tree, run, text);
                 tree.Append(_ownedParagraphNode, run);
                 model.MarkChanged();
-                return CreateOwned(_document, tree, _ownedParagraphNode, _ownedParagraphOrdinal, run);
+                return CreateOwned(_document, tree, _ownedParagraphNode, run);
             }
             // Lines become runs separated by text-wrapping breaks, each break in a run of its own.
             string[] lines = text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
@@ -174,13 +118,13 @@ namespace OfficeIMO.Word {
                     int breakRun = tree.CreateElement(W, "r");
                     tree.Append(breakRun, tree.CreateElement(W, "br"));
                     tree.Append(_ownedParagraphNode, breakRun);
-                    last = CreateOwned(_document, tree, _ownedParagraphNode, _ownedParagraphOrdinal, breakRun);
+                    last = CreateOwned(_document, tree, _ownedParagraphNode, breakRun);
                 }
                 if (lines[index].Length > 0) {
                     int run = tree.CreateElement(W, "r");
                     WordOwnedText.Write(tree, run, lines[index]);
                     tree.Append(_ownedParagraphNode, run);
-                    last = CreateOwned(_document, tree, _ownedParagraphNode, _ownedParagraphOrdinal, run);
+                    last = CreateOwned(_document, tree, _ownedParagraphNode, run);
                 }
             }
             model.MarkChanged();
@@ -191,19 +135,25 @@ namespace OfficeIMO.Word {
 
         /// <summary>The run properties when the paragraph is owned; <paramref name="properties"/> is NoNode when the run has none.</summary>
         private bool TryGetOwnedRunProperties(out OfficeXmlTree tree, out int properties) {
-            tree = _ownedTree!;
             properties = NoNode;
-            if (OwnedModel == null) return false;
+            if (OwnedModel == null) {
+                tree = null!;
+                return false;
+            }
+            tree = _ownedTree!;
             if (_ownedRunNode != NoNode) properties = tree.FindChild(_ownedRunNode, W, "rPr");
             return true;
         }
 
         /// <summary>The run properties to edit, created as the run's first child when missing, as the SDK path does.</summary>
         private bool TryEditOwnedRunProperties(out OfficeXmlTree tree, out int properties) {
-            tree = _ownedTree!;
             properties = NoNode;
             WordPackageModel? model = OwnedModel;
-            if (model == null) return false;
+            if (model == null) {
+                tree = null!;
+                return false;
+            }
+            tree = _ownedTree!;
             WordOwnedEdits.PrepareBodyEdit(model);
             int run = EnsureOwnedRun(tree);
             properties = tree.FindChild(run, W, "rPr");

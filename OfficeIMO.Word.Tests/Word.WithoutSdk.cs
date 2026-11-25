@@ -173,6 +173,81 @@ public sealed class WordWithoutSdkTests {
         WordParagraph remaining = Assert.Single(document.Paragraphs);
         Assert.Equal("C", remaining.Text);
         Assert.True(remaining.Bold);
+
+        // A paragraph the SDK inserts in front doesn't take the place of one handed out before.
+        Body body = document.OpenXmlDocument.MainDocumentPart!.Document!.Body!;
+        body.PrependChild(new Paragraph(new Run(new Text("Inserted"))));
+        paragraphs[2].Text = "C, edited";
+        Assert.Equal(new[] { "Inserted", "C, edited" }, body.Elements<Paragraph>().Select(paragraph => paragraph.InnerText));
+    }
+
+    [Fact]
+    public void BookmarkParagraphsKeepTheirBookmarkWhenTheyGetARun() {
+        byte[] source = CreatePackage(BodyXml(
+            "<w:p><w:bookmarkStart w:id=\"0\" w:name=\"Mark\"/><w:r><w:t>Text</w:t></w:r><w:bookmarkEnd w:id=\"0\"/></w:p>"));
+        foreach (bool withoutSdk in new[] { false, true }) {
+            using WordDocument document = Open(source, withoutSdk);
+            WordParagraph bookmark = document.Paragraphs.Single(paragraph => paragraph.IsBookmark);
+            bookmark.Bold = true;
+            Assert.True(bookmark.IsBookmark, withoutSdk ? "owned" : "SDK");
+            Assert.Equal("Mark", bookmark.Bookmark!.Name);
+        }
+        void Edit(WordDocument document) => document.Paragraphs.Single(paragraph => paragraph.IsBookmark).Text = "Added";
+        AssertSamePackage(EditAndSave(source, false, Edit)!, EditAndSave(source, true, Edit)!, "bookmark");
+    }
+
+    [Fact]
+    public void SavesWithTablesInNotesGoThroughTheSdk() {
+        const string footnotes = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><w:footnotes xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\">"
+            + "<w:footnote w:id=\"1\"><w:tbl><w:tr><w:tc><w:p/></w:tc></w:tr></w:tbl><w:p/></w:footnote></w:footnotes>";
+        byte[] source = CreatePackage(BodyXml("<w:p><w:r><w:t>Text</w:t></w:r></w:p>"),
+            extraParts: new Dictionary<string, string> { ["word/footnotes.xml"] = footnotes },
+            extraContentTypes: "<Override PartName=\"/word/footnotes.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.footnotes+xml\"/>",
+            documentRelationships: "<Relationship Id=\"rNotes\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/footnotes\" Target=\"footnotes.xml\"/>");
+        using WordDocument document = WordDocument.Load(new MemoryStream(source));
+        document.AddParagraph("Added");
+        document.Save(new MemoryStream());
+        Assert.Contains("Save: tables in a header, footer, footnote or endnote", document.OpenXmlSdkFallbacks);
+    }
+
+    [Fact]
+    public void SaveKeepsCleanupNumberingAfterTheNumberingInstances() {
+        const string numbering = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><w:numbering xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\">"
+            + "<w:abstractNum w:abstractNumId=\"0\"/><w:numIdMacAtCleanup w:val=\"1\"/><w:num w:numId=\"1\"><w:abstractNumId w:val=\"0\"/></w:num></w:numbering>";
+        byte[] source = CreatePackage(BodyXml("<w:p><w:r><w:t>Text</w:t></w:r></w:p>"),
+            extraParts: new Dictionary<string, string> { ["word/numbering.xml"] = numbering },
+            extraContentTypes: "<Override PartName=\"/word/numbering.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml\"/>",
+            documentRelationships: "<Relationship Id=\"rNumbering\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering\" Target=\"numbering.xml\"/>");
+        byte[] saved = EditAndSave(source, true, document => document.AddParagraph("Added"))!;
+        Assert.Equal(new[] { "abstractNum", "num", "numIdMacAtCleanup" },
+            ReadPart(saved, "word/numbering.xml").Root!.Elements().Select(element => element.Name.LocalName));
+    }
+
+    [Fact]
+    public void SaveKeepsExternalRelationshipTargets() {
+        const string external = "<Relationship Id=\"rLink\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink\" Target=\"/word/guide.pdf\" TargetMode=\"External\"/>";
+        byte[] source = CreatePackage(BodyXml("<w:p><w:r><w:t>Text</w:t></w:r></w:p>"), documentRelationships: external);
+        void Edit(WordDocument document) => document.AddParagraph("Added");
+        foreach (bool withoutSdk in new[] { false, true }) {
+            XElement link = ReadPart(EditAndSave(source, withoutSdk, Edit)!, "word/_rels/document.xml.rels").Root!.Elements()
+                .Single(relationship => (string?)relationship.Attribute("Id") == "rLink");
+            Assert.Equal("/word/guide.pdf", (string?)link.Attribute("Target"));
+        }
+    }
+
+    [Fact]
+    public void CharacterLimitCoversEveryXmlPart() {
+        string header = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><w:hdr xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:p><w:r><w:t>"
+            + new string('x', 4000) + "</w:t></w:r></w:p></w:hdr>";
+        byte[] source = CreatePackage(BodyXml("<w:p><w:r><w:t>Text</w:t></w:r></w:p>").Replace("<w:sectPr>",
+                "<w:sectPr><w:headerReference xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" w:type=\"default\" r:id=\"rHeader\"/>"),
+            extraParts: new Dictionary<string, string> { ["word/header1.xml"] = header },
+            extraContentTypes: "<Override PartName=\"/word/header1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml\"/>",
+            documentRelationships: "<Relationship Id=\"rHeader\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/header\" Target=\"header1.xml\"/>");
+        // The SDK path rejects the header when it loads it; the owned path must not accept the document instead.
+        var limited = new WordLoadOptions { OpenSettings = new OfficeOpenXmlLoadSettings { MaxCharactersInPart = 2000 } };
+        Assert.ThrowsAny<Exception>(() => WordDocument.Load(new MemoryStream(source), limited).Dispose());
+        Assert.NotNull(TryOpenOwned(source));
     }
 
     [Fact]
@@ -189,8 +264,9 @@ public sealed class WordWithoutSdkTests {
         }
 
         // PowerShell formats cmdlet output after the cmdlet disposed its document, and using blocks hand paragraphs out.
-        Assert.Equal("First", paragraphs[0].Text);
+        // Formatting read first finds the copy the same way text does.
         Assert.True(paragraphs[0].Bold);
+        Assert.Equal("First", paragraphs[0].Text);
         Assert.Equal("Second, edited", paragraphs[1].Text);
         Assert.Equal("Added", added.Text);
         Assert.Equal(WordParagraphAlignment.Center, paragraphs[0].ParagraphAlignment);
@@ -345,7 +421,7 @@ public sealed class WordWithoutSdkTests {
     }
 
     // Element and attribute names with their namespaces, values, and text, in document order; attribute order, prefixes,
-    // namespace declarations and whitespace-only text between elements don't count. Revision identifiers are random on
+    // namespace declarations and whitespace-only text between child elements don't count. Revision identifiers are random on
     // both paths.
     private static string Canonical(byte[] xml) {
         XDocument document;
@@ -359,10 +435,10 @@ public sealed class WordWithoutSdkTests {
                 builder.Append(' ').Append(attribute.Name.ToString()).Append("=\"").Append(revision ? "*" : attribute.Value).Append('"');
             }
             builder.Append('>');
+            bool layout = element.HasElements;
             foreach (XNode node in element.Nodes()) {
                 if (node is XElement child) Write(child);
-                else if (node is XText text && !string.IsNullOrWhiteSpace(text.Value)) builder.Append(text.Value);
-                else if (node is XText significant && element.Name == Wn + "t") builder.Append(significant.Value);
+                else if (node is XText text && (!layout || !string.IsNullOrWhiteSpace(text.Value))) builder.Append(text.Value);
             }
             builder.Append("</>");
         }
@@ -391,7 +467,7 @@ public sealed class WordWithoutSdkTests {
         + "<w:sectPr><w:pgSz w:w=\"12240\" w:h=\"15840\"/></w:sectPr></w:body></w:document>";
 
     private static byte[] CreatePackage(string documentXml, string extraPackageRelationship = "",
-        Dictionary<string, string>? extraParts = null, string extraContentTypes = "") {
+        Dictionary<string, string>? extraParts = null, string extraContentTypes = "", string documentRelationships = "") {
         using var output = new MemoryStream();
         using (var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true)) {
             void Add(string name, string content) {
@@ -406,6 +482,10 @@ public sealed class WordWithoutSdkTests {
                 + "<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"word/document.xml\"/>"
                 + extraPackageRelationship + "</Relationships>");
             Add("word/document.xml", documentXml);
+            if (documentRelationships.Length > 0) {
+                Add("word/_rels/document.xml.rels", "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">"
+                    + documentRelationships + "</Relationships>");
+            }
             foreach (KeyValuePair<string, string> part in extraParts ?? new Dictionary<string, string>()) Add(part.Key, part.Value);
         }
         return output.ToArray();

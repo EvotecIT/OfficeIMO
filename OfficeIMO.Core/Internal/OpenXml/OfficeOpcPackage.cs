@@ -69,6 +69,16 @@ internal sealed class OfficeOpcPackage : IDisposable {
         return length;
     }
 
+    /// <summary>Whether any XML part declares an uncompressed length above <paramref name="length"/> bytes.</summary>
+    internal bool HasXmlPartLongerThan(long length) {
+        foreach (KeyValuePair<string, string> entry in _members) {
+            if (!_zip.TryGetLength(entry.Value, out long partLength) || partLength <= length) continue;
+            string? contentType = GetContentType("/" + entry.Value);
+            if (contentType != null && contentType.EndsWith("xml", StringComparison.OrdinalIgnoreCase)) return true;
+        }
+        return false;
+    }
+
     /// <summary>Opens a pull reader over a part. Dispose the returned buffer after reading.</summary>
     internal OfficeXmlPullReader OpenXml(string partName, out OfficePooledBytes content, bool processMarkupCompatibility = true) {
         content = ReadPart(partName);
