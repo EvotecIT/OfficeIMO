@@ -48,13 +48,14 @@ internal static partial class MarkdownReader {
             // generic-attribute work. Avoid materializing a temporary line list only to join
             // the same line again before parsing its inlines.
             if (!state.CaptureSyntaxTree && !options.GenericAttributes && j == i + 1) {
-                var singleLineText = GetParagraphLineJoinInfo(
-                    lines[i] ?? string.Empty,
-                    absoluteLine: 1,
-                    startColumn: 1,
-                    options,
-                    sourceTextMap: null,
-                    hasFollowingLine: false).Text;
+                // The joined text of a single line is the line without trailing white space, taken
+                // straight from the source rather than through a string of the whole line.
+                lines.GetSlice(i, out var lineText, out int lineStart, out int lineEnd);
+                int trimmedEnd = lineEnd;
+                while (trimmedEnd > lineStart && char.IsWhiteSpace(lineText[trimmedEnd - 1])) trimmedEnd--;
+                var singleLineText = lineStart == 0 && trimmedEnd == lineText.Length
+                    ? lineText
+                    : lineText.Substring(lineStart, trimmedEnd - lineStart);
                 doc.Add(new ParagraphBlock(ParseInlines(singleLineText, options, state)));
                 i = j;
                 return true;
@@ -62,14 +63,8 @@ internal static partial class MarkdownReader {
 
             if (!state.CaptureSyntaxTree && !options.GenericAttributes && state.SourceTextMap == null
                 && TryJoinPlainParagraphLines(lines, i, j, options, state, out var joinedText, out var joinedSoftBreaks)) {
+                // Generic attributes are off on this path, so the new paragraph has no attribute layout to record.
                 var plainParagraph = new ParagraphBlock(ParseInlines(joinedText, options, state, CreateSemanticLineBreakMap(joinedText, joinedSoftBreaks)));
-                plainParagraph.SetAttributes(MarkdownAttributeSet.Empty);
-                plainParagraph.GenericAttributeConsumedWhitespace = string.Empty;
-                plainParagraph.GenericAttributeSuppressSeparator = false;
-                MarkdownGenericAttributeSourceSpans.Set(plainParagraph, null, null);
-                if (!IsQuoteContainerParagraph(state, i, j)) {
-                    PromoteNestedInlineGenericAttributesToParagraph(plainParagraph, options);
-                }
                 doc.Add(plainParagraph);
                 i = j;
                 return true;
