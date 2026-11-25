@@ -267,12 +267,17 @@ internal static partial class PdfDocumentSemanticEnricher {
             }
         }
         // Columns filled on pages outside the selection belong to the table too, so a selected
-        // continuation page keeps them even where its own cells are empty.
+        // continuation page keeps them even where its own cells are empty. Content that draws no
+        // text counts as empty there, as it does on selected pages.
+        var textlessOutsideSelection = new Dictionary<int, Dictionary<int, int?>>();
         foreach (TaggedGridRow row in grid) {
             if (row.PageNumber == 0 || selectedPageIndexes.ContainsKey(row.PageNumber)) continue;
             foreach (TaggedGridCell cell in row.Cells) {
                 workBudget.Consume();
-                if (cell.ContentOn(row.PageNumber).Any()) keptColumn[cell.Column] = true;
+                if (!keptColumn[cell.Column] &&
+                    HasTextOutsideSelection(document, cell, row.PageNumber, textlessOutsideSelection, workBudget)) {
+                    keptColumn[cell.Column] = true;
+                }
             }
         }
         var columnMap = new int[columnCount];
@@ -289,8 +294,10 @@ internal static partial class PdfDocumentSemanticEnricher {
         bool anyRowWithTwoCells = keptRows.Any(static row => row.Cells.Count(static cell => cell.Resolved is not null) >= 2);
         foreach (TaggedGridRow row in grid) {
             workBudget.Consume();
+            if (rowsWithText >= 2 && anyRowWithTwoCells) break;
             if (row.PageNumber == 0 || selectedPageIndexes.ContainsKey(row.PageNumber)) continue;
-            int cellsWithContent = row.Cells.Count(cell => cell.ContentOn(row.PageNumber).Any());
+            int cellsWithContent = row.Cells.Count(cell =>
+                HasTextOutsideSelection(document, cell, row.PageNumber, textlessOutsideSelection, workBudget));
             if (cellsWithContent == 0) continue;
             rowsWithText++;
             anyRowWithTwoCells |= cellsWithContent >= 2;
@@ -414,6 +421,33 @@ internal static partial class PdfDocumentSemanticEnricher {
     /// Reads the tagged header row's text from its own page when that page is outside the selection,
     /// so selected continuation pages keep their column names.
     /// </summary>
+    /// <summary>
+    /// Tells whether a cell on a page outside the selection references content that draws text,
+    /// using the same textless-content scan that selected pages apply.
+    /// </summary>
+    private static bool HasTextOutsideSelection(
+        PdfReadDocument document,
+        TaggedGridCell cell,
+        int pageNumber,
+        Dictionary<int, Dictionary<int, int?>> textlessByPage,
+        PdfUnderstandingWorkBudget workBudget) {
+        PdfReadPage? readPage = null;
+        Dictionary<int, int?>? textless = null;
+        foreach (MarkedContentKey key in cell.ContentOn(pageNumber)) {
+            workBudget.Consume();
+            readPage ??= document.Pages[pageNumber - 1];
+            if (!readPage.IsPageContentStreamObjectNumber(key.ContentStreamObjectNumber)) return true;
+            if (textless is null && !textlessByPage.TryGetValue(pageNumber, out textless)) {
+                textless = readPage.GetTextlessPageMarkedContent(() => workBudget.Consume(), workBudget.CancellationToken);
+                textlessByPage.Add(pageNumber, textless);
+            }
+            bool isTextless = textless.TryGetValue(key.MarkedContentId, out int? stream) &&
+                (!key.ContentStreamObjectNumber.HasValue || key.ContentStreamObjectNumber == stream);
+            if (!isTextless) return true;
+        }
+        return false;
+    }
+
     private static string[]? ResolveHeaderOutsideSelection(
         PdfReadDocument document,
         List<TaggedGridRow> grid,

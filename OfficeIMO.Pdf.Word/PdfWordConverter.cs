@@ -939,16 +939,17 @@ namespace OfficeIMO.Pdf.Word {
             int rowOffset = headerRowIncluded ? 1 : 0;
 
             IReadOnlyList<IReadOnlyList<PdfCore.PdfLogicalTableCellStyle?>>? styles = sourceTable.CellStyles;
-            // Table data keeps source rows in order; a promoted header is source row zero.
-            const int sourceRowOffset = 0;
+            // Table data keeps source rows in order: the header starts at source row zero and the
+            // body at BodyStartRowIndex, however many source header rows join into the one Word header row.
+            int bodyStart = data.Structure.BodyStartRowIndex;
             if (headerRowIncluded) {
                 // A header sits over its figures, so it follows the column's numeric alignment.
-                WriteRow(rows[0], data.Columns, data, options.AlignNumericColumns, options, typographyScale, GetRowStyles(styles, sourceRowOffset));
+                WriteRow(rows[0], data.Columns, data, options.AlignNumericColumns, options, typographyScale, GetRowStyles(styles, 0));
             }
 
             for (int rowIndex = 0; rowIndex < data.Rows.Count; rowIndex++) {
                 WriteRow(rows[rowIndex + rowOffset], data.Rows[rowIndex], data, options.AlignNumericColumns, options, typographyScale,
-                    GetRowStyles(styles, sourceRowOffset + rowOffset + rowIndex));
+                    GetRowStyles(styles, bodyStart + rowIndex));
             }
 
             if (options.FitTablesToPageWidth) {

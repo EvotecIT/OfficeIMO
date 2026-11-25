@@ -399,6 +399,55 @@ public sealed class PdfTaggedTableReconstructionTests {
         Assert.Equal(new[] { "Gamma|3", "Delta|4" }, data.Rows.Select(static row => string.Join("|", row)));
     }
 
+    [Fact]
+    public void SelectedContinuationPageDropsAColumnWithoutTextOnOtherPages() {
+        byte[] bytes = RemoveTextShowing(CreateTaggedDocument(
+            canvas => GridPage(canvas, new[] { new[] { "Item", "Nil", "Count" } },
+                new[] { new[] { (0, "Alpha", 1), (1, "Nil", 1), (2, "1", 1) } }),
+            canvas => GridPage(canvas, Array.Empty<string[]>(),
+                new[] { new[] { (0, "Gamma", 1), (1, "Nil", 1), (2, "3", 1) } })), "Nil");
+        using PdfDocument document = PdfDocument.Load(new MemoryStream(bytes));
+
+        PdfLogicalTable complete = document.Read().Pages[1].Tables.Single();
+        PdfLogicalTable selected = Assert.Single(Assert.Single(
+            document.Read(new PdfLoadOptions { PageSelection = PdfPageSelection.From(2) }).Pages).Tables);
+
+        // The middle column's marked content shows no text on any page, so both reads drop it.
+        Assert.Equal(new[] { "Gamma|3" }, complete.Rows.Select(static row => string.Join("|", row)));
+        Assert.Equal(new[] { "Gamma|3" }, selected.Rows.Select(static row => string.Join("|", row)));
+    }
+
+    [Fact]
+    public void WordExportStylesBodyRowsBelowAStackedHeader() {
+        byte[] bytes = CreateTaggedDocument(canvas => GridPage(canvas,
+            new[] { new[] { "Product", "Price", string.Empty }, new[] { string.Empty, "Bid", "Ask" } },
+            new[] {
+                new[] { (0, "North", 1), (1, "10", 1), (2, "11", 1) },
+                new[] { (0, "South", 1), (1, "20", 1), (2, "21", 1) } }));
+        using PdfDocument document = PdfDocument.Load(new MemoryStream(bytes));
+        PdfDocumentReadResult read = document.Read();
+        PdfLogicalTable table = Assert.Single(read.Pages[0].Tables);
+        var bold = new PdfLogicalTableCellStyle(null, null, isBold: true, isItalic: false, fontSize: null, fontName: null);
+        var plain = new PdfLogicalTableCellStyle(null, null, isBold: false, isItalic: false, fontSize: null, fontName: null);
+        var italic = new PdfLogicalTableCellStyle(null, null, isBold: false, isItalic: true, fontSize: null, fontName: null);
+        table.CellStyles = new[] {
+            new[] { bold, bold, bold }, new[] { bold, bold, bold },
+            new[] { plain, plain, plain }, new[] { italic, italic, italic } };
+
+        using OfficeIMO.Word.WordDocument word = read.ConvertToWordWithEvidence().Value;
+        using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(word.ToBytes()), false);
+
+        // Each body row keeps its own source row's style, not the style of the row above it.
+        TableRow[] rows = Assert.Single(package.MainDocumentPart!.Document!.Body!.Elements<Table>()).Elements<TableRow>().ToArray();
+        Assert.Equal(3, rows.Length);
+        Run north = rows[1].Descendants<Run>().First();
+        Run south = rows[2].Descendants<Run>().First();
+        Assert.Equal("North", north.InnerText);
+        Assert.Null(north.RunProperties?.Bold);
+        Assert.Null(north.RunProperties?.Italic);
+        Assert.NotNull(south.RunProperties?.Italic);
+    }
+
     /// <summary>One page of a three-column tagged table whose Table, THead and TBody elements continue across pages.</summary>
     private static void GridPage(PdfPageCanvas canvas, string[][] headerRows, (int Column, string Text, int RowSpan)[][] bodyRows) {
         canvas.Structure(PdfCanvasStructureRole.Table, table => {
@@ -480,6 +529,15 @@ public sealed class PdfTaggedTableReconstructionTests {
             builder = builder.Canvas(pages[index]);
         }
         return builder.ToBytes();
+    }
+
+    /// <summary>Comments out the operators that show <paramref name="text"/>, leaving its marked-content sequences textless.</summary>
+    private static byte[] RemoveTextShowing(byte[] bytes, string text) {
+        string hex = "<" + string.Concat(text.Select(static ch => ((int)ch).ToString("X2", System.Globalization.CultureInfo.InvariantCulture))) + "> Tj";
+        string content = PdfEncoding.Latin1GetString(bytes);
+        Assert.Contains(hex, content);
+        // Same length, so the cross-reference offsets stay valid.
+        return PdfEncoding.Latin1GetBytes(content.Replace(hex, "%" + new string(' ', hex.Length - 1)));
     }
 
     private static byte[] RenumberLastContentMcid(byte[] bytes) {
