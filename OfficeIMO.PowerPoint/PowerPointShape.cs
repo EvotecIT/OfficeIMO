@@ -53,36 +53,8 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Whether the shape works on its slide's package tree rather than an SDK element.</summary>
         internal bool IsPackageBacked => _element == null;
 
-        // The SDK reads the bytes the tree wrote, so the element sits at the same place: the same element child at each
-        // level down from the slide root. Comments and text the SDK keeps as nodes are not elements of the tree.
         private OpenXmlElement BindSdkElement() {
-            OfficeXmlTree tree = PackageTree!;
-            var path = new List<int>();
-            for (int node = PackageNode; node != tree.Root; node = tree.ParentOf(node)) {
-                int index = 0;
-                for (int sibling = tree.PreviousSiblingOf(node); sibling != OfficeXmlTree.NoNode; sibling = tree.PreviousSiblingOf(sibling)) {
-                    if (tree.KindOf(sibling) == OfficeXmlTreeNodeKind.Element) index++;
-                }
-                path.Add(index);
-            }
-            string localName = tree.LocalNameOf(PackageNode);
-            OpenXmlElement element = OwnerSlide!.SlidePart.Slide
-                ?? throw new InvalidOperationException("The slide the SDK opened has no content.");
-            for (int level = path.Count - 1; level >= 0; level--) {
-                OpenXmlElement? child = null;
-                int remaining = path[level];
-                foreach (OpenXmlElement candidate in element.ChildElements) {
-                    if (candidate is OpenXmlMiscNode) continue;
-                    if (remaining-- == 0) {
-                        child = candidate;
-                        break;
-                    }
-                }
-                element = child ?? throw new InvalidOperationException("The shape is not where the slide the SDK opened has it.");
-            }
-            if (!string.Equals(element.LocalName, localName, StringComparison.Ordinal)) {
-                throw new InvalidOperationException("The shape is not where the slide the SDK opened has it.");
-            }
+            OpenXmlElement element = PowerPointSlide.BindPackageElement(OwnerSlide!, PackageTree!, PackageNode);
             _element = element;
             return element;
         }

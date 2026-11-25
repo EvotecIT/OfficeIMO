@@ -110,6 +110,7 @@ namespace OfficeIMO.PowerPoint {
             _deferredOpenSettings = null;
             _packageSlides = null;
             _packageSlideOrder = null;
+            BindPackageObjects();
             DeferredSdkOpenCount++;
             RecordSdkFallback();
             return document;

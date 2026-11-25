@@ -94,6 +94,13 @@ public class PowerPointContentWithoutSdkTests {
             if (layouts.Count > 1) presentation.AddSlide(layouts[1].Name);
             return read;
         }),
+        ("read and set paragraphs", presentation => {
+            PowerPointTextBox? box = presentation.Slides.SelectMany(slide => slide.TextBoxes).FirstOrDefault(candidate => candidate.Paragraphs.Count > 0);
+            if (box == null) return string.Empty;
+            string before = string.Join("|", box.Paragraphs.Select(paragraph => paragraph.Text));
+            box.Paragraphs[0].Text = "First paragraph\nwith a break";
+            return before + "=>" + string.Join("|", box.Paragraphs.Select(paragraph => paragraph.Text));
+        }),
         ("replace the first text box's text", presentation => {
             PowerPointTextBox? box = presentation.Slides.SelectMany(slide => slide.TextBoxes).FirstOrDefault(candidate => candidate.Text.Length > 0);
             if (box == null) return string.Empty;

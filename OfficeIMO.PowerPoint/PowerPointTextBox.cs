@@ -64,7 +64,20 @@ namespace OfficeIMO.PowerPoint {
         ///     Paragraphs contained in the textbox.
         /// </summary>
         public IReadOnlyList<PowerPointParagraph> Paragraphs =>
-            EnsureTextBody().Elements<A.Paragraph>().Select(p => new PowerPointParagraph(p, _slidePart ?? OwnerSlide?.SlidePart, _ownerPart)).ToList();
+            TryGetPackageParagraphs() ?? EnsureTextBody().Elements<A.Paragraph>().Select(p => new PowerPointParagraph(p, _slidePart ?? OwnerSlide?.SlidePart, _ownerPart)).ToList();
+
+        // The paragraphs on the package tree, as wrappers that bind to the SDK when a member needs it.
+        private List<PowerPointParagraph>? TryGetPackageParagraphs() {
+            if (!TryGetPackageElement(out OfficeXmlTree tree, out int node)) return null;
+            int body = tree.FindChild(node, OfficeXmlNamespaces.PresentationML, "txBody");
+            if (body == OfficeXmlTree.NoNode) return null;
+            var paragraphs = new List<PowerPointParagraph>();
+            for (int paragraph = tree.FindChild(body, OfficeXmlNamespaces.DrawingML, "p"); paragraph != OfficeXmlTree.NoNode;
+                 paragraph = tree.FindNextSibling(paragraph, OfficeXmlNamespaces.DrawingML, "p")) {
+                paragraphs.Add(new PowerPointParagraph(OwnerSlide!, tree, paragraph));
+            }
+            return paragraphs;
+        }
 
         /// <summary>
         ///     Adds a paragraph to the textbox.

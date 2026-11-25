@@ -3,6 +3,11 @@ using OfficeIMO.Core.Internal;
 using OfficeIMO.Core.Internal.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
+    /// <summary>An object that works on the package and binds to its SDK element once the SDK opens.</summary>
+    internal interface IPackageSdkBinding {
+        void BindSdk();
+    }
+
     /// <summary>
     /// Slides of a presentation whose SDK package is not open. Each slide part has one <see cref="PowerPointSlide"/>, which
     /// works on the document's package; when something opens the SDK, the same objects bind to their SDK parts, so slides
@@ -33,6 +38,22 @@ namespace OfficeIMO.PowerPoint {
 
         // Whether notes were added without the SDK, so a save counts notes the loaded package had no content type for.
         private bool _packageNotesAdded;
+
+        // Objects below the shapes (paragraphs) that work on the package and bind to the SDK when it opens.
+        private List<WeakReference<IPackageSdkBinding>>? _packageBindings;
+
+        internal void RegisterPackageBinding(IPackageSdkBinding binding) =>
+            (_packageBindings ??= new List<WeakReference<IPackageSdkBinding>>()).Add(new WeakReference<IPackageSdkBinding>(binding));
+
+        // Binds every object still alive while the slides the SDK opened are as the package wrote them.
+        private void BindPackageObjects() {
+            List<WeakReference<IPackageSdkBinding>>? bindings = _packageBindings;
+            _packageBindings = null;
+            if (bindings == null) return;
+            foreach (WeakReference<IPackageSdkBinding> reference in bindings) {
+                if (reference.TryGetTarget(out IPackageSdkBinding? binding)) binding.BindSdk();
+            }
+        }
 
         /// <summary>Whether slides and shapes can be edited in the package without the SDK.</summary>
         internal bool CanEditPackage => GetPackage(edit: true) != null;
