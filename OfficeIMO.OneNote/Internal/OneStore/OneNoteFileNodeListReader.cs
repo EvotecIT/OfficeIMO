@@ -1,3 +1,5 @@
+using System.Collections.ObjectModel;
+
 namespace OfficeIMO.OneNote;
 
 internal static class OneNoteFileNodeListReader {
@@ -13,7 +15,9 @@ internal static class OneNoteFileNodeListReader {
         IReadOnlyDictionary<uint, int> committedNodeCounts,
         OneNoteLoadOptions options) {
         var fragments = new List<OneNoteFileNodeListFragment>();
-        var nodes = new List<OneNoteFileNode>();
+        // Logical nodes are counted here and only copied into their own array when a list spans
+        // fragments or ends a fragment with a ChunkTerminatorFND; most lists reuse the fragment's array.
+        int logicalNodeCount = 0;
         int retainedNodes = 0;
         var visitedOffsets = new HashSet<ulong>();
         OneNoteFileChunkReference current = firstFragment;
@@ -66,15 +70,16 @@ internal static class OneNoteFileNodeListReader {
 
             listId = currentListId;
             int nodeLimit = data.Length - FragmentTrailerLength;
-            int remainingNodes = committedNodeCount!.Value - nodes.Count;
+            int remainingNodes = committedNodeCount!.Value - logicalNodeCount;
             if (remainingNodes <= 0) break;
             var fragmentNodes = ReadNodes(data, FragmentHeaderLength, nodeLimit, current.Offset, declaredFileLength, options, retainedNodes, remainingNodes);
             if (retainedNodes > options.MaxFileNodes - fragmentNodes.Count) {
                 throw new OneNoteFormatException("ONENOTE_FILE_NODE_LIMIT", "The file-node limit was exceeded.", ToOffset(current.Offset));
             }
             // ChunkTerminatorFND only ends a fragment; the transaction log does not count it.
-            nodes.AddRange(fragmentNodes.Where(node => node.RawId != (ushort)OneNoteFileNodeId.ChunkTerminator));
-            retainedNodes += fragmentNodes.Count;
+            OneNoteFileNode[] fragmentArray = fragmentNodes.ToArray();
+            logicalNodeCount += CountLogicalNodes(fragmentArray);
+            retainedNodes += fragmentArray.Length;
 
             OneNoteFileChunkReference next = OneNoteBinary.ReadFileChunkReference64x32(data, data.Length - FragmentTrailerLength);
             fragments.Add(new OneNoteFileNodeListFragment(
@@ -83,20 +88,43 @@ internal static class OneNoteFileNodeListReader {
                 currentListId,
                 sequence,
                 next,
-                fragmentNodes.AsReadOnly()));
+                new ReadOnlyCollection<OneNoteFileNode>(fragmentArray)));
 
             current = next;
             expectedSequence++;
-            if (nodes.Count == committedNodeCount.Value) break;
+            if (logicalNodeCount == committedNodeCount.Value) break;
         }
 
         if (!listId.HasValue) {
             throw new OneNoteFormatException("ONENOTE_FILE_NODE_LIST_EMPTY", "The file-node list contains no fragments.");
         }
-        if (nodes.Count != committedNodeCount) {
+        if (logicalNodeCount != committedNodeCount) {
             throw new OneNoteFormatException("ONENOTE_FILE_NODE_COUNT", "The file-node list ended before its committed transaction-log count was reached.", ToOffset(firstFragment.Offset));
         }
-        return new OneNoteFileNodeList(listId.Value, fragments.AsReadOnly(), nodes.AsReadOnly());
+        return new OneNoteFileNodeList(listId.Value, new ReadOnlyCollection<OneNoteFileNodeListFragment>(fragments.ToArray()), LogicalNodes(fragments, logicalNodeCount));
+    }
+
+    private static int CountLogicalNodes(OneNoteFileNode[] nodes) {
+        int count = 0;
+        foreach (OneNoteFileNode node in nodes) {
+            if (node.RawId != (ushort)OneNoteFileNodeId.ChunkTerminator) count++;
+        }
+        return count;
+    }
+
+    private static IReadOnlyList<OneNoteFileNode> LogicalNodes(List<OneNoteFileNodeListFragment> fragments, int logicalNodeCount) {
+        if (fragments.Count == 1 && fragments[0].Nodes.Count == logicalNodeCount) {
+            return fragments[0].Nodes;
+        }
+
+        var nodes = new OneNoteFileNode[logicalNodeCount];
+        int index = 0;
+        foreach (OneNoteFileNodeListFragment fragment in fragments) {
+            foreach (OneNoteFileNode node in fragment.Nodes) {
+                if (node.RawId != (ushort)OneNoteFileNodeId.ChunkTerminator) nodes[index++] = node;
+            }
+        }
+        return new ReadOnlyCollection<OneNoteFileNode>(nodes);
     }
 
     private static List<OneNoteFileNode> ReadNodes(
