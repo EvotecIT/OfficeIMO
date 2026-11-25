@@ -107,7 +107,8 @@
       "id": "iphone-markup",
       "layout": "hero",
       "mood": "light",
-      "deviceWidth": 1080,
+      "deviceWidth": 960,
+      "lift": 0,
       "devices": [
         "iphone-69"
       ],

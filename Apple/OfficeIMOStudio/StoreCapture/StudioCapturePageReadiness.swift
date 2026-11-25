@@ -45,13 +45,10 @@ enum StudioCapturePageReadiness {
     static let officePhrases = ["quarterly sales against target", "quarter"]
 
     /// The documents are English public samples, so recognition stays English in every interface language.
-    static func pagePixels(from source: CGImage, contentBounds: CGRect? = nil,
-                           phrases: [String] = dashboardPhrases) throws -> Data {
-        let bounds = CGRect(x: 0, y: 0, width: source.width, height: source.height)
-        let visible = (contentBounds ?? bounds).integral.intersection(bounds)
-        guard !visible.isNull, !visible.isEmpty,
-              let image = source.cropping(to: visible) else { throw Failure.unreadablePixels }
-        var lines = phrases.isEmpty ? [] : try recognize(image)
+    static func requirePhrases(in source: CGImage, contentBounds: CGRect, phrases: [String]) throws {
+        guard !phrases.isEmpty else { return }
+        let image = try cropVisibleArea(from: source, contentBounds: contentBounds)
+        var lines = try recognize(image)
         func missingPhrase() -> String? {
             phrases.first { phrase in !lines.contains { $0.contains(phrase) } }
         }
@@ -73,6 +70,10 @@ enum StudioCapturePageReadiness {
         if let phrase = missingPhrase() {
             throw Failure.missingContent(phrase: phrase, recognized: Array(lines.prefix(20)))
         }
+    }
+
+    static func pagePixels(from source: CGImage, contentBounds: CGRect) throws -> Data {
+        let image = try cropVisibleArea(from: source, contentBounds: contentBounds)
         // Compare a fixed native reading area, rather than OCR bounding boxes
         // that may shift between requests even when the rendered pixels do not.
         var pixels = [UInt8](repeating: 0, count: image.width * image.height * 4)
@@ -86,6 +87,14 @@ enum StudioCapturePageReadiness {
         }
         guard drawn else { throw Failure.unreadablePixels }
         return Data(pixels)
+    }
+
+    private static func cropVisibleArea(from source: CGImage, contentBounds: CGRect) throws -> CGImage {
+        let bounds = CGRect(x: 0, y: 0, width: source.width, height: source.height)
+        let visible = contentBounds.integral.intersection(bounds)
+        guard !visible.isNull, !visible.isEmpty,
+              let image = source.cropping(to: visible) else { throw Failure.unreadablePixels }
+        return image
     }
 
     private static func recognize(_ image: CGImage) throws -> [String] {
