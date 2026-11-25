@@ -52,7 +52,9 @@ try {
         $listener.Start()
         $port = ([System.Net.IPEndPoint] $listener.LocalEndpoint).Port
         $listener.Stop()
-        $python = Get-Command python -ErrorAction Stop
+        $pythonNames = if ($IsWindows) { @('python', 'python3') } else { @('python3', 'python') }
+        $python = $pythonNames | ForEach-Object { Get-Command $_ -CommandType Application -ErrorAction SilentlyContinue } | Select-Object -First 1
+        if ($null -eq $python) { throw 'Python 3 is required to serve the site locally; install it as python3 or python.' }
         $serverArguments = @{
             FilePath = $python.Source
             ArgumentList = @('-m', 'http.server', $port, '--bind', '127.0.0.1', '--directory', $resolvedSiteRoot)
