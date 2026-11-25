@@ -331,9 +331,17 @@ final class StudioStoreCaptureTests: XCTestCase {
         }
         XCTAssertTrue(folder.waitForExistence(timeout: 10), app.debugDescription)
         folder.tap()
-        let document = app.cells.containing(.staticText, identifier: input.deletingPathExtension().lastPathComponent).firstMatch
+        let title = input.deletingPathExtension().lastPathComponent
+        let document = app.cells.containing(.staticText, identifier: title).firstMatch
         XCTAssertTrue(document.waitForExistence(timeout: 10), app.debugDescription)
         document.tap()
+        if input.pathExtension == "pdf" {
+            let pages = app.descendants(matching: .any).matching(identifier: StudioAccessibilityID.pages).firstMatch
+            // Files can leave the selected PDF visible in Browse after the first tap.
+            if !pages.waitForExistence(timeout: 5), document.exists, document.isHittable {
+                document.staticTexts[title].tap()
+            }
+        }
     }
     #endif
 
