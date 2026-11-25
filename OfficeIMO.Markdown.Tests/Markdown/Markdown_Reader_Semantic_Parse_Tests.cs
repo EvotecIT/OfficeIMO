@@ -64,9 +64,6 @@ public sealed class Markdown_Reader_Semantic_Parse_Tests {
         var semanticDocument = MarkdownReader.ParseSemantic(markdown, options);
         var sourceBackedDocument = MarkdownReader.ParseWithSyntaxTree(markdown, options).Document;
 
-        Assert.Equal(
-            sourceBackedDocument.DescendantObjectsOfType<MarkdownTextRun>().Select(run => run.Text),
-            semanticDocument.DescendantObjectsOfType<MarkdownTextRun>().Select(run => run.Text));
         foreach (bool escapeNonAscii in new[] { true, false }) {
             var htmlOptions = CommonMarkHtmlComparison.CreatePlainHtmlOptions();
             htmlOptions.EscapeNonAsciiText = escapeNonAscii;
@@ -79,6 +76,10 @@ public sealed class Markdown_Reader_Semantic_Parse_Tests {
             }
         }
 
+        // Reading Text copies a sliced run, so the runs are compared after rendering has written their slices.
+        Assert.Equal(
+            sourceBackedDocument.DescendantObjectsOfType<MarkdownTextRun>().Select(run => run.Text),
+            semanticDocument.DescendantObjectsOfType<MarkdownTextRun>().Select(run => run.Text));
         Assert.Equal(sourceBackedDocument.ToMarkdown(), semanticDocument.ToMarkdown());
         MarkdownInvariantAssert.SemanticTreeIsWellFormed(semanticDocument);
     }
