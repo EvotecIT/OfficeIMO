@@ -70,6 +70,7 @@ namespace OfficeIMO.PowerPoint {
             }
             if (pending != null) {
                 _pendingPackage = null;
+                _pendingRelationships = null;
                 _pendingEdits = false;
                 pending.Dispose();
             }
@@ -126,43 +127,56 @@ namespace OfficeIMO.PowerPoint {
             if (package.GetPartLength(application) > maximumSlideXmlCharacters || package.GetPartLength(core) > maximumSlideXmlCharacters) return false;
             if (!HasApplicationCounters(package, application) || !HasModifiedDate(package, core)) return false;
 
+            // Slides removed or moved without the SDK changed the slide list in the pending package, which is read instead.
+            OfficeXmlTree? presentationTree = parsed?.GetParsedXml(main);
             var slideIds = new List<string>();
             string presentationFormat = "Widescreen";
-            OfficeXmlPullReader reader = package.OpenXml(main, out OfficePooledBytes content, processMarkupCompatibility: false);
-            using (content) {
-                // Slides are the entries of the first slide list under the root, as the SDK reads them; footer
-                // definitions are extensions in the root's extension list.
-                bool inSlideList = false, slideListSeen = false, inExtensionList = false;
-                while (reader.Read()) {
-                    if (reader.NodeKind != OfficeXmlNodeKind.StartElement) continue;
-                    if (reader.Depth == 2) {
-                        inSlideList = !slideListSeen && reader.IsElement(OfficeXmlNamespaces.PresentationML, "sldIdLst");
-                        slideListSeen |= inSlideList;
-                        inExtensionList = reader.IsElement(OfficeXmlNamespaces.PresentationML, "extLst");
-                    }
-                    if (reader.Depth == 3 && inSlideList && reader.IsElement(OfficeXmlNamespaces.PresentationML, "sldId")) {
-                        // A legacy visibility attribute makes the SDK save rewrite the slide list and the slide.
-                        if (reader.TryGetAttribute(OfficeXmlNamespaces.None, "show", out _)) return false;
-                        if (!reader.TryGetAttribute(OfficeXmlNamespaces.Relationships, "id", out string id)) return false;
-                        slideIds.Add(id);
-                    } else if (reader.Depth == 2 && reader.IsElement(OfficeXmlNamespaces.PresentationML, "sldSz")) {
-                        if (reader.TryGetAttribute(OfficeXmlNamespaces.None, "type", out string sizeType)) {
-                            if (!SlideSizeTypes.Contains(sizeType)) return false;
-                            presentationFormat = sizeType == "screen4x3" ? "Standard" : sizeType == "custom" ? "Custom" : "Widescreen";
+            if (presentationTree != null) {
+                if (!TryReadPresentation(presentationTree, slideIds, ref presentationFormat)) return false;
+            } else {
+                OfficeXmlPullReader reader = package.OpenXml(main, out OfficePooledBytes content, processMarkupCompatibility: false);
+                using (content) {
+                    // Slides are the entries of the first slide list under the root, as the SDK reads them; footer
+                    // definitions are extensions in the root's extension list.
+                    bool inSlideList = false, slideListSeen = false, inExtensionList = false;
+                    while (reader.Read()) {
+                        if (reader.NodeKind != OfficeXmlNodeKind.StartElement) continue;
+                        if (reader.Depth == 2) {
+                            inSlideList = !slideListSeen && reader.IsElement(OfficeXmlNamespaces.PresentationML, "sldIdLst");
+                            slideListSeen |= inSlideList;
+                            inExtensionList = reader.IsElement(OfficeXmlNamespaces.PresentationML, "extLst");
                         }
-                    } else if (reader.Depth == 3 && inExtensionList && reader.IsElement(OfficeXmlNamespaces.PresentationML, "ext")
-                        && reader.TryGetAttribute(OfficeXmlNamespaces.None, "uri", out string uri)
-                        && string.Equals(uri, FooterDefinitionsUri, StringComparison.Ordinal)) {
-                        // Footer definitions are written again on every save.
-                        return false;
+                        if (reader.Depth == 3 && inSlideList && reader.IsElement(OfficeXmlNamespaces.PresentationML, "sldId")) {
+                            // A legacy visibility attribute makes the SDK save rewrite the slide list and the slide.
+                            if (reader.TryGetAttribute(OfficeXmlNamespaces.None, "show", out _)) return false;
+                            if (!reader.TryGetAttribute(OfficeXmlNamespaces.Relationships, "id", out string id)) return false;
+                            slideIds.Add(id);
+                        } else if (reader.Depth == 2 && reader.IsElement(OfficeXmlNamespaces.PresentationML, "sldSz")) {
+                            if (reader.TryGetAttribute(OfficeXmlNamespaces.None, "type", out string sizeType)) {
+                                if (!SlideSizeTypes.Contains(sizeType)) return false;
+                                presentationFormat = sizeType == "screen4x3" ? "Standard" : sizeType == "custom" ? "Custom" : "Widescreen";
+                            }
+                        } else if (reader.Depth == 3 && inExtensionList && reader.IsElement(OfficeXmlNamespaces.PresentationML, "ext")
+                            && reader.TryGetAttribute(OfficeXmlNamespaces.None, "uri", out string uri)
+                            && string.Equals(uri, FooterDefinitionsUri, StringComparison.Ordinal)) {
+                            // Footer definitions are written again on every save.
+                            return false;
+                        }
                     }
                 }
             }
 
             int hidden = 0;
             foreach (string id in slideIds) {
-                OfficeOpcRelationship? relationship = package.FindRelationship(main, id);
-                if (relationship?.TargetPartName is not { } slide || relationship.IsExternal || !package.PartExists(slide)) return false;
+                string? slide;
+                if (presentationTree != null) {
+                    slide = parsed!.GetRelationshipTarget(main, id);
+                    if (slide == null || !parsed.PartExists(slide)) return false;
+                } else {
+                    OfficeOpcRelationship? relationship = package.FindRelationship(main, id);
+                    slide = relationship?.TargetPartName;
+                    if (slide == null || relationship!.IsExternal || !package.PartExists(slide)) return false;
+                }
                 // A slide a replacement already parsed is read from its tree; text edits leave its visibility as it was.
                 bool? show;
                 if (parsed?.GetParsedXml(slide) is { } tree) {
@@ -179,17 +193,70 @@ namespace OfficeIMO.PowerPoint {
             var slideParts = new HashSet<string>(OfficeAsciiIgnoreCaseComparer.Instance);
             bool notesDeclared = package.DeclaresContentType(NotesSlideContentType);
             int notes = 0;
-            foreach (OfficeOpcRelationship relationship in package.GetRelationships(main)) {
-                if (string.Equals(relationship.Type, VbaProjectRelationshipType, StringComparison.Ordinal)) return false;
-                if (relationship.IsExternal || !string.Equals(relationship.Type, OfficeOpcPackage.SlideRelationshipType, StringComparison.Ordinal)
-                    || relationship.TargetPartName is not { } slide || !slideParts.Add(OfficeOpcPackage.GetPartIdentity(slide))) {
+            foreach ((string type, string? target, bool external) in MainRelationships(package, parsed, presentationTree != null, main)) {
+                if (string.Equals(type, VbaProjectRelationshipType, StringComparison.Ordinal)) return false;
+                if (external || !string.Equals(type, OfficeOpcPackage.SlideRelationshipType, StringComparison.Ordinal)
+                    || target is not { } slide || !slideParts.Add(OfficeOpcPackage.GetPartIdentity(slide))) {
                     continue;
                 }
-                if (notesDeclared && package.GetRelatedPartName(slide, NotesSlideRelationshipType) is { } notesPart && package.PartExists(notesPart)) notes++;
+                // A slide still listed keeps its relationships as loaded; a removed slide's notes left with it.
+                if (notesDeclared && package.GetRelatedPartName(slide, NotesSlideRelationshipType) is { } notesPart && package.PartExists(notesPart)
+                    && parsed?.PartExists(notesPart) != false) {
+                    notes++;
+                }
             }
 
             values = new UnchangedSaveValues(application, core, slideIds.Count, notes, hidden, presentationFormat);
             return true;
+        }
+
+        // The pending package's presentation, read as the pull reader reads the loaded one.
+        private static bool TryReadPresentation(OfficeXmlTree presentation, List<string> slideIds, ref string presentationFormat) {
+            int root = presentation.Root;
+            if (!presentation.IsElement(root, OfficeXmlNamespaces.PresentationML, "presentation")) return false;
+            int list = presentation.FindChild(root, OfficeXmlNamespaces.PresentationML, "sldIdLst");
+            if (list != OfficeXmlTree.NoNode) {
+                for (int entry = presentation.FindChild(list, OfficeXmlNamespaces.PresentationML, "sldId"); entry != OfficeXmlTree.NoNode;
+                     entry = presentation.FindNextSibling(entry, OfficeXmlNamespaces.PresentationML, "sldId")) {
+                    if (presentation.TryGetAttribute(entry, OfficeXmlNamespaces.None, "show", out _)) return false;
+                    if (!presentation.TryGetAttribute(entry, OfficeXmlNamespaces.Relationships, "id", out string id)) return false;
+                    slideIds.Add(id);
+                }
+            }
+            for (int child = presentation.FirstChildOf(root); child != OfficeXmlTree.NoNode; child = presentation.NextSiblingOf(child)) {
+                if (presentation.IsElement(child, OfficeXmlNamespaces.PresentationML, "sldSz")) {
+                    if (presentation.TryGetAttribute(child, OfficeXmlNamespaces.None, "type", out string sizeType)) {
+                        if (!SlideSizeTypes.Contains(sizeType)) return false;
+                        presentationFormat = sizeType == "screen4x3" ? "Standard" : sizeType == "custom" ? "Custom" : "Widescreen";
+                    }
+                } else if (presentation.IsElement(child, OfficeXmlNamespaces.PresentationML, "extLst")) {
+                    for (int extension = presentation.FindChild(child, OfficeXmlNamespaces.PresentationML, "ext"); extension != OfficeXmlTree.NoNode;
+                         extension = presentation.FindNextSibling(extension, OfficeXmlNamespaces.PresentationML, "ext")) {
+                        if (string.Equals(presentation.GetAttribute(extension, OfficeXmlNamespaces.None, "uri"), FooterDefinitionsUri, StringComparison.Ordinal)) return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        // The presentation part's relationships: from the pending package when its slide list is read there.
+        private static IEnumerable<(string Type, string? Target, bool External)> MainRelationships(OfficeOpcPackage package,
+            OfficeOpcEditablePackage? parsed, bool pending, string main) {
+            if (!pending) {
+                foreach (OfficeOpcRelationship relationship in package.GetRelationships(main)) {
+                    yield return (relationship.Type, relationship.TargetPartName, relationship.IsExternal);
+                }
+                yield break;
+            }
+            string relationshipsPart = OfficeOpcPartNames.GetRelationshipsPartName(main);
+            if (!parsed!.PartExists(relationshipsPart)) yield break;
+            OfficeXmlTree relationships = parsed.GetXml(relationshipsPart);
+            for (int node = relationships.FindChild(relationships.Root, OfficeXmlNamespaces.PackageRelationships, "Relationship"); node != OfficeXmlTree.NoNode;
+                 node = relationships.FindNextSibling(node, OfficeXmlNamespaces.PackageRelationships, "Relationship")) {
+                string type = OfficeXmlNamespaces.NormalizeRelationshipType(relationships.GetAttribute(node, OfficeXmlNamespaces.None, "Type") ?? string.Empty);
+                bool external = string.Equals(relationships.GetAttribute(node, OfficeXmlNamespaces.None, "TargetMode"), "External", StringComparison.OrdinalIgnoreCase);
+                yield return (type, external ? null : OfficeOpcPartNames.ResolveRelationshipTarget(relationshipsPart, relationships.GetAttribute(node, OfficeXmlNamespaces.None, "Target")), external);
+            }
         }
 
         // The slide root's show attribute, as PowerPointXmlReader.ReadSlideShow reads it for the SDK save. A part over the

@@ -17,20 +17,8 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Replaces text without the SDK, or returns false, having changed nothing, for the model to replace it.</summary>
         private bool TryReplaceAllWithoutSdk(string text, string replacement, PowerPointTextSearchOptions? options, out int count) {
             count = 0;
-            // Notes are rewritten whole by the model, and a part size limit is the SDK's to enforce.
-            if (_disposed || !_sdkDeferred || _sdkDocument != null || _accessMode != DocumentAccessMode.ReadWrite
-                || options?.IncludeNotes == true || _deferredOpenSettings?.MaxCharactersInPart > 0
-                || _packageStream is not { CanRead: true, CanSeek: true } stream) {
-                return false;
-            }
-
-            OfficeOpcEditablePackage package;
-            if (_pendingPackage != null) {
-                package = _pendingPackage;
-            } else {
-                stream.Position = 0;
-                package = _pendingPackage = OfficeOpcEditablePackage.Open(stream, leaveOpen: true);
-            }
+            // Notes are rewritten whole by the model.
+            if (options?.IncludeNotes == true || GetPendingPackage() is not { } package) return false;
             try {
                 List<string>? slides = ReadSlideParts(package);
                 if (slides == null) return false;
@@ -54,40 +42,33 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        // The slide parts of the first slide list, in order; null when one is missing, external or listed twice.
-        private static List<string>? ReadSlideParts(OfficeOpcEditablePackage package) {
-            string? main = null;
-            OfficeXmlTree packageRelationships = package.GetRelationships(null);
-            for (int node = packageRelationships.FindChild(packageRelationships.Root, OfficeXmlNamespaces.PackageRelationships, "Relationship");
-                 node != OfficeXmlTree.NoNode;
-                 node = packageRelationships.FindNextSibling(node, OfficeXmlNamespaces.PackageRelationships, "Relationship")) {
-                string? type = packageRelationships.GetAttribute(node, OfficeXmlNamespaces.None, "Type");
-                if (type != null && OfficeXmlNamespaces.NormalizeRelationshipType(type) == OfficeOpcPackage.OfficeDocumentRelationshipType) {
-                    main = OfficeOpcPartNames.ResolveRelationshipTarget("/_rels/.rels", packageRelationships.GetAttribute(node, OfficeXmlNamespaces.None, "Target"));
-                    break;
-                }
+        /// <summary>
+        /// The package that holds edits made without the SDK, opened on first use; null when the document can't be edited
+        /// that way: it is closed, read-only, has the SDK open, or the SDK has a part size limit to enforce.
+        /// </summary>
+        private OfficeOpcEditablePackage? GetPendingPackage() {
+            if (_disposed || !_sdkDeferred || _sdkDocument != null || _accessMode != DocumentAccessMode.ReadWrite
+                || _deferredOpenSettings?.MaxCharactersInPart > 0
+                || _packageStream is not { CanRead: true, CanSeek: true } stream) {
+                return null;
             }
-            if (main == null || !package.PartExists(main)) return null;
-            OfficeXmlTree presentation = package.GetXml(main);
-            int list = presentation.FindChild(presentation.Root, OfficeXmlNamespaces.PresentationML, "sldIdLst");
-            var slides = new List<string>();
-            if (list == OfficeXmlTree.NoNode) return slides;
-            var seen = new HashSet<string>(OfficeAsciiIgnoreCaseComparer.Instance);
-            for (int entry = presentation.FindChild(list, OfficeXmlNamespaces.PresentationML, "sldId"); entry != OfficeXmlTree.NoNode;
-                 entry = presentation.FindNextSibling(entry, OfficeXmlNamespaces.PresentationML, "sldId")) {
-                string? id = presentation.GetAttribute(entry, OfficeXmlNamespaces.Relationships, "id");
-                string? slide = id == null ? null : package.GetRelationshipTarget(main, id);
-                if (slide == null || !package.PartExists(slide) || !seen.Add(OfficeOpcPackage.GetPartIdentity(slide))) return null;
-                slides.Add(slide);
+            if (_pendingPackage == null) {
+                stream.Position = 0;
+                _pendingPackage = OfficeOpcEditablePackage.Open(stream, leaveOpen: true);
             }
-            return slides;
+            return _pendingPackage;
         }
+
+        // The slide parts of the first slide list, in order; null when one is missing, external or listed twice.
+        private static List<string>? ReadSlideParts(OfficeOpcEditablePackage package) =>
+            PackageSlideList.Read(package)?.Entries.Select(entry => entry.Part).ToList();
 
         /// <summary>Writes pending slide edits into the package bytes, so whatever reads them next sees the edits.</summary>
         private void CommitPendingEdits() {
             OfficeOpcEditablePackage? pending = _pendingPackage;
             if (pending == null) return;
             _pendingPackage = null;
+            _pendingRelationships = null;
             bool edited = _pendingEdits;
             _pendingEdits = false;
             if (!edited) {
@@ -109,6 +90,7 @@ namespace OfficeIMO.PowerPoint {
         private void DiscardPendingEdits() {
             _pendingPackage?.Dispose();
             _pendingPackage = null;
+            _pendingRelationships = null;
             _pendingEdits = false;
         }
     }

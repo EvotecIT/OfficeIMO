@@ -89,6 +89,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         /// <param name="index">Index of the slide to remove.</param>
         public void RemoveSlide(int index) {
+            if (TryRemoveSlideWithoutSdk(index)) return;
             ArgumentOutOfRangeException.ThrowIfNegative(index);
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, LoadedSlides.Count);
 
@@ -260,6 +261,7 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="fromIndex">Current index of the slide.</param>
         /// <param name="toIndex">Destination index of the slide.</param>
         public void MoveSlide(int fromIndex, int toIndex) {
+            if (TryMoveSlideWithoutSdk(fromIndex, toIndex)) return;
             ArgumentOutOfRangeException.ThrowIfNegative(fromIndex);
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(fromIndex, LoadedSlides.Count);
 
