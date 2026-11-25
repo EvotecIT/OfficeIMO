@@ -228,14 +228,17 @@ namespace OfficeIMO.Excel {
                 private Cell? _lastCell;
                 private int _lastColumnIndex;
                 private bool _hasImplicitColumns;
+                private bool _readRuleRow;
 
                 internal BatchRowState(ExcelSheet sheet, Row row) {
                     _sheet = sheet;
                     _row = row;
                     _cells = new Dictionary<int, Cell>();
 
-                    bool tracking = false;
-                    int nextImplicitColumn = 0;
+                    // A flagged row, and any row from a cell the letters-only scan cannot resolve, follows the read rule.
+                    _readRuleRow = UsesReadColumnRule(row);
+                    bool tracking = _readRuleRow;
+                    int nextImplicitColumn = 1;
                     foreach (var cell in row.Elements<Cell>()) {
                         int columnIndex = 0;
                         if (!tracking) {
@@ -244,9 +247,13 @@ namespace OfficeIMO.Excel {
                                 columnIndex = GetRowQualifiedColumnIndex(reference!);
                             }
                             if (columnIndex == 0) {
-                                // From a cell the letters-only scan cannot resolve, columns follow the read rule.
+                                // The implicit column follows the preceding cell, which the scan resolved, not the
+                                // largest column so far.
                                 tracking = true;
-                                nextImplicitColumn = _lastCell == null ? 1 : _lastColumnIndex + 1;
+                                Cell? previous = cell.PreviousSibling<Cell>();
+                                nextImplicitColumn = previous == null
+                                    ? 1
+                                    : GetRowQualifiedColumnIndex(previous.CellReference?.Value ?? string.Empty) + 1;
                             }
                         }
                         if (tracking) {
@@ -285,8 +292,8 @@ namespace OfficeIMO.Excel {
                         _row.InsertAfter(cell, _lastCell);
                     } else {
                         Cell? insertAfter = null;
-                        bool tracking = false;
-                        int nextImplicitColumn = 0;
+                        bool tracking = _readRuleRow;
+                        int nextImplicitColumn = 1;
                         foreach (var existingCell in _row.Elements<Cell>()) {
                             int existingColumnIndex = 0;
                             if (!tracking) {

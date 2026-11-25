@@ -286,7 +286,7 @@ namespace OfficeIMO.Excel {
                     _lastStoredColumn = domColumn;
                 } else {
                     _lastStoredColumn = int.MaxValue;
-                    if (row is ExcelStoredRow storedRow) storedRow.MarkUnorderedDomCells();
+                    if (row is ExcelStoredRow storedRow) storedRow.MarkUnorderedDomCells(cell);
                 }
                 return true;
             }

@@ -218,10 +218,11 @@ namespace OfficeIMO.Excel {
             Cell? insertAfterCell = null;
             int targetColumnIndex = column;
 
-            // References the letters-only scan resolves are compared as before. From the first cell it cannot resolve
-            // (no reference, or no row digits), columns follow the read rule, so a write updates the cell a read
-            // returns for that column.
-            bool tracking = false;
+            // References the letters-only scan resolves are compared as before. A row the grid loader flagged for
+            // non-canonical DOM cells, and any row from the first cell that scan cannot resolve (no reference, or no
+            // row digits), follows the read rule, so a write updates the cell a read returns for that column.
+            bool readRuleRow = UsesReadColumnRule(rowElement);
+            bool tracking = readRuleRow;
             bool implicitColumn = false;
             int nextImplicitColumn = 0;
             if (_lastAccessedCell != null
@@ -231,6 +232,7 @@ namespace OfficeIMO.Excel {
                     cell = _lastAccessedCell;
                 } else if (_lastAccessedCellColumnIndex < targetColumnIndex) {
                     insertAfterCell = _lastAccessedCell;
+                    nextImplicitColumn = _lastAccessedCellColumnIndex + 1;
                     for (Cell? next = _lastAccessedCell.NextSibling<Cell>(); next != null; next = next.NextSibling<Cell>()) {
                         int nextColumnIndex = 0;
                         if (!tracking) {
@@ -258,7 +260,8 @@ namespace OfficeIMO.Excel {
             }
 
             if (cell == null && insertAfterCell == null) {
-                tracking = false;
+                tracking = readRuleRow;
+                nextImplicitColumn = 1;
                 foreach (Cell c in rowElement.Elements<Cell>()) {
                     int existingColumnIndex = 0;
                     if (!tracking) {
@@ -698,6 +701,12 @@ namespace OfficeIMO.Excel {
             }
             return 0;
         }
+
+        /// <summary>
+        /// Whether a row's cells are placed by the read rule for every cell: the grid loader flags a row whose DOM cells
+        /// lack canonical references while it reads them, so valid rows never pay for the check.
+        /// </summary>
+        internal static bool UsesReadColumnRule(Row row) => row is ExcelStoredRow stored && !stored.HasOrderedCells;
 
         /// <summary>
         /// The implicit column a cell would take after its previous sibling, which the letters-only scan resolved, or

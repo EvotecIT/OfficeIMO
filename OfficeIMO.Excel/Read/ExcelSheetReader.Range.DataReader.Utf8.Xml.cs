@@ -286,37 +286,60 @@ namespace OfficeIMO.Excel {
             /// </summary>
             private bool TryResolveUnparsedCellColumn(int start, int length, int nextColumn, out int columnIndex) {
                 columnIndex = 0;
-                Span<char> text = length <= 64 ? stackalloc char[64] : new char[length];
+                // UTF-8 decodes to at most one char per byte, and a character reference is longer than its chars.
+                char[] text = new char[length];
                 int written = 0;
                 int position = 0;
                 while (position < length) {
                     byte current = _buffer![start + position];
-                    if (current >= 0x80) return false;
-                    if (current != (byte)'&') {
-                        text[written++] = (char)current;
-                        position++;
+                    if (current == (byte)'&') {
+                        if (!TryDecodeXmlCharacterReference(_buffer.AsSpan(start + position, length - position), out int code, out int consumed)) {
+                            return false;
+                        }
+                        if (code > 0xFFFF) {
+                            code -= 0x10000;
+                            text[written++] = (char)(0xD800 + (code >> 10));
+                            text[written++] = (char)(0xDC00 + (code & 0x3FF));
+                        } else {
+                            text[written++] = (char)code;
+                        }
+                        position += consumed;
                         continue;
                     }
-                    if (!TryDecodeXmlCharacterReference(_buffer.AsSpan(start + position, length - position), out char decoded, out int consumed)) {
+                    // Markup and control characters cannot appear in a well-formed attribute value.
+                    if (current == (byte)'<' || (current < 0x20 && current != 0x09 && current != 0x0A && current != 0x0D)) {
                         return false;
                     }
-                    text[written++] = decoded;
-                    position += consumed;
+                    int run = position;
+                    while (run < length && _buffer[start + run] != (byte)'&') run++;
+                    try {
+                        written += StrictReferenceUtf8.GetChars(_buffer, start + position, run - position, text, written);
+                    } catch (DecoderFallbackException) {
+                        return false;
+                    }
+                    position = run;
                 }
-                columnIndex = GetXmlCellColumnIndex(text.Slice(0, written), ref nextColumn);
+                // The two noncharacters XML excludes can still arrive as valid UTF-8.
+                if (text.AsSpan(0, written).IndexOfAny('\uFFFE', '\uFFFF') >= 0) return false;
+                columnIndex = GetXmlCellColumnIndex(text.AsSpan(0, written), ref nextColumn);
                 return true;
             }
 
-            /// <summary>Decodes a numeric character reference or one of the five predefined XML entities.</summary>
-            private static bool TryDecodeXmlCharacterReference(ReadOnlySpan<byte> text, out char value, out int consumed) {
-                value = default;
+            private static readonly UTF8Encoding StrictReferenceUtf8 = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
+
+            /// <summary>
+            /// Decodes a numeric character reference to a Unicode scalar value, or one of the five predefined XML
+            /// entities. References to characters XML does not allow return false.
+            /// </summary>
+            private static bool TryDecodeXmlCharacterReference(ReadOnlySpan<byte> text, out int value, out int consumed) {
+                value = 0;
                 consumed = 0;
                 int end = text.IndexOf((byte)';');
                 if (end < 2) return false;
                 ReadOnlySpan<byte> name = text.Slice(1, end - 1);
                 consumed = end + 1;
                 if (name[0] == (byte)'#') {
-                    bool hex = name.Length > 1 && (name[1] == (byte)'x');
+                    bool hex = name.Length > 1 && name[1] == (byte)'x';
                     int digitsStart = hex ? 2 : 1;
                     if (digitsStart >= name.Length) return false;
                     int code = 0;
@@ -328,10 +351,14 @@ namespace OfficeIMO.Excel {
                             : -1;
                         if (part < 0) return false;
                         code = code * (hex ? 16 : 10) + part;
-                        if (code > 0xFFFF) return false;
+                        if (code > 0x10FFFF) return false;
                     }
-                    if (code == 0 || (code >= 0xD800 && code <= 0xDFFF)) return false;
-                    value = (char)code;
+                    bool allowed = code == 0x9 || code == 0xA || code == 0xD
+                        || (code >= 0x20 && code <= 0xD7FF)
+                        || (code >= 0xE000 && code <= 0xFFFD)
+                        || (code >= 0x10000 && code <= 0x10FFFF);
+                    if (!allowed) return false;
+                    value = code;
                     return true;
                 }
                 if (AsciiNameEquals(name, "amp")) value = '&';

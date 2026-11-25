@@ -120,6 +120,22 @@ namespace OfficeIMO.Excel {
             return cells;
         }
 
+        /// <summary>
+        /// Gives each cell of a row the grid loader flagged for non-canonical DOM cells the reference the read rule
+        /// places it at, so column scans that trust references treat it as readers do. Other rows are left as they are.
+        /// </summary>
+        private static void NormalizeReadRuleRow(Row row) {
+            if (!UsesReadColumnRule(row) || row.RowIndex?.Value is not uint rowIndex || rowIndex == 0U) return;
+            int nextColumn = 1;
+            foreach (Cell cell in row.Elements<Cell>()) {
+                string? reference = cell.CellReference?.Value;
+                int column = ExcelWorksheetCoordinates.GetColumnIndex(cell, ref nextColumn);
+                if (string.IsNullOrEmpty(reference) || ExcelA1.ParseColumnIndexFromCellReferenceFast(reference) <= 0) {
+                    cell.CellReference = ExcelA1.CellReference(checked((int)rowIndex), column);
+                }
+            }
+        }
+
         private void NormalizeImplicitCellReferences(bool preserveImplicitRowIndexes = false) {
             uint previousRow = 0U;
             foreach (Row row in WorksheetRoot.GetFirstChild<SheetData>()?.Elements<Row>()
@@ -127,8 +143,9 @@ namespace OfficeIMO.Excel {
                 uint effectiveRow = GetEffectiveRowIndex(row, previousRow);
                 if (!preserveImplicitRowIndexes) row.RowIndex = effectiveRow;
                 int previousColumn = 0;
-                // A stored row's DOM cells all have explicit references, and stored cells take theirs from the row.
-                foreach (Cell cell in row is ExcelStoredRow ? GetDomCells(row) : row.Elements<Cell>()) {
+                // A stored row's DOM cells have explicit references and stored cells take theirs from the row, unless the
+                // grid loader flagged the row; that row is read whole so implicit columns count its stored cells.
+                foreach (Cell cell in row is ExcelStoredRow && !UsesReadColumnRule(row) ? GetDomCells(row) : row.Elements<Cell>()) {
                     if (ExcelA1.TryParseCellReferenceFast(cell.CellReference?.Value, out _, out int explicitColumn)) {
                         previousColumn = explicitColumn;
                         continue;

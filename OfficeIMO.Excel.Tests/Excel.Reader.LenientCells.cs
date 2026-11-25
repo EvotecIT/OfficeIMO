@@ -221,6 +221,7 @@ public partial class Excel {
     [InlineData("<c r=\"B23990\" s=\"1\">", "<c r=\"B23990\" s=\"\">")]
     [InlineData("<c r=\"C23990\">", "<c r=\"C\">")]
     [InlineData("<c r=\"C23990\">", "<c r=\" C&#50;3990 \">")]
+    [InlineData("<c r=\"C23990\">", "<c r=\"é\">")]
     public void SinglePassReading_ReadsLateLenientCellsAsTheDefaultReaderDoes(string original, string replacement) {
         byte[] workbook = CreateParallelIndexWorkbook(invalidSharedStringRow: 0);
         using (var buffer = new MemoryStream()) {
@@ -301,6 +302,64 @@ public partial class Excel {
                 .Descendants<DocumentFormat.OpenXml.Spreadsheet.Row>().First(row => row.RowIndex?.Value == 1);
             Assert.Equal(new[] { "A1", "B1" }, firstRow.Elements<DocumentFormat.OpenXml.Spreadsheet.Cell>().Select(c => c.CellReference?.Value).ToArray());
         } finally { File.Delete(path); }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Write_PlacesReferenceWithTrailingTextByTheReadRule(bool batch) {
+        // Readers put B1X first in the row, at A1, so writing A1 updates it.
+        string path = CreateLenientCellWorkbook("<row r=\"1\"><c r=\"B1X\"><v>1</v></c></row>");
+        try {
+            using (var document = ExcelDocument.Load(path)) {
+                ExcelSheet sheet = document.GetSheet("Data");
+                WriteLenientCell(sheet, 1, 1, 5, batch);
+
+                Assert.Equal(5d, sheet.Cell("A1").GetValue().Value);
+                Assert.Equal(ExcelCellDataKind.Blank, sheet.Cell("B1").GetValue().Kind);
+                document.Save();
+            }
+
+            Assert.Equal(new[] { "A1" }, ReadSavedRowReferences(path, 1));
+        } finally { File.Delete(path); }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SetValues_SeedsImplicitColumnFromThePrecedingCell(bool utf16) {
+        // Readers place the cell without a reference after A1, at B1, not after the largest column.
+        string path = CreateLenientCellWorkbook(
+            "<row r=\"1\"><c r=\"C1\"><v>3</v></c><c r=\"A1\"><v>1</v></c><c><v>2</v></c></row>", utf16);
+        try {
+            using var document = ExcelDocument.Load(path);
+            ExcelSheet sheet = document.GetSheet("Data");
+            Assert.Equal(2d, sheet.Cell("B1").GetValue().Value);
+
+            WriteLenientCell(sheet, 1, 4, 9, batch: true);
+
+            Assert.Equal(2d, sheet.Cell("B1").GetValue().Value);
+            Assert.Equal(3d, sheet.Cell("C1").GetValue().Value);
+            Assert.Equal(9d, sheet.Cell("D1").GetValue().Value);
+        } finally { File.Delete(path); }
+    }
+
+    private static void WriteLenientCell(ExcelSheet sheet, int row, int column, object value, bool batch) {
+        if (!batch) {
+            sheet.Cell(row, column).SetValue(value);
+            return;
+        }
+        // More cells than the per-cell write limit, on an existing row, take the prepared batch writer.
+        var cells = new List<(int Row, int Column, object Value)> { (row, column, value) };
+        for (int other = 1; other <= 16; other++) cells.Add((row + 1, other, other));
+        sheet.SetValues(cells, ExcelExecutionMode.Sequential);
+    }
+
+    private static string?[] ReadSavedRowReferences(string path, uint rowIndex) {
+        using var package = DocumentFormat.OpenXml.Packaging.SpreadsheetDocument.Open(path, false);
+        return package.WorkbookPart!.WorksheetParts.Single().Worksheet!
+            .Descendants<DocumentFormat.OpenXml.Spreadsheet.Row>().First(row => row.RowIndex?.Value == rowIndex)
+            .Elements<DocumentFormat.OpenXml.Spreadsheet.Cell>().Select(c => c.CellReference?.Value).ToArray();
     }
 
     [Theory]
