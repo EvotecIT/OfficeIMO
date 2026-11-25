@@ -21,8 +21,12 @@ namespace OfficeIMO.Excel {
                     storedIndex = index;
                     return null;
                 }
-                using (ExcelStoredRow.BeginRawAccess()) {
-                    return TryGetCellInRow(rowElement, row, column);
+                // A row with DOM cells that lack canonical references is read whole, so their implicit columns count
+                // the stored cells before them.
+                if (stored.HasOrderedCells) {
+                    using (ExcelStoredRow.BeginRawAccess()) {
+                        return TryGetCellInRow(rowElement, row, column);
+                    }
                 }
             }
             return TryGetCellInRow(rowElement, row, column);

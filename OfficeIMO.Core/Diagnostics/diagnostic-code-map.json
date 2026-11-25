@@ -1201,6 +1201,14 @@
       ]
     },
     {
+      "oldCode": "ExcelCellStyleRepaired",
+      "catalogCode": "excel-cell-style-repaired",
+      "member": "ExcelCellStyleRepaired",
+      "origins": [
+        "OfficeIMO.Excel/ExcelSheet.LoadRepairs.cs:17"
+      ]
+    },
+    {
       "oldCode": "ExcelCellTextClipped",
       "catalogCode": "excel-cell-text-clipped",
       "member": "ExcelCellTextClipped",

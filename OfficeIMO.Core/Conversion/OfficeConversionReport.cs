@@ -36,6 +36,21 @@ public class OfficeConversionReport {
         Target = target;
     }
 
+    /// <summary>
+    /// Creates a format-owned report with item and timing totals whose diagnostics come from <see cref="GetDiagnostics"/>
+    /// each time they are read, for findings a format records after the report is created.
+    /// </summary>
+    /// <param name="source">Source path, format, or in-memory source description.</param>
+    /// <param name="target">Target format or description.</param>
+    /// <param name="itemsWritten">Number of pages or logical items written, as defined by the format.</param>
+    /// <param name="elapsed">Elapsed time.</param>
+    protected OfficeConversionReport(string source, string target, long itemsWritten, TimeSpan elapsed) : this(source, target) {
+        ArgumentOutOfRangeException.ThrowIfNegative(itemsWritten);
+        if (elapsed < TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(elapsed));
+        ItemsWritten = itemsWritten;
+        Elapsed = elapsed;
+    }
+
     /// <summary>Creates a format-owned report named after the format that owns the derived type.</summary>
     protected OfficeConversionReport() {
         string format = FormatOf(GetType());

@@ -185,6 +185,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Renumbers a row and its cells, updating the existing attribute values rather than replacing them.</summary>
         private void MoveRow(Row row, int newRowIndex) {
+            NormalizeReadRuleRow(row);
             row.RowIndex!.Value = (uint)newRowIndex;
             // Stored cells take their reference from the row index, so only DOM cells are rewritten.
             for (OpenXmlElement? item = ExcelWorksheetScan.FirstDomChild(row); item != null; item = ExcelWorksheetScan.NextDomSibling(item)) {

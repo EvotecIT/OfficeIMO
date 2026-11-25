@@ -199,6 +199,7 @@ namespace OfficeIMO.Excel {
             if (row == null) {
                 return null;
             }
+            NormalizeReadRuleRow(row);
 
             int firstColumn = int.MaxValue;
             int lastColumn = 0;

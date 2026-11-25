@@ -317,6 +317,7 @@ OfficeIMO.OfficeConversionException.Report.get -> OfficeIMO.OfficeConversionRepo
 *REMOVED*OfficeIMO.OfficeConversionReport.HasLoss.get -> bool
 OfficeIMO.OfficeConversionReport.OfficeConversionReport() -> void
 OfficeIMO.OfficeConversionReport.OfficeConversionReport(string! source, string! target) -> void
+OfficeIMO.OfficeConversionReport.OfficeConversionReport(string! source, string! target, long itemsWritten, System.TimeSpan elapsed) -> void
 OfficeIMO.OfficeConversionResult<T, TReport>
 OfficeIMO.OfficeConversionResult<T, TReport>.OfficeConversionResult(T value, TReport! report) -> void
 OfficeIMO.OfficeConversionResult<T, TReport>.Report.get -> TReport!
@@ -344,6 +345,7 @@ OfficeIMO.OfficeTextSearchOptions.MatchCase.set -> void
 OfficeIMO.OfficeTextSearchOptions.OfficeTextSearchOptions() -> void
 OfficeIMO.OfficeTextSearchOptions.WholeWords.get -> bool
 OfficeIMO.OfficeTextSearchOptions.WholeWords.set -> void
+const OfficeIMO.OfficeDiagnosticCodes.ExcelCellStyleRepaired = "excel-cell-style-repaired" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.FontNotEmbedded = "font-not-embedded" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.NativeBookmarkTargetMissing = "native-bookmark-target-missing" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.NativeBookmarkTargetUnprojected = "native-bookmark-target-unprojected" -> string!

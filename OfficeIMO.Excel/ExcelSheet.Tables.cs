@@ -998,6 +998,7 @@ namespace OfficeIMO.Excel {
                     rows[rowIndex] = row;
                 }
 
+                NormalizeReadRuleRow(row);
                 if (useBitMask) {
                     ulong existingMask = 0UL;
                     foreach (var cell in row.Elements<Cell>()) {
@@ -1077,6 +1078,7 @@ namespace OfficeIMO.Excel {
         private static bool RowHasExactContiguousCells(Row row, int startColumnIndex, int endColumnIndex, int expectedColumnCount) {
             int expectedColumn = startColumnIndex;
             int cellCount = 0;
+            NormalizeReadRuleRow(row);
 
             foreach (var cell in row.Elements<Cell>()) {
                 string? cellReference = cell.CellReference?.Value;
