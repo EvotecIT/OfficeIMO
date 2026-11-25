@@ -80,7 +80,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         // The first internal relationship of a type, as the SDK's typed part properties find it.
-        private static string? FirstRelated(OfficeOpcEditablePackage package, string source, string type, out string? id) {
+        private static string? FirstRelated(OfficeOpcEditablePackage package, string? source, string type, out string? id) {
             id = null;
             string relationshipsPart = OfficeOpcPartNames.GetRelationshipsPartName(source);
             if (!package.PartExists(relationshipsPart)) return null;

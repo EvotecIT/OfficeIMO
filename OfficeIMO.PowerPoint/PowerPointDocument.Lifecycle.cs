@@ -168,6 +168,10 @@ namespace OfficeIMO.PowerPoint {
             OfficeTheme? theme = applyTheme ? options.Theme ?? OfficeTheme.Default : null;
             bool themeApplied = ReferenceEquals(theme, OfficeTheme.Default);
             byte[] packageBytes = themeApplied ? DefaultThemedPackage.Value : DefaultPackage.Value;
+            // A presentation with the default scaffold and theme starts without the SDK, as a loaded one does.
+            if ((themeApplied || theme == null) && TryCreateWithoutSdk(packageBytes, filePath, sourceStream, options, themeApplied ? theme : null) is { } created) {
+                return created;
+            }
             var packageStream = new MemoryStream(packageBytes.Length + StreamBufferSize);
             PresentationDocument? document = null;
             try {

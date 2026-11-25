@@ -45,7 +45,12 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Binds a package-backed slide to its part once the SDK opened the package.</summary>
         internal void BindSdk(SlidePart slidePart) {
-            _slidePart ??= slidePart;
+            if (_slidePart != null) return;
+            _slidePart = slidePart;
+            // Shapes find their elements by position, so they bind before anything changes the slide the SDK opened.
+            if (_shapesLoaded) {
+                foreach (PowerPointShape shape in _shapes) shape.BindSdk();
+            }
         }
 
         /// <summary>

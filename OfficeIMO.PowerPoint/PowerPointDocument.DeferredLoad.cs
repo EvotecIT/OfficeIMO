@@ -29,6 +29,50 @@ namespace OfficeIMO.PowerPoint {
             _sdkDeferred = true;
         }
 
+        /// <summary>
+        /// A new presentation over the default package bytes that works without the SDK: its creation and modification
+        /// dates are set in the package, as the SDK sets them; null when the package doesn't have them to set.
+        /// </summary>
+        private static PowerPointDocument? TryCreateWithoutSdk(byte[] packageBytes, string? filePath, Stream? sourceStream,
+            PowerPointCreateOptions options, OfficeTheme? theme) {
+            var packageStream = new MemoryStream(packageBytes.Length + StreamBufferSize);
+            packageStream.Write(packageBytes, 0, packageBytes.Length);
+            packageStream.Position = 0;
+            var presentation = new PowerPointDocument(filePath ?? string.Empty, DocumentAccessMode.ReadWrite) {
+                _packageStream = packageStream,
+                _sourceStream = sourceStream,
+                _persistenceMode = options.PersistenceMode,
+                _maximumSlideXmlCharacters = PowerPointXmlReader.MaximumPackageXmlCharacters
+            };
+            try {
+                if (presentation.GetPackage(edit: true) is not { } package || PackageSlideList.Read(package) is not { } slides) {
+                    presentation.Dispose();
+                    return null;
+                }
+                string? core = FirstRelated(package, null, CorePropertiesRelationshipType, out _);
+                OfficeXmlTree? properties = core == null ? null : package.GetXml(core);
+                int createdDate = properties?.FindChild(properties.Root, OfficeXmlNamespaces.DublinCoreTerms, "created") ?? OfficeXmlTree.NoNode;
+                int modifiedDate = properties?.FindChild(properties.Root, OfficeXmlNamespaces.DublinCoreTerms, "modified") ?? OfficeXmlTree.NoNode;
+                if (createdDate == OfficeXmlTree.NoNode || modifiedDate == OfficeXmlTree.NoNode) {
+                    presentation.Dispose();
+                    return null;
+                }
+                string timestamp = FormatPackageDate(DateTime.UtcNow);
+                properties!.SetInnerText(createdDate, timestamp);
+                properties.SetInnerText(modifiedDate, timestamp);
+                presentation._pendingEdits = true;
+                presentation._deferredSlideCount = slides.Entries.Count;
+                if (theme != null) {
+                    presentation._baseTheme = theme;
+                    presentation._layoutTheme = PowerPointLayoutTheme.From(theme);
+                }
+                return presentation;
+            } catch {
+                presentation.Dispose();
+                throw;
+            }
+        }
+
         /// <summary>How many times the SDK package was opened after a deferred load; zero while it was not needed.</summary>
         internal int DeferredSdkOpenCount { get; private set; }
 

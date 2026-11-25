@@ -29,6 +29,16 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal OpenXmlElement Element => _element ?? BindSdkElement();
+
+        /// <summary>Binds a package-backed shape to its SDK element now, while the slide the SDK opened is unchanged.</summary>
+        internal void BindSdk() {
+            if (_element != null || PackageTree == null) return;
+            try {
+                BindSdkElement();
+            } catch (InvalidOperationException) {
+                // A shape the opened slide doesn't have where expected reports it when it is used, not while the SDK opens.
+            }
+        }
         internal PowerPointSlide? OwnerSlide { get; private set; }
 
         internal OpenXmlPart? RelationshipOwnerPart {
