@@ -227,6 +227,17 @@ public class PowerPointUnchangedSaveTests {
     }
 
     [Fact]
+    public void TheReturnedBytesBelongToTheCaller() {
+        using var presentation = PowerPointDocument.Load(new MemoryStream(CreateDeckWithStaleProperties()));
+        byte[] saved = presentation.ToBytes();
+        Assert.False(presentation.IsSdkLoaded);
+
+        Array.Clear(saved, 0, saved.Length);
+
+        Assert.Equal(2, presentation.Slides.Count);
+    }
+
+    [Fact]
     public void AnSdkOpenedAfterTheSaveReadsWhatWasSaved() {
         using var presentation = PowerPointDocument.Load(new MemoryStream(CreateDeckWithStaleProperties()));
         presentation.ToBytes();
@@ -324,8 +335,10 @@ public class PowerPointUnchangedSaveTests {
                     File.WriteAllText(Path.Combine(dump, "expected.xml"), Normalize(expected[part.Key]).ToString());
                     File.WriteAllText(Path.Combine(dump, "actual.xml"), Normalize(part.Value).ToString());
                 }
-                Assert.True(XNode.DeepEquals(Normalize(expected[part.Key]), Normalize(part.Value)), part.Key + " differs from the SDK save."
-                    + Environment.NewLine + Shorten(Normalize(expected[part.Key])) + Environment.NewLine + Shorten(Normalize(part.Value)));
+                XDocument expectedXml = Normalize(expected[part.Key], part.Key);
+                XDocument actualXml = Normalize(part.Value, part.Key);
+                Assert.True(XNode.DeepEquals(expectedXml, actualXml), part.Key + " differs from the SDK save."
+                    + Environment.NewLine + Shorten(expectedXml) + Environment.NewLine + Shorten(actualXml));
                 if (keptAsLoaded && part.Key != ApplicationPart && loaded.TryGetValue(part.Key, out byte[]? original)) {
                     Assert.True(original.AsSpan().SequenceEqual(part.Value), part.Key + " was not kept as loaded.");
                 }
@@ -387,8 +400,16 @@ public class PowerPointUnchangedSaveTests {
             .ToList();
 
     // Declarations and indentation are the SDK's formatting, not content.
-    private static XDocument Normalize(byte[] xml) {
+    private static XDocument Normalize(byte[] xml, string? partName = null) {
         XDocument document = XDocument.Load(new MemoryStream(xml));
+        // .NET Framework's packaging writes internal targets as absolute part names; compare the parts they reach.
+        if (partName != null && partName.EndsWith(".rels", StringComparison.OrdinalIgnoreCase)) {
+            string folder = partName.Contains("_rels/") ? partName.Substring(0, partName.LastIndexOf("_rels/", StringComparison.Ordinal)) : string.Empty;
+            var source = new Uri("http://package/" + folder);
+            foreach (XElement relationship in document.Root!.Elements().Where(element => (string?)element.Attribute("TargetMode") != "External")) {
+                if (relationship.Attribute("Target") is { } target) target.Value = new Uri(source, target.Value).AbsolutePath;
+            }
+        }
         foreach (XElement element in document.Descendants()) element.Attributes().Where(attribute => attribute.IsNamespaceDeclaration).Remove();
         // A core properties part the SDK creates gets a random name, so its relationship differs between any two saves,
         // and so does the id the SDK gives any relationship it adds.

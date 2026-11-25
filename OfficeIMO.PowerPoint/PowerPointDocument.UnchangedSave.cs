@@ -58,7 +58,8 @@ namespace OfficeIMO.PowerPoint {
             }
             // The document now holds what it saved, as a save through the SDK leaves it: an SDK opened later reads the
             // refreshed properties.
-            _packageStream = OfficeIMO.Core.Internal.OfficePackageLoadSource.CreatePackageStream(bytes, _accessMode);
+            // The caller owns the returned array, so the document keeps a copy of its own.
+            _packageStream = OfficeIMO.Core.Internal.OfficePackageLoadSource.CreatePackageStream((byte[])bytes.Clone(), _accessMode);
             packageStream.Dispose();
             return true;
         }
