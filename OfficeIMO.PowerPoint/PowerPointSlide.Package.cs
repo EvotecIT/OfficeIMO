@@ -207,6 +207,32 @@ namespace OfficeIMO.PowerPoint {
             slide.SetAttribute(element, OfficeXmlNamespaces.None, second, secondValue.ToString(System.Globalization.CultureInfo.InvariantCulture));
         }
 
+        // Adds an auto shape to the package tree as AddShape writes it; null when the slide or document is left to the SDK.
+        private PowerPointAutoShape? TryAddPackageShape(OfficePresetShapeType shapeType, string preset, long left, long top, long width, long height, string? name) {
+            if (!TryGetEditablePackageShapeTree(out OfficeXmlTree slide, out int tree) || !TryGetPackageMaxShapeId(out _)) return null;
+            string shapeName = name ?? GenerateUniqueName(shapeType.ToString());
+            uint id = AllocateShapeId();
+            int shape = slide.CreateElement(OfficeXmlNamespaces.PresentationML, "sp");
+            int nonVisual = PowerPointDocument.Append(slide, shape, OfficeXmlNamespaces.PresentationML, "nvSpPr");
+            int drawing = PowerPointDocument.Append(slide, nonVisual, OfficeXmlNamespaces.PresentationML, "cNvPr");
+            slide.SetAttribute(drawing, OfficeXmlNamespaces.None, "id", id.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            slide.SetAttribute(drawing, OfficeXmlNamespaces.None, "name", shapeName);
+            int shapeDrawing = PowerPointDocument.Append(slide, nonVisual, OfficeXmlNamespaces.PresentationML, "cNvSpPr");
+            slide.SetAttribute(PowerPointDocument.Append(slide, shapeDrawing, OfficeXmlNamespaces.DrawingML, "spLocks"), OfficeXmlNamespaces.None, "noGrp", "1");
+            PowerPointDocument.Append(slide, nonVisual, OfficeXmlNamespaces.PresentationML, "nvPr");
+            int properties = PowerPointDocument.Append(slide, shape, OfficeXmlNamespaces.PresentationML, "spPr");
+            int transform = PowerPointDocument.Append(slide, properties, OfficeXmlNamespaces.DrawingML, "xfrm");
+            SetPoint(slide, PowerPointDocument.Append(slide, transform, OfficeXmlNamespaces.DrawingML, "off"), "x", left, "y", top);
+            SetPoint(slide, PowerPointDocument.Append(slide, transform, OfficeXmlNamespaces.DrawingML, "ext"), "cx", width, "cy", height);
+            int geometry = PowerPointDocument.Append(slide, properties, OfficeXmlNamespaces.DrawingML, "prstGeom");
+            slide.SetAttribute(geometry, OfficeXmlNamespaces.None, "prst", preset);
+            PowerPointDocument.Append(slide, geometry, OfficeXmlNamespaces.DrawingML, "avLst");
+            if (shapeType == OfficePresetShapeType.Line) PowerPointDocument.Append(slide, properties, OfficeXmlNamespaces.DrawingML, "noFill");
+            slide.Append(tree, shape);
+            OwnerDocument!.MarkPackageEdited();
+            return TrackShape(new PowerPointAutoShape(this, slide, shape));
+        }
+
         // A transform and a rectangle preset geometry, as the model writes them into new shapes.
         private static void AppendRectangle(OfficeXmlTree slide, int properties, long left, long top, long width, long height) {
             int transform = PowerPointDocument.Append(slide, properties, OfficeXmlNamespaces.DrawingML, "xfrm");

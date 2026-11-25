@@ -68,6 +68,14 @@ public class PowerPointContentWithoutSdkTests {
             if (box != null) box.Text = "Copied";
             return presentation.Slides.Count + ":" + string.Join("|", copy.TextBoxes.Select(text => text.Text));
         }),
+        ("add shapes to the first slide", presentation => {
+            if (presentation.Slides.Count == 0) return string.Empty;
+            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointAutoShape rectangle = slide.AddRectangle(OfficeLength.Points(10), OfficeLength.Points(10), OfficeLength.Points(100), OfficeLength.Points(50));
+            PowerPointAutoShape ellipse = slide.AddEllipse(OfficeLength.Points(120), OfficeLength.Points(10), OfficeLength.Points(60), OfficeLength.Points(60), "Badge");
+            PowerPointAutoShape line = slide.AddLine(OfficeLength.Points(10), OfficeLength.Points(100), OfficeLength.Points(200), OfficeLength.Points(100));
+            return string.Join("|", new[] { rectangle, ellipse, line }.Select(shape => shape.Name + ":" + shape.Id));
+        }),
         ("replace the first text box's text", presentation => {
             PowerPointTextBox? box = presentation.Slides.SelectMany(slide => slide.TextBoxes).FirstOrDefault(candidate => candidate.Text.Length > 0);
             if (box == null) return string.Empty;
