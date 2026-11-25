@@ -52,7 +52,13 @@ public static partial class OfficeRasterImageDecoder {
         height = 0;
         if (!TryDecode(bytes, options, out OfficeRasterImage? image, out info) || image == null) return false;
         // Admission covers the decode, not the copy, so an image too large to copy is reported, not thrown.
-        if (info.UsedCallerCodec && !image.CanCopyPixels) return false;
+        if (info.UsedCallerCodec && !image.CanCopyPixels) {
+            info = new OfficeRasterDecodeInfo(info.Format, info.FrameCount, info.SelectedFrameIndex, succeeded: false,
+                "The decoded image is too large to copy within the managed image working-set limit.", info.Container) {
+                Failure = OfficeRasterDecodeFailure.DecodedLimit
+            };
+            return false;
+        }
         pixels = info.UsedCallerCodec ? image.GetPixels() : image.PixelBuffer;
         width = image.Width;
         height = image.Height;
