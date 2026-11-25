@@ -194,7 +194,7 @@ namespace OfficeIMO.PowerPoint {
             ThrowIfDisposed();
             OfficeTextSearch.ValidateSearchText(text, nameof(text));
 
-            int count = 0;
+            if (TryReplaceAllWithoutSdk(text, replacement, options, out int count)) return count;
             foreach (PowerPointSlide slide in Slides) {
                 count += slide.ReplaceAll(text, replacement, options);
             }
