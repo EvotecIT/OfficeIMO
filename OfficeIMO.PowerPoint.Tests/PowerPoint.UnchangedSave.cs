@@ -103,7 +103,7 @@ public class PowerPointUnchangedSaveTests {
         Assert.Equal("Standard", application.Root.Element(ap + "PresentationFormat")!.Value);
         DateTime modified = DateTime.Parse(ReadXml(saved, CorePart).Root!.Element(DublinCoreTerms + "modified")!.Value,
             System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AdjustToUniversal);
-        Assert.True(modified >= before.AddSeconds(-1), modified.ToString("O"));
+        Assert.True(modified >= before, modified.ToString("O"));
         AssertSamePackage(source, SaveThroughSdk(source), saved);
         Assert.Equal(0, CountValidationErrors(saved));
     }
@@ -162,16 +162,77 @@ public class PowerPointUnchangedSaveTests {
                 "<p:extLst><p:ext uri=\"urn:officeimo:powerpoint:footer-definitions:1\"/></p:extLst></p:presentation>")),
             "legacy-show" => Rewrite(source, PresentationPart, xml => xml.Replace("<p:sldId ", "<p:sldId show=\"0\" ")),
             "missing-app" => Rewrite(source, ApplicationPart, xml => Regex.Replace(xml, "<(\\w+:)?TotalTime>.*?</(\\w+:)?TotalTime>|<(\\w+:)?TotalTime/>", string.Empty)),
-            _ => Rewrite(source, ApplicationPart, xml => Regex.Replace(xml, "</(\\w+:)?Properties>\\s*$", match => "<ap:DigitalSignature xmlns:ap=\"http://schemas.openxmlformats.org/officeDocument/2006/extended-properties\"><vt:blob xmlns:vt=\"http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes\">AA==</vt:blob></ap:DigitalSignature>" + match.Value))
+            _ => Rewrite(source, ApplicationPart, xml => Regex.Replace(xml, "</(\\w+:)?Properties>\\s*$", match => "<ap:DigSig xmlns:ap=\"http://schemas.openxmlformats.org/officeDocument/2006/extended-properties\"><vt:blob xmlns:vt=\"http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes\">AA==</vt:blob></ap:DigSig>" + match.Value))
         };
 
         using var presentation = PowerPointDocument.Load(new MemoryStream(source));
-        // A signed package opens the SDK at load, where its fingerprint is taken.
-        if (variant == "signed") Assert.True(presentation.IsSdkLoaded);
+        // A signed package opens the SDK at load, where its fingerprint is taken, and a save is blocked as before.
+        if (variant == "signed") {
+            Assert.True(presentation.IsSdkLoaded);
+            Assert.Throws<PowerPointSignedDocumentMutationException>(() => presentation.ToBytes());
+            Assert.Throws<PowerPointSignedDocumentMutationException>(() => SaveThroughSdk(source));
+            return;
+        }
         byte[] saved = presentation.ToBytes();
 
         Assert.True(presentation.IsSdkLoaded);
         AssertSamePackage(source, SaveThroughSdk(source), saved, keptAsLoaded: false);
+    }
+
+    [Fact]
+    public void AnSdkOpenedAfterTheSaveReadsWhatWasSaved() {
+        using var presentation = PowerPointDocument.Load(new MemoryStream(CreateDeckWithStaleProperties()));
+        presentation.ToBytes();
+        Assert.False(presentation.IsSdkLoaded);
+
+        Assert.Equal("2", presentation.OpenXmlDocument.ExtendedFilePropertiesPart!.Properties!.Slides!.Text);
+        Assert.Equal("Standard", presentation.ApplicationProperties.PresentationFormat);
+        Assert.True(presentation.OpenXmlDocument.PackageProperties.Modified > new DateTime(2001, 1, 2, 0, 0, 0, DateTimeKind.Utc));
+    }
+
+    [Fact]
+    public void TheSdkOpensWithTheSettingsAsTheyWereAtLoad() {
+        byte[] source = CreateDeckWithStaleProperties();
+        var settings = new OfficeOpenXmlLoadSettings { MaxCharactersInPart = 10_000_000 };
+        using var presentation = PowerPointDocument.Load(new MemoryStream(source), new PowerPointLoadOptions { OpenSettings = settings });
+        Assert.False(presentation.IsSdkLoaded);
+
+        settings.MaxCharactersInPart = 1;
+
+        Assert.Equal(2, presentation.Slides.Count);
+    }
+
+    [Fact]
+    public void LoadsThroughTheSdkWhenAListedSlideIsNotASlidePart() {
+        byte[] source = Rewrite(CreateDeckWithStaleProperties(), "[Content_Types].xml", xml => xml.Replace(
+            "PartName=\"/ppt/slides/slide1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.presentationml.slide+xml\"",
+            "PartName=\"/ppt/slides/slide1.xml\" ContentType=\"application/xml\""));
+        Assert.Contains("PartName=\"/ppt/slides/slide1.xml\" ContentType=\"application/xml\"", System.Text.Encoding.UTF8.GetString(ReadParts(source)["[Content_Types].xml"]));
+
+        Exception? failure = Record.Exception(() => {
+            using var presentation = PowerPointDocument.Load(new MemoryStream(source));
+            Assert.True(presentation.IsSdkLoaded);
+        });
+        Exception? sdkFailure = Record.Exception(() => SaveThroughSdk(source));
+        Assert.Equal(sdkFailure?.GetType(), failure?.GetType());
+    }
+
+    [Theory]
+    [InlineData(ApplicationPart, true)]
+    [InlineData(CorePart, false)]
+    public void PropertyPartsOverThePartSizeLimitGoThroughTheSdk(string part, bool atLoad) {
+        byte[] source = CreateDeckWithStaleProperties();
+        long limit = ReadParts(source)[PresentationPart].Length + 64;
+        source = Rewrite(source, part, xml => xml.Replace("?>", "?>" + new string(' ', (int)limit)));
+        var options = new PowerPointLoadOptions { OpenSettings = new OfficeOpenXmlLoadSettings { MaxCharactersInPart = limit } };
+
+        Exception? failure = Record.Exception(() => {
+            using var presentation = PowerPointDocument.Load(new MemoryStream(source), options);
+            Assert.Equal(atLoad, presentation.IsSdkLoaded);
+            presentation.ToBytes();
+            Assert.True(presentation.IsSdkLoaded);
+        });
+        Assert.True(failure is null or not Xunit.Sdk.XunitException, failure?.ToString());
     }
 
     // A slide list entry the SDK cannot resolve fails the load, as it did before.
@@ -204,6 +265,9 @@ public class PowerPointUnchangedSaveTests {
                     + string.Join(" | ", expectedCore.Except(actualCore)) + "; without the SDK only: " + string.Join(" | ", actualCore.Except(expectedCore)));
                 Assert.True(Regex.IsMatch(Modified(part.Value), ModifiedFormat(expected[part.Key])),
                     "SDK '" + Modified(expected[part.Key]) + "', without the SDK '" + Modified(part.Value) + "'.");
+            } else if (part.Key == "[Content_Types].xml") {
+                // .NET Framework's packaging lays the catalog out differently; what matters is each part's content type.
+                Assert.Equal(ContentTypes(throughSdk), ContentTypes(withoutSdk));
             } else if (part.Key.EndsWith(".xml", StringComparison.OrdinalIgnoreCase) || part.Key.EndsWith(".rels", StringComparison.OrdinalIgnoreCase)) {
                 if (!XNode.DeepEquals(Normalize(expected[part.Key]), Normalize(part.Value)) && Environment.GetEnvironmentVariable("OFFICEIMO_DUMP_DIFF") is { } dump) {
                     File.WriteAllText(Path.Combine(dump, "expected.xml"), Normalize(expected[part.Key]).ToString());
@@ -217,6 +281,28 @@ public class PowerPointUnchangedSaveTests {
                 Assert.Equal(expected[part.Key], part.Value);
             }
         }
+    }
+
+    private static List<string> ContentTypes(byte[] package) {
+        using var archive = new ZipArchive(new MemoryStream(package), ZipArchiveMode.Read);
+        XDocument catalog;
+        using (Stream stream = archive.GetEntry("[Content_Types].xml")!.Open()) catalog = XDocument.Load(stream);
+        XNamespace types = "http://schemas.openxmlformats.org/package/2006/content-types";
+        var overrides = catalog.Root!.Elements(types + "Override").GroupBy(element => ((string)element.Attribute("PartName")!).ToUpperInvariant())
+            .ToDictionary(group => group.Key, group => (string)group.First().Attribute("ContentType")!);
+        var defaults = catalog.Root.Elements(types + "Default").GroupBy(element => ((string)element.Attribute("Extension")!).ToUpperInvariant())
+            .ToDictionary(group => group.Key, group => (string)group.First().Attribute("ContentType")!);
+        return archive.Entries.Where(entry => entry.FullName != "[Content_Types].xml" && !entry.FullName.EndsWith("/", StringComparison.Ordinal)
+                && !entry.FullName.StartsWith("package/services/metadata/core-properties/", StringComparison.Ordinal))
+            .Select(entry => {
+                string name = "/" + entry.FullName;
+                string extension = Path.GetExtension(entry.FullName).TrimStart('.').ToUpperInvariant();
+                string? type = overrides.TryGetValue(name.ToUpperInvariant(), out string? found) ? found
+                    : defaults.TryGetValue(extension, out string? fallback) ? fallback : null;
+                return name + "=" + type;
+            })
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToList();
     }
 
     private static string Modified(byte[] core) => XDocument.Load(new MemoryStream(core)).Root!.Element(DublinCoreTerms + "modified")!.Value;
@@ -298,6 +384,7 @@ public class PowerPointUnchangedSaveTests {
             second.Notes.Text = "Notes";
             deck = presentation.ToBytes();
         }
+        deck = Rewrite(deck, CorePart, xml => Regex.Replace(xml, "(<dcterms:modified[^>]*>)[^<]*(</dcterms:modified>)", "${1}2001-01-01T00:00:00Z${2}"));
         return Rewrite(deck, ApplicationPart, xml => Regex.Replace(Regex.Replace(Regex.Replace(xml,
             "<Slides>\\d+</Slides>", "<Slides>9</Slides>"), "<HiddenSlides>\\d+</HiddenSlides>", "<HiddenSlides>0</HiddenSlides>"),
             "<PresentationFormat>[^<]*</PresentationFormat>", "<PresentationFormat>On-screen Show (4:3)</PresentationFormat>"));

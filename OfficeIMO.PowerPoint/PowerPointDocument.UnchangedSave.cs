@@ -37,20 +37,25 @@ namespace OfficeIMO.PowerPoint {
             }
 
             packageStream.Position = 0;
-            using OfficeOpcEditablePackage editable = OfficeOpcEditablePackage.Open(packageStream, leaveOpen: true);
-            OfficeXmlTree application = editable.GetXml(values.ApplicationPart);
-            SetChildText(application, "Slides", values.Slides.ToString(CultureInfo.InvariantCulture));
-            SetChildText(application, "Notes", values.Notes.ToString(CultureInfo.InvariantCulture));
-            SetChildText(application, "HiddenSlides", values.HiddenSlides.ToString(CultureInfo.InvariantCulture));
-            SetChildText(application, "PresentationFormat", values.PresentationFormat);
+            using (OfficeOpcEditablePackage editable = OfficeOpcEditablePackage.Open(packageStream, leaveOpen: true)) {
+                OfficeXmlTree application = editable.GetXml(values.ApplicationPart);
+                SetChildText(application, "Slides", values.Slides.ToString(CultureInfo.InvariantCulture));
+                SetChildText(application, "Notes", values.Notes.ToString(CultureInfo.InvariantCulture));
+                SetChildText(application, "HiddenSlides", values.HiddenSlides.ToString(CultureInfo.InvariantCulture));
+                SetChildText(application, "PresentationFormat", values.PresentationFormat);
 
-            OfficeXmlTree core = editable.GetXml(values.CorePart);
-            int modified = core.FindChild(core.Root, OfficeXmlNamespaces.DublinCoreTerms, "modified");
-            core.SetInnerText(modified, FormatPackageDate(DateTime.UtcNow));
+                OfficeXmlTree core = editable.GetXml(values.CorePart);
+                int modified = core.FindChild(core.Root, OfficeXmlNamespaces.DublinCoreTerms, "modified");
+                core.SetInnerText(modified, FormatPackageDate(DateTime.UtcNow));
 
-            using var output = new MemoryStream();
-            editable.Save(output);
-            bytes = output.ToArray();
+                using var output = new MemoryStream();
+                editable.Save(output);
+                bytes = output.ToArray();
+            }
+            // The document now holds what it saved, as a save through the SDK leaves it: an SDK opened later reads the
+            // refreshed properties.
+            _packageStream = OfficeIMO.Core.Internal.OfficePackageLoadSource.CreatePackageStream(bytes, _accessMode);
+            packageStream.Dispose();
             return true;
         }
 
@@ -93,6 +98,8 @@ namespace OfficeIMO.PowerPoint {
             string? application = package.GetRelatedPartName(null, ExtendedPropertiesRelationshipType);
             string? core = package.GetRelatedPartName(null, CorePropertiesRelationshipType);
             if (main == null || application == null || core == null || !package.PartExists(application) || !package.PartExists(core)) return false;
+            // The SDK save reads both property parts under the part size limit; a part over it takes that path.
+            if (package.GetPartLength(application) > maximumSlideXmlCharacters || package.GetPartLength(core) > maximumSlideXmlCharacters) return false;
             if (!HasApplicationCounters(package, application) || !HasModifiedDate(package, core)) return false;
 
             var slideIds = new List<string>();

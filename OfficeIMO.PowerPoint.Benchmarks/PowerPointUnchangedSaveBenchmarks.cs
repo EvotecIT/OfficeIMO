@@ -60,10 +60,13 @@ public class PowerPointUnchangedSaveFirstCallBenchmarks {
         return presentation.ToBytes();
     }
 
+    // Setup cannot check the path without warming it, so the run checks it afterwards.
     [Benchmark]
     public byte[] WithoutSdk() {
         using PowerPointDocument presentation = PowerPointDocument.Load(new MemoryStream(_deck, writable: false));
-        return presentation.ToBytes();
+        byte[] saved = presentation.ToBytes();
+        if (presentation.IsSdkLoaded) throw new InvalidOperationException("The unchanged save opened the Open XML SDK.");
+        return saved;
     }
 }
 

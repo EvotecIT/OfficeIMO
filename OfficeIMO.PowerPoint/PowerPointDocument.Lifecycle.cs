@@ -564,7 +564,13 @@ namespace OfficeIMO.PowerPoint {
                     _packageStream = packageStream,
                     _sourceStream = associatedStream,
                     _persistenceMode = options.PersistenceMode,
-                    _deferredOpenSettings = options.OpenSettings,
+                    // The caller may change its settings after the load; the SDK opens with them as they were.
+                    _deferredOpenSettings = options.OpenSettings == null ? null : new OfficeOpenXmlLoadSettings {
+                        CompatibilityLevel = options.OpenSettings.CompatibilityLevel,
+                        MarkupCompatibilityMode = options.OpenSettings.MarkupCompatibilityMode,
+                        MarkupCompatibilityTargetVersion = options.OpenSettings.MarkupCompatibilityTargetVersion,
+                        MaxCharactersInPart = options.OpenSettings.MaxCharactersInPart
+                    },
                     _maximumSlideXmlCharacters = options.OpenSettings?.MaxCharactersInPart > 0
                         ? Math.Min(PowerPointXmlReader.MaximumPackageXmlCharacters, options.OpenSettings.MaxCharactersInPart)
                         : PowerPointXmlReader.MaximumPackageXmlCharacters

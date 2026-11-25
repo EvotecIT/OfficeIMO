@@ -11,6 +11,9 @@ namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointDocument {
         private const string PresentationMainContentType = "application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml";
         private const string DigitalSignatureOriginRelationshipType = "http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/origin";
+        private const string SlideContentType = "application/vnd.openxmlformats-officedocument.presentationml.slide+xml";
+        // The byte limit the signature check reads docProps/app.xml under when the SDK opens at load.
+        private const long MaximumApplicationPropertiesBytes = 64L * 1024 * 1024;
         private const string ExtendedPropertiesRelationshipType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "extended-properties";
 
         // The settings a deferred load opens the SDK package with; set while the SDK has not been opened.
@@ -89,7 +92,12 @@ namespace OfficeIMO.PowerPoint {
             // A UTF-8 part has no more characters than bytes, so one within the limit in bytes is within it in characters.
             if (maximumCharactersInPart > 0 && package.GetPartLength(main) > maximumCharactersInPart) return false;
             string? application = package.GetRelatedPartName(null, ExtendedPropertiesRelationshipType);
-            if (application != null && package.PartExists(application) && HasDigitalSignatureFlag(package, application)) return false;
+            if (application != null && package.PartExists(application)) {
+                // The signature check at an SDK load reads this part under the part size limit too.
+                long length = package.GetPartLength(application);
+                if (length > MaximumApplicationPropertiesBytes || maximumCharactersInPart > 0 && length > maximumCharactersInPart) return false;
+                if (HasDigitalSignatureFlag(package, application)) return false;
+            }
             return SlideListResolves(package, main);
         }
 
@@ -98,7 +106,7 @@ namespace OfficeIMO.PowerPoint {
             using (content) {
                 while (reader.Read()) {
                     if (reader.NodeKind == OfficeXmlNodeKind.StartElement && reader.Depth == 2
-                        && reader.IsElement(OfficeXmlNamespaces.ExtendedProperties, "DigitalSignature")) {
+                        && reader.IsElement(OfficeXmlNamespaces.ExtendedProperties, "DigSig")) {
                         return true;
                     }
                 }
@@ -106,7 +114,8 @@ namespace OfficeIMO.PowerPoint {
             return false;
         }
 
-        // The SDK reads the slide list at load and fails on an entry it cannot resolve; such a package keeps doing so.
+        // The SDK reads the slide list at load and fails on an entry it cannot resolve or whose part is not a slide; such
+        // a package keeps doing so.
         private static bool SlideListResolves(OfficeOpcPackage package, string main) {
             OfficeXmlPullReader reader = package.OpenXml(main, out OfficePooledBytes content);
             using (content) {
@@ -127,7 +136,8 @@ namespace OfficeIMO.PowerPoint {
                     OfficeOpcRelationship? slide = package.FindRelationship(main, id);
                     if (slide == null || slide.IsExternal
                         || !string.Equals(slide.Type, OfficeOpcPackage.SlideRelationshipType, StringComparison.Ordinal)
-                        || slide.TargetPartName is not { } target || !package.PartExists(target)) {
+                        || slide.TargetPartName is not { } target || !package.PartExists(target)
+                        || !string.Equals(package.GetContentType(target), SlideContentType, StringComparison.OrdinalIgnoreCase)) {
                         return false;
                     }
                 }
