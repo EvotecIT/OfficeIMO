@@ -219,15 +219,17 @@ public sealed class PdfTaggedTableReconstructionTests {
         // The header is tagged only on page 1; page 2 continues the same Table element.
         byte[] bytes = CreateTaggedDocument(
             canvas => TablePage(canvas, ("Alpha", "1"), ("Beta", "2")),
-            canvas => TablePage(canvas, new[] { ("Gamma", "3"), ("Delta", "4") }, header: false));
+            canvas => TablePage(canvas, new[] { ("Gamma", "3") }, header: false));
         using PdfDocument document = PdfDocument.Load(new MemoryStream(bytes));
 
         PdfDocumentReadResult read = document.Read(new PdfLoadOptions { PageSelection = PdfPageSelection.From(2) });
 
+        // One body row is enough on the selected page: the rest of the table is on page 1.
         PdfLogicalTable table = Assert.Single(Assert.Single(read.Pages).Tables);
+        Assert.Equal("tagged-structure", table.DetectionKind);
         PdfLogicalTableData data = PdfLogicalTableAnalysis.Extract(table);
         Assert.Equal(new[] { "Item", "Count" }, data.Columns);
-        Assert.Equal(new[] { "Gamma|3", "Delta|4" }, data.Rows.Select(static row => string.Join("|", row)));
+        Assert.Equal(new[] { "Gamma|3" }, data.Rows.Select(static row => string.Join("|", row)));
     }
 
     [Fact]
@@ -244,26 +246,90 @@ public sealed class PdfTaggedTableReconstructionTests {
         Assert.Empty(read.TaggedTableDiagnostics);
     }
 
+    [Fact]
+    public void InterleavedTaggedTablesOnTheSamePagesEachStayWhole() {
+        // Two Table elements both continue from page 1 to page 2, so their segments alternate in reading order.
+        byte[] bytes = CreateTaggedDocument(
+            canvas => {
+                TablePage(canvas, new[] { ("Alpha", "1"), ("Beta", "2") }, key: "a", top: 100D);
+                TablePage(canvas, new[] { ("North", "7"), ("South", "8") }, key: "b", top: 400D);
+            },
+            canvas => {
+                TablePage(canvas, new[] { ("Gamma", "3") }, header: false, key: "a", top: 100D);
+                TablePage(canvas, new[] { ("East", "9") }, header: false, key: "b", top: 400D);
+            });
+        using PdfDocument document = PdfDocument.Load(new MemoryStream(bytes));
+
+        PdfDocumentReadResult read = document.Read();
+
+        Assert.Collection(read.GetTableContinuationGroups(),
+            group => {
+                Assert.Equal(new[] { 1, 2 }, group.Segments.Select(static segment => segment.PageNumber));
+                Assert.Equal(new[] { "Alpha|1", "Beta|2", "Gamma|3" }, group.Rows.Select(static row => string.Join("|", row)));
+            },
+            group => {
+                Assert.Equal(new[] { 1, 2 }, group.Segments.Select(static segment => segment.PageNumber));
+                Assert.Equal(new[] { "North|7", "South|8", "East|9" }, group.Rows.Select(static row => string.Join("|", row)));
+            });
+    }
+
+    [Fact]
+    public void RowSpanStartingInAnEmptyRowStaysMergedOverTheRowsItCovers() {
+        byte[] bytes = CreateTaggedDocument(canvas => canvas.Structure(PdfCanvasStructureRole.Table, table => table
+            .Structure(PdfCanvasStructureRole.TableBody, head => head
+                .Structure(PdfCanvasStructureRole.TableRow, row => row
+                    .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => Lines(cell, 0, 100D, "Group"))
+                    .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => Lines(cell, 1, 100D, "Item"))
+                    .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => Lines(cell, 2, 100D, "Count"))),
+                new PdfCanvasStructureOptions { TableRowGroupType = "THead" })
+            .Structure(PdfCanvasStructureRole.TableBody, body => body
+                .Structure(PdfCanvasStructureRole.TableRow, row => row
+                    .Structure(PdfCanvasStructureRole.TableCell, cell => Lines(cell, 0, 120D, string.Empty),
+                        new PdfCanvasStructureOptions { RowSpan = 3 })
+                    .Structure(PdfCanvasStructureRole.TableCell, cell => Lines(cell, 1, 120D, string.Empty))
+                    .Structure(PdfCanvasStructureRole.TableCell, cell => Lines(cell, 2, 120D, string.Empty)))
+                .Structure(PdfCanvasStructureRole.TableRow, row => row
+                    .Structure(PdfCanvasStructureRole.TableCell, cell => Lines(cell, 1, 140D, "Alpha"))
+                    .Structure(PdfCanvasStructureRole.TableCell, cell => Lines(cell, 2, 140D, "1")))
+                .Structure(PdfCanvasStructureRole.TableRow, row => row
+                    .Structure(PdfCanvasStructureRole.TableCell, cell => Lines(cell, 1, 160D, "Beta"))
+                    .Structure(PdfCanvasStructureRole.TableCell, cell => Lines(cell, 2, 160D, "2")))
+                .Structure(PdfCanvasStructureRole.TableRow, row => row
+                    .Structure(PdfCanvasStructureRole.TableCell, cell => Lines(cell, 0, 180D, "Other"))
+                    .Structure(PdfCanvasStructureRole.TableCell, cell => Lines(cell, 1, 180D, "Gamma"))
+                    .Structure(PdfCanvasStructureRole.TableCell, cell => Lines(cell, 2, 180D, "3"))))));
+        using PdfDocument document = PdfDocument.Load(new MemoryStream(bytes));
+
+        PdfLogicalTable table = Assert.Single(document.Read().Pages[0].Tables);
+
+        // The empty first body row is dropped; its span now starts on the next row and covers the one after.
+        Assert.Equal(new[] { "Group|Item|Count", "|Alpha|1", "|Beta|2", "Other|Gamma|3" },
+            table.Rows.Select(static row => string.Join("|", row)));
+        Assert.Equal(2, table.Cells.Single(cell => cell.RowIndex == 1 && cell.ColumnIndex == 0).RowSpan);
+        Assert.True(table.Cells.Single(cell => cell.RowIndex == 2 && cell.ColumnIndex == 0).IsCoveredBySpan);
+        Assert.False(table.Cells.Single(cell => cell.RowIndex == 3 && cell.ColumnIndex == 0).IsCoveredBySpan);
+    }
+
     private static void TablePage(PdfPageCanvas canvas, params (string Item, string Count)[] rows) =>
         TablePage(canvas, rows, swappedRow: -1);
 
     private static void TablePage(PdfPageCanvas canvas, (string Item, string Count)[] rows, int swappedRow = -1,
-        string? strayParagraph = null, bool header = true) {
-        var tableKey = new PdfCanvasStructureOptions { StructureElementKey = "table" };
-        var headKey = new PdfCanvasStructureOptions { StructureElementKey = "head", TableRowGroupType = "THead" };
-        var headRowKey = new PdfCanvasStructureOptions { StructureElementKey = "head-row" };
-        var bodyKey = new PdfCanvasStructureOptions { StructureElementKey = "body" };
+        string? strayParagraph = null, bool header = true, string key = "table", double top = 300D) {
+        var tableKey = new PdfCanvasStructureOptions { StructureElementKey = key };
+        var headKey = new PdfCanvasStructureOptions { StructureElementKey = key + "-head", TableRowGroupType = "THead" };
+        var headRowKey = new PdfCanvasStructureOptions { StructureElementKey = key + "-head-row" };
+        var bodyKey = new PdfCanvasStructureOptions { StructureElementKey = key + "-body" };
         canvas.Structure(PdfCanvasStructureRole.Table, table => {
             if (header) table.Structure(PdfCanvasStructureRole.TableBody, head => head
                 .Structure(PdfCanvasStructureRole.TableRow, row => row
-                    .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => Lines(cell, 0, 300D, "Item"),
-                        new PdfCanvasStructureOptions { StructureElementKey = "item" })
-                    .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => Lines(cell, 1, 300D, "Count"),
-                        new PdfCanvasStructureOptions { StructureElementKey = "count" }), headRowKey), headKey);
+                    .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => Lines(cell, 0, top, "Item"),
+                        new PdfCanvasStructureOptions { StructureElementKey = key + "-item" })
+                    .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => Lines(cell, 1, top, "Count"),
+                        new PdfCanvasStructureOptions { StructureElementKey = key + "-count" }), headRowKey), headKey);
             table.Structure(PdfCanvasStructureRole.TableBody, body => {
                 for (int index = 0; index < rows.Length; index++) {
                     (string item, string count) = rows[index];
-                    double y = 320D + (index * 20D);
+                    double y = top + 20D + (index * 20D);
                     bool swapped = index == swappedRow;
                     body.Structure(PdfCanvasStructureRole.TableRow, row => row
                         .Structure(PdfCanvasStructureRole.TableCell, cell => Lines(cell, swapped ? 1 : 0, y, swapped ? count : item))
@@ -271,7 +337,7 @@ public sealed class PdfTaggedTableReconstructionTests {
                 }
             }, bodyKey);
             if (strayParagraph is not null) {
-                table.Structure(PdfCanvasStructureRole.Paragraph, paragraph => Lines(paragraph, 0, 500D, strayParagraph));
+                table.Structure(PdfCanvasStructureRole.Paragraph, paragraph => Lines(paragraph, 0, top + 200D, strayParagraph));
             }
         }, tableKey);
     }

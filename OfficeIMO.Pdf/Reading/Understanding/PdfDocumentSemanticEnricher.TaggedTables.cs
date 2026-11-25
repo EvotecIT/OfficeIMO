@@ -258,6 +258,7 @@ internal static partial class PdfDocumentSemanticEnricher {
         // Drop rows and columns that hold no text anywhere in the selected rows: spreadsheet exports
         // tag unused grid tracks and spacer rows. Empty cells inside a kept row and column remain.
         var keptRows = grid.Where(static row => row.PageNumber != 0 && row.Cells.Any(static cell => cell.Resolved is not null)).ToList();
+        ProjectSpansFromDroppedRows(grid, keptRows, workBudget);
         var keptColumn = new bool[columnCount];
         foreach (TaggedGridRow row in keptRows) {
             foreach (TaggedGridCell cell in row.Cells) {
@@ -273,8 +274,19 @@ internal static partial class PdfDocumentSemanticEnricher {
         if (keptRows.Count == 0) {
             return new TaggedTableFailure(PdfTaggedTableFallbackReason.NoContent, "The tagged table holds no text.");
         }
-        if (keptColumnCount < 2 || keptRows.Count < 2 ||
-            !keptRows.Any(static row => row.Cells.Count(static cell => cell.Resolved is not null) >= 2)) {
+        // The size test covers the whole table: rows on pages outside the selection count by the
+        // content their cells reference, so selecting only a short continuation page keeps its grid.
+        int rowsWithText = keptRows.Count;
+        bool anyRowWithTwoCells = keptRows.Any(static row => row.Cells.Count(static cell => cell.Resolved is not null) >= 2);
+        foreach (TaggedGridRow row in grid) {
+            workBudget.Consume();
+            if (row.PageNumber == 0 || selectedPageIndexes.ContainsKey(row.PageNumber)) continue;
+            int cellsWithContent = row.Cells.Count(cell => cell.ContentOn(row.PageNumber).Any());
+            if (cellsWithContent == 0) continue;
+            rowsWithText++;
+            anyRowWithTwoCells |= cellsWithContent >= 2;
+        }
+        if (keptColumnCount < 2 || rowsWithText < 2 || !anyRowWithTwoCells) {
             return new TaggedTableFailure(PdfTaggedTableFallbackReason.LayoutOnly,
                 "The tagged table has fewer than two rows with text or no row with two filled cells, so it is read as page layout.");
         }
@@ -312,6 +324,38 @@ internal static partial class PdfDocumentSemanticEnricher {
             start = end;
         }
         return null;
+    }
+
+    /// <summary>
+    /// Moves a row span whose origin row holds no text onto the first kept row it covers, so the
+    /// positions it spans stay one merged cell instead of separate empty cells.
+    /// </summary>
+    private static void ProjectSpansFromDroppedRows(
+        List<TaggedGridRow> grid,
+        List<TaggedGridRow> keptRows,
+        PdfUnderstandingWorkBudget workBudget) {
+        var kept = new HashSet<TaggedGridRow>(keptRows);
+        var keptGridIndexes = new HashSet<int>(keptRows.Select(static row => row.GridIndex));
+        var projected = new HashSet<(int GridIndex, int Column)>();
+        foreach (TaggedGridRow row in grid) {
+            workBudget.Consume();
+            if (kept.Contains(row) || keptGridIndexes.Contains(row.GridIndex)) continue;
+            foreach (TaggedGridCell cell in row.Cells) {
+                if (cell.RowSpan < 2 || !projected.Add((row.GridIndex, cell.Column))) continue;
+                long end = (long)row.GridIndex + cell.RowSpan;
+                foreach (TaggedGridRow target in keptRows) {
+                    workBudget.Consume();
+                    if (target.GridIndex <= row.GridIndex || target.GridIndex >= end) continue;
+                    target.Cells.Add(new TaggedGridCell(
+                        cell.Element,
+                        cell.Column,
+                        (int)(end - target.GridIndex),
+                        cell.ColumnSpan,
+                        cell.IsHeader));
+                    break;
+                }
+            }
+        }
     }
 
     /// <summary>
@@ -359,12 +403,14 @@ internal static partial class PdfDocumentSemanticEnricher {
         PdfUnderstandingWorkBudget workBudget) {
         TaggedGridRow? header = grid.FirstOrDefault(static row => row.IsHeader && row.PageNumber != 0);
         if (header is null || selectedPageIndexes.ContainsKey(header.PageNumber)) return null;
-        IReadOnlyList<PdfTextSpan> spans = document.Pages[header.PageNumber - 1].GetTextSpans(workBudget.CancellationToken);
-        var runsByMcid = new Dictionary<int, List<PdfTextSpan>>();
+        PdfReadPage headerPage = document.Pages[header.PageNumber - 1];
+        IReadOnlyList<PdfTextSpan> spans = headerPage.GetTextSpans(workBudget.CancellationToken);
+        var runsByKey = new Dictionary<MarkedContentKey, List<PdfTextSpan>>();
         foreach (PdfTextSpan span in spans) {
             workBudget.Consume();
             if (span.MarkedContentId is not int mcid) continue;
-            if (!runsByMcid.TryGetValue(mcid, out List<PdfTextSpan>? runs)) runsByMcid.Add(mcid, runs = new List<PdfTextSpan>());
+            var key = new MarkedContentKey(span.ContentStreamObjectNumber, mcid);
+            if (!runsByKey.TryGetValue(key, out List<PdfTextSpan>? runs)) runsByKey.Add(key, runs = new List<PdfTextSpan>());
             runs.Add(span);
         }
         var texts = new string[columnCount];
@@ -373,11 +419,13 @@ internal static partial class PdfDocumentSemanticEnricher {
         foreach (TaggedGridCell cell in header.Cells) {
             int column = cell.Column < columnMap.Length ? columnMap[cell.Column] : -1;
             if (column < 0) continue;
-            PdfTextSpan[] runs = cell.ContentOn(header.PageNumber)
-                .Select(static key => key.MarkedContentId)
-                .Distinct()
-                .Where(runsByMcid.ContainsKey)
-                .SelectMany(mcid => runsByMcid[mcid])
+            var cellRuns = new HashSet<PdfTextSpan>();
+            foreach (MarkedContentKey key in cell.ContentOn(header.PageNumber)) {
+                if (TryResolveMarkedRuns(runsByKey, headerPage, key, workBudget, out IReadOnlyList<PdfTextSpan> keyRuns)) {
+                    cellRuns.UnionWith(keyRuns);
+                }
+            }
+            PdfTextSpan[] runs = cellRuns
                 .OrderByDescending(static run => run.Y)
                 .ThenBy(static run => run.X)
                 .ToArray();
@@ -955,30 +1003,42 @@ internal static partial class PdfDocumentSemanticEnricher {
 
         internal bool TryResolveRuns(
             MarkedContentKey key,
-            out IReadOnlyList<PdfTextSpan> runs) {
-            if (_runsByKey.TryGetValue(key, out List<PdfTextSpan>? exact)) {
-                runs = exact;
-                return exact.Count > 0;
-            }
+            out IReadOnlyList<PdfTextSpan> runs) =>
+            TryResolveMarkedRuns(_runsByKey, _readPage, key, _workBudget, out runs);
+    }
 
-            List<PdfTextSpan>? match = null;
-            foreach (KeyValuePair<MarkedContentKey, List<PdfTextSpan>> candidate in _runsByKey) {
-                _workBudget.Consume();
-                if (candidate.Key.MarkedContentId != key.MarkedContentId) continue;
-                bool compatible = key.ContentStreamObjectNumber.HasValue
-                    ? candidate.Key.ContentStreamObjectNumber is null &&
-                      _readPage.IsPageContentStreamObjectNumber(key.ContentStreamObjectNumber)
-                    : _readPage.IsPageContentStreamObjectNumber(candidate.Key.ContentStreamObjectNumber);
-                if (!compatible) continue;
-                if (match is not null) {
-                    runs = Array.Empty<PdfTextSpan>();
-                    return false;
-                }
-                match = candidate.Value;
-            }
-            runs = match is null ? Array.Empty<PdfTextSpan>() : match;
-            return runs.Count > 0;
+    /// <summary>
+    /// Finds the runs for a marked-content key: the exact stream first, otherwise the one compatible
+    /// page-stream match, so the same MCID in a Form XObject never lends its text to page content.
+    /// </summary>
+    private static bool TryResolveMarkedRuns(
+        Dictionary<MarkedContentKey, List<PdfTextSpan>> runsByKey,
+        PdfReadPage readPage,
+        MarkedContentKey key,
+        PdfUnderstandingWorkBudget workBudget,
+        out IReadOnlyList<PdfTextSpan> runs) {
+        if (runsByKey.TryGetValue(key, out List<PdfTextSpan>? exact)) {
+            runs = exact;
+            return exact.Count > 0;
         }
+
+        List<PdfTextSpan>? match = null;
+        foreach (KeyValuePair<MarkedContentKey, List<PdfTextSpan>> candidate in runsByKey) {
+            workBudget.Consume();
+            if (candidate.Key.MarkedContentId != key.MarkedContentId) continue;
+            bool compatible = key.ContentStreamObjectNumber.HasValue
+                ? candidate.Key.ContentStreamObjectNumber is null &&
+                  readPage.IsPageContentStreamObjectNumber(key.ContentStreamObjectNumber)
+                : readPage.IsPageContentStreamObjectNumber(candidate.Key.ContentStreamObjectNumber);
+            if (!compatible) continue;
+            if (match is not null) {
+                runs = Array.Empty<PdfTextSpan>();
+                return false;
+            }
+            match = candidate.Value;
+        }
+        runs = match is null ? Array.Empty<PdfTextSpan>() : match;
+        return runs.Count > 0;
     }
 
     private readonly record struct TaggedTableRowSource(
