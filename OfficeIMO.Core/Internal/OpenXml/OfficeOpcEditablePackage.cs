@@ -146,6 +146,32 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
         part.ContentLength = content.Length;
     }
 
+    /// <summary>The bytes of a part as the package holds them now; the caller disposes the result.</summary>
+    /// <exception cref="InvalidDataException">The package has no such part.</exception>
+    internal OfficePooledBytes ReadPart(string partName) {
+        Part part = Find(partName) ?? throw new InvalidDataException("The package has no part '" + partName + "'.");
+        if (part.Tree != null) throw new InvalidOperationException("The part '" + partName + "' is held as an XML tree.");
+        if (part.Content != null) {
+            OfficePooledBytes copy = OfficePooledBytes.Rent(part.ContentLength);
+            Buffer.BlockCopy(part.Content, 0, copy.Array, 0, part.ContentLength);
+            return copy;
+        }
+        if (!_zip!.TryRead(part.Member, out OfficePooledBytes content)) throw new InvalidDataException("The package has no part '" + partName + "'.");
+        return content;
+    }
+
+    /// <summary>Replaces the content of an existing part with <paramref name="length"/> bytes of <paramref name="content"/>.</summary>
+    /// <exception cref="InvalidDataException">The package has no such part.</exception>
+    internal void ReplacePart(string partName, byte[] content, int length) {
+        Part part = Find(partName) ?? throw new InvalidDataException("The package has no part '" + partName + "'.");
+        part.Source?.Dispose();
+        part.Source = null;
+        part.Tree = null;
+        part.Content = content;
+        part.ContentLength = length;
+        part.FromSource = false;
+    }
+
     /// <summary>Removes a part and its content-type override. Relationships that point to it are the caller's to remove.</summary>
     internal void DeletePart(string partName) {
         Part? part = Find(partName);
