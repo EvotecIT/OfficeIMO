@@ -98,6 +98,23 @@ the drift. When not every library defines every case and axis value, the
 generated declaration lists the comparison's cells explicitly. A crashed or failed case is recorded as a failed
 cell; the rest of the comparison is still published when it meets the policy.
 
+## Equivalent work
+
+A comparison is published only when every library does the same work and produces equivalent output. When it
+does not, the workload keeps `CatalogEligible = $false` and states why in `PublishRestriction`;
+`CollectNonPublishedEvidence = $true` still records its runs so a fixed comparison can be republished from
+them. Current examples:
+
+- **Allocation.** BenchmarkDotNet's allocation column counts managed allocations only. Suites that compare
+  against native engines (SkiaSharp, Magick.NET, QuestPDF's Skia backend) or a separate process (Chromium)
+  record no allocation column, because those engines would appear to allocate almost nothing. Their earlier
+  runs carried that column, so the comparisons stay unpublished until every platform has a run without it.
+- **Output size.** Encoders must produce comparable output. Lossless WebP encoding is recorded separately
+  from decoding and not published while OfficeIMO's output is many times larger than the other encoders'.
+- **Timed checks.** Post-save checks run once in setup with an independent reader, never inside the timed
+  operation with each library's own reader, since those readers do different amounts of work. When a
+  comparison's timed work changes, it gets a new id so earlier runs are not read as the same measurement.
+
 ## First run
 
 - Use PowerShell 7.4 or later, Git, the repository's .NET 10 SDK, and the .NET 8
@@ -159,7 +176,11 @@ content-addressed and compact: each case is stored once with its samples as arra
 rounded to six significant digits. The merge removes the files of replaced runs from
 the catalog folder, so it holds only the results of current lanes. PowerForge
 verifies every result against its hash and re-evaluates every lane against the
-declarations and the publish policy. With
+declarations and the publish policy. A published lane that the current declarations no longer allow stops the merge. When a
+change makes a comparison unpublishable, renames it or changes its cases, run the merge with
+`-WithdrawIneligibleLanes`: lanes of an unpublishable comparison, and lanes that ran cells the declaration no longer
+lists, stay in the catalog as unpublished runs, and lanes of a comparison that is no longer declared are dropped
+(their files stay in Git history). The merge prints every withdrawn lane and why. With
 no sources and no catalog, the merge writes a catalog of declarations only.
 Catalogs from earlier schemas are rejected; record fresh runs instead.
 

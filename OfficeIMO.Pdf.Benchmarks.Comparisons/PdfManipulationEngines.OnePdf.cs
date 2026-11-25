@@ -8,13 +8,11 @@ namespace OfficeIMO.Pdf.Benchmarks.Comparisons;
 internal static partial class PdfManipulationEngines {
     internal static byte[][] SplitWithOnePdf(byte[] source, int pagesPerDocument) {
         using OnePdfDocument input = OnePdfDocument.Open(source);
-        int sourcePageCount = input.PageCount;
         IReadOnlyList<OnePdfDocument> parts = OnePdfDocument.Split(input, pagesPerDocument);
         try {
             var outputs = new byte[parts.Count][];
             for (int index = 0; index < parts.Count; index++) {
-                int expectedPageCount = Math.Min(pagesPerDocument, sourcePageCount - (index * pagesPerDocument));
-                outputs[index] = SaveOnePdf(parts[index], expectedPageCount);
+                outputs[index] = SaveOnePdf(parts[index]);
             }
 
             return outputs;
@@ -26,15 +24,12 @@ internal static partial class PdfManipulationEngines {
     internal static byte[] MergeWithOnePdf(byte[][] sources) {
         var documents = new List<OnePdfDocument>(sources.Length);
         try {
-            int outputPageCount = 0;
             foreach (byte[] source in sources) {
-                OnePdfDocument document = OnePdfDocument.Open(source);
-                documents.Add(document);
-                outputPageCount += document.PageCount;
+                documents.Add(OnePdfDocument.Open(source));
             }
 
             using OnePdfDocument merged = OnePdfDocument.Merge(documents);
-            return SaveOnePdf(merged, outputPageCount);
+            return SaveOnePdf(merged);
         } finally {
             foreach (OnePdfDocument document in documents) document.Dispose();
         }
@@ -49,23 +44,14 @@ internal static partial class PdfManipulationEngines {
         }
 
         output.ImportPages(input, pageIndexes);
-        return SaveOnePdf(output, pageNumbers.Length);
+        return SaveOnePdf(output);
     }
 
-    private static byte[] SaveOnePdf(OnePdfDocument document, int outputPageCount) {
+    private static byte[] SaveOnePdf(OnePdfDocument document) {
         using var output = new MemoryStream();
         document.Save(output);
-        byte[] bytes = output.ToArray();
-        ValidateOnePdfReadback(bytes, outputPageCount);
-        return bytes;
+        return output.ToArray();
     }
 
-    private static void ValidateOnePdfReadback(byte[] bytes, int outputPageCount) {
-        using OnePdfDocument document = OnePdfDocument.Open(bytes);
-        if (document.PageCount != outputPageCount) {
-            throw new InvalidDataException(
-                $"OnePDF post-save validation found {document.PageCount} pages; expected {outputPageCount}.");
-        }
-    }
 }
 #endif

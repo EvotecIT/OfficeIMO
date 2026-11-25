@@ -5,7 +5,7 @@ using SkiaSharp;
 namespace OfficeIMO.Drawing.Benchmarks.Comparisons;
 
 /// <summary>Encodes one identical 512x512 RGBA buffer as lossless PNG.</summary>
-[MemoryDiagnoser]
+// No [MemoryDiagnoser]: SkiaSharp and Magick.NET allocate in native memory, which BenchmarkDotNet does not measure.
 public class ImagePngEncodeBenchmarks {
     private OfficeRasterImage _officeImage = null!;
     private SKBitmap _skiaImage = null!;

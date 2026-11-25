@@ -18,7 +18,7 @@ internal static partial class PdfManipulationEngines {
                 output.AddPage(input.Pages[page]);
             }
 
-            outputs.Add(SavePdfSharp(output, lastPage - firstPage));
+            outputs.Add(SavePdfSharp(output));
         }
 
         return outputs.ToArray();
@@ -34,7 +34,7 @@ internal static partial class PdfManipulationEngines {
             }
         }
 
-        return SavePdfSharp(output, output.PageCount);
+        return SavePdfSharp(output);
     }
 
     internal static byte[] SelectWithPdfSharp(byte[] source, int[] pageNumbers) {
@@ -45,23 +45,12 @@ internal static partial class PdfManipulationEngines {
             output.AddPage(input.Pages[pageNumber - 1]);
         }
 
-        return SavePdfSharp(output, pageNumbers.Length);
+        return SavePdfSharp(output);
     }
 
-    private static byte[] SavePdfSharp(PdfSharpDocument document, int outputPageCount) {
+    private static byte[] SavePdfSharp(PdfSharpDocument document) {
         using var output = new MemoryStream();
         document.Save(output, closeStream: false);
-        byte[] bytes = output.ToArray();
-        ValidatePdfSharpReadback(bytes, outputPageCount);
-        return bytes;
-    }
-
-    private static void ValidatePdfSharpReadback(byte[] bytes, int outputPageCount) {
-        using var stream = new MemoryStream(bytes, writable: false);
-        using PdfSharpDocument document = PdfSharpReader.Open(stream, PdfSharpOpenMode.Import);
-        if (document.PageCount != outputPageCount) {
-            throw new InvalidDataException(
-                $"PDFsharp post-save validation found {document.PageCount} pages; expected {outputPageCount}.");
-        }
+        return output.ToArray();
     }
 }
