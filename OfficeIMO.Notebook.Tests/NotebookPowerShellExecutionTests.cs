@@ -58,6 +58,34 @@ public sealed class NotebookPowerShellExecutionTests {
     }
 
     [PowerShellRuntimeFact]
+    public async Task EscapedTextSurvivesExecutionAndNotebookSave() {
+        const string text = "\"quoted\"\\path\t\b\fline\nreturn\rnull\0\u001b\u2028\u2029\U0001F680";
+        string encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(text));
+        using var notebook = NotebookDocument.Create();
+        notebook.AddCodeCell(
+            $"$output = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('{encoded}')); $output; Write-Host -NoNewline -Object $output",
+            "powershell");
+        using PowerShellNotebookSession session = await StartAsync();
+
+        NotebookExecutionReport report = await session.ExecuteAsync(notebook);
+
+        Assert.Equal(NotebookCellExecutionStatus.Succeeded, Assert.Single(report.Cells).Status);
+        using NotebookDocument saved = NotebookDocument.Load(notebook.ToBytes());
+        foreach (NotebookDocument document in new[] { notebook, saved }) {
+            Assert.Collection(Assert.Single(document.Cells).Outputs,
+                output => {
+                    Assert.Equal(NotebookOutputKind.ExecuteResult, output.Kind);
+                    Assert.Equal(text, output.Data["text/plain"].GetString());
+                },
+                output => {
+                    Assert.Equal(NotebookOutputKind.Stream, output.Kind);
+                    Assert.Equal("stdout", output.Name);
+                    Assert.Equal(text, output.Text);
+                });
+        }
+    }
+
+    [PowerShellRuntimeFact]
     public async Task TimeoutKeepsSavedPartialOutputAndStopsLaterCells() {
         using var notebook = NotebookDocument.Create();
         NotebookCell current = notebook.AddCodeCell("'before timeout'; 'omitted'; Start-Sleep -Seconds 30", "powershell");
