@@ -454,6 +454,12 @@ public class PowerPointUnchangedSaveTests {
                 && Regex.IsMatch(attribute.Value, "^R[0-9a-f]{16}$")).ToList()) {
             reference.Value = relationshipTargets != null && relationshipTargets.TryGetValue(reference.Value, out string? target) ? "R:" + target : "R";
         }
+        // Relationships have no order, and .NET Framework's packaging writes them in its own after a part is deleted.
+        if (partName != null && partName.EndsWith(".rels", StringComparison.OrdinalIgnoreCase)) {
+            List<XElement> relationships = document.Root!.Elements().ToList();
+            relationships.ForEach(relationship => relationship.Remove());
+            document.Root.Add(relationships.OrderBy(relationship => (string?)relationship.Attribute("Id") + "|" + (string?)relationship.Attribute("Target"), StringComparer.Ordinal));
+        }
         foreach (XText text in document.DescendantNodes().OfType<XText>().Where(text => string.IsNullOrWhiteSpace(text.Value)).ToList()) text.Remove();
         // The SDK writes attributes in schema order and empty elements in short form.
         foreach (XElement element in document.Descendants().ToList()) {
