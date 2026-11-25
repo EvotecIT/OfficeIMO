@@ -107,8 +107,8 @@ namespace OfficeIMO.Excel {
                 foreach (var task in _tasks) {
                     if (task == null) continue;
                     try {
-                        task.Wait();
-                    } catch (AggregateException) {
+                        task.GetAwaiter().GetResult().Content.Release();
+                    } catch {
                         // The save already failed or completed; an abandoned sheet's error has nothing to report to.
                     }
                 }

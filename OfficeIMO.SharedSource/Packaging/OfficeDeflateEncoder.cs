@@ -91,13 +91,25 @@ internal sealed class OfficeDeflateEncoder : IDisposable {
             _filled += count;
             input = input.Slice(count);
             if (_filled == BufferLength) {
+                region.End = BufferLength;
+                if (_maximumQueued == 0) {
+                    // Encoding here is done before the next byte arrives, so the region moves its last 32 KiB to the
+                    // front as the next region's history and takes the following input itself. A part then holds one
+                    // region however long it is, which matters when many parts are prepared at once.
+                    region.Encode();
+                    Emit(region);
+                    region.Reset();
+                    System.Buffer.BlockCopy(region.Buffer, BufferLength - HistoryLength, region.Buffer, 0, HistoryLength);
+                    region.Start = HistoryLength;
+                    _filled = HistoryLength;
+                    continue;
+                }
                 // The next region starts from the last 32 KiB of this one, which it copies when it is encoded.
                 Region next = _spare.Count > 0 ? _spare.Pop() : RentRegion();
                 next.HistorySource = region;
                 next.Start = HistoryLength;
                 _current = next;
                 _filled = HistoryLength;
-                region.End = BufferLength;
                 Submit(region);
             }
         }
@@ -145,15 +157,6 @@ internal sealed class OfficeDeflateEncoder : IDisposable {
     }
 
     private void Submit(Region region) {
-        if (_maximumQueued == 0) {
-            try {
-                region.Encode();
-                Emit(region);
-            } finally {
-                Recycle(region);
-            }
-            return;
-        }
         _queued.Enqueue(region);
         region.MarkQueued();
         Schedule(region, eager: ++_submitted <= EagerRegions);
