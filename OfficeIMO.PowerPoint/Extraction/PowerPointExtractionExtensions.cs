@@ -52,7 +52,11 @@ public static class PowerPointExtractionExtensions {
         List<PowerPointExtractChunk>? streamed = presentation.TryExtractChunksWithoutSdk(extract, maxChars, sourcePath, cancellationToken);
         IEnumerable<PowerPointExtractChunk> chunks = streamed
             ?? ExtractChunksCore(EnumerateModelSlides(presentation, extract, cancellationToken), extract, maxChars, sourcePath, cancellationToken);
-        foreach (PowerPointExtractChunk chunk in chunks) yield return chunk;
+        foreach (PowerPointExtractChunk chunk in chunks) {
+            // Streamed chunks are read before the first is returned; cancelling still stops the rest.
+            cancellationToken.ThrowIfCancellationRequested();
+            yield return chunk;
+        }
     }
 
     internal static IEnumerable<PowerPointExtractChunk> ExtractMarkdownChunks(PowerPointSlideReader reader,

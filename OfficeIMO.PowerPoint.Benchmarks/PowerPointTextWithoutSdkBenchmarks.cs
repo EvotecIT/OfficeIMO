@@ -9,6 +9,7 @@ namespace OfficeIMO.PowerPoint.Benchmarks;
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory("Performance")]
+[GroupBenchmarksBy(BenchmarkDotNet.Configs.BenchmarkLogicalGroupRule.ByCategory)]
 public class PowerPointTextWithoutSdkBenchmarks {
     private byte[] _deck = Array.Empty<byte>();
 
@@ -44,7 +45,7 @@ public class PowerPointTextWithoutSdkBenchmarks {
         return presentation.Slides.Count;
     }
 
-    [Benchmark]
+    [Benchmark(Baseline = true)]
     [BenchmarkCategory("Extract")]
     public List<PowerPointExtractChunk> ExtractWithSdk() {
         using PowerPointDocument presentation = PowerPointDocument.Load(new MemoryStream(_deck, writable: false));

@@ -56,6 +56,19 @@ public class PowerPointTextWithoutSdkTests {
     }
 
     [Fact]
+    public void CancellingAfterTheFirstChunkStopsTheExtraction() {
+        using var presentation = PowerPointDocument.Load(new MemoryStream(CreateDeck()));
+        using var cancellation = new CancellationTokenSource();
+        using IEnumerator<PowerPointExtractChunk> chunks = presentation.ExtractMarkdownChunks(cancellationToken: cancellation.Token).GetEnumerator();
+        Assert.True(chunks.MoveNext());
+        Assert.False(presentation.IsSdkLoaded);
+
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() => chunks.MoveNext());
+    }
+
+    [Fact]
     public void ASlideOpensTheSdkAndTheCountFollowsIt() {
         using var presentation = PowerPointDocument.Load(new MemoryStream(CreateDeck()));
         IReadOnlyList<PowerPointSlide> slides = presentation.Slides;
