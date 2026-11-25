@@ -559,8 +559,9 @@ namespace OfficeIMO.PowerPoint {
 
         private static PowerPointDocument OpenPackage(Stream packageStream, string? filePath,
             Stream? associatedStream, PowerPointLoadOptions options, bool allowDeferredSdk = false) {
-            if (allowDeferredSdk && CanDeferSdk(packageStream, options)) {
+            if (allowDeferredSdk && CanDeferSdk(packageStream, options, out int slideCount)) {
                 return new PowerPointDocument(filePath ?? string.Empty, options.AccessMode) {
+                    _deferredSlideCount = slideCount,
                     _packageStream = packageStream,
                     _sourceStream = associatedStream,
                     _persistenceMode = options.PersistenceMode,
