@@ -7,7 +7,8 @@ internal static partial class MarkdownReader {
         public override bool TryParse(MarkdownSourceLines lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
             if (!options.DefinitionLists) return false;
             if (TryParseMarkdigDefinitionList(lines, ref i, options, doc, state)) return true;
-            if (!ShouldTreatAsDefinitionLine(lines, i, options)) return false;
+            // A definition line has a ': ' separator; lines without ':' are answered in place.
+            if (!lines.LineContains(i, ':') || !ShouldTreatAsDefinitionLine(lines, i, options)) return false;
             var dl = new DefinitionListBlock();
             dl.SetParsingContext(options, state);
             int j = i;
@@ -288,9 +289,20 @@ internal static partial class MarkdownReader {
         MarkdownReaderState state,
         out int markerIndex) {
         markerIndex = -1;
+        // A blank line is never a term, so the marker has to come before the next one. Most lines
+        // have no ':' line below them, which is answered in place.
+        int probe = startIndex;
+        while (probe < lines.Length && !lines.IsBlank(probe) && lines.GetFirstNonWhiteSpaceCharacter(probe) != ':') {
+            probe++;
+        }
+        if (probe >= lines.Length || lines.IsBlank(probe)) {
+            return false;
+        }
+
         int cursor = startIndex;
         while (cursor < lines.Length) {
-            if (TryGetMarkdigDefinitionMarker(lines[cursor] ?? string.Empty, out _, out _)) {
+            if (lines.GetFirstNonWhiteSpaceCharacter(cursor) == ':'
+                && TryGetMarkdigDefinitionMarker(lines[cursor] ?? string.Empty, out _, out _)) {
                 markerIndex = cursor;
                 return cursor > startIndex;
             }

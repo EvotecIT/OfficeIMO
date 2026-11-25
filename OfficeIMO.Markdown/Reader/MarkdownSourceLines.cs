@@ -248,6 +248,12 @@ internal sealed class MarkdownSourceLines : IReadOnlyList<string> {
     }
 
 
+    /// <summary>Whether the line contains <paramref name="value"/>, searched in place.</summary>
+    public bool LineContains(int index, char value) {
+        GetSlice(index, out var text, out int start, out int end);
+        return text.IndexOf(value, start, end - start) >= 0;
+    }
+
     /// <summary>Same result as <see cref="string.IsNullOrWhiteSpace(string)"/> on the line.</summary>
     public bool IsBlank(int index) {
         GetSlice(index, out var text, out int start, out int end);

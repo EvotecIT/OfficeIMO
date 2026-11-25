@@ -4,7 +4,8 @@ internal static partial class MarkdownReader {
     internal sealed class TableParser : MarkdownSourceLinesBlockParser {
         public override bool TryParse(MarkdownSourceLines lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
             if (!options.Tables) return false;
-            if (IsHeaderlessSingleRowTableMarker(lines[i])) {
+            if (lines.GetFirstNonWhiteSpaceCharacter(i) == TableBlock.HeaderlessSingleRowTableMarker[0]
+                && IsHeaderlessSingleRowTableMarker(lines[i])) {
                 return TryParseHeaderlessSingleRowTable(lines, ref i, options, doc, state);
             }
 

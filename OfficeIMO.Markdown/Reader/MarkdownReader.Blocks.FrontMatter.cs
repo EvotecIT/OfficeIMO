@@ -13,6 +13,9 @@ internal static partial class MarkdownReader {
     internal static bool TryLocateFrontMatter(MarkdownSourceLines lines, out int closingIndex) {
         closingIndex = -1;
         if (lines.Length == 0) return false;
+        // A fence starts at column 0 with '-' or '+'; other first lines are answered without copying them.
+        lines.GetSlice(0, out var firstText, out int firstStart, out int firstEnd);
+        if (firstStart == firstEnd || firstText[firstStart] is not ('-' or '+')) return false;
         string? fence = FrontMatterFence(lines[0]);
         if (fence == null) return false;
         for (int j = 1; j < lines.Length; j++) {
