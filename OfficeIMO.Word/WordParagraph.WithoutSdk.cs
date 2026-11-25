@@ -55,6 +55,8 @@ namespace OfficeIMO.Word {
                 if (tree == null || _document == null) return null;
                 WordPackageModel? model = _document._ownedModel;
                 if (model != null) return model.IsDocumentParsed && ReferenceEquals(model.Document, tree) ? model : null;
+                // Once the SDK package is open, it is the document for every paragraph, the kept copy included.
+                if (_document._ownedNodeElements != null) return null;
                 WordPackageModel? disposed = _document.DisposedReadModel;
                 if (disposed == null) return null;
                 if (ReferenceEquals(disposed.Document, tree) || RebindOwned(disposed)) return disposed;

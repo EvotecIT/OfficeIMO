@@ -261,9 +261,10 @@ public sealed class WordWithoutSdkTests {
         byte[] source = CreatePackage(BodyXml(
             "<w:p><w:pPr><w:jc w:val=\"center\"/></w:pPr><w:r><w:rPr><w:b/></w:rPr><w:t>First</w:t></w:r></w:p><w:p><w:r><w:t>Second</w:t></w:r></w:p>"));
         List<WordParagraph> paragraphs;
-        WordParagraph added;
+        WordParagraph added, sameRun;
         using (WordDocument document = WordDocument.Load(new MemoryStream(source))) {
             paragraphs = document.Paragraphs;
+            sameRun = document.Paragraphs[1];
             paragraphs[1].Text = "Second, edited";
             added = document.AddParagraph("Added");
             Assert.True(document.IsSdkDeferred);
@@ -277,6 +278,11 @@ public sealed class WordWithoutSdkTests {
         Assert.Equal("Added", added.Text);
         Assert.Equal(WordParagraphAlignment.Center, paragraphs[0].ParagraphAlignment);
         Assert.Equal("Second, edited", paragraphs[1].Text);
+
+        // ParagraphAlignment opened the SDK over the copy; edits through another object for the same run land there too.
+        sameRun.Bold = true;
+        _ = paragraphs[1].ParagraphAlignment;
+        Assert.True(paragraphs[1].Bold);
     }
 
     [Fact]
