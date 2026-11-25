@@ -6,14 +6,38 @@ namespace OfficeIMO.PowerPoint {
     ///     Provides access to presentation slide size in various units.
     /// </summary>
     public sealed class PowerPointSlideSize {
-        private readonly PresentationPart _presentationPart;
+        private readonly PresentationPart? _sdkPresentationPart;
+        private readonly PowerPointDocument? _document;
 
         internal PowerPointSlideSize(PresentationPart presentationPart) {
-            _presentationPart = presentationPart ?? throw new ArgumentNullException(nameof(presentationPart));
+            _sdkPresentationPart = presentationPart ?? throw new ArgumentNullException(nameof(presentationPart));
+        }
+
+        // The slide size of a presentation that may not have its SDK package open: read from the package while it can be.
+        internal PowerPointSlideSize(PowerPointDocument document) {
+            _document = document;
+        }
+
+        private PresentationPart PresentationPart => _sdkPresentationPart ?? _document!.SdkPresentationPartForSize;
+
+        // The slide size element's values in the package, when the presentation has one there.
+        private bool TryReadPackage(out int width, out int height, out PowerPointSlideSizeType? type) {
+            width = height = 0;
+            type = null;
+            if (_document?.GetPackageSlideSize() is not { } size) return false;
+            if (!int.TryParse(size.Width ?? "0", System.Globalization.NumberStyles.AllowLeadingSign, System.Globalization.CultureInfo.InvariantCulture, out width)
+                || !int.TryParse(size.Height ?? "0", System.Globalization.NumberStyles.AllowLeadingSign, System.Globalization.CultureInfo.InvariantCulture, out height)) {
+                return false;
+            }
+            if (size.Type != null) {
+                if (!PowerPointOpenXmlValueTypeExtensions.TryParseOpenXmlValue(size.Type, out PowerPointSlideSizeType parsed)) return false;
+                type = parsed;
+            }
+            return true;
         }
 
         private SlideSize EnsureSlideSize() {
-            Presentation presentation = _presentationPart.Presentation ??= new Presentation();
+            Presentation presentation = PresentationPart.Presentation ??= new Presentation();
             SlideSize? size = presentation.SlideSize;
             if (size == null) {
                 size = new SlideSize { Cx = 12192000, Cy = 6858000, Type = SlideSizeValues.Screen16x9 };
@@ -31,13 +55,13 @@ namespace OfficeIMO.PowerPoint {
         }
         /// <summary>Slide width.</summary>
         public OfficeLength Width {
-            get => OfficeLength.Emus(EnsureSlideSize().Cx?.Value ?? 0);
+            get => OfficeLength.Emus(TryReadPackage(out int width, out _, out _) ? width : EnsureSlideSize().Cx?.Value ?? 0);
             set => EnsureSlideSize().Cx = EnsureEmuFitsInt(value.ToEmus(), nameof(Width));
         }
 
         /// <summary>Slide height.</summary>
         public OfficeLength Height {
-            get => OfficeLength.Emus(EnsureSlideSize().Cy?.Value ?? 0);
+            get => OfficeLength.Emus(TryReadPackage(out _, out int height, out _) ? height : EnsureSlideSize().Cy?.Value ?? 0);
             set => EnsureSlideSize().Cy = EnsureEmuFitsInt(value.ToEmus(), nameof(Height));
         }
 
@@ -50,7 +74,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Slide size preset type.</summary>
         public PowerPointSlideSizeType? Type {
-            get => EnsureSlideSize().Type?.Value.ToOfficeEnum();
+            get => TryReadPackage(out _, out _, out PowerPointSlideSizeType? type) ? type : EnsureSlideSize().Type?.Value.ToOfficeEnum();
             set => EnsureSlideSize().Type = value?.ToOpenXml();
         }
 

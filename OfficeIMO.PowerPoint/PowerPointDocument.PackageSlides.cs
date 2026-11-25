@@ -111,6 +111,24 @@ namespace OfficeIMO.PowerPoint {
             return false;
         }
 
+        /// <summary>The presentation part for a slide size that has to read or edit it through the SDK.</summary>
+        internal DocumentFormat.OpenXml.Packaging.PresentationPart SdkPresentationPartForSize => SdkPresentationPart;
+
+        /// <summary>The attributes of the presentation's first p:sldSz in the package, or null when it has none there.</summary>
+        internal (string? Width, string? Height, string? Type)? GetPackageSlideSize() {
+            if (GetPackage(edit: false) is not { } package) return null;
+            try {
+                if (PackageSlideList.Read(package) is not { } slides) return null;
+                OfficeXmlTree presentation = slides.Presentation;
+                int size = presentation.FindChild(presentation.Root, OfficeXmlNamespaces.PresentationML, "sldSz");
+                if (size == OfficeXmlTree.NoNode) return null;
+                return (presentation.GetAttribute(size, OfficeXmlNamespaces.None, "cx"), presentation.GetAttribute(size, OfficeXmlNamespaces.None, "cy"),
+                    presentation.GetAttribute(size, OfficeXmlNamespaces.None, "type"));
+            } catch (Exception exception) when (exception is System.Xml.XmlException or InvalidDataException) {
+                return null;
+            }
+        }
+
         /// <summary>The slides in order, read from the package, or null when the SDK has to read them.</summary>
         private List<PowerPointSlide>? GetPackageSlides() {
             if (_packageSlideOrder != null && _sdkDocument == null) return _packageSlideOrder;
