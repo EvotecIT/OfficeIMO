@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml;
 using OfficeIMO.Core.Internal.OpenXml;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Packaging;
