@@ -76,7 +76,8 @@ namespace OfficeIMO.Excel {
                 // before the root XML is complete. Global proof needs the full part.
                 if (_inflation != null) _length = _inflation.WaitForCompletion(ct);
                 else if (_windowedPart && !CompleteWindowedQualification(ct)) return false;
-                if (!_validatedIndexedXml && !IsCanonicalWorksheetXmlFullyValidated(ct) && !ValidateBufferedWorksheetXml(ct)) return false;
+                if (!_validatedIndexedXml && !IsCanonicalWorksheetXmlFullyValidated(ct)
+                    && !(_batchSink != null ? CompleteRowBatchXmlCheck(ct) : ValidateBufferedWorksheetXml(ct))) return false;
                 ct.ThrowIfCancellationRequested();
                 _mappingRowsQualified = true;
                 declaredFirstColumn = firstColumn;

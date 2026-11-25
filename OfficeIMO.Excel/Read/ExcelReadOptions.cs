@@ -91,16 +91,17 @@ namespace OfficeIMO.Excel {
 
         /// <summary>
         /// Validates the whole XLSX worksheet before the data reader returns its first row. Defaults to
-        /// <c>false</c>: worksheets of 1 MB or more that declare their dimension are decompressed and checked once,
-        /// on a background thread, while rows are returned.
+        /// <c>false</c>: worksheets of 1 MB or more that declare their dimension are decompressed and checked on
+        /// background threads while rows are returned.
         /// </summary>
         /// <remarks>
         /// <para>
         /// By default every returned row has been fully checked, but an invalid cell or malformed XML later in the
         /// worksheet raises its exception from the <c>Read</c> that reaches it, after the rows before it were
-        /// returned. Problems in content after the last row are raised by the last <c>Read</c>. Content the fast
-        /// reader does not index, such as CDATA sections or indented XML, is read on with the general XML reader,
-        /// with the same values. The columns come from the worksheet's declared dimension, which Excel and
+        /// returned. Problems in content after the last row are raised by the last <c>Read</c>. Rows the fast reader
+        /// cannot prove by itself, such as formulas with attributes, are returned once a full XML check of a second
+        /// read of the worksheet has passed them; content it cannot index, such as CDATA sections, is read on with the
+        /// general XML reader, with the same values. The columns come from the worksheet's declared dimension, which Excel and
         /// OfficeIMO's streaming writer record; a later cell outside it raises <see cref="InvalidDataException"/> at
         /// that row. A worksheet without a dimension is validated before the first row.
         /// </para>
@@ -110,7 +111,7 @@ namespace OfficeIMO.Excel {
         /// worksheet in memory or decompresses it twice to do so.
         /// </para>
         /// <para>
-        /// Reading while validating uses one background thread. Set <see cref="Execution"/>.Mode to
+        /// Reading while validating uses a background thread, and a second one while the full XML check runs. Set <see cref="Execution"/>.Mode to
         /// <see cref="ExcelExecutionMode.Sequential"/> to read on the calling thread only; the reader then validates
         /// the whole worksheet first. Smaller worksheets, .NET Framework and .NET Standard, <see cref="A1Range"/>,
         /// <see cref="CellValueConverter"/>, <see cref="EnableSinglePassReading"/>, XLSB and XLS keep

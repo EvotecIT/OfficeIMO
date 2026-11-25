@@ -10484,6 +10484,6 @@ raises `InvalidDataException` at its row.
 
 If your code applies rows as it reads them and cannot undo a part-way read, set
 `new ExcelReaderOptions { ValidateWorksheetBeforeFirstRow = true }` to keep the previous behaviour.
-Setting `Execution.Mode = ExcelExecutionMode.Sequential` also validates first, without the background
-reading thread.
+Setting `Execution.Mode = ExcelExecutionMode.Sequential` also validates first, without background
+threads.
 

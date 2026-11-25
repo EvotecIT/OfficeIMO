@@ -200,7 +200,7 @@ and factory mapping, with `ExcelReaderOptions` and cancellation. Their
 `Task<ExcelWorkbookDataReader>` on .NET 8 and later.
 
 On .NET 8 and later, XLSX worksheets of 1 MB or more that declare their dimension are checked
-while rows are returned, on one background thread, so an invalid cell later in the sheet raises
+while rows are returned, on background threads, so an invalid cell later in the sheet raises
 its error from the `Read` that reaches it, after the rows before it. Set
 `new ExcelReaderOptions { ValidateWorksheetBeforeFirstRow = true }` to validate the whole worksheet
 before the first row instead, where a part-way failure cannot be discarded. Smaller worksheets,

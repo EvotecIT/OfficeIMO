@@ -69,12 +69,22 @@ namespace OfficeIMO.Excel {
                 _currentRowFinished = true;
                 _currentRowIsBlank = false;
 
+                // The check records the actual cell bounds and row order only when neither is cached yet.
+                string? cachedRange = _owner._usedRangeA1;
+                _owner._usedRangeA1 = null;
+                Volatile.Write(ref _owner._implicitXmlRowIndexes, null);
                 bool rowsStrictlyIncreasing;
-                using (Stream validation = _owner.OpenReaderWorksheetStream(cancellationToken)) {
-                    if (!TryPrepareWorksheetStream(validation)) {
-                        throw new InvalidDataException($"Worksheet '{_owner._sheetName}' could not be reopened for reading.");
+                string? cellRange;
+                try {
+                    using (Stream validation = _owner.OpenReaderWorksheetStream(cancellationToken)) {
+                        if (!TryPrepareWorksheetStream(validation)) {
+                            throw new InvalidDataException($"Worksheet '{_owner._sheetName}' could not be reopened for reading.");
+                        }
+                        rowsStrictlyIncreasing = _owner.ValidateDataReaderProjectionXml(validation, cancellationToken);
                     }
-                    rowsStrictlyIncreasing = _owner.ValidateDataReaderProjectionXml(validation, cancellationToken);
+                    cellRange = _owner._usedRangeA1;
+                } finally {
+                    _owner._usedRangeA1 = cachedRange ?? _owner._usedRangeA1;
                 }
                 if (!rowsStrictlyIncreasing) {
                     // Rows before the next one were already returned in file order.
@@ -82,7 +92,12 @@ namespace OfficeIMO.Excel {
                         $"Worksheet '{_owner._sheetName}' lists row {_nextLogicalRow} or later out of order after earlier rows were returned. " +
                         "Read it with ExcelReaderOptions.ValidateWorksheetBeforeFirstRow enabled.");
                 }
-                var (_, usedFirstColumn, usedLastRow, usedLastColumn) = ExcelA1.ParseRange(_owner.GetUsedRangeA1(cancellationToken));
+                if (cellRange == null) {
+                    // An empty sheetData leaves no more rows to return.
+                    _lastRow = _nextLogicalRow - 1;
+                    return;
+                }
+                var (_, usedFirstColumn, usedLastRow, usedLastColumn) = ExcelA1.ParseRange(cellRange);
                 if (usedFirstColumn < _firstColumn || usedLastColumn > _lastColumn) {
                     throw new NotSupportedException(
                         $"Worksheet '{_owner._sheetName}' has cells outside columns {ExcelA1.ColumnIndexToLetters(_firstColumn)}:{ExcelA1.ColumnIndexToLetters(_lastColumn)} " +

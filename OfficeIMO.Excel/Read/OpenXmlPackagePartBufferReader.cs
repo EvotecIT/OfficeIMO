@@ -17,6 +17,8 @@ namespace OfficeIMO.Excel {
         private CancellationTokenSource? _prefetchCancellation;
         private string? _prefetchPartName;
         private bool _disposed;
+        // Opens another stream over the same package bytes, for a reader with its own archive cursor.
+        private Func<Stream>? _openSiblingStream;
 
         private OpenXmlPackagePartBufferReader(Stream stream, bool allowPipelining = false) {
             AllowsPipelining = allowPipelining;
@@ -38,7 +40,9 @@ namespace OfficeIMO.Excel {
         internal static OpenXmlPackagePartBufferReader? TryOpen(Stream stream, bool allowPipelining = false) {
             ArgumentNullException.ThrowIfNull(stream);
             try {
-                var reader = new OpenXmlPackagePartBufferReader(stream, allowPipelining);
+                var reader = new OpenXmlPackagePartBufferReader(stream, allowPipelining) {
+                    _openSiblingStream = SharedReadOnlyFileSnapshot.GetViewFactory(stream)
+                };
                 return reader;
             } catch (OpenXmlPackagePartIndexException) {
                 stream.Dispose();
@@ -65,7 +69,9 @@ namespace OfficeIMO.Excel {
             MemoryStream? stream = null;
             try {
                 stream = new MemoryStream(bytes, 0, bytes.Length, writable: false, publiclyVisible: false);
-                var reader = new OpenXmlPackagePartBufferReader(stream, allowPipelining);
+                var reader = new OpenXmlPackagePartBufferReader(stream, allowPipelining) {
+                    _openSiblingStream = () => new MemoryStream(bytes, 0, bytes.Length, writable: false, publiclyVisible: false)
+                };
                 stream = null;
                 return reader;
             } catch (OpenXmlPackagePartIndexException) {

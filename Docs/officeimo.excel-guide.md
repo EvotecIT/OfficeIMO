@@ -751,8 +751,10 @@ the reader receives each checked run of rows. Every returned row has been fully 
 validated, and peak memory stays at a few megabytes of worksheet XML whatever the sheet's size.
 An invalid cell or malformed XML later in the sheet raises its exception from the `Read` that
 reaches it, after the rows before it were returned; problems in content after the last row are
-raised by the last `Read`. Content the fast reader does not index, such as CDATA sections,
-comments or indented XML, is read on with the general XML reader and returns the same values.
+raised by the last `Read`. Rows the fast reader cannot prove by itself, such as formulas with
+attributes, are returned once a full XML check of a second read of the worksheet has passed them,
+on a second background thread. Content it cannot index, such as CDATA sections, is read on with
+the general XML reader and returns the same values.
 The reader's columns come from the declared dimension, which Excel and OfficeIMO's streaming
 writer record, so a later cell outside it raises `InvalidDataException` at that row.
 
@@ -762,7 +764,7 @@ validates the whole worksheet before the first row, as earlier versions did: wor
 or more of XML are checked through a bounded window and decompressed a second time to return
 rows, and smaller ones are held in memory. Worksheets without a declared dimension, smaller
 worksheets, XLSB and XLS worksheets, `A1Range`, `CellValueConverter` and `DisplayText` always use
-that mode. Reading while checking uses one background thread; set `Execution.Mode` to
+that mode. Reading while checking uses background threads; set `Execution.Mode` to
 `ExcelExecutionMode.Sequential` to read on the calling thread only, which also validates first.
 
 `ExcelReaderOptions.EnableSinglePassReading` returns XLSX and XLSB rows while the rest of the

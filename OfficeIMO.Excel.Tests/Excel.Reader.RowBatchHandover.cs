@@ -26,6 +26,34 @@ public partial class Excel {
         }
     }
 
+    /// <summary>
+    /// Rows as Excel writes them, with row attributes in another namespace and formulas with attributes, are checked by
+    /// the full XML check while they are read and return the same values.
+    /// </summary>
+    [Fact]
+    public void OpenReader_ExcelShapedFormulaRowsKeepTheSameValues() {
+        string path = CreateCompactFastPathWorkbook();
+        try {
+            var xml = new StringBuilder(HandoverRows * 200);
+            xml.Append("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"")
+                .Append(" xmlns:mc=\"http://schemas.openxmlformats.org/markup-compatibility/2006\" mc:Ignorable=\"x14ac\"")
+                .Append(" xmlns:x14ac=\"http://schemas.microsoft.com/office/spreadsheetml/2009/9/ac\">")
+                .Append("<dimension ref=\"A1:B").Append(HandoverRows.ToString(CultureInfo.InvariantCulture)).Append("\"/><sheetData>");
+            for (int row = 1; row <= HandoverRows; row++) {
+                string r = row.ToString(CultureInfo.InvariantCulture);
+                xml.Append("<row r=\"").Append(r).Append("\" spans=\"1:2\" x14ac:dyDescent=\"0.25\"><c r=\"A").Append(r).Append("\"><v>")
+                    .Append(r).Append("</v></c><c r=\"B").Append(r).Append("\">");
+                if (row > 1) xml.Append("<f ca=\"1\">A").Append(r).Append("*2&amp;\"\"</f>");
+                xml.Append("<v>").Append((row * 2).ToString(CultureInfo.InvariantCulture)).Append("</v></c></row>");
+            }
+            xml.Append("</sheetData></worksheet>");
+            ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(xml.ToString()));
+            AssertReadsLikeValidatingFirst(path, markupRow: 0, expectedText: string.Empty);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
     /// <summary>More trailing content than the read window holds after the last row still ends the rows normally.</summary>
     [Fact]
     public void OpenReader_LargeTrailingWhitespaceAfterRowsKeepsTheSameValues() {

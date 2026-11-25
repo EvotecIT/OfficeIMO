@@ -84,6 +84,7 @@ namespace OfficeIMO.Excel {
             }
 
             private void RunRowBatchProducer(RowBatchChannel channel, CancellationToken ct) {
+                _batchCt = ct;
                 try {
                     while (_windowFilled < 256 && TryReadIntoWindow(ct)) { }
                     int position = 0;
@@ -105,6 +106,8 @@ namespace OfficeIMO.Excel {
                 } catch (Exception exception) {
                     channel.Flush();
                     channel.Fault(exception);
+                } finally {
+                    _batchXmlCheck?.Dispose();
                 }
             }
 
@@ -119,11 +122,103 @@ namespace OfficeIMO.Excel {
 
             /// <summary>Copies one qualified row, whose metadata starts at <paramref name="rowOffset"/>, into the filling batch.</summary>
             private void AddRowToBatch(int rowIndex, int contentStart, int contentEnd, int rowOffset) {
-                // Only rows the compact indexer proved by itself are returned. Rows that need the full XML check
-                // (CDATA, comments, indentation, other markup) and every row after them come from the general reader.
-                if (!_sheetDataSupportsFastValidation) throw new RowBatchHandoverException();
+                // Rows the compact indexer could not prove by itself, such as formulas with attributes, are returned once
+                // the full XML check has read past them.
+                if (!_sheetDataSupportsFastValidation) WaitForRowBatchXmlCheck(GetPartOffset(contentEnd));
                 ThrowIfCellsOutsideDeclaredRange();
                 _batchSink!.AddRow(this, rowIndex, contentStart, contentEnd, rowOffset);
+            }
+
+            private RowBatchXmlCheck? _batchXmlCheck;
+            private CancellationToken _batchCt;
+
+            /// <summary>Starts the full XML check of the worksheet on another thread, over its own read of the part.</summary>
+            private RowBatchXmlCheck StartRowBatchXmlCheck() {
+                OpenXmlPackagePartBufferReader? parts = _owner._partBufferReader?.TryOpenSibling();
+                Stream? part = null;
+                if (parts == null || !parts.TryOpenExactPartStream(_owner._worksheetPartName, _batchCt, out part)) {
+                    parts?.Dispose();
+                    // Without a second read of the part, the rest of the worksheet comes from the general reader.
+                    throw new RowBatchHandoverException();
+                }
+                return new RowBatchXmlCheck(this, parts, part!, _batchCt);
+            }
+
+            private void WaitForRowBatchXmlCheck(long partOffset) {
+                RowBatchXmlCheck check = _batchXmlCheck ??= StartRowBatchXmlCheck();
+                check.WaitFor(partOffset, _batchCt);
+                // The check found content that needs the SDK; rows from here come from the general reader.
+                if (check.IsCompleted && !check.Result) throw new RowBatchHandoverException();
+            }
+
+            /// <summary>Waits for the full XML check at the end of the worksheet.</summary>
+            private bool CompleteRowBatchXmlCheck(CancellationToken ct) {
+                RowBatchXmlCheck check = _batchXmlCheck ??= StartRowBatchXmlCheck();
+                check.WaitFor(long.MaxValue, ct);
+                return check.Result;
+            }
+
+            /// <summary>Runs the worksheet XML check over a separate read and reports how far it has read.</summary>
+            private sealed class RowBatchXmlCheck : IDisposable {
+                // The XML reader parses at most its internal buffers behind the bytes it has read.
+                private const long ReadAheadSlack = 64 * 1024;
+                private readonly Task<bool> _task;
+                private readonly OpenXmlPackagePartBufferReader _parts;
+                private long _read;
+
+                internal RowBatchXmlCheck(ExcelUtf8RangeRowSource owner, OpenXmlPackagePartBufferReader parts, Stream part, CancellationToken ct) {
+                    _parts = parts;
+                    var counting = new CountingStream(part, this);
+                    _task = Task.Run(() => {
+                        try {
+                            return owner.ValidateWorksheetXmlStream(counting, ct);
+                        } finally {
+                            counting.Dispose();
+                        }
+                    }, CancellationToken.None);
+                }
+
+                internal bool IsCompleted => _task.IsCompleted;
+
+                // Rethrows the check's own XML or validation error.
+                internal bool Result => _task.GetAwaiter().GetResult();
+
+                internal void WaitFor(long partOffset, CancellationToken ct) {
+                    var spinner = new SpinWait();
+                    while (!_task.IsCompleted && Volatile.Read(ref _read) - ReadAheadSlack < partOffset) {
+                        ct.ThrowIfCancellationRequested();
+                        if (!spinner.NextSpinWillYield) spinner.SpinOnce();
+                        // A failed check is reported below through Result, with its own exception type.
+                        else ((IAsyncResult)_task).AsyncWaitHandle.WaitOne(1);
+                    }
+                    if (_task.IsCompleted) _ = Result;
+                }
+
+                public void Dispose() {
+                    try { _task.Wait(); } catch { }
+                    _parts.Dispose();
+                }
+
+                private sealed class CountingStream(Stream inner, RowBatchXmlCheck owner) : Stream {
+                    public override int Read(byte[] buffer, int offset, int count) {
+                        int read = inner.Read(buffer, offset, count);
+                        Interlocked.Add(ref owner._read, read);
+                        return read;
+                    }
+                    public override bool CanRead => true;
+                    public override bool CanSeek => false;
+                    public override bool CanWrite => false;
+                    public override long Length => throw new NotSupportedException();
+                    public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+                    public override void Flush() { }
+                    public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+                    public override void SetLength(long value) => throw new NotSupportedException();
+                    public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+                    protected override void Dispose(bool disposing) {
+                        if (disposing) inner.Dispose();
+                        base.Dispose(disposing);
+                    }
+                }
             }
 
             /// <summary>
