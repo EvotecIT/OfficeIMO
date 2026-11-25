@@ -140,6 +140,7 @@ namespace OfficeIMO.Excel {
             private const int ChunkBits = 12;
             private const int ChunkSize = 1 << ChunkBits;
             private const int ChunkMask = ChunkSize - 1;
+            private const int FirstChunkSize = 256;
             private T[][] _chunks = new T[8][];
 
             internal int Count { get; private set; }
@@ -156,7 +157,11 @@ namespace OfficeIMO.Excel {
                         Array.Resize(ref _chunks, _chunks.Length * 2);
                     }
 
-                    _chunks[chunkIndex] = new T[ChunkSize];
+                    // The first chunk starts small and doubles, so a buffer of a few cells, as on each sheet that
+                    // takes its rows as a block, stays small.
+                    _chunks[chunkIndex] = new T[chunkIndex == 0 ? FirstChunkSize : ChunkSize];
+                } else if (chunkIndex == 0 && Count == _chunks[0].Length) {
+                    Array.Resize(ref _chunks[0], Math.Min(Count * 2, ChunkSize));
                 }
 
                 _chunks[chunkIndex][Count & ChunkMask] = value;
@@ -474,12 +479,23 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Gets the text values in write order.</summary>
         internal IEnumerable<string> EnumerateText() {
-            for (int rowIndex = 0; rowIndex < WrittenRowCount; rowIndex++) {
-                int end = GetEndCellIndex(rowIndex);
-                for (int cellIndex = GetFirstCellIndex(rowIndex); cellIndex < end; cellIndex++) {
-                    if (GetCell(cellIndex).Reference is string text) {
-                        yield return text;
-                    }
+            for (int cellIndex = 0; cellIndex < ChunkedCellCount; cellIndex++) {
+                if (GetCell(cellIndex).Reference is string text) {
+                    yield return text;
+                }
+            }
+
+            ExcelTabularCellValues? block = _block;
+            if (block == null) {
+                yield break;
+            }
+
+            // Block cells hold no arbitrary objects, so every reference is text.
+            int end = _blockFirstValue + _blockRows * _blockColumns;
+            for (int index = _blockFirstValue; index < end; index++) {
+                int offset = block.GetChunk(index, out byte[] kinds, out long[] bits);
+                if (kinds[offset] == (byte)ExcelBufferedCellKind.Text) {
+                    yield return (string)block.GetReferenceById(bits[offset]);
                 }
             }
         }

@@ -124,6 +124,9 @@ internal sealed class OfficeZipWriter : IDisposable {
         // Chunks kept between saves, taken and returned with one interlocked exchange each. The shared array pool
         // serializes parts prepared on many threads at once on its per-core locks.
         private static readonly byte[]?[] Retained = new byte[]?[32];
+        // A save with many parts in flight needs more; the rest are held weakly, so a later full collection can still
+        // reclaim them.
+        private static readonly WeakReference<byte[]>?[] Shared = new WeakReference<byte[]>?[Math.Min(Environment.ProcessorCount * 8, 256)];
         private readonly List<byte[]> _chunks = new();
         private int _lastUsed = ChunkLength;
 
@@ -161,6 +164,11 @@ internal sealed class OfficeZipWriter : IDisposable {
             for (int i = 0; i < Retained.Length; i++) {
                 if (Volatile.Read(ref Retained[i]) != null && Interlocked.Exchange(ref Retained[i], null) is { } chunk) return chunk;
             }
+            for (int i = 0; i < Shared.Length; i++) {
+                if (Volatile.Read(ref Shared[i]) != null && Interlocked.Exchange(ref Shared[i], null) is { } weak && weak.TryGetTarget(out byte[]? chunk)) {
+                    return chunk;
+                }
+            }
             return new byte[ChunkLength];
         }
 
@@ -168,6 +176,9 @@ internal sealed class OfficeZipWriter : IDisposable {
         private static void ReturnChunk(byte[] chunk) {
             for (int i = 0; i < Retained.Length; i++) {
                 if (Volatile.Read(ref Retained[i]) == null && Interlocked.CompareExchange(ref Retained[i], chunk, null) == null) return;
+            }
+            for (int i = 0; i < Shared.Length; i++) {
+                if (Volatile.Read(ref Shared[i]) == null && Interlocked.CompareExchange(ref Shared[i], new WeakReference<byte[]>(chunk), null) == null) return;
             }
         }
     }
