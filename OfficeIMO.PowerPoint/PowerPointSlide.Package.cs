@@ -341,8 +341,7 @@ namespace OfficeIMO.PowerPoint {
                 return true;
             }
             if (slide.IsElement(element, OfficeXmlNamespaces.PresentationML, "pic")) {
-                if (IsMedia(slide, element)) return false;
-                shape = new PowerPointImage(this, slide, element);
+                shape = MediaKind(slide, element) is { } kind ? new PowerPointMedia(this, slide, element, kind) : new PowerPointImage(this, slide, element);
                 return true;
             }
             if (slide.IsElement(element, OfficeXmlNamespaces.PresentationML, "graphicFrame")) {
@@ -353,26 +352,37 @@ namespace OfficeIMO.PowerPoint {
                     shape = new PowerPointTable(this, slide, element);
                     return true;
                 }
-                // Charts, diagrams and embedded objects are read through the SDK.
-                for (int child = slide.FirstChildOf(data); child != OfficeXmlTree.NoNode; child = slide.NextSiblingOf(child)) {
-                    if (slide.KindOf(child) != OfficeXmlTreeNodeKind.Element) continue;
-                    string name = slide.LocalNameOf(child);
-                    if (name is "chart" or "relIds" or "oleObj") return false;
+                // Charts, diagrams and embedded objects, in the order the model checks them; each reads its content
+                // through the SDK when used.
+                if (slide.FindChild(data, OfficeXmlNamespaces.Chart, "chart") != OfficeXmlTree.NoNode) {
+                    shape = new PowerPointChart(this, slide, element);
+                } else if (slide.FindChild(data, OfficeXmlNamespaces.Diagram, "relIds") != OfficeXmlTree.NoNode) {
+                    shape = new PowerPointSmartArt(this, slide, element);
+                } else if (slide.FindChild(data, OfficeXmlNamespaces.PresentationML, "oleObj") != OfficeXmlTree.NoNode) {
+                    shape = new PowerPointOleObject(this, slide, element);
                 }
                 return true;
             }
-            // Groups and connectors are read through the SDK; anything else is not a shape the model lists.
-            return !slide.IsElement(element, OfficeXmlNamespaces.PresentationML, "grpSp")
-                && !slide.IsElement(element, OfficeXmlNamespaces.PresentationML, "cxnSp");
+            if (slide.IsElement(element, OfficeXmlNamespaces.PresentationML, "grpSp")) {
+                shape = new PowerPointGroupShape(this, slide, element);
+                return true;
+            }
+            if (slide.IsElement(element, OfficeXmlNamespaces.PresentationML, "cxnSp")) {
+                shape = new PowerPointConnectionShape(this, slide, element);
+                return true;
+            }
+            // Anything else is not a shape the model lists.
+            return true;
         }
 
-        // A picture that plays audio or video, as PowerPointMedia.TryGetMediaKind reads it.
-        private static bool IsMedia(OfficeXmlTree slide, int picture) {
+        // The kind of media a picture plays, as PowerPointMedia.TryGetMediaKind reads it; null for a still picture.
+        private static PowerPointMediaKind? MediaKind(OfficeXmlTree slide, int picture) {
             int properties = slide.FindChild(picture, OfficeXmlNamespaces.PresentationML, "nvPicPr");
             int application = properties == OfficeXmlTree.NoNode ? OfficeXmlTree.NoNode : slide.FindChild(properties, OfficeXmlNamespaces.PresentationML, "nvPr");
-            return application != OfficeXmlTree.NoNode
-                && (slide.FindChild(application, OfficeXmlNamespaces.DrawingML, "audioFile") != OfficeXmlTree.NoNode
-                    || slide.FindChild(application, OfficeXmlNamespaces.DrawingML, "videoFile") != OfficeXmlTree.NoNode);
+            if (application == OfficeXmlTree.NoNode) return null;
+            if (slide.FindChild(application, OfficeXmlNamespaces.DrawingML, "audioFile") != OfficeXmlTree.NoNode) return PowerPointMediaKind.Audio;
+            if (slide.FindChild(application, OfficeXmlNamespaces.DrawingML, "videoFile") != OfficeXmlTree.NoNode) return PowerPointMediaKind.Video;
+            return null;
         }
     }
 }

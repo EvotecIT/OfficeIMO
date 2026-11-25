@@ -1,3 +1,4 @@
+using OfficeIMO.Core.Internal.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -7,6 +8,9 @@ namespace OfficeIMO.PowerPoint {
     ///     Represents a native PowerPoint connection shape.
     /// </summary>
     public class PowerPointConnectionShape : PowerPointShape {
+        internal PowerPointConnectionShape(PowerPointSlide slide, OfficeXmlTree tree, int node) : base(slide, tree, node) {
+        }
+
         internal PowerPointConnectionShape(ConnectionShape shape, OpenXmlPartContainer? ownerPart = null) : base(shape, ownerPart) {
         }
 
