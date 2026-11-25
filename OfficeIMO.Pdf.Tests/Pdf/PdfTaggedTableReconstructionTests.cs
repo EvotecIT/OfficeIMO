@@ -140,6 +140,37 @@ public sealed class PdfTaggedTableReconstructionTests {
     }
 
     [Fact]
+    public void PageSelectionWithoutTheTablePageIgnoresTheTable() {
+        byte[] bytes = CreateTaggedDocument(
+            canvas => canvas.Structure(PdfCanvasStructureRole.Paragraph, paragraph => Lines(paragraph, 0, 100D, "Introduction")),
+            canvas => TablePage(canvas, ("Alpha", "1"), ("Beta", "2")));
+        using PdfDocument document = PdfDocument.Load(new MemoryStream(bytes));
+
+        PdfDocumentReadResult read = document.Read(new PdfLoadOptions { PageSelection = PdfPageSelection.From(1) });
+
+        PdfLogicalPage page = Assert.Single(read.Pages);
+        Assert.Empty(page.Tables);
+        Assert.Empty(read.TaggedTableDiagnostics);
+        Assert.Contains("Introduction", read.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void StructuralFailureInTableAcrossPagesIsReportedOnEachPage() {
+        // A paragraph directly under Table is not a row group, row or cell. The Table element
+        // spans both pages, so it has no /Pg of its own.
+        byte[] bytes = CreateTaggedDocument(
+            canvas => TablePage(canvas, ("Alpha", "1"), ("Beta", "2")),
+            canvas => TablePage(canvas, strayParagraph: "Stray", ("Gamma", "3"), ("Delta", "4")));
+        using PdfDocument document = PdfDocument.Load(new MemoryStream(bytes));
+        PdfDocumentReadResult read = document.Read();
+
+        Assert.Equal(new[] { 1, 2 }, read.TaggedTableDiagnostics.Select(static item => item.PageNumber));
+        Assert.All(read.TaggedTableDiagnostics,
+            static item => Assert.Equal(PdfTaggedTableFallbackReason.UnsupportedStructure, item.Reason));
+        Assert.DoesNotContain(read.Pages.SelectMany(static page => page.Tables), static table => table.DetectionKind == "tagged-structure");
+    }
+
+    [Fact]
     public void StructureTreeWithoutMarkedCatalogKeepsGeometricTables() {
         string tagged = PdfEncoding.Latin1GetString(CreateTaggedDocument(canvas => TablePage(canvas, ("Alpha", "1"), ("Beta", "2"), ("Gamma", "3"))));
         Assert.Contains("/Marked true", tagged, StringComparison.Ordinal);
@@ -154,9 +185,15 @@ public sealed class PdfTaggedTableReconstructionTests {
     }
 
     private static void TablePage(PdfPageCanvas canvas, params (string Item, string Count)[] rows) =>
-        TablePage(canvas, swappedRow: -1, rows);
+        TablePage(canvas, swappedRow: -1, strayParagraph: null, rows);
 
-    private static void TablePage(PdfPageCanvas canvas, int swappedRow, params (string Item, string Count)[] rows) {
+    private static void TablePage(PdfPageCanvas canvas, int swappedRow, params (string Item, string Count)[] rows) =>
+        TablePage(canvas, swappedRow, strayParagraph: null, rows);
+
+    private static void TablePage(PdfPageCanvas canvas, string strayParagraph, params (string Item, string Count)[] rows) =>
+        TablePage(canvas, swappedRow: -1, strayParagraph, rows);
+
+    private static void TablePage(PdfPageCanvas canvas, int swappedRow, string? strayParagraph, params (string Item, string Count)[] rows) {
         var tableKey = new PdfCanvasStructureOptions { StructureElementKey = "table" };
         var headKey = new PdfCanvasStructureOptions { StructureElementKey = "head", TableRowGroupType = "THead" };
         var headRowKey = new PdfCanvasStructureOptions { StructureElementKey = "head-row" };
@@ -178,6 +215,9 @@ public sealed class PdfTaggedTableReconstructionTests {
                         .Structure(PdfCanvasStructureRole.TableCell, cell => Lines(cell, swapped ? 0 : 1, y, swapped ? item : count)));
                 }
             }, bodyKey);
+            if (strayParagraph is not null) {
+                table.Structure(PdfCanvasStructureRole.Paragraph, paragraph => Lines(paragraph, 0, 500D, strayParagraph));
+            }
         }, tableKey);
     }
 

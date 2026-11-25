@@ -47,7 +47,7 @@ internal static partial class PdfDocumentSemanticEnricher {
                 out List<PdfUnderstandingTableCandidate>? candidates,
                 out List<int> touchedPages);
             if (failure is TaggedTableFailure reported) {
-                AddTaggedTableDiagnostic(document, table, reported, touchedPages, selectedPageIndexes, diagnostics, workBudget);
+                AddTaggedTableDiagnostic(document, graph, table, reported, touchedPages, selectedPageIndexes, diagnostics, workBudget);
                 continue;
             }
 
@@ -226,7 +226,11 @@ internal static partial class PdfDocumentSemanticEnricher {
                 cell.Resolved = resolved;
             }
         }
-        if (!anySelected) return null;
+        if (!anySelected) {
+            // The table sits on pages outside the selection; it adds nothing to the selected pages.
+            candidates = new List<PdfUnderstandingTableCandidate>();
+            return null;
+        }
         if (!HasConsistentCellOrder(grid, workBudget, out int conflictingRow)) {
             return new TaggedTableFailure(PdfTaggedTableFallbackReason.CellOrderConflictsWithLayout,
                 "Row " + (conflictingRow + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) +
@@ -385,6 +389,7 @@ internal static partial class PdfDocumentSemanticEnricher {
 
     private static void AddTaggedTableDiagnostic(
         PdfReadDocument document,
+        TaggedStructureGraph graph,
         PdfStructureElementInfo table,
         TaggedTableFailure failure,
         List<int> touchedPages,
@@ -392,9 +397,14 @@ internal static partial class PdfDocumentSemanticEnricher {
         List<PdfTaggedTableDiagnostic>?[] diagnostics,
         PdfUnderstandingWorkBudget workBudget) {
         var pagesToReport = new List<int>(touchedPages);
-        if (pagesToReport.Count == 0 && table.PageObjectNumber is int pageObject &&
-            document.GetPageNumberForObject(pageObject, workBudget.CancellationToken) is int tablePage) {
-            pagesToReport.Add(tablePage);
+        if (pagesToReport.Count == 0) {
+            // Structural failures stop before content is read. A table spanning pages carries no /Pg
+            // of its own, so recover its pages from descendants and their marked-content references.
+            foreach (int pageObject in CollectTablePageObjects(graph, table, workBudget)) {
+                if (document.GetPageNumberForObject(pageObject, workBudget.CancellationToken) is int page &&
+                    !pagesToReport.Contains(page)) pagesToReport.Add(page);
+            }
+            pagesToReport.Sort();
         }
         foreach (int pageNumber in pagesToReport) {
             workBudget.Consume();
@@ -404,6 +414,32 @@ internal static partial class PdfDocumentSemanticEnricher {
                     new PdfTaggedTableDiagnostic(table.ObjectNumber, pageNumber, failure.Reason, failure.Message));
             }
         }
+    }
+
+    /// <summary>Page objects named by a table and its reachable descendants, tolerating broken parent links.</summary>
+    private static List<int> CollectTablePageObjects(
+        TaggedStructureGraph graph,
+        PdfStructureElementInfo table,
+        PdfUnderstandingWorkBudget workBudget) {
+        var pages = new List<int>();
+        var visited = new HashSet<int>();
+        var pending = new Stack<PdfStructureElementInfo>();
+        pending.Push(table);
+        while (pending.Count > 0) {
+            workBudget.Consume();
+            PdfStructureElementInfo current = pending.Pop();
+            if (!visited.Add(current.ObjectNumber)) continue;
+            if (current.PageObjectNumber is int page && !pages.Contains(page)) pages.Add(page);
+            foreach (PdfMarkedContentReference reference in current.MarkedContentReferences) {
+                workBudget.Consume();
+                if (reference.PageObjectNumber is int referencePage && !pages.Contains(referencePage)) pages.Add(referencePage);
+            }
+            foreach (int child in current.ChildElementObjectNumbers) {
+                workBudget.Consume();
+                if (graph.StructuresByObject.TryGetValue(child, out PdfStructureElementInfo? childElement)) pending.Push(childElement);
+            }
+        }
+        return pages;
     }
 
     private static bool TryGetTaggedTableRows(
