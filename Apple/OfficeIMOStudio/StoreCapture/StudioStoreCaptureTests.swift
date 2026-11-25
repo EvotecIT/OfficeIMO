@@ -158,15 +158,18 @@ final class StudioStoreCaptureTests: XCTestCase {
         let region = environment["STUDIO_CAPTURE_REGION"] ?? "en_US"
         app.launchArguments = ["-AppleLanguages", "(\(language))", "-AppleLocale", region, "-OfficeIMOSkipWelcome"]
         app.launch()
-        // The iPhone Duo is an iPhone in both poses, with the iPhone's document browser.
-        if isCompact {
-            openPhoneDocument(app, input: URL(fileURLWithPath: path))
-        } else if environmentKey == "STUDIO_CAPTURE_OFFICE_PATH" {
+        let input = URL(fileURLWithPath: path)
+        let isWorkbook = environmentKey == "STUDIO_CAPTURE_OFFICE_PATH"
+        // Both Duo poses keep their compact Files path, as does the iPhone workbook viewer.
+        if role == "duo" || (isCompact && isWorkbook) {
+            openPhoneDocument(app, input: input)
+        } else if isWorkbook {
             // On iPadOS 27, the direct XCTest URL handoff can crash SwiftUI while
             // opening the viewer scene. Selecting the workbook in Browse opens it.
-            openPadWorkbook(app, input: URL(fileURLWithPath: path))
+            openPadWorkbook(app, input: input)
         } else {
-            app.open(URL(fileURLWithPath: path))
+            // The compact Files sheet can retain a tapped PDF without opening it.
+            app.open(input)
         }
         return OpenedDocument(app: app, viewport: app, expectedPID: nil)
         #endif
@@ -331,18 +334,9 @@ final class StudioStoreCaptureTests: XCTestCase {
         }
         XCTAssertTrue(folder.waitForExistence(timeout: 10), app.debugDescription)
         folder.tap()
-        let title = input.deletingPathExtension().lastPathComponent
-        let document = app.cells.containing(.staticText, identifier: title).firstMatch
+        let document = app.cells.containing(.staticText, identifier: input.deletingPathExtension().lastPathComponent).firstMatch
         XCTAssertTrue(document.waitForExistence(timeout: 10), app.debugDescription)
         document.tap()
-        if input.pathExtension == "pdf" {
-            let pages = app.descendants(matching: .any).matching(identifier: StudioAccessibilityID.pages).firstMatch
-            // Files can leave the selected PDF visible in Browse after the first tap.
-            let titleLabel = document.staticTexts[title]
-            if !pages.waitForExistence(timeout: 5), titleLabel.exists, titleLabel.isHittable, !pages.exists {
-                titleLabel.tap()
-            }
-        }
     }
     #endif
 
