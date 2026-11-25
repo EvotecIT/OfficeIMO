@@ -1,3 +1,5 @@
+using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.PowerPoint.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Drawing;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -13,13 +15,99 @@ namespace OfficeIMO.PowerPoint {
         private readonly OpenXmlPartContainer? _initialOwnerPart;
         private OpenXmlPartContainer? _ownerPart => _initialOwnerPart is SlidePart ? _slidePart : _initialOwnerPart;
 
+        private TableCell? _cell;
+        private readonly PowerPointTable? _packageTable;
+        private readonly int _packageRow, _packageColumn;
+
         internal PowerPointTableCell(TableCell cell, SlidePart? slidePart = null, OpenXmlPartContainer? ownerPart = null) {
-            Cell = cell;
+            _cell = cell;
             _initialSlidePart = slidePart;
             _initialOwnerPart = ownerPart ?? slidePart;
         }
 
-        internal TableCell Cell { get; }
+        // A cell of a table that works on its slide's package tree; anything the cell does not do there binds the table
+        // and reads the same cell through the SDK.
+        internal PowerPointTableCell(PowerPointTable table, OfficeXmlTree tree, int node, int row, int column) {
+            _packageTable = table;
+            PackageTree = tree;
+            PackageNode = node;
+            _packageRow = row;
+            _packageColumn = column;
+        }
+
+        internal TableCell Cell => _cell ??= BindSdkCell();
+
+        // Binding the table opens the SDK, so the table then finds the cell there.
+        private TableCell BindSdkCell() {
+            _ = _packageTable!.Element;
+            return _packageTable.GetCell(_packageRow, _packageColumn).Cell;
+        }
+
+        /// <summary>The cell's package tree and element while its table works without the SDK.</summary>
+        internal OfficeXmlTree? PackageTree { get; }
+        internal int PackageNode { get; }
+
+        private bool TryGetPackageCell(out OfficeXmlTree tree, out int node) {
+            tree = PackageTree!;
+            node = PackageNode;
+            return _cell == null && tree != null && _packageTable!.TryGetPackageElement(out _, out _);
+        }
+
+        // The cell's text on the package tree; a cell without a text body is left to the model, which adds one.
+        private bool TryGetPackageText(out string text) {
+            text = string.Empty;
+            if (!TryGetPackageCell(out OfficeXmlTree tree, out int node)) return false;
+            int body = tree.FindChild(node, OfficeXmlNamespaces.DrawingML, "txBody");
+            return body != OfficeXmlTree.NoNode && PowerPointTreeText.TryReadBody(tree, body, out text);
+        }
+
+        // Replaces the cell's paragraphs on the package tree as the Text setter does.
+        private bool TrySetPackageText(string value) {
+            if (!TryGetPackageCell(out OfficeXmlTree tree, out int node) || !_packageTable!.TryEditPackage(out _, out _)) return false;
+            int body = tree.FindChild(node, OfficeXmlNamespaces.DrawingML, "txBody");
+            // The model drops relationships of hyperlinks and sounds the old text no longer uses.
+            if (body == OfficeXmlTree.NoNode || HasInteraction(tree, body)) return false;
+            int source = tree.FindChild(body, OfficeXmlNamespaces.DrawingML, "p");
+            int runProperties = OfficeXmlTree.NoNode, paragraphProperties = OfficeXmlTree.NoNode, endProperties = OfficeXmlTree.NoNode;
+            if (source != OfficeXmlTree.NoNode) {
+                int firstRun = tree.FindChild(source, OfficeXmlNamespaces.DrawingML, "r");
+                int existingRun = firstRun == OfficeXmlTree.NoNode ? OfficeXmlTree.NoNode : tree.FindChild(firstRun, OfficeXmlNamespaces.DrawingML, "rPr");
+                if (existingRun != OfficeXmlTree.NoNode) runProperties = tree.CloneElement(existingRun);
+                int existingParagraph = tree.FindChild(source, OfficeXmlNamespaces.DrawingML, "pPr");
+                if (existingParagraph != OfficeXmlTree.NoNode) paragraphProperties = tree.CloneElement(existingParagraph);
+                int existingEnd = tree.FindChild(source, OfficeXmlNamespaces.DrawingML, "endParaRPr");
+                if (existingEnd != OfficeXmlTree.NoNode) endProperties = tree.CloneElement(existingEnd);
+            }
+            if (endProperties == OfficeXmlTree.NoNode) endProperties = tree.CreateElement(OfficeXmlNamespaces.DrawingML, "endParaRPr");
+            PowerPointTreeText.WithoutInteractions(tree, endProperties);
+            string language = tree.GetAttribute(endProperties, OfficeXmlNamespaces.None, "lang") ?? PowerPointTableTextDefaults.Language;
+            tree.SetAttribute(endProperties, OfficeXmlNamespaces.None, "lang", language);
+            if (runProperties == OfficeXmlTree.NoNode) runProperties = tree.CreateElement(OfficeXmlNamespaces.DrawingML, "rPr");
+            PowerPointTreeText.WithoutInteractions(tree, runProperties);
+            if (tree.GetAttribute(runProperties, OfficeXmlNamespaces.None, "lang") == null) tree.SetAttribute(runProperties, OfficeXmlNamespaces.None, "lang", language);
+
+            for (int paragraph = tree.FindChild(body, OfficeXmlNamespaces.DrawingML, "p"); paragraph != OfficeXmlTree.NoNode;) {
+                int next = tree.FindNextSibling(paragraph, OfficeXmlNamespaces.DrawingML, "p");
+                tree.Remove(paragraph);
+                paragraph = next;
+            }
+            int added = PowerPointTreeText.Append(tree, body, "p");
+            if (paragraphProperties != OfficeXmlTree.NoNode) tree.Append(added, paragraphProperties);
+            PowerPointTreeText.AppendInlineContent(tree, added, value, runProperties);
+            tree.Append(added, endProperties);
+            _packageTable.MarkPackageEdited();
+            return true;
+        }
+
+        // Hyperlinks and sounds anywhere in the text, whose relationships the model cleans up.
+        private static bool HasInteraction(OfficeXmlTree tree, int node) {
+            for (int child = tree.FirstChildOf(node); child != OfficeXmlTree.NoNode; child = tree.NextSiblingOf(child)) {
+                if (tree.KindOf(child) != OfficeXmlTreeNodeKind.Element) continue;
+                if (tree.NamespaceOf(child) == OfficeXmlNamespaces.DrawingML && tree.LocalNameOf(child) is "hlinkClick" or "hlinkMouseOver" or "snd") return true;
+                if (HasInteraction(tree, child)) return true;
+            }
+            return false;
+        }
         internal SlidePart? SlidePart => _slidePart;
         internal OpenXmlPartContainer? OwnerPart => _ownerPart;
 
@@ -27,10 +115,11 @@ namespace OfficeIMO.PowerPoint {
         ///     Gets or sets the text contained in the cell.
         /// </summary>
         public string Text {
-            get => PowerPointParagraph.ReadText(EnsureTextBody());
+            get => TryGetPackageText(out string text) ? text : PowerPointParagraph.ReadText(EnsureTextBody());
 
 
             set {
+                if (TrySetPackageText(value)) return;
                 Cell.TextBody ??= PowerPointTableTextDefaults.CreateTextBody();
                 A.Paragraph? sourceParagraph = Cell.TextBody.GetFirstChild<A.Paragraph>();
                 A.RunProperties? existingRunProperties = sourceParagraph?

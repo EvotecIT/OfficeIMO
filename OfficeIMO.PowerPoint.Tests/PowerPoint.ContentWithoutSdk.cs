@@ -37,6 +37,23 @@ public class PowerPointContentWithoutSdkTests {
             slide.AddTextBox("Caption");
             return slide.AddImage(new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(10, 30)), OfficeIMO.Drawing.OfficeImageFormat.Png).Name ?? string.Empty;
         }),
+        ("read the tables", presentation => string.Join("|", presentation.Slides.SelectMany(slide => slide.Tables).Select(table =>
+            table.RowCount + "x" + table.ColumnCount + ":" + string.Join(";", Enumerable.Range(0, table.RowCount)
+                .SelectMany(row => Enumerable.Range(0, table.ColumnCount).Select(column => table.GetCell(row, column).Text)))))),
+        ("add a table with text", presentation => {
+            PowerPointSlide slide = presentation.Slides.Count == 0 ? presentation.AddSlide() : presentation.Slides[0];
+            PowerPointTable table = slide.AddTable(3, 4, OfficeLength.Points(20), OfficeLength.Points(100), OfficeLength.Points(503), OfficeLength.Points(121));
+            for (int row = 0; row < 3; row++) {
+                for (int column = 0; column < 4; column++) table.GetCell(row, column).Text = row == 0 ? "Head " + column : "Cell " + row + "," + column + (column == 3 ? "\nsecond" : string.Empty);
+            }
+            return table.Name + ":" + table.RowCount + "x" + table.ColumnCount + ":" + table.GetCell(2, 3).Text;
+        }),
+        ("replace the first table cell's text", presentation => {
+            PowerPointTable? table = presentation.Slides.SelectMany(slide => slide.Tables).FirstOrDefault();
+            if (table == null) return string.Empty;
+            table.GetCell(0, 0).Text = "Replaced";
+            return table.GetCell(0, 0).Text;
+        }),
         ("replace the first text box's text", presentation => {
             PowerPointTextBox? box = presentation.Slides.SelectMany(slide => slide.TextBoxes).FirstOrDefault(candidate => candidate.Text.Length > 0);
             if (box == null) return string.Empty;

@@ -28,6 +28,7 @@ namespace OfficeIMO.PowerPoint {
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(columns);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(nativeWidth, nameof(width));
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(nativeHeight, nameof(height));
+            if (!automatic && TryAddPackageTable(rows, columns, nativeLeft, nativeTop, nativeWidth, nativeHeight) is { } added) return added;
 
             A.Table table = new();
             A.TableProperties props = new();

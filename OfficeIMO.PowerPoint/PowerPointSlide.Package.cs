@@ -131,6 +131,82 @@ namespace OfficeIMO.PowerPoint {
             return TrackShape(new PowerPointImage(this, slide, picture));
         }
 
+        // Adds a table to the package tree as AddTable writes it with explicit bounds: the default style, columns and rows
+        // shared out evenly, an empty en-US run in each cell. Null when the slide or document is left to the SDK.
+        private PowerPointTable? TryAddPackageTable(int rows, int columns, long left, long top, long width, long height) {
+            if (!TryGetEditablePackageShapeTree(out OfficeXmlTree slide, out int tree) || !TryGetPackageMaxShapeId(out _)) return null;
+            const string a16 = "http://schemas.microsoft.com/office/drawing/2014/main";
+            int a16Namespace = slide.Namespaces.GetId(a16);
+            string name = GenerateUniqueName("Table");
+            uint id = AllocateShapeId();
+
+            int frame = slide.CreateElement(OfficeXmlNamespaces.PresentationML, "graphicFrame");
+            int nonVisual = PowerPointDocument.Append(slide, frame, OfficeXmlNamespaces.PresentationML, "nvGraphicFramePr");
+            int drawing = PowerPointDocument.Append(slide, nonVisual, OfficeXmlNamespaces.PresentationML, "cNvPr");
+            slide.SetAttribute(drawing, OfficeXmlNamespaces.None, "id", id.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            slide.SetAttribute(drawing, OfficeXmlNamespaces.None, "name", name);
+            PowerPointDocument.Append(slide, nonVisual, OfficeXmlNamespaces.PresentationML, "cNvGraphicFramePr");
+            PowerPointDocument.Append(slide, nonVisual, OfficeXmlNamespaces.PresentationML, "nvPr");
+            int transform = PowerPointDocument.Append(slide, frame, OfficeXmlNamespaces.PresentationML, "xfrm");
+            SetPoint(slide, PowerPointDocument.Append(slide, transform, OfficeXmlNamespaces.DrawingML, "off"), "x", left, "y", top);
+            SetPoint(slide, PowerPointDocument.Append(slide, transform, OfficeXmlNamespaces.DrawingML, "ext"), "cx", width, "cy", height);
+            int data = PowerPointDocument.Append(slide, PowerPointDocument.Append(slide, frame, OfficeXmlNamespaces.DrawingML, "graphic"), OfficeXmlNamespaces.DrawingML, "graphicData");
+            slide.SetAttribute(data, OfficeXmlNamespaces.None, "uri", "http://schemas.openxmlformats.org/drawingml/2006/table");
+            int table = PowerPointDocument.Append(slide, data, OfficeXmlNamespaces.DrawingML, "tbl");
+            int properties = PowerPointDocument.Append(slide, table, OfficeXmlNamespaces.DrawingML, "tblPr");
+            slide.SetAttribute(properties, OfficeXmlNamespaces.None, "firstRow", "1");
+            slide.SetAttribute(properties, OfficeXmlNamespaces.None, "bandRow", "1");
+            slide.Append(PowerPointDocument.Append(slide, properties, OfficeXmlNamespaces.DrawingML, "tableStyleId"), slide.CreateText("{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}"));
+
+            // Widths and heights as SetColumnWidthsEvenly and SetRowHeightsEvenly leave them: the remainder on the last.
+            int grid = PowerPointDocument.Append(slide, table, OfficeXmlNamespaces.DrawingML, "tblGrid");
+            long assignedWidth = 0;
+            for (int column = 0; column < columns; column++) {
+                long columnWidth = (long)Math.Round(width * (1D / columns));
+                assignedWidth += columnWidth;
+                if (column == columns - 1) columnWidth += width - assignedWidth;
+                int gridColumn = PowerPointDocument.Append(slide, grid, OfficeXmlNamespaces.DrawingML, "gridCol");
+                slide.SetAttribute(gridColumn, OfficeXmlNamespaces.None, "w", columnWidth.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                AppendTableExtension(slide, gridColumn, "{9D8B030D-6E8A-4147-A177-3AD203B41FA5}", a16Namespace, a16, "colId", 20000U + (uint)column);
+            }
+            long rowHeight = (long)Math.Floor(height / (double)rows);
+            for (int row = 0; row < rows; row++) {
+                int tableRow = PowerPointDocument.Append(slide, table, OfficeXmlNamespaces.DrawingML, "tr");
+                long thisHeight = row == rows - 1 ? height - rowHeight * (rows - 1) : rowHeight;
+                slide.SetAttribute(tableRow, OfficeXmlNamespaces.None, "h", thisHeight.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                for (int column = 0; column < columns; column++) {
+                    int cell = PowerPointDocument.Append(slide, tableRow, OfficeXmlNamespaces.DrawingML, "tc");
+                    int body = PowerPointDocument.Append(slide, cell, OfficeXmlNamespaces.DrawingML, "txBody");
+                    PowerPointDocument.Append(slide, body, OfficeXmlNamespaces.DrawingML, "bodyPr");
+                    PowerPointDocument.Append(slide, body, OfficeXmlNamespaces.DrawingML, "lstStyle");
+                    int paragraph = PowerPointDocument.Append(slide, body, OfficeXmlNamespaces.DrawingML, "p");
+                    int run = PowerPointDocument.Append(slide, paragraph, OfficeXmlNamespaces.DrawingML, "r");
+                    slide.SetAttribute(PowerPointDocument.Append(slide, run, OfficeXmlNamespaces.DrawingML, "rPr"), OfficeXmlNamespaces.None, "lang", PowerPointTableTextDefaults.Language);
+                    PowerPointDocument.Append(slide, run, OfficeXmlNamespaces.DrawingML, "t");
+                    slide.SetAttribute(PowerPointDocument.Append(slide, paragraph, OfficeXmlNamespaces.DrawingML, "endParaRPr"), OfficeXmlNamespaces.None, "lang", PowerPointTableTextDefaults.Language);
+                    PowerPointDocument.Append(slide, cell, OfficeXmlNamespaces.DrawingML, "tcPr");
+                }
+                AppendTableExtension(slide, tableRow, "{0D108BD9-81ED-4DB2-BD59-A6C34878D82A}", a16Namespace, a16, "rowId", 10000U + (uint)row);
+            }
+            slide.Append(tree, frame);
+            OwnerDocument!.MarkPackageEdited();
+            return TrackShape(new PowerPointTable(this, slide, frame));
+        }
+
+        private static void AppendTableExtension(OfficeXmlTree slide, int parent, string uri, int a16Namespace, string a16, string localName, uint value) {
+            int extension = PowerPointDocument.Append(slide, PowerPointDocument.Append(slide, parent, OfficeXmlNamespaces.DrawingML, "extLst"), OfficeXmlNamespaces.DrawingML, "ext");
+            slide.SetAttribute(extension, OfficeXmlNamespaces.None, "uri", uri);
+            int element = slide.CreateElement(a16Namespace, localName);
+            slide.DeclareNamespace(element, "a16", a16);
+            slide.SetAttribute(element, OfficeXmlNamespaces.None, "val", value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            slide.Append(extension, element);
+        }
+
+        private static void SetPoint(OfficeXmlTree slide, int element, string first, long firstValue, string second, long secondValue) {
+            slide.SetAttribute(element, OfficeXmlNamespaces.None, first, firstValue.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            slide.SetAttribute(element, OfficeXmlNamespaces.None, second, secondValue.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        }
+
         // A transform and a rectangle preset geometry, as the model writes them into new shapes.
         private static void AppendRectangle(OfficeXmlTree slide, int properties, long left, long top, long width, long height) {
             int transform = PowerPointDocument.Append(slide, properties, OfficeXmlNamespaces.DrawingML, "xfrm");
