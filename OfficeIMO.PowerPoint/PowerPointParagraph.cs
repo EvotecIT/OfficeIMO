@@ -175,8 +175,19 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         /// Runs within the paragraph.
         /// </summary>
-        public IReadOnlyList<PowerPointTextRun> Runs =>
-            Paragraph.Elements<A.Run>().Select(r => new PowerPointTextRun(r, _slidePart, _ownerPart)).ToList();
+        public IReadOnlyList<PowerPointTextRun> Runs => IsPackageBacked
+            ? PackageRuns()
+            : Paragraph.Elements<A.Run>().Select(r => new PowerPointTextRun(r, _slidePart, _ownerPart)).ToList();
+
+        private List<PowerPointTextRun> PackageRuns() {
+            var runs = new List<PowerPointTextRun>();
+            for (int run = PackageTree!.FindChild(PackageNode, OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.DrawingML, "r");
+                 run != OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree.NoNode;
+                 run = PackageTree.FindNextSibling(run, OfficeIMO.Core.Internal.OpenXml.OfficeXmlNamespaces.DrawingML, "r")) {
+                runs.Add(new PowerPointTextRun(_packageSlide!, PackageTree, run));
+            }
+            return runs;
+        }
 
         /// <summary>
         /// Gets or sets paragraph alignment.

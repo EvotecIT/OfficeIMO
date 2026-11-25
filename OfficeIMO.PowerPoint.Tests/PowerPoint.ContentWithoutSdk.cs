@@ -101,6 +101,16 @@ public class PowerPointContentWithoutSdkTests {
             box.Paragraphs[0].Text = "First paragraph\nwith a break";
             return before + "=>" + string.Join("|", box.Paragraphs.Select(paragraph => paragraph.Text));
         }),
+        ("read and format runs", presentation => {
+            PowerPointTextRun? run = presentation.Slides.SelectMany(slide => slide.TextBoxes).SelectMany(box => box.Paragraphs).SelectMany(paragraph => paragraph.Runs).FirstOrDefault();
+            if (run == null) return string.Empty;
+            string before = run.Text + ":" + run.Bold + ":" + run.Italic + ":" + run.FontSize?.ToPoints();
+            run.Bold = !run.Bold;
+            run.Italic = true;
+            run.FontSize = OfficeLength.Points(21);
+            run.Text = "Run text";
+            return before + "=>" + run.Text + ":" + run.Bold + ":" + run.Italic + ":" + run.FontSize?.ToPoints();
+        }),
         ("replace the first text box's text", presentation => {
             PowerPointTextBox? box = presentation.Slides.SelectMany(slide => slide.TextBoxes).FirstOrDefault(candidate => candidate.Text.Length > 0);
             if (box == null) return string.Empty;
@@ -137,9 +147,14 @@ public class PowerPointContentWithoutSdkTests {
         PowerPointTextBox added = presentation.Slides[1].AddTextBox("Added");
         Assert.False(presentation.IsSdkLoaded);
 
-        box.Paragraphs[0].Runs[0].Bold = true;
+        PowerPointTextRun run = box.Paragraphs[0].Runs[0];
+        run.Bold = true;
+        Assert.False(presentation.IsSdkLoaded);
+
+        _ = presentation.OpenXmlDocument;
 
         Assert.True(presentation.IsSdkLoaded);
+        Assert.True(run.Bold);
         Assert.Equal("Edited", box.Text);
         Assert.Equal("Added", added.Text);
         using var reopened = PowerPointDocument.Load(new MemoryStream(presentation.ToBytes()));
