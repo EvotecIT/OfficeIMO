@@ -31,12 +31,18 @@ namespace OfficeIMO.PowerPoint {
         private readonly long _maximumCharacters;
         private bool _disposed;
 
+        private const string NotesSlideContentType = "application/vnd.openxmlformats-officedocument.presentationml.notesSlide+xml";
+        private readonly bool _hasNotesParts;
+
         private PowerPointSlideReader(OfficeOpcPackage package, Stream? ownedStream, IReadOnlyList<SlideEntry> slides,
             long maximumCharacters) {
             _package = package;
             _ownedStream = ownedStream;
             _slides = slides;
             _maximumCharacters = maximumCharacters;
+            // A notes slide has the notes-slide content type, or the package is not one the model opens; without such
+            // a part no slide has notes, and the slides' relationships need not be read to find them.
+            _hasNotesParts = package.DeclaresContentType(NotesSlideContentType);
             // The first slide-list entry of each part numbers it, as slide hyperlinks resolve in the model.
             // Slides are keyed by part identity, so a hyperlink that spells the part with percent-encoding still finds it.
             _slideNumbers = new Dictionary<string, int>(OfficeAsciiIgnoreCaseComparer.Instance);

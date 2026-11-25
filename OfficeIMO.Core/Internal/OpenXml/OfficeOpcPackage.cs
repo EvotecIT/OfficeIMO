@@ -151,6 +151,17 @@ internal sealed class OfficeOpcPackage : IDisposable {
     }
 
     /// <summary>The content type of a part from its override or the default for its extension.</summary>
+    /// <summary>Whether the content-types catalog assigns this content type to any part, by override or default.</summary>
+    internal bool DeclaresContentType(string contentType) {
+        foreach (string declared in _overrideContentTypes!.Values) {
+            if (string.Equals(declared, contentType, StringComparison.OrdinalIgnoreCase)) return true;
+        }
+        foreach (string declared in _defaultContentTypes!.Values) {
+            if (string.Equals(declared, contentType, StringComparison.OrdinalIgnoreCase)) return true;
+        }
+        return false;
+    }
+
     internal string? GetContentType(string partName) {
         // Overrides and references may spell a part with different percent-encoding; both compare by identity.
         partName = GetPartIdentity(partName);
