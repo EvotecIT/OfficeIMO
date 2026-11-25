@@ -376,9 +376,9 @@ internal static partial class TableDetector {
             if (CountSharedBaselines(baselines, filled) >= 3) foldedRows++;
             if (filled > 0) textRows++;
         }
-        // A boxed paragraph, a form field or a frame around a page is not a table: require at least two
-        // rows that each fill two cells.
-        if (fullRows < 2) return null;
+        // A boxed paragraph, a frame around a page or a form whose boxes each hold one label is not a table:
+        // most rows of a table fill two cells or more.
+        if (fullRows < 2 || fullRows * 2 < textRows) return null;
         // Rows whose cells hold several lines on shared baselines are rows the producer did not rule (rules only
         // above and below a block of data). When they make up a good part of the table the grid would fold them
         // together; a wrapped header among ruled rows is not that.
@@ -390,6 +390,18 @@ internal static partial class TableDetector {
             if (usedColumns[column]) keptColumns.Add(column);
         }
         if (keptColumns.Count < 2) return null;
+        // Form boxes are sparse and hold labels and instructions; table cells are mostly filled with short values.
+        int filledCells = 0;
+        long textLength = 0;
+        for (int row = 0; row < rowCount; row++) {
+            foreach (int column in keptColumns) {
+                string value = values[row][column];
+                if (value.Length == 0) continue;
+                filledCells++;
+                textLength += value.Length;
+            }
+        }
+        if (filledCells < (long)textRows * keptColumns.Count * 0.35D || textLength > filledCells * 80L) return null;
 
         var table = new PdfStructuredTable { Kind = "ruling-lattice", YTop = y[0], YBottom = y[rowCount] };
         for (int index = 0; index < keptColumns.Count; index++) {
