@@ -66,8 +66,50 @@ public sealed class OneNotePropertyValue {
     /// <summary>Unsigned scalar value for fixed-width numeric representations.</summary>
     public ulong? ScalarValue { get; internal set; }
 
+    private byte[]? _dataBuffer;
+    private int _dataOffset;
+    private int _dataLength;
+    private OneNoteBinaryPayload? _data;
+
     /// <summary>Length-prefixed or otherwise retained encoded value bytes.</summary>
-    public OneNoteBinaryPayload? Data { get; internal set; }
+    public OneNoteBinaryPayload? Data {
+        get {
+            if (_data == null && _dataBuffer != null) _data = OneNoteBinaryPayload.FromOwnedRange(_dataBuffer, _dataOffset, _dataLength);
+            return _data;
+        }
+        internal set {
+            _data = value;
+            _dataBuffer = null;
+        }
+    }
+
+    // Points the value at a range of the reader's object data. The payload wrapper is only created if Data is read.
+    internal void SetDataRange(byte[] buffer, int offset, int length) {
+        _data = null;
+        _dataBuffer = buffer;
+        _dataOffset = offset;
+        _dataLength = length;
+    }
+
+    // Reads the value bytes in place for the library's own decoders. Callers must not modify them.
+    internal bool TryGetDataBytes(out byte[] bytes, out int offset, out int count) {
+        if (_dataBuffer != null) {
+            bytes = _dataBuffer;
+            offset = _dataOffset;
+            count = _dataLength;
+            return true;
+        }
+        if (_data != null) {
+            bytes = _data.ToArray(int.MaxValue);
+            offset = 0;
+            count = bytes.Length;
+            return true;
+        }
+        bytes = Array.Empty<byte>();
+        offset = 0;
+        count = 0;
+        return false;
+    }
 
     /// <summary>Resolved object, object-space, or context identifiers.</summary>
     public IReadOnlyList<OneNoteExtendedGuid> ReferencedIds { get; internal set; } = Array.Empty<OneNoteExtendedGuid>();
@@ -93,7 +135,13 @@ public sealed class OneNotePropertySet {
     public int EncodedLength { get; }
 
     /// <summary>Finds the last property with the complete PropertyID value.</summary>
-    public OneNotePropertyValue? Find(uint rawPropertyId) => Properties.LastOrDefault(property => property.RawPropertyId == rawPropertyId);
+    public OneNotePropertyValue? Find(uint rawPropertyId) {
+        for (int index = Properties.Count - 1; index >= 0; index--) {
+            OneNotePropertyValue property = Properties[index];
+            if (property.RawPropertyId == rawPropertyId) return property;
+        }
+        return null;
+    }
 }
 
 /// <summary>Decoded JCID object classification.</summary>
@@ -152,7 +200,32 @@ public sealed class OneNoteRevisionStoreObject {
     public OneNotePropertySet? PropertySet { get; internal set; }
 
     /// <summary>Exact encoded property-stream bytes retained for loss-aware round trips.</summary>
-    public OneNoteBinaryPayload? RawPropertyData { get; internal set; }
+    public OneNoteBinaryPayload? RawPropertyData {
+        get {
+            if (_rawPropertyData == null && _rawPropertyBytes != null) _rawPropertyData = OneNoteBinaryPayload.FromOwnedRange(_rawPropertyBytes, 0, _rawPropertyBytes.Length);
+            return _rawPropertyData;
+        }
+        internal set {
+            _rawPropertyData = value;
+            _rawPropertyBytes = null;
+        }
+    }
+
+    private OneNoteBinaryPayload? _rawPropertyData;
+    private byte[]? _rawPropertyBytes;
+
+    // Keeps the reader-owned object data without a payload wrapper until RawPropertyData is read.
+    internal byte[]? CopyRawPropertyBytes() {
+        if (_rawPropertyBytes == null) return _rawPropertyData?.ToArray(int.MaxValue);
+        var copy = new byte[_rawPropertyBytes.Length];
+        Buffer.BlockCopy(_rawPropertyBytes, 0, copy, 0, copy.Length);
+        return copy;
+    }
+
+    internal void SetRawPropertyBytes(byte[] bytes) {
+        _rawPropertyData = null;
+        _rawPropertyBytes = bytes;
+    }
 
     /// <summary>File-data reference such as <c>&lt;ifndf&gt;{guid}</c>.</summary>
     public string? FileDataReference { get; internal set; }

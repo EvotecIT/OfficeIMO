@@ -31,6 +31,8 @@ public sealed class OneNoteOpaqueProperty {
         Buffer.BlockCopy(rawData, 0, _rawData, 0, rawData.Length);
     }
 
+    internal void SetOwnedRawData(byte[] rawData) => _rawData = rawData;
+
     /// <summary>Returns a defensive copy of the retained encoded data.</summary>
     public byte[] GetRawData() {
         var copy = new byte[_rawData.Length];
@@ -63,6 +65,8 @@ public sealed class OneNoteOpaqueObject {
         _rawData = new byte[rawData.Length];
         Buffer.BlockCopy(rawData, 0, _rawData, 0, rawData.Length);
     }
+
+    internal void SetOwnedRawData(byte[] rawData) => _rawData = rawData;
 
     /// <summary>Returns a defensive copy of the retained encoded object data.</summary>
     public byte[] GetRawData() {

@@ -67,7 +67,7 @@ internal static class OneNotePropertySetReader {
             var rawIds = new uint[count];
             for (int index = 0; index < rawIds.Length; index++) rawIds[index] = ReadUInt32();
 
-            var properties = new List<OneNotePropertyValue>(count);
+            var properties = new OneNotePropertyValue[count];
             for (int index = 0; index < rawIds.Length; index++) {
                 uint rawId = rawIds[index];
                 var property = new OneNotePropertyValue(rawId, index);
@@ -95,7 +95,7 @@ internal static class OneNotePropertySetReader {
                         if (length >= 0x40000000U || length > int.MaxValue) {
                             throw Error("ONENOTE_PROPERTY_DATA_LENGTH", "A length-prefixed property value is too large.");
                         }
-                        property.Data = OneNoteBinaryPayload.FromOwnedBytes(ReadBytes((int)length));
+                        SetDataRange(property, (int)length);
                         break;
                     }
                     case 0x08:
@@ -138,9 +138,9 @@ internal static class OneNotePropertySetReader {
                     default:
                         throw Error("ONENOTE_PROPERTY_TYPE", "The property set contains an unsupported representation type 0x" + type.ToString("X2", System.Globalization.CultureInfo.InvariantCulture) + ".");
                 }
-                properties.Add(property);
+                properties[index] = property;
             }
-            return new OneNotePropertySet(properties.AsReadOnly(), _position - start);
+            return new OneNotePropertySet(new System.Collections.ObjectModel.ReadOnlyCollection<OneNotePropertyValue>(properties), _position - start);
         }
 
         public OneNoteFormatException Error(string code, string message) {
@@ -150,11 +150,11 @@ internal static class OneNotePropertySetReader {
         }
 
         private void SetScalar(OneNotePropertyValue property, int byteCount) {
-            byte[] bytes = ReadBytes(byteCount);
+            Ensure(byteCount);
             ulong value = 0;
-            for (int index = 0; index < bytes.Length; index++) value |= (ulong)bytes[index] << (index * 8);
+            for (int index = 0; index < byteCount; index++) value |= (ulong)_data[_position + index] << (index * 8);
             property.ScalarValue = value;
-            property.Data = OneNoteBinaryPayload.FromOwnedBytes(bytes);
+            SetDataRange(property, byteCount);
         }
 
         private int ReadReferenceCount() {
@@ -196,12 +196,11 @@ internal static class OneNotePropertySetReader {
             return value;
         }
 
-        private byte[] ReadBytes(int length) {
+        // The object data buffer is owned by the reader and never modified, so values share it instead of copying.
+        private void SetDataRange(OneNotePropertyValue property, int length) {
             Ensure(length);
-            var value = new byte[length];
-            if (length > 0) Buffer.BlockCopy(_data, _position, value, 0, length);
+            property.SetDataRange(_data, _position, length);
             _position += length;
-            return value;
         }
 
         private void Ensure(int length) {
@@ -241,9 +240,9 @@ internal static class OneNotePropertySetReader {
             if (count < 0 || index > source.Count - count) {
                 throw cursor.Error("ONENOTE_REFERENCE_STREAM", "A property consumes more " + kind + " identifiers than its object stream contains.");
             }
-            var result = new List<OneNoteExtendedGuid>(count);
-            for (int item = 0; item < count; item++) result.Add(source[index++]);
-            return result.AsReadOnly();
+            var result = new OneNoteExtendedGuid[count];
+            for (int item = 0; item < count; item++) result[item] = source[index++];
+            return new System.Collections.ObjectModel.ReadOnlyCollection<OneNoteExtendedGuid>(result);
         }
     }
 
