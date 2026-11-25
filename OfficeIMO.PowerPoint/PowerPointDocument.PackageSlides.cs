@@ -42,8 +42,18 @@ namespace OfficeIMO.PowerPoint {
         // Objects below the shapes (paragraphs) that work on the package and bind to the SDK when it opens.
         private List<WeakReference<IPackageSdkBinding>>? _packageBindings;
 
-        internal void RegisterPackageBinding(IPackageSdkBinding binding) =>
-            (_packageBindings ??= new List<WeakReference<IPackageSdkBinding>>()).Add(new WeakReference<IPackageSdkBinding>(binding));
+        internal void RegisterPackageBinding(IPackageSdkBinding binding) {
+            List<WeakReference<IPackageSdkBinding>> bindings = _packageBindings ??= new List<WeakReference<IPackageSdkBinding>>();
+            // Wrappers read and dropped leave dead entries; they are cleared whenever the list doubles, so it tracks the
+            // wrappers still alive rather than every read.
+            if (bindings.Count >= _packageBindingsPruneAt) {
+                bindings.RemoveAll(reference => !reference.TryGetTarget(out _));
+                _packageBindingsPruneAt = Math.Max(64, bindings.Count * 2);
+            }
+            bindings.Add(new WeakReference<IPackageSdkBinding>(binding));
+        }
+
+        private int _packageBindingsPruneAt = 64;
 
         // Binds every object still alive while the slides the SDK opened are as the package wrote them.
         private void BindPackageObjects() {

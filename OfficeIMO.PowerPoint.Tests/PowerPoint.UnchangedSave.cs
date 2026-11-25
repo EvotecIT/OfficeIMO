@@ -458,7 +458,8 @@ public class PowerPointUnchangedSaveTests {
         if (partName != null && partName.EndsWith(".rels", StringComparison.OrdinalIgnoreCase)) {
             List<XElement> relationships = document.Root!.Elements().ToList();
             relationships.ForEach(relationship => relationship.Remove());
-            document.Root.Add(relationships.OrderBy(relationship => (string?)relationship.Attribute("Id") + "|" + (string?)relationship.Attribute("Target"), StringComparer.Ordinal));
+            document.Root.Add(relationships.OrderBy(relationship => string.Join("|", relationship.Attributes()
+                .OrderBy(attribute => attribute.Name.ToString(), StringComparer.Ordinal).Select(attribute => attribute.Name + "=" + attribute.Value)), StringComparer.Ordinal));
         }
         foreach (XText text in document.DescendantNodes().OfType<XText>().Where(text => string.IsNullOrWhiteSpace(text.Value)).ToList()) text.Remove();
         // The SDK writes attributes in schema order and empty elements in short form.
