@@ -87,7 +87,9 @@ namespace OfficeIMO.PowerPoint {
         private PowerPointImage? TryAddPackageImage(byte[] data, OfficeIMO.Drawing.OfficeImageFormat imageType, string extension,
             long left, long top, long width, long height) {
             if (imageType == OfficeIMO.Drawing.OfficeImageFormat.Svg || OwnerDocument is not { } document
-                || !TryGetEditablePackageShapeTree(out OfficeXmlTree slide, out int tree) || !TryGetPackageMaxShapeId(out _)
+                || !TryGetEditablePackageShapeTree(out OfficeXmlTree slide, out int tree) || !TryGetPackageMaxShapeId(out uint maxShapeId)
+                // A slide out of shape ids makes the model fail before it adds the image part, so nothing is added here.
+                || maxShapeId == uint.MaxValue
                 || !document.TryAddPackageImagePart(PackagePartName!, data, imageType, extension, out string relationshipId, out int pixelWidth, out int pixelHeight)) {
                 return null;
             }
@@ -255,6 +257,8 @@ namespace OfficeIMO.PowerPoint {
         internal static DocumentFormat.OpenXml.OpenXmlElement BindPackageElement(PowerPointSlide slide, OfficeXmlTree tree, int node) {
             var path = new List<int>();
             for (int current = node; current != tree.Root; current = tree.ParentOf(current)) {
+                // A node an edit removed from the slide has no place in it.
+                if (current == OfficeXmlTree.NoNode) throw new InvalidOperationException("The element is no longer part of the slide.");
                 int index = 0;
                 for (int sibling = tree.PreviousSiblingOf(current); sibling != OfficeXmlTree.NoNode; sibling = tree.PreviousSiblingOf(sibling)) {
                     if (tree.KindOf(sibling) == OfficeXmlTreeNodeKind.Element) index++;

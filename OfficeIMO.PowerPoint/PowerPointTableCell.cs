@@ -8,7 +8,7 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     Represents a cell within a PowerPoint table.
     /// </summary>
-    public partial class PowerPointTableCell {
+    public partial class PowerPointTableCell : IPackageSdkBinding {
         private const int EmusPerPoint = 12700;
         private readonly SlidePart? _initialSlidePart;
         private SlidePart? _slidePart => Cell.Ancestors<DocumentFormat.OpenXml.Presentation.Slide>().FirstOrDefault()?.SlidePart ?? _initialSlidePart;
@@ -33,13 +33,25 @@ namespace OfficeIMO.PowerPoint {
             PackageNode = node;
             _packageRow = row;
             _packageColumn = column;
+            table.OwnerSlide?.OwnerDocument?.RegisterPackageBinding(this);
+        }
+
+        // Bound by its place in the slide when the SDK opens, before anything changes the table there.
+        void IPackageSdkBinding.BindSdk() {
+            if (_cell != null || PackageTree == null || _packageTable?.OwnerSlide == null) return;
+            try {
+                _cell = (TableCell)PowerPointSlide.BindPackageElement(_packageTable.OwnerSlide, PackageTree, PackageNode);
+            } catch (InvalidOperationException) {
+                // A cell the opened slide doesn't have where expected reports it when it is used.
+            }
         }
 
         internal TableCell Cell => _cell ??= BindSdkCell();
 
         // Binding the table opens the SDK, so the table then finds the cell there.
         private TableCell BindSdkCell() {
-            _ = _packageTable!.Element;
+            if (_packageTable!.OwnerSlide is { } slide) return (TableCell)PowerPointSlide.BindPackageElement(slide, PackageTree!, PackageNode);
+            _ = _packageTable.Element;
             return _packageTable.GetCell(_packageRow, _packageColumn).Cell;
         }
 
@@ -71,6 +83,8 @@ namespace OfficeIMO.PowerPoint {
             int runProperties = OfficeXmlTree.NoNode, paragraphProperties = OfficeXmlTree.NoNode, endProperties = OfficeXmlTree.NoNode;
             if (source != OfficeXmlTree.NoNode) {
                 int firstRun = tree.FindChild(source, OfficeXmlNamespaces.DrawingML, "r");
+                // Copies of the properties would lose prefixes of foreign namespaces the removed paragraph or run declares.
+                if (tree.DeclaresForeignNamespaces(source) || firstRun != OfficeXmlTree.NoNode && tree.DeclaresForeignNamespaces(firstRun)) return false;
                 int existingRun = firstRun == OfficeXmlTree.NoNode ? OfficeXmlTree.NoNode : tree.FindChild(firstRun, OfficeXmlNamespaces.DrawingML, "rPr");
                 if (existingRun != OfficeXmlTree.NoNode) runProperties = tree.CloneElement(existingRun);
                 int existingParagraph = tree.FindChild(source, OfficeXmlNamespaces.DrawingML, "pPr");

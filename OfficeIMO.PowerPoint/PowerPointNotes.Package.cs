@@ -53,7 +53,10 @@ namespace OfficeIMO.PowerPoint {
                 for (int run = tree.FindChild(template, OfficeXmlNamespaces.DrawingML, "r"); run != OfficeXmlTree.NoNode && runProperties == OfficeXmlTree.NoNode;
                      run = tree.FindNextSibling(run, OfficeXmlNamespaces.DrawingML, "r")) {
                     runProperties = tree.FindChild(run, OfficeXmlNamespaces.DrawingML, "rPr");
+                    // Copies of the run's properties would lose prefixes of foreign namespaces the removed run declares.
+                    if (runProperties != OfficeXmlTree.NoNode && tree.DeclaresForeignNamespaces(run)) return false;
                 }
+                if (tree.DeclaresForeignNamespaces(template)) return false;
             }
             for (int paragraph = tree.FindChild(body, OfficeXmlNamespaces.DrawingML, "p"); paragraph != OfficeXmlTree.NoNode;) {
                 int next = tree.FindNextSibling(paragraph, OfficeXmlNamespaces.DrawingML, "p");

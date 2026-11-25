@@ -111,7 +111,11 @@ namespace OfficeIMO.PowerPoint {
         internal OfficeXmlTree? TryCreatePackageNotes(string slidePart) {
             if (GetPackage(edit: true) is not { } package) return null;
             try {
-                if (FirstRelated(package, slidePart, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "notesSlide", out _) != null) return null;
+                // Any notes relationship, even one whose part is missing, is the model's to handle.
+                if (HasRelationshipOfType(package, slidePart, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "notesSlide")) return null;
+                // Notes go in a folder beside the slide's folder, which a slide at the package root doesn't have.
+                string slideDirectory = slidePart.Substring(0, slidePart.LastIndexOf('/'));
+                if (slideDirectory.LastIndexOf('/') < 0) return null;
                 if (PackageSlideList.Read(package) is not { } slides) return null;
                 string? master = FirstRelated(package, slides.Main, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "notesMaster", out string? masterRelationship);
                 if (master == null || masterRelationship == null
@@ -220,6 +224,17 @@ namespace OfficeIMO.PowerPoint {
                 return target;
             }
             return null;
+        }
+
+        private static bool HasRelationshipOfType(OfficeOpcEditablePackage package, string source, string type) {
+            string relationshipsPart = OfficeOpcPartNames.GetRelationshipsPartName(source);
+            if (!package.PartExists(relationshipsPart)) return false;
+            OfficeXmlTree relationships = package.GetXml(relationshipsPart);
+            for (int node = relationships.FindChild(relationships.Root, OfficeXmlNamespaces.PackageRelationships, "Relationship"); node != OfficeXmlTree.NoNode;
+                 node = relationships.FindNextSibling(node, OfficeXmlNamespaces.PackageRelationships, "Relationship")) {
+                if (OfficeXmlNamespaces.NormalizeRelationshipType(relationships.GetAttribute(node, OfficeXmlNamespaces.None, "Type") ?? string.Empty) == type) return true;
+            }
+            return false;
         }
 
         // Whether a part has an internal relationship to another part.

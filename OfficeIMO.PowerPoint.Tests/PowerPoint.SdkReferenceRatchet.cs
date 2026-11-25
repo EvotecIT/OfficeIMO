@@ -20,7 +20,7 @@ public class PowerPointSdkReferenceRatchetTests {
         if (project == null) return;
         List<string> files = EngineSources(project)
             .Where(file => !IsInBridge(project, file) && ReferencesSdk(file))
-            .Select(file => Path.GetRelativePath(Path.GetDirectoryName(project)!, file).Replace('\\', '/'))
+            .Select(file => Relative(Path.GetDirectoryName(project)!, file).Replace('\\', '/'))
             .OrderBy(file => file, StringComparer.Ordinal)
             .ToList();
         Assert.True(files.Count <= MaximumFilesReferencingSdk,
@@ -38,7 +38,10 @@ public class PowerPointSdkReferenceRatchetTests {
             element => ((string?)element.Attribute("Include") ?? string.Empty).StartsWith("DocumentFormat.OpenXml", StringComparison.Ordinal));
     }
 
-    private static bool ReferencesSdk(string file) => File.ReadAllText(file).Contains("DocumentFormat.OpenXml", StringComparison.Ordinal);
+    private static bool ReferencesSdk(string file) => File.ReadAllText(file).IndexOf("DocumentFormat.OpenXml", StringComparison.Ordinal) >= 0;
+
+    private static string Relative(string folder, string file) =>
+        file.StartsWith(folder + Path.DirectorySeparatorChar, StringComparison.Ordinal) ? file.Substring(folder.Length + 1) : file;
 
     private static bool IsInBridge(string project, string file) =>
         file.StartsWith(Path.Combine(project, BridgeFolder) + Path.DirectorySeparatorChar, StringComparison.Ordinal);
@@ -46,7 +49,7 @@ public class PowerPointSdkReferenceRatchetTests {
     // The engine's own sources and the shared sources its project links in.
     private static IEnumerable<string> EngineSources(string project) {
         foreach (string file in Directory.EnumerateFiles(project, "*.cs", SearchOption.AllDirectories)) {
-            string relative = Path.GetRelativePath(project, file);
+            string relative = Relative(project, file);
             if (relative.StartsWith("obj" + Path.DirectorySeparatorChar, StringComparison.Ordinal)
                 || relative.StartsWith("bin" + Path.DirectorySeparatorChar, StringComparison.Ordinal)) continue;
             yield return file;

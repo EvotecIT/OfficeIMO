@@ -243,6 +243,20 @@ internal sealed partial class OfficeXmlTree {
 
     internal int AttributeCountOf(int node) => _nodes[node].AttrCount;
 
+    /// <summary>
+    /// Whether an element declares a namespace outside the ECMA-376 set. A copy of its descendants placed elsewhere keeps
+    /// element and attribute names, which the writer binds again, but a prefix such a namespace lends to a QName value
+    /// would be lost.
+    /// </summary>
+    internal bool DeclaresForeignNamespaces(int element) {
+        int first = _nodes[element].AttrFirst, count = _nodes[element].AttrCount;
+        for (int index = first; index < first + count; index++) {
+            if (Namespaces.GetName(_attrs[index].Name).NamespaceId != OfficeXmlNamespaces.Xmlns) continue;
+            if (!OfficeXmlNamespaces.IsEcma376(Namespaces.GetId(AttributeValue(ref _attrs[index])))) return true;
+        }
+        return false;
+    }
+
     internal bool TryGetAttribute(int node, int namespaceId, string localName, out string value) {
         int index = FindAttribute(node, namespaceId, localName);
         if (index < 0) {

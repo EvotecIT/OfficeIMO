@@ -175,6 +175,8 @@ namespace OfficeIMO.PowerPoint {
             // A UTF-8 part has no more characters than bytes, so one within the limit in bytes is within it in characters.
             if (maximumCharactersInPart > 0 && package.GetPartLength(main) > maximumCharactersInPart) return false;
             string? application = package.GetRelatedPartName(null, ExtendedPropertiesRelationshipType);
+            // The signature check reads the conventional properties part even when nothing relates to it.
+            if (application == null && package.PartExists("/docProps/app.xml")) application = "/docProps/app.xml";
             if (application != null && package.PartExists(application)) {
                 // The signature check at an SDK load reads this part under the part size limit too.
                 long length = package.GetPartLength(application);

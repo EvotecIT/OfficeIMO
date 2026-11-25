@@ -90,6 +90,8 @@ internal static class OfficeOpcPartNames {
             if (index > common) builder.Append('/');
             builder.Append(target[index]);
         }
+        // A first segment with a colon would read as a URI scheme, so a relative reference starts it with "./".
+        if (builder.Length > 0 && builder[0] != '.' && target.Length > common && target[common].IndexOf(':') >= 0) builder.Insert(0, "./");
         return builder.ToString();
     }
 

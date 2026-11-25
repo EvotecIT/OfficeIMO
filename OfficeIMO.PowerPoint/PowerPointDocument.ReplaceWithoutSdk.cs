@@ -54,12 +54,12 @@ namespace OfficeIMO.PowerPoint {
         private void CommitPendingEdits(bool keepPackage = false) {
             OfficeOpcEditablePackage? pending = _pendingPackage;
             if (pending == null) return;
-            bool edited = _pendingEdits;
-            _pendingEdits = false;
-            if (edited) {
+            if (_pendingEdits) {
                 using var output = new MemoryStream();
                 pending.Save(output);
                 ReplacePackageStream(OfficePackageLoadSource.CreatePackageStream(output.ToArray(), _accessMode));
+                // Cleared only once the edited bytes are in place, so a failed write leaves the edits pending.
+                _pendingEdits = false;
             }
             if (!keepPackage) ReleasePendingPackage();
         }

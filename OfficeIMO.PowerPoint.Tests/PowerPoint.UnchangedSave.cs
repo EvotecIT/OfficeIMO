@@ -343,8 +343,8 @@ public class PowerPointUnchangedSaveTests {
                     File.WriteAllText(Path.Combine(dump, "expected.xml"), Normalize(expected[part.Key]).ToString());
                     File.WriteAllText(Path.Combine(dump, "actual.xml"), Normalize(part.Value).ToString());
                 }
-                XDocument expectedXml = Normalize(expected[part.Key], part.Key);
-                XDocument actualXml = Normalize(part.Value, part.Key);
+                XDocument expectedXml = Normalize(expected[part.Key], part.Key, RelationshipTargets(expected, part.Key));
+                XDocument actualXml = Normalize(part.Value, part.Key, RelationshipTargets(actual, part.Key));
                 Assert.True(XNode.DeepEquals(expectedXml, actualXml), part.Key + " differs from the SDK save."
                     + Environment.NewLine + Shorten(expectedXml) + Environment.NewLine + Shorten(actualXml));
                 if (keptAsLoaded && part.Key != ApplicationPart && loaded.TryGetValue(part.Key, out byte[]? original)) {
@@ -407,8 +407,23 @@ public class PowerPointUnchangedSaveTests {
             .OrderBy(value => value, StringComparer.Ordinal)
             .ToList();
 
+    // The internal targets of a part's relationships by id, resolved to part names; empty when it has none.
+    private static Dictionary<string, string> RelationshipTargets(Dictionary<string, byte[]> parts, string partName) {
+        var targets = new Dictionary<string, string>(StringComparer.Ordinal);
+        int slash = partName.LastIndexOf('/');
+        string folder = slash < 0 ? string.Empty : partName.Substring(0, slash + 1);
+        if (!parts.TryGetValue(folder + "_rels/" + partName.Substring(slash + 1) + ".rels", out byte[]? relationships)) return targets;
+        var source = new Uri("http://package/" + folder);
+        foreach (XElement relationship in XDocument.Load(new MemoryStream(relationships)).Root!.Elements()) {
+            string? id = (string?)relationship.Attribute("Id"), target = (string?)relationship.Attribute("Target");
+            if (id == null || target == null || (string?)relationship.Attribute("TargetMode") == "External") continue;
+            targets[id] = new Uri(source, target).AbsolutePath;
+        }
+        return targets;
+    }
+
     // Declarations and indentation are the SDK's formatting, not content.
-    private static XDocument Normalize(byte[] xml, string? partName = null) {
+    private static XDocument Normalize(byte[] xml, string? partName = null, Dictionary<string, string>? relationshipTargets = null) {
         XDocument document = XDocument.Load(new MemoryStream(xml));
         // .NET Framework's packaging writes internal targets as absolute part names; compare the parts they reach.
         if (partName != null && partName.EndsWith(".rels", StringComparison.OrdinalIgnoreCase)) {
@@ -432,11 +447,12 @@ public class PowerPointUnchangedSaveTests {
             .Select(element => element.Attribute("Id")).OfType<XAttribute>().Where(id => Regex.IsMatch(id.Value, "^R[0-9a-f]{16}$")).ToList()) {
             id.Value = "R";
         }
-        // Markup refers to those ids through relationship attributes, such as a picture's r:embed.
+        // Markup refers to those ids through relationship attributes, such as a picture's r:embed; each compares by the
+        // part its relationship reaches, so references to different parts stay different.
         foreach (XAttribute reference in document.Descendants().Attributes()
             .Where(attribute => attribute.Name.NamespaceName == "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
                 && Regex.IsMatch(attribute.Value, "^R[0-9a-f]{16}$")).ToList()) {
-            reference.Value = "R";
+            reference.Value = relationshipTargets != null && relationshipTargets.TryGetValue(reference.Value, out string? target) ? "R:" + target : "R";
         }
         foreach (XText text in document.DescendantNodes().OfType<XText>().Where(text => string.IsNullOrWhiteSpace(text.Value)).ToList()) text.Remove();
         // The SDK writes attributes in schema order and empty elements in short form.

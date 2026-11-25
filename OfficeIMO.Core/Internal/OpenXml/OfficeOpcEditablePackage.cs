@@ -92,7 +92,13 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
         content = default;
         Part? part = Find(partName);
         if (part == null || part.Tree != null || part.Content != null || !part.FromSource || !_zip!.TryRead(part.Member, out content)) return false;
-        reader = new OfficeXmlPullReader(content.Array, content.Length, Namespaces);
+        try {
+            reader = new OfficeXmlPullReader(content.Array, content.Length, Namespaces);
+        } catch {
+            content.Dispose();
+            content = default;
+            throw;
+        }
         return true;
     }
 
@@ -140,6 +146,9 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
         part.Deleted = true;
         RemoveOverride(part.Name);
     }
+
+    /// <summary>Whether a part is still the one stored in the package that was opened, neither replaced nor given new content.</summary>
+    internal bool IsStoredPart(string partName) => Find(partName) is { FromSource: true, Content: null };
 
     /// <summary>A part's content type: its override, or the default for its extension; null when neither is declared.</summary>
     internal string? GetContentType(string partName) {

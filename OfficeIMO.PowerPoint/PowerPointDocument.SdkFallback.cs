@@ -47,6 +47,9 @@ namespace OfficeIMO.PowerPoint {
                     int method = qualified.LastIndexOf('.');
                     if (method <= 0) continue;
                     int type = qualified.LastIndexOf('.', method - 1);
+                    // The library's public types sit in its root namespace; a frame from a deeper namespace may be the
+                    // caller's own code that shares the prefix.
+                    if (type != "OfficeIMO.PowerPoint".Length) continue;
                     string typeName = qualified.Substring(type + 1, method - type - 1);
                     string methodName = qualified.Substring(method + 1);
                     // Compiler-generated frames (lambdas, iterators, local functions) are not what the caller called.

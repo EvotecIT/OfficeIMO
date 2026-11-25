@@ -21,7 +21,11 @@ namespace OfficeIMO.PowerPoint {
                 int targetIndex = insertAt ?? index + 1;
                 if (targetIndex < 0 || targetIndex > slides.Entries.Count) return null;
                 string source = slides.Entries[index].Part;
+                // A legacy hidden flag on the slide list entry is moved onto the slide by the model before it copies it.
+                if (slides.Presentation.GetAttribute(slides.Entries[index].Node, OfficeXmlNamespaces.None, "show") != null) return null;
                 if (!TryReadSharedRelationships(package, source, out var internalRelationships, out var externalRelationships)) return null;
+                // The copy's bytes are read before anything changes, so a part that can't be read leaves the package as it was.
+                byte[] sourceBytes = package.ReadPartBytes(source);
 
                 List<uint>? ids = slides.ReadIds();
                 if (ids == null) return null;
@@ -50,7 +54,7 @@ namespace OfficeIMO.PowerPoint {
                     return null;
                 }
 
-                package.CreateBinaryPart(partName, SlideContentType, package.ReadPartBytes(source));
+                package.CreateBinaryPart(partName, SlideContentType, sourceBytes);
                 // The model adds the shared parts first, in the source's order, then the external relationships.
                 foreach ((string id, string type, string target, bool external) in internalRelationships.Concat(externalRelationships)) {
                     package.AddRelationship(partName, type, target, external, id);
