@@ -216,6 +216,8 @@ internal static partial class OfficeJpegReader {
         public int McuRows;
         private long _reservedBytes;
         private bool _orientationCanvasReserved;
+        // RGBA rendered alongside the final scan, when the banded render overlapped it.
+        public byte[]? RenderedRgba;
 
         public static ProgressiveState Create(
             JpegFrame frame,
@@ -292,6 +294,7 @@ internal static partial class OfficeJpegReader {
             int? adobeTransform,
             bool highQualityChroma,
             CancellationToken cancellationToken) {
+            if (highQualityChroma && RenderedRgba != null) return RenderedRgba;
             if (highQualityChroma && TryRenderYccHighQualityBands(frame, this, adobeTransform, cancellationToken, out byte[] banded)) {
                 return banded;
             }

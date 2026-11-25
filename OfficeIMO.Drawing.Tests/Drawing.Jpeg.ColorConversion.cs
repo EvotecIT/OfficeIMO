@@ -74,6 +74,20 @@ public sealed class DrawingJpegColorConversionTests {
         Assert.Equal(DecodeWithoutRowTables(jpeg, options), rows);
     }
 
+    // Large progressive images render their bands while the last scan is still decoding. The
+    // fixture's libjpeg script ends with a long luma refinement scan, so bands that started
+    // before their rows were final would differ from the full-plane conversion used when there
+    // is no budget for bands. Each decode races the workers against the scan again.
+    [Fact]
+    public void ProgressiveBandsRenderedDuringTheLastScanMatchFullPlaneConversion() {
+        byte[] jpeg = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "TestAssets", "Kulek.jpg"));
+        var options = new OfficeJpegDecodeOptions(highQualityChroma: true);
+        byte[] reference = DecodeWithoutRowTables(jpeg, options);
+        for (int attempt = 0; attempt < 4; attempt++) {
+            Assert.Equal(reference, OfficeJpegCodec.Decode(jpeg, options).GetPixels());
+        }
+    }
+
     // Green fixed-point sums for these (luma, Cb, Cr) sixteenths fall within a unit of a
     // rounding tie, so the row path must fall back to the double expression. A 4:2:0
     // image of flat blocks (quantization 1, DC only) places each triple exactly: at the

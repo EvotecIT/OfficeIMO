@@ -14,6 +14,31 @@ internal static partial class OfficeJpegReader {
         CancellationToken cancellationToken,
         out byte[] rgba) {
         rgba = Array.Empty<byte>();
+        if (!TryCreateBandPlan(frame, state, adobeTransform, out BandPlan? plan, out int workers) || plan == null) return false;
+        int bands = state.McuRows;
+        if (workers <= 1) {
+            plan.RenderBands(0, bands, cancellationToken);
+        } else {
+            Parallel.For(0, workers, new ParallelOptions {
+                CancellationToken = cancellationToken,
+                MaxDegreeOfParallelism = workers
+            }, worker => plan.RenderBands(
+                (int)((long)bands * worker / workers),
+                (int)((long)bands * (worker + 1) / workers),
+                cancellationToken));
+        }
+        rgba = plan.Output;
+        return true;
+    }
+
+    private static bool TryCreateBandPlan(
+        JpegFrame frame,
+        ProgressiveState state,
+        int? adobeTransform,
+        out BandPlan? plan,
+        out int workers) {
+        plan = null;
+        workers = 1;
         if (frame.Precision != 8 || frame.ComponentCount != 3 || state.Components.Length != 3) return false;
         var components = frame.Components;
         bool hasRgbComponentIds = FindComponentIndex(components, 'R') >= 0 &&
@@ -35,7 +60,7 @@ internal static partial class OfficeJpegReader {
         int maxH = frame.MaxH;
         int maxV = frame.MaxV;
         int bands = state.McuRows;
-        int workers = (long)frame.Width * frame.Height >= 262_144 && frame.Height >= 16 && Environment.ProcessorCount > 1
+        workers = (long)frame.Width * frame.Height >= 262_144 && frame.Height >= 16 && Environment.ProcessorCount > 1
             ? Math.Min(Math.Min(8, Environment.ProcessorCount), bands)
             : 1;
         // Band rings and axis tables replace the component planes the state reserved but
@@ -64,26 +89,142 @@ internal static partial class OfficeJpegReader {
 
         // Every band writes all of its rows, so the output needs no clearing.
         byte[] output = OfficeRasterGuards.AllocateRgba32Uninitialized(frame.Width, frame.Height, JpegDimensionsLimitMessage);
-        var plan = new BandPlan(frame, state, output, luma, cb, cr, cbColumns, crColumns, cbRows, crRows);
-        if (workers <= 1) {
-            plan.RenderBands(0, bands, cancellationToken);
-        } else {
-            Parallel.For(0, workers, new ParallelOptions {
-                CancellationToken = cancellationToken,
-                MaxDegreeOfParallelism = workers
-            }, worker => plan.RenderBands(
-                (int)((long)bands * worker / workers),
-                (int)((long)bands * (worker + 1) / workers),
-                cancellationToken));
-        }
-        rgba = output;
+        plan = new BandPlan(frame, state, output, luma, cb, cr, cbColumns, crColumns, cbRows, crRows);
         return true;
+    }
+
+    // Renders the bands while the final progressive scan is still decoding. The scan reports
+    // how many of its MCU rows are complete; a band is rendered once every row it reads,
+    // including the neighboring bands used as chroma context, has its final coefficients.
+    // Workers take chunks of bands in order, and the decoding thread joins in once the scan
+    // ends. The coefficient planes are pooled, so the decoder waits for every worker before
+    // it returns them, whether the scan finished or failed.
+    private sealed class BandOverlap {
+        private const int ChunkBands = 4;
+        private readonly BandPlan _plan;
+        private readonly int _bands;
+        private readonly int _chunks;
+        private readonly int _scanRows;
+        // Scan rows a band's last neighbor needs: bands * this, capped at the scan's rows.
+        private readonly int _rowsPerBand;
+        private readonly CancellationToken _cancellationToken;
+        private readonly object _gate = new object();
+        private readonly Task[] _tasks;
+        private int _nextChunk = -1;
+        private int _completedRows;
+        // The fewest completed rows any waiting worker needs; the scan takes the lock only then.
+        private int _wakeAt = int.MaxValue;
+        private bool _stopped;
+
+        private BandOverlap(BandPlan plan, int bands, int scanRows, int rowsPerBand, int workers,
+            CancellationToken cancellationToken) {
+            _plan = plan;
+            _bands = bands;
+            _chunks = (bands + ChunkBands - 1) / ChunkBands;
+            _scanRows = scanRows;
+            _rowsPerBand = rowsPerBand;
+            _cancellationToken = cancellationToken;
+            _tasks = new Task[Math.Min(workers - 1, _chunks)];
+            for (int i = 0; i < _tasks.Length; i++) {
+                _tasks[i] = Task.Factory.StartNew(() => RenderChunks(waitForRows: true), CancellationToken.None,
+                    TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+            }
+        }
+
+        public byte[] Output => _plan.Output;
+
+        // Starts the workers when the banded render applies and at least one other worker is available.
+        public static BandOverlap? TryStart(JpegFrame frame, ProgressiveState state, int? adobeTransform,
+            ScanHeader scan, int scanRows, CancellationToken cancellationToken) {
+            if (!TryCreateBandPlan(frame, state, adobeTransform, out BandPlan? plan, out int workers) ||
+                plan == null || workers <= 1) return null;
+            // An interleaved scan row is one band of every component; a single-component row is one block row.
+            int rowsPerBand = scan.ComponentIndices.Length == 1 ? frame.Components[scan.ComponentIndices[0]].V : 1;
+            return new BandOverlap(plan, state.McuRows, scanRows, rowsPerBand, workers, cancellationToken);
+        }
+
+        // Called by the scan after each of its MCU rows; the coefficients of those rows are final.
+        // Both sides publish with a full fence before reading the other's field, so a worker that
+        // registers its row count either sees these rows or is woken for them.
+        public void Publish(int completedRows) {
+            Interlocked.Exchange(ref _completedRows, completedRows);
+            if (completedRows < Volatile.Read(ref _wakeAt)) return;
+            lock (_gate) {
+                _wakeAt = int.MaxValue;
+                Monitor.PulseAll(_gate);
+            }
+        }
+
+        // The scan has ended: render what is left on this thread too, then wait for the workers.
+        public void Finish() {
+            Publish(int.MaxValue);
+            try {
+                RenderChunks(waitForRows: false);
+            } finally {
+                WaitForWorkers(observeFailures: true);
+            }
+        }
+
+        // The scan failed: stop handing out chunks and wait for the workers before the buffers are returned.
+        public void Stop() {
+            lock (_gate) {
+                _stopped = true;
+                Monitor.PulseAll(_gate);
+            }
+            WaitForWorkers(observeFailures: false);
+        }
+
+        private void WaitForWorkers(bool observeFailures) {
+            List<Exception>? failures = null;
+            foreach (Task task in _tasks) {
+                try {
+                    task.Wait();
+                } catch (AggregateException exception) {
+                    if (observeFailures) (failures ??= new List<Exception>()).AddRange(exception.InnerExceptions);
+                }
+            }
+            if (failures == null) return;
+            _cancellationToken.ThrowIfCancellationRequested();
+            if (failures.Count == 1) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(failures[0]).Throw();
+            throw new AggregateException(failures);
+        }
+
+        private void RenderChunks(bool waitForRows) {
+            BandRing[]? rings = null;
+            while (true) {
+                int chunk = Interlocked.Increment(ref _nextChunk);
+                if (chunk >= _chunks) return;
+                int firstBand = chunk * ChunkBands;
+                int endBand = Math.Min(_bands, firstBand + ChunkBands);
+                if (waitForRows && !WaitForBand(endBand - 1)) return;
+                _plan.RenderBands(firstBand, endBand, rings ??= _plan.CreateRings(), _cancellationToken);
+            }
+        }
+
+        private bool WaitForBand(int band) {
+            int needed = (int)Math.Min((long)(band + 2) * _rowsPerBand, _scanRows);
+            if (Volatile.Read(ref _completedRows) >= needed) return true;
+            lock (_gate) {
+                while (!_stopped) {
+                    int wakeAt;
+                    do {
+                        wakeAt = _wakeAt;
+                        if (wakeAt <= needed) break;
+                    } while (Interlocked.CompareExchange(ref _wakeAt, needed, wakeAt) != wakeAt);
+                    if (Volatile.Read(ref _completedRows) >= needed) return true;
+                    _cancellationToken.ThrowIfCancellationRequested();
+                    Monitor.Wait(_gate, 50);
+                }
+                return false;
+            }
+        }
     }
 
     private sealed class BandPlan {
         private readonly JpegFrame _frame;
         private readonly ProgressiveState _state;
         private readonly byte[] _output;
+        public byte[] Output => _output;
         private readonly ProgressiveComponentState _luma;
         private readonly ProgressiveComponentState _cb;
         private readonly ProgressiveComponentState _cr;
@@ -109,11 +250,18 @@ internal static partial class OfficeJpegReader {
 
         // Renders bands [firstBand, endBand) with worker-local band buffers. Bands just
         // outside the range are transformed again here as chroma context.
-        public void RenderBands(int firstBand, int endBand, CancellationToken cancellationToken) {
+        public void RenderBands(int firstBand, int endBand, CancellationToken cancellationToken) =>
+            RenderBands(firstBand, endBand, CreateRings(), cancellationToken);
+
+        public BandRing[] CreateRings() => new[] { new BandRing(_luma), new BandRing(_cb), new BandRing(_cr) };
+
+        // A worker can pass the same rings for several ranges: a slot is reused only for the band it
+        // already holds, and bands are rendered only once their coefficients are final.
+        public void RenderBands(int firstBand, int endBand, BandRing[] rings, CancellationToken cancellationToken) {
             if (firstBand >= endBand) return;
-            var lumaRing = new BandRing(_luma);
-            var cbRing = new BandRing(_cb);
-            var crRing = new BandRing(_cr);
+            BandRing lumaRing = rings[0];
+            BandRing cbRing = rings[1];
+            BandRing crRing = rings[2];
             int bandHeight = _frame.MaxV * 8;
             int width = _frame.Width;
             for (int band = firstBand; band < endBand; band++) {
