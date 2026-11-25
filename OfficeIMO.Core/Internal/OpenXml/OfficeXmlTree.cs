@@ -383,6 +383,27 @@ internal sealed partial class OfficeXmlTree {
         return node;
     }
 
+    /// <summary>
+    /// Creates a detached deep copy of an element: its attributes, namespace declarations, child elements and text. A
+    /// copy is written with the prefixes in scope where it is inserted.
+    /// </summary>
+    internal int CloneElement(int element) {
+        if (_nodes[element].Kind != OfficeXmlTreeNodeKind.Element) throw new InvalidOperationException("Only an element can be copied.");
+        OfficeXmlName name = Namespaces.GetName(_nodes[element].Name);
+        int copy = CreateElement(name.NamespaceId, name.LocalName);
+        int first = _nodes[element].AttrFirst, count = _nodes[element].AttrCount;
+        for (int index = first; index < first + count; index++) {
+            OfficeXmlName attribute = Namespaces.GetName(_attrs[index].Name);
+            string value = AttributeValue(ref _attrs[index]);
+            SetAttribute(copy, attribute.NamespaceId, attribute.LocalName, value);
+        }
+        for (int child = _nodes[element].FirstChild; child != NoNode; child = _nodes[child].Next) {
+            int cloned = _nodes[child].Kind == OfficeXmlTreeNodeKind.Element ? CloneElement(child) : CreateText(GetText(child));
+            Append(copy, cloned);
+        }
+        return copy;
+    }
+
     /// <summary>Creates a detached text node.</summary>
     internal int CreateText(string text) {
         int node = NewNode(OfficeXmlTreeNodeKind.Text);

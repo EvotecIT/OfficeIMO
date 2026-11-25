@@ -153,7 +153,8 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private T TrackShape<T>(T shape) where T : PowerPointShape {
-            shape.AttachTo(this);
+            // A shape added to the package tree already belongs to the slide; attaching it would open the SDK.
+            if (!shape.IsPackageBacked) shape.AttachTo(this);
             ShapeList.Add(shape);
             return shape;
         }
@@ -245,7 +246,8 @@ namespace OfficeIMO.PowerPoint {
             if (_shapeIdsResolved) return;
 
             uint maxId = 1;
-            ShapeTree? tree = SlideRoot.CommonSlideData?.ShapeTree;
+            ShapeTree? tree = TryGetPackageMaxShapeId(out uint packageMax) ? null : SlideRoot.CommonSlideData?.ShapeTree;
+            if (tree == null) maxId = Math.Max(maxId, packageMax);
             if (tree != null) {
                 foreach (NonVisualDrawingProperties properties in tree.Descendants<NonVisualDrawingProperties>()) {
                     uint id = properties.Id?.Value ?? 0U;

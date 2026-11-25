@@ -1,4 +1,5 @@
 using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.PowerPoint.OpenXml;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
@@ -190,8 +191,9 @@ namespace OfficeIMO.PowerPoint {
         ///     Text contained in the textbox.
         /// </summary>
         public string Text {
-            get => PowerPointParagraph.ReadText(EnsureTextBody());
+            get => TryGetPackageText(out string text) ? text : PowerPointParagraph.ReadText(EnsureTextBody());
             set {
+                if (TrySetPackageText(value)) return;
                 string textValue = value ?? string.Empty;
                 TextBody textBody = EnsureTextBody();
                 string[] discardedSoundIds = PowerPointEmbeddedSound
@@ -533,6 +535,46 @@ namespace OfficeIMO.PowerPoint {
         private static void ApplyNormalAutoFitOptions(A.NormalAutoFit normal, PowerPointTextAutoFitOptions options) {
             normal.FontScale = options.FontScaleValue;
             normal.LineSpaceReduction = options.LineSpaceReductionValue;
+        }
+
+        // The text body's text on the package tree; a shape without one is left to the SDK, which adds it.
+        private bool TryGetPackageText(out string text) {
+            text = string.Empty;
+            if (!TryGetPackageElement(out OfficeXmlTree tree, out int node)) return false;
+            int body = tree.FindChild(node, OfficeXmlNamespaces.PresentationML, "txBody");
+            return body != OfficeXmlTree.NoNode && PowerPointTreeText.TryReadBody(tree, body, out text);
+        }
+
+        // Replaces the paragraphs on the package tree as the Text setter does: each line a paragraph with the first
+        // paragraph's properties, the first run's formatting and its end properties.
+        private bool TrySetPackageText(string? value) {
+            if (!TryEditPackage(out OfficeXmlTree tree, out int node)) return false;
+            int body = tree.FindChild(node, OfficeXmlNamespaces.PresentationML, "txBody");
+            // Sounds the old text played are removed from the part by the model when nothing else uses them.
+            if (body == OfficeXmlTree.NoNode || PowerPointTreeText.HasSound(tree, body)) return false;
+            int template = tree.FindChild(body, OfficeXmlNamespaces.DrawingML, "p");
+            int paragraphProperties = OfficeXmlTree.NoNode, endProperties = OfficeXmlTree.NoNode, runProperties = OfficeXmlTree.NoNode;
+            if (template != OfficeXmlTree.NoNode) {
+                paragraphProperties = tree.FindChild(template, OfficeXmlNamespaces.DrawingML, "pPr");
+                endProperties = tree.FindChild(template, OfficeXmlNamespaces.DrawingML, "endParaRPr");
+                for (int run = tree.FindChild(template, OfficeXmlNamespaces.DrawingML, "r"); run != OfficeXmlTree.NoNode && runProperties == OfficeXmlTree.NoNode;
+                     run = tree.FindNextSibling(run, OfficeXmlNamespaces.DrawingML, "r")) {
+                    runProperties = tree.FindChild(run, OfficeXmlNamespaces.DrawingML, "rPr");
+                }
+            }
+            for (int paragraph = tree.FindChild(body, OfficeXmlNamespaces.DrawingML, "p"); paragraph != OfficeXmlTree.NoNode;) {
+                int next = tree.FindNextSibling(paragraph, OfficeXmlNamespaces.DrawingML, "p");
+                tree.Remove(paragraph);
+                paragraph = next;
+            }
+            foreach (string line in PowerPointTextContent.SplitParagraphs(value ?? string.Empty)) {
+                int paragraph = PowerPointTreeText.Append(tree, body, "p");
+                if (paragraphProperties != OfficeXmlTree.NoNode) tree.Append(paragraph, tree.CloneElement(paragraphProperties));
+                PowerPointTreeText.AppendInlineContent(tree, paragraph, line, runProperties);
+                if (endProperties != OfficeXmlTree.NoNode) tree.Append(paragraph, tree.CloneElement(endProperties));
+            }
+            MarkPackageEdited();
+            return true;
         }
 
         private TextBody EnsureTextBody() {

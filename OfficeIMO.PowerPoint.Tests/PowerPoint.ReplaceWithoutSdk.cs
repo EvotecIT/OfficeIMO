@@ -52,7 +52,7 @@ public class PowerPointReplaceWithoutSdkTests {
         Assert.Contains("Centre slide", string.Concat(presentation.ExtractMarkdownChunks().Select(chunk => chunk.Text)));
         Assert.False(presentation.IsSdkLoaded);
         Assert.Contains(presentation.Slides[1].TextBoxes, box => box.Text == "Centre slide");
-        Assert.True(presentation.IsSdkLoaded);
+        Assert.False(presentation.IsSdkLoaded);
     }
 
     [Fact]

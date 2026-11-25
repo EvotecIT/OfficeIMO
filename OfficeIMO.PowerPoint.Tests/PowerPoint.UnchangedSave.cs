@@ -118,13 +118,14 @@ public class PowerPointUnchangedSaveTests {
         Assert.False(presentation.IsSdkLoaded);
         PowerPointSlide first = presentation.Slides[0];
         Assert.False(presentation.IsSdkLoaded);
-        first.AddTextBox("Added");
+        _ = presentation.OpenXmlDocument;
         Assert.True(presentation.IsSdkLoaded);
         Assert.Equal(1, presentation.DeferredSdkOpenCount);
         Assert.Same(first, presentation.Slides[0]);
         OfficeDiagnostic fallback = Assert.Single(presentation.Diagnostics);
         Assert.Equal(OfficeDiagnosticCodes.SdkFallback, fallback.Code);
-        Assert.Equal("PowerPointSlide.AddTextBox", fallback.Location);
+        Assert.Equal("PowerPointDocument.OpenXmlDocument", fallback.Location);
+        first.AddTextBox("Added");
 
         using var reopened = PowerPointDocument.Load(new MemoryStream(presentation.ToBytes()));
         Assert.Contains(reopened.Slides[0].TextBoxes, box => box.Text == "Added");

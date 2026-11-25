@@ -86,7 +86,7 @@ public class PowerPointSlideOrderWithoutSdkTests {
 
         Assert.Equal(new[] { "Third slide", "Fourth slide", "Second slide" },
             presentation.Slides.Select(slide => slide.TextBoxes.Single().Text));
-        Assert.True(presentation.IsSdkLoaded);
+        Assert.False(presentation.IsSdkLoaded);
     }
 
     [Theory]

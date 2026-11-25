@@ -87,14 +87,14 @@ namespace OfficeIMO.PowerPoint {
         ///     Numeric shape identifier stored in the PowerPoint non-visual drawing properties.
         /// </summary>
         public uint? Id {
-            get => GetNonVisualDrawingProperties(create: false)?.Id?.Value;
+            get => TryGetPackageId(out uint? id) ? id : GetNonVisualDrawingProperties(create: false)?.Id?.Value;
         }
 
         /// <summary>
         ///     Name assigned to the shape.
         /// </summary>
         public string? Name {
-            get => GetNonVisualDrawingProperties(create: false)?.Name?.Value;
+            get => TryReadPackageDrawingAttribute("name", out string? name) ? name : GetNonVisualDrawingProperties(create: false)?.Name?.Value;
             set {
                 NonVisualDrawingProperties drawing = GetNonVisualDrawingProperties(create: true)
                     ?? throw new NotSupportedException("This shape type does not expose non-visual drawing properties.");
@@ -106,7 +106,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Alternative text description assigned to the shape.
         /// </summary>
         public string? AltText {
-            get => GetNonVisualDrawingProperties(create: false)?.Description?.Value;
+            get => TryReadPackageDrawingAttribute("descr", out string? description) ? description : GetNonVisualDrawingProperties(create: false)?.Description?.Value;
             set {
                 NonVisualDrawingProperties drawing = GetNonVisualDrawingProperties(create: true)
                     ?? throw new NotSupportedException("This shape type does not expose non-visual drawing properties.");
@@ -120,7 +120,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Gets or sets whether the shape is hidden.
         /// </summary>
         public bool Hidden {
-            get => GetNonVisualDrawingProperties(create: false)?.Hidden?.Value == true;
+            get => TryGetPackageHidden(out bool hidden) ? hidden : GetNonVisualDrawingProperties(create: false)?.Hidden?.Value == true;
             set {
                 NonVisualDrawingProperties drawing = GetNonVisualDrawingProperties(create: true)
                     ?? throw new NotSupportedException("This shape type does not expose non-visual drawing properties.");

@@ -62,6 +62,7 @@ namespace OfficeIMO.PowerPoint {
             long nativeWidth = (width ?? OfficeLength.Emus(7772400L)).ToEmus();
             long nativeHeight = (height ?? OfficeLength.Emus(3962400L)).ToEmus();
             ArgumentNullException.ThrowIfNull(text);
+            if (TryAddPackageTextBox(text, nativeLeft, nativeTop, nativeWidth, nativeHeight) is { } added) return added;
 
             string name = GenerateUniqueName("TextBox");
             Shape shape = new(

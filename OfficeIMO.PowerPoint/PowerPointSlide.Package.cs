@@ -1,4 +1,5 @@
 using OfficeIMO.Core.Internal.OpenXml;
+using OfficeIMO.PowerPoint.OpenXml;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
@@ -9,6 +10,92 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>The slide's tree in the document's package, or null when the slide has to be read through the SDK.</summary>
         internal OfficeXmlTree? PackageTree => IsPackageBacked && PackagePartName != null ? OwnerDocument?.GetPackageXml(PackagePartName) : null;
 
+        // Whether the shapes were loaded from the package tree, so new shapes can be added there.
+        private bool _shapesFromPackage;
+
+        /// <summary>
+        /// The slide's shape tree when shapes can be added to it without the SDK: the slide works on the package, its
+        /// shapes were read from there, and the document can be edited that way.
+        /// </summary>
+        private bool TryGetEditablePackageShapeTree(out OfficeXmlTree slide, out int tree) {
+            slide = null!;
+            tree = OfficeXmlTree.NoNode;
+            if (!IsPackageBacked || OwnerDocument?.CanEditPackage != true) return false;
+            EnsureShapesLoaded();
+            if (!_shapesFromPackage || !IsPackageBacked || PackageTree is not { } package) return false;
+            int data = package.FindChild(package.Root, OfficeXmlNamespaces.PresentationML, "cSld");
+            tree = data == OfficeXmlTree.NoNode ? OfficeXmlTree.NoNode : package.FindChild(data, OfficeXmlNamespaces.PresentationML, "spTree");
+            slide = package;
+            return tree != OfficeXmlTree.NoNode;
+        }
+
+        // The largest p:cNvPr id in the shape tree, groups included, as EnsureShapeIdsResolved reads it; false when the
+        // slide is read through the SDK or an id is not a number.
+        private bool TryGetPackageMaxShapeId(out uint maxId) {
+            maxId = 1;
+            if (!_shapesFromPackage || !IsPackageBacked || PackageTree is not { } slide) return false;
+            int data = slide.FindChild(slide.Root, OfficeXmlNamespaces.PresentationML, "cSld");
+            int tree = data == OfficeXmlTree.NoNode ? OfficeXmlTree.NoNode : slide.FindChild(data, OfficeXmlNamespaces.PresentationML, "spTree");
+            if (tree == OfficeXmlTree.NoNode) return true;
+            var pending = new Stack<int>();
+            pending.Push(tree);
+            while (pending.Count > 0) {
+                for (int child = slide.FirstChildOf(pending.Pop()); child != OfficeXmlTree.NoNode; child = slide.NextSiblingOf(child)) {
+                    if (slide.KindOf(child) != OfficeXmlTreeNodeKind.Element) continue;
+                    if (slide.IsElement(child, OfficeXmlNamespaces.PresentationML, "cNvPr")) {
+                        string? value = slide.GetAttribute(child, OfficeXmlNamespaces.None, "id");
+                        uint id = 0U;
+                        if (value != null && !uint.TryParse(value, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out id)) return false;
+                        if (id > maxId) maxId = id;
+                    }
+                    pending.Push(child);
+                }
+            }
+            return true;
+        }
+
+        // Adds a text box to the package tree as AddTextBox writes it; null when the slide or document can't be edited
+        // that way, and the caller adds it through the SDK.
+        private PowerPointTextBox? TryAddPackageTextBox(string text, long left, long top, long width, long height) {
+            if (!TryGetEditablePackageShapeTree(out OfficeXmlTree slide, out int tree) || !TryGetPackageMaxShapeId(out _)) return null;
+            string name = GenerateUniqueName("TextBox");
+            uint id = AllocateShapeId();
+            // Reading names or ids can open the SDK for a shape the package does not read; the SDK then adds it.
+            if (!IsPackageBacked) return null;
+
+            int shape = slide.CreateElement(OfficeXmlNamespaces.PresentationML, "sp");
+            int nonVisual = PowerPointDocument.Append(slide, shape, OfficeXmlNamespaces.PresentationML, "nvSpPr");
+            int drawing = PowerPointDocument.Append(slide, nonVisual, OfficeXmlNamespaces.PresentationML, "cNvPr");
+            slide.SetAttribute(drawing, OfficeXmlNamespaces.None, "id", id.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            slide.SetAttribute(drawing, OfficeXmlNamespaces.None, "name", name);
+            int shapeDrawing = PowerPointDocument.Append(slide, nonVisual, OfficeXmlNamespaces.PresentationML, "cNvSpPr");
+            slide.SetAttribute(shapeDrawing, OfficeXmlNamespaces.None, "txBox", "1");
+            slide.SetAttribute(PowerPointDocument.Append(slide, shapeDrawing, OfficeXmlNamespaces.DrawingML, "spLocks"), OfficeXmlNamespaces.None, "noGrp", "1");
+            PowerPointDocument.Append(slide, nonVisual, OfficeXmlNamespaces.PresentationML, "nvPr");
+            AppendRectangle(slide, PowerPointDocument.Append(slide, shape, OfficeXmlNamespaces.PresentationML, "spPr"), left, top, width, height);
+            int body = PowerPointDocument.Append(slide, shape, OfficeXmlNamespaces.PresentationML, "txBody");
+            PowerPointDocument.Append(slide, body, OfficeXmlNamespaces.DrawingML, "bodyPr");
+            PowerPointDocument.Append(slide, body, OfficeXmlNamespaces.DrawingML, "lstStyle");
+            PowerPointTreeText.AppendInlineContent(slide, PowerPointDocument.Append(slide, body, OfficeXmlNamespaces.DrawingML, "p"), text, OfficeXmlTree.NoNode);
+            slide.Append(tree, shape);
+            OwnerDocument!.MarkPackageEdited();
+            return TrackShape(new PowerPointTextBox(this, slide, shape));
+        }
+
+        // A transform and a rectangle preset geometry, as the model writes them into new shapes.
+        private static void AppendRectangle(OfficeXmlTree slide, int properties, long left, long top, long width, long height) {
+            int transform = PowerPointDocument.Append(slide, properties, OfficeXmlNamespaces.DrawingML, "xfrm");
+            int offset = PowerPointDocument.Append(slide, transform, OfficeXmlNamespaces.DrawingML, "off");
+            slide.SetAttribute(offset, OfficeXmlNamespaces.None, "x", left.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            slide.SetAttribute(offset, OfficeXmlNamespaces.None, "y", top.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            int extents = PowerPointDocument.Append(slide, transform, OfficeXmlNamespaces.DrawingML, "ext");
+            slide.SetAttribute(extents, OfficeXmlNamespaces.None, "cx", width.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            slide.SetAttribute(extents, OfficeXmlNamespaces.None, "cy", height.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            int geometry = PowerPointDocument.Append(slide, properties, OfficeXmlNamespaces.DrawingML, "prstGeom");
+            slide.SetAttribute(geometry, OfficeXmlNamespaces.None, "prst", "rect");
+            PowerPointDocument.Append(slide, geometry, OfficeXmlNamespaces.DrawingML, "avLst");
+        }
+
         // Loads the shapes from the package tree; false, having loaded nothing, when the slide holds shapes that are
         // read through the SDK.
         private bool TryLoadPackageShapes() {
@@ -16,7 +103,10 @@ namespace OfficeIMO.PowerPoint {
             if (!slide.IsElement(slide.Root, OfficeXmlNamespaces.PresentationML, "sld")) return false;
             int data = slide.FindChild(slide.Root, OfficeXmlNamespaces.PresentationML, "cSld");
             int tree = data == OfficeXmlTree.NoNode ? OfficeXmlTree.NoNode : slide.FindChild(data, OfficeXmlNamespaces.PresentationML, "spTree");
-            if (tree == OfficeXmlTree.NoNode) return true;
+            if (tree == OfficeXmlTree.NoNode) {
+                _shapesFromPackage = true;
+                return true;
+            }
 
             var shapes = new List<PowerPointShape>();
             for (int child = slide.FirstChildOf(tree); child != OfficeXmlTree.NoNode; child = slide.NextSiblingOf(child)) {
@@ -25,6 +115,7 @@ namespace OfficeIMO.PowerPoint {
                 if (shape != null) shapes.Add(shape);
             }
             _shapes.AddRange(shapes);
+            _shapesFromPackage = true;
             return true;
         }
 

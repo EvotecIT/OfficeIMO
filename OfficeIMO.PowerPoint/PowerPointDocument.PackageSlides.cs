@@ -31,6 +31,12 @@ namespace OfficeIMO.PowerPoint {
             return _pendingPackage;
         }
 
+        /// <summary>Whether slides and shapes can be edited in the package without the SDK.</summary>
+        internal bool CanEditPackage => GetPackage(edit: true) != null;
+
+        /// <summary>Records an edit made in the package, so the next save or SDK open writes it.</summary>
+        internal void MarkPackageEdited() => _pendingEdits = true;
+
         /// <summary>A part's tree in the package read without the SDK, or null when the package can't be read that way.</summary>
         internal OfficeXmlTree? GetPackageXml(string partName) {
             if (GetPackage(edit: false) is not { } package || !package.PartExists(partName)) return null;
