@@ -218,6 +218,9 @@ namespace OfficeIMO.Excel {
             Cell? insertAfterCell = null;
             int targetColumnIndex = column;
 
+            // Columns follow the read rule (ExcelWorksheetCoordinates.GetColumnIndex): a missing or unparseable
+            // reference takes the next column, so a write updates the cell a read returns for that column.
+            bool implicitColumn = false;
             if (_lastAccessedCell != null
                 && _lastAccessedCellRowIndex == row
                 && ReferenceEquals(_lastAccessedCell.Parent, rowElement)) {
@@ -225,12 +228,9 @@ namespace OfficeIMO.Excel {
                     cell = _lastAccessedCell;
                 } else if (_lastAccessedCellColumnIndex < targetColumnIndex) {
                     insertAfterCell = _lastAccessedCell;
+                    int nextImplicitColumn = _lastAccessedCellColumnIndex + 1;
                     for (Cell? next = _lastAccessedCell.NextSibling<Cell>(); next != null; next = next.NextSibling<Cell>()) {
-                        if (next.CellReference?.Value is not string nextRefValue || nextRefValue.Length == 0) {
-                            continue;
-                        }
-
-                        int nextColumnIndex = GetColumnIndex(nextRefValue);
+                        int nextColumnIndex = GetWriteColumnIndex(next, ref nextImplicitColumn, out implicitColumn);
                         if (nextColumnIndex == targetColumnIndex) {
                             cell = next;
                             break;
@@ -246,12 +246,9 @@ namespace OfficeIMO.Excel {
             }
 
             if (cell == null && insertAfterCell == null) {
+                int nextImplicitColumn = 1;
                 foreach (Cell c in rowElement.Elements<Cell>()) {
-                    if (c.CellReference?.Value is not string existingRefValue || existingRefValue.Length == 0) {
-                        continue;
-                    }
-
-                    int existingColumnIndex = GetColumnIndex(existingRefValue);
+                    int existingColumnIndex = GetWriteColumnIndex(c, ref nextImplicitColumn, out implicitColumn);
                     if (existingColumnIndex == targetColumnIndex) {
                         cell = c;
                         break;
@@ -275,22 +272,17 @@ namespace OfficeIMO.Excel {
                         rowElement.InsertAfter(cell, insertAfterCell);
                     }
                 } else {
-                    // Insert at beginning or append when row is empty or existing first cell has larger column index
+                    // Every cell has a column here, so without an earlier cell the first cell follows the new one.
                     var firstCell = rowElement.Elements<Cell>().FirstOrDefault();
                     if (firstCell != null) {
-                        if (firstCell.CellReference?.Value is string firstRefValue && firstRefValue.Length > 0) {
-                            if (GetColumnIndex(firstRefValue) > targetColumnIndex) {
-                                rowElement.InsertBefore(cell, firstCell);
-                            } else {
-                                rowElement.Append(cell);
-                            }
-                        } else {
-                            rowElement.Append(cell);
-                        }
+                        rowElement.InsertBefore(cell, firstCell);
                     } else {
                         rowElement.Append(cell);
                     }
                 }
+            } else if (implicitColumn) {
+                // The written cell keeps the column it was read in, now under its canonical reference.
+                cell.CellReference = BuildCellReference(row, column);
             }
 
             CacheLastAccessedCell(rowElement, row, column, cell);
@@ -658,6 +650,15 @@ namespace OfficeIMO.Excel {
             }
 
             return columnName;
+        }
+
+        private static int GetWriteColumnIndex(Cell cell, ref int nextImplicitColumn, out bool implicitColumn) {
+            string? reference = cell.CellReference?.Value;
+            int columnIndex = string.IsNullOrEmpty(reference) ? 0 : ExcelA1.ParseColumnIndexFromCellReferenceFast(reference);
+            implicitColumn = columnIndex <= 0;
+            if (implicitColumn) columnIndex = nextImplicitColumn;
+            nextImplicitColumn = columnIndex + 1;
+            return columnIndex;
         }
 
         private static int GetColumnIndex(string cellReference) {

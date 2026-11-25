@@ -220,6 +220,7 @@ public partial class Excel {
     [Theory]
     [InlineData("<c r=\"B23990\" s=\"1\">", "<c r=\"B23990\" s=\"\">")]
     [InlineData("<c r=\"C23990\">", "<c r=\"C\">")]
+    [InlineData("<c r=\"C23990\">", "<c r=\" C&#50;3990 \">")]
     public void SinglePassReading_ReadsLateLenientCellsAsTheDefaultReaderDoes(string original, string replacement) {
         byte[] workbook = CreateParallelIndexWorkbook(invalidSharedStringRow: 0);
         using (var buffer = new MemoryStream()) {
@@ -260,10 +261,32 @@ public partial class Excel {
     }
 
     [Fact]
-    public void DataReader_ReadsReferenceWrittenWithCharacterReferences() {
+    public void Cell_WriteUpdatesTheCellReadAtAnUnparseableReference() {
+        string path = CreateLenientCellWorkbook("<row r=\"1\"><c r=\"A1\"><v>1</v></c><c r=\"D\"><v>2</v></c></row>");
+        try {
+            using (var document = ExcelDocument.Load(path)) {
+                ExcelSheet sheet = document.GetSheet("Data");
+                sheet.Cell(1, 2).SetValue(5);
+
+                Assert.Equal(5d, sheet.Cell("B1").GetValue().Value);
+                Assert.Equal(ExcelCellDataKind.Blank, sheet.Cell("C1").GetValue().Kind);
+                document.Save();
+            }
+
+            using var package = DocumentFormat.OpenXml.Packaging.SpreadsheetDocument.Open(path, false);
+            var cells = package.WorkbookPart!.WorksheetParts.Single().Worksheet!
+                .Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>().Select(c => c.CellReference?.Value).ToArray();
+            Assert.Equal(new[] { "A1", "B1" }, cells);
+        } finally { File.Delete(path); }
+    }
+
+    [Theory]
+    [InlineData("&#66;2")]
+    [InlineData(" B2 ")]
+    public void DataReader_ReadsReferencesTheByteParserDoesNotAccept(string reference) {
         string path = CreateLenientCellWorkbook(
             "<row r=\"1\"><c r=\"A1\" t=\"inlineStr\"><is><t>Name</t></is></c><c r=\"B1\" t=\"inlineStr\"><is><t>Amount</t></is></c></row>"
-            + "<row r=\"2\"><c r=\"&#66;2\"><v>42</v></c></row>");
+            + $"<row r=\"2\"><c r=\"{reference}\"><v>42</v></c></row>");
         try {
             using var reader = ExcelDocument.OpenReader(path);
             Assert.True(reader.Read());

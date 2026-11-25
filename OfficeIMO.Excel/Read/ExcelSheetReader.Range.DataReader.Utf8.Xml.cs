@@ -266,11 +266,9 @@ namespace OfficeIMO.Excel {
 
                 if (hasReference) {
                     columnIndex = ParseColumnIndex(_buffer!, referenceStart, referenceLength);
-                    if (columnIndex <= 0) {
-                        // A reference written with character references needs the XML decoder.
-                        if (ContainsAmpersand(referenceStart, referenceLength)) return false;
-                        // Excel places a cell with an unparseable reference in the next column, as if it had none.
-                        columnIndex = nextColumn;
+                    if (columnIndex <= 0
+                        && !TryResolveUnparsedCellColumn(referenceStart, referenceLength, nextColumn, out columnIndex)) {
+                        return false;
                     }
                     nextColumn = columnIndex + 1;
                 } else {
@@ -280,8 +278,78 @@ namespace OfficeIMO.Excel {
                 return !hasType || TryParseCellKind(typeStart, typeLength, out kind);
             }
 
-            private bool ContainsAmpersand(int start, int length) =>
-                _buffer.AsSpan(start, length).IndexOf((byte)'&') >= 0;
+            /// <summary>
+            /// Resolves a reference the byte parser rejected with the XmlReader paths' rule: the attribute text is
+            /// decoded, then <see cref="GetXmlCellColumnIndex(ReadOnlySpan{char}, ref int)"/> trims and parses it and
+            /// places an unparseable value in the next column. Single-pass reading cannot switch to the XmlReader after
+            /// returning rows, so it needs the same result here. Text this decoder does not handle returns false.
+            /// </summary>
+            private bool TryResolveUnparsedCellColumn(int start, int length, int nextColumn, out int columnIndex) {
+                columnIndex = 0;
+                Span<char> text = length <= 64 ? stackalloc char[64] : new char[length];
+                int written = 0;
+                int position = 0;
+                while (position < length) {
+                    byte current = _buffer![start + position];
+                    if (current >= 0x80) return false;
+                    if (current != (byte)'&') {
+                        text[written++] = (char)current;
+                        position++;
+                        continue;
+                    }
+                    if (!TryDecodeXmlCharacterReference(_buffer.AsSpan(start + position, length - position), out char decoded, out int consumed)) {
+                        return false;
+                    }
+                    text[written++] = decoded;
+                    position += consumed;
+                }
+                columnIndex = GetXmlCellColumnIndex(text.Slice(0, written), ref nextColumn);
+                return true;
+            }
+
+            /// <summary>Decodes a numeric character reference or one of the five predefined XML entities.</summary>
+            private static bool TryDecodeXmlCharacterReference(ReadOnlySpan<byte> text, out char value, out int consumed) {
+                value = default;
+                consumed = 0;
+                int end = text.IndexOf((byte)';');
+                if (end < 2) return false;
+                ReadOnlySpan<byte> name = text.Slice(1, end - 1);
+                consumed = end + 1;
+                if (name[0] == (byte)'#') {
+                    bool hex = name.Length > 1 && (name[1] == (byte)'x');
+                    int digitsStart = hex ? 2 : 1;
+                    if (digitsStart >= name.Length) return false;
+                    int code = 0;
+                    for (int i = digitsStart; i < name.Length; i++) {
+                        byte digit = name[i];
+                        int part = digit >= (byte)'0' && digit <= (byte)'9' ? digit - '0'
+                            : hex && digit >= (byte)'a' && digit <= (byte)'f' ? digit - 'a' + 10
+                            : hex && digit >= (byte)'A' && digit <= (byte)'F' ? digit - 'A' + 10
+                            : -1;
+                        if (part < 0) return false;
+                        code = code * (hex ? 16 : 10) + part;
+                        if (code > 0xFFFF) return false;
+                    }
+                    if (code == 0 || (code >= 0xD800 && code <= 0xDFFF)) return false;
+                    value = (char)code;
+                    return true;
+                }
+                if (AsciiNameEquals(name, "amp")) value = '&';
+                else if (AsciiNameEquals(name, "lt")) value = '<';
+                else if (AsciiNameEquals(name, "gt")) value = '>';
+                else if (AsciiNameEquals(name, "quot")) value = '"';
+                else if (AsciiNameEquals(name, "apos")) value = '\'';
+                else return false;
+                return true;
+            }
+
+            private static bool AsciiNameEquals(ReadOnlySpan<byte> name, string expected) {
+                if (name.Length != expected.Length) return false;
+                for (int i = 0; i < name.Length; i++) {
+                    if (name[i] != (byte)expected[i]) return false;
+                }
+                return true;
+            }
 
             private void ReportEmptyCellStyle(bool hasReference, int referenceStart, int referenceLength) {
                 if (!_owner.TryBeginEmptyCellStyleRepairReport()) return;

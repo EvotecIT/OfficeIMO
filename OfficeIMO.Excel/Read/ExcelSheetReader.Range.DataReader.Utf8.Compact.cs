@@ -221,13 +221,9 @@ namespace OfficeIMO.Excel {
                 }
                 if (hasReference) {
                     columnIndex = ParseColumnIndex(_buffer, referenceStart, referenceLength);
-                    if (columnIndex <= 0) {
-                        // A reference written with character references needs the XML decoder.
-                        if (ContainsAmpersand(referenceStart, referenceLength)) {
-                            return false;
-                        }
-                        // Excel places a cell with an unparseable reference in the next column, as if it had none.
-                        columnIndex = nextColumn;
+                    if (columnIndex <= 0
+                        && !TryResolveUnparsedCellColumn(referenceStart, referenceLength, nextColumn, out columnIndex)) {
+                        return false;
                     }
                 } else {
                     columnIndex = nextColumn;
