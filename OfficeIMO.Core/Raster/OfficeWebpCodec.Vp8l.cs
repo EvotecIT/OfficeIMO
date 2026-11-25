@@ -1,3 +1,9 @@
+#if NET8_0_OR_GREATER
+using Vp8lPixels = System.Span<uint>;
+#else
+using Vp8lPixels = uint[];
+#endif
+
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeWebpCodec {
@@ -54,8 +60,8 @@ public static partial class OfficeWebpCodec {
 
     /// <summary>
     /// Decodes a headerless lossless image stream used by VP8L and compressed ALPH chunks. With
-    /// <paramref name="writeRgba"/>, the restored pixels are also written as RGBA bytes once the
-    /// entropy-coded data has decoded.
+    /// <paramref name="writeRgba"/>, the entropy-coded pixels decode into the tail of the RGBA output
+    /// itself and the transforms restore them in place, so the image needs one full-size buffer.
     /// </summary>
     private static bool TryDecodeVp8lArgb(LsbBitReader reader, int width, int height,
         Vp8lAllocationBudget allocationBudget, CancellationToken cancellationToken, bool writeRgba,
@@ -65,17 +71,43 @@ public static partial class OfficeWebpCodec {
         if (!OfficeRasterGuards.TryEnsurePixelCount(width, height, out int pixels) ||
             !TryReadVp8lTransforms(reader, width, height, allocationBudget, cancellationToken, out int encodedWidth,
                 out List<Vp8lTransform> transforms) ||
-            !TryDecodeVp8lImageData(reader, encodedWidth, height, allowMetaCodes: true, 0,
-                allocationBudget, cancellationToken, out uint[] packed) ||
-            // The transforms read nothing more from the stream, so reject trailing data before allocating output.
-            !reader.HasOnlyZeroPadding(cancellationToken)) return false;
+            !TryReadVp8lImageHeader(reader, encodedWidth, height, allowMetaCodes: true, 0,
+                allocationBudget, cancellationToken, out Vp8lImageHeader header)) return false;
+        uint[]? packedArray = null;
+        Vp8lPixels packed;
+#if NET8_0_OR_GREATER
         if (writeRgba) {
+            // Transforms never widen the stream past the image, so the packed pixels fit the output.
+            if (!allocationBudget.TryReserveArray(pixels, sizeof(uint))) return false;
+            cancellationToken.ThrowIfCancellationRequested();
+            rgba = OfficeRasterGuards.AllocateRgba32Uninitialized(width, height, "WebP decoded pixels exceed the managed limit.");
+            int packedLength = checked(encodedWidth * height);
+            packed = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(rgba.AsSpan()).Slice(pixels - packedLength, packedLength);
+        } else
+#endif
+        {
+            if (!header.TryAllocatePixels(allocationBudget, cancellationToken, out packedArray)) return false;
+            packed = packedArray;
+        }
+#if !NET8_0_OR_GREATER
+        if (writeRgba) {
+            // Without spans the packed pixels keep their own buffer beside the output.
             if (!allocationBudget.TryReserveArray(pixels, sizeof(uint))) return false;
             cancellationToken.ThrowIfCancellationRequested();
             rgba = OfficeRasterGuards.AllocateRgba32Uninitialized(width, height, "WebP decoded pixels exceed the managed limit.");
         }
-        if (!TryApplyVp8lTransforms(packed, encodedWidth, height, width, transforms,
-                allocationBudget, cancellationToken, rgba, out argb)) return false;
+#endif
+        if (!header.TryDecodePixels(reader, packed, cancellationToken) ||
+            // The transforms read nothing more from the stream, so reject trailing data before restoring pixels.
+            !reader.HasOnlyZeroPadding(cancellationToken)) {
+            rgba = null;
+            return false;
+        }
+        if (!TryApplyVp8lTransforms(packed, packedArray, encodedWidth, height, width, transforms,
+                allocationBudget, cancellationToken, rgba, out argb)) {
+            rgba = null;
+            return false;
+        }
         return rgba != null || argb.Length == pixels;
     }
 
@@ -89,6 +121,25 @@ public static partial class OfficeWebpCodec {
         CancellationToken cancellationToken,
         out uint[] pixels) {
         pixels = Array.Empty<uint>();
+        if (!TryReadVp8lImageHeader(reader, width, height, allowMetaCodes, depth, allocationBudget, cancellationToken,
+                out Vp8lImageHeader header) ||
+            !header.TryAllocatePixels(allocationBudget, cancellationToken, out uint[] decoded) ||
+            !header.TryDecodePixels(reader, decoded, cancellationToken)) return false;
+        pixels = decoded;
+        return true;
+    }
+
+    /// <summary>Reads the color cache, meta prefix codes and Huffman groups that precede an image's pixels.</summary>
+    private static bool TryReadVp8lImageHeader(
+        LsbBitReader reader,
+        int width,
+        int height,
+        bool allowMetaCodes,
+        int depth,
+        Vp8lAllocationBudget allocationBudget,
+        CancellationToken cancellationToken,
+        out Vp8lImageHeader header) {
+        header = default;
         if (depth > 4 || !OfficeRasterGuards.TryEnsurePixelCount(width, height, out int pixelCount)) return false;
         int cacheBits = 0;
         if (reader.ReadBits(1) != 0) {
@@ -132,15 +183,49 @@ public static partial class OfficeWebpCodec {
             groups[group] = new Vp8lHuffmanGroup(green, red, blue, alpha, distance);
         }
 
-        if (!allocationBudget.TryReserveArray(pixelCount, sizeof(uint)) ||
-            cacheSize != 0 && !allocationBudget.TryReserveArray(cacheSize, sizeof(uint))) return false;
-        cancellationToken.ThrowIfCancellationRequested();
-        // Every position is written before the loop ends or the decode fails.
-        pixels = AllocateVp8lPixels(pixelCount);
-        cancellationToken.ThrowIfCancellationRequested();
-        uint[] cache = cacheSize == 0 ? Array.Empty<uint>() : new uint[cacheSize];
-        return TryDecodeVp8lPixels(reader, pixels, width, groups, prefixImage, prefixBits, prefixWidth,
-            cache, cacheBits, cancellationToken);
+        if (cacheSize != 0 && !allocationBudget.TryReserveArray(cacheSize, sizeof(uint))) return false;
+        header = new Vp8lImageHeader(width, pixelCount, groups, prefixImage, prefixBits, prefixWidth, cacheBits);
+        return true;
+    }
+
+    /// <summary>The coding parameters of one entropy-coded image, read before its pixels.</summary>
+    private readonly struct Vp8lImageHeader {
+        private readonly int _width;
+        private readonly int _pixelCount;
+        private readonly Vp8lHuffmanGroup[] _groups;
+        private readonly uint[]? _prefixImage;
+        private readonly int _prefixBits;
+        private readonly int _prefixWidth;
+        private readonly int _cacheBits;
+
+        internal Vp8lImageHeader(int width, int pixelCount, Vp8lHuffmanGroup[] groups, uint[]? prefixImage,
+            int prefixBits, int prefixWidth, int cacheBits) {
+            _width = width;
+            _pixelCount = pixelCount;
+            _groups = groups;
+            _prefixImage = prefixImage;
+            _prefixBits = prefixBits;
+            _prefixWidth = prefixWidth;
+            _cacheBits = cacheBits;
+        }
+
+        internal bool TryAllocatePixels(Vp8lAllocationBudget allocationBudget, CancellationToken cancellationToken,
+            out uint[] pixels) {
+            pixels = Array.Empty<uint>();
+            if (!allocationBudget.TryReserveArray(_pixelCount, sizeof(uint))) return false;
+            cancellationToken.ThrowIfCancellationRequested();
+            // Every position is written before the loop ends or the decode fails.
+            pixels = AllocateVp8lPixels(_pixelCount);
+            return true;
+        }
+
+        internal bool TryDecodePixels(LsbBitReader reader, Vp8lPixels pixels, CancellationToken cancellationToken) {
+            if (pixels.Length != _pixelCount) return false;
+            cancellationToken.ThrowIfCancellationRequested();
+            uint[] cache = _cacheBits == 0 ? Array.Empty<uint>() : new uint[1 << _cacheBits];
+            return TryDecodeVp8lPixels(reader, pixels, _width, _groups, _prefixImage, _prefixBits, _prefixWidth,
+                cache, _cacheBits, cancellationToken);
+        }
     }
 
     /// <summary>
@@ -148,7 +233,7 @@ public static partial class OfficeWebpCodec {
     /// output and the position in registers; group changes, cancellation, cache lookups and
     /// backreference distances go through <see cref="Vp8lPixelState"/> on their less frequent paths.
     /// </summary>
-    private static bool TryDecodeVp8lPixels(LsbBitReader reader, uint[] pixels, int width,
+    private static bool TryDecodeVp8lPixels(LsbBitReader reader, Vp8lPixels pixels, int width,
         Vp8lHuffmanGroup[] groups, uint[]? prefixImage, int prefixBits, int prefixWidth,
         uint[] cache, int cacheBits, CancellationToken cancellationToken) {
         var state = new Vp8lPixelState(width, groups, prefixImage, prefixBits, prefixWidth, cache, cacheBits, cancellationToken);
@@ -286,14 +371,14 @@ public static partial class OfficeWebpCodec {
             return true;
         }
 
-        internal bool TryCopy(uint[] pixels, int position, int distanceCode, int length) {
+        internal bool TryCopy(Vp8lPixels pixels, int position, int distanceCode, int length) {
             int distance = MapVp8lDistance(distanceCode, _width);
             if (distance < 1 || distance > position || length > pixels.Length - position) return false;
             CopyVp8lBackReference(pixels, position, distance, length);
             return true;
         }
 
-        internal bool TryReadCache(uint[] pixels, int position, int index, out uint color) {
+        internal bool TryReadCache(Vp8lPixels pixels, int position, int index, out uint color) {
             uint[] cache = _cache;
             if ((uint)index >= (uint)cache.Length) {
                 color = 0;
@@ -312,7 +397,7 @@ public static partial class OfficeWebpCodec {
     }
 
     /// <summary>Copies an LZ77 backreference whose source may overlap the destination.</summary>
-    private static void CopyVp8lBackReference(uint[] pixels, int position, int distance, int length) {
+    private static void CopyVp8lBackReference(Vp8lPixels pixels, int position, int distance, int length) {
         int source = position - distance;
         if (length <= 16) {
             // A forward pixel loop repeats overlapping patterns and avoids call overhead on short runs.
@@ -320,13 +405,13 @@ public static partial class OfficeWebpCodec {
             return;
         }
         if (distance >= length) {
-            Array.Copy(pixels, source, pixels, position, length);
+            CopyVp8lPixels(pixels, source, pixels, position, length);
             return;
         }
         if (distance == 1) {
             uint color = pixels[source];
 #if NET8_0_OR_GREATER
-            pixels.AsSpan(position, length).Fill(color);
+            pixels.Slice(position, length).Fill(color);
 #else
             for (int index = 0; index < length; index++) pixels[position + index] = color;
 #endif
@@ -338,10 +423,18 @@ public static partial class OfficeWebpCodec {
         int available = distance;
         while (copied < length) {
             int chunk = Math.Min(available, length - copied);
-            Array.Copy(pixels, source, pixels, position + copied, chunk);
+            CopyVp8lPixels(pixels, source, pixels, position + copied, chunk);
             copied += chunk;
             available += chunk;
         }
+    }
+
+    private static void CopyVp8lPixels(Vp8lPixels source, int sourceIndex, Vp8lPixels destination, int destinationIndex, int length) {
+#if NET8_0_OR_GREATER
+        source.Slice(sourceIndex, length).CopyTo(destination.Slice(destinationIndex, length));
+#else
+        Array.Copy(source, sourceIndex, destination, destinationIndex, length);
+#endif
     }
 
     internal static int FindMaximumVp8lGroup(

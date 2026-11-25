@@ -35,6 +35,19 @@ public sealed class DrawingRasterOptionalCodecTests {
         Assert.Equal(original, bytes);
     }
 
+    [Fact]
+    public void Rgba32DecodeCopiesPixelsFromOptionalCodec() {
+        var retained = new OfficeRasterImage(16, 16, OfficeColor.Red);
+        var codec = new RetainingCodec(retained);
+        Assert.True(OfficeRasterImageDecoder.TryDecodeRgba32(Convert.FromBase64String(IndependentAnimatedWebp),
+            new OfficeRasterDecodeOptions { ImageCodec = codec }, out byte[]? pixels, out int width, out int height, out var info));
+        Assert.True(info.UsedCallerCodec);
+        Assert.Equal((16, 16), (width, height));
+        Assert.Equal(retained.GetPixels(), pixels);
+        Array.Clear(pixels!, 0, pixels!.Length);
+        Assert.Equal(OfficeColor.Red, retained.GetPixel(8, 8));
+    }
+
     [Theory]
     [InlineData(255, 128)]
     [InlineData(256, 1)]
@@ -245,6 +258,15 @@ public sealed class DrawingRasterOptionalCodecTests {
             if (MutateInput) Array.Clear(bytes, 0, bytes.Length);
             image = new OfficeRasterImage(Size, Size, OfficeColor.Red);
             AfterDecode?.Invoke();
+            return true;
+        }
+    }
+
+    private sealed class RetainingCodec : IOfficeRasterImageCodec {
+        private readonly OfficeRasterImage _image;
+        internal RetainingCodec(OfficeRasterImage image) => _image = image;
+        public bool TryDecode(byte[] bytes, string? contentType, out OfficeRasterImage? image) {
+            image = _image;
             return true;
         }
     }

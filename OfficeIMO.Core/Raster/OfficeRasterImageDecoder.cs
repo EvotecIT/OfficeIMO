@@ -23,6 +23,49 @@ public static partial class OfficeRasterImageDecoder {
         TryDecode(bytes, options: null, out image, out _);
 
     /// <summary>
+    /// Attempts to decode image bytes into tightly packed, top-to-bottom, straight-alpha RGBA bytes that the caller owns.
+    /// </summary>
+    /// <remarks>
+    /// Unlike <see cref="OfficeRasterImage.GetPixels"/> after <see cref="TryDecode(byte[], out OfficeRasterImage)"/>,
+    /// the managed decoders hand over the buffer they decoded into, so the pixels are not copied.
+    /// </remarks>
+    public static bool TryDecodeRgba32(byte[]? bytes, out byte[]? pixels, out int width, out int height) =>
+        TryDecodeRgba32(bytes, options: null, out pixels, out width, out height, out _);
+
+    /// <summary>
+    /// Attempts to decode image bytes into caller-owned RGBA bytes using explicit frame, loss, resource, and cancellation policy.
+    /// </summary>
+    /// <remarks>
+    /// Pixels decoded by the managed decoders are returned without a copy. Pixels from a caller-supplied codec are
+    /// copied, because that codec may keep the image it returned; the method returns <see langword="false"/> when that
+    /// copy would exceed the managed working-set limit.
+    /// </remarks>
+    public static bool TryDecodeRgba32(
+        byte[]? bytes,
+        OfficeRasterDecodeOptions? options,
+        out byte[]? pixels,
+        out int width,
+        out int height,
+        out OfficeRasterDecodeInfo info) {
+        pixels = null;
+        width = 0;
+        height = 0;
+        if (!TryDecode(bytes, options, out OfficeRasterImage? image, out info) || image == null) return false;
+        // Admission covers the decode, not the copy, so an image too large to copy is reported, not thrown.
+        if (info.UsedCallerCodec && !image.CanCopyPixels) {
+            info = new OfficeRasterDecodeInfo(info.Format, info.FrameCount, info.SelectedFrameIndex, succeeded: false,
+                "The decoded image is too large to copy within the managed image working-set limit.", info.Container) {
+                Failure = OfficeRasterDecodeFailure.DecodedLimit
+            };
+            return false;
+        }
+        pixels = info.UsedCallerCodec ? image.GetPixels() : image.PixelBuffer;
+        width = image.Width;
+        height = image.Height;
+        return true;
+    }
+
+    /// <summary>
     /// Attempts to decode a bounded raster stream and leaves a seekable stream at its original position.
     /// </summary>
     public static bool TryDecode(Stream stream, out OfficeRasterImage? image) =>
