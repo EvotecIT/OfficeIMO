@@ -551,6 +551,14 @@ internal static class ExcelOpenXmlValueTypeExtensions {
     internal static ExcelSparklineType? ToOfficeEnum(this DocumentFormat.OpenXml.Office2010.Excel.SparklineTypeValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out ExcelSparklineType value) {
+        int index = Array.IndexOf(ExcelSparklineTypeTokens, token);
+        value = index < 0 ? default : (ExcelSparklineType)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this ExcelSparklineType value) => GetToken(value, ExcelSparklineTypeTokens);
+
     private static readonly string[] ExcelBorderStyleTokens = {
         "none",
         "thin",
@@ -580,6 +588,14 @@ internal static class ExcelOpenXmlValueTypeExtensions {
     internal static ExcelBorderStyle? ToOfficeEnum(this DocumentFormat.OpenXml.Spreadsheet.BorderStyleValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out ExcelBorderStyle value) {
+        int index = Array.IndexOf(ExcelBorderStyleTokens, token);
+        value = index < 0 ? default : (ExcelBorderStyle)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this ExcelBorderStyle value) => GetToken(value, ExcelBorderStyleTokens);
+
     private static readonly string[] ExcelCellValueTypeTokens = {
         "b",
         "n",
@@ -601,6 +617,14 @@ internal static class ExcelOpenXmlValueTypeExtensions {
 
     internal static ExcelCellValueType? ToOfficeEnum(this DocumentFormat.OpenXml.Spreadsheet.CellValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    internal static bool TryParseOpenXmlValue(string token, out ExcelCellValueType value) {
+        int index = Array.IndexOf(ExcelCellValueTypeTokens, token);
+        value = index < 0 ? default : (ExcelCellValueType)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this ExcelCellValueType value) => GetToken(value, ExcelCellValueTypeTokens);
 
     private static readonly string[] ExcelConditionalFormatTypeTokens = {
         "expression",
@@ -635,6 +659,14 @@ internal static class ExcelOpenXmlValueTypeExtensions {
     internal static ExcelConditionalFormatType? ToOfficeEnum(this DocumentFormat.OpenXml.Spreadsheet.ConditionalFormatValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out ExcelConditionalFormatType value) {
+        int index = Array.IndexOf(ExcelConditionalFormatTypeTokens, token);
+        value = index < 0 ? default : (ExcelConditionalFormatType)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this ExcelConditionalFormatType value) => GetToken(value, ExcelConditionalFormatTypeTokens);
+
     private static readonly string[] ExcelConditionalFormattingOperatorTokens = {
         "lessThan",
         "lessThanOrEqual",
@@ -662,6 +694,14 @@ internal static class ExcelOpenXmlValueTypeExtensions {
     internal static ExcelConditionalFormattingOperator? ToOfficeEnum(this DocumentFormat.OpenXml.Spreadsheet.ConditionalFormattingOperatorValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out ExcelConditionalFormattingOperator value) {
+        int index = Array.IndexOf(ExcelConditionalFormattingOperatorTokens, token);
+        value = index < 0 ? default : (ExcelConditionalFormattingOperator)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this ExcelConditionalFormattingOperator value) => GetToken(value, ExcelConditionalFormattingOperatorTokens);
+
     private static readonly string[] ExcelPivotDataFunctionTokens = {
         "average",
         "count",
@@ -688,6 +728,14 @@ internal static class ExcelOpenXmlValueTypeExtensions {
     internal static ExcelPivotDataFunction? ToOfficeEnum(this DocumentFormat.OpenXml.Spreadsheet.DataConsolidateFunctionValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out ExcelPivotDataFunction value) {
+        int index = Array.IndexOf(ExcelPivotDataFunctionTokens, token);
+        value = index < 0 ? default : (ExcelPivotDataFunction)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this ExcelPivotDataFunction value) => GetToken(value, ExcelPivotDataFunctionTokens);
+
     private static readonly string[] ExcelDataValidationErrorStyleTokens = {
         "stop",
         "warning",
@@ -705,6 +753,14 @@ internal static class ExcelOpenXmlValueTypeExtensions {
 
     internal static ExcelDataValidationErrorStyle? ToOfficeEnum(this DocumentFormat.OpenXml.Spreadsheet.DataValidationErrorStyleValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    internal static bool TryParseOpenXmlValue(string token, out ExcelDataValidationErrorStyle value) {
+        int index = Array.IndexOf(ExcelDataValidationErrorStyleTokens, token);
+        value = index < 0 ? default : (ExcelDataValidationErrorStyle)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this ExcelDataValidationErrorStyle value) => GetToken(value, ExcelDataValidationErrorStyleTokens);
 
     private static readonly string[] ExcelDataValidationOperatorTokens = {
         "between",
@@ -729,6 +785,14 @@ internal static class ExcelOpenXmlValueTypeExtensions {
     internal static ExcelDataValidationOperator? ToOfficeEnum(this DocumentFormat.OpenXml.Spreadsheet.DataValidationOperatorValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out ExcelDataValidationOperator value) {
+        int index = Array.IndexOf(ExcelDataValidationOperatorTokens, token);
+        value = index < 0 ? default : (ExcelDataValidationOperator)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this ExcelDataValidationOperator value) => GetToken(value, ExcelDataValidationOperatorTokens);
+
     private static readonly string[] ExcelPivotFieldSortTokens = {
         "manual",
         "ascending",
@@ -746,6 +810,14 @@ internal static class ExcelOpenXmlValueTypeExtensions {
 
     internal static ExcelPivotFieldSort? ToOfficeEnum(this DocumentFormat.OpenXml.Spreadsheet.FieldSortValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    internal static bool TryParseOpenXmlValue(string token, out ExcelPivotFieldSort value) {
+        int index = Array.IndexOf(ExcelPivotFieldSortTokens, token);
+        value = index < 0 ? default : (ExcelPivotFieldSort)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this ExcelPivotFieldSort value) => GetToken(value, ExcelPivotFieldSortTokens);
 
     private static readonly string[] ExcelPivotGroupByTokens = {
         "range",
@@ -770,6 +842,14 @@ internal static class ExcelOpenXmlValueTypeExtensions {
     internal static ExcelPivotGroupBy? ToOfficeEnum(this DocumentFormat.OpenXml.Spreadsheet.GroupByValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out ExcelPivotGroupBy value) {
+        int index = Array.IndexOf(ExcelPivotGroupByTokens, token);
+        value = index < 0 ? default : (ExcelPivotGroupBy)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this ExcelPivotGroupBy value) => GetToken(value, ExcelPivotGroupByTokens);
+
     private static readonly string[] ExcelHorizontalAlignmentTokens = {
         "general",
         "left",
@@ -792,6 +872,14 @@ internal static class ExcelOpenXmlValueTypeExtensions {
 
     internal static ExcelHorizontalAlignment? ToOfficeEnum(this DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    internal static bool TryParseOpenXmlValue(string token, out ExcelHorizontalAlignment value) {
+        int index = Array.IndexOf(ExcelHorizontalAlignmentTokens, token);
+        value = index < 0 ? default : (ExcelHorizontalAlignment)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this ExcelHorizontalAlignment value) => GetToken(value, ExcelHorizontalAlignmentTokens);
 
     private static readonly string[] ExcelIconSetTokens = {
         "3Arrows",
@@ -824,6 +912,14 @@ internal static class ExcelOpenXmlValueTypeExtensions {
 
     internal static ExcelIconSet? ToOfficeEnum(this DocumentFormat.OpenXml.Spreadsheet.IconSetValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    internal static bool TryParseOpenXmlValue(string token, out ExcelIconSet value) {
+        int index = Array.IndexOf(ExcelIconSetTokens, token);
+        value = index < 0 ? default : (ExcelIconSet)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this ExcelIconSet value) => GetToken(value, ExcelIconSetTokens);
 
     private static readonly string[] ExcelPivotFilterTypeTokens = {
         "unknown",
@@ -906,6 +1002,14 @@ internal static class ExcelOpenXmlValueTypeExtensions {
     internal static ExcelPivotFilterType? ToOfficeEnum(this DocumentFormat.OpenXml.Spreadsheet.PivotFilterValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out ExcelPivotFilterType value) {
+        int index = Array.IndexOf(ExcelPivotFilterTypeTokens, token);
+        value = index < 0 ? default : (ExcelPivotFilterType)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this ExcelPivotFilterType value) => GetToken(value, ExcelPivotFilterTypeTokens);
+
     private static readonly string[] ExcelPivotTableAxisTokens = {
         "axisRow",
         "axisCol",
@@ -924,6 +1028,14 @@ internal static class ExcelOpenXmlValueTypeExtensions {
 
     internal static ExcelPivotTableAxis? ToOfficeEnum(this DocumentFormat.OpenXml.Spreadsheet.PivotTableAxisValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    internal static bool TryParseOpenXmlValue(string token, out ExcelPivotTableAxis value) {
+        int index = Array.IndexOf(ExcelPivotTableAxisTokens, token);
+        value = index < 0 ? default : (ExcelPivotTableAxis)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this ExcelPivotTableAxis value) => GetToken(value, ExcelPivotTableAxisTokens);
 
     private static readonly string[] ExcelPivotShowDataAsTokens = {
         "normal",
@@ -948,6 +1060,14 @@ internal static class ExcelOpenXmlValueTypeExtensions {
 
     internal static ExcelPivotShowDataAs? ToOfficeEnum(this DocumentFormat.OpenXml.Spreadsheet.ShowDataAsValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    internal static bool TryParseOpenXmlValue(string token, out ExcelPivotShowDataAs value) {
+        int index = Array.IndexOf(ExcelPivotShowDataAsTokens, token);
+        value = index < 0 ? default : (ExcelPivotShowDataAs)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this ExcelPivotShowDataAs value) => GetToken(value, ExcelPivotShowDataAsTokens);
 
     private static readonly string[] ExcelConditionalTimePeriodTokens = {
         "today",
@@ -974,6 +1094,14 @@ internal static class ExcelOpenXmlValueTypeExtensions {
     internal static ExcelConditionalTimePeriod? ToOfficeEnum(this DocumentFormat.OpenXml.Spreadsheet.TimePeriodValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out ExcelConditionalTimePeriod value) {
+        int index = Array.IndexOf(ExcelConditionalTimePeriodTokens, token);
+        value = index < 0 ? default : (ExcelConditionalTimePeriod)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this ExcelConditionalTimePeriod value) => GetToken(value, ExcelConditionalTimePeriodTokens);
+
     private static readonly string[] ExcelTableTotalsFunctionTokens = {
         "none",
         "sum",
@@ -999,6 +1127,14 @@ internal static class ExcelOpenXmlValueTypeExtensions {
     internal static ExcelTableTotalsFunction? ToOfficeEnum(this DocumentFormat.OpenXml.Spreadsheet.TotalsRowFunctionValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out ExcelTableTotalsFunction value) {
+        int index = Array.IndexOf(ExcelTableTotalsFunctionTokens, token);
+        value = index < 0 ? default : (ExcelTableTotalsFunction)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this ExcelTableTotalsFunction value) => GetToken(value, ExcelTableTotalsFunctionTokens);
+
     private static readonly string[] ExcelUnderlineStyleTokens = {
         "single",
         "double",
@@ -1019,6 +1155,14 @@ internal static class ExcelOpenXmlValueTypeExtensions {
     internal static ExcelUnderlineStyle? ToOfficeEnum(this DocumentFormat.OpenXml.Spreadsheet.UnderlineValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out ExcelUnderlineStyle value) {
+        int index = Array.IndexOf(ExcelUnderlineStyleTokens, token);
+        value = index < 0 ? default : (ExcelUnderlineStyle)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this ExcelUnderlineStyle value) => GetToken(value, ExcelUnderlineStyleTokens);
+
     private static readonly string[] ExcelVerticalTextAlignmentTokens = {
         "baseline",
         "superscript",
@@ -1036,6 +1180,14 @@ internal static class ExcelOpenXmlValueTypeExtensions {
 
     internal static ExcelVerticalTextAlignment? ToOfficeEnum(this DocumentFormat.OpenXml.Spreadsheet.VerticalAlignmentRunValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    internal static bool TryParseOpenXmlValue(string token, out ExcelVerticalTextAlignment value) {
+        int index = Array.IndexOf(ExcelVerticalTextAlignmentTokens, token);
+        value = index < 0 ? default : (ExcelVerticalTextAlignment)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this ExcelVerticalTextAlignment value) => GetToken(value, ExcelVerticalTextAlignmentTokens);
 
     private static readonly string[] ExcelVerticalAlignmentTokens = {
         "top",
@@ -1056,6 +1208,14 @@ internal static class ExcelOpenXmlValueTypeExtensions {
 
     internal static ExcelVerticalAlignment? ToOfficeEnum(this DocumentFormat.OpenXml.Spreadsheet.VerticalAlignmentValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    internal static bool TryParseOpenXmlValue(string token, out ExcelVerticalAlignment value) {
+        int index = Array.IndexOf(ExcelVerticalAlignmentTokens, token);
+        value = index < 0 ? default : (ExcelVerticalAlignment)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this ExcelVerticalAlignment value) => GetToken(value, ExcelVerticalAlignmentTokens);
 
     private static readonly string[] OfficeChartDisplayUnitTokens = {
         "hundreds",
@@ -1081,6 +1241,14 @@ internal static class ExcelOpenXmlValueTypeExtensions {
     internal static OfficeChartDisplayUnit? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.BuiltInUnitValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out OfficeChartDisplayUnit value) {
+        int index = Array.IndexOf(OfficeChartDisplayUnitTokens, token);
+        value = index < 0 ? default : (OfficeChartDisplayUnit)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this OfficeChartDisplayUnit value) => GetToken(value, OfficeChartDisplayUnitTokens);
+
     private static readonly string[] OfficeChartAxisCrossBetweenTokens = {
         "between",
         "midCat",
@@ -1097,6 +1265,14 @@ internal static class ExcelOpenXmlValueTypeExtensions {
 
     internal static OfficeChartAxisCrossBetween? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.CrossBetweenValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    internal static bool TryParseOpenXmlValue(string token, out OfficeChartAxisCrossBetween value) {
+        int index = Array.IndexOf(OfficeChartAxisCrossBetweenTokens, token);
+        value = index < 0 ? default : (OfficeChartAxisCrossBetween)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this OfficeChartAxisCrossBetween value) => GetToken(value, OfficeChartAxisCrossBetweenTokens);
 
     private static readonly string[] OfficeChartAxisCrossingPositionTokens = {
         "autoZero",
@@ -1115,6 +1291,14 @@ internal static class ExcelOpenXmlValueTypeExtensions {
 
     internal static OfficeChartAxisCrossingPosition? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.CrossesValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    internal static bool TryParseOpenXmlValue(string token, out OfficeChartAxisCrossingPosition value) {
+        int index = Array.IndexOf(OfficeChartAxisCrossingPositionTokens, token);
+        value = index < 0 ? default : (OfficeChartAxisCrossingPosition)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this OfficeChartAxisCrossingPosition value) => GetToken(value, OfficeChartAxisCrossingPositionTokens);
 
     private static readonly string[] OfficeChartDataLabelPositionTokens = {
         "bestFit",
@@ -1140,6 +1324,14 @@ internal static class ExcelOpenXmlValueTypeExtensions {
     internal static OfficeChartDataLabelPosition? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.DataLabelPositionValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out OfficeChartDataLabelPosition value) {
+        int index = Array.IndexOf(OfficeChartDataLabelPositionTokens, token);
+        value = index < 0 ? default : (OfficeChartDataLabelPosition)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this OfficeChartDataLabelPosition value) => GetToken(value, OfficeChartDataLabelPositionTokens);
+
     private static readonly string[] OfficeChartLegendPositionTokens = {
         "b",
         "tr",
@@ -1159,6 +1351,14 @@ internal static class ExcelOpenXmlValueTypeExtensions {
 
     internal static OfficeChartLegendPosition? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.LegendPositionValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    internal static bool TryParseOpenXmlValue(string token, out OfficeChartLegendPosition value) {
+        int index = Array.IndexOf(OfficeChartLegendPositionTokens, token);
+        value = index < 0 ? default : (OfficeChartLegendPosition)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this OfficeChartLegendPosition value) => GetToken(value, OfficeChartLegendPositionTokens);
 
     private static readonly string[] OfficeChartMarkerShapeTokens = {
         "auto",
@@ -1187,6 +1387,14 @@ internal static class ExcelOpenXmlValueTypeExtensions {
     internal static OfficeChartMarkerShape? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.MarkerStyleValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
 
+    internal static bool TryParseOpenXmlValue(string token, out OfficeChartMarkerShape value) {
+        int index = Array.IndexOf(OfficeChartMarkerShapeTokens, token);
+        value = index < 0 ? default : (OfficeChartMarkerShape)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this OfficeChartMarkerShape value) => GetToken(value, OfficeChartMarkerShapeTokens);
+
     private static readonly string[] OfficeChartAxisTickLabelPositionTokens = {
         "high",
         "low",
@@ -1205,6 +1413,14 @@ internal static class ExcelOpenXmlValueTypeExtensions {
 
     internal static OfficeChartAxisTickLabelPosition? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.TickLabelPositionValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    internal static bool TryParseOpenXmlValue(string token, out OfficeChartAxisTickLabelPosition value) {
+        int index = Array.IndexOf(OfficeChartAxisTickLabelPositionTokens, token);
+        value = index < 0 ? default : (OfficeChartAxisTickLabelPosition)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this OfficeChartAxisTickLabelPosition value) => GetToken(value, OfficeChartAxisTickLabelPositionTokens);
 
     private static readonly string[] OfficeChartTrendlineTypeTokens = {
         "exp",
@@ -1226,6 +1442,14 @@ internal static class ExcelOpenXmlValueTypeExtensions {
 
     internal static OfficeChartTrendlineType? ToOfficeEnum(this DocumentFormat.OpenXml.Drawing.Charts.TrendlineValues? value) =>
         value.HasValue ? value.Value.ToOfficeEnum() : null;
+
+    internal static bool TryParseOpenXmlValue(string token, out OfficeChartTrendlineType value) {
+        int index = Array.IndexOf(OfficeChartTrendlineTypeTokens, token);
+        value = index < 0 ? default : (OfficeChartTrendlineType)index;
+        return index >= 0;
+    }
+
+    internal static string ToOpenXmlToken(this OfficeChartTrendlineType value) => GetToken(value, OfficeChartTrendlineTypeTokens);
 
     private static string GetToken<TEnum>(TEnum value, string[] tokens) where TEnum : struct, Enum {
         int index = Convert.ToInt32(value, CultureInfo.InvariantCulture);
