@@ -119,6 +119,14 @@ public class PowerPointContentWithoutSdkTests {
             size.SetSize(OfficeLength.Inches(11), OfficeLength.Inches(8.5));
             return before + "|" + preset + "|" + size.Width.ToEmus() + "x" + size.Height.ToEmus() + ":" + size.Type;
         }),
+        ("read and change visibility and placeholders", presentation => {
+            string read = string.Join("|", presentation.Slides.Select(slide => slide.Hidden + ":" + string.Join(",", slide.TextBoxes.Select(box => box.PlaceholderType))));
+            if (presentation.Slides.Count > 0) {
+                presentation.Slides[0].Hidden = true;
+                presentation.Slides[presentation.Slides.Count - 1].Hidden = false;
+            }
+            return read + "=>" + string.Join("|", presentation.Slides.Select(slide => slide.Hidden));
+        }),
         ("replace the first text box's text", presentation => {
             PowerPointTextBox? box = presentation.Slides.SelectMany(slide => slide.TextBoxes).FirstOrDefault(candidate => candidate.Text.Length > 0);
             if (box == null) return string.Empty;

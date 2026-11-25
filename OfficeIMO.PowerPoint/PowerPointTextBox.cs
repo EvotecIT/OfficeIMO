@@ -256,7 +256,17 @@ namespace OfficeIMO.PowerPoint {
         ///     Gets or sets the placeholder type for this textbox.
         /// </summary>
         public PowerPointPlaceholderType? PlaceholderType {
-            get => GetPlaceholderShape()?.Type?.Value.ToOfficeEnum();
+            get {
+                if (TryGetPackageElement(out OfficeXmlTree tree, out int node)) {
+                    int nonVisual = tree.FindChild(node, OfficeXmlNamespaces.PresentationML, "nvSpPr");
+                    int application = nonVisual == OfficeXmlTree.NoNode ? OfficeXmlTree.NoNode : tree.FindChild(nonVisual, OfficeXmlNamespaces.PresentationML, "nvPr");
+                    int placeholder = application == OfficeXmlTree.NoNode ? OfficeXmlTree.NoNode : tree.FindChild(application, OfficeXmlNamespaces.PresentationML, "ph");
+                    string? type = placeholder == OfficeXmlTree.NoNode ? null : tree.GetAttribute(placeholder, OfficeXmlNamespaces.None, "type");
+                    if (type == null) return null;
+                    if (PowerPointOpenXmlValueTypeExtensions.TryParseOpenXmlValue(type, out PowerPointPlaceholderType parsed)) return parsed;
+                }
+                return GetPlaceholderShape()?.Type?.Value.ToOfficeEnum();
+            }
             set {
                 if (value == null) {
                     PlaceholderShape? placeholder = GetPlaceholderShape();

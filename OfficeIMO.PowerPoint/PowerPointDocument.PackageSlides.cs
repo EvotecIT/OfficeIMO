@@ -274,6 +274,21 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
+        /// <summary>A slide's entry in the presentation's slide list in the package, or null when it can't be read there.</summary>
+        internal (OfficeXmlTree Tree, int Node)? GetPackageSlideEntry(string slidePart) {
+            if (GetPackage(edit: false) is not { } package) return null;
+            try {
+                if (PackageSlideList.Read(package) is not { } slides) return null;
+                string identity = PartIdentity(slidePart);
+                foreach ((int node, _, string part) in slides.Entries) {
+                    if (OfficeAsciiIgnoreCaseComparer.Instance.Equals(PartIdentity(part), identity)) return (slides.Presentation, node);
+                }
+                return null;
+            } catch (Exception exception) when (exception is System.Xml.XmlException or InvalidDataException) {
+                return null;
+            }
+        }
+
         /// <summary>The slides in order, read from the package, or null when the SDK has to read them.</summary>
         private List<PowerPointSlide>? GetPackageSlides() {
             if (_packageSlideOrder != null && _sdkDocument == null) return _packageSlideOrder;

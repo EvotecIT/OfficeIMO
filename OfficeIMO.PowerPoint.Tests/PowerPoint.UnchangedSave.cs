@@ -222,7 +222,7 @@ public class PowerPointUnchangedSaveTests {
     [Fact]
     public void CountsOnlyTheEntriesOfTheSlideList() {
         byte[] source = Rewrite(CreateDeckWithStaleProperties(), PresentationPart, xml => xml.Replace("</p:presentation>",
-            "<x:metadata xmlns:x=\"urn:example\"><p:sldId id=\"999\" r:id=\"rIdOther\"/></x:metadata></p:presentation>"));
+            "<x:metadata xmlns:x=\"urn:example\"><p:sldId xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" id=\"999\" r:id=\"rIdOther\"/></x:metadata></p:presentation>"));
 
         byte[] saved;
         using (var presentation = PowerPointDocument.Load(new MemoryStream(source))) {

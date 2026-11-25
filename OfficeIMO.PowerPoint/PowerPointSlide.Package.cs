@@ -282,6 +282,31 @@ namespace OfficeIMO.PowerPoint {
             return element;
         }
 
+        // The slide's visibility on the package: the slide root's show flag, or else the legacy flag on its slide list entry.
+        private bool TryGetPackageHidden(out bool hidden) {
+            hidden = false;
+            if (PackageTree is not { } slide || OwnerDocument?.GetPackageSlideEntry(PackagePartName!) is not { } entry) return false;
+            if (slide.GetAttribute(slide.Root, OfficeXmlNamespaces.None, "show") is { } show) {
+                switch (show) {
+                    case "1": case "true": hidden = false; return true;
+                    case "0": case "false": hidden = true; return true;
+                    default: return false;
+                }
+            }
+            hidden = IsHiddenShowValue(entry.Tree.GetAttribute(entry.Node, OfficeXmlNamespaces.None, "show"));
+            return true;
+        }
+
+        // Writes the visibility as the setter does: the slide root's show flag, and no legacy flag on the slide list entry.
+        private bool TrySetPackageHidden(bool hidden) {
+            if (OwnerDocument?.CanEditPackage != true || PackageTree is not { } slide || OwnerDocument.GetPackageSlideEntry(PackagePartName!) is not { } entry) return false;
+            entry.Tree.RemoveAttribute(entry.Node, OfficeXmlNamespaces.None, "show");
+            if (hidden) slide.SetAttribute(slide.Root, OfficeXmlNamespaces.None, "show", "0");
+            else slide.RemoveAttribute(slide.Root, OfficeXmlNamespaces.None, "show");
+            OwnerDocument.MarkPackageEdited();
+            return true;
+        }
+
         // Loads the shapes from the package tree; false, having loaded nothing, when the slide holds shapes that are
         // read through the SDK.
         private bool TryLoadPackageShapes() {

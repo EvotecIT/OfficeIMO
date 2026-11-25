@@ -14,6 +14,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public bool Hidden {
             get {
+                if (TryGetPackageHidden(out bool packageHidden)) return packageHidden;
                 if (SlideRoot.Show?.Value != null) {
                     return !SlideRoot.Show.Value;
                 }
@@ -21,6 +22,7 @@ namespace OfficeIMO.PowerPoint {
                 return IsHiddenShowValue(GetLegacySlideIdShowValue(GetSlideId()));
             }
             set {
+                if (TrySetPackageHidden(value)) return;
                 SlideId slideId = GetSlideId();
                 slideId.RemoveAttribute("show", string.Empty);
 
