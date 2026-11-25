@@ -64,6 +64,68 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void EditsThroughTheSdkPackageMixWithEditsThroughTheModel() {
+            byte[] source = CreateWorkbook();
+            byte[] saved;
+            using (var document = ExcelDocument.Load(new MemoryStream(source))) {
+                document.Sheets[0].Cell(2, 1).SetValue("before the package");
+                DocumentFormat.OpenXml.Packaging.SpreadsheetDocument package = document.OpenXmlDocument;
+                AppendInlineText(package, "Second", 5, "through the package");
+                document.Sheets[0].Cell(3, 1).SetValue("after the package");
+                document.Sheets[1].Cell(6, 1).SetValue(9.5);
+                Assert.Same(package, document.OpenXmlDocument);
+                using var output = new MemoryStream();
+                document.Save(output);
+                saved = output.ToArray();
+            }
+
+            using var reread = ExcelDocument.Load(new MemoryStream(saved));
+            Assert.Equal("before the package", reread.Sheets[0].Cell(2, 1).GetValue().Value);
+            Assert.Equal("after the package", reread.Sheets[0].Cell(3, 1).GetValue().Value);
+            Assert.Equal("through the package", reread.Sheets[1].Cell(5, 1).GetValue().Value);
+            Assert.Equal(9.5, reread.Sheets[1].Cell(6, 1).GetValue().Value);
+            Assert.Equal("Untouched", reread.Sheets[1].Cell(1, 1).GetValue().Value);
+        }
+
+        [Fact]
+        public void AWorkbookCreatedAndEditedOnlyThroughTheSdkPackageSaves() {
+            byte[] saved;
+            using (var stream = new MemoryStream()) {
+                using (var document = ExcelDocument.Create(stream)) {
+                    DocumentFormat.OpenXml.Packaging.SpreadsheetDocument package = document.OpenXmlDocument;
+                    var workbookPart = package.WorkbookPart!;
+                    var worksheetPart = workbookPart.AddNewPart<DocumentFormat.OpenXml.Packaging.WorksheetPart>();
+                    worksheetPart.Worksheet = new DocumentFormat.OpenXml.Spreadsheet.Worksheet(new DocumentFormat.OpenXml.Spreadsheet.SheetData());
+                    var sheets = workbookPart.Workbook.Sheets ??= workbookPart.Workbook.AppendChild(new DocumentFormat.OpenXml.Spreadsheet.Sheets());
+                    sheets.Append(new DocumentFormat.OpenXml.Spreadsheet.Sheet {
+                        Name = "Raw",
+                        SheetId = 1U,
+                        Id = workbookPart.GetIdOfPart(worksheetPart)
+                    });
+                    AppendInlineText(package, "Raw", 1, "only the package");
+                    document.Save();
+                }
+                saved = stream.ToArray();
+            }
+
+            using var reread = ExcelDocument.Load(new MemoryStream(saved));
+            Assert.Equal("Raw", reread.Sheets[0].Name);
+            Assert.Equal("only the package", reread.Sheets[0].Cell(1, 1).GetValue().Value);
+        }
+
+        private static void AppendInlineText(DocumentFormat.OpenXml.Packaging.SpreadsheetDocument package, string sheetName, int row, string text) {
+            var workbookPart = package.WorkbookPart!;
+            var sheet = workbookPart.Workbook.Sheets!.Elements<DocumentFormat.OpenXml.Spreadsheet.Sheet>().Single(candidate => candidate.Name == sheetName);
+            var worksheetPart = (DocumentFormat.OpenXml.Packaging.WorksheetPart)workbookPart.GetPartById(sheet.Id!);
+            var sheetData = worksheetPart.Worksheet.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.SheetData>()!;
+            sheetData.Append(new DocumentFormat.OpenXml.Spreadsheet.Row(new DocumentFormat.OpenXml.Spreadsheet.Cell(
+                new DocumentFormat.OpenXml.Spreadsheet.InlineString(new DocumentFormat.OpenXml.Spreadsheet.Text(text))) {
+                CellReference = "A" + row.ToString(CultureInfo.InvariantCulture),
+                DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.InlineString
+            }) { RowIndex = (uint)row });
+        }
+
+        [Fact]
         public void ASecondSaveStartsFromTheFirst() {
             byte[] source = CreateWorkbook();
             using var document = ExcelDocument.Load(new MemoryStream(source));
