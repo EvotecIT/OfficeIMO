@@ -32,7 +32,8 @@ public sealed class HtmlPdfWorkbenchConversionService {
         cancellationToken.ThrowIfCancellationRequested();
 
         long elapsedMilliseconds = (long)Stopwatch.GetElapsedTime(started).TotalMilliseconds;
-        PdfDocumentInfo pdfInfo = PdfDocument.Load(new MemoryStream(payload.PdfBytes, writable: false)).Inspect();
+        using PdfDocument pdf = PdfDocument.Load(payload.PdfBytes, loadOptions: null, cancellationToken);
+        PdfDocumentInfo pdfInfo = pdf.Inspect(options: null, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         var evidence = new HtmlPdfWorkbenchEvidence(
             "officeimo.html-pdf-workbench/v1",
@@ -40,7 +41,7 @@ public sealed class HtmlPdfWorkbenchConversionService {
             request.Engine.ToString(),
             payload.RendererVersion,
             ComputeInputSha256(request.Html, request.Css),
-            Sha256(payload.PdfBytes),
+            pdf.Pipeline.Input!.Sha256,
             elapsedMilliseconds,
             payload.PdfBytes.Length,
             pdfInfo.PageCount,
@@ -190,8 +191,6 @@ public sealed class HtmlPdfWorkbenchConversionService {
             throw new ArgumentOutOfRangeException(nameof(request), "Margins must be between 0 and 80 millimeters.");
         }
     }
-
-    private static string Sha256(byte[] bytes) => Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
 
     internal static string ComputeInputSha256(string html, string css) {
         using IncrementalHash hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);

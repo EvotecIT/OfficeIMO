@@ -7,6 +7,22 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfSearchableOcrReviewTests {
     [Fact]
+    public async Task SearchableReviewKeepsSourceAfterBorrowedBufferIsReleased() {
+        byte[] input = Source();
+        byte[] expected = (byte[])input.Clone();
+        PdfSearchableOcrReview review;
+        using (PdfDocument document = PdfDocument.Load(input)) {
+            review = await document.PrepareSearchableOcrAsync(Engine(), new PdfOcrMergeOptions { Dpi = 72 });
+        }
+
+        Array.Clear(input, 0, input.Length);
+
+        Assert.Equal(300, review.RenderPage(1).Width);
+        using PdfDocument unchanged = review.Apply(Array.Empty<PdfRecognizedWord>()).Document;
+        Assert.Equal(expected, unchanged.ToBytes());
+    }
+
+    [Fact]
     public async Task TextExtractionUsesReviewPolicyAndReadingOrderWithoutChangingSource() {
         byte[] bytes = Source();
         var source = PdfDocument.Load(bytes);

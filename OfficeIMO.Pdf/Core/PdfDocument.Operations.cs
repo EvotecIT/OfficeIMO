@@ -274,7 +274,8 @@ public sealed partial class PdfDocument {
         return PdfRedactionPlanner.Search(GetReportBytes(search.CancellationToken), search, layoutOptions, options ?? ReadOptions);
     }
 
-    private byte[] GetReportBytes(CancellationToken cancellationToken) =>
+    /// <summary>Gets stable bytes for results that can outlive borrowed input.</summary>
+    internal byte[] GetReportBytes(CancellationToken cancellationToken) =>
         _source?.DetachBorrowed(cancellationToken).Bytes ?? GetBytesForOperation(cancellationToken);
 
     /// <summary>

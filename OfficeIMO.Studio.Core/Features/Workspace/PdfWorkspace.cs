@@ -81,6 +81,8 @@ internal sealed partial class PdfWorkspace : IDisposable {
 
     internal PdfDocumentViewInfo ViewInfo => _documentInfo;
 
+    internal PdfDocumentPreflight CurrentPreflight => _preflight;
+
     internal IReadOnlyList<PdfPageInfo> Pages => _documentInfo.Pages;
 
     internal IReadOnlyList<PdfWorkspaceOperation> Journal => _journal.AsReadOnly();
@@ -185,9 +187,9 @@ internal sealed partial class PdfWorkspace : IDisposable {
             store.Find(recoveryIdentity ?? fullPath, baseFingerprint), canPublishOutput, storage, recoveryIdentity);
     }
 
-    internal PdfDocument CreateDocumentSnapshot() {
+    internal PdfDocument CreateDocumentSnapshot(CancellationToken cancellationToken = default) {
         ThrowIfDisposed();
-        return LoadDocument(_bytes);
+        return PdfDocument.LoadOwned(_bytes, _readOptions, cancellationToken);
     }
 
     internal byte[] CopyBytes() {
@@ -644,7 +646,7 @@ internal sealed partial class PdfWorkspace : IDisposable {
     private PdfDocument LoadDocument(byte[] bytes) => PdfDocument.Load(bytes, _readOptions);
 
     private static (PdfDocumentViewInfo Info, PdfDocumentPreflight Preflight) Analyze(byte[] bytes, PdfLoadOptions readOptions) {
-        PdfDocument document = PdfDocument.Load(bytes, readOptions);
+        using PdfDocument document = PdfDocument.LoadOwned(bytes, readOptions);
         return (document.InspectForViewing(), document.Preflight());
     }
 
