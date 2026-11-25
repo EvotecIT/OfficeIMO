@@ -338,8 +338,9 @@ final class StudioStoreCaptureTests: XCTestCase {
         if input.pathExtension == "pdf" {
             let pages = app.descendants(matching: .any).matching(identifier: StudioAccessibilityID.pages).firstMatch
             // Files can leave the selected PDF visible in Browse after the first tap.
-            if !pages.waitForExistence(timeout: 5), document.exists, document.isHittable {
-                document.staticTexts[title].tap()
+            let titleLabel = document.staticTexts[title]
+            if !pages.waitForExistence(timeout: 5), titleLabel.exists, titleLabel.isHittable, !pages.exists {
+                titleLabel.tap()
             }
         }
     }
