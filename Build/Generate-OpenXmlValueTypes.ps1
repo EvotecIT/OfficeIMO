@@ -108,6 +108,8 @@ if (-not $SkipMappings) {
         [void] $builder.AppendLine('        return index >= 0;')
         [void] $builder.AppendLine('    }')
         [void] $builder.AppendLine()
+        [void] $builder.AppendLine("    internal static string ToOpenXmlToken(this $($model.OfficeType) value) => GetToken(value, $tokenField);")
+        [void] $builder.AppendLine()
     }
     }
 

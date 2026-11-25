@@ -1,11 +1,14 @@
 param(
     # Folder with the ISO/IEC 29500-4 transitional schemas (pml.xsd, dml-main.xsd, shared-*.xsd and the rest).
     [Parameter(Mandatory)] [string] $SchemaDirectory,
-    # Complex types to generate views for, as '<prefix>:<type name>' with prefixes p, a, r or s.
+    # Complex types to generate views for, as '<prefix>:<type name>' with prefixes p, a, r, s or w.
     [Parameter(Mandatory)] [string[]] $Types,
     [Parameter(Mandatory)] [string] $Namespace,
     [Parameter(Mandatory)] [string] $OutputPath,
-    [Parameter(Mandatory)] [string] $GeneratorName
+    [Parameter(Mandatory)] [string] $GeneratorName,
+    # Groups, as '<prefix>:<group name>', whose choice the schema leaves unordered but Office writes in declaration
+    # order, such as WordprocessingML run properties. Their alternatives get one rank each.
+    [string[]] $OrderedChoiceGroups = @()
 )
 
 # Writes typed views over OfficeXmlTree for schema complex types: attribute properties with schema value types, and
@@ -18,6 +21,11 @@ $namespaces = [ordered]@{
     'a' = @{ Uri = 'http://schemas.openxmlformats.org/drawingml/2006/main'; Id = 'OfficeXmlNamespaces.DrawingML'; Prefix = 'A' }
     'r' = @{ Uri = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships'; Id = 'OfficeXmlNamespaces.Relationships'; Prefix = 'R' }
     's' = @{ Uri = 'http://schemas.openxmlformats.org/officeDocument/2006/sharedTypes'; Id = 'OfficeXmlNamespaces.SharedTypes'; Prefix = 'S' }
+    'w' = @{ Uri = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'; Id = 'OfficeXmlNamespaces.WordprocessingML'; Prefix = 'W' }
+    'm' = @{ Uri = 'http://schemas.openxmlformats.org/officeDocument/2006/math'; Id = 'OfficeXmlNamespaces.Math'; Prefix = 'M' }
+    'xml' = @{ Uri = 'http://www.w3.org/XML/1998/namespace'; Id = 'OfficeXmlNamespaces.Xml'; Prefix = 'Xml' }
+    'mc' = @{ Uri = 'http://schemas.openxmlformats.org/markup-compatibility/2006'; Id = 'OfficeXmlNamespaces.MarkupCompatibility'; Prefix = 'Mc' }
+    'wp' = @{ Uri = 'http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing'; Id = 'OfficeXmlNamespaces.WordprocessingDrawing'; Prefix = 'Wp' }
 }
 $xsdUri = 'http://www.w3.org/2001/XMLSchema'
 $knownByUri = @{}
@@ -97,12 +105,22 @@ function Get-Children([System.Xml.XmlElement] $Node, [System.Collections.Generic
         switch ($child.LocalName) {
             { $_ -in 'sequence', 'all' } { Get-Children $child $Into $repeats $Rank }
             'choice' {
-                $choiceRank = if ($Rank -ge 0) { $Rank } else { ($script:nextRank++) }
-                Get-Children $child $Into $repeats $choiceRank
+                if ($script:orderedChoice -and $Rank -lt 0) {
+                    Get-Children $child $Into $repeats $Rank
+                } else {
+                    $choiceRank = if ($Rank -ge 0) { $Rank } else { ($script:nextRank++) }
+                    Get-Children $child $Into $repeats $choiceRank
+                }
             }
             'group' {
-                $group = $groups[(Resolve-QName $child $child.GetAttribute('ref')).Key]
-                if ($group) { Get-Children $group $Into $repeats $Rank }
+                $groupKey = (Resolve-QName $child $child.GetAttribute('ref')).Key
+                $group = $groups[$groupKey]
+                if ($group) {
+                    $outerOrdered = $script:orderedChoice
+                    if ($orderedGroupKeys.Contains($groupKey)) { $script:orderedChoice = $true }
+                    Get-Children $group $Into $repeats $Rank
+                    $script:orderedChoice = $outerOrdered
+                }
             }
             'element' {
                 if ($child.GetAttribute('ref')) {
@@ -163,6 +181,15 @@ function Get-NamespaceExpression([string] $Uri) {
     if (-not $Uri) { return 'OfficeXmlNamespaces.None' }
     if ($knownByUri.ContainsKey($Uri)) { return $knownByUri[$Uri].Id }
     throw "No namespace id for '$Uri'."
+}
+
+$script:orderedChoice = $false
+$orderedGroupKeys = [System.Collections.Generic.HashSet[string]]::new()
+foreach ($group in $OrderedChoiceGroups) {
+    $prefix, $name = $group.Split(':', 2)
+    $info = $namespaces[$prefix]
+    if (-not $info) { throw "Unknown prefix in '$group'." }
+    $null = $orderedGroupKeys.Add("{$($info.Uri)}$name")
 }
 
 # View names for the requested types.
