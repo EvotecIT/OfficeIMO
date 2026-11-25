@@ -185,7 +185,11 @@ namespace OfficeIMO.Excel {
             /// <summary>Writes a single-precision numeric cell.</summary>
             public ExcelTabularRowWriter Write(float value) { BeginCell(); if (_native != null) _native.WriteNumber((double)(value)); else DirectDataSetWorkbookWriter.WriteRawValueCell(_writer, value); return this; }
             /// <summary>Writes a decimal cell.</summary>
-            public ExcelTabularRowWriter Write(decimal value) { BeginCell(); if (_native != null) WriteNativeNumber(value); else DirectDataSetWorkbookWriter.WriteRawValueCell(_writer, value); return this; }
+            public ExcelTabularRowWriter Write(decimal value) {
+#if NET8_0_OR_GREATER
+                if (_utf8 != null && ExcelExactNumber.FitsNumberCell(value)) { WriteUtf8Number(value); return this; }
+#endif
+                BeginCell(); if (_native != null) WriteNativeNumber(value); else DirectDataSetWorkbookWriter.WriteRawValueCell(_writer, value); return this; }
             /// <summary>Writes a signed 8-bit integer cell.</summary>
             public ExcelTabularRowWriter Write(sbyte value) { BeginCell(); if (_native != null) _native.WriteNumber((double)((int)value)); else DirectDataSetWorkbookWriter.WriteRawValueCell(_writer, (int)value); return this; }
             /// <summary>Writes an unsigned 8-bit integer cell.</summary>

@@ -32,7 +32,12 @@ namespace OfficeIMO.Tests {
                 double.MaxValue, -1e300, 0.30000000000000004, -0.01 };
             long[] longs = { 0, -1, 999_999_999_999_999, 1_000_000_000_000_000, long.MinValue };
             DateTime[] dates = { new(1900, 1, 1), new(1900, 2, 28, 6, 0, 0), new(1900, 3, 1), new(1904, 1, 1), new(1904, 1, 2, 12, 0, 0),
-                new(2024, 5, 6, 7, 8, 9, 123), new(2024, 5, 6, 23, 59, 59, 999), new(9999, 12, 31, 23, 59, 59), new(2020, 1, 1, 0, 1, 0) };
+                new(2024, 5, 6, 7, 8, 9, 123), new(2024, 5, 6, 23, 59, 59, 999), new(9999, 12, 31, 23, 59, 59), new(2020, 1, 1, 0, 1, 0),
+                // Whole minutes on five-digit day serials, the ends of that range and the days just outside it.
+                new(2026, 1, 1), new(2026, 1, 1, 23, 59, 0), new(2026, 7, 15, 12, 0, 0), new(2026, 7, 15, 8, 20, 0),
+                new(1927, 5, 18, 0, 1, 0), new(1927, 5, 17, 0, 1, 0), new(2173, 10, 14, 23, 59, 0), new(2173, 10, 15, 0, 1, 0) };
+            decimal[] decimals = { 0m, -0.5m, 1.25m, 123456.789m, -98765.4321m, 0.0000001m, 999_999_999_999_999m,
+                1_000_000_000_000_000m, 79_228_162_514_264_337_593_543_950_335m, -1.000000000000000000001m, decimal.MinValue };
             const int columns = 8;
             string[] prefixes = Enumerable.Range(0, columns).Select(column => "<c r=\"" + (char)('A' + column)).ToArray();
             // Column B carries a fixed style; column E applies runtime date styles.
@@ -42,7 +47,7 @@ namespace OfficeIMO.Tests {
             valueStyles[4] = true;
             var writer = ExcelDocument.ExcelTabularRowWriter.Create(output, 2, includeCellReferences, prefixes, styles, valueStyles,
                 useCellValueNumberFormats: false, value => value.UtcDateTime, dateSystem, sharedStrings: null);
-            for (int row = 0; row < 40; row++) {
+            for (int row = 0; row < 60; row++) {
                 writer.BeginRow();
                 writer.Write(row % 7 == 6 ? null : texts[row % texts.Length])
                     .Write(doubles[row % doubles.Length])
@@ -50,7 +55,7 @@ namespace OfficeIMO.Tests {
                     .Write(row * 7919 - 100)
                     .Write(dates[row % dates.Length])
                     .Write(row % 2 == 0)
-                    .Write(row * 0.5m);
+                    .Write(row % 3 == 0 ? row * 0.5m : decimals[row % decimals.Length]);
                 writer.WriteBlank();
                 writer.EndRow();
                 writer.ReleaseRow();

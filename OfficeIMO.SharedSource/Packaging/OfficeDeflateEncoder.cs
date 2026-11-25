@@ -39,8 +39,12 @@ internal sealed class OfficeDeflateEncoder : IDisposable {
     private static readonly ConcurrentQueue<Region> _work = new();
     private static readonly WaitCallback Work = _ => RunWorker();
     private static int _workers;
+    // Regions queued since a worker last took one; it can include regions their caller already encoded.
+    private static int _waiting;
 
-    private static Region? _cachedRegion;
+    // Enough regions for one part with background encoding: the one being filled, those in flight and the one being
+    // written. They stay across full collections, so a caller that streams large parts repeatedly reuses them.
+    private static readonly Region?[] _retainedRegions = new Region?[BackgroundRegions + 2];
     // Parts prepared on worker threads, and regions encoded in the background, each hold a region. The extra sets
     // are held weakly, so a burst of parallel work reuses them without the large-object allocations, and a later
     // full collection can still reclaim them. The slots reference the arrays themselves: a weakly held wrapper would
@@ -169,8 +173,12 @@ internal sealed class OfficeDeflateEncoder : IDisposable {
 
     private static void Schedule(Region region) {
         _work.Enqueue(region);
+        int waiting = Interlocked.Increment(ref _waiting);
         int workers = Volatile.Read(ref _workers);
-        while (workers < BackgroundRegions) {
+        // A worker starts only once two regions wait, and another only when more wait than the running workers can
+        // take. A caller streaming one large part would otherwise wake a pool thread for almost every region, because
+        // a worker that keeps up with it drains the queue and leaves; a region nobody takes is encoded by its caller.
+        while (workers < BackgroundRegions && waiting > workers + 1) {
             if (Interlocked.CompareExchange(ref _workers, workers + 1, workers) == workers) {
                 try {
                     ThreadPool.UnsafeQueueUserWorkItem(Work, null);
@@ -186,7 +194,10 @@ internal sealed class OfficeDeflateEncoder : IDisposable {
 
     private static void RunWorker() {
         while (true) {
-            while (_work.TryDequeue(out Region? region)) region.RunIfQueued();
+            while (_work.TryDequeue(out Region? region)) {
+                Interlocked.Decrement(ref _waiting);
+                region.RunIfQueued();
+            }
             Interlocked.Decrement(ref _workers);
             // A region queued while this worker was leaving may have found every slot taken; take the slot back for it.
             if (_work.IsEmpty) return;
@@ -196,8 +207,11 @@ internal sealed class OfficeDeflateEncoder : IDisposable {
     }
 
     private static Region RentRegion() {
-        Region? region = Interlocked.Exchange(ref _cachedRegion, null);
-        if (region != null) return region;
+        for (int i = 0; i < _retainedRegions.Length; i++) {
+            if (Volatile.Read(ref _retainedRegions[i]) != null && Interlocked.Exchange(ref _retainedRegions[i], null) is { } retained) {
+                return retained;
+            }
+        }
         for (int i = 0; i < _sharedRegions.Length; i++) {
             if (Volatile.Read(ref _sharedRegions[i]) != null
                 && Interlocked.Exchange(ref _sharedRegions[i], null)?.TryGetRegion() is { } shared) {
@@ -210,7 +224,11 @@ internal sealed class OfficeDeflateEncoder : IDisposable {
     private static void ReturnRegion(Region region) {
         // The buffers held caller data; clear what was used before they can serve another part.
         region.Clear();
-        if (Interlocked.CompareExchange(ref _cachedRegion, region, null) == null) return;
+        for (int i = 0; i < _retainedRegions.Length; i++) {
+            if (Volatile.Read(ref _retainedRegions[i]) == null && Interlocked.CompareExchange(ref _retainedRegions[i], region, null) == null) {
+                return;
+            }
+        }
         for (int i = 0; i < _sharedRegions.Length; i++) {
             if (Volatile.Read(ref _sharedRegions[i]) == null
                 && Interlocked.CompareExchange(ref _sharedRegions[i], new WeakRegion(region), null) == null) {
