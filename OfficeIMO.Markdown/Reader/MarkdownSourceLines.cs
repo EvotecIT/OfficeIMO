@@ -325,7 +325,7 @@ internal sealed class MarkdownSourceLines : IReadOnlyList<string> {
             return string.Empty;
         }
         if (count == 1) {
-            return this[start];
+            return this[start] ?? string.Empty;
         }
 
         var builder = new System.Text.StringBuilder();
