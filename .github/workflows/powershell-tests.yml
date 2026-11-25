@@ -183,6 +183,9 @@ jobs:
           PSWRITEOFFICE_USE_DEVELOPMENT_BINARIES: 'false'
         shell: powershell
         run: |
+          if ($PSVersionTable.PSEdition -ne 'Desktop' -or $PSVersionTable.PSVersion.Major -ne 5 -or $PSVersionTable.PSVersion.Minor -ne 1) {
+            throw "Expected Windows PowerShell 5.1, got $($PSVersionTable.PSEdition) $($PSVersionTable.PSVersion)"
+          }
           # Reuse the pinned tools with WinPS system modules instead of inheriting PowerShell 7 modules.
           $moduleRoot = Join-Path $env:RUNNER_TEMP 'officeimo-ci-modules'
           $env:PSModulePath = $moduleRoot + [IO.Path]::PathSeparator + (Join-Path $PSHOME 'Modules')

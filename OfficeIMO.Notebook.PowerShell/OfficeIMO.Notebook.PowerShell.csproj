@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Run PowerShell cells in an explicitly started Jupyter notebook session.</Description>
+    <VersionPrefix>3.6.2</VersionPrefix>
+    <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
+    <LangVersion>Latest</LangVersion>
+    <IsPackable>true</IsPackable>
+    <IsPublishable>true</IsPublishable>
+    <Company>Evotec</Company>
+    <Authors>Przemyslaw Klys</Authors>
+    <PackageTags>jupyter;notebook;ipynb;powershell;officeimo</PackageTags>
+    <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageIcon>OfficeIMO.png</PackageIcon>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../OfficeIMO.Notebook/OfficeIMO.Notebook.csproj" />
+    <Compile Include="../OfficeIMO.SharedSource/Processes/OfficeProcessArguments.cs" Link="Internal/OfficeProcessArguments.cs" />
+    <Compile Include="../OfficeIMO.SharedSource/Processes/OfficeUnixProcessGroup.cs" Link="Internal/OfficeUnixProcessGroup.cs" />
+    <Compile Include="../OfficeIMO.SharedSource/Processes/OfficeWindowsProcessJob.cs" Link="Internal/OfficeWindowsProcessJob.cs" />
+    <EmbeddedResource Include="PowerShellNotebookWorker.ps1" LogicalName="OfficeIMO.Notebook.PowerShell.Worker" />
+    <None Include="../Assets/OfficeIMO.png" Pack="true" PackagePath="/" />
+    <None Include="README.md" Pack="true" PackagePath="README.md" />
+  </ItemGroup>
+</Project>

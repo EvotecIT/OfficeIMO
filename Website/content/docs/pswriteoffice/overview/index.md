@@ -29,6 +29,7 @@ The module manifest is the source of truth for exported cmdlets and aliases. The
 - **Printing — 5 commands:** print any document OfficeIMO can turn into PDF on a named queue or IPP printer, read printer capabilities, and follow or cancel jobs. Requires PowerShell 7.4 or newer.
 - **PowerPoint — 54 commands:** slides, sections, shapes, charts, tables, notes, themes, layouts, transitions, visual placement, import, inspection, and HTML review.
 - **Cross-format operations — 14 commands:** inspect, compare, validate, repair, protect, combine, split, convert, and render documents to images with limits and reports. See [Choose a conversion route](/docs/pswriteoffice/conversion-routes/).
+- **Notebooks — 14 commands:** open and edit Jupyter notebooks, run PowerShell cells, inspect saved results, and export documents and charts offline. See the [notebook workflow](/docs/pswriteoffice/automation-patterns/#run-powershell-notebook-cells).
 - **Before sharing — 6 commands:** list and remove comments, authors, hidden content, image metadata and AI labels, inspect Content Credentials, and check Word, Excel and PowerPoint accessibility. See [Clean files before sharing](/docs/pswriteoffice/before-sharing/).
 - **YAML — 13 commands:** edit files without losing comments or layout, merge overlays, validate, and convert to and from objects. See [Configuration files and data conversion](/docs/pswriteoffice/config-data-formats/).
 - **TOML — 13 commands:** edit files without losing comments or layout, and read and write settings and lock files as PowerShell objects. See [Configuration files and data conversion](/docs/pswriteoffice/config-data-formats/).
@@ -43,6 +44,6 @@ The module manifest is the source of truth for exported cmdlets and aliases. The
 
 ## How the documentation fits together
 
-Conceptual guides answer which workflow to choose and how objects move through a script. The generated [command reference](/api/powershell/) owns parameter sets, accepted values, pipeline behavior, and source links. The [example gallery](https://github.com/EvotecIT/OfficeIMO/tree/a6eb645875c1863b0ae15c51832952ff4684b3e0/PowerShell/PSWriteOffice/Examples) provides copyable end-to-end scripts.
+Conceptual guides answer which workflow to choose and how objects move through a script. The generated [command reference](/api/powershell/) owns parameter sets, accepted values, pipeline behavior, and source links. The [example gallery](https://github.com/EvotecIT/OfficeIMO/tree/8970f5b37b4a846848bbf4416b55d17d9e034bc5/PowerShell/PSWriteOffice/Examples) provides copyable end-to-end scripts.
 
 When a guide and command page appear to disagree, use the current command reference and report the guide mismatch. The catalog validation prevents command totals from drifting, while examples and help remain the executable source for exact syntax.

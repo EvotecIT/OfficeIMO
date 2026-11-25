@@ -22,6 +22,7 @@ Clears saved results from a code cell, optionally including its execution count.
 ### EXAMPLE 1
 ```powershell
 $notebook | Get-OfficeNotebookCell -Kind Code | Clear-OfficeNotebookOutput -ExecutionCount
+$notebook | Save-OfficeNotebook -Path ./notebook-for-sharing.ipynb
 ```
 
 

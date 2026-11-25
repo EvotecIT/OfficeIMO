@@ -198,8 +198,22 @@ try {
 }
 ```
 
-Read `Get-Help about_PSWriteOffice_Notebook` for explicit import profiles,
-PowerShell script exchange, and saved-table export.
+Run trusted PowerShell code cells with `Invoke-OfficeNotebook`. Cells share
+one session per notebook. Use `-CellIndex` to select zero-based indexes,
+`-TimeoutSeconds` to set a per-cell limit, and `-OutputPath` to write the
+executed notebook with its new saved outputs and execution counts.
+
+```powershell
+$report = Invoke-OfficeNotebook -LiteralPath ./lab.ipynb -OutputPath ./executed.ipynb -NoClobber
+try {
+    $report.Cells
+} finally {
+    $report.Notebook | Close-OfficeNotebook
+}
+```
+
+Read `Get-Help about_PSWriteOffice_Notebook` for execution, explicit import
+profiles, PowerShell script exchange, and saved-table export.
 
 Use `-PreserveMarkdownSource` with a Markdown destination to keep the cell's
 authored spelling and formatting. The report identifies omitted notebook-local

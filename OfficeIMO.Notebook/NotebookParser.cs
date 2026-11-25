@@ -51,11 +51,10 @@ internal static class NotebookParser {
             string? normalized = legacy && name == "heading" ? ReadLegacyHeading(source, cellSource) : null;
             var metadata = NotebookJson.ReadMap(NotebookJson.Property(source, "metadata"));
             if (legacy && kind == NotebookCellKind.Code) MergeLegacyMetadata(source, metadata);
-            string? language = ReadLanguage(source, metadata);
             int? count = NotebookJson.Integer(source, legacy ? "prompt_number" : "execution_count");
             int? outputLimit = projectionOutputLimit.HasValue && kind != NotebookCellKind.Code ? 0 : projectionOutputLimit;
             var outputs = NotebookOutputParser.Read(source, legacy, options, outputLimit, ref totalOutputs, cancellationToken);
-            yield return new NotebookCell(kind, name, id, index, source, cellSource, normalized, language, count, metadata, outputs);
+            yield return new NotebookCell(kind, name, id, index, source, cellSource, normalized, count, metadata, outputs);
         }
     }
 
@@ -102,18 +101,6 @@ internal static class NotebookParser {
     internal static bool IsValidId(string? id) =>
         id is { Length: >= 1 and <= 64 } && id.All(static character =>
             character is >= '0' and <= '9' or >= 'A' and <= 'Z' or >= 'a' and <= 'z' or '-' or '_');
-
-    private static string? ReadLanguage(JsonElement source, Dictionary<string, JsonElement> metadata) {
-        JsonElement originalMetadata = NotebookJson.Property(source, "metadata");
-        string? language = NotebookJson.String(source, "language") ??
-            (metadata.TryGetValue("language", out JsonElement languageValue) && languageValue.ValueKind == JsonValueKind.String
-                ? languageValue.GetString() : null) ??
-            NotebookJson.String(NotebookJson.Property(originalMetadata, "polyglot_notebook"), "kernelName") ??
-            NotebookJson.String(NotebookJson.Property(originalMetadata, "dotnet_interactive"), "language");
-        if (!string.IsNullOrWhiteSpace(language)) return language;
-        string? editorLanguage = NotebookJson.String(NotebookJson.Property(originalMetadata, "vscode"), "languageId");
-        return editorLanguage == "polyglot-notebook" ? null : editorLanguage;
-    }
 
     private static void MergeLegacyMetadata(JsonElement source, Dictionary<string, JsonElement> metadata) {
         if (NotebookJson.Property(source, "collapsed") is { ValueKind: JsonValueKind.True or JsonValueKind.False } collapsed) {

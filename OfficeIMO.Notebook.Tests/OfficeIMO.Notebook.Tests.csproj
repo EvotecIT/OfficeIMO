@@ -16,6 +16,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Notebook\OfficeIMO.Notebook.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Notebook.PowerShell\OfficeIMO.Notebook.PowerShell.csproj" />
     <ProjectReference Include="..\OfficeIMO.Notebook.Markdown\OfficeIMO.Notebook.Markdown.csproj" />
     <ProjectReference Include="..\OfficeIMO.Notebook.Pdf\OfficeIMO.Notebook.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Notebook.Html\OfficeIMO.Notebook.Html.csproj" />

@@ -2,7 +2,7 @@ TOPIC
     about_PSWriteOffice_Notebook
 
 SHORT DESCRIPTION
-    Open, edit, and export notebooks and their saved results.
+    Open, edit, run, and export notebooks and their saved results.
 
 LONG DESCRIPTION
     Open-OfficeNotebook returns a live notebook. Use Get-OfficeNotebookCell and
@@ -40,11 +40,31 @@ LONG DESCRIPTION
     carry, including saved results and cells in other languages. Notebook
     import and export operate on stored data without executing cells.
 
+    Use Invoke-OfficeNotebook to run trusted PowerShell cells. Each notebook
+    runs in one child PowerShell session, so later cells can use variables and
+    functions defined by earlier cells. Select zero-based indexes with
+    -CellIndex. Use -IncludeUnspecifiedLanguage for cells without a language.
+
+    The report includes the updated notebook. Use -OutputPath to write its
+    saved outputs and execution counts to .ipynb. -StreamOutput emits live
+    records ahead of the report. By default, each cell has 60 seconds to run.
+    Use -TimeoutSeconds to change the limit. A timeout ends the session and
+    keeps the output captured before it stopped.
+
 EXAMPLES
+    $report = Invoke-OfficeNotebook -LiteralPath ./lab.ipynb -OutputPath ./executed.ipynb -NoClobber
+    try {
+        $report.Cells
+    }
+    finally {
+        $report.Notebook | Close-OfficeNotebook
+    }
+
     $source = Open-OfficeNotebook -Path ./lab.py -Format JupytextPercent -CompanionPath ./lab.ipynb -FailOnLoss
     try {
         $source | Save-OfficeNotebook -Path ./reviewed.ipynb
-    } finally {
+    }
+    finally {
         $source | Close-OfficeNotebook
     }
 
@@ -53,7 +73,8 @@ EXAMPLES
         $notebook | Add-OfficeNotebookCell -Kind Markdown -Source '# Lab'
         $notebook | Add-OfficeNotebookCell -Kind Code -Language PowerShell -Source 'Get-Date'
         $notebook | Export-OfficeNotebook -Path ./lab.ps1 -FailOnLoss
-    } finally {
+    }
+    finally {
         $notebook | Close-OfficeNotebook
     }
 
@@ -62,7 +83,8 @@ EXAMPLES
         $notebook | Get-OfficeNotebookCell -Index 2 |
             Get-OfficeNotebookOutput -Index 0 |
             Export-OfficeNotebook -Path ./results.xlsx
-    } finally {
+    }
+    finally {
         $notebook | Close-OfficeNotebook
     }
 
@@ -71,6 +93,7 @@ EXAMPLES
 
 SEE ALSO
     Open-OfficeNotebook
+    Invoke-OfficeNotebook
     Get-OfficeNotebookCell
     Get-OfficeNotebookOutput
     Save-OfficeNotebook

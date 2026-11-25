@@ -91,7 +91,10 @@ internal static partial class NotebookScriptImporter {
         NotebookCell cell = context.AddCell(kind, source, cellLanguage, marker?.Id);
         explicitIds?.Add(marker?.Id);
         if (marker != null) {
-            foreach (KeyValuePair<string, JsonElement> property in marker.Metadata) cell.SetMetadata(property.Key, property.Value);
+            foreach (KeyValuePair<string, JsonElement> property in marker.Metadata) {
+                if (kind == NotebookCellKind.Code && property.Key == "language") continue;
+                cell.SetMetadata(property.Key, property.Value);
+            }
         }
         if (cellMarker != null) cell.SetMetadata("cell_marker", NotebookImportContext.JsonString(cellMarker));
     }

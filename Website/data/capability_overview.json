@@ -10,13 +10,13 @@
     "Website/data/format_map.json"
   ],
   "summary": {
-    "packageCount": 160,
-    "commandCount": 521,
+    "packageCount": 168,
+    "commandCount": 535,
     "cliCount": 17,
     "toolCount": 21,
     "skillCount": 2,
-    "studioFeatures": 53,
-    "routeCount": 316
+    "studioFeatures": 54,
+    "routeCount": 322
   },
   "surfaces": [
     {
@@ -352,7 +352,7 @@
       "cells": {
         "dotnet": {
           "guide": "/compatibility/",
-          "extra": "316 conversion routes",
+          "extra": "322 conversion routes",
           "items": [
             {
               "label": "OfficeIMO.Workflows",
@@ -374,7 +374,7 @@
         },
         "powershell": {
           "guide": "/docs/pswriteoffice/automation-patterns/",
-          "extra": "86 conversion routes",
+          "extra": "92 conversion routes",
           "items": [
             {
               "label": "Convert-OfficeDocument",
@@ -392,7 +392,7 @@
         },
         "agents": {
           "guide": "/cli/",
-          "extra": "43 routes in the CLI",
+          "extra": "52 routes in the CLI",
           "items": [
             {
               "label": "officeimo convert",

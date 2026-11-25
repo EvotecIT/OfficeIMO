@@ -6,6 +6,7 @@ namespace PSWriteOffice.Cmdlets.Notebook;
 /// <summary>Clears saved results from a code cell, optionally including its execution count.</summary>
 /// <example><summary>Clear all saved results before sharing a notebook.</summary><code>
 /// $notebook | Get-OfficeNotebookCell -Kind Code | Clear-OfficeNotebookOutput -ExecutionCount
+/// $notebook | Save-OfficeNotebook -Path ./notebook-for-sharing.ipynb
 /// </code></example>
 [Cmdlet(VerbsCommon.Clear, "OfficeNotebookOutput", SupportsShouldProcess = true)]
 [OutputType(typeof(NotebookCell))]

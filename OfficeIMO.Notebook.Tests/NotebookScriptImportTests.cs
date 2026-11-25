@@ -159,6 +159,8 @@ public sealed class NotebookScriptImportTests {
     [InlineData("# %% language=\"python\"\n# %%R\nprint(1)", "%%R\nprint(1)", "python", "python", true)]
     [InlineData("# %% language=\"R\"\n# sum(values)", "%%R\nsum(values)", "R", "python", true)]
     [InlineData("# %%\n# %%time\nprint(1)", "%%time\nprint(1)", "python", "r", false)]
+    [InlineData("# %% {\"language\":null}\n1 + 1", "1 + 1", "python", "r", false)]
+    [InlineData("# %% {\"language\":\" \"}\n# ordinary comment\n1 + 1", "# ordinary comment\n1 + 1", "python", "r", false)]
     public void JupytextPairsSavedResultsUsingEffectiveCellLanguages(string script, string source, string language,
         string? companionLanguage, bool matches) {
         using JsonDocument kernel = JsonDocument.Parse("""{"language":"python"}""");

@@ -2714,30 +2714,17 @@
     {
       "id": "OfficeIMO.Epub",
       "slug": "epub",
-      "capabilityCount": 22,
+      "capabilityCount": 21,
       "formats": [
         "EPUB",
-        "Epub.Native",
-        "HTML"
+        "Epub.Native"
       ],
       "sourceCatalogs": [
-        "OfficeConversionCapabilityCatalog",
         "OfficeIMO.NativeLifecycle",
         "OfficeIMO.ProtectedContent",
         "OfficeIMO.Provenance"
       ],
       "operations": [
-        {
-          "id": "Convert",
-          "states": [
-            {
-              "id": "Partial",
-              "label": "Partial",
-              "description": "A bounded subset is implemented with explicit limits.",
-              "count": 1
-            }
-          ]
-        },
         {
           "id": "Create",
           "states": [
@@ -6276,12 +6263,13 @@
     {
       "id": "OfficeIMO.Workflows",
       "slug": "workflows",
-      "capabilityCount": 15,
+      "capabilityCount": 16,
       "formats": [
         "Book project",
         "Book.Project",
         "DOCX",
         "EPUB",
+        "HTML",
         "JPEG",
         "Markdown",
         "PNG",
@@ -6303,7 +6291,7 @@
               "id": "Partial",
               "label": "Partial",
               "description": "A bounded subset is implemented with explicit limits.",
-              "count": 4
+              "count": 5
             }
           ]
         },
