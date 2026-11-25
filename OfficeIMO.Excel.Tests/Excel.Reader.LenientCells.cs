@@ -347,6 +347,24 @@ public partial class Excel {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public void Write_UpdatesTheCellReadWhenTwoCellsShareAColumn(bool batch) {
+        // The unparseable reference reads at B1 after A1, behind the earlier B1; reads return the first B1.
+        string path = CreateLenientCellWorkbook("<row r=\"1\"><c r=\"B1\"><v>10</v></c><c r=\"A1\"><v>20</v></c><c r=\"?\"><v>30</v></c></row>");
+        try {
+            using (var document = ExcelDocument.Load(path)) {
+                WriteLenientCell(document.GetSheet("Data"), 1, 2, 5, batch);
+                document.Save();
+            }
+
+            using var reader = ExcelDocumentReader.Open(path);
+            object?[,] values = reader.GetSheet("Data").ReadRange("A1:B1", ExcelExecutionMode.Sequential);
+            Assert.Equal(5d, Convert.ToDouble(values[0, 1]));
+        } finally { File.Delete(path); }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void Write_RewritesAnUnorderedRowInColumnOrder(bool batch) {
         // Readers place the cell without a reference after A1, at B1; a write rewrites the row as Excel's recovery does.
         string path = CreateLenientCellWorkbook("<row r=\"1\"><c r=\"C1\"><v>3</v></c><c r=\"A1\"><v>1</v></c><c><v>2</v></c></row>");

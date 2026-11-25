@@ -260,6 +260,9 @@ namespace OfficeIMO.Excel {
                             columnIndex = GetWriteColumnIndex(cell, ref nextImplicitColumn, out bool implicitColumn);
                             if (implicitColumn) _hasImplicitColumns = true;
                         }
+                        // Readers return the first cell for a column, so a later cell at the same column stays out of
+                        // the map. In an ordered row every column is new, so this lookup runs only for repeats.
+                        if (columnIndex <= _lastColumnIndex && _cells.ContainsKey(columnIndex)) continue;
                         _cells[columnIndex] = cell;
 
                         if (columnIndex >= _lastColumnIndex) {
