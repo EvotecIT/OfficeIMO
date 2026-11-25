@@ -20,6 +20,8 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../OfficeIMO.Notebook/OfficeIMO.Notebook.csproj" />
+    <!-- Compile-only: runspace sessions use the PowerShell that hosts the caller. -->
+    <PackageReference Include="PowerShellStandard.Library" Version="5.1.1" PrivateAssets="all" ExcludeAssets="runtime" />
     <Compile Include="../OfficeIMO.SharedSource/Processes/OfficeProcessArguments.cs" Link="Internal/OfficeProcessArguments.cs" />
     <Compile Include="../OfficeIMO.SharedSource/Processes/OfficeUnixProcessGroup.cs" Link="Internal/OfficeUnixProcessGroup.cs" />
     <Compile Include="../OfficeIMO.SharedSource/Processes/OfficeWindowsProcessJob.cs" Link="Internal/OfficeWindowsProcessJob.cs" />

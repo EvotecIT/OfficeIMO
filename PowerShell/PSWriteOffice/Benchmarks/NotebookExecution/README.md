@@ -1,6 +1,6 @@
 # PowerShell notebook execution benchmark
 
-The suite compares the OfficeIMO, PowerShellNotebook, and .NET Interactive execution paths on ordered, deterministic PowerShell cells. The first cell defines a function and a counter. Subsequent cells call the function and advance the counter in the same session. The large text case adds 512 lines to the final output.
+The suite compares the OfficeIMO, PowerShellNotebook, and .NET Interactive execution paths on ordered, deterministic PowerShell cells. OfficeIMO runs in two lanes: `OfficeIMO` uses a runspace of the calling PowerShell, as `Invoke-OfficeNotebook` does by default, and `OfficeIMOProcess` uses a separate PowerShell process. The first cell defines a function and a counter. Subsequent cells call the function and advance the counter in the same session. The large text case adds 512 lines to the final output.
 
 PowerForge rotates engine order and validates each sample. Cold validation reopens the saved notebook and verifies its introduction, cell order, output types, exact text, and a checksum. Warm validation checks captured text against the same expected results. The validator allows terminal line endings added by the engines' text formatters.
 
@@ -27,7 +27,7 @@ $cold = @{
 & $comparison @cold
 ~~~
 
-Cold timing includes process startup, loading the notebook, opening one session, executing its cells, saving the `.ipynb`, and process exit. The suite calls `Invoke-OfficeNotebook`, `Invoke-PowerShellNotebook`, and `dotnet-repl`. The REPL hosts .NET Interactive PowerShell `1.0.0-beta.26120.1` with PowerShell SDK 7.5.4. [PowerShellNotebook 3.0.0](https://www.powershellgallery.com/packages/PowerShellNotebook/3.0.0) · [dotnet-repl 0.3.259](https://www.nuget.org/packages/dotnet-repl/0.3.259)
+Cold timing includes process startup, loading the notebook, opening one session, executing its cells, saving the `.ipynb`, and process exit. The suite calls `Invoke-OfficeNotebook` (with `-PowerShellPath` in the process lane), `Invoke-PowerShellNotebook`, and `dotnet-repl`. The REPL hosts .NET Interactive PowerShell `1.0.0-beta.26120.1` with PowerShell SDK 7.5.4. [PowerShellNotebook 3.0.0](https://www.powershellgallery.com/packages/PowerShellNotebook/3.0.0) · [dotnet-repl 0.3.259](https://www.nuget.org/packages/dotnet-repl/0.3.259)
 
 ## Warm session execution
 
@@ -49,6 +49,6 @@ $warm = @{
 & $comparison @warm
 ~~~
 
-Warm setup opens and primes a fresh engine session per sample. Timing covers submission of every cell and capture of its output. Validation and session disposal follow timing. OfficeIMO uses `PowerShellNotebookSession.ExecuteAsync`, PowerShellNotebook uses `New-PSNotebookRunspace`, and the adapter submits cells to .NET Interactive's `PowerShellKernel`. OfficeIMO calls the public .NET API from the PSWriteOffice module payload and uses the same PowerShell executable as the benchmark host. The adapter references the pinned MIT kernel with serviced cryptography packages. [Exact .NET Interactive PowerShell package](https://www.nuget.org/packages/Microsoft.DotNet.Interactive.PowerShell/1.0.0-beta.26120.1)
+Warm setup opens and primes a fresh engine session per sample. Timing covers submission of every cell and capture of its output. Validation and session disposal follow timing. OfficeIMO uses `PowerShellNotebookSession.ExecuteAsync`, PowerShellNotebook uses `New-PSNotebookRunspace`, and the adapter submits cells to .NET Interactive's `PowerShellKernel`. OfficeIMO calls the public .NET API from the PSWriteOffice module payload, with runspace isolation or, in the process lane, the same PowerShell executable as the benchmark host. The adapter references the pinned MIT kernel with serviced cryptography packages. [Exact .NET Interactive PowerShell package](https://www.nuget.org/packages/Microsoft.DotNet.Interactive.PowerShell/1.0.0-beta.26120.1)
 
 Use `-Scenario`, `-Engine`, and `-IterationCount` to narrow a diagnostic run. Start with a single iteration, then run the balanced default matrix. Review each run's `summary.json`, `metadata.json`, and raw `samples.json`. Read cold and warm medians independently. PowerForge allocation metrics describe the supervising process. Elapsed time captures work done in that process and any engine workers.

@@ -217,6 +217,23 @@ Describe 'Notebook command workflows' {
         }
     }
 
+    It 'runs cells in this process unless a separate process is requested' {
+        $notebook = New-OfficeNotebook
+        try {
+            $cell = $notebook | Add-OfficeNotebookCell -Kind Code -Language PowerShell -Source '$PID' -PassThru
+            $null = $notebook | Invoke-OfficeNotebook -ErrorAction Stop
+            ($cell | Get-OfficeNotebookOutput -Index 0).Data['text/plain'].GetString() | Should -BeExactly "$PID"
+
+            $null = $notebook | Invoke-OfficeNotebook -Isolation Process -ErrorAction Stop
+            ($cell | Get-OfficeNotebookOutput -Index 0).Data['text/plain'].GetString() | Should -Not -Be "$PID"
+
+            { $notebook | Invoke-OfficeNotebook -Isolation Runspace -PowerShellPath (Get-Process -Id $PID).Path -ErrorAction Stop } |
+                Should -Throw '*separate process*'
+        } finally {
+            $notebook | Close-OfficeNotebook
+        }
+    }
+
     It 'protects live notebooks and destinations before executing trusted code' {
         $destination = Join-Path $TestDrive 'existing.ipynb'
         $marker = Join-Path $TestDrive 'invoked.txt'

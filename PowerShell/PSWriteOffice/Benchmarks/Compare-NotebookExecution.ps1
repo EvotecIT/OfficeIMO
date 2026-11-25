@@ -6,8 +6,8 @@ param(
     [ValidateSet('State12', 'State120', 'LargeText')]
     [string[]] $Scenario = @('State12', 'State120', 'LargeText'),
 
-    [ValidateSet('OfficeIMO', 'PowerShellNotebook', 'DotNetInteractive')]
-    [string[]] $Engine = @('OfficeIMO', 'PowerShellNotebook', 'DotNetInteractive'),
+    [ValidateSet('OfficeIMO', 'OfficeIMOProcess', 'PowerShellNotebook', 'DotNetInteractive')]
+    [string[]] $Engine = @('OfficeIMO', 'OfficeIMOProcess', 'PowerShellNotebook', 'DotNetInteractive'),
 
     [ValidateRange(1, 100)]
     [int] $IterationCount = 5,
@@ -60,7 +60,7 @@ try {
                 Import-Module -Name $PowerShellNotebookManifest -WarningAction SilentlyContinue
             }
         }
-        if ('OfficeIMO' -in $Engine) {
+        if ('OfficeIMO' -in $Engine -or 'OfficeIMOProcess' -in $Engine) {
             $ModuleManifest = (Resolve-Path -LiteralPath $ModuleManifest).ProviderPath
             $sourceManifest = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../PSWriteOffice.psd1'))
             if ($ModuleManifest -eq $sourceManifest) {

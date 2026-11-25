@@ -13,7 +13,7 @@ using System.Security.Principal;
 namespace OfficeIMO.Notebook.PowerShell;
 
 /// <summary>Owns the persistent PowerShell process and its private protocol pipe.</summary>
-internal sealed class PowerShellNotebookProcess : IDisposable {
+internal sealed class PowerShellNotebookProcess : IPowerShellNotebookWorker {
     private static readonly Lazy<string> WorkerCommand = new(BuildWorkerCommand);
 #if NETSTANDARD2_0
     // The compatibility reference lacks the overload, but modern runtimes can provide it.
@@ -30,6 +30,7 @@ internal sealed class PowerShellNotebookProcess : IDisposable {
     private bool _started;
     private OfficeWindowsProcessJob? _windowsJob;
     private bool _assignedToWindowsJob;
+    private int _executionCount;
 
     private PowerShellNotebookProcess(string executable, string? workingDirectory) {
         string pipeName = "oin-" + Guid.NewGuid().ToString("N");
@@ -56,9 +57,9 @@ internal sealed class PowerShellNotebookProcess : IDisposable {
         _process.Exited += OnExited;
     }
 
-    internal bool IsOpen => Volatile.Read(ref _closed) == 0 && Volatile.Read(ref _exited) == 0;
+    public bool IsOpen => Volatile.Read(ref _closed) == 0 && Volatile.Read(ref _exited) == 0;
 
-    internal string Version { get; private set; } = string.Empty;
+    public string Version { get; private set; } = string.Empty;
 
     internal static async Task<PowerShellNotebookProcess> StartAsync(string executable, string? workingDirectory,
         TimeSpan startupTimeout, CancellationToken cancellationToken) {
@@ -80,11 +81,11 @@ internal sealed class PowerShellNotebookProcess : IDisposable {
             _ = DrainAsync(worker._process.StandardOutput.BaseStream);
             _ = DrainAsync(worker._process.StandardError.BaseStream);
             await worker._pipe.WaitForConnectionAsync(startup.Token).ConfigureAwait(false);
-            using JsonDocument handshake = await worker.ReadAsync().ConfigureAwait(false);
+            using JsonDocument handshake = await worker.ReadMessageAsync().ConfigureAwait(false);
             JsonElement response = handshake.RootElement;
             if (GetKind(response) != "ready" || !response.TryGetProperty("text", out JsonElement version)
                 || version.ValueKind != JsonValueKind.String || string.IsNullOrWhiteSpace(version.GetString())) {
-                throw new WorkerConnectionException("PowerShell did not provide a valid notebook session handshake.");
+                throw new PowerShellNotebookConnectionException("PowerShell did not provide a valid notebook session handshake.");
             }
             startup.CancelAfter(Timeout.Infinite);
             interrupt.Dispose();
@@ -106,10 +107,11 @@ internal sealed class PowerShellNotebookProcess : IDisposable {
         }
     }
 
-    internal CancellationTokenRegistration InterruptWhenCanceled(CancellationToken token) =>
+    public CancellationTokenRegistration InterruptWhenCanceled(CancellationToken token) =>
         token.Register(static worker => ((PowerShellNotebookProcess)worker!).Dispose(), this);
 
-    internal async Task SendAsync(string source, int outputCharactersLimit, int outputRecordsLimit, CancellationToken cancellationToken) {
+    public async Task SendAsync(string source, int executionCount, int outputCharactersLimit, int outputRecordsLimit, CancellationToken cancellationToken) {
+        _executionCount = executionCount;
         using var buffer = new MemoryStream();
         using (var writer = new Utf8JsonWriter(buffer)) {
             writer.WriteStartObject();
@@ -122,24 +124,60 @@ internal sealed class PowerShellNotebookProcess : IDisposable {
         try {
             await _pipe.WriteAsync(buffer.GetBuffer(), 0, (int)buffer.Length, cancellationToken).ConfigureAwait(false);
         } catch (Exception error) when (error is IOException or ObjectDisposedException) {
-            throw new WorkerConnectionException("The PowerShell worker could not receive the notebook cell.", error);
+            throw new PowerShellNotebookConnectionException("The PowerShell worker could not receive the notebook cell.", error);
         }
     }
 
-    internal async Task<JsonDocument> ReadAsync() {
+    public async Task<PowerShellNotebookFrame> ReadAsync() {
+        using JsonDocument message = await ReadMessageAsync().ConfigureAwait(false);
+        JsonElement frame = message.RootElement;
+        string kind = GetKind(frame);
+        return kind switch {
+            "complete" => PowerShellNotebookFrame.Completed(ReadFlag(frame, "failed"), ReadFlag(frame, "truncated")),
+            "truncated" => PowerShellNotebookFrame.TruncationNotice,
+            "fatal" => throw new PowerShellNotebookConnectionException(ReadText(frame, "text").GetString()!),
+            _ => PowerShellNotebookFrame.ForOutput(ReadOutput(frame, kind, _executionCount))
+        };
+    }
+
+    private async Task<JsonDocument> ReadMessageAsync() {
         try {
             string? line = await _reader.ReadLineAsync().ConfigureAwait(false);
-            if (line == null) throw new WorkerConnectionException("The PowerShell worker closed its notebook session.");
+            if (line == null) throw new PowerShellNotebookConnectionException("The PowerShell worker closed its notebook session.");
             return JsonDocument.Parse(line);
-        } catch (Exception error) when (error is not WorkerConnectionException && error is IOException or ObjectDisposedException or JsonException or DecoderFallbackException) {
-            throw new WorkerConnectionException("The PowerShell worker stopped communicating with the notebook session.", error);
+        } catch (Exception error) when (error is not PowerShellNotebookConnectionException && error is IOException or ObjectDisposedException or JsonException or DecoderFallbackException) {
+            throw new PowerShellNotebookConnectionException("The PowerShell worker stopped communicating with the notebook session.", error);
         }
     }
 
-    internal static string GetKind(JsonElement frame) =>
+    private static string GetKind(JsonElement frame) =>
         frame.ValueKind == JsonValueKind.Object && frame.TryGetProperty("kind", out JsonElement kind) &&
         kind.ValueKind == JsonValueKind.String ? kind.GetString()! :
-        throw new WorkerConnectionException("The PowerShell worker returned an invalid notebook message.");
+        throw new PowerShellNotebookConnectionException("The PowerShell worker returned an invalid notebook message.");
+
+    private static NotebookOutput ReadOutput(JsonElement frame, string kind, int executionCount) {
+        JsonElement text = ReadText(frame, "text");
+        return kind switch {
+            "output" => NotebookOutput.CreateExecuteResult(new Dictionary<string, JsonElement> { ["text/plain"] = text }, executionCount),
+            "stdout" or "stderr" => NotebookOutput.CreateStream(kind, text.GetString()!),
+            "error" => NotebookOutput.CreateError(ReadText(frame, "name").GetString()!, text.GetString()!, ReadTraceback(frame)),
+            _ => throw new PowerShellNotebookConnectionException("The PowerShell worker returned an unknown notebook output.")
+        };
+    }
+
+    private static string[] ReadTraceback(JsonElement frame) =>
+        frame.TryGetProperty("traceback", out JsonElement traceback) && traceback.ValueKind == JsonValueKind.Array
+            ? traceback.EnumerateArray().Where(static line => line.ValueKind == JsonValueKind.String)
+                .Select(static line => line.GetString()!).ToArray()
+            : Array.Empty<string>();
+
+    private static JsonElement ReadText(JsonElement frame, string name) =>
+        frame.TryGetProperty(name, out JsonElement value) && value.ValueKind == JsonValueKind.String ? value :
+        throw new PowerShellNotebookConnectionException("The PowerShell worker did not send the required notebook output text.");
+
+    private static bool ReadFlag(JsonElement frame, string name) =>
+        frame.TryGetProperty(name, out JsonElement value) && value.ValueKind is JsonValueKind.True or JsonValueKind.False
+            ? value.GetBoolean() : throw new PowerShellNotebookConnectionException("The PowerShell worker did not send the required notebook result flag.");
 
     private void AssignWindowsJob() {
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
@@ -234,9 +272,5 @@ internal sealed class PowerShellNotebookProcess : IDisposable {
         return new NamedPipeServerStream(name, PipeDirection.InOut, 1, PipeTransmissionMode.Byte,
             PipeOptions.Asynchronous | currentUserOnly);
 #endif
-    }
-
-    internal sealed class WorkerConnectionException : IOException {
-        internal WorkerConnectionException(string message, Exception? innerException = null) : base(message, innerException) { }
     }
 }
