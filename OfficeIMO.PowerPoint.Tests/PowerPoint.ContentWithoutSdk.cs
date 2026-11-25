@@ -88,6 +88,12 @@ public class PowerPointContentWithoutSdkTests {
             }
             return string.Join("|", read);
         }),
+        ("read the layouts and add a slide by layout", presentation => {
+            IReadOnlyList<PowerPointSlideLayoutInfo> layouts = presentation.GetSlideLayouts();
+            string read = string.Join("|", layouts.Select(layout => layout.LayoutIndex + ":" + layout.Name + ":" + layout.Type + ":" + layout.RelationshipId));
+            if (layouts.Count > 1) presentation.AddSlide(layouts[1].Name);
+            return read;
+        }),
         ("replace the first text box's text", presentation => {
             PowerPointTextBox? box = presentation.Slides.SelectMany(slide => slide.TextBoxes).FirstOrDefault(candidate => candidate.Text.Length > 0);
             if (box == null) return string.Empty;

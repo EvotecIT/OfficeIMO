@@ -73,6 +73,52 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
+        /// <summary>
+        /// The layouts of a master read from the package, in relationship order as the SDK lists them, with each one's
+        /// name, type and relationship id; null when the model has to read them, or reports a missing master.
+        /// </summary>
+        private List<(string Name, DocumentFormat.OpenXml.Presentation.SlideLayoutValues? Type, string? RelationshipId)>? TryReadPackageLayouts(int masterIndex) {
+            if (GetPackage(edit: false) is not { } package) return null;
+            try {
+                PackageSlideList? slides = PackageSlideList.Read(package);
+                if (slides == null) return null;
+                List<string> masters = RelatedParts(package, slides.Main, SlideMasterRelationshipType);
+                if (masterIndex < 0 || masterIndex >= masters.Count) return null;
+                string master = masters[masterIndex];
+                string masterRelationships = OfficeOpcPartNames.GetRelationshipsPartName(master);
+                var layouts = new List<(string, DocumentFormat.OpenXml.Presentation.SlideLayoutValues?, string?)>();
+                foreach (string layout in RelatedParts(package, master, SlideLayoutRelationshipType)) {
+                    OfficeXmlTree tree = package.GetXml(layout);
+                    if (!tree.IsElement(tree.Root, OfficeXmlNamespaces.PresentationML, "sldLayout")) return null;
+                    int data = tree.FindChild(tree.Root, OfficeXmlNamespaces.PresentationML, "cSld");
+                    string name = data == OfficeXmlTree.NoNode ? string.Empty : tree.GetAttribute(data, OfficeXmlNamespaces.None, "name") ?? string.Empty;
+                    DocumentFormat.OpenXml.Presentation.SlideLayoutValues? type = null;
+                    if (tree.GetAttribute(tree.Root, OfficeXmlNamespaces.None, "type") is { } token) {
+                        var value = new DocumentFormat.OpenXml.Presentation.SlideLayoutValues(token);
+                        // A type the schema doesn't know is reported by the model when it reads it.
+                        if (!((DocumentFormat.OpenXml.IEnumValue)value).IsValid) return null;
+                        type = value;
+                    }
+                    layouts.Add((name, type, FirstRelationshipIdTo(package.GetXml(masterRelationships), masterRelationships, layout)));
+                }
+                return layouts;
+            } catch (Exception exception) when (exception is XmlException or InvalidDataException) {
+                return null;
+            }
+        }
+
+        private static string? FirstRelationshipIdTo(OfficeXmlTree relationships, string relationshipsPart, string target) {
+            for (int node = relationships.FindChild(relationships.Root, OfficeXmlNamespaces.PackageRelationships, "Relationship"); node != OfficeXmlTree.NoNode;
+                 node = relationships.FindNextSibling(node, OfficeXmlNamespaces.PackageRelationships, "Relationship")) {
+                if (string.Equals(relationships.GetAttribute(node, OfficeXmlNamespaces.None, "TargetMode"), "External", StringComparison.OrdinalIgnoreCase)) continue;
+                string? resolved = OfficeOpcPartNames.ResolveRelationshipTarget(relationshipsPart, relationships.GetAttribute(node, OfficeXmlNamespaces.None, "Target"));
+                if (resolved != null && OfficeAsciiIgnoreCaseComparer.Instance.Equals(PartIdentity(resolved), PartIdentity(target))) {
+                    return relationships.GetAttribute(node, OfficeXmlNamespaces.None, "Id");
+                }
+            }
+            return null;
+        }
+
         // The slide the model writes for a new slide: an empty shape tree and the master's colour mapping.
         private static void WriteBlankSlide(OfficeXmlTree slide) {
             int root = slide.Root;
