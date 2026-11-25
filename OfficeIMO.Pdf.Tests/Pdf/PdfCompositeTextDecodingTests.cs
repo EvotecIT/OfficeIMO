@@ -150,10 +150,11 @@ public sealed class PdfCompositeTextDecodingTests {
         Assert.ThrowsAny<OperationCanceledException>(() => TextContentParser.Parse(
             wrapper + " BT /F2 12 Tf <" + string.Concat(Enumerable.Repeat("3042", 2000)) + "> Tj ET EMC",
             (_, bytes) => decoder(bytes, 10000),
-            (_, bytes) => { if (++widths == 4) cancellation.Cancel(); return bytes.Length * 500D; },
+            // The third width is the last code-length probe; the glyph loop must observe the cancellation.
+            (_, bytes) => { if (++widths == 3) cancellation.Cancel(); return bytes.Length * 500D; },
             cancellationCheck: cancellation.Token.ThrowIfCancellationRequested));
 
-        Assert.InRange(widths, 4, 10);
+        Assert.InRange(widths, 3, 10);
     }
 
     [Theory]
