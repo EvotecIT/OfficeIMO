@@ -143,6 +143,37 @@ public partial class Excel {
         }
     }
 
+    [Theory]
+    [InlineData("Data", true)]
+    [InlineData("Caf\u00e9", false)]
+    public void XlsxNativePackage_ReadsWorkbookPartDeclaringLatin1Encoding(string sheetName, bool nativePath) {
+        string path = CreateCompactFastPathWorkbook();
+        try {
+            const string entryName = "xl/workbook.xml";
+            string workbook = Encoding.UTF8.GetString(ReadZipEntry(path, entryName)).TrimStart('\uFEFF');
+            int declarationEnd = workbook.StartsWith("<?xml", StringComparison.Ordinal) ? workbook.IndexOf("?>", StringComparison.Ordinal) + 2 : 0;
+            string latin1 = "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>"
+                + workbook.Substring(declarationEnd).Replace("name=\"Data\"", $"name=\"{sheetName}\"");
+            ReplaceZipEntry(path, entryName, Encoding.GetEncoding(28591).GetBytes(latin1));
+
+            if (nativePath) {
+                using XlsxTabularWorkbook native = XlsxTabularWorkbook.Open(path, new ExcelReaderOptions());
+            } else {
+                // A declared encoding changes what non-ASCII bytes mean, so these parts use the SDK path.
+                Assert.Throws<XlsxTabularFastPathNotSupportedException>(() =>
+                    XlsxTabularWorkbook.Open(path, new ExcelReaderOptions()));
+            }
+            using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions { SheetName = sheetName });
+            Assert.True(reader.Read());
+            Assert.Equal(42, reader.GetInt32(0));
+            Assert.True(reader.Read());
+            Assert.Equal(43, reader.GetInt32(0));
+            Assert.False(reader.Read());
+        } finally {
+            File.Delete(path);
+        }
+    }
+
     [Fact]
     public void XlsxNativePackage_UsesNativePathForExplicitSheetIndex() {
         string path = Path.Combine(

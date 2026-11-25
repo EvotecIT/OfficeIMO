@@ -484,6 +484,10 @@ namespace OfficeIMO.Excel {
                 ReturnRowArray(ref _formulaLengths);
                 ReturnImplicitCellTagCache();
                 ReturnDecodedValues();
+                if (_stringCache != null) {
+                    ArrayPool<Utf8StringCacheEntry>.Shared.Return(_stringCache, clearArray: true);
+                    _stringCache = null;
+                }
                 if (_cellKinds != null) {
                     ExcelArrayPool.Return(_cellKinds);
                     _cellKinds = null;
@@ -1254,7 +1258,7 @@ namespace OfficeIMO.Excel {
                         _stringCacheLookups = 0;
                         _stringCacheHits = 0;
                     }
-                    Utf8StringCacheEntry[] stringCache = _stringCache ??= new Utf8StringCacheEntry[StringCacheSize];
+                    Utf8StringCacheEntry[] stringCache = _stringCache ??= RentStringCache();
                     int hash = ComputeHash(_buffer!, start, length);
                     int slot = hash & (StringCacheSize - 1);
                     for (int probe = 0; probe < 8; probe++) {
@@ -1275,6 +1279,13 @@ namespace OfficeIMO.Excel {
                 }
 
                 return DecodeXmlText(start, length);
+            }
+
+            // Every read decodes its header row, so the table comes from the pool rather than the heap.
+            private static Utf8StringCacheEntry[] RentStringCache() {
+                Utf8StringCacheEntry[] cache = ArrayPool<Utf8StringCacheEntry>.Shared.Rent(StringCacheSize);
+                Array.Clear(cache, 0, cache.Length);
+                return cache;
             }
 
             [MethodImpl(MethodImplOptions.NoInlining)]

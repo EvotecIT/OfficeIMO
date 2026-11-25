@@ -1,4 +1,6 @@
 using OfficeIMO.Core.Internal;
+using OfficeIMO.Core.Internal.OpenXml;
+using System.Buffers;
 using System.Data.Common;
 using System.Runtime.InteropServices;
 using System.Xml;
@@ -62,6 +64,9 @@ namespace OfficeIMO.Excel {
         private readonly Dictionary<string, string> _contentTypeDefaults;
         private readonly XlsxTabularSheet[] _sheets;
         private readonly string[] _tableNames;
+        // Element names repeat across the metadata parts, so their pull readers share one table.
+        private OfficeXmlNamespaces.Table? _metadataNamespaces;
+        private OfficeXmlPullReader? _metadataReader;
         private bool _disposed;
 
         private XlsxTabularWorkbook(
@@ -82,7 +87,7 @@ namespace OfficeIMO.Excel {
                 workbookPartName,
                 SupportedWorkbookContentTypes,
                 "workbook");
-            IReadOnlyDictionary<string, PackageRelationship> workbookRelationships =
+            Dictionary<string, PackageRelationship> workbookRelationships =
                 ReadRelationships(workbookPartName);
             _richValueErrors = new Lazy<RichValueErrorLookup>(() => ReadRichValueErrors(workbookPartName, workbookRelationships));
             (_sheets, ExcelDateSystem dateSystem) = ReadWorkbook(
@@ -290,19 +295,15 @@ namespace OfficeIMO.Excel {
         }
 
         private string ReadWorkbookPartName() {
-            IReadOnlyDictionary<string, PackageRelationship> relationships =
+            Dictionary<string, PackageRelationship> relationships =
                 ReadRelationships(string.Empty);
-            PackageRelationship[] candidates = relationships.Values
-                .Where(relationship => IsOfficeRelationship(
-                    relationship.Type,
-                    "/officeDocument"))
-                .ToArray();
-            if (candidates.Length != 1 || candidates[0].IsExternal) {
+            PackageRelationship? workbook = FindSingleOfficeRelationship(relationships, "/officeDocument", out bool multiple);
+            if (workbook == null || multiple || workbook.IsExternal) {
                 throw new XlsxTabularFastPathNotSupportedException(
                     "The package does not contain one internal Office workbook relationship.");
             }
 
-            string workbookPartName = ResolveTarget(string.Empty, candidates[0].Target);
+            string workbookPartName = ResolveTarget(string.Empty, workbook.Target);
             if (!_parts.ContainsPart(workbookPartName)) {
                 throw new XlsxTabularFastPathNotSupportedException(
                     "The package workbook relationship target is missing.");
@@ -350,25 +351,20 @@ namespace OfficeIMO.Excel {
 
         private string? ResolveOptionalPart(
             string workbookPartName,
-            IReadOnlyDictionary<string, PackageRelationship> relationships,
+            Dictionary<string, PackageRelationship> relationships,
             string relationshipSuffix,
             string relationshipName,
             string expectedContentType) {
-            PackageRelationship[] matches = relationships.Values
-                .Where(relationship => IsOfficeRelationship(
-                    relationship.Type,
-                    relationshipSuffix))
-                .Take(2)
-                .ToArray();
-            if (matches.Length == 0) {
+            PackageRelationship? match = FindSingleOfficeRelationship(relationships, relationshipSuffix, out bool multiple);
+            if (match == null && !multiple) {
                 return null;
             }
-            if (matches.Length != 1 || matches[0].IsExternal) {
+            if (multiple || match!.IsExternal) {
                 throw new XlsxTabularFastPathNotSupportedException(
                     $"The workbook {relationshipName} relationship requires the Open XML SDK fallback path.");
             }
 
-            string partName = ResolveTarget(workbookPartName, matches[0].Target);
+            string partName = ResolveTarget(workbookPartName, match.Target);
             if (!_parts.ContainsPart(partName)) {
                 throw new InvalidDataException(
                     $"The workbook {relationshipName} part '{partName}' is missing.");
@@ -378,7 +374,7 @@ namespace OfficeIMO.Excel {
             return partName;
         }
 
-        private RichValueErrorLookup ReadRichValueErrors(string workbookPartName, IReadOnlyDictionary<string, PackageRelationship> relationships) {
+        private RichValueErrorLookup ReadRichValueErrors(string workbookPartName, Dictionary<string, PackageRelationship> relationships) {
             string? metadata = ResolveOptionalPart(workbookPartName, relationships, "/sheetMetadata", "cell metadata", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheetMetadata+xml");
             if (metadata == null) return RichValueErrorLookup.Empty;
             string? values = ResolveOptionalPart(workbookPartName, relationships, "/rdRichValue", "rich values", "application/vnd.ms-excel.rdrichvalue+xml");
@@ -404,10 +400,6 @@ namespace OfficeIMO.Excel {
         }
 
         private XDocument ReadXmlPart(string partName, int maximumBytes) {
-            return ReadXmlPart(partName, maximumBytes, static reader => XDocument.Load(reader, LoadOptions.None));
-        }
-
-        private TResult ReadXmlPart<TResult>(string partName, int maximumBytes, Func<XmlReader, TResult> parse) {
             try {
                 using Stream stream = _parts.OpenPart(partName, maximumBytes, _options.CancellationToken,
                     limitName: nameof(ExcelReaderOptions.MaxMetadataPartBytes));
@@ -418,6 +410,52 @@ namespace OfficeIMO.Excel {
                     CloseInput = false,
                     MaxCharactersInDocument = maximumBytes
                 });
+                XDocument result = XDocument.Load(reader, LoadOptions.None);
+                _options.CancellationToken.ThrowIfCancellationRequested();
+                return result;
+            } catch (XmlException exception) {
+                throw new XlsxTabularFastPathNotSupportedException(
+                    $"Package part '{partName}' requires the Open XML SDK fallback path.",
+                    exception);
+            }
+        }
+
+        /// <summary>
+        /// Parses a small package metadata part from its UTF-8 bytes, positioned on the root element. The rest of the
+        /// part is read afterwards, so it must be well-formed as a whole. Parts the reader does not accept, and parts
+        /// that declare another encoding for non-ASCII content, use the SDK path.
+        /// </summary>
+        private TResult ReadXmlPart<TResult>(string partName, int maximumBytes, Func<OfficeXmlPullReader, TResult> parse) {
+            byte[]? rented = null;
+            try {
+                using Stream stream = _parts.OpenPart(partName, maximumBytes, _options.CancellationToken,
+                    limitName: nameof(ExcelReaderOptions.MaxMetadataPartBytes));
+                byte[] data;
+                int length;
+                if (stream is OpenXmlPooledPartStream pooled) {
+                    data = pooled.BorrowBuffer(out length);
+                } else {
+                    length = checked((int)stream.Length);
+                    data = rented = ArrayPool<byte>.Shared.Rent(Math.Max(1, length));
+                    int read = 0;
+                    while (read < length) {
+                        int next = stream.Read(data, read, length - read);
+                        if (next == 0) break;
+                        read += next;
+                    }
+                    length = read;
+                }
+                if (DeclaresOtherEncodingForNonAscii(data, length)) {
+                    throw new XlsxTabularFastPathNotSupportedException(
+                        $"Package part '{partName}' requires the Open XML SDK fallback path.");
+                }
+                var reader = new OfficeXmlPullReader(data, length, _metadataNamespaces ??= new OfficeXmlNamespaces.Table(),
+                    processMarkupCompatibility: false, recycle: _metadataReader);
+                _metadataReader = reader;
+                if (!reader.Read() || reader.NodeKind != OfficeXmlNodeKind.StartElement) {
+                    throw new XlsxTabularFastPathNotSupportedException(
+                        $"Package part '{partName}' requires the Open XML SDK fallback path.");
+                }
                 TResult result = parse(reader);
                 while (reader.Read()) {
                     _options.CancellationToken.ThrowIfCancellationRequested();
@@ -428,7 +466,49 @@ namespace OfficeIMO.Excel {
                 throw new XlsxTabularFastPathNotSupportedException(
                     $"Package part '{partName}' requires the Open XML SDK fallback path.",
                     exception);
+            } finally {
+                if (rented != null) ArrayPool<byte>.Shared.Return(rented, clearArray: true);
             }
+        }
+
+        /// <summary>
+        /// The pull reader reads UTF-8 (and UTF-16 by its byte order mark). An XML declaration naming another
+        /// encoding only changes the meaning of non-ASCII bytes, so only such parts need the SDK path.
+        /// </summary>
+        private static bool DeclaresOtherEncodingForNonAscii(byte[] data, int length) {
+            int start = length >= 3 && data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF ? 3 : 0;
+            ReadOnlySpan<byte> text = data.AsSpan(start, length - start);
+            if (!text.StartsWith("<?xml"u8)) return false;
+            int end = text.IndexOf("?>"u8);
+            if (end < 0) return false;
+            ReadOnlySpan<byte> declaration = text.Slice(0, end);
+            int encoding = declaration.IndexOf("encoding"u8);
+            if (encoding < 0) return false;
+            ReadOnlySpan<byte> rest = SkipXmlWhitespace(declaration.Slice(encoding + 8));
+            if (rest.IsEmpty || rest[0] != (byte)'=') return true;
+            rest = SkipXmlWhitespace(rest.Slice(1));
+            if (rest.IsEmpty || rest[0] is not ((byte)'"') and not ((byte)'\'')) return true;
+            int close = rest.Slice(1).IndexOf(rest[0]);
+            if (close < 0) return true;
+            ReadOnlySpan<byte> name = rest.Slice(1, close);
+            if (IsUtf8EncodingName(name)) return false;
+            foreach (byte value in text) {
+                if (value >= 0x80) return true;
+            }
+            return false;
+        }
+
+        private static ReadOnlySpan<byte> SkipXmlWhitespace(ReadOnlySpan<byte> value) {
+            int index = 0;
+            while (index < value.Length && value[index] is (byte)' ' or (byte)'\t' or (byte)'\r' or (byte)'\n') index++;
+            return value.Slice(index);
+        }
+
+        private static bool IsUtf8EncodingName(ReadOnlySpan<byte> name) {
+            if (name.Length is not 4 and not 5) return false;
+            Span<byte> lower = stackalloc byte[5];
+            for (int index = 0; index < name.Length; index++) lower[index] = (byte)(name[index] | 0x20);
+            return lower.Slice(0, name.Length).SequenceEqual("utf-8"u8) || lower.Slice(0, name.Length).SequenceEqual("utf8"u8);
         }
 
         private static string ResolveTarget(string sourcePartName, string target) {
@@ -619,15 +699,28 @@ namespace OfficeIMO.Excel {
             || string.Equals(relationshipType, OfficeMacroSheetRelationshipType, StringComparison.Ordinal)
             || string.Equals(relationshipType, OfficeInternationalMacroSheetRelationshipType, StringComparison.Ordinal);
 
+        private static PackageRelationship? FindSingleOfficeRelationship(
+            Dictionary<string, PackageRelationship> relationships, string suffix, out bool multiple) {
+            PackageRelationship? match = null;
+            multiple = false;
+            foreach (KeyValuePair<string, PackageRelationship> relationship in relationships) {
+                if (!IsOfficeRelationship(relationship.Value.Type, suffix)) continue;
+                if (match != null) {
+                    multiple = true;
+                    return null;
+                }
+                match = relationship.Value;
+            }
+            return match;
+        }
+
         private static bool IsOfficeRelationship(string? relationshipType, string suffix) =>
-            string.Equals(
-                relationshipType,
-                TransitionalOfficeRelationshipsNamespace + suffix,
-                StringComparison.Ordinal)
-            || string.Equals(
-                relationshipType,
-                StrictOfficeRelationshipsNamespace + suffix,
-                StringComparison.Ordinal);
+            relationshipType != null
+            && relationshipType.EndsWith(suffix, StringComparison.Ordinal)
+            && (relationshipType.Length == TransitionalOfficeRelationshipsNamespace.Length + suffix.Length
+                    && relationshipType.StartsWith(TransitionalOfficeRelationshipsNamespace, StringComparison.Ordinal)
+                || relationshipType.Length == StrictOfficeRelationshipsNamespace.Length + suffix.Length
+                    && relationshipType.StartsWith(StrictOfficeRelationshipsNamespace, StringComparison.Ordinal));
 
         private static XlsxTabularSheet? ResolvePrefetchedSheet(
             IReadOnlyList<XlsxTabularSheet> sheets,

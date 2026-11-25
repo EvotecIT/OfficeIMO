@@ -28,21 +28,21 @@ internal sealed partial class OfficeXmlPullReader {
     private readonly bool _processMarkupCompatibility;
     private int _position;
 
-    private Frame[] _frames = new Frame[16];
+    private Frame[] _frames;
     private int _frameCount;
     private int _depth;
     private bool _pendingEnd;
     private bool _decrementDepth;
     private bool _rootSeen;
 
-    private Binding[] _bindings = new Binding[8];
+    private Binding[] _bindings;
     private int _bindingCount;
     private int[] _ignorable = Array.Empty<int>();
     private int _ignorableCount;
     private ProcessContentEntry[] _processContent = Array.Empty<ProcessContentEntry>();
     private int _processContentCount;
 
-    private Attribute[] _attributes = new Attribute[8];
+    private Attribute[] _attributes;
     private int _attributeCount;
 
     private int _nameStart;
@@ -57,14 +57,37 @@ internal sealed partial class OfficeXmlPullReader {
     /// <param name="namespaces">Namespace ids shared with other parts of the same package.</param>
     /// <param name="processMarkupCompatibility">False reports <c>mc:</c> elements and elements in ignorable
     /// namespaces as ordinary elements, for callers that decline such markup themselves.</param>
-    internal OfficeXmlPullReader(byte[] data, int length, OfficeXmlNamespaces.Table? namespaces = null, bool processMarkupCompatibility = true) {
+    /// <param name="recycle">A finished reader whose scratch arrays this reader takes over; it must not be used
+    /// afterwards. Callers reading several small parts in turn avoid allocating them again.</param>
+    internal OfficeXmlPullReader(byte[] data, int length, OfficeXmlNamespaces.Table? namespaces = null, bool processMarkupCompatibility = true,
+        OfficeXmlPullReader? recycle = null) {
         ArgumentNullException.ThrowIfNull(data);
         if (length < 0 || length > data.Length) throw new ArgumentOutOfRangeException(nameof(length));
+        _frames = recycle?._frames ?? new Frame[16];
+        _bindings = recycle?._bindings ?? new Binding[8];
+        _attributes = recycle?._attributes ?? new Attribute[8];
+        _decodeBuffer = recycle?._decodeBuffer;
         _namespaces = namespaces ?? new OfficeXmlNamespaces.Table();
         _processMarkupCompatibility = processMarkupCompatibility;
 
         int start = 0;
-        if (length >= 2 && (data[0] == 0xFF && data[1] == 0xFE || data[0] == 0xFE && data[1] == 0xFF
+        if (length >= 4 && (data[0] == 0xFF && data[1] == 0xFE && data[2] == 0x00 && data[3] == 0x00
+            || data[0] == 0x00 && data[1] == 0x00 && data[2] == 0xFE && data[3] == 0xFF
+            || data[0] == 0x3C && data[1] == 0x00 && data[2] == 0x00 && data[3] == 0x00
+            || data[0] == 0x00 && data[1] == 0x00 && data[2] == 0x00 && data[3] == 0x3C)) {
+            // XML readers also accept UTF-32 parts; they are transcoded like UTF-16 ones.
+            bool bigEndian = data[0] == 0x00;
+            string text;
+            try {
+                text = new UTF32Encoding(bigEndian, byteOrderMark: false, throwOnInvalidCharacters: true).GetString(data, 0, length);
+            } catch (DecoderFallbackException) {
+                throw Malformed("The part is not valid UTF-32.");
+            }
+            if (text.Length > 0 && text[0] == '\uFEFF') text = text.Substring(1);
+            data = Encoding.UTF8.GetBytes(text);
+            length = data.Length;
+            Transcoded = true;
+        } else if (length >= 2 && (data[0] == 0xFF && data[1] == 0xFE || data[0] == 0xFE && data[1] == 0xFF
             || data[0] == 0x3C && data[1] == 0x00 || data[0] == 0x00 && data[1] == 0x3C)) {
             // ECMA-376 Part 2 allows UTF-16 parts. They are rare, so they are transcoded rather than read natively.
             bool bigEndian = data[0] == 0xFE || data[0] == 0x00;
