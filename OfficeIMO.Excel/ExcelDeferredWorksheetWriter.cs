@@ -4,30 +4,33 @@ using OfficeIMO.Core.Internal.OpenXml;
 
 namespace OfficeIMO.Excel {
     /// <summary>
-    /// What the owned save writes for one cell: its last value, with the shared-string index or text already resolved,
-    /// and the style changes in the order they were made. A cell with style changes only keeps its value.
+    /// A worksheet's recorded changes in the order the save merges them: by row, then column, then the order they
+    /// were made. Several changes to one cell are one group; its last value wins and its style changes apply in turn.
     /// </summary>
-    internal sealed class ExcelDeferredCellOutput {
-        /// <summary>The cell type attribute: <c>s</c>, <c>str</c>, <c>n</c> or <c>b</c>; null when the value is unchanged.</summary>
-        internal string? Type { get; private set; }
-        /// <summary>The text of the value element, not yet escaped for XML.</summary>
-        internal string? Value { get; private set; }
-        internal List<ExcelStyleOperation>? Operations { get; private set; }
+    internal sealed class ExcelDeferredSheetCells {
+        private readonly ExcelDeferredCellStore _store;
+        private readonly int[]? _order;
 
-        internal bool HasValue => Type != null;
-
-        internal void SetValue(string type, string value, bool date) {
-            Type = type;
-            Value = value;
-            if (date) AddStyle(ExcelStyleOperation.Date);
+        internal ExcelDeferredSheetCells(ExcelDeferredCellStore store, Func<string, int> sharedStringIndex, Func<DateTime, double> serial) {
+            _store = store;
+            _order = store.CellOrder();
+            SharedStringIndex = sharedStringIndex;
+            Serial = serial;
         }
 
-        internal void AddStyle(ExcelStyleOperation operation) => (Operations ??= new List<ExcelStyleOperation>()).Add(operation);
+        internal int Count => _store.Count;
+
+        internal ref ExcelDeferredCellEdit At(int position) => ref _store[_order != null ? _order[position] : position];
+
+        /// <summary>The shared-string index of a text, or -1 when the text is written into the cell.</summary>
+        internal Func<string, int> SharedStringIndex { get; }
+
+        internal Func<DateTime, double> Serial { get; }
     }
 
     /// <summary>
-    /// Writes a worksheet with edited cell values by streaming its source: rows and cells the edits do not touch are
-    /// copied as they were read, edited cells are written as the model's save writes plain value cells, and the
+    /// Writes a worksheet with recorded changes by streaming its source: rows and cells the changes do not touch are
+    /// copied as they were read, changed cells are written as the model's save writes plain value cells, and the
     /// dimension covers every cell, as the model's save computes it. Markup the merge does not understand where it
     /// would have to change something returns null, and the save goes through the SDK model instead.
     /// </summary>
@@ -35,39 +38,43 @@ namespace OfficeIMO.Excel {
         private static readonly UTF8Encoding Utf8 = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 
         /// <summary>
-        /// Returns the merged worksheet, or null when it must be written through the model. <paramref name="rows"/>
-        /// maps row numbers to the edited cells of the row by column. <paramref name="applyStyle"/> gives the style a
-        /// cell takes from a style change, or null when the model must make it.
+        /// Returns the merged worksheet in a buffer rented from the shared array pool, or null when it must be written
+        /// through the model. <paramref name="applyStyle"/>
+        /// gives the style a cell takes from a style change, or null when the model must make it.
         /// </summary>
-        internal static byte[]? TryMerge(byte[] xml, int length, SortedDictionary<int, SortedDictionary<int, ExcelDeferredCellOutput>> rows,
-            Func<uint, ExcelStyleOperation, uint?> applyStyle, out int resultLength, out int removedSharedReferences, out string? reason) {
+        internal static byte[]? TryMerge(byte[] xml, int length, ExcelDeferredSheetCells cells, Func<uint, ExcelStyleOperation, uint?> applyStyle,
+            out int resultLength, out int addedSharedReferences, out int removedSharedReferences, out string? reason) {
             resultLength = 0;
-            removedSharedReferences = 0;
+            addedSharedReferences = removedSharedReferences = 0;
             reason = null;
             var reader = new OfficeXmlPullReader(xml, length, processMarkupCompatibility: false);
-            var merge = new Merge(xml, rows, applyStyle);
+            var merge = new Merge(xml, length, cells, applyStyle);
             try {
                 if (!merge.Run(reader, out resultLength)) {
                     reason = merge.Reason ?? "the worksheet markup needs the model";
+                    merge.ReturnOutput();
                     return null;
                 }
+                addedSharedReferences = merge.AddedSharedReferences;
                 removedSharedReferences = merge.RemovedSharedReferences;
                 return merge.Output;
             } catch (System.Xml.XmlException exception) {
                 reason = "the worksheet is not well-formed XML: " + exception.Message;
+                merge.ReturnOutput();
                 return null;
-            } catch (DateStyleUnavailableException) {
+            } catch (StyleUnavailableException) {
                 reason = "a style change needs the model to complete the stylesheet";
+                merge.ReturnOutput();
                 return null;
             }
         }
 
         private sealed class Merge {
             private readonly byte[] _source;
-            private readonly SortedDictionary<int, SortedDictionary<int, ExcelDeferredCellOutput>> _rows;
+            private readonly int _sourceLength;
+            private readonly ExcelDeferredSheetCells _cells;
             private readonly Func<uint, ExcelStyleOperation, uint?> _applyStyle;
-            private readonly List<int> _pendingRows;
-            private int _nextPendingRow;
+            private int _position;
             private byte[] _output;
             private int _outputLength;
             private int _copied;
@@ -76,12 +83,12 @@ namespace OfficeIMO.Excel {
             private bool _columnsSeen;
             private int _minRow = int.MaxValue, _maxRow, _minColumn = int.MaxValue, _maxColumn;
 
-            internal Merge(byte[] source, SortedDictionary<int, SortedDictionary<int, ExcelDeferredCellOutput>> rows, Func<uint, ExcelStyleOperation, uint?> applyStyle) {
+            internal Merge(byte[] source, int sourceLength, ExcelDeferredSheetCells cells, Func<uint, ExcelStyleOperation, uint?> applyStyle) {
                 _source = source;
-                _rows = rows;
+                _sourceLength = sourceLength;
+                _cells = cells;
                 _applyStyle = applyStyle;
-                _pendingRows = new List<int>(rows.Keys);
-                _output = new byte[Math.Max(256, source.Length + 4096)];
+                _output = System.Buffers.ArrayPool<byte>.Shared.Rent(Math.Max(256, sourceLength + cells.Count * 48 + 1024));
             }
 
             internal byte[] Output => _output;
@@ -89,20 +96,65 @@ namespace OfficeIMO.Excel {
             /// <summary>Why the merge left the worksheet to the model.</summary>
             internal string? Reason { get; private set; }
 
+            /// <summary>Written cells that hold a shared string.</summary>
+            internal int AddedSharedReferences { get; private set; }
+
+            /// <summary>Changed cells that held a shared string before the change.</summary>
+            internal int RemovedSharedReferences { get; private set; }
+
             private bool Fail(string reason) {
                 Reason ??= reason;
                 return false;
             }
 
-            /// <summary>Edited cells that held a shared string before the edit.</summary>
-            internal int RemovedSharedReferences { get; private set; }
+            // Encoded tag fragments for the prefix last written with, so a cell is written with byte copies.
+            private string? _fragmentPrefix;
+            private byte[] _cellOpen = Array.Empty<byte>(), _valueOpen = Array.Empty<byte>(), _valueClose = Array.Empty<byte>(),
+                _rowOpen = Array.Empty<byte>(), _rowClose = Array.Empty<byte>();
+
+            private void UseFragments(string prefix) {
+                if (ReferenceEquals(prefix, _fragmentPrefix) || prefix == _fragmentPrefix) return;
+                _fragmentPrefix = prefix;
+                string p = prefix.Length == 0 ? string.Empty : prefix + ":";
+                _cellOpen = Utf8.GetBytes("<" + p + "c r=\"");
+                _valueOpen = Utf8.GetBytes("<" + p + "v>");
+                _valueClose = Utf8.GetBytes("</" + p + "v></" + p + "c>");
+                _rowOpen = Utf8.GetBytes("<" + p + "row r=\"");
+                _rowClose = Utf8.GetBytes("</" + p + "row>");
+            }
+
+            private static readonly byte[] StyleOpen = Encoding.ASCII.GetBytes(" s=\"");
+            private static readonly byte[] TypeShared = Encoding.ASCII.GetBytes("\" t=\"s\"");
+            private static readonly byte[] TypeInline = Encoding.ASCII.GetBytes("\" t=\"str\"");
+            private static readonly byte[] TypeNumber = Encoding.ASCII.GetBytes("\" t=\"n\"");
+            private static readonly byte[] TypeBoolean = Encoding.ASCII.GetBytes("\" t=\"b\"");
+            private static readonly byte[] EmptyClose = Encoding.ASCII.GetBytes("\" />");
+
+            private void AppendFragment(byte[] fragment) => AppendBytes(fragment, 0, fragment.Length);
+
+            private bool HasPending => _position < _cells.Count;
+
+            private int PendingRow => _cells.At(_position).Row;
+
+            private int PendingColumn => _cells.At(_position).Column;
+
+            /// <summary>Takes the changes of the next cell: positions <paramref name="start"/> up to <paramref name="end"/>.</summary>
+            private void NextGroup(out int start, out int end) {
+                start = _position;
+                ref ExcelDeferredCellEdit first = ref _cells.At(_position);
+                int row = first.Row, column = first.Column;
+                do {
+                    _position++;
+                } while (_position < _cells.Count && _cells.At(_position).Row == row && _cells.At(_position).Column == column);
+                end = _position;
+            }
 
             internal bool Run(OfficeXmlPullReader reader, out int resultLength) {
                 resultLength = 0;
                 string mainPrefix = string.Empty;
-                // Where the dimension's reference value is, in the output, or where a new dimension element goes.
-                int dimensionValueAt = -1, dimensionValueLength = 0, dimensionInsertAt = -1;
-                bool rootSeen = false, dimensionSeen = false, sheetDataSeen = false, inSheetData = false, inColumns = false;
+                // Where the dimension's reference value is in the output, or where a new dimension element goes.
+                int dimensionValueAt = -1, dimensionInsertAt = -1;
+                bool rootSeen = false, dimensionSeen = false, sheetDataSeen = false, inColumns = false;
                 int previousRow = 0;
 
                 while (reader.Read()) {
@@ -122,20 +174,19 @@ namespace OfficeIMO.Excel {
                         if (depth == 2) {
                             if (reader.NamespaceId != OfficeXmlNamespaces.SpreadsheetML) continue;
                             if (reader.LocalNameEquals("sheetPr")) {
-                                if (reader.IsEmptyElement) dimensionInsertAt = reader.MarkupEnd;
-                                else {
-                                    reader.SkipElement();
-                                    dimensionInsertAt = reader.MarkupEnd;
-                                }
+                                if (!reader.IsEmptyElement) reader.SkipElement();
+                                else reader.Read();
+                                dimensionInsertAt = reader.MarkupEnd;
                                 continue;
                             }
                             if (reader.LocalNameEquals("dimension")) {
                                 // The model removes extra dimensions and adds a missing reference; those stay with it.
-                                if (dimensionSeen || !TryFindAttribute(reader, "ref", out int start, out int valueLength)) return Fail("the worksheet has more than one dimension or one without a reference");
+                                if (dimensionSeen || !TryFindAttribute(reader, "ref", out int start, out int valueLength)) {
+                                    return Fail("the worksheet has more than one dimension or one without a reference");
+                                }
                                 dimensionSeen = true;
                                 CopyTo(start);
                                 dimensionValueAt = _outputLength;
-                                dimensionValueLength = 0;
                                 _copied = start + valueLength;
                                 continue;
                             }
@@ -149,54 +200,41 @@ namespace OfficeIMO.Excel {
                                 sheetDataSeen = true;
                                 string prefix = reader.ElementPrefix;
                                 if (reader.IsEmptyElement) {
-                                    if (_pendingRows.Count > 0) {
+                                    if (HasPending) {
                                         // <sheetData/> becomes an element holding the new rows.
                                         CopyTo(reader.MarkupStart);
-                                        AppendAscii("<" + Qualified(prefix, "sheetData") + ">");
-                                        if (!WritePendingRowsBefore(int.MaxValue, prefix)) return false;
-                                        AppendAscii("</" + Qualified(prefix, "sheetData") + ">");
+                                        AppendTag("<", prefix, "sheetData", ">");
+                                        WritePendingRowsBefore(int.MaxValue, prefix);
+                                        AppendTag("</", prefix, "sheetData", ">");
                                         _copied = reader.MarkupEnd;
                                     }
                                     continue;
                                 }
-                                inSheetData = true;
                                 if (!ReadSheetData(reader, prefix, ref previousRow)) return false;
-                                inSheetData = false;
                                 continue;
                             }
                             continue;
                         }
-                        if (depth == 3 && inColumns && reader.IsElement(OfficeXmlNamespaces.SpreadsheetML, "col")) {
-                            ReadColumn(reader);
-                        }
+                        if (depth == 3 && inColumns && reader.IsElement(OfficeXmlNamespaces.SpreadsheetML, "col")) ReadColumn(reader);
                         continue;
                     }
                     if (reader.NodeKind == OfficeXmlNodeKind.EndElement && depth == 2) inColumns = false;
                 }
 
-                if (!rootSeen || !sheetDataSeen || inSheetData || _nextPendingRow < _pendingRows.Count) return Fail("the worksheet has no sheetData");
-                CopyTo(_source.Length > 0 ? reader.DataLength : 0);
+                if (!rootSeen || !sheetDataSeen) return Fail("the worksheet has no sheetData");
+                if (HasPending) return Fail("the worksheet ends before its rows");
+                CopyTo(_sourceLength);
 
-                string reference = _maxRow == 0 || _maxColumn == 0
-                    ? "A1"
-                    : Range(_minRow, _minColumn, _maxRow, _maxColumn);
-                byte[] referenceBytes = Encoding.ASCII.GetBytes(reference);
+                string reference = _maxRow == 0 || _maxColumn == 0 ? "A1" : Range(_minRow, _minColumn, _maxRow, _maxColumn);
                 if (dimensionSeen) {
-                    Splice(dimensionValueAt, dimensionValueLength, referenceBytes);
+                    Splice(dimensionValueAt, 0, Encoding.ASCII.GetBytes(reference));
                 } else {
-                    if (dimensionInsertAt < 0) return Fail("the worksheet has no place for a dimension");
-                    // The insertion point is a source position; everything before it was copied unchanged.
-                    byte[] element = Utf8.GetBytes("<" + Qualified(mainPrefix, "dimension") + " ref=\"" + reference + "\" />");
-                    Splice(OutputPositionOf(dimensionInsertAt), 0, element);
+                    // Nothing before the insertion point changed, so it sits where it sat in the source.
+                    Splice(dimensionInsertAt, 0, Utf8.GetBytes("<" + Qualified(mainPrefix, "dimension") + " ref=\"" + reference + "\" />"));
                 }
                 resultLength = _outputLength;
                 return true;
             }
-
-            // Source positions before the first change map to the same output positions.
-            private int OutputPositionOf(int sourcePosition) => sourcePosition <= _firstChangeAt ? sourcePosition : -1;
-
-            private int _firstChangeAt = int.MaxValue;
 
             private void ReadColumn(OfficeXmlPullReader reader) {
                 if (!reader.TryGetAttribute(OfficeXmlNamespaces.None, "min", out string minText)
@@ -219,19 +257,21 @@ namespace OfficeIMO.Excel {
                     if (reader.NodeKind == OfficeXmlNodeKind.EndElement && reader.Depth == 2) {
                         // New rows after the last one go before </sheetData>.
                         CopyTo(reader.MarkupStart);
-                        return WritePendingRowsBefore(int.MaxValue, sheetDataPrefix);
+                        WritePendingRowsBefore(int.MaxValue, sheetDataPrefix);
+                        return true;
                     }
                     if (reader.NodeKind != OfficeXmlNodeKind.StartElement || reader.Depth != 3) continue;
                     if (!reader.IsElement(OfficeXmlNamespaces.SpreadsheetML, "row")) {
                         // Anything else between rows leaves the place of a new row unclear.
-                        if (_nextPendingRow < _pendingRows.Count) return Fail("sheetData holds markup other than rows");
+                        if (HasPending) return Fail("sheetData holds markup other than rows");
                         reader.SkipElement();
                         continue;
                     }
                     int rowNumber;
-                    if (reader.TryGetAttribute(OfficeXmlNamespaces.None, "r", out string rowText)) {
-                        if (!int.TryParse(rowText, NumberStyles.None, CultureInfo.InvariantCulture, out rowNumber)
-                            || rowNumber < 1 || rowNumber > ExcelA1.MaxRows) return Fail("a row number is not valid");
+                    if (TryFindAttribute(reader, "r", out int rowStart, out int rowLength)) {
+                        if (!TryParseNumber(rowStart, rowLength, out rowNumber) || rowNumber < 1 || rowNumber > ExcelA1.MaxRows) {
+                            return Fail("a row number is not valid");
+                        }
                     } else {
                         rowNumber = previousRow + 1;
                     }
@@ -239,132 +279,122 @@ namespace OfficeIMO.Excel {
                     if (rowNumber <= previousRow) return Fail("rows are out of order");
                     previousRow = rowNumber;
 
-                    int rowStart = reader.MarkupStart;
                     string rowPrefix = reader.ElementPrefix;
-                    if (_nextPendingRow < _pendingRows.Count && _pendingRows[_nextPendingRow] < rowNumber) {
-                        CopyTo(rowStart);
-                        if (!WritePendingRowsBefore(rowNumber, rowPrefix)) return false;
+                    if (HasPending && PendingRow < rowNumber) {
+                        CopyTo(reader.MarkupStart);
+                        WritePendingRowsBefore(rowNumber, rowPrefix);
                     }
-
-                    SortedDictionary<int, ExcelDeferredCellOutput>? edits = null;
-                    if (_nextPendingRow < _pendingRows.Count && _pendingRows[_nextPendingRow] == rowNumber) {
-                        edits = _rows[rowNumber];
-                        _nextPendingRow++;
-                    }
-                    if (!ReadRow(reader, rowNumber, rowPrefix, edits)) return false;
+                    bool edited = HasPending && PendingRow == rowNumber;
+                    if (!ReadRow(reader, rowNumber, rowPrefix, edited)) return false;
                 }
                 return false;
             }
 
-            private bool ReadRow(OfficeXmlPullReader reader, int rowNumber, string rowPrefix, SortedDictionary<int, ExcelDeferredCellOutput>? edits) {
+            private bool ReadRow(OfficeXmlPullReader reader, int rowNumber, string rowPrefix, bool edited) {
                 uint? rowStyle = null;
-                if (edits != null && reader.TryGetAttribute(OfficeXmlNamespaces.None, "customFormat", out string customFormat)
+                if (edited && reader.TryGetAttribute(OfficeXmlNamespaces.None, "customFormat", out string customFormat)
                     && customFormat is "1" or "true"
                     && reader.TryGetAttribute(OfficeXmlNamespaces.None, "s", out string rowStyleText)) {
                     if (!uint.TryParse(rowStyleText, NumberStyles.None, CultureInfo.InvariantCulture, out uint parsed)) return Fail("a row style is not a number");
                     rowStyle = parsed;
                 }
-                using IEnumerator<KeyValuePair<int, ExcelDeferredCellOutput>>? pending = edits?.GetEnumerator();
-                bool hasPending = pending?.MoveNext() == true;
 
                 if (reader.IsEmptyElement) {
                     int tagStart = reader.MarkupStart, tagEnd = reader.MarkupEnd;
                     reader.Read();
-                    if (!hasPending) return true;
+                    if (!edited) return true;
                     // <row .../> becomes an element holding its new cells.
                     int slash = tagEnd - 2;
                     while (slash > tagStart && _source[slash] != (byte)'/') slash--;
                     if (_source[slash] != (byte)'/') return Fail("an empty row element is malformed");
                     CopyTo(slash);
-                    AppendAscii(">");
+                    Append((byte)'>');
                     _copied = tagEnd;
-                    while (hasPending) {
-                        WriteCell(rowNumber, pending!.Current.Key, pending.Current.Value, rowPrefix, existingStyle: null,
-                            inheritedStyle: ResolveInheritedStyle(rowStyle, pending.Current.Key));
-                        hasPending = pending.MoveNext();
-                    }
-                    AppendAscii("</" + Qualified(rowPrefix, "row") + ">");
+                    WritePendingCells(rowNumber, int.MaxValue, rowPrefix, rowStyle);
+                    AppendTag("</", rowPrefix, "row", ">");
                     return true;
                 }
 
                 int ordinal = 0, nextColumn = 1, previousColumn = 0;
                 while (reader.Read()) {
                     if (reader.NodeKind == OfficeXmlNodeKind.EndElement && reader.Depth == 3) {
-                        if (hasPending) {
+                        if (edited && HasPending && PendingRow == rowNumber) {
                             CopyTo(reader.MarkupStart);
-                            while (hasPending) {
-                                WriteCell(rowNumber, pending!.Current.Key, pending.Current.Value, rowPrefix, existingStyle: null,
-                                    inheritedStyle: ResolveInheritedStyle(rowStyle, pending.Current.Key));
-                                hasPending = pending.MoveNext();
-                            }
+                            WritePendingCells(rowNumber, int.MaxValue, rowPrefix, rowStyle);
                         }
                         return true;
                     }
                     if (reader.NodeKind != OfficeXmlNodeKind.StartElement || reader.Depth != 4) continue;
                     if (!reader.IsElement(OfficeXmlNamespaces.SpreadsheetML, "c")) {
-                        if (edits != null) return Fail("an edited row holds markup other than cells");
+                        if (edited) return Fail("an edited row holds markup other than cells");
                         reader.SkipElement();
                         continue;
                     }
                     ordinal++;
-                    string? reference = reader.TryGetAttribute(OfficeXmlNamespaces.None, "r", out string referenceText) ? referenceText : null;
+                    bool hasReference = TryFindAttribute(reader, "r", out int referenceStart, out int referenceLength);
                     int resolvedRow = rowNumber, resolvedColumn = 0;
-                    if (ExcelA1.TryParseCellReferenceFast(reference, out int parsedRow, out int parsedColumn)) {
-                        if (parsedRow > 0) resolvedRow = parsedRow;
-                        if (parsedColumn > 0) resolvedColumn = parsedColumn;
+                    bool canonical = false;
+                    if (hasReference) {
+                        if (TryParseCanonicalReference(referenceStart, referenceLength, out int parsedRow, out int parsedColumn)) {
+                            resolvedRow = parsedRow;
+                            resolvedColumn = parsedColumn;
+                            canonical = true;
+                        } else {
+                            string reference = Utf8.GetString(_source, referenceStart, referenceLength);
+                            if (ExcelA1.TryParseCellReferenceFast(reference, out parsedRow, out parsedColumn)) {
+                                if (parsedRow > 0) resolvedRow = parsedRow;
+                                if (parsedColumn > 0) resolvedColumn = parsedColumn;
+                            }
+                        }
                     }
-                    if (resolvedColumn <= 0) resolvedColumn = string.IsNullOrEmpty(reference) ? nextColumn : ordinal;
+                    if (resolvedColumn <= 0) resolvedColumn = !hasReference || referenceLength == 0 ? nextColumn : ordinal;
                     nextColumn = resolvedColumn + 1;
                     if (resolvedRow > 0 && resolvedRow <= ExcelA1.MaxRows && resolvedColumn > 0 && resolvedColumn <= ExcelA1.MaxColumns) {
                         Include(resolvedRow, resolvedColumn);
                     }
 
-                    if (edits == null) {
+                    if (!edited) {
                         reader.SkipElement();
                         continue;
                     }
                     // An edited row is merged by column, which needs canonical references in order.
-                    if (resolvedRow != rowNumber || resolvedColumn <= previousColumn
-                        || reference == null || !string.Equals(reference, ExcelA1.CellReference(rowNumber, resolvedColumn), StringComparison.Ordinal)) {
+                    if (!canonical || resolvedRow != rowNumber || resolvedColumn <= previousColumn) {
                         return Fail("an edited row has cells without canonical references in order");
                     }
                     previousColumn = resolvedColumn;
 
                     int cellStart = reader.MarkupStart;
-                    if (hasPending && pending!.Current.Key < resolvedColumn) {
+                    if (HasPending && PendingRow == rowNumber && PendingColumn < resolvedColumn) {
                         CopyTo(cellStart);
-                        while (hasPending && pending!.Current.Key < resolvedColumn) {
-                            WriteCell(rowNumber, pending.Current.Key, pending.Current.Value, rowPrefix, existingStyle: null,
-                                inheritedStyle: ResolveInheritedStyle(rowStyle, pending.Current.Key));
-                            hasPending = pending.MoveNext();
-                        }
+                        WritePendingCells(rowNumber, resolvedColumn, rowPrefix, rowStyle);
                     }
-                    if (!hasPending || pending!.Current.Key != resolvedColumn) {
+                    if (!HasPending || PendingRow != rowNumber || PendingColumn != resolvedColumn) {
                         reader.SkipElement();
                         continue;
                     }
 
-                    ExcelDeferredCellOutput edit = pending.Current.Value;
-                    if (!edit.HasValue) {
+                    NextGroup(out int start, out int end);
+                    if (LastValue(start, end) < 0) {
                         // A style change keeps the cell as it is apart from its style attribute.
-                        if (!TryRestyleCell(reader, edit, rowNumber, resolvedColumn)) return false;
-                        hasPending = pending.MoveNext();
+                        if (!TryRestyleCell(reader, start, end)) return false;
                         continue;
                     }
                     // The edited cell keeps its style and formula, as the model does; its cached value and any inline
                     // string are replaced. Rich-value metadata and extensions need the model.
-                    if (!TryReadEditableCell(reader, out string? existingStyle, out string extraAttributes)) return Fail("an edited cell holds rich-value metadata or unknown attributes");
+                    if (!TryReadEditableCell(reader, out uint? existingStyle, out string extraAttributes)) {
+                        return Fail("an edited cell holds rich-value metadata or unknown attributes");
+                    }
                     if (reader.TryGetAttribute(OfficeXmlNamespaces.None, "t", out string existingType) && existingType == "s") RemovedSharedReferences++;
                     string cellPrefix = reader.ElementPrefix;
-                    string? formula = null;
+                    int formulaStart = -1, formulaEnd = -1;
                     if (!reader.IsEmptyElement) {
                         while (reader.Read()) {
                             if (reader.NodeKind == OfficeXmlNodeKind.EndElement && reader.Depth == 4) break;
                             if (reader.NodeKind != OfficeXmlNodeKind.StartElement || reader.Depth != 5) continue;
-                            if (reader.IsElement(OfficeXmlNamespaces.SpreadsheetML, "f") && formula == null) {
-                                int formulaStart = reader.MarkupStart;
+                            if (reader.IsElement(OfficeXmlNamespaces.SpreadsheetML, "f") && formulaStart < 0) {
+                                formulaStart = reader.MarkupStart;
                                 reader.SkipElement();
-                                formula = Utf8.GetString(_source, formulaStart, reader.MarkupEnd - formulaStart);
+                                formulaEnd = reader.MarkupEnd;
                             } else if (reader.IsElement(OfficeXmlNamespaces.SpreadsheetML, "v") || reader.IsElement(OfficeXmlNamespaces.SpreadsheetML, "is")) {
                                 reader.SkipElement();
                             } else {
@@ -376,73 +406,86 @@ namespace OfficeIMO.Excel {
                     }
                     int cellEnd = reader.MarkupEnd;
                     CopyTo(cellStart);
-                    WriteCell(rowNumber, resolvedColumn, edit, cellPrefix, existingStyle, inheritedStyle: 0U, extraAttributes, formula);
+                    WriteCell(rowNumber, resolvedColumn, start, end, cellPrefix, existingStyle, 0U, extraAttributes, formulaStart, formulaEnd);
                     _copied = cellEnd;
-                    hasPending = pending.MoveNext();
                 }
                 return false;
             }
 
             /// <summary>Rewrites the style attribute of the cell the reader is on, leaving the rest of its markup as it was.</summary>
-            private bool TryRestyleCell(OfficeXmlPullReader reader, ExcelDeferredCellOutput edit, int row, int column) {
-                string? existingStyle = null;
+            private bool TryRestyleCell(OfficeXmlPullReader reader, int start, int end) {
+                uint existingStyle = 0U;
                 int styleStart = -1, styleLength = 0;
-                for (int index = 0; index < reader.AttributeCount; index++) {
-                    if (reader.GetAttributeNamespace(index, out _) == OfficeXmlNamespaces.None && reader.GetAttributeLocalName(index) == "s") {
-                        existingStyle = reader.GetAttributeValue(index);
-                        if (!uint.TryParse(existingStyle, NumberStyles.None, CultureInfo.InvariantCulture, out _)) return Fail("a cell style is not a number");
-                        reader.GetAttributeRawValue(index, out styleStart, out styleLength);
-                    }
+                if (TryFindAttribute(reader, "s", out int found, out int foundLength)) {
+                    if (!TryParseNumber(found, foundLength, out int parsed)) return Fail("a cell style is not a number");
+                    existingStyle = (uint)parsed;
+                    styleStart = found;
+                    styleLength = foundLength;
                 }
-                uint style = ResolveStyle(edit, existingStyle != null ? uint.Parse(existingStyle, CultureInfo.InvariantCulture) : 0U)!.Value;
-                string text = style.ToString(CultureInfo.InvariantCulture);
+                uint style = ResolveStyle(start, end, existingStyle)!.Value;
                 if (styleStart >= 0) {
                     CopyTo(styleStart);
-                    AppendText(text);
+                    AppendNumber(style);
                     _copied = styleStart + styleLength;
                 } else {
                     // The reference comes first; the style follows it, as the model writes it.
                     if (!TryFindAttribute(reader, "r", out int referenceStart, out int referenceLength)) return Fail("a restyled cell has no reference");
-                    int afterReference = referenceStart + referenceLength + 1;
-                    CopyTo(afterReference);
-                    AppendText(" s=\"" + text + "\"");
+                    CopyTo(referenceStart + referenceLength + 1);
+                    AppendAscii(" s=\"");
+                    AppendNumber(style);
+                    Append((byte)'"');
                 }
-                Include(row, column);
                 reader.SkipElement();
                 return true;
             }
 
-            /// <summary>Applies the cell's style changes to <paramref name="baseStyle"/>; null when there are none.</summary>
-            private uint? ResolveStyle(ExcelDeferredCellOutput edit, uint baseStyle) {
-                if (edit.Operations == null) return null;
-                uint style = baseStyle;
-                foreach (ExcelStyleOperation operation in edit.Operations) {
-                    style = _applyStyle(style, operation) ?? throw new DateStyleUnavailableException();
+            /// <summary>The position of the cell's last value change, or -1 when it only changes style.</summary>
+            private int LastValue(int start, int end) {
+                for (int position = end - 1; position >= start; position--) {
+                    if (_cells.At(position).Kind != ExcelDeferredCellKind.Style) return position;
                 }
-                return style;
+                return -1;
+            }
+
+            /// <summary>Applies the cell's style changes to <paramref name="baseStyle"/>; null when there are none.</summary>
+            private uint? ResolveStyle(int start, int end, uint baseStyle) {
+                uint style = baseStyle;
+                bool changed = false;
+                for (int position = start; position < end; position++) {
+                    ref ExcelDeferredCellEdit edit = ref _cells.At(position);
+                    ExcelStyleOperation? operation = edit.Kind switch {
+                        ExcelDeferredCellKind.Date => ExcelStyleOperation.Date,
+                        ExcelDeferredCellKind.Style => edit.Style,
+                        _ => null
+                    };
+                    if (operation == null) continue;
+                    style = _applyStyle(style, operation) ?? throw new StyleUnavailableException();
+                    changed = true;
+                }
+                return changed ? style : null;
             }
 
             /// <summary>
             /// Reads the style of an edited cell and the attributes it keeps (<c>cm</c>, <c>ph</c>) as written; false for
             /// rich-value metadata, namespaced or unknown attributes.
             /// </summary>
-            private static bool TryReadEditableCell(OfficeXmlPullReader reader, out string? style, out string extraAttributes) {
+            private bool TryReadEditableCell(OfficeXmlPullReader reader, out uint? style, out string extraAttributes) {
                 style = null;
                 extraAttributes = string.Empty;
                 for (int index = 0; index < reader.AttributeCount; index++) {
                     if (reader.GetAttributeNamespace(index, out _) != OfficeXmlNamespaces.None) return false;
+                    reader.GetAttributeRawValue(index, out int start, out int length);
                     switch (reader.GetAttributeLocalName(index)) {
                         case "r":
                         case "t":
                             break;
                         case "s":
-                            style = reader.GetAttributeValue(index);
-                            if (!uint.TryParse(style, NumberStyles.None, CultureInfo.InvariantCulture, out _)) return false;
+                            if (!TryParseNumber(start, length, out int parsed)) return false;
+                            style = (uint)parsed;
                             break;
                         case "cm":
                         case "ph":
-                            reader.GetAttributeRawValue(index, out int start, out int length);
-                            extraAttributes += " " + reader.GetAttributeLocalName(index) + "=\"" + Utf8.GetString(reader.Data, start, length) + "\"";
+                            extraAttributes += " " + reader.GetAttributeLocalName(index) + "=\"" + Utf8.GetString(_source, start, length) + "\"";
                             break;
                         default:
                             return false;
@@ -459,46 +502,82 @@ namespace OfficeIMO.Excel {
                 return 0U;
             }
 
-            private bool WritePendingRowsBefore(int limit, string prefix) {
-                while (_nextPendingRow < _pendingRows.Count && _pendingRows[_nextPendingRow] < limit) {
-                    int rowNumber = _pendingRows[_nextPendingRow++];
-                    string row = Qualified(prefix, "row");
-                    AppendAscii("<" + row + " r=\"" + rowNumber.ToString(CultureInfo.InvariantCulture) + "\">");
-                    foreach (KeyValuePair<int, ExcelDeferredCellOutput> cell in _rows[rowNumber]) {
-                        WriteCell(rowNumber, cell.Key, cell.Value, prefix, existingStyle: null, inheritedStyle: ResolveInheritedStyle(null, cell.Key));
-                    }
-                    AppendAscii("</" + row + ">");
+            private void WritePendingRowsBefore(int limit, string prefix) {
+                UseFragments(prefix);
+                while (HasPending && PendingRow < limit) {
+                    int rowNumber = PendingRow;
+                    AppendFragment(_rowOpen);
+                    AppendLong(rowNumber);
+                    AppendAscii("\">");
+                    WritePendingCells(rowNumber, int.MaxValue, prefix, rowStyle: null);
+                    UseFragments(prefix);
+                    AppendFragment(_rowClose);
                 }
-                return true;
             }
 
-            private void WriteCell(int row, int column, ExcelDeferredCellOutput value, string prefix, string? existingStyle, uint inheritedStyle,
-                string extraAttributes = "", string? formula = null) {
-                Include(row, column);
-                string cell = Qualified(prefix, "c");
-                var text = new StringBuilder(64);
-                text.Append('<').Append(cell).Append(" r=\"").Append(ExcelA1.CellReference(row, column)).Append('"');
-                uint baseStyle = existingStyle != null ? uint.Parse(existingStyle, CultureInfo.InvariantCulture) : inheritedStyle;
-                uint? style = ResolveStyle(value, baseStyle);
-                if (style.HasValue) {
-                    text.Append(" s=\"").Append(style.Value.ToString(CultureInfo.InvariantCulture)).Append('"');
-                } else if (existingStyle != null) {
-                    text.Append(" s=\"").Append(existingStyle).Append('"');
-                } else if (inheritedStyle != 0U) {
-                    text.Append(" s=\"").Append(inheritedStyle.ToString(CultureInfo.InvariantCulture)).Append('"');
+            /// <summary>Writes the new cells of <paramref name="row"/> before column <paramref name="limit"/>.</summary>
+            private void WritePendingCells(int row, int limit, string prefix, uint? rowStyle) {
+                while (HasPending && PendingRow == row && PendingColumn < limit) {
+                    int column = PendingColumn;
+                    NextGroup(out int start, out int end);
+                    WriteCell(row, column, start, end, prefix, null, ResolveInheritedStyle(rowStyle, column), string.Empty, -1, -1);
                 }
-                if (!value.HasValue) {
+            }
+
+            private void WriteCell(int row, int column, int start, int end, string prefix, uint? existingStyle, uint inheritedStyle,
+                string extraAttributes, int formulaStart, int formulaEnd) {
+                Include(row, column);
+                UseFragments(prefix);
+                AppendFragment(_cellOpen);
+                AppendReference(row, column);
+                uint? style = ResolveStyle(start, end, existingStyle ?? inheritedStyle);
+                uint? written = style ?? existingStyle ?? (inheritedStyle != 0U ? inheritedStyle : null);
+                if (written.HasValue) {
+                    Append((byte)'"');
+                    AppendFragment(StyleOpen);
+                    AppendLong(written.Value);
+                }
+                int value = LastValue(start, end);
+                if (value < 0) {
                     // A new cell that only takes a style has no value.
-                    text.Append(" />");
-                    AppendText(text.ToString());
+                    AppendFragment(EmptyClose);
                     return;
                 }
-                text.Append(" t=\"").Append(value.Type).Append('"').Append(extraAttributes).Append('>');
-                if (formula != null) text.Append(formula);
-                text.Append('<').Append(Qualified(prefix, "v")).Append('>');
-                AppendEscaped(text, value.Value!);
-                text.Append("</").Append(Qualified(prefix, "v")).Append("></").Append(cell).Append('>');
-                AppendText(text.ToString());
+                ref ExcelDeferredCellEdit edit = ref _cells.At(value);
+                int sharedIndex = -1;
+                switch (edit.Kind) {
+                    case ExcelDeferredCellKind.Text:
+                        sharedIndex = _cells.SharedStringIndex(edit.Text);
+                        if (sharedIndex >= 0) {
+                            AppendFragment(TypeShared);
+                            AddedSharedReferences++;
+                        } else {
+                            AppendFragment(TypeInline);
+                        }
+                        break;
+                    case ExcelDeferredCellKind.Boolean:
+                        AppendFragment(TypeBoolean);
+                        break;
+                    default:
+                        AppendFragment(TypeNumber);
+                        break;
+                }
+                if (extraAttributes.Length > 0) AppendAscii(extraAttributes);
+                Append((byte)'>');
+                if (formulaStart >= 0) AppendBytes(_source, formulaStart, formulaEnd - formulaStart);
+                AppendFragment(_valueOpen);
+                switch (edit.Kind) {
+                    case ExcelDeferredCellKind.Text:
+                        if (sharedIndex >= 0) AppendLong(sharedIndex);
+                        else AppendEscaped(Utilities.ExcelSanitizer.EncodeXString(edit.Text));
+                        break;
+                    case ExcelDeferredCellKind.Number: AppendDouble(edit.Number); break;
+                    case ExcelDeferredCellKind.Integer: AppendLong((long)edit.Number); break;
+                    case ExcelDeferredCellKind.Decimal: AppendAscii(edit.Text); break;
+                    case ExcelDeferredCellKind.Boolean: Append(edit.Number != 0D ? (byte)'1' : (byte)'0'); break;
+                    default: AppendDouble(_cells.Serial(edit.Date)); break;
+                }
+                AppendFragment(_valueClose);
             }
 
             private void Include(int row, int column) {
@@ -526,34 +605,138 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            private static string Qualified(string prefix, string localName) => prefix.Length == 0 ? localName : prefix + ":" + localName;
-
-            private static void AppendEscaped(StringBuilder text, string value) {
-                foreach (char character in value) {
-                    switch (character) {
-                        case '&': text.Append("&amp;"); break;
-                        case '<': text.Append("&lt;"); break;
-                        case '>': text.Append("&gt;"); break;
-                        default: text.Append(character); break;
-                    }
+            /// <summary>Reads a non-negative decimal integer written without leading zeros, sign or spaces.</summary>
+            private bool TryParseNumber(int start, int length, out int value) {
+                value = 0;
+                if (length == 0 || length > 10 || length > 1 && _source[start] == (byte)'0') return false;
+                long result = 0;
+                for (int index = start; index < start + length; index++) {
+                    int digit = _source[index] - '0';
+                    if ((uint)digit > 9U) return false;
+                    result = result * 10 + digit;
                 }
+                if (result > int.MaxValue) return false;
+                value = (int)result;
+                return true;
             }
+
+            /// <summary>Reads a reference written as upper-case column letters followed by the row number, as the model writes it.</summary>
+            private bool TryParseCanonicalReference(int start, int length, out int row, out int column) {
+                row = column = 0;
+                int index = start, end = start + length;
+                while (index < end && _source[index] >= (byte)'A' && _source[index] <= (byte)'Z') {
+                    column = column * 26 + (_source[index] - 'A' + 1);
+                    if (column > ExcelA1.MaxColumns) return false;
+                    index++;
+                }
+                if (index == start || index - start > 3) return false;
+                return TryParseNumber(index, end - index, out row) && row >= 1 && row <= ExcelA1.MaxRows;
+            }
+
+            private static string Qualified(string prefix, string localName) => prefix.Length == 0 ? localName : prefix + ":" + localName;
 
             private void CopyTo(int sourcePosition) {
                 if (sourcePosition <= _copied) return;
-                Ensure(sourcePosition - _copied);
-                Buffer.BlockCopy(_source, _copied, _output, _outputLength, sourcePosition - _copied);
-                _outputLength += sourcePosition - _copied;
+                AppendBytes(_source, _copied, sourcePosition - _copied);
                 _copied = sourcePosition;
             }
 
-            private void AppendAscii(string text) => AppendText(text);
-
-            private void AppendText(string text) {
-                if (_firstChangeAt == int.MaxValue) _firstChangeAt = _copied;
-                int count = Utf8.GetByteCount(text);
+            private void AppendBytes(byte[] bytes, int start, int count) {
                 Ensure(count);
+                Buffer.BlockCopy(bytes, start, _output, _outputLength, count);
+                _outputLength += count;
+            }
+
+            private void Append(byte value) {
+                Ensure(1);
+                _output[_outputLength++] = value;
+            }
+
+            private void AppendAscii(string text) {
+                Ensure(Utf8.GetMaxByteCount(text.Length));
                 _outputLength += Utf8.GetBytes(text, 0, text.Length, _output, _outputLength);
+            }
+
+            private void AppendQualified(string prefix, string localName) {
+                if (prefix.Length > 0) {
+                    AppendAscii(prefix);
+                    Append((byte)':');
+                }
+                AppendAscii(localName);
+            }
+
+            private void AppendTag(string open, string prefix, string localName, string close) {
+                AppendAscii(open);
+                AppendQualified(prefix, localName);
+                AppendAscii(close);
+            }
+
+            private void AppendEscaped(string value) {
+                if (value.IndexOf('&') < 0 && value.IndexOf('<') < 0 && value.IndexOf('>') < 0) {
+                    AppendAscii(value);
+                    return;
+                }
+                var escaped = new StringBuilder(value.Length + 16);
+                foreach (char character in value) {
+                    switch (character) {
+                        case '&': escaped.Append("&amp;"); break;
+                        case '<': escaped.Append("&lt;"); break;
+                        case '>': escaped.Append("&gt;"); break;
+                        default: escaped.Append(character); break;
+                    }
+                }
+                AppendAscii(escaped.ToString());
+            }
+
+            private void AppendNumber(uint value) => AppendLong(value);
+
+            private void AppendLong(long value) {
+                Ensure(21);
+                if (value < 0) {
+                    _output[_outputLength++] = (byte)'-';
+                    value = -value;
+                }
+                int digits = 1;
+                for (long rest = value / 10; rest > 0; rest /= 10) digits++;
+                int position = _outputLength + digits;
+                do {
+                    _output[--position] = (byte)('0' + value % 10);
+                    value /= 10;
+                } while (value > 0);
+                _outputLength += digits;
+            }
+
+            /// <summary>Writes a double as <see cref="InvariantNumberText.Get(double)"/> writes it.</summary>
+            private void AppendDouble(double value) {
+                if (value >= int.MinValue && value <= int.MaxValue) {
+                    int integer = (int)value;
+                    if (value == integer) {
+                        AppendLong(integer);
+                        return;
+                    }
+                }
+#if NETCOREAPP3_0_OR_GREATER
+                Span<char> characters = stackalloc char[32];
+                if (value.TryFormat(characters, out int written, "R", CultureInfo.InvariantCulture)) {
+                    Ensure(written);
+                    for (int index = 0; index < written; index++) _output[_outputLength++] = (byte)characters[index];
+                    return;
+                }
+#endif
+                AppendAscii(InvariantNumberText.Get(value));
+            }
+
+            private void AppendReference(int row, int column) {
+                Ensure(16);
+                Span<byte> letters = stackalloc byte[3];
+                int count = 0;
+                while (column > 0) {
+                    int remainder = (column - 1) % 26;
+                    letters[count++] = (byte)('A' + remainder);
+                    column = (column - 1) / 26;
+                }
+                while (count > 0) _output[_outputLength++] = letters[--count];
+                AppendLong(row);
             }
 
             private void Splice(int at, int removeLength, byte[] insert) {
@@ -566,12 +749,18 @@ namespace OfficeIMO.Excel {
 
             private void Ensure(int additional) {
                 if (_outputLength + additional <= _output.Length) return;
-                Array.Resize(ref _output, Math.Max(_output.Length * 2, _outputLength + additional + 1024));
+                byte[] larger = System.Buffers.ArrayPool<byte>.Shared.Rent(Math.Max(_output.Length * 2, _outputLength + additional + 1024));
+                Buffer.BlockCopy(_output, 0, larger, 0, _outputLength);
+                System.Buffers.ArrayPool<byte>.Shared.Return(_output);
+                _output = larger;
             }
+
+            /// <summary>Gives the output buffer back when the merge's result is not used.</summary>
+            internal void ReturnOutput() => System.Buffers.ArrayPool<byte>.Shared.Return(_output);
         }
 
-        /// <summary>The styles part cannot take the automatic date format without the model.</summary>
-        internal sealed class DateStyleUnavailableException : Exception {
+        /// <summary>The stylesheet cannot take a style change without the model.</summary>
+        internal sealed class StyleUnavailableException : Exception {
         }
     }
 }

@@ -17,9 +17,8 @@ public partial class ExcelSheet {
         BorderStyleValues value = style.ToOpenXml();
         Color? nativeColor = color.HasValue ? ExcelColor.ToSpreadsheetColor(color.Value, _excelDocument.ColorTheme) : null;
         string borderKey = ((int)borders).ToString(System.Globalization.CultureInfo.InvariantCulture) + "|" + style + "|" + nativeColor?.OuterXml;
-        if (TryDeferCellStyle(row, column, ExcelStyleOperation.BorderOf(borders, style.ToOpenXmlToken(),
-                color.HasValue ? ExcelStyleColor.From(color.Value, _excelDocument.ColorTheme) : null),
-                () => CellBorder(row, column, borders, style, color))) return;
+        if (TryDeferCellStyle(row, column, ExcelStyleOperation.Border(borders, style,
+                color.HasValue ? ExcelStyleColor.From(color.Value, _excelDocument.ColorTheme) : null, color))) return;
         WriteCellStyle(row, column, cell => {
             var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
             var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();

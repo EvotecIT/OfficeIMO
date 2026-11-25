@@ -16,6 +16,13 @@ namespace OfficeIMO.Excel {
 
         internal string Name { get; }
         internal uint SheetId { get; }
+
+        /// <summary>The header rows of the sheet's tables, once read; null when a table could not be read.</summary>
+        internal List<(int Row, int First, int Last)>? TableHeaders { get; set; }
+        internal bool TableHeadersRead { get; set; }
+
+        /// <summary>The changes recorded on this sheet while the SDK package is not open, shared by every handle to it.</summary>
+        internal ExcelDeferredCellStore? Cells { get; set; }
         internal string RelationshipId { get; }
         internal string PartName { get; }
         internal bool IsWorksheet { get; }

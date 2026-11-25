@@ -44,6 +44,13 @@ namespace OfficeIMO.Excel {
             _packageCopyOnWriteStream = stream as OfficeCopyOnWriteStream;
             _packageOnCopyOnWriteStream = _packageCopyOnWriteStream != null ? document : null;
             ExcelChartAxisIdGenerator.ReadChartRelationships(document);
+            // Binding hides each sheet's workbook entry, so the changes recorded there move to the sheets that replay them.
+            lock (_deferredEditsGate) {
+                foreach (ExcelSheet edited in _deferredEditedSheets) {
+                    edited.DeferredCellsForReplay = edited.DeferredEntry?.Cells;
+                    if (edited.DeferredEntry is { } entry) entry.Cells = null;
+                }
+            }
             BindDeferredSheets(deferred);
             _openXmlSdkFallbacks.Add(reason ?? DescribeSdkCaller());
             // Values written before the package opened go through the model now, in the order they were written.

@@ -155,6 +155,9 @@ namespace OfficeIMO.Excel {
             return text.ToString();
         }
 
+        /// <summary>The index of the item for <paramref name="text"/>, or -1 when the table has none.</summary>
+        internal int IndexOf(string text) => _indexes.TryGetValue(text, out int index) ? index : -1;
+
         /// <summary>Finds or adds the item for <paramref name="text"/>; false past <paramref name="addLimit"/> items.</summary>
         internal bool TryGetOrAdd(string text, int addLimit, out int index) {
             if (_indexes.TryGetValue(text, out index)) return true;

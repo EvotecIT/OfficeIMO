@@ -1,52 +1,94 @@
 using System.Globalization;
 
 namespace OfficeIMO.Excel {
-    /// <summary>The value kinds a workbook that has not opened its SDK package records without it.</summary>
+    /// <summary>The changes a workbook that has not opened its SDK package records without it.</summary>
     internal enum ExcelDeferredCellKind : byte {
         /// <summary>Text that becomes a shared string, or cell text past the shared-string promotion limit.</summary>
         Text,
-        /// <summary>A number already written as invariant text.</summary>
+        /// <summary>A double.</summary>
         Number,
+        /// <summary>An integer that fits a number cell.</summary>
+        Integer,
+        /// <summary>A decimal that fits a number cell, kept as its invariant text.</summary>
+        Decimal,
         Boolean,
-        /// <summary>A date serial written as invariant text, with the automatic date format.</summary>
+        /// <summary>A date, written as its serial with the automatic date format.</summary>
         Date,
         /// <summary>A style change; the cell keeps its value.</summary>
         Style,
     }
 
-    /// <summary>One cell value written while the SDK package was not open, in the order it was written.</summary>
-    internal readonly struct ExcelDeferredCellEdit {
-        internal ExcelDeferredCellEdit(ExcelSheet sheet, int row, int column, ExcelDeferredCellKind kind, string text, object value,
-            ExcelStyleOperation? style = null, Action? replay = null) {
-            Sheet = sheet;
-            Row = row;
-            Column = column;
-            Kind = kind;
-            Text = text;
-            Value = value;
-            Style = style;
-            Replay = replay;
-        }
+    /// <summary>
+    /// One recorded change. Values are kept as written, without formatting or boxing: <see cref="Number"/> holds the
+    /// double, the integer, 1 or 0 for a Boolean, or the bits of <see cref="DateTime.ToBinary"/> for a date;
+    /// <see cref="Payload"/> holds the text, the decimal text or the <see cref="ExcelStyleOperation"/>.
+    /// </summary>
+    internal struct ExcelDeferredCellEdit {
+        internal int Row;
+        internal ushort Column;
+        internal ExcelDeferredCellKind Kind;
+        internal double Number;
+        internal object? Payload;
 
-        /// <summary>The style change of a <see cref="ExcelDeferredCellKind.Style"/> edit.</summary>
-        internal ExcelStyleOperation? Style { get; }
-        /// <summary>Applies a style edit through the model when the package opens.</summary>
-        internal Action? Replay { get; }
-
-        internal ExcelSheet Sheet { get; }
-        internal int Row { get; }
-        internal int Column { get; }
-        internal ExcelDeferredCellKind Kind { get; }
-        /// <summary>The text the cell holds: the string, the invariant number or serial, or "1"/"0".</summary>
-        internal string Text { get; }
-        /// <summary>The value as the caller passed it, for writing it through the SDK model when the package opens.</summary>
-        internal object Value { get; }
+        internal string Text => (string)Payload!;
+        internal ExcelStyleOperation Style => (ExcelStyleOperation)Payload!;
+        internal DateTime Date => DateTime.FromBinary(BitConverter.DoubleToInt64Bits(Number));
     }
 
     /// <summary>
-    /// Plain cell values written to a worksheet whose workbook has not opened its SDK package are recorded here and
-    /// written by the owned save (<see cref="ExcelDocument"/>'s deferred save). Anything the recorder does not cover
-    /// opens the SDK, which first writes the recorded values through the model in their original order.
+    /// A worksheet's recorded changes in the order they were made, stored in fixed-size chunks so a large write never
+    /// copies what it already holds. Writes that arrive row by row, left to right, are already in the order the save
+    /// merges them in.
+    /// </summary>
+    internal sealed class ExcelDeferredCellStore {
+        private const int ChunkShift = 12;
+        private const int ChunkSize = 1 << ChunkShift;
+        private readonly List<ExcelDeferredCellEdit[]> _chunks = new();
+        private int _lastRow, _lastColumn;
+
+        internal int Count { get; private set; }
+
+        /// <summary>True while every change came after the previous one in row, then column order.</summary>
+        internal bool InCellOrder { get; private set; } = true;
+
+        internal ref ExcelDeferredCellEdit this[int index] => ref _chunks[index >> ChunkShift][index & (ChunkSize - 1)];
+
+        internal void Add(in ExcelDeferredCellEdit edit) {
+            if (edit.Row < _lastRow || edit.Row == _lastRow && edit.Column < _lastColumn) InCellOrder = false;
+            _lastRow = edit.Row;
+            _lastColumn = edit.Column;
+            int slot = Count & (ChunkSize - 1);
+            if (slot == 0) _chunks.Add(new ExcelDeferredCellEdit[Count == 0 ? 64 : ChunkSize]);
+            ExcelDeferredCellEdit[] chunk = _chunks[_chunks.Count - 1];
+            if (slot >= chunk.Length) {
+                Array.Resize(ref chunk, ChunkSize);
+                _chunks[_chunks.Count - 1] = chunk;
+            }
+            chunk[slot] = edit;
+            Count++;
+        }
+
+        /// <summary>The changes in row, column and then recording order, as positions in the store; null when they already are.</summary>
+        internal int[]? CellOrder() {
+            if (InCellOrder) return null;
+            // Row (20 bits), column (14 bits) and position (30 bits) pack into one key, so a primitive sort keeps
+            // changes to one cell in the order they were made.
+            var keys = new ulong[Count];
+            for (int index = 0; index < keys.Length; index++) {
+                ref ExcelDeferredCellEdit edit = ref this[index];
+                keys[index] = ((ulong)(uint)(edit.Row - 1) << 44) | ((ulong)(edit.Column - 1u) << 30) | (uint)index;
+            }
+            Array.Sort(keys);
+            var order = new int[keys.Length];
+            for (int index = 0; index < keys.Length; index++) order[index] = (int)(keys[index] & 0x3FFFFFFFUL);
+            return order;
+        }
+    }
+
+    /// <summary>
+    /// Plain cell values and styles written to a worksheet whose workbook has not opened its SDK package are recorded
+    /// here and written by the owned save. Anything the recorder does not cover opens the SDK, which first applies the
+    /// recorded changes through the model in the order they were made.
     /// </summary>
     public partial class ExcelSheet {
         private bool CanDeferCellValue(int row, int column) =>
@@ -59,43 +101,36 @@ namespace OfficeIMO.Excel {
             // A line break needs the wrap format, which the model applies.
             if (value!.IndexOf('\n') >= 0 || value.IndexOf('\r') >= 0) return false;
             CoerceValueHelper.ValidateSharedStringLength(value, nameof(value));
-            return RecordDeferredCell(row, column, ExcelDeferredCellKind.Text, value, value);
+            return Record(row, column, ExcelDeferredCellKind.Text, 0D, value);
         }
 
         private bool TryDeferCellValue(int row, int column, double value) =>
             !double.IsNaN(value) && !double.IsInfinity(value) && CanDeferCellValue(row, column)
-            && RecordDeferredCell(row, column, ExcelDeferredCellKind.Number, InvariantNumberText.Get(value), value);
+            && Record(row, column, ExcelDeferredCellKind.Number, value, null);
 
         private bool TryDeferCellValue(int row, int column, int value) =>
-            CanDeferCellValue(row, column)
-            && RecordDeferredCell(row, column, ExcelDeferredCellKind.Number, InvariantNumberText.Get(value), value);
+            CanDeferCellValue(row, column) && Record(row, column, ExcelDeferredCellKind.Integer, value, null);
 
         private bool TryDeferCellValue(int row, int column, long value) {
             if (!CanDeferCellValue(row, column)) return false;
-            string text = InvariantNumberText.Get(value);
             // Past 15 significant digits the model keeps the exact value as text.
             return ExcelExactNumber.FitsNumberCell(value)
-                ? RecordDeferredCell(row, column, ExcelDeferredCellKind.Number, text, value)
-                : RecordDeferredCell(row, column, ExcelDeferredCellKind.Text, text, value);
+                ? Record(row, column, ExcelDeferredCellKind.Integer, value, null)
+                : Record(row, column, ExcelDeferredCellKind.Text, 0D, InvariantNumberText.Get(value));
         }
 
         private bool TryDeferCellValue(int row, int column, decimal value) {
             if (!CanDeferCellValue(row, column)) return false;
             string text = value.ToString(CultureInfo.InvariantCulture);
-            return ExcelExactNumber.FitsNumberCell(value)
-                ? RecordDeferredCell(row, column, ExcelDeferredCellKind.Number, text, value)
-                : RecordDeferredCell(row, column, ExcelDeferredCellKind.Text, text, value);
+            return Record(row, column, ExcelExactNumber.FitsNumberCell(value) ? ExcelDeferredCellKind.Decimal : ExcelDeferredCellKind.Text, 0D, text);
         }
 
         private bool TryDeferCellValue(int row, int column, bool value) =>
-            CanDeferCellValue(row, column)
-            && RecordDeferredCell(row, column, ExcelDeferredCellKind.Boolean, value ? "1" : "0", value);
+            CanDeferCellValue(row, column) && Record(row, column, ExcelDeferredCellKind.Boolean, value ? 1D : 0D, null);
 
-        private bool TryDeferCellValue(int row, int column, DateTime value) {
-            if (!CanDeferCellValue(row, column)) return false;
-            double serial = ExcelDateSystemConverter.ToSerial(value, _excelDocument.DateSystem);
-            return RecordDeferredCell(row, column, ExcelDeferredCellKind.Date, InvariantNumberText.Get(serial), value);
-        }
+        private bool TryDeferCellValue(int row, int column, DateTime value) =>
+            CanDeferCellValue(row, column)
+            && Record(row, column, ExcelDeferredCellKind.Date, BitConverter.Int64BitsToDouble(value.ToBinary()), null);
 
         private bool TryDeferBoxedCellValue(int row, int column, object? value) => value switch {
             string text => TryDeferCellValue(row, column, text),
@@ -108,45 +143,41 @@ namespace OfficeIMO.Excel {
             _ => false
         };
 
-        private bool RecordDeferredCell(int row, int column, ExcelDeferredCellKind kind, string text, object value) =>
-            _excelDocument.RecordDeferredCellEdit(new ExcelDeferredCellEdit(this, row, column, kind, text, value));
-
         /// <summary>Records a style change for the owned save; false when the model must apply it.</summary>
-        private bool TryDeferCellStyle(int row, int column, ExcelStyleOperation operation, Action replay) =>
-            CanDeferCellValue(row, column)
-            && _excelDocument.RecordDeferredCellEdit(new ExcelDeferredCellEdit(this, row, column, ExcelDeferredCellKind.Style, string.Empty,
-                string.Empty, operation, replay));
-
-        private bool TryDeferFontFlag(int row, int column, ExcelStyleOperationKind kind, bool flag, Action replay) =>
-            TryDeferCellStyle(row, column, ExcelStyleOperation.Of(kind, flag), replay);
+        private bool TryDeferCellStyle(int row, int column, ExcelStyleOperation operation) =>
+            CanDeferCellValue(row, column) && Record(row, column, ExcelDeferredCellKind.Style, 0D, operation);
 
         private bool TryDeferFontName(int row, int column, string fontName) {
             if (!CanDeferCellValue(row, column)) return false;
             ExcelTextValidation.ThrowIfUnpairedSurrogate(fontName, nameof(fontName), "Font name");
-            return TryDeferCellStyle(row, column, ExcelStyleOperation.Of(ExcelStyleOperationKind.FontName, fontName), () => CellFontName(row, column, fontName));
+            return TryDeferCellStyle(row, column, ExcelStyleOperation.FontName(fontName));
         }
 
         private bool TryDeferNumberFormat(int row, int column, string numberFormat) {
             if (numberFormat == null || !CanDeferCellValue(row, column)) return false;
             ExcelTextValidation.ThrowIfUnpairedSurrogate(numberFormat, nameof(numberFormat), "Number format");
-            return TryDeferCellStyle(row, column, ExcelStyleOperation.Of(ExcelStyleOperationKind.NumberFormat, numberFormat), () => FormatCell(row, column, numberFormat));
+            return TryDeferCellStyle(row, column, ExcelStyleOperation.NumberFormat(numberFormat));
         }
 
-        /// <summary>Writes a recorded value through the model, as the overload it came from would have written it.</summary>
-        internal void ReplayDeferredCellEdit(in ExcelDeferredCellEdit edit) {
-            if (edit.Replay != null) {
-                edit.Replay();
-                return;
-            }
-            switch (edit.Value) {
-                case string text: CellValue(edit.Row, edit.Column, text); break;
-                case double number: CellValue(edit.Row, edit.Column, number); break;
-                case int number: CellValue(edit.Row, edit.Column, number); break;
-                case long number: CellValue(edit.Row, edit.Column, number); break;
-                case decimal number: CellValue(edit.Row, edit.Column, number); break;
-                case bool flag: CellValue(edit.Row, edit.Column, flag); break;
-                case DateTime date: CellValue(edit.Row, edit.Column, date); break;
-                default: throw new InvalidOperationException("A recorded cell value has an unexpected type.");
+        private bool Record(int row, int column, ExcelDeferredCellKind kind, double number, object? payload) {
+            var edit = new ExcelDeferredCellEdit { Row = row, Column = (ushort)column, Kind = kind, Number = number, Payload = payload };
+            return _excelDocument.RecordDeferredCellEdit(this, edit);
+        }
+
+        /// <summary>Applies the recorded changes through the model, as the methods they came from would have.</summary>
+        internal void ReplayDeferredCells(ExcelDeferredCellStore store) {
+            for (int index = 0; index < store.Count; index++) {
+                ref ExcelDeferredCellEdit edit = ref store[index];
+                int row = edit.Row, column = edit.Column;
+                switch (edit.Kind) {
+                    case ExcelDeferredCellKind.Text: CellValue(row, column, edit.Text); break;
+                    case ExcelDeferredCellKind.Number: CellValue(row, column, edit.Number); break;
+                    case ExcelDeferredCellKind.Integer: CellValue(row, column, (long)edit.Number); break;
+                    case ExcelDeferredCellKind.Decimal: CellValue(row, column, decimal.Parse(edit.Text, NumberStyles.Number, CultureInfo.InvariantCulture)); break;
+                    case ExcelDeferredCellKind.Boolean: CellValue(row, column, edit.Number != 0D); break;
+                    case ExcelDeferredCellKind.Date: CellValue(row, column, edit.Date); break;
+                    default: edit.Style.Replay(this, row, column); break;
+                }
             }
         }
     }

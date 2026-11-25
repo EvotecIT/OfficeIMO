@@ -8,24 +8,27 @@ namespace OfficeIMO.Tests {
     /// </summary>
     public class ExcelOpenXmlSdkBoundary {
         // Lower this when a feature area moves off the SDK; it must never rise.
-        private const int MaximumFilesReferencingTheSdkOutsideTheBridge = 580;
+        private const int Baseline = 580;
 
         private static readonly string[] OwnedOpenXmlFiles = {
             "ExcelDeferredPackageParts.cs",
             "ExcelDeferredWorksheetWriter.cs",
             "ExcelDocument.DeferredLoad.cs",
             "ExcelDocument.DeferredSave.cs",
+            "ExcelDocument.DeferredSheets.cs",
             "ExcelOwnedStyles.cs",
             "ExcelSheet.Deferred.cs",
             "ExcelSheet.DeferredEdits.cs",
+            "ExcelStyleOperation.cs",
         };
 
         [Fact]
         public void FilesReferencingTheSdkOutsideTheBridgeDoNotGrow() {
             List<string> files = FilesReferencingTheSdk().ToList();
-            Assert.True(files.Count <= MaximumFilesReferencingTheSdkOutsideTheBridge,
-                files.Count + " files outside OfficeIMO.Excel/OpenXmlSdk reference DocumentFormat.OpenXml; at most "
-                + MaximumFilesReferencingTheSdkOutsideTheBridge + " may.");
+            Assert.True(files.Count <= Baseline,
+                files.Count + " files outside OfficeIMO.Excel/OpenXmlSdk reference DocumentFormat.OpenXml; at most " + Baseline + " may.");
+            // A count below the baseline is progress the baseline has to record, so it cannot rise again unnoticed.
+            Assert.True(files.Count == Baseline, "Only " + files.Count + " files reference the SDK now; lower the baseline to " + files.Count + ".");
         }
 
         [Fact]

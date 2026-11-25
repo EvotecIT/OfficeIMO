@@ -162,14 +162,28 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
 
     /// <summary>Replaces the content of an existing part with <paramref name="length"/> bytes of <paramref name="content"/>.</summary>
     /// <exception cref="InvalidDataException">The package has no such part.</exception>
-    internal void ReplacePart(string partName, byte[] content, int length) {
+    internal void ReplacePart(string partName, byte[] content, int length) => ReplacePart(partName, content, length, pooled: false);
+
+    /// <summary>
+    /// Replaces the content of an existing part; with <paramref name="pooled"/>, <paramref name="content"/> was rented from
+    /// <see cref="System.Buffers.ArrayPool{T}.Shared"/> and goes back to it when the package is disposed.
+    /// </summary>
+    internal void ReplacePart(string partName, byte[] content, int length, bool pooled) {
         Part part = Find(partName) ?? throw new InvalidDataException("The package has no part '" + partName + "'.");
         part.Source?.Dispose();
         part.Source = null;
+        ReturnContent(part);
         part.Tree = null;
         part.Content = content;
         part.ContentLength = length;
+        part.ContentPooled = pooled;
         part.FromSource = false;
+    }
+
+    private static void ReturnContent(Part part) {
+        if (part.ContentPooled && part.Content != null) System.Buffers.ArrayPool<byte>.Shared.Return(part.Content);
+        part.ContentPooled = false;
+        part.Content = null;
     }
 
     /// <summary>Removes a part and its content-type override. Relationships that point to it are the caller's to remove.</summary>
@@ -359,8 +373,14 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
 #if NET8_0_OR_GREATER
         if (BitConverter.IsLittleEndian) {
             using var zip = new OfficeZipWriter(destination, _modified);
+            // Large replaced parts are deflated side by side first, then appended in package order.
+            Dictionary<Part, OfficeZipWriter.PreparedEntry>? prepared = PrepareLargeParts();
             foreach (Part part in _parts) {
                 if (part.Deleted) continue;
+                if (prepared != null && prepared.TryGetValue(part, out OfficeZipWriter.PreparedEntry? preparedEntry)) {
+                    zip.WritePrepared(part.Member, preparedEntry);
+                    continue;
+                }
                 bool unchanged = part.FromSource && (part.Tree == null || !part.Tree.IsChanged);
                 if (unchanged && _zip!.TryReadStored(part.Member, out OfficeZipStoredMember stored)) {
                     using (stored) {
@@ -384,6 +404,26 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
         }
     }
 
+#if NET8_0_OR_GREATER
+    private const int ParallelPartBytes = 128 * 1024;
+
+    private Dictionary<Part, OfficeZipWriter.PreparedEntry>? PrepareLargeParts() {
+        List<Part>? large = null;
+        foreach (Part part in _parts) {
+            if (!part.Deleted && part.Tree == null && part.Content != null && part.ContentLength >= ParallelPartBytes) (large ??= new List<Part>()).Add(part);
+        }
+        if (large == null || large.Count < 2) return null;
+        var entries = new OfficeZipWriter.PreparedEntry[large.Count];
+        System.Threading.Tasks.Parallel.For(0, large.Count, index => {
+            Part part = large[index];
+            entries[index] = OfficeZipWriter.Prepare(stream => stream.Write(part.Content!, 0, part.ContentLength));
+        });
+        var prepared = new Dictionary<Part, OfficeZipWriter.PreparedEntry>(large.Count);
+        for (int index = 0; index < large.Count; index++) prepared[large[index]] = entries[index];
+        return prepared;
+    }
+#endif
+
     private void WritePart(Part part, Stream output, OfficeXmlUtf8Writer xml) {
         if (part.Tree != null) {
             xml.Target = output;
@@ -403,6 +443,7 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
             if (_poolTrees) part.Tree?.ReleasePooledStorage();
             part.Source?.Dispose();
             part.Source = null;
+            ReturnContent(part);
         }
         _zip?.Dispose();
     }
@@ -444,6 +485,7 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
         internal int ContentLength { get; set; }
         internal bool Deleted { get; set; }
         internal string? DeletedContentType { get; set; }
+        internal bool ContentPooled { get; set; }
         // Stored in the package that was opened, so an unchanged part can be copied as its ZIP member.
         internal bool FromSource { get; set; }
     }

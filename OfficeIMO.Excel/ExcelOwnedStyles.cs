@@ -43,32 +43,6 @@ namespace OfficeIMO.Excel {
         TextRotation,
     }
 
-    /// <summary>One style change written to a cell, as one of the model's cell style methods applies it.</summary>
-    internal sealed class ExcelStyleOperation {
-        private ExcelStyleOperation(ExcelStyleOperationKind kind) => Kind = kind;
-
-        internal ExcelStyleOperationKind Kind { get; }
-        internal bool Flag { get; private set; }
-        /// <summary>A token or text argument: an underline or alignment token, a font name or a number format.</summary>
-        internal string? Text { get; private set; }
-        internal double Number { get; private set; }
-        internal ExcelStyleColor? Color { get; private set; }
-        internal ExcelCellBorders Borders { get; private set; }
-
-        internal static readonly ExcelStyleOperation Date = new(ExcelStyleOperationKind.Date);
-
-        internal static ExcelStyleOperation Of(ExcelStyleOperationKind kind, bool flag) => new(kind) { Flag = flag };
-
-        internal static ExcelStyleOperation Of(ExcelStyleOperationKind kind, string? text) => new(kind) { Text = text };
-
-        internal static ExcelStyleOperation Of(ExcelStyleOperationKind kind, double number) => new(kind) { Number = number };
-
-        internal static ExcelStyleOperation Of(ExcelStyleOperationKind kind, ExcelStyleColor color) => new(kind) { Color = color };
-
-        internal static ExcelStyleOperation BorderOf(ExcelCellBorders borders, string style, ExcelStyleColor? color) =>
-            new(ExcelStyleOperationKind.Border) { Borders = borders, Text = style, Color = color };
-    }
-
     /// <summary>
     /// The stylesheet of a workbook saved without the SDK. Fonts, fills, borders, number formats and cell formats are
     /// read into small element trees; a style change clones the cell's format, changes what the model's style method
@@ -431,6 +405,16 @@ namespace OfficeIMO.Excel {
 
         /// <summary>The style a cell with style <paramref name="baseStyle"/> takes after <paramref name="operation"/>, or null when the model must apply it.</summary>
         internal uint? Apply(uint baseStyle, ExcelStyleOperation operation) {
+            // The same change to the same format always gives the same format, as the model's derived-format cache has it.
+            if (_applied.TryGetValue((baseStyle, operation), out uint known)) return known;
+            uint? result = ApplyCore(baseStyle, operation);
+            if (result.HasValue) _applied[(baseStyle, operation)] = result.Value;
+            return result;
+        }
+
+        private readonly Dictionary<(uint, ExcelStyleOperation), uint> _applied = new();
+
+        private uint? ApplyCore(uint baseStyle, ExcelStyleOperation operation) {
             if (operation.Kind == ExcelStyleOperationKind.Date) {
                 if (baseStyle != 0U && HasCalendarFormat(baseStyle)) return baseStyle;
                 return DeriveFormat(baseStyle, format => {

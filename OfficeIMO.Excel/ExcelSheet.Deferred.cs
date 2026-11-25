@@ -6,6 +6,9 @@ namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         private ExcelDeferredSheet? _deferredEntry;
 
+        /// <summary>The changes this sheet applies through the model once the SDK package has opened.</summary>
+        internal ExcelDeferredCellStore? DeferredCellsForReplay { get; set; }
+
         internal ExcelSheet(ExcelDocument excelDocument, ExcelDeferredSheet entry) {
             _excelDocument = excelDocument;
             _deferredEntry = entry;

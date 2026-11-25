@@ -19,14 +19,14 @@ namespace OfficeIMO.Excel {
         private const string TableRelationshipType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "table";
 
         private readonly object _deferredEditsGate = new();
-        private readonly List<ExcelDeferredCellEdit> _deferredEdits = new();
+        // Sheets with recorded changes, in the order their first change was made.
+        private readonly List<ExcelSheet> _deferredEditedSheets = new();
         private const string CellMetadataRelationshipType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "sheetMetadata";
-        private Dictionary<ExcelDeferredSheet, List<(int Row, int First, int Last)>?>? _deferredTableHeaders;
         private bool? _deferredHasCellMetadata;
 
         /// <summary>Records a plain value for the owned save; false when the sheet needs the model for it.</summary>
-        internal bool RecordDeferredCellEdit(in ExcelDeferredCellEdit edit) {
-            ExcelDeferredSheet? entry = edit.Sheet.DeferredEntry;
+        internal bool RecordDeferredCellEdit(ExcelSheet sheet, in ExcelDeferredCellEdit edit) {
+            ExcelDeferredSheet? entry = sheet.DeferredEntry;
             // A value written to a table's header row renames its column, which the model does; styles are plain.
             if (entry == null || _deferredWorkbook == null) return false;
             if (edit.Kind != ExcelDeferredCellKind.Style) {
@@ -40,9 +40,14 @@ namespace OfficeIMO.Excel {
                 }
             }
             lock (_deferredEditsGate) {
-                _deferredEdits.Add(edit);
+                ExcelDeferredCellStore? store = entry.Cells;
+                if (store == null) {
+                    entry.Cells = store = new ExcelDeferredCellStore();
+                    _deferredEditedSheets.Add(sheet);
+                }
+                store.Add(edit);
             }
-            MarkPackageDirty();
+            if (!_packageDirty) MarkPackageDirty();
             MarkFormulaInputMutation();
             return true;
         }
@@ -50,14 +55,15 @@ namespace OfficeIMO.Excel {
         // A value written to a table's header row renames its column, which the model does; the header rows of the
         // sheet's tables are read once.
         private bool IsTableHeaderCell(ExcelDeferredSheet entry, int row, int column) {
-            _deferredTableHeaders ??= new Dictionary<ExcelDeferredSheet, List<(int Row, int First, int Last)>?>();
-            if (!_deferredTableHeaders.TryGetValue(entry, out var headers)) {
-                headers = ReadTableHeaders(entry);
-                _deferredTableHeaders[entry] = headers;
+            if (!entry.TableHeadersRead) {
+                entry.TableHeaders = ReadTableHeaders(entry);
+                entry.TableHeadersRead = true;
             }
+            List<(int Row, int First, int Last)>? headers = entry.TableHeaders;
             // A table the owned reader cannot read counts as covering every cell.
             if (headers == null) return true;
-            foreach ((int headerRow, int first, int last) in headers) {
+            for (int index = 0; index < headers.Count; index++) {
+                (int headerRow, int first, int last) = headers[index];
                 if (row == headerRow && column >= first && column <= last) return true;
             }
             return false;
@@ -109,12 +115,17 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Writes the recorded values through the model once the SDK package is open, in their original order.</summary>
         private void ReplayDeferredCellEdits() {
-            ExcelDeferredCellEdit[] edits;
+            ExcelSheet[] sheets;
             lock (_deferredEditsGate) {
-                edits = _deferredEdits.ToArray();
-                _deferredEdits.Clear();
+                sheets = _deferredEditedSheets.ToArray();
+                _deferredEditedSheets.Clear();
             }
-            foreach (ExcelDeferredCellEdit edit in edits) edit.Sheet.ReplayDeferredCellEdit(edit);
+            // Every handle to a sheet is bound by now; the one that recorded first applies the sheet's changes.
+            foreach (ExcelSheet sheet in sheets) {
+                ExcelDeferredCellStore? store = sheet.DeferredCellsForReplay;
+                sheet.DeferredCellsForReplay = null;
+                if (store != null) sheet.ReplayDeferredCells(store);
+            }
         }
 
         private bool CanSaveDeferredPackage(ExcelSaveOptions? options) =>
@@ -179,11 +190,14 @@ namespace OfficeIMO.Excel {
         /// <summary>The document now holds what it saved: later reads and saves start from these bytes.</summary>
         private void CompleteDeferredSave(byte[] bytes) {
             lock (_deferredEditsGate) {
-                _deferredEdits.Clear();
+                foreach (ExcelSheet sheet in _deferredEditedSheets) {
+                    if (sheet.DeferredEntry is { } entry) entry.Cells = null;
+                }
+                _deferredEditedSheets.Clear();
             }
             // The caller's stream or file has its own copy; the document keeps the array.
             _deferredPackageBytes = bytes;
-            _deferredTableHeaders = null;
+            foreach (ExcelDeferredSheet entry in _deferredWorkbook?.Sheets ?? new List<ExcelDeferredSheet>()) entry.TableHeadersRead = false;
             _deferredHasCellMetadata = null;
             MarkPackageClean(bytes);
             ReleaseReadSnapshot();
@@ -208,9 +222,9 @@ namespace OfficeIMO.Excel {
         private bool TryCreateDeferredPackageBytesCore(out byte[] bytes) {
             bytes = Array.Empty<byte>();
             ExcelDeferredWorkbook workbook = _deferredWorkbook!;
-            ExcelDeferredCellEdit[] edits;
+            ExcelSheet[] editedSheets;
             lock (_deferredEditsGate) {
-                edits = _deferredEdits.ToArray();
+                editedSheets = _deferredEditedSheets.ToArray();
             }
 
             try {
@@ -234,61 +248,41 @@ namespace OfficeIMO.Excel {
                 ExcelOwnedStyles? styles = null;
                 bool stylesLoaded = false;
 
-                // Values resolve in the order they were written, as the model adds shared strings; the last value wins,
-                // and every style change applies in turn.
-                var sheets = new Dictionary<ExcelDeferredSheet, SortedDictionary<int, SortedDictionary<int, ExcelDeferredCellOutput>>>();
-                foreach (ExcelDeferredCellEdit edit in edits) {
-                    ExcelDeferredSheet entry = edit.Sheet.DeferredEntry ?? throw new InvalidOperationException("A recorded worksheet is bound to the model.");
-                    if (!sheets.TryGetValue(entry, out var rows)) sheets[entry] = rows = new SortedDictionary<int, SortedDictionary<int, ExcelDeferredCellOutput>>();
-                    if (!rows.TryGetValue(edit.Row, out var cells)) rows[edit.Row] = cells = new SortedDictionary<int, ExcelDeferredCellOutput>();
-                    if (!cells.TryGetValue(edit.Column, out ExcelDeferredCellOutput? output)) cells[edit.Column] = output = new ExcelDeferredCellOutput();
-                    if (edit.Kind is ExcelDeferredCellKind.Date or ExcelDeferredCellKind.Style && !stylesLoaded) {
-                        styles = ExcelOwnedStyles.Load(editable, stylesPart);
-                        stylesLoaded = true;
-                    }
-                    switch (edit.Kind) {
-                        case ExcelDeferredCellKind.Text:
-                            if (sharedStrings.TryGetOrAdd(edit.Text, ExcelSheet.CellValuePlainStringPromotionSharedStringCount, out int index)) {
-                                output.SetValue("s", index.ToString(CultureInfo.InvariantCulture), date: false);
-                            } else {
-                                output.SetValue("str", Utilities.ExcelSanitizer.EncodeXString(edit.Text), date: false);
-                            }
-                            break;
-                        case ExcelDeferredCellKind.Number:
-                            output.SetValue("n", edit.Text, date: false);
-                            break;
-                        case ExcelDeferredCellKind.Boolean:
-                            output.SetValue("b", edit.Text, date: false);
-                            break;
-                        case ExcelDeferredCellKind.Date:
+                // Shared strings are added in the order values were written, as the model adds them; a cell's last value
+                // wins and its style changes apply in turn when the worksheet is merged.
+                foreach (ExcelSheet sheet in editedSheets) {
+                    ExcelDeferredCellStore store = sheet.DeferredEntry!.Cells!;
+                    for (int index = 0; index < store.Count; index++) {
+                        ref ExcelDeferredCellEdit edit = ref store[index];
+                        if (edit.Kind == ExcelDeferredCellKind.Text) {
+                            sharedStrings.TryGetOrAdd(edit.Text, ExcelSheet.CellValuePlainStringPromotionSharedStringCount, out _);
+                        } else if (edit.Kind is ExcelDeferredCellKind.Date or ExcelDeferredCellKind.Style && !stylesLoaded) {
+                            styles = ExcelOwnedStyles.Load(editable, stylesPart);
+                            stylesLoaded = true;
                             if (styles == null) return Decline("the stylesheet needs the model");
-                            output.SetValue("n", edit.Text, date: true);
-                            break;
-                        default:
-                            if (styles == null) return Decline("the stylesheet needs the model");
-                            output.AddStyle(edit.Style!);
-                            break;
+                        }
                     }
                 }
 
-                foreach (var sheet in sheets) {
-                    foreach (var row in sheet.Value) {
-                        foreach (var cell in row.Value) {
-                            if (cell.Value.Type == "s") sharedStrings.AddedReferences++;
-                        }
-                    }
+                ExcelDateSystem dateSystem = DateSystem;
+                long changedBytes = 0;
+                foreach (ExcelSheet sheet in editedSheets) {
+                    ExcelDeferredSheet entry = sheet.DeferredEntry ?? throw new InvalidOperationException("A recorded worksheet is bound to the model.");
+                    var cells = new ExcelDeferredSheetCells(entry.Cells!, sharedStrings.IndexOf, date => ExcelDateSystemConverter.ToSerial(date, dateSystem));
                     byte[] merged;
                     int mergedLength;
-                    int removedSharedReferences;
-                    OfficePooledBytes worksheet = editable.ReadPart(sheet.Key.PartName);
+                    OfficePooledBytes worksheet = editable.ReadPart(entry.PartName);
                     using (worksheet) {
-                        byte[]? result = ExcelDeferredWorksheetWriter.TryMerge(worksheet.Array, worksheet.Length, sheet.Value,
-                            (baseStyle, operation) => styles?.Apply(baseStyle, operation), out mergedLength, out removedSharedReferences, out string? mergeReason);
-                        if (result == null) return Decline(sheet.Key.Name + ": " + mergeReason);
+                        byte[]? result = ExcelDeferredWorksheetWriter.TryMerge(worksheet.Array, worksheet.Length, cells,
+                            (baseStyle, operation) => styles?.Apply(baseStyle, operation), out mergedLength,
+                            out int addedSharedReferences, out int removedSharedReferences, out string? mergeReason);
+                        if (result == null) return Decline(entry.Name + ": " + mergeReason);
                         merged = result;
+                        changedBytes += mergedLength;
+                        sharedStrings.AddedReferences += addedSharedReferences;
+                        sharedStrings.RemovedReferences += removedSharedReferences;
                     }
-                    sharedStrings.RemovedReferences += removedSharedReferences;
-                    editable.ReplacePart(sheet.Key.PartName, merged, mergedLength);
+                    editable.ReplacePart(entry.PartName, merged, mergedLength, pooled: true);
                 }
 
                 if (!sharedStrings.TryWrite(editable, workbook.WorkbookPartName)) return Decline("the shared strings part cannot take new items");
@@ -299,7 +293,8 @@ namespace OfficeIMO.Excel {
                     return Decline("the core properties have no modification time to update");
                 }
 
-                using var output2 = new MemoryStream(_deferredPackageBytes!.Length + 4096);
+                // Deflated XML is a fraction of its size; the package rarely outgrows its source by more than its new parts.
+                using var output2 = new MemoryStream((int)Math.Min(int.MaxValue / 2, _deferredPackageBytes!.Length + changedBytes / 3 + 16 * 1024));
                 editable.Save(output2);
                 bytes = output2.ToArray();
                 return true;

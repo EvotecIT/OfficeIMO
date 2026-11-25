@@ -126,6 +126,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ASheetAddedToALoadedWorkbookSavesWithoutTheSdk() {
+            byte[] source = CreateWorkbook();
+            void AddAndFill(ExcelDocument document) {
+                ExcelSheet added = document.AddSheet("Added");
+                added.Cell(1, 1).SetValue("Name").SetBold();
+                added.Cell(2, 1).SetValue(12.5);
+                document.Sheets[0].Cell(2, 1).SetValue("Changed");
+            }
+            byte[] owned = SaveWithoutSdk(source, AddAndFill, out bool stayedOwned);
+            Assert.True(stayedOwned);
+            Assert.Equal(CellsOf(SaveThroughSdk(source, AddAndFill)), CellsOf(owned));
+            using var reread = ExcelDocument.Load(new MemoryStream(owned));
+            Assert.Equal(new[] { "Data", "Second", "Added" }, reread.Sheets.Select(sheet => sheet.Name));
+        }
+
+        [Fact]
         public void ASecondSaveStartsFromTheFirst() {
             byte[] source = CreateWorkbook();
             using var document = ExcelDocument.Load(new MemoryStream(source));
