@@ -40,7 +40,12 @@ public sealed class PowerShellNotebookSession : IDisposable {
                 throw new ArgumentException("A runspace session uses the calling PowerShell. Remove ExecutablePath or choose process isolation.", nameof(options));
             }
             cancellationToken.ThrowIfCancellationRequested();
-            return new PowerShellNotebookSession(PowerShellNotebookRunspaceHost.Start(directory));
+            IPowerShellNotebookWorker runspace = PowerShellNotebookRunspaceHost.Start(directory);
+            if (cancellationToken.IsCancellationRequested) {
+                runspace.Dispose();
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+            return new PowerShellNotebookSession(runspace);
         }
         if (isolation != PowerShellNotebookIsolation.Process) {
             throw new ArgumentOutOfRangeException(nameof(options), isolation, "Choose process or runspace isolation.");

@@ -9,6 +9,8 @@ public sealed class PowerShellNotebookSessionOptions {
     public string? ExecutablePath { get; set; }
 
     /// <summary>Gets or sets the initial working directory. The default inherits the caller's working directory.</summary>
+    /// <remarks>With runspace isolation this sets only the PowerShell location. .NET calls with relative paths resolve from the
+    /// process current directory, which the session does not change.</remarks>
     public string? WorkingDirectory { get; set; }
 
     /// <summary>Gets or sets the deadline for launching a PowerShell process and opening its runspace.</summary>

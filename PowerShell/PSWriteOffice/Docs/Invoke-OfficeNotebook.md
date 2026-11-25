@@ -25,7 +25,7 @@ Invoke-OfficeNotebook -Document <NotebookDocument> [-CellIndex <int[]>] [-Timeou
 ```
 
 ## DESCRIPTION
-Run notebooks whose code you trust. Cells run under your account in a new runspace of the current PowerShell process, so they share its environment variables and loaded assemblies but not its variables or functions. Use -Isolation Process or -PowerShellPath to run them in a separate PowerShell process instead. The returned report contains the updated live notebook. Close the notebook when you finish using it.
+Run notebooks whose code you trust. Cells run under your account in a new runspace of the current PowerShell process, so they share its environment variables, process current directory and loaded assemblies but not its variables or functions. Use -Isolation Process or -PowerShellPath to run them in a separate PowerShell process instead. The returned report contains the updated live notebook. Close the notebook when you finish using it.
 
 Use -WhatIf to preview execution and any requested save. Use -Confirm to ask before running the notebook.
 
@@ -280,7 +280,7 @@ Accept wildcard characters: False
 ```
 
 ### -WorkingDirectory
-Initial working directory. The default uses the notebook's directory when available.
+Initial working directory. The default uses the notebook's directory when available. With -Isolation Runspace it sets only the PowerShell location; .NET calls with relative paths still resolve from the process current directory, so use absolute paths or -Isolation Process for those.
 
 ```yaml
 Type: String

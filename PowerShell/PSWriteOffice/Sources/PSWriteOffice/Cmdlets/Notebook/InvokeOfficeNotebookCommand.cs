@@ -8,7 +8,7 @@ using PSWriteOffice.Foundation;
 namespace PSWriteOffice.Cmdlets.Notebook;
 
 /// <summary>Runs selected PowerShell notebook cells in one persistent session and records their outputs.</summary>
-/// <para>Run notebooks whose code you trust. Cells run under your account in a new runspace of the current PowerShell process, so they share its environment variables and loaded assemblies but not its variables or functions. Use -Isolation Process or -PowerShellPath to run them in a separate PowerShell process instead. The returned report contains the updated live notebook. Close the notebook when you finish using it.</para>
+/// <para>Run notebooks whose code you trust. Cells run under your account in a new runspace of the current PowerShell process, so they share its environment variables, process current directory and loaded assemblies but not its variables or functions. Use -Isolation Process or -PowerShellPath to run them in a separate PowerShell process instead. The returned report contains the updated live notebook. Close the notebook when you finish using it.</para>
 /// <para>Use -WhatIf to preview execution and any requested save. Use -Confirm to ask before running the notebook.</para>
 /// <example><summary>Run PowerShell cells and save a separate notebook.</summary><code>
 /// $report = Invoke-OfficeNotebook -LiteralPath ./lab.ipynb -OutputPath ./executed.ipynb -NoClobber
@@ -79,7 +79,7 @@ public sealed class InvokeOfficeNotebookCommand : AsyncPSCmdlet {
     [Parameter, ValidateNotNullOrEmpty]
     public string? PowerShellPath { get; set; }
 
-    /// <summary>Initial working directory. The default uses the notebook's directory when available.</summary>
+    /// <summary>Initial working directory. The default uses the notebook's directory when available. With -Isolation Runspace it sets only the PowerShell location; .NET calls with relative paths still resolve from the process current directory, so use absolute paths or -Isolation Process for those.</summary>
     [Parameter, ValidateNotNullOrEmpty]
     public string? WorkingDirectory { get; set; }
 
