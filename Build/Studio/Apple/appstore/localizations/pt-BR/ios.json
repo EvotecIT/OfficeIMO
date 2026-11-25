@@ -4,8 +4,9 @@
   "platform": "iOS",
   "locale": "pt-BR",
   "metadata": {
-    "description": "Leia e trabalhe com PDFs no iPhone e no iPad. Abra documentos do app Arquivos e mantenha seu trabalho com o navegador de documentos do sistema.\n\nPesquise e selecione texto, adicione notas e marcações, preencha campos de formulário compatíveis, organize páginas e salve ou compartilhe seu trabalho. Converta documentos compatíveis em PDF, torne digitalizações pesquisáveis com o reconhecimento de texto no dispositivo e prepare cópias protegidas por senha ou com conteúdo ocultado.\n\nAbra arquivos do Word, Excel e PowerPoint somente para leitura, sem o Microsoft Office. Salve uma cópia em PDF quando quiser continuar trabalhando nela.\n\nO processamento dos documentos acontece no seu dispositivo. O OfficeIMO Studio é gratuito e de código aberto sob a licença MIT. O código-fonte e o suporte da comunidade estão disponíveis em https://github.com/EvotecIT/OfficeIMO.",
-    "keywords": "pdf,leitor,documentos,anotar,formulários,digitalizar,converter,código aberto,word,excel,powerpoint",
+    "description": "Leia e anote PDFs no iPhone e no iPad. Abra seus documentos direto pelo app Arquivos.\n\nPesquise e selecione texto, adicione notas e marcações, preencha os campos compatíveis dos formulários e organize as páginas. Salve o PDF com as alterações ou compartilhe uma cópia.\n\nConverta arquivos compatíveis para PDF. Use o reconhecimento de texto para fazer buscas em documentos digitalizados. Salve uma cópia protegida por senha ou remova trechos confidenciais antes de compartilhar o documento.\n\nAbra arquivos do Word, do Excel e do PowerPoint em modo somente leitura, sem precisar instalar o Microsoft Office. Salve uma cópia em PDF para adicionar marcações ou reorganizar as páginas.\n\nOs documentos são processados no próprio dispositivo. O OfficeIMO Studio é gratuito e tem código aberto sob a licença MIT. O código-fonte e o suporte da comunidade estão no GitHub.\nhttps://github.com/EvotecIT/OfficeIMO",
+    "keywords": "editar,anotação,formulário,scanner,ocr,juntar,dividir,senha,docx,xlsx,pptx,tarja",
+    "promotionalText": "Digitalize documentos com a câmera, anote PDFs e preencha formulários no iPhone ou no iPad.",
     "marketingUrl": "https://officeimo.com/studio/",
     "supportUrl": "https://github.com/EvotecIT/OfficeIMO/issues"
   },

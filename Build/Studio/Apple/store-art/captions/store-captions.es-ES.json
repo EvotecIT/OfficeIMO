@@ -1,10 +1,10 @@
 {
   "app.eyebrow": "Documentos PDF y Office",
-  "dashboard.headline": "Lee tus PDF\nen todos tus dispositivos",
-  "search.headline": "Encuentra cada\ncoincidencia",
-  "markup.headline": "Anota tus páginas\ncon notas y formas",
+  "dashboard.headline": "Lee tus PDF\nen iPhone, iPad y Mac",
+  "search.headline": "Busca texto\nen tus PDF",
+  "markup.headline": "Añade notas\ny formas",
   "form.headline": "Rellena\nformularios PDF",
-  "office.headline": "Consulta archivos\nWord, Excel y PowerPoint",
-  "inspector.headline": "Los detalles del documento\nde un vistazo",
-  "pages.headline": "Ordena y\norganiza páginas"
+  "office.headline": "Abre archivos de Word,\nExcel y PowerPoint",
+  "inspector.headline": "Propiedades del PDF\nde un vistazo",
+  "pages.headline": "Reordena\nlas páginas"
 }

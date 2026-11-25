@@ -4,8 +4,9 @@
   "platform": "macOS",
   "locale": "pl",
   "metadata": {
-    "description": "Czytaj pliki PDF i pracuj z nimi w OfficeIMO Studio. Otwieraj dokumenty w systemowych oknach dokumentów na Macu.\n\nWyszukuj i zaznaczaj tekst, dodawaj notatki i adnotacje, wypełniaj obsługiwane pola formularzy, porządkuj strony, a potem zapisuj lub udostępniaj swoją pracę. Konwertuj obsługiwane dokumenty do PDF, rozpoznawaj tekst w skanach na urządzeniu, aby dało się je przeszukiwać, i przygotowuj kopie chronione hasłem lub z zaczernionymi fragmentami.\n\nOtwieraj pliki Word, Excel i PowerPoint tylko do odczytu, bez Microsoft Office. Zapisz kopię PDF, gdy chcesz dalej nad nią pracować.\n\nDokumenty są przetwarzane na Twoim urządzeniu. OfficeIMO Studio jest bezpłatny i ma otwarty kod źródłowy na licencji MIT. Kod źródłowy i wsparcie społeczności znajdziesz na https://github.com/EvotecIT/OfficeIMO.",
-    "keywords": "pdf,czytnik,dokumenty,adnotacje,formularze,skanowanie,konwersja,open source,word,excel,powerpoint",
+    "description": "Czytaj pliki PDF i pracuj z nimi na Macu. Dokumenty otworzysz prosto z Findera.\n\nWyszukuj i zaznaczaj tekst, dodawaj notatki i oznaczenia, wypełniaj obsługiwane pola formularzy i zmieniaj kolejność stron. Gotowy dokument możesz zapisać lub udostępnić.\n\nKonwertuj dokumenty w obsługiwanych formatach na PDF. Po rozpoznaniu tekstu możesz przeszukiwać także zeskanowane strony. Zapisz kopię zabezpieczoną hasłem lub usuń poufne fragmenty przed udostępnieniem dokumentu.\n\nPrzeglądaj pliki Worda, Excela i PowerPointa bez instalowania pakietu Microsoft Office. Pliki otwierają się w trybie tylko do odczytu. Jeśli chcesz dalej nad nimi pracować, zapisz kopię w formacie PDF.\n\nOfficeIMO Studio przetwarza dokumenty na urządzeniu. Aplikacja jest bezpłatna i dostępna na licencji MIT. Kod źródłowy i wsparcie społeczności znajdziesz na GitHubie.\nhttps://github.com/EvotecIT/OfficeIMO",
+    "keywords": "edycja,adnotacje,formularze,skan,ocr,łączenie,dzielenie,hasło,docx,xlsx,pptx,anonimizacja",
+    "promotionalText": "Otwieraj dokumenty prosto z Findera, porządkuj strony i zapisuj kopie PDF zabezpieczone hasłem.",
     "marketingUrl": "https://officeimo.com/studio/",
     "supportUrl": "https://github.com/EvotecIT/OfficeIMO/issues"
   },
