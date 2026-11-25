@@ -71,8 +71,8 @@ final class StudioStoreCaptureTests: XCTestCase {
         selectTask(at: 1, in: app)
         #if os(iOS)
         let done = app.buttons[StudioAccessibilityID.markupDone]
-        if isCompact && !done.exists {
-            // iOS can move Done into the system overflow. Capture the visible tool picker.
+        if isCompact {
+            // Confirm the drawing tools even when Done moves into the system overflow.
             let palette = app.descendants(matching: .any).matching(identifier: "Drawing-Palette").firstMatch
             XCTAssertTrue(palette.waitForExistence(timeout: 10) && palette.frame.intersects(viewport.frame), app.debugDescription)
         } else {
