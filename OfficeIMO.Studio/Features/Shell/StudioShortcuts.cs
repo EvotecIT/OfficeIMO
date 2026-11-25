@@ -8,7 +8,7 @@ namespace OfficeIMO.Studio.Features.Shell;
 /// Linux and Command on macOS and iPadOS.
 /// </summary>
 internal static class StudioShortcuts {
-    internal static bool UsesCommandKey => OperatingSystem.IsMacOS() || OperatingSystem.IsIOS();
+    internal static bool UsesCommandKey => OperatingSystem.IsMacOS();
 
     internal static KeyModifiers PrimaryModifier => UsesCommandKey ? KeyModifiers.Meta : KeyModifiers.Control;
 

@@ -232,6 +232,74 @@ internal static class MarkdownObjectTreeBinder {
         }
     }
 
+    /// <summary>
+    /// Places a block just appended to a bound document, so building a document block by block does not
+    /// re-bind every earlier block. The block before it is bound again too, which picks up edits made to the
+    /// most recently added block. Returns false when the document has to be bound in full instead.
+    /// </summary>
+    internal static bool TryBindAppendedBlock(MarkdownDocument document, IMarkdownBlock appended) {
+        if (appended is not MarkdownObject block) {
+            return true;
+        }
+
+        IReadOnlyList<IMarkdownBlock> blocks = document.Blocks;
+        if (blocks.Count == 0 || !ReferenceEquals(blocks[blocks.Count - 1], appended)) {
+            return false;
+        }
+
+        // The previous child is the nearest earlier block that is an object, or the front matter.
+        MarkdownObject? previous = null;
+        for (int i = blocks.Count - 2; i >= 0 && previous == null; i--) {
+            previous = blocks[i] as MarkdownObject;
+        }
+
+        previous ??= document.DocumentHeader;
+        int index = 0;
+        if (previous != null) {
+            if (!ReferenceEquals(previous.Parent, document) || previous.NextSibling != null || previous.IndexInParent is not int previousIndex) {
+                return false;
+            }
+
+            index = previousIndex + 1;
+            // Builders often edit the block they just added (p.Inlines.Bold(...)) before adding the next
+            // one, so the previous block's subtree is bound again rather than only relinked.
+            BindObject(previous, document, previousIndex, previous.PreviousSibling, block, visited: null);
+        }
+
+        BindObject(block, document, index, previous, nextSibling: null, visited: null);
+        return true;
+    }
+
+    /// <summary>Places an inline just added to a sequence that is already part of a bound tree.</summary>
+    internal static void BindAppendedInline(InlineSequence sequence, IMarkdownInline appended) {
+        if (appended is not MarkdownObject node) {
+            return;
+        }
+
+        IReadOnlyList<IMarkdownInline> nodes = sequence.Nodes;
+        MarkdownObject? previous = null;
+        for (int i = nodes.Count - 2; i >= 0 && previous == null; i--) {
+            previous = nodes[i] as MarkdownObject;
+        }
+
+        int index = 0;
+        if (previous != null) {
+            if (!ReferenceEquals(previous.Parent, sequence) || previous.IndexInParent is not int previousIndex) {
+                RebindSubtree(sequence);
+                return;
+            }
+
+            index = previousIndex + 1;
+            previous.SetTreePosition(sequence, previousIndex, previous.PreviousSibling, node);
+        }
+
+        BindObject(node, sequence, index, previous, nextSibling: null, visited: null);
+    }
+
+    /// <summary>Binds a node's subtree again in place, keeping the node's own position.</summary>
+    internal static void RebindSubtree(MarkdownObject node) =>
+        BindObject(node, node.Parent, node.IndexInParent, node.PreviousSibling, node.NextSibling, visited: null);
+
     private const int MaxRetainedScratchCapacity = 4096;
     [ThreadStatic] private static Stack<MarkdownObject>? t_pending;
     [ThreadStatic] private static List<MarkdownObject>? t_children;
@@ -365,10 +433,11 @@ internal static class MarkdownObjectTreeBinder {
         MarkdownObject? pendingChild = leadingChild;
         int childIndex = leadingChild == null ? 0 : 1;
         int count = children.Count;
-        var list = children as List<IMarkdownInline>;
+        // Inline sequences store their nodes in InlineNodeList; reading it directly avoids interface calls.
+        var nodes = children as InlineNodeList;
 
         for (int i = 0; i < count; i++) {
-            if ((list != null ? list[i] : children[i]) is not MarkdownObject child) {
+            if ((nodes != null ? nodes[i] : children[i]) is not MarkdownObject child) {
                 continue;
             }
 

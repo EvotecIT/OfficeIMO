@@ -15,8 +15,8 @@
     "familyCount": 3,
     "formatCount": 28,
     "capabilityCount": 144,
-    "packageCount": 84,
-    "operationCount": 1592
+    "packageCount": 90,
+    "operationCount": 1604
   },
   "fidelityStates": [
     {
@@ -2714,30 +2714,17 @@
     {
       "id": "OfficeIMO.Epub",
       "slug": "epub",
-      "capabilityCount": 22,
+      "capabilityCount": 21,
       "formats": [
         "EPUB",
-        "Epub.Native",
-        "HTML"
+        "Epub.Native"
       ],
       "sourceCatalogs": [
-        "OfficeConversionCapabilityCatalog",
         "OfficeIMO.NativeLifecycle",
         "OfficeIMO.ProtectedContent",
         "OfficeIMO.Provenance"
       ],
       "operations": [
-        {
-          "id": "Convert",
-          "states": [
-            {
-              "id": "Partial",
-              "label": "Partial",
-              "description": "A bounded subset is implemented with explicit limits.",
-              "count": 1
-            }
-          ]
-        },
         {
           "id": "Create",
           "states": [
@@ -3987,6 +3974,213 @@
               "label": "Partial",
               "description": "A bounded subset is implemented with explicit limits.",
               "count": 5
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Notebook",
+      "slug": "notebook",
+      "capabilityCount": 5,
+      "formats": [
+        "Jupyter.Ipynb"
+      ],
+      "sourceCatalogs": [
+        "OfficeIMO.NativeLifecycle"
+      ],
+      "operations": [
+        {
+          "id": "Create",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Edit",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Inspect",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Preserve",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Read",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Notebook.Html",
+      "slug": "notebook-html",
+      "capabilityCount": 1,
+      "formats": [
+        "HTML",
+        "Jupyter Notebook"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Notebook.Import",
+      "slug": "notebook-import",
+      "capabilityCount": 3,
+      "formats": [
+        "Jupyter Notebook",
+        "Notebook source",
+        "Notebook.Source",
+        "PDF"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog",
+        "OfficeIMO.NativeLifecycle"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "id": "Read",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Notebook.Markdown",
+      "slug": "notebook-markdown",
+      "capabilityCount": 1,
+      "formats": [
+        "Jupyter Notebook",
+        "Markdown"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Notebook.Pdf",
+      "slug": "notebook-pdf",
+      "capabilityCount": 1,
+      "formats": [
+        "Jupyter Notebook",
+        "PDF"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Notebook.Word",
+      "slug": "notebook-word",
+      "capabilityCount": 1,
+      "formats": [
+        "DOCX",
+        "Jupyter Notebook"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
             }
           ]
         }
@@ -6069,12 +6263,13 @@
     {
       "id": "OfficeIMO.Workflows",
       "slug": "workflows",
-      "capabilityCount": 15,
+      "capabilityCount": 16,
       "formats": [
         "Book project",
         "Book.Project",
         "DOCX",
         "EPUB",
+        "HTML",
         "JPEG",
         "Markdown",
         "PNG",
@@ -6096,7 +6291,7 @@
               "id": "Partial",
               "label": "Partial",
               "description": "A bounded subset is implemented with explicit limits.",
-              "count": 4
+              "count": 5
             }
           ]
         },

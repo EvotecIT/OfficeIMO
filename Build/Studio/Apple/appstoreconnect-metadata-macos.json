@@ -4,8 +4,8 @@
   "platform": "macOS",
   "locale": "en-US",
   "metadata": {
-    "description": "Read and work with PDFs in OfficeIMO Studio. Open documents in system document windows on your Mac.\n\nSearch and select text, add notes and markup, fill supported form fields, organize pages, and save or share your work. Convert supported documents to PDF, make scans searchable with on-device text recognition, and prepare password-protected or redacted copies.\n\nDocument processing runs on your device. OfficeIMO Studio is free and open source under the MIT License. Source code and community support are available at https://github.com/EvotecIT/OfficeIMO.",
-    "keywords": "pdf,reader,documents,annotation,forms,scan,convert,open source",
+    "description": "Read and work with PDFs in OfficeIMO Studio. Open documents in system document windows on your Mac.\n\nSearch and select text, add notes and markup, fill supported form fields, organize pages, and save or share your work. Convert supported documents to PDF, make scans searchable with on-device text recognition, and prepare password-protected or redacted copies.\n\nOpen Word, Excel and PowerPoint files read-only, without Microsoft Office. Save a PDF copy when you want to keep working on it.\n\nDocument processing runs on your device. OfficeIMO Studio is free and open source under the MIT License. Source code and community support are available at https://github.com/EvotecIT/OfficeIMO.",
+    "keywords": "pdf,reader,documents,annotation,forms,scan,convert,open source,word,excel,powerpoint",
     "marketingUrl": "https://officeimo.com/studio/",
     "supportUrl": "https://github.com/EvotecIT/OfficeIMO/issues"
   },

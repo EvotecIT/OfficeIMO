@@ -29,6 +29,8 @@ meta.howto.steps:
 
 Redaction must remove content, not merely draw a black rectangle over visible text. The browser route plans case-insensitive literal matches, rewrites the document, and verifies concrete marker variants before offering the result.
 
+**Also in Studio:** mark, review and permanently remove content in [OfficeIMO Studio](/studio/#feature-redact) on Windows and Linux, and in the native Mac, iPad and iPhone app (coming soon).
+
 ## Redact from .NET
 
 ```csharp

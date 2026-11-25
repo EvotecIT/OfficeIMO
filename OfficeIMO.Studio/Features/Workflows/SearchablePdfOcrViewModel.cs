@@ -141,8 +141,6 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
         _pickOutputFolder = pickOutputFolder ?? throw new ArgumentNullException(nameof(pickOutputFolder));
         _openDocument = openDocument;
         _service = service ?? new SearchablePdfOcrService(ocrRuntime);
-        RecognitionUnavailableReason = service is null ? StudioOcrProvider.UnavailableReason : null;
-        TextRecognitionAvailable = textRecognition is not null || StudioOcrProvider.UnavailableReason is null;
         _textRecognition = textRecognition ?? new ScanTextRecognitionService(ocrRuntime);
         _canPublishPath = canPublishPath ?? (_ => true);
         _publicationGuard = publicationGuard ?? new OfficeIMO.Studio.Features.Shell.StudioWorkflowPublicationGuard((path, _) => _canPublishPath(path));
@@ -235,12 +233,9 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
         }
     }
 
-    public string? RecognitionUnavailableReason { get; }
-    public bool IsRecognitionAvailable => RecognitionUnavailableReason is null;
-    private bool TextRecognitionAvailable { get; }
 
     private bool CanRun =>
-        IsRecognitionAvailable && !IsBusy && !Scan.IsBusy &&
+        !IsBusy && !Scan.IsBusy &&
         !string.IsNullOrWhiteSpace(InputPath) &&
         !string.IsNullOrWhiteSpace(OutputPath) &&
         Languages.Any(static choice => choice.IsSelected);

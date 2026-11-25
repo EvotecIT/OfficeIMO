@@ -59,7 +59,7 @@ These tests cover export permission selection, revision-bound reads and redactio
 | `-OfficeIMOMeasure <file>` | Measures `Documents/Measurements/<file>` and writes `Documents/Results/measure-<file>.json`. |
 | `-OfficeIMOExit` | Quits when done. |
 
-Results are also printed to standard output. `Measurements/Measure-EngineProof.ps1 -WorkDirectory <folder>` builds the measurement PDFs and the app, runs the journey and the measurements on the Mac and in a temporary iPad simulator, and reads the engine's share of the app size from the linker map.
+Debug builds accept these arguments. Release builds ignore them unless built with the `OFFICEIMO_AUTORUN` Swift condition, as the measurement script does, so a shipped app never starts an unattended run. Results are also printed to standard output. `Measurements/Measure-EngineProof.ps1 -WorkDirectory <folder>` builds the measurement PDFs and the app, runs the journey and the measurements on the Mac and in a temporary iPad simulator, and reads the engine's share of the app size from the linker map.
 
 ## Development harness
 

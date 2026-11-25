@@ -51,11 +51,11 @@ powerforge apple-release SubmitAppReview --config Build/Studio/Apple/powerforge.
 
 Build the engine with `./Build/Studio/Apple/Build-StudioEngine.ps1` (all four slices) and commit the shared version change before archiving. Review each plan and use the exact-source release mode for signed candidates. `Advance` prepares builds, store metadata and the configured internal `Studio Internal` TestFlight group. Submission to public App Review is a separate action. The same Store-eligible binary can serve internal testing and App Review; do not export it as TestFlight Internal Only.
 
-The two metadata files describe each native platform's supported scope. The two screenshot mappings select native Mac, iPhone and iPad PNGs under ignored `Artifacts/Studio/Apple/screenshots`. Keep those captures and their source-bound `approval-macOS.json` / `approval-iOS.json` manifests private until review. Screenshots must show the corresponding native product and use reviewed byte manifests. Qualify open/save, markup, page organization, form filling, scan/conversion, recovery and accessibility on the actual candidates. Simulator proof does not establish physical-device acceptance. Open work belongs in [the Studio roadmap](../../../Docs/ROADMAP.md#desktop-studio).
+The metadata files describe each native platform's supported scope, in English (`appstoreconnect-metadata-*.json`, `appstoreconnect-app-info.json`) and in each other listing language under `appstore/localizations/<locale>/`. The screenshot mappings select the composed store art for each listing language under ignored `Artifacts/Studio/Apple/screenshots/store-art` (see [store screenshots in every language](#store-screenshots-in-every-language)). Keep those captures and their source-bound `approval-macOS.json` / `approval-iOS.json` manifests (`approval-<platform>.<locale>.json` for the other languages) private until review. Screenshots must show the corresponding native product and use reviewed byte manifests. Qualify open/save, markup, page organization, form filling, scan/conversion, recovery and accessibility on the actual candidates. Simulator proof does not establish physical-device acceptance. Open work belongs in [the Studio roadmap](../../../Docs/ROADMAP.md#desktop-studio).
 
-The **Studio Apple screenshots** workflow captures a qualified source commit through PowerForge. Select a verified trusted Apple silicon Mac runner and its available, Shutdown iPhone and iPad UUIDs from the default simulator device set. Their portrait display sizes must match the screenshot mappings above. The runner needs Xcode, PowerShell, the pinned .NET SDK and existing native UI access; automatic Mac window resizing also needs existing Accessibility access. The capture never grants permissions. Coordinate exclusive native UI use before dispatching it.
+The **Studio Apple screenshots** workflow captures a qualified source commit through PowerForge, pinned in the workflow and in `Invoke-PinnedPowerForge.ps1`. Select a verified trusted Apple silicon Mac runner and its available, Shutdown iPhone and iPad UUIDs from the default simulator device set. Their portrait display sizes must match the screenshot mappings above. The runner needs Xcode, PowerShell, the pinned .NET SDK and existing native UI access; automatic Mac window resizing also needs existing Accessibility access. The capture never grants permissions. Coordinate exclusive native UI use before dispatching it.
 
-The capture-only XCTest targets build the Release app, open the repository's public Northwind PDF through the normal document interface and retain native screenshots after recognizing the document's content and stable page pixels. The Mac host launches the exact built bundle with its public input and English launch arguments; XCTest attaches to that process and checks its foreground identity. PowerForge owns simulator boot and verified shutdown, then retains the PNG inventory and source provenance. Review the actual retained images before creating approval manifests. Capturing screenshots does not approve or upload them to Apple.
+The capture-only XCTest targets build the Release app, open the repository's public samples through the normal document interface and retain native screenshots after recognizing each document's content and stable page pixels. The samples are the Northwind dashboard PDF, the equipment inspection form and the quarterly sales workbook from `Website/static/downloads/showcase`. The Mac host launches the exact built bundle with one public input at a time and the listing's language arguments; XCTest attaches to that process and checks its foreground identity. PowerForge owns simulator boot and verified shutdown, then retains the PNG inventory and source provenance. Review the actual retained images before creating approval manifests. Capturing screenshots does not approve or upload them to Apple.
 
 The capture script installs the exact iOS app before copying the PDF. Its test manifest then uses `UseUITargetAppProvidedByTests` and excludes that app from Xcode's installation paths, preserving the document container. The pinned PowerForge process runner bounds Xcode execution and teardown so a failed test can return to app cleanup; native logs and validation receipts stay in the work folder. Mac launch arguments skip persistent document restoration; cleanup identifies the launched process by its PID, executable path and start time. The test accepts an operator-prepared 1280x800 window; automatic resizing requires existing Accessibility access for the test runner. Keep the document window unobstructed. The capture rejects other window edges crossing it and checks the actual document pixels. Full-screen transparent system surfaces appear in window metadata too, so geometry alone cannot prove that an image is unobstructed; inspect the exact PNGs before approval. The capture does not dismiss system notices or permission prompts.
 
@@ -74,11 +74,39 @@ pwsh Build/Studio/Apple/Capture-StudioAppleScreenshots.ps1 -Role duo -DuoPose cl
 pwsh Build/Studio/Apple/Capture-StudioAppleScreenshots.ps1 -Role duo -DuoPose open -WorkRoot <scratch>/studio-duo
 ```
 
-Before the test starts, PowerForge checks that the pose's display is live at its exact size. A freshly booted Duo is closed. For the open pose, it asks on the terminal to open the device in Device Hub and turn it to portrait, or folds it with `POWERFORGE_DUO_FOLD_TOOL`, an opt-in community tool described in PowerForge's simulator guide. The Duo opens the PDF through the iPhone's document browser, whose Browse tab moves to a side rail on iOS 27, and captures the dashboard under `Duo/en-US/duo-outer-1398x2034` and `duo-inner-2007x2853`. The script checks each PNG's pixel size. Both runs can share one work folder, so the second reuses the first build.
+Before the test starts, PowerForge checks that the pose's display is live at its exact size. A freshly booted Duo is closed. For the open pose, it asks on the terminal to open the device in Device Hub and turn it to portrait, or folds it with `POWERFORGE_DUO_FOLD_TOOL`, an opt-in community tool described in PowerForge's simulator guide. The Duo opens the PDF through the iPhone's document browser, whose Browse tab moves to a side rail on iOS 27, and captures the dashboard, markup and pages, in English, under `Duo/en-US/duo-outer-1398x2034` and `duo-inner-2007x2853`. The script checks each PNG's pixel size. Both runs can share one work folder, so the second reuses the first build.
+
+### Store screenshots in every language
+
+The store listing has seven languages, the same as the app's String Catalogs: en-US, de-DE, fr-FR, pl, es-ES, it and pt-BR. `store-art/locales.json` maps each listing locale to the app language and region a capture runs in.
+
+The capture test drives the app through accessibility identifiers (`Shared/App/StudioAccessibilityID.swift`, compiled into the app and the capture bundles), never through translated labels, so one test covers every language. The document samples stay English; their text is what the readiness check recognizes. Each device role keeps these scenes:
+
+| Role | Scenes |
+| --- | --- |
+| iPhone | dashboard, markup, form, Excel viewer, pages |
+| iPad | dashboard, search, markup, form, Excel viewer, inspector |
+| Mac | dashboard, search, markup, form, Excel viewer, inspector |
+
+`Capture-StudioAppleScreenshots.ps1 -Role all` captures every locale by default; `-Locales de-DE,pl` selects some. For each locale it launches the Mac app with `-AppleLanguages` and `-AppleLocale`, and runs each simulator in its own PowerForge session after setting the shut-down device's system language and region, so the status bar matches too. The en-US session writes `build/powerforge/screenshots/<role>.json`, which the workflow verifies; other locales write `<role>-<locale>.json`. Afterwards the script returns both simulators to English. Raw PNGs land in `Artifacts/Studio/Apple/screenshots/<iPhone|iPad|macOS>/<locale>/`, each checked for its App Store pixel size and for visible content (`verify-screenshot-content.swift`).
+
+The script then composes the store art with PowerForge's `apple-store-art compose` (theme `officeimo`, devices iPhone 6.9", iPad 13" and Mac at 2880×1800) from `store-art/store-art.json` and the captions in `store-art/captions/store-captions.<locale>.json`. Captions are written natively for each language, short and factual, with no pricing; have a native speaker review a changed caption before approval. Composed PNGs land in `screenshots/store-art/<locale>/<device>/`, and the workflow verifies them against the raw captures. A local composition needs a PSPublishModule checkout at the pinned commit, beside this repository or in `PSPUBLISHMODULE_ROOT`:
+
+```powershell
+& ./Build/Studio/Apple/Invoke-PinnedPowerForge.ps1 -Tool Web -ArgumentList @(
+    'apple-store-art', 'compose', '--config', 'Build/Studio/Apple/store-art/store-art.json',
+    '--out', 'Artifacts/Studio/Apple/screenshots/store-art', '--locales', 'de-DE')
+```
+
+`store-art/screenshot-configs.rb` writes one screenshot mapping per platform and locale from the spec, with `maxCount` equal to the device's frame count (never more than 10), and lists them in `ScreenshotConfigPaths`. Run it after changing frames or locales; `--check` fails when they are out of date. `check-appstore-localizations.rb` checks that the listing languages match the String Catalogs and that every listing, caption file and release path is present and within App Store limits. The Studio Apple workflow runs both checks on every pull request.
+
+With English captured, the script also writes website candidates (`website-screenshot-assets.sh`) and a contact sheet (`screenshot-contact-sheet.swift`) under `screenshots/website-candidate`. After reviewing them, `website-screenshot-promote.sh --check --source-commit <sha>` compares the candidates from a master capture against `Website/static/images/studio`, and `--apply` copies them as `apple-<device>-<scene>.png`. Neither step commits or deploys the site.
+
+Scan and conversion need the camera or a picker sheet, so they have no store scene yet.
 
 ## Store declarations
 
-`powerforge.store-onboarding.json` owns remote setup without archive targets. `appstoreconnect-governance.json` declares free pricing and availability outside France. The initial release excludes France while the French encryption filing is completed. Its empty `encryptionDeclarations` array contains no encryption-document declarations; each uploaded build still needs its publisher-reviewed export-compliance answer. Empty accessibility and subscription arrays make no claims and erase nothing. Plan and apply governance through PowerForge, retaining the exact reviewed plan.
+`powerforge.store-onboarding.json` owns remote setup without archive targets. `appstoreconnect-governance.json` declares free pricing and availability outside France. The initial release excludes France while the French encryption filing is completed. Its empty `encryptionDeclarations` array contains no encryption-document declarations. Both Info.plists set `ITSAppUsesNonExemptEncryption` to true, because the engine implements PDF password encryption (AES and RC4) rather than only calling the system's; App Store Connect still asks for the matching export-compliance answer until a compliance code is added. Empty accessibility and subscription arrays make no claims and erase nothing. Plan and apply governance through PowerForge, retaining the exact reviewed plan.
 
 The native privacy manifest records required-reason APIs used by document recovery, selected files, preferences and timing. The public policy is maintained in `OfficeIMO.Studio/PRIVACY.md` and [the website privacy page](https://officeimo.com/studio/privacy/). Review the native app's actual behavior when answering Apple's privacy questionnaire.
 
@@ -93,58 +121,3 @@ The **Studio Apple monitor** runs the shared read-only Doctor daily and retains 
 ## Open-source distribution
 
 The first-party software remains MIT licensed. Store pricing is a separate product choice. Apple distribution does not replace the copyright notices, permission grants or third-party license obligations. See [open-source notices](../../../OfficeIMO.Studio/OPEN_SOURCE.md).
-
-## Avalonia Mac development
-
-Use the certificate-signed development build for everyday file access:
-
-```powershell
-./Build/Studio/Build-StudioMacDevelopment.ps1 -Plan
-./Build/Studio/Build-StudioMacDevelopment.ps1
-```
-
-The wrapper invokes PowerForge with `powerforge.development.json`. It builds the
-Apple silicon app in Debug and signs it with the configured Apple Development
-identity for team `8ZPGZ79T7J`. Managed assemblies stay inside the single-file
-host; native libraries are signed separately, and notices live in
-`Contents/Resources`. The bundle ID stays
-`com.evotec.officeimo.studio`. PowerForge signs nested native libraries, verifies
-the app and archive, and rejects a missing certificate or a certificate from the
-wrong team or distribution channel. It never falls back to ad-hoc signing.
-
-Use a PowerForge source build containing the `MacApp.DevelopmentOnly` option.
-Set `POWERFORGE_SOURCE` to that checkout and build it with its pinned SDK:
-
-```sh
-(cd "$POWERFORGE_SOURCE" && dotnet build PowerForge.Cli/PowerForge.Cli.csproj -c Release -f net10.0)
-export POWERFORGE_CLI="$POWERFORGE_SOURCE/PowerForge.Cli/bin/Release/net10.0/PowerForge.Cli.dll"
-pwsh -File Build/Studio/Build-StudioMacDevelopment.ps1
-```
-
-The `.app` is at
-`Artifacts/Studio/Development/packages/osx-arm64/OfficeIMO Studio.app`.
-Quit Studio before replacing the installed copy in `/Applications`, and launch
-that same copy for file-access checks. Keep the signing identity and bundle ID
-consistent across rebuilds. Contributors use their own Apple Development identity
-and team in their local configuration; no private keys belong in the repository.
-
-macOS can require one fresh approval when moving from an ad-hoc build to this
-identity. Later builds signed with the same identity retain a stable designated
-requirement instead of identifying themselves by the executable hash. Running
-`dotnet run` or an ad-hoc bundle does not exercise this signed app identity.
-Development signatures are for local use; this build does not publish, notarize,
-or create a Store submission. See Apple's
-[code identity guidance](https://developer.apple.com/documentation/technotes/tn3127-inside-code-signing-requirements).
-
-## Avalonia direct download
-
-The [direct-download configuration](../powerforge.dotnetpublish.json) produces architecture-specific, multi-file self-contained `.app` bundles and `ditto` ZIP archives. PowerForge signs the native libraries in place instead of relying on single-file extraction. `Direct.entitlements` grants only the JIT permission required by the current non-NativeAOT .NET runtime.
-
-The direct-download package configuration uses ad-hoc signing for packaging proof only. Use the development configuration above for routine local app use. PowerForge omits hardened runtime for ad-hoc bundles because their nested libraries do not share an Apple Team ID. The configured hardened-runtime option takes effect with a distribution signing identity; an ad-hoc launch does not qualify that contract.
-
-A public artifact requires all of the following on a trusted macOS builder:
-
-1. A `Developer ID Application` identity replaces the ad-hoc identity.
-2. Secure timestamps remain enabled.
-3. PowerForge submits the exact signed artifact for notarization, staples the ticket, and verifies it with `codesign` and Gatekeeper.
-4. The release record binds the source commit, artifact SHA-256, signing identity, and notarization result.

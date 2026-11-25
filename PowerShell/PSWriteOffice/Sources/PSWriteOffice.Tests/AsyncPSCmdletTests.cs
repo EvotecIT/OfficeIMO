@@ -79,19 +79,19 @@ public sealed class AsyncPSCmdletTests
     {
         // PowerShell hosts run every command on the same pipeline thread, so state an invocation leaves
         // in that thread's execution context stays there for the rest of the session.
-        WeakReference slot = InvokeOnCurrentThreadAndTrackSlot();
+        WeakReference cmdlet = InvokeOnCurrentThreadAndTrackCmdlet();
 
-        for (int attempt = 0; attempt < 3 && slot.IsAlive; attempt++)
+        for (int attempt = 0; attempt < 3 && cmdlet.IsAlive; attempt++)
         {
             GC.Collect();
             GC.WaitForPendingFinalizers();
         }
 
-        Assert.False(slot.IsAlive, "The invoking thread's execution context still holds the cmdlet's async-local slot.");
+        Assert.False(cmdlet.IsAlive, "The invoking thread's execution context still references the finished cmdlet.");
     }
 
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private static WeakReference InvokeOnCurrentThreadAndTrackSlot()
+    private static WeakReference InvokeOnCurrentThreadAndTrackCmdlet()
     {
         var sessionState = InitialSessionState.CreateDefault();
         sessionState.Commands.Add(new SessionStateCmdletEntry(
@@ -110,7 +110,7 @@ public sealed class AsyncPSCmdletTests
 
         Assert.False(powerShell.HadErrors, string.Join(Environment.NewLine, powerShell.Streams.Error.Select(static error => error.ToString())));
         Assert.Equal("synchronous-output", Assert.Single(result).BaseObject);
-        return TestAsyncSynchronousOutputCommand.LastSlot!;
+        return TestAsyncSynchronousOutputCommand.LastInstance!;
     }
 }
 
@@ -152,15 +152,11 @@ public sealed class TestAsyncSynchronousFanOutCommand : AsyncPSCmdlet
 [Cmdlet(VerbsDiagnostic.Test, "AsyncSynchronousOutput")]
 public sealed class TestAsyncSynchronousOutputCommand : AsyncPSCmdlet
 {
-    private static readonly System.Reflection.FieldInfo HookGenerationSlot =
-        typeof(AsyncPSCmdlet).GetField("_hookGenerationSlot", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
-        ?? throw new InvalidOperationException("AsyncPSCmdlet no longer keeps its hook generation in an async-local slot.");
-
-    internal static WeakReference? LastSlot { get; private set; }
+    internal static WeakReference? LastInstance { get; private set; }
 
     protected override Task ProcessRecordAsync()
     {
-        LastSlot = new WeakReference(HookGenerationSlot.GetValue(this));
+        LastInstance = new WeakReference(this);
         WriteObject("synchronous-output");
         return Task.CompletedTask;
     }

@@ -62,8 +62,8 @@
           <Expander x:Name="BatchExportPanel" Header="{loc:Loc Conversion.BatchExport.Title}" HorizontalAlignment="Stretch"
                     IsExpanded="{Binding ConversionWorkbench.IsFolderJobReviewVisible, Mode=TwoWay}">
             <StackPanel Spacing="{StaticResource StudioSpaceS}">
-              <TextBlock Text="{loc:Loc Conversion.BatchExport.Description}" IsVisible="{Binding ConversionWorkbench.BatchExport.IsAvailable}" TextWrapping="Wrap" />
-              <StackPanel Spacing="{StaticResource StudioSpaceSM}" IsVisible="{Binding ConversionWorkbench.BatchExport.IsAvailable}" IsEnabled="{Binding ConversionWorkbench.BatchExport.CanEdit}">
+              <TextBlock Text="{loc:Loc Conversion.BatchExport.Description}" TextWrapping="Wrap" />
+              <StackPanel Spacing="{StaticResource StudioSpaceSM}" IsEnabled="{Binding ConversionWorkbench.BatchExport.CanEdit}">
                 <TextBlock Text="{loc:Loc Conversion.SavedJob.Title}" Classes="sectionTitle" />
                 <TextBlock Text="{Binding ConversionWorkbench.BatchExport.SavedJobHint}" Classes="muted" TextWrapping="Wrap" />
                 <WrapPanel>
@@ -91,8 +91,6 @@
                   <TextBlock Text="{Binding ConversionWorkbench.BatchExport.JobSettingsSummary}" TextWrapping="Wrap" Classes="muted" />
                 </Expander>
               </StackPanel>
-              <TextBlock Text="{Binding ConversionWorkbench.BatchExport.UnavailableReason}" IsVisible="{Binding !ConversionWorkbench.BatchExport.IsAvailable}"
-                         TextWrapping="Wrap" FontSize="{StaticResource StudioSecondaryFontSize}" />
             </StackPanel>
           </Expander>
         </StackPanel>

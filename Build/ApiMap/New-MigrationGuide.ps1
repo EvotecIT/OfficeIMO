@@ -837,6 +837,7 @@ Add-Heading 1 'PowerShell reference'
 Add-Paragraph 'Every PSWriteOffice 3.5 command and alias appears once, sorted by name. **Use instead** is the hint PSWriteOffice prints when a script calls a command or alias that changed.'
 
 foreach ($area in $areas) {
+    if ($area.Entries.Count -eq 0) { continue }
     $title = $PowerShellAreaTitles[$area.Name]
     if (-not $title) { $title = (Get-Culture).TextInfo.ToTitleCase($area.Name) }
     if ($area.Name -in 'markup', 'other' -or -not $PowerShellAreaTitles.ContainsKey($area.Name)) {

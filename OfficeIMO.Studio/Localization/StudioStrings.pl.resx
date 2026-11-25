@@ -5411,9 +5411,6 @@ Naprawione defekty: {7:N0} · Tylko wykryte: {8:N0}</value>
   <data name="Invoice.StandardsHint" xml:space="preserve">
     <value>Sprawdzenie standardów wymaga ustalonych plików reguł i środowiska Java/Saxon. Żądane kontrole muszą zakończyć się pomyślnie przed utworzeniem wyniku.</value>
   </data>
-  <data name="Invoice.StandardsUnavailable" xml:space="preserve">
-    <value>Zewnętrzne kontrole standardów Java/Saxon są niedostępne w wydaniu z Mac App Store. Sprawdzanie XML, kontrole modelu, konwersja i tworzenie PDF pozostają dostępne.</value>
-  </data>
   <data name="Invoice.NoInput" xml:space="preserve">
     <value>Nie wybrano faktury</value>
   </data>
@@ -6584,45 +6581,6 @@ Naprawione defekty: {7:N0} · Tylko wykryte: {8:N0}</value>
   <data name="Dialog.ActiveOperations.Working" xml:space="preserve">
     <value>Trwa praca…</value>
   </data>
-  <data name="Mobile.ChoosePdf" xml:space="preserve">
-    <value>Wybierz dokument PDF.</value>
-  </data>
-  <data name="Mobile.NothingToShare" xml:space="preserve">
-    <value>Zapisany dokument nie ma lokalizacji, którą można udostępnić.</value>
-  </data>
-  <data name="Mobile.ReadingPositionFailed" xml:space="preserve">
-    <value>Nie udało się zapisać pozycji czytania: {0}</value>
-  </data>
-  <data name="Mobile.ClipboardUnavailable" xml:space="preserve">
-    <value>Schowek jest niedostępny.</value>
-  </data>
-  <data name="Mobile.AnswerSourceChanged" xml:space="preserve">
-    <value>Źródło lub miejsce docelowe uległo zmianie. Wyeksportuj bieżącą odpowiedź do osobnego pliku.</value>
-  </data>
-  <data name="Mobile.DocumentFolderUnavailable" xml:space="preserve">
-    <value>Folder dokumentów Studio na tym urządzeniu jest niedostępny.</value>
-  </data>
-  <data name="Mobile.BrowseOutputFolder" xml:space="preserve">
-    <value>Przeglądaj wybrany folder wyjściowy w aplikacji Pliki. Otwórz pojedynczy wynik, aby go udostępnić.</value>
-  </data>
-  <data name="Mobile.NotReadyToOpenLink" xml:space="preserve">
-    <value>Studio nie jest jeszcze gotowe do otwarcia łącza.</value>
-  </data>
-  <data name="Mobile.ChooseFolder" xml:space="preserve">
-    <value>Wybierz folder</value>
-  </data>
-  <data name="Mobile.UseOutputFormat" xml:space="preserve">
-    <value>Użyj wybranego formatu wyjściowego: {0}.</value>
-  </data>
-  <data name="Mobile.FileName" xml:space="preserve">
-    <value>Nazwa pliku</value>
-  </data>
-  <data name="Mobile.ChooseFolderNext" xml:space="preserve">
-    <value>Następnie wybierz folder w aplikacji Pliki. Dokument zostanie zapisany po zakończeniu przeglądu.</value>
-  </data>
-  <data name="Mobile.AnnotationsUnavailable" xml:space="preserve">
-    <value>Adnotacje są niedostępne dla tego dokumentu.</value>
-  </data>
   <data name="Apple.Document" xml:space="preserve">
     <value>Dokument</value>
   </data>
@@ -6661,9 +6619,6 @@ Naprawione defekty: {7:N0} · Tylko wykryte: {8:N0}</value>
   </data>
   <data name="Invoice.FontFiles" xml:space="preserve">
     <value>Czcionki</value>
-  </data>
-  <data name="Conversion.BatchExport.Unavailable" xml:space="preserve">
-    <value>Eksport folderów do PDF wymaga stałego dostępu do całych folderów, którego ta wersja Studio nie ma. Użyj opcji Dodaj pliki i Uruchom oczekujące, aby przekonwertować kilka dokumentów.</value>
   </data>
   <data name="PageActions.SelectAllAnnotations" xml:space="preserve">
     <value>Zaznacz wszystkie adnotacje</value>
@@ -7250,9 +7205,6 @@ Opcja 2</value>
   </data>
   <data name="Output.LocalFolderRequired" xml:space="preserve">
     <value>Wybierz lokalny folder wyjściowy. Aby zapisywać pojedyncze dokumenty w chmurze, użyj opcji Zapisz jako.</value>
-  </data>
-  <data name="Mobile.ReplaceFileConfirm" xml:space="preserve">
-    <value>Plik „{0}” już istnieje. Zapis zastąpi go po zakończeniu pozostałych kroków przeglądu. Kontynuować?</value>
   </data>
   <data name="Output.PublicationTooLarge" xml:space="preserve">
     <value>Wynik przekracza obsługiwany rozmiar dokumentu.</value>

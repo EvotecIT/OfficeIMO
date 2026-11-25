@@ -22,11 +22,15 @@ internal sealed record ManifestSource(string FileName, long ByteCount, string Sh
 
 internal sealed record ManifestOutput(string FileName, long ByteCount, string Sha256, int? PageCount, bool Tagged);
 
-internal sealed record ManifestEngine(string Converter, string? Assembly, string Version, string? SourceCommit, string OptionProfile, ManifestProfile Profile);
+internal sealed record ManifestEngine(string Converter, string? Assembly, string Version, string? SourceCommit, string OptionProfile, ManifestProfile Profile,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? OptionsFingerprint = null);
 
 internal sealed record ManifestProfile(string Id, string Label, string Description);
 
-internal sealed record ManifestFontPack(string Id, string Fingerprint, string DefaultFamily, IReadOnlyList<string> Coverage, ManifestSubstitution[] Substitutions);
+internal sealed record ManifestFontPack(string Id, string Fingerprint, string DefaultFamily, IReadOnlyList<string> Coverage, ManifestSubstitution[] Substitutions,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] ManifestFontAsset[]? SupplementalFonts = null);
+
+internal sealed record ManifestFontAsset(string Family, string Sha256);
 
 internal sealed record ManifestSubstitution(string Source, string Target, string Impact);
 
@@ -86,7 +90,8 @@ internal sealed record SupportOutput(
     [property: JsonPropertyName("PageCount")] int? PageCount,
     bool Tagged);
 
-internal sealed record SupportEngine(string? Assembly, string Version, string FontPackId, string FontPackFingerprint);
+internal sealed record SupportEngine(string? Assembly, string Version, string FontPackId, string FontPackFingerprint,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] ManifestFontAsset[]? SupplementalFonts = null);
 
 internal sealed record SupportPerformance(
     [property: JsonPropertyName("ConversionMilliseconds")] long ConversionMilliseconds,
@@ -94,10 +99,10 @@ internal sealed record SupportPerformance(
 
 internal sealed record SupportWarning(
     [property: JsonPropertyName("Code")] string Code,
-    [property: JsonPropertyName("Source")] string Source,
-    [property: JsonPropertyName("Message")] string Message,
+    [property: JsonPropertyName("Source"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Source,
+    [property: JsonPropertyName("Message"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Message,
     [property: JsonPropertyName("Severity")] string Severity,
-    [property: JsonPropertyName("Construct")] string Construct,
+    [property: JsonPropertyName("Construct"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Construct,
     [property: JsonPropertyName("PageNumber")] int? PageNumber,
     [property: JsonPropertyName("CanChangePagination")] bool CanChangePagination);
 
@@ -129,6 +134,7 @@ internal sealed record FontPackSubstitution(string Source, string Target, string
 
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, WriteIndented = true)]
 [JsonSerializable(typeof(ConversionManifestDocument))]
+[JsonSerializable(typeof(BrowserNotebookSettings))]
 [JsonSerializable(typeof(SupportSummaryDocument))]
 [JsonSerializable(typeof(PdfInspectionDocument))]
 internal sealed partial class BrowserReportJsonContext : JsonSerializerContext;

@@ -8,7 +8,7 @@ meta.primary_label: "Explore Studio workflows"
 meta.primary_url: "/studio/"
 ---
 
-OfficeIMO Studio brings the OfficeIMO engines into a visual workspace. [Windows and Linux downloads](/downloads/#studio-downloads) include installers and portable archives for x64 and Arm64. macOS uses the source build guide.
+OfficeIMO Studio brings the OfficeIMO engines into a visual workspace. [Windows and Linux downloads](/downloads/#studio-downloads) include installers and portable archives for x64 and Arm64, and the Microsoft Store edition installs on Windows 10 and 11. A [native app for Mac, iPad and iPhone](https://github.com/EvotecIT/OfficeIMO/tree/master/Apple/OfficeIMOStudio#readme) is coming soon to the Mac App Store and App Store.
 
 This comparison was checked on **7 September 2026**. OfficeIMO entries describe the current source and linked workflow evidence. Other entries describe vendors' published features, not a hands-on test or a performance ranking. Edition and provider requirements are stated where they affect the task; an unverified feature is not treated as unsupported.
 
@@ -18,7 +18,7 @@ Studio download links are refreshed from published Studio releases. Windows and 
 
 | Product / edition | Relevant documented capabilities | Availability and limits |
 |---|---|---|
-| **OfficeIMO Studio** | Supported PDF text/image edits, comments, AcroForms, page organization, conversion, redaction, comparison, and lossless optimization | Windows/Linux packages; macOS source build; OCR requires an optional provider; see the Studio guide for printing requirements |
+| **OfficeIMO Studio** | Supported PDF text/image edits, comments, AcroForms, page organization, conversion, redaction, comparison, and lossless optimization | Windows/Linux packages and the Microsoft Store; native Mac, iPad and iPhone app coming soon, with a smaller tool set; desktop OCR requires an optional provider; see the Studio guide for printing requirements |
 | **Acrobat Standard** | PDF editing, page organization, conversion, forms, signatures, and password protection | Commercial plan; advanced OCR, comparison, and redaction are listed in Pro |
 | **Acrobat Pro** | Standard features plus searchable scans, PDF comparison, redaction, and additional agreement workflows | Commercial plan; evaluate desktop and service features against deployment requirements |
 | **Acrobat Studio** | Pro features plus PDF Spaces, AI Assistant, and Adobe Express Premium | Commercial bundle; these additional services are a different workflow from OfficeIMO's desktop editor |

@@ -57,7 +57,10 @@ public partial class MarkdownDocument {
             _lastBlock = block;
         }
         ClearParseOwnedState();
-        RequestObjectTreeBinding();
+        if (block is IFrontMatterMarkdownBlock || !TryBindAppendedBlockNow(block)) {
+            RequestObjectTreeBinding();
+        }
+
         return this;
     }
 }

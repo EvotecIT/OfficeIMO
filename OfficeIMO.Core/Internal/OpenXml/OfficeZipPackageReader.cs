@@ -89,6 +89,36 @@ internal sealed class OfficeZipPackageReader : IDisposable {
         return true;
     }
 
+    /// <summary>The name of the member at a central-directory position.</summary>
+    internal string GetName(int index) => DecodeName(_records[index].NameBytes);
+
+    /// <summary>
+    /// Reads a member's compressed bytes as stored, for copying it to another archive without inflating it. The local
+    /// header is checked against the central directory; the content is not inflated or checked against its CRC-32.
+    /// </summary>
+    /// <returns><see langword="false"/> when no member has this name, or it is encrypted or uses another method.</returns>
+    internal bool TryReadStored(string name, out OfficeZipStoredMember member) {
+        member = default;
+        if (!_entries.TryGetValue(name, out int index)) return false;
+        OfficeArchiveSafety.ZipCentralDirectoryRecord record = _records[index];
+        if (!OfficeArchiveSafety.HasSupportedZipFlags(record.Flags, record.CompressionMethod) || record.CompressedSize > int.MaxValue - 64) return false;
+        long payload = OfficeArchiveSafety.ValidateEntryPayload(_source, record);
+        int count = (int)record.CompressedSize;
+        OfficePooledBytes bytes = OfficePooledBytes.Rent(count);
+        try {
+            if (_buffer != null) Buffer.BlockCopy(_buffer, checked(_bufferOrigin + (int)payload), bytes.Array, 0, count);
+            else {
+                _source.Position = payload;
+                ReadExactly(_source, bytes.Array, count);
+            }
+        } catch {
+            bytes.Dispose();
+            throw;
+        }
+        member = new OfficeZipStoredMember(bytes, record.CompressionMethod, record.Flags, record.DosTime, record.DosDate, record.Crc32, record.UncompressedSize);
+        return true;
+    }
+
     private OfficePooledBytes Read(OfficeArchiveSafety.ZipCentralDirectoryRecord record) {
         if (!OfficeArchiveSafety.HasSupportedZipFlags(record.Flags, record.CompressionMethod)) {
             throw new InvalidDataException("A package member is encrypted or uses an unsupported compression method.");
@@ -193,6 +223,29 @@ internal sealed class OfficeZipPackageReader : IDisposable {
     public void Dispose() {
         if (!_leaveOpen) _source.Dispose();
     }
+}
+
+/// <summary>A member's compressed bytes and the ZIP fields needed to write it to another archive unchanged.</summary>
+internal readonly struct OfficeZipStoredMember : IDisposable {
+    internal OfficeZipStoredMember(OfficePooledBytes compressed, ushort method, ushort flags, ushort dosTime, ushort dosDate, uint crc, long size) {
+        Compressed = compressed;
+        Method = method;
+        Flags = flags;
+        DosTime = dosTime;
+        DosDate = dosDate;
+        Crc = crc;
+        Size = size;
+    }
+
+    internal OfficePooledBytes Compressed { get; }
+    internal ushort Method { get; }
+    internal ushort Flags { get; }
+    internal ushort DosTime { get; }
+    internal ushort DosDate { get; }
+    internal uint Crc { get; }
+    internal long Size { get; }
+
+    public void Dispose() => Compressed.Dispose();
 }
 
 /// <summary>A byte buffer rented for one package member; <see cref="Length"/> bytes are valid.</summary>

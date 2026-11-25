@@ -29,6 +29,8 @@ meta.howto.steps:
 
 The merge workflow copies complete page trees into a new document. The browser presents the selected order explicitly and returns output page count and policy decisions with the artifact.
 
+**Also in Studio:** combine PDFs, images and Office files into one PDF in [OfficeIMO Studio](/studio/#feature-combine) on Windows and Linux, and in the native Mac, iPad and iPhone app (coming soon).
+
 ## Merge from .NET
 
 ```csharp

@@ -426,15 +426,6 @@ jobs:
             $filter = 'FullyQualifiedName!~Visual&FullyQualifiedName!~Render&FullyQualifiedName!~Layout&FullyQualifiedName!~Screenshot'
           }
           dotnet test OfficeIMO.Studio.Tests/OfficeIMO.Studio.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net10.0 --filter $filter --logger 'trx;LogFileName=studio-${{ matrix.slice }}.trx' --results-directory TestResults/Studio
-      - name: Test Store channel availability
-        if: matrix.slice == 'visual'
-        shell: pwsh
-        env:
-          OFFICEIMO_STUDIO_VISUAL_OUTPUT: ${{ github.workspace }}/TestResults/Studio/StoreVisual
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $PSNativeCommandUseErrorActionPreference = $true
-          dotnet test OfficeIMO.Studio.Tests/OfficeIMO.Studio.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net10.0 -p:OfficeIMOStudioDistribution=MacAppStore --filter 'FullyQualifiedName~StudioDistributionPolicyTests|FullyQualifiedName~InvoiceWorkbenchVisualTests|FullyQualifiedName~StudioFormOcrProviderAvailabilityTests' --logger 'trx;LogFileName=studio-store.trx' --results-directory TestResults/Studio/Store
       - name: Upload test results
         if: ${{ !cancelled() && (failure() || github.event_name == 'workflow_dispatch') }}
         uses: actions/upload-artifact@v7
@@ -1508,6 +1499,7 @@ jobs:
             add_project OfficeIMO.Access.Tests/OfficeIMO.Access.Tests.csproj
             add_project OfficeIMO.Publisher.Tests/OfficeIMO.Publisher.Tests.csproj
             add_project OfficeIMO.Reader.Tests/OfficeIMO.Reader.Tests.csproj
+            add_project OfficeIMO.Notebook.Tests/OfficeIMO.Notebook.Tests.csproj
             add_project OfficeIMO.OneNote.Tests/OfficeIMO.OneNote.Tests.csproj
             add_project OfficeIMO.Opml.Tests/OfficeIMO.Opml.Tests.csproj
             add_project OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj
@@ -1765,6 +1757,7 @@ jobs:
               run_access_tests
               run_publisher_tests
               run_reader_tests
+              if ci_project_selected "OfficeIMO.Notebook.Tests/OfficeIMO.Notebook.Tests.csproj"; then dotnet test OfficeIMO.Notebook.Tests/OfficeIMO.Notebook.Tests.csproj --configuration "${BUILD_CONFIGURATION}" --no-build --verbosity "${TEST_VERBOSITY}" --framework "${OFFICEIMO_TEST_FRAMEWORK}" --filter "${test_filter}" -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx; fi
               if ci_project_selected "OfficeIMO.OneNote.Tests/OfficeIMO.OneNote.Tests.csproj"; then dotnet test OfficeIMO.OneNote.Tests/OfficeIMO.OneNote.Tests.csproj --configuration "${BUILD_CONFIGURATION}" --no-build --verbosity "${TEST_VERBOSITY}" --framework "${OFFICEIMO_TEST_FRAMEWORK}" -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx; fi
               if ci_project_selected "OfficeIMO.Opml.Tests/OfficeIMO.Opml.Tests.csproj"; then dotnet test OfficeIMO.Opml.Tests/OfficeIMO.Opml.Tests.csproj --configuration "${BUILD_CONFIGURATION}" --no-build --verbosity "${TEST_VERBOSITY}" --framework "${OFFICEIMO_TEST_FRAMEWORK}" -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx; fi
               run_shared_tests "shared-contracts"

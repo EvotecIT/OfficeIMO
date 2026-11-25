@@ -39,6 +39,8 @@ namespace OfficeIMO.Excel {
                 if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
                     MaterializeDeferredDataSetImportIfNeeded();
                 }
+                // Callers of the part may read its note drawing stream.
+                CommitCommentVmlChanges();
                 return _worksheetPart;
             }
         }

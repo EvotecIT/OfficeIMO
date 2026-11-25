@@ -34,7 +34,6 @@ public sealed partial class OcrSessionViewModel : ObservableObject, IDisposable 
         _pickFiles = pickFiles; _pickOutputFolder = pickOutputFolder; _localizer = localizer;
         _storage = storage; _jobs = jobs; _guard = guard;
         _createEngine = createEngine ?? CreateEngineAsync;
-        RecognitionUnavailableReason = createEngine is null ? StudioOcrProvider.UnavailableReason : null;
         _openOutput = openOutput;
         Languages = OcrLanguageChoice.CreateChoices(localizer);
         foreach (var language in Languages) language.PropertyChanged += LanguageChanged;
@@ -77,7 +76,6 @@ public sealed partial class OcrSessionViewModel : ObservableObject, IDisposable 
         RemoveSelectedCommand.NotifyCanExecuteChanged();
     }
     private void SelectedItemChanged(object? sender, PropertyChangedEventArgs args) => OnPropertyChanged(nameof(HasSelectedOutput));
-    public string? RecognitionUnavailableReason { get; }
 
     /// <summary>Shared check for the recognition engine, shown above the queue.</summary>
     private OcrReadinessViewModel? _readiness;
@@ -95,7 +93,7 @@ public sealed partial class OcrSessionViewModel : ObservableObject, IDisposable 
         OnPropertyChanged(nameof(IsRecognitionAvailable));
         NotifyCommands();
     }
-    public bool IsRecognitionAvailable => RecognitionUnavailableReason is null && Readiness?.IsReady != false;
+    public bool IsRecognitionAvailable => Readiness?.IsReady != false;
     public bool CanRun => IsRecognitionAvailable && !_disposed && !IsBusy && !string.IsNullOrWhiteSpace(OutputFolder) &&
         Languages.Any(item => item.IsSelected) && Items.Any(item => item.Status is null);
     public bool CanRetry => IsRecognitionAvailable && !_disposed && !IsBusy && !string.IsNullOrWhiteSpace(OutputFolder) &&

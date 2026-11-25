@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Bounded offline import of notebook scripts, publishing formats, Deepnote and Zeppelin into OfficeIMO.Notebook.</Description>
+    <VersionPrefix>3.6.2</VersionPrefix>
+    <!-- Keep the netstandard2.0 target used by the OfficeIMO aggregate package. -->
+    <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
+    <LangVersion>Latest</LangVersion>
+    <IsPackable>true</IsPackable>
+    <IsPublishable>true</IsPublishable>
+    <Company>Evotec</Company>
+    <Authors>Przemyslaw Klys</Authors>
+    <PackageTags>jupyter;notebook;quarto;jupytext;deepnote;zeppelin;officeimo</PackageTags>
+    <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageIcon>OfficeIMO.png</PackageIcon>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../OfficeIMO.Notebook/OfficeIMO.Notebook.csproj" />
+    <ProjectReference Include="../OfficeIMO.Yaml/OfficeIMO.Yaml.csproj" />
+    <ProjectReference Include="../OfficeIMO.Html/OfficeIMO.Html.csproj" />
+    <ProjectReference Include="../OfficeIMO.Markdown/OfficeIMO.Markdown.csproj" />
+    <None Include="../Assets/OfficeIMO.png" Pack="true" PackagePath="/" />
+    <None Include="README.md" Pack="true" PackagePath="README.md" />
+  </ItemGroup>
+</Project>

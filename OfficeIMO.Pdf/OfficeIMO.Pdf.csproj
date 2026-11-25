@@ -112,4 +112,5 @@
     <InternalsVisibleTo Include="OfficeIMO.Studio" />
     <InternalsVisibleTo Include="PSWriteOffice" />
   </ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Notebook.Pdf" /></ItemGroup>
 </Project>

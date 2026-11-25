@@ -545,6 +545,7 @@ namespace OfficeIMO.Excel {
             VmlDrawingPart? commentVmlPart = TryGetCommentVmlPart();
             if (commentVmlPart != null) {
                 budget.Consume();
+                CommitCommentVmlChanges();
                 ConsumeVmlElementsForMutationPlan(commentVmlPart, budget);
                 XDocument document = LoadOrCreateVmlDocument(commentVmlPart);
                 XNamespace vmlNamespace = "urn:schemas-microsoft-com:vml";

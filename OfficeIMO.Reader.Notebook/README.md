@@ -16,9 +16,9 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
 string markdown = reader.ConvertToMarkdown("analysis.ipynb");
 ```
 
-Markdown, raw, and code cells are projected in source order. Code is emitted as fenced Markdown using the notebook language when available. Stream, error, `text/markdown`, and `text/plain` outputs can be included; binary display outputs such as images, HTML, and widgets are deliberately not decoded or executed.
+The adapter projects Markdown, raw, and code cells in source order. Code uses a Markdown fence with the notebook language when available. Supported saved outputs include streams, error tracebacks, `text/markdown`, and `text/plain`. Other display formats remain outside the text projection.
 
-The adapter uses the runtime JSON API already present in the Reader graph. It does not run kernels, execute cells, start processes, load models, or contact notebook services. `OfficeIMO.Reader.All` registers this handler.
+The adapter projects stored notebook content through [OfficeIMO.Notebook](../OfficeIMO.Notebook/README.md). `OfficeIMO.Reader.All` registers this handler. Use the [notebook support matrix](../OfficeIMO.Notebook/SUPPORT.md) for native editing and rich exports.
 
 ## Registration
 
@@ -29,7 +29,7 @@ The adapter uses the runtime JSON API already present in the Reader graph. It do
 | Reader kind | `ReaderInputKind.Json` |
 | Default input limit | 64 MiB when `ReaderOptions.MaxInputBytes` is not set |
 
-The notebook must be a JSON object with a `cells` array; otherwise reading fails with `FormatException`. A UTF-8 byte-order mark is accepted, and JSON nesting is limited to depth 128.
+The notebook must be a JSON object with a v4 `cells` array or v3 `worksheets`. A UTF-8 byte-order mark is accepted, and JSON nesting is limited to depth 128.
 
 ## Options
 
@@ -42,7 +42,7 @@ The notebook must be a JSON object with a `cells` array; otherwise reading fails
 | `MaxCellCharacters` | `1000000` | 1 to 16,000,000 | Longer cell source is truncated. |
 | `MaxOutputCharactersPerCell` | `100000` | 0 to 16,000,000 | Total output text kept per cell. |
 
-Out-of-range values throw `ArgumentOutOfRangeException` when the handler is registered. `ReaderOptions.MaxChars` (default `8000`) splits a large cell into continuation chunks.
+The Reader reports the source cell count even when `MaxCells` limits the projection. Out-of-range option values throw `ArgumentOutOfRangeException` when the handler is registered. `ReaderOptions.MaxChars` (default `8000`) splits a large cell into continuation chunks.
 
 ## Output
 
@@ -88,4 +88,4 @@ The code cell's chunk is `notebook-cell-0001`, and the document metadata reports
 ## Dependency footprint
 
 - **External:** None.
-- **OfficeIMO:** `OfficeIMO.Reader.Core`.
+- **OfficeIMO:** `OfficeIMO.Reader.Core` and `OfficeIMO.Notebook`.

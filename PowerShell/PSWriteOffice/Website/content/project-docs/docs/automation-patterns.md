@@ -50,6 +50,23 @@ Get-ChildItem ./reports -Filter *.pdf |
 
 Use `-NoClobber` to preserve an existing destination or `-AutoRename` for another filename. `-CheckpointPath` and `-Resume` support resumable directory jobs. Retain per-file reports. `Get-OfficeDocumentCapability -Conversion -Executable` lists the current host's routes; their loss policies still apply.
 
+## Run PowerShell notebook cells
+
+`Open-OfficeNotebook` reads a notebook into a live document. Inspect its saved content with `Get-OfficeNotebookCell` and `Get-OfficeNotebookOutput`, use `Export-OfficeNotebook` to publish it, and close the document with `Close-OfficeNotebook`.
+
+Run notebooks whose code you trust. `Invoke-OfficeNotebook` runs PowerShell cells in document order in one session. Select zero-based indexes with `-CellIndex`, set a per-cell limit with `-TimeoutSeconds`, and use `-OutputPath` to save execution counts and outputs in an `.ipynb` file.
+
+```powershell
+$report = Invoke-OfficeNotebook -LiteralPath ./lab.ipynb -OutputPath ./executed.ipynb -NoClobber -TimeoutSeconds 30
+try {
+    $report.Cells
+} finally {
+    $report.Notebook | Close-OfficeNotebook
+}
+```
+
+Run `Get-Help about_PSWriteOffice_Notebook` for notebook imports, exports, and saved results.
+
 ## Work with native document families
 
 Project tasks, Access rows and EPUB chapters accept ordinary PowerShell parameters and object pipelines. The [native document example](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/Workflows/Example-NativeDocumentFamilies.ps1) creates and reads these artifacts without constructing .NET option objects.

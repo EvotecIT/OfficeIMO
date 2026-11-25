@@ -130,7 +130,9 @@
 {{~ else if option.type == "number" ~}}
               <label class="bt-field"><span>{{ option.label | html.escape }}</span><input type="number" name="{{ option.id }}" value="{{ option.default }}" min="{{ option.min }}" max="{{ option.max }}" inputmode="numeric" /></label>
 {{~ else if option.type == "text" ~}}
-              <label class="bt-field"><span>{{ option.label | html.escape }}</span><input type="text" name="{{ option.id }}" placeholder="{{ option.placeholder | html.escape }}" autocomplete="off" {{ if option.required }}data-required{{ end }} /></label>
+              <label class="bt-field"><span>{{ option.label | html.escape }}</span><input type="text" name="{{ option.id }}" placeholder="{{ option.placeholder | html.escape }}" autocomplete="off" {{ if option.maxLength }}maxlength="{{ option.maxLength }}"{{ end }} {{ if option.required }}data-required{{ end }} /></label>
+{{~ else if option.type == "flag" ~}}
+              <label class="bt-check"><input type="checkbox" name="{{ option.id }}" value="true" /><span><b>{{ option.label | html.escape }}</b>{{ if option.hint }}<small>{{ option.hint | html.escape }}</small>{{ end }}</span></label>
 {{~ else if option.type == "password" ~}}
               <label class="bt-field"><span>{{ option.label | html.escape }}</span><span class="bt-password"><input type="password" name="{{ option.id }}" autocomplete="new-password" {{ if option.required }}data-required{{ end }} /><button type="button" class="bt-link" data-bt-reveal>Show</button></span>{{ if option.hint }}<small>{{ option.hint | html.escape }}</small>{{ end }}</label>
 {{~ if option.confirm ~}}
@@ -154,6 +156,8 @@
 {{~ if option.advanced ~}}
 {{~ if option.type == "flag" ~}}
                 <label class="bt-check"><input type="checkbox" name="{{ option.id }}" value="true" /><span><b>{{ option.label | html.escape }}</b>{{ if option.hint }}<small>{{ option.hint | html.escape }}</small>{{ end }}</span></label>
+{{~ else if option.type == "text" ~}}
+                <label class="bt-field"><span>{{ option.label | html.escape }}</span><input type="text" name="{{ option.id }}" placeholder="{{ option.placeholder | html.escape }}" autocomplete="off" {{ if option.maxLength }}maxlength="{{ option.maxLength }}"{{ end }} {{ if option.required }}data-required{{ end }} /></label>
 {{~ else if option.type == "password" ~}}
                 <label class="bt-field"><span>{{ option.label | html.escape }}</span><span class="bt-password"><input type="password" name="{{ option.id }}" autocomplete="new-password" /><button type="button" class="bt-link" data-bt-reveal>Show</button></span>{{ if option.hint }}<small>{{ option.hint | html.escape }}</small>{{ end }}</label>
 {{~ end ~}}

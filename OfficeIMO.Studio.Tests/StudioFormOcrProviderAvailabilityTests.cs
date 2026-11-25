@@ -5,14 +5,13 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using OfficeIMO.Studio.Features.Editor;
 using OfficeIMO.Studio.Features.Shell;
-using OfficeIMO.Studio.Infrastructure;
 
 namespace OfficeIMO.Studio.Tests {
     public sealed class StudioFormOcrProviderAvailabilityTests {
         [Theory]
         [InlineData(360, 760)]
         [InlineData(680, 920)]
-        public async Task FormRecognitionUsesDistributionProviderAvailabilityAndDisplaysItsReason(int width, int height) {
+        public async Task FormRecognitionIsOfferedForExistingFields(int width, int height) {
             using var session = TestAppBuilder.StartSession();
             await session.Dispatch(async () => {
                 var services = ((App)Application.Current!).Services;
@@ -39,21 +38,8 @@ namespace OfficeIMO.Studio.Tests {
                     Assert.True(recognize.IsEffectivelyVisible);
                     Capture(window, width);
 
-                    string? unavailableReason = StudioOcrProvider.UnavailableReason;
-                    bool available = unavailableReason is null;
-                    Assert.Equal(available, model.CanRecognizeFormValues);
-                    Assert.Equal(available, recognize.IsEnabled);
-                    Assert.Equal(available, model.OcrWorkbench.IsRecognitionAvailable);
-                    if (unavailableReason is not null) {
-                        Assert.Equal(unavailableReason, model.FormOcrStartHintLabel);
-                        Assert.Contains(view.GetVisualDescendants().OfType<TextBlock>(),
-                            text => text.IsEffectivelyVisible && text.Text == unavailableReason);
-                        // A caller can invoke the command directly even when its rendered button is disabled.
-                        await model.RecognizeFormValuesCommand.ExecuteAsync(null);
-                        Assert.Null(model.FormOcrError);
-                        Assert.False(model.IsFormOcrBusy);
-                        Assert.False(model.HasFormOcrReview);
-                    }
+                    Assert.True(model.CanRecognizeFormValues);
+                    Assert.True(recognize.IsEnabled);
                     Assert.False(model.IsDirty);
                     Assert.Equal(original, File.ReadAllBytes(source));
                 } finally {
@@ -74,8 +60,7 @@ namespace OfficeIMO.Studio.Tests {
             string? output = Environment.GetEnvironmentVariable("OFFICEIMO_STUDIO_VISUAL_OUTPUT");
             if (string.IsNullOrWhiteSpace(output)) return;
             Directory.CreateDirectory(output);
-            string channel = StudioDistributionPolicy.IsMacAppStore ? "store" : "direct";
-            frame.Save(Path.Combine(output, $"form-ocr-provider-{channel}-{width}.png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
+            frame.Save(Path.Combine(output, $"form-ocr-provider-{width}.png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
         }
     }
 }

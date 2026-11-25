@@ -48,9 +48,14 @@ namespace OfficeIMO.Excel {
             return Locking.ExecuteWrite(EnsureLock(), () => {
                 cancellationToken.ThrowIfCancellationRequested();
                 EnsureSheetCacheInitialized(_lock);
+                if (!SheetCacheMatchesWorkbook()) {
+                    // Sheets were added or removed without going through the cache; refresh it and the sheet ids.
+                    MarkSheetCacheDirty();
+                    EnsureSheetCacheInitialized(_lock);
+                }
                 string name = ValidateOrSanitizeSheetName(worksheetName, validationMode, currentSheetName: null);
                 ExcelSheet excelSheet = new ExcelSheet(this, _workBookPart, _spreadSheetDocument, name);
-                MarkSheetCacheDirty();
+                AppendNewSheetToCache(excelSheet);
                 MarkRequiresSavePreflight();
                 return excelSheet;
             });

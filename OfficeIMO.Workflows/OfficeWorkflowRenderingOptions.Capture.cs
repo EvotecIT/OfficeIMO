@@ -7,6 +7,10 @@ internal sealed partial class OfficeWorkflowRenderingOptions {
         copy.SourcePassword = source.SourcePassword;
         copy.Word = source.Word; copy.Excel = source.Excel; copy.PowerPoint = source.PowerPoint;
         copy.Html = source.Html ?? copy.Html; copy.Markdown = source.Markdown; copy.PlainText = source.PlainText;
+        copy.NotebookPdf = source.NotebookPdf;
+        copy.NotebookHtml = source.NotebookHtml;
+        copy.NotebookWord = source.NotebookWord;
+        copy.NotebookMarkdown = source.NotebookMarkdown;
         copy.FailOnLoss = source.FailOnLoss;
         copy.CompressPdfOutput = source.CompressPdfOutput;
         copy.LegacyDocLossPolicy = source.WordLoad?.FailOnLoss == true ? OfficeConversionLossPolicy.Block : OfficeConversionLossPolicy.Allow;

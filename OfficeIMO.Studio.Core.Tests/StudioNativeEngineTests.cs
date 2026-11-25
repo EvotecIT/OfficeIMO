@@ -873,7 +873,7 @@ public sealed class StudioNativeEngineTests : IDisposable {
     private static unsafe int RecognizeNothing(nint context, int page, int pageCount, byte* png, nuint length, byte** words) => StudioNativeAbi.Failed;
 
     [Fact]
-    public async Task Word_Excel_and_PowerPoint_files_convert_to_searchable_PDFs() {
+    public async Task Office_and_notebook_files_convert_to_searchable_PDFs() {
         string word = Path.Combine(_root, "report.docx");
         using (var document = OfficeIMO.Word.WordDocument.Create(word)) {
             document.AddParagraph("Quarterly report");
@@ -893,8 +893,14 @@ public sealed class StudioNativeEngineTests : IDisposable {
             presentation.AddSlide().AddTextBox("Quarterly review");
             presentation.Save();
         }
+        string notebook = Path.Combine(_root, "lab.ipynb");
+        using (var document = OfficeIMO.Notebook.NotebookDocument.Create()) {
+            document.AddCodeCell("print('results')").AddOutput(
+                OfficeIMO.Notebook.NotebookOutput.CreateStream("stdout", "Quarterly notebook results\n"));
+            document.Save(notebook);
+        }
 
-        foreach ((string input, string route) in new[] { (word, "docx-pdf"), (workbook, "xlsx-pdf"), (deck, "pptx-pdf") }) {
+        foreach ((string input, string route) in new[] { (word, "docx-pdf"), (workbook, "xlsx-pdf"), (deck, "pptx-pdf"), (notebook, "notebook-pdf") }) {
             string output = Path.ChangeExtension(input, ".pdf");
             PdfConversionResult result = await PdfConversion.ConvertAsync(input, output, default);
             Assert.Equal(route, result.Route);

@@ -109,7 +109,18 @@ internal static partial class PdfSyntax {
         int start,
         int limit,
         out bool isStream,
-        System.Threading.CancellationToken cancellationToken = default) {
+        System.Threading.CancellationToken cancellationToken = default) =>
+        // This loop reads every byte of the file once; array input is scanned without the other inputs' checks.
+        text.TryGetWholeArray(out byte[]? array)
+            ? IndexOfStreamOrEndObjectOutsideLiteralString(new PdfByteArrayContentText(array!), start, limit, out isStream, cancellationToken)
+            : IndexOfStreamOrEndObjectOutsideLiteralString<PdfByteContentText>(text, start, limit, out isStream, cancellationToken);
+
+    private static int IndexOfStreamOrEndObjectOutsideLiteralString<TText>(
+        TText text,
+        int start,
+        int limit,
+        out bool isStream,
+        System.Threading.CancellationToken cancellationToken) where TText : struct, IPdfContentText {
         if (start < 0) start = 0;
         if (limit > text.Length) limit = text.Length;
 

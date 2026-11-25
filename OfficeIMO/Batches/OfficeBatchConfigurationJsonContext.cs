@@ -40,6 +40,14 @@ internal sealed record OfficeBatchRendererSettings {
     public OfficeIMO.PowerPoint.Pdf.PowerPointPdfExportOptions? PowerPoint { get; init; }
     public OfficeIMO.Html.Pdf.HtmlPdfExportOptions? Html { get; init; }
     public OfficeIMO.Markdown.Pdf.MarkdownPdfExportOptions? Markdown { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public OfficeIMO.Notebook.Pdf.NotebookPdfExportOptions? NotebookPdf { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public OfficeIMO.Notebook.Html.NotebookHtmlExportOptions? NotebookHtml { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public OfficeIMO.Notebook.Word.NotebookWordExportOptions? NotebookWord { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public OfficeIMO.Notebook.Markdown.NotebookMarkdownExportOptions? NotebookMarkdown { get; init; }
     public OfficeIMO.Pdf.Word.PdfWordExportOptions? PdfWord { get; init; }
     public OfficeIMO.Pdf.PowerPoint.PdfPowerPointExportOptions? PdfPowerPoint { get; init; }
     public PdfLoadOptions? PdfLoad { get; init; }
@@ -53,7 +61,8 @@ internal sealed record OfficeBatchRendererSettings {
         EmbedSourceWhenLossy = options.EmbedSourceWhenLossy,
         VisualFallbackMaxColumns = options.VisualFallbackMaxColumns, VisualFallbackMaxRows = options.VisualFallbackMaxRows,
         Word = options.Word, Excel = options.Excel, PowerPoint = options.PowerPoint, Html = options.Html,
-        Markdown = options.Markdown, PdfWord = options.PdfWord, PdfPowerPoint = options.PdfPowerPoint,
+        Markdown = options.Markdown, NotebookPdf = options.NotebookPdf, PdfWord = options.PdfWord, PdfPowerPoint = options.PdfPowerPoint,
+        NotebookHtml = options.NotebookHtml, NotebookWord = options.NotebookWord, NotebookMarkdown = options.NotebookMarkdown,
         PdfLoad = options.PdfLoad, PdfHtml = options.PdfHtml, PlainText = options.PlainText
     };
 }

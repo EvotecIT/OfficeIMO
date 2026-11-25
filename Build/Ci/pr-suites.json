@@ -66,17 +66,6 @@
       "Apple/**",
       "OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/openpreserve-high-resolution-image.pdf"
     ],
-    "apple-dependency-graph": [
-      ".github/workflows/dependency-submission.yml",
-      "**/packages.lock.json",
-      "Build/Studio/Studio.Licenses.props",
-      "OfficeIMO.Drawing.ImageIO/*.csproj",
-      "OfficeIMO.Drawing.ImageIO.Tests/*.csproj",
-      "OfficeIMO.Studio.Native/*.csproj",
-      "OfficeIMO.Studio/*.csproj",
-      "OfficeIMO.Studio.iOS/*.csproj",
-      "OfficeIMO.Studio.iOS/global.json"
-    ],
     "powershell-macos": [
       ".github/workflows/powershell-dotnet.yml",
       ".github/workflows/powershell-tests.yml",
@@ -321,6 +310,7 @@
       "OfficeIMO.Latex.Tests",
       "OfficeIMO.MarkdownRenderer.Wpf.Tests",
       "OfficeIMO.Markup.Tests",
+      "OfficeIMO.Notebook.Tests",
       "OfficeIMO.OneNote.Tests",
       "OfficeIMO.Opml.Tests",
       "OfficeIMO.OpenDocument.Converters.Tests",
@@ -457,6 +447,10 @@
     {
       "name": "OpenDocument-Converters",
       "project": "OfficeIMO.OpenDocument.Converters.Tests/OfficeIMO.OpenDocument.Converters.Tests.csproj"
+    },
+    {
+      "name": "Notebook",
+      "project": "OfficeIMO.Notebook.Tests/OfficeIMO.Notebook.Tests.csproj"
     },
     {
       "name": "OneNote",

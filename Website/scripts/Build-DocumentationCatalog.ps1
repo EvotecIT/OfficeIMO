@@ -58,6 +58,7 @@ function Get-DocumentationUrl {
 
     switch -Regex ($Name) {
         '^PSWriteOffice$' { return '/docs/pswriteoffice/' }
+        '^OfficeIMO\.Notebook\.PowerShell$' { return 'https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Notebook.PowerShell/README.md' }
         '^OfficeIMO\.Tool$' { return '/docs/cli/' }
         '^OfficeIMO\.(?:IWork|Reader\.IWork|Word\.IWork|Excel\.IWork|PowerPoint\.IWork)$' { return '/docs/iwork/' }
         '^OfficeIMO\.Word' { return '/docs/word/' }

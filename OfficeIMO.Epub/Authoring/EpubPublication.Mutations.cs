@@ -3,19 +3,18 @@ namespace OfficeIMO.Epub;
 public sealed partial class EpubPublication {
     private long RetainedPayloadBytes => _retainedBytes - (_entries.TryGetValue(PackagePath, out byte[]? original) ? original.LongLength : 0);
 
-    // Validate a proposed XML edit before touching live nodes. Existing manifest/spine
-    // wrappers keep their identity, and rejected edits leave the publication unchanged.
+    // Edits apply to the live declaration and are undone if the package budget rejects them, so
+    // existing manifest/spine wrappers keep their identity and rejected edits leave the publication unchanged.
     private void EditPackageElement(XElement element, Action<XElement> edit, long payloadDelta = 0) {
-        XDocument proposed = new XDocument(_package);
-        XElement[] original = Root.DescendantsAndSelf().ToArray();
-        int index = Array.IndexOf(original, element);
-        if (index < 0) throw new InvalidOperationException("The declaration no longer belongs to this publication.");
-        edit(proposed.Root!.DescendantsAndSelf().ElementAt(index));
-        EnsurePackageBudget(proposed, payloadDelta);
-        edit(element);
+        if (element.Document != _package) throw new InvalidOperationException("The declaration no longer belongs to this publication.");
+        EditPackage(() => edit(element), payloadDelta);
     }
 
     private void EnsurePackageBudget(XDocument package, long payloadDelta = 0) {
+        if (package == _package) {
+            EnsureLivePackageBudget(payloadDelta);
+            return;
+        }
         long available = _maximumRetainedBytes - RetainedPayloadBytes - payloadDelta;
         long maximum = Math.Min(_maximumMetadataBytes, Math.Min(_maximumEntryBytes, available));
         if (maximum < 1) throw new InvalidDataException("Package XML exceeds the publication's retained-byte limits.");

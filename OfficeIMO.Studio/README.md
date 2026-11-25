@@ -1,6 +1,6 @@
 # OfficeIMO Studio
 
-OfficeIMO Studio is a cross-platform desktop and mobile application for OfficeIMO's document engines. The application presents the existing PDF, conversion, workflow, security, and OCR capabilities where the platform supports them; reusable document behavior remains in the owning OfficeIMO packages. The [feature table on the Studio page](https://officeimo.com/studio/#features), from [`Website/data/studio_features.json`](../Website/data/studio_features.json), shows what Studio does on Windows and Linux and in the [native apps for Mac, iPad and iPhone](../Apple/OfficeIMOStudio/README.md).
+OfficeIMO Studio is the Windows and Linux desktop application for OfficeIMO's document engines. The application presents the existing PDF, conversion, workflow, security, and OCR capabilities where the platform supports them; reusable document behavior remains in the owning OfficeIMO packages. The [feature table on the Studio page](https://officeimo.com/studio/#features), from [`Website/data/studio_features.json`](../Website/data/studio_features.json), shows what Studio does on Windows and Linux and in the [native apps for Mac, iPad and iPhone](../Apple/OfficeIMOStudio/README.md).
 
 ## Current workspace
 
@@ -14,7 +14,7 @@ OfficeIMO Studio is a cross-platform desktop and mobile application for OfficeIM
 - In View, choose **Independent panes** to view the current document twice or select another open document in either pane. Each pane keeps its own page, zoom and reading layout. Click or focus a pane, or press F6, to make it the target of editing, undo and save. Two views of one document share its edits and undo history. Narrow windows show the active viewport with **Switch active pane** available; both navigation states are retained. **Close pane** returns to one viewport and keeps the document tabs open. Synchronized comparison temporarily replaces the pane display and restores it when closed.
 - Opening a file through a symlink or hard link reuses its existing tab and pending edits. Conversion, document-health output, assembly, page export, Save As, extraction, splitting, and protected/decrypted copies check live tab ownership before publishing their final destination. Numbered-copy mode skips owned paths; replacement reports a failure instead of replacing an open document. Assembly adds each physical source once, and comparison rejects an alias of the current document.
 - Local-file saves check that the source still has the physical identity and contents Studio opened. If another application changes, replaces, or removes it, Studio keeps the pending edits and refuses to overwrite the external version; use **Save As** to choose a different file. The shared commit path also checks the displaced source during atomic replacement. Saving a source opened through a symlink updates its target and preserves the link.
-- Open and compare PDFs through desktop storage-provider streams, including sources without local paths. Available provider bookmarks are retained with recent and restart references. In a macOS sandbox, selected local files retain an app-scoped native bookmark, and read/write streams hold its resolved permission until disposal. A changed location or unavailable permission requires selecting the file again. PDF input and serialized provider output are limited to 512 MiB. A provider save checks the opened contents before writing and verifies the result after closing the write stream, but cannot guarantee atomic replacement or rollback. Studio explains this before saving and keeps edits and enabled recovery snapshots when publication fails.
+- Open and compare PDFs through desktop storage-provider streams, including sources without local paths. Available provider bookmarks are retained with recent and restart references. PDF input and serialized provider output are limited to 512 MiB. A provider save checks the opened contents before writing and verifies the result after closing the write stream, but cannot guarantee atomic replacement or rollback. Studio explains this before saving and keeps edits and enabled recovery snapshots when publication fails.
 - In View options, **Rotate view left**, **Rotate view right**, and **Reset view rotation** turn the reading surface without editing the PDF or adding an undo step. Page content, selection, search highlights, links, and inline editors turn together. The document's organizer rotation remains a saved page edit.
 - In Pages, **Normalize saved rotation** keeps the selected pages' appearance while moving their saved quarter-turn rotation into content and page geometry. It retains text, vectors, tagged structure, and standard form fields, and creates one undo step. Signed or certified files keep their rewrite restrictions; unsupported annotation appearances or tag layout bounds produce an explicit error.
 - **Review page orientation** uses the configured desktop OCR runtime to suggest quarter-turn corrections. Preview each page, explicitly accept corrections, and apply them together with one undo step. Tesseract requires installed `osd` data; confidence does not automatically select pages.
@@ -32,7 +32,7 @@ OfficeIMO Studio is a cross-platform desktop and mobile application for OfficeIM
 - On Unix, newly written recovery files allow read/write access only to their owner. Rewriting an older snapshot also applies these permissions. Windows recovery files use the access controls of the local application-data location.
 - Home, Tools, Convert, OCR, Jobs, Settings, and the other workbenches belong to the window rather than to a document tab, so their queues, results, and settings stay the same whichever document is selected. Choosing a document tab shows that document; closing a tab while another screen is open keeps that screen, even when it was the last tab, and closing the last document from the document view returns to Home. Closing a tab never cancels or waits for window-level work. Closing the window while work is running lists that work with its progress and offers to keep the window open, wait and close, or cancel and close; outputs already saved are kept, recovery copies remain where the workflow supports them, and nothing resumes on its own after restarting. Unsaved book edits are confirmed separately.
 - Tools are grouped by the kind of work they do: Edit, Review, Organize, Convert, Output, and Security. Command search also finds watermarks, page numbers, flattening annotations, splitting, side-by-side comparison, signature validation, page night mode, the document assistant, and every annotation and editing tool; choosing a tool switches to its mode. Toolbar tooltips show each command's shortcut and, when it is unavailable, the reason.
-- Search the Tools catalog or open command search with Ctrl+K or Ctrl+Shift+P (Command on macOS), or from the title bar. On iPad and iPhone, **Find a command** in the navigation sidebar opens the same search with touch controls and room for the software keyboard; an attached keyboard can use Command+K. Command search opens inside the window, highlights matching words, lists recently run and available commands first, and keeps unavailable commands at the end with their requirement. Commands use the same operations as the workspace controls and can be selected with the keyboard.
+- Search the Tools catalog or open command search with Ctrl+K or Ctrl+Shift+P (Command on macOS), or from the title bar. Command search opens inside the window, highlights matching words, lists recently run and available commands first, and keeps unavailable commands at the end with their requirement. Commands use the same operations as the workspace controls and can be selected with the keyboard.
 - Drop files anywhere in the window. PDFs open in tabs, and other supported inputs join the conversion queue; in Convert, every dropped file joins the queue. An overlay explains what the drop will do before you release.
 - On Windows and Linux, opening a document while Studio is already running sends it to the existing window, which comes to the front, instead of starting another process. Start a separate instance with `OfficeIMO.Studio --new-window`.
 - Startup accepts every supplied document. macOS file-open activation waits for startup and processes successive batches in order: PDFs open in tabs and supported conversion files join the queue with provider access retained. Unsupported or busy intake reports an error; a later successful intake clears that rejection. Finder **Open With** is verified on the local macOS ARM64 app for a Numbers ZIP document delivered to an already-running Studio instance: it opens Convert and queues the document as Numbers → XLSX. This check does not qualify cold-start activation, other file types, or sandbox bookmark recovery.
@@ -154,7 +154,7 @@ Open **Assistant** to ask read-only questions about the current PDF. Choose **Co
 
 | Connection | Setup |
 | --- | --- |
-| ChatGPT | Sign in with your ChatGPT account, or explicitly choose **Use existing Codex login** (not offered in the Mac App Store and iPad editions, which cannot read it). The native IX Codex transport needs no agent CLI. |
+| ChatGPT | Sign in with your ChatGPT account, or explicitly choose **Use existing Codex login**. The native IX Codex transport needs no agent CLI. |
 | OpenAI-compatible API | Enter an HTTPS API base URL and your API key, then refresh the model list. |
 | GitHub Copilot | Supply a Copilot-authorized GitHub token, or enter your registered GitHub app client ID and use browser device sign-in. |
 | LM Studio | Load a text model in LM Studio, start its local server, then connect. The preset uses `http://localhost:1234/v1/`. |
@@ -180,11 +180,6 @@ format and rendering engines. Installing an external office suite or document
 converter is unnecessary. The packaged desktop editions include the .NET runtime.
 OCR is a separate, optional Tesseract operation. Printer queue delivery uses the
 platform printer service; preparing and saving print sheets works independently.
-The Mac App Store edition provides print-PDF preparation and blocks external OCR
-and printer command-line execution. It also omits the C2PA verifier, which runs
-an external tool, and checkpointed folder PDF export. Its location boxes show the
-location chosen in a picker and cannot be typed into, and invoice output goes to a
-chosen folder rather than beside the invoice.
 
 ## Capability ownership
 
@@ -218,7 +213,7 @@ After an unexpected interface error, Studio keeps open documents and shows a not
 
 ## Distribution
 
-PowerForge owns the release matrix, signing, archives, generated Windows MSI, Debian package, macOS `.app`, checksums, and artifact manifests. Validate or inspect the repository-local product configuration with:
+PowerForge owns the release matrix, signing, archives, generated Windows MSI, Debian package, checksums, and artifact manifests. Validate or inspect the repository-local product configuration with:
 
 ```powershell
 ./Build/Studio/Build-Studio.ps1 -Validate
@@ -243,8 +238,6 @@ dotnet test OfficeIMO.Studio.Tests/OfficeIMO.Studio.Tests.csproj -c Release
 
 The document workspace currently opens PDF files directly. Other supported formats enter through conversion or mixed-source assembly.
 
-Native selected-file acceptance on macOS 27.0.1 ARM64 uses an isolated, ad-hoc-signed sandbox build with user-selected read/write and app-scoped bookmark entitlements. It covers opening and rendering a PDF, reopening after a cold restart without a picker, Save As with exact source bytes, editing and saving through restored permission, and reopening the saved annotation. Cancelling Save As creates no output. Moving the source makes the old reference unavailable; selecting its new location restores access. Managed tests cover cancellation and stream disposal. This evidence does not qualify distribution signing, App Store acceptance, directory packages, other storage providers, revoked grants, or interruption during native I/O.
-
 For printing, choose pages, paper, orientation, 1/2/4/6/9 pages per sheet, and 150 or 300 DPI, then build the sheet preview. **Page subset** keeps odd or even source-page numbers from your selection in the selected order. Scaling offers fit, actual size, fill, or a custom percentage of the original physical page size; custom and fill overflow is cropped to each slot. Choose one of nine alignment positions and expand **Margins** to set each edge in points (72 points = 1 inch). **Grayscale** changes the reviewed and delivered sheet pixels; **Color** retains source colors, with final output determined by the printer.
 
 The preview includes unsaved workspace edits; apply pending form values first. Changing page, layout, resolution, or color settings clears the preview so you review the new sheets before sending them. Select an installed printer with **Find printers**, choose copies, duplex, and an available paper source, and send the reviewed sheets. **Printer default** retains the queue's configured source. Changing the printer resets the source selection and loads that queue's choices. Windows uses the installed GDI printer driver; macOS and Linux require CUPS command-line tools. Windows file printers require a new local output filename.
@@ -254,31 +247,3 @@ Printing sends the managed renderer's reviewed pixels, including its reported re
 ## Next product outcomes
 
 The repository's single open-work plan is [`Docs/ROADMAP.md`](../Docs/ROADMAP.md). Its **Desktop Studio** section tracks distribution, native print and scan intake, reusable workflow recipes, and cross-platform accessibility and usability evidence.
-
-## iPhone and iPad development host
-
-`OfficeIMO.Studio.iOS` hosts the shared Avalonia application. Its navigation provides **Home**, **Documents**, **Tools**, **Convert**, **Jobs**, and **Settings**. The sidebar stays beside the workspace on wide iPads and opens from the navigation button at compact widths. Tool discovery, conversion routes, job results, preferences and document commands use the same models and engines as the desktop app.
-
-Each PDF opens in a document tab with its own reading position, zoom, edits, and undo history. **Open documents** lists all open PDFs, including tabs outside the visible strip. On short landscape screens, tap the document title to switch or close documents. Files imports create a separate local working copy. **Save** updates the active copy; **Save As** asks for a filename and a Files folder without creating an empty output before review. **Share** saves edits and opens the Apple share sheet. Provider writes are verified after saving, but cannot promise atomic replacement or rollback. Closing a modified tab offers Save, Discard, or Cancel; a cancelled close or failed save keeps the document open.
-
-Choose a document task to annotate, edit, organize pages, fill forms, or protect a copy. The shared forms inspector has previous/next arrows and a field-position indicator. Moving between fields shows the corresponding page and retains unapplied entries; Save applies those entries through the same validation as desktop. Move, split, extraction, import, watermark, protection and signature reviews use shared content presented in an application sheet. These commands retain the desktop engine's document capability checks: for example, page-tree rewrites on PDFs with unsupported form structures remain blocked. Conversion accepts multiple Files inputs and exposes progress, results and recovery in **Jobs**. At compact widths, conversion separates setup, queue and details into tabs. Settings cards stack vertically, and document inspectors open one panel at a time.
-
-Studio restores open tabs and their recoverable edits after restart. Working-copy identities remain relative to the app document root so a changed container location does not invalidate them; selected provider copies retain access references. Internal preferences and recovery files live in Application Support. Password-protected documents prompt again when reopened.
-
-Search supports previous and next matches, Enter and Shift+Enter navigation, and Escape to clear highlights and return to the reader. A hardware keyboard also supports Command+O, Command+S, Command+W, Command+F, Command+Z and Command+Shift+Z. Use Control+Tab to switch documents and Command+Shift+T to reopen a closed document.
-
-Wide reading layouts show page thumbnails beside the document and grouped review tools above it. Compact layouts move review tools to the bottom and open thumbnails in a Pages sheet. Pinch to zoom around the point between your fingers; **Fit** returns the whole page to view. Tap the page counter to enter a page number, then choose **Go** or press Enter. The chooser stays above the software keyboard and leaves the reading position unchanged when cancelled. Desktop readers keep an inline page-number field; invalid numbers remain available for correction. Notes and document reviews also account for the software keyboard. Choose **Try a sample** to open a three-page introduction.
-
-**File origin and text integrity** imports an app-owned working copy, then uses the desktop local-file engine. Copies and JSON reports remain on the device; open their entries in **Jobs** to share or save them to Files. The imported source remains unchanged.
-
-External-process OCR, Java-based invoice standards validation, desktop printer queues and checkpointed folder PDF export are unavailable on iOS, with explanations in their respective screens. Multi-file conversion uses **Add files** and **Run pending**. Use **Share** for the system's available sharing and printing actions. Scan preparation, invoice XML/model validation, and in-process document conversion remain separate from those external-tool limits.
-
-Build from `OfficeIMO.Studio.iOS` with its pinned SDK and the .NET iOS workload installed:
-
-```sh
-dotnet build -r iossimulator-arm64 -p:OfficeIMOStudioMobile=true
-```
-
-The default target is `net10.0-ios26.5` and requires a matching Xcode installation. Local Xcode 27 validation uses the explicit `-p:OfficeIMOStudioAppleTargetFramework=net10.0-ios27.0` override and installed preview Apple bindings. Debug simulator builds use the interpreter and retain managed assemblies; this does not qualify Release trimming or device AOT.
-
-Native evidence covers an ARM64 iPad simulator opening the sample, rendering, adding and saving a note, exporting through the share sheet, importing that PDF into a separate working copy, restoring after restart, and opening the shared Home, Tools and page organizer screens. Compact iPhone reading and sheets also have simulator evidence. Managed application tests cover conversion, form filling, page movement, shared reviews, protected copies, provider saves and session restoration; those tests do not establish native Files-provider or touch acceptance for every feature. Physical-device acceptance, third-party/cloud provider journeys, VoiceOver, Pencil and multitouch, Release/AOT, signing, and the shared PowerForge distribution route remain qualification work. See [the native Apple apps roadmap](../Docs/ROADMAP.md#phase-7-native-apple-apps).

@@ -11,10 +11,9 @@ public static partial class OfficeConverter {
         if (FormatForExtension(Path.GetExtension(settings.TargetName)) != OfficeDocumentFormat.Pdf)
             throw new ArgumentException("PDF compression requires a PDF destination.", nameof(settings));
         var timer = Stopwatch.StartNew();
-        PdfCreateOptions? creation = settings.Word?.PdfOptions ?? settings.Excel?.PdfOptions ?? settings.PowerPoint?.PdfOptions
-            ?? settings.Markdown?.PdfOptions ?? settings.Html?.PdfOptions ?? settings.PlainText?.PdfOptions ?? settings.ReaderPdf?.PdfOptions
-            ?? settings.EmailPdf?.Pdf.PdfOptions;
-        if (Registrations.TryGetValue(SelectRoute(settings).Id, out IOfficeConversionRoute? route) && route is IOfficeConversionOutputValidation owner)
+        string routeId = SelectRoute(settings).Id;
+        PdfCreateOptions? creation = GetPdfCreationOptions(routeId, settings);
+        if (Registrations.TryGetValue(routeId, out IOfficeConversionRoute? route) && route is IOfficeConversionOutputValidation owner)
             creation = owner.GetOutputCreationOptions(settings) ?? creation;
         PdfStandardEncryptionOptions? encryption = creation?.Encryption?.Clone();
         if (encryption != null) creation!.ClearEncryption();
@@ -41,6 +40,20 @@ public static partial class OfficeConverter {
             throw new OfficeConversionException(error.Message, report, error);
         }
     }
+
+    private static PdfCreateOptions? GetPdfCreationOptions(string id, OfficeConversionOptions settings) => id switch {
+        "doc-pdf" or "docx-pdf" => settings.Word?.PdfOptions,
+        "xls-pdf" or "xlsb-pdf" or "xlsx-pdf" => settings.Excel?.PdfOptions,
+        "ppt-pdf" or "pptx-pdf" => settings.PowerPoint?.PdfOptions,
+        "notebook-pdf" or "notebook-source-pdf" => settings.NotebookPdf?.MarkdownOptions.PdfOptions,
+        "markdown-pdf" => settings.Markdown?.PdfOptions,
+        "html-pdf" => settings.Html?.PdfOptions,
+        "epub-pdf" when settings.OutputProfile != OfficeConversionProfile.TextOnly => settings.Html?.PdfOptions,
+        "txt-pdf" => settings.PlainText?.PdfOptions,
+        "email-pdf" when settings.OutputProfile != OfficeConversionProfile.TextOnly => settings.EmailPdf?.Pdf.PdfOptions,
+        "email-pdf" or "epub-pdf" or "reader-visio-pdf" => settings.ReaderPdf?.PdfOptions,
+        _ => null
+    };
 
     internal static PdfOptimizationActionResult CompressPdfBytes(byte[] bytes, long maximumOutputBytes,
         PdfLoadOptions? readOptions, CancellationToken token) {

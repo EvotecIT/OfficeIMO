@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../../../OfficeIMO.Notebook.Pdf/OfficeIMO.Notebook.Pdf.csproj" />
+    <ProjectReference Include="../../../../OfficeIMO.Notebook.Html/OfficeIMO.Notebook.Html.csproj" />
+  </ItemGroup>
+</Project>

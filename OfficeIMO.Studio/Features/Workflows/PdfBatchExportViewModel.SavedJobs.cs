@@ -134,7 +134,7 @@ public sealed partial class PdfBatchExportViewModel {
     /// <summary>Loads only the exact saved definition referenced by a historical attempt, without executing it.</summary>
     internal async Task<bool> ReviewSavedJobAsync(string path, string expectedSha256, CancellationToken token) {
         if (!CanEdit) {
-            Status = UnavailableReason ?? _localizer.GetOrDefault("Jobs.RunReport.Busy", "Wait for the current conversion before reviewing another saved job.");
+            Status = _localizer.GetOrDefault("Jobs.RunReport.Busy", "Wait for the current conversion before reviewing another saved job.");
             return false;
         }
         bool loaded = false;

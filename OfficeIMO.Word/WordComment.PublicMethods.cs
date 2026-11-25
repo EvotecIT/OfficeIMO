@@ -31,14 +31,12 @@ namespace OfficeIMO.Word {
             };
             cmt.AppendChild(p);
             comments.AppendChild(cmt);
-            comments.Save();
 
             CommentEx cmtEx = new CommentEx() { ParaId = paraId };
             if (parent != null) {
                 cmtEx.ParaIdParent = EnsureCommentParaId(parent, comments, commentsEx);
             }
             commentsEx.AppendChild(cmtEx);
-            commentsEx.Save();
 
             return new WordComment(document, cmt, cmtEx);
         }
@@ -84,14 +82,12 @@ namespace OfficeIMO.Word {
             }
 
             comments.AppendChild(cmt);
-            comments.Save();
 
             CommentEx cmtEx = new CommentEx() { ParaId = paraId };
             if (parent != null) {
                 cmtEx.ParaIdParent = EnsureCommentParaId(parent, comments, commentsEx);
             }
             commentsEx.AppendChild(cmtEx);
-            commentsEx.Save();
 
             return new WordComment(document, cmt, cmtEx);
         }

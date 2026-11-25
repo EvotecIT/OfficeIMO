@@ -730,16 +730,21 @@
       return;
     }
 
+    var primary = state.artifacts.filter(function (a) { return a.info.role === 'primary'; })[0];
+    var notebookPdf = cfg.target === 'notebook-pdf';
+    if (notebookPdf && primary) ui.output.appendChild(downloads(primary));
+
+    var findings = result.items || [];
+    if (notebookPdf) findings = findings.filter(function (item) { return item.state !== 'info'; });
     if (awaitingCommit) {
       ui.output.appendChild(commitPanel(result, action));
-    } else if (result.items && result.items.length) {
-      ui.output.appendChild(itemList(result.items));
+    } else if (findings.length) {
+      ui.output.appendChild(itemList(findings));
     }
 
-    var primary = state.artifacts.filter(function (a) { return a.info.role === 'primary'; })[0];
     var preview = previewBox(result, primary);
     if (preview) ui.output.appendChild(preview);
-    if (state.artifacts.length) ui.output.appendChild(downloads(primary));
+    if (state.artifacts.length && !(notebookPdf && primary)) ui.output.appendChild(downloads(primary));
     updateRunButton();
     if (cfg.auto && cfg.input !== 'text') setHint(awaitingCommit ? 'Choose what to remove, then save a copy.' : 'Done. Your original file is unchanged.');
     else if (!cfg.live) setHint(awaitingCommit ? 'Review the matches before you continue.' : 'Done. Your original file is unchanged.');

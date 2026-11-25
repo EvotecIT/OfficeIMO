@@ -35,10 +35,12 @@ internal static partial class MarkdownReader {
             if (!string.IsNullOrWhiteSpace(sizeSpec)) {
                 TryApplyImageSizeSpec(sizeSpec, img);
             }
-            var resolvedPath = ResolveUrl(img.Path, options);
+            var resolvedPath = ResolveImageUrl(img.Path, options);
             if (string.IsNullOrWhiteSpace(resolvedPath)) {
-                // Unsafe or invalid URL: let paragraph parsing treat this line as plain text.
-                return false;
+                if (options.ImageSourceResolver == null) return false;
+                doc.Add(new ParagraphBlock(new InlineSequence().Text(img.PlainAlt ?? img.Alt ?? "image")));
+                i++;
+                return true;
             }
             string? resolvedLink = null;
             if (!string.IsNullOrWhiteSpace(img.LinkUrl)) {

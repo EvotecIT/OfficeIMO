@@ -156,7 +156,7 @@
           "surface": "studio"
         }
       ],
-      "boundary": "Windows and Linux packages are available for x64 and Arm64. Arm64 installation and runtime testing is pending. macOS requires a source build. Check the Studio guide for optional OCR providers and printing requirements."
+      "boundary": "Windows and Linux packages are available for x64 and Arm64. Arm64 installation and runtime testing is pending. The native Mac, iPad and iPhone app is coming soon to the Mac App Store and App Store. Check the Studio guide for optional OCR providers and printing requirements."
     }
   ]
 }

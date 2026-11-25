@@ -33,7 +33,41 @@ namespace OfficeIMO.Excel {
         /// <summary>Applies deferred package edits before anything reads or changes the package.</summary>
         internal void FlushPendingPackageEditsIfAny() {
             if (_pendingRowDeletes != null) FlushPendingRowDeletes();
-            if (Volatile.Read(ref _pendingDefinedNameEdits) != 0) FlushPendingDefinedNameEdits();
+            int pending = Volatile.Read(ref _pendingDefinedNameEdits);
+            if (pending != 0 && (pending != PendingDefinedNameFormulaMarks || !AreDefinedNameFormulaMarksDeferredOnThisThread)) {
+                FlushPendingDefinedNameEdits();
+            }
+        }
+
+        private int _formulaMarkDeferralThreadId;
+
+        private bool AreDefinedNameFormulaMarksDeferredOnThisThread
+            => Volatile.Read(ref _formulaMarkDeferralThreadId) == Environment.CurrentManagedThreadId;
+
+        /// <summary>
+        /// Lets a literal cell value write pass while defined-name edits still owe their formula marks. Such a write adds
+        /// no formula and reads no recalculation flag, so marking every formula cell before it only repeats the walk for the
+        /// next name; the marks are applied by the next access that is not such a write, at the latest by the save.
+        /// </summary>
+        internal readonly struct DefinedNameFormulaMarkDeferral : IDisposable {
+            private readonly ExcelDocument? _document;
+
+            internal DefinedNameFormulaMarkDeferral(ExcelDocument document) => _document = document;
+
+            public void Dispose() {
+                if (_document != null) Volatile.Write(ref _document._formulaMarkDeferralThreadId, 0);
+            }
+        }
+
+        internal bool HasPendingDefinedNameFormulaMarks
+            => (Volatile.Read(ref _pendingDefinedNameEdits) & PendingDefinedNameFormulaMarks) != 0;
+
+        internal DefinedNameFormulaMarkDeferral DeferDefinedNameFormulaMarks() {
+            if (!HasPendingDefinedNameFormulaMarks) return default;
+            int current = Environment.CurrentManagedThreadId;
+            return Interlocked.CompareExchange(ref _formulaMarkDeferralThreadId, current, 0) == 0
+                ? new DefinedNameFormulaMarkDeferral(this)
+                : default;
         }
 
         private void QueueDefinedNameEdit(int edit) {
@@ -50,7 +84,7 @@ namespace OfficeIMO.Excel {
                 // Taken first: applying the edits reads the package through the same guarded fields.
                 int edits = Interlocked.Exchange(ref _pendingDefinedNameEdits, 0);
                 try {
-                    if ((edits & PendingDefinedNameFormulaMarks) != 0) {
+                    if ((edits & PendingDefinedNameFormulaMarks) != 0 && !AreDefinedNameFormulaMarksDeferredOnThisThread) {
                         foreach (ExcelSheet sheet in GetSheetsForLockedOperation()) sheet.MarkFormulasForRecalculation();
                         edits &= ~PendingDefinedNameFormulaMarks;
                     }

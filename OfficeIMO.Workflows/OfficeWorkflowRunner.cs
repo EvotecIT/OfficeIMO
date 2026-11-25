@@ -109,7 +109,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             await ValidateStagedArtifactAsync(
                 stagingPath,
                 validated.OutputStream?.Name ?? validated.OutputPath!,
-                validated.OutputPdfLoadOptions,
+                validated,
                 cancellationToken).ConfigureAwait(false);
             diagnostics.Add(new OfficeWorkflowDiagnostic(
                 global::OfficeIMO.OfficeDiagnosticCodes.ConversionOutputReopened,
@@ -549,10 +549,18 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
     private static async Task ValidateStagedArtifactAsync(
         string stagingPath,
         string outputPath,
-        PdfLoadOptions loadOptions,
+        ValidatedRequest request,
         CancellationToken cancellationToken) {
+        PdfLoadOptions loadOptions = request.OutputPdfLoadOptions;
         string extension = Path.GetExtension(outputPath).ToLowerInvariant();
         switch (extension) {
+            case ".epub" when request.Registration is null && OfficeWorkflow.IsManuscriptEpubRoute(request.Route?.Id): {
+                using FileStream stream = OpenStagedArtifact(stagingPath);
+                var settings = request.UnifiedConversionOptions?.RegisteredSettings as OfficeWorkflowRouteSettings;
+                await OfficeWorkflow.ValidateManuscriptArtifactAsync(stream, request.Limits.MaximumOutputBytes,
+                    settings?.EpubManuscript?.RetentionLimits, cancellationToken).ConfigureAwait(false);
+                break;
+            }
             case ".epub":
                 using (FileStream stream = OpenStagedArtifact(stagingPath)) {
                     var publication = OfficeIMO.Epub.EpubPublication.Load(stream, cancellationToken: cancellationToken);
@@ -585,6 +593,12 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                 using (PowerPointDocument document = await PowerPointDocument.LoadAsync(
                     stream,
                     cancellationToken: cancellationToken).ConfigureAwait(false)) { }
+                break;
+            case ".ipynb":
+                using (FileStream stream = OpenStagedArtifact(stagingPath))
+                using (Notebook.NotebookDocument document = await Notebook.NotebookDocument.LoadAsync(stream,
+                    new Notebook.NotebookLoadOptions { MaxInputBytes = Math.Min(loadOptions.Limits.MaxInputBytes, int.MaxValue) },
+                    cancellationToken).ConfigureAwait(false)) { }
                 break;
             case ".odt":
                 using (FileStream stream = OpenStagedArtifact(stagingPath))

@@ -42,6 +42,9 @@ public sealed class MarkdownHtmlExportOptions {
     public bool IncludeCssInFragment { get; set; }
     internal Action<OfficeDiagnostic>? DiagnosticSink { get; set; }
 
+    /// <summary>Enables SVG data images for an adapter that only supplies re-serialized trusted drawing scenes.</summary>
+    internal bool AllowTrustedSvgDataImages { get; set; }
+
     /// <summary>
     /// True when a caller-supplied renderer or extension receives parsed blocks or render contexts,
     /// which expose source spans and syntax nodes. Without one, rendering reads only the semantic
@@ -234,7 +237,8 @@ public sealed class MarkdownHtmlExportOptions {
     /// <summary>The entries of <see cref="SyntaxInlineRenderExtensions"/>, or <see langword="null"/> when there are none.</summary>
     internal List<MarkdownSyntaxInlineHtmlRenderExtension>? SyntaxInlineRenderExtensionsIfAny => _syntaxInlineRenderExtensions is { Count: > 0 } ? _syntaxInlineRenderExtensions : null;
     /// <summary>Prefix selectors in emitted CSS with this scope selector to avoid collisions. Default: "article.markdown-body".</summary>
-    public string? CssScopeSelector { get; set; } = "article.markdown-body";
+    public string? CssScopeSelector { get; set; } = DefaultCssScopeSelector;
+    internal const string DefaultCssScopeSelector = "article.markdown-body";
 
     /// <summary>
     /// Controls how raw HTML blocks and inline fragments are emitted. Default: <see cref="MarkdownRawHtmlHandling.Allow"/>.
@@ -423,6 +427,7 @@ public sealed class MarkdownHtmlExportOptions {
             RestrictHttpLinksToBaseOrigin = RestrictHttpLinksToBaseOrigin,
             RestrictHttpImagesToBaseOrigin = RestrictHttpImagesToBaseOrigin,
             BlockExternalHttpImages = BlockExternalHttpImages,
+            AllowTrustedSvgDataImages = AllowTrustedSvgDataImages,
             ImagesLoadingLazy = ImagesLoadingLazy,
             ImagesDecodingAsync = ImagesDecodingAsync,
             ImagesReferrerPolicy = ImagesReferrerPolicy,

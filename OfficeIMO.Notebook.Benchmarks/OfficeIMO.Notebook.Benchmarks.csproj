@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(EnableNotebookCompetitors)' == 'true'">
+    <DefineConstants>$(DefineConstants);NOTEBOOK_COMPETITORS</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Notebook\OfficeIMO.Notebook.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Notebook.Html\OfficeIMO.Notebook.Html.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Notebook.Import\OfficeIMO.Notebook.Import.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Notebook.Markdown\OfficeIMO.Notebook.Markdown.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Notebook.Pdf\OfficeIMO.Notebook.Pdf.csproj" />
+  </ItemGroup>
+  <!-- These pinned MIT packages are restored only for an explicit comparison build. -->
+  <ItemGroup Condition="'$(EnableNotebookCompetitors)' == 'true'">
+    <PackageReference Include="Microsoft.DotNet.Interactive.Documents" Version="[1.0.0-beta.26120.1]" />
+    <PackageReference Include="Verso" Version="[1.2.3]" />
+    <PackageReference Include="Verso.Abstractions" Version="[1.2.3]" />
+  </ItemGroup>
+</Project>

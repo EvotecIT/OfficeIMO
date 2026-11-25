@@ -16,11 +16,15 @@ internal static class OfficeHtmlResourceResolver {
     internal static bool IsSupportedDependency(string path) =>
         SupportedDependencyExtensions.Contains(Path.GetExtension(path));
 
-    internal static HtmlRenderResourceResolver CreateResolver(string inputPath, long maximumResourceBytes) {
+    internal static HtmlRenderResourceResolver CreateResolver(string inputPath, long maximumResourceBytes) =>
+        CreateResolver(inputPath, maximumResourceBytes, null);
+
+    internal static HtmlRenderResourceResolver CreateResolver(string inputPath, long maximumResourceBytes,
+        IReadOnlyDictionary<string, byte[]>? resourceSnapshots) {
         string sourceDirectory = Path.GetDirectoryName(Path.GetFullPath(inputPath))
             ?? throw new ArgumentException("Manuscript input requires a parent directory.", nameof(inputPath));
         string physicalRoot = OfficePathIdentity.ResolvePhysicalPath(sourceDirectory);
-        return (request, token) => ResolveAsync(request, physicalRoot, maximumResourceBytes, null, token);
+        return (request, token) => ResolveAsync(request, physicalRoot, maximumResourceBytes, resourceSnapshots, token);
     }
 
     internal static HtmlPdfExportOptions CreateOptions(

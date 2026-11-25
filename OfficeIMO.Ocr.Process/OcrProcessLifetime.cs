@@ -1,4 +1,3 @@
-using Microsoft.Win32.SafeHandles;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using OfficeIMO.Processes.Internal;
@@ -7,52 +6,28 @@ namespace OfficeIMO.Ocr.Process;
 
 /// <summary>Owns the operating-system boundary used to terminate an OCR command and any descendants.</summary>
 internal sealed class OcrProcessLifetime : IDisposable {
-    private const int JobObjectExtendedLimitInformationClass = 9;
-    private const uint JobObjectLimitKillOnJobClose = 0x00002000;
-    private const int SigKill = 9;
-
-    private readonly LifetimeMode _mode;
-    private SafeFileHandle? _jobHandle;
-    private int _processGroupId;
+    private readonly OfficeUnixProcessGroup? _unixGroup;
+    private OfficeWindowsProcessJob? _job;
     private bool _disposed;
 
-    private OcrProcessLifetime(LifetimeMode mode) {
-        _mode = mode;
+    private OcrProcessLifetime(OfficeUnixProcessGroup? unixGroup) {
+        _unixGroup = unixGroup;
     }
 
-    internal static OcrProcessLifetime Configure(
-        ProcessStartInfo startInfo,
-        string fileName,
-        IReadOnlyList<string> arguments) {
+    internal static OcrProcessLifetime Configure(ProcessStartInfo startInfo) {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-            return new OcrProcessLifetime(LifetimeMode.WindowsJob);
+            return new OcrProcessLifetime(null);
         }
 
-        string? setSid = ResolveSetSid();
-        if (setSid != null) {
-            startInfo.FileName = setSid;
-            startInfo.Arguments = JoinArguments(new[] { fileName }.Concat(arguments));
-            return new OcrProcessLifetime(LifetimeMode.UnixProcessGroup);
-        }
-
-        const string macPerl = "/usr/bin/perl";
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && File.Exists(macPerl)) {
-            startInfo.FileName = macPerl;
-            startInfo.Arguments = JoinArguments(new[] {
-                "-MPOSIX",
-                "-e",
-                "defined(POSIX::setsid()) or die qq(setsid failed: $!\\n); exec { $ARGV[0] } @ARGV; die qq(exec failed: $!\\n);",
-                fileName
-            }.Concat(arguments));
-            return new OcrProcessLifetime(LifetimeMode.UnixProcessGroup);
-        }
+        OfficeUnixProcessGroup? unixGroup = OfficeUnixProcessGroup.TryConfigure(startInfo);
+        if (unixGroup != null) return new OcrProcessLifetime(unixGroup);
 
         throw new PlatformNotSupportedException(
             "Bounded OCR process execution requires a Windows Job Object, /usr/bin/setsid or /bin/setsid on Unix, or /usr/bin/perl with POSIX::setsid on macOS.");
     }
 
     internal OcrStartedProcess Start(ProcessStartInfo startInfo) {
-        if (_mode == LifetimeMode.WindowsJob) {
+        if (_unixGroup == null) {
             OfficeWindowsSuspendedProcessResult started = OfficeWindowsSuspendedProcess.Start(
                 startInfo,
                 PrepareWindowsJob,
@@ -63,7 +38,7 @@ internal sealed class OcrProcessLifetime : IDisposable {
         var process = new System.Diagnostics.Process { StartInfo = startInfo, EnableRaisingEvents = true };
         try {
             if (!process.Start()) throw new InvalidOperationException("Failed to start OCR process '" + startInfo.FileName + "'.");
-            _processGroupId = process.Id;
+            _unixGroup.TrackLeader(process.Id);
             return new OcrStartedProcess(process, process.StandardOutput, process.StandardError);
         } catch {
             process.Dispose();
@@ -72,51 +47,25 @@ internal sealed class OcrProcessLifetime : IDisposable {
     }
 
     internal void PrepareWindowsJob() {
-        if (_mode != LifetimeMode.WindowsJob) throw new InvalidOperationException("A Windows Job Object is not configured for this process.");
-        _jobHandle = TryCreateWindowsJob()
+        if (_unixGroup != null) throw new InvalidOperationException("A Windows Job Object is not configured for this process.");
+        _job = OfficeWindowsProcessJob.TryCreateKillOnClose()
             ?? throw new InvalidOperationException("Unable to create the Windows Job Object required for bounded OCR process execution.");
     }
 
-    internal bool AssignSuspendedWindowsProcess(IntPtr processHandle) {
-        return _jobHandle != null
-            && !_jobHandle.IsInvalid
-            && !_jobHandle.IsClosed
-            && AssignProcessToJobObject(_jobHandle.DangerousGetHandle(), processHandle);
-    }
+    internal bool AssignSuspendedWindowsProcess(IntPtr processHandle) => _job?.TryAssign(processHandle) == true;
 
     internal void Terminate(System.Diagnostics.Process process) {
-        if (_jobHandle != null && !_jobHandle.IsInvalid && !_jobHandle.IsClosed) {
-            _ = TerminateJobObject(_jobHandle.DangerousGetHandle(), 1);
-        }
-        KillUnixProcessGroup();
+        _job?.Terminate();
+        _unixGroup?.TryTerminate();
         TryKillDirectProcess(process);
     }
 
     public void Dispose() {
         if (_disposed) return;
         _disposed = true;
-        KillUnixProcessGroup();
-        _jobHandle?.Dispose();
-        _jobHandle = null;
-    }
-
-    private static string JoinArguments(IEnumerable<string> values) {
-        return string.Join(" ", values.Select(OcrProcessRunner.QuoteArgument));
-    }
-
-    private static string? ResolveSetSid() {
-        string[] candidates = { "/usr/bin/setsid", "/bin/setsid" };
-        return candidates.FirstOrDefault(File.Exists);
-    }
-
-    private void KillUnixProcessGroup() {
-        int processGroupId = Interlocked.Exchange(ref _processGroupId, 0);
-        if (processGroupId <= 0) return;
-        try {
-            _ = Kill(-processGroupId, SigKill);
-        } catch (DllNotFoundException) {
-        } catch (EntryPointNotFoundException) {
-        }
+        _unixGroup?.TryTerminate();
+        _job?.Dispose();
+        _job = null;
     }
 
     private static void TryKillDirectProcess(System.Diagnostics.Process process) {
@@ -132,84 +81,5 @@ internal sealed class OcrProcessLifetime : IDisposable {
         } catch (System.ComponentModel.Win32Exception) {
         } catch (NotSupportedException) {
         }
-    }
-
-    private static SafeFileHandle? TryCreateWindowsJob() {
-        IntPtr rawHandle = CreateJobObject(IntPtr.Zero, null);
-        if (rawHandle == IntPtr.Zero || rawHandle == new IntPtr(-1)) return null;
-        var handle = new SafeFileHandle(rawHandle, ownsHandle: true);
-        var information = new JobObjectExtendedLimitInformation {
-            BasicLimitInformation = new JobObjectBasicLimitInformation {
-                LimitFlags = JobObjectLimitKillOnJobClose
-            }
-        };
-        int size = Marshal.SizeOf<JobObjectExtendedLimitInformation>();
-        IntPtr pointer = Marshal.AllocHGlobal(size);
-        try {
-            Marshal.StructureToPtr(information, pointer, fDeleteOld: false);
-            if (!SetInformationJobObject(handle.DangerousGetHandle(), JobObjectExtendedLimitInformationClass, pointer, (uint)size)) {
-                handle.Dispose();
-                return null;
-            }
-            return handle;
-        } finally {
-            Marshal.FreeHGlobal(pointer);
-        }
-    }
-
-    [DllImport("libc", EntryPoint = "kill", SetLastError = true)]
-    private static extern int Kill(int pid, int signal);
-
-    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    private static extern IntPtr CreateJobObject(IntPtr jobAttributes, string? name);
-
-    [DllImport("kernel32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool SetInformationJobObject(IntPtr job, int informationClass, IntPtr information, uint informationLength);
-
-    [DllImport("kernel32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool AssignProcessToJobObject(IntPtr job, IntPtr process);
-
-    [DllImport("kernel32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool TerminateJobObject(IntPtr job, uint exitCode);
-
-    private enum LifetimeMode {
-        UnixProcessGroup,
-        WindowsJob
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct JobObjectBasicLimitInformation {
-        internal long PerProcessUserTimeLimit;
-        internal long PerJobUserTimeLimit;
-        internal uint LimitFlags;
-        internal UIntPtr MinimumWorkingSetSize;
-        internal UIntPtr MaximumWorkingSetSize;
-        internal uint ActiveProcessLimit;
-        internal UIntPtr Affinity;
-        internal uint PriorityClass;
-        internal uint SchedulingClass;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct IoCounters {
-        internal ulong ReadOperationCount;
-        internal ulong WriteOperationCount;
-        internal ulong OtherOperationCount;
-        internal ulong ReadTransferCount;
-        internal ulong WriteTransferCount;
-        internal ulong OtherTransferCount;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct JobObjectExtendedLimitInformation {
-        internal JobObjectBasicLimitInformation BasicLimitInformation;
-        internal IoCounters IoInfo;
-        internal UIntPtr ProcessMemoryLimit;
-        internal UIntPtr JobMemoryLimit;
-        internal UIntPtr PeakProcessMemoryUsed;
-        internal UIntPtr PeakJobMemoryUsed;
     }
 }

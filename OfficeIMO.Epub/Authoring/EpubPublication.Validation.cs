@@ -1,7 +1,8 @@
 namespace OfficeIMO.Epub;
 
 public sealed partial class EpubPublication {
-    private void ValidatePublication(XDocument package, IReadOnlyDictionary<string, byte[]> entries, List<OfficeDiagnostic> diagnostics, CancellationToken token, bool changed) {
+    private void ValidatePublication(XDocument package, IReadOnlyDictionary<string, byte[]> entries, List<OfficeDiagnostic> diagnostics, CancellationToken token, bool changed,
+        bool updateContentProperties = true) {
         XElement root = package.Root!;
         XElement metadata = root.Element(Opf + "metadata")!;
         if (!metadata.Elements(Dc + "title").Any(element => !string.IsNullOrWhiteSpace(element.Value)) ||
@@ -43,6 +44,7 @@ public sealed partial class EpubPublication {
             }
         }
         ValidateManifestDeclarations(manifest, byId, metadata);
+        var lookup = new ManifestLookup(manifest, PackagePath);
         foreach (XAttribute refinement in root.Descendants().Where(element => element.Name == Opf + "meta" || element.Name == Opf + "link").Attributes("refines")) {
             EpubReference reference = EpubReference.Resolve(PackagePath, refinement.Value);
             if (reference.Kind != EpubReferenceKind.Container || reference.ContainerPath == null)
@@ -83,7 +85,7 @@ public sealed partial class EpubPublication {
             .Distinct(StringComparer.Ordinal).ToArray();
         var stylesheetResults = new Dictionary<string, bool>(StringComparer.Ordinal);
         bool CheckStylesheet(string path) {
-            if (!stylesheetResults.TryGetValue(path, out bool remote)) stylesheetResults[path] = remote = ValidateStylesheetClosure(path, entries, manifest, token);
+            if (!stylesheetResults.TryGetValue(path, out bool remote)) stylesheetResults[path] = remote = ValidateStylesheetClosure(path, entries, lookup, token);
             return remote;
         }
         foreach (string path in changedStylesheets) CheckStylesheet(path);
@@ -123,18 +125,19 @@ public sealed partial class EpubPublication {
                         OfficeIMO.Html.HtmlXmlDocumentParser.CreateDocument(content, limits, token, skipProcessingInstructions: true),
                         new OfficeIMO.Html.HtmlResourcePipelineOptions { Limits = limits });
                     if (resources.Resources.Any(resource => !resource.IsAllowed)) throw new NotSupportedException("Authored content contains a URL blocked by the shared HTML policy.");
-                    hasRemoteResources = ValidateAuthoredResources(content, path, resources, manifest, token, CheckStylesheet);
+                    hasRemoteResources = ValidateAuthoredResources(content, path, resources, lookup, token, CheckStylesheet);
                     checkedMediaTypes.Add(item.MediaType, hasRemoteResources);
                 }
-                if (PackageVersion == "3.0") UpdateContentProperties(item, hasSvg, hasMathMl, hasRemoteResources);
+                if (updateContentProperties && PackageVersion == "3.0") UpdateContentProperties(item, hasSvg, hasMathMl, hasRemoteResources);
             }
             ValidateContentReferences(content, path, entries, anchors, token);
         }
+        HashSet<string?> spinePaths = SpineTargetPaths(manifest, spine.Select(item => (string?)item.Attribute("idref") ?? string.Empty));
         foreach (XAttribute reference in PackageResourceReferences(root)) {
             EpubReference target = EpubReference.Resolve(PackagePath, reference.Value);
             if (target.ContainerPath != PackagePath) ValidateTarget(target, PackagePath, entries, anchors);
             if (reference.Parent?.Name == Opf + "reference" || reference.Parent?.Name == Opf + "site")
-                RequireSpineTarget(target, manifest, spine.Select(item => (string?)item.Attribute("idref") ?? string.Empty), requireContainer: true);
+                RequireSpineTarget(target, spinePaths, requireContainer: true);
         }
     }
 
@@ -185,13 +188,16 @@ public sealed partial class EpubPublication {
             throw new InvalidDataException("Content fragment missing in " + owner + ": " + reference.Original);
     }
 
-    private static void UpdateContentProperties(EpubManifestItem item, bool hasSvg, bool hasMathMl, bool hasRemoteResources) {
+    private static void UpdateContentProperties(EpubManifestItem item, bool hasSvg, bool hasMathMl, bool hasRemoteResources) =>
+        item.Properties = ContentProperties(item, hasSvg, hasMathMl, hasRemoteResources);
+
+    private static string? ContentProperties(EpubManifestItem item, bool hasSvg, bool hasMathMl, bool hasRemoteResources) {
         // Linked CSS dependencies are not exhaustively traversed, so retain an explicit remote declaration.
         var properties = new List<string>(Tokens(item.Properties).Where(token => token != "svg" && token != "mathml"));
         if (hasSvg && HasMediaType(item.MediaType, "application/xhtml+xml")) properties.Add("svg");
         if (hasMathMl) properties.Add("mathml");
         if (hasRemoteResources) properties.Add("remote-resources");
-        item.Properties = properties.Count == 0 ? null : string.Join(" ", properties.Distinct(StringComparer.Ordinal));
+        return properties.Count == 0 ? null : string.Join(" ", properties.Distinct(StringComparer.Ordinal));
     }
 
     private EpubManifestItem? OriginalManifestItem(string id) => _originalManifest.TryGetValue(id, out EpubManifestItem? item) ? item : null;
@@ -215,11 +221,12 @@ public sealed partial class EpubPublication {
         .Attributes("href").Concat(root.Descendants().Where(element => element.Name == Opf + "meta" || element.Name == Opf + "link").Attributes("refines"));
 
     private void ValidateNavigationDocument(XDocument navigation, string path, EpubManifestItem[] manifest, IEnumerable<string> spineIds) {
+        HashSet<string?> spinePaths = SpineTargetPaths(manifest, spineIds);
         if (PackageVersion == "2.0") {
             if (navigation.Root?.Element(Ncx + "navMap")?.Elements(Ncx + "navPoint").Any() != true)
                 throw new InvalidDataException("A nonempty NCX table of contents is required.");
             foreach (XAttribute source in navigation.Descendants(Ncx + "content").Attributes("src"))
-                RequireSpineTarget(EpubReference.Resolve(path, source.Value), manifest, spineIds, requireContainer: true);
+                RequireSpineTarget(EpubReference.Resolve(path, source.Value), spinePaths, requireContainer: true);
             return;
         }
         XElement[] tocs = navigation.Descendants(Html + "nav").Where(element => HasToken((string?)element.Attribute(Ops + "type"), "toc")).ToArray();
@@ -233,7 +240,7 @@ public sealed partial class EpubPublication {
             string? href = (string?)anchor.Attribute("href");
             bool ownedNavigation = anchor.Ancestors(Html + "nav").Any(nav => new[] { "toc", "page-list", "landmarks" }
                 .Any(type => HasToken((string?)nav.Attribute(Ops + "type"), type)));
-            if (href != null) RequireSpineTarget(EpubReference.Resolve(path, baseHref, href), manifest, spineIds, ownedNavigation);
+            if (href != null) RequireSpineTarget(EpubReference.Resolve(path, baseHref, href), spinePaths, ownedNavigation);
         }
     }
 }

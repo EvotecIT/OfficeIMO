@@ -21,6 +21,7 @@ namespace OfficeIMO.Excel {
             internal readonly WorksheetReadCache ReadCaches = new();
             internal readonly HashSet<OpenXmlPart> PartSaves = new();
             internal readonly Dictionary<VmlDrawingPart, XDocument> CommentVmlDocuments = new();
+            internal CommentVmlShapeIndex? CommentVmlShapes;
             internal bool RequiresSavePreparation;
             /// <summary>Print settings on this sheet were chosen by the table defaults, not by the caller.</summary>
             internal bool OwnsTablePrintDefaults;
@@ -28,6 +29,8 @@ namespace OfficeIMO.Excel {
             internal bool UsesCellStore;
             internal MergeReferenceIndex? MergeReferences;
             internal TableHeaderIndex? TableHeaders;
+            /// <summary>The rId number after the last one a new table took, tried before scanning every relationship.</summary>
+            internal int NextTableRelationshipNumber;
         }
 
         /// <summary>
@@ -42,9 +45,13 @@ namespace OfficeIMO.Excel {
         internal void CommitPendingParts() => CommitPendingPartChanges();
 
         private void CommitPendingPartChanges() {
-            foreach (OpenXmlPart part in PendingPartSaves) {
+            if (PendingPartSaves.Count != 0) {
                 // A cleared comment or removed table can detach a queued part before Save.
-                if (_worksheetPart.Parts.Any(pair => ReferenceEquals(pair.OpenXmlPart, part))) part.RootElement?.Save();
+                var attached = new HashSet<OpenXmlPart>();
+                foreach (IdPartPair pair in _worksheetPart.Parts) attached.Add(pair.OpenXmlPart);
+                foreach (OpenXmlPart part in PendingPartSaves) {
+                    if (attached.Contains(part)) part.RootElement?.Save();
+                }
             }
             PendingPartSaves.Clear();
             CommitCommentVmlChanges();
@@ -61,12 +68,15 @@ namespace OfficeIMO.Excel {
                 if (!WorksheetPersistenceStates.TryGetValue(part, out WorksheetPersistenceState? state)) continue;
                 state.PartSaves.Clear();
                 state.CommentVmlDocuments.Clear();
+                state.CommentVmlShapes = null;
                 state.MergeReferences = null;
                 state.TableHeaders = null;
+                state.NextTableRelationshipNumber = 0;
             }
         }
 
-        internal bool RequiresSavePreparation => _requiresSavePreparation;
+        // Note drawings stay loaded until the save writes them, whatever cleared the preparation flag since.
+        internal bool RequiresSavePreparation => _requiresSavePreparation || PendingCommentVmlDocuments.Count > 0;
 
         // A direct-save model kept beside materialized rows must see every edit, or the save writes it instead.
         private bool CanSkipSavePreparationMark
