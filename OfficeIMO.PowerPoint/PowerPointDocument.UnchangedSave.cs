@@ -37,7 +37,7 @@ namespace OfficeIMO.PowerPoint {
             OfficeOpcPackage? loaded = _loadedPackage;
             OfficeOpcPackage package = loaded ?? OfficeOpcPackage.Open(packageStream, leaveOpen: true);
             try {
-                if (!TryReadUnchangedSaveValues(package, _maximumSlideXmlCharacters, _pendingPackage, out values)) return false;
+                if (!TryReadUnchangedSaveValues(package, _maximumSlideXmlCharacters, _pendingPackage, _packageNotesAdded, out values)) return false;
             } finally {
                 if (loaded == null) package.Dispose();
             }
@@ -121,7 +121,7 @@ namespace OfficeIMO.PowerPoint {
         /// elsewhere or create: footer definitions, legacy slide visibility, a VBA project, or missing property parts.
         /// </summary>
         private static bool TryReadUnchangedSaveValues(OfficeOpcPackage package, long maximumSlideXmlCharacters,
-            OfficeOpcEditablePackage? parsed, out UnchangedSaveValues values) {
+            OfficeOpcEditablePackage? parsed, bool notesAdded, out UnchangedSaveValues values) {
             values = default;
             string? main = package.GetRelatedPartName(null, OfficeOpcPackage.OfficeDocumentRelationshipType);
             string? application = package.GetRelatedPartName(null, ExtendedPropertiesRelationshipType);
@@ -205,7 +205,7 @@ namespace OfficeIMO.PowerPoint {
             // Notes count slide parts, each once, as the SDK's SlideParts does. A notes slide carries its content type, or
             // the SDK does not open the package, so without one declared no slide's relationships need reading.
             var slideParts = new HashSet<string>(OfficeAsciiIgnoreCaseComparer.Instance);
-            bool notesDeclared = package.DeclaresContentType(NotesSlideContentType);
+            bool notesDeclared = notesAdded || package.DeclaresContentType(NotesSlideContentType);
             int notes = 0;
             foreach ((string type, string? target, bool external) in MainRelationships(package, parsed, presentationTree != null, main)) {
                 if (string.Equals(type, VbaProjectRelationshipType, StringComparison.Ordinal)) return false;

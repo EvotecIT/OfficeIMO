@@ -31,6 +31,9 @@ namespace OfficeIMO.PowerPoint {
             return _pendingPackage;
         }
 
+        // Whether notes were added without the SDK, so a save counts notes the loaded package had no content type for.
+        private bool _packageNotesAdded;
+
         /// <summary>Whether slides and shapes can be edited in the package without the SDK.</summary>
         internal bool CanEditPackage => GetPackage(edit: true) != null;
 
@@ -77,6 +80,107 @@ namespace OfficeIMO.PowerPoint {
             } catch (Exception exception) when (exception is System.Xml.XmlException or InvalidDataException) {
                 return null;
             }
+        }
+
+        /// <summary>
+        /// Adds a notes slide to a slide that has none, as the notes model creates it on first use: an empty body
+        /// placeholder, a relationship back to the slide and one to the presentation's notes master. Null, having changed
+        /// nothing, when the slide has notes or the presentation lacks a notes master the model would only use as it is.
+        /// </summary>
+        internal OfficeXmlTree? TryCreatePackageNotes(string slidePart) {
+            if (GetPackage(edit: true) is not { } package) return null;
+            try {
+                if (FirstRelated(package, slidePart, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "notesSlide", out _) != null) return null;
+                if (PackageSlideList.Read(package) is not { } slides) return null;
+                string? master = FirstRelated(package, slides.Main, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "notesMaster", out string? masterRelationship);
+                if (master == null || masterRelationship == null
+                    || FirstRelated(package, master, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "theme", out _) == null
+                    || !package.GetXml(master).IsElement(package.GetXml(master).Root, OfficeXmlNamespaces.PresentationML, "notesMaster")) {
+                    return null;
+                }
+                OfficeXmlTree presentation = slides.Presentation;
+                int list = presentation.FindChild(presentation.Root, OfficeXmlNamespaces.PresentationML, "notesMasterIdLst");
+                bool listed = false;
+                for (int entry = list == OfficeXmlTree.NoNode ? OfficeXmlTree.NoNode : presentation.FindChild(list, OfficeXmlNamespaces.PresentationML, "notesMasterId");
+                     entry != OfficeXmlTree.NoNode && !listed; entry = presentation.FindNextSibling(entry, OfficeXmlNamespaces.PresentationML, "notesMasterId")) {
+                    listed = presentation.GetAttribute(entry, OfficeXmlNamespaces.Relationships, "id") == masterRelationship;
+                }
+                if (!listed) return null;
+
+                // The slide's first free rIdN, as the notes model picks it.
+                var used = new HashSet<string>(StringComparer.Ordinal);
+                string slideRelationships = OfficeOpcPartNames.GetRelationshipsPartName(slidePart);
+                if (package.PartExists(slideRelationships)) {
+                    OfficeXmlTree relationships = package.GetXml(slideRelationships);
+                    for (int node = relationships.FindChild(relationships.Root, OfficeXmlNamespaces.PackageRelationships, "Relationship"); node != OfficeXmlTree.NoNode;
+                         node = relationships.FindNextSibling(node, OfficeXmlNamespaces.PackageRelationships, "Relationship")) {
+                        if (relationships.GetAttribute(node, OfficeXmlNamespaces.None, "Id") is { } existing) used.Add(existing);
+                    }
+                }
+                int number = 1;
+                string notesRelationship;
+                do {
+                    notesRelationship = "rId" + number.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    number++;
+                } while (used.Contains(notesRelationship));
+
+                const string notesContentType = "application/vnd.openxmlformats-officedocument.presentationml.notesSlide+xml";
+                string slideFolder = slidePart.Substring(0, slidePart.LastIndexOf('/'));
+                string notesPart = NextPartName(package, notesContentType, slideFolder.Substring(0, slideFolder.LastIndexOf('/') + 1) + "notesSlides/notesSlide", ".xml");
+                OfficeXmlTree notes = package.CreateXmlPart(notesPart, notesContentType, OfficeXmlNamespaces.PresentationML, "notes", 32);
+                WriteBlankNotes(notes);
+                package.AddRelationship(slidePart, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "notesSlide",
+                    OfficeOpcPartNames.GetRelativeTarget(slidePart, notesPart), id: notesRelationship);
+                package.AddRelationship(notesPart, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "slide",
+                    OfficeOpcPartNames.GetRelativeTarget(notesPart, slidePart), id: "R" + Guid.NewGuid().ToString("N").Substring(0, 16));
+                package.AddRelationship(notesPart, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "notesMaster",
+                    OfficeOpcPartNames.GetRelativeTarget(notesPart, master), id: "R" + Guid.NewGuid().ToString("N").Substring(0, 16));
+                _pendingRelationships = null;
+                _pendingEdits = true;
+                _packageNotesAdded = true;
+                return notes;
+            } catch (Exception exception) when (exception is System.Xml.XmlException or InvalidDataException) {
+                return null;
+            }
+        }
+
+        // The notes slide the notes model writes: a group named for the notes, and the body placeholder with one empty run.
+        private static void WriteBlankNotes(OfficeXmlTree notes) {
+            int root = notes.Root;
+            notes.DeclareNamespace(root, "a", "http://schemas.openxmlformats.org/drawingml/2006/main");
+            notes.DeclareNamespace(root, "p", "http://schemas.openxmlformats.org/presentationml/2006/main");
+            int tree = Append(notes, Append(notes, root, OfficeXmlNamespaces.PresentationML, "cSld"), OfficeXmlNamespaces.PresentationML, "spTree");
+            int group = Append(notes, tree, OfficeXmlNamespaces.PresentationML, "nvGrpSpPr");
+            int groupDrawing = Append(notes, group, OfficeXmlNamespaces.PresentationML, "cNvPr");
+            notes.SetAttribute(groupDrawing, OfficeXmlNamespaces.None, "id", "1");
+            notes.SetAttribute(groupDrawing, OfficeXmlNamespaces.None, "name", "Notes Group Shape");
+            Append(notes, group, OfficeXmlNamespaces.PresentationML, "cNvGrpSpPr");
+            Append(notes, group, OfficeXmlNamespaces.PresentationML, "nvPr");
+            int transform = Append(notes, Append(notes, tree, OfficeXmlNamespaces.PresentationML, "grpSpPr"), OfficeXmlNamespaces.DrawingML, "xfrm");
+            AppendPoint(notes, transform, "off", "x", "y");
+            AppendPoint(notes, transform, "ext", "cx", "cy");
+            AppendPoint(notes, transform, "chOff", "x", "y");
+            AppendPoint(notes, transform, "chExt", "cx", "cy");
+            int shape = Append(notes, tree, OfficeXmlNamespaces.PresentationML, "sp");
+            int nonVisual = Append(notes, shape, OfficeXmlNamespaces.PresentationML, "nvSpPr");
+            int drawing = Append(notes, nonVisual, OfficeXmlNamespaces.PresentationML, "cNvPr");
+            notes.SetAttribute(drawing, OfficeXmlNamespaces.None, "id", "2");
+            notes.SetAttribute(drawing, OfficeXmlNamespaces.None, "name", "Notes Placeholder 1");
+            notes.SetAttribute(Append(notes, Append(notes, nonVisual, OfficeXmlNamespaces.PresentationML, "cNvSpPr"), OfficeXmlNamespaces.DrawingML, "spLocks"),
+                OfficeXmlNamespaces.None, "noGrp", "1");
+            int placeholder = Append(notes, Append(notes, nonVisual, OfficeXmlNamespaces.PresentationML, "nvPr"), OfficeXmlNamespaces.PresentationML, "ph");
+            notes.SetAttribute(placeholder, OfficeXmlNamespaces.None, "type", "body");
+            notes.SetAttribute(placeholder, OfficeXmlNamespaces.None, "idx", "1");
+            Append(notes, shape, OfficeXmlNamespaces.PresentationML, "spPr");
+            int body = Append(notes, shape, OfficeXmlNamespaces.PresentationML, "txBody");
+            Append(notes, body, OfficeXmlNamespaces.DrawingML, "bodyPr");
+            Append(notes, body, OfficeXmlNamespaces.DrawingML, "lstStyle");
+            int paragraph = Append(notes, body, OfficeXmlNamespaces.DrawingML, "p");
+            int run = Append(notes, paragraph, OfficeXmlNamespaces.DrawingML, "r");
+            notes.SetAttribute(Append(notes, run, OfficeXmlNamespaces.DrawingML, "rPr"), OfficeXmlNamespaces.None, "lang", "en-US");
+            Append(notes, run, OfficeXmlNamespaces.DrawingML, "t");
+            notes.SetAttribute(Append(notes, paragraph, OfficeXmlNamespaces.DrawingML, "endParaRPr"), OfficeXmlNamespaces.None, "lang", "en-US");
+            Append(notes, Append(notes, root, OfficeXmlNamespaces.PresentationML, "clrMapOvr"), OfficeXmlNamespaces.DrawingML, "masterClrMapping");
         }
 
         // The first internal relationship of a type, as the SDK's typed part properties find it.
