@@ -35,7 +35,10 @@ public static class PdfLogicalTableAnalysis {
             bodyStartRowIndex = tagged.HeaderRowCount;
             columns = taggedNames;
         } else {
-            string[]? headerColumns = DetectHeaderColumns(table, cancellationToken);
+            // A tagged continuation names its columns from the tagged header and starts with body data,
+            // so styling never turns its first row into a header.
+            bool taggedContinuation = taggedNames is not null && tagged!.HeaderRowCount == 0;
+            string[]? headerColumns = taggedContinuation ? null : DetectHeaderColumns(table, cancellationToken);
             hasHeader = headerColumns != null && headerColumns.Length == columnCount;
             bodyStartRowIndex = hasHeader ? 1 : 0;
             // A tagged table continued from an earlier page names its columns from the tagged header rows.

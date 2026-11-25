@@ -972,7 +972,8 @@ namespace OfficeIMO.Pdf.Word {
             PdfCore.PdfLogicalTable sourceTable,
             PdfCore.PdfLogicalTableData data,
             bool headerRowIncluded) {
-            int firstSourceRow = headerRowIncluded ? 0 : data.Structure.BodyStartRowIndex;
+            int bodyStart = data.Structure.BodyStartRowIndex;
+            int firstWordBodyRow = headerRowIncluded ? 1 : 0;
             int wordRowCount = table.Rows.Count;
             int columnCount = data.Columns.Count;
             // Rightmost regions first: a horizontal merge removes cells after it in its row,
@@ -981,7 +982,12 @@ namespace OfficeIMO.Pdf.Word {
                 .Where(static item => item.RowSpan > 1 || item.ColumnSpan > 1)
                 .OrderByDescending(static item => item.ColumnIndex)
                 .ThenByDescending(static item => item.RowIndex)) {
-                int wordRow = cell.RowIndex - firstSourceRow;
+                // Body rows follow the single Word header row. Stacked source header rows collapse into
+                // that one row with joined names, so their spans no longer line up and are skipped.
+                int wordRow;
+                if (cell.RowIndex >= bodyStart) wordRow = cell.RowIndex - bodyStart + firstWordBodyRow;
+                else if (headerRowIncluded && bodyStart == 1) wordRow = 0;
+                else continue;
                 if (wordRow < 0 || wordRow >= wordRowCount || cell.ColumnIndex >= columnCount) continue;
                 int rowSpan = Math.Min(cell.RowSpan, wordRowCount - wordRow);
                 int columnSpan = Math.Min(cell.ColumnSpan, columnCount - cell.ColumnIndex);

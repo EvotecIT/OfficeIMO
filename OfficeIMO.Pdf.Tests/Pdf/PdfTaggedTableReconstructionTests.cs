@@ -359,6 +359,46 @@ public sealed class PdfTaggedTableReconstructionTests {
         Assert.True(continued.Cells.Single(cell => cell.RowIndex == 1 && cell.ColumnIndex == 0).IsCoveredBySpan);
     }
 
+    [Fact]
+    public void WordExportPlacesBodySpansBelowAStackedHeader() {
+        byte[] bytes = CreateTaggedDocument(canvas => GridPage(canvas,
+            new[] { new[] { "Product", "Price", string.Empty }, new[] { string.Empty, "Bid", "Ask" } },
+            new[] {
+                new[] { (0, "North", 2), (1, "10", 1), (2, "11", 1) },
+                new[] { (1, "20", 1), (2, "21", 1) } }));
+        using PdfDocument document = PdfDocument.Load(new MemoryStream(bytes));
+
+        using OfficeIMO.Word.WordDocument word = document.Read().ConvertToWordWithEvidence().Value;
+        using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(word.ToBytes()), false);
+
+        // The two header rows become one Word header row; the span starts on the first body row.
+        TableRow[] rows = Assert.Single(package.MainDocumentPart!.Document!.Body!.Elements<Table>()).Elements<TableRow>().ToArray();
+        Assert.Equal(3, rows.Length);
+        Assert.Equal("Price Bid", rows[0].Elements<TableCell>().ElementAt(1).InnerText);
+        Assert.Equal(MergedCellValues.Restart, rows[1].Elements<TableCell>().First().TableCellProperties!.VerticalMerge!.Val!.Value);
+        Assert.Equal("North", rows[1].Elements<TableCell>().First().InnerText);
+        Assert.NotNull(rows[2].Elements<TableCell>().First().TableCellProperties!.VerticalMerge);
+        Assert.Equal(new[] { "20", "21" }, rows[2].Elements<TableCell>().Skip(1).Select(static cell => cell.InnerText));
+    }
+
+    [Fact]
+    public void StyledFirstRowOfATaggedContinuationStaysData() {
+        byte[] bytes = CreateTaggedDocument(
+            canvas => TablePage(canvas, ("Alpha", "1"), ("Beta", "2")),
+            canvas => TablePage(canvas, new[] { ("Gamma", "3"), ("Delta", "4") }, header: false));
+        using PdfDocument document = PdfDocument.Load(new MemoryStream(bytes));
+        PdfLogicalTable continued = Assert.Single(document.Read().Pages[1].Tables);
+        // A bold first row over plain rows is what styled-header detection looks for in untagged tables.
+        var bold = new PdfLogicalTableCellStyle(null, null, isBold: true, isItalic: false, fontSize: null, fontName: null);
+        var plain = new PdfLogicalTableCellStyle(null, null, isBold: false, isItalic: false, fontSize: null, fontName: null);
+        continued.CellStyles = new[] { new[] { bold, bold }, new[] { plain, plain } };
+
+        PdfLogicalTableData data = PdfLogicalTableAnalysis.Extract(continued);
+
+        Assert.Equal(new[] { "Item", "Count" }, data.Columns);
+        Assert.Equal(new[] { "Gamma|3", "Delta|4" }, data.Rows.Select(static row => string.Join("|", row)));
+    }
+
     /// <summary>One page of a three-column tagged table whose Table, THead and TBody elements continue across pages.</summary>
     private static void GridPage(PdfPageCanvas canvas, string[][] headerRows, (int Column, string Text, int RowSpan)[][] bodyRows) {
         canvas.Structure(PdfCanvasStructureRole.Table, table => {
