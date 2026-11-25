@@ -210,6 +210,22 @@ public class PowerPointUnchangedSaveTests {
         AssertSamePackage(source, SaveThroughSdk(source), saved, keptAsLoaded: false);
     }
 
+    // Only the entries of the root's slide list are slides; an entry in an extension is not one to the SDK either.
+    [Fact]
+    public void CountsOnlyTheEntriesOfTheSlideList() {
+        byte[] source = Rewrite(CreateDeckWithStaleProperties(), PresentationPart, xml => xml.Replace("</p:presentation>",
+            "<x:metadata xmlns:x=\"urn:example\"><p:sldId id=\"999\" r:id=\"rIdOther\"/></x:metadata></p:presentation>"));
+
+        byte[] saved;
+        using (var presentation = PowerPointDocument.Load(new MemoryStream(source))) {
+            saved = presentation.ToBytes();
+            Assert.False(presentation.IsSdkLoaded);
+        }
+
+        Assert.Equal("2", ReadXml(saved, ApplicationPart).Root!.Elements().Single(element => element.Name.LocalName == "Slides").Value);
+        AssertSamePackage(source, SaveThroughSdk(source), saved);
+    }
+
     [Fact]
     public void AnSdkOpenedAfterTheSaveReadsWhatWasSaved() {
         using var presentation = PowerPointDocument.Load(new MemoryStream(CreateDeckWithStaleProperties()));
@@ -308,7 +324,8 @@ public class PowerPointUnchangedSaveTests {
                     File.WriteAllText(Path.Combine(dump, "expected.xml"), Normalize(expected[part.Key]).ToString());
                     File.WriteAllText(Path.Combine(dump, "actual.xml"), Normalize(part.Value).ToString());
                 }
-                Assert.True(XNode.DeepEquals(Normalize(expected[part.Key]), Normalize(part.Value)), part.Key + " differs from the SDK save.");
+                Assert.True(XNode.DeepEquals(Normalize(expected[part.Key]), Normalize(part.Value)), part.Key + " differs from the SDK save."
+                    + Environment.NewLine + Shorten(Normalize(expected[part.Key])) + Environment.NewLine + Shorten(Normalize(part.Value)));
                 if (keptAsLoaded && part.Key != ApplicationPart && loaded.TryGetValue(part.Key, out byte[]? original)) {
                     Assert.True(original.AsSpan().SequenceEqual(part.Value), part.Key + " was not kept as loaded.");
                 }
@@ -316,6 +333,11 @@ public class PowerPointUnchangedSaveTests {
                 Assert.Equal(expected[part.Key], part.Value);
             }
         }
+    }
+
+    private static string Shorten(XDocument document) {
+        string text = document.ToString(SaveOptions.DisableFormatting);
+        return text.Length <= 2000 ? text : text.Substring(0, 2000) + "...";
     }
 
     private static List<string> PackageRelationships(byte[] relationships) =>
@@ -372,6 +394,11 @@ public class PowerPointUnchangedSaveTests {
         // and so does the id the SDK gives any relationship it adds.
         document.Descendants().Where(element => element.Name.LocalName == "Relationship"
             && ((string?)element.Attribute("Target") ?? string.Empty).Contains("package/services/metadata/core-properties/")).Remove();
+        // .NET Framework's packaging writes external targets as System.Uri spells them, so compare them as URIs.
+        foreach (XElement relationship in document.Descendants().Where(element => element.Name.LocalName == "Relationship"
+            && (string?)element.Attribute("TargetMode") == "External").ToList()) {
+            if (relationship.Attribute("Target") is { } target && Uri.TryCreate(target.Value, UriKind.Absolute, out Uri? uri)) target.Value = uri.AbsoluteUri;
+        }
         foreach (XAttribute id in document.Descendants().Where(element => element.Name.LocalName == "Relationship")
             .Select(element => element.Attribute("Id")).OfType<XAttribute>().Where(id => Regex.IsMatch(id.Value, "^R[0-9a-f]{16}$")).ToList()) {
             id.Value = "R";

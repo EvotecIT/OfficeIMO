@@ -110,9 +110,17 @@ namespace OfficeIMO.PowerPoint {
             string presentationFormat = "Widescreen";
             OfficeXmlPullReader reader = package.OpenXml(main, out OfficePooledBytes content, processMarkupCompatibility: false);
             using (content) {
+                // Slides are the entries of the first slide list under the root, as the SDK reads them; footer
+                // definitions are extensions in the root's extension list.
+                bool inSlideList = false, slideListSeen = false, inExtensionList = false;
                 while (reader.Read()) {
                     if (reader.NodeKind != OfficeXmlNodeKind.StartElement) continue;
-                    if (reader.Depth == 3 && reader.IsElement(OfficeXmlNamespaces.PresentationML, "sldId")) {
+                    if (reader.Depth == 2) {
+                        inSlideList = !slideListSeen && reader.IsElement(OfficeXmlNamespaces.PresentationML, "sldIdLst");
+                        slideListSeen |= inSlideList;
+                        inExtensionList = reader.IsElement(OfficeXmlNamespaces.PresentationML, "extLst");
+                    }
+                    if (reader.Depth == 3 && inSlideList && reader.IsElement(OfficeXmlNamespaces.PresentationML, "sldId")) {
                         // A legacy visibility attribute makes the SDK save rewrite the slide list and the slide.
                         if (reader.TryGetAttribute(OfficeXmlNamespaces.None, "show", out _)) return false;
                         if (!reader.TryGetAttribute(OfficeXmlNamespaces.Relationships, "id", out string id)) return false;
@@ -122,7 +130,7 @@ namespace OfficeIMO.PowerPoint {
                             if (!SlideSizeTypes.Contains(sizeType)) return false;
                             presentationFormat = sizeType == "screen4x3" ? "Standard" : sizeType == "custom" ? "Custom" : "Widescreen";
                         }
-                    } else if (reader.Depth == 3 && reader.IsElement(OfficeXmlNamespaces.PresentationML, "ext")
+                    } else if (reader.Depth == 3 && inExtensionList && reader.IsElement(OfficeXmlNamespaces.PresentationML, "ext")
                         && reader.TryGetAttribute(OfficeXmlNamespaces.None, "uri", out string uri)
                         && string.Equals(uri, FooterDefinitionsUri, StringComparison.Ordinal)) {
                         // Footer definitions are written again on every save.

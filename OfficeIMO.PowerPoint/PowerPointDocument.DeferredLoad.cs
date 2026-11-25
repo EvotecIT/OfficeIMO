@@ -121,8 +121,14 @@ namespace OfficeIMO.PowerPoint {
             OfficeXmlPullReader reader = package.OpenXml(main, out OfficePooledBytes content, processMarkupCompatibility: false);
             using (content) {
                 bool root = false;
+                // The SDK reads the first slide list under the root; entries anywhere else are not slides to it.
+                bool inSlideList = false, slideListSeen = false;
                 while (reader.Read()) {
                     if (reader.NodeKind != OfficeXmlNodeKind.StartElement) continue;
+                    if (reader.Depth == 2) {
+                        inSlideList = !slideListSeen && reader.IsElement(OfficeXmlNamespaces.PresentationML, "sldIdLst");
+                        slideListSeen |= inSlideList;
+                    }
                     if (reader.Depth == 1) {
                         // Strict markup goes through the SDK, which maps it.
                         if (!reader.IsElement(OfficeXmlNamespaces.PresentationML, "presentation")
@@ -132,7 +138,7 @@ namespace OfficeIMO.PowerPoint {
                         root = true;
                         continue;
                     }
-                    if (reader.Depth != 3 || !reader.IsElement(OfficeXmlNamespaces.PresentationML, "sldId")) continue;
+                    if (reader.Depth != 3 || !inSlideList || !reader.IsElement(OfficeXmlNamespaces.PresentationML, "sldId")) continue;
                     if (!reader.TryGetAttribute(OfficeXmlNamespaces.Relationships, "id", out string id)) return false;
                     OfficeOpcRelationship? slide = package.FindRelationship(main, id);
                     if (slide == null || slide.IsExternal
