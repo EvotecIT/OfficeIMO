@@ -57,6 +57,75 @@ internal static partial class MarkdownReader {
     private static bool IsCodeFenceClose(string line, char fenceChar, int fenceLength) =>
         TryGetCodeFenceCloseInfo(line, fenceChar, fenceLength, out _, out _);
 
+    private static bool IsCodeFenceClose(MarkdownSourceLines lines, int index, char fenceChar, int fenceLength) =>
+        TryGetCodeFenceCloseInfo(lines, index, fenceChar, fenceLength, out _, out _);
+
+    // Same result as TryGetCodeFenceCloseInfo(lines[index], ...), read in place.
+    private static bool TryGetCodeFenceCloseInfo(MarkdownSourceLines lines, int index, char fenceChar, int fenceLength, out int fenceIndentColumns, out int closingFenceLength) {
+        fenceIndentColumns = 0;
+        closingFenceLength = 0;
+        lines.GetSlice(index, out var text, out int start, out int end);
+        int columns = 0;
+        int current = start;
+        while (current < end && text[current] is ' ' or '\t') {
+            columns += text[current] == '\t' ? 4 - (columns % 4) : 1;
+            current++;
+        }
+        if (columns > 3) return false;
+
+        int run = 0;
+        while (current + run < end && text[current + run] == fenceChar) run++;
+        if (run < Math.Max(3, fenceLength)) return false;
+        for (int i = current + run; i < end; i++) {
+            if (!char.IsWhiteSpace(text[i])) return false;
+        }
+
+        fenceIndentColumns = columns;
+        closingFenceLength = run;
+        return true;
+    }
+
+    // Same result as IsCodeFenceOpen(lines[index], ...). An unindented fence is read in place, so only
+    // its info string is copied; an indented one goes through the string version.
+    private static bool IsCodeFenceOpen(
+        MarkdownSourceLines lines,
+        int index,
+        out string infoString,
+        out char fenceChar,
+        out int fenceLength,
+        out int fenceIndentColumns,
+        out int infoPaddingColumns,
+        out int infoPaddingCharacters) {
+        lines.GetSlice(index, out var text, out int start, out int end);
+        if (start < end && text[start] is ' ' or '\t') {
+            return IsCodeFenceOpen(lines[index], out infoString, out fenceChar, out fenceLength, out fenceIndentColumns, out infoPaddingColumns, out infoPaddingCharacters);
+        }
+
+        infoString = string.Empty;
+        fenceChar = '\0';
+        fenceLength = 0;
+        fenceIndentColumns = 0;
+        infoPaddingColumns = 0;
+        infoPaddingCharacters = 0;
+        if (end - start < 3) return false;
+        char ch = text[start];
+        if (ch != '`' && ch != '~') return false;
+
+        int run = 0;
+        while (start + run < end && text[start + run] == ch) run++;
+        if (run < 3) return false;
+
+        var parsedInfoString = end - start > run ? text.Substring(start + run, end - start - run) : string.Empty;
+        if (ch == '`' && parsedInfoString.IndexOf('`') >= 0) return false;
+
+        fenceChar = ch;
+        fenceLength = run;
+        infoPaddingColumns = CountLeadingWhitespaceColumns(parsedInfoString, run + 1);
+        infoPaddingCharacters = CountLeadingWhitespaceCharacters(parsedInfoString);
+        infoString = parsedInfoString.Trim();
+        return true;
+    }
+
     private static bool TryGetCodeFenceCloseInfo(string line, char fenceChar, int fenceLength, out int fenceIndentColumns, out int closingFenceLength) {
         fenceIndentColumns = 0;
         closingFenceLength = 0;

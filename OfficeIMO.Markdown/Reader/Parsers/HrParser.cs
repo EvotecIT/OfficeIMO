@@ -1,11 +1,11 @@
 namespace OfficeIMO.Markdown;
 
 internal static partial class MarkdownReader {
-    internal sealed class HrParser : IMarkdownBlockParser {
-        public bool TryParse(string[] lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
+    internal sealed class HrParser : MarkdownSourceLinesBlockParser {
+        public override bool TryParse(MarkdownSourceLines lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
             // HR is independent of options; it's safe and tiny, but follow Paragraphs toggle for symmetry
             if (!options.Paragraphs) return false;
-            if (!LooksLikeHr(lines[i])) return false;
+            if (!LooksLikeHr(lines, i)) return false;
             if (TryTakePendingGenericAttributeBlock(state, out var pending)
                 && options.Headings
                 && TryGetSetextHeadingUnderlineLevel(lines[i], out var level)) {
@@ -40,12 +40,23 @@ internal static partial class MarkdownReader {
         }
     }
 
-    private static bool LooksLikeHr(string line) {
-        if (string.IsNullOrWhiteSpace(line)) return false;
-        if (CountLeadingIndentColumns(line) > 3) return false;
+    private static bool LooksLikeHr(string line) => line != null && LooksLikeHr(line, 0, line.Length);
+
+    private static bool LooksLikeHr(MarkdownSourceLines lines, int index) {
+        lines.GetSlice(index, out var text, out int start, out int end);
+        return LooksLikeHr(text, start, end);
+    }
+
+    // Reads line[lineStart..lineEnd) only.
+    private static bool LooksLikeHr(string line, int lineStart, int lineEnd) {
+        int columns = 0;
+        for (int i = lineStart; i < lineEnd && line[i] is ' ' or '\t'; i++) {
+            columns += line[i] == '\t' ? 4 - (columns % 4) : 1;
+        }
+        if (columns > 3) return false;
         // Scan the trimmed range in place instead of trimming a copy.
-        int start = 0;
-        int end = line.Length;
+        int start = lineStart;
+        int end = lineEnd;
         while (start < end && char.IsWhiteSpace(line[start])) start++;
         while (end > start && char.IsWhiteSpace(line[end - 1])) end--;
         // Allow spaces between characters, e.g., "- - -". Only '-', '*', '_' are valid.

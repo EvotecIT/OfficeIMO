@@ -115,7 +115,7 @@ internal static partial class MarkdownReader {
             line[index] == marker;
     }
 
-    private static bool HasIndentedCodeContinuationAfterBlankLines(string[] lines, int blankLineIndex, int requiredColumns) {
+    private static bool HasIndentedCodeContinuationAfterBlankLines(MarkdownSourceLines lines, int blankLineIndex, int requiredColumns) {
         if (lines == null || blankLineIndex < 0) return false;
 
         for (int i = blankLineIndex + 1; i < lines.Length; i++) {

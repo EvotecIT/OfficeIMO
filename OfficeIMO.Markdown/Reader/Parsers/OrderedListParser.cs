@@ -1,7 +1,7 @@
 namespace OfficeIMO.Markdown;
 
 internal static partial class MarkdownReader {
-    internal sealed class OrderedListParser : IMarkdownBlockParser {
+    internal sealed class OrderedListParser : MarkdownSourceLinesBlockParser {
         private static bool TryStripTaskMarker(string? content, MarkdownLoadOptions options, out bool isTask, out bool done, out string stripped) {
             isTask = false;
             done = false;
@@ -16,7 +16,7 @@ internal static partial class MarkdownReader {
             return false;
         }
 
-        public bool TryParse(string[] lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
+        public override bool TryParse(MarkdownSourceLines lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
             if (!options.OrderedLists) return false;
             if (!IsOrderedListLine(lines[i], options, out int lvl0Abs, out int startNum, out var firstContent, out var firstMarkerStyle)) return false;
             if (!TryGetOrderedListMarkerInfo(lines[i], options, out int firstMarkerIndent, out _, out _, out char firstDelimiter, out _)) return false;
@@ -72,12 +72,13 @@ internal static partial class MarkdownReader {
             while (j < lines.Length) {
                 bool separatedByBlankLine = false;
                 int itemStart = j;
-                while (itemStart < lines.Length && string.IsNullOrWhiteSpace(lines[itemStart])) {
+                while (itemStart < lines.Length && lines.IsBlank(itemStart)) {
                     separatedByBlankLine = true;
                     itemStart++;
                 }
 
                 if (itemStart >= lines.Length
+                    || !lines.MayStartListItem(itemStart)
                     || !IsOrderedListLine(lines[itemStart], options, out var lvlAbs, out _, out var content, out var markerStyle)
                     || lvlAbs < lvl0Abs
                     || !TryGetOrderedListMarkerInfo(lines[itemStart], options, out int markerIndent, out _, out _, out char delimiter, out _)

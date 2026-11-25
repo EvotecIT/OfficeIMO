@@ -65,7 +65,7 @@ internal static partial class MarkdownReader {
     /// </summary>
     internal static bool MayStartBlock(
         MarkdownBlockStart kind,
-        string[] lines,
+        MarkdownSourceLines lines,
         int index,
         char first,
         MarkdownLoadOptions options) {
@@ -93,11 +93,11 @@ internal static partial class MarkdownReader {
             case MarkdownBlockStart.UnorderedList:
                 return first is '-' or '*' or '+';
             case MarkdownBlockStart.IndentedCode: {
-                string line = lines[index];
-                return line != null && line.Length > 0 && line[0] is ' ' or '\t';
+                lines.GetSlice(index, out var text, out int start, out int end);
+                return start < end && text[start] is ' ' or '\t';
             }
             case MarkdownBlockStart.SetextHeading:
-                return index + 1 < lines.Length && GetFirstNonWhiteSpaceCharacter(lines[index + 1]) is '=' or '-';
+                return index + 1 < lines.Length && lines.GetFirstNonWhiteSpaceCharacter(index + 1) is '=' or '-';
             case MarkdownBlockStart.AtxHeading:
                 return first == '#';
             case MarkdownBlockStart.ColonFence:

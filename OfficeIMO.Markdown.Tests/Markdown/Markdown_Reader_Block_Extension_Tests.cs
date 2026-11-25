@@ -56,6 +56,29 @@ Paragraph line
     }
 
     [Fact]
+    public void Block_Parser_Extension_That_Clears_A_Line_And_Declines_Leaves_It_Empty_For_Later_Parsers() {
+        var options = new MarkdownLoadOptions { CaptureSyntaxTree = false };
+        options.BlockParserExtensions.Add(new MarkdownBlockParserExtension(
+            "clear-hidden-heading",
+            MarkdownBlockParserPlacement.AfterFrontMatter,
+            new HiddenHeadingRemover()));
+
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse("# Hidden\n\nBody", options);
+
+        Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
+    }
+
+    private sealed class HiddenHeadingRemover : IMarkdownBlockParser {
+        public bool TryParse(string[] lines, ref int i, MarkdownLoadOptions options, OfficeIMO.Markdown.MarkdownDocument doc, MarkdownReaderState state) {
+            if (lines[i] == "# Hidden") {
+                lines[i] = null!;
+            }
+
+            return false;
+        }
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Captures_Custom_Block_Parser_Ast_And_SourceSpans() {
         var markdown = """
 :::panel Ops Notes

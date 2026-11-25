@@ -5,7 +5,7 @@ namespace OfficeIMO.Markdown;
 
 internal static partial class MarkdownReader {
     private static bool TryParseNestedFencedCodeBlock(
-        string[] lines,
+        MarkdownSourceLines lines,
         ref int index,
         int continuationIndent,
         MarkdownLoadOptions options,
@@ -116,7 +116,7 @@ internal static partial class MarkdownReader {
         Table
     }
 
-    private static bool TryParseNestedIndentedCodeBlock(string[] lines, ref int index, int continuationIndent, MarkdownLoadOptions options, out CodeBlock? block) {
+    private static bool TryParseNestedIndentedCodeBlock(MarkdownSourceLines lines, ref int index, int continuationIndent, MarkdownLoadOptions options, out CodeBlock? block) {
         block = null;
         if (lines == null || index < 0 || index >= lines.Length) return false;
         if (!options.IndentedCodeBlocks) return false;

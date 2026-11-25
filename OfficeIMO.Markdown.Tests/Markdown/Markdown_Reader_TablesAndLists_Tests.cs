@@ -5,6 +5,17 @@ using Xunit;
 namespace OfficeIMO.Tests.MarkdownSuite {
     public class Markdown_Reader_TablesAndLists_Tests {
         [Fact]
+        public void Ordered_List_Continues_After_Blank_Line_With_A_Non_Ascii_Digit_Marker() {
+            // U+0662 ARABIC-INDIC DIGIT TWO is a decimal digit, so the second line is a sibling item.
+            const string md = "1. first\n\n\u0662. second";
+
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md, MarkdownLoadOptions.CreateCommonMarkProfile());
+
+            var list = Assert.IsType<OrderedListBlock>(Assert.Single(doc.Blocks));
+            Assert.Equal(2, list.Items.Count);
+        }
+
+        [Fact]
         public void Table_Shaped_Paragraph_Stays_Literal_When_Tables_Are_Disabled() {
             const string md = """
 First paragraph

@@ -40,7 +40,7 @@ internal static partial class MarkdownReader {
     }
 
     private static bool TryParseQuotedReferenceLinkDefinition(
-        string[] lines,
+        MarkdownSourceLines lines,
         int index,
         MarkdownLoadOptions options,
         MarkdownReaderState state,

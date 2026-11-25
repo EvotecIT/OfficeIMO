@@ -1,7 +1,7 @@
 namespace OfficeIMO.Markdown;
 
 internal static partial class MarkdownReader {
-    internal sealed partial class HtmlBlockParser : IMarkdownBlockParser {
+    internal sealed partial class HtmlBlockParser : MarkdownSourceLinesBlockParser {
         private enum HtmlBlockKind {
             None,
             Type1,
@@ -61,7 +61,7 @@ internal static partial class MarkdownReader {
             "td", "tfoot", "th", "thead", "title", "tr", "track", "ul",
         };
 
-        public bool TryParse(string[] lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
+        public override bool TryParse(MarkdownSourceLines lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
             if (!options.HtmlBlocks) return false;
             if (lines == null || lines.Length == 0) return false;
 
@@ -107,7 +107,7 @@ internal static partial class MarkdownReader {
                     break;
                 }
 
-                if (blockState.EndsOnBlankLine && j < lines.Length && string.IsNullOrWhiteSpace(lines[j])) {
+                if (blockState.EndsOnBlankLine && j < lines.Length && lines.IsBlank(j)) {
                     if (!blockState.TracksStack) {
                         break;
                     }
@@ -147,7 +147,7 @@ internal static partial class MarkdownReader {
         }
 
         internal static bool TryGetHtmlBlockLineCount(
-            string[] lines,
+            MarkdownSourceLines lines,
             int startIndex,
             MarkdownLoadOptions options,
             out int lineCount) {
@@ -204,7 +204,7 @@ internal static partial class MarkdownReader {
                     break;
                 }
 
-                if (blockState.EndsOnBlankLine && j < lines.Length && string.IsNullOrWhiteSpace(lines[j])) {
+                if (blockState.EndsOnBlankLine && j < lines.Length && lines.IsBlank(j)) {
                     if (!blockState.TracksStack) {
                         break;
                     }
@@ -223,7 +223,7 @@ internal static partial class MarkdownReader {
             return string.Equals(trimmed.Trim(), TableBlock.HeaderlessSingleRowTableMarker, StringComparison.Ordinal);
         }
 
-        private static bool TryParseHeaderlessSingleRowTable(string[] lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
+        private static bool TryParseHeaderlessSingleRowTable(MarkdownSourceLines lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
             if (!options.Tables) {
                 return false;
             }

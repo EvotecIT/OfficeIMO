@@ -6,8 +6,8 @@ internal static partial class MarkdownReader {
     /// <c>$$...$$</c>, or an opening <c>$$</c> line, TeX lines and a closing <c>$$</c> line. An unclosed block is
     /// left to the paragraph parser.
     /// </summary>
-    internal sealed class MathBlockParser : IMarkdownBlockParser {
-        public bool TryParse(string[] lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
+    internal sealed class MathBlockParser : MarkdownSourceLinesBlockParser {
+        public override bool TryParse(MarkdownSourceLines lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
             if (!options.Math || lines == null || i < 0 || i >= lines.Length) return false;
             string line = lines[i] ?? string.Empty;
             int indent = CountMathIndent(line);
@@ -26,7 +26,7 @@ internal static partial class MarkdownReader {
             int lineLimit = lines.Length - (state.HasSyntheticTerminalLine ? 1 : 0);
             int j = i + 1;
             while (j < lineLimit && !IsMathClosingLine(lines[j])) {
-                if (string.IsNullOrWhiteSpace(lines[j])) return false;
+                if (lines.IsBlank(j)) return false;
                 j++;
             }
 

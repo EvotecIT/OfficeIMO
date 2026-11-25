@@ -57,6 +57,18 @@ internal static partial class MarkdownReader {
         out int contentEnd,
         out string text,
         out int closingMarkerStart,
+        out int closingMarkerEnd) =>
+        TryGetAtxHeadingContentRange(line, 0, line?.Length ?? 0, out level, out contentStart, out contentEnd, out text, out closingMarkerStart, out closingMarkerEnd);
+
+    private static bool TryGetAtxHeadingContentRange(
+        string line,
+        int lineStart,
+        int lineEnd,
+        out int level,
+        out int contentStart,
+        out int contentEnd,
+        out string text,
+        out int closingMarkerStart,
         out int closingMarkerEnd) {
         level = 0;
         contentStart = 0;
@@ -64,46 +76,47 @@ internal static partial class MarkdownReader {
         closingMarkerStart = -1;
         closingMarkerEnd = -1;
         text = string.Empty;
-        if (string.IsNullOrEmpty(line)) return false;
+        if (line == null || lineEnd <= lineStart) return false;
+        int length = lineEnd - lineStart;
 
         int indent = 0;
-        while (indent < line.Length && indent < 4 && line[indent] == ' ') indent++;
+        while (indent < length && indent < 4 && line[lineStart + indent] == ' ') indent++;
         if (indent >= 4) return false;
 
         int i = indent;
-        while (i < line.Length && line[i] == '#') i++;
+        while (i < length && line[lineStart + i] == '#') i++;
 
         int count = i - indent;
         if (count < 1 || count > 6) return false;
-        if (i < line.Length && !char.IsWhiteSpace(line[i])) return false;
+        if (i < length && !char.IsWhiteSpace(line[lineStart + i])) return false;
 
         contentStart = i;
-        while (contentStart < line.Length && char.IsWhiteSpace(line[contentStart])) contentStart++;
-        if (contentStart >= line.Length) {
+        while (contentStart < length && char.IsWhiteSpace(line[lineStart + contentStart])) contentStart++;
+        if (contentStart >= length) {
             level = count;
             text = string.Empty;
             contentEnd = contentStart;
             return true;
         }
 
-        contentEnd = line.Length;
-        while (contentEnd > contentStart && char.IsWhiteSpace(line[contentEnd - 1])) contentEnd--;
+        contentEnd = length;
+        while (contentEnd > contentStart && char.IsWhiteSpace(line[lineStart + contentEnd - 1])) contentEnd--;
 
         int closingStart = contentEnd;
         int closingEnd = contentEnd;
-        while (closingStart > contentStart && line[closingStart - 1] == '#') closingStart--;
+        while (closingStart > contentStart && line[lineStart + closingStart - 1] == '#') closingStart--;
         if (closingStart < contentEnd) {
             int beforeClosing = closingStart - 1;
-            if (beforeClosing < contentStart || char.IsWhiteSpace(line[beforeClosing])) {
+            if (beforeClosing < contentStart || char.IsWhiteSpace(line[lineStart + beforeClosing])) {
                 closingMarkerStart = closingStart;
                 closingMarkerEnd = closingEnd;
                 contentEnd = beforeClosing < contentStart ? contentStart : beforeClosing;
-                while (contentEnd > contentStart && char.IsWhiteSpace(line[contentEnd - 1])) contentEnd--;
+                while (contentEnd > contentStart && char.IsWhiteSpace(line[lineStart + contentEnd - 1])) contentEnd--;
             }
         }
 
         level = count;
-        text = line.Substring(contentStart, contentEnd - contentStart);
+        text = line.Substring(lineStart + contentStart, contentEnd - contentStart);
         return true;
     }
 

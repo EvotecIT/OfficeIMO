@@ -4,7 +4,7 @@ using System.Text;
 namespace OfficeIMO.Markdown;
 
 internal static partial class MarkdownReader {
-    private static List<IMarkdownBlock> ParseBlocksFromLines(string[] lines, MarkdownLoadOptions options, MarkdownReaderState state, List<MarkdownSyntaxNode>? syntaxNodes = null, int lineOffset = 0) {
+    private static List<IMarkdownBlock> ParseBlocksFromLines(MarkdownSourceLines lines, MarkdownLoadOptions options, MarkdownReaderState state, List<MarkdownSyntaxNode>? syntaxNodes = null, int lineOffset = 0) {
         var doc = MarkdownDocument.Create();
         var opt = GetSharedOptionsWithoutFrontMatter(options, state);
         var pipeline = GetPipeline(opt, state);
@@ -19,11 +19,12 @@ internal static partial class MarkdownReader {
         try {
             int i = 0;
             while (i < lines.Length) {
-                if (string.IsNullOrWhiteSpace(lines[i])) { i++; continue; }
+                if (lines.IsBlank(i)) { i++; continue; }
                 bool matched = false;
                 var parsers = pipeline.Parsers;
                 var blockStarts = pipeline.BlockStarts;
-                char first = GetFirstNonWhiteSpaceCharacter(lines[i]);
+                var sourceLinesParsers = pipeline.SourceLinesParsers;
+                char first = lines.GetFirstNonWhiteSpaceCharacter(i);
                 int previousBlockCount = doc.Blocks.Count;
                 int startLine = lineOffset + i;
                 for (int p = 0; p < parsers.Count; p++) {
@@ -31,7 +32,7 @@ internal static partial class MarkdownReader {
                         continue;
                     }
 
-                    if (parsers[p].TryParse(lines, ref i, opt, doc, state)) {
+                    if (sourceLinesParsers[p] is { } builtInParser ? builtInParser.TryParse(lines, ref i, opt, doc, state) : parsers[p].TryParse(lines.ToArray(), ref i, opt, doc, state)) {
                         matched = true;
                         if (syntaxNodes != null && doc.Blocks.Count > previousBlockCount) {
                             CaptureSyntaxNodes(doc, previousBlockCount, startLine, lineOffset + i, syntaxNodes, state);
@@ -40,7 +41,7 @@ internal static partial class MarkdownReader {
                     }
 
                     // A parser that declines may still have rewritten the line.
-                    first = i < lines.Length ? GetFirstNonWhiteSpaceCharacter(lines[i]) : '\0';
+                    first = i < lines.Length ? lines.GetFirstNonWhiteSpaceCharacter(i) : '\0';
                 }
                 if (!matched) i++;
             }
@@ -375,7 +376,7 @@ internal static partial class MarkdownReader {
     private static void AddListItemChildSyntaxNode(
         ListItem item,
         IMarkdownBlock block,
-        string[] sourceLines,
+        MarkdownSourceLines sourceLines,
         int continuationIndent,
         int startLineIndex,
         int endExclusiveLineIndex,
@@ -477,7 +478,7 @@ internal static partial class MarkdownReader {
     }
 
     private static List<MarkdownSourceLineSlice> BuildListItemNestedSourceLines(
-        string[] sourceLines,
+        MarkdownSourceLines sourceLines,
         int continuationIndent,
         int startLineIndex,
         int endExclusiveLineIndex,

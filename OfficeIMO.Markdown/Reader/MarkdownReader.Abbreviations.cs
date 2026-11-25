@@ -1,8 +1,8 @@
 namespace OfficeIMO.Markdown;
 
 internal static partial class MarkdownReader {
-    internal sealed class AbbreviationDefParser : IMarkdownBlockParser {
-        public bool TryParse(string[] lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
+    internal sealed class AbbreviationDefParser : MarkdownSourceLinesBlockParser {
+        public override bool TryParse(MarkdownSourceLines lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
             if (options?.Abbreviations != true || i < 0 || i >= lines.Length) {
                 return false;
             }
@@ -50,7 +50,7 @@ internal static partial class MarkdownReader {
             .ToArray();
     }
 
-    private static void PreScanAbbreviationDefinitions(string[] lines, MarkdownReaderState state, MarkdownLoadOptions options) {
+    private static void PreScanAbbreviationDefinitions(MarkdownSourceLines lines, MarkdownReaderState state, MarkdownLoadOptions options) {
         if (options?.Abbreviations != true || lines == null || lines.Length == 0) {
             return;
         }
@@ -127,7 +127,7 @@ internal static partial class MarkdownReader {
         }
     }
 
-    private static int GetAbbreviationPreScanStartIndex(string[] lines, MarkdownLoadOptions options) =>
+    private static int GetAbbreviationPreScanStartIndex(MarkdownSourceLines lines, MarkdownLoadOptions options) =>
         options?.FrontMatter == true && lines != null && TryLocateFrontMatter(lines, out int closingIndex) ? closingIndex + 1 : 0;
 
     private static bool TryParseAbbreviationDefinition(
