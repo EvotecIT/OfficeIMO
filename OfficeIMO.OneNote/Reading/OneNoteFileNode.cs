@@ -160,11 +160,11 @@ public sealed class OneNoteFileNode {
         _dataLength = dataLength;
     }
 
+    // A section has dozens of nodes per page, so the node keeps only plain fields and creates
+    // the public wrappers on access.
     private readonly byte[] _buffer;
     private readonly int _dataOffset;
     private readonly int _dataLength;
-    private OneNoteBinaryPayload? _encodedPayload;
-    private OneNoteFileNodeChunkReference? _chunkReference;
     private ulong _chunkOffset;
     private ulong _chunkLength;
     private byte _chunkEncodedLength;
@@ -192,17 +192,12 @@ public sealed class OneNoteFileNode {
     public long FileOffset { get; }
 
     /// <summary>Leading decoded chunk reference for base types 1 and 2.</summary>
-    public OneNoteFileNodeChunkReference? ChunkReference {
-        get {
-            if (_chunkReference == null && HasChunkReference) {
-                _chunkReference = new OneNoteFileNodeChunkReference(_chunkOffset, _chunkLength, ChunkIsNil, _chunkEncodedLength);
-            }
-            return _chunkReference;
-        }
-    }
+    public OneNoteFileNodeChunkReference? ChunkReference => HasChunkReference
+        ? new OneNoteFileNodeChunkReference(_chunkOffset, _chunkLength, ChunkIsNil, _chunkEncodedLength)
+        : null;
 
     /// <summary>Complete encoded <c>fnd</c> payload, including any leading chunk reference.</summary>
-    public OneNoteBinaryPayload EncodedData => _encodedPayload ??= OneNoteBinaryPayload.FromOwnedRange(_buffer, _dataOffset, _dataLength);
+    public OneNoteBinaryPayload EncodedData => OneNoteBinaryPayload.FromOwnedRange(_buffer, _dataOffset, _dataLength);
 
     // The chunk reference is kept as fields so most nodes never allocate the public wrapper.
     internal bool HasChunkReference => _chunkState != 0;
@@ -217,7 +212,6 @@ public sealed class OneNoteFileNode {
         _chunkLength = length;
         _chunkEncodedLength = checked((byte)encodedLength);
         _chunkState = isNil ? (byte)2 : (byte)1;
-        _chunkReference = null;
     }
 
     // Copies the payload for the reader's decoders, with the same bounds check as EncodedData.ToArray(maxBytes).
