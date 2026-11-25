@@ -182,6 +182,8 @@ internal sealed partial class OfficeXmlTree {
     }
 
     internal OfficeXmlTreeNodeKind KindOf(int node) => _nodes[node].Kind;
+    /// <summary>Whether a text node was written as a CDATA section.</summary>
+    internal bool IsCData(int node) => (_nodes[node].Flags & CData) != 0;
     internal int ParentOf(int node) => _nodes[node].Parent;
     internal int FirstChildOf(int node) => _nodes[node].FirstChild;
     internal int LastChildOf(int node) => _nodes[node].LastChild;

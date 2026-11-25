@@ -139,8 +139,8 @@ internal static class PowerPointTreeReplace {
             }
 
             // Field text counts for word boundaries and is never replaced.
-            string? preceding = search.WholeWords ? FieldText(slide, previous) : null;
-            string? following = search.WholeWords ? FieldText(slide, next) : null;
+            string? preceding = null, following = null;
+            if (search.WholeWords && (!TryGetFieldText(slide, previous, out preceding) || !TryGetFieldText(slide, next, out following))) return -1;
             string?[] updated = new string?[runs.Count];
             count += PowerPointRunReplace.Plan(texts, search.Text, search.Replacement, search.Comparison, search.WholeWords, preceding, following, updated);
             for (int index = 0; index < runs.Count; index++) {
@@ -161,31 +161,42 @@ internal static class PowerPointTreeReplace {
 
     private static bool IsRun(OfficeXmlTree slide, int node) => slide.IsElement(node, OfficeXmlNamespaces.DrawingML, "r");
 
-    // The text of the run's first a:t, as the model reads it; a:t holding elements is not text the model reads alike.
+    // The text of the run's first a:t, as the model reads it.
     private static bool TryGetRunText(OfficeXmlTree slide, int run, out string text) {
         text = string.Empty;
         int element = slide.FindChild(run, OfficeXmlNamespaces.DrawingML, "t");
+        return element == OfficeXmlTree.NoNode || TryGetText(slide, element, out text);
+    }
+
+    // A field's text, or null when the node is not a field or has no text.
+    private static bool TryGetFieldText(OfficeXmlTree slide, int node, out string? text) {
+        text = null;
+        if (node == OfficeXmlTree.NoNode || !slide.IsElement(node, OfficeXmlNamespaces.DrawingML, "fld")) return true;
+        int element = slide.FindChild(node, OfficeXmlNamespaces.DrawingML, "t");
         if (element == OfficeXmlTree.NoNode) return true;
-        for (int child = slide.FirstChildOf(element); child != OfficeXmlTree.NoNode; child = slide.NextSiblingOf(child)) {
-            if (slide.KindOf(child) != OfficeXmlTreeNodeKind.Text) return false;
-        }
-        text = slide.GetInnerText(element);
+        if (!TryGetText(slide, element, out string value)) return false;
+        text = value;
         return true;
     }
 
-    private static string? FieldText(OfficeXmlTree slide, int node) {
-        if (node == OfficeXmlTree.NoNode || !slide.IsElement(node, OfficeXmlNamespaces.DrawingML, "fld")) return null;
-        int text = slide.FindChild(node, OfficeXmlNamespaces.DrawingML, "t");
-        return text == OfficeXmlTree.NoNode ? null : slide.GetInnerText(text);
+    // An a:t with one text node at most. The SDK reads only part of several text nodes (text and CDATA sections side by
+    // side), and an a:t holding elements is not text it reads alike, so both decline.
+    private static bool TryGetText(OfficeXmlTree slide, int element, out string text) {
+        text = string.Empty;
+        int child = slide.FirstChildOf(element);
+        if (child == OfficeXmlTree.NoNode) return true;
+        if (slide.KindOf(child) != OfficeXmlTreeNodeKind.Text || slide.NextSiblingOf(child) != OfficeXmlTree.NoNode) return false;
+        text = slide.GetText(child);
+        return true;
     }
 
-    // The next element sibling. Whitespace between elements is not a node to the model; other text is mixed content,
-    // which it reads differently, so the caller declines.
+    // The next element sibling. Whitespace between elements is not a node to the model; other text, and a CDATA section
+    // even of whitespace, is mixed content, which it reads differently, so the caller declines.
     private static int NextElement(OfficeXmlTree slide, int node, out bool mixed) {
         mixed = false;
         for (; node != OfficeXmlTree.NoNode; node = slide.NextSiblingOf(node)) {
             if (slide.KindOf(node) == OfficeXmlTreeNodeKind.Element) return node;
-            if (!string.IsNullOrWhiteSpace(slide.GetText(node))) {
+            if (slide.IsCData(node) || !string.IsNullOrWhiteSpace(slide.GetText(node))) {
                 mixed = true;
                 return OfficeXmlTree.NoNode;
             }

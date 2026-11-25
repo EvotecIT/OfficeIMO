@@ -91,12 +91,16 @@ public class PowerPointReplaceWithoutSdkTests {
     [InlineData("line")]
     [InlineData("comment")]
     [InlineData("notes")]
+    [InlineData("split text")]
+    [InlineData("cdata between runs")]
     public void LeavesWhatTheModelWritesDifferentlyToTheModel(string variant) {
         byte[] source = CreateDeck();
         string replacement = "Opening";
         PowerPointTextSearchOptions? options = null;
         if (variant == "line") replacement = "Opening\nline";
         if (variant == "comment") source = Rewrite(source, "ppt/slides/slide1.xml", xml => xml.Replace("<a:t>First slide</a:t></a:r>", "<a:t>First slide</a:t></a:r><!-- note -->"));
+        if (variant == "split text") source = Rewrite(source, "ppt/slides/slide1.xml", xml => xml.Replace("<a:t>First slide</a:t>", "<a:t>First<![CDATA[ slide]]></a:t>"));
+        if (variant == "cdata between runs") source = Rewrite(source, "ppt/slides/slide1.xml", xml => xml.Replace("<a:t>First slide</a:t></a:r>", "<a:t>First slide</a:t></a:r><![CDATA[ ]]>"));
         if (variant == "notes") options = new PowerPointTextSearchOptions { IncludeNotes = true };
 
         using var presentation = PowerPointDocument.Load(new MemoryStream(source));
