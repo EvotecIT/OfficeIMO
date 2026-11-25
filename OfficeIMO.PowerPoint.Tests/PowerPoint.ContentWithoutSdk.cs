@@ -54,6 +54,13 @@ public class PowerPointContentWithoutSdkTests {
             table.GetCell(0, 0).Text = "Replaced";
             return table.GetCell(0, 0).Text;
         }),
+        ("read and replace the first slide's notes", presentation => {
+            if (presentation.Slides.Count == 0) return string.Empty;
+            PowerPointNotes notes = presentation.Slides[0].Notes;
+            string before = notes.Text;
+            notes.Text = "Speaker notes\nsecond line";
+            return before + "|" + notes.Text;
+        }),
         ("replace the first text box's text", presentation => {
             PowerPointTextBox? box = presentation.Slides.SelectMany(slide => slide.TextBoxes).FirstOrDefault(candidate => candidate.Text.Length > 0);
             if (box == null) return string.Empty;
@@ -146,7 +153,9 @@ public class PowerPointContentWithoutSdkTests {
 
     private static byte[] CreateDeck() {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
-        presentation.AddSlide().AddTextBox("First slide");
+        PowerPointSlide first = presentation.AddSlide();
+        first.AddTextBox("First slide");
+        first.Notes.Text = "First notes";
         PowerPointSlide second = presentation.AddSlide();
         PowerPointTextBox box = second.AddTextBox("Second slide");
         box.Paragraphs[0].Runs[0].Bold = true;

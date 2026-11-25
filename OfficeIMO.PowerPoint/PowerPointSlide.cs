@@ -126,7 +126,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Notes associated with the slide.
         /// </summary>
-        public PowerPointNotes Notes => _notes ??= new PowerPointNotes(SlidePart);
+        public PowerPointNotes Notes => _notes ??= IsPackageBacked ? new PowerPointNotes(this) : new PowerPointNotes(SlidePart);
 
         private List<PowerPointShape> ShapeList {
             get {

@@ -47,6 +47,70 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
+        /// <summary>
+        /// A slide's notes tree when the model would read the notes without adding anything: the notes slide links back to
+        /// the slide and to the presentation's notes master, which has a theme and is listed in the presentation. Null
+        /// otherwise, and the model reads or creates them through the SDK.
+        /// </summary>
+        internal OfficeXmlTree? GetPackageNotes(string slidePart) {
+            if (GetPackage(edit: false) is not { } package) return null;
+            try {
+                string? notes = FirstRelated(package, slidePart, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "notesSlide", out _);
+                PackageSlideList? slides = notes == null ? null : PackageSlideList.Read(package);
+                if (notes == null || slides == null) return null;
+                string? master = FirstRelated(package, slides.Main, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "notesMaster", out string? masterRelationship);
+                if (master == null || masterRelationship == null
+                    || FirstRelated(package, master, OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "theme", out _) == null
+                    || !Relates(package, notes, slidePart) || !Relates(package, notes, master)) {
+                    return null;
+                }
+                OfficeXmlTree presentation = slides.Presentation;
+                int list = presentation.FindChild(presentation.Root, OfficeXmlNamespaces.PresentationML, "notesMasterIdLst");
+                bool listed = false;
+                for (int entry = list == OfficeXmlTree.NoNode ? OfficeXmlTree.NoNode : presentation.FindChild(list, OfficeXmlNamespaces.PresentationML, "notesMasterId");
+                     entry != OfficeXmlTree.NoNode && !listed; entry = presentation.FindNextSibling(entry, OfficeXmlNamespaces.PresentationML, "notesMasterId")) {
+                    listed = presentation.GetAttribute(entry, OfficeXmlNamespaces.Relationships, "id") == masterRelationship;
+                }
+                if (!listed || !package.GetXml(master).IsElement(package.GetXml(master).Root, OfficeXmlNamespaces.PresentationML, "notesMaster")) return null;
+                OfficeXmlTree tree = package.GetXml(notes);
+                return tree.IsElement(tree.Root, OfficeXmlNamespaces.PresentationML, "notes") ? tree : null;
+            } catch (Exception exception) when (exception is System.Xml.XmlException or InvalidDataException) {
+                return null;
+            }
+        }
+
+        // The first internal relationship of a type, as the SDK's typed part properties find it.
+        private static string? FirstRelated(OfficeOpcEditablePackage package, string source, string type, out string? id) {
+            id = null;
+            string relationshipsPart = OfficeOpcPartNames.GetRelationshipsPartName(source);
+            if (!package.PartExists(relationshipsPart)) return null;
+            OfficeXmlTree relationships = package.GetXml(relationshipsPart);
+            for (int node = relationships.FindChild(relationships.Root, OfficeXmlNamespaces.PackageRelationships, "Relationship"); node != OfficeXmlTree.NoNode;
+                 node = relationships.FindNextSibling(node, OfficeXmlNamespaces.PackageRelationships, "Relationship")) {
+                if (string.Equals(relationships.GetAttribute(node, OfficeXmlNamespaces.None, "TargetMode"), "External", StringComparison.OrdinalIgnoreCase)) continue;
+                if (OfficeXmlNamespaces.NormalizeRelationshipType(relationships.GetAttribute(node, OfficeXmlNamespaces.None, "Type") ?? string.Empty) != type) continue;
+                string? target = OfficeOpcPartNames.ResolveRelationshipTarget(relationshipsPart, relationships.GetAttribute(node, OfficeXmlNamespaces.None, "Target"));
+                if (target == null || !package.PartExists(target)) return null;
+                id = relationships.GetAttribute(node, OfficeXmlNamespaces.None, "Id");
+                return target;
+            }
+            return null;
+        }
+
+        // Whether a part has an internal relationship to another part.
+        private static bool Relates(OfficeOpcEditablePackage package, string source, string target) {
+            string relationshipsPart = OfficeOpcPartNames.GetRelationshipsPartName(source);
+            if (!package.PartExists(relationshipsPart)) return false;
+            OfficeXmlTree relationships = package.GetXml(relationshipsPart);
+            for (int node = relationships.FindChild(relationships.Root, OfficeXmlNamespaces.PackageRelationships, "Relationship"); node != OfficeXmlTree.NoNode;
+                 node = relationships.FindNextSibling(node, OfficeXmlNamespaces.PackageRelationships, "Relationship")) {
+                if (string.Equals(relationships.GetAttribute(node, OfficeXmlNamespaces.None, "TargetMode"), "External", StringComparison.OrdinalIgnoreCase)) continue;
+                string? resolved = OfficeOpcPartNames.ResolveRelationshipTarget(relationshipsPart, relationships.GetAttribute(node, OfficeXmlNamespaces.None, "Target"));
+                if (resolved != null && OfficeAsciiIgnoreCaseComparer.Instance.Equals(PartIdentity(resolved), PartIdentity(target))) return true;
+            }
+            return false;
+        }
+
         /// <summary>The slides in order, read from the package, or null when the SDK has to read them.</summary>
         private List<PowerPointSlide>? GetPackageSlides() {
             if (_packageSlideOrder != null && _sdkDocument == null) return _packageSlideOrder;
