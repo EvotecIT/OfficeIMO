@@ -175,6 +175,19 @@ public partial class PdfInspectorTests {
     }
 
     [Fact]
+    public void Preservation_RefusesRenumberingASignedSignatureField() {
+        byte[] signed = BuildSignedIncrementalPdf();
+        // The same document with the signed field as object 15: its signature covers the bytes as numbered.
+        byte[] renumbered = System.Text.Encoding.ASCII.GetBytes(System.Text.Encoding.ASCII.GetString(signed)
+            .Replace("5 0 obj", "15 0 obj").Replace("[5 0 R]", "[15 0 R]").Replace("/Size 15", "/Size 16"));
+
+        PdfRewritePreservationReport report = PdfRewritePreservation.Assess(signed, renumbered);
+
+        Assert.Equal(new[] { 15 }, report.Rewritten.Security.SignatureFieldObjectNumbers);
+        Assert.Contains(report.Issues, issue => issue.Feature == "Security.SignatureFieldObjectNumbers");
+    }
+
+    [Fact]
     public void Inspect_ReadsSignatureAndRevisionSecurityState() {
         PdfDocumentInfo info = PdfInspector.Inspect(BuildSignedIncrementalPdf());
 
@@ -551,5 +564,34 @@ public partial class PdfInspectorTests {
         });
 
         return System.Text.Encoding.ASCII.GetBytes(pdf);
+    }
+}
+
+public partial class PdfInspectorTests {
+    [Fact]
+    public void ParsedSecurity_ResolvesRootAndInfoFromSourceWhenTrailerOmitsThem() {
+        // No trailer names /Root or /Info. The only references are in an object body, which the source pass reads.
+        var builder = new StringBuilder("%PDF-1.7\n");
+        var offsets = new int[4];
+        void AddObject(int number, string body) {
+            offsets[number] = builder.Length;
+            builder.Append(number).Append(" 0 obj\n").Append(body).Append("\nendobj\n");
+        }
+
+        AddObject(1, "<< /Type /Catalog /Pages 2 0 R >>");
+        AddObject(2, "<< /Type /Pages /Kids [] /Count 0 >>");
+        AddObject(3, "<< /Root 1 0 R /Info 3 0 R >>");
+        int xref = builder.Length;
+        builder.Append("xref\n0 4\n0000000000 65535 f \n");
+        for (int number = 1; number <= 3; number++) builder.Append(offsets[number].ToString("D10")).Append(" 00000 n \n");
+        builder.Append("trailer\n<< /Size 4 >>\nstartxref\n").Append(xref).Append("\n%%EOF\n");
+        byte[] pdf = Encoding.ASCII.GetBytes(builder.ToString());
+
+        PdfDocumentSecurityInfo security = PdfReadDocument.Open(pdf).Security;
+
+        Assert.Equal(1, security.RootObjectNumber);
+        Assert.Equal(0, security.RootObjectGeneration);
+        Assert.Equal(3, security.InfoObjectNumber);
+        Assert.Equal(0, security.InfoObjectGeneration);
     }
 }

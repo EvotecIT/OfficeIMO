@@ -5,8 +5,8 @@ internal static partial class OfficeJpegReader {
 
     private static void DecodeBlockCoefficients(
         ref JpegBitReader reader,
-        HuffmanTable dcTable,
-        HuffmanTable acTable,
+        in HuffmanTable dcTable,
+        in HuffmanTable acTable,
         int[] quant,
         ref int prevDc,
         int[] coeffs) {
@@ -66,7 +66,7 @@ internal static partial class OfficeJpegReader {
 
     }
 
-    private static int DecodeHuffman(ref JpegBitReader reader, HuffmanTable table, bool useFast) {
+    private static int DecodeHuffman(ref JpegBitReader reader, in HuffmanTable table, bool useFast) {
         if (useFast && table.Fast is not null && reader.TryPeekBits(HuffmanFastBits, out int peek)) {
             var entry = table.Fast[peek];
             if (entry >= 0) {
@@ -180,170 +180,6 @@ internal static partial class OfficeJpegReader {
                 Fast = fast,
                 IsValid = true
             };
-        }
-    }
-
-    private ref struct JpegBitReader {
-        private readonly OfficeByteView _data;
-        private readonly bool _allowTruncated;
-        private readonly CancellationToken _cancellationToken;
-        private int _pos;
-        private int _bitBuffer;
-        private int _bitCount;
-
-        public bool RestartMarkerSeen;
-
-        public JpegBitReader(
-            OfficeByteView data,
-            bool allowTruncated,
-            CancellationToken cancellationToken) {
-            _data = data;
-            _allowTruncated = allowTruncated;
-            _cancellationToken = cancellationToken;
-            _pos = 0;
-            _bitBuffer = 0;
-            _bitCount = 0;
-            RestartMarkerSeen = false;
-        }
-
-        public bool AllowTruncated => _allowTruncated;
-
-        public bool TryPeekBits(int count, out int value) {
-            int originalPosition = _pos;
-            int originalBitBuffer = _bitBuffer;
-            int originalBitCount = _bitCount;
-            bool originalRestartMarkerSeen = RestartMarkerSeen;
-            while (_bitCount < count) {
-                if (!TryReadByte(out int next)) {
-                    RestorePeekState(originalPosition, originalBitBuffer, originalBitCount, originalRestartMarkerSeen);
-                    value = 0;
-                    return false;
-                }
-                if (RestartMarkerSeen != originalRestartMarkerSeen) {
-                    RestorePeekState(originalPosition, originalBitBuffer, originalBitCount, originalRestartMarkerSeen);
-                    value = 0;
-                    return false;
-                }
-                _bitBuffer = (_bitBuffer << 8) | next;
-                _bitCount += 8;
-            }
-            value = (_bitBuffer >> (_bitCount - count)) & ((1 << count) - 1);
-            return true;
-        }
-
-        private void RestorePeekState(int position, int bitBuffer, int bitCount, bool restartMarkerSeen) {
-            _pos = position;
-            _bitBuffer = bitBuffer;
-            _bitCount = bitCount;
-            RestartMarkerSeen = restartMarkerSeen;
-        }
-
-        public void SkipBits(int count) {
-            if (count == 0) return;
-            _bitCount -= count;
-            if (_bitCount <= 0) {
-                _bitCount = 0;
-                _bitBuffer = 0;
-            } else {
-                _bitBuffer &= (1 << _bitCount) - 1;
-            }
-        }
-
-        public int ReadBit() {
-            EnsureBits(1);
-            var bit = (_bitBuffer >> (_bitCount - 1)) & 1;
-            _bitCount--;
-            if (_bitCount == 0) {
-                _bitBuffer = 0;
-            } else {
-                _bitBuffer &= (1 << _bitCount) - 1;
-            }
-            return bit;
-        }
-
-        public int ReadBits(int count) {
-            if (count == 0) return 0;
-            EnsureBits(count);
-            var value = (_bitBuffer >> (_bitCount - count)) & ((1 << count) - 1);
-            _bitCount -= count;
-            if (_bitCount == 0) {
-                _bitBuffer = 0;
-            } else {
-                _bitBuffer &= (1 << _bitCount) - 1;
-            }
-            return value;
-        }
-
-
-        public void ExpectRestartMarker(int expectedMarker = -1) {
-            _bitBuffer = 0;
-            _bitCount = 0;
-            while (_pos < _data.Length) {
-                var b = _data[_pos++];
-                if (b != 0xFF) {
-                    if (expectedMarker >= 0) throw new FormatException("Unexpected JPEG restart data.");
-                    continue;
-                }
-                SkipFillBytes(_data, ref _pos, _cancellationToken);
-                if (_pos >= _data.Length) throw new FormatException("Unexpected JPEG end.");
-                var marker = _data[_pos++];
-                if (marker >= 0xD0 && marker <= 0xD7) {
-                    if (expectedMarker >= 0 && marker != expectedMarker) throw new FormatException("Unexpected JPEG restart sequence.");
-                    RestartMarkerSeen = false;
-                    return;
-                }
-                if (marker == 0x00 && expectedMarker < 0) continue;
-                throw new FormatException("Unexpected JPEG marker in scan.");
-            }
-            throw new FormatException("Missing JPEG restart marker.");
-        }
-
-        private void EnsureBits(int count) {
-            while (_bitCount < count) {
-                var b = ReadByte();
-                _bitBuffer = (_bitBuffer << 8) | b;
-                _bitCount += 8;
-            }
-        }
-
-        private int ReadByte() {
-            if (TryReadByte(out int value)) return value;
-            throw new FormatException("Unexpected JPEG end.");
-        }
-
-        private bool TryReadByte(out int value) {
-            while (_pos < _data.Length) {
-                var b = _data[_pos++];
-                if (b != 0xFF) {
-                    value = b;
-                    return true;
-                }
-                SkipFillBytes(_data, ref _pos, _cancellationToken);
-                if (_pos >= _data.Length) {
-                    if (_allowTruncated) {
-                        value = 0;
-                        return true;
-                    }
-                    value = 0;
-                    return false;
-                }
-                var marker = _data[_pos++];
-                if (marker == 0x00) {
-                    value = 0xFF;
-                    return true;
-                }
-                if (marker >= 0xD0 && marker <= 0xD7) {
-                    RestartMarkerSeen = true;
-                    continue;
-                }
-                throw new FormatException("Unexpected JPEG marker in scan.");
-            }
-            if (_allowTruncated) {
-                value = 0;
-                return true;
-            }
-            value = 0;
-            return false;
         }
     }
 

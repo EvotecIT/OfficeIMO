@@ -62,7 +62,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int paintOrder) {
         string source = HtmlRenderStyleResolver.DescribeSource(element) + ":target-page-anchor";
         foreach (string name in GetNamedDestinations(element)) {
-            destinations.Add(new HtmlRenderNamedDestination(name, x, y, paintOrder++, source));
+            destinations.Add(new HtmlRenderNamedDestination(QualifyDestination(name), x, y, paintOrder++, source));
         }
     }
 
@@ -75,7 +75,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (style.FloatSide == "footnote") return;
         string source = HtmlRenderStyleResolver.DescribeSource(element) + ":target-page-anchor";
         foreach (string name in GetNamedDestinations(element)) {
-            var destination = new HtmlRenderNamedDestination(name, 0D, 0D, 0, source);
+            var destination = new HtmlRenderNamedDestination(QualifyDestination(name), 0D, 0D, 0, source);
             var markerBlock = new HtmlRenderFlowBlock(
                 0D,
                 0.01D,
@@ -104,7 +104,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private bool IsNamedDestinationTarget(string? name, IElement element) {
-        if (name == null || name.Length == 0) return false;
+        if (name == null || name.Length == 0 || name == "top" && !_options.IsPublicationSection) return false;
         return _namedDestinationIds.Contains(name)
             && _namedDestinationTargets.TryGetValue(name, out IElement? target)
             && ReferenceEquals(target, element);

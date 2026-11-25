@@ -83,7 +83,13 @@ namespace OfficeIMO.Excel {
             column = 0;
 
             FormulaReferenceSyntax syntax = GetFormulaReferenceSyntax(token);
-            if (!syntax.Split) {
+            // Text that is no cell address needs no sheet: a nested call such as INDEX(Rates!B1:B8,MATCH(B2,Rates!A1:A8,0))
+            // splits at its last '!' into a qualifier no sheet has, and looking that up scans the workbook's sheets.
+            if (!syntax.Split
+                || syntax.CellRow <= 0
+                || syntax.CellColumn <= 0
+                || syntax.CellRow > ExcelA1.MaxRows
+                || syntax.CellColumn > ExcelA1.MaxColumns) {
                 return false;
             }
 
@@ -97,10 +103,7 @@ namespace OfficeIMO.Excel {
 
             row = syntax.CellRow;
             column = syntax.CellColumn;
-            return row > 0
-                && column > 0
-                && row <= ExcelA1.MaxRows
-                && column <= ExcelA1.MaxColumns;
+            return true;
         }
 
         private bool TryParseQualifiedFormulaRange(string token, out ExcelSheet sheet, out int r1, out int c1, out int r2, out int c2) {
@@ -115,7 +118,7 @@ namespace OfficeIMO.Excel {
             c2 = 0;
 
             FormulaReferenceSyntax syntax = GetFormulaReferenceSyntax(token);
-            if (!syntax.Split) {
+            if (!syntax.Split || !syntax.IsRange) {
                 return false;
             }
 
@@ -131,7 +134,7 @@ namespace OfficeIMO.Excel {
             c1 = syntax.C1;
             r2 = syntax.R2;
             c2 = syntax.C2;
-            return syntax.IsRange;
+            return true;
         }
 
         /// <summary>The sheet qualifier and coordinates a reference token spells; it depends on the text alone.</summary>
@@ -155,10 +158,17 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Parses a reference token once per pass when its text needs new strings to parse, as a qualified or absolute
-        /// reference does; a plain relative reference parses without allocating and is not kept.
+        /// Parses a reference token once. A calculation pass keeps every token in the workbook's syntax cache, so later
+        /// passes reuse it; outside a pass a qualified or absolute token is kept for the current context only.
         /// </summary>
         private FormulaReferenceSyntax GetFormulaReferenceSyntax(string token) {
+            if (ExcelFormulaSyntaxCache.Current is ExcelFormulaSyntaxCache cache) {
+                if (!cache.TryGetReference(token, out FormulaReferenceSyntax cached)) {
+                    cached = new FormulaReferenceSyntax(token);
+                    cache.AddReference(token, cached);
+                }
+                return cached;
+            }
             if (_formulaCalculationContext is not { IsDisposed: false } context
                 || (token.IndexOf('!') < 0 && token.IndexOf('$') < 0)) {
                 return new FormulaReferenceSyntax(token);
@@ -231,7 +241,14 @@ namespace OfficeIMO.Excel {
             out int c2) {
             if (ExcelFormulaExpressionParser.TryParseSupportedFunctionCall(token, out ExcelFormulaFunctionCallSyntax? call)
                 && (call!.Name.Equals("OFFSET", StringComparison.OrdinalIgnoreCase)
+                    || call.Name.Equals("INDIRECT", StringComparison.OrdinalIgnoreCase)
                     || call.Name.Equals("INDEX", StringComparison.OrdinalIgnoreCase))) {
+                if (call.Name.Equals("INDIRECT", StringComparison.OrdinalIgnoreCase)) {
+                    bool named = TryResolveIndirectRange(call.Arguments, currentRow, out sheet, out r1, out c1, out r2, out c2,
+                        out FormulaArgumentValue indirectError);
+                    if (named && indirectError.IsError && !_formulaReferenceError.IsError) _formulaReferenceError = indirectError;
+                    return named && !indirectError.IsError;
+                }
                 if (call.Name.Equals("INDEX", StringComparison.OrdinalIgnoreCase)) {
                     bool selected = TryResolveIndexRange(call.Arguments, currentRow, out sheet, out r1, out c1, out r2, out c2,
                         out FormulaArgumentValue indexError);
@@ -698,6 +715,12 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
+            return TryCreateFormulaReferenceSheet(sheetName, out sheet);
+        }
+
+        // Kept apart so the lookup's closure is allocated only when a sheet is not cached yet.
+        private bool TryCreateFormulaReferenceSheet(string sheetName, out ExcelSheet sheet) {
+            sheet = this;
             var sheetElement = WorkbookRoot.Sheets?
                 .Elements<Sheet>()
                 .FirstOrDefault(candidate => string.Equals(candidate.Name?.Value, sheetName, StringComparison.OrdinalIgnoreCase));
@@ -908,25 +931,36 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private string GetFormulaEvaluationCacheKey(string reference) {
-            // Dependants look up the same formula cells many times in one pass, so the pass keeps each key it builds.
-            if (_formulaCalculationContext is not { IsDisposed: false } context) return Name + "!" + reference;
-            string name = Name;
-            if (!context.CacheKeys.TryGetValue(name, out Dictionary<string, string>? keys)) {
-                keys = new Dictionary<string, string>(StringComparer.Ordinal);
-                context.CacheKeys.Add(name, keys);
+        private long _formulaEvaluationKeyPass;
+        private int _formulaEvaluationKeySheet;
+
+        /// <summary>
+        /// The evaluation-cache key of a cell on this sheet: the sheet's number in the current results, then the row
+        /// and column. Sheets are numbered by name, ignoring case, so every wrapper of one sheet shares its keys.
+        /// </summary>
+        private long GetFormulaEvaluationCacheKey(string reference) {
+            FormulaEvaluationResults results = _formulaEvaluationCache
+                ?? throw new InvalidOperationException("Formula evaluation keys belong to a calculation pass.");
+            // The pass number, not the results themselves, so a sheet does not keep a finished pass's values alive.
+            if (_formulaEvaluationKeyPass != results.Pass) {
+                _formulaEvaluationKeySheet = results.GetSheetNumber(Name);
+                _formulaEvaluationKeyPass = results.Pass;
             }
-            if (!keys.TryGetValue(reference, out string? key)) {
-                key = name + "!" + reference;
-                keys.Add(reference, key);
-            }
-            return key;
+            string? normalized = IsCanonicalCellReference(reference) ? reference : NormalizeFormulaCellReference(reference);
+            int row = 0, column = 0;
+            if (normalized != null) ExcelA1.TryParseCellReferenceFast(normalized, out row, out column);
+            return FormulaEvaluationResults.Key(_formulaEvaluationKeySheet, row, column);
         }
 
         private static bool TryParseFormulaErrorLiteral(string token, out string errorCode) {
             string value = token.Trim();
             if (value.StartsWith("=", StringComparison.Ordinal)) {
                 value = value.Substring(1).Trim();
+            }
+            // Every error literal starts with '#', so other operands skip the upper-casing below.
+            if (value.Length == 0 || value[0] != '#') {
+                errorCode = string.Empty;
+                return false;
             }
 
             switch (value.ToUpperInvariant()) {

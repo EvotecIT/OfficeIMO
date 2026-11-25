@@ -201,6 +201,20 @@ internal static partial class MarkdownReader {
         return null;
     }
 
+    // Same result as RemoveSingleTrailingLineEnding(builder.ToString()), with one copy; releases the builder.
+    private static string ToStringWithoutSingleTrailingLineEnding(System.Text.StringBuilder builder) {
+        int length = builder.Length;
+        if (length >= 2 && builder[length - 2] == '\r' && builder[length - 1] == '\n') {
+            length -= 2;
+        } else if (length >= 1 && (builder[length - 1] == '\n' || builder[length - 1] == '\r')) {
+            length--;
+        }
+
+        string text = length == 0 ? string.Empty : builder.ToString(0, length);
+        MarkdownStringBuilderCache.Release(builder);
+        return text;
+    }
+
     private static string RemoveSingleTrailingLineEnding(string text) {
         if (string.IsNullOrEmpty(text)) {
             return string.Empty;

@@ -15,6 +15,10 @@ internal sealed partial class ExcelSheetReader {
     }
 
     private sealed partial class ExcelXmlRangeDataReader {
+        // Batch readers run on worker threads and only read their options, so every batch of this reader
+        // shares one snapshot instead of copying the options for each batch.
+        private ExcelReaderOptions? _mappingBatchOptions;
+
         internal bool CanCaptureMappingBatch => !_closed && !_trackCellPresence &&
             _utf8Source is { CanCopyMappingRows: true } &&
             !_owner._opt.NumericAsDecimal && _owner._opt.CellValueConverter is null;
@@ -38,7 +42,7 @@ internal sealed partial class ExcelSheetReader {
             if (preferredBatchSize != 0 && _nextLogicalRow > _lastRow) return true;
             count = preferredBatchSize == 0 ? 0 : Math.Min(Math.Max(1, preferredBatchSize), _lastRow - _nextLogicalRow + 1);
             var owner = new ExcelSheetReader(_owner._sheetName, _owner._worksheetPartName,
-                _owner._sst, _owner._styles, _owner._opt.Clone(), _owner._dateSystem,
+                _owner._sst, _owner._styles, _mappingBatchOptions ??= _owner._opt.Clone(), _owner._dateSystem,
                 _owner._partBufferReader!, _owner._richValueErrors);
             if (!_utf8Source!.TryCopyMappingRows(owner, _nextLogicalRow, count,
                     _utf8SourceOrdinalOffset, _fieldCount, ct, out var rows)) return false;

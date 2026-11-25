@@ -36,6 +36,16 @@ dotnet tool uninstall --global OfficeIMO.Tool
 
 Registry clients place the download-consent flag before the package argument. This route requires an SDK whose `dotnet dnx --help` lists `--yes`, qualified with SDK 10.0.113. Some other .NET 10 feature bands lack that option; use the plugin's explicit launcher above on those SDKs. The registry entry exposes the same bounded operations as the plugin.
 
+## PDF asset extraction
+
+```text
+officeimo pdf extract-assets artwork.pdf --output artwork-assets
+```
+
+The new folder contains images, embedded fonts, ICC profiles, page SVGs and matching HTML and JSON reports. The reports record image placement DPI, page boxes in millimetres, spot colorants and font subset status. Use `--preserve-image-format` to keep the standard image extraction behavior. The local MCP tool is `officeimo_pdf_extract_assets`.
+
+Pass several input PDFs to write numbered subfolders in input order. Each PDF has its own reports and limits. The output folder appears after the whole batch succeeds.
+
 ## PDF copies and searchable scans
 
 Create a separate PDF, split folder, or searchable scan with an explicit destination:
@@ -309,7 +319,15 @@ officeimo convert budget.xlsx budget.json --sheet Summary --range A1:D20
 officeimo convert people.csv people.xlsx
 officeimo convert budget.xlsx budget.csv
 
-# Supported documents to Markdown or JSON through OfficeIMO.Reader
+# Export saved Jupyter notebook results as a PDF or standalone Markdown
+officeimo convert analysis.ipynb analysis.pdf
+officeimo convert analysis.ipynb analysis.md
+
+# Import Quarto, R Markdown, Deepnote, or Zeppelin as Jupyter or PDF
+officeimo convert analysis.qmd analysis.ipynb
+officeimo convert analysis.zpln analysis.pdf
+
+# Extract other documents to Markdown or JSON through OfficeIMO.Reader
 officeimo convert workbook.xlsx workbook.md
 officeimo convert report.docx report.json
 officeimo read settings.yaml --format json --output settings.reader.json

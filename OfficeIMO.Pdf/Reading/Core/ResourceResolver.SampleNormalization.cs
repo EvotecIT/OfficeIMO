@@ -10,9 +10,9 @@ internal static partial class ResourceResolver {
         if (bitsPerComponent is 1 or 2 or 4 or 16) return true;
         if (bitsPerComponent != 8 || ResolveStream(stream.Dictionary.Items.TryGetValue("SMask", out PdfObject? maskObject) ? maskObject : null, objects)
                 is not PdfStream softMask) return false;
-        int maskWidth = (int)(softMask.Dictionary.Get<PdfNumber>("Width")?.Value ?? 0);
-        int maskHeight = (int)(softMask.Dictionary.Get<PdfNumber>("Height")?.Value ?? 0);
-        int maskBits = (int)(softMask.Dictionary.Get<PdfNumber>("BitsPerComponent")?.Value ?? 0);
+        int maskWidth = ReadImageInteger(softMask.Dictionary, "Width", objects);
+        int maskHeight = ReadImageInteger(softMask.Dictionary, "Height", objects);
+        int maskBits = ReadImageInteger(softMask.Dictionary, "BitsPerComponent", objects);
         return maskWidth != width || maskHeight != height || maskBits != 8 ||
             softMask.Dictionary.Items.TryGetValue("Matte", out PdfObject? matte) && ResolveObject(matte, objects) is not PdfNull;
     }
@@ -136,9 +136,9 @@ internal static partial class ResourceResolver {
     private static bool TryNormalizeSoftMask(PdfStream softMask, int width, int height, Dictionary<int, PdfIndirectObject> objects,
         int maximumBytes, out byte[] alpha, CancellationToken cancellationToken) {
         alpha = Array.Empty<byte>();
-        int maskWidth = (int)(softMask.Dictionary.Get<PdfNumber>("Width")?.Value ?? 0);
-        int maskHeight = (int)(softMask.Dictionary.Get<PdfNumber>("Height")?.Value ?? 0);
-        int maskBits = (int)(softMask.Dictionary.Get<PdfNumber>("BitsPerComponent")?.Value ?? 0);
+        int maskWidth = ReadImageInteger(softMask.Dictionary, "Width", objects);
+        int maskHeight = ReadImageInteger(softMask.Dictionary, "Height", objects);
+        int maskBits = ReadImageInteger(softMask.Dictionary, "BitsPerComponent", objects);
         string colorSpace = GetNameOrEmpty(softMask.Dictionary.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject) ? colorSpaceObject : null, objects);
         if (maskBits is not (1 or 2 or 4 or 8 or 16) || maskWidth <= 0 || maskHeight <= 0 || !string.Equals(colorSpace, "DeviceGray", StringComparison.Ordinal) ||
             Filters.StreamDecoder.GetUnsupportedFilters(softMask.Dictionary, objects).Count != 0 ||

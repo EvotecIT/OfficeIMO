@@ -141,8 +141,11 @@ public sealed class OneNoteFileNode {
         BaseType = baseType;
         FileOffset = fileOffset;
         ChunkReference = chunkReference;
-        EncodedData = OneNoteBinaryPayload.FromOwnedBytes(encodedData);
+        _encodedData = encodedData;
     }
+
+    private readonly byte[] _encodedData;
+    private OneNoteBinaryPayload? _encodedPayload;
 
     /// <summary>Raw 10-bit file-node identifier.</summary>
     public ushort RawId { get; }
@@ -169,7 +172,13 @@ public sealed class OneNoteFileNode {
     public OneNoteFileNodeChunkReference? ChunkReference { get; }
 
     /// <summary>Complete encoded <c>fnd</c> payload, including any leading chunk reference.</summary>
-    public OneNoteBinaryPayload EncodedData { get; }
+    public OneNoteBinaryPayload EncodedData => _encodedPayload ??= OneNoteBinaryPayload.FromOwnedBytes(_encodedData);
+
+    // Same bounds check as EncodedData.ToArray(maxBytes), without the copy. Callers must not modify the result.
+    internal byte[] GetEncodedBytes(int maxBytes) {
+        if (_encodedData.Length > maxBytes) throw new IOException("The OneNote payload exceeds the requested materialization limit.");
+        return _encodedData;
+    }
 
     /// <summary>Decoded child list when this node has file-node-list base type.</summary>
     public OneNoteFileNodeList? ReferencedFileNodeList { get; internal set; }

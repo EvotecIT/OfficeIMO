@@ -17,6 +17,7 @@ internal sealed partial class BrowserPdfToolService {
         PdfToolExecution execution = request.Tool.Kind switch {
             PdfToolKind.Inspect => Inspect(request),
             PdfToolKind.Merge => Merge(request),
+            PdfToolKind.ExtractAssets => ExtractAssets(request),
             PdfToolKind.Split => Split(request),
             PdfToolKind.Extract => TransformPages(request, "extracted", static (document, selector, _) => document.Pages.Extract(selector)),
             PdfToolKind.Delete => TransformPages(request, "pages-removed", static (document, selector, _) => document.Pages.Delete(selector)),

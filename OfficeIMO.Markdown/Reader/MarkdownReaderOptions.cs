@@ -25,6 +25,9 @@ public sealed class MarkdownLoadOptions {
     /// </summary>
     public bool CaptureSyntaxTree { get; set; } = true;
 
+    /// <summary>Resolves image destinations against a format owner's trusted embedded resources. Null rejects the image.</summary>
+    internal Func<string, string?>? ImageSourceResolver { get; set; }
+
     /// <summary>Creates bounded parser settings for documents from outside.</summary>
     public static MarkdownLoadOptions UntrustedDefaults => new MarkdownLoadOptions {
         MaxInputBytes = 32L * 1024L * 1024L,
@@ -44,7 +47,13 @@ public sealed class MarkdownLoadOptions {
     public MarkdownLoadOptions() : this(seedBuiltInBlockParserExtensions: true) {
     }
 
-    private MarkdownLoadOptions(bool seedBuiltInBlockParserExtensions) {
+    private MarkdownLoadOptions(bool seedBuiltInBlockParserExtensions, bool assignDefaultObjects = true) {
+        // A clone assigns copies of its own, so it skips creating defaults it would replace.
+        if (assignDefaultObjects) {
+            AllowedUrlSchemes = new[] { "http", "https", "mailto" };
+            InputNormalization = new MarkdownInputNormalizationOptions();
+        }
+
         if (seedBuiltInBlockParserExtensions) {
             MarkdownReaderBuiltInExtensions.RegisterOfficeIMODefaults(this);
         }
@@ -82,7 +91,7 @@ public sealed class MarkdownLoadOptions {
     /// Creates an independent copy of the current reader configuration, including profile toggles and extension registrations.
     /// </summary>
     public MarkdownLoadOptions Clone() {
-        var clone = new MarkdownLoadOptions(seedBuiltInBlockParserExtensions: false) {
+        var clone = new MarkdownLoadOptions(seedBuiltInBlockParserExtensions: false, assignDefaultObjects: false) {
             CaptureSyntaxTree = CaptureSyntaxTree,
             FrontMatter = FrontMatter,
             Callouts = Callouts,
@@ -147,6 +156,7 @@ public sealed class MarkdownLoadOptions {
             BackslashHardBreaks = BackslashHardBreaks,
             SoftLineBreaksAsHardLineBreaks = SoftLineBreaksAsHardLineBreaks,
             InlineHtml = InlineHtml,
+            ImageSourceResolver = ImageSourceResolver,
             BaseUri = BaseUri,
             DisallowScriptUrls = DisallowScriptUrls,
             DisallowFileUrls = DisallowFileUrls,
@@ -165,11 +175,11 @@ public sealed class MarkdownLoadOptions {
             MaxNestingDepth = MaxNestingDepth
         };
 
-        CopyList(FencedBlockExtensions, clone.FencedBlockExtensions);
-        CopyList(BlockParserExtensions, clone.BlockParserExtensions);
-        CopyList(InlineParserExtensions, clone.InlineParserExtensions);
-        CopyList(InlineTransformExtensions, clone.InlineTransformExtensions);
-        CopyList(DocumentTransforms, clone.DocumentTransforms);
+        clone._fencedBlockExtensions = CopyNonNullItems(_fencedBlockExtensions);
+        clone._blockParserExtensions = CopyNonNullItems(_blockParserExtensions);
+        clone._inlineParserExtensions = CopyNonNullItems(_inlineParserExtensions);
+        clone._inlineTransformExtensions = CopyNonNullItems(_inlineTransformExtensions);
+        clone._documentTransforms = CopyNonNullItems(_documentTransforms);
         return clone;
     }
 
@@ -660,12 +670,12 @@ public sealed class MarkdownLoadOptions {
     /// Values are compared case-insensitively and should not include the trailing colon.
     /// Default: <c>http</c>, <c>https</c>, <c>mailto</c>.
     /// </summary>
-    public string[] AllowedUrlSchemes { get; set; } = new[] { "http", "https", "mailto" };
+    public string[] AllowedUrlSchemes { get; set; } = null!;
 
     /// <summary>
     /// Optional markdown input normalization before parsing. Defaults are conservative (no transformations).
     /// </summary>
-    public MarkdownInputNormalizationOptions InputNormalization { get; set; } = new MarkdownInputNormalizationOptions();
+    public MarkdownInputNormalizationOptions InputNormalization { get; set; } = null!;
 
     /// <summary>
     /// When <c>true</c>, syntax-backed parse results retain the raw markdown input beside the normalized source
@@ -693,25 +703,29 @@ public sealed class MarkdownLoadOptions {
     /// instead of plain <see cref="CodeBlock"/> instances.
     /// Later registrations win when languages overlap.
     /// </summary>
-    public List<MarkdownFencedBlockExtension> FencedBlockExtensions { get; } = new();
+    public List<MarkdownFencedBlockExtension> FencedBlockExtensions => _fencedBlockExtensions ??= new();
+    private List<MarkdownFencedBlockExtension>? _fencedBlockExtensions;
 
     /// <summary>
     /// Optional block parser extensions layered into the default reader pipeline at named placement anchors.
     /// Profiles use this to opt into OfficeIMO/GFM-style non-core block syntax such as callouts, TOC placeholders, and footnotes.
     /// </summary>
-    public List<MarkdownBlockParserExtension> BlockParserExtensions { get; } = new();
+    public List<MarkdownBlockParserExtension> BlockParserExtensions => _blockParserExtensions ??= new();
+    private List<MarkdownBlockParserExtension>? _blockParserExtensions;
 
     /// <summary>
     /// Optional ordered inline parser extensions that get a chance to recognize custom inline tokens before
     /// the built-in inline parser handles the current position.
     /// </summary>
-    public List<MarkdownInlineParserExtension> InlineParserExtensions { get; } = new();
+    public List<MarkdownInlineParserExtension> InlineParserExtensions => _inlineParserExtensions ??= new();
+    private List<MarkdownInlineParserExtension>? _inlineParserExtensions;
 
     /// <summary>
     /// Optional ordered post-parse inline AST transforms.
     /// These run after built-in inline parsing and input normalization, before document-level transforms.
     /// </summary>
-    public List<MarkdownInlineTransformExtension> InlineTransformExtensions { get; } = new();
+    public List<MarkdownInlineTransformExtension> InlineTransformExtensions => _inlineTransformExtensions ??= new();
+    private List<MarkdownInlineTransformExtension>? _inlineTransformExtensions;
 
     /// <summary>
     /// Optional ordered post-parse document transforms.
@@ -726,18 +740,23 @@ public sealed class MarkdownLoadOptions {
     /// var document = MarkdownDocument.Parse(markdown, options);
     /// </code>
     /// </example>
-    public List<IMarkdownDocumentTransform> DocumentTransforms { get; } = new();
+    public List<IMarkdownDocumentTransform> DocumentTransforms => _documentTransforms ??= new();
+    private List<IMarkdownDocumentTransform>? _documentTransforms;
 
-    private static void CopyList<T>(IEnumerable<T>? source, ICollection<T> target) {
-        if (source == null || target == null) {
-            return;
+    // A clone without extensions leaves its lists unallocated until something reads them.
+    private static List<T>? CopyNonNullItems<T>(List<T>? source) {
+        if (source == null || source.Count == 0) {
+            return null;
         }
 
+        var copy = new List<T>(source.Count);
         foreach (var item in source) {
             if (item != null) {
-                target.Add(item);
+                copy.Add(item);
             }
         }
+
+        return copy.Count == 0 ? null : copy;
     }
 
     private static MarkdownInputNormalizationOptions CloneInputNormalizationOptions(MarkdownInputNormalizationOptions? source) {

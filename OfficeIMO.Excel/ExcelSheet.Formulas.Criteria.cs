@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Text;
-using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 
@@ -73,40 +72,48 @@ namespace OfficeIMO.Excel {
 
                 criteriaSets.Add((criteriaValues, criteria));
             }
-            if ((aggregateValues?.Any(value => value.IsUnresolvedFormula) ?? false)
-                || criteriaSets.Any(set => set.Values.Any(value => value.IsUnresolvedFormula))) return false;
+            if ((aggregateValues != null && ContainsUnresolvedFormula(aggregateValues))
+                || criteriaSets.Any(set => ContainsUnresolvedFormula(set.Values))) return false;
             if (_formulaReferenceError.IsError) return true;
 
-            var matched = new List<FormulaArgumentValue>();
-            for (int rowIndex = 0; rowIndex < expectedCount; rowIndex++) {
-                bool matches = true;
-                foreach (var criteriaSet in criteriaSets) {
-                    if (!MatchesCriteria(criteriaSet.Values[rowIndex], criteriaSet.Criteria)) {
-                        matches = false;
-                        break;
+            var sets = criteriaSets.ToArray();
+            if (countOnly || function == "SUMIFS") {
+                // Count and sum in row order, as the list-based path below adds them, without collecting matches.
+                int count = 0;
+                double sum = 0;
+                FormulaArgumentValue firstError = default;
+                for (int rowIndex = 0; rowIndex < expectedCount; rowIndex++) {
+                    if (!MatchesAllCriteria(sets, rowIndex)) continue;
+                    count++;
+                    if (countOnly) continue;
+                    FormulaArgumentValue selected = aggregateValues![rowIndex];
+                    if (selected.IsError) {
+                        if (!firstError.IsError) firstError = selected;
+                    } else if (selected.IsNumericAggregateValue) {
+                        sum += selected.Number!.Value;
                     }
                 }
-
-                if (matches) {
-                    matched.Add(countOnly ? criteriaSets[0].Values[rowIndex] : aggregateValues![rowIndex]);
+                if (countOnly) {
+                    result = count;
+                    return true;
                 }
-            }
-
-            if (countOnly) {
-                result = matched.Count;
+                // Qualify every input before publishing a selected operand error.
+                // Numeric filtering must not turn an error into an empty or partial aggregate.
+                error = firstError;
+                if (error.IsError) return false;
+                result = sum;
                 return true;
             }
 
-            // Qualify every input before publishing a selected operand error.
-            // Numeric filtering must not turn an error into an empty or partial aggregate.
+            var matched = new List<FormulaArgumentValue>();
+            for (int rowIndex = 0; rowIndex < expectedCount; rowIndex++) {
+                if (MatchesAllCriteria(sets, rowIndex)) matched.Add(aggregateValues![rowIndex]);
+            }
+
             error = matched.FirstOrDefault(value => value.IsError);
             if (error.IsError) return false;
 
             var numbers = matched.Where(value => value.IsNumericAggregateValue).Select(value => value.Number!.Value).ToList();
-            if (function == "SUMIFS") {
-                result = numbers.Sum();
-                return true;
-            }
 
             if (numbers.Count == 0) {
                 if (function == "AVERAGEIFS") error = FormulaArgumentValue.Error("#DIV/0!");
@@ -122,6 +129,20 @@ namespace OfficeIMO.Excel {
                 result = numbers.Average();
             }
             return true;
+        }
+
+        private static bool MatchesAllCriteria((IReadOnlyList<FormulaArgumentValue> Values, FormulaCriteria Criteria)[] sets, int rowIndex) {
+            for (int index = 0; index < sets.Length; index++) {
+                if (!MatchesCriteria(sets[index].Values[rowIndex], sets[index].Criteria)) return false;
+            }
+            return true;
+        }
+
+        private static bool ContainsUnresolvedFormula(IReadOnlyList<FormulaArgumentValue> values) {
+            for (int index = 0; index < values.Count; index++) {
+                if (values[index].IsUnresolvedFormula) return true;
+            }
+            return false;
         }
 
         private bool TryEvaluateCondition(string condition, out bool result) {
@@ -212,27 +233,27 @@ namespace OfficeIMO.Excel {
             return value.Length > 0 || op == "=" || op == "<>";
         }
 
-        private static bool MatchesCriteria(FormulaArgumentValue value, FormulaCriteria criteria) {
+        private static bool MatchesCriteria(in FormulaArgumentValue value, in FormulaCriteria criteria) {
             if (criteria.ErrorCode != null) {
                 return value.IsError && string.Equals(value.ErrorCode, criteria.ErrorCode, StringComparison.Ordinal);
             }
             // Error cells are distinct from ordinary text, including a literal "#N/A".
             // They satisfy an ordinary not-equal criterion, but no text/numeric ordering or wildcard.
-            if (value.IsError) return criteria.Operator == "<>";
+            if (value.IsError) return criteria.Kind == FormulaCriteriaOperator.NotEqual;
 
             if (criteria.Number.HasValue && value.Number.HasValue) {
                 double left = value.Number.Value;
                 double right = criteria.Number.Value;
-                switch (criteria.Operator) {
-                    case ">":
+                switch (criteria.Kind) {
+                    case FormulaCriteriaOperator.GreaterThan:
                         return left > right;
-                    case "<":
+                    case FormulaCriteriaOperator.LessThan:
                         return left < right;
-                    case ">=":
+                    case FormulaCriteriaOperator.GreaterThanOrEqual:
                         return left >= right;
-                    case "<=":
+                    case FormulaCriteriaOperator.LessThanOrEqual:
                         return left <= right;
-                    case "<>":
+                    case FormulaCriteriaOperator.NotEqual:
                         return left != right;
                     default:
                         return left == right;
@@ -240,31 +261,26 @@ namespace OfficeIMO.Excel {
             }
 
             string text = value.Text ?? string.Empty;
-            int comparison = string.Compare(text, criteria.Text, StringComparison.OrdinalIgnoreCase);
-            switch (criteria.Operator) {
-                case ">":
-                    return comparison > 0;
-                case "<":
-                    return comparison < 0;
-                case ">=":
-                    return comparison >= 0;
-                case "<=":
-                    return comparison <= 0;
-                case "<>":
-                    return !MatchesTextCriteria(text, criteria.Text);
+            switch (criteria.Kind) {
+                case FormulaCriteriaOperator.GreaterThan:
+                    return string.Compare(text, criteria.Text, StringComparison.OrdinalIgnoreCase) > 0;
+                case FormulaCriteriaOperator.LessThan:
+                    return string.Compare(text, criteria.Text, StringComparison.OrdinalIgnoreCase) < 0;
+                case FormulaCriteriaOperator.GreaterThanOrEqual:
+                    return string.Compare(text, criteria.Text, StringComparison.OrdinalIgnoreCase) >= 0;
+                case FormulaCriteriaOperator.LessThanOrEqual:
+                    return string.Compare(text, criteria.Text, StringComparison.OrdinalIgnoreCase) <= 0;
+                case FormulaCriteriaOperator.NotEqual:
+                    return !MatchesTextCriteria(text, criteria);
                 default:
-                    return MatchesTextCriteria(text, criteria.Text);
+                    return MatchesTextCriteria(text, criteria);
             }
         }
 
-        private static bool MatchesTextCriteria(string text, string criteria) {
-            if (criteria.IndexOf('*') < 0 && criteria.IndexOf('?') < 0 && criteria.IndexOf('~') < 0) {
-                return string.Equals(text, criteria, StringComparison.OrdinalIgnoreCase);
-            }
-
-            string pattern = "\\A" + CreateFormulaWildcardPattern(criteria) + "\\z";
-            return Regex.IsMatch(text, pattern, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Singleline, FormulaRegexTimeout);
-        }
+        private static bool MatchesTextCriteria(string text, in FormulaCriteria criteria) =>
+            criteria.IsTextPattern
+                ? MatchesFormulaWildcard(criteria.Text, text)
+                : string.Equals(text, criteria.Text, StringComparison.OrdinalIgnoreCase);
 
         private static bool IsFormulaBlankValue(FormulaArgumentValue value) {
             return !value.IsUnresolvedFormula && !value.Number.HasValue && string.IsNullOrEmpty(value.Text);
@@ -312,8 +328,19 @@ namespace OfficeIMO.Excel {
             return normalizedLeft.CompareTo(normalizedRight);
         }
 
-        private static double NormalizeFormulaComparisonNumber(double value) =>
-            OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value.ToString("G15", CultureInfo.InvariantCulture), NumberStyles.Float, CultureInfo.InvariantCulture, out double normalized) && !double.IsInfinity(normalized) ? normalized : value;
+        private static double NormalizeFormulaComparisonNumber(double value) {
+            // A whole number below 10^15 has at most 15 significant digits, so the G15 round trip returns it unchanged.
+            if (Math.Abs(value) < 1e15 && Math.Floor(value) == value) return value;
+            double normalized;
+#if NETCOREAPP
+            Span<char> text = stackalloc char[32];
+            if (value.TryFormat(text, out int written, "G15", CultureInfo.InvariantCulture))
+                return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text.Slice(0, written), NumberStyles.Float, CultureInfo.InvariantCulture, out normalized)
+                    && !double.IsInfinity(normalized) ? normalized : value;
+#endif
+            return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value.ToString("G15", CultureInfo.InvariantCulture), NumberStyles.Float, CultureInfo.InvariantCulture, out normalized)
+                && !double.IsInfinity(normalized) ? normalized : value;
+        }
 
         private static bool TryGetWholeNumber(double value, out int number) {
             number = (int)Math.Round(value, MidpointRounding.AwayFromZero);

@@ -15,7 +15,11 @@ internal abstract class ExcelPackageArchive : IDisposable {
     }
 
     /// <summary>Opens the next entry; dispose the returned stream before opening another.</summary>
-    internal abstract Stream OpenEntry(string name, CompressionLevel level);
+    /// <param name="name">The entry name.</param>
+    /// <param name="level">The compression level.</param>
+    /// <param name="background">Lets a large <see cref="CompressionLevel.Fastest"/> entry compress on the thread pool
+    /// while the caller keeps writing; the entry is complete when its stream is disposed.</param>
+    internal abstract Stream OpenEntry(string name, CompressionLevel level, bool background = false);
 
     internal void WriteEntry(string name, byte[] content, CompressionLevel level) =>
         WriteEntry(name, new ArraySegment<byte>(content), level);
@@ -27,25 +31,6 @@ internal abstract class ExcelPackageArchive : IDisposable {
 
     internal void WriteEntry(string name, string content, CompressionLevel level) =>
         WriteEntry(name, new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: false).GetBytes(content), level);
-
-    private WorksheetCompressionPipeline? _compression;
-
-    /// <summary>
-    /// Returns the package's background compressor aimed at <paramref name="destination"/>. Entries are written one
-    /// after another, so one set of buffers serves every sheet; each entry drains it before closing.
-    /// </summary>
-    internal WorksheetCompressionPipeline AcquireCompression(Stream destination) {
-        if (_compression == null) _compression = new WorksheetCompressionPipeline(destination);
-        else _compression.Retarget(destination);
-        return _compression;
-    }
-
-    /// <summary>Stops the compressor after an entry failed; the next entry starts a new one.</summary>
-    internal void AbandonCompression() {
-        WorksheetCompressionPipeline? compression = _compression;
-        _compression = null;
-        compression?.Dispose();
-    }
 
     public abstract void Dispose();
 
@@ -60,15 +45,12 @@ internal abstract class ExcelPackageArchive : IDisposable {
             _modified = modified.HasValue ? new DateTimeOffset(DateTime.SpecifyKind(modified.Value, DateTimeKind.Unspecified), TimeSpan.Zero) : null;
         }
 
-        internal override Stream OpenEntry(string name, CompressionLevel level) {
+        internal override Stream OpenEntry(string name, CompressionLevel level, bool background = false) {
             ZipArchiveEntry entry = _archive.CreateEntry(name, level);
             if (_modified.HasValue) entry.LastWriteTime = _modified.Value;
             return entry.Open();
         }
 
-        public override void Dispose() {
-            AbandonCompression();
-            _archive.Dispose();
-        }
+        public override void Dispose() => _archive.Dispose();
     }
 }

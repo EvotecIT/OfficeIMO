@@ -13,7 +13,7 @@ public sealed partial class PdfReadPage {
     /// </summary>
     private IReadOnlyDictionary<string, PdfPageColorSpace> GetDeferredColorSpaceResources(
         PdfDictionary? resources,
-        Func<PdfPageInvokedResourceNames> invokedResourceNames,
+        Func<HashSet<string>> visibleColorSpaceNames,
         PageContentBudget pageContentBudget) {
         if (resources == null ||
             !resources.Items.TryGetValue("ColorSpace", out PdfObject? colorSpacesObject) ||
@@ -27,7 +27,7 @@ public sealed partial class PdfReadPage {
         }
 
         return new DeferredColorSpaceResources(colorSpaces, () =>
-            GetColorSpaceResources(resources, invokedResourceNames().ColorSpaces, pageContentBudget));
+            GetColorSpaceResources(resources, visibleColorSpaceNames(), pageContentBudget));
     }
 
     private sealed class DeferredColorSpaceResources : IReadOnlyDictionary<string, PdfPageColorSpace> {

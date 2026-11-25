@@ -1,0 +1,5 @@
+# Keep original fixture and notice bytes consistent with fixtures.json.
+*.deepnote -text -whitespace
+*.zpln -text -whitespace
+*-LICENSE -text -whitespace
+*-NOTICE -text -whitespace

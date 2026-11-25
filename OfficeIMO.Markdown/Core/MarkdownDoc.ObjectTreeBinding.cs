@@ -27,6 +27,13 @@ public partial class MarkdownDocument {
         ClearParseOwnedState();
     }
 
+    /// <summary>Empties a parser-owned holder document whose blocks were added unbound.</summary>
+    internal void ClearParserScratchBlocks() {
+        _blocks.Clear();
+        _lastBlock = null;
+        _frontMatter = null;
+    }
+
     internal void EnsureObjectTreeBound() {
         if (_objectTreeBindingPending) {
             MarkdownObjectTreeBinder.BindDocument(this);
@@ -42,6 +49,23 @@ public partial class MarkdownDocument {
         if (_objectTreeBindingDeferralDepth == 0 && _objectTreeBindingPending && completeBinding) {
             MarkdownObjectTreeBinder.BindDocument(this);
         }
+    }
+
+    // An append to a document that is bound and not deferring binding only needs the new block placed.
+    // Binding stays marked pending until the placement finishes, so a child getter that throws part way
+    // leaves the next change to bind the whole document.
+    private bool TryBindAppendedBlockNow(IMarkdownBlock block) {
+        if (_objectTreeBindingDeferralDepth != 0 || _objectTreeBindingPending) {
+            return false;
+        }
+
+        _objectTreeBindingPending = true;
+        if (!MarkdownObjectTreeBinder.TryBindAppendedBlock(this, block)) {
+            return false;
+        }
+
+        _objectTreeBindingPending = false;
+        return true;
     }
 
     private void RequestObjectTreeBinding() {

@@ -45,8 +45,7 @@ internal static class PowerPointStreamingTextReader {
             }
 
             string[] capabilities = { OfficeDocumentReaderBuilderPowerPointExtensions.HandlerId, Capability };
-            OfficeDocumentReadResult result = DocumentReaderEngine.CreateDocumentResult(chunks, ReaderInputKind.PowerPoint,
-                source: null, capabilities: capabilities, assets: Array.Empty<OfficeDocumentAsset>());
+            OfficeDocumentReadResult result = DocumentReaderEngine.CreateStreamedTextResult(chunks, ReaderInputKind.PowerPoint, capabilities);
             return PowerPointRichMapping.CompleteStreamed(result, reader.ReadProperties(), projection, capabilities);
         } catch (OperationCanceledException) {
             throw;

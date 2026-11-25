@@ -6,6 +6,10 @@ namespace OfficeIMO.RealWorldCorpus;
 internal static class CorpusCoordinator {
     public static async Task<CorpusReport> RunAsync(CorpusRunOptions options, CancellationToken cancellationToken = default) {
         DateTimeOffset started = DateTimeOffset.UtcNow;
+        // The deadline stops new work, not running workers: each of those still ends within its own timeout, so a
+        // run takes at most the deadline plus one per-file timeout and always writes its report.
+        using var deadline = new CancellationTokenSource();
+        if (options.DeadlineSeconds is int deadlineSeconds) deadline.CancelAfter(TimeSpan.FromSeconds(deadlineSeconds));
         List<CorpusFileRecord> files = Enumerate(options);
         var parallelOptions = new ParallelOptions {
             MaxDegreeOfParallelism = options.Parallelism,
@@ -15,14 +19,26 @@ internal static class CorpusCoordinator {
         await Parallel.ForEachAsync(
             files.Where(file => file.Outcome != CorpusOutcomes.SkippedOversize),
             parallelOptions,
-            async (file, token) => await ClassifyAsync(file, options, token).ConfigureAwait(false)).ConfigureAwait(false);
+            async (file, token) => {
+                if (deadline.IsCancellationRequested) {
+                    file.Outcome = CorpusOutcomes.SkippedDeadline;
+                    return;
+                }
+                await ClassifyAsync(file, options, token).ConfigureAwait(false);
+            }).ConfigureAwait(false);
 
         Select(files, options);
 
         await Parallel.ForEachAsync(
             files.Where(file => file.Selected),
             parallelOptions,
-            async (file, token) => await ProbeAsync(file, options, token).ConfigureAwait(false)).ConfigureAwait(false);
+            async (file, token) => {
+                if (deadline.IsCancellationRequested) {
+                    file.Outcome = CorpusOutcomes.SkippedDeadline;
+                    return;
+                }
+                await ProbeAsync(file, options, token).ConfigureAwait(false);
+            }).ConfigureAwait(false);
 
         return BuildReport(options, files, started, DateTimeOffset.UtcNow);
     }
@@ -92,7 +108,8 @@ internal static class CorpusCoordinator {
             options.MaxFileBytes,
             null,
             TimeSpan.FromSeconds(options.TimeoutSeconds),
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken,
+            heapLimitMegabytes: options.WorkerHeapLimitMegabytes).ConfigureAwait(false);
         file.ClassificationDurationMilliseconds = process.DurationMilliseconds;
         if (process.IsTimedOut) {
             file.Outcome = CorpusOutcomes.ClassificationTimedOut;
@@ -114,10 +131,20 @@ internal static class CorpusCoordinator {
         file.Confidence = worker.Confidence;
         file.IsMismatch = worker.IsMismatch;
         file.DetectionEvidence = worker.Evidence;
-        file.Outcome = options.Formats.Contains(worker.ContentKind) &&
-            worker.ContentConfidence >= ReaderDetectionConfidence.Medium
-            ? CorpusOutcomes.NotSelected
-            : CorpusOutcomes.NotEligible;
+        if (options.Operation == CorpusOperations.OpenXmlDifferential) {
+            // The differential compares how both readers handle what a file claims to be, so an Open XML extension
+            // makes it eligible even when its content is damaged or not a package at all.
+            ReaderInputKind claimed = CorpusOpenXmlFamilies.FromExtension(file.Extension);
+            file.StratumKind = claimed != ReaderInputKind.Unknown
+                ? claimed
+                : worker.ContentConfidence >= ReaderDetectionConfidence.Medium ? worker.ContentKind : ReaderInputKind.Unknown;
+            file.Eligible = options.Formats.Contains(file.StratumKind);
+        } else {
+            file.StratumKind = worker.ContentKind;
+            file.Eligible = options.Formats.Contains(worker.ContentKind) &&
+                worker.ContentConfidence >= ReaderDetectionConfidence.Medium;
+        }
+        file.Outcome = file.Eligible ? CorpusOutcomes.NotSelected : CorpusOutcomes.NotEligible;
     }
 
     private static void Select(List<CorpusFileRecord> files, CorpusRunOptions options) {
@@ -132,7 +159,7 @@ internal static class CorpusCoordinator {
         Dictionary<ReaderInputKind, Queue<CorpusFileRecord>> strata = options.Formats.ToDictionary(
             format => format,
             format => new Queue<CorpusFileRecord>(files
-                .Where(file => file.Outcome == CorpusOutcomes.NotSelected && file.ContentKind == format)
+                .Where(file => file.Outcome == CorpusOutcomes.NotSelected && file.StratumKind == format)
                 .OrderBy(file => file.Sha256, StringComparer.Ordinal)
                 .ThenBy(file => file.InventoryIndex)));
         var selectedByFormat = options.Formats.ToDictionary(format => format, _ => 0);
@@ -160,11 +187,13 @@ internal static class CorpusCoordinator {
             options.MaxFileBytes,
             file.Sha256,
             TimeSpan.FromSeconds(options.TimeoutSeconds),
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken,
+            ProbeArguments(options),
+            options.WorkerHeapLimitMegabytes).ConfigureAwait(false);
         file.ProbeDurationMilliseconds = process.DurationMilliseconds;
         if (process.IsTimedOut) {
             file.Outcome = CorpusOutcomes.TimedOut;
-            file.FailureStage = CorpusOutcomes.Probe;
+            file.FailureStage = process.TimedOutStage == null ? CorpusOutcomes.Probe : CorpusOutcomes.Probe + ":" + process.TimedOutStage;
             return;
         }
         CorpusWorkerResult? worker = process.Worker;
@@ -186,11 +215,19 @@ internal static class CorpusCoordinator {
         file.ErrorDiagnostics = worker.ErrorDiagnostics;
         file.DiagnosticCodes = worker.DiagnosticCodes;
         file.PdfEvidence = worker.PdfEvidence;
+        file.OpenXmlEvidence = worker.OpenXmlEvidence;
         file.Outcome = worker.ErrorDiagnostics > 0
             ? CorpusOutcomes.CompletedWithErrors
             : worker.WarningDiagnostics > 0
                 ? CorpusOutcomes.CompletedWithWarnings
                 : CorpusOutcomes.Completed;
+    }
+
+    private static IReadOnlyList<string>? ProbeArguments(CorpusRunOptions options) {
+        if (options.Operation == CorpusOperations.ReaderRead) return null;
+        var arguments = new List<string> { "--operation", options.Operation };
+        if (options.IncludeDifferenceText) arguments.Add("--include-difference-text");
+        return arguments;
     }
 
     private static CorpusReport BuildReport(
@@ -204,10 +241,7 @@ internal static class CorpusCoordinator {
             ClassificationFailed = Count(files, CorpusOutcomes.ClassificationFailed),
             ClassificationTimedOut = Count(files, CorpusOutcomes.ClassificationTimedOut),
             DuplicateContent = Count(files, CorpusOutcomes.Duplicate),
-            EligibleUnique = files.Count(file =>
-                options.Formats.Contains(file.ContentKind) &&
-                file.ContentConfidence >= ReaderDetectionConfidence.Medium &&
-                file.Outcome != CorpusOutcomes.Duplicate),
+            EligibleUnique = files.Count(file => file.Eligible && file.Outcome != CorpusOutcomes.Duplicate),
             Selected = files.Count(file => file.Selected),
             Completed = Count(files, CorpusOutcomes.Completed),
             CompletedWithWarnings = Count(files, CorpusOutcomes.CompletedWithWarnings),
@@ -215,6 +249,7 @@ internal static class CorpusCoordinator {
             RejectedByPolicy = Count(files, CorpusOutcomes.Rejected),
             Failed = Count(files, CorpusOutcomes.Failed),
             TimedOut = Count(files, CorpusOutcomes.TimedOut),
+            SkippedDeadline = Count(files, CorpusOutcomes.SkippedDeadline),
             PdfSelected = files.Count(file => file.Selected && file.ContentKind == ReaderInputKind.Pdf),
             PdfDeepStages = files.Sum(file => file.PdfEvidence?.Stages.Count ?? 0),
             PdfDeepStagesPassed = files.Sum(file => file.PdfEvidence?.Stages.Count(stage => stage.Succeeded) ?? 0),
@@ -225,8 +260,7 @@ internal static class CorpusCoordinator {
         };
         CorpusStratum[] strata = options.Formats.Select(format => {
             CorpusFileRecord[] formatFiles = files.Where(file =>
-                file.ContentKind == format &&
-                file.ContentConfidence >= ReaderDetectionConfidence.Medium &&
+                file.Eligible && file.StratumKind == format &&
                 file.Outcome != CorpusOutcomes.Duplicate).ToArray();
             return new CorpusStratum {
                 Format = format,
@@ -248,7 +282,8 @@ internal static class CorpusCoordinator {
             Provenance = new CorpusProvenance {
                 CorpusId = options.CorpusId,
                 SourceUri = options.SourceUri,
-                ArchiveSha256 = options.ArchiveSha256
+                ArchiveSha256 = options.ArchiveSha256,
+                Sources = options.Sources
             },
             Configuration = new CorpusConfiguration {
                 Formats = options.Formats,
@@ -258,9 +293,14 @@ internal static class CorpusCoordinator {
                 MaxTraversalEntries = options.MaxTraversalEntries,
                 TimeoutSeconds = options.TimeoutSeconds,
                 Parallelism = options.Parallelism,
+                DeadlineSeconds = options.DeadlineSeconds,
+                WorkerHeapLimitMegabytes = options.WorkerHeapLimitMegabytes,
                 SourceNamesIncluded = options.IncludeSourceNames,
                 ReaderPolicy = CorpusReaderPolicy.Describe(),
-                PackagePolicy = CorpusPackagePolicy.Describe(options.MaxFileBytes)
+                PackagePolicy = CorpusPackagePolicy.Describe(options.MaxFileBytes),
+                Operation = options.Operation == CorpusOperations.OpenXmlDifferential
+                    ? "openxml-differential-sdk-reference"
+                    : "officeimo-reader-normalized-read"
             },
             Environment = new CorpusEnvironment {
                 Framework = RuntimeInformation.FrameworkDescription,
@@ -269,9 +309,37 @@ internal static class CorpusCoordinator {
             },
             Totals = totals,
             Strata = strata,
-            Files = files.OrderBy(file => file.InventoryIndex).ToArray()
+            Files = files.OrderBy(file => file.InventoryIndex).ToArray(),
+            OpenXmlLanes = options.Operation == CorpusOperations.OpenXmlDifferential ? SummarizeOpenXmlLanes(files) : null
         };
     }
+
+    internal static CorpusOpenXmlLaneSummary[] SummarizeOpenXmlLanes(IEnumerable<CorpusFileRecord> files) {
+        CorpusOpenXmlLane[] lanes = files.Where(file => file.OpenXmlEvidence != null)
+            .SelectMany(file => file.OpenXmlEvidence!.Lanes).ToArray();
+        return OpenXmlDifferentialProbe.Lanes.Select(name => {
+            CorpusOpenXmlLane[] results = lanes.Where(lane => lane.Name == name).ToArray();
+            return new CorpusOpenXmlLaneSummary {
+                Lane = name,
+                Files = results.Length,
+                Match = results.Count(lane => lane.Outcome == CorpusOpenXmlOutcomes.Match),
+                Mismatch = results.Count(lane => lane.Outcome == CorpusOpenXmlOutcomes.Mismatch),
+                OurError = results.Count(lane => lane.Outcome == CorpusOpenXmlOutcomes.OurError),
+                SdkError = results.Count(lane => lane.Outcome == CorpusOpenXmlOutcomes.SdkError),
+                BothReject = results.Count(lane => lane.Outcome == CorpusOpenXmlOutcomes.BothReject),
+                Unavailable = results.Count(lane => lane.Outcome == CorpusOpenXmlOutcomes.Unavailable),
+                Streamed = results.Any(lane => lane.Streamed != null) ? results.Count(lane => lane.Streamed == true) : null,
+                MismatchClasses = Tally(results.Where(lane => lane.Outcome == CorpusOpenXmlOutcomes.Mismatch).SelectMany(lane => lane.Classes)),
+                OurExceptions = Tally(results.Where(lane => lane.Outcome == CorpusOpenXmlOutcomes.OurError).Select(lane => lane.OurException ?? "unknown")),
+                StreamedDeclineReasons = Tally(results.Where(lane => lane.StreamedDeclineReason != null).Select(lane => lane.StreamedDeclineReason!))
+            };
+        }).Where(summary => summary.Files > 0).ToArray();
+    }
+
+    private static IReadOnlyDictionary<string, int> Tally(IEnumerable<string> values) =>
+        values.GroupBy(value => value, StringComparer.Ordinal)
+            .OrderByDescending(group => group.Count()).ThenBy(group => group.Key, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal);
 
     private static int Count(IEnumerable<CorpusFileRecord> files, string outcome) =>
         files.Count(file => string.Equals(file.Outcome, outcome, StringComparison.Ordinal));

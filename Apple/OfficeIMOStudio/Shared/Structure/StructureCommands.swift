@@ -15,6 +15,7 @@ struct StructureCommands: View {
                 }
             }
             .disabled(!session.canEditAnnotations)
+            EditFormMenu(session: session)
             Divider()
             Button("Verify Signatures…", systemImage: "list.bullet.rectangle") { session.structureSheet = .signatures }
                 .disabled(!session.canCheck)

@@ -91,6 +91,7 @@ namespace OfficeIMO.Excel {
             // A built-in call is no literal, name or reference unless it selects one.
             if (ExcelFormulaExpressionParser.TryParseSupportedFunctionCall(trimmed, out ExcelFormulaFunctionCallSyntax? call)
                 && !call!.Name.Equals("OFFSET", StringComparison.OrdinalIgnoreCase)
+                && !call.Name.Equals("INDIRECT", StringComparison.OrdinalIgnoreCase)
                 && !call.Name.Equals("INDEX", StringComparison.OrdinalIgnoreCase)) {
                 return TryEvaluateFormulaValue(trimmed, out value, allowScalarExpression: false);
             }
@@ -153,9 +154,11 @@ namespace OfficeIMO.Excel {
 
         private bool TryResolveFormulaArguments(string args, out List<FormulaArgumentValue> values,
             bool skipBlankScalarReferences = false, bool coerceScalarValues = true) {
-            values = new List<FormulaArgumentValue>();
+            IReadOnlyList<string> tokens = SplitFormulaArguments(args);
+            values = new List<FormulaArgumentValue>(tokens.Count);
             int remainingCellBudget = MaxResolvedFormulaRangeCells;
-            foreach (string trimmed in SplitFormulaArguments(args)) {
+            for (int tokenIndex = 0; tokenIndex < tokens.Count; tokenIndex++) {
+                string trimmed = tokens[tokenIndex];
                 if (TryResolveFormulaRange(trimmed, out var rangeValues, ref remainingCellBudget, out bool isReference)) {
                     // Integer aggregates ignore an empty direct cell argument.
                     // The same empty position inside a range remains a zero operand.
@@ -197,6 +200,17 @@ namespace OfficeIMO.Excel {
         }
 
         private static IReadOnlyList<string> SplitFormulaArguments(string args, bool preserveEmpty = false) {
+            ExcelFormulaSyntaxCache? cache = ExcelFormulaSyntaxCache.Current;
+            if (cache == null) return SplitFormulaArgumentsCore(args, preserveEmpty);
+            if (!cache.TryGetArguments(args, preserveEmpty, out string[] arguments)) {
+                IReadOnlyList<string> split = SplitFormulaArgumentsCore(args, preserveEmpty);
+                arguments = split as string[] ?? ((List<string>)split).ToArray();
+                cache.AddArguments(args, preserveEmpty, arguments);
+            }
+            return arguments;
+        }
+
+        private static IReadOnlyList<string> SplitFormulaArgumentsCore(string args, bool preserveEmpty) {
             var tokens = new List<string>();
             int tokenStart = 0;
             int depth = 0;

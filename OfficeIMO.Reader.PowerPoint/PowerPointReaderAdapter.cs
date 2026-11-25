@@ -23,16 +23,28 @@ internal static class PowerPointReaderAdapter {
         if (isOpenXml || streamText) {
             using FileStream? file = OfficeStableFileRead.TryOpen(path);
             if (file != null) return ReadDocument(file, path, readerOptions, options, cancellationToken);
-            if (streamText) {
-                using var shared = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-                PowerPointLoadOptions loadOptions = CreateLoadOptions(readerOptions, path);
-                long? inputLimit = OpenXmlReaderAdmission.Load(readerOptions, () =>
-                    PowerPointDocument.ResolveSeekableInputLimit(shared, loadOptions, cancellationToken, path));
-                using Stream snapshot = ReaderInputLimits.EnsureSeekableReadStream(shared,
-                    inputLimit, cancellationToken, out _);
-                return ReadDocument(snapshot, path, readerOptions, options, cancellationToken);
-            }
+            if (streamText) return ReadSharedSnapshot(path, readerOptions, options, cancellationToken);
         }
+        return ReadModel(path, readerOptions, options, cancellationToken);
+    }
+
+    // The presentation model loads the Open XML SDK. The methods that use it stay apart from the ones above, so a
+    // streamed read finishes without the JIT loading the SDK for their locals.
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static OfficeDocumentReadResult ReadSharedSnapshot(string path, ReaderOptions readerOptions, ReaderPowerPointOptions options,
+        CancellationToken cancellationToken) {
+        using var shared = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        PowerPointLoadOptions loadOptions = CreateLoadOptions(readerOptions, path);
+        long? inputLimit = OpenXmlReaderAdmission.Load(readerOptions, () =>
+            PowerPointDocumentInput.ResolveSeekableInputLimit(shared, loadOptions, cancellationToken, path));
+        using Stream snapshot = ReaderInputLimits.EnsureSeekableReadStream(shared,
+            inputLimit, cancellationToken, out _);
+        return ReadDocument(snapshot, path, readerOptions, options, cancellationToken);
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static OfficeDocumentReadResult ReadModel(string path, ReaderOptions readerOptions, ReaderPowerPointOptions options,
+        CancellationToken cancellationToken) {
         using PowerPointDocument presentation = Load(path, readerOptions, cancellationToken);
         return Project(presentation, path, readerOptions, options, cancellationToken);
     }
@@ -41,6 +53,12 @@ internal static class PowerPointReaderAdapter {
         string name = string.IsNullOrWhiteSpace(sourceName) ? "presentation.pptx" : sourceName!;
         if (PowerPointStreamingTextReader.Applies(readerOptions) && !IsLegacySourceName(sourceName)
             && PowerPointStreamingTextReader.TryRead(stream, name, readerOptions, options, cancellationToken) is { } streamed) return streamed;
+        return ReadModel(stream, sourceName, name, readerOptions, options, cancellationToken);
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static OfficeDocumentReadResult ReadModel(Stream stream, string? sourceName, string name, ReaderOptions readerOptions,
+        ReaderPowerPointOptions options, CancellationToken cancellationToken) {
         using PowerPointDocument presentation = Load(stream, sourceName, readerOptions, cancellationToken);
         return Project(presentation, name, readerOptions, options, cancellationToken);
     }

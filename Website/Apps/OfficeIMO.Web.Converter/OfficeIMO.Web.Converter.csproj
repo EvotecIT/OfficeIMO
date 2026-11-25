@@ -26,6 +26,7 @@
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Web.Fonts\OfficeIMO.Web.Fonts.csproj" />
     <ProjectReference Include="..\OfficeIMO.Web.Fonts.Fallback\OfficeIMO.Web.Fonts.Fallback.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Web.Fonts.Notebook\OfficeIMO.Web.Fonts.Notebook.csproj" />
     <ProjectReference Include="..\..\..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
     <ProjectReference Include="..\..\..\OfficeIMO.Workflows\OfficeIMO.Workflows.csproj" />
     <ProjectReference Include="..\..\..\OfficeIMO.Drawing.HarfBuzz\OfficeIMO.Drawing.HarfBuzz.csproj" />
@@ -37,6 +38,7 @@
     <ProjectReference Include="..\..\..\OfficeIMO.Excel.Pdf\OfficeIMO.Excel.Pdf.csproj" />
     <ProjectReference Include="..\..\..\OfficeIMO.PowerPoint.Pdf\OfficeIMO.PowerPoint.Pdf.csproj" />
     <ProjectReference Include="..\..\..\OfficeIMO.Publisher.Pdf\OfficeIMO.Publisher.Pdf.csproj" />
+    <ProjectReference Include="..\..\..\OfficeIMO.Notebook.Pdf\OfficeIMO.Notebook.Pdf.csproj" />
     <ProjectReference Include="..\..\..\OfficeIMO.Markdown.Html\OfficeIMO.Markdown.Html.csproj" />
     <ProjectReference Include="..\..\..\OfficeIMO.MarkdownRenderer\OfficeIMO.MarkdownRenderer.csproj" />
     <ProjectReference Include="..\..\..\OfficeIMO.Word.Markdown\OfficeIMO.Word.Markdown.csproj" />
@@ -47,6 +49,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="..\OfficeIMO.Web.Fonts.Notebook\Assets\OFL-STIX.txt"
+             Link="wwwroot\licenses\OFL-STIX.txt"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\OfficeIMO.Web.Fonts.Notebook\Assets\OFL-Liberation.txt"
+             Link="wwwroot\licenses\OFL-Liberation.txt"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
     <None Update="Assets\Fonts\*.txt"
           TargetPath="wwwroot\licenses\%(Filename)%(Extension)"
           CopyToOutputDirectory="PreserveNewest"
@@ -58,6 +68,10 @@
              CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\..\static\downloads\showcase\pdf\showcase-dashboard.pdf"
              Link="wwwroot\samples\showcase-dashboard.pdf"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\static\downloads\showcase\workflows\pdf-branded-invoice\example.pdf"
+             Link="wwwroot\samples\pdf-branded-invoice.pdf"
              CopyToOutputDirectory="PreserveNewest"
              CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\..\..\OfficeIMO.Publisher.Tests\Fixtures\native-authored.pub"
@@ -95,6 +109,11 @@
     <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Excel.Pdf.wasm" />
     <BlazorWebAssemblyLazyLoad Include="OfficeIMO.PowerPoint.Pdf.wasm" />
     <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Publisher.Pdf.wasm" />
+    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Notebook.wasm" />
+    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Notebook.Markdown.wasm" />
+    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Notebook.Pdf.wasm" />
+    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Markdown.Pdf.wasm" />
+    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Web.Fonts.Notebook.wasm" />
     <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Html.Pdf.wasm" />
     <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Word.Html.wasm" />
     <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Word.Markdown.wasm" />

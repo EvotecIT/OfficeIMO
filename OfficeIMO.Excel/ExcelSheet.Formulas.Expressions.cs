@@ -3,6 +3,14 @@ using System.Globalization;
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         private bool TryEvaluateScalarExpression(string expression, out FormulaArgumentValue value) {
+            ExcelFormulaSyntaxCache? cache = ExcelFormulaSyntaxCache.Current;
+            if (cache != null) {
+                if (!cache.TryGetScalar(expression, out object? compiled)) {
+                    compiled = ScalarExpressionCompiler.Compile(expression);
+                    cache.AddScalar(expression, compiled);
+                }
+                if (compiled is ScalarExpressionNode root) return TryEvaluateCompiledScalarExpression(root, out value);
+            }
             var parser = new ScalarFormulaParser(this, expression);
             return parser.TryParse(out value);
         }
@@ -31,9 +39,7 @@ namespace OfficeIMO.Excel {
                 if (!Parse(1, out value)) return false;
                 SkipWhiteSpace();
                 if (_position == _text.Length && _lastOperationWasAddition && value.Number.HasValue) {
-                    double result = value.Number.Value;
-                    double threshold = Math.Max(Math.Abs(_lastLeft), Math.Abs(_lastRight)) * (8d * 2.2204460492503131e-16);
-                    if (result != 0d && Math.Abs(result) < threshold) value = new FormulaArgumentValue(0d, "0");
+                    value = CancelAdditionNoise(value, _lastLeft, _lastRight);
                 }
                 return _position == _text.Length && !value.IsUnresolvedFormula;
             }
@@ -83,63 +89,26 @@ namespace OfficeIMO.Excel {
 
             private bool ReadAtom(out FormulaArgumentValue value) {
                 value = default;
-                int start = _position;
-                if (_text[start] == '#') {
-                    foreach (string error in ScalarErrorLiterals) {
-                        if (_text.Length - start >= error.Length && string.Compare(_text, start, error, 0, error.Length, StringComparison.OrdinalIgnoreCase) == 0) {
-                            _position += error.Length;
-                            value = FormulaArgumentValue.Error(error);
-                            return true;
-                        }
-                    }
+                if (!TryScanScalarAtom(_text, ref _position, out int start, out string? errorLiteral)) return false;
+                if (errorLiteral != null) {
+                    value = FormulaArgumentValue.Error(errorLiteral);
+                    return true;
                 }
-                int parentheses = 0, brackets = 0;
-                char quote = '\0';
-                while (_position < _text.Length) {
-                    char ch = _text[_position];
-                    if (quote == '\0' && brackets > 0 && ch == '\'' && _position + 1 < _text.Length) {
-                        _position += 2;
-                        continue;
-                    }
-                    if (quote != '\0') {
-                        if (ch == quote) {
-                            if (_position + 1 < _text.Length && _text[_position + 1] == quote) {
-                                _position += 2;
-                                continue;
-                            }
-                            quote = '\0';
-                        }
-                    } else if (brackets == 0 && (ch == '"' || ch == '\'')) {
-                        quote = ch;
-                    } else if (ch == '[') { brackets++; }
-                    else if (ch == ']') { if (--brackets < 0) return false; }
-                    else if (brackets == 0) {
-                        if (ch == '(') { if (++parentheses > 128) return false; }
-                        else if (ch == ')') { if (parentheses == 0) break; parentheses--; }
-                        else if (parentheses == 0 && IsOperator(ch)) {
-                            // A sign in a scientific numeric literal belongs to the literal.
-                            bool exponentSign = (ch == '+' || ch == '-') && _position > start
-                                && (_text[_position - 1] == 'e' || _text[_position - 1] == 'E')
-                                && OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(_text.Substring(start, _position - start - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out double _);
-                            if (!exponentSign) break;
-                        }
-                    }
-                    _position++;
-                }
-                if (quote != '\0' || parentheses != 0 || brackets != 0 || start == _position) return false;
                 return _sheet.TryResolveFormulaArgument(_text.Substring(start, _position - start), out value,
                     allowScalarExpression: false);
             }
 
-            private static bool IsOperator(char ch) => ch == '+' || ch == '-' || ch == '*' || ch == '/'
+            internal static bool IsOperator(char ch) => ch == '+' || ch == '-' || ch == '*' || ch == '/'
                 || ch == '^' || ch == '%' || ch == '&' || ch == '=' || ch == '<' || ch == '>';
 
-            private static readonly string[] ScalarErrorLiterals = { "#DIV/0!", "#VALUE!", "#REF!", "#NAME?", "#NUM!", "#N/A", "#NULL!" };
+            internal static readonly string[] ScalarErrorLiterals = { "#DIV/0!", "#VALUE!", "#REF!", "#NAME?", "#NUM!", "#N/A", "#NULL!" };
 
-            private string ReadOperator() {
-                char ch = _text[_position];
-                if ((ch == '<' || ch == '>') && _position + 1 < _text.Length) {
-                    char next = _text[_position + 1];
+            private string ReadOperator() => ReadScalarOperator(_text, _position);
+
+            internal static string ReadScalarOperator(string text, int position) {
+                char ch = text[position];
+                if ((ch == '<' || ch == '>') && position + 1 < text.Length) {
+                    char next = text[position + 1];
                     if (next == '=') return ch == '<' ? "<=" : ">=";
                     if (ch == '<' && next == '>') return "<>";
                 }
@@ -158,7 +127,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            private static int Precedence(string op) {
+            internal static int Precedence(string op) {
                 switch (op) {
                     case "=": case "<>": case "<": case ">": case "<=": case ">=": return 1;
                     case "&": return 2;
@@ -178,17 +147,21 @@ namespace OfficeIMO.Excel {
 
             private static FormulaArgumentValue Numeric(double number) =>
                 double.IsNaN(number) || double.IsInfinity(number) ? FormulaArgumentValue.Error("#NUM!")
-                    : new FormulaArgumentValue(number, InvariantNumberText.Get(number));
+                    : FormulaArgumentValue.FromNumber(number);
 
-            private static FormulaArgumentValue NumericUnary(FormulaArgumentValue value, double factor) {
+            internal static FormulaArgumentValue NumericUnary(FormulaArgumentValue value, double factor) {
                 if (value.IsError || value.IsUnresolvedFormula) return value;
                 return TryNumber(value, out double number) ? Numeric(number * factor) : FormulaArgumentValue.Error("#VALUE!");
             }
 
             private bool Apply(FormulaArgumentValue left, string op, FormulaArgumentValue right,
-                out FormulaArgumentValue value) {
+                out FormulaArgumentValue value) =>
+                ApplyOperator(left, op, right, out value, ref _lastOperationWasAddition, ref _lastLeft, ref _lastRight);
+
+            internal static bool ApplyOperator(FormulaArgumentValue left, string op, FormulaArgumentValue right,
+                out FormulaArgumentValue value, ref bool lastOperationWasAddition, ref double lastLeft, ref double lastRight) {
                 value = default;
-                _lastOperationWasAddition = false;
+                lastOperationWasAddition = false;
                 if (left.IsUnresolvedFormula || right.IsUnresolvedFormula) return false;
                 if (left.IsError || right.IsError) { value = left.IsError ? left : right; return true; }
                 if (op == "&") { value = new FormulaArgumentValue(null, ScalarText(left) + ScalarText(right)); return true; }
@@ -201,16 +174,23 @@ namespace OfficeIMO.Excel {
                     value = FormulaArgumentValue.Error("#VALUE!"); return true;
                 }
                 switch (op) {
-                    case "+": value = Numeric(a + b); _lastOperationWasAddition = true; break;
-                    case "-": value = Numeric(a - b); _lastOperationWasAddition = true; break;
+                    case "+": value = Numeric(a + b); lastOperationWasAddition = true; break;
+                    case "-": value = Numeric(a - b); lastOperationWasAddition = true; break;
                     case "*": value = Numeric(a * b); break;
                     case "/": value = b == 0 ? FormulaArgumentValue.Error("#DIV/0!") : Numeric(a / b); break;
                     case "^": value = Numeric(Math.Pow(a, b)); break;
                     default: return false;
                 }
-                _lastLeft = a;
-                _lastRight = b;
+                lastLeft = a;
+                lastRight = b;
                 return true;
+            }
+
+            /// <summary>Folds a sum or difference that cancels to rounding noise to zero, as Excel displays it.</summary>
+            internal static FormulaArgumentValue CancelAdditionNoise(FormulaArgumentValue value, double lastLeft, double lastRight) {
+                double result = value.Number!.Value;
+                double threshold = Math.Max(Math.Abs(lastLeft), Math.Abs(lastRight)) * (8d * 2.2204460492503131e-16);
+                return result != 0d && Math.Abs(result) < threshold ? new FormulaArgumentValue(0d, "0") : value;
             }
 
             private void SkipWhiteSpace() {

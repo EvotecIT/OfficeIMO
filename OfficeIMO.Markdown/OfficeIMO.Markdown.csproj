@@ -72,4 +72,6 @@
     <InternalsVisibleTo Include="OfficeIMO.Adf" />
     <InternalsVisibleTo Include="OfficeIMO.Adf.Tests" />
   </ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Notebook.Markdown" />
+    <InternalsVisibleTo Include="OfficeIMO.Notebook.Html" /></ItemGroup>
 </Project>

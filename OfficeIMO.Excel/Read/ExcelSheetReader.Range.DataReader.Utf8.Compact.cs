@@ -202,7 +202,10 @@ namespace OfficeIMO.Excel {
                         }
                         hasStyle = true;
                         if (!TryParseNonNegativeInt(_buffer, valueStart, valueLength, out styleIndex)) {
-                            return false;
+                            if (valueLength != 0) return false;
+                            // Excel repairs an empty style to the default style; keep the cell unstyled.
+                            ReportEmptyCellStyle(hasReference, referenceStart, referenceLength);
+                            styleIndex = -1;
                         }
                     } else if (AsciiEquals(attributeStart, attributeLength, "xml:space")) {
                         // Some writers put xml:space on the cell. The general parser ignores it and
@@ -218,7 +221,8 @@ namespace OfficeIMO.Excel {
                 }
                 if (hasReference) {
                     columnIndex = ParseColumnIndex(_buffer, referenceStart, referenceLength);
-                    if (columnIndex <= 0) {
+                    if (columnIndex <= 0
+                        && !TryResolveUnparsedCellColumn(referenceStart, referenceLength, nextColumn, out columnIndex)) {
                         return false;
                     }
                 } else {

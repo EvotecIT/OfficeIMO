@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Simple blockquote block consisting of raw text lines.
 /// </summary>
-public sealed class QuoteBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdownBlockContainer, ISyntaxChildrenMarkdownBlock, IOwnedSyntaxChildrenMarkdownBlock, ISyntaxMarkdownBlock {
+public sealed class QuoteBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdownBlockContainer, ISyntaxChildrenMarkdownBlock, IOwnedSyntaxChildrenMarkdownBlock, ISyntaxMarkdownBlock, IHtmlAppendableMarkdownBlock {
     private readonly List<MarkdownSourceSpan> _markerSourceSpans = new List<MarkdownSourceSpan>();
 
     /// <summary>Raw text lines for a simple quote (used when <see cref="ChildBlocks"/> is empty).</summary>
@@ -72,31 +72,47 @@ public sealed class QuoteBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdownBl
     }
 
     string IMarkdownBlock.RenderHtml() {
-        if (ChildBlocks.Count > 0) {
-            var sb = new StringBuilder();
-            sb.Append("<blockquote>");
-            foreach (var b in ChildBlocks) {
-                var rendered = MarkdownBlockRenderDispatcher.RenderHtml(b);
-                if (RequiresRawHtmlBlockBoundary(rendered, b)) {
-                    sb.AppendLine();
-                    sb.Append(rendered);
-                    if (!EndsWithLineBreak(rendered)) {
-                        sb.AppendLine();
-                    }
-                    continue;
-                }
-
-                sb.Append(rendered);
-            }
-            sb.Append("</blockquote>");
-            return sb.ToString();
-        }
-        if (Lines.Count == 0) {
+        if (ChildBlocks.Count == 0 && Lines.Count == 0) {
             return "<blockquote></blockquote>";
         }
 
+        var sb = new StringBuilder();
+        AppendHtml(sb);
+        return sb.ToString();
+    }
+
+    void IHtmlAppendableMarkdownBlock.AppendHtml(StringBuilder builder) => AppendHtml(builder);
+
+    private void AppendHtml(StringBuilder sb) {
+        if (ChildBlocks.Count > 0) {
+            sb.Append("<blockquote>");
+            foreach (var b in ChildBlocks) {
+                // Raw HTML children need their own lines; everything else is written in place.
+                if (b is HtmlRawBlock or HtmlCommentBlock) {
+                    var rendered = MarkdownBlockRenderDispatcher.RenderHtml(b);
+                    if (RequiresRawHtmlBlockBoundary(rendered, b)) {
+                        sb.AppendLine();
+                        sb.Append(rendered);
+                        if (!EndsWithLineBreak(rendered)) {
+                            sb.AppendLine();
+                        }
+                    }
+
+                    continue;
+                }
+
+                MarkdownBlockRenderDispatcher.AppendHtml(sb, b);
+            }
+            sb.Append("</blockquote>");
+            return;
+        }
+        if (Lines.Count == 0) {
+            sb.Append("<blockquote></blockquote>");
+            return;
+        }
+
         var encoded = HtmlTextEncoder.Encode(string.Join("\n", Lines), HtmlRenderContext.Options).Replace("\n", "<br/>");
-        return $"<blockquote><p>{encoded}</p></blockquote>";
+        sb.Append("<blockquote><p>").Append(encoded).Append("</p></blockquote>");
     }
 
     private static bool RequiresRawHtmlBlockBoundary(string rendered, IMarkdownBlock block) {

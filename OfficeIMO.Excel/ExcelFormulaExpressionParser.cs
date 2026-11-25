@@ -7,9 +7,14 @@ namespace OfficeIMO.Excel {
             Arguments = arguments;
             NameStart = nameStart;
             NameLength = nameLength;
+            UpperName = ExcelFormulaCapabilities.ToCanonicalFunctionName(name);
+            IsBuiltIn = ExcelFormulaCapabilities.IsBuiltInFunction(name);
         }
 
         internal string Name { get; }
+        /// <summary>The upper-case name, resolved once; built-in names share one string instance each.</summary>
+        internal string UpperName { get; }
+        internal bool IsBuiltIn { get; }
         internal string Arguments { get; }
         internal int NameStart { get; }
         internal int NameLength { get; }
@@ -51,17 +56,22 @@ namespace OfficeIMO.Excel {
         private static ExcelFormulaFunctionCallSyntax? _lastSupportedCall;
 
         /// <summary>
-        /// Parses a built-in function call. The evaluator asks this twice for each call it evaluates, once to classify
-        /// an operand and once to evaluate it, with the same text instance, so the last answer is kept per thread.
-        /// The text alone determines the answer, so an edited formula, being new text, is parsed afresh.
+        /// Parses a built-in function call. Inside a calculation pass every parse comes from the workbook's
+        /// <see cref="ExcelFormulaSyntaxCache"/>. Outside one, the evaluator asks this twice for each call it evaluates,
+        /// once to classify an operand and once to evaluate it, with the same text instance, so the last answer is
+        /// kept per thread. The text alone determines the answer, so an edited formula, being new text, is parsed afresh.
         /// </summary>
         internal static bool TryParseSupportedFunctionCall(string formula, out ExcelFormulaFunctionCallSyntax? call) {
+            if (formula != null && ExcelFormulaSyntaxCache.Current != null) {
+                call = TryParseFunctionCall(formula, out ExcelFormulaFunctionCallSyntax? cached) && cached!.IsBuiltIn ? cached : null;
+                return call != null;
+            }
             if (formula != null && ReferenceEquals(formula, _lastSupportedCallText)) {
                 call = _lastSupportedCall;
                 return call != null;
             }
             call = TryParseFunctionCall(formula!, out ExcelFormulaFunctionCallSyntax? parsed)
-                && ExcelFormulaCapabilities.IsBuiltInFunction(parsed!.Name)
+                && parsed!.IsBuiltIn
                     ? parsed
                     : null;
             _lastSupportedCallText = formula;
@@ -70,6 +80,16 @@ namespace OfficeIMO.Excel {
         }
 
         internal static bool TryParseFunctionCall(string formula, out ExcelFormulaFunctionCallSyntax? call) {
+            ExcelFormulaSyntaxCache? cache = formula == null ? null : ExcelFormulaSyntaxCache.Current;
+            if (cache == null) return TryParseFunctionCallCore(formula!, out call);
+            if (!cache.TryGetCall(formula!, out call)) {
+                TryParseFunctionCallCore(formula!, out call);
+                cache.AddCall(formula!, call);
+            }
+            return call != null;
+        }
+
+        private static bool TryParseFunctionCallCore(string formula, out ExcelFormulaFunctionCallSyntax? call) {
             call = null;
             if (formula == null) return false;
             int cursor = 0;

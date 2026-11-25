@@ -10,7 +10,6 @@ public sealed partial class SettingsView : UserControl {
 
     public SettingsView() {
         InitializeComponent();
-        FocusReadingHelp.IsVisible = !OperatingSystem.IsIOS();
         SectionList.SelectedIndex = 0;
         SectionList.SelectionChanged += (_, _) => ScrollToSelectedSection();
         SectionScroller.ScrollChanged += (_, _) => FollowScrolledSection();

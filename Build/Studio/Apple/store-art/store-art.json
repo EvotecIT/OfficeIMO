@@ -1,0 +1,279 @@
+{
+  "$schema": "https://raw.githubusercontent.com/EvotecIT/PSPublishModule/main/Schemas/powerforge.apple.storeart.schema.json",
+  "schemaVersion": 1,
+  "theme": {
+    "name": "officeimo"
+  },
+  "locales": [
+    "en-US",
+    "de-DE",
+    "fr-FR",
+    "pl",
+    "es-ES",
+    "it",
+    "pt-BR"
+  ],
+  "captionsPath": "captions",
+  "captureRoot": "../../../../Artifacts/Studio/Apple/screenshots",
+  "captures": {
+    "iphone-dashboard": {
+      "file": "iPhone/{locale}/studio-dashboard-iphone.png",
+      "scenario": "store"
+    },
+    "iphone-markup": {
+      "file": "iPhone/{locale}/studio-markup-iphone.png",
+      "scenario": "store"
+    },
+    "iphone-form": {
+      "file": "iPhone/{locale}/studio-form-iphone.png",
+      "scenario": "store"
+    },
+    "iphone-office": {
+      "file": "iPhone/{locale}/studio-office-iphone.png",
+      "scenario": "store"
+    },
+    "iphone-pages": {
+      "file": "iPhone/{locale}/studio-pages-iphone.png",
+      "scenario": "store"
+    },
+    "ipad-dashboard": {
+      "file": "iPad/{locale}/studio-dashboard-ipad.png",
+      "scenario": "store"
+    },
+    "ipad-search": {
+      "file": "iPad/{locale}/studio-search-ipad.png",
+      "scenario": "store"
+    },
+    "ipad-markup": {
+      "file": "iPad/{locale}/studio-markup-ipad.png",
+      "scenario": "store"
+    },
+    "ipad-form": {
+      "file": "iPad/{locale}/studio-form-ipad.png",
+      "scenario": "store"
+    },
+    "ipad-office": {
+      "file": "iPad/{locale}/studio-office-ipad.png",
+      "scenario": "store"
+    },
+    "ipad-inspector": {
+      "file": "iPad/{locale}/studio-inspector-ipad.png",
+      "scenario": "store"
+    },
+    "mac-dashboard": {
+      "file": "macOS/{locale}/studio-dashboard-macos.png",
+      "scenario": "store"
+    },
+    "mac-search": {
+      "file": "macOS/{locale}/studio-search-macos.png",
+      "scenario": "store"
+    },
+    "mac-markup": {
+      "file": "macOS/{locale}/studio-markup-macos.png",
+      "scenario": "store"
+    },
+    "mac-form": {
+      "file": "macOS/{locale}/studio-form-macos.png",
+      "scenario": "store"
+    },
+    "mac-office": {
+      "file": "macOS/{locale}/studio-office-macos.png",
+      "scenario": "store"
+    },
+    "mac-inspector": {
+      "file": "macOS/{locale}/studio-inspector-macos.png",
+      "scenario": "store"
+    }
+  },
+  "devices": [
+    "iphone-69",
+    "ipad-13",
+    "mac"
+  ],
+  "frames": [
+    {
+      "id": "iphone-dashboard",
+      "layout": "hero",
+      "mood": "light",
+      "deviceWidth": 1080,
+      "devices": [
+        "iphone-69"
+      ],
+      "capture": "iphone-dashboard",
+      "headlineKey": "dashboard.headline",
+      "eyebrowKey": "app.eyebrow"
+    },
+    {
+      "id": "iphone-markup",
+      "layout": "hero",
+      "mood": "light",
+      "deviceWidth": 1080,
+      "devices": [
+        "iphone-69"
+      ],
+      "capture": "iphone-markup",
+      "headlineKey": "markup.headline"
+    },
+    {
+      "id": "iphone-form",
+      "layout": "hero",
+      "mood": "light",
+      "deviceWidth": 1080,
+      "devices": [
+        "iphone-69"
+      ],
+      "capture": "iphone-form",
+      "headlineKey": "form.headline"
+    },
+    {
+      "id": "iphone-office",
+      "layout": "hero",
+      "mood": "light",
+      "deviceWidth": 1080,
+      "devices": [
+        "iphone-69"
+      ],
+      "capture": "iphone-office",
+      "headlineKey": "office.headline"
+    },
+    {
+      "id": "iphone-pages",
+      "layout": "hero",
+      "mood": "light",
+      "deviceWidth": 1080,
+      "devices": [
+        "iphone-69"
+      ],
+      "capture": "iphone-pages",
+      "headlineKey": "pages.headline"
+    },
+    {
+      "id": "ipad-dashboard",
+      "layout": "ipad",
+      "mood": "light",
+      "deviceWidth": 1720,
+      "devices": [
+        "ipad-13"
+      ],
+      "capture": "ipad-dashboard",
+      "headlineKey": "dashboard.headline",
+      "eyebrowKey": "app.eyebrow"
+    },
+    {
+      "id": "ipad-search",
+      "layout": "ipad",
+      "mood": "light",
+      "deviceWidth": 1720,
+      "devices": [
+        "ipad-13"
+      ],
+      "capture": "ipad-search",
+      "headlineKey": "search.headline"
+    },
+    {
+      "id": "ipad-markup",
+      "layout": "ipad",
+      "mood": "light",
+      "deviceWidth": 1720,
+      "devices": [
+        "ipad-13"
+      ],
+      "capture": "ipad-markup",
+      "headlineKey": "markup.headline"
+    },
+    {
+      "id": "ipad-form",
+      "layout": "ipad",
+      "mood": "light",
+      "deviceWidth": 1720,
+      "devices": [
+        "ipad-13"
+      ],
+      "capture": "ipad-form",
+      "headlineKey": "form.headline"
+    },
+    {
+      "id": "ipad-office",
+      "layout": "ipad",
+      "mood": "light",
+      "deviceWidth": 1720,
+      "devices": [
+        "ipad-13"
+      ],
+      "capture": "ipad-office",
+      "headlineKey": "office.headline"
+    },
+    {
+      "id": "ipad-inspector",
+      "layout": "ipad",
+      "mood": "light",
+      "deviceWidth": 1720,
+      "devices": [
+        "ipad-13"
+      ],
+      "capture": "ipad-inspector",
+      "headlineKey": "inspector.headline"
+    },
+    {
+      "id": "mac-dashboard",
+      "layout": "mac",
+      "mood": "light",
+      "devices": [
+        "mac"
+      ],
+      "capture": "mac-dashboard",
+      "headlineKey": "dashboard.headline",
+      "eyebrowKey": "app.eyebrow"
+    },
+    {
+      "id": "mac-search",
+      "layout": "mac",
+      "mood": "light",
+      "devices": [
+        "mac"
+      ],
+      "capture": "mac-search",
+      "headlineKey": "search.headline"
+    },
+    {
+      "id": "mac-markup",
+      "layout": "mac",
+      "mood": "light",
+      "devices": [
+        "mac"
+      ],
+      "capture": "mac-markup",
+      "headlineKey": "markup.headline"
+    },
+    {
+      "id": "mac-form",
+      "layout": "mac",
+      "mood": "light",
+      "devices": [
+        "mac"
+      ],
+      "capture": "mac-form",
+      "headlineKey": "form.headline"
+    },
+    {
+      "id": "mac-office",
+      "layout": "mac",
+      "mood": "light",
+      "devices": [
+        "mac"
+      ],
+      "capture": "mac-office",
+      "headlineKey": "office.headline"
+    },
+    {
+      "id": "mac-inspector",
+      "layout": "mac",
+      "mood": "light",
+      "devices": [
+        "mac"
+      ],
+      "capture": "mac-inspector",
+      "headlineKey": "inspector.headline"
+    }
+  ]
+}

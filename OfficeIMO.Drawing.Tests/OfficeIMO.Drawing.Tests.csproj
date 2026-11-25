@@ -47,6 +47,8 @@
     <EmbeddedResource Include="TestAssets\WebpAlpha\*.rgba" />
     <EmbeddedResource Include="TestAssets\WebpVp8\*.webp" />
     <EmbeddedResource Include="TestAssets\WebpVp8\*.rgba" />
+    <EmbeddedResource Include="TestAssets\WebpLossless\*.webp" />
+    <EmbeddedResource Include="TestAssets\WebpLossless\*.rgba" />
     <None Include="..\OfficeIMO.TestAssets\ScanQuality\**\*" Link="ScanQuality\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.cs" Link="ManagedTextShapingTestAssets.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.Emoji.cs" Link="ManagedTextShapingTestAssets.Emoji.cs" />
@@ -154,6 +156,7 @@
   <ItemGroup><None Update="TestAssets/TiffJpegLossless12/*.tif;TestAssets/TiffJpegLossless12/*.rgba;TestAssets/TiffJpegLossless12/*.jpg;TestAssets/TiffJpegLossless12/*.raw;TestAssets/TiffJpegLossless12/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
 <ItemGroup><None Update="TestAssets/JpegArithmetic/*.jpg;TestAssets/JpegArithmetic/*.tif;TestAssets/JpegArithmetic/*.rgba;TestAssets/JpegArithmetic/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
 <ItemGroup><None Update="TestAssets/JpegArithmeticProgressive/*.jpg;TestAssets/JpegArithmeticProgressive/*.rgba;TestAssets/JpegArithmeticProgressive/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+<ItemGroup><None Update="TestAssets/JpegHuffmanRefinement/*.jpg" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
 <ItemGroup><None Update="TestAssets/JpegArithmeticLossless/*.jpg;TestAssets/JpegArithmeticLossless/*.csv;TestAssets/JpegArithmeticLossless/*.rgba" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
 <ItemGroup><None Update="TestAssets/TiffJpegArithmeticLossless/*.tif;TestAssets/TiffJpegArithmeticLossless/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
 <ItemGroup><None Update="TestAssets/JpegArithmeticColor/*.jpg;TestAssets/JpegArithmeticColor/*.cmyk16;TestAssets/JpegArithmeticColor/*.srgb;TestAssets/JpegArithmeticColor/manifest.csv" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>

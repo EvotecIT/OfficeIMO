@@ -73,6 +73,45 @@ public sealed class AsyncPSCmdletTests
         var item = Assert.Single(result);
         Assert.Equal("fan-out-output", item.BaseObject);
     }
+
+    [Fact]
+    public void AsyncPSCmdlet_leaves_no_async_local_state_on_the_invoking_thread()
+    {
+        // PowerShell hosts run every command on the same pipeline thread, so state an invocation leaves
+        // in that thread's execution context stays there for the rest of the session.
+        WeakReference cmdlet = InvokeOnCurrentThreadAndTrackCmdlet();
+
+        for (int attempt = 0; attempt < 3 && cmdlet.IsAlive; attempt++)
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+        }
+
+        Assert.False(cmdlet.IsAlive, "The invoking thread's execution context still references the finished cmdlet.");
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static WeakReference InvokeOnCurrentThreadAndTrackCmdlet()
+    {
+        var sessionState = InitialSessionState.CreateDefault();
+        sessionState.Commands.Add(new SessionStateCmdletEntry(
+            "Test-AsyncSynchronousOutput",
+            typeof(TestAsyncSynchronousOutputCommand),
+            helpFileName: null));
+
+        using var runspace = RunspaceFactory.CreateRunspace(sessionState);
+        runspace.ThreadOptions = PSThreadOptions.UseCurrentThread;
+        runspace.Open();
+        using var powerShell = PowerShell.Create();
+        powerShell.Runspace = runspace;
+        powerShell.AddCommand("Test-AsyncSynchronousOutput");
+
+        var result = powerShell.Invoke();
+
+        Assert.False(powerShell.HadErrors, string.Join(Environment.NewLine, powerShell.Streams.Error.Select(static error => error.ToString())));
+        Assert.Equal("synchronous-output", Assert.Single(result).BaseObject);
+        return TestAsyncSynchronousOutputCommand.LastInstance!;
+    }
 }
 
 [Cmdlet(VerbsDiagnostic.Test, "AsyncQueuedOutput")]
@@ -107,5 +146,18 @@ public sealed class TestAsyncSynchronousFanOutCommand : AsyncPSCmdlet
                 WriteObject("fan-out-output");
             }
         });
+    }
+}
+
+[Cmdlet(VerbsDiagnostic.Test, "AsyncSynchronousOutput")]
+public sealed class TestAsyncSynchronousOutputCommand : AsyncPSCmdlet
+{
+    internal static WeakReference? LastInstance { get; private set; }
+
+    protected override Task ProcessRecordAsync()
+    {
+        LastInstance = new WeakReference(this);
+        WriteObject("synchronous-output");
+        return Task.CompletedTask;
     }
 }

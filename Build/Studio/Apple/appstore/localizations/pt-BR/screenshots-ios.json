@@ -1,0 +1,35 @@
+{
+  "appId": "6818096229",
+  "useReleaseVersion": true,
+  "locale": "pt-BR",
+  "platform": "iOS",
+  "screenshotSets": [
+    {
+      "screenshotDisplayType": "APP_IPHONE_67",
+      "path": "../../../../../../Artifacts/Studio/Apple/screenshots/store-art/pt-BR/iphone-69",
+      "filter": "*.png",
+      "maxCount": 5,
+      "allowedDimensions": [
+        "1320x2868"
+      ]
+    },
+    {
+      "screenshotDisplayType": "APP_IPAD_PRO_3GEN_129",
+      "path": "../../../../../../Artifacts/Studio/Apple/screenshots/store-art/pt-BR/ipad-13",
+      "filter": "*.png",
+      "maxCount": 6,
+      "allowedDimensions": [
+        "2064x2752"
+      ]
+    }
+  ],
+  "quality": {
+    "enabled": true,
+    "rejectDuplicates": true,
+    "requireConsistentDimensions": true,
+    "minimumFileBytes": 4096,
+    "minimumKilobytesPerMegapixel": 12,
+    "requireApprovalManifest": true,
+    "approvalManifestPath": "../../../../../../Artifacts/Studio/Apple/screenshots/approval-iOS.pt-BR.json"
+  }
+}

@@ -47,14 +47,36 @@ XML Spreadsheet column widths use point units. Automatic conversion uses whole-p
 | Aggregation | `SUM`, `AVERAGE`, `AVERAGEA`, `MIN`, `MINA`, `MAX`, `MAXA`, `COUNT`, `COUNTA`, `COUNTBLANK`, `SUBTOTAL`, `PRODUCT` |
 | Conditional aggregation | `COUNTIF`, `SUMIF`, `AVERAGEIF`, `COUNTIFS`, `SUMIFS`, `AVERAGEIFS`, `MINIFS`, `MAXIFS` |
 | Statistics and reporting | `MEDIAN`, `LARGE`, `SMALL`, `MODE.SNGL`, `MODE`, `GEOMEAN`, `HARMEAN`, `AVEDEV`, `DEVSQ`, `SUMXMY2`, `SUMX2MY2`, `SUMX2PY2`, `SUMSQ`, `SUMPRODUCT`, `STDEV.S`, `STDEV.P`, `VAR.S`, `VAR.P`, `PERCENTILE.INC`, `PERCENTILE.EXC`, `QUARTILE.INC`, `QUARTILE.EXC`, `PERCENTRANK.INC`, `PERCENTRANK.EXC`, `RANK.EQ`, `RANK.AVG`, `COVAR`, `COVARIANCE.P`, `COVARIANCE.S`, `CORREL`, `SLOPE`, `INTERCEPT`, `RSQ`, `FORECAST.LINEAR` |
+| Distributions | `NORM.DIST`, `NORM.INV`, `NORM.S.DIST`, `NORM.S.INV`, `T.DIST`, `T.DIST.2T`, `T.DIST.RT`, `T.INV`, `T.INV.2T`, `CHISQ.DIST`, `CHISQ.DIST.RT`, `CHISQ.INV`, `CHISQ.INV.RT`, and the compatibility names `NORMDIST`, `NORMINV`, `NORMSDIST`, `NORMSINV`, `TDIST`, `TINV`, `CHIDIST`, `CHIINV` |
 | Financial | `PMT`, `IPMT`, `PPMT`, `PV`, `FV`, `NPER`, `NPV`, `RATE`, `IRR`, `XIRR`, `XNPV` |
-| Lookup and reference | `VLOOKUP`, `HLOOKUP`, `XLOOKUP`, `INDEX`, `MATCH`, `XMATCH`, `ROW`, `COLUMN`, `ROWS`, `COLUMNS` |
+| Lookup and reference | `VLOOKUP`, `HLOOKUP`, `XLOOKUP`, `LOOKUP`, `INDEX`, `MATCH`, `XMATCH`, `OFFSET`, `INDIRECT`, `ADDRESS`, `ROW`, `COLUMN`, `ROWS`, `COLUMNS` |
+| Arrays | `SEQUENCE`, `FILTER`, `SORT`, `SORTBY`, `UNIQUE`, `TRANSPOSE`, `MMULT`, `VSTACK`, `HSTACK`, `TEXTSPLIT` |
 | Mathematics | `ABS`, `SIGN`, `ROUND`, `ROUNDUP`, `ROUNDDOWN`, `MROUND`, `TRUNC`, `INT`, `CEILING.MATH`, `FLOOR.MATH`, `CEILING`, `FLOOR`, `POWER`, `SQRT`, `LN`, `LOG10`, `EXP`, `PI`, `RADIANS`, `DEGREES`, `MOD` |
 | Date and time | `DATE`, `TIME`, `DATEVALUE`, `TIMEVALUE`, `TODAY`, `NOW`, `YEAR`, `MONTH`, `DAY`, `HOUR`, `MINUTE`, `SECOND`, `DATEDIF`, `YEARFRAC`, `EDATE`, `EOMONTH`, `DAYS`, `DAYS360`, `WEEKDAY`, `WEEKNUM`, `ISOWEEKNUM`, `NETWORKDAYS`, `WORKDAY`, `WORKDAY.INTL` |
 | Logical and information | `IF`, `IFS`, `SWITCH`, `CHOOSE`, `ISBLANK`, `ISNUMBER`, `ISTEXT`, `ISERROR`, `ISERR`, `ISNA`, `ISFORMULA`, `AND`, `OR`, `NOT`, `IFERROR`, `IFNA` |
 | Text | `CONCAT`, `CONCATENATE`, `TEXT`, `TEXTJOIN`, `TEXTBEFORE`, `TEXTAFTER`, `FORMULATEXT`, `LEFT`, `RIGHT`, `MID`, `LEN`, `TRIM`, `UPPER`, `LOWER`, `PROPER`, `SUBSTITUTE`, `FIND`, `SEARCH`, `VALUE`, `EXACT`, `REPT` |
 
 The evaluator also handles supported arithmetic and comparison expressions, same-sheet dependencies, numeric cross-sheet references, named ranges, simple structured references, dependency-depth guards, and circular/self-reference diagnostics. Function-specific argument shapes remain bounded by focused tests; a recognized name does not imply every Excel overload, array behavior, spill behavior, or coercion rule.
+
+`INDIRECT` reads A1 and R1C1 text, sheet-qualified references and defined names; whole-row and whole-column text and names the workbook lacks stay uncalculated. Distribution functions take numeric arguments only and truncate the degrees of freedom. `LOOKUP` searches like `VLOOKUP`'s approximate mode, so its input must be sorted ascending. `SORTBY` uses `SORT`'s qualified key collation. `SetArrayFormula` writes the Excel compatibility prefix for `SEQUENCE`, `FILTER`, `SORT` and `UNIQUE` only; workbooks authored with `SORTBY`, `VSTACK`, `HSTACK`, `TEXTSPLIT` or the `NORM`, `T` and `CHISQ` functions are calculated here but not yet stored with the prefix Excel expects.
+
+### Functions not yet calculated
+
+Formulas using these functions keep their cached value for Excel to recalculate. Each group is ordered by how often reporting workbooks use it, most used first.
+
+| Family | Not yet calculated |
+| --- | --- |
+| Lookup and reference | `CHOOSECOLS`, `CHOOSEROWS`, `TAKE`, `DROP`, `TOCOL`, `TOROW`, `HYPERLINK`, `EXPAND`, `WRAPROWS`, `WRAPCOLS`, `AREAS`, `SHEET`, `SHEETS`, `CELL`, `INFO`, `GROUPBY`, `PIVOTBY`, `TRIMRANGE` |
+| Names and lambdas | `LET`, `LAMBDA`, `MAP`, `REDUCE`, `SCAN`, `BYROW`, `BYCOL`, `MAKEARRAY`, `ISOMITTED` |
+| Text | `REPLACE`, `CHAR`, `CODE`, `CLEAN`, `NUMBERVALUE`, `FIXED`, `DOLLAR`, `T`, `N`, `UNICHAR`, `UNICODE`, `VALUETOTEXT`, `ARRAYTOTEXT`, `REGEXTEST`, `REGEXEXTRACT`, `REGEXREPLACE`, `LEFTB`, `RIGHTB`, `MIDB`, `LENB`, `FINDB`, `SEARCHB`, `REPLACEB`, `ASC`, `DBCS`, `PHONETIC`, `BAHTTEXT` |
+| Logical and information | `XOR`, `ISEVEN`, `ISODD`, `ISNONTEXT`, `ISREF`, `TYPE`, `ERROR.TYPE` |
+| Statistics | `STDEV`, `STDEVP`, `VAR`, `VARP`, `PERCENTILE`, `QUARTILE`, `RANK`, `PERCENTRANK`, `FORECAST`, `STDEVA`, `STDEVPA`, `VARA`, `VARPA`, `FREQUENCY`, `MODE.MULT`, `TRIMMEAN`, `STANDARDIZE`, `KURT`, `SKEW`, `SKEW.P`, `PEARSON`, `STEYX`, `TREND`, `GROWTH`, `LINEST`, `LOGEST`, `FORECAST.ETS`, `FORECAST.ETS.CONFINT`, `FORECAST.ETS.SEASONALITY`, `FORECAST.ETS.STAT`, `CONFIDENCE.NORM`, `CONFIDENCE.T`, `BINOM.DIST`, `BINOM.DIST.RANGE`, `BINOM.INV`, `POISSON.DIST`, `EXPON.DIST`, `LOGNORM.DIST`, `LOGNORM.INV`, `GAMMA.DIST`, `GAMMA.INV`, `BETA.DIST`, `BETA.INV`, `WEIBULL.DIST`, `F.DIST`, `F.DIST.RT`, `F.INV`, `F.INV.RT`, `HYPGEOM.DIST`, `NEGBINOM.DIST`, `T.TEST`, `Z.TEST`, `F.TEST`, `CHISQ.TEST`, `GAMMA`, `GAMMALN`, `GAMMALN.PRECISE`, `FISHER`, `FISHERINV`, `PHI`, `GAUSS`, `PERMUT`, `PERMUTATIONA`, and the remaining compatibility names (`BINOMDIST`, `POISSON`, `EXPONDIST`, `LOGNORMDIST`, `LOGINV`, `GAMMADIST`, `GAMMAINV`, `BETADIST`, `BETAINV`, `WEIBULL`, `FDIST`, `FINV`, `HYPGEOMDIST`, `NEGBINOMDIST`, `CRITBINOM`, `CONFIDENCE`, `TTEST`, `ZTEST`, `FTEST`, `CHITEST`) |
+| Date and time | `NETWORKDAYS.INTL` |
+| Mathematics and trigonometry | `RAND`, `RANDARRAY`, `QUOTIENT`, `SIN`, `COS`, `TAN`, `ASIN`, `ACOS`, `ATAN`, `ATAN2`, `SINH`, `COSH`, `TANH`, `ASINH`, `ACOSH`, `ATANH`, `COT`, `COTH`, `CSC`, `CSCH`, `SEC`, `SECH`, `ACOT`, `ACOTH`, `SQRTPI`, `AGGREGATE`, `CEILING.PRECISE`, `FLOOR.PRECISE`, `ISO.CEILING`, `FACTDOUBLE`, `COMBINA`, `MULTINOMIAL`, `SERIESSUM`, `MDETERM`, `MINVERSE`, `MUNIT`, `ROMAN`, `ARABIC`, `BASE`, `DECIMAL` |
+| Financial | `SLN`, `DB`, `DDB`, `SYD`, `VDB`, `CUMIPMT`, `CUMPRINC`, `EFFECT`, `NOMINAL`, `MIRR`, `ISPMT`, `PDURATION`, `RRI`, `FVSCHEDULE`, `DOLLARDE`, `DOLLARFR`, and the securities functions (`PRICE`, `YIELD`, `ACCRINT`, `DURATION`, `MDURATION`, `COUP*`, `DISC`, `INTRATE`, `RECEIVED`, `TBILL*`, `ODD*`, `AMOR*`) |
+| Engineering | `CONVERT`, `DEC2BIN`, `DEC2HEX`, `DEC2OCT`, `BIN2DEC`, `HEX2DEC`, `OCT2DEC` and the other base conversions, `BITAND`, `BITOR`, `BITXOR`, `BITLSHIFT`, `BITRSHIFT`, `ERF`, `ERFC`, `ERF.PRECISE`, `ERFC.PRECISE`, `DELTA`, `GESTEP`, `BESSELI`, `BESSELJ`, `BESSELK`, `BESSELY`, the `COMPLEX` and `IM*` functions |
+| Database | `DSUM`, `DCOUNT`, `DCOUNTA`, `DAVERAGE`, `DGET`, `DMAX`, `DMIN`, `DPRODUCT`, `DSTDEV`, `DSTDEVP`, `DVAR`, `DVARP` |
+| Outside headless calculation | `WEBSERVICE`, `FILTERXML`, `ENCODEURL`, `RTD`, `IMAGE`, `TRANSLATE`, `DETECTLANGUAGE`, `COPILOT`, `PY`, `STOCKHISTORY`, `CUBE*`, `CALL`, `REGISTER.ID`, `EUROCONVERT` |
 
 ## Image and PDF export
 

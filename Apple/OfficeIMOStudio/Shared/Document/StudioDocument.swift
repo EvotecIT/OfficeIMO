@@ -9,18 +9,9 @@ import UniformTypeIdentifiers
 /// works on a private working copy, so it never needs access to the user's file, and each save writes the engine's
 /// result back through the system.
 final class StudioDocument: ReferenceFileDocument, @unchecked Sendable {
-    #if os(macOS)
-    /// Office documents open only to become a new PDF: see OfficeDocumentView.
-    static let readableContentTypes: [UTType] = [.pdf] + ["org.openxmlformats.wordprocessingml.document", "com.microsoft.word.doc",
-                                                          "org.openxmlformats.spreadsheetml.sheet", "org.openxmlformats.presentationml.presentation",
-                                                          "public.rtf"].map { UTType(importedAs: $0) }
-    #else
+    /// Word, Excel, PowerPoint and other documents open in a ViewerDocument instead.
     static let readableContentTypes: [UTType] = [.pdf]
-    #endif
     static let writableContentTypes: [UTType] = [.pdf]
-
-    /// The copy of an office document this document opened, which is to be converted rather than edited.
-    private(set) var officeSource: URL?
 
     /// The engine's copy of the document, inside the app's temporary folder.
     let workingCopy: URL
@@ -61,7 +52,6 @@ final class StudioDocument: ReferenceFileDocument, @unchecked Sendable {
         initializationError = nil
         try FileManager.default.createDirectory(at: workingCopy.deletingLastPathComponent(), withIntermediateDirectories: true)
         try data.write(to: workingCopy)
-        if !configuration.contentType.conforms(to: .pdf) { officeSource = workingCopy }
     }
 
     /// Opens a file the app can read directly, without the system's document browser.
@@ -110,8 +100,6 @@ final class StudioDocument: ReferenceFileDocument, @unchecked Sendable {
     }
 
     func fileWrapper(snapshot: Data, configuration: WriteConfiguration) throws -> FileWrapper {
-        // An office document is never replaced by the PDF it became.
-        if officeSource != nil, let existing = configuration.existingFile { return existing }
         return FileWrapper(regularFileWithContents: snapshot)
     }
 

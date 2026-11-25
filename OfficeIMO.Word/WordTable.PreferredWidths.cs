@@ -41,7 +41,9 @@ public partial class WordTable {
         if (_suppressGridRefresh) return;
         _suppressGridRefresh = true;
         try {
-            if (Rows.Count == 0) return;
+            // Rows are walked lazily: the scan normally stops at the first row with full preferences,
+            // so appending rows one at a time doesn't rebuild the whole row list per call.
+            if (!WordTableContent.Rows(_table).Any()) return;
             // Unknown native declarations are preserved rather than treated as Auto.
             if (!WordTableWidthNative.NativeType(_tableProperties?.TableWidth).HasValue) return;
             int count = _table.GetFirstChild<TableGrid>()?.Elements<GridColumn>().Count() ?? 0;
@@ -49,7 +51,8 @@ public partial class WordTable {
             if (count <= 0) return;
             List<WordTableWidth?>? fallback = null;
             List<WordTableWidth?>? preferences = null;
-            foreach (var row in Rows) {
+            foreach (TableRow tableRow in WordTableContent.Rows(_table)) {
+                WordTableRow row = GetOrCreateRow(tableRow);
                 var widths = new List<WordTableWidth?>();
                 int offset = (int)(row._tableRow.TableRowProperties?.GetFirstChild<GridBefore>()?.Val?.Value ?? 0);
                 for (int i = 0; i < offset && widths.Count < count; i++) widths.Add(null);

@@ -186,7 +186,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Text contained in the textbox.
         /// </summary>
         public string Text {
-            get => string.Join(Environment.NewLine, Paragraphs.Select(paragraph => paragraph.Text));
+            get => PowerPointParagraph.ReadText(EnsureTextBody());
             set {
                 string textValue = value ?? string.Empty;
                 TextBody textBody = EnsureTextBody();

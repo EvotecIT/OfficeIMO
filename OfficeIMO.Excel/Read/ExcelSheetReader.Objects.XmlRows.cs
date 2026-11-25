@@ -172,14 +172,13 @@ namespace OfficeIMO.Excel {
             int columnIndex = TryGetExpectedSingleLetterColumnIndex(reference, nextColumnIndex, out int expectedColumnIndex)
                 ? expectedColumnIndex
                 : ExcelA1.ParseColumnIndexFromCellReferenceWithKnownRowFast(reference);
+            // Excel places a cell whose reference is missing or unparseable in the
+            // next column of its row, ignoring any column letters in a bad value.
             if (columnIndex <= 0) {
-                columnIndex = reference.IsEmpty ? nextColumnIndex : 0;
+                columnIndex = nextColumnIndex;
             }
 
-            if (columnIndex > 0) {
-                nextColumnIndex = columnIndex + 1;
-            }
-
+            nextColumnIndex = columnIndex + 1;
             return columnIndex;
         }
 
@@ -375,12 +374,12 @@ namespace OfficeIMO.Excel {
 
                 case XmlCellKind.Boolean:
                     if (binding.SetBoolean != null && binding.BindingKind == TypedBindingKind.Boolean) {
-                        binding.SetBoolean(target, rawText == "1");
+                        binding.SetBoolean(target, ExcelBooleanCellText.IsTrue(rawText));
                         return true;
                     }
 
                     if (binding.SetString != null && binding.BindingKind == TypedBindingKind.String) {
-                        binding.SetString(target, (rawText == "1").ToString());
+                        binding.SetString(target, ExcelBooleanCellText.IsTrue(rawText).ToString());
                         return true;
                     }
 

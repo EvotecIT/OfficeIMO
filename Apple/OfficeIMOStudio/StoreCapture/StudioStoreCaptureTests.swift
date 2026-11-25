@@ -7,26 +7,126 @@ import ApplicationServices
 
 /// Drives the public document UI against the repository's public dashboard.
 /// This file belongs only to the capture test bundles, never the shipping app.
+/// The scenes are driven through stable accessibility identifiers, so the same test
+/// captures every interface language the host selects.
 @MainActor
 final class StudioStoreCaptureTests: XCTestCase {
+    private struct OpenedDocument {
+        let app: XCUIApplication
+        let viewport: XCUIElement
+        let expectedPID: Int32?
+    }
+
+    private let environment = ProcessInfo.processInfo.environment
+    private var role: String { environment["STUDIO_CAPTURE_ROLE"] ?? "" }
+    /// iPhone and the iPhone Duo use the compact layout; iPad and Mac show the regular toolbar.
+    private var isCompact: Bool { role == "iphone" || role == "duo" }
+
     func testCapturePublicDashboard() throws {
         continueAfterFailure = false
-        let environment = ProcessInfo.processInfo.environment
-        let path = try XCTUnwrap(environment["STUDIO_CAPTURE_DOCUMENT_PATH"])
-        let role = try XCTUnwrap(environment["STUDIO_CAPTURE_ROLE"])
+        let opened = try openDocument(environmentKey: "STUDIO_CAPTURE_DOCUMENT_PATH")
+        let app = opened.app
+        defer { app.terminate() }
+        let viewport = opened.viewport
+
+        let page = viewport.descendants(matching: .any).matching(identifier: StudioAccessibilityID.pages).firstMatch
+        XCTAssertTrue(page.waitForExistence(timeout: 30), viewport.debugDescription)
+        try capture(viewport, region: page, phrases: StudioCapturePageReadiness.dashboardPhrases,
+                    expectedPID: opened.expectedPID, name: "studio-dashboard-" + role)
+        #if os(iOS)
+        assertSingleDocumentBar(app)
+        #endif
+
+        // Compact iPhone chrome has its own layout. Its full-page capture is
+        // sufficient; search captures use the visible regular-width search UI.
+        if !isCompact {
+            #if os(iOS)
+            let open = app.buttons[StudioAccessibilityID.searchButton]
+            XCTAssertTrue(open.waitForExistence(timeout: 30), viewport.debugDescription)
+            open.tap()
+            let search = viewport.textFields[StudioAccessibilityID.searchField]
+            #else
+            let search = viewport.searchFields.firstMatch
+            #endif
+            XCTAssertTrue(search.waitForExistence(timeout: 30), viewport.debugDescription)
+            search.clickOrTap()
+            search.typeText("Quarterly\n")
+            let position = viewport.descendants(matching: .any).matching(identifier: StudioAccessibilityID.searchPosition).firstMatch
+            XCTAssertTrue(position.waitForExistence(timeout: 30), viewport.debugDescription)
+            try capture(viewport, region: page, phrases: StudioCapturePageReadiness.dashboardPhrases,
+                        expectedPID: opened.expectedPID, name: "studio-search-" + role)
+            closeSearch(search, in: app)
+        }
+
+        // Markup: the drawing tools over the same page.
+        selectTask(at: 1, in: app)
+        #if os(iOS)
+        let done = app.buttons[StudioAccessibilityID.markupDone]
+        XCTAssertTrue(done.waitForExistence(timeout: 10), app.debugDescription)
+        #endif
+        XCTAssertTrue(page.waitForExistence(timeout: 10), viewport.debugDescription)
+        try capture(viewport, region: page, phrases: StudioCapturePageReadiness.dashboardPhrases,
+                    expectedPID: opened.expectedPID, name: "studio-markup-" + role)
+        #if os(iOS)
+        done.tap()
+        #else
+        selectTask(at: 0, in: app)
+        #endif
+        XCTAssertTrue(page.waitForExistence(timeout: 10), viewport.debugDescription)
+
+        if isCompact {
+            // Pages: the page organizer, which replaces the reading view.
+            selectTask(at: 2, in: app)
+            try capture(viewport, region: nil, phrases: [], expectedPID: opened.expectedPID, name: "studio-pages-" + role)
+            selectTask(at: 0, in: app)
+            XCTAssertTrue(page.waitForExistence(timeout: 10), viewport.debugDescription)
+        } else {
+            // The inspector beside the page, with the engine's document facts.
+            let inspector = app.buttons[StudioAccessibilityID.inspectorToggle]
+            XCTAssertTrue(inspector.waitForExistence(timeout: 10), app.debugDescription)
+            inspector.clickOrTap()
+            let facts = app.descendants(matching: .any).matching(identifier: StudioAccessibilityID.inspectorFileSize).firstMatch
+            XCTAssertTrue(facts.waitForExistence(timeout: 10), app.debugDescription)
+            try capture(viewport, region: page, phrases: StudioCapturePageReadiness.dashboardPhrases,
+                        expectedPID: opened.expectedPID, name: "studio-inspector-" + role)
+            inspector.clickOrTap()
+            XCTAssertTrue(facts.waitForNonExistence(timeout: 10), app.debugDescription)
+        }
+        #if os(iOS)
+        if role == "ipad" { try verifyRegularDocumentNavigation(app, page: page) }
+        #endif
+    }
+
+    /// A public fillable PDF form with its fields ready to fill.
+    func testCaptureFormDocument() throws {
+        continueAfterFailure = false
+        let opened = try openDocument(environmentKey: "STUDIO_CAPTURE_FORM_PATH")
+        defer { opened.app.terminate() }
+        let page = opened.viewport.descendants(matching: .any).matching(identifier: StudioAccessibilityID.pages).firstMatch
+        XCTAssertTrue(page.waitForExistence(timeout: 30), opened.viewport.debugDescription)
+        try capture(opened.viewport, region: page, phrases: StudioCapturePageReadiness.formPhrases,
+                    expectedPID: opened.expectedPID, name: "studio-form-" + role)
+    }
+
+    /// A public Excel workbook in the read-only Office viewer.
+    func testCaptureOfficeViewer() throws {
+        continueAfterFailure = false
+        let opened = try openDocument(environmentKey: "STUDIO_CAPTURE_OFFICE_PATH")
+        defer { opened.app.terminate() }
+        let pages = opened.viewport.descendants(matching: .any).matching(identifier: StudioAccessibilityID.viewerPages).firstMatch
+        XCTAssertTrue(pages.waitForExistence(timeout: 60), opened.viewport.debugDescription)
+        try capture(opened.viewport, region: pages, phrases: StudioCapturePageReadiness.officePhrases,
+                    expectedPID: opened.expectedPID, name: "studio-office-" + role)
+    }
+
+    /// Opens one public input in the interface language the host selected.
+    private func openDocument(environmentKey: String) throws -> OpenedDocument {
+        let path = try XCTUnwrap(environment[environmentKey])
+        let title = URL(fileURLWithPath: path).lastPathComponent
         #if os(macOS)
         let appURL = URL(fileURLWithPath: try XCTUnwrap(environment["STUDIO_CAPTURE_APP_PATH"]))
         let app = XCUIApplication(url: appURL)
-        #else
-        XCUIDevice.shared.orientation = .portrait
-        let app = XCUIApplication(bundleIdentifier: "com.evotec.officeimo.studio")
-        app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_US", "-OfficeIMOSkipWelcome"]
-        app.launch()
-        #endif
-        defer { app.terminate() }
-
-        #if os(macOS)
-        // The host launches this exact app with its PDF and language arguments.
+        // The host launches this exact app with the document and its language arguments.
         // NSWorkspace ignores those arguments inside the sandboxed test runner.
         let matches = NSRunningApplication.runningApplications(withBundleIdentifier: "com.evotec.officeimo.studio")
             .filter { $0.bundleURL?.standardizedFileURL == appURL.standardizedFileURL }
@@ -34,48 +134,52 @@ final class StudioStoreCaptureTests: XCTestCase {
         app.activate()
         XCTAssertEqual(NSWorkspace.shared.frontmostApplication?.processIdentifier, running.processIdentifier)
         XCTAssertEqual(NSWorkspace.shared.frontmostApplication?.bundleURL?.standardizedFileURL, appURL.standardizedFileURL)
-        let window = app.windows.matching(identifier: URL(fileURLWithPath: path).lastPathComponent).firstMatch
-        XCTAssertTrue(window.waitForExistence(timeout: 30), "The public dashboard window did not appear.")
-        try resizePublicWindow(window: window, appURL: appURL, title: URL(fileURLWithPath: path).lastPathComponent)
-        let viewport: XCUIElement = window
-        let expectedPID: Int32? = running.processIdentifier
+        let window = app.windows.matching(identifier: title).firstMatch
+        XCTAssertTrue(window.waitForExistence(timeout: 30), "The \(title) window did not appear.")
+        try resizePublicWindow(window: window, appURL: appURL, title: title)
+        return OpenedDocument(app: app, viewport: window, expectedPID: running.processIdentifier)
         #else
-        if role == "iphone" {
+        XCUIDevice.shared.orientation = .portrait
+        let app = XCUIApplication(bundleIdentifier: "com.evotec.officeimo.studio")
+        let language = environment["STUDIO_CAPTURE_LANGUAGE"] ?? "en"
+        let region = environment["STUDIO_CAPTURE_REGION"] ?? "en_US"
+        app.launchArguments = ["-AppleLanguages", "(\(language))", "-AppleLocale", region, "-OfficeIMOSkipWelcome"]
+        app.launch()
+        // The iPhone Duo is an iPhone in both poses, with the iPhone's document browser.
+        if isCompact {
             openPhoneDocument(app, input: URL(fileURLWithPath: path))
         } else {
             app.open(URL(fileURLWithPath: path))
         }
-        let viewport: XCUIElement = app
-        let expectedPID: Int32? = nil
+        return OpenedDocument(app: app, viewport: app, expectedPID: nil)
         #endif
+    }
 
-        let page = viewport.descendants(matching: .any).matching(identifier: "Page 1 of 1").firstMatch
-        XCTAssertTrue(page.waitForExistence(timeout: 30), viewport.debugDescription)
-        try capture(viewport, page: page, expectedPID: expectedPID, name: "studio-dashboard-" + role)
+    /// Ends the search, so the next scene shows the page without the find bar.
+    private func closeSearch(_ search: XCUIElement, in app: XCUIApplication) {
         #if os(iOS)
-        assertSingleDocumentBar(app)
+        let close = app.buttons[StudioAccessibilityID.searchClose]
+        XCTAssertTrue(close.waitForExistence(timeout: 5), app.debugDescription)
+        close.tap()
+        #else
+        search.typeKey(.escape, modifierFlags: [])
         #endif
+        let position = app.descendants(matching: .any).matching(identifier: StudioAccessibilityID.searchPosition).firstMatch
+        XCTAssertTrue(position.waitForNonExistence(timeout: 10), app.debugDescription)
+    }
 
-        // Compact iPhone chrome has its own layout. Its full-page capture is
-        // sufficient; search captures use the visible regular-width search UI.
-        if role != "iphone" {
-            #if os(iOS)
-            let open = app.buttons["Search"]
-            XCTAssertTrue(open.waitForExistence(timeout: 30), viewport.debugDescription)
-            open.tap()
-            let search = viewport.textFields["Search"]
-            #else
-            let search = viewport.searchFields.firstMatch
-            #endif
-            XCTAssertTrue(search.waitForExistence(timeout: 30), viewport.debugDescription)
-            search.clickOrTap()
-            search.typeText("Quarterly\n")
-            XCTAssertTrue(viewport.staticTexts["1 of 1"].waitForExistence(timeout: 30), viewport.debugDescription)
-            try capture(viewport, page: page, expectedPID: expectedPID, name: "studio-search-" + role)
-        }
-        #if os(iOS)
-        if role == "ipad" { try verifyRegularDocumentNavigation(app, page: page) }
+    /// Read, Markup and Pages are the task picker's segments, in that order in every language.
+    private func selectTask(at index: Int, in app: XCUIApplication) {
+        let tasks = app.segmentedControls[StudioAccessibilityID.taskPicker]
+        XCTAssertTrue(tasks.waitForExistence(timeout: 10), app.debugDescription)
+        #if os(macOS)
+        let segments = tasks.radioButtons.count > index ? tasks.radioButtons : tasks.buttons
+        #else
+        let segments = tasks.buttons
         #endif
+        let choice = segments.element(boundBy: index)
+        XCTAssertTrue(choice.exists, app.debugDescription)
+        choice.clickOrTap()
     }
 
     #if os(iOS)
@@ -87,20 +191,21 @@ final class StudioStoreCaptureTests: XCTestCase {
 
     /// Keep sidebar, inspector and search usable after removing nested navigation.
     private func verifyRegularDocumentNavigation(_ app: XCUIApplication, page: XCUIElement) throws {
-        let sidebar = app.segmentedControls.containing(.button, identifier: "Thumbnails").firstMatch
+        let sidebar = app.segmentedControls[StudioAccessibilityID.sidebarMode]
         XCTAssertTrue(sidebar.waitForExistence(timeout: 5), app.debugDescription)
-        let toggle = app.buttons["Sidebar"]
+        let toggle = app.buttons[StudioAccessibilityID.sidebarToggle]
         toggle.tap()
         XCTAssertTrue(sidebar.waitForNonExistence(timeout: 5), app.debugDescription)
         assertSingleDocumentBar(app)
         toggle.tap()
         XCTAssertTrue(sidebar.waitForExistence(timeout: 5), app.debugDescription)
 
-        let inspector = app.buttons["Inspector"]
+        let inspector = app.buttons[StudioAccessibilityID.inspectorToggle]
+        let facts = app.descendants(matching: .any).matching(identifier: StudioAccessibilityID.inspectorFileSize).firstMatch
         inspector.tap()
-        XCTAssertTrue(app.staticTexts["File Size"].waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertTrue(facts.waitForExistence(timeout: 5), app.debugDescription)
         inspector.tap()
-        XCTAssertTrue(app.staticTexts["File Size"].waitForNonExistence(timeout: 5), app.debugDescription)
+        XCTAssertTrue(facts.waitForNonExistence(timeout: 5), app.debugDescription)
 
         XCUIDevice.shared.orientation = .landscapeLeft
         defer { XCUIDevice.shared.orientation = .portrait }
@@ -108,41 +213,41 @@ final class StudioStoreCaptureTests: XCTestCase {
         assertSingleDocumentBar(app)
         // The application's union can include the document browser's old
         // portrait bounds after rotation. Capture the visible document window.
-        try capture(app.windows.firstMatch, page: page, expectedPID: nil, name: "studio-navigation-ipad-landscape")
+        try capture(app.windows.firstMatch, region: page, phrases: StudioCapturePageReadiness.dashboardPhrases,
+                    expectedPID: nil, name: "studio-navigation-ipad-landscape")
 
-        selectTask("Pages", from: "Read", in: app)
+        selectTask(at: 2, in: app)
         XCTAssertTrue(sidebar.waitForNonExistence(timeout: 5), app.debugDescription)
-        selectTask("Read", from: "Pages", in: app)
+        selectTask(at: 0, in: app)
         XCTAssertTrue(page.waitForExistence(timeout: 10), app.debugDescription)
         XCTAssertTrue(sidebar.waitForExistence(timeout: 5), app.debugDescription)
 
-        selectTask("Markup", from: "Read", in: app)
-        let done = app.buttons["Done"]
+        selectTask(at: 1, in: app)
+        let done = app.buttons[StudioAccessibilityID.markupDone]
         XCTAssertTrue(done.waitForExistence(timeout: 5), app.debugDescription)
         assertSingleDocumentBar(app)
         done.tap()
-        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "Task: Read").firstMatch.waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertTrue(app.segmentedControls[StudioAccessibilityID.taskPicker].waitForExistence(timeout: 5), app.debugDescription)
         XCTAssertTrue(page.waitForExistence(timeout: 10), app.debugDescription)
-    }
-
-    private func selectTask(_ next: String, from current: String, in app: XCUIApplication) {
-        let menu = app.descendants(matching: .any).matching(identifier: "Task: " + current).firstMatch
-        XCTAssertTrue(menu.waitForExistence(timeout: 5), app.debugDescription)
-        menu.tap()
-        let choice = app.descendants(matching: .any).matching(identifier: next).firstMatch
-        XCTAssertTrue(choice.waitForExistence(timeout: 5), app.debugDescription)
-        choice.tap()
     }
 
     /// Uses Files' own hierarchy, including a browser restored inside an earlier
     /// input folder. Scope Browse to its tab bar so a breadcrumb cannot match it.
+    /// iOS 27 replaces that tab bar with a rail, whose Browse button shows a folder.
     private func openPhoneDocument(_ app: XCUIApplication, input: URL) {
-        let browse = app.tabBars["DOC.browsingModeTabBar"].buttons["Browse"]
-        XCTAssertTrue(browse.waitForExistence(timeout: 30), app.debugDescription)
+        // Files names Browse and On My iPhone in the system language, so find them by structure:
+        // Browse is the tab bar's last tab, or the rail's folder button, and the local location names the device.
+        let tabs = app.tabBars["DOC.browsingModeTabBar"].buttons
+        let rail = app.buttons.containing(.image, identifier: "folder.fill").firstMatch
+        let ready = XCTNSPredicateExpectation(
+            predicate: NSPredicate { _, _ in tabs.count > 0 || rail.exists }, object: nil)
+        XCTAssertEqual(XCTWaiter().wait(for: [ready], timeout: 30), .completed, app.debugDescription)
+        let browse = tabs.count > 0 ? tabs.element(boundBy: tabs.count - 1) : rail
         browse.tap()
         let folder = app.cells.containing(.staticText, identifier: input.deletingLastPathComponent().lastPathComponent).firstMatch
         let studio = app.cells.containing(.staticText, identifier: "OfficeIMO Studio").firstMatch
-        let local = app.cells.containing(.staticText, identifier: "On My iPhone").firstMatch
+        let local = app.cells.containing(NSPredicate(format: "elementType == %lu AND label CONTAINS 'iPhone'",
+                                                     XCUIElement.ElementType.staticText.rawValue)).firstMatch
         for _ in 0..<4 {
             if folder.waitForExistence(timeout: 2) { break }
             if studio.exists { studio.tap() }
@@ -161,12 +266,15 @@ final class StudioStoreCaptureTests: XCTestCase {
     }
     #endif
 
-    private func capture(_ viewport: XCUIElement, page: XCUIElement, expectedPID: Int32?, name: String) throws {
+    /// Waits until the scene has stable pixels, then attaches it. With a region, that area must
+    /// show the given phrases of the public input; without phrases, only stability is required.
+    private func capture(_ viewport: XCUIElement, region: XCUIElement?, phrases: [String], expectedPID: Int32?,
+                         name: String) throws {
         var previousPixels: Data?
         var stableSince: TimeInterval?
         var accepted: XCUIScreenshot?
         var lastSampled: XCUIScreenshot?
-        var lastError = "The public dashboard has not rendered."
+        var lastError = "The scene has not rendered."
         let deadline = ProcessInfo.processInfo.systemUptime + 45
         while ProcessInfo.processInfo.systemUptime < deadline {
             // Sample serially: an expectation callback performing OCR can still
@@ -210,7 +318,7 @@ final class StudioStoreCaptureTests: XCTestCase {
                     throw StudioCapturePageReadiness.Failure.unreadablePixels
                 }
                 let viewportFrame = viewport.frame
-                let visible = page.frame.intersection(viewportFrame)
+                let visible = (region?.frame ?? viewportFrame).intersection(viewportFrame)
                 guard viewportFrame.width > 0, viewportFrame.height > 0, !visible.isNull, !visible.isEmpty else {
                     throw StudioCapturePageReadiness.Failure.unreadablePixels
                 }
@@ -219,8 +327,9 @@ final class StudioStoreCaptureTests: XCTestCase {
                 let contentBounds = CGRect(x: (visible.minX - viewportFrame.minX) * scaleX,
                                            y: (visible.minY - viewportFrame.minY) * scaleY,
                                            width: visible.width * scaleX, height: visible.height * scaleY)
-                let pixels = try StudioCapturePageReadiness.pagePixels(from: image, contentBounds: contentBounds)
-                lastError = "The public PDF is recognized; waiting for stable pixels in \(contentBounds)."
+                let pixels = try StudioCapturePageReadiness.pagePixels(from: image, contentBounds: contentBounds,
+                                                                       phrases: phrases)
+                lastError = "The scene is recognized; waiting for stable pixels in \(contentBounds)."
                 let now = ProcessInfo.processInfo.systemUptime
                 if pixels != previousPixels || stableSince == nil {
                     previousPixels = pixels

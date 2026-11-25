@@ -6,7 +6,7 @@ namespace OfficeIMO.Provenance;
 /// <summary>
 /// Rewrites provenance ZIP containers with deterministic stored-entry behavior across target frameworks.
 /// </summary>
-internal static class OfficeProvenanceZipWriter {
+internal static partial class OfficeProvenanceZipWriter {
     private const uint LocalHeaderSignature = 0x04034B50;
     private const uint CentralHeaderSignature = 0x02014B50;
     private const uint EndOfCentralDirectorySignature = 0x06054B50;
@@ -21,7 +21,6 @@ internal static class OfficeProvenanceZipWriter {
     private const ushort Zip64ExtraFieldId = 0x0001;
     private const ushort UnicodePathExtraFieldId = 0x7075;
     private const ushort UnicodeCommentExtraFieldId = 0x6375;
-    private static readonly uint[] CrcTable = CreateCrcTable();
 
     internal static byte[] Write(
         IReadOnlyList<OfficeProvenanceZipWriteEntry> entries,
@@ -29,12 +28,29 @@ internal static class OfficeProvenanceZipWriter {
         byte[]? archiveComment = null,
         long maximumOutputBytes = int.MaxValue,
         CancellationToken cancellationToken = default) {
+        using var output = new OfficeProvenanceBoundedMemoryStream(maximumOutputBytes);
+        WriteCore(output, entries, maximumExpandedBytes, archiveComment, cancellationToken);
+        return output.ToArray();
+    }
+
+    // Publication owners use this overload only with an empty seekable staging destination.
+    internal static void WriteTo(Stream destination, IReadOnlyList<OfficeProvenanceZipWriteEntry> entries,
+        long maximumExpandedBytes, long maximumOutputBytes, CancellationToken cancellationToken) {
+        ArgumentNullException.ThrowIfNull(destination);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumOutputBytes);
+        if (!destination.CanWrite || !destination.CanSeek || destination.Position != 0L || destination.Length != 0L)
+            throw new ArgumentException("ZIP streaming requires an empty seekable destination.", nameof(destination));
+        using var output = new ZipOutputBound(destination, maximumOutputBytes);
+        WriteCore(output, entries, maximumExpandedBytes, archiveComment: null, cancellationToken);
+    }
+
+    private static void WriteCore(Stream output, IReadOnlyList<OfficeProvenanceZipWriteEntry> entries,
+        long maximumExpandedBytes, byte[]? archiveComment, CancellationToken cancellationToken) {
         ArgumentNullException.ThrowIfNull(entries);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumExpandedBytes);
         archiveComment ??= Array.Empty<byte>();
         if (archiveComment.Length > ushort.MaxValue) throw new ArgumentOutOfRangeException(nameof(archiveComment));
         var records = new List<OfficeProvenanceZipRecord>(entries.Count);
-        using var output = new OfficeProvenanceBoundedMemoryStream(maximumOutputBytes);
         using var writer = new BinaryWriter(output, Encoding.UTF8, leaveOpen: true);
         long expandedBytes = 0;
         byte[] buffer = new byte[81920];
@@ -114,7 +130,6 @@ internal static class OfficeProvenanceZipWriter {
             WriteEndOfCentralDirectory(writer, (ushort)records.Count, centralSize, centralOffset, archiveComment);
         }
         writer.Flush();
-        return output.ToArray();
     }
 
     private static void Copy(
@@ -135,7 +150,7 @@ internal static class OfficeProvenanceZipWriter {
             }
             expandedBytes += read;
             entryBytes += read;
-            for (int index = 0; index < read; index++) crc = CrcTable[(crc ^ buffer[index]) & 0xFF] ^ (crc >> 8);
+            crc = OfficeIMO.Drawing.OfficePngCrc32.Append(crc, buffer, 0, read);
             destination.Write(buffer, 0, read);
         }
     }
@@ -217,16 +232,6 @@ internal static class OfficeProvenanceZipWriter {
     private static uint ToUInt32(long value, string description) {
         if (value < 0 || value > uint.MaxValue) throw new InvalidDataException("ZIP " + description + " exceeds the supported limit.");
         return (uint)value;
-    }
-
-    private static uint[] CreateCrcTable() {
-        var table = new uint[256];
-        for (uint index = 0; index < table.Length; index++) {
-            uint value = index;
-            for (int bit = 0; bit < 8; bit++) value = (value & 1) != 0 ? 0xEDB88320u ^ (value >> 1) : value >> 1;
-            table[index] = value;
-        }
-        return table;
     }
 
     private static byte[] RemoveExtraField(byte[] extraField, ushort fieldId) {

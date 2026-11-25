@@ -1,6 +1,6 @@
 # Studio distribution
 
-PowerForge owns Studio publishing, signing, checksums, portable archives, the generated Windows MSI, Debian package, and macOS application bundle. Repository-local files contain only OfficeIMO product identity and target choices.
+PowerForge owns Studio publishing, signing, checksums, portable archives, the generated Windows MSI and Debian package. Repository-local files contain only OfficeIMO product identity and target choices.
 
 ## Scoop manifest
 
@@ -22,13 +22,12 @@ Studio restores package versions from the project files without checked-in packa
 
 `global.json` selects the latest installed stable .NET 10 feature band, with a `10.0.100` floor. CI reads that policy through `actions/setup-dotnet`; website jobs pass `10.0.x` to the shared PowerForge workflow. Release checksums and signatures apply to the resulting artifacts. Rebuilding on a different SDK can produce different bytes.
 
-CI checks the configured six-runtime, self-contained, single-file restore graph on Windows and Ubuntu. Avalonia's separate telemetry build package is excluded from Studio.
+CI checks the configured four-runtime, self-contained, single-file, ReadyToRun restore graph on Windows and Ubuntu. Avalonia's separate telemetry build package is excluded from Studio.
 
 ```powershell
 ./Build/Studio/Build-Studio.ps1 -Validate
 ./Build/Studio/Build-Studio.ps1 -Plan
 ./Build/Studio/Build-Studio.ps1 -Target Studio.Windows -Runtime win-x64
-./Build/Studio/Build-Studio.ps1 -Target Studio.macOS -Runtime osx-arm64
 ./Build/Studio/Build-Studio.ps1 -Target Studio.Linux -Runtime linux-x64
 ./Build/Studio/Build-StudioWindowsRelease.ps1 -Validate
 ./Build/Studio/Build-StudioWindowsRelease.ps1 -Plan
@@ -38,9 +37,9 @@ CI checks the configured six-runtime, self-contained, single-file restore graph 
 
 Always pair a target with its compatible runtime when narrowing the release matrix. Do not use `-SkipBuild`: each runtime needs its own project-reference outputs before PowerForge performs the no-build publish and packages the result.
 
-The release matrix contains self-contained `win-x64`, `win-arm64`, `osx-x64`, `osx-arm64`, `linux-x64`, and `linux-arm64` archives. Windows creates MSI installers for x64 and Arm64 with the same stable upgrade code and a Start menu shortcut. The Debian package owns `/opt`, `/usr/bin`, freedesktop desktop metadata, MIME associations, and the application icon. The macOS package owns the `.app` layout, stable `com.evotec.officeimo.studio` bundle identifier, generated ICNS icon, document associations, code-signing verification, and a `ditto` ZIP. User preferences and privacy-safe diagnostics remain under the user profile and are intentionally retained during ordinary uninstall.
+The release matrix contains self-contained `win-x64`, `win-arm64`, `linux-x64`, and `linux-arm64` archives, ReadyToRun-compiled so opening the first document doesn't wait on the JIT. Windows creates MSI installers for x64 and Arm64 with the same stable upgrade code and a Start menu shortcut. The Debian package owns `/opt`, `/usr/bin`, freedesktop desktop metadata, MIME associations, and the application icon. User preferences and privacy-safe diagnostics remain under the user profile and are intentionally retained during ordinary uninstall.
 
-Studio has its own `0.1.x` release line. The Studio project version, Debian package version, macOS bundle version, and Windows MSI version must agree for a direct-download release. Both release wrappers pass the committed project version to PowerForge, which rejects a mismatched native installer version. PowerForge resolves one monotonic version for both Windows MSIs and portable ZIPs, applies it to the application binaries, and reserves it through `studio-msi/officeimo-studio` Git tags when building a release. If a previous reservation has advanced the MSI version, update and commit the Studio and native package versions before another release attempt; the wrapper fails before building mismatched assets. NuGet library versions remain independent. Planning is read only; an actual Windows build with this release config reserves the version remotely, even when signing is disabled. For unsigned local package tests, use an isolated temporary copy of the config with signing disabled and the version authority changed to `LocalFile` with a task-owned state path. Never publish those test artifacts.
+Studio has its own `0.1.x` release line. The Studio project version, Debian package version, and Windows MSI version must agree for a direct-download release. Both release wrappers pass the committed project version to PowerForge, which rejects a mismatched native installer version. PowerForge resolves one monotonic version for both Windows MSIs and portable ZIPs, applies it to the application binaries, and reserves it through `studio-msi/officeimo-studio` Git tags when building a release. If a previous reservation has advanced the MSI version, update and commit the Studio and native package versions before another release attempt; the wrapper fails before building mismatched assets. NuGet library versions remain independent. Planning is read only; an actual Windows build with this release config reserves the version remotely, even when signing is disabled. For unsigned local package tests, use an isolated temporary copy of the config with signing disabled and the version authority changed to `LocalFile` with a task-owned state path. Never publish those test artifacts.
 
 `Build-StudioWindowsRelease.ps1` stages the two signed MSI files, two portable ZIPs, Windows checksums and release manifest, and the three-file WinGet manifest set. For a release candidate, record the checkout's exact commit, then run the wrapper once with `-Publish` from a clean checkout: PowerForge binds the binaries and draft `Studio-v<version>` GitHub tag to that commit and uploads those exact bytes in the same build. Running the wrapper a second time builds new bytes and reserves a new version; it is not a way to publish the qualified candidate.
 
@@ -81,7 +80,7 @@ if ($tagCommit -ne $sourceCommit) { throw 'Published Studio tag does not match t
 gh release view "Studio-v$version" -R EvotecIT/OfficeIMO --json isDraft,assets
 ```
 
-The website reads published Studio assets from the release hub. It shows Windows MSI and portable links, Linux Debian and portable links, or macOS application ZIP links only when the complete asset set for that platform and both architectures is present in a published release. Otherwise it points to the source build guide. Before a public release, verify exact asset hashes and applicable signatures, then test clean installation, upgrade, uninstall, and launch on supported systems. WinGet catalog acceptance is a separate public-state check.
+The website reads published Studio assets from the release hub. It shows Windows MSI and portable links, or Linux Debian and portable links only when the complete asset set for that platform and both architectures is present in a published release. Otherwise it points to the source build guide. Before a public release, verify exact asset hashes and applicable signatures, then test clean installation, upgrade, uninstall, and launch on supported systems. WinGet catalog acceptance is a separate public-state check.
 
 Windows binaries and the MSI use the existing OfficeIMO Authenticode certificate profile and a trusted timestamp. A missing signing tool, certificate, or timestamp is a release failure. Do not disable signing for a public artifact.
 
@@ -159,10 +158,6 @@ PowerForge owns the commands and reusable workflow. Other MSI products supply
 their own catalog profile, release metadata, Store identity and public artifact
 keys, then call the same workflow.
 
-For everyday macOS development and stable privacy permissions, use [`Build-StudioMacDevelopment.ps1`](Build-StudioMacDevelopment.ps1) and the [development signing instructions](Apple/README.md#local-macos-development).
+The Mac, iPad and iPhone editions are the native apps in [`Apple/OfficeIMOStudio`](../../Apple/OfficeIMOStudio/README.md); [Apple/README.md](Apple/README.md) covers their engine and App Store tooling.
 
-The direct-download macOS package uses explicit ad-hoc signing (`CodesignIdentity = "-"`) and the minimum JIT entitlement required by a non-NativeAOT .NET app for local bundle and launch proof. PowerForge omits hardened runtime for ad-hoc bundles because their nested libraries do not share an Apple Team ID. That output is not a public direct-distribution artifact. Before public macOS distribution, set a `Developer ID Application` identity, enable hardened runtime and trusted timestamps, and run the resulting exact `.app` through PowerForge's notarization, stapling, and Gatekeeper assessment flow. The trusted macOS builder must hold the signing identity and notary credentials; never put credentials in this configuration.
-
-Direct download and Mac App Store delivery are separate channels. The App Store channel uses its own sandbox profile, Apple distribution identities, store-owned updates, and a capability review for external helper processes. See [Apple/README.md](Apple/README.md) for the channel contract and future iOS boundary.
-
-DMG, Linux AppImage/Flatpak/RPM, and any future native format belong in reusable PowerForge packaging rather than Studio-local scripts. The portable archives, MSI, Debian package, and macOS app ZIP are build outputs only; the build does not publish them.
+Linux AppImage/Flatpak/RPM and any future native format belong in reusable PowerForge packaging rather than Studio-local scripts. The portable archives, MSI and Debian package are build outputs only; the build does not publish them.

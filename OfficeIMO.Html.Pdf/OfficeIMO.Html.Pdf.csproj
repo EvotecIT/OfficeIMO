@@ -48,6 +48,7 @@
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Html.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Workflows" />
+    <InternalsVisibleTo Include="OfficeIMO.Epub.Image" />
     <InternalsVisibleTo Include="OfficeIMO.Mhtml.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.Chm.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.Pdf.Tests" />

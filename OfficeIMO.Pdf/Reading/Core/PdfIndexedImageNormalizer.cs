@@ -574,9 +574,9 @@ internal static class PdfIndexedImageNormalizer {
             return false;
         }
 
-        int softMaskWidth = (int)(softMask.Dictionary.Get<PdfNumber>("Width")?.Value ?? 0);
-        int softMaskHeight = (int)(softMask.Dictionary.Get<PdfNumber>("Height")?.Value ?? 0);
-        int softMaskBitsPerComponent = (int)(softMask.Dictionary.Get<PdfNumber>("BitsPerComponent")?.Value ?? 0);
+        int softMaskWidth = ResourceResolver.ReadImageInteger(softMask.Dictionary, "Width", objects);
+        int softMaskHeight = ResourceResolver.ReadImageInteger(softMask.Dictionary, "Height", objects);
+        int softMaskBitsPerComponent = ResourceResolver.ReadImageInteger(softMask.Dictionary, "BitsPerComponent", objects);
         string softMaskColorSpace = GetNameOrEmpty(softMask.Dictionary.Items.TryGetValue("ColorSpace", out var softMaskColorSpaceObj) ? softMaskColorSpaceObj : null, objects);
         if (softMaskWidth != width ||
             softMaskHeight != height ||

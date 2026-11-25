@@ -48,17 +48,12 @@ public sealed partial class EpubPublication {
             stagedBytes += bytes.LongLength;
         }
         long delta = stagedBytes - replacedBytes;
-        var package = new XDocument(_package);
-        packageEdit?.Invoke(package.Root!);
-        EnsurePackageBudget(package, delta);
-        if (validatePublication) {
-            var proposed = new Dictionary<string, byte[]>(_entries, StringComparer.Ordinal);
-            foreach (var pair in payloads) proposed[pair.Key] = pair.Value;
-            ValidatePublication(package, proposed, new List<OfficeDiagnostic>(), token, changed: true);
-            EnsurePackageBudget(package, delta);
-        }
-        token.ThrowIfCancellationRequested();
-        packageEdit?.Invoke(Root);
+        // The package edit applies in place and is undone if validation, the budget or cancellation
+        // rejects the batch, so a rejected batch leaves every document and declaration unchanged.
+        EditPackage(() => {
+            packageEdit?.Invoke(Root);
+            if (validatePublication) ValidateContentEdits(edits, payloads, token);
+        }, delta, token);
         foreach (var pair in payloads) _entries[pair.Key] = pair.Value;
         _retainedBytes += delta;
         MarkChanged();

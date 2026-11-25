@@ -41,7 +41,8 @@ $libraryRoot = Join-Path $OutputDirectory 'lib'
 $inputsRoot = Join-Path $OutputDirectory 'link-inputs'
 $framework = Join-Path $OutputDirectory "$name.xcframework"
 $objectRoot = Join-Path $OutputDirectory 'objects'
-foreach ($directory in $publishRoot, $libraryRoot, $inputsRoot, $objectRoot, $framework) {
+$buildOutput = Join-Path $OutputDirectory 'dotnet/bin/OfficeIMO.Studio.Native'
+foreach ($directory in $publishRoot, $libraryRoot, $inputsRoot, $objectRoot, $framework, $buildOutput) {
     if (Test-Path $directory) { Remove-Item -Recurse -Force $directory }
 }
 New-Item -ItemType Directory -Force $publishRoot, $libraryRoot, $inputsRoot | Out-Null
@@ -63,7 +64,18 @@ foreach ($rid in $RuntimeIdentifier) {
     # Apple SDKs ship the C++ standard library as libc++; NativeAOT names it stdc++ for every Unix target.
     $inputs = $inputs | ForEach-Object { if ($_ -eq '-lstdc++') { '-lc++' } else { $_ } }
     Set-Content (Join-Path $inputsRoot "$rid.txt") (@("$name.a") + $inputs)
-    Copy-Item (Join-Path $publish "$name.deps.json") (Join-Path $inputsRoot "$rid.deps.json")
+    # Some SDKs leave the dependency manifest in the build output instead of the publish folder.
+    $deps = Join-Path $publish "$name.deps.json"
+    if (-not (Test-Path $deps)) {
+        # The build output folder is named from the configuration and runtime, such as release_osx-arm64.
+        $matching = @(Get-ChildItem $buildOutput -Recurse -Filter "$name.deps.json" | Where-Object {
+                $pivot = $_.Directory.Name.Split('_')
+                $pivot -contains $Configuration.ToLowerInvariant() -and $pivot -contains $rid
+            })
+        if ($matching.Count -ne 1) { throw "Expected one $name.deps.json for $rid ($Configuration), found $($matching.Count)." }
+        $deps = $matching[0].FullName
+    }
+    Copy-Item $deps (Join-Path $inputsRoot "$rid.deps.json")
 
     # Object files such as the bootstrapper export nothing: they start the runtime from a static initializer. As
     # archive members the linker would never load them, so they are prelinked into the object that holds the exports,

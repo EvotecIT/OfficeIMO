@@ -255,6 +255,14 @@
       "family": "other"
     },
     {
+      "name": "Jupyter Notebook",
+      "family": "other"
+    },
+    {
+      "name": "Notebook source",
+      "family": "other"
+    },
+    {
       "name": "POT",
       "family": "other"
     },
@@ -1061,9 +1069,11 @@
       "package": "OfficeIMO.Workflows",
       "support": "Targeted",
       "fidelity": "Semantic",
-      "api": "BookManuscriptImporter.ImportWordAsync(document, options)",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
       "surfaces": [
-        "dotnet"
+        "dotnet",
+        "cli",
+        "studio"
       ]
     },
     {
@@ -1508,7 +1518,7 @@
       "target": "PDF",
       "package": "OfficeIMO",
       "support": "Targeted",
-      "fidelity": "Semantic",
+      "fidelity": "FixedLayout",
       "api": "OfficeConverter.Convert(source, destination, options)",
       "surfaces": [
         "dotnet",
@@ -1660,12 +1670,14 @@
       "id": "html-epub",
       "source": "HTML",
       "target": "EPUB",
-      "package": "OfficeIMO.Epub",
+      "package": "OfficeIMO.Workflows",
       "support": "Targeted",
       "fidelity": "Semantic",
-      "api": "EpubManuscript.ImportHtmlAsync(HtmlConversionDocument.Parse(html), options)",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
       "surfaces": [
-        "dotnet"
+        "dotnet",
+        "cli",
+        "studio"
       ]
     },
     {
@@ -2106,9 +2118,11 @@
       "package": "OfficeIMO.Workflows",
       "support": "Targeted",
       "fidelity": "Semantic",
-      "api": "BookManuscriptImporter.ImportMarkdownAsync(document, options)",
+      "api": "OfficeWorkflow.RegisterConversions(); OfficeConverter.Convert(source, destination, options)",
       "surfaces": [
-        "dotnet"
+        "dotnet",
+        "cli",
+        "studio"
       ]
     },
     {
@@ -2521,6 +2535,109 @@
       "surfaces": [
         "dotnet"
       ]
+    },
+    {
+      "id": "notebook-docx",
+      "source": "Jupyter Notebook",
+      "target": "DOCX",
+      "package": "OfficeIMO.Notebook.Word",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "NotebookDocument.Load(stream).SaveAsWord(output, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio",
+        "powershell"
+      ],
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.ipynb -OutputPath ./out.docx"
+    },
+    {
+      "id": "notebook-html",
+      "source": "Jupyter Notebook",
+      "target": "HTML",
+      "package": "OfficeIMO.Notebook.Html",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "NotebookDocument.Load(stream).SaveAsHtml(output, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio",
+        "powershell"
+      ],
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.ipynb -OutputPath ./out.html"
+    },
+    {
+      "id": "notebook-markdown",
+      "source": "Jupyter Notebook",
+      "target": "Markdown",
+      "package": "OfficeIMO.Notebook.Markdown",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "NotebookDocument.Load(stream).ToMarkdown(options, out report)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio",
+        "powershell"
+      ],
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.ipynb -OutputPath ./out.md"
+    },
+    {
+      "id": "notebook-pdf",
+      "source": "Jupyter Notebook",
+      "target": "PDF",
+      "package": "OfficeIMO.Notebook.Pdf",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "NotebookDocument.Load(stream).SaveAsPdf(output, options)",
+      "surfaces": [
+        "dotnet",
+        "browser",
+        "cli",
+        "studio",
+        "powershell"
+      ],
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.ipynb -OutputPath ./out.pdf -Options @{ IncludeCode = $false }"
+    },
+    {
+      "id": "notebook-source-ipynb",
+      "source": "Notebook source",
+      "target": "Jupyter Notebook",
+      "package": "OfficeIMO.Notebook.Import",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "NotebookImporter.Load(stream, format).Value.Save(output)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio",
+        "powershell"
+      ],
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.qmd -OutputPath ./out.ipynb"
+    },
+    {
+      "id": "notebook-source-pdf",
+      "source": "Notebook source",
+      "target": "PDF",
+      "package": "OfficeIMO.Notebook.Import",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OfficeConverter.Convert(source, destination, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio",
+        "powershell"
+      ],
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.qmd -OutputPath ./out.pdf"
     },
     {
       "id": "numbers-pdf",

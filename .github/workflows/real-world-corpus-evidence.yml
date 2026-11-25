@@ -238,3 +238,138 @@ jobs:
         run: |
           echo "The corpus could not be downloaded and validated, so this run produced no OfficeIMO evidence." >> "$GITHUB_STEP_SUMMARY"
           exit 1
+
+  openxml-differential:
+    name: Open XML differential corpus (non-gating)
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: read
+      pull-requests: read
+    env:
+      SOURCE_MANIFEST: Build/RealWorldCorpus/openxml-corpus-sources.json
+      FETCH_TIMEOUT_SECONDS: '1200'
+      RUN_DEADLINE_SECONDS: '3600'
+      FILE_TIMEOUT_SECONDS: '30'
+      MAX_TRAVERSAL_ENTRIES: '8000'
+      MAX_TOTAL: '4000'
+      CORPUS_PARALLELISM: '4'
+      WORKER_HEAP_LIMIT_MB: '3072'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Decide whether the change touches the compared readers
+        id: scope
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" != "pull_request" ]]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          pattern='^(Build/RealWorldCorpus/|OfficeIMO\.Core/Internal/OpenXml/|OfficeIMO\.Core/Documents/OfficePackageSecurityInspector|OfficeIMO\.Word/WordStreamedBodyText|OfficeIMO\.Reader\.Word/|OfficeIMO\.Reader\.PowerPoint/|OfficeIMO\.PowerPoint/Reading/|OfficeIMO\.Excel/Read/|OfficeIMO\.Excel/ExcelDocument\.DataReader|\.github/workflows/real-world-corpus-evidence\.yml)'
+          # A failed lookup fails the step rather than reading as a change outside the compared readers.
+          changed="$(gh pr diff "$PR_NUMBER" --repo "${{ github.repository }}" --name-only)"
+          if grep -Eq "$pattern" <<< "$changed"; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "This change does not touch the Open XML readers or the corpus runner, so the differential corpus was not run." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Setup .NET
+        if: steps.scope.outputs.run == 'true'
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Build the corpus runner
+        if: steps.scope.outputs.run == 'true'
+        run: dotnet build Build/RealWorldCorpus/OfficeIMO.RealWorldCorpus.Tool.csproj --framework net10.0 --configuration "$BUILD_CONFIGURATION"
+
+      - name: Fetch and verify the pinned Open XML corpora
+        id: fetch
+        if: steps.scope.outputs.run == 'true'
+        shell: bash
+        run: |
+          set -uo pipefail
+          corpus="${RUNNER_TEMP}/openxml-corpus"
+          reports="${RUNNER_TEMP}/openxml-corpus-reports"
+          mkdir -p "$corpus" "$reports"
+          echo "corpus_directory=$corpus" >> "$GITHUB_OUTPUT"
+          echo "report_directory=$reports" >> "$GITHUB_OUTPUT"
+          if ! timeout --signal=TERM --kill-after=30s "$FETCH_TIMEOUT_SECONDS" dotnet "Build/RealWorldCorpus/bin/$BUILD_CONFIGURATION/net10.0/OfficeIMO.RealWorldCorpus.Tool.dll" fetch-sources \
+            --manifest "$SOURCE_MANIFEST" --output "$corpus"; then
+            printf '{"schemaVersion":1,"measurementStatus":"not-measured","reason":"corpus-fetch-or-verification-failed"}\n' > "$reports/download-status.json"
+            if [[ -f "$corpus/sources.json" ]]; then cp "$corpus/sources.json" "$reports/sources.json"; fi
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "available=true" >> "$GITHUB_OUTPUT"
+
+      - name: Compare OfficeIMO's Open XML readers with the SDK
+        if: steps.fetch.outputs.available == 'true'
+        shell: bash
+        run: |
+          dotnet "Build/RealWorldCorpus/bin/$BUILD_CONFIGURATION/net10.0/OfficeIMO.RealWorldCorpus.Tool.dll" run \
+            --operation openxml-differential \
+            --input "${{ steps.fetch.outputs.corpus_directory }}/files" \
+            --source-provenance "${{ steps.fetch.outputs.corpus_directory }}/sources.json" \
+            --json "${{ steps.fetch.outputs.report_directory }}/report.json" \
+            --markdown "${{ steps.fetch.outputs.report_directory }}/report.md" \
+            --corpus-id openxml-test-corpora \
+            --max-per-format "$MAX_TOTAL" \
+            --max-total "$MAX_TOTAL" \
+            --max-file-bytes 52428800 \
+            --max-traversal-entries "$MAX_TRAVERSAL_ENTRIES" \
+            --timeout-seconds "$FILE_TIMEOUT_SECONDS" \
+            --parallelism "$CORPUS_PARALLELISM" \
+            --deadline-seconds "$RUN_DEADLINE_SECONDS" \
+            --worker-heap-limit-mb "$WORKER_HEAP_LIMIT_MB" \
+            --include-source-names \
+            --include-difference-text
+
+      - name: Publish the differential summary
+        if: always() && steps.fetch.outputs.available == 'true'
+        shell: bash
+        run: |
+          report="${{ steps.fetch.outputs.report_directory }}/report.md"
+          if [[ -f "$report" ]]; then
+            cat "$report" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "The corpus runner did not produce its Markdown report." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Surface differences without gating the change
+        if: steps.fetch.outputs.available == 'true'
+        shell: pwsh
+        run: |
+          $report = Get-Content -LiteralPath '${{ steps.fetch.outputs.report_directory }}/report.json' -Raw | ConvertFrom-Json -Depth 100
+          foreach ($lane in $report.openXmlLanes) {
+            if ($lane.mismatch -gt 0 -or $lane.ourError -gt 0) {
+              Write-Host "::warning::$($lane.lane): $($lane.mismatch) mismatches and $($lane.ourError) OfficeIMO errors against the SDK in $($lane.files) files."
+            }
+          }
+          if ($report.totals.skippedDeadline -gt 0) {
+            Write-Host "::warning::The run deadline stopped $($report.totals.skippedDeadline) files from being measured."
+          }
+
+      - name: Upload reports only
+        if: always() && steps.scope.outputs.run == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: openxml-differential-corpus
+          path: ${{ steps.fetch.outputs.report_directory }}
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Mark unavailable corpus evidence as not measured
+        if: steps.scope.outputs.run == 'true' && steps.fetch.outputs.available != 'true'
+        shell: bash
+        run: |
+          echo "The Open XML corpora could not be fetched and verified, so this run produced no differential evidence." >> "$GITHUB_STEP_SUMMARY"
+          exit 1

@@ -61,7 +61,10 @@ struct WelcomeView: View {
     @MainActor
     static func presentIfNeeded() {
         let defaults = UserDefaults.standard
-        guard !defaults.bool(forKey: shownKey), !Autorun.isRequested,
+        #if DEBUG || OFFICEIMO_AUTORUN
+        if Autorun.isRequested { return }
+        #endif
+        guard !defaults.bool(forKey: shownKey),
               !ProcessInfo.processInfo.arguments.contains("-OfficeIMOSkipWelcome") else { return }
         defaults.set(true, forKey: shownKey)
         var host: UIHostingController<WelcomeView>?

@@ -248,7 +248,12 @@ public sealed class OfficeDocumentPage {
     /// <summary>
     /// Location metadata for the page-like container.
     /// </summary>
-    public ReaderLocation Location { get; set; } = new ReaderLocation();
+    public ReaderLocation Location {
+        // Created on first read: producers almost always assign their own location.
+        get => _location ??= new ReaderLocation();
+        set => _location = value;
+    }
+    private ReaderLocation? _location;
 
     /// <summary>
     /// Logical blocks on this page-like container.
@@ -326,7 +331,12 @@ public sealed class OfficeDocumentBlock {
     /// <summary>
     /// Source location for this block.
     /// </summary>
-    public ReaderLocation Location { get; set; } = new ReaderLocation();
+    public ReaderLocation Location {
+        // Created on first read: producers almost always assign their own location.
+        get => _location ??= new ReaderLocation();
+        set => _location = value;
+    }
+    private ReaderLocation? _location;
 
     /// <summary>
     /// Source geometry in points when available.
@@ -429,7 +439,12 @@ public sealed class OfficeDocumentAsset {
     /// <summary>
     /// Source location for this asset.
     /// </summary>
-    public ReaderLocation Location { get; set; } = new ReaderLocation();
+    public ReaderLocation Location {
+        // Created on first read: producers almost always assign their own location.
+        get => _location ??= new ReaderLocation();
+        set => _location = value;
+    }
+    private ReaderLocation? _location;
 }
 
 /// <summary>
@@ -539,7 +554,12 @@ public sealed class OfficeDocumentLink {
     /// <summary>
     /// Source location for this link.
     /// </summary>
-    public ReaderLocation Location { get; set; } = new ReaderLocation();
+    public ReaderLocation Location {
+        // Created on first read: producers almost always assign their own location.
+        get => _location ??= new ReaderLocation();
+        set => _location = value;
+    }
+    private ReaderLocation? _location;
 
     /// <summary>
     /// Source geometry in points when available.
@@ -584,7 +604,12 @@ public sealed class OfficeDocumentFormField {
     /// <summary>
     /// Source location for this field or widget.
     /// </summary>
-    public ReaderLocation Location { get; set; } = new ReaderLocation();
+    public ReaderLocation Location {
+        // Created on first read: producers almost always assign their own location.
+        get => _location ??= new ReaderLocation();
+        set => _location = value;
+    }
+    private ReaderLocation? _location;
 
     /// <summary>
     /// Source geometry in points when available.
@@ -634,7 +659,12 @@ public sealed class OfficeDocumentOcrCandidate {
     /// <summary>
     /// Source location for this OCR candidate.
     /// </summary>
-    public ReaderLocation Location { get; set; } = new ReaderLocation();
+    public ReaderLocation Location {
+        // Created on first read: producers almost always assign their own location.
+        get => _location ??= new ReaderLocation();
+        set => _location = value;
+    }
+    private ReaderLocation? _location;
 
     /// <summary>
     /// Source geometry in points when available.

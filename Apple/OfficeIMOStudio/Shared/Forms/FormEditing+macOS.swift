@@ -33,6 +33,13 @@ final class FormEditor: NSObject, NSTextFieldDelegate {
             finish(commit: true)
             return false
         }
+        return activate(page: page, field: field, widget: widget)
+    }
+
+    /// Fills a field as a click on it does, from the click or from VoiceOver, which names the field it presents rather
+    /// than a point where another field may overlap it.
+    @discardableResult
+    func activate(page: Int, field: FormField, widget: FormField.Widget) -> Bool {
         if editing?.field.name != field.name { finish(commit: true) }
         switch field.kind {
         case .text: beginTyping(page: page, field: field, box: layout().layoutRect(widget.bounds.cgRect, page: page))

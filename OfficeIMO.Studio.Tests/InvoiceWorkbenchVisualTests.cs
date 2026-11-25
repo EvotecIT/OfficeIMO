@@ -45,7 +45,7 @@ public sealed class InvoiceWorkbenchVisualTests {
                 window.UpdateLayout();
                 var standards = view.FindControl<CheckBox>("InvoiceStandardsToggle")!;
                 standards.BringIntoView(); window.UpdateLayout();
-                Assert.Equal(model.IsStandardsAvailable, standards.IsEnabled);
+                Assert.True(standards.IsEnabled);
                 Capture(window, $"invoice-{width}-standards.png");
             } finally { window.Close(); }
             return true;

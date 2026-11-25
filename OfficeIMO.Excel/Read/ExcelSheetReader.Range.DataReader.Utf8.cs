@@ -106,6 +106,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (TryCreateStreamingUsedRange(owner, ct, out source, out declaredFirstColumn)) return true;
+                if (TryCreateWindowedUsedRange(owner, ct, out source, out declaredFirstColumn)) return true;
                 byte[]? buffer = null;
                 bool validatedIndexedXml = false;
                 try {
@@ -418,10 +419,9 @@ namespace OfficeIMO.Excel {
 
                         return;
                     case Utf8CellKind.Boolean:
-                        bool parsedBoolean = value.Length == 1
-                            ? value[0] == (byte)'1'
-                            : value.IndexOf((byte)'&') >= 0
-                                && string.Equals(DecodeString(start, length), "1", StringComparison.Ordinal);
+                        bool parsedBoolean = value.IndexOf((byte)'&') >= 0
+                            ? ExcelBooleanCellText.IsTrue(DecodeString(start, length))
+                            : ExcelBooleanCellText.IsTrue(value);
                         if (targetKind == XmlDataReaderTargetKind.String) {
                             objectValue = parsedBoolean.ToString();
                         } else if (targetKind == XmlDataReaderTargetKind.Boolean) {
@@ -464,6 +464,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 StopStreaming();
+                DisposePartWindow();
                 _disposed = true;
                 ReleaseSharedMappingStorage();
                 if (_buffer != null) {
@@ -601,7 +602,7 @@ namespace OfficeIMO.Excel {
                 int nextImplicitRow = 1;
                 int previousRow = 0;
                 bool repeatedRowShapeValidated = false;
-                while (position < _length || TryAdvanceInflation(ct)) {
+                while (position < _length || TryAdvanceInflation(ref position, ct)) {
                     ct.ThrowIfCancellationRequested();
                     SkipWhitespaceBetweenRows(ref position);
                     if (_parallelIndex != null && position >= _parallelIndex.NextBoundary
@@ -1126,7 +1127,7 @@ namespace OfficeIMO.Excel {
             /// </summary>
             private bool InheritedDisplayStylesPossible() {
                 if (_inheritedDisplayStylesPossible < 0) {
-                    bool rowStyles = _streaming || _buffer!.AsSpan(0, _length).IndexOf(CustomFormatAttributeName) >= 0;
+                    bool rowStyles = _streaming || _windowedPart || _buffer!.AsSpan(0, _length).IndexOf(CustomFormatAttributeName) >= 0;
                     _inheritedDisplayStylesPossible = rowStyles || _owner.HasFormattedColumnStyles ? 1 : 0;
                 }
                 return _inheritedDisplayStylesPossible == 1;
@@ -1436,7 +1437,7 @@ namespace OfficeIMO.Excel {
             }
 
             private static bool ParseBoolean(ReadOnlySpan<byte> value) {
-                return value.Length == 1 && value[0] == (byte)'1';
+                return ExcelBooleanCellText.IsTrue(value);
             }
 
             private static ReadOnlySpan<byte> TrimAsciiWhitespace(ReadOnlySpan<byte> value) {

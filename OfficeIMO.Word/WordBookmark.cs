@@ -50,7 +50,10 @@ namespace OfficeIMO.Word {
         /// </summary>
         public int Id {
             get => int.TryParse(_bookmarkStart.Id, out var id) ? id : 0;
-            set => _bookmarkStart.Id = value.ToString();
+            set {
+                _bookmarkStart.Id = value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                _document.ObserveBookmarkId(value);
+            }
         }
 
         /// <summary>
@@ -133,8 +136,9 @@ namespace OfficeIMO.Word {
         /// <param name="bookmarkName">Name of the bookmark.</param>
         /// <returns>The created bookmark.</returns>
         public static WordBookmark AddBookmark(WordParagraph paragraph, string bookmarkName) {
-            BookmarkStart bms = new BookmarkStart() { Name = bookmarkName, Id = paragraph._document.BookmarkId.ToString() };
-            BookmarkEnd bme = new BookmarkEnd() { Id = paragraph._document.BookmarkId.ToString() };
+            string id = paragraph._document.GetNextBookmarkId().ToString(System.Globalization.CultureInfo.InvariantCulture);
+            BookmarkStart bms = new BookmarkStart() { Name = bookmarkName, Id = id };
+            BookmarkEnd bme = new BookmarkEnd() { Id = id };
 
             //paragraph.VerifyRun();
             if (paragraph._run == null) {

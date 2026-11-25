@@ -1,9 +1,14 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Pdf;
 using OfficeIMO.Pdf.Word;
 using OfficeIMO.Pdf.PowerPoint;
+using OfficeIMO.Notebook.Html;
+using OfficeIMO.Notebook.Markdown;
+using OfficeIMO.Notebook.Pdf;
+using OfficeIMO.Notebook.Word;
 
 namespace OfficeIMO;
 
@@ -24,6 +29,14 @@ internal sealed class OfficeBatchPortableSettings {
     public PdfHtmlProfile? HtmlProfile { get; set; }
     public string? TextEncoding { get; set; }
     public int TabSize { get; set; } = 8;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public PortableNotebookPdfSettings? NotebookPdf { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public NotebookHtmlExportOptions? NotebookHtml { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public NotebookWordExportOptions? NotebookWord { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public NotebookMarkdownExportOptions? NotebookMarkdown { get; set; }
 
     internal OfficeConversionOptions CreateOptions() => new OfficeConversionOptions {
         SourceFormat = SourceFormat, SourceExtension = SourceExtension,
@@ -33,7 +46,9 @@ internal sealed class OfficeBatchPortableSettings {
         PdfPowerPoint = PowerPointMode == null ? null : new PdfPowerPointExportOptions { Mode = PowerPointMode.Value, Dpi = RasterDpi ?? 144D },
         Excel = WorksheetLayout == null ? null : new ExcelPdfExportOptions { WorksheetLayout = WorksheetLayout.Value },
         PdfHtml = HtmlProfile == null ? null : new PdfHtmlExportOptions { Profile = HtmlProfile.Value },
-        PlainText = TextEncoding == null && TabSize == 8 ? null : new PdfTextImportOptions { EncodingName = TextEncoding, TabSize = TabSize }
+        PlainText = TextEncoding == null && TabSize == 8 ? null : new PdfTextImportOptions { EncodingName = TextEncoding, TabSize = TabSize },
+        NotebookPdf = NotebookPdf?.CreateOptions(), NotebookHtml = NotebookHtml?.Clone(),
+        NotebookWord = NotebookWord?.Clone(), NotebookMarkdown = NotebookMarkdown?.Clone()
     }.Clone();
 
     internal static OfficeBatchPortableSettings Capture(OfficeConversionOptions options) {
@@ -47,7 +62,9 @@ internal sealed class OfficeBatchPortableSettings {
             WordMode = options.PdfWord?.Mode, PowerPointMode = options.PdfPowerPoint?.Mode,
             RasterDpi = options.PdfWord?.Dpi ?? options.PdfPowerPoint?.Dpi,
             WorksheetLayout = options.Excel?.WorksheetLayout, HtmlProfile = options.PdfHtml?.Profile,
-            TextEncoding = options.PlainText?.EncodingName, TabSize = options.PlainText?.TabSize ?? 8
+            TextEncoding = options.PlainText?.EncodingName, TabSize = options.PlainText?.TabSize ?? 8,
+            NotebookPdf = CaptureNotebookPdf(options.NotebookPdf), NotebookHtml = options.NotebookHtml?.Clone(),
+            NotebookWord = options.NotebookWord?.Clone(), NotebookMarkdown = options.NotebookMarkdown?.Clone()
         };
         if (result.TextEncoding?.Length > 128) throw new InvalidDataException("Text encoding names cannot exceed 128 characters.");
         OfficeConversionOptions baseline = result.CreateOptions();
@@ -77,6 +94,25 @@ internal sealed class OfficeBatchPortableSettings {
             throw new NotSupportedException("Saved Word PDF settings support renderer properties and resource policies. Low-level PDF configuration and live field updates remain execution-only.");
         return options.Clone();
     }
+
+    private static PortableNotebookPdfSettings? CaptureNotebookPdf(NotebookPdfExportOptions? options) {
+        if (options == null) return null;
+        var layout = options.MarkdownOptions;
+        if (layout.PdfOptions != null || layout.RemoteImageResolver != null ||
+            !Same(layout, new NotebookPdfExportOptions().MarkdownOptions, OfficeBatchConfigurationJsonContext.Default.MarkdownPdfExportOptions)) {
+            throw new NotSupportedException("Saved notebook PDF jobs retain content and title settings. Advanced PDF layout settings remain execution-only.");
+        }
+        return new PortableNotebookPdfSettings(options.IncludeCode, options.IncludeOutputs, options.IncludeExecutionCounts,
+            options.Title, options.Author, options.FailOnLoss);
+    }
     private static bool Same<T>(T? value, T? baseline, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T> type) where T : class, new() =>
         JsonSerializer.Serialize(value ?? new T(), type) == JsonSerializer.Serialize(baseline ?? new T(), type);
+}
+
+internal sealed record PortableNotebookPdfSettings(bool IncludeCode, bool IncludeOutputs, bool IncludeExecutionCounts,
+    string? Title, string? Author, bool FailOnLoss) {
+    internal NotebookPdfExportOptions CreateOptions() => new() {
+        IncludeCode = IncludeCode, IncludeOutputs = IncludeOutputs, IncludeExecutionCounts = IncludeExecutionCounts,
+        Title = Title, Author = Author, FailOnLoss = FailOnLoss
+    };
 }

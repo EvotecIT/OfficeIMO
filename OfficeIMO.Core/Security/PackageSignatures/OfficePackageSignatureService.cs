@@ -570,13 +570,8 @@ internal static class OfficePackageSignatureService {
         return signatureUris;
     }
 
-    private static string GetRelationshipPartUri(string sourcePartUri) {
-        string normalized = OfficePackageSignatureArchive.NormalizePartUri(sourcePartUri);
-        int slash = normalized.LastIndexOf('/');
-        string directory = slash <= 0 ? "/" : normalized.Substring(0, slash + 1);
-        string fileName = normalized.Substring(slash + 1);
-        return directory + "_rels/" + fileName + ".rels";
-    }
+    private static string GetRelationshipPartUri(string sourcePartUri) =>
+        global::OfficeIMO.Core.Internal.OpenXml.OfficeOpcPartNames.GetRelationshipsPartName(OfficePackageSignatureArchive.NormalizePartUri(sourcePartUri));
 
     private static string ResolveRelationshipTarget(string sourcePartUri, string target) {
         if (target.IndexOf('#') >= 0 || target.IndexOf('?') >= 0) {

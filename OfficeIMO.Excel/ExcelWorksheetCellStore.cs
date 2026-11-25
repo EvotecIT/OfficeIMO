@@ -83,15 +83,24 @@ namespace OfficeIMO.Excel {
         /// Gets whether a new plain cell may be stored in this row. A DOM cell without a canonical reference, or one
         /// out of column order, could not be merged with stored cells by column, so such a row keeps its cells in the DOM.
         /// </summary>
-        internal bool AcceptsStoredCells => !_hasUnorderedDomCells && Environment.CurrentManagedThreadId == _ownerThreadId;
+        internal bool AcceptsStoredCells => _firstUnorderedDomCell == null && Environment.CurrentManagedThreadId == _ownerThreadId;
 
-        private bool _hasUnorderedDomCells;
+        // Every stored cell was read before this DOM cell, so stored cells always go in front of it.
+        private OpenXmlElement? _firstUnorderedDomCell;
 
         /// <summary>Gets whether every DOM cell has a canonical reference in column order with the stored cells.</summary>
-        internal bool HasOrderedCells => !_hasUnorderedDomCells;
+        internal bool HasOrderedCells => _firstUnorderedDomCell == null;
 
-        /// <summary>Records that the loader kept a DOM cell it could not place by column.</summary>
-        internal void MarkUnorderedDomCells() => _hasUnorderedDomCells = true;
+        /// <summary>
+        /// Records the first DOM cell the loader could not place by column. Cells from it on stay in the order read, and
+        /// readers and writers place them by the read rule.
+        /// </summary>
+        internal void MarkUnorderedDomCells(OpenXmlElement cell) => _firstUnorderedDomCell ??= cell;
+
+        /// <summary>Records that a materialized row's cells were rewritten with canonical references in column order.</summary>
+        internal void MarkCellsCanonical() {
+            if (_cells == null) _firstUnorderedDomCell = null;
+        }
 
         internal static string TypeName(ExcelStoredCellType type) => TypeNames[(int)type];
 
@@ -249,9 +258,11 @@ namespace OfficeIMO.Excel {
                     string rowText = InvariantNumberText.Get(rowIndex);
                     OpenXmlElement? cursor = base.FirstChild;
                     int cursorColumn = ColumnOf(cursor);
+                    // In a flagged row the merge by column stops at the first unordered cell, which keeps the order read.
+                    OpenXmlElement? boundary = _firstUnorderedDomCell;
                     for (int index = 0; index < count; index++) {
                         ref ExcelStoredCell stored = ref cells[index];
-                        while (cursor != null && cursorColumn < stored.Column) {
+                        while (cursor != null && cursorColumn < stored.Column && !ReferenceEquals(cursor, boundary)) {
                             cursor = cursor.NextSibling();
                             cursorColumn = ColumnOf(cursor);
                         }
@@ -270,8 +281,9 @@ namespace OfficeIMO.Excel {
         private static string ColumnLetters(int column) => ColumnLetterCache[column] ??= ExcelA1.ColumnIndexToLetters(column);
 
         private void InsertDomCell(Cell cell, int column) {
+            OpenXmlElement? boundary = _firstUnorderedDomCell;
             for (OpenXmlElement? child = base.FirstChild; child != null; child = child.NextSibling()) {
-                if (ColumnOf(child) > column) {
+                if (ColumnOf(child) > column || ReferenceEquals(child, boundary)) {
                     base.InsertBefore(cell, child);
                     return;
                 }

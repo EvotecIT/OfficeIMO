@@ -9,9 +9,10 @@ internal static class PdfFontInput {
     internal static byte[] ReadFile(string path) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
         string fullPath = Path.GetFullPath(path);
-        var file = new FileInfo(fullPath);
-        EnsureWithinLimit(file.Length);
+        // The opened file's length comes from the descriptor. FileInfo.Length would read the entry's attributes,
+        // which fails on iOS for files the app doesn't own, such as system fonts.
         using var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        EnsureWithinLimit(stream.Length);
         return OfficeStreamReader.ReadRemainingBytes(stream, MaximumFontFaceBytes);
     }
 

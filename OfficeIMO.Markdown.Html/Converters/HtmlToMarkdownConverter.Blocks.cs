@@ -104,7 +104,7 @@ internal sealed partial class HtmlToMarkdownConverter {
         || CanConvertAnchorToLinkedImageBlock(element, context);
 
     private static bool IsVisualContractElement(IElement element) {
-        if (element == null) {
+        if (element == null || !HasVisualContractAttribute(element)) {
             return false;
         }
 
@@ -114,6 +114,18 @@ internal sealed partial class HtmlToMarkdownConverter {
         }
 
         return MarkdownVisualElementContract.TryParse(attributes, out _);
+    }
+
+    // The contract needs this attribute, so most elements are answered without copying attributes.
+    private static bool HasVisualContractAttribute(IElement element) {
+        var attributes = element.Attributes;
+        for (int index = 0; index < attributes.Length; index++) {
+            if (string.Equals(attributes[index]?.Name, MarkdownVisualElementContract.AttributeVisualContract, StringComparison.OrdinalIgnoreCase)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool HasVisibleInlineSibling(IElement element, ConversionContext context) {
@@ -414,7 +426,7 @@ internal sealed partial class HtmlToMarkdownConverter {
 
     private static bool TryConvertVisualContractElement(IElement element, ConversionContext context, out SemanticFencedBlock visualBlock) {
         visualBlock = null!;
-        if (element == null || context == null) {
+        if (element == null || context == null || !HasVisualContractAttribute(element)) {
             return false;
         }
 

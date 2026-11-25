@@ -1,5 +1,6 @@
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
+using OfficeIMO.Pdf;
 using OfficeIMO.Tool.Agent;
 using Xunit;
 
@@ -95,6 +96,31 @@ public sealed class McpProtocolTests {
                 ["path"] = outsidePath
             }, cancellationToken: timeout.Token);
             Assert.True(inspectedOutside.IsError);
+
+            string assetSource = Path.Combine(allowedRoot, "asset-source.pdf");
+            using (PdfDocument pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Asset page"))) {
+                await File.WriteAllBytesAsync(assetSource, pdf.ToBytes(), timeout.Token);
+            }
+            string assetOutput = Path.Combine(allowedRoot, "pdf-assets");
+            string outsideOutput = Path.Combine(outsideRoot, "pdf-assets");
+            Assert.True((await ExtractAssets(outsideOutput, 1024 * 1024)).IsError);
+            Assert.False(Directory.Exists(outsideOutput));
+            Assert.True((await ExtractAssets(assetOutput, 1)).IsError);
+            Assert.False(Directory.Exists(assetOutput));
+            Assert.Empty(Directory.EnumerateDirectories(allowedRoot, ".pdf-assets-*"));
+
+            CallToolResult assets = await ExtractAssets(assetOutput, 1024 * 1024);
+            Assert.False(assets.IsError);
+            Assert.Equal(Directory.EnumerateFiles(assetOutput, "*", SearchOption.AllDirectories).Count(),
+                assets.StructuredContent!.Value.GetProperty("artifactCount").GetInt32());
+            Assert.True(File.Exists(Path.Combine(assetOutput, "report.html")));
+            Assert.True(File.Exists(Path.Combine(assetOutput, "report.json")));
+            Assert.True(File.Exists(Path.Combine(assetOutput, "pages", "0001.svg")));
+
+            async Task<CallToolResult> ExtractAssets(string outputDirectory, long maximumOutputBytes) =>
+                await client.CallToolAsync("officeimo_pdf_extract_assets", new Dictionary<string, object?> {
+                    ["path"] = assetSource, ["outputDirectory"] = outputDirectory, ["maximumOutputBytes"] = maximumOutputBytes
+                }, cancellationToken: timeout.Token);
         } finally {
             if (Directory.Exists(testRoot)) Directory.Delete(testRoot, recursive: true);
         }
@@ -136,6 +162,7 @@ public sealed class McpProtocolTests {
                 "officeimo_pdf_compare",
                 "officeimo_pdf_convert_to_pdfa",
                 "officeimo_pdf_export_pages",
+                "officeimo_pdf_extract_assets",
                 "officeimo_pdf_ocr",
                 "officeimo_pdf_ocr_providers",
                 "officeimo_pdf_print_plan",

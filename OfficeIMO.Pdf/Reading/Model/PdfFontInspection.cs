@@ -271,6 +271,8 @@ public sealed class PdfFontInfo {
     /// </summary>
     public byte[]? EmbeddedProgramBytes => _embeddedProgramBytes is null ? null : (byte[])_embeddedProgramBytes.Clone();
 
+    internal byte[]? DecodedProgram => _embeddedProgramBytes;
+
     /// <summary>Decoded embedded font program byte length when bytes were requested and retained.</summary>
     public int? EmbeddedProgramDecodedLength => _embeddedProgramBytes?.Length;
 

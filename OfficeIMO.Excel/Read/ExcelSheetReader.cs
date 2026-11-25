@@ -641,7 +641,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (type == CellValues.Boolean && rawText != null) {
-                value = BoxBoolean(rawText == "1");
+                value = BoxBoolean(ExcelBooleanCellText.IsTrue(rawText));
                 return true;
             }
 
@@ -752,7 +752,7 @@ namespace OfficeIMO.Excel {
                 return GetSharedString(sstIndex);
 
             if (type == CellValues.Boolean && rawText != null)
-                return BoxBoolean(rawText == "1");
+                return BoxBoolean(ExcelBooleanCellText.IsTrue(rawText));
 
             if (type == CellValues.Number && rawText != null) {
                 if (_opt.TreatDatesUsingNumberFormat && styleIndex is not null && Styles.IsDateLike(styleIndex.Value)) {

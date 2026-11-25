@@ -143,11 +143,11 @@ internal static class WordListNumberingResolver {
         internal string? BasedOn => _style != null ? _style.BasedOn?.Val?.Value : _definition!.BasedOn;
 
         internal int? NumberId => _style != null
-            ? _style.StyleParagraphProperties?.NumberingProperties?.NumberingId?.Val?.Value
+            ? _style.StyleParagraphProperties?.GetFirstChild<NumberingProperties>()?.GetFirstChild<NumberingId>()?.Val?.Value
             : _definition!.NumberId;
 
         internal int? Level => _style != null
-            ? _style.StyleParagraphProperties?.NumberingProperties?.NumberingLevelReference?.Val?.Value
+            ? _style.StyleParagraphProperties?.GetFirstChild<NumberingProperties>()?.GetFirstChild<NumberingLevelReference>()?.Val?.Value
             : _definition!.Level;
     }
 
@@ -271,7 +271,7 @@ internal static class WordListNumberingResolver {
             return false;
         }
 
-        NumberingProperties? direct = paragraph._paragraph.ParagraphProperties?.NumberingProperties;
+        NumberingProperties? direct = paragraph._paragraph.GetFirstChild<ParagraphProperties>()?.GetFirstChild<NumberingProperties>();
         int? numberId = ReadNumberId(direct);
         int? level = ReadLevel(direct);
         bool hasDirectNumberId = numberId.HasValue;
@@ -288,7 +288,7 @@ internal static class WordListNumberingResolver {
 
         if (!numberId.HasValue || !level.HasValue) {
             styleCatalog ??= GetCachedStyleCatalog(paragraph._document);
-            string? styleId = paragraph._paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value;
+            string? styleId = paragraph._paragraph.GetFirstChild<ParagraphProperties>()?.GetFirstChild<ParagraphStyleId>()?.Val?.Value;
             NumberingProperties? inherited = ResolveStyleNumbering(styleCatalog, styleId, cancellationToken);
             numberId ??= ReadNumberId(inherited);
             if (!numberId.HasValue && ResolveLinkedStyle(styleCatalog, styleId, cancellationToken) is { } linked) {
@@ -397,8 +397,8 @@ internal static class WordListNumberingResolver {
     }
 
     private static int? ReadNumberId(NumberingProperties? properties) =>
-        properties?.NumberingId?.Val?.Value;
+        properties?.GetFirstChild<NumberingId>()?.Val?.Value;
 
     private static int? ReadLevel(NumberingProperties? properties) =>
-        properties?.NumberingLevelReference?.Val?.Value;
+        properties?.GetFirstChild<NumberingLevelReference>()?.Val?.Value;
 }

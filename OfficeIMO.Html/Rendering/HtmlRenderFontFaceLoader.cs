@@ -46,7 +46,11 @@ internal static class HtmlRenderFontFaceLoader {
                 continue;
             }
 
-            foreach (HtmlCssFontFaceDefinition definition in HtmlResourcePipeline.ExtractFontFaces(HtmlStyleElementText.Read(styleElement), pipelineOptions)) {
+            string css = HtmlStyleElementText.Read(styleElement);
+            IReadOnlyList<HtmlCssFontFaceDefinition> definitions = options.ExternalStylesheets != null && styleElement.HasAttribute("data-officeimo-source")
+                ? options.ExternalStylesheets.ExtractFonts(options.ExternalStylesheets.ReuseMaterializedText(css), pipelineOptions)
+                : HtmlResourcePipeline.ExtractFontFaces(css, pipelineOptions);
+            foreach (HtmlCssFontFaceDefinition definition in definitions) {
                 LoadDefinition(
                     definition,
                     baseUri,
@@ -179,14 +183,12 @@ internal static class HtmlRenderFontFaceLoader {
             int maximumDecodedBytes = (int)Math.Min(remainingDecodedBytes, int.MaxValue);
             // Policy, media type and budget checks above run for every conversion; only the
             // parsed program of identical bytes is shared, and only when its charge fits.
-            if (fonts.TryAddContentBounded(
-                definition.FamilyName,
-                bytes,
-                descriptor,
-                ranges,
-                maximumDecodedBytes,
-                out int acceptedDecodedBytes,
-                out string? fontError)) {
+            bool added = options.OperationFontCache is { } cache
+                ? fonts.TryAddOperationFont(cache, definition.FamilyName, bytes, descriptor, ranges, maximumDecodedBytes,
+                    out int acceptedDecodedBytes, out string? fontError)
+                : fonts.TryAddContentBounded(definition.FamilyName, bytes, descriptor, ranges, maximumDecodedBytes,
+                    out acceptedDecodedBytes, out fontError);
+            if (added) {
                 resources.AcceptDecodedFontBytes(acceptedDecodedBytes);
                 usage.RegisterAvailable(definition.FamilyName, descriptor, ranges, definitionOrder, definitionDiagnostics);
                 return;

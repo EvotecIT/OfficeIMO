@@ -1,0 +1,33 @@
+name: EPUBCheck evidence
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Generate and validate EPUB fixtures
+        run: python3 Build/Epub/check_fixtures.py --output "$RUNNER_TEMP/epubcheck"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: epubcheck-evidence
+          path: |
+            ${{ runner.temp }}/epubcheck/epubcheck-distribution.txt
+            ${{ runner.temp }}/epubcheck/fixtures/manifest.json
+            ${{ runner.temp }}/epubcheck/fixtures/*.epub
+            ${{ runner.temp }}/epubcheck/reports/
+          if-no-files-found: warn

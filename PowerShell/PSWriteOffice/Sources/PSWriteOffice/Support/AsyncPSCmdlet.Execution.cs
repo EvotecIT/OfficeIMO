@@ -66,16 +66,14 @@ public abstract partial class AsyncPSCmdlet
                 return;
             }
 
-            var priorItemGeneration = _hookGeneration.Value;
-            var priorPumpLease = _pipelinePumpLease.Value;
+            var priorHookFrames = CaptureHookFrames();
             var priorSharedPumpLease =
                 Volatile.Read(ref _currentPipelinePumpLease);
             var pumpLease = new PipelinePumpLease(item.HookGeneration);
             try
             {
                 _ = Interlocked.Increment(ref _pipelinePumpDepth);
-                _hookGeneration.Value = item.HookGeneration;
-                _pipelinePumpLease.Value = pumpLease;
+                EnterHookFrame(item.HookGeneration, pumpLease);
                 Volatile.Write(
                     ref _currentPipelinePumpLease,
                     pumpLease);
@@ -216,8 +214,7 @@ public abstract partial class AsyncPSCmdlet
                 Volatile.Write(
                     ref _currentPipelinePumpLease,
                     priorSharedPumpLease);
-                _pipelinePumpLease.Value = priorPumpLease;
-                _hookGeneration.Value = priorItemGeneration;
+                RestoreHookFrames(priorHookFrames);
                 _ = Interlocked.Decrement(ref _pipelinePumpDepth);
             }
         }
@@ -270,6 +267,15 @@ public abstract partial class AsyncPSCmdlet
 
         void PumpThroughDirectAccessBarrier()
         {
+            // With nothing queued there is nothing for the barrier to order ahead of the direct call.
+            // A record another thread queues after this check is concurrent with that call either way.
+            // Any pump-bound record or completion marker would be in the queue, so it takes the barrier.
+            if (outPipe.Count == 0 &&
+                Volatile.Read(ref _acceptingHookWritesGeneration) == hookGeneration)
+            {
+                return;
+            }
+
             PipelineItem? completionMarker = null;
             var barrier = new PipelineItem(
                 value: null,
@@ -346,13 +352,13 @@ public abstract partial class AsyncPSCmdlet
             Volatile.Write(ref _currentOutPipe, outPipe);
         }
 
-        var priorHookGeneration = _hookGeneration.Value;
+        var priorHookFrames = CaptureHookFrames();
         try
         {
             Volatile.Write(ref _pipelineSynchronizationContext, synchronizationContext);
             SynchronizationContext.SetSynchronizationContext(
                 hookSynchronizationContext);
-            _hookGeneration.Value = hookGeneration;
+            EnterHookFrame(hookGeneration, CurrentPumpLease);
             ThrowIfStopped();
             if (TaskScheduler.Current == TaskScheduler.Default)
             {
@@ -403,7 +409,7 @@ public abstract partial class AsyncPSCmdlet
         }
         finally
         {
-            _hookGeneration.Value = priorHookGeneration;
+            RestoreHookFrames(priorHookFrames);
             SynchronizationContext.SetSynchronizationContext(synchronizationContext);
         }
 

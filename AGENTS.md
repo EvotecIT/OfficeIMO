@@ -44,6 +44,10 @@ cd PowerShell/PSWriteOffice; ./PSWriteOffice.Tests.ps1                    # modu
 ./Website/build.ps1 -Serve                                                # website
 ```
 
+Before building the Apple apps in Xcode, run `./Build/Studio/Apple/Build-StudioEngine.ps1`
+(macOS). It builds the engine XCFramework from this checkout, which is never
+committed, and skips the build while the engine sources are unchanged.
+
 `./Build/Build-Release.ps1 -RunMode Publish -SignModule:$true` signs and
 publishes NuGet, PowerShell Gallery and the GitHub release. Release only.
 `Build/project.build.json` owns package selection and version bindings;

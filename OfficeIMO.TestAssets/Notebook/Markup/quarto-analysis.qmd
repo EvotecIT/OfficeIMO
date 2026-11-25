@@ -1,0 +1,24 @@
+---
+title: "Offline Quarto lab"
+jupyter: python3
+---
+
+## Review
+
+A plain fence is an example of source syntax.
+
+````markdown
+```{python}
+this_is_documentation()
+```
+````
+
+```{python}
+#| label: fig-run
+#| echo: false
+measurements = [2, 4, 6]
+```
+
+::: {.callout-note}
+This directive remains authored prose.
+:::

@@ -95,6 +95,9 @@ struct DocumentWindow: View {
             .sheet(item: $session.structureSheet, onDismiss: { session.presentPendingExportedFile() }) { sheet in
                 StructureSheetView(session: session, sheet: sheet)
             }
+            .sheet(item: $session.formFieldSheet) { sheet in
+                FormFieldSheetView(session: session, sheet: sheet)
+            }
             .sheet(isPresented: $session.isCreatingSignature) {
                 SignaturePad(session: session)
             }
@@ -251,6 +254,7 @@ struct DocumentWindow: View {
                 }
             }
             .onChange(of: session.task) { _, task in
+                if task != .read { session.endEditingForm() }
                 if task == .markup, session.formFields(session.currentPage)?.fields.contains(where: \.isFillable) == true {
                     session.transientNotice = String(localized: "To fill in the form, go back to Read.")
                 }
@@ -271,6 +275,7 @@ struct DocumentWindow: View {
                 ForEach(StudioTask.allCases) { Text($0.title).tag($0) }
             }
             .pickerStyle(.segmented)
+            .accessibilityIdentifier(StudioAccessibilityID.taskPicker)
             .padding(.horizontal, 16)
             .padding(.vertical, 6)
         }
@@ -324,6 +329,7 @@ struct DocumentWindow: View {
 struct ReadView: View {
     @Bindable var session: DocumentSession
     @State private var isIndicatorShown = false
+    @Environment(\.accessibilityVoiceOverEnabled) private var isVoiceOverEnabled
 
     var body: some View {
         PageCanvas(session: session)
@@ -350,6 +356,8 @@ struct ReadView: View {
                         }
                         if session.pageDragTool == .redaction {
                             RedactionBanner(session: session)
+                        } else if session.isEditingForm {
+                            FormEditingBanner(session: session)
                         } else if session.pendingSignature != nil {
                             SigningBanner(session: session)
                         } else if let tool = shapeBannerTool {
@@ -375,6 +383,10 @@ struct ReadView: View {
                     await session.loadFormFields(page)
                 }
             }
+            // VoiceOver reads comments where they sit on the pages, also once it is turned on while a page is shown.
+            .task(id: "\(isVoiceOverEnabled)-\(session.revision)") {
+                if isVoiceOverEnabled { await session.loadComments() }
+            }
             .task(id: "\(session.pageDragTool == .select)-\(session.currentPage)-\(session.revision)") {
                 // Selecting markup on the page needs the page's annotations.
                 if session.pageDragTool == .select { await session.loadAnnotations() }
@@ -387,6 +399,7 @@ struct ReadView: View {
             }
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Page \(session.currentPage) of \(session.pageCount)")
+            .accessibilityIdentifier(StudioAccessibilityID.pages)
     }
 
     /// The shape a drag draws on iPad and iPhone, where the banner over the pages names it; the Mac's toolbar does.
@@ -410,6 +423,7 @@ private struct SearchField: View {
         HStack(spacing: 10) {
             Label("Search", systemImage: "magnifyingglass").labelStyle(.iconOnly).foregroundStyle(.secondary)
             TextField("Search", text: $session.searchText)
+                .accessibilityIdentifier(StudioAccessibilityID.searchField)
                 .focused($isFocused)
                 .submitLabel(.search)
                 .autocorrectionDisabled()
@@ -421,6 +435,7 @@ private struct SearchField: View {
                 session.isSearchFocused = false
             }
             .labelStyle(.iconOnly)
+            .accessibilityIdentifier(StudioAccessibilityID.searchClose)
             .foregroundStyle(.secondary)
         }
         .padding(.horizontal, 14)
@@ -446,6 +461,7 @@ struct FindBar: View {
                 }
                 if let index = session.currentHitIndex, !session.searchHits.isEmpty {
                     Text("\(index + 1) of \(session.searchHits.count)").monospacedDigit()
+                        .accessibilityIdentifier(StudioAccessibilityID.searchPosition)
                 } else if session.isSearching {
                     Text("Searching…")
                 } else {

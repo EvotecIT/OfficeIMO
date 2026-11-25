@@ -60,6 +60,12 @@ WriteFixture("fixed-layout-escaped-id", FixedLayoutFixture.EscapedIdentifier());
 WriteFixture("fixed-layout-item-overrides", FixedLayoutFixture.Create(false, false));
 WriteFixture("fixed-layout-ltr", FixedLayoutFixture.Create(false));
 WriteFixture("fixed-layout-rtl", FixedLayoutFixture.Create(true));
+var manuscripts = await ManuscriptImportFixtures.CreateAsync();
+foreach (var fixture in manuscripts.Imports) WriteFixture(fixture.Key, fixture.Value);
+foreach (var fixture in manuscripts.Catalog) {
+    using var source = new MemoryStream(fixture.Value, writable: false);
+    WriteFixtureBytes(fixture.Key, fixture.Value, EpubPublication.Load(source), hasReviewedAccessibilityMetadata: false);
+}
 WriteFixture("manuscript-relationships", ManuscriptRelationshipsFixture.Create());
 WriteFixture("notes-and-pages", NotesAndPagesFixture.Create());
 WriteFixture("glossary", GlossaryFixture.Create());
@@ -103,17 +109,23 @@ void WriteFixture(string name, EpubPublication publication) {
     byte[] bytes = publication.Write(new EpubSaveOptions {
         ModifiedAt = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero)
     }).Bytes;
+    WriteFixtureBytes(name, bytes, publication);
+}
+
+void WriteFixtureBytes(string name, byte[] bytes, EpubPublication publication, bool hasReviewedAccessibilityMetadata = true) {
     File.WriteAllBytes(Path.Combine(outputDirectory, name + ".epub"), bytes);
     if (name.StartsWith("bibliography-layout-", StringComparison.Ordinal)) BibliographyLayoutFixture.WritePreviews(outputDirectory, name, bytes);
     if (name == "embedded-fonts") EmbeddedFontFixture.WriteEvidence(outputDirectory, bytes);
     evidence.Add(new { fixture = name, epub = name + ".epub", sha256 = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant(),
-        nativePreflight = InspectFixture(publication) });
+        nativePreflight = InspectFixture(publication, hasReviewedAccessibilityMetadata) });
 }
 
-object InspectFixture(EpubPublication publication) {
+object InspectFixture(EpubPublication publication, bool hasReviewedAccessibilityMetadata = true) {
     EpubPreflightReport report = publication.Preflight();
-    if (report.HasErrors) throw new InvalidDataException("Fixture failed native preflight: " + publication.Title + ": " +
-        string.Join("; ", report.Checks.SelectMany(check => check.Diagnostics).Where(d => d.Severity == EpubDiagnosticSeverity.Error).Select(d => d.Message)));
+    var errors = report.Checks.SelectMany(check => check.Diagnostics).Where(d => d.Severity == EpubDiagnosticSeverity.Error &&
+        (hasReviewedAccessibilityMetadata || d.Code != "EPUB_PREFLIGHT_ACCESSIBILITY_METADATA_MISSING")).ToArray();
+    if (errors.Length > 0) throw new InvalidDataException("Fixture failed native preflight: " + publication.Title + ": " +
+        string.Join("; ", errors.Select(d => d.Message)));
     return new { report.HasErrors, report.HasUncheckedItems,
         checks = report.Checks.Select(check => new { check.Code, status = check.Status.ToString(), check.Diagnostics }).ToArray() };
 }

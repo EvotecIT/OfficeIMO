@@ -32,6 +32,30 @@ public abstract class MarkdownObject {
         storage = value;
     }
 
+    /// <summary>
+    /// Reads one of several optional source spans kept in a side array. Types with several such
+    /// spans keep them out of line so objects from a parse without source capture stay small.
+    /// </summary>
+    private protected MarkdownSourceSpan? ReadSourceSpanSlot(ref MarkdownSourceSpan?[]? slots, int index) {
+        EnsureSourceInformation();
+        MarkdownSourceSpan?[]? current = slots;
+        return current == null ? null : current[index];
+    }
+
+    /// <summary>Writes one of several optional source spans, creating the side array on the first value.</summary>
+    private protected void WriteSourceSpanSlot(ref MarkdownSourceSpan?[]? slots, int index, int slotCount, MarkdownSourceSpan? value) {
+        EnsureSourceInformation();
+        if (slots == null) {
+            if (!value.HasValue) {
+                return;
+            }
+
+            slots = new MarkdownSourceSpan?[slotCount];
+        }
+
+        slots[index] = value;
+    }
+
     internal bool HasMetadata => _metadata != null;
 
     internal void DeferSourceInformation(MarkdownDeferredSourceCapture capture) => _metadata = capture;
@@ -74,8 +98,12 @@ public abstract class MarkdownObject {
     /// <summary>Root node for this object's tree.</summary>
     public MarkdownObject Root => Parent?.Root ?? this;
 
+    // Stored as -1 when there is no index, which keeps the field four bytes wide: derived types
+    // place their own small fields in the space a nullable index would take.
+    private int _indexInParent = -1;
+
     /// <summary>Zero-based index within the parent when this node is attached to a tree.</summary>
-    public int? IndexInParent { get; private set; }
+    public int? IndexInParent => _indexInParent < 0 ? null : _indexInParent;
 
     /// <summary>Previous sibling in the parent container when available.</summary>
     public MarkdownObject? PreviousSibling { get; private set; }
@@ -174,7 +202,7 @@ public abstract class MarkdownObject {
         MarkdownObject? previousSibling,
         MarkdownObject? nextSibling) {
         Parent = parent;
-        IndexInParent = indexInParent;
+        _indexInParent = indexInParent ?? -1;
         PreviousSibling = previousSibling;
         NextSibling = nextSibling;
     }

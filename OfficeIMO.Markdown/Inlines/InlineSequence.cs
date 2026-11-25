@@ -4,15 +4,15 @@ namespace OfficeIMO.Markdown;
 /// Sequence of inline nodes used in paragraphs and list items.
 /// </summary>
 public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline, IHtmlAppendableMarkdownInline, IMarkdownAppendableMarkdownInline {
-    private readonly List<IMarkdownInline> _inlines;
+    private readonly InlineNodeList _inlines;
 
     /// <summary>Creates an empty inline sequence.</summary>
     public InlineSequence() {
-        _inlines = new List<IMarkdownInline>();
+        _inlines = new InlineNodeList();
     }
 
     internal InlineSequence(int capacity) {
-        _inlines = new List<IMarkdownInline>(Math.Max(0, capacity));
+        _inlines = new InlineNodeList(Math.Max(0, capacity));
     }
 
     // When composing via the fluent/builder APIs, auto-spacing between adjacent inline nodes is convenient.
@@ -21,44 +21,44 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
     /// <summary>Exposes the inline nodes for safe iteration.</summary>
     public IReadOnlyList<IMarkdownInline> Nodes => _inlines;
     /// <summary>Adds plain text.</summary>
-    public InlineSequence Text(string text) { _inlines.Add(new MarkdownTextRun(text)); return this; }
+    public InlineSequence Text(string text) { AppendNode(new MarkdownTextRun(text)); return this; }
     /// <summary>Adds a hyperlink.</summary>
-    public InlineSequence Link(string text, string url, string? title = null, string? linkTarget = null, string? linkRel = null) { _inlines.Add(new LinkInline(text, url, title, linkTarget, linkRel)); return this; }
+    public InlineSequence Link(string text, string url, string? title = null, string? linkTarget = null, string? linkRel = null) { AppendNode(new LinkInline(text, url, title, linkTarget, linkRel)); return this; }
     /// <summary>Adds bold text.</summary>
-    public InlineSequence Bold(string text) { _inlines.Add(new BoldInline(text)); return this; }
+    public InlineSequence Bold(string text) { AppendNode(new BoldInline(text)); return this; }
     /// <summary>Adds bold+italic text.</summary>
-    public InlineSequence BoldItalic(string text) { _inlines.Add(new BoldItalicInline(text)); return this; }
+    public InlineSequence BoldItalic(string text) { AppendNode(new BoldItalicInline(text)); return this; }
     /// <summary>Adds italic text.</summary>
-    public InlineSequence Italic(string text) { _inlines.Add(new ItalicInline(text)); return this; }
+    public InlineSequence Italic(string text) { AppendNode(new ItalicInline(text)); return this; }
     /// <summary>Adds inline code.</summary>
-    public InlineSequence Code(string text) { _inlines.Add(new CodeSpanInline(text)); return this; }
+    public InlineSequence Code(string text) { AppendNode(new CodeSpanInline(text)); return this; }
     /// <summary>Adds a footnote reference (e.g., [^id]).</summary>
-    public InlineSequence FootnoteRef(string label) { _inlines.Add(new FootnoteRefInline(label)); return this; }
+    public InlineSequence FootnoteRef(string label) { AppendNode(new FootnoteRefInline(label)); return this; }
     /// <summary>Adds strikethrough text.</summary>
-    public InlineSequence Strikethrough(string text) { _inlines.Add(new StrikethroughInline(text)); return this; }
+    public InlineSequence Strikethrough(string text) { AppendNode(new StrikethroughInline(text)); return this; }
     /// <summary>Adds highlighted text rendered as <c>==text==</c>.</summary>
-    public InlineSequence Highlight(string text) { _inlines.Add(new HighlightInline(text)); return this; }
+    public InlineSequence Highlight(string text) { AppendNode(new HighlightInline(text)); return this; }
     /// <summary>Adds underlined text (HTML-only in Markdown).</summary>
-    public InlineSequence Underline(string text) { _inlines.Add(new UnderlineInline(text)); return this; }
+    public InlineSequence Underline(string text) { AppendNode(new UnderlineInline(text)); return this; }
     /// <summary>Adds superscript text rendered as <c>^text^</c> in Markdown and <c>&lt;sup&gt;</c> in HTML.</summary>
-    public InlineSequence Superscript(string text) { _inlines.Add(new SuperscriptInline(text)); return this; }
+    public InlineSequence Superscript(string text) { AppendNode(new SuperscriptInline(text)); return this; }
     /// <summary>Adds subscript text rendered as <c>~text~</c> in Markdown and <c>&lt;sub&gt;</c> in HTML.</summary>
-    public InlineSequence Subscript(string text) { _inlines.Add(new SubscriptInline(text)); return this; }
+    public InlineSequence Subscript(string text) { AppendNode(new SubscriptInline(text)); return this; }
     /// <summary>Adds inserted text rendered as <c>++text++</c> in Markdown and <c>&lt;ins&gt;</c> in HTML.</summary>
-    public InlineSequence Inserted(string text) { _inlines.Add(new InsertedInline(text)); return this; }
+    public InlineSequence Inserted(string text) { AppendNode(new InsertedInline(text)); return this; }
     /// <summary>Adds quoted text rendered via inline HTML.</summary>
-    public InlineSequence Quote(string text) { _inlines.Add(new HtmlTagSequenceInline("q", new InlineSequence().Text(text))); return this; }
+    public InlineSequence Quote(string text) { AppendNode(new HtmlTagSequenceInline("q", new InlineSequence().Text(text))); return this; }
     /// <summary>Adds a linked image (useful for badges).</summary>
-    public InlineSequence ImageLink(string alt, string imageUrl, string linkUrl, string? title = null, string? linkTitle = null) { _inlines.Add(new ImageLinkInline(alt, imageUrl, linkUrl, title, linkTitle)); return this; }
+    public InlineSequence ImageLink(string alt, string imageUrl, string linkUrl, string? title = null, string? linkTitle = null) { AppendNode(new ImageLinkInline(alt, imageUrl, linkUrl, title, linkTitle)); return this; }
     /// <summary>Adds a standalone inline image.</summary>
-    public InlineSequence Image(string alt, string src, string? title = null) { _inlines.Add(new ImageInline(alt, src, title)); return this; }
+    public InlineSequence Image(string alt, string src, string? title = null) { AppendNode(new ImageInline(alt, src, title)); return this; }
     /// <summary>Adds a hard line break.</summary>
-    public InlineSequence HardBreak() { _inlines.Add(new HardBreakInline()); return this; }
+    public InlineSequence HardBreak() { AppendNode(new HardBreakInline()); return this; }
     /// <summary>Adds a soft line break.</summary>
-    public InlineSequence SoftBreak() { _inlines.Add(new SoftBreakInline()); return this; }
+    public InlineSequence SoftBreak() { AppendNode(new SoftBreakInline()); return this; }
 
     // Internal escape hatch for the reader to attach richer inline nodes without expanding the public fluent API.
-    internal InlineSequence AddRaw(IMarkdownInline node) { if (node != null) _inlines.Add(node); return this; }
+    internal InlineSequence AddRaw(IMarkdownInline node) { if (node != null) AppendNode(node); return this; }
 
     /// <summary>
     /// Replaces the inline nodes in this sequence.
@@ -67,21 +67,34 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
     /// </summary>
     public void ReplaceItems(IEnumerable<IMarkdownInline> nodes) {
         if (nodes == null) {
-            _inlines.Clear();
+            _inlines.Reset();
             return;
         }
 
         var replacement = nodes.Where(node => node != null).ToArray();
-        _inlines.Clear();
+        _inlines.Reset();
         for (int i = 0; i < replacement.Length; i++) {
-            _inlines.Add(replacement[i]);
+            _inlines.Append(replacement[i]);
+        }
+
+        if (Parent != null) {
+            MarkdownObjectTreeBinder.RebindSubtree(this);
+        }
+    }
+
+    // A sequence that is already part of a bound tree places each new node as it is added, so editing a
+    // block after it was added to a document does not depend on a later full re-bind.
+    private void AppendNode(IMarkdownInline node) {
+        _inlines.Append(node);
+        if (Parent != null) {
+            MarkdownObjectTreeBinder.BindAppendedInline(this, node);
         }
     }
 
     internal string RenderMarkdown() {
-        StringBuilder sb = new StringBuilder();
+        StringBuilder sb = MarkdownStringBuilderCache.Acquire();
         AppendMarkdown(sb);
-        return sb.ToString();
+        return MarkdownStringBuilderCache.GetStringAndRelease(sb);
     }
 
     internal void AppendMarkdown(StringBuilder sb) {
@@ -173,7 +186,7 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
         var options = HtmlRenderContext.Options;
         // Only render extensions read the inline context, so it is created when one is registered.
         MarkdownInlineHtmlRenderContext? context = options == null
-            || ((options.InlineRenderExtensions?.Count ?? 0) == 0 && (options.SyntaxInlineRenderExtensions?.Count ?? 0) == 0)
+            || (options.InlineRenderExtensionsIfAny == null && options.SyntaxInlineRenderExtensionsIfAny == null)
             ? null
             : new MarkdownInlineHtmlRenderContext(options, HtmlRenderContext.BodyContext);
         for (int i = 0; i < _inlines.Count; i++) {
@@ -358,7 +371,7 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
             return null;
         }
 
-        var extensions = context.Options.SyntaxInlineRenderExtensions;
+        var extensions = context.Options.SyntaxInlineRenderExtensionsIfAny;
         if (extensions == null || extensions.Count == 0) {
             return null;
         }
@@ -388,7 +401,7 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
             return null;
         }
 
-        var extensions = context.Options.InlineRenderExtensions;
+        var extensions = context.Options.InlineRenderExtensionsIfAny;
         if (extensions == null || extensions.Count == 0) {
             return null;
         }

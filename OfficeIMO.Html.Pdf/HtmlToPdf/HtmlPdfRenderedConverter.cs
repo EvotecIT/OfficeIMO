@@ -305,11 +305,13 @@ internal static partial class HtmlPdfRenderedConverter {
         }
     }
 
-    internal static HtmlPdfRenderResult CreatePdf(HtmlRenderDocument rendered, HtmlPdfExportOptions options, CancellationToken cancellationToken) {
+    internal static HtmlPdfRenderResult CreatePdf(HtmlRenderDocument rendered, HtmlPdfExportOptions options, CancellationToken cancellationToken,
+        IReadOnlyList<HtmlPdfOutlineTarget>? documentOutline = null, PdfImageResourceCache? sharedImages = null, int? sectionOrder = null) {
         cancellationToken.ThrowIfCancellationRequested();
         HtmlDiagnosticReport diagnostics = rendered.DiagnosticReport.Clone();
 
         var conversionReport = new PdfCore.PdfConversionReport();
+        string? structurePrefix = sectionOrder == null ? null : "section-" + sectionOrder.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":";
         PdfCore.PdfCreateOptions documentOptions = options.PdfOptions.Clone();
         documentOptions.TextShapingLanguageOverride = options.TextShapingLanguage;
         documentOptions.UseContentStreamCompressionByDefault();
@@ -345,8 +347,10 @@ internal static partial class HtmlPdfRenderedConverter {
             RegisterExplicitCssFontFamily(pdf.Options, fontFamily);
         }
 
-        var imageResources = new PdfImageResourceCache(options, conversionReport, cancellationToken);
-        var linkTargets = new LinkTargets(rendered, documentOptions, conversionReport, cancellationToken);
+        PdfImageResourceCache imageResources = sharedImages ?? new PdfImageResourceCache(options);
+        imageResources.BeginSection(conversionReport, cancellationToken);
+        var linkTargets = new LinkTargets(rendered, documentOptions, conversionReport, cancellationToken,
+            allowDeferredDestinations: options.ResolveSectionLink != null);
         var reservedFontSlots = new HashSet<PdfCore.PdfStandardFont>();
         if (options.FontFamily != null) reservedFontSlots.Add(PdfCore.PdfStandardFont.Helvetica);
         RegisteredWebFonts webFonts = RegisterWebFonts(
@@ -405,6 +409,8 @@ internal static partial class HtmlPdfRenderedConverter {
             .Select((heading, index) => new { Heading = heading, Index = index })
             .ToDictionary(item => item.Heading, item => item.Index);
         ILookup<int, HtmlRenderHeading> headingsByPage = rendered.Headings.ToLookup(heading => heading.PageNumber);
+        ILookup<int, HtmlPdfPageOutline>? documentOutlinesByPage = documentOutline == null ? null
+            : ResolveDocumentOutlines(rendered, documentOutline, options.NamedDestinationPrefix, diagnostics, cancellationToken);
         double printLayoutScale = ResolvePrintLayoutScale(options);
         foreach (HtmlRenderPage renderedPage in rendered.Pages) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -423,15 +429,32 @@ internal static partial class HtmlPdfRenderedConverter {
                 page.Canvas(canvas => {
                     // The retained HTML surface already clips its paint at the page edge.
                     // Keep that source boundary outside print and element transforms.
-                    canvas.SourceClip(0D, 0D, pageWidth, pageHeight, sourcePaint => {
-                        if (printLayoutScale == 1D) {
-                            AddPageVisuals(sourcePaint, renderedPage, webFonts, imageResources, conversionReport, options.InteractiveFormControls, cancellationToken, mathMlFiles, linkTargets);
-                        } else {
-                            sourcePaint.Effect(OfficeTransform.Scale(printLayoutScale, printLayoutScale), 1D,
-                                content => AddPageVisuals(content, renderedPage, webFonts, imageResources, conversionReport, options.InteractiveFormControls, cancellationToken, mathMlFiles, linkTargets));
+                    void Paint(PdfCore.PdfPageCanvas target) {
+                        target.SourceClip(0D, 0D, pageWidth, pageHeight, sourcePaint => {
+                            if (printLayoutScale == 1D) {
+                                AddPageVisuals(sourcePaint, renderedPage, webFonts, imageResources, conversionReport, options.InteractiveFormControls, cancellationToken, mathMlFiles, linkTargets, structurePrefix);
+                            } else {
+                                sourcePaint.Effect(OfficeTransform.Scale(printLayoutScale, printLayoutScale), 1D,
+                                    content => AddPageVisuals(content, renderedPage, webFonts, imageResources, conversionReport, options.InteractiveFormControls, cancellationToken, mathMlFiles, linkTargets, structurePrefix));
+                            }
+                        });
+                        if (documentOutlinesByPage != null) {
+                            foreach (HtmlPdfPageOutline entry in documentOutlinesByPage[renderedPage.PageNumber])
+                                target.Outline(entry.Target.Title, entry.Target.Level, Math.Max(0D, entry.Y * PointsPerCssPixel * printLayoutScale),
+                                    PdfCore.PdfOutlineState.Default, entry.Target.Order);
                         }
-                    });
-                    AddPageOutlines(canvas, headingsByPage[renderedPage.PageNumber], headingDocumentOrder, printLayoutScale, cancellationToken);
+                    }
+                    if (structurePrefix == null || documentOptions.TaggedStructureMode != PdfCore.PdfTaggedStructureMode.CatalogMarkers) Paint(canvas);
+                    else {
+                        var sectionCanvas = new PdfCore.PdfPageCanvas(allowOutOfPageCoordinates: true);
+                        Paint(sectionCanvas);
+                        if (HasCanvasContent(sectionCanvas.Items))
+                            canvas.Structure(PdfCore.PdfCanvasStructureRole.Section, nested => nested.AddItems(sectionCanvas.Items),
+                                new PdfCore.PdfCanvasStructureOptions { StructureElementKey = structurePrefix, LogicalOrder = sectionOrder });
+                        else canvas.AddItems(sectionCanvas.Items);
+                    }
+                    if (documentOutlinesByPage == null)
+                        AddPageOutlines(canvas, headingsByPage[renderedPage.PageNumber], headingDocumentOrder, printLayoutScale, cancellationToken);
                 });
             });
         }
@@ -455,7 +478,7 @@ internal static partial class HtmlPdfRenderedConverter {
                 || diagnostic.Severity == HtmlDiagnosticSeverity.Error)) {
             throw new HtmlConversionException(diagnostics);
         }
-        if (options.FidelityPolicy == HtmlRenderFidelityPolicy.FailOnLoss) {
+        if (options.FidelityPolicy == HtmlRenderFidelityPolicy.FailOnLoss && sectionOrder == null) {
             // Font providers can decline only when the PDF writer paints a run.
             // Qualify that stage before returning a strict model or image scene,
             // as well as before exposing bytes through the direct PDF routes.
@@ -489,8 +512,8 @@ internal static partial class HtmlPdfRenderedConverter {
         }
     }
 
-    private static void AddPageVisuals(PdfCore.PdfPageCanvas canvas, HtmlRenderPage page, RegisteredWebFonts webFonts, PdfImageResourceCache imageResources, PdfCore.PdfConversionReport conversionReport, bool interactiveFormControls, CancellationToken cancellationToken, HtmlPdfMathMlFiles mathMlFiles, LinkTargets linkTargets) {
-        HtmlPdfPagePaintContext pagePaint = HtmlPdfPagePaintContext.Create(page, mathMlFiles, linkTargets);
+    private static void AddPageVisuals(PdfCore.PdfPageCanvas canvas, HtmlRenderPage page, RegisteredWebFonts webFonts, PdfImageResourceCache imageResources, PdfCore.PdfConversionReport conversionReport, bool interactiveFormControls, CancellationToken cancellationToken, HtmlPdfMathMlFiles mathMlFiles, LinkTargets linkTargets, string? structurePrefix) {
+        HtmlPdfPagePaintContext pagePaint = HtmlPdfPagePaintContext.Create(page, mathMlFiles, linkTargets, structurePrefix);
         foreach (HtmlRenderVisual visual in InPaintOrder(page.Scene)) {
             cancellationToken.ThrowIfCancellationRequested();
             AddVisual(canvas, visual, webFonts, imageResources, conversionReport, page.Width, page.Height, interactiveFormControls, cancellationToken, pagePaint: pagePaint);
@@ -915,7 +938,8 @@ internal static partial class HtmlPdfRenderedConverter {
         }
     }
 
-    private static string MapNamedDestination(string name) => "html-fragment:" + name;
+    private const string NamedDestinationKeyPrefix = "html-fragment:";
+    private static string MapNamedDestination(string name) => NamedDestinationKeyPrefix + name;
 
     private static PdfCore.PdfCanvasTextStructureRole MapStructureRole(string? semanticRole) {
         if (semanticRole == "heading-1") return PdfCore.PdfCanvasTextStructureRole.Heading1;

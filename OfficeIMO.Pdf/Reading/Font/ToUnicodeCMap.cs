@@ -418,7 +418,10 @@ internal sealed class ToUnicodeCMap {
             }
             if (mapped is null) {
                 allMapped = false;
-                if (!allowUnmappedBytes) return string.Empty;
+                if (!allowUnmappedBytes) {
+                    if (sb != null) ReleaseMapBuilder(sb);
+                    return string.Empty;
+                }
             }
             int appendLength = mapped?.Length ?? 1;
             long nextLength = (long)(sb?.Length ?? 0) + appendLength;
@@ -427,10 +430,30 @@ internal sealed class ToUnicodeCMap {
             }
 
             if (i == 0 && mapped is not null && used == bytes.Length) return mapped;
-            sb ??= new System.Text.StringBuilder();
+            sb ??= TakeMapBuilder();
             if (mapped is null) { sb.Append((char)bytes[i]); i++; } else { sb.Append(mapped); i += used; }
         }
-        return sb?.ToString() ?? string.Empty;
+        if (sb == null) return string.Empty;
+        string result = sb.ToString();
+        ReleaseMapBuilder(sb);
+        return result;
+    }
+
+    // Every shown run is mapped through here, so one builder per thread is reused instead of growing a new one per run.
+    [ThreadStatic]
+    private static System.Text.StringBuilder? t_mapBuilder;
+    private const int MaximumRetainedMapBuilderCapacity = 4096;
+
+    private static System.Text.StringBuilder TakeMapBuilder() {
+        System.Text.StringBuilder? builder = t_mapBuilder;
+        if (builder == null) return new System.Text.StringBuilder();
+        t_mapBuilder = null;
+        builder.Clear();
+        return builder;
+    }
+
+    private static void ReleaseMapBuilder(System.Text.StringBuilder builder) {
+        if (builder.Capacity <= MaximumRetainedMapBuilderCapacity) t_mapBuilder = builder;
     }
 
     public bool TryEncodeText(string text, out string hex) {

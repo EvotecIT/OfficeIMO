@@ -17,6 +17,7 @@ public static class OfficeDocumentReaderBuilderMarkdownExtensions {
         ReaderMarkdownOptions configured = MarkdownReaderAdapter.Clone(options);
         return builder.AddHandler(new ReaderHandlerRegistration {
             Origin = ReaderHandlerOrigin.OfficeIMO,
+            AcceptsOwnedSnapshot = true,
             Id = HandlerId,
             DisplayName = "Markdown Reader",
             Description = "OfficeIMO.Markdown AST projection with headings, tables, visuals, and source spans.",

@@ -1070,43 +1070,35 @@ namespace OfficeIMO.Word {
         /// </summary>
         internal static List<WordParagraph> GetParagraphsOfAllSections(WordDocument document) {
             var list = new List<WordParagraph>();
-            List<List<Paragraph>>? paragraphsBySection = GroupBodyParagraphsBySection(document);
-            if (paragraphsBySection == null) {
-                return list;
-            }
-
-            for (int section = 0; section < document.Sections.Count; section++) {
-                list.AddRange(ConvertParagraphsToWordParagraphs(document, paragraphsBySection[section]));
+            foreach (Paragraph paragraph in BodyParagraphsOfAllSections(document)) {
+                AppendParagraphToWordParagraphs(document, paragraph, list);
             }
             return list;
         }
 
-        private static List<List<Paragraph>>? GroupBodyParagraphsBySection(WordDocument document) {
-            var paragraphsBySection = Enumerable.Range(0, Math.Max(document.Sections.Count, 1))
-                .Select(_ => new List<Paragraph>())
-                .ToList();
+        /// <summary>Body paragraphs of every section in document order, without the paragraphs that only carry a section break.</summary>
+        internal static IEnumerable<WordParagraph> EnumerateParagraphsOfAllSections(WordDocument document) {
+            var buffer = new List<WordParagraph>(1);
+            foreach (Paragraph paragraph in BodyParagraphsOfAllSections(document)) {
+                buffer.Clear();
+                AppendParagraphToWordParagraphs(document, paragraph, buffer);
+                foreach (WordParagraph wordParagraph in buffer) {
+                    yield return wordParagraph;
+                }
+            }
+        }
 
+        private static IEnumerable<Paragraph> BodyParagraphsOfAllSections(WordDocument document) {
             var body = document._document?.Body;
-            if (body == null) {
-                return null;
+            if (body == null || document.Sections.Count == 0) {
+                yield break;
             }
 
-            int currentSection = 0;
             foreach (var element in body.ChildElements) {
-                if (element is not Paragraph paragraph) {
-                    continue;
-                }
-
-                if (!IsPureSectionBreakParagraph(paragraph)) {
-                    paragraphsBySection[currentSection].Add(paragraph);
-                }
-
-                if (IsSectionBoundaryParagraph(paragraph) && currentSection < paragraphsBySection.Count - 1) {
-                    currentSection++;
+                if (element is Paragraph paragraph && !IsPureSectionBreakParagraph(paragraph)) {
+                    yield return paragraph;
                 }
             }
-
-            return paragraphsBySection;
         }
 
         /// <summary>
@@ -1198,41 +1190,17 @@ namespace OfficeIMO.Word {
         /// </summary>
         internal static List<WordTable> GetTablesOfAllSections(WordDocument document) {
             var list = new List<WordTable>();
-            List<List<Table>>? tablesBySection = GroupBodyTablesBySection(document);
-            if (tablesBySection == null) {
+            var body = document._wordprocessingDocument?.MainDocumentPart?.Document?.Body;
+            if (body == null || document.Sections.Count == 0) {
                 return list;
             }
 
-            for (int section = 0; section < document.Sections.Count; section++) {
-                foreach (Table table in tablesBySection[section]) {
+            foreach (var element in body.ChildElements) {
+                if (element is Table table) {
                     list.Add(new WordTable(document, table));
                 }
             }
             return list;
-        }
-
-        private static List<List<Table>>? GroupBodyTablesBySection(WordDocument document) {
-            var tablesBySection = Enumerable.Range(0, Math.Max(document.Sections.Count, 1))
-                .Select(_ => new List<Table>())
-                .ToList();
-
-            var body = document._wordprocessingDocument?.MainDocumentPart?.Document?.Body;
-            if (body == null) {
-                return null;
-            }
-
-            int currentSection = 0;
-            foreach (var element in body.ChildElements) {
-                if (element is Paragraph paragraph) {
-                    if (IsSectionBoundaryParagraph(paragraph) && currentSection < tablesBySection.Count - 1) {
-                        currentSection++;
-                    }
-                } else if (element is Table table) {
-                    tablesBySection[currentSection].Add(table);
-                }
-            }
-
-            return tablesBySection;
         }
 
         /// <summary>

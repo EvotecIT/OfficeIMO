@@ -58,7 +58,7 @@ internal static partial class OfficeCloudFontFiles {
     private static bool IsOrdinaryDirectory(string path) {
         try {
             var info = new DirectoryInfo(path);
-            return info.Exists && (info.Attributes & FileAttributes.ReparsePoint) == 0;
+            return info.Exists && !OfficeIMO.Internal.OfficeFileSystemLinks.IsLinkOrReparsePoint(info);
         } catch (Exception exception) when (IsPathFailure(exception)) {
             return false;
         }
@@ -83,7 +83,7 @@ internal static partial class OfficeCloudFontFiles {
                     break;
                 }
                 try {
-                    if ((File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0) continue;
+                    if (OfficeIMO.Internal.OfficeFileSystemLinks.IsLinkOrReparsePoint(path)) continue;
                 } catch (Exception exception) when (IsPathFailure(exception)) {
                     // A cache update can remove one entry while we enumerate.
                     // Continue to inspect the remaining entries within the bound.

@@ -122,7 +122,12 @@
           "id": "comments",
           "title": "Comment threads",
           "detail": "Reply, resolve, filter and export a summary",
-          "support": { "windows": "available", "linux": "available", "mac": "planned", "ipad": "planned", "iphone": "planned" },
+          "support": { "windows": "available", "linux": "available", "mac": "available", "ipad": "available", "iphone": "available" },
+          "notes": {
+            "mac": "In the inspector's Comments pane.",
+            "ipad": "In the inspector's Comments pane.",
+            "iphone": "In the inspector's Comments sheet."
+          },
           "roadmap": "phase-7-native-apple-apps"
         },
         {
@@ -250,7 +255,12 @@
           "id": "create-fields",
           "title": "Create form fields",
           "detail": "Text, check box, choice and radio fields",
-          "support": { "windows": "available", "linux": "available", "mac": "planned", "ipad": "planned", "iphone": "planned" },
+          "support": { "windows": "available", "linux": "available", "mac": "available", "ipad": "available", "iphone": "available" },
+          "notes": {
+            "mac": "Also push buttons and signature fields, drawn on the page with Edit Form.",
+            "ipad": "Also push buttons and signature fields, drawn on the page with Edit Form.",
+            "iphone": "Also push buttons and signature fields, drawn on the page with Edit Form."
+          },
           "roadmap": "phase-7-native-apple-apps"
         },
         {
@@ -304,6 +314,19 @@
           "notes": {
             "windows": "Also DjVu, CHM, OpenDocument text, spreadsheets, presentations and Draw, email and EPUB, with conversion diagnostics. The conversion workbench also writes Word from Markdown, HTML, RTF and ODT, and converts between Office and OpenDocument.",
             "linux": "Also DjVu, CHM, OpenDocument text, spreadsheets, presentations and Draw, email and EPUB, with conversion diagnostics. The conversion workbench also writes Word from Markdown, HTML, RTF and ODT, and converts between Office and OpenDocument."
+          }
+        },
+        {
+          "id": "view-office",
+          "title": "Open Office documents",
+          "detail": "Word, Excel, PowerPoint, RTF, Markdown, HTML, XPS, Visio, Publisher, OpenDocument and EPUB files open read-only as their PDF conversion, with Edit as PDF and Save as PDF",
+          "support": { "windows": "partial", "linux": "partial", "mac": "available", "ipad": "available", "iphone": "available" },
+          "notes": {
+            "windows": "Office files go through the conversion workbench, which writes a PDF to open.",
+            "linux": "Office files go through the conversion workbench, which writes a PDF to open.",
+            "mac": "An HTML page opens on its own, without the images and stylesheets saved beside it.",
+            "ipad": "An HTML page opens on its own, without the images and stylesheets saved beside it.",
+            "iphone": "An HTML page opens on its own, without the images and stylesheets saved beside it."
           }
         },
         {
@@ -599,6 +622,20 @@
             "ipad": "Follows the system appearance and accessibility settings.",
             "iphone": "Follows the system appearance and accessibility settings."
           }
+        },
+        {
+          "id": "screen-readers",
+          "title": "Screen readers",
+          "detail": "Page text, form fields and comments read aloud",
+          "support": { "windows": "partial", "linux": "partial", "mac": "partial", "ipad": "partial", "iphone": "partial" },
+          "notes": {
+            "windows": "Controls carry automation names; Narrator and NVDA task runs are on the roadmap.",
+            "linux": "Controls carry automation names; Orca task runs are on the roadmap.",
+            "mac": "VoiceOver reads the pages around the one in view: their text in reading order, form fields, which it fills, and comments. Other markup isn't described yet.",
+            "ipad": "VoiceOver reads the pages around the one in view: their text in reading order, form fields, which it fills, and comments. Other markup isn't described yet.",
+            "iphone": "VoiceOver reads the pages around the one in view: their text in reading order, form fields, which it fills, and comments. Other markup isn't described yet."
+          },
+          "roadmap": "phase-5-desktop-acceptance-and-distribution"
         }
       ]
     }
@@ -630,7 +667,7 @@
     },
     {
       "title": "Scanners and printers on the desktop",
-      "detail": "Scan from TWAIN, WIA and SANE devices, and choose printer paper and duplex options.",
+      "detail": "Scan from TWAIN, WIA and SANE devices, and use driver-specific printer color settings.",
       "platforms": ["windows", "linux"],
       "anchor": "phase-6-optional-desktop-integrations"
     }

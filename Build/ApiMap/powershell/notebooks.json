@@ -1,0 +1,941 @@
+{
+  "area": "notebooks",
+  "commands": [
+    {
+      "name": "Add-OfficeNotebookCell",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Appends a Markdown, code, or raw cell to a live notebook.",
+      "outputType": "OfficeIMO.Notebook.NotebookCell",
+      "parameterSets": [
+        {
+          "name": "__AllParameterSets",
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "OfficeIMO.Notebook.NotebookDocument",
+              "mandatory": true,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "Kind",
+              "type": "OfficeIMO.Notebook.NotebookCellKind",
+              "mandatory": true,
+              "position": 0
+            },
+            {
+              "name": "Source",
+              "type": "string",
+              "mandatory": true,
+              "position": 1
+            },
+            {
+              "name": "Language",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Append a Markdown cell",
+          "description": "Add notes to an open notebook.",
+          "code": "$notebook | Add-OfficeNotebookCell Markdown '# Results'"
+        },
+        {
+          "title": "Add a PowerShell code cell",
+          "description": "Record source in a new notebook and save it.",
+          "code": "$notebook = New-OfficeNotebook ./lab.ipynb\ntry {\n    $notebook | Add-OfficeNotebookCell Code 'Get-Date' -Language PowerShell\n    $notebook | Save-OfficeNotebook\n} finally {\n    $notebook | Close-OfficeNotebook\n}"
+        }
+      ]
+    },
+    {
+      "name": "Add-OfficeNotebookOutput",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Attaches saved output or supplied console text to a code cell.",
+      "outputType": "OfficeIMO.Notebook.NotebookCell",
+      "parameterSets": [
+        {
+          "name": "Stream",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Cell",
+              "type": "OfficeIMO.Notebook.NotebookCell",
+              "mandatory": true,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "Stream",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "Text",
+              "type": "string",
+              "mandatory": true
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        },
+        {
+          "name": "Saved",
+          "parameters": [
+            {
+              "name": "Cell",
+              "type": "OfficeIMO.Notebook.NotebookCell",
+              "mandatory": true,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "Output",
+              "type": "OfficeIMO.Notebook.NotebookOutput",
+              "mandatory": true
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Attach console text",
+          "description": "Record a saved stdout result for a code cell.",
+          "code": "$cell | Add-OfficeNotebookOutput -Text 'Ready'"
+        },
+        {
+          "title": "Save an explicit error stream",
+          "description": "Save stderr separately from the code source.",
+          "code": "$notebook = New-OfficeNotebook ./lab.ipynb\ntry {\n    $cell = $notebook | Add-OfficeNotebookCell Code 'Get-Date' -Language PowerShell -PassThru\n    $cell | Add-OfficeNotebookOutput -Stream stderr -Text 'No input records'\n    $notebook | Save-OfficeNotebook\n} finally {\n    $notebook | Close-OfficeNotebook\n}"
+        }
+      ]
+    },
+    {
+      "name": "Clear-OfficeNotebookOutput",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Clears saved results from a code cell, optionally including its execution count.",
+      "outputType": "OfficeIMO.Notebook.NotebookCell",
+      "shouldProcess": true,
+      "parameterSets": [
+        {
+          "name": "__AllParameterSets",
+          "parameters": [
+            {
+              "name": "Cell",
+              "type": "OfficeIMO.Notebook.NotebookCell",
+              "mandatory": true,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "ExecutionCount",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Preview removing saved outputs",
+          "description": "Identify the affected cell without changing it.",
+          "code": "$cell | Clear-OfficeNotebookOutput -WhatIf"
+        },
+        {
+          "title": "Reset saved results and the execution count",
+          "description": "Clean a code cell and save a separate notebook.",
+          "code": "$notebook = Open-OfficeNotebook ./analysis.ipynb\ntry {\n    $cell = $notebook | Get-OfficeNotebookCell -Index 0\n    $cell | Clear-OfficeNotebookOutput -ExecutionCount\n    $notebook | Save-OfficeNotebook ./clean.ipynb\n} finally {\n    $notebook | Close-OfficeNotebook\n}"
+        }
+      ]
+    },
+    {
+      "name": "Close-OfficeNotebook",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Closes a notebook and releases its source-backed values without writing a file.",
+      "outputType": "None",
+      "parameterSets": [
+        {
+          "name": "__AllParameterSets",
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "OfficeIMO.Notebook.NotebookDocument",
+              "mandatory": true,
+              "pipeline": "byValue"
+            }
+          ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Release an open notebook",
+          "description": "Close the live document after use.",
+          "code": "$notebook | Close-OfficeNotebook"
+        },
+        {
+          "title": "Release resources after inspection",
+          "description": "Close the notebook even if cell inspection fails.",
+          "code": "$notebook = Open-OfficeNotebook ./analysis.ipynb\ntry {\n    $notebook | Get-OfficeNotebookCell -Kind Code\n} finally {\n    $notebook | Close-OfficeNotebook\n}"
+        }
+      ]
+    },
+    {
+      "name": "Export-OfficeNotebook",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Exports a live notebook or a selected saved structured output, returning the conversion report.",
+      "outputType": "OfficeIMO.OfficeConversionReport",
+      "shouldProcess": true,
+      "parameterSets": [
+        {
+          "name": "Document",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "OfficeIMO.Notebook.NotebookDocument",
+              "mandatory": true,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "Path",
+              "type": "string",
+              "mandatory": true,
+              "position": 0
+            },
+            {
+              "name": "IncludeCode",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "IncludeOutputs",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "IncludeExecutionCounts",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "PreserveMarkdownSource",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "IncludeInteractiveWidgets",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "IncludeInteractiveCharts",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "Title",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "Author",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "FailOnLoss",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "NoClobber",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        },
+        {
+          "name": "SavedTable",
+          "parameters": [
+            {
+              "name": "Output",
+              "type": "OfficeIMO.Notebook.NotebookOutput",
+              "mandatory": true,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "Path",
+              "type": "string",
+              "mandatory": true,
+              "position": 0
+            },
+            {
+              "name": "NoClobber",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Export a standalone chart document",
+          "description": "Enable local interaction for supported saved charts.",
+          "code": "$notebook | Export-OfficeNotebook ./analysis.html -IncludeInteractiveCharts"
+        },
+        {
+          "title": "Export a saved table to Excel",
+          "description": "Write a selected structured table from a saved notebook output.",
+          "code": "$notebook = Open-OfficeNotebook ./analysis.ipynb\ntry {\n    $cell = $notebook | Get-OfficeNotebookCell -Index 0\n    $cell | Get-OfficeNotebookOutput -Index 0 | Export-OfficeNotebook ./results.xlsx\n} finally {\n    $notebook | Close-OfficeNotebook\n}"
+        }
+      ]
+    },
+    {
+      "name": "Get-OfficeNotebookCell",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Streams notebook cells in document order, optionally by position or cell kind.",
+      "outputType": "OfficeIMO.Notebook.NotebookCell",
+      "parameterSets": [
+        {
+          "name": "__AllParameterSets",
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "OfficeIMO.Notebook.NotebookDocument",
+              "mandatory": true,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "Index",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "Kind",
+              "type": "OfficeIMO.Notebook.NotebookCellKind",
+              "mandatory": false
+            }
+          ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Read one cell",
+          "description": "Select the first cell by its zero-based index.",
+          "code": "$notebook | Get-OfficeNotebookCell -Index 0"
+        },
+        {
+          "title": "Inspect saved outputs on code cells",
+          "description": "Read results in notebook order while the document is open.",
+          "code": "$notebook = Open-OfficeNotebook ./analysis.ipynb\ntry {\n    $notebook | Get-OfficeNotebookCell -Kind Code | Get-OfficeNotebookOutput\n} finally {\n    $notebook | Close-OfficeNotebook\n}"
+        }
+      ]
+    },
+    {
+      "name": "Get-OfficeNotebookOutput",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Returns saved notebook outputs in cell order without running any code.",
+      "outputType": "OfficeIMO.Notebook.NotebookOutput",
+      "parameterSets": [
+        {
+          "name": "__AllParameterSets",
+          "parameters": [
+            {
+              "name": "Cell",
+              "type": "OfficeIMO.Notebook.NotebookCell",
+              "mandatory": true,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "Index",
+              "type": "int",
+              "mandatory": false
+            }
+          ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Read one saved output",
+          "description": "Select the first output attached to a code cell.",
+          "code": "$cell | Get-OfficeNotebookOutput -Index 0"
+        },
+        {
+          "title": "Read all outputs on code cells",
+          "description": "Inspect results previously stored in the notebook.",
+          "code": "$notebook = Open-OfficeNotebook ./analysis.ipynb\ntry {\n    $notebook | Get-OfficeNotebookCell -Kind Code | Get-OfficeNotebookOutput\n} finally {\n    $notebook | Close-OfficeNotebook\n}"
+        }
+      ]
+    },
+    {
+      "name": "Invoke-OfficeNotebook",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Runs selected PowerShell notebook cells in one persistent session and records their outputs.",
+      "outputType": "OfficeIMO.Notebook.PowerShell.NotebookExecutionReport",
+      "shouldProcess": true,
+      "parameterSets": [
+        {
+          "name": "Path",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "CellIndex",
+              "type": "int[]",
+              "mandatory": false
+            },
+            {
+              "name": "TimeoutSeconds",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "ContinueOnError",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "IncludeUnspecifiedLanguage",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "PowerShellPath",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "WorkingDirectory",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "StreamOutput",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "OutputPath",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "NoClobber",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "AllowLoss",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        },
+        {
+          "name": "LiteralPath",
+          "parameters": [
+            {
+              "name": "LiteralPath",
+              "type": "string",
+              "mandatory": true,
+              "pipeline": "byPropertyName",
+              "aliases": [
+                "FullName",
+                "PSPath"
+              ]
+            },
+            {
+              "name": "CellIndex",
+              "type": "int[]",
+              "mandatory": false
+            },
+            {
+              "name": "TimeoutSeconds",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "ContinueOnError",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "IncludeUnspecifiedLanguage",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "PowerShellPath",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "WorkingDirectory",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "StreamOutput",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "OutputPath",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "NoClobber",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "AllowLoss",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        },
+        {
+          "name": "Document",
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "OfficeIMO.Notebook.NotebookDocument",
+              "mandatory": true,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "CellIndex",
+              "type": "int[]",
+              "mandatory": false
+            },
+            {
+              "name": "TimeoutSeconds",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "ContinueOnError",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "IncludeUnspecifiedLanguage",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "PowerShellPath",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "WorkingDirectory",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "StreamOutput",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "OutputPath",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "NoClobber",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "AllowLoss",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Run a PowerShell notebook and save the updated copy",
+          "description": "Use one session for the selected cells and review the returned execution report.",
+          "code": "$report = Invoke-OfficeNotebook -LiteralPath ./lab.ipynb -OutputPath ./executed.ipynb -NoClobber\ntry {\n    $report.Cells\n} finally {\n    $report.Notebook | Close-OfficeNotebook\n}"
+        },
+        {
+          "title": "Execute selected cells in an open notebook",
+          "description": "Run zero-based indexes in notebook order with a 15-second timeout per cell.",
+          "code": "$notebook | Invoke-OfficeNotebook -CellIndex 0, 2 -TimeoutSeconds 15"
+        }
+      ]
+    },
+    {
+      "name": "Move-OfficeNotebookCell",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Moves a cell within a live notebook while keeping its identity and saved content.",
+      "outputType": "OfficeIMO.Notebook.NotebookDocument",
+      "parameterSets": [
+        {
+          "name": "__AllParameterSets",
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "OfficeIMO.Notebook.NotebookDocument",
+              "mandatory": true,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "Index",
+              "type": "int",
+              "mandatory": true,
+              "position": 0
+            },
+            {
+              "name": "DestinationIndex",
+              "type": "int",
+              "mandatory": true,
+              "position": 1
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Reorder two cells",
+          "description": "Move the second cell to the first position in an open notebook.",
+          "code": "$notebook | Move-OfficeNotebookCell -Index 1 -DestinationIndex 0"
+        },
+        {
+          "title": "Save a reordered notebook",
+          "description": "Save the new order to a separate file.",
+          "code": "$notebook = Open-OfficeNotebook ./analysis.ipynb\ntry {\n    $notebook | Move-OfficeNotebookCell -Index 1 -DestinationIndex 0\n    $notebook | Save-OfficeNotebook ./reordered.ipynb\n} finally {\n    $notebook | Close-OfficeNotebook\n}"
+        }
+      ]
+    },
+    {
+      "name": "New-OfficeNotebook",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Creates a live Jupyter notebook that can be populated and saved without running cells.",
+      "outputType": "OfficeIMO.Notebook.NotebookDocument",
+      "parameterSets": [
+        {
+          "name": "__AllParameterSets",
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string",
+              "mandatory": false,
+              "position": 0
+            }
+          ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Create a live notebook",
+          "description": "Start with an empty document.",
+          "code": "$notebook = New-OfficeNotebook"
+        },
+        {
+          "title": "Create and save a report notebook",
+          "description": "Associate the save path and add a Markdown cell.",
+          "code": "$notebook = New-OfficeNotebook ./report.ipynb\ntry {\n    $notebook | Add-OfficeNotebookCell Markdown '# Lab report'\n    $notebook | Save-OfficeNotebook\n} finally {\n    $notebook | Close-OfficeNotebook\n}"
+        }
+      ]
+    },
+    {
+      "name": "Open-OfficeNotebook",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Opens a Jupyter notebook or imports a saved notebook source into the editable model.",
+      "outputType": "OfficeIMO.Notebook.NotebookDocument",
+      "parameterSets": [
+        {
+          "name": "Path",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "Format",
+              "type": "OfficeIMO.Notebook.Import.NotebookImportFormat",
+              "mandatory": false
+            },
+            {
+              "name": "CompanionPath",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "DeepnoteNotebookId",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "ScriptLanguage",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "LoadOptions",
+              "type": "OfficeIMO.Notebook.NotebookLoadOptions",
+              "mandatory": false
+            },
+            {
+              "name": "FailOnLoss",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        },
+        {
+          "name": "LiteralPath",
+          "parameters": [
+            {
+              "name": "LiteralPath",
+              "type": "string",
+              "mandatory": true,
+              "pipeline": "byPropertyName",
+              "aliases": [
+                "FullName",
+                "PSPath"
+              ]
+            },
+            {
+              "name": "Format",
+              "type": "OfficeIMO.Notebook.Import.NotebookImportFormat",
+              "mandatory": false
+            },
+            {
+              "name": "CompanionPath",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "DeepnoteNotebookId",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "ScriptLanguage",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "LoadOptions",
+              "type": "OfficeIMO.Notebook.NotebookLoadOptions",
+              "mandatory": false
+            },
+            {
+              "name": "FailOnLoss",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Open a Jupyter notebook",
+          "description": "Read the saved notebook into the editable model.",
+          "code": "$notebook = Open-OfficeNotebook ./analysis.ipynb"
+        },
+        {
+          "title": "Import a Jupytext notebook with its outputs",
+          "description": "Match saved results from the companion Jupyter file.",
+          "code": "$notebook = Open-OfficeNotebook ./analysis.py -Format JupytextPercent -CompanionPath ./analysis.ipynb\ntry {\n    $notebook | Get-OfficeNotebookCell -Kind Code | Get-OfficeNotebookOutput\n} finally {\n    $notebook | Close-OfficeNotebook\n}"
+        }
+      ]
+    },
+    {
+      "name": "Remove-OfficeNotebookCell",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Removes a cell from a live notebook.",
+      "outputType": "OfficeIMO.Notebook.NotebookDocument",
+      "shouldProcess": true,
+      "parameterSets": [
+        {
+          "name": "__AllParameterSets",
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "OfficeIMO.Notebook.NotebookDocument",
+              "mandatory": true,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "Index",
+              "type": "int",
+              "mandatory": true,
+              "position": 0
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Preview removing a cell",
+          "description": "Check which cell would be removed.",
+          "code": "$notebook | Remove-OfficeNotebookCell -Index 0 -WhatIf"
+        },
+        {
+          "title": "Save a reviewed copy",
+          "description": "Remove an introductory cell and save the remaining cells in a new file.",
+          "code": "$notebook = Open-OfficeNotebook ./analysis.ipynb\ntry {\n    $notebook | Remove-OfficeNotebookCell -Index 0 -Confirm:$false\n    $notebook | Save-OfficeNotebook ./reviewed.ipynb\n} finally {\n    $notebook | Close-OfficeNotebook\n}"
+        }
+      ]
+    },
+    {
+      "name": "Save-OfficeNotebook",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Atomically saves a live notebook as .ipynb and leaves it open for further editing.",
+      "outputType": "System.IO.FileInfo",
+      "shouldProcess": true,
+      "parameterSets": [
+        {
+          "name": "__AllParameterSets",
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "OfficeIMO.Notebook.NotebookDocument",
+              "mandatory": true,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "Path",
+              "type": "string",
+              "mandatory": false,
+              "position": 0
+            },
+            {
+              "name": "AllowLoss",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "NoClobber",
+              "type": "switch",
+              "mandatory": false
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Save to the associated path",
+          "description": "Write the current live notebook to its default destination.",
+          "code": "$notebook | Save-OfficeNotebook"
+        },
+        {
+          "title": "Save a copy without replacing an existing file",
+          "description": "Write the edited notebook to a new path.",
+          "code": "$notebook = Open-OfficeNotebook ./analysis.ipynb\ntry {\n    $notebook | Add-OfficeNotebookCell Markdown '# Reviewed'\n    $notebook | Save-OfficeNotebook ./reviewed.ipynb -NoClobber\n} finally {\n    $notebook | Close-OfficeNotebook\n}"
+        }
+      ]
+    },
+    {
+      "name": "Set-OfficeNotebookCell",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Updates cell text or a saved code-cell execution count without running code.",
+      "outputType": "OfficeIMO.Notebook.NotebookCell",
+      "parameterSets": [
+        {
+          "name": "__AllParameterSets",
+          "parameters": [
+            {
+              "name": "Cell",
+              "type": "OfficeIMO.Notebook.NotebookCell",
+              "mandatory": true,
+              "pipeline": "byValue"
+            },
+            {
+              "name": "Source",
+              "type": "string",
+              "mandatory": false
+            },
+            {
+              "name": "ExecutionCount",
+              "type": "int",
+              "mandatory": false
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false
+            }
+          ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "Replace cell text",
+          "description": "Update the source of a cell already selected from an open notebook.",
+          "code": "$cell | Set-OfficeNotebookCell -Source '# Updated heading'"
+        },
+        {
+          "title": "Record a saved execution count",
+          "description": "Set the count on a new PowerShell cell before saving.",
+          "code": "$notebook = New-OfficeNotebook ./lab.ipynb\ntry {\n    $cell = $notebook | Add-OfficeNotebookCell Code 'Get-Date' -Language PowerShell -PassThru\n    $cell | Set-OfficeNotebookCell -ExecutionCount 1\n    $notebook | Save-OfficeNotebook\n} finally {\n    $notebook | Close-OfficeNotebook\n}"
+        }
+      ]
+    }
+  ],
+  "map": []
+}

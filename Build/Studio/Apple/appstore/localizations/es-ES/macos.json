@@ -1,0 +1,13 @@
+{
+  "appId": "6818096229",
+  "versionString": "1.0",
+  "platform": "macOS",
+  "locale": "es-ES",
+  "metadata": {
+    "description": "Lee y trabaja con PDF en OfficeIMO Studio. Abre documentos en ventanas de documento del sistema en tu Mac.\n\nBusca y selecciona texto, añade notas y anotaciones, rellena los campos de formulario compatibles, organiza las páginas y guarda o comparte tu trabajo. Convierte a PDF los documentos compatibles, haz que los escaneos admitan búsquedas con el reconocimiento de texto en el dispositivo y prepara copias protegidas con contraseña o con contenido censurado.\n\nAbre archivos de Word, Excel y PowerPoint en modo de solo lectura, sin Microsoft Office. Guarda una copia en PDF cuando quieras seguir trabajando en ella.\n\nEl procesamiento de documentos se realiza en tu dispositivo. OfficeIMO Studio es gratuito y de código abierto con la licencia MIT. El código fuente y la ayuda de la comunidad están disponibles en https://github.com/EvotecIT/OfficeIMO.",
+    "keywords": "pdf,lector,documentos,anotar,formularios,escanear,convertir,código abierto,word,excel,powerpoint",
+    "marketingUrl": "https://officeimo.com/studio/",
+    "supportUrl": "https://github.com/EvotecIT/OfficeIMO/issues"
+  },
+  "useReleaseVersion": true
+}

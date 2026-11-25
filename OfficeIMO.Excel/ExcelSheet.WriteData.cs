@@ -19,6 +19,19 @@ public partial class ExcelSheet {
     public void WriteData<T>(IEnumerable<T> data, params (string Header, Func<T, object?> Selector)[] columns) =>
         InsertObjects(data, columns);
 
+    /// <summary>
+    /// Writes a header row and plain cells from row one through typed column selectors, such as
+    /// <c>WriteData(rows, columns =&gt; columns.Add("Name", row =&gt; row.Name).Add("Id", row =&gt; row.Id))</c>.
+    /// The cells match the equivalent <c>(header, selector)</c> columns, and numbers, dates and Boolean values are
+    /// kept without boxing. Selectors run once per cell, after <paramref name="data"/> has been enumerated.
+    /// </summary>
+    public void WriteData<T>(IEnumerable<T> data, Action<ExcelDataColumns<T>> columns) {
+        ArgumentNullException.ThrowIfNull(columns);
+        var definitions = new ExcelDataColumns<T>();
+        columns(definitions);
+        InsertTypedObjects(data, definitions, includeHeaders: true, startRow: 1);
+    }
+
     /// <summary>Writes plain cells at a chosen row through explicit selectors, preserving duplicate or blank display headers.</summary>
     public void WriteData<T>(IEnumerable<T> data, bool includeHeaders, int row,
         params (string Header, Func<T, object?> Selector)[] columns) =>

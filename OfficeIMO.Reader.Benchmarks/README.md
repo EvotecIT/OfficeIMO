@@ -11,6 +11,7 @@
 - Markdown parser, heading/table chunking, and paragraph-only chunking isolation for regression diagnosis
 - repeated XML sibling scaling at 128, 1,200, and 10,000 elements
 - PowerPoint slide streaming on a generated 1,000-slide deck: whole-deck and first-slide extraction and the Reader text projection, each through the loaded presentation model and through `PowerPointSlideReader` with validated equal output (`PowerPointSlideStreamingBenchmarks`, category `Performance`)
+- PowerPoint slide text on the same deck shape at 20 and 200 slides: the text of every DrawingML paragraph in presentation order, read directly through the Open XML SDK and through the internal SDK-free package and pull reader in `OfficeIMO.Core`, with equal output checked in setup (`PowerPointSlideTextBenchmarks`, category `Performance`)
 
 The corpus is generated deterministically during benchmark setup. Document creation is outside measured operations, while every measured read starts from the same immutable byte payload. Hashing is disabled in the extraction lane so format parsing and result projection remain visible; hosts that rely on source hashing should benchmark that option separately for their storage layer.
 

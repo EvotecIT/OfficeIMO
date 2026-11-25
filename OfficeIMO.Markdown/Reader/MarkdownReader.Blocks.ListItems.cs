@@ -4,6 +4,10 @@ using System.Text;
 namespace OfficeIMO.Markdown;
 
 internal static partial class MarkdownReader {
+    // The list parsers keep no state of their own.
+    private static readonly OrderedListParser NestedOrderedListParser = new OrderedListParser();
+    private static readonly UnorderedListParser NestedUnorderedListParser = new UnorderedListParser();
+
     private static void ConsumeNestedBlocksForListItem(
         string[] lines,
         ref int index,
@@ -137,7 +141,7 @@ internal static partial class MarkdownReader {
                 && CountLeadingIndentColumns(lines[k] ?? string.Empty) >= continuationIndent
                 && IsOrderedListLine(lines[k], options, out int lvlAbsO2, out _, out _, out _)
                 && lvlAbsO2 >= itemLevelAbs + 1) {
-                if (TryParseNestedListBlock(lines, k, continuationIndent, options, state, new OrderedListParser(), out var orderedList, out var orderedEndIndex, out var orderedSyntaxNode)) {
+                if (TryParseNestedListBlock(lines, k, continuationIndent, options, state, NestedOrderedListParser, out var orderedList, out var orderedEndIndex, out var orderedSyntaxNode)) {
                     item.NestedBlocks.Add(orderedList);
                     if (orderedSyntaxNode != null) {
                         item.SyntaxChildren.Add(orderedSyntaxNode);
@@ -156,7 +160,7 @@ internal static partial class MarkdownReader {
                 && CountLeadingIndentColumns(lines[k] ?? string.Empty) >= continuationIndent
                 && IsUnorderedListLine(lines[k], out int lvlAbsU2)
                 && lvlAbsU2 >= itemLevelAbs + 1) {
-                if (TryParseNestedListBlock(lines, k, continuationIndent, options, state, new UnorderedListParser(), out var unorderedList, out var unorderedEndIndex, out var unorderedSyntaxNode)) {
+                if (TryParseNestedListBlock(lines, k, continuationIndent, options, state, NestedUnorderedListParser, out var unorderedList, out var unorderedEndIndex, out var unorderedSyntaxNode)) {
                     item.NestedBlocks.Add(unorderedList);
                     if (unorderedSyntaxNode != null) {
                         item.SyntaxChildren.Add(unorderedSyntaxNode);
@@ -220,7 +224,9 @@ internal static partial class MarkdownReader {
         }
 
         int idx = startIndex;
-        var tempDoc = MarkdownDocument.Create();
+        // Without syntax capture the list parsers add their block unbound, so the container
+        // document is only a holder and is reused for the next nested list at this depth.
+        var tempDoc = effectiveState.RentNestedListScratchDocument();
         int previousMarkerIndentOffset = effectiveState.ListMarkerIndentOffset;
         effectiveState.ListMarkerIndentOffset = CountLeadingIndentColumns(lines[startIndex] ?? string.Empty);
         // The list parser re-enters on this shared state rather than on a nested state.
@@ -237,6 +243,7 @@ internal static partial class MarkdownReader {
         } finally {
             effectiveState.NestedBlockDepth--;
             effectiveState.ListMarkerIndentOffset = previousMarkerIndentOffset;
+            effectiveState.ReturnNestedListScratchDocument(tempDoc);
         }
 
         list = null!;
@@ -389,13 +396,13 @@ internal static partial class MarkdownReader {
             && CountLeadingIndentColumns(listLine) >= continuationIndent
             && IsOrderedListLine(listLine, options, out int orderedLevel, out _, out _, out _)
             && orderedLevel >= itemLevelAbs + 1) {
-            parser = new OrderedListParser();
+            parser = NestedOrderedListParser;
         } else if (allowNestedUnordered
             && options.UnorderedLists
             && CountLeadingIndentColumns(listLine) >= continuationIndent
             && IsUnorderedListLine(listLine, out int unorderedLevel)
             && unorderedLevel >= itemLevelAbs + 1) {
-            parser = new UnorderedListParser();
+            parser = NestedUnorderedListParser;
         }
 
         if (parser == null

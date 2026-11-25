@@ -5,6 +5,17 @@ namespace OfficeIMO.Markdown;
 /// </summary>
 internal static class HtmlRenderer {
     internal static string Render(MarkdownDocument doc, MarkdownHtmlExportOptions options) {
+        // A fragment returns only the body. Styles, head links and scripts are still built when the
+        // stylesheet goes to a sidecar file, because saving writes that file.
+        if (options.Kind == MarkdownHtmlKind.Fragment && options.CssDelivery != MarkdownCssDelivery.ExternalFile) {
+            var (fragmentBlocks, fragmentHeadings) = doc.GetBlocksAndHeadingSlugs(options.HeadingIdentifierStyle);
+            var fragmentFootnotes = options.GitHubFootnoteHtml
+                ? HtmlFootnoteRenderState.Create(fragmentBlocks)
+                : null;
+            using var _fragmentContext = HtmlRenderContext.Push(options, fragmentFootnotes);
+            return RenderBodyContent(doc, options, fragmentHeadings);
+        }
+
         var parts = RenderParts(doc, options);
         if (options.Kind == MarkdownHtmlKind.Fragment) {
             return parts.Body; // Body already wrapped if requested
@@ -31,27 +42,7 @@ internal static class HtmlRenderer {
         var css = BuildCss(options, out string? cssLinkTag, out string? cssToWrite, out string? extraHeadLinks);
         options._externalCssContentToWrite = cssToWrite; // pass back for SaveAsHtml
 
-        // The body is written once into one builder: the optional article wrapper, theme toggle and
-        // top anchor for back-to-top links, then the blocks.
-        var blocksForRendering = doc.Blocks;
-        var body = RentBodyBuilder();
-        bool wrapInArticle = !string.IsNullOrEmpty(options.BodyClass);
-        if (wrapInArticle) {
-            body.Append("<article class=\"").Append(HtmlTextEncoder.Encode(options.BodyClass, options)).Append("\">");
-        }
-        if (options.ThemeToggle) {
-            const string toggle = "<button class=\"theme-toggle\" data-theme-toggle title=\"Toggle theme\" aria-label=\"Toggle theme\">🌓</button>";
-            body.Append(toggle);
-        }
-        if (options.BackToTopLinks) {
-            body.Append("<a id=\"top\"></a>");
-        }
-        AppendBody(body, doc, blocksForRendering, options, headingCatalog);
-        if (wrapInArticle) {
-            body.Append("</article>");
-        }
-        string bodyContent = body.ToString();
-        ReturnBodyBuilder(body);
+        string bodyContent = RenderBodyContent(doc, options, headingCatalog);
 
         StringBuilder head = new StringBuilder();
         if (!string.IsNullOrEmpty(cssLinkTag)) head.Append(cssLinkTag);
@@ -62,18 +53,18 @@ internal static class HtmlRenderer {
         if (options.CopyHeadingLinkOnClick) scripts.Append(HtmlResources.AnchorCopyScript);
         // ScrollSpy: include only if any TOC requests it
         try {
-            if (doc.Blocks != null && doc.Blocks.Any(b => b is ITocPlaceholderMarkdownBlock toc && toc.RequiresScrollSpy())) {
+            if (doc.Blocks != null && RequiresScrollSpy(doc.Blocks)) {
                 scripts.Append(HtmlResources.ScrollSpyScript);
             }
         } catch { /* best-effort */ }
 
         // Additional JS: link in head when Online; download+inline into scripts when Offline
         if (options.AssetMode == MarkdownAssetMode.Online) {
-            foreach (var js in options.AdditionalJsHrefs.Where(u => !string.IsNullOrWhiteSpace(u))) {
+            foreach (var js in (options.AdditionalJsHrefsIfAny ?? Enumerable.Empty<string>()).Where(u => !string.IsNullOrWhiteSpace(u))) {
                 head.Append($"<script src=\"{HtmlAttributeUrlEncoder.Encode(js, options)}\"></script>\n");
             }
         } else {
-            foreach (var js in options.AdditionalJsHrefs.Where(u => !string.IsNullOrWhiteSpace(u))) {
+            foreach (var js in (options.AdditionalJsHrefsIfAny ?? Enumerable.Empty<string>()).Where(u => !string.IsNullOrWhiteSpace(u))) {
                 var code = ResolveExternalText(js, options.ExternalTextResolver);
                 if (!string.IsNullOrEmpty(code)) scripts.Append(code).Append('\n');
             }
@@ -123,6 +114,40 @@ internal static class HtmlRenderer {
         parts.Css = css ?? string.Empty;
         parts.Scripts = scripts.ToString();
         return parts;
+    }
+
+    private static bool RequiresScrollSpy(IReadOnlyList<IMarkdownBlock> blocks) {
+        for (int i = 0; i < blocks.Count; i++) {
+            if (blocks[i] is ITocPlaceholderMarkdownBlock toc && toc.RequiresScrollSpy()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // The body is written once into one builder: the optional article wrapper, theme toggle and
+    // top anchor for back-to-top links, then the blocks.
+    private static string RenderBodyContent(MarkdownDocument doc, MarkdownHtmlExportOptions options, MarkdownHeadingCatalog headingCatalog) {
+        var body = RentBodyBuilder();
+        bool wrapInArticle = !string.IsNullOrEmpty(options.BodyClass);
+        if (wrapInArticle) {
+            body.Append("<article class=\"").Append(HtmlTextEncoder.Encode(options.BodyClass, options)).Append("\">");
+        }
+        if (options.ThemeToggle) {
+            const string toggle = "<button class=\"theme-toggle\" data-theme-toggle title=\"Toggle theme\" aria-label=\"Toggle theme\">🌓</button>";
+            body.Append(toggle);
+        }
+        if (options.BackToTopLinks) {
+            body.Append("<a id=\"top\"></a>");
+        }
+        AppendBody(body, doc, doc.Blocks, options, headingCatalog);
+        if (wrapInArticle) {
+            body.Append("</article>");
+        }
+        string bodyContent = body.ToString();
+        ReturnBodyBuilder(body);
+        return bodyContent;
     }
 
     // The body builder is kept for the next render on the thread, so a render allocates its output
@@ -345,6 +370,19 @@ internal static class HtmlRenderer {
     }
 
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<MarkdownHtmlStyle, string> _unscopedBaseCssCache = new System.Collections.Concurrent.ConcurrentDictionary<MarkdownHtmlStyle, string>();
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<MarkdownHtmlStyle, string> _defaultScopedBaseCssCache = new();
+
+    private static string GetUnscopedBaseCss(MarkdownHtmlStyle style) =>
+        _unscopedBaseCssCache.GetOrAdd(style, static value =>
+            value == MarkdownHtmlStyle.Plain ? string.Empty : HtmlResources.GetStyleCss(value) + HtmlResources.CommonExtraCss);
+
+    private static string GetScopedBaseCss(MarkdownHtmlStyle style, string? scopeSelector) {
+        if (scopeSelector == MarkdownHtmlExportOptions.DefaultCssScopeSelector) {
+            return _defaultScopedBaseCssCache.GetOrAdd(style, static value =>
+                ScopeCss(GetUnscopedBaseCss(value), MarkdownHtmlExportOptions.DefaultCssScopeSelector));
+        }
+        return ScopeCss(GetUnscopedBaseCss(style), scopeSelector);
+    }
 
     private static string? BuildCss(MarkdownHtmlExportOptions options, out string? cssLinkTag, out string? cssToWrite, out string? extraHeadLinks) {
         cssLinkTag = null; cssToWrite = null; extraHeadLinks = null;
@@ -352,12 +390,10 @@ internal static class HtmlRenderer {
         // deliberately rendered on demand so unique request values cannot grow static state.
         MarkdownVisualTheme? effectiveVisualTheme = ResolveVisualTheme(options);
         MarkdownHtmlStyle effectiveStyle = NormalizeHtmlStyle(GetEffectiveStyle(options, effectiveVisualTheme));
-        string rawBaseCss = _unscopedBaseCssCache.GetOrAdd(effectiveStyle,
-            static style => style == MarkdownHtmlStyle.Plain ? string.Empty : HtmlResources.GetStyleCss(style) + HtmlResources.CommonExtraCss);
         bool nativeThemeDefaults = effectiveVisualTheme?.SourceTheme != null;
         string baseCss = nativeThemeDefaults && options.Style == MarkdownHtmlStyle.Plain
             ? HtmlResources.GetOfficeThemeCss(NormalizeScope(options.CssScopeSelector))
-            : ScopeCss(rawBaseCss, options.CssScopeSelector);
+            : GetScopedBaseCss(effectiveStyle, options.CssScopeSelector);
 
         // Additional CSS/JS URLs may be included in head as link/script or inlined depending on AssetMode
         StringBuilder headLinks = new StringBuilder();
@@ -366,7 +402,7 @@ internal static class HtmlRenderer {
         if (options.CssDelivery == MarkdownCssDelivery.None) {
             // Still emit links for additional CSS if Online
             if (options.AssetMode == MarkdownAssetMode.Online) {
-                foreach (var href in options.AdditionalCssHrefs.Where(u => !string.IsNullOrWhiteSpace(u)))
+                foreach (var href in (options.AdditionalCssHrefsIfAny ?? Enumerable.Empty<string>()).Where(u => !string.IsNullOrWhiteSpace(u)))
                     headLinks.Append($"<link rel=\"stylesheet\" href=\"{HtmlAttributeUrlEncoder.Encode(href, options)}\">\n");
             }
             // AdditionalJs handled later in head (scripts in body for full doc)
@@ -378,7 +414,7 @@ internal static class HtmlRenderer {
         if (options.CssDelivery == MarkdownCssDelivery.LinkHref && !string.IsNullOrWhiteSpace(options.CssHref) && options.AssetMode == MarkdownAssetMode.Online) {
             linkPrimary = true;
             cssLinkTag = $"<link rel=\"stylesheet\" href=\"{HtmlAttributeUrlEncoder.Encode(options.CssHref, options)}\">\n";
-            foreach (var href in options.AdditionalCssHrefs.Where(u => !string.IsNullOrWhiteSpace(u)))
+            foreach (var href in (options.AdditionalCssHrefsIfAny ?? Enumerable.Empty<string>()).Where(u => !string.IsNullOrWhiteSpace(u)))
                 headLinks.Append($"<link rel=\"stylesheet\" href=\"{HtmlAttributeUrlEncoder.Encode(href, options)}\">\n");
             extraHeadLinks = headLinks.ToString();
             // Do not return; we may inline small theme overrides below
@@ -397,7 +433,7 @@ internal static class HtmlRenderer {
             if (!string.IsNullOrEmpty(downloaded)) cssBuilder.Append(downloaded).Append('\n');
         }
         // Additional CSS URLs
-        foreach (var href in options.AdditionalCssHrefs.Where(u => !string.IsNullOrWhiteSpace(u))) {
+        foreach (var href in (options.AdditionalCssHrefsIfAny ?? Enumerable.Empty<string>()).Where(u => !string.IsNullOrWhiteSpace(u))) {
             if (options.AssetMode == MarkdownAssetMode.Online && options.CssDelivery == MarkdownCssDelivery.LinkHref) {
                 headLinks.Append($"<link rel=\"stylesheet\" href=\"{HtmlAttributeUrlEncoder.Encode(href, options)}\">\n");
             } else {
@@ -574,23 +610,21 @@ internal static class HtmlRenderer {
             return;
         }
 
-        TryApplyCssColor(overrides.AccentLight, value => target.AccentLight = value);
-        TryApplyCssColor(overrides.AccentDark, value => target.AccentDark = value);
-        TryApplyCssColor(overrides.HeadingLight, value => target.HeadingLight = value);
-        TryApplyCssColor(overrides.HeadingDark, value => target.HeadingDark = value);
-        TryApplyCssColor(overrides.TocBgLight, value => target.TocBgLight = value);
-        TryApplyCssColor(overrides.TocBgDark, value => target.TocBgDark = value);
-        TryApplyCssColor(overrides.TocBorderLight, value => target.TocBorderLight = value);
-        TryApplyCssColor(overrides.TocBorderDark, value => target.TocBorderDark = value);
-        TryApplyCssColor(overrides.ActiveLinkLight, value => target.ActiveLinkLight = value);
-        TryApplyCssColor(overrides.ActiveLinkDark, value => target.ActiveLinkDark = value);
+        target.AccentLight = NormalizeCssColor(overrides.AccentLight) ?? target.AccentLight;
+        target.AccentDark = NormalizeCssColor(overrides.AccentDark) ?? target.AccentDark;
+        target.HeadingLight = NormalizeCssColor(overrides.HeadingLight) ?? target.HeadingLight;
+        target.HeadingDark = NormalizeCssColor(overrides.HeadingDark) ?? target.HeadingDark;
+        target.TocBgLight = NormalizeCssColor(overrides.TocBgLight) ?? target.TocBgLight;
+        target.TocBgDark = NormalizeCssColor(overrides.TocBgDark) ?? target.TocBgDark;
+        target.TocBorderLight = NormalizeCssColor(overrides.TocBorderLight) ?? target.TocBorderLight;
+        target.TocBorderDark = NormalizeCssColor(overrides.TocBorderDark) ?? target.TocBorderDark;
+        target.ActiveLinkLight = NormalizeCssColor(overrides.ActiveLinkLight) ?? target.ActiveLinkLight;
+        target.ActiveLinkDark = NormalizeCssColor(overrides.ActiveLinkDark) ?? target.ActiveLinkDark;
     }
 
-    private static void TryApplyCssColor(string? value, Action<string> apply) {
-        if (!string.IsNullOrWhiteSpace(value) && OfficeColor.TryParse(value, out OfficeColor color)) {
-            apply(color.ToCssColor());
-        }
-    }
+    // The CSS spelling of a color override, or null when it is empty or not a color.
+    private static string? NormalizeCssColor(string? value) =>
+        !string.IsNullOrWhiteSpace(value) && OfficeColor.TryParse(value, out OfficeColor color) ? color.ToCssColor() : null;
 
     internal static string ResolveExternalText(string? url, MarkdownExternalTextResolver? resolver) {
         if (string.IsNullOrWhiteSpace(url)

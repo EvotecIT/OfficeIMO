@@ -20,24 +20,18 @@ struct OfficeIMOStudioApp: App {
 
     init() {
         StudioDocument.removeStaleWorkingCopies()
+        #if DEBUG || OFFICEIMO_AUTORUN
         // Unattended runs start with the app rather than a window, which may never appear when launched from a shell.
         if Autorun.isRequested {
             let model = JourneyModel()
             Task { await Autorun.run(model) }
         }
+        #endif
     }
 
     var body: some Scene {
         DocumentGroup(newDocument: { StudioDocument() }) { configuration in
-            #if os(macOS)
-            if let source = configuration.document.officeSource {
-                OfficeDocumentView(source: source)
-            } else {
-                DocumentWindow(document: configuration.document, fileURL: configuration.fileURL)
-            }
-            #else
             DocumentWindow(document: configuration.document, fileURL: configuration.fileURL)
-            #endif
         }
         #if os(macOS)
         .defaultSize(width: 1180, height: 860)
@@ -49,6 +43,14 @@ struct OfficeIMOStudioApp: App {
             ImportFromDevicesCommands()
             #endif
         }
+
+        // Word, Excel, PowerPoint and other documents open read-only, as their PDF conversion.
+        DocumentGroup(viewing: ViewerDocument.self) { configuration in
+            ViewerWindow(document: configuration.document)
+        }
+        #if os(macOS)
+        .defaultSize(width: 980, height: 820)
+        #endif
 
         #if os(macOS)
         // A WindowGroup, as a Window scene beside a DocumentGroup crashes in SwiftUI at launch.
@@ -62,7 +64,7 @@ struct OfficeIMOStudioApp: App {
         DocumentGroupLaunchScene("OfficeIMO Studio", backgroundStyle: Color.accentColor.gradient) {
             // The scene folds buttons after the first two into a More menu, so the other ways to start share one.
             Button("Convert to PDF") { LaunchDocuments.open { try await ConversionSources.newDocumentFromFile() } }
-            Button("Create PDF…") { LaunchDocuments.open { try await ScanSources.newDocumentFromChoice() } }
+            Button("New PDF…") { LaunchDocuments.open { try await ScanSources.newDocumentFromChoice() } }
                 .onAppear { WelcomeView.presentIfNeeded() }
         }
         #endif
@@ -137,6 +139,9 @@ struct StudioCommands: Commands {
                     Text("Table of Contents")
                 }
                 .keyboardShortcut("3", modifiers: [.command, .option])
+                // Preview's Highlights and Notes uses the same shortcut.
+                Button("Comments") { session?.showComments() }
+                    .keyboardShortcut("4", modifiers: [.command, .option])
                 Divider()
                 Button(session?.isInspectorShown == true ? "Hide Inspector" : "Show Inspector") { session?.isInspectorShown.toggle() }
                     .keyboardShortcut("i", modifiers: [.command, .option])
@@ -205,7 +210,8 @@ struct StudioCommands: Commands {
     }
 }
 
-/// Launch arguments for unattended runs:
+#if DEBUG || OFFICEIMO_AUTORUN
+/// Launch arguments for unattended runs, in Debug builds and in builds with the OFFICEIMO_AUTORUN condition:
 /// -OfficeIMOJourney runs the journey and writes Results/journey.json;
 /// -OfficeIMOMeasure <file> measures Documents/Measurements/<file> and writes Results/measure-<file>.json;
 /// -OfficeIMOExit quits afterwards.
@@ -242,3 +248,4 @@ enum Autorun {
         }
     }
 }
+#endif

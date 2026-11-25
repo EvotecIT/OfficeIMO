@@ -49,7 +49,7 @@ internal static partial class HtmlPdfRenderedConverter {
             ColumnSpan = group.ColumnSpan,
             RowSpan = group.RowSpan,
             HeaderScope = MapTableHeaderScope(group.HeaderScope),
-            StructureElementKey = group.StructureElementKey,
+            StructureElementKey = pagePaint != null ? pagePaint.GetStructureKey(group.StructureElementKey) : group.StructureElementKey,
             ListNumbering = group.Role == HtmlRenderSemanticGroupRole.List ? MapListNumbering(group.ListStyleType) : null,
             LogicalOrder = group.LogicalOrder
         };
@@ -83,7 +83,7 @@ internal static partial class HtmlPdfRenderedConverter {
         if (group.Role == HtmlRenderSemanticGroupRole.TableRow && group.TableRowGroup is { } rowGroup) {
             // Rows of one thead, tbody or tfoot share a keyed group element across page fragments.
             canvas.Structure(PdfCore.PdfCanvasStructureRole.TableBody, AddGroup, new PdfCore.PdfCanvasStructureOptions {
-                StructureElementKey = rowGroup.StructureElementKey,
+                StructureElementKey = pagePaint != null ? pagePaint.GetStructureKey(rowGroup.StructureElementKey) : rowGroup.StructureElementKey,
                 LogicalOrder = rowGroup.LogicalOrder,
                 TableRowGroupType = rowGroup.Kind switch {
                     HtmlRenderTableRowGroupKind.Head => "THead",

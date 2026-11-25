@@ -13,13 +13,12 @@ public static partial class OfficeConverter {
         string extension = Path.GetExtension(settings.TargetName ?? string.Empty).ToLowerInvariant();
         switch (FormatForExtension(extension)) {
             case OfficeDocumentFormat.Pdf: {
-                PdfCreateOptions? creation = settings.Word?.PdfOptions ?? settings.Excel?.PdfOptions ?? settings.PowerPoint?.PdfOptions
-                    ?? settings.Markdown?.PdfOptions ?? settings.Html?.PdfOptions ?? settings.PlainText?.PdfOptions ?? settings.ReaderPdf?.PdfOptions
-            ?? settings.EmailPdf?.Pdf.PdfOptions;
+                string routeId = SelectRoute(settings).Id;
+                PdfCreateOptions? creation = GetPdfCreationOptions(routeId, settings);
                 var options = new PdfLoadOptions { Password = creation?.Encryption?.OwnerPassword ?? creation?.Encryption?.UserPassword ?? settings.SourcePassword };
                 if (creation?.Encryption?.AesCryptographyProvider is { } cryptography)
                     options = PdfLoadOptions.WithAesCryptographyProvider(options, cryptography);
-                if (Registrations.TryGetValue(SelectRoute(settings).Id, out IOfficeConversionRoute? route) && route is IOfficeConversionOutputValidation owner)
+                if (Registrations.TryGetValue(routeId, out IOfficeConversionRoute? route) && route is IOfficeConversionOutputValidation owner)
                     options = owner.CreateOutputPdfLoadOptions(settings) ?? options;
                 using PdfDocument document = await PdfDocument.LoadAsync(output, options, token).ConfigureAwait(false);
                 if (document.Inspect(options, token).PageCount == 0) throw new InvalidDataException("The registered converter produced a PDF without pages.");

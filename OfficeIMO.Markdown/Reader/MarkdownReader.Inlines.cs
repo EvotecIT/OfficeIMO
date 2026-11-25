@@ -48,6 +48,41 @@ internal static partial class MarkdownReader {
         return sequence;
     }
 
+    // Built only when an inline extension runs: a local function converted to a delegate would make
+    // every ParseInlinesInternal call allocate its locals on the heap.
+    private static Func<int, int, bool, bool, InlineSequence> CreateNestedInlineSegmentParser(
+        string text,
+        MarkdownLoadOptions options,
+        MarkdownReaderState? state,
+        MarkdownInlineSourceMap? sourceMap,
+        InlineHtmlWrapperMatchIndex inlineHtmlWrapperMatches,
+        int inlineHtmlWrapperDepth,
+        int imageAltDepth,
+        TableCellHtmlMode tableCellHtmlMode) {
+        return (relativeStart, length, nestedAllowLinks, nestedAllowImages) => {
+            if (relativeStart < 0 || length <= 0 || relativeStart >= text.Length) {
+                return new InlineSequence();
+            }
+
+            var safeLength = Math.Min(length, text.Length - relativeStart);
+            if (safeLength <= 0) {
+                return new InlineSequence();
+            }
+
+            return ParseInlinesInternal(
+                text.Substring(relativeStart, safeLength),
+                options,
+                state,
+                nestedAllowLinks,
+                nestedAllowImages,
+                sourceMap?.Slice(relativeStart, safeLength),
+                inlineHtmlWrapperMatches.Slice(relativeStart),
+                inlineHtmlWrapperDepth,
+                imageAltDepth,
+                tableCellHtmlMode);
+        };
+    }
+
     private static InlineSequence ParseInlinesInternal(
         string text,
         MarkdownLoadOptions options,
@@ -94,6 +129,8 @@ internal static partial class MarkdownReader {
         // Every parse owns the root frame. Frame stacks are reused per thread; nested label parses
         // take their own while their parent's is in use.
         var stack = RentInlineFrameStack();
+        // Created on the first extension probe and shared by the rest of this parse.
+        Func<int, int, bool, bool, InlineSequence>? nestedInlineSegmentParser = null;
         stack.Push(new InlineFrame(FrameKind.Root, '\0', 0, root, -1));
         InlineSequence Current() => stack.Peek().Seq;
         MarkdownInlineSourceMap? SliceMap(int start, int length) => sourceMap?.Slice(start, length);
@@ -395,29 +432,6 @@ internal static partial class MarkdownReader {
 
             return -1;
         }
-        InlineSequence ParseNestedInlineSegment(int relativeStart, int length, bool nestedAllowLinks, bool nestedAllowImages) {
-            if (relativeStart < 0 || length <= 0 || relativeStart >= text.Length) {
-                return new InlineSequence();
-            }
-
-            var safeLength = Math.Min(length, text.Length - relativeStart);
-            if (safeLength <= 0) {
-                return new InlineSequence();
-            }
-
-            return ParseInlinesInternal(
-                text.Substring(relativeStart, safeLength),
-                options,
-                state,
-                nestedAllowLinks,
-                nestedAllowImages,
-                SliceMap(relativeStart, safeLength),
-                inlineHtmlWrapperMatches.Slice(relativeStart),
-                inlineHtmlWrapperDepth,
-                imageAltDepth,
-                tableCellHtmlMode);
-        }
-
         int pos = 0;
         while (pos < text.Length) {
             // Hard break signal encoded by paragraph joiner as a bare '\n'
@@ -448,7 +462,7 @@ internal static partial class MarkdownReader {
                     allowImages,
                     sourceMap,
                     inlineParserExtensions,
-                    ParseNestedInlineSegment,
+                    nestedInlineSegmentParser ??= CreateNestedInlineSegmentParser(text, options, state, sourceMap, inlineHtmlWrapperMatches, inlineHtmlWrapperDepth, imageAltDepth, tableCellHtmlMode),
                     out var extensionResult)) {
                 AddRawNode(extensionResult.Inline, pos, extensionResult.ConsumedLength);
                 pos += extensionResult.ConsumedLength;
@@ -538,7 +552,7 @@ internal static partial class MarkdownReader {
                 out int? imageLinkHrefTitleLength,
                 inlineHtmlWrapperMatches)) {
                 if (allowLinks && allowImages) {
-                    var imgResolved = ResolveUrl(img2, options);
+                    var imgResolved = ResolveImageUrl(img2, options);
                     var hrefResolved = ResolveUrl(href2, options);
                     if (imgResolved is null || hrefResolved is null) {
                         // Unsafe URLs: keep content as plain text instead of a clickable linked image.
@@ -595,7 +609,7 @@ internal static partial class MarkdownReader {
                         inlineHtmlWrapperMatches)) {
                         var key = NormalizeReferenceLabel(refLabel);
                         if (state.LinkRefs.TryGetValue(key, out var defImg)) {
-                            var resolved = ResolveUrl(defImg.Url, options);
+                            var resolved = ResolveImageUrl(defImg.Url, options);
                             if (resolved is null) {
                                 AddTextNode(string.IsNullOrEmpty(altRef) ? "image" : ExtractImageAltPlainText(altRef, options, state, imageAltDepth), pos, consumedRefImg);
                             } else {
@@ -635,7 +649,7 @@ internal static partial class MarkdownReader {
                         out int? titleStartImg,
                         out int? titleLengthImg,
                         inlineHtmlWrapperMatches)) {
-                        var srcResolved = ResolveUrl(srcImg, options);
+                        var srcResolved = ResolveImageUrl(srcImg, options);
                         if (srcResolved is null) {
                             AddTextNode(string.IsNullOrEmpty(altImg) ? "image" : ExtractImageAltPlainText(altImg, options, state, imageAltDepth), pos, consumedImg);
                         } else {
@@ -1021,7 +1035,7 @@ internal static partial class MarkdownReader {
                         allowImages,
                         sourceMap,
                         inlineParserExtensions,
-                        ParseNestedInlineSegment,
+                        nestedInlineSegmentParser ??= CreateNestedInlineSegmentParser(text, options, state, sourceMap, inlineHtmlWrapperMatches, inlineHtmlWrapperDepth, imageAltDepth, tableCellHtmlMode),
                         out _)) break;
                 pos++;
             }

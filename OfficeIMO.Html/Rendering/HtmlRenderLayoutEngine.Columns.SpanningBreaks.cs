@@ -111,8 +111,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 HtmlCssPageGeometry geometry = _pageRules.ResolveGeometry(page, owner.PageName, _options);
                 if (!SamePageGeometry(owner.Geometry, geometry)
                     || Math.Abs(owner.PageHeight - ResolvePageBodyContentHeight(page, geometry)) > 0.0001D) return false;
-            } while (target == HtmlPageBreakTarget.Left && page % 2 != 0
-                || target == HtmlPageBreakTarget.Right && page % 2 == 0);
+            } while (target == HtmlPageBreakTarget.Left && (page + _options.PageNumberOffset) % 2 != 0
+                || target == HtmlPageBreakTarget.Right && (page + _options.PageNumberOffset) % 2 == 0);
             remaining = owner.PageHeight;
         }
         terminal = owner with {

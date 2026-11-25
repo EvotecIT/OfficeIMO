@@ -4,18 +4,15 @@ The native Swift app for the Mac, iPad and iPhone, built on the shared C# engine
 
 ## Build
 
-Open `OfficeIMOStudio.xcodeproj` and run the `OfficeIMOStudio-macOS` or `OfficeIMOStudio-iOS` scheme. Both targets use the local [engine package](../OfficeIMOStudioEngine/Package.swift), which downloads the versioned OfficeIMO NativeAOT XCFramework and verifies its SHA-256. No separate local engine copy or symlink is needed. The apps require macOS, iPadOS or iOS 26; the framework includes Intel and Apple silicon Mac slices, arm64 iOS, and the arm64 iOS simulator.
-
-The Swift UI calls the existing OfficeIMO engine through its C interface. Packaging the engine separately changes build delivery, not document behavior or the native interface. The package also embeds the engine's MIT and third-party license notices.
-
-To produce an updated engine from the repository root on a Mac with Xcode and the SDK selected by `global.json`:
+The apps link the OfficeIMO engine built from this checkout, so a merged engine change reaches the next app build without publishing anything. From the repository root on a Mac with Xcode and the SDK selected by `global.json`:
 
 ```sh
-pwsh OfficeIMO.Studio.Native/Build-AppleEngine.ps1 -OutputDirectory <build-folder>/engine
-pwsh Build/Studio/Apple/Pack-StudioAppleEngine.ps1 -EngineDirectory <build-folder>/engine -OutputDirectory <build-folder>/package -PowerForgeCli <PowerForge.Cli.dll> -SourceCommit <engine-source-commit> -Version <x.y.z>
+pwsh Build/Studio/Apple/Build-StudioEngine.ps1
 ```
 
-The packer uses PowerForge's exact dependency notice validation and archive builder. Its `Publish` option uses PowerForge's GitHub release publisher and the private `GITHUB_TOKEN` environment variable. Update the package's immutable URL, checksum and generated license resources together for a new engine artifact. See [Apple distribution](../../Build/Studio/Apple/README.md) for release entrypoints.
+Then open `OfficeIMOStudio.xcodeproj` and run the `OfficeIMOStudio-macOS` or `OfficeIMOStudio-iOS` scheme. The script builds the NativeAOT XCFramework into the [engine package](../OfficeIMOStudioEngine/Package.swift), which isn't committed, and does nothing while the engine sources are unchanged. For a quicker first build, `-RuntimeIdentifier osx-arm64,iossimulator-arm64` builds only the Apple silicon Mac and simulator slices; archives and device builds need all four. Until the engine is built, package resolution fails with that instruction. The apps require macOS, iPadOS or iOS 26.
+
+The Swift UI calls the engine through its C interface. The engine package also embeds the engine's MIT and third-party license notices. When the engine's dependencies change, regenerate those notices with `Build/Studio/Apple/Pack-StudioAppleEngine.ps1`, which validates them against `Build/Studio/Apple/third-party-notices.json`. See [Apple distribution](../../Build/Studio/Apple/README.md) for release entrypoints.
 
 ## Layout
 
@@ -27,7 +24,8 @@ The `Shared` folder is synchronized with both targets, so new files need no proj
 | `Shared/Document` | `StudioDocument`, the system document over a private working copy that the engine edits, and `DocumentSession`, a window's state: the open engine document, facts, task, page, zoom, selection and undo registration. |
 | `Shared/Canvas` | The page view: the page layout in PDF points, the tile renderer, and its hosts in `UIScrollView` and `NSScrollView`. |
 | `Shared/Views` | The document window, toolbar, page list, Pages task and inspector. |
-| `Shared/Conversion` | Converting Word, Excel, PowerPoint and other documents to PDF with the engine, from the launch screen, the File menu and Shortcuts. On the Mac, opened Word, Excel, PowerPoint and RTF files convert the same way. |
+| `Shared/Conversion` | Converting Word, Excel, PowerPoint and other documents to PDF with the engine, from the launch screen, the File menu and Shortcuts. |
+| `Shared/Viewer` | Viewing Word, Excel, PowerPoint, RTF, Markdown and OpenDocument files that Files, Finder or the document browser open in the app: a read-only window of their PDF conversion, with Edit as PDF and Save as PDF. `Shared/State/ViewerFormats.swift` lists the types both Info.plists declare with the Viewer role. |
 | `Shared/Forms` | Filling form fields in the Read task: the engine's fields per page, the text, check box, radio and choice editors over the page in UIKit and AppKit, and each value as one undoable change. |
 | `Shared/Signatures` | Handwritten signatures kept on the device, the pad for drawing one, and placing one on a page as ink. |
 | `Shared/Intents` | Shortcuts actions and their Siri and Spotlight phrases, over `DocumentActions`, which the unattended journey also runs. |
@@ -61,11 +59,11 @@ These tests cover export permission selection, revision-bound reads and redactio
 | `-OfficeIMOMeasure <file>` | Measures `Documents/Measurements/<file>` and writes `Documents/Results/measure-<file>.json`. |
 | `-OfficeIMOExit` | Quits when done. |
 
-Results are also printed to standard output. `Measurements/Measure-EngineProof.ps1 -WorkDirectory <folder>` builds the measurement PDFs and the app, runs the journey and the measurements on the Mac and in a temporary iPad simulator, and reads the engine's share of the app size from the linker map.
+Debug builds accept these arguments. Release builds ignore them unless built with the `OFFICEIMO_AUTORUN` Swift condition, as the measurement script does, so a shipped app never starts an unattended run. Results are also printed to standard output. `Measurements/Measure-EngineProof.ps1 -WorkDirectory <folder>` builds the measurement PDFs and the app, runs the journey and the measurements on the Mac and in a temporary iPad simulator, and reads the engine's share of the app size from the linker map.
 
 ## Development harness
 
-Debug builds for iPad and iPhone accept `-OfficeIMOOpen <file>`, which opens `Documents/<file>` from the app's container straight into a document window, without the system's document browser. Use it when the simulator's document browser cannot reach files, as happens when the simulator's data lives on an external volume:
+Debug builds for iPad and iPhone accept `-OfficeIMOOpen <file>`, which opens `Documents/<file>` from the app's container straight into a document window (or, for a Word, Excel or other viewed document, the viewer), without the system's document browser. Use it when the simulator's document browser cannot reach files, as happens when the simulator's data lives on an external volume:
 
 ```sh
 xcrun simctl launch booted com.evotec.officeimo.studio -OfficeIMOOpen sample.pdf
@@ -73,4 +71,4 @@ xcrun simctl launch booted com.evotec.officeimo.studio -OfficeIMOOpen sample.pdf
 
 Copy the PDF into the container first; `xcrun simctl get_app_container booted com.evotec.officeimo.studio data` prints its folder. The harness shows the same window as a system document but saves nothing back.
 
-`-OfficeIMOScanFromPhotos` shows **Create PDF**'s **PDF from Photos** action on its own and opens the scan it makes in the same kind of window. Add a photo of a printed page with `xcrun simctl addmedia booted <image>` first; the simulator has no document camera.
+`-OfficeIMOScanFromPhotos` shows **New PDF…**'s **New PDF from Photos** action on its own and opens the scan it makes in the same kind of window. Add a photo of a printed page with `xcrun simctl addmedia booted <image>` first; the simulator has no document camera.

@@ -59,10 +59,21 @@ internal static partial class HtmlPdfRenderedConverter {
     // leak into another export that uses different providers or limits.
     private const double DefaultEffectRasterDpi = 300D;
 
-    private sealed class PdfImageResourceCache {
-        private readonly Dictionary<byte[], Dictionary<string, PdfCore.PdfCanvasImageResource?>> _resources = new();
+    internal sealed class PdfImageResourceCache {
+        private readonly Dictionary<byte[], Dictionary<string, PreparedImage>> _resources = new();
+        private readonly HashSet<PreparedImage> _reportedLosses = new();
         private readonly OfficeRasterDecodeOptions _decodeOptions;
-        private readonly PdfCore.PdfConversionReport _conversionReport;
+        private PdfCore.PdfConversionReport? _conversionReport;
+
+        private sealed class PreparedImage {
+            internal PreparedImage(PdfCore.PdfCanvasImageResource? resource, string? frameLoss) {
+                Resource = resource;
+                FrameLoss = frameLoss;
+            }
+
+            internal PdfCore.PdfCanvasImageResource? Resource { get; }
+            internal string? FrameLoss { get; }
+        }
 
         internal IOfficeRasterImageCodec? ImageCodec => _decodeOptions.ImageCodec;
         internal long MaximumPixels => _decodeOptions.MaximumDecodedPixels;
@@ -71,32 +82,41 @@ internal static partial class HtmlPdfRenderedConverter {
         /// <remarks>A requested <see cref="OfficeImageExportOptions.TargetDpi"/> sets the density; otherwise print density.</remarks>
         internal double EffectRasterScale { get; }
 
-        internal PdfImageResourceCache(HtmlPdfExportOptions options, PdfCore.PdfConversionReport conversionReport, CancellationToken cancellationToken) {
-            _conversionReport = conversionReport;
+        internal PdfImageResourceCache(HtmlPdfExportOptions options) {
             EffectRasterScale = (options.TargetDpi ?? DefaultEffectRasterDpi) / HtmlRenderOptions.CssPixelsPerInch;
             _decodeOptions = new OfficeRasterDecodeOptions {
                 ImageCodec = options.ImageCodec,
-                MaximumDecodedPixels = System.Math.Min(options.MaximumRasterPixels, 50_000_000L),
-                CancellationToken = cancellationToken
+                MaximumDecodedPixels = System.Math.Min(options.MaximumRasterPixels, 50_000_000L)
             };
+        }
+
+        internal void BeginSection(PdfCore.PdfConversionReport conversionReport, CancellationToken cancellationToken) {
+            _conversionReport = conversionReport;
+            _decodeOptions.CancellationToken = cancellationToken;
+            _reportedLosses.Clear();
         }
 
         internal PdfCore.PdfCanvasImageResource? GetOrCreate(byte[] encodedBytes, string contentType) {
             _decodeOptions.CancellationToken.ThrowIfCancellationRequested();
             if (!_resources.TryGetValue(encodedBytes, out var byContentType)) {
-                byContentType = new Dictionary<string, PdfCore.PdfCanvasImageResource?>(System.StringComparer.OrdinalIgnoreCase);
+                byContentType = new Dictionary<string, PreparedImage>(System.StringComparer.OrdinalIgnoreCase);
                 _resources.Add(encodedBytes, byContentType);
             }
-            if (byContentType.TryGetValue(contentType, out var cached)) return cached;
-
-            PdfCore.PdfCanvasImageResource? resource = null;
-            if (TryPrepare(encodedBytes, contentType, out byte[] prepared))
-                resource = PdfCore.PdfCanvasImageResource.Create(prepared);
-            byContentType.Add(contentType, resource);
-            return resource;
+            if (!byContentType.TryGetValue(contentType, out PreparedImage? image)) {
+                bool success = TryPrepare(encodedBytes, contentType, out byte[] prepared, out string? frameLoss);
+                image = new PreparedImage(success ? PdfCore.PdfCanvasImageResource.Create(prepared) : null, frameLoss);
+                byContentType.Add(contentType, image);
+            }
+            if (image.FrameLoss != null && _reportedLosses.Add(image)) {
+                _conversionReport!.Add(new PdfCore.PdfConversionWarning(
+                    "OfficeIMO.Html.Pdf", HtmlPdfDiagnosticCodes.ImageStaticFrameSelected, "html-image-resource",
+                    image.FrameLoss, PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission));
+            }
+            return image.Resource;
         }
 
-        private bool TryPrepare(byte[] bytes, string contentType, out byte[] pdfBytes) {
+        private bool TryPrepare(byte[] bytes, string contentType, out byte[] pdfBytes, out string? frameLoss) {
+            frameLoss = null;
             OfficeImageFormat format = OfficeImageInfo.FromMimeType(contentType);
             string extension = OfficeImageInfo.GetDefaultExtension(format);
             if (OfficeImageReader.TryIdentify(bytes, extension, _decodeOptions.CancellationToken, out OfficeImageInfo identified))
@@ -109,20 +129,14 @@ internal static partial class HtmlPdfRenderedConverter {
                     return false;
                 }
                 if (format == OfficeImageFormat.Png && (container.IsAnimated || container.Count > 1)) {
-                    _conversionReport.Add(new PdfCore.PdfConversionWarning(
-                        "OfficeIMO.Html.Pdf", HtmlPdfDiagnosticCodes.ImageStaticFrameSelected, "html-image-resource",
-                        "The default static PNG image was retained; APNG animation and additional frames were discarded.",
-                        PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission));
+                    frameLoss = "The default static PNG image was retained; APNG animation and additional frames were discarded.";
                 }
                 pdfBytes = bytes;
                 return true;
             }
             bool converted = OfficeImagePngConverter.TryConvertToPng(bytes, _decodeOptions, out pdfBytes, out var info);
             if (converted && (info.AnimationDiscarded || info.FramesOrPagesDiscarded)) {
-                _conversionReport.Add(new PdfCore.PdfConversionWarning(
-                    "OfficeIMO.Html.Pdf", HtmlPdfDiagnosticCodes.ImageStaticFrameSelected, "html-image-resource",
-                    info.Diagnostic ?? "The first image frame was selected; other frames or animation were not retained in the static PDF.",
-                    PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission));
+                frameLoss = info.Diagnostic ?? "The first image frame was selected; additional frames or animation were discarded.";
             }
             return converted;
         }

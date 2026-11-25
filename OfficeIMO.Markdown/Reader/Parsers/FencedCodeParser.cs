@@ -7,7 +7,7 @@ internal static partial class MarkdownReader {
             if (!IsCodeFenceOpen(lines[i], out string language, out char fenceChar, out int fenceLength, out int fenceIndentColumns, out int infoPaddingColumns, out int infoPaddingCharacters)) return false;
             int j = i + 1;
             int lineLimit = lines.Length - (state.HasSyntheticTerminalLine ? 1 : 0);
-            var code = new System.Text.StringBuilder();
+            var code = MarkdownStringBuilderCache.Acquire();
             while (j < lineLimit && !IsCodeFenceClose(lines[j], fenceChar, fenceLength)) {
                 code.AppendLine(StripLeadingIndentColumns(lines[j], fenceIndentColumns));
                 j++;
@@ -24,7 +24,7 @@ internal static partial class MarkdownReader {
             if (j < lineLimit && TryParseCaption(lines[j], out var cap)) { caption = cap; j++; }
             var block = CreateParsedFencedBlock(
                 language,
-                RemoveSingleTrailingLineEnding(code.ToString()),
+                ToStringWithoutSingleTrailingLineEnding(code),
                 isFenced: true,
                 caption,
                 options,

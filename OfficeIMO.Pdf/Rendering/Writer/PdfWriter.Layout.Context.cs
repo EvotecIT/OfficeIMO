@@ -113,13 +113,29 @@ internal static partial class PdfWriter {
             pageGroupStack.Push(0);
         }
 
-        public LayoutResult Layout(IEnumerable<IPdfBlock> blocks) {
+        public LayoutResult Layout(IEnumerable<IPdfBlock> blocks) => LayoutCore(() => ProcessBlocks(blocks));
+
+        // Fixed canvas pages have no flow that needs lookahead or a second layout pass.
+        internal LayoutResult LayoutPreparedPages(IEnumerable<PageBlock> pages) => LayoutCore(() => {
+            var singlePage = new IPdfBlock[1];
+            foreach (PageBlock page in pages) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (page.Options.ContinuesCurrentPage || page.Options.HasAnyRunningContent ||
+                    page.Blocks.Any(block => block is not PdfCanvasBlock))
+                    throw new ArgumentException("Prepared PDF pages require fixed canvases.", nameof(pages));
+                page.Options.ApplyDefaultFontEmbedding();
+                singlePage[0] = page;
+                ProcessBlocks(singlePage);
+            }
+        });
+
+        private LayoutResult LayoutCore(Action process) {
             // Every text path of this layout, running content included, writes to the current page,
             // so color glyphs take their images and opacity states from that page. Restored even when layout fails.
             IColorGlyphPage? previousColorGlyphPage = ContentStreamBuilder.ExchangeColorGlyphPage(new PageColorGlyphs(() => currentPage));
             try {
                 cancellationToken.ThrowIfCancellationRequested();
-                ProcessBlocks(blocks);
+                process();
                 cancellationToken.ThrowIfCancellationRequested();
                 bool forceRunningPage = pages.Count == 0 && currentPageBaseOptions.HasAnyRunningContent;
                 if (forceRunningPage) EnsurePage();

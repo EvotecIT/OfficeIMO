@@ -53,9 +53,7 @@ internal sealed partial class StudioAiConnections : ObservableObject {
     public bool UsesCredential => !IsChatGpt;
     public bool CanSignIn => ProviderIndex == 0 || (ProviderIndex == 2 && !string.IsNullOrWhiteSpace(GitHubClientId));
     public bool CanConnect => !IsBusy;
-    /// <summary>Importing reads the Codex login in the user's home folder, which sandboxed and mobile builds cannot reach.</summary>
-    internal static bool CodexImportSupported => !Infrastructure.StudioDistributionPolicy.IsMacAppStore && !OperatingSystem.IsIOS() && !OperatingSystem.IsAndroid();
-    public bool CanImportCodexLogin => IsChatGpt && CodexImportSupported;
+    public bool CanImportCodexLogin => IsChatGpt;
     private bool CanImportCodex => CanConnect && CanImportCodexLogin;
     public bool CanUse => IsConnected && !IsBusy && !string.IsNullOrWhiteSpace(Model);
     public string Summary => string.IsNullOrWhiteSpace(Model) ? Providers[ProviderIndex] : $"{Providers[ProviderIndex]} · {Model}";

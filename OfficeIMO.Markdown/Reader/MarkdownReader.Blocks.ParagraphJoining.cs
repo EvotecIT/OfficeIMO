@@ -77,7 +77,7 @@ internal static partial class MarkdownReader {
         }
 
         var preservedInlineLineBreaks = FindParagraphLineBreaksInsideMatchedInlinePreserveSpans(lines, options);
-        var sb = new StringBuilder(GetJoinedParagraphCapacity(lines));
+        var sb = MarkdownStringBuilderCache.Acquire(GetJoinedParagraphCapacity(lines));
         bool previousUsesLineBreakSeparator = false;
         bool previousHardBreak = false;
         bool previousPreserveLineBreak = false;
@@ -108,7 +108,7 @@ internal static partial class MarkdownReader {
             previousHardBreak = joinInfo.HardBreak;
             previousPreserveLineBreak = joinInfo.PreserveLineBreak && !joinInfo.HardBreak;
         }
-        return sb.ToString();
+        return MarkdownStringBuilderCache.GetStringAndRelease(sb);
     }
 
     private static (string Text, MarkdownInlineSourceMap? SourceMap) JoinParagraphLinesWithSourceMap(

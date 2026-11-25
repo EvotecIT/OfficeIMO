@@ -74,8 +74,14 @@ namespace OfficeIMO.Word {
             var state = new BindingState(document, options ?? new WordTemplateOptions());
             var scope = new TemplateScope(model, parent: null, allowReflection);
 
-            foreach (OpenXmlCompositeElement root in WordMailMerge.EnumerateTemplateRoots(document)) {
-                ProcessContainer(root, scope, state);
+            try {
+                foreach (OpenXmlCompositeElement root in WordMailMerge.EnumerateTemplateRoots(document)) {
+                    ProcessContainer(root, scope, state);
+                }
+            } finally {
+                // Repeated blocks number their bookmark copies from their own scan, and a failed binding can
+                // leave finished copies in place.
+                document.InvalidateIdentifierState();
             }
 
             return new WordTemplateResult(

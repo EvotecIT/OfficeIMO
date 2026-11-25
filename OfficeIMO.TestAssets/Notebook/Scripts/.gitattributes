@@ -1,0 +1,7 @@
+# Keep the byte hashes recorded in provenance.json identical across checkouts.
+*.dib -text
+*.py -text
+*.R -text
+*.jl -text
+*.ipynb -text
+LICENSE.*.txt -text -whitespace

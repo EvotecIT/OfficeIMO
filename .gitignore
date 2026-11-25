@@ -98,6 +98,9 @@ StyleCopReport.xml
 .builds
 Apple/.build/
 Apple/OfficeIMOStudioEngine/.build/
+Apple/OfficeIMOStudioEngine/OfficeIMOStudioEngine.xcframework/
+Apple/OfficeIMOStudioEngine/OfficeIMOStudioEngine.source-key
+Apple/OfficeIMOStudioEngine/link-inputs/
 Apple/.swiftpm/
 *.pidb
 *.svclog

@@ -14,6 +14,10 @@ internal static partial class MarkdownReader {
         bool preservesOriginalMarkdown = false,
         bool skipAbsentRegisteredFenceTransform = false) {
         var transforms = BuildEffectiveDocumentTransforms(options, sourceMarkdown, skipAbsentRegisteredFenceTransform);
+        if (transforms.Count == 0) {
+            return document;
+        }
+
         var topLevelBlockSourceSpans = syntaxTree == null
             ? null
             : BuildTopLevelBlockSourceSpans(document, syntaxTree);

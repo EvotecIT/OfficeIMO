@@ -6,7 +6,7 @@ namespace OfficeIMO.Tool.Agent;
 internal sealed partial class OfficeImoAgentService {
     // Runs one catalog route through the shared Workflows runner, the same registration the CLI and Workflows hosts use.
     private async Task<AgentConvertResult> ConvertRouteAsync(string path, string outputPath, string format, bool overwrite,
-        long maximumInputBytes, long maximumOutputBytes, CancellationToken token) {
+        long maximumInputBytes, long maximumOutputBytes, OfficeConversionProfile outputProfile, CancellationToken token) {
         string input = _pathPolicy.ResolveInput(path);
         if (Directory.Exists(input)) throw new AgentUsageException("Document conversion requires one local file; directory packages are limited to iWork sources.");
         string destination = _pathPolicy.ResolveOutput(outputPath);
@@ -21,7 +21,7 @@ internal sealed partial class OfficeImoAgentService {
                 + "'. Use officeimo_capabilities with operation 'convert' to list the supported routes.");
         var request = new OfficeWorkflowRequest {
             InputPath = input, OutputPath = destination, Operation = OfficeWorkflowOperation.Convert,
-            ConversionRouteId = route.Id,
+            ConversionRouteId = route.Id, OutputProfile = outputProfile,
             ConflictPolicy = overwrite ? OfficePublicationPolicy.Replace : OfficePublicationPolicy.Fail,
             Limits = new OfficeOperationLimits { MaximumInputBytes = maximumInputBytes, MaximumOutputBytes = maximumOutputBytes },
             PublicationGuard = new AgentConversionPublicationGuard(_pathPolicy, input)

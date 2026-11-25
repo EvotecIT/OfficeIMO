@@ -17,6 +17,7 @@ namespace OfficeIMO.PowerPoint {
         private PresentationDocument? _document;
         private PresentationPart _presentationPart;
         private readonly List<PowerPointSlide> _slides = new();
+        private long _slideRelationshipSearchStart = 1;
         private string _filePath;
         private Stream? _packageStream;
         private Stream? _sourceStream;

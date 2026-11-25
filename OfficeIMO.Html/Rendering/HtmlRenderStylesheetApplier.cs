@@ -73,7 +73,7 @@ internal static class HtmlRenderStylesheetApplier {
                 continue;
             }
 
-            if (!HtmlRenderStylesheetText.TryDecode(resource.EncodedBytes, resource.ContentType, out string css)) {
+            if (!resource.TryGetStylesheetText(out string css)) {
                 diagnostics.Add(
                     ComponentName,
                     HtmlRenderDiagnosticCodes.StylesheetEncodingUnsupported,
@@ -104,7 +104,7 @@ internal static class HtmlRenderStylesheetApplier {
             }
 
             IElement style = document.CreateElement("style");
-            style.TextContent = css;
+            style.TextContent = options.ExternalStylesheets?.ReuseMaterializedText(css) ?? css;
             style.SetAttribute("data-officeimo-source", source);
             string media = link.GetAttribute("media") ?? string.Empty;
             if (!string.IsNullOrWhiteSpace(media)) {
@@ -153,7 +153,13 @@ internal static class HtmlRenderStylesheetApplier {
             DefaultFontSize = options.DefaultFontSize,
             MediaFeatures = options.MediaFeatures.Clone()
         };
-        HtmlExternalStylesheetAnalysis analysis = HtmlResourcePipeline.AnalyzeExternalStylesheet(css, stylesheetUri, resourceOptions);
+        HtmlExternalStylesheetAnalysis analysis = options.ExternalStylesheets?.Analyze(css, stylesheetUri, resourceOptions, includeInactiveResources: false)
+            ?? HtmlResourcePipeline.AnalyzeExternalStylesheet(css, stylesheetUri, resourceOptions);
+        if (analysis.Imports.Count == 0 && options.ExternalStylesheets != null) {
+            activeStylesheets.Remove(currentKey);
+            return HtmlResourcePipeline.RebaseExternalStylesheetUrls(analysis.Css, stylesheetUri, options.GetResourceUrlPolicy(),
+                resources, options.ExternalStylesheets);
+        }
         var builder = new System.Text.StringBuilder(analysis.Css);
         for (int index = analysis.Imports.Count - 1; index >= 0; index--) {
             HtmlExternalStylesheetImport import = analysis.Imports[index];
@@ -176,7 +182,7 @@ internal static class HtmlRenderStylesheetApplier {
                 if (importedResource.FinalUri?.IsAbsoluteUri == true) importedUri = importedResource.FinalUri;
                 if (activeStylesheets.Contains(importedUri.AbsoluteUri)) {
                     ReportCycle(diagnostics, reportedCycles, importedUri.AbsoluteUri);
-                } else if (HtmlRenderStylesheetText.TryDecode(importedResource.EncodedBytes, importedResource.ContentType, out string importedCss)) {
+                } else if (importedResource.TryGetStylesheetText(out string importedCss)) {
                     if (resources.WasStylesheetBudgeted(reference.Source, reference.ResolvedSource)
                         || TryReserveCss(cssBudget, importedResource.EncodedBytes.LongLength, reference.Source, diagnostics)) {
                         replacement = ExpandImports(importedCss, importedUri, resources, options, limits, diagnostics, activeStylesheets, reportedCycles, cssBudget);
@@ -200,7 +206,7 @@ internal static class HtmlRenderStylesheetApplier {
         return HtmlResourcePipeline.RebaseExternalStylesheetUrls(
             builder.ToString(),
             stylesheetUri,
-            options.GetResourceUrlPolicy(), resources);
+            options.GetResourceUrlPolicy(), resources, options.ExternalStylesheets);
     }
 
     internal static bool TryReserveCss(

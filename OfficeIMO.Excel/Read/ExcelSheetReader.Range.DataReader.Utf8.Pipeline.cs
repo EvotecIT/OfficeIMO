@@ -69,10 +69,12 @@ namespace OfficeIMO.Excel {
                     || fields <= 0 || fields > _options.MaxDataReaderColumns
                     || fields > _options.MaxDataReaderBufferedCells || _options.MaxDataReaderChunkRows <= 0) return false;
                 InitializeRange(firstRow, lastRow, firstColumn, fields);
+                if (_windowedPart) EnterWindowedCellMode();
                 if (!TryIndexRows(firstRow, lastRow, ct)) return false;
                 // A row-like token in trailing comments may publish sheetData's end
                 // before the root XML is complete. Global proof needs the full part.
                 if (_inflation != null) _length = _inflation.WaitForCompletion(ct);
+                else if (_windowedPart && !CompleteWindowedQualification(ct)) return false;
                 if (!_validatedIndexedXml && !IsCanonicalWorksheetXmlFullyValidated(ct) && !ValidateBufferedWorksheetXml(ct)) return false;
                 ct.ThrowIfCancellationRequested();
                 _mappingRowsQualified = true;
@@ -80,7 +82,15 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
+            private bool TryAdvanceInflation(ref int position, CancellationToken ct) =>
+                _windowedPart ? TryAdvanceWindow(ref position, ct) : TryAdvanceInflation(ct);
+
             private bool TryAdvanceInflation(CancellationToken ct) {
+                if (_windowedPart) {
+                    // Callers without a rebased position never let the window slide.
+                    int unmoved = -1;
+                    return TryAdvanceWindow(ref unmoved, ct);
+                }
                 if (_inflation == null) return false;
                 int available = _inflation.WaitForMore(_length, ct);
                 if (available <= _length) return false;

@@ -130,7 +130,8 @@ internal static class MarkdownFence {
     /// <returns>A CommonMark-compatible inline-code span.</returns>
     public static string BuildSafeCodeSpan(string? content) {
         var value = content ?? string.Empty;
-        var fence = new string('`', LongestRun(value, '`') + 1);
+        int longestRun = LongestRun(value, '`');
+        var fence = longestRun == 0 ? "`" : new string('`', longestRun + 1);
         bool padBothSides = value.StartsWith("`", StringComparison.Ordinal) || value.EndsWith("`", StringComparison.Ordinal);
         if (!padBothSides && value.Length > 1 && value[0] == ' ' && value[value.Length - 1] == ' ') {
             for (int i = 0; i < value.Length; i++) {
@@ -139,8 +140,9 @@ internal static class MarkdownFence {
                 break;
             }
         }
-        string padding = padBothSides ? " " : string.Empty;
-        return fence + padding + value + padding + fence;
+        return padBothSides
+            ? fence + " " + value + " " + fence
+            : string.Concat(fence, value, fence);
     }
 
     /// <summary>

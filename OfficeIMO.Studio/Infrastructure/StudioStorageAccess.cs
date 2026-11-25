@@ -1,5 +1,4 @@
 using Avalonia.Platform.Storage;
-using OfficeIMO.Core.Internal;
 using OfficeIMO.Internal;
 
 namespace OfficeIMO.Studio.Infrastructure;
@@ -56,11 +55,6 @@ internal sealed partial class StudioStorageAccess : StudioDocumentStorage {
             }
             string key = OfficeStorageIdentity.Normalize(location);
             string? bookmark = file.CanBookmark ? await file.SaveBookmarkAsync().ConfigureAwait(true) : null;
-            if (OperatingSystem.IsMacOS() && OfficeMacFilePermission.IsSandboxed &&
-                OfficeStorageIdentity.GetLocalPath(location) is { } localPath && File.Exists(localPath)) {
-                await using Stream access = await file.OpenReadAsync().ConfigureAwait(true);
-                bookmark = OfficeMacFilePermission.CreateBookmark(localPath);
-            }
             token.ThrowIfCancellationRequested();
             lock (_sync) {
                 ObjectDisposedException.ThrowIf(_disposed, this);
@@ -96,7 +90,7 @@ internal sealed partial class StudioStorageAccess : StudioDocumentStorage {
         string key = OfficeStorageIdentity.Normalize(location);
         lock (_sync) return !(_references.TryGetValue(key, out var selected) && selected.PermissionFolder is not null) &&
             (OfficeStorageIdentity.GetLocalPath(location) is null ||
-            ((OperatingSystem.IsMacOS() || OperatingSystem.IsIOS()) && (_files.ContainsKey(key) || _folders.ContainsKey(key) ||
+            (OperatingSystem.IsMacOS() && (_files.ContainsKey(key) || _folders.ContainsKey(key) ||
                 (_references.TryGetValue(key, out var reference) && reference.Bookmark is not null))));
     }
 
@@ -113,20 +107,29 @@ internal sealed partial class StudioStorageAccess : StudioDocumentStorage {
     internal override async Task<Stream> OpenReadAsync(string location, CancellationToken token) {
         ObjectDisposedException.ThrowIf(_disposed, this);
         token.ThrowIfCancellationRequested();
-        OfficeMacFilePermission? permission = OpenNativePermission(location);
-        try {
-            IStorageFile? file = await ResolveAsync(location, token).ConfigureAwait(false);
-            Stream stream = file is not null ? await file.OpenReadAsync().ConfigureAwait(false)
-                : new FileStream(OfficeStorageIdentity.GetLocalPath(location)!, FileMode.Open, FileAccess.Read,
-                    FileShare.Read | FileShare.Delete, 81920, FileOptions.Asynchronous | FileOptions.SequentialScan);
-            try {
-                token.ThrowIfCancellationRequested();
-                if (permission is null) RefreshNativePermission(location);
-            }
-            catch { await stream.DisposeAsync(); throw; }
-            return permission is null ? stream : new PermissionStream(stream, permission);
-        } catch { permission?.Dispose(); throw; }
+        EnsureFolderDestination(location);
+        IStorageFile? file = await ResolveAsync(location, token).ConfigureAwait(false);
+        Stream stream = file is not null ? await file.OpenReadAsync().ConfigureAwait(false)
+            : new FileStream(OfficeStorageIdentity.GetLocalPath(location)!, FileMode.Open, FileAccess.Read,
+                FileShare.Read | FileShare.Delete, 81920, FileOptions.Asynchronous | FileOptions.SequentialScan);
+        try { token.ThrowIfCancellationRequested(); }
+        catch { await stream.DisposeAsync(); throw; }
+        return stream;
     }
+
+    internal override async Task<Stream> OpenWriteAsync(string location, CancellationToken token) {
+        token.ThrowIfCancellationRequested();
+        EnsureFolderDestination(location);
+        IStorageFile file = await ResolveAsync(location, token).ConfigureAwait(false)
+            ?? throw new IOException("The storage provider is unavailable. Select the destination again.");
+        token.ThrowIfCancellationRequested();
+        Stream stream = await file.OpenWriteAsync().ConfigureAwait(false);
+        try { token.ThrowIfCancellationRequested(); }
+        catch { await stream.DisposeAsync(); throw; }
+        return stream;
+    }
+
+    private const string RetiredMacBookmarkPrefix = "officeimo.mac.v1:";
 
     private async Task<IStorageFile?> ResolveAsync(string location, CancellationToken token) {
         string key = OfficeStorageIdentity.Normalize(location);
@@ -138,13 +141,15 @@ internal sealed partial class StudioStorageAccess : StudioDocumentStorage {
             _references.TryGetValue(key, out reference);
         }
         if ((reference?.Bookmark is null || reference.PermissionFolder is not null) && OfficeStorageIdentity.GetLocalPath(location) is not null) return null;
+        // Bookmarks written by the retired Mac App Store build are not provider bookmarks; those documents must be selected again.
+        if (reference?.Bookmark?.StartsWith(RetiredMacBookmarkPrefix, StringComparison.Ordinal) == true) {
+            throw new IOException("Access to this document is unavailable. Select it again to grant access.");
+        }
         IStorageProvider provider = _provider?.Invoke()
             ?? throw new IOException("This document needs its storage provider. Select it again to grant access.");
-        IStorageFile? file = reference?.Bookmark is { } native && OfficeMacFilePermission.IsNativeBookmark(native)
-            ? await provider!.TryGetFileFromPathAsync(new Uri(location, UriKind.Absolute)).ConfigureAwait(false)
-            : reference?.Bookmark is { } bookmark
-            ? await provider!.OpenFileBookmarkAsync(bookmark).ConfigureAwait(false)
-            : await provider!.TryGetFileFromPathAsync(new Uri(location, UriKind.Absolute)).ConfigureAwait(false);
+        IStorageFile? file = reference?.Bookmark is { } bookmark
+            ? await provider.OpenFileBookmarkAsync(bookmark).ConfigureAwait(false)
+            : await provider.TryGetFileFromPathAsync(new Uri(location, UriKind.Absolute)).ConfigureAwait(false);
         if (file is null) throw new IOException("Access to this document is unavailable. Select it again to grant access.");
         bool retained = false;
         try {
@@ -172,7 +177,6 @@ internal sealed partial class StudioStorageAccess : StudioDocumentStorage {
 
     public override void Dispose() {
         IStorageItem[] files;
-        OfficeMacFilePermission[] permissions;
         lock (_sync) {
             if (_disposed) return;
             _disposed = true;
@@ -183,16 +187,10 @@ internal sealed partial class StudioStorageAccess : StudioDocumentStorage {
             _references.Clear();
             _folders.Clear();
             _retiredFolders.Clear();
-            permissions = _folderPermissions.Values.ToArray();
-            _folderPermissions.Clear();
         }
         List<Exception>? errors = null;
         foreach (IStorageItem file in files) {
             try { file.Dispose(); }
-            catch (Exception error) when (error is not OutOfMemoryException and not StackOverflowException) { (errors ??= []).Add(error); }
-        }
-        foreach (var permission in permissions) {
-            try { permission.Dispose(); }
             catch (Exception error) when (error is not OutOfMemoryException and not StackOverflowException) { (errors ??= []).Add(error); }
         }
         if (errors is not null) throw new IOException("Provider references could not be released.", new AggregateException(errors));

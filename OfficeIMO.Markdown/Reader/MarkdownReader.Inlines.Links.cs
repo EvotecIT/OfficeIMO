@@ -335,13 +335,13 @@ internal static partial class MarkdownReader {
                 // Full reference [label][ref]
                 int refEnd = FindMatchingBracketWithin(text, labelEnd + 1, end, options, matches);
                 if (refEnd >= 0 && refEnd - labelEnd - 2 <= MaxReferenceLabelLength
-                    && state.LinkRefs.ContainsKey(NormalizeReferenceLabel(text.Substring(labelEnd + 2, refEnd - labelEnd - 2)))) {
+                    && HasLinkReference(state, text, labelEnd + 2, refEnd - labelEnd - 2)) {
                     return true;
                 }
 
                 // Collapsed reference [label][]
                 if (labelEnd + 2 < end && text[labelEnd + 2] == ']' && labelEnd - i - 1 <= MaxReferenceLabelLength
-                    && state.LinkRefs.ContainsKey(NormalizeReferenceLabel(text.Substring(i + 1, labelEnd - i - 1)))) {
+                    && HasLinkReference(state, text, i + 1, labelEnd - i - 1)) {
                     return true;
                 }
 
@@ -350,7 +350,7 @@ internal static partial class MarkdownReader {
 
             // Shortcut reference [label]
             if (labelEnd - i - 1 <= MaxReferenceLabelLength
-                && state.LinkRefs.ContainsKey(NormalizeReferenceLabel(text.Substring(i + 1, labelEnd - i - 1)))) {
+                && HasLinkReference(state, text, i + 1, labelEnd - i - 1)) {
                 return true;
             }
         }

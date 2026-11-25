@@ -103,6 +103,6 @@ public sealed partial class EpubPublication {
     }
     private void VerifyAvailableId(string id) {
         XmlConvert.VerifyNCName(id);
-        if (Root.DescendantsAndSelf().Any(element => (string?)element.Attribute("id") == id)) throw new ArgumentException("Package id already exists: " + id);
+        if (PackageIdExists(id)) throw new ArgumentException("Package id already exists: " + id);
     }
 }

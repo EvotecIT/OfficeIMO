@@ -6,6 +6,7 @@ internal static class PdfToolCatalog {
     internal static IReadOnlyList<PdfToolDefinition> All { get; } = [
         new("inspect", PdfToolKind.Inspect, "Understand", "Inspect PDF", "Inspect", "Read pages, security, forms, signatures, active content, and rewrite readiness without changing the document.", PdfToolInputMode.Single, "Inspect PDF"),
         new("compare", PdfToolKind.Compare, "Understand", "Compare PDFs", "Compare", "Render and compare two PDFs locally, then review expected, actual, and highlighted page differences.", PdfToolInputMode.Pair, "Compare PDFs"),
+        new("extract-assets", PdfToolKind.ExtractAssets, "Understand", "Extract PDF assets", "Assets", "Save images, embedded fonts, ICC profiles, page SVGs and reports as a ZIP.", PdfToolInputMode.Single, "Extract assets"),
         new("merge", PdfToolKind.Merge, "Organize", "Merge PDFs", "Merge", "Combine two or more PDFs in the order you choose.", PdfToolInputMode.Multiple, "Merge PDFs"),
         new("split", PdfToolKind.Split, "Organize", "Split PDF", "Split", "Create consecutive PDF parts and download them together as a ZIP archive.", PdfToolInputMode.Single, "Split PDF", RequiresPagesPerDocument: true),
         new("extract", PdfToolKind.Extract, "Organize", "Extract pages", "Extract", "Create a new PDF from one-based page selections such as 1-3,5,last.", PdfToolInputMode.Single, "Extract pages", RequiresPageSelection: true),

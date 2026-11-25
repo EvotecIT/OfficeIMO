@@ -5,17 +5,16 @@ namespace OfficeIMO.Markdown;
 /// </summary>
 public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISyntaxChildrenMarkdownBlock, IOwnedSyntaxChildrenMarkdownBlock {
     private readonly ParagraphBlock _leadParagraphBlock;
-    private List<ParagraphBlock>? _additionalParagraphBlocks;
-    private List<ParagraphBlock>? _paragraphBlocks;
-    private List<IMarkdownBlock>? _blockChildren;
-    private List<InlineSequence>? _additionalParagraphs;
+    // Additional paragraphs, the block views built for consumers, the task marker text and generic
+    // attribute whitespace are rare, so they share one object created on first use.
+    private ListItemRareState? _rare;
     private List<IMarkdownBlock>? _nestedBlocks;
     private List<MarkdownSyntaxNode>? _syntaxChildren;
 
     /// <summary>Inlines representing item content.</summary>
-    public InlineSequence Content { get; }
+    public InlineSequence Content => _leadParagraphBlock.Inlines;
     /// <summary>Additional paragraphs inside the list item (multi-paragraph list items).</summary>
-    public List<InlineSequence> AdditionalParagraphs => _additionalParagraphs ??= new List<InlineSequence>();
+    public List<InlineSequence> AdditionalParagraphs => Rare.AdditionalParagraphs ??= new List<InlineSequence>();
     /// <summary>
     /// MarkdownParagraph blocks owned by this list item.
     /// This exposes list-item paragraph content as blocks for AST-style consumers.
@@ -23,7 +22,7 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
     public IReadOnlyList<ParagraphBlock> ParagraphBlocks {
         get {
             EnsureParagraphBlocks();
-            return _paragraphBlocks!;
+            return _rare!.ParagraphBlocks!;
         }
     }
     /// <summary>Nested block content inside the list item (e.g., nested ordered/unordered lists, code blocks).</summary>
@@ -32,7 +31,7 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
     public IReadOnlyList<IMarkdownBlock> ChildBlocks {
         get {
             EnsureChildBlocks();
-            return _blockChildren!;
+            return _rare!.BlockChildren!;
         }
     }
     IReadOnlyList<IMarkdownBlock> IChildMarkdownBlockContainer.ChildBlocks => ChildBlocks;
@@ -40,15 +39,32 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
     public bool IsTask { get; }
     /// <summary>Whether the task is checked.</summary>
     public bool Checked { get; }
+    // Source spans of this object, set only by a parse that captures source information.
+    private MarkdownSourceSpan?[]? _sourceSpanSlots;
+
     /// <summary>Source span of the list marker token (<c>-</c>, <c>*</c>, <c>+</c>, <c>1.</c>, or <c>1)</c>) when parsed from markdown.</summary>
-    public MarkdownSourceSpan? MarkerSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
+    public MarkdownSourceSpan? MarkerSourceSpan { get => ReadSourceSpanSlot(ref _sourceSpanSlots, 0); internal set => WriteSourceSpanSlot(ref _sourceSpanSlots, 0, 2, value); }
     /// <summary>Exact list marker token (<c>-</c>, <c>*</c>, <c>+</c>, <c>1.</c>, or <c>1)</c>) when parsed from markdown.</summary>
     public string? MarkerText { get; internal set; }
     /// <summary>Source span of the task marker token (<c>[ ]</c>, <c>[x]</c>, or <c>[X]</c>) when parsed from markdown.</summary>
-    public MarkdownSourceSpan? TaskMarkerSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
+    public MarkdownSourceSpan? TaskMarkerSourceSpan { get => ReadSourceSpanSlot(ref _sourceSpanSlots, 1); internal set => WriteSourceSpanSlot(ref _sourceSpanSlots, 1, 2, value); }
     /// <summary>Exact task marker token (<c>[ ]</c>, <c>[x]</c>, or <c>[X]</c>) when parsed from markdown.</summary>
-    public string? TaskMarkerText { get; internal set; }
-    internal string GenericAttributeConsumedWhitespace { get; set; } = string.Empty;
+    public string? TaskMarkerText {
+        get => _rare?.TaskMarkerText;
+        internal set {
+            if (value != null || _rare != null) {
+                Rare.TaskMarkerText = value;
+            }
+        }
+    }
+    internal string GenericAttributeConsumedWhitespace {
+        get => _rare?.GenericAttributeConsumedWhitespace ?? string.Empty;
+        set {
+            if (!string.IsNullOrEmpty(value) || _rare != null) {
+                Rare.GenericAttributeConsumedWhitespace = value ?? string.Empty;
+            }
+        }
+    }
     internal bool DefinitionLazyParagraphTailContinuation { get; set; }
     /// <summary>Indentation level (0 = top-level). Used for nested lists.</summary>
     public int Level { get; set; }
@@ -63,17 +79,17 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
 
     /// <summary>Creates a plain list item.</summary>
     public ListItem(InlineSequence content) {
-        Content = content ?? new InlineSequence();
-        _leadParagraphBlock = new ParagraphBlock(Content);
+        _leadParagraphBlock = new ParagraphBlock(content ?? new InlineSequence());
     }
 
     internal ParagraphBlock LeadParagraphBlock => _leadParagraphBlock;
-    internal bool HasAdditionalParagraphs => _additionalParagraphs?.Count > 0;
+    internal bool HasAdditionalParagraphs => _rare?.AdditionalParagraphs?.Count > 0;
     internal int NestedBlockCount => _nestedBlocks?.Count ?? 0;
+    internal int AdditionalParagraphCount => _rare?.AdditionalParagraphs?.Count ?? 0;
     internal IReadOnlyList<IMarkdownBlock> NestedBlocksOrEmpty => _nestedBlocks ?? (IReadOnlyList<IMarkdownBlock>)Array.Empty<IMarkdownBlock>();
     internal int SyntaxBlockChildCount =>
         (IncludesLeadParagraphBlock ? 1 : 0)
-        + (_additionalParagraphs?.Count ?? 0)
+        + (_rare?.AdditionalParagraphs?.Count ?? 0)
         + (_nestedBlocks?.Count ?? 0);
 
     internal IMarkdownBlock GetSyntaxBlockChild(int index) {
@@ -88,10 +104,10 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
             index--;
         }
 
-        int additionalParagraphCount = _additionalParagraphs?.Count ?? 0;
+        int additionalParagraphCount = _rare?.AdditionalParagraphs?.Count ?? 0;
         if (index < additionalParagraphCount) {
             SyncAdditionalParagraphBlocks();
-            return _additionalParagraphBlocks![index];
+            return _rare!.AdditionalParagraphBlocks![index];
         }
 
         return _nestedBlocks![index - additionalParagraphCount];
@@ -101,8 +117,7 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
         Content.Nodes.Count > 0 || (!HasAdditionalParagraphs && NestedBlockCount == 0);
 
     private ListItem(InlineSequence content, bool isTask, bool isChecked) {
-        Content = content ?? new InlineSequence();
-        _leadParagraphBlock = new ParagraphBlock(Content);
+        _leadParagraphBlock = new ParagraphBlock(content ?? new InlineSequence());
         IsTask = isTask;
         Checked = isChecked;
     }
@@ -121,10 +136,10 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
     public static ListItem TaskInlines(InlineSequence content, bool done = false) => new ListItem(content ?? new InlineSequence(), true, done);
 
     internal IEnumerable<InlineSequence> Paragraphs() {
-        if (Content.Nodes.Count > 0 || (AdditionalParagraphs.Count == 0 && NestedBlocks.Count == 0)) {
+        if (Content.Nodes.Count > 0 || (AdditionalParagraphCount == 0 && NestedBlockCount == 0)) {
             yield return Content;
         }
-        for (int i = 0; i < AdditionalParagraphs.Count; i++) yield return AdditionalParagraphs[i];
+        for (int i = 0; i < AdditionalParagraphCount; i++) yield return AdditionalParagraphs[i];
     }
 
     internal string RenderMarkdown() {
@@ -153,7 +168,7 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
         string attributeWhitespace = renderGenericAttributeConsumedWhitespace
             ? RenderGenericAttributeConsumedWhitespace()
             : string.Empty;
-        if (!renderLoose && AdditionalParagraphs.Count == 0 && NestedBlocks.Count == 0) {
+        if (!renderLoose && AdditionalParagraphCount == 0 && NestedBlockCount == 0) {
             sb.Append(checkbox);
             Content.AppendHtml(sb);
             sb.Append(attributeWhitespace);
@@ -162,19 +177,19 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
 
         if (renderLoose
             && Content.Nodes.Count == 0
-            && AdditionalParagraphs.Count == 0
-            && NestedBlocks.Count == 0) {
+            && AdditionalParagraphCount == 0
+            && NestedBlockCount == 0) {
             sb.Append(checkbox);
             return;
         }
 
         // Tight list behavior: when there is exactly one paragraph, keep it inline even if child blocks exist.
-        if (!renderLoose && AdditionalParagraphs.Count == 0) {
+        if (!renderLoose && AdditionalParagraphCount == 0) {
             int itemStart = sb.Length;
             sb.Append(checkbox);
             Content.AppendHtml(sb);
             sb.Append(attributeWhitespace);
-            for (int i = 0; i < NestedBlocks.Count; i++) {
+            for (int i = 0; i < NestedBlockCount; i++) {
                 AppendTightListItemChildSeparator(sb, itemStart, NestedBlocks[i]);
                 MarkdownBlockRenderDispatcher.AppendTightListItemHtml(sb, NestedBlocks[i]);
             }
@@ -194,7 +209,7 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
             first = false;
         }
 
-        for (int i = 0; i < NestedBlocks.Count; i++) {
+        for (int i = 0; i < NestedBlockCount; i++) {
             MarkdownBlockRenderDispatcher.AppendHtml(sb, NestedBlocks[i]);
         }
     }
@@ -211,7 +226,7 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
     }
 
     private string RenderGenericAttributeConsumedWhitespace() {
-        if (string.IsNullOrEmpty(GenericAttributeConsumedWhitespace) || Attributes.IsEmpty) {
+        if (Attributes.IsEmpty || string.IsNullOrEmpty(GenericAttributeConsumedWhitespace)) {
             return string.Empty;
         }
 
@@ -321,7 +336,7 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
         return true;
     }
 
-    internal bool RequiresLooseListRendering() => ForceLoose || AdditionalParagraphs.Count > 0;
+    internal bool RequiresLooseListRendering() => ForceLoose || AdditionalParagraphCount > 0;
 
     internal MarkdownSyntaxNode BuildSyntaxNode(MarkdownSyntaxNode? nestedList) {
         var markerChildren = BuildListMarkerSyntaxNodes();
@@ -453,56 +468,61 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
     }
 
     private void EnsureParagraphBlocks() {
-        _paragraphBlocks ??= new List<ParagraphBlock>();
+        ListItemRareState rare = Rare;
+        rare.ParagraphBlocks ??= new List<ParagraphBlock>();
         SyncAdditionalParagraphBlocks();
 
-        _paragraphBlocks.Clear();
+        rare.ParagraphBlocks.Clear();
         if (IncludesLeadParagraphBlock) {
-            _paragraphBlocks.Add(_leadParagraphBlock);
+            rare.ParagraphBlocks.Add(_leadParagraphBlock);
         }
 
-        for (int i = 0; i < _additionalParagraphBlocks!.Count; i++) {
-            _paragraphBlocks.Add(_additionalParagraphBlocks[i]);
+        for (int i = 0; i < rare.AdditionalParagraphBlocks!.Count; i++) {
+            rare.ParagraphBlocks.Add(rare.AdditionalParagraphBlocks[i]);
         }
     }
 
     private void EnsureChildBlocks() {
-        _blockChildren ??= new List<IMarkdownBlock>();
+        ListItemRareState rare = Rare;
+        rare.BlockChildren ??= new List<IMarkdownBlock>();
         EnsureParagraphBlocks();
 
-        _blockChildren.Clear();
-        for (int i = 0; i < _paragraphBlocks!.Count; i++) {
-            _blockChildren.Add(_paragraphBlocks[i]);
+        rare.BlockChildren.Clear();
+        for (int i = 0; i < rare.ParagraphBlocks!.Count; i++) {
+            rare.BlockChildren.Add(rare.ParagraphBlocks[i]);
         }
 
         if (_nestedBlocks != null) {
             for (int i = 0; i < _nestedBlocks.Count; i++) {
-                _blockChildren.Add(_nestedBlocks[i]);
+                rare.BlockChildren.Add(_nestedBlocks[i]);
             }
         }
     }
 
     private void SyncAdditionalParagraphBlocks() {
-        _additionalParagraphBlocks ??= new List<ParagraphBlock>();
-        int additionalParagraphCount = _additionalParagraphs?.Count ?? 0;
-        while (_additionalParagraphBlocks.Count > additionalParagraphCount) {
-            _additionalParagraphBlocks.RemoveAt(_additionalParagraphBlocks.Count - 1);
+        ListItemRareState rare = Rare;
+        rare.AdditionalParagraphBlocks ??= new List<ParagraphBlock>();
+        int additionalParagraphCount = rare.AdditionalParagraphs?.Count ?? 0;
+        while (rare.AdditionalParagraphBlocks.Count > additionalParagraphCount) {
+            rare.AdditionalParagraphBlocks.RemoveAt(rare.AdditionalParagraphBlocks.Count - 1);
         }
 
         for (int i = 0; i < additionalParagraphCount; i++) {
-            var paragraph = _additionalParagraphs![i] ?? new InlineSequence();
-            if (i < _additionalParagraphBlocks.Count && ReferenceEquals(_additionalParagraphBlocks[i].Inlines, paragraph)) {
+            var paragraph = rare.AdditionalParagraphs![i] ?? new InlineSequence();
+            if (i < rare.AdditionalParagraphBlocks.Count && ReferenceEquals(rare.AdditionalParagraphBlocks[i].Inlines, paragraph)) {
                 continue;
             }
 
             var block = new ParagraphBlock(paragraph);
-            if (i < _additionalParagraphBlocks.Count) {
-                _additionalParagraphBlocks[i] = block;
+            if (i < rare.AdditionalParagraphBlocks.Count) {
+                rare.AdditionalParagraphBlocks[i] = block;
             } else {
-                _additionalParagraphBlocks.Add(block);
+                rare.AdditionalParagraphBlocks.Add(block);
             }
         }
     }
+
+    private ListItemRareState Rare => _rare ??= new ListItemRareState();
 
     internal override void AdoptCapturedSourceInformation(MarkdownObject captured, MarkdownCapturedObjectMap map) {
         var source = (ListItem)captured;
@@ -511,4 +531,13 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
         _syntaxChildren = source._syntaxChildren;
         map.Retarget(_syntaxChildren);
     }
+}
+
+internal sealed class ListItemRareState {
+    internal List<ParagraphBlock>? AdditionalParagraphBlocks;
+    internal List<ParagraphBlock>? ParagraphBlocks;
+    internal List<IMarkdownBlock>? BlockChildren;
+    internal List<InlineSequence>? AdditionalParagraphs;
+    internal string? TaskMarkerText;
+    internal string GenericAttributeConsumedWhitespace = string.Empty;
 }

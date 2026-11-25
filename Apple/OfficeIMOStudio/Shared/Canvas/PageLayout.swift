@@ -122,6 +122,11 @@ struct PageLayout: Equatable {
         return best
     }
 
+    /// Whether the layout shows a page: Single Page gives the pages it doesn't show an empty frame.
+    func shows(_ page: Int) -> Bool {
+        frames.indices.contains(page - 1) && !frames[page - 1].isEmpty
+    }
+
     /// The shown page, numbered from 1, that shows the most of itself in a rectangle.
     func mostVisiblePage(in rect: CGRect) -> Int {
         guard let range = pages(in: rect) else { return page(at: CGPoint(x: rect.midX, y: rect.midY)) }

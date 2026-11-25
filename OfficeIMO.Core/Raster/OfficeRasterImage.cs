@@ -41,7 +41,11 @@ public sealed class OfficeRasterImage {
     /// <remarks>The source and snapshot must fit the managed image working-set limit, as for <see cref="Clone"/>.</remarks>
     public byte[] GetPixels() {
         EnsureSnapshotWorkingSet();
+#if NET8_0_OR_GREATER
+        byte[] copy = GC.AllocateUninitializedArray<byte>(_pixels.Length);
+#else
         byte[] copy = new byte[_pixels.Length];
+#endif
         Buffer.BlockCopy(_pixels, 0, copy, 0, _pixels.Length);
         return copy;
     }

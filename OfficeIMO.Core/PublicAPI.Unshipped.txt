@@ -317,6 +317,7 @@ OfficeIMO.OfficeConversionException.Report.get -> OfficeIMO.OfficeConversionRepo
 *REMOVED*OfficeIMO.OfficeConversionReport.HasLoss.get -> bool
 OfficeIMO.OfficeConversionReport.OfficeConversionReport() -> void
 OfficeIMO.OfficeConversionReport.OfficeConversionReport(string! source, string! target) -> void
+OfficeIMO.OfficeConversionReport.OfficeConversionReport(string! source, string! target, long itemsWritten, System.TimeSpan elapsed) -> void
 OfficeIMO.OfficeConversionResult<T, TReport>
 OfficeIMO.OfficeConversionResult<T, TReport>.OfficeConversionResult(T value, TReport! report) -> void
 OfficeIMO.OfficeConversionResult<T, TReport>.Report.get -> TReport!
@@ -325,6 +326,7 @@ OfficeIMO.OfficeConversionResult<T, TReport>.Report.get -> TReport!
 *REMOVED*OfficeIMO.OfficeConversionResult<TValue, TReport>.Report.get -> TReport!
 *REMOVED*OfficeIMO.OfficeConversionResult<TValue, TReport>.Value.get -> TValue!
 OfficeIMO.OfficeDocumentFormat.Toml = 30 -> OfficeIMO.OfficeDocumentFormat
+OfficeIMO.OfficeDocumentFormat.Notebook = 31 -> OfficeIMO.OfficeDocumentFormat
 *REMOVED*OfficeIMO.OfficeLegacyImportReport.FidelityDiagnostics.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeConversionFidelityDiagnostic!>!
 *REMOVED*OfficeIMO.OfficeLegacyImportReport.HasLoss.get -> bool
 *REMOVED*OfficeIMO.OfficeLegacyImportReport.RequireNoLoss() -> void
@@ -343,6 +345,7 @@ OfficeIMO.OfficeTextSearchOptions.MatchCase.set -> void
 OfficeIMO.OfficeTextSearchOptions.OfficeTextSearchOptions() -> void
 OfficeIMO.OfficeTextSearchOptions.WholeWords.get -> bool
 OfficeIMO.OfficeTextSearchOptions.WholeWords.set -> void
+const OfficeIMO.OfficeDiagnosticCodes.ExcelCellStyleRepaired = "excel-cell-style-repaired" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.FontNotEmbedded = "font-not-embedded" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.NativeBookmarkTargetMissing = "native-bookmark-target-missing" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.NativeBookmarkTargetUnprojected = "native-bookmark-target-unprojected" -> string!

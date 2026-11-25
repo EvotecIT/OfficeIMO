@@ -133,7 +133,7 @@ internal static partial class MarkdownReader {
                     string source = text.Substring(token.TargetStart, token.TargetLength);
                     string? resolvedSource = string.IsNullOrWhiteSpace(source)
                         ? string.Empty
-                        : ResolveUrl(source, options);
+                        : ResolveImageUrl(source, options);
                     if (resolvedSource == null) {
                         sequence.AddRaw(new MarkdownTextRun(altText));
                     } else {
@@ -606,7 +606,7 @@ internal static partial class MarkdownReader {
             return GetSimplePlainRunLength(text, position, options);
         }
 
-        if (state.LinkRefs.ContainsKey(NormalizeReferenceLabel(label))
+        if (HasLinkReference(state, label, 0, label.Length)
             || ContainsResolvedLinkInLabel(text, position + 1, position + 1 + label.Length, options, state, wrappers)
             || (options.Abbreviations && ContainsAbbreviationCandidate(label, state))
             || ContainsBackslashEscapableCharacter(label)) {

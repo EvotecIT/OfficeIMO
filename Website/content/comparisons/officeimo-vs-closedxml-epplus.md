@@ -48,6 +48,6 @@ EPPlus 8 requires license configuration. Commercial organizations should not inf
 - workbook preflight, accessibility, comparison, repair, streaming contracts, or PSWriteOffice are part of the workflow;
 - MIT licensing and first-party source access are requirements.
 
-Performance depends on data shape and operation. Use the [repeatable Excel benchmark suite](/docs/capabilities/benchmarks/) and validate generated workbooks instead of transferring one project's headline number into another workload.
+Performance depends on data shape and operation. Use the [published Excel results](/benchmarks/excel/), the [repeatable benchmark suite](/docs/capabilities/benchmarks/), and validate generated workbooks instead of transferring one project's headline number into another workload.
 
 Continue with [OfficeIMO.Excel documentation](/docs/excel/), [Excel compatibility](/compatibility/), or the [PSWriteOffice Excel comparison](/docs/pswriteoffice/compare-importexcel-excelfast/).

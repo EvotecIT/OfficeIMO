@@ -17,28 +17,27 @@ namespace OfficeIMO.Word {
         public static WordComment Create(WordDocument document, string author, string initials, string comment, WordComment? parent = null) {
             var comments = GetCommentsPart(document);
             var commentsEx = GetCommentsExPart(document);
-            WordCommentIdentityPlan.Prepare(comments, commentsEx).Apply(commentsEx);
-            var paraId = GetNewParaId(commentsEx, comments);
+            WordCommentIdentityState identities = WordCommentIdentityState.Get(document, comments, commentsEx);
+            var paraId = identities.NextParagraphId();
             // Compose a new Comment and add it to the Comments part.
             Paragraph p = new Paragraph(new Run(new Text(comment))) {
                 ParagraphId = paraId
             };
             Comment cmt = new Comment() {
-                Id = GetNewId(document),
+                Id = identities.NextId(),
                 Author = author,
                 Initials = initials,
                 Date = System.DateTime.Now
             };
             cmt.AppendChild(p);
             comments.AppendChild(cmt);
-            comments.Save();
 
             CommentEx cmtEx = new CommentEx() { ParaId = paraId };
             if (parent != null) {
-                cmtEx.ParaIdParent = EnsureCommentParaId(parent, comments, commentsEx);
+                cmtEx.ParaIdParent = EnsureCommentParaId(parent, identities, commentsEx);
             }
             commentsEx.AppendChild(cmtEx);
-            commentsEx.Save();
+            identities.Added(cmt);
 
             return new WordComment(document, cmt, cmtEx);
         }
@@ -60,10 +59,10 @@ namespace OfficeIMO.Word {
 
             var comments = GetCommentsPart(document);
             var commentsEx = GetCommentsExPart(document);
-            WordCommentIdentityPlan.Prepare(comments, commentsEx).Apply(commentsEx);
-            var paraId = GetNewParaId(commentsEx, comments);
+            WordCommentIdentityState identities = WordCommentIdentityState.Get(document, comments, commentsEx);
+            var paraId = identities.NextParagraphId();
             Comment cmt = new Comment() {
-                Id = GetNewId(document),
+                Id = identities.NextId(),
                 Author = author,
                 Initials = initials,
                 Date = System.DateTime.Now
@@ -84,14 +83,13 @@ namespace OfficeIMO.Word {
             }
 
             comments.AppendChild(cmt);
-            comments.Save();
 
             CommentEx cmtEx = new CommentEx() { ParaId = paraId };
             if (parent != null) {
-                cmtEx.ParaIdParent = EnsureCommentParaId(parent, comments, commentsEx);
+                cmtEx.ParaIdParent = EnsureCommentParaId(parent, identities, commentsEx);
             }
             commentsEx.AppendChild(cmtEx);
-            commentsEx.Save();
+            identities.Added(cmt);
 
             return new WordComment(document, cmt, cmtEx);
         }

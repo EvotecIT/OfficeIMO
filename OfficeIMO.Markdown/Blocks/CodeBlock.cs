@@ -24,14 +24,17 @@ public sealed class CodeBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, ISy
     internal int ClosingFenceIndentColumns { get; private set; }
     internal int ClosingFenceLength { get; private set; } = 3;
     internal int? FencedContentLineCount { get; private set; }
+    // Source spans of this object, set only by a parse that captures source information.
+    private MarkdownSourceSpan?[]? _sourceSpanSlots;
+
     /// <summary>Source span for the opening fence token when parsed from a fenced source block.</summary>
-    public MarkdownSourceSpan? OpeningFenceSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
+    public MarkdownSourceSpan? OpeningFenceSourceSpan { get => ReadSourceSpanSlot(ref _sourceSpanSlots, 0); internal set => WriteSourceSpanSlot(ref _sourceSpanSlots, 0, 4, value); }
     /// <summary>Source span for the fenced-code info string when parsed from a fenced source block.</summary>
-    public MarkdownSourceSpan? InfoStringSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
+    public MarkdownSourceSpan? InfoStringSourceSpan { get => ReadSourceSpanSlot(ref _sourceSpanSlots, 1); internal set => WriteSourceSpanSlot(ref _sourceSpanSlots, 1, 4, value); }
     /// <summary>Source span for the code payload when source-backed.</summary>
-    public MarkdownSourceSpan? ContentSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
+    public MarkdownSourceSpan? ContentSourceSpan { get => ReadSourceSpanSlot(ref _sourceSpanSlots, 2); internal set => WriteSourceSpanSlot(ref _sourceSpanSlots, 2, 4, value); }
     /// <summary>Source span for the closing fence token when parsed from a closed fenced source block.</summary>
-    public MarkdownSourceSpan? ClosingFenceSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
+    public MarkdownSourceSpan? ClosingFenceSourceSpan { get => ReadSourceSpanSlot(ref _sourceSpanSlots, 3); internal set => WriteSourceSpanSlot(ref _sourceSpanSlots, 3, 4, value); }
 
     /// <summary>Create a code block with an optional fenced-code info string.</summary>
     public CodeBlock(string language, string content) : this(language, content, isFenced: true) {

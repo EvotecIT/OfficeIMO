@@ -17,8 +17,8 @@ internal static partial class ResourceResolver {
             PdfObjectLookup.ResolveChain(objects, embeddedMask) is not (PdfNull or PdfNumber { Value: 0 })) return false;
         if (!TryDecodeJpxPrefix(stream, objects, maximumBytes, out payload, cancellationToken)) return false;
         if (!OfficeJpeg2000Header.TryValidateOpaquePayload(payload, cancellationToken, out int components, out int width, out int height) ||
-            stream.Dictionary.Get<PdfNumber>("Width")?.Value != width ||
-            stream.Dictionary.Get<PdfNumber>("Height")?.Value != height || (long)width * height * 4L > maximumBytes) return false;
+            ReadImageInteger(stream.Dictionary, "Width", objects) != width ||
+            ReadImageInteger(stream.Dictionary, "Height", objects) != height || (long)width * height * 4L > maximumBytes) return false;
         return colorSpace == "" || (components == 1 ? colorSpace is "DeviceGray" or "G" : colorSpace is "DeviceRGB" or "RGB");
     }
 
@@ -115,8 +115,8 @@ internal static partial class ResourceResolver {
         if (colorCount < 1 || colorCount > image.ColorChannels || indexed && image.ColorChannels != 1) return false;
 
         int width = image.Width, height = image.Height;
-        if (stream.Dictionary.Get<PdfNumber>("Width")?.Value is double declaredWidth && declaredWidth != width ||
-            stream.Dictionary.Get<PdfNumber>("Height")?.Value is double declaredHeight && declaredHeight != height) return false;
+        if (stream.Dictionary.Items.ContainsKey("Width") && ReadImageInteger(stream.Dictionary, "Width", objects) != width ||
+            stream.Dictionary.Items.ContainsKey("Height") && ReadImageInteger(stream.Dictionary, "Height", objects) != height) return false;
         long pixels = (long)width * height;
         if (pixels * colorCount > maximumBytes) return false;
         byte[]? alpha = null;

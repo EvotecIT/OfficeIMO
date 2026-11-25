@@ -7,7 +7,7 @@ internal static class UrlOriginPolicy {
     }
 
     internal static bool IsAllowedHttpImage(MarkdownHtmlExportOptions? o, string? url) {
-        if (!IsSafeImageUrl(url)) return false;
+        if (!IsSafeImageUrl(o, url)) return false;
         if (o == null) return true;
         var u = (url ?? string.Empty).Trim();
         if (u.Length == 0) return true;
@@ -52,7 +52,7 @@ internal static class UrlOriginPolicy {
         if (u.StartsWith("#", StringComparison.Ordinal)) return true; // fragment-only
 
         // Host allowlist (absolute HTTP(S) only).
-        var allowHosts = forImages ? o.AllowedHttpImageHosts : o.AllowedHttpLinkHosts;
+        var allowHosts = forImages ? o.AllowedHttpImageHostsIfAny : o.AllowedHttpLinkHostsIfAny;
         bool restrict = forImages ? o.RestrictHttpImagesToBaseOrigin : o.RestrictHttpLinksToBaseOrigin;
         if ((restrict || allowHosts != null && allowHosts.Count > 0)
             && TryGetScheme(u, out string? explicitScheme)
@@ -96,11 +96,11 @@ internal static class UrlOriginPolicy {
             return true;
         }
 
-        return options?.AdditionalAllowedLinkSchemes.Any(candidate =>
+        return options?.AdditionalAllowedLinkSchemesIfAny?.Any(candidate =>
             string.Equals(candidate?.Trim(), scheme, StringComparison.OrdinalIgnoreCase)) == true;
     }
 
-    private static bool IsSafeImageUrl(string? url) {
+    private static bool IsSafeImageUrl(MarkdownHtmlExportOptions? options, string? url) {
         string value = (url ?? string.Empty).Trim();
         if (value.Length == 0 || value.StartsWith("#", StringComparison.Ordinal)) return true;
         if (!TryGetScheme(value, out string? scheme)) return true;
@@ -110,7 +110,7 @@ internal static class UrlOriginPolicy {
         }
 
         if (scheme == "cid") return true;
-        return scheme == "data" && IsSafeRasterDataImage(value);
+        return scheme == "data" && IsAllowedDataImage(value, options?.AllowTrustedSvgDataImages == true);
     }
 
     private static bool IsWellFormedAbsoluteHttpUrl(string value, string expectedScheme) {
@@ -152,7 +152,7 @@ internal static class UrlOriginPolicy {
         return true;
     }
 
-    private static bool IsSafeRasterDataImage(string value) {
+    private static bool IsAllowedDataImage(string value, bool allowTrustedSvg) {
         int comma = value.IndexOf(',');
         if (comma <= 5) return false;
 
@@ -163,7 +163,8 @@ internal static class UrlOriginPolicy {
         bool base64 = parameters.Split(';').Any(parameter => string.Equals(parameter.Trim(), "base64", StringComparison.OrdinalIgnoreCase));
         if (!base64) return false;
 
-        return mediaType.Equals("image/png", StringComparison.OrdinalIgnoreCase)
+        return (allowTrustedSvg && mediaType.Equals("image/svg+xml", StringComparison.OrdinalIgnoreCase))
+            || mediaType.Equals("image/png", StringComparison.OrdinalIgnoreCase)
             || mediaType.Equals("image/jpeg", StringComparison.OrdinalIgnoreCase)
             || mediaType.Equals("image/gif", StringComparison.OrdinalIgnoreCase)
             || mediaType.Equals("image/webp", StringComparison.OrdinalIgnoreCase)

@@ -82,6 +82,37 @@ fixtures deliberately; remove superseded captured publications and downloaded to
 when they are no longer needed. Source fixtures need producer, version and license
 provenance before entering the maintained corpus.
 
+## Check the OfficeIMO fixtures
+
+Run with .NET 10, Python 3 and Java 21 installed, or dispatch **EPUBCheck evidence**
+in GitHub Actions. The script downloads the pinned EPUBCheck 5.4.0 ZIP at run time
+and verifies its SHA-256 before extracting it. It validates native books,
+DOCX, Markdown and HTML manuscript imports and catalog exports, and books after
+chapter splits, merges, resource renames, fixed-layout changes and narration
+edits. The catalog fixtures preserve the exact bytes produced by the one-step
+export. They record the native preflight finding for missing reviewed accessibility
+metadata and still run the same EPUBCheck checks as the authored fixtures.
+
+```sh
+python3 Build/Epub/check_fixtures.py --output /path/to/task-evidence/epubcheck
+```
+
+Pass additional EPUB paths after the options to validate them with the same
+distribution. `--java` selects a Java executable. `--ace` adds the optional
+automated accessibility check. The workflow uploads the fixture manifest,
+pinned distribution identity, exact EPUB bytes used by the validator, and
+the JSON and log reports.
+
+| Finding | Fixture | Status |
+| --- | --- | --- |
+| `CSS-008`, comment-separated compound selectors | `css-preservation.epub` | EPUBCheck rejects the preserved source CSS. |
+| `CSS-008`, nested selectors, media rules and a block-valued custom property | `merge-nested-selectors.epub` | EPUBCheck rejects the preserved source CSS. |
+| `PKG-010`, filename with a space | `renamed-index.epub` | The warning is retained as evidence. The fixture exercises filename escaping during a rename. |
+
+Use `--include-preservation-cases` to reproduce both CSS findings. That run
+returns a failure and retains the reports. Other fixtures and any EPUB paths
+supplied on the command line go through the same strict EPUBCheck checks.
+
 ## Independent media-overlay source
 
 The W3C EPUB sample collection's

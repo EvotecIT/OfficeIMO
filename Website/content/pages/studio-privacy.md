@@ -9,7 +9,8 @@ slug: studio/privacy
 OfficeIMO Studio opens and processes documents on your device. Opening, reading,
 editing, converting, and saving a document does not send it to Evotec. Studio has
 no analytics, telemetry, or automatic update checks. Store editions are updated by
-the Microsoft Store or Apple's App Store.
+the Microsoft Store, or by the Mac App Store and App Store once the Apple app is
+available there.
 
 For the OfficeIMO website, browser tools, and libraries, see the
 [OfficeIMO privacy policy](/privacy/).
@@ -35,10 +36,16 @@ conversion results, and files prepared for sharing can also remain in the app's
 temporary storage until cleanup. Deleting an original document does not
 necessarily delete its recovery or temporary copies immediately.
 
+Handwritten signatures you draw are saved on the device, in the app's
+Application Support folder, until you delete them in Studio. When you sign with
+a certificate, Studio reads the .p12 or .pfx file you choose and its password to
+make that signature, and does not save either of them for later use.
+
 Sharing, printing, and opening a link use the system services you choose. Those
 services may transfer the selected data to another app or provider. Apple also
-controls App Store transactions, operating-system diagnostics, device backups,
-and synchronization under your Apple settings and its privacy policy.
+controls App Store transactions (once the app is available there),
+operating-system diagnostics, device backups, and synchronization under your
+Apple settings and its privacy policy.
 
 ## Windows and Linux application data
 

@@ -3,6 +3,8 @@ using System.Xml;
 
 namespace OfficeIMO.Excel {
     internal sealed partial class ExcelSheetReader {
+        private bool _reportedEmptyCellStyleRepair;
+
         private bool ValidateDataReaderProjection(CancellationToken ct) {
             if (_canStreamWorksheetPart) {
                 try {
@@ -24,8 +26,14 @@ namespace OfficeIMO.Excel {
             foreach (Cell cell in EnumerateOwnedSdkWorksheetCells(worksheet)) {
                 ct.ThrowIfCancellationRequested();
                 var reference = new XmlCoordinateReference(cell.CellReference?.Value);
-                if (cell.StyleIndex?.Value is uint styleIndex) {
-                    ValidateCellStyleReference(styleIndex, reference);
+                if (cell.StyleIndex is { } style) {
+                    if (style.HasValue) {
+                        ValidateCellStyleReference(style.Value, reference);
+                    } else if (string.IsNullOrEmpty(style.InnerText)) {
+                        ReportEmptyCellStyleRepair(reference);
+                    } else {
+                        throw CreateInvalidCellStyleException(reference);
+                    }
                 }
                 if (cell.DataType?.Value == CellValues.SharedString) {
                     ValidateSharedStringReference(cell.CellValue?.Text, reference);
@@ -124,7 +132,7 @@ namespace OfficeIMO.Excel {
                 }
                 XmlStyleAttribute styleIndex = ReadXmlStyleAttribute(reader);
                 if (styleIndex.Present) {
-                    ValidateCellStyleReference(styleIndex, reference);
+                    ValidateCellStyleReference(styleIndex, reference, reader);
                 }
                 bool sharedStringCell = string.Equals(
                     ReadXmlCellTypeAttribute(reader),
@@ -134,9 +142,6 @@ namespace OfficeIMO.Excel {
                 bool hasCachedValue = false;
                 string? sharedStringReference = null;
                 if (reader.IsEmptyElement) {
-                    if (sharedStringCell) {
-                        ValidateSharedStringReference(null, reference);
-                    }
                     continue;
                 }
 
@@ -234,15 +239,45 @@ namespace OfficeIMO.Excel {
             return value;
         }
 
-        private void ValidateCellStyleReference(XmlStyleAttribute style, XmlCoordinateReference reference) {
+        private void ValidateCellStyleReference(XmlStyleAttribute style, XmlCoordinateReference reference, XmlReader reader) {
             if (style.Valid) {
                 ValidateCellStyleReference(style.Index, reference);
                 return;
             }
 
-            throw new InvalidDataException(
-                $"Worksheet '{_sheetName}' cell {reference.ToString()} contains an invalid cell style index.");
+            // The attribute text is read again only here, after parsing has already failed.
+            if (reader.GetAttribute("s")?.Length == 0) {
+                ReportEmptyCellStyleRepair(reference);
+                return;
+            }
+
+            throw CreateInvalidCellStyleException(reference);
         }
+
+        private InvalidDataException CreateInvalidCellStyleException(XmlCoordinateReference reference) =>
+            new InvalidDataException(
+                $"Worksheet '{_sheetName}' cell {reference.ToString()} contains an invalid cell style index.");
+
+        /// <summary>
+        /// Excel recovers an empty style attribute (<c>s=""</c>) as the default style and keeps the cell's value, so
+        /// the reader does the same. The first repair on this sheet is reported through
+        /// <see cref="ExcelExecutionPolicy.OnInfo"/>.
+        /// </summary>
+        private void ReportEmptyCellStyleRepair(XmlCoordinateReference reference) {
+            if (TryBeginEmptyCellStyleRepairReport()) ReportEmptyCellStyleRepair(reference.ToString());
+        }
+
+        /// <summary>Returns true for the first repair on this sheet when a callback will receive it.</summary>
+        private bool TryBeginEmptyCellStyleRepairReport() {
+            if (_reportedEmptyCellStyleRepair) return false;
+            _reportedEmptyCellStyleRepair = true;
+            return _opt.Execution.OnInfo != null;
+        }
+
+        private void ReportEmptyCellStyleRepair(string cellReference) =>
+            _opt.Execution.ReportInfo(
+                $"[ReadRepair EmptyCellStyle] Worksheet '{_sheetName}' cell {cellReference} has an empty style attribute; " +
+                "its value is read with the default style, as Excel repairs it.");
 
         private void ValidateCellStyleReference(uint styleIndex, XmlCoordinateReference reference) {
             if (styleIndex < (uint)Styles.CellFormatCount) {
@@ -254,6 +289,8 @@ namespace OfficeIMO.Excel {
         }
 
         private void ValidateSharedStringReference(string? rawIndex, XmlCoordinateReference reference) {
+            // A shared-string cell without a value element holds no value, as an untyped empty cell does.
+            if (rawIndex == null) return;
             int count = _sst.Count;
             if (TryParseSharedStringIndex(rawIndex, out int index)
                 && (uint)index < (uint)count) {

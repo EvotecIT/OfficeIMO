@@ -32,6 +32,17 @@ public sealed class BrowserFallbackFontsTests {
         Assert.Equal(expected, BrowserFallbackFonts.Needed(text));
     }
 
+    [Theory]
+    [InlineData("Lab report", "J. Smith", false)]
+    [InlineData("会議の議事録", "", true)]
+    [InlineData("", "مرحبا بالعالم", true)]
+    public void NotebookFontPreflightIncludesEnteredTitleAndAuthor(string title, string author, bool expected) {
+        byte[] ascii = """{"nbformat":4,"nbformat_minor":5,"metadata":{},"cells":[]}"""u8.ToArray();
+        var options = new BrowserNotebookSettings(false, false, title, author);
+
+        Assert.Equal(expected, BrowserFallbackFonts.Needed(ascii, ".ipynb", options));
+    }
+
     [Fact]
     public void OfficePackagesIgnoreThemeFontListsButSeeBodyText() {
         const string theme = "<a:theme><a:font script=\"Jpan\" typeface=\"ＭＳ ゴシック\"/><a:font script=\"Arab\" typeface=\"Times New Roman\"/></a:theme>";

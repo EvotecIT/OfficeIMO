@@ -234,20 +234,8 @@ public static partial class OfficeSvgDrawingReader {
             maximumViewportPixels <= 0D || maximumViewportPixels > OfficeSvgDrawingReaderOptions.MaximumAllowedViewportPixels) return false;
 
         try {
-            var settings = new XmlReaderSettings {
-                // Legacy SVG exports commonly declare the SVG 1.1 DTD. Ignore the
-                // declaration without resolving it or expanding custom entities.
-                DtdProcessing = DtdProcessing.Ignore,
-                XmlResolver = null,
-                MaxCharactersInDocument = Math.Min(MaximumInputBytes, maximumCharactersInDocument)
-            };
-            XDocument document;
-            using (var stream = new MemoryStream(bytes, writable: false))
-            using (XmlReader reader = XmlReader.Create(stream, settings)) {
-                document = XDocument.Load(reader, LoadOptions.None);
-            }
-
-            XElement? documentRoot = document.Root;
+            XElement? documentRoot = options?.OperationSourceCache is { } cache && maximumCharactersInDocument == MaximumInputBytes
+                ? cache.GetRoot(bytes) : ReadSvgRoot(bytes, maximumCharactersInDocument);
             if (documentRoot == null || !string.Equals(documentRoot.Name.LocalName, "svg", StringComparison.OrdinalIgnoreCase)) return false;
             root = documentRoot;
             if (root.Descendants().Take(maximumElements + 1).Count() > maximumElements) return false;
@@ -262,6 +250,30 @@ public static partial class OfficeSvgDrawingReader {
         } catch (ArgumentException) {
             return false;
         }
+    }
+
+    private static XElement? ReadSvgRoot(byte[] bytes, long maximumCharactersInDocument) {
+        var settings = new XmlReaderSettings {
+            // Legacy SVG exports commonly declare the SVG 1.1 DTD. Ignore the declaration without resolving it.
+            DtdProcessing = DtdProcessing.Ignore,
+            XmlResolver = null,
+            MaxCharactersInDocument = Math.Min(MaximumInputBytes, maximumCharactersInDocument)
+        };
+        using var stream = new MemoryStream(bytes, writable: false);
+        using XmlReader reader = XmlReader.Create(stream, settings);
+        return XDocument.Load(reader, LoadOptions.None).Root;
+    }
+
+    internal sealed class SourceCache {
+        private readonly System.Runtime.CompilerServices.ConditionalWeakTable<byte[], XElement> _roots = new();
+
+        // The SVG painter applies styles and annotations to its working XML.
+        internal XElement GetRoot(byte[] bytes) => new XElement(_roots.GetValue(bytes, static data => {
+            XElement? root = ReadSvgRoot(data, MaximumInputBytes);
+            if (root == null || ExceedsSvgElementNestingLimit(root))
+                throw new XmlException("The SVG is missing its root element or exceeds the supported nesting depth.");
+            return root;
+        }));
     }
 
     private static bool TryResolveViewport(

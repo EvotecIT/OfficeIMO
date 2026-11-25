@@ -5,27 +5,66 @@ namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         // Reference-backed sources resolve only visited cells. In particular a
         // binary lookup must not materialize its entire input or return range.
+        // A source reads a value array, a reference window or one value repeated over its whole shape;
+        // rows, columns and slices narrow that window without copying it.
         private sealed class FormulaLookupSource : IReadOnlyList<FormulaArgumentValue> {
-            private readonly Func<int, int, FormulaArgumentValue> _read;
+            private readonly FormulaArgumentValue[]? _values;
+            private readonly int _offset;
+            private readonly int _stride;
+            private readonly ExcelSheet? _owner;
+            private readonly ExcelSheet? _sheet;
+            private readonly int _top;
+            private readonly int _left;
+            private readonly bool _constant;
+            // Most sources carry no error, so one is kept boxed rather than widening every source.
+            private readonly object? _error;
 
-            internal FormulaLookupSource(int rows, int columns, Func<int, int, FormulaArgumentValue> read,
-                FormulaArgumentValue error = default) {
+            private FormulaLookupSource(int rows, int columns, FormulaArgumentValue[]? values, int offset, int stride,
+                ExcelSheet? owner, ExcelSheet? sheet, int top, int left, bool constant, FormulaArgumentValue error) {
                 Rows = rows;
                 Columns = columns;
-                _read = read;
-                Error = error;
+                _values = values;
+                _offset = offset;
+                _stride = stride;
+                _owner = owner;
+                _sheet = sheet;
+                _top = top;
+                _left = left;
+                _constant = constant;
+                _error = error.IsError ? error : null;
             }
+
+            /// <summary>Reads row-major values; <paramref name="stride"/> is the width of the stored rows.</summary>
+            internal static FormulaLookupSource FromValues(int rows, int columns, FormulaArgumentValue[] values, int stride,
+                FormulaArgumentValue error = default) =>
+                new(rows, columns, values, 0, stride, null, null, 0, 0, false, error);
+
+            /// <summary>Resolves cells of <paramref name="sheet"/> from <paramref name="top"/>, <paramref name="left"/> as the owner's dependencies.</summary>
+            internal static FormulaLookupSource FromReference(ExcelSheet owner, ExcelSheet sheet, int rows, int columns, int top, int left) =>
+                new(rows, columns, null, 0, 0, owner, sheet, top, left, false, default);
+
+            internal static FormulaLookupSource FromConstant(FormulaArgumentValue value, FormulaArgumentValue error) =>
+                new(1, 1, new[] { value }, 0, 0, null, null, 0, 0, true, error);
 
             internal int Rows { get; }
             internal int Columns { get; }
-            internal FormulaArgumentValue Error { get; }
+            internal FormulaArgumentValue Error => _error is FormulaArgumentValue error ? error : default;
             public int Count => Rows * Columns;
-            public FormulaArgumentValue this[int index] => _read(index / Columns, index % Columns);
-            internal FormulaArgumentValue At(int row, int column) => _read(row, column);
-            internal FormulaLookupSource Column(int column) => new(Rows, 1, (row, _) => _read(row, column));
-            internal FormulaLookupSource Row(int row) => new(1, Columns, (_, column) => _read(row, column));
-            internal FormulaLookupSource Slice(int row, int column, int rows, int columns) =>
-                new(rows, columns, (r, c) => _read(row + r, column + c));
+            public FormulaArgumentValue this[int index] => At(index / Columns, index % Columns);
+
+            internal FormulaArgumentValue At(int row, int column) {
+                if (_values != null) return _values[_constant ? 0 : _offset + row * _stride + column];
+                return _owner!.ResolveFormulaDependency(_sheet!, _top + row, _left + column);
+            }
+
+            internal FormulaLookupSource Column(int column) => Slice(0, column, Rows, 1);
+            internal FormulaLookupSource Row(int row) => Slice(row, 0, 1, Columns);
+            internal FormulaLookupSource Slice(int row, int column, int rows, int columns) {
+                if (_owner != null)
+                    return new(rows, columns, null, 0, 0, _owner, _sheet, _top + row, _left + column, false, default);
+                if (_constant) return new(rows, columns, _values, 0, 0, null, null, 0, 0, true, default);
+                return new(rows, columns, _values, _offset + row * _stride + column, _stride, null, null, 0, 0, false, default);
+            }
 
             public IEnumerator<FormulaArgumentValue> GetEnumerator() {
                 for (int index = 0; index < Count; index++) yield return this[index];
@@ -42,15 +81,14 @@ namespace OfficeIMO.Excel {
                 budget -= count;
                 int columns = c2 - c1 + 1;
                 if (TryGetPlainCalculatedRange(sheet, r1, c1, r2, c2, out FormulaArgumentValue[] plain)) {
-                    source = new FormulaLookupSource(r2 - r1 + 1, columns, (row, column) => plain[row * columns + column]);
+                    source = FormulaLookupSource.FromValues(r2 - r1 + 1, columns, plain, columns);
                     return true;
                 }
-                source = new FormulaLookupSource(r2 - r1 + 1, columns,
-                    (row, column) => ResolveFormulaDependency(sheet, r1 + row, c1 + column));
+                source = FormulaLookupSource.FromReference(this, sheet, r2 - r1 + 1, columns, r1, c1);
                 return true;
             }
             if (referenceError.IsError) {
-                source = new FormulaLookupSource(1, 1, (_, _) => referenceError, referenceError);
+                source = FormulaLookupSource.FromConstant(referenceError, referenceError);
                 return true;
             }
             if (!TryEvaluateArrayValue(token, 0, out FormulaArrayValue array, preserveScalarValue)
@@ -58,8 +96,7 @@ namespace OfficeIMO.Excel {
             budget -= array.Values.Length;
             FormulaArgumentValue error = array.Values.Length == 1 && array.Values[0].IsError
                 && !token.TrimStart().StartsWith("{", StringComparison.Ordinal) ? array.Values[0] : default;
-            source = new FormulaLookupSource(array.Rows, array.Columns,
-                (row, column) => array.Values[row * array.Columns + column], error);
+            source = FormulaLookupSource.FromValues(array.Rows, array.Columns, array.Values, array.Columns, error);
             return true;
         }
 
@@ -107,7 +144,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static FormulaLookupSource LookupScalarSource(FormulaArgumentValue value) =>
-            new(1, 1, (_, _) => value, value.IsError ? value : default);
+            FormulaLookupSource.FromConstant(value, value.IsError ? value : default);
 
         private static bool TryMaterializeLookupArray(FormulaLookupSource source, out FormulaArrayValue array) {
             array = null!;

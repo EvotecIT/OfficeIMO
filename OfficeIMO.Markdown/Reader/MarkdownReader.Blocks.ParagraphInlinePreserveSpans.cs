@@ -37,15 +37,29 @@ internal static partial class MarkdownReader {
             ranges.AddRange(FindMatchedRawInlineHtmlTagRanges(text));
         }
 
+        if (ranges.Count == 0) {
+            return Array.Empty<bool>();
+        }
+
         var result = new bool[lines.Count - 1];
         var offset = 0;
         for (var lineIndex = 0; lineIndex < lines.Count - 1; lineIndex++) {
             offset += lines[lineIndex]?.Length ?? 0;
-            result[lineIndex] = ranges.Any(range => range.ContainsOffset(offset));
+            result[lineIndex] = AnyRangeContains(ranges, offset);
             offset++;
         }
 
         return result;
+    }
+
+    private static bool AnyRangeContains(List<ParagraphInlinePreserveRange> ranges, int offset) {
+        for (int index = 0; index < ranges.Count; index++) {
+            if (ranges[index].ContainsOffset(offset)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool StartsWithRawInlineHtml(string line) {

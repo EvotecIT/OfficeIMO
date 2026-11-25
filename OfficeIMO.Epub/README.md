@@ -464,6 +464,11 @@ body positioning context. Other content and styles remain intact. The method doe
 not fit overflowing text, paginate prose or rasterize text. Existing CSS and reader
 styles can override the generated rules. Overflow is not hidden automatically.
 
+Each call validates the page it changes: its content, the resources it uses and the
+links it holds. `Write` and `Save` validate the whole publication. Adding a page with
+`AddChapter`, `AddResource` and `SetFixedLayoutPage` therefore doesn't re-check the rest of
+the book, and a rejected call leaves the publication unchanged.
+
 `Regions` places existing top-level XHTML body elements by their HTML `id`. Each
 rectangle supplies left, top, width and height as decimal CSS pixels, with a top-left
 origin even in RTL books. Generated rules use absolute positioning, zero margins and
@@ -590,10 +595,14 @@ publication.SetContentXml(new Dictionary<string, XDocument> {
 });
 ```
 
-The batch validates content identifiers, local ID references and publication links before
-replacing any retained bytes. Duplicate IDs, dangling links, invalid content, retention
-limits or cancellation leave the publication unchanged. Caller-owned XML remains independent.
-This overload requires a structurally valid resulting publication; the single-document
+The batch validates the edited documents before replacing any retained bytes: content
+identifiers, local ID references, declared resources and links to other documents,
+including fragments in the documents they point to. When a batch removes identifiers or
+rewrites the navigation document, the links in every document are checked again, so a batch
+cannot break links held elsewhere, and that whole-book check can also report problems in
+documents the batch didn't touch. Otherwise, problems elsewhere in the book are reported by
+`Write` and `Save`. Duplicate IDs, dangling links, invalid content, retention limits or cancellation
+leave the publication unchanged. Caller-owned XML remains independent. The single-document
 setter remains available while assembling a book. Export still applies signature,
 encryption and output policies, and independent accessibility and reader checks remain separate.
 
@@ -1360,7 +1369,6 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 | Inspect | 4 | 0 | 0 | 0 | 0 | 0 |
 | Validate | 2 | 1 | 0 | 0 | 0 | 1 |
 | Remove | 2 | 0 | 0 | 0 | 0 | 1 |
-| Convert | 0 | 1 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Epub` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
 <!-- officeimo-operation-catalog:end -->

@@ -99,6 +99,26 @@ $nonNativeValidated = @(
         evidence = 'Static Mermaid Word/PDF/HTML/PowerPoint integration, packed .NET 8 and 10 consumers and .NET Framework 4.7.2 cross-compilation are validated; complete adapter NativeAOT qualification is separate.'
     }
     [ordered]@{
+        name = 'OfficeIMO.Notebook.PowerShell'
+        classification = 'managed-cross-platform'
+        evidence = 'Explicit execution uses a managed host and an installed PowerShell process. Runtime coverage is provided by managed notebook and packaged PowerShell contracts.'
+    }
+    foreach ($name in @(
+        'OfficeIMO.Notebook'
+        'OfficeIMO.Notebook.Html'
+        'OfficeIMO.Notebook.Import'
+        'OfficeIMO.Notebook.Markdown'
+        'OfficeIMO.Notebook.Pdf'
+        'OfficeIMO.Notebook.Spreadsheet'
+        'OfficeIMO.Notebook.Word'
+    )) {
+        [ordered]@{
+            name = $name
+            classification = 'managed-cross-platform'
+            evidence = 'Notebook document, import and export contracts are qualified by managed .NET 8 and 10 tests and .NET Framework 4.7.2 cross-compilation. Full-assembly NativeAOT qualification remains open.'
+        }
+    }
+    [ordered]@{
         name = 'OfficeIMO.JavaScript.Assets'
         classification = 'managed-cross-platform'
         evidence = 'Embedded JavaScript assets and content hashes are qualified by managed tests and packed .NET 8 and 10 consumers; no NativeAOT host is claimed.'
@@ -142,11 +162,6 @@ $nonNativeValidated = @(
         name = 'OfficeIMO.Studio'
         classification = 'managed-cross-platform'
         evidence = 'The Avalonia desktop application is distributed through managed cross-platform publish profiles and is not advertised as NativeAOT-compatible.'
-    }
-    [ordered]@{
-        name = 'OfficeIMO.Studio.iOS'
-        classification = 'ios-host-unqualified'
-        evidence = 'The Avalonia iPhone and iPad host has Debug ARM64 simulator evidence. Release trimming, device AOT, signing and physical-device acceptance remain unqualified; the simulator interpreter does not establish NativeAOT compatibility.'
     }
     [ordered]@{
         name = 'OfficeIMO.MarkdownRenderer.Wpf'
@@ -272,7 +287,6 @@ $matrix = [ordered]@{
         nativeBuildAnalyzerCount = $buildAnalyzers.Count
         managedCrossPlatformProjectCount = @($nonNativeValidated | Where-Object classification -EQ 'managed-cross-platform').Count
         managedWindowsProjectCount = @($nonNativeValidated | Where-Object classification -EQ 'managed-windows').Count
-        iosHostUnqualifiedProjectCount = @($nonNativeValidated | Where-Object classification -EQ 'ios-host-unqualified').Count
     }
     definitions = [ordered]@{
         nativeFullSurface = 'The production library is retained as a complete assembly in the NativeAOT compile graph.'
@@ -283,7 +297,6 @@ $matrix = [ordered]@{
         nativeBuildAnalyzer = 'The build-time analyzer emits code that compiles into and executes from a NativeAOT consumer; the analyzer is not deployed as a runtime assembly.'
         managedCrossPlatform = 'The package is validated in its supported cross-platform managed deployment model rather than advertised for NativeAOT.'
         managedWindows = 'The package is validated in its supported managed Windows deployment model rather than advertised for NativeAOT.'
-        iosHostUnqualified = 'The iOS host has simulator evidence, without Release trimming, device AOT, signing or physical-device qualification.'
     }
     components = @($components)
 }
@@ -306,6 +319,5 @@ if (-not [string]::IsNullOrWhiteSpace($JsonOutputPath)) {
     NativeBuildAnalyzerCount = $matrix.summary.nativeBuildAnalyzerCount
     ManagedCrossPlatformProjectCount = $matrix.summary.managedCrossPlatformProjectCount
     ManagedWindowsProjectCount = $matrix.summary.managedWindowsProjectCount
-    IosHostUnqualifiedProjectCount = $matrix.summary.iosHostUnqualifiedProjectCount
     Status = 'passed'
 }

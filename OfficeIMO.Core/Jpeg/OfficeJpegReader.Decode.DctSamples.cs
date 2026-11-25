@@ -1,6 +1,37 @@
+#if NET8_0_OR_GREATER
+using System.Runtime.Intrinsics;
+#endif
+
 namespace OfficeIMO.Drawing;
 
 internal static partial class OfficeJpegReader {
+    private static bool HasBoundedQuantization(int[] quantization) {
+        if (quantization.Length < 64) return false;
+        for (int i = 0; i < 64; i++) {
+            if ((uint)quantization[i] > ushort.MaxValue) return false;
+        }
+        return true;
+    }
+
+    private static void Dequantize(short[] coefficients, int offset, int[] quantization, int[] output) {
+#if NET8_0_OR_GREATER
+        if (Vector128.IsHardwareAccelerated) {
+            ref short source = ref coefficients[offset];
+            ref int factors = ref quantization[0];
+            ref int target = ref output[0];
+            for (nuint i = 0; i < 64; i += 8) {
+                var (low, high) = Vector128.Widen(Vector128.LoadUnsafe(ref source, i));
+                (low * Vector128.LoadUnsafe(ref factors, i)).StoreUnsafe(ref target, i);
+                (high * Vector128.LoadUnsafe(ref factors, i + 4)).StoreUnsafe(ref target, i + 4);
+            }
+            return;
+        }
+#endif
+        for (int i = 0; i < 64; i++) {
+            output[i] = coefficients[offset + i] * quantization[i];
+        }
+    }
+
     private static void WriteDctBlock(BaselineComponentState samples, int blockX, int blockY) {
         if (samples.WideBuffer == null) {
             InverseDct(samples.BlockCoeffs, samples.BlockPixels, samples.BlockWorkspace);

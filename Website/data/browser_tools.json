@@ -94,6 +94,26 @@
       "guide": "/convert/publisher-to-pdf/", "package": "OfficeIMO.Publisher.Pdf"
     },
     {
+      "id": "jupyter-to-pdf", "group": "convert", "from": "IPYNB", "to": "PDF",
+      "title": "Jupyter Notebook to PDF",
+      "summary": "Turn a saved notebook into a PDF. Preview the pages and review any outputs that needed a fallback.",
+      "seoTitle": "Jupyter Notebook to PDF in your browser | OfficeIMO",
+      "seoDescription": "Convert an .ipynb notebook to a searchable PDF in your browser. Keep saved outputs, hide code if needed, and download without uploading your file.",
+      "input": { "kind": "file", "accept": ".ipynb", "label": "Jupyter notebook", "sample": "samples/notebook-report.ipynb", "sampleName": "OfficeIMO-Notebook-Report.ipynb", "sampleNote": "Try a notebook with a Plotly scatter plot, an annotated heatmap, a layered Vega-Lite chart, a table and an equation." },
+      "options": [
+        { "id": "hideCode", "type": "flag", "label": "Hide code", "hint": "Keep saved results and notebook text." },
+        { "id": "hideOutputs", "type": "flag", "label": "Hide saved outputs" },
+        { "id": "title", "type": "text", "label": "Report title", "placeholder": "Optional", "maxLength": 200, "advanced": true },
+        { "id": "author", "type": "text", "label": "Author", "placeholder": "Optional", "maxLength": 200, "advanced": true }
+      ],
+      "engine": { "kind": "convert", "target": "notebook-pdf", "action": "convert", "assemblies": ["OfficeIMO.Notebook.wasm", "OfficeIMO.Notebook.Markdown.wasm", "OfficeIMO.Notebook.Pdf.wasm", "OfficeIMO.Markdown.wasm", "OfficeIMO.Markdown.Pdf.wasm", "OfficeIMO.Markdown.Html.wasm", "OfficeIMO.Html.wasm", "OfficeIMO.Html.Core.wasm", "OfficeIMO.Html.AngleSharp.wasm", "AngleSharp.wasm", "OfficeIMO.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm", "OfficeIMO.Web.Fonts.Notebook.wasm"] },
+      "run": { "label": "Convert to PDF", "busy": ["Reading notebook cells", "Laying out saved outputs", "Writing the PDF"] },
+      "expect": "Saved images, supported Plotly and Vega-Lite chart previews, tables and equations appear in the PDF. Export uses the saved file. The report identifies outputs that need a fallback.",
+      "next": ["inspect-pdf", "compress-pdf"],
+      "legacy": ["route=notebook-pdf"],
+      "guide": "/convert/guides/", "package": "OfficeIMO.Notebook.Pdf"
+    },
+    {
       "id": "html-to-pdf", "group": "convert", "from": "HTML", "to": "PDF",
       "title": "HTML to PDF",
       "summary": "Paste HTML and CSS, or open an .html file, and get an accessible PDF.",
@@ -306,6 +326,23 @@
       "next": [],
       "legacy": ["workspace=pdf&tool=split"],
       "guide": "/pdf/split/", "package": "OfficeIMO.Pdf"
+    },
+    {
+      "id": "extract-pdf-assets", "group": "pdf", "category": "Understand",
+      "title": "Extract PDF assets",
+      "summary": "Save images, embedded fonts, ICC profiles and an SVG for each page in one ZIP.",
+      "seoTitle": "Extract PDF images, fonts and assets locally | OfficeIMO",
+      "seoDescription": "Extract PDF images, embedded fonts, ICC profiles and page SVGs on your device. Download a ZIP with reports on image DPI, spot inks and page sizes.",
+      "input": { "kind": "file", "accept": ".pdf", "label": "PDF", "sample": "samples/pdf-branded-invoice.pdf", "sampleName": "OfficeIMO-Branded-Invoice.pdf" },
+      "options": [
+        { "id": "preserveImageFormat", "type": "flag", "label": "Keep standard image formats", "hint": "By default, supported image soft masks are saved as RGBA PNGs.", "advanced": true }
+      ],
+      "engine": { "kind": "pdf", "target": "extract-assets", "action": "run", "assemblies": ["OfficeIMO.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm", "OfficeIMO.Web.Fonts.Fallback.wasm"] },
+      "run": { "label": "Extract assets", "busy": ["Reading the PDF", "Extracting assets", "Packing the ZIP"] },
+      "expect": "Open the HTML report in the ZIP for image DPI, page boxes in millimetres, spot inks, and font subset status.",
+      "next": ["inspect-pdf", "pdf-to-images"],
+      "legacy": ["workspace=pdf&tool=extract-assets"],
+      "guide": "/pdf/extract-assets/", "package": "OfficeIMO.Pdf"
     },
     {
       "id": "extract-pages", "group": "pdf", "category": "Organize",

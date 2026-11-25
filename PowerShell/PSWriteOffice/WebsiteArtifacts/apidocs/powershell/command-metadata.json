@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "moduleName": "PSWriteOffice",
-  "moduleVersion": "3.6.0",
+  "moduleVersion": "3.6.2",
   "commands": [
     {
       "name": "Add-OfficeAccessColumn",
@@ -528,6 +528,24 @@
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Markdown/AddOfficeMarkdownTextCommand.cs",
       "sourceLine": 13,
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Markdown/AddOfficeMarkdownTextCommand.cs#L13"
+    },
+    {
+      "name": "Add-OfficeNotebookCell",
+      "kind": "Cmdlet",
+      "synopsis": "Appends a Markdown, code, or raw cell to a live notebook.",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Notebook/AddOfficeNotebookCellCommand.cs",
+      "sourceLine": 12,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Notebook/AddOfficeNotebookCellCommand.cs#L12"
+    },
+    {
+      "name": "Add-OfficeNotebookOutput",
+      "kind": "Cmdlet",
+      "synopsis": "Attaches saved output or supplied console text to a code cell.",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Notebook/AddOfficeNotebookOutputCommand.cs",
+      "sourceLine": 12,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Notebook/AddOfficeNotebookOutputCommand.cs#L12"
     },
     {
       "name": "Add-OfficeOpenDocumentHeading",
@@ -1609,6 +1627,15 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/ClearOfficeExcelRangeCommand.cs#L35"
     },
     {
+      "name": "Clear-OfficeNotebookOutput",
+      "kind": "Cmdlet",
+      "synopsis": "Clears saved results from a code cell, optionally including its execution count.",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Notebook/ClearOfficeNotebookOutputCommand.cs",
+      "sourceLine": 13,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Notebook/ClearOfficeNotebookOutputCommand.cs#L13"
+    },
+    {
       "name": "Close-OfficeAccess",
       "kind": "Cmdlet",
       "synopsis": "Closes a native database without implicitly saving it.",
@@ -1643,6 +1670,15 @@
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Markdown/CloseOfficeMarkdownCommand.cs",
       "sourceLine": 10,
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Markdown/CloseOfficeMarkdownCommand.cs#L10"
+    },
+    {
+      "name": "Close-OfficeNotebook",
+      "kind": "Cmdlet",
+      "synopsis": "Closes a notebook and releases its source-backed values without writing a file.",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Notebook/CloseOfficeNotebookCommand.cs",
+      "sourceLine": 9,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Notebook/CloseOfficeNotebookCommand.cs#L9"
     },
     {
       "name": "Close-OfficeOpenDocument",
@@ -1931,6 +1967,15 @@
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/ExportOfficeExcelGoogleSpreadsheetCommand.cs",
       "sourceLine": 51,
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/ExportOfficeExcelGoogleSpreadsheetCommand.cs#L51"
+    },
+    {
+      "name": "Export-OfficeNotebook",
+      "kind": "Cmdlet",
+      "synopsis": "Exports a live notebook or a selected saved structured output, returning the conversion report.",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Notebook/ExportOfficeNotebookCommand.cs",
+      "sourceLine": 28,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Notebook/ExportOfficeNotebookCommand.cs#L28"
     },
     {
       "name": "Export-OfficePdfLayoutOverlay",
@@ -2291,6 +2336,24 @@
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Markdown/GetOfficeMarkdownTableCommand.cs",
       "sourceLine": 17,
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Markdown/GetOfficeMarkdownTableCommand.cs#L17"
+    },
+    {
+      "name": "Get-OfficeNotebookCell",
+      "kind": "Cmdlet",
+      "synopsis": "Streams notebook cells in document order, optionally by position or cell kind.",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Notebook/GetOfficeNotebookCellCommand.cs",
+      "sourceLine": 12,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Notebook/GetOfficeNotebookCellCommand.cs#L12"
+    },
+    {
+      "name": "Get-OfficeNotebookOutput",
+      "kind": "Cmdlet",
+      "synopsis": "Returns saved notebook outputs in cell order without running any code.",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Notebook/GetOfficeNotebookOutputCommand.cs",
+      "sourceLine": 12,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Notebook/GetOfficeNotebookOutputCommand.cs#L12"
     },
     {
       "name": "Get-OfficePdfAnnotation",
@@ -2823,6 +2886,15 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/InvokeOfficeExcelTemplateCommand.cs#L49"
     },
     {
+      "name": "Invoke-OfficeNotebook",
+      "kind": "Cmdlet",
+      "synopsis": "Runs selected PowerShell notebook cells in one persistent session and records their outputs.",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Notebook/InvokeOfficeNotebookCommand.cs",
+      "sourceLine": 35,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Notebook/InvokeOfficeNotebookCommand.cs#L35"
+    },
+    {
       "name": "Invoke-OfficeProjectSchedule",
       "kind": "Cmdlet",
       "synopsis": "Explicitly calculates a schedule and optionally applies its dates.",
@@ -2866,6 +2938,15 @@
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/MoveOfficeExcelSheetCommand.cs",
       "sourceLine": 31,
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/MoveOfficeExcelSheetCommand.cs#L31"
+    },
+    {
+      "name": "Move-OfficeNotebookCell",
+      "kind": "Cmdlet",
+      "synopsis": "Moves a cell within a live notebook while keeping its identity and saved content.",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Notebook/MoveOfficeNotebookCellCommand.cs",
+      "sourceLine": 12,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Notebook/MoveOfficeNotebookCellCommand.cs#L12"
     },
     {
       "name": "Move-OfficePdfPage",
@@ -3255,6 +3336,15 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/NewOfficeMarkdownWordOptionsCommand.cs#L14"
     },
     {
+      "name": "New-OfficeNotebook",
+      "kind": "Cmdlet",
+      "synopsis": "Creates a live Jupyter notebook that can be populated and saved without running cells.",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Notebook/NewOfficeNotebookCommand.cs",
+      "sourceLine": 17,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Notebook/NewOfficeNotebookCommand.cs#L17"
+    },
+    {
       "name": "New-OfficeOcrOptions",
       "kind": "Cmdlet",
       "synopsis": "Creates OCR settings without starting a provider or downloading language data.",
@@ -3478,8 +3568,8 @@
       "synopsis": "Creates discoverable slide selection and rendering settings for Export-OfficeDocumentImage.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/NewOfficePowerPointImageOptionsCommand.cs",
-      "sourceLine": 14,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/NewOfficePowerPointImageOptionsCommand.cs#L14"
+      "sourceLine": 15,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/NewOfficePowerPointImageOptionsCommand.cs#L15"
     },
     {
       "name": "New-OfficePowerPointInspectionOptions",
@@ -3505,8 +3595,8 @@
       "synopsis": "Creates native PowerPoint-to-PDF options for Convert-OfficeDocument.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/NewOfficePowerPointPdfOptionsCommand.cs",
-      "sourceLine": 17,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/NewOfficePowerPointPdfOptionsCommand.cs#L17"
+      "sourceLine": 18,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/NewOfficePowerPointPdfOptionsCommand.cs#L18"
     },
     {
       "name": "New-OfficeProject",
@@ -3649,8 +3739,8 @@
       "synopsis": "Creates discoverable page and rendering settings for Export-OfficeWordImage.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/NewOfficeWordImageOptionsCommand.cs",
-      "sourceLine": 13,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/NewOfficeWordImageOptionsCommand.cs#L13"
+      "sourceLine": 14,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/NewOfficeWordImageOptionsCommand.cs#L14"
     },
     {
       "name": "New-OfficeWordMarkdownOptions",
@@ -3786,6 +3876,15 @@
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Markdown/OpenOfficeMarkdownCommand.cs",
       "sourceLine": 15,
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Markdown/OpenOfficeMarkdownCommand.cs#L15"
+    },
+    {
+      "name": "Open-OfficeNotebook",
+      "kind": "Cmdlet",
+      "synopsis": "Opens a Jupyter notebook or imports a saved notebook source into the editable model.",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Notebook/OpenOfficeNotebookCommand.cs",
+      "sourceLine": 21,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Notebook/OpenOfficeNotebookCommand.cs#L21"
     },
     {
       "name": "Open-OfficeOneNote",
@@ -3968,6 +4067,15 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Security/RemoveOfficeHiddenDataCommand.cs#L37"
     },
     {
+      "name": "Remove-OfficeNotebookCell",
+      "kind": "Cmdlet",
+      "synopsis": "Removes a cell from a live notebook.",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Notebook/RemoveOfficeNotebookCellCommand.cs",
+      "sourceLine": 12,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Notebook/RemoveOfficeNotebookCellCommand.cs#L12"
+    },
+    {
       "name": "Remove-OfficePdfAnnotation",
       "kind": "Cmdlet",
       "synopsis": "Removes native annotations selected by identity, page and subtype.",
@@ -4137,6 +4245,15 @@
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Markdown/SaveOfficeMarkdownCommand.cs",
       "sourceLine": 15,
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Markdown/SaveOfficeMarkdownCommand.cs#L15"
+    },
+    {
+      "name": "Save-OfficeNotebook",
+      "kind": "Cmdlet",
+      "synopsis": "Atomically saves a live notebook as .ipynb and leaves it open for further editing.",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Notebook/SaveOfficeNotebookCommand.cs",
+      "sourceLine": 14,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Notebook/SaveOfficeNotebookCommand.cs#L14"
     },
     {
       "name": "Save-OfficeOpenDocument",
@@ -4521,6 +4638,15 @@
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelValidationCommand.cs",
       "sourceLine": 33,
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelValidationCommand.cs#L33"
+    },
+    {
+      "name": "Set-OfficeNotebookCell",
+      "kind": "Cmdlet",
+      "synopsis": "Updates cell text or a saved code-cell execution count without running code.",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Notebook/SetOfficeNotebookCellCommand.cs",
+      "sourceLine": 12,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Notebook/SetOfficeNotebookCellCommand.cs#L12"
     },
     {
       "name": "Set-OfficeOpenDocumentCell",
@@ -5024,8 +5150,8 @@
       "synopsis": "Updates fields in a Word document.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/UpdateOfficeWordFieldCommand.cs",
-      "sourceLine": 21,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/UpdateOfficeWordFieldCommand.cs#L21"
+      "sourceLine": 31,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/UpdateOfficeWordFieldCommand.cs#L31"
     },
     {
       "name": "Update-OfficeWordTableOfContents",

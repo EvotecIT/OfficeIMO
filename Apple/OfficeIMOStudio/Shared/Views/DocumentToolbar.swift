@@ -14,6 +14,7 @@ struct DocumentToolbar: ToolbarContent {
                 ForEach(StudioTask.allCases) { Text($0.title).tag($0) }
             }
             .pickerStyle(.segmented)
+            .accessibilityIdentifier(StudioAccessibilityID.taskPicker)
             .disabled(!session.isReady)
         }
         ToolbarItemGroup(placement: .primaryAction) {
@@ -56,7 +57,8 @@ struct DocumentToolbar: ToolbarContent {
             toolsMenu
             share
         }
-        ToolbarItem(placement: .primaryAction) {
+        ToolbarItemGroup(placement: .primaryAction) {
+            commentsButton
             inspectorToggle
         }
         #else
@@ -65,6 +67,7 @@ struct DocumentToolbar: ToolbarContent {
                 Button("Sidebar", systemImage: "sidebar.left") {
                     session.isPageListShown = !(session.isPageListShown ?? true)
                 }
+                .accessibilityIdentifier(StudioAccessibilityID.sidebarToggle)
                 .disabled(session.task == .pages)
             }
         }
@@ -79,13 +82,17 @@ struct DocumentToolbar: ToolbarContent {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Done", systemImage: "checkmark") { session.task = .read }
                     .buttonStyle(.glassProminent)
+                    .accessibilityIdentifier(StudioAccessibilityID.markupDone)
             }
         } else if session.task == .pages {
             ToolbarItemGroup(placement: .topBarTrailing) { undoRedo }
         }
         // In Markup the bottom bar stays empty: the tool picker is there.
         if session.task != .markup && isCompact {
-            ToolbarItem(placement: .topBarTrailing) { inspectorToggle }
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                commentsButton
+                inspectorToggle
+            }
             // Separate items with flexible spacers, so each is its own glass control in the bottom bar.
             if session.task == .pages {
                 ToolbarItem(placement: .bottomBar) { toolsMenu }
@@ -111,6 +118,7 @@ struct DocumentToolbar: ToolbarContent {
                 searchButton
                 toolsMenu
                 share
+                commentsButton
                 inspectorToggle
             }
             if session.task == .pages {
@@ -215,6 +223,7 @@ struct DocumentToolbar: ToolbarContent {
             session.isSearchFocused = true
         }
         .disabled(!session.isReady || session.facts?.canExtractText == false)
+        .accessibilityIdentifier(StudioAccessibilityID.searchButton)
     }
 
     /// What can be done to the document, as the Tools menu does on the Mac.
@@ -237,10 +246,24 @@ struct DocumentToolbar: ToolbarContent {
         }
     }
 
+    /// Opens the inspector on the comments, or closes it when it already shows them.
+    private var commentsButton: some View {
+        Button("Comments", systemImage: "text.bubble") {
+            if session.isInspectorShown && session.inspectorPane == .comments {
+                session.isInspectorShown = false
+            } else {
+                session.showComments()
+            }
+        }
+        .disabled(!session.isReady)
+        .help("Comments")
+    }
+
     private var inspectorToggle: some View {
         Button("Inspector", systemImage: isCompact ? "info.circle" : "sidebar.trailing") {
             session.isInspectorShown.toggle()
         }
         .help(session.isInspectorShown ? "Hide Inspector" : "Show Inspector")
+        .accessibilityIdentifier(StudioAccessibilityID.inspectorToggle)
     }
 }

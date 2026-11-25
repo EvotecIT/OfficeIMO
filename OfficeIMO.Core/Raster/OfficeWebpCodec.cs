@@ -593,22 +593,81 @@ public static partial class OfficeWebpCodec {
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         internal uint PeekBits(int count) {
             if (count < 0 || count > 32) throw new FormatException("WebP bit count is invalid.");
-            while (_bitCount < count) {
-                if (_offset >= _end) throw new FormatException("WebP bitstream is truncated.");
-                _buffer |= (ulong)_input[_offset++] << _bitCount;
-                _bitCount += 8;
-            }
+            if (_bitCount < count) Refill(count);
             ulong mask = count == 32 ? uint.MaxValue : (1UL << count) - 1UL;
             return (uint)(_buffer & mask);
         }
 
-        // Only a successful prefix lookup consumes pre-buffered bits. Keep
-        // this separate from checked reads so the hot path does not peek twice.
+        // Buffers whole bytes up to 64 bits; only a read that needs missing bits fails.
+        private void Refill(int count) {
+            Fill();
+            if (_bitCount < count) throw new FormatException("WebP bitstream is truncated.");
+        }
+
+        // Tops the buffer up to at least 56 bits while input remains. The wide load also places
+        // later bytes above the counted bits; they are the same bytes a later fill adds again,
+        // so OR-ing them in twice leaves the buffer unchanged.
+        private void Fill() {
+            if (_bitCount < 0 || _offset >= _end) return;
+            _buffer |= LoadWord(_input, _offset, _end) << _bitCount;
+            int bytes = Math.Min((63 - _bitCount) >> 3, _end - _offset);
+            _offset += bytes;
+            _bitCount += bytes << 3;
+        }
+
+        /// <summary>Loads up to eight bytes from <paramref name="offset"/>; bytes past the end read as zero.</summary>
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        internal void ConsumeBufferedBits(int count) {
+        internal static ulong LoadWord(byte[] input, int offset, int end) {
+            int available = end - offset;
+            if (available >= 8 && BitConverter.IsLittleEndian) {
+#if NET8_0_OR_GREATER
+                return System.Runtime.CompilerServices.Unsafe.ReadUnaligned<ulong>(ref input[offset]);
+#else
+                return BitConverter.ToUInt64(input, offset);
+#endif
+            }
+            return LoadTail(input, offset, available);
+        }
+
+        private static ulong LoadTail(byte[] input, int offset, int available) {
+            ulong value = 0;
+            int count = Math.Min(8, available);
+            for (int index = 0; index < count; index++) value |= (ulong)input[offset + index] << (index * 8);
+            return value;
+        }
+
+        /// <summary>
+        /// Returns the buffered bits with at least 32 valid bits while input remains. Bits beyond the
+        /// payload read as zero; consuming them is recorded by <see cref="IsOverrun"/>.
+        /// </summary>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        internal ulong PrefetchBits() {
+            if (_bitCount < 32) Fill();
+            return _buffer;
+        }
+
+        /// <summary>Consumes bits returned by <see cref="PrefetchBits"/>.</summary>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        internal void SkipBits(int count) {
             _buffer >>= count;
             _bitCount -= count;
         }
+
+        // The pixel loop keeps this state in locals and hands it back for less frequent reads.
+        internal byte[] Input => _input;
+        internal int End => _end;
+        internal int Offset => _offset;
+        internal ulong Buffer => _buffer;
+        internal int BitCount => _bitCount;
+
+        internal void Resume(int offset, ulong buffer, int bitCount) {
+            _offset = offset;
+            _buffer = buffer;
+            _bitCount = bitCount;
+        }
+
+        /// <summary>Gets whether a prefix-code read consumed bits past the end of the payload.</summary>
+        internal bool IsOverrun => _bitCount < 0;
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         internal bool HasBits(long count) =>
@@ -616,6 +675,7 @@ public static partial class OfficeWebpCodec {
             count <= _bitCount + ((long)_end - _offset) * 8L;
 
         internal bool HasOnlyZeroPadding(CancellationToken cancellationToken) {
+            if (_bitCount < 0) return false;
             if (_bitCount > 0) {
                 ulong mask = (1UL << _bitCount) - 1UL;
                 if ((_buffer & mask) != 0UL) return false;

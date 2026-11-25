@@ -22,10 +22,10 @@ public sealed class UnorderedListBlock : MarkdownBlock, IMarkdownListBlock, ISyn
         RenderHtml(renderItemAttributes: false);
 
     internal string RenderHtml(bool renderItemAttributes) =>
-        MarkdownListRendering.RenderHtml("ul", Items, Attributes, _ => string.Empty, renderItemAttributes);
+        MarkdownListRendering.RenderHtml("ul", Items, Attributes, string.Empty, renderItemAttributes);
 
     void IHtmlAppendableMarkdownBlock.AppendHtml(StringBuilder builder) =>
-        MarkdownListRendering.AppendHtml(builder, "ul", Items, Attributes, _ => string.Empty, renderItemAttributes: false);
+        MarkdownListRendering.AppendHtml(builder, "ul", Items, Attributes, string.Empty, renderItemAttributes: false);
 
     IReadOnlyList<ListItem> IMarkdownListBlock.ListItems => Items;
     MarkdownSyntaxKind IMarkdownListBlock.ListSyntaxKind => MarkdownSyntaxKind.UnorderedList;

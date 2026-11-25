@@ -39,6 +39,9 @@ internal sealed class OfficeFormatSelection {
 
     internal bool Matches(string extension) {
         if (_extension != null) return string.Equals(extension, _extension, StringComparison.OrdinalIgnoreCase);
+        OfficeDocumentFormat converterFamily = OfficeConverter.FormatForExtension(extension);
+        if (converterFamily == OfficeDocumentFormat.Notebook || _family == OfficeDocumentFormat.Notebook)
+            return converterFamily == _family;
         string kind = ReaderCommandUtilities.Reader.DetectKind("document" + extension).ToString();
         return Enum.TryParse(kind, true, out OfficeDocumentFormat family) && family == _family;
     }

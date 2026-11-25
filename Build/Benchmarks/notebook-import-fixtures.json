@@ -1,0 +1,131 @@
+{
+  "cases": [
+    {
+      "name": "PolyglotDib",
+      "format": "PolyglotDib",
+      "input": "Scripts/Polyglot.dib",
+      "inputSha256": "adbc35d7e0d8640644fd4f6c3b337a26c540a6440040bcf162f08349490c61a9",
+      "corpus": "Microsoft .NET Interactive fixture at 098a01b9",
+      "cellKinds": ["markdown", "code", "code", "code", "code", "code"],
+      "outputCount": 0,
+      "witnesses": [
+        {"path": ["cells", 0, "source"], "contains": "* Markdown code"},
+        {"path": ["cells", 1, "source"], "contains": "// C# code"},
+        {"path": ["cells", 5, "source"], "contains": "%% Mermaid code"}
+      ]
+    },
+    {
+      "name": "JupytextPercent",
+      "format": "JupytextPercent",
+      "input": "Scripts/Paired.py",
+      "inputSha256": "59456d4addb8e5117a35d0158483326ca2711137a5c652266e236aa3f2e9eed6",
+      "companion": "Scripts/Paired.ipynb",
+      "companionSha256": "c3f02f123996c52a19c63cfe57ceca371163a9ab10e72cb4ce97e7037f17b798",
+      "corpus": "OfficeIMO input converted with Jupytext 1.19.7",
+      "cellKinds": ["markdown", "code", "code", "raw"],
+      "outputCount": 3,
+      "witnesses": [
+        {"path": ["cells", 1, "source"], "contains": "# %% [markdown] innocent text in a string"},
+        {"path": ["cells", 1, "execution_count"], "equals": 3},
+        {"path": ["cells", 1, "outputs", 0, "text"], "equals": "Saved companion stream\n"},
+        {"path": ["cells", 1, "outputs", 1, "data", "application/json", "scalar"], "equals": 4},
+        {"path": ["cells", 2, "source"], "contains": "%%time\nprint('second cell')"},
+        {"path": ["cells", 2, "outputs", 0, "text"], "equals": "Saved second result\n"}
+      ]
+    },
+    {
+      "name": "Quarto",
+      "format": "Quarto",
+      "input": "Markup/quarto-analysis.qmd",
+      "inputSha256": "9d7f9e8d8eff2bdfc151bea0e8a5f7066eca311e7dd7d64beeac7cbd25f597af",
+      "corpus": "OfficeIMO source fixture based on Quarto CLI 1f794efd",
+      "cellKinds": ["markdown", "code", "markdown"],
+      "outputCount": 0,
+      "reportCodes": ["notebook-import-markup-directive"],
+      "witnesses": [
+        {"path": ["cells", 0, "source"], "contains": "this_is_documentation()"},
+        {"path": ["cells", 1, "source"], "contains": "measurements = [2, 4, 6]"},
+        {"path": ["cells", 1, "metadata", "notebook_import_options"], "contains": "label: fig-run"}
+      ]
+    },
+    {
+      "name": "MySTMarkdown",
+      "format": "MySTMarkdown",
+      "input": "Markup/myst-analysis.md",
+      "inputSha256": "4dd39829e47cc92f1d6ab343842a487386abd275bfeca212ae976e4bb9f4381d",
+      "corpus": "OfficeIMO source fixture based on MyST fe3a7d4d",
+      "cellKinds": ["markdown", "code", "code", "markdown"],
+      "outputCount": 0,
+      "reportCodes": ["notebook-import-markup-directive"],
+      "witnesses": [
+        {"path": ["cells", 1, "source"], "contains": "values = [2, 3, 5]"},
+        {"path": ["cells", 2, "source"], "contains": "sum([2, 3, 5])"},
+        {"path": ["cells", 2, "metadata", "notebook_import_options"], "contains": "skip-execution"},
+        {"path": ["cells", 3, "source"], "contains": "{eval}`sum(values)`"}
+      ]
+    },
+    {
+      "name": "RMarkdown",
+      "format": "RMarkdown",
+      "input": "Markup/r-analysis.Rmd",
+      "inputSha256": "4a21b02d52ca7cb2408db501781197bfc04c0b5000203605e0eed5030a190511",
+      "corpus": "OfficeIMO source fixture based on R Markdown 9e537b95",
+      "cellKinds": ["markdown", "code", "markdown", "code", "code"],
+      "outputCount": 0,
+      "reportCodes": ["notebook-import-markup-directive"],
+      "witnesses": [
+        {"path": ["cells", 1, "source"], "contains": "summary(measurements)"},
+        {"path": ["cells", 1, "metadata", "notebook_import_header"], "equals": "{r measurements, echo=TRUE}"},
+        {"path": ["cells", 3, "source"], "contains": "hidden <- 42"}
+      ]
+    },
+    {
+      "name": "RNotebookHtml",
+      "format": "RNotebookHtml",
+      "input": "Markup/r-saved-results.nb.html",
+      "inputSha256": "a9aa805f5ab8602a661bd0d388604f793fa0ab2af2215158aafbebe448a26417",
+      "corpus": "OfficeIMO saved-output fixture based on R Markdown 9e537b95",
+      "cellKinds": ["markdown", "code", "markdown", "code", "code", "code"],
+      "outputCount": 4,
+      "reportCodes": ["notebook-import-rnb-unmatched-output", "notebook-import-rnb-image", "notebook-import-rnb-output"],
+      "witnesses": [
+        {"path": ["cells", 1, "outputs", 0, "text"], "contains": "[1] 2 & 6"},
+        {"path": ["cells", 1, "outputs", 1, "data", "text/html"], "contains": "<table"},
+        {"path": ["cells", 1, "outputs", 2, "data", "image/png"], "startsWith": "iVBOR"},
+        {"path": ["cells", 5, "outputs", 0, "text"], "contains": "Saved text without identifying source"}
+      ]
+    },
+    {
+      "name": "Deepnote",
+      "format": "Deepnote",
+      "input": "Vendors/deepnote-rich.snapshot.deepnote",
+      "inputSha256": "c1d45af4c7cfeb7954541db628d283a5252b4a01c848fee99d8140726def1527",
+      "corpus": "Deepnote saved-output fixture at 10992a61",
+      "cellKinds": ["markdown", "markdown", "raw", "raw", "raw", "raw", "raw", "raw", "raw", "raw", "code", "code", "code", "code", "code", "markdown", "code"],
+      "outputCount": 6,
+      "reportCodes": ["notebook-deepnote-block-type"],
+      "witnesses": [
+        {"path": ["cells", 0, "source"], "equals": "# Sales performance"},
+        {"path": ["cells", 12, "outputs", 0, "data", "application/vnd.deepnote.dataframe.v3+json", "column_count"], "equals": 3},
+        {"path": ["cells", 13, "outputs", 0, "data", "image/png"], "startsWith": "iVBOR"},
+        {"path": ["cells", 16, "source"], "equals": ""},
+        {"path": ["cells", 16, "outputs", 0, "text"], "contains": "Executive readout"}
+      ]
+    },
+    {
+      "name": "Zeppelin",
+      "format": "Zeppelin",
+      "input": "Vendors/zeppelin-spark.zpln",
+      "inputSha256": "616fdea2a0de40b68904318528f9bf35524877f1cfde4c869190728760568107",
+      "corpus": "Apache Zeppelin v0.12.0 Spark tutorial at 9e0fcc7b",
+      "cellKinds": ["markdown", "code", "code", "code", "code", "markdown", "markdown", "code"],
+      "outputCount": 4,
+      "witnesses": [
+        {"path": ["cells", 0, "source"], "contains": "Welcome to Zeppelin."},
+        {"path": ["cells", 2, "source"], "startsWith": "select age, count(1)"},
+        {"path": ["cells", 2, "outputs", 0, "data", "text/plain"], "startsWith": "age\tvalue\n19\t4"},
+        {"path": ["cells", 2, "outputs", 0, "data", "text/html"], "contains": "<tr><td>19</td><td>4</td></tr>"}
+      ]
+    }
+  ]
+}

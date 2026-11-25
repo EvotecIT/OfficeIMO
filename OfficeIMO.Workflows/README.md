@@ -111,7 +111,9 @@ must report that failure without discarding completed output counts.
 
 `OfficeWorkflowRunner` executes its configured `ConversionRoutes`. `OfficeConverter` runs directory and selected-file batches after `OfficeWorkflow.RegisterConversions()`, with shared profiles, diagnostics and publication policies. Route-owned renderer settings use `OfficeConversionOptions.RegisteredSettings`. PDF export covers DOC, DOCX, TXT, XLSX, PPTX, HTML, Markdown, RTF, ODT/ODS/ODP, ODG/FODG, Visio, email (EML, MSG, OFT, TNEF), EPUB, Publisher PUB, XPS, OpenXPS, DjVu and CHM. CHM also exports linked Markdown and reflowable EPUB through its owning adapters. Other built-in targets include Markdown/HTML/RTF/ODT-to-DOCX, DOCX/XLSX/PPTX to ODT/ODS/ODP and back, PDF-to-DOCX/XLSX/PPTX/HTML and reviewed book-project-to-EPUB export. The executable set is the catalog's host route set (`OfficeConversionCapability.HostExecutable`), which the `officeimo convert` command and the `officeimo_convert` MCP tool also use.
 
-Email PDF renders the styled message through the HTML-to-PDF engine: a header block with subject, sender, recipients and date, the HTML, RTF or plain body under the shared sanitization and remote-resource policy, inline MIME images, and a list of file attachments. `OfficeConversionOptions.EmailPdf` adjusts the header, attachment list, inline-resource limits and page settings. `OutputProfile = OfficeConversionProfile.TextOnly` selects the Reader text projection for archival output. EPUB PDF uses the Reader projection of the chapters in spine order. Unsupported or filtered files produce skipped outcomes; their count is separate from selected conversions.
+Email PDF renders the styled message through the HTML-to-PDF engine: a header block with subject, sender, recipients and date, the HTML, RTF or plain body under the shared sanitization and remote-resource policy, inline MIME images, and a list of file attachments. `OfficeConversionOptions.EmailPdf` adjusts the header, attachment list, inline-resource limits and page settings. `OutputProfile = OfficeConversionProfile.TextOnly` selects the Reader text projection for archival output. EPUB PDF renders styled chapters and package images through the HTML-to-PDF engine in spine order, with a navigation outline and chapter-level findings. The same `TextOnly` profile selects EPUB’s Reader text projection. Unsupported or filtered files produce skipped outcomes; their count is separate from selected conversions.
+
+Each EPUB chapter starts on a new page. Reflowable chapters use the print stylesheet, while fixed-layout chapters with a supported viewport use its page size. Page numbering continues across chapters. Publication-wide CSS `counter(pages)`, requested PDF parity padding and structured PDF headers or footers are reported as omissions.
 
 ```csharp
 using OfficeIMO;
@@ -195,6 +197,13 @@ books, retaining each conversion stage's fidelity categories. Word uses its stat
 final revision view: comments are omitted, fields use their stored visible results,
 and live controls are outside the book contract. Notes and supported semantic content
 remain in the publication. Markdown front matter supplies title, language and author.
+
+For a one-step export, run `officeimo convert manuscript.docx book.epub` or
+select EPUB in `officeimo_convert` or `Convert-OfficeDocument`. The catalog routes
+use the source title metadata, then the first heading, then the source filename.
+By default they start chapters at level-one headings and apply the Basic EPUB
+typography. Set `OfficeWorkflowRouteSettings.EpubManuscript` to choose another
+chapter level, typography profile or title in .NET.
 
 ```csharp
 using OfficeIMO.Epub;
@@ -2468,7 +2477,7 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 | Edit | 1 | 0 | 0 | 0 | 0 | 0 |
 | Preserve | 1 | 0 | 0 | 0 | 0 | 0 |
 | Validate | 0 | 1 | 0 | 0 | 0 | 0 |
-| Convert | 0 | 4 | 0 | 0 | 0 | 0 |
+| Convert | 0 | 5 | 0 | 0 | 0 | 0 |
 | Export | 1 | 5 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Workflows` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).

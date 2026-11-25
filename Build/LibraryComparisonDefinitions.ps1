@@ -256,6 +256,8 @@ function Get-LibraryComparisonDefinitions {
             ExpectedCases = @(
                 foreach ($corpus in @(
                     'PortableReadme',
+                    'SmallReadme',
+                    'SmallTranscript',
                     'Transcript',
                     'TechnicalDoc',
                     'RichAst',
@@ -282,6 +284,8 @@ function Get-LibraryComparisonDefinitions {
             ExpectedCases = @(
                 foreach ($corpus in @(
                     'PortableReadme',
+                    'SmallReadme',
+                    'SmallTranscript',
                     'Transcript',
                     'TechnicalDoc',
                     'RichAst',
@@ -748,7 +752,7 @@ function Get-LibraryComparisonDefinitions {
         imagewebplossless = [pscustomobject]@{
             Area = 'image'
             Title = 'Lossless WebP encoding and decoding'
-            Libraries = @('OfficeIMO', 'Magick.NET'; if ($one) { 'OneImage' })
+            Libraries = @('OfficeIMO', 'SkiaSharp', 'Magick.NET'; if ($one) { 'OneImage' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
@@ -756,7 +760,16 @@ function Get-LibraryComparisonDefinitions {
             Filter = '*ImageWebpLossless*Benchmarks*'
             ComparisonId = 'image-webp-lossless'
             Suite = 'OfficeIMO.Drawing.WebpLossless'
-            ExpectedCases = @('OfficeIMOEncode', 'MagickNETEncode', 'OfficeIMODecodeExternal', 'MagickNETDecodeExternal'; if ($one) { 'OneImageEncode'; 'OneImageDecodeExternal' })
+            ExpectedCases = @(
+                'OfficeIMOEncode|Image=Pattern'
+                'MagickNETEncode|Image=Pattern'
+                if ($one) { 'OneImageEncode|Image=Pattern' }
+                foreach ($image in @('Pattern', 'Photo', 'Screenshot', 'Logo')) {
+                    foreach ($method in @('OfficeIMODecodeExternal', 'SkiaSharpDecodeExternal', 'MagickNETDecodeExternal'; if ($one) { 'OneImageDecodeExternal' })) {
+                        "$method|Image=$image"
+                    }
+                }
+            )
         }
         imageresize = [pscustomobject]@{
             Area = 'image'
@@ -1100,8 +1113,9 @@ function Get-LibraryComparisonDefinitions {
             Suite = 'OfficeIMO.Word.ReadParagraphs'
             ExpectedCases = @(
                 foreach ($itemCount in @(100, 1000, 10000)) {
-                    # OfficeIMOReader* are OfficeIMO.Reader's text projections of the same paragraphs.
-                    foreach ($engine in @('OfficeIMO', 'OfficeIMOReaderText', 'OfficeIMOReaderStreamedText', 'DocX', 'NPOI', 'OpenXmlSdk'; if ($one) { 'OneDocument'; 'OneDocumentExtractText' })) {
+                    # OfficeIMOReader* are OfficeIMO.Reader's text projections of the same paragraphs; OfficeIMOPackageReader
+                    # and OfficeIMOStreamedBodyText are the SDK-free package reader and body-text pass underneath them.
+                    foreach ($engine in @('OfficeIMO', 'OfficeIMOReaderText', 'OfficeIMOReaderStreamedText', 'OfficeIMOPackageReader', 'OfficeIMOStreamedBodyText', 'DocX', 'NPOI', 'OpenXmlSdk'; if ($one) { 'OneDocument'; 'OneDocumentExtractText' })) {
                         "$engine|ItemCount=$itemCount"
                     }
                 }

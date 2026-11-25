@@ -26,7 +26,16 @@ namespace OfficeIMO.Excel {
         /// Loads <paramref name="part"/> and returns true, or leaves it unloaded and returns false. With
         /// <paramref name="storeCells"/>, plain cells stay outside the DOM in <see cref="ExcelStoredRow"/> rows.
         /// </summary>
-        internal static bool TryLoad(WorksheetPart part, bool storeCells = false) {
+        internal static bool TryLoad(WorksheetPart part, bool storeCells = false) =>
+            TryLoad(part, storeCells, out _, out _);
+
+        /// <summary>
+        /// Loads <paramref name="part"/> as <see cref="TryLoad(WorksheetPart, bool)"/> does and counts the cells whose
+        /// style attribute is empty (<c>s=""</c>), which Excel repairs to the default style. The attribute is kept as read.
+        /// </summary>
+        internal static bool TryLoad(WorksheetPart part, bool storeCells, out int emptyStyleCells, out string? firstEmptyStyleCell) {
+            emptyStyleCells = 0;
+            firstEmptyStyleCell = null;
             var buffer = new ExcelPartBuffer();
             try {
                 using (Stream stream = part.GetStream(FileMode.Open, FileAccess.Read)) buffer.ReadFrom(stream);
@@ -36,6 +45,8 @@ namespace OfficeIMO.Excel {
                 var rows = new List<Row>(256);
                 var reader = new GridReader(xml, gridStart + tags.GridStart.Length, tags, dyDescentDeclared, storeCells);
                 if (!reader.TryReadRows(rows)) return false;
+                emptyStyleCells = reader.EmptyStyleCells;
+                firstEmptyStyleCell = reader.FirstEmptyStyleCell;
 
                 string shell = StrictUtf8.GetString(buffer.Buffer, rootStart, gridStart - rootStart) + tags.EmptyGrid
                     + StrictUtf8.GetString(buffer.Buffer, reader.Position, buffer.ContentLength - reader.Position);
@@ -137,6 +148,8 @@ namespace OfficeIMO.Excel {
             private int _rowCellCount;
             private int _rowNumber;
             private int _lastStoredColumn;
+            internal int EmptyStyleCells;
+            internal string? FirstEmptyStyleCell;
 
             internal GridReader(ReadOnlySpan<byte> xml, int position, Tags tags, bool dyDescentDeclared, bool storeCells) {
                 _xml = xml;
@@ -149,6 +162,8 @@ namespace OfficeIMO.Excel {
                 _rowCellCount = 0;
                 _rowNumber = 0;
                 _lastStoredColumn = 0;
+                EmptyStyleCells = 0;
+                FirstEmptyStyleCell = null;
             }
 
             internal int Position => _position;
@@ -250,7 +265,11 @@ namespace OfficeIMO.Excel {
 
                 var cell = new Cell();
                 if (reference) cell.CellReference = Text(referenceText);
-                if (style) cell.StyleIndex = new UInt32Value { InnerText = Number(styleText) };
+                if (style) {
+                    cell.StyleIndex = new UInt32Value { InnerText = Number(styleText) };
+                    // An empty style never qualifies for the stored branch above, so only DOM cells are checked.
+                    if (styleText.IsEmpty) CountEmptyStyle(reference ? referenceText : default);
+                }
                 if (type) cell.DataType = new EnumValue<CellValues> { InnerText = cellType };
                 if (hasContent) {
                     if (hasFormula && !TryReadFormula(cell)) return false;
@@ -267,9 +286,17 @@ namespace OfficeIMO.Excel {
                     _lastStoredColumn = domColumn;
                 } else {
                     _lastStoredColumn = int.MaxValue;
-                    if (row is ExcelStoredRow storedRow) storedRow.MarkUnorderedDomCells();
+                    if (row is ExcelStoredRow storedRow) storedRow.MarkUnorderedDomCells(cell);
                 }
                 return true;
+            }
+
+            private void CountEmptyStyle(ReadOnlySpan<byte> referenceText) {
+                if (EmptyStyleCells++ == 0) {
+                    FirstEmptyStyleCell = referenceText.IsEmpty
+                        ? (_rowNumber > 0 ? "row " + _rowNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) : null)
+                        : Text(referenceText);
+                }
             }
 
             /// <summary>

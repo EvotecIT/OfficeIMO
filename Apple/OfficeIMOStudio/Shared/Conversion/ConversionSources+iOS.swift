@@ -16,7 +16,7 @@ enum ConversionSources {
         return output
     }
 
-    /// One new PDF from the files the user picks, for Create PDF's Combine Files.
+    /// One new PDF from the files the user picks, for New PDF…'s Combine Files.
     static func newDocumentFromFiles() async throws -> URL? {
         let inputs = await DocumentPickerSession(types: PageSources.contentTypes, allowsMultiple: true).run()
         guard !inputs.isEmpty, let ordered = await chooseOrder(CombineOrderView.sorted(inputs)) else { return nil }

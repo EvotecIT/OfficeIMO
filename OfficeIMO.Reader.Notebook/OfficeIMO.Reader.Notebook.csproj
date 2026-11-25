@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Reader.Core\OfficeIMO.Reader.Core.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Notebook\OfficeIMO.Notebook.csproj" />
   </ItemGroup>
 
   <ItemGroup>

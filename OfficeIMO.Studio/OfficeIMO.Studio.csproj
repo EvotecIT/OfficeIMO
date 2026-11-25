@@ -18,25 +18,15 @@
     <LangVersion>Latest</LangVersion>
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(OfficeIMOStudioMobile)' == 'true'">
-    <OutputType>Library</OutputType>
-  </PropertyGroup>
-
-  <ItemGroup Condition="'$(OfficeIMOStudioMobile)' == 'true'">
-    <Compile Remove="Program.cs" />
-    <PackageReference Include="Avalonia" Version="12.1.3" />
-  </ItemGroup>
-
-  <PropertyGroup Condition="'$(OfficeIMOStudioDistribution)' == 'MacAppStore'">
-    <DefineConstants>$(DefineConstants);OFFICEIMO_MAC_APP_STORE</DefineConstants>
+    <!-- ReadyToRun release builds compile only Studio's own assemblies and keep the runtime's shipped native code.
+         The single-file default is a composite image that recompiles the whole framework: twice the archive size, no faster start. -->
+    <PublishReadyToRunComposite>false</PublishReadyToRunComposite>
   </PropertyGroup>
 
   <ItemGroup>
     <AvaloniaResource Include="Assets\OfficeIMO.Studio.ico" />
     <AvaloniaResource Include="Assets\OfficeIMO.Studio.png" />
-    <PackageReference Include="Avalonia.Desktop" Version="12.1.3" Condition="'$(OfficeIMOStudioMobile)' != 'true'" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.3" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.3" />
     <PackageReference Include="Avalonia.BuildServices" Version="11.3.2" ExcludeAssets="all" PrivateAssets="all" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
@@ -59,7 +49,6 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Studio.Tests" />
-    <InternalsVisibleTo Include="OfficeIMO.Studio.iOS" />
   </ItemGroup>
 
   <Import Project="../Build/Studio/Studio.Licenses.props" />

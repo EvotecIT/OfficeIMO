@@ -174,6 +174,46 @@ try {
             throw "The $kind normalized-reader contract was not reached successfully: $observed"
         }
     }
+    # The Open XML differential takes every file that claims an Open XML format, including one that is not a package.
+    $differentialInputDirectory = Join-Path $scratch 'differential-input'
+    Copy-Item -LiteralPath $formatInputDirectory -Destination $differentialInputDirectory -Recurse
+    [System.IO.File]::WriteAllText((Join-Path $differentialInputDirectory 'not-a-package.docx'), 'This is not a ZIP package.')
+    $differentialJson = Join-Path $scratch 'differential/report.json'
+    $differentialMarkdown = Join-Path $scratch 'differential/report.md'
+    & dotnet run --project $project --framework net10.0 --configuration Release --no-build -- run `
+        --operation openxml-differential --input $differentialInputDirectory `
+        --json $differentialJson --markdown $differentialMarkdown --corpus-id synthetic-openxml `
+        --max-per-format 5 --max-total 10 --max-file-bytes 1048576 --max-traversal-entries 20 `
+        --timeout-seconds 30 --parallelism 3 --deadline-seconds 600 --include-source-names
+    if ($LASTEXITCODE -ne 0) { throw "Open XML differential contract run failed with exit code $LASTEXITCODE." }
+    $differentialReport = Get-Content -LiteralPath $differentialJson -Raw | ConvertFrom-Json -Depth 100
+    if ($differentialReport.configuration.operation -ne 'openxml-differential-sdk-reference' -or $differentialReport.totals.selected -ne 4) {
+        throw 'The Open XML differential did not select exactly the three packages and the damaged .docx.'
+    }
+    $expectedLanes = @{
+        'document.docx' = @('package', 'word-body-paragraphs', 'word-text-projection')
+        'presentation.pptx' = @('package', 'slide-paragraphs', 'powerpoint-text-projection')
+        'workbook.xlsx' = @('package', 'excel-cell-values')
+        'not-a-package.docx' = @('package', 'word-body-paragraphs', 'word-text-projection')
+    }
+    foreach ($entry in $expectedLanes.GetEnumerator()) {
+        $record = @($differentialReport.files | Where-Object { $_.sourceName -eq $entry.Key })
+        $lanes = @($record[0].openXmlEvidence.lanes)
+        if ($record.Count -ne 1 -or $record[0].outcome -ne 'completed' -or (Compare-Object @($lanes.name) $entry.Value)) {
+            throw "The Open XML differential did not run the expected lanes for $($entry.Key): $($lanes.name -join ', ')"
+        }
+        foreach ($lane in $lanes) {
+            $expected = if ($entry.Key -eq 'not-a-package.docx') { @('both-reject', 'unavailable') } else { @('match', 'unavailable') }
+            if ($lane.outcome -notin $expected -or ($lane.name -like '*-projection' -and $lane.outcome -eq 'unavailable')) {
+                throw "The $($lane.name) lane classified $($entry.Key) as $($lane.outcome)."
+            }
+        }
+    }
+    $differentialMarkdownText = Get-Content -LiteralPath $differentialMarkdown -Raw
+    if ($differentialMarkdownText -notmatch '## Open XML differential' -or $differentialMarkdownText -match '## PDF quality depth') {
+        throw 'The differential Markdown report did not render its own section.'
+    }
+
     [System.IO.File]::Copy(
         (Join-Path $repositoryRoot 'OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/openpreserve-pdfa1b-text.pdf'),
         (Join-Path $claimInputDirectory 'openpreserve-pdfa1b-text.pdf'))

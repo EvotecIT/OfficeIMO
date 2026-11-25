@@ -27,8 +27,9 @@ conversion catalog; the default output is a sibling PDF. Existing output is refu
 --text-encoding and --tab-size apply to TXT-to-PDF; --allow-legacy-loss accepts reported loss when
 reading DOC input. --require-no-loss rejects source and output fidelity losses before publishing; it is
 not available for DOC, DOCX, TXT, XLSX or PPTX to PDF.
-Email PDF renders the styled message with its header block, body, inline images and attachments;
---text-only writes the Reader text projection instead.
+Email PDF renders the message with its headers, styled body, inline images and attachment list.
+EPUB PDF renders styled chapters in reading order and includes a navigation outline.
+Use --text-only to select the Reader text projection for email or EPUB.
 Draw PDF output keeps source page dimensions and uses print-visible layers by default.
 DjVu PDF output preserves scan pixels, page sizes and existing searchable text.
 Publisher PDF output keeps source page dimensions and reports fidelity losses.
@@ -39,7 +40,9 @@ Apple Office and PDF output use the shared iWork workflow adapter and write stru
 Apple PDF requires complete editable reconstruction; previews and partial policies are rejected.
 Defaults reject partial editable reconstruction and previews without known complete coverage.
 Apple workflow conversion accepts ZIP files and directory bundles.
-Markdown output, and JSON output from a source without a data route, use the OfficeIMO Reader pipeline.
+Notebook .md output includes saved images through the shared conversion route. Use --assets or
+the .markdown destination extension to select Reader extraction. Reader also handles other Markdown
+output and JSON output from sources without a data route.
 Use 'officeimo read <input> --format json' for the Reader JSON of a data file.
 """;
 
@@ -204,7 +207,7 @@ internal sealed class ConvertRoute {
 
         outputPath ??= optionOutputPath;
         bool appleInput = Path.GetExtension(Path.TrimEndingDirectorySeparator(inputPath)).ToLowerInvariant() is ".pages" or ".numbers" or ".key";
-        ConvertOutputFormat format = ParseOutputFormat(inputPath, outputPath);
+        ConvertOutputFormat format = ParseOutputFormat(inputPath, outputPath, assetsPath);
         if (appleInput && format == ConvertOutputFormat.Route) {
             if (assetsPath is not null || hasPdfOnlyOption || hasDataOption) throw new ConvertUsageException("Apple workflow conversion does not accept assets or XML-part limits.");
             return new ConvertRoute { Format = ConvertOutputFormat.IWork };
@@ -246,13 +249,14 @@ internal sealed class ConvertRoute {
         };
     }
 
-    // A data route wins when both ends are data formats; otherwise Markdown and JSON use the Reader pipeline and every
-    // other destination is resolved against the shared route catalog.
-    private static ConvertOutputFormat ParseOutputFormat(string inputPath, string? outputPath) {
+    // Typed data and standalone notebook Markdown have shared routes. The other Markdown and JSON requests
+    // use Reader extraction.
+    private static ConvertOutputFormat ParseOutputFormat(string inputPath, string? outputPath, string? assetsPath) {
         if (string.IsNullOrWhiteSpace(outputPath)) return ConvertOutputFormat.Route;
         string extension = Path.GetExtension(outputPath).ToLowerInvariant();
         string inputExtension = Path.GetExtension(Path.TrimEndingDirectorySeparator(inputPath)).ToLowerInvariant();
         if (inputExtension.Length > 0 && extension.Length > 0 && ConvertRoutes.FindData(inputExtension, extension) != null) return ConvertOutputFormat.Route;
+        if (assetsPath is null && ConvertRoutes.UsesNotebookMarkdown(inputPath, outputPath)) return ConvertOutputFormat.Route;
         return extension switch {
             ".md" or ".markdown" => ConvertOutputFormat.Markdown,
             ".json" => ConvertOutputFormat.Json,

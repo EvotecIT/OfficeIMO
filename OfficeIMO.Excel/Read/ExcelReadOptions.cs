@@ -89,6 +89,12 @@ namespace OfficeIMO.Excel {
         /// </remarks>
         public bool EnableSinglePassReading { get; set; }
 
+        // XLSX worksheets at least this large are qualified and read through a bounded window of the inflated part.
+        // Smaller ones keep the single-buffer reader, which indexes in parallel. Tests lower both values.
+        internal int WindowedWorksheetMinimumBytes { get; set; } = 64 * 1024 * 1024;
+
+        internal int WorksheetWindowBytes { get; set; } = 4 * 1024 * 1024;
+
         /// <summary>Gets or sets the maximum rows sampled when schema inference is enabled.</summary>
         public int SchemaSampleRows {
             get => _schemaSampleRows;

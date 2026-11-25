@@ -20,10 +20,10 @@ if ($OriginalFrameworkSelection) {
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $true
 # Production projects live at the repository root. Exclude qualification
-# hosts and the iOS workload; the portable source generator is built separately.
+# hosts; the portable source generator is built separately.
 $projects = Get-ChildItem -Directory -Filter 'OfficeIMO.*' | Where-Object {
   $_.Name -notmatch '\.(Tests|VerifyTests|Benchmarks|Examples|AotSmoke|[^.]*Verification)(\.|$)' -and
-  $_.Name -notin @('OfficeIMO.Studio.iOS', 'OfficeIMO.Data.Generators')
+  $_.Name -ne 'OfficeIMO.Data.Generators'
 } | ForEach-Object { Get-ChildItem -LiteralPath $_.FullName -Filter *.csproj } | Sort-Object FullName
 if (!$projects) { throw 'No production projects found for CodeQL.' }
 

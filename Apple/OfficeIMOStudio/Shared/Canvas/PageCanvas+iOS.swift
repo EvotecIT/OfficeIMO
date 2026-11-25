@@ -24,7 +24,6 @@ struct PageCanvas: UIViewRepresentable {
         view.panGestureRecognizer.minimumNumberOfTouches = drawing || dragTool != nil ? 2 : 1
         view.textSelection.setEnabled(session.task == .read && dragTool == nil && session.canCopyText)
         view.forms.setEnabled(session.task == .read && dragTool == nil && (session.canFillForms || session.pendingSignature != nil))
-        _ = session.formFieldsVersion
         view.tiles.markFields(session.fillableFieldBoxes)
         view.tiles.selectionColor = view.tintColor.withAlphaComponent(0.3).cgColor
         if let selection = session.textSelection {
@@ -33,6 +32,8 @@ struct PageCanvas: UIViewRepresentable {
             view.tiles.select(page: 0, rects: [])
         }
         view.textSelection.layoutHandles()
+        // VoiceOver hears about page text that arrived and field values that changed.
+        view.refreshAccessibility()
         // A double tap on the page draws a dot while marking up, rather than zooming.
         view.doubleTap.isEnabled = !drawing && dragTool == nil
         view.markup.update()
@@ -52,7 +53,7 @@ final class PageScrollView: UIScrollView, UIScrollViewDelegate {
 
     let tiles = PageTiles()
     private let session: DocumentSession
-    private let content = UIView()
+    private let content = AccessiblePagesView()
     /// The view the pages are laid out in, in PDF points.
     var contentView: UIView { content }
     private(set) lazy var markup = MarkupController(session: session, scrollView: self)
@@ -94,6 +95,9 @@ final class PageScrollView: UIScrollView, UIScrollViewDelegate {
         addGestureRecognizer(doubleTap)
         _ = textSelection
         _ = forms
+        content.session = session
+        content.layout = { [weak self] in self?.tiles.layout ?? PageLayout(pages: []) }
+        content.activateField = { [weak self] page, field, widget in self?.forms.activate(page: page, field: field, widget: widget) }
     }
 
     @available(*, unavailable)
@@ -126,6 +130,10 @@ final class PageScrollView: UIScrollView, UIScrollViewDelegate {
         // A new layout, such as a rotated page, fits the width again on the next layout pass, keeping the page.
         laidOutWidth = 0
         setNeedsLayout()
+    }
+
+    func refreshAccessibility() {
+        content.refreshAccessibility()
     }
 
     func handle(_ request: CanvasRequest) {

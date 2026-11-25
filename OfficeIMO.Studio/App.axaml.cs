@@ -20,8 +20,6 @@ public sealed partial class App : Application {
 
     internal StudioApplicationServices Services { get; private set; } = null!;
 
-    internal Func<App, Avalonia.Controls.Control>? SingleViewFactory { get; init; }
-
     /// <summary>The desktop instance lock whose forwarded launches open in the main window.</summary>
     internal StudioSingleInstance? SingleInstance { get; init; }
 
@@ -30,7 +28,6 @@ public sealed partial class App : Application {
         StudioLocalization.Configure(Services.Localizer);
         AvaloniaXamlLoader.Load(this);
         InitializeNativeApplicationMenu();
-        ApplyLocationPolicy(Styles, StudioDistributionPolicy.RequiresPickedLocations);
         ApplyFlowDirection(Styles, Services.Localizer.Culture);
         ApplyDensity();
         RequestedThemeVariant = Services.Preferences.Current.Theme switch {
@@ -50,17 +47,6 @@ public sealed partial class App : Application {
             StudioThemePreference.HighContrast => StudioThemeVariants.HighContrast,
             _ => Avalonia.Styling.ThemeVariant.Default
         };
-    }
-
-    /// <summary>
-    /// Where user files are reachable only through a picker, location boxes (class <c>path</c>) show the chosen location
-    /// but cannot be typed into: a typed path would bypass the permission the picker grants.
-    /// </summary>
-    internal static void ApplyLocationPolicy(Styles styles, bool requiresPickedLocations) {
-        if (!requiresPickedLocations) return;
-        styles.Add(new Style(selector => selector!.OfType<Avalonia.Controls.TextBox>().Class("path")) {
-            Setters = { new Setter(Avalonia.Controls.TextBox.IsReadOnlyProperty, true) }
-        });
     }
 
     /// <summary>
@@ -99,9 +85,6 @@ public sealed partial class App : Application {
             desktop.MainWindow = window;
             AttachFileActivation(desktop, window);
             AttachForwardedLaunches(window);
-        } else if (ApplicationLifetime is ISingleViewApplicationLifetime singleView && SingleViewFactory is not null) {
-            AttachDiagnosticHandlers();
-            singleView.MainView = SingleViewFactory(this);
         }
 
         base.OnFrameworkInitializationCompleted();

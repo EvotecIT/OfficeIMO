@@ -293,7 +293,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PresentationFacade_TemporaryStorageIsOwnerOnlyOnUnix() {
             if (OperatingSystem.IsWindows()) return;
-            using FileStream temporary = PowerPointDocument
+            using FileStream temporary = PowerPointDocumentInput
                 .CreateTemporaryInputStream(useAsync: false);
             const UnixFileMode accessBits = UnixFileMode.UserRead
                 | UnixFileMode.UserWrite

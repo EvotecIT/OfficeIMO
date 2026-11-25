@@ -61,6 +61,8 @@ public sealed class HtmlRenderResourceRequest {
 /// </summary>
 public sealed class HtmlResolvedResource {
     private readonly byte[] _bytes;
+    private Lazy<string?>? _stylesheetText;
+    private Lazy<OfficeIMO.Drawing.OfficeImageInfo?>? _imageInfo;
 
     /// <summary>Creates a resolved resource snapshot.</summary>
     public HtmlResolvedResource(byte[] bytes, string contentType)
@@ -97,6 +99,17 @@ public sealed class HtmlResolvedResource {
 
     /// <summary>Resolved resource length in bytes.</summary>
     public long Length => _bytes.LongLength;
+
+    internal bool TryGetStylesheetText(out string css) {
+        string? value = LazyInitializer.EnsureInitialized(ref _stylesheetText,
+            () => new Lazy<string?>(() => HtmlRenderStylesheetText.TryDecode(_bytes, ContentType, out string decoded) ? decoded : null))!.Value;
+        css = value ?? string.Empty;
+        return value != null;
+    }
+
+    internal OfficeIMO.Drawing.OfficeImageInfo? GetImageInfo(string extension) =>
+        LazyInitializer.EnsureInitialized(ref _imageInfo, () => new Lazy<OfficeIMO.Drawing.OfficeImageInfo?>(() =>
+            OfficeIMO.Drawing.OfficeImageReader.TryIdentify(_bytes, extension, out var image) ? image : null))!.Value;
 
     /// <summary>Declared media type.</summary>
     public string ContentType { get; }

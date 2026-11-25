@@ -350,8 +350,53 @@ public abstract partial class AsyncPSCmdlet : PSCmdlet, IDisposable, IAsyncCmdle
     }
 
     private readonly CancellationTokenSource _cancelSource = new();
-    private readonly AsyncLocal<long> _hookGeneration = new();
-    private readonly AsyncLocal<PipelinePumpLease?> _pipelinePumpLease = new();
+    // Every cmdlet instance shares one async-local key. A new key per instance would add an entry to the
+    // pipeline thread's execution context for every invocation. Each frame names the cmdlet it belongs to,
+    // so nested cmdlets keep separate hook state, and restoring the previous chain removes the entry once
+    // the chain is empty.
+    private static readonly AsyncLocal<HookFrame?> HookFrames = new();
+
+    private sealed class HookFrame
+    {
+        internal HookFrame(AsyncPSCmdlet owner, long generation, PipelinePumpLease? pumpLease, HookFrame? previous)
+        {
+            Owner = owner;
+            Generation = generation;
+            PumpLease = pumpLease;
+            Previous = previous;
+        }
+
+        internal AsyncPSCmdlet Owner { get; }
+        internal long Generation { get; }
+        internal PipelinePumpLease? PumpLease { get; }
+        internal HookFrame? Previous { get; }
+    }
+
+    private HookFrame? CurrentHookFrame
+    {
+        get
+        {
+            for (var frame = HookFrames.Value; frame is not null; frame = frame.Previous)
+            {
+                if (ReferenceEquals(frame.Owner, this))
+                    return frame;
+            }
+
+            return null;
+        }
+    }
+
+    private long CurrentHookGeneration => CurrentHookFrame?.Generation ?? 0;
+
+    private PipelinePumpLease? CurrentPumpLease => CurrentHookFrame?.PumpLease;
+
+    private static HookFrame? CaptureHookFrames() => HookFrames.Value;
+
+    private static void RestoreHookFrames(HookFrame? frames) => HookFrames.Value = frames;
+
+    private void EnterHookFrame(long generation, PipelinePumpLease? pumpLease)
+        => HookFrames.Value = new HookFrame(this, generation, pumpLease, HookFrames.Value);
+
     private readonly int _constructionThreadId = Environment.CurrentManagedThreadId;
     private readonly object _hookAdmissionLock = new();
     private readonly object _lifecycleLock = new();
