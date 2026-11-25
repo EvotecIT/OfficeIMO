@@ -195,7 +195,21 @@ namespace OfficeIMO.PowerPoint {
             if (_pendingRelationships.TryGetValue(source, out List<(string Id, string Target)>? found)) return found;
             var edges = new List<(string Id, string Target)>();
             string relationshipsPart = OfficeOpcPartNames.GetRelationshipsPartName(source.Length == 0 ? null : source);
-            if (package.PartExists(relationshipsPart)) {
+            // Relationships nothing has changed are read as they are stored, without building a tree for each part.
+            if (package.TryReadUnparsed(relationshipsPart, out OfficeXmlPullReader reader, out OfficePooledBytes content)) {
+                using (content) {
+                    while (reader.Read()) {
+                        if (reader.NodeKind != OfficeXmlNodeKind.StartElement || reader.Depth != 2
+                            || !reader.IsElement(OfficeXmlNamespaces.PackageRelationships, "Relationship")) continue;
+                        if (reader.TryGetAttribute(OfficeXmlNamespaces.None, "TargetMode", out string mode)
+                            && string.Equals(mode, "External", StringComparison.OrdinalIgnoreCase)) continue;
+                        string? target = OfficeOpcPartNames.ResolveRelationshipTarget(relationshipsPart,
+                            reader.TryGetAttribute(OfficeXmlNamespaces.None, "Target", out string value) ? value : null);
+                        if (target == null || !package.PartExists(target)) continue;
+                        edges.Add((reader.TryGetAttribute(OfficeXmlNamespaces.None, "Id", out string id) ? id : string.Empty, PartIdentity(target)));
+                    }
+                }
+            } else if (package.PartExists(relationshipsPart)) {
                 OfficeXmlTree relationships = package.GetXml(relationshipsPart);
                 for (int node = relationships.FindChild(relationships.Root, OfficeXmlNamespaces.PackageRelationships, "Relationship"); node != OfficeXmlTree.NoNode;
                      node = relationships.FindNextSibling(node, OfficeXmlNamespaces.PackageRelationships, "Relationship")) {

@@ -134,6 +134,13 @@ namespace OfficeIMO.PowerPoint {
 
         private static bool IsPlainUnsignedPresentation(OfficeOpcPackage package, long maximumCharactersInPart, out int slideCount) {
             slideCount = 0;
+            // A signature part, even one nothing refers to, is reported by the signature check; such a package opens
+            // the SDK at load, so a deferred package has none.
+            if (package.DeclaresContentType("application/vnd.openxmlformats-package.digital-signature-xmlsignature+xml")
+                || package.DeclaresContentType("application/vnd.openxmlformats-package.digital-signature-origin")) {
+                return false;
+            }
+            slideCount = 0;
             foreach (OfficeOpcRelationship relationship in package.GetRelationships(null)) {
                 if (string.Equals(relationship.Type, DigitalSignatureOriginRelationshipType, StringComparison.Ordinal)) return false;
             }

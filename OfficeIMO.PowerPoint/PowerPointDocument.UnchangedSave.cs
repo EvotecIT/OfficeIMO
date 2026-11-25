@@ -41,7 +41,7 @@ namespace OfficeIMO.PowerPoint {
             OfficeOpcEditablePackage? pending = _pendingPackage;
             packageStream.Position = 0;
             OfficeOpcEditablePackage editable = pending ?? OfficeOpcEditablePackage.Open(packageStream, leaveOpen: true);
-            MemoryStream? saved = null;
+            bool kept = false;
             try {
                 OfficeXmlTree application = editable.GetXml(values.ApplicationPart);
                 OfficeXmlTree core = editable.GetXml(values.CorePart);
@@ -58,22 +58,27 @@ namespace OfficeIMO.PowerPoint {
                 SetChildText(application, "PresentationFormat", values.PresentationFormat);
                 core.SetInnerText(modified, FormatPackageDate(DateTime.UtcNow));
 
-                // The saved package is about the size of the loaded one, so the buffer starts there instead of doubling.
-                saved = new MemoryStream(checked((int)Math.Min(int.MaxValue / 2, packageStream.Length + 4096)));
-                editable.Save(saved);
-                bytes = saved.ToArray();
-            } catch {
-                saved?.Dispose();
-                throw;
+                // The package is written into pooled chunks where the runtime has them, so the array the caller owns is
+                // the only copy.
+#if NET8_0_OR_GREATER
+                using (var saved = new OfficeIMO.Core.Internal.OfficePooledWriteStream()) {
+#else
+                using (var saved = new MemoryStream(checked((int)Math.Min(int.MaxValue / 2, packageStream.Length + 4096)))) {
+#endif
+                    editable.Save(saved);
+                    bytes = saved.ToArray();
+                }
+                // The document now holds what it saved, as a save through the SDK leaves it: it keeps the package it
+                // wrote, with the refreshed properties, and writes it out again only for whatever reads its bytes next.
+                if (pending == null) {
+                    _pendingPackage = editable;
+                    _pendingSource = packageStream;
+                }
+                kept = true;
+                _pendingEdits = true;
             } finally {
-                if (pending == null) editable.Dispose();
+                if (!kept && pending == null) editable.Dispose();
             }
-            // The document now holds what it saved, as a save through the SDK leaves it: an SDK opened later reads the
-            // refreshed properties. The caller owns the returned array; the document keeps the buffer it saved into. A
-            // pending package stays open with its edits written, so slides and shapes read from it keep working.
-            _pendingEdits = false;
-            saved!.Position = 0;
-            ReplacePackageStream(saved);
             return true;
         }
 
@@ -161,11 +166,19 @@ namespace OfficeIMO.PowerPoint {
             }
 
             int hidden = 0;
+            // The presentation's relationships from the pending package, by id, read once rather than per slide.
+            Dictionary<string, string?>? pendingTargets = null;
+            if (presentationTree != null) {
+                pendingTargets = new Dictionary<string, string?>(StringComparer.Ordinal);
+                foreach ((string id, string type, string? target, bool external) in MainRelationshipsById(parsed!, main)) {
+                    if (!pendingTargets.ContainsKey(id)) pendingTargets.Add(id, external ? null : target);
+                }
+            }
             foreach (string id in slideIds) {
                 string? slide;
-                if (presentationTree != null) {
-                    slide = parsed!.GetRelationshipTarget(main, id);
-                    if (slide == null || !parsed.PartExists(slide)) return false;
+                if (pendingTargets != null) {
+                    slide = pendingTargets.TryGetValue(id, out string? target) ? target : null;
+                    if (slide == null || !parsed!.PartExists(slide)) return false;
                 } else {
                     OfficeOpcRelationship? relationship = package.FindRelationship(main, id);
                     slide = relationship?.TargetPartName;
@@ -250,6 +263,20 @@ namespace OfficeIMO.PowerPoint {
                 }
             }
             return true;
+        }
+
+        // The pending package's relationships of the presentation part, with their ids.
+        private static IEnumerable<(string Id, string Type, string? Target, bool External)> MainRelationshipsById(OfficeOpcEditablePackage parsed, string main) {
+            string relationshipsPart = OfficeOpcPartNames.GetRelationshipsPartName(main);
+            if (!parsed.PartExists(relationshipsPart)) yield break;
+            OfficeXmlTree relationships = parsed.GetXml(relationshipsPart);
+            for (int node = relationships.FindChild(relationships.Root, OfficeXmlNamespaces.PackageRelationships, "Relationship"); node != OfficeXmlTree.NoNode;
+                 node = relationships.FindNextSibling(node, OfficeXmlNamespaces.PackageRelationships, "Relationship")) {
+                string? id = relationships.GetAttribute(node, OfficeXmlNamespaces.None, "Id");
+                if (id == null) continue;
+                bool external = string.Equals(relationships.GetAttribute(node, OfficeXmlNamespaces.None, "TargetMode"), "External", StringComparison.OrdinalIgnoreCase);
+                yield return (id, string.Empty, external ? null : OfficeOpcPartNames.ResolveRelationshipTarget(relationshipsPart, relationships.GetAttribute(node, OfficeXmlNamespaces.None, "Target")), external);
+            }
         }
 
         // The presentation part's relationships: from the pending package when its slide list is read there.

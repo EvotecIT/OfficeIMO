@@ -83,6 +83,19 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
     /// <summary>The part's tree when it has already been parsed or created, without parsing it; otherwise null.</summary>
     internal OfficeXmlTree? GetParsedXml(string partName) => Find(partName)?.Tree;
 
+    /// <summary>
+    /// A pull reader over a part the package has not parsed, edited or replaced, reading its stored bytes without building
+    /// a tree; false for any other part, which <see cref="GetXml"/> reads. The caller disposes <paramref name="content"/>.
+    /// </summary>
+    internal bool TryReadUnparsed(string partName, out OfficeXmlPullReader reader, out OfficePooledBytes content) {
+        reader = default!;
+        content = default;
+        Part? part = Find(partName);
+        if (part == null || part.Tree != null || part.Content != null || !part.FromSource || !_zip!.TryRead(part.Member, out content)) return false;
+        reader = new OfficeXmlPullReader(content.Array, content.Length, Namespaces);
+        return true;
+    }
+
     internal OfficeXmlTree GetXml(string partName) {
         Part part = Find(partName) ?? throw new InvalidDataException("The package has no part '" + partName + "'.");
         if (part.Tree != null) return part.Tree;

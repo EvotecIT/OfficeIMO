@@ -116,6 +116,9 @@ namespace OfficeIMO.PowerPoint {
         private PowerPointSignatureReport CreateSignatureReport(OfficeSignatureMutationPolicy policy,
             PowerPointSignatureMutationAction action) {
             OfficePackageSignatureInfo? shared = null;
+            // A package works without the SDK only when it was loaded or created unsigned, and nothing edited without the
+            // SDK adds a signature, so there is nothing to inspect.
+            if (_legacyPptPackage == null && _sdkDocument == null && _sdkDeferred) return CreateSignatureReport(shared, policy, action);
             // A binary presentation is projected into a temporary Open XML package. Cloning that
             // projection can materialize deferred DOM state and invalidate the exact-no-op
             // preservation fingerprint, so its original binary signature carriers are inspected
