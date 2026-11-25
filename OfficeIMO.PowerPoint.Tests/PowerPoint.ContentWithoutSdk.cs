@@ -111,6 +111,14 @@ public class PowerPointContentWithoutSdkTests {
             run.Text = "Run text";
             return before + "=>" + run.Text + ":" + run.Bold + ":" + run.Italic + ":" + run.FontSize?.ToPoints();
         }),
+        ("read and change the slide size", presentation => {
+            PowerPointSlideSize size = presentation.SlideSize;
+            string before = size.Width.ToEmus() + "x" + size.Height.ToEmus() + ":" + size.Type;
+            size.SetPreset(PowerPointSlideSizePreset.Screen4x3);
+            string preset = size.Width.ToEmus() + "x" + size.Height.ToEmus() + ":" + size.Type;
+            size.SetSize(OfficeLength.Inches(11), OfficeLength.Inches(8.5));
+            return before + "|" + preset + "|" + size.Width.ToEmus() + "x" + size.Height.ToEmus() + ":" + size.Type;
+        }),
         ("replace the first text box's text", presentation => {
             PowerPointTextBox? box = presentation.Slides.SelectMany(slide => slide.TextBoxes).FirstOrDefault(candidate => candidate.Text.Length > 0);
             if (box == null) return string.Empty;

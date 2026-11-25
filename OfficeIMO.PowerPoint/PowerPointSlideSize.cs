@@ -56,13 +56,21 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Slide width.</summary>
         public OfficeLength Width {
             get => OfficeLength.Emus(TryReadPackage(out int width, out _, out _) ? width : EnsureSlideSize().Cx?.Value ?? 0);
-            set => EnsureSlideSize().Cx = EnsureEmuFitsInt(value.ToEmus(), nameof(Width));
+            set {
+                int width = EnsureEmuFitsInt(value.ToEmus(), nameof(Width));
+                if (_document?.TrySetPackageSlideSize("cx", width.ToString(System.Globalization.CultureInfo.InvariantCulture)) == true) return;
+                EnsureSlideSize().Cx = width;
+            }
         }
 
         /// <summary>Slide height.</summary>
         public OfficeLength Height {
             get => OfficeLength.Emus(TryReadPackage(out _, out int height, out _) ? height : EnsureSlideSize().Cy?.Value ?? 0);
-            set => EnsureSlideSize().Cy = EnsureEmuFitsInt(value.ToEmus(), nameof(Height));
+            set {
+                int height = EnsureEmuFitsInt(value.ToEmus(), nameof(Height));
+                if (_document?.TrySetPackageSlideSize("cy", height.ToString(System.Globalization.CultureInfo.InvariantCulture)) == true) return;
+                EnsureSlideSize().Cy = height;
+            }
         }
 
         /// <summary>Gets the slide width divided by its height.</summary>
@@ -75,7 +83,10 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Slide size preset type.</summary>
         public PowerPointSlideSizeType? Type {
             get => TryReadPackage(out _, out _, out PowerPointSlideSizeType? type) ? type : EnsureSlideSize().Type?.Value.ToOfficeEnum();
-            set => EnsureSlideSize().Type = value?.ToOpenXml();
+            set {
+                if (_document?.TrySetPackageSlideSize("type", value.HasValue ? ((DocumentFormat.OpenXml.IEnumValue)value.Value.ToOpenXml()).Value : null) == true) return;
+                EnsureSlideSize().Type = value?.ToOpenXml();
+            }
         }
 
         /// <summary>Sets a slide size preset.</summary>

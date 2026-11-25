@@ -254,6 +254,26 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
+        /// <summary>
+        /// Sets or removes an attribute of the presentation's p:sldSz in the package; false when the presentation has none
+        /// there, and the model adds one through the SDK.
+        /// </summary>
+        internal bool TrySetPackageSlideSize(string attribute, string? value) {
+            if (GetPackage(edit: true) is not { } package) return false;
+            try {
+                if (PackageSlideList.Read(package) is not { } slides) return false;
+                OfficeXmlTree presentation = slides.Presentation;
+                int size = presentation.FindChild(presentation.Root, OfficeXmlNamespaces.PresentationML, "sldSz");
+                if (size == OfficeXmlTree.NoNode) return false;
+                if (value == null) presentation.RemoveAttribute(size, OfficeXmlNamespaces.None, attribute);
+                else presentation.SetAttribute(size, OfficeXmlNamespaces.None, attribute, value);
+                _pendingEdits = true;
+                return true;
+            } catch (Exception exception) when (exception is System.Xml.XmlException or InvalidDataException) {
+                return false;
+            }
+        }
+
         /// <summary>The slides in order, read from the package, or null when the SDK has to read them.</summary>
         private List<PowerPointSlide>? GetPackageSlides() {
             if (_packageSlideOrder != null && _sdkDocument == null) return _packageSlideOrder;
