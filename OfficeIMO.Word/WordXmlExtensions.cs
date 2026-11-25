@@ -27,6 +27,8 @@ namespace OfficeIMO.Word {
             var paragraph = new Paragraph(xml);
             var wordParagraph = new WordParagraph(document, paragraph);
             document.AddParagraph(wordParagraph);
+            // The imported markup can carry bookmark, comment and drawing identifiers.
+            document.InvalidateIdentifierState();
             return wordParagraph;
         }
     }

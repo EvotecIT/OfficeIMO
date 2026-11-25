@@ -516,7 +516,8 @@ internal static partial class OneNoteSemanticMapper {
             Jcid = item.Jcid.Value,
             Ordinal = ordinal
         };
-        if (item.RawPropertyData != null) result.SetRawData(item.RawPropertyData.ToArray(int.MaxValue));
+        byte[]? rawPropertyData = item.CopyRawPropertyBytes();
+        if (rawPropertyData != null) result.SetOwnedRawData(rawPropertyData);
         if (item.PropertySet != null) {
             foreach (OneNotePropertyValue property in item.PropertySet.Properties) {
                 var opaque = new OneNoteOpaqueProperty {
@@ -526,7 +527,11 @@ internal static partial class OneNoteSemanticMapper {
                     BooleanValue = property.BooleanValue,
                     ScalarValue = property.ScalarValue
                 };
-                if (property.Data != null) opaque.SetRawData(property.Data.ToArray(int.MaxValue));
+                if (property.TryGetDataBytes(out byte[] data, out int offset, out int count)) {
+                    var copy = new byte[count];
+                    Buffer.BlockCopy(data, offset, copy, 0, count);
+                    opaque.SetOwnedRawData(copy);
+                }
                 foreach (OneNoteExtendedGuid reference in property.ReferencedIds) opaque.ReferencedIds.Add(reference);
                 result.Properties.Add(opaque);
             }
@@ -637,9 +642,9 @@ internal static partial class OneNoteSemanticMapper {
     }
 
     internal static string? ReadString(OneNoteRevisionStoreObject? item, uint propertyId) {
-        byte[]? data = ReadData(item, propertyId);
-        if (data == null || data.Length == 0) return null;
-        string value = System.Text.Encoding.Unicode.GetString(data, 0, data.Length - data.Length % 2);
+        OneNotePropertyValue? property = FindProperty(item?.PropertySet, propertyId);
+        if (property == null || !property.TryGetDataBytes(out byte[] data, out int offset, out int count) || count == 0) return null;
+        string value = System.Text.Encoding.Unicode.GetString(data, offset, count - count % 2);
         return value.TrimEnd('\0');
     }
 
@@ -652,8 +657,11 @@ internal static partial class OneNoteSemanticMapper {
     }
 
     internal static byte[]? ReadData(OneNoteRevisionStoreObject? item, uint propertyId) {
-        OneNoteBinaryPayload? payload = FindProperty(item?.PropertySet, propertyId)?.Data;
-        return payload?.ToArray(int.MaxValue);
+        OneNotePropertyValue? property = FindProperty(item?.PropertySet, propertyId);
+        if (property == null || !property.TryGetDataBytes(out byte[] data, out int offset, out int count)) return null;
+        var copy = new byte[count];
+        Buffer.BlockCopy(data, offset, copy, 0, count);
+        return copy;
     }
 
     internal static bool? ReadBoolean(OneNoteRevisionStoreObject? item, uint propertyId) {
@@ -671,8 +679,9 @@ internal static partial class OneNoteSemanticMapper {
     }
 
     private static double? ReadFloat(OneNoteRevisionStoreObject? item, uint propertyId) {
-        byte[]? data = ReadData(item, propertyId);
-        return data != null && data.Length == 4 ? BitConverter.ToSingle(data, 0) : (double?)null;
+        OneNotePropertyValue? property = FindProperty(item?.PropertySet, propertyId);
+        if (property == null || !property.TryGetDataBytes(out byte[] data, out int offset, out int count)) return null;
+        return count == 4 ? BitConverter.ToSingle(data, offset) : (double?)null;
     }
 
     private static IReadOnlyList<uint> ReadUInt32Array(OneNoteRevisionStoreObject? item, uint propertyId) {
@@ -691,7 +700,13 @@ internal static partial class OneNoteSemanticMapper {
 
     internal static OneNotePropertyValue? FindProperty(OneNotePropertySet? set, uint propertyId) {
         uint normalized = propertyId & 0x7FFFFFFFU;
-        return set?.Properties.LastOrDefault(property => (property.RawPropertyId & 0x7FFFFFFFU) == normalized);
+        if (set == null) return null;
+        IReadOnlyList<OneNotePropertyValue> properties = set.Properties;
+        for (int index = properties.Count - 1; index >= 0; index--) {
+            OneNotePropertyValue property = properties[index];
+            if ((property.RawPropertyId & 0x7FFFFFFFU) == normalized) return property;
+        }
+        return null;
     }
 
     private static DateTime? ReadTime32(OneNoteRevisionStoreObject? item, uint propertyId) {

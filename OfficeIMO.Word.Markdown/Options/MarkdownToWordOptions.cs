@@ -40,7 +40,6 @@ namespace OfficeIMO.Word.Markdown {
         internal string? SourceDirectory { get; set; }
         /// <summary>Heading slug to Word bookmark name map for the conversion in progress.</summary>
         internal System.Collections.Generic.Dictionary<string, string>? HeadingBookmarks { get; set; }
-        internal int? NextBookmarkId { get; set; }
 
         private OfficeIMO.Markdown.MarkdownVisualTheme? _theme;
 
