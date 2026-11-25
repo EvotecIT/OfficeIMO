@@ -1,10 +1,10 @@
 {
-  "app.eyebrow": "Documentos PDF e Office",
-  "dashboard.headline": "Leia PDFs\nem todos os dispositivos",
-  "search.headline": "Encontre cada\nocorrência",
-  "markup.headline": "Marque páginas\ncom notas e formas",
-  "form.headline": "Preencha\nformulários PDF",
-  "office.headline": "Veja arquivos Word,\nExcel e PowerPoint",
-  "inspector.headline": "Detalhes do documento\nem um só lugar",
-  "pages.headline": "Reorganize\nsuas páginas"
+  "app.eyebrow": "PDFs e arquivos do Office",
+  "dashboard.headline": "Abra e leia\narquivos PDF",
+  "search.headline": "Pesquise texto\nno documento",
+  "markup.headline": "Adicione notas\ne formas ao PDF",
+  "form.headline": "Preencha\nformulários em PDF",
+  "office.headline": "Abra arquivos do Word,\nExcel e PowerPoint",
+  "inspector.headline": "Consulte os detalhes\ndo documento",
+  "pages.headline": "Mude a ordem\ndas páginas"
 }

@@ -1,10 +1,10 @@
 {
   "app.eyebrow": "Dokumenty PDF i Office",
-  "dashboard.headline": "Czytaj pliki PDF\nna każdym urządzeniu",
-  "search.headline": "Znajdź każde\nwystąpienie",
+  "dashboard.headline": "Otwieraj i czytaj\npliki PDF",
+  "search.headline": "Szukaj tekstu\nw dokumencie",
   "markup.headline": "Dodawaj notatki\ni kształty",
   "form.headline": "Wypełniaj\nformularze PDF",
-  "office.headline": "Przeglądaj pliki Word,\nExcel i PowerPoint",
-  "inspector.headline": "Szczegóły dokumentu\nw jednym miejscu",
-  "pages.headline": "Porządkuj\nstrony"
+  "office.headline": "Otwieraj pliki Worda,\nExcela i PowerPointa",
+  "inspector.headline": "Sprawdź szczegóły\ndokumentu",
+  "pages.headline": "Zmieniaj\nkolejność stron"
 }

@@ -34,7 +34,7 @@ end
 
 def text_field(metadata, field, maximum, path, bytes: false)
   value = metadata.fetch(field)
-  abort("#{path}: #{field} must be non-empty text") unless value.is_a?(String) && !value.strip.empty?
+  abort("#{path}: #{field} must be non-empty text") unless value.is_a?(String) && value.strip.match?(/[^[:space:]]/)
   size = bytes ? value.bytesize : value.length
   abort("#{path}: #{field} exceeds #{maximum} #{bytes ? 'bytes' : 'characters'} (#{size})") if size > maximum
   value
@@ -71,9 +71,13 @@ LOCALES.each do |locale|
     %w[Word Excel PowerPoint https://github.com/EvotecIT/OfficeIMO].each do |required|
       abort("#{path}: description must mention #{required}") unless description.include?(required)
     end
+    text_field(metadata, 'promotionalText', 170, path) if metadata.key?('promotionalText')
     keywords = text_field(metadata, 'keywords', 100, path, bytes: true)
-    terms = keywords.split(',').map(&:strip)
-    abort("#{path}: keywords contain empty or repeated terms") if terms.any?(&:empty?) || terms.map(&:downcase).uniq.length != terms.length
+    terms = keywords.split(',', -1)
+    if terms.any? { |term| term.length < 3 || term.match?(/\A[[:space:]]|[[:space:]]\z/) }
+      abort("#{path}: keywords must be at least three characters and separated by commas without surrounding spaces")
+    end
+    abort("#{path}: keywords contain repeated terms") if terms.map(&:downcase).uniq.length != terms.length
     url_field(metadata, 'marketingUrl', MARKETING_URL, path)
     url_field(metadata, 'supportUrl', SUPPORT_URL, path)
   end

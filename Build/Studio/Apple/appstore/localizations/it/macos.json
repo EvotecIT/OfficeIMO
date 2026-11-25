@@ -4,8 +4,9 @@
   "platform": "macOS",
   "locale": "it",
   "metadata": {
-    "description": "Leggi e lavora con i PDF in OfficeIMO Studio. Apri i documenti nelle finestre di documento di sistema sul tuo Mac.\n\nCerca e seleziona il testo, aggiungi note e annotazioni, compila i campi dei moduli supportati, organizza le pagine e salva o condividi il tuo lavoro. Converti in PDF i documenti supportati, rendi ricercabili le scansioni con il riconoscimento del testo sul dispositivo e prepara copie protette da password o con contenuti oscurati.\n\nApri i file Word, Excel e PowerPoint in sola lettura, senza Microsoft Office. Salva una copia PDF quando vuoi continuare a lavorarci.\n\nL’elaborazione dei documenti avviene sul tuo dispositivo. OfficeIMO Studio è gratuito e open source con licenza MIT. Il codice sorgente e il supporto della community sono disponibili su https://github.com/EvotecIT/OfficeIMO.",
-    "keywords": "pdf,lettore,documenti,annotazioni,moduli,scansione,converti,open source,word,excel,powerpoint",
+    "description": "Leggi e annota i PDF sul Mac. Apri i documenti dal Finder e lavora in più finestre.\n\nCerca e seleziona il testo, aggiungi note e forme, compila i campi dei moduli compatibili e riordina le pagine. Salva le modifiche o condividi il documento.\n\nConverti in PDF i file compatibili e cerca parole nelle scansioni grazie al riconoscimento del testo (OCR). Puoi anche salvare una copia protetta da password oppure oscurare i dati riservati prima di condividere il documento.\n\nApri i file Word, Excel e PowerPoint in sola lettura, senza installare Microsoft Office. Per continuare a lavorarci, salvali come PDF.\n\nOfficeIMO Studio elabora i documenti sul tuo dispositivo. È un’app gratuita e open source con licenza MIT. Trovi il codice sorgente e il supporto della community su https://github.com/EvotecIT/OfficeIMO",
+    "keywords": "visualizzatore,modulo,estrarre testo,ocr,convertitore,evidenziare,password,unire,docx,xlsx,pptx",
+    "promotionalText": "Annota i PDF, compila moduli e riordina le pagine sul Mac. Converti in PDF i file compatibili e cerca il testo nelle scansioni con l’OCR.",
     "marketingUrl": "https://officeimo.com/studio/",
     "supportUrl": "https://github.com/EvotecIT/OfficeIMO/issues"
   },
