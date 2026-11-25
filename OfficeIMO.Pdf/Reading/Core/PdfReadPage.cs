@@ -1136,9 +1136,9 @@ public sealed partial class PdfReadPage {
             colorSpaceBudget);
         Dictionary<string, PdfPageGraphicsStateResource> graphicsStates =
             GetGraphicsStateResources(resources, pageContentBudget, decoders, widthProviders, fonts);
-        // A missing Do token rules out forms. Otherwise the form-invocation state machine shares
-        // the text pass's tokenizer instead of scanning the content a second time.
-        TextContentParser.FormInvocationCollector? formInvocations = content.IndexOf("Do") < 0
+        // A missing Do token or no form XObject among the resources rules out forms. Otherwise the
+        // form-invocation state machine shares the text pass's tokenizer instead of scanning the content a second time.
+        TextContentParser.FormInvocationCollector? formInvocations = content.IndexOf("Do") < 0 || !HasFormXObject(resources)
             ? null
             : TextContentParser.CreateFormInvocationCollector(
                 includeHiddenOptionalContent ? null : optionalContentVisibility,
@@ -1621,6 +1621,17 @@ public sealed partial class PdfReadPage {
         if (!HasSufficientExecutionStack()) {
             throw PdfReadLimitException.CallStackExhausted(_limits.MaxContentNestingDepth, contentNestingDepth);
         }
+    }
+
+    // Pages often name only image XObjects; their Do operators never invoke content to interpret.
+    private bool HasFormXObject(PdfDictionary? resources) {
+        if (resources is null || !resources.Items.TryGetValue("XObject", out var xoObj)) return false;
+        var xoDict = ResolveDictionary(xoObj);
+        if (xoDict is null) return false;
+        foreach (string name in xoDict.Items.Keys) {
+            if (TryGetFormStream(resources, name, out _, out _)) return true;
+        }
+        return false;
     }
 
     private bool TryGetFormStream(PdfDictionary? resources, string name, out PdfStream formStream) {

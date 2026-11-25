@@ -21,16 +21,12 @@ internal static class PdfContentStreamInterpreter {
         Func<bool>? stopRequested = null) {
         content.ThrowIfNull(nameof(content));
         Guard.NotNull(visit, nameof(visit));
-        Func<PdfContentOperation, bool> visitAll = operation => {
-            visit(operation);
-            return stopRequested == null || !stopRequested();
-        };
         if (content.Bytes is byte[] bytes) {
             new Reader<PdfByteArrayContentText>(new PdfByteArrayContentText(bytes), maxOperations, maxOperands, maxNestingDepth, maxGraphicsStateDepth, inlineImageComponentCount, inlineImageArrayComponentCount, dispatchInvalidOperations, operandBuffer)
-                .InterpretUntil(visitAll);
+                .InterpretAll(visit, stopRequested);
         } else {
             new Reader<PdfStringContentText>(new PdfStringContentText(content.Text!), maxOperations, maxOperands, maxNestingDepth, maxGraphicsStateDepth, inlineImageComponentCount, inlineImageArrayComponentCount, dispatchInvalidOperations, operandBuffer)
-                .InterpretUntil(visitAll);
+                .InterpretAll(visit, stopRequested);
         }
     }
 
@@ -152,13 +148,28 @@ internal static class PdfContentStreamInterpreter {
         internal bool InterpretUntil(Func<PdfContentOperation, bool> visit) {
             int inheritedGraphicsStateDepth = t_activeGraphicsStateDepth;
             try {
-                return InterpretOperations(visit, inheritedGraphicsStateDepth);
+                return InterpretOperations(visit, null, null, inheritedGraphicsStateDepth);
             } finally {
                 t_activeGraphicsStateDepth = inheritedGraphicsStateDepth;
             }
         }
 
-        private bool InterpretOperations(Func<PdfContentOperation, bool> visit, int inheritedGraphicsStateDepth) {
+        // Visits every operation until the content ends or the optional stop check asks to stop, calling the
+        // visitor directly rather than through a wrapping predicate.
+        internal void InterpretAll(Action<PdfContentOperation> visit, Func<bool>? stopRequested) {
+            int inheritedGraphicsStateDepth = t_activeGraphicsStateDepth;
+            try {
+                InterpretOperations(null, visit, stopRequested, inheritedGraphicsStateDepth);
+            } finally {
+                t_activeGraphicsStateDepth = inheritedGraphicsStateDepth;
+            }
+        }
+
+        private bool InterpretOperations(
+            Func<PdfContentOperation, bool>? visitUntil,
+            Action<PdfContentOperation>? visitAll,
+            Func<bool>? stopRequested,
+            int inheritedGraphicsStateDepth) {
             while (_index < _content.Length) {
                 SkipWhitespaceAndComments();
                 if (_index >= _content.Length) {
@@ -228,7 +239,12 @@ internal static class PdfContentStreamInterpreter {
 
                 bool keepReading;
                 try {
-                    keepReading = visit(operation);
+                    if (visitAll != null) {
+                        visitAll(operation);
+                        keepReading = stopRequested == null || !stopRequested();
+                    } else {
+                        keepReading = visitUntil!(operation);
+                    }
                 } finally {
                     if (_borrowOperands) ClearOperands();
                 }
@@ -246,12 +262,17 @@ internal static class PdfContentStreamInterpreter {
                 }
                 ClearOperands();
                 _hasInvalidOperand = false;
-                return visit(new PdfContentOperation(
+                var trailingOperation = new PdfContentOperation(
                     string.Empty,
                     Array.Empty<object>(),
                     _content.Length,
                     null,
-                    hasInvalidOperands: true));
+                    hasInvalidOperands: true);
+                if (visitAll != null) {
+                    visitAll(trailingOperation);
+                    return stopRequested == null || !stopRequested();
+                }
+                return visitUntil!(trailingOperation);
             }
 
             return true;
@@ -386,24 +407,62 @@ internal static class PdfContentStreamInterpreter {
         }
 
 
+        // Scans the number token and, in the same pass, accumulates a plain decimal such as "12", "-0.5" or
+        // "612.000" with at most 15 significant digits and 22 fractional digits. Both the digits and the power of
+        // ten are exact doubles, so one IEEE division yields the correctly rounded value that double.TryParse
+        // returns on this runtime. Any other token text is parsed by the general number parser.
         private double? ReadNumber() {
-            int start = _index++;
-            while (_index < _content.Length) {
-                char current = _content[_index];
-                if (!(char.IsDigit(current) ||
-                      current == '.' ||
-                      current == '-' ||
-                      current == '+' ||
-                      current == 'e' ||
-                      current == 'E')) {
+            int start = _index;
+            int end = _content.Length;
+            int index = start;
+            bool negative = false;
+            bool simple = true;
+            bool seenPoint = false;
+            bool seenDigit = false;
+            long mantissa = 0;
+            int digits = 0;
+            int fractionDigits = 0;
+            for (; index < end; index++) {
+                char current = _content[index];
+                uint digit = (uint)(current - '0');
+                if (digit <= 9) {
+                    seenDigit = true;
+                    if (mantissa == 0 && digit == 0) {
+                        if (seenPoint) fractionDigits++;
+                        continue;
+                    }
+                    if (++digits > 15) {
+                        simple = false;
+                    } else {
+                        mantissa = (mantissa * 10) + digit;
+                    }
+                    if (seenPoint) fractionDigits++;
+                } else if (current == '.') {
+                    if (seenPoint) simple = false;
+                    seenPoint = true;
+                } else if (current == '-' || current == '+') {
+                    if (index == start) {
+                        negative = current == '-';
+                    } else {
+                        simple = false;
+                    }
+                } else if (current == 'e' || current == 'E' || char.IsDigit(current) || index == start) {
+                    // The first character always belongs to the token: the caller checked that it starts a number.
+                    simple = false;
+                } else {
                     break;
                 }
-
-                _index++;
             }
+            _index = index;
 
 #if NET8_0_OR_GREATER
-            if (TryParseSimpleDecimal(start, _index - start, out double simple)) return simple;
+            if (simple && seenDigit && fractionDigits <= 22) {
+                double magnitude = fractionDigits == 0 ? mantissa : mantissa / ExactPowersOfTen[fractionDigits];
+                return negative ? -magnitude : magnitude;
+            }
+#else
+            // Older runtimes parse every number with the general parser.
+            _ = simple && seenDigit && negative && fractionDigits >= 0;
 #endif
             bool parsed = _content.TryParseDouble(start, _index - start, out double value);
             return parsed && !double.IsNaN(value) && !double.IsInfinity(value)
@@ -412,46 +471,6 @@ internal static class PdfContentStreamInterpreter {
         }
 
 #if NET8_0_OR_GREATER
-        // Plain decimals such as "12", "-0.5" or "612.000" with at most 15 significant digits and
-        // 22 fractional digits. Both the digits and the power of ten are exact doubles, so one IEEE
-        // division yields the correctly rounded value that double.TryParse returns on this runtime.
-        private bool TryParseSimpleDecimal(int start, int length, out double value) {
-            value = 0D;
-            int index = start;
-            int end = start + length;
-            bool negative = false;
-            if (index < end && (_content[index] == '-' || _content[index] == '+')) {
-                negative = _content[index] == '-';
-                index++;
-            }
-            long mantissa = 0;
-            int digits = 0;
-            int fractionDigits = 0;
-            bool seenPoint = false;
-            bool seenDigit = false;
-            for (; index < end; index++) {
-                char character = _content[index];
-                if (character >= '0' && character <= '9') {
-                    seenDigit = true;
-                    if (mantissa == 0 && character == '0') {
-                        if (seenPoint) fractionDigits++;
-                        continue;
-                    }
-                    if (++digits > 15) return false;
-                    mantissa = (mantissa * 10) + (character - '0');
-                    if (seenPoint) fractionDigits++;
-                } else if (character == '.' && !seenPoint) {
-                    seenPoint = true;
-                } else {
-                    return false;
-                }
-            }
-            if (!seenDigit || fractionDigits > 22) return false;
-            double magnitude = fractionDigits == 0 ? mantissa : mantissa / ExactPowersOfTen[fractionDigits];
-            value = negative ? -magnitude : magnitude;
-            return true;
-        }
-
         private static readonly double[] ExactPowersOfTen = {
             1e0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10, 1e11,
             1e12, 1e13, 1e14, 1e15, 1e16, 1e17, 1e18, 1e19, 1e20, 1e21, 1e22
