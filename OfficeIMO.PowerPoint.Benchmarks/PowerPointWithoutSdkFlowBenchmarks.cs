@@ -99,6 +99,54 @@ public class PowerPointWithoutSdkFlowBenchmarks {
         if (throughSdk != withoutSdk) throw new InvalidOperationException("The saved slides differ.");
     }
 
+    /// <summary>
+    /// Runs each flow with and without the SDK in alternation, so both see the same machine load, and prints the median
+    /// time and allocation of each with their ratios. <paramref name="rounds"/> pairs follow 20 warm-up pairs; each run
+    /// starts after a full collection, so neither pays for the other's garbage.
+    /// </summary>
+    public static int RunInterleaved(int rounds) {
+        var benchmark = new PowerPointWithoutSdkFlowBenchmarks { Slides = 200 };
+        benchmark.Setup();
+        var flows = new (string Name, Func<object> WithSdk, Func<object> WithoutSdk)[] {
+            ("Add", benchmark.AddWithSdk, benchmark.AddWithoutSdk),
+            ("Edit", benchmark.EditWithSdk, benchmark.EditWithoutSdk),
+            ("Extract", () => benchmark.ExtractWithSdk(), () => benchmark.ExtractWithoutSdk())
+        };
+        Console.WriteLine("Flow     | SDK median | without | faster | SDK alloc | without | less allocation");
+        foreach ((string name, Func<object> withSdk, Func<object> withoutSdk) in flows) {
+            var sdkTimes = new List<double>(); var ownTimes = new List<double>();
+            var sdkBytes = new List<long>(); var ownBytes = new List<long>();
+            for (int round = -20; round < rounds; round++) {
+                // Alternate which side goes first, so neither always runs on a warmer cache.
+                bool sdkFirst = (round & 1) == 0;
+                for (int side = 0; side < 2; side++) {
+                    bool sdk = side == 0 ? sdkFirst : !sdkFirst;
+                    // Collections the other side's garbage would trigger are paid here, outside the timing.
+                    GC.Collect();
+                    GC.WaitForPendingFinalizers();
+                    GC.Collect();
+                    long allocated = GC.GetAllocatedBytesForCurrentThread();
+                    long started = System.Diagnostics.Stopwatch.GetTimestamp();
+                    _ = sdk ? withSdk() : withoutSdk();
+                    double elapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - started) * 1000D / System.Diagnostics.Stopwatch.Frequency;
+                    long bytes = GC.GetAllocatedBytesForCurrentThread() - allocated;
+                    if (round < 0) continue;
+                    (sdk ? sdkTimes : ownTimes).Add(elapsed);
+                    (sdk ? sdkBytes : ownBytes).Add(bytes);
+                }
+            }
+            double sdkTime = Median(sdkTimes), ownTime = Median(ownTimes);
+            double sdkAlloc = Median(sdkBytes.Select(value => (double)value).ToList()), ownAlloc = Median(ownBytes.Select(value => (double)value).ToList());
+            Console.WriteLine(FormattableString.Invariant($"{name,-8} | {sdkTime,7:F2} ms | {ownTime,5:F2} ms | {sdkTime / ownTime,5:F2}x | {sdkAlloc / 1048576D,6:F2} MB | {ownAlloc / 1048576D,5:F2} MB | {sdkAlloc / ownAlloc,5:F2}x"));
+        }
+        return 0;
+    }
+
+    private static double Median(List<double> values) {
+        values.Sort();
+        return values.Count == 0 ? 0D : values.Count % 2 == 1 ? values[values.Count / 2] : (values[values.Count / 2 - 1] + values[values.Count / 2]) / 2D;
+    }
+
     // A gradient photo-sized PNG, so the image part has realistic weight.
     private static byte[] CreateImage(int width, int height) {
         byte[] rgba = new byte[width * height * 4];
