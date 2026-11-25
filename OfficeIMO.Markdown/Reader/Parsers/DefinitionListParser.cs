@@ -3,8 +3,8 @@ namespace OfficeIMO.Markdown;
 internal static partial class MarkdownReader {
     private const int DefinitionContinuationIndentOffset = 2;
 
-    internal sealed class DefinitionListParser : IMarkdownBlockParser {
-        public bool TryParse(string[] lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
+    internal sealed class DefinitionListParser : MarkdownSourceLinesBlockParser {
+        public override bool TryParse(MarkdownSourceLines lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
             if (!options.DefinitionLists) return false;
             if (TryParseMarkdigDefinitionList(lines, ref i, options, doc, state)) return true;
             if (!ShouldTreatAsDefinitionLine(lines, i, options)) return false;
@@ -128,7 +128,7 @@ internal static partial class MarkdownReader {
                         associatedObject: group));
                 j = next;
                 int separator = j;
-                while (separator < lines.Length && string.IsNullOrWhiteSpace(lines[separator])) {
+                while (separator < lines.Length && lines.IsBlank(separator)) {
                     separator++;
                 }
 
@@ -141,7 +141,7 @@ internal static partial class MarkdownReader {
     }
 
     private static bool TryParseMarkdigDefinitionList(
-        string[] lines,
+        MarkdownSourceLines lines,
         ref int i,
         MarkdownLoadOptions options,
         MarkdownDocument doc,
@@ -184,7 +184,7 @@ internal static partial class MarkdownReader {
 
                 bool skippedBlankBeforeNextDefinition = false;
                 int separator = cursor;
-                while (separator < lines.Length && string.IsNullOrWhiteSpace(lines[separator])) {
+                while (separator < lines.Length && lines.IsBlank(separator)) {
                     skippedBlankBeforeNextDefinition = true;
                     separator++;
                 }
@@ -240,7 +240,7 @@ internal static partial class MarkdownReader {
                     associatedObject: group));
 
             int nextGroup = cursor;
-            while (nextGroup < lines.Length && string.IsNullOrWhiteSpace(lines[nextGroup])) {
+            while (nextGroup < lines.Length && lines.IsBlank(nextGroup)) {
                 nextGroup++;
             }
 
@@ -259,7 +259,7 @@ internal static partial class MarkdownReader {
     }
 
     private static bool TryCollectMarkdigDefinitionTerms(
-        string[] lines,
+        MarkdownSourceLines lines,
         int startIndex,
         MarkdownLoadOptions options,
         MarkdownReaderState state,
@@ -282,7 +282,7 @@ internal static partial class MarkdownReader {
     private static readonly List<ParsedDefinitionTermLine> EmptyDefinitionTerms = new List<ParsedDefinitionTermLine>(0);
 
     private static bool TryFindMarkdigDefinitionMarker(
-        string[] lines,
+        MarkdownSourceLines lines,
         int startIndex,
         MarkdownLoadOptions options,
         MarkdownReaderState state,
@@ -367,7 +367,7 @@ internal static partial class MarkdownReader {
             consumedWhitespace);
     }
 
-    private static bool IsMarkdigDefinitionTermCandidate(string[] lines, int index, MarkdownLoadOptions options, MarkdownReaderState state) {
+    private static bool IsMarkdigDefinitionTermCandidate(MarkdownSourceLines lines, int index, MarkdownLoadOptions options, MarkdownReaderState state) {
         if (lines == null || index < 0 || index >= lines.Length) return false;
         var line = lines[index] ?? string.Empty;
         if (string.IsNullOrWhiteSpace(line)) return false;
@@ -424,7 +424,7 @@ internal static partial class MarkdownReader {
     }
 
     private static DefinitionListDefinition? ParseMarkdigMarkerDefinition(
-        string[] lines,
+        MarkdownSourceLines lines,
         ref int index,
         int markerIndent,
         int definitionStartIndex,
@@ -554,7 +554,7 @@ internal static partial class MarkdownReader {
     }
 
     private static bool ConsumeDefinitionContinuationLines(
-        string[] lines,
+        MarkdownSourceLines lines,
         ref int index,
         int continuationIndent,
         int? firstContinuationIndent,
@@ -583,14 +583,14 @@ internal static partial class MarkdownReader {
 
             if (string.IsNullOrWhiteSpace(line)) {
                 int peek = index;
-                while (peek < lines.Length && string.IsNullOrWhiteSpace(lines[peek])) {
+                while (peek < lines.Length && lines.IsBlank(peek)) {
                     peek++;
                 }
 
                 int followingContinuationIndent = allowLazyContinuation && hasContent
                     ? Math.Max(effectiveContinuationIndent, continuationIndent + DefinitionContinuationIndentOffset)
                     : effectiveContinuationIndent;
-                if (peek >= lines.Length || CountLeadingIndentColumns(lines[peek] ?? string.Empty) < followingContinuationIndent) {
+                if (peek >= lines.Length || lines.GetIndentColumns(peek) < followingContinuationIndent) {
                     return consumedLeadingBlankLine;
                 }
 
@@ -658,7 +658,7 @@ internal static partial class MarkdownReader {
     }
 
     private static bool ShouldConsumeMarkdigDefinitionLazyContinuation(
-        string[] lines,
+        MarkdownSourceLines lines,
         int index,
         List<MarkdownSourceLineSlice> definitionSourceLines,
         MarkdownLoadOptions options) {

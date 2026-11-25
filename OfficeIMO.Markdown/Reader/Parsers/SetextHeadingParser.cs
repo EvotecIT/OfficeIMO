@@ -9,8 +9,8 @@ internal static partial class MarkdownReader {
     ///   -----  (level 2)
     /// Requires one or more underline characters and no other content on the underline line.
     /// </summary>
-    internal sealed class SetextHeadingParser : IMarkdownBlockParser {
-        public bool TryParse(string[] lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
+    internal sealed class SetextHeadingParser : MarkdownSourceLinesBlockParser {
+        public override bool TryParse(MarkdownSourceLines lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
             if (!options.Headings) return false;
             if (i + 1 >= lines.Length) return false;
             var line = lines[i];

@@ -1,14 +1,14 @@
 namespace OfficeIMO.Markdown;
 
 internal static partial class MarkdownReader {
-    internal sealed class TableParser : IMarkdownBlockParser {
-        public bool TryParse(string[] lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
+    internal sealed class TableParser : MarkdownSourceLinesBlockParser {
+        public override bool TryParse(MarkdownSourceLines lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
             if (!options.Tables) return false;
             if (IsHeaderlessSingleRowTableMarker(lines[i])) {
                 return TryParseHeaderlessSingleRowTable(lines, ref i, options, doc, state);
             }
 
-            if (!LooksLikeTableRow(lines[i])) return false;
+            if (!LooksLikeTableRow(lines, i)) return false;
             if (!TryGetTableExtent(
                 lines,
                 i,
@@ -27,7 +27,7 @@ internal static partial class MarkdownReader {
         return string.Equals((line ?? string.Empty).Trim(), TableBlock.HeaderlessSingleRowTableMarker, StringComparison.Ordinal);
     }
 
-    private static bool TryParseHeaderlessSingleRowTable(string[] lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
+    private static bool TryParseHeaderlessSingleRowTable(MarkdownSourceLines lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
         int tableStart = i + 1;
         if (tableStart >= lines.Length || !LooksLikeTableRow(lines[tableStart])) {
             return false;

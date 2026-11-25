@@ -6,14 +6,14 @@ internal static partial class MarkdownReader {
     /// decides it is checked only when a definition follows it.
     /// </summary>
     private struct LazyParagraphContinuation {
-        private readonly string[] _lines;
+        private readonly MarkdownSourceLines _lines;
         private readonly MarkdownLoadOptions _options;
         private int _decidingLine;
         private bool _forced;
         // The answer for the deciding line, once a definition has asked for it.
         private bool? _decided;
 
-        internal LazyParagraphContinuation(string[] lines, MarkdownLoadOptions options) {
+        internal LazyParagraphContinuation(MarkdownSourceLines lines, MarkdownLoadOptions options) {
             _lines = lines;
             _options = options;
             _decidingLine = -1;
@@ -53,7 +53,7 @@ internal static partial class MarkdownReader {
         }
     }
 
-    private static bool IsReferenceDefinitionParagraphContinuationLine(string[] lines, int index, MarkdownLoadOptions options) {
+    private static bool IsReferenceDefinitionParagraphContinuationLine(MarkdownSourceLines lines, int index, MarkdownLoadOptions options) {
         if (lines == null || index < 0 || index >= lines.Length) {
             return false;
         }

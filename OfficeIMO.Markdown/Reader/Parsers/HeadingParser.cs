@@ -1,10 +1,11 @@
 namespace OfficeIMO.Markdown;
 
 internal static partial class MarkdownReader {
-    internal sealed class HeadingParser : IMarkdownBlockParser {
-        public bool TryParse(string[] lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
+    internal sealed class HeadingParser : MarkdownSourceLinesBlockParser {
+        public override bool TryParse(MarkdownSourceLines lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
             if (!options.Headings) return false;
-            if (!TryGetAtxHeadingContentRange(lines[i], out int level, out int contentStart, out int contentEnd, out string text, out int closingMarkerStart, out int closingMarkerEnd)) return false;
+            lines.GetSlice(i, out var lineText, out int lineStart, out int lineEnd);
+            if (!TryGetAtxHeadingContentRange(lineText, lineStart, lineEnd, out int level, out int contentStart, out int contentEnd, out string text, out int closingMarkerStart, out int closingMarkerEnd)) return false;
             int effectiveContentEnd = contentEnd;
             int effectiveClosingMarkerStart = closingMarkerStart;
             int effectiveClosingMarkerEnd = closingMarkerEnd;

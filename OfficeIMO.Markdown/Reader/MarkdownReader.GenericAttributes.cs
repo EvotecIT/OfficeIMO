@@ -2,7 +2,7 @@ namespace OfficeIMO.Markdown;
 
 internal static partial class MarkdownReader {
     private static bool TryConsumeStandaloneGenericAttributeBlock(
-        string[] lines,
+        MarkdownSourceLines lines,
         int lineIndex,
         MarkdownLoadOptions options,
         MarkdownReaderState state) {
@@ -52,7 +52,7 @@ internal static partial class MarkdownReader {
     }
 
     private static bool ShouldConsumeStandaloneGenericAttributeBlock(
-        string[] lines,
+        MarkdownSourceLines lines,
         int lineIndex,
         MarkdownLoadOptions options,
         MarkdownReaderState state) =>
@@ -60,7 +60,7 @@ internal static partial class MarkdownReader {
         || IsQuoteStandaloneAttributeBeforeSupportedBlock(lines, lineIndex, options, state);
 
     private static bool IsQuoteStandaloneAttributeBeforeSupportedBlock(
-        string[] lines,
+        MarkdownSourceLines lines,
         int lineIndex,
         MarkdownLoadOptions options,
         MarkdownReaderState state) {
@@ -74,7 +74,7 @@ internal static partial class MarkdownReader {
         }
 
         for (int i = lineIndex + 1; i < lines.Length; i++) {
-            if (string.IsNullOrWhiteSpace(lines[i])) {
+            if (lines.IsBlank(i)) {
                 continue;
             }
 
@@ -86,7 +86,7 @@ internal static partial class MarkdownReader {
     }
 
     private static bool IsQuoteStandaloneAttributeSupportedBlock(
-        string[] lines,
+        MarkdownSourceLines lines,
         int lineIndex,
         MarkdownLoadOptions options,
         MarkdownReaderState state) {
@@ -197,11 +197,11 @@ internal static partial class MarkdownReader {
     }
 
     private static bool HasFollowingSupportedStandaloneAttributeTarget(
-        string[] lines,
+        MarkdownSourceLines lines,
         int lineIndex,
         MarkdownLoadOptions options) {
         for (int i = lineIndex + 1; i < lines.Length; i++) {
-            if (string.IsNullOrWhiteSpace(lines[i])) {
+            if (lines.IsBlank(i)) {
                 continue;
             }
 
@@ -210,7 +210,7 @@ internal static partial class MarkdownReader {
             }
 
             if (i + 1 < lines.Length
-                && !string.IsNullOrWhiteSpace(lines[i + 1])
+                && !lines.IsBlank(i + 1)
                 && TryGetSetextHeadingUnderlineLevel(lines[i + 1], out _)) {
                 return true;
             }
@@ -235,13 +235,13 @@ internal static partial class MarkdownReader {
             }
 
             if (options.Headings
-                && LooksLikeHr(lines[i])
+                && LooksLikeHr(lines, i)
                 && TryGetSetextHeadingUnderlineLevel(lines[i], out _)) {
                 return true;
             }
 
             if (options.IndentedCodeBlocks
-                && CountLeadingIndentColumns(lines[i]) >= 4) {
+                && lines.GetIndentColumns(i) >= 4) {
                 return true;
             }
 
@@ -291,7 +291,7 @@ internal static partial class MarkdownReader {
     }
 
     private static bool IsStandaloneAttributeReferenceDefinitionParagraphTarget(
-        string[] lines,
+        MarkdownSourceLines lines,
         int lineIndex,
         MarkdownLoadOptions options) =>
         options?.GenericAttributes == true
@@ -314,7 +314,7 @@ internal static partial class MarkdownReader {
     }
 
     private static bool IsReferenceDefinitionAfterStandaloneGenericAttribute(
-        string[] lines,
+        MarkdownSourceLines lines,
         int lineIndex,
         MarkdownLoadOptions options) {
         if (options?.GenericAttributes != true
@@ -326,7 +326,7 @@ internal static partial class MarkdownReader {
         }
 
         for (int previous = lineIndex - 1; previous >= 0; previous--) {
-            if (string.IsNullOrWhiteSpace(lines[previous])) {
+            if (lines.IsBlank(previous)) {
                 continue;
             }
 

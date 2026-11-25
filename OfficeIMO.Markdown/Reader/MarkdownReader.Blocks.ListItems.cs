@@ -9,7 +9,7 @@ internal static partial class MarkdownReader {
     private static readonly UnorderedListParser NestedUnorderedListParser = new UnorderedListParser();
 
     private static void ConsumeNestedBlocksForListItem(
-        string[] lines,
+        MarkdownSourceLines lines,
         ref int index,
         int itemLevelAbs,
         int continuationIndent,
@@ -22,7 +22,7 @@ internal static partial class MarkdownReader {
         if (lines == null || item == null) return;
 
         while (index < lines.Length) {
-            if (!state.IsListBoundaryProbe && IsStructurallyBlankListItem(item) && string.IsNullOrWhiteSpace(lines[index])) {
+            if (!state.IsListBoundaryProbe && IsStructurallyBlankListItem(item) && lines.IsBlank(index)) {
                 return;
             }
 
@@ -30,17 +30,16 @@ internal static partial class MarkdownReader {
             bool sawBlankLine = false;
 
             // Skip blank lines only when they are followed by nested content.
-            while (k < lines.Length && string.IsNullOrWhiteSpace(lines[k])) {
+            while (k < lines.Length && lines.IsBlank(k)) {
                 sawBlankLine = true;
                 int peek = k + 1;
                 if (peek >= lines.Length) return;
-                var next = lines[peek] ?? string.Empty;
-                if (string.IsNullOrWhiteSpace(next)) {
+                if (lines.IsBlank(peek)) {
                     k = peek;
                     continue;
                 }
-                if (CountLeadingIndentColumns(next) < continuationIndent) return;
-                if (!IsListNestedBlockStart(next, continuationIndent, itemLevelAbs, allowNestedOrdered, allowNestedUnordered, options)) {
+                if (lines.GetIndentColumns(peek) < continuationIndent) return;
+                if (!IsListNestedBlockStart(lines[peek] ?? string.Empty, continuationIndent, itemLevelAbs, allowNestedOrdered, allowNestedUnordered, options)) {
                     k = peek;
                     break;
                 }
@@ -50,8 +49,8 @@ internal static partial class MarkdownReader {
             if (k >= lines.Length) { index = k; return; }
             // Every nested block below, and the attribute line that may precede one, is indented
             // to the item's content. The next sibling item usually is not, so stop here.
-            if (CountLeadingIndentColumns(lines[k] ?? string.Empty) < continuationIndent) { index = k; return; }
-            if (!sawBlankLine && k > 0 && string.IsNullOrWhiteSpace(lines[k - 1])) sawBlankLine = true;
+            if (lines.GetIndentColumns(k) < continuationIndent) { index = k; return; }
+            if (!sawBlankLine && k > 0 && lines.IsBlank(k - 1)) sawBlankLine = true;
 
             // Nested fenced code block
             int tmp = k;
@@ -138,7 +137,7 @@ internal static partial class MarkdownReader {
             // Nested ordered list
             if (allowNestedOrdered
                 && options.OrderedLists
-                && CountLeadingIndentColumns(lines[k] ?? string.Empty) >= continuationIndent
+                && lines.GetIndentColumns(k) >= continuationIndent
                 && IsOrderedListLine(lines[k], options, out int lvlAbsO2, out _, out _, out _)
                 && lvlAbsO2 >= itemLevelAbs + 1) {
                 if (TryParseNestedListBlock(lines, k, continuationIndent, options, state, NestedOrderedListParser, out var orderedList, out var orderedEndIndex, out var orderedSyntaxNode)) {
@@ -157,7 +156,7 @@ internal static partial class MarkdownReader {
             // Nested unordered list
             if (allowNestedUnordered
                 && options.UnorderedLists
-                && CountLeadingIndentColumns(lines[k] ?? string.Empty) >= continuationIndent
+                && lines.GetIndentColumns(k) >= continuationIndent
                 && IsUnorderedListLine(lines[k], out int lvlAbsU2)
                 && lvlAbsU2 >= itemLevelAbs + 1) {
                 if (TryParseNestedListBlock(lines, k, continuationIndent, options, state, NestedUnorderedListParser, out var unorderedList, out var unorderedEndIndex, out var unorderedSyntaxNode)) {
@@ -199,7 +198,7 @@ internal static partial class MarkdownReader {
     }
 
     private static bool TryParseNestedListBlock(
-        string[] lines,
+        MarkdownSourceLines lines,
         int startIndex,
         int continuationIndent,
         MarkdownLoadOptions options,
@@ -228,11 +227,11 @@ internal static partial class MarkdownReader {
         // document is only a holder and is reused for the next nested list at this depth.
         var tempDoc = effectiveState.RentNestedListScratchDocument();
         int previousMarkerIndentOffset = effectiveState.ListMarkerIndentOffset;
-        effectiveState.ListMarkerIndentOffset = CountLeadingIndentColumns(lines[startIndex] ?? string.Empty);
+        effectiveState.ListMarkerIndentOffset = lines.GetIndentColumns(startIndex);
         // The list parser re-enters on this shared state rather than on a nested state.
         effectiveState.NestedBlockDepth++;
         try {
-            if (parser.TryParse(lines, ref idx, options, tempDoc, effectiveState) &&
+            if (MarkdownSourceLinesBlockParser.Run(parser, lines, ref idx, options, tempDoc, effectiveState) &&
                 tempDoc.Blocks.Count == 1 &&
                 tempDoc.Blocks[0] is IMarkdownListBlock parsed) {
                 list = parsed;
@@ -253,7 +252,7 @@ internal static partial class MarkdownReader {
     }
 
     private static bool TryParseSourceBackedNestedListBlock(
-        string[] lines,
+        MarkdownSourceLines lines,
         int startIndex,
         int continuationIndent,
         MarkdownLoadOptions options,
@@ -268,7 +267,7 @@ internal static partial class MarkdownReader {
         bool previousRelativeListMarkerIndent = state.UseRelativeListMarkerIndent;
         bool sourceRemapIsDiscarded = state.DiscardsNestedListSourceRemap;
         bool requiresSourceRemap = false;
-        state.ListMarkerIndentOffset = CountLeadingIndentColumns(lines[startIndex] ?? string.Empty);
+        state.ListMarkerIndentOffset = lines.GetIndentColumns(startIndex);
         state.UseRelativeListMarkerIndent = true;
         state.NestedBlockDepth++;
         // This pass only finds the list's extent when the list will be parsed again for its
@@ -277,7 +276,7 @@ internal static partial class MarkdownReader {
         try {
             bool parsedNestedList;
             using (nestedDocument.DeferObjectTreeBinding(completeBindingOnDispose: false)) {
-                parsedNestedList = parser.TryParse(lines, ref idx, options, nestedDocument, state);
+                parsedNestedList = MarkdownSourceLinesBlockParser.Run(parser, lines, ref idx, options, nestedDocument, state);
             }
 
             if (parsedNestedList &&
@@ -337,7 +336,7 @@ internal static partial class MarkdownReader {
     }
 
     private static bool IsDirectSourceBackedNestedList(
-        string[] lines,
+        MarkdownSourceLines lines,
         int startIndex,
         int endIndex,
         MarkdownLoadOptions options) {
@@ -357,7 +356,7 @@ internal static partial class MarkdownReader {
     }
 
     private static bool TryParseNestedAttributedListBlock(
-        string[] lines,
+        MarkdownSourceLines lines,
         int attributeLineIndex,
         int itemLevelAbs,
         int continuationIndent,
@@ -421,7 +420,7 @@ internal static partial class MarkdownReader {
     }
 
     private static bool TryParseTrailingParagraphsForListItem(
-        string[] lines,
+        MarkdownSourceLines lines,
         ref int index,
         int itemLevelAbs,
         int continuationIndent,

@@ -22,7 +22,14 @@ internal static partial class MarkdownReader {
         return true;
     }
 
-    private static bool StartsTable(string[] lines, int index, MarkdownLoadOptions options, MarkdownReaderState? state = null) =>
+    private static bool LooksLikeTableRow(MarkdownSourceLines lines, int index) =>
+        TryAnalyzeTableRow(lines, index, requireAlignmentCells: false, out int cellCount, out bool hasLeadingPipe, out bool hasTrailingPipe)
+        && ((hasLeadingPipe && hasTrailingPipe) || cellCount >= 2);
+
+    private static bool IsAlignmentRow(MarkdownSourceLines lines, int index) =>
+        TryAnalyzeTableRow(lines, index, requireAlignmentCells: true, out _, out _, out _);
+
+    private static bool StartsTable(MarkdownSourceLines lines, int index, MarkdownLoadOptions options, MarkdownReaderState? state = null) =>
         options?.Tables == true &&
         TryGetTableExtent(
             lines,
@@ -34,7 +41,7 @@ internal static partial class MarkdownReader {
             allowMismatchedAlignmentCells: state?.IsMarkdigDefinitionListBody == true);
 
     private static bool TryGetTableExtent(
-        string[] lines,
+        MarkdownSourceLines lines,
         int start,
         out int end,
         out bool hasOuterPipes,
@@ -46,8 +53,8 @@ internal static partial class MarkdownReader {
         hasOuterPipes = false;
         options ??= new MarkdownLoadOptions();
         if (lines is null || start < 0 || start >= lines.Length) return false;
-        if (!LooksLikeTableRow(lines[start])) return false;
-        if (IsAlignmentRow(lines[start])) return false;
+        if (!LooksLikeTableRow(lines, start)) return false;
+        if (IsAlignmentRow(lines, start)) return false;
 
         var firstTrimmed = lines[start].Trim();
         if (firstTrimmed.Length == 0) return false;
@@ -58,10 +65,10 @@ internal static partial class MarkdownReader {
 
         int j = start + 1;
         bool sawAlignmentRow = false;
-        if (j < lines.Length && IsAlignmentRow(lines[j])) {
+        if (j < lines.Length && IsAlignmentRow(lines, j)) {
             sawAlignmentRow = true;
-            TryAnalyzeTableRow(lines[start], requireAlignmentCells: false, out int headerCellCount, out _, out _);
-            TryAnalyzeTableRow(lines[j], requireAlignmentCells: true, out int alignmentCellCount, out _, out _);
+            TryAnalyzeTableRow(lines, start, requireAlignmentCells: false, out int headerCellCount, out _, out _);
+            TryAnalyzeTableRow(lines, j, requireAlignmentCells: true, out int alignmentCellCount, out _, out _);
             if (!allowMismatchedAlignmentCells && headerCellCount != alignmentCellCount) {
                 return false;
             }
@@ -125,14 +132,14 @@ internal static partial class MarkdownReader {
         return true;
     }
 
-    private static TableBlock ParseTable(string[] lines, int start, int end, MarkdownLoadOptions options, MarkdownReaderState state) {
+    private static TableBlock ParseTable(MarkdownSourceLines lines, int start, int end, MarkdownLoadOptions options, MarkdownReaderState state) {
         int headerLine = state.SourceLineOffset + start + 1;
         var cells0 = SplitTableRowWithSourceInfo(lines[start], headerLine, state);
         var table = new TableBlock();
         List<TablePipeSource>? pipeSources = state.CaptureSyntaxTree ? new List<TablePipeSource>() : null;
         List<TableCellSourceFragment> headerCells;
         var bodyRows = new List<List<TableCellSourceFragment>>();
-        if (start + 1 <= end && IsAlignmentRow(lines[start + 1])) {
+        if (start + 1 <= end && IsAlignmentRow(lines, start + 1)) {
             headerCells = cells0;
             pipeSources?.AddRange(FindTablePipeSources(lines[start], headerLine, state, rowIndex: -1));
             table.UseHeaderColumnCountForRendering = true;
@@ -443,16 +450,38 @@ internal static partial class MarkdownReader {
         bool requireAlignmentCells,
         out int cellCount,
         out bool hasLeadingPipe,
+        out bool hasTrailingPipe) =>
+        TryAnalyzeTableRow(line, 0, line?.Length ?? 0, requireAlignmentCells, out cellCount, out hasLeadingPipe, out hasTrailingPipe);
+
+    private static bool TryAnalyzeTableRow(
+        MarkdownSourceLines lines,
+        int index,
+        bool requireAlignmentCells,
+        out int cellCount,
+        out bool hasLeadingPipe,
+        out bool hasTrailingPipe) {
+        lines.GetSlice(index, out var text, out int start, out int end);
+        return TryAnalyzeTableRow(text, start, end, requireAlignmentCells, out cellCount, out hasLeadingPipe, out hasTrailingPipe);
+    }
+
+    // Reads line[lineStart..lineEnd) only, so a line of the source text is checked in place.
+    private static bool TryAnalyzeTableRow(
+        string line,
+        int lineStart,
+        int lineEnd,
+        bool requireAlignmentCells,
+        out int cellCount,
+        out bool hasLeadingPipe,
         out bool hasTrailingPipe) {
         cellCount = 0;
         hasLeadingPipe = false;
         hasTrailingPipe = false;
-        if (string.IsNullOrWhiteSpace(line)) {
+        if (line == null) {
             return false;
         }
 
-        int start = 0;
-        int endExclusive = line.Length;
+        int start = lineStart;
+        int endExclusive = lineEnd;
         while (start < endExclusive && char.IsWhiteSpace(line[start])) start++;
         while (endExclusive > start && char.IsWhiteSpace(line[endExclusive - 1])) endExclusive--;
         if (endExclusive - start < 3) {
@@ -478,7 +507,7 @@ internal static partial class MarkdownReader {
                 int run = 1;
                 while (index + run < contentEndExclusive && line[index + run] == '`') run++;
                 if (codeFenceLength == 0) {
-                    if (HasClosingBacktickRun(line, index + run, run)) codeFenceLength = run;
+                    if (HasClosingBacktickRun(line, index + run, lineEnd, run)) codeFenceLength = run;
                 } else if (run == codeFenceLength) {
                     codeFenceLength = 0;
                 }
@@ -527,7 +556,7 @@ internal static partial class MarkdownReader {
         return dashCount > 0;
     }
 
-    private static bool LooksLikeTableBodyRow(string[] lines, int index, MarkdownLoadOptions options) {
+    private static bool LooksLikeTableBodyRow(MarkdownSourceLines lines, int index, MarkdownLoadOptions options) {
         if (lines is null || index < 0 || index >= lines.Length) return false;
         var line = lines[index];
         if (string.IsNullOrWhiteSpace(line)) return false;
@@ -539,7 +568,7 @@ internal static partial class MarkdownReader {
     private static bool IsStandaloneTableGenericAttributeLine(string? line, MarkdownLoadOptions? options) =>
         options?.GenericAttributes == true && IsStandaloneGenericAttributeOnlyLine(line);
 
-    private static bool IsTableTerminatingBlockStart(string[] lines, int index, MarkdownLoadOptions options) {
+    private static bool IsTableTerminatingBlockStart(MarkdownSourceLines lines, int index, MarkdownLoadOptions options) {
         var line = lines[index] ?? string.Empty;
         if (options.IndentedCodeBlocks && CountLeadingIndentColumns(line) >= 4) return true;
         if (options.Headings && IsAtxHeading(line, out _, out _)) return true;

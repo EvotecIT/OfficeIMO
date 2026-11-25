@@ -10,7 +10,7 @@ internal static partial class MarkdownReader {
     /// <c>+++</c> line and the next <c>+++</c> line (TOML, as Hugo reads it). Nothing between them is empty front matter,
     /// as Jekyll reads it.
     /// </summary>
-    internal static bool TryLocateFrontMatter(string[] lines, out int closingIndex) {
+    internal static bool TryLocateFrontMatter(MarkdownSourceLines lines, out int closingIndex) {
         closingIndex = -1;
         if (lines.Length == 0) return false;
         string? fence = FrontMatterFence(lines[0]);
@@ -44,7 +44,7 @@ internal static partial class MarkdownReader {
     /// <param name="markdown">The Markdown source.</param>
     /// <param name="closingIndex">The 0-based line of the closing fence, or -1.</param>
     internal static FrontMatterBlock? ParseFrontMatter(string markdown, out int closingIndex) {
-        string[] lines = markdown.Split('\n');
+        var lines = MarkdownSourceLines.FromText(markdown);
         if (!TryLocateFrontMatter(lines, out closingIndex)) return null;
         return ParseFrontMatterBlock(lines, closingIndex, new MarkdownReaderState());
     }
@@ -53,10 +53,10 @@ internal static partial class MarkdownReader {
     /// Parses the lines between the fences with the YAML or TOML engine; invalid input is kept as text with a positioned
     /// error.
     /// </summary>
-    private static FrontMatterBlock ParseFrontMatterBlock(string[] lines, int closingIndex, MarkdownReaderState state) {
+    private static FrontMatterBlock ParseFrontMatterBlock(MarkdownSourceLines lines, int closingIndex, MarkdownReaderState state) {
         const int start = 1;
         int end = closingIndex - 1;
-        string rawText = string.Join("\n", lines, start, end - start + 1);
+        string rawText = lines.Join("\n", start, end - start + 1);
         MarkdownSourceSpan? bodySpan = end < start ? null : CreateSpan(state, state.SourceLineOffset + start + 1, 1,
             state.SourceLineOffset + end + 1, Math.Max(1, lines[end].Length));
         int bodyLine = state.SourceLineOffset + start + 1;
