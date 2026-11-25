@@ -147,8 +147,8 @@ internal static partial class OfficeJpegReader {
             // Keep the retained coefficient state synchronized with the current scan declaration.
             state.Components[componentIndex].Component = frame.Components[componentIndex];
             state.Components[componentIndex].PrevDc = 0;
-            if (scan.Se > 0 && scan.Ah == 0) state.PrepareAcLookup(ref acTables[frame.Components[componentIndex].AcTable]);
         }
+        PrepareProgressiveAcLookups(scan, frame, state, acTables);
 
         // Validation fixed the tables for this scan, so the block kind and each
         // component's tables are resolved once. Malformed spectral ranges keep the
@@ -161,7 +161,7 @@ internal static partial class OfficeJpegReader {
         var singleState = state.Components[scan.ComponentIndices[0]];
         if (kind == ProgressiveBlockKind.DcFirst || kind == ProgressiveBlockKind.DcRefine) {
             DecodeProgressiveDcScan(ref reader, kind, scan, state, dcTables, scanMcuCols, scanMcuRows,
-                restartInterval, cancellationToken);
+                restartInterval, cancellationToken, overlap);
             return;
         }
 
@@ -207,6 +207,14 @@ internal static partial class OfficeJpegReader {
         }
     }
 
+    // AC first scans decode through combined lookups, reserved against the decode budget once per table.
+    private static void PrepareProgressiveAcLookups(ScanHeader scan, JpegFrame frame, ProgressiveState state, HuffmanTable[] acTables) {
+        if (scan.Se == 0 || scan.Ah != 0) return;
+        foreach (int componentIndex in scan.ComponentIndices) {
+            state.PrepareAcLookup(ref acTables[frame.Components[componentIndex].AcTable]);
+        }
+    }
+
     private static int GetProgressiveScanRows(ScanHeader scan, JpegFrame frame, ProgressiveState state) =>
         scan.ComponentIndices.Length == 1
             ? GetNonInterleavedBlockCount(frame.Height, frame.Components[scan.ComponentIndices[0]].V, frame.MaxV)
@@ -226,7 +234,8 @@ internal static partial class OfficeJpegReader {
         int scanMcuCols,
         int scanMcuRows,
         int restartInterval,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        BandOverlap? overlap) {
         int[] componentIndices = scan.ComponentIndices;
         bool isSingle = componentIndices.Length == 1;
         int al = scan.Al;
@@ -308,6 +317,7 @@ internal static partial class OfficeJpegReader {
 
                 mcuIndex++;
             }
+            overlap?.Publish(my + 1);
         }
         reader.BufferedBitCount = count;
     }
@@ -577,15 +587,24 @@ internal static partial class OfficeJpegReader {
         // DC scans do not track position zero; a malformed band that includes it reads
         // the coefficient itself.
         if (k == 0) nonzero = (nonzero & ~1UL) | (coeffs[baseIndex] != 0 ? 1UL : 0UL);
-        reader.FillBuffered();
-        ulong buffer = reader.BufferedBits;
-        int count = reader.BufferedBitCount;
+        ulong buffer;
+        int count;
         if (eobRun > 0) {
-            count = RefineBuffered(ref reader, ref buffer, count, coeffs, zigZag, baseIndex, nonzero, al);
-            reader.BufferedBitCount = count;
+            // Blocks in an EOB run read only their correction bits, often none, so the buffer is
+            // topped up only when it is short; a refill stopped at a marker walks its fill bytes again.
+            if (nonzero != 0) {
+                if (PopCount(nonzero) > reader.BufferedBitCount) reader.FillBuffered();
+                buffer = reader.BufferedBits;
+                count = RefineBuffered(ref reader, ref buffer, reader.BufferedBitCount, coeffs, zigZag, baseIndex, nonzero, al);
+                reader.BufferedBitCount = count;
+            }
             eobRun--;
             return;
         }
+
+        reader.FillBuffered();
+        buffer = reader.BufferedBits;
+        count = reader.BufferedBitCount;
 
         short[]? fast = acTable.Fast;
         while (k <= end) {

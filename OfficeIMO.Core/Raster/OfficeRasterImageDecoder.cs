@@ -37,7 +37,8 @@ public static partial class OfficeRasterImageDecoder {
     /// </summary>
     /// <remarks>
     /// Pixels decoded by the managed decoders are returned without a copy. Pixels from a caller-supplied codec are
-    /// copied, because that codec may keep the image it returned.
+    /// copied, because that codec may keep the image it returned; the method returns <see langword="false"/> when that
+    /// copy would exceed the managed working-set limit.
     /// </remarks>
     public static bool TryDecodeRgba32(
         byte[]? bytes,
@@ -50,6 +51,8 @@ public static partial class OfficeRasterImageDecoder {
         width = 0;
         height = 0;
         if (!TryDecode(bytes, options, out OfficeRasterImage? image, out info) || image == null) return false;
+        // Admission covers the decode, not the copy, so an image too large to copy is reported, not thrown.
+        if (info.UsedCallerCodec && !image.CanCopyPixels) return false;
         pixels = info.UsedCallerCodec ? image.GetPixels() : image.PixelBuffer;
         width = image.Width;
         height = image.Height;

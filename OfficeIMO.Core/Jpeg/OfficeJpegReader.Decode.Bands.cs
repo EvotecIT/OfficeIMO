@@ -31,6 +31,11 @@ internal static partial class OfficeJpegReader {
         return true;
     }
 
+    private static int GetBandWorkers(JpegFrame frame, int bands) =>
+        (long)frame.Width * frame.Height >= 262_144 && frame.Height >= 16 && Environment.ProcessorCount > 1
+            ? Math.Min(Math.Min(8, Environment.ProcessorCount), bands)
+            : 1;
+
     private static bool TryCreateBandPlan(
         JpegFrame frame,
         ProgressiveState state,
@@ -60,9 +65,7 @@ internal static partial class OfficeJpegReader {
         int maxH = frame.MaxH;
         int maxV = frame.MaxV;
         int bands = state.McuRows;
-        workers = (long)frame.Width * frame.Height >= 262_144 && frame.Height >= 16 && Environment.ProcessorCount > 1
-            ? Math.Min(Math.Min(8, Environment.ProcessorCount), bands)
-            : 1;
+        workers = GetBandWorkers(frame, bands);
         // Band rings and axis tables replace the component planes the state reserved but
         // never allocated; together they must fit that reservation plus the unreserved budget.
         long planeBytes = 0L;
@@ -136,6 +139,8 @@ internal static partial class OfficeJpegReader {
         // Starts the workers when the banded render applies and at least one other worker is available.
         public static BandOverlap? TryStart(JpegFrame frame, ProgressiveState state, int? adobeTransform,
             ScanHeader scan, int scanRows, CancellationToken cancellationToken) {
+            // One worker renders after the scan instead, so no plan is allocated for it here.
+            if (GetBandWorkers(frame, state.McuRows) <= 1) return null;
             if (!TryCreateBandPlan(frame, state, adobeTransform, out BandPlan? plan, out int workers) ||
                 plan == null || workers <= 1) return null;
             // An interleaved scan row is one band of every component; a single-component row is one block row.

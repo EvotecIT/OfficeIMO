@@ -304,7 +304,10 @@ internal static partial class OfficeJpegReader {
                 progressiveState ??= ProgressiveState.Create(
                     frame, quantTables, orientation, checked(data.LongLength + retainedManagedBytes));
                 // The last scan before EOI can overlap the RGBA render, which RenderRgba then returns.
-                BandOverlap? overlap = !returnColorComponents && options.HighQualityChroma && IsFollowedByEndOfImage(data, scanEnd)
+                // The scan's lookups are reserved first, so the band plan is admitted against the budget left after them.
+                bool overlapEligible = !returnColorComponents && options.HighQualityChroma && IsFollowedByEndOfImage(data, scanEnd);
+                if (overlapEligible) PrepareProgressiveAcLookups(scan, frame, progressiveState, acTables);
+                BandOverlap? overlap = overlapEligible
                     ? BandOverlap.TryStart(frame, progressiveState, adobeTransform, scan,
                         GetProgressiveScanRows(scan, frame, progressiveState), cancellationToken)
                     : null;
