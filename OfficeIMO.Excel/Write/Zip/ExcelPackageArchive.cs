@@ -21,6 +21,19 @@ internal abstract class ExcelPackageArchive : IDisposable {
     /// while the caller keeps writing; the entry is complete when its stream is disposed.</param>
     internal abstract Stream OpenEntry(string name, CompressionLevel level, bool background = false);
 
+    /// <summary>
+    /// Writes <paramref name="bytes"/> first in an entry just opened with <see cref="CompressionLevel.Fastest"/>, so they
+    /// can be rewritten with the same length after the entry completes. Returns false, writing nothing, when the
+    /// destination cannot be rewritten.
+    /// </summary>
+    internal virtual bool TryWritePatchablePrefix(Stream entry, byte[] bytes, out object? prefix) {
+        prefix = null;
+        return false;
+    }
+
+    /// <summary>Rewrites a prefix written by <see cref="TryWritePatchablePrefix"/> before the package is completed.</summary>
+    internal virtual void PatchPrefix(object prefix, byte[] bytes) => throw new NotSupportedException();
+
     internal void WriteEntry(string name, byte[] content, CompressionLevel level) =>
         WriteEntry(name, new ArraySegment<byte>(content), level);
 
