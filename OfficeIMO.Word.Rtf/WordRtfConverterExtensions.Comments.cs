@@ -1,5 +1,4 @@
 using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Office2013.Word;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Rtf;
@@ -58,33 +57,14 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static void AppendAnnotationComment(WordParagraph wordRun, RtfNote note, RtfDocument? rtfDocument, RtfWordNumberingPlan numbering) {
-        Comments comments = WordComment.GetCommentsPart(wordRun._document);
-        CommentsEx commentsEx = WordComment.GetCommentsExPart(wordRun._document);
-        string commentId = WordComment.GetNewId(wordRun._document, comments);
-
-        var comment = new Comment {
-            Id = commentId,
-            Author = GetAnnotationAuthor(note),
-            Initials = GetAnnotationInitials(note),
-            Date = note.Created ?? DateTime.Now
-        };
-
-        if (note.Paragraphs.Count == 0) {
-            comment.AppendChild(new Paragraph(new Run(new Text(string.Empty))));
-        } else {
-            foreach (RtfParagraph paragraph in note.Paragraphs) {
-                WordParagraph wordParagraph = CreateDetachedWordParagraph(wordRun._document, paragraph, rtfDocument, numbering);
-                comment.AppendChild((Paragraph)wordParagraph._paragraph.CloneNode(true));
-            }
+        var paragraphs = new List<Paragraph>(note.Paragraphs.Count);
+        foreach (RtfParagraph paragraph in note.Paragraphs) {
+            paragraphs.Add((Paragraph)CreateDetachedWordParagraph(wordRun._document, paragraph, rtfDocument, numbering)._paragraph);
         }
 
-        comments.AppendChild(comment);
-        comments.Save();
-
-        commentsEx.AppendChild(new CommentEx { ParaId = WordComment.GetNewParaId(commentsEx) });
-        commentsEx.Save();
-
-        AttachCommentReference(wordRun, commentId);
+        WordComment comment = WordComment.Create(wordRun._document, GetAnnotationAuthor(note), GetAnnotationInitials(note), paragraphs);
+        comment.DateTime = note.Created ?? DateTime.Now;
+        AttachCommentReference(wordRun, comment.Id!);
     }
 
     private static void AttachCommentReference(WordParagraph wordRun, string commentId) {

@@ -9,7 +9,7 @@ internal static class ScalingLanes {
         new MsgAttachmentWriteLane(), new MsgAttachmentReadLane(),
         new EmlAttachmentReadLane(), new TnefAttachmentReadLane(),
         new MsgRecipientWriteLane(),
-        new RtfWriteLane(), new RtfParseLane(),
+        new RtfWriteLane(), new RtfParseLane(), new RtfCommentsToDocxLane(),
         new HtmlParagraphsToDocxLane(), new HtmlTableToDocxLane(), new MarkdownToDocxLane(),
         new ProjectBuildLane(), new ProjectReadLane(),
         new AccessBuildLane(), new AccessReadLane(),

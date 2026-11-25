@@ -1,7 +1,6 @@
 using DocumentFormat.OpenXml.Office2013.Word;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
-using System.Globalization;
 
 namespace OfficeIMO.Word {
     // A wrapper for Word document comments.
@@ -24,24 +23,19 @@ namespace OfficeIMO.Word {
             _list = list;
         }
 
-        internal static string GetNewId(WordDocument document, Comments comments) {
-            ArgumentNullException.ThrowIfNull(comments);
-
-            int maxId = comments.Descendants<Comment>()
-                .Select(e => e.Id?.Value)
-                .Select(value => int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsed) ? parsed : 0)
-                .DefaultIfEmpty(0)
-                .Max();
-
-            return (maxId + 1).ToString(CultureInfo.InvariantCulture);
-        }
-
         internal static Comments GetCommentsPart(WordDocument document) {
             ArgumentNullException.ThrowIfNull(document);
 
             MainDocumentPart mainPart = GetMainDocumentPart(document);
             WordprocessingCommentsPart commentsPart = mainPart.WordprocessingCommentsPart ?? mainPart.AddNewPart<WordprocessingCommentsPart>();
-            commentsPart.Comments ??= new Comments();
+            if (commentsPart.Comments == null) {
+                // Comment paragraphs carry w14:paraId, so a new part declares w14 as ignorable like the other story parts.
+                var comments = new Comments();
+                comments.AddNamespaceDeclaration("mc", "http://schemas.openxmlformats.org/markup-compatibility/2006");
+                comments.AddNamespaceDeclaration("w14", "http://schemas.microsoft.com/office/word/2010/wordml");
+                comments.MCAttributes = new MarkupCompatibilityAttributes { Ignorable = "w14" };
+                commentsPart.Comments = comments;
+            }
             return commentsPart.Comments;
         }
 
@@ -111,39 +105,6 @@ namespace OfficeIMO.Word {
             return comment.Elements<Paragraph>()
                 .Select(paragraph => paragraph.ParagraphId?.Value)
                 .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
-        }
-
-        internal static string GetNewParaId(CommentsEx commentsEx, Comments? comments = null) {
-            ArgumentNullException.ThrowIfNull(commentsEx);
-
-            var existing = commentsEx
-                .Descendants<CommentEx>()
-                .Select(c => c.ParaId?.Value)
-                .Where(v => !string.IsNullOrEmpty(v))
-                .ToList();
-            if (comments != null) {
-                existing.AddRange(comments
-                    .Descendants<Comment>()
-                    .Select(GetCommentParagraphId)
-                    .Where(v => !string.IsNullOrEmpty(v))
-                    .Select(v => v!));
-            }
-
-            var used = new HashSet<uint>();
-            uint max = 0;
-            foreach (var v in existing) {
-                if (uint.TryParse(v, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out uint num)) {
-                    used.Add(num);
-                    if (num > max) max = num;
-                }
-            }
-
-            uint candidate = max + 1U;
-            while (used.Contains(candidate)) {
-                candidate++;
-            }
-
-            return candidate.ToString("X8", CultureInfo.InvariantCulture);
         }
 
         private static string EnsureCommentParaId(WordComment comment, WordCommentIdentityState identities, CommentsEx commentsEx) {
