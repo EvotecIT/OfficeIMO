@@ -104,6 +104,62 @@ internal static class PowerPointTreeText {
         return false;
     }
 
+    /// <summary>
+    /// Applies <paramref name="change"/> to the <c>a:rPr</c> of every run and line break below <paramref name="container"/>,
+    /// adding one where it is missing, as FormatRuns does.
+    /// </summary>
+    internal static void FormatRuns(OfficeXmlTree tree, int container, Action<int> change) {
+        var runs = new List<int>();
+        var breaks = new List<int>();
+        Collect(tree, container, runs, breaks);
+        foreach (int run in runs) change(EnsureRunProperties(tree, run));
+        foreach (int lineBreak in breaks) change(EnsureRunProperties(tree, lineBreak));
+    }
+
+    private static void Collect(OfficeXmlTree tree, int node, List<int> runs, List<int> breaks) {
+        for (int child = tree.FirstChildOf(node); child != OfficeXmlTree.NoNode; child = tree.NextSiblingOf(child)) {
+            if (tree.KindOf(child) != OfficeXmlTreeNodeKind.Element) continue;
+            if (tree.IsElement(child, OfficeXmlNamespaces.DrawingML, "r")) runs.Add(child);
+            else if (tree.IsElement(child, OfficeXmlNamespaces.DrawingML, "br")) breaks.Add(child);
+            Collect(tree, child, runs, breaks);
+        }
+    }
+
+    private static int EnsureRunProperties(OfficeXmlTree tree, int owner) {
+        int properties = tree.FindChild(owner, OfficeXmlNamespaces.DrawingML, "rPr");
+        if (properties != OfficeXmlTree.NoNode) return properties;
+        properties = tree.CreateElement(OfficeXmlNamespaces.DrawingML, "rPr");
+        tree.InsertBefore(owner, properties, tree.FirstChildOf(owner));
+        return properties;
+    }
+
+    // Child elements of CT_TextCharacterProperties that come after a:latin.
+    private static readonly string[] AfterLatin = { "ea", "cs", "sym", "hlinkClick", "hlinkMouseOver", "rtl", "extLst" };
+
+    /// <summary>Replaces the Latin typeface of an <c>a:rPr</c>, as SetFontFamily does; false when it holds markup the SDK orders differently.</summary>
+    internal static bool CanOrderLatin(OfficeXmlTree tree, int properties) {
+        for (int child = tree.FirstChildOf(properties); child != OfficeXmlTree.NoNode; child = tree.NextSiblingOf(child)) {
+            if (tree.KindOf(child) == OfficeXmlTreeNodeKind.Element && tree.NamespaceOf(child) != OfficeXmlNamespaces.DrawingML) return false;
+        }
+        return true;
+    }
+
+    internal static void SetLatin(OfficeXmlTree tree, int properties, string? typeface) {
+        for (int child = tree.FirstChildOf(properties); child != OfficeXmlTree.NoNode;) {
+            int next = tree.NextSiblingOf(child);
+            if (tree.IsElement(child, OfficeXmlNamespaces.DrawingML, "latin")) tree.Remove(child);
+            child = next;
+        }
+        if (typeface == null) return;
+        int latin = tree.CreateElement(OfficeXmlNamespaces.DrawingML, "latin");
+        tree.SetAttribute(latin, OfficeXmlNamespaces.None, "typeface", typeface);
+        int before = OfficeXmlTree.NoNode;
+        for (int child = tree.FirstChildOf(properties); child != OfficeXmlTree.NoNode && before == OfficeXmlTree.NoNode; child = tree.NextSiblingOf(child)) {
+            if (tree.KindOf(child) == OfficeXmlTreeNodeKind.Element && Array.IndexOf(AfterLatin, tree.LocalNameOf(child)) >= 0) before = child;
+        }
+        tree.InsertBefore(properties, latin, before);
+    }
+
     internal static int Append(OfficeXmlTree tree, int parent, string localName) {
         int element = tree.CreateElement(OfficeXmlNamespaces.DrawingML, localName);
         tree.Append(parent, element);

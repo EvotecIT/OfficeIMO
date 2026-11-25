@@ -73,12 +73,24 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
+        // The read-only package over the bytes as loaded, which the load checked; null once the document's bytes change.
+        private OfficeOpcPackage? _loadedPackage;
+
+        /// <summary>The read-only package over the document's current bytes, when it is still the one the load opened.</summary>
+        private OfficeOpcPackage? LoadedPackageForCurrentBytes => _loadedPackage != null && !_pendingEdits ? _loadedPackage : null;
+
+        private void ReleaseLoadedPackage() {
+            _loadedPackage?.Dispose();
+            _loadedPackage = null;
+        }
+
         /// <summary>How many times the SDK package was opened after a deferred load; zero while it was not needed.</summary>
         internal int DeferredSdkOpenCount { get; private set; }
 
         private PresentationDocument OpenDeferredSdk() {
             // The SDK opens the package with any edits made without it.
             CommitPendingEdits();
+            ReleaseLoadedPackage();
             Stream packageStream = _packageStream ?? throw new InvalidOperationException("The presentation has no Open XML package to open.");
             packageStream.Position = 0;
             OpenSettings settings = CreateOpenSettings(_deferredOpenSettings);
@@ -116,16 +128,25 @@ namespace OfficeIMO.PowerPoint {
         /// signature, and a slide list whose every entry reaches a slide part. Anything else opens the SDK at load, so
         /// it fails or succeeds exactly as before.
         /// </summary>
-        private static bool CanDeferSdk(Stream packageStream, PowerPointLoadOptions options, out int slideCount) {
+        private static bool CanDeferSdk(Stream packageStream, PowerPointLoadOptions options, out int slideCount, out OfficeOpcPackage? loaded) {
             slideCount = 0;
+            loaded = null;
             if (!IsPlainOpenSettings(options.OpenSettings) || !packageStream.CanSeek) return false;
             long position = packageStream.Position;
+            OfficeOpcPackage? package = null;
             try {
                 packageStream.Position = 0;
-                using OfficeOpcPackage package = OfficeOpcPackage.Open(packageStream, leaveOpen: true);
-                return IsPlainUnsignedPresentation(package, options.OpenSettings?.MaxCharactersInPart ?? 0, out slideCount);
+                package = OfficeOpcPackage.Open(packageStream, leaveOpen: true);
+                if (!IsPlainUnsignedPresentation(package, options.OpenSettings?.MaxCharactersInPart ?? 0, out slideCount)) {
+                    package.Dispose();
+                    return false;
+                }
+                // The document keeps the package it checked, so reads and saves of the bytes as loaded don't open it again.
+                loaded = package;
+                return true;
             } catch (Exception exception) when (exception is InvalidDataException or XmlException or IOException
                 or ArgumentException or FormatException or NotSupportedException or InvalidOperationException or OverflowException) {
+                package?.Dispose();
                 return false;
             } finally {
                 packageStream.Position = position;
@@ -221,7 +242,20 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         internal List<PowerPointExtractChunk>? TryExtractChunksWithoutSdk(PowerPointExtractionExtensions.PowerPointExtractOptions extract,
             int maxChars, string? sourcePath, CancellationToken cancellationToken) {
-            if (_disposed || !_sdkDeferred || _sdkDocument != null || !TryGetLoadedPackage(out MemoryStream? loaded) || loaded is not { } package) return null;
+            if (_disposed || !_sdkDeferred || _sdkDocument != null) return null;
+            // The package the load opened still reads the bytes as they are, so the reader shares it.
+            if (LoadedPackageForCurrentBytes is { } loadedPackage) {
+                try {
+                    using PowerPointSlideReader reader = PowerPointSlideReader.OpenLoaded(loadedPackage, _maximumSlideXmlCharacters, cancellationToken);
+                    var chunking = new PowerPointExtractChunkingOptions { MaxChars = maxChars };
+                    return PowerPointExtractionExtensions.ExtractMarkdownChunks(reader, extract, chunking, sourcePath, cancellationToken).ToList();
+                } catch (OperationCanceledException) {
+                    throw;
+                } catch (Exception exception) when (exception is not OutOfMemoryException) {
+                    return null;
+                }
+            }
+            if (!TryGetLoadedPackage(out MemoryStream? loaded) || loaded is not { } package) return null;
             try {
                 using (package) {
                     var options = new PowerPointLoadOptions { MaxInputBytes = null, OpenSettings = _deferredOpenSettings };

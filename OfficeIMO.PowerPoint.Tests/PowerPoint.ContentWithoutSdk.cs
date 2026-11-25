@@ -76,6 +76,18 @@ public class PowerPointContentWithoutSdkTests {
             PowerPointAutoShape line = slide.AddLine(OfficeLength.Points(10), OfficeLength.Points(100), OfficeLength.Points(200), OfficeLength.Points(100));
             return string.Join("|", new[] { rectangle, ellipse, line }.Select(shape => shape.Name + ":" + shape.Id));
         }),
+        ("format the text boxes", presentation => {
+            var read = new List<string>();
+            foreach (PowerPointTextBox box in presentation.Slides.SelectMany(slide => slide.TextBoxes).Take(4)) {
+                read.Add(box.Bold + ":" + box.Italic + ":" + box.FontSize?.ToPoints() + ":" + box.FontFamily);
+                box.Bold = true;
+                box.Italic = false;
+                box.FontSize = OfficeLength.Points(18);
+                box.FontFamily = "Aptos";
+                read.Add(box.Bold + ":" + box.Italic + ":" + box.FontSize?.ToPoints() + ":" + box.FontFamily);
+            }
+            return string.Join("|", read);
+        }),
         ("replace the first text box's text", presentation => {
             PowerPointTextBox? box = presentation.Slides.SelectMany(slide => slide.TextBoxes).FirstOrDefault(candidate => candidate.Text.Length > 0);
             if (box == null) return string.Empty;

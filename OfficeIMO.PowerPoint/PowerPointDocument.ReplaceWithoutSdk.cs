@@ -77,6 +77,8 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Makes <paramref name="next"/> the document's package bytes, closing the previous stream unless the
         /// pending package still reads from it.</summary>
         private void ReplacePackageStream(Stream next) {
+            // The package the load checked reads the previous bytes.
+            ReleaseLoadedPackage();
             Stream? previous = _packageStream;
             _packageStream = next;
             if (previous != null && !ReferenceEquals(previous, _pendingSource)) previous.Dispose();

@@ -33,8 +33,13 @@ namespace OfficeIMO.PowerPoint {
 
             UnchangedSaveValues values;
             packageStream.Position = 0;
-            using (OfficeOpcPackage package = OfficeOpcPackage.Open(packageStream, leaveOpen: true)) {
+            // The package the load opened reads the bytes the document still holds; edits since are in the pending package.
+            OfficeOpcPackage? loaded = _loadedPackage;
+            OfficeOpcPackage package = loaded ?? OfficeOpcPackage.Open(packageStream, leaveOpen: true);
+            try {
                 if (!TryReadUnchangedSaveValues(package, _maximumSlideXmlCharacters, _pendingPackage, out values)) return false;
+            } finally {
+                if (loaded == null) package.Dispose();
             }
 
             // Slide edits made without the SDK are saved with the properties, in one write.
