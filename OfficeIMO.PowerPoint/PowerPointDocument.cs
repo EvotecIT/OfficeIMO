@@ -138,8 +138,28 @@ namespace OfficeIMO.PowerPoint {
         public IReadOnlyList<PowerPointSlide> Slides {
             get {
                 ThrowIfDisposed();
-                return LoadedSlides;
+                // Until a slide is needed, the count comes from the slide list the load read.
+                return _sdkDeferred && _sdkDocument == null ? _slideView ??= new DeferredSlideList(this) : LoadedSlides;
             }
+        }
+
+        private DeferredSlideList? _slideView;
+
+        /// <summary>The slides of a presentation whose SDK package is not open yet: counting them keeps it closed, and
+        /// reading a slide opens it.</summary>
+        private sealed class DeferredSlideList(PowerPointDocument owner) : IReadOnlyList<PowerPointSlide> {
+            public int Count {
+                get {
+                    owner.ThrowIfDisposed();
+                    return owner._sdkDocument == null && owner._sdkDeferred ? owner._deferredSlideCount : owner.LoadedSlides.Count;
+                }
+            }
+
+            public PowerPointSlide this[int index] => owner.LoadedSlides[index];
+
+            public IEnumerator<PowerPointSlide> GetEnumerator() => owner.LoadedSlides.GetEnumerator();
+
+            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
         }
 
         /// <summary>

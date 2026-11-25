@@ -19,6 +19,8 @@ namespace OfficeIMO.PowerPoint {
         // The settings a deferred load opens the SDK package with; set while the SDK has not been opened.
         private OfficeOpenXmlLoadSettings? _deferredOpenSettings;
         private bool _sdkDeferred;
+        // The number of slide list entries the load checked; the slides the SDK would build from them.
+        private int _deferredSlideCount;
 
         private PowerPointDocument(string filePath, DocumentAccessMode accessMode) {
             _filePath = filePath;
@@ -65,13 +67,14 @@ namespace OfficeIMO.PowerPoint {
         /// signature, and a slide list whose every entry reaches a slide part. Anything else opens the SDK at load, so
         /// it fails or succeeds exactly as before.
         /// </summary>
-        private static bool CanDeferSdk(Stream packageStream, PowerPointLoadOptions options) {
+        private static bool CanDeferSdk(Stream packageStream, PowerPointLoadOptions options, out int slideCount) {
+            slideCount = 0;
             if (!IsPlainOpenSettings(options.OpenSettings) || !packageStream.CanSeek) return false;
             long position = packageStream.Position;
             try {
                 packageStream.Position = 0;
                 using OfficeOpcPackage package = OfficeOpcPackage.Open(packageStream, leaveOpen: true);
-                return IsPlainUnsignedPresentation(package, options.OpenSettings?.MaxCharactersInPart ?? 0);
+                return IsPlainUnsignedPresentation(package, options.OpenSettings?.MaxCharactersInPart ?? 0, out slideCount);
             } catch (Exception exception) when (exception is InvalidDataException or XmlException or IOException
                 or ArgumentException or FormatException or NotSupportedException or InvalidOperationException or OverflowException) {
                 return false;
@@ -80,7 +83,8 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static bool IsPlainUnsignedPresentation(OfficeOpcPackage package, long maximumCharactersInPart) {
+        private static bool IsPlainUnsignedPresentation(OfficeOpcPackage package, long maximumCharactersInPart, out int slideCount) {
+            slideCount = 0;
             foreach (OfficeOpcRelationship relationship in package.GetRelationships(null)) {
                 if (string.Equals(relationship.Type, DigitalSignatureOriginRelationshipType, StringComparison.Ordinal)) return false;
             }
@@ -98,7 +102,7 @@ namespace OfficeIMO.PowerPoint {
                 if (length > MaximumApplicationPropertiesBytes || maximumCharactersInPart > 0 && length > maximumCharactersInPart) return false;
                 if (HasDigitalSignatureFlag(package, application)) return false;
             }
-            return SlideListResolves(package, main);
+            return SlideListResolves(package, main, out slideCount);
         }
 
         // These reads leave markup compatibility as written, as the SDK's default NoProcess mode reads it.
@@ -117,7 +121,8 @@ namespace OfficeIMO.PowerPoint {
 
         // The SDK reads the slide list at load and fails on an entry it cannot resolve or whose part is not a slide; such
         // a package keeps doing so.
-        private static bool SlideListResolves(OfficeOpcPackage package, string main) {
+        private static bool SlideListResolves(OfficeOpcPackage package, string main, out int slideCount) {
+            slideCount = 0;
             OfficeXmlPullReader reader = package.OpenXml(main, out OfficePooledBytes content, processMarkupCompatibility: false);
             using (content) {
                 bool root = false;
@@ -147,9 +152,45 @@ namespace OfficeIMO.PowerPoint {
                         || !string.Equals(package.GetContentType(target), SlideContentType, StringComparison.OrdinalIgnoreCase)) {
                         return false;
                     }
+                    slideCount++;
                 }
                 return root;
             }
+        }
+
+        /// <summary>
+        /// Extracts chunks with the streamed slide reader while the SDK package is not open, or returns null for the
+        /// model to extract them. The chunks are read in full first, so a package the reader declines partway through
+        /// goes to the model with nothing returned.
+        /// </summary>
+        internal List<PowerPointExtractChunk>? TryExtractChunksWithoutSdk(PowerPointExtractionExtensions.PowerPointExtractOptions extract,
+            PowerPointExtractChunkingOptions? chunking, string? sourcePath, CancellationToken cancellationToken) {
+            if (_disposed || !_sdkDeferred || _sdkDocument != null || !TryGetLoadedPackage(out MemoryStream? loaded) || loaded is not { } package) return null;
+            try {
+                using (package) {
+                    var options = new PowerPointLoadOptions { MaxInputBytes = null, OpenSettings = _deferredOpenSettings };
+                    using PowerPointSlideReader reader = PowerPointSlideReader.Open(package, options, cancellationToken);
+                    return PowerPointExtractionExtensions.ExtractMarkdownChunks(reader, extract, chunking, sourcePath, cancellationToken).ToList();
+                }
+            } catch (OperationCanceledException) {
+                throw;
+            } catch (Exception exception) when (exception is not OutOfMemoryException) {
+                return null;
+            }
+        }
+
+        // A read-only view over the loaded bytes, without copying them; null when the package stream holds none.
+        private bool TryGetLoadedPackage(out MemoryStream? package) {
+            package = null;
+            ArraySegment<byte> buffer = default;
+            bool found = _packageStream switch {
+                OfficeIMO.Core.Internal.OfficeCopyOnWriteStream copyOnWrite => copyOnWrite.TryGetBuffer(out buffer),
+                MemoryStream memory => memory.TryGetBuffer(out buffer),
+                _ => false
+            };
+            if (!found || buffer.Array == null) return false;
+            package = new MemoryStream(buffer.Array, buffer.Offset, buffer.Count, writable: false);
+            return true;
         }
     }
 }

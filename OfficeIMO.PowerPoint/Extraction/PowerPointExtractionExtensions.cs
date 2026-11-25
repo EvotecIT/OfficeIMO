@@ -41,8 +41,17 @@ public static class PowerPointExtractionExtensions {
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(presentation);
         PowerPointExtractOptions snapshot = Snapshot(extract);
-        return ExtractChunksCore(EnumerateModelSlides(presentation, snapshot, cancellationToken), snapshot,
-            ResolveMaxChars(chunking), sourcePath, cancellationToken);
+        return ExtractDocumentChunks(presentation, snapshot, chunking, sourcePath, cancellationToken);
+    }
+
+    // A presentation whose SDK package is not open yet is read with the streamed slide reader, which gives the same
+    // chunks; when it cannot read the package, the model does, with its own errors.
+    private static IEnumerable<PowerPointExtractChunk> ExtractDocumentChunks(PowerPointDocument presentation,
+        PowerPointExtractOptions extract, PowerPointExtractChunkingOptions? chunking, string? sourcePath, CancellationToken cancellationToken) {
+        List<PowerPointExtractChunk>? streamed = presentation.TryExtractChunksWithoutSdk(extract, chunking, sourcePath, cancellationToken);
+        IEnumerable<PowerPointExtractChunk> chunks = streamed
+            ?? ExtractChunksCore(EnumerateModelSlides(presentation, extract, cancellationToken), extract, ResolveMaxChars(chunking), sourcePath, cancellationToken);
+        foreach (PowerPointExtractChunk chunk in chunks) yield return chunk;
     }
 
     internal static IEnumerable<PowerPointExtractChunk> ExtractMarkdownChunks(PowerPointSlideReader reader,
