@@ -69,7 +69,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void EnsureWritableForSave() {
-            if (_spreadSheetDocument.FileOpenAccess == FileAccess.Read) {
+            if (FileOpenAccess == FileAccess.Read) {
                 throw new InvalidOperationException("The workbook is read-only and cannot be saved.");
             }
         }
@@ -127,6 +127,10 @@ namespace OfficeIMO.Excel {
             }
 
             if (TrySaveNativeLegacyXlsToFile(path, options)) {
+                return;
+            }
+
+            if (TryWriteDeferredPackageToFile(path, options)) {
                 return;
             }
 
@@ -416,6 +420,10 @@ namespace OfficeIMO.Excel {
 
             if (TryWriteUnchangedPackageToStream(destination, options)) {
                 LastSaveDiagnostics = ExcelSaveDiagnostics.UnchangedPackage();
+                return;
+            }
+
+            if (TryWriteDeferredPackageToStream(destination, options)) {
                 return;
             }
 

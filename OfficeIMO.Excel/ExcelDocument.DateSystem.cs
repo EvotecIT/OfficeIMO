@@ -9,6 +9,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelDateSystem DateSystem {
             get {
+                if (_deferredWorkbook is { } deferred) return deferred.Date1904 ? ExcelDateSystem.NineteenFour : ExcelDateSystem.NineteenHundred;
                 WorkbookProperties? properties = WorkbookRoot.GetFirstChild<WorkbookProperties>();
                 return properties?.Date1904?.Value == true
                     ? ExcelDateSystem.NineteenFour

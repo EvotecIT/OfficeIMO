@@ -91,7 +91,7 @@ namespace OfficeIMO.Excel {
             if (_formulaCalculationContext is not { IsDisposed: false } context
                 || _formulaEvaluationStack == null
                 || _formulaEvaluationDepthFrames is not { Count: > 0 } frames
-                || !context.Ranges.TryGetValue((sheet._worksheetPartValue, r1, c1, r2, c2), out var range)
+                || !context.Ranges.TryGetValue((sheet.BoundWorksheetPart, r1, c1, r2, c2), out var range)
                 || _formulaEvaluationStack.Count + range.Depth > _excelDocument.Calculation.MaximumDependencyDepth) return false;
             frames.Peek().IncludeChild(range.Depth);
             values = range.Values;
@@ -119,7 +119,7 @@ namespace OfficeIMO.Excel {
             if (complete && !frame.DependencyGuardBlocked && !frame.UsedUnevaluatedFormulaCache
                 && _formulaCalculationContext is { IsDisposed: false } context
                 && !Array.Exists(values, static value => value.IsUnresolvedFormula)) {
-                context.Ranges[(sheet._worksheetPartValue, r1, c1, r2, c2)] = (values, frame.MaximumChildDepth);
+                context.Ranges[(sheet.BoundWorksheetPart, r1, c1, r2, c2)] = (values, frame.MaximumChildDepth);
             }
         }
 

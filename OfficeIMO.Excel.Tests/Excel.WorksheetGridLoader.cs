@@ -58,7 +58,11 @@ public sealed class ExcelWorksheetGridLoaderTests {
         string worksheet = "<worksheet xmlns=\"" + MainNamespace + "\">" + grid + "</worksheet>";
         using var document = ExcelDocument.Load(new MemoryStream(CreatePackage(worksheet)));
 
-        Assert.Throws<XmlException>(() => document.Sheets[0].Cell(9, 9).SetValue(1d));
+        // A plain value does not parse the worksheet; the save that has to write it does.
+        Assert.Throws<XmlException>(() => {
+            document.Sheets[0].Cell(9, 9).SetValue(1d);
+            document.Save(new MemoryStream());
+        });
     }
 
     [Fact]

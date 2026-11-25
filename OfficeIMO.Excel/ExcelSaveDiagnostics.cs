@@ -19,6 +19,7 @@ namespace OfficeIMO.Excel {
         public bool UsedFastPackageWriter => Writer == ExcelSavePackageWriter.SimplePackage
             || Writer == ExcelSavePackageWriter.ExtendedPackage
             || Writer == ExcelSavePackageWriter.UnchangedPackage
+            || Writer == ExcelSavePackageWriter.OwnedPackage
             || Writer == ExcelSavePackageWriter.DirectDataSetPackage
             || Writer == ExcelSavePackageWriter.NativeBinaryDirectPackage;
 
@@ -42,6 +43,9 @@ namespace OfficeIMO.Excel {
         internal static ExcelSaveDiagnostics NativeBinaryDirectPackage() =>
             new ExcelSaveDiagnostics(ExcelSavePackageWriter.NativeBinaryDirectPackage, fastPackageSkipReason: null);
 
+        internal static ExcelSaveDiagnostics OwnedPackage() =>
+            new ExcelSaveDiagnostics(ExcelSavePackageWriter.OwnedPackage, fastPackageSkipReason: null);
+
         internal static ExcelSaveDiagnostics UnchangedPackage() =>
             new ExcelSaveDiagnostics(ExcelSavePackageWriter.UnchangedPackage, fastPackageSkipReason: null);
     }
@@ -54,6 +58,11 @@ namespace OfficeIMO.Excel {
         /// Full Open XML package finalization was used.
         /// </summary>
         StandardPackage,
+
+        /// <summary>
+        /// The loaded package was written again through OfficeIMO's own Open XML layer, without the Open XML SDK.
+        /// </summary>
+        OwnedPackage,
 
         /// <summary>
         /// An unchanged package payload was copied directly.

@@ -35,7 +35,9 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// FileOpenAccess of the document
         /// </summary>
-        public FileAccess FileOpenAccess => _spreadSheetDocument.FileOpenAccess;
+        public FileAccess FileOpenAccess => _deferredWorkbook != null
+            ? (_deferredReadOnly ? FileAccess.Read : FileAccess.ReadWrite)
+            : _spreadSheetDocument.FileOpenAccess;
 
         /// <summary>Gets whether the workbook was loaded for reading or editing.</summary>
         public DocumentAccessMode AccessMode => FileOpenAccess == FileAccess.Read

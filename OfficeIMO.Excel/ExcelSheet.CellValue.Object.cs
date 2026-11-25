@@ -13,6 +13,7 @@ namespace OfficeIMO.Excel {
         /// <param name="column">The 1-based column index.</param>
         /// <param name="value">The value to assign.</param>
         internal void CellValue(int row, int column, object? value) {
+            if (TryDeferBoxedCellValue(row, column, value)) return;
             if (TrySetPendingDirectCellValue(row, column, value)) {
                 return;
             }
