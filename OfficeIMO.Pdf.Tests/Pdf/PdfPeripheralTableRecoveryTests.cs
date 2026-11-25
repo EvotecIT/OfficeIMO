@@ -102,7 +102,9 @@ public class PdfPeripheralTableRecoveryTests {
         PdfLogicalTable originalTable = Assert.Single(baseline.Read().Pages[0].Tables);
         Assert.Equal(3, originalTable.Rows.Count);
         PdfTextSpan body = Assert.Single(baseline.Pages[0].GetTextSpans(), span => span.Text == "Ready");
-        double x = outsideLeft ? 4D : originalTable.Columns[originalTable.Columns.Count - 1].To + 18D;
+        // The default style draws cell borders, so a note beside the table starts past the drawn right edge
+        // (left margin plus the three column widths), not just past the last column's text.
+        double x = outsideLeft ? 4D : Math.Max(originalTable.Columns[originalTable.Columns.Count - 1].To, 36D + 300D) + 18D;
         double top = 360D - body.Y - body.FontSize;
         // Arrange nearby annotation baselines independently of the selected font ascent.
         using (var trial = PdfDocument.Load(new MemoryStream(Render(x, top)))) {

@@ -47,9 +47,24 @@ public sealed class PdfClosedRulingGridRecoveryTests {
         using var pdf = Open("word-business-grids-fragmented.pdf");
         IReadOnlyList<PdfLogicalTable> tables = pdf.Read().Pages[pageIndex].Tables;
         bool recovered = tables.Any(table => table.Rows.Count == 6 && table.Columns.Count == 2 &&
-            table.Rows[0][0] == "Worksheet" && table.Rows[5][0] == "Review Tracker");
+            table.Rows[0][0] == "Worksheet" && table.Rows[5][0] == "Review Tracker" &&
+            table.Evidence.Any(evidence => evidence.Code == "table-closed-ruling-grid"));
 
         Assert.Equal(complete, recovered);
+    }
+
+    [Fact]
+    public void RuleLatticeReadsCellsTheCrossingDividerCloses() {
+        // The last page leaves a 1 pt gap in a row rule beside the column divider. The strict grid declines it,
+        // but every cell is still bounded by drawn rules, so the lattice reads the whole table.
+        using var pdf = Open("word-business-grids-fragmented.pdf");
+        PdfLogicalTable table = Assert.Single(pdf.Read().Pages[3].Tables, item => item.Rows[0][0] == "Worksheet");
+
+        Assert.Contains(table.Evidence, evidence => evidence.Code == "table-ruling-lattice");
+        Assert.Equal(new[] { "Worksheet", "Action Plan", "Workstream Plan", "Overlay Drafts", "Validation Plan", "Review Tracker" },
+            table.Rows.Select(row => row[0]));
+        Assert.Equal("Sequence recommendations, review owner/workstream, confirm acceptance criteria, and set the next planning step.",
+            table.Rows[1][1]);
     }
 
     private static PdfDocument Open(string name) => PdfDocument.Load(Path.Combine(AppContext.BaseDirectory,

@@ -30,19 +30,27 @@ internal sealed class PdfAdvancedTableDetectionStage : IPdfTableDetectionStage {
             context.ConsumeWork,
             context.ThrowIfCancellationRequested);
         IReadOnlyList<PdfTableRuling> rulings;
+        IReadOnlyList<PdfTableRuling> latticeRulings;
         bool canRefineExistingGeometry;
         try {
-            rulings = context.Page.GetTableRulings(context, out canRefineExistingGeometry);
+            rulings = context.Page.GetTableRulings(context, out canRefineExistingGeometry, out latticeRulings);
         } catch (PdfUnsupportedTextMappingException) when (context.InspectionTextRecovery?.FirstMappingFailure is not null) {
             // Text-derived candidates remain available when the optional paint pass cannot resolve widths.
             context.ThrowIfCancellationRequested();
             rulings = Array.Empty<PdfTableRuling>();
+            latticeRulings = Array.Empty<PdfTableRuling>();
             canRefineExistingGeometry = false;
         }
         if (rulings.Count > 0) {
             foreach (PdfStructuredTable ruled in TableDetector.RecoverClosedRulingTables(nativeLines, rulings, context)) {
                 context.ConsumeWork();
                 ReconcileClosedGrid(tables, ruled, context);
+            }
+        }
+        if (latticeRulings.Count > 0) {
+            foreach (PdfStructuredTable lattice in TableDetector.RecoverRulingLatticeTables(nativeLines, latticeRulings, context)) {
+                context.ConsumeWork();
+                ReconcileLattice(tables, lattice, context);
             }
         }
         result.Capacity = tables.Count;
@@ -112,6 +120,10 @@ internal sealed class PdfAdvancedTableDetectionStage : IPdfTableDetectionStage {
                 "table-closed-ruling-grid",
                 "A unique closed grid of fully visible straight rulings agrees with every recovered cell and source run.",
                 0.95D));
+            if (table.Kind == "ruling-lattice") evidence.Add(new PdfInferenceEvidence(
+                "table-ruling-lattice",
+                "Connected visible rules bound every recovered column and row.",
+                0.9D));
             if (TableDetector.HasDistinctEmphasizedHeader(sourceLines)) {
                 evidence.Add(new PdfInferenceEvidence(
                     "table-header-emphasis",
@@ -156,6 +168,33 @@ internal sealed class PdfAdvancedTableDetectionStage : IPdfTableDetectionStage {
         }
         foreach (PdfStructuredTable table in covered) tables.Remove(table);
         tables.Add(ruled);
+    }
+
+    /// <summary>
+    /// A drawn grid outranks tables inferred from text alignment: those sharing its runs give way to it.
+    /// A grid that overlaps a closed-grid table or another grid is left out instead.
+    /// </summary>
+    private static void ReconcileLattice(List<PdfStructuredTable> tables, PdfStructuredTable lattice, PdfUnderstandingPageContext context) {
+        var latticeRuns = new HashSet<PdfTextSpan>();
+        foreach (PdfTextSpan run in lattice.SourceRuns) {
+            context.ConsumeWork();
+            latticeRuns.Add(run);
+        }
+        var covered = new List<PdfStructuredTable>();
+        foreach (PdfStructuredTable table in tables) {
+            context.ConsumeWork();
+            bool shared = false;
+            foreach (PdfTextSpan run in table.SourceRuns) {
+                context.ConsumeWork();
+                if (latticeRuns.Contains(run)) { shared = true; break; }
+            }
+            if (!shared) continue;
+            if (table.Kind is "closed-ruling-cells" or "ruling-lattice") return;
+            covered.Add(table);
+        }
+        if (covered.Count == 1 && HasEquivalentGridProjection(covered[0], lattice, latticeRuns.Count, context)) return;
+        foreach (PdfStructuredTable table in covered) tables.Remove(table);
+        tables.Add(lattice);
     }
 
     private static bool HasEquivalentGridProjection(PdfStructuredTable table, PdfStructuredTable ruled, int ruledRunCount,
