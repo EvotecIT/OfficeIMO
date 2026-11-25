@@ -143,6 +143,25 @@ public partial class Excel {
         }
     }
 
+    [Fact]
+    public void XlsxNativePackage_ReadsWorkbookPartLargerThanSmallPartBuffer() {
+        string path = CreateCompactFastPathWorkbook();
+        try {
+            const string entryName = "xl/workbook.xml";
+            string workbook = Encoding.UTF8.GetString(ReadZipEntry(path, entryName));
+            int rootEnd = workbook.LastIndexOf("</", StringComparison.Ordinal);
+            // Parts above 8 KB are streamed from the archive rather than buffered whole.
+            string padded = workbook.Insert(rootEnd, "<!--" + new string('x', 20_000) + "-->");
+            ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(padded));
+
+            using XlsxTabularWorkbook native = XlsxTabularWorkbook.Open(path, new ExcelReaderOptions());
+            Assert.Equal(new[] { "Data" }, XlsxTabularWorkbook.ReadSheetNames(path, new ExcelReaderOptions()));
+            AssertCompactNumericRows(path);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
     [Theory]
     [InlineData("Data", true)]
     [InlineData("Caf\u00e9", false)]

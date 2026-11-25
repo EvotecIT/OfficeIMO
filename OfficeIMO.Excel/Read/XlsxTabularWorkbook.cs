@@ -435,15 +435,18 @@ namespace OfficeIMO.Excel {
                 if (stream is OpenXmlPooledPartStream pooled) {
                     data = pooled.BorrowBuffer(out length);
                 } else {
-                    length = checked((int)stream.Length);
-                    data = rented = ArrayPool<byte>.Shared.Rent(Math.Max(1, length));
-                    int read = 0;
-                    while (read < length) {
-                        int next = stream.Read(data, read, length - read);
-                        if (next == 0) break;
-                        read += next;
+                    // Streams of oversized or unusual entries need not know their length; OpenPart bounds what they return.
+                    data = rented = ArrayPool<byte>.Shared.Rent(4096);
+                    length = 0;
+                    int read;
+                    while ((read = stream.Read(data, length, data.Length - length)) > 0) {
+                        length += read;
+                        if (length < data.Length) continue;
+                        byte[] larger = ArrayPool<byte>.Shared.Rent(checked(data.Length * 2));
+                        Buffer.BlockCopy(data, 0, larger, 0, length);
+                        ArrayPool<byte>.Shared.Return(data, clearArray: true);
+                        data = rented = larger;
                     }
-                    length = read;
                 }
                 if (DeclaresOtherEncodingForNonAscii(data, length)) {
                     throw new XlsxTabularFastPathNotSupportedException(
