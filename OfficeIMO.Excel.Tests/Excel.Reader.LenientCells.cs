@@ -344,6 +344,46 @@ public partial class Excel {
         } finally { File.Delete(path); }
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Write_RewritesAnUnorderedRowInColumnOrder(bool batch) {
+        // Readers place the cell without a reference after A1, at B1; a write rewrites the row as Excel's recovery does.
+        string path = CreateLenientCellWorkbook("<row r=\"1\"><c r=\"C1\"><v>3</v></c><c r=\"A1\"><v>1</v></c><c><v>2</v></c></row>");
+        try {
+            using (var document = ExcelDocument.Load(path)) {
+                WriteLenientCell(document.GetSheet("Data"), 1, 2, 9, batch);
+                document.Save();
+            }
+
+            Assert.Equal(new[] { "A1", "B1", "C1" }, ReadSavedRowReferences(path, 1));
+            using var reader = ExcelDocumentReader.Open(path);
+            object?[,] values = reader.GetSheet("Data").ReadRange("A1:C1", ExcelExecutionMode.Sequential);
+            Assert.Equal(new object?[] { 1d, 9d, 3d }, new[] { values[0, 0], values[0, 1], values[0, 2] }.Select(v => (object?)Convert.ToDouble(v)).ToArray());
+        } finally { File.Delete(path); }
+    }
+
+    [Fact]
+    public void SinglePassReading_RejectsAControlCharacterInAReferenceAsTheDefaultReaderDoes() {
+        byte[] workbook = CreateParallelIndexWorkbook(invalidSharedStringRow: 0);
+        using (var buffer = new MemoryStream()) {
+            buffer.Write(workbook, 0, workbook.Length);
+            using (var archive = new ZipArchive(buffer, ZipArchiveMode.Update, leaveOpen: true)) {
+                string xml;
+                using (var reader = new StreamReader(archive.GetEntry("xl/worksheets/sheet1.xml")!.Open())) xml = reader.ReadToEnd();
+                ReplaceAsyncCultureEntry(archive, "xl/worksheets/sheet1.xml", xml.Replace("<c r=\"C23990\">", "<c r=\"A\u0001\">"));
+            }
+            workbook = buffer.ToArray();
+        }
+
+        Exception expected = Assert.ThrowsAny<Exception>(() => ReadFirstParallelIndexRow(workbook, sequential: true));
+        using DbDataReader singlePass = ExcelDocument.OpenReader(new MemoryStream(workbook, writable: false),
+            new ExcelReaderOptions { NumericAsDecimal = true, EnableSinglePassReading = true });
+        Exception actual = Assert.ThrowsAny<Exception>(() => { while (singlePass.Read()) { } });
+        Assert.Equal(expected.GetType(), actual.GetType());
+        Assert.Equal(expected.Message, actual.Message);
+    }
+
     private static void WriteLenientCell(ExcelSheet sheet, int row, int column, object value, bool batch) {
         if (!batch) {
             sheet.Cell(row, column).SetValue(value);

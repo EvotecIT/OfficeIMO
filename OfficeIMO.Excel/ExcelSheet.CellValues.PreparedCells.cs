@@ -228,16 +228,16 @@ namespace OfficeIMO.Excel {
                 private Cell? _lastCell;
                 private int _lastColumnIndex;
                 private bool _hasImplicitColumns;
-                private bool _readRuleRow;
 
                 internal BatchRowState(ExcelSheet sheet, Row row) {
                     _sheet = sheet;
                     _row = row;
                     _cells = new Dictionary<int, Cell>();
 
-                    // A flagged row, and any row from a cell the letters-only scan cannot resolve, follows the read rule.
-                    _readRuleRow = UsesReadColumnRule(row);
-                    bool tracking = _readRuleRow;
+                    // A row flagged for non-canonical cells is rewritten canonical and in column order first. Any other
+                    // row follows the read rule from a cell the letters-only scan cannot resolve.
+                    NormalizeReadRuleRow(row);
+                    bool tracking = false;
                     int nextImplicitColumn = 1;
                     foreach (var cell in row.Elements<Cell>()) {
                         int columnIndex = 0;
@@ -292,7 +292,7 @@ namespace OfficeIMO.Excel {
                         _row.InsertAfter(cell, _lastCell);
                     } else {
                         Cell? insertAfter = null;
-                        bool tracking = _readRuleRow;
+                        bool tracking = false;
                         int nextImplicitColumn = 1;
                         foreach (var existingCell in _row.Elements<Cell>()) {
                             int existingColumnIndex = 0;

@@ -306,12 +306,16 @@ namespace OfficeIMO.Excel {
                         position += consumed;
                         continue;
                     }
-                    // Markup and control characters cannot appear in a well-formed attribute value.
-                    if (current == (byte)'<' || (current < 0x20 && current != 0x09 && current != 0x0A && current != 0x0D)) {
-                        return false;
-                    }
                     int run = position;
-                    while (run < length && _buffer[start + run] != (byte)'&') run++;
+                    while (run < length) {
+                        byte literal = _buffer[start + run];
+                        if (literal == (byte)'&') break;
+                        // Markup and control characters cannot appear in a well-formed attribute value.
+                        if (literal == (byte)'<' || (literal < 0x20 && literal != 0x09 && literal != 0x0A && literal != 0x0D)) {
+                            return false;
+                        }
+                        run++;
+                    }
                     try {
                         written += StrictReferenceUtf8.GetChars(_buffer, start + position, run - position, text, written);
                     } catch (DecoderFallbackException) {

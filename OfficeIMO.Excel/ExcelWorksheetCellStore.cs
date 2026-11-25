@@ -97,6 +97,11 @@ namespace OfficeIMO.Excel {
         /// </summary>
         internal void MarkUnorderedDomCells(OpenXmlElement cell) => _firstUnorderedDomCell ??= cell;
 
+        /// <summary>Records that a materialized row's cells were rewritten with canonical references in column order.</summary>
+        internal void MarkCellsCanonical() {
+            if (_cells == null) _firstUnorderedDomCell = null;
+        }
+
         internal static string TypeName(ExcelStoredCellType type) => TypeNames[(int)type];
 
         internal static bool TryGetType(string? name, out ExcelStoredCellType type) {
