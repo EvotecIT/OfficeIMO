@@ -61,6 +61,13 @@ public class PowerPointContentWithoutSdkTests {
             notes.Text = "Speaker notes\nsecond line";
             return before + "|" + notes.Text;
         }),
+        ("duplicate a slide and edit the copy", presentation => {
+            if (presentation.Slides.Count == 0) return string.Empty;
+            PowerPointSlide copy = presentation.DuplicateSlide(presentation.Slides.Count - 1);
+            PowerPointTextBox? box = copy.TextBoxes.FirstOrDefault();
+            if (box != null) box.Text = "Copied";
+            return presentation.Slides.Count + ":" + string.Join("|", copy.TextBoxes.Select(text => text.Text));
+        }),
         ("replace the first text box's text", presentation => {
             PowerPointTextBox? box = presentation.Slides.SelectMany(slide => slide.TextBoxes).FirstOrDefault(candidate => candidate.Text.Length > 0);
             if (box == null) return string.Empty;

@@ -173,7 +173,8 @@ namespace OfficeIMO.PowerPoint {
                 }
                 // A slide a replacement already parsed is read from its tree; text edits leave its visibility as it was.
                 bool? show;
-                if (parsed?.GetParsedXml(slide) is { } tree) {
+                // A slide added without the SDK, parsed or not, is only in the pending package.
+                if ((parsed?.GetParsedXml(slide) ?? (parsed != null && !package.PartExists(slide) ? parsed.GetXml(slide) : null)) is { } tree) {
                     // A slide added without the SDK is not in the loaded bytes, and the model wrote it small.
                     if (package.PartExists(slide) && package.GetPartLength(slide) > SlidePartLimit(maximumSlideXmlCharacters)) return false;
                     if (!TryParseShow(tree.GetAttribute(tree.Root, OfficeXmlNamespaces.None, "show"), out show)) return false;

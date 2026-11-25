@@ -103,6 +103,15 @@ internal sealed class OfficeOpcEditablePackage : IDisposable {
         return tree;
     }
 
+    /// <summary>A part's bytes as the package would save them: its tree written out, its content, or its stored bytes.</summary>
+    /// <exception cref="InvalidDataException">The package has no such part.</exception>
+    internal byte[] ReadPartBytes(string partName) {
+        Part part = Find(partName) ?? throw new InvalidDataException("The package has no part '" + partName + "'.");
+        using var output = new MemoryStream();
+        WritePart(part, output, new OfficeXmlUtf8Writer());
+        return output.ToArray();
+    }
+
     /// <summary>Adds a part with binary content, such as an image.</summary>
     internal void CreateBinaryPart(string partName, string? contentType, byte[] content) {
         Part part = AddPart(partName, contentType);

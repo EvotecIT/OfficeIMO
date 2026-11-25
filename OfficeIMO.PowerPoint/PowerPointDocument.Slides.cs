@@ -303,6 +303,7 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="insertAt">Index where the duplicate should be inserted. Defaults to index + 1.</param>
         public PowerPointSlide DuplicateSlide(int index, int? insertAt = null) {
             ThrowIfDisposed();
+            if (TryDuplicateSlideWithoutSdk(index, insertAt) is { } duplicated) return duplicated;
             ArgumentOutOfRangeException.ThrowIfNegative(index);
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, LoadedSlides.Count);
 

@@ -28,6 +28,8 @@ public class PowerPointSlideOrderWithoutSdkTests {
             presentation.AddSlide();
             presentation.AddSlide();
         }),
+        ("duplicate the first slide", 1, (presentation, count) => presentation.DuplicateSlide(0)),
+        ("duplicate the last slide to the front", 2, (presentation, count) => presentation.DuplicateSlide(count - 1, 0)),
         ("add a slide, then move it first", 1, (presentation, count) => {
             presentation.AddSlide();
             presentation.MoveSlide(count, 0);
