@@ -48,7 +48,7 @@ internal sealed partial class OfficeXmlTree {
     internal int Version { get; private set; }
 
     // Set when the node, span and attribute arrays come from the shared array pool; ReleasePooledStorage returns them.
-    private bool _pooled;
+    private readonly bool _pooled;
 
     private OfficeXmlTree(OfficeXmlNamespaces.Table namespaces, int nodeCapacity, int attributeCapacity, bool pooled = false) {
         Namespaces = namespaces;
@@ -143,12 +143,6 @@ internal sealed partial class OfficeXmlTree {
         System.Buffers.ArrayPool<T>.Shared.Return(array);
 #endif
     }
-
-    /// <summary>
-    /// Makes a pooled tree own its storage, so it stays readable after its package is disposed; the arrays then go to
-    /// the garbage collector instead of back to the pool.
-    /// </summary>
-    internal void DetachFromPool() => _pooled = false;
 
     /// <summary>Returns pooled storage to the array pool. Does nothing for a tree that owns its arrays.</summary>
     internal void ReleasePooledStorage() {
@@ -268,6 +262,9 @@ internal sealed partial class OfficeXmlTree {
     internal int NextSiblingOf(int node) => _nodes[node].Next;
     internal int PreviousSiblingOf(int node) => _nodes[node].Previous;
     internal string LocalNameOf(int node) => Namespaces.GetName(_nodes[node].Name).LocalName;
+    /// <summary>The number of nodes, so node indices run from 0 to one less than this.</summary>
+    internal int NodeCount => _nodeCount;
+
     internal int NamespaceOf(int node) => Namespaces.GetName(_nodes[node].Name).NamespaceId;
     /// <summary>The id of the exact namespace URI the element was written with; see <see cref="OfficeXmlNamespaces.TransitionalUriId"/>.</summary>
     internal int UriIdOf(int node) => Namespaces.GetName(_nodes[node].Name).UriId;

@@ -17,40 +17,30 @@ namespace OfficeIMO.Word {
             document.AttachSdkPackage(packageBytes, load);
 
         /// <summary>
-        /// The SDK element at the same place as <paramref name="node"/> in the owned tree the package was built from, or
-        /// null when the SDK tree no longer has one there. Positions count elements only, as both trees hold the same
-        /// markup: text between elements, comments and processing instructions are skipped on both sides.
+        /// Pairs every element of the owned main document tree with the SDK element built from it, by walking both trees
+        /// together right after the SDK package opens, before anything edits it. Paragraph objects handed out earlier
+        /// then find their elements whatever later edits move. Both trees hold the same markup; text between elements,
+        /// comments and processing instructions are skipped on both sides.
         /// </summary>
-        internal static SdkElement? FindElement(SdkElement sdkRoot, OfficeXmlTree tree, int ownedRoot, int node) {
-            if (node == OfficeXmlTree.NoNode) return null;
-            var path = new List<int>();
-            for (int current = node; current != ownedRoot; current = tree.ParentOf(current)) {
-                if (current == OfficeXmlTree.NoNode) return null;
-                path.Add(ElementIndex(tree, current));
+        internal static object?[] MapOwnedTree(OfficeXmlTree tree, SdkElement sdkRoot) {
+            var map = new object?[tree.NodeCount];
+            Map(tree, tree.Root, sdkRoot, map);
+            return map;
+        }
+
+        private static void Map(OfficeXmlTree tree, int node, SdkElement element, object?[] map) {
+            map[node] = element;
+            SdkElement? sdkChild = NextElement(element.FirstChild);
+            for (int child = tree.FirstChildOf(node); child != OfficeXmlTree.NoNode && sdkChild != null; child = tree.NextSiblingOf(child)) {
+                if (tree.KindOf(child) != OfficeXmlTreeNodeKind.Element) continue;
+                Map(tree, child, sdkChild, map);
+                sdkChild = NextElement(sdkChild.NextSibling());
             }
-            SdkElement element = sdkRoot;
-            for (int step = path.Count - 1; step >= 0; step--) {
-                SdkElement? child = ChildAt(element, path[step]);
-                if (child == null) return null;
-                element = child;
-            }
+        }
+
+        private static SdkElement? NextElement(SdkElement? element) {
+            while (element is SdkMiscNode) element = element.NextSibling();
             return element;
-        }
-
-        private static int ElementIndex(OfficeXmlTree tree, int node) {
-            int index = 0;
-            for (int sibling = tree.PreviousSiblingOf(node); sibling != OfficeXmlTree.NoNode; sibling = tree.PreviousSiblingOf(sibling)) {
-                if (tree.KindOf(sibling) == OfficeXmlTreeNodeKind.Element) index++;
-            }
-            return index;
-        }
-
-        private static SdkElement? ChildAt(SdkElement parent, int index) {
-            for (SdkElement? child = parent.FirstChild; child != null; child = child.NextSibling()) {
-                if (child is SdkMiscNode) continue;
-                if (index-- == 0) return child;
-            }
-            return null;
         }
     }
 
@@ -77,6 +67,11 @@ namespace OfficeIMO.Word {
                 WordListStyles.InitializeAbstractNumberId(wordDocument);
             } catch {
                 packageStream.Dispose();
+                _ownedPackageStream = null;
+                _ownedZipPackage = null;
+                _wordprocessingDocumentValue = null;
+                _documentValue = null;
+                _sections.Clear();
                 throw;
             }
         }

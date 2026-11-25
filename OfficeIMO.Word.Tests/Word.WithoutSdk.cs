@@ -7,6 +7,7 @@ using OfficeIMO.Word;
 using Xunit;
 
 namespace OfficeIMO.Tests;
+#if NET
 
 /// <summary>
 /// Documents that load without the Open XML SDK read and edit paragraphs, runs, text and basic formatting on OfficeIMO's
@@ -152,6 +153,67 @@ public sealed class WordWithoutSdkTests {
         Assert.True(paragraphs[0].Bold);
         Assert.True(paragraphs[1].Italic);
         Assert.Equal(WordUnderlineStyle.Single, paragraphs[3].Underline);
+    }
+
+    [Fact]
+    public void ParagraphsHandedOutBeforeTheSdkOpenedFollowTheirElementsThroughLaterEdits() {
+        byte[] source = CreatePackage(BodyXml(
+            "<w:p><w:r><w:t>A</w:t></w:r></w:p><w:p><w:r><w:t>B</w:t></w:r></w:p><w:p><w:r><w:t>C</w:t></w:r></w:p>"));
+        using WordDocument document = WordDocument.Load(new MemoryStream(source));
+        List<WordParagraph> paragraphs = document.Paragraphs;
+        Assert.True(document.IsSdkDeferred);
+
+        // Removing the first paragraph opens the SDK; the others must still reach their own elements afterwards.
+        paragraphs[0].Remove();
+        Assert.False(document.IsSdkDeferred);
+        Assert.Equal("B", paragraphs[1].Text);
+        paragraphs[1].Remove();
+        paragraphs[2].Bold = true;
+
+        WordParagraph remaining = Assert.Single(document.Paragraphs);
+        Assert.Equal("C", remaining.Text);
+        Assert.True(remaining.Bold);
+    }
+
+    [Fact]
+    public void ParagraphsStayReadableAfterTheDocumentIsDisposed() {
+        byte[] source = CreatePackage(BodyXml(
+            "<w:p><w:pPr><w:jc w:val=\"center\"/></w:pPr><w:r><w:rPr><w:b/></w:rPr><w:t>First</w:t></w:r></w:p><w:p><w:r><w:t>Second</w:t></w:r></w:p>"));
+        List<WordParagraph> paragraphs;
+        WordParagraph added;
+        using (WordDocument document = WordDocument.Load(new MemoryStream(source))) {
+            paragraphs = document.Paragraphs;
+            paragraphs[1].Text = "Second, edited";
+            added = document.AddParagraph("Added");
+            Assert.True(document.IsSdkDeferred);
+        }
+
+        // PowerShell formats cmdlet output after the cmdlet disposed its document, and using blocks hand paragraphs out.
+        Assert.Equal("First", paragraphs[0].Text);
+        Assert.True(paragraphs[0].Bold);
+        Assert.Equal("Second, edited", paragraphs[1].Text);
+        Assert.Equal("Added", added.Text);
+        Assert.Equal(WordParagraphAlignment.Center, paragraphs[0].ParagraphAlignment);
+        Assert.Equal("Second, edited", paragraphs[1].Text);
+    }
+
+    [Fact]
+    public void CustomPropertiesSaveThroughTheSdkAsBefore() {
+        const string custom = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Properties xmlns=\"http://schemas.openxmlformats.org/officeDocument/2006/custom-properties\" "
+            + "xmlns:vt=\"http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes\"><property fmtid=\"{D5CDD505-2E9C-101B-9397-08002B2CF9AE}\" pid=\"5\" name=\"Ratio\"><vt:r8>1.5</vt:r8></property></Properties>";
+        byte[] source = CreatePackage(BodyXml("<w:p><w:r><w:t>Text</w:t></w:r></w:p>"), extraPackageRelationship:
+            "<Relationship Id=\"rCustom\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/custom-properties\" Target=\"docProps/custom.xml\"/>",
+            extraParts: new Dictionary<string, string> { ["docProps/custom.xml"] = custom },
+            extraContentTypes: "<Override PartName=\"/docProps/custom.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.custom-properties+xml\"/>");
+        void Edit(WordDocument document) => document.AddParagraph("Added");
+        byte[] sdk = EditAndSave(source, false, Edit)!;
+        byte[] owned = EditAndSave(source, true, Edit)!;
+        AssertSamePackage(sdk, owned, "custom properties");
+
+        using WordDocument loaded = WordDocument.Load(new MemoryStream(source));
+        loaded.AddParagraph("Added");
+        loaded.Save(new MemoryStream());
+        Assert.Contains("Save: custom document properties", loaded.OpenXmlSdkFallbacks);
     }
 
     [Fact]
@@ -328,7 +390,8 @@ public sealed class WordWithoutSdkTests {
         + "<w:document xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:body>" + body
         + "<w:sectPr><w:pgSz w:w=\"12240\" w:h=\"15840\"/></w:sectPr></w:body></w:document>";
 
-    private static byte[] CreatePackage(string documentXml, string extraPackageRelationship = "") {
+    private static byte[] CreatePackage(string documentXml, string extraPackageRelationship = "",
+        Dictionary<string, string>? extraParts = null, string extraContentTypes = "") {
         using var output = new MemoryStream();
         using (var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true)) {
             void Add(string name, string content) {
@@ -337,12 +400,15 @@ public sealed class WordWithoutSdkTests {
             }
             Add("[Content_Types].xml", "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">"
                 + "<Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/><Default Extension=\"xml\" ContentType=\"application/xml\"/>"
-                + "<Override PartName=\"/word/document.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml\"/></Types>");
+                + "<Override PartName=\"/word/document.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml\"/>"
+                + extraContentTypes + "</Types>");
             Add("_rels/.rels", "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">"
                 + "<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"word/document.xml\"/>"
                 + extraPackageRelationship + "</Relationships>");
             Add("word/document.xml", documentXml);
+            foreach (KeyValuePair<string, string> part in extraParts ?? new Dictionary<string, string>()) Add(part.Key, part.Value);
         }
         return output.ToArray();
     }
 }
+#endif

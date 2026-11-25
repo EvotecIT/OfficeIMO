@@ -127,6 +127,11 @@ namespace OfficeIMO.Word {
                 _persistenceMode = DocumentPersistenceMode.Explicit;
                 return false;
             }
+            if (_ownedModel.ParagraphsHandedOut) {
+                // Paragraphs read after disposal, as PowerShell output and using blocks do, read this copy.
+                _disposedPackageBytes = _ownedModel.CurrentBytes();
+                _disposedOpenSettings = _sdkDeferredLoad?.OpenSettings;
+            }
             _ownedModel.Dispose();
             _ownedModel = null;
             _sdkDeferredLoad = null;

@@ -63,6 +63,35 @@ internal sealed class WordPackageModel : IDisposable {
     /// <summary>Whether the body has been brought to the state an SDK load leaves it in; see <see cref="WordOwnedEdits.PrepareBodyEdit"/>.</summary>
     internal bool BodyPrepared { get; set; }
 
+    /// <summary>The number of <c>w:p</c> children of the body, counted on first use and kept current by owned edits.</summary>
+    internal int BodyParagraphCount { get; set; } = -1;
+
+    internal int GetBodyParagraphCount() {
+        if (BodyParagraphCount < 0) {
+            int count = 0;
+            OfficeXmlTree document = Document;
+            for (int child = document.FirstChildOf(Body); child != OfficeXmlTree.NoNode; child = document.NextSiblingOf(child)) {
+                if (document.IsElement(child, OfficeXmlNamespaces.WordprocessingML, "p")) count++;
+            }
+            BodyParagraphCount = count;
+        }
+        return BodyParagraphCount;
+    }
+
+    /// <summary>Whether paragraph objects were handed out, which may be read after the document is disposed.</summary>
+    internal bool ParagraphsHandedOut { get; set; }
+
+    /// <summary>The bytes of the last save without the SDK, and the main part's version they were written from.</summary>
+    internal byte[]? LastSavedBytes { get; set; }
+    internal int LastSavedVersion { get; set; } = -1;
+
+    /// <summary>The package as it stands, reusing the last save's bytes when nothing changed since.</summary>
+    internal byte[] CurrentBytes() {
+        if (!IsChanged) return SourceBytes;
+        if (LastSavedBytes != null && IsDocumentParsed && Document.Version == LastSavedVersion) return LastSavedBytes;
+        return ToBytes();
+    }
+
     /// <summary>Records an edit, so the package is written from the model instead of copied.</summary>
     internal void MarkChanged() => IsChanged = true;
 

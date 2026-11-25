@@ -249,6 +249,7 @@ namespace OfficeIMO.Word {
             if (_ownedModel != null) {
                 string? ownedTarget = string.IsNullOrEmpty(filePath) ? FilePath : filePath;
                 if (ownedTarget != null && TryCreateBytesWithoutSdk(ownedTarget, options, out byte[] ownedBytes)) {
+                    EnsureDestinationFileWritable(ownedTarget);
                     await OfficeFileCommit.WriteAllBytesAsync(ownedTarget, ownedBytes, cancellationToken: cancellationToken).ConfigureAwait(false);
                     FilePath = ownedTarget;
                     _loadedPassword = null;

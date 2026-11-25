@@ -19,6 +19,14 @@ internal static class WordOwnedSave {
     /// </summary>
     internal static string? FindSaveBlocker(WordPackageModel model) {
         if (ContainsElement(model.Document, model.Document.Root, "tbl")) return "tables in the document body";
+        // The SDK path's save rewrites custom properties, document variables and bibliography sources from what it
+        // loaded, which changes their XML; until those move, such documents save through it.
+        if (HasPackageRelationship(model, CustomPropertiesRelationshipType)) return "custom document properties";
+        if (model.Package.PartExists("/[Content_Types].xml") && DeclaresBibliography(model)) return "bibliography sources";
+        foreach (string part in RelatedParts(model, SettingsRelationshipType)) {
+            OfficeXmlTree settings = model.Package.GetXml(part);
+            if (settings.FindChild(settings.Root, W, "docVars") != OfficeXmlTree.NoNode) return "document variables";
+        }
         foreach (string part in RelatedParts(model, HeaderRelationshipType, FooterRelationshipType)) {
             OfficeXmlTree tree = model.Package.GetXml(part);
             if (ContainsElement(tree, tree.Root, "tbl")) return "tables in a header or footer";
@@ -28,6 +36,30 @@ internal static class WordOwnedSave {
 
     private const string HeaderRelationshipType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "header";
     private const string FooterRelationshipType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "footer";
+    private const string SettingsRelationshipType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "settings";
+    private const string CustomPropertiesRelationshipType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "custom-properties";
+    private const string BibliographyContentType = "application/bibliography+xml";
+
+    private static bool HasPackageRelationship(WordPackageModel model, string type) {
+        if (!model.Package.PartExists("/_rels/.rels")) return false;
+        OfficeXmlTree relationships = model.Package.GetRelationships(null);
+        for (int child = relationships.FirstChildOf(relationships.Root); child != OfficeXmlTree.NoNode; child = relationships.NextSiblingOf(child)) {
+            if (relationships.KindOf(child) != OfficeXmlTreeNodeKind.Element) continue;
+            string? value = relationships.GetAttribute(child, OfficeXmlNamespaces.None, "Type");
+            if (value != null && OfficeXmlNamespaces.NormalizeRelationshipType(value) == type) return true;
+        }
+        return false;
+    }
+
+    private static bool DeclaresBibliography(WordPackageModel model) {
+        OfficeXmlTree types = model.Package.ContentTypes;
+        for (int child = types.FirstChildOf(types.Root); child != OfficeXmlTree.NoNode; child = types.NextSiblingOf(child)) {
+            if (types.KindOf(child) == OfficeXmlTreeNodeKind.Element
+                && types.AttributeEquals(child, OfficeXmlNamespaces.None, "ContentType", BibliographyContentType)) return true;
+        }
+        return false;
+    }
+
     private const string NumberingRelationshipType = OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "numbering";
 
     private static bool ContainsElement(OfficeXmlTree tree, int root, string localName) {

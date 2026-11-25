@@ -26,6 +26,37 @@ namespace OfficeIMO.Word {
         internal WordPackageModel? _ownedModel;
         private WordSdkDeferredLoad? _sdkDeferredLoad;
         private readonly List<string> _openXmlSdkFallbacks = new();
+        // The package as it stood when a document that handed out paragraphs was disposed, and the copy parsed from it
+        // on first use, so those paragraphs stay readable as they are on the SDK path.
+        private byte[]? _disposedPackageBytes;
+        private WordPackageModel? _disposedReadModel;
+        private OfficeOpenXmlLoadSettings? _disposedOpenSettings;
+
+        internal WordPackageModel? DisposedReadModel {
+            get {
+                if (_disposedReadModel == null && _disposedPackageBytes != null && _ownedNodeElements == null) {
+                    _disposedReadModel = WordPackageModel.TryOpen(_disposedPackageBytes, 0);
+                    if (_disposedReadModel == null) _disposedPackageBytes = null;
+                }
+                return _disposedReadModel;
+            }
+        }
+
+        /// <summary>
+        /// Opens an SDK package over the copy a disposed document keeps, so members its paragraphs need beyond the owned
+        /// layer work after disposal as they do on the SDK path. The copy stays readable for paragraphs not yet resolved.
+        /// </summary>
+        internal void OpenSdkPackageAfterDispose() {
+            WordPackageModel? copy = DisposedReadModel;
+            if (copy == null || _ownedNodeElements != null) return;
+            _ownedModel = copy;
+            _sdkDeferredLoad = new WordSdkDeferredLoad(readOnly: true, _disposedOpenSettings);
+            OpenSdkPackage("Paragraph used after the document was disposed", disposeModel: false);
+        }
+
+        // The owned tree the SDK package was built from, and the SDK element made from each of its nodes.
+        internal OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree? _ownedNodeTree;
+        internal object?[]? _ownedNodeElements;
         // Tests compare the two paths on the same input by turning the owned one off.
         internal static readonly AsyncLocal<bool> DisableOwnedOpenXmlForTesting = new();
 
@@ -68,21 +99,30 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Opens the SDK package over the document as it stands, through the bridge. Does nothing once it is open.
         /// </summary>
-        internal void OpenSdkPackage(string? reason) {
+        internal void OpenSdkPackage(string? reason) => OpenSdkPackage(reason, disposeModel: true);
+
+        private void OpenSdkPackage(string? reason, bool disposeModel) {
             WordPackageModel? model = _ownedModel;
             if (model == null) return;
             WordSdkDeferredLoad load = _sdkDeferredLoad!;
             byte[] bytes = model.ToBytes();
             _ownedModel = null;
             _sdkDeferredLoad = null;
-            _openXmlSdkFallbacks.Add(reason ?? DescribeSdkCaller());
             try {
                 WordOpenXmlSdkBridge.OpenPackage(this, bytes, load);
-            } finally {
-                // Paragraphs handed out earlier find their SDK elements by their place in this tree, so it stays readable.
-                if (model.IsDocumentParsed) model.Document.DetachFromPool();
-                model.Dispose();
+            } catch {
+                // The document keeps working on the owned layer, and the next member that needs the SDK tries again.
+                _ownedModel = model;
+                _sdkDeferredLoad = load;
+                throw;
             }
+            _openXmlSdkFallbacks.Add(reason ?? DescribeSdkCaller());
+            // Paragraphs handed out earlier resolve through this map, which is built before anything can edit the SDK tree.
+            if (model.IsDocumentParsed) {
+                _ownedNodeTree = model.Document;
+                _ownedNodeElements = WordOpenXmlSdkBridge.MapOwnedTree(model.Document, _documentValue!);
+            }
+            if (disposeModel) model.Dispose();
         }
 
         /// <summary>Whether a document opened without the SDK is read-only.</summary>
@@ -111,6 +151,8 @@ namespace OfficeIMO.Word {
             using var buffer = new MemoryStream(model.SourceBytes.Length + 4096);
             model.Save(buffer);
             bytes = buffer.ToArray();
+            model.LastSavedBytes = bytes;
+            model.LastSavedVersion = model.Document.Version;
             return true;
         }
 

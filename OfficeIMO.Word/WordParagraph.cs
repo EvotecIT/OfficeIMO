@@ -309,15 +309,26 @@ namespace OfficeIMO.Word {
         private void ResolveOwnedToSdk() {
             OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree? tree = _ownedTree;
             if (tree == null) return;
+            if (_document.IsDisposed && !ReferenceEquals(_document._ownedNodeTree, tree)) {
+                // A disposed document opens an SDK package over the copy it kept, as its paragraphs used to keep theirs.
+                if (!TryRebindToDisposedCopy()) throw new ObjectDisposedException(nameof(WordDocument));
+                _document.OpenSdkPackageAfterDispose();
+                tree = _ownedTree!;
+            } else {
+                _document.OpenSdkPackage(null);
+            }
             int paragraphNode = _ownedParagraphNode, runNode = _ownedRunNode, bookmarkNode = _ownedBookmarkNode;
-            int root = tree.Root;
+            if (!ReferenceEquals(_document._ownedNodeTree, tree) || _document._ownedNodeElements is not { } elements) {
+                throw new InvalidOperationException("The paragraph is no longer part of the document.");
+            }
             _ownedTree = null;
-            _document.OpenSdkPackage(null);
-            OpenXmlElement sdkRoot = _document._document;
-            _paragraphValue = WordOpenXmlSdkBridge.FindElement(sdkRoot, tree, root, paragraphNode) as Paragraph
+            _paragraphValue = Element(elements, paragraphNode) as Paragraph
                 ?? throw new InvalidOperationException("The paragraph is no longer part of the document.");
-            _runValue = runNode == OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree.NoNode ? null : WordOpenXmlSdkBridge.FindElement(sdkRoot, tree, root, runNode) as Run;
-            _bookmarkStartValue = bookmarkNode == OfficeIMO.Core.Internal.OpenXml.OfficeXmlTree.NoNode ? null : WordOpenXmlSdkBridge.FindElement(sdkRoot, tree, root, bookmarkNode) as BookmarkStart;
+            _runValue = Element(elements, runNode) as Run;
+            _bookmarkStartValue = Element(elements, bookmarkNode) as BookmarkStart;
+
+            static object? Element(object?[] elements, int node) =>
+                node >= 0 && node < elements.Length ? elements[node] : null;
         }
         internal readonly OfficeMath? _officeMath;
         internal readonly SdtRun? _stdRun;
