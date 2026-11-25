@@ -12,7 +12,7 @@ enum DevelopmentHarness {
         return arguments[index + 1]
     }
 
-    /// `-OfficeIMOScanFromPhotos` runs the launch screen's PDF from Photos and opens the new PDF.
+    /// `-OfficeIMOScanFromPhotos` runs the launch screen's New PDF from Photos and opens the new PDF.
     static var scansFromPhotos: Bool { ProcessInfo.processInfo.arguments.contains("-OfficeIMOScanFromPhotos") }
 }
 
@@ -57,7 +57,7 @@ private struct HarnessScan: View {
             HarnessWindow(document: document, url: url)
         } else {
             ContentUnavailableView {
-                Label("PDF from Photos", systemImage: "doc.viewfinder")
+                Label("New PDF from Photos", systemImage: "doc.viewfinder")
             } description: {
                 Text(message ?? "Choose photos of pages to make a searchable PDF.")
             } actions: {

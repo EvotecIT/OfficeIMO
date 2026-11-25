@@ -74,6 +74,7 @@ extension DocumentSession {
     func beginSigning(with signature: Signature) {
         guard canEditAnnotations else { return }
         if task != .read { task = .read }
+        formFieldTool = nil
         pendingSignature = signature
     }
 

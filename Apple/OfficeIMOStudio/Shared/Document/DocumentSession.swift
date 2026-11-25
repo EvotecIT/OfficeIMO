@@ -136,11 +136,29 @@ final class DocumentSession {
     var notice: String?
     /// The title of the notice's alert, when it reports something other than text recognition.
     var noticeTitle: String?
-    /// Form fields of pages near the one in view, for the revision they were read from.
-    @ObservationIgnored var formPages: [Int: FormFields] = [:]
+    /// Form fields of pages near the one in view, for the revision they were read from. Observed, so the page view and
+    /// the selected field's name, Edit and Delete follow as fields load after an edit.
+    var formPages = RevisionPages<FormFields>()
     @ObservationIgnored var formLoads: [Int: RevisionRead<FormFields>] = [:]
-    /// Bumped when form fields load, so the page view shows where they are.
-    var formFieldsVersion = 0
+    /// The field kind a drag on the page adds while editing the form; nil when not editing it.
+    var formFieldTool: NewFormFieldKind?
+    /// The field selected while editing the form, by name, and the page it was selected on.
+    var selectedFormField: FormFieldSelection?
+    /// The field whose name and options the field sheet shows, new or selected.
+    var formFieldSheet: FormFieldSheet?
+
+    // Comments
+    /// What the inspector shows: the document's details or its comments.
+    var inspectorPane = InspectorPane.details
+    /// The comment threads, for the revision they were read from.
+    var comments: CommentList?
+    let commentsLoad = RevisionRead<CommentList>()
+    /// The selected thread, by the id that stays the same across revisions.
+    var selectedComment: String?
+    var commentFilter = CommentFilter.all
+    /// Keeps the threads with an entry by an author whose name contains this text.
+    var commentAuthorFilter = ""
+    var commentDrafts = CommentDrafts()
 
     // Markup
     /// Whether drawing not yet added to the document is on the page.
@@ -176,6 +194,8 @@ final class DocumentSession {
     /// Text selected in the Read task, on one page.
     var textSelection: TextSelection?
     @ObservationIgnored private var pageTexts: [Int: PageText] = [:]
+    /// Bumped when a page's text arrives, so what reads it, such as VoiceOver's page elements, can follow.
+    private(set) var pageTextVersion = 0
     @ObservationIgnored private var pageTextLoads: [Int: RevisionRead<PageText>] = [:]
 
     // Search
@@ -337,6 +357,7 @@ final class DocumentSession {
 
     /// A page's text, if loaded for the revision shown; loadPageText fetches it.
     func pageText(_ page: Int) -> PageText? {
+        _ = pageTextVersion
         guard let text = pageTexts[page], text.revision == revision else { return nil }
         return text
     }
@@ -357,6 +378,7 @@ final class DocumentSession {
             if text.revision == revision {
                 pageTexts[page] = text
                 if pageTexts.count > 8, let far = pageTexts.keys.max(by: { abs($0 - page) < abs($1 - page) }) { pageTexts[far] = nil }
+                pageTextVersion &+= 1
             }
         } catch {
             if !Task.isCancelled, self.engine === engine { errorMessage = error.localizedDescription }
@@ -478,13 +500,15 @@ final class DocumentSession {
         }
     }
 
-    /// The name markup carries as its author: the user's full name where the platform gives it.
+    /// The name comments and markup carry as their author: the name chosen in the Comments inspector, or the user's
+    /// full name where the platform gives it.
     static var author: String {
         #if os(macOS)
-        NSFullUserName()
+        let system = NSFullUserName()
         #else
-        ""
+        let system = ""
         #endif
+        return CommentAuthor.resolve(stored: UserDefaults.standard.string(forKey: CommentAuthor.defaultsKey), system: system)
     }
 
     /// Runs an engine edit after any earlier one and registers its undo once it has succeeded. An edit that takes

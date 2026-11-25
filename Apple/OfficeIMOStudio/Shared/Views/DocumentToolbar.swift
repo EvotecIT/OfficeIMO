@@ -57,7 +57,8 @@ struct DocumentToolbar: ToolbarContent {
             toolsMenu
             share
         }
-        ToolbarItem(placement: .primaryAction) {
+        ToolbarItemGroup(placement: .primaryAction) {
+            commentsButton
             inspectorToggle
         }
         #else
@@ -88,7 +89,10 @@ struct DocumentToolbar: ToolbarContent {
         }
         // In Markup the bottom bar stays empty: the tool picker is there.
         if session.task != .markup && isCompact {
-            ToolbarItem(placement: .topBarTrailing) { inspectorToggle }
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                commentsButton
+                inspectorToggle
+            }
             // Separate items with flexible spacers, so each is its own glass control in the bottom bar.
             if session.task == .pages {
                 ToolbarItem(placement: .bottomBar) { toolsMenu }
@@ -114,6 +118,7 @@ struct DocumentToolbar: ToolbarContent {
                 searchButton
                 toolsMenu
                 share
+                commentsButton
                 inspectorToggle
             }
             if session.task == .pages {
@@ -239,6 +244,19 @@ struct DocumentToolbar: ToolbarContent {
                 .disabled(session.isWorking || session.hasPendingMarkup)
             #endif
         }
+    }
+
+    /// Opens the inspector on the comments, or closes it when it already shows them.
+    private var commentsButton: some View {
+        Button("Comments", systemImage: "text.bubble") {
+            if session.isInspectorShown && session.inspectorPane == .comments {
+                session.isInspectorShown = false
+            } else {
+                session.showComments()
+            }
+        }
+        .disabled(!session.isReady)
+        .help("Comments")
     }
 
     private var inspectorToggle: some View {

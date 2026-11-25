@@ -373,6 +373,24 @@ public class PdfAcroFormEditorTests {
         Assert.Equal(490D, widget.Y2, 3);
     }
 
+    [Fact]
+    public void Edit_RemovesAnotherFieldBesideAnUnsignedSignatureFieldThroughAFullRewrite() {
+        byte[] source = PdfDocument.Create().Paragraph(p => p.AddText("Application")).ToBytes();
+        source = PdfDocument.Load(source).Forms.Edit(edit => edit
+            .Create(new PdfFormFieldCreateOptions { Name = "FullName", Kind = PdfFormFieldCreationKind.Text, PageNumber = 1, X = 72, Y = 600, Width = 180, Height = 24 })
+            .Create(new PdfFormFieldCreateOptions { Name = "Agree", Kind = PdfFormFieldCreationKind.CheckBox, PageNumber = 1, X = 72, Y = 560, Width = 16, Height = 16, Value = "Off" })
+            .PlaceSignatureField("Approval", 1, 72, 480, 180, 40)).ToBytes();
+        int before = Assert.Single(PdfInspector.Inspect(source).Security.SignatureFieldObjectNumbers);
+
+        // The rewrite renumbers objects; the unsigned signature field is kept by name, as nothing has signed its number yet.
+        byte[] removed = PdfDocument.Load(source).Forms.Edit(edit => edit.Remove("Agree")).ToBytes();
+
+        PdfDocumentInfo info = PdfInspector.Inspect(removed);
+        Assert.Equal(new[] { "Approval", "FullName" }, info.FormFieldNames.OrderBy(static name => name, StringComparer.Ordinal).ToArray());
+        Assert.Equal(new[] { "Approval" }, info.Security.SignatureFieldNames);
+        Assert.NotEqual(before, Assert.Single(info.Security.SignatureFieldObjectNumbers));
+    }
+
     [Theory]
     [InlineData("missing-box")]
     [InlineData("invalid-box")]
