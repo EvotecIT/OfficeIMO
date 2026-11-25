@@ -48,12 +48,14 @@ internal sealed class PdfTaggedTableSegment {
         int tableObjectNumber,
         int pageNumber,
         int segmentIndex,
-        IReadOnlyList<string>? inheritedHeader,
+        int headerRowCount,
+        IReadOnlyList<string>? columnNames,
         IReadOnlyList<PdfTaggedTableCellSpan> spans) {
         TableObjectNumber = tableObjectNumber;
         PageNumber = pageNumber;
         SegmentIndex = segmentIndex;
-        InheritedHeader = inheritedHeader;
+        HeaderRowCount = headerRowCount;
+        ColumnNames = columnNames;
         Spans = spans;
     }
 
@@ -61,8 +63,10 @@ internal sealed class PdfTaggedTableSegment {
     internal int PageNumber { get; }
     /// <summary>Zero-based position of this page's rows among the table's pages.</summary>
     internal int SegmentIndex { get; }
-    /// <summary>Header texts from the table's tagged header row, for segments that continue it.</summary>
-    internal IReadOnlyList<string>? InheritedHeader { get; }
+    /// <summary>Number of tagged header rows this segment starts with; zero when it continues the table without them.</summary>
+    internal int HeaderRowCount { get; }
+    /// <summary>Column names from the table's tagged header rows, joined top to bottom, or null without a header.</summary>
+    internal IReadOnlyList<string>? ColumnNames { get; }
     internal IReadOnlyList<PdfTaggedTableCellSpan> Spans { get; }
 }
 

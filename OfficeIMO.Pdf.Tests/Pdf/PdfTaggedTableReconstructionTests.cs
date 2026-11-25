@@ -310,6 +310,87 @@ public sealed class PdfTaggedTableReconstructionTests {
         Assert.False(table.Cells.Single(cell => cell.RowIndex == 3 && cell.ColumnIndex == 0).IsCoveredBySpan);
     }
 
+    [Fact]
+    public void SelectedContinuationPageKeepsColumnsFilledOnOtherPages() {
+        byte[] bytes = CreateTaggedDocument(
+            canvas => GridPage(canvas, new[] { new[] { "Item", "Note", "Count" } },
+                new[] { new[] { (0, "Alpha", 1), (1, "First", 1), (2, "1", 1) } }),
+            canvas => GridPage(canvas, Array.Empty<string[]>(),
+                new[] { new[] { (0, "Gamma", 1), (1, string.Empty, 1), (2, "3", 1) } }));
+        using PdfDocument document = PdfDocument.Load(new MemoryStream(bytes));
+
+        PdfDocumentReadResult read = document.Read(new PdfLoadOptions { PageSelection = PdfPageSelection.From(2) });
+
+        // The Note column is empty on page 2 but filled on page 1, so it stays.
+        PdfLogicalTableData data = PdfLogicalTableAnalysis.Extract(Assert.Single(Assert.Single(read.Pages).Tables));
+        Assert.Equal(new[] { "Item", "Note", "Count" }, data.Columns);
+        Assert.Equal(new[] { "Gamma||3" }, data.Rows.Select(static row => string.Join("|", row)));
+    }
+
+    [Fact]
+    public void RepeatedMultiRowHeaderStaysOutOfTheContinuedRows() {
+        string[][] header = { new[] { "Product", "Price", string.Empty }, new[] { string.Empty, "Bid", "Ask" } };
+        byte[] bytes = CreateTaggedDocument(
+            canvas => GridPage(canvas, header, new[] { new[] { (0, "Alpha", 1), (1, "10", 1), (2, "11", 1) } }),
+            canvas => GridPage(canvas, header, new[] { new[] { (0, "Beta", 1), (1, "20", 1), (2, "21", 1) } }));
+        using PdfDocument document = PdfDocument.Load(new MemoryStream(bytes));
+
+        PdfLogicalTableContinuationGroup group = Assert.Single(document.Read().GetTableContinuationGroups());
+
+        Assert.Equal(new[] { "Product", "Price Bid", "Ask" }, group.Columns);
+        Assert.Equal(new[] { "Alpha|10|11", "Beta|20|21" }, group.Rows.Select(static row => string.Join("|", row)));
+    }
+
+    [Fact]
+    public void RowSpanContinuingOnTheNextPageStaysMergedThere() {
+        byte[] bytes = CreateTaggedDocument(
+            canvas => GridPage(canvas, new[] { new[] { "Group", "Item", "Count" } },
+                new[] { new[] { (0, "North", 3), (1, "Alpha", 1), (2, "1", 1) } }),
+            canvas => GridPage(canvas, Array.Empty<string[]>(), new[] {
+                new[] { (1, "Beta", 1), (2, "2", 1) },
+                new[] { (1, "Gamma", 1), (2, "3", 1) },
+                new[] { (0, "South", 1), (1, "Delta", 1), (2, "4", 1) } }));
+        using PdfDocument document = PdfDocument.Load(new MemoryStream(bytes));
+
+        PdfLogicalTable continued = Assert.Single(document.Read().Pages[1].Tables);
+
+        Assert.Equal(new[] { "|Beta|2", "|Gamma|3", "South|Delta|4" }, continued.Rows.Select(static row => string.Join("|", row)));
+        Assert.Equal(2, continued.Cells.Single(cell => cell.RowIndex == 0 && cell.ColumnIndex == 0).RowSpan);
+        Assert.True(continued.Cells.Single(cell => cell.RowIndex == 1 && cell.ColumnIndex == 0).IsCoveredBySpan);
+    }
+
+    /// <summary>One page of a three-column tagged table whose Table, THead and TBody elements continue across pages.</summary>
+    private static void GridPage(PdfPageCanvas canvas, string[][] headerRows, (int Column, string Text, int RowSpan)[][] bodyRows) {
+        canvas.Structure(PdfCanvasStructureRole.Table, table => {
+            if (headerRows.Length > 0) table.Structure(PdfCanvasStructureRole.TableBody, head => {
+                for (int rowIndex = 0; rowIndex < headerRows.Length; rowIndex++) {
+                    string[] texts = headerRows[rowIndex];
+                    double y = 100D + (rowIndex * 20D);
+                    int headerRow = rowIndex;
+                    head.Structure(PdfCanvasStructureRole.TableRow, row => {
+                        for (int column = 0; column < texts.Length; column++) {
+                            int at = column;
+                            row.Structure(PdfCanvasStructureRole.TableHeaderCell, cell => Lines(cell, at, y, texts[at]),
+                                new PdfCanvasStructureOptions { StructureElementKey = "grid-h" + headerRow + "-" + at });
+                        }
+                    }, new PdfCanvasStructureOptions { StructureElementKey = "grid-head-" + headerRow });
+                }
+            }, new PdfCanvasStructureOptions { StructureElementKey = "grid-head", TableRowGroupType = "THead" });
+            table.Structure(PdfCanvasStructureRole.TableBody, body => {
+                for (int rowIndex = 0; rowIndex < bodyRows.Length; rowIndex++) {
+                    (int Column, string Text, int RowSpan)[] cells = bodyRows[rowIndex];
+                    double y = 160D + (rowIndex * 20D);
+                    body.Structure(PdfCanvasStructureRole.TableRow, row => {
+                        foreach ((int column, string text, int rowSpan) in cells) {
+                            row.Structure(PdfCanvasStructureRole.TableCell, cell => Lines(cell, column, y, text),
+                                rowSpan > 1 ? new PdfCanvasStructureOptions { RowSpan = rowSpan } : null);
+                        }
+                    });
+                }
+            }, new PdfCanvasStructureOptions { StructureElementKey = "grid-body" });
+        }, new PdfCanvasStructureOptions { StructureElementKey = "grid" });
+    }
+
     private static void TablePage(PdfPageCanvas canvas, params (string Item, string Count)[] rows) =>
         TablePage(canvas, rows, swappedRow: -1);
 
