@@ -78,6 +78,7 @@ namespace OfficeIMO.PowerPoint {
             shared = new List<(string, string, string, bool)>();
             references = new List<(string, string, string, bool)>();
             var hyperlinks = new List<(string, string, string, bool)>();
+            var sharedParts = new HashSet<string>(OfficeAsciiIgnoreCaseComparer.Instance);
             string relationshipsPart = OfficeOpcPartNames.GetRelationshipsPartName(slide);
             if (!package.PartExists(relationshipsPart)) return true;
             OfficeXmlTree relationships = package.GetXml(relationshipsPart);
@@ -97,7 +98,8 @@ namespace OfficeIMO.PowerPoint {
                     || normalized == OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "slide"
                     || normalized == OfficeXmlNamespaces.TransitionalRelationshipTypePrefix + "notesMaster") {
                     string? resolved = OfficeOpcPartNames.ResolveRelationshipTarget(relationshipsPart, target);
-                    if (resolved == null || !package.PartExists(resolved)) return false;
+                    // The SDK refuses to relate the copy to one part under two ids, which the model reports.
+                    if (resolved == null || !package.PartExists(resolved) || !sharedParts.Add(PartIdentity(resolved))) return false;
                     shared.Add((id, type, target, false));
                 } else {
                     // Notes, charts, embedded objects and media are cloned with the slide by the model.
