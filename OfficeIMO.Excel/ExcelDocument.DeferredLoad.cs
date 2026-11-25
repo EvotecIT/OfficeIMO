@@ -1,8 +1,5 @@
 using System.Diagnostics;
 using System.Xml;
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Core.Internal.OpenXml;
 
@@ -40,8 +37,9 @@ namespace OfficeIMO.Excel {
 
     /// <summary>
     /// A plain, unsigned Transitional workbook loads without opening the Open XML SDK package. The load reads the
-    /// workbook's sheet list with the owned package reader, and the SDK opens over the same bytes on first use, exactly
-    /// as the load would have opened it. Every such opening is recorded in <see cref="OpenXmlSdkFallbacks"/>.
+    /// workbook's sheet list with the owned package reader. When something needs the SDK, the bridge in OpenXmlSdk/
+    /// opens it over the same bytes, exactly as the load would have, and takes over the package from then on. Every
+    /// such opening is recorded in <see cref="OpenXmlSdkFallbacks"/>.
     /// </summary>
     public partial class ExcelDocument {
         private static readonly HashSet<string> WorkbookMainContentTypes = new(StringComparer.OrdinalIgnoreCase) {
@@ -57,7 +55,6 @@ namespace OfficeIMO.Excel {
         // Set while the SDK package has not been opened: what the load read, and how the SDK opens when it is needed.
         private ExcelDeferredWorkbook? _deferredWorkbook;
         private byte[]? _deferredPackageBytes;
-        private OpenSettings? _deferredOpenSettings;
         private bool _deferredReadOnly;
         private readonly List<string> _openXmlSdkFallbacks = new();
 
@@ -69,41 +66,6 @@ namespace OfficeIMO.Excel {
         /// member that needed it. Empty while the workbook works through OfficeIMO's own Open XML layer.
         /// </summary>
         public IReadOnlyList<string> OpenXmlSdkFallbacks => _openXmlSdkFallbacks;
-
-        /// <summary>
-        /// Opens the SDK package of a deferred load over the bytes the load read, with its settings, and binds the
-        /// worksheets the document has handed out. Does nothing when the package is already open.
-        /// </summary>
-        internal void OpenDeferredSdk(string? reason) {
-            ExcelDeferredWorkbook? deferred = _deferredWorkbook;
-            if (deferred == null) {
-                if (_disposed && _spreadSheetDocumentValue == null) throw new ObjectDisposedException(nameof(ExcelDocument));
-                return;
-            }
-            byte[] bytes = _deferredPackageBytes!;
-            Stream stream = OfficePackageLoadSource.CreatePackageStream(bytes, DocumentAccessMode.ReadWrite);
-            SpreadsheetDocument document;
-            try {
-                document = _deferredReadOnly
-                    ? OfficeIMO.OpenXml.Internal.OfficeOpenXmlReadOnlyPackage.OpenSpreadsheet(stream, _deferredOpenSettings!)
-                    : SpreadsheetDocument.Open(stream, true, _deferredOpenSettings!);
-            } catch {
-                stream.Dispose();
-                throw;
-            }
-
-            _deferredWorkbook = null;
-            _deferredPackageBytes = null;
-            _spreadSheetDocumentValue = document;
-            _workBookPartValue = GetWorkbookPartOrThrow(document);
-            _packageCopyOnWriteStream = stream as OfficeCopyOnWriteStream;
-            _packageOnCopyOnWriteStream = _packageCopyOnWriteStream != null ? document : null;
-            ExcelChartAxisIdGenerator.ReadChartRelationships(document);
-            BindDeferredSheets(deferred);
-            _openXmlSdkFallbacks.Add(reason ?? DescribeSdkCaller());
-            // Values written before the package opened go through the model now, in the order they were written.
-            ReplayDeferredCellEdits();
-        }
 
         internal void ThrowIfDisposed() {
             if (_disposed) throw new ObjectDisposedException(nameof(ExcelDocument));
@@ -132,43 +94,6 @@ namespace OfficeIMO.Excel {
             return "Open XML SDK needed";
         }
 
-        /// <summary>Binds each handed-out sheet to its SDK element and part, and rebuilds the sheet cache around them.</summary>
-        private void BindDeferredSheets(ExcelDeferredWorkbook deferred) {
-            var elements = ReadSheetElements();
-            var byRelationship = new Dictionary<string, Sheet>(StringComparer.Ordinal);
-            foreach (Sheet element in elements) {
-                if (element.Id?.Value is { } id && !byRelationship.ContainsKey(id)) byRelationship[id] = element;
-            }
-
-            lock (_sheetWrapperCacheLock) {
-                for (int index = _sheetWrappers.Count - 1; index >= 0; index--) {
-                    if (!_sheetWrappers[index].TryGetTarget(out ExcelSheet? wrapper)) {
-                        _sheetWrappers.RemoveAt(index);
-                        continue;
-                    }
-                    ExcelDeferredSheet? entry = wrapper.DeferredEntry;
-                    if (entry == null || !byRelationship.TryGetValue(entry.RelationshipId, out Sheet? element)) continue;
-                    if (_workBookPartValue.GetPartById(entry.RelationshipId) is WorksheetPart part) {
-                        wrapper.BindToSdk(_spreadSheetDocumentValue, element, part);
-                    }
-                }
-            }
-
-            lock (_sheetCacheRebuildGate) {
-                UpdateSheetIdCache(elements);
-                _cachedSheetElements = elements.ConvertAll(element => new CachedSheetElement(element));
-                if (_cachedSheets != null) {
-                    // The cached wrappers are the ones callers hold; they stay the document's sheets.
-                    _cachedSheets = _cachedSheets.Where(sheet => sheet.DeferredEntry == null).ToList();
-                    if (_cachedSheets.Count != elements.Count(IsWorksheetElement)) _sheetCacheDirty = true;
-                }
-            }
-            _ = deferred;
-        }
-
-        private bool IsWorksheetElement(Sheet sheet) =>
-            sheet.Id?.Value is { } id && _workBookPartValue.GetPartById(id) is WorksheetPart;
-
         /// <summary>The sheets of a deferred workbook, as the SDK route would hand them out: worksheets only.</summary>
         private List<ExcelSheet> MaterializeDeferredSheets(ExcelDeferredWorkbook deferred) {
             var sheets = new List<ExcelSheet>(deferred.Sheets.Count);
@@ -187,17 +112,11 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        // Settings beyond the defaults change how the SDK reads parts, so those loads open it right away.
-        private static bool IsPlainOpenSettings(OpenSettings settings) =>
-            settings.MaxCharactersInPart == 0
-            && settings.MarkupCompatibilityProcessSettings.ProcessMode == MarkupCompatibilityProcessMode.NoProcess;
-
         /// <summary>
         /// Reads the workbook of a plain, unsigned Transitional package whose every sheet entry reaches a part, or
         /// returns null for the load to open the SDK as before.
         /// </summary>
-        internal static ExcelDeferredWorkbook? TryReadDeferredWorkbook(byte[] bytes, OpenSettings settings) {
-            if (!IsPlainOpenSettings(settings)) return null;
+        internal static ExcelDeferredWorkbook? TryReadDeferredWorkbook(byte[] bytes) {
             try {
                 using var source = new MemoryStream(bytes, 0, bytes.Length, writable: false, publiclyVisible: true);
                 using OfficeOpcPackage package = OfficeOpcPackage.Open(source, leaveOpen: true);

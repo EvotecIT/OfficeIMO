@@ -326,7 +326,8 @@ namespace OfficeIMO.Excel {
                         bytes, effectiveOpenSettings.MaxCharactersInPart, out byte[] normalizedBytes, out _)) {
                     ExcelDeferredWorkbook? deferred = options.PersistenceMode == DocumentPersistenceMode.Explicit
                         && !OfficeCompatibilitySourceCarrier.ContainsPackageCarrier(bytes)
-                        ? TryReadDeferredWorkbook(normalizedBytes, effectiveOpenSettings)
+                        && IsPlainOpenSettings(effectiveOpenSettings)
+                        ? TryReadDeferredWorkbook(normalizedBytes)
                         : null;
                     if (deferred != null) {
                         ExcelDocument deferredDocument = CreateDeferredDocument(deferred, normalizedBytes, effectiveOpenSettings, readOnly,
