@@ -58,15 +58,31 @@ final class StudioStoreCaptureTests: XCTestCase {
             closeSearch(search, in: app)
         }
 
+        if isCompact {
+            // Pages uses the task picker, which is hidden during Markup on iPhone.
+            selectTask(at: 2, in: app)
+            XCTAssertTrue(page.waitForNonExistence(timeout: 10), viewport.debugDescription)
+            try capture(viewport, region: nil, phrases: [], expectedPID: opened.expectedPID, name: "studio-pages-" + role)
+            selectTask(at: 0, in: app)
+            XCTAssertTrue(page.waitForExistence(timeout: 10), viewport.debugDescription)
+        }
+
         // Markup: the drawing tools over the same page.
         selectTask(at: 1, in: app)
         #if os(iOS)
         let done = app.buttons[StudioAccessibilityID.markupDone]
-        XCTAssertTrue(done.waitForExistence(timeout: 10), app.debugDescription)
+        if isCompact && !done.exists {
+            // iOS can move Done into the system overflow. Capture the visible tool picker.
+            let palette = app.descendants(matching: .any).matching(identifier: "Drawing-Palette").firstMatch
+            XCTAssertTrue(palette.waitForExistence(timeout: 10) && palette.frame.intersects(viewport.frame), app.debugDescription)
+        } else {
+            XCTAssertTrue(done.waitForExistence(timeout: 10), app.debugDescription)
+        }
         #endif
         XCTAssertTrue(page.waitForExistence(timeout: 10), viewport.debugDescription)
         try capture(viewport, region: page, phrases: StudioCapturePageReadiness.dashboardPhrases,
                     expectedPID: opened.expectedPID, name: "studio-markup-" + role)
+        if isCompact { return }
         #if os(iOS)
         done.tap()
         #else
@@ -74,24 +90,16 @@ final class StudioStoreCaptureTests: XCTestCase {
         #endif
         XCTAssertTrue(page.waitForExistence(timeout: 10), viewport.debugDescription)
 
-        if isCompact {
-            // Pages: the page organizer, which replaces the reading view.
-            selectTask(at: 2, in: app)
-            try capture(viewport, region: nil, phrases: [], expectedPID: opened.expectedPID, name: "studio-pages-" + role)
-            selectTask(at: 0, in: app)
-            XCTAssertTrue(page.waitForExistence(timeout: 10), viewport.debugDescription)
-        } else {
-            // The inspector beside the page, with the engine's document facts.
-            let inspector = app.buttons[StudioAccessibilityID.inspectorToggle]
-            XCTAssertTrue(inspector.waitForExistence(timeout: 10), app.debugDescription)
-            inspector.clickOrTap()
-            let facts = app.descendants(matching: .any).matching(identifier: StudioAccessibilityID.inspectorFileSize).firstMatch
-            XCTAssertTrue(facts.waitForExistence(timeout: 10), app.debugDescription)
-            try capture(viewport, region: page, phrases: StudioCapturePageReadiness.dashboardPhrases,
-                        expectedPID: opened.expectedPID, name: "studio-inspector-" + role)
-            inspector.clickOrTap()
-            XCTAssertTrue(facts.waitForNonExistence(timeout: 10), app.debugDescription)
-        }
+        // The inspector beside the page, with the engine's document facts.
+        let inspector = app.buttons[StudioAccessibilityID.inspectorToggle]
+        XCTAssertTrue(inspector.waitForExistence(timeout: 10), app.debugDescription)
+        inspector.clickOrTap()
+        let facts = app.descendants(matching: .any).matching(identifier: StudioAccessibilityID.inspectorFileSize).firstMatch
+        XCTAssertTrue(facts.waitForExistence(timeout: 10), app.debugDescription)
+        try capture(viewport, region: page, phrases: StudioCapturePageReadiness.dashboardPhrases,
+                    expectedPID: opened.expectedPID, name: "studio-inspector-" + role)
+        inspector.clickOrTap()
+        XCTAssertTrue(facts.waitForNonExistence(timeout: 10), app.debugDescription)
         #if os(iOS)
         if role == "ipad" { try verifyRegularDocumentNavigation(app, page: page) }
         #endif
@@ -113,7 +121,12 @@ final class StudioStoreCaptureTests: XCTestCase {
         continueAfterFailure = false
         let opened = try openDocument(environmentKey: "STUDIO_CAPTURE_OFFICE_PATH")
         defer { opened.app.terminate() }
+        #if os(macOS)
+        // The native PDF viewer exposes its scroll view without the SwiftUI wrapper identifier.
+        let pages = opened.viewport.scrollViews.firstMatch
+        #else
         let pages = opened.viewport.descendants(matching: .any).matching(identifier: StudioAccessibilityID.viewerPages).firstMatch
+        #endif
         XCTAssertTrue(pages.waitForExistence(timeout: 60), opened.viewport.debugDescription)
         try capture(opened.viewport, region: pages, phrases: StudioCapturePageReadiness.officePhrases,
                     expectedPID: opened.expectedPID, name: "studio-office-" + role)
@@ -174,7 +187,12 @@ final class StudioStoreCaptureTests: XCTestCase {
 
     /// Read, Markup and Pages are the task picker's segments, in that order in every language.
     private func selectTask(at index: Int, in app: XCUIApplication) {
+        #if os(macOS)
+        // AppKit can expose a segmented picker as a radio group.
+        let tasks = app.descendants(matching: .any).matching(identifier: StudioAccessibilityID.taskPicker).firstMatch
+        #else
         let tasks = app.segmentedControls[StudioAccessibilityID.taskPicker]
+        #endif
         XCTAssertTrue(tasks.waitForExistence(timeout: 10), app.debugDescription)
         #if os(macOS)
         let segments = tasks.radioButtons.count > index ? tasks.radioButtons : tasks.buttons
@@ -379,9 +397,8 @@ final class StudioStoreCaptureTests: XCTestCase {
                 let contentBounds = CGRect(x: (visible.minX - viewportFrame.minX) * scaleX,
                                            y: (visible.minY - viewportFrame.minY) * scaleY,
                                            width: visible.width * scaleX, height: visible.height * scaleY)
-                let pixels = try StudioCapturePageReadiness.pagePixels(from: image, contentBounds: contentBounds,
-                                                                       phrases: phrases)
-                lastError = "The scene is recognized; waiting for stable pixels in \(contentBounds)."
+                let pixels = try StudioCapturePageReadiness.pagePixels(from: image, contentBounds: contentBounds)
+                lastError = "Waiting for stable pixels in \(contentBounds)."
                 let now = ProcessInfo.processInfo.systemUptime
                 if pixels != previousPixels || stableSince == nil {
                     previousPixels = pixels
@@ -389,6 +406,8 @@ final class StudioStoreCaptureTests: XCTestCase {
                     continue
                 }
                 guard now - stableSince! >= 2 else { continue }
+                // Recognize the frame we will attach. Cold Vision startup can take longer than the sampling window.
+                try StudioCapturePageReadiness.requirePhrases(in: image, contentBounds: contentBounds, phrases: phrases)
                 accepted = screenshot
                 break
             } catch {
@@ -419,8 +438,28 @@ final class StudioStoreCaptureTests: XCTestCase {
         let desired = CGSize(width: 1280, height: 800)
         if documentWindow.frame.size == desired { return }
         guard AXIsProcessTrusted() else {
-            // An operator may prepare this window with an already authorized
-            // resize tool. The same dimensions remain mandatory for the capture.
+            // XCTest can drag the window corner without writing through Accessibility.
+            let frame = documentWindow.frame
+            let origin = documentWindow.coordinate(withNormalizedOffset: .zero)
+            let corner = origin.withOffset(CGVector(dx: frame.width - 2, dy: frame.height - 2))
+            let destination = origin.withOffset(CGVector(dx: desired.width - 2, dy: desired.height - 2))
+            let cornerPoint = corner.screenPoint
+            let destinationPoint = destination.screenPoint
+            let screenKey = NSDeviceDescriptionKey("NSScreenNumber")
+            let onScreen = NSScreen.screens.contains { screen in
+                guard let number = screen.deviceDescription[screenKey] as? NSNumber else { return false }
+                let bounds = CGDisplayBounds(number.uint32Value)
+                return bounds.contains(cornerPoint) && bounds.contains(destinationPoint)
+            }
+            let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] ?? []
+            if onScreen, documentWindow.isHittable,
+               let front = NSWorkspace.shared.frontmostApplication,
+               front.bundleURL?.standardizedFileURL == appURL.standardizedFileURL,
+               StudioCapturePageReadiness.hasNoPartialWindowOverlap(processIdentifier: front.processIdentifier,
+                                                                   frame: frame, windows: windows) {
+                corner.click(forDuration: 0.15, thenDragTo: destination)
+            }
+            // A runner can also prepare the window. Keep the exact size requirement.
             let sized = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
                 documentWindow.frame.size == desired
             }, object: nil)
