@@ -62,6 +62,10 @@ internal sealed class MarkdownSourceLines : IReadOnlyList<string> {
             if ((uint)index >= (uint)Length) {
                 throw new IndexOutOfRangeException();
             }
+            if (value == null && !_allLinesCreated) {
+                // A null slot reads as "not created yet"; create the rest first so this null stays a null.
+                ToArray();
+            }
             (_strings ??= new string?[Length])[index] = value;
             _mayDifferFromText = true;
         }
@@ -69,8 +73,9 @@ internal sealed class MarkdownSourceLines : IReadOnlyList<string> {
 
     private string GetOrCreateLine(int index) {
         var strings = _strings;
-        if (_starts == null) {
-            // Lines handed in as strings are returned as they are, null included.
+        if (_starts == null || _allLinesCreated) {
+            // Lines handed in as strings are returned as they are, null included; once every line has
+            // been created, a null was written by a parser and stays one.
             return strings![index]!;
         }
         if ((uint)index >= (uint)Length) {
@@ -201,8 +206,8 @@ internal sealed class MarkdownSourceLines : IReadOnlyList<string> {
         var strings = _strings;
         if (strings != null) {
             var line = strings[index];
-            if (line != null || _starts == null) {
-                // Lines handed in as strings may include null, read as an empty line.
+            if (line != null || _starts == null || _allLinesCreated) {
+                // Lines handed in as strings, or written as null by a parser, read null as an empty line.
                 text = line ?? string.Empty;
                 start = 0;
                 end = text.Length;
