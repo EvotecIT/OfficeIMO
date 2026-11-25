@@ -932,6 +932,8 @@
           "name": "CorpusName",
           "values": [
             "PortableReadme",
+            "SmallReadme",
+            "SmallTranscript",
             "Transcript",
             "TechnicalDoc",
             "RichAst",
@@ -968,6 +970,8 @@
           "name": "CorpusName",
           "values": [
             "PortableReadme",
+            "SmallReadme",
+            "SmallTranscript",
             "Transcript",
             "TechnicalDoc",
             "RichAst",
@@ -3769,6 +3773,8 @@
         "Default",
         "ReaderText",
         "ReaderStreamedText",
+        "PackageReader",
+        "StreamedBodyText",
         "ExtractText"
       ],
       "cells": [
@@ -3793,6 +3799,20 @@
           }
         },
         {
+          "case": "PackageReader",
+          "library": "OfficeIMO",
+          "parameters": {
+            "ItemCount": "100"
+          }
+        },
+        {
+          "case": "StreamedBodyText",
+          "library": "OfficeIMO",
+          "parameters": {
+            "ItemCount": "100"
+          }
+        },
+        {
           "case": "ExtractText",
           "library": "OneDocument.Documents",
           "parameters": {
@@ -3820,6 +3840,20 @@
           }
         },
         {
+          "case": "PackageReader",
+          "library": "OfficeIMO",
+          "parameters": {
+            "ItemCount": "1000"
+          }
+        },
+        {
+          "case": "StreamedBodyText",
+          "library": "OfficeIMO",
+          "parameters": {
+            "ItemCount": "1000"
+          }
+        },
+        {
           "case": "ExtractText",
           "library": "OneDocument.Documents",
           "parameters": {
@@ -3841,6 +3875,20 @@
         },
         {
           "case": "ReaderStreamedText",
+          "library": "OfficeIMO",
+          "parameters": {
+            "ItemCount": "10000"
+          }
+        },
+        {
+          "case": "PackageReader",
+          "library": "OfficeIMO",
+          "parameters": {
+            "ItemCount": "10000"
+          }
+        },
+        {
+          "case": "StreamedBodyText",
           "library": "OfficeIMO",
           "parameters": {
             "ItemCount": "10000"
@@ -10120,6 +10168,44 @@
       ],
       "cases": [
         "Write_Styled"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "excel-formula-recalculation",
+      "area": "excel",
+      "title": "XLSX formula recalculation",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "ClosedXML",
+        "EPPlus"
+      ],
+      "axes": [
+        {
+          "name": "Rows",
+          "values": [
+            "2000"
+          ]
+        },
+        {
+          "name": "Shape",
+          "values": [
+            "RowFormulas",
+            "ConditionalTotals"
+          ]
+        }
+      ],
+      "cases": [
+        "Default"
       ],
       "expectedPlatforms": [
         "windows",

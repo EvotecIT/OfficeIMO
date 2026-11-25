@@ -118,6 +118,23 @@ $booleans = @('False', 'True')
                     RowCount = @(20000)
                 }))
     }
+    excelformulas = [pscustomobject]@{
+        Area = 'excel'
+        Title = 'XLSX formula recalculation'
+        # EPPlus is restricted by the library policy: published and default runs drop its case.
+        Libraries = @('OfficeIMO', 'ClosedXML', 'EPPlus')
+        ExpectedPlatforms = $platforms
+        PublishRestriction = 'None'
+        CatalogEligible = $true
+        Project = $project
+        Filter = '*.ExcelFormulaRecalculationBenchmarks.*'
+        ComparisonId = 'excel-formula-recalculation'
+        Suite = 'OfficeIMO.Excel.FormulaRecalculation'
+        ExpectedCases = @(New-ExcelExpectedCases -Methods @('OfficeIMO', 'ClosedXML', 'EPPlus') -Parameters ([ordered]@{
+                    Rows = @(2000)
+                    Shape = @('RowFormulas', 'ConditionalTotals')
+                }))
+    }
     excelsmallworkbookloop = [pscustomobject]@{
         Area = 'excel'
         Title = 'Opening and reading 200 small XLSX workbooks'
