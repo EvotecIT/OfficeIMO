@@ -78,6 +78,16 @@ namespace OfficeIMO.Excel {
                             case ExcelBufferedCellKind.DateTime:
                                 WriteDateTimeSerialCell(writer, cell.DateTimeValue, dateSystem);
                                 break;
+                            // Written as WriteCellValue writes the boxed value, without boxing it.
+                            case ExcelBufferedCellKind.Int32:
+                                WriteRawValueCell(writer, (int)cell.Bits);
+                                break;
+                            case ExcelBufferedCellKind.Int64:
+                                WriteRawValueCell(writer, cell.Bits);
+                                break;
+                            case ExcelBufferedCellKind.Boolean:
+                                writer.Write(cell.Bits != 0L ? " t=\"b\"><v>1</v></c>" : " t=\"b\"><v>0</v></c>");
+                                break;
                             case ExcelBufferedCellKind.StyleOnly:
                                 writer.Write("/>");
                                 break;
