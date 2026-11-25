@@ -41,6 +41,21 @@ public class PowerPointTextWithoutSdkTests {
     }
 
     [Fact]
+    public void ReadsTheOptionsWhenTheExtractionIsRequested() {
+        using var presentation = PowerPointDocument.Load(new MemoryStream(CreateDeck()));
+        var extract = new ExtractOptions { IncludeMarkdown = false };
+        var chunking = new PowerPointExtractChunkingOptions { MaxChars = 256 };
+        IEnumerable<PowerPointExtractChunk> pending = presentation.ExtractMarkdownChunks(extract, chunking);
+
+        extract.IncludeMarkdown = true;
+        chunking.MaxChars = 100_000;
+        PowerPointExtractChunk[] chunks = pending.ToArray();
+
+        Assert.False(presentation.IsSdkLoaded);
+        Assert.All(chunks, chunk => Assert.Null(chunk.Markdown));
+    }
+
+    [Fact]
     public void ASlideOpensTheSdkAndTheCountFollowsIt() {
         using var presentation = PowerPointDocument.Load(new MemoryStream(CreateDeck()));
         IReadOnlyList<PowerPointSlide> slides = presentation.Slides;

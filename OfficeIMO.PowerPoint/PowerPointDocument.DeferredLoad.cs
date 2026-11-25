@@ -164,12 +164,13 @@ namespace OfficeIMO.PowerPoint {
         /// goes to the model with nothing returned.
         /// </summary>
         internal List<PowerPointExtractChunk>? TryExtractChunksWithoutSdk(PowerPointExtractionExtensions.PowerPointExtractOptions extract,
-            PowerPointExtractChunkingOptions? chunking, string? sourcePath, CancellationToken cancellationToken) {
+            int maxChars, string? sourcePath, CancellationToken cancellationToken) {
             if (_disposed || !_sdkDeferred || _sdkDocument != null || !TryGetLoadedPackage(out MemoryStream? loaded) || loaded is not { } package) return null;
             try {
                 using (package) {
                     var options = new PowerPointLoadOptions { MaxInputBytes = null, OpenSettings = _deferredOpenSettings };
                     using PowerPointSlideReader reader = PowerPointSlideReader.Open(package, options, cancellationToken);
+                    var chunking = new PowerPointExtractChunkingOptions { MaxChars = maxChars };
                     return PowerPointExtractionExtensions.ExtractMarkdownChunks(reader, extract, chunking, sourcePath, cancellationToken).ToList();
                 }
             } catch (OperationCanceledException) {
