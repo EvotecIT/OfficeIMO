@@ -1,6 +1,6 @@
 namespace OfficeIMO.Epub;
 
-/// <summary>Updates to primary descriptive Dublin Core values. Null fields retain existing values.</summary>
+/// <summary>Updates to primary descriptive Dublin Core values. Null, empty or whitespace-only fields retain existing values.</summary>
 public sealed class EpubPublicationDetails {
     /// <summary>Publisher name.</summary>
     public string? Publisher { get; set; }

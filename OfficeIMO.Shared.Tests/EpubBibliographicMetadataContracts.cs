@@ -81,8 +81,27 @@ public sealed class EpubBibliographicMetadataContracts {
         Assert.Contains(metadata, entry => entry.Refines == "#subject" && entry.Property == "term" && entry.Value == "FIC000000");
         byte[] before = book.Write().Bytes;
         Assert.Throws<ArgumentException>(() => book.AddSubject("bad", new EpubSubjectMetadata { Text = "Subject", Code = "Missing authority" }));
-        Assert.Throws<ArgumentException>(() => book.SetPublicationDetails(new EpubPublicationDetails { Publisher = "New", Rights = " " }));
         Assert.Equal(before, book.Write().Bytes);
+    }
+
+    [Fact]
+    public void BlankPublicationDetailsRetainExistingValuesAndAreNotWritten() {
+        var book = Book();
+        book.SetPublicationDetails(new EpubPublicationDetails { Publisher = "Kept publisher", Rights = "Kept rights" });
+        byte[] before = book.Write().Bytes;
+        book.SetPublicationDetails(new EpubPublicationDetails { Publisher = "", Description = " \t", Rights = null });
+        Assert.Equal(before, book.Write().Bytes);
+
+        book.SetPublicationDetails(new EpubPublicationDetails { Publisher = "New publisher", Rights = " " });
+        var metadata = Reopen(book).Metadata;
+        Assert.Equal(new[] { "New publisher" }, metadata.Where(entry => entry.Name == "publisher").Select(entry => entry.Value));
+        Assert.Contains(metadata, entry => entry.Name == "rights" && entry.Value == "Kept rights");
+
+        var fresh = Book();
+        fresh.SetPublicationDetails(new EpubPublicationDetails { Description = "", Publisher = null, PublicationDate = new DateTime(2026, 11, 25) });
+        var freshMetadata = Reopen(fresh).Metadata;
+        Assert.DoesNotContain(freshMetadata, entry => entry.Name is "description" or "publisher");
+        Assert.Contains(freshMetadata, entry => entry.Name == "date" && entry.Value == "2026-11-25");
     }
 
     [Fact]
