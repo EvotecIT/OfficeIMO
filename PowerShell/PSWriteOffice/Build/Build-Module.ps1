@@ -28,6 +28,10 @@ if ($RunMode -eq 'Publish' -and [Environment]::OSVersion.Platform -ne [PlatformI
 }
 Import-Module PSPublishModule -MinimumVersion 3.0.196 -Force -ErrorAction Stop
 
+# The project adds net10.0, which the ReadyToRun payload is compiled from, only for this build.
+$previousReadyToRun = $env:PSWriteOfficeReadyToRun
+$env:PSWriteOfficeReadyToRun = 'true'
+try {
 Build-Module -ModuleName 'PSWriteOffice' -Path "$PSScriptRoot/../.." -RunMode $RunMode {
     # Usual defaults as per standard module
     $Manifest = [ordered] @{
@@ -157,3 +161,6 @@ Build-Module -ModuleName 'PSWriteOffice' -Path "$PSScriptRoot/../.." -RunMode $R
     New-ConfigurationPublish -Type GitHub -FilePath 'C:\Support\Important\GitHubAPI.txt' -UserName 'EvotecIT' -RepositoryName 'OfficeIMO' `
         -OverwriteTagName 'OfficeIMO-v{ModuleVersion}' -ReuseExistingRelease -Enabled:$true -GenerateReleaseNotes
 } -StagingPath $StagingPath -JsonOnly:$JsonOnly -JsonPath $JsonPath -SkipInstall:$SkipInstall -PassThru:$PassThru -ExitCode:(-not $PassThru)
+} finally {
+    $env:PSWriteOfficeReadyToRun = $previousReadyToRun
+}
