@@ -227,19 +227,32 @@ namespace OfficeIMO.Excel {
                 private readonly Dictionary<int, Cell> _cells;
                 private Cell? _lastCell;
                 private int _lastColumnIndex;
+                private bool _hasImplicitColumns;
 
                 internal BatchRowState(ExcelSheet sheet, Row row) {
                     _sheet = sheet;
                     _row = row;
                     _cells = new Dictionary<int, Cell>();
 
+                    bool tracking = false;
+                    int nextImplicitColumn = 0;
                     foreach (var cell in row.Elements<Cell>()) {
-                        var reference = cell.CellReference?.Value;
-                        if (string.IsNullOrEmpty(reference)) {
-                            continue;
+                        int columnIndex = 0;
+                        if (!tracking) {
+                            var reference = cell.CellReference?.Value;
+                            if (!string.IsNullOrEmpty(reference)) {
+                                columnIndex = GetRowQualifiedColumnIndex(reference!);
+                            }
+                            if (columnIndex == 0) {
+                                // From a cell the letters-only scan cannot resolve, columns follow the read rule.
+                                tracking = true;
+                                nextImplicitColumn = _lastCell == null ? 1 : _lastColumnIndex + 1;
+                            }
                         }
-
-                        int columnIndex = GetColumnIndex(reference!);
+                        if (tracking) {
+                            columnIndex = GetWriteColumnIndex(cell, ref nextImplicitColumn, out bool implicitColumn);
+                            if (implicitColumn) _hasImplicitColumns = true;
+                        }
                         _cells[columnIndex] = cell;
 
                         if (columnIndex >= _lastColumnIndex) {
@@ -251,6 +264,10 @@ namespace OfficeIMO.Excel {
 
                 internal Cell GetOrCreateCell(int columnIndex, int rowIndex) {
                     if (_cells.TryGetValue(columnIndex, out Cell? existing)) {
+                        // A cell placed by the read rule takes its canonical reference when it is written.
+                        if (_hasImplicitColumns && GetRowQualifiedColumnIndex(existing.CellReference?.Value ?? string.Empty) != columnIndex) {
+                            existing.CellReference = _sheet.BuildCellReference(rowIndex, columnIndex);
+                        }
                         return existing;
                     }
 
@@ -268,13 +285,23 @@ namespace OfficeIMO.Excel {
                         _row.InsertAfter(cell, _lastCell);
                     } else {
                         Cell? insertAfter = null;
+                        bool tracking = false;
+                        int nextImplicitColumn = 0;
                         foreach (var existingCell in _row.Elements<Cell>()) {
-                            var existingReference = existingCell.CellReference?.Value;
-                            if (string.IsNullOrEmpty(existingReference)) {
-                                continue;
+                            int existingColumnIndex = 0;
+                            if (!tracking) {
+                                var existingReference = existingCell.CellReference?.Value;
+                                if (!string.IsNullOrEmpty(existingReference)) {
+                                    existingColumnIndex = GetRowQualifiedColumnIndex(existingReference!);
+                                }
+                                if (existingColumnIndex == 0) {
+                                    tracking = true;
+                                    nextImplicitColumn = insertAfter == null
+                                        ? 1
+                                        : GetRowQualifiedColumnIndex(insertAfter.CellReference?.Value ?? string.Empty) + 1;
+                                }
                             }
-
-                            int existingColumnIndex = GetColumnIndex(existingReference!);
+                            if (tracking) existingColumnIndex = GetWriteColumnIndex(existingCell, ref nextImplicitColumn, out _);
                             if (existingColumnIndex > columnIndex) {
                                 _row.InsertBefore(cell, existingCell);
                                 _cells[columnIndex] = cell;

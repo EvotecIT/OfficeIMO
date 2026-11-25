@@ -280,6 +280,29 @@ public partial class Excel {
         } finally { File.Delete(path); }
     }
 
+    [Fact]
+    public void SetValues_UpdatesTheCellReadAtAnUnparseableReference() {
+        string path = CreateLenientCellWorkbook("<row r=\"1\"><c r=\"A1\"><v>1</v></c><c r=\"D\"><v>2</v></c></row>");
+        try {
+            using (var document = ExcelDocument.Load(path)) {
+                ExcelSheet sheet = document.GetSheet("Data");
+                // More cells than the per-cell write limit, on an existing row, take the prepared batch writer.
+                var cells = new List<(int Row, int Column, object Value)> { (1, 2, 5) };
+                for (int column = 1; column <= 16; column++) cells.Add((2, column, column));
+                sheet.SetValues(cells, ExcelExecutionMode.Sequential);
+
+                Assert.Equal(5d, sheet.Cell("B1").GetValue().Value);
+                Assert.Equal(ExcelCellDataKind.Blank, sheet.Cell("C1").GetValue().Kind);
+                document.Save();
+            }
+
+            using var package = DocumentFormat.OpenXml.Packaging.SpreadsheetDocument.Open(path, false);
+            var firstRow = package.WorkbookPart!.WorksheetParts.Single().Worksheet!
+                .Descendants<DocumentFormat.OpenXml.Spreadsheet.Row>().First(row => row.RowIndex?.Value == 1);
+            Assert.Equal(new[] { "A1", "B1" }, firstRow.Elements<DocumentFormat.OpenXml.Spreadsheet.Cell>().Select(c => c.CellReference?.Value).ToArray());
+        } finally { File.Delete(path); }
+    }
+
     [Theory]
     [InlineData("&#66;2")]
     [InlineData(" B2 ")]

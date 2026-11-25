@@ -218,9 +218,12 @@ namespace OfficeIMO.Excel {
             Cell? insertAfterCell = null;
             int targetColumnIndex = column;
 
-            // Columns follow the read rule (ExcelWorksheetCoordinates.GetColumnIndex): a missing or unparseable
-            // reference takes the next column, so a write updates the cell a read returns for that column.
+            // References the letters-only scan resolves are compared as before. From the first cell it cannot resolve
+            // (no reference, or no row digits), columns follow the read rule, so a write updates the cell a read
+            // returns for that column.
+            bool tracking = false;
             bool implicitColumn = false;
+            int nextImplicitColumn = 0;
             if (_lastAccessedCell != null
                 && _lastAccessedCellRowIndex == row
                 && ReferenceEquals(_lastAccessedCell.Parent, rowElement)) {
@@ -228,9 +231,18 @@ namespace OfficeIMO.Excel {
                     cell = _lastAccessedCell;
                 } else if (_lastAccessedCellColumnIndex < targetColumnIndex) {
                     insertAfterCell = _lastAccessedCell;
-                    int nextImplicitColumn = _lastAccessedCellColumnIndex + 1;
                     for (Cell? next = _lastAccessedCell.NextSibling<Cell>(); next != null; next = next.NextSibling<Cell>()) {
-                        int nextColumnIndex = GetWriteColumnIndex(next, ref nextImplicitColumn, out implicitColumn);
+                        int nextColumnIndex = 0;
+                        if (!tracking) {
+                            if (next.CellReference?.Value is string nextRefValue && nextRefValue.Length != 0) {
+                                nextColumnIndex = GetRowQualifiedColumnIndex(nextRefValue);
+                            }
+                            if (nextColumnIndex == 0) {
+                                tracking = true;
+                                nextImplicitColumn = GetImplicitColumnStart(next, row);
+                            }
+                        }
+                        if (tracking) nextColumnIndex = GetWriteColumnIndex(next, ref nextImplicitColumn, out implicitColumn);
                         if (nextColumnIndex == targetColumnIndex) {
                             cell = next;
                             break;
@@ -246,9 +258,19 @@ namespace OfficeIMO.Excel {
             }
 
             if (cell == null && insertAfterCell == null) {
-                int nextImplicitColumn = 1;
+                tracking = false;
                 foreach (Cell c in rowElement.Elements<Cell>()) {
-                    int existingColumnIndex = GetWriteColumnIndex(c, ref nextImplicitColumn, out implicitColumn);
+                    int existingColumnIndex = 0;
+                    if (!tracking) {
+                        if (c.CellReference?.Value is string existingRefValue && existingRefValue.Length != 0) {
+                            existingColumnIndex = GetRowQualifiedColumnIndex(existingRefValue);
+                        }
+                        if (existingColumnIndex == 0) {
+                            tracking = true;
+                            nextImplicitColumn = GetImplicitColumnStart(c, row);
+                        }
+                    }
+                    if (tracking) existingColumnIndex = GetWriteColumnIndex(c, ref nextImplicitColumn, out implicitColumn);
                     if (existingColumnIndex == targetColumnIndex) {
                         cell = c;
                         break;
@@ -650,6 +672,42 @@ namespace OfficeIMO.Excel {
             }
 
             return columnName;
+        }
+
+        /// <summary>
+        /// The letters-only column scan, or 0 when it never reaches a character after the letters, as for a reference
+        /// without row digits. Those references take the read rule instead.
+        /// </summary>
+        internal static int GetRowQualifiedColumnIndex(string cellReference) {
+            int columnIndex = 0;
+            for (int i = 0; i < cellReference.Length; i++) {
+                char ch = cellReference[i];
+                if (ch >= 'A' && ch <= 'Z') {
+                    columnIndex = (columnIndex * 26) + (ch - 'A' + 1);
+                    continue;
+                }
+
+                if (ch >= 'a' && ch <= 'z') {
+                    columnIndex = (columnIndex * 26) + (ch - 'a' + 1);
+                    continue;
+                }
+
+                if (columnIndex > 0) {
+                    return columnIndex;
+                }
+            }
+            return 0;
+        }
+
+        /// <summary>
+        /// The implicit column a cell would take after its previous sibling, which the letters-only scan resolved, or
+        /// which is the last accessed cell of this row.
+        /// </summary>
+        private int GetImplicitColumnStart(Cell cell, int row) {
+            Cell? previous = cell.PreviousSibling<Cell>();
+            if (previous == null) return 1;
+            if (ReferenceEquals(previous, _lastAccessedCell) && _lastAccessedCellRowIndex == row) return _lastAccessedCellColumnIndex + 1;
+            return GetRowQualifiedColumnIndex(previous.CellReference?.Value ?? string.Empty) + 1;
         }
 
         private static int GetWriteColumnIndex(Cell cell, ref int nextImplicitColumn, out bool implicitColumn) {
