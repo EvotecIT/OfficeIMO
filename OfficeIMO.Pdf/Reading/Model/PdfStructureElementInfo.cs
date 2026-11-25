@@ -31,8 +31,12 @@ public sealed class PdfStructureElementInfo {
         string? alternateText,
         IReadOnlyList<int> childElementObjectNumbers,
         IReadOnlyList<PdfMarkedContentReference> markedContentReferences,
-        int objectReferenceCount) {
+        int objectReferenceCount,
+        int rowSpan = 1,
+        int columnSpan = 1) {
         ObjectNumber = objectNumber;
+        RowSpan = rowSpan < 1 ? 1 : rowSpan;
+        ColumnSpan = columnSpan < 1 ? 1 : columnSpan;
         StructureType = structureType;
         ParentObjectNumber = parentObjectNumber;
         PageObjectNumber = pageObjectNumber;
@@ -72,6 +76,12 @@ public sealed class PdfStructureElementInfo {
 
     /// <summary>Number of annotation/object references found in /K.</summary>
     public int ObjectReferenceCount { get; }
+
+    /// <summary>Table rows occupied by a TH or TD cell, from the Table attribute owner's /RowSpan; 1 when absent.</summary>
+    public int RowSpan { get; }
+
+    /// <summary>Table columns occupied by a TH or TD cell, from the Table attribute owner's /ColSpan; 1 when absent.</summary>
+    public int ColumnSpan { get; }
 
     /// <summary>True when the structure element contains at least one /K child structure reference.</summary>
     public bool HasChildElements => ChildElementObjectNumbers.Count > 0;

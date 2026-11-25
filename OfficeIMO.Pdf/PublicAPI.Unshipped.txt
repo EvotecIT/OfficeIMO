@@ -1340,3 +1340,24 @@ OfficeIMO.Pdf.PdfDocument.ExtractAssets(string! outputDirectory, OfficeIMO.Pdf.P
 OfficeIMO.Pdf.PdfDocument.ExtractEmbeddedFonts(string! outputDirectory, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IReadOnlyList<string!>!
 OfficeIMO.Pdf.PdfImagePlacement.EffectiveDpiX.get -> double?
 OfficeIMO.Pdf.PdfImagePlacement.EffectiveDpiY.get -> double?
+OfficeIMO.Pdf.PdfDocumentReadResult.TaggedTableDiagnostics.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfTaggedTableDiagnostic!>!
+OfficeIMO.Pdf.PdfLogicalTableCell.ColumnSpan.get -> int
+OfficeIMO.Pdf.PdfLogicalTableCell.IsCoveredBySpan.get -> bool
+OfficeIMO.Pdf.PdfLogicalTableCell.RowSpan.get -> int
+OfficeIMO.Pdf.PdfLogicalTableContinuationEvidence.TaggedStructure = 256 -> OfficeIMO.Pdf.PdfLogicalTableContinuationEvidence
+OfficeIMO.Pdf.PdfStructureElementInfo.ColumnSpan.get -> int
+OfficeIMO.Pdf.PdfStructureElementInfo.RowSpan.get -> int
+OfficeIMO.Pdf.PdfTaggedTableDiagnostic
+OfficeIMO.Pdf.PdfTaggedTableDiagnostic.Message.get -> string!
+OfficeIMO.Pdf.PdfTaggedTableDiagnostic.PageNumber.get -> int
+OfficeIMO.Pdf.PdfTaggedTableDiagnostic.Reason.get -> OfficeIMO.Pdf.PdfTaggedTableFallbackReason
+OfficeIMO.Pdf.PdfTaggedTableDiagnostic.StructureObjectNumber.get -> int
+OfficeIMO.Pdf.PdfTaggedTableFallbackReason
+OfficeIMO.Pdf.PdfTaggedTableFallbackReason.LayoutOnly = 4 -> OfficeIMO.Pdf.PdfTaggedTableFallbackReason
+OfficeIMO.Pdf.PdfTaggedTableFallbackReason.NoContent = 3 -> OfficeIMO.Pdf.PdfTaggedTableFallbackReason
+OfficeIMO.Pdf.PdfTaggedTableFallbackReason.RowSpansPages = 1 -> OfficeIMO.Pdf.PdfTaggedTableFallbackReason
+OfficeIMO.Pdf.PdfTaggedTableFallbackReason.UnresolvedContent = 2 -> OfficeIMO.Pdf.PdfTaggedTableFallbackReason
+OfficeIMO.Pdf.PdfTaggedTableFallbackReason.UnsupportedStructure = 0 -> OfficeIMO.Pdf.PdfTaggedTableFallbackReason
+OfficeIMO.Pdf.PdfUnderstandingPageResult.TaggedTableDiagnostics.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfTaggedTableDiagnostic!>!
+override OfficeIMO.Pdf.PdfTaggedTableDiagnostic.ToString() -> string!
+OfficeIMO.Pdf.PdfTaggedTableFallbackReason.CellOrderConflictsWithLayout = 5 -> OfficeIMO.Pdf.PdfTaggedTableFallbackReason

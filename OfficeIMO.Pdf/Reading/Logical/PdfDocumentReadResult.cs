@@ -470,6 +470,13 @@ public sealed partial class PdfDocumentReadResult {
         }
     }
 
+    /// <summary>
+    /// Tagged tables read from page geometry because their structure tags could not be used, in page order.
+    /// Empty for untagged files, for files without /MarkInfo /Marked true, and when every tagged table was used.
+    /// </summary>
+    public IReadOnlyList<PdfTaggedTableDiagnostic> TaggedTableDiagnostics =>
+        FlattenPageItems(Pages, page => page.Analysis.TaggedTableDiagnostics);
+
     /// <summary>All image XObject entries flattened in page order.</summary>
     public IReadOnlyList<PdfLogicalImage> Images {
         get {

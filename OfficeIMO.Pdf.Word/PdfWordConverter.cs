@@ -950,6 +950,7 @@ namespace OfficeIMO.Pdf.Word {
                 WriteRow(rows[rowIndex + rowOffset], data.Rows[rowIndex], data, options.AlignNumericColumns, options, typographyScale,
                     GetRowStyles(styles, sourceRowOffset + rowOffset + rowIndex));
             }
+            MergeSpannedCells(table, sourceTable, data, headerRowIncluded);
 
             if (options.FitTablesToPageWidth) {
                 int[] columnWeights = BuildColumnWeights(sourceTable.Columns);
@@ -960,6 +961,29 @@ namespace OfficeIMO.Pdf.Word {
                     table.Width = WordTableWidth.Percent(100);
                     table.DistributeColumnsEvenly();
                 }
+            }
+        }
+
+        /// <summary>Merges cells that tagged-PDF RowSpan or ColSpan joined in the source table.</summary>
+        private static void MergeSpannedCells(
+            WordTable table,
+            PdfCore.PdfLogicalTable sourceTable,
+            PdfCore.PdfLogicalTableData data,
+            bool headerRowIncluded) {
+            int firstSourceRow = headerRowIncluded ? 0 : data.Structure.BodyStartRowIndex;
+            int wordRowCount = table.Rows.Count;
+            int columnCount = data.Columns.Count;
+            // Rightmost regions first: a horizontal merge removes cells after it in its row,
+            // so merging right to left keeps every remaining region's column index valid.
+            foreach (PdfCore.PdfLogicalTableCell cell in sourceTable.Cells
+                .Where(static item => item.RowSpan > 1 || item.ColumnSpan > 1)
+                .OrderByDescending(static item => item.ColumnIndex)
+                .ThenByDescending(static item => item.RowIndex)) {
+                int wordRow = cell.RowIndex - firstSourceRow;
+                if (wordRow < 0 || wordRow >= wordRowCount || cell.ColumnIndex >= columnCount) continue;
+                int rowSpan = Math.Min(cell.RowSpan, wordRowCount - wordRow);
+                int columnSpan = Math.Min(cell.ColumnSpan, columnCount - cell.ColumnIndex);
+                if (rowSpan > 1 || columnSpan > 1) table.MergeCells(wordRow, cell.ColumnIndex, rowSpan, columnSpan);
             }
         }
 

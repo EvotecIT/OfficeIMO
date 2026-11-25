@@ -58,7 +58,9 @@ public enum PdfLogicalTableContinuationEvidence {
     /// <summary>The continuation header contract was compatible.</summary>
     CompatibleHeaders = 64,
     /// <summary>Repeated continuation headers were detected.</summary>
-    RepeatedHeaders = 128
+    RepeatedHeaders = 128,
+    /// <summary>Tagged-PDF structure places the segments in one Table element.</summary>
+    TaggedStructure = 256
 }
 
 /// <summary>
@@ -193,6 +195,19 @@ internal static class PdfLogicalTableContinuations {
         if (current.PageIndex != previous.PageIndex + 1 || current.PageNumber != previous.PageNumber + 1) return false;
         PdfLogicalPage previousPage = document.Pages[previous.PageIndex];
         PdfLogicalPage currentPage = document.Pages[current.PageIndex];
+        if (previous.Table.TaggedSegment is { } previousSegment && current.Table.TaggedSegment is { } currentSegment) {
+            // The structure tree, not page position, decides: consecutive segments of one Table element continue it.
+            if (previousSegment.TableObjectNumber != currentSegment.TableObjectNumber ||
+                currentSegment.SegmentIndex != previousSegment.SegmentIndex + 1 ||
+                previous.Data.Columns.Count != current.Data.Columns.Count) return false;
+            boundary = new ContinuationBoundary(1D,
+                PdfLogicalTableContinuationEvidence.AdjacentPages |
+                PdfLogicalTableContinuationEvidence.MatchingColumnCount |
+                PdfLogicalTableContinuationEvidence.MatchingDetectionKind |
+                PdfLogicalTableContinuationEvidence.CompatibleHeaders |
+                PdfLogicalTableContinuationEvidence.TaggedStructure);
+            return true;
+        }
         if (previous.TableIndex != previousPage.Tables.Count - 1 || current.TableIndex != 0) return false;
         // Distinct captions identify separate tables. An identical line can be
         // a running page header or a caption repeated with the table header.

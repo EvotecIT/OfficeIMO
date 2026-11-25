@@ -28,9 +28,15 @@ public static class PdfLogicalTableAnalysis {
         bool hasHeader = headerColumns != null && headerColumns.Length == columnCount;
         int bodyStartRowIndex = hasHeader ? 1 : 0;
         int totalBodyRowCount = Math.Max(0, table.Rows.Count - bodyStartRowIndex);
+        // A tagged table continued from an earlier page names its columns from the tagged header row.
+        IReadOnlyList<string>? inheritedHeader = !hasHeader &&
+            table.TaggedSegment?.InheritedHeader is { } inherited &&
+            inherited.Count == columnCount
+                ? inherited
+                : null;
         IReadOnlyList<string> columns = hasHeader
             ? headerColumns!
-            : BuildUnnamedColumns(columnCount);
+            : inheritedHeader ?? BuildUnnamedColumns(columnCount);
         PdfLogicalTableSchemaKind schemaKind = hasHeader
             ? PdfLogicalTableSchemaKind.HeaderRow
             : PdfLogicalTableSchemaKind.Unknown;

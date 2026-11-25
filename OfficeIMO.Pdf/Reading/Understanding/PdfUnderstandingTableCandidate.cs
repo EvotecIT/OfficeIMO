@@ -162,7 +162,7 @@ public sealed class PdfUnderstandingTableCandidate {
         IReadOnlyList<PdfTextSpan> nativeRuns, Action<long> consumeWork, Action cancellationCheck) =>
         new PdfUnderstandingTableCandidate(DetectionKind, visualBounds.Top, visualBounds.Bottom,
             columns, Rows, sourceLines, SourceKind, PdfTableCoordinateSpace.VisualTopLeft, visualBounds,
-            Confidence, Evidence, consumeWork, cancellationCheck, nativeRuns, LeadingCaption);
+            Confidence, Evidence, consumeWork, cancellationCheck, nativeRuns, LeadingCaption) { TaggedSegment = TaggedSegment };
 
     internal static PdfUnderstandingTableCandidate FromStructured(
         PdfStructuredTable table,
@@ -307,6 +307,16 @@ public sealed class PdfUnderstandingTableCandidate {
         return table;
     }
 
+    /// <summary>Tagged table and page segment this candidate was rebuilt from; null for geometric candidates.</summary>
+    internal PdfTaggedTableSegment? TaggedSegment { get; set; }
+
+    /// <summary>A separate instance for another occurrence of the same page in a page selection.</summary>
+    internal PdfUnderstandingTableCandidate CopyForOccurrence() =>
+        new PdfUnderstandingTableCandidate(DetectionKind, YTop, YBottom, Columns, Rows, SourceLines, SourceKind,
+            CoordinateSpace, _visualBounds, Confidence, Evidence, null, null, NativeSourceRuns, LeadingCaption) {
+            TaggedSegment = TaggedSegment
+        };
+
     internal PdfUnderstandingTableCandidate WithAdditionalEvidence(
         PdfInferenceEvidence evidence,
         double minimumConfidence) {
@@ -326,7 +336,7 @@ public sealed class PdfUnderstandingTableCandidate {
             Evidence.Concat(new[] { evidence }),
             null,
             null,
-            NativeSourceRuns);
+            NativeSourceRuns) { TaggedSegment = TaggedSegment };
     }
 
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
