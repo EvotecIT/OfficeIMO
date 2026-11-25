@@ -68,18 +68,12 @@ namespace OfficeIMO.PowerPoint {
             } finally {
                 if (pending == null) editable.Dispose();
             }
-            if (pending != null) {
-                _pendingPackage = null;
-                _pendingRelationships = null;
-                _pendingEdits = false;
-                pending.Dispose();
-            }
             // The document now holds what it saved, as a save through the SDK leaves it: an SDK opened later reads the
-            // refreshed properties.
-            // The caller owns the returned array; the document keeps the buffer it saved into, which is its own.
+            // refreshed properties. The caller owns the returned array; the document keeps the buffer it saved into. A
+            // pending package stays open with its edits written, so slides and shapes read from it keep working.
+            _pendingEdits = false;
             saved!.Position = 0;
-            _packageStream = saved;
-            packageStream.Dispose();
+            ReplacePackageStream(saved);
             return true;
         }
 

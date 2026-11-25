@@ -263,6 +263,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private void LoadExistingShapes() {
+            if (TryLoadPackageShapes()) return;
             ShapeTree? tree = SlideRoot.CommonSlideData?.ShapeTree;
             if (tree == null) {
                 return;

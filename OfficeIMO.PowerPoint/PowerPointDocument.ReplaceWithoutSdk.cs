@@ -46,35 +46,49 @@ namespace OfficeIMO.PowerPoint {
         private static List<string>? ReadSlideParts(OfficeOpcEditablePackage package) =>
             PackageSlideList.Read(package)?.Entries.Select(entry => entry.Part).ToList();
 
-        /// <summary>Writes pending slide edits into the package bytes, so whatever reads them next sees the edits.</summary>
-        private void CommitPendingEdits() {
+        /// <summary>
+        /// Writes pending edits into the package bytes, so whatever reads them next sees them. With
+        /// <paramref name="keepPackage"/> the package stays open, so slides and shapes read from it keep working;
+        /// otherwise it is closed, as before the SDK opens the bytes.
+        /// </summary>
+        private void CommitPendingEdits(bool keepPackage = false) {
             OfficeOpcEditablePackage? pending = _pendingPackage;
             if (pending == null) return;
-            _pendingPackage = null;
-            _pendingRelationships = null;
             bool edited = _pendingEdits;
             _pendingEdits = false;
-            if (!edited) {
-                pending.Dispose();
-                return;
-            }
-            byte[] bytes;
-            using (pending) {
+            if (edited) {
                 using var output = new MemoryStream();
                 pending.Save(output);
-                bytes = output.ToArray();
+                ReplacePackageStream(OfficePackageLoadSource.CreatePackageStream(output.ToArray(), _accessMode));
             }
-            Stream? previous = _packageStream;
-            _packageStream = OfficePackageLoadSource.CreatePackageStream(bytes, _accessMode);
-            previous?.Dispose();
+            if (!keepPackage) ReleasePendingPackage();
         }
 
         /// <summary>Drops pending edits without writing them, when the document closes.</summary>
         private void DiscardPendingEdits() {
+            _pendingEdits = false;
+            ReleasePendingPackage();
+        }
+
+        // The stream the pending package was opened on, which it reads parts it has not parsed from; it stays open
+        // while the package does, even after the document moved on to newer bytes.
+        private Stream? _pendingSource;
+
+        /// <summary>Makes <paramref name="next"/> the document's package bytes, closing the previous stream unless the
+        /// pending package still reads from it.</summary>
+        private void ReplacePackageStream(Stream next) {
+            Stream? previous = _packageStream;
+            _packageStream = next;
+            if (previous != null && !ReferenceEquals(previous, _pendingSource)) previous.Dispose();
+        }
+
+        private void ReleasePendingPackage() {
             _pendingPackage?.Dispose();
             _pendingPackage = null;
             _pendingRelationships = null;
-            _pendingEdits = false;
+            Stream? source = _pendingSource;
+            _pendingSource = null;
+            if (source != null && !ReferenceEquals(source, _packageStream)) source.Dispose();
         }
     }
 }

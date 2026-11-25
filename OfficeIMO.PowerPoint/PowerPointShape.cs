@@ -1,3 +1,4 @@
+using OfficeIMO.Core.Internal.OpenXml;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Packaging;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -11,14 +12,70 @@ namespace OfficeIMO.PowerPoint {
     public abstract partial class PowerPointShape {
         private const int EmusPerPoint = 12700;
 
+        private OpenXmlElement? _element;
+        private OpenXmlPart? _relationshipOwnerPart;
+
         internal PowerPointShape(OpenXmlElement element, OpenXmlPartContainer? ownerPart = null) {
-            Element = element;
+            _element = element;
             RelationshipOwnerPart = ownerPart as OpenXmlPart;
         }
 
-        internal OpenXmlElement Element { get; }
+        // A shape of a slide whose SDK part is not open: it reads and edits its element in the slide's package tree, and
+        // anything it does not do there opens the SDK and binds the shape to the same element there.
+        internal PowerPointShape(PowerPointSlide slide, OfficeXmlTree tree, int node) {
+            OwnerSlide = slide;
+            PackageTree = tree;
+            PackageNode = node;
+        }
+
+        internal OpenXmlElement Element => _element ?? BindSdkElement();
         internal PowerPointSlide? OwnerSlide { get; private set; }
-        internal OpenXmlPart? RelationshipOwnerPart { get; private set; }
+
+        internal OpenXmlPart? RelationshipOwnerPart {
+            get => _relationshipOwnerPart ?? (PackageTree != null ? OwnerSlide?.SlidePart : null);
+            private set => _relationshipOwnerPart = value;
+        }
+
+        /// <summary>The slide tree that holds the shape while it works without the SDK, and its element there.</summary>
+        internal OfficeXmlTree? PackageTree { get; }
+        internal int PackageNode { get; }
+
+        /// <summary>Whether the shape works on its slide's package tree rather than an SDK element.</summary>
+        internal bool IsPackageBacked => _element == null;
+
+        // The SDK reads the bytes the tree wrote, so the element sits at the same place: the same element child at each
+        // level down from the slide root. Comments and text the SDK keeps as nodes are not elements of the tree.
+        private OpenXmlElement BindSdkElement() {
+            OfficeXmlTree tree = PackageTree!;
+            var path = new List<int>();
+            for (int node = PackageNode; node != tree.Root; node = tree.ParentOf(node)) {
+                int index = 0;
+                for (int sibling = tree.PreviousSiblingOf(node); sibling != OfficeXmlTree.NoNode; sibling = tree.PreviousSiblingOf(sibling)) {
+                    if (tree.KindOf(sibling) == OfficeXmlTreeNodeKind.Element) index++;
+                }
+                path.Add(index);
+            }
+            string localName = tree.LocalNameOf(PackageNode);
+            OpenXmlElement element = OwnerSlide!.SlidePart.Slide
+                ?? throw new InvalidOperationException("The slide the SDK opened has no content.");
+            for (int level = path.Count - 1; level >= 0; level--) {
+                OpenXmlElement? child = null;
+                int remaining = path[level];
+                foreach (OpenXmlElement candidate in element.ChildElements) {
+                    if (candidate is OpenXmlMiscNode) continue;
+                    if (remaining-- == 0) {
+                        child = candidate;
+                        break;
+                    }
+                }
+                element = child ?? throw new InvalidOperationException("The shape is not where the slide the SDK opened has it.");
+            }
+            if (!string.Equals(element.LocalName, localName, StringComparison.Ordinal)) {
+                throw new InvalidOperationException("The shape is not where the slide the SDK opened has it.");
+            }
+            _element = element;
+            return element;
+        }
 
         internal PowerPointShape AttachTo(PowerPointSlide slide, OpenXmlPartContainer? ownerPart = null) {
             OwnerSlide = slide;

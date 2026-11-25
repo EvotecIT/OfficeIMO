@@ -26,8 +26,19 @@ namespace OfficeIMO.PowerPoint {
             if (_pendingPackage == null) {
                 stream.Position = 0;
                 _pendingPackage = OfficeOpcEditablePackage.Open(stream, leaveOpen: true);
+                _pendingSource = stream;
             }
             return _pendingPackage;
+        }
+
+        /// <summary>A part's tree in the package read without the SDK, or null when the package can't be read that way.</summary>
+        internal OfficeXmlTree? GetPackageXml(string partName) {
+            if (GetPackage(edit: false) is not { } package || !package.PartExists(partName)) return null;
+            try {
+                return package.GetXml(partName);
+            } catch (Exception exception) when (exception is System.Xml.XmlException or InvalidDataException) {
+                return null;
+            }
         }
 
         /// <summary>The slides in order, read from the package, or null when the SDK has to read them.</summary>

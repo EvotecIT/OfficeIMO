@@ -1,3 +1,4 @@
+using OfficeIMO.Core.Internal.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -8,6 +9,9 @@ namespace OfficeIMO.PowerPoint {
     /// </summary>
     public class PowerPointAutoShape : PowerPointShape {
         internal PowerPointAutoShape(Shape shape, OpenXmlPartContainer? ownerPart = null) : base(shape, ownerPart) {
+        }
+
+        internal PowerPointAutoShape(PowerPointSlide slide, OfficeXmlTree tree, int node) : base(slide, tree, node) {
         }
 
         private Shape Shape => (Shape)Element;

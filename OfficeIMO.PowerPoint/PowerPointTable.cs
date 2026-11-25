@@ -1,3 +1,4 @@
+using OfficeIMO.Core.Internal.OpenXml;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
@@ -14,6 +15,9 @@ namespace OfficeIMO.PowerPoint {
 
         internal PowerPointTable(GraphicFrame frame, OpenXmlPartContainer? ownerPart = null) : base(frame, ownerPart) {
             _initialSlidePart = ownerPart as SlidePart;
+        }
+
+        internal PowerPointTable(PowerPointSlide slide, OfficeXmlTree tree, int node) : base(slide, tree, node) {
         }
 
         private GraphicFrame Frame => (GraphicFrame)Element;

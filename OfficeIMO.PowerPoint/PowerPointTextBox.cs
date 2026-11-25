@@ -1,3 +1,4 @@
+using OfficeIMO.Core.Internal.OpenXml;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
@@ -23,6 +24,9 @@ namespace OfficeIMO.PowerPoint {
         private PowerPointTextBox(Shape shape, SlidePart? slidePart, OpenXmlPartContainer? ownerPart) : base(shape, ownerPart ?? slidePart) {
             _initialSlidePart = slidePart;
             _initialOwnerPart = ownerPart ?? slidePart;
+        }
+
+        internal PowerPointTextBox(PowerPointSlide slide, OfficeXmlTree tree, int node) : base(slide, tree, node) {
         }
 
         private Shape Shape => (Shape)Element;

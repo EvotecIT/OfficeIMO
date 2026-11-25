@@ -187,7 +187,7 @@ namespace OfficeIMO.PowerPoint {
 
         // A read-only view over the loaded bytes, without copying them; null when the package stream holds none.
         private bool TryGetLoadedPackage(out MemoryStream? package) {
-            CommitPendingEdits();
+            CommitPendingEdits(keepPackage: true);
             package = null;
             ArraySegment<byte> buffer = default;
             bool found = _packageStream switch {
