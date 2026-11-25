@@ -173,6 +173,8 @@ namespace OfficeIMO.Word {
                 AddLegacyDocTextBoxStories(document, legacyDocument.TextBoxStories, legacyDocument.StyleSheet, notes);
                 cancellationToken.ThrowIfCancellationRequested();
                 document.MarkLoadedFromLegacyDoc(sourcePath, legacyDocument, attachSourcePathForSave);
+                // Projected bookmarks and drawings carry identifiers from the source file.
+                document.InvalidateIdentifierState();
                 return document;
             } catch {
                 document.Dispose();

@@ -50,7 +50,10 @@ namespace OfficeIMO.Word {
         /// </summary>
         public int Id {
             get => int.TryParse(_bookmarkStart.Id, out var id) ? id : 0;
-            set => _bookmarkStart.Id = value.ToString();
+            set {
+                _bookmarkStart.Id = value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                _document.ObserveBookmarkId(value);
+            }
         }
 
         /// <summary>

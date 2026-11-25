@@ -335,7 +335,9 @@ namespace OfficeIMO.Word {
                 bookmarkName = "_OfficeIMO_Caption_" + safeSequence + "_" + captionIndex.ToString(CultureInfo.InvariantCulture) + "_" + existingBookmarkNames.Count.ToString(CultureInfo.InvariantCulture);
             } while (!existingBookmarkNames.Add(bookmarkName));
 
-            string bookmarkId = GetNextCaptionBookmarkId().ToString(CultureInfo.InvariantCulture);
+            int nextId = GetNextCaptionBookmarkId();
+            _document.ObserveBookmarkId(nextId);
+            string bookmarkId = nextId.ToString(CultureInfo.InvariantCulture);
             var bookmarkStart = new BookmarkStart {
                 Name = bookmarkName,
                 Id = bookmarkId

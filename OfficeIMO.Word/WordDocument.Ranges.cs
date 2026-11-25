@@ -157,15 +157,27 @@ namespace OfficeIMO.Word {
             return stories;
         }
 
-        /// <summary>Returns an unused bookmark identifier across the body, headers, footers, notes and comments.</summary>
+        /// <summary>
+        /// Reserves an unused bookmark identifier across the body, headers, footers, notes and comments. The stories
+        /// are scanned once; later calls continue from the highest identifier seen or handed out.
+        /// </summary>
         internal int GetNextBookmarkId() {
-            int max = 0;
-            foreach (OpenXmlElement root in EnumerateStoryRoots()) {
-                foreach (BookmarkStart start in root.Descendants<BookmarkStart>()) {
-                    if (int.TryParse(start.Id?.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int id) && id > max) max = id;
+            if (_lastBookmarkId is not int last || _openXmlDocumentAccessed) {
+                last = 0;
+                foreach (OpenXmlElement root in EnumerateStoryRoots()) {
+                    foreach (OpenXmlElement element in root.Descendants()) {
+                        string? value = element switch {
+                            BookmarkStart start => start.Id?.Value,
+                            BookmarkEnd end => end.Id?.Value,
+                            _ => null
+                        };
+                        if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int id) && id > last) last = id;
+                    }
                 }
             }
-            return max + 1;
+            if (last == int.MaxValue) throw new InvalidOperationException("The document has exhausted the available bookmark identifier range.");
+            _lastBookmarkId = ++last;
+            return last;
         }
 
         private IEnumerable<OpenXmlElement> EnumerateStoryRoots() {
