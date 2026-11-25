@@ -52,7 +52,7 @@ internal sealed partial class StudioNativeDocument : IDisposable {
                 _workspace.IsEncrypted, _workspace.CanChangeEncryption(null), _workspace.CanSign, _workspace.CanRotatePages,
                 _workspace.CanInsertBlankPages,
                 view.Security.HasEncryption && !view.Security.HasOwnerAuthorization && view.Security.AllowsHighQualityPrinting != true ? 150D : null,
-                _workspace.RequiresOwnerPasswordForEncryption);
+                _workspace.RequiresOwnerPasswordForEncryption, _workspace.CanAuthorForms);
         } finally { _gate.Release(); }
     }
 
@@ -150,10 +150,13 @@ internal sealed partial class StudioNativeDocument : IDisposable {
                 fields.Add(new StudioNativeFormField(field.Name, KindOf(field), field.Values.ToArray(),
                     field.Options.Select(static option => new StudioNativeFormOption(option.ExportValue, option.DisplayText)).ToArray(),
                     field.IsReadOnly, field.IsRequired, field.IsMultiline, field.IsPassword, field.IsComb, field.MaxLength,
-                    field.AllowsMultipleSelection, field.IsEditableChoice, field.AlternateName, widgets));
+                    field.AllowsMultipleSelection, field.IsEditableChoice, field.AlternateName, widgets, field.Widgets.Count));
             }
+            // Every field's name, on any page, so a host names a new field without loading every page.
+            string[] names = info.Fields.Select(static field => field.Name).Where(static name => !string.IsNullOrEmpty(name))
+                .Select(static name => name!).Distinct(StringComparer.Ordinal).ToArray();
             return new StudioNativeFormFields(StudioNativeAbi.Version, _workspace.Revision, pageNumber, _workspace.CanFillForms,
-                info.HasXfa, fields);
+                info.HasXfa, fields, names);
         } finally { _gate.Release(); }
     }
 
@@ -386,8 +389,9 @@ internal sealed partial class StudioNativeDocument : IDisposable {
             if (!(Finite(bounds.Width) > 0D && Finite(bounds.Height) > 0D)) throw new ArgumentException("An annotation needs a width and a height.", nameof(update));
             return RunAsync(() => SetAnnotationBoundsAsync(update.ObjectNumber, bounds, cancellationToken), cancellationToken);
         }
-        return RunAsync(() => _workspace.UpdateAnnotationAsync(update.ObjectNumber, update.Contents, update.Author,
-            update.Color is { } given ? global::OfficeIMO.OfficeColor.FromNormalizedRgb(given.Red, given.Green, given.Blue) : null, cancellationToken), cancellationToken);
+        return RunAsync(() => Plainly(() => _workspace.UpdateAnnotationAsync(update.ObjectNumber, update.Contents, update.Author,
+            update.Color is { } given ? global::OfficeIMO.OfficeColor.FromNormalizedRgb(given.Red, given.Green, given.Blue) : null, cancellationToken),
+            MarkupRefused), cancellationToken);
     }
 
     /// <summary>
@@ -405,9 +409,9 @@ internal sealed partial class StudioNativeDocument : IDisposable {
             new PdfEditorProperties(string.Empty, string.Empty, global::OfficeIMO.OfficeColor.Black, string.Empty, string.Empty, 12D)).Bounds;
         double left = Math.Min(current.X1, current.X2), bottom = Math.Min(current.Y1, current.Y2);
         double width = Math.Abs(current.X2 - current.X1), height = Math.Abs(current.Y2 - current.Y1);
-        return Math.Abs(target.Width - width) < 0.5D && Math.Abs(target.Height - height) < 0.5D
+        return Plainly(() => Math.Abs(target.Width - width) < 0.5D && Math.Abs(target.Height - height) < 0.5D
             ? _workspace.MoveAnnotationAsync(objectNumber, page, target.Left - left, target.Bottom - bottom, cancellationToken)
-            : _workspace.ResizeAnnotationAsync(objectNumber, page, target, cancellationToken);
+            : _workspace.ResizeAnnotationAsync(objectNumber, page, target, cancellationToken), MarkupRefused);
     }
 
     /// <summary>Removes an annotation as one undoable change.</summary>
@@ -415,8 +419,10 @@ internal sealed partial class StudioNativeDocument : IDisposable {
         RunAsync(() => {
             if (!_workspace.AnnotationMetadata.Any(annotation => annotation.ObjectNumber == objectNumber))
                 throw new ArgumentException("The annotation does not exist.", nameof(objectNumber));
-            return _workspace.RemoveAnnotationAsync(objectNumber, cancellationToken);
+            return Plainly(() => _workspace.RemoveAnnotationAsync(objectNumber, cancellationToken), MarkupRefused);
         }, cancellationToken);
+
+    private const string MarkupRefused = "This markup can’t be changed in this document.";
 
     private static double Finite(double value) =>
         double.IsFinite(value) ? value : throw new ArgumentOutOfRangeException(nameof(value), "Coordinates must be finite numbers.");
@@ -610,7 +616,7 @@ internal sealed record StudioNativeDocumentInfo(
     bool CanExtractText, bool CanExtractContent, IReadOnlyList<StudioNativePageInfo> Pages, long MaxRenderPixels, bool CanMutatePages,
     bool CanExtractPages, bool CanEditAnnotations, bool CanPrint, bool CanImportPages, bool CanMakeSearchable, bool CanFillForms,
     bool IsEncrypted, bool CanChangeProtection, bool CanSign, bool CanRotatePages, bool CanInsertBlankPages,
-    double? MaxPrintDpi, bool RequiresOwnerPasswordForProtection);
+    double? MaxPrintDpi, bool RequiresOwnerPasswordForProtection, bool CanAuthorForms);
 
 internal sealed record StudioNativePageInfo(int Number, double Width, double Height, int Rotation);
 
@@ -661,9 +667,10 @@ internal sealed record StudioNativeFormOption(string Value, string Text);
 
 internal sealed record StudioNativeFormField(string Name, string Kind, IReadOnlyList<string> Values, IReadOnlyList<StudioNativeFormOption> Options,
     bool ReadOnly, bool Required, bool Multiline, bool Password, bool Comb, int? MaxLength, bool MultipleSelection, bool Editable, string? Label,
-    IReadOnlyList<StudioNativeFormWidget> Widgets);
+    IReadOnlyList<StudioNativeFormWidget> Widgets, int WidgetCount);
 
-internal sealed record StudioNativeFormFields(int AbiVersion, long Revision, int Page, bool CanFill, bool HasXfa, IReadOnlyList<StudioNativeFormField> Fields);
+internal sealed record StudioNativeFormFields(int AbiVersion, long Revision, int Page, bool CanFill, bool HasXfa, IReadOnlyList<StudioNativeFormField> Fields,
+    IReadOnlyList<string> AllNames);
 
 internal sealed record StudioNativeFormFill(IReadOnlyDictionary<string, IReadOnlyList<string>>? Values, bool RemoveXfa = false);
 

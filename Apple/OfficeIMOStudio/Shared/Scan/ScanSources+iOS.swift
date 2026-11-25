@@ -13,7 +13,7 @@ enum ScanSources {
         case combine, camera, photos, sample, blank
     }
 
-    /// A new PDF from the source chosen on the launch screen's Create PDF.
+    /// A new PDF from the source chosen on the launch screen's New PDF….
     static func newDocumentFromChoice() async throws -> URL? {
         switch await chooseSource() {
         case .combine: try await ConversionSources.newDocumentFromFiles()
@@ -35,7 +35,7 @@ enum ScanSources {
             }
             add("Combine Files…", .default, .combine)
             if isCameraAvailable { add("Scan Document", .default, .camera) }
-            add("PDF from Photos", .default, .photos)
+            add("New PDF from Photos", .default, .photos)
             add("Try a Sample PDF", .default, .sample)
             add("New Blank PDF", .default, .blank)
             add("Cancel", .cancel, nil)

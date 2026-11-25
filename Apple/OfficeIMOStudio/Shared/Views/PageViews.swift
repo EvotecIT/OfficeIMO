@@ -29,7 +29,13 @@ struct PageThumbnail: View {
             }
         }
         .accessibilityElement()
-        .accessibilityLabel("Page \(page.number)")
+        .accessibilityLabel(Self.label(page, of: session.pageCount))
+    }
+
+    /// What VoiceOver calls a page: its number among the pages, and its turn when it is rotated.
+    static func label(_ page: DocumentFacts.Page, of count: Int) -> Text {
+        page.rotation % 360 == 0 ? Text("Page \(page.number) of \(count)")
+            : Text("Page \(page.number) of \(count), rotated \(page.rotation) degrees")
     }
 }
 
@@ -69,6 +75,10 @@ struct PageThumbnailList: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 6)
+                    // One element per page, rather than the thumbnail and its number read separately.
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(PageThumbnail.label(page, of: session.pageCount))
+                    .accessibilityAddTraits(page.number == session.currentPage ? .isSelected : [])
                     .tag(page.number)
                     .id(page.number)
                 }
@@ -160,7 +170,8 @@ struct PageCell: View {
                     if isSelected { Capsule().fill(.tint) }
                 }
         }
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(PageThumbnail.label(page, of: session.pageCount))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }

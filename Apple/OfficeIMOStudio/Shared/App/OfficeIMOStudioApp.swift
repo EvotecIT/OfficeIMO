@@ -64,7 +64,7 @@ struct OfficeIMOStudioApp: App {
         DocumentGroupLaunchScene("OfficeIMO Studio", backgroundStyle: Color.accentColor.gradient) {
             // The scene folds buttons after the first two into a More menu, so the other ways to start share one.
             Button("Convert to PDF") { LaunchDocuments.open { try await ConversionSources.newDocumentFromFile() } }
-            Button("Create PDF…") { LaunchDocuments.open { try await ScanSources.newDocumentFromChoice() } }
+            Button("New PDF…") { LaunchDocuments.open { try await ScanSources.newDocumentFromChoice() } }
                 .onAppear { WelcomeView.presentIfNeeded() }
         }
         #endif
@@ -139,6 +139,9 @@ struct StudioCommands: Commands {
                     Text("Table of Contents")
                 }
                 .keyboardShortcut("3", modifiers: [.command, .option])
+                // Preview's Highlights and Notes uses the same shortcut.
+                Button("Comments") { session?.showComments() }
+                    .keyboardShortcut("4", modifiers: [.command, .option])
                 Divider()
                 Button(session?.isInspectorShown == true ? "Hide Inspector" : "Show Inspector") { session?.isInspectorShown.toggle() }
                     .keyboardShortcut("i", modifiers: [.command, .option])

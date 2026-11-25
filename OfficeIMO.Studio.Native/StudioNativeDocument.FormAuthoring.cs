@@ -1,0 +1,129 @@
+using OfficeIMO.Pdf;
+using OfficeIMO.Studio.Features.Editor;
+
+namespace OfficeIMO.Studio.Native;
+
+/// <summary>
+/// Form authoring, as the desktop Studio's Forms mode does it: adding text, check box, choice, radio group, push button
+/// and signature fields where they are drawn, changing a field's name, flags and box, and removing a field. Each is one undoable change. Boxes are
+/// in points of the page as displayed, which the editor maps into each page's own space through its box and rotation.
+/// </summary>
+internal sealed partial class StudioNativeDocument {
+    private Task AddFormField(StudioNativeFormFieldAdd field, CancellationToken cancellationToken) {
+        string name = field.Name?.Trim() is { Length: > 0 } given ? given : throw new ArgumentException("Name the field.", nameof(field));
+        PdfFormFieldCreationKind kind = field.Kind switch {
+            "text" => PdfFormFieldCreationKind.Text, "checkbox" => PdfFormFieldCreationKind.CheckBox,
+            "choice" => PdfFormFieldCreationKind.Choice, "signature" => PdfFormFieldCreationKind.Signature,
+            "radio" => PdfFormFieldCreationKind.RadioButtonGroup, "button" => PdfFormFieldCreationKind.PushButton,
+            _ => throw new ArgumentException($"“{field.Kind}” isn't a kind of field Studio adds.", nameof(field))
+        };
+        RequireFormAuthoring();
+        if (FormFieldNames().Contains(name)) throw new ArgumentException($"The form already has a field named “{name}”.", nameof(field));
+        string[] options = (field.Options ?? []).Select(static option => option?.Trim() ?? string.Empty).Where(static option => option.Length > 0)
+            .Distinct(StringComparer.Ordinal).ToArray();
+        if (kind is PdfFormFieldCreationKind.Choice or PdfFormFieldCreationKind.RadioButtonGroup && options.Length == 0)
+            throw new ArgumentException("A choice or radio group needs at least one option.", nameof(field));
+        StudioNativeRectangle bounds = field.Bounds ?? throw new ArgumentException("Draw the field's box.", nameof(field));
+        // A radio group stacks one button per option, as tall as the desktop makes it, moved up where it would run off the page.
+        if (kind == PdfFormFieldCreationKind.RadioButtonGroup) {
+            // The buttons stack along the page's own height, which a turned page shows across or upside down.
+            if (field.Page >= 1 && field.Page <= _workspace.Pages.Count && _workspace.Pages[field.Page - 1].RotationDegrees % 360 != 0)
+                throw new ArgumentException("Radio groups can be added only on pages that aren't rotated.", nameof(field));
+            double height = Math.Max(bounds.Height, RadioGroupHeight(options.Length));
+            double pageHeight = DisplayedHeight(field.Page);
+            if (height > pageHeight) throw new ArgumentException("The radio group's options don't fit on the page. Use fewer options.", nameof(field));
+            bounds = bounds with { Y = Math.Clamp(bounds.Y, 0D, pageHeight - height), Height = height };
+        }
+        PdfPageRectangle box = PageBox(field.Page, bounds);
+        // The page's own units can be larger than points (/UserUnit), so the buttons are sized in them as the box is.
+        double scale = bounds.Height > 0D ? box.Height / bounds.Height : 1D;
+        var create = new PdfFormFieldCreateOptions {
+            Name = name, Kind = kind, PageNumber = field.Page, X = box.Left, Y = box.Bottom, Width = box.Width, Height = box.Height,
+            Value = kind == PdfFormFieldCreationKind.CheckBox ? "Off" : string.Empty,
+            ChoiceOptions = options, IsComboBox = kind == PdfFormFieldCreationKind.Choice && field.Combo != false,
+            Caption = string.IsNullOrWhiteSpace(field.Caption) ? "Button" : field.Caption.Trim(),
+            RadioButtonSize = RadioButtonSize * scale, RadioButtonGap = RadioButtonGap * scale,
+            Style = new PdfFormFieldStyle {
+                AlternateName = string.IsNullOrWhiteSpace(field.Label) ? null : field.Label.Trim(),
+                IsRequired = field.Required, IsReadOnly = field.ReadOnly,
+                IsMultiline = kind == PdfFormFieldCreationKind.Text && field.Multiline
+            }
+        };
+        return Plainly(() => _workspace.CreateFormFieldAsync(create, cancellationToken), FieldRefused);
+    }
+
+    /// <summary>The page's height as displayed, after its rotation.</summary>
+    private double DisplayedHeight(int page) {
+        if (page < 1 || page > _workspace.Pages.Count) throw new ArgumentOutOfRangeException(nameof(page), "The page does not exist.");
+        PdfPageInfo info = _workspace.Pages[page - 1];
+        (double width, double height) = OfficeIMO.Studio.Features.Reader.PdfDocumentSession.GetPhysicalSize(info);
+        return info.RotationDegrees % 180 == 0 ? height : width;
+    }
+
+    /// <summary>The height of a radio group's buttons, 14 points each with 6 between, as the desktop lays them out.</summary>
+    private static double RadioGroupHeight(int options) => options * RadioButtonSize + (options - 1) * RadioButtonGap;
+
+    private const double RadioButtonSize = 14D, RadioButtonGap = 6D;
+
+    private async Task UpdateFormField(StudioNativeFormFieldUpdate update, CancellationToken cancellationToken) {
+        string name = update.Name ?? throw new ArgumentException("Name the field to change.", nameof(update));
+        RequireFormAuthoring();
+        PdfFormField field = _workspace.CreateDocumentSnapshot().Forms.GetForInteraction().Fields.FirstOrDefault(candidate => candidate.Name == name)
+            ?? throw new ArgumentException($"The form has no field “{name}”.", nameof(update));
+        bool changesDefinition = update.NewName is not null || update.Required is not null || update.ReadOnly is not null;
+        if (changesDefinition == update.Bounds is not null)
+            throw new ArgumentException("An update changes a field's name and flags, or moves its box, not both.", nameof(update));
+        if (update.Bounds is { } bounds) {
+            PdfFormWidget widget = field.Widgets.Count == 1 ? field.Widgets[0]
+                : throw new ArgumentException("Only a field with one box can be moved.", nameof(update));
+            int page = update.Page ?? widget.PageNumber ?? throw new ArgumentException("The field isn't on a page.", nameof(update));
+            PdfPageRectangle box = PageBox(page, bounds);
+            await Plainly(() => _workspace.MoveFormWidgetAsync(name, page, box.Left, box.Bottom, box.Width, box.Height, cancellationToken),
+                FieldRefused).ConfigureAwait(false);
+            return;
+        }
+        string newName = update.NewName?.Trim() ?? name;
+        if (newName.Length == 0) throw new ArgumentException("A field needs a name.", nameof(update));
+        if (newName != name && FormFieldNames().Contains(newName)) throw new ArgumentException($"The form already has a field named “{newName}”.", nameof(update));
+        await Plainly(() => _workspace.UpdateFormDefinitionAsync(name, newName, update.Required ?? field.IsRequired,
+            update.ReadOnly ?? field.IsReadOnly, cancellationToken), FieldRefused).ConfigureAwait(false);
+    }
+
+    private Task RemoveFormField(string name, CancellationToken cancellationToken) {
+        RequireFormAuthoring();
+        if (!FormFieldNames().Contains(name)) throw new ArgumentException($"The form has no field “{name}”.", nameof(name));
+        return Plainly(() => _workspace.RemoveFormDefinitionAsync(name, cancellationToken), FieldRefused);
+    }
+
+    private const string FieldRefused = "This form field can’t be changed in this document.";
+
+    private void RequireFormAuthoring() {
+        if (!_workspace.CanAuthorForms) throw new NotSupportedException("This document's form can't be changed.");
+    }
+
+    private HashSet<string> FormFieldNames() =>
+        _workspace.CreateDocumentSnapshot().Forms.GetForInteraction().Fields.Select(static field => field.Name)
+            .Where(static name => !string.IsNullOrEmpty(name)).Select(static name => name!).ToHashSet(StringComparer.Ordinal);
+
+    /// <summary>A box on the page as displayed, in the page's own space.</summary>
+    private PdfPageRectangle PageBox(int page, StudioNativeRectangle bounds) {
+        if (page < 1 || page > _workspace.Pages.Count) throw new ArgumentOutOfRangeException(nameof(page), "The page does not exist.");
+        if (!(Finite(bounds.Width) >= 4D && Finite(bounds.Height) >= 4D)) throw new ArgumentException("A field needs a width and a height of at least 4 points.", nameof(bounds));
+        var gesture = new PdfEditorGesture(page, Finite(bounds.X), Finite(bounds.Y), bounds.X + bounds.Width, bounds.Y + bounds.Height, []);
+        return PdfEditorCommandFactory.Create(_workspace.CreateDocumentSnapshot(), PdfEditorTool.Rectangle, gesture,
+            new PdfEditorProperties(string.Empty, string.Empty, global::OfficeIMO.OfficeColor.Black, string.Empty, string.Empty, 12D)).Bounds;
+    }
+}
+
+/// <summary>
+/// A field to add: <c>kind</c> is text, checkbox, choice, radio, button or signature; <c>bounds</c> are in points of the
+/// page as displayed. A choice lists its <c>options</c> and is a drop-down unless <c>combo</c> is false; a radio group has
+/// one button per option; a push button shows its <c>caption</c>.
+/// </summary>
+internal sealed record StudioNativeFormFieldAdd(string? Kind, string? Name, int Page, StudioNativeRectangle? Bounds,
+    IReadOnlyList<string>? Options = null, bool? Combo = null, bool Required = false, bool ReadOnly = false, bool Multiline = false,
+    string? Label = null, string? Caption = null);
+
+/// <summary>A field's new name and flags, or alone its new box, on <c>page</c> or the page it is on.</summary>
+internal sealed record StudioNativeFormFieldUpdate(string? Name, string? NewName = null, bool? Required = null, bool? ReadOnly = null,
+    int? Page = null, StudioNativeRectangle? Bounds = null);

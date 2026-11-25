@@ -71,4 +71,4 @@ xcrun simctl launch booted com.evotec.officeimo.studio -OfficeIMOOpen sample.pdf
 
 Copy the PDF into the container first; `xcrun simctl get_app_container booted com.evotec.officeimo.studio data` prints its folder. The harness shows the same window as a system document but saves nothing back.
 
-`-OfficeIMOScanFromPhotos` shows **Create PDF**'s **PDF from Photos** action on its own and opens the scan it makes in the same kind of window. Add a photo of a printed page with `xcrun simctl addmedia booted <image>` first; the simulator has no document camera.
+`-OfficeIMOScanFromPhotos` shows **New PDF…**'s **New PDF from Photos** action on its own and opens the scan it makes in the same kind of window. Add a photo of a printed page with `xcrun simctl addmedia booted <image>` first; the simulator has no document camera.

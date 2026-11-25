@@ -12,6 +12,9 @@ final class FormController: NSObject, UIGestureRecognizerDelegate, UITextFieldDe
     private let tap = UITapGestureRecognizer()
     /// The field being typed in: its page, field and widget, and the control over it.
     private var editing: (page: Int, field: FormField, widget: FormField.Widget, control: UIView)?
+    /// Text added to the document but not yet in the fields read for the revision shown, so another widget of the same
+    /// field, on another page, opens with it rather than with the value read before.
+    private var pending: (name: String, values: [String], revision: Int64)?
 
     init(session: DocumentSession, scrollView: PageScrollView) {
         self.session = session
@@ -60,6 +63,15 @@ final class FormController: NSObject, UIGestureRecognizerDelegate, UITextFieldDe
             finish(commit: true)
         }
         guard let (page, field, widget) = target else { return }
+        activate(page: page, field: field, widget: widget)
+    }
+
+    /// Fills a field as a tap on it does, from the tap or from VoiceOver: types in it, toggles it or offers its choices.
+    func activate(page: Int, field: FormField, widget: FormField.Widget) {
+        // Another field's typing is added first, whether a tap or VoiceOver moves on.
+        if let editing, editing.field.name != field.name || editing.page != page { finish(commit: true) }
+        var field = field
+        if let pending, pending.name == field.name, pending.revision == session.revision { field = field.with(values: pending.values) }
         switch field.kind {
         case .text: beginTyping(page: page, field: field, widget: widget)
         case .checkbox, .radio:
@@ -171,7 +183,16 @@ final class FormController: NSObject, UIGestureRecognizerDelegate, UITextFieldDe
         editing = nil
         let text = (current.control as? UITextField)?.text ?? (current.control as? UITextView)?.text ?? ""
         current.control.removeFromSuperview()
-        if commit, text != current.field.text { session.setField(current.field, values: [text]) }
+        if commit, text != current.field.text {
+            let added = (name: current.field.name, values: [text], revision: session.revision)
+            pending = added
+            // Text the document refused isn't offered to the field's other widgets.
+            session.setField(current.field, values: [text], failed: { [weak self] in
+                if let pending = self?.pending, pending.name == added.name, pending.values == added.values, pending.revision == added.revision {
+                    self?.pending = nil
+                }
+            })
+        }
     }
 
     @objc private func keyboardShown(_ notification: Notification) {

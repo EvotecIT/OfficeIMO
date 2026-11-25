@@ -95,6 +95,9 @@ struct DocumentWindow: View {
             .sheet(item: $session.structureSheet, onDismiss: { session.presentPendingExportedFile() }) { sheet in
                 StructureSheetView(session: session, sheet: sheet)
             }
+            .sheet(item: $session.formFieldSheet) { sheet in
+                FormFieldSheetView(session: session, sheet: sheet)
+            }
             .sheet(isPresented: $session.isCreatingSignature) {
                 SignaturePad(session: session)
             }
@@ -251,6 +254,7 @@ struct DocumentWindow: View {
                 }
             }
             .onChange(of: session.task) { _, task in
+                if task != .read { session.endEditingForm() }
                 if task == .markup, session.formFields(session.currentPage)?.fields.contains(where: \.isFillable) == true {
                     session.transientNotice = String(localized: "To fill in the form, go back to Read.")
                 }
@@ -325,6 +329,7 @@ struct DocumentWindow: View {
 struct ReadView: View {
     @Bindable var session: DocumentSession
     @State private var isIndicatorShown = false
+    @Environment(\.accessibilityVoiceOverEnabled) private var isVoiceOverEnabled
 
     var body: some View {
         PageCanvas(session: session)
@@ -351,6 +356,8 @@ struct ReadView: View {
                         }
                         if session.pageDragTool == .redaction {
                             RedactionBanner(session: session)
+                        } else if session.isEditingForm {
+                            FormEditingBanner(session: session)
                         } else if session.pendingSignature != nil {
                             SigningBanner(session: session)
                         } else if let tool = shapeBannerTool {
@@ -375,6 +382,10 @@ struct ReadView: View {
                     await session.loadPageText(page)
                     await session.loadFormFields(page)
                 }
+            }
+            // VoiceOver reads comments where they sit on the pages, also once it is turned on while a page is shown.
+            .task(id: "\(isVoiceOverEnabled)-\(session.revision)") {
+                if isVoiceOverEnabled { await session.loadComments() }
             }
             .task(id: "\(session.pageDragTool == .select)-\(session.currentPage)-\(session.revision)") {
                 // Selecting markup on the page needs the page's annotations.

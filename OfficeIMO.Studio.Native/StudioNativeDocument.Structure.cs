@@ -50,12 +50,14 @@ internal sealed partial class StudioNativeDocument {
     /// <summary>
     /// Applies one edit as one undoable change. The request names exactly one edit: <c>properties</c>, <c>outline</c>,
     /// <c>crop</c>, <c>pageSize</c>, <c>headerFooter</c>, <c>watermark</c>, <c>bates</c>, <c>flatten</c>,
-    /// <c>addAttachment</c> or <c>removeAttachment</c>.
+    /// <c>addAttachment</c>, <c>removeAttachment</c>, <c>reply</c>, <c>reviewState</c>, <c>addFormField</c>,
+    /// <c>updateFormField</c> or <c>removeFormField</c>.
     /// </summary>
     internal Task EditAsync(StudioNativeEditRequest request, CancellationToken cancellationToken) {
         ArgumentNullException.ThrowIfNull(request);
         int named = new object?[] { request.Properties, request.Outline, request.Crop, request.PageSize, request.HeaderFooter, request.Watermark,
-            request.Bates, request.Flatten, request.AddAttachment, request.RemoveAttachment }.Count(static edit => edit is not null);
+            request.Bates, request.Flatten, request.AddAttachment, request.RemoveAttachment, request.Reply, request.ReviewState,
+            request.AddFormField, request.UpdateFormField, request.RemoveFormField }.Count(static edit => edit is not null);
         if (named != 1) throw new ArgumentException("Name exactly one edit.", nameof(request));
         return RunAsync(() => request switch {
             { Properties: { } properties } => EditProperties(properties, cancellationToken),
@@ -67,6 +69,11 @@ internal sealed partial class StudioNativeDocument {
             { Bates: { } bates } => StampBates(bates, cancellationToken),
             { Flatten: { } flatten } => Flatten(flatten, cancellationToken),
             { AddAttachment: { } attachment } => AddAttachment(attachment, cancellationToken),
+            { Reply: { } reply } => ReplyToComment(reply, cancellationToken),
+            { ReviewState: { } state } => SetCommentState(state, cancellationToken),
+            { AddFormField: { } field } => AddFormField(field, cancellationToken),
+            { UpdateFormField: { } update } => UpdateFormField(update, cancellationToken),
+            { RemoveFormField: { } name } => RemoveFormField(name, cancellationToken),
             _ => RemoveAttachment(request.RemoveAttachment!, cancellationToken)
         }, cancellationToken);
     }
@@ -418,7 +425,9 @@ internal sealed record StudioNativeAttachmentAdd(string? Path, string? FileName 
 internal sealed record StudioNativeEditRequest(StudioNativeProperties? Properties = null, IReadOnlyList<StudioNativeOutlineEdit>? Outline = null,
     StudioNativeCropEdit? Crop = null, StudioNativePageSizeEdit? PageSize = null, StudioNativeHeaderFooterEdit? HeaderFooter = null,
     StudioNativeWatermarkEdit? Watermark = null, StudioNativeBatesEdit? Bates = null, StudioNativeFlattenEdit? Flatten = null,
-    StudioNativeAttachmentAdd? AddAttachment = null, string? RemoveAttachment = null);
+    StudioNativeAttachmentAdd? AddAttachment = null, string? RemoveAttachment = null, StudioNativeCommentReply? Reply = null,
+    StudioNativeCommentState? ReviewState = null, StudioNativeFormFieldAdd? AddFormField = null,
+    StudioNativeFormFieldUpdate? UpdateFormField = null, string? RemoveFormField = null);
 
 internal sealed record StudioNativeSplitPart(IReadOnlyList<int>? Pages, string? Name = null);
 

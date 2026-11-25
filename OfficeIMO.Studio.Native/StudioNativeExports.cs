@@ -444,6 +444,17 @@ internal static unsafe partial class StudioNativeExports {
         });
     }
 
+    /// <summary>The document's comment threads, each comment with its replies and review state, as UTF-8 JSON.</summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_comments_json")]
+    internal static int DocumentCommentsJson(nint document, nint cancellation, byte** json, byte** error) {
+        if (json is null) return Fail(error, new ArgumentNullException(nameof(json)));
+        *json = null;
+        return WithDocument(document, error, cancellation, (target, token) => {
+            StudioNativeComments comments = target.GetCommentsAsync(token).GetAwaiter().GetResult();
+            *json = StudioNativeAbi.ToUtf8(JsonSerializer.Serialize(comments, StudioNativeJson.Default.StudioNativeComments));
+        });
+    }
+
     /// <summary>Applies one document edit described by a UTF-8 JSON request as one undoable change.</summary>
     [UnmanagedCallersOnly(EntryPoint = "officeimo_document_edit_json")]
     internal static int DocumentEditJson(nint document, byte* request, nint cancellation, byte** error) {

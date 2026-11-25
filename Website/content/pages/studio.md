@@ -40,15 +40,16 @@ Open any screenshot at full size to inspect the workspace. For immediate use wit
 A native SwiftUI app for Mac, iPad and iPhone runs the same OfficeIMO engine, compiled with NativeAOT, and follows each platform's document conventions. It requires macOS, iPadOS or iOS 26. It is coming soon to the Mac App Store and App Store; until then, the [Apple app guide](https://github.com/EvotecIT/OfficeIMO/tree/master/Apple/OfficeIMOStudio#readme) describes its current state.
 
 - **Read and mark up:** search, select and copy text, highlight, draw, and add notes, shapes and stamps.
+- **Comments:** follow comment threads in the inspector, reply, resolve and reopen them, filter by status or author, and export a Markdown summary.
 - **Pages:** rotate, reorder, insert, extract and split pages, and combine PDFs, images and Office files into one PDF.
-- **Forms and signatures:** fill form fields, place a handwritten signature, and sign a copy with a certificate from a .p12 or .pfx file. The certificate signature is invisible.
+- **Forms and signatures:** fill form fields, add text fields, check boxes, choices, radio groups, push buttons and signature fields with **Edit Form**, place a handwritten signature, and sign a copy with a certificate from a .p12 or .pfx file. The certificate signature is invisible.
 - **Redaction:** mark text you find or select, or areas you drag across, then remove the content and verify the result.
 - **Scans and text recognition:** scan paper with the document camera on iPad and iPhone or Continuity Camera on the Mac. **Make Searchable** recognizes text on the device with Apple's Vision framework.
 - **Conversion:** convert Word, Excel, PowerPoint and other documents to PDF, and export a PDF to Word, Excel, PowerPoint, HTML, Markdown, text or images.
-- **View Office files:** Word, Excel, PowerPoint, RTF, Markdown and OpenDocument files open read-only as their PDF conversion, with **Save as PDF** and **Edit as PDF**. Markdown is shown as converted PDF pages, not rendered Markdown. Files larger than 100 MB are not opened.
+- **View documents:** Word, Excel, PowerPoint, RTF, Markdown, OpenDocument, HTML, XPS, Visio, Publisher, OpenDocument Draw and EPUB files open read-only as their PDF conversion, with **Save as PDF** and **Edit as PDF**. Markdown is shown as converted PDF pages, not rendered Markdown. Files larger than 100 MB are not opened.
 - **Shortcuts:** actions with Siri and Spotlight phrases combine PDFs, make a PDF from images, extract pages, get a PDF's text, make a PDF searchable, and convert a document to PDF.
 
-The start screen offers conversion, combining files, a PDF from photos or a scan, a blank PDF and a sample. Comment threads, comparison, editing existing text and images, creating form fields, visible certificate signatures and the document assistant are still desktop-only. The [feature table](#features) compares each system.
+The start screen offers conversion, combining files, a PDF from photos or a scan, a blank PDF and a sample. Comparison, editing existing text and images, visible certificate signatures and the document assistant are still desktop-only. The [feature table](#features) compares each system.
 
 ## Get Studio
 

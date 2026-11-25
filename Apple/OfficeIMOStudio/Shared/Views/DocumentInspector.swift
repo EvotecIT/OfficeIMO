@@ -1,7 +1,39 @@
 import SwiftUI
 
-/// The document's facts from the engine, in the system's grouped form.
+/// The inspector: the document's details or its comments, chosen at the top as in Preview's and Pages' inspectors.
 struct DocumentInspector: View {
+    @Bindable var session: DocumentSession
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Picker("Inspector", selection: $session.inspectorPane) {
+                Text("Details").tag(InspectorPane.details)
+                Text("Comments").tag(InspectorPane.comments)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            switch session.inspectorPane {
+            case .details: DocumentDetails(session: session)
+            case .comments: CommentsInspector(session: session)
+            }
+        }
+    }
+
+    /// The size in the reader's units: millimetres, or inches where the US measurement system is used.
+    static func paperSize(_ size: CGSize) -> String {
+        let metric = Locale.current.measurementSystem != .us
+        let unit = metric ? UnitLength.millimeters : UnitLength.inches
+        let number = FloatingPointFormatStyle<Double>.number.precision(.fractionLength(0...(metric ? 0 : 2)))
+        let width = Measurement(value: size.width / 72, unit: UnitLength.inches).converted(to: unit)
+        let height = Measurement(value: size.height / 72, unit: UnitLength.inches).converted(to: unit)
+        return "\(width.value.formatted(number)) × \(height.formatted(.measurement(width: .abbreviated, usage: .asProvided, numberFormatStyle: number)))"
+    }
+}
+
+/// The document's facts from the engine, in the system's grouped form.
+private struct DocumentDetails: View {
     let session: DocumentSession
 
     var body: some View {
@@ -18,7 +50,7 @@ struct DocumentInspector: View {
                 if facts.pages.indices.contains(session.currentPage - 1) {
                     let page = facts.pages[session.currentPage - 1]
                     Section("Page \(page.number)") {
-                        LabeledContent("Size", value: Self.paperSize(page.displaySize))
+                        LabeledContent("Size", value: DocumentInspector.paperSize(page.displaySize))
                         LabeledContent("Rotation", value: Measurement(value: Double(page.rotation), unit: UnitAngle.degrees),
                                        format: .measurement(width: .narrow))
                     }
@@ -33,16 +65,6 @@ struct DocumentInspector: View {
         }
         .formStyle(.grouped)
         .task(id: "\(session.currentPage)-\(session.revision)") { await session.loadAnnotations() }
-    }
-
-    /// The size in the reader's units: millimetres, or inches where the US measurement system is used.
-    static func paperSize(_ size: CGSize) -> String {
-        let metric = Locale.current.measurementSystem != .us
-        let unit = metric ? UnitLength.millimeters : UnitLength.inches
-        let number = FloatingPointFormatStyle<Double>.number.precision(.fractionLength(0...(metric ? 0 : 2)))
-        let width = Measurement(value: size.width / 72, unit: UnitLength.inches).converted(to: unit)
-        let height = Measurement(value: size.height / 72, unit: UnitLength.inches).converted(to: unit)
-        return "\(width.value.formatted(number)) × \(height.formatted(.measurement(width: .abbreviated, usage: .asProvided, numberFormatStyle: number)))"
     }
 }
 
@@ -85,11 +107,11 @@ private struct AnnotationSection: View {
 
     private func row(_ annotation: AnnotationList.Annotation) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 10) {
-            Image(systemName: Self.symbol(annotation.subtype))
+            Image(systemName: AnnotationKind.symbol(annotation.subtype))
                 .foregroundStyle(annotation.color.map { Color(red: $0.red, green: $0.green, blue: $0.blue) } ?? .secondary)
                 .frame(width: 18)
             VStack(alignment: .leading, spacing: 2) {
-                Text(Self.name(annotation.subtype))
+                Text(AnnotationKind.name(annotation.subtype))
                 if let contents = annotation.contents, !contents.isEmpty {
                     Text(contents).font(.callout).foregroundStyle(.secondary).lineLimit(3)
                 }
@@ -106,6 +128,10 @@ private struct AnnotationSection: View {
         editing = annotation
     }
 
+}
+
+/// What people call each kind of annotation, and its symbol.
+enum AnnotationKind {
     static func name(_ subtype: String) -> LocalizedStringKey {
         switch subtype {
         case "Ink": "Drawing"

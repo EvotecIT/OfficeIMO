@@ -70,6 +70,8 @@ enum PageDragTool: Equatable {
     case redaction
     /// Selects markup, then moves or resizes it.
     case select
+    /// Adds a form field where it is drawn, or selects a field, then moves or resizes it.
+    case formField
 }
 
 /// A text box drawn on a page, in the page's displayed points, waiting for its text.
@@ -85,6 +87,7 @@ extension DocumentSession {
     var pageDragTool: PageDragTool? {
         guard isReady, task != .pages else { return nil }
         if redactionAreas != nil, canRedact { return .redaction }
+        if isEditingForm { return .formField }
         if task == .markup, canEditAnnotations, let shapeTool { return shapeTool == .select ? .select : .shape(shapeTool) }
         return nil
     }
@@ -200,6 +203,7 @@ extension DocumentSession {
         guard canRedact else { return }
         if task != .read { task = .read }
         textSelection = nil
+        formFieldTool = nil
         redactionAreas = []
         redactionAreasRevision = revision
     }
@@ -244,10 +248,16 @@ extension DocumentSession {
 /// their pointer and show its outline.
 @MainActor
 struct PageDragGesture {
+    /// What a move or resize changes: an annotation, by its object number, or a form field, by its name.
+    enum Target: Equatable {
+        case annotation(Int)
+        case field(String)
+    }
+
     enum Action {
         case draw(PageDragTool)
-        case move(objectNumber: Int, original: CGRect)
-        case resize(objectNumber: Int, fixed: CGPoint, original: CGRect)
+        case move(Target, original: CGRect)
+        case resize(Target, fixed: CGPoint, original: CGRect)
     }
 
     /// How the outline looks while dragging.
@@ -272,15 +282,17 @@ struct PageDragGesture {
     static func begin(_ tool: PageDragTool, at point: CGPoint, layout: PageLayout, session: DocumentSession) -> PageDragGesture? {
         guard let index = layout.frames.firstIndex(where: { $0.contains(point) }) else {
             if tool == .select { session.selectedAnnotation = nil }
+            if tool == .formField { session.selectedFormField = nil }
             return nil
         }
         let frame = layout.frames[index]
         let page = index + 1
-        guard tool == .select else { return PageDragGesture(action: .draw(tool), page: page, frame: frame, layout: layout, points: [point]) }
         let local = layout.pagePoint(point, page: page)
+        if tool == .formField { return beginOnField(at: point, local: local, page: page, frame: frame, layout: layout, session: session) }
+        guard tool == .select else { return PageDragGesture(action: .draw(tool), page: page, frame: frame, layout: layout, points: [point]) }
         if let selected = session.selectedPageAnnotation, selected.page == page,
            let fixed = SelectionOutline.fixedCorner(grabbing: local, of: selected.bounds.cgRect) {
-            return PageDragGesture(action: .resize(objectNumber: selected.objectNumber, fixed: fixed, original: selected.bounds.cgRect),
+            return PageDragGesture(action: .resize(.annotation(selected.objectNumber), fixed: fixed, original: selected.bounds.cgRect),
                                    page: page, frame: frame, layout: layout, points: [point])
         }
         guard let hit = session.annotation(at: local, page: page) else {
@@ -288,7 +300,27 @@ struct PageDragGesture {
             return nil
         }
         session.selectedAnnotation = hit.objectNumber
-        return PageDragGesture(action: .move(objectNumber: hit.objectNumber, original: hit.bounds.cgRect), page: page, frame: frame, layout: layout, points: [point])
+        return PageDragGesture(action: .move(.annotation(hit.objectNumber), original: hit.bounds.cgRect), page: page, frame: frame, layout: layout, points: [point])
+    }
+
+    /// While editing the form: grabs a corner of the selected field to resize it, selects the field under the point to
+    /// move it, or starts drawing a new field elsewhere.
+    private static func beginOnField(at point: CGPoint, local: CGPoint, page: Int, frame: CGRect, layout: PageLayout,
+                                     session: DocumentSession) -> PageDragGesture? {
+        if let (field, widget) = session.selectedFormFieldValue, session.selectedFormField?.page == page, field.canMove,
+           let fixed = SelectionOutline.fixedCorner(grabbing: local, of: widget.bounds.cgRect) {
+            return PageDragGesture(action: .resize(.field(field.name), fixed: fixed, original: widget.bounds.cgRect),
+                                   page: page, frame: frame, layout: layout, points: [point])
+        }
+        if let (field, widget) = session.authoredField(at: local, page: page) {
+            session.selectedFormField = FormFieldSelection(name: field.name, page: page)
+            // A radio group or a field on several pages is selected but stays where it is.
+            guard field.canMove else { return nil }
+            return PageDragGesture(action: .move(.field(field.name), original: widget.bounds.cgRect), page: page, frame: frame, layout: layout,
+                                   points: [point])
+        }
+        session.selectedFormField = nil
+        return PageDragGesture(action: .draw(.formField), page: page, frame: frame, layout: layout, points: [point])
     }
 
     /// Follows the pointer, kept on the page the drag started on.
@@ -307,6 +339,7 @@ struct PageDragGesture {
     var look: Look {
         switch action {
         case .draw(.redaction): .area
+        case .draw(.formField): .selection
         case .draw(let tool): .shape(dashed: tool == .shape(.textBox))
         case .move, .resize: .selection
         }
@@ -337,14 +370,20 @@ struct PageDragGesture {
         case .draw(.shape(let shape)):
             session.addShape(shape, page: page, from: from, to: to, failed: failed)
             return true
+        case .draw(.formField):
+            session.drawFormField(page: page, from: from, to: to)
+            return false
         case .draw(.select):
             return false
-        case .move(let number, let original), .resize(let number, _, let original):
+        case .move(let target, let original), .resize(let target, _, let original):
             guard let rect = targetRect, abs(rect.minX - original.minX) >= 0.5 || abs(rect.minY - original.minY) >= 0.5
                     || abs(rect.width - original.width) >= 0.5 || abs(rect.height - original.height) >= 0.5 else { return false }
             var resizing = false
             if case .resize = action { resizing = true }
-            session.setAnnotationBounds(number, rect, resizing: resizing, failed: failed)
+            switch target {
+            case .annotation(let number): session.setAnnotationBounds(number, rect, resizing: resizing, failed: failed)
+            case .field(let name): session.setFormFieldBounds(name, page: page, rect, resizing: resizing, failed: failed)
+            }
             return true
         }
     }
@@ -424,6 +463,23 @@ enum SelectionOutline {
     private static func corners(of rect: CGRect) -> [CGPoint] {
         [CGPoint(x: rect.minX, y: rect.minY), CGPoint(x: rect.maxX, y: rect.minY),
          CGPoint(x: rect.minX, y: rect.maxY), CGPoint(x: rect.maxX, y: rect.maxY)]
+    }
+}
+
+extension SelectionOutline {
+    /// The selected markup's or form field's box with the page it is on, for the tool in use.
+    @MainActor
+    static func selected(for tool: PageDragTool?, session: DocumentSession) -> (rect: CGRect, page: Int)? {
+        switch tool {
+        case .select:
+            return session.selectedPageAnnotation.map { ($0.bounds.cgRect, $0.page) }
+        case .formField:
+            guard let page = session.selectedFormField?.page, let value = session.selectedFormFieldValue else { return nil }
+            let boxes = value.field.widgets.map(\.bounds.cgRect)
+            return (boxes.dropFirst().reduce(boxes[0]) { $0.union($1) }, page)
+        default:
+            return nil
+        }
     }
 }
 
